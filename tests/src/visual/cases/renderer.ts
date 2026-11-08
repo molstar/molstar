@@ -13,6 +13,8 @@ import type { Representation } from '@molstar/graphics/repr/representation';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { ValueCell } from '@molstar/core/util';
 import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
+import { MarkingParams } from '@molstar/graphics/canvas3d/passes/marking';
+import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
 import { EveryLoci, Loci } from '@molstar/model/model/loci';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
@@ -103,6 +105,9 @@ async function pickDirectVolume({ graphics, canvas3d }: SceneContext, reprs: Rep
   if (corner && corner.loci.kind !== 'empty-loci') errors.push(`corner: picked ${corner.loci.kind}, not nothing`);
   return errors;
 }
+
+/** The ghost of what clip objects remove, its look by default */
+const ClipGhostOn = { name: 'on' as const, params: PD.getDefaultValues(ClipGhostParams) };
 
 export const RendererCases: VisualTestCase[] = [
   {
@@ -296,6 +301,42 @@ export const RendererCases: VisualTestCase[] = [
       return [highlighted, selected];
     },
   },
+  ...[true, false].map(
+    (reuseOcclusion): VisualTestCase => ({
+      id: `renderer/multisample/ssao${reuseOcclusion ? '-reused' : ''}`,
+      description:
+        'A block of spheres with SSAO, multi-sampled (8 samples): ' +
+        (reuseOcclusion
+          ? "the first sample's occlusion read by the others where each one's pixels lie (`reuseOcclusion`), " +
+            'closer to the occlusion of each sample than without the shift or with its y the other way.'
+          : 'the occlusion of each sample.'),
+      requires: Impostor,
+      view: ObliqueView,
+      canvasProps: {
+        multiSample: { mode: 'on', sampleLevel: 3, reuseOcclusion },
+        postprocessing: {
+          occlusion: { name: 'on', params: { ...PD.getDefaultValues(SsaoParams), resolutionScale: 1 } },
+        },
+      },
+      scene: async () => [await shapeRepr('spheres', sphereGrid(6, 1.8))],
+    }),
+  ),
+  {
+    id: 'renderer/marking/multi-sample',
+    description:
+      'Highlighted mesh primitives and selected spheres, multi-sampled: the marking of each jittered sample tested ' +
+      "against the scene's depth drawn with another jitter, no ghost slices on the marked surfaces.",
+    requires: Impostor,
+    view: ObliqueView,
+    canvasProps: { multiSample: { mode: 'on', sampleLevel: 2 } },
+    scene: async () => {
+      const highlighted = await shapeRepr('mesh', meshPrimitives());
+      highlighted.mark(EveryLoci, MarkerAction.Highlight);
+      const selected = await shapeRepr('spheres', sphereGrid(2, 2), { props: { alpha: 1 } });
+      selected.mark(EveryLoci, MarkerAction.Select);
+      return [highlighted, selected];
+    },
+  },
   ...[1, 0.5].map(
     (resolutionScale): VisualTestCase => ({
       id: `renderer/marking/dim-occlusion${resolutionScale === 1 ? '' : '-half-resolution'}`,
@@ -372,6 +413,8 @@ export const RendererCases: VisualTestCase[] = [
           params: { ...PD.getDefaultValues(SsaoParams), transparentThreshold: 1, resolutionScale },
         },
       },
+      // the layer (alpha 0.5) hides the marked block behind it: read from the transparent depth
+      marking: { ...PD.getDefaultValues(MarkingParams), transparentThreshold: 1 },
     };
     // a transparent layer of spheres in front of an opaque block
     const layerScene = async (mark: 'layer' | 'block') => {
@@ -743,6 +786,121 @@ export const RendererCases: VisualTestCase[] = [
         transforms: rowTransforms(5, 3),
         props: { clip: clipProps('instance') },
       }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/pixel',
+    description:
+      'What the clip objects remove as a ghost (a tint and its edges at half resolution): of a mesh by fragment, of ' +
+      'sphere impostors whole by their centers.',
+    requires: Impostor,
+    canvasProps: { clipGhost: ClipGhostOn },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshPrimitives(), { props: { clip: clipProps('pixel') } }),
+      await shapeRepr('spheres', sphereGrid(3, 3), { props: { clip: clipProps('pixel') } }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/points-lines',
+    description: 'The ghost of points and lines, each whole by its center.',
+    canvasProps: { clipGhost: ClipGhostOn },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('points', pointSphere(400, 4), {
+        props: { pointStyle: 'circle', sizeFactor: 6, clip: clipProps('pixel') },
+      }),
+      await shapeRepr('lines', lineCages(), { props: { sizeFactor: 3, clip: clipProps('pixel') } }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/instance',
+    description: 'The ghost of instances clipped by their centers: the removed tori whole.',
+    canvasProps: { clipGhost: ClipGhostOn },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshTorus(1), {
+        transforms: rowTransforms(5, 3),
+        props: { clip: clipProps('instance') },
+      }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/grid-cells',
+    description:
+      'The ghost of instanced tori in small instance-grid cells cut by a plane: the cells clipped whole culled from ' +
+      'the visible pass, drawn by the ghost pass (and the cells the plane does not reach the other way round).',
+    canvasProps: { clipGhost: ClipGhostOn },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshTorus(0.8), {
+        transforms: gridTransforms(5, 2.2),
+        props: {
+          cellSize: 2,
+          batchSize: 6,
+          clip: {
+            variant: 'pixel' as const,
+            objects: [
+              {
+                type: 'plane' as const,
+                invert: false,
+                position: Vec3.create(0.3, 0, 0),
+                rotation: { axis: Vec3.create(0, 0, 1), angle: 30 },
+                scale: Vec3.create(1, 1, 1),
+                transform: Mat4.identity(),
+              },
+            ],
+          },
+        },
+      }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/opt-out',
+    description: 'A mesh opted out of the ghost (`clipGhost` false): only the spheres have one.',
+    requires: Impostor,
+    canvasProps: { clipGhost: ClipGhostOn },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshPrimitives(), { props: { clip: clipProps('pixel'), clipGhost: false } }),
+      await shapeRepr('spheres', sphereGrid(3, 3), { props: { clip: clipProps('pixel') } }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/illumination',
+    description: 'The ghost over the traced image, as over the visible passes’.',
+    requires: ['illumination', ...Impostor],
+    canvasProps: { clipGhost: ClipGhostOn, illumination: { enabled: true, maxIterations: 3 } },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshPrimitives(), { props: { clip: clipProps('pixel') } }),
+      await shapeRepr('spheres', sphereGrid(3, 3), { props: { clip: clipProps('pixel') } }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/illumination-transparent',
+    description:
+      'The ghost over the traced image with a transparent mesh: behind it where it is fainter than the marking ' +
+      'threshold, hidden where denser (the transparent depth written for it).',
+    requires: ['illumination', ...Impostor],
+    canvasProps: { clipGhost: ClipGhostOn, illumination: { enabled: true, maxIterations: 3 } },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshPrimitives(), { props: { clip: clipProps('pixel'), alpha: 0.3 } }),
+      await shapeRepr('spheres', sphereGrid(3, 3), { props: { clip: clipProps('pixel') } }),
+    ],
+  },
+  {
+    id: 'renderer/clip-ghost/full-resolution',
+    description: 'The ghost at the full resolution, darker: its edges a pixel wide.',
+    requires: Impostor,
+    canvasProps: {
+      clipGhost: { name: 'on', params: { color: Color(0x404040), alpha: 0.3, edgeAlpha: 0.8, resolution: 1 } },
+    },
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshPrimitives(), { props: { clip: clipProps('pixel') } }),
+      await shapeRepr('spheres', sphereGrid(3, 3), { props: { clip: clipProps('pixel') } }),
     ],
   },
 ];

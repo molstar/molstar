@@ -11,6 +11,7 @@ import { lod_at_wgsl } from './chunks/lod.wgsl.js';
 import { size_wgsl } from './chunks/size.wgsl.js';
 import { sphere_shared_wgsl } from './chunks/sphere.wgsl.js';
 import { SphereRasterLargePixels } from '../../compute/sphere-raster.js';
+import { CulledData } from '../../culled-data.js';
 
 /** What the kernels share (`SphereRasterParams` in `sphere-raster.ts`) */
 const sphere_raster_common_wgsl = /* wgsl */ `
@@ -31,13 +32,16 @@ fn cameraDistance(p: vec3<f32>) -> f32 {
 
 /** The transforms of the instances (`transforms`) */
 const sphere_raster_transform_wgsl = /* wgsl */ `
-/** the transform of instance \`slot\`: its affine rows, three vec4s (\`affine-rows.ts\`) */
+/**
+ * the transform of instance \`slot\`: its affine rows, three vec4s (\`affine-rows.ts\`), the object's transient transform
+ * after it
+ */
 fn slotTransform(slot: u32) -> mat4x4<f32> {
     let o = slot * 3u;
     let r0 = transforms[o];
     let r1 = transforms[o + 1u];
     let r2 = transforms[o + 2u];
-    return mat4x4<f32>(
+    return uParams.uObjectTransform * mat4x4<f32>(
         vec4<f32>(r0.x, r1.x, r2.x, 0.0),
         vec4<f32>(r0.y, r1.y, r2.y, 0.0),
         vec4<f32>(r0.z, r1.z, r2.z, 0.0),
@@ -124,13 +128,15 @@ fn main(@builtin(global_invocation_id) gid: vec3u, @builtin(num_workgroups) grou
 `;
 
 /**
- * Merged objects culled on the GPU (\`merged-culler.ts\`): a thread per slot of the culler's compacted instances, a
- * region per level and segment; the slots within a region's count (its indirect record) append the chunks of the
- * record's spheres, at the segment's scale of the level (\`tSegment\`, as \`segmentLod\`)
+ * Merged objects culled on the GPU (\`merged-culler.ts\`): a thread per slot of the culler's regions of instance
+ * indices, a region per level and segment; the slots within a region's count (its indirect record) append the chunks of
+ * the record's spheres, at the segment's scale of the level (\`tSegment\`, as \`segmentLod\`), by the instance the slot
+ * holds (the chunk's slot: an index of \`CulledData\`, whose transforms come first, as the raster reads them)
  */
 export const sphere_raster_regions_wgsl = /* wgsl */ `
 ${sphere_raster_common_wgsl}
 ${sphere_raster_append_wgsl}
+${CulledData.wgsl('data', 'u32(uParams.uInstanceCount)')}
 
 fn record(r: u32, word: u32) -> u32 {
     return records[r * u32(uParams.uRecordWords) + word];
@@ -159,15 +165,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u, @builtin(num_workgroups) grou
     // vertices and the first vertex (or index) of the quads, 6 a sphere
     let count = record(r, 0u) / 6u;
     let first = record(r, 2u) / 6u;
-    let segment = segments[slot];
-    let aInstance = instances[slot];
+    let i = indices[slot];
+    let segment = culledSegment(i);
+    let aInstance = culledInstance(i);
     var scale = uParams.uLevels[0].w;
     if (u32(uParams.uSegmentLevels) > 0u) {
         let o = u32(uParams.uSegmentOffset) + (u32(segment.w) * 2u + 1u) * 4u + min(j, 3u);
         scale = bitcast<f32>(segmentPage[o]);
     }
     let groupInstance = u32(segment.y + aInstance * segment.x);
-    appendChunks(slot, first, count, j, vec4<u32>(u32(aInstance), groupInstance, u32(segment.z), bitcast<u32>(scale)));
+    appendChunks(i, first, count, j, vec4<u32>(u32(aInstance), groupInstance, u32(segment.z), bitcast<u32>(scale)));
 }
 `;
 

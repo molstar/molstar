@@ -39,7 +39,12 @@ import {
 } from '@molstar/graphics/geo/geometry/transparency-data';
 import type { Clipping } from '@molstar/graphics/theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '@molstar/graphics/geo/geometry/clipping-data';
-import { getMarkersAverage } from '@molstar/graphics/geo/geometry/marker-data';
+import {
+  addMarkerInstanceCounts,
+  getMarkersAverage,
+  updateMarkerInstanceCounts,
+  setMarkerInstanceCounts,
+} from '@molstar/graphics/geo/geometry/marker-data';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import type { Geometry, GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
 import { GeometryRequest } from '@molstar/graphics/geo/geometry/request';
@@ -176,7 +181,14 @@ namespace Visual {
     if (renderObject) renderObject.state.colorOnly = colorOnly;
   }
 
+  export function setPickOnly(renderObject: GraphicsRenderObject | undefined, pickOnly: boolean) {
+    if (renderObject) renderObject.state.pickOnly = pickOnly;
+  }
+
   export type PreviousMark = { loci: Loci; action: MarkerAction; status: MarkerInfo['status'] };
+
+  const isRemoving = (action: MarkerAction) =>
+    action === MarkerAction.RemoveHighlight || action === MarkerAction.Deselect || action === MarkerAction.Clear;
 
   export function mark(
     renderObject: GraphicsRenderObject | undefined,
@@ -195,19 +207,43 @@ namespace Visual {
       uGroupCount,
       instanceCount,
       uInstanceGranularity: instanceGranularity,
+      markerInstanceCounts,
+      markedInstanceCount,
     } = renderObject.values;
-    const count = instanceGranularity.ref.value
-      ? instanceCount.ref.value
-      : uGroupCount.ref.value * instanceCount.ref.value;
+    const instances = instanceCount.ref.value;
+    const groups = instanceGranularity.ref.value ? 1 : uGroupCount.ref.value;
+    const count = groups * instances;
     const { array } = tMarker.ref.value;
     const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
     // all clear: an action that only removes changes nothing; skips the loci's lookup and a marking that changed nothing
-    if (
-      currentStatus === 0 &&
-      (action === MarkerAction.RemoveHighlight || action === MarkerAction.Deselect || action === MarkerAction.Clear)
-    ) {
-      return false;
+    if (currentStatus === 0 && isRemoving(action)) return false;
+
+    // the marked entries per instance (`MarkerData.markerInstanceCounts`), sized here: counted from the markers where
+    // shorter while something is marked
+    let counts: Uint32Array | undefined;
+    let marked = 0;
+    if (markerInstanceCounts) {
+      counts = markerInstanceCounts.ref.value;
+      marked = markedInstanceCount.ref.value;
+      if (counts.length < instances) {
+        counts = new Uint32Array(instances);
+        marked = currentStatus === 0 ? 0 : setMarkerInstanceCounts(array, instances, groups, counts);
+        ValueCell.update(markerInstanceCounts, counts);
+      }
     }
+    /** the counts of all instances by `status` where known, else from the markers */
+    const setCounts = (status: MarkerInfo['status']) => {
+      if (!counts) return;
+      if (status === -1) {
+        // an action that only removes changes the instances with marked entries alone (each hover clears the last)
+        marked = isRemoving(action)
+          ? updateMarkerInstanceCounts(array, instances, groups, counts)
+          : setMarkerInstanceCounts(array, instances, groups, counts);
+      } else {
+        counts.fill(status === 0 ? 0 : groups, 0, instances);
+        marked = status === 0 ? 0 : instances;
+      }
+    };
 
     let changed = false;
     let average = -1;
@@ -222,6 +258,7 @@ namespace Visual {
       } else {
         changed = applyMarkerAction(array, Interval.ofLength(count), action);
       }
+      if (changed) setCounts(info.status);
       average = info.average;
       status = info.status;
     } else {
@@ -232,8 +269,12 @@ namespace Visual {
         loci,
         (interval) => {
           size += Interval.size(interval);
+          const start = Interval.start(interval);
+          const end = Interval.end(interval);
+          if (counts) marked += addMarkerInstanceCounts(array, start, end, groups, counts, -1);
           if (applyMarkerAction(array, interval, action)) changed = true;
-          ranges!.push(Interval.start(interval), Interval.end(interval));
+          if (counts) marked += addMarkerInstanceCounts(array, start, end, groups, counts, 1);
+          ranges!.push(start, end);
           return true;
         },
         true,
@@ -245,7 +286,10 @@ namespace Visual {
         const info = getMarkerInfo(action, currentStatus);
         if (info.status !== -1) {
           changed = currentStatus !== info.status;
-          if (changed) setMarkerValue(array, info.status, count);
+          if (changed) {
+            setMarkerValue(array, info.status, count);
+            setCounts(info.status);
+          }
         }
         average = info.average;
         status = info.status;
@@ -280,6 +324,7 @@ namespace Visual {
       ValueCell.updateIfChanged(markerAverage, average);
       ValueCell.updateIfChanged(markerStatus, status);
     }
+    if (counts) ValueCell.updateIfChanged(markedInstanceCount, marked);
     return changed;
   }
 
@@ -851,5 +896,17 @@ namespace Visual {
       0,
     );
     ValueCell.update(values.boundingSphere, boundingSphere);
+  }
+
+  /**
+   * The transient transform of an object shown moved (a drag before its release; `TransformData.uObjectTransform`): a
+   * uniform the vertex stages and the culling apply after the instances, no instance, grid or bounds touched. Not a
+   * placement (`setTransform` is): the identity at rest
+   */
+  export function setPreviewTransform(renderObject: GraphicsRenderObject | undefined, transform: Mat4) {
+    if (!renderObject) return;
+    const cell = renderObject.values.uObjectTransform;
+    if (Mat4.areEqual(cell.ref.value, transform, 0)) return;
+    ValueCell.update(cell, Mat4.copy(cell.ref.value, transform));
   }
 }

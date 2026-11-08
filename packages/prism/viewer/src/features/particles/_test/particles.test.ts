@@ -4,11 +4,15 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { getDrawnBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { StateSelection } from '@molstar/core/state';
+import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 import { describe, expect, it } from 'vitest';
 import { expectOk, headlessViewer, until } from '../../../_test/harness.js';
 import { DefaultPrismViewerSpec } from '../../../default-spec.js';
@@ -150,6 +154,34 @@ describe('particles', () => {
     expect(r.did).toMatch(/Focused/);
   });
 
+  it('moves and turns a list as a whole, puts it back, and undoes', async () => {
+    const v = await headlessViewer();
+    await v.api.load.files({ files: [particlesFile()] });
+    const list = () => v.plugin.managers.particles.hierarchy.current.lists[0];
+    // what the representation draws: the list at the end of its decorators
+    const drawn = () => (list().representations[0].cell.obj!.data.sourceData as ParticleList).coordinates;
+    const loaded = Array.from(list().cell.obj!.data.coordinates);
+
+    expectOk(await v.api.particles!.transform({ translation: [10, 0, 0] }));
+    Array.from(drawn()).forEach((x, i) => expect(x).toBeCloseTo(loaded[i] + (i % 3 === 0 ? 10 : 0), 4));
+    // the hierarchy's list is the one loaded, the representations still under it
+    expect(Array.from(list().cell.obj!.data.coordinates)).toEqual(loaded);
+    expect(list().representations).toHaveLength(1);
+    expect(((await v.api.particles!.transform({ translation: [10, 0, 0] })) as any).unchanged).toBe(true);
+
+    // composed: on top of where it is, turned about its center as placed
+    expectOk(await v.api.particles!.transform({ axis: [0, 0, 1], angle: 90, compose: true }));
+    expect(list().representations[0].cell.obj!.data.sourceData.rotations).toBeDefined();
+
+    expect(await v.api.particles!.transform({})).toMatchObject({ ok: false, code: 'invalid' });
+    expectOk(await v.api.particles!.transformReset({}));
+    Array.from(drawn()).forEach((x, i) => expect(x).toBeCloseTo(loaded[i], 4));
+    expect(((await v.api.particles!.transformReset({})) as any).unchanged).toBe(true);
+
+    expectOk(await v.api.history.undo());
+    expect(drawn()[0]).not.toBeCloseTo(loaded[0], 2);
+  });
+
   it("shows, styles and hides a list's unit cell; a list without one says so", async () => {
     const v = await headlessViewer({ files: [particleFixture('cryoet-ribosomes.ndjson')] });
     expect(await v.api.particles!.unitCell({})).toMatchObject({ ok: false, code: 'blocked' });
@@ -196,6 +228,68 @@ describe('particles', () => {
     expect(reps(v).sort()).toEqual(['spacefill', 'target']);
     expectOk(await v.api.history.undo());
     expect(reps(v)).toEqual(['spacefill']);
+  });
+
+  it("moves a list's targets as drawn: their bounds, and the representation's transform on top", async () => {
+    const v = await headlessViewer({ files: [particleFixture('cryoet-ribosomes.ndjson')] });
+    const crambin = new File(
+      [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../../data/examples/1crn.cif'))],
+      '1crn.cif',
+    );
+    expectOk(await v.api.particles!.targets({ file: crambin }));
+    const target = () =>
+      v.plugin.managers.particles.hierarchy.current.lists[0].representations.find(
+        (r) => (r.cell.transform.params as any).type.name === 'target',
+      )!.cell.obj!.data.repr;
+    const centerX = () => target().renderObjects[0].values.boundingSphere.ref.value.center[0];
+    const x = centerX();
+
+    // the target visuals updated in place: their bounds with them, or the renderer culls them where they were
+    expectOk(await v.api.particles!.transform({ translation: [1000, 0, 0] }));
+    expect(centerX()).toBeCloseTo(x + 1000, 0);
+
+    // the representation's transform on top
+    target().setState({ transform: Mat4.fromTranslation(Mat4(), Vec3.create(-1000, 0, 0)) });
+    expect(centerX()).toBeCloseTo(x, 0);
+    target().setState({ transform: Mat4.identity() });
+    expect(centerX()).toBeCloseTo(x + 1000, 0);
+
+    // a drag's preview: a transient transform, drawn (and bounded) moved, no instance touched
+    const values = target().renderObjects[0].values;
+    const transforms = values.aTransform.ref.version;
+    target().setState({ previewTransform: Mat4.fromTranslation(Mat4(), Vec3.create(-1000, 0, 0)) });
+    expect(getDrawnBoundingSphere(values).center[0]).toBeCloseTo(x, 0);
+    expect(centerX()).toBeCloseTo(x + 1000, 0);
+    expect(values.aTransform.ref.version).toBe(transforms);
+    target().setState({ previewTransform: Mat4.identity() });
+    expect(getDrawnBoundingSphere(values).center[0]).toBeCloseTo(x + 1000, 0);
+  });
+
+  it("moves a list's targets as a whole when the list is moved: their grids moved, not built again", async () => {
+    const v = await headlessViewer({ files: [particleFixture('cryoet-ribosomes.ndjson')] });
+    const crambin = new File(
+      [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../../data/examples/1crn.cif'))],
+      '1crn.cif',
+    );
+    expectOk(await v.api.particles!.targets({ file: crambin }));
+    const target = () =>
+      v.plugin.managers.particles.hierarchy.current.lists[0].representations.find(
+        (r) => (r.cell.transform.params as any).type.name === 'target',
+      )!.cell.obj!.data.repr;
+    const values = () => target().renderObjects[0].values;
+    const first = values().instanceGrid.ref.value;
+    const x = values().boundingSphere.ref.value.center[0];
+
+    for (const [i, dx] of [1000, 3000].entries()) {
+      expectOk(await v.api.particles!.transform({ translation: [dx, 0, 0] }));
+      const grid = values().instanceGrid.ref.value;
+      // moved from the grid first built: its cells and instance order kept, so the GPU culling keeps its split
+      expect(grid.layout, `move ${i}`).toBe(first.layout ?? first);
+      expect(grid.cellOffsets).toBe(first.cellOffsets);
+      expect(values().aTransform.ref.value).toBe(grid.cellTransform);
+      expect(values().boundingSphere.ref.value.center[0]).toBeCloseTo(x + dx, 0);
+      expect(grid.cellSpheres[0]).toBeCloseTo(first.cellSpheres[0] + dx, 1);
+    }
   });
 
   it('reads a list again from its file with other params (a tomogram), and says what it does not take', async () => {

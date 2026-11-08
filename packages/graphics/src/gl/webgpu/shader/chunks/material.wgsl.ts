@@ -113,6 +113,46 @@ export const assign_material_wgsl = /* wgsl */ `
     #endif
 `;
 
+/**
+ * The overlay's occlusion (`dOverlay`): a fragment behind the scene's opaque depth (`tDepth`), or behind its front
+ * transparent layer (`tDepthAlpha`) where that is opaque enough to be picked, has its alpha multiplied by
+ * `uOccludedAlpha`; in picking it is dropped where that alpha is below the picking threshold, so that the scene keeps
+ * the pick. Compared in view space, the overlay has near and far planes of its own (`uOccluderNear`, `uOccluderFar`
+ * are the scene's). The depth is read at the fragment's place relative to the target (the pick targets are smaller).
+ * Expects `material` and `fragmentDepth`.
+ */
+export const apply_occlusion_wgsl = /* wgsl */ `
+#if defined(dOverlay) && (defined(dRenderVariant_color) || defined(dRenderVariant_pick) || defined(dRenderVariant_depth))
+    if (uMaterial.uOccludedAlpha < 1.0) {
+        let occluderSize = vec2<i32>(textureDimensions(tDepth));
+        let occluderCoord = vec2<i32>(in.position.xy / uGlobal.uDrawingBufferSize * vec2<f32>(occluderSize));
+        let occluderDepth = textureLoad(tDepth, min(occluderCoord, occluderSize - 1), 0);
+        let fragmentViewZ = depthToViewZ(uGlobal.uIsOrtho, fragmentDepth, uGlobal.uNear, uGlobal.uFar);
+        let occluderViewZ = depthToViewZ(uGlobal.uIsOrtho, occluderDepth, uGlobal.uOccluderNear, uGlobal.uOccluderFar);
+        // depth is reversed: 0 where the scene drew nothing
+        // behind by more than a thousandth of the distance: a clip object's walls lie on the caps they cut
+        let occlusionTolerance = 0.001 * abs(fragmentViewZ);
+        var occluded = occluderDepth > 0.0 && fragmentViewZ < occluderViewZ - occlusionTolerance;
+        // its front transparent surface, where that is opaque enough to be picked
+        let occluderFrontSize = vec2<i32>(textureDimensions(tDepthAlpha));
+        let occluderFrontCoord = vec2<i32>(in.position.xy / uGlobal.uDrawingBufferSize * vec2<f32>(occluderFrontSize));
+        let occluderFront = unpackRGBAToDepthWithAlpha(textureLoad(tDepthAlpha, min(occluderFrontCoord, occluderFrontSize - 1), 0));
+        if (occluderFront.y >= uGlobal.uPickingAlphaThreshold) {
+            occluded = occluded || fragmentViewZ < depthToViewZ(uGlobal.uIsOrtho, occluderFront.x, uGlobal.uOccluderNear, uGlobal.uOccluderFar) - occlusionTolerance;
+        }
+        if (occluded) {
+            #if defined(dRenderVariant_color)
+                material.a *= uMaterial.uOccludedAlpha;
+            #else
+                if (uMaterial.uAlpha * uMaterial.uOccludedAlpha < uGlobal.uPickingAlphaThreshold) {
+                    discard;
+                }
+            #endif
+        }
+    }
+#endif
+`;
+
 /** Discards fragments of the other render mask and transparent back faces; expects \`interior\` */
 export const check_transparency_wgsl = /* wgsl */ `
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)

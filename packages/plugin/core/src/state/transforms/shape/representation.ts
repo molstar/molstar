@@ -21,6 +21,7 @@ import {
   prepareRepresentation,
   registerTransformSignatures,
 } from '@molstar/plugin/state/precompile';
+import { isSameShapeProviderTransform } from './transform.js';
 
 export { ShapeRepresentation3D };
 type ShapeRepresentation3D = typeof ShapeRepresentation3D;
@@ -49,6 +50,11 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
   },
   update({ a, b, newParams }, plugin: PluginContext) {
     return Task.create('Shape Representation', async (ctx) => {
+      // the representation calls the getter it was made with: a shape moved otherwise (`TransformShapeProvider`, its
+      // matrix in the getter, the shape's id kept) makes it anew; else it is given the new data (providers build their
+      // getter anew on every apply, from the data alone)
+      const source = b.data.sourceData as ShapeProvider<any, any, any> | undefined;
+      if (source && !isSameShapeProviderTransform(source, a.data)) return StateTransformer.UpdateResult.Recreate;
       const props = { ...b.data.repr.props, ...newParams };
       prepareRepresentation(plugin, b.data.repr, props, 'shape-group', a.data.data);
       await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);

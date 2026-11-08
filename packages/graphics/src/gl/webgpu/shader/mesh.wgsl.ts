@@ -15,6 +15,7 @@ import {
   apply_fog_wgsl,
   apply_marker_wgsl,
   assign_material_wgsl,
+  apply_occlusion_wgsl,
   check_transparency_wgsl,
   material_functions_wgsl,
 } from './chunks/material.wgsl.js';
@@ -79,14 +80,36 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
     let transform = applyTumble(aTransform, invariantBoundingSphere(in));
-    let model = uGlobal.uModel * transform;
+    let model = uGlobal.uModel * uObject.uObjectTransform * transform;
     let modelView = uGlobal.uView * model;
     ${assign_wiggle_wgsl}
-    let position4 = vec4<f32>(applyWiggle(basePosition, group, wiggle), 1.0);
+    var position4 = vec4<f32>(applyWiggle(basePosition, group, wiggle), 1.0);
+    #if defined(dGeometryType_mesh)
+        if (uObject.uScreenSize > 0.0) {
+            // constant on screen: scaled about the instance's origin by the world size of a CSS pixel there, as
+            // \`OverlayCamera\` bounds it
+            let originDepth = max(-(modelView * vec4<f32>(0.0, 0.0, 0.0, 1.0)).z, 0.0);
+            let pixelDistance = select(2.0 * originDepth, 2.0, uGlobal.uIsOrtho == 1.0);
+            let pixelSize = pixelDistance / (uGlobal.uProjection[1][1] * uGlobal.uCssHeight);
+            position4 = vec4<f32>(position4.xyz * (uObject.uScreenSize * pixelSize / uGlobal.uModelScale), 1.0);
+        }
+    #endif
     out.vModelPosition = (model * position4).xyz;
     let mvPosition = modelView * position4;
     out.vViewPosition = mvPosition.xyz;
     out.position = uGlobal.uProjection * mvPosition;
+    #if defined(dGeometryType_mesh)
+        if (uObject.uDepthOffset > 0.0) {
+            // in depth only: its pixels stay; kept in front of the camera and within the depth range (as points'
+            // \`uPointDepthOffset\`: closer than the offset, at the near plane)
+            var offsetZ = mvPosition.z + uObject.uDepthOffset * uGlobal.uModelScale;
+            if (uGlobal.uIsOrtho != 1.0) {
+                offsetZ = min(offsetZ, mvPosition.z * 1e-3);
+            }
+            let offsetPosition = uGlobal.uProjection * vec4<f32>(mvPosition.xy, offsetZ, 1.0);
+            out.position.z = clamp(offsetPosition.z / offsetPosition.w, 1e-6, 1.0 - 1e-6) * out.position.w;
+        }
+    #endif
     #if defined(dGeometryType_textureMesh) && defined(dIsoChunks)
         if (!isDrawn) {
             // outside the clip volume: whole triangles (the drawn count is a multiple of 3) are clipped
@@ -96,6 +119,9 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 
     // after the positions: grid data (smoothed colors) is read at the vertex position
     let gridPosition = basePosition;
+    // where the instance is placed, without the transient transform: grids are built from \`aTransform\` (\`uModel\` is
+    // the camera's uniform scale, its scene group's view the identity)
+    let gridModelPosition = (transform * position4).xyz;
     ${assign_varyings_wgsl}
 
     var normal = normalize(adjoint(modelView) * normalize(baseNormal));
@@ -221,6 +247,7 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
     #endif
 
     ${assign_material_wgsl}
+    ${apply_occlusion_wgsl}
     ${check_transparency_wgsl}
 
     #if defined(dRenderVariant_pick)

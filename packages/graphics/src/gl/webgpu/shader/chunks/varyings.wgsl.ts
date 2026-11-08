@@ -145,11 +145,12 @@ function grid_value_wgsl(texture: string, position: string) {
 
 /** grid positions: the local position for 'volume', the model position for 'volumeInstance' */
 const GridPosition = 'gridPosition';
-const GridModelPosition = '(out.vModelPosition / uGlobal.uModelScale)';
+const GridModelPosition = 'gridModelPosition';
 
 /**
  * Data texture indices and the color, marker and transparency varyings; expects `in.aInstance`, `vertexId`,
- * `group` and `out`, and for grid data (mesh programs) `gridPosition` and `out.vModelPosition`
+ * `group` and `out`, and for grid data (mesh programs) `gridPosition` and `gridModelPosition` (where the instance is
+ * placed, without the transient object transform)
  */
 export const assign_varyings_wgsl = /* wgsl */ `
     let instanceIndex = i32(in.aInstance);

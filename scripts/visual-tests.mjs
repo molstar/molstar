@@ -20,11 +20,20 @@
 //                                      [--shards 8] [--concurrency 32] [--save <dir>] [--compare <dir>]
 //                                      [--images <dir>] [--no-build] [--no-debug] [--channel chrome] [--headed]
 //                                      [--angle d3d11] [--browser chromium] [--firefox <path>] [--headless]
+//                                      [--groups] [--stall <s>]
 //
-//   --changed      what the uncommitted changes can affect: only the WebGPU profiles when only WebGPU code changed,
-//                  only the WebGL profiles when only WebGL code changed, all otherwise; and the cases of the changed
-//                  paths (`ChangedCases`: a pass, a group's case file), all cases when a path is not narrowed;
-//                  nothing for changes the harness doesn't import (docs, other packages)
+//   --changed      a quick check of the uncommitted changes, not a full run: only the WebGPU profiles when only WebGPU
+//                  code changed, only the WebGL profiles when only WebGL code changed, all otherwise; and the cases of
+//                  the changed paths (`ChangedCases`: a pass, a geometry, the gizmos, a group's case file), all cases
+//                  when a path is not narrowed; a geometry's own files run its cases only, not the others drawing it
+//                  (structures as meshes, the clip ghost); nothing for changes the harness doesn't import (docs, other
+//                  packages)
+//   --groups       one group of cases after another (the --filter patterns, or each top-level group), a line each as
+//                  it ends: which group is slow or failing shows early; a little slower in all (pages load per group)
+//   --stall <s>    a case without a result for this long has stalled (default 60): reported, and its shard goes on in
+//                  a new page from the next case
+//
+// The progress is printed every 10 s (cases done, failed, the case running longest), failures as they come.
 //   --save <dir>   stores the images of the WebGL profiles; --compare <dir> reports images that differ from them
 //   --compare-head compares with the images of the commit checked out (`HEAD`): a run without uncommitted changes the
 //                  harness imports stores its WebGL images as that commit's baseline (`tests/build/visual-baselines/`,
@@ -107,8 +116,26 @@ function getChangedProfiles(sources) {
 }
 
 /**
- * The cases changes of a path can affect, where narrower than all: passes with their own cases, the cases files of a
- * group. Conservative: a path not listed (shader chunks, schemas, the renderer, representations) affects all cases.
+ * The cases of a geometry's own files (its params, renderable and shaders): its cases and the gizmos drawing it. Not the
+ * other cases drawing it (structures as meshes or spheres): those are left to a full run; nor every shader variant
+ * (`shaders/**`, run on demand).
+ */
+const GeometryCases = {
+  mesh: ['geometry/mesh/**', 'geometry/texture-mesh/**', 'overlay/**'],
+  'texture-mesh': ['geometry/texture-mesh/**', 'gpu-paths/**', 'fallback/**'],
+  lines: ['geometry/lines/**', 'overlay/**'],
+  points: ['geometry/points/**', 'overlay/**'],
+  spheres: ['geometry/spheres/**', 'renderer/sphere-near**', 'renderer/sphere-raster/**'],
+  cylinders: ['geometry/cylinders/**'],
+  text: ['geometry/text/**', 'overlay/**', 'screen/**'],
+  image: ['geometry/image/**'],
+  'direct-volume': ['geometry/direct-volume/**'],
+};
+
+/**
+ * The cases changes of a path can affect, where narrower than all: passes with their own cases, a geometry's files
+ * (`GeometryCases`), the gizmos and helpers, the cases files of a group. Conservative otherwise: a path not listed
+ * (shader chunks, schemas, the renderer, representations) affects all cases.
  */
 const ChangedCases = [
   [
@@ -117,6 +144,24 @@ const ChangedCases = [
   ],
   [/^tests\/src\/visual\/cases\/merged\.ts$/, () => ['geometry/merged/**']],
   [/^tests\/src\/visual\/cases\/sphere-raster\.ts$/, () => ['renderer/sphere-raster/**']],
+  [/^tests\/src\/visual\/cases\/overlay\.ts$/, () => ['overlay/**', 'screen/**']],
+  [/^tests\/src\/visual\/cases\/shader-variants\.ts$/, () => ['shaders/**']],
+  [
+    /^tests\/src\/visual\/cases\/theme-data\.ts$/,
+    () => [
+      'geometry/palette**',
+      'renderer/wiggle/**',
+      'renderer/animation/**',
+      'renderer/bump/**',
+      'renderer/lod-fade/**',
+    ],
+  ],
+  [
+    /\/(geo\/geometry|gl\/renderable|gl\/webgl\/shader|gl\/webgpu\/shader)\/(mesh|texture-mesh|lines|points|spheres|cylinders|text|image|direct-volume)[/.]/,
+    (m) => GeometryCases[m[2]],
+  ],
+  [/\/util\/gizmo\/|\/canvas3d\/helper\/overlay-helper\.ts$/, () => ['overlay/**']],
+  [/\/canvas3d\/helper\/(camera-helper|screen-helper|scale-line)\.ts$/, () => ['screen/**']],
   [
     /\/canvas3d\/passes\/(postprocessing|ssao|outline|shadow|bloom|dof|fxaa|smaa|cas|background|fog)[^/]*\.ts$/,
     () => ['postprocessing/**'],
@@ -216,35 +261,116 @@ function differs(a, b) {
 }
 
 /**
- * A page of the browser: `goto` loads the harness, `results` waits for its results, `evaluate` calls `fn(arg)` in the
- * page (both JSON-serializable), `consoleErrors` collects the console errors and uncaught exceptions
+ * A page of the browser: `goto` loads the harness, `results` waits for its results (`waitForResults`), `evaluate` calls
+ * `fn(arg)` in the page (both JSON-serializable), `consoleErrors` collects the console errors and uncaught exceptions
  */
-
-/** A page without a new result for this long has stalled (a case that never finishes) */
-const StallMs = 5 * 60 * 1000;
 
 /**
- * The results of a page once its cases are done; a page stalled in a case (`StallMs` without a new result) gives the
- * results so far and the case it stalled in (`stalled`)
+ * A page without a new result for this long has stalled (a case that never finishes): the slowest case takes seconds,
+ * so a minute reports a hang early, and the shard goes on past it (`runShard`)
  */
-async function waitForResults(evaluate) {
-  let count = -1;
+const StallMs = Number(value('--stall', '60')) * 1000;
+/** A page not answering for this long is hung (a loop in the page): its results so far are those it reported */
+const UnresponsiveMs = 30 * 1000;
+/** How often the progress is printed */
+const ProgressMs = 10 * 1000;
+
+/** `promise`, or undefined once `ms` passed */
+const within = (promise, ms) => Promise.race([promise, new Promise((resolve) => setTimeout(resolve, ms).unref())]);
+
+/**
+ * The run's progress: the cases done and failed, of `total` (the cases of the pages loaded so far, `pagesLeft` not
+ * yet), and the case each page runs since when, printed every `ProgressMs` (`printProgress`), failures at once
+ */
+const progress = { total: 0, done: 0, failed: 0, pagesLeft: 0, running: new Set(), start: Date.now() };
+
+function printProgress() {
+  const now = Date.now();
+  let longest;
+  for (const r of progress.running) if (r.id && (!longest || r.since < longest.since)) longest = r;
+  const of = `${progress.total}${progress.pagesLeft > 0 ? '+' : ''}`;
+  const failed = progress.failed ? `, ${progress.failed} failed` : '';
+  const running = longest ? `; longest running ${longest.label} ${longest.id} ${seconds(now - longest.since)}` : '';
+  console.log(`  [${seconds(now - progress.start)}] ${progress.done}/${of} cases${failed}${running}`);
+}
+
+/**
+ * The results of a page once its cases are done (`count`: how many it ran, `label` names it in the progress); a page
+ * stalled in a case (`StallMs` without a new result) gives the results so far and the case it stalled in (`stalled`;
+ * `loading`: before its first case; `counted`: its cases added to the progress), a hung one only the ids and status it reported (`hung`); `counts` adds its cases
+ * to the progress' total
+ */
+async function waitForResults(evaluate, label, counts) {
+  /** id and status of the results reported */
+  const seen = [];
+  let total;
   let since = Date.now();
-  for (;;) {
-    const state = await evaluate(() => ({
-      done: !!window.__visualTestResults?.done,
-      count: window.__visualTestResults?.results.length ?? 0,
-      current: window.__visualTestCurrent,
-    }));
-    if (state.done) return evaluate(() => window.__visualTestResults);
-    if (state.count !== count) {
-      count = state.count;
-      since = Date.now();
-    } else if (Date.now() - since > StallMs) {
-      const partial = (await evaluate(() => window.__visualTestResults)) ?? { results: [] };
-      return { ...partial, stalled: state.current ?? '(loading the page)' };
+  const entry = { label, id: undefined, since };
+  progress.running.add(entry);
+  try {
+    for (;;) {
+      const state = await within(
+        evaluate(
+          (n) => ({
+            done: !!window.__visualTestResults?.done,
+            total: window.__visualTestCount,
+            added: (window.__visualTestResults?.results ?? []).slice(n).map((r) => ({ id: r.id, status: r.status })),
+            current: window.__visualTestCurrent,
+          }),
+          seen.length,
+        ),
+        UnresponsiveMs,
+      );
+      const now = Date.now();
+      if (!state)
+        return {
+          results: seen,
+          count: total ?? seen.length + 1,
+          stalled: entry.id ?? '(loading the page)',
+          loading: !entry.id && seen.length === 0,
+          counted: !!counts && total !== undefined,
+          hung: true,
+        };
+      if (total === undefined && state.total !== undefined) {
+        total = state.total;
+        if (counts) {
+          progress.total += total;
+          progress.pagesLeft--;
+        }
+      }
+      for (const r of state.added) {
+        seen.push(r);
+        progress.done++;
+        if (r.status === 'fail' || r.status === 'error') {
+          progress.failed++;
+          console.log(`  ${r.status} ${label} ${r.id}`);
+        }
+      }
+      if (state.added.length > 0) since = now;
+      if (state.current !== entry.id) Object.assign(entry, { id: state.current, since: now });
+      if (state.done) return { ...(await evaluate(() => window.__visualTestResults)), count: total };
+      if (now - since > StallMs) {
+        const partial = (await within(
+          evaluate(() => window.__visualTestResults),
+          UnresponsiveMs,
+        )) ?? { results: seen };
+        // the cases before the stalled one: it may have ended since (and the page gone on), which would then be reported
+        // twice and the case after it skipped (the shard goes on from the case after the stalled one)
+        const at = state.current === undefined ? -1 : partial.results.findIndex((r) => r.id === state.current);
+        const results = at < 0 ? partial.results : partial.results.slice(0, at);
+        return {
+          ...partial,
+          results,
+          count: total ?? results.length + 1,
+          stalled: state.current ?? '(loading the page)',
+          loading: !state.current && results.length === 0,
+          counted: !!counts && total !== undefined,
+        };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  } finally {
+    progress.running.delete(entry);
   }
 }
 
@@ -273,7 +399,7 @@ async function launchChromium() {
       return {
         consoleErrors,
         goto: (url) => page.goto(url, { timeout: 5 * 60 * 1000 }),
-        results: () => waitForResults((fn, arg) => page.evaluate(fn, arg)),
+        results: (label, counts) => waitForResults((fn, arg) => page.evaluate(fn, arg), label, counts),
         evaluate: (fn, arg) => page.evaluate(fn, arg),
         close: () => page.close(),
       };
@@ -373,7 +499,7 @@ async function launchFirefox() {
       return {
         consoleErrors,
         goto: (url) => send('browsingContext.navigate', { context, url, wait: 'complete' }),
-        results: () => waitForResults(evaluate),
+        results: (label, counts) => waitForResults(evaluate, label, counts),
         evaluate,
         close: async () => {
           contextErrors.delete(context);
@@ -406,10 +532,11 @@ const sharedDir = path.join(root, 'tests', 'build', 'visual-shared', String(proc
 const sharedUrl = (origin) => `${origin}/${path.relative(root, sharedDir).replaceAll(path.sep, '/')}/`;
 
 /**
- * Runs one shard of a profile in its own page; the shard of the shared reference writes its images to `sharedDir`, a
- * shard of a profile comparing with it waits for them (`referenceShard`, the same shard of the reference) and loads them
+ * Runs one shard of a profile (the cases of `caseFilter`) in its own page; the shard of the shared reference writes its
+ * images to `sharedDir`, a shard of a profile comparing with it waits for them (`referenceShard`, the same shard of the
+ * reference) and loads them. A stalled case ends its page: the shard goes on in a new page from the case after it.
  */
-async function runShard(browser, origin, profile, shard, referenceShard) {
+async function runShard(browser, origin, profile, shard, referenceShard, caseFilter) {
   const reference = WebGPUProfiles.includes(profile) ? SharedReference : profile;
   const shared =
     referenceShard &&
@@ -417,28 +544,56 @@ async function runShard(browser, origin, profile, shard, referenceShard) {
       () => true,
       () => false,
     ));
-  const page = await browser.newPage();
-  const { consoleErrors } = page;
-  const q = new URLSearchParams({ target: profile, reference, shard: `${shard}/${shards}` });
-  if (shared) q.set('shared', sharedUrl(origin));
-  if (!args.includes('--no-debug')) q.set('debug', '1');
-  if (filter) q.set('filter', filter);
-  if (tags) q.set('tags', tags);
-  if (args.includes('--draw-lists')) q.set('drawLists', '1');
-  const pageStart = Date.now();
-  // many pages load at once
-  await page.goto(`${origin}/tests/build/visual/index.html?${q}`);
-  const loadMs = Date.now() - pageStart;
-  const results = await page.results();
-  if (results.stalled) {
-    results.results.push({
-      id: results.stalled,
-      status: 'error',
-      errors: [`stalled: no result within ${StallMs / 60000} min, the shard's later cases not run`],
-    });
-  }
-
   const rows = [];
+  const consoleErrors = [];
+  let loadMs = 0;
+  const pageStart = Date.now();
+  let reloaded = false;
+  let counted = false;
+  for (let from = 0; ; ) {
+    const page = await browser.newPage();
+    const q = new URLSearchParams({ target: profile, reference, shard: `${shard}/${shards}` });
+    if (from > 0) q.set('from', String(from));
+    if (shared) q.set('shared', sharedUrl(origin));
+    if (!args.includes('--no-debug')) q.set('debug', '1');
+    if (caseFilter) q.set('filter', caseFilter);
+    if (tags) q.set('tags', tags);
+    if (args.includes('--draw-lists')) q.set('drawLists', '1');
+    const loadStart = Date.now();
+    // many pages load at once
+    await page.goto(`${origin}/tests/build/visual/index.html?${q}`);
+    loadMs += Date.now() - loadStart;
+    const results = await page.results(profile, from === 0 && !counted);
+    const ran = results.results.length;
+    // a page stalled while loading (a busy GPU process): loaded again, once; its cases are not known to go on past
+    if (results.loading && !reloaded) {
+      reloaded = true;
+      counted = !!results.counted;
+      console.log(`  stalled ${profile} loading the page, loading it again`);
+      await within(page.close(), UnresponsiveMs);
+      continue;
+    }
+    if (results.stalled) {
+      progress.done++;
+      progress.failed++;
+      console.log(`  stalled ${profile} ${results.stalled}${results.hung ? ' (the page hung)' : ''}, going on`);
+      results.results.push({
+        id: results.stalled,
+        status: 'error',
+        errors: [`stalled: no result within ${seconds(StallMs)}${results.hung ? ', the page hung' : ''}`],
+      });
+    }
+    await collectRows(page, profile, results, rows);
+    consoleErrors.push(...page.consoleErrors);
+    await within(page.close(), UnresponsiveMs);
+    if (!results.stalled || ran + 1 >= results.count) break;
+    from += ran + 1;
+  }
+  return { rows, consoleErrors, loadMs, totalMs: Date.now() - pageStart };
+}
+
+/** The rows of a page's `results` added to `rows`, with their images stored, compared or written as the run asks */
+async function collectRows(page, profile, results, rows) {
   for (const r of results.results) {
     const row = {
       id: r.id,
@@ -449,7 +604,8 @@ async function runShard(browser, origin, profile, shard, referenceShard) {
       timeMs: r.timeMs,
       warnings: r.warnings,
     };
-    if (r.status !== 'skipped') {
+    // a hung page answers nothing: its rows have no images
+    if (r.status !== 'skipped' && !results.hung) {
       const image = (kind) => page.evaluate(([id, k]) => window.__visualTestImage(id, k), [r.id, kind]);
       // check cases have no image
       const file = (saveDir || compareDir) && path.join(saveDir ?? compareDir, profile, `${fileName(r.id)}.txt`);
@@ -483,9 +639,6 @@ async function runShard(browser, origin, profile, shard, referenceShard) {
     }
     rows.push(row);
   }
-  const totalMs = Date.now() - pageStart;
-  await page.close();
-  return { rows, consoleErrors, loadMs, totalMs };
 }
 
 const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
@@ -524,6 +677,22 @@ function printTiming(jobs, shardResults) {
   }
 }
 
+/**
+ * The groups of `--groups`: the patterns of `caseFilter`, or the top-level groups of the cases (`geometry/**`, ...),
+ * read from the case files; the on-demand shader variants only when named
+ */
+function getGroups(caseFilter) {
+  if (caseFilter) return caseFilter.split(',');
+  const dir = path.join(root, 'tests', 'src', 'visual', 'cases');
+  const groups = new Set();
+  for (const file of fs.readdirSync(dir)) {
+    if (file === 'shader-variants.ts') continue;
+    const source = fs.readFileSync(path.join(dir, file), 'utf8');
+    for (const m of source.matchAll(/\bid: [`'"]([a-z0-9-]+)\//g)) groups.add(`${m[1]}/**`);
+  }
+  return [...groups].sort();
+}
+
 /** Runs `tasks` with at most `limit` at a time */
 async function pool(tasks, limit) {
   const results = new Array(tasks.length);
@@ -553,6 +722,7 @@ async function main() {
   if (args.includes('--dry-run')) {
     console.log(`profiles: ${profiles.join(', ') || 'none'}`);
     console.log(`cases: ${filter || 'all'}${tags ? ` (tags ${tags})` : ''}`);
+    if (args.includes('--groups')) console.log(`groups: ${getGroups(filter).join(', ')}`);
     if (changed) {
       console.log('changed sources the harness imports:');
       for (const f of changed) console.log(`  ${f}`);
@@ -588,24 +758,45 @@ async function main() {
   const browser = browserName === 'firefox' ? await launchFirefox() : await launchChromium();
 
   const start = Date.now();
+  progress.start = start;
   // the shared reference first, then the other WebGL profiles: the WebGPU shards wait for its images
   const order = (p) => (p === SharedReference ? 0 : WebGPUProfiles.includes(p) ? 2 : 1);
   const ordered = [...profiles].sort((a, b) => order(a) - order(b));
-  const jobs = ordered.flatMap((profile) => Array.from({ length: shards }, (_, shard) => ({ profile, shard })));
-  const referenceShards = new Map();
-  let shardResults;
+  const groups = args.includes('--groups') ? getGroups(filter) : [filter];
+  const jobs = [];
+  const shardResults = [];
+  const timer = setInterval(printProgress, ProgressMs);
   try {
-    shardResults = await pool(
-      jobs.map((j) => () => {
-        const referenceShard =
-          sharesReference && WebGPUProfiles.includes(j.profile) ? referenceShards.get(j.shard) : undefined;
-        const run = runShard(browser, origin, j.profile, j.shard, referenceShard);
-        if (sharesReference && j.profile === SharedReference) referenceShards.set(j.shard, run);
-        return run;
-      }),
-      concurrency,
-    );
+    for (const group of groups) {
+      const groupStart = Date.now();
+      const groupJobs = ordered.flatMap((profile) =>
+        Array.from({ length: shards }, (_, shard) => ({ profile, shard })),
+      );
+      progress.pagesLeft += groupJobs.length;
+      const referenceShards = new Map();
+      const groupResults = await pool(
+        groupJobs.map((j) => () => {
+          const referenceShard =
+            sharesReference && WebGPUProfiles.includes(j.profile) ? referenceShards.get(j.shard) : undefined;
+          const run = runShard(browser, origin, j.profile, j.shard, referenceShard, group);
+          if (sharesReference && j.profile === SharedReference) referenceShards.set(j.shard, run);
+          return run;
+        }),
+        concurrency,
+      );
+      if (groups.length > 1) {
+        const counts = ordered.map((profile) => {
+          const rows = groupResults.filter((_, i) => groupJobs[i].profile === profile).flatMap((p) => p.rows);
+          const bad = rows.filter((r) => r.status === 'fail' || r.status === 'error').length;
+          return `${profile} ${rows.filter((r) => r.status !== 'skipped').length - bad} pass${bad ? `, ${bad} failed` : ''}`;
+        });
+        console.log(`${group}: ${counts.join('; ')} (${seconds(Date.now() - groupStart)})`);
+      }
+      jobs.push(...groupJobs);
+      shardResults.push(...groupResults);
+    }
   } finally {
+    clearInterval(timer);
     await browser.close();
     server.close();
     fs.rmSync(sharedDir, { recursive: true, force: true });
@@ -656,7 +847,7 @@ async function main() {
   console.log('timing:');
   printTiming(jobs, shardResults);
   console.log(
-    `${jobs.length} pages (${profiles.length} profiles x ${shards} shards) in ${((Date.now() - start) / 1000).toFixed(0)} s`,
+    `${jobs.length} pages (${profiles.length} profiles x ${shards} shards${groups.length > 1 ? ` x ${groups.length} groups` : ''}) in ${((Date.now() - start) / 1000).toFixed(0)} s`,
   );
   process.exit(failed ? 1 : 0);
 }

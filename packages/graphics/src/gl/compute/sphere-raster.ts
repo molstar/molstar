@@ -31,9 +31,11 @@ import { type LodLevelsValue, LodView } from '../renderable.js';
 import type { SpheresValues } from '../renderable/spheres.js';
 import type { MergedRasterInput } from '../renderable/merged-culler.js';
 import { UniformSpec } from '../renderable/schema.js';
-import { packAffineRows } from '../affine-rows.js';
+import { packAffineRowsOf } from '../affine-rows.js';
+import type { SegmentedArray } from '../segmented-array.js';
 import { ReversedZeroToOne } from '../depth-range.js';
 import { getScratchBuffer } from './scratch.js';
+import { getDispatchSize } from './prefix-sum.js';
 
 /**
  * Small opaque spheres drawn by kernels instead of quads (`sphere-compute-raster.md`): a pass appends the chunks of 64
@@ -62,6 +64,8 @@ export const SphereRasterChunkWords = 8;
 /** What every pass reads */
 const SphereRasterParams = {
   uModelView: UniformSpec('m4'),
+  /** the object's transient transform after the instances' (`uObjectTransform`), as the vertex stage applies it */
+  uObjectTransform: UniformSpec('m4'),
   uProjection: UniformSpec('m4'),
   /** the camera plane in model space, as `uGlobal.uCameraPlane` */
   uCameraPlane: UniformSpec('v4'),
@@ -111,8 +115,9 @@ export const SphereRasterRegionsSchema = {
   uRecordBase: UniformSpec('i'),
   uSlotBase: UniformSpec('i'),
   records: StorageBufferSpec('u32', 'read'),
-  instances: StorageBufferSpec('f32', 'read'),
-  segments: StorageBufferSpec('vec4<f32>', 'read'),
+  /** the culler's instance indices and the instances' data (`MergedRasterInput`, `CulledData`) */
+  indices: StorageBufferSpec('u32', 'read'),
+  data: StorageBufferSpec('vec4<f32>', 'read'),
   segmentPage: StorageBufferSpec('u32', 'read'),
   counter: StorageBufferSpec('atomic<u32>', 'read-write'),
   chunks: StorageBufferSpec('vec4<u32>', 'read-write'),
@@ -336,6 +341,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     if (k) return k;
     const common = {
       uModelView: ValueCell.create(Mat4()),
+      uObjectTransform: ValueCell.create(Mat4.identity()),
       uProjection: ValueCell.create(Mat4()),
       uCameraPlane: ValueCell.create(Vec4()),
       uModelScale: ValueCell.create(1),
@@ -355,7 +361,8 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     const transforms = culled ? undefined : compute.createBuffer(16 * 3, 'sphere raster transforms');
     const instances = culled ? undefined : compute.createBuffer(16, 'sphere raster instances');
     const clipObjects = compute.createBuffer(Clip.MaxObjectCount * ClipStorageVec4s * 16, 'sphere raster clip objects');
-    const transformsCell = ValueCell.create(culled ? culled.transforms : transforms!);
+    // a culler's data: its transforms first, three vec4s an instance as the raster's own (the chunks' slots its indices)
+    const transformsCell = ValueCell.create(culled ? culled.data : transforms!);
     const chunkValues = culled
       ? {
           ...common,
@@ -366,8 +373,8 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
           uRecordBase: ValueCell.create(0),
           uSlotBase: ValueCell.create(0),
           records: ValueCell.create(culled.records),
-          instances: ValueCell.create(culled.instances),
-          segments: ValueCell.create(culled.segments),
+          indices: ValueCell.create(culled.indices),
+          data: ValueCell.create(culled.data),
           segmentPage: ValueCell.create(culled.records),
           counter: counterCell,
           chunks: chunksCell,
@@ -400,11 +407,11 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       uInvModelView: ValueCell.create(Mat4()),
       uClippingOffset: ValueCell.create(-1),
       uClippingInstance: ValueCell.create(0),
-      clipping: ValueCell.create(transforms ?? culled!.transforms),
+      clipping: ValueCell.create(transforms ?? culled!.data),
       clipObjects: ValueCell.create(clipObjects),
       transforms: transformsCell,
-      positions: ValueCell.create(transforms ?? culled!.transforms),
-      sizes: ValueCell.create(transforms ?? culled!.transforms),
+      positions: ValueCell.create(transforms ?? culled!.data),
+      sizes: ValueCell.create(transforms ?? culled!.data),
       counter: counterCell,
       chunks: chunksCell,
       vis: ValueCell.create(vis),
@@ -453,11 +460,12 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     if (k.instances!.byteLength < Math.ceil(n / 4) * 16) {
       k.instances!.destroy();
       k.instances = compute.createBuffer(Math.ceil(n / 4) * 16, 'sphere raster instances');
-      ValueCell.update(k.chunkValues.instances, k.instances);
+      ValueCell.update((k.chunkValues as Cells<typeof SphereRasterCullSchema>).instances, k.instances);
     }
     if (count > 0) {
-      const transform = aTransform.ref.value as Float32Array;
-      k.transforms!.write(packAffineRows(transform, count, new Float32Array(count * 12)));
+      // a merged object's: its members' as parts
+      const transform = aTransform.ref.value as Float32Array | SegmentedArray<Float32Array>;
+      k.transforms!.write(packAffineRowsOf(transform, count, new Float32Array(count * 12)));
       k.instances!.write((aInstance.ref.value as Float32Array).subarray(0, count));
     }
     k.instanceVersions[0] = aTransform.ref.version;
@@ -604,6 +612,10 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
 
         const c = k.rasterValues;
         ValueCell.update(c.uModelView, Mat4.copy(c.uModelView.ref.value, view.modelView));
+        ValueCell.update(
+          c.uObjectTransform,
+          Mat4.copy(c.uObjectTransform.ref.value, values.uObjectTransform.ref.value),
+        );
         ValueCell.update(c.uProjection, ReversedZeroToOne.projection(c.uProjection.ref.value, view.projection));
         ValueCell.update(c.uCameraPlane, Vec4.copy(c.uCameraPlane.ref.value, view.cameraPlane));
         ValueCell.updateIfChanged(c.uModelScale, view.modelScale);
@@ -639,10 +651,10 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
           ValueCell.updateIfChanged(v.uRecordBase, culled.recordBase);
           ValueCell.updateIfChanged(v.uSlotBase, culled.slotBase);
           ValueCell.updateIfChanged(v.records, culled.records);
-          ValueCell.updateIfChanged(v.instances, culled.instances);
-          ValueCell.updateIfChanged(v.segments, culled.segments);
+          ValueCell.updateIfChanged(v.indices, culled.indices);
+          ValueCell.updateIfChanged(v.data, culled.data);
           ValueCell.updateIfChanged(v.segmentPage, segmentLayer!.buffer);
-          ValueCell.updateIfChanged(c.transforms, culled.transforms);
+          ValueCell.updateIfChanged(c.transforms, culled.data);
         } else {
           const v = k.chunkValues as Cells<typeof SphereRasterCullSchema>;
           ValueCell.update(
@@ -672,13 +684,13 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
         prepared.push({ k, threads, index: i, culled });
         ranges[i].drawn = true;
         Mat4.copy(ranges[i].levels, levels);
-        ranges[i].transforms = culled ? culled.transforms : k.transforms;
+        ranges[i].transforms = culled ? culled.data : k.transforms;
       }
 
       compute.beginComputePass({ label: 'sphere raster' });
       for (const { k, threads, index } of prepared) {
-        const groups = Math.ceil(threads / 64);
-        k.chunk.dispatch(Math.min(groups, 65535), Math.ceil(groups / 65535));
+        const { x, y } = getDispatchSize(Math.ceil(threads / 64), 65535);
+        k.chunk.dispatch(x, y);
         k.args.dispatch(1);
         k.raster.dispatchIndirect(args!, index * 32);
         k.rasterSingles.dispatchIndirect(args!, index * 32 + 16);
@@ -701,8 +713,8 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
           (k.chunkValues as Cells<typeof SphereRasterRegionsSchema>).records,
           culled.secondRecords,
         );
-        const groups = Math.ceil(threads / 64);
-        k.chunk.dispatch(Math.min(groups, 65535), Math.ceil(groups / 65535));
+        const { x, y } = getDispatchSize(Math.ceil(threads / 64), 65535);
+        k.chunk.dispatch(x, y);
         k.args.dispatch(1);
         k.raster.dispatchIndirect(args!, index * 32);
         k.rasterSingles.dispatchIndirect(args!, index * 32 + 16);

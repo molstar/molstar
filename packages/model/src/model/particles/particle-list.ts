@@ -8,12 +8,14 @@
 
 import { OrderedSet } from '@molstar/core/data/int';
 import type { Column } from '@molstar/core/data/db';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { GridLookup3D } from '@molstar/core/math/geometry/lookup3d/grid';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
+import { CentroidHelper } from '@molstar/core/math/geometry/centroid-helper';
+import { Grid } from '../volume/grid.js';
 import type { ModelFormat } from '@molstar/model/formats/format';
-import { type CustomProperties, CustomPropertyDescriptor } from '../custom-property.js';
+import { CustomProperties, CustomPropertyDescriptor } from '../custom-property.js';
 import type { Boundary } from '@molstar/core/math/geometry/boundary';
 import { fillIdentityTransform } from '@molstar/core/math/linear-algebra/3d/transform-array';
 import type { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
@@ -143,6 +145,13 @@ export interface ParticleList {
 
   readonly sourceData: ModelFormat;
 
+  /**
+   * The list this one is a copy of moved as a whole (`Particle.transform`) and the move from it: the first of a line
+   * of moves, the moves composed, so two lists of a line give the move between them (`Particle.getMove`) and what was
+   * built for one can be moved for the other
+   */
+  readonly movedFrom?: { readonly particles: ParticleList; readonly transform: Mat4 };
+
   customProperties: CustomProperties;
   _propertyData: { [name: string]: any };
 }
@@ -153,20 +162,103 @@ export interface ParticleList {
  * targets via `ParticleList.targetMapping`.
  */
 export type ParticleTarget =
-  | { readonly kind: 'structure'; readonly structure: import('../structure/structure.js').Structure }
+  | {
+      readonly kind: 'structure';
+      readonly structure: import('../structure/structure.js').Structure;
+      /**
+       * The point of the structure placed at a particle's coordinates: the centroid of its atoms (the default,
+       * `ParticleTarget.getCenter`), given when the format has it already (the centroid it placed its particles by)
+       */
+      readonly center?: Vec3;
+    }
+  | {
+      /** typed spheres (atoms, coarse beads) without a structure: what a target's geometry needs, read from its file */
+      readonly kind: 'sites';
+      readonly sites: ParticleSites;
+      /** as a structure target's: the point placed at a particle's coordinates, the sites' centroid by default */
+      readonly center?: Vec3;
+    }
   | { readonly kind: 'shape'; readonly shape: import('../shape/shape.js').Shape }
   | { readonly kind: 'volume'; readonly volume: import('../volume/volume.js').Volume };
+
+/**
+ * The sites of a target (`ParticleTarget` kind `sites`): positions and radii, a site's index its group in the target's
+ * geometry. A few bytes a site, not a model and a structure of them (millions of atoms in a mesoscale model's targets)
+ */
+export interface ParticleSites {
+  readonly count: number;
+  /** x, y, z a site */
+  readonly positions: Float32Array;
+  /** the physical radius a site (an atom's van der Waals radius, a bead's own) */
+  readonly radii: Float32Array;
+  readonly label?: string;
+  /** the sites' chains, their sites consecutive (as a structure's units): runs, a few bytes a chain, not an index a site */
+  readonly chains?: ParticleSiteChains;
+}
+
+/** Chain `c` of `ParticleSites`: its sites `[offsets[c], offsets[c + 1])`, its label (`label_asym_id`) */
+export interface ParticleSiteChains {
+  /** a chain's first site, the site count last (chain count + 1 values) */
+  readonly offsets: Int32Array;
+  readonly labels: readonly string[];
+}
 
 export namespace ParticleTarget {
   export function data(target: ParticleTarget) {
     switch (target.kind) {
       case 'structure':
         return target.structure;
+      case 'sites':
+        return target.sites;
       case 'shape':
         return target.shape;
       case 'volume':
         return target.volume;
     }
+  }
+
+  const centroids = new WeakMap<object, Vec3>();
+  const position = Vec3();
+
+  /**
+   * The point of the target placed at a particle's coordinates: a structure's centroid (`center` when given, cached
+   * per structure otherwise); a volume's box center (voxel N/2, the subtomogram formats' convention), not its
+   * isosurface's, which moves with the iso value; none for shapes, placed by their geometry's bounding sphere center
+   */
+  export function getCenter(target: ParticleTarget): Vec3 | undefined {
+    if (target.kind === 'shape') return undefined;
+    if (target.kind === 'volume') return Grid.getBoundingSphere(target.volume.grid).center;
+    if (target.center) return target.center;
+    if (target.kind === 'sites') {
+      const { sites } = target;
+      let center = centroids.get(sites);
+      if (!center) {
+        const helper = new CentroidHelper();
+        const p = sites.positions;
+        for (let i = 0, o = 0; i < sites.count; ++i, o += 3) {
+          helper.includeStep(Vec3.set(position, p[o], p[o + 1], p[o + 2]));
+        }
+        helper.finishedIncludeStep();
+        center = Vec3.clone(helper.center);
+        centroids.set(sites, center);
+      }
+      return center;
+    }
+    const { structure } = target;
+    let center = centroids.get(structure);
+    if (!center) {
+      const helper = new CentroidHelper();
+      for (const unit of structure.units) {
+        const { elements, conformation } = unit;
+        for (let i = 0, il = elements.length; i < il; ++i) {
+          helper.includeStep(conformation.position(elements[i], position));
+        }
+      }
+      helper.finishedIncludeStep();
+      center = Vec3.clone(helper.center);
+      centroids.set(structure, center);
+    }
+    return center;
   }
 }
 
@@ -215,6 +307,63 @@ export function getParticleSpacingRadius(data: ParticleList): number {
   return radius;
 }
 
+/**
+ * Particle `i`'s transform (column-major mat4, its rotation then its position) into `out` at `offset`, all 16 values:
+ * as `getParticleTransforms` holds it, without the list's copy of all (a target's own transforms, millions of
+ * particles)
+ */
+export function writeParticleTransform(data: ParticleList, i: number, out: Float32Array, offset: number) {
+  const { rotations, coordinates } = data;
+  const o = offset;
+  const c = i * 3;
+  if (rotations) {
+    // quat → mat4 (see Mat4.fromQuat); the identity quaternion gives the identity
+    const q = i * 4;
+    const x = rotations[q],
+      y = rotations[q + 1],
+      z = rotations[q + 2],
+      w = rotations[q + 3];
+    const x2 = x + x,
+      y2 = y + y,
+      z2 = z + z;
+    const xx = x * x2,
+      yx = y * x2,
+      yy = y * y2;
+    const zx = z * x2,
+      zy = z * y2,
+      zz = z * z2;
+    const wx = w * x2,
+      wy = w * y2,
+      wz = w * z2;
+    out[o] = 1 - yy - zz;
+    out[o + 1] = yx + wz;
+    out[o + 2] = zx - wy;
+    out[o + 4] = yx - wz;
+    out[o + 5] = 1 - xx - zz;
+    out[o + 6] = zy + wx;
+    out[o + 8] = zx + wy;
+    out[o + 9] = zy - wx;
+    out[o + 10] = 1 - xx - yy;
+  } else {
+    out[o] = 1;
+    out[o + 1] = 0;
+    out[o + 2] = 0;
+    out[o + 4] = 0;
+    out[o + 5] = 1;
+    out[o + 6] = 0;
+    out[o + 8] = 0;
+    out[o + 9] = 0;
+    out[o + 10] = 1;
+  }
+  out[o + 3] = 0;
+  out[o + 7] = 0;
+  out[o + 11] = 0;
+  out[o + 12] = coordinates[c];
+  out[o + 13] = coordinates[c + 1];
+  out[o + 14] = coordinates[c + 2];
+  out[o + 15] = 1;
+}
+
 const ParticleTransformsDescriptor = CustomPropertyDescriptor({ name: 'particle-transforms' });
 
 /**
@@ -240,45 +389,7 @@ export function getParticleTransforms(data: ParticleList): Float32Array {
     }
 
     if (rotations && hasRotations) {
-      // quat → mat4 (see Mat4.fromQuat) written directly into the output
-      // to avoid a temporary matrix and a 16-element copy per particle;
-      // pads are already zero
-      for (let i = 0; i < particleCount; ++i) {
-        const cOffset = i * 3;
-        const qOffset = i * 4;
-        const o = i * 16;
-
-        const x = rotations[qOffset + 0],
-          y = rotations[qOffset + 1],
-          z = rotations[qOffset + 2],
-          w = rotations[qOffset + 3];
-        const x2 = x + x,
-          y2 = y + y,
-          z2 = z + z;
-        const xx = x * x2,
-          yx = y * x2,
-          yy = y * y2;
-        const zx = z * x2,
-          zy = z * y2,
-          zz = z * z2;
-        const wx = w * x2,
-          wy = w * y2,
-          wz = w * z2;
-
-        transformArray[o + 0] = 1 - yy - zz;
-        transformArray[o + 1] = yx + wz;
-        transformArray[o + 2] = zx - wy;
-        transformArray[o + 4] = yx - wz;
-        transformArray[o + 5] = 1 - xx - zz;
-        transformArray[o + 6] = zy + wx;
-        transformArray[o + 8] = zx + wy;
-        transformArray[o + 9] = zy - wx;
-        transformArray[o + 10] = 1 - xx - yy;
-        transformArray[o + 12] = coordinates[cOffset + 0];
-        transformArray[o + 13] = coordinates[cOffset + 1];
-        transformArray[o + 14] = coordinates[cOffset + 2];
-        transformArray[o + 15] = 1;
-      }
+      for (let i = 0; i < particleCount; ++i) writeParticleTransform(data, i, transformArray, i * 16);
     } else {
       fillIdentityTransform(transformArray, particleCount);
       for (let i = 0; i < particleCount; ++i) {
@@ -563,12 +674,97 @@ export namespace Particle {
     return `${size.toLocaleString('en')} particles`;
   }
 
-  /** Return a copy of `particles` with the given per-target reference objects attached. */
+  /**
+   * A copy of `particles` moved by `transform`: the coordinates transformed, the orientations turned by its rotation
+   * (given where it turns and the list has none); the radii, the cell and the targets as they were. What is cached on
+   * the list by position (the boundary, the transforms) is computed again, what is not kept (`keptByMove`). The copy
+   * records the move (`movedFrom`). For rigid moves: the coordinates take any affine `transform`, but an orientation is
+   * a unit quaternion, turned by the rotation part alone (`Mat4.extractRotation`), so a mirroring transform (negative
+   * determinant) or a shear leaves the orientations turned, not mirrored or sheared, and a scale leaves the radii.
+   */
+  export function transform(particles: ParticleList, transform: Mat4): ParticleList {
+    const { count, coordinates: src } = particles;
+    const coordinates = new Float32Array(src.length);
+    // `Vec3.transformMat4` and `Quat.multiply` inlined (millions of particles); the transform affine, w 1
+    const [m0, m1, m2, , m4, m5, m6, , m8, m9, m10, , m12, m13, m14, m15] = transform;
+    const w = m15 || 1;
+    for (let o = 0, ol = count * 3; o < ol; o += 3) {
+      const x = src[o],
+        y = src[o + 1],
+        z = src[o + 2];
+      coordinates[o] = (m0 * x + m4 * y + m8 * z + m12) / w;
+      coordinates[o + 1] = (m1 * x + m5 * y + m9 * z + m13) / w;
+      coordinates[o + 2] = (m2 * x + m6 * y + m10 * z + m14) / w;
+    }
+    const turn = Quat.normalize(Quat(), Quat.fromMat4(Quat(), Mat4.extractRotation(Mat4(), transform)));
+    let rotations = particles.rotations;
+    // q and −q are the same turn
+    if (rotations || 1 - Math.abs(turn[3]) > 1e-9) {
+      const turned = new Float32Array(count * 4);
+      const [ax, ay, az, aw] = turn;
+      for (let o = 0, ol = count * 4; o < ol; o += 4) {
+        // the identity where the list has none
+        const bx = rotations ? rotations[o] : 0,
+          by = rotations ? rotations[o + 1] : 0,
+          bz = rotations ? rotations[o + 2] : 0,
+          bw = rotations ? rotations[o + 3] : 1;
+        turned[o] = ax * bw + aw * bx + ay * bz - az * by;
+        turned[o + 1] = ay * bw + aw * by + az * bx - ax * bz;
+        turned[o + 2] = az * bw + aw * bz + ax * by - ay * bx;
+        turned[o + 3] = aw * bw - ax * bx - ay * by - az * bz;
+      }
+      rotations = turned;
+    }
+    const from = particles.movedFrom;
+    const customProperties = new CustomProperties();
+    const propertyData = Object.create(null);
+    const rigid = Math.abs(Mat4.getMaxScaleOnAxis(transform) - 1) < 1e-6;
+    for (const descriptor of keptByMove) {
+      const value = particles._propertyData[descriptor.name];
+      if (value === undefined || (descriptor === ParticleSpacingDescriptor && !rigid)) continue;
+      customProperties.add(descriptor);
+      propertyData[descriptor.name] = value;
+    }
+    return {
+      ...particles,
+      coordinates,
+      rotations,
+      movedFrom: {
+        particles: from?.particles ?? particles,
+        transform: from ? Mat4.mul(Mat4(), transform, from.transform) : Mat4.copy(Mat4(), transform),
+      },
+      customProperties,
+      _propertyData: propertyData,
+    };
+  }
+
+  /**
+   * What `transform` keeps of the list's cached data: what does not depend on positions (the target groups, the fiber
+   * mask: the arrays they are of are shared), the spacing of a move without scale (distances kept); the release of a
+   * move handle moves a list of millions, the groups alone cost 60 ms again
+   */
+  const keptByMove = [ParticleTargetGroupsDescriptor, FiberParticleMaskDescriptor, ParticleSpacingDescriptor];
+
+  /**
+   * The move from `from` to `to` where both are of one line of moves (`movedFrom`, either the first of it): `to` is
+   * `from` moved by it, its particles the same; undefined otherwise
+   */
+  export function getMove(from: ParticleList, to: ParticleList): Mat4 | undefined {
+    if ((from.movedFrom?.particles ?? from) !== (to.movedFrom?.particles ?? to)) return undefined;
+    const t = to.movedFrom?.transform ?? Mat4.identity();
+    const f = from.movedFrom?.transform;
+    return f ? Mat4.mul(Mat4(), t, Mat4.invert(Mat4(), f)) : Mat4.copy(Mat4(), t);
+  }
+
+  /**
+   * Return a copy of `particles` with the given per-target reference objects attached; of the same line of moves
+   * (`movedFrom`: the coordinates the same), so a list moved under it gives its move
+   */
   export function withTargets(
     particles: ParticleList,
     targetMapping: ReadonlyMap<number, ParticleTarget>,
   ): ParticleList {
-    return { ...particles, targetMapping };
+    return { ...particles, targetMapping, movedFrom: particles.movedFrom ?? { particles, transform: Mat4.identity() } };
   }
 
   export const BoundaryDescriptor: CustomPropertyDescriptor<Boundary> = CustomPropertyDescriptor({

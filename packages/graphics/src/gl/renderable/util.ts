@@ -11,6 +11,7 @@ import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import type { TextureFilter } from '../texture.js';
 import { arrayMinMax } from '@molstar/core/util/array';
 import { SegmentedArray } from '../segmented-array.js';
+import type { ValueCell } from '@molstar/core/util/value-cell';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -266,6 +267,113 @@ export function calculateInvariantBoundingSphere(
 
 const _mat4 = Mat4();
 
+/**
+ * The sphere around the box of the transformed centers with the largest distance from its center, plus the invariant
+ * radius: encloses, two passes over the transforms, many times cheaper than the helper's. For many instances as tight
+ * or tighter: the helper's center is the extrema's centroid, pulled off where they pile up unevenly (a crystal lattice
+ * 8% wider, 3PQR; a capsid 1%, 1M4X)
+ */
+function calculateBoxTransformBoundingSphere(
+  invariantBoundingSphere: Sphere3D,
+  transform: Float32Array,
+  transformCount: number,
+  transformOffset: number,
+): Sphere3D {
+  const { center, radius } = invariantBoundingSphere;
+  const cx = center[0],
+    cy = center[1],
+    cz = center[2];
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
+  // inlined `Vec3.transformMat4Offset` (rigid instances: no projective part): millions of instances (mesoscale)
+  for (let i = 0, o = transformOffset; i < transformCount; ++i, o += 16) {
+    const x = transform[o] * cx + transform[o + 4] * cy + transform[o + 8] * cz + transform[o + 12];
+    const y = transform[o + 1] * cx + transform[o + 5] * cy + transform[o + 9] * cz + transform[o + 13];
+    const z = transform[o + 2] * cx + transform[o + 6] * cy + transform[o + 10] * cz + transform[o + 14];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
+  }
+  const bx = (minX + maxX) / 2,
+    by = (minY + maxY) / 2,
+    bz = (minZ + maxZ) / 2;
+  let maxDistSq = 0;
+  for (let i = 0, o = transformOffset; i < transformCount; ++i, o += 16) {
+    const dx = transform[o] * cx + transform[o + 4] * cy + transform[o + 8] * cz + transform[o + 12] - bx;
+    const dy = transform[o + 1] * cx + transform[o + 5] * cy + transform[o + 9] * cz + transform[o + 13] - by;
+    const dz = transform[o + 2] * cx + transform[o + 6] * cy + transform[o + 10] * cz + transform[o + 14] - bz;
+    const d = dx * dx + dy * dy + dz * dz;
+    if (d > maxDistSq) maxDistSq = d;
+  }
+  return Sphere3D.create(Vec3.create(bx, by, bz), Math.sqrt(maxDistSq) + radius);
+}
+
+/** The values `getDrawnBoundingSphere` reads */
+export interface DrawnBoundsValues {
+  readonly boundingSphere: ValueCell<Sphere3D>;
+  /** the identity where missing */
+  readonly uObjectTransform?: ValueCell<Mat4>;
+}
+
+const drawnBounds = new WeakMap<DrawnBoundsValues, { bounds: number; transform: number; sphere: Sphere3D }>();
+
+/**
+ * The bounds of an object as drawn: `boundingSphere` (its instances as placed) with its transient transform
+ * (`uObjectTransform`) applied, `boundingSphere` itself at rest. What culls and bounds the scene while drawing reads
+ * this; what fits the camera to the data reads `boundingSphere`
+ */
+export function getDrawnBoundingSphere(values: DrawnBoundsValues): Sphere3D {
+  const cell = values.uObjectTransform;
+  if (!cell || Mat4.isIdentity(cell.ref.value)) return values.boundingSphere.ref.value;
+  const transform = cell.ref.value;
+  let e = drawnBounds.get(values);
+  const bounds = values.boundingSphere.ref.version;
+  const version = cell.ref.version;
+  if (e && e.bounds === bounds && e.transform === version) return e.sphere;
+  if (!e) {
+    e = { bounds, transform: version, sphere: Sphere3D() };
+    drawnBounds.set(values, e);
+  }
+  e.bounds = bounds;
+  e.transform = version;
+  // center and radius only: the extrema transformed are allocations per call, and every union of them (the scene's
+  // bounds, a merged object's) costs per point; a transient view's bounds need not be tight
+  const s = values.boundingSphere.ref.value;
+  Vec3.transformMat4(e.sphere.center, s.center, transform);
+  e.sphere.radius = s.radius * Mat4.getMaxScaleOnAxis(transform);
+  return e.sphere;
+}
+
+/**
+ * Sphere `i` of `spheres` (center and radius, four floats each: an instance grid's cells and batches) into `out`,
+ * transformed by `transform` whose largest scale is `scale` (`Mat4.getMaxScaleOnAxis`)
+ */
+export function transformSphereAt(out: Sphere3D, spheres: Float32Array, i: number, transform: Mat4, scale: number) {
+  const o = i * 4;
+  const x = spheres[o],
+    y = spheres[o + 1],
+    z = spheres[o + 2];
+  out.center[0] = transform[0] * x + transform[4] * y + transform[8] * z + transform[12];
+  out.center[1] = transform[1] * x + transform[5] * y + transform[9] * z + transform[13];
+  out.center[2] = transform[2] * x + transform[6] * y + transform[10] * z + transform[14];
+  out.radius = spheres[o + 3] * scale;
+  return out;
+}
+
+/**
+ * From how many instances the sphere is the box's (`calculateBoxTransformBoundingSphere`): few instances spread wide (a
+ * dozen particles over a cell's surface) put the box's center far off and the sphere 1.5x too wide (MG_1184's scene);
+ * the helper's is cheap for them
+ */
+const BoxTransformBoundingSphereMinCount = 1000;
+
 export function calculateTransformBoundingSphere(
   invariantBoundingSphere: Sphere3D,
   transform: Float32Array,
@@ -276,6 +384,9 @@ export function calculateTransformBoundingSphere(
     Mat4.fromArray(_mat4, transform, transformOffset);
     const s = Sphere3D.clone(invariantBoundingSphere);
     return Mat4.isIdentity(_mat4) ? s : Sphere3D.transform(s, s, _mat4);
+  }
+  if (transformCount >= BoxTransformBoundingSphereMinCount) {
+    return calculateBoxTransformBoundingSphere(invariantBoundingSphere, transform, transformCount, transformOffset);
   }
 
   const boundaryHelper = getHelper(transformCount);

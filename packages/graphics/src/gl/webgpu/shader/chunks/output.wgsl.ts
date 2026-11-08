@@ -272,14 +272,20 @@ export const marking_output_wgsl = /* wgsl */ `
         if (marker == 0.0) {
             discard;
         }
+        let markingViewZ = depthToViewZ(uGlobal.uIsOrtho, fragmentDepth, uGlobal.uNear, uGlobal.uFar);
         var depthTest = 1.0;
         if (uGlobal.uMarkingDepthTest != 0u) {
             let markingDepth = unpackRGBAToDepthWithAlpha(${fragment_texel_wgsl('tDepthAlpha')}).x;
-            depthTest = select(0.0, 1.0, fragmentDepth <= markingDepth);
+            // hidden behind it by more than a ten-thousandth of the distance and four steps of the packing's 24 bits (far
+            // away a step is the larger): the depth may be the scene's, which holds the marked fragments themselves
+            // (rounded by the packing, the sphere raster's arithmetic not the impostors')
+            let occluderDepth = max(markingDepth - 4.0 / 16777216.0, 0.0);
+            let occluderViewZ = depthToViewZ(uGlobal.uIsOrtho, occluderDepth, uGlobal.uNear, uGlobal.uFar);
+            let hidden = markingDepth > 0.0 && markingViewZ < occluderViewZ - 0.0001 * abs(markingViewZ);
+            depthTest = select(0.0, 1.0, hidden);
         }
         let priority = uGlobal.uMarkerPriority;
         let isHighlight = (priority == 1 && marker != 2.0) || (priority != 1 && marker == 1.0);
-        let markingViewZ = depthToViewZ(uGlobal.uIsOrtho, fragmentDepth, uGlobal.uNear, uGlobal.uFar);
         let markingFogFactor = smoothstep(uGlobal.uFogNear, uGlobal.uFogFar, abs(markingViewZ));
         if (markingFogFactor == 1.0) {
             discard;

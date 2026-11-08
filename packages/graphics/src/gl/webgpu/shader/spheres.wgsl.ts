@@ -16,6 +16,7 @@ import {
   apply_fog_wgsl,
   apply_marker_wgsl,
   assign_material_wgsl,
+  apply_occlusion_wgsl,
   check_transparency_wgsl,
   material_functions_wgsl,
 } from './chunks/material.wgsl.js';
@@ -89,7 +90,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_wiggle_wgsl}
     position = applyWiggle(position, group, wiggle);
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
+    let transform = uObject.uObjectTransform * applyTumble(aTransform, invariantBoundingSphere(in));
 
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
@@ -142,6 +143,15 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         out.position.z = 2.0 * out.position.w;
     }
 
+    #if defined(dRenderVariant_marking)
+        // the marking depth draws unmarked spheres only (\`uMarkingType\` 1), the mask marked ones: the others moved out of
+        // [0, w], not shaded to be discarded
+        let vertexMarker = select(floor(out.vMarkerClipping.x * 255.0 + 0.5), uObject.uMarker, uObject.uMarker != -1.0);
+        if ((uGlobal.uMarkingType == 1) == (vertexMarker > 0.0)) {
+            out.position.z = 2.0 * out.position.w;
+        }
+    #endif
+
     #if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit) || defined(dRenderVariant_colorDpoit)
         // drawn by the sphere raster (\`rasterizesSphere\`), with a margin: a sphere at its limits drawn by both, never
         // by neither (the raster's arithmetic is not the vertex stage's)
@@ -154,13 +164,20 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     #endif
 
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && defined(dClipObjects)
-        if (clipTest(out.vModelPosition / modelScale, clipFlag)) {
+        // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+        if (clipTest(out.vModelPosition / modelScale, clipFlag) != (uGlobal.uClipGhost != 0u)) {
             // move out of [0, w] to 'discard' in the vertex stage
             out.position.z = 2.0 * out.position.w;
         }
     #elif defined(dClipSphere)
-        // pixel clipping: a sphere clipped whole moved out of [0, w], one not cut not tested per fragment
-        let clipClass = clipSphereClass(out.vModelPosition / modelScale, radius / modelScale, clipFlag);
+        // pixel clipping: a sphere clipped whole moved out of [0, w], one not cut not tested per fragment; the ghost
+        // pass (\`uClipGhost\`): a sphere whole by its center, kept where clipped, not tested per fragment
+        var clipClass: u32;
+        if (uGlobal.uClipGhost != 0u) {
+            clipClass = select(2u, 0u, clipTest(out.vModelPosition / modelScale, clipFlag));
+        } else {
+            clipClass = clipSphereClass(out.vModelPosition / modelScale, radius / modelScale, clipFlag);
+        }
         if (clipClass == 2u) {
             out.position.z = 2.0 * out.position.w;
         }
@@ -202,7 +219,8 @@ fn resolveSphere(position: vec4<f32>) -> Resolved {
     let positionGroup = read_tPositionGroup(vertexId);
     let group = positionGroup.w;
     let o = e.x * 3u;
-    let transform = affineTransform(sRasterTransforms[o], sRasterTransforms[o + 1u], sRasterTransforms[o + 2u]);
+    // the object's transient transform after the instance's, as the raster applies it
+    let transform = uObject.uObjectTransform * affineTransform(sRasterTransforms[o], sRasterTransforms[o + 1u], sRasterTransforms[o + 2u]);
 
     // the instance as the vertex stage reads it: the group offsets the chunk holds
     var in: VertexInput;
@@ -462,6 +480,7 @@ fn fragmentMain(fragmentIn: VertexOutput) -> FragmentOutput {
         material.a *= min(1.0, in.vSphere.w / (uObject.uAlphaThickness * uGlobal.uModelScale));
     }
 
+    ${apply_occlusion_wgsl}
     ${check_transparency_wgsl}
 
     #if defined(dRenderVariant_pick)

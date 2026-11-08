@@ -21,17 +21,19 @@ varying mat3 vNormalMatrix;
 
 void main() {
     vec4 unitCoord = vec4(aPosition + vec3(0.5), 1.0);
-    vec4 mvPosition = uModelView * aTransform * uUnitToCartn * unitCoord;
+    // the transient transform of an object shown moved (\`uObjectTransform\`) after the instance's
+    mat4 transform = uObjectTransform * aTransform;
+    vec4 mvPosition = uModelView * transform * uUnitToCartn * unitCoord;
 
-    vModelPosition = (uModel * aTransform * uUnitToCartn * unitCoord).xyz;
+    vModelPosition = (uModel * transform * uUnitToCartn * unitCoord).xyz;
     vInstance = aInstance;
     vBoundingSphere = vec4(
-        (uModel * aTransform * vec4(uInvariantBoundingSphere.xyz, 1.0)).xyz,
+        (uModel * transform * vec4(uInvariantBoundingSphere.xyz, 1.0)).xyz,
         uModelScale * uInvariantBoundingSphere.w
     );
-    vTransform = aTransform;
+    vTransform = transform;
     // the gradient is in grid axes; a mirroring transform flips what the adjoint gives
-    mat4 gradientToView = uModelView * aTransform * uTransform;
+    mat4 gradientToView = uModelView * transform * uTransform;
     vec3 c0 = gradientToView[0].xyz, c1 = gradientToView[1].xyz, c2 = gradientToView[2].xyz;
     vNormalMatrix = adjoint(gradientToView) * sign(dot(cross(c0, c1), c2));
 

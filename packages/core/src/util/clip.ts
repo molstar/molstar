@@ -193,6 +193,9 @@ export namespace Clip {
     return Plane3D.setUnnormalized(out, v4A[0], v4A[1], v4A[2], v4A[3]);
   }
 
+  /** the smallest half axis an ellipsoid or an elliptic cylinder is measured with (`getSignedDistance`) */
+  const MinHalfAxis = 1e-6;
+
   /**
    * The signed distance of `p` to the shape of the clip object at `index` in its frame (`frame`, `shape`), as the
    * shaders' `localSD`: at most 0 inside (where an object not inverted clips), not a true distance for all shapes (see
@@ -210,7 +213,13 @@ export namespace Clip {
       sz = shape[o + 2];
     const type = Math.round(Math.abs(shape[o + 3]));
     if (type === Type.plane) return -y;
-    if (type === Type.sphere) return (Math.hypot(x / sx, y / sy, z / sz) - 1) * Math.min(sx, sy, sz);
+    if (type === Type.sphere) {
+      // half axes of 0 (a point, a disc) at a tiny size: finite, not 0 / 0 (as the shaders' `localSD`)
+      const ax = Math.max(sx, MinHalfAxis),
+        ay = Math.max(sy, MinHalfAxis),
+        az = Math.max(sz, MinHalfAxis);
+      return (Math.hypot(x / ax, y / ay, z / az) - 1) * Math.min(ax, ay, az);
+    }
     if (type === Type.cube) {
       const dx = Math.abs(x) - sx,
         dy = Math.abs(y) - sy,
@@ -218,7 +227,10 @@ export namespace Clip {
       return Math.min(Math.max(dx, dy, dz), 0) + Math.hypot(Math.max(dx, 0), Math.max(dy, 0), Math.max(dz, 0));
     }
     if (type === Type.cylinder) {
-      const dx = Math.hypot(x, z) - sx,
+      // elliptic (radii `sx`, `sz`): across its axis scaled by the smaller (at most the true distance, exact round)
+      const ax = Math.max(sx, MinHalfAxis),
+        az = Math.max(sz, MinHalfAxis);
+      const dx = (Math.hypot(x / ax, z / az) - 1) * Math.min(ax, az),
         dy = Math.abs(y) - sy;
       return Math.min(Math.max(dx, dy), 0) + Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
     }
@@ -233,7 +245,8 @@ export namespace Clip {
   const vC = Vec3();
   /**
    * How `sphere` lies against the clip object at `index`: from the signed distance of its center, which divided by its
-   * largest slope (1; the infinite cone's `|shape.xy|`; the ellipsoid's distance already scaled by its smallest axis)
+   * largest slope (1; the infinite cone's `|shape.xy|`; the ellipsoid's and the elliptic cylinder's distance already
+   * scaled by their smallest axis)
    * bounds the true one, the radius scaled by the frame's largest scale: `All` within the clipped side by more, `None`
    * outside it by more, `Some` else (exact where it decides, conservative elsewhere); as the sphere raster's
    * `clipSphereClass`
@@ -271,7 +284,7 @@ export namespace Clip {
 
   /**
    * Test if the surface of the clip object at `index` can intersect `sphere` (`classifySphereObject`'s `Some`): exact
-   * where the distance is (planes, cubes, cylinders, round spheres), conservative elsewhere
+   * where the distance is (planes, cubes, round cylinders and spheres), conservative elsewhere
    */
   export function canIntersectSphere(objects: Objects, index: number, sphere: Sphere3D): boolean {
     return classifySphereObject(objects, index, sphere) === SphereClass.Some;

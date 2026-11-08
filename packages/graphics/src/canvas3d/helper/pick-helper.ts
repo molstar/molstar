@@ -12,7 +12,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { spiral2d } from '@molstar/core/math/misc';
 import { isTimingMode } from '@molstar/core/util/debug';
-import type { Camera } from '../camera.js';
+import type { Camera, ICamera } from '../camera.js';
 import { StereoCamera } from '../camera/stereo.js';
 import { cameraUnproject, Viewport } from '../camera/util.js';
 import type { Helper } from './helper.js';
@@ -165,17 +165,21 @@ export class PickHelper {
 
     const z = this.buffers.getDepth(xp, yp);
     const position = Vec3.create(x, y, z);
+    // the overlay's depth is of its own near and far planes (`OverlayCamera`)
+    const { overlay } = this.helper;
+    const inOverlay = overlay.isEnabled && overlay.hasObject(pickingId.objectId);
+    const unprojectWith = (c: ICamera) => (inOverlay ? overlay.getCamera(c) : c).inverseProjectionView;
     if (StereoCamera.is(camera)) {
       const halfWidth = Math.floor(viewport.width / 2);
       if (x > viewport.x + halfWidth) {
         position[0] = viewport.x + (xv - halfWidth) * 2;
-        cameraUnproject(position, position, viewport, camera.right.inverseProjectionView);
+        cameraUnproject(position, position, viewport, unprojectWith(camera.right));
       } else {
         position[0] = viewport.x + xv * 2;
-        cameraUnproject(position, position, viewport, camera.left.inverseProjectionView);
+        cameraUnproject(position, position, viewport, unprojectWith(camera.left));
       }
     } else {
-      cameraUnproject(position, position, viewport, camera.inverseProjectionView);
+      cameraUnproject(position, position, viewport, unprojectWith(camera));
     }
 
     return { id: pickingId, position };

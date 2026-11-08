@@ -4,11 +4,13 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { type State, type StateObjectCell, StateTransform } from '@molstar/core/state';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ClipVolumesTag } from '@molstar/plugin/state/transforms/shape/clip-volumes';
+import { TransformShapeProvider } from '@molstar/plugin/state/transforms/shape/transform';
 
 // The shapes in the scene (api.md §2 `shape`, the Structure panel's Shapes group): Mol*'s shape providers loaded on their
 // own (a mesh file: OBJ, PLY, VTP; a primitives node), not those of a structure, a map or particles (a unit cell, a
@@ -19,7 +21,7 @@ export interface ShapeEntry {
   readonly cell: StateObjectCell;
   /** What it is called: the file it came from (the provider's own label is "Shape"). */
   readonly label: string;
-  /** Its representations (`ShapeRepresentation3D` cells under it). */
+  /** Its representations (`ShapeRepresentation3D` cells under it, under its transform where it has one). */
   readonly representations: readonly StateObjectCell[];
 }
 
@@ -69,10 +71,16 @@ export function shapeEntries(state: State): ShapeEntry[] {
         !underData(state, cell)
       ) {
         const representations: StateObjectCell[] = [];
-        for (const r of state.tree.children.get(child).values()) {
-          const rc = state.cells.get(r);
-          if (rc && !rc.state.isGhost && SO.Shape.Representation3D.is(rc.obj)) representations.push(rc);
-        }
+        const collect = (parent: string) => {
+          for (const r of state.tree.children.get(parent).values()) {
+            const rc = state.cells.get(r);
+            if (!rc) continue;
+            if (!rc.state.isGhost && SO.Shape.Representation3D.is(rc.obj)) representations.push(rc);
+            // its transform (`shape.transform`): a provider again, the representations under it
+            else if (rc.transform.transformer === TransformShapeProvider) collect(r);
+          }
+        };
+        collect(child);
         out.push({ cell, label: shapeLabel(state, cell), representations });
         continue;
       }

@@ -123,6 +123,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
       {
         aTransform: ro.values.aTransform,
         matrix: ro.values.matrix,
+        uObjectTransform: ro.values.uObjectTransform,
         transform: ro.values.transform,
         extraTransform: ro.values.extraTransform,
         hasExtraTransform: ro.values.hasExtraTransform,

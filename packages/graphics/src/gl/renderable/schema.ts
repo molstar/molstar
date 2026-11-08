@@ -427,6 +427,11 @@ export const GlobalUniformSchema = {
   uViewOffset: GlobalUniformSpec('v2'),
   uModelScale: GlobalUniformSpec('f'),
   uDrawingBufferSize: GlobalUniformSpec('v2'),
+  /**
+   * the camera viewport's height in CSS pixels (not a pass target's): screen-sized objects (`uScreenSize`) are the same
+   * size in every pass of a frame (the pick at its scale)
+   */
+  uCssHeight: GlobalUniformSpec('f'),
 
   uCameraPosition: GlobalUniformSpec('v3'),
   uCameraDir: GlobalUniformSpec('v3'),
@@ -456,12 +461,20 @@ export const GlobalUniformSchema = {
   uMarkerAverage: GlobalUniformSpec('f'),
 
   uXrayEdgeFalloff: GlobalUniformSpec('f'),
+  /** the near and far planes of the scene's opaque depth (`tDepth`), for the overlay's occlusion (`dOverlay`) */
+  uOccluderNear: GlobalUniformSpec('f'),
+  uOccluderFar: GlobalUniformSpec('f'),
   uCelSteps: GlobalUniformSpec('f'),
   uExposure: GlobalUniformSpec('f'),
 
   uRenderMask: GlobalUniformSpec('i'),
   uMarkingDepthTest: GlobalUniformSpec('b'),
   uDepthBack: GlobalUniformSpec('b'),
+  /**
+   * the ghost pass (`Renderer.renderClipGhost`): what the clip objects remove is kept and the rest discarded; a
+   * primitive drawn whole by its center (spheres, cylinders, lines, points), a mesh by fragment
+   */
+  uClipGhost: GlobalUniformSpec('b'),
   uMarkingType: GlobalUniformSpec('i'),
   uPickType: GlobalUniformSpec('i'),
   uSolidInteriorPass: DrawUniformSpec('i'),
@@ -476,9 +489,12 @@ export type GlobalUniformValues = Values<GlobalUniformSchema>;
 export const GlobalTextureSchema = {
   /** opaque scene depth: a depth texture where supported (`depthTextureSupport`), packed `rgba` otherwise */
   tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
-  /** depth with alpha packed into `rgba` (`packDepthWithAlphaToRGBA`): front transparent depth, marking depth */
+  /**
+   * depth with alpha packed into `rgba` (`packDepthWithAlphaToRGBA`): front transparent depth (the overlay's occlusion
+   * too), marking depth
+   */
   tDepthAlpha: TextureSpec('texture', 'rgba', 'ubyte', 'nearest', undefined, {
-    usedIf: ['dRenderVariant_emissive', 'dRenderVariant_marking'],
+    usedIf: ['dRenderVariant_emissive', 'dRenderVariant_marking', 'dOverlay'],
   }),
 
   // dpoit
@@ -574,6 +590,10 @@ export const MarkerSchema = {
   markerStatus: ValueSpec('number'),
   /** the marker type (`MarkerType`); `uInstanceGranularity` selects the index */
   markerType: ValueSpec('string'),
+  /** per instance, how many of its entries are marked (`MarkerData.markerInstanceCounts`) */
+  markerInstanceCounts: ValueSpec('uint32'),
+  /** the instances with a marked entry */
+  markedInstanceCount: ValueSpec('number'),
 } as const;
 export type MarkerSchema = typeof MarkerSchema;
 export type MarkerValues = Values<MarkerSchema>;
@@ -715,6 +735,8 @@ export const BaseSchema = {
   uClipObjectFrame: MaterialUniformSpec('m4[]', Clip.MaxObjectCount, 'uClipObjectCount'),
   /** per clip object its half size, the type in `w`, negative where inverted (`Clip.Objects.shape`) */
   uClipObjectShape: MaterialUniformSpec('v4[]', Clip.MaxObjectCount, 'uClipObjectCount'),
+  /** what the clip objects remove drawn by the ghost pass (`Renderer.renderClipGhost`); false: opted out */
+  clipGhost: ValueSpec('boolean'),
 
   aInstance: AttributeSpec('float32', 1, 1),
   /**
@@ -728,6 +750,13 @@ export const BaseSchema = {
 
   /** final alpha, the base alpha clamped to [0, 1] (set with it) */
   uAlpha: MaterialUniformSpec('f'),
+  /**
+   * in the overlay layer (set by the canvas): fragments behind the scene's opaque depth (`tDepth`, its planes
+   * `uOccluderNear`, `uOccluderFar`) have their alpha multiplied by `uOccludedAlpha` (1 on top, 0 hidden, between
+   * x-ray)
+   */
+  dOverlay: DefineSpec('boolean'),
+  uOccludedAlpha: MaterialUniformSpec('f'),
   uMetalness: MaterialUniformSpec('f'),
   uRoughness: MaterialUniformSpec('f'),
   uBumpiness: MaterialUniformSpec('f'),
@@ -758,6 +787,12 @@ export const BaseSchema = {
 
   /** global transform, see aTransform */
   matrix: ValueSpec('m4'),
+  /**
+   * transient transform of an object shown moved (a drag before its release), after `aTransform`: applied by the vertex
+   * stages and the culling, not baked; the identity at rest, see `TransformData`. A merged object's is its own, the
+   * whole object's: its members' are not read (a merged object moves as one)
+   */
+  uObjectTransform: ObjectUniformSpec('m4'),
   /** base per-instance transform, see aTransform */
   transform: ValueSpec('float32'),
   /** additional per-instance transform, see aTransform; empty until set */

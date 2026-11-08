@@ -112,6 +112,7 @@ import { VolumeFromCube } from '@molstar/plugin/state/formats/volume/cube';
 import { VolumeFromDx } from '@molstar/plugin/state/formats/volume/dx';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
+import { TransformShapeProvider } from '@molstar/plugin/state/transforms/shape/transform';
 import {
   BoxifyVolumeStreaming,
   CreateVolumeStreamingBehavior,
@@ -241,6 +242,8 @@ export const DefaultActions: PluginRegistryEntry = {
     VolumeRepresentation3D,
     VolumeTransform,
     VolumeInstances,
+
+    TransformShapeProvider,
   ],
 };
 

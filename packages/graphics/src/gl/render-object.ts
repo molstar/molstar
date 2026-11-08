@@ -152,13 +152,15 @@ export function canMergeRenderObjects(members: readonly GraphicsRenderObject[], 
  */
 export function createMergedRenderObject<T extends RenderObjectType>(
   members: readonly GraphicsRenderObject<T>[],
-  options?: { readonly gpuCulling?: boolean },
+  /** `rasterOnly`: culled on the GPU for the sphere raster only (`Renderable.rasterSpheres`) */
+  options?: { readonly gpuCulling?: boolean; readonly rasterOnly?: boolean },
 ): MergedGraphicsRenderObject<T> {
   if (!isMergeableType(members[0].type)) throw new Error(`unsupported merged render object type '${members[0].type}'`);
   const merged = createMergedValues(
     members[0].type,
     members.map((m) => m.values as MergeableValues),
     options?.gpuCulling,
+    options?.rasterOnly,
   );
   return {
     id: getNextId(),

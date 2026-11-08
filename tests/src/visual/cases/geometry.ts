@@ -333,6 +333,32 @@ export const GeometryCases: VisualTestCase[] = [
       await shapeRepr('points', pointSphere(400, 4), { props: { pointStyle: 'circle', sizeFactor: 6 } }),
     ],
   },
+  ...[0.3, 0.6].map((pointRingWidth) => ({
+    id: `geometry/points/ring-${pointRingWidth}`,
+    description: 'Rings: the point less an inner circle, the ring a fraction of the radius wide.',
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('points', pointSphere(400, 4), {
+        props: { pointStyle: 'ring' as const, pointRingWidth, sizeFactor: 10 },
+      }),
+    ],
+  })),
+  {
+    id: 'geometry/points/depth-offset',
+    description:
+      'Two point clouds at the same places: the second moved toward the camera in depth only (pointDepthOffset), drawn over the first where they overlap, as large and where it was.',
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('points', pointSphere(400, 4), {
+        colors: [Color(0x999999)],
+        props: { pointStyle: 'circle' as const, sizeFactor: 10 },
+      }),
+      await shapeRepr('points', pointSphere(400, 4), {
+        colors: [Color(0xe41a1c)],
+        props: { pointStyle: 'circle' as const, sizeFactor: 6, pointDepthOffset: 40 },
+      }),
+    ],
+  },
   {
     id: 'geometry/points/fuzzy',
     view: ObliqueView,

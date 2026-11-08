@@ -127,6 +127,17 @@ const SphereTestSchema = {
   uClipObjectCount: UniformSpec('i'),
   uClipBase: UniformSpec('i'),
   /**
+   * the object's transient transform (`uObjectTransform`) and its largest scale: every sphere tested (a cell's, an
+   * instance's) moved by it first, as the draws move the object
+   */
+  uObjectTransform: UniformSpec('m4'),
+  uObjectScale: UniformSpec('f'),
+  /**
+   * the region of the ghost of what the clip objects remove (`Renderer.renderClipGhost`), 0 for none: the cells and
+   * instances in view the clip objects reach copied into it too, at one level (the coarsest), in the first phase
+   */
+  uGhostRegion: UniformSpec('i'),
+  /**
    * per segment three vec4s: its invariant sphere (an instance's sphere by its transform: tested as its cell's, drawn
    * at the levels of both); its first instance (the bits of a u32 in x) and its largest sphere's radius (y); its level
    * scales (`tSegment`'s); after the segments the clip objects (`uClipBase`)
@@ -163,17 +174,15 @@ export const InstanceCopySchema = {
    * after its (the counters go on)
    */
   uPhase: UniformSpec('i'),
-  /** the instances' data (`packInstanceData`) */
-  instanceData: StorageBufferSpec('vec4<f32>', 'read'),
   /** per instance its cell, the top bit whether the first phase drew it, and segment */
   instanceCells: StorageBufferSpec('vec2<u32>', 'read-write'),
   cellLevels: StorageBufferSpec('u32', 'read'),
   /** per (level, segment) the instances drawn, zeroed before */
   counters: StorageBufferSpec('atomic<u32>', 'read-write'),
-  /** the compacted instanced attributes: `aTransform` (3 vec4, rows), `aInstance`, `aSegment` (groups and index) */
-  transforms: StorageBufferSpec('vec4<f32>', 'read-write'),
-  instances: StorageBufferSpec('f32', 'read-write'),
-  segments: StorageBufferSpec('vec4<f32>', 'read-write'),
+  /** the regions' instance indices, written (`sCulledIndices`; its identity region written once per layout) */
+  indices: StorageBufferSpec('u32', 'read-write'),
+  /** the instances' data, read by index (`CulledData`: the transforms' rows first) */
+  data: StorageBufferSpec('vec4<f32>', 'read'),
 };
 
 export const CullArgsSchema = {

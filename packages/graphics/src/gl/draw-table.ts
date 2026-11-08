@@ -6,6 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { type GraphicsRenderable, RenderableState } from './renderable.js';
+import { getDrawnBoundingSphere } from './renderable/util.js';
 
 /**
  * What the renderer reads from an object's values, as bits of a row (`DrawRow.Facts`); `getDrawFacts` derives them,
@@ -48,7 +49,7 @@ export enum DrawFact {
   InstanceGrid = 1 << 16,
   /** `uInstanceCount` > 1 */
   MultipleInstances = 1 << 17,
-  /** `lodLevels` */
+  /** `lodLevels` with levels */
   LodLevels = 1 << 18,
   /** `uAlpha` < 1 */
   AlphaBelowOne = 1 << 19,
@@ -60,11 +61,19 @@ export enum DrawFact {
   SingleSided = 1 << 22,
   /** wiggling (`uWiggleAmplitude` or `wiggleAverage`, with speed and frequency) or tumbling: drawn anew per frame */
   Animated = 1 << 23,
+  /** `dOverlay` with `uOccludedAlpha` < 1: its parts behind the scene are transparent */
+  Occludable = 1 << 24,
+  /**
+   * `uScreenSize` > 0 (constant on screen): its bounds in the world depend on the camera (not culled by them)
+   */
+  CameraBounds = 1 << 25,
   /**
    * clip objects (`dClipObjects`) without a clipping layer (`dClipping`, its flags exempt groups): the object culled
    * where they clip its bounding sphere whole (`Clip.classifySphere`)
    */
-  ClipCull = 1 << 24,
+  ClipCull = 1 << 26,
+  /** clip objects (`dClipObjects`) and not opted out of the ghost (`clipGhost`): drawn by the ghost pass */
+  ClipGhost = 1 << 27,
 }
 
 /** The cells `getDrawFacts` and the row's bounds read: a change of any refreshes the row */
@@ -87,10 +96,13 @@ export const DrawFactCells = [
   'uInstanceCount',
   'lodLevels',
   'boundingSphere',
+  // the bounds as drawn (`getDrawnBoundingSphere`)
+  'uObjectTransform',
   'uLod',
   'dClipObjects',
   'dClipping',
   'clipObjects',
+  'clipGhost',
   // the scene's averages (`DrawTable.contributions`)
   'wiggleAverage',
   'transparencyMin',
@@ -100,6 +112,9 @@ export const DrawFactCells = [
   'uTumbleAmplitude',
   'uTumbleSpeed',
   'uTumbleFrequency',
+  'dOverlay',
+  'uOccludedAlpha',
+  'uScreenSize',
 ] as const;
 
 type Values = GraphicsRenderable['values'];
@@ -158,15 +173,22 @@ function writeContributions(c: DrawContributions, slot: number, values: Values, 
     (alpha === 1 && values.transparencyAverage.ref.value !== 1) || (facts & DrawFact.BackfacesOpaque) !== 0 ? 1 : 0;
 }
 
+/** Whether `values` are of an object whose world bounds depend on the camera: constant on screen (`uScreenSize`) */
+export function hasCameraBounds(values: Values) {
+  return ((getValue(values, 'uScreenSize') as number | undefined) ?? 0) > 0;
+}
+
 /**
  * The `DrawFact` bits of the draw count and of what culling reads: the instance grid and count, lod levels, clip objects
  */
 export function getCullFacts(values: Values): number {
   let f = 0;
   if (values.drawCount.ref.value) f |= DrawFact.DrawCount;
+  if (hasCameraBounds(values)) f |= DrawFact.CameraBounds;
   if (values.instanceGrid.ref.value.cellSize > 0) f |= DrawFact.InstanceGrid;
   if (values.uInstanceCount.ref.value > 1) f |= DrawFact.MultipleInstances;
-  if (getValue(values, 'lodLevels')) f |= DrawFact.LodLevels;
+  // empty (no levels) where the geometry has none set, as spheres by default
+  if ((getValue(values, 'lodLevels') as ArrayLike<unknown> | undefined)?.length) f |= DrawFact.LodLevels;
   if (getValue(values, 'dClipObjects') && !getValue(values, 'dClipping')) f |= DrawFact.ClipCull;
   return f;
 }
@@ -198,6 +220,8 @@ export function getCheckFacts(values: Values): number {
   const backfaces = getValue(values, 'dTransparentBackfaces');
   if (backfaces === 'opaque') f |= DrawFact.BackfacesOpaque;
   if (backfaces === 'off') f |= DrawFact.BackfacesOff;
+  // the ghost pass's (`Renderer.renderClipGhost`)
+  if (getValue(values, 'dClipObjects') && getValue(values, 'clipGhost') !== false) f |= DrawFact.ClipGhost;
   const doubleSided = getValue(values, 'uDoubleSided');
   if (doubleSided) f |= DrawFact.DoubleSided;
   else if (doubleSided !== undefined) f |= DrawFact.SingleSided;
@@ -206,6 +230,7 @@ export function getCheckFacts(values: Values): number {
   if ((geometryType === 'mesh' || geometryType === 'textureMesh') && getValue(values, 'dSolidInterior')) {
     f |= DrawFact.SolidInterior;
   }
+  if (getValue(values, 'dOverlay') && (getValue(values, 'uOccludedAlpha') as number) < 1) f |= DrawFact.Occludable;
   return f;
 }
 
@@ -217,6 +242,7 @@ export enum DrawState {
   ColorOnly = 1 << 3,
   Opaque = 1 << 4,
   WriteDepth = 1 << 5,
+  PickOnly = 1 << 6,
 }
 
 export function getDrawState(state: RenderableState): number {
@@ -226,7 +252,8 @@ export function getDrawState(state: RenderableState): number {
     (state.pickable ? DrawState.Pickable : 0) |
     (state.colorOnly ? DrawState.ColorOnly : 0) |
     (state.opaque ? DrawState.Opaque : 0) |
-    (state.writeDepth ? DrawState.WriteDepth : 0)
+    (state.writeDepth ? DrawState.WriteDepth : 0) |
+    (state.pickOnly ? DrawState.PickOnly : 0)
   );
 }
 
@@ -450,7 +477,7 @@ export function createDrawTable(renderables: ReadonlyArray<GraphicsRenderable>):
     const wasVisible = isVisibleState(bits[o + DrawRow.State]);
     if (r) {
       const { values } = r;
-      const { center, radius } = values.boundingSphere.ref.value;
+      const { center, radius } = getDrawnBoundingSphere(values);
       floats[o + DrawRow.CenterX] = center[0];
       floats[o + DrawRow.CenterY] = center[1];
       floats[o + DrawRow.CenterZ] = center[2];

@@ -23,6 +23,8 @@ import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { ValueCell } from '@molstar/core/util/value-cell';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
+import { Visual } from './visual.js';
 
 /**
  * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity and
@@ -99,6 +101,9 @@ export type MergedEntry<V> = { object: MergedGraphicsRenderObject; visuals: V[];
  *
  * Clears and refills `renderObjects` with the merged and any left-over unmerged
  * render objects. Returns the new by-type map, to pass as `prevMergedByType` next time.
+ *
+ * The transient transform (`previewTransform`) is set on the objects drawn, so a group formed or left during a drag
+ * keeps it: a merged object moves as one (its own `uObjectTransform`), its members' are not read while merged.
  */
 export function mergeRenderObjectsByType<V>(
   entries: readonly MergeableEntry<V>[],
@@ -111,6 +116,8 @@ export function mergeRenderObjectsByType<V>(
   gpuSupported = false,
   /** the current context: a merged object holding resources of another is not reused (its own cells stay foreign) */
   graphics?: GraphicsContext,
+  /** the representation's transient transform (`Representation.State.previewTransform`), set on what is drawn */
+  previewTransform?: Mat4,
 ): Map<string, MergedEntry<V>> {
   renderObjects.length = 0;
   const nextMerged = new Map<string, MergedEntry<V>>();
@@ -136,11 +143,14 @@ export function mergeRenderObjectsByType<V>(
           rasterSpheres += instanceCount.ref.value * uVertexCount.ref.value;
         }
       }
-      const gpu = gpuSupported && resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres);
+      const byInstances = resolveGpuCulling(gpuCulling, instances, draws);
+      const gpu = gpuSupported && (byInstances || resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres));
+      // culled on the GPU for the sphere raster only: the renderer culls it on the CPU where the raster does not take it
+      const rasterOnly = gpu && !byInstances;
       const merge = gpu || (group.length >= 2 && resolveRenderMerged(renderMerged, group.length));
       if (!merge) return;
 
-      const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}`;
+      const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}|${rasterOnly}`;
       const prev = prevMergedByType.get(type);
       const same = !!prev && prev.key === key && !(graphics && hasForeignResources(prev.object, graphics));
       // the members checked again only where one of them changed what merging reads (the key: the same members, the
@@ -161,7 +171,7 @@ export function mergeRenderObjectsByType<V>(
         : {
             object: createMergedRenderObject(
               group.map((e) => e.renderObject),
-              { gpuCulling: gpu },
+              { gpuCulling: gpu, rasterOnly },
             ),
             visuals: group.map((e) => e.visual),
             key,
@@ -174,6 +184,9 @@ export function mergeRenderObjectsByType<V>(
 
   for (const e of entries) {
     if (!consumed.has(e.renderObject)) renderObjects.push(e.renderObject);
+  }
+  if (previewTransform) {
+    for (const ro of renderObjects) Visual.setPreviewTransform(ro, previewTransform);
   }
 
   return nextMerged;

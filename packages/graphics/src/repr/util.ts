@@ -152,6 +152,15 @@ export function getStructureQuality(structure: Structure, tresholds: Partial<Qua
   return getQualityFromScore(score, t);
 }
 
+/** The quality of a count of elements by the thresholds, as a structure's (`getStructureQuality`) */
+export function getElementCountQuality(
+  elementCount: number,
+  tresholds: Partial<QualityThresholds> = {},
+): VisualQuality {
+  const t = { ...DefaultQualityThresholds, ...tresholds };
+  return getQualityFromScore(elementCount * t.elementCountFactor, t);
+}
+
 export function getParticleListQuality(
   particles: ParticleList,
   tresholds: Partial<QualityThresholds> = {},

@@ -125,15 +125,19 @@ export const GpuCullingOptions: [GpuCullingValue, string][] = [
 export const AutoGpuCullingThreshold = 30;
 
 /**
- * Instances from which `gpuCulling: 'auto'` culls on the GPU: a GPU-culled object costs about 0.1 ms per frame of its
- * own (its dispatches, the Hi-Z levels it asks for), the CPU's 10 ns per instance (`merging/instances-*`)
+ * Instances from which `gpuCulling: 'auto'` culls on the GPU: a GPU-culled object costs about 0.1-0.3 ms per frame of
+ * its own (its dispatches, the Hi-Z levels it asks for, a draw per segment and level), the CPU's 10 ns per instance in
+ * frames whose view changed. 100 chains as spacefill rotating, CPU / GPU: 30k instances 0.52 / 0.78 ms, 50k 0.75 /
+ * 0.75, 100k 1.40 / 0.84; as cartoon the CPU ahead up to 100k (1.25 / 1.32) (`merging/instances-*`)
  */
-export const AutoGpuCullingMinInstances = 20000;
+export const AutoGpuCullingMinInstances = 50000;
 
 /**
  * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
  * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
- * an integrated GPU), about 0.1 ms slower at a few hundred (`sphere-compute-raster.md`)
+ * an integrated GPU), about 0.1 ms slower at a few hundred (`sphere-compute-raster.md`). Such an object is merged for
+ * it, the renderer culling it on the GPU only where the raster takes it (`Renderable.rasterSpheres`,
+ * `sphereRasterObjects`), else on the CPU
  */
 export const AutoGpuCullingMinRasterSpheres = 100_000;
 
@@ -217,7 +221,20 @@ export namespace BaseGeometry {
       description: 'Visual/rendering quality of the representation.',
     }),
     material: Material.getParam(),
+    occludedAlpha: PD.Numeric(
+      1,
+      { min: 0, max: 1, step: 0.01 },
+      {
+        isHidden: true,
+        description:
+          'In the overlay layer: the opacity of the parts behind the scene (1 drawn on top, 0 hidden by the scene, ' +
+          'between x-ray).',
+      },
+    ),
     clip: PD.Group(Clip.Params),
+    clipGhost: PD.Boolean(true, {
+      description: 'What the clip objects remove drawn as a ghost, where the canvas draws ghosts (`clipGhost`).',
+    }),
     emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     density: PD.Numeric(
       0.2,
@@ -235,7 +252,7 @@ export namespace BaseGeometry {
     gpuCulling: PD.Select<GpuCullingValue>('auto', GpuCullingOptions, {
       ...CullingLodCategory,
       description:
-        'Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`), or with many spheres where the device has the sphere raster, which takes such objects only (`AutoGpuCullingMinRasterSpheres`).',
+        "Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`), or with many spheres where the device has the sphere raster, which takes such objects only (`AutoGpuCullingMinRasterSpheres`): those culled on the GPU only where the raster takes them (the renderer's `sphereRaster` and `sphereRasterObjects`), else on the CPU.",
     }),
     lod: PD.Vec3(Vec3(), undefined, {
       ...CullingLodCategory,
@@ -279,6 +296,9 @@ export namespace BaseGeometry {
     return {
       alpha: ValueCell.create(props.alpha),
       uAlpha: ValueCell.create(clamp(props.alpha, 0, 1)),
+      // set by the canvas for its overlay layer
+      dOverlay: ValueCell.create(false),
+      uOccludedAlpha: ValueCell.create(clamp(props.occludedAlpha, 0, 1)),
       uVertexCount: ValueCell.create(counts.vertexCount),
       // filled by the render item when used, see `BaseSchema.aVertex`
       aVertex: ValueCell.create(new Float32Array(0)),
@@ -298,6 +318,7 @@ export namespace BaseGeometry {
       clipObjects: ValueCell.create(clip.objects),
       uClipObjectFrame: ValueCell.create(clip.objects.frame),
       uClipObjectShape: ValueCell.create(clip.objects.shape),
+      clipGhost: ValueCell.create(props.clipGhost),
 
       uInstanceGranularity: ValueCell.create(
         resolveInstanceGranularity(props.instanceGranularity, counts.groupCount, counts.instanceCount),
@@ -313,11 +334,13 @@ export namespace BaseGeometry {
   export function updateValues(values: BaseValues, props: PD.Values<Params>) {
     ValueCell.updateIfChanged(values.alpha, props.alpha);
     ValueCell.updateIfChanged(values.uAlpha, clamp(props.alpha, 0, 1));
+    ValueCell.updateIfChanged(values.uOccludedAlpha, clamp(props.occludedAlpha, 0, 1));
     ValueCell.updateIfChanged(values.uMetalness, props.material.metalness);
     ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
     ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
     ValueCell.updateIfChanged(values.uEmissive, props.emissive);
     ValueCell.updateIfChanged(values.uDensity, props.density);
+    ValueCell.updateIfChanged(values.clipGhost, props.clipGhost);
 
     // the clip of the props applied last: updates keep the props' clip unless it changed (e.g. a recolor of many units)
     if (clipProps.get(values) !== props.clip) {

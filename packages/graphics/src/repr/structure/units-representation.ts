@@ -12,7 +12,7 @@ import {
   StructureRepresentationStateBuilder,
   type StructureRepresentationState,
 } from './representation.js';
-import type { Visual } from '../visual.js';
+import { Visual } from '../visual.js';
 import type { VisualContext } from '../visual.js';
 import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import { Representation, type RepresentationContext, type RepresentationParamsGetter } from '../representation.js';
@@ -259,6 +259,7 @@ export function UnitsRepresentation<P extends StructureParams>(
       gpuCulling,
       canCullOnGpu(graphics),
       graphics,
+      _state.previewTransform,
     );
     mergedVisuals.clear();
     mergedByType.forEach(({ visuals }) => {
@@ -418,6 +419,7 @@ export function UnitsRepresentation<P extends StructureParams>(
       wiggle,
       themeStrength,
       transform,
+      previewTransform,
       unitTransforms,
       syncManually,
       markerActions,
@@ -448,6 +450,9 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
       newState.transform = transform;
     }
+    if (previewTransform !== undefined && !Mat4.areEqual(previewTransform, _state.previewTransform, 0)) {
+      newState.previewTransform = previewTransform;
+    }
     if (unitTransforms !== _state.unitTransforms || unitTransforms?.version !== _state.unitTransformsVersion) {
       newState.unitTransforms = unitTransforms;
       _state.unitTransformsVersion = unitTransforms ? unitTransforms?.version : -1;
@@ -456,6 +461,9 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (markerActions !== undefined) newState.markerActions = markerActions;
 
     visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState));
+    // on what is drawn: a merged object moves as one, its members' are not read (`mergeRenderObjectsByType`)
+    const preview = newState.previewTransform;
+    if (preview) for (const ro of renderObjects) Visual.setPreviewTransform(ro, preview);
 
     StructureRepresentationStateBuilder.update(_state, newState);
   }

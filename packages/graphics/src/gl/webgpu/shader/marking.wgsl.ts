@@ -41,6 +41,54 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 `;
 
+/**
+ * The marking depth from the scene's: its opaque depth, or its front transparent layer where that is nearer and less
+ * transparent than \`uTransparentThreshold\`; packed with the opacity as the marking depth pass writes it, cleared to 0.0
+ * (the far plane) where there is nothing
+ */
+export const marking_depth_wgsl = /* wgsl */ `
+${packing_wgsl}
+${quad_vert_wgsl}
+${texture_read_wgsl('tDepth')}
+${texture_read_wgsl('tTransparentDepth')}
+
+fn getDepth(coords: vec2<f32>) -> vec2<f32> {
+    var depth = read_tDepth(coords).r;
+    var alpha = 1.0;
+    if (uObject.uHasTransparentDepth != 0u) {
+        let layer = unpackRGBAToDepthWithAlpha(read_tTransparentDepth(coords));
+        // depth is reversed: nearer is larger
+        if (layer.x > depth && 1.0 - layer.y < uObject.uTransparentThreshold) {
+            depth = layer.x;
+            alpha = layer.y;
+        }
+    }
+    return vec2<f32>(depth, alpha);
+}
+
+@fragment
+fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
+    var d: vec2<f32>;
+    if (all(uObject.uShift == vec2<f32>(0.0))) {
+        d = getDepth(in.position.xy * uObject.uTexSizeInv);
+    } else {
+        // the centers of the four texels around the point
+        let p = floor(in.position.xy + uObject.uShift - 0.5) + 0.5;
+        d = getDepth(p * uObject.uTexSizeInv);
+        let d1 = getDepth((p + vec2<f32>(1.0, 0.0)) * uObject.uTexSizeInv);
+        if (d1.x < d.x) { d = d1; }
+        let d2 = getDepth((p + vec2<f32>(0.0, 1.0)) * uObject.uTexSizeInv);
+        if (d2.x < d.x) { d = d2; }
+        let d3 = getDepth((p + vec2<f32>(1.0, 1.0)) * uObject.uTexSizeInv);
+        if (d3.x < d.x) { d = d3; }
+    }
+    if (d.x <= 0.0) {
+        discard;
+    }
+    return packDepthWithAlphaToRGBA(d.x, d.y);
+}
+`;
+
 /** The SSAO shading of the overlay (`dMarkingShading_ssao`): the occlusion read with or without upsampling */
 const overlay_ssao_wgsl = (d: DefineLookup) => /* wgsl */ `
 ${d('dOcclusionUpsample') ? texture_read_wgsl('tDepth') : `${texture_read_wgsl('tSsaoDepth')}\n${texture_read_wgsl('tSsaoDepthTransparent')}`}

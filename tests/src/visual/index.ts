@@ -20,6 +20,8 @@ declare global {
     __visualTestImage?: (id: string, kind: 'reference' | 'target' | 'diff') => Promise<string | undefined>;
     /** The case running, for a runner that reports a stalled page */
     __visualTestCurrent?: string;
+    /** How many cases the page runs, for a runner that reports its progress */
+    __visualTestCount?: number;
   }
 }
 
@@ -50,6 +52,8 @@ async function main() {
 
   // `shard=i/n`: every n-th of the selected cases from the i-th (0-based), to run a suite in several pages
   const [shardIndex, shardCount] = (params.get('shard') ?? '0/1').split('/').map(Number);
+  // `from=k`: the shard's cases from the k-th (0-based), to resume a shard past a stalled case
+  const from = Number(params.get('from')) || 0;
   // the on-demand cases only where a filter or tags select cases
   const candidates = filter.length > 0 || tags.length > 0 ? [...AllCases, ...OnDemandCases] : AllCases;
   const tests = candidates
@@ -58,7 +62,9 @@ async function main() {
         (filter.length === 0 || matchesAny(c.id, filter)) &&
         (tags.length === 0 || tags.some((t) => c.tags?.includes(t))),
     )
-    .filter((_, i) => i % shardCount === shardIndex);
+    .filter((_, i) => i % shardCount === shardIndex)
+    .slice(from);
+  window.__visualTestCount = tests.length;
 
   const runner = new VisualTestRunner({
     target,

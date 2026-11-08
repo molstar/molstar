@@ -4,6 +4,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Button, domView, Icon } from '@molstar/prism-ui';
@@ -14,12 +15,12 @@ import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { MoveSectionId } from './index.js';
 import type { MoveApi } from './operations.js';
 
-// The Move section of the Selection tab (structure-move.md): which structure the handles are on (the selection's, or
-// the first; a row each when there are several), Reset; the handles show while the section does.
+// The Move section of the Selection tab (move.md): which model the handles are on (the selection's structure, or the
+// first; a row each when there are several), Reset; the handles show while the section does.
 
 const caption = 'margin: 0; font-size: var(--msp-font-size-xs); color: var(--msp-color-text-muted)';
 
-export function structureMoveUI(ctx: ViewerUIContext): ViewerExtensionUI {
+export function moveUI(ctx: ViewerUIContext): ViewerExtensionUI {
   return {
     sections: [
       {
@@ -41,9 +42,9 @@ export function structureMoveUI(ctx: ViewerUIContext): ViewerExtensionUI {
 function MoveSection(props: { ctx: ViewerUIContext; move: MoveApi }) {
   const { ctx, move } = props;
   const gizmos = move.gizmos;
-  // the structure the handles are on: kept while it is loaded; else the selection's, or the first
+  // what the handles are on: kept while it is loaded; else the selection's structure, or the first
   const pick = () => {
-    const list = move.structures.value;
+    const list = move.movable.value;
     const now = gizmos.target.value;
     if (now && list.some((s) => s.ref === now)) return;
     gizmos.setTarget(move.selectedStructure() ?? list[0]?.ref);
@@ -56,19 +57,16 @@ function MoveSection(props: { ctx: ViewerUIContext; move: MoveApi }) {
       move.showGizmos(ctx.api);
     } else gizmos.hide();
   });
-  // a structure loaded while the section is open (the first one), or the target removed: picked again
-  effect(move.structures, () => {
+  // something loaded while the section is open (the first one), or the target removed: picked again
+  effect(move.movable, () => {
     if (active) pick();
   });
   onCleanup(() => gizmos.hide());
-  const many = derive(move.structures, (s) => s.length > 1);
+  const many = derive(move.movable, (s) => s.length > 1);
   const target = gizmos.target;
   return (
     <div style="display: grid; gap: var(--msp-space-2); min-width: 0">
-      <Show
-        when={derive(move.structures, (s) => s.length > 0)}
-        fallback={() => <p style={caption}>Nothing to move.</p>}
-      >
+      <Show when={derive(move.movable, (s) => s.length > 0)} fallback={() => <p style={caption}>Nothing to move.</p>}>
         {() => (
           <>
             <p style={caption}>
@@ -77,8 +75,8 @@ function MoveSection(props: { ctx: ViewerUIContext; move: MoveApi }) {
             </p>
             <Show when={many}>
               {() => (
-                <div style="display: grid; gap: 2px; min-width: 0" role="radiogroup" aria-label="The structure to move">
-                  <For each={move.structures} by={(s) => s.ref}>
+                <div style="display: grid; gap: 2px; min-width: 0" role="radiogroup" aria-label="What to move">
+                  <For each={move.movable} by={(s) => s.ref}>
                     {(s) => (
                       <Button
                         size="xs"
@@ -104,7 +102,7 @@ function MoveSection(props: { ctx: ViewerUIContext; move: MoveApi }) {
               disabled={derive(target, (t) => !t)}
               onClick={() => {
                 const t = target.value;
-                if (t) void ctx.api.run('structure.transform-reset', { structure: t });
+                if (t) void move.reset(ctx.api, t);
               }}
             >
               <span style="flex: 1; text-align: start">Reset its place</span>

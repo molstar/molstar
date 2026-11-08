@@ -24,7 +24,12 @@ import type { Camera, ICamera } from '../camera.js';
 import type { Scene } from '@molstar/graphics/gl/scene';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
+import {
+  type ComputeRenderable,
+  createComputeRenderable,
+  type Frame,
+  createFrame,
+} from '@molstar/graphics/gl/renderable';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
@@ -161,18 +166,43 @@ export class TracingPass {
     );
   }
 
-  private renderInput(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, props: TracingProps) {
+  private renderInput(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    props: TracingProps,
+    frame: Frame,
+    occlusion: RenderContext['occlusion'],
+    clipGhost: boolean,
+  ) {
     const timing = isTimingMode && b.drawing;
     if (timing) this.graphics.timer.group('TracePass.renderInput');
 
+    // no pass open yet: GPU culling for the tracing input, against the pyramid of an earlier frame
+    // (`setOcclusionPyramid`) and, with `occlusion`, in a second phase against that of its depth so far (as `DrawPass`'s
+    // opaque pass); with `clipGhost`, the ghost pass's lists too (drawn when the illuminated image is composed)
+    const skippedDraws = this.graphics.stats.skippedDraws;
+    if (b.drawing) renderer.prepareCull(scene.primitives, !!occlusion, clipGhost);
     this.drawPass.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
     b.begin(this.framebuffer, { label: 'tracing input' });
     if (b.drawing) renderer.clear(true);
     b.renderer({ name: 'tracing' }, scene.primitives, () => renderer.renderTracing(scene.primitives, camera));
+    if (occlusion && b.drawing && renderer.cullSecondPending > 0) {
+      // a pyramid of a depth lacking skipped draws (pipelines compiling) would hide what they hide
+      const pyramid = occlusion(b, camera, this.graphics.stats.skippedDraws === skippedDraws);
+      renderer.prepareCullSecond(scene.primitives, pyramid);
+      b.begin(this.framebuffer, { label: 'tracing input second' });
+      renderer.renderTracingSecond(scene.primitives, camera);
+    }
 
     //
 
     if (props.thicknessMode === 'auto') {
+      // the farthest back faces of everything in view, also of what the front hides whole: never culled by the front's
+      // occlusion (its pyramid or lists); a frame of its own, so the merged objects draw the CPU culling's lists
+      // (frustum and levels of detail, the occlusion test is off in illumination)
+      if (b.drawing) renderer.update(camera, scene, createFrame(), true);
       b.begin(this.thicknessTarget, {
         label: 'thickness',
         // the farthest back faces (`renderDepthOpaqueBack`), depth reversed: cleared to the near plane (packed as ones)
@@ -181,6 +211,8 @@ export class TracingPass {
       b.renderer({ name: 'depthOpaqueBack' }, scene.primitives, () =>
         renderer.renderDepthOpaqueBack(scene.primitives, camera),
       );
+      // the passes after draw the frame's GPU culling
+      if (b.drawing) renderer.update(camera, scene, frame);
     }
     if (timing) this.graphics.timer.groupEnd('TracePass.renderInput');
   }
@@ -296,6 +328,7 @@ export class TracingPass {
     props: TracingProps,
     iteration: number,
     forceRenderInput: boolean,
+    clipGhost = false,
   ) {
     const { values } = this.traceRenderable;
     const { rendersPerFrame, refineSteps, steps } = b.drawing
@@ -324,7 +357,7 @@ export class TracingPass {
         renderer.setViewport(x, y, width, height);
         renderer.update(camera, scene, frame);
       }
-      this.renderInput(b, renderer, camera, scene, props);
+      this.renderInput(b, renderer, camera, scene, props, frame, ctx.occlusion, clipGhost);
     }
 
     if (b.drawing) {

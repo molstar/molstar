@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest';
 import { fillIdentityTransform } from '@molstar/core/math/linear-algebra/3d/transform-array';
 import { ValueCell } from '@molstar/core/util';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
-import { createIdentityTransform, createTransform, updateTransformData } from '../transform-data.js';
+import { Sphere3D } from '@molstar/core/math/geometry';
+import { createIdentityTransform, createTransform, moveTransformData, updateTransformData } from '../transform-data.js';
 
 function makeTransforms(count: number, factory: (i: number) => Mat4) {
   const array = new Float32Array(count * 16);
@@ -76,6 +77,20 @@ describe('transform-data', () => {
 
       createTransform(transformArray, 1, undefined, 0, 0, td);
       expect(td.hasExtraTransform.ref.value).toBe(false);
+    });
+
+    it('adopts the given array on an update that grows past the current one, copies it otherwise', () => {
+      const translated = (i: number) => Mat4.fromTranslation(Mat4(), Vec3.create(i, 0, 0));
+      const td = createTransform(makeTransforms(2, translated), 2, undefined, 0, 0);
+      // more instances than it holds: the given array kept, not copied into a new one
+      const grown = makeTransforms(4, translated);
+      createTransform(grown, 4, undefined, 0, 0, td, true);
+      expect(td.transform.ref.value).toBe(grown);
+      // not adopted: a copy of its own
+      const copied = makeTransforms(8, translated);
+      createTransform(copied, 8, undefined, 0, 0, td);
+      expect(td.transform.ref.value).not.toBe(copied);
+      expect(getInstance(td.transform.ref.value, 7)).toEqual(translated(7));
     });
   });
 
@@ -172,5 +187,68 @@ describe('transform-data', () => {
       updateTransformData(td, undefined, 0, 0);
       expect(Array.from(td.aInstance.ref.value.slice(0, instanceCount))).toEqual([0, 1, 2]);
     });
+  });
+});
+
+function transforms(count: number) {
+  const out = new Float32Array(count * 16);
+  for (let i = 0; i < count; ++i) {
+    Mat4.toArray(
+      Mat4.fromTranslation(Mat4(), Vec3.create((i % 7) * 9, Math.floor(i / 7) * 5, (i % 3) * 4)),
+      out,
+      i * 16,
+    );
+  }
+  return out;
+}
+
+const move = Mat4.mul(
+  Mat4(),
+  Mat4.fromTranslation(Mat4(), Vec3.create(20, -3, 7)),
+  Mat4.fromRotation(Mat4(), 0.7, Vec3.normalize(Vec3(), Vec3.create(1, 1, 0))),
+);
+
+/** each transform of `after` is `move` times the same of `before` */
+function expectMoved(before: Float32Array, after: Float32Array, count: number) {
+  const expected = Mat4();
+  for (let i = 0; i < count; ++i) {
+    Mat4.mul(expected, move, Mat4.fromArray(Mat4(), before, i * 16));
+    for (let k = 0; k < 16; ++k) expect(after[i * 16 + k]).toBeCloseTo(expected[k], 4);
+  }
+}
+
+describe('moveTransformData', () => {
+  it('moves the transforms and the grid as a whole, its cells and instance order kept', () => {
+    const count = 40;
+    const data = createTransform(transforms(count), count, Sphere3D.create(Vec3(), 1), 10, 4);
+    const grid = data.instanceGrid.ref.value;
+    const transform = data.transform.ref.value.slice();
+    const aTransform = data.aTransform.ref.value.slice();
+    const aInstance = data.aInstance.ref.value;
+    expect(moveTransformData(data, move)).toBe(true);
+    expectMoved(transform, data.transform.ref.value, count);
+    expectMoved(aTransform, data.aTransform.ref.value, count);
+    expect(data.aTransform.ref.value).toBe(data.instanceGrid.ref.value.cellTransform);
+    expect(data.instanceGrid.ref.value.layout).toBe(grid);
+    expect(data.aInstance.ref.value).toBe(aInstance);
+  });
+
+  it('moves the transforms without a grid', () => {
+    const count = 5;
+    const data = createTransform(transforms(count), count, undefined, 0, 0);
+    const transform = data.transform.ref.value.slice();
+    const aTransform = data.aTransform.ref.value.slice();
+    expect(moveTransformData(data, move)).toBe(true);
+    expectMoved(transform, data.transform.ref.value, count);
+    expectMoved(aTransform, data.aTransform.ref.value, count);
+  });
+
+  it('leaves them where a matrix applies around them', () => {
+    const count = 5;
+    const data = createTransform(transforms(count), count, Sphere3D.create(Vec3(), 1), 10, 4);
+    ValueCell.update(data.matrix, Mat4.fromTranslation(Mat4(), Vec3.create(1, 0, 0)));
+    const version = data.aTransform.ref.version;
+    expect(moveTransformData(data, move)).toBe(false);
+    expect(data.aTransform.ref.version).toBe(version);
   });
 });

@@ -15,6 +15,7 @@ import {
   apply_fog_wgsl,
   apply_marker_wgsl,
   assign_material_wgsl,
+  apply_occlusion_wgsl,
   check_transparency_wgsl,
   material_functions_wgsl,
 } from './chunks/material.wgsl.js';
@@ -85,7 +86,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_size_wgsl}
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
+    let transform = uObject.uObjectTransform * applyTumble(aTransform, invariantBoundingSphere(in));
     ${assign_wiggle_wgsl}
     let wigStart = applyWiggle(cylinderStart.xyz, group, wiggle);
     let wigEnd = applyWiggle(cylinderEnd.xyz, group, wiggle);
@@ -104,7 +105,13 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         // per fragment
         let halfLength = length(end - start) * 0.5;
         let boundingRadius = sqrt(halfLength * halfLength + vSize * vSize);
-        let clipClass = clipSphereClass(modelPosition / uGlobal.uModelScale, boundingRadius / uGlobal.uModelScale, clipFlag);
+        // the ghost pass (\`uClipGhost\`): a cylinder whole by its center, kept where clipped, not tested per fragment
+        var clipClass: u32;
+        if (uGlobal.uClipGhost != 0u) {
+            clipClass = select(2u, 0u, clipTest(modelPosition / uGlobal.uModelScale, clipFlag));
+        } else {
+            clipClass = clipSphereClass(modelPosition / uGlobal.uModelScale, boundingRadius / uGlobal.uModelScale, clipFlag);
+        }
         out.vClipSome = select(0u, 1u, clipClass == 1u);
     #endif
     let camDir = -mix(normalize(modelPosition - uGlobal.uCameraPosition), uGlobal.uCameraDir, uGlobal.uIsOrtho);
@@ -454,6 +461,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     var normal = normalize(adjoint(uGlobal.uView) * -normalize(h.cameraNormal));
 
     ${assign_material_wgsl}
+    ${apply_occlusion_wgsl}
     ${check_transparency_wgsl}
 
     #if defined(dRenderVariant_pick)

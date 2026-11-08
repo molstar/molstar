@@ -4,9 +4,14 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { StateSelection } from '@molstar/core/state';
+import { Grid } from '@molstar/model/model/volume';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 import type { VolumeInfo } from '../volume.js';
@@ -26,6 +31,30 @@ const reps = (v: PrismViewer) =>
   );
 
 describe('volume', () => {
+  it('moves a volume as a whole (its grid placed), puts it back, and stays one volume', async () => {
+    const v = await headlessViewer({ files: [mapFile()] });
+    const volume = v.plugin.managers.volume.hierarchy.current.volumes[0];
+    const origin = () => {
+      const data = v.plugin.managers.volume.hierarchy.current.volumes[0].cell.obj!.data;
+      // the decorator's grid as drawn: the last Volume.Data under the volume
+      const cells = v.plugin.state.data.select(
+        StateSelection.Generators.byRef(volume.cell.transform.ref).subtree().ofType(PluginStateObject.Volume.Data),
+      );
+      const grid = (cells[cells.length - 1].obj!.data as typeof data).grid;
+      return Vec3.transformMat4(Vec3(), Vec3.zero(), Grid.getGridToCartesianTransform(grid));
+    };
+    const before = origin();
+    expectOk(await v.api.volume.transform({ translation: [10, 0, 0] }));
+    expect(origin()[0]).toBeCloseTo(before[0] + 10, 4);
+    // one volume, its representations under the transform
+    expect(v.plugin.managers.volume.hierarchy.current.volumes).toHaveLength(1);
+    expect(reps(v)).toEqual(['isosurface']);
+    expect(((await v.api.volume.transform({ translation: [10, 0, 0] })) as any).unchanged).toBe(true);
+    expectOk(await v.api.volume.transformReset({}));
+    expect(origin()[0]).toBeCloseTo(before[0], 4);
+    expect(((await v.api.volume.transformReset({})) as any).unchanged).toBe(true);
+  });
+
   it('describes the volumes: label, grid facts, representations with their iso values', async () => {
     const v = await headlessViewer();
     const none = await v.api.volume.list();

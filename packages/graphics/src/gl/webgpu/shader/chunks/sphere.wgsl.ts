@@ -100,7 +100,10 @@ fn rasterizesSphere(p: vec3<f32>, r: f32, near: f32, bounds: vec4<f32>, maxRadiu
  */
 fn raySphere(direction: vec3<f32>, toCenter: vec3<f32>, r: f32) -> vec3<f32> {
     let B = dot(direction, toCenter);
-    let det = B * B + r * r - dot(toCenter, toCenter);
+    // from the ray's distance to the center: \`B * B - dot(toCenter, toCenter)\` is rounding alone far from the camera, where
+    // it is far larger than \`r * r\`, and a hit's normal falls to the tangent point's
+    let toRay = toCenter - direction * B;
+    let det = r * r - dot(toRay, toRay);
     let s = sqrt(max(det, 0.0));
     return vec3<f32>(det, B - s, B + s);
 }

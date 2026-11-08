@@ -115,30 +115,41 @@ function getContentVersion(positionGroup: ValueCell<DataArray<Float32Array>>) {
 }
 
 /**
- * Calls `f(item, position)` for the `count` items in the order of the levels of `strides`: per level (coarsest first)
- * the items its stride takes (`item % stride === 0`) that no level before took, then the items of no level (drawn by
- * none, kept to be ordered again); returns the vertex offsets (6 per item) of the levels, undefined without strides
+ * Calls `f(item, position)` for the `count` items (in item order) with each item's position in the order of the levels
+ * of `strides`: per level (coarsest first) the items its stride takes (`item % stride === 0`) that no level before
+ * took, then the items of no level (drawn by none, kept to be ordered again), each in item order; returns the vertex
+ * offsets (6 per item) of the levels, undefined without strides
  */
 function forEachInLevelOrder(count: number, strides: readonly number[], f: (item: number, position: number) => void) {
   if (strides.length === 0) {
     for (let j = 0; j < count; ++j) f(j, j);
     return;
   }
-  // each item's level, computed once (a byte each, while ordering)
+  const il = strides.length;
+  // each item's level, computed once (a byte each, while ordering): the first stride that takes it, `il` for none
   const levels = new Uint8Array(count);
-  for (let j = 0; j < count; ++j) {
-    let k = 0;
-    while (k < strides.length && j % strides[k] !== 0) ++k;
-    levels[j] = k;
-  }
-  const offsets = [0];
-  let o = 0;
-  for (let i = 0, il = strides.length; i <= il; ++i) {
-    for (let j = 0; j < count; ++j) {
-      if (levels[j] === i) f(j, o++);
+  if (strides.every((s) => Number.isInteger(s) && s > 0)) {
+    // the items of each stride marked, the finest first so that the coarsest that takes an item stays: no modulo an
+    // item and level (millions of spheres in a mesoscale model's targets)
+    levels.fill(il);
+    for (let k = il - 1; k >= 0; --k) {
+      for (let j = 0, s = strides[k]; j < count; j += s) levels[j] = k;
     }
-    if (i < il) offsets.push(o * 6);
+  } else {
+    for (let j = 0; j < count; ++j) {
+      let k = 0;
+      while (k < il && j % strides[k] !== 0) ++k;
+      levels[j] = k;
+    }
   }
+  // the levels' first positions (a counting sort), then each item at its level's next: the same order as a pass over
+  // the items per level, in one pass
+  const starts = new Uint32Array(il + 2);
+  for (let j = 0; j < count; ++j) starts[levels[j] + 1] += 1;
+  for (let i = 1; i <= il + 1; ++i) starts[i] += starts[i - 1];
+  const offsets = [0];
+  for (let i = 1; i <= il; ++i) offsets.push(starts[i] * 6);
+  for (let j = 0; j < count; ++j) f(j, starts[levels[j]]++);
   return offsets;
 }
 

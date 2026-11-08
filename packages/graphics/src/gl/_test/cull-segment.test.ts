@@ -16,6 +16,7 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { Clip } from '@molstar/core/util/clip';
 import {
   type CullValues,
+  createInstancePositions,
   createSegmentedMdbList,
   type LodLevelsValue,
   LodView,
@@ -57,8 +58,8 @@ function view(eye: Vec3, target: Vec3) {
 }
 
 /**
- * The draws per level as the cells give them one by one (contiguous ranges joined); without the cells `clip` clips
- * whole
+ * The draws per level as the cells give them one by one (contiguous ranges joined); without the cells of class `drop`
+ * against `clip`: those it clips whole, or for the ghost pass those it does not reach
  */
 function referenceDraws(
   grid: InstanceGrid,
@@ -66,6 +67,7 @@ function referenceDraws(
   frustum: Frustum3D,
   cameraPlane: Plane3D,
   clip?: Clip.Objects,
+  drop: Clip.SphereClass = Clip.SphereClass.All,
 ) {
   const draws: number[][] = levels.map(() => []);
   const s = Sphere3D();
@@ -75,7 +77,7 @@ function referenceDraws(
     if (count === 0) continue;
     Sphere3D.fromArray(s, grid.cellSpheres, c * 4);
     if (!Frustum3D.intersectsSphere3D(frustum, s)) continue;
-    if (clip && Clip.classifySphere(clip, s) === Clip.SphereClass.All) continue;
+    if (clip && Clip.classifySphere(clip, s) === drop) continue;
     const d = Plane3D.distanceToPoint(cameraPlane, s.center);
     for (let j = 0; j < levels.length; ++j) {
       if (d + s.radius < levels[j][0] || d - s.radius > levels[j][1]) continue;
@@ -153,9 +155,61 @@ describe('culling a segment', () => {
     expect(reference.flat().length).toBeGreaterThan(0);
   });
 
-  // clip objects without a clipping layer cull the cells and batches they clip whole (`clip-culling.md`), from classes
-  // cached per grid and clip version
-  it('leaves out what clip objects clip whole, as the cells give it, and follows a clip change', () => {
+  it('culls a grid moved by a transient transform as its cells moved, and as before once it is the identity', () => {
+    const { frustum, cameraPlane } = view(Vec3.create(95, 95, -300), Vec3.create(95, 95, 95));
+    const level = [
+      [0, 380, 0, 600, 1],
+      [380, 1e7, 0, 60, 2],
+    ] as unknown as LodLevelsValue;
+    const lodLevels = ValueCell.create(level);
+    // turned about y by 30° and moved half out of the view
+    const transform = Mat4.mul(
+      Mat4(),
+      Mat4.fromTranslation(Mat4(), Vec3.create(150, 0, 0)),
+      Mat4.fromRotation(Mat4(), Math.PI / 6, Vec3.create(0, 1, 0)),
+    );
+    const uObjectTransform = ValueCell.create(Mat4.clone(transform));
+    const cull = () => {
+      const mdb = createSegmentedMdbList();
+      const prepared = mdb.prepare(lodLevels, grid.cellCount, false, LodView());
+      mdb.cullSegment(
+        { ...values, lodLevels, uObjectTransform },
+        ZeroCullSegment,
+        prepared,
+        cameraPlane,
+        frustum,
+        null,
+        createGraphicsStats(),
+        false,
+      );
+      return mdb.list.map((l) => {
+        const out: number[] = [];
+        for (let i = 0; i < l.count; ++i) out.push(l.baseInstances[i], l.instanceCounts[i]);
+        return out;
+      });
+    };
+    // the reference: the cells' spheres moved one by one
+    const movedSpheres = new Float32Array(grid.cellSpheres.length);
+    const s = Sphere3D();
+    for (let c = 0; c < grid.cellCount; ++c) {
+      Sphere3D.toArray(
+        Sphere3D.transform(s, Sphere3D.fromArray(s, grid.cellSpheres, c * 4), transform),
+        movedSpheres,
+        c * 4,
+      );
+    }
+    const moved = referenceDraws({ ...grid, cellSpheres: movedSpheres }, level, frustum, cameraPlane);
+    const unmoved = referenceDraws(grid, level, frustum, cameraPlane);
+    expect(moved).not.toEqual(unmoved);
+    expect(cull()).toEqual(moved);
+
+    ValueCell.update(uObjectTransform, Mat4.identity());
+    expect(cull()).toEqual(unmoved);
+  });
+
+  // clip objects without a clipping layer cull the cells and batches they clip whole, from classes cached per grid and
+  // clip version; the ghost pass's lists (`clipGhost`) the other way round: what the clip objects reach
+  it('leaves out what clip objects clip whole, as the cells give it, and follows a clip change; the ghost what they reach', () => {
     const { frustum, cameraPlane } = view(Vec3.create(95, 95, -300), Vec3.create(95, 95, 95));
     const level = [[0, 1e7, 0, 600, 1]] as unknown as LodLevelsValue;
     const lodLevels = ValueCell.create(level);
@@ -181,10 +235,20 @@ describe('culling a segment', () => {
       dClipping: ValueCell.create(false),
       clipObjects,
     };
-    const cull = (v: CullValues) => {
+    const cull = (v: CullValues, clipGhost = false) => {
       const mdb = createSegmentedMdbList();
       const prepared = mdb.prepare(lodLevels, grid.cellCount, false, LodView());
-      mdb.cullSegment(v, ZeroCullSegment, prepared, cameraPlane, frustum, null, createGraphicsStats(), false);
+      mdb.cullSegment(
+        v,
+        ZeroCullSegment,
+        prepared,
+        cameraPlane,
+        frustum,
+        null,
+        createGraphicsStats(),
+        false,
+        clipGhost,
+      );
       const out: number[] = [];
       for (let i = 0; i < mdb.list[0].count; ++i) out.push(mdb.list[0].baseInstances[i], mdb.list[0].instanceCounts[i]);
       return out;
@@ -197,6 +261,14 @@ describe('culling a segment', () => {
     expect(instances(half)).toBeLessThan(instances(all) * 0.8);
     expect(instances(half)).toBeGreaterThan(0);
 
+    // the ghost: the cells the plane reaches (clipped whole or cut), each cell in one list or both (cut)
+    const ghost = cull(clipped, true);
+    const none = Clip.SphereClass.None;
+    expect(ghost).toEqual(referenceDraws(grid, level, frustum, cameraPlane, clipObjects.ref.value, none)[0]);
+    expect(instances(ghost)).toBeGreaterThan(0);
+    expect(instances(ghost)).toBeLessThan(instances(all));
+    expect(instances(ghost) + instances(half)).toBeGreaterThanOrEqual(instances(all));
+
     // the same objects moved (a new version): classified again
     Object.assign(clipObjects.ref.value, clip(40, -30));
     ValueCell.update(clipObjects, clipObjects.ref.value);
@@ -204,8 +276,9 @@ describe('culling a segment', () => {
     expect(moved).toEqual(referenceDraws(grid, level, frustum, cameraPlane, clipObjects.ref.value)[0]);
     expect(moved).not.toEqual(half);
 
-    // with a clipping layer (its flags exempt groups) nothing is culled by the clip objects
+    // with a clipping layer (its flags exempt groups) nothing is culled by the clip objects, for the ghost neither
     expect(cull({ ...clipped, dClipping: ValueCell.create(true) })).toEqual(all);
+    expect(cull({ ...clipped, dClipping: ValueCell.create(true) }, true)).toEqual(all);
   });
 
   // instance clipping tests an instance's center: the cells' and batches' spheres shrunk to their centers
@@ -256,5 +329,96 @@ describe('culling a segment', () => {
       Vec3.fromArray(center, grid.cellTransform, i * 16 + 12);
       expect(center[1]).toBeGreaterThanOrEqual(94);
     }
+  });
+});
+
+describe('the marked instances of a segment', () => {
+  const lists = (mdb: ReturnType<typeof createSegmentedMdbList>) =>
+    mdb.list.map((l) => {
+      const out: number[] = [];
+      for (let i = 0; i < l.count; ++i) out.push(l.counts[i], l.baseInstances[i], l.instanceCounts[i]);
+      return out;
+    });
+  // 100 instances 10 Å apart along z, of spheres of radius 2; the last far to the side
+  const transforms = new Float32Array(100 * 16);
+  for (let k = 0; k < 100; ++k) {
+    Mat4.toArray(Mat4.fromTranslation(Mat4(), Vec3.create(k === 99 ? 1000 : 0, 0, k * 10)), transforms, k * 16);
+  }
+  const sphere = Sphere3D.create(Vec3(), 2);
+  const positions = Uint32Array.from({ length: 100 }, (_, k) => k);
+  const counts = new Uint32Array(100);
+  counts.set([1, 3, 2], 5);
+  counts[70] = 1;
+  counts[99] = 1;
+  const segment = { first: 0, offset: 0, instanceBase: 1000 };
+  const { frustum, cameraPlane } = view(Vec3.create(0, 0, -10), Vec3.create(0, 0, 100));
+  const values = (cellSize: number): CullValues => ({
+    drawCount: ValueCell.create(6000),
+    instanceCount: ValueCell.create(100),
+    uLod: ValueCell.create(Vec4()),
+    instanceGrid: ValueCell.create({ ...createGrid(), cellSize }),
+    boundingSphere: ValueCell.create(Sphere3D()),
+  });
+
+  it('draws the marked instances in view at the levels they reach, runs joined', () => {
+    const lodLevels = ValueCell.create([
+      [0, 100, 0, 600, 1],
+      [100, 1e7, 0, 60, 2],
+    ] as unknown as LodLevelsValue);
+    const mdb = createSegmentedMdbList();
+    const prepared = mdb.prepare(lodLevels, 4, true, LodView());
+    mdb.markedSegment(values(20), segment, prepared, counts, positions, transforms, sphere, cameraPlane, frustum);
+    // 5 to 7 at 60 to 80 Å, 70 at 710 Å; 99 outside the view
+    expect(lists(mdb)).toEqual([
+      [600, 1005, 3],
+      [60, 1070, 1],
+    ]);
+  });
+
+  it('reads the counts by the instance ids of the draw order', () => {
+    // the ids in reverse (as a grid reorders them), the transforms with them: draw position k holds instance 99 - k
+    const reversed = Uint32Array.from({ length: 100 }, (_, k) => 99 - k);
+    const reorderedTransforms = new Float32Array(100 * 16);
+    for (let k = 0; k < 100; ++k) reorderedTransforms.set(transforms.subarray((99 - k) * 16, (100 - k) * 16), k * 16);
+    const mdb = createSegmentedMdbList();
+    mdb.prepare(undefined, 4, false, LodView());
+    mdb.markedSegment(
+      values(20),
+      segment,
+      undefined,
+      counts,
+      reversed,
+      reorderedTransforms,
+      sphere,
+      cameraPlane,
+      frustum,
+    );
+    // by id: 5 to 7 at 94 to 92, 70 at 29; 99 at 0 outside the view
+    expect(lists(mdb)).toEqual([[6000, 1094, 1, 6000, 1093, 1, 6000, 1092, 1, 6000, 1029, 1]]);
+  });
+
+  it('draws a gridless segment at full detail, without levels at once', () => {
+    const lodLevels = [[0, 1e7, 0, 60, 1]] as unknown as LodLevelsValue;
+    const mdb = createSegmentedMdbList();
+    mdb.prepare(ValueCell.create(lodLevels), 4, true, LodView());
+    mdb.markedSegment(values(0), segment, lodLevels, counts, positions, transforms, sphere, cameraPlane, frustum);
+    expect(lists(mdb)).toEqual([[6000, 1005, 3, 6000, 1070, 1]]);
+
+    mdb.prepare(undefined, 4, false, LodView());
+    mdb.markedSegment(values(0), segment, undefined, counts, positions, transforms, sphere, cameraPlane, frustum);
+    expect(lists(mdb)).toEqual([[6000, 1005, 3, 6000, 1070, 1]]);
+  });
+});
+
+describe('instance positions', () => {
+  it('inverts the ids of the draw order, again where the cell changed', () => {
+    const instances = ValueCell.create(Float32Array.of(2, 0, 3, 1));
+    const positions = createInstancePositions();
+    expect(Array.from(positions(instances, 4))).toEqual([1, 3, 0, 2]);
+    instances.ref.value.set([0, 1, 2, 3]);
+    // unchanged cell: kept
+    expect(Array.from(positions(instances, 4))).toEqual([1, 3, 0, 2]);
+    ValueCell.update(instances, instances.ref.value);
+    expect(Array.from(positions(instances, 4))).toEqual([0, 1, 2, 3]);
   });
 });

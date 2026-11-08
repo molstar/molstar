@@ -28,6 +28,10 @@ export const common_vert_params = `
 varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
+// the position where the instance is placed, without the transient transform: what grids of 'volumeInstance' data are
+// looked up by (built from \`aTransform\`); set by \`assign_position\`
+vec3 gridModelPosition;
+
 #if defined(emulateVertexId)
     #define VertexID int(aVertex)
 #else

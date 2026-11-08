@@ -12,6 +12,7 @@
  * Requires compiled library output (`pnpm build:lib`).
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { execFileSync } from 'node:child_process';
@@ -36,7 +37,10 @@ const Allowed = {
    * the data actions that list `Response Data` are taken out of the String and Binary Data lists of both dumps.
    */
   responseData: 'Response Data',
+  /** Transforms new in v6: moving a shape or a particle list by hand (as a structure); the particle one with particles */
+  transforms: ['ms-plugin.transform-shape-provider', 'ms-plugin.transform-particle-list'],
 };
+const isParticleListTransform = (id) => id === 'ms-plugin.transform-particle-list';
 
 /** Section 6.1, the response data row: the parsers the current dump lists for Response Data, out of both dumps. */
 function withoutResponseData(expected, current) {
@@ -121,6 +125,13 @@ function withoutAllowed(target) {
   }
   copy.dragAndDrop = copy.dragAndDrop.filter((n) => !Allowed.dragAndDrop.includes(n));
   copy.formats = copy.formats.filter((n) => !Allowed.formats.includes(n));
+  const data = copy.actions.data;
+  data.all = data.all.filter((id) => !Allowed.transforms.includes(id));
+  for (const [from, ids] of Object.entries(data.byFromType)) {
+    const kept = ids.filter((id) => !Allowed.transforms.includes(id));
+    if (kept.length) data.byFromType[from] = kept;
+    else delete data.byFromType[from];
+  }
   return copy;
 }
 
@@ -178,6 +189,11 @@ try {
     }
     for (const name of Allowed.formats) {
       if (!c.formats.includes(name)) problems.push(`${target}.formats: expected '${name}'`);
+    }
+    for (const id of Allowed.transforms) {
+      // the particle list's only where the particles are composed (the Viewer)
+      if (isParticleListTransform(id) && !viewer) continue;
+      if (!c.actions.data.all.includes(id)) problems.push(`${target}.actions.data.all: expected '${id}'`);
     }
     if (!c.actions.data.byFromType[Allowed.responseData]?.includes('ms-plugin.parse-cif')) {
       problems.push(`${target}.actions.data.byFromType: expected '${Allowed.responseData}' with 'ms-plugin.parse-cif'`);

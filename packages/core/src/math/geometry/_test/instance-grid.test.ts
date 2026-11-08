@@ -8,7 +8,13 @@ import { describe, expect, it } from 'vitest';
 import { Mat4 } from '../../linear-algebra/3d/mat4.js';
 import { Vec3 } from '../../linear-algebra/3d/vec3.js';
 import { Sphere3D } from '../primitives/sphere3d.js';
-import { calcInstanceGrid, createEmptyInstanceGrid, InstanceData, InstanceGrid } from '../instance-grid.js';
+import {
+  calcInstanceGrid,
+  createEmptyInstanceGrid,
+  InstanceData,
+  InstanceGrid,
+  moveInstanceGrid,
+} from '../instance-grid.js';
 import { fillSerial } from '@molstar/core/util/array';
 
 function createInstanceData(positions: Vec3[], radius = 1): InstanceData {
@@ -162,5 +168,63 @@ describe('instance-grid', () => {
     expect(grid.cellCount).toBeGreaterThan(1);
     expect(grid.batchCount).toBeGreaterThan(1);
     checkInvariants(grid, data);
+  });
+});
+
+describe('moveInstanceGrid', () => {
+  const positions: Vec3[] = [];
+  for (let i = 0; i < 60; ++i) positions.push(Vec3.create((i % 5) * 7, Math.floor(i / 5) * 3, (i % 3) * 11));
+  const data = createInstanceData(positions, 1.5);
+  const grid = calcInstanceGrid(data, 10, 4);
+  const move = Mat4.mul(
+    Mat4(),
+    Mat4.fromTranslation(Mat4(), Vec3.create(30, -5, 2)),
+    Mat4.fromRotation(Mat4(), Math.PI / 3, Vec3.normalize(Vec3(), Vec3.create(1, 2, 0))),
+  );
+
+  it('moves the spheres and transforms, keeps the cells and the instance order', () => {
+    const moved = moveInstanceGrid(grid, move);
+    expect(moved.cellOffsets).toBe(grid.cellOffsets);
+    expect(moved.cellInstance).toBe(grid.cellInstance);
+    expect(moved.batchOffsets).toBe(grid.batchOffsets);
+    expect(moved.layout).toBe(grid);
+    // each transform the move times the grid's, each sphere moved (radius kept by a rigid move)
+    const expected = Mat4();
+    const t = Mat4();
+    for (let i = 0; i < data.instanceCount; ++i) {
+      Mat4.mul(expected, move, Mat4.fromArray(t, grid.cellTransform, i * 16));
+      for (let k = 0; k < 16; ++k) expect(moved.cellTransform[i * 16 + k]).toBeCloseTo(expected[k], 4);
+    }
+    const p = Vec3();
+    for (let c = 0; c < grid.cellCount; ++c) {
+      Vec3.transformMat4(p, Vec3.fromArray(p, grid.cellSpheres, c * 4), move);
+      for (let k = 0; k < 3; ++k) expect(moved.cellSpheres[c * 4 + k]).toBeCloseTo(p[k], 4);
+      expect(moved.cellSpheres[c * 4 + 3]).toBeCloseTo(grid.cellSpheres[c * 4 + 3], 5);
+    }
+    // the moved instances still lie in their cells' moved spheres
+    const center = data.invariantBoundingSphere.center;
+    for (let c = 0; c < moved.cellCount; ++c) {
+      for (let i = moved.cellOffsets[c]; i < moved.cellOffsets[c + 1]; ++i) {
+        Vec3.transformMat4Offset(p, center, moved.cellTransform as unknown as number[], 0, 0, i * 16);
+        const d = Vec3.distance(p, Vec3.fromArray(Vec3(), moved.cellSpheres, c * 4));
+        expect(d).toBeLessThanOrEqual(moved.cellSpheres[c * 4 + 3] + 1e-3);
+      }
+    }
+  });
+
+  it('keeps the first grid as the layout and the moves composed as the placement', () => {
+    const back = Mat4.invert(Mat4(), move);
+    const twice = moveInstanceGrid(moveInstanceGrid(grid, move), back);
+    expect(twice.layout).toBe(grid);
+    expect(Mat4.isIdentity(twice.placement!, 1e-5)).toBe(true);
+    for (let k = 0; k < grid.cellSpheres.length; ++k) expect(twice.cellSpheres[k]).toBeCloseTo(grid.cellSpheres[k], 3);
+  });
+
+  it("scales the radii by the largest scale, a single instance's one array moved once", () => {
+    const single = calcInstanceGrid(createInstanceData([Vec3.create(1, 2, 3)]), 10, 4);
+    expect(single.batchSpheres).toBe(single.cellSpheres);
+    const moved = moveInstanceGrid(single, Mat4.fromUniformScaling(Mat4(), 2));
+    expect(moved.batchSpheres).toBe(moved.cellSpheres);
+    expect(Array.from(moved.cellSpheres)).toEqual([2, 4, 6, 2]);
   });
 });

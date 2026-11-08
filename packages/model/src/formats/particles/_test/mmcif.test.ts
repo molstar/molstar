@@ -16,11 +16,16 @@ import {
   getParticleOperator,
   getParticleOperatorId,
   getParticleOperatorIndex,
+  parseOperatorCombinations,
   readParticleOperators,
 } from '../operators.js';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
+import { type ParticleList, ParticleTarget, getParticleTransforms } from '@molstar/model/model/particles/particle-list';
 import { createParticleListFromMmcifAssembly } from '../mmcif.js';
 import { RuntimeContext, Task } from '@molstar/core/task';
+import { ElementSymbol } from '@molstar/model/model/structure/model/types';
+import { VdwRadius } from '@molstar/model/model/structure/model/properties/atomic/measures';
 
 const rows = [
   // id, matrix (row-major 3x3), vector
@@ -181,6 +186,26 @@ describe('mmcif particle operators', () => {
     }
   });
 
+  it('parses expressions to the combinations of the operator lists', async () => {
+    const serial = readParticleOperators(await parseBlock('brackets', ['1', '2', '3']));
+    const gaps = readParticleOperators(await parseBlock('brackets', ['1', '3', '10']));
+    const named = readParticleOperators(await parseBlock('brackets'));
+    for (const [ops, expressions] of [
+      [serial, ['(1-3)', '(1,2,3)(2-3)', '(3)', '1-2', '(3-1)']],
+      [gaps, ['(1,3,10)', '(10)(1,3)', '(3-3)']],
+      [named, ['(1,2,P)', '(1-2)(P)', '(P)']],
+    ] as const) {
+      for (const expression of expressions) {
+        expect(parseOperatorCombinations(expression, ops)).toEqual(
+          expandOperatorCombinations(parseOperatorList(expression), ops),
+        );
+      }
+    }
+    expect(() => parseOperatorCombinations('(1-4)', serial)).toThrow(/Operator '4' not found/);
+    expect(() => parseOperatorCombinations('(2-3)', gaps)).toThrow(/Operator '2' not found/);
+    expect(() => parseOperatorCombinations('(X)', named)).toThrow(/Operator 'X' not found/);
+  });
+
   it('composes combinations like sequential Mat4.mul', async () => {
     const block = await parseBlock('brackets');
     const db = toDatabase(mmCIF_Schema, block);
@@ -216,7 +241,7 @@ describe('mmcif particle operators', () => {
     if (parsed.isError) throw new Error(parsed.message);
     const ops = readParticleOperators(parsed.result.blocks[0]);
     expect(ops.count).toBe(0);
-    expect(ops.data.length).toBe(0);
+    expect(ops.columns.length).toBe(0);
   });
 });
 
@@ -275,7 +300,203 @@ describe('CellPack mmCIF fibers', () => {
     const list = await task.run((progress) => updates.push(progress.root.progress.message), 0);
 
     expect(list.count).toBe(10);
-    expect(updates).toContain('Calculating particle bounds');
+    expect(updates).toContain('Reading particle targets');
     expect(updates).toContain('Building particles');
+  });
+});
+
+// one chain whose centroid (11/3, 0, 0) is not its box's center (5, 0, 0), under a rotation and a translation
+const placementCif = `data_placement_test
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.pdbx_PDB_model_num
+ATOM 1 C CA ALA A 1 1 0 0 0 1
+ATOM 2 C CA ALA A 1 2 1 0 0 1
+ATOM 3 C CA ALA A 1 3 10 0 0 1
+
+loop_
+_pdbx_struct_assembly_gen.assembly_id
+_pdbx_struct_assembly_gen.oper_expression
+_pdbx_struct_assembly_gen.asym_id_list
+1 '(1-2)' A
+
+loop_
+_pdbx_struct_oper_list.id
+_pdbx_struct_oper_list.matrix[1][1]
+_pdbx_struct_oper_list.matrix[1][2]
+_pdbx_struct_oper_list.matrix[1][3]
+_pdbx_struct_oper_list.matrix[2][1]
+_pdbx_struct_oper_list.matrix[2][2]
+_pdbx_struct_oper_list.matrix[2][3]
+_pdbx_struct_oper_list.matrix[3][1]
+_pdbx_struct_oper_list.matrix[3][2]
+_pdbx_struct_oper_list.matrix[3][3]
+_pdbx_struct_oper_list.vector[1]
+_pdbx_struct_oper_list.vector[2]
+_pdbx_struct_oper_list.vector[3]
+1 1 0 0 0 1 0 0 0 1 0 0 0
+2 0 -1 0 1 0 0 0 0 1 10 20 30
+`;
+
+// PetWorld: a model a target; model 1's chains out of a model's order (A of entity 1 interleaved, entity 2 between)
+const petworldCif = (asym: 'label_asym_id' | 'auth_asym_id') => `data_petworld_chains
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.${asym}
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.pdbx_PDB_model_num
+ATOM 1 C CA ALA A 1 1 0 0 0 1
+ATOM 2 C CA ALA B 2 1 1 0 0 1
+ATOM 3 C CA ALA A 1 2 2 0 0 1
+ATOM 4 C CA ALA C 1 1 3 0 0 1
+ATOM 5 C CA ALA A 1 1 5 0 0 2
+ATOM 6 C CA ALA B 1 1 6 0 0 2
+
+loop_
+_pdbx_struct_assembly_gen.assembly_id
+_pdbx_struct_assembly_gen.oper_expression
+_pdbx_struct_assembly_gen.asym_id_list
+_pdbx_struct_assembly_gen.PDB_model_num
+1 '(1)' A 1
+1 '(1)' A 2
+
+loop_
+_pdbx_struct_oper_list.id
+_pdbx_struct_oper_list.matrix[1][1]
+_pdbx_struct_oper_list.matrix[1][2]
+_pdbx_struct_oper_list.matrix[1][3]
+_pdbx_struct_oper_list.matrix[2][1]
+_pdbx_struct_oper_list.matrix[2][2]
+_pdbx_struct_oper_list.matrix[2][3]
+_pdbx_struct_oper_list.matrix[3][1]
+_pdbx_struct_oper_list.matrix[3][2]
+_pdbx_struct_oper_list.matrix[3][3]
+_pdbx_struct_oper_list.vector[1]
+_pdbx_struct_oper_list.vector[2]
+_pdbx_struct_oper_list.vector[3]
+1 1 0 0 0 1 0 0 0 1 0 0 0
+`;
+
+async function parsePetworld(text: string) {
+  const parsed = await CIF.parseText(text).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  return createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, parsed.result, { assemblyId: '1' });
+}
+
+function sitesOf(list: ParticleList, id: number) {
+  const target = list.targetMapping!.get(id)!;
+  if (target.kind !== 'sites') throw new Error('expected a sites target');
+  return target.sites;
+}
+
+describe('mmCIF particle targets', () => {
+  it('place the atoms where the operators put them', async () => {
+    const parsed = await CIF.parseText(placementCif).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const list = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, parsed.result, {
+      assemblyId: '1',
+      variant: 'standard',
+    });
+    const target = list.targetMapping!.get(0)!;
+    const center = ParticleTarget.getCenter(target)!;
+    expect(center).toBe(target.kind === 'sites' ? target.center : undefined);
+    for (let k = 0; k < 3; ++k) expect(center[k]).toBeCloseTo([11 / 3, 0, 0][k], 5);
+
+    const ops = readParticleOperators(parsed.result.blocks[0]);
+    const transforms = getParticleTransforms(list);
+    const op = Mat4();
+    const m = Mat4();
+    const placed = Vec3();
+    const expected = Vec3();
+    for (let p = 0; p < list.count; ++p) {
+      getParticleOperator(ops, p, op);
+      Mat4.fromArray(m, transforms, p * 16);
+      for (const x of [0, 1, 10]) {
+        const atom = Vec3.create(x, 0, 0);
+        Vec3.transformMat4(placed, Vec3.sub(Vec3(), atom, center), m);
+        Vec3.transformMat4(expected, atom, op);
+        for (let k = 0; k < 3; ++k) expect(placed[k]).toBeCloseTo(expected[k], 4);
+      }
+    }
+  });
+
+  it('are the sites of the chains: positions, van der Waals radii, centered by their centroid', async () => {
+    const parsed = await CIF.parseText(placementCif).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const list = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, parsed.result, {
+      assemblyId: '1',
+      variant: 'standard',
+    });
+    const target = list.targetMapping!.get(0)!;
+    if (target.kind !== 'sites') throw new Error('expected a sites target');
+    const { sites } = target;
+    expect(sites.count).toBe(3);
+    expect(Array.from(sites.positions)).toEqual([0, 0, 0, 1, 0, 0, 10, 0, 0]);
+    // carbon's, as a model's physical size (`VdwRadiusOfNumber` of its atomic number)
+    expect(Array.from(sites.radii)).toEqual(new Array(3).fill(Math.fround(VdwRadius(ElementSymbol('C')))));
+    // without the given center: the sites' centroid
+    const center = ParticleTarget.getCenter({ kind: 'sites', sites })!;
+    for (let k = 0; k < 3; ++k) expect(center[k]).toBeCloseTo([11 / 3, 0, 0][k], 5);
+  });
+
+  it("are a chain's sites as one run, labelled by its label_asym_id", async () => {
+    const parsed = await CIF.parseText(placementCif).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const list = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, parsed.result, {
+      assemblyId: '1',
+      variant: 'standard',
+    });
+    const target = list.targetMapping!.get(0)!;
+    if (target.kind !== 'sites') throw new Error('expected a sites target');
+    expect(Array.from(target.sites.chains!.offsets)).toEqual([0, 3]);
+    expect(target.sites.chains!.labels).toEqual(['A']);
+  });
+
+  it("are a model's sites by chain in a model's order: reordered only where out of it", async () => {
+    const list = await parsePetworld(petworldCif('label_asym_id'));
+    // model 1: A (entity 1), B (entity 2), A, C (entity 1): by entity, then chain, each as it first appears
+    const first = sitesOf(list, 0);
+    expect(Array.from(first.positions.filter((_, i) => i % 3 === 0))).toEqual([0, 2, 3, 1]);
+    expect(Array.from(first.chains!.offsets)).toEqual([0, 2, 3, 4]);
+    expect(first.chains!.labels).toEqual(['A', 'C', 'B']);
+    // model 2: in order already, its rows' order kept
+    const second = sitesOf(list, 1);
+    expect(Array.from(second.positions.filter((_, i) => i % 3 === 0))).toEqual([5, 6]);
+    expect(Array.from(second.chains!.offsets)).toEqual([0, 1, 2]);
+    expect(second.chains!.labels).toEqual(['A', 'B']);
+  });
+
+  it("are a model's chains by auth_asym_id without label_asym_id", async () => {
+    const list = await parsePetworld(petworldCif('auth_asym_id'));
+    expect(sitesOf(list, 0).chains!.labels).toEqual(['A', 'C', 'B']);
+  });
+
+  it('are none without resolving targets', async () => {
+    const parsed = await CIF.parseText(placementCif).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const list = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, parsed.result, {
+      assemblyId: '1',
+      variant: 'standard',
+      resolveTargets: false,
+    });
+    expect(list.targetMapping).toBeUndefined();
   });
 });

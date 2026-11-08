@@ -56,7 +56,7 @@
 - **Compute** (`gl/compute.ts`, `gl/webgpu/compute.ts`): kernels from schemas with storage buffers (`atomic<u32>`),
   storage textures and indirect dispatch; the GPU culler (`cell-cull`, `instance-copy`, `cull-args`) compacts merged
   objects' instances per frame. Kernels cannot bind the render data pages (`tPositionGroup`, size and theme layers) or
-  the object blocks; the culler packs its own instance copy (`packInstanceData`).
+  the object blocks; the culler reads the instances from their data (`CulledData`), which its regions index.
 - **Limits of WebGPU**: no texture atomics, depth formats not storage-writable (`StorageFormats`,
   `gl/webgpu/texture.ts`). Gaussian density resolves "nearest wins" in two passes with 32-bit atomics
   (`gaussian-density.wgsl.ts`: `atomicMax` of the nearness, then `atomicMax` of the atom where it matches).
@@ -144,7 +144,7 @@
 4. **Input: the frame's objects and their chunks** (`SphereRasterTable`): per object a region of the frame's chunks,
    an id maps back to (object, instance slot, item, level) by its chunk (few regions: merged objects make about one
    per representation).
-   - Merged objects culled on the GPU: the culler's compacted instances (`MergedRasterInput`,
+   - Merged objects culled on the GPU: the culler's regions of instance indices (`MergedRasterInput`,
      `Renderable.getRasterInput` once `prepareCull` dispatched): a thread per slot finds its region (level and segment)
      in the indirect records, appends the record's spheres if within its count, at the segment's scale of the level
      (`tSegment`). The culler's frustum and levels are then the raster's. A merged object's members share one material
@@ -155,7 +155,8 @@
      `uSizeFactor`, the model scale, the levels' ranges and counts, the instance and group counts) go into the table's
      record per object, written from the item's values when they change. Not the object blocks: their pages are
      uniform-only, their layout is generated per program variant, and a block moves to a ring slot when it changes
-     after a draw read it. Transforms: the culler's compacted instances for merged objects (storage buffers), a packed
+     after a draw read it. Transforms: the culler's instance data for merged objects (`CulledData`, the rows first; a
+     chunk's slot is the instance's index there), a packed
      copy for the others (their instanced attributes are in vertex-only geometry pages).
 5. **The resolve**: per drawn object, one triangle covering the viewport in the opaque pass, before the other opaque
    objects, with the object's own bindings: the color program built with `dSphereResolve`

@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { ColorNames } from '@molstar/core/util/color/names';
+import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
@@ -184,6 +185,96 @@ describe.skipIf(!WebGPU.module)('sphere raster split per instance on WebGPU', ()
     }
   });
 
+  // a merged object moved by its transient transform (`uObjectTransform`, a drag's frame) stays with the raster: the
+  // culling and the raster move its spheres by it, drawn as the same move baked into its members
+  it('draws a merged object moved by its transient transform by the raster, as the move baked', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      if (!graphics.capabilities.atomicMinMax64) return;
+      const move = Vec3.create(3, -2, -6);
+      const offsets = [Vec3.create(0, 0, 0), Vec3.create(0, 4, -3)];
+      const colors = [ColorNames.orange, ColorNames.green];
+      const moved = createMergedRenderObject(
+        offsets.map((o, i) => createMember(o, colors[i])),
+        { gpuCulling: true },
+      );
+      ValueCell.update(moved.values.uObjectTransform, Mat4.fromTranslation(Mat4(), move));
+      const baked = createMergedRenderObject(
+        offsets.map((o, i) => createMember(Vec3.add(Vec3(), o, move), colors[i])),
+        { gpuCulling: true },
+      );
+
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      camera.setState(
+        { ...camera.getFocus(Vec3.create(0, 2, -40), 50), position: Vec3.create(0, 6, 14), radiusMax: 120 },
+        0,
+      );
+      camera.update();
+
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      const render = async (object: typeof moved) => {
+        const scene = Scene.create(graphics);
+        scene.add(object);
+        scene.commit();
+        const renderer = Renderer.create(graphics, { sphereRaster: 'on', sphereRasterRadius: 2 });
+        await graphics.resources.preparePipelines(
+          renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+        );
+        let resolved = 0;
+        const item = scene.renderables[0].renderItem;
+        const renderFullscreen = item.renderFullscreen!;
+        item.renderFullscreen = (...args) => {
+          const drawn = renderFullscreen(...args);
+          if (drawn) resolved += 1;
+          return drawn;
+        };
+        let pixels: number[] = [];
+        for (let i = 0; i < 30; ++i) {
+          resolved = 0;
+          renderer.setViewport(0, 0, Size, Size);
+          renderer.update(camera, scene, createFrame());
+          renderer.prepareCull(scene);
+          renderer.prepareSphereRaster(scene, camera);
+          graphics.beginRenderPass(target);
+          renderer.clear(true);
+          renderer.renderOpaque(scene, camera);
+          graphics.flush();
+          pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+          await graphics.resources.pending.whenReady();
+          if (resolved > 0 && i > 3) break;
+        }
+        item.renderFullscreen = renderFullscreen;
+        renderer.dispose();
+        return { pixels, resolved };
+      };
+
+      const expected = await render(baked);
+      const drawn = await render(moved);
+      expect(expected.resolved).toBeGreaterThan(0);
+      expect(drawn.resolved).toBeGreaterThan(0);
+      expect(new Set(expected.pixels).size).toBeGreaterThan(4);
+      let differ = 0;
+      for (let i = 0; i < expected.pixels.length; i += 4) {
+        const d = Math.max(...[0, 1, 2].map((c) => Math.abs(expected.pixels[i + c] - drawn.pixels[i + c])));
+        if (d > 8) differ += 1;
+      }
+      expect(differ).toBeLessThanOrEqual(Size * Size * 0.01);
+
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
   // the chunks of a merged object follow what its views use (`readChunkCounts`): more than it starts with here, 3,000
   // spheres an instance by 4,000 instances, lost in a frame or so, then all drawn
   it('grows its chunks where a view needs more than it started with', async () => {
@@ -276,6 +367,117 @@ describe.skipIf(!WebGPU.module)('sphere raster split per instance on WebGPU', ()
         if (d > 8) differ += 1;
       }
       expect(differ).toBeLessThanOrEqual(Size * Size * 0.02);
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
+  // objects culled on the GPU for the raster only (`Renderable.rasterSpheres`) are culled there where the raster takes
+  // them: never with it off, all with it on, the largest visible ones with `auto` (`sphereRasterObjects`); the others
+  // drawn by the CPU culling's lists, the same image
+  it('culls objects on the GPU for the raster only where the raster takes them', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      if (!graphics.capabilities.atomicMinMax64) return;
+      const scene = Scene.create(graphics);
+      // by size: three members, two, one; and one culled on the GPU by its instances
+      const objects = [
+        [Vec3.create(0, 0, 0), Vec3.create(0, 2, -2), Vec3.create(0, -2, -2)],
+        [Vec3.create(0, 4, -3), Vec3.create(0, 6, -5)],
+        [Vec3.create(0, -4, -3)],
+        [Vec3.create(0, -6, -5)],
+      ].map((offsets, i) =>
+        createMergedRenderObject(
+          offsets.map((o) => createMember(o, ColorNames.orange)),
+          { gpuCulling: true, rasterOnly: i < 3 },
+        ),
+      );
+      for (const o of objects) scene.add(o);
+      scene.commit();
+      const renderables = objects.map((o) => scene.get(o)!);
+      expect(renderables.map((r) => r.rasterSpheres! > 0)).toEqual([true, true, true, false]);
+      expect(renderables[3].rasterSpheres).toBeUndefined();
+      // the objects the renderer culls on the GPU, of the last frame
+      let called = renderables.map(() => false);
+      renderables.forEach((r, i) => {
+        const prepareCull = r.prepareCull!;
+        r.prepareCull = (...args) => {
+          called[i] = true;
+          return prepareCull(...args);
+        };
+      });
+
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      camera.setState(
+        { ...camera.getFocus(Vec3.create(0, 2, -40), 50), position: Vec3.create(0, 6, 14), radiusMax: 120 },
+        0,
+      );
+      camera.update();
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      const render = async (props: Partial<RendererProps>) => {
+        const renderer = Renderer.create(graphics, { sphereRasterRadius: 2, ...props });
+        await graphics.resources.preparePipelines(
+          renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+        );
+        let pixels: number[] = [];
+        let culled: boolean[] = [];
+        for (let i = 0; i < 30; ++i) {
+          renderer.setViewport(0, 0, Size, Size);
+          renderer.update(camera, scene, createFrame());
+          called = renderables.map(() => false);
+          renderer.prepareCull(scene);
+          culled = called;
+          renderer.prepareSphereRaster(scene, camera);
+          graphics.beginRenderPass(target);
+          renderer.clear(true);
+          renderer.renderOpaque(scene, camera);
+          graphics.flush();
+          pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+          await graphics.resources.pending.whenReady();
+          if (i > 6) break;
+        }
+        renderer.dispose();
+        return { pixels, culled };
+      };
+
+      const off = await render({ sphereRaster: 'off' });
+      expect(new Set(off.pixels).size).toBeGreaterThan(4);
+      expect(off.culled).toEqual([false, false, false, true]);
+      const on = await render({ sphereRaster: 'on' });
+      expect(on.culled).toEqual([true, true, true, true]);
+      const auto = await render({ sphereRaster: 'auto', sphereRasterObjects: 2 });
+      expect(auto.culled).toEqual([true, true, false, true]);
+      // a hidden object takes no place: the next largest does
+      renderables[0].state.visible = false;
+      const hidden = await render({ sphereRaster: 'auto', sphereRasterObjects: 2 });
+      expect(hidden.culled).toEqual([false, true, true, true]);
+      renderables[0].state.visible = true;
+      const none = await render({ sphereRaster: 'auto', sphereRasterObjects: 0 });
+      expect(none.culled).toEqual([false, false, false, true]);
+
+      // the same image, but where the raster's and the fragment stage's arithmetic decide an edge differently
+      for (const { pixels } of [on, auto]) {
+        let differ = 0;
+        for (let i = 0; i < off.pixels.length; i += 4) {
+          const d = Math.max(
+            Math.abs(off.pixels[i] - pixels[i]),
+            Math.abs(off.pixels[i + 1] - pixels[i + 1]),
+            Math.abs(off.pixels[i + 2] - pixels[i + 2]),
+          );
+          if (d > 8) differ += 1;
+        }
+        expect(differ).toBeLessThanOrEqual(Size * Size * 0.02);
+      }
       target.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {

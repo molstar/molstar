@@ -10,7 +10,8 @@ import type { DefineLookup } from '../../renderable/schema.js';
 import { getWgslDefineLookup, getWgslDefines } from '../program.js';
 import { copy_wgsl } from './copy.wgsl.js';
 import { cylinders_wgsl } from './cylinders.wgsl.js';
-import { dim_wgsl, overlay_wgsl } from './marking.wgsl.js';
+import { dim_wgsl, marking_depth_wgsl, overlay_wgsl } from './marking.wgsl.js';
+import { clip_ghost_wgsl } from './clip-ghost.wgsl.js';
 import { evaluate_wboit_wgsl } from './wboit.wgsl.js';
 import { blend_back_dpoit_wgsl, evaluate_dpoit_wgsl } from './dpoit.wgsl.js';
 import { bloom_blur_wgsl, bloom_composite_wgsl, bloom_luminosity_wgsl } from './bloom.wgsl.js';
@@ -152,6 +153,8 @@ const Programs: { [name: string]: WgslProgram } = {
   'smaa-weights': { source: smaa_weights_wgsl, variants: ['compute'] },
   'smaa-blend': { source: smaa_blend_wgsl, variants: ['compute'] },
   dim: { source: dim_wgsl, variants: ['compute'] },
+  'marking-depth': { source: marking_depth_wgsl, variants: ['compute'] },
+  'clip-ghost': { source: clip_ghost_wgsl, variants: ['compute'] },
   overlay: { source: overlay_wgsl, variants: ['compute'] },
   ssao_blur: { source: ssao_blur_wgsl, variants: ['compute'] },
   postprocessing: { source: postprocessing_wgsl, variants: ['compute'] },

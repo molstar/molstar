@@ -76,7 +76,7 @@ void main() {
     ${assign_clipping_varying}
     ${assign_size}
 
-    mat4 transform = applyTumble(aTransform);
+    mat4 transform = uObjectTransform * applyTumble(aTransform);
     vec3 wigStart = applyWiggle(cylinderStart.xyz, group, aInstance);
     vec3 wigEnd = applyWiggle(cylinderEnd.xyz, group, aInstance);
     mat4 modelTransform = uModel * transform;
@@ -94,7 +94,10 @@ void main() {
         // tested per fragment
         float halfLength = length(vCylinderEnd.xyz - vCylinderStart.xyz) * 0.5;
         float boundingRadius = sqrt(halfLength * halfLength + vCylinderStart.w * vCylinderStart.w);
-        int clipClass = clipSphereClass(vModelPosition / uModelScale, boundingRadius / uModelScale);
+        // the ghost pass (\`uClipGhost\`): a cylinder whole by its center, kept where clipped, not tested per fragment
+        int clipClass = uClipGhost
+            ? (clipTest(vModelPosition / uModelScale) ? 0 : 2)
+            : clipSphereClass(vModelPosition / uModelScale, boundingRadius / uModelScale);
         vClipSome = clipClass == 1 ? 1.0 : 0.0;
     #endif
     vec3 camDir = -mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);

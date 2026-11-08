@@ -15,3 +15,8 @@
   on WebGPU; PetWorld zoomed 3.23 → 2.12 ms)
 - A geometry of a single sphere is bounded by its size: its bounding radius could be exactly 0, by where it lies, culling
   it as a point
+- Renderer prop `sphereRasterObjects` (8 by default): with `sphereRaster` `auto`, how many of the objects culled on the
+  GPU for the raster only (many spheres, few instances) are culled there and drawn by the raster, the largest visible
+  ones; the others are culled on the CPU and drawn as impostors (PetWorld, 150 objects, rotating: 26 -> 4.2 ms)
+- `gpuCulling: 'auto'` turns on from 50,000 instances, not 20,000 (re-measured against the CPU's culling with draw lists
+  replayed while the view moves)

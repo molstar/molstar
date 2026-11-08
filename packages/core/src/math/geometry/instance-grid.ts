@@ -8,6 +8,7 @@ import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { fillSerial } from '@molstar/core/util/array';
 import { Box3D } from './primitives/box3d.js';
 import { Vec3 } from '../linear-algebra/3d/vec3.js';
+import { Mat4 } from '../linear-algebra/3d/mat4.js';
 import type { PositionData } from './common.js';
 import { GridLookup3D } from './lookup3d/grid.js';
 import { Sphere3D } from './primitives/sphere3d.js';
@@ -34,7 +35,17 @@ type BottomGrid = {
   readonly cellInstance: Float32Array;
 };
 
-export type InstanceGrid = BottomGrid & TopGrid;
+export type InstanceGrid = BottomGrid &
+  TopGrid & {
+    /**
+     * the grid this one was moved from (`moveInstanceGrid`), the first built of a line of moves: the same cells, the
+     * same instance order (`cellOffsets`, `cellInstance`, the batches' cells), what was split by it still splits this
+     * one; none on a built grid
+     */
+    readonly layout?: InstanceGrid;
+    /** the move from `layout` to this grid */
+    readonly placement?: Mat4;
+  };
 
 export type InstanceData = {
   instanceCount: number;
@@ -91,6 +102,63 @@ function calcSingleInstanceGrid(instanceData: InstanceData, cellSize: number, ba
     batchSpheres: spheres,
     batchCell: SingleBatchCell,
   };
+}
+
+/**
+ * `grid` moved by `transform` (a rigid move, or with a scale: the radii by its largest): its cells' and batches' spheres
+ * and its instances' transforms (`cellTransform`) moved, its offsets and instance order shared. O(cells + instances), no
+ * lookup built: what a placement moved as a whole costs instead of `calcInstanceGrid`
+ */
+export function moveInstanceGrid(grid: InstanceGrid, transform: Mat4): InstanceGrid {
+  const scale = Mat4.getMaxScaleOnAxis(transform);
+  const cellSpheres = moveSpheres(grid.cellSpheres, grid.cellCount, transform, scale);
+  // a single instance's grid has one array for both
+  const batchSpheres =
+    grid.batchSpheres === grid.cellSpheres
+      ? cellSpheres
+      : moveSpheres(grid.batchSpheres, grid.batchCount, transform, scale);
+  const layout = grid.layout ?? grid;
+  const placement = Mat4.mul(Mat4(), transform, grid.placement ?? Mat4.identity());
+  return {
+    ...grid,
+    cellSpheres,
+    cellTransform: moveTransforms(grid.cellTransform, transform),
+    batchSpheres,
+    layout,
+    placement,
+  };
+}
+
+function moveSpheres(spheres: Float32Array, count: number, m: Mat4, scale: number) {
+  const out = new Float32Array(spheres.length);
+  for (let i = 0, o = 0; i < count; ++i, o += 4) {
+    const x = spheres[o],
+      y = spheres[o + 1],
+      z = spheres[o + 2];
+    out[o] = m[0] * x + m[4] * y + m[8] * z + m[12];
+    out[o + 1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+    out[o + 2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+    out[o + 3] = spheres[o + 3] * scale;
+  }
+  return out;
+}
+
+/** `m` times each affine transform of `transforms` (column-major, 16 floats each), inlined: millions of instances */
+function moveTransforms(transforms: Float32Array, m: Mat4) {
+  const out = new Float32Array(transforms.length);
+  const [a00, a01, a02, , a10, a11, a12, , a20, a21, a22, , a30, a31, a32] = m;
+  // a column at a time (the last row of an affine transform is kept)
+  for (let k = 0, kl = transforms.length; k < kl; k += 4) {
+    const x = transforms[k],
+      y = transforms[k + 1],
+      z = transforms[k + 2],
+      w = transforms[k + 3];
+    out[k] = a00 * x + a10 * y + a20 * z + a30 * w;
+    out[k + 1] = a01 * x + a11 * y + a21 * z + a31 * w;
+    out[k + 2] = a02 * x + a12 * y + a22 * z + a32 * w;
+    out[k + 3] = w;
+  }
+  return out;
 }
 
 export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, batchSize: number): InstanceGrid {
@@ -178,19 +246,33 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
   const z = new Float32Array(instanceCount);
   const indices = OrderedSet.ofBounds(0, instanceCount);
 
-  const box = Box3D.setEmpty(Box3D());
-
   const { center, radius } = invariantBoundingSphere;
   const rv = Vec3.create(radius, radius, radius);
 
-  const v = Vec3();
-  for (let i = 0; i < instanceCount; ++i) {
-    v3transformMat4Offset(v, center, transform, 0, 0, i * 16);
-    x[i] = v[0];
-    y[i] = v[1];
-    z[i] = v[2];
-    b3add(box, v);
+  // the centers and their box inlined (`Vec3.transformMat4Offset` of affine transforms, the last row
+  // 0, 0, 0, 1; `Box3D.add`): millions of instances (mesoscale particles)
+  const [cx, cy, cz] = center;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
+  for (let i = 0, o = 0; i < instanceCount; ++i, o += 16) {
+    const px = transform[o] * cx + transform[o + 4] * cy + transform[o + 8] * cz + transform[o + 12];
+    const py = transform[o + 1] * cx + transform[o + 5] * cy + transform[o + 9] * cz + transform[o + 13];
+    const pz = transform[o + 2] * cx + transform[o + 6] * cy + transform[o + 10] * cz + transform[o + 14];
+    x[i] = px;
+    y[i] = py;
+    z[i] = pz;
+    if (px < minX) minX = px;
+    if (py < minY) minY = py;
+    if (pz < minZ) minZ = pz;
+    if (px > maxX) maxX = px;
+    if (py > maxY) maxY = py;
+    if (pz > maxZ) maxZ = pz;
   }
+  const box = Box3D.create(Vec3.create(minX, minY, minZ), Vec3.create(maxX, maxY, maxZ));
   Box3D.expand(box, box, rv);
 
   const positionData: PositionData = { x, y, z, indices };
@@ -206,9 +288,6 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
   // only allocated here; fully populated by the reorder in calcInstanceGrid
   const cellTransform = new Float32Array(instanceCount * 16);
   const cellInstance = new Float32Array(instanceCount);
-
-  const b = Box3D();
-  const s = Sphere3D();
 
   let k = 0;
   for (let i = 0; i < cellCount; ++i) {
@@ -227,15 +306,32 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
       cellSpheres[i * 4 + 2] = z[idx];
       cellSpheres[i * 4 + 3] = radius;
     } else {
-      Box3D.setEmpty(b);
+      // the box of the cell's centers expanded by the radius, its sphere (`Sphere3D.fromBox3D`), inlined
+      let bMinX = Infinity,
+        bMinY = Infinity,
+        bMinZ = Infinity;
+      let bMaxX = -Infinity,
+        bMaxY = -Infinity,
+        bMaxZ = -Infinity;
       for (let j = start, jl = start + size; j < jl; ++j) {
         const idx = array[j];
-        Vec3.set(v, x[idx], y[idx], z[idx]);
-        b3add(b, v);
+        const px = x[idx],
+          py = y[idx],
+          pz = z[idx];
+        if (px < bMinX) bMinX = px;
+        if (py < bMinY) bMinY = py;
+        if (pz < bMinZ) bMinZ = pz;
+        if (px > bMaxX) bMaxX = px;
+        if (py > bMaxY) bMaxY = py;
+        if (pz > bMaxZ) bMaxZ = pz;
       }
-      Box3D.expand(b, b, rv);
-      Sphere3D.fromBox3D(s, b);
-      Sphere3D.toArray(s, cellSpheres, i * 4);
+      const hx = (bMaxX - bMinX) / 2 + radius;
+      const hy = (bMaxY - bMinY) / 2 + radius;
+      const hz = (bMaxZ - bMinZ) / 2 + radius;
+      cellSpheres[i * 4] = (bMinX + bMaxX) / 2;
+      cellSpheres[i * 4 + 1] = (bMinY + bMaxY) / 2;
+      cellSpheres[i * 4 + 2] = (bMinZ + bMaxZ) / 2;
+      cellSpheres[i * 4 + 3] = Math.sqrt(hx * hx + hy * hy + hz * hz);
     }
   }
   cellOffsets[cellCount] = offset[cellCount - 1] + count[cellCount - 1];

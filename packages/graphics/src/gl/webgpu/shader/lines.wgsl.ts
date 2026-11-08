@@ -12,6 +12,7 @@ import {
   apply_fog_wgsl,
   apply_marker_wgsl,
   assign_material_wgsl,
+  apply_occlusion_wgsl,
   check_transparency_wgsl,
   material_functions_wgsl,
 } from './chunks/material.wgsl.js';
@@ -59,6 +60,7 @@ fn trimSegment(start: vec4<f32>, end: vec4<f32>) -> vec4<f32> {
     return vec4<f32>(mix(start.xyz, end.xyz, alpha), end.w);
 }
 
+
 @vertex
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
@@ -88,11 +90,12 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_size_wgsl}
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
+    let transform = uObject.uObjectTransform * applyTumble(aTransform, invariantBoundingSphere(in));
     ${assign_wiggle_wgsl}
     let wigStart = applyWiggle(segmentStart, group, wiggle);
     let wigEnd = applyWiggle(segmentEnd, group, wiggle);
-    let modelView = uGlobal.uView * uGlobal.uModel * transform;
+    let model = uGlobal.uModel * transform;
+    let modelView = uGlobal.uView * model;
 
     // camera space
     var start = modelView * vec4<f32>(wigStart, 1.0);
@@ -102,7 +105,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let isStart = mapping.y < 0.5;
     let position4 = vec4<f32>(select(wigEnd, wigStart, isStart), 1.0);
     out.vViewPosition = select(end.xyz, start.xyz, isStart);
-    out.vModelPosition = (uGlobal.uModel * transform * position4).xyz;
+    out.vModelPosition = (model * position4).xyz;
 
     // special case for perspective projection, and segments that terminate either in, or behind, the camera plane
     let perspective = uGlobal.uProjection[2][3] == -1.0;
@@ -159,7 +162,13 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         let modelTransform = uGlobal.uModel * transform;
         let lineA = (modelTransform * vec4<f32>(applyWiggle(lineStart.xyz, group, wiggle), 1.0)).xyz;
         let lineB = (modelTransform * vec4<f32>(applyWiggle(lineEnd.xyz, group, wiggle), 1.0)).xyz;
-        let clipClass = clipSphereClass((lineA + lineB) * 0.5 / uGlobal.uModelScale, length(lineB - lineA) * 0.5 / uGlobal.uModelScale, clipFlag);
+        // the ghost pass (\`uClipGhost\`): a line whole by its center, kept where clipped, not tested per fragment
+        var clipClass: u32;
+        if (uGlobal.uClipGhost != 0u) {
+            clipClass = select(2u, 0u, clipTest((lineA + lineB) * 0.5 / uGlobal.uModelScale, clipFlag));
+        } else {
+            clipClass = clipSphereClass((lineA + lineB) * 0.5 / uGlobal.uModelScale, length(lineB - lineA) * 0.5 / uGlobal.uModelScale, clipFlag);
+        }
         if (clipClass == 2u) {
             out.position.z = 2.0 * out.position.w;
         }
@@ -187,6 +196,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     let interior = false;
 
     ${assign_material_wgsl}
+    ${apply_occlusion_wgsl}
     ${check_transparency_wgsl}
 
     #if defined(dRenderVariant_pick)

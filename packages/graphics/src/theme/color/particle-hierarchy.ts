@@ -143,22 +143,29 @@ interface HierarchyIndex {
 }
 
 /**
- * The O(particles) part, the same for every palette: per particle list and `by`, made once. The particle transforms
- * create the theme on every update (perf-audit-2 09/P6). The arrays of a list do not change; its `entityInfo` may
- * grow (Simularium frames share one and add types met later), so the index is remade when its size changed.
+ * The O(particles) part, the same for every palette: per compartment array and `by`, made once (a list's copies share
+ * it: one moved as a whole, `Particle.transform`, or with targets). The particle transforms create the theme on every
+ * update (perf-audit-2 09/P6). The arrays of a list do not change; its `entityInfo` may grow (Simularium frames share
+ * one and add types met later), so the index is remade when its size changed, or where the entities are others.
  */
 const hierarchyIndexCache = new WeakMap<
-  ParticleList,
-  Map<Props['by'], { entityInfoSize: number; index: HierarchyIndex }>
+  Int32Array,
+  Map<Props['by'], { entities: Int32Array; entityInfo: unknown; entityInfoSize: number; index: HierarchyIndex }>
 >();
 
 function getHierarchyIndex(particles: HierarchicalParticleList, by: Props['by']): HierarchyIndex {
-  let byList = hierarchyIndexCache.get(particles);
-  if (!byList) hierarchyIndexCache.set(particles, (byList = new Map()));
-  const entityInfoSize = particles.entityInfo?.size ?? 0;
+  let byList = hierarchyIndexCache.get(particles.compartments);
+  if (!byList) hierarchyIndexCache.set(particles.compartments, (byList = new Map()));
+  const { entities, entityInfo } = particles;
+  const entityInfoSize = entityInfo?.size ?? 0;
   let cached = byList.get(by);
-  if (!cached || cached.entityInfoSize !== entityInfoSize) {
-    byList.set(by, (cached = { entityInfoSize, index: buildHierarchyIndex(particles, by) }));
+  if (
+    !cached ||
+    cached.entityInfoSize !== entityInfoSize ||
+    cached.entities !== entities ||
+    cached.entityInfo !== entityInfo
+  ) {
+    byList.set(by, (cached = { entities, entityInfo, entityInfoSize, index: buildHierarchyIndex(particles, by) }));
   }
   return cached.index;
 }

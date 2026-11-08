@@ -4,10 +4,11 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StateSelection } from '@molstar/core/state';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Grid, Volume } from '@molstar/model/model/volume';
 import { Color } from '@molstar/core/util/color';
@@ -23,6 +24,16 @@ import type { StructureRef } from '@molstar/plugin/state/manager/structure/hiera
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import type { VolumeRef, VolumeRepresentationRef } from '@molstar/plugin/state/manager/volume/hierarchy-state';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
+import { getTransformFromParams, type TransformParam } from '@molstar/plugin/state/transforms/helpers';
+import {
+  currentVolumeTransform,
+  isStreamedForStructure,
+  volumeCenter,
+  volumeMatrixOf,
+  volumeTransformCell,
+} from '../sources/volume-transform.js';
+import { IdentityTransform, rigidTransformParams, wantedTransform } from './rigid-transform.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
 import { NodeParam, StructureParam, OptionalParam } from './params.js';
@@ -305,6 +316,66 @@ export class VolumeApi extends ApiArea {
       // The whole entry goes: the format and data it was read from too, unless something else hangs off them.
       await ctx.plugin.managers.volume.hierarchy.remove([entryRoot(ctx, v.cell.transform.ref)], false);
       return ApiResult.ok(`Removed ${name}.`, { nodes: [v.cell.transform.ref] });
+    },
+  });
+
+  // A volume moved or turned as a whole (Mol*'s `VolumeTransform`), as `structure.transform` does a structure: its
+  // values are the transform from where the volume was loaded; `compose` applies them on top of the current one.
+  readonly transform = this.operation({
+    id: 'volume.transform',
+    title: 'Move or rotate a volume',
+    params: { ...rigidTransformParams('volume'), volume: VolumeParam() },
+    async run(v, ctx) {
+      const { compose, volume } = v;
+      const vol = oneMovableVolume(ctx, volume || undefined);
+      if (isFailure(vol)) return vol;
+      const name = volumeLabel(ctx, vol);
+      const data = vol.cell.obj?.data;
+      if (!data) return ApiResult.fail('blocked', `${name} is not loaded yet.`);
+      const wanted = wantedTransform(v, 'volume.transform-reset');
+      if (isFailure(wanted)) return wanted;
+      const state = ctx.plugin.state.data;
+      const ref = vol.cell.transform.ref;
+      const existing = volumeTransformCell(state, ref);
+      const now = currentVolumeTransform(state, ref, data);
+      let next: TransformParam = wanted;
+      if (compose) {
+        // turned about the center where it is now
+        const center = Vec3.transformMat4(Vec3(), volumeCenter(data), now);
+        const delta = getTransformFromParams(wanted, center);
+        next = { name: 'matrix', params: { data: Mat4.mul(Mat4(), delta, now), transpose: false } };
+      }
+      if (Mat4.areEqual(volumeMatrixOf(next, data), now, 1e-3)) {
+        return ApiResult.already(
+          existing ? `${name} is already placed so.` : `${name} is already where it was loaded.`,
+        );
+      }
+      const build = state.build();
+      if (existing) build.to(existing).update({ transform: next });
+      else build.to(vol.cell).insert(VolumeTransform, { transform: next });
+      await ctx.plugin.runTask(state.updateTree(build));
+      return ApiResult.ok(`Moved ${name}.`, { nodes: [ref] });
+    },
+  });
+
+  readonly transformReset = this.operation({
+    id: 'volume.transform-reset',
+    title: 'Reset the volume’s transform',
+    params: { volume: VolumeParam() },
+    async run({ volume }, ctx) {
+      const vol = oneMovableVolume(ctx, volume || undefined);
+      if (isFailure(vol)) return vol;
+      const name = volumeLabel(ctx, vol);
+      const data = vol.cell.obj?.data;
+      const state = ctx.plugin.state.data;
+      const ref = vol.cell.transform.ref;
+      const existing = volumeTransformCell(state, ref);
+      if (!existing || !data || Mat4.isIdentity(currentVolumeTransform(state, ref, data), 1e-6)) {
+        return ApiResult.already(`${name} is already where it was loaded.`);
+      }
+      // removing the decorator would take its subtree (the representations) with it: it is set to identity instead
+      await ctx.plugin.runTask(state.updateTree(state.build().to(existing).update({ transform: IdentityTransform })));
+      return ApiResult.ok(`${name} is back where it was loaded.`, { nodes: [ref] });
     },
   });
 
@@ -626,6 +697,28 @@ function volumeLabel(ctx: ApiContext, v: VolumeRef): string {
 
 function oneVolume(ctx: ApiContext, name: string | undefined): VolumeRef | ApiFailure {
   return pickOne(volumes(ctx), name, 'volume', 'Open a map file (ccp4, mrc, map, cube, dx, …) first.');
+}
+
+/**
+ * A volume that moves by itself (`volume.transform`): one loaded on its own, not density streamed for a structure,
+ * which moves with it (move.md); without a name, the only such one
+ */
+function oneMovableVolume(ctx: ApiContext, name: string | undefined): VolumeRef | ApiFailure {
+  const state = ctx.plugin.state.data;
+  const streamed = (v: VolumeRef) => isStreamedForStructure(state, v.cell);
+  const refuse = () =>
+    ApiResult.fail(
+      'blocked',
+      'Density streamed for a structure moves with the structure, not by itself.',
+      'Move the structure (structure.transform), or open the map as a file of its own to place it by hand.',
+    );
+  if (name) {
+    const v = oneVolume(ctx, name);
+    return isFailure(v) || !streamed(v) ? v : refuse();
+  }
+  const own = volumes(ctx).filter((v) => !streamed(v));
+  if (own.length === 0 && volumes(ctx).length > 0) return refuse();
+  return pickOne(own, undefined, 'volume', 'Open a map file (ccp4, mrc, map, cube, dx, …) first.');
 }
 
 /** A representation by type, among a volume's (or every volume's when `volume` is empty and a representation is named). */

@@ -11,7 +11,7 @@ import {
   type ParticleList,
   Particle,
   ParticleTarget,
-  getParticleTransforms,
+  writeParticleTransform,
 } from '@molstar/model/model/particles/particle-list';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { type GraphicsRenderObject, createRenderObject } from '@molstar/graphics/gl/render-object';
@@ -25,6 +25,7 @@ import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import {
   createTransform,
   createIdentityTransform,
+  moveTransformData,
   type TransformData,
 } from '@molstar/graphics/geo/geometry/transform-data';
 import { createColors } from '@molstar/graphics/geo/geometry/color-data';
@@ -34,6 +35,8 @@ import { Interval, OrderedSet, type SortedArray } from '@molstar/core/data/int';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { Sphere3D } from '@molstar/core/math/geometry';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import type { SizeValues } from '@molstar/graphics/gl/renderable/schema';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
@@ -54,6 +57,7 @@ import {
   type BlobSurfaceTargetProps,
   createBlobSurfaceTargetGeometry,
 } from './blob-surface.js';
+import { createSitesBlobSurfaceGeometry, createSitesTargetGeometry, createSitesTargetSizes } from './sites.js';
 import { createShapeTargetGeometry } from './shape.js';
 import {
   createVolumeTargetGeometry,
@@ -66,7 +70,7 @@ import {
 import type { GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
 import { VolumeIsosurfaceParams } from '../../../volume/isosurface.js';
 import { BlobSurfaceCoreParams } from '../../../structure/visual/util/blob-surface.js';
-import { getQualityProps } from '../../../util.js';
+import { getElementCountQuality, getQualityProps } from '../../../util.js';
 
 // ---- Params ----------------------------------------------------------------
 
@@ -232,6 +236,8 @@ export function createParticleTargetPropsProvider(
   const { structure, shape, volume, ...common } = props;
   const bases = {
     structure: { ...common, ...structure } as ParticleTargetProps,
+    // sites drawn as a structure's elements are
+    sites: { ...common, ...structure } as ParticleTargetProps,
     shape: { ...common, ...shape } as ParticleTargetProps,
     volume: { ...common, ...volume } as ParticleTargetProps,
   };
@@ -242,7 +248,12 @@ export function createParticleTargetPropsProvider(
     let resolved = cache.get(data);
     if (!resolved) {
       const flat = bases[target.kind];
-      resolved = { ...flat, ...getQualityProps(flat, data) };
+      // sites' auto quality by their count, as a structure's by its elements
+      const quality =
+        target.kind === 'sites' && flat.quality === 'auto'
+          ? { ...flat, quality: getElementCountQuality(target.sites.count) }
+          : flat;
+      resolved = { ...flat, ...getQualityProps(quality, data) };
       cache.set(data, resolved);
     }
     return resolved;
@@ -254,9 +265,11 @@ export function createParticleTargetPropsProvider(
 /**
  * Build per-instance transforms placing the target geometry at each of `indices`.
  *
- * The geometry is built at its actual coordinates, centered at `invariantBoundingSphere.center`
- * rather than at the origin. Each particle transform is therefore composed with a pre-translation
- * by `-center` so that the geometry renders centred on the particle position. When `scaleByRadius`
+ * The geometry is built at its actual coordinates, not at the origin. Each particle transform is
+ * therefore composed with a pre-translation by `-center` so that the target's `center` (a structure's
+ * centroid, a volume's box center, `ParticleTarget.getCenter`; `invariantBoundingSphere.center` when
+ * not given) renders at
+ * the particle position. When `scaleByRadius`
  * is set (e.g. for shape targets), each instance is additionally scaled by the particle radius;
  * the scaling is applied before the center subtraction so the basis already accounts for it.
  * The bounding sphere used for grid/culling purposes is likewise inflated by the largest radius
@@ -270,13 +283,16 @@ export function createTargetParticleTransform(
   batchSize: number,
   scaleByRadius: boolean,
   transformData?: TransformData,
+  center: Vec3 = invariantBoundingSphere.center,
 ): TransformData {
-  // Shared across every target visual, so it must not be mutated here.
-  const src = getParticleTransforms(particles);
   const instanceCount = OrderedSet.size(indices);
 
-  // reuse the previous output array when updating in place; createTransform copies it into its cells
-  const prev = transformData?.transform.ref.value;
+  // reuse the previous output array when updating in place (createTransform keeps it), a new one handed over; not the
+  // grid's one copy (`oneCopy` below: its array the grid's and the merged object's, read until they are rebuilt)
+  const prev =
+    transformData && transformData.transform.ref.value !== transformData.aTransform.ref.value
+      ? transformData.transform.ref.value
+      : undefined;
   const transformArray = prev && prev.length >= instanceCount * 16 ? prev : new Float32Array(instanceCount * 16);
 
   // resolve the OrderedSet union once instead of per-element getAt dispatch in the hot loop
@@ -286,52 +302,31 @@ export function createTargetParticleTransform(
   else sortedIndices = indices;
 
   const radiiArr = scaleByRadius ? particles.radii : undefined;
-  const { center } = invariantBoundingSphere;
   const cx = center[0],
     cy = center[1],
     cz = center[2];
   const hasCenter = cx !== 0 || cy !== 0 || cz !== 0;
 
+  // each particle's transform written here from its position and rotation (`writeParticleTransform`), not copied from
+  // the list's transforms of all particles (`getParticleTransforms`: a copy of them all kept)
   let maxRadius = 1;
-  if (!radiiArr && !sortedIndices) {
-    // contiguous unscaled instances: copy the block wholesale, then fix up the translations
-    transformArray.set(src.subarray(startIdx * 16, (startIdx + instanceCount) * 16));
-    if (hasCenter) {
-      for (let i = 0; i < instanceCount; i++) {
-        const o = i * 16;
-        transformArray[o + 12] -= transformArray[o + 0] * cx + transformArray[o + 4] * cy + transformArray[o + 8] * cz;
-        transformArray[o + 13] -= transformArray[o + 1] * cx + transformArray[o + 5] * cy + transformArray[o + 9] * cz;
-        transformArray[o + 14] -= transformArray[o + 2] * cx + transformArray[o + 6] * cy + transformArray[o + 10] * cz;
-      }
-    }
-  } else {
-    for (let i = 0; i < instanceCount; i++) {
-      const pi = sortedIndices ? sortedIndices[i] : startIdx + i;
-      const so = pi * 16;
-      const o = i * 16;
+  for (let i = 0; i < instanceCount; i++) {
+    const pi = sortedIndices ? sortedIndices[i] : startIdx + i;
+    const o = i * 16;
+    writeParticleTransform(particles, pi, transformArray, o);
 
+    if (radiiArr) {
       let s = 1;
-      if (radiiArr) {
-        const r = radiiArr[pi];
-        if (r > 0) s = r;
-        if (s > maxRadius) maxRadius = s;
-      }
+      const r = radiiArr[pi];
+      if (r > 0) s = r;
+      if (s > maxRadius) maxRadius = s;
+      if (s !== 1) for (let j = 0; j < 12; j++) transformArray[o + j] *= s;
+    }
 
-      for (let j = 0; j < 12; j++) transformArray[o + j] = src[so + j] * s;
-      transformArray[o + 15] = src[so + 15];
-
-      if (hasCenter) {
-        transformArray[o + 12] =
-          src[so + 12] - (transformArray[o + 0] * cx + transformArray[o + 4] * cy + transformArray[o + 8] * cz);
-        transformArray[o + 13] =
-          src[so + 13] - (transformArray[o + 1] * cx + transformArray[o + 5] * cy + transformArray[o + 9] * cz);
-        transformArray[o + 14] =
-          src[so + 14] - (transformArray[o + 2] * cx + transformArray[o + 6] * cy + transformArray[o + 10] * cz);
-      } else {
-        transformArray[o + 12] = src[so + 12];
-        transformArray[o + 13] = src[so + 13];
-        transformArray[o + 14] = src[so + 14];
-      }
+    if (hasCenter) {
+      transformArray[o + 12] -= transformArray[o + 0] * cx + transformArray[o + 4] * cy + transformArray[o + 8] * cz;
+      transformArray[o + 13] -= transformArray[o + 1] * cx + transformArray[o + 5] * cy + transformArray[o + 9] * cz;
+      transformArray[o + 14] -= transformArray[o + 2] * cx + transformArray[o + 6] * cy + transformArray[o + 10] * cz;
     }
   }
 
@@ -342,22 +337,42 @@ export function createTargetParticleTransform(
   // otherwise larger particles get under-sized cells/LOD bounds and can be culled incorrectly.
   const gridBoundingSphere =
     scaleByRadius && maxRadius !== 1
-      ? Sphere3D.create(center, invariantBoundingSphere.radius * maxRadius)
+      ? Sphere3D.create(invariantBoundingSphere.center, invariantBoundingSphere.radius * maxRadius)
       : invariantBoundingSphere;
 
-  return createTransform(transformArray, instanceCount, gridBoundingSphere, cellSize, batchSize, transformData);
+  return createTransform(
+    transformArray,
+    instanceCount,
+    gridBoundingSphere,
+    cellSize,
+    batchSize,
+    transformData,
+    transformArray !== prev,
+    // the transforms kept once, in the grid's order (millions of particles)
+    true,
+  );
 }
 
 // ---- Per-target geometry dispatch ------------------------------------------
+
+/** whether colors or sizes of this granularity are read at positions (per vertex, from a volume): a move changes them */
+function isPositional(granularity: string) {
+  return granularity === 'vertex' || granularity === 'vertexInstance' || granularity.startsWith('volume');
+}
 
 /** The reference data backing a target, used for change detection. */
 function targetData(target: ParticleTarget): unknown {
   return ParticleTarget.data(target);
 }
 
+/** Whether the target is drawn as spheres of its own, sized each (a structure's elements, sites) */
+function isElementTarget(target: ParticleTarget): target is Extract<ParticleTarget, { kind: 'structure' | 'sites' }> {
+  return target.kind === 'structure' || target.kind === 'sites';
+}
+
 /** Whether the target geometry is scaled by the per-particle radius. */
 function targetScaleByRadius(target: ParticleTarget, props: ParticleTargetProps): boolean {
-  return target.kind === 'structure' ? false : !!props.scaleByRadius;
+  return isElementTarget(target) ? false : !!props.scaleByRadius;
 }
 
 /** Whether a volume target is rendered as dots rather than as an isosurface. */
@@ -392,6 +407,7 @@ export function getTargetGeometryChoice(
 ): TargetGeometryChoice {
   switch (target.kind) {
     case 'structure':
+    case 'sites':
       if ((props as StructureTargetProps).type === 'blob-surface') return 'blob-surface';
       return structureTargetUseImpostor(props as StructureTargetProps, graphics)
         ? 'structure-spheres'
@@ -447,6 +463,16 @@ export function createTargetGeometry(
             graphics,
             spheresOrMesh,
           );
+    case 'sites':
+      return choice === 'blob-surface'
+        ? createSitesBlobSurfaceGeometry(
+            ctx,
+            target.sites,
+            theme,
+            props as BlobSurfaceTargetProps,
+            existing?.kind === 'mesh' ? (existing as Mesh) : undefined,
+          )
+        : createSitesTargetGeometry(target.sites, theme, props as StructureTargetProps, graphics, spheresOrMesh);
     case 'shape':
       return createShapeTargetGeometry(target.shape, existing);
     case 'volume':
@@ -462,6 +488,7 @@ export function targetGeometryPropsChanged(
 ): boolean {
   switch (target.kind) {
     case 'structure':
+    case 'sites':
       return (newProps as StructureTargetProps).type === 'blob-surface'
         ? blobSurfaceTargetGeometryPropsChanged(oldProps as BlobSurfaceTargetProps, newProps as BlobSurfaceTargetProps)
         : structureTargetGeometryPropsChanged(
@@ -488,6 +515,7 @@ export function targetMustRecreate(
 ): boolean {
   switch (target.kind) {
     case 'structure':
+    case 'sites':
       return structureTargetMustRecreate(oldProps as StructureTargetProps, newProps as StructureTargetProps);
     case 'shape':
       return false;
@@ -504,6 +532,7 @@ function targetSizeFactorChanged(
 ): boolean {
   switch (target.kind) {
     case 'structure':
+    case 'sites':
       return structureTargetSizeFactorChanged(
         oldProps as StructureTargetProps,
         newProps as StructureTargetProps,
@@ -516,13 +545,23 @@ function targetSizeFactorChanged(
   }
 }
 
+/** The sizes of an element target's spheres, an element or site each */
+function createElementTargetSizes(
+  target: Extract<ParticleTarget, { kind: 'structure' | 'sites' }>,
+  theme: Theme,
+  sizeData: SizeValues,
+) {
+  if (target.kind === 'structure') createStructureTargetSizes(target.structure, theme, sizeData);
+  else createSitesTargetSizes(target.sites, theme, sizeData);
+}
+
 /** Whether a size theme change requires rebuilding the geometry (sphere meshes bake in their radii). */
 function targetSizeThemeAffectsGeometry(
   target: ParticleTarget,
   props: ParticleTargetProps,
   graphics: GraphicsContext | undefined,
 ): boolean {
-  return target.kind === 'structure' && !structureTargetUseImpostor(props as StructureTargetProps, graphics);
+  return isElementTarget(target) && !structureTargetUseImpostor(props as StructureTargetProps, graphics);
 }
 
 // ---- Per-target visual -----------------------------------------------------
@@ -545,6 +584,8 @@ export interface TargetVisual {
     particleIndices: OrderedSet<number>,
     target: ParticleTarget,
   ): Promise<void>;
+  /** the representation's transform, on top of the particles' */
+  setTransform(matrix: Mat4): void;
   mark(loci: ModelLoci, action: MarkerAction): boolean;
   destroy(): void;
 }
@@ -564,6 +605,58 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
   let currentTheme: Theme | undefined;
   let currentParticles: ParticleList | undefined;
   let currentParticleIndices: OrderedSet<number> | undefined;
+  let currentTarget: ParticleTarget | undefined;
+
+  /** the particles' transforms into the render object in place (its matrix kept), and the bounds they give */
+  function updateTransform(
+    particles: ParticleList,
+    particleIndices: OrderedSet<number>,
+    target: ParticleTarget,
+    props: ParticleTargetProps,
+    scaleByRadius: boolean,
+  ) {
+    const values = renderObject!.values;
+    createTargetParticleTransform(
+      particles,
+      particleIndices,
+      geometry!.boundingSphere,
+      props.cellSize,
+      props.batchSize,
+      scaleByRadius,
+      values as unknown as TransformData,
+      ParticleTarget.getCenter(target),
+    );
+    // from the transforms as drawn, as `Visual.setTransform` does: stale bounds cull a moved list where it was
+    const boundingSphere = calculateTransformBoundingSphere(
+      values.invariantBoundingSphere.ref.value,
+      values.aTransform.ref.value,
+      values.instanceCount.ref.value,
+      0,
+    );
+    ValueCell.update(values.boundingSphere, boundingSphere);
+    if ('lodLevels' in values) {
+      // instanceGrid (and its cellCount) was just rebuilt above; bump the `lodLevels`
+      // version to force `renderable.cull` to resize/refresh its per-level multidraw
+      // data (`mdbDataList`) instead of reusing stale, potentially undersized arrays -
+      // otherwise cells beyond the old cellCount are silently dropped from culling,
+      // which can leave the wrong (smaller) LOD level's spheres rendered.
+      ValueCell.update(values.lodLevels, values.lodLevels.ref.value);
+    }
+  }
+
+  /**
+   * The instances moved as a whole by `move` (the list moved by it, `Particle.getMove`): the transforms and their grid
+   * moved, not built again (`moveTransformData`), so the GPU culling keeps its split of them; the bounds moved. False
+   * where the transforms can't be moved (a representation transform around them)
+   */
+  function moveTransform(move: Mat4) {
+    const values = renderObject!.values;
+    if (!moveTransformData(values as unknown as TransformData, move)) return false;
+    const b = values.boundingSphere.ref.value;
+    const moved = Sphere3D.create(Vec3.transformMat4(Vec3(), b.center, move), b.radius * Mat4.getMaxScaleOnAxis(move));
+    ValueCell.update(values.boundingSphere, moved);
+    return true;
+  }
 
   /** Location iterator: groupCount = 1 (particle-granularity), instanceCount = particle count for this target.
    *  Uses the original (unfiltered) `ParticleList` so that themes receive the correct particle index. */
@@ -608,6 +701,8 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
             props.cellSize,
             props.batchSize,
             scaleByRadius,
+            undefined,
+            ParticleTarget.getCenter(target),
           )
         : createIdentityTransform();
     locationIt = createLocIt(particles, particleIndices);
@@ -615,8 +710,8 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
     const state = createRenderableState(props as any);
     positionIt = Geometry.getUtils(geom).createPositionIterator(geom, values as any);
     // Sizes of a structure target are per-element, unlike the per-particle colors and picking.
-    if (target.kind === 'structure' && 'uSize' in values) {
-      createStructureTargetSizes(target.structure, theme, values as unknown as SizeValues);
+    if (isElementTarget(target) && 'uSize' in values) {
+      createElementTargetSizes(target, theme, values as unknown as SizeValues);
       // the padding and bounds `createValues` took from the representation's (per-particle) size theme
       Geometry.getUtils(geom).updateBoundingSphere(values as any, geom as any);
     }
@@ -650,8 +745,16 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
     // `particleIndices` is usually an `Interval`, which is packed into a plain number, so two
     // particle lists with the same target layout (e.g. two frames of a trajectory) compare `===`.
     // The instance data therefore has to be keyed on the `ParticleList` itself as well.
-    const indicesChanged = particleIndices !== currentParticleIndices;
-    const particlesChanged = indicesChanged || particles !== currentParticles;
+    // the list moved as a whole (a placement's release): its instances moved, not built again, where its particles are
+    // the same (the groups computed again give equal index sets)
+    const move =
+      currentParticles && particles !== currentParticles ? Particle.getMove(currentParticles, particles) : undefined;
+    const moved =
+      !!move &&
+      !!currentParticleIndices &&
+      (particleIndices === currentParticleIndices || OrderedSet.areEqual(particleIndices, currentParticleIndices));
+    const indicesChanged = !moved && particleIndices !== currentParticleIndices;
+    const particlesChanged = indicesChanged || (!moved && particles !== currentParticles);
     const scaleByRadius = targetScaleByRadius(target, props);
 
     const geometryPropsChanged =
@@ -676,13 +779,19 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
       updateState.updateMatrix =
         particlesChanged || targetChanged || targetScaleByRadius(target, currentProps!) !== scaleByRadius;
       // colors/sizes are keyed by instance (via `locationIt`/`positionIt`, built from `particleIndices`),
-      // so a changed particle set requires rebuilding them even if the theme itself is unchanged.
-      updateState.updateColor = colorThemeChanged || particlesChanged || updateState.createGeometry;
+      // so a changed particle set requires rebuilding them even if the theme itself is unchanged; a moved one only
+      // where they read positions
+      updateState.updateColor =
+        colorThemeChanged ||
+        particlesChanged ||
+        updateState.createGeometry ||
+        (moved && isPositional(theme.color.granularity));
       updateState.updateSize =
         sizeThemeChanged ||
         sizeFactorChanged ||
         updateState.createGeometry ||
-        (particlesChanged && target.kind !== 'structure');
+        (particlesChanged && !isElementTarget(target)) ||
+        (moved && !isElementTarget(target) && isPositional(theme.size.granularity));
     }
 
     if (updateState.createNew) {
@@ -713,28 +822,13 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
         createMarkers(instanceCount, type, renderObject.values as unknown as MarkerData);
       }
 
+      if (moved && !updateState.updateMatrix && OrderedSet.size(particleIndices) > 0) {
+        if (!moveTransform(move!)) updateTransform(particles, particleIndices, target, props, scaleByRadius);
+        positionIt = Geometry.getUtils(geometry!).createPositionIterator(geometry!, renderObject.values as any);
+      }
       if (updateState.updateMatrix && OrderedSet.size(particleIndices) > 0) {
-        createTargetParticleTransform(
-          particles,
-          particleIndices,
-          geometry!.boundingSphere,
-          props.cellSize,
-          props.batchSize,
-          scaleByRadius,
-          renderObject.values as unknown as TransformData,
-        );
-        const geomUtils = Geometry.getUtils(geometry!);
-        // TODO: needs update? how to do efficeintly? geomUtils is too slow
-        // geomUtils.updateBoundingSphere(renderObject.values as any, geometry!);
-        positionIt = geomUtils.createPositionIterator(geometry!, renderObject.values as any);
-        if ('lodLevels' in renderObject.values) {
-          // instanceGrid (and its cellCount) was just rebuilt above; bump the `lodLevels`
-          // version to force `renderable.cull` to resize/refresh its per-level multidraw
-          // data (`mdbDataList`) instead of reusing stale, potentially undersized arrays -
-          // otherwise cells beyond the old cellCount are silently dropped from culling,
-          // which can leave the wrong (smaller) LOD level's spheres rendered.
-          ValueCell.update(renderObject.values.lodLevels, renderObject.values.lodLevels.ref.value);
-        }
+        updateTransform(particles, particleIndices, target, props, scaleByRadius);
+        positionIt = Geometry.getUtils(geometry!).createPositionIterator(geometry!, renderObject.values as any);
       }
 
       if (updateState.updateColor) {
@@ -743,8 +837,8 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
       }
 
       if (updateState.updateSize && 'uSize' in renderObject.values) {
-        if (target.kind === 'structure') {
-          createStructureTargetSizes(target.structure, theme, renderObject.values as SizeValues);
+        if (isElementTarget(target)) {
+          createElementTargetSizes(target, theme, renderObject.values as SizeValues);
           Geometry.getUtils(geometry!).updateBoundingSphere(renderObject.values as any, geometry! as any);
         } else {
           locationIt = createLocIt(particles, particleIndices);
@@ -758,10 +852,29 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
 
     currentTargetData = data;
     currentTargetKind = target.kind;
+    // the instances' order and markers are the old set's: an equal one moved keeps it
+    if (moved) particleIndices = currentParticleIndices!;
     currentProps = { ...props };
     currentTheme = theme;
     currentParticles = particles;
     currentParticleIndices = particleIndices;
+    currentTarget = target;
+  }
+
+  function setTransform(matrix: Mat4) {
+    if (!renderObject || !currentParticles || !currentParticleIndices || !currentTarget || !currentProps) return;
+    if (OrderedSet.size(currentParticleIndices) === 0) return;
+    const m = renderObject.values.matrix;
+    if (Mat4.areEqual(m.ref.value, matrix, 0)) return;
+    ValueCell.update(m, Mat4.copy(m.ref.value, matrix));
+    // rebuilt from the particles: the grid needs the sphere `createTargetParticleTransform` inflates by the radii
+    updateTransform(
+      currentParticles,
+      currentParticleIndices,
+      currentTarget,
+      currentProps,
+      targetScaleByRadius(currentTarget, currentProps),
+    );
   }
 
   function mark(loci: ModelLoci, action: MarkerAction): boolean {
@@ -812,6 +925,7 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
     currentTheme = undefined;
     currentParticles = undefined;
     currentParticleIndices = undefined;
+    currentTarget = undefined;
   }
 
   return {
@@ -825,6 +939,7 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
       return currentParticleIndices;
     },
     createOrUpdate,
+    setTransform,
     mark,
     destroy,
   };

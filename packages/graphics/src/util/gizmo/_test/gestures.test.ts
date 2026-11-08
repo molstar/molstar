@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -17,6 +18,7 @@ import {
   poseGesture,
   rotateAbout,
   resize,
+  roll,
   scaled,
   sizeRatio,
   slide,
@@ -96,6 +98,29 @@ describe('gizmo gestures', () => {
     expect(Math.abs(Quat.getAxisAngle(Vec3(), back.rotation))).toBeCloseTo(0, 4);
   });
 
+  it('turns the near side with the cursor, at the rate of the frame', () => {
+    const rated = { ...frame, turnRate: Math.PI / 200 };
+    // looking down −Z, the near side is +Z: 100 px right takes it to +X, 100 px down to −Y
+    const towards = (dx: number, dy: number) =>
+      Vec3.transformQuat(Vec3(), Vec3.create(0, 0, 1), turn(box(), rated, dx, dy).rotation);
+    close(towards(100, 0), [1, 0, 0]);
+    close(towards(0, 100), [0, -1, 0]);
+  });
+
+  it('leaves a twist after a closed path of steps, as the trackball', () => {
+    const rated = { ...frame, turnRate: Math.PI / 200 };
+    let pose = box();
+    for (const [dx, dy] of [
+      [50, 0],
+      [0, 50],
+      [-50, 0],
+      [0, -50],
+    ]) {
+      pose = turn(pose, rated, dx, dy);
+    }
+    expect(Math.abs(Quat.getAxisAngle(Vec3(), pose.rotation))).toBeGreaterThan(0.1);
+  });
+
   it('scales by distance from the pivot: outward grows on any side', () => {
     // grabbed 40 px left of the pivot: dragging further left (outward) grows it, as on the right side
     expect(sizeRatio({ ...frame, grab: [-40, 0] }, -40, 0)).toBeCloseTo(2, 6);
@@ -142,29 +167,161 @@ describe('gizmo gestures', () => {
     return ((rad * 180) / Math.PI) * Math.sign(Vec3.dot(a, Vec3.create(axis[0], axis[1], axis[2]))) || 0;
   };
 
-  it('rotates by the grabbed point, facing the viewer: either side of the ring follows the cursor', () => {
-    // Z toward the viewer, the ring of radius 10; a drag up 20 px (10 Å)
-    const right = rotateAbout(box(), Vec3.create(0, 0, 1), { ...frame, grabPoint: Vec3.create(10, 0, 0) }, 0, -20);
-    expect(angleAbout(right, [0, 0, 1])).toBeCloseTo(45, 4);
-    const left = rotateAbout(box(), Vec3.create(0, 0, 1), { ...frame, grabPoint: Vec3.create(-10, 0, 0) }, 0, -20);
-    expect(angleAbout(left, [0, 0, 1])).toBeCloseTo(-45, 4);
-  });
-
-  it('rotates by the grabbed point, edge-on: the near and the far side follow the cursor', () => {
-    // Y in the screen, the ring in X–Z seen edge-on; a drag right 20 px (10 Å) along the radius-10 ring: 1 rad
-    const near = rotateAbout(box(), Vec3.create(0, 1, 0), { ...frame, grabPoint: Vec3.create(0, 0, 10) }, 20, 0);
-    expect(angleAbout(near, [0, 1, 0])).toBeCloseTo(180 / Math.PI, 4);
-    const far = rotateAbout(box(), Vec3.create(0, 1, 0), { ...frame, grabPoint: Vec3.create(0, 0, -10) }, 20, 0);
-    expect(angleAbout(far, [0, 1, 0])).toBeCloseTo(-180 / Math.PI, 4);
-  });
-
-  it('rotates by the grabbed point, oblique: no flip as the cursor crosses the axis', () => {
-    // the axis tilted toward the viewer (cos 0.6); a drag across from a grab on the ring keeps one sign as it grows
-    const axis = Vec3.normalize(Vec3(), Vec3.create(0, 0.8, 0.6));
-    const grabPoint = Vec3.scale(Vec3(), Vec3.normalize(Vec3(), Vec3.cross(Vec3(), axis, Vec3.create(1, 0, 0))), 10);
-    const signs = [5, 20, 40, 80].map((d) =>
-      Math.sign(angleAbout(rotateAbout(box(), axis, { ...frame, grabPoint }, d, 0), axis)),
+  // Blender's: the angle the cursor goes around the center, whichever side of the ring is grabbed
+  it('rotates by the angle the cursor goes around the center, the way the axis faces the viewer', () => {
+    // a quarter turn counterclockwise on the screen, from right of the center to above it
+    const step = (axis: Vec3) => rotateAbout(box(), axis, { ...frame, grab: [20, 0] }, -20, -20, 'around');
+    expect(angleAbout(step(Vec3.create(0, 0, 1)), [0, 0, 1])).toBeCloseTo(90, 4);
+    // the axis away from the viewer: the other way about it, the same way on the screen
+    expect(angleAbout(step(Vec3.create(0, 0, -1)), [0, 0, -1])).toBeCloseTo(-90, 4);
+    // tilted toward the viewer: still the angle on the screen
+    const tilted = Vec3.normalize(Vec3(), Vec3.create(0, 0.8, 0.6));
+    expect(angleAbout(step(tilted), [...tilted])).toBeCloseTo(90, 4);
+    // edge-on: along the grabbed point's tangent at a rate
+    const edgeOn = rotateAbout(
+      box(),
+      Vec3.create(0, 1, 0),
+      { ...frame, grab: [20, 0], grabPoint: Vec3.create(0, 0, 10) },
+      20,
+      0,
+      'around',
     );
-    expect(new Set(signs).size).toBe(1);
+    expect(angleAbout(edgeOn, [0, 1, 0])).toBeCloseTo(10, 4);
+  });
+
+  // a rate of 0.5° a pixel (the frame has no trackball rate)
+  it('rotates along the tangent at the press, at a rate whatever the distance from the center', () => {
+    // Z toward the viewer: grabbed right of the center, up turns it counterclockwise, left of it clockwise
+    for (const [x, sign] of [
+      [10, 1],
+      [-10, -1],
+      [2, 1],
+    ] as const) {
+      const next = rotateAbout(
+        box(),
+        Vec3.create(0, 0, 1),
+        { ...frame, grabPoint: Vec3.create(x, 0, 0) },
+        0,
+        -20,
+        'tangent',
+      );
+      expect(angleAbout(next, [0, 0, 1])).toBeCloseTo(10 * sign, 4);
+    }
+    // a drag across the tangent turns nothing
+    const across = rotateAbout(
+      box(),
+      Vec3.create(0, 0, 1),
+      { ...frame, grabPoint: Vec3.create(10, 0, 0) },
+      20,
+      0,
+      'tangent',
+    );
+    expect(angleAbout(across, [0, 0, 1])).toBeCloseTo(0, 6);
+    // edge-on: the near side and the far side go with the cursor, at the same rate
+    const near = rotateAbout(
+      box(),
+      Vec3.create(0, 1, 0),
+      { ...frame, grabPoint: Vec3.create(0, 0, 10) },
+      20,
+      0,
+      'tangent',
+    );
+    const far = rotateAbout(
+      box(),
+      Vec3.create(0, 1, 0),
+      { ...frame, grabPoint: Vec3.create(0, 0, -10) },
+      20,
+      0,
+      'tangent',
+    );
+    expect(angleAbout(near, [0, 1, 0])).toBeCloseTo(10, 4);
+    expect(angleAbout(far, [0, 1, 0])).toBeCloseTo(-10, 4);
+    // the trackball's rate where the frame has one
+    const fast = rotateAbout(
+      box(),
+      Vec3.create(0, 1, 0),
+      { ...frame, grabPoint: Vec3.create(0, 0, 10), turnRate: 0.01 },
+      20,
+      0,
+      'tangent',
+    );
+    expect(angleAbout(fast, [0, 1, 0])).toBeCloseTo((0.2 * 180) / Math.PI, 4);
+  });
+
+  it('rotates along the tangent, where it points along the view: across the axis', () => {
+    // Y in the screen, grabbed at the ring's right end (its tangent along the view): a drag right turns it as the near side
+    const next = rotateAbout(
+      box(),
+      Vec3.create(0, 1, 0),
+      { ...frame, grabPoint: Vec3.create(10, 0, 0) },
+      20,
+      0,
+      'tangent',
+    );
+    expect(angleAbout(next, [0, 1, 0])).toBeCloseTo(10, 4);
+  });
+
+  it('rotates across the axis whichever part is grabbed; toward the viewer, along the tangent', () => {
+    for (const grabPoint of [Vec3.create(0, 0, 10), Vec3.create(0, 0, -10), undefined]) {
+      const next = rotateAbout(
+        box(),
+        Vec3.create(0, 1, 0),
+        { ...frame, ...(grabPoint ? { grabPoint } : {}) },
+        20,
+        0,
+        'across',
+      );
+      expect(angleAbout(next, [0, 1, 0])).toBeCloseTo(10, 4);
+    }
+    const facing = rotateAbout(
+      box(),
+      Vec3.create(0, 0, 1),
+      { ...frame, grabPoint: Vec3.create(-10, 0, 0) },
+      0,
+      -20,
+      'across',
+    );
+    expect(angleAbout(facing, [0, 0, 1])).toBeCloseTo(-10, 4);
+  });
+});
+
+describe('roll', () => {
+  // looking down -Z: the view axis toward the viewer is +Z; a turn counterclockwise on the screen is positive about it
+  const at = (grab: readonly [number, number]): DragFrame => ({ ...frame, grab });
+
+  it('turns about the view axis by the angle the cursor goes around the origin', () => {
+    // from right of the origin to above it (y down): a quarter turn counterclockwise
+    const p = roll(box(), at([10, 0]), -10, -10);
+    close(Vec3.transformQuat(Vec3(), Vec3.create(1, 0, 0), p.rotation), [0, 1, 0]);
+    // the other way
+    const q = roll(box(), at([10, 0]), -10, 10);
+    close(Vec3.transformQuat(Vec3(), Vec3.create(1, 0, 0), q.rotation), [0, -1, 0]);
+  });
+
+  it('goes on past half a turn by steps, each from the last cursor', () => {
+    // four quarter steps around the origin: a whole turn
+    const path: [number, number][] = [
+      [10, 0],
+      [0, -10],
+      [-10, 0],
+      [0, 10],
+      [10, 0],
+    ];
+    let p = box();
+    const seen: number[][] = [];
+    for (let i = 1; i < path.length; i++) {
+      const [x0, y0] = path[i - 1];
+      const [x1, y1] = path[i];
+      p = roll(p, at([x0, y0]), x1 - x0, y1 - y0);
+      seen.push([...Vec3.transformQuat(Vec3(), Vec3.create(1, 0, 0), p.rotation)]);
+    }
+    // three quarters on the way: past half a turn
+    close(seen[2], [0, -1, 0]);
+    close(seen[3], [1, 0, 0]);
+  });
+
+  it('keeps the pose pressed at the origin', () => {
+    expect(roll(box(), at([1, 1]), 20, 0)).toEqual(box());
+    expect(poseGesture(box(), { kind: 'roll' }, at([10, 0]), -10, -10)).toEqual(roll(box(), at([10, 0]), -10, -10));
   });
 });

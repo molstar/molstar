@@ -61,16 +61,18 @@ export class DofPass {
     this.target = targets.createRenderTarget(width, height, 'none');
 
     const nullTexture = createNullTexture();
+    // the target's size, not the null texture's: `setSize` updates it only when the size changes
+    const size = [width, height] as const;
     // the blur separates (its weights are per sample): 2 x blurSize samples instead of blurSize^2, where the sums of
     // the rows can be kept in half floats
     if (graphics.capabilities.halfFloatRenderTarget) {
       this.blurTarget = targets.createRenderTarget(width, height, 'none', 'fp16', 'nearest');
-      this.horizontalRenderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'horizontal');
-      this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'vertical');
+      this.horizontalRenderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'horizontal', size);
+      this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'vertical', size);
       ValueCell.update(this.renderable.values.tBlur, this.blurTarget.texture);
       this.renderables = [this.horizontalRenderable, this.renderable];
     } else {
-      this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'single');
+      this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'single', size);
       this.renderables = [this.renderable];
     }
   }
@@ -225,10 +227,8 @@ function getDofRenderable(
   depthTextureOpaque: Texture,
   depthTextureTransparent: Texture,
   pass: 'single' | 'horizontal' | 'vertical',
+  [width, height]: readonly [number, number],
 ): DofRenderable {
-  const width = colorTexture.getWidth();
-  const height = colorTexture.getHeight();
-
   const values: Values<typeof DofSchema> = {
     ...QuadValues,
     tDepthOpaque: ValueCell.create(depthTextureOpaque),

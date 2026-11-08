@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { CommandDefinition } from '@molstar/prism-ui/core';
@@ -54,6 +55,18 @@ export function particleCommands(api: ViewerApi): CommandDefinition<ViewerComman
       icon: 'box',
       alias: ['particle box', 'periodic box', 'simulation box', 'particle unit cell'],
       action: 'Show',
+    }),
+    operationCommand(api, particles.transform, {
+      category: 'Particles',
+      icon: 'move-3d',
+      alias: ['move particles', 'rotate particles', 'translate particles', 'transform particles'],
+      action: 'Move',
+    }),
+    operationCommand(api, particles.transformReset, {
+      category: 'Particles',
+      icon: 'rotate-ccw',
+      alias: ['reset particle transform', 'reset particle position'],
+      action: 'Reset',
     }),
     operationCommand(api, particles.targets, {
       category: 'Particles',

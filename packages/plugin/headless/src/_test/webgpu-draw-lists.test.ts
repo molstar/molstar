@@ -400,13 +400,14 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
       for (let i = 0; i < 8; ++i) await hoverObject(i % 2);
       const whole = delta(whole0, counts());
 
-      // the hovered object's chunk changes every frame and holds few objects: drawn directly in both marking passes (a
-      // flush and a replay cost more there), the other passes replayed, nothing recorded again
+      // marking's depth is read from the scene's (a quad): the mask pass alone draws objects. The hovered object's chunk
+      // changes every frame and holds few objects: drawn directly (a flush and a replay cost more there), the other
+      // chunk replayed, nothing recorded again
       expect(within.recorded).toBe(0);
-      expect(within.replayed).toBe(16);
-      expect(within.direct).toBe(16);
-      // across objects and whole objects: the depth pass replays; the mask pass draws the marked objects only, recorded
-      // again when they change
+      expect(within.replayed).toBe(8);
+      expect(within.direct).toBe(8);
+      // across objects and whole objects: the mask pass draws the marked objects only, recorded again at most when
+      // they change
       expect(across.replayed).toBeGreaterThanOrEqual(8);
       expect(across.recorded).toBeLessThanOrEqual(8);
       expect(whole.replayed).toBeGreaterThanOrEqual(8);
@@ -651,6 +652,149 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
       expect(await sequence()).toEqual(direct);
       // the second frame of each state replays without planning
       expect(stats.drawLists.unplanned).toBeGreaterThan(unplanned);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it('replay unculled while objects enter and leave the view, culled again at rest', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      // an object per chain, side by side (12 Å apart); drawn alike at every distance (no levels)
+      await plugin.builders.structure.representation.addRepresentation(structure, {
+        type: 'gaussian-surface',
+        typeParams: { tryUseGpu: false },
+      });
+      const canvas = plugin.canvas3d!;
+      canvas.setProps({ multiSample: { ...canvas.props.multiSample, mode: 'off' } });
+      const { stats } = canvas.graphics;
+      const passes = plugin.renderer.canvas3dContext!.passes;
+      let time = now();
+      canvas.commit(true);
+      canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+      expect(canvas.getRenderObjects().filter((o) => o.state.visible).length).toBe(2);
+      const frame = async () => {
+        canvas.requestDraw();
+        canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+        await canvas.graphics.resources.pending.whenReady();
+        return Array.from(await canvas.graphics.readRenderTarget(passes.draw.drawTarget, 0, 0, Size, Size));
+      };
+      const snapshot = canvas.camera.getSnapshot();
+      /** close in on the first chain, then sideways and back: the first leaves the view and enters again */
+      const view = (dx: number) => {
+        const target = Vec3.create(3.75 + dx, snapshot.target[1], snapshot.target[2]);
+        const offset = Vec3.scale(Vec3(), Vec3.sub(Vec3(), snapshot.position, snapshot.target), 0.1);
+        canvas.camera.setState({ ...snapshot, target, position: Vec3.add(Vec3(), target, offset) }, 0);
+      };
+      /** chunks recorded or drawn directly while moving (few objects: drawn directly while they change) */
+      let notReplayed = 0;
+      const sequence = async () => {
+        const frames: number[][] = [];
+        view(0);
+        frames.push(await frame(), await frame(), await frame());
+        const before = stats.drawLists.chunksRecorded + stats.drawLists.chunksDirect;
+        for (let i = 1; i <= 6; ++i) {
+          view(i % 2 === 1 ? 18 : 0);
+          frames.push(await frame());
+        }
+        notReplayed = stats.drawLists.chunksRecorded + stats.drawLists.chunksDirect - before;
+        // at rest
+        for (let i = 0; i < 12; ++i) frames.push(await frame());
+        canvas.camera.setState(snapshot, 0);
+        return frames;
+      };
+
+      await sequence();
+      const direct = await sequence();
+      // the view moved: the first chain in view and out of it
+      expect(direct[0]).not.toEqual(direct[3]);
+
+      canvas.setProps({ renderer: { ...canvas.props.renderer, drawLists: true } });
+      await sequence();
+      expect(await sequence()).toEqual(direct);
+      // the moves record once, as they start (culled at rest before), not per frame
+      expect(notReplayed).toBeLessThanOrEqual(2);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it('replay solid interiors while the camera moves, their caps of the near cut as drawn directly', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      // solid interiors on by default for Gaussian surfaces; an object per chain
+      await plugin.builders.structure.representation.addRepresentation(structure, {
+        type: 'gaussian-surface',
+        typeParams: { tryUseGpu: false },
+      });
+      const canvas = plugin.canvas3d!;
+      canvas.setProps({ multiSample: { ...canvas.props.multiSample, mode: 'off' } });
+      const { stats } = canvas.graphics;
+      const passes = plugin.renderer.canvas3dContext!.passes;
+      let time = now();
+      canvas.commit(true);
+      canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+      const objects = canvas.getRenderObjects().filter((o) => o.state.visible);
+      expect(objects.length).toBe(2);
+      expect(
+        objects.every((o) => (o.values as { dSolidInterior?: ValueCell<boolean> }).dSolidInterior?.ref.value),
+      ).toBe(true);
+      // nothing to commit: the camera alone changes
+      const frame = async () => {
+        canvas.requestDraw();
+        canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+        await canvas.graphics.resources.pending.whenReady();
+        return Array.from(await canvas.graphics.readRenderTarget(passes.draw.drawTarget, 0, 0, Size, Size));
+      };
+      const snapshot = canvas.camera.getSnapshot();
+      /** still, the camera moved sideways step by step, then close enough for the near plane to cut both surfaces */
+      const sequence = async () => {
+        const frames: number[][] = [];
+        frames.push(await frame(), await frame());
+        for (let i = 1; i <= 3; ++i) {
+          canvas.camera.setState({ position: Vec3.add(Vec3(), snapshot.position, Vec3.create(i, 0, 0)) }, 0);
+          frames.push(await frame());
+        }
+        // the near plane within an ångström of the surfaces' middle (`radius`: the near plane at the distance less it)
+        canvas.camera.setState({ ...snapshot, radius: snapshot.radius * 0.05 }, 0);
+        frames.push(await frame(), await frame());
+        canvas.camera.setState(snapshot, 0);
+        return frames;
+      };
+
+      // compiled, then drawn directly
+      await sequence();
+      const direct = await sequence();
+      // moved, and cut by the near plane
+      expect(direct[0]).not.toEqual(direct[4]);
+      expect(direct[0]).not.toEqual(direct[5]);
+
+      canvas.setProps({ renderer: { ...canvas.props.renderer, drawLists: true } });
+      await sequence();
+      const { chunksDirect } = stats.drawLists;
+      expect(await sequence()).toEqual(direct);
+      // the objects' chunk replays while the view changes: their draws do not depend on it, their caps are drawn after
+      expect(stats.drawLists.chunksDirect).toBe(chunksDirect);
     } finally {
       plugin.dispose();
     }

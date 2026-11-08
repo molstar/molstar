@@ -248,7 +248,7 @@ export function getElementLoci(pickingId: PickingId, structureGroup: StructureGr
     const unit = group.units[instanceId];
     const indices =
       groupId === PickingId.Null
-        ? (OrderedSet.ofRange(0, unit.elements.length) as OrderedSet<StructureElement.UnitIndex>)
+        ? (OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<StructureElement.UnitIndex>)
         : OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
     return StructureElement.Loci(structure.target, [{ unit, indices }]);
   }
@@ -269,7 +269,6 @@ export function createStructureElementSphereMesh(
 
   const oldBoundingSphere = mesh?.hasBoundingSphere() ? Sphere3D.clone(mesh.boundingSphere) : undefined;
 
-  const { getSerialIndex } = structure.serialMapping;
   const structureElementCount = structure.elementCount;
   const vertexCount = structureElementCount * sphereVertexCount(detail);
   const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
@@ -278,8 +277,12 @@ export function createStructureElementSphereMesh(
   const center = Vec3();
   let maxSize = 0;
   let count = 0;
+  // the serial index of a unit's element i (`getSerialIndex`): the elements of the units before it, plus i
+  let serialBase = 0;
 
   for (const unit of structure.units) {
+    const base = serialBase;
+    serialBase += unit.elements.length;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) continue;
 
@@ -302,7 +305,7 @@ export function createStructureElementSphereMesh(
       const size = themeSize(l);
       if (size > maxSize) maxSize = size;
 
-      builderState.currentGroup = getSerialIndex(unit, eI);
+      builderState.currentGroup = base + i;
       addSphere(builderState, v, size * sizeFactor, detail);
     }
   }
@@ -335,7 +338,6 @@ export function createStructureElementSphereImpostor(
 
   const oldBoundingSphere = spheres?.hasBoundingSphere() ? Sphere3D.clone(spheres.boundingSphere) : undefined;
 
-  const { getSerialIndex } = structure.serialMapping;
   const structureElementCount = structure.elementCount;
   const builder = SpheresBuilder.create(structureElementCount, structureElementCount / 2, spheres);
 
@@ -343,8 +345,13 @@ export function createStructureElementSphereImpostor(
   const center = Vec3();
   let maxSize = 0;
   let count = 0;
+  // the serial index of a unit's element i (`getSerialIndex`): the elements of the units before it, plus i (not a
+  // binary search an element, millions of them in a mesoscale model's targets)
+  let serialBase = 0;
 
   for (const unit of structure.units) {
+    const base = serialBase;
+    serialBase += unit.elements.length;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) continue;
 
@@ -361,7 +368,7 @@ export function createStructureElementSphereImpostor(
         if (ignore && ignore(eI)) continue;
 
         c.position(eI, v);
-        builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
+        builder.add(v[0], v[1], v[2], base + i);
         v3add(center, center, v);
         count += 1;
       }
@@ -369,7 +376,7 @@ export function createStructureElementSphereImpostor(
       for (let i = 0; i < elementCount; i++) {
         const eI = elements[i];
         c.position(eI, v);
-        builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
+        builder.add(v[0], v[1], v[2], base + i);
         v3add(center, center, v);
       }
       count += elementCount;

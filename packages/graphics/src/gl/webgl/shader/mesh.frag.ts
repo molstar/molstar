@@ -23,6 +23,7 @@ import { apply_marker_color } from './chunks/apply-marker-color.glsl.js';
 import { apply_fog } from './chunks/apply-fog.glsl.js';
 import { wboit_write } from './chunks/wboit-write.glsl.js';
 import { dpoit_write } from './chunks/dpoit-write.glsl.js';
+import { apply_occlusion } from './chunks/apply-occlusion.glsl.js';
 
 export const mesh_frag = `
 precision highp float;
@@ -68,7 +69,8 @@ void main() {
             gl_FragDepthEXT = fragmentDepth;
         #endif
         #if defined(dClipVariant_pixel) && defined(dClipObjects)
-            if (clipTest(modelPosition / uModelScale)) discard;
+            // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+            if (clipTest(modelPosition / uModelScale) != uClipGhost) discard;
         #endif
         vec3 vViewPosition = viewPosition;
         vec3 vModelPosition = modelPosition;
@@ -116,6 +118,7 @@ void main() {
     #endif
 
     ${assign_material_color}
+    ${apply_occlusion}
     ${check_transparency}
 
     #if defined(dRenderVariant_pick)

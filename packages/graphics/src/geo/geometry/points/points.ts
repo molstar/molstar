@@ -130,6 +130,7 @@ export namespace Points {
     square: 'Square',
     circle: 'Circle',
     fuzzy: 'Fuzzy',
+    ring: 'Ring',
   };
   export type StyleTypes = keyof typeof StyleTypes;
   export const StyleTypeNames = Object.keys(StyleTypes) as StyleTypes[];
@@ -139,6 +140,26 @@ export namespace Points {
     sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
     pointSizeAttenuation: PD.Boolean(false),
     pointStyle: PD.Select('square', PD.objectToOptions(StyleTypes)),
+    /** A ring point's ring: its width as a fraction of the radius (1 the full disk) */
+    pointRingWidth: PD.Numeric(
+      0.25,
+      { min: 0, max: 1, step: 0.01 },
+      {
+        description: "The ring's width as a fraction of the point's radius (1: the full disk).",
+        hideIf: (p) => p.pointStyle !== 'ring',
+      },
+    ),
+    /**
+     * Each point twice its radius toward the camera, along the view ray (as large and where it was on screen): in front
+     * of what meets it, drawn and picked (a gizmo's knob over the edges ending in it)
+     */
+    pointFront: PD.Boolean(false, { isHidden: true }),
+    /**
+     * CSS pixels toward the camera (negative: away), in depth only (as large and where it was on screen): a length of
+     * that many pixels at the point's depth, so it scales with a part at a set size on screen (a gizmo's hit disk in
+     * front of, or behind, its other parts)
+     */
+    pointDepthOffset: PD.Numeric(0, { min: -1000, max: 1000, step: 1 }, { isHidden: true }),
     animation: getAnimationParam(),
     lodLevels: Lod.getLodLevelsParam(),
   };
@@ -218,6 +239,9 @@ export namespace Points {
       uSizeFactor: ValueCell.create(props.sizeFactor),
       dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
       dPointStyle: ValueCell.create(props.pointStyle),
+      uPointRingWidth: ValueCell.create(props.pointRingWidth),
+      uPointDepthOffset: ValueCell.create(props.pointDepthOffset),
+      dPointFront: ValueCell.create(props.pointFront),
       ...createAnimationValues(props.animation),
     };
   }
@@ -239,6 +263,9 @@ export namespace Points {
     ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
     ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation);
     ValueCell.updateIfChanged(values.dPointStyle, props.pointStyle);
+    ValueCell.updateIfChanged(values.dPointFront, props.pointFront);
+    ValueCell.updateIfChanged(values.uPointRingWidth, props.pointRingWidth);
+    ValueCell.updateIfChanged(values.uPointDepthOffset, props.pointDepthOffset);
     updateAnimationValues(values, props.animation);
 
     const lodLevels = values.lodLevels.ref.value as Lod.LodLevelsValue;

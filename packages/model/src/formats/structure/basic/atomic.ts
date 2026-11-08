@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -57,16 +57,38 @@ function findHierarchyOffsets(atom_site: AtomSite) {
   return { residues, chains };
 }
 
+/** a dictionary's values as element symbols, the same array for the same source (the models of a file compare them) */
+const elementSymbolValues = new WeakMap<ArrayLike<string>, ElementSymbol[]>();
+
+/**
+ * The atoms' element symbols: a source dictionary (a BinaryCIF column) kept as one, its few values mapped, not a string
+ * per atom (millions of atoms in a mesoscale model's targets)
+ */
+function getTypeSymbol(type_symbol: Column<string>): Column<ElementSymbol> {
+  const schema = Column.Schema.Aliased<ElementSymbol>(Column.Schema.str);
+  const s = type_symbol.storage?.();
+  if (
+    s?.kind === 'dictionary' &&
+    !(type_symbol.schema as Column.Schema.Str).transform &&
+    (type_symbol.rowCount === 0 || type_symbol.value(0) === s.values[s.indices[0]])
+  ) {
+    let values = elementSymbolValues.get(s.values);
+    if (!values) {
+      values = Array.from(s.values as ArrayLike<string>, ElementSymbol);
+      elementSymbolValues.set(s.values, values);
+    }
+    return Column.ofDictionary({ indices: s.indices, values, schema });
+  }
+  return Column.ofArray({ array: Column.mapToArray(type_symbol, ElementSymbol), schema });
+}
+
 function createHierarchyData(
   atom_site: AtomSite,
   sourceIndex: Column<number>,
   offsets: { residues: ArrayLike<number>; chains: ArrayLike<number> },
 ): AtomicData {
   const atoms = Table.ofColumns(AtomsSchema, {
-    type_symbol: Column.ofArray({
-      array: Column.mapToArray(atom_site.type_symbol, ElementSymbol),
-      schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str),
-    }),
+    type_symbol: getTypeSymbol(atom_site.type_symbol),
     label_atom_id: atom_site.label_atom_id,
     auth_atom_id: atom_site.auth_atom_id,
     label_alt_id: atom_site.label_alt_id,

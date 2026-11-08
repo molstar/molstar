@@ -19,6 +19,8 @@ const dev = args.includes('--dev') || args.includes('--watch');
 const production = args.includes('--prd') || !dev;
 // `--metafile`: esbuild's metafile beside each output (`<name>.meta.json`), for size breakdowns.
 const metafile = args.includes('--metafile');
+// `--sourcemap`: a production build with source maps, for profiles mapped to the sources.
+const sourcemap = args.includes('--sourcemap');
 const serve = dev || args.includes('--serve');
 const port = Number(value('--port', '1338'));
 const kind = value('--kind');
@@ -111,7 +113,7 @@ if (args.includes('--help') || unknownTargets.length || !selected.length) {
   if (!args.includes('--help') && unknownTargets.length) console.error(`Unknown targets: ${unknownTargets.join(', ')}`);
   const usage = kind
     ? `Usage: pnpm dev:${kind}s [-- <name> ...] [--port <port>] (no names watches all)`
-    : 'Usage: node scripts/esbuild/app.mjs <package-name|path> [--prd|--dev] [--variants] | --all [--prd|--dev] [--variants]';
+    : 'Usage: node scripts/esbuild/app.mjs <package-name|path> [--prd|--dev] [--variants] [--sourcemap] | --all [--prd|--dev] [--variants]';
   console.log(usage);
   console.log(
     `Available browser ${kind ? `${kind}s` : 'apps/examples'}: ${apps.map((p) => (kind ? path.basename(p.path) : p.path)).join(', ')}`,
@@ -227,7 +229,7 @@ async function buildPackage(rawPkg, variant) {
       ? path.join(dir, 'tsconfig.json')
       : path.join(root, 'tsconfig.json'),
     minify: production,
-    sourcemap: !production,
+    sourcemap: !production || sourcemap,
     conditions: ['molstar-src', 'import', 'default'],
     external: ['crypto', 'fs', 'path', 'stream'],
     // the workspace sources (the working directory is the repository root)
@@ -308,7 +310,10 @@ async function buildPackage(rawPkg, variant) {
   // Size budgets (app.md §1): a production build fails when a file outgrows its budget (bytes, `molstar.budgets`). An
   // ESM entry's budget is on what loads at start: the entry (a stub of imports) and every chunk it imports statically.
   if (!dev) {
-    for (const f of fs.readdirSync(outdir)) if (f.endsWith('.js.map')) await fs.promises.rm(path.join(outdir, f));
+    // stale maps of a dev build removed, the build's own kept with `--sourcemap`
+    if (!sourcemap) {
+      for (const f of fs.readdirSync(outdir)) if (f.endsWith('.js.map')) await fs.promises.rm(path.join(outdir, f));
+    }
     const sizeOf = (file) =>
       startMeta && file === filename
         ? startBytes(startMeta, path.relative(root, path.join(outdir, file)))

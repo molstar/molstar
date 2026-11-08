@@ -19,8 +19,11 @@ import { Camera } from '../camera.js';
 import { Viewport } from '../camera/util.js';
 import { PixelData } from '@molstar/core/util/image';
 import type { Helper } from '../helper/helper.js';
-import { CameraHelper, CameraHelperParams } from '../helper/camera-helper.js';
+import { CameraAxes, CameraHelperParams } from '../helper/camera-helper.js';
+import { ScaleLine } from '../helper/scale-line.js';
+import { ScreenHelper } from '../helper/screen-helper.js';
 import { MarkingParams } from './marking.js';
+import { ClipGhostOptionParams } from './clip-ghost.js';
 import type { AssetManager } from '@molstar/core/util/assets';
 import { IlluminationParams, IlluminationPass } from './illumination.js';
 import type { RuntimeContext } from '@molstar/core/task';
@@ -46,9 +49,11 @@ export const ImageParams = {
   multiSample: PD.Group(MultiSampleParams),
   postprocessing: PD.Group(PostprocessingParams),
   marking: PD.Group(MarkingParams),
+  clipGhost: ClipGhostOptionParams,
   illumination: PD.Group(IlluminationParams),
 
   cameraHelper: PD.Group(CameraHelperParams),
+  overlay: PD.Boolean(false, { description: 'Draw the overlay layer (gizmos) into the image' }),
   renderer: PD.Group(RendererParams),
 };
 export type ImageProps = PD.Values<typeof ImageParams>;
@@ -113,11 +118,17 @@ export class ImagePass {
     this.multiSamplePass = new MultiSamplePass(graphics, this.drawPass);
     this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
 
+    // a screen layer of the image's own: its axes and scale line as `cameraHelper` says, not the canvas's
+    const screen = new ScreenHelper(graphics);
+    const scaleLine = new ScaleLine(screen);
+    scaleLine.setProps(this.props.cameraHelper.scale);
     this.helper = {
-      camera: new CameraHelper(graphics, this.props.cameraHelper),
+      screen,
+      axes: new CameraAxes(screen, this.props.cameraHelper),
+      scaleLine,
       debug: helper.debug,
-      handle: helper.handle,
       pointer: helper.pointer,
+      overlay: helper.overlay.withEnabled(() => this.props.overlay),
     };
   }
 
@@ -163,7 +174,10 @@ export class ImagePass {
   setProps(props: Partial<ImageProps> = {}) {
     Object.assign(this.props, props);
     this.limitToSupported(this.props);
-    if (props.cameraHelper) this.helper.camera.setProps(props.cameraHelper);
+    if (props.cameraHelper) {
+      this.helper.axes.setProps(props.cameraHelper);
+      if (props.cameraHelper.scale) this.helper.scaleLine.setProps(props.cameraHelper.scale);
+    }
   }
 
   /**
@@ -216,7 +230,7 @@ export class ImagePass {
    */
   async prepare() {
     this.drawPass.setTransparency(this.scene.transparency);
-    ShaderManager.ensureRequired(this.graphics, this.scene, this.props);
+    ShaderManager.ensureRequired(this.graphics, this.scene, this.helper.overlay, this.props);
     // the background is updated before the render: the draw pass chooses its clear from the background's state
     // (`isEnabled`), which the postprocessing pass would only update during the render, and a loaded image enables
     // its draws
@@ -240,6 +254,8 @@ export class ImagePass {
     Camera.copySnapshot(this._camera.state, this.camera.state);
     Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
     this._camera.update();
+    // the scale line at this camera (the image's size, not the canvas's)
+    this.helper.scaleLine.update(this._camera, this.graphics.pixelRatio);
     this.renderer.setOcclusionTest(null);
     this._frame = createFrame();
     return {

@@ -5,6 +5,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
@@ -21,10 +22,11 @@ import { BehaviorSubject } from 'rxjs';
 import type { PrismViewer } from '../viewer.js';
 import { ExampleFiles, RealViewerStory } from '../testing/real-viewer.js';
 
-// The gizmo library's standard transform handles (`@molstar/graphics/util/gizmo/transform`) on a box over 1CBS: drag an
-// arrow to move along X (red), Y (green) or Z (blue), a square to move in its plane, a ring to turn about its axis, the
-// center to move in the screen's plane; with scale knobs, past each arrow's tip. A drag runs live and its release keeps
-// the box where it is (the story's own binding: nothing in the state; Esc cancels a drag).
+// The gizmo library's standard transform handles (`@molstar/graphics/util/gizmo/transform`, Blender's move and rotate
+// gizmo) on a box over 1CBS: drag an arrow head to move along X (red), Y (green) or Z (blue), a square to move in its
+// plane, the center to move in the screen's plane, a ring (its front half) to turn about its axis, the grey circle to
+// roll about the view, the area inside the rings to turn freely; with scale knobs, past each arrow's tip. A drag runs
+// live and its release keeps the box where it is (the story's own binding: nothing in the state; Esc cancels a drag).
 
 const meta: Meta = { title: 'Viewer/Gizmos', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -58,11 +60,14 @@ function showTransformHandles(v: PrismViewer, options: TransformHandlesOptions) 
   ]);
   const binding: GizmoBinding<GizmoPose> = {
     items,
-    layout: (item) => ({
-      body: boxMesh(item.value.scale),
-      ...transformHandles(r * 0.6, options),
-      frame: frameOf(item.value),
-    }),
+    layout: (item) => {
+      const { parts, groups } = transformHandles(r * 0.6, options);
+      return {
+        parts: [{ role: 'body', geometry: boxMesh(item.value.scale) }, ...parts],
+        groups,
+        frame: frameOf(item.value),
+      };
+    },
     sameGeometry: (a, b) => Vec3.exactEquals(a.scale, b.scale),
     equal: (a, b) =>
       Vec3.exactEquals(a.position, b.position) &&
@@ -89,7 +94,7 @@ function transformStory(options: TransformHandlesOptions): StoryObj {
   };
 }
 
-/** Arrows, plane squares, rings and the center */
+/** The center, arrow heads, plane squares, rings, the roll circle and the trackball's area */
 export const TransformHandles: StoryObj = transformStory({});
 
 /** With a scale knob past each arrow's tip */

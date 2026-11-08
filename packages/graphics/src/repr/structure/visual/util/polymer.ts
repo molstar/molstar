@@ -113,7 +113,7 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
     const { structure, group } = structureGroup;
     const unit = group.units[instanceId];
     if (groupId === PickingId.Null) {
-      const indices = OrderedSet.ofRange(0, unit.elements.length) as OrderedSet<StructureElement.UnitIndex>;
+      const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<StructureElement.UnitIndex>;
       return StructureElement.Loci(structure.target, [{ unit, indices }]);
     } else {
       if (Unit.isAtomic(unit)) {

@@ -125,7 +125,7 @@ void main(void){
     ${assign_quad_position_group}
 
     position = applyWiggle(position, group, aInstance);
-    mat4 transform = applyTumble(aTransform);
+    mat4 transform = uObjectTransform * applyTumble(aTransform);
 
     ${assign_color_varying}
     ${assign_marker_varying}
@@ -176,18 +176,34 @@ void main(void){
         gl_Position.z = 2.0 * gl_Position.w;
     }
 
+    #if defined(dRenderVariant_marking)
+        // the marking depth draws unmarked spheres only (\`uMarkingType\` 1), the mask marked ones: the others moved out of
+        // [ -w, +w ], not shaded to be discarded
+        float vertexMarker = uMarker == -1.0 ? floor(vMarker * 255.0 + 0.5) : uMarker;
+        if ((uMarkingType == 1) == (vertexMarker > 0.0)) {
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
+    #endif
+
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && defined(dClipObjects)
-        if (clipTest(vModelPosition / uModelScale)) {
+        // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+        if (clipTest(vModelPosition / uModelScale) != uClipGhost) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }
     #elif defined(dClipSphere)
-        // pixel clipping: a sphere clipped whole moved out of [ -w, +w ], one not cut not tested per fragment
-        int clipClass = clipSphereClass(vModelPosition / uModelScale, vSphere.w / uModelScale);
-        if (clipClass == 2) {
-            gl_Position.z = 2.0 * gl_Position.w;
+        if (uClipGhost) {
+            // the ghost pass: a sphere whole by its center, not tested per fragment
+            if (!clipTest(vModelPosition / uModelScale)) gl_Position.z = 2.0 * gl_Position.w;
+            vClipSome = 0.0;
+        } else {
+            // pixel clipping: a sphere clipped whole moved out of [ -w, +w ], one not cut not tested per fragment
+            int clipClass = clipSphereClass(vModelPosition / uModelScale, vSphere.w / uModelScale);
+            if (clipClass == 2) {
+                gl_Position.z = 2.0 * gl_Position.w;
+            }
+            vClipSome = clipClass == 1 ? 1.0 : 0.0;
         }
-        vClipSome = clipClass == 1 ? 1.0 : 0.0;
     #else
         ${clip_instance}
     #endif

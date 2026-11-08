@@ -246,6 +246,7 @@ export class PickPass {
     variant: 'pick' | 'depth',
     pickType: number,
     frame: Frame,
+    overlayOcclusion: boolean,
   ) {
     if (b.drawing) {
       renderer.clear(false);
@@ -258,42 +259,76 @@ export class PickPass {
       b.renderer(pass, scene.volumes, () => renderer.renderPick(scene.volumes, camera, variant, pickType));
     }
 
-    if (helper.handle.isEnabled) {
-      b.renderer(pass, helper.handle.scene, () => renderer.renderPick(helper.handle.scene, camera, variant, pickType));
+    const { overlay } = helper;
+    if (overlay.isEnabled) {
+      // the overlay is drawn over the scene, so it takes its pixels: the scene's depth is cleared; where it is behind
+      // the scene, its occluded alpha decides (the scene's depth of the last draw, see `apply_occlusion`)
+      const overlayCamera = b.drawing ? overlay.getCamera(camera) : camera;
+      if (b.drawing) {
+        renderer.clearDepth();
+        renderer.update(overlayCamera, overlay.scene, frame);
+      }
+      const depth = overlayOcclusion ? overlay.occluderDepth : undefined;
+      const occluder = depth
+        ? { depth, depthAlpha: overlay.occluderDepthAlpha, near: camera.near, far: camera.far }
+        : null;
+      // what the scene's depth hides is picked
+      b.renderer(pass, overlay.scene, () => {
+        const occlusionTest = renderer.occlusionTest;
+        renderer.setOcclusionTest(null);
+        renderer.renderPick(overlay.scene, overlayCamera, variant, pickType, occluder);
+        renderer.setOcclusionTest(occlusionTest);
+      });
     }
 
-    if (helper.camera.isEnabled) {
-      if (b.drawing) {
-        helper.camera.update(camera);
-        renderer.update(helper.camera.camera, helper.camera.scene, frame);
-      }
-      b.renderer(pass, helper.camera.scene, () =>
-        renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, pickType),
-      );
+    // the screen layer last, its depth cleared: a corner widget takes its pixels
+    if (helper.screen.isEnabled) {
+      if (b.drawing) renderer.clearDepth();
+      helper.screen.forEach(camera, (screenScene, screenCamera) => {
+        if (b.drawing) renderer.update(screenCamera, screenScene, frame);
+        b.renderer(pass, screenScene, () => {
+          const occlusionTest = renderer.occlusionTest;
+          renderer.setOcclusionTest(null);
+          renderer.renderPick(screenScene, screenCamera, variant, pickType);
+          renderer.setOcclusionTest(occlusionTest);
+        });
+      });
     }
   }
 
-  /** Draws the pick buffers (`b`, see `PassBuilder`) */
-  render(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, frame: Frame) {
+  /**
+   * Draws the pick buffers (`b`, see `PassBuilder`); `overlayOcclusion`: the overlay's occluded parts tested against
+   * the scene's opaque depth of the last draw (off for cameras other than the drawn one's, e.g. a ray's)
+   */
+  render(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    helper: Helper,
+    frame: Frame,
+    overlayOcclusion = true,
+  ) {
+    const o = overlayOcclusion;
     if (this.graphics.capabilities.multipleRenderTargets) {
       b.begin(this.framebuffer, { label: 'pick' });
-      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.None, frame);
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.None, frame, o);
       // if (this.pickWidth < 256) {
       //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
       // }
     } else {
       b.begin(this.objectPickTarget, { label: 'pick object' });
-      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Object, frame);
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Object, frame, o);
 
       b.begin(this.instancePickTarget, { label: 'pick instance' });
-      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Instance, frame);
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Instance, frame, o);
 
       b.begin(this.groupPickTarget, { label: 'pick group' });
-      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Group, frame);
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Group, frame, o);
       // printTextureImage(readTexture(this.webgl, this.groupPickTarget.texture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
 
       b.begin(this.depthPickTarget, { label: 'pick depth' });
-      this.renderVariant(b, renderer, camera, scene, helper, 'depth', PickType.None, frame);
+      this.renderVariant(b, renderer, camera, scene, helper, 'depth', PickType.None, frame, o);
     }
   }
 }

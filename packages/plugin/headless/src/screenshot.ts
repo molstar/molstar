@@ -412,6 +412,7 @@ export function defaultImagePassParams(): Partial<ImageProps> {
   return {
     cameraHelper: {
       axes: { name: 'off', params: {} },
+      scale: { name: 'off', params: {} },
     },
     multiSample: {
       ...DefaultCanvas3DParams.multiSample,

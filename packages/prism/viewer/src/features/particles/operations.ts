@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -34,6 +35,11 @@ import { seekWhileViewing } from '../../sources/trajectory.js';
 import { nodesFor, updateEach } from '../../api/nodes.js';
 import { entryRoot, isFailure, namesOf, pickOne } from '../../api/scope.js';
 import { commitRepresentation, setRepresentation } from '../../api/set-representation.js';
+import { IdentityTransform, rigidTransformParams, wantedTransform } from '../../api/rigid-transform.js';
+import { currentParticleTransform, particleMatrixOf, particleTransformCell } from '../../sources/particle-transform.js';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { getTransformFromParams, type TransformParam } from '@molstar/plugin/state/transforms/helpers';
+import { TransformParticleList } from '@molstar/plugin/state/transforms/particles/transform';
 
 // `particles` (api.md §2): the particle lists in the scene (`get`), their representations (desired
 // state, like `representation.set`), visibility and removal. It follows `volume`: a `particles` names a list by label
@@ -503,6 +509,66 @@ export class ParticlesApi extends ApiArea {
       if (!data?.count) return ApiResult.fail('not-found', `${listName(ctx, l)} has no particles.`);
       ctx.plugin.managers.camera.focusLoci(Particle.Loci(data, Interval.ofLength(data.count)));
       return ApiResult.ok(`Focused ${listName(ctx, l)}.`, { nodes: [l.cell.transform.ref] });
+    },
+  });
+
+  // A list moved or turned as a whole (Mol*'s `TransformParticleList`), as `structure.transform` does a structure: its
+  // values are the transform from where the list was loaded; `compose` applies them on top of the current one.
+  readonly transform = this.operation({
+    id: 'particles.transform',
+    title: 'Move or rotate particles',
+    params: { ...rigidTransformParams('list'), particles: ListParam() },
+    async run(v, ctx) {
+      const { compose, particles } = v;
+      const l = oneList(ctx, particles || undefined);
+      if (isFailure(l)) return l;
+      const name = listName(ctx, l);
+      const data = l.cell.obj?.data;
+      if (!data) return ApiResult.fail('blocked', `${name} is not loaded yet.`);
+      const wanted = wantedTransform(v, 'particles.transform-reset');
+      if (isFailure(wanted)) return wanted;
+      const state = ctx.plugin.state.data;
+      const ref = l.cell.transform.ref;
+      const existing = particleTransformCell(state, ref);
+      const now = currentParticleTransform(state, ref, data);
+      let next: TransformParam = wanted;
+      if (compose) {
+        // turned about the center where it is now
+        const center = Vec3.transformMat4(Vec3(), Particle.getBoundary(data).sphere.center, now);
+        const delta = getTransformFromParams(wanted, center);
+        next = { name: 'matrix', params: { data: Mat4.mul(Mat4(), delta, now), transpose: false } };
+      }
+      if (Mat4.areEqual(particleMatrixOf(next, data), now, 1e-3)) {
+        return ApiResult.already(
+          existing ? `${name} is already placed so.` : `${name} is already where it was loaded.`,
+        );
+      }
+      const build = state.build();
+      if (existing) build.to(existing).update({ transform: next });
+      else build.to(l.cell).insert(TransformParticleList, { transform: next });
+      await ctx.plugin.runTask(state.updateTree(build));
+      return ApiResult.ok(`Moved ${name}.`, { nodes: [ref] });
+    },
+  });
+
+  readonly transformReset = this.operation({
+    id: 'particles.transform-reset',
+    title: 'Reset the particles’ transform',
+    params: { particles: ListParam() },
+    async run({ particles }, ctx) {
+      const l = oneList(ctx, particles || undefined);
+      if (isFailure(l)) return l;
+      const name = listName(ctx, l);
+      const data = l.cell.obj?.data;
+      const state = ctx.plugin.state.data;
+      const ref = l.cell.transform.ref;
+      const existing = particleTransformCell(state, ref);
+      if (!existing || !data || Mat4.isIdentity(currentParticleTransform(state, ref, data), 1e-6)) {
+        return ApiResult.already(`${name} is already where it was loaded.`);
+      }
+      // removing the decorator would take its subtree (the representations) with it: it is set to identity instead
+      await ctx.plugin.runTask(state.updateTree(state.build().to(existing).update({ transform: IdentityTransform })));
+      return ApiResult.ok(`${name} is back where it was loaded.`, { nodes: [ref] });
     },
   });
 

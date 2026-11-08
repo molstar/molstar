@@ -18,6 +18,7 @@ import { Color } from '@molstar/core/util/color';
 import { now } from '@molstar/core/util/now';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
+import type { CameraHelperProps } from '@molstar/graphics/canvas3d/helper/camera-helper';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
 import { type BackendInstance } from './backend.js';
@@ -29,7 +30,7 @@ export const BaseCanvasProps: PartialCanvas3DProps = {
   camera: {
     mode: 'perspective',
     fov: 45,
-    helper: { axes: { name: 'off', params: {} } },
+    helper: { axes: { name: 'off', params: {} }, scale: { name: 'off', params: {} } },
     stereo: { name: 'off', params: {} },
     manualReset: true,
   },
@@ -185,10 +186,12 @@ async function releaseAndRestore(instance: BackendInstance): Promise<string[]> {
   // a busy GPU process may hand out the new device late: a released context stays released, restored once more
   if (!(await context.restore!()) && !(await context.restore!())) return [...errors, NotRestored];
   if (context.graphics === released || context.graphics.isContextLost) errors.push('no new live context');
-  // the representations update on the new context asynchronously, then are added again
+  // the representations update on the new context asynchronously, then are added again: committed here, as no render
+  // loop runs to commit them (the scene lists them only once committed; a GPU surface's come after its compute)
   const deadline = performance.now() + 10_000;
   while (canvas3d.getRenderObjects().length < objectCount && performance.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 10));
+    canvas3d.commit(true);
   }
   canvas3d.commit(true);
   if (canvas3d.getRenderObjects().length < objectCount) errors.push('scene not rebuilt on the restored context');
@@ -236,6 +239,7 @@ export async function renderTest(
     multiSample: p.multiSample,
     postprocessing: p.postprocessing,
     marking: p.marking,
+    clipGhost: p.clipGhost,
     illumination: p.illumination,
     hiZ: p.hiZ,
     renderer: p.renderer,
@@ -303,9 +307,13 @@ export async function renderTest(
       multiSample: p.multiSample,
       postprocessing: p.postprocessing,
       marking: p.marking,
+      clipGhost: p.clipGhost,
       illumination: p.illumination,
       renderer: p.renderer,
-      cameraHelper: { axes: { name: 'off', params: {} } },
+      // the corner axes as the canvas has them: off but where a case asks for them (`canvasProps.camera.helper`)
+      cameraHelper: p.camera.helper as CameraHelperProps,
+      // the overlay cases' representations (`cases/overlay.ts`)
+      overlay: true,
     });
     // no `updateBackground`: the render waits for the background images itself (pending work)
 

@@ -49,6 +49,13 @@ export const MeshSchema = {
   dBump: DefineSpec('boolean'),
   uBumpFrequency: UniformSpec('f', 'material'),
   uBumpAmplitude: UniformSpec('f', 'material'),
+  /** Å toward the camera, in depth only (`Mesh.Params.depthOffset`) */
+  uDepthOffset: UniformSpec('f'),
+  /**
+   * CSS pixels per unit of the mesh, constant on screen: the vertex stage scales it about the instance's origin by the
+   * world size of a pixel there (the instance's own scale multiplies); 0: world units
+   */
+  uScreenSize: UniformSpec('f'),
   meta: ValueSpec('unknown'),
 
   ...InteriorSchema,

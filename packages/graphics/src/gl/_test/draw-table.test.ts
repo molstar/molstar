@@ -13,6 +13,7 @@ import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
+import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { createRenderObject } from '../render-object.js';
 import { RenderableState, type GraphicsRenderable } from '../renderable.js';
 import { createDrawTable, DrawFact, DrawRow, DrawState, getDrawFacts } from '../draw-table.js';
@@ -108,6 +109,16 @@ describe('draw table', () => {
     ValueCell.update(a.values.uMetalness, 0.3);
     table.refresh();
     expect(table.rowVersions[slot]).toBe(rowVersion + 1);
+  });
+
+  it('has levels of detail only where the geometry has levels, not their empty default', () => {
+    const p = PD.getDefaultValues(Spheres.Params);
+    const values = Spheres.Utils.createValuesSimple(Spheres.createEmpty(), p, ColorNames.orange, 1);
+    // spheres default to no levels: an empty list, culled and replayed as any object
+    expect(values.lodLevels.ref.value.length).toBe(0);
+    expect(getDrawFacts(values) & DrawFact.LodLevels).toBe(0);
+    ValueCell.update(values.lodLevels, Object.assign([[0, 100, 0, 6, 1]], { pixelSize: 0 }) as never);
+    expect(getDrawFacts(values) & DrawFact.LodLevels).toBeTruthy();
   });
 
   it('advances the values versions with any value, at once; volatile cells on refresh', () => {

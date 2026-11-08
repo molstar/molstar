@@ -21,6 +21,7 @@ import type { PostprocessingProps } from './postprocessing.js';
 import type { DrawPass } from './draw.js';
 import type { RenderContext } from '../util.js';
 import type { MarkingProps } from './marking.js';
+import type { ClipGhostOption } from './clip-ghost.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { clearJitter, getJitterOffsets, getTemporalSamplesPerFrame, setJitter } from './jitter.js';
 import { StereoCamera } from '../camera/stereo.js';
@@ -67,6 +68,7 @@ type Props = {
   multiSample: MultiSampleProps;
   postprocessing: PostprocessingProps;
   marking: MarkingProps;
+  clipGhost: ClipGhostOption;
   transparentBackground: boolean;
   dpoitIterations: number;
   volumeResolutionScale: number;
@@ -195,7 +197,7 @@ export class MultiSamplePass {
       if (i === 0 || !props.multiSample.reuseOcclusion) {
         drawPass.postprocessing.setOcclusionOffset(0, 0);
       } else {
-        drawPass.postprocessing.setOcclusionOffset(offset[0] / width, -offset[1] / height);
+        drawPass.postprocessing.setOcclusionOffset(offset[0] / width, offset[1] / height);
       }
       drawPass.plan(b, ctx, props, false, isSeparateMarking(camera));
 
@@ -226,6 +228,8 @@ export class MultiSamplePass {
       samples: offsetList.length,
       shading: drawPass.getMarkingShading(ctx.scene, props.postprocessing),
       transparentDepth: drawPass.getMarkingTransparentDepth(ctx.scene, props.postprocessing),
+      opaqueDepth: drawPass.getMarkingOpaqueDepth(),
+      opaqueDepthJitter: drawPass.getMarkingOpaqueDepthJitter(),
     });
     if (timing) graphics.timer.groupEnd('MultiSamplePass.renderMultiSample');
   }
@@ -291,7 +295,7 @@ export class MultiSamplePass {
         if (sampleIndex === 0 || !props.multiSample.reuseOcclusion) {
           drawPass.postprocessing.setOcclusionOffset(0, 0);
         } else {
-          drawPass.postprocessing.setOcclusionOffset(offset[0] / width, -offset[1] / height);
+          drawPass.postprocessing.setOcclusionOffset(offset[0] / width, offset[1] / height);
         }
         drawPass.plan(b, ctx, props, false, isSeparateMarking(camera));
 
@@ -339,6 +343,8 @@ export class MultiSamplePass {
       samples: firstFrame ? 1 : samplesPerFrame,
       shading: drawPass.getMarkingShading(ctx.scene, props.postprocessing),
       transparentDepth: drawPass.getMarkingTransparentDepth(ctx.scene, props.postprocessing),
+      opaqueDepth: drawPass.getMarkingOpaqueDepth(),
+      opaqueDepthJitter: drawPass.getMarkingOpaqueDepthJitter(),
     });
     if (timing) graphics.timer.groupEnd('MultiSamplePass.renderTemporalMultiSample');
 

@@ -360,6 +360,13 @@ there are clip objects is the define `dClipObjects`, their count also the materi
 GLSL tests `defined(dClipObjects)` and loops to `uClipObjectCount`; WGSL to the override `oClipObjectCount`, as
 `dClipObjectCount` sets it).
 
+## Elliptic cylinder clip objects
+
+A `cylinder` clip object's radii are its scale's x and z halves, its height y (as a sphere's three axes are its
+scale's): v5 read x for both and ignored z. A cylinder given as (diameter, height, diameter) clips as before; one given
+as (diameter, height, 1), or with any other z, is elliptic. GLSL and WGSL `localSD` and the segment intervals,
+`Clip.getSignedDistance`.
+
 ## Draw lists on by default
 
 `RendererProps.drawLists` defaults to true: on WebGPU the passes replay recordings (render bundles), objects changing
@@ -1331,6 +1338,25 @@ tbl, CSV) take `StringLike | Uint8Array`; passing a string still works (encoded 
 makes transparent instead, exactly and faster. The Gaussian volume keeps it (`GaussianDensityVolumeParams`,
 `UnitsGaussianDensityVolumeParams`, default 4 as before): its density is made on the GPU, and its own bricks measured
 slower. States and code passing `jumpLength` to a volume's direct-volume representation have it ignored.
+
+## Handle helper removed
+
+`@molstar/graphics/canvas3d/helper/handle-helper` is removed: `HandleHelper`, `HandleHelperParams`, `HandleLoci`,
+`isHandleLoci` and its `HandleGroup`, with `Canvas3DParams.handle` (and `Canvas3DProps.handle`, `Helper.handle`). Its
+translate handle was never positioned (`update` had no caller). Gizmos are representations in the overlay layer
+(`Representation.State.layer`), built with the gizmo library (`@molstar/graphics/util/gizmo`, its transform handles in
+`transform.ts`). Props and snapshots passing `handle` to the canvas have it ignored.
+
+## Camera helper in the screen layer
+
+`CameraHelper` (`@molstar/graphics/canvas3d/helper/camera-helper`) is `CameraAxes`, the corner axes drawn in the screen
+layer (`Representation.State.layer` `'screen'`, `ScreenHelper`), without a camera or scene of its own: its `camera`,
+`scene`, `update` and `setContext` are removed, and it is built with a `ScreenHelper` instead of a graphics context.
+`Helper.camera` is `Helper.axes` (the axes) and `Helper.screen` (the layer). `CameraAxesLoci`, `isCameraAxesLoci` and
+`CameraHelperAxis` are unchanged. `CameraHelperParams` and `CameraHelperProps` (so `Canvas3DParams.camera.helper` and
+`ImageProps.cameraHelper`) gain `scale`, a scale line (`ScaleLine`), `'on'` by default: props built by hand need it
+(`{ name: 'off', params: {} }` for none), and a viewer shows the scale line unless set off. The axes are sized in CSS
+pixels as before.
 
 ## The component manager's options keep a representation's own values
 

@@ -8,7 +8,7 @@
 import { StructureElement, Unit, Bond, type ElementIndex } from '@molstar/model/model/structure';
 import type { Location } from '@molstar/model/model/location';
 import type { SizeTheme } from '../size.js';
-import { VdwRadius } from '@molstar/model/model/structure/model/properties/atomic';
+import { VdwRadiusOfNumber } from '@molstar/model/model/structure/model/properties/atomic';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ThemeDataContext } from '../theme.js';
 import { getInteractionLocationSize } from './interaction-location.js';
@@ -26,7 +26,8 @@ export function getPhysicalSizeThemeParams(ctx: ThemeDataContext) {
 
 export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
   if (Unit.isAtomic(unit)) {
-    return VdwRadius(unit.model.atomicHierarchy.atoms.type_symbol.value(element));
+    // by the model's atomic numbers, not a lookup of the element symbol: a size per atom of millions
+    return VdwRadiusOfNumber(unit.model.atomicHierarchy.derived.atom.atomicNumber[element]);
   } else if (Unit.isSpheres(unit)) {
     return unit.model.coarseConformation.spheres.radius[element];
   } else {

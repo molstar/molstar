@@ -40,3 +40,6 @@ mise.local.toml
 
 # Local environment
 .env.local
+
+# Large models for the benchmarks, not checked in (tests/src/benchmark)
+.benchmark/

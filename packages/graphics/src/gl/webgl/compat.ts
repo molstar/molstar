@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -1028,7 +1028,25 @@ void main() {
 
 const TextureTestTexCoords = new Float32Array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0]);
 
+/** A 1x1 texture of `type` and a framebuffer with it as its color */
+function createTestTarget(gl: GLRenderingContext, type: number, data: ArrayBufferView | null) {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, type, data);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  const framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+  return { texture, framebuffer };
+}
+
 // adapted from https://stackoverflow.com/questions/28827511/
+/**
+ * Whether a `type` texture is rendered to and read from: drawn into one, which is drawn into a byte target of its
+ * own and read back. Draws nothing to the drawing buffer (which a context shared by several canvases keeps), and frees
+ * what it makes
+ */
 export function testColorBuffer(gl: GLRenderingContext, type: number) {
   // setup shaders
   const vertShader = getShader(gl, { type: 'vert', source: TextureTestVertShader });
@@ -1045,77 +1063,83 @@ export function testColorBuffer(gl: GLRenderingContext, type: number) {
   // look up where the vertex data needs to go.
   const positionLocation = gl.getAttribLocation(program, 'aPosition');
   const colorLoc = gl.getUniformLocation(program, 'uColor');
-  if (!colorLoc) {
-    if (isDebugMode) {
-      console.log(`error getting 'uColor' uniform location`);
-    }
-    return false;
-  }
-
-  // provide texture coordinates for the rectangle.
   const positionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, TextureTestTexCoords, gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(positionLocation);
-  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-  const whiteTex = gl.createTexture();
-  const whiteData = new Uint8Array([255, 255, 255, 255]);
-  gl.bindTexture(gl.TEXTURE_2D, whiteTex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, whiteData);
-
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, type, null);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-  const fb = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-  const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-  if (status !== gl.FRAMEBUFFER_COMPLETE) {
-    if (isDebugMode) {
-      console.log(`error creating framebuffer for '${type}'`);
-    }
-    return false;
-  }
-
-  // Draw the rectangle.
-  gl.bindTexture(gl.TEXTURE_2D, whiteTex);
-  gl.uniform4fv(colorLoc, [0, 10, 20, 1]);
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.clearColor(1, 0, 0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.uniform4fv(colorLoc, [0, 1 / 10, 1 / 20, 1]);
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  // Check if rendered correctly
-  const pixel = new Uint8Array(4);
-  gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-  if (pixel[0] !== 0 || pixel[1] < 248 || pixel[2] < 248 || pixel[3] < 254) {
-    if (isDebugMode) {
-      console.log(`not able to actually render to '${type}' texture`);
-    }
-    return false;
-  }
-
-  // Check reading from float texture
-  if (type === gl.FLOAT) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    const floatPixel = new Float32Array(4);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, floatPixel);
-    const error = gl.getError();
-    if (error) {
+  const white = createTestTarget(gl, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+  const target = createTestTarget(gl, type, null);
+  const bytes = createTestTarget(gl, gl.UNSIGNED_BYTE, null);
+  try {
+    if (!colorLoc) {
       if (isDebugMode) {
-        console.log(`error reading float pixels: '${getErrorDescription(gl, error)}'`);
+        console.log(`error getting 'uColor' uniform location`);
       }
       return false;
     }
-  }
 
-  return true;
+    // provide texture coordinates for the rectangle.
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, TextureTestTexCoords, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+      if (isDebugMode) {
+        console.log(`error creating framebuffer for '${type}'`);
+      }
+      return false;
+    }
+
+    // Draw the rectangle.
+    gl.bindTexture(gl.TEXTURE_2D, white.texture);
+    gl.uniform4fv(colorLoc, [0, 10, 20, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.bindTexture(gl.TEXTURE_2D, target.texture);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, bytes.framebuffer);
+    gl.clearColor(1, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform4fv(colorLoc, [0, 1 / 10, 1 / 20, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    // Check if rendered correctly
+    const pixel = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    if (pixel[0] !== 0 || pixel[1] < 248 || pixel[2] < 248 || pixel[3] < 254) {
+      if (isDebugMode) {
+        console.log(`not able to actually render to '${type}' texture`);
+      }
+      return false;
+    }
+
+    // Check reading from float texture
+    if (type === gl.FLOAT) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+      const floatPixel = new Float32Array(4);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, floatPixel);
+      const error = gl.getError();
+      if (error) {
+        if (isDebugMode) {
+          console.log(`error reading float pixels: '${getErrorDescription(gl, error)}'`);
+        }
+        return false;
+      }
+    }
+
+    return true;
+  } finally {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    if (positionLocation >= 0) gl.disableVertexAttribArray(positionLocation);
+    gl.useProgram(null);
+    for (const t of [white, target, bytes]) {
+      gl.deleteFramebuffer(t.framebuffer);
+      gl.deleteTexture(t.texture);
+    }
+    gl.deleteBuffer(positionBuffer);
+    gl.deleteProgram(program);
+    gl.deleteShader(vertShader);
+    gl.deleteShader(fragShader);
+  }
 }

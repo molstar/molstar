@@ -6,9 +6,16 @@
 
 import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import type { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
-import { type SizeData, createGroupSize, createValueSize } from '@molstar/graphics/geo/geometry/size-data';
-import { type Location, NullLocation } from '@molstar/model/model/location';
-import { StructureElement, type Structure } from '@molstar/model/model/structure';
+import {
+  type SizeData,
+  createTextureSize,
+  createValueSize,
+  sizeDataFactor,
+} from '@molstar/graphics/geo/geometry/size-data';
+import { createDataArray } from '@molstar/graphics/gl/renderable/util';
+import { packIntToRGBArray } from '@molstar/core/util/number-packing';
+import { NullLocation } from '@molstar/model/model/location';
+import type { Structure } from '@molstar/model/model/structure';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { PhysicalSizeTheme, getPhysicalRadius } from '@molstar/graphics/theme/size/physical';
@@ -16,7 +23,6 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VisualContext } from '../../../visual.js';
 import { checkSphereImpostorSupport } from '../../../structure/visual/util/common.js';
 import {
-  ElementIterator,
   createStructureElementSphereImpostor,
   createStructureElementSphereMesh,
 } from '../../../structure/visual/util/element.js';
@@ -102,11 +108,17 @@ export function createStructureTargetSizes(structure: Structure, theme: Theme, s
     return createValueSize(theme.size.size(NullLocation), sizeData);
   }
   const scale = getSizeScale(theme);
-  const size = (location: Location) => {
-    if (!StructureElement.Location.is(location)) return scale;
-    return getPhysicalRadius(location.unit, location.element) * scale;
-  };
-  return createGroupSize(ElementIterator.fromStructure(structure), size, sizeData);
+  // a size per element in the structure's serial order (`createGroupSize` over `ElementIterator.fromStructure`), unit
+  // by unit: not a location an element through the serial mapping (millions of atoms in a mesoscale model's targets)
+  const sizes = createDataArray(Math.max(1, structure.elementCount), 4, Uint8Array, sizeData?.tSize.ref.value.array);
+  let g = 0;
+  for (const unit of structure.units) {
+    const { elements } = unit;
+    for (let i = 0, il = elements.length; i < il; ++i, ++g) {
+      packIntToRGBArray(getPhysicalRadius(unit, elements[i]) * scale * sizeDataFactor, sizes.array, g * 4);
+    }
+  }
+  return createTextureSize(sizes, 'group', sizeData);
 }
 
 /** Whether the sphere geometry must be rebuilt because relevant props changed. */

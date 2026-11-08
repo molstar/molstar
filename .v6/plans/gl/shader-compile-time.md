@@ -2,8 +2,10 @@
 
 ## Status
 
-- **Current**: analysis in progress. Solid-interior cylinders fixed (their cap functions at one call site each: fresh
-  shader text, WebGPU pipeline 955-1327 -> 522 ms, WebGL2 case 2.8 -> 1.0 s). No pipeline is slow enough to matter now.
+- **Current**: done. Solid-interior cylinders fixed (their cap functions at one call site each: fresh shader text,
+  WebGPU pipeline 955-1327 -> 522 ms, WebGL2 case 2.8 -> 1.0 s). No pipeline is slow enough to matter now, and what
+  users wait for compiles while representations build (`pipeline-readiness.md` step 7); reopen where a pipeline over
+  200 ms shows up again (How to measure). WebGL2's slower slowest programs stay open, ANGLE's side.
 - **Why**: the compilers inline every call site with what it calls (FXC on D3D12, ANGLE's on WebGL), so a large function
   reached from several exclusive branches is compiled that many times.
 

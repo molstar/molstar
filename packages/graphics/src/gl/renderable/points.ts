@@ -11,6 +11,7 @@ import {
   GlobalUniformSchema,
   BaseSchema,
   DefineSpec,
+  UniformSpec,
   ValueSpec,
   DataSpec,
   type Values,
@@ -32,7 +33,12 @@ export const PointsSchema = {
   tPositionGroup: DataSpec('rgba32f'),
   lodLevels: ValueSpec('unknown'),
   dPointSizeAttenuation: DefineSpec('boolean'),
-  dPointStyle: DefineSpec('string', ['square', 'circle', 'fuzzy']),
+  dPointStyle: DefineSpec('string', ['square', 'circle', 'fuzzy', 'ring']),
+  /** a `ring` point's ring width, a fraction of its radius (1: the full disk) */
+  uPointRingWidth: UniformSpec('f'),
+  /** CSS pixels toward the camera (negative: away), in depth only (`Points.Params.pointDepthOffset`) */
+  uPointDepthOffset: UniformSpec('f'),
+  dPointFront: DefineSpec('boolean'),
 
   ...AnimationSchema,
 };

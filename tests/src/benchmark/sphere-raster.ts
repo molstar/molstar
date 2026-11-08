@@ -30,7 +30,7 @@ import { type BenchmarkCase, BenchmarkEnv, type PathRun } from './framework.js';
 import {
   getGlobule,
   getPostsyn,
-  getRootEntry,
+  getBenchmarkEntry,
   getScene,
   LargeSize,
   postsynRepr,
@@ -1409,7 +1409,7 @@ function rasterCase(id: string, description: string, setup: () => Promise<Raster
 const NoLod = { lodLevels: [], lodPixelSize: 0 };
 
 /**
- * The prototype on the globule and PetWorld (`postsynstubby_2-no_bonds.bcif` in the repository root), whole and zoomed,
+ * The prototype on the globule and PetWorld (`postsynstubby_2-no_bonds.bcif` in `.benchmark/`), whole and zoomed,
  * at 640x360, 1280x720 and 2560x1440 (on demand: `--filter 'sphere-raster/*' --gpu-timing --browser-arg
  * --enable-webgpu-developer-features`)
  */
@@ -1468,7 +1468,7 @@ function pixelLevels(pixelSize: number, fov: number, height: number): LodLevels 
  * (45° field of view)
  */
 /**
- * 3j3q, the HIV-1 capsid (`3j3q.bcif` in the repository root, about 2.4 M atoms, 1356 chains), as spacefill with its
+ * 3j3q, the HIV-1 capsid (`3j3q.bcif` in `.benchmark/`, about 2.4 M atoms, 1356 chains), as spacefill with its
  * defaults (no levels of detail), whole and zoomed: for the integrated GPU, where PetWorld is too large (one structure,
  * one instance: the occlusion columns cull nothing)
  */
@@ -1482,7 +1482,7 @@ SphereRasterCases.push(
         `sphere-raster/3j3q${zoom ? '-zoom' : ''}-${label}`,
         `3j3q as spacefill${zoom ? ', zoomed' : ''}, ${label}`,
         async () => {
-          const s = await getRootEntry('3j3q.bcif');
+          const s = await getBenchmarkEntry('3j3q.bcif');
           return {
             label: `3j3q${zoom ? ' zoomed' : ''}`,
             size,
