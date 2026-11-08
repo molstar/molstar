@@ -7,6 +7,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, until } from '../../../_test/harness.js';
 import type { SceneNode } from '../../../model/scene.js';
@@ -55,13 +56,13 @@ describe('the shape area', () => {
     const [torus] = await shapes(v);
     const rep = torus.representations[0].ref;
     const before = [...drawnCenter(v, rep)];
-    expectOk(await v.api.shape.transform({ node: torus.ref, translation: [0, 7, 0] }));
+    expectOk(await v.api.shape.transform({ node: torus.ref, translation: Vec3.create(0, 7, 0) }));
     const [moved] = await shapes(v);
     expect(moved.ref).toBe(torus.ref);
     expect(moved.representations.map((r) => r.ref)).toEqual([rep]);
     expect(drawnCenter(v, rep)[1]).toBeCloseTo(before[1] + 7, 3);
     // a turn about its center keeps the center
-    expectOk(await v.api.shape.transform({ node: torus.ref, axis: [0, 0, 1], angle: 90, compose: true }));
+    expectOk(await v.api.shape.transform({ node: torus.ref, axis: Vec3.create(0, 0, 1), angle: 90, compose: true }));
     expect(drawnCenter(v, rep)[1]).toBeCloseTo(before[1] + 7, 0);
     expectOk(await v.api.shape.transformReset({ node: torus.ref }));
     expect(drawnCenter(v, rep)[1]).toBeCloseTo(before[1], 3);

@@ -44,12 +44,12 @@ describe('volume', () => {
       return Vec3.transformMat4(Vec3(), Vec3.zero(), Grid.getGridToCartesianTransform(grid));
     };
     const before = origin();
-    expectOk(await v.api.volume.transform({ translation: [10, 0, 0] }));
+    expectOk(await v.api.volume.transform({ translation: Vec3.create(10, 0, 0) }));
     expect(origin()[0]).toBeCloseTo(before[0] + 10, 4);
     // one volume, its representations under the transform
     expect(v.plugin.managers.volume.hierarchy.current.volumes).toHaveLength(1);
     expect(reps(v)).toEqual(['isosurface']);
-    expect(((await v.api.volume.transform({ translation: [10, 0, 0] })) as any).unchanged).toBe(true);
+    expect(((await v.api.volume.transform({ translation: Vec3.create(10, 0, 0) })) as any).unchanged).toBe(true);
     expectOk(await v.api.volume.transformReset({}));
     expect(origin()[0]).toBeCloseTo(before[0], 4);
     expect(((await v.api.volume.transformReset({})) as any).unchanged).toBe(true);

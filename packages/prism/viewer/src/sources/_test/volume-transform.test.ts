@@ -6,6 +6,7 @@
 
 import type { StateObjectCell } from '@molstar/core/state';
 import { StateTransform } from '@molstar/core/state';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { describe, expect, it } from 'vitest';
 import { cbs, headlessViewer } from '../../_test/harness.js';
 import { mapFile } from '../../api/_test/volume-fixtures.js';
@@ -31,6 +32,6 @@ describe('isStreamedForStructure', () => {
   it('leaves volume.transform moving a map loaded on its own', async () => {
     const v = await headlessViewer({ files: [mapFile()] });
     // the map loaded on its own moves
-    expect((await v.api.volume.transform({ translation: [1, 0, 0] })).ok).toBe(true);
+    expect((await v.api.volume.transform({ translation: Vec3.create(1, 0, 0) })).ok).toBe(true);
   });
 });
