@@ -33,7 +33,7 @@ import { Visual } from './visual.js';
  * `uLod` and `lodLevels` are kept by value, as `getMergeKey` reads them: `BaseGeometry.updateValues` sets `uLod` on
  * every update, and a structure update `lodLevels`, with the same values (perf-audit-3 07/P17).
  */
-type MergeFingerprint = { keyCount: number; cells: ValueCell<any>[]; versions: number[]; lod: string };
+type MergeFingerprint = { cells: ValueCell<any>[]; versions: number[]; lod: number[] };
 const mergeFingerprints = new WeakMap<GraphicsRenderObject, MergeFingerprint>();
 
 /** The `*Type` cells `canMergeValues` reads (not `markerType` and the index types, set on updates it doesn't read) */
@@ -54,13 +54,30 @@ function isMergeRelevantKey(k: string) {
   );
 }
 
-/** `uLod` and `lodLevels` as `getMergeKey` writes them */
+/** `uLod` and `lodLevels` as `getMergeKey` reads them, as numbers (NaN marks a missing `uLod`) */
 function lodOf(values: { [k: string]: ValueCell<any> }) {
   const lod = values.uLod?.ref.value as ArrayLike<number> | undefined;
   const levels = values.lodLevels?.ref.value as ArrayLike<number>[] | undefined;
-  let s = lod ? `${lod[0]},${lod[1]},${lod[2]},${lod[3]}` : '';
-  if (levels) for (const l of levels) s += `;${l[0]},${l[1]},${l[2]}`;
-  return s;
+  const out = lod ? [lod[0], lod[1], lod[2], lod[3]] : [Number.NaN, Number.NaN, Number.NaN, Number.NaN];
+  if (levels) for (const l of levels) out.push(l[0], l[1], l[2]);
+  return out;
+}
+
+/** Whether `values`' `uLod` and `lodLevels` are `lod` (`lodOf`), compared in place: checked every update, per member */
+function isLodOf(values: { [k: string]: ValueCell<any> }, lod: readonly number[]) {
+  const u = values.uLod?.ref.value as ArrayLike<number> | undefined;
+  const levels = values.lodLevels?.ref.value as ArrayLike<number>[] | undefined;
+  if (lod.length !== 4 + (levels ? levels.length * 3 : 0)) return false;
+  if (u) {
+    if (u[0] !== lod[0] || u[1] !== lod[1] || u[2] !== lod[2] || u[3] !== lod[3]) return false;
+  } else if (!Number.isNaN(lod[0])) return false;
+  if (levels) {
+    for (let i = 0, o = 4, il = levels.length; i < il; ++i, o += 3) {
+      const l = levels[i];
+      if (l[0] !== lod[o] || l[1] !== lod[o + 1] || l[2] !== lod[o + 2]) return false;
+    }
+  }
+  return true;
 }
 
 function recordMergeFingerprint(ro: GraphicsRenderObject) {
@@ -73,18 +90,19 @@ function recordMergeFingerprint(ro: GraphicsRenderObject) {
     cells.push(values[k]);
     versions.push(values[k].ref.version);
   }
-  mergeFingerprints.set(ro, { keyCount: keys.length, cells, versions, lod: lodOf(values) });
+  mergeFingerprints.set(ro, { cells, versions, lod: lodOf(values) });
 }
 
 function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
   const f = mergeFingerprints.get(ro);
   if (!f) return false;
+  // no key count: a render object's values keep their keys (made with it; none merge-relevant is added later), and
+  // listing them per member every update was the check's largest cost (a clip object dragged over a mesoscale model)
   const values = ro.values as unknown as { [k: string]: ValueCell<any> };
-  if (Object.keys(values).length !== f.keyCount) return false;
   for (let i = 0, il = f.cells.length; i < il; ++i) {
     if (f.cells[i].ref.version !== f.versions[i]) return false;
   }
-  return lodOf(values) === f.lod;
+  return isLodOf(values, f.lod);
 }
 
 /** One visual and its renderObject, ready to be grouped/merged by `mergeRenderObjectsByType`. */
