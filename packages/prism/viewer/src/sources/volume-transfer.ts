@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import type { Vec2 } from '@molstar/core/math/linear-algebra';
@@ -294,8 +295,16 @@ export function createVolumeTransfer(
       const peaks = transferPeaks(points.value);
       if (!peaks.length) return;
       const chosen = palette ? Palettes.find((p) => p.id === palette) : undefined;
-      const picks = chosen ? paletteColors(chosen, peaks.length) : ownColors(colors.value, peaks.length);
-      steps.change('tf', { stops: stopsAtPeaks(peaks, picks) });
+      // One peak (a ramp): a sequential palette is a gradient along it, from where the curve rises (the zero point
+      // before it) to its end, not one color.
+      const [peak] = peaks;
+      const from = points.value.filter((p) => p.alpha <= 0 && p.x < peak.from).pop()?.x ?? peak.from;
+      const n = chosen?.colors.length ?? 0;
+      const stops =
+        chosen?.sequential && peaks.length === 1 && peak.to - from > 0.002
+          ? chosen.colors.map((color, i) => ({ x: from + ((peak.to - from) * i) / (n - 1), color }))
+          : stopsAtPeaks(peaks, chosen ? paletteColors(chosen, peaks.length) : ownColors(colors.value, peaks.length));
+      steps.change('tf', { stops });
       steps.settle();
     },
     applyPreset(next) {

@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -216,6 +217,26 @@ describe('the transfer function of a direct volume', () => {
     await flush();
     expect(t.rep.cell.transform.params.type.params.controlPoints[1][0]).toBeCloseTo(0.25, 3);
     expect(peakColors()).toEqual([0x440154, 0xfde725]);
+  });
+
+  it('spreads a sequential palette along a lone peak (a ramp) from where it rises: a gradient, not one color', async () => {
+    const t = await directVolume();
+    // a ramp: zero at a start, full at the map's maximum (the peak is its last point alone)
+    t.tf.change({
+      points: [
+        { x: 0.4, alpha: 0 },
+        { x: 0.999, alpha: 1 },
+      ],
+    });
+    t.tf.settle();
+    await flush();
+    t.tf.colorsAtPeaks('viridis');
+    await flush();
+    const list = t.rep.cell.transform.params.colorTheme.params.colorList.colors as [number, number][];
+    const viridis = t.tf.palettes.find((p) => p.id === 'viridis')!.colors;
+    expect(list.map((c) => c[0])).toEqual(viridis);
+    expect(list[0][1]).toBeCloseTo(0.4, 3);
+    expect(list[list.length - 1][1]).toBeCloseTo(0.999, 3);
   });
 
   it('on a uniform theme, sets the one color, and Colors at peaks turns it into the volume-value theme', async () => {
