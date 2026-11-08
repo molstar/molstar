@@ -1136,8 +1136,8 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       // quads unindexed past their limit
       const quad = items ? getItemIndices(ctx, items).get(drawCount / items.pattern.length) : undefined;
       if (quad) state.setIndexBuffer(quad.buffer, 'uint32', 0, quad.buffer.size);
-      // boxes past their limit: not drawn (no unindexed form)
-      if (items?.name === 'box' && !quad) return;
+      // boxes and lines past their limit: not drawn (no unindexed form)
+      if (items && items.name !== 'quad' && !quad) return;
       const indexed = !!indexBuffer || !!quad;
 
       if (mdbDataList) {

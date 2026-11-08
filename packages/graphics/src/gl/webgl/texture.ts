@@ -767,9 +767,11 @@ export function createCubeTexture(
     loadedCount += 1;
     if (loadedCount === 6) {
       if (!destroyed) {
-        if (mipmaps) {
+        // WebGL1 has mipmaps of power-of-two sizes only (else an incomplete cube map, sampled black), as `mipmap`
+        if (mipmaps && (isWebGL2(gl) || isPowerOfTwo(size))) {
           gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
           gl.generateMipmap(target);
+          mipmapped = true;
         } else {
           gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
         }
@@ -778,6 +780,9 @@ export function createCubeTexture(
       if (!isReset) report(destroyed);
     }
   }
+
+  /** whether the faces have mipmaps (asked for, and possible: not of a size WebGL1 can't mipmap) */
+  let mipmapped = false;
 
   /** `onload` once: the six faces loaded, or the first that failed (pending work waiting for the faces settles) */
   let reported = false;
@@ -842,7 +847,7 @@ export function createCubeTexture(
     getHeight: () => size,
     getDepth: () => 0,
     getByteCount: () => {
-      return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmaps ? 2 : 1);
+      return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmapped ? 2 : 1);
     },
 
     define: () => {},

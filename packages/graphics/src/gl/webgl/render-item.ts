@@ -701,12 +701,12 @@ export function createRenderItem<T extends string>(
         state.currentRenderItemId = id;
       }
       // the shared indices of the items' pattern, bound on every draw (shared, and replaced when grown); quads
-      // unindexed past their limit, boxes (no unindexed form) not drawn
+      // unindexed past their limit, boxes and lines (no unindexed form) not drawn
       const eb = items
         ? getItemIndices(resources, items).get(drawCount / items.pattern.length)?.buffer
         : elementsBuffer;
       if (items && eb) eb.bind();
-      if (items?.name === 'box' && !eb) return;
+      if (items && items.name !== 'quad' && !eb) return;
       if (isDebugMode) {
         ctx.checkFramebufferStatus(`Framebuffer error rendering item id ${id}`);
       }
