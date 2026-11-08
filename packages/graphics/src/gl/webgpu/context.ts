@@ -1319,6 +1319,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     ring.reset();
     globalRing.reset();
     submitCount += 1;
+    reclaimPages(false);
     if (pendingReleases.length) {
       for (const r of pendingReleases) r.destroy();
       pendingReleases.length = 0;
@@ -1378,6 +1379,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     pageSize: Math.min(GeometryPageSize, device.limits.maxBufferSize),
     label: 'geometry page',
     getSubmitCount: () => submitCount,
+    onFree: () => schedulePageReclaim(),
   });
   const dataBindingSize = Math.min(
     device.limits.maxStorageBufferBindingSize,
@@ -1388,6 +1390,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     pageSize: Math.min(DataPageSize, dataBindingSize),
     label: 'data page',
     getSubmitCount: () => submitCount,
+    onFree: () => schedulePageReclaim(),
   });
   const uniformPages = createBufferPages(device, {
     usage: BufferUsage.UNIFORM,
@@ -1395,7 +1398,30 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     alignment: device.limits.minUniformBufferOffsetAlignment,
     label: 'uniform page',
     getSubmitCount: () => submitCount,
+    onFree: () => schedulePageReclaim(),
   });
+  /**
+   * The pages' freed ranges reclaimed (and empty pages dropped) after each submission, and once the canvas is idle
+   * after a free (no frame follows a removal): else only by a later allocation, its pages kept meanwhile
+   */
+  const reclaimPages = (idle: boolean) => {
+    geometryPages.reclaim(idle);
+    dataPages.reclaim(idle);
+    uniformPages.reclaim(idle);
+  };
+  let pageReclaimScheduled = false;
+  function schedulePageReclaim() {
+    if (pageReclaimScheduled) return;
+    pageReclaimScheduled = true;
+    setTimeout(() => {
+      pageReclaimScheduled = false;
+      if (destroyed || isContextLost) return;
+      // commands recorded but not submitted may still read a freed range: those wait for their submission
+      reclaimPages(!commandEncoder);
+      // the memory of the pages dropped is freed on a submission
+      scheduleReclaim();
+    }, 0);
+  }
 
   /** The shared index buffer of the items of `items` (`quad-indices.ts`), a buffer of its own */
   function createItemIndices(items: ItemIndexPattern) {
