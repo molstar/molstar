@@ -2,7 +2,15 @@
 
 ## Status
 
-- **Current**: triaged, not started. Next: batch A (the late callbacks and small correctness fixes).
+- **Current**: batch A done; next: batch B (WebGPU in CI, the GLSL/WGSL cross-check).
+  - **Batch A done**: C1 (WebGL uploads return once destroyed, the cube's faces counted and not uploaded), C2 (a
+    skybox face whose source fails reports an error, `onload` once, its object URLs revoked), C3 (a background load
+    marks its own entry, also one reported before the entry exists), C4 (the buffer pages reclaimed after each
+    submission and once idle after a free, `BufferPages.reclaim`), C5 (WebGL material buffers released with their last
+    user), C6 (lines past their index limit not drawn, as boxes), C7 (no WebGL1 mipmaps of NPOT cube faces), C8 (the
+    grown index buffer made before the old one is released), C9 (`Passes.dispose`: a canvas releases its old passes'
+    background assets once the new ones drew). Tests: `gl/_test/webgl-late-loads.test.ts`, the buffer pages' in
+    `gl/_test/webgpu-buffer-pages.test.ts`; C3, C5-C9 without one of their own.
 
 The review (`molstar-graphics-review.md`, outside the repository) is a static reading of `packages/graphics` at a commit
 not in this repository, most likely `master` before the gizmo, clip ghost and marking work. Its line numbers drift;
@@ -17,11 +25,11 @@ the sphere raster or `scene.ts`.
 | C2 | Confirmed: a skybox face's `source.then` has no rejection handler, so `onload` never runs and `pending.whenReady()` hangs; its blob URLs are never revoked | A |
 | C3 | Confirmed: a superseded background load writes `this.skybox.loaded` (the current entry), not its own (`canvas3d/passes/background.ts`) | A |
 | C4 | Confirmed: WebGPU `BufferPages.free` only queues; pages are reclaimed by a later `allocate` on the same pages | A |
-| C5 | To check: the WebGL material uniform cache evicted only at context destroy | A |
-| C6 | To check: lines past the shared index limit (only boxes guarded) | A |
-| C7 | To check: WebGL1 NPOT skybox faces with mipmaps (an incomplete cube map) | A |
+| C5 | Confirmed, fixed: the WebGL material uniform cache evicted only at context destroy | A |
+| C6 | Confirmed, fixed: lines past the shared index limit (only boxes guarded) | A |
+| C7 | Confirmed, fixed: WebGL1 NPOT skybox faces with mipmaps (an incomplete cube map) | A |
 | C8 | Confirmed: `QuadIndices.get` releases the old buffer before the new one is made | A |
-| C9 | To check: `BackgroundPass.dispose` without callers, `Passes` without `dispose` | A |
+| C9 | Confirmed, fixed: `BackgroundPass.dispose` without callers, `Passes` without `dispose` | A |
 | S1 | Confirmed: CI installs the native backend without `--webgpu`, so the Dawn suite skips; visual tests by hand only | B |
 | S4 | Agreed: no check that a program's GLSL and WGSL read the same schema names | B |
 | P1 | Confirmed that every jitter level starts at `[0, 0]`; whether the first sample after a stop is wasted to be measured | C |
