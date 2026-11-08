@@ -188,6 +188,10 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 
 ## Not started
 
+- [clip-drag.md](clip-drag.md): a clip object's drag on the yeast cell was about 74 ms a mousemove, all CPU (every
+  particle target updated in full, every merged group checked); the merge check cheap and a clip-only path done
+  (PetWorld's update a frame 1.59 -> 0.22 ms); next: the yeast cell measured.
+
 - [object-transforms.md](object-transforms.md): built (steps 1-4; next: one transform per merged object): a transient transform for transient visualization only (a
   drag before its release), a per-object matrix the vertex stages and the culling apply (`previewTransform`,
   `uObjectTransform`, merged members' in their segment data); placements stay baked: a drag frame writes a uniform and
