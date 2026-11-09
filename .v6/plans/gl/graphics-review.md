@@ -11,9 +11,14 @@
     skipped, the run passing); `--use-webgpu-adapter=swiftshader` gives a SwiftShader WebGPU adapter beside WebGL on the
     GPU. Whether the runner gives both on Mesa (ANGLE on Vulkan, Dawn on Vulkan) is for the first run to show; the
     flags may need a turn.
-  - **Found on SwiftShader WebGPU**: `geometry/texture-mesh/isosurface-gpu` draws a shredded surface (4973 px differ
-    from WebGL2; the other 18 smoke cases pass): the GPU marching cubes on a CPU device, hidden on real GPUs (a missing
-    barrier, uninitialized memory or a device limit, to find). The nightly run fails on it until it is fixed.
+  - **Found on SwiftShader WebGPU, fixed**: every GPU marching cubes surface shredded (11 cases, 2.8k-15.8k px; the
+    smoke set's `isosurface-gpu` 4973 px). A probe reading back the extraction's buffers: counts, pages, vertices and
+    the workgroups' triangle bases as on a GPU, but 3386 of 4200 triangles never written. The kernels added to
+    workgroup counters (`wgVertices`, `wgTriangles`, `wgOffset`) relying on WGSL's zero-initialized workgroup memory,
+    which SwiftShader's adapter skips (the previous dispatch's values): triangles past their limit, dropped. Reset by
+    the kernels themselves now (as `cell-cull` and `sphere-raster` already did); a static test that every atomic
+    workgroup counter is stored first (`gl/_test/wgsl-workgroup-init.test.ts`). The 16 GPU surface cases pass on
+    SwiftShader and on the GPU.
   - **The first CI runs**: the Dawn job ran (one test past the quick lane's 30 s on the CPU: the job's timeout raised);
     the visual run had both backends on Mesa's Vulkan, 17 of 19 WebGPU cases matching WebGL2: the isosurface above,
     and `geometry/text/labels` (141 px of anti-aliasing and a box edge between the two software rasterizers: a
