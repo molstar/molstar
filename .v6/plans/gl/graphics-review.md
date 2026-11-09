@@ -3,7 +3,13 @@
 ## Status
 
 - **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
-  next: batch C (the multi-sample savings, measured first).
+  next: batch C (the multi-sample savings, measured first): P1 done, next P3.
+  - **P1 done**: the first frame after a change (unjittered) is sample 0, every level's first offset being none: its
+    scene not drawn again (it added nothing to the float compose, the hold's own share to the 8 bit one, seeded with
+    it now). A settle draws the scene `n` times, not `n + 1`: at the default level 4, not 5, a frame sooner. The
+    jittered samples reuse that frame's occlusion (`reuseOcclusion`), as they did sample 0's. Test
+    (`webgpu-temporal-multi-sample.test.ts`): the frames past those of mode `on`, 3 at level 2 (4 before), and the
+    settled image as `on`'s (as before: 26 of 9216 values more than 2 apart, by 4 at most, the accumulations' rounding).
   - **S4 done**: `gl/_test/shader-parity.test.ts`, per graphics program the schema names its GLSL and its WGSL read
     (comments not; the WGSL with every feature of its variants on), the differences listed and why (WebGL mechanics,
     grids only on meshes, the sphere raster's uniforms); a new one-sided name fails, and so does a listed one gone. A
@@ -62,7 +68,7 @@ the sphere raster or `scene.ts`.
 | C9 | Confirmed, fixed: `BackgroundPass.dispose` without callers, `Passes` without `dispose` | A |
 | S1 | Confirmed: CI installs the native backend without `--webgpu`, so the Dawn suite skips; visual tests by hand only | B |
 | S4 | Done: `gl/_test/shader-parity.test.ts` | B |
-| P1 | Confirmed that every jitter level starts at `[0, 0]`; whether the first sample after a stop is wasted to be measured | C |
+| P1 | Done: the first frame after a change is sample 0, not drawn again | C |
 | P3 | To measure: WebGPU quad renderables invalidating programs and bind groups on texture swaps (Hi-Z, bloom) | C |
 | P2 | To measure: hold and compose written on every moving frame; its larger variant for quality, speed and memory | C |
 | P4 | Done on this branch: marking reads the scene's depth, per jittered sample too (marking-performance.md step 3) | - |
