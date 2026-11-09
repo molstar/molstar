@@ -52,6 +52,11 @@ export class DrawPass {
   private occlusion: RenderContext['occlusion'];
   /** the skipped draws (`GraphicsStats.skippedDraws`) when the eye began: its opaque depth complete while unchanged */
   private skippedDraws = 0;
+  /**
+   * Whether the last eye drew its opaque depth into `depthTextureOpaque`: not where it drew straight to the drawing
+   * buffer, which leaves the texture with an earlier frame's depth (the Hi-Z levels are built from it)
+   */
+  opaqueDepthDrawn = false;
   /** the opaque depth of the last eye drawn, for marking (`getMarkingOpaqueDepth`) */
   private markingOpaqueDepth: Texture | null = null;
   /** the camera jitter that depth was drawn with, in pixels */
@@ -733,6 +738,8 @@ export class DrawPass {
       !offscreen;
     // two phases where the opaque depth is in the texture the pyramid reads
     const opaqueDepthTexture = wboit || dpoit || (!blendedToDrawingBuffer && !this.packedDepth);
+    // packed: the depth pass after the opaque pass writes the texture's target
+    this.opaqueDepthDrawn = wboit || dpoit || !blendedToDrawingBuffer;
     this.occlusion = opaqueDepthTexture ? ctx.occlusion : undefined;
     // also preparing: marking reads it in place of its depth pass (`MarkingPass.getSceneDepth`), what it prepares;
     // not where the helpers draw into it (`_renderHelpers`): marking would take their depth for the scene's. TODO: the

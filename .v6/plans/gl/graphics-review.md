@@ -16,10 +16,16 @@
     every frame. A render item keeps up to 8 groups a layout for the textures and buffers they bind
     (`alternateGroups`), found again on a swap; its programs invalidated only where the linear-filtered textures
     changed. None a frame then (`webgpu-pass-bind-groups.test.ts`; 34 a frame without).
-  - **Visual failures older than this work** (at `fbb46db94` already, identical, depending on the cases before them
-    in a page: alone they pass): `renderer/sphere-raster/merged-clip-pixel` on WebGPU (2742 px) and a stall of
-    `geometry/texture-mesh/isosurface-gpu-negative` on WebGL2 (the page hung). To find: state a case leaves for the
-    next (a cached kernel, a pyramid, the sphere raster's chunks).
+  - **V1 done**, two unrelated causes:
+    - The WebGL2 stall was the harness's load, not the case: debug mode's synchronous GL queries (each waits for the
+      GPU process, the commands of every page) made cases with many programs and draws wait over a minute. The compile
+      and link checks now run once linked (`finalize`, after the parallel compile's completion), the GL error check
+      per pass, not per draw. The default run: no stalls (2 to 9 a run before), 74 s, not 133 s.
+    - The WebGPU failure: a frame drawn straight to the drawing buffer leaves the opaque depth texture as an earlier
+      frame drew it (an earlier case's, offscreen for its overlay), and Hi-Z built its levels from it; an image pass
+      culled with them (no second phase) and lost instances (`merged-clip-pixel`, `merged-clip-instance`,
+      `merged-grid-lod` after the same cases). The levels now only of a frame that drew the texture, cleared
+      otherwise (`DrawPass.opaqueDepthDrawn`; `webgpu-hi-z.test.ts`).
   - **S4 done**: `gl/_test/shader-parity.test.ts`, per graphics program the schema names its GLSL and its WGSL read
     (comments not; the WGSL with every feature of its variants on), the differences listed and why (WebGL mechanics,
     grids only on meshes, the sphere raster's uniforms); a new one-sided name fails, and so does a listed one gone. A
@@ -80,7 +86,7 @@ the sphere raster or `scene.ts`.
 | S4 | Done: `gl/_test/shader-parity.test.ts` | B |
 | P1 | Done: the first frame after a change is sample 0, not drawn again | C |
 | P3 | Done: bind groups kept per bound textures, programs only on a filter change | C |
-| V1 | Found here, older: two visual cases failing only after others in a page (`merged-clip-pixel` on WebGPU, `isosurface-gpu-negative` hanging on WebGL2) | open |
+| V1 | Found here, older: two visual cases failing only after others in a page (`merged-clip-pixel` on WebGPU, `isosurface-gpu-negative` hanging on WebGL2) | done |
 | P2 | To measure: hold and compose written on every moving frame; its larger variant for quality, speed and memory | C |
 | P4 | Done on this branch: marking reads the scene's depth, per jittered sample too (marking-performance.md step 3) | - |
 | P5 | To decide by images: SMAA per jittered sample | C |

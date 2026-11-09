@@ -1443,9 +1443,11 @@ namespace Canvas3D {
           }
           // the GPU's occlusion test of the objects culled there needs the levels (also with Hi-Z off)
           hiZ.setGpuCulling(renderer.gpuCulledCount > 0);
-          // the depth of stereo's eyes or XR's views is not the main camera's: no levels, the next mono frame tests nothing
-          if (cam === camera && !xrFrame) hiZ.render(camera, graphics.stats.skippedDraws === skippedDraws);
-          else hiZ.clear();
+          // the depth of stereo's eyes or XR's views is not the main camera's: no levels, the next frame tests nothing; nor
+          // of a frame drawn straight to the drawing buffer: the texture the levels read holds an earlier frame's
+          if (cam === camera && !xrFrame && passes.draw.opaqueDepthDrawn) {
+            hiZ.render(camera, graphics.stats.skippedDraws === skippedDraws);
+          } else hiZ.clear();
           if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
 
           // if only marking has updated, do not set the flag to dirty
