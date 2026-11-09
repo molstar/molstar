@@ -22,6 +22,8 @@ export interface PassState {
   setStencilReference: (reference: number) => void;
   /** forgets the state, after commands recorded into `encoder` directly */
   invalidate: () => void;
+  /** the state of `encoder`, a new pass's: one object for a context's passes, not one a pass */
+  rebind: (encoder: GPURenderPassEncoder | GPURenderBundleEncoder) => void;
 }
 
 const NoOffsets: readonly number[] = [];
@@ -117,8 +119,10 @@ export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleE
     rect[3] = height;
   };
 
-  return {
-    encoder,
+  const state: PassState = {
+    get encoder() {
+      return encoder;
+    },
     setPipeline: (p) => {
       if (p === pipeline) return;
       pipeline = p;
@@ -182,5 +186,10 @@ export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleE
       setRect(scissor, NaN, NaN, NaN, NaN);
       stencilReference = NaN;
     },
+    rebind: (e) => {
+      encoder = e;
+      state.invalidate();
+    },
   };
+  return state;
 }

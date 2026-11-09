@@ -881,9 +881,55 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   let passEncoder: GPURenderPassEncoder | undefined;
   let passState: PassState | undefined;
+  /** the passes' state, rebound to each pass (`beginPassEncoder`) */
+  let directPassState: PassState | undefined;
   /** target of the open pass, the encoder is begun on first draw */
   let passTarget: PassTarget | undefined;
-  let passClear: { color?: ClearValues['color']; depth?: number; stencil?: number } = {};
+  type PassClear = { readonly color?: ClearValues['color']; readonly depth?: number; readonly stencil?: number };
+  /** a pass clearing nothing: shared, not made a pass */
+  const NoClear: PassClear = {};
+  let passClear: PassClear = NoClear;
+  /**
+   * The descriptor of each target's passes, its attachments' views, load operations and clear values set anew each
+   * pass: a stable target (the drawing buffer's) begins its passes without allocating
+   */
+  const passDescriptors = new WeakMap<
+    PassTarget,
+    { descriptor: GPURenderPassDescriptor; colors: GPURenderPassColorAttachment[]; clears: GPUColorDict[] }
+  >();
+  function getPassDescriptor(target: PassTarget) {
+    let d = passDescriptors.get(target);
+    if (!d) {
+      const colors: GPURenderPassColorAttachment[] = [];
+      const clears: GPUColorDict[] = [];
+      for (let i = 0, il = target.colorViews.length; i < il; ++i) {
+        colors.push({ view: target.colorViews[i], loadOp: 'load', storeOp: 'store' });
+        clears.push({ r: 0, g: 0, b: 0, a: 0 });
+      }
+      const descriptor: GPURenderPassDescriptor = { colorAttachments: colors };
+      if (target.depthView && target.depthReadOnly) {
+        // read in the pass (and bindable as a texture), so neither loaded nor stored
+        descriptor.depthStencilAttachment = {
+          view: target.depthView,
+          depthReadOnly: true,
+          stencilReadOnly: target.hasStencil ? true : undefined,
+        };
+      } else if (target.depthView) {
+        descriptor.depthStencilAttachment = {
+          view: target.depthView,
+          depthLoadOp: 'load',
+          depthStoreOp: 'store',
+          depthClearValue: 0,
+          stencilLoadOp: target.hasStencil ? 'load' : undefined,
+          stencilStoreOp: target.hasStencil ? 'store' : undefined,
+          stencilClearValue: 0,
+        };
+      }
+      d = { descriptor, colors, clears };
+      passDescriptors.set(target, d);
+    }
+    return d;
+  }
 
   let renderState: RenderState = {};
   let blendConstant: GPUColorDict = { r: 0, g: 0, b: 0, a: 0 };
@@ -901,39 +947,40 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   function beginPassEncoder(target: PassTarget) {
     const { color, depth, stencil } = passClear;
-    const descriptor: GPURenderPassDescriptor = {
-      colorAttachments: target.colorViews.map((view, i) => ({
-        view,
-        depthSlice: target.colorDepthSlices?.[i],
-        loadOp: color ? 'clear' : 'load',
-        storeOp: 'store',
-        clearValue: color ? { r: color[0], g: color[1], b: color[2], a: color[3] } : undefined,
-      })),
-    };
-    if (target.depthView && target.depthReadOnly) {
-      // read in the pass (and bindable as a texture), so neither loaded nor stored
-      descriptor.depthStencilAttachment = {
-        view: target.depthView,
-        depthReadOnly: true,
-        stencilReadOnly: target.hasStencil ? true : undefined,
-      };
-    } else if (target.depthView) {
-      descriptor.depthStencilAttachment = {
-        view: target.depthView,
-        depthLoadOp: depth !== undefined ? 'clear' : 'load',
-        depthStoreOp: 'store',
-        depthClearValue: depth ?? 0,
-        stencilLoadOp: target.hasStencil ? (stencil !== undefined ? 'clear' : 'load') : undefined,
-        stencilStoreOp: target.hasStencil ? 'store' : undefined,
-        stencilClearValue: stencil ?? 0,
-      };
+    const { descriptor, colors, clears } = getPassDescriptor(target);
+    for (let i = 0, il = colors.length; i < il; ++i) {
+      const a = colors[i];
+      a.view = target.colorViews[i];
+      a.depthSlice = target.colorDepthSlices?.[i];
+      a.loadOp = color ? 'clear' : 'load';
+      if (color) {
+        const c = clears[i];
+        c.r = color[0];
+        c.g = color[1];
+        c.b = color[2];
+        c.a = color[3];
+        a.clearValue = c;
+      } else {
+        a.clearValue = undefined;
+      }
     }
-    passClear = {};
-    const timestampWrites = timerSource?.getTimestampWrites();
-    if (timestampWrites) descriptor.timestampWrites = timestampWrites;
+    const ds = descriptor.depthStencilAttachment;
+    if (ds && target.depthView) {
+      ds.view = target.depthView;
+      if (!target.depthReadOnly) {
+        ds.depthLoadOp = depth !== undefined ? 'clear' : 'load';
+        ds.depthClearValue = depth ?? 0;
+        if (target.hasStencil) ds.stencilLoadOp = stencil !== undefined ? 'clear' : 'load';
+        ds.stencilClearValue = stencil ?? 0;
+      }
+    }
+    passClear = NoClear;
+    descriptor.timestampWrites = timerSource?.getTimestampWrites();
     const pass = getCommandEncoder().beginRenderPass(descriptor);
     pass.setBlendConstant(blendConstant);
-    passState = createPassState(pass);
+    if (directPassState) directPassState.rebind(pass);
+    else directPassState = createPassState(pass);
+    passState = directPassState;
     return pass;
   }
 
@@ -982,22 +1029,37 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   /**
    * Bundles replayed one after another, executed together before the next command of the pass (`getPassState`, the
-   * pass's end, a blend constant): one `executeBundles` for a pass replayed in chunks; `pendingKey` the dynamic state
-   * they run with (viewport, scissor, stencil reference)
+   * pass's end, a blend constant): one `executeBundles` for a pass replayed in chunks; `pendingDynamic` the dynamic
+   * state they run with (`readDynamicState`). Both reused: a replay allocates nothing
    */
-  let pendingBundles: GPURenderBundle[] = [];
-  let pendingKey = '';
+  const pendingBundles: GPURenderBundle[] = [];
+  const pendingDynamic = new Float64Array(9);
+  const currentDynamic = new Float64Array(9);
   function flushBundles() {
     if (pendingBundles.length === 0) return;
+    // the encoder copies the list
     passEncoder!.executeBundles(pendingBundles);
-    pendingBundles = [];
+    pendingBundles.length = 0;
     // a bundle leaves the pipeline, bind groups and buffers unset
     passState!.invalidate();
   }
-  function getDynamicStateKey() {
+  /** The viewport, scissor (`-Infinity` where unset) and stencil reference into `out` */
+  function readDynamicState(out: Float64Array) {
     const v = viewport;
     const s = scissor;
-    return `${v ? `${v.x},${v.y},${v.width},${v.height}` : ''}|${s ? `${s.x},${s.y},${s.width},${s.height}` : ''}|${renderState.stencil?.reference ?? 0}`;
+    out[0] = v ? v.x : -Infinity;
+    out[1] = v ? v.y : -Infinity;
+    out[2] = v ? v.width : -Infinity;
+    out[3] = v ? v.height : -Infinity;
+    out[4] = s ? s.x : -Infinity;
+    out[5] = s ? s.y : -Infinity;
+    out[6] = s ? s.width : -Infinity;
+    out[7] = s ? s.height : -Infinity;
+    out[8] = renderState.stencil?.reference ?? 0;
+  }
+  function isPendingDynamicState() {
+    for (let i = 0; i < 9; ++i) if (currentDynamic[i] !== pendingDynamic[i]) return false;
+    return true;
   }
 
   function getPassState() {
@@ -1278,19 +1340,21 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
           recordings.delete(passTarget.key);
           return false;
         }
-        executeRenderBundles([recording.bundle]);
+        executeRenderBundle(recording.bundle);
         return true;
       },
       record: (globals, draw) => {
         const target = passTarget;
         if (!target) throw new Error('recording a draw list outside of a render pass');
-        const state = asWebGPUGlobalBindings(globals).getState();
+        // copied: the bindings update their state in place
+        const { buffer, offset, textures } = asWebGPUGlobalBindings(globals).getState();
+        const state = { buffer, offset, textures };
         const bundle = recordRenderBundle(draw);
         recordings.delete(target.key);
         if (bundle) {
           if (recordings.size >= MaxDrawListTargets) recordings.delete(recordings.keys().next().value!);
           recordings.set(target.key, { bundle, state, arenaReplacements: ring.arenaReplacements });
-          executeRenderBundles([bundle]);
+          executeRenderBundle(bundle);
         } else {
           draw();
         }
@@ -1301,15 +1365,18 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     };
   }
 
-  function executeRenderBundles(bundles: readonly GPURenderBundle[]) {
+  function executeRenderBundle(bundle: GPURenderBundle) {
     if (recording) throw new Error('replaying render bundles while recording one');
-    const key = getDynamicStateKey();
+    readDynamicState(currentDynamic);
     // the dynamic state applied (and earlier bundles executed) unless it is the one of the bundles pending
-    if (pendingBundles.length === 0 || key !== pendingKey) {
+    if (pendingBundles.length === 0 || !isPendingDynamicState()) {
       getPassState();
-      pendingKey = key;
+      pendingDynamic.set(currentDynamic);
     }
-    for (const b of bundles) pendingBundles.push(b);
+    pendingBundles.push(bundle);
+  }
+  function executeRenderBundles(bundles: readonly GPURenderBundle[]) {
+    for (let i = 0, il = bundles.length; i < il; ++i) executeRenderBundle(bundles[i]);
   }
 
   let submitCount = 0;
@@ -1764,7 +1831,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       timer.passBegin(target, options?.label);
       passTarget = getPassTarget(target);
       if (options?.depthReadOnly) passTarget = withDepthReadOnly(passTarget);
-      passClear = {};
+      passClear = NoClear;
       if (options?.clear) {
         checkReadOnlyClear(options.clear);
         passClear = { ...options.clear };

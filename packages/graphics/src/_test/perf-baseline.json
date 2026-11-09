@@ -1,6 +1,6 @@
 {
   "frame: opaque pass at rest (webgl)": 128,
-  "frame: opaque pass at rest (webgpu)": 3704.2,
+  "frame: opaque pass at rest (webgpu)": 784,
   "frame: update at rest (webgl)": 96,
   "frame: update at rest (webgpu)": 112
 }
