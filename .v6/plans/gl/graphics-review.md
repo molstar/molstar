@@ -10,13 +10,14 @@
     WebGL (the GL shim: WebGL1, every uniform classic) and on WebGPU (a stub device, `gl/_test/stub-gpu.ts`: the draw
     list replayed), steady: update 96 and 112 bytes a frame, opaque pass 128 and 784 (3,704 before WebGPU's: a pass state
     per pass, now one rebound; the global bindings' state a key string per replay, now a reused object and a number per
-    texture set; the dynamic state a key string, now compared; a pass descriptor per pass, now one per target). On the way: the classic
+    texture set; the dynamic state a key string, now compared; a pass descriptor per pass, now one per target). Into a
+    render target (an offscreen pass) 128 and 784 (2,320 before: its pass target made per pass, now kept per
+    framebuffer, made again where its attachments, their views or its size change). Of the 784, about 470 are Node's
+    `queueMicrotask` (an `AsyncResource` a frame; the context's submit at the task's end). On the way: the classic
     uniforms' comparison boxed every float it read (megamorphic, 34 KB a frame; compared as `Float64Array`s now, P9's
     `.slice()` gone), the global bindings' missing textures allocated per program change, and the update and each pass
     boxed their matrices and vectors anew (`ValueCell.update`, 744 bytes a frame; set only where changed now, no
-    version bump or uniform block write at rest). Open: framebuffer targets made per pass (`getFramebufferTarget`: a
-    target and its arrays for each offscreen pass, so their descriptors are not kept either; a version on the
-    framebuffer would let both be), the uniform ring's reset, the hover tick.
+    version bump or uniform block write at rest). Open: the hover tick.
   - **P5 decided, kept**: antialiasing stays on every multi-sample (SMAA, FXAA). Measured against 32 samples without
     antialiasing (a temporal level 5 reference, mean absolute difference): SMAA on every sample at level 2 0.77, on the
     unjittered one only 0.46 (WebGL2, WebGL1); FXAA (Dawn) 2.17 against 1.25. But at the default level 2 the edges of

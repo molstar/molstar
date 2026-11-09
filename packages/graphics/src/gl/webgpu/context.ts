@@ -45,7 +45,12 @@ import { createGraphicsTimer, type TimerSource } from '../timer.js';
 import { createWebGPUTimerSource } from './timer.js';
 import { BufferUsage, MapMode, TextureUsage } from './constants.js';
 import { notSupported } from './errors.js';
-import { createWebGPUFramebuffer, isWebGPUFramebuffer, type WebGPUFramebuffer } from './framebuffer.js';
+import {
+  createWebGPUFramebuffer,
+  isWebGPUFramebuffer,
+  type WebGPUAttachment,
+  type WebGPUFramebuffer,
+} from './framebuffer.js';
 import { asWebGPUGlobalBindings, createWebGPUGlobalBindings, type WebGPUBindingContext } from './global-bindings.js';
 import { createWebGPUProgramCache, type WebGPUProgram, type WebGPUProgramCache } from './program.js';
 import { createWebGPUProgramItem, createWebGPURenderItem } from './render-item.js';
@@ -719,7 +724,27 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     throw new Error('expected a WebGPU framebuffer or render target');
   }
 
+  /**
+   * The pass target of each framebuffer, made again where its attachments (`version`), their views (storage recreated)
+   * or its size changed: a pass into a framebuffer makes none (and its descriptor is kept, `getPassDescriptor`)
+   */
+  const framebufferTargets = new WeakMap<
+    WebGPUFramebuffer,
+    { version: number; colors: WebGPUAttachment[]; depth?: WebGPUAttachment; target: PassTarget }
+  >();
+  function isFramebufferTargetCurrent(c: { colors: WebGPUAttachment[]; depth?: WebGPUAttachment; target: PassTarget }) {
+    const { target } = c;
+    for (let i = 0, il = c.colors.length; i < il; ++i) {
+      if (c.colors[i].getAttachmentView() !== target.colorViews[i]) return false;
+    }
+    if (c.depth && c.depth.getAttachmentView() !== target.depthView) return false;
+    const first = c.colors[0] ?? c.depth;
+    return !!first && first.getWidth() === target.width && first.getHeight() === target.height;
+  }
+
   function getFramebufferTarget(framebuffer: WebGPUFramebuffer): PassTarget {
+    const cached = framebufferTargets.get(framebuffer);
+    if (cached && cached.version === framebuffer.version && isFramebufferTargetCurrent(cached)) return cached.target;
     const colors = framebuffer.getColorAttachments();
     const depth = framebuffer.getDepthAttachment();
     const first = colors[0] ?? depth;
@@ -731,7 +756,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       colorViews.push(view);
     }
     const colorFormats = colors.map((c) => c!.format);
-    return {
+    const target: PassTarget = {
       key: getTargetKey(colorFormats, depth?.format),
       colorViews,
       colorDepthSlices: colors.map((c) => c!.depthSlice),
@@ -742,6 +767,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       width: first.getWidth(),
       height: first.getHeight(),
     };
+    framebufferTargets.set(framebuffer, {
+      version: framebuffer.version,
+      colors: colors as WebGPUAttachment[],
+      depth,
+      target,
+    });
+    return target;
   }
 
   /** render targets of the drawing buffer, see `createDrawTarget` */

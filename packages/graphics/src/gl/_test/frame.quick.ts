@@ -5,7 +5,8 @@
  */
 
 // The quick allocation tier (`test:perf`) of a frame at rest (the view unchanged): the renderer's update, and its opaque
-// pass (the pass walk over a scene, its render items' draws and uniform writes; on WebGPU the draw list's replay). On
+// pass (the pass walk over a scene, its render items' draws and uniform writes; on WebGPU the draw list's replay), to
+// the drawing buffer and into a render target (an offscreen pass, as post-processing's). On
 // WebGL the GL shim (WebGL1: every uniform a classic one), on WebGPU a stub device (stub-gpu.ts); no GPU. Each with its
 // positive control.
 
@@ -55,20 +56,24 @@ async function createFrameCase(backend: 'webgl' | 'webgpu') {
   const frame = createFrame();
   const update = () => renderer.update(camera, scene, frame);
   // a frame's task ends with its commands submitted (WebGPU: in a microtask, which a measured loop never reaches)
-  const opaque = () => {
-    ctx.beginRenderPass('drawing-buffer');
+  const offscreen = ctx.createRenderTarget(Size, Size, 'depth-stencil');
+  const opaqueInto = (target: 'drawing-buffer' | typeof offscreen) => () => {
+    ctx.beginRenderPass(target);
     renderer.renderOpaque(scene.primitives, camera);
     ctx.endRenderPass();
     ctx.flush();
   };
+  const opaque = opaqueInto('drawing-buffer');
+  const opaqueOffscreen = opaqueInto(offscreen);
   update();
   for (let k = 0; k < 20; ++k) {
     const skipped = ctx.stats.skippedDraws;
     opaque();
+    opaqueOffscreen();
     await ctx.resources.pending.whenReady();
     if (k > 2 && ctx.stats.skippedDraws === skipped) break;
   }
-  return { ctx, update, opaque };
+  return { ctx, update, opaque, opaqueOffscreen };
 }
 
 for (const backend of ['webgl', 'webgpu'] as const) {
@@ -81,6 +86,12 @@ for (const backend of ['webgl', 'webgpu'] as const) {
   it(`opaque pass at rest (${backend})`, async ({ task }) => {
     const { ctx, opaque } = await createFrameCase(backend);
     quickCase(task, `frame: opaque pass at rest (${backend})`, () => opaque());
+    ctx.destroy();
+  });
+
+  it(`opaque pass into a render target at rest (${backend})`, async ({ task }) => {
+    const { ctx, opaqueOffscreen } = await createFrameCase(backend);
+    quickCase(task, `frame: opaque pass into a render target at rest (${backend})`, () => opaqueOffscreen());
     ctx.destroy();
   });
 }
