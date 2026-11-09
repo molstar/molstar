@@ -2,7 +2,18 @@
 
 ## Status
 
-- **Current**: batch A done; next: batch B (WebGPU in CI, the GLSL/WGSL cross-check).
+- **Current**: batch A done; batch B in progress: the CI jobs written, not yet run on the runners; next: the
+  GLSL/WGSL cross-check (S4).
+  - **Batch B, CI** (S1): a `WebGPU tests (Dawn)` job in `node.yml` (Mesa's lavapipe Vulkan, the headless WebGPU
+    files, `MOLSTAR_REQUIRE_WEBGPU`: no Dawn or no adapter fails instead of skipping) and `visual-tests.yml` (the
+    smoke set nightly, by hand and on a PR labelled `visual tests`, `--require-backends`: a profile without its backend
+    fails). Measured here (Windows, Chromium): `--angle swiftshader` leaves Chromium without WebGPU (every WebGPU case
+    skipped, the run passing); `--use-webgpu-adapter=swiftshader` gives a SwiftShader WebGPU adapter beside WebGL on the
+    GPU. Whether the runner gives both on Mesa (ANGLE on Vulkan, Dawn on Vulkan) is for the first run to show; the
+    flags may need a turn.
+  - **Found on SwiftShader WebGPU**: `geometry/texture-mesh/isosurface-gpu` draws a shredded surface (4973 px differ
+    from WebGL2; the other 18 smoke cases pass): the GPU marching cubes on a CPU device, hidden on real GPUs (a missing
+    barrier, uninitialized memory or a device limit, to find). The nightly run fails on it until it is fixed.
   - **Batch A done**: C1 (WebGL uploads return once destroyed, the cube's faces counted and not uploaded), C2 (a
     skybox face whose source fails reports an error, `onload` once, its object URLs revoked), C3 (a background load
     marks its own entry, also one reported before the entry exists), C4 (the buffer pages reclaimed after each
