@@ -4,7 +4,7 @@
 
 - **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
   batch C (the multi-sample savings, measured first) done: P1, P2 and P3, P5 kept as is; batch D started with S5.
-  - **S5 in progress**: the guards run on the shared harness (`test-harness/`, `@molstar/test-harness`, moved out of
+  - **S5 done**: the guards run on the shared harness (`test-harness/`, `@molstar/test-harness`, moved out of
     Seq\*), the graphics `test:perf` tier (`*.quick.ts` under `src/`, baseline `src/_test/perf-baseline.json`):
     `gl/_test/frame.quick.ts`, a frame at rest (the view unchanged) of 8 objects, its update and its opaque pass, on
     WebGL (the GL shim: WebGL1, every uniform classic) and on WebGPU (a stub device, `gl/_test/stub-gpu.ts`: the draw
@@ -17,7 +17,12 @@
     uniforms' comparison boxed every float it read (megamorphic, 34 KB a frame; compared as `Float64Array`s now, P9's
     `.slice()` gone), the global bindings' missing textures allocated per program change, and the update and each pass
     boxed their matrices and vectors anew (`ValueCell.update`, 744 bytes a frame; set only where changed now, no
-    version bump or uniform block write at rest). Open: the hover tick.
+    version bump or uniform block write at rest). The hover (`gl/_test/hover.quick.ts`: a highlight moved between
+    spheres and a Canvas3D tick, the marking redrawn): 10.8 KB on WebGL, 17.2 KB on WebGPU, spread over the marking
+    path. Candidates, each 0.2 to 0.9 KB a hover: the marker cells boxed anew (`ValueCell.updateIfChanged` in the
+    visual's `mark`), the sort of the texture changes' ranges (`mergeRanges`), the marking layer's values per sample, the
+    shader manager's `getRequired` per mark and commit, the shape's group iteration; on WebGPU `getPipelineFor` and
+    `bindProgram` per draw of the marking passes.
   - **P5 decided, kept**: antialiasing stays on every multi-sample (SMAA, FXAA). Measured against 32 samples without
     antialiasing (a temporal level 5 reference, mean absolute difference): SMAA on every sample at level 2 0.77, on the
     unjittered one only 0.46 (WebGL2, WebGL1); FXAA (Dawn) 2.17 against 1.25. But at the default level 2 the edges of
@@ -133,7 +138,7 @@ the sphere raster or `scene.ts`.
 | P5 | Decided: kept on every sample (feathery edges at level 2 without; see Status) | C |
 | P6-P9 | Small; with nearby work, P9 behind allocation guards | - |
 | S2, S3 | Agreed, long-term: `Renderer.create` and `Canvas3D.create` split along their seams | D |
-| S5 | In progress: a frame at rest guarded on WebGL and WebGPU (see Status); WebGPU's allocations, the hover next | D |
+| S5 | Done: a frame at rest and the hover guarded on WebGL and WebGPU (see Status) | D |
 | S6 | Decided: the backend folders (`gl/webgl`, `gl/webgpu`) are internal; contexts made through `gl/contexts/*` | D |
 | S7, S8 | Agreed: layering inversions, owned kernel caches | D |
 | W1 | Agreed, long-term: target descriptors instead of mutable attachments, pass by pass (also P8) | D |
