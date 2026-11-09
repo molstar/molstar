@@ -2,7 +2,8 @@
 
 ## Status
 
-- **Current**: batches A and B done; next: batch C (the multi-sample savings, measured first).
+- **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
+  next: batch C (the multi-sample savings, measured first).
   - **S4 done**: `gl/_test/shader-parity.test.ts`, per graphics program the schema names its GLSL and its WGSL read
     (comments not; the WGSL with every feature of its variants on), the differences listed and why (WebGL mechanics,
     grids only on meshes, the sphere raster's uniforms); a new one-sided name fails, and so does a listed one gone. A
