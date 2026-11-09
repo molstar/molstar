@@ -9,13 +9,15 @@
 
 // The vitest configs of the opt-in guard tiers every package shares (the root AGENTS.md, Tests): the heap guards
 // (`heapTests`) and the quick allocation tier (`perfTests`). A package's own `vitest.heap.config.ts` and
-// `vitest.perf.config.ts` call these. They return plain objects, not `defineConfig`'s.
+// `vitest.perf.config.ts` call these. They return plain objects, not `defineConfig`'s. Plain JavaScript: Vitest loads
+// the configs natively (not through its transform), so these run unbuilt on any supported Node (vitest.d.mts types
+// them).
 
 import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { defaultClientConditions, defaultServerConditions } from 'vite';
-import { PerfReporter } from './perf-reporter.js';
+import { PerfReporter } from './perf-reporter.mjs';
 
 /** The heap guards' flags: `gc` exposed, a fixed 64 MB young generation (a collection would hide allocation) */
 export const GUARD_FLAGS = ['--expose-gc', '--min-semi-space-size=64', '--max-semi-space-size=64'];
@@ -67,7 +69,8 @@ const PERF_FLAGS = [
  * tenth of the baseline; `--update` (or `PERF_UPDATE=1`) rewrites the baseline. Its own module cache: Vitest clears the
  * shared `node_modules/.vitest-cache` at start, and two runs side by side failed on it (ENOTEMPTY).
  */
-export const perfTests = (dir: string) => {
+/** @param {string} dir the package's source folder, holding `_test/perf-baseline.json` */
+export const perfTests = (dir) => {
   const baselinePath = join(dir, '_test', 'perf-baseline.json');
   const update = process.env.PERF_UPDATE === '1' || process.argv.includes('--update') || process.argv.includes('-u');
   const threshold = Number(process.env.PERF_THRESHOLD ?? 4);

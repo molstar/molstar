@@ -9,10 +9,13 @@
     "node": ">=22.13.0"
   },
   "exports": {
+    "./vitest": {
+      "types": "./src/vitest.d.mts",
+      "default": "./src/vitest.mjs"
+    },
     "./*": {
       "molstar-src": "./src/*.ts",
-      "types": "./lib/*.d.ts",
-      "import": "./lib/*.js"
+      "default": "./src/*.ts"
     }
   },
   "files": [
