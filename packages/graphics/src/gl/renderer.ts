@@ -748,6 +748,21 @@ namespace Renderer {
       ['tDpoitFrontColor', emptyDepthAlphaTexture],
     ];
 
+    /** The matrix each cell was last set to (`updateMat4`) */
+    const lastMat4s = new Map<ValueCell<Mat4>, Mat4>();
+    /**
+     * Sets `cell` to `m` (the renderer's matrices are computed in place, into the arrays the cells hold) where it differs
+     * from the matrix last set: unchanged, as at rest, no new box (`ValueCell.update` makes one) and no new version (the
+     * uniform blocks' writers then write nothing)
+     */
+    const updateMat4 = (cell: ValueCell<Mat4>, m: Mat4) => {
+      let last = lastMat4s.get(cell);
+      if (last !== undefined && cell.ref.value === m && Mat4.areEqual(last, m, 0)) return;
+      if (last === undefined) lastMat4s.set(cell, (last = Mat4()));
+      Mat4.copy(last, m);
+      ValueCell.update(cell, m);
+    };
+
     const model = Mat4();
     const view = Mat4();
     const invView = Mat4();
@@ -1671,17 +1686,11 @@ namespace Renderer {
 
       modelScale = camera.scale;
 
-      ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, modelScale));
-      ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
-      ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
-      ValueCell.update(
-        globalUniforms.uModelViewProjection,
-        Mat4.mul(modelViewProjection, modelView, camera.projection),
-      );
-      ValueCell.update(
-        globalUniforms.uInvModelViewProjection,
-        Mat4.invert(invModelViewProjection, modelViewProjection),
-      );
+      updateMat4(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, modelScale));
+      updateMat4(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
+      updateMat4(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
+      updateMat4(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
+      updateMat4(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));
 
       ValueCell.updateIfChanged(globalUniforms.uRenderMask, renderMask);
       ValueCell.updateIfChanged(globalUniforms.uMarkingDepthTest, markingDepthTest);
@@ -1689,8 +1698,8 @@ namespace Renderer {
       const hasEyeCamera = !Mat4.isZero(camera.viewEye);
       if (hasEyeCamera) {
         ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, true);
-        ValueCell.update(globalUniforms.uModelViewEye, Mat4.mul(modelViewEye, camera.viewEye, model));
-        ValueCell.update(globalUniforms.uInvModelViewEye, Mat4.invert(invModelViewEye, modelViewEye));
+        updateMat4(globalUniforms.uModelViewEye, Mat4.mul(modelViewEye, camera.viewEye, model));
+        updateMat4(globalUniforms.uInvModelViewEye, Mat4.invert(invModelViewEye, modelViewEye));
       } else {
         ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, false);
         ValueCell.updateIfChanged(globalUniforms.uModelViewEye, Mat4.id);

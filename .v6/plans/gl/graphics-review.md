@@ -3,7 +3,16 @@
 ## Status
 
 - **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
-  batch C (the multi-sample savings, measured first) done: P1, P2 and P3, P5 kept as is; next: batch D.
+  batch C (the multi-sample savings, measured first) done: P1, P2 and P3, P5 kept as is; batch D started with S5.
+  - **S5 in progress**: the guards run on the shared harness (`test-harness/`, `@molstar/test-harness`, moved out of
+    Seq\*), the graphics `test:perf` tier (`*.quick.ts` under `src/`, baseline `src/_test/perf-baseline.json`). First
+    guard: the opaque pass at rest on WebGL (the GL shim: WebGL1, every uniform classic; `gl/_test/frame.quick.ts`), 128
+    bytes a frame of 8 objects, steady. On the way: the classic uniforms' comparison boxed every float it read
+    (megamorphic, 34 KB a frame; compared as `Float64Array`s now, P9's `.slice()` gone), the global bindings' missing
+    textures allocated per program change, and each pass boxed five matrices anew (`ValueCell.update`; set only where
+    changed now). Open: `renderer.update` at rest (its camera matrices and vectors boxed anew every frame, about 700
+    bytes; its bytes a step drift with the JIT's state, no guard yet), the 128 left (the pass walk, the viewport), a
+    stub WebGPU device for render items' draws and draw-list replay.
   - **P5 decided, kept**: antialiasing stays on every multi-sample (SMAA, FXAA). Measured against 32 samples without
     antialiasing (a temporal level 5 reference, mean absolute difference): SMAA on every sample at level 2 0.77, on the
     unjittered one only 0.46 (WebGL2, WebGL1); FXAA (Dawn) 2.17 against 1.25. But at the default level 2 the edges of
@@ -119,7 +128,7 @@ the sphere raster or `scene.ts`.
 | P5 | Decided: kept on every sample (feathery edges at level 2 without; see Status) | C |
 | P6-P9 | Small; with nearby work, P9 behind allocation guards | - |
 | S2, S3 | Agreed, long-term: `Renderer.create` and `Canvas3D.create` split along their seams | D |
-| S5 | Agreed: allocation guards on render items, the pass walk, draw-list replay | D |
+| S5 | In progress: the opaque pass guarded on WebGL (see Status); WebGPU, the update, draw lists next | D |
 | S6 | Decided: the backend folders (`gl/webgl`, `gl/webgpu`) are internal; contexts made through `gl/contexts/*` | D |
 | S7, S8 | Agreed: layering inversions, owned kernel caches | D |
 | W1 | Agreed, long-term: target descriptors instead of mutable attachments, pass by pass (also P8) | D |

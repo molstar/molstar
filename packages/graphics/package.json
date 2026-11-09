@@ -46,7 +46,8 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test:perf": "vitest run --config vitest.perf.config.ts"
   },
   "dependencies": {
     "rxjs": "catalog:",
@@ -58,6 +59,7 @@
     "@molstar/io": "workspace:*"
   },
   "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
     "typescript": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:"
