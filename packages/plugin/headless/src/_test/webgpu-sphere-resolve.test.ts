@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { WebGPU } from './webgpu-module.js';
@@ -22,9 +23,14 @@ END
 `;
 
 const Size = 64;
+/** What the view holds top to bottom with a `distance` (Å), about the structure's size */
+const ViewHeight = 16;
 
-/** The structure as spacefill colored by element index, its spheres drawn by the raster (`on`) or as impostors */
-async function render(sphereRaster: 'on' | 'off' | 'auto' | 'only') {
+/**
+ * The structure as spacefill colored by element index, its spheres drawn by the raster (`on`) or as impostors; with
+ * `distance` seen from that far, its size on screen kept by the field of view
+ */
+async function render(sphereRaster: 'on' | 'off' | 'auto' | 'only', distance?: number) {
   const plugin = await HeadlessPluginContext.create(
     { webgpu: WebGPU.module! },
     DefaultPluginSpec(),
@@ -38,6 +44,7 @@ async function render(sphereRaster: 'on' | 'off' | 'auto' | 'only') {
       renderer: { sphereRaster, sphereRasterRadius: 32 },
       // the raster draws perspective views
       camera: { mode: 'perspective' } as never,
+      cameraFog: { name: 'off', params: {} },
       postprocessing: {
         occlusion: { name: 'off', params: {} },
         outline: { name: 'off', params: {} },
@@ -51,6 +58,21 @@ async function render(sphereRaster: 'on' | 'off' | 'auto' | 'only') {
       type: 'spacefill',
       color: 'element-index',
     });
+    if (distance) {
+      const camera = plugin.canvas3d!.camera;
+      const { target } = camera.getSnapshot();
+      camera.setState(
+        {
+          target,
+          position: Vec3.create(target[0], target[1], target[2] + distance),
+          up: Vec3.create(0, 1, 0),
+          fov: 2 * Math.atan(ViewHeight / 2 / distance),
+          radius: ViewHeight,
+          radiusMax: ViewHeight,
+        },
+        0,
+      );
+    }
     const image = () => plugin.getImageRaw({ width: Size, height: Size });
     // pipelines and kernels compile in the background: frames drawn before they are ready draw impostors
     for (let i = 0; i < 3; ++i) {
@@ -103,5 +125,23 @@ describe.skipIf(!WebGPU.module)('sphere raster resolve on WebGPU', () => {
     } finally {
       device.createShaderModule = createShaderModule;
     }
+  });
+
+  // the distance squared is rounded by more than the radius squared far from the camera: the hits may not follow it
+  it.each(['off', 'only'] as const)('shades alike from near and far (sphereRaster %s)', async (sphereRaster) => {
+    const near = await render(sphereRaster, 400);
+    if (!near) return;
+    const far = (await render(sphereRaster, 30000))!;
+    expect(new Set(near).size).toBeGreaterThan(2);
+    let differ = 0;
+    for (let i = 0; i < near.length; i += 4) {
+      const d = Math.max(
+        Math.abs(near[i] - far[i]),
+        Math.abs(near[i + 1] - far[i + 1]),
+        Math.abs(near[i + 2] - far[i + 2]),
+      );
+      if (d > 16) differ += 1;
+    }
+    expect(differ).toBeLessThanOrEqual(Size * Size * 0.05);
   });
 });

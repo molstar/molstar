@@ -49,7 +49,8 @@ ${fragment_output_wgsl()}
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
     let transform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let model = uGlobal.uModel * transform;
+    // the transient transform of an object shown moved (\`uObjectTransform\`) after the instance's
+    let model = uGlobal.uModel * uObject.uObjectTransform * transform;
     let position4 = vec4<f32>(in.aPosition, 1.0);
     out.vModelPosition = (model * position4).xyz;
     let mvPosition = uGlobal.uView * model * position4;

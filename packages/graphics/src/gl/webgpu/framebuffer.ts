@@ -32,6 +32,8 @@ export interface WebGPUFramebuffer extends Framebuffer {
   getColorAttachments: () => (WebGPUAttachment | undefined)[];
   getColorAttachment: (index: number) => WebGPUAttachment | undefined;
   getDepthAttachment: () => WebGPUAttachment | undefined;
+  /** changes with every attach, detach and draw buffer count: a pass target made of these attachments stays valid */
+  readonly version: number;
 }
 
 const Framebuffers = new WeakSet<Framebuffer>();
@@ -56,22 +58,29 @@ export function createWebGPUFramebuffer(): WebGPUFramebuffer {
   const colors: (WebGPUAttachment | undefined)[] = [];
   let depth: WebGPUAttachment | undefined;
   let drawBuffers = 1;
+  let version = 0;
 
   const framebuffer: WebGPUFramebuffer = {
     id: getNextFramebufferId(),
     bind: () => {},
     setDrawBuffers: (count: number) => {
+      if (count !== drawBuffers) version += 1;
       drawBuffers = count;
     },
     attach: (attachment, texture) => {
       const index = getColorIndex(attachment);
       if (index !== undefined) colors[index] = texture;
       else depth = texture;
+      version += 1;
     },
     detach: (attachment) => {
       const index = getColorIndex(attachment);
       if (index !== undefined) colors[index] = undefined;
       else depth = undefined;
+      version += 1;
+    },
+    get version() {
+      return version;
     },
     getColorAttachments: () => {
       const out: (WebGPUAttachment | undefined)[] = [];

@@ -42,7 +42,7 @@ import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { degToRad, radToDeg } from '@molstar/core/math/misc';
 import { EmptyLoci, Loci, isEmptyLoci } from '@molstar/model/model/loci';
 import { Representation } from '@molstar/graphics/repr/representation';
-import { shallowEqual } from '@molstar/core/util';
+import { shallowEqual, ValueCell } from '@molstar/core/util';
 import type { AssetManager } from '@molstar/core/util/assets';
 import { isMobileBrowser } from '@molstar/core/util/browser';
 import {
@@ -66,9 +66,9 @@ import { TransitionTrajectoryParamDefinition, type TransitionTrajectory } from '
 import { Viewport } from './camera/util.js';
 import { MarkIndex } from './mark-index.js';
 import { DefaultTrackballControlsAttribs, TrackballControls, TrackballControlsParams } from './controls/trackball.js';
-import { CameraHelperParams } from './helper/camera-helper.js';
+import { CameraHelperParams, isCameraAxesLoci } from './helper/camera-helper.js';
 import type { DebugRegistry } from './helper/debug-registry.js';
-import { HandleHelperParams } from './helper/handle-helper.js';
+
 import { Helper } from './helper/helper.js';
 import { Canvas3dInteractionHelper, Canvas3dInteractionHelperParams } from './helper/interaction-events.js';
 import { PickHelper } from './helper/pick-helper.js';
@@ -80,6 +80,7 @@ import { HiZParams, HiZPass } from './passes/hi-z.js';
 import { IlluminationParams } from './passes/illumination.js';
 import { ImagePass, type ImageProps } from './passes/image.js';
 import { isMaterialColorMarker, MarkingParams, MarkingPass, SingleSample } from './passes/marking.js';
+import { ClipGhostOptionParams } from './passes/clip-ghost.js';
 import { createPrepareBuilder, type PassBuilder, type PrepareCollect } from './passes/pass-builder.js';
 import { createTargetCollector } from './passes/pass-targets.js';
 import type { TransparencyMode } from './passes/draw.js';
@@ -188,12 +189,13 @@ export const Canvas3DParams = {
   multiSample: PD.Group(MultiSampleParams),
   postprocessing: PD.Group(PostprocessingParams),
   marking: PD.Group(MarkingParams),
+  clipGhost: ClipGhostOptionParams,
   illumination: PD.Group(IlluminationParams),
   hiZ: PD.Group(HiZParams),
   renderer: PD.Group(RendererParams),
   trackball: PD.Group(TrackballControlsParams),
   interaction: PD.Group(Canvas3dInteractionHelperParams),
-  handle: PD.Group(HandleHelperParams),
+
   pointer: PD.Group(PointerHelperParams),
   xr: PD.Group(XRManagerParams, { label: 'XR' }),
 };
@@ -581,6 +583,7 @@ namespace Canvas3DContext {
       input.setElement(canvas);
       if (isDebugMode) canvas.addEventListener('mousedown', simulateContextLoss, false);
       contextSubs = subscribeContext();
+      // the old passes' assets: released by the canvas once the new ones drew (`Canvas3D`, `retiredPasses`)
       passes = createPasses();
       syncPixelScale();
       pendingRestore?.cancel();
@@ -981,6 +984,11 @@ namespace Canvas3D {
   ): Canvas3D {
     const { input, assetManager, contextLost } = ctx;
     let { graphics, passes, canvas } = ctx;
+    /**
+     * Passes replaced with a new context, disposed once the new ones drew (their background holding its assets by
+     * then: released earlier, a skybox's or an image's would be removed and fetched again)
+     */
+    let retiredPasses: Passes | undefined;
     const removeInstance = ctx.addInstance?.(() => requestDraw());
     const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
     let limitToSupported = createSupportedPropsLimiter(graphics);
@@ -988,6 +996,8 @@ namespace Canvas3D {
     const a = { ...deepClone(DefaultCanvas3DAttribs), ...deepClone(attribs) };
 
     const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
+    /** the scene of the layer each representation's render objects are in, see `layerScene` */
+    const reprScenes = new Map<Representation.Any, Scene>();
     const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
     /** the representations a loci marked on all of them may change (`applyMark`) */
     const markIndex = new MarkIndex();
@@ -1062,7 +1072,7 @@ namespace Canvas3D {
     renderer.setOcclusionTest(hiZ.occlusionTest);
     renderer.setOcclusionPyramid(getOcclusionPyramid);
 
-    let shaderManager = new ShaderManager(graphics, scene);
+    let shaderManager = new ShaderManager(graphics, scene, helper.overlay);
     shaderManager.updateRequired(p);
 
     const pickOptions = {
@@ -1089,6 +1099,14 @@ namespace Canvas3D {
       p.interaction,
       pickHelper.synchronous,
     );
+    // the corner axes at full alpha while hovered (`CameraAxes.setHovered`)
+    const axesHoverSub = interactionHelper.events.hover.subscribe(({ current }) => {
+      const over = isCameraAxesLoci(current.loci) && current.loci.data === helper.axes;
+      if (!helper.axes.setHovered(over)) return;
+      // opaque now, or transparent again: the scene's passes follow (`opacityAverage`, `hasOpaque`)
+      for (const s of helper.screen.scenes) s.updateChanged(true);
+      requestDraw();
+    });
     let multiSampleHelper = new MultiSampleHelper(passes.multiSample);
     // the viewport of the renderer, picking and Hi-Z from the start, not only after a resize (a headless canvas may
     // never have one)
@@ -1116,7 +1134,6 @@ namespace Canvas3D {
         transparentBackground: p.transparentBackground,
         hiZ: hiZ.props.enabled,
         postprocessing: p.postprocessing.enabled,
-        axes: deepClone(helper.camera.props.axes),
       };
     }
     const nonXRProps = getNonXRProps();
@@ -1130,14 +1147,13 @@ namespace Canvas3D {
       p.transparentBackground = nonXRProps.transparentBackground;
       ctx.setProps({ transparency: nonXRProps.transparency });
       hiZ.setProps({ enabled: nonXRProps.hiZ });
-      helper.camera.setProps({ axes: nonXRProps.axes });
     }
 
     function setXRProps() {
       p.postprocessing.enabled = !xrManager.props.disablePostprocessing;
       ctx.setProps({ transparency: 'blended' });
       hiZ.setProps({ enabled: false });
-      helper.camera.setProps({ axes: { name: 'off', params: {} } });
+      // the screen layer (the corner axes) is off in XR: no screen to anchor to (`ScreenHelper.isEnabled`)
 
       if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
         p.transparentBackground = xrPassthrough;
@@ -1203,10 +1219,8 @@ namespace Canvas3D {
       let loci: Loci = EmptyLoci;
       let repr: Representation.Any = Representation.Empty;
       if (pickingId) {
-        const cameraHelperLoci = helper.camera.getLoci(pickingId);
+        const cameraHelperLoci = helper.axes.getLoci(pickingId);
         if (cameraHelperLoci !== EmptyLoci) return { loci: cameraHelperLoci, repr };
-
-        loci = helper.handle.getLoci(pickingId);
 
         reprRenderObjects.forEach((_, _repr) => {
           const _loci = _repr.getLoci(pickingId);
@@ -1245,8 +1259,8 @@ namespace Canvas3D {
       if (changed) {
         // the marked objects' values changed: those updated, not every object of the scene
         scene.updateChanged(true);
-        helper.handle.scene.updateChanged(true);
-        helper.camera.scene.updateChanged(true);
+        helper.overlay.scene.updateChanged(true);
+        for (const s of helper.screen.scenes) s.updateChanged(true);
 
         shaderManager.updateRequired(p);
         shaderManager.finalizeRequired(true);
@@ -1259,21 +1273,21 @@ namespace Canvas3D {
     function applyMark(reprLoci: Representation.Loci, action: MarkerAction) {
       const { repr, loci } = reprLoci;
       let changed = false;
+      // the overlay is drawn into the scene color, as the helpers are
+      let overlayChanged = false;
+      const markRepr = (r: Representation.Any) => {
+        if (!r.mark(loci, action)) return;
+        markIndex.note(r, action);
+        changed = true;
+        if (reprScenes.get(r) !== scene) overlayChanged = true;
+      };
       if (repr) {
-        if (repr.mark(loci, action)) {
-          markIndex.note(repr, action);
-          changed = true;
-        }
+        markRepr(repr);
       } else {
-        markIndex.forEach(loci, action, (_repr) => {
-          if (!_repr.mark(loci, action)) return;
-          markIndex.note(_repr, action);
-          changed = true;
-        });
+        markIndex.forEach(loci, action, markRepr);
       }
-      const handleChanged = helper.handle.mark(loci, action);
-      const cameraChanged = helper.camera.mark(loci, action);
-      const helperChanged = handleChanged || cameraChanged;
+      const cameraChanged = helper.axes.mark(loci, action);
+      const helperChanged = cameraChanged || overlayChanged;
       helperMarkingUpdated = helperMarkingUpdated || helperChanged;
       return changed || helperChanged;
     }
@@ -1302,6 +1316,8 @@ namespace Canvas3D {
       let didRender = false;
       controls.update(currentTime);
       const cameraChanged = camera.update();
+      // the scale line at the camera, before the frame's passes (a few operations when unchanged)
+      helper.scaleLine.update(camera, graphics.pixelRatio);
       const xrChanged = xrManager.update(xrFrame);
       if (!xrChanged && xrFrame) return false;
 
@@ -1355,11 +1371,7 @@ namespace Canvas3D {
       }
 
       if (illuminationEnabled) {
-        if (shouldRender || markingUpdated) {
-          renderer.setOcclusionTest(null);
-          renderer.setOcclusionPyramid(null);
-          passes.illumination.restart();
-        }
+        if (shouldRender || markingUpdated) passes.illumination.restart();
 
         if (
           passes.illumination.shouldRender(p.illumination) &&
@@ -1367,9 +1379,26 @@ namespace Canvas3D {
             passes.illumination.iteration === 0 ||
             p.userInteractionReleaseMs === 0)
         ) {
+          // the inputs (tracing, back depth) culled by occlusion only on the GPU with its second phase: the image
+          // accumulates them, what an earlier frame's pyramid hides and the view reveals would stay missing; so no CPU
+          // test, which lags behind (WebGL: none). Set per frame, other passes (e.g. pick) reset them
+          const gpuOcclusion = hiZ.props.gpu && hiZ.props.twoPhase;
+          renderer.setOcclusionTest(null);
+          renderer.setOcclusionPyramid(gpuOcclusion ? getOcclusionPyramid : null);
+          const occlusion = gpuOcclusion
+            ? (b: PassBuilder, c: ICamera, complete: boolean) => hiZ.planFrame(b, c, complete)
+            : undefined;
           if (isTimingMode) graphics.timer.group('Canvas3D.render', { captureStats: true });
-          const ctx = { renderer, camera, scene, helper, frame };
+          const ctx = { renderer, camera, scene, helper, frame, occlusion };
+          // the first iteration draws the inputs: the tracing input's depth is the opaque depth the levels are built from
+          const inputDrawn = passes.illumination.iteration === 0;
+          const skippedDraws = graphics.stats.skippedDraws;
           passes.illumination.render(ctx, p, true);
+          if (inputDrawn && gpuOcclusion && renderer.gpuCulledCount > 0) {
+            // for the next frame's first phase, not read back (no CPU test)
+            hiZ.setGpuCulling(true);
+            hiZ.render(camera, graphics.stats.skippedDraws === skippedDraws, false);
+          }
           if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
 
           // if only marking has updated, do not set the flag to dirty
@@ -1414,9 +1443,11 @@ namespace Canvas3D {
           }
           // the GPU's occlusion test of the objects culled there needs the levels (also with Hi-Z off)
           hiZ.setGpuCulling(renderer.gpuCulledCount > 0);
-          // the depth of stereo's eyes or XR's views is not the main camera's: no levels, the next mono frame tests nothing
-          if (cam === camera && !xrFrame) hiZ.render(camera, graphics.stats.skippedDraws === skippedDraws);
-          else hiZ.clear();
+          // the depth of stereo's eyes or XR's views is not the main camera's: no levels, the next frame tests nothing; nor
+          // of a frame drawn straight to the drawing buffer: the texture the levels read holds an earlier frame's
+          if (cam === camera && !xrFrame && passes.draw.opaqueDepthDrawn) {
+            hiZ.render(camera, graphics.stats.skippedDraws === skippedDraws);
+          } else hiZ.clear();
           if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
 
           // if only marking has updated, do not set the flag to dirty
@@ -1430,6 +1461,10 @@ namespace Canvas3D {
         didRender = redrawMarking(false, getTemporalSamplesPerFrame(p.multiSample.sampleLevel));
       }
 
+      if (didRender && retiredPasses) {
+        retiredPasses.dispose();
+        retiredPasses = undefined;
+      }
       return didRender;
     }
 
@@ -1646,7 +1681,7 @@ namespace Canvas3D {
       if (isContextLost || graphics.isContextLost) return Promise.resolve();
       const props: Canvas3DProps = options?.props ? { ...p, ...options.props } : p;
       // the variants the props require are linked for every render item when set (`ShaderManager.updateRequired`)
-      graphics.resources.linkPrograms(ShaderManager.getRequired(graphics, scene, props));
+      graphics.resources.linkPrograms(ShaderManager.getRequired(graphics, scene, helper.overlay, props));
       if (options?.interaction) {
         // the first marking links the marking variant of every render item (see `ShaderManager.updateRequired`)
         graphics.resources.linkPrograms(MarkingPass.isEnabled(props.marking) ? ['pick', 'marking'] : ['pick']);
@@ -2054,6 +2089,43 @@ namespace Canvas3D {
 
     const sceneCommitTimeoutMs = 250;
     function commitScene(isSynchronous: boolean) {
+      const sceneChanged = scene.needsCommit;
+      if (!commitMainScene(isSynchronous)) return false;
+      // after the scene: a representation moved between the layers is removed from the scene (its renderable disposed,
+      // with resources it may share with the new one) before the overlay creates its renderable
+      const overlayChanged = commitOverlay();
+      if (sceneChanged || overlayChanged) releasePreparedObjects();
+      // frames held for the props (`holdFramesUntilPrepared`) wait for the new scene too: the hold's prepare had the
+      // previous one, so the first frame after it would compile (and skip) the draws of what was added meanwhile; after
+      // the overlay, whose objects change the passes' targets (e.g. DOF's)
+      if ((sceneChanged || overlayChanged) && propsPreparing > 0) holdFramesUntilPrepared();
+      return true;
+    }
+
+    /** The overlay and screen layers: few objects, out of the scene's bounds, committed at once without its camera reset */
+    function commitOverlay() {
+      // every tick: no arrays made
+      let changed = commitLayerScene(helper.overlay.scene);
+      const screens = helper.screen.scenes;
+      for (let i = 0, il = screens.length; i < il; ++i) changed = commitLayerScene(screens[i]) || changed;
+      return changed;
+    }
+
+    function commitLayerScene(layerScene: Scene) {
+      if (!layerScene.needsCommit) return false;
+      layerScene.commit();
+      precompileRecorder.record(layerScene.renderables);
+      return true;
+    }
+
+    /** The representations of the scene layer: what the scene shows (gizmos and widgets of the other layers not) */
+    function getSceneReprCount() {
+      let count = 0;
+      for (const s of reprScenes.values()) if (s === scene) count += 1;
+      return count;
+    }
+
+    function commitMainScene(isSynchronous: boolean) {
       if (!scene.needsCommit) return true;
 
       // snapshot the current bounding sphere of visible objects
@@ -2068,10 +2140,6 @@ namespace Canvas3D {
       }
       commitQueueSize.next(0);
       precompileRecorder.record(scene.renderables);
-      releasePreparedObjects();
-      // frames held for the props (`holdFramesUntilPrepared`) wait for the new scene too: the hold's prepare had the
-      // previous one, so the first frame after it would compile (and skip) the draws of what was added meanwhile
-      if (propsPreparing > 0) holdFramesUntilPrepared();
       scheduleWarmUp();
 
       if (helper.debug.isEnabled) helper.debug.update();
@@ -2083,7 +2151,7 @@ namespace Canvas3D {
       if (!p.camera.manualReset && scene.boundingSphere.radius > 0) {
         camera.setState({ radiusMax: getSceneRadius() }, 0);
       }
-      reprCount.next(reprRenderObjects.size);
+      reprCount.next(getSceneReprCount());
       if (isDebugMode) consoleStats();
 
       return true;
@@ -2185,44 +2253,83 @@ namespace Canvas3D {
     /** render objects left out of the scene by a context change until their representation updated them */
     const droppedRenderObjects = new Set<GraphicsRenderObject>();
 
+    /** The scene of the layer `repr` is drawn in (`Representation.State.layer`) */
+    function layerScene(repr: Representation.Any): Scene {
+      const { layer } = repr.state;
+      if (layer === 'overlay') return helper.overlay.scene;
+      if (layer === 'screen') return helper.screen.getScene(repr, repr.state.screen);
+      return scene;
+    }
+
+    /** Takes the render objects of `repr` out of their layer's scene (a screen scene of its own goes with them) */
+    function removeFromLayer(repr: Representation.Any, target: Scene, renderObjects: Set<GraphicsRenderObject>) {
+      if (helper.screen.has(target)) {
+        helper.screen.release(repr);
+        renderObjects.forEach((o) => droppedRenderObjects.delete(o));
+      } else {
+        removeRenderObjects(target, renderObjects);
+      }
+    }
+
+    function removeRenderObjects(target: Scene, renderObjects: Set<GraphicsRenderObject>) {
+      renderObjects.forEach((o) => {
+        target.remove(o);
+        droppedRenderObjects.delete(o);
+      });
+    }
+
     function add(repr: Representation.Any) {
       registerAutoUpdate(repr);
       busy();
       markPreparedObjectsAdded(repr);
 
-      const oldRO = reprRenderObjects.get(repr);
+      const target = layerScene(repr);
+      let oldRO = reprRenderObjects.get(repr);
+      const oldScene = reprScenes.get(repr);
+      if (oldRO && oldScene && oldScene !== target) {
+        // moved to another layer
+        removeFromLayer(repr, oldScene, oldRO);
+        oldRO = undefined;
+      }
       const newRO = new Set<GraphicsRenderObject>();
-      repr.renderObjects.forEach((o) => newRO.add(o));
+      const overlay = target !== scene;
+      repr.renderObjects.forEach((o) => {
+        newRO.add(o);
+        // the overlay's occlusion (`apply_occlusion`), before its renderable is created with it
+        ValueCell.updateIfChanged(o.values.dOverlay, overlay);
+      });
 
       if (oldRO) {
-        if (!SetUtils.areEqual(newRO, oldRO)) {
+        const old = oldRO;
+        if (!SetUtils.areEqual(newRO, old)) {
           newRO.forEach((o) => {
-            if (!oldRO.has(o)) scene.add(o);
+            if (!old.has(o)) target.add(o);
           });
-          oldRO.forEach((o) => {
-            if (!newRO.has(o)) scene.remove(o);
+          old.forEach((o) => {
+            if (!newRO.has(o)) target.remove(o);
           });
         }
         if (droppedRenderObjects.size > 0) {
-          oldRO.forEach((o) => {
+          old.forEach((o) => {
             if (!droppedRenderObjects.has(o)) return;
             if (!newRO.has(o)) {
               droppedRenderObjects.delete(o);
             } else if (!hasForeignResources(o, graphics)) {
               droppedRenderObjects.delete(o);
-              scene.add(o);
+              target.add(o);
             }
           });
         }
       } else {
-        repr.renderObjects.forEach((o) => scene.add(o));
+        repr.renderObjects.forEach((o) => target.add(o));
       }
       reprRenderObjects.set(repr, newRO);
+      reprScenes.set(repr, target);
       markIndex.set(repr);
 
-      scene.update(repr.renderObjects, false);
+      target.update(repr.renderObjects, false);
       // the objects kept were updated in place (e.g. a theme change)
-      if (oldRO) holdForUpdated(repr.renderObjects);
+      if (oldRO) holdForUpdated(repr.renderObjects, target);
       forceDrawAfterAllCommited = true;
       if (isDebugMode) consoleStats();
     }
@@ -2232,10 +2339,10 @@ namespace Canvas3D {
      * new defines (e.g. another color type) may need programs not compiled yet, frames wait for them as after a props
      * change, instead of skipping their draws meanwhile (WebGPU)
      */
-    function holdForUpdated(renderObjects: ArrayLike<GraphicsRenderObject>) {
+    function holdForUpdated(renderObjects: ArrayLike<GraphicsRenderObject>, target: Scene) {
       const renderables: GraphicsRenderable[] = [];
       for (let i = 0, il = renderObjects.length; i < il; ++i) {
-        const renderable = scene.get(renderObjects[i]);
+        const renderable = target.get(renderObjects[i]);
         if (renderable) renderables.push(renderable);
       }
       if (precompileRecorder.recordAgain(renderables)) holdFramesUntilPrepared(true);
@@ -2249,11 +2356,9 @@ namespace Canvas3D {
 
       const renderObjects = reprRenderObjects.get(repr);
       if (renderObjects) {
-        renderObjects.forEach((o) => {
-          scene.remove(o);
-          droppedRenderObjects.delete(o);
-        });
+        removeFromLayer(repr, reprScenes.get(repr) ?? scene, renderObjects);
         reprRenderObjects.delete(repr);
+        reprScenes.delete(repr);
         forceDrawAfterAllCommited = true;
         if (isDebugMode) consoleStats();
       }
@@ -2287,7 +2392,7 @@ namespace Canvas3D {
       return {
         camera: {
           mode: camera.state.mode,
-          helper: { ...helper.camera.props },
+          helper: { ...helper.axes.props, scale: helper.scaleLine.props },
           stereo: { ...p.camera.stereo },
           fov: Math.round(radToDeg(camera.state.fov)),
           manualReset: !!p.camera.manualReset,
@@ -2315,13 +2420,14 @@ namespace Canvas3D {
 
         postprocessing: { ...p.postprocessing },
         marking: { ...p.marking },
+        clipGhost: p.clipGhost,
         multiSample: { ...p.multiSample },
         illumination: { ...p.illumination },
         hiZ: { ...hiZ.props },
         renderer: { ...renderer.props },
         trackball: { ...controls.props },
         interaction: { ...interactionHelper.props },
-        handle: { ...helper.handle.props },
+
         pointer: { ...helper.pointer.props },
         xr: { ...xrManager.props },
       };
@@ -2382,14 +2488,26 @@ namespace Canvas3D {
       for (const s of contextSubs) s.unsubscribe();
 
       graphics = ctx.graphics;
+      // the passes replaced: their background's assets released once the new ones drew (their textures went with the
+      // old context)
+      if (passes !== ctx.passes) {
+        retiredPasses?.dispose();
+        retiredPasses = passes;
+      }
       passes = ctx.passes;
       canvas = ctx.canvas;
 
-      const dropped = scene.setContext(graphics);
+      // the corner axes are made again below, not by a representation
+      const axesObjects = new Set(helper.axes.renderObjects);
+      const dropped = [
+        ...scene.setContext(graphics),
+        ...helper.overlay.setContext(graphics),
+        ...helper.screen.setContext(graphics).filter((o) => !axesObjects.has(o)),
+      ];
       for (const o of dropped) droppedRenderObjects.add(o);
       helper.debug.setContext(graphics);
-      helper.camera.setContext(graphics);
-      helper.handle.setContext(graphics);
+      helper.axes.setProps(helper.axes.props);
+
       helper.pointer.setContext(graphics);
       xrManager.setContext(graphics);
       limitToSupported = createSupportedPropsLimiter(graphics);
@@ -2400,7 +2518,7 @@ namespace Canvas3D {
       renderer = Renderer.create(graphics, rendererProps);
       renderer.setOcclusionTest(hiZ.occlusionTest);
       renderer.setOcclusionPyramid(getOcclusionPyramid);
-      shaderManager = new ShaderManager(graphics, scene);
+      shaderManager = new ShaderManager(graphics, scene, helper.overlay);
       pickHelper = new PickHelper(
         graphics,
         renderer,
@@ -2551,16 +2669,27 @@ namespace Canvas3D {
         // updated values may have changed defines: the updated renderables recorded again
         if (repr) {
           if (!reprRenderObjects.has(repr)) return;
+          if (reprScenes.get(repr) !== layerScene(repr)) {
+            // its layer changed (`setState`)
+            add(repr);
+            return;
+          }
           markIndex.set(repr);
           const { renderObjects } = repr;
-          scene.update(renderObjects, !!keepSphere);
+          const target = layerScene(repr);
+          target.update(renderObjects, !!keepSphere);
           // only the representation's, not the whole scene's: callers update one representation at a time (a drag)
-          holdForUpdated(renderObjects);
+          holdForUpdated(renderObjects, target);
         } else {
           reprRenderObjects.forEach((_, r) => markIndex.set(r));
           scene.update(void 0, !!keepSphere);
+          helper.overlay.scene.update(void 0, !!keepSphere);
+          for (const s of helper.screen.scenes) s.update(void 0, !!keepSphere);
           precompileRecorder.invalidate();
-          if (precompileRecorder.recordAgain(scene.renderables)) holdFramesUntilPrepared(true);
+          let changed = precompileRecorder.recordAgain(scene.renderables);
+          if (precompileRecorder.recordAgain(helper.overlay.scene.renderables)) changed = true;
+          for (const s of helper.screen.scenes) if (precompileRecorder.recordAgain(s.renderables)) changed = true;
+          if (changed) holdFramesUntilPrepared(true);
         }
         forceDrawAfterAllCommited = true;
         busy();
@@ -2569,11 +2698,15 @@ namespace Canvas3D {
         reprUpdatedSubscriptions.forEach((v) => v.unsubscribe());
         reprUpdatedSubscriptions.clear();
         reprRenderObjects.clear();
+        // the representations' screen scenes, not the corner axes'
+        for (const [repr, s] of reprScenes) if (helper.screen.has(s)) helper.screen.release(repr);
+        reprScenes.clear();
         markIndex.clear();
         scene.clear();
+        helper.overlay.scene.clear();
         helper.debug.clear();
         requestDraw();
-        reprCount.next(reprRenderObjects.size);
+        reprCount.next(getSceneReprCount());
       },
       syncVisibility: () => {
         if (camera.state.radiusMax === 0) {
@@ -2584,6 +2717,8 @@ namespace Canvas3D {
         if (scene.syncVisibility()) {
           if (helper.debug.isEnabled) helper.debug.update();
         }
+        helper.overlay.scene.syncVisibility();
+        for (const s of helper.screen.scenes) s.syncVisibility();
         requestDraw();
       },
 
@@ -2675,7 +2810,13 @@ namespace Canvas3D {
         }
         if (Object.keys(cameraState).length > 0) camera.setState(cameraState);
 
-        if (props.camera?.helper) helper.camera.setProps(props.camera.helper);
+        if (props.camera?.helper) {
+          helper.axes.setProps(props.camera.helper);
+          if (props.camera.helper.scale) {
+            helper.scaleLine.setProps(props.camera.helper.scale);
+            requestDraw();
+          }
+        }
         if (props.camera?.manualReset !== undefined) p.camera.manualReset = props.camera.manualReset;
         if (props.camera?.stereo !== undefined) {
           Object.assign(p.camera.stereo, props.camera.stereo);
@@ -2717,6 +2858,7 @@ namespace Canvas3D {
         }
         if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
         if (props.marking) Object.assign(p.marking, props.marking);
+        if (props.clipGhost) p.clipGhost = props.clipGhost;
         if (props.illumination) Object.assign(p.illumination, props.illumination);
         if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
         if (props.postprocessing || props.marking || props.multiSample) limitToSupported(p);
@@ -2732,10 +2874,15 @@ namespace Canvas3D {
             dLightCount: Math.min(props.renderer?.light?.length ?? renderer.props.light.length, MaxLightCount),
           });
         }
-        if (props.renderer) renderer.setProps(props.renderer);
+        if (props.renderer) {
+          renderer.setProps(props.renderer);
+          // the frames' props as well: the passes take them over the live renderer's (the marking pass, so that
+          // preparing can give props the canvas is not set to); stale, dimming set after the canvas was created was lost
+          Object.assign(p.renderer, props.renderer);
+        }
         if (props.trackball) controls.setProps(props.trackball);
         if (props.interaction) interactionHelper.setProps(props.interaction);
-        if (props.handle) helper.handle.setProps(props.handle);
+
         if (props.pointer) helper.pointer.setProps(props.pointer);
         if (props.xr) xrManager.setProps(props.xr);
 
@@ -2798,6 +2945,8 @@ namespace Canvas3D {
       xr,
       dispose: () => {
         canvasDisposed = true;
+        retiredPasses?.dispose();
+        retiredPasses = undefined;
         removeInstance?.();
         warmUpCancel?.();
         warmUpCancel = undefined;
@@ -2819,11 +2968,14 @@ namespace Canvas3D {
         markBuffer = [];
 
         scene.clear();
+        helper.overlay.scene.clear();
+        helper.screen.clear();
         helper.debug.clear();
         destroyPrecompileItems();
         destroyPreparedObjects();
         controls.dispose();
         renderer.dispose();
+        axesHoverSub.unsubscribe();
         interactionHelper.dispose();
         hiZ.dispose();
         pickHelper.dispose();

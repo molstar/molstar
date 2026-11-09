@@ -12,7 +12,7 @@
 
 import { defineSymbol } from '@molstar/seq-core/query';
 import type { QueryExtension, QueryFn, SeqSelection } from '../../src/model/query/index.js';
-import { leak } from './heap.js';
+import { leak } from '@molstar/test-harness/heap';
 
 export const leakSymbol = defineSymbol({
   ...{ name: 'test.leak', alias: 'leak', kind: 'modifier', result: 'query', signature: '(leak Q)' },

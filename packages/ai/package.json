@@ -95,6 +95,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
     "typescript": "catalog:",
     "@types/node": "catalog:",
     "vitest": "catalog:"

@@ -5,6 +5,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -28,6 +29,7 @@ import {
   coneScale,
   LocalUp,
   rotated,
+  twistOf,
 } from '../../sources/clipping/cuts.js';
 import type { ClippingApi, ClipSettings } from './operations.js';
 import { classes } from './_generated/clipping.module.css.js';
@@ -240,21 +242,33 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
 /** "· whole copies" while cuts leave out whole instances; nothing for the usual pixel cuts */
 const settingsMeta = (s: ClipSettings) => (s.variant === 'instance' ? '· whole copies' : '');
 
-/** How every cut cuts (clipping.settings): the variant, the solid caps; following them as they change elsewhere */
+/**
+ * How every cut cuts (clipping.settings): the variant, the solid caps, the ghost of what they remove and its look;
+ * following them as they change elsewhere
+ */
 function CutSettings(props: { ctx: ViewerUIContext; clipping: ClippingApi }) {
   const { ctx, clipping } = props;
   // the operation's own params (each optional there: absent, kept), labeled as a form's rows
   const op = clipping.settings.definition.params as PD.Params;
+  // the ghost's look while it is on
+  const ghostOff = (v: Partial<ClipSettings>) => !v.ghost;
   const params = {
     variant: { ...op.variant, isOptional: false, label: 'Cut by' },
     solidSurface: { ...op.solidSurface, isOptional: false, label: 'Solid surface' },
+    fadeNormal: { ...op.fadeNormal, isOptional: false, label: 'Fade arrow' },
+    ghost: { ...op.ghost, isOptional: false, label: 'Ghost' },
+    ghostColor: { ...op.ghostColor, isOptional: false, label: 'Ghost color', hideIf: ghostOff },
+    ghostOpacity: { ...op.ghostOpacity, isOptional: false, label: 'Ghost opacity', hideIf: ghostOff },
+    ghostEdgeOpacity: { ...op.ghostEdgeOpacity, isOptional: false, label: 'Ghost edges', hideIf: ghostOff },
+    ghostResolution: { ...op.ghostResolution, isOptional: false, label: 'Ghost resolution', hideIf: ghostOff },
   } as PD.Params;
+  const keys = Object.keys(params) as (keyof ClipSettings)[];
   const form = new ParamsFormModel(params, clipping.cutSettings.value as never, {
     onChange: (values, name) => void ctx.api.run('clipping.settings', { [name]: values[name] }),
   });
   effect(clipping.cutSettings, (s) => {
-    const v = form.values.value;
-    if (v.variant !== s.variant || v.solidSurface !== s.solidSurface) form.load(s as never);
+    const v = form.values.value as Partial<ClipSettings>;
+    if (keys.some((k) => v[k] !== s[k])) form.load(s as never);
   });
   return <ParamsForm form={form} />;
 }
@@ -703,20 +717,38 @@ function CutForm(props: {
 const Position = PD.Vec3(Vec3(), {}, { description: 'Its center (Å); a plane goes through it, a cone starts at it' });
 const Direction = (description: string) => PD.Vec3(Vec3.create(0, 1, 0), {}, { description });
 const Length = (label: string) => PD.Numeric(10, { min: 0.1, max: 2000, step: 0.1 }, { label });
+/** A box's, an ellipsoid's or an elliptic cylinder's turn about its up: which way its other axes point */
+const Twist = PD.Numeric(
+  0,
+  { min: -180, max: 180, step: 1 },
+  { label: 'Twist (°)', description: 'Its turn about its up' },
+);
 
 function formParams(shape: CutShape): PD.Params {
   switch (shape) {
     case 'plane':
       return { position: Position, normal: Direction('It cuts away the side this points to') };
     case 'sphere':
-      return { position: Position, diameter: Length('Diameter (Å)') };
+      return {
+        position: Position,
+        up: Direction('Its second axis'),
+        twist: Twist,
+        size: PD.Vec3(Vec3.create(10, 10, 10), {}, { label: 'Diameters (Å)' }),
+      };
     case 'cube':
-      return { position: Position, up: Direction('Its height axis'), size: PD.Vec3(Vec3.create(10, 10, 10)) };
+      return {
+        position: Position,
+        up: Direction('Its height axis'),
+        twist: Twist,
+        size: PD.Vec3(Vec3.create(10, 10, 10)),
+      };
     case 'cylinder':
       return {
         position: Position,
         axis: Direction('Its axis'),
+        twist: Twist,
         diameter: Length('Diameter (Å)'),
+        across: Length('Diameter across (Å)'),
         height: Length('Height (Å)'),
       };
     case 'infiniteCone':
@@ -736,15 +768,15 @@ function formValues(cut: Cut): Record<string, unknown> {
   const raw = cut.object;
   const o = { ...raw, position: round(raw.position, 2), scale: round(raw.scale, 2) };
   const up = round(rotated(raw.rotation, LocalUp), 3);
+  const twist = +twistOf(raw).toFixed(1);
   switch (o.type as CutShape) {
     case 'plane':
       return { position: o.position, normal: up };
     case 'sphere':
-      return { position: o.position, diameter: o.scale[0] };
     case 'cube':
-      return { position: o.position, up, size: o.scale };
+      return { position: o.position, up, twist, size: o.scale };
     case 'cylinder':
-      return { position: o.position, axis: up, diameter: o.scale[0], height: o.scale[1] };
+      return { position: o.position, axis: up, twist, diameter: o.scale[0], across: o.scale[2], height: o.scale[1] };
     case 'infiniteCone':
       return {
         position: o.position,
@@ -759,17 +791,20 @@ function formValues(cut: Cut): Record<string, unknown> {
 function updateOf(shape: CutShape, v: Record<string, any>, fields: ReadonlySet<string>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (fields.has('position')) out.position = [...v.position];
-  const direction = { plane: 'normal', cube: 'up', cylinder: 'axis', infiniteCone: 'axis', sphere: '' }[shape];
-  if (direction && fields.has(direction)) out.normal = [...v[direction]];
+  const direction = { plane: 'normal', cube: 'up', cylinder: 'axis', infiniteCone: 'axis', sphere: 'up' }[shape];
+  if (fields.has(direction)) out.normal = [...v[direction]];
   switch (shape) {
     case 'sphere':
-      if (fields.has('diameter')) out.scale = [v.diameter, v.diameter, v.diameter];
-      break;
     case 'cube':
+      // a changed up alone turns the cut by the shortest turn (clipping.update's normal)
+      if (fields.has('twist')) out.twist = v.twist;
       if (fields.has('size')) out.scale = [...v.size];
       break;
     case 'cylinder':
-      if (fields.has('diameter') || fields.has('height')) out.scale = [v.diameter, v.height, v.diameter];
+      if (fields.has('twist')) out.twist = v.twist;
+      if (fields.has('diameter') || fields.has('across') || fields.has('height')) {
+        out.scale = [v.diameter, v.height, v.across];
+      }
       break;
     case 'infiniteCone':
       if (fields.has('angle')) out.scale = [...coneScale(v.angle)];

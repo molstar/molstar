@@ -26,6 +26,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { ParticleVisual, ParticleParams, ParticleKey } from './visual.js';
 import { getQualitySignatures, type SignatureContext } from '../signatures.js';
 import { createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
+import { Visual } from '../visual.js';
 
 export interface ParticleRepresentation<P extends PD.Params = PD.Params> extends Representation<ParticleList, P> {}
 
@@ -76,6 +77,7 @@ export function ParticleRepresentation<P extends ParticleParams>(
     if (state.clipping !== undefined) visual.setClipping(state.clipping);
     if (state.wiggle !== undefined) visual.setWiggle(state.wiggle);
     if (state.transform !== undefined) visual.setTransform(state.transform);
+    if (state.previewTransform !== undefined) Visual.setPreviewTransform(visual.renderObject, state.previewTransform);
     if (state.themeStrength !== undefined) visual.setThemeStrength(state.themeStrength);
   }
 
@@ -128,6 +130,7 @@ export function ParticleRepresentation<P extends ParticleParams>(
     if (state.transform !== undefined && !Mat4.areEqual(state.transform, _state.transform, EPSILON)) {
       newState.transform = state.transform;
     }
+    if (state.previewTransform !== undefined) newState.previewTransform = state.previewTransform;
     if (state.syncManually !== undefined) newState.syncManually = state.syncManually;
     if (state.markerActions !== undefined) newState.markerActions = state.markerActions;
 

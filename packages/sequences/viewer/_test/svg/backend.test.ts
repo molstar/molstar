@@ -13,7 +13,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { deflateSync, inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { itWithin } from '../../../core/_test/model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import {
   GlyphBatch,
   GlyphShape,

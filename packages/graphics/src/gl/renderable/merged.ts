@@ -7,16 +7,17 @@
 import type { OcclusionPyramid } from '../compute/cell-cull.js';
 import { createMergedCuller, type MergedRasterParams } from './merged-culler.js';
 import { isSphereRasterEligible } from '../compute/sphere-raster-pass.js';
-import { packAffineRows } from '../affine-rows.js';
+import { packAffineRowsOf } from '../affine-rows.js';
 import { OctNormalItemSize } from '../oct-normals.js';
 import { ValueCell } from '@molstar/core/util';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
+import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
-import type { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
-import type { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
+import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
+import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { createEmptyInstanceGrid } from '@molstar/core/math/geometry/instance-grid';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
-import { createDataArray, type DataArray } from './util.js';
+import { createDataArray, type DataArray, getDrawnBoundingSphere } from './util.js';
 import { SegmentedArray } from '../segmented-array.js';
 import {
   GlobalUniformSchema,
@@ -31,7 +32,13 @@ import {
   type RenderableSchema,
   type RenderableValues,
   type BaseValues,
+  type AttributeSpec,
+  DefineSpec,
+  UniformSpec,
+  type Values,
 } from './schema.js';
+import { StorageBufferSpec } from '../compute.js';
+import type { AttributeKind } from '../buffer.js';
 import { createSphereResolveValues, SpheresSchema } from './spheres.js';
 import { MeshSchema } from './mesh.js';
 import { CylindersSchema } from './cylinders.js';
@@ -75,8 +82,13 @@ import {
   type LodLevelsValue,
   LodView,
   type CullValues,
+  type CullBatch,
   type Frame,
   createClipInfoCache,
+  createInstancePositions,
+  createMarkedKey,
+  getMarkedDrawVersion,
+  isMarkedFew,
 } from '../renderable.js';
 
 export type MergeableValues = RenderableValues & BaseValues;
@@ -92,13 +104,13 @@ export const InstanceDataVec4s = 5;
 /** Packs the instance data of merged `values` into `out` (at least instances times `InstanceDataVec4s` vec4s) */
 export function packInstanceData(values: RenderableValues, out: Float32Array) {
   const count: number = values.instanceCount.ref.value;
-  const transform = values.aTransform.ref.value as Float32Array;
+  const transform = values.aTransform.ref.value as Float32Array | SegmentedArray<Float32Array>;
   const instance = values.aInstance.ref.value as Float32Array;
   const segment = values.aSegment.ref.value as Float32Array;
+  // the transform's rows (`affine-rows.ts`), the instance and its segment's groups, the segment's index
+  packAffineRowsOf(transform, count, out, 0, InstanceDataVec4s * 4);
   for (let i = 0; i < count; ++i) {
     const o = i * InstanceDataVec4s * 4;
-    // the transform's rows (`affine-rows.ts`), the instance and its segment's groups, the segment's index
-    packAffineRows(transform.subarray(i * 16, i * 16 + 16), 1, out, o);
     out[o + 12] = instance[i];
     out[o + 13] = segment[i * 4];
     out[o + 14] = segment[i * 4 + 1];
@@ -225,7 +237,7 @@ export function canCullOnGpu(ctx: GraphicsContext | undefined) {
   return (
     !!compute &&
     !!ctx.capabilities.indirectInstanceRanges &&
-    // the instance copy binds 8 storage buffers, the core limits' count
+    // the instance copy binds 6 storage buffers, within the core limits' 8
     compute.isKernelSupported(CellCullKernel, CellCullSchema) &&
     compute.isKernelSupported(InstanceCopyKernel, InstanceCopySchema) &&
     compute.isKernelSupported(CullArgsKernel, CullArgsSchema)
@@ -412,6 +424,13 @@ export type MergedSegments = {
   drawBases: number[];
   /** byte offset (into the merged element buffer) per segment */
   elementOffsets: number[];
+  /**
+   * per segment its groups as every instance of it reads them (`aSegment.xyz`): the group count, the group-instance
+   * offset (its first group-instance less its first instance times the group count) and the group offset
+   */
+  groupCounts: number[];
+  groupInstanceOffsets: number[];
+  groupBases: number[];
 };
 
 export type Merged = {
@@ -427,6 +446,8 @@ export type Merged = {
    * a still frame's lists stand while it stays, without comparing the members' cells (six a member)
    */
   readonly cullVersion: ValueCell<number>;
+  /** advanced by `sync` where a member's markers changed (or the layout): what the marked lists are built from */
+  readonly markerVersion: ValueCell<number>;
 };
 
 function ensureArray<T extends Uint8Array | Uint32Array | Float32Array>(
@@ -517,8 +538,16 @@ function createMemberVersions(attributeCount: number, textureCount: number) {
   };
 }
 
-/** `gpuCulling`: culled on the GPU where available (`merged-culler.ts`), fixed for the merged object's lifetime */
-export function createMergedValues(type: MergedType, members: readonly MergeableValues[], gpuCulling = false): Merged {
+/**
+ * `gpuCulling`: culled on the GPU where available (`merged-culler.ts`), fixed for the merged object's lifetime;
+ * `rasterOnly`: for the sphere raster only, culled on the CPU where the raster does not take it (`Renderable.rasterSpheres`)
+ */
+export function createMergedValues(
+  type: MergedType,
+  members: readonly MergeableValues[],
+  gpuCulling = false,
+  rasterOnly = false,
+): Merged {
   const descriptor = MergedTypeDescriptors[type];
   const { hasElements, vertexAttributes } = descriptor;
   const first = members[0];
@@ -533,6 +562,9 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     vertexBases: new Array(n).fill(0),
     drawBases: new Array(n).fill(0),
     elementOffsets: new Array(n).fill(0),
+    groupCounts: new Array(n).fill(0),
+    groupInstanceOffsets: new Array(n).fill(0),
+    groupBases: new Array(n).fill(0),
   };
 
   // own cells, identity must stay stable for the lifetime of the merged render item
@@ -550,9 +582,14 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     boundingSphere: ValueCell.create(Sphere3D()),
     invariantBoundingSphere: ValueCell.create(Sphere3D()),
     uInvariantBoundingSphere: ValueCell.create(Vec4()),
+    // the transient transform of the whole object, not a member's: a merged object moves as one (`Merged`)
+    uObjectTransform: ValueCell.create(Mat4.identity()),
     uMarker: ValueCell.create(0),
     markerAverage: ValueCell.create(0),
     markerStatus: ValueCell.create(-1),
+    // the members' are read (`Renderable.renderMarked`), not the first's
+    markerInstanceCounts: ValueCell.create(new Uint32Array(0)),
+    markedInstanceCount: ValueCell.create(0),
     transparencyAverage: ValueCell.create(0),
     transparencyMin: ValueCell.create(0),
     emissiveAverage: ValueCell.create(0),
@@ -560,7 +597,11 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     hasReflection: ValueCell.create(false),
     instanceGrid: ValueCell.create({ ...createEmptyInstanceGrid(), cellSize: 2 }),
     dSegmented: ValueCell.create(true),
+    // drawn with instance indices where culled on the GPU: set by the renderable's culler
+    dCulled: ValueCell.create(false),
+    uCulledInstanceCount: ValueCell.create(0),
     gpuCulling: ValueCell.create(gpuCulling),
+    gpuCullingRasterOnly: ValueCell.create(rasterOnly),
   };
   // the members' geometry is not copied: the render item uploads their arrays as parts (`SegmentedArray`)
   for (const { key } of vertexAttributes) {
@@ -709,21 +750,25 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     ValueCell.update(cell, { array: SegmentedArray.create(ctor, parts, length), count });
   }
 
-  function unionSpheres(out: Sphere3D, key: 'boundingSphere' | 'invariantBoundingSphere') {
+  function unionSpheres(out: Sphere3D, sphere: (i: number) => Sphere3D) {
     boundaryHelper.reset();
     for (let i = 0; i < n; ++i) {
-      boundaryHelper.includeSphere(members[i][key].ref.value as Sphere3D);
+      boundaryHelper.includeSphere(sphere(i));
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0; i < n; ++i) {
-      boundaryHelper.radiusSphere(members[i][key].ref.value as Sphere3D);
+      boundaryHelper.radiusSphere(sphere(i));
     }
     return boundaryHelper.getSphere(out);
   }
 
+  const placedSphere = (i: number) => members[i].boundingSphere.ref.value as Sphere3D;
+  const invariantSphere = (i: number) => members[i].invariantBoundingSphere.ref.value as Sphere3D;
+
+  /** as placed: the object's transient transform (`uObjectTransform`) moves what is drawn, not these */
   function updateBoundingSpheres() {
-    ValueCell.update(own.boundingSphere, unionSpheres(own.boundingSphere.ref.value, 'boundingSphere'));
-    const ibs = unionSpheres(own.invariantBoundingSphere.ref.value, 'invariantBoundingSphere');
+    ValueCell.update(own.boundingSphere, unionSpheres(own.boundingSphere.ref.value, placedSphere));
+    const ibs = unionSpheres(own.invariantBoundingSphere.ref.value, invariantSphere);
     ValueCell.update(own.invariantBoundingSphere, ibs);
     ValueCell.update(own.uInvariantBoundingSphere, Vec4.fromSphere(own.uInvariantBoundingSphere.ref.value, ibs));
   }
@@ -802,11 +847,6 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     part.version += 1;
   }
 
-  /** per-segment group counts and offsets, per instance in `aSegment` */
-  const segmentGroupCounts = new Array(n).fill(0);
-  const segmentGroupInstanceOffsets = new Array(n).fill(0);
-  const segmentGroupBases = new Array(n).fill(0);
-
   /** member i's own (sphere-count-dependent) per-level scales, the second element of its segment data */
   function writeSegmentLod(i: number, array: Float32Array) {
     const member = members[i];
@@ -842,9 +882,9 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
       segments.vertexBases[i] = vertexTotal;
       segments.drawBases[i] = drawTotal;
       segments.elementOffsets[i] = drawTotal * 4;
-      segmentGroupCounts[i] = groupCount;
-      segmentGroupInstanceOffsets[i] = groupInstanceBase - instanceTotal * groupCount;
-      segmentGroupBases[i] = groupBase;
+      segments.groupCounts[i] = groupCount;
+      segments.groupInstanceOffsets[i] = groupInstanceBase - instanceTotal * groupCount;
+      segments.groupBases[i] = groupBase;
       instanceTotal += instanceCount;
       vertexTotal += v.uVertexCount.ref.value;
       drawTotal += v.drawCount.ref.value;
@@ -856,19 +896,44 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     return { instanceTotal, vertexTotal, drawTotal, maxGroupCount };
   }
 
+  /** `aSegment` of `instanceTotal` instances: per instance its segment's groups and its segment's index */
+  function getSegmentInstanceArray(instanceTotal: number) {
+    const out = new Float32Array(instanceTotal * 4);
+    for (let i = 0; i < n; ++i) {
+      const base = segments.instanceBases[i];
+      const g0 = segments.groupCounts[i];
+      const g1 = segments.groupInstanceOffsets[i];
+      const g2 = segments.groupBases[i];
+      for (let k = 0, kl = segments.instanceCounts[i]; k < kl; ++k) {
+        const s = (base + k) * 4;
+        out[s] = g0;
+        out[s + 1] = g1;
+        out[s + 2] = g2;
+        out[s + 3] = i;
+      }
+    }
+    return out;
+  }
+
   function rebuildInstances(instanceTotal: number) {
-    const segmentInstanceArray = ensureArray(own.aSegment.ref.value, instanceTotal * 4, Float32Array);
     const segmentData = own.tSegment.ref.value as DataArray<Float32Array>;
     const segmentArray = segmentData.array;
 
-    // instanced attributes in per-segment blocks
-    const transformArray = ensureArray(own.aTransform.ref.value, instanceTotal * 16, Float32Array);
+    // instanced attributes in per-segment blocks; the transforms the members' as parts (`SegmentedArray`), not copied
+    // (millions of instances: their rows packed where read, `packAffineRowsOf`)
+    const transformParts: SegmentedArray.Part<Float32Array>[] = [];
     const instanceArray = ensureArray(own.aInstance.ref.value, instanceTotal, Float32Array);
     for (let i = 0; i < n; ++i) {
       const v = members[i];
       const instanceCount = segments.instanceCounts[i];
       const instanceBase = segments.instanceBases[i];
-      transformArray.set((v.aTransform.ref.value as Float32Array).subarray(0, instanceCount * 16), instanceBase * 16);
+      transformParts.push({
+        array: v.aTransform.ref.value as Float32Array,
+        offset: instanceBase * 16,
+        count: instanceCount * 16,
+        bias: 0,
+        version: 0,
+      });
       const memberInstance = v.aInstance.ref.value as Float32Array;
       const ibs = v.invariantBoundingSphere.ref.value as Sphere3D;
       // the segment's data: invariant bounding sphere, level scales
@@ -880,18 +945,24 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
       writeSegmentLod(i, segmentArray);
       for (let k = 0; k < instanceCount; ++k) {
         instanceArray[instanceBase + k] = memberInstance[k] + instanceBase;
-        const s = (instanceBase + k) * 4;
-        segmentInstanceArray[s] = segmentGroupCounts[i];
-        segmentInstanceArray[s + 1] = segmentGroupInstanceOffsets[i];
-        segmentInstanceArray[s + 2] = segmentGroupBases[i];
-        segmentInstanceArray[s + 3] = i;
       }
     }
-    ValueCell.update(own.aTransform, transformArray);
+    ValueCell.update(own.aTransform, SegmentedArray.create(Float32Array, transformParts, instanceTotal * 16));
     ValueCell.update(own.aInstance, instanceArray);
     // cellSize > 1 keeps the renderer on the cull path, each member's OWN instanceGrid is used instead
     ValueCell.update(own.instanceGrid, { ...createEmptyInstanceGrid(), cellSize: 2 });
-    ValueCell.update(own.aSegment, segmentInstanceArray);
+    // made where read (16 B an instance, the same for every instance of a segment): the instanced attribute of objects
+    // culled on the CPU, WebGL2's instance data; GPU culling reads the segments' groups (`CulledData`), not this
+    let segmentInstanceArray: Float32Array | undefined;
+    const box = own.aSegment.ref;
+    ValueCell.set(own.aSegment, {
+      id: box.id,
+      version: box.version + 1,
+      metadata: box.metadata,
+      get value() {
+        return (segmentInstanceArray ??= getSegmentInstanceArray(instanceTotal));
+      },
+    });
     ValueCell.update(own.tSegment, segmentData);
   }
 
@@ -952,12 +1023,14 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
   }
 
   const cullVersion = ValueCell.create(0);
+  const markerVersion = ValueCell.create(0);
 
   function sync() {
     if (updateLayout()) {
       rebuild();
       snapshotAll();
       ValueCell.update(cullVersion, cullVersion.ref.value + 1);
+      ValueCell.update(markerVersion, markerVersion.ref.value + 1);
       return true;
     }
 
@@ -1068,6 +1141,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
       }
       if (texChanged) {
         ValueCell.update(own[spec.tex], own[spec.tex].ref.value);
+        if (marker) markersChanged = true;
       }
     }
 
@@ -1076,7 +1150,10 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     if (elementsChanged) ValueCell.update(own.elements, own.elements.ref.value);
     if (!instancesChanged && lodChanged) ValueCell.update(own.tSegment, own.tSegment.ref.value);
     if (boundsChanged) updateBoundingSpheres();
-    if (markersChanged) updateMarkerAggregates();
+    if (markersChanged) {
+      updateMarkerAggregates();
+      ValueCell.update(markerVersion, markerVersion.ref.value + 1);
+    }
     if (aggregatesChanged) updateAggregates();
     if (instancesChanged || boundsChanged || lodChanged) ValueCell.update(cullVersion, cullVersion.ref.value + 1);
 
@@ -1097,10 +1174,28 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     if (markerTexture >= 0) observed.push(c.textures[markerTexture]);
   }
 
-  return { type, values, segments, sync, memberCells: observed, cullVersion };
+  return { type, values, segments, sync, memberCells: observed, cullVersion, markerVersion };
 }
 
 //
+
+/**
+ * Merged objects culled on the GPU (`dCulled`, WebGPU, `merged-culler.ts`): drawn from indirect records whose first
+ * instances index the culler's regions of instance indices (`sCulledIndices`), the instances' data read from storage by
+ * those (`sCulledData`, `CulledData`) in place of the instanced attributes, which can't follow an index (the program's
+ * vertex inputs filled by a generated reader, `webgpu/culled.ts`)
+ */
+export const CulledSchema = {
+  sCulledIndices: StorageBufferSpec('u32', 'read', ['dCulled']),
+  sCulledData: StorageBufferSpec('vec4<f32>', 'read', ['dCulled']),
+  /** the instances of `sCulledData`: where its segments and `aInstance` start (`CulledData`) */
+  uCulledInstanceCount: UniformSpec('i', undefined, 'object'),
+  dCulled: DefineSpec('boolean'),
+} as const;
+export type CulledValues = Values<typeof CulledSchema>;
+
+/** The instanced attributes culled programs read from `sCulledData` (`CulledData`), not as vertex inputs */
+export const CulledAttributes = ['aTransform', 'aInstance', 'aSegment'] as const;
 
 const MergedRenderableSchemas = new Map<MergedType, RenderableSchema>();
 
@@ -1108,14 +1203,21 @@ const MergedRenderableSchemas = new Map<MergedType, RenderableSchema>();
 export function getMergedRenderableSchema(type: MergedType) {
   let schema = MergedRenderableSchemas.get(type);
   if (!schema) {
-    schema = {
+    const merged: { [k: string]: RenderableSchema[string] } = {
       ...GlobalUniformSchema,
       ...GlobalTextureSchema,
       ...GlobalDefineSchema,
       ...InternalSchema,
       ...MergedTypeDescriptors[type].schema,
       ...SegmentSchema,
+      ...CulledSchema,
     };
+    // the instanced attributes: vertex inputs but in culled programs (merged objects are always segmented)
+    for (const name of CulledAttributes) {
+      const spec = merged[name] as AttributeSpec<AttributeKind>;
+      merged[name] = { ...spec, usedIf: ['!dCulled'] };
+    }
+    schema = merged;
     MergedRenderableSchemas.set(type, schema);
   }
   return schema;
@@ -1159,8 +1261,25 @@ export function MergedRenderable(
     gpuCulling && canCullOnGpu(ctx)
       ? createMergedCuller(ctx.compute!, ctx.resources, merged, members, indexed)
       : undefined;
-  // drawn with the culler's compacted instanced attributes
-  if (culler) Object.assign(renderValues, culler.attributes);
+  // drawn through the culler's instance indices (`CulledSchema`)
+  if (culler) Object.assign(renderValues, culler.values);
+  const rasterOnly =
+    !!culler && !!(merged.values as { gpuCullingRasterOnly?: ValueCell<boolean> }).gpuCullingRasterOnly?.ref.value;
+  // the members' spheres as `resolveGpuCulling` counts them, again where they changed (`cullVersion`)
+  let rasterSpheres = 0;
+  let rasterSpheresVersion = -1;
+  function getRasterSpheres() {
+    const version = merged.cullVersion.ref.value;
+    if (version !== rasterSpheresVersion) {
+      rasterSpheresVersion = version;
+      rasterSpheres = 0;
+      for (const v of members) {
+        rasterSpheres +=
+          v.instanceCount.ref.value * ((v as { uVertexCount?: ValueCell<number> }).uVertexCount?.ref.value ?? 0);
+      }
+    }
+    return rasterSpheres;
+  }
   const renderItem = ctx.createGraphicsRenderItem(
     descriptor.drawMode,
     descriptor.shaderCode,
@@ -1170,11 +1289,29 @@ export function MergedRenderable(
     transparency,
   );
 
-  const mdb = createSegmentedMdbList();
   const clipInfo = createClipInfoCache(renderValues);
   const segmentSpheres: Sphere3D[] = [];
-  let mode: 'none' | 'full' | 'cull' | 'gpu' = 'none';
-  let lastCullFrame: Frame | undefined;
+  /**
+   * the lists of the visible passes and of the ghost pass (`clipGhost`): each with its own levels' uniforms and caches,
+   * so that neither rewrites the other's every frame; drawn from the set of the last cull. The ghost's culled on the
+   * GPU where its region was dispatched (`culler.ghostDispatched`), on the CPU otherwise
+   */
+  const createSet = () => ({
+    mdb: createSegmentedMdbList(),
+    mode: 'none' as 'none' | 'full' | 'cull' | 'gpu',
+    lastCullFrame: undefined as Frame | undefined,
+    cullView: createCullView(),
+    drawVersion: 0,
+    /** the CPU culling's lists, shifted to the identity region of the compacted attributes where culled on the GPU */
+    shiftedLists: [] as MultiDrawBaseData[],
+    shiftedVersion: -1,
+    /** the identity region they were shifted to (`culler.identityBase`: moves with the ghost's and raster regions) */
+    shiftedBase: -1,
+  });
+  const visibleSet = createSet();
+  const ghostSet = createSet();
+  let set = visibleSet;
+  const getSet = (clipGhost: boolean | undefined) => (clipGhost ? ghostSet : visibleSet);
 
   /** the frame culled on the GPU (its first view) and the planes it was culled with */
   let gpuFrame: Frame | undefined;
@@ -1203,14 +1340,18 @@ export function MergedRenderable(
     }
   }
 
-  /** the CPU culling's lists, shifted to the identity region of the compacted attributes where culled on the GPU */
-  const shiftedLists: MultiDrawBaseData[] = [];
-  let shiftedVersion = -1;
   function getCpuLists() {
-    if (!culler) return mdb.list;
-    if (shiftedVersion === drawVersion && shiftedLists.length === mdb.list.length) return shiftedLists;
-    shiftedVersion = drawVersion;
-    return shiftLists(mdb.list, shiftedLists);
+    if (!culler) return set.mdb.list;
+    if (
+      set.shiftedVersion === set.drawVersion &&
+      set.shiftedBase === culler.identityBase &&
+      set.shiftedLists.length === set.mdb.list.length
+    ) {
+      return set.shiftedLists;
+    }
+    set.shiftedVersion = set.drawVersion;
+    set.shiftedBase = culler.identityBase;
+    return shiftLists(set.mdb.list, set.shiftedLists);
   }
   /** `lists` shifted to the identity region of the compacted attributes (`culler.identityBase`) into `out` */
   function shiftLists(lists: MultiDrawBaseData[], out: MultiDrawBaseData[]) {
@@ -1231,7 +1372,9 @@ export function MergedRenderable(
   /** whether the sphere raster draws the object's raster regions in the pass being drawn (`Renderable.rasterDrawn`) */
   let rasterDrawn = false;
   // the impostors draw the raster regions' instances too where the raster does not draw them
-  const getLists = () => (mode === 'gpu' ? culler!.getLists(mdb.list, !rasterDrawn) : getCpuLists());
+  const getGpuLists = () =>
+    set === ghostSet ? culler!.getGhostLists(set.mdb.list) : culler!.getLists(set.mdb.list, !rasterDrawn);
+  const getLists = () => (set.mode === 'gpu' ? getGpuLists() : getCpuLists());
 
   // the members' cells culling reads every frame, resolved once: values objects have too many keys for fast named reads
   const memberCull: CullValues[] = members.map((v) => ({
@@ -1246,14 +1389,16 @@ export function MergedRenderable(
     clipObjects: v.clipObjects,
     dClipVariant: v.dClipVariant,
     invariantBoundingSphere: v.invariantBoundingSphere,
+    // the object's transient transform, not the member's: its grid moved by it (`getCullGrid`)
+    uObjectTransform: merged.values.uObjectTransform,
   }));
 
   /**
    * what the last CPU cull read: a still frame keeps its lists (`createCullView`); the members' cells by the version
-   * `sync` advances where they changed, not each (with 100k members, recording them was most of a moving frame)
+   * `sync` advances where they changed, not each (with 100k members, recording them was most of a moving frame); the
+   * object's transient transform, which moves every member's cells
    */
-  const cullView = createCullView();
-  const cullCells = [merged.cullVersion];
+  const cullCells = [merged.cullVersion, merged.values.uObjectTransform];
 
   const segment: CullSegment = { first: 0, offset: 0, instanceBase: 0 };
   function setSegment(i: number) {
@@ -1279,14 +1424,26 @@ export function MergedRenderable(
 
   /** the level view of the last lists, for the caps' draws of segments (`renderSegments`) */
   let segmentLod = LodView();
+  /** the view of the last cull for the marked lists (`renderMarked`), undefined where not culled by it */
+  let markedLod: LodView | undefined;
+  const markedPlane = Plane3D();
+  const markedFrustum = Frustum3D();
+  function setMarkedView(cameraPlane: Plane3D, frustum: Frustum3D, lod: LodView) {
+    markedLod = lod;
+    Plane3D.copy(markedPlane, cameraPlane);
+    Frustum3D.copy(markedFrustum, frustum);
+  }
 
   function buildFullList(lod: LodView) {
-    segmentLod = lod;
-    const hasLodLevels = !!mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
-    for (let i = 0, il = members.length; i < il; ++i) {
-      mdb.fullSegment(memberCull[i], setSegment(i), getMemberLod(i, hasLodLevels));
+    if (set === visibleSet) {
+      segmentLod = lod;
+      markedLod = undefined;
     }
-    mode = 'full';
+    const hasLodLevels = !!set.mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
+    for (let i = 0, il = members.length; i < il; ++i) {
+      set.mdb.fullSegment(memberCull[i], setSegment(i), getMemberLod(i, hasLodLevels));
+    }
+    set.mode = 'full';
   }
 
   function cull(
@@ -1296,36 +1453,41 @@ export function MergedRenderable(
     stats: GraphicsStats,
     frame: Frame,
     lod: LodView,
+    clipGhost = false,
   ) {
-    segmentLod = lod;
+    set = getSet(clipGhost);
+    if (!clipGhost) {
+      segmentLod = lod;
+      setMarkedView(cameraPlane, frustum, lod);
+    }
     // skip recomputation if this renderable was already culled for the current frame
-    if (frame === lastCullFrame) {
+    if (frame === set.lastCullFrame) {
       stats.cacheHits.cull++;
       return;
     }
 
-    if (culler && frame === gpuFrame && isGpuView(cameraPlane, frustum)) {
+    if (culler && frame === gpuFrame && isGpuView(cameraPlane, frustum) && (!clipGhost || culler.ghostDispatched)) {
       // culled on the GPU before the passes (`prepareCull`): the level lists for their uniforms only
-      mdb.prepare(memberCull[0].lodLevels, 0, true, lod);
-      gpuLists = culler.getLists(mdb.list);
-      mode = 'gpu';
-      lastCullFrame = frame;
-      drawVersion = getDrawVersion();
+      set.mdb.prepare(memberCull[0].lodLevels, 0, true, lod);
+      gpuLists = clipGhost ? culler.getGhostLists(set.mdb.list) : culler.getLists(set.mdb.list);
+      set.mode = 'gpu';
+      set.lastCullFrame = frame;
+      set.drawVersion = getDrawVersion();
       return;
     }
 
     // the same view and members' data as the last CPU cull (a still frame): its lists stand
-    if (mode === 'cull' && cullView.isSame(lod, isOccluded, cullCells)) {
-      lastCullFrame = frame;
+    if (set.mode === 'cull' && set.cullView.isSame(lod, isOccluded, cullCells)) {
+      set.lastCullFrame = frame;
       stats.cacheHits.cull++;
       return;
     }
-    cullView.set(lod, cullCells);
-    const lodLevels = mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
-    mode = 'cull';
+    set.cullView.set(lod, cullCells);
+    const lodLevels = set.mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
+    set.mode = 'cull';
 
     for (let i = 0, il = members.length; i < il; ++i) {
-      mdb.cullSegment(
+      set.mdb.cullSegment(
         memberCull[i],
         setSegment(i),
         getMemberLod(i, !!lodLevels),
@@ -1334,26 +1496,93 @@ export function MergedRenderable(
         isOccluded,
         stats,
         true,
+        clipGhost,
       );
     }
 
-    lastCullFrame = frame;
-    drawVersion = getDrawVersion();
+    set.lastCullFrame = frame;
+    set.drawVersion = getDrawVersion();
   }
 
-  function cullSimple(d: number, radius: number, scale: number, lod: LodView) {
-    segmentLod = lod;
-    cullView.invalidate();
-    const lodLevels = mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
+  function cullSimple(d: number, radius: number, scale: number, lod: LodView, clipGhost = false) {
+    set = getSet(clipGhost);
+    if (!clipGhost) {
+      segmentLod = lod;
+      // a scaled model's levels are not kept per sphere by the shader: no marked lists
+      markedLod = undefined;
+    }
+    set.cullView.invalidate();
+    const lodLevels = set.mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
     if (!lodLevels) {
       buildFullList(lod);
     } else {
-      mode = 'cull';
+      set.mode = 'cull';
       for (let i = 0, il = members.length; i < il; ++i) {
-        mdb.cullSimpleSegment(memberCull[i], setSegment(i), getMemberLod(i, true)!, d, radius, scale);
+        set.mdb.cullSimpleSegment(memberCull[i], setSegment(i), getMemberLod(i, true)!, d, radius, scale);
       }
     }
-    drawVersion = getDrawVersion();
+    set.drawVersion = getDrawVersion();
+  }
+
+  // the marked instances alone (`renderMarked`), at the levels of the view of the last cull
+  const markedMdb = createSegmentedMdbList();
+  const shiftedMarked: MultiDrawBaseData[] = [];
+  let markedLists: MultiDrawBaseData[] = [];
+  let markedUsed = false;
+  const markedKey = createMarkedKey();
+  const markedPositions = members.map(() => createInstancePositions());
+  const getMarkedVersion = createDrawVersion((out) => appendMdbDrawKey(markedLists, out));
+  let markedVersion = 0;
+  /** the marked lists for the members' markers and the view, where they are few (`isMarkedFew`) */
+  function updateMarked() {
+    const lod = markedLod;
+    if (!lod) {
+      markedUsed = false;
+      markedKey.reset();
+      return;
+    }
+    markedKey.begin(lod);
+    markedKey.add(merged.markerVersion.ref.value);
+    markedKey.add(merged.cullVersion.ref.value);
+    markedKey.add(merged.values.uObjectTransform.ref.version);
+    // shifted to the identity region (`shiftLists`): moved where the ghost's or raster regions are added
+    markedKey.add(culler ? culler.identityBase : -1);
+    if (markedKey.isSame()) return;
+
+    const levelCount = (memberCull[0].lodLevels?.ref.value as LodLevelsValue | undefined)?.length ?? 0;
+    let marked = 0;
+    markedUsed = true;
+    for (let i = 0, il = members.length; i < il; ++i) {
+      const v = members[i];
+      if (v.markerAverage.ref.value === 0) continue;
+      // markers without counts: not known where
+      if (!v.markerInstanceCounts) {
+        markedUsed = false;
+        break;
+      }
+      marked += v.markedInstanceCount.ref.value;
+    }
+    if (markedUsed) markedUsed = isMarkedFew(marked, levelCount, merged.values.instanceCount.ref.value as number);
+    if (!markedUsed) return;
+
+    const hasLodLevels = !!markedMdb.prepare(memberCull[0].lodLevels, Math.max(1, marked), true, lod);
+    for (let i = 0, il = members.length; i < il; ++i) {
+      const v = members[i];
+      if (v.markerAverage.ref.value === 0) continue;
+      markedMdb.markedSegment(
+        memberCull[i],
+        setSegment(i),
+        getMemberLod(i, hasLodLevels),
+        v.markerInstanceCounts.ref.value,
+        markedPositions[i](v.aInstance, v.instanceCount.ref.value),
+        v.aTransform.ref.value as Float32Array,
+        v.invariantBoundingSphere.ref.value,
+        markedPlane,
+        markedFrustum,
+      );
+    }
+    markedLists = culler ? shiftLists(markedMdb.list, shiftedMarked) : markedMdb.list;
+    markedVersion = getMarkedVersion();
   }
 
   buildFullList(LodView());
@@ -1374,8 +1603,15 @@ export function MergedRenderable(
   }
 
   let programVersion = 0;
-  const getDrawVersion = createDrawVersion((out) => appendMdbDrawKey(mode === 'gpu' ? gpuLists : mdb.list, out));
-  let drawVersion = getDrawVersion();
+  /** clip objects, not opted out of the ghost (as `DrawFact.ClipGhost`) */
+  const hasClipGhost = () => {
+    const v = renderValues as { dClipObjects?: ValueCell<boolean>; clipGhost?: ValueCell<boolean> };
+    return !!v.dClipObjects?.ref.value && v.clipGhost?.ref.value !== false;
+  };
+  const getDrawVersion = createDrawVersion((out) =>
+    appendMdbDrawKey(set.mode === 'gpu' ? gpuLists : set.mdb.list, out),
+  );
+  visibleSet.drawVersion = ghostSet.drawVersion = getDrawVersion();
   return {
     id,
     materialId,
@@ -1384,13 +1620,14 @@ export function MergedRenderable(
     state,
 
     cull,
-    uncull: (lod: LodView) => {
-      lastCullFrame = undefined;
+    uncull: (lod: LodView, clipGhost = false) => {
+      set = getSet(clipGhost);
+      set.lastCullFrame = undefined;
       // levels by size on screen convert their ranges with the view (`prepare`)
       const pixel = ((members[0].lodLevels?.ref.value as LodLevelsValue | undefined)?.pixelSize ?? 0) > 0;
-      if (mode === 'full' && !pixel) return;
+      if (set.mode === 'full' && !pixel) return;
       buildFullList(lod);
-      drawVersion = getDrawVersion();
+      set.drawVersion = getDrawVersion();
     },
     cullSimple,
     prepareCull: culler
@@ -1401,45 +1638,68 @@ export function MergedRenderable(
           lod: LodView,
           pyramid?: OcclusionPyramid,
           raster?: MergedRasterParams,
+          batch?: CullBatch,
+          clipGhost = false,
         ) => {
           // once per frame, for its first view; other views of the frame draw the CPU culling's lists
           if (frame === gpuFrame) return true;
           // the sphere raster's split per instance for objects it can draw
           const split = raster && 'dSphereResolve' in renderValues && isSphereRasterEligible(renderValues as never);
-          gpuFrame = culler.dispatch(cameraPlane, frustum, lod, pyramid, split ? raster : undefined)
+          // the ghost's region where the object has a ghost (`DrawFact.ClipGhost`)
+          const ghost = clipGhost && hasClipGhost();
+          gpuFrame = culler.dispatch(cameraPlane, frustum, lod, pyramid, split ? raster : undefined, batch, ghost)
             ? frame
             : undefined;
           if (gpuFrame) setGpuView(cameraPlane, frustum);
           return !!gpuFrame;
         }
       : undefined,
+    get rasterSpheres() {
+      return rasterOnly ? getRasterSpheres() : undefined;
+    },
     needsCullSecond: culler ? (frame: Frame) => frame === gpuFrame && culler.secondPending : undefined,
     prepareCullSecond: culler
-      ? (frame: Frame, pyramid: OcclusionPyramid | undefined) => frame === gpuFrame && culler.dispatchSecond(pyramid)
+      ? (frame: Frame, pyramid: OcclusionPyramid | undefined, batch?: CullBatch) =>
+          frame === gpuFrame && culler.dispatchSecond(pyramid, batch)
       : undefined,
     // where the view draws the GPU culling's lists, as `cull` decides: a frame culled already keeps its lists (views of
     // a reused frame, as the samples of temporal multi-sampling), else the view culled on the GPU
     getRasterInput: culler
       ? (frame: Frame, cameraPlane: Plane3D, frustum: Frustum3D) => {
-          const gpu = frame === lastCullFrame ? mode === 'gpu' : frame === gpuFrame && isGpuView(cameraPlane, frustum);
+          const v = visibleSet;
+          const gpu =
+            frame === v.lastCullFrame ? v.mode === 'gpu' : frame === gpuFrame && isGpuView(cameraPlane, frustum);
           return gpu ? culler.getRasterInput() : undefined;
         }
       : undefined,
     render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
       renderItem.render(variant, globals, getLists());
     },
+    renderMarked: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
+      updateMarked();
+      renderItem.render(variant, globals, markedUsed ? markedLists : getLists());
+    },
+    prepareMarked: (cameraPlane: Plane3D, frustum: Frustum3D, lod: LodView) => {
+      setMarkedView(cameraPlane, frustum, lod);
+      updateMarked();
+      return markedUsed;
+    },
+    get markedDrawVersion() {
+      updateMarked();
+      return getMarkedDrawVersion(markedUsed, markedVersion, visibleSet.drawVersion * 2 + (rasterDrawn ? 1 : 0));
+    },
     renderSecond: culler
       ? (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
-          if (mode !== 'gpu' || !culler.secondDispatched) return;
-          renderItem.render(variant, globals, culler.getSecondLists(mdb.list, !rasterDrawn));
+          if (visibleSet.mode !== 'gpu' || !culler.secondDispatched) return;
+          renderItem.render(variant, globals, culler.getSecondLists(visibleSet.mdb.list, !rasterDrawn));
         }
       : undefined,
     renderSegments,
     getClipInfo: clipInfo.get,
     memberCells: merged.memberCells,
     getSegmentSpheres: () => {
-      // the members' cells, read again: a member's sphere may be replaced
-      for (let i = 0, il = members.length; i < il; ++i) segmentSpheres[i] = members[i].boundingSphere.ref.value;
+      // the members' cells, read again: a member's sphere may be replaced; as drawn (moved by the object's transform)
+      for (let i = 0, il = members.length; i < il; ++i) segmentSpheres[i] = getDrawnBoundingSphere(memberCull[i]);
       return segmentSpheres;
     },
     getByteCount: () => renderItem.getByteCount(),
@@ -1458,22 +1718,28 @@ export function MergedRenderable(
       rasterDrawn = value;
     },
     get recordsCompact() {
-      return mode === 'gpu' ? culler!.recordsCompact : undefined;
+      return visibleSet.mode === 'gpu' ? culler!.recordsCompact : undefined;
     },
     get recordsVersion() {
       return culler?.recordsVersion ?? 0;
     },
     get drawVersion() {
-      // the lists without the raster regions are other draws (recordings of the pass replay while it is the same)
-      return drawVersion * 2 + (rasterDrawn ? 1 : 0);
+      // the lists without the raster regions are other draws (recordings of the pass replay while it is the same); of
+      // the visible passes' lists: draw lists record those
+      return visibleSet.drawVersion * 2 + (rasterDrawn ? 1 : 0);
     },
     update: () => {
-      merged.sync();
+      const layoutChanged = merged.sync();
+      const dataVersion = culler?.dataVersion;
       culler?.sync();
-      gpuFrame = undefined;
-      mode = 'none';
+      // the frame's GPU culling stands where what it culled is the same (e.g. markers changed: marking redrawn over the
+      // frame with its camera)
+      if (!culler || layoutChanged || culler.dataVersion !== dataVersion) {
+        gpuFrame = undefined;
+        visibleSet.mode = ghostSet.mode = 'none';
+      }
       renderItem.update();
-      lastCullFrame = undefined;
+      visibleSet.lastCullFrame = ghostSet.lastCullFrame = undefined;
     },
     dispose: () => {
       renderItem.destroy();

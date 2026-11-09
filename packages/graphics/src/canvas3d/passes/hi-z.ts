@@ -142,10 +142,10 @@ export class HiZPass {
 
   /**
    * `complete`: no draw of the frame's depth skipped (e.g. a pipeline compiling): built also while other work is pending
-   * (a readback: a pick, the CPU test's own), else only once nothing is
+   * (a readback: a pick, the CPU test's own), else only once nothing is; `read`: for the CPU test as well (`enabled`)
    */
-  render(camera: Camera, complete = false) {
-    this.plan(this.renderBuilder, camera, this.props, this.gpuCulling, complete);
+  render(camera: Camera, complete = false, read = true) {
+    this.plan(this.renderBuilder, camera, this.props, this.gpuCulling, complete, read);
   }
 
   /**

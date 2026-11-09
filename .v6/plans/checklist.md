@@ -38,6 +38,12 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 
 ## Deferred validation and tooling
 
+- [x] Two native WebGPU tests failed (Dawn): `webgpu-global-offsets.test.ts` and `webgpu-bundle-frag-depth.test.ts`.
+      Bisected to `840f42a87` (spheres without levels of detail no longer counted as having them): the tests' scenes'
+      passes now replay while the camera moves. The tests' assumptions, not the code: the offsets test draws every pass
+      directly (`drawLists` off: a replayed pass binds no offsets of its own), the frag_depth test compares the replays
+      with the depth kept and lost instead of an exact count (the passes drawing the spheres, flaky before).
+
 - [x] Bring back `external-structure` and `external-volume` color themes during registry composition work. Done in
       plugin composition: the `ExternalColorThemes` entry (`@molstar/plugin/themes/external`) is part of
       `DefaultRegistry`; `PluginContext` has no special registration logic.

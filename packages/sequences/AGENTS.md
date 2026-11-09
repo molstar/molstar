@@ -45,7 +45,8 @@ all it needs.
 The repository's test lanes (quick, medium, heavy: the root [AGENTS.md](../../AGENTS.md#tests-three-lanes), Tests) hold
 Seq\*'s Node tests; this section adds Seq\*'s own tiers. The quick lane runs in the repository's one Vitest run
 (`vitest.config.ts`, the `sequences` projects): about 3 s for core, 10 s for the viewer (M4, 2026-10-14). The other
-tiers are each package's own scripts (`vitest.shared.ts` and the package's `vitest.*.config.ts`):
+tiers are each package's own scripts (`vitest.shared.ts`, the heap and quick allocation tiers every package shares in
+`test-harness/` (`heapTests`, `perfTests`), and the package's `vitest.*.config.ts`):
 
 | Command                                                                  | What                                                                                                                                                                                                                                                                                                                                     | Run it                                                                                                                                         |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -69,7 +70,7 @@ CLI and skip without a build (`lib`). The Mol\* adapter's link guards (Prism's,
 - **The `heavy` tag** (vitest's test tags, `vitest.shared.ts`, the root's lanes): a test slow by nature carries
   `{ tags: ["heavy"] }` (a `describe` can carry it for all its tests) and keeps a quick representative untagged (the
   fuzz at 100 mutations, the oracles at a fifth, a storm of 50, 20,000 rows for a million, most smoke stories). A
-  wall-clock bound goes in `itWithin` (`core/_test/model/timing.ts`): the test runs in the quick lane without the bound
+  wall-clock bound goes in `itWithin` (`test-harness/src/timing.ts`): the test runs in the quick lane without the bound
   and again in the heavy lane with it. A loop of thousands of checks records its disagreements (`mismatches`,
   `core/_test/model/mismatches.ts`) and checks once: an `expect` costs microseconds.
 - **Files share a worker's modules** (`isolate: false`): a file that mocks or resets modules (`vi.mock`, `vi.doMock`,
@@ -77,24 +78,24 @@ CLI and skip without a build (`lib`). The Mol\* adapter's link guards (Prism's,
   limit, a config default) it restores in `afterEach`, or the next file in the worker sees it.
 
 - **Every hot path has a quick case; the deep guards run at checkpoints** (David, 2026-10-14). A new hot path gets its
-  quick case first (`quickCase`, `core/_test/model/quick.ts`: the step, then its positive control `leaking(step)` on the
+  quick case first (`quickCase`, `test-harness/src/quick.ts`: the step, then its positive control `leaking(step)` on the
   same state, built in; `control: false` only with a `why`). Both tiers warm up by count, so neither depends on the
   load: run them beside other work. If a deep guard fails, re-run it alone once before you diagnose it.
-- **The quick tier's flags** (`PERF_FLAGS`, `vitest.shared.ts`): a 1 MB young generation (the measurement accounts every
-  collection: Σ(heap before a collection − the previous after) + the final delta, the code and trusted spaces apart),
-  `--single-threaded` (V8 compiles on the main thread: tier-up falls on the same step under any load) and lower tier-up
-  thresholds (`--invocation-count-for-turbofan=300 --minimum-invocations-after-ic-update=50`). Why the thresholds: under
-  V8's defaults a step stays in its middle tier (Maglev) for 15,000 to 60,000 steps, allocating there (the wrapped
-  lanes' draw 130 bytes a frame, a hover 9 to 26); with the flags most steps are optimized in a few thousand and the
-  steady state is the defaults'. The warm-up ends only on two quiet windows in which V8 compiled nothing (a steady read
-  in a lower tier, or a lull between tiers, never ends it), so a case needs no tuned warm-up; a case that allocates by
-  design never reads quiet and sets a short `maxWarmSteps`. A case over its baseline by 4 bytes a step fails (a tenth of
-  a baseline above 40: a run of kilobytes reads a few percent apart). Exact to the byte: `leak` reads 88.0, a 32-byte
-  object every 64 steps 0.5. Call `hitTestAt` (the point in the record), not `hitTest(section, x, y)`, from a case's
-  step: a fractional coordinate passed from test code to a call V8 does not inline is boxed, 16 bytes, the test's (three
-  findings of the roll-out were this). The quick flags can change what V8 optimizes: the dot plot's drag allocated 18
-  bytes a move under the defaults and none under them (2026-10-15), so a hot path's deep guard still runs at
-  checkpoints.
+- **The quick tier's flags** (`PERF_FLAGS`, `test-harness/src/vitest.ts`): a 1 MB young generation (the measurement
+  accounts every collection: Σ(heap before a collection − the previous after) + the final delta, the code and trusted
+  spaces apart), `--single-threaded` (V8 compiles on the main thread: tier-up falls on the same step under any load) and
+  lower tier-up thresholds (`--invocation-count-for-turbofan=300 --minimum-invocations-after-ic-update=50`). Why the
+  thresholds: under V8's defaults a step stays in its middle tier (Maglev) for 15,000 to 60,000 steps, allocating there
+  (the wrapped lanes' draw 130 bytes a frame, a hover 9 to 26); with the flags most steps are optimized in a few
+  thousand and the steady state is the defaults'. The warm-up ends only on two quiet windows in which V8 compiled
+  nothing (a steady read in a lower tier, or a lull between tiers, never ends it), so a case needs no tuned warm-up; a
+  case that allocates by design never reads quiet and sets a short `maxWarmSteps`. A case over its baseline by 4 bytes a
+  step fails (a tenth of a baseline above 40: a run of kilobytes reads a few percent apart). Exact to the byte: `leak`
+  reads 88.0, a 32-byte object every 64 steps 0.5. Call `hitTestAt` (the point in the record), not
+  `hitTest(section, x, y)`, from a case's step: a fractional coordinate passed from test code to a call V8 does not
+  inline is boxed, 16 bytes, the test's (three findings of the roll-out were this). The quick flags can change what V8
+  optimizes: the dot plot's drag allocated 18 bytes a move under the defaults and none under them (2026-10-15), so a hot
+  path's deep guard still runs at checkpoints.
 - In a per-frame path, read enum-like object members (`SkinToken.x`, `PathVerb.x`) once into module constants: under the
   test runner's module wrapper each read allocated (about 41 bytes a frame), a false "allocates only under vitest"
   result.
@@ -111,7 +112,7 @@ CLI and skip without a build (`lib`). The Mol\* adapter's link guards (Prism's,
   list's reallocation inside the shorter measured run cancels the longer's growth, and the control goes blind.
 - **The guard template:** every `*.heap.ts` runs its positive control as its guards run their step:
   `expect(controlCaught(() => <the file's own warm-up, settle and measurement> of leaking(step))).toBe(true)`
-  (`core/_test/model/heap.ts`, re-exported by `viewer/_test/heap.ts`; `canvas/heap-browser.ts` in the browser).
+  (`test-harness/src/heap.ts`, re-exported by `viewer/_test/heap.ts`; `canvas/heap-browser.ts` in the browser).
   `controlCaught` counts a run the measurement refuses because a collection ran during it as caught (in the browser that
   is how a leak often shows). The spec check fails on a guard file without it unless `scripts/guards-pending.txt` lists
   it; converting a file removes its line. Every Node `x.heap.ts` has its quick twin `x.quick.ts` beside it, the two

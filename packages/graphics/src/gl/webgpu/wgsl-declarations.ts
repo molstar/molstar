@@ -107,20 +107,22 @@ export type WgslDeclarations = {
 
 /**
  * All generated declarations of a program: uniform blocks, `Draw`, textures, samplers and vertex
- * inputs; with `isReferenced`, only referenced textures and samplers are declared
+ * inputs; with `isReferenced`, only referenced textures and samplers are declared; `vertexInput` in place of the vertex
+ * inputs (culled programs', `culled.ts`)
  */
 export function getWgslDeclarations(
   schema: RenderableSchema,
   layout: BindingLayout,
   defines: DefineLookup,
   isReferenced?: (name: string) => boolean,
+  vertexInput?: string,
 ): WgslDeclarations {
   const uniforms = getWgslUniformDeclarations(schema);
   const code = [
     uniforms.code,
     getWgslTextureDeclarations(layout, isReferenced),
     getWgslStorageDeclarations(schema, defines, isReferenced),
-    getWgslVertexInputDeclaration(schema, defines),
+    vertexInput ?? getWgslVertexInputDeclaration(schema, defines),
   ].filter((c) => c.length > 0);
   return { code: code.join('\n\n'), unsupported: uniforms.unsupported };
 }

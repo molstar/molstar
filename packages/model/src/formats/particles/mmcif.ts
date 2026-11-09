@@ -10,31 +10,25 @@ import type {
   ParticleCompartmentInfo,
   ParticleEntityInfo,
   ParticleList,
+  ParticleSites,
   ParticleTarget,
   ParticleTargetInfo,
 } from '@molstar/model/model/particles/particle-list';
 import { CustomProperties } from '@molstar/model/model/custom-property';
-import {
-  Structure,
-  StructureElement,
-  StructureProperties,
-  type Trajectory,
-  type Unit,
-} from '@molstar/model/model/structure';
-import type { CifBlock, CifFile } from '@molstar/io/reader/cif/data-model';
+import { ElementSymbol } from '@molstar/model/model/structure/model/types';
+import { AtomNumber, VdwRadiusOfNumber } from '@molstar/model/model/structure/model/properties/atomic/measures';
+import { type CifBlock, type CifField, type CifFile, readCifField } from '@molstar/io/reader/cif/data-model';
 import { toDatabase } from '@molstar/io/reader/cif/schema';
-import { type mmCIF_Database, mmCIF_Schema } from '@molstar/io/reader/cif/schema/mmcif';
-import { parseOperatorList } from '../structure/property/assembly.js';
-import { trajectoryFromMmCIF } from '../structure/mmcif.js';
+import { mmCIF_Schema } from '@molstar/io/reader/cif/schema/mmcif';
 import {
   type OperatorCombinations,
   composeOperatorCombination,
-  expandOperatorCombinations,
+  parseOperatorCombinations,
   formatOperatorCombination,
   readParticleOperators,
 } from './operators.js';
 import type { ModelFormat } from '../format.js';
-import { type RuntimeContext, Task } from '@molstar/core/task';
+import type { RuntimeContext } from '@molstar/core/task';
 
 export type MmcifVariant = 'auto' | 'cellpack' | 'petworld' | 'standard';
 
@@ -99,8 +93,6 @@ export function getAsymIdsFromMmcif(cifFile: CifFile, assemblyId: string): strin
   return Array.from(ids).sort();
 }
 
-const EmptyTargets = new Map<never, never>();
-
 export async function createParticleListFromMmcifAssembly(
   ctx: RuntimeContext,
   cifFile: CifFile,
@@ -110,27 +102,12 @@ export async function createParticleListFromMmcifAssembly(
   if (!block) throw new Error('CIF file contains no data blocks.');
   const variant = resolveVariant(block, options.variant);
 
-  // The reference structures of the targets are built via the regular trajectory/model/structure path.
-  const trajectory =
-    options.resolveTargets === false ? undefined : await trajectoryFromMmCIF(block, cifFile).runInContext(ctx);
-
+  // the targets as their sites (`ParticleTarget` kind `sites`), read from `_atom_site`: not a model and a structure
+  // each (millions of atoms in a mesoscale model's targets)
   const built =
     variant === 'petworld'
-      ? await buildPetworldParticleList(
-          ctx,
-          cifFile,
-          block,
-          options,
-          trajectory ? await getModelTargets(ctx, trajectory) : EmptyTargets,
-        )
-      : await buildCellpackStandardParticleList(
-          ctx,
-          cifFile,
-          block,
-          options,
-          variant,
-          trajectory ? await getChainTargets(ctx, trajectory) : EmptyTargets,
-        );
+      ? await buildPetworldParticleList(ctx, cifFile, block, options)
+      : await buildCellpackStandardParticleList(ctx, cifFile, block, options, variant);
 
   if (built.targetMapping.size === 0) return built.list;
   return { ...built.list, targetMapping: built.targetMapping };
@@ -142,127 +119,241 @@ interface BuiltMmcifParticleList {
   readonly targetMapping: ReadonlyMap<number, ParticleTarget>;
 }
 
-/** The centroid of a group of `_atom_site` rows and their maximum distance from it. */
-interface AtomSiteBounds {
+/**
+ * A group of `_atom_site` rows (a target's): their centroid, their maximum distance from it, their sites (positions and
+ * van der Waals radii, `ParticleSites`)
+ */
+interface AtomSiteGroup {
   readonly center: Vec3;
   readonly radius: number;
+  readonly sites: ParticleSites;
+}
+
+/** A row's chain as a model's (`findHierarchyOffsets`, `sortAtomSite`): its entity and its `label_asym_id` */
+interface AtomSiteChain {
+  readonly entity?: CifField;
+  readonly asym: CifField;
+}
+
+/** Whether rows `a` and `b` are of the same chain: the fields' values compared, not read as strings (a string a row) */
+function isSameChain(chain: AtomSiteChain, a: number, b: number) {
+  return chain.asym.areValuesEqual(a, b) && (!chain.entity || chain.entity.areValuesEqual(a, b));
 }
 
 /**
- * Applying the operator of a particle to the centroid of its reference atoms gives a meaningful
- * position even when the operator has zero translation (pure rotation).
+ * The rows of `_atom_site` grouped by `key` (`onFirst` called with the first row of each), each group's sites by chain
+ * (`chain`; the group one chain, labelled by its key, without), the chains in a model's order (by entity, then chain,
+ * each in the order it first appears: `sortAtomSite`): in row order where they are already, else reordered (a stable
+ * counting sort). Applying the operator of a particle to the centroid of its reference atoms gives a meaningful position even
+ * when the operator has zero translation (pure rotation). The columns read once (`readCifField`): not kept decoded
+ * with the file (no model shares them)
  */
-async function getAtomSiteBounds<K>(
+async function getAtomSiteGroups<K>(
   ctx: RuntimeContext,
-  db: mmCIF_Database,
+  block: CifBlock,
   key: (row: number) => K,
-): Promise<Map<K, AtomSiteBounds>> {
-  const { _rowCount } = db.atom_site;
-  // as Float32, the conformation's decode (shared with the model): `value(i)` decodes and keeps the source-type columns
-  const x = db.atom_site.Cartn_x.toArray({ array: Float32Array });
-  const y = db.atom_site.Cartn_y.toArray({ array: Float32Array });
-  const z = db.atom_site.Cartn_z.toArray({ array: Float32Array });
+  onFirst?: (row: number, key: K) => void,
+  chain?: AtomSiteChain,
+): Promise<Map<K, AtomSiteGroup>> {
+  const category = block.categories['atom_site'];
+  const rowCount = category?.rowCount ?? 0;
+  const groups = new Map<K, AtomSiteGroup>();
+  if (!category || rowCount === 0) return groups;
+  // as Float32, as a model's conformation decodes them
+  const coordinate = (name: string) =>
+    readCifField(category, name)?.toFloatArray({ array: Float32Array }) ?? new Float32Array(rowCount);
+  const x = coordinate('Cartn_x');
+  const y = coordinate('Cartn_y');
+  const z = coordinate('Cartn_z');
+  const typeSymbol = readCifField(category, 'type_symbol');
   const updateChunk = 10000;
 
   interface Accum {
+    key: K;
     x: number;
     y: number;
     z: number;
     n: number;
     radiusSq: number;
+    positions: Float32Array;
+    radii: Float32Array;
+    /** the chains in the order they first appear (by entity and `label_asym_id`): labels, entities' ranks, counts */
+    chainLabels: string[];
+    chainIndex: Map<string, number>;
+    chainEntity: number[];
+    chainCounts: number[];
+    entityRank: Map<string, number>;
+    /** the chain of the group's last row */
+    lastChain: number;
+    /** a chain's rows not consecutive, or the chains not in a model's order: the sites reordered */
+    reorder: boolean;
+    /** the next site to fill: the group's in row order, each chain's where reordered */
+    next: number;
+    chainNext: number[];
+    /** the chains in a model's order */
+    order: number[];
   }
-  const accums = new Map<K, Accum>();
+  const accums: Accum[] = [];
+  const byKey = new Map<K, number>();
+  // each row's group, for the second pass: the keys read once (a string a row, millions of atoms); a row's key looked
+  // up only where it differs from the previous row's (a chain's or a model's rows are consecutive)
+  const rowGroup = new Int32Array(rowCount);
 
-  for (let i = 0; i < _rowCount; i++) {
+  let prevKey: K | undefined;
+  let g = -1;
+  let c = 0;
+  for (let i = 0; i < rowCount; i++) {
     const k = key(i);
-    let acc = accums.get(k);
-    if (!acc) {
-      acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
-      accums.set(k, acc);
+    let groupChanged = false;
+    if (g < 0 || k !== prevKey) {
+      prevKey = k;
+      groupChanged = true;
+      const known = byKey.get(k);
+      if (known === undefined) {
+        g = accums.length;
+        byKey.set(k, g);
+        accums.push({
+          key: k,
+          x: 0,
+          y: 0,
+          z: 0,
+          n: 0,
+          radiusSq: 0,
+          positions: EmptyF32,
+          radii: EmptyF32,
+          chainLabels: [],
+          chainIndex: new Map(),
+          chainEntity: [],
+          chainCounts: [],
+          entityRank: new Map(),
+          lastChain: -1,
+          reorder: false,
+          next: 0,
+          chainNext: [],
+          order: [],
+        });
+        onFirst?.(i, k);
+      } else {
+        g = known;
+      }
     }
+    rowGroup[i] = g;
+    const acc = accums[g];
+    // a row's chain read and looked up only where it or the group differs from the previous row's
+    if (groupChanged || (chain && !isSameChain(chain, i - 1, i))) {
+      const asym = chain ? chain.asym.str(i) : '';
+      const entity = chain?.entity ? chain.entity.str(i) : '';
+      const chainKey = `${entity}\u0000${asym}`;
+      const known = acc.chainIndex.get(chainKey);
+      if (known === undefined) {
+        c = acc.chainLabels.length;
+        acc.chainIndex.set(chainKey, c);
+        acc.chainLabels.push(chain ? asym : String(k));
+        let rank = acc.entityRank.get(entity);
+        if (rank === undefined) {
+          rank = acc.entityRank.size;
+          acc.entityRank.set(entity, rank);
+        }
+        acc.chainEntity.push(rank);
+        acc.chainCounts.push(0);
+      } else {
+        c = known;
+        if (c !== acc.lastChain) acc.reorder = true;
+      }
+    }
+    acc.lastChain = c;
+    acc.chainCounts[c]++;
     acc.x += x[i];
     acc.y += y[i];
     acc.z += z[i];
     acc.n++;
     if (i % updateChunk === 0 && ctx.shouldUpdate) {
-      await ctx.update({ message: 'Calculating particle bounds', current: i, max: _rowCount * 2 });
+      await ctx.update({ message: 'Reading particle targets', current: i, max: rowCount * 2 });
     }
   }
 
-  for (const acc of accums.values()) {
+  for (const acc of accums) {
     acc.x /= acc.n;
     acc.y /= acc.n;
     acc.z /= acc.n;
+    acc.positions = new Float32Array(acc.n * 3);
+    acc.radii = new Float32Array(acc.n);
+    // by entity, then by first appearance (a stable sort): out of row order where an entity's chains are not consecutive
+    const chainCount = acc.chainLabels.length;
+    acc.order = Array.from({ length: chainCount }, (_, i) => i).sort((a, b) => acc.chainEntity[a] - acc.chainEntity[b]);
+    for (let i = 0; i < chainCount; i++) if (acc.order[i] !== i) acc.reorder = true;
+    if (!acc.reorder) continue;
+    // each chain's first site, the chains consecutive in their order
+    acc.chainNext = new Array(chainCount);
+    let offset = 0;
+    for (const ci of acc.order) {
+      acc.chainNext[ci] = offset;
+      offset += acc.chainCounts[ci];
+    }
   }
 
-  for (let i = 0; i < _rowCount; i++) {
-    const acc = accums.get(key(i))!;
+  // the van der Waals radius by element symbol as a model's (`ElementSymbol`, `AtomNumber`), once a symbol
+  const radiusOf = new Map<string, number>();
+  const radius = (row: number) => {
+    const symbol = typeSymbol ? typeSymbol.str(row) : '';
+    let r = radiusOf.get(symbol);
+    if (r === undefined) {
+      r = VdwRadiusOfNumber(AtomNumber(ElementSymbol(symbol)));
+      radiusOf.set(symbol, r);
+    }
+    return r;
+  };
+
+  let prevGroup = -1;
+  for (let i = 0; i < rowCount; i++) {
+    const gi = rowGroup[i];
+    const acc = accums[gi];
     const dx = x[i] - acc.x;
     const dy = y[i] - acc.y;
     const dz = z[i] - acc.z;
     const d2 = dx * dx + dy * dy + dz * dz;
     if (d2 > acc.radiusSq) acc.radiusSq = d2;
-    if (i % updateChunk === 0 && ctx.shouldUpdate) {
-      await ctx.update({ message: 'Calculating particle bounds', current: _rowCount + i, max: _rowCount * 2 });
-    }
-  }
-
-  const bounds = new Map<K, AtomSiteBounds>();
-  for (const [k, acc] of accums) {
-    bounds.set(k, { center: Vec3.create(acc.x, acc.y, acc.z), radius: Math.sqrt(acc.radiusSq) });
-  }
-  return bounds;
-}
-
-/** The reference structure of a chain target, plus the entity it belongs to. */
-interface MmcifChainTarget {
-  readonly structure: Structure;
-  readonly entityId: string;
-}
-
-/**
- * The chains of the first model as individual reference structures, keyed by `label_asym_id`.
- * Used by the cellpack/standard variants, where each chain is instanced on its own.
- */
-async function getChainTargets(ctx: RuntimeContext, trajectory: Trajectory): Promise<Map<string, MmcifChainTarget>> {
-  const model = await Task.resolveInContext(trajectory.getFrameAtIndex(0), ctx);
-  const structure = Structure.ofModel(model);
-
-  const chainUnits = new Map<string, { units: Unit[]; entityId: string }>();
-  const l = StructureElement.Location.create(structure);
-  for (const unit of structure.units) {
-    if (unit.elements.length === 0) continue;
-    l.unit = unit;
-    l.element = unit.elements[0];
-    const asymId = StructureProperties.chain.label_asym_id(l);
-    const entry = chainUnits.get(asymId);
-    if (entry) {
-      entry.units.push(unit);
+    let s: number;
+    if (acc.reorder) {
+      // a row's chain read again only in a group reordered, where it differs from the previous row's
+      if (gi !== prevGroup || !isSameChain(chain!, i - 1, i)) {
+        const entity = chain!.entity ? chain!.entity.str(i) : '';
+        c = acc.chainIndex.get(`${entity}\u0000${chain!.asym.str(i)}`)!;
+      }
+      s = acc.chainNext[c]++;
     } else {
-      chainUnits.set(asymId, { units: [unit], entityId: StructureProperties.chain.label_entity_id(l) });
+      s = acc.next++;
+    }
+    prevGroup = gi;
+    acc.positions[s * 3] = x[i];
+    acc.positions[s * 3 + 1] = y[i];
+    acc.positions[s * 3 + 2] = z[i];
+    acc.radii[s] = radius(i);
+    if (i % updateChunk === 0 && ctx.shouldUpdate) {
+      await ctx.update({ message: 'Reading particle targets', current: rowCount + i, max: rowCount * 2 });
     }
   }
 
-  const targets = new Map<string, MmcifChainTarget>();
-  for (const [asymId, { units, entityId }] of chainUnits) {
-    const chain = units.length === structure.units.length ? structure : Structure.create(units, { label: asymId });
-    targets.set(asymId, { structure: chain, entityId });
+  for (const acc of accums) {
+    const { order } = acc;
+    const offsets = new Int32Array(order.length + 1);
+    for (let k = 0; k < order.length; k++) offsets[k + 1] = offsets[k] + acc.chainCounts[order[k]];
+    groups.set(acc.key, {
+      center: Vec3.create(acc.x, acc.y, acc.z),
+      radius: Math.sqrt(acc.radiusSq),
+      sites: {
+        count: acc.n,
+        positions: acc.positions,
+        radii: acc.radii,
+        label: String(acc.key),
+        chains: { offsets, labels: order.map((ci) => acc.chainLabels[ci]) },
+      },
+    });
   }
-  return targets;
+  return groups;
 }
 
-/**
- * The models of the trajectory as individual reference structures, keyed by `pdbx_PDB_model_num`.
- * Used by the petworld variant, where each molecule type is stored as a separate model.
- */
-async function getModelTargets(ctx: RuntimeContext, trajectory: Trajectory): Promise<Map<number, Structure>> {
-  const targets = new Map<number, Structure>();
-  for (let i = 0, il = trajectory.frameCount; i < il; ++i) {
-    const model = await Task.resolveInContext(trajectory.getFrameAtIndex(i), ctx);
-    targets.set(model.modelNum, Structure.ofModel(model));
-  }
-  return targets;
-}
+const EmptyF32 = new Float32Array(0);
 
 function detectMmcifVariant(block: CifBlock): 'cellpack' | 'petworld' | 'standard' {
   if (block.header.toLowerCase().includes('cellpack')) return 'cellpack';
@@ -281,7 +372,6 @@ async function buildCellpackStandardParticleList(
   block: CifBlock,
   options: MmcifAssemblyParticleListOptions,
   variant: 'cellpack' | 'standard',
-  chainTargets: ReadonlyMap<string, MmcifChainTarget>,
 ): Promise<BuiltMmcifParticleList> {
   const db = toDatabase(mmCIF_Schema, block);
   const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
@@ -299,6 +389,8 @@ async function buildCellpackStandardParticleList(
   interface GenEntry {
     genIndex: number;
     combinations: OperatorCombinations;
+    /** the row's chains (`asym_id_list`, filtered), read once */
+    chains: string[];
   }
 
   const entries: GenEntry[] = [];
@@ -307,13 +399,10 @@ async function buildCellpackStandardParticleList(
   for (let i = 0, il = pdbx_struct_assembly_gen._rowCount; i < il; i++) {
     if (assembly_id.value(i) !== options.assemblyId) continue;
 
-    const operList = parseOperatorList(oper_expression.value(i));
-    const combinations = expandOperatorCombinations(operList, operators);
-    entries.push({ genIndex: i, combinations });
-    const chainCount = asymFilter
-      ? asym_id_list.value(i).filter((c) => asymFilter.has(c)).length
-      : asym_id_list.value(i).length;
-    totalCount += chainCount * combinations.count;
+    const combinations = parseOperatorCombinations(oper_expression.value(i), operators);
+    const chains = asymFilter ? asym_id_list.value(i).filter((c) => asymFilter.has(c)) : asym_id_list.value(i);
+    entries.push({ genIndex: i, combinations, chains });
+    totalCount += chains.length * combinations.count;
   }
 
   if (totalCount === 0) {
@@ -364,24 +453,25 @@ async function buildCellpackStandardParticleList(
   const entityNameToIdx = new Map<string, number>();
   const entityNameToFunction = new Map<string, string>();
 
-  const { label_asym_id: siteAsymId, label_entity_id: siteEntityId } = db.atom_site;
-  const chainBounds = await getAtomSiteBounds(ctx, db, (i) => siteAsymId.value(i));
+  // read once, not kept decoded with the file (`readCifField`)
+  const atomSite = block.categories['atom_site'];
+  const siteAsymId = atomSite && readCifField(atomSite, 'label_asym_id');
+  const siteEntityId = atomSite && readCifField(atomSite, 'label_entity_id');
+  // a chain's entity from its first row, in the same pass
   const chainToEntityId = new Map<string, string>();
+  const chainBounds = await getAtomSiteGroups(
+    ctx,
+    block,
+    (i) => siteAsymId?.str(i) ?? '',
+    (row, chain) => chainToEntityId.set(chain, siteEntityId?.str(row) ?? ''),
+  );
   const updateChunk = 10000;
-  for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-    const chain = siteAsymId.value(i);
-    if (!chainToEntityId.has(chain)) chainToEntityId.set(chain, siteEntityId.value(i));
-    if (i % updateChunk === 0 && ctx.shouldUpdate) {
-      await ctx.update({ message: 'Mapping particle chains', current: i, max: il });
-    }
-  }
 
   let fiberCount = 0;
   let fiberPointCount = 0;
   for (const entry of entries) {
     if (entry.combinations.count < 2) continue;
-    for (const chain of asym_id_list.value(entry.genIndex)) {
-      if (asymFilter && !asymFilter.has(chain)) continue;
+    for (const chain of entry.chains) {
       const entityId = chainToEntityId.get(chain);
       if (entityId !== undefined && fiberEntityIds.has(entityId)) {
         fiberCount++;
@@ -413,8 +503,7 @@ async function buildCellpackStandardParticleList(
   const chainToTargetIdx = new Map<string, number>();
   let nextTargetIdx = 0;
   for (let ei = 0, eil = entries.length; ei < eil; ei++) {
-    for (const chain of asym_id_list.value(entries[ei].genIndex)) {
-      if (asymFilter && !asymFilter.has(chain)) continue;
+    for (const chain of entries[ei].chains) {
       if (!chainToTargetIdx.has(chain)) chainToTargetIdx.set(chain, nextTargetIdx++);
     }
   }
@@ -424,14 +513,37 @@ async function buildCellpackStandardParticleList(
   let fiberPosition = 0;
   for (let ei = 0, eil = entries.length; ei < eil; ei++) {
     const entry = entries[ei];
-    const chainGroup = asym_id_list.value(entry.genIndex);
 
-    for (const chain of chainGroup) {
-      if (asymFilter && !asymFilter.has(chain)) continue;
+    for (const chain of entry.chains) {
       const bounds = chainBounds.get(chain);
       Vec3.copy(centroid, bounds ? bounds.center : Vec3.origin);
+      const radius = bounds ? bounds.radius : 0;
       const entityId = chainToEntityId.get(chain);
       const isFiber = entry.combinations.count >= 2 && entityId !== undefined && fiberEntityIds.has(entityId);
+
+      // the chain's target, compartment and entity, once a chain and not a particle (millions of particles); their
+      // indices assigned in the order of the chains' first particles, as before
+      const target = chainToTargetIdx.get(chain)!;
+      let compartment = -1;
+      let entity = -1;
+      if (entry.combinations.count > 0) {
+        const compartmentName = entityId !== undefined ? entityToCompartment.get(entityId) : undefined;
+        if (compartmentName !== undefined) {
+          if (!compartmentNameToIdx.has(compartmentName)) {
+            compartmentNameToIdx.set(compartmentName, compartmentNameToIdx.size);
+          }
+          compartment = compartmentNameToIdx.get(compartmentName)!;
+        }
+        const entityName = entityId !== undefined ? entityToName.get(entityId) : undefined;
+        if (entityName !== undefined) {
+          if (!entityNameToIdx.has(entityName)) {
+            entityNameToIdx.set(entityName, entityNameToIdx.size);
+            const fn = entityId !== undefined ? entityToFunction.get(entityId) : undefined;
+            if (fn !== undefined) entityNameToFunction.set(entityName, fn);
+          }
+          entity = entityNameToIdx.get(entityName)!;
+        }
+      }
 
       for (let ci = 0, cil = entry.combinations.count; ci < cil; ci++) {
         composeOperatorCombination(operators, entry.combinations, ci, combined);
@@ -450,28 +562,12 @@ async function buildCellpackStandardParticleList(
         rotations[qOffset + 2] = quaternion[2];
         rotations[qOffset + 3] = quaternion[3];
 
-        radii[count] = (bounds ? bounds.radius : 0) * Mat4.getMaxScaleOnAxis(combined);
+        radii[count] = radius * Mat4.getMaxScaleOnAxis(combined);
 
         keys[count] = count;
-        targets[count] = chainToTargetIdx.get(chain)!;
-
-        const compartmentName = entityId !== undefined ? entityToCompartment.get(entityId) : undefined;
-        if (compartmentName !== undefined) {
-          if (!compartmentNameToIdx.has(compartmentName)) {
-            compartmentNameToIdx.set(compartmentName, compartmentNameToIdx.size);
-          }
-          compartments[count] = compartmentNameToIdx.get(compartmentName)!;
-        }
-
-        const entityName = entityId !== undefined ? entityToName.get(entityId) : undefined;
-        if (entityName !== undefined) {
-          if (!entityNameToIdx.has(entityName)) {
-            entityNameToIdx.set(entityName, entityNameToIdx.size);
-            const fn = entityId !== undefined ? entityToFunction.get(entityId) : undefined;
-            if (fn !== undefined) entityNameToFunction.set(entityName, fn);
-          }
-          entities[count] = entityNameToIdx.get(entityName)!;
-        }
+        targets[count] = target;
+        compartments[count] = compartment;
+        entities[count] = entity;
 
         labelEntry[count] = ei;
         labelCombo[count] = ci;
@@ -488,13 +584,14 @@ async function buildCellpackStandardParticleList(
     await ctx.update({ message: 'Building particles', current: count, max: totalCount });
   }
 
-  // Build the chain mapping: target index → chain ID, and the reference structure of each target.
+  // Build the chain mapping: target index → chain ID, and the sites of each target.
   const chainMapping = new Map<number, string>();
   const targetMapping = new Map<number, ParticleTarget>();
   for (const [chain, idx] of chainToTargetIdx) {
     chainMapping.set(idx, chain);
-    const target = chainTargets.get(chain);
-    if (target) targetMapping.set(idx, { kind: 'structure', structure: target.structure });
+    const group = options.resolveTargets === false ? undefined : chainBounds.get(chain);
+    // the centroid the particles were placed by: the atoms end up where the operators put them
+    if (group) targetMapping.set(idx, { kind: 'sites', sites: group.sites, center: group.center });
   }
 
   // Build compartmentInfo: compartment index → compartment info.
@@ -557,7 +654,6 @@ async function buildPetworldParticleList(
   cifFile: CifFile,
   block: CifBlock,
   options: MmcifAssemblyParticleListOptions,
-  modelTargets: ReadonlyMap<number, Structure>,
 ): Promise<BuiltMmcifParticleList> {
   const db = toDatabase(mmCIF_Schema, block);
   const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
@@ -594,8 +690,7 @@ async function buildPetworldParticleList(
 
   for (let i = 0, il = pdbx_struct_assembly_gen._rowCount; i < il; i++) {
     if (assembly_id.value(i) !== options.assemblyId) continue;
-    const operList = parseOperatorList(oper_expression.value(i));
-    const combinations = expandOperatorCombinations(operList, operators);
+    const combinations = parseOperatorCombinations(oper_expression.value(i), operators);
     const modelNum = pdbModelNumField.int(i);
     entries.push({ genIndex: i, modelNum, combinations });
     totalCount += combinations.count;
@@ -615,11 +710,29 @@ async function buildPetworldParticleList(
   const modelNumToIndex = new Map<number, number>();
   distinctModelNums.forEach((mn, idx) => modelNumToIndex.set(mn, idx));
 
-  // targetMapping: target ID (= trajectory model index) → the model's reference structure.
+  const atomSite = block.categories['atom_site'];
+  // read once, not kept decoded with the file (`readCifField`)
+  const siteModelNum = atomSite && readCifField(atomSite, 'pdbx_PDB_model_num');
+  // a model's chains (its units): by entity and `label_asym_id`, else `auth_asym_id`
+  const siteLabelAsymId = atomSite && readCifField(atomSite, 'label_asym_id');
+  const siteAsym = siteLabelAsymId?.isDefined ? siteLabelAsymId : atomSite && readCifField(atomSite, 'auth_asym_id');
+  const siteEntity = atomSite && readCifField(atomSite, 'label_entity_id');
+  const modelBounds = await getAtomSiteGroups(
+    ctx,
+    block,
+    (i) => siteModelNum?.int(i) ?? 0,
+    undefined,
+    siteAsym ? { asym: siteAsym, entity: siteEntity } : undefined,
+  );
+
+  // targetMapping: target ID (= the model number's rank) → the model's sites, centered by the centroid its particles
+  // were placed by: the atoms end up where the operators put them
   const targetMapping = new Map<number, ParticleTarget>();
-  for (const [modelNum, idx] of modelNumToIndex) {
-    const structure = modelTargets.get(modelNum);
-    if (structure) targetMapping.set(idx, { kind: 'structure', structure });
+  if (options.resolveTargets !== false) {
+    for (const [modelNum, idx] of modelNumToIndex) {
+      const group = modelBounds.get(modelNum);
+      if (group) targetMapping.set(idx, { kind: 'sites', sites: group.sites, center: group.center });
+    }
   }
 
   const keys = new Int32Array(totalCount);
@@ -633,9 +746,6 @@ async function buildPetworldParticleList(
   const labelCombo = new Int32Array(totalCount);
 
   const entityNameToIdx = new Map<string, number>();
-
-  const { pdbx_PDB_model_num: siteModelNum } = db.atom_site;
-  const modelBounds = await getAtomSiteBounds(ctx, db, (i) => siteModelNum.value(i));
 
   const combined = Mat4();
   const quaternion = Quat();

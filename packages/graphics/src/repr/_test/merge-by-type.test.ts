@@ -117,6 +117,24 @@ describe('mergeRenderObjectsByType', () => {
       }),
     ).toBe(true);
     expect(out).toEqual([object]);
+
+    // so are new levels of detail (compared by value, not by the cell's version)
+    for (const { renderObject } of entries) {
+      ValueCell.update(renderObject.values.lodLevels, [[0, 50, 0, 1, 1, 1, 1, 0, 50]] as never);
+    }
+    expect(
+      checks(() => {
+        merged = mergeRenderObjectsByType(entries, true, merged, out);
+      }),
+    ).toBe(true);
+    for (const { renderObject } of entries) {
+      ValueCell.update(renderObject.values.lodLevels, renderObject.values.lodLevels.ref.value);
+    }
+    expect(
+      checks(() => {
+        merged = mergeRenderObjectsByType(entries, true, merged, out);
+      }),
+    ).toBe(false);
   });
 
   it('checks again when any `*Type` cell the merge check reads is set (perf-audit-3 07/P17)', () => {

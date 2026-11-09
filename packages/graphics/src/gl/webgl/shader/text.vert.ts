@@ -70,11 +70,12 @@ void main(void){
     float offsetZ = (uOffsetZ + textFlags.x * 0.95) * scale;
 
     vec4 position4 = vec4(textPosition.xyz, 1.0);
+    mat4 transform = uObjectTransform * aTransform;
     vec4 mvPosition = uHasEyeCamera
-         ? uModelViewEye * aTransform * position4
-         : uModelView * aTransform * position4;
+         ? uModelViewEye * transform * position4
+         : uModelView * transform * position4;
 
-    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
+    vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
 
     // TODO
     // #ifdef FIXED_SIZE

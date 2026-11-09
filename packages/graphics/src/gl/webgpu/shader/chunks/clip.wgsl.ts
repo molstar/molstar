@@ -14,12 +14,16 @@ fn localSD(type_: i32, t: vec3<f32>, size: vec3<f32>) -> f32 {
     if (type_ == 1) {
         return -t.y;
     } else if (type_ == 2) {
-        return (length(t / size) - 1.0) * min(min(size.x, size.y), size.z);
+        // half axes of 0 (a point, a disc) at a tiny size: finite, not 0 / 0
+        let s = max(size, vec3<f32>(1e-6));
+        return (length(t / s) - 1.0) * min(min(s.x, s.y), s.z);
     } else if (type_ == 3) {
         let d = abs(t) - size;
         return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, vec3<f32>(0.0)));
     } else if (type_ == 4) {
-        let d = abs(vec2<f32>(length(t.xz), t.y)) - size.xy;
+        // elliptic: across its axis scaled by the smaller half axis (at most the true distance, exact where round)
+        let s = max(size.xz, vec2<f32>(1e-6));
+        let d = vec2<f32>((length(t.xz / s) - 1.0) * min(s.x, s.y), abs(t.y) - size.y);
         return min(max(d.x, d.y), 0.0) + length(max(d, vec2<f32>(0.0)));
     } else if (type_ == 5) {
         return dot(size.xy, vec2<f32>(length(t.xy), t.z));
@@ -133,9 +137,9 @@ fn clipObjectInterval(i: i32, pFront: vec3<f32>, pBack: vec3<f32>) -> vec2<f32> 
         let z = clipSlab(qF.z, qB.z, size.z);
         return vec2<f32>(max(x.x, max(y.x, z.x)), min(x.y, min(y.y, z.y)));
     } else if (type_ == 4) {
-        let o = qF.xz;
-        let d = (qB - qF).xz;
-        let body = clipQuadratic(dot(d, d), dot(o, d), dot(o, o) - size.x * size.x);
+        let o = qF.xz / size.xz;
+        let d = (qB - qF).xz / size.xz;
+        let body = clipQuadratic(dot(d, d), dot(o, d), dot(o, o) - 1.0);
         let slab = clipSlab(qF.y, qB.y, size.y);
         return vec2<f32>(max(body.x, slab.x), min(body.y, slab.y));
     } else if (type_ == 5) {
@@ -352,8 +356,9 @@ export function clip_flag_wgsl(clipping: string) {
 /** Instance clipping in the vertex stage: moves the vertex out of the clip volume; expects \`aTransform\` and \`clipFlag\` */
 export const clip_instance_wgsl = /* wgsl */ `
 #if defined(dClipVariant_instance) && defined(dClipObjects)
-    let clipCenter = (uGlobal.uModel * aTransform * vec4<f32>(invariantBoundingSphere(in).xyz, 1.0)).xyz;
-    if (clipTest(clipCenter / uGlobal.uModelScale, clipFlag)) {
+    let clipCenter = (uGlobal.uModel * uObject.uObjectTransform * aTransform * vec4<f32>(invariantBoundingSphere(in).xyz, 1.0)).xyz;
+    // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+    if (clipTest(clipCenter / uGlobal.uModelScale, clipFlag) != (uGlobal.uClipGhost != 0u)) {
         // move out of [0, w] to 'discard' in the vertex stage
         out.position.z = 2.0 * out.position.w;
     }
@@ -364,7 +369,8 @@ export const clip_instance_wgsl = /* wgsl */ `
 export function clip_pixel_wgsl(modelPosition: string) {
   return /* wgsl */ `
 #if defined(dClipVariant_pixel) && defined(dClipObjects)
-    if (clipTest(${modelPosition} / uGlobal.uModelScale, clipFlag)) {
+    // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+    if (clipTest(${modelPosition} / uGlobal.uModelScale, clipFlag) != (uGlobal.uClipGhost != 0u)) {
         discard;
     }
 #endif

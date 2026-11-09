@@ -229,3 +229,15 @@ export function computeStructureBlobSurface(structure: Structure, sizeTheme: Siz
     return await getBlobDensityData(ctx, position, boundary, radius, props);
   });
 }
+
+/** The blob surface of positions given as they are, not of a structure (a particle target's sites) */
+export function computePositionBlobSurface(
+  position: PositionData,
+  boundary: Boundary,
+  radius: (index: number) => number,
+  props: BlobDensityProps,
+) {
+  return Task.create('Blob Surface', async (ctx) => {
+    return await getBlobDensityData(ctx, position, boundary, radius, props);
+  });
+}

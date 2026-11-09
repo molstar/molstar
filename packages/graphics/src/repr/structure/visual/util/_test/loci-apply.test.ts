@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
@@ -13,12 +14,15 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
-import { eachInterBond, eachIntraBond, eachStructureGroupsBond } from '../bond.js';
+import { PickingId } from '@molstar/graphics/geo/geometry/picking';
+import { eachInterBond, eachIntraBond, eachStructureGroupsBond, getIntraBondLoci } from '../bond.js';
+import { getPolymerElementLoci } from '../polymer.js';
 import {
   applyIndexRuns,
   createElementSphereImpostor,
   createStructureElementSphereImpostor,
   eachElement,
+  getElementLoci,
 } from '../element.js';
 import { getGroupLoci, isWholeStructureLoci } from '../loci-index.js';
 
@@ -85,6 +89,18 @@ describe('loci application', async () => {
   const cells = await StructureSymmetry.buildSymmetryRange(model, Vec3.create(0, 0, 0), Vec3.create(1, 0, 0)).run();
   const protein = model.units.find((u) => Unit.isAtomic(u) && u.polymerElements.length > 0) as Unit.Atomic;
   const proteinGroup = model.unitSymmetryGroups[model.unitSymmetryGroupsIndexMap.get(protein.id)];
+
+  it("picks a whole unit as its elements' indices, none past them", () => {
+    const pickingId = { objectId: 1, instanceId: 0, groupId: PickingId.Null };
+    const structureGroup = { structure: model, group: proteinGroup };
+    for (const getLoci of [getElementLoci, getPolymerElementLoci, getIntraBondLoci]) {
+      const loci = getLoci(pickingId, structureGroup, 1) as StructureElement.Loci;
+      expect(loci.elements.length).toBe(1);
+      const { unit, indices } = loci.elements[0];
+      expect(OrderedSet.size(indices)).toBe(unit.elements.length);
+      expect(OrderedSet.max(indices)).toBe(unit.elements.length - 1);
+    }
+  });
 
   it('restricts a loci to the units of a group', () => {
     const group = cells.unitSymmetryGroups.find((g) => g.units.length > 1 && Unit.isAtomic(g.units[0]))!;
@@ -270,5 +286,23 @@ describe('sphere impostors (perf-audit-2 07/P18)', async () => {
     sizes = 0;
     createStructureElementSphereImpostor({} as any, structure, theme, props, all);
     expect(sizes).toBe(0);
+  });
+
+  it("group each sphere by its element's serial index", () => {
+    const { unitIndices, elementIndices } = structure.serialMapping;
+    const p = Vec3();
+    for (const ignoreHydrogens of [false, true]) {
+      const spheres = createStructureElementSphereImpostor({} as any, structure, theme, { ...props, ignoreHydrogens });
+      const data = spheres.positionGroup.ref.value.array;
+      expect(spheres.sphereCount).toBeGreaterThan(0);
+      // the spheres in any order (levels of detail): each at the position of the element its group names
+      for (let k = 0; k < spheres.sphereCount; ++k) {
+        const g = data[k * 4 + 3];
+        const unit = structure.units[unitIndices[g]];
+        unit.conformation.position(elementIndices[g], p);
+        expect([data[k * 4], data[k * 4 + 1], data[k * 4 + 2]]).toEqual([p[0], p[1], p[2]].map(Math.fround));
+      }
+    }
+    expect(structure.units.length).toBeGreaterThan(1);
   });
 });

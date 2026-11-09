@@ -417,6 +417,9 @@ export function createTexture(
    * parts where segmented, a few rows at a time)
    */
   function loadData(data: DataArray<any>, w: number, h: number, offset = 0, ranges?: readonly number[]) {
+    // a destroyed texture uploads nothing (e.g. data or an image arriving after it was replaced): binding its deleted
+    // object fails and the upload would go to whatever texture is bound
+    if (destroyed) return;
     const array = data.array as (ArrayBufferView & ArrayLike<number>) | SegmentedArray;
     const count = data.count;
     invalidateBindings();
@@ -460,6 +463,8 @@ export function createTexture(
   }
 
   function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub = false) {
+    // as `loadData`: an image decoded after the texture was destroyed (a background changed meanwhile)
+    if (destroyed) return;
     if (
       data.width === 0 ||
       data.height === 0 ||
@@ -512,6 +517,7 @@ export function createTexture(
 
   /** `Texture.loadRows`: the rows from views of the array, as `loadData` writes */
   function loadRows(image: TextureImage<any>, rows: readonly number[]) {
+    if (destroyed) return;
     if (target !== gl.TEXTURE_2D || image.flipY || storedWidth !== image.width || storedHeight !== image.height) {
       load(image);
       return;
@@ -534,6 +540,7 @@ export function createTexture(
   }
 
   function mipmap() {
+    if (destroyed) return;
     if (target !== gl.TEXTURE_2D) {
       throw new Error('mipmap only supported for 2d textures');
     }
@@ -745,28 +752,44 @@ export function createCubeTexture(
   function load(cubeTarget: number, level: number, image: HTMLImageElement, isReset: boolean) {
     if (size === 0) size = image.width;
 
-    gl.bindTexture(target, texture);
-    gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
-    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.bindTexture(target, texture);
-    gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
+    // a face decoded after the texture was destroyed: counted, not uploaded (its deleted object can't be bound)
+    if (!destroyed) {
+      gl.bindTexture(target, texture);
+      gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.bindTexture(target, texture);
+      gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
+    }
 
     loadedCount += 1;
     if (loadedCount === 6) {
       if (!destroyed) {
-        if (mipmaps) {
+        // WebGL1 has mipmaps of power-of-two sizes only (else an incomplete cube map, sampled black), as `mipmap`
+        if (mipmaps && (isWebGL2(gl) || isPowerOfTwo(size))) {
           gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
           gl.generateMipmap(target);
+          mipmapped = true;
         } else {
           gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
         }
         gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
       }
-      if (!isReset) onload?.(destroyed);
+      if (!isReset) report(destroyed);
     }
+  }
+
+  /** whether the faces have mipmaps (asked for, and possible: not of a size WebGL1 can't mipmap) */
+  let mipmapped = false;
+
+  /** `onload` once: the six faces loaded, or the first that failed (pending work waiting for the faces settles) */
+  let reported = false;
+  function report(errored: boolean) {
+    if (reported) return;
+    reported = true;
+    onload?.(errored);
   }
 
   const facesData: { cubeTarget: number; level: number; image: HTMLImageElement }[] = [];
@@ -779,12 +802,21 @@ export function createCubeTexture(
     const cubeTarget = getCubeTarget(gl, side as CubeSide);
 
     const image = new Image();
+    // an object URL made here, revoked once the image is decoded or failed
+    let objectUrl: string | undefined;
+    const setSource = (blob: Blob) => {
+      objectUrl = URL.createObjectURL(blob);
+      image.src = objectUrl;
+    };
+    const revoke = () => {
+      if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl);
+      objectUrl = undefined;
+    };
     if (source instanceof File) {
-      image.src = URL.createObjectURL(source);
+      setSource(source);
     } else if (isPromiseLike(source)) {
-      source.then((blob) => {
-        image.src = URL.createObjectURL(blob);
-      });
+      // a source that fails (an asset not found) fails the face, as an image that fails to decode
+      source.then(setSource, () => report(true));
     } else {
       image.src = source;
     }
@@ -792,10 +824,12 @@ export function createCubeTexture(
     facesData.push({ cubeTarget, level, image });
 
     image.addEventListener('load', () => {
+      revoke();
       load(cubeTarget, level, image, false);
     });
     image.addEventListener('error', () => {
-      onload?.(true);
+      revoke();
+      report(true);
     });
   });
 
@@ -813,7 +847,7 @@ export function createCubeTexture(
     getHeight: () => size,
     getDepth: () => 0,
     getByteCount: () => {
-      return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmaps ? 2 : 1);
+      return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmapped ? 2 : 1);
     },
 
     define: () => {},

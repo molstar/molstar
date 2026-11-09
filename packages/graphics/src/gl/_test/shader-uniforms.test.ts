@@ -35,55 +35,9 @@ import {
   WgslUniformBlockInstance,
 } from '../webgpu/uniform-declarations.js';
 import { ComputeShaders, getComputeDefineVariants } from './compute-shaders.js';
-import { GraphicsShaders, getProgramDefines } from './graphics-shaders.js';
+import { GraphicsShaders, getProgramDefines, resolveGeometryType } from './graphics-shaders.js';
 import { getGlslProgram, registerGlslProgram } from '../webgl/programs.js';
 import { getInstanceDataSchema } from '../webgl/render-item.js';
-
-/**
- * Removes inactive branches of conditionals that only test `dGeometryType_*`,
- * all branches of other conditionals are kept.
- */
-function resolveGeometryType(source: string, geometryType: string) {
-  const evaluate = (condition: string): boolean | undefined => {
-    const m = condition
-      .trim()
-      .match(/^(!?)\s*(?:defined\s*\(\s*(dGeometryType_\w+)\s*\)|defined\s+(dGeometryType_\w+))$/);
-    if (!m) return undefined;
-    return ((m[2] ?? m[3]) === `dGeometryType_${geometryType}`) !== (m[1] === '!');
-  };
-  // `active` of the current branch, `taken` if any branch of a resolved conditional was active
-  const stack: { resolved: boolean; active: boolean; taken: boolean }[] = [];
-  const lines: string[] = [];
-  for (const line of source.split('\n')) {
-    const d = line.trim().match(/^#\s*(ifdef|ifndef|if|elif|else|endif)\b(.*)$/);
-    if (!d) {
-      if (stack.every((f) => f.active)) lines.push(line);
-      continue;
-    }
-    const [, directive, rest] = d;
-    const top = stack[stack.length - 1];
-    if (directive === 'ifdef' || directive === 'ifndef' || directive === 'if') {
-      const condition = directive === 'if' ? rest : `${directive === 'ifndef' ? '!' : ''}defined(${rest.trim()})`;
-      const value = evaluate(condition);
-      stack.push(
-        value === undefined
-          ? { resolved: false, active: true, taken: false }
-          : { resolved: true, active: value, taken: value },
-      );
-    } else if (directive === 'elif') {
-      if (top.resolved) {
-        const value = evaluate(rest) ?? true;
-        top.active = !top.taken && value;
-        top.taken ||= top.active;
-      }
-    } else if (directive === 'else') {
-      if (top.resolved) top.active = !top.taken;
-    } else {
-      stack.pop();
-    }
-  }
-  return lines.join('\n');
-}
 
 function getIdentifiers(source: string, prefix: 'u' | 't' | 'a') {
   const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');

@@ -85,10 +85,11 @@ void main(){
     ${assign_clipping_varying}
     ${assign_size}
 
-    mat4 transform = applyTumble(aTransform);
+    mat4 transform = uObjectTransform * applyTumble(aTransform);
     vec3 wigStart = applyWiggle(segmentStart, group, aInstance);
     vec3 wigEnd = applyWiggle(segmentEnd, group, aInstance);
-    mat4 modelView = uView * uModel * transform;
+    mat4 model = uModel * transform;
+    mat4 modelView = uView * model;
 
     // camera space
     vec4 start = modelView * vec4(wigStart, 1.0);
@@ -98,7 +99,7 @@ void main(){
     vec4 position4 = vec4((mapping.y < 0.5) ? wigStart : wigEnd, 1.0);
     vViewPosition = (mapping.y < 0.5) ? start.xyz : end.xyz;
 
-    vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
+    vModelPosition = (model * position4).xyz; // for clipping in frag shader
 
     // special case for perspective projection, and segments that terminate either in, or behind, the camera plane
     // clearly the gpu firmware has a way of addressing this issue when projecting into ndc space
@@ -167,7 +168,10 @@ void main(){
         mat4 modelTransform = uModel * transform;
         vec3 lineA = (modelTransform * vec4(applyWiggle(lineStart.xyz, group, aInstance), 1.0)).xyz;
         vec3 lineB = (modelTransform * vec4(applyWiggle(lineEnd.xyz, group, aInstance), 1.0)).xyz;
-        int clipClass = clipSphereClass((lineA + lineB) * 0.5 / uModelScale, length(lineB - lineA) * 0.5 / uModelScale);
+        // the ghost pass (\`uClipGhost\`): a line whole by its center, kept where clipped, not tested per fragment
+        int clipClass = uClipGhost
+            ? (clipTest((lineA + lineB) * 0.5 / uModelScale) ? 0 : 2)
+            : clipSphereClass((lineA + lineB) * 0.5 / uModelScale, length(lineB - lineA) * 0.5 / uModelScale);
         if (clipClass == 2) {
             gl_Position.z = 2.0 * gl_Position.w;
         }

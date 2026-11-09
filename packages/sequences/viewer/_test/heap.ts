@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The Node heap guards' measurement is one for every package: core/_test/model/heap.ts.
+// The Node heap guards' measurement is one for every package: test-harness/src/heap.ts.
 export {
   controlCaught,
   describeScaling,
@@ -18,7 +18,7 @@ export {
   leaking,
   SCALED_LIMIT,
   type Scaling,
-} from '../../core/_test/model/heap.js';
+} from '@molstar/test-harness/heap';
 
 // The quick tier's case (`test:perf`), for the `*.quick.ts` twins of the guards here.
 export {
@@ -27,10 +27,10 @@ export {
   type QuickOptions,
   type QuickTask,
   quickCase,
-} from '../../core/_test/model/quick.js';
+} from '@molstar/test-harness/quick';
 
-import { settleByCount } from '../../core/_test/model/alloc.js';
-import { heapScaling, type Scaling } from '../../core/_test/model/heap.js';
+import { settleByCount } from '@molstar/test-harness/alloc';
+import { heapScaling, type Scaling } from '@molstar/test-harness/heap';
 
 // The frame guards' shared run (the conformance kit's, the composer's and every draw guard's): a frame is warmed by
 // count (`FRAME_WARM`), then settled by count (`settleFrame`: until it stops allocating, read exactly), then measured
@@ -64,7 +64,7 @@ export function warmFrame(frame: (i: number) => void): void {
 }
 
 /**
- * Windows of `FRAME_N` frames until three in a row allocate under `SETTLED` bytes a frame (core/_test/model/alloc.ts
+ * Windows of `FRAME_N` frames until three in a row allocate under `SETTLED` bytes a frame (test-harness/src/alloc.ts
  * `settleByCount`, exact through `v8.GCProfiler`), at most `cap` frames. By count, so a loaded machine takes longer but
  * measures the same. Returns whether it settled.
  */

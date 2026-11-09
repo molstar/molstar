@@ -13,7 +13,7 @@ import { checkQuery } from '@molstar/seq-core/query';
 import { describe, expect, it } from 'vitest';
 import { readDocument, readSvsx, toJSON, toMsgPack, validate, zipFiles } from '../../src/format/index.js';
 import { KernelFormats } from '../../src/format/load/formats.js';
-import { itWithin } from '../model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { CASES } from './cases.js';
 import { kernel } from './fixtures.js';
 

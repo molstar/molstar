@@ -12,6 +12,7 @@ import {
   apply_fog_wgsl,
   apply_marker_wgsl,
   assign_material_wgsl,
+  apply_occlusion_wgsl,
   check_transparency_wgsl,
   material_functions_wgsl,
 } from './chunks/material.wgsl.js';
@@ -81,14 +82,15 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     var offsetZ = (uMaterial.uOffsetZ + textFlags.x * 0.95) * scale;
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    let transform = uObject.uObjectTransform * aTransform;
     let position4 = vec4<f32>(textPosition.xyz, 1.0);
     let hasEyeCamera = uGlobal.uHasEyeCamera != 0u;
-    var mvPosition = uGlobal.uModelView * aTransform * position4;
+    var mvPosition = uGlobal.uModelView * transform * position4;
     if (hasEyeCamera) {
-        mvPosition = uGlobal.uModelViewEye * aTransform * position4;
+        mvPosition = uGlobal.uModelViewEye * transform * position4;
     }
 
-    out.vModelPosition = (uGlobal.uModel * aTransform * position4).xyz;
+    out.vModelPosition = (uGlobal.uModel * transform * position4).xyz;
 
     var mvCenter = vec4<f32>(mvPosition.xyz, 1.0);
 
@@ -205,6 +207,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         #endif
     }
 
+    ${apply_occlusion_wgsl}
     ${check_transparency_wgsl}
 
     #if defined(dRenderVariant_pick)

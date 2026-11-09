@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { InstanceDataVec4s } from '../../renderable/merged.js';
 import { clip_storage_wgsl } from './chunks/clip.wgsl.js';
+import { CulledData } from '../../culled-data.js';
 
 /**
  * The occlusion test of a sphere (world space, `occluded`) against a pyramid (`HiZSchema` in `cell-cull.ts`), as
@@ -102,8 +102,42 @@ fn occluded(sphere: vec4<f32>) -> bool {
 const sphere_test_wgsl = /* wgsl */ `
 ${hiz_occlusion_wgsl}
 ${clip_storage_wgsl('segmentData', 'u32(uParams.uClipBase)', 'uParams.uClipObjectCount')}
+/** a sphere of the object as drawn: moved by its transient transform (\`uObjectTransform\`, the identity at rest) */
+fn moved(sphere: vec4<f32>) -> vec4<f32> {
+    let center = uParams.uObjectTransform * vec4<f32>(sphere.xyz, 1.0);
+    return vec4<f32>(center.xyz, sphere.w * uParams.uObjectScale);
+}
+
 fn outside(plane: vec4<f32>, sphere: vec4<f32>) -> bool {
     return dot(plane.xyz, sphere.xyz) + plane.w < -sphere.w;
+}
+
+/** a sphere in the frustum and the object's distance range */
+fn inFrustum(sphere: vec4<f32>) -> bool {
+    if (outside(uParams.uPlane0, sphere) || outside(uParams.uPlane1, sphere) || outside(uParams.uPlane2, sphere) ||
+        outside(uParams.uPlane3, sphere) || outside(uParams.uPlane4, sphere) || outside(uParams.uPlane5, sphere)) {
+        return false;
+    }
+    let d = dot(uParams.uCameraPlane.xyz, sphere.xyz) + uParams.uCameraPlane.w;
+    let range = uParams.uLodRange;
+    return !(range.z > 0.0 && (d + sphere.w < range.x || d - sphere.w > range.y));
+}
+
+/** a sphere in the frustum and the object's distance range, not behind the pyramid */
+fn inView(sphere: vec4<f32>) -> bool {
+    return inFrustum(sphere) && !occluded(sphere);
+}
+
+/** in a cell's levels: its instances go into the ghost's region too (\`uGhostRegion\`) */
+const GhostBit = 0x10000u;
+
+/**
+ * Whether a sphere is the ghost's (\`uGhostRegion\`): in the frustum, reached by the clip objects (clipped whole or cut;
+ * with none classified, a clipping layer's, all, the vertex stage deciding). Not tested against the pyramid: the ghost
+ * is filled in the first phase only, against the last frame's, and no second phase takes back what that culled wrongly
+ */
+fn ghostSphere(sphere: vec4<f32>) -> bool {
+    return inFrustum(sphere) && (uParams.uClipObjectCount == 0 || clipSphereClass(sphere.xyz, sphere.w, 0) != 0u);
 }
 
 /**
@@ -111,15 +145,10 @@ fn outside(plane: vec4<f32>, sphere: vec4<f32>) -> bool {
  * object's distance range, behind the pyramid, or clipped whole by the clip objects (one level without levels)
  */
 fn sphereLevels(sphere: vec4<f32>) -> u32 {
-    if (outside(uParams.uPlane0, sphere) || outside(uParams.uPlane1, sphere) || outside(uParams.uPlane2, sphere) ||
-        outside(uParams.uPlane3, sphere) || outside(uParams.uPlane4, sphere) || outside(uParams.uPlane5, sphere)) {
+    if (!inView(sphere)) {
         return 0u;
     }
     let d = dot(uParams.uCameraPlane.xyz, sphere.xyz) + uParams.uCameraPlane.w;
-    let range = uParams.uLodRange;
-    if ((range.z > 0.0 && (d + sphere.w < range.x || d - sphere.w > range.y)) || occluded(sphere)) {
-        return 0u;
-    }
     // clipped whole by the clip objects (without a clipping layer: none exempt)
     if (uParams.uClipObjectCount > 0 && clipSphereClass(sphere.xyz, sphere.w, 0) == 2u) {
         return 0u;
@@ -146,42 +175,52 @@ fn sphereLevels(sphere: vec4<f32>) -> u32 {
 export const cell_cull_wgsl = /* wgsl */ `
 ${sphere_test_wgsl}
 @compute @workgroup_size(WorkgroupSizeX)
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let cell = id.x;
+fn main(@builtin(global_invocation_id) id: vec3<u32>, @builtin(num_workgroups) groups: vec3<u32>) {
+    // rows of workgroups past the per-dimension limit (\`getDispatchSize\`)
+    let cell = id.x + id.y * groups.x * WorkgroupSizeX;
     if (cell >= u32(uParams.uCellCount)) {
         return;
     }
-    cellLevels[cell] = sphereLevels(cellSpheres[cell]);
+    let sphere = moved(cellSpheres[cell]);
+    var bits = sphereLevels(sphere);
+    if (uParams.uGhostRegion > 0 && ghostSphere(sphere)) {
+        bits |= GhostBit;
+    }
+    cellLevels[cell] = bits;
 }
 `;
 
 /**
  * Per instance of a drawn cell: its own sphere tested as the cell's (finer: the instances of a cell are drawn at fewer
- * levels, or culled), its data copied into a slot of its segment's region at each level of both. The
+ * levels, or culled), its index written into a slot of its segment's region at each level of both. The
  * instances of a workgroup are consecutive, mostly of one segment: those of the workgroup's first segment take their
  * slots from a workgroup counter, reserved by one global atomic per level (100k instances on a counter per segment
  * contend otherwise); the others take theirs from the global counter
  */
 export const instance_copy_wgsl = /* wgsl */ `
 ${sphere_test_wgsl}
+${CulledData.wgsl('data', 'u32(uParams.uInstanceCount)')}
 /** in an instance's cell: the first phase drew it */
 const DrawnBit = 0x80000000u;
 
 var<workgroup> wgCount: atomic<u32>;
 var<workgroup> wgBase: u32;
 
-/** the instance's sphere at \`o\` (\`instanceData\`) of \`segment\`: its invariant sphere transformed, by the largest scale */
-fn instanceSphere(o: u32, segment: u32) -> vec4<f32> {
+/**
+ * the sphere of instance \`i\` (\`CulledData\`) of \`segment\`: its invariant sphere transformed, by the largest scale; as
+ * drawn (\`moved\`)
+ */
+fn instanceSphere(i: u32, segment: u32) -> vec4<f32> {
     let s = segmentData[segment * 3u];
     // the transform's rows (\`affine-rows.ts\`)
-    let r0 = instanceData[o];
-    let r1 = instanceData[o + 1u];
-    let r2 = instanceData[o + 2u];
+    let r0 = culledTransform0(i);
+    let r1 = culledTransform1(i);
+    let r2 = culledTransform2(i);
     let center = vec3<f32>(dot(r0.xyz, s.xyz) + r0.w, dot(r1.xyz, s.xyz) + r1.w, dot(r2.xyz, s.xyz) + r2.w);
     let c0 = vec3<f32>(r0.x, r1.x, r2.x);
     let c1 = vec3<f32>(r0.y, r1.y, r2.y);
     let c2 = vec3<f32>(r0.z, r1.z, r2.z);
-    return vec4<f32>(center, s.w * sqrt(max(dot(c0, c0), max(dot(c1, c1), dot(c2, c2)))));
+    return moved(vec4<f32>(center, s.w * sqrt(max(dot(c0, c0), max(dot(c1, c1), dot(c2, c2))))));
 }
 
 /**
@@ -207,14 +246,9 @@ fn rasterized(sphere: vec4<f32>, segment: u32, j: u32) -> bool {
     return r * uParams.uRasterScale <= uParams.uRasterRadius * sqrt(max(d * d - r * r, 0.0));
 }
 
-fn copyInstance(o: u32, t: u32) {
-    // the transform's rows (\`affine-rows.ts\`)
-    transforms[t * 3u] = instanceData[o];
-    transforms[t * 3u + 1u] = instanceData[o + 1u];
-    transforms[t * 3u + 2u] = instanceData[o + 2u];
-    let is = instanceData[o + 3u];
-    instances[t] = is.x;
-    segments[t] = vec4<f32>(is.yzw, instanceData[o + 4u].x);
+/** instance \`i\` into slot \`t\` of a region, by its index */
+fn copyInstance(i: u32, t: u32) {
+    indices[t] = i;
 }
 
 @compute @workgroup_size(WorkgroupSizeX)
@@ -222,40 +256,55 @@ fn main(
     @builtin(global_invocation_id) id: vec3<u32>,
     @builtin(local_invocation_index) local: u32,
     @builtin(workgroup_id) wid: vec3<u32>,
+    @builtin(num_workgroups) groups: vec3<u32>,
 ) {
-    let instance = id.x;
+    // rows of workgroups past the per-dimension limit (\`getDispatchSize\`)
+    let workgroup = wid.x + wid.y * groups.x;
+    let instance = workgroup * WorkgroupSizeX + local;
     let instanceCount = u32(uParams.uInstanceCount);
     let segmentCount = u32(uParams.uSegmentCount);
     let valid = instance < instanceCount;
     var mask = 0u;
     var segment = 0u;
     var sphere = vec4<f32>(0.0);
+    var ghost = false;
     if (valid) {
         let cs = instanceCells[instance];
         let drawnFirst = (cs.x & DrawnBit) != 0u;
-        mask = cellLevels[cs.x & ~DrawnBit];
+        let bits = cellLevels[cs.x & ~DrawnBit];
+        mask = bits & ~GhostBit;
         segment = cs.y;
+        // the ghost's in the first phase only (its own, not of the frame's depth)
+        let ghostCell = (bits & GhostBit) != 0u && uParams.uPhase == 0;
         // the second phase: those the first left out
         if (uParams.uPhase != 0 && drawnFirst) {
             mask = 0u;
         }
-        if (mask != 0u) {
-            sphere = instanceSphere(instance * ${InstanceDataVec4s}u, segment);
+        if (mask != 0u || ghostCell) {
+            sphere = instanceSphere(instance, segment);
             mask &= sphereLevels(sphere);
             // clipped by its center, as the vertex stage clips instances (\`clip_instance_wgsl\`)
-            if (uParams.uClipInstance != 0 && clipTest(sphere.xyz, 0)) {
+            let centerClipped = uParams.uClipInstance != 0 && clipTest(sphere.xyz, 0);
+            if (centerClipped) {
                 mask = 0u;
             }
+            ghost = ghostCell && ghostSphere(sphere) && (uParams.uClipInstance == 0 || centerClipped);
         }
         if (uParams.uPhase == 0) {
             instanceCells[instance].x = (cs.x & ~DrawnBit) | select(0u, DrawnBit, mask != 0u);
         }
     }
+    // the ghost's instances into its region (by the global counters)
+    if (ghost) {
+        let k = u32(uParams.uGhostRegion);
+        let slot = atomicAdd(&counters[k * segmentCount + segment], 1u);
+        copyInstance(instance, k * instanceCount + bitcast<u32>(segmentData[segment * 3u + 1u].x) + slot);
+    }
     let rasterBase = u32(uParams.uRasterLevels);
     // the segment of the workgroup's first instance (always valid)
-    let wgSegment = instanceCells[wid.x * WorkgroupSizeX].y;
+    let wgSegment = instanceCells[workgroup * WorkgroupSizeX].y;
     let firstSegment = segment == wgSegment;
-    let o = instance * ${InstanceDataVec4s}u;
+    let o = instance;
     for (var j = 0u; j < 4u; j++) {
         var drawn = (mask & (1u << j)) != 0u;
         // the raster's instances into its regions after the levels' (by the global counters)
@@ -301,8 +350,9 @@ fn main(
  */
 export const cull_args_wgsl = /* wgsl */ `
 @compute @workgroup_size(WorkgroupSizeX)
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let k = id.x;
+fn main(@builtin(global_invocation_id) id: vec3<u32>, @builtin(num_workgroups) groups: vec3<u32>) {
+    // rows of workgroups past the per-dimension limit (\`getDispatchSize\`)
+    let k = id.x + id.y * groups.x * WorkgroupSizeX;
     if (k >= u32(uParams.uRecordCount)) {
         return;
     }

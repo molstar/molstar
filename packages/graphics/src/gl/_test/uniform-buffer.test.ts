@@ -159,6 +159,7 @@ describe('uniform-buffer', () => {
       ['uViewOffset', 832],
       ['uModelScale', 840],
       ['uDrawingBufferSize', 848],
+      ['uCssHeight', 856],
       ['uCameraPosition', 864],
       ['uCameraDir', 880],
       ['uCameraPlane', 896],
@@ -182,17 +183,20 @@ describe('uniform-buffer', () => {
       ['uMarkerPriority', 1544],
       ['uMarkerAverage', 1548],
       ['uXrayEdgeFalloff', 1552],
-      ['uCelSteps', 1556],
-      ['uExposure', 1560],
-      ['uRenderMask', 1564],
-      ['uMarkingDepthTest', 1568],
-      ['uDepthBack', 1572],
-      ['uMarkingType', 1576],
-      ['uPickType', 1580],
-      ['uTime', 1584],
-      ['uEnableAnimation', 1588],
+      ['uOccluderNear', 1556],
+      ['uOccluderFar', 1560],
+      ['uCelSteps', 1564],
+      ['uExposure', 1568],
+      ['uRenderMask', 1572],
+      ['uMarkingDepthTest', 1576],
+      ['uDepthBack', 1580],
+      ['uClipGhost', 1584],
+      ['uMarkingType', 1588],
+      ['uPickType', 1592],
+      ['uTime', 1596],
+      ['uEnableAnimation', 1600],
     ]);
-    expect(layout.size).toBe(1600);
+    expect(layout.size).toBe(1616);
 
     // any schema that includes global uniforms gets the full global layout
     const schema = { ...GlobalUniformSchema, x: UniformSpec('f', undefined, 'object') };

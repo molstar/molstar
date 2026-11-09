@@ -18,6 +18,7 @@ import type { Transparency } from './render-item.js';
 import type { GlobalDefines } from './renderable/schema.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { createDrawTable, DrawFact, DrawRow, DrawState, type DrawTable } from './draw-table.js';
+import { getDrawnBoundingSphere } from './renderable/util.js';
 
 const boundaryHelper = new BoundaryHelper('98');
 
@@ -32,7 +33,7 @@ function calculateBoundingSphere(
     if (onlyVisible && !renderables[i].state.visible) continue;
     if (!renderables[i].values.drawCount.ref.value) continue;
 
-    const boundingSphere = renderables[i].values.boundingSphere.ref.value;
+    const boundingSphere = getDrawnBoundingSphere(renderables[i].values);
     if (!boundingSphere.radius) continue;
 
     boundaryHelper.includeSphere(boundingSphere);
@@ -42,7 +43,7 @@ function calculateBoundingSphere(
     if (onlyVisible && !renderables[i].state.visible) continue;
     if (!renderables[i].values.drawCount.ref.value) continue;
 
-    const boundingSphere = renderables[i].values.boundingSphere.ref.value;
+    const boundingSphere = getDrawnBoundingSphere(renderables[i].values);
     if (!boundingSphere.radius) continue;
 
     boundaryHelper.radiusSphere(boundingSphere);

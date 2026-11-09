@@ -3,10 +3,13 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
+import { ClipGhostParams, type ClipGhostProps } from '@molstar/graphics/canvas3d/passes/clip-ghost';
+import type { Color } from '@molstar/core/util/color';
 import type { State, StateBuilder, StateObjectCell } from '@molstar/core/state';
 import { Clip } from '@molstar/core/util/clip';
 import { UUID } from '@molstar/core/util/uuid';
@@ -44,13 +47,15 @@ import {
   representationLabel,
   representationType,
   representationsSphere,
+  quatOf,
   reshape,
   rotated,
+  rotationOf,
   rotationTo,
   shapeAxis,
+  twisted,
   withObject,
 } from '../../sources/clipping/cuts.js';
-import { rotationOf } from '../../sources/clipping/gizmo/binding.js';
 import {
   afterRemoval,
   layerCell,
@@ -90,15 +95,56 @@ export class ClippingApi extends ApiArea {
     { compare: sameCuts },
   );
 
-  /** How the cuts cut and what they leave (the section's Settings): read again when the options change */
-  readonly cutSettings: ReadonlyState<ClipSettings> = watchedState(
-    () => settingsOf(this.ctx.plugin),
-    () => [this.ctx.plugin.managers.structure.component.events.optionsUpdated],
-    { compare: (a, b) => a.variant === b.variant && a.solidSurface === b.solidSurface },
-  );
-
   /** The cuts' gizmos in the canvas (the section's Show handles): their drags commit through the person's API */
   readonly gizmos = new ClipGizmos(this.ctx.plugin, this.cuts);
+
+  /** The ghost's look while it is off (the canvas keeps none): the session's, set by `clipping.settings` */
+  readonly #ghostLook = observableState<ClipGhostProps | undefined>(undefined);
+
+  // The settings neither the canvas nor the options hold (the arrow's fade, the ghost's look while it is off):
+  // registered, a checkpoint holds them, so Undo of `clipping.settings` (and a session) restores them
+  readonly #unregister = this.ctx.plugin.state.registerCustomState('prism-viewer.clipping', {
+    get: () => ({ version: 1, fadeNormal: this.gizmos.fadeNormal.value, ghostLook: this.#ghostLook.value }),
+    set: (value) => {
+      const v = value as { version?: number; fadeNormal?: unknown; ghostLook?: unknown } | undefined;
+      const known = v?.version === 1;
+      const fade = known && typeof v.fadeNormal === 'boolean' ? v.fadeNormal : false;
+      if (this.gizmos.fadeNormal.value !== fade) this.gizmos.setFadeNormal(fade);
+      const look = known ? readGhostLook(v.ghostLook) : undefined;
+      if (!sameGhostLook(this.#ghostLook.value, look)) this.#ghostLook.set(look);
+    },
+  });
+
+  override dispose(): void {
+    this.#unregister();
+  }
+
+  /** How the cuts cut and what they leave (the section's Settings): read again when the options change */
+  readonly cutSettings: ReadonlyState<ClipSettings> = watchedState(
+    () => ({
+      ...settingsOf(this.ctx.plugin),
+      fadeNormal: this.gizmos.fadeNormal.value,
+      ghost: isGhostOn(this.ctx.plugin),
+      ...ghostLookSettings(ghostLookOf(this.ctx.plugin, this.#ghostLook.value)),
+    }),
+    () => [
+      this.ctx.plugin.managers.structure.component.events.optionsUpdated,
+      this.gizmos.fadeNormal,
+      this.ctx.plugin.events.canvas3d.settingsUpdated,
+      this.#ghostLook.asReadonly,
+    ],
+    {
+      compare: (a, b) =>
+        a.variant === b.variant &&
+        a.solidSurface === b.solidSurface &&
+        a.fadeNormal === b.fadeNormal &&
+        a.ghost === b.ghost &&
+        a.ghostColor === b.ghostColor &&
+        a.ghostOpacity === b.ghostOpacity &&
+        a.ghostEdgeOpacity === b.ghostEdgeOpacity &&
+        a.ghostResolution === b.ghostResolution,
+    },
+  );
 
   /** Shows the gizmos, a drag committing through `api` (the person's: one `clipping.update`, one history step) */
   showGizmos(api: ViewerApi): boolean {
@@ -196,8 +242,31 @@ export class ClippingApi extends ApiArea {
       solidSurface: OptionalParam(
         PD.Boolean(true, { description: 'Close a cut surface with a solid cap (also where the camera cuts it)' }),
       ),
+      fadeNormal: OptionalParam(
+        PD.Boolean(false, { description: "Fade out the handles' arrow as it turns toward the viewer" }),
+      ),
+      ghost: OptionalParam(
+        PD.Boolean(false, { description: 'Show what the cuts remove as a faint ghost: a tint and its edges' }),
+      ),
+      // the ghost's look, the canvas's `clipGhost` params (kept while it is off)
+      ghostColor: OptionalParam(PD.Color(ClipGhostParams.color.defaultValue, { description: 'The ghost’s tint' })),
+      ghostOpacity: OptionalParam(
+        PD.Numeric(ClipGhostParams.alpha.defaultValue, ghostRange('alpha'), {
+          description: 'Opacity of the ghost’s tint (0 to 1)',
+        }),
+      ),
+      ghostEdgeOpacity: OptionalParam(
+        PD.Numeric(ClipGhostParams.edgeAlpha.defaultValue, ghostRange('edgeAlpha'), {
+          description: 'Opacity of the ghost’s edges (0 to 1)',
+        }),
+      ),
+      ghostResolution: OptionalParam(
+        PD.Numeric(ClipGhostParams.resolution.defaultValue, ghostRange('resolution'), {
+          description: 'Resolution of the ghost relative to the image (0.25 to 1): lower costs less',
+        }),
+      ),
     },
-    async run({ variant, solidSurface }, ctx) {
+    run: async ({ variant, solidSurface, fadeNormal, ghost, ...look }, ctx) => {
       const manager = ctx.plugin.managers.structure.component;
       const options = manager.state.options;
       const state = ctx.plugin.state.data;
@@ -209,7 +278,33 @@ export class ClippingApi extends ApiArea {
         : [];
       const setVariant = variant !== undefined && (options.clipObjects.variant !== variant || differ.length > 0);
       const setSolid = solidSurface !== undefined && options.solidSurface !== solidSurface;
-      if (!setVariant && !setSolid) return ApiResult.already('The cuts are set so already.');
+      const setFade = fadeNormal !== undefined && this.gizmos.fadeNormal.value !== fadeNormal;
+      // the ghost is the canvas's: without one there is none to draw
+      const ghostGiven = ghost !== undefined || Object.values(look).some((v) => v !== undefined);
+      if (ghostGiven && !ctx.plugin.canvas3d) {
+        return ApiResult.fail(
+          'unavailable',
+          'The ghost of what the cuts remove needs a canvas.',
+          'This host has no canvas.',
+        );
+      }
+      const ghostOn = isGhostOn(ctx.plugin);
+      const setGhost = ghost !== undefined && ghostOn !== ghost;
+      const currentLook = ghostLookOf(ctx.plugin, this.#ghostLook.value);
+      const nextLook = withGhostLook(currentLook, look);
+      if (!setVariant && !setSolid && !setFade && !setGhost && !nextLook) {
+        return ApiResult.already('The cuts are set so already.');
+      }
+      if (setFade) this.gizmos.setFadeNormal(fadeNormal!);
+      // the canvas's ghost of what clip objects remove (`Canvas3DParams.clipGhost`); its look kept here while it is off
+      if (setGhost || nextLook) {
+        const params = nextLook ?? currentLook;
+        const on = ghost ?? ghostOn;
+        this.#ghostLook.set(on ? undefined : params);
+        if (setGhost || on) {
+          ctx.plugin.setCanvas3DProps({ clipGhost: on ? { name: 'on', params } : { name: 'off', params: {} } });
+        }
+      }
       if (options.clipObjects.variant !== (variant ?? options.clipObjects.variant) || setSolid) {
         await manager.setOptions({
           ...options,
@@ -229,6 +324,9 @@ export class ClippingApi extends ApiArea {
       const said = [
         setVariant ? (variant === 'instance' ? 'cuts leave out whole copies' : 'cuts go through, pixel by pixel') : '',
         setSolid ? (solidSurface ? 'cut surfaces are solid' : 'cut surfaces are open') : '',
+        setFade ? (fadeNormal ? 'the arrow fades out toward the viewer' : 'the arrow is always drawn') : '',
+        setGhost ? (ghost ? 'what the cuts remove shows as a ghost' : 'what the cuts remove is gone') : '',
+        nextLook ? `the ghost's look is set${(ghost ?? ghostOn) ? '' : ' (shown when it is on)'}` : '',
       ].filter(Boolean);
       return ApiResult.ok(`${said.join('; ').replace(/^./, (c) => c.toUpperCase())}.`, {
         nodes: differ.map((c) => c.transform.ref),
@@ -331,17 +429,30 @@ export class ClippingApi extends ApiArea {
           { description: 'Its rotation: an axis and degrees' },
         ),
       ),
-      scale: Vec3Param('Its size (Å): a sphere or cube diameter or edge; a cylinder (diameter, height, diameter)'),
+      twist: OptionalParam(
+        PD.Numeric(
+          0,
+          {},
+          {
+            description:
+              "A box's, a sphere's or a cylinder's turn about its axis (degrees, after normal), which way its other axes point",
+          },
+        ),
+      ),
+      scale: Vec3Param(
+        'Its size (Å): a sphere (an ellipsoid) its three diameters, a box its edges; a cylinder (diameter, height, diameter across)',
+      ),
       invert: OptionalParam(PD.Boolean(false, { description: 'Remove the other side, or the outside' })),
     },
     async run(v, ctx) {
       const { cut: index } = v;
-      const { tag, shape, position, normal, rotation, scale, invert } = v as {
+      const { tag, shape, position, normal, rotation, twist, scale, invert } = v as {
         tag?: string;
         shape?: CutShape;
         position?: readonly number[];
         normal?: readonly number[];
         rotation?: { axis: readonly number[]; angle: number };
+        twist?: number;
         scale?: readonly number[];
         invert?: boolean;
       };
@@ -357,6 +468,8 @@ export class ClippingApi extends ApiArea {
       if (rotation && !Number.isFinite(rotation.angle)) {
         return ApiResult.fail('invalid', 'rotation.angle takes a number (degrees).');
       }
+      if (twist !== undefined && !Number.isFinite(twist))
+        return ApiResult.fail('invalid', 'twist takes a number (degrees).');
       // a direction has a length (the turn gesture and the shader take a unit axis)
       const zero = (v?: readonly number[]) => !!v && Math.hypot(v[0], v[1], v[2]) < 1e-9;
       if (zero(normal) || zero(rotation?.axis)) {
@@ -367,7 +480,7 @@ export class ClippingApi extends ApiArea {
       const shaped = shape
         ? reshape(o, shape, Math.max(representationsSphere(cellsOf(ctx, cut))?.radius ?? 0, MinPlacedRadius))
         : o;
-      const next: CutObject = {
+      const placed: CutObject = {
         ...shaped,
         ...(position ? { position: Vec3.fromArray(Vec3(), position, 0) } : {}),
         ...(rotation
@@ -378,11 +491,16 @@ export class ClippingApi extends ApiArea {
               },
             }
           : {}),
-        // turned from where its axis points now to the normal: its twist about the axis kept (a box's)
+        // turned from where its axis points now to the normal by the shortest turn (a box's other axes along)
         ...(normal ? { rotation: turnedTo(shaped, Vec3.fromArray(Vec3(), normal, 0)) } : {}),
         ...(scale ? { scale: Vec3.fromArray(Vec3(), scale, 0) } : {}),
         ...(invert !== undefined ? { invert } : {}),
       };
+      // twisted about where its axis points now
+      const next: CutObject =
+        twist === undefined
+          ? placed
+          : { ...placed, rotation: twisted(placed.type, rotated(placed.rotation, shapeAxis(placed.type)), twist) };
       if (RepresentationClip.objectsEqual(o, next)) return ApiResult.already(`Cut ${cut.index} is already so.`);
       await commit(ctx, cellsOf(ctx, cut), o, next);
       return ApiResult.ok(`Changed cut ${cut.index}.`, { nodes: cut.targets.map((t) => t.ref) });
@@ -589,10 +707,89 @@ export class ClippingApi extends ApiArea {
 export interface ClipSettings {
   readonly variant: Clip.Variant;
   readonly solidSurface: boolean;
+  /** The gizmo's slide arrow fades out as it turns toward the viewer; the session's, not saved with the scene */
+  readonly fadeNormal: boolean;
+  /** What the cuts remove shows as a faint ghost (the canvas's `clipGhost`, saved with its props) */
+  readonly ghost: boolean;
+  /** The ghost's look (the canvas's `clipGhost` params; the defaults while it is off) */
+  readonly ghostColor: Color;
+  readonly ghostOpacity: number;
+  readonly ghostEdgeOpacity: number;
+  readonly ghostResolution: number;
+}
+
+/** Whether the canvas draws the ghost of what the cuts remove (`Canvas3DParams.clipGhost`) */
+function isGhostOn(plugin: PluginContext) {
+  return plugin.canvas3d?.props.clipGhost.name === 'on';
+}
+
+/**
+ * The ghost's look (`ClipGhostParams`): the canvas's while it is on; while off (the canvas keeps none), `kept`, the
+ * look it had when turned off, or the defaults
+ */
+function ghostLookOf(plugin: PluginContext, kept: ClipGhostProps | undefined): ClipGhostProps {
+  const option = plugin.canvas3d?.props.clipGhost;
+  return option?.name === 'on' ? option.params : (kept ?? PD.getDefaultValues(ClipGhostParams));
+}
+
+/** A ghost look as a checkpoint or a session holds it, if it is one (in the params' ranges) */
+function readGhostLook(value: unknown): ClipGhostProps | undefined {
+  const v = value as Partial<Record<keyof ClipGhostProps, unknown>> | undefined;
+  if (!v || typeof v.color !== 'number') return undefined;
+  const inRange = (key: 'alpha' | 'edgeAlpha' | 'resolution') => {
+    const x = v[key];
+    const { min = -Infinity, max = Infinity } = ClipGhostParams[key];
+    return typeof x === 'number' && x >= min && x <= max;
+  };
+  if (!inRange('alpha') || !inRange('edgeAlpha') || !inRange('resolution')) return undefined;
+  return {
+    color: v.color as ClipGhostProps['color'],
+    alpha: v.alpha,
+    edgeAlpha: v.edgeAlpha,
+    resolution: v.resolution,
+  } as ClipGhostProps;
+}
+
+function sameGhostLook(a: ClipGhostProps | undefined, b: ClipGhostProps | undefined) {
+  if (!a || !b) return a === b;
+  return a.color === b.color && a.alpha === b.alpha && a.edgeAlpha === b.edgeAlpha && a.resolution === b.resolution;
+}
+
+/** The range of a numeric look param, as the canvas's */
+function ghostRange(key: 'alpha' | 'edgeAlpha' | 'resolution') {
+  const { min, max, step } = ClipGhostParams[key];
+  return { min, max, step };
+}
+
+type GhostLook = Pick<ClipSettings, 'ghostColor' | 'ghostOpacity' | 'ghostEdgeOpacity' | 'ghostResolution'>;
+
+function ghostLookSettings(look: ClipGhostProps): GhostLook {
+  return {
+    ghostColor: look.color,
+    ghostOpacity: look.alpha,
+    ghostEdgeOpacity: look.edgeAlpha,
+    ghostResolution: look.resolution,
+  };
+}
+
+/** `look` with the look params given (`clipping.settings`'), undefined if none differs */
+function withGhostLook(look: ClipGhostProps, given: Partial<GhostLook>): ClipGhostProps | undefined {
+  const next: ClipGhostProps = {
+    color: given.ghostColor ?? look.color,
+    alpha: given.ghostOpacity ?? look.alpha,
+    edgeAlpha: given.ghostEdgeOpacity ?? look.edgeAlpha,
+    resolution: given.ghostResolution ?? look.resolution,
+  };
+  const same =
+    next.color === look.color &&
+    next.alpha === look.alpha &&
+    next.edgeAlpha === look.edgeAlpha &&
+    next.resolution === look.resolution;
+  return same ? undefined : next;
 }
 
 /** The settings: the component options' (the scene's) */
-export function settingsOf(plugin: PluginContext): ClipSettings {
+export function settingsOf(plugin: PluginContext): Pick<ClipSettings, 'variant' | 'solidSurface'> {
   const options = plugin.managers.structure.component.state.options;
   return { variant: options.clipObjects.variant, solidSurface: options.solidSurface };
 }
@@ -637,15 +834,13 @@ function badVector(name: string, v: readonly number[] | undefined, positive = fa
   return ok ? undefined : ApiResult.fail('invalid', `${name} takes three ${positive ? 'positive ' : ''}numbers.`);
 }
 
-/** A cut's rotation turned so its axis points along `to`, by the shortest turn from where it points now */
+/**
+ * A cut's rotation turned so its axis points along `to`: the shortest turn from where it points now, continuous as `to`
+ * moves (a twist measured about the axis, `twistOf`, jumps where the axis points against the shape's local one)
+ */
 function turnedTo(o: CutObject, to: Vec3): CutObject['rotation'] {
-  const now = rotated(o.rotation, shapeAxis(o.type));
-  const turn = rotationTo(now, to);
-  const q = Quat.multiply(
-    Quat(),
-    Quat.setAxisAngle(Quat(), turn.axis, (turn.angle * Math.PI) / 180),
-    Quat.setAxisAngle(Quat(), Vec3.normalize(Vec3(), o.rotation.axis), (o.rotation.angle * Math.PI) / 180),
-  );
+  const turn = quatOf(rotationTo(rotated(o.rotation, shapeAxis(o.type)), to));
+  const q = Quat.multiply(Quat(), turn, quatOf(o.rotation));
   return rotationOf(Quat.normalize(q, q));
 }
 

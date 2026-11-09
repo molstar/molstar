@@ -730,6 +730,25 @@ export namespace Mesh {
     }),
     bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
     bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+    depthOffset: PD.Numeric(
+      0,
+      { min: 0, max: 1000, step: 0.01 },
+      {
+        isHidden: true,
+        description:
+          'Å toward the camera, in depth only (what is drawn stays where it is): what lies on another surface drawn over it',
+      },
+    ),
+    screenSize: PD.Numeric(
+      0,
+      { min: 0, max: 1000, step: 1 },
+      {
+        isHidden: true,
+        description:
+          'CSS pixels per unit of the mesh, constant on screen at any zoom (e.g. a gizmo in the overlay layer); 0: ' +
+          'world units.',
+      },
+    ),
     interior: getInteriorParam(),
     animation: getAnimationParam(),
   };
@@ -849,6 +868,8 @@ export namespace Mesh {
       dBump: ValueCell.create(BaseGeometry.hasBump(props)),
       uBumpFrequency: ValueCell.create(props.bumpFrequency),
       uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
+      uDepthOffset: ValueCell.create(props.depthOffset),
+      uScreenSize: ValueCell.create(props.screenSize),
 
       meta: ValueCell.create(mesh.meta),
 
@@ -885,6 +906,8 @@ export namespace Mesh {
     ValueCell.updateIfChanged(values.dBump, BaseGeometry.hasBump(props));
     ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
     ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+    ValueCell.updateIfChanged(values.uDepthOffset, props.depthOffset);
+    ValueCell.updateIfChanged(values.uScreenSize, props.screenSize);
     updateInteriorValues(values, props.interior);
     updateAnimationValues(values, props.animation);
   }

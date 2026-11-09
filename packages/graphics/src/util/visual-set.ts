@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { Mat4 } from '@molstar/core/math/linear-algebra';
@@ -44,8 +45,9 @@ interface Entry {
  * set adds them to the canvas, tells its own from others' (`has`, `owns` for an interaction event's loci) and removes
  * and destroys them, one or all at once.
  *
- * They stay in the canvas's scene as any representation (picked, marked, in its bounds) and are re-created by the
- * canvas when its graphics backend changes. They are auto-synced: an update (`update`, or the representation's own)
+ * They stay in the canvas as any representation (picked, marked) and are re-created by the canvas when its graphics
+ * backend changes. The layer of their state (`Representation.State.layer`, given to `add`, `create`, `addShape`)
+ * decides where: `scene` (in the scene's bounds) or `overlay` (above the scene, out of its bounds: gizmos). They are auto-synced: an update (`update`, or the representation's own)
  * reaches the canvas without a commit of the state.
  */
 export class VisualSet {

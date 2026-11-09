@@ -48,6 +48,8 @@ const Shapes: { type: keyof typeof Clip.Type; scale: Vec3 }[] = [
   { type: 'sphere', scale: Vec3.create(12, 4, 7) },
   { type: 'cube', scale: Vec3.create(6, 9, 4) },
   { type: 'cylinder', scale: Vec3.create(6, 10, 6) },
+  // elliptic: its radii the scale's x and z halves
+  { type: 'cylinder', scale: Vec3.create(12, 10, 4) },
   { type: 'infiniteCone', scale: Vec3.create(1, 1, 1) },
   { type: 'infiniteCone', scale: Vec3.create(3, 1, 1) },
 ];
@@ -153,5 +155,36 @@ describe('Clip.classifySphere', () => {
     expect(Clip.classifySphere(objects, inside)).toBe(Clip.SphereClass.All);
     expect(Clip.classifySphere(objects, inside, 2)).toBe(Clip.SphereClass.None);
     expect(Clip.classifySphere(objects, Sphere3D.create(Vec3.create(0, -10, 0), 3))).toBe(Clip.SphereClass.Some);
+  });
+});
+
+describe('Clip.getSignedDistance of a shape with a half axis of 0', () => {
+  it('is finite: an inverted cylinder or sphere of no radius clips everything', () => {
+    for (const [type, scale] of [
+      ['cylinder', Vec3.create(0, 10, 0)],
+      ['cylinder', Vec3.create(4, 10, 0)],
+      ['sphere', Vec3.create(0, 0, 0)],
+      ['sphere', Vec3.create(4, 0, 4)],
+    ] as const) {
+      const objects = Clip.getClip({
+        variant: 'pixel',
+        objects: [
+          {
+            type,
+            invert: true,
+            position: Vec3(),
+            rotation: { axis: Vec3.create(0, 1, 0), angle: 0 },
+            scale,
+            transform: Mat4.identity(),
+          },
+        ],
+      } as Clip.Props).objects;
+      for (const p of [Vec3.create(3, 1, 2), Vec3.create(0, 0, 0), Vec3.create(-5, 20, 1)]) {
+        expect(Number.isFinite(Clip.getSignedDistance(objects, 0, p)), `${type} ${scale}`).toBe(true);
+      }
+      expect(Clip.classifySphere(objects, Sphere3D.create(Vec3.create(3, 1, 2), 0.5)), `${type} ${scale}`).toBe(
+        Clip.SphereClass.All,
+      );
+    }
   });
 });

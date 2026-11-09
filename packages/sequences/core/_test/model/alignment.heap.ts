@@ -14,7 +14,15 @@
 
 import { describe, expect, it } from 'vitest';
 import { buildCase, checkCase, LENGTH, ROWS } from './alignment-cases.js';
-import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, LIMIT, leak } from './heap.js';
+import {
+  controlCaught,
+  describeScaling,
+  heapGrowth,
+  heapScaling,
+  isFlat,
+  LIMIT,
+  leak,
+} from '@molstar/test-harness/heap';
 
 describe('alignment build', () => {
   it('builds a 20k × 300 alignment, detecting its alphabet, without allocating per residue', () => {

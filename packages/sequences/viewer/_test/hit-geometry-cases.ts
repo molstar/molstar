@@ -13,7 +13,7 @@
 // overlay frame on the recording backend. Each call loads the viewer afresh (`vi.resetModules`).
 
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 
 /**
  * The sized shapes' quick counts: the sweep crosses six kinds of hit, each its own functions climbing to TurboFan, so

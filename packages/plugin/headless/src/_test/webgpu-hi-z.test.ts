@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { now } from '@molstar/core/util/now';
 import { HiZPass } from '@molstar/graphics/canvas3d/passes/hi-z';
 import { createPrepareBuilder } from '@molstar/graphics/canvas3d/passes/pass-builder';
@@ -98,6 +98,64 @@ describe.skipIf(!WebGPU.module)('Hi-Z on WebGPU', () => {
       expect(filled).toBeGreaterThan(4);
       expect(wrong).toEqual([]);
       hiZ.dispose();
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  // a frame drawn straight to the drawing buffer leaves the opaque depth texture as an earlier frame drew it: levels
+  // built from it hid what is visible now (the GPU culling of an image pass, which has no second phase, lost instances)
+  it('levels only of a frame that drew the opaque depth texture', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
+      const canvas = plugin.canvas3d!;
+      const context = plugin.renderer.canvas3dContext!;
+      // blended: the order-independent modes always draw the texture
+      context.setProps({ transparency: 'blended' });
+      const { graphics } = canvas;
+      // the levels' passes (the canvas's Hi-Z pass is its own, not reachable from here)
+      let levelPasses = 0;
+      const begin = graphics.beginRenderPass.bind(graphics);
+      vi.spyOn(graphics, 'beginRenderPass').mockImplementation((target, options) => {
+        if (options?.label === 'hi-z') levelPasses += 1;
+        begin(target, options);
+      });
+      let time = now();
+      const draw = async (offscreen: boolean) => {
+        canvas.setProps({
+          multiSample: { ...canvas.props.multiSample, mode: 'off' },
+          illumination: { ...canvas.props.illumination, enabled: false },
+          hiZ: { ...canvas.props.hiZ, enabled: true },
+          // post-processing (its antialiasing) draws offscreen, none of it straight to the drawing buffer
+          postprocessing: { ...canvas.props.postprocessing, enabled: offscreen },
+        });
+        // the last of a few frames: the first ones skip draws while their pipelines compile (no levels of those)
+        for (let i = 0; i < 3; ++i) {
+          await graphics.resources.pending.whenReady();
+          levelPasses = 0;
+          canvas.requestDraw();
+          canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+        }
+      };
+
+      await draw(true);
+      expect(context.passes.draw.opaqueDepthDrawn).toBe(true);
+      expect(levelPasses).toBeGreaterThan(0);
+
+      await draw(false);
+      expect(context.passes.draw.opaqueDepthDrawn).toBe(false);
+      expect(levelPasses).toBe(0);
     } finally {
       plugin.dispose();
     }

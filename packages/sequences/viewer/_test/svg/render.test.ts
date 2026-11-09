@@ -16,7 +16,7 @@
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { describe, expect, it } from 'vitest';
 import { case1, case13, case14 } from '../../../core/_test/format/cases.js';
-import { itWithin } from '../../../core/_test/model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { ChannelMarks } from '../../src/channels.js';
 import { Dirty, SectionComposer } from '../../src/draw/index.js';
 import { drawResources } from '../../src/draw/resources.js';

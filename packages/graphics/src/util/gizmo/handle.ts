@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -23,8 +24,9 @@ export interface Face {
  * - `slide`: along `axis` (local), as the screen shows it;
  * - `plane`: in the plane across `normal` (local);
  * - `turn`: about the screen's axes;
- * - `rotate`: about `axis` (local), the point grabbed on the ring following the cursor (the cursor taken onto the ring's
- *   plane; along the ring's tangent there where the plane is edge-on), so either side of a ring turns the cursor's way;
+ * - `roll`: about the view axis, by the angle the cursor goes around the item's origin on the screen;
+ * - `rotate`: about `axis` (local), by the ring rule (`gestures.RingRule`): the angle the cursor goes around the
+ *   item's origin on the screen by default (Blender's), as `roll`;
  * - `scale`: `axes` (all when absent) by the cursor's distance from `pivot` (local; the item's origin when absent) over
  *   the grab's: the part held stays under the cursor whichever side it is on;
  * - `faces`: faces dragged along their axes, the opposite ones staying (a box's face, a cylinder's end);
@@ -35,6 +37,7 @@ export type Handle =
   | { readonly kind: 'slide'; readonly axis: Vec3 }
   | { readonly kind: 'plane'; readonly normal: Vec3 }
   | { readonly kind: 'turn' }
+  | { readonly kind: 'roll' }
   | { readonly kind: 'rotate'; readonly axis: Vec3 }
   | { readonly kind: 'scale'; readonly axes?: readonly (0 | 1 | 2)[]; readonly pivot?: Vec3 }
   | { readonly kind: 'faces'; readonly faces: readonly Face[] }

@@ -405,7 +405,7 @@
   "src/mol-canvas3d/controls/trackball.ts": "packages/graphics/src/canvas3d/controls/trackball.ts",
   "src/mol-canvas3d/helper/camera-helper.ts": "packages/graphics/src/canvas3d/helper/camera-helper.ts",
   "src/mol-canvas3d/helper/debug-registry.ts": "packages/graphics/src/canvas3d/helper/debug-registry.ts",
-  "src/mol-canvas3d/helper/handle-helper.ts": "packages/graphics/src/canvas3d/helper/handle-helper.ts",
+  "src/mol-canvas3d/helper/handle-helper.ts": null,
   "src/mol-canvas3d/helper/helper.ts": "packages/graphics/src/canvas3d/helper/helper.ts",
   "src/mol-canvas3d/helper/interaction-events.ts": "packages/graphics/src/canvas3d/helper/interaction-events.ts",
   "src/mol-canvas3d/helper/pick-helper.ts": "packages/graphics/src/canvas3d/helper/pick-helper.ts",

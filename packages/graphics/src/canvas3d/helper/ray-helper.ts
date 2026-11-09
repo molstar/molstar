@@ -70,7 +70,8 @@ export class RayHelper {
     renderer.setViewport(0, 0, this.size, this.size);
     // this camera is synthetic (ray-aligned), never the main camera - always a fresh,
     // never-reused frame token, so it can never share/collide with the main draw's frame
-    this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, createFrame());
+    // the overlay is not tested against the scene depth of the last draw: this camera is not the drawn one
+    this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, createFrame(), false);
 
     if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.render');
   }
@@ -85,7 +86,11 @@ export class RayHelper {
 
     const z = this.buffers.getDepth(x, y);
     const position = Vec3.create(x, y, z);
-    cameraUnproject(position, position, viewport, this.camera.inverseProjectionView);
+    // the overlay's depth is of its own near and far planes (`OverlayCamera`)
+    const { overlay } = this.helper;
+    const camera =
+      overlay.isEnabled && overlay.hasObject(pickingId.objectId) ? overlay.getCamera(this.camera) : this.camera;
+    cameraUnproject(position, position, viewport, camera.inverseProjectionView);
 
     return { id: pickingId, position };
   }
@@ -118,7 +123,13 @@ export class RayHelper {
   sphere = Sphere3D();
 
   private intersectsScene(ray: Ray3D, scale: number): boolean {
-    Sphere3D.scaleNX(this.sphere, this.scene.boundingSphereVisible, scale);
+    if (this.intersectsSphere(ray, this.scene.boundingSphereVisible, scale)) return true;
+    const { overlay } = this.helper;
+    return overlay.isEnabled && this.intersectsSphere(ray, overlay.scene.boundingSphereVisible, scale);
+  }
+
+  private intersectsSphere(ray: Ray3D, sphere: Sphere3D, scale: number): boolean {
+    Sphere3D.scaleNX(this.sphere, sphere, scale);
     return Ray3D.isInsideSphere3D(ray, this.sphere) || Ray3D.isIntersectingSphere3D(ray, this.sphere);
   }
 

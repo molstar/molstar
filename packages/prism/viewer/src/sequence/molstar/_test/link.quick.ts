@@ -10,7 +10,7 @@
 // (link-cases.ts), with its positive control.
 
 import { expect, it } from 'vitest';
-import { quickCase } from '../../../../../../sequences/core/_test/model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { molHover } from './link-cases.js';
 
 it('a Mol* hover to member runs and Seq* runs', async ({ task }) => {

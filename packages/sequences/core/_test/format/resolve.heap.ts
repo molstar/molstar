@@ -13,7 +13,7 @@
 // are resolve-cases.ts's, shared with the quick twin (resolve.quick.ts).
 
 import { beforeAll, describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../model/heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { type ResolveCases, resolveCases } from './resolve-cases.js';
 
 /** Steps in the shorter run; the longer runs four times as many (the cases' `ROWS`). */

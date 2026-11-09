@@ -34,6 +34,9 @@ const VertexAttributes = 5;
  *   indirect draw with its first instance in the arguments (`indirect-first-instance`; what GPU culling of merged
  *   render objects draws: a fixed list, one per segment and level), `-culled` half of them, `-empty` all with an
  *   instance count of 0
+ * - `shared-immediates`: shared bind groups and buffers set once, per draw the object's data (16 bytes) set as
+ *   immediates (`setImmediates`, WGSL `var<immediate>`) and the draw; `-index`: per draw an index into a storage array
+ *   of the objects as immediates (4 bytes): per-draw data without a dynamic offset (`multi-draw-indirect.md` step 4)
  * - `instanced`: one draw of all objects (batched)
  * - `merged`: the objects' geometry in one buffer, indices rebased to it, an object id per vertex selecting the object
  *   from a storage array: one indexed draw of all (batched without instancing, objects of different geometry);
@@ -51,6 +54,8 @@ type Variant =
   | 'shared-first-instance-indirect'
   | 'shared-first-instance-indirect-culled'
   | 'shared-first-instance-indirect-empty'
+  | 'shared-immediates'
+  | 'shared-immediates-index'
   | 'instanced'
   | 'merged'
   | 'merged-culled';
@@ -131,6 +136,35 @@ const FirstInstanceShader = /* wgsl */ `
 @fragment fn fs() -> @location(0) vec4f { return vec4f(1.0, 0.5, 0.2, 1.0); }
 `;
 
+const ImmediateShader = /* wgsl */ `
+requires immediate_address_space;
+@group(0) @binding(0) var<uniform> globals: vec4f;
+@group(1) @binding(0) var<storage, read> corners: array<vec4f>;
+var<immediate> object: vec4f;
+@vertex fn vs(@builtin(vertex_index) v: u32) -> @builtin(position) vec4f {
+  return vec4f(object.xyz + corners[v].xyz * object.w, 1.0) * globals.x;
+}
+@fragment fn fs() -> @location(0) vec4f { return vec4f(1.0, 0.5, 0.2, 1.0); }
+`;
+
+const ImmediateIndexShader = /* wgsl */ `
+requires immediate_address_space;
+@group(0) @binding(0) var<uniform> globals: vec4f;
+@group(1) @binding(0) var<storage, read> objects: array<vec4f>;
+@group(1) @binding(1) var<storage, read> corners: array<vec4f>;
+var<immediate> index: u32;
+@vertex fn vs(@builtin(vertex_index) v: u32) -> @builtin(position) vec4f {
+  let object = objects[index];
+  return vec4f(object.xyz + corners[v].xyz * object.w, 1.0) * globals.x;
+}
+@fragment fn fs() -> @location(0) vec4f { return vec4f(1.0, 0.5, 0.2, 1.0); }
+`;
+
+/** `setImmediates`, not in the WebGPU types yet */
+type ImmediatesEncoder = {
+  setImmediates(rangeOffset: number, data: ArrayBufferView, dataOffset?: number, size?: number): void;
+};
+
 type Scene = {
   readonly device: GPUDevice;
   readonly target: GPUTexture;
@@ -168,13 +202,22 @@ function createScene(device: GPUDevice, variant: Variant): Scene {
     variant === 'buffer-offsets';
   const sharedOffsets = variant.startsWith('shared-offsets');
   const merged = variant.startsWith('merged');
+  const immediates = variant.startsWith('shared-immediates');
+  const immediateIndex = variant === 'shared-immediates-index';
+  if (immediates && !(navigator.gpu.wgslLanguageFeatures as Set<string>).has('immediate_address_space')) {
+    throw new Error("needs WGSL 'immediate_address_space'");
+  }
   const shader = perObject
     ? PerObjectShader
     : sharedOffsets
       ? SharedOffsetShader
       : merged
         ? MergedShader
-        : FirstInstanceShader;
+        : immediates
+          ? immediateIndex
+            ? ImmediateIndexShader
+            : ImmediateShader
+          : FirstInstanceShader;
   const module = device.createShaderModule({ code: shader });
   const vertexBuffers: GPUVertexBufferLayout[] = perObject
     ? Array.from({ length: VertexAttributes }, (_, k) => ({
@@ -331,6 +374,45 @@ function createScene(device: GPUDevice, variant: Variant): Scene {
   const objectData = new Float32Array(DrawCount * 4);
   for (let i = 0; i < DrawCount; ++i) objectData.set(objectOffset(i), i * 4);
   const objectBuffer = createBuffer(device, objectData, S);
+
+  if (immediates) {
+    const layout = device.createBindGroupLayout({
+      entries: immediateIndex ? [storage(0), storage(1)] : [storage(0)],
+    });
+    const pipeline = createPipeline(
+      device.createPipelineLayout({
+        bindGroupLayouts: [globalsLayout, layout],
+        immediateSize: immediateIndex ? 4 : 16,
+      } as GPUPipelineLayoutDescriptor),
+    );
+    const group = device.createBindGroup({
+      layout,
+      entries: immediateIndex
+        ? [
+            { binding: 0, resource: { buffer: objectBuffer } },
+            { binding: 1, resource: { buffer: cornerBuffer } },
+          ]
+        : [{ binding: 0, resource: { buffer: cornerBuffer } }],
+    });
+    const indices = Uint32Array.from({ length: DrawCount }, (_, i) => i);
+    return {
+      device,
+      target,
+      pipeline,
+      encode: (e) => {
+        const ie = e as unknown as ImmediatesEncoder;
+        e.setPipeline(pipeline);
+        e.setBindGroup(0, globals);
+        e.setBindGroup(1, group);
+        e.setIndexBuffer(indexBuffer, 'uint32');
+        for (let i = 0; i < DrawCount; ++i) {
+          if (immediateIndex) ie.setImmediates(0, indices, i, 1);
+          else ie.setImmediates(0, objectData, i * 4, 4);
+          e.drawIndexed(36, 1);
+        }
+      },
+    };
+  }
 
   if (merged) {
     const positions = new Float32Array(DrawCount * 8 * 4);
@@ -502,6 +584,24 @@ export const DrawOverheadCases: BenchmarkCase<any>[] = [
   overheadCase('shared-first-instance-indirect', true, 'as shared-first-instance, indexed indirect draws'),
   overheadCase('shared-first-instance-indirect-culled', true, 'as -indirect, half the draws with instance count 0'),
   overheadCase('shared-first-instance-indirect-empty', true, 'as -indirect, all draws with instance count 0'),
+  overheadCase('shared-offsets', false, '10k draws, a shared bind group with a dynamic offset per draw, per frame'),
+  overheadCase(
+    'shared-first-instance',
+    false,
+    '10k draws, shared bindings set once, objects by firstInstance, per frame',
+  ),
+  ...[true, false].flatMap((bundled) => [
+    overheadCase(
+      'shared-immediates',
+      bundled,
+      `10k draws, shared bindings set once, the object's data as immediates per draw, ${bundled ? 'one bundle' : 'per frame'}`,
+    ),
+    overheadCase(
+      'shared-immediates-index',
+      bundled,
+      `10k draws, shared bindings set once, an object index as immediates per draw, ${bundled ? 'one bundle' : 'per frame'}`,
+    ),
+  ]),
   overheadCase('instanced', true, 'one instanced draw of 10k objects, one bundle'),
   overheadCase('merged', true, 'one indexed draw of 10k objects merged (rebased indices, object id per vertex)'),
   overheadCase('merged-culled', true, 'as merged, half the objects culled at random, drawn as runs'),

@@ -245,7 +245,7 @@ export function textLabels(props: Partial<PD.Values<Text.Params>>): Text {
   builder.add('Mol*', 0, 2, 0, 1, 1, 0);
   builder.add('Visual', -2, 0, 0, 1, 1, 1);
   builder.add('Test', 2, 0, 0, 1, 1, 2);
-  builder.add('Ã…Ã„Ã– 123', 0, -2, 0, 1, 1, 3);
+  builder.add('ÅÄÖ 123', 0, -2, 0, 1, 1, 3);
   return builder.getText();
 }
 

@@ -43,9 +43,10 @@ export interface WebGPUGlobalBindings extends GlobalBindings {
   getBindGroup: (program: WebGPUProgram) => { group: GPUBindGroup; offset: number };
   /**
    * What the draws of the current pass bind, the block's slot taken as by a draw (so that the slots of later passes
-   * stay where a frame of the same passes has them): compared by a draw list before replaying
+   * stay where a frame of the same passes has them): compared by a draw list before replaying. One object, updated in
+   * place: a recording keeps a copy; `textures` is the same number for the same names, textures and versions
    */
-  getState: () => { readonly buffer: GPUBuffer; readonly offset: number; readonly textures: string };
+  getState: () => { readonly buffer: GPUBuffer; readonly offset: number; readonly textures: number };
 }
 
 const GlobalBindingsSet = new WeakSet<GlobalBindings>();
@@ -199,6 +200,48 @@ export function createWebGPUGlobalBindings(
   };
   /** the result of `getBindGroup`, one object (read before the next call) */
   const result = { group: undefined as unknown as GPUBindGroup, offset: 0 };
+  /** `getState`'s, updated in place */
+  const state = { buffer: undefined as unknown as GPUBuffer, offset: 0, textures: 0 };
+  /**
+   * The texture sets seen (names, ids and versions), each with its number, the most recent first: the passes of a frame
+   * alternate a few (an empty depth or the scene's), each keeping its number, so their recordings replay
+   */
+  type TextureSet = { names: string[]; ids: number[]; versions: number[]; id: number };
+  const textureSets: TextureSet[] = [];
+  const MaxTextureSets = 8;
+  let nextTextureSetId = 0;
+  const isTextureSet = (set: TextureSet) => {
+    if (set.names.length !== textures.length) return false;
+    for (let i = 0, il = textures.length; i < il; ++i) {
+      const texture = asWebGPUTexture(textures[i][1]);
+      if (set.names[i] !== textures[i][0] || set.ids[i] !== texture.id || set.versions[i] !== texture.version) {
+        return false;
+      }
+    }
+    return true;
+  };
+  /** The number of the current texture set, the same for the same names, textures and versions (no key built) */
+  const getTexturesVersion = () => {
+    for (let k = 0, kl = textureSets.length; k < kl; ++k) {
+      const set = textureSets[k];
+      if (!isTextureSet(set)) continue;
+      if (k > 0) {
+        textureSets.splice(k, 1);
+        textureSets.unshift(set);
+      }
+      return set.id;
+    }
+    const set: TextureSet = { names: [], ids: [], versions: [], id: nextTextureSetId++ };
+    for (let i = 0, il = textures.length; i < il; ++i) {
+      const texture = asWebGPUTexture(textures[i][1]);
+      set.names.push(textures[i][0]);
+      set.ids.push(texture.id);
+      set.versions.push(texture.version);
+    }
+    textureSets.unshift(set);
+    if (textureSets.length > MaxTextureSets) textureSets.pop();
+    return set.id;
+  };
 
   const solidInteriorCap = { pass: 0, clip: -1 };
 
@@ -216,12 +259,10 @@ export function createWebGPUGlobalBindings(
     getState: () => {
       write();
       const slot = snapshot.getSlot();
-      let key = '';
-      for (const [name, t] of textures) {
-        const texture = asWebGPUTexture(t);
-        key += `${name}:${texture.id}:${texture.version},`;
-      }
-      return { buffer: slot.buffer, offset: slot.offset, textures: key };
+      state.buffer = slot.buffer;
+      state.offset = slot.offset;
+      state.textures = getTexturesVersion();
+      return state;
     },
     getBindGroup: (program: WebGPUProgram) => {
       write();

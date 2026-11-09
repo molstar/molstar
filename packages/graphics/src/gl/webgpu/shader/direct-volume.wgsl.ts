@@ -53,7 +53,9 @@ ${fragment_output_wgsl(`#if defined(dRenderVariant_marking) || defined(dRenderVa
 @vertex
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    // the transient transform of an object shown moved (\`uObjectTransform\`) after the instance's; the fragment stage
+    // applies it again to the instance's rows
+    let aTransform = uObject.uObjectTransform * affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
     let unitCoord = vec4<f32>(in.aPosition + vec3<f32>(0.5), 1.0);
     let mvPosition = uGlobal.uModelView * aTransform * uObject.uUnitToCartn * unitCoord;
 
@@ -349,8 +351,9 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
 
         #if defined(dClipVariant_pixel) && defined(dClipObjects)
             let modelPosition = v3m4(unitPos * gridDim, modelTransform);
-            // direct volumes have no per-group clipping flags
-            if (clipTest(modelPosition, 0)) {
+            // direct volumes have no per-group clipping flags; the ghost pass (\`uClipGhost\`) keeps what the clip
+            // objects remove
+            if (clipTest(modelPosition, 0) != (uGlobal.uClipGhost != 0u)) {
                 t += 1.0;
                 continue;
             }
@@ -529,7 +532,7 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
     let boundingSphereNear = distance(boundingSphere.xyz, cameraPosition) - boundingSphere.w;
     let d = max(uGlobal.uNear, boundingSphereNear) - mix(0.0, distance(in.vModelPosition, cameraPosition), isOrtho);
     let start = mix(cameraPosition, in.vModelPosition, isOrtho) + (d * rayDir);
-    let transform = affineTransform(in.vTransform0, in.vTransform1, in.vTransform2);
+    let transform = uObject.uObjectTransform * affineTransform(in.vTransform0, in.vTransform1, in.vTransform2);
     let normalMatrix = mat3x3<f32>(in.vNormalMatrix0, in.vNormalMatrix1, in.vNormalMatrix2);
     #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick)
         _ = raymarch(start, step, in.position.xy, in.vInstance, transform, normalMatrix);

@@ -333,6 +333,32 @@ export const GeometryCases: VisualTestCase[] = [
       await shapeRepr('points', pointSphere(400, 4), { props: { pointStyle: 'circle', sizeFactor: 6 } }),
     ],
   },
+  ...[0.3, 0.6].map((pointRingWidth) => ({
+    id: `geometry/points/ring-${pointRingWidth}`,
+    description: 'Rings: the point less an inner circle, the ring a fraction of the radius wide.',
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('points', pointSphere(400, 4), {
+        props: { pointStyle: 'ring' as const, pointRingWidth, sizeFactor: 10 },
+      }),
+    ],
+  })),
+  {
+    id: 'geometry/points/depth-offset',
+    description:
+      'Two point clouds at the same places: the second moved toward the camera in depth only (pointDepthOffset), drawn over the first where they overlap, as large and where it was.',
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('points', pointSphere(400, 4), {
+        colors: [Color(0x999999)],
+        props: { pointStyle: 'circle' as const, sizeFactor: 10 },
+      }),
+      await shapeRepr('points', pointSphere(400, 4), {
+        colors: [Color(0xe41a1c)],
+        props: { pointStyle: 'circle' as const, sizeFactor: 6, pointDepthOffset: 40 },
+      }),
+    ],
+  },
   {
     id: 'geometry/points/fuzzy',
     view: ObliqueView,
@@ -374,6 +400,9 @@ export const GeometryCases: VisualTestCase[] = [
     id: 'geometry/text/labels',
     tags: ['smoke'],
     description: 'Font atlas is rasterized with a 2D canvas; expect browser/OS dependent snapshots.',
+    // two software rasterizers (CI: ANGLE and Dawn on Mesa's Vulkan) round glyph and box edges apart: 141 px of the
+    // labels' anti-aliasing and a background box's edge row; a label moved or missing is far more
+    tolerance: { maxDiffRatio: 0.004 },
     scene: async () => [await shapeRepr('text', textLabels(textProps), { props: textProps })],
   },
   {

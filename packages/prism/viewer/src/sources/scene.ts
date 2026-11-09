@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { type EmptiedComponent, emptiedComponentsOf, hiddenContents } from '../api/contents.js';
@@ -3245,13 +3246,15 @@ function particlesText(data: ParticleList): string {
   return `${data.count.toLocaleString('en')} particles${targets > 1 ? ` · ${targets} targets` : ''}`;
 }
 
-/** What stands for a target: a structure's entry, a shape's or a volume's name */
+/** What stands for a target: a structure's entry, sites' label, a shape's or a volume's name */
 function targetLabel(
   target: NonNullable<ParticleList['targetMapping']> extends ReadonlyMap<number, infer T> ? T : never,
 ) {
   switch (target.kind) {
     case 'structure':
       return target.structure.model.entryId || target.structure.label;
+    case 'sites':
+      return target.sites.label || `${target.sites.count.toLocaleString('en')} sites`;
     case 'shape':
       return target.shape.name;
     case 'volume':

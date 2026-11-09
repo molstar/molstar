@@ -14,6 +14,7 @@ import {
   type RenderableKind,
 } from './render-object.js';
 import { getDefineLookup, isUsed, type RenderableSchema } from './renderable/schema.js';
+import { canCullOnGpu } from './renderable/merged.js';
 import type { ProgramItem, Transparency } from './render-item.js';
 import type { GraphicsRenderable } from './renderable.js';
 import type { GlobalDefines } from './renderable/schema.js';
@@ -40,9 +41,10 @@ export interface ObjectSignature extends RenderableKind {
   readonly transparent: boolean;
   readonly emissive: boolean;
   /**
-   * Culled on the GPU (a merged object's `gpuCulling`): its programs are the same, the culling's kernels prepared with
-   * them; not part of the key. Unset in lists derived from params (whether an object is culled there depends on its
-   * instances)
+   * Culled on the GPU (a merged object's `gpuCulling`): its programs the culled variant (`dCulled`, `CulledSchema`) where
+   * the context culls on the GPU, the culling's kernels prepared with them; part of the key of merged objects (culled and
+   * unculled objects draw with different programs). Unset in lists derived from params where it depends on the
+   * instances
    */
   readonly gpuCulled?: boolean;
 }
@@ -62,19 +64,12 @@ function getDrawFlags(values: { [k: string]: ValueCell<unknown> | undefined }) {
 
 /** `a` with the draw flags of `b` added (signatures of the same key) */
 export function mergeSignatures(a: ObjectSignature, b: ObjectSignature): ObjectSignature {
-  if (
-    (a.opaque || !b.opaque) &&
-    (a.transparent || !b.transparent) &&
-    (a.emissive || !b.emissive) &&
-    (a.gpuCulled || !b.gpuCulled)
-  )
-    return a;
+  if ((a.opaque || !b.opaque) && (a.transparent || !b.transparent) && (a.emissive || !b.emissive)) return a;
   return {
     ...a,
     opaque: a.opaque || b.opaque,
     transparent: a.transparent || b.transparent,
     emissive: a.emissive || b.emissive,
-    gpuCulled: a.gpuCulled || b.gpuCulled,
   };
 }
 
@@ -124,6 +119,8 @@ function getDefines(schema: RenderableSchema, values: { [k: string]: ValueCell<u
   const defines: { [k: string]: DefineValue } = {};
   for (const k of Object.keys(schema)) {
     if (schema[k].type !== 'define' || k === 'dRenderVariant' || ContextDefines.has(k)) continue;
+    // by the context where a program item is made (`createSignatureProgramItem`: `gpuCulled` and a culler's support)
+    if (k === 'dCulled') continue;
     const value = values[k]?.ref.value;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') defines[k] = value;
   }
@@ -164,6 +161,7 @@ export function getSignatureKey(signature: ObjectSignature) {
     signature.linearTextures.join(','),
     signature.doubleSided ? 'double' : '',
     signature.hasReflection ? 'reflection' : '',
+    signature.merged && signature.gpuCulled ? 'gpu-culled' : '',
   ].join('|');
 }
 
@@ -184,7 +182,14 @@ export function createSignatureProgramItem(
   const defineValues: DefineValues = {};
   for (const k of Object.keys(source.schema)) {
     if (source.schema[k].type !== 'define' || k === 'dRenderVariant') continue;
-    const value = ContextDefines.has(k) ? globals[k as keyof GlobalDefines] : signature.defines[k];
+    // culled programs where the object is culled on the GPU in this context (its culler sets it, `CulledSchema`), not
+    // as recorded (a list recorded where it was not)
+    const value =
+      k === 'dCulled'
+        ? !!signature.gpuCulled && canCullOnGpu(graphics)
+        : ContextDefines.has(k)
+          ? globals[k as keyof GlobalDefines]
+          : signature.defines[k];
     // number defines (e.g. counts) are define values as well, see `getWgslDefines`
     if (value !== undefined) defineValues[k] = ValueCell.create(value as DefineType);
   }

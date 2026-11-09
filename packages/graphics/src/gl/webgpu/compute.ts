@@ -434,6 +434,9 @@ function prepareKernelPipelines(
   return waits.length ? Promise.all(waits).then(() => {}) : Promise.resolve();
 }
 
+/** The bind groups a kernel keeps, of its last binding sets (`createKernel`) */
+const KernelBindGroupCacheSize = 4;
+
 function createKernel<S extends KernelSchema>(
   env: WebGPUComputeEnv,
   pipelines: Map<string, KernelPipeline>,
@@ -470,35 +473,61 @@ function createKernel<S extends KernelSchema>(
         )
       : undefined;
 
-  let bindGroup: GPUBindGroup | undefined;
-  let bindKey = '';
+  /**
+   * the bind groups of the last binding sets, the most recent first: a kernel alternating between resources (e.g. the
+   * records of a culling phase each) reuses them; keyed by the pipeline's and the resources' ids and versions, compared
+   * as numbers (a dispatch builds no string or entries where its set is cached)
+   */
+  const bindGroups: { readonly key: number[]; readonly group: GPUBindGroup }[] = [];
+  const bindKey: number[] = [];
+  const isBindKey = (key: readonly number[]) => {
+    if (key.length !== bindKey.length) return false;
+    for (let i = 0, il = key.length; i < il; ++i) if (key[i] !== bindKey[i]) return false;
+    return true;
+  };
   function getBindGroup(uniformBuffer: GPUBuffer | undefined) {
-    const entries: GPUBindGroupEntry[] = [];
-    const keys: (string | number)[] = [current.id];
+    bindKey.length = 0;
+    bindKey.push(current.id);
     for (const b of current.bindings) {
       if (b.kind === 'uniforms') {
-        entries.push({ binding: b.binding, resource: { buffer: uniformBuffer!, size: current.uniforms!.size } });
-        keys.push(uniformBuffers.get(uniformBuffer!)!);
+        bindKey.push(uniformBuffers.get(uniformBuffer!)!);
       } else if (b.kind === 'storage-buffer') {
         const buffer = asWebGPUStorageBuffer(values[b.name].ref.value as StorageBuffer);
-        entries.push({ binding: b.binding, resource: { buffer: buffer.getGPUBuffer() } });
-        keys.push(buffer.id, buffer.version);
+        bindKey.push(buffer.id, buffer.version);
       } else {
         const texture = asWebGPUTexture(values[b.name].ref.value as never);
         // read before written: allocated (zeros), as a kernel input of undefined contents
         if (b.kind === 'texture') texture.getGPUTexture();
+        bindKey.push(texture.id, texture.version);
+      }
+    }
+    for (let i = 0, il = bindGroups.length; i < il; ++i) {
+      const cached = bindGroups[i];
+      if (!isBindKey(cached.key)) continue;
+      if (i > 0) {
+        bindGroups.splice(i, 1);
+        bindGroups.unshift(cached);
+      }
+      return cached.group;
+    }
+    const entries: GPUBindGroupEntry[] = [];
+    for (const b of current.bindings) {
+      if (b.kind === 'uniforms') {
+        entries.push({ binding: b.binding, resource: { buffer: uniformBuffer!, size: current.uniforms!.size } });
+      } else if (b.kind === 'storage-buffer') {
+        const buffer = asWebGPUStorageBuffer(values[b.name].ref.value as StorageBuffer);
+        entries.push({ binding: b.binding, resource: { buffer: buffer.getGPUBuffer() } });
+      } else {
+        const texture = asWebGPUTexture(values[b.name].ref.value as never);
         const view = b.kind === 'texture' ? texture.getView() : texture.getAttachmentView();
         if (!view) throw new Error(`texture '${b.name}' of kernel '${code.name}' has no storage`);
         entries.push({ binding: b.binding, resource: view });
-        keys.push(texture.id, texture.version);
       }
     }
-    const key = keys.join('|');
-    if (!bindGroup || key !== bindKey) {
-      bindGroup = env.device.createBindGroup({ layout: current.layout, entries, label: code.name });
-      bindKey = key;
-    }
-    return bindGroup;
+    const group = env.device.createBindGroup({ layout: current.layout, entries, label: code.name });
+    bindGroups.unshift({ key: bindKey.slice(), group });
+    if (bindGroups.length > KernelBindGroupCacheSize) bindGroups.pop();
+    return group;
   }
 
   function prepare(pass: GPUComputePassEncoder) {
@@ -534,7 +563,7 @@ function createKernel<S extends KernelSchema>(
       if (destroyed) return;
       destroyed = true;
       writeUniforms?.dispose();
-      bindGroup = undefined;
+      bindGroups.length = 0;
     },
   };
 }

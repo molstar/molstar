@@ -97,6 +97,12 @@ export const PassCases: BenchmarkCase<any>[] = [
     scene([{ provider: GaussianSurfaceRepresentationProvider }]),
   ),
   renderCase('passes/marking', 'spacefill, everything highlighted', scene(spheres, { highlight: true })),
+  // a moving frame of temporal multi-sampling (each forced frame restarts it): the scene, its hold and compose
+  renderCase(
+    'passes/temporal-moving',
+    'spacefill with temporal multi-sampling, every frame a moving one',
+    scene(spheres, { multiSample: 'temporal' }),
+  ),
   pass('ssao', 'SSAO', { occlusion: { name: 'on', params: ssao } }),
   pass('ssao-multiscale', 'multi-scale SSAO (four levels)', {
     occlusion: {

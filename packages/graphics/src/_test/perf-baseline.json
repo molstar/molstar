@@ -1,0 +1,10 @@
+{
+  "frame: opaque pass at rest (webgl)": 128,
+  "frame: opaque pass at rest (webgpu)": 784,
+  "frame: opaque pass into a render target at rest (webgl)": 128,
+  "frame: opaque pass into a render target at rest (webgpu)": 784,
+  "frame: update at rest (webgl)": 96,
+  "frame: update at rest (webgpu)": 112,
+  "hover: highlight moved and a tick (webgl)": 10889.9,
+  "hover: highlight moved and a tick (webgpu)": 17206.4
+}

@@ -25,6 +25,11 @@ export interface BufferPages {
   allocate(size: number): BufferRange;
   free(range: BufferRange): void;
   /**
+   * Makes the ranges freed before the last submission reusable, and drops pages left empty (also done by `allocate`);
+   * `idle`: no commands are recorded and not submitted, so every range freed is (an idle canvas)
+   */
+  reclaim(idle?: boolean): void;
+  /**
    * writes `array` into `range` at `byteOffset` (a multiple of 4; the default 0); a last partial word is padded with
    * zeros
    */
@@ -49,6 +54,8 @@ export function createBufferPages(
     readonly label: string;
     /** advances with each submission (`GraphicsContext.submitCount`) */
     readonly getSubmitCount: () => number;
+    /** a range was freed: for the owner to reclaim it after the next submission, or once idle (`reclaim`) */
+    readonly onFree?: () => void;
   },
 ): BufferPages {
   type Page = { readonly buffer: GPUBuffer; readonly allocator: RangeAllocator; readonly dedicated: boolean };
@@ -73,15 +80,15 @@ export function createBufferPages(
 
   /** the submission pending ranges were last released in: none freed since is reusable before the next */
   let releasedAt = -1;
-  const releasePending = () => {
+  const releasePending = (idle = false) => {
     if (pending.length === 0) return;
     const submit = options.getSubmitCount();
-    if (submit === releasedAt) return;
+    if (submit === releasedAt && !idle) return;
     releasedAt = submit;
     let kept = 0;
     for (let i = 0, il = pending.length; i < il; ++i) {
       const p = pending[i];
-      if (p.submit === submit) {
+      if (p.submit === submit && !idle) {
         pending[kept++] = p;
         continue;
       }
@@ -129,6 +136,10 @@ export function createBufferPages(
     },
     free(range) {
       pending.push({ range: range as Range, submit: options.getSubmitCount() });
+      options.onFree?.();
+    },
+    reclaim(idle = false) {
+      releasePending(idle);
     },
     write(range, array, byteOffset = 0) {
       const offset = range.offset + byteOffset;

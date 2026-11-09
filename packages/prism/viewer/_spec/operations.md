@@ -35,9 +35,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `clipping.list` | List the cuts | read |  |
 | `clipping.release` | Cut atoms kept whole again |  | cut, tag |
 | `clipping.remove` | Remove a cut | destructive | cut, tag |
-| `clipping.settings` | Set how cuts cut |  | variant, solidSurface |
+| `clipping.settings` | Set how cuts cut |  | variant, solidSurface, fadeNormal, ghost, ghostColor, ghostOpacity, ghostEdgeOpacity, ghostResolution |
 | `clipping.show` | Draw a cut in the scene, or not |  | cut, tag, on, options |
-| `clipping.update` | Change a cut |  | cut, tag, shape, position, normal, rotation, scale, invert |
+| `clipping.update` | Change a cut |  | cut, tag, shape, position, normal, rotation, twist, scale, invert |
 | `component.add` | Add a component |  | target, label, representation, structure, language |
 | `component.list` | List the components | read | structure |
 | `component.modify` | Change what a component holds |  | component, target, mode, structure, language |
@@ -97,6 +97,8 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `particles.source` | Set how particles are read | agent-only | params, particles |
 | `particles.stop` | Stop playing the particle frames | view |  |
 | `particles.targets` | Set what the particles stand for | network (addresses) | file, source, target, particles |
+| `particles.transform` | Move or rotate particles |  | translation, axis, angle, center, matrix, compose, particles |
+| `particles.transform-reset` | Reset the particles’ transform |  | particles |
 | `particles.unit-cell` | Show the particle unit cell |  | visible, color, opacity, particles |
 | `particles.update` | Update a particle representation | ui-only | node, params |
 | `particles.visibility` | Show or hide particles |  | visible, particles, representation, node |
@@ -146,6 +148,8 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `shape.focus` | Focus a shape | view | node |
 | `shape.list` | List the shapes | read |  |
 | `shape.remove` | Remove a shape | destructive | node |
+| `shape.transform` | Move or rotate a shape |  | translation, axis, angle, center, matrix, compose, node |
+| `shape.transform-reset` | Reset the shape’s transform |  | node |
 | `shape.update` | Update a shape representation | ui-only | node, params |
 | `shape.visibility` | Show or hide a shape |  | node, visible |
 | `snapshot.add` | Add a snapshot | no undo | name, description, key, showFor, options |
@@ -203,5 +207,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `volume.representation` | Show a volume as… |  | type, params, volume |
 | `volume.streaming` | Stream density for a structure | network (addresses); needs network | on, structure |
 | `volume.streaming-view` | Set how streamed density shows | network (addresses); needs network | view, radius, detail, channels, structure |
+| `volume.transform` | Move or rotate a volume |  | translation, axis, angle, center, matrix, compose, volume |
+| `volume.transform-reset` | Reset the volume’s transform |  | volume |
 | `volume.update` | Update a volume representation | ui-only | node, params |
 | `volume.visibility` | Show or hide a volume |  | visible, volume, representation, node |

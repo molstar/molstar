@@ -7,6 +7,7 @@
 import * as background from '../../canvas3d/passes/background.js';
 import * as bloom from '../../canvas3d/passes/bloom.js';
 import * as cas from '../../canvas3d/passes/cas.js';
+import * as clipGhost from '../../canvas3d/passes/clip-ghost.js';
 import * as dof from '../../canvas3d/passes/dof.js';
 import * as dpoit from '../../canvas3d/passes/dpoit.js';
 import * as fxaa from '../../canvas3d/passes/fxaa.js';
@@ -51,6 +52,8 @@ export const ComputeShaders: [name: string, shaderCode: ShaderCode, schema: Rend
     illumination.MultiSampleComposeShaderCode,
     illumination.MultiSampleComposeSchema,
   ],
+  ['clip-ghost', clipGhost.ClipGhostShaderCode, clipGhost.ClipGhostSchema],
+  ['marking-depth', marking.MarkingDepthShaderCode, marking.MarkingDepthSchema],
   ['marking-dim', marking.DimShaderCode, marking.DimSchema],
   ['marking-overlay', marking.OverlayShaderCode, marking.OverlaySchema],
   ['multi-sample-compose', multiSample.ComposeShaderCode, multiSample.ComposeSchema],
@@ -85,6 +88,7 @@ export const ShaderModules: { [path: string]: object } = {
   'canvas3d/passes/background.ts': background,
   'canvas3d/passes/bloom.ts': bloom,
   'canvas3d/passes/cas.ts': cas,
+  'canvas3d/passes/clip-ghost.ts': clipGhost,
   'canvas3d/passes/dof.ts': dof,
   'canvas3d/passes/dpoit.ts': dpoit,
   'canvas3d/passes/fxaa.ts': fxaa,

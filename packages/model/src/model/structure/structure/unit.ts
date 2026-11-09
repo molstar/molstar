@@ -10,7 +10,7 @@ import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator'
 import { Model } from '../model.js';
 import { GridLookup3D, type Lookup3D, Spacegroup } from '@molstar/core/math/geometry';
 import { type IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds.js';
-import { VdwRadius } from '../model/properties/atomic.js';
+import { VdwRadiusOfNumber } from '../model/properties/atomic.js';
 import type {
   CoarseElements,
   CoarseSphereConformation,
@@ -267,8 +267,8 @@ namespace Unit {
   }
 
   function getAtomicRadiusFunc(model: Model) {
-    const type_symbol = model.atomicHierarchy.atoms.type_symbol.value;
-    return (i: ElementIndex) => VdwRadius(type_symbol(i));
+    const { atomicNumber } = model.atomicHierarchy.derived.atom;
+    return (i: ElementIndex) => VdwRadiusOfNumber(atomicNumber[i]);
   }
 
   function getSphereRadiusFunc(model: Model) {

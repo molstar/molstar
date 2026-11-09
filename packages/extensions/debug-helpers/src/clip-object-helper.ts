@@ -312,9 +312,9 @@ function createCubeMesh(baseMat: Mat4, scale: Vec3): Mesh {
 }
 
 /**
- * Cylinder: SDF axis along Y, radius = scale.x * 0.5, half-height = scale.y * 0.5.
+ * Cylinder: SDF axis along Y, elliptic, radii = scale.x * 0.5 and scale.z * 0.5, half-height = scale.y * 0.5.
  * Cylinder primitive: axis along Y, radius=1 in XZ, half-height=0.5 in Y.
- * Need: X/Z *= scale.x * 0.5 (radius 1 → scale.x*0.5), Y *= scale.y (half-height 0.5 → scale.y*0.5).
+ * Need: X *= scale.x * 0.5, Z *= scale.z * 0.5 (radius 1 → the radii), Y *= scale.y (half-height 0.5 → scale.y*0.5).
  */
 function createCylinderMesh(baseMat: Mat4, scale: Vec3): Mesh {
   const cyl = Cylinder({
@@ -326,8 +326,7 @@ function createCylinderMesh(baseMat: Mat4, scale: Vec3): Mesh {
     topCap: true,
     bottomCap: true,
   });
-  // baseMat * scale(scale.x * 0.5, scale.y, scale.x * 0.5) — use scale.x for both radial axes
-  Mat4.scale(_tmpMat, baseMat, Vec3.create(scale[0] * 0.5, scale[1], scale[0] * 0.5));
+  Mat4.scale(_tmpMat, baseMat, Vec3.create(scale[0] * 0.5, scale[1], scale[2] * 0.5));
 
   const vertexCount = cyl.vertices.length / 3;
   const builderState = MeshBuilder.createState(vertexCount * 3, vertexCount);

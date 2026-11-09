@@ -14,6 +14,7 @@ import { ValueCell } from '@molstar/core/util';
 import { createClipping } from '@molstar/graphics/geo/geometry/clipping-data';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
+import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { EveryLoci } from '@molstar/model/model/loci';
 import { Structure } from '@molstar/model/model/structure';
@@ -329,6 +330,20 @@ export const SphereRasterCases: VisualTestCase[] = [
       'the instances the plane cuts.',
     async (ctx) => [await globuleGrid(ctx, { clip: PixelClip })],
     { sphereRaster: 'only' },
+  ),
+  rasterCase(
+    'clip-pixel-ghost',
+    'The globule clipped by pixel by a tilted plane, all by the raster (`only`), with the ghost of what the plane ' +
+      'removes: the ghost pass draws it as impostors, the raster draws what is left.',
+    async (ctx) => [await globule(ctx, { clip: PixelClip })],
+    { sphereRaster: 'only', canvasProps: { clipGhost: { name: 'on', params: PD.getDefaultValues(ClipGhostParams) } } },
+  ),
+  rasterCase(
+    'merged-clip-pixel-ghost',
+    'The copies merged and culled on the GPU, clipped by pixel by a tilted plane, all by the raster (`only`), with the ' +
+      "ghost: the culler's ghost region drawn as impostors.",
+    async (ctx) => [await globuleGrid(ctx, { clip: PixelClip })],
+    { sphereRaster: 'only', canvasProps: { clipGhost: { name: 'on', params: PD.getDefaultValues(ClipGhostParams) } } },
   ),
   rasterCase(
     'marking-outline',

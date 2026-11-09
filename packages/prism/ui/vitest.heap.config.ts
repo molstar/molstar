@@ -7,11 +7,11 @@
  */
 
 // `test:heap`, prism-ui's heap guards (packages/prism/AGENTS.md, Tests): the `*.heap.ts` guards under any `_test/` of
-// `src/`, heap growth over n and 4n steps with a positive control each. Seq*'s tier (`heapTests`,
-// packages/sequences/vitest.shared.ts). Opt in, at checkpoints; never in CI.
+// `src/`, heap growth over n and 4n steps with a positive control each. The shared tier (`heapTests`,
+// @molstar/test-harness/vitest). Opt in, at checkpoints; never in CI.
 import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
-import { heapTests } from '../../sequences/vitest.shared.js';
+import { heapTests } from '@molstar/test-harness/vitest';
 
 const root = join(import.meta.dirname, 'src');
 const base = heapTests();

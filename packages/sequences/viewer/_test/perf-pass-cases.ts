@@ -22,7 +22,7 @@
 
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 
 const S = 'v.main';
 

@@ -10,9 +10,19 @@ here.
 
 ## [Unreleased]
 
+- Fix the loci of a pick of a whole unit (elements, polymers, intra-unit bonds) holding one index past the unit's
+  elements
+- Fix the surfaces of a whole structure (Gaussian surface and density, molecular surface, blob surface) taking one
+  position past the structure's elements: an undefined point in their density and the blobs' clustering
 - Marking: fill and dim account for transparent layers (shading, see-through, dim of unmarked transparent objects)
 - Allow negative values for the label text offsets X, Y and Z (domain [-10, 10] instead of [0, 10]) (#1899)
+- Fix multi-sampling with `reuseOcclusion` (the default) reading the SSAO of the first sample shifted the wrong way
+  vertically in the others
 - Fix `Euler.set` (and `Euler.fromVec3`, which uses it) writing all three angles into the first component
+- Fix `VdwRadius` returning `undefined` for the elements without a radius in its table (110 to 118, Ds to Og): the
+  default radius, as for an unknown element
+- Fix sphere impostors far from the camera (mesoscale structures zoomed out) losing pixels and shading with wrong
+  normals in rings around the view's center: the ray-sphere test no longer loses the radius to rounding
 - [Breaking] Component options keep overrides: `StructureComponentManager.setOptions` changes only the representations
   that had the previous value of a changed option (a representation given its own material, quality, … keeps it);
   `reset` writes options to every representation. Representation presets give their representations the material, clip

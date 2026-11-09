@@ -23,7 +23,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { compile } from '../../src/format/index.js';
 import { Coordinates, type SystemDescriptor, SystemRegistry, TranslateMaps } from '../../src/translate/index.js';
-import { itWithin } from '../model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { registries } from '../format/load-fixtures.js';
 
 const K = CoordinateSystemKind;

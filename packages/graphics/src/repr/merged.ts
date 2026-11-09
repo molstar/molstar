@@ -23,6 +23,8 @@ import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { ValueCell } from '@molstar/core/util/value-cell';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
+import { Visual } from './visual.js';
 
 /**
  * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity and
@@ -31,7 +33,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
  * `uLod` and `lodLevels` are kept by value, as `getMergeKey` reads them: `BaseGeometry.updateValues` sets `uLod` on
  * every update, and a structure update `lodLevels`, with the same values (perf-audit-3 07/P17).
  */
-type MergeFingerprint = { keyCount: number; cells: ValueCell<any>[]; versions: number[]; lod: string };
+type MergeFingerprint = { cells: ValueCell<any>[]; versions: number[]; lod: number[] };
 const mergeFingerprints = new WeakMap<GraphicsRenderObject, MergeFingerprint>();
 
 /** The `*Type` cells `canMergeValues` reads (not `markerType` and the index types, set on updates it doesn't read) */
@@ -52,13 +54,30 @@ function isMergeRelevantKey(k: string) {
   );
 }
 
-/** `uLod` and `lodLevels` as `getMergeKey` writes them */
+/** `uLod` and `lodLevels` as `getMergeKey` reads them, as numbers (NaN marks a missing `uLod`) */
 function lodOf(values: { [k: string]: ValueCell<any> }) {
   const lod = values.uLod?.ref.value as ArrayLike<number> | undefined;
   const levels = values.lodLevels?.ref.value as ArrayLike<number>[] | undefined;
-  let s = lod ? `${lod[0]},${lod[1]},${lod[2]},${lod[3]}` : '';
-  if (levels) for (const l of levels) s += `;${l[0]},${l[1]},${l[2]}`;
-  return s;
+  const out = lod ? [lod[0], lod[1], lod[2], lod[3]] : [Number.NaN, Number.NaN, Number.NaN, Number.NaN];
+  if (levels) for (const l of levels) out.push(l[0], l[1], l[2]);
+  return out;
+}
+
+/** Whether `values`' `uLod` and `lodLevels` are `lod` (`lodOf`), compared in place: checked every update, per member */
+function isLodOf(values: { [k: string]: ValueCell<any> }, lod: readonly number[]) {
+  const u = values.uLod?.ref.value as ArrayLike<number> | undefined;
+  const levels = values.lodLevels?.ref.value as ArrayLike<number>[] | undefined;
+  if (lod.length !== 4 + (levels ? levels.length * 3 : 0)) return false;
+  if (u) {
+    if (u[0] !== lod[0] || u[1] !== lod[1] || u[2] !== lod[2] || u[3] !== lod[3]) return false;
+  } else if (!Number.isNaN(lod[0])) return false;
+  if (levels) {
+    for (let i = 0, o = 4, il = levels.length; i < il; ++i, o += 3) {
+      const l = levels[i];
+      if (l[0] !== lod[o] || l[1] !== lod[o + 1] || l[2] !== lod[o + 2]) return false;
+    }
+  }
+  return true;
 }
 
 function recordMergeFingerprint(ro: GraphicsRenderObject) {
@@ -71,18 +90,19 @@ function recordMergeFingerprint(ro: GraphicsRenderObject) {
     cells.push(values[k]);
     versions.push(values[k].ref.version);
   }
-  mergeFingerprints.set(ro, { keyCount: keys.length, cells, versions, lod: lodOf(values) });
+  mergeFingerprints.set(ro, { cells, versions, lod: lodOf(values) });
 }
 
 function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
   const f = mergeFingerprints.get(ro);
   if (!f) return false;
+  // no key count: a render object's values keep their keys (made with it; none merge-relevant is added later), and
+  // listing them per member every update was the check's largest cost (a clip object dragged over a mesoscale model)
   const values = ro.values as unknown as { [k: string]: ValueCell<any> };
-  if (Object.keys(values).length !== f.keyCount) return false;
   for (let i = 0, il = f.cells.length; i < il; ++i) {
     if (f.cells[i].ref.version !== f.versions[i]) return false;
   }
-  return lodOf(values) === f.lod;
+  return isLodOf(values, f.lod);
 }
 
 /** One visual and its renderObject, ready to be grouped/merged by `mergeRenderObjectsByType`. */
@@ -99,6 +119,9 @@ export type MergedEntry<V> = { object: MergedGraphicsRenderObject; visuals: V[];
  *
  * Clears and refills `renderObjects` with the merged and any left-over unmerged
  * render objects. Returns the new by-type map, to pass as `prevMergedByType` next time.
+ *
+ * The transient transform (`previewTransform`) is set on the objects drawn, so a group formed or left during a drag
+ * keeps it: a merged object moves as one (its own `uObjectTransform`), its members' are not read while merged.
  */
 export function mergeRenderObjectsByType<V>(
   entries: readonly MergeableEntry<V>[],
@@ -111,6 +134,8 @@ export function mergeRenderObjectsByType<V>(
   gpuSupported = false,
   /** the current context: a merged object holding resources of another is not reused (its own cells stay foreign) */
   graphics?: GraphicsContext,
+  /** the representation's transient transform (`Representation.State.previewTransform`), set on what is drawn */
+  previewTransform?: Mat4,
 ): Map<string, MergedEntry<V>> {
   renderObjects.length = 0;
   const nextMerged = new Map<string, MergedEntry<V>>();
@@ -136,11 +161,14 @@ export function mergeRenderObjectsByType<V>(
           rasterSpheres += instanceCount.ref.value * uVertexCount.ref.value;
         }
       }
-      const gpu = gpuSupported && resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres);
+      const byInstances = resolveGpuCulling(gpuCulling, instances, draws);
+      const gpu = gpuSupported && (byInstances || resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres));
+      // culled on the GPU for the sphere raster only: the renderer culls it on the CPU where the raster does not take it
+      const rasterOnly = gpu && !byInstances;
       const merge = gpu || (group.length >= 2 && resolveRenderMerged(renderMerged, group.length));
       if (!merge) return;
 
-      const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}`;
+      const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}|${rasterOnly}`;
       const prev = prevMergedByType.get(type);
       const same = !!prev && prev.key === key && !(graphics && hasForeignResources(prev.object, graphics));
       // the members checked again only where one of them changed what merging reads (the key: the same members, the
@@ -161,7 +189,7 @@ export function mergeRenderObjectsByType<V>(
         : {
             object: createMergedRenderObject(
               group.map((e) => e.renderObject),
-              { gpuCulling: gpu },
+              { gpuCulling: gpu, rasterOnly },
             ),
             visuals: group.map((e) => e.visual),
             key,
@@ -174,6 +202,9 @@ export function mergeRenderObjectsByType<V>(
 
   for (const e of entries) {
     if (!consumed.has(e.renderObject)) renderObjects.push(e.renderObject);
+  }
+  if (previewTransform) {
+    for (const ro of renderObjects) Visual.setPreviewTransform(ro, previewTransform);
   }
 
   return nextMerged;

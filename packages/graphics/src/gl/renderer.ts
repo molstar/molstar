@@ -11,7 +11,8 @@ import type { ICamera } from '@molstar/graphics/canvas3d/camera';
 import type { Scene } from './scene.js';
 import type { GraphicsContext, PipelineRequest, TargetDescriptor } from './context.js';
 import { Mat4, Vec3, Vec4, Vec2 } from '@molstar/core/math/linear-algebra';
-import { type GraphicsRenderable, type Frame, createFrame, DrawKey, LodView } from './renderable.js';
+import { type CullBatch, type GraphicsRenderable, type Frame, createFrame, DrawKey, LodView } from './renderable.js';
+import { getDrawnBoundingSphere } from './renderable/util.js';
 import {
   DrawFact,
   DrawRow,
@@ -20,6 +21,7 @@ import {
   getCheckFacts,
   getDrawFacts,
   getDrawState,
+  hasCameraBounds,
 } from './draw-table.js';
 import { Color } from '@molstar/core/util/color';
 import { ValueCell, deepEqual } from '@molstar/core/util';
@@ -86,12 +88,17 @@ interface Renderer {
 
   clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => void;
   clearDepth: (packed?: boolean) => void;
-  update: (camera: ICamera, scene: Scene, frame: Frame) => void;
+  /**
+   * `side`: a frame of a pass's own within the frame (culled anew, e.g. the tracing's thickness), not counted as one:
+   * the frame updated before it and after it are the same one
+   */
+  update: (camera: ICamera, scene: Scene, frame: Frame, side?: boolean) => void;
   /**
    * Culls on the GPU (merged render objects, `Renderable.prepareCull`) with the planes of the last `update`: outside of
    * passes (compute), before the passes of the frame that draw with it; others draw the CPU culling's lists
    */
-  prepareCull: (scene: Scene.Group, twoPhase?: boolean) => void;
+  /** `clipGhost`: the ghost pass draws this frame (`renderClipGhost`), its lists culled on the GPU too */
+  prepareCull: (scene: Scene.Group, twoPhase?: boolean, clipGhost?: boolean) => void;
   /** The objects whose second phase is to run after the last `prepareCull` with `twoPhase` (none: no second part) */
   readonly cullSecondPending: number;
   /**
@@ -102,6 +109,11 @@ interface Renderer {
   /** The opaque pass's second part: what the second phase found, on the first part's target */
   renderOpaqueSecond: (group: Scene.Group, camera: ICamera) => void;
   /**
+   * The tracing pass's second part (illumination's input), as `renderOpaqueSecond`; the passes after it draw both
+   * phases (the back depth)
+   */
+  renderTracingSecond: (group: Scene.Group, camera: ICamera) => void;
+  /**
    * Draws the small opaque spheres of `scene` by the sphere raster (`sphereRaster`, WebGPU with `atomicMinMax64`) for
    * the next `renderOpaque`, which resolves them; after `update` and `prepareCull`, no pass open (compute)
    */
@@ -110,11 +122,24 @@ interface Renderer {
   readonly gpuCulledCount: number;
   setTime: (time: number) => void;
 
-  renderPick: (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => void;
+  /** `occluder`: for an overlay (`dOverlay`), the scene's opaque depth its occlusion tests against */
+  renderPick: (
+    group: Scene.Group,
+    camera: ICamera,
+    variant: 'pick' | 'depth',
+    pickType: PickType,
+    occluder?: Renderer.Occluder | null,
+  ) => void;
   renderDepth: (group: Scene.Group, camera: ICamera) => void;
   renderDepthOpaque: (group: Scene.Group, camera: ICamera) => void;
   renderDepthOpaqueBack: (group: Scene.Group, camera: ICamera) => void;
   renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void;
+  /**
+   * The ghost pass: what the clip objects remove, as depth (the `depth` variant, `uClipGhost`), of
+   * the objects with a ghost (`DrawFact.ClipGhost`) the clip objects reach; `scale`: of a target at that fraction of
+   * the resolution (the viewport set so), sizes in pixels scaled with it
+   */
+  renderClipGhost: (group: Scene.Group, camera: ICamera, scale?: number) => void;
   renderMarkingDepth: (group: Scene.Group, camera: ICamera) => void;
   renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void;
   renderEmissiveOpaque: (
@@ -126,6 +151,11 @@ interface Renderer {
   renderEmissiveTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void;
   renderTracing: (group: Scene.Group, camera: ICamera) => void;
   renderBlended: (group: Scene, camera: ICamera) => void;
+  /**
+   * An overlay (`dOverlay`), as `renderBlended`, over the scene's opaque depth (`occluder`): the transparent pass also
+   * draws the occluded parts of opaque objects (`uOccludedAlpha` < 1)
+   */
+  renderOverlay: (group: Scene.Group, camera: ICamera, occluder: Renderer.Occluder | null) => void;
   renderOpaque: (group: Scene.Group, camera: ICamera) => void;
   renderBlendedTransparent: (group: Scene.Group, camera: ICamera) => void;
   renderVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void;
@@ -166,6 +196,8 @@ interface Renderer {
   setDrawingBufferSize: (width: number, height: number) => void;
   setPixelRatio: (value: number) => void;
   setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => void;
+  /** The test of `setOcclusionTest`, e.g. to draw what the scene's depth does not hide (an overlay) and restore it */
+  readonly occlusionTest: ((s: Sphere3D) => boolean) | null;
   /**
    * The depth pyramid GPU culling tests occlusion against (`prepareCull`, the previous frame's), null for none (e.g.
    * where passes need what is hidden, illumination)
@@ -242,6 +274,14 @@ export const RendererParams = {
         'The largest sphere radius on screen, in CSS pixels, the sphere raster draws; larger ones are quads.',
     },
   ),
+  sphereRasterObjects: PD.Numeric(
+    8,
+    { min: 0, max: 256, step: 1 },
+    {
+      description:
+        'With `sphereRaster` "auto": of the objects culled on the GPU for the raster only (many spheres, few instances), the most culled there and drawn by the raster, the largest visible ones; the others culled on the CPU and drawn as quads. Each costs its own dispatches a frame, whatever its size.',
+    },
+  ),
 };
 export type RendererProps = PD.Values<typeof RendererParams>;
 
@@ -250,6 +290,12 @@ export type Light = {
   direction: number[];
   color: number[];
 };
+
+/**
+ * The ghost pass's levels of detail (`Renderer.renderClipGhost`), chosen as if a CSS pixel were this many times
+ * larger: coarser, a removed particle as its few spheres
+ */
+const ClipGhostLevelScale = 4;
 
 const tmpDir = Vec3();
 const tmpColor = Vec3();
@@ -280,6 +326,17 @@ export function getTransformedLightDirection(light: Light, t: Mat4): Light['dire
 }
 
 namespace Renderer {
+  /**
+   * The scene's depth an overlay is drawn over: the opaque depth's texture (`tDepth`), the front transparent depth with
+   * its alpha (`tDepthAlpha`, where the frame wrote it) and the planes they were drawn with
+   */
+  export type Occluder = {
+    readonly depth: Texture;
+    readonly depthAlpha?: Texture;
+    readonly near: number;
+    readonly far: number;
+  };
+
   const enum Flag {
     None = 0,
     BlendedFront = 1,
@@ -457,7 +514,8 @@ namespace Renderer {
     DrawFact.DirectVolume |
     DrawFact.FuzzyPoints |
     DrawFact.TextOrImage |
-    DrawFact.Xray;
+    DrawFact.Xray |
+    DrawFact.Occludable;
 
   /** alpha 1, not fully transparent, not a direct volume, fuzzy points or x-ray shaded; or back faces opaque */
   const checkOpaque: FactTest = (f) =>
@@ -473,6 +531,8 @@ namespace Renderer {
 
   const checkMarkingMask: FactTest = (f) => (f & DrawFact.MarkerAny) !== 0;
 
+  const checkClipGhost: FactTest = (f) => (f & DrawFact.ClipGhost) !== 0;
+
   const checkEmissive: FactTest = (f) => (f & DrawFact.Emissive) !== 0;
 
   const isDirectVolume: FactTest = (f) => (f & DrawFact.DirectVolume) !== 0;
@@ -487,9 +547,12 @@ namespace Renderer {
     return getCheckFacts(r.values);
   }
 
-  /** whether an object with `state` draws in `variant`: pick passes skip objects that are not pickable */
-  function isVariantDrawn(variant: GraphicsRenderVariant, state: number) {
-    return variant !== 'pick' || (state & DrawState.Pickable) !== 0;
+  /**
+   * whether an object with `state` draws in `pass`: the pick passes (the pick and its depth) skip objects that are not
+   * pickable, the others pick-only objects (hit areas)
+   */
+  function isPassDrawn(pass: PassDraws, state: number) {
+    return pass.pick ? (state & DrawState.Pickable) !== 0 : (state & DrawState.PickOnly) === 0;
   }
 
   /** A draw of an object in a pass */
@@ -498,6 +561,8 @@ namespace Renderer {
   /** The draws of a renderer pass, shared by drawing (`renderPass`) and collecting its pipeline requests (`collect`) */
   interface PassDraws {
     readonly variant: GraphicsRenderVariant;
+    /** a pick pass (the pick or its depth): pickable objects, pick-only ones included (`isPassDrawn`) */
+    readonly pick?: boolean;
     /** objects the pass is for (by geometry), all if not given */
     readonly select?: FactTest;
     /** objects the pass draws in their current state (opacity, markers, emission, ...) */
@@ -561,8 +626,8 @@ namespace Renderer {
   }
 
   const PassDraws = {
-    pick: simplePassDraws('pick', checkPickable, OpaqueState, { mode: 'opaque' }),
-    pickDepth: simplePassDraws('depth', checkPickable, OpaqueState, { mode: 'opaque' }),
+    pick: { ...simplePassDraws('pick', checkPickable, OpaqueState, { mode: 'opaque' }), pick: true },
+    pickDepth: { ...simplePassDraws('depth', checkPickable, OpaqueState, { mode: 'opaque' }), pick: true },
     depth: simplePassDraws('depth', checkAll, OpaqueState, { mode: 'opaque' }),
     depthOpaque: simplePassDraws('depth', checkOpaque, OpaqueState, { mode: 'opaque' }),
     depthOpaqueBack: {
@@ -575,6 +640,8 @@ namespace Renderer {
       check: checkTransparentCap,
       mode: 'opaque',
     }),
+    // no caps: the ghost is the removed parts' surfaces
+    clipGhost: { variant: 'depth', check: checkClipGhost, draws: singleDraw(OpaqueState) } as PassDraws,
     markingDepth: simplePassDraws('marking', checkMarkingDepth, OpaqueState, { mode: 'opaque' }),
     markingMask: simplePassDraws('marking', checkMarkingMask, OpaqueState, { mode: 'opaque' }),
     emissiveOpaque: createEmissiveOpaquePassDraws(false),
@@ -589,6 +656,7 @@ namespace Renderer {
       select: (f, s) => !isDirectVolume(f, s),
     },
     tracing: simplePassDraws('tracing', checkOpaque, OpaqueState, { mode: 'opaque' }),
+    tracingSecond: { variant: 'tracing', check: checkOpaque, draws: singleDraw(OpaqueState) } as PassDraws,
     opaque: simplePassDraws('color', checkOpaque, OpaqueState, { mode: 'opaque' }),
     opaqueSecond: { variant: 'color', check: checkOpaque, draws: singleDraw(OpaqueState) } as PassDraws,
     blendedTransparent: createBlendedTransparentPassDraws(false),
@@ -614,6 +682,7 @@ namespace Renderer {
           | 'depthOpaque'
           | 'depthOpaqueBack'
           | 'depthTransparent'
+          | 'clipGhost'
           | 'markingDepth'
           | 'markingMask'
           | 'emissiveTransparent'
@@ -679,6 +748,26 @@ namespace Renderer {
       ['tDpoitFrontColor', emptyDepthAlphaTexture],
     ];
 
+    /** The values each cell was last set to (`updateArray`) */
+    const lastArrays = new Map<ValueCell<ArrayLike<number>>, Float64Array>();
+    /**
+     * Sets `cell` to the matrix or vector `a` (computed in place, into the arrays the cells hold) where it differs from
+     * the values last set: unchanged, as at rest, no new box (`ValueCell.update` makes one) and no new version (the
+     * uniform blocks' writers then write nothing)
+     */
+    const updateArray = <T extends ArrayLike<number>>(cell: ValueCell<T>, a: T) => {
+      const n = a.length;
+      let last = lastArrays.get(cell);
+      if (last !== undefined && cell.ref.value === a && last.length === n) {
+        let same = true;
+        for (let i = 0; i < n && same; ++i) same = last[i] === a[i];
+        if (same) return;
+      }
+      if (last === undefined || last.length !== n) lastArrays.set(cell, (last = new Float64Array(n)));
+      for (let i = 0; i < n; ++i) last[i] = a[i];
+      ValueCell.update(cell, a);
+    };
+
     const model = Mat4();
     const view = Mat4();
     const invView = Mat4();
@@ -731,6 +820,24 @@ namespace Renderer {
     /** the facts of the object being drawn (`DrawFact`): its render states and culling read them */
     let drawFacts = 0;
     let currentFrame: Frame = createFrame();
+    /**
+     * the ghost pass's culling (`renderClipGhost`), into lists of their own (the renderables' list sets): a view of its
+     * own, its levels coarser (`ClipGhostLevelScale`), a version of its own
+     */
+    const ghostLodView = LodView();
+    let ghostLodOf = -1;
+    const updateGhostCull = () => {
+      if (ghostLodOf !== lodView.version || lodView.version === 0) {
+        ghostLodView.depthScale = lodView.depthScale * ClipGhostLevelScale;
+        ghostLodView.pixelSize = lodView.pixelSize * ClipGhostLevelScale;
+        ghostLodView.version = lodView.version === 0 ? 0 : ++viewVersions;
+        ghostLodOf = lodView.version;
+      }
+    };
+    /** frames updated (`update` with another frame, not a side one): what the visible sets' changes are counted in */
+    let frameCount = 0;
+    /** the last frame counted (`frameCount`): a pass's side frame and back to it is one frame */
+    let countedFrame: Frame | undefined;
 
     const ambientColor = Vec3();
     Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
@@ -774,6 +881,7 @@ namespace Renderer {
       uRenderMask: ValueCell.create(0),
       uMarkingDepthTest: ValueCell.create(false),
       uDepthBack: ValueCell.create(false),
+      uClipGhost: ValueCell.create(false),
       uPickType: ValueCell.create(PickType.None),
       uMarkingType: ValueCell.create(MarkingType.None),
       uSolidInteriorPass: ValueCell.create(0),
@@ -797,6 +905,9 @@ namespace Renderer {
       uMarkerAverage: ValueCell.create(0),
 
       uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
+      uCssHeight: ValueCell.create(1),
+      uOccluderNear: ValueCell.create(1),
+      uOccluderFar: ValueCell.create(10000),
       uCelSteps: ValueCell.create(p.celSteps),
       uExposure: ValueCell.create(p.exposure),
 
@@ -817,6 +928,24 @@ namespace Renderer {
       return !!objects && Clip.classifySphere(objects, sphere) === Clip.SphereClass.All;
     };
 
+    /** drawing the ghost pass (`renderClipGhost`): what the clip objects remove, the visibility inverted */
+    let clipGhost = false;
+    /**
+     * whether `r` has a ghost (`DrawFact.ClipGhost`) the clip objects reach: its bounding sphere clipped whole or cut
+     * (`Clip.classifySphere` not none); with a clipping layer (flags exempting groups) not classified, so drawn
+     */
+    const isClipGhosted = (r: GraphicsRenderable, sphere: Sphere3D) => {
+      const values = r.values as {
+        dClipObjects?: ValueCell<boolean>;
+        dClipping?: ValueCell<boolean>;
+        clipGhost?: ValueCell<boolean>;
+      };
+      if (!values.dClipObjects?.ref.value || values.clipGhost?.ref.value === false) return false;
+      if (values.dClipping?.ref.value) return true;
+      const objects = (r.values as { clipObjects?: ValueCell<Clip.Objects> }).clipObjects?.ref.value;
+      return !!objects && Clip.classifySphere(objects, sphere) !== Clip.SphereClass.None;
+    };
+
     /** also sets `boundingSphere` to the scaled bounding sphere of `r`, and `drawFacts` */
     const isVisible = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
       if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant === 'pick')) {
@@ -826,14 +955,24 @@ namespace Renderer {
       if (!r.values.drawCount.ref.value) {
         return false;
       }
+      // the ghost pass: objects with a ghost (`DrawFact.ClipGhost`)
+      if (clipGhost && (getDrawFacts(r.values) & DrawFact.ClipGhost) === 0) return false;
 
-      Sphere3D.scaleNX(boundingSphere, r.values.boundingSphere.ref.value, modelScale);
+      // set before any `return true`: drawing reads them (culling, the render state), not the last object's
+      drawFacts = getDrawFacts(r.values);
+      // as drawn: moved by a transient transform
+      const drawnBoundingSphere = getDrawnBoundingSphere(r.values);
+      Sphere3D.scaleNX(boundingSphere, drawnBoundingSphere, modelScale);
+
+      // its size in the world depends on the camera, its bounds don't hold
+      if (hasCameraBounds(r.values)) return true;
 
       if (!Frustum3D.intersectsSphere3D(frustum, boundingSphere)) {
         return false;
       }
-      // clipped whole (the unscaled sphere: clip objects test model space divided by the model scale)
-      if (isClippedWhole(r, r.values.boundingSphere.ref.value)) return false;
+      // clipped whole (the unscaled sphere: clip objects test model space divided by the model scale); the ghost
+      // pass draws what the clip objects remove
+      if (clipGhost ? !isClipGhosted(r, drawnBoundingSphere) : isClippedWhole(r, drawnBoundingSphere)) return false;
 
       const [minDistance, maxDistance] = r.values.uLod.ref.value;
       if (minDistance !== 0 || maxDistance !== 0) {
@@ -847,7 +986,6 @@ namespace Renderer {
         return false;
       }
 
-      drawFacts = getDrawFacts(r.values);
       return true;
     };
 
@@ -893,7 +1031,7 @@ namespace Renderer {
 
     /**
      * The visibility of a table's rows for a view, by slot (1 visible): state (not disposed, visible), draw count,
-     * frustum, lod, occlusion; as `isVisible` without the variant (`isVariantDrawn`). Its key: the table's and the view's
+     * frustum, lod, occlusion; as `isVisible` without the pass (`isPassDrawn`). Its key: the table's and the view's
      * versions, the model scale, the occlusion test and with it the frame (Hi-Z changes between frames)
      */
     type RowVisibility = {
@@ -903,12 +1041,47 @@ namespace Renderer {
       isOccluded: ((s: Sphere3D) => boolean) | null;
       frame: Frame | undefined;
       visible: Uint8Array;
+      /** as `visible` without the frustum and occlusion tests: drawn, the GPU clips what is outside */
+      present: Uint8Array;
+      visibleCount: number;
+      presentCount: number;
+      /** the `frameCount` at which `visible` last changed */
+      changedAt: number;
     };
     const rowVisibilities = new WeakMap<DrawTable, RowVisibility>();
+    /** the ghost pass's (`renderClipGhost`), the clip test inverted */
+    const ghostRowVisibilities = new WeakMap<DrawTable, RowVisibility>();
     const occlusionSphere = Sphere3D();
+    /** drawing a pass from a draw list (`renderPassFromDrawList`): its rows unculled while the view moves */
+    let drawingFromList = false;
+    /** frames since the visible set last changed that count as moving (a rotation changes it nearly every frame) */
+    const MovingFrames = 8;
+    /**
+     * the share of the present rows visible from which a moving view draws them unculled: zoomed in to half of 1000
+     * boxes visible, unculled replays cost less than recording per frame; to 8%, about the same
+     */
+    const UnculledShare = 0.15;
+    /**
+     * The rows to draw by the view (`getRowVisibilities`): while the visible set changed within `MovingFrames` frames
+     * and at least `UnculledShare` of the present rows are visible, a pass replayed from a draw list (`drawingFromList`)
+     * draws the present rows: unculled, its recording stays valid as objects enter and leave the view (re-recorded per
+     * frame otherwise), the GPU drawing what is off-screen at under 1 µs a draw; at rest culled again (recorded once)
+     */
     const getRowVisibility = (table: DrawTable) => {
+      const v = getRowVisibilities(table);
+      if (
+        drawingFromList &&
+        frameCount - v.changedAt <= MovingFrames &&
+        v.visibleCount >= UnculledShare * v.presentCount
+      ) {
+        return v.present;
+      }
+      return v.visible;
+    };
+    const getRowVisibilities = (table: DrawTable) => {
       table.refresh();
-      let v = rowVisibilities.get(table);
+      const visibilities = clipGhost ? ghostRowVisibilities : rowVisibilities;
+      let v = visibilities.get(table);
       if (!v) {
         v = {
           tableVersion: -1,
@@ -917,8 +1090,12 @@ namespace Renderer {
           isOccluded: null,
           frame: undefined,
           visible: new Uint8Array(0),
+          present: new Uint8Array(0),
+          visibleCount: 0,
+          presentCount: 0,
+          changedAt: -Infinity,
         };
-        rowVisibilities.set(table, v);
+        visibilities.set(table, v);
       }
       if (
         v.tableVersion === table.version &&
@@ -927,15 +1104,21 @@ namespace Renderer {
         v.isOccluded === isOccluded &&
         (isOccluded === null || v.frame === currentFrame)
       ) {
-        return v.visible;
+        return v;
       }
       v.tableVersion = table.version;
       v.view.set(viewPlanes);
       v.modelScale = modelScale;
       v.isOccluded = isOccluded;
       v.frame = currentFrame;
-      if (v.visible.length < table.capacity) v.visible = new Uint8Array(table.capacity);
-      const { visible } = v;
+      if (v.visible.length < table.capacity) {
+        v.visible = new Uint8Array(table.capacity);
+        v.present = new Uint8Array(table.capacity);
+      }
+      const { visible, present } = v;
+      let visibleCount = 0;
+      let presentCount = 0;
+      let changed = false;
       const { order, count, floats, bits } = table;
       const s = modelScale;
       const occlude = s === 1 ? isOccluded : null;
@@ -944,50 +1127,88 @@ namespace Renderer {
       for (let k = 0; k < count; ++k) {
         const slot = order[k];
         const o = slot * DrawRow.Stride;
+        const was = visible[slot];
         visible[slot] = 0;
-        if ((bits[o + DrawRow.State] & (DrawState.Disposed | DrawState.Visible)) !== DrawState.Visible) continue;
-        if ((bits[o + DrawRow.Facts] & DrawFact.DrawCount) === 0) continue;
-        const x = floats[o + DrawRow.CenterX] * s;
-        const y = floats[o + DrawRow.CenterY] * s;
-        const z = floats[o + DrawRow.CenterZ] * s;
-        const r = floats[o + DrawRow.Radius] * s;
-        let inside = true;
-        for (let i = 0; i < 24; i += 4) {
-          if (p[i] * x + p[i + 1] * y + p[i + 2] * z + p[i + 3] < -r) {
-            inside = false;
-            break;
+        present[slot] = 0;
+        const drawable =
+          (bits[o + DrawRow.State] & (DrawState.Disposed | DrawState.Visible)) === DrawState.Visible &&
+          (bits[o + DrawRow.Facts] & DrawFact.DrawCount) !== 0 &&
+          (!clipGhost || (bits[o + DrawRow.Facts] & DrawFact.ClipGhost) !== 0);
+        if (drawable && (bits[o + DrawRow.Facts] & DrawFact.CameraBounds) !== 0) {
+          // its size in the world depends on the camera, its bounds don't hold
+          present[slot] = 1;
+          presentCount += 1;
+          visible[slot] = 1;
+          visibleCount += 1;
+        } else if (drawable) {
+          const x = floats[o + DrawRow.CenterX] * s;
+          const y = floats[o + DrawRow.CenterY] * s;
+          const z = floats[o + DrawRow.CenterZ] * s;
+          const r = floats[o + DrawRow.Radius] * s;
+          let drawn = true;
+          if (clipGhost) {
+            // the ghost pass: objects with a ghost the clip objects reach
+            if ((bits[o + DrawRow.Facts] & DrawFact.ClipGhost) === 0) {
+              drawn = false;
+            } else {
+              Vec3.set(
+                clipSphere.center,
+                floats[o + DrawRow.CenterX],
+                floats[o + DrawRow.CenterY],
+                floats[o + DrawRow.CenterZ],
+              );
+              clipSphere.radius = floats[o + DrawRow.Radius];
+              if (!isClipGhosted(table.objects[slot]!, clipSphere)) drawn = false;
+            }
+          } else if ((bits[o + DrawRow.Facts] & DrawFact.ClipCull) !== 0) {
+            Vec3.set(
+              clipSphere.center,
+              floats[o + DrawRow.CenterX],
+              floats[o + DrawRow.CenterY],
+              floats[o + DrawRow.CenterZ],
+            );
+            clipSphere.radius = floats[o + DrawRow.Radius];
+            if (isClippedWhole(table.objects[slot]!, clipSphere)) drawn = false;
+          }
+          const minDistance = floats[o + DrawRow.LodMin];
+          const maxDistance = floats[o + DrawRow.LodMax];
+          if (drawn && (minDistance !== 0 || maxDistance !== 0)) {
+            const d = p[24] * x + p[25] * y + p[26] * z + p[27];
+            if (d + r < minDistance * s || d - r > maxDistance * s) drawn = false;
+          }
+          if (drawn) {
+            present[slot] = 1;
+            presentCount += 1;
+            let inside = true;
+            for (let i = 0; i < 24; i += 4) {
+              if (p[i] * x + p[i + 1] * y + p[i + 2] * z + p[i + 3] < -r) {
+                inside = false;
+                break;
+              }
+            }
+            if (inside && occlude !== null) {
+              Vec3.set(occlusionSphere.center, x, y, z);
+              occlusionSphere.radius = r;
+              if (occlude(occlusionSphere)) inside = false;
+            }
+            if (inside) {
+              visible[slot] = 1;
+              visibleCount += 1;
+            }
           }
         }
-        if (!inside) continue;
-        if ((bits[o + DrawRow.Facts] & DrawFact.ClipCull) !== 0) {
-          Vec3.set(
-            clipSphere.center,
-            floats[o + DrawRow.CenterX],
-            floats[o + DrawRow.CenterY],
-            floats[o + DrawRow.CenterZ],
-          );
-          clipSphere.radius = floats[o + DrawRow.Radius];
-          if (isClippedWhole(table.objects[slot]!, clipSphere)) continue;
-        }
-        const minDistance = floats[o + DrawRow.LodMin];
-        const maxDistance = floats[o + DrawRow.LodMax];
-        if (minDistance !== 0 || maxDistance !== 0) {
-          const d = p[24] * x + p[25] * y + p[26] * z + p[27];
-          if (d + r < minDistance * s) continue;
-          if (d - r > maxDistance * s) continue;
-        }
-        if (occlude !== null) {
-          Vec3.set(occlusionSphere.center, x, y, z);
-          occlusionSphere.radius = r;
-          if (occlude(occlusionSphere)) continue;
-        }
-        visible[slot] = 1;
+        if (was !== visible[slot]) changed = true;
       }
-      return visible;
+      v.visibleCount = visibleCount;
+      v.presentCount = presentCount;
+      if (changed) v.changedAt = frameCount;
+      return v;
     };
 
     /** the instances and levels of detail of `r` to draw; assumes `isVisible` returned true (`boundingSphere`) */
     const cullObject = (r: GraphicsRenderable) => {
+      if (clipGhost) updateGhostCull();
+      const view = clipGhost ? ghostLodView : lodView;
       const unscaled = modelScale === 1;
       const lodLevels = (drawFacts & DrawFact.LodLevels) !== 0;
       if (unscaled) {
@@ -998,17 +1219,19 @@ namespace Renderer {
             updateViewVersion();
             viewChecked = true;
           }
-          r.cull(cameraPlane, frustum, isOccluded, ctx.stats, currentFrame, lodView);
+          // the marking mask drawing the marked instances alone needs no culling
+          if (drawingMarked && r.prepareMarked?.(cameraPlane, frustum, lodView)) return;
+          r.cull(cameraPlane, frustum, isOccluded, ctx.stats, currentFrame, view, clipGhost);
         } else {
-          r.uncull(lodView);
+          r.uncull(view, clipGhost);
         }
       } else {
         if (lodLevels) {
           const { center, radius } = boundingSphere;
           const d = Plane3D.distanceToPoint(cameraPlane, center);
-          r.cullSimple(d, radius, modelScale, lodView);
+          r.cullSimple(d, radius, modelScale, view, clipGhost);
         } else {
-          r.uncull(lodView);
+          r.uncull(view, clipGhost);
         }
       }
     };
@@ -1035,6 +1258,7 @@ namespace Renderer {
 
       if (drawingSecond) r.renderSecond!(variant, globals);
       else if (segments && segments.length > 0) r.renderSegments!(variant, globals, segments);
+      else if (drawingMarked && r.renderMarked) r.renderMarked(variant, globals);
       else r.render(variant, globals);
     };
 
@@ -1212,23 +1436,71 @@ namespace Renderer {
     let cullSecondPending = 0;
     /** drawing the opaque pass's second part (`drawObject`) */
     let drawingSecond = false;
-    const prepareCull = (scene: Scene.Group, twoPhase = false) => {
+    /** drawing the marking mask: objects draw their marked instances (`Renderable.renderMarked`) */
+    let drawingMarked = false;
+    /** the objects' culling recorded and run together (`CullBatch`), reused */
+    const cullBatch: CullBatch = { clears: [], dispatches: [] };
+    const runCullBatch = (label: string) => {
+      const { clears, dispatches } = cullBatch;
+      for (let i = 0, il = clears.length; i < il; ++i) clears[i]();
+      if (dispatches.length > 0) {
+        ctx.compute!.beginComputePass({ label });
+        for (let i = 0, il = dispatches.length; i < il; ++i) dispatches[i]();
+        ctx.compute!.endComputePass();
+      }
+      clears.length = 0;
+      dispatches.length = 0;
+    };
+    /** the visible objects' `rasterSpheres`, reused */
+    const rasterSpheresOf: number[] = [];
+    const descending = (a: number, b: number) => b - a;
+    /**
+     * The spheres from which an object culled on the GPU for the raster only (`Renderable.rasterSpheres`) is culled there
+     * this frame: none where the raster does not draw the view (`'off'` too); `'auto'` the `sphereRasterObjects`
+     * largest visible ones (each object costs its own dispatches, whatever its size); `'on'` and `'only'` all of them
+     */
+    const getRasterSpheresMin = (renderables: ReadonlyArray<GraphicsRenderable>) => {
+      if (!cullRaster) return Infinity;
+      if (p.sphereRaster !== 'auto') return 0;
+      const budget = p.sphereRasterObjects;
+      if (budget <= 0) return Infinity;
+      rasterSpheresOf.length = 0;
+      for (let i = 0, il = renderables.length; i < il; ++i) {
+        const r = renderables[i];
+        const spheres = r.rasterSpheres;
+        if (spheres !== undefined && r.state.visible) rasterSpheresOf.push(spheres);
+      }
+      if (rasterSpheresOf.length <= budget) return 0;
+      rasterSpheresOf.sort(descending);
+      return rasterSpheresOf[budget - 1];
+    };
+    const prepareCull = (scene: Scene.Group, twoPhase = false, clipGhost = false) => {
       gpuCulledCount = 0;
       cullRecords = 0;
       cullSecondPending = 0;
       if (updateScale !== 1) return;
       const pyramid = getOcclusionPyramid?.();
       const { renderables } = scene;
+      const rasterSpheresMin = getRasterSpheresMin(renderables);
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
-        if (r.prepareCull?.(cameraPlane, frustum, currentFrame, lodView, pyramid, cullRaster)) gpuCulledCount += 1;
+        const spheres = r.rasterSpheres;
+        // left to the CPU culling: drawn by its lists, as where the kernels are not ready; hidden, not culled at all
+        if (spheres !== undefined && (spheres < rasterSpheresMin || !r.state.visible)) continue;
+        if (r.prepareCull?.(cameraPlane, frustum, currentFrame, lodView, pyramid, cullRaster, cullBatch, clipGhost)) {
+          gpuCulledCount += 1;
+        }
         cullRecords += r.recordsVersion ?? 0;
         if (twoPhase && r.needsCullSecond?.(currentFrame)) cullSecondPending += 1;
       }
+      runCullBatch('merged cell culling');
     };
     const prepareCullSecond = (scene: Scene.Group, pyramid: OcclusionPyramid | undefined) => {
       const { renderables } = scene;
-      for (let i = 0, il = renderables.length; i < il; ++i) renderables[i].prepareCullSecond?.(currentFrame, pyramid);
+      for (let i = 0, il = renderables.length; i < il; ++i) {
+        renderables[i].prepareCullSecond?.(currentFrame, pyramid, cullBatch);
+      }
+      runCullBatch('merged cell culling, second phase');
       if (pyramid) sphereRasterPass?.second();
       else sphereRasterPass?.skipSecond();
     };
@@ -1288,7 +1560,7 @@ namespace Renderer {
      * reaches the near plane; false where it is off screen
      */
     const scissorSphereResolve = (r: GraphicsRenderable) => {
-      const { center, radius } = r.values.boundingSphere.ref.value as Sphere3D;
+      const { center, radius } = getDrawnBoundingSphere(r.values);
       const c = Vec3.transformMat4(sphereRasterCenter, center, sphereRasterModelView);
       const s = radius * Mat4.getMaxScaleOnAxis(sphereRasterModelView);
       const { x, y, width, height } = viewport;
@@ -1332,7 +1604,11 @@ namespace Renderer {
     };
 
     let cullRasterLogged = '';
-    const update = (camera: ICamera, scene: Scene, frame: Frame) => {
+    const update = (camera: ICamera, scene: Scene, frame: Frame, side = false) => {
+      if (!side && frame !== countedFrame) {
+        frameCount += 1;
+        countedFrame = frame;
+      }
       currentFrame = frame;
       cullRaster = getCullRaster(camera);
       if (isDebugMode && p.sphereRaster !== 'off') {
@@ -1341,13 +1617,13 @@ namespace Renderer {
         cullRasterLogged = text;
       }
 
-      ValueCell.update(globalUniforms.uView, camera.view);
-      ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
-      ValueCell.update(globalUniforms.uProjection, camera.projection);
-      ValueCell.update(globalUniforms.uInvProjection, Mat4.invert(invProjection, camera.projection));
+      updateArray(globalUniforms.uView, camera.view);
+      updateArray(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
+      updateArray(globalUniforms.uProjection, camera.projection);
+      updateArray(globalUniforms.uInvProjection, Mat4.invert(invProjection, camera.projection));
 
       ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
-      ValueCell.update(
+      updateArray(
         globalUniforms.uViewOffset,
         camera.viewOffset.enabled
           ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16)
@@ -1355,10 +1631,10 @@ namespace Renderer {
       );
       ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.scale);
 
-      ValueCell.update(globalUniforms.uCameraPosition, Mat4.getTranslation(cameraPosition, invView));
+      updateArray(globalUniforms.uCameraPosition, Mat4.getTranslation(cameraPosition, invView));
       Vec3.scale(cameraTarget, camera.state.target, camera.scale);
       Vec3.normalize(cameraDir, Vec3.sub(cameraDir, cameraTarget, cameraPosition));
-      ValueCell.update(globalUniforms.uCameraDir, cameraDir);
+      updateArray(globalUniforms.uCameraDir, cameraDir);
 
       ValueCell.updateIfChanged(globalUniforms.uFar, camera.far);
       ValueCell.updateIfChanged(globalUniforms.uNear, camera.near);
@@ -1368,6 +1644,7 @@ namespace Renderer {
       ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
 
       Frustum3D.fromProjectionMatrix(frustum, camera.projectionView);
+      ValueCell.updateIfChanged(globalUniforms.uCssHeight, camera.viewport.height / ctx.pixelRatio);
       // levels of detail by size on screen: in CSS pixels, of the camera's viewport (not a pass's target)
       LodView.set(
         lodView,
@@ -1381,10 +1658,7 @@ namespace Renderer {
       // compared at the first cull after this update: updates of other cameras between (picking) don't cull
       viewChecked = false;
       setViewPlanes();
-      ValueCell.update(
-        globalUniforms.uCameraPlane,
-        Plane3D.toArray(cameraPlane, globalUniforms.uCameraPlane.ref.value, 0),
-      );
+      updateArray(globalUniforms.uCameraPlane, Plane3D.toArray(cameraPlane, globalUniforms.uCameraPlane.ref.value, 0));
       updateScale = camera.scale;
 
       ValueCell.updateIfChanged(globalUniforms.uMarkerAverage, scene.markerAverage);
@@ -1392,12 +1666,12 @@ namespace Renderer {
       const hasHeadRotation = !Mat4.isZero(camera.headRotation);
       if (hasHeadRotation) {
         ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, true);
-        ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
-        ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
+        updateArray(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
+        updateArray(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
       } else {
         ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, false);
         ValueCell.updateIfChanged(globalUniforms.uInvHeadRotation, Mat4.id);
-        ValueCell.update(globalUniforms.uLightDirection, light.direction);
+        updateArray(globalUniforms.uLightDirection, light.direction);
       }
     };
 
@@ -1414,17 +1688,11 @@ namespace Renderer {
 
       modelScale = camera.scale;
 
-      ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, modelScale));
-      ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
-      ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
-      ValueCell.update(
-        globalUniforms.uModelViewProjection,
-        Mat4.mul(modelViewProjection, modelView, camera.projection),
-      );
-      ValueCell.update(
-        globalUniforms.uInvModelViewProjection,
-        Mat4.invert(invModelViewProjection, modelViewProjection),
-      );
+      updateArray(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, modelScale));
+      updateArray(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
+      updateArray(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
+      updateArray(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
+      updateArray(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));
 
       ValueCell.updateIfChanged(globalUniforms.uRenderMask, renderMask);
       ValueCell.updateIfChanged(globalUniforms.uMarkingDepthTest, markingDepthTest);
@@ -1432,8 +1700,8 @@ namespace Renderer {
       const hasEyeCamera = !Mat4.isZero(camera.viewEye);
       if (hasEyeCamera) {
         ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, true);
-        ValueCell.update(globalUniforms.uModelViewEye, Mat4.mul(modelViewEye, camera.viewEye, model));
-        ValueCell.update(globalUniforms.uInvModelViewEye, Mat4.invert(invModelViewEye, modelViewEye));
+        updateArray(globalUniforms.uModelViewEye, Mat4.mul(modelViewEye, camera.viewEye, model));
+        updateArray(globalUniforms.uInvModelViewEye, Mat4.invert(invModelViewEye, modelViewEye));
       } else {
         ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, false);
         ValueCell.updateIfChanged(globalUniforms.uModelViewEye, Mat4.id);
@@ -1474,7 +1742,7 @@ namespace Renderer {
         const o = slot * DrawRow.Stride;
         const facts = bits[o + DrawRow.Facts];
         const state = bits[o + DrawRow.State];
-        if (!isVariantDrawn(variant, state) || (select && !select(facts, state)) || !check(facts, state)) continue;
+        if (!isPassDrawn(pass, state) || (select && !select(facts, state)) || !check(facts, state)) continue;
         const r = objects[slot]!;
         setRowBoundingSphere(table, slot);
         const objectDraws = draws(facts);
@@ -1492,7 +1760,7 @@ namespace Renderer {
           const o = slot * DrawRow.Stride;
           const facts = bits[o + DrawRow.Facts];
           const state = bits[o + DrawRow.State];
-          if (!isVariantDrawn(variant, state) || !hasSolidInteriorCap(facts) || !caps.check(facts, state)) continue;
+          if (!isPassDrawn(pass, state) || !hasSolidInteriorCap(facts) || !caps.check(facts, state)) continue;
           const r = objects[slot]!;
           setRowBoundingSphere(table, slot);
           drawSolidInteriorCaps(r, variant, caps.mode, caps.passState);
@@ -1509,7 +1777,7 @@ namespace Renderer {
         const r = renderables[i];
         const facts = getObjectFacts(r);
         const state = getDrawState(r.state);
-        if ((select && !select(facts, state)) || !check(facts, state)) continue;
+        if (!isPassDrawn(pass, state) || (select && !select(facts, state)) || !check(facts, state)) continue;
         const objectDraws = draws(facts);
         for (let j = 0, jl = objectDraws.length; j < jl; ++j) {
           renderObject(r, variant, objectDraws[j].flag, objectDraws[j].passState);
@@ -1690,14 +1958,15 @@ namespace Renderer {
         const o = slot * DrawRow.Stride;
         const facts = bits[o + DrawRow.Facts];
         const state = bits[o + DrawRow.State];
-        if (!isVariantDrawn(variant, state) || (select && !select(facts, state)) || !check(facts, state)) continue;
+        if (!isPassDrawn(pass, state) || (select && !select(facts, state)) || !check(facts, state)) continue;
         const r = objects[slot]!;
         setRowBoundingSphere(table, slot);
         const objectDraws = draws(facts);
         // as `drawObject`: culled, the raster's objects left out (`sphereRaster` 'only')
         if (objectDraws.length > 0) cullObject(r);
         if (objectDraws.length > 0 && !(sphereRasterOnly && sphereRasterPass?.isDrawn(r))) {
-          const { programVersion, drawVersion } = r;
+          const { programVersion } = r;
+          const drawVersion = drawingMarked && r.renderMarked ? r.markedDrawVersion! : r.drawVersion;
           const valuesVersion = valuesVersions[slot];
           for (let j = 0, jl = objectDraws.length; j < jl; ++j) {
             const renderState = getObjectState(facts, variant, objectDraws[j].flag, objectDraws[j].passState);
@@ -1739,7 +2008,7 @@ namespace Renderer {
           const o = slot * DrawRow.Stride;
           const facts = bits[o + DrawRow.Facts];
           const state = bits[o + DrawRow.State];
-          if (!isVariantDrawn(variant, state) || !hasSolidInteriorCap(facts) || !caps!.check(facts, state)) continue;
+          if (!isPassDrawn(pass, state) || !hasSolidInteriorCap(facts) || !caps!.check(facts, state)) continue;
           const r = objects[slot]!;
           setRowBoundingSphere(table, slot);
           c = walkCaps(r, slot, valuesVersions[slot], caps!.mode, snap.capKey, c, write);
@@ -1764,7 +2033,9 @@ namespace Renderer {
     const captureDraw = (snap: Snapshot, i: number, variant: GraphicsRenderVariant) => {
       return ctx.captureDraws!(() => {
         ctx.setRenderState(snap.states[i]);
-        snap.objects[i].render(variant, globals);
+        const r = snap.objects[i];
+        if (drawingMarked && r.renderMarked) r.renderMarked(variant, globals);
+        else r.render(variant, globals);
       });
     };
 
@@ -1878,8 +2149,13 @@ namespace Renderer {
      * Whether the draws of a row (`facts`) follow the view besides whether it is visible: instances culled
      * (`cullObject`), levels of detail, solid interior caps (cut by the near plane)
      */
-    const isViewDependent = (facts: number) =>
-      (facts & (DrawFact.LodLevels | DrawFact.SolidInterior)) !== 0 ||
+    /**
+     * Whether an object's draws in a pass change with the view: its levels and culled instances; its solid interior's
+     * caps only where the pass draws them with the object (`inlineCaps`), else the caps chunk compares all it read
+     */
+    const isViewDependent = (facts: number, inlineCaps: boolean) =>
+      (facts & DrawFact.LodLevels) !== 0 ||
+      (inlineCaps && (facts & DrawFact.SolidInterior) !== 0) ||
       (facts & (DrawFact.InstanceGrid | DrawFact.MultipleInstances)) ===
         (DrawFact.InstanceGrid | DrawFact.MultipleInstances);
     /**
@@ -1920,7 +2196,7 @@ namespace Renderer {
       return true;
     };
     /** `chunk` drawn as the table is now (`isChunkCurrent`) */
-    const setChunkInputs = (chunk: Chunk, table: DrawTable) => {
+    const setChunkInputs = (chunk: Chunk, table: DrawTable, inlineCaps: boolean) => {
       const { snapshot, part, rows } = chunk;
       setSnapshotInputs(snapshot, table);
       if (!part.objects) return;
@@ -1940,7 +2216,9 @@ namespace Renderer {
       for (let k = part.begin, i = 0; k < end; ++k, ++i) {
         const slot = order[k];
         chunk.visible[i] = visible[slot];
-        if (visible[slot] && isViewDependent(bits[slot * DrawRow.Stride + DrawRow.Facts])) viewDependent = true;
+        if (visible[slot] && isViewDependent(bits[slot * DrawRow.Stride + DrawRow.Facts], inlineCaps)) {
+          viewDependent = true;
+        }
       }
       chunk.viewDependent = viewDependent;
     };
@@ -1978,11 +2256,12 @@ namespace Renderer {
     };
     const drawChunkOnce = (pass: PassDraws, table: DrawTable, chunk: Chunk): ChunkOutcome => {
       const { snapshot, list, part } = chunk;
+      const inlineCaps = !!pass.caps?.inline;
       if (part.objects && isMultiDrawn(table, part)) {
         renderPassRows(pass, table, part);
         if (snapshot.valid) list.reset();
         snapshot.valid = false;
-        setChunkInputs(chunk, table);
+        setChunkInputs(chunk, table, inlineCaps);
         return 'direct';
       }
       if (part.objects) {
@@ -2002,7 +2281,7 @@ namespace Renderer {
           // its recording no longer of the draws, released once
           if (snapshot.valid) list.reset();
           snapshot.valid = false;
-          setChunkInputs(chunk, table);
+          setChunkInputs(chunk, table, inlineCaps);
           return 'direct';
         } else if (!current) {
           chunk.changedAt = submit;
@@ -2017,11 +2296,11 @@ namespace Renderer {
       const match = snapshot.valid && bound ? walkPass(pass, table, snapshot, false, part) : 'different';
       if (match === 'same' || (match === 'data' && flushDataChanges(snapshot, table, pass.variant))) {
         if (isEmptySnapshot(snapshot)) {
-          setChunkInputs(chunk, table);
+          setChunkInputs(chunk, table, inlineCaps);
           return 'empty';
         }
         if (list.replay(globals)) {
-          setChunkInputs(chunk, table);
+          setChunkInputs(chunk, table, inlineCaps);
           return match === 'data' ? 'flushed' : 'replayed';
         }
       } else {
@@ -2035,7 +2314,7 @@ namespace Renderer {
       if (ctx.captureDraws) {
         for (let i = 0, il = snapshot.count; i < il; ++i) snapshot.digests[i] = captureDraw(snapshot, i, pass.variant);
       }
-      setChunkInputs(chunk, table);
+      setChunkInputs(chunk, table, inlineCaps);
       snapshot.valid = true;
       // a chunk drawing nothing keeps no recording
       if (isEmptySnapshot(snapshot)) list.reset();
@@ -2067,6 +2346,14 @@ namespace Renderer {
     const renderPassFromDrawList = (pass: PassDraws, group: Scene.Group) => {
       const { table } = group;
       if (!table) return false;
+      drawingFromList = true;
+      try {
+        return drawPassFromList(pass, group, table);
+      } finally {
+        drawingFromList = false;
+      }
+    };
+    const drawPassFromList = (pass: PassDraws, group: Scene.Group, table: DrawTable) => {
       const drawList = getDrawList(pass, group);
       if (!drawList) return false;
       const { chunks, inputs } = drawList;
@@ -2222,8 +2509,21 @@ namespace Renderer {
       renderPass(pass, group);
     };
 
-    const renderPick = (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => {
-      updateInternal(group, camera, null, null, Mask.All, false);
+    const setOccluder = (occluder: Renderer.Occluder | null | undefined) => {
+      if (!occluder) return null;
+      ValueCell.updateIfChanged(globalUniforms.uOccluderNear, occluder.near);
+      ValueCell.updateIfChanged(globalUniforms.uOccluderFar, occluder.far);
+      return occluder.depth;
+    };
+
+    const renderPick = (
+      group: Scene.Group,
+      camera: ICamera,
+      variant: 'pick' | 'depth',
+      pickType: PickType,
+      occluder?: Renderer.Occluder | null,
+    ) => {
+      updateInternal(group, camera, setOccluder(occluder), occluder?.depthAlpha ?? null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uPickType, pickType);
       drawPass(variant === 'pick' ? PassDraws.pick : PassDraws.pickDepth, group);
     };
@@ -2250,6 +2550,22 @@ namespace Renderer {
       drawPass(PassDraws.depthTransparent, group);
     };
 
+    const renderClipGhost = (group: Scene.Group, camera: ICamera, scale = 1) => {
+      updateInternal(group, camera, null, null, Mask.All, false);
+      ValueCell.updateIfChanged(globalUniforms.uClipGhost, true);
+      const pixelRatio = globalUniforms.uPixelRatio.ref.value;
+      ValueCell.updateIfChanged(globalUniforms.uPixelRatio, pixelRatio * scale);
+      clipGhost = true;
+      try {
+        // not from draw lists: their recordings follow the visible pass's rows
+        renderPass(PassDraws.clipGhost, group);
+      } finally {
+        clipGhost = false;
+        ValueCell.updateIfChanged(globalUniforms.uClipGhost, false);
+        ValueCell.updateIfChanged(globalUniforms.uPixelRatio, pixelRatio);
+      }
+    };
+
     const renderMarkingDepth = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Depth);
@@ -2259,7 +2575,9 @@ namespace Renderer {
     const renderMarkingMask = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
       updateInternal(group, camera, null, depthTexture, Mask.All, !!depthTexture);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Mask);
+      drawingMarked = true;
       drawPass(PassDraws.markingMask, group);
+      drawingMarked = false;
     };
 
     const renderEmissiveOpaque = (
@@ -2284,6 +2602,17 @@ namespace Renderer {
       renderPass(PassDraws.tracing, group);
     };
 
+    const renderTracingSecond = (group: Scene.Group, camera: ICamera) => {
+      updateInternal(group, camera, null, null, Mask.Opaque, false);
+      // the pyramid's passes set theirs
+      ctx.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+      ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
+      drawingSecond = true;
+      renderPass(PassDraws.tracingSecond, group);
+      drawingSecond = false;
+      cullSecondPending = 0;
+    };
+
     const renderBlended = (scene: Scene, camera: ICamera) => {
       if (scene.hasOpaque) {
         renderOpaque(scene, camera);
@@ -2291,6 +2620,15 @@ namespace Renderer {
       if (scene.opacityAverage < 1) {
         renderBlendedTransparent(scene, camera);
       }
+    };
+
+    const renderOverlay = (group: Scene.Group, camera: ICamera, occluder: Renderer.Occluder | null) => {
+      const depth = setOccluder(occluder);
+      const depthAlpha = occluder?.depthAlpha ?? null;
+      updateInternal(group, camera, depth, depthAlpha, Mask.Opaque, false);
+      drawPass(PassDraws.opaque, group);
+      updateInternal(group, camera, depth, depthAlpha, Mask.Transparent, false);
+      drawPass(transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent, group);
     };
 
     const renderOpaque = (group: Scene.Group, camera: ICamera) => {
@@ -2393,13 +2731,16 @@ namespace Renderer {
       renderDepth,
       renderDepthOpaque,
       renderDepthOpaqueBack,
+      renderClipGhost,
       renderDepthTransparent,
       renderMarkingDepth,
       renderMarkingMask,
       renderEmissiveOpaque,
       renderEmissiveTransparent,
       renderTracing,
+      renderTracingSecond,
       renderBlended,
+      renderOverlay,
       renderOpaque,
       renderBlendedTransparent,
       renderVolume,
@@ -2436,6 +2777,7 @@ namespace Renderer {
           }
         }
         if (props.sphereRasterRadius !== undefined) p.sphereRasterRadius = props.sphereRasterRadius;
+        if (props.sphereRasterObjects !== undefined) p.sphereRasterObjects = props.sphereRasterObjects;
 
         if (props.colorMarker !== undefined && props.colorMarker !== p.colorMarker) {
           p.colorMarker = props.colorMarker;
@@ -2536,6 +2878,9 @@ namespace Renderer {
       },
       setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => {
         isOccluded = f;
+      },
+      get occlusionTest() {
+        return isOccluded;
       },
       setOcclusionPyramid: (get: (() => OcclusionPyramid | undefined) | null) => {
         getOcclusionPyramid = get;

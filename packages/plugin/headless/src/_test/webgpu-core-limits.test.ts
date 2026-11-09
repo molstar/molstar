@@ -11,9 +11,9 @@ import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/w
 import { WebGPU } from './webgpu-module.js';
 
 // a device with the core limits (what every WebGPU device has): kernels binding more storage buffers than a stage may
-// (8) are not supported, and so objects are culled on the CPU (the instance copy of GPU culling binds 10)
+// (8) are not supported, and so objects are culled on the CPU (the instance copy of GPU culling binds 6)
 describe.skipIf(!WebGPU.module)('WebGPU core limits', () => {
-  it('cull on the GPU within the core limits: the instance copy binds 8 storage buffers', async () => {
+  it('cull on the GPU within the core limits: the instance copy binds 6 storage buffers', async () => {
     const gpu = WebGPU.module!.create([]);
     for (const limits of ['core', 'adapter'] as const) {
       const device = await requestWebGPUDevice('default', gpu, limits);

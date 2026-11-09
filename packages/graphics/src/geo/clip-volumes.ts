@@ -3,17 +3,19 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Clip } from '@molstar/core/util/clip';
 import { addCylinder } from './geometry/mesh/builder/cylinder.js';
-import { addSphere } from './geometry/mesh/builder/sphere.js';
+import { addSphere, getSphere } from './geometry/mesh/builder/sphere.js';
 import type { Mesh } from './geometry/mesh/mesh.js';
 import { MeshBuilder } from './geometry/mesh/mesh-builder.js';
 import { Box } from './primitive/box.js';
 import { Circle } from './primitive/circle.js';
+import { Cylinder } from './primitive/cylinder.js';
 import { Torus } from './primitive/torus.js';
 
 // The volumes clip objects cut away, as meshes: their walls (translucent where drawn: two-faced, so both sides draw as
@@ -49,7 +51,10 @@ export function clipObjectFrame(object: ClipObject, around: Sphere3D): Mat4 {
 /** A cone's half-angle (degrees) from its scale (the shader's `atan2(scale.y, scale.x)`) */
 export const clipConeAngle = (scale: Vec3) => (Math.atan2(scale[1], scale[0]) * 180) / Math.PI;
 
-/** The walls of the volume the object cuts away, in its frame: a disk, a sphere, a box, a capped cylinder, a cone */
+/**
+ * The walls of the volume the object cuts away, in its frame: a disk, an ellipsoid, a box, a capped elliptic cylinder, a
+ * cone
+ */
 export function clipWallsMesh(object: ClipObject, reach: number, detail = 3): Mesh {
   const state = MeshBuilder.createState(1024, 512);
   state.currentGroup = 0;
@@ -59,21 +64,29 @@ export function clipWallsMesh(object: ClipObject, reach: number, detail = 3): Me
       MeshBuilder.addPrimitive(state, Mat4.fromScaling(Mat4(), Vec3.create(reach, 1, reach)), Circle({ segments: 96 }));
       break;
     case 'sphere':
-      addSphere(state, Vec3(), object.scale[0] / 2, detail);
+      // an ellipsoid, its half axes the scale's halves (the shader's `length(t / size)`); `twoFaced` gives it
+      // normals of its own
+      MeshBuilder.addPrimitive(
+        state,
+        Mat4.fromScaling(Mat4(), Vec3.scale(Vec3(), object.scale, 0.5)),
+        getSphere(detail),
+      );
       break;
     case 'cube':
       MeshBuilder.addPrimitive(state, Mat4.fromScaling(Mat4(), Vec3.clone(object.scale)), Box());
       break;
     case 'cylinder': {
-      const r = object.scale[0] / 2;
-      const h = object.scale[1];
-      addCylinder(state, Vec3.create(0, -h / 2, 0), Vec3.create(0, h / 2, 0), 1, {
-        radiusTop: r,
-        radiusBottom: r,
+      // elliptic, its radii the scale's x and z halves, its height y (`Cylinder` is 1 high, of radius 1)
+      const [sx, h, sz] = object.scale;
+      const unit = Cylinder({
+        radiusTop: 1,
+        radiusBottom: 1,
+        height: 1,
         radialSegments: 48,
         topCap: true,
         bottomCap: true,
       });
+      MeshBuilder.addPrimitive(state, Mat4.fromScaling(Mat4(), Vec3.create(sx / 2, h, sz / 2)), unit);
       break;
     }
     case 'infiniteCone': {
@@ -93,8 +106,9 @@ export function clipWallsMesh(object: ClipObject, reach: number, detail = 3): Me
 }
 
 /**
- * The edges of that volume, in its frame, as tubes of radius `width`: a plane's rim, three great circles of a sphere,
- * a box's twelve edges with round corners, a cylinder's rims, a cone's base rim and four lines to its apex
+ * The edges of that volume, in its frame, as tubes of radius `width`: a plane's rim, an ellipsoid's three sections
+ * through its axes, a box's twelve edges with round corners, a cylinder's (elliptic) rims, a cone's base rim and four lines to
+ * its apex
  */
 export function clipEdgesMesh(object: ClipObject, reach: number, width: number): Mesh {
   const state = MeshBuilder.createState(2048, 1024);
@@ -106,15 +120,27 @@ export function clipEdgesMesh(object: ClipObject, reach: number, width: number):
     ring(radius, Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), Vec3.create(0, y, 0)), Mat4.rotX90 as Mat4));
   const tube = (a: Vec3, b: Vec3) =>
     addCylinder(state, a, b, 1, { radiusTop: width, radiusBottom: width, radialSegments: 12 });
+  // the ellipse of half axes `u` and `v` about `at`, as tubes (a torus scaled unevenly would thicken its tube)
+  const ellipse = (u: Vec3, v: Vec3, at = Vec3(), segments = 64) => {
+    const p = Vec3();
+    const q = Vec3.add(Vec3(), at, u);
+    for (let k = 1; k <= segments; k++) {
+      const t = (2 * Math.PI * k) / segments;
+      Vec3.scaleAndAdd(p, Vec3.scaleAndAdd(p, at, u, Math.cos(t)), v, Math.sin(t));
+      tube(q, p);
+      Vec3.copy(q, p);
+    }
+  };
   switch (object.type) {
     case 'plane':
       ringXZ(reach);
       break;
     case 'sphere': {
-      const r = object.scale[0] / 2;
-      ringXZ(r);
-      ring(r, Mat4.identity());
-      ring(r, Mat4.rotY90 as Mat4);
+      // the ellipsoid's three sections through its axes, in the frame's XZ, XY and YZ planes
+      const [a, b, c] = [object.scale[0] / 2, object.scale[1] / 2, object.scale[2] / 2];
+      ellipse(Vec3.create(a, 0, 0), Vec3.create(0, 0, c));
+      ellipse(Vec3.create(a, 0, 0), Vec3.create(0, b, 0));
+      ellipse(Vec3.create(0, b, 0), Vec3.create(0, 0, c));
       break;
     }
     case 'cube': {
@@ -141,10 +167,8 @@ export function clipEdgesMesh(object: ClipObject, reach: number, width: number):
       break;
     }
     case 'cylinder': {
-      const r = object.scale[0] / 2;
-      const h = object.scale[1];
-      ringXZ(r, -h / 2);
-      ringXZ(r, h / 2);
+      const [a, h, c] = [object.scale[0] / 2, object.scale[1], object.scale[2] / 2];
+      for (const y of [-h / 2, h / 2]) ellipse(Vec3.create(a, 0, 0), Vec3.create(0, 0, c), Vec3.create(0, y, 0));
       break;
     }
     case 'infiniteCone': {

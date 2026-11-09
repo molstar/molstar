@@ -27,6 +27,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VolumeKey, VolumeVisual } from './visual.js';
 import { getQualitySignatures, type SignatureContext } from '../signatures.js';
 import { createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
+import { Visual } from '../visual.js';
 
 export interface VolumeRepresentation<P extends VolumeParams> extends Representation<Volume, P> {}
 
@@ -116,6 +117,8 @@ export function VolumeRepresentation<P extends VolumeParams>(
       // update list of renderObjects
       renderObjects.length = 0;
       visuals.forEach((visual) => {
+        // a render object made anew has the identity: the transient transform as set
+        Visual.setPreviewTransform(visual.renderObject, _state.previewTransform);
         if (visual.renderObject) {
           renderObjects.push(visual.renderObject);
           geometryState.add(visual.renderObject.id, visual.geometryVersion);
@@ -146,6 +149,9 @@ export function VolumeRepresentation<P extends VolumeParams>(
     if (state.clipping !== undefined && visual) visual.setClipping(state.clipping);
     if (state.wiggle !== undefined && visual) visual.setWiggle(state.wiggle);
     if (state.transform !== undefined && visual) visual.setTransform(state.transform);
+    if (state.previewTransform !== undefined && visual) {
+      Visual.setPreviewTransform(visual.renderObject, state.previewTransform);
+    }
     if (state.themeStrength !== undefined && visual) visual.setThemeStrength(state.themeStrength);
   }
 
@@ -160,6 +166,7 @@ export function VolumeRepresentation<P extends VolumeParams>(
       clipping,
       wiggle,
       transform,
+      previewTransform,
       themeStrength,
       syncManually,
       markerActions,
@@ -178,6 +185,7 @@ export function VolumeRepresentation<P extends VolumeParams>(
     if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
       newState.transform = transform;
     }
+    if (previewTransform !== undefined) newState.previewTransform = previewTransform;
     if (syncManually !== undefined) newState.syncManually = syncManually;
     if (markerActions !== undefined) newState.markerActions = markerActions;
 

@@ -347,7 +347,16 @@ export function createResources(
     materialUniformBuffer: (materialId: number, layout: UniformBlockLayout) => {
       // -1 means unique material, no sharing possible
       if (materialId === -1) return uniformBuffer(layout);
-      return wrapCached(materialUniformBufferCache.get({ materialId, layout }));
+      const item = materialUniformBufferCache.get({ materialId, layout });
+      // released when its last user is: a material's buffer is cheap to make again, unlike shaders and programs,
+      // whose caches keep them until the context goes (`clear` drops the entries no one uses)
+      return {
+        ...item.value,
+        destroy: () => {
+          item.free();
+          materialUniformBufferCache.clear();
+        },
+      };
     },
     framebuffer: () => {
       return wrap('framebuffer', createFramebuffer(gl, extensions, state));

@@ -153,8 +153,10 @@ export function createQuadIndices<B>(
       if (current && current.itemCount >= itemCount) return current;
       const grown = Math.max(itemCount, MinItemCount, current ? current.itemCount * 2 : 0);
       const next = Math.min(grown, maxItemCount);
+      // made before the old one is released: a failed allocation (a RangeError growing to gigabytes) keeps `current`
+      const grownCurrent = { buffer: create(createItemIndexArray(next, items)), id: nextId++, itemCount: next };
       if (current) release(current.buffer);
-      current = { buffer: create(createItemIndexArray(next, items)), id: nextId++, itemCount: next };
+      current = grownCurrent;
       return current;
     },
     get id() {

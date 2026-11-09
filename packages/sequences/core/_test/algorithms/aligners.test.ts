@@ -32,7 +32,7 @@ import {
   needlemanWunsch,
   readOptions,
 } from '../../src/algorithms/index.js';
-import { itWithin } from '../model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 
 // 1BRS from the viewer spike's fixture (UniProtKB CC BY 4.0, wwPDB CC0), as in @molstar/seq-core/model's fixtures: entity 1 is
 // barnase's mature chain (P00648 48–157), entity 2 barstar without its initiator Met (P11540 2–90) with C40A/C82A.

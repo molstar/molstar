@@ -20,6 +20,7 @@ import {
 } from '../uniform-layout.js';
 import { ShaderStage } from './constants.js';
 import { DataLayerPagesName, getDataLayerAccessors, getReadDataPages } from './data-layers.js';
+import { CulledDefine, CulledStorageNames, getCulledVertexInputDeclaration, wrapCulledVertexMain } from './culled.js';
 import {
   getWgslDrawBinding,
   getWgslDrawLayout,
@@ -259,16 +260,21 @@ export function createWebGPUProgram(
 ): WebGPUProgram {
   const defines = getWgslDefines(defineValues);
   const lookup = getWgslDefineLookup(defines);
-  const body = preprocessShader(source, defines, { expandMacros: true });
+  const preprocessed = preprocessShader(source, defines, { expandMacros: true });
+  // culled programs read their instances' data from storage (see `culled.ts`)
+  const culled = !!lookup(CulledDefine);
+  const body = culled ? wrapCulledVertexMain(preprocessed) : preprocessed;
 
   const identifiers = new Set(body.match(/\b[A-Za-z_]\w*\b/g) ?? []);
   // the data layers' pages are read by the generated accessors (`getDataLayerAccessors`), each layer from its page
   const dataPages = Number(defineValues[DataLayerPagesName]?.ref.value ?? 0);
   const readPages = getReadDataPages(schema, (n) => identifiers.has(n), dataPages);
-  const isReferenced = (n: string) => identifiers.has(n) || readPages.has(n);
+  // and the culled instances' storage by the generated input reader
+  const isReferenced = (n: string) => identifiers.has(n) || readPages.has(n) || (culled && CulledStorageNames.has(n));
 
   const bindingLayout = getBindingLayout(schema, lookup);
-  const declarations = getWgslDeclarations(schema, bindingLayout, lookup, isReferenced);
+  const vertexInput = culled ? getCulledVertexInputDeclaration(schema, lookup) : undefined;
+  const declarations = getWgslDeclarations(schema, bindingLayout, lookup, isReferenced, vertexInput);
   if (declarations.unsupported.length > 0) {
     throw new Error(`uniforms without a block are not supported by WebGPU: ${declarations.unsupported.join(', ')}`);
   }

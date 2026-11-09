@@ -369,9 +369,25 @@ export const DefaultVdwRadius = 1.7; // C
 export const DefaultAtomWeight = 12.011; // C
 export const DefaultAtomNumber = 0;
 
+/** The default radius for an unknown element and for one without a radius (110 to 118) */
 export function VdwRadius(element: ElementSymbol): number {
   const i = AtomicNumbers[element as any as string];
-  return i === void 0 ? DefaultVdwRadius : ElementVdwRadii[i]!;
+  return i === void 0 ? DefaultVdwRadius : (ElementVdwRadii[i] ?? DefaultVdwRadius);
+}
+
+/** `VdwRadius` by atomic number (`AtomNumber`, 0 unknown: the default radius), indexed: no string lookup an atom */
+const VdwRadiiByNumber = (() => {
+  // doubles: the same values as `VdwRadius`
+  const radii = new Float64Array(256).fill(DefaultVdwRadius);
+  for (const n of Object.values(AtomicNumbers)) {
+    if (n !== undefined && n > 0) radii[n] = ElementVdwRadii[n] ?? DefaultVdwRadius;
+  }
+  return radii;
+})();
+
+/** The vdW radius of the element of atomic number `atomicNumber` (as `AtomNumber` gives it): `VdwRadius` of its symbol */
+export function VdwRadiusOfNumber(atomicNumber: number): number {
+  return VdwRadiiByNumber[atomicNumber];
 }
 
 export function AtomWeight(element: ElementSymbol): number {

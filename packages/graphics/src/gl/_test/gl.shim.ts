@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -561,7 +561,7 @@ export function createGl(
           return new Float32Array([r, g, b, a]);
 
         case gl.COLOR_WRITEMASK:
-          return 0;
+          return [true, true, true, true];
 
         case gl.DEPTH_CLEAR_VALUE:
         case gl.LINE_WIDTH:

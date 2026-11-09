@@ -721,3 +721,4 @@ The registry dump comparison allows only these differences. A step that introduc
 | Drag and drop | The open-anything handler is listed as `open-files` (`DefaultDragAndDrop`, fallback) instead of being hard-coded  |
 | Formats       | `xsc` (NAMD extended system files: periodic boxes for coordinates), after the coordinates |
 | Data actions  | The parsers take Response Data, the text ones Binary Data too (`Download` and `ReadFile` give Response Data, `.v6/data-response`): `Response Data` is a from-type of its own, and the text parsers it lists are listed under Binary Data too |
+| Data actions  | Moving a model by hand besides structures: `transform-shape-provider` (Shape Provider) and, with the particles, `transform-particle-list` (Particle List) |

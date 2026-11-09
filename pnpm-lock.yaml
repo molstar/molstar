@@ -457,6 +457,9 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.15
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:test-harness
       '@types/argparse':
         specifier: 'catalog:'
         version: 2.0.17
@@ -1905,6 +1908,9 @@ importers:
         specifier: 'catalog:'
         version: 4.6.7
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../test-harness
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
@@ -2820,6 +2826,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../test-harness
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -3092,6 +3101,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
       '@storybook/web-components-vite':
         specifier: 'catalog:'
         version: 10.6.5(lit@3.3.3)(storybook@10.6.5(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
@@ -3148,6 +3160,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
       '@storybook/addon-docs':
         specifier: 'catalog:'
         version: 10.6.5(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(storybook@10.6.5(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))
@@ -3227,6 +3242,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
       '@storybook/web-components-vite':
         specifier: 'catalog:'
         version: 10.6.5(lit@3.3.3)(storybook@10.6.5(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
@@ -3277,6 +3295,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
@@ -3344,6 +3365,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
@@ -3460,6 +3484,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
@@ -3802,6 +3829,25 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1)
+
+  test-harness:
+    dependencies:
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@22.20.1)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
 
   tests:
     dependencies:

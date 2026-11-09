@@ -57,6 +57,11 @@ export const MarkingParams = {
     { min: 0, max: 3, step: 0.1 },
     { description: 'Factor to multiply the inner edge color with - for added contrast.' },
   ),
+  transparentThreshold: PD.Numeric(
+    0.4,
+    { min: 0, max: 1, step: 0.05 },
+    { description: 'Unmarked transparent objects less transparent than this hide marked ones behind them.' },
+  ),
 };
 export type MarkingProps = PD.Values<typeof MarkingParams>;
 
@@ -89,6 +94,13 @@ export type MarkingPresentOptions = {
   shading: MarkingShading | null;
   /** depth and alpha of the front transparent layer of the base image, null if it was not rendered */
   transparentDepth: Texture | null;
+  /**
+   * the opaque depth of the base image (a depth texture), null where it is not in one (packed, path traced): what hides
+   * marked fragments is read from it and `transparentDepth` instead of drawn again, see `getSceneDepth`
+   */
+  opaqueDepth?: Texture | null;
+  /** the camera jitter `opaqueDepth` was drawn with, in pixels (none if left out) */
+  opaqueDepthJitter?: Vec2;
   /** draw as if all objects were marked, to prepare the pipelines of marking ahead (see `DrawPass.plan`) */
   asIfMarked?: boolean;
 };
@@ -118,6 +130,10 @@ export class MarkingPass {
 
   private readonly overlay: OverlayRenderable;
   private readonly composite: CopyRenderable;
+  /** the marking depth from the scene's (`getSceneDepth`), created on first use */
+  private sceneDepth: MarkingDepthRenderable | null = null;
+  /** where the sample drawn reads the scene's depth, in pixels from its own (their jitters' difference) */
+  private readonly sceneDepthShift = Vec2();
 
   // the mask is antialiased with the same method as the rest of the image, created on first use
   private antialiasing: AntialiasingPass | null = null;
@@ -135,6 +151,8 @@ export class MarkingPass {
   /** shading of `base` */
   private baseShading: MarkingShading | null = null;
   private baseTransparentDepth: Texture | null = null;
+  private baseOpaqueDepth: Texture | null = null;
+  private readonly baseOpaqueDepthJitter = Vec2();
 
   private readonly renderBuilder: PassBuilder;
 
@@ -189,6 +207,12 @@ export class MarkingPass {
       this.maskTarget.setSize(width, height);
       this.layerTarget.setSize(width, height);
       this.antialiasing?.setSize(width, height);
+      if (this.sceneDepth) {
+        ValueCell.update(
+          this.sceneDepth.values.uTexSizeInv,
+          Vec2.set(this.sceneDepth.values.uTexSizeInv.ref.value, 1 / width, 1 / height),
+        );
+      }
       if (this.dim) {
         this.dim.target.setSize(width, height);
         this.dim.aaTarget.setSize(width, height);
@@ -345,6 +369,7 @@ export class MarkingPass {
     this.base = undefined;
     this.baseShading = null;
     this.baseTransparentDepth = null;
+    this.baseOpaqueDepth = null;
   }
 
   /** Whether the layer is still missing samples that can be added by `redraw`. */
@@ -371,6 +396,9 @@ export class MarkingPass {
       this.base = base;
       this.baseShading = shading;
       this.baseTransparentDepth = transparentDepth;
+      this.baseOpaqueDepth = options.opaqueDepth ?? null;
+      if (options.opaqueDepthJitter) Vec2.copy(this.baseOpaqueDepthJitter, options.opaqueDepthJitter);
+      else Vec2.set(this.baseOpaqueDepthJitter, 0, 0);
     } else {
       this.invalidate();
     }
@@ -392,6 +420,8 @@ export class MarkingPass {
       samples,
       shading: this.baseShading,
       transparentDepth: this.baseTransparentDepth,
+      opaqueDepth: this.baseOpaqueDepth,
+      opaqueDepthJitter: this.baseOpaqueDepthJitter,
     });
     this.graphics.flush();
     if (isTimingMode) this.graphics.timer.groupEnd('MarkingPass.redraw');
@@ -413,11 +443,17 @@ export class MarkingPass {
     const dim = colorMarker && dimStrength > 0 && scene.markerAverage < 1;
     // dimming needs to know where marked objects are visible
     const depthTest = props.marking.ghostEdgeStrength < 1 || dim;
+    const depthJitter = options.opaqueDepthJitter;
+    // the scene's depth read shifted (a sample's jitter other than the one it was drawn with)
+    const shifted =
+      (offsets.length > 1 && camera instanceof Camera) ||
+      (!!depthJitter && (depthJitter[0] !== 0 || depthJitter[1] !== 0));
+    const sceneDepth = this.getSceneDepth(scene, props, options.opaqueDepth ?? null, transparentDepth, dim, shifted);
 
     if (!b.drawing) {
       // the samples draw alike, one is enough to request their pipelines
       this.update(props, renderer.props, dim, depthTest, shading, base.texture, transparentDepth, camera);
-      this.planSample(b, ctx, props, depthTest, dim, !!asIfMarked, 1);
+      this.planSample(b, ctx, props, depthTest, dim, !!asIfMarked, 1, sceneDepth);
       return true;
     }
 
@@ -450,21 +486,83 @@ export class MarkingPass {
       if (jitter) setJitter(camera, offset);
       renderer.update(camera, scene, frame);
 
-      // the scene SSAO is computed without jitter, see `MultiSamplePass`
+      // the scene SSAO is computed without jitter, see `MultiSamplePass`: an image jittered by `j` is the unjittered one
+      // read `j` pixels away (a top-left origin, `WindowRectTag` 'offset')
       ValueCell.update(
         this.overlay.values.uOcclusionOffset,
         Vec2.set(
           this.overlay.values.uOcclusionOffset.ref.value,
           jitter ? offset[0] / width : 0,
-          jitter ? -offset[1] / height : 0,
+          jitter ? offset[1] / height : 0,
         ),
       );
-      this.planSample(b, ctx, props, depthTest, dim, !!asIfMarked, 1 / (this.sampleCount + 1));
+      if (sceneDepth) {
+        // the scene's depth at this sample's pixel: read the jitters' difference away
+        const sx = jitter ? offset[0] : 0;
+        const sy = jitter ? offset[1] : 0;
+        Vec2.set(
+          this.sceneDepthShift,
+          sx - (depthJitter ? depthJitter[0] : 0),
+          sy - (depthJitter ? depthJitter[1] : 0),
+        );
+      }
+      this.planSample(b, ctx, props, depthTest, dim, !!asIfMarked, 1 / (this.sampleCount + 1), sceneDepth);
     }
 
     if (jitter) clearJitter(camera);
     if (isTimingMode) this.graphics.timer.groupEnd('MarkingPass.updateLayer');
     return true;
+  }
+
+  /**
+   * What hides marked fragments, read from the scene's depth instead of drawn again: its opaque depth (`opaqueDepth`)
+   * and, where unmarked transparent objects are less transparent than `transparentThreshold`, its front transparent
+   * layer (`transparentDepth`). Null where the scene's depth does not hold all of it: without an opaque depth texture,
+   * with direct volumes (not in it), with transparent objects to hide marking and no transparent layer drawn, or to
+   * dim (`dim`) and no transparent layer drawn (the dim pass takes the unmarked objects' coverage from the marking
+   * depth, the overlay a transparent layer's from `transparentDepth`: without it, transparent objects the opaque depth
+   * lacks were not dimmed, the default preset's water), or to dim with the depth read `shifted` (multi-sampled: the
+   * farthest of the four texels around, right for the mask's test, erodes the unmarked objects' silhouettes by up to a
+   * pixel, an undimmed rim); the marking depth pass then draws it
+   */
+  private getSceneDepth(
+    scene: Scene,
+    props: Props,
+    opaqueDepth: Texture | null,
+    transparentDepth: Texture | null,
+    dim: boolean,
+    shifted: boolean,
+  ): SceneDepth | null {
+    if (!opaqueDepth || scene.volumes.renderables.length > 0 || (dim && shifted)) return null;
+    const transparent = scene.opacityAverage < 1;
+    const transparentHides = transparent && scene.transparencyMin < props.marking.transparentThreshold;
+    if ((transparentHides || (dim && transparent)) && !transparentDepth) return null;
+    return { opaque: opaqueDepth, transparent: transparentHides ? transparentDepth : null };
+  }
+
+  /** The marking depth from `sceneDepth` (a quad), see `getSceneDepth` */
+  private planSceneDepth(b: PassBuilder, props: Props, sceneDepth: SceneDepth) {
+    if (!this.sceneDepth) {
+      this.sceneDepth = getMarkingDepthRenderable(this.graphics, this.depthTarget.texture, sceneDepth.opaque);
+    }
+    const renderable = this.sceneDepth;
+    const { values } = renderable;
+    let needsUpdate = false;
+    if (values.tDepth.ref.value !== sceneDepth.opaque) {
+      ValueCell.update(values.tDepth, sceneDepth.opaque);
+      needsUpdate = true;
+    }
+    if (sceneDepth.transparent && values.tTransparentDepth.ref.value !== sceneDepth.transparent) {
+      ValueCell.update(values.tTransparentDepth, sceneDepth.transparent);
+      needsUpdate = true;
+    }
+    if (needsUpdate) renderable.update();
+    ValueCell.updateIfChanged(values.uHasTransparentDepth, !!sceneDepth.transparent);
+    ValueCell.updateIfChanged(values.uTransparentThreshold, props.marking.transparentThreshold);
+    if (!Vec2.areEqual(values.uShift.ref.value, this.sceneDepthShift)) {
+      ValueCell.update(values.uShift, Vec2.copy(values.uShift.ref.value, this.sceneDepthShift));
+    }
+    b.quad(renderable, RenderState.Default);
   }
 
   /** The depth and mask of a sample and its marking blended into the layer (`asIfMarked`: all objects) */
@@ -476,6 +574,7 @@ export class MarkingPass {
     dim: boolean,
     asIfMarked: boolean,
     weight: number,
+    sceneDepth: SceneDepth | null,
   ) {
     const { renderer, scene } = ctx;
     const camera = ctx.camera as ICamera;
@@ -485,8 +584,11 @@ export class MarkingPass {
     if (depthTest) {
       b.begin(this.depthTarget, { label: 'marking depth' });
       if (b.drawing) renderer.clearDepth(true);
-      // when everything is marked there is nothing to occlude with, but the cleared depth is still needed
-      if (asIfMarked || scene.markerAverage !== 1) {
+      if (sceneDepth) {
+        if (b.drawing) this.setViewport(camera.viewport);
+        this.planSceneDepth(b, props, sceneDepth);
+      } else if (asIfMarked || scene.markerAverage !== 1) {
+        // when everything is marked there is nothing to occlude with, but the cleared depth is still needed
         b.renderer(
           { name: 'markingDepth' },
           scene.primitives,
@@ -644,6 +746,40 @@ export class MarkingPass {
 }
 
 //
+
+/** What hides marked fragments in the scene's depth, see `MarkingPass.getSceneDepth` */
+type SceneDepth = { readonly opaque: Texture; readonly transparent: Texture | null };
+
+export const MarkingDepthSchema = {
+  ...QuadSchema,
+  tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+  tTransparentDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+  uTexSizeInv: UniformSpec('v2'),
+  uHasTransparentDepth: UniformSpec('b'),
+  uTransparentThreshold: UniformSpec('f'),
+  /** pixels, a top-left origin */
+  uShift: { ...UniformSpec('v2'), windowRect: 'offset' as const },
+};
+export const MarkingDepthShaderCode = ShaderCode('marking-depth');
+type MarkingDepthRenderable = ComputeRenderable<Values<typeof MarkingDepthSchema>>;
+
+function getMarkingDepthRenderable(ctx: GraphicsContext, target: Texture, depth: Texture): MarkingDepthRenderable {
+  const values: Values<typeof MarkingDepthSchema> = {
+    ...QuadValues,
+    tDepth: ValueCell.create(depth),
+    // placeholder until a transparent layer is read
+    tTransparentDepth: ValueCell.create(depth),
+    uTexSizeInv: ValueCell.create(Vec2.create(1 / target.getWidth(), 1 / target.getHeight())),
+    uHasTransparentDepth: ValueCell.create(false),
+    uTransparentThreshold: ValueCell.create(0.4),
+    uShift: ValueCell.create(Vec2()),
+  };
+
+  const schema = { ...MarkingDepthSchema };
+  const renderItem = ctx.createComputeRenderItem('triangles', MarkingDepthShaderCode, schema, values);
+
+  return createComputeRenderable(renderItem, values);
+}
 
 export const DimSchema = {
   ...QuadSchema,

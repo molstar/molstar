@@ -23,6 +23,7 @@
     "./model/particles/_test/*": null,
     "./model/sequence/alignment/_test/*": null,
     "./model/structure/model/_test/*": null,
+    "./model/structure/model/properties/atomic/_test/*": null,
     "./model/structure/model/properties/utils/_test/*": null,
     "./model/structure/query/_test/*": null,
     "./model/structure/query/queries/_test/*": null,

@@ -252,7 +252,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         #if defined(dClipVariant_pixel) && defined(dClipObjects)
             vec3 modelPosition = v3m4(unitPos * uGridDim, modelTransform);
-            if (clipTest(modelPosition)) {
+            // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+            if (clipTest(modelPosition) != uClipGhost) {
                 t += 1.0;
                 continue;
             }

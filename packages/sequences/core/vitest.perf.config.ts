@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// `test:perf`, the quick allocation tier (`perfTests`, ../vitest.shared.ts).
+// `test:perf`, the quick allocation tier (`perfTests`, @molstar/test-harness/vitest).
 import { defineConfig } from 'vitest/config';
-import { perfTests } from '../vitest.shared.js';
+import { perfTests } from '@molstar/test-harness/vitest';
 
 export default defineConfig(perfTests(import.meta.dirname));

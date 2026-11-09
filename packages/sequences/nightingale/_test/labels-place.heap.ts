@@ -12,7 +12,7 @@
 // The positive control is the template's: the same step with a leak.
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../core/_test/model/heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { N, placing } from './labels-heap-fixture.js';
 
 describe('the label layer allocates nothing per frame', () => {

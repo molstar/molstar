@@ -112,6 +112,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
     "@types/argparse": "catalog:",
     "@types/benchmark": "catalog:",
     "@types/compression": "catalog:",

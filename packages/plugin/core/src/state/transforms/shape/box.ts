@@ -43,7 +43,8 @@ const BoxShape3D = PluginStateTransform.BuiltIn({
           data: params,
           params: Mesh.Params,
           getShape: (_, data: typeof params) => {
-            const mesh = getBoxMesh(Box3D.create(params.bottomLeft, params.topRight), params.radius);
+            // from `data`: an update keeps the getter it was made with
+            const mesh = getBoxMesh(Box3D.create(data.bottomLeft, data.topRight), data.radius);
             return ShapeUtils.create(
               'Box',
               data,

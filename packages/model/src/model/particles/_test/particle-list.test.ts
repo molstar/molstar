@@ -10,7 +10,17 @@ import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { CustomProperties } from '../../custom-property.js';
 import { OrderedSet } from '@molstar/core/data/int';
 import { lociLabel } from '../../label.js';
-import { getParticleSpacingRadius, getParticleTransforms, Particle, ParticleList } from '../particle-list.js';
+import {
+  getParticleSpacingRadius,
+  getParticleTargetGroups,
+  getParticleTransforms,
+  Particle,
+  ParticleList,
+  ParticleTarget,
+} from '../particle-list.js';
+import { Grid } from '../../volume/grid.js';
+import type { Volume } from '../../volume/volume.js';
+import { grid } from '../../volume/_test/grid-test-util.js';
 
 function createParticles(coordinates: Float32Array, rotations?: Float32Array): ParticleList {
   const count = coordinates.length / 3;
@@ -27,6 +37,23 @@ function createParticles(coordinates: Float32Array, rotations?: Float32Array): P
     _propertyData: Object.create(null),
   };
 }
+
+describe('ParticleTarget.getCenter', () => {
+  it("places a volume by its box center, whatever its isosurface's", () => {
+    // density only in one corner: the isosurface's sphere is far from the box's center
+    const g = grid([0, 1, 2], Float32Array, [4, 6, 8], (i, j, k) => (i < 1 && j < 1 && k < 1 ? 1 : 0));
+    const matrix = Mat4.mul(
+      Mat4(),
+      Mat4.fromTranslation(Mat4(), Vec3.create(1, 2, 3)),
+      Mat4.fromScaling(Mat4(), Vec3.create(2, 2, 2)),
+    );
+    const volume = { grid: { ...g, transform: { kind: 'matrix', matrix } } } as Volume;
+    const center = ParticleTarget.getCenter({ kind: 'volume', volume })!;
+    expect(Array.from(center)).toEqual([1 + 4, 2 + 6, 3 + 8]);
+    const iso = Grid.getIsosurfaceBoundingSphere(volume.grid, 0.5);
+    expect(Vec3.distance(iso.center, center)).toBeGreaterThan(5);
+  });
+});
 
 describe('getParticleTransforms', () => {
   it('uses identity bases without rotations', () => {
@@ -94,6 +121,74 @@ describe('getParticleSpacingRadius', () => {
   it('is 1 for a single particle or particles all at one point', () => {
     expect(getParticleSpacingRadius(createParticles(new Float32Array([1, 2, 3])))).toBe(1);
     expect(getParticleSpacingRadius(createParticles(new Float32Array([1, 2, 3, 1, 2, 3])))).toBe(1);
+  });
+});
+
+describe('Particle.transform', () => {
+  const turn = Quat.setAxisAngle(Quat(), Vec3.create(0, 0, 1), Math.PI / 2);
+  const matrix = Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), Vec3.create(10, 0, 0)), Mat4.fromQuat(Mat4(), turn));
+
+  it('moves the coordinates and gives orientations where it turns a list without them', () => {
+    const list = createParticles(new Float32Array([1, 0, 0, 0, 2, 0]));
+    Particle.getBoundary(list);
+    const moved = Particle.transform(list, matrix);
+    const c = Array.from(moved.coordinates);
+    [10, 1, 0, 8, 0, 0].forEach((x, i) => expect(c[i]).toBeCloseTo(x, 5));
+    expect(Array.from(moved.rotations!.subarray(0, 4))).toEqual(Array.from(turn).map(Math.fround));
+    // the source untouched, the caches not shared
+    expect(Array.from(list.coordinates)).toEqual([1, 0, 0, 0, 2, 0]);
+    expect(Particle.getBoundary(moved)).not.toBe(Particle.getBoundary(list));
+    expect(Particle.getBoundary(moved).sphere.center[0]).toBeGreaterThan(8);
+  });
+
+  it('turns the orientations a list has; a move alone keeps a list without them so', () => {
+    const own = Quat.setAxisAngle(Quat(), Vec3.create(1, 0, 0), Math.PI / 3);
+    const list = createParticles(new Float32Array([0, 0, 0]), Float32Array.from(own));
+    const q = Particle.transform(list, matrix).rotations!;
+    const expected = Quat.multiply(Quat(), turn, own);
+    for (let j = 0; j < 4; j++) expect(q[j]).toBeCloseTo(expected[j], 6);
+
+    const plain = createParticles(new Float32Array([0, 0, 0]));
+    expect(Particle.transform(plain, Mat4.fromTranslation(Mat4(), Vec3.create(1, 2, 3))).rotations).toBeUndefined();
+  });
+
+  it('records the move, so two lists of a line of moves give the move between them', () => {
+    const list = createParticles(new Float32Array([1, 0, 0, 0, 2, 0]));
+    const second = Mat4.fromTranslation(Mat4(), Vec3.create(0, 5, 0));
+    const once = Particle.transform(list, matrix);
+    // moved again from the first moved: one line, the moves composed
+    const twice = Particle.transform(once, second);
+    expect(once.movedFrom!.particles).toBe(list);
+    expect(twice.movedFrom!.particles).toBe(list);
+    expect(Mat4.areEqual(Particle.getMove(list, once)!, matrix, 1e-6)).toBe(true);
+    expect(Mat4.areEqual(Particle.getMove(once, twice)!, second, 1e-5)).toBe(true);
+    // moving `once` by the move gives `twice`
+    const p = Vec3.transformMat4(Vec3(), Vec3.fromArray(Vec3(), once.coordinates, 3), Particle.getMove(once, twice)!);
+    for (let k = 0; k < 3; k++) expect(p[k]).toBeCloseTo(twice.coordinates[3 + k], 4);
+    // targets attached keep the line: a list moved under them gives its move
+    const withTargets = Particle.withTargets(list, new Map());
+    expect(Mat4.areEqual(Particle.getMove(withTargets, Particle.withTargets(once, new Map()))!, matrix, 1e-6)).toBe(
+      true,
+    );
+    // another list: none
+    expect(Particle.getMove(createParticles(new Float32Array([1, 0, 0, 0, 2, 0])), once)).toBeUndefined();
+  });
+
+  it('keeps what it cached not by position: the target groups, the spacing of a move without scale', () => {
+    const list = createParticles(new Float32Array([1, 0, 0, 0, 2, 0, 5, 5, 5]));
+    const groups = getParticleTargetGroups(list);
+    const spacing = getParticleSpacingRadius(list);
+    const transforms = getParticleTransforms(list);
+    const moved = Particle.transform(list, matrix);
+    expect(getParticleTargetGroups(moved)).toBe(groups);
+    expect(getParticleSpacingRadius(moved)).toBe(spacing);
+    // by position: computed again
+    expect(getParticleTransforms(moved)).not.toBe(transforms);
+    expect(getParticleTransforms(moved)[12]).toBeCloseTo(moved.coordinates[0], 5);
+    // a scale changes the distances
+    const scaled = Particle.transform(list, Mat4.fromUniformScaling(Mat4(), 2));
+    expect(getParticleTargetGroups(scaled)).toBe(groups);
+    expect(getParticleSpacingRadius(scaled)).toBeCloseTo(spacing * 2, 5);
   });
 });
 

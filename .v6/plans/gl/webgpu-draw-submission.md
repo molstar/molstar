@@ -448,6 +448,7 @@ visible fraction.
 8. **Optional accelerations** with core fallbacks (checked on this machine, Chrome 156: `chromium-experimental-multi-draw-indirect`
    only with `--enable-unsafe-webgpu`, so not for users yet): multi-draw indirect where available (one call per pass;
    done for objects culled on the GPU, `sphere-compute-raster.md` step 8), immediate data if it helps beyond `firstInstance`.
+   What else it could do, and what comes before it: [multi-draw-indirect.md](multi-draw-indirect.md).
 
 ## Open questions
 

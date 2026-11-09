@@ -7,6 +7,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
  */
 
 import { produce } from '@molstar/core/util/produce';
+import { ValueCell } from '@molstar/core/util/value-cell';
 import { Interval } from '@molstar/core/data/int/interval';
 import { addSimpleCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
@@ -16,21 +17,19 @@ import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
-import { Scene } from '@molstar/graphics/gl/scene';
-import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { DataLoci, EmptyLoci, isEveryLoci, type Loci } from '@molstar/model/model/loci';
 import type { Shape } from '@molstar/model/model/shape';
 import { Visual } from '@molstar/graphics/repr/visual';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { type MarkerAction, MarkerActions } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { assertUnreachable } from '@molstar/core/util/type-helpers';
-import { Camera, type ICamera } from '../camera.js';
-import { Viewport } from '../camera/util.js';
+import { Representation } from '@molstar/graphics/repr/representation';
+import { ScaleLineParams } from './scale-line.js';
+import type { ScreenHelper } from './screen-helper.js';
 
-// TODO add scale line/grid
+// TODO add a grid
 
 const AxesParams = {
   alpha: PD.Numeric(0.51, { min: 0, max: 1, step: 0.01 }, { isEssential: true, label: 'Opacity' }),
@@ -38,10 +37,7 @@ const AxesParams = {
   colorY: PD.Color(ColorNames.green, { isEssential: true }),
   colorZ: PD.Color(ColorNames.blue, { isEssential: true }),
   scale: PD.Numeric(0.33, { min: 0.1, max: 2, step: 0.1 }, { isEssential: true }),
-  location: PD.Select(
-    'bottom-left',
-    PD.arrayToOptions(['bottom-left', 'bottom-right', 'top-left', 'top-right'] as const),
-  ),
+  location: PD.Select('bottom-left', PD.arrayToOptions(Representation.ScreenEdgeAnchors)),
   locationOffsetX: PD.Numeric(0),
   locationOffsetY: PD.Numeric(0),
   originColor: PD.Color(ColorNames.grey),
@@ -72,91 +68,114 @@ export const CameraHelperParams = {
     },
     { cycle: true, description: 'Show camera orientation axes' },
   ),
+  scale: PD.MappedStatic(
+    'on',
+    {
+      on: PD.Group(ScaleLineParams),
+      off: PD.Group({}),
+    },
+    { cycle: true, description: 'Show a scale line: a length in Å at the camera target (`ScaleLine`)' },
+  ),
 };
 export type CameraHelperParams = typeof CameraHelperParams;
 export type CameraHelperProps = PD.Values<CameraHelperParams>;
+type CameraAxesProps = Pick<CameraHelperProps, 'axes'>;
 
-export class CameraHelper {
-  scene: Scene;
-  camera: Camera;
-  props: CameraHelperProps = {
+/**
+ * The corner axes (`camera.helper.axes` of the canvas): the camera's orientation in a corner of the screen layer
+ * (`ScreenHelper`), turning with the camera; a click on an axis or a plane is a `CameraAxesLoci` (the plugin aligns
+ * the camera to it). In CSS pixels; three objects, the axes, the planes and the labels (one mesh of overlapping parts
+ * would show its insides through its translucency: the transparent pass writes no depth).
+ */
+export class CameraAxes {
+  props: CameraAxesProps = {
     axes: { name: 'off', params: {} },
   };
 
-  /** The axes and the planes, each its own (one mesh of overlapping parts showed its insides through its translucency) */
   private meshRenderObject: GraphicsRenderObject | undefined;
   private planesRenderObject: GraphicsRenderObject | undefined;
   private textRenderObject: GraphicsRenderObject | undefined;
-  private pixelRatio = 1;
 
   constructor(
-    private graphics: GraphicsContext,
+    private readonly screen: ScreenHelper,
     props: Partial<CameraHelperProps> = {},
   ) {
-    this.scene = Scene.create(graphics, 'blended');
-
-    this.camera = new Camera();
-    Vec3.set(this.camera.up, 0, 1, 0);
-    Vec3.set(this.camera.target, 0, 0, 0);
-
     this.setProps(props);
   }
 
-  setContext(graphics: GraphicsContext) {
-    this.graphics = graphics;
-    this.scene.setContext(graphics);
+  setProps(props: Partial<CameraAxesProps>) {
+    this.props = produce(this.props, (p) => {
+      if (props.axes === undefined) return;
+      p.axes.name = props.axes.name;
+      if (props.axes.name === 'off') {
+        this.screen.release(this);
+        this.meshRenderObject = this.planesRenderObject = this.textRenderObject = undefined;
+        return;
+      }
+      const params = props.axes.params;
+      this.meshRenderObject = createMeshRenderObject(params);
+      this.planesRenderObject = params.showPlanes ? createPlanesRenderObject(params) : undefined;
+      this.textRenderObject = params.showLabels ? createTextRenderObject(params) : undefined;
+
+      // inward by the labels' radius, or the axes' (as their place has always been)
+      const inset = (this.textRenderObject ?? this.meshRenderObject).values.boundingSphere.ref.value.radius;
+      const scene = this.screen.getScene(this, {
+        anchor: params.location,
+        offsetX: params.locationOffsetX,
+        offsetY: params.locationOffsetY,
+        followRotation: true,
+        inset,
+      });
+      scene.clear();
+      for (const o of this.renderObjects) scene.add(o);
+      scene.commit();
+
+      p.axes.params = { ...params };
+    });
+    // made again at their `alpha`: still hovered, at full
+    if (this.hovered) this.applyAlpha();
   }
 
-  setProps(props: Partial<CameraHelperProps>) {
-    this.props = produce(this.props, (p) => {
-      if (props.axes !== undefined) {
-        p.axes.name = props.axes.name;
-        if (props.axes.name === 'on') {
-          this.scene.clear();
-          this.pixelRatio = this.graphics.pixelRatio;
-          const params = {
-            ...props.axes.params,
-            scale: props.axes.params.scale * this.pixelRatio,
-            labelScale: props.axes.params.labelScale * this.pixelRatio,
-          };
-          this.meshRenderObject = createMeshRenderObject(params);
-          this.scene.add(this.meshRenderObject);
-          if (props.axes.params.showPlanes) {
-            this.planesRenderObject = createPlanesRenderObject(params);
-            this.scene.add(this.planesRenderObject);
-          } else {
-            this.planesRenderObject = undefined;
-          }
-          if (props.axes.params.showLabels) {
-            this.textRenderObject = createTextRenderObject(params);
-            this.scene.add(this.textRenderObject);
-          } else {
-            this.textRenderObject = undefined;
-          }
-          this.scene.commit();
-
-          Vec3.set(this.camera.position, 0, 0, params.scale * 200);
-          Mat4.lookAt(this.camera.view, this.camera.position, this.camera.target, this.camera.up);
-
-          p.axes.params = { ...props.axes.params };
-        }
-      }
-    });
+  get renderObjects(): GraphicsRenderObject[] {
+    const objects: GraphicsRenderObject[] = [];
+    for (const o of [this.meshRenderObject, this.planesRenderObject, this.textRenderObject]) if (o) objects.push(o);
+    return objects;
   }
 
   get isEnabled() {
-    return this.props.axes.name === 'on';
+    return this.props.axes.name !== 'off';
+  }
+
+  private hovered = false;
+
+  /**
+   * At full alpha while the pointer is over them, else at their `alpha` (dimmed, as navigation widgets are): the axes
+   * and planes' `uAlpha`, no rebuild; true when it changed (a redraw)
+   */
+  setHovered(hovered: boolean) {
+    if (this.hovered === hovered) return false;
+    this.hovered = hovered;
+    this.applyAlpha();
+    return this.isEnabled;
+  }
+
+  private applyAlpha() {
+    if (this.props.axes.name === 'off') return;
+    const alpha = this.hovered ? 1 : this.props.axes.params.alpha;
+    for (const o of [this.meshRenderObject, this.planesRenderObject]) {
+      if (o) ValueCell.updateIfChanged(o.values.uAlpha, alpha);
+    }
   }
 
   getLoci(pickingId: PickingId) {
     const { objectId, groupId, instanceId } = pickingId;
     if (
-      ((!this.meshRenderObject || objectId !== this.meshRenderObject.id) &&
-        (!this.planesRenderObject || objectId !== this.planesRenderObject.id) &&
-        (!this.textRenderObject || objectId !== this.textRenderObject.id)) ||
-      groupId === CameraHelperAxis.None
+      (!this.meshRenderObject || objectId !== this.meshRenderObject.id) &&
+      (!this.planesRenderObject || objectId !== this.planesRenderObject.id) &&
+      (!this.textRenderObject || objectId !== this.textRenderObject.id)
     )
       return EmptyLoci;
+    if (groupId === CameraHelperAxis.None) return EmptyLoci;
     return CameraAxesLoci(this, groupId, instanceId);
   }
 
@@ -186,37 +205,6 @@ export class CameraHelper {
     const text = Visual.mark(this.textRenderObject, loci, action, this.eachGroup);
     return axes || planes || text;
   }
-
-  update(camera: ICamera) {
-    if (!this.meshRenderObject || this.props.axes.name === 'off') return;
-
-    if (this.pixelRatio !== this.graphics.pixelRatio) {
-      this.setProps(this.props);
-    }
-
-    // in a corner of the frame, cropped with the scene where the frame is (`Camera.Crop`)
-    const frame = Camera.getFrame(tmpFrame, camera);
-    updateCamera(this.camera, camera.viewport, camera.viewOffset, camera.crop);
-    Mat4.extractRotation(this.scene.view, camera.view);
-
-    const r = this.textRenderObject
-      ? this.textRenderObject.values.boundingSphere.ref.value.radius
-      : this.meshRenderObject.values.boundingSphere.ref.value.radius;
-    const l = this.props.axes.params.location;
-    const ox = this.props.axes.params.locationOffsetX * this.pixelRatio;
-    const oy = this.props.axes.params.locationOffsetY * this.pixelRatio;
-    if (l === 'bottom-left') {
-      Mat4.setTranslation(this.scene.view, Vec3.create(-frame.width / 2 + r + ox, -frame.height / 2 + r + oy, 0));
-    } else if (l === 'bottom-right') {
-      Mat4.setTranslation(this.scene.view, Vec3.create(frame.width / 2 - r - ox, -frame.height / 2 + r + oy, 0));
-    } else if (l === 'top-left') {
-      Mat4.setTranslation(this.scene.view, Vec3.create(-frame.width / 2 + r + ox, frame.height / 2 - r - oy, 0));
-    } else if (l === 'top-right') {
-      Mat4.setTranslation(this.scene.view, Vec3.create(frame.width / 2 - r - ox, frame.height / 2 - r - oy, 0));
-    } else {
-      assertUnreachable(l);
-    }
-  }
 }
 
 export enum CameraHelperAxis {
@@ -230,7 +218,7 @@ export enum CameraHelperAxis {
   Origin,
 }
 
-function getAxisLabel(axis: number, cameraHelper: CameraHelper) {
+function getAxisLabel(axis: number, cameraHelper: CameraAxes) {
   const a = cameraHelper.props.axes;
   const x = a.name === 'on' ? a.params.labelX : 'X';
   const y = a.name === 'on' ? a.params.labelY : 'Y';
@@ -255,7 +243,7 @@ function getAxisLabel(axis: number, cameraHelper: CameraHelper) {
   }
 }
 
-function CameraAxesLoci(cameraHelper: CameraHelper, groupId: number, instanceId: number) {
+function CameraAxesLoci(cameraHelper: CameraAxes, groupId: number, instanceId: number) {
   return DataLoci('camera-axes', cameraHelper, [{ groupId, instanceId }], void 0 /** bounding sphere */, () =>
     getAxisLabel(groupId, cameraHelper),
   );
@@ -263,43 +251,6 @@ function CameraAxesLoci(cameraHelper: CameraHelper, groupId: number, instanceId:
 export type CameraAxesLoci = ReturnType<typeof CameraAxesLoci>;
 export function isCameraAxesLoci(x: Loci): x is CameraAxesLoci {
   return x.kind === 'data-loci' && x.tag === 'camera-axes';
-}
-
-const tmpFrame = Viewport.zero();
-
-function updateCamera(camera: Camera, viewport: Viewport, viewOffset: Camera.ViewOffset, crop?: Camera.Crop) {
-  const { near, far } = camera;
-
-  const fullLeft = -viewport.width / 2;
-  const fullRight = viewport.width / 2;
-  const fullTop = viewport.height / 2;
-  const fullBottom = -viewport.height / 2;
-
-  const dx = (fullRight - fullLeft) / 2;
-  const dy = (fullTop - fullBottom) / 2;
-  let cx = (fullRight + fullLeft) / 2;
-  let cy = (fullTop + fullBottom) / 2;
-  if (crop?.enabled) {
-    // the viewport's center from the frame's, in pixels (window y down, view y up)
-    cx += crop.offsetX + viewport.width / 2 - crop.fullWidth / 2;
-    cy -= crop.offsetY + viewport.height / 2 - crop.fullHeight / 2;
-  }
-
-  let left = cx - dx;
-  let right = cx + dx;
-  let top = cy + dy;
-  let bottom = cy - dy;
-
-  if (viewOffset.enabled) {
-    const scaleW = (fullRight - fullLeft) / viewOffset.width;
-    const scaleH = (fullTop - fullBottom) / viewOffset.height;
-    left += scaleW * viewOffset.offsetX;
-    right = left + scaleW * viewOffset.width;
-    top -= scaleH * viewOffset.offsetY;
-    bottom = top - scaleH * viewOffset.height;
-  }
-
-  Mat4.ortho(camera.projection, left, right, top, bottom, near, far);
 }
 
 /** The axes' length, short of the labels where they are shown */

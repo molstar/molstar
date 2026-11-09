@@ -29,6 +29,8 @@ import { DofPass } from './dof.js';
 import { BloomPass } from './bloom.js';
 import { SsaoPass } from './ssao.js';
 import { VolumePass } from './volume.js';
+import { OverlayPass } from './overlay.js';
+import { type ClipGhostOption, ClipGhostPass } from './clip-ghost.js';
 import type { RenderContext } from '../util.js';
 import { createPrepareBuilder, type PassBuilder } from './pass-builder.js';
 import type { PassTargets } from './pass-targets.js';
@@ -36,6 +38,7 @@ import type { PassTargets } from './pass-targets.js';
 type Props = {
   postprocessing: PostprocessingProps;
   marking: MarkingProps;
+  clipGhost: ClipGhostOption;
   transparentBackground: boolean;
   dpoitIterations: number;
   /** see `Canvas3DParams.volumeResolutionScale` */
@@ -49,6 +52,15 @@ export class DrawPass {
   private occlusion: RenderContext['occlusion'];
   /** the skipped draws (`GraphicsStats.skippedDraws`) when the eye began: its opaque depth complete while unchanged */
   private skippedDraws = 0;
+  /**
+   * Whether the last eye drew its opaque depth into `depthTextureOpaque`: not where it drew straight to the drawing
+   * buffer, which leaves the texture with an earlier frame's depth (the Hi-Z levels are built from it)
+   */
+  opaqueDepthDrawn = false;
+  /** the opaque depth of the last eye drawn, for marking (`getMarkingOpaqueDepth`) */
+  private markingOpaqueDepth: Texture | null = null;
+  /** the camera jitter that depth was drawn with, in pixels */
+  private readonly markingOpaqueDepthJitter = Vec2();
   private readonly graphics: GraphicsContext;
   private readonly drawTarget: RenderTarget;
 
@@ -74,6 +86,12 @@ export class DrawPass {
   readonly antialiasing: AntialiasingPass;
   readonly dof: DofPass;
   readonly volume: VolumePass;
+  readonly overlay: OverlayPass;
+  readonly clipGhost: ClipGhostPass;
+  /** whether this frame draws an overlay */
+  private overlayEnabled = false;
+  /** whether this frame draws the ghost of what clip objects remove (`ClipGhostPass`) */
+  private clipGhostEnabled = false;
   /** `Props.volumeResolutionScale` of the eye planned */
   private volumeScale = 1;
 
@@ -165,6 +183,8 @@ export class DrawPass {
     this.antialiasing = new AntialiasingPass(targets, width, height);
     this.dof = new DofPass(targets, width, height);
     this.volume = new VolumePass(targets);
+    this.overlay = new OverlayPass(targets, width, height, this.depthTextureTransparent);
+    this.clipGhost = new ClipGhostPass(graphics, targets, width, height, this.depthTextureOpaque);
 
     this.copyFbo = createCopyRenderable(graphics, this.colorTarget.texture);
     this.renderBuilder = targets.createRenderBuilder();
@@ -185,7 +205,9 @@ export class DrawPass {
       this.postprocessing.getByteCount() +
       this.antialiasing.getByteCount() +
       this.dof.getByteCount() +
-      this.volume.getByteCount()
+      this.volume.getByteCount() +
+      this.overlay.getByteCount() +
+      this.clipGhost.getByteCount()
     );
   }
 
@@ -219,6 +241,8 @@ export class DrawPass {
     this.postprocessing.setSize(width, height);
     this.antialiasing.setSize(width, height);
     this.dof.setSize(width, height);
+    this.overlay.setSize(width, height);
+    this.clipGhost.setSize(width, height);
   }
 
   renderEmissiveBloom(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, transparency: boolean): void {
@@ -359,6 +383,17 @@ export class DrawPass {
     }
   }
 
+  /**
+   * Whether a pass of this frame reads the transparent depth: a post-processing pass, the overlay's occlusion, or the
+   * ghost's composite
+   */
+  private isTransparentDepthRequired(scene: Scene, props: PostprocessingProps) {
+    return (
+      ((this.overlayEnabled || this.clipGhostEnabled) && scene.opacityAverage < 1) ||
+      PostprocessingPass.isTransparentDepthRequired(scene, props)
+    );
+  }
+
   private _renderDpoit(
     b: PassBuilder,
     renderer: Renderer,
@@ -382,7 +417,7 @@ export class DrawPass {
 
     this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
 
-    if (PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)) {
+    if (this.isTransparentDepthRequired(scene, postprocessingProps)) {
       b.begin(this.depthTargetTransparent, { label: 'transparent depth' });
       if (b.drawing) renderer.clearDepth(true);
       if (scene.opacityAverage < 1) {
@@ -463,7 +498,7 @@ export class DrawPass {
       this.planOpaqueSecond(b, renderer, camera, scene, this.colorTarget);
     }
 
-    if (PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)) {
+    if (this.isTransparentDepthRequired(scene, postprocessingProps)) {
       b.begin(this.depthTargetTransparent, { label: 'transparent depth' });
       if (b.drawing) renderer.clearDepth(true);
       if (scene.opacityAverage < 1) {
@@ -582,7 +617,8 @@ export class DrawPass {
         b.begin(this.colorTarget, { label: 'transparent' });
       }
 
-      if (PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)) {
+      const transparentDepth = this.isTransparentDepthRequired(scene, postprocessingProps);
+      if (transparentDepth) {
         b.begin(this.depthTargetTransparent, { label: 'transparent depth' });
         if (b.drawing) renderer.clearDepth(true);
         if (scene.opacityAverage < 1) {
@@ -611,6 +647,9 @@ export class DrawPass {
           b.begin(this.transparentColorTarget, { label: 'transparent' });
         } else if (hasVolumes) {
           this.renderBlendedVolumes(b, renderer, camera, scene, this.colorTarget);
+          b.begin(this.colorTarget, { label: 'transparent' });
+        } else if (transparentDepth) {
+          // back from the transparent depth (an overlay's occlusion needs it without post-processing)
           b.begin(this.colorTarget, { label: 'transparent' });
         }
 
@@ -675,6 +714,12 @@ export class DrawPass {
     this.skippedDraws = this.graphics.stats.skippedDraws;
 
     const volumeRendering = scene.volumes.renderables.length > 0;
+    // the overlay tests against the opaque depth texture, which drawing straight to the drawing buffer doesn't write
+    const overlayEnabled = ctx.helper.overlay.isEnabled;
+    this.overlayEnabled = overlayEnabled;
+    // the ghost's composite reads the opaque depth texture too
+    const clipGhostEnabled = ClipGhostPass.isEnabled(props.clipGhost, scene);
+    this.clipGhostEnabled = clipGhostEnabled;
     const postprocessingEnabled = PostprocessingPass.isEnabled(scene, props.postprocessing);
     const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
     const dofEnabled = DofPass.isEnabled(props.postprocessing);
@@ -684,17 +729,37 @@ export class DrawPass {
     const wboit = this.transparencyMode === 'wboit' && this.wboit.supported;
     const dpoit = !wboit && this.transparencyMode === 'dpoit' && this.dpoit.supported;
     const blendedToDrawingBuffer =
-      !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && !dofEnabled && !offscreen;
+      !volumeRendering &&
+      !overlayEnabled &&
+      !clipGhostEnabled &&
+      !postprocessingEnabled &&
+      !antialiasingEnabled &&
+      !dofEnabled &&
+      !offscreen;
     // two phases where the opaque depth is in the texture the pyramid reads
     const opaqueDepthTexture = wboit || dpoit || (!blendedToDrawingBuffer && !this.packedDepth);
+    // packed: the depth pass after the opaque pass writes the texture's target
+    this.opaqueDepthDrawn = wboit || dpoit || !blendedToDrawingBuffer;
     this.occlusion = opaqueDepthTexture ? ctx.occlusion : undefined;
+    // also preparing: marking reads it in place of its depth pass (`MarkingPass.getSceneDepth`), what it prepares;
+    // not where the helpers draw into it (`_renderHelpers`): marking would take their depth for the scene's. TODO: the
+    // pointer is a user option, its depth pass too costly: draw it without writing this texture
+    const helpersInDepth = ctx.helper.debug.isEnabled || ctx.helper.pointer.isEnabled;
+    this.markingOpaqueDepth =
+      opaqueDepthTexture && !this.packedDepth && !helpersInDepth ? this.depthTextureOpaque : null;
+    const { viewOffset } = camera;
+    Vec2.set(
+      this.markingOpaqueDepthJitter,
+      viewOffset.enabled ? viewOffset.offsetX : 0,
+      viewOffset.enabled ? viewOffset.offsetY : 0,
+    );
 
     if (b.drawing) {
       const { x, y, width, height } = camera.viewport;
       renderer.setViewport(x, y, width, height);
       renderer.update(camera, scene, frame);
       // no pass open yet: GPU culling for the frame's passes with this camera (others draw the CPU culling's lists)
-      renderer.prepareCull(scene.primitives, !!this.occlusion);
+      renderer.prepareCull(scene.primitives, !!this.occlusion, clipGhostEnabled);
       // and the sphere raster of this view, resolved in its opaque pass
       renderer.prepareSphereRaster(scene.primitives, camera);
     }
@@ -725,20 +790,36 @@ export class DrawPass {
 
     const target = postprocessingEnabled
       ? this.postprocessing.target
-      : offscreen || volumeRendering || oitEnabled || dofEnabled
+      : offscreen || volumeRendering || overlayEnabled || clipGhostEnabled || oitEnabled || dofEnabled
         ? this.colorTarget
         : this.drawTarget;
 
-    b.begin(target, { label: 'helpers' });
-    this._renderHelpers(b, ctx, target);
+    if (clipGhostEnabled && props.clipGhost.name === 'on') {
+      // after the scene's passes (its depths written), before the helpers and the overlay
+      const ghost = props.clipGhost.params;
+      this.clipGhost.render(b, renderer, camera, scene, ghost);
+      this.clipGhost.composite(
+        b,
+        target,
+        camera,
+        this.depthTargetOpaque ? this.depthTargetOpaque.texture : this.depthTextureOpaque,
+        !!this.depthTargetOpaque,
+        scene.opacityAverage < 1 ? this.depthTextureTransparent : null,
+        props.marking.transparentThreshold,
+        ghost,
+      );
+    }
 
-    const output = this._renderOutput(b, camera, scene, props, {
+    b.begin(target, { label: 'helpers' });
+    // with DOF, the overlay after it (`_renderOutput`)
+    this._renderHelpers(b, ctx, target, !dofEnabled);
+
+    const output = this._renderOutput(b, ctx, props, {
       offscreen,
       postprocessingEnabled,
       antialiasingEnabled,
       dofEnabled,
-      volumeRendering,
-      oitEnabled,
+      colorTargetOutput: volumeRendering || overlayEnabled || clipGhostEnabled || oitEnabled,
     });
 
     if (!output) {
@@ -752,6 +833,8 @@ export class DrawPass {
         samples: 1,
         shading: this.getMarkingShading(scene, props.postprocessing),
         transparentDepth: this.getMarkingTransparentDepth(scene, props.postprocessing),
+        opaqueDepth: this.markingOpaqueDepth,
+        opaqueDepthJitter: this.markingOpaqueDepthJitter,
         asIfMarked,
       });
     }
@@ -759,7 +842,7 @@ export class DrawPass {
     if (b.drawing) this.graphics.flush();
   }
 
-  private _renderHelpers(b: PassBuilder, ctx: RenderContext<ICamera>, target: RenderTarget) {
+  private _renderHelpers(b: PassBuilder, ctx: RenderContext<ICamera>, target: RenderTarget, withOverlay: boolean) {
     const { renderer, camera, helper, frame } = ctx;
     if (helper.debug.isEnabled || helper.pointer.isEnabled) {
       if (!this.packedDepth) {
@@ -784,15 +867,10 @@ export class DrawPass {
         b.begin(target, { label: 'helpers' });
       }
     }
-    if (helper.handle.isEnabled) {
-      this.renderBlended(b, renderer, helper.handle.scene, camera);
-    }
-    if (helper.camera.isEnabled) {
-      if (b.drawing) {
-        helper.camera.update(camera);
-        renderer.update(helper.camera.camera, helper.camera.scene, frame);
-      }
-      this.renderBlended(b, renderer, helper.camera.scene, helper.camera.camera);
+
+    if (withOverlay && (helper.overlay.isEnabled || helper.screen.isEnabled)) {
+      this.overlay.render(b, ctx, target, this.depthTextureOpaque, target === this.drawTarget);
+      b.begin(target, { label: 'helpers' });
     }
   }
 
@@ -807,57 +885,55 @@ export class DrawPass {
   }
 
   /** Returns the target the finished image ended up in, or undefined when it went to the drawing buffer. */
+  /**
+   * DOF, the overlay where DOF is on (never blurred: drawn after it), then antialiasing (last: an edge DOF softened
+   * needs no smoothing, a gizmo's does), or a copy to the drawing buffer
+   */
   private _renderOutput(
     b: PassBuilder,
-    camera: ICamera,
-    scene: Scene,
+    ctx: RenderContext<ICamera>,
     props: Props,
     flags: {
       offscreen: boolean;
       postprocessingEnabled: boolean;
       antialiasingEnabled: boolean;
       dofEnabled: boolean;
-      volumeRendering: boolean;
-      oitEnabled: boolean;
+      /** without post-processing, the image is in the color target (volumes, OIT, the overlay) */
+      colorTargetOutput: boolean;
     },
   ): RenderTarget | undefined {
-    const { offscreen, postprocessingEnabled, antialiasingEnabled, dofEnabled, volumeRendering, oitEnabled } = flags;
+    const { camera, scene, helper } = ctx;
+    const { offscreen, postprocessingEnabled, antialiasingEnabled, dofEnabled, colorTargetOutput } = flags;
     const toBuffer = !offscreen;
 
-    let needsTargetCopy = false;
+    // the image so far; none: drawn straight to the drawing buffer (as `_renderBlended` was told)
+    let image: RenderTarget | undefined = postprocessingEnabled
+      ? this.postprocessing.target
+      : colorTargetOutput || dofEnabled || antialiasingEnabled || offscreen
+        ? this.colorTarget
+        : undefined;
 
-    if (antialiasingEnabled) {
-      const input = postprocessingEnabled ? this.postprocessing.target.texture : this.colorTarget.texture;
-      this.antialiasing.render(b, camera, input, toBuffer && !dofEnabled, props.postprocessing);
-    } else if (toBuffer && !dofEnabled) {
-      needsTargetCopy = true;
-    }
-
-    if (dofEnabled && props.postprocessing.dof.name === 'on') {
-      const input = antialiasingEnabled
-        ? this.antialiasing.target.texture
-        : postprocessingEnabled
-          ? this.postprocessing.target.texture
-          : this.colorTarget.texture;
+    const { dof } = props.postprocessing;
+    if (dofEnabled && dof.name === 'on' && image) {
+      const overlayEnabled = helper.overlay.isEnabled || helper.screen.isEnabled;
       this.dof.update(
         camera,
-        input,
+        image.texture,
         this.depthTargetOpaque?.texture || this.depthTextureOpaque,
         this.depthTextureTransparent,
-        props.postprocessing.dof.params,
+        dof.params,
         scene.boundingSphereVisible,
       );
-      this.dof.render(b, camera.viewport, toBuffer ? undefined : this.getColorTarget(scene, props.postprocessing));
-    } else if (toBuffer && !antialiasingEnabled) {
-      needsTargetCopy = true;
+      const last = toBuffer && !antialiasingEnabled && !overlayEnabled;
+      this.dof.render(b, camera.viewport, last ? undefined : this.dof.target);
+      image = last ? undefined : this.dof.target;
+      if (overlayEnabled) this.overlay.render(b, ctx, this.dof.target, this.depthTextureOpaque);
     }
 
-    if (needsTargetCopy) {
-      if (postprocessingEnabled) {
-        this.copyToDrawingBuffer(b, this.postprocessing.target, camera.viewport);
-      } else if (volumeRendering || oitEnabled) {
-        this.copyToDrawingBuffer(b, this.colorTarget, camera.viewport);
-      }
+    if (antialiasingEnabled && image) {
+      this.antialiasing.render(b, camera, image.texture, toBuffer, props.postprocessing);
+    } else if (toBuffer && image) {
+      this.copyToDrawingBuffer(b, image, camera.viewport);
     }
 
     return offscreen ? this.getColorTarget(scene, props.postprocessing) : undefined;
@@ -966,6 +1042,16 @@ export class DrawPass {
       : this.ssaoShading;
   }
 
+  /** the opaque depth of the last render as a depth texture, null where it is not in one (packed, drawn directly) */
+  getMarkingOpaqueDepth(): Texture | null {
+    return this.markingOpaqueDepth;
+  }
+
+  /** the camera jitter `getMarkingOpaqueDepth` was drawn with, in pixels */
+  getMarkingOpaqueDepthJitter(): Vec2 {
+    return this.markingOpaqueDepthJitter;
+  }
+
   /** the front transparent layer's depth and alpha marking reads, where a pass had it drawn in the last render */
   getMarkingTransparentDepth(scene: Scene, postprocessingProps: PostprocessingProps): Texture | null {
     return PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)
@@ -973,11 +1059,12 @@ export class DrawPass {
       : null;
   }
 
+  /** The target an offscreen image ends in: the last of antialiasing, DOF, post-processing (`_renderOutput`) */
   getColorTarget(scene: Scene, postprocessingProps: PostprocessingProps): RenderTarget {
-    if (DofPass.isEnabled(postprocessingProps)) {
-      return this.dof.target;
-    } else if (AntialiasingPass.isEnabled(postprocessingProps)) {
+    if (AntialiasingPass.isEnabled(postprocessingProps)) {
       return this.antialiasing.target;
+    } else if (DofPass.isEnabled(postprocessingProps)) {
+      return this.dof.target;
     } else if (PostprocessingPass.isEnabled(scene, postprocessingProps)) {
       return this.postprocessing.target;
     }

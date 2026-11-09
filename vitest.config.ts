@@ -83,7 +83,8 @@ const setupFiles = [`${import.meta.dirname}/vitest.setup.ts`];
 
 // Seq* (`packages/sequences`, its AGENTS.md, Tests) runs here in two projects of its own, under the same rules. Never
 // matched: the browser folders, the heap guards (`*.heap.ts`, not `*.test.*`) and the benches; its opt-in tiers
-// (`test:perf`, `test:browser`, `test:heap`, `bench`) are the packages' own scripts (`sequences/vitest.shared.ts`).
+// (`test:perf`, `test:browser`, `test:heap`, `bench`) are the packages' own scripts (`sequences/vitest.shared.ts`, the shared
+// `test-harness/src/vitest.ts`).
 const seq = 'packages/sequences/';
 const seqBrowser = /^packages\/sequences\/[^/]+\/(_test\/(.*\/)?(canvas|dom|react)\/|bench\/)/;
 

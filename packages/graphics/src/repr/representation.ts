@@ -275,6 +275,64 @@ namespace Representation {
     export const Empty: Loci = { loci: EmptyLoci };
   }
 
+  /**
+   * Where a canvas draws a representation: `scene`, in the scene (its bounds, post-processing, exports); `overlay`,
+   * above the scene, anchored in the world, with a depth and near and far planes of its own, out of the scene's bounds
+   * (gizmos); `screen`, above both, anchored to the viewport (`State.screen`), its unit a CSS pixel (the corner axes,
+   * a scale bar)
+   */
+  export type Layer = 'scene' | 'overlay' | 'screen';
+
+  /** Where in the viewport a representation of the screen layer is: the center, a corner or an edge's middle */
+  export type ScreenAnchor =
+    | 'center'
+    | 'bottom-left'
+    | 'bottom-right'
+    | 'top-left'
+    | 'top-right'
+    | 'top-middle'
+    | 'bottom-middle'
+    | 'middle-left'
+    | 'middle-right';
+
+  /** The anchors of a widget's place (`location` params): the corners and the edges' middles */
+  export const ScreenEdgeAnchors = [
+    'bottom-left',
+    'bottom-right',
+    'top-left',
+    'top-right',
+    'top-middle',
+    'bottom-middle',
+    'middle-left',
+    'middle-right',
+  ] as const satisfies readonly ScreenAnchor[];
+
+  /** An anchor's sides: x -1 left, 1 right, 0 the middle; y -1 bottom, 1 top, 0 the middle */
+  export function screenAnchorSides(anchor: ScreenAnchor): { x: -1 | 0 | 1; y: -1 | 0 | 1 } {
+    const x = anchor.endsWith('left') ? -1 : anchor.endsWith('right') ? 1 : 0;
+    const y = anchor.startsWith('bottom') ? -1 : anchor.startsWith('top') ? 1 : 0;
+    return { x, y };
+  }
+
+  /**
+   * The place of a representation in the screen layer: its origin at `anchor`, moved inward from the edges it is on
+   * by its bounding radius (`inset` instead where given) and by the offset (CSS pixels; along an edge's middle the
+   * offset is right and up); turned with the camera (`followRotation`) or kept upright
+   */
+  export interface ScreenPlacement {
+    readonly anchor: ScreenAnchor;
+    readonly offsetX: number;
+    readonly offsetY: number;
+    readonly followRotation: boolean;
+    readonly inset?: number;
+  }
+  export const DefaultScreenPlacement: ScreenPlacement = {
+    anchor: 'center',
+    offsetX: 0,
+    offsetY: 0,
+    followRotation: true,
+  };
+
   export interface State {
     /** Controls if the representation's renderobjects are rendered or not */
     visible: boolean;
@@ -282,6 +340,11 @@ namespace Representation {
     pickable: boolean;
     /** Controls if the representation's renderobjects is rendered in color pass (i.e., not pick and depth) or not */
     colorOnly: boolean;
+    /**
+     * Drawn in the pick passes only: a hit area larger than what is drawn (a gizmo's thin handle); shape
+     * representations, as `colorOnly`
+     */
+    pickOnly: boolean;
     /** Overpaint applied to the representation's renderobjects */
     overpaint: Overpaint;
     /** Per group transparency applied to the representation's renderobjects */
@@ -300,16 +363,29 @@ namespace Representation {
     syncManually: boolean;
     /** A transformation applied to the representation's renderobjects */
     transform: Mat4;
+    /**
+     * A transient transformation after `transform`, for showing the representation moved while something is under way
+     * (a drag before its release): applied on the GPU (`Visual.setPreviewTransform`), not baked into the instances, so
+     * setting it every frame costs nothing per instance. Not a placement: what reads the instances on the CPU (export,
+     * picking positions) ignores it; whoever sets it puts it back to the identity
+     */
+    previewTransform: Mat4;
     /** Bit mask of allowed marker actions */
     markerActions: MarkerActions;
+    /** The canvas layer the representation's renderobjects are drawn and picked in */
+    layer: Layer;
+    /** The place in the screen layer (`layer` 'screen') */
+    screen: ScreenPlacement;
   }
   export function createState(): State {
     return {
       visible: true,
       pickable: true,
       colorOnly: false,
+      pickOnly: false,
       syncManually: false,
       transform: Mat4.identity(),
+      previewTransform: Mat4.identity(),
       overpaint: Overpaint.Empty,
       transparency: Transparency.Empty,
       emissive: Emissive.Empty,
@@ -318,12 +394,15 @@ namespace Representation {
       clipping: Clipping.Empty,
       themeStrength: { overpaint: 1, transparency: 1, emissive: 1, substance: 1, wiggle: 1 },
       markerActions: MarkerActions.All,
+      layer: 'scene',
+      screen: DefaultScreenPlacement,
     };
   }
   export function updateState(state: State, update: Partial<State>) {
     if (update.visible !== undefined) state.visible = update.visible;
     if (update.pickable !== undefined) state.pickable = update.pickable;
     if (update.colorOnly !== undefined) state.colorOnly = update.colorOnly;
+    if (update.pickOnly !== undefined) state.pickOnly = update.pickOnly;
     if (update.overpaint !== undefined) state.overpaint = update.overpaint;
     if (update.transparency !== undefined) state.transparency = update.transparency;
     if (update.emissive !== undefined) state.emissive = update.emissive;
@@ -333,7 +412,10 @@ namespace Representation {
     if (update.themeStrength !== undefined) state.themeStrength = update.themeStrength;
     if (update.syncManually !== undefined) state.syncManually = update.syncManually;
     if (update.transform !== undefined) Mat4.copy(state.transform, update.transform);
+    if (update.previewTransform !== undefined) Mat4.copy(state.previewTransform, update.previewTransform);
     if (update.markerActions !== undefined) state.markerActions = update.markerActions;
+    if (update.layer !== undefined) state.layer = update.layer;
+    if (update.screen !== undefined) state.screen = update.screen;
   }
   export interface StateBuilder<S extends State> {
     create(): S;
@@ -636,6 +718,7 @@ namespace Representation {
         if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible);
         if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable);
         if (state.colorOnly !== undefined) Visual.setColorOnly(renderObject, state.colorOnly);
+        if (state.pickOnly !== undefined) Visual.setPickOnly(renderObject, state.pickOnly);
         if (state.overpaint !== undefined) {
           // TODO
         }
@@ -656,6 +739,7 @@ namespace Representation {
         }
         if (state.themeStrength !== undefined) Visual.setThemeStrength(renderObject, state.themeStrength);
         if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform);
+        if (state.previewTransform !== undefined) Visual.setPreviewTransform(renderObject, state.previewTransform);
 
         Representation.updateState(currentState, state);
       },

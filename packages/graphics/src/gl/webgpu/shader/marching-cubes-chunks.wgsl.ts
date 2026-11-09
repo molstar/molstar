@@ -84,6 +84,13 @@ fn main(
     @builtin(workgroup_id) wid: vec3<u32>,
     @builtin(num_workgroups) workgroups: vec3<u32>,
 ) {
+    // reset here, not left to the zero-initialization of workgroup memory, which a device may skip (SwiftShader: the
+    // memory of the previous dispatch)
+    if (local == 0u) {
+        atomicStore(&wgVertices, 0u);
+        atomicStore(&wgTriangles, 0u);
+    }
+    workgroupBarrier();
     let dim = vec3<u32>(uParams.uGridDim);
     let isPoint = all(id < dim);
     let p = vec3<i32>(id);
@@ -310,9 +317,15 @@ fn edgeVertex(c: vec3<i32>, e: u32) -> u32 {
 @compute @workgroup_size(WorkgroupSizeX, WorkgroupSizeY, WorkgroupSizeZ)
 fn main(
     @builtin(global_invocation_id) id: vec3<u32>,
+    @builtin(local_invocation_index) local: u32,
     @builtin(workgroup_id) wid: vec3<u32>,
     @builtin(num_workgroups) workgroups: vec3<u32>,
 ) {
+    // as the count kernel's: reset here, before any invocation returns (the barrier in uniform control flow)
+    if (local == 0u) {
+        atomicStore(&wgOffset, 0u);
+    }
+    workgroupBarrier();
     let dim = vec3<u32>(uParams.uGridDim);
     if (any(id >= dim)) {
         return;
