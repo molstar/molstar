@@ -12,7 +12,7 @@
 // quick twin (hot-paths.quick.ts).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { FIXTURES, PATHS, sums } from './hot-paths-cases.js';
 
 describe("heap guards: a step's growth does not scale with the run", () => {

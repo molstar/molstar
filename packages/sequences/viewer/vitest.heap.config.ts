@@ -7,6 +7,6 @@
  */
 
 import { defineConfig } from 'vitest/config';
-import { heapTests } from '../vitest.shared.js';
+import { heapTests } from '@molstar/test-harness/vitest';
 
 export default defineConfig(heapTests());

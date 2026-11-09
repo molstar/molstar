@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { appendFileSync } from 'node:fs';
@@ -17,7 +18,7 @@ import { expect } from 'vitest';
 // The ratio must stay under `band` (twice the factor by default: 8 for 4×), robust to a machine's noise; the positive
 // control, a deliberately quadratic path, reads about 16 and is caught. Time is the fastest of `reps` runs (the noise is
 // all upward); allocation is the bytes allocated over the run, read from the collector's own accounts (`GCProfiler`:
-// what each collection freed counted back, as Seq*'s quick tier does, sequences/core/_test/model/alloc.ts).
+// what each collection freed counted back, as Seq*'s quick tier does, alloc.ts).
 
 /** A bulk path at a size: `setup` makes its state (untimed), `run` does the bulk operation on it (timed). */
 export interface BulkCase<S> {

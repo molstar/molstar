@@ -4,16 +4,17 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// The quick tier's report (`test:perf`; `perfTests` in vitest.shared.ts): a table of every case (bytes a step, the
+// The quick tier's report (`test:perf`; `perfTests` in vitest.ts): a table of every case (bytes a step, the
 // baseline, the delta, the measurement's note), the moves under the failing threshold listed, and under `--update` the
 // package's baseline rewritten from the run (cases that did not run keep theirs; positive controls are not baselined).
-// A Vitest reporter by shape: this folder has no vitest of its own to import its types from.
+// A Vitest reporter by shape.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 
-/** What `quickCase` (core/_test/model/quick.ts) leaves on a test's meta. */
+/** What `quickCase` (quick.ts) leaves on a test's meta. */
 interface AllocRecord {
   id: string;
   bytesPerStep: number;

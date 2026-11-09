@@ -427,6 +427,12 @@
       "private": true
     },
     {
+      "name": "@molstar/test-harness",
+      "path": "test-harness",
+      "kind": "tests",
+      "private": true
+    },
+    {
       "name": "@molstar/common-server",
       "path": "servers/common",
       "kind": "server",

@@ -22,7 +22,7 @@ import {
   LIMIT,
   leaking,
   SCALED_LIMIT,
-} from './heap.js';
+} from '@molstar/test-harness/heap';
 
 describe('heapGrowth', () => {
   it('reports no growth for a run that allocates nothing', () => {

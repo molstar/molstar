@@ -12,7 +12,7 @@
 // runs are warmed by count. The cases are query-cases.ts's, shared with the quick twin (query.quick.ts).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, heapGrowth, LIMIT } from './heap.js';
+import { controlCaught, heapGrowth, LIMIT } from '@molstar/test-harness/heap';
 import { prepare, QUERIES } from './query-cases.js';
 
 /** The least of three measured runs after ten warm-ups, and the groups selected. */

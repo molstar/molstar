@@ -15,7 +15,7 @@
 // `leaking(step)`.
 
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 import { cheapScaling, FRAME_N, FRAME_WARM } from './heap.js';
 
 /**

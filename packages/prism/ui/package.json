@@ -57,6 +57,7 @@
     }
   },
   "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
     "typescript": "catalog:",
     "axe-core": "catalog:",
     "@types/node": "catalog:",

@@ -13,7 +13,7 @@
 // (translate.quick.ts).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../model/heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { resetVisits, TRANSLATE_CASES, translatedRuns, visited } from './translate-cases.js';
 
 describe('translate heap guards', () => {

@@ -212,6 +212,9 @@
       "path": "./perf-tests"
     },
     {
+      "path": "./test-harness"
+    },
+    {
       "path": "./servers/common"
     },
     {

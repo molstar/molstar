@@ -14,7 +14,7 @@
 // (`vi.resetModules`).
 
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 
 /**
  * The draw case's quick counts: a frame redraws every line (about 0.7 ms on an M4), so windows of 250 steps; exact

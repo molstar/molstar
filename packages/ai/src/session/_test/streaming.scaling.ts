@@ -8,12 +8,7 @@
 
 import { expect, it } from 'vitest';
 import { fixture } from './helpers.js';
-import {
-  checkLinear,
-  quadraticControl,
-  scaling,
-  scalingAsync,
-} from '../../../../sequences/core/_test/model/scaling.js';
+import { checkLinear, quadraticControl, scaling, scalingAsync } from '@molstar/test-harness/scaling';
 
 // An answer streamed (`test:scaling`, `_test/scaling.ts`): a turn whose one reply arrives in N deltas, the host's
 // `onText` hearing the whole text so far at each. The session must do O(delta) work for a delta (session.md §3): a

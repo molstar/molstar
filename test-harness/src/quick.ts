@@ -4,13 +4,14 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // The quick tier's case (`test:perf`; packages/sequences/AGENTS.md, Tests), for every package: a step measured in bytes a
 // step (`measureBytesPerStep`, alloc.ts) against the package's baseline (`_test/perf-baseline.json`), then its positive
 // control, `leaking(step)`, on the same state. A case over its baseline by more than the threshold fails (`PERF_THRESHOLD`,
-// 4 bytes a step, or a tenth of a baseline above 40: `allowance`); a smaller move is listed by the report (`packages/sequences/perf-reporter.ts`), which also rewrites the
-// baseline under `--update` (or `PERF_UPDATE=1`). The config provides the baseline and the mode (`vitest.shared.ts`
+// 4 bytes a step, or a tenth of a baseline above 40: `allowance`); a smaller move is listed by the report (perf-reporter.ts), which also rewrites the
+// baseline under `--update` (or `PERF_UPDATE=1`). The config provides the baseline and the mode (vitest.ts
 // `perfTests`). Every `*.quick.ts` calls `quickCase` (the spec check); a case without its control says why.
 
 import { expect, inject } from 'vitest';

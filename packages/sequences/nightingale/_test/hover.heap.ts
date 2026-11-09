@@ -15,7 +15,7 @@
 // is the template's: (a)'s step with a leak, caught by the same measurement (NG-11).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../core/_test/model/heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { type Case, codon, containing, direct, fragments, linked, N, pointer, repeated, twice } from './hover-cases.js';
 
 describe('the highlight path allocates nothing per change', () => {

@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// `test:heap`, the deep heap guards of the viewer's hot paths (`*.heap.ts` under any `_test/` of src/): Seq*'s tier
-// (`heapTests`, packages/sequences/vitest.shared.ts), rooted at src/. Opt in, at checkpoints, never in CI.
+// `test:heap`, the deep heap guards of the viewer's hot paths (`*.heap.ts` under any `_test/` of src/): the shared tier
+// (`heapTests`, @molstar/test-harness/vitest), rooted at src/. Opt in, at checkpoints, never in CI.
 import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
-import { heapTests } from '../../sequences/vitest.shared.js';
+import { heapTests } from '@molstar/test-harness/vitest';
 
 const root = join(import.meta.dirname, 'src');
 const base = heapTests();

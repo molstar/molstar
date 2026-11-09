@@ -23,5 +23,5 @@ The agent harness and what runs on it, the one package `@molstar/ai`. The reposi
 
 `pnpm test:unit packages/ai` runs this package's tests with the rest of the repository's (one Vitest run);
 `pnpm test:unit packages/ai/src/<folder>` one folder. `pnpm -C packages/ai test:scaling` runs the scaling guards
-(`*.scaling.ts`: the streamed text, the trace's reads; on the shared harness `sequences/core/_test/model/scaling.ts`):
-opt in, at checkpoints, never in CI.
+(`*.scaling.ts`: the streamed text, the trace's reads; on the shared harness `test-harness/src/scaling.ts`): opt in, at
+checkpoints, never in CI.

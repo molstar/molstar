@@ -13,13 +13,7 @@
 // so it has no guard.
 
 import { describe, expect, it } from 'vitest';
-import {
-  controlCaught,
-  describeScaling,
-  heapScaling,
-  isFlat,
-  leaking,
-} from '../../../../../../sequences/core/_test/model/heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { molHover, N } from './link-cases.js';
 
 describe('link heap guards', () => {

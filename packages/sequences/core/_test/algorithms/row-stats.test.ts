@@ -17,7 +17,7 @@ import {
   redundancy,
   rowStats,
 } from '../../src/algorithms/index.js';
-import { itWithin } from '../model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 
 const GAP = 45;
 /** Rows of text as cells; `-` is the gap. */

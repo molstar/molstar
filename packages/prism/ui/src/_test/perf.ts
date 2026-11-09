@@ -12,14 +12,14 @@ import { getHeapSpaceStatistics } from 'node:v8';
 // (bytes a step against `perf-baseline.json`, its positive control built in) and the heap guards' scaling (n and 4n
 // steps, `leaking` for the control). Test code only: the harness is Seq*'s `_test/model` (packages/sequences/AGENTS.md).
 
-export { allowance, measureBytesPerStep, quickCase } from '../../../../sequences/core/_test/model/quick.js';
+export { allowance, measureBytesPerStep, quickCase } from '@molstar/test-harness/quick';
 export {
   controlCaught,
   describeScaling,
   heapScaling,
   isFlat,
   leaking,
-} from '../../../../sequences/core/_test/model/heap.js';
+} from '@molstar/test-harness/heap';
 
 /**
  * The heap in use outside code (V8's code and trusted spaces apart: jsdom's selector engine compiles a function and a

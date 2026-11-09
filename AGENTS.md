@@ -24,6 +24,7 @@ not).
 | `storybook/`                                 | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)                                                                                                                        |
 | `.v6/`                                       | v6-wide designs and plans (`designs/`, `plans/`); a package's own decisions are in its `_spec/`                                                                                                                          |
 | `scripts/workspace/`                         | the package inventory (`inventory.json`) and the workspace checks                                                                                                                                                        |
+| `test-harness/`                              | the allocation, heap, scaling and timing guards the packages' opt-in tiers share (`@molstar/test-harness/*`, a dev dependency)                                                                                           |
 
 ## Commands
 
@@ -97,9 +98,9 @@ can hold its tests.
 | heavy (`{ tags: ['heavy'] }`, `// @module-tag heavy`)    | wall-clock bounds and ratios, scaling by size, full-size fuzz and oracles, a million rows, CLIs in a process (built first), Chrome                                                                                 | `pnpm test:heavy`  | nightly, by hand, and on a PR labelled `heavy tests` (`tests-heavy.yml`)   |
 
 - **A test slow by nature moves, and keeps a quick representative**: one layer of a sweep, the smaller fixtures, a short
-  fuzz, a smaller scale. A wall-clock bound goes in `itWithin` (`packages/sequences/core/_test/model/timing.ts`): the
-  test runs quick without the bound and heavy with it. Coverage is never dropped: medium runs on every PR. Why: the PR
-  checks finish in minutes, and the edit loop in seconds.
+  fuzz, a smaller scale. A wall-clock bound goes in `itWithin` (`test-harness/src/timing.ts`): the test runs quick
+  without the bound and heavy with it. Coverage is never dropped: medium runs on every PR. Why: the PR checks finish in
+  minutes, and the edit loop in seconds.
 - **A test slow by waste is fixed, not moved**: a fixture computed once per file, not per `describe`; fake timers where
   real ones only wait; no rebuild per test.
 - **Tag in the test's own file**, inline or by `@module-tag` on a line of its own: the config reads the files to decide
@@ -115,9 +116,10 @@ can hold its tests.
   their own (`WebGPU tests (Dawn)`, a software Vulkan, required: they fail instead of skipping,
   `MOLSTAR_REQUIRE_WEBGPU`); the visual smoke tests (`pnpm test:visual --tags smoke`, WebGPU against WebGL2) nightly, by
   hand and on a PR labelled `visual tests` (`visual-tests.yml`).
-- **Not lanes**: the packages' opt-in tiers, by hand at checkpoints and never in CI: `test:perf` (allocation, the
-  `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap guards (`test:heap`,
-  `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md) guides.
+- **Not lanes**: the packages' opt-in tiers on the shared harness (`test-harness/`), by hand at checkpoints and never in
+  CI: `test:perf` (allocation, the `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap
+  guards (`test:heap`, `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md)
+  guides.
 - **Files share their worker's module registry** (`isolate: false`: importing the libraries again per file was about a
   third of the run's CPU). So a file restores the module state it changes (a registry, a config default);
   `vitest.setup.ts` restores spies, stubbed globals and env and real timers after every file. No `export *` inside an

@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { bigBedProvider, sqlFields } from '../../../src/stream/gmod/bigbed.js';
 import { vcfProvider } from '../../../src/stream/gmod/tabix.js';
 import { twoBitProvider } from '../../../src/stream/gmod/twobit.js';
-import { itWithin } from '../../model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { req } from './cases.js';
 
 /** A little-endian byte writer. */

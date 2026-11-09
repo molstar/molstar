@@ -8,10 +8,10 @@
 
 // `test:perf`, prism-ui's quick allocation tier (packages/prism/AGENTS.md, Tests): the `*.quick.ts` cases under any
 // `_test/` of `src/`, bytes a step read exactly against `src/_test/perf-baseline.json` (`--update` for an intended
-// move). Seq*'s tier (`perfTests`, packages/sequences/vitest.shared.ts). Opt in, by hand; never in CI.
+// move). The shared tier (`perfTests`, @molstar/test-harness/vitest). Opt in, by hand; never in CI.
 import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
-import { perfTests } from '../../sequences/vitest.shared.js';
+import { perfTests } from '@molstar/test-harness/vitest';
 
 const root = join(import.meta.dirname, 'src');
 const base = perfTests(root);

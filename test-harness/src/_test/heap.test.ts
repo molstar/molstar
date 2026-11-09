@@ -4,11 +4,12 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // The guard template's control logic, measured by stand-ins (the heap tier measures for real: heap-guard.heap.ts).
 import { describe, expect, it } from 'vitest';
-import { controlCaught, LIMIT, leaking, SCALED_LIMIT } from './heap.js';
+import { controlCaught, LIMIT, leaking, SCALED_LIMIT } from '../heap.js';
 
 describe('controlCaught', () => {
   it('is caught when not flat, a growth past the limit, or a run refused for a collection', () => {

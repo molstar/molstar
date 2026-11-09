@@ -10,7 +10,7 @@
 // cases), each with its positive control.
 
 import { describe, expect, it } from 'vitest';
-import { quickCase } from '../model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { SEARCH_CASES, searchStep } from './search-cases.js';
 
 describe('search matchers, quick', () => {

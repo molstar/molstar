@@ -24,7 +24,7 @@ const heap = () => (performance as unknown as { memory: { usedJSHeapSize: number
 /** The growth over `n` steps after a warm-up, or `undefined` when the heap fell during them (a collection ran). */
 function growth(n: number, step: (i: number) => void): number | undefined {
   // Garbage an earlier test or file left in this isolate, collected after the warm-up, would deoptimize the hot code
-  // its maps share (core/_test/model/heap.ts); collected first, the warm-up optimizes again.
+  // its maps share (test-harness/src/heap.ts); collected first, the warm-up optimizes again.
   gc();
   for (let i = 0; i < n; i++) step(i);
   gc();
@@ -67,7 +67,7 @@ export const isFlat = (r: { short: number; long: number; scaled: number }): bool
 const leaked: unknown[] = [null];
 
 /**
- * The positive controls' allocation, as the Node guards' (core/_test/model/heap.ts): garbage at the next call. With
+ * The positive controls' allocation, as the Node guards' (test-harness/src/heap.ts): garbage at the next call. With
  * `slots`, an array of that many slots (4 bytes each with pointer compression, Chromium's default, 8 without) instead
  * of the object of eight fields (about 44 bytes, 88 without).
  */

@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { buildCase, detectCase, SIZE } from './molecule-cases.js';
-import { quickCase } from './quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 
 /** A step of many milliseconds: few steps, in small windows. */
 const RUN = { warmSteps: 20, steps: 5, windows: 3, maxWarmSteps: 200 };

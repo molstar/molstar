@@ -4,9 +4,10 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// The heap guards' measurement (RB0), for every package. The heap config (vitest.shared.ts) runs a guard with
+// The heap guards' measurement (RB0), for every package. The heap config (`heapTests`, vitest.ts) runs a guard with
 // `--expose-gc` and a fixed 64 MB young generation, so a hot path that allocates only a little leaves its garbage in
 // the heap, where the growth shows it. A guard whose run is long enough to trigger a collection would hide that
 // allocation, so `heapGrowth` fails on any GC during the measured run.

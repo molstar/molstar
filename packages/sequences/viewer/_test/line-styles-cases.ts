@@ -13,7 +13,7 @@
 // and the highlights and boxes behind each line's letters). Each call loads the viewer afresh (`vi.resetModules`).
 
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 
 /** The quick counts: a frame redraws the section (well under a millisecond), so windows of 250 steps. */
 export const STYLED: AllocOptions = { warmSteps: 1_000, steps: 250, windows: 3 };

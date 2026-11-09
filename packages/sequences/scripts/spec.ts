@@ -20,7 +20,7 @@
 //     code, AGENTS.md, Tests), but those `guards-pending.txt` lists, not converted yet; a listed file that calls it is
 //     a miss too;
 //   - every Node heap guard file (not under `canvas/`, `dom/` or `react/`: the browser's stay deep-only) has its quick
-//     twin beside it (`x.heap.ts`, `x.quick.ts`), and every `*.quick.ts` calls `quickCase` (core/_test/model/quick.ts)
+//     twin beside it (`x.heap.ts`, `x.quick.ts`), and every `*.quick.ts` calls `quickCase` (test-harness/src/quick.ts)
 //     in its code, each `control: false` with its `why` (AGENTS.md, Tests).
 // Exit 1 on a miss, printing each with where it is.
 //
@@ -309,7 +309,7 @@ function guards(misses: string[]): number {
   for (const f of quick) {
     const code = codeOnly(readFileSync(join(SEQSTAR, f), 'utf8'));
     if (!/\bquickCase\(/.test(code))
-      misses.push(`${f}: a quick file that never calls quickCase (core/_test/model/quick.ts; AGENTS.md, Tests)`);
+      misses.push(`${f}: a quick file that never calls quickCase (test-harness/src/quick.ts; AGENTS.md, Tests)`);
     const off = code.match(/\bcontrol:\s*false\b/g)?.length ?? 0;
     const why = code.match(/\bwhy:/g)?.length ?? 0;
     if (off > why) misses.push(`${f}: a quick case without its control says why (\`control: false, why: "…"\`)`);

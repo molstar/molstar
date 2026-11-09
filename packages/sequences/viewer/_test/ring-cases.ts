@@ -12,7 +12,7 @@
 // rings (a polar hit and the hover) and a whole frame (main and overlay passes) on the recording backend.
 
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 
 /**
  * The quick twin's counts: a frame takes 1 to 3 ms (M4), so windows of 500 steps; under the quick flags 240 positions'

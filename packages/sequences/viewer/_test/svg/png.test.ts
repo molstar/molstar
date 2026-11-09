@@ -13,7 +13,7 @@
 
 import { deflateSync, crc32 as zlibCrc32 } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { itWithin } from '../../../core/_test/model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { encodePng, MAX_PNG_BYTES } from '../../src/svg/index.js';
 import { crc32 } from '../../src/svg/png.js';
 import { decodePng, pixelsOf } from './png.js';
