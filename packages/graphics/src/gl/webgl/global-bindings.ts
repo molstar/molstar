@@ -43,10 +43,19 @@ export function createGlobalBindings(
 ): WebGLGlobalBindings {
   const { state, resources } = ctx;
   const globalTextureNames = Object.keys(schema).filter((k) => schema[k].type === 'texture');
-  /** the global textures of `schema` not in `textures` (filled by passes as they run) */
+  /**
+   * the global textures of `schema` not in `textures` (filled by passes as they run), into one array: asked at every
+   * program change, a draw's when objects alternate programs
+   */
+  const missing: string[] = [];
   const getMissingTextures = () => {
-    const missing: string[] = [];
-    for (const k of globalTextureNames) if (!textures.some((t) => t[0] === k)) missing.push(k);
+    missing.length = 0;
+    for (let i = 0, il = globalTextureNames.length; i < il; ++i) {
+      const k = globalTextureNames[i];
+      let found = false;
+      for (let j = 0, jl = textures.length; j < jl && !found; ++j) found = textures[j][0] === k;
+      if (!found) missing.push(k);
+    }
     return missing;
   };
   // the projections mapped to the context's clip depth

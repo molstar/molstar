@@ -35,7 +35,6 @@ import {
   type TextureDimension,
 } from '../renderable/schema.js';
 import { isDebugMode } from '@molstar/core/util/debug';
-import { arrayEqual } from '@molstar/core/util/array';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
 import type { ShaderType, Shader } from './shader.js';
 import type { WebGLParameters } from './context.js';
@@ -316,6 +315,13 @@ function checkProgram(gl: GLRenderingContext, program: WebGLProgram) {
   }
 }
 
+/** An array uniform's value as float64s, compared with its last upload (`setUniform`); grown to the largest */
+let uniformScratch = new Float64Array(16);
+function isScratchEqual(last: Float64Array, n: number) {
+  for (let i = 0; i < n; ++i) if (last[i] !== uniformScratch[i]) return false;
+  return true;
+}
+
 /** `undefined` (unlike an inactive `null`) location: not in schema or backed by a uniform buffer */
 function throwMissingLocation(name: string): never {
   throw new Error(`uniform '${name}' has no location, it is either not in the schema or a uniform block member`);
@@ -447,8 +453,17 @@ export function createProgram(
   function setUniform(k: string, l: number, v: UniformType) {
     const prev = uploaded[k];
     if (typeof v === 'object') {
-      if (prev !== undefined && arrayEqual(prev as ArrayLike<number>, v as ArrayLike<number>)) return;
-      uploaded[k] = (v as unknown as { slice(): unknown }).slice();
+      // compared as float64s: the values come as plain and typed arrays of several kinds, and a comparison reading them
+      // all (`arrayEqual`) is megamorphic, boxing each float it reads (2,000 a frame of 8 objects on WebGL1); `set`
+      // converts natively, and the arrays compared and copied are only ever `Float64Array`s
+      const n = (v as ArrayLike<number>).length;
+      if (uniformScratch.length < n) uniformScratch = new Float64Array(n);
+      uniformScratch.set(v as ArrayLike<number>);
+      let last = prev as Float64Array | undefined;
+      if (last !== undefined && last.length === n && isScratchEqual(last, n)) return;
+      // copied into the last upload's array, not a new one per change: objects sharing a program alternate their values
+      if (last === undefined || last.length !== n) uploaded[k] = last = new Float64Array(n);
+      for (let i = 0; i < n; ++i) last[i] = uniformScratch[i];
     } else {
       if (prev === v) return;
       uploaded[k] = v;
