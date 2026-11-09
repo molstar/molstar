@@ -400,6 +400,9 @@ export const GeometryCases: VisualTestCase[] = [
     id: 'geometry/text/labels',
     tags: ['smoke'],
     description: 'Font atlas is rasterized with a 2D canvas; expect browser/OS dependent snapshots.',
+    // two software rasterizers (CI: ANGLE and Dawn on Mesa's Vulkan) round glyph and box edges apart: 141 px of the
+    // labels' anti-aliasing and a background box's edge row; a label moved or missing is far more
+    tolerance: { maxDiffRatio: 0.004 },
     scene: async () => [await shapeRepr('text', textLabels(textProps), { props: textProps })],
   },
   {
