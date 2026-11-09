@@ -14,6 +14,10 @@
   - **Found on SwiftShader WebGPU**: `geometry/texture-mesh/isosurface-gpu` draws a shredded surface (4973 px differ
     from WebGL2; the other 18 smoke cases pass): the GPU marching cubes on a CPU device, hidden on real GPUs (a missing
     barrier, uninitialized memory or a device limit, to find). The nightly run fails on it until it is fixed.
+  - **The first CI runs**: the Dawn job ran (one test past the quick lane's 30 s on the CPU: the job's timeout raised);
+    the visual run had both backends on Mesa's Vulkan, 17 of 19 WebGPU cases matching WebGL2: the isosurface above,
+    and `geometry/text/labels` (141 px of anti-aliasing and a box edge between the two software rasterizers: a
+    tolerance of its own). Its third label was mojibake since the harness began (`Ã…Ã„Ã–` for `ÅÄÖ`), fixed.
   - **Batch A done**: C1 (WebGL uploads return once destroyed, the cube's faces counted and not uploaded), C2 (a
     skybox face whose source fails reports an error, `onload` once, its object URLs revoked), C3 (a background load
     marks its own entry, also one reported before the entry exists), C4 (the buffer pages reclaimed after each
