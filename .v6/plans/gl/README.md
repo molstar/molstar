@@ -146,6 +146,10 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [vertex-inputs-and-varyings.md](vertex-inputs-and-varyings.md): done: per-instance data (the transform as 3 vec4,
   merged segment data by member), per-primitive varyings flat and packed, layer scalars packed, mesh normals
   oct-encoded.
+- [modular-passes.md](modular-passes.md): proposed: screen effects as public modules in a registry (props built from
+  it) and one chain for every output path, optional to bundle (sources per backend at build time) and created on
+  first use; shadow maps and transmission (IOR, thickness; per object and per group) as renderer passes; material
+  layers as registered kinds replacing the per-layer API.
 - [merged-segment-caps.md](merged-segment-caps.md): done: merged objects' solid-interior caps only for the segments
   the near plane or a clip object cuts (4V6X merged near cut: WebGPU 1.19 → 0.96 ms GPU, as unmerged).
 - [webgl-compile-on-link.md](webgl-compile-on-link.md): done: WebGL shaders compiled when a program links, not when a
