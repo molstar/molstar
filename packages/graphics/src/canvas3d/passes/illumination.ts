@@ -106,10 +106,8 @@ export class IlluminationPass {
   private readonly copyRenderable: CopyRenderable;
   private readonly composeRenderable: ComposeRenderable;
 
-  /** the weighted average of the samples so far, see `renderMultiSample` */
+  /** the average of the samples so far, see `renderMultiSample` */
   private multiSampleComposeTarget: RenderTarget;
-  /** the first sample */
-  private multiSampleHoldTarget: RenderTarget;
   private multiSampleCompose: MultiSampleComposeRenderable;
   private readonly renderBuilder: PassBuilder;
 
@@ -138,8 +136,7 @@ export class IlluminationPass {
       this.tracing.getByteCount() +
       this.transparentTarget.getByteCount() +
       this.outputTarget.getByteCount() +
-      this.multiSampleComposeTarget.getByteCount() +
-      this.multiSampleHoldTarget.getByteCount()
+      this.multiSampleComposeTarget.getByteCount()
     );
   }
 
@@ -193,7 +190,6 @@ export class IlluminationPass {
     );
 
     this.multiSampleComposeTarget = drawPass.targets.createRenderTarget(width, height, 'none', 'float32');
-    this.multiSampleHoldTarget = drawPass.targets.createRenderTarget(width, height, 'none');
     this.multiSampleCompose = getMultiSampleComposeRenderable(graphics, this.outputTarget.texture);
 
     this.renderBuilder = drawPass.targets.createRenderBuilder();
@@ -367,7 +363,6 @@ export class IlluminationPass {
       );
 
       this.multiSampleComposeTarget.setSize(width, height);
-      this.multiSampleHoldTarget.setSize(width, height);
       ValueCell.update(
         this.multiSampleCompose.values.uTexSize,
         Vec2.set(this.multiSampleCompose.values.uTexSize.ref.value, width, height),
@@ -724,7 +719,7 @@ export class IlluminationPass {
     currentIteration: number,
   ) {
     const { camera } = ctx;
-    const { multiSampleCompose, multiSampleComposeTarget, multiSampleHoldTarget, graphics } = this;
+    const { multiSampleCompose, multiSampleComposeTarget, graphics } = this;
 
     // based on the Multisample Anti-Aliasing Render Pass
     // contributed to three.js by bhouston / http://clara.io/
@@ -746,27 +741,18 @@ export class IlluminationPass {
     }
 
     const { x, y, width, height } = camera.viewport;
-    const sampleWeight = 1.0 / maxIterations;
 
-    // the compose target holds `w * (s_1 + ... + s_k) + (1 - k * w) * s_0` after iteration `k` (samples `s`, weight
-    // `w`): the first sample, the hold, until every following one has its weight; kept by adding `w * (s_k - s_0)`
-    // per iteration (the first sample has its weight in the sum of the last iteration, `k * w = 1`)
+    // the compose target holds the average of the samples so far, `(s_0 + ... + s_k) / (k + 1)` after iteration `k`:
+    // the first sample written, each following one blended in with `1 / (k + 1)` (as tracing's own average)
     if (iteration === 0) {
       this.renderInternal(b, ctx, props, false, true, iteration);
       ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
       ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
       multiSampleCompose.update();
 
-      b.begin(multiSampleHoldTarget, { label: 'multi-sample hold' });
-      if (b.drawing) {
-        graphics.setRenderState(RenderState.Default);
-        graphics.setViewport(x, y, width, height);
-        graphics.setScissor(x, y, width, height);
-      }
-      b.quad(multiSampleCompose, RenderState.Default);
-
       b.begin(multiSampleComposeTarget, { label: 'multi-sample compose' });
       if (b.drawing) {
+        graphics.setRenderState(RenderState.Default);
         graphics.setViewport(x, y, width, height);
         graphics.setScissor(x, y, width, height);
       }
@@ -779,20 +765,17 @@ export class IlluminationPass {
       // render scene
       this.renderInternal(b, ctx, props, false, !b.drawing || this.prevSampleIndex !== sampleIndex, iteration);
 
-      // add the sample's weight and take it from the first sample (a float target, not clamped)
+      const weight = 1 / (iteration + 1);
       b.begin(multiSampleComposeTarget, { label: 'multi-sample compose' });
       if (b.drawing) {
         graphics.setViewport(x, y, width, height);
         graphics.setScissor(x, y, width, height);
+        graphics.setBlendConstant(weight, weight, weight, weight);
       }
       ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
-      ValueCell.update(multiSampleCompose.values.uWeight, sampleWeight);
+      ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
       multiSampleCompose.update();
-      b.quad(multiSampleCompose, RenderState.Additive);
-      ValueCell.update(multiSampleCompose.values.tColor, multiSampleHoldTarget.texture);
-      ValueCell.update(multiSampleCompose.values.uWeight, -sampleWeight);
-      multiSampleCompose.update();
-      b.quad(multiSampleCompose, RenderState.Additive);
+      b.quad(multiSampleCompose, RenderState.Constant);
     }
 
     if (b.drawing) this.prevSampleIndex = sampleIndex;

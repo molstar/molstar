@@ -20,7 +20,7 @@
     0.72 after the first frame), farther at level 2 (0.56 against 0.42: hold weighted the unjittered frame more).
     Speed: 0.03 to 0.04 ms GPU a frame at 2560×1440. Memory: the hold target, 4 B/px (14.7 MB at 2560×1440, 33 MB at
     3840×2160), in the canvas's pass and the image pass's each. Its pipeline planned by `prepare` (a test: no draw
-    skipped settling). Illumination's multi-sample compose keeps its hold (the same change possible there).
+    skipped settling). Illumination's multi-sample compose the same (its iterations the samples; settled images unchanged on WebGL2, WebGL1 and WebGPU; 4 B/px less with multi-sampling on).
   - **P1 done**: the first frame after a change (unjittered) is sample 0, every level's first offset being none: its
     scene not drawn again (it added nothing to the float compose, the hold's own share to the 8 bit one, seeded with
     it now). A settle draws the scene `n` times, not `n + 1`: at the default level 4, not 5, a frame sooner. The

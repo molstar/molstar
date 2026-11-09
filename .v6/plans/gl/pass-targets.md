@@ -7,12 +7,12 @@ the props and scene don't draw into are released (headless WebGPU; `webgpu-pass-
 
 | Props, scene (defaults: WBOIT, FXAA, bloom emissive, temporal multi-sampling) | B/px | at 1872×1536 |
 | ----------------------------------------------------------------------------- | ---- | ------------ |
-| opaque                                                                        | 28   | 77 MiB       |
-| transparent                                                                   | 48   | 132 MiB      |
-| transparent, DPOIT                                                            | 76   | 208 MiB      |
-| transparent, highlighted (marking stays once used)                            | 68   | 186 MiB      |
+| opaque                                                                        | 24   | 66 MiB       |
+| transparent                                                                   | 44   | 121 MiB      |
+| transparent, DPOIT                                                            | 72   | 197 MiB      |
+| transparent, highlighted (marking stays once used)                            | 64   | 176 MiB      |
 | illumination (marking kept)                                                   | 100  | 274 MiB      |
-| illumination, multi-sample on                                                 | 120  | 329 MiB      |
+| illumination, multi-sample on                                                 | 116  | 318 MiB      |
 
 Before: 932 MiB allocated up front by `Passes` at this size in every case; after steps 1–2, 110 MiB opaque, 208 MiB
 transparent, 428 MiB with illumination. A screenshot's `ImagePass` holds its own set while rendering and a second
@@ -106,13 +106,11 @@ render pass attachment, a bind group entry or a copy in three frames):
   Each clears depth when it begins and the caps clear stencil per cap; none is read after its pass, and the
   transparent depth pass that reads it within a frame clears it first.
 - Accumulation in place: tracing blends each frame into its running average (color by the blend constant
-  `1 / (iteration + 1)`, alpha replaced with that weight for the denoiser); temporal multi-sampling's compose target
-  is the running average of its samples the same way (`1 / (k + 1)`, no hold target: settled as the hold's sum, at
-  most 1 level apart, an 8 bit compose without its banding; intermediate images the average so far). Illumination's
-  multi-sample compose holds the output, `w * (s_1 + ... + s_k) + (1 - k * w) * s_0`, by adding `w * (s_k - s_0)` per
-  sample: float targets, negative terms unclamped (an 8 bit compose target keeps the output target). On screen, the
-  drawing buffer gets a copy of the compose target; an image pass blends marking in place, so it gets a copy of its
-  own. No output targets to recombine every frame.
+  `1 / (iteration + 1)`, alpha replaced with that weight for the denoiser); the multi-sample compose targets
+  (temporal multi-sampling's, illumination's) are the running average of their samples the same way (`1 / (k + 1)`,
+  no hold target: settled as the hold's sum, at most 1 level apart, an 8 bit compose without its banding; intermediate
+  images the average so far). On screen, the drawing buffer gets a copy of the compose target; an image pass blends
+  marking in place, so it gets a copy of its own. No output targets to recombine every frame.
 - Passes only when they draw: bloom counts when something is emissive or in luminosity mode (`BloomPass.isActive`),
   the postprocessing pass when one of its effects draws (`PostprocessingPass.isEnabled(scene, props)`); bloom reads
   the transparent targets with blended transparency only (`dBlendTransparency`, as the compose).
@@ -122,8 +120,7 @@ render pass attachment, a bind group entry or a copy in three frames):
   color target for both ping-pong sides (the peel reads the previous depth and front color only, each back layer is
   blended back before the next peel), and geometry programs don't bind it. Marking's edges are computed in the overlay
   from the antialiased mask (the edge program read them at the same pixel) and its edges target is gone.
-- Kept: tracing's average in rgba32f (fp16 loses precision over up to 2^16 iterations); illumination's multi-sample
-  hold target (the first sample, weighted until all are in); marking's layer in rgba16f.
+- Kept: tracing's average in rgba32f (fp16 loses precision over up to 2^16 iterations); marking's layer in rgba16f.
 - Dropped: depth without stencil where caps are absent (solid interiors are on by default for surfaces and impostors,
   caps also cover the near plane, impostors write depth, and switching formats by scene switches pipelines);
   `depth24plus-stencil8` (loses reversed-Z precision, Metal has no 24-bit depth).

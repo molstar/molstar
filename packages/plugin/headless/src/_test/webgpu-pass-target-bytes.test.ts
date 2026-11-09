@@ -87,18 +87,18 @@ describe.skipIf(!WebGPU.module)('pass target bytes on WebGPU', () => {
       bytes.illuminationMultiSample = await measure();
 
       expect(bytes).toEqual({
-        // opaque depth-stencil 8, draw color 4, FXAA 4, multi-sample compose (fp16) 8 and first sample 4
-        opaque: 28,
+        // opaque depth-stencil 8, draw color 4, FXAA 4, multi-sample compose (fp16, the running average) 8
+        opaque: 24,
         // + WBOIT accumulation (fp16) 8 and weights (r32f) 4, transparency depth-stencil 8
-        transparent: 48,
+        transparent: 44,
         // WBOIT's in place of: depth peeling's min/max depth (rg32f) 2 × 8, front colors (fp16) 2 × 8, back color 8
-        dpoit: 76,
+        dpoit: 72,
         // + marking layer (fp16) 8, depth, mask and antialiased mask 4 each
-        highlighted: 68,
+        highlighted: 64,
         // the tracing and illumination targets in place of the multi-sampled draw (marking kept)
         illumination: 100,
-        // + illumination's multi-sample compose (fp32) 16 and first sample 4
-        illuminationMultiSample: 120,
+        // + illumination's multi-sample compose (fp32, the running average) 16
+        illuminationMultiSample: 116,
       });
     } finally {
       plugin.dispose();
