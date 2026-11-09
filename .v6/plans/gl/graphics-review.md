@@ -2,8 +2,12 @@
 
 ## Status
 
-- **Current**: batch A done; batch B in progress: the CI jobs written, not yet run on the runners; next: the
-  GLSL/WGSL cross-check (S4).
+- **Current**: batches A and B done; next: batch C (the multi-sample savings, measured first).
+  - **S4 done**: `gl/_test/shader-parity.test.ts`, per graphics program the schema names its GLSL and its WGSL read
+    (comments not; the WGSL with every feature of its variants on), the differences listed and why (WebGL mechanics,
+    grids only on meshes, the sphere raster's uniforms); a new one-sided name fails, and so does a listed one gone. A
+    name check, not a translator: a feature on one backend only shows, a use dropped from one file of a program does
+    not.
   - **Batch B, CI** (S1): a `WebGPU tests (Dawn)` job in `node.yml` (Mesa's lavapipe Vulkan, the headless WebGPU
     files, `MOLSTAR_REQUIRE_WEBGPU`: no Dawn or no adapter fails instead of skipping) and `visual-tests.yml` (the
     smoke set nightly, by hand and on a PR labelled `visual tests`, `--require-backends`: a profile without its backend
@@ -51,7 +55,7 @@ the sphere raster or `scene.ts`.
 | C8 | Confirmed: `QuadIndices.get` releases the old buffer before the new one is made | A |
 | C9 | Confirmed, fixed: `BackgroundPass.dispose` without callers, `Passes` without `dispose` | A |
 | S1 | Confirmed: CI installs the native backend without `--webgpu`, so the Dawn suite skips; visual tests by hand only | B |
-| S4 | Agreed: no check that a program's GLSL and WGSL read the same schema names | B |
+| S4 | Done: `gl/_test/shader-parity.test.ts` | B |
 | P1 | Confirmed that every jitter level starts at `[0, 0]`; whether the first sample after a stop is wasted to be measured | C |
 | P3 | To measure: WebGPU quad renderables invalidating programs and bind groups on texture swaps (Hi-Z, bloom) | C |
 | P2 | To measure: hold and compose written on every moving frame; its larger variant for quality, speed and memory | C |
