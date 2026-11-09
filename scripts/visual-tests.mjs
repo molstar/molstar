@@ -32,6 +32,9 @@
 //                  it ends: which group is slow or failing shows early; a little slower in all (pages load per group)
 //   --stall <s>    a case without a result for this long has stalled (default 60): reported, and its shard goes on in
 //                  a new page from the next case
+//   --budget <s>   the run is aborted (exit 2) once it is projected to take longer: three times what the last finished
+//                  run with the same profiles, shards, filter, tags and browser took (`tests/build/visual-timing.json`),
+//                  at least 120 s; this many seconds where there is none yet (default 600)
 //
 // The progress is printed every 10 s (cases done, failed, the case running longest), failures as they come.
 //   --save <dir>   stores the images of the WebGL profiles; --compare <dir> reports images that differ from them
@@ -42,6 +45,9 @@
 //   --skipped      lists the skipped cases with the reason
 //   --require-backends  fails where a profile's backend is not available (by default its cases are skipped): CI, so
 //                  that a browser without WebGPU does not pass by skipping it
+//   --allow-software  runs on a software renderer (SwiftShader, WARP, Microsoft Basic Render Driver, llvmpipe,
+//                  lavapipe, a WebGPU fallback adapter): by default the run fails before its cases, as a browser without
+//                  the GPU (e.g. over Remote Desktop) is many times slower; CI's software Vulkan passes it
 //   --draw-lists   the target profiles render with the renderer's draw lists (WebGPU render bundles), each case three
 //                  times and the replayed frame compared
 //   --dry-run      prints the profiles and the case filter of the run (e.g. what --changed selects) and exits
@@ -218,6 +224,9 @@ const imagesDir = value('--images');
 const allImages = args.includes('--all-images');
 const listSkipped = args.includes('--skipped');
 const requireBackends = args.includes('--require-backends');
+const allowSoftware = args.includes('--allow-software');
+/** Renderer and adapter names of software rendering */
+const SoftwareRenderer = /swiftshader|llvmpipe|lavapipe|softpipe|basic render|\bwarp\b/i;
 const timing = args.includes('--timing');
 const channel = value('--channel', 'chrome');
 const browserName = value('--browser', 'chromium');
@@ -280,6 +289,15 @@ function differs(a, b) {
  * so a minute reports a hang early, and the shard goes on past it (`runShard`)
  */
 const StallMs = Number(value('--stall', '60')) * 1000;
+/** The run's own times, by its key (`runKey`): what `--budget` compares a run with */
+const TimingFile = path.join(root, 'tests', 'build', 'visual-timing.json');
+/** A run slower than this many times the last one's is aborted; never before `MinBudgetMs` */
+const BudgetFactor = 3;
+const MinBudgetMs = 120 * 1000;
+/** The projection waits this long: the first pages load and compile */
+const ProjectAfterMs = 20 * 1000;
+/** Set while an over-budget run closes its browser: the pages' calls it cuts off are not the run's errors */
+let aborting = false;
 /**
  * A page not answering for this long is hung (a loop in the page): its results so far are those it reported. Not
  * shorter: a page in a GPU surface case's synchronous readbacks waits for the other pages' GPU work, measured up to
@@ -772,6 +790,12 @@ async function main() {
   if (browserName !== 'chromium' && browserName !== 'firefox') throw new Error(`unknown browser '${browserName}'`);
   const browser = browserName === 'firefox' ? await launchFirefox() : await launchChromium();
 
+  if (!(await checkRenderers(browser, origin, profiles))) {
+    await browser.close();
+    server.close();
+    process.exit(3);
+  }
+
   const start = Date.now();
   progress.start = start;
   // the shared reference first, then the other WebGL profiles: the WebGPU shards wait for its images
@@ -780,7 +804,34 @@ async function main() {
   const groups = args.includes('--groups') ? getGroups(filter) : [filter];
   const jobs = [];
   const shardResults = [];
-  const timer = setInterval(printProgress, ProgressMs);
+  // a run far slower than its last (a busy or hung GPU process) is aborted early with what it saw, not after minutes
+  const key = runKey(ordered, groups);
+  const timings = readTimings();
+  const last = timings[key];
+  const budgetMs = last ? Math.max(MinBudgetMs, BudgetFactor * last.ms) : Number(value('--budget', '600')) * 1000;
+  const checkBudget = async () => {
+    const elapsed = Date.now() - start;
+    if (elapsed < ProjectAfterMs || progress.done === 0) return;
+    const total = progress.pagesLeft > 0 && last ? Math.max(progress.total, last.cases) : progress.total;
+    const projected = (elapsed * total) / progress.done;
+    if (Math.max(projected, elapsed) <= budgetMs) return;
+    clearInterval(timer);
+    aborting = true;
+    const expected = last ? `, the last such run ${seconds(last.ms)}` : '';
+    console.log(
+      `aborted: ${progress.done}/${total} cases in ${seconds(elapsed)}, projected ${seconds(projected)}, over the budget of ` +
+        `${seconds(budgetMs)}${expected} (${progress.failed} failed so far; --budget <s> where there is no last run)`,
+    );
+    printProgress();
+    await within(browser.close(), UnresponsiveMs);
+    server.close();
+    fs.rmSync(sharedDir, { recursive: true, force: true });
+    process.exit(2);
+  };
+  const timer = setInterval(() => {
+    printProgress();
+    void checkBudget();
+  }, ProgressMs);
   try {
     for (const group of groups) {
       const groupStart = Date.now();
@@ -868,13 +919,92 @@ async function main() {
   }
   console.log('timing:');
   printTiming(jobs, shardResults);
+  writeTiming(key, Date.now() - start, progress.total);
   console.log(
     `${jobs.length} pages (${profiles.length} profiles x ${shards} shards${groups.length > 1 ? ` x ${groups.length} groups` : ''}) in ${((Date.now() - start) / 1000).toFixed(0)} s`,
   );
   process.exit(failed ? 1 : 0);
 }
 
+/**
+ * The renderers the run's backends get, printed; false where one is a software renderer and `--allow-software` is not
+ * given (the run would be many times slower than on the GPU, e.g. a browser over Remote Desktop)
+ */
+async function checkRenderers(browser, origin, profiles) {
+  const page = await browser.newPage();
+  let r;
+  try {
+    // a document of the run's origin (WebGPU needs a secure context: localhost is one)
+    await page.goto(`${origin}/package.json`);
+    r = await page.evaluate(async () => {
+      const out = { webgl: 'none', webgpu: 'none', fallback: false };
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+        const ext = gl?.getExtension('WEBGL_debug_renderer_info');
+        if (gl) out.webgl = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+      } catch (e) {
+        out.webgl = `error: ${e}`;
+      }
+      try {
+        const adapter = await navigator.gpu?.requestAdapter();
+        if (adapter) {
+          const info = adapter.info ?? {};
+          out.webgpu = [info.vendor, info.architecture, info.description].filter(Boolean).join(' ') || 'unknown';
+          out.fallback = !!(info.isFallbackAdapter ?? adapter.isFallbackAdapter);
+        }
+      } catch (e) {
+        out.webgpu = `error: ${e}`;
+      }
+      return out;
+    });
+  } finally {
+    await within(page.close(), UnresponsiveMs);
+  }
+  const usesWebGL = profiles.some((p) => !WebGPUProfiles.includes(p));
+  const usesWebGPU = profiles.some((p) => WebGPUProfiles.includes(p));
+  const software = [];
+  if (usesWebGL && SoftwareRenderer.test(r.webgl)) software.push(`WebGL on ${r.webgl}`);
+  if (usesWebGPU && (r.fallback || SoftwareRenderer.test(r.webgpu))) {
+    software.push(`WebGPU on ${r.webgpu}${r.fallback ? ' (a fallback adapter)' : ''}`);
+  }
+  console.log(`renderers: WebGL ${r.webgl}; WebGPU ${r.webgpu}${r.fallback ? ' (fallback adapter)' : ''}`);
+  if (software.length === 0) return true;
+  const what = `software rendering: ${software.join('; ')}`;
+  if (allowSoftware) {
+    console.log(`  ${what} (--allow-software)`);
+    return true;
+  }
+  console.log(
+    `  ${what}: not the GPU (a browser over Remote Desktop gets none), runs many times slower; ` +
+      'run where the GPU is available, or pass --allow-software',
+  );
+  return false;
+}
+
+/** The key of a run's timing: what decides how long it takes */
+function runKey(ordered, groups) {
+  return JSON.stringify({ profiles: ordered, shards, groups, tags: tags ?? null, browser: browserName });
+}
+
+function readTimings() {
+  try {
+    return JSON.parse(fs.readFileSync(TimingFile, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+/** Records a finished run's time and case count for `--budget` (a run aborted records nothing) */
+function writeTiming(key, ms, cases) {
+  const timings = readTimings();
+  timings[key] = { ms, cases };
+  fs.mkdirSync(path.dirname(TimingFile), { recursive: true });
+  fs.writeFileSync(TimingFile, `${JSON.stringify(timings, null, 2)}\n`);
+}
+
 main().catch((e) => {
+  if (aborting) return;
   console.error(e);
   process.exit(1);
 });

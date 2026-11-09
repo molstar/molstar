@@ -58,7 +58,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers libgl1-mesa-dri
       - name: Test
         run: >-
-          pnpm test:visual --tags smoke --require-backends --angle vulkan --browser-arg=--enable-features=Vulkan
+          pnpm test:visual --tags smoke --require-backends --allow-software --angle vulkan --browser-arg=--enable-features=Vulkan
           --browser-arg=--use-vulkan=native --images visual-failures
       - name: Upload the images of failed cases
         if: failure()
