@@ -396,8 +396,14 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     contextLost.next(now());
   };
 
+  /**
+   * Removes the context's error listener from its device: the device can outlive the context (Dawn's Node.js bindings
+   * keep it by a handle of their own, also destroyed), and the listener's scope is the whole context, its resources
+   * and their memory (in RAM on a software adapter: a test run's contexts held to the end)
+   */
+  let detachDevice: (() => void) | undefined;
   function attachDevice(d: GPUDevice) {
-    d.addEventListener('uncapturederror', (e) => {
+    const onUncapturedError = (e: Event) => {
       const { error } = e as GPUUncapturedErrorEvent;
       onError(`WebGPU error: ${error.message}`);
       // one allocation failing is usually followed by many: reported once in a while
@@ -407,7 +413,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
         outOfMemoryReported = time;
         outOfMemory.next(`Not enough GPU memory: ${error.message}`);
       }
-    });
+    };
+    d.addEventListener('uncapturederror', onUncapturedError);
+    detachDevice = () => d.removeEventListener('uncapturederror', onUncapturedError);
     d.lost.then((info) => {
       // losses of replaced devices and of destroyed contexts are expected
       if (d !== device || destroyed) return;
@@ -1908,6 +1916,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       pending.clear();
       contextLost.complete();
       // the resources of a lost device are gone with it; its canvas is the one a restored context configures
+      detachDevice?.();
+      detachDevice = undefined;
       if (options?.lost) {
         if (contextOptions.ownsDevice) device.destroy();
         return;
