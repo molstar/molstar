@@ -131,13 +131,13 @@ jobs:
         env:
           MOLSTAR_REQUIRE_WEBGPU: '1'
         # rendered on the CPU, many times slower than a GPU: a longer timeout than the quick lane's 30 s (a test of tens of
-        # frames of millions of spheres takes over 30 s there). Diagnosing a cancel at about 2 min (four workers and two
-        # alike): one worker, so the test after the last one printed is the one running, and the memory every 5 s (the
-        # devices' memory is in RAM on lavapipe)
+        # frames of millions of spheres takes over 30 s there). The memory logged every 5 s: the devices' memory is in RAM
+        # on lavapipe, and contexts once held to the end of the run (their device's error listener) filled the runner's
+        # 16 GB at about 2 min; two workers
         run: |
           (while sleep 5; do echo "memory: $(free -m | awk 'NR==2 {print $3 " of " $2 " MB used"}')"; done) &
           xvfb-run --auto-servernum pnpm native:run -- pnpm test:unit packages/plugin/headless packages/graphics \
-            --testTimeout=180000 --hookTimeout=180000 --maxWorkers=1 --reporter=verbose
+            --testTimeout=180000 --hookTimeout=180000 --maxWorkers=2 --reporter=verbose
 
   types:
     name: Full declaration check
