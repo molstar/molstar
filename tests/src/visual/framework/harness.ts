@@ -284,7 +284,9 @@ export async function renderTest(
         canvas3d.tick(now(), { isSynchronous: true });
         if (i < repeats) await context.graphics.waitForGpuCommandsComplete();
       }
-      // in the task of the frame: a WebGPU canvas keeps its image only until it is presented
+      // in the task of the frame: a WebGPU canvas keeps its image only until it is presented; what the task recorded
+      // submitted first (WebGPU submits it in a microtask, after this read: a multi-sampled frame read blank)
+      context.graphics.flush();
       const image = readCanvas(canvas);
       await context.graphics.waitForGpuCommandsComplete();
       return {

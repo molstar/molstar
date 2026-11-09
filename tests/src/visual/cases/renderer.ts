@@ -321,6 +321,21 @@ export const RendererCases: VisualTestCase[] = [
       scene: async () => [await shapeRepr('spheres', sphereGrid(6, 1.8))],
     }),
   ),
+  ...(['on', 'temporal'] as const).map(
+    (mode): VisualTestCase => ({
+      id: `renderer/multisample/canvas-${mode}`,
+      description:
+        mode === 'on'
+          ? 'Mesh primitives and spheres multi-sampled (4 samples), the canvas captured: the samples composed into the drawing buffer.'
+          : 'Mesh primitives and spheres with temporal multi-sampling, the canvas captured after a forced frame (as while ' +
+            "the camera moves): the unjittered first sample presented from the draw pass's color target.",
+      requires: Impostor,
+      capture: 'canvas',
+      view: ObliqueView,
+      canvasProps: { multiSample: { mode, sampleLevel: 2 } },
+      scene: primitivesScene,
+    }),
+  ),
   {
     id: 'renderer/marking/multi-sample',
     description:

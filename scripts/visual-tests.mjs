@@ -280,8 +280,12 @@ function differs(a, b) {
  * so a minute reports a hang early, and the shard goes on past it (`runShard`)
  */
 const StallMs = Number(value('--stall', '60')) * 1000;
-/** A page not answering for this long is hung (a loop in the page): its results so far are those it reported */
-const UnresponsiveMs = 30 * 1000;
+/**
+ * A page not answering for this long is hung (a loop in the page): its results so far are those it reported. Not
+ * shorter: a page in a GPU surface case's synchronous readbacks waits for the other pages' GPU work, measured up to
+ * 29 s with the default profiles in 8 shards, and is not hung
+ */
+const UnresponsiveMs = 90 * 1000;
 /** How often the progress is printed */
 const ProgressMs = 10 * 1000;
 
