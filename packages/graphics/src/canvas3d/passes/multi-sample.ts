@@ -275,15 +275,27 @@ export class MultiSamplePass {
         graphics.setScissor(x, y, width, height);
       }
       b.quad(compose, RenderState.Default);
-      if (floatCompose) {
-        b.begin(composeTarget, { label: 'multi-sample compose' });
-        if (b.drawing) {
-          graphics.setViewport(x, y, width, height);
-          graphics.setScissor(x, y, width, height);
-        }
-        b.quad(compose, RenderState.Default);
+      b.begin(composeTarget, { label: 'multi-sample compose' });
+      if (b.drawing) {
+        graphics.setViewport(x, y, width, height);
+        graphics.setScissor(x, y, width, height);
       }
-      sampleIndex += 1;
+      if (floatCompose) {
+        b.quad(compose, RenderState.Default);
+      } else {
+        // an 8 bit compose holds the sum only: this first sample's share
+        if (b.drawing) {
+          graphics.setRenderState(RenderState.Additive);
+          graphics.clear({ color: [0, 0, 0, 0] });
+        }
+        ValueCell.update(compose.values.uWeight, sampleWeight);
+        compose.update();
+        b.quad(compose, RenderState.Additive);
+      }
+      // this frame is sample 0: its offset is none (every level's first), drawing it again would add nothing (the
+      // float compose: its weight less the hold's), so the jittered samples go on from 1; the occlusion reused by them
+      // (`reuseOcclusion`) is this frame's, the offset none
+      sampleIndex = 1;
     } else {
       // render the scene multiple times, each slightly jitter offset
       // from the last and accumulate the results.
@@ -292,7 +304,8 @@ export class MultiSamplePass {
         if (b.drawing) setJitter(camera, offset);
 
         // render scene
-        if (sampleIndex === 0 || !props.multiSample.reuseOcclusion) {
+        // the first, unjittered sample is the hold's frame: these reuse its occlusion where asked to
+        if (!props.multiSample.reuseOcclusion) {
           drawPass.postprocessing.setOcclusionOffset(0, 0);
         } else {
           drawPass.postprocessing.setOcclusionOffset(offset[0] / width, offset[1] / height);
@@ -305,7 +318,6 @@ export class MultiSamplePass {
           graphics.setRenderState(RenderState.Additive);
           graphics.setViewport(x, y, width, height);
           graphics.setScissor(x, y, width, height);
-          if (sampleIndex === 0 && !floatCompose) graphics.clear({ color: [0, 0, 0, 0] });
         }
         ValueCell.update(compose.values.tColor, drawPass.getColorTarget(ctx.scene, props.postprocessing).texture);
         ValueCell.update(compose.values.uWeight, sampleWeight);
