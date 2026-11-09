@@ -29,6 +29,9 @@ describe.skipIf(!WebGPU.module)('a destroyed WebGPU context', () => {
       const ctx = createWebGPUContext(device, { width: 16, height: 16, ownsDevice: true });
       const listeners = added.mock.calls.filter(([type]) => type === 'uncapturederror').map(([, l]) => l);
       expect(listeners).toHaveLength(1);
+      // the device probes (render bundles, viewports) read back first: a device destroyed under their pending maps
+      // aborted the worker on CI's Linux runner (SIGABRT, Dawn)
+      await ctx.resources.pending.whenReady();
       ctx.destroy();
       expect(removed.mock.calls.filter(([type]) => type === 'uncapturederror').map(([, l]) => l)).toEqual(listeners);
     } finally {
