@@ -12,6 +12,7 @@ import { createClipping } from '@molstar/graphics/geo/geometry/clipping-data';
 import type { Representation } from '@molstar/graphics/repr/representation';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { ValueCell } from '@molstar/core/util';
+import { SmaaParams } from '@molstar/graphics/canvas3d/passes/smaa';
 import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
 import { MarkingParams } from '@molstar/graphics/canvas3d/passes/marking';
 import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
@@ -337,21 +338,40 @@ export const RendererCases: VisualTestCase[] = [
     }),
   ),
   {
-    id: 'renderer/marking/multi-sample',
+    id: 'renderer/multisample/smaa',
     description:
-      'Highlighted mesh primitives and selected spheres, multi-sampled: the marking of each jittered sample tested ' +
-      "against the scene's depth drawn with another jitter, no ghost slices on the marked surfaces.",
+      'Mesh primitives and spheres multi-sampled (4 samples) with SMAA on every sample: at this level the edges ' +
+      'of the average alone look feathery, the slight blur of antialiasing each is preferred.',
     requires: Impostor,
     view: ObliqueView,
-    canvasProps: { multiSample: { mode: 'on', sampleLevel: 2 } },
-    scene: async () => {
-      const highlighted = await shapeRepr('mesh', meshPrimitives());
-      highlighted.mark(EveryLoci, MarkerAction.Highlight);
-      const selected = await shapeRepr('spheres', sphereGrid(2, 2), { props: { alpha: 1 } });
-      selected.mark(EveryLoci, MarkerAction.Select);
-      return [highlighted, selected];
+    canvasProps: {
+      multiSample: { mode: 'on', sampleLevel: 2 },
+      postprocessing: { antialiasing: { name: 'smaa', params: PD.getDefaultValues(SmaaParams) } },
     },
+    scene: primitivesScene,
   },
+  ...[false, true].map(
+    (smaa): VisualTestCase => ({
+      id: `renderer/marking/multi-sample${smaa ? '-smaa' : ''}`,
+      description:
+        'Highlighted mesh primitives and selected spheres, multi-sampled: the marking of each jittered sample tested ' +
+        "against the scene's depth drawn with another jitter, no ghost slices on the marked surfaces" +
+        (smaa ? '; with SMAA (on every sample, the marking mask too).' : '.'),
+      requires: Impostor,
+      view: ObliqueView,
+      canvasProps: {
+        multiSample: { mode: 'on', sampleLevel: 2 },
+        ...(smaa && { postprocessing: { antialiasing: { name: 'smaa', params: PD.getDefaultValues(SmaaParams) } } }),
+      },
+      scene: async () => {
+        const highlighted = await shapeRepr('mesh', meshPrimitives());
+        highlighted.mark(EveryLoci, MarkerAction.Highlight);
+        const selected = await shapeRepr('spheres', sphereGrid(2, 2), { props: { alpha: 1 } });
+        selected.mark(EveryLoci, MarkerAction.Select);
+        return [highlighted, selected];
+      },
+    }),
+  ),
   ...[1, 0.5].map(
     (resolutionScale): VisualTestCase => ({
       id: `renderer/marking/dim-occlusion${resolutionScale === 1 ? '' : '-half-resolution'}`,

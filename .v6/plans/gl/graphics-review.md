@@ -3,7 +3,15 @@
 ## Status
 
 - **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
-  next: batch C (the multi-sample savings, measured first): P1, P2 and P3 done, next P5.
+  batch C (the multi-sample savings, measured first) done: P1, P2 and P3, P5 kept as is; next: batch D.
+  - **P5 decided, kept**: antialiasing stays on every multi-sample (SMAA, FXAA). Measured against 32 samples without
+    antialiasing (a temporal level 5 reference, mean absolute difference): SMAA on every sample at level 2 0.77, on the
+    unjittered one only 0.46 (WebGL2, WebGL1); FXAA (Dawn) 2.17 against 1.25. But at the default level 2 the edges of
+    the four samples' average alone look feathery: the slight blur of antialiasing each sample is preferred, which the
+    mean difference to a 32 sample average does not capture. Its cost: SMAA 0.10 ms GPU a sample on WebGPU, 0.18 on
+    WebGL2 at 2560×1440 (FXAA 0.06–0.08). `renderer/multisample/smaa` and `renderer/marking/multi-sample-smaa` added
+    (the harness runs without antialiasing). SMAA's image in headless Dawn is wrong (mean difference 230, with or
+    without multi-sampling; a guess: its lookup textures not loaded there): not looked into.
   - **P2, lazy part done**: a moving frame of temporal multi-sampling to the drawing buffer presents the draw pass's
     color target; the compose target is written from it when sample 1 follows (nothing else draws into it between).
     Measured (`passes/temporal-moving`, 2560×1440, spacefill, RTX 4070 Ti): 0.55 → 0.49 ms GPU a moving frame on
@@ -108,7 +116,7 @@ the sphere raster or `scene.ts`.
 | V1 | Found here, older: two visual cases failing only after others in a page (`merged-clip-pixel` on WebGPU, `isosurface-gpu-negative` hanging on WebGL2) | done |
 | P2 | Done: moving frames compose nothing, hold replaced by a running average (see Status) | C |
 | P4 | Done on this branch: marking reads the scene's depth, per jittered sample too (marking-performance.md step 3) | - |
-| P5 | To decide by images: SMAA per jittered sample | C |
+| P5 | Decided: kept on every sample (feathery edges at level 2 without; see Status) | C |
 | P6-P9 | Small; with nearby work, P9 behind allocation guards | - |
 | S2, S3 | Agreed, long-term: `Renderer.create` and `Canvas3D.create` split along their seams | D |
 | S5 | Agreed: allocation guards on render items, the pass walk, draw-list replay | D |
