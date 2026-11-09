@@ -7,6 +7,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { render } from '@molstar/prism-ui/dom/render';
@@ -99,6 +100,22 @@ describe('the transfer function view', () => {
     expect(t.points.value[1].x).toBeCloseTo(0.305, 6);
     const c = t.colors.value;
     expect(c.kind === 'value' && c.stops.map((s) => s.x)).toEqual([0.305, 0.4]);
+  });
+
+  it("recolors only the picked stop, so a peak's two ends can differ (a gradient along it)", async () => {
+    const t = mount();
+    const tick = () => new Promise((r) => setTimeout(r, 0));
+    t.key(t.container.querySelector<HTMLElement>('[data-stop="0"]')!, 'Enter');
+    await tick();
+    [...t.container.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')]
+      .find((b) => b.textContent?.includes('Color at'))!
+      .click();
+    await tick();
+    const input = t.container.querySelector<HTMLInputElement>('input[aria-label="Color"]')!;
+    input.value = '#0000ff';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const last = t.changes[t.changes.length - 1];
+    expect(last.stops?.map((s) => s.color)).toEqual([0x0000ff, 0xff0000]);
   });
 
   it('keeps a point between its neighbours, and removes one with Delete (two stay)', () => {
