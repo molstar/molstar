@@ -323,6 +323,9 @@ function getSharedGroup(
   return (node.group ??= device.createBindGroup({ layout, entries }));
 }
 
+/** groups kept per layout for other textures bound in turn, see `alternateGroups` */
+const MaxAlternateGroups = 8;
+
 type CachedGroup = {
   group: GPUBindGroup;
   buffer: GPUBuffer | undefined;
@@ -862,11 +865,19 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   function invalidatePrograms(clearAll: boolean) {
     variantPrograms.clear();
     if (clearAll) programs.clear();
+    boundLinearTextures = getLinearTextures();
     textureBindingsVersion += 1;
     ctx.linkables.add(linkable);
   }
   /** incremented when the bound textures or the programs change, bind groups resolve their textures again */
   let textureBindingsVersion = 0;
+  /** the linear-filtered textures the programs were selected for (`getLinearTextures`), see `update` */
+  let boundLinearTextures = getLinearTextures();
+  /**
+   * per layout the groups made for other textures (at most `MaxAlternateGroups`, the oldest dropped): a pass binding
+   * the same few textures in turn every frame finds its group again instead of making one per swap
+   */
+  const alternateGroups = new Map<GPUBindGroupLayout, CachedGroup[]>();
 
   // bind groups 1 (material) and 2 (object, with the draw uniforms) per bind group layout: the bound textures are
   // resolved when the textures or programs change, per draw only their views (recreated textures) and the uniform
@@ -929,6 +940,42 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     }
     return currentStorageBuffers;
   }
+  /** a group of `alternateGroups` binding the textures bound now, with the buffers and views current */
+  function findAlternate(
+    layout: GPUBindGroupLayout,
+    program: WebGPUProgram,
+    tierTextureNames: readonly { name: string }[],
+    tierTextures: Textures,
+    buffer: GPUBuffer | undefined,
+    drawBuffer: GPUBuffer | undefined,
+  ) {
+    const list = alternateGroups.get(layout);
+    if (!list) return undefined;
+    const current = boundTexturesScratch;
+    current.length = 0;
+    for (const { name } of tierTextureNames) {
+      if (!program.referenced.has(name)) continue;
+      const t = tierTextures.find((e) => e[0] === name)?.[1];
+      current.push(t ? asWebGPUTexture(t) : undefined);
+    }
+    for (let j = list.length - 1; j >= 0; --j) {
+      const g = list[j];
+      if (g.buffer !== buffer || g.drawBuffer !== drawBuffer || g.textures.length !== current.length) continue;
+      let same = true;
+      for (let i = 0, il = current.length; i < il && same; ++i) {
+        same = g.textures[i] === current[i] && current[i]?.getView() === g.views[i];
+      }
+      if (!same) continue;
+      const { storageBuffers } = g;
+      for (let i = 0, il = storageBuffers.length; i < il && same; ++i) {
+        same = storageBuffers[i] === currentStorageBuffers[i];
+      }
+      if (same) return g;
+    }
+    return undefined;
+  }
+  const boundTexturesScratch: (WebGPUTexture | undefined)[] = [];
+
   function getBindGroup(
     program: WebGPUProgram,
     index: 1 | 2,
@@ -948,6 +995,15 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     const bindingsVersion = groups === bindGroups ? textureBindingsVersion : 0;
     const storageBuffers = index === 2 ? getStorageBuffers(program) : noStorageBuffers;
     let cached = groups.get(layout);
+    if (cached && !isCurrent(cached, slot?.buffer, drawSlot?.buffer, bindingsVersion) && groups === bindGroups) {
+      // bound before: one made for these textures (and buffers) earlier
+      const found = findAlternate(layout, program, tier.textures, tierTextures, slot?.buffer, drawSlot?.buffer);
+      if (found) {
+        found.bindingsVersion = bindingsVersion;
+        groups.set(layout, found);
+        cached = found;
+      }
+    }
     if (!cached || !isCurrent(cached, slot?.buffer, drawSlot?.buffer, bindingsVersion)) {
       const tex = getTextureEntries(ctx.device, tierTextures, tier.textures, program.referenced);
       const entries: GPUBindGroupEntry[] = [...tex.entries];
@@ -986,6 +1042,12 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       };
       cached.result.group = cached.group;
       groups.set(layout, cached);
+      if (groups === bindGroups) {
+        let list = alternateGroups.get(layout);
+        if (!list) alternateGroups.set(layout, (list = []));
+        list.push(cached);
+        if (list.length > MaxAlternateGroups) list.shift();
+      }
     }
     // dynamic offsets in binding order: the uniform block (0), then the draw uniforms
     const { offsets, result } = cached;
@@ -1243,8 +1305,18 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         layerPagesChanged = false;
         if (!definesChanged) invalidatePrograms(true);
       }
-      // another texture may be filtered differently (a program of other linear reads)
-      if (texturesReplaced && !definesChanged) invalidatePrograms(false);
+      // another texture may be filtered differently (a program of other linear reads); where the filtered ones are
+      // the same (a pass swapping its input every frame: Hi-Z levels, bloom's blur), the programs stay, the bound
+      // textures are resolved again (`getBindGroup`)
+      if (texturesReplaced && !definesChanged) {
+        const linear = getLinearTextures();
+        if (linear !== boundLinearTextures) {
+          boundLinearTextures = linear;
+          invalidatePrograms(false);
+        } else {
+          textureBindingsVersion += 1;
+        }
+      }
     },
 
     destroy: () => {
