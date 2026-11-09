@@ -27,6 +27,11 @@
     the visual run had both backends on Mesa's Vulkan, 17 of 19 WebGPU cases matching WebGL2: the isosurface above,
     and `geometry/text/labels` (141 px of anti-aliasing and a box edge between the two software rasterizers: a
     tolerance of its own). Its third label was mojibake since the harness began (`Ã…Ã„Ã–` for `ÅÄÖ`), fixed.
+  - **The Dawn job canceled at about 2 min** (out of memory: 15.9 of 16 GB, rising with no jump): every destroyed
+    WebGPU context stayed reachable, its device's `uncapturederror` listener (whose scope is the whole context) kept by
+    Dawn's Node.js bindings, which hold the device by a handle of their own also when destroyed; a run's contexts and
+    their resources (in RAM on lavapipe) held to its end. The context removes its listener on destroy; a heap snapshot
+    gave the retainer path, `webgpu-device-listener.test.ts` the regression test.
   - **Batch A done**: C1 (WebGL uploads return once destroyed, the cube's faces counted and not uploaded), C2 (a
     skybox face whose source fails reports an error, `onload` once, its object URLs revoked), C3 (a background load
     marks its own entry, also one reported before the entry exists), C4 (the buffer pages reclaimed after each
