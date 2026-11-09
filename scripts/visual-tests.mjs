@@ -20,7 +20,7 @@
 //                                      [--shards 8] [--concurrency 32] [--save <dir>] [--compare <dir>]
 //                                      [--images <dir>] [--no-build] [--no-debug] [--channel chrome] [--headed]
 //                                      [--angle d3d11] [--browser chromium] [--firefox <path>] [--headless]
-//                                      [--groups] [--stall <s>]
+//                                      [--groups] [--stall <s>] [--browser-arg <flag>]
 //
 //   --changed      a quick check of the uncommitted changes, not a full run: only the WebGPU profiles when only WebGPU
 //                  code changed, only the WebGL profiles when only WebGL code changed, all otherwise; and the cases of
@@ -40,12 +40,17 @@
 //                  the last few commits kept), so comparing a change needs no run of the commit before it
 //   --images <dir> writes target, reference and diff PNGs of failed cases (of all cases with --all-images)
 //   --skipped      lists the skipped cases with the reason
+//   --require-backends  fails where a profile's backend is not available (by default its cases are skipped): CI, so
+//                  that a browser without WebGPU does not pass by skipping it
 //   --draw-lists   the target profiles render with the renderer's draw lists (WebGPU render bundles), each case three
 //                  times and the replayed frame compared
 //   --dry-run      prints the profiles and the case filter of the run (e.g. what --changed selects) and exits
 //   --timing       the time per profile (page loads, renders of target and reference, the slowest shard) and the
 //                  slowest cases; a short summary is always printed
 //   --angle <name> ANGLE backend (`--use-angle`), default `d3d11` on Windows
+//   --browser-arg <flag>  an extra Chromium flag (repeatable), e.g. a software WebGPU adapter on a machine without a
+//                  GPU (`--browser-arg=--use-webgpu-adapter=swiftshader`: WebGPU on SwiftShader, not combinable with
+//                  `--angle swiftshader`, which leaves Chromium without WebGPU)
 //   --browser      `chromium` (Playwright, default) or `firefox`: the installed Firefox (Playwright's build has no
 //                  WebGPU), driven over WebDriver BiDi, one window per page; `--firefox <path>` (or `FIREFOX`) names
 //                  the executable. Firefox runs headed, as headless Firefox provides no WebGPU adapter; `--headless`
@@ -212,10 +217,15 @@ const compareDir = value('--compare') ?? (args.includes('--compare-head') ? head
 const imagesDir = value('--images');
 const allImages = args.includes('--all-images');
 const listSkipped = args.includes('--skipped');
+const requireBackends = args.includes('--require-backends');
 const timing = args.includes('--timing');
 const channel = value('--channel', 'chrome');
 const browserName = value('--browser', 'chromium');
 const angle = value('--angle', process.platform === 'win32' ? 'd3d11' : undefined);
+/** `--browser-arg <flag>` or `--browser-arg=<flag>`, repeatable: extra Chromium flags */
+const browserArgs = args.flatMap((a, i) =>
+  a.startsWith('--browser-arg=') ? [a.slice('--browser-arg='.length)] : args[i - 1] === '--browser-arg' ? [a] : [],
+);
 
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
 
@@ -386,6 +396,7 @@ async function launchChromium() {
       // the sphere raster's `atomic-vec2u-min-max` (Chrome 156)
       '--enable-webgpu-developer-features',
       ...(angle ? [`--use-angle=${angle}`] : []),
+      ...browserArgs,
     ],
   });
   return {
@@ -813,6 +824,13 @@ async function main() {
     const varied = rows.filter((r) => r.compare === 'changed' && isVariable(r.id));
     const added = rows.filter((r) => r.compare === 'new');
     failed ||= bad.length > 0 || changed.length > 0;
+    // `--require-backends`: a profile whose backend is not available fails (CI: a run on software rendering that
+    // silently skipped WebGPU would pass)
+    const unavailable = rows.filter((r) => r.status === 'skipped' && /Backend not available/.test(r.reason ?? ''));
+    if (requireBackends && unavailable.length > 0) {
+      failed = true;
+      console.log(`  ${profile}: backend not available for ${unavailable.length} cases (--require-backends)`);
+    }
     console.log(
       `${profile}: ${Object.entries(counts)
         .map(([k, n]) => `${n} ${k}`)
