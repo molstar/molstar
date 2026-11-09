@@ -46,8 +46,9 @@ jobs:
       - name: Type-check the stories and tests
         run: pnpm --filter "./packages/prism/*" run typecheck:storybook
 
-  # The test lanes (AGENTS.md, Tests): the quick lane in shards, the medium lane (with the native GL suite) beside
-  # them; the heavy lane runs nightly and on demand (tests-heavy.yml).
+  # The test lanes (AGENTS.md, Tests): the quick lane in shards, the medium lane (with the native GL suite) and the
+  # WebGPU tests on Dawn beside them; the heavy lane and the visual smoke tests run nightly and on demand
+  # (tests-heavy.yml, visual-tests.yml).
   test:
     name: Quick tests (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -96,6 +97,38 @@ jobs:
         run: command -v xvfb-run || (sudo apt-get update && sudo apt-get install -y xvfb)
       - name: Test
         run: xvfb-run --auto-servernum pnpm test:native -- medium
+
+  # The headless WebGPU tests (`describe.skipIf(!WebGPU.module)`, quick-lane files) on Dawn's Node.js bindings over a
+  # software Vulkan (Mesa's lavapipe: the runners have no GPU). Required: without Dawn or an adapter they fail instead of
+  # skipping (`MOLSTAR_REQUIRE_WEBGPU`). `auto` prefers WebGPU, and nothing else in CI renders with it.
+  webgpu:
+    name: WebGPU tests (Dawn)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.15.0
+      - uses: actions/setup-node@v7
+        with:
+          # as the medium job: the native backends' install stays on Node 22 (`gl` comes along, optional)
+          node-version: 22
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install a software Vulkan
+        run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers xvfb
+      - name: Cache the native backends
+        uses: actions/cache@v6
+        with:
+          path: .cache/native
+          key: native-webgpu-${{ runner.os }}-node22-${{ hashFiles('scripts/native.mjs') }}
+      - name: Install Dawn's Node.js bindings
+        run: pnpm native:install -- --webgpu
+      - name: Test
+        env:
+          MOLSTAR_REQUIRE_WEBGPU: '1'
+        run: xvfb-run --auto-servernum pnpm native:run -- pnpm test:unit packages/plugin/headless packages/graphics
 
   types:
     name: Full declaration check
