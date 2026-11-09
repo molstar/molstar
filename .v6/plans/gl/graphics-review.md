@@ -3,13 +3,23 @@
 ## Status
 
 - **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
-  next: batch C (the multi-sample savings, measured first): P1 done, next P3.
+  next: batch C (the multi-sample savings, measured first): P1 and P3 done, next P2.
   - **P1 done**: the first frame after a change (unjittered) is sample 0, every level's first offset being none: its
     scene not drawn again (it added nothing to the float compose, the hold's own share to the 8 bit one, seeded with
     it now). A settle draws the scene `n` times, not `n + 1`: at the default level 4, not 5, a frame sooner. The
     jittered samples reuse that frame's occlusion (`reuseOcclusion`), as they did sample 0's. Test
     (`webgpu-temporal-multi-sample.test.ts`): the frames past those of mode `on`, 3 at level 2 (4 before), and the
     settled image as `on`'s (as before: 26 of 9216 values more than 2 apart, by 4 at most, the accumulations' rounding).
+  - **P3 done**: measured, a moving view with Hi-Z and bloom made 36 bind groups a frame (about 0.35 ms of CPU on
+    native Dawn, more in a browser: each a call to the GPU process): Hi-Z's levels (16, a frame of every scene with
+    objects culled on the GPU, `hiZ.gpu`) and bloom's blur (20, scenes with emissive objects), their inputs swapped
+    every frame. A render item keeps up to 8 groups a layout for the textures and buffers they bind
+    (`alternateGroups`), found again on a swap; its programs invalidated only where the linear-filtered textures
+    changed. None a frame then (`webgpu-pass-bind-groups.test.ts`; 34 a frame without).
+  - **Visual failures older than this work** (at `fbb46db94` already, identical, depending on the cases before them
+    in a page: alone they pass): `renderer/sphere-raster/merged-clip-pixel` on WebGPU (2742 px) and a stall of
+    `geometry/texture-mesh/isosurface-gpu-negative` on WebGL2 (the page hung). To find: state a case leaves for the
+    next (a cached kernel, a pyramid, the sphere raster's chunks).
   - **S4 done**: `gl/_test/shader-parity.test.ts`, per graphics program the schema names its GLSL and its WGSL read
     (comments not; the WGSL with every feature of its variants on), the differences listed and why (WebGL mechanics,
     grids only on meshes, the sphere raster's uniforms); a new one-sided name fails, and so does a listed one gone. A
@@ -69,7 +79,8 @@ the sphere raster or `scene.ts`.
 | S1 | Confirmed: CI installs the native backend without `--webgpu`, so the Dawn suite skips; visual tests by hand only | B |
 | S4 | Done: `gl/_test/shader-parity.test.ts` | B |
 | P1 | Done: the first frame after a change is sample 0, not drawn again | C |
-| P3 | To measure: WebGPU quad renderables invalidating programs and bind groups on texture swaps (Hi-Z, bloom) | C |
+| P3 | Done: bind groups kept per bound textures, programs only on a filter change | C |
+| V1 | Found here, older: two visual cases failing only after others in a page (`merged-clip-pixel` on WebGPU, `isosurface-gpu-negative` hanging on WebGL2) | open |
 | P2 | To measure: hold and compose written on every moving frame; its larger variant for quality, speed and memory | C |
 | P4 | Done on this branch: marking reads the scene's depth, per jittered sample too (marking-performance.md step 3) | - |
 | P5 | To decide by images: SMAA per jittered sample | C |
