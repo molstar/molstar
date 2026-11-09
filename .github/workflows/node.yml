@@ -104,6 +104,8 @@ jobs:
   webgpu:
     name: WebGPU tests (Dawn)
     runs-on: ubuntu-latest
+    # a hang (a test blocking in a Dawn call, a worker that does not exit) fails here, not after GitHub's 6 hours
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -129,10 +131,11 @@ jobs:
         env:
           MOLSTAR_REQUIRE_WEBGPU: '1'
         # rendered on the CPU, many times slower than a GPU: a longer timeout than the quick lane's 30 s (a test of tens of
-        # frames of millions of spheres takes over 30 s there)
+        # frames of millions of spheres takes over 30 s there); two workers, not one per core: each file's Dawn devices
+        # keep their memory in RAM (lavapipe): four at once canceled the job at 2.5 min, likely out of memory
         run: >-
           xvfb-run --auto-servernum pnpm native:run -- pnpm test:unit packages/plugin/headless packages/graphics
-          --testTimeout=180000 --hookTimeout=180000
+          --testTimeout=180000 --hookTimeout=180000 --maxWorkers=2 --reporter=verbose
 
   types:
     name: Full declaration check
