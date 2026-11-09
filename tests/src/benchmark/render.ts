@@ -72,9 +72,10 @@ export type RenderInput = {
   readonly props?: Partial<Canvas3DProps>;
   /**
    * multi-sampling `on` (every sample a frame, the samples views of the same culled frame), off by default: progressive
-   * multi-sampling would make frames differ
+   * multi-sampling would make frames differ; `temporal`: each forced frame its first (unjittered) one, as while the
+   * camera moves
    */
-  readonly multiSample?: boolean;
+  readonly multiSample?: boolean | 'temporal';
   /** the context's transparency mode (`Canvas3DContext.Props`), the default restored with the scene's disposal */
   readonly transparency?: Canvas3DContext.Props['transparency'];
   /** rotates the camera by `RotationStep` per frame, as an interactive rotation (culling and globals change) */
@@ -260,7 +261,10 @@ export async function getScene(id: string, graphics: GraphicsContext, input: Ren
         ...(BenchmarkEnv.drawLists !== undefined
           ? { renderer: { ...(input.props?.renderer ?? DrawLists.renderer!), drawLists: BenchmarkEnv.drawLists } }
           : {}),
-        multiSample: { ...PD.getDefaultValues(Canvas3DParams).multiSample, mode: input.multiSample ? 'on' : 'off' },
+        multiSample: {
+          ...PD.getDefaultValues(Canvas3DParams).multiSample,
+          mode: input.multiSample === 'temporal' ? 'temporal' : input.multiSample ? 'on' : 'off',
+        },
       },
       { warmUp: false },
     );

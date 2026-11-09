@@ -86,14 +86,16 @@ export class MultiSamplePass {
 
   /**
    * accumulated samples, marking is only blended into it when not rendering to the drawing buffer; rendering to the
-   * drawing buffer, the compose target holds them where it is a float target (`floatCompose`)
+   * drawing buffer, the compose target holds them
    */
   readonly colorTarget: RenderTarget;
 
   private composeTarget: RenderTarget;
-  /** the compose target holds negative values unclamped, see `planTemporalMultiSample` */
-  private readonly floatCompose: boolean;
-  private holdTarget: RenderTarget;
+  /**
+   * whether the compose target has the unjittered first frame (temporal): not where it was presented from the draw
+   * pass's color target (to the drawing buffer, as while the camera moves), copied from it when sample 1 follows
+   */
+  private seeded = false;
   private compose: ComposeRenderable;
   private readonly renderBuilder: PassBuilder;
 
@@ -107,14 +109,12 @@ export class MultiSamplePass {
     this.colorTarget = drawPass.targets.createRenderTarget(width, height, 'none');
     const type = halfFloatRenderTarget ? 'fp16' : floatBlend ? 'float32' : 'uint8';
     this.composeTarget = drawPass.targets.createRenderTarget(width, height, 'none', type);
-    this.floatCompose = type !== 'uint8';
-    this.holdTarget = drawPass.targets.createRenderTarget(width, height, 'none');
     this.compose = getComposeRenderable(graphics, drawPass.colorTarget.texture);
     this.renderBuilder = drawPass.targets.createRenderBuilder();
   }
 
   getByteCount() {
-    return this.colorTarget.getByteCount() + this.composeTarget.getByteCount() + this.holdTarget.getByteCount();
+    return this.colorTarget.getByteCount() + this.composeTarget.getByteCount();
   }
 
   syncSize() {
@@ -125,7 +125,6 @@ export class MultiSamplePass {
     if (width !== w || height !== h) {
       this.colorTarget.setSize(width, height);
       this.composeTarget.setSize(width, height);
-      this.holdTarget.setSize(width, height);
       ValueCell.update(this.compose.values.uTexSize, Vec2.set(this.compose.values.uTexSize.ref.value, width, height));
     }
   }
@@ -242,7 +241,7 @@ export class MultiSamplePass {
     toDrawingBuffer: boolean,
   ) {
     const { camera } = ctx;
-    const { compose, composeTarget, holdTarget, drawPass, graphics, floatCompose } = this;
+    const { compose, composeTarget, drawPass, graphics } = this;
     const timing = isTimingMode && b.drawing;
     if (timing) graphics.timer.group('MultiSamplePass.renderTemporalMultiSample');
 
@@ -256,47 +255,44 @@ export class MultiSamplePass {
     if (sampleIndex === -2 || sampleIndex >= offsetList.length) return -2;
 
     const { x, y, width, height } = camera.viewport;
-    const sampleWeight = 1.0 / offsetList.length;
     // preparing: one sample draws as all of them
     const samplesPerFrame = b.drawing ? getTemporalSamplesPerFrame(props.multiSample.sampleLevel) : 1;
     // the unjittered first frame is also the one rendered while the camera moves
     const firstFrame = sampleIndex === -1;
+    // to the drawing buffer, the first frame is presented from the draw pass's color target and copied into the
+    // compose target only when sample 1 follows: a moving frame writes none (its color target stays until then, the
+    // next draw of this draw pass being that sample's)
+    const lazy = firstFrame && toDrawingBuffer;
+    const firstColor = drawPass.getColorTarget(ctx.scene, props.postprocessing);
 
-    if (firstFrame) {
-      drawPass.plan(b, ctx, props, false, isSeparateMarking(camera));
+    /** the compose target of the first frame, from the draw pass's color target */
+    const seed = () => {
       ValueCell.update(compose.values.uWeight, 1.0);
-      ValueCell.update(compose.values.tColor, drawPass.getColorTarget(ctx.scene, props.postprocessing).texture);
+      ValueCell.update(compose.values.tColor, firstColor.texture);
       compose.update();
-
-      b.begin(holdTarget, { label: 'multi-sample hold' });
+      b.begin(composeTarget, { label: 'multi-sample compose' });
       if (b.drawing) {
         graphics.setRenderState(RenderState.Default);
         graphics.setViewport(x, y, width, height);
         graphics.setScissor(x, y, width, height);
       }
       b.quad(compose, RenderState.Default);
-      b.begin(composeTarget, { label: 'multi-sample compose' });
-      if (b.drawing) {
-        graphics.setViewport(x, y, width, height);
-        graphics.setScissor(x, y, width, height);
-      }
-      if (floatCompose) {
-        b.quad(compose, RenderState.Default);
+      if (b.drawing) this.seeded = true;
+    };
+
+    if (firstFrame) {
+      drawPass.plan(b, ctx, props, false, isSeparateMarking(camera));
+      if (lazy) {
+        if (b.drawing) this.seeded = false;
       } else {
-        // an 8 bit compose holds the sum only: this first sample's share
-        if (b.drawing) {
-          graphics.setRenderState(RenderState.Additive);
-          graphics.clear({ color: [0, 0, 0, 0] });
-        }
-        ValueCell.update(compose.values.uWeight, sampleWeight);
-        compose.update();
-        b.quad(compose, RenderState.Additive);
+        seed();
       }
-      // this frame is sample 0: its offset is none (every level's first), drawing it again would add nothing (the
-      // float compose: its weight less the hold's), so the jittered samples go on from 1; the occlusion reused by them
-      // (`reuseOcclusion`) is this frame's, the offset none
+      // this frame is sample 0: its offset is none (every level's first), drawing it again would add nothing, so the
+      // jittered samples go on from 1; the occlusion reused by them (`reuseOcclusion`) is this frame's, the offset none
       sampleIndex = 1;
     } else {
+      // preparing: planned too (its pipelines)
+      if (!this.seeded || !b.drawing) seed();
       // render the scene multiple times, each slightly jitter offset
       // from the last and accumulate the results.
       for (let i = 0; i < samplesPerFrame; ++i) {
@@ -304,7 +300,7 @@ export class MultiSamplePass {
         if (b.drawing) setJitter(camera, offset);
 
         // render scene
-        // the first, unjittered sample is the hold's frame: these reuse its occlusion where asked to
+        // the first, unjittered sample is the seed's frame: these reuse its occlusion where asked to
         if (!props.multiSample.reuseOcclusion) {
           drawPass.postprocessing.setOcclusionOffset(0, 0);
         } else {
@@ -312,24 +308,19 @@ export class MultiSamplePass {
         }
         drawPass.plan(b, ctx, props, false, isSeparateMarking(camera));
 
-        // compose rendered scene with compose target
+        // the running average of the samples so far: sample `k` blended in with `1 / (k + 1)` (as tracing and the
+        // marking layer)
+        const weight = 1 / (sampleIndex + 1);
         b.begin(composeTarget, { label: 'multi-sample compose' });
         if (b.drawing) {
-          graphics.setRenderState(RenderState.Additive);
           graphics.setViewport(x, y, width, height);
           graphics.setScissor(x, y, width, height);
+          graphics.setBlendConstant(weight, weight, weight, weight);
         }
         ValueCell.update(compose.values.tColor, drawPass.getColorTarget(ctx.scene, props.postprocessing).texture);
-        ValueCell.update(compose.values.uWeight, sampleWeight);
+        ValueCell.update(compose.values.uWeight, 1.0);
         compose.update();
-        b.quad(compose, RenderState.Additive);
-        if (floatCompose) {
-          // the first sample gives this one its weight (unclamped)
-          ValueCell.update(compose.values.tColor, holdTarget.texture);
-          ValueCell.update(compose.values.uWeight, -sampleWeight);
-          compose.update();
-          b.quad(compose, RenderState.Additive);
-        }
+        b.quad(compose, RenderState.Constant);
 
         sampleIndex += 1;
         if (sampleIndex >= offsetList.length) break;
@@ -338,17 +329,15 @@ export class MultiSamplePass {
 
     drawPass.postprocessing.setOcclusionOffset(0, 0);
 
-    // the compose target holds `w * (s_1 + ... + s_k) + (1 - k * w) * s_0` after sample `k` (samples `s`, weight `w`):
-    // the first sample, the hold, until every following one has its weight; the drawing buffer gets a copy of it
-    // (`MarkingPass.present`), in place, marking needs a copy of its own. An 8 bit compose target clamps: it holds the
-    // sum only, the output adds the first sample.
-    if (!floatCompose) this.planTemporalOutput(b, camera.viewport, sampleIndex * sampleWeight);
-    else if (!toDrawingBuffer) this.copyToColorTarget(b, camera.viewport);
+    // the compose target holds the average of the samples so far; the drawing buffer gets a copy of it
+    // (`MarkingPass.present`), in place, marking needs a copy of its own. The lazy first frame: the draw pass's color
+    // target is the image (the first sample whole)
+    if (!lazy && !toDrawingBuffer) this.copyToColorTarget(b, camera.viewport);
 
     if (b.drawing) clearJitter(camera);
 
     this.drawPass.marking.present(b, ctx, props, {
-      base: floatCompose && toDrawingBuffer ? composeTarget : this.colorTarget,
+      base: lazy ? firstColor : toDrawingBuffer ? composeTarget : this.colorTarget,
       toDrawingBuffer,
       offsets: offsetList,
       restart: firstFrame,
@@ -375,28 +364,6 @@ export class MultiSamplePass {
     ValueCell.update(compose.values.tColor, composeTarget.texture);
     compose.update();
     b.quad(compose, RenderState.Default);
-  }
-
-  /** The color target as the sum of the samples so far plus the first sample with the weight of the missing ones */
-  private planTemporalOutput(b: PassBuilder, viewport: Viewport, accumulationWeight: number) {
-    const { compose, composeTarget, holdTarget, graphics } = this;
-    b.begin(this.colorTarget, { label: 'multi-sample output' });
-    if (b.drawing) {
-      graphics.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
-      graphics.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
-    }
-    if (accumulationWeight > 0) {
-      ValueCell.update(compose.values.uWeight, 1.0);
-      ValueCell.update(compose.values.tColor, composeTarget.texture);
-      compose.update();
-      b.quad(compose, RenderState.Default);
-    }
-    if (accumulationWeight < 1.0) {
-      ValueCell.update(compose.values.uWeight, 1.0 - accumulationWeight);
-      ValueCell.update(compose.values.tColor, holdTarget.texture);
-      compose.update();
-      b.quad(compose, accumulationWeight === 0 ? RenderState.Default : RenderState.Additive);
-    }
   }
 }
 

@@ -3,7 +3,24 @@
 ## Status
 
 - **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
-  next: batch C (the multi-sample savings, measured first): P1 and P3 done, next P2.
+  next: batch C (the multi-sample savings, measured first): P1, P2 and P3 done, next P5.
+  - **P2, lazy part done**: a moving frame of temporal multi-sampling to the drawing buffer presents the draw pass's
+    color target; the compose target is written from it when sample 1 follows (nothing else draws into it between).
+    Measured (`passes/temporal-moving`, 2560×1440, spacefill, RTX 4070 Ti): 0.55 → 0.49 ms GPU a moving frame on
+    WebGL2 and WebGPU, as without multi-sampling. Not measured on an integrated GPU: Chrome on Windows kept the
+    discrete one (`--force_low_power_gpu`, `--use-adapter-luid` ignored). Images: the moving frame as mode off's
+    (`webgpu-temporal-multi-sample.test.ts`), settled as before on every WebGL profile (images saved and compared),
+    `renderer/multisample/canvas-*` new (the canvas captured; the harness now flushes before reading it: WebGPU submits
+    a task's commands in a microtask, a multi-sampled frame read blank).
+  - **P2, running average done**: temporal multi-sampling's hold replaced by a running average in the compose
+    target (constant blend `1/(k+1)`, as tracing and the marking layer). Settled: as hold's (at most 1 level apart;
+    against mode `on` on Dawn, level 2: max 4 either; level 5: max 27 against 26, mean 0.34 against 0.36, `on`'s
+    uneven weights the distance there). The 8 bit compose (WebGL profiles without float targets) better: against `on`,
+    level 5 mean 0.63 against 1.99, no banding. Intermediate: closer to the settled image at level 4 (mean 0.43 against
+    0.72 after the first frame), farther at level 2 (0.56 against 0.42: hold weighted the unjittered frame more).
+    Speed: 0.03 to 0.04 ms GPU a frame at 2560×1440. Memory: the hold target, 4 B/px (14.7 MB at 2560×1440, 33 MB at
+    3840×2160), in the canvas's pass and the image pass's each. Its pipeline planned by `prepare` (a test: no draw
+    skipped settling). Illumination's multi-sample compose keeps its hold (the same change possible there).
   - **P1 done**: the first frame after a change (unjittered) is sample 0, every level's first offset being none: its
     scene not drawn again (it added nothing to the float compose, the hold's own share to the 8 bit one, seeded with
     it now). A settle draws the scene `n` times, not `n + 1`: at the default level 4, not 5, a frame sooner. The
@@ -20,7 +37,9 @@
     - The WebGL2 stall was the harness's load, not the case: debug mode's synchronous GL queries (each waits for the
       GPU process, the commands of every page) made cases with many programs and draws wait over a minute. The compile
       and link checks now run once linked (`finalize`, after the parallel compile's completion), the GL error check
-      per pass, not per draw. The default run: no stalls (2 to 9 a run before), 74 s, not 133 s.
+      per pass, not per draw. The default run: no stalls (2 to 9 a run before), 74 s, not 133 s. Pages in a GPU
+      surface case still answer the harness's poll only after up to 29 s (readbacks behind the other pages' work, not
+      hung): its hang limit 90 s, not 30 (two more cases moved one past 30).
     - The WebGPU failure: a frame drawn straight to the drawing buffer leaves the opaque depth texture as an earlier
       frame drew it (an earlier case's, offscreen for its overlay), and Hi-Z built its levels from it; an image pass
       culled with them (no second phase) and lost instances (`merged-clip-pixel`, `merged-clip-instance`,
@@ -87,7 +106,7 @@ the sphere raster or `scene.ts`.
 | P1 | Done: the first frame after a change is sample 0, not drawn again | C |
 | P3 | Done: bind groups kept per bound textures, programs only on a filter change | C |
 | V1 | Found here, older: two visual cases failing only after others in a page (`merged-clip-pixel` on WebGPU, `isosurface-gpu-negative` hanging on WebGL2) | done |
-| P2 | To measure: hold and compose written on every moving frame; its larger variant for quality, speed and memory | C |
+| P2 | Done: moving frames compose nothing, hold replaced by a running average (see Status) | C |
 | P4 | Done on this branch: marking reads the scene's depth, per jittered sample too (marking-performance.md step 3) | - |
 | P5 | To decide by images: SMAA per jittered sample | C |
 | P6-P9 | Small; with nearby work, P9 behind allocation guards | - |
@@ -129,5 +148,4 @@ the sphere raster or `scene.ts`.
 
 - WebGL1 stays for now (W4).
 - The backend folders are internal, contexts made through `gl/contexts/*` (S6, step 5).
-- Open, after measuring quality, speed and memory (step 3): P2's larger variant, hold replaced by a running average
-  (changes intermediate images; `pass-targets.md` kept hold without a recorded cost).
+- P2's larger variant taken: hold replaced by a running average (measured, see Status; `pass-targets.md` updated).

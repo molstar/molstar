@@ -106,11 +106,13 @@ render pass attachment, a bind group entry or a copy in three frames):
   Each clears depth when it begins and the caps clear stencil per cap; none is read after its pass, and the
   transparent depth pass that reads it within a frame clears it first.
 - Accumulation in place: tracing blends each frame into its running average (color by the blend constant
-  `1 / (iteration + 1)`, alpha replaced with that weight for the denoiser); the multi-sample compose targets
-  (illumination's, temporal multi-sampling's) hold the output, `w * (s_1 + ... + s_k) + (1 - k * w) * s_0`, by adding
-  `w * (s_k - s_0)` per sample: float targets, negative terms unclamped (an 8 bit compose target keeps the output
-  target). On screen, the drawing buffer gets a copy of the compose target; an image pass blends marking in place, so
-  it gets a copy of its own. No hold or output targets to recombine every frame.
+  `1 / (iteration + 1)`, alpha replaced with that weight for the denoiser); temporal multi-sampling's compose target
+  is the running average of its samples the same way (`1 / (k + 1)`, no hold target: settled as the hold's sum, at
+  most 1 level apart, an 8 bit compose without its banding; intermediate images the average so far). Illumination's
+  multi-sample compose holds the output, `w * (s_1 + ... + s_k) + (1 - k * w) * s_0`, by adding `w * (s_k - s_0)` per
+  sample: float targets, negative terms unclamped (an 8 bit compose target keeps the output target). On screen, the
+  drawing buffer gets a copy of the compose target; an image pass blends marking in place, so it gets a copy of its
+  own. No output targets to recombine every frame.
 - Passes only when they draw: bloom counts when something is emissive or in luminosity mode (`BloomPass.isActive`),
   the postprocessing pass when one of its effects draws (`PostprocessingPass.isEnabled(scene, props)`); bloom reads
   the transparent targets with blended transparency only (`dBlendTransparency`, as the compose).
@@ -120,8 +122,8 @@ render pass attachment, a bind group entry or a copy in three frames):
   color target for both ping-pong sides (the peel reads the previous depth and front color only, each back layer is
   blended back before the next peel), and geometry programs don't bind it. Marking's edges are computed in the overlay
   from the antialiased mask (the edge program read them at the same pixel) and its edges target is gone.
-- Kept: tracing's average in rgba32f (fp16 loses precision over up to 2^16 iterations); the temporal hold target (the
-  first sample, weighted until all are in); marking's layer in rgba16f.
+- Kept: tracing's average in rgba32f (fp16 loses precision over up to 2^16 iterations); illumination's multi-sample
+  hold target (the first sample, weighted until all are in); marking's layer in rgba16f.
 - Dropped: depth without stencil where caps are absent (solid interiors are on by default for surfaces and impostors,
   caps also cover the near plane, impostors write depth, and switching formats by scene switches pipelines);
   `depth24plus-stencil8` (loses reversed-Z precision, Metal has no 24-bit depth).
