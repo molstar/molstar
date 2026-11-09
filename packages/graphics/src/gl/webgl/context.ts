@@ -394,6 +394,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
   // rectangles have a top-left origin in the neutral API, GL's a bottom-left one: viewport and scissor are kept as
   // given and applied flipped with the height of the render pass target, when set in a pass and when a pass begins
   let passTarget: RenderPassTarget = 'drawing-buffer';
+  /** the label of the render pass begun last, for its GL errors (debug mode) */
+  let passLabel = 'none';
   const getRenderPassTargetHeight = () => {
     if (passTarget === 'drawing-buffer') return getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode).height;
     if ('getHeight' in passTarget) return passTarget.getHeight();
@@ -720,6 +722,9 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
     },
     describeTarget: () => WebGLTarget,
     beginRenderPass: (target: RenderPassTarget, options?: RenderPassOptions) => {
+      // GL errors by pass, not by draw: `getError` waits for the GPU process (the commands of all its contexts)
+      if (isDebugMode) checkError(gl, `GL error in or after render pass '${passLabel}'`);
+      passLabel = options?.label ?? 'unlabeled';
       timer.passBegin(target, options?.label);
       if (target === 'drawing-buffer') bindDrawingBuffer(gl, xr.layer);
       else target.bind();

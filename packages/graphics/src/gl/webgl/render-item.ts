@@ -855,9 +855,6 @@ export function createRenderItem<T extends string>(
           stats.calls.counts += instanceCount;
         }
       }
-      if (isDebugMode) {
-        ctx.checkError(`Draw error rendering item id ${id}`);
-      }
     },
     update: () => {
       resetValueChanges(valueChanges);

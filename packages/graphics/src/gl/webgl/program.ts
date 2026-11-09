@@ -486,9 +486,6 @@ export function createProgram(
       for (const [name, location] of getAttributeLocationNames(entry)) gl.bindAttribLocation(program, location, name);
     }
     gl.linkProgram(program);
-    if (isDebugMode) {
-      checkProgram(gl, program);
-    }
     linked = true;
   }
   if (variant === 'compute') link();
@@ -505,6 +502,12 @@ export function createProgram(
   }
 
   function finalize() {
+    // checked once linked: queried right after `linkProgram`, they wait for it (no parallel compile)
+    if (isDebugMode) {
+      vertShader!.check();
+      fragShader!.check();
+      checkProgram(gl, program);
+    }
     locations = getLocations(gl, program, schema, useBlocks);
     activeAttributes = new Set();
     for (const entry of attributeLayout.entries) {
