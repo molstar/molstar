@@ -11,6 +11,8 @@
 - `StructureSelection` (`selection.ts`): `Singletons` (every element its own selection, one structure holds them all) or
   `Sequence` (a list of structures). `toLociWithSourceUnits` and `unionStructure` turn one into a loci or a structure;
   `LinearBuilder` and `UniqueBuilder` collect results (all-singleton results collapse to `Singletons`).
+- Atom-set `countQuery` evaluates its query inside the current structure, or the input when there is no current atom
+  set. It restores the input structure even when the query throws.
 - Queries (`Queries` in `query.ts`):
   - generators: `all`, `none`, `atoms` (atom, residue, chain, entity tests, optional grouping), `rings`,
     `querySelection`, `bondedAtomicPairs`, `elementSchema`;
