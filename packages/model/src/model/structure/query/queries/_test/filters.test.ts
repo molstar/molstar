@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author sixty-66 <puzhexin@foxmail.com>
  */
 
 import fs from 'node:fs';
@@ -11,7 +12,7 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import {
   Queries,
-  type QueryContext,
+  QueryContext,
   Structure,
   StructureProperties,
   StructureQuery,
@@ -27,6 +28,44 @@ async function load1crn() {
 }
 
 describe('pick', () => {
+  it('counts queries inside each current atom set', async () => {
+    const structure = await load1crn();
+    const ctx = new QueryContext(structure);
+    const countResidues = Queries.atomset.countQuery(Queries.generators.residues());
+    const groups = Queries.generators.atoms({
+      groupBy: (ctx) => StructureProperties.residue.label_comp_id(ctx.element),
+    });
+    const selected = Queries.filters.pick(groups, (ctx) => countResidues(ctx) >= 5)(ctx);
+    const names: string[] = [];
+    StructureSelection.forEach(selected, (group) => {
+      const unit = group.units[0];
+      names.push(
+        StructureProperties.residue.label_comp_id({ structure: group, unit, element: unit.elements[0] } as any),
+      );
+    });
+    expect(names.sort()).toEqual(['ALA', 'CYS', 'ILE', 'PRO', 'THR']);
+    expect(ctx.inputStructure).toBe(structure);
+    expect(StructureSelection.structureCount(Queries.generators.residues()(ctx))).toBe(46);
+    expect(countResidues(ctx)).toBe(46);
+  });
+
+  it('restores the input structure when an atom-set query throws', async () => {
+    const structure = await load1crn();
+    const ctx = new QueryContext(structure);
+    const residues = StructureQuery.run(Queries.generators.residues(), structure);
+    StructureSelection.forEach(residues, (residue, i) => {
+      if (i === 0) ctx.currentStructure = residue;
+    });
+    const error = new Error('query failed');
+    const count = Queries.atomset.countQuery((ctx) => {
+      expect(ctx.inputStructure === ctx.currentStructure).toBe(true);
+      throw error;
+    });
+    expect(() => count(ctx)).toThrow(error);
+    expect(ctx.inputStructure).toBe(structure);
+    expect(() => ctx.popInputStructure()).toThrow('Must push before pop.');
+  });
+
   it('restores the current structure after a nested pick (perf-audit-2 05/B6)', async () => {
     const structure = await load1crn();
     const inner = Queries.filters.pick(Queries.generators.atoms(), () => true);
