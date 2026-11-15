@@ -55,6 +55,9 @@ export function getParticleTilesStepParticles(rate: number | undefined, stepMs: 
   return Math.max(1, Math.round(rate * stepMs));
 }
 
+/** the least time between passes while what draws a set changes (a cut dragged), in ms */
+const DrawingsIntervalMs = 250;
+
 /** the next frame (a step's update drawn before the next), a timeout without one (headless) */
 const nextFrame = (f: () => void) =>
   typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(() => f()) : setTimeout(f, 0);
@@ -107,9 +110,11 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         );
         this.subscribeObservable(changed, () => this.schedule());
       });
-      // what draws the sets changing (a cut dragged): a pass at most every `intervalMs` (its picks the quicker ones),
-      // and once it settled (`ParticleTileDrawings.SettleMs`: picked again in full)
-      const throttle = throttleTime(this.params.intervalMs, asyncScheduler, { leading: true, trailing: true });
+      // what draws the sets changing (a cut dragged): a pass at most every `intervalMs`, `DrawingsIntervalMs` at least
+      // (a pick a pass on the main thread: a drag's frames kept), its picks the quicker ones, and once it settled
+      // (`ParticleTileDrawings.SettleMs`: picked again in full)
+      const interval = Math.max(this.params.intervalMs, DrawingsIntervalMs);
+      const throttle = throttleTime(interval, asyncScheduler, { leading: true, trailing: true });
       this.subscribeObservable(this.drawingsChanged.pipe(throttle), () => this.schedule());
       this.subscribeObservable(this.drawingsChanged.pipe(debounceTime(ParticleTileDrawings.SettleMs + 10)), () =>
         this.schedule(),

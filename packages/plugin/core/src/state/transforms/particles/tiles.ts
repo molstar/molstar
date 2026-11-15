@@ -301,6 +301,8 @@ export { pickTiles as pickParticleTiles };
  */
 const SettledResolution = 64;
 const MovingResolution = 32;
+/** a block a clip surface cuts split in eight once while the cut moves (settled: the visibility's default, 3) */
+const MovingClipSplitDepth = 1;
 
 /** the tiles `params` picks of `set`, by priority where by the camera, else ascending */
 function pickTiles(
@@ -335,9 +337,10 @@ function pickTiles(
       const detailPixels = params.params.detailPixels ?? 4;
       // what draws its tiles (their representations' clip objects and opacity): picked again where it changes
       const drawing = ParticleTileDrawings.get(set);
-      // a cut being moved (its drawings changing): the quicker pick, a coarser occlusion, picked again once it settles
-      // (the follow behavior's pass after `SettleMs`)
-      const resolution = ParticleTileDrawings.isChanging(set) ? MovingResolution : SettledResolution;
+      // a cut being moved (its drawings changing): the quicker pick, a coarser occlusion and a block a surface cuts
+      // split once, picked again in full once it settles (the follow behavior's pass after `SettleMs`)
+      const moving = ParticleTileDrawings.isChanging(set);
+      const resolution = moving ? MovingResolution : SettledResolution;
       const key = `${getCameraKey(snapshot, width, height, minPixels, occlusion, opticalDepth)},${params.params.maxParticles ?? 0},${detailPixels},${drawing.version},${resolution}`;
       const kept = getPick(set, key);
       if (kept) return kept;
@@ -347,6 +350,7 @@ function pickTiles(
         opticalDepth,
         drawings: drawing.list.length > 0 ? drawing.list : undefined,
         resolution,
+        clipSplitDepth: moving ? MovingClipSplitDepth : undefined,
       });
       // the tiles by priority within the cap of particles
       const max = params.params.maxParticles ?? 0;
