@@ -412,8 +412,13 @@ export interface ViewerExtensionUI {
     readonly keywords?: readonly string[];
     /** Open until the person folds it, in a slot whose sections start folded (Export's Image). */
     readonly open?: boolean;
+    /** Shown only while this holds (the graphics backend's: more than one backend). */
+    readonly when?: (ctx: ShellViewContext) => boolean;
+    /** Told when `when` may answer otherwise (`ShellSection.whenChanged`). */
+    readonly whenChanged?: import('@molstar/prism-ui/core').ReadonlyState<unknown>;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
+
   readonly tabs?: readonly {
     readonly id: PartId;
     /** Its name: the rail's tooltip, and the panel's header unless `heading` says otherwise. */
