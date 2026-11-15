@@ -28,6 +28,8 @@ import {
   type ParticleTileDirectory,
 } from '../../model/particles/particle-tiles.js';
 import { mortonOrder3d } from '@molstar/core/data/util/hash-functions';
+import { radixSortIndices } from '@molstar/core/data/util/sort';
+import { ChunkedArray } from '@molstar/core/data/util/chunked-array';
 import { Box3D } from '@molstar/core/math/geometry/primitives/box3d';
 import { ParticleDensityGrid, ParticleTileOpaque } from '../../model/particles/particle-tile-opaque.js';
 import type {
@@ -1003,26 +1005,26 @@ function writeLevels(
     tileCode.fill(code, ranges[k + 1], ranges[k + 1] + ranges[k + 2]);
     tileCell.fill(id, ranges[k + 1], ranges[k + 1] + ranges[k + 2]);
   }
-  // the particles in Morton order of the fine grid (its code and the index as one float64: exact under 2^26 particles)
-  if (n >= 1 << 26) throw new Error('particle pack: levels of more than 2^26 particles');
+  // the particles in Morton order of the fine grid, a code's by index (a stable sort: any particle count)
   const f = LevelSampleCells;
   const p = Vec3();
-  const keys = new Float64Array(n);
+  const codes = new Uint32Array(n);
   const cellOf = (v: number, a: number) =>
     Math.max(0, Math.min(f - 1, Math.floor(((v - min[a]) / Math.max(1e-6, max[a] - min[a])) * f)));
   for (let q = 0; q < n; ++q) {
     GridPositions.get(positions, q, p);
-    keys[q] = mortonOrder3d(cellOf(p[0], 0), cellOf(p[1], 1), cellOf(p[2], 2)) * (1 << 26) + q;
+    codes[q] = mortonOrder3d(cellOf(p[0], 0), cellOf(p[1], 1), cellOf(p[2], 2));
   }
-  keys.sort();
-  const fine = new Int32Array(n);
-  for (let s = 0; s < n; ++s) fine[s] = keys[s] % (1 << 26);
+  const fine = radixSortIndices(codes, f * f * f - 1);
 
-  const position: number[] = [];
-  const nodeKeys: number[] = [];
+  // the samples' values chunked, not in arrays of numbers: a few hundred million particles' samples pass an array's
+  // length limit
+  const ChunkSize = 1 << 20;
+  const position = ChunkedArray.create(Uint32Array, 2, ChunkSize);
+  const keyChunks = ChunkedArray.create(Int32Array, 1, ChunkSize);
   const nodeRanges: number[] = [];
   const nodeBoxes: number[] = [];
-  const runs: number[] = [];
+  const runs = ChunkedArray.create(Int32Array, 2, ChunkSize);
   let count = 0;
   const bounds = new Float64Array(ParticleRangeBoundsValues);
   for (let level = levelCount; level >= 1; --level) {
@@ -1049,10 +1051,10 @@ function writeLevels(
       }
       const first = count;
       for (const [t, list] of byTarget) {
-        runs.push(count, t);
+        ChunkedArray.add2(runs, count, t);
         for (const j of list) {
-          position.push(positions.data[j * 2], positions.data[j * 2 + 1]);
-          nodeKeys.push(j);
+          ChunkedArray.add2(position, positions.data[j * 2], positions.data[j * 2 + 1]);
+          ChunkedArray.add(keyChunks, j);
           count += 1;
         }
       }
@@ -1063,7 +1065,8 @@ function writeLevels(
       nodeRanges.push(level, x + y * dl + z * dl * dl, first, count - first);
     }
   }
-  const data = Uint32Array.from(position);
+  const data = ChunkedArray.compact(position) as Uint32Array;
+  const nodeKeys = ChunkedArray.compact(keyChunks) as Int32Array;
   const written: GridPositions = { kind: 'grid', data, origin: positions.origin, step: positions.step };
   for (let k = 0; k < nodeRanges.length; k += 4) {
     Particle.computeRangeBounds(written, nodeRanges[k + 2], nodeRanges[k + 2] + nodeRanges[k + 3], bounds);
@@ -1075,8 +1078,8 @@ function writeLevels(
   }
   const out: BlockData[] = [
     { name: 'node.position', type: 'grid21', components: 2, values: data },
-    { name: 'node.keys', type: 'int32', components: 1, values: Int32Array.from(nodeKeys) },
-    { name: 'node.runs', type: 'int32', components: 2, values: Int32Array.from(runs) },
+    { name: 'node.keys', type: 'int32', components: 1, values: nodeKeys },
+    { name: 'node.runs', type: 'int32', components: 2, values: ChunkedArray.compact(runs) as Int32Array },
     { name: 'node.ranges', type: 'int32', components: 4, values: Int32Array.from(nodeRanges) },
     { name: 'node.boxes', type: 'float32', components: 6, values: Float32Array.from(nodeBoxes) },
   ];
