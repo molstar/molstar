@@ -1573,3 +1573,9 @@ with alpha free.
 `updateTransformData`, `createTransform`, `createPosesTransform`): whether instances are culled and their levels of
 detail decimated by cells is `hasInstanceCells` (a cell size above 1), no longer the instance grid's `cellSize`. Values
 or transform data built by hand add both (0 for none).
+
+## Scale line label size
+
+The scale line's `labelSize` (`ScaleLineParams`, `Canvas3D` `helper.scaleLine`) is the label's font size in CSS
+pixels, its default 14: it was the text's atlas line height (about 1.58 times the font size), its default 20. A value
+set by an app draws about 1.58 times as large as before: divide it by 1.58 for the old size (20 → 13).
