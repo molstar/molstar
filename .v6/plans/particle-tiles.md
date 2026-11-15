@@ -666,10 +666,15 @@
      what draws a set registered by the representation itself on every update, a drag's preview too
      (`ParticleTileDrawings`, the model's), the follow behavior told per set (at most every `intervalMs`, once more as it
      settles); a view's step keeps the representation's props (a data-only update: the preview not undone); while the
-     drawings change the pick's occlusion at 32² (`ParticleTileDrawings.SettleMs`): inside the yeast at 16³ a sphere's
-     28 → 11 ms, from outside about the same (19 ms: the tiles' own work, a block about a ray there). Left: the pick
-     off the main thread or the tiles' work cheaper where many are in view (a step a frame then), measured frames
-     of a drag in the app.
+     drawings change the pick's occlusion at 32² and a block a clip surface cuts split once, not three times
+     (`ParticleTileDrawings.SettleMs`; `clipSplitDepth`), a pass while dragged at most every 250 ms: inside the yeast at
+     16³ a sphere's 28 → 6 ms, a cube's 29 → 5, from outside about the same (18 / 24 ms: the tiles' own work, a block
+     about a ray there). Measured (a sphere dragged through the yeast at 16³, 1920 × 1080, headless
+     Dawn): the clip-only update 0.1 ms a frame (13.8 before: every member's clip set); a frame's CPU 22 ms from outside,
+     45 inside, as a camera orbit's (20, 44): its draws (a member's region at a level, both phases of the culling, a
+     render bundle recorded again), not the clip; picks 44 / 16 ms every 150 ms or so, a step 13 / 10 ms; the clip ghost
+     a frame's CPU + 15 / + 8 ms. Left: a frame's draws of many members (fewer draws: members of a geometry drawn
+     together, the bundles kept), the pick off the main thread (or the tiles' work cheaper where many are in view).
 
 ## Open questions (the spec's)
 
