@@ -550,7 +550,8 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       const need = alignLayer(layerBytes(layers[i]));
       const slot = layerSlots[i];
       if (need > slot || need * 4 < slot) {
-        layerSlots[i] = slot === 0 ? need : Math.min(ctx.dataBindingSize, Math.max(need, alignLayer(need * 1.5)));
+        // room to grow up to a binding's size, never below the need: a layer larger than a binding doesn't fit
+        layerSlots[i] = slot === 0 ? need : Math.max(need, Math.min(ctx.dataBindingSize, alignLayer(need * 1.5)));
       }
       sizes[i] = layerSlots[i];
     }

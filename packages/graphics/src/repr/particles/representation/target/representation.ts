@@ -571,7 +571,12 @@ export const ParticleTargetRepresentationProvider: ParticleTargetRepresentationP
   defaultValues: PD.getDefaultValues(ParticleTargetRepresentationParams),
   defaultColorTheme: { name: 'particle-entity' },
   defaultSizeTheme: { name: 'uniform', props: { value: 1.6 } },
-  isApplicable: (data: any) => !!(data as ParticleList).targetMapping?.size,
+  // a slot list of no tiles yet (the camera seeing none of them, or before the first loads) by its catalog's targets:
+  // its params normalized against it (`State`), the type not applicable then dropped for good
+  isApplicable: (data: any) => {
+    const list = data as ParticleList;
+    return !!list.targetMapping?.size || (!!list.pages && list.targetInfo.size > 0);
+  },
 };
 
 /** per theme and slot list the theme made again for it (`getSlotsTheme`) */

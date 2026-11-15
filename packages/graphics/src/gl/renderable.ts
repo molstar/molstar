@@ -791,14 +791,21 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     const viewChanged =
       (lodLevels?.pixelSize ?? 0) > 0 && (lod.depthScale !== lodDepthScale || lod.pixelSize !== lodPixelSize);
     const uniformsNeedUpdate = hasLodLevels && (lodCell!.ref.version !== lodLevelsVersion || viewChanged);
+    const levelUniform = segmented ? 'uLodLevel' : 'uLodStride';
     for (let j = 0; j < levelCount; ++j) {
-      list[j] = getMdbData(capacity, list[j]);
-      list[j].count = 0;
+      let l = getMdbData(capacity, list[j]);
+      // a level's uniforms are those of its draw block (WebGPU's, made at the level's first draw, by the level): a
+      // level of other uniforms (lod levels on or off) is another object, not the same one's emptied or filled
+      const layoutChanged = hasLodLevels
+        ? l.uniforms.length !== uniformCount || l.uniforms[1][0] !== levelUniform
+        : l.uniforms.length !== 0;
+      if (l === list[j] && layoutChanged) l = getMdbData(capacity);
+      list[j] = l;
+      l.count = 0;
       if (hasLodLevels) {
         LodView.getRange(lodLevels, j, lod, range);
         lodMin[j] = range[0];
         lodMax[j] = range[1];
-        const l = list[j];
         let created = false;
         if (l.uniforms.length !== uniformCount) {
           l.uniforms.length = uniformCount;
@@ -815,10 +822,9 @@ export function createSegmentedMdbList(): SegmentedMdbList {
           );
           if (!segmented) ValueCell.updateIfChanged(l.uniforms[1][1], lodLevels[j][4] ?? 1);
         }
-      } else {
-        list[j].uniforms.length = 0;
       }
     }
+
     if (uniformsNeedUpdate) {
       lodLevelsVersion = lodCell!.ref.version;
       lodDepthScale = lod.depthScale;

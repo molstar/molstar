@@ -13,7 +13,8 @@ import { getPaletteParams, getPalette } from '@molstar/core/util/color/palette';
 import type { TableLegend, ScaleLegend } from '@molstar/core/util/legend';
 import { ColorLists, getColorListFromName } from '@molstar/core/util/color/lists';
 import { ColorThemeCategory } from './categories.js';
-import { fillByIndex, fillByLocation, forEachPageList, getPagedPainting } from './particle-pages.js';
+import { fillByIndex, fillByLocation, forEachPageList, getPagedPainting, slotPagesHave } from './particle-pages.js';
+
 import {
   Particle,
   type ParticleList,
@@ -169,5 +170,5 @@ export const ParticleCompartmentColorThemeProvider: ColorTheme.Provider<
   defaultValues: PD.getDefaultValues(ParticleCompartmentColorThemeParams),
   isApplicable: (ctx: ThemeDataContext) =>
     !!getParticleList(ctx) &&
-    (ctx.particles?.compartments !== undefined || !!ctx.particles?.pages?.pages[0]?.list.compartments),
+    (ctx.particles?.compartments !== undefined || slotPagesHave(ctx.particles!, 'compartments')),
 };

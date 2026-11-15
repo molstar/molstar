@@ -42,7 +42,21 @@ export function getPagedPainting(painterOf: (page: ParticleList) => ParticlePain
   return { color, fill };
 }
 
+/**
+ * Whether a slot list's pages hold the particles' `key` values: its first page's; where it has none yet (a view of no
+ * tiles: the camera seeing none of them, or before the first loads) by the catalog's info of them, what its pages will
+ * hold. Why: a representation's params are normalized against its first list (`State`), a theme not applicable then
+ * dropped for good
+ */
+export function slotPagesHave(particles: ParticleList, key: 'compartments' | 'entities'): boolean {
+  const pages = particles.pages?.pages;
+  if (!pages) return false;
+  if (pages.length > 0) return pages[0].list[key] !== undefined;
+  return (key === 'compartments' ? particles.compartmentInfo : particles.entityInfo) !== undefined;
+}
+
 /** `f` of each page's list of a slot list, or of a flat list itself */
+
 export function forEachPageList(particles: ParticleList, f: (list: ParticleList) => void) {
   ParticleSlots.forEachPage(particles, (page) => f(page.list));
 }

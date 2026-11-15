@@ -121,6 +121,25 @@ describe('particle color themes of a slot list', () => {
     }
   });
 
+  it('colors a slot list drawn flat (its keys the slots) as its slots: some tiles, a gap before them', () => {
+    const some = ParticleTileView.createSlots(set, source, ids.slice(3, 6), 0).list;
+    const drawn = ParticleSlots.flatten(some);
+    for (const p of [
+      ParticleEntityColorThemeProvider,
+      ParticleCompartmentColorThemeProvider,
+      ParticleHierarchyColorThemeProvider,
+      ParticleAttributeColorThemeProvider,
+      ParticleIndexColorThemeProvider,
+    ]) {
+      const ctx = { particles: some };
+      const theme = p.factory(ctx, PD.getDefaultValues(p.getParams(ctx)));
+      for (let i = 0; i < drawn.count; ++i) {
+        const slot = theme.color(Particle.Location(some, drawn.keys![i]), false);
+        expect(theme.color(Particle.Location(drawn, i), false), `${p.name} ${i}`).toBe(slot);
+      }
+    }
+  });
+
   it('colors a slot by its compartment and hierarchy alike in views of other tiles', () => {
     const fewer = ParticleTileView.createSlots(set, source, ids.slice(0, 4), 0).list;
     for (const p of [ParticleCompartmentColorThemeProvider, ParticleHierarchyColorThemeProvider]) {

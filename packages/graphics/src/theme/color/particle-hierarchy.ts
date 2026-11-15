@@ -15,7 +15,8 @@ import { DistinctColorsParams, getDistinctBaseColors, getDistinctGroupColors } f
 import { getPalette } from '@molstar/core/util/color/palette';
 import { ColorThemeCategory } from './categories.js';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
-import { fillByIndex, fillByLocation, forEachPageList, getPagedPainting } from './particle-pages.js';
+import { fillByIndex, fillByLocation, forEachPageList, getPagedPainting, slotPagesHave } from './particle-pages.js';
+
 import {
   Particle,
   type ParticleList,
@@ -80,10 +81,12 @@ type Props = PD.Values<ParticleHierarchyColorThemeParams>;
 type HierarchicalParticleList = ParticleList & Required<Pick<ParticleList, 'compartments' | 'entities'>>;
 
 function getParticleList(ctx: ThemeDataContext): HierarchicalParticleList | undefined {
-  if (ctx.particles?.compartments && ctx.particles.entities) return ctx.particles as HierarchicalParticleList;
+  const particles = ctx.particles;
+  if (particles?.compartments && particles.entities) return particles as HierarchicalParticleList;
   // a slot list: its pages' (each a flat list with both)
-  const first = ctx.particles?.pages?.pages[0]?.list;
-  if (first?.compartments && first.entities) return ctx.particles as HierarchicalParticleList;
+  if (particles && slotPagesHave(particles, 'compartments') && slotPagesHave(particles, 'entities')) {
+    return particles as HierarchicalParticleList;
+  }
   return undefined;
 }
 

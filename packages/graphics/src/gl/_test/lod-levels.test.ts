@@ -80,6 +80,33 @@ describe('levels of detail by size on screen', () => {
     expect(uLod()[1]).toEqual([250, 1000, 0, 2]);
   });
 
+  it('a level of other uniforms (levels off or on) another object: a draw block is made once a level (WebGPU)', () => {
+    const mdb = createSegmentedMdbList();
+    const view = { depthScale: 0.002, pixelSize: 0 };
+    const cell = ValueCell.create(pixelLevels());
+    mdb.prepare(cell, 1, false, view);
+    const on = mdb.list[0];
+    const onUniforms = on.uniforms.slice();
+
+    ValueCell.update(cell, Object.assign([] as unknown as LodLevelsValue, { pixelSize: 0 }));
+    mdb.prepare(cell, 1, false, view);
+    const off = mdb.list[0];
+    expect(off).not.toBe(on);
+    expect(off.uniforms).toEqual([]);
+    // the level drawn with levels on as it was
+    expect(on.uniforms).toEqual(onUniforms);
+
+    ValueCell.update(cell, pixelLevels());
+    mdb.prepare(cell, 1, false, view);
+    expect(mdb.list[0]).not.toBe(off);
+    expect(off.uniforms).toEqual([]);
+    expect(Array.from(mdb.list[0].uniforms[0][1].ref.value as Vec4)).toEqual([0, 500, 0, 1]);
+    // the same uniforms again: the same level
+    const again = mdb.list[0];
+    mdb.prepare(cell, 1, false, view);
+    expect(mdb.list[0]).toBe(again);
+  });
+
   it('sphere levels by pixel size from the strides and scale biases, none at 0', () => {
     const spheres = Spheres.createEmpty();
     const lodLevels = getLodPixelLevels(3);

@@ -97,7 +97,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_size_wgsl}
 
     let modelScale = uGlobal.uModelScale;
-    var radius = size * modelScale;
+    // the instance's own scale (a pose's: a coarse node's particles drawn larger), as the raster's (\`sphere-raster\`)
+    var radius = size * length(aTransform[0].xyz) * modelScale;
 
     // the position transformed, not the matrices multiplied first (three 4x4 products a vertex): the instance's
     // transform, the object's transient one, then the model and view
@@ -265,7 +266,9 @@ fn resolveSphere(position: vec4<f32>) -> Resolved {
     // the center as the raster transforms it: the instance's transform first
     let placed = transform * vec4<f32>(positionGroup.xyz, 1.0);
     out.vModelPosition = (uGlobal.uModel * placed).xyz;
-    var radius = size * uGlobal.uModelScale;
+    // scaled by the instance's pose, as the raster's
+    var radius = size * length(vec3<f32>(rows[0].x, rows[1].x, rows[2].x)) * uGlobal.uModelScale;
+
     // the chunk's level at its scale, as \`assign_lod_factor\`
     let lod = uObject.uRasterLevels[e.w & 3u];
     let scale = bitcast<f32>(instance.w);

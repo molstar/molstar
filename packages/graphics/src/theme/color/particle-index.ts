@@ -123,8 +123,12 @@ export function ParticleIndexColorTheme(
 
     color = (location: Location): Color => {
       if (Particle.isLocation(location)) {
-        return pick(indexOf(location.index));
+        const { particles: list, index } = location;
+        // a slot list drawn flat (`ParticleSlots.flatten`): a particle's slot its key
+        if (list !== particles && particles.pages && list.keys) return pick(list.keys[index]);
+        return pick(indexOf(index));
       }
+
       return DefaultColor;
     };
     // a list's colors by its particles' indices in the whole: a slot list's page's (its keys), the list's own

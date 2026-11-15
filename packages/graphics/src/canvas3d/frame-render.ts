@@ -95,10 +95,13 @@ export function createCanvas3DFrameRender(host: Canvas3DFrameRenderHost) {
     markingUpdated: boolean,
   ): boolean {
     const { graphics, renderer, passes, hiZ, multiSampleHelper, pickHelper, scene, helper, camera, frame } = parts;
-    // what a visible object's content hides (`OccluderGrid`): the depth pyramid primed from it
+    // what a visible object's content hides (`OccluderGrid`): the depth pyramid primed from it; only from an object
+    // wholly opaque (no alpha, x-ray or transparent parts): what transparent content covers is seen, not hidden
     let occluder: OccluderGrid | undefined;
     for (const r of scene.renderables) {
-      if (!r.state.visible) continue;
+      if (!r.state.visible || !r.state.opaque) continue;
+      if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0) continue;
+
       occluder = getOccluderGrid(r.state);
       if (occluder) break;
     }

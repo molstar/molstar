@@ -18,7 +18,15 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
-import { ParticleTileSetFromList, ParticleTilesView } from '@molstar/plugin/state/transforms/particles/tiles';
+import {
+  ParticleTileSetFromList,
+  ParticleTileSetFromPack,
+  ParticleTilesView,
+} from '@molstar/plugin/state/transforms/particles/tiles';
+import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
+import { writeParticlePack } from '@molstar/model/formats/particles/pack';
+import { Asset } from '@molstar/core/util/assets';
+
 import { WebGPU } from './webgpu-module.js';
 
 // A slot view of a tile set (`ParticleTilesView`'s `slots`) drawn by the target representation's store-backed object
@@ -233,6 +241,100 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {
       plugin.dispose();
+    }
+  }, 120_000);
+
+  it("draws a coarse node's spheres larger by its pose's scale, as sprites as rasterized", async () => {
+    // the lattice a tile a particle (4³ tiles), its levels: the root a sample of it (one particle) drawn 4 times larger
+    const bytes = writeParticlePack(createList(), { tiles: 4, levels: true });
+    const file = Asset.File(new File([bytes], 'lattice.mspk'));
+    /**
+     * the pixels drawn (`sphereRaster` off: sprites; only: the raster) of the root node alone, or of the lattice's
+     * tiles (`base`: 16 particles seen along z, the others behind them)
+     */
+    const drawn = async (raster: 'off' | 'only', base: boolean) => {
+      const spec = DefaultPluginSpec();
+      const plugin = await HeadlessPluginContext.create(
+        { webgpu: WebGPU.module! },
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
+        { backend: 'webgpu' },
+      );
+      try {
+        await plugin.init();
+        if (raster === 'only' && !plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
+        plugin.canvas3d!.setProps({
+          renderer: { sphereRaster: raster, sphereRasterRadius: 64, backgroundColor: 0x000000 as never },
+          camera: { mode: 'orthographic' } as never,
+          cameraFog: { name: 'off', params: {} },
+          multiSample: { mode: 'off' } as never,
+          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+        });
+        const tiles = await plugin
+          .build()
+          .toRoot()
+          .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file }, levels: true } as never)
+          .commit();
+        const levels = tiles.data!.set.levels!;
+        // a camera given that sees the set: the tiles themselves at the default detail, the root alone where any
+        // detail is too fine
+        const camera = {
+          snapshot: {
+            mode: 'perspective' as const,
+            fov: Math.PI / 4,
+            position: Vec3.create(45, 45, 400),
+            target: Vec3.create(45, 45, 0),
+            up: Vec3.create(0, 1, 0),
+            minNear: 1,
+          },
+          width: 512,
+          height: 512,
+        };
+        const detailPixels = base ? 4 : 1e9;
+        const view = await plugin
+          .build()
+          .to(tiles.ref)
+          .apply(ParticleTilesView, {
+            tiles: { name: 'camera', params: { minPixels: 0, occlusion: false, follow: false, detailPixels, camera } },
+            frame: 0,
+            slots: true,
+          } as never)
+          .commit();
+        const shown = Array.from(ParticleTileView.of(view.data!)!.tiles);
+        if (base) expect(shown.length).toBe(64);
+        else expect(shown).toEqual([levels.getNode(levels.count, 0)]);
+        await plugin
+          .build()
+          .to(view.ref)
+          .apply(ParticlesRepresentation3D, {
+            type: { name: 'target', params: { lodPixelSize: 0 } },
+            colorTheme: { name: 'uniform', params: { value: 0x00ff00 } },
+          } as never)
+          .commit();
+        for (let i = 0; i < 4; ++i) {
+          await plugin.getImageRaw({ width: Size, height: Size });
+          await plugin.canvas3d!.graphics.resources.pending.whenReady();
+          const camera = plugin.canvas3d!.camera;
+          camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 90), 0);
+        }
+        const { data } = await plugin.getImageRaw({ width: Size, height: Size });
+        expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
+        let n = 0;
+        for (let i = 0; i < data.length; i += 4) if (data[i + 1] > 40) n += 1;
+        return n;
+      } finally {
+        plugin.dispose();
+      }
+    };
+    for (const raster of ['off', 'only'] as const) {
+      const lattice = await drawn(raster, true);
+      if (lattice === undefined) continue;
+      const root = (await drawn(raster, false))!;
+      // a particle of the lattice drawn as it is, the root's 4 times larger: about 16 times its area (its sites
+      // overlap more, the discs of whole pixels)
+      const one = lattice / 16;
+      expect(root, raster).toBeGreaterThan(8 * one);
+      expect(root, raster).toBeLessThan(24 * one);
     }
   }, 120_000);
 });

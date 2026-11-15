@@ -401,7 +401,7 @@ export function getMergeKey(values: MergeableValues): string {
     const cells = [...keys.map((k) => values[k]), values.uInstanceGranularity, values.colorType, values.uLod];
     if (values.lodLevels) cells.push(values.lodLevels);
     // the index of `uLod` (compared by its components), not looked up per cell: values have too many keys for fast reads
-    const lod = keys.length + 1;
+    const lod = keys.length + 2;
     cached = { keys, cells, lod, versions: cells.map(() => -1), seen: cells.map(() => undefined), key: '' };
     mergeKeys.set(values, cached);
   }

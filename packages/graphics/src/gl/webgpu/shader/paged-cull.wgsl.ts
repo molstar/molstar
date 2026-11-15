@@ -42,8 +42,8 @@ fn membershipOf(info: vec4<u32>, extras: u32, j: u32) -> Membership {
         }
         let r = tables[base + lo];
         m.run = lo;
-        // between runs: a target the store's placement left out
-        if (j < r.x + r.y) {
+        // before the first run or between runs: a target the store's placement left out
+        if (j >= r.x && j < r.x + r.y) {
             m.member = r.z;
             m.scale = bitcast<f32>(r.w);
             if (m.scale < 0.0) {

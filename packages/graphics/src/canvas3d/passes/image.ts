@@ -260,8 +260,12 @@ export class ImagePass {
     this.helper.screen.pixelScale = canvasHeight > 0 ? this._height / canvasHeight : 1;
     // the scale line at this camera (the image's size, not the canvas's)
     this.helper.scaleLine.update(this._camera, this.helper.screen.pixelRatio);
+    // culled against no pyramid: the canvas's is of its last frame's view, and an image has no second phase to bring
+    // back what that hides here
     this.renderer.setOcclusionTest(null);
+    this.renderer.setOcclusionPyramid(null);
     this._frame = createFrame();
+
     return {
       renderer: this.renderer,
       camera: this._camera,
