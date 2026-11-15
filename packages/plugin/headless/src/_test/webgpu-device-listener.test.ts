@@ -23,10 +23,18 @@ describe.skipIf(!WebGPU.module)('a destroyed WebGPU context', () => {
       { backend: 'webgpu' },
     );
     try {
-      const device = (await requestWebGPUDevice('default', WebGPU.module!.create([])))!;
+      const gpu = WebGPU.module!.create([]);
+      const device = (await requestWebGPUDevice('default', gpu))!;
       const added = vi.spyOn(device, 'addEventListener');
       const removed = vi.spyOn(device, 'removeEventListener');
-      const ctx = createWebGPUContext(device, { width: 16, height: 16, ownsDevice: true });
+      // `gpu` kept alive with the context: collected while its device is in use (the probes' reads pending), Dawn's
+      // Node.js bindings crash (an access violation)
+      const ctx = createWebGPUContext(device, {
+        width: 16,
+        height: 16,
+        ownsDevice: true,
+        requestDevice: () => requestWebGPUDevice('default', gpu),
+      });
       const listeners = added.mock.calls.filter(([type]) => type === 'uncapturederror').map(([, l]) => l);
       expect(listeners).toHaveLength(1);
       // the device probes (render bundles, viewports) read back first: a device destroyed under their pending maps
