@@ -7,6 +7,9 @@
 import { describe, expect, it } from 'vitest';
 import { Box3D } from '@molstar/core/math/geometry/primitives/box3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
+import { Clip } from '@molstar/core/util/clip';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import type { ParticleTarget } from '../particle-list.js';
@@ -270,19 +273,96 @@ describe('particle tile visibility', () => {
     expect(ParticleTileVisibility.get(square, ortho).culled.occluded).toBe(1);
   });
 
-  it('cuts the blocks by the clip planes, leaves out a tile all clipped away', () => {
-    const set = cells([
+  /** a drawing (opaque) clipped by `objects` (`Clip.Params`' objects, their defaults otherwise) */
+  const clipped = (
+    objects: Partial<Omit<PD.Values<typeof Clip.Params>['objects'][number], 'rotation'>> &
+      {
+        rotation?: { axis: Vec3; angle: number };
+      }[],
+    opaque = true,
+  ) => {
+    const defaults = PD.getDefaultValues(Clip.Params.objects.element);
+    const clip = Clip.getClip({ variant: 'pixel', objects: objects.map((o) => ({ ...defaults, ...o })) });
+    return { clip: clip.objects, opaque };
+  };
+  // the front tile z -10 to 10, the one behind z -70 to -50, across x and y -20 to 20; the eye at z 100
+  const front = () =>
+    cells([
       [0, 4, 1],
       [0, 1, 0],
     ]);
-    // x >= 0 kept: the front's left half gone, the tile behind it seen past it
-    const half = Plane3D.create(Vec3.create(1, 0, 0), 0);
-    expect(ParticleTileVisibility.get(set, camera(eye), { clipPlanes: [half] }).tiles.length).toBe(2);
-    // z <= -30 kept: the front tile all clipped away
-    const cut = Plane3D.create(Vec3.create(0, 0, -1), -30);
-    const v = ParticleTileVisibility.get(set, camera(eye), { clipPlanes: [cut] });
+
+  it('cuts the blocks by clip planes, leaves out a tile all clipped away, inverted the other side', () => {
+    const set = front();
+    // a plane clips where its frame's y is at least its position's: turned about z by 90°, x below 0 clipped (the
+    // front's left half gone, the tile behind seen past it)
+    const half = clipped([{ type: 'plane', rotation: { axis: Vec3.create(0, 0, 1), angle: 90 } }]);
+    expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [half] }).tiles.length).toBe(2);
+    // turned about x by 90°: z above -30 clipped, the front tile all clipped away
+    const cut = {
+      type: 'plane' as const,
+      position: Vec3.create(0, 0, -30),
+      rotation: { axis: Vec3.create(1, 0, 0), angle: 90 },
+    };
+    const v = ParticleTileVisibility.get(set, camera(eye), { drawings: [clipped([cut])] });
     expect(zIds(set, v)).toEqual([1]);
     expect(v.culled.clipped).toBe(1);
+    // inverted: what is below -30 clipped, the tile behind all clipped away (the front kept, hiding nothing more)
+    const inverted = ParticleTileVisibility.get(set, camera(eye), { drawings: [clipped([{ ...cut, invert: true }])] });
+    expect(zIds(set, inverted)).toEqual([4]);
+    expect(inverted.culled.clipped).toBe(1);
+  });
+
+  it('cuts the blocks by any clip shape: a hole through the front seen through, a shape clipping a tile whole', () => {
+    const set = front();
+    expect(zIds(set, ParticleTileVisibility.get(set, camera(eye)))).toEqual([4]);
+    // a sphere of radius 15 about the front's center: a hole through it along the view, the tile behind seen through
+    const hole = clipped([{ type: 'sphere', scale: Vec3.create(30, 30, 30) }]);
+    expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [hole] }).tiles.length).toBe(2);
+    // a cylinder along z (its axis the frame's y: turned about x), the same hole
+    const tube = clipped([
+      { type: 'cylinder', scale: Vec3.create(30, 100, 30), rotation: { axis: Vec3.create(1, 0, 0), angle: 90 } },
+    ]);
+    expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [tube] }).tiles.length).toBe(2);
+    // a small sphere off the view's axis: no hole the rays pass, the tile behind still hidden
+    const dent = clipped([{ type: 'sphere', position: Vec3.create(18, 18, 9), scale: Vec3.create(2, 2, 2) }]);
+    expect(zIds(set, ParticleTileVisibility.get(set, camera(eye), { drawings: [dent] }))).toEqual([4]);
+    // a cube around the front tile: all of it clipped away, left out
+    const box = clipped([{ type: 'cube', scale: Vec3.create(50, 50, 30) }]);
+    const v = ParticleTileVisibility.get(set, camera(eye), { drawings: [box] });
+    expect(zIds(set, v)).toEqual([1]);
+    expect(v.culled.clipped).toBe(1);
+    // inverted, keeping only its inside: a small sphere about the front's center, the tile behind clipped away whole
+    const core = clipped([{ type: 'sphere', invert: true, scale: Vec3.create(6, 6, 6) }]);
+    const kept = ParticleTileVisibility.get(set, camera(eye), { drawings: [core] });
+    expect(zIds(set, kept)).toEqual([4]);
+    expect(kept.culled.clipped).toBe(1);
+    // a rod along z through both: the front's rim gone, the tile behind seen around the rod
+    const rod = clipped([
+      {
+        type: 'cylinder',
+        invert: true,
+        scale: Vec3.create(16, 300, 16),
+        rotation: { axis: Vec3.create(1, 0, 0), angle: 90 },
+      },
+    ]);
+    expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [rod] }).tiles.length).toBe(2);
+  });
+
+  it('hides by what every opaque drawing keeps, shows what any keeps', () => {
+    const set = front();
+    const hole = clipped([{ type: 'sphere', scale: Vec3.create(30, 30, 30) }]);
+    const whole = { opaque: true };
+    // another drawing of the front whole hides what is behind (the hole's only one of them)
+    expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [whole] }).tiles.length).toBe(1);
+    expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [hole, whole] }).tiles.length).toBe(2);
+    // drawn not opaque: nothing hides
+    expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [{ opaque: false }] }).tiles.length).toBe(2);
+    // a tile clipped away by one drawing, kept by the other: shown
+    const box = clipped([{ type: 'cube', scale: Vec3.create(50, 50, 30) }]);
+    expect(zIds(set, ParticleTileVisibility.get(set, camera(eye), { drawings: [box, { opaque: false }] }))).toEqual([
+      4, 1,
+    ]);
   });
 
   it('clips a box to its largest axis-aligned part on the kept side', () => {
