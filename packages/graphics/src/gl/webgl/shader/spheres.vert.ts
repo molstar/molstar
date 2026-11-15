@@ -135,7 +135,8 @@ void main(void){
     ${assign_clipping_varying}
     ${assign_size}
 
-    vSphere.w = size * uModelScale;
+    // the instance's own scale (a pose's: a coarse node's particles drawn larger), as WebGPU's (spheres.wgsl.ts)
+    vSphere.w = size * length(aTransform[0].xyz) * uModelScale;
 
     vModelPosition = (uModel * position4).xyz; // for clipping in frag shader
 

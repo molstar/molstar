@@ -53,7 +53,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { StructureElement, type Structure } from '@molstar/model/model/structure';
 import type { DrawIndirect } from '@molstar/graphics/gl/compute';
 import { FillKernel, FillSchema } from './compute.js';
-import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import {
   getTextureMeshSplatInstances,
@@ -436,6 +436,21 @@ export const GeometryCases: VisualTestCase[] = [
     requires: Impostor,
     view: ObliqueView,
     scene: async () => [await shapeRepr('spheres', sphereGrid(2, 2.5), { transforms: rowTransforms(3, 6) })],
+  },
+  {
+    id: 'geometry/spheres/instanced-scaled',
+    description:
+      'Three instances of a sphere grid scaled by their transforms (0.5, 1, 1.5): each a copy of the grid scaled whole, ' +
+      "its spheres' radii by the instance's scale as their centers (a coarse node's pose).",
+    requires: Impostor,
+    view: ObliqueView,
+    scene: async () => {
+      const transforms = [0.5, 1, 1.5].map((scale, i) => {
+        const t = Mat4.fromTranslation(Mat4(), Vec3.create((i - 1) * 7, 0, 0));
+        return Mat4.mul(t, t, Mat4.fromScaling(Mat4(), Vec3.create(scale, scale, scale)));
+      });
+      return [await shapeRepr('spheres', sphereGrid(2, 2.5), { transforms })];
+    },
   },
   {
     id: 'geometry/spheres/approximate',
