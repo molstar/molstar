@@ -256,6 +256,9 @@ export class ParticlesApi extends ApiArea {
       const name = listName(ctx, l);
       const data = l.cell.obj?.data;
       if (!data) return ApiResult.fail('not-found', `${name} is not loaded.`);
+      // a view of tiles read as the camera moves (a slot list): its targets the pack's, what `ParticleListWithTargets`
+      // does not apply to (made again at every step)
+      if (data.pages) return ApiResult.fail('blocked', `${name} is read tile by tile: its targets are the pack's.`);
       if (!file && !source.trim()) {
         return ApiResult.fail('invalid', 'Which object do the particles stand for?', 'Give a file, a PDB id or a URL.');
       }
@@ -534,7 +537,10 @@ export class ParticlesApi extends ApiArea {
       const name = listName(ctx, l);
       const data = l.cell.obj?.data;
       if (!data) return ApiResult.fail('blocked', `${name} is not loaded yet.`);
+      // a view of tiles read as the camera moves (a slot list): `TransformParticleList` does not apply to it
+      if (data.pages) return ApiResult.fail('blocked', `${name} is read tile by tile: it cannot be moved.`);
       const wanted = wantedTransform(v, 'particles.transform-reset');
+
       if (isFailure(wanted)) return wanted;
       const state = ctx.plugin.state.data;
       const ref = l.cell.transform.ref;

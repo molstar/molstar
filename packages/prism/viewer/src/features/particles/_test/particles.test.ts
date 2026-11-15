@@ -22,6 +22,9 @@ import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { type ParticleListInfo, particleUnitCellOf } from '../operations.js';
 import { particlesFile } from '../../../api/_test/volume-fixtures.js';
+import { particleTransformCell } from '../../../sources/particle-transform.js';
+import { CustomProperties } from '@molstar/model/model/custom-property';
+import { writeParticlePack } from '@molstar/model/formats/particles/pack';
 
 // `particles` (api.md §2) on a headless viewer, over a small CryoET NDJSON file made in memory.
 
@@ -183,6 +186,38 @@ describe('particles', () => {
 
     expectOk(await v.api.history.undo());
     expect(drawn()[0]).not.toBeCloseTo(loaded[0], 2);
+  });
+
+  it('neither moves a view of tiles read as the camera moves (a tile-ordered pack) nor sets its targets', async () => {
+    const v = await headlessViewer();
+    const n = 64;
+    const list: ParticleList = {
+      label: 'lattice',
+      count: n,
+      targets: new Int32Array(n).fill(1),
+      targetInfo: new Map([[1, { name: 'one' }]]),
+      targetMapping: new Map([
+        [1, { kind: 'sites', sites: { count: 1, positions: new Float32Array(3), radii: new Float32Array(1).fill(2) } }],
+      ]),
+      coordinates: Float32Array.from({ length: n * 3 }, (_, k) => (Math.floor(k / 3) % 4) * 30 + (k % 3) * 20),
+      getParticleLabel: (i) => `particle ${i}`,
+      sourceData: { kind: 'test', name: 'test', data: {} },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    const pack = writeParticlePack(list, { tiles: 2 });
+    expectOk(await v.api.load.files({ files: [new File([pack], 'lattice.mspk')] }));
+    const slots = () => v.plugin.managers.particles.hierarchy.current.lists[0];
+    await until(() => !!slots()?.cell.obj?.data.pages);
+    expect(slots().cell.obj!.data.pages).toBeDefined();
+    expect(await v.api.particles!.transform({ translation: Vec3.create(10, 0, 0) })).toMatchObject({
+      ok: false,
+      code: 'blocked',
+    });
+    expect(
+      await v.api.particles!.targets({ source: '1crn', target: '', file: undefined as never, particles: '' }),
+    ).toMatchObject({ ok: false, code: 'blocked' });
+    expect(particleTransformCell(v.plugin.state.data, slots().cell.transform.ref)).toBeUndefined();
   });
 
   it("shows, styles and hides a list's unit cell; a list without one says so", async () => {

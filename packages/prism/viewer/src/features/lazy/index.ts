@@ -151,7 +151,10 @@ export const LazyRemoteStates: LazyViewerExtension = {
   load: async () => (await import('../remote-states/index.js')).RemoteStatesFeature,
 };
 
-/** Mol*'s particle transformers (`ParticlesRegistry`), by id: a session holding one loads the particles feature */
+/**
+ * Mol*'s particle transformers (`ParticlesRegistry`) and the behavior the feature adds (the tiles following the camera),
+ * by id: a session holding one loads the particles feature
+ */
 const ParticleTransformers = [
   'parse-artiatomi-em',
   'particle-list-from-artiatomi-em',
@@ -172,6 +175,7 @@ const ParticleTransformers = [
   'particle-tile-set-from-list',
   'particle-tile-set-from-pack',
   'particle-tiles-view',
+  'particle-tiles-follow-camera',
 ].map((name) => `ms-plugin.${name}`);
 
 export const LazyParticles: LazyViewerExtension = {
