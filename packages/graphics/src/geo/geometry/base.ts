@@ -343,8 +343,12 @@ export namespace BaseGeometry {
   }
 
   /** The clip values of `values` for `clip` (as `updateValues` sets them), nothing else */
-  export function updateClip(values: BaseValues, clip: Clip.Props) {
-    if (clipProps.get(values) === clip) return;
+  /**
+   * `clip` into `values`, not again where it is what they were updated with last; `force`: whatever they were (their
+   * cells written by another, e.g. `fillMergeMember` copying a member's)
+   */
+  export function updateClip(values: BaseValues, clip: Clip.Props, force = false) {
+    if (!force && clipProps.get(values) === clip) return;
     clipProps.set(values, clip);
     const c = getSharedClip(clip);
     ValueCell.updateIfChanged(values.dClipObjects, c.objects.count > 0);

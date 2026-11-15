@@ -464,6 +464,9 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
       const member = await getMember(ctx, t, targets, theme, props);
       const values = pool[m].values as unknown as MergeableValues;
       fillMergeMember(values, member.renderObject.values as never);
+      // the clip as drawn now (its member's from when it was made, a cut moved since: the first member's cells are the
+      // object's)
+      BaseGeometry.updateClip(values as never, props.clip, true);
       if (byMember) setMemberColor(values, (theme.color as ColorTheme<any>).targetColor!(t)!);
       // a member's bounds none of its own: the object's the last member's
       ValueCell.update(values.boundingSphere, NoBounds);
@@ -624,11 +627,9 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
       for (const ro of pool) apply(ro);
     },
     updateClip(clip) {
-      // the object's (the cull reads it), its members' (a merged object's cells a member's), the members kept to fill a
-      // member again (`fillMergeMember` copies their values)
+      // the object's alone (what draws and what the cull reads; its clip cells its first member's), not the thousands
+      // of members': a member filled again later takes the clip then (`update`, after `fillMergeMember`)
       if (object) BaseGeometry.updateClip(object.values as never, clip);
-      for (const ro of pool) BaseGeometry.updateClip(ro.values as never, clip);
-      for (const m of byTarget.values()) BaseGeometry.updateClip(m.renderObject.values as never, clip);
       // the next full update's props compared with this clip: not changed props, no reset
       if (currentProps) currentProps = { ...currentProps, clip };
     },
