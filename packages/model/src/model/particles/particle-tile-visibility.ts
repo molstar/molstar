@@ -46,6 +46,11 @@ export interface ParticleTileVisibilityOptions {
   /** the depth buffer's pixels a side, 64 by default */
   readonly resolution?: number;
   /**
+   * the times a density block a clip surface cuts is split in eight (`ClipSplitDepth` by default): fewer, a quicker
+   * pick hiding less near the surface (a cut being moved)
+   */
+  readonly clipSplitDepth?: number;
+  /**
    * what draws the tiles (a representation each): none, one drawing them whole and opaque. A tile shows something
    * where any keeps some of its reach; what hides is what every opaque one keeps (`ParticleTileDrawing`)
    */
@@ -122,6 +127,7 @@ export namespace ParticleTileVisibility {
     const planes = occluders.flatMap((d) => (d.clip ? getClipPlanes(d.clip) : []));
     const shaped = occluders.filter((d) => d.clip && hasClipShapes(d.clip));
     const shapedPlaneBits = shaped.map((d) => getClipPlaneBits(d.clip!));
+    const splitDepth = options.clipSplitDepth ?? ClipSplitDepth;
     const { position: eye, direction: dir, pixelScale } = camera;
     Frustum3D.fromProjectionMatrix(_frustum, camera.viewProjection);
     const culled = { frustum: 0, clipped: 0, size: 0, occluded: 0 };
@@ -185,7 +191,7 @@ export namespace ParticleTileVisibility {
         const byBlock = tileClass === Clip.SphereClass.Some ? shaped : NoDrawings;
         const byBlockBits = tileClass === Clip.SphereClass.Some ? shapedPlaneBits : NoBits;
         for (const { box, density } of tileBlocks) {
-          if (clipBox(box, planes, _block)) addKept(buffer, _block, density, byBlock, byBlockBits, 0);
+          if (clipBox(box, planes, _block)) addKept(buffer, _block, density, byBlock, byBlockBits, splitDepth, 0);
         }
       }
     }
@@ -223,6 +229,7 @@ export namespace ParticleTileVisibility {
     density: number,
     drawings: readonly ParticleTileDrawing[],
     planeBits: readonly number[],
+    maxDepth: number,
     depth: number,
   ) {
     // none of the rays through it (off screen), or all opaque already: nothing to add, nor to test
@@ -241,10 +248,10 @@ export namespace ParticleTileVisibility {
       return;
     }
     // split no finer than the rays: a part across a ray at most changes none it would not
-    if (depth >= ClipSplitDepth || extent <= 1) return;
+    if (depth >= maxDepth || extent <= 1) return;
     const parts = getOctants(depth);
     for (let k = 0; k < 8; ++k) {
-      addKept(buffer, getOctant(box, k, parts[k]), density, drawings, planeBits, depth + 1);
+      addKept(buffer, getOctant(box, k, parts[k]), density, drawings, planeBits, maxDepth, depth + 1);
     }
   }
 

@@ -349,6 +349,19 @@ describe('particle tile visibility', () => {
     expect(ParticleTileVisibility.get(set, camera(eye), { drawings: [rod] }).tiles.length).toBe(2);
   });
 
+  it('splits a block a clip surface cuts as often as told: unsplit, it hides nothing', () => {
+    const set = front();
+    // a small sphere off the view's axis: split, the rest of the front hides the tile behind
+    const dent = clipped([{ type: 'sphere', position: Vec3.create(18, 18, 9), scale: Vec3.create(2, 2, 2) }]);
+    expect(zIds(set, ParticleTileVisibility.get(set, camera(eye), { drawings: [dent] }))).toEqual([4]);
+    expect(zIds(set, ParticleTileVisibility.get(set, camera(eye), { drawings: [dent], clipSplitDepth: 1 }))).toEqual([
+      4,
+    ]);
+    // not split: the blocks it cuts add nothing, the tile behind kept
+    const unsplit = ParticleTileVisibility.get(set, camera(eye), { drawings: [dent], clipSplitDepth: 0 });
+    expect(unsplit.tiles.length).toBe(2);
+  });
+
   it('hides by what every opaque drawing keeps, shows what any keeps', () => {
     const set = front();
     const hole = clipped([{ type: 'sphere', scale: Vec3.create(30, 30, 30) }]);
