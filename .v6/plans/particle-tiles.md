@@ -675,6 +675,13 @@
      render bundle recorded again), not the clip; picks 44 / 16 ms every 150 ms or so, a step 13 / 10 ms; the clip ghost
      a frame's CPU + 15 / + 8 ms. Left: a frame's draws of many members (fewer draws: members of a geometry drawn
      together, the bundles kept), the pick off the main thread (or the tiles' work cheaper where many are in view).
+   - 9l. **A tiled view's frame CPU**: the yeast at 16³ 22 ms a frame from outside, 45 inside (a camera orbit's and a
+     cut's drag alike: 9k), at best about 22 fps inside; the whole pack drawn by its targets (one object merged of its
+     5,639 members) as much inside (53 ms an orbit's frame, 4 outside): the draws given to the device (both phases') and
+     the queue's submit. Its draws: a member's region at each level, both phases of the culling over the members'
+     regions, the render bundles recorded again. First measured: how often the members drawn change between frames (a bundle kept while they do
+     not), whether a bundle is recorded again a frame for every object or only the paged one's; then the members of a
+     geometry drawn together (fewer draws).
 
 ## Open questions (the spec's)
 
