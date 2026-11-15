@@ -20,7 +20,11 @@ import { ParticleTileVisibility } from '@molstar/model/model/particles/particle-
 import { ParticleTiles, type ParticleTileSet } from '@molstar/model/model/particles/particle-tiles';
 import type { PluginContext } from '@molstar/plugin/context';
 import { getParticleTileCamera } from '@molstar/plugin/state/helpers/particle-tiles';
-import { getParticlePackSource, holdParticlePackFile } from '@molstar/plugin/state/helpers/particle-pack-source';
+import {
+  getPackFile,
+  getParticlePackSource,
+  holdParticlePackFile,
+} from '@molstar/plugin/state/helpers/particle-pack-source';
 
 import {
   createParticleTileSetFromPack,
@@ -136,8 +140,12 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
       // a file held by the asset manager, not read: a session saved keeps it, one opened reads it from there
       const assets = plugin.managers.asset;
       if (asset && Asset.isFile(asset) && holdParticlePackFile(asset, assets)) (cache as PackCache).held = asset;
+      // a file not held: none here (a state names it without holding it; a session saved before sessions held packs)
+      if (asset && Asset.isFile(asset) && !getPackFile(asset, assets)) {
+        throw new Error(`The particle pack file '${asset.name}' is not held here: open the file again.`);
+      }
       const read = asset ? await getParticlePackSource(asset, assets) : undefined;
-      if (!read) throw new Error('particle pack not read by range (a file not held, or a server ignoring ranges)');
+      if (!read) throw new Error('particle pack not read by range (a server ignoring ranges)');
       const stream = await openParticlePackStream(read);
       if (!isParticlePackStreamable(stream.document)) throw new Error('particle pack not tile-ordered: read it whole');
       const set = await createParticleTileSetFromPack(stream, {

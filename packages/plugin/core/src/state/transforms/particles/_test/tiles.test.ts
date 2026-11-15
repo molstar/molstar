@@ -40,6 +40,7 @@ import {
 import { PluginSpec } from '@molstar/plugin/spec';
 import { StateSelection } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
+import { PluginConfig } from '@molstar/plugin/config';
 
 import { writeParticlePack } from '@molstar/model/formats/particles/pack';
 import {
@@ -173,6 +174,47 @@ describe('particle tiles in the state', () => {
     // the set removed: its file no longer held
     await plugin.build().delete(tiles.ref).commit();
     expect(plugin.managers.asset.has(file)).toBe(false);
+  });
+
+  it('saves no session of files past its limit: fails naming them; a state opens without the file, saying so', async () => {
+    const bytes = writeParticlePack(createList(), { tiles: 2 });
+    const file = Asset.File(new File([bytes], 'lattice.mspk'));
+    await plugin
+      .build()
+      .toRoot()
+      .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file } } as never)
+      .commit();
+    const params = { camera: false, canvas3d: false };
+    await expect(
+      plugin.managers.snapshot.serialize({ type: 'molx', params, maxAssetBytes: bytes.byteLength - 1 }),
+    ).rejects.toThrow(/lattice\.mspk .*Save a state \(\.molj\) instead/);
+    // within it: the pack stored as it is (not deflated), the zip at least its size
+    const session = await plugin.managers.snapshot.serialize({ type: 'molx', params });
+    expect(session.size).toBeGreaterThan(bytes.byteLength);
+    expect(PluginConfig.State.MaxSessionAssetBytes.defaultValue).toBe(1024 * 1024 * 1024);
+    // the plugin's config the limit where `serialize` is given none
+    plugin.config.set(PluginConfig.State.MaxSessionAssetBytes, bytes.byteLength - 1);
+    try {
+      await expect(plugin.managers.snapshot.serialize({ type: 'molx', params })).rejects.toThrow(/lattice\.mspk/);
+    } finally {
+      plugin.config.delete(PluginConfig.State.MaxSessionAssetBytes);
+    }
+
+    // a state names the file without holding it: opened elsewhere, the set fails saying so
+    const state = await plugin.managers.snapshot.serialize({ type: 'molj', params });
+    const other = new PluginContext({ behaviors: [], registry: [...DefaultRegistry, ...ParticlesRegistry] });
+    await other.init();
+    try {
+      await other.managers.snapshot.open(new File([state], 'state.molj'));
+      const cell = [...other.state.data.cells.values()].find(
+        (c) => c.transform.transformer === ParticleTileSetFromPack,
+      )!;
+      expect(cell.status).toBe('error');
+
+      expect(String(cell.errorText)).toContain("'lattice.mspk' is not held here: open the file again");
+    } finally {
+      other.dispose();
+    }
   });
 
   it("picks the grid by default: a tile-ordered list's written one, else about a page of particles a tile", async () => {
