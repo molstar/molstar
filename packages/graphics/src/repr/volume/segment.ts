@@ -265,7 +265,11 @@ function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, graphic
     throw new Error('volume too large for gpu segment extraction');
   }
 
-  const texture = ScratchTextures.getOrCreate(graphics, () => resources.texture('image-uint8', 'r', 'ubyte', 'linear'), SegmentTextureName);
+  const texture = ScratchTextures.getOrCreate(
+    graphics,
+    () => resources.texture('image-uint8', 'r', 'ubyte', 'linear'),
+    SegmentTextureName,
+  );
 
   texture.define(texDim, texDim);
   // load volume into sub-section of texture

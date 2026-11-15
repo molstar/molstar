@@ -9,6 +9,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { InstancePoses } from '@molstar/core/math/geometry/instance-transforms';
 import { getDrawnBoundingSphere } from '@molstar/graphics/gl/renderable/util';
@@ -160,13 +161,14 @@ describe('particles', () => {
     await v.api.load.files({ files: [particlesFile()] });
     const list = () => v.plugin.managers.particles.hierarchy.current.lists[0];
     // what the representation draws: the list at the end of its decorators
-    const drawn = () => (list().representations[0].cell.obj!.data.sourceData as ParticleList).coordinates;
-    const loaded = Array.from(list().cell.obj!.data.coordinates);
+    const drawn = () =>
+      GridPositions.toFloat((list().representations[0].cell.obj!.data.sourceData as ParticleList).coordinates);
+    const loaded = Array.from(GridPositions.toFloat(list().cell.obj!.data.coordinates));
 
     expectOk(await v.api.particles!.transform({ translation: Vec3.create(10, 0, 0) }));
     Array.from(drawn()).forEach((x, i) => expect(x).toBeCloseTo(loaded[i] + (i % 3 === 0 ? 10 : 0), 4));
     // the hierarchy's list is the one loaded, the representations still under it
-    expect(Array.from(list().cell.obj!.data.coordinates)).toEqual(loaded);
+    expect(Array.from(GridPositions.toFloat(list().cell.obj!.data.coordinates))).toEqual(loaded);
     expect(list().representations).toHaveLength(1);
     expect(((await v.api.particles!.transform({ translation: Vec3.create(10, 0, 0) })) as any).unchanged).toBe(true);
 

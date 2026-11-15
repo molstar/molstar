@@ -292,12 +292,12 @@ function pickTiles(
       const height = given ? given.height : canvas!.camera.viewport.height;
       const { minPixels, occlusion } = params.params;
       const opticalDepth = params.params.opticalDepth ?? 7;
-      // the last pick of the set kept by its camera: a following view's steps (and the behavior's check) of one camera
-      // pick once (the visibility a pass over the tiles, their occlusion)
+      // the set's last picks kept by their cameras: a following view's steps (and the behavior's check) of one camera
+      // pick once (the visibility a pass over the tiles, their occlusion), each of a few views of the set its own
       const detailPixels = params.params.detailPixels ?? 4;
       const key = `${getCameraKey(snapshot, width, height, minPixels, occlusion, opticalDepth)},${params.params.maxParticles ?? 0},${detailPixels}`;
-      const last = lastPicks.get(set);
-      if (last?.key === key) return last.ids;
+      const kept = getPick(set, key);
+      if (kept) return kept;
       const v = ParticleTileVisibility.get(set.levels?.base ?? set, getParticleTileCamera(snapshot, width, height), {
         minPixels,
         occlusion,
@@ -307,7 +307,7 @@ function pickTiles(
       const max = params.params.maxParticles ?? 0;
       if (set.levels) {
         const ids = pickNodes(set, v.tiles, detailPixels, max);
-        lastPicks.set(set, { key, ids });
+        keepPick(set, key, ids);
         return ids;
       }
       let ids = v.tiles.map((t) => t.id);
@@ -317,7 +317,7 @@ function pickTiles(
         while (n < ids.length && count + set.tiles.get(ids[n])!.count <= max) count += set.tiles.get(ids[n++])!.count;
         ids = ids.slice(0, Math.max(1, n));
       }
-      lastPicks.set(set, { key, ids });
+      keepPick(set, key, ids);
       return ids;
     }
   }
@@ -438,8 +438,33 @@ function pickNodes(
   return picked.ids;
 }
 
-/** per tile set its last pick by a camera (`pickTiles`) */
-const lastPicks = new WeakMap<ParticleTileSet, { key: string; ids: number[] }>();
+/**
+ * per tile set its last picks by a camera (`pickTiles`), by key, the least recent first. Why several: views of one set
+ * by other cameras (a box and a following view, two canvases) would each pick again at every step otherwise
+ */
+const lastPicks = new WeakMap<ParticleTileSet, Map<string, number[]>>();
+/** the picks a set keeps */
+const KeptPicks = 4;
+
+/** the pick of `set` by `key` where kept, made the most recent (the same array: `wantTiles` compares it by identity) */
+function getPick(set: ParticleTileSet, key: string) {
+  const picks = lastPicks.get(set);
+  const ids = picks?.get(key);
+  if (!picks || !ids) return undefined;
+  picks.delete(key);
+  picks.set(key, ids);
+  return ids;
+}
+
+function keepPick(set: ParticleTileSet, key: string, ids: number[]) {
+  let picks = lastPicks.get(set);
+  if (!picks) {
+    picks = new Map();
+    lastPicks.set(set, picks);
+  }
+  picks.set(key, ids);
+  while (picks.size > KeptPicks) picks.delete(picks.keys().next().value!);
+}
 
 /** what a camera's pick is of: its pose and lens, its near plane too (`getParticleTileCamera`'s, by `minNear`) */
 function getCameraKey(

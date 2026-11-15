@@ -370,6 +370,10 @@ describe('particle tiles in the state', () => {
     // the near plane past the whole lattice (z 0-90, the camera at 400): none of its tiles in front of it
     const far = pick(1000);
     expect(far).not.toEqual(near);
+    // views of the set by these two cameras in turn: each its own pick kept, not made again
+    expect(pick(1)).toBe(near);
+    expect(pick(1000)).toBe(far);
+    expect(pick(1)).toBe(near);
   });
 
   it("picks a set's coarse levels: a cut of the octree, nodes where small on screen, coarser within the cap", async () => {
