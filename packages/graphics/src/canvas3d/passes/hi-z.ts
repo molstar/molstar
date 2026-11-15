@@ -203,6 +203,8 @@ export class HiZPass {
    * tests on the GPU only (not read); other layouts of its eyes build none
    */
   render(camera: Camera | StereoCamera, complete = false, read = true) {
+    // unsupported (e.g. WebGL1: no float targets or asynchronous reads): no reader, nothing to build
+    if (!this.supported) return;
     if (!read) {
       // the CPU test's levels (read back) of an earlier frame no more: frames of levels not read (stereo's eyes,
       // illumination) test nothing on the CPU, and the next frame that does (stereo or illumination off) none until
