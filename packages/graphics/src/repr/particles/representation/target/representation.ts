@@ -19,7 +19,7 @@ import {
 } from '@molstar/model/model/particles/particle-list';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Theme } from '@molstar/graphics/theme/theme';
-import { type GraphicsRenderObject, getNextMaterialId } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getNextMaterialId, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { Subject } from 'rxjs';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import { type Loci as ModelLoci, EmptyLoci, isEveryLoci, EveryLoci } from '@molstar/model/model/loci';
@@ -149,10 +149,13 @@ export function ParticleTargetRepresentation(
       built!.props = { ..._props };
       return serialize(
         Task.create('ParticleTargetRepresentation clip', async () => {
-          // every member, also of a merged object (its first member's cells are the merged object's): one leaving its
-          // group draws right
-          for (const visual of targetVisuals.values()) {
-            if (visual.renderObject) BaseGeometry.updateClip(visual.renderObject.values as any, clip);
+          // what is drawn alone: a visual not merged, a merged object's first member (its clip cells the object's);
+          // not the thousands of other members (not read while merged): a full update gives them the clip
+          // (`BaseGeometry.updateValues`) before they are merged again
+          for (const ro of renderObjects) {
+            if (ro === slots?.renderObject) continue;
+            const values = isMergedRenderObject(ro) ? ro.members[0].values : ro.values;
+            BaseGeometry.updateClip(values as any, clip);
           }
           // the store's object: its uniforms and its cull's clip, no page written again
           slots?.updateClip(clip);

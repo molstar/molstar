@@ -832,6 +832,11 @@ export function createMergedCuller(
   let transformVersion = -1;
   /** advanced where the layout or the instances changed: a dispatch culled with an older one is not current */
   let dataVersion = 0;
+  /**
+   * advanced with `dataVersion` but for the clip objects: what the records are predicted from (`predictRecords`: the
+   * segments' bounds and scales, the object's transform, the regions), the clip not among it
+   */
+  let boundsVersion = 0;
   function sync() {
     const key = getLayoutKey();
     const layoutChanged = !isSameKey(key, layoutKey);
@@ -859,12 +864,14 @@ export function createMergedCuller(
       );
       ValueCell.update(cellValues.uObjectScale, Mat4.getMaxScaleOnAxis(transform.ref.value));
       dataVersion += 1;
+      boundsVersion += 1;
     }
     const versions = getInstanceVersions();
     if (layoutChanged || versions !== instanceVersions) {
       instanceVersions = versions;
       syncInstances(moved, posesOnly);
       dataVersion += 1;
+      boundsVersion += 1;
     }
   }
   /**
@@ -882,6 +889,7 @@ export function createMergedCuller(
     fixedKey = getFixedKey().slice();
     layoutRegions();
     dataVersion += 1;
+    boundsVersion += 1;
   }
 
   sync();
@@ -934,7 +942,11 @@ export function createMergedCuller(
   }
   const getPlane = (i: number, cameraPlane: Plane3D, frustum: Frustum3D) => (i < 6 ? frustum[i as 0] : cameraPlane);
   function isDispatched(cameraPlane: Plane3D, frustum: Frustum3D, min: number, max: number) {
-    if (dispatchedVersion !== dataVersion || dispatched[28] !== min || dispatched[29] !== max) return false;
+    return dispatchedVersion === dataVersion && isDispatchedView(cameraPlane, frustum, min, max);
+  }
+  /** the last dispatch's planes, distance range and levels' ranges, whatever its data */
+  function isDispatchedView(cameraPlane: Plane3D, frustum: Frustum3D, min: number, max: number) {
+    if (dispatched[28] !== min || dispatched[29] !== max) return false;
     for (let i = 0; i < 16; ++i) if (dispatchedLevels[i] !== levelRanges[i]) return false;
     for (let i = 0; i < 7; ++i) {
       const { normal, constant } = getPlane(i, cameraPlane, frustum);
@@ -989,6 +1001,8 @@ export function createMergedCuller(
     uObjectTransform: values.uObjectTransform,
   }));
   let predictedNext = new Uint8Array(0);
+  /** the `boundsVersion` the records were last predicted with */
+  let predictedBounds = -1;
   function setListRecords() {
     recordsVersion += 1;
     for (let k = 0; k < lists.length; ++k) {
@@ -1185,7 +1199,12 @@ export function createMergedCuller(
       }
       if (!getKernels()) return false;
       restoreRecords();
-      if (predictRecords(cameraPlane, frustum, raster)) setListRecords();
+      // the prediction of the last dispatch kept where only the clip objects changed since (a cut moved: its
+      // inputs are the view, the levels, the raster and the bounds), a pass over every segment and level skipped
+      const predictedCurrent =
+        !rasterChanged && predictedBounds === boundsVersion && isDispatchedView(cameraPlane, frustum, min, max);
+      if (!predictedCurrent && predictRecords(cameraPlane, frustum, raster)) setListRecords();
+      predictedBounds = boundsVersion;
       dispatchVersion += 1;
       ValueCell.updateIfChanged(copyValues.uRasterRadius, raster?.radius ?? 0);
       ValueCell.updateIfChanged(copyValues.uRasterScale, raster?.scale ?? 0);
