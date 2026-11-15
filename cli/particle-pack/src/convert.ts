@@ -23,6 +23,7 @@ import {
 } from '@molstar/model/model/particles/particle-list';
 import { AtomicNumbers, VdwRadius } from '@molstar/model/model/structure/model/properties/atomic/measures';
 import { type ElementSymbol, getElementFromAtomicNumber } from '@molstar/model/model/structure/model/types';
+import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
 
 export interface MmcifToPackOptions {
   /** the assembly the particles are (the file's first by default) */
@@ -74,7 +75,9 @@ export function packToPack(
  * written as carbon
  */
 export function packToMmcif(data: Uint8Array, binary: boolean): { data: Uint8Array | string; unmatchedRadii: number } {
-  const list = createParticleListFromPack(readParticlePack(data));
+  let list = createParticleListFromPack(readParticlePack(data));
+  // tile-ordered: its particles by tile, a target's not consecutive; written again sorted by target
+  if (ParticleTiles.getDirectory(list)) list = createParticleListFromPack(readParticlePack(writeParticlePack(list)));
   return writeParticleListMmcif(list, binary);
 }
 

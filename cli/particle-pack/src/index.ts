@@ -44,20 +44,54 @@ parser.add_argument('--levels', {
   required: false,
 });
 
+/** A read or a write at most this long: one of 2 GiB or more fails (`readFileSync` and `writeFileSync` too) */
+const Chunk = 1 << 28;
+
+/** `path`'s bytes, read in chunks: a pack of the yeast cell's grids is several GB */
+function readFile(path: string): Uint8Array {
+  const fd = fs.openSync(path, 'r');
+  try {
+    const out = new Uint8Array(fs.fstatSync(fd).size);
+    for (let o = 0; o < out.byteLength; ) {
+      const n = fs.readSync(fd, out, o, Math.min(Chunk, out.byteLength - o), o);
+      if (n <= 0) throw new Error(`'${path}' read short`);
+      o += n;
+    }
+    return out;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/** `data` written to `path` in chunks; a failed write leaves no file (not one of 0 bytes) */
+function writeFile(path: string, data: Uint8Array | string) {
+  const bytes = typeof data === 'string' ? Buffer.from(data) : data;
+  const fd = fs.openSync(path, 'w');
+  try {
+    for (let o = 0; o < bytes.byteLength; ) o += fs.writeSync(fd, bytes, o, Math.min(Chunk, bytes.byteLength - o));
+    fs.closeSync(fd);
+  } catch (e) {
+    fs.closeSync(fd);
+    fs.rmSync(path, { force: true });
+    throw e;
+  }
+}
+
 async function run(args: Args) {
-  const data = new Uint8Array(fs.readFileSync(args.src));
+  const data = readFile(args.src);
   const start = performance.now();
   if (isParticlePack(data) && /\.mspk$/i.test(args.out)) {
-    fs.writeFileSync(args.out, packToPack(data, { tiles: args.tiles, levels: args.levels }));
+    writeFile(args.out, packToPack(data, { tiles: args.tiles, levels: args.levels }));
   } else if (isParticlePack(data)) {
     const binary = /\.bcif$/i.test(args.out);
     const { data: out, unmatchedRadii } = packToMmcif(data, binary);
-    fs.writeFileSync(args.out, out);
+    writeFile(args.out, out);
     if (unmatchedRadii > 0) console.warn(`${unmatchedRadii} sites of a radius no element has, written as carbon`);
   } else {
     const cif = await parseMmcif(data, /\.bcif$/i.test(args.src));
-    fs.writeFileSync(
+    writeFile(
       args.out,
+
       await mmcifToPack(cif, {
         assemblyId: args.assembly,
         variant: args.variant,

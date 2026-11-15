@@ -168,6 +168,21 @@ describe('particle pack converter', () => {
     expect(packToMmcif(writeParticlePack(list), true).unmatchedRadii).toBe(1);
   });
 
+  it('writes a tile-ordered pack (with levels) as mmCIF: its particles by target, the same set', async () => {
+    const list = createList(true);
+    const pack = writeParticlePack(list, { tiles: 2, levels: true });
+    const { data } = packToMmcif(pack, true);
+    const back = createParticleListFromPack(
+      readParticlePack(await mmcifToPack(await parseMmcif(data as Uint8Array, true))),
+    );
+    expect(back.count).toBe(list.count);
+    const key = (l: ParticleList) =>
+      Array.from({ length: l.count }, (_, i) =>
+        Array.from(GridPositions.get(l.coordinates, i, Vec3()), (v) => v.toFixed(1)).join(','),
+      ).sort();
+    expect(key(back)).toEqual(key(createParticleListFromPack(readParticlePack(writeParticlePack(list)))));
+  });
+
   it('writes a pack again, tile-ordered with tiles: the same particles, a tile directory', () => {
     const pack = writeParticlePack(createList(true));
     const tiled = createParticleListFromPack(readParticlePack(packToPack(pack, { tiles: 2 })));
