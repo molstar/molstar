@@ -205,7 +205,7 @@ export const ParticleTargetRepresentationParams = {
     {
       label: 'Occluder Grid',
       description:
-        "What the particles hide as optical densities on a grid (the GPU's occlusion primed from it: what lies behind dense content culled through the gaps between molecules). Given: a pack's or its tiles'; computed where none: once a list as it is drawn whole (about a second for 30 million particles); off: none. Off with clip objects.",
+        "What the particles hide as optical densities on a grid (the GPU's occlusion primed from it: what lies behind dense content culled through the gaps between molecules). Given: a pack's or its tiles'; computed where none: once a list as it is drawn whole (about a second for 30 million particles); off: none. With clip objects, what they remove hides nothing; none while the object is moved.",
       isEssential: false,
     },
   ),
