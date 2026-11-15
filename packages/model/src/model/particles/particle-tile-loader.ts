@@ -63,6 +63,11 @@ export interface ParticleTileLoaderOptions {
 
 /** a failed tile's loads at most, while wanted again (`setWanted`): a dropped request not a hole for good */
 export const ParticleTileLoadAttempts = 3;
+/**
+ * the wait before a failed tile loads again, by its failures so far (1: before the second load), in ms: attempts a
+ * frame apart would all fall within a short drop of the network
+ */
+export const ParticleTileRetryDelaysMs: readonly number[] = [1000, 3000];
 
 interface TileEntry {
   readonly id: number;
@@ -77,6 +82,8 @@ interface TileEntry {
   controller?: AbortController;
   /** its loads failed since it was last ready or released */
   failures: number;
+  /** failed, waiting before it may load again (`ParticleTileRetryDelaysMs`): the timer that ends the wait */
+  retryTimer?: ReturnType<typeof setTimeout>;
 }
 
 interface TargetEntry {
@@ -197,6 +204,7 @@ export function createParticleTileLoader(
           entry.state = 'failed';
           entry.error = error;
           entry.failures += 1;
+          if (entry.failures < ParticleTileLoadAttempts) waitToRetry(entry);
           options.onError?.(entry.id, entry.frame, error);
         }
       } finally {
@@ -209,6 +217,21 @@ export function createParticleTileLoader(
         }
       }
     })();
+  }
+
+  /** a failed tile's wait before it may load again: the listeners told as it ends (a view's pass wants it again) */
+  function waitToRetry(entry: TileEntry) {
+    const delays = ParticleTileRetryDelaysMs;
+    const ms = delays[Math.min(entry.failures, delays.length) - 1] ?? 0;
+    entry.retryTimer = setTimeout(() => {
+      entry.retryTimer = undefined;
+      if (!disposed) notify();
+    }, ms);
+  }
+  function clearRetry(entry: TileEntry) {
+    if (entry.retryTimer === undefined) return;
+    clearTimeout(entry.retryTimer);
+    entry.retryTimer = undefined;
   }
 
   /** the next wanted tiles started, by priority, while fewer than `concurrency` load */
@@ -241,9 +264,10 @@ export function createParticleTileLoader(
         if (next.has(key)) continue;
         next.add(key);
         keys.push(key);
-        // failed: loaded again where wanted again, a few times (a dropped request), then failed until released
+        // failed: loaded again where wanted again once its wait is over, a few times (a dropped request), then failed
+        // until released
         const entry = getEntry(id, frame);
-        if (entry.state === 'failed' && entry.failures < ParticleTileLoadAttempts) {
+        if (entry.state === 'failed' && entry.failures < ParticleTileLoadAttempts && entry.retryTimer === undefined) {
           entry.state = 'none';
           entry.error = undefined;
         }
@@ -271,6 +295,7 @@ export function createParticleTileLoader(
         entry.list = undefined;
         entry.error = undefined;
         entry.failures = 0;
+        clearRetry(entry);
       }
 
       notify();
@@ -334,7 +359,10 @@ export function createParticleTileLoader(
     },
     dispose() {
       disposed = true;
-      for (const entry of tiles.values()) cancel(entry);
+      for (const entry of tiles.values()) {
+        cancel(entry);
+        clearRetry(entry);
+      }
       tiles.clear();
       wanted = [];
       wantedSet = new Set();

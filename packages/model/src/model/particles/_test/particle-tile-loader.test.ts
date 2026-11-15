@@ -7,7 +7,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Task } from '@molstar/core/task';
 import type { ParticleList, ParticleTarget } from '../particle-list.js';
-import { createParticleTileLoader, ParticleTileLoadAttempts } from '../particle-tile-loader.js';
+import {
+  createParticleTileLoader,
+  ParticleTileLoadAttempts,
+  ParticleTileRetryDelaysMs,
+} from '../particle-tile-loader.js';
 import { type ParticleTileProvider, type ParticleTileSet, ParticleTiles } from '../particle-tiles.js';
 
 const Count = 64;
@@ -218,29 +222,47 @@ describe('particle tile loader', () => {
     expect(loader.getState(ids[3], 0)).toBe('ready');
   });
 
-  it('tells of a failed load, loading it again where wanted again a few times, then failed until released', async () => {
+  it('tells of a failed load, loading it again where wanted again after a wait a few times, then failed until released', async () => {
     const { set, fail, calls } = delayed(base);
     const errors: string[] = [];
     const loader = createParticleTileLoader(set, { onError: (id, frame) => errors.push(`${id}@${frame}`) });
+    let told = 0;
+    loader.subscribe(() => told++);
     const key = `${ids[3]}@0`;
+    const loads = () => calls.tiles.filter((t) => t === key).length;
     fail.add(key);
     const want = async () => {
       loader.setWanted([{ id: ids[3], frame: 0 }]);
       await step();
     };
-    for (let i = 0; i < ParticleTileLoadAttempts + 2; ++i) await want();
-    // a load an attempt, each told, none past the attempts
-    expect(calls.tiles.filter((t) => t === key)).toHaveLength(ParticleTileLoadAttempts);
+    await want();
+    expect(loads()).toBe(1);
+    for (let attempt = 1; attempt < ParticleTileLoadAttempts; ++attempt) {
+      // wanted again within the wait (a frame later, a short drop of the network): not loaded
+      await want();
+      expect(loads()).toBe(attempt);
+      // the wait over: the listeners told, the next want loads it
+      const before = told;
+      await step(ParticleTileRetryDelaysMs[attempt - 1]);
+      expect(told).toBeGreaterThan(before);
+      await want();
+      expect(loads()).toBe(attempt + 1);
+    }
+    // none past the attempts, each told
+    await step(10_000);
+    await want();
+    expect(loads()).toBe(ParticleTileLoadAttempts);
     expect(errors).toEqual(Array(ParticleTileLoadAttempts).fill(key));
     expect(loader.getState(ids[3], 0)).toBe('failed');
-    // a dropped request: the next attempt (within the attempts) loads it
-    fail.clear();
+    // released: its waits and failures gone, a dropped request then loaded again after the first wait
     loader.release([{ id: ids[3], frame: 0 }]);
-    fail.add(key);
     await want();
+    expect(loads()).toBe(ParticleTileLoadAttempts + 1);
     fail.clear();
+    await step(ParticleTileRetryDelaysMs[0]);
     await want();
     expect(loader.getState(ids[3], 0)).toBe('ready');
+    loader.dispose();
   });
 
   it('loads a trajectory frame wanted ahead, the frames apart', async () => {

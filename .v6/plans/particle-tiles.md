@@ -11,7 +11,7 @@
   wanted cancelled: its task aborted at its next update, its result dropped), at most `concurrency` at once (4), a
   tile's targets with it and once each for all tiles and frames; ready kept until `release`, `releaseTargets` only of
   the unused (`getUnusedTargets`), a failed tile told (`onError`) and loaded again where wanted again
-  (`ParticleTileLoadAttempts`), then failed until released; `getLoaded` (tiles, particles, targets,
+  after a wait (`ParticleTileLoadAttempts`, `ParticleTileRetryDelaysMs`: 1 s, 3 s), then failed until released; `getLoaded` (tiles, particles, targets,
   bytes), `subscribe`, `whenIdle`, `dispose`. Tests: `particle-tile-loader.test.ts` (timeouts faked, the tasks'
   scheduler immediates real).
 - **Step 3 done**: `particle-tile-visibility.ts` (`ParticleTileVisibility.get`, `ParticleTileCamera`): the frustum, the
