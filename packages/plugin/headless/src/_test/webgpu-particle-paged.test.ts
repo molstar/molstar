@@ -23,6 +23,8 @@ import {
   ParticleValues,
 } from '@molstar/model/model/particles/particle-list';
 import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
+import { ParticlePageStore } from '@molstar/graphics/repr/particles/representation/target/page-store';
+
 import { ValueCell } from '@molstar/core/util/value-cell';
 
 import { OrderedSet } from '@molstar/core/data/int';
@@ -482,6 +484,47 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
         expect(differing(paged.plain, flat.plain)).toBeLessThanOrEqual(8);
         expect(differing(paged.ghosted, flat.ghosted)).toBeLessThanOrEqual(8);
       }
+
+      // a cut moved as a clipping gizmo's drag moves it (a clip-only update of the representation, not the state's):
+      // the store's object kept, no page written again, the image of the moved cut's representation
+      const moved = (() => {
+        const c = clip('pixel');
+        return { ...c, objects: [{ ...c.objects[0], position: Vec3.create(30, 45, 45) }] };
+      })();
+      canvas.setProps({ clipGhost: { name: 'off', params: {} } });
+      const paged = async (c: ReturnType<typeof clip>) => {
+        const v = await plugin
+          .build()
+          .to(tiles.ref)
+          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots: true })
+          .commit();
+        const repr = await plugin
+          .build()
+          .to(v.ref)
+          .apply(ParticlesRepresentation3D, {
+            type: { name: 'target', params: { lodPixelSize: 0, clip: c } },
+            colorTheme: { name: 'particle-index', params: {} },
+          } as never)
+          .commit();
+        return { v, repr: repr.data!.repr };
+      };
+      const reference = await (async () => {
+        const { v } = await paged(moved);
+        const f = await frame();
+        await plugin.build().delete(v.ref).commit();
+        return f;
+      })();
+      const dragged = await paged(clip('pixel'));
+      const before = await frame();
+      expect(differing(before, reference)).toBeGreaterThan(20);
+      const object = dragged.repr.renderObjects[0];
+      const written = vi.spyOn(ParticlePageStore.prototype, 'add');
+      await dragged.repr.createOrUpdate({ ...dragged.repr.props, clip: moved }).run();
+      expect(written).not.toHaveBeenCalled();
+      written.mockRestore();
+      expect(dragged.repr.renderObjects[0]).toBe(object);
+      expect(differing(await frame(), reference)).toBeLessThanOrEqual(8);
+      await plugin.build().delete(dragged.v.ref).commit();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {
       plugin.dispose();

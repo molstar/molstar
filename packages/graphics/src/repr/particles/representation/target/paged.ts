@@ -13,6 +13,9 @@ import type { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ParticleList, Particle, ParticleTarget } from '@molstar/model/model/particles/particle-list';
 import { type ParticlePage, ParticleSlots } from '@molstar/model/model/particles/particle-slots';
+import type { Clip } from '@molstar/core/util/clip';
+import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
+
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
 import { type ParticleDensityGrid, ParticleTileOpaque } from '@molstar/model/model/particles/particle-tile-opaque';
 import { setOccluderGrid } from '@molstar/graphics/gl/occluder-grid';
@@ -71,6 +74,11 @@ export interface TargetSlotsObject {
   update(ctx: VisualContext, list: ParticleList, theme: Theme, props: ParticleTargetRepresentationProps): Promise<void>;
   /** the state of what is drawn and of its members (visible, pickable) */
   applyState(apply: (renderObject: GraphicsRenderObject) => void): void;
+  /**
+   * `clip` set on what is drawn, nothing else changed (a clip object moved: a clipping gizmo's drag; its defines the
+   * same, `BaseGeometry.isSameClipDefines`): its uniforms, the cull's clip objects; no page written again
+   */
+  updateClip(clip: Clip.Props): void;
   /** the particle picked, undefined where `pickingId` is not this object's */
   getLoci(pickingId: PickingId): ModelLoci | undefined;
   mark(loci: ModelLoci, action: MarkerAction): boolean;
@@ -614,6 +622,15 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
     update,
     applyState(apply) {
       for (const ro of pool) apply(ro);
+    },
+    updateClip(clip) {
+      // the object's (the cull reads it), its members' (a merged object's cells a member's), the members kept to fill a
+      // member again (`fillMergeMember` copies their values)
+      if (object) BaseGeometry.updateClip(object.values as never, clip);
+      for (const ro of pool) BaseGeometry.updateClip(ro.values as never, clip);
+      for (const m of byTarget.values()) BaseGeometry.updateClip(m.renderObject.values as never, clip);
+      // the next full update's props compared with this clip: not changed props, no reset
+      if (currentProps) currentProps = { ...currentProps, clip };
     },
     getLoci,
     mark,

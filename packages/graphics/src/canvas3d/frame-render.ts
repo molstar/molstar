@@ -6,6 +6,8 @@
 
 import { isTimingMode } from '@molstar/core/util/debug';
 import { type OccluderGrid, getOccluderGrid } from '@molstar/graphics/gl/occluder-grid';
+import type { ClipStorageValues } from '@molstar/graphics/gl/clip-storage';
+import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import type { Camera, ICamera } from './camera.js';
 import type { StereoCamera } from './camera/stereo.js';
@@ -98,14 +100,20 @@ export function createCanvas3DFrameRender(host: Canvas3DFrameRenderHost) {
     // what a visible object's content hides (`OccluderGrid`): the depth pyramid primed from it; only from an object
     // wholly opaque (no alpha, x-ray or transparent parts): what transparent content covers is seen, not hidden
     let occluder: OccluderGrid | undefined;
+    let occluderClip: ClipStorageValues | undefined;
     for (const r of scene.renderables) {
       if (!r.state.visible || !r.state.opaque) continue;
       if (r.values.uAlpha.ref.value < 1 || r.values.transparencyAverage.ref.value > 0) continue;
-
+      // being moved (a drag's preview transform): its grid at rest is not where it is drawn
+      if (!Mat4.isIdentity(r.values.uObjectTransform.ref.value)) continue;
       occluder = getOccluderGrid(r.state);
-      if (occluder) break;
+      // its clip objects with it: what they remove hides nothing
+      if (occluder) {
+        occluderClip = r.values as unknown as ClipStorageValues;
+        break;
+      }
     }
-    hiZ.setOccluder(occluder);
+    hiZ.setOccluder(occluder, occluderClip);
     const { stereoCamera, props: p } = parts;
     let didRender = false;
 

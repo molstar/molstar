@@ -12,6 +12,13 @@ import {
   createHiZOccluderRenderable,
 } from '@molstar/graphics/gl/compute/hi-z';
 import { type OccluderGrid, usesOccluderGrid } from '@molstar/graphics/gl/occluder-grid';
+import { Clip } from '@molstar/core/util/clip';
+import {
+  ClipStorageVec4s,
+  type ClipStorageValues,
+  getStorageClipVersion,
+  packStorageClipObjects,
+} from '@molstar/graphics/gl/clip-storage';
 import { projectSphere } from '@molstar/graphics/gl/project-sphere';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
@@ -236,10 +243,18 @@ export class HiZPass {
    * depth the nearer of the drawn depth's and where its ray through the grid reaches the occlusion's threshold
    * (`HiZProps.occluderOpticalDepth`), so the levels hold through the gaps between molecules. WebGPU; none: as drawn
    */
-  setOccluder(grid: OccluderGrid | undefined) {
+  setOccluder(grid: OccluderGrid | undefined, clip?: ClipStorageValues) {
     // WebGPU's program primes the level (WebGL's builds it plain: no grid uploaded there)
     this.occluder = this.supported && usesOccluderGrid(this.graphics) ? grid : undefined;
+    // the grid's object's clip objects (its values: a drag's moved cut too, its uniforms the same frame)
+    this.occluderClip = this.occluder ? clip : undefined;
   }
+
+  /** the clip values of the occluder's object (`setOccluder`), and the version of them packed last */
+  private occluderClip?: ClipStorageValues;
+  private occluderClipVersion = '';
+  private occluderClipPackedOf?: ClipStorageValues;
+  private readonly occluderClipPacked = new Float32Array(Clip.MaxObjectCount * ClipStorageVec4s * 4);
 
   /** the occluder renderable for the first level with `grid` uploaded, made where none */
   private getOccluderRenderable(grid: OccluderGrid) {
@@ -281,6 +296,20 @@ export class HiZPass {
     ValueCell.update(v.uGridDims, Vec3.set(v.uGridDims.ref.value, nx, ny, nz));
     ValueCell.updateIfChanged(v.uGridColumns, columns);
     ValueCell.updateIfChanged(v.uOpticalDepth, this.props.occluderOpticalDepth);
+    // its clip objects packed where they changed (a cut moved: a frame's few floats)
+    const clip = this.occluderClip;
+    // its versions of the object packed last (another object's cells can be of the same versions)
+    const version = clip ? getStorageClipVersion(clip) : '';
+    if (clip !== this.occluderClipPackedOf || version !== this.occluderClipVersion) {
+      this.occluderClipPackedOf = clip;
+      this.occluderClipVersion = version;
+      const data = v.uClipData.ref.value;
+      const packed = this.occluderClipPacked;
+      const count = clip ? packStorageClipObjects(clip, packed) : 0;
+      for (let k = 0; k < data.length; ++k) data[k] = packed[k];
+      ValueCell.update(v.uClipData, data);
+      ValueCell.updateIfChanged(v.uClipCount, count);
+    }
     return this.occluderRenderable;
   }
 

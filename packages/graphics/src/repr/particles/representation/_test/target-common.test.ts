@@ -61,13 +61,10 @@ const sphereOffCenter = Sphere3D.create(Vec3.create(10, 20, 30), 1);
 
 // a target spread over the scene: its grid's cells grown to hold a few instances each, not one each
 describe('isTargetOccluderOff', () => {
-  it('turns the occluder grid off as asked and with clip objects (its rays would march what they cut away)', () => {
-    const plane = { type: 'plane' as const, invert: false } as never;
-    const clip = (n: number) => ({ variant: 'pixel' as const, objects: Array.from({ length: n }, () => plane) });
-    expect(isTargetOccluderOff({ occluder: 'auto', clip: clip(0) })).toBe(false);
-    expect(isTargetOccluderOff({ occluder: 'compute', clip: clip(0) })).toBe(false);
-    expect(isTargetOccluderOff({ occluder: 'off', clip: clip(0) })).toBe(true);
-    expect(isTargetOccluderOff({ occluder: 'auto', clip: clip(1) })).toBe(true);
+  it('turns the occluder grid off as asked only, on with clip objects (its rays skip what they cut away)', () => {
+    expect(isTargetOccluderOff({ occluder: 'auto' })).toBe(false);
+    expect(isTargetOccluderOff({ occluder: 'compute' })).toBe(false);
+    expect(isTargetOccluderOff({ occluder: 'off' })).toBe(true);
   });
 });
 

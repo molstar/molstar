@@ -58,6 +58,7 @@ import { getSitesSignatureDefines } from './sites.js';
 import { getStructureSignatureDefines, type SiteColorProps } from './site-color.js';
 import { createTargetPagedObject, type TargetSlotsObject } from './paged.js';
 import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
+import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
 import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
 import { ParticleDensityGrid } from '@molstar/model/model/particles/particle-tile-opaque';
@@ -117,7 +118,9 @@ export function ParticleTargetRepresentation(
    * drag), nothing to rebuild and nothing merged otherwise; every target's full update and the merge check are skipped
    */
   function isClipOnly() {
-    if (!built || built.particles !== _particles || built.theme !== _theme || targetVisuals.size === 0) return false;
+    // what is drawn: the targets' visuals, or the store's object (a slot list on the GPU)
+    if (!built || built.particles !== _particles || built.theme !== _theme) return false;
+    if (targetVisuals.size === 0 && !slots?.renderObject) return false;
     const before = built.props;
     if (before.clip === _props.clip) return false;
     for (const k in _props) {
@@ -137,6 +140,9 @@ export function ParticleTargetRepresentation(
     // Quality-derived props are resolved per target (see `createParticleTargetPropsProvider`),
     // since each target has its own data and its own geometry params.
     Object.assign(_props, props);
+    // how it draws a tile view (its clip objects, its opacity): what the view's picks go by, a moved cut too (a
+    // clipping gizmo's drag updates the representation alone, not the state)
+    ParticleTileDrawings.set(self, _particles, _props);
 
     if (isClipOnly()) {
       const clip = _props.clip;
@@ -148,6 +154,9 @@ export function ParticleTargetRepresentation(
           for (const visual of targetVisuals.values()) {
             if (visual.renderObject) BaseGeometry.updateClip(visual.renderObject.values as any, clip);
           }
+          // the store's object: its uniforms and its cull's clip, no page written again
+          slots?.updateClip(clip);
+
           updated.next(version++);
         }),
       );
@@ -380,6 +389,7 @@ export function ParticleTargetRepresentation(
   }
 
   function destroy() {
+    ParticleTileDrawings.set(self, undefined, undefined);
     for (const visual of targetVisuals.values()) {
       visual.destroy();
     }
@@ -391,7 +401,7 @@ export function ParticleTargetRepresentation(
     drawn = undefined;
   }
 
-  return {
+  const self: ParticleTargetRepresentation = {
     label: 'Particle Target',
     get updated() {
       return updated;
@@ -431,6 +441,7 @@ export function ParticleTargetRepresentation(
       getParticleTargetSignatures(props, ctx),
     destroy,
   };
+  return self;
 }
 
 /**

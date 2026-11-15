@@ -10,6 +10,8 @@ import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import { Clip } from '@molstar/core/util/clip';
+import { ClipStorageVec4s } from '../clip-storage.js';
 import { type ComputeRenderable, createComputeRenderable } from '../renderable.js';
 import { TextureSpec, UniformSpec, type Values } from '../renderable/schema.js';
 import { ShaderCode } from '../shader-code.js';
@@ -61,6 +63,13 @@ export const HiZOccluderSchema = {
   uGridDims: UniformSpec('v3'),
   uGridColumns: UniformSpec('f'),
   uOpticalDepth: UniformSpec('f'),
+  /**
+   * the grid's object's clip objects (`clip_storage_wgsl`: `ClipStorageVec4s` vec4s each, `uClipCount` of them): what
+   * they remove hides nothing (a ray's samples there skipped), as the object draws it; its uniforms each frame, a cut
+   * moved (a drag) without the grid uploaded again
+   */
+  uClipCount: UniformSpec('i'),
+  uClipData: UniformSpec('v4[]', undefined, 'object', Clip.MaxObjectCount * ClipStorageVec4s),
 };
 export const HiZOccluderShaderCode = ShaderCode('hi-z-occluder');
 export type HiZOccluderRenderable = ComputeRenderable<Values<typeof HiZOccluderSchema>>;
@@ -85,7 +94,10 @@ export function createHiZOccluderRenderable(
     uGridDims: ValueCell.create(Vec3()),
     uGridColumns: ValueCell.create(1),
     uOpticalDepth: ValueCell.create(7),
+    uClipCount: ValueCell.create(0),
+    uClipData: ValueCell.create(new Array<number>(Clip.MaxObjectCount * ClipStorageVec4s * 4).fill(0)),
   };
+
   const renderItem = ctx.createComputeRenderItem('triangles', HiZOccluderShaderCode, { ...HiZOccluderSchema }, values);
   return createComputeRenderable(renderItem, values);
 }

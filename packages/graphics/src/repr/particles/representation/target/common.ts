@@ -289,12 +289,11 @@ export function createParticleTargetPropsProvider(
 }
 
 /**
- * Whether the occluder grid (the GPU's occlusion primed from the particles' densities, `occluder`) is off: as asked, or
- * with clip objects. Why: the grid's rays march through what the clip objects cut away too, so it would hide what they
- * reveal
+ * Whether the occluder grid (the GPU's occlusion primed from the particles' densities, `occluder`) is off: as asked.
+ * With clip objects it is on: the grid's rays skip what they cut away (the object's clip objects, `HiZPass.setOccluder`)
  */
-export function isTargetOccluderOff(props: Pick<ParticleTargetRepresentationProps, 'occluder' | 'clip'>) {
-  return props.occluder === 'off' || props.clip.objects.length > 0;
+export function isTargetOccluderOff(props: Pick<ParticleTargetRepresentationProps, 'occluder'>) {
+  return props.occluder === 'off';
 }
 
 // ---- Transform helpers -----------------------------------------------------

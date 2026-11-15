@@ -467,6 +467,17 @@ export namespace Camera {
     }
   }
 
+  /**
+   * The distances of the near and far planes a camera in `state` draws between (its own's: the scene's radius
+   * clipped, `minNear`, `clipFar`), in the world's units: what draws nothing nearer or farther
+   */
+  export function getClipDistances(
+    state: Pick<Snapshot, 'position' | 'target' | 'radius' | 'radiusMax' | 'clipFar' | 'minNear' | 'minFar'>,
+  ): { readonly near: number; readonly far: number } {
+    const { near, far } = getClipRange(state, 1, false);
+    return { near, far };
+  }
+
   export function createDefaultSnapshot(): Snapshot {
     return {
       mode: 'perspective',
@@ -624,9 +635,16 @@ function updatePers(camera: Camera) {
   updateView(camera);
 }
 
-function updateClip(camera: Camera) {
-  const { forceFull, scale } = camera;
-  let { radius, radiusMax, mode, fog, clipFar, minNear, minFar } = camera.state;
+/**
+ * The near and far planes' distances of a camera in `state` (`updateClip`, `Camera.getClipDistances`), in a world
+ * scaled by `scale`; `forceFull`: all of the scene's radius
+ */
+function getClipRange(
+  state: Pick<Camera.Snapshot, 'position' | 'target' | 'radius' | 'radiusMax' | 'clipFar' | 'minNear' | 'minFar'>,
+  scale: number,
+  forceFull: boolean,
+) {
+  let { radius, radiusMax, clipFar, minNear, minFar } = state;
   radiusMax *= scale;
   minFar *= scale;
   minNear *= scale;
@@ -637,34 +655,36 @@ function updateClip(camera: Camera) {
   if (radius < minRadius) radius = minRadius;
 
   const normalizedFar = Math.max(clipFar ? radius : radiusMax, minFar);
-  Vec3.scale(tmpTarget, camera.state.target, scale);
-  Vec3.scale(tmpPosition, camera.state.position, scale);
+  Vec3.scale(tmpTarget, state.target, scale);
+  Vec3.scale(tmpPosition, state.position, scale);
   const cameraDistance = Vec3.distance(tmpPosition, tmpTarget);
   let near = forceFull ? 0.01 : cameraDistance - radius;
   let far = cameraDistance + normalizedFar;
   if (forceFull) minNear = near;
 
-  if (mode === 'perspective') {
-    // set at least to 5 to avoid slow sphere impostor rendering
-    near = Math.max(Math.min(radiusMax, minNear), near);
-    far = Math.max(minNear, far);
-  } else {
-    // not too close to 0 as it causes issues with outline rendering
-    near = Math.max(Math.min(radiusMax, minNear), near);
-    far = Math.max(minNear, far);
-  }
+  // perspective: at least `minNear` (5 by default) to avoid slow sphere impostor rendering; orthographic: not too
+  // close to 0 as it causes issues with outline rendering
+  near = Math.max(Math.min(radiusMax, minNear), near);
+  far = Math.max(minNear, far);
 
   if (near === far) {
     // make sure near and far are not identical to avoid Infinity in the projection matrix
     far = near + 0.01 * scale;
   }
+  return { near, far, cameraDistance, normalizedFar };
+}
 
-  const fogNearFactor = -(50 - fog) / 50;
+function updateClip(camera: Camera) {
+  const { forceFull, scale } = camera;
+  const { near, far, cameraDistance, normalizedFar } = getClipRange(camera.state, scale, forceFull);
+
+  const fogNearFactor = -(50 - camera.state.fog) / 50;
   const fogNear = cameraDistance - normalizedFar * fogNearFactor;
   const fogFar = far;
 
   camera.near = near;
   camera.far = far;
+
   camera.fogNear = fogNear;
   camera.fogFar = fogFar;
 }

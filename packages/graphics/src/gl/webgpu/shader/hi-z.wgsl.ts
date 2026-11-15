@@ -5,6 +5,7 @@
  */
 
 import { quad_vert_wgsl } from './chunks/quad.wgsl.js';
+import { clip_storage_wgsl } from './chunks/clip.wgsl.js';
 
 /**
  * A level of the hierarchical depth buffer: the min (the farthest, depth is reversed) of the texels of the previous
@@ -37,10 +38,16 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 /**
  * The first level primed from an occluder grid (`HiZOccluderSchema`): the depth texture's farthest (as `hi_z_wgsl`), the
  * nearer (larger, depth reversed) where the texel's center ray through the grid reaches `uOpticalDepth`: at the far end
- * of the step it is reached in (a density a lower bound, so a depth not nearer than the content's statistically)
+ * of the step it is reached in (a density a lower bound, so a depth not nearer than the content's statistically); the
+ * samples the grid's object's clip objects remove (`uClipData`) adding nothing: what is cut away hides nothing
  */
+/** the clip objects a ray's intervals are kept for (`Clip.MaxObjectCount`) */
+const MaxClipObjects = 16;
+
 export const hi_z_occluder_wgsl = /* wgsl */ `
+
 ${quad_vert_wgsl}
+${clip_storage_wgsl('uObject.uClipData', '0u', 'uObject.uClipCount')}
 
 /** the optical density of grid cell \`c\` (its slices along z side by side in \`tGrid\`) */
 fn gridDensity(c: vec3<i32>) -> f32 {
@@ -84,12 +91,53 @@ fn gridDepth(position: vec2<f32>) -> f32 {
     let cell = (hi - lo) / n;
     let step = min(cell.x, min(cell.y, cell.z)) * 0.5;
     let steps = min(i32(ceil((tf - tn) / step)), 1024);
+    // the clip objects' intervals along the ray in the grid, once a ray (\`clipObjectInterval\`: its part inside one, from
+    // 0 at its entry to 1 at its exit), not a shape tested at every sample
+    // only those that cut the ray: an object it misses (or an inverted one about all of it) clips none of it, one
+    // about all of it (or an inverted one it misses) all of it (nothing it passes hides)
+    var intervals: array<vec2<f32>, ${MaxClipObjects}>;
+    var inverted: array<bool, ${MaxClipObjects}>;
+    var clipCount = 0;
+    let front = origin + dir * tn;
+    let back = origin + dir * tf;
+    for (var i = 0; i < min(uObject.uClipCount, ${MaxClipObjects}); i++) {
+        let iv = clipObjectInterval(i, front, back);
+        let inv = isClipObjectInverted(i);
+        let misses = iv.x > iv.y || iv.y <= 0.0 || iv.x >= 1.0;
+        let covers = !misses && iv.x <= 0.0 && iv.y >= 1.0;
+        if ((covers && !inv) || (misses && inv)) {
+            return 0.0;
+        }
+        if (misses || covers) {
+            continue;
+        }
+        intervals[clipCount] = iv;
+        inverted[clipCount] = inv;
+        clipCount++;
+    }
+
     var sum = 0.0;
     for (var k = 0; k < steps; k++) {
         let t = tn + f32(k) * step;
         let p = origin + dir * (t + 0.5 * step);
+        // what the clip objects remove hides nothing, as the object draws it: within an object's interval (outside an
+        // inverted one's)
+        let s = (t + 0.5 * step - tn) / (tf - tn);
+        var clipped = false;
+        for (var i = 0; i < clipCount; i++) {
+            let iv = intervals[i];
+            let inside = s >= iv.x && s <= iv.y;
+            if (inside != inverted[i]) {
+                clipped = true;
+                break;
+            }
+        }
+        if (clipped) {
+            continue;
+        }
         let c = clamp(vec3<i32>(floor((p - lo) / cell)), vec3<i32>(0), vec3<i32>(n) - 1);
         sum += gridDensity(c) * step;
+
         if (sum >= uObject.uOpticalDepth) {
             let clip = uObject.uViewProjection * vec4<f32>(origin + dir * (t + step), 1.0);
             return clamp(clip.z / clip.w, 0.0, 1.0);
