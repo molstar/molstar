@@ -165,6 +165,15 @@ export class PluginContext {
     this.initCanvas3dPromiseCallbacks = [res, rej];
   });
 
+  /**
+   * A canvas set by a subclass itself (not `initViewer`'s, e.g. a headless one): told as initialized, so what waits for
+   * it (`behaviors.canvas3d.initialized`, `canvas3dInitialized`: a behavior following the camera) does
+   */
+  protected canvas3dReady() {
+    this.canvas3dInit.next(true);
+    Scheduler.setImmediate(() => this.initCanvas3dPromiseCallbacks[0]());
+  }
+
   readonly initialized = new Promise<void>((res, rej) => {
     this.initializedPromiseCallbacks = [res, rej];
   });

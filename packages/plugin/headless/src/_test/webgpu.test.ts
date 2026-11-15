@@ -27,6 +27,24 @@ END
 `;
 
 describe.skipIf(!WebGPU.module)('HeadlessPluginContext on WebGPU', () => {
+  it('tells its canvas as initialized: what waits for one (a behavior following the camera) gets it', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: 16, height: 16 },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      let told = false;
+      plugin.behaviors.canvas3d.initialized.subscribe(() => (told = true)).unsubscribe();
+      expect(told).toBe(true);
+      await plugin.canvas3dInitialized;
+    } finally {
+      plugin.dispose();
+    }
+  });
+
   it('renders a structure', async () => {
     const webgpu = WebGPU.module!;
 
