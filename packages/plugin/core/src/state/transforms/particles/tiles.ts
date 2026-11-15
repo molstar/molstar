@@ -10,16 +10,16 @@ import { Task } from '@molstar/core/task';
 import { Asset } from '@molstar/core/util/assets';
 import { StateTransformer } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import { createParticleTileLoader, type ParticleTileLoader } from '@molstar/model/model/particles/particle-tile-loader';
 import { ParticleTileOpaque } from '@molstar/model/model/particles/particle-tile-opaque';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
 import { ParticleTileVisibility } from '@molstar/model/model/particles/particle-tile-visibility';
+import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
 import { ParticleTiles, type ParticleTileSet } from '@molstar/model/model/particles/particle-tiles';
 import type { PluginContext } from '@molstar/plugin/context';
-import { getParticleTileCamera } from '@molstar/plugin/state/helpers/particle-tiles';
+import { getParticleTileCamera, type ParticleTileCameraSnapshot } from '@molstar/plugin/state/helpers/particle-tiles';
 import {
   getPackFile,
   getParticlePackSource,
@@ -189,11 +189,10 @@ interface PackCache {
   held?: Asset.File;
 }
 
-/** A canvas camera as a param
-: its snapshot and its viewport's size (none: the canvas' own at the time) */
+/** A canvas camera as a param: its snapshot and its viewport's size (none: the canvas' own at the time) */
 const CameraParam = PD.Value<
   | {
-      snapshot: Pick<Camera.Snapshot, 'mode' | 'fov' | 'position' | 'target' | 'up' | 'minNear'>;
+      snapshot: ParticleTileCameraSnapshot;
       width: number;
       height: number;
     }
@@ -296,6 +295,13 @@ function parseIds(text: string): number[] {
 
 export { pickTiles as pickParticleTiles };
 
+/**
+ * the occlusion's rays a side (`ParticleTileVisibilityOptions.resolution`): settled, and while what draws the tiles
+ * changes (a cut dragged: a pick a frame or so, a quarter of the rays, about a quarter of the time)
+ */
+const SettledResolution = 64;
+const MovingResolution = 32;
+
 /** the tiles `params` picks of `set`, by priority where by the camera, else ascending */
 function pickTiles(
   set: ParticleTileSet,
@@ -327,13 +333,20 @@ function pickTiles(
       // the set's last picks kept by their cameras: a following view's steps (and the behavior's check) of one camera
       // pick once (the visibility a pass over the tiles, their occlusion), each of a few views of the set its own
       const detailPixels = params.params.detailPixels ?? 4;
-      const key = `${getCameraKey(snapshot, width, height, minPixels, occlusion, opticalDepth)},${params.params.maxParticles ?? 0},${detailPixels}`;
+      // what draws its tiles (their representations' clip objects and opacity): picked again where it changes
+      const drawing = ParticleTileDrawings.get(set);
+      // a cut being moved (its drawings changing): the quicker pick, a coarser occlusion, picked again once it settles
+      // (the follow behavior's pass after `SettleMs`)
+      const resolution = ParticleTileDrawings.isChanging(set) ? MovingResolution : SettledResolution;
+      const key = `${getCameraKey(snapshot, width, height, minPixels, occlusion, opticalDepth)},${params.params.maxParticles ?? 0},${detailPixels},${drawing.version},${resolution}`;
       const kept = getPick(set, key);
       if (kept) return kept;
       const v = ParticleTileVisibility.get(set.levels?.base ?? set, getParticleTileCamera(snapshot, width, height), {
         minPixels,
         occlusion,
         opticalDepth,
+        drawings: drawing.list.length > 0 ? drawing.list : undefined,
+        resolution,
       });
       // the tiles by priority within the cap of particles
       const max = params.params.maxParticles ?? 0;
@@ -498,9 +511,12 @@ function keepPick(set: ParticleTileSet, key: string, ids: number[]) {
   while (picks.size > KeptPicks) picks.delete(picks.keys().next().value!);
 }
 
-/** what a camera's pick is of: its pose and lens, its near plane too (`getParticleTileCamera`'s, by `minNear`) */
+/**
+ * what a camera's pick is of: its pose and lens, its near planes too (`getParticleTileCamera`'s: `minNear`, and the
+ * clipping's, of its focus' radius)
+ */
 function getCameraKey(
-  s: Pick<Camera.Snapshot, 'mode' | 'fov' | 'position' | 'target' | 'up' | 'minNear'>,
+  s: ParticleTileCameraSnapshot,
   width: number,
   height: number,
   minPixels: number,
@@ -511,6 +527,10 @@ function getCameraKey(
     s.mode,
     s.fov,
     s.minNear,
+    s.radius,
+    s.radiusMax,
+    s.clipFar,
+    s.minFar,
     ...s.position,
     ...s.target,
     ...s.up,
@@ -531,6 +551,7 @@ type TilesValues = PD.Values<{ tiles: typeof TilesParam }>['tiles'];
 const stepParticles = new WeakMap<ParticleTileSet, number>();
 
 /** the particles of `set`'s following views' next step (by the time the last took), none: their budget alone */
+
 export function setParticleTilesStep(set: ParticleTileSet, particles: number | undefined) {
   if (particles === undefined) stepParticles.delete(set);
   else stepParticles.set(set, particles);

@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { Clip } from '@molstar/core/util/clip';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { OrderedSet } from '@molstar/core/data/int';
 import {
@@ -18,6 +19,7 @@ import {
   ParticleValues,
 } from '@molstar/model/model/particles/particle-list';
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
+import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
 import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
 import { ArrayParticleTrajectory } from '@molstar/model/model/particles/particle-trajectory';
 import { PluginContext } from '@molstar/plugin/context';
@@ -713,12 +715,74 @@ describe('particle tiles in the state', () => {
     // the third's reach (2 Å past its box) within the second's cell, so kept; the last hidden
     expect(n(without)).toBe(4);
     expect(n(withOcclusion)).toBe(3);
+
+    // the canvas camera's near plane at z 60, past the front tile (1000 - its focus' radius: zoomed in, the clipping
+    // slider): what is nearer hides nothing (not drawn), the last seen
+    const clipped = view(true);
+    const nearer = await plugin
+      .build()
+      .to(tiles.ref)
+      .apply(ParticleTilesView, {
+        ...clipped,
+        tiles: {
+          ...clipped.tiles,
+          params: {
+            ...clipped.tiles.params,
+            camera: {
+              ...clipped.tiles.params.camera,
+              snapshot: { ...clipped.tiles.params.camera.snapshot, radius: 60, radiusMax: 2000 },
+            },
+          },
+        },
+      })
+      .commit();
+    expect(n(nearer)).toBe(4);
+
+    // a hole through the column down to z 20 where the view looks (a sphere clipping it, its representation's): the last
+    // tile (z 0 to 22.5) seen, the ones clipped away whole left out
+    const repr = await plugin
+      .build()
+      .to(withOcclusion.ref)
+      .apply(ParticlesRepresentation3D, {
+        type: {
+          name: 'target',
+          params: {
+            clip: {
+              variant: 'pixel',
+              objects: [
+                {
+                  ...PD.getDefaultValues(Clip.Params.objects.element),
+                  type: 'sphere',
+                  position: Vec3.create(30, 30, 60),
+                  scale: Vec3.create(80, 80, 80),
+                },
+              ],
+            },
+          },
+        },
+      } as never)
+      .commit();
+    // a tile's z cell (the last, behind: 0)
+    const lastShown = (c: typeof without) =>
+      ParticleTileView.of(c.data!)!.tiles.some((id) => Math.floor(id / 16) === 0);
+    expect(lastShown(withOcclusion)).toBe(false);
+    // the full pick: once the drawings settled (while they change the coarser one)
+    await new Promise((resolve) => setTimeout(resolve, ParticleTileDrawings.SettleMs + 20));
+    // what draws a set's views picks every view of it (a following one again as it changes: the behavior's)
+    const holed = await plugin.build().to(tiles.ref).apply(ParticleTilesView, view(true)).commit();
+    expect(lastShown(holed)).toBe(true);
+    // the representation gone: its clip objects too, the front hiding again
+    await plugin.build().delete(repr.ref).commit();
+    await new Promise((resolve) => setTimeout(resolve, ParticleTileDrawings.SettleMs + 20));
+    const whole = await plugin.build().to(tiles.ref).apply(ParticleTilesView, view(true)).commit();
+    expect(n(whole)).toBe(3);
+    expect(lastShown(whole)).toBe(false);
   });
 });
 
 describe('particle tile views following the camera', () => {
   // a canvas of a camera alone: what the behavior and the camera mode read of it
-  function stubCanvas(plugin: PluginContext) {
+  function stubCanvas(plugin: PluginContext, initial: Partial<{ fov: number; position: Vec3; target: Vec3 }> = {}) {
     let snapshot = {
       mode: 'perspective' as const,
       fov: Math.PI / 64,
@@ -726,10 +790,19 @@ describe('particle tile views following the camera', () => {
       target: Vec3.create(15, 15, 0),
       up: Vec3.create(0, 1, 0),
       minNear: 1,
+      ...initial,
     };
     const changed = new Subject<void>();
     const camera = { changed, getSnapshot: () => snapshot, viewport: { width: 512, height: 512 } };
-    (plugin as unknown as { canvas3d: unknown }).canvas3d = { camera, dispose: () => {} };
+    // what a representation's behavior asks of a canvas: nothing drawn
+    const none = () => {};
+    (plugin as unknown as { canvas3d: unknown }).canvas3d = {
+      camera,
+      add: none,
+      remove: none,
+      requestDraw: none,
+      dispose: none,
+    };
     (plugin as unknown as { canvas3dInit: Subject<boolean> }).canvas3dInit.next(true);
     return {
       lookAt(x: number, y: number) {
@@ -741,6 +814,79 @@ describe('particle tile views following the camera', () => {
   const settled = async (done: () => boolean) => {
     for (let i = 0; i < 100 && !done(); ++i) await new Promise((r) => setTimeout(r, 10));
   };
+
+  it('picks a following view again as a cut moves by its representation alone (a gizmo drag), coarser while it moves', async () => {
+    const plugin = new PluginContext({
+      behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
+      registry: [...DefaultRegistry, ...ParticlesRegistry],
+    });
+    await plugin.init();
+    try {
+      // the dense lattice (8000 carbons a particle, 30 Å apart) looked at along a column: its last tile hidden
+      stubCanvas(plugin, { fov: Math.PI / 512, position: Vec3.create(30, 30, 1000), target: Vec3.create(30, 30, 0) });
+      const dense = (n: number): ParticleTarget => ({
+        kind: 'sites',
+        sites: {
+          count: n,
+          positions: new Float32Array(n * 3),
+          radii: new Float32Array(n).fill(2),
+          elements: new Uint8Array(n).fill(6),
+        },
+      });
+      const list = {
+        ...createList(),
+        targetMapping: new Map([
+          [1, dense(8000)],
+          [2, dense(8000)],
+        ]),
+      };
+      const l = await plugin.build().toRoot().apply(ListOf, { list }).commit();
+      const tiles = await plugin.build().to(l.ref).apply(ParticleTileSetFromList, { cells: 4, opacity: true }).commit();
+      const view = await plugin
+        .build()
+        .to(tiles.ref)
+        .apply(ParticleTilesView, {
+          tiles: { name: 'camera', params: { minPixels: 0, occlusion: true, follow: true, camera: undefined } },
+          frame: 0,
+        })
+        .commit();
+      const repr = await plugin
+        .build()
+        .to(view.ref)
+        .apply(ParticlesRepresentation3D, { type: { name: 'target', params: {} } } as never)
+        .commit();
+      // the last tile (z 0 to 22.5, behind) shown
+      const lastShown = () => ParticleTileView.of(view.cell!.obj!.data)!.tiles.some((id) => Math.floor(id / 16) === 0);
+      const shown = () => ParticleTileView.of(view.cell!.obj!.data)!.tiles.length;
+      await settled(() => shown() === 3 && !ParticleTileDrawings.isChanging(tiles.data!.set));
+      expect(shown()).toBe(3);
+      expect(lastShown()).toBe(false);
+      // a hole through the column down to z 20 where the view looks, set as a gizmo's drag sets it: on the
+      // representation, not the state; picked again (while it moves the quicker pick), the last tile seen
+      const r = repr.data!.repr;
+      const hole = {
+        variant: 'pixel' as const,
+        objects: [
+          {
+            ...PD.getDefaultValues(Clip.Params.objects.element),
+            type: 'sphere' as const,
+            position: Vec3.create(30, 30, 60),
+            scale: Vec3.create(80, 80, 80),
+          },
+        ],
+      };
+      await r.createOrUpdate({ ...r.props, clip: hole }).run();
+      expect(ParticleTileDrawings.isChanging(tiles.data!.set)).toBe(true);
+      await settled(lastShown);
+      expect(lastShown()).toBe(true);
+      // settled: picked again in full (the behavior's pass after it settled), still seen
+      await settled(() => !ParticleTileDrawings.isChanging(tiles.data!.set));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(lastShown()).toBe(true);
+    } finally {
+      plugin.dispose();
+    }
+  });
 
   it('picks the tiles of a following view again as the camera moves, a view of a camera given as it is', async () => {
     const plugin = new PluginContext({

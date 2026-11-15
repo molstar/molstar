@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { asyncScheduler } from 'rxjs';
-import { throttleTime } from 'rxjs/operators';
+import { asyncScheduler, Subject } from 'rxjs';
+import { debounceTime, throttleTime } from 'rxjs/operators';
 import type { ParticleTileLoader } from '@molstar/model/model/particles/particle-tile-loader';
 import {
   type State,
@@ -24,6 +24,8 @@ import {
   setParticleTilesStep,
 } from '@molstar/plugin/state/transforms/particles/tiles';
 import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
+import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
+
 import type { ParticleTileSet } from '@molstar/model/model/particles/particle-tiles';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 
@@ -74,6 +76,9 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
   ctor: class extends PluginBehavior.Handler<{ intervalMs: number }> {
     /** the tile sets' loaders followed: a tile loaded wakes the views of its set; a set's let go as it goes */
     private loaders = new Map<ParticleTileLoader, () => void>();
+    /** the tile sets' drawings followed (their representations' clip objects): a change wakes the views */
+    private drawings = new Map<ParticleTileSet, () => void>();
+    private readonly drawingsChanged = new Subject<void>();
     private updating = false;
     /** a pass asked for while an update runs: scheduled as it ends */
     private again = false;
@@ -102,6 +107,13 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         );
         this.subscribeObservable(changed, () => this.schedule());
       });
+      // what draws the sets changing (a cut dragged): a pass at most every `intervalMs` (its picks the quicker ones),
+      // and once it settled (`ParticleTileDrawings.SettleMs`: picked again in full)
+      const throttle = throttleTime(this.params.intervalMs, asyncScheduler, { leading: true, trailing: true });
+      this.subscribeObservable(this.drawingsChanged.pipe(throttle), () => this.schedule());
+      this.subscribeObservable(this.drawingsChanged.pipe(debounceTime(ParticleTileDrawings.SettleMs + 10)), () =>
+        this.schedule(),
+      );
     }
 
     /**
@@ -111,7 +123,7 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
      */
     private wake(state: State, ref: string, obj: StateObject | undefined) {
       if (obj && SO.Particle.TileSet.is(obj)) {
-        this.watch(obj.data.loader);
+        this.watch(obj.data);
         this.schedule();
       } else if (state.cells.get(ref)?.transform.transformer === ParticleTilesView) {
         this.schedule();
@@ -147,7 +159,7 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         if (!params || !isFollowing(params) || !cell.obj) continue;
         const parent = state.cells.get(cell.transform.parent)?.obj;
         if (!parent || !SO.Particle.TileSet.is(parent)) continue;
-        this.watch(parent.data.loader);
+        this.watch(parent.data);
         if (!isParticleTilesViewBehind(parent.data, params, cell.obj.data, this.ctx, cell.cache)) continue;
         // the same params, a new object: the view applied again, a step toward what the camera picks now
         update.to(cell).update({ ...params, tiles: { ...params.tiles } });
@@ -198,19 +210,30 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
     }
 
     private forgetData(data: SO.Particle.TileSet['data'] | undefined) {
-      const loader = data?.loader;
-      if (!loader) return;
-      this.loaders.get(loader)?.();
-      this.loaders.delete(loader);
+      if (!data) return;
+      this.loaders.get(data.loader)?.();
+      this.loaders.delete(data.loader);
+      this.drawings.get(data.set)?.();
+      this.drawings.delete(data.set);
     }
 
-    /** `loader`'s changes (a tile loaded) wake the views */
-    private watch(loader: ParticleTileLoader) {
-      if (this.loaders.has(loader)) return;
-      this.loaders.set(
-        loader,
-        loader.subscribe(() => this.schedule()),
-      );
+    /**
+     * a tile set's changes wake the views: its loader's (a tile loaded), what draws it (a cut moved: a representation's
+     * clip objects, a gizmo's drag), the latter at most every `intervalMs` and once more as it settles
+     */
+    private watch(data: SO.Particle.TileSet['data']) {
+      const { loader, set } = data;
+      if (!this.loaders.has(loader))
+        this.loaders.set(
+          loader,
+          loader.subscribe(() => this.schedule()),
+        );
+      if (!this.drawings.has(set)) {
+        this.drawings.set(
+          set,
+          ParticleTileDrawings.subscribe(set, () => this.drawingsChanged.next()),
+        );
+      }
     }
 
     update(p: { intervalMs: number }) {
@@ -229,6 +252,8 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
       this.disposed = true;
       for (const unsubscribe of this.loaders.values()) unsubscribe();
       this.loaders.clear();
+      for (const unsubscribe of this.drawings.values()) unsubscribe();
+      this.drawings.clear();
     }
   },
 });

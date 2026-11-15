@@ -11,6 +11,8 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { StateTransformer } from '@molstar/core/state';
+import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
+
 import {
   assertRepresentationScope,
   emptyMappedParams,
@@ -117,6 +119,8 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       // compiling what it draws while it builds
       prepareRepresentation(plugin, repr, { ...repr.props, ...props }, theme, a.data);
       await repr.createOrUpdate(props, a.data).runInContext(ctx);
+      // how it draws a tile view (its clip objects, its opacity): what the view picks its tiles by
+      ParticleTileDrawings.set(repr, a.data, { ...repr.props, ...props });
       return new SO.Particle.Representation3D({ repr, sourceData: a.data }, { label: provider.label });
     });
   },
@@ -131,12 +135,19 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
 
       const themes = plugin.representation.particles.themes;
       b.data.repr.setTheme(Theme.create(themes, { particles: a.data }, newParams));
-      const props = { ...b.data.repr.props, ...newParams.type.params };
+      // its data alone changed (a tile view's step), its params the same: the representation's props as they are, not
+      // the params', which would undo a clipping gizmo's preview (a drag sets the clip on the representation alone)
+      const dataOnly = JSON.stringify(oldParams.type.params) === JSON.stringify(newParams.type.params);
+      const props = dataOnly ? { ...b.data.repr.props } : { ...b.data.repr.props, ...newParams.type.params };
       prepareRepresentation(plugin, b.data.repr, props, b.data.repr.theme, a.data);
-      await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+      await b.data.repr.createOrUpdate(dataOnly ? {} : props, a.data).runInContext(ctx);
       b.data.sourceData = a.data;
+      ParticleTileDrawings.set(b.data.repr, a.data, props);
       return StateTransformer.UpdateResult.Updated;
     });
+  },
+  dispose({ b }) {
+    if (b) ParticleTileDrawings.set(b.data.repr, undefined, undefined);
   },
 });
 
