@@ -423,6 +423,23 @@ export const OverlayCases: VisualTestCase[] = [
     }),
   ),
   {
+    id: 'screen/image-scaled',
+    description:
+      'An image twice the canvas: the axes and the scale line twice as large, as the canvas shows them (the same length).',
+    imageScale: 2,
+    canvasProps: {
+      camera: {
+        mode: 'orthographic',
+        helper: {
+          ...axesProps('top-left'),
+          scale: { name: 'on', params: PD.getDefaultValues(ScaleLineParams) },
+        },
+      },
+    },
+    view: ObliqueView,
+    scene: async () => [await shapeRepr('box', meshBox(5), { colors: [Color(0x999999)] })],
+  },
+  {
     id: 'screen/axes/stereo',
     description: 'The corner axes in each eye of side-by-side stereo.',
     capture: 'canvas',

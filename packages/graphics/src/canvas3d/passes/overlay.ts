@@ -99,7 +99,11 @@ export class OverlayPass {
   private renderScreen(b: PassBuilder, ctx: RenderContext<ICamera>) {
     const { renderer, camera, helper, frame } = ctx;
     if (b.drawing) renderer.clearDepth();
-    helper.screen.forEach(camera, (scene, screenCamera) => {
+    const { screen } = helper;
+    // a layer drawn larger than the canvas (`ScreenHelper.pixelScale`): its line widths and point sizes by its pixels
+    const scaled = b.drawing && screen.pixelScale !== 1;
+    if (scaled) renderer.setPixelRatio(screen.pixelRatio);
+    screen.forEach(camera, (scene, screenCamera) => {
       if (b.drawing) {
         renderer.update(screenCamera, scene, frame);
         // the occlusion test is of the scene's view
@@ -112,5 +116,6 @@ export class OverlayPass {
         if (scene.opacityAverage < 1) b.renderer({ name: 'blendedTransparent' }, scene, () => {});
       }
     });
+    if (scaled) renderer.setPixelRatio(screen.pixelRatio / screen.pixelScale);
   }
 }

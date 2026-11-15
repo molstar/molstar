@@ -319,13 +319,15 @@ export async function renderTest(
     });
     // no `updateBackground`: the render waits for the background images itself (pending work)
 
+    const scale = test.imageScale ?? 1;
+    const [imageWidth, imageHeight] = [Math.round(width * scale), Math.round(height * scale)];
     for (let i = 0; i < repeats; ++i) {
-      await imagePass.getImageData(SyncRuntimeContext, width, height);
+      await imagePass.getImageData(SyncRuntimeContext, imageWidth, imageHeight);
       await context.graphics.resources.pending.whenReady();
     }
     const { drawLists } = context.graphics.stats;
     const replayed = drawLists.replayed;
-    const image = await imagePass.getImageData(SyncRuntimeContext, width, height);
+    const image = await imagePass.getImageData(SyncRuntimeContext, imageWidth, imageHeight);
     await context.graphics.waitForGpuCommandsComplete();
     if (options.drawLists && drawLists.replayed === replayed)
       log.warnings.push('draw lists: the captured frame replayed nothing');

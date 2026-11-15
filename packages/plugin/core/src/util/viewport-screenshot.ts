@@ -216,6 +216,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
       },
       postprocessing: this.getPostprocessingProps(),
       marking: { ...c.props.marking },
+      clipGhost: c.props.clipGhost,
       illumination: this.getIlluminationProps(isPreview),
     });
   }
@@ -234,6 +235,8 @@ export class ViewportScreenshotHelper extends PluginComponent {
         transparentBackground: this.values.transparent,
         postprocessing: this.getPostprocessingProps(),
         marking: { ...c.props.marking },
+        // the canvas's ghost of what clip objects remove, as its marking: the image as the canvas shows it
+        clipGhost: c.props.clipGhost,
         illumination: this.getIlluminationProps(false),
       });
       return this._imagePass;
@@ -371,6 +374,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
       transparentBackground: this.values.transparent,
       postprocessing: canvasProps.postprocessing,
       marking: canvasProps.marking,
+      clipGhost: canvasProps.clipGhost,
     });
     const imageData = await this.previewPass.getImageData(ctx, w, h);
     const canvas = this.previewCanvas;

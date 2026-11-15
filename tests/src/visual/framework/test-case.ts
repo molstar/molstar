@@ -65,6 +65,11 @@ export interface VisualTestCase {
    * drawing buffer, for what only Canvas3D draws (viewports other than the canvas, stereo, Hi-Z culling)
    */
   readonly capture?: 'image-pass' | 'canvas';
+  /**
+   * The image pass's size as a multiple of the canvas's (`size`, default 1): an export larger than the canvas, whose
+   * screen layer is drawn as large as the canvas shows it
+   */
+  readonly imageScale?: number;
   /** Images an image pass renders before the capture, for what compiles for its target in the background */
   readonly imagePassRepeats?: number;
   /** Errors of the captured image itself, for what comparing with the reference cannot see (both alike wrong) */
