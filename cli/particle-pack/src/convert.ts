@@ -22,7 +22,7 @@ import {
   ParticleValues,
 } from '@molstar/model/model/particles/particle-list';
 import { AtomicNumbers, VdwRadius } from '@molstar/model/model/structure/model/properties/atomic/measures';
-import type { ElementSymbol } from '@molstar/model/model/structure/model/types';
+import { type ElementSymbol, getElementFromAtomicNumber } from '@molstar/model/model/structure/model/types';
 
 export interface MmcifToPackOptions {
   /** the assembly the particles are (the file's first by default) */
@@ -65,7 +65,9 @@ export function packToPack(
 
 /**
  * The pack in `data` as standard mmCIF, what the mmCIF particle reader (`createParticleListFromMmcifAssembly`) reads
- * back as the same list: a target's sites as its atoms (an element whose van der Waals radius is the site's), a
+ * back as the same list: a target's sites as its atoms (the site's element where the pack stores elements, else an
+ * element whose van der Waals radius is the site's), a
+
  * particle an operator (its pose placing the target's center: `R`, `p - R c`), a target a gen row (a fiber one each).
  * cellPACK's layout where every target is one chain (its entity's description its compartment and name, the fibers
  * kept), PetWorld's otherwise (a model a target, `PDB_model_num`). `unmatchedRadii`: sites of a radius no element has,
@@ -191,8 +193,12 @@ export function writeParticleListMmcif(
       for (let s = start; s < end; ++s) atoms.push({ target: k, chain: c, site: s });
     }
   }
+  // a site's element as stored, by its radius where the elements are not known (the first element with it)
   const symbolOf = (a: { target: number; site: number }) => {
-    const r = Math.fround(ParticleSites.getRadius(targets[a.target].sites!, a.site));
+    const sites = targets[a.target].sites!;
+    const element = ParticleSites.getElement(sites, a.site);
+    if (element > 0) return getElementFromAtomicNumber(element) as string;
+    const r = Math.fround(ParticleSites.getRadius(sites, a.site));
     const symbol = radiusSymbol.get(r);
     if (symbol === undefined) unmatchedRadii++;
     return symbol ?? 'C';

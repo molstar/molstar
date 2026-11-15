@@ -11,6 +11,7 @@ import { CustomProperties } from '@molstar/model/model/custom-property';
 import {
   type ParticleList,
   ParticleRotations,
+  ParticleSites,
   type ParticleTarget,
   ParticleValues,
 } from '@molstar/model/model/particles/particle-list';
@@ -43,15 +44,18 @@ function createList(cellpack: boolean): ParticleList {
     }
   });
   const targetMapping = new Map<number, ParticleTarget>();
+  // sulfur and phosphorus share a radius: told apart by their elements
   const symbols = ['C', 'N', 'O', 'S', 'P'];
+  const numbers = [6, 7, 8, 16, 15];
   counts.forEach((_, t) => {
     const count = 3 + t;
     const positions = new Float32Array(count * 3).map((_, k) => k * 0.75 + t);
     const radii = Float32Array.from({ length: count }, (_, k) => vdw(symbols[(k + t) % symbols.length]));
+    const elements = Uint8Array.from({ length: count }, (_, k) => numbers[(k + t) % numbers.length]);
     const chains = cellpack
       ? { offsets: Int32Array.from([0, count]), labels: [`C${t}`] }
       : { offsets: Int32Array.from([0, 2, count]), labels: ['A', 'B'] };
-    const sites = { count, positions, radii, label: `t${t}`, chains };
+    const sites = { count, positions, radii, elements, label: `t${t}`, chains };
     // the center the reader computes: the sites' centroid
     const center = Vec3();
     for (let k = 0; k < count; ++k) Vec3.add(center, center, Vec3.fromArray(Vec3(), positions, k * 3));
@@ -126,6 +130,8 @@ function expectSameList(a: ParticleList, b: ParticleList) {
     if (target.kind !== 'sites' || other.kind !== 'sites') throw new Error('sites expected');
     expectClose(other.sites.positions, target.sites.positions, target.sites.quantized!.scale / 2 + 1e-6);
     expect(Array.from(other.sites.radii)).toEqual(Array.from(target.sites.radii));
+    const elementsOf = (s: ParticleSites) => Array.from({ length: s.count }, (_, k) => ParticleSites.getElement(s, k));
+    expect(elementsOf(other.sites)).toEqual(elementsOf(target.sites));
     expect(Array.from(other.sites.chains!.offsets)).toEqual(Array.from(target.sites.chains!.offsets));
     // the centroid of the sites as read back (quantized), the center the pack keeps
     for (let k = 0; k < 3; ++k) expect(other.center![k]).toBeCloseTo(target.center![k], 3);
@@ -152,11 +158,13 @@ describe('particle pack converter', () => {
     }
   }
 
-  it('counts the sites of a radius no element has (written as carbon)', () => {
+  it('counts the sites of a radius no element has, their elements not known (written as carbon)', () => {
     const list = createList(true);
     const target = list.targetMapping!.get(0)!;
     if (target.kind !== 'sites') throw new Error('sites expected');
     target.sites.radii[0] = 0.123;
+    list.targetMapping!.set(0, { ...target, sites: { ...target.sites, elements: undefined } });
+
     expect(packToMmcif(writeParticlePack(list), true).unmatchedRadii).toBe(1);
   });
 
