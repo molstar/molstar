@@ -66,7 +66,8 @@ export const ParticlePackProvider = DataFormatProvider({
  * where it is not tile-ordered, or not read by range (a file not held, a server ignoring ranges): read whole then
  */
 async function openParticlePackStreamed(plugin: PluginContext, asset: Asset, options: { readonly visuals: boolean }) {
-  const read = await getParticlePackSource(asset);
+  const read = await getParticlePackSource(asset, plugin.managers.asset);
+
   if (!read) return false;
   const { document } = await openParticlePackStream(read);
   if (!isParticlePackStreamable(document)) return false;

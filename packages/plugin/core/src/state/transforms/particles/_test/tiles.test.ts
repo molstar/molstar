@@ -28,6 +28,7 @@ import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/s
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import {
   ParticleTileSetFromList,
+  ParticleTileSetFromPack,
   ParticleTilesView,
   pickParticleTiles,
   setParticleTilesStep,
@@ -37,6 +38,9 @@ import {
   ParticleTilesFollowCamera,
 } from '@molstar/plugin/behavior/dynamic/particle-tiles';
 import { PluginSpec } from '@molstar/plugin/spec';
+import { StateSelection } from '@molstar/core/state';
+import { Asset } from '@molstar/core/util/assets';
+
 import { writeParticlePack } from '@molstar/model/formats/particles/pack';
 import {
   createParticleTileSetFromPack,
@@ -139,12 +143,83 @@ describe('particle tiles in the state', () => {
     expect(view.cell!.obj!.description).toBe(`2 of 8 tiles · ${list.count} particles`);
   });
 
+  it('keeps a tile-ordered pack opened from a file in a session, read from it by range when opened again', async () => {
+    const bytes = writeParticlePack(createList(), { tiles: 2 });
+    const file = Asset.File(new File([bytes], 'lattice.mspk'));
+    const tiles = await plugin
+      .build()
+      .toRoot()
+      .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file } } as never)
+      .commit();
+    expect(tiles.data!.set.count).toBe(Count);
+    // the file held (not read): the session's zip keeps it
+    expect(plugin.managers.asset.get(file)?.file.size).toBe(bytes.byteLength);
+    const session = await plugin.managers.snapshot.serialize({
+      type: 'molx',
+      params: { camera: false, canvas3d: false },
+    });
+
+    const other = new PluginContext({ behaviors: [], registry: [...DefaultRegistry, ...ParticlesRegistry] });
+    await other.init();
+    try {
+      await other.managers.snapshot.open(new File([session], 'session.molx'));
+      const cells = other.state.data.select(StateSelection.Generators.ofTransformer(ParticleTileSetFromPack));
+      expect(cells.length).toBe(1);
+      expect(cells[0].status).toBe('ok');
+      expect((cells[0].obj!.data as typeof tiles.data)!.set.count).toBe(Count);
+    } finally {
+      other.dispose();
+    }
+    // the set removed: its file no longer held
+    await plugin.build().delete(tiles.ref).commit();
+    expect(plugin.managers.asset.has(file)).toBe(false);
+  });
+
   it("picks the grid by default: a tile-ordered list's written one, else about a page of particles a tile", async () => {
     const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
     const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, {}).commit();
     const expected = ParticleTiles.getAutoCells(list.data!);
     expect(tiles.data!.set.grid.dimensions).toEqual([expected, expected, expected]);
     expect(tiles.cell!.obj!.description).toContain(`${expected}³ grid`);
+  });
+
+  it('keeps the type and theme of a representation of a slot view of no tiles yet, drawn as its tiles come', async () => {
+    const hierarchical: ParticleList = {
+      ...createList(),
+      entities: new Int32Array(Count),
+      entityInfo: new Map([[0, { name: 'entity' }]]),
+      compartments: new Int32Array(Count),
+      compartmentInfo: new Map([[0, { name: 'root.cyto' }]]),
+    };
+    const list = await plugin.build().toRoot().apply(ListOf, { list: hierarchical }).commit();
+    const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+    // none of the tiles yet (as the camera seeing none of them): a slot list of no pages
+    const view = await plugin
+      .build()
+      .to(tiles.ref)
+      .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '' } }, frame: 0, slots: true })
+      .commit();
+    expect(view.data!.pages!.pages.length).toBe(0);
+    const repr = await plugin
+      .build()
+      .to(view.ref)
+      .apply(ParticlesRepresentation3D, {
+        type: { name: 'target', params: {} },
+        colorTheme: { name: 'particle-hierarchy', params: {} },
+      } as never)
+      .commit();
+    const params = () => repr.cell!.transform.params as { type: { name: string }; colorTheme: { name: string } };
+    expect(params().type.name).toBe('target');
+    expect(params().colorTheme.name).toBe('particle-hierarchy');
+
+    await plugin
+      .build()
+      .to(view.ref)
+      .update(ParticleTilesView, (old) => ({ ...old, tiles: { name: 'all', params: {} } }))
+      .commit();
+    expect(params().type.name).toBe('target');
+    expect(params().colorTheme.name).toBe('particle-hierarchy');
+    expect(repr.data!.repr.renderObjects.length).toBeGreaterThan(0);
   });
 
   it('updates the view as its tiles change, the targets drawn once whichever tiles', async () => {
@@ -694,15 +769,13 @@ describe('particle tile views following the camera', () => {
       behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
       registry: [...DefaultRegistry, ...ParticlesRegistry],
     });
-    await plugin.init();
-    try {
-      const canvas = stubCanvas(plugin);
-      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
-      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-      // the loader's live subscriptions counted
-      const loader = tiles.data!.loader;
+    // the loader's live subscriptions counted, from its set's creation (before the behavior's, which follows it as
+    // it is made: subscribed before init, which registers the behavior)
+    let live = 0;
+    plugin.state.data.events.object.created.subscribe(({ obj }) => {
+      if (!SO.Particle.TileSet.is(obj)) return;
+      const loader = obj.data.loader;
       const subscribe = loader.subscribe;
-      let live = 0;
       loader.subscribe = (listener) => {
         const unsubscribe = subscribe(listener);
         live += 1;
@@ -711,7 +784,14 @@ describe('particle tile views following the camera', () => {
           return unsubscribe();
         };
       };
+    });
+    await plugin.init();
+    try {
+      const canvas = stubCanvas(plugin);
+      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
       await plugin
+
         .build()
         .to(tiles.ref)
         .apply(ParticleTilesView, {
@@ -772,6 +852,44 @@ describe('particle tile views following the camera', () => {
     }
   });
 
+  it('steps a following view of a set made again (a new loader) with the camera still', async () => {
+    const plugin = new PluginContext({
+      behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
+      registry: [...DefaultRegistry, ...ParticlesRegistry],
+    });
+    await plugin.init();
+    try {
+      const canvas = stubCanvas(plugin);
+      canvas.lookAt(45, 45);
+      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2, delay: 10 }).commit();
+      const params = {
+        tiles: {
+          name: 'camera' as const,
+          params: { minPixels: 0, occlusion: false, follow: true, budget: 1, camera: undefined },
+        },
+        frame: 0,
+      };
+      const picked = pickParticleTiles(tiles.data!.set, params.tiles, plugin).length;
+      expect(picked).toBeGreaterThan(2);
+      const view = await plugin.build().to(tiles.ref).apply(ParticleTilesView, params).commit();
+      const shown = () => ParticleTileView.of(view.cell!.obj!.data)!.tiles.length;
+      await settled(() => shown() === picked);
+      expect(shown()).toBe(picked);
+      // the set of other params (it has no update: made again, a new loader), the view its first step of it
+      await plugin
+        .build()
+        .to(tiles.ref)
+        .update(ParticleTileSetFromList, (p) => ({ ...p, delay: 20 }))
+        .commit();
+      expect(shown()).toBeLessThan(picked);
+      await settled(() => shown() === picked);
+      expect(shown()).toBe(picked);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
   it('keeps a following view as it is where its next pick is all new and none of it ready: never empty', async () => {
     const plugin = new PluginContext({
       behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
@@ -794,15 +912,29 @@ describe('particle tile views following the camera', () => {
       const shown = () => [...ParticleTileView.of(view.cell!.obj!.data)!.tiles];
       const first = shown();
       expect(first.length).toBeGreaterThan(0);
+      // the view's updates counted: none while it waits (the same tiles again every frame), its steps after
+      const key = () => shown().join(',');
+      let same = 0;
+      let last = key();
+      const updates = plugin.state.data.events.object.updated.subscribe((e) => {
+        if (e.ref !== view.ref) return;
+        if (key() === last) same += 1;
+        last = key();
+      });
       // a pick of other tiles alone: the view the first's until they are ready, then theirs
       canvas.lookAt(75, 75);
       let least = first.length;
-      await settled(() => {
-        least = Math.min(least, shown().length);
-        return shown().some((id) => !first.includes(id));
-      });
+      try {
+        await settled(() => {
+          least = Math.min(least, shown().length);
+          return shown().some((id) => !first.includes(id));
+        });
+      } finally {
+        updates.unsubscribe();
+      }
       expect(least).toBeGreaterThan(0);
       expect(shown().some((id) => !first.includes(id))).toBe(true);
+      expect(same).toBe(0);
     } finally {
       plugin.dispose();
     }

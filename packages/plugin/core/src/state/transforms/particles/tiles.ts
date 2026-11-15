@@ -20,7 +20,8 @@ import { ParticleTileVisibility } from '@molstar/model/model/particles/particle-
 import { ParticleTiles, type ParticleTileSet } from '@molstar/model/model/particles/particle-tiles';
 import type { PluginContext } from '@molstar/plugin/context';
 import { getParticleTileCamera } from '@molstar/plugin/state/helpers/particle-tiles';
-import { getParticlePackSource } from '@molstar/plugin/state/helpers/particle-pack-source';
+import { getParticlePackSource, holdParticlePackFile } from '@molstar/plugin/state/helpers/particle-pack-source';
+
 import {
   createParticleTileSetFromPack,
   isParticlePackStreamable,
@@ -123,7 +124,7 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
     }),
   },
 })({
-  apply({ params }) {
+  apply({ params, cache }, plugin: PluginContext) {
     return Task.create('Particle Pack Tiles', async () => {
       const { source } = params;
       const asset =
@@ -132,7 +133,10 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
             ? Asset.Url(source.params)
             : source.params
           : source.params;
-      const read = asset ? await getParticlePackSource(asset) : undefined;
+      // a file held by the asset manager, not read: a session saved keeps it, one opened reads it from there
+      const assets = plugin.managers.asset;
+      if (asset && Asset.isFile(asset) && holdParticlePackFile(asset, assets)) (cache as PackCache).held = asset;
+      const read = asset ? await getParticlePackSource(asset, assets) : undefined;
       if (!read) throw new Error('particle pack not read by range (a file not held, or a server ignoring ranges)');
       const stream = await openParticlePackStream(read);
       if (!isParticlePackStreamable(stream.document)) throw new Error('particle pack not tile-ordered: read it whole');
@@ -153,12 +157,20 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
       );
     });
   },
-  dispose({ b }) {
+  dispose({ b, cache }, plugin: PluginContext) {
     b?.data.loader.dispose();
+    const held = (cache as PackCache | undefined)?.held;
+    if (held) plugin.managers.asset.delete(held);
   },
 });
 
-/** A canvas camera as a param: its snapshot and its viewport's size (none: the canvas' own at the time) */
+/** A pack tile set's cache: the file it holds in the asset manager (`holdParticlePackFile`) */
+interface PackCache {
+  held?: Asset.File;
+}
+
+/** A canvas camera as a param
+: its snapshot and its viewport's size (none: the canvas' own at the time) */
 const CameraParam = PD.Value<
   | {
       snapshot: Pick<Camera.Snapshot, 'mode' | 'fov' | 'position' | 'target' | 'up' | 'minNear'>;
@@ -633,8 +645,11 @@ function forgetView(view: ViewCache) {
 }
 
 /**
- * Whether a following view (`getStepBudget`) is behind what the camera picks now: a tile shown no longer picked, or a
- * picked one ready not shown (what `ParticleTilesFollowCamera` steps it toward)
+ * Whether a following view (`getStepBudget`) is behind what the camera picks now, a step changing what it shows
+ * (`stepTiles`): a picked tile ready not shown, or a tile shown no longer picked where another shown stays (what
+ * `ParticleTilesFollowCamera` steps it toward). A view none of whose tiles is picked and none of the picked ready keeps
+ * what it shows: not behind until one is ready (the loader's change waking the behavior), not stepped to the same
+ * tiles every frame meanwhile (forever where they fail)
  */
 export function isParticleTilesViewBehind(
   data: SO.Particle.TileSet['data'],
@@ -654,9 +669,14 @@ export function isParticleTilesViewBehind(
   if (cache) wantTiles(loader, cache as ViewCache, picked, frame);
   const wanted = new Set(picked);
   const shown = new Set(view.tiles);
-  for (const id of shown) if (!wanted.has(id)) return true;
   for (const id of picked) if (!shown.has(id) && loader.getState(id, frame) === 'ready') return true;
-  return false;
+  let kept = false;
+  let dropped = false;
+  for (const id of shown) {
+    if (wanted.has(id)) kept = true;
+    else dropped = true;
+  }
+  return kept && dropped;
 }
 
 export { ParticleTilesView };

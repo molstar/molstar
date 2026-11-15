@@ -7,7 +7,14 @@
 import { asyncScheduler } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import type { ParticleTileLoader } from '@molstar/model/model/particles/particle-tile-loader';
-import { type StateObject, StateSelection, type StateObjectCell, type StateTransformer } from '@molstar/core/state';
+import {
+  type State,
+  type StateObject,
+  StateSelection,
+  type StateObjectCell,
+  type StateTransformer,
+} from '@molstar/core/state';
+
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginBehavior } from '../behavior.js';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
@@ -78,10 +85,12 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
       // a tile set removed or made again: its loader no longer followed (else it and its set kept for the session)
       const events = this.ctx.state.data.events.object;
       this.subscribeObservable(events.removed, ({ obj }) => this.forget(obj));
-      this.subscribeObservable(events.updated, ({ action, obj, oldObj, oldData }) => {
+      this.subscribeObservable(events.updated, ({ state, ref, action, obj, oldObj, oldData }) => {
         if (action === 'recreate') this.forget(oldObj);
         else if (SO.Particle.TileSet.is(obj) && oldData && oldData !== obj.data) this.forgetData(oldData);
+        if (action === 'recreate' || (SO.Particle.TileSet.is(obj) && oldData !== obj.data)) this.wake(state, ref, obj);
       });
+      this.subscribeObservable(events.created, ({ state, ref, obj }) => this.wake(state, ref, obj));
       this.subscribeObservable(this.ctx.behaviors.canvas3d.initialized, () => {
         const camera = this.ctx.canvas3d?.camera;
         if (!camera) return;
@@ -90,6 +99,20 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         );
         this.subscribeObservable(changed, () => this.schedule());
       });
+    }
+
+    /**
+     * a tile set or a view made (again, e.g. a set of other params with a new loader, a view moved to another set): its
+     * loader followed and a pass scheduled, the camera perhaps still (else the view stays at its first step until it
+     * moves); a view's update by a step does not (the pass after it does)
+     */
+    private wake(state: State, ref: string, obj: StateObject | undefined) {
+      if (obj && SO.Particle.TileSet.is(obj)) {
+        this.watch(obj.data.loader);
+        this.schedule();
+      } else if (state.cells.get(ref)?.transform.transformer === ParticleTilesView) {
+        this.schedule();
+      }
     }
 
     /** a pass over the following views at the next frame, once however often asked */
