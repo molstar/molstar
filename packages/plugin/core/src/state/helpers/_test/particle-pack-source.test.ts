@@ -5,7 +5,29 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
+import { CustomProperties } from '@molstar/model/model/custom-property';
+import type { ParticleList } from '@molstar/model/model/particles/particle-list';
+import { readParticlePackHeader, writeParticlePack } from '@molstar/model/formats/particles/pack';
+import { openParticlePackStream } from '@molstar/model/formats/particles/pack-stream';
 import { getUrlRangeSource } from '../particle-pack-source.js';
+
+/** a small list of one target (sites) */
+function createList(): ParticleList {
+  const n = 50;
+  return {
+    count: n,
+    targets: new Int32Array(n).fill(1),
+    targetInfo: new Map([[1, { name: 'one' }]]),
+    targetMapping: new Map([
+      [1, { kind: 'sites', sites: { count: 1, positions: new Float32Array(3), radii: new Float32Array([1]) } }],
+    ]),
+    coordinates: Float32Array.from({ length: n * 3 }, (_, i) => i % 17),
+    getParticleLabel: (index) => `${index}`,
+    sourceData: { kind: 'test', name: 'test', data: {} },
+    customProperties: new CustomProperties(),
+    _propertyData: Object.create(null),
+  };
+}
 
 /**
  * a server of `bytes` answering ranges (206), a range past its end or reversed refused (416); `exposed` false: of
@@ -57,6 +79,20 @@ describe('a particle pack read by HTTP ranges', () => {
     expect(await getUrlRangeSource('https://example.org/pack.mspk', undefined, (m) => warned.push(m))).toBeUndefined();
     expect(warned).toHaveLength(1);
     expect(warned[0]).toMatch(/Access-Control-Expose-Headers: Content-Range/);
+  });
+
+  it('takes the size from the pack itself where no header gives it (a presigned URL), its document read once', async () => {
+    const bytes = writeParticlePack(createList(), { tiles: 2 });
+    const ranges = stubRangeServer(bytes, { exposed: false, head: false });
+    const warned: string[] = [];
+    const source = (await getUrlRangeSource('https://example.org/pack.mspk', undefined, (m) => warned.push(m)))!;
+    expect(warned).toEqual([]);
+    expect(source.byteLength).toBe(bytes.byteLength);
+    // opened as by its size: the document's range asked once (for the size), its read answered with it
+    const { jsonOffset, jsonLength } = readParticlePackHeader(bytes.subarray(0, 64));
+    const stream = await openParticlePackStream(source);
+    expect(stream.document.count).toBe(50);
+    expect(ranges.filter((r) => r === `bytes=${jsonOffset}-${jsonOffset + jsonLength - 1}`)).toHaveLength(1);
   });
 
   it('says so where a server ignores ranges (a whole answer): read whole', async () => {

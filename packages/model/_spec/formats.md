@@ -111,8 +111,10 @@ provider gives a value a reader set.
   - A URL read by range needs its server to answer `Range` requests (206) and to tell the file's size: the answer's
     `Content-Range`, which another origin reads only where the server sends
     `Access-Control-Expose-Headers: Content-Range` (and allows the `Range` request header), else a `HEAD`'s
-    `Content-Length` (CORS-safelisted). A server answering neither: the pack read whole, the plugin's log saying why
-    (`getUrlRangeSource`).
+    `Content-Length` (CORS-safelisted), else the pack's own: its document's end or its last block's (the header read
+    first, the document's range then served to the reader once). Why: a presigned URL is signed for `GET` alone (its
+    `HEAD` refused) and its bucket exposes no headers by default. Where none gives it (or the server ignores ranges):
+    the pack read whole, the plugin's log saying why (`getUrlRangeSource`).
   - A block's sizes agree (`parseParticlePackDocument`): its `byteLength` its `count` × `components` values of its type,
     a block of a value a particle (`position`, `rotation`, `attribute.*`) of the pack's `count`, else it is not read,
     named. Why: a view of it reads `count` × `components`, into the next block where they disagree.
