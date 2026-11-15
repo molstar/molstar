@@ -226,6 +226,11 @@ export async function renderTest(
   }
 
   context.setProps({ transparency: test.contextProps?.transparency ?? 'blended' });
+  // the case's time 0 (the renderer's `uTime`, of the animations): a capture without a tick of its own (the image pass)
+  // would draw at the time the last case's tick left, another on each page (a WebGPU case's reference a webgl2 page's)
+  const t0 = now();
+  canvas3d.resetTime(t0);
+  canvas3d.tick(t0, { manualDraw: true });
 
   const p = getTestCanvasProps(test);
   p.renderer = { ...p.renderer, drawLists: !!options.drawLists };
