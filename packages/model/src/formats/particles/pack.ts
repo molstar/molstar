@@ -644,7 +644,7 @@ interface BlockData {
  * largest of its particles' kept, where a list's differ in rounding). Keys are not kept (a particle's key is its index in
  * the pack). Tile-ordered with `options.tiles` (`WriteParticlePackOptions`)
  */
-export function writeParticlePack(list: ParticleList, options: WriteParticlePackOptions = {}): Uint8Array {
+export function writeParticlePack(list: ParticleList, options: WriteParticlePackOptions = {}): Uint8Array<ArrayBuffer> {
   const n = list.count;
   // runs (`ParticleValues`) expanded: the writer reads a value a particle
   const listTargets = ParticleValues.toArray(list.targets, n, Int32Array);
