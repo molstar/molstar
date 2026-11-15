@@ -107,6 +107,8 @@ async function renderCenter(
   try {
     await plugin.init();
     if (raster === 'only' && !plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
+    // the second color is the sphere impostors' (a sphere mesh has none): none without frag depth (headless-gl)
+    if (!plugin.canvas3d!.graphics.capabilities.fragDepth) return undefined;
     plugin.canvas3d!.setProps({
       renderer: raster ? { sphereRaster: raster, sphereRasterRadius: 32 } : {},
       camera: { mode: 'perspective' } as never,
@@ -247,9 +249,11 @@ describe.skipIf(!WebGPU.module)('structure target colors on WebGPU', () => {
 });
 
 describe('particle site colors on WebGL', () => {
-  (glModule ? it : it.skip)('blend in by size on screen, a site each', { tags: ['medium'] }, async () => {
+  (glModule ? it : it.skip)('blend in by size on screen, a site each', { tags: ['medium'] }, async (ctx) => {
     const modules = { gl: glModule! };
-    const near = (await renderCenter(modules, 'webgl', 6))!;
+    const near = await renderCenter(modules, 'webgl', 6);
+    // headless-gl has no EXT_frag_depth: the spheres are meshes, which have no second color
+    if (!near) return ctx.skip();
     const far = (await renderCenter(modules, 'webgl', 40))!;
     expectNearAndFar(near, far);
   });

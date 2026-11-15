@@ -754,13 +754,18 @@ describe('particle tile views following the camera', () => {
       const shown = () => ParticleTileView.of(view.cell!.obj!.data)!.tiles.length;
       // a tile a step (the budget below a tile's particles: one), the first at once
       expect(shown()).toBe(1);
+      // each step's count as the view's object is updated (not polled: a fast step between two polls is missed)
       const seen = new Set<number>([shown()]);
-      await settled(() => {
-        seen.add(shown());
-        return shown() === picked.length;
+      const steps = plugin.state.data.events.object.updated.subscribe((e) => {
+        if (e.ref === view.ref) seen.add(ParticleTileView.of(e.obj.data)!.tiles.length);
       });
+      try {
+        await settled(() => shown() === picked.length);
+      } finally {
+        steps.unsubscribe();
+      }
       expect(shown()).toBe(picked.length);
-      // a step at a time: the counts between seen (as far as the polling caught them)
+      // a step at a time: the counts between seen
       expect(seen.size).toBeGreaterThan(2);
     } finally {
       plugin.dispose();

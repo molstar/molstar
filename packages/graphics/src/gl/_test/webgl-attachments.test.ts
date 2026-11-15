@@ -55,17 +55,17 @@ describe('WebGL framebuffer attachments', () => {
     'attaches a texture again where a renderbuffer took its point meanwhile',
     { tags: ['medium'] },
     () => {
-      const { textures, renderbuffers } = createCase(ctx!);
+      const { textures, renderbuffers, color } = createCase(ctx!);
       const framebuffer = ctx!.resources.framebuffer();
-      const depthTexture = ctx!.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
-      depthTexture.define(8, 8);
-      const depthBuffer = ctx!.resources.renderbuffer('depth16', 'depth', 8, 8);
+      // color, not depth: WebGL1 core (headless-gl has no WEBGL_depth_texture)
+      const texture = color();
+      const buffer = ctx!.resources.renderbuffer('rgba4', 'color0', 8, 8);
 
-      depthTexture.attachFramebuffer(framebuffer, 'depth');
-      depthBuffer.attachFramebuffer(framebuffer);
-      depthBuffer.attachFramebuffer(framebuffer);
+      texture.attachFramebuffer(framebuffer, 0);
+      buffer.attachFramebuffer(framebuffer);
+      buffer.attachFramebuffer(framebuffer);
       expect(renderbuffers).toHaveBeenCalledTimes(1);
-      depthTexture.attachFramebuffer(framebuffer, 'depth');
+      texture.attachFramebuffer(framebuffer, 0);
       expect(textures).toHaveBeenCalledTimes(2);
       vi.restoreAllMocks();
     },
