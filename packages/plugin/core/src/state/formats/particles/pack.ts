@@ -7,7 +7,12 @@
 import { Task } from '@molstar/core/task';
 import { Sniffable } from '@molstar/core/util/sniffable';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { createParticleListFromPack, ParticlePackMagic, readParticlePack } from '@molstar/model/formats/particles/pack';
+import {
+  createParticleListFromPack,
+  type ParticlePackDocument,
+  ParticlePackMagic,
+  readParticlePack,
+} from '@molstar/model/formats/particles/pack';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -63,14 +68,22 @@ export const ParticlePackProvider = DataFormatProvider({
 /**
  * A tile-ordered pack opened by range (`ParticleTileSetFromPack`): its tiles read as a view following the camera wants
  * them (its default visuals: that view and its targets' representation, colored as a whole pack's), never whole; false
- * where it is not tile-ordered, or not read by range (a file not held, a server ignoring ranges): read whole then
+ * where it is not tile-ordered, not a pack as it is (gzipped), or not read by range (a file not held, a server ignoring
+ * ranges): read whole then
  */
 async function openParticlePackStreamed(plugin: PluginContext, asset: Asset, options: { readonly visuals: boolean }) {
   const read = await getParticlePackSource(asset, plugin.managers.asset);
 
   if (!read) return false;
-  const { document } = await openParticlePackStream(read);
+  // not a pack as it is (gzipped: `.mspk.gz`; a server's error page): read whole then, which inflates it or says why not
+  let document: ParticlePackDocument;
+  try {
+    ({ document } = await openParticlePackStream(read));
+  } catch {
+    return false;
+  }
   if (!isParticlePackStreamable(document)) return false;
+
   const source = Asset.isUrl(asset)
     ? { name: 'url' as const, params: asset }
     : { name: 'file' as const, params: asset as Asset.File };

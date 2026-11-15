@@ -4,7 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { gzipSync } from 'node:zlib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { Asset } from '@molstar/core/util/assets';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import type { ParticleList, ParticleTarget } from '@molstar/model/model/particles/particle-list';
@@ -102,6 +104,16 @@ describe('a particle pack opened by range', () => {
     expect(repr.transform.params.type.name).toBe('target');
     // entities and compartments: colored as a whole pack's
     expect(repr.transform.params.colorTheme.name).toBe('particle-hierarchy');
+  });
+
+  it('reads a gzipped tile-ordered pack whole (inflated), not by range', async () => {
+    await open(gzipSync(writeParticlePack(createList(), { tiles: 4 })), 'cell.mspk.gz', false);
+    expect(cellsOf(ParticleTileSetFromPack)).toHaveLength(0);
+    const lists: ParticleList[] = [];
+    plugin.state.data.cells.forEach((cell) => {
+      if (SO.Particle.List.is(cell.obj)) lists.push(cell.obj.data);
+    });
+    expect(lists.map((l) => l.count)).toEqual([200]);
   });
 
   it('reads a pack by target whole, as before', async () => {

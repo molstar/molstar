@@ -217,6 +217,9 @@ export class ViewportScreenshotHelper extends PluginComponent {
       postprocessing: this.getPostprocessingProps(),
       marking: { ...c.props.marking },
       clipGhost: c.props.clipGhost,
+      // the canvas's transparency and volume quality: the image as the canvas draws it
+      dpoitIterations: c.props.dpoitIterations,
+      volumeResolutionScale: c.props.volumeResolutionScale,
       illumination: this.getIlluminationProps(isPreview),
     });
   }
@@ -237,6 +240,9 @@ export class ViewportScreenshotHelper extends PluginComponent {
         marking: { ...c.props.marking },
         // the canvas's ghost of what clip objects remove, as its marking: the image as the canvas shows it
         clipGhost: c.props.clipGhost,
+        // the canvas's transparency and volume quality: the image as the canvas draws it
+        dpoitIterations: c.props.dpoitIterations,
+        volumeResolutionScale: c.props.volumeResolutionScale,
         illumination: this.getIlluminationProps(false),
       });
       return this._imagePass;
@@ -375,7 +381,10 @@ export class ViewportScreenshotHelper extends PluginComponent {
       postprocessing: canvasProps.postprocessing,
       marking: canvasProps.marking,
       clipGhost: canvasProps.clipGhost,
+      dpoitIterations: canvasProps.dpoitIterations,
+      volumeResolutionScale: canvasProps.volumeResolutionScale,
     });
+
     const imageData = await this.previewPass.getImageData(ctx, w, h);
     const canvas = this.previewCanvas;
     canvas.width = imageData.width;
