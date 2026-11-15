@@ -112,6 +112,9 @@ export function createParticleTileLoader(
   };
   const notify = () => {
     for (const l of listeners) l();
+    settleIdle();
+  };
+  const settleIdle = () => {
     if (idleWaiters.length > 0 && isIdle()) {
       const waiters = idleWaiters;
       idleWaiters = [];
@@ -229,9 +232,15 @@ export function createParticleTileLoader(
       }
       wanted = keys;
       wantedSet = next;
+      // the listeners told where a load started (a state changed), not of the wants alone: a view's pass asks every
+      // time the camera moves, and a listener's pass woken by it would ask again (one a frame while it moves). A load
+      // cancelled tells them as it stops
+      const before = running;
       pump();
-      notify();
+      if (running !== before) notify();
+      else settleIdle();
     },
+
     release(requests) {
       for (const { id, frame } of requests) {
         const entry = tiles.get(keyOf(id, frame));

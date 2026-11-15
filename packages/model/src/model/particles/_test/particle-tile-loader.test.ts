@@ -145,6 +145,29 @@ describe('particle tile loader', () => {
     expect(changes).toBeGreaterThan(2);
   });
 
+  it('tells its listeners of wants that start a load, not of wants alone (ready tiles in another order)', async () => {
+    const { set } = delayed(base);
+    const loader = createParticleTileLoader(set, { concurrency: 4 });
+    const wants = (order: number[]) => loader.setWanted(order.map((id) => ({ id, frame: 0 })));
+    wants([ids[0], ids[1]]);
+    const idle = loader.whenIdle();
+    await step();
+    await step();
+    await idle;
+    let changes = 0;
+    loader.subscribe(() => changes++);
+    // the same tiles ready, in another order, or fewer of them: no state changed
+    wants([ids[1], ids[0]]);
+    wants([ids[1]]);
+    expect(changes).toBe(0);
+    // what is idle resolves at once still
+    await loader.whenIdle();
+    // a tile not loaded yet: its load starts, a change
+    wants([ids[1], ids[2]]);
+    expect(changes).toBe(1);
+    expect(loader.getState(ids[2], 0)).toBe('loading');
+  });
+
   it('keeps what is ready until released, then lets go of the unused targets', async () => {
     const { set, calls } = delayed(base);
     const loader = createParticleTileLoader(set);

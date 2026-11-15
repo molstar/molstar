@@ -297,19 +297,7 @@ export namespace ParticleTileOpaque {
     const ny = gy * b;
     const nz = gz * b;
     const density = new Float32Array(nx * ny * nz);
-    for (const tile of withOpacity) {
-      const x = tile.id % gx;
-      const y = Math.floor(tile.id / gx) % gy;
-      const z = Math.floor(tile.id / (gx * gy));
-      const d = tile.opacity!.density;
-      for (let bk = 0; bk < b; ++bk) {
-        for (let bj = 0; bj < b; ++bj) {
-          const to = x * b + (y * b + bj) * nx + (z * b + bk) * nx * ny;
-          const from = bj * b + bk * b * b;
-          for (let bi = 0; bi < b; ++bi) density[to + bi] = d[from + bi];
-        }
-      }
-    }
+    for (const tile of withOpacity) writeTileDensity(set, density, b, tile, false);
     const { origin, cellSize } = set.grid;
     return {
       min: Vec3.clone(origin),
@@ -317,6 +305,77 @@ export namespace ParticleTileOpaque {
       dimensions: [nx, ny, nz],
       density,
     };
+  }
+
+  /** `tile`'s opacity blocks (`b` an axis) at its cell's place in `density` (a grid over `set`'s), or 0 (`clear`) */
+  function writeTileDensity(
+    set: ParticleTileSet,
+    density: Float32Array,
+    b: number,
+    tile: ParticleTile,
+    clear: boolean,
+  ) {
+    const [gx, gy] = set.grid.dimensions;
+    const nx = gx * b;
+    const ny = gy * b;
+    const x = tile.id % gx;
+    const y = Math.floor(tile.id / gx) % gy;
+    const z = Math.floor(tile.id / (gx * gy));
+    const d = tile.opacity!.density;
+    for (let bk = 0; bk < b; ++bk) {
+      for (let bj = 0; bj < b; ++bj) {
+        const to = x * b + (y * b + bj) * nx + (z * b + bk) * nx * ny;
+        if (clear) {
+          density.fill(0, to, to + b);
+          continue;
+        }
+        const from = bj * b + bk * b * b;
+        for (let bi = 0; bi < b; ++bi) density[to + bi] = d[from + bi];
+      }
+    }
+  }
+
+  /**
+   * `getDensityGrid` of `tiles` from `last` (the grid of `lastTiles` of `set`): the tiles let go cleared and those added
+   * written in place, not a grid made again (a following view's steps: a few tiles each of a grid of millions of
+   * cells); a new object (its users tell a change by identity), its array the last's. Made again where `last` is none
+   * or of other blocks
+   */
+  export function updateDensityGrid(
+    set: ParticleTileSet,
+    tiles: ArrayLike<number>,
+    last?: { readonly grid: ParticleDensityGrid; readonly tiles: ArrayLike<number> },
+  ): ParticleDensityGrid | undefined {
+    if (!last) return getDensityGrid(set, Array.from(tiles));
+    const [gx, gy, gz] = set.grid.dimensions;
+    const [nx, ny, nz] = last.grid.dimensions;
+    const b = nx / gx;
+    if (!Number.isInteger(b) || ny !== gy * b || nz !== gz * b) return getDensityGrid(set, Array.from(tiles));
+    const next = new Set<number>();
+    for (let i = 0; i < tiles.length; ++i) next.add(tiles[i]);
+    const before = new Set<number>();
+    for (let i = 0; i < last.tiles.length; ++i) before.add(last.tiles[i]);
+    const withOpacity = (id: number) => {
+      const opacity = set.tiles.get(id)?.opacity;
+      return opacity && opacity.dimensions.every((d) => d === b) ? set.tiles.get(id)! : undefined;
+    };
+    for (const id of next) {
+      const tile = set.tiles.get(id);
+      if (!before.has(id) && tile?.opacity && !withOpacity(id)) return getDensityGrid(set, next);
+    }
+    const { density } = last.grid;
+    for (const id of before) {
+      const tile = withOpacity(id);
+      if (tile && !next.has(id)) writeTileDensity(set, density, b, tile, true);
+    }
+    let any = false;
+    for (const id of next) {
+      const tile = withOpacity(id);
+      if (!tile) continue;
+      any = true;
+      if (!before.has(id)) writeTileDensity(set, density, b, tile, false);
+    }
+    return any ? { ...last.grid } : undefined;
   }
 
   /**

@@ -634,7 +634,7 @@ export namespace ParticleTiles {
   ): ParticleTileSet {
     const n = list.count;
     const p = Vec3();
-    const boundingSphere = getTilesSphere(list, centers, counts);
+    let boundingSphere = getTilesSphere(list, centers, counts);
     const bytesPerParticle =
       (GridPositions.is(list.coordinates) ? 8 : 12) +
       (list.rotations ? list.rotations.BYTES_PER_ELEMENT * 4 : 0) +
@@ -669,6 +669,13 @@ export namespace ParticleTiles {
           }
         }
       }
+      // the set's sphere of its tiles' boxes (where their particles go in every frame), not of the first frame's centers
+      const boxes = new Float64Array(counts.length * 6);
+      for (const [id, tile] of tiles) {
+        boxes.set(tile.box.min, id * 6);
+        boxes.set(tile.box.max, id * 6 + 3);
+      }
+      boundingSphere = getTilesSphere(list, boxes, counts);
     }
 
     // a tile's list a view of the ordered list's range (kept: the same object a request), its keys its particles'

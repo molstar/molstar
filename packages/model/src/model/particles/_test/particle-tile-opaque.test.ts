@@ -193,6 +193,17 @@ describe('particle tile opacity', () => {
     expect(first.density[0]).toBe(1);
     // none with an opacity: none
     expect(ParticleTileOpaque.getDensityGrid(set, [])).toBeUndefined();
+
+    // updated in place from the last grid (the tiles let go cleared, those added written): as made again, a new object
+    const one = ParticleTileOpaque.updateDensityGrid(set, [0])!;
+    expect(Array.from(one.density)).toEqual(Array.from(first.density));
+    const both = ParticleTileOpaque.updateDensityGrid(set, [0, 1], { grid: one, tiles: [0] })!;
+    expect(both).not.toBe(one);
+    expect(both.density).toBe(one.density);
+    expect(Array.from(both.density)).toEqual(Array.from(grid.density));
+    const second = ParticleTileOpaque.updateDensityGrid(set, [1], { grid: both, tiles: [0, 1] })!;
+    expect(Array.from(second.density)).toEqual(Array.from(ParticleTileOpaque.getDensityGrid(set, [1])!.density));
+    expect(ParticleTileOpaque.updateDensityGrid(set, [], { grid: second, tiles: [1] })).toBeUndefined();
   });
 
   it("gives a box near-cubic blocks: the longest side's count, the others' of about that size", () => {

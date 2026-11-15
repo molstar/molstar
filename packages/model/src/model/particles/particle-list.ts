@@ -1794,18 +1794,20 @@ export namespace Particle {
   }
   export function getBoundary(particles: ParticleList): Boundary {
     if (!particles._propertyData[BoundaryDescriptor.name] && particles.pages) {
-      // a slot list's: of its pages' (each cached on its list: a version's by its pages, not its particles)
-      const helper = getBoundaryHelper(particles.pages.pages.length * 1000);
+      // a slot list's: of its pages' (each cached on its list: a version's by its pages, not its particles), all of
+      // them computed first: a page's own computing resets the helpers this one shares
+      const boundaries = particles.pages.pages.map((page) => getBoundary(page.list));
+      const helper = getBoundaryHelper(boundaries.length * 1000);
       helper.reset();
       const box = Box3D.setEmpty(Box3D());
-      for (const page of particles.pages.pages) {
-        const b = getBoundary(page.list);
+      for (const b of boundaries) {
         helper.includeSphere(b.sphere);
         Box3D.add(box, b.box.min);
         Box3D.add(box, b.box.max);
       }
       helper.finishedIncludeStep();
-      for (const page of particles.pages.pages) helper.radiusSphere(getBoundary(page.list).sphere);
+      for (const b of boundaries) helper.radiusSphere(b.sphere);
+
       setBoundary(particles, { box, sphere: helper.getSphere() });
     }
     if (!particles._propertyData[BoundaryDescriptor.name]) {

@@ -186,6 +186,17 @@ describe('particle slots: locations, loci and bounds', () => {
     expect(Array.from(Particle.position(p, Particle.Location(slots, 60)))).toEqual([0, 0, 0]);
   });
 
+  it("bounds a slot list alike whether its pages' bounds are known before or not", () => {
+    // its pages' computed within its own (the helpers shared) or before it: the same sphere
+    const fresh = ParticleSlots.create(list, 100, pages());
+    const known = ParticleSlots.create(list, 100, pages());
+    for (const page of known.pages!.pages) Particle.getBoundary(page.list);
+    const a = Particle.getBoundary(fresh).sphere;
+    const b = Particle.getBoundary(known).sphere;
+    expect(a.radius).toBeCloseTo(b.radius, 4);
+    expect(Vec3.distance(a.center, b.center)).toBeLessThan(1e-4);
+  });
+
   it("bounds a slot list by its pages' bounds and a loci of slots by their particles", () => {
     const slots = ParticleSlots.create(list, 100, pages());
     const whole = Particle.getBoundary(list).sphere;

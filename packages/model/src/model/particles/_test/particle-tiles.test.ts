@@ -308,6 +308,8 @@ describe('ParticleTiles.fromTrajectory', () => {
           GridPositions.get(frames[f].coordinates, sourceIndex(first, i), q);
           expect(Array.from(p)).toEqual(Array.from(q));
           expect(Box3D.containsVec3(tile.box, p)).toBe(true);
+          // the set's sphere around every frame's particles
+          expect(Vec3.distance(set.boundingSphere!.center, p)).toBeLessThanOrEqual(set.boundingSphere!.radius);
         }
       }
     }
