@@ -10,13 +10,19 @@
 - **Step 2 done**: `particle-tile-loader.ts` (`createParticleTileLoader`): `setWanted` by priority (a load no longer
   wanted cancelled: its task aborted at its next update, its result dropped), at most `concurrency` at once (4), a
   tile's targets with it and once each for all tiles and frames; ready kept until `release`, `releaseTargets` only of
-  the unused (`getUnusedTargets`), a failed tile kept failed until released; `getLoaded` (tiles, particles, targets,
+  the unused (`getUnusedTargets`), a failed tile told (`onError`) and loaded again where wanted again
+  (`ParticleTileLoadAttempts`), then failed until released; `getLoaded` (tiles, particles, targets,
   bytes), `subscribe`, `whenIdle`, `dispose`. Tests: `particle-tile-loader.test.ts` (timeouts faked, the tasks'
   scheduler immediates real).
 - **Step 3 done**: `particle-tile-visibility.ts` (`ParticleTileVisibility.get`, `ParticleTileCamera`): the frustum, the
-  clip planes (a tile all on the cut side left out), the size on screen (the catalog's `radius`,
-  `ParticleTileCatalog.getTargetRadius`; the tiles' largest cached per set: the yeast's tiles use thousands of targets
-  each), the occlusion by the tiles' optical depth (6). Tests: `particle-tile-visibility.test.ts`.
+  clip objects of what draws the tiles (`ParticleTileDrawing`, a representation each: any shapes; a tile all clipped
+  away left out, a density block cut exactly by planes and by the other shapes split in eight a few times, a part a
+  surface still cuts hiding nothing, none split finer than a ray apart on screen, a tile's cell tested before its
+  blocks; what hides what every opaque one keeps; measured on the yeast at 16³ from outside: none 15 ms, a plane
+  13, a sphere 19, a cube 27; inside 17, 4, 31, 27; at 2 × 2 cells, 32³: 114, 94, 131, 121), the near plane of the
+  canvas camera's clipping (its focus' radius: `Camera.getClipDistances`, nothing nearer hides), the size on screen
+  (the catalog's `radius`, `ParticleTileCatalog.getTargetRadius`; the tiles' largest cached per set: the yeast's tiles
+  use thousands of targets each), the occlusion by the tiles' optical depth (6). Tests: `particle-tile-visibility.test.ts`.
 - **Step 4 done**: `particle-tile-opaque.ts` (`ParticleTileOpaque`), `ParticleTile.opacity`: by the content's density
   (decided). Molecules of volume fraction φ and mean chord ℓ (4V/S) let a line of length L pass with probability
   exp(-φL/ℓ), the mean over lines (a line's own count of molecules is noise: at the yeast's density a 42 Å voxel holds
@@ -649,12 +655,21 @@
      level only from quantized sites (`Spheres.fromSites`: WebGL1's builder path draws them sparse).
    - 9i. **What levels read up front**: the nodes' directory and runs read at once with the tiles' (not measured; the
      yeast's node runs about 1.3 M); a node's runs read with it instead, its targets from its directory entry.
-   - 9j. **The occluder grid and the clip objects**: the pyramid primed from a density grid (8k, `occluder-grid.ts`)
-     marches its rays through the whole grid, clipped away or not: a clip plane through the cell leaves what it cut away
-     hiding what it reveals (the tiles' pick handles them: `ParticleTileVisibilityOptions.clipPlanes`). For now off with
-     clip objects (`isTargetOccluderOff`, a list drawn whole and a tiles view). Left: a ray's march limited to the kept
-     side of the planes (its entry and exit by each), none primed with another clip shape (as the pick); tests: a dense
-     grid cut in half by a plane, the pyramid's depth behind the cut the far plane's.
+   - 9j. **The occluder grid and the clip objects** (done): the pyramid primed from a density grid (8k,
+     `occluder-grid.ts`) marches each texel's ray through it, a sample the grid's object's clip objects remove adding
+     nothing (`hi_z_occluder_wgsl`, `clip_storage_wgsl` on the object's packed clip objects, `HiZPass.setOccluder`'s
+     `clip`): any shapes, a cut moved (a drag) its uniforms alone, the grid not uploaded again; on with clip objects
+     (`isTargetOccluderOff`: as asked only). An object moved (a preview transform) primes nothing (its grid at rest).
+     Tests: `webgpu-hi-z.test.ts` (a grid cut by a plane, clipped whole by a cube, the cut moved).
+   - 9k. **A cut moved at the yeast's scale** (a clipping gizmo's drag, a few clip objects): the store's object takes a
+     clip-only update (its uniforms and its cull's clip objects, no page written again: `TargetSlotsObject.updateClip`);
+     what draws a set registered by the representation itself on every update, a drag's preview too
+     (`ParticleTileDrawings`, the model's), the follow behavior told per set (at most every `intervalMs`, once more as it
+     settles); a view's step keeps the representation's props (a data-only update: the preview not undone); while the
+     drawings change the pick's occlusion at 32² (`ParticleTileDrawings.SettleMs`): inside the yeast at 16³ a sphere's
+     28 → 11 ms, from outside about the same (19 ms: the tiles' own work, a block about a ray there). Left: the pick
+     off the main thread or the tiles' work cheaper where many are in view (a step a frame then), measured frames
+     of a drag in the app.
 
 ## Open questions (the spec's)
 
