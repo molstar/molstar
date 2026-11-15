@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Task } from '@molstar/core/task';
 import type { ParticleList, ParticleTarget } from '../particle-list.js';
-import { createParticleTileLoader } from '../particle-tile-loader.js';
+import { createParticleTileLoader, ParticleTileLoadAttempts } from '../particle-tile-loader.js';
 import { type ParticleTileProvider, type ParticleTileSet, ParticleTiles } from '../particle-tiles.js';
 
 const Count = 64;
@@ -215,6 +215,31 @@ describe('particle tile loader', () => {
     loader.release([{ id: ids[3], frame: 0 }]);
     loader.setWanted([{ id: ids[3], frame: 0 }]);
     await step();
+    expect(loader.getState(ids[3], 0)).toBe('ready');
+  });
+
+  it('tells of a failed load, loading it again where wanted again a few times, then failed until released', async () => {
+    const { set, fail, calls } = delayed(base);
+    const errors: string[] = [];
+    const loader = createParticleTileLoader(set, { onError: (id, frame) => errors.push(`${id}@${frame}`) });
+    const key = `${ids[3]}@0`;
+    fail.add(key);
+    const want = async () => {
+      loader.setWanted([{ id: ids[3], frame: 0 }]);
+      await step();
+    };
+    for (let i = 0; i < ParticleTileLoadAttempts + 2; ++i) await want();
+    // a load an attempt, each told, none past the attempts
+    expect(calls.tiles.filter((t) => t === key)).toHaveLength(ParticleTileLoadAttempts);
+    expect(errors).toEqual(Array(ParticleTileLoadAttempts).fill(key));
+    expect(loader.getState(ids[3], 0)).toBe('failed');
+    // a dropped request: the next attempt (within the attempts) loads it
+    fail.clear();
+    loader.release([{ id: ids[3], frame: 0 }]);
+    fail.add(key);
+    await want();
+    fail.clear();
+    await want();
     expect(loader.getState(ids[3], 0)).toBe('ready');
   });
 

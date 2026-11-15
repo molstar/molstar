@@ -57,7 +57,12 @@ export interface ParticleTileLoader {
 export interface ParticleTileLoaderOptions {
   /** the tiles loading at once, 4 by default */
   readonly concurrency?: number;
+  /** a tile's load failed (a request dropped, a short answer): told each time, the tile failed until wanted again */
+  readonly onError?: (id: number, frame: number, error: unknown) => void;
 }
+
+/** a failed tile's loads at most, while wanted again (`setWanted`): a dropped request not a hole for good */
+export const ParticleTileLoadAttempts = 3;
 
 interface TileEntry {
   readonly id: number;
@@ -68,6 +73,10 @@ interface TileEntry {
   /** set where a load runs: no longer wanted, its result dropped */
   cancelled?: boolean;
   abort?: () => void;
+  /** its load's reads (`ParticleTileProvider.getTile`'s signal): aborted as it is cancelled */
+  controller?: AbortController;
+  /** its loads failed since it was last ready or released */
+  failures: number;
 }
 
 interface TargetEntry {
@@ -126,7 +135,7 @@ export function createParticleTileLoader(
     const key = keyOf(id, frame);
     let entry = tiles.get(key);
     if (!entry) {
-      entry = { id, frame, state: 'none' };
+      entry = { id, frame, state: 'none', failures: 0 };
       tiles.set(key, entry);
     }
     return entry;
@@ -169,7 +178,8 @@ export function createParticleTileLoader(
         // its targets with it, each once for all the tiles wanting it
         const targets = Promise.all(Array.from(tile.targets, loadTarget));
         targets.catch(() => {}); // awaited below, after the tile: not an unhandled rejection meanwhile
-        const list = await resolve(set.provider.getTile(entry.id, entry.frame), (abort) => {
+        entry.controller = new AbortController();
+        const list = await resolve(set.provider.getTile(entry.id, entry.frame, entry.controller.signal), (abort) => {
           entry.abort = abort;
         });
         await targets;
@@ -179,15 +189,19 @@ export function createParticleTileLoader(
         }
         entry.state = 'ready';
         entry.list = list;
+        entry.failures = 0;
       } catch (error) {
         if (entry.cancelled || disposed) {
           entry.state = 'none';
         } else {
           entry.state = 'failed';
           entry.error = error;
+          entry.failures += 1;
+          options.onError?.(entry.id, entry.frame, error);
         }
       } finally {
         entry.abort = undefined;
+        entry.controller = undefined;
         running -= 1;
         if (!disposed) {
           pump();
@@ -210,6 +224,8 @@ export function createParticleTileLoader(
     if (entry.state !== 'loading') return;
     entry.cancelled = true;
     entry.abort?.();
+    // its reads dropped too (a request not sent, one in flight aborted where nothing else wants its bytes)
+    entry.controller?.abort();
   }
 
   return {
@@ -225,7 +241,12 @@ export function createParticleTileLoader(
         if (next.has(key)) continue;
         next.add(key);
         keys.push(key);
-        getEntry(id, frame);
+        // failed: loaded again where wanted again, a few times (a dropped request), then failed until released
+        const entry = getEntry(id, frame);
+        if (entry.state === 'failed' && entry.failures < ParticleTileLoadAttempts) {
+          entry.state = 'none';
+          entry.error = undefined;
+        }
       }
       for (const key of wantedSet) {
         if (!next.has(key)) cancel(tiles.get(key)!);
@@ -249,7 +270,9 @@ export function createParticleTileLoader(
         if (entry.state !== 'loading') entry.state = 'none';
         entry.list = undefined;
         entry.error = undefined;
+        entry.failures = 0;
       }
+
       notify();
     },
     releaseTargets(ids) {

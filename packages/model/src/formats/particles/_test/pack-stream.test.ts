@@ -307,7 +307,63 @@ describe('ParticlePackSource.batched', () => {
       expect(Array.from(parts[k])).toEqual(Array.from(data.subarray(o, o + l)));
     }
     expect(read).toHaveBeenCalledTimes(4);
-    expect(read).toHaveBeenCalledWith(0, 24);
+    expect(read).toHaveBeenCalledWith(0, 24, expect.anything());
     expect(most).toBeLessThanOrEqual(2);
+  });
+
+  it('reads in the order asked (the loader its priority), not by offset; a range aborted pending not read', async () => {
+    const data = Uint8Array.from({ length: 4096 }, (_, i) => i % 251);
+    const inner = ParticlePackSource.fromBytes(data);
+    const order: number[] = [];
+    const read = vi.fn(async (offset: number, length: number) => {
+      order.push(offset);
+      await new Promise((r) => setTimeout(r, 1));
+      return inner.read(offset, length);
+    });
+    const source = ParticlePackSource.batched({ byteLength: data.byteLength, read }, { concurrency: 1, gap: 16 });
+    const dropped = new AbortController();
+    const reads = [
+      source.read(3000, 8),
+      source.read(1000, 8, dropped.signal),
+      source.read(10, 8),
+      // near the first: merged into its read
+      source.read(3010, 8),
+    ];
+    dropped.abort(new Error('no longer wanted'));
+    const [far, aborted, near, merged] = await Promise.allSettled(reads);
+    expect(far.status).toBe('fulfilled');
+    expect(near.status).toBe('fulfilled');
+    expect(merged.status).toBe('fulfilled');
+    expect(aborted.status).toBe('rejected');
+    expect(String((aborted as PromiseRejectedResult).reason)).toContain('no longer wanted');
+    expect(order).toEqual([3000, 10]);
+  });
+
+  it('aborts a read in flight where every range of it is aborted, not while one is still wanted', async () => {
+    const data = new Uint8Array(4096);
+    const signals: AbortSignal[] = [];
+    const read = vi.fn(
+      (_offset: number, length: number, signal?: AbortSignal) =>
+        new Promise<Uint8Array>((resolve, reject) => {
+          signals.push(signal!);
+          const t = setTimeout(() => resolve(new Uint8Array(length)), 20);
+          signal?.addEventListener('abort', () => {
+            clearTimeout(t);
+            reject(signal.reason);
+          });
+        }),
+    );
+    const source = ParticlePackSource.batched({ byteLength: data.byteLength, read }, { gap: 16 });
+    const a = new AbortController();
+    const b = new AbortController();
+    const reads = [source.read(0, 8, a.signal), source.read(8, 8, b.signal)];
+    await new Promise((r) => setTimeout(r, 1));
+    expect(read).toHaveBeenCalledTimes(1);
+    a.abort(new Error('a let go'));
+    expect(signals[0].aborted).toBe(false);
+    b.abort(new Error('b let go'));
+    expect(signals[0].aborted).toBe(true);
+    const settled = await Promise.allSettled(reads);
+    expect(settled.map((s) => s.status)).toEqual(['rejected', 'rejected']);
   });
 });

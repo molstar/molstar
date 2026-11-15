@@ -108,6 +108,15 @@ provider gives a value a reader set.
     a pack larger than an `ArrayBuffer`, and the first tiles drawn before the rest is read. A target's sites every
     `siteStride`-th where asked (`ParticleSites.coarsen`: read, the kept ones copied; drawn as that stride's level of
     detail, `ParticleSites.stride`): a view's targets a tenth of the memory at 10, its floor on a phone.
+  - A URL read by range needs its server to answer `Range` requests (206) and to tell the file's size: the answer's
+    `Content-Range`, which another origin reads only where the server sends
+    `Access-Control-Expose-Headers: Content-Range` (and allows the `Range` request header), else a `HEAD`'s
+    `Content-Length` (CORS-safelisted). A server answering neither: the pack read whole, the plugin's log saying why
+    (`getUrlRangeSource`).
+  - A block's sizes agree (`parseParticlePackDocument`): its `byteLength` its `count` × `components` values of its type,
+    a block of a value a particle (`position`, `rotation`, `attribute.*`) of the pack's `count`, else it is not read,
+    named. Why: a view of it reads `count` × `components`, into the next block where they disagree.
+
   - Coarse levels of a tile-ordered pack (`tiles.levels`, `WriteParticlePackOptions.levels`, the CLI's `--levels`): an
     octree over the tiles' grid, level `L` (1 to `log2(dimensions)`) a node a cell of the grid of `dimensions >> L`
     cells an axis, every `8^L`-th of its tiles' particles (in Morton order of a 512³ grid over the box: spread over it),

@@ -30,6 +30,7 @@ import {
   createParticleListFromPack,
   isParticlePack,
   ParticlePackFormat,
+  parseParticlePackDocument,
   readParticlePack,
   writeParticlePack,
 } from '../pack.js';
@@ -194,6 +195,44 @@ function expectPosition(read: ParticleList, p: number, list: ParticleList, i: nu
 }
 
 describe('particle pack', () => {
+  it('copies a pack at an unaligned offset only where small, else refuses (no copy of its size again)', () => {
+    const bytes = writeParticlePack(createList());
+    const shifted = new Uint8Array(bytes.byteLength + 1);
+    shifted.set(bytes, 1);
+    const unaligned = shifted.subarray(1);
+    expect(createParticleListFromPack(readParticlePack(unaligned)).count).toBe(
+      createParticleListFromPack(readParticlePack(bytes)).count,
+    );
+    expect(() => readParticlePack(unaligned, { maxCopyBytes: bytes.byteLength - 1 })).toThrow(/not copied/);
+    // aligned: never copied, whatever its size
+    expect(readParticlePack(bytes, { maxCopyBytes: 0 }).buffer).toBe(bytes.buffer);
+  });
+
+  it('reads no block whose sizes disagree, naming it: its bytes and items, a particle block and the count', () => {
+    const bytes = writeParticlePack(createList());
+    const { document } = readParticlePack(bytes);
+    const parse = (change: (blocks: { name: string; count: number; byteLength: number }[]) => void) => {
+      const doc = JSON.parse(JSON.stringify(document));
+      change(doc.blocks);
+      return () => parseParticlePackDocument(new TextEncoder().encode(JSON.stringify(doc)), bytes.byteLength);
+    };
+    expect(parse(() => {})).not.toThrow();
+    // its items more than its bytes hold: the next block's read
+    expect(
+      parse((blocks) => {
+        blocks.find((b) => b.name === 'rotation')!.count += 1;
+      }),
+    ).toThrow(/block 'rotation' of \d+ bytes, not its/);
+    // its bytes and items agree, of another count than the particles'
+    expect(
+      parse((blocks) => {
+        const b = blocks.find((b) => b.name === 'rotation')!;
+        b.byteLength -= b.byteLength / b.count;
+        b.count -= 1;
+      }),
+    ).toThrow(/block 'rotation' of \d+ items, not the pack's/);
+  });
+
   it('reads back the list it was written from, its particles sorted by target', () => {
     const list = createList();
     const bytes = writeParticlePack(list);

@@ -327,7 +327,9 @@ export interface ParticleTile {
  * in the same order, other poses, of one line of `Particle.withPoses`), and a target's data
  */
 export interface ParticleTileProvider {
-  getTile(id: number, frame: number): ParticleList | Task<ParticleList>;
+  /** `signal` aborted: the tile no longer wanted (the loader's), its reads dropped where they can be */
+  getTile(id: number, frame: number, signal?: AbortSignal): ParticleList | Task<ParticleList>;
+
   getTarget(id: number): ParticleTarget | Task<ParticleTarget>;
 }
 

@@ -54,8 +54,16 @@ import {
 export interface ParticlePackSource {
   /** the pack's bytes */
   readonly byteLength: number;
-  /** its bytes `[offset, offset + length)`, in an array of their own (4-byte aligned) */
-  read(offset: number, length: number): Promise<Uint8Array>;
+  /**
+   * its bytes `[offset, offset + length)`, in an array of their own (4-byte aligned); `signal` aborted: no longer
+   * wanted (a tile let go), the read dropped where it can be (rejected with the signal's reason)
+   */
+  read(offset: number, length: number, signal?: AbortSignal): Promise<Uint8Array>;
+}
+
+/** the reason a read aborted by `signal` rejects with */
+function abortReason(signal: AbortSignal) {
+  return signal.reason ?? new Error('particle pack read aborted');
 }
 
 export namespace ParticlePackSource {
@@ -94,25 +102,48 @@ export namespace ParticlePackSource {
       length: number;
       resolve: (b: Uint8Array) => void;
       reject: (e: unknown) => void;
+      signal?: AbortSignal;
     };
+    /** in the order asked: the loader's by priority */
     const pending: Pending[] = [];
     let inFlight = 0;
     const next = () => {
       while (inFlight < concurrency && pending.length > 0) {
-        // the first pending by offset and those after it within the gap, as one read
-        pending.sort((a, b) => a.offset - b.offset);
-        const group = [pending.shift()!];
-        let end = group[0].offset + group[0].length;
-        while (pending.length > 0) {
-          const p = pending[0];
-          if (p.offset - end > gap || Math.max(end, p.offset + p.length) - group[0].offset > maxBytes) break;
-          group.push(pending.shift()!);
+        // the first asked and the pending within the gap of it on either side (by offset), as one read: what is wanted
+        // first goes first, not what is first in the file
+        const byOffset = [...pending].sort((a, b) => a.offset - b.offset);
+        const seed = byOffset.indexOf(pending[0]);
+        let lo = seed;
+        let hi = seed;
+        let start = pending[0].offset;
+        let end = start + pending[0].length;
+        while (hi + 1 < byOffset.length) {
+          const p = byOffset[hi + 1];
+          if (p.offset - end > gap || Math.max(end, p.offset + p.length) - start > maxBytes) break;
           end = Math.max(end, p.offset + p.length);
+          hi += 1;
         }
-        const start = group[0].offset;
+        while (lo > 0) {
+          const p = byOffset[lo - 1];
+          if (start - (p.offset + p.length) > gap || end - Math.min(start, p.offset) > maxBytes) break;
+          start = Math.min(start, p.offset);
+          lo -= 1;
+        }
+        const group = byOffset.slice(lo, hi + 1);
+        for (const p of group) pending.splice(pending.indexOf(p), 1);
+        // the read aborted where every range of it is (each its own signal): none of it wanted any more
+        const controller = new AbortController();
+        const signals = group.map((p) => p.signal);
+        if (signals.every((s) => !!s)) {
+          const check = () => {
+            if (signals.every((s) => s!.aborted)) controller.abort(abortReason(signals[0]!));
+          };
+          for (const s of signals) s!.addEventListener('abort', check, { once: true });
+          check();
+        }
         inFlight += 1;
         source
-          .read(start, end - start)
+          .read(start, end - start, controller.signal)
           .then(
             (bytes) => {
               for (const p of group) {
@@ -132,9 +163,25 @@ export namespace ParticlePackSource {
     };
     return {
       byteLength: source.byteLength,
-      read: (offset, length) =>
+      read: (offset, length, signal) =>
         new Promise<Uint8Array>((resolve, reject) => {
-          pending.push({ offset, length, resolve, reject });
+          if (signal?.aborted) {
+            reject(abortReason(signal));
+            return;
+          }
+          const p: Pending = { offset, length, resolve, reject, signal };
+          pending.push(p);
+          // aborted while pending: not read (in flight: its part dropped, the read aborted where all of it is)
+          signal?.addEventListener(
+            'abort',
+            () => {
+              const i = pending.indexOf(p);
+              if (i < 0) return;
+              pending.splice(i, 1);
+              reject(abortReason(signal));
+            },
+            { once: true },
+          );
           // the ranges asked together (a microtask's) merged before the first goes
           queueMicrotask(next);
         }),
@@ -145,7 +192,8 @@ export namespace ParticlePackSource {
   export function fromBlob(blob: Blob): ParticlePackSource {
     return {
       byteLength: blob.size,
-      read: async (offset, length) => {
+      read: async (offset, length, signal) => {
+        if (signal?.aborted) throw abortReason(signal);
         if (offset < 0 || offset + length > blob.size) throw new Error('particle pack read past its end');
         return new Uint8Array(await blob.slice(offset, offset + length).arrayBuffer());
       },
@@ -199,9 +247,15 @@ function getBlock(doc: ParticlePackDocument, name: string) {
 }
 
 /** items `[first, first + count)` of `block` (`components` values an item), as its type's array */
-async function readItems(source: ParticlePackSource, block: ParticlePackBlock, first: number, count: number) {
+async function readItems(
+  source: ParticlePackSource,
+  block: ParticlePackBlock,
+  first: number,
+  count: number,
+  signal?: AbortSignal,
+) {
   const itemBytes = block.byteLength / Math.max(1, block.count);
-  const bytes = await source.read(block.byteOffset + first * itemBytes, count * itemBytes);
+  const bytes = await source.read(block.byteOffset + first * itemBytes, count * itemBytes, signal);
   const length = count * block.components;
   if (block.type === 'float32') return new Float32Array(bytes.buffer, bytes.byteOffset, length);
   if (block.type === 'int16' || block.type === 'snorm16') return new Int16Array(bytes.buffer, bytes.byteOffset, length);
@@ -414,11 +468,11 @@ export async function createParticleTileSetFromPack(
   };
 
   /** tile `id`'s list: its ranges of the per-particle blocks read, its runs' values */
-  const readTile = (id: number): Promise<ParticleList> => {
+  const readTile = (id: number, signal?: AbortSignal): Promise<ParticleList> => {
     const tile = tileMap.get(id);
     const at = byCell.get(id);
     if (!tile || !at) throw new Error(`particle tiles: no tile ${id}`);
-    return readRange(`tile ${id}`, tileBlocks, tile.base, tile.count, at, 1);
+    return readRange(`tile ${id}`, tileBlocks, tile.base, tile.count, at, 1, signal);
   };
 
   /**
@@ -432,14 +486,17 @@ export async function createParticleTileSetFromPack(
     count: number,
     at: { readonly k: number; readonly r0: number; readonly r1: number },
     scale: number,
+    signal?: AbortSignal,
   ): Promise<ParticleList> => {
     const runs = ranges.runs;
     const boxes = ranges.boxes;
+    const read = (b: ParticlePackBlock | undefined) =>
+      b ? readItems(stream.source, b, first, count, signal) : Promise.resolve(undefined);
     const [positions, rotations, keyValues, ...attributeValues] = await Promise.all([
-      readItems(stream.source, ranges.position, first, count),
-      ranges.rotation ? readItems(stream.source, ranges.rotation, first, count) : Promise.resolve(undefined),
-      ranges.keys ? readItems(stream.source, ranges.keys, first, count) : Promise.resolve(undefined),
-      ...ranges.attributes.map((b) => (b ? readItems(stream.source, b, first, count) : Promise.resolve(undefined))),
+      readItems(stream.source, ranges.position, first, count, signal),
+      read(ranges.rotation),
+      read(ranges.keys),
+      ...ranges.attributes.map(read),
     ]);
     if (!(positions instanceof Uint32Array)) throw new Error("particle pack block 'position' not on a grid");
     if (rotations instanceof Int32Array || rotations instanceof Uint32Array)
@@ -554,10 +611,10 @@ export async function createParticleTileSetFromPack(
     boundingSphere,
     frameCount: 1,
     provider: {
-      getTile: (id, frame) =>
+      getTile: (id, frame, signal) =>
         Task.create(`Particle tile ${id}`, async () => {
           if (frame !== 0) throw new Error(`particle tiles: no frame ${frame}`);
-          return readTile(id);
+          return readTile(id, signal);
         }),
       getTarget: (id) => Task.create(`Particle target ${id}`, () => readTarget(id)),
     },
@@ -623,7 +680,7 @@ export async function createParticleTileSetFromPack(
     });
     nodeParticles = Math.max(nodeParticles, first + count);
   }
-  const readNode = (id: number): Promise<ParticleList> => {
+  const readNode = (id: number, signal?: AbortSignal): Promise<ParticleList> => {
     const at = nodeAt.get(id);
     const tile = allTiles.get(id);
     if (!at || !tile) throw new Error(`particle tiles: no node ${id}`);
@@ -635,6 +692,7 @@ export async function createParticleTileSetFromPack(
       tile.count,
       at,
       ParticleTiles.getLevelScale(at.level),
+      signal,
     );
   };
   return {
@@ -648,11 +706,12 @@ export async function createParticleTileSetFromPack(
       getNode: (level, levelCell) => byLevel.get(`${level},${levelCell}`),
     },
     provider: {
-      getTile: (id, frame) =>
+      getTile: (id, frame, signal) =>
         Task.create(`Particle tile ${id}`, async () => {
           if (frame !== 0) throw new Error(`particle tiles: no frame ${frame}`);
-          return id < cells ? readTile(id) : readNode(id);
+          return id < cells ? readTile(id, signal) : readNode(id, signal);
         }),
+
       getTarget: base.provider.getTarget,
     },
   };

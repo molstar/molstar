@@ -253,10 +253,6 @@ export function isParticlePack(data: Uint8Array) {
   return data.length >= HeaderBytes && String.fromCharCode(data[0], data[1], data[2], data[3]) === ParticlePackMagic;
 }
 
-/**
- * The pack in `data`: its header and document read, its blocks left as they are (views made where read). `data` is
- * copied once where its offset does not keep the blocks aligned for typed arrays
- */
 /** a pack's header (its first `ParticlePackHeaderBytes`): its version and where its document is */
 export interface ParticlePackHeader {
   readonly version: number;
@@ -280,19 +276,62 @@ export function readParticlePackHeader(data: Uint8Array): ParticlePackHeader {
   return { version, jsonOffset: Number(view.getBigUint64(12, true)), jsonLength: Number(view.getBigUint64(20, true)) };
 }
 
-/** The document of a pack (its JSON's bytes), its blocks checked within `byteLength` (the file's) and aligned */
+/** bytes a value of a block's type */
+const BlockTypeBytes: Record<ParticlePackBlockType, number> = { float32: 4, int32: 4, int16: 2, snorm16: 2, grid21: 4 };
+
+/** blocks of a value a particle (`count` the pack's): their count checked against it */
+function isPerParticleBlock(name: string) {
+  return name === 'position' || name === 'rotation' || name.startsWith('attribute.');
+}
+
+/**
+ * The document of a pack (its JSON's bytes), its blocks checked within `byteLength` (the file's), aligned, and of the
+ * size their items say (`count` items of `components` values of `type`: what a view of them reads), those of a value a
+ * particle of the pack's count. Why: a block whose sizes disagree would be read into the next, or fail unnamed
+ */
 export function parseParticlePackDocument(json: Uint8Array, byteLength: number): ParticlePackDocument {
   const document = JSON.parse(new TextDecoder().decode(json)) as ParticlePackDocument;
   for (const b of document.blocks) {
     if (b.byteOffset % BlockAlignment !== 0) throw new Error(`particle pack block '${b.name}' not aligned`);
     if (b.byteOffset + b.byteLength > byteLength) throw new Error(`particle pack truncated (block '${b.name}')`);
+    const bytes = BlockTypeBytes[b.type];
+    if (bytes === undefined) throw new Error(`particle pack block '${b.name}' of an unknown type '${b.type}'`);
+    if (b.byteLength !== b.count * b.components * bytes) {
+      throw new Error(
+        `particle pack block '${b.name}' of ${b.byteLength} bytes, not its ${b.count} × ${b.components} ${b.type}`,
+      );
+    }
+    if (isPerParticleBlock(b.name) && b.count !== document.count) {
+      throw new Error(
+        `particle pack block '${b.name}' of ${b.count} items, not the pack's ${document.count} particles`,
+      );
+    }
   }
   return document;
 }
 
-export function readParticlePack(data: Uint8Array): ParticlePack {
+/** bytes of a pack at an offset not keeping its blocks aligned copied at most (`readParticlePack`) */
+export const ParticlePackMaxCopyBytes = 16 * 1024 * 1024;
+
+/**
+ * The pack in `data`: its header and document read, its blocks left as they are (views made where read, no copy).
+ * `data` at an offset not a multiple of 4 (its blocks' typed arrays not aligned) copied where small (at most
+ * `maxCopyBytes`, `ParticlePackMaxCopyBytes` by default), else refused. Why: a pack of GBs copied whole would take its
+ * size again in memory. Bytes read from a file, a download or an inflate have a buffer of their own (offset 0), and
+ * Node's pooled buffers are 8-byte aligned: a view at another offset is a caller's (an entry stored in a zip, a pack
+ * within a larger buffer; the plugin's zips are read as files of their own)
+ */
+export function readParticlePack(data: Uint8Array, options: { readonly maxCopyBytes?: number } = {}): ParticlePack {
   const header = readParticlePackHeader(data);
-  const bytes = data.byteOffset % 4 === 0 ? data : data.slice();
+  const aligned = data.byteOffset % 4 === 0;
+  const maxCopy = options.maxCopyBytes ?? ParticlePackMaxCopyBytes;
+  if (!aligned && data.byteLength > maxCopy) {
+    throw new Error(
+      `particle pack of ${data.byteLength} bytes at offset ${data.byteOffset} (not a multiple of 4): not copied ` +
+        `(past ${maxCopy} bytes); give its bytes in a buffer of their own`,
+    );
+  }
+  const bytes = aligned ? data : data.slice();
   const { jsonOffset, jsonLength } = header;
   if (jsonOffset + jsonLength > bytes.byteLength) throw new Error('particle pack truncated (its document)');
   const document = parseParticlePackDocument(bytes.subarray(jsonOffset, jsonOffset + jsonLength), bytes.byteLength);
