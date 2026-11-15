@@ -17,9 +17,11 @@ import { ParticlePackSource } from '@molstar/model/formats/particles/pack-stream
 export async function getParticlePackSource(
   asset: Asset,
   assets?: AssetManager,
+  /** told why a URL is not read by range (read whole then) */
+  warn?: (message: string) => void,
 ): Promise<ParticlePackSource | undefined> {
   if (Asset.isUrl(asset)) {
-    const source = await getUrlRangeSource(asset.url, asset.headers);
+    const source = await getUrlRangeSource(asset.url, asset.headers, warn);
     // a few requests at a time, ranges side by side merged (a view's targets: thousands of small ranges)
     return source && ParticlePackSource.batched(source);
   }
@@ -55,13 +57,28 @@ function getRangeTotal(header: string | null) {
   return total ? Number(total) : undefined;
 }
 
+/** the size of `url` by a HEAD request (`Content-Length`, CORS-safelisted: read on another origin too), none unknown */
+async function getHeadLength(url: string, headers?: Record<string, string>) {
+  try {
+    const head = await fetch(url, { method: 'HEAD', headers });
+    const length = head.ok ? Number(head.headers.get('content-length')) : Number.NaN;
+    return Number.isFinite(length) && length > 0 ? length : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * The source of `url` by range requests: its first bytes asked as a range, a partial answer (206, its total) a
- * source, else none (the answer's body let go: a server ignoring ranges sends it whole)
+ * The source of `url` by range requests: its first bytes asked as a range, a partial answer (206) a source of its
+ * total, else none (the answer's body let go: a server ignoring ranges sends it whole). The total the answer's
+ * `Content-Range`; on another origin that header is read only where the server exposes it
+ * (`Access-Control-Expose-Headers: Content-Range`), else the total by a HEAD request's `Content-Length`. A server
+ * answering neither (or ignoring ranges) none, `warn` told why: the pack then read whole
  */
 export async function getUrlRangeSource(
   url: string,
   headers?: Record<string, string>,
+  warn?: (message: string) => void,
 ): Promise<ParticlePackSource | undefined> {
   const probe = new AbortController();
   let response: Response;
@@ -70,18 +87,33 @@ export async function getUrlRangeSource(
   } catch {
     return undefined;
   }
-  const total = response.status === 206 ? getRangeTotal(response.headers.get('content-range')) : undefined;
+  if (response.status !== 206) {
+    probe.abort();
+    if (response.ok) warn?.(`'${url}' answers no range requests (status ${response.status}): read whole`);
+    return undefined;
+  }
+  const total = getRangeTotal(response.headers.get('content-range')) ?? (await getHeadLength(url, headers));
   if (total === undefined) {
     probe.abort();
+    warn?.(
+      `'${url}' answers range requests but its size is unknown: its server exposes no 'Content-Range' ` +
+        "('Access-Control-Expose-Headers: Content-Range' on another origin) nor a HEAD 'Content-Length': read whole",
+    );
     return undefined;
   }
   await response.arrayBuffer();
+
   return {
     byteLength: total,
-    read: async (offset, length) => {
+    read: async (offset, length, signal) => {
       // none asked (an empty block): no request, `bytes=X-(X-1)` a range a server refuses (416)
       if (length <= 0) return new Uint8Array(0);
-      const r = await fetch(url, { headers: { ...headers, Range: `bytes=${offset}-${offset + length - 1}` } });
+      // aborted: the request dropped (a tile no longer wanted)
+      const r = await fetch(url, {
+        headers: { ...headers, Range: `bytes=${offset}-${offset + length - 1}` },
+        signal,
+      });
+
       if (r.status !== 206) throw new Error(`particle pack range of '${url}' not answered (${r.status})`);
       const bytes = new Uint8Array(await r.arrayBuffer());
       if (bytes.byteLength !== length) throw new Error(`particle pack range of '${url}' answered short`);

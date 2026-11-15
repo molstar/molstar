@@ -68,7 +68,7 @@ const ParticleTileSetFromList = PluginStateTransform.BuiltIn({
     }),
   },
 })({
-  apply({ a, params }) {
+  apply({ a, params }, plugin: PluginContext) {
     return Task.create('Particle Tiles', async (ctx) => {
       // auto: what the data is ordered for (a tile-ordered pack's grid), else about a store page a tile
       const first = SO.Particle.List.is(a) ? a.data : (a as SO.Particle.Trajectory).data.representative;
@@ -81,7 +81,7 @@ const ParticleTileSetFromList = PluginStateTransform.BuiltIn({
       // a tile-ordered pack's tiles have theirs (written with it): computed where none has
       const known = [...set.tiles.values()].some((t) => t.opacity);
       if (params.opacity && !known) set = await ParticleTileOpaque.computeOpacities(set).runInContext(ctx);
-      const loader = createParticleTileLoader(set, { concurrency: params.concurrency });
+      const loader = createParticleTileLoader(set, { concurrency: params.concurrency, onError: tileError(plugin) });
       return new SO.Particle.TileSet(
         { set, loader },
         { label: a.label, description: `${cells}³ grid · ${set.tiles.size} tiles · ${set.count} particles` },
@@ -144,7 +144,9 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
       if (asset && Asset.isFile(asset) && !getPackFile(asset, assets)) {
         throw new Error(`The particle pack file '${asset.name}' is not held here: open the file again.`);
       }
-      const read = asset ? await getParticlePackSource(asset, assets) : undefined;
+      const read = asset
+        ? await getParticlePackSource(asset, assets, (m) => plugin.log.warn(`Particle pack: ${m}`))
+        : undefined;
       if (!read) throw new Error('particle pack not read by range (a server ignoring ranges)');
       const stream = await openParticlePackStream(read);
       if (!isParticlePackStreamable(stream.document)) throw new Error('particle pack not tile-ordered: read it whole');
@@ -153,7 +155,7 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
         siteStride: params.siteStride,
         levels: params.levels,
       });
-      const loader = createParticleTileLoader(set, { concurrency: params.concurrency });
+      const loader = createParticleTileLoader(set, { concurrency: params.concurrency, onError: tileError(plugin) });
       const n = set.grid.dimensions[0];
       const base = set.levels?.base ?? set;
       return new SO.Particle.TileSet(
@@ -172,7 +174,17 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
   },
 });
 
+/**
+ * a tile set's loader's failures logged (a dropped request, a short answer): the tile loaded again where wanted again,
+ * a few times (`ParticleTileLoadAttempts`)
+ */
+function tileError(plugin: PluginContext) {
+  return (id: number, frame: number, error: unknown) =>
+    plugin.log.warn(`Particle tiles: tile ${id}${frame > 0 ? ` at frame ${frame}` : ''} not read: ${error}`);
+}
+
 /** A pack tile set's cache: the file it holds in the asset manager (`holdParticlePackFile`) */
+
 interface PackCache {
   held?: Asset.File;
 }

@@ -75,6 +75,9 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
     /** the tile sets' loaders followed: a tile loaded wakes the views of its set; a set's let go as it goes */
     private loaders = new Map<ParticleTileLoader, () => void>();
     private updating = false;
+    /** a pass asked for while an update runs: scheduled as it ends */
+    private again = false;
+
     private scheduled = false;
     private disposed = false;
     /** per tile set its steps' particles a ms (a running mean): what its next step's particles are by */
@@ -130,8 +133,8 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
     /** the following views behind the camera updated a step; again at the next frame while any is behind */
     private async follow() {
       if (this.updating) {
-        // after the update in progress
-        this.schedule();
+        // after the update in progress (its end schedules the next pass): not a pass a frame meanwhile
+        this.again = true;
         return;
       }
       const state = this.ctx.state.data;
@@ -159,14 +162,25 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         await this.ctx.runTask(state.updateTree(update, { doNotUpdateCurrent: true, doNotLogTiming: true }));
       } finally {
         this.updating = false;
+        // a pass asked for meanwhile (a camera change, a tile loaded): also where the update failed
+        if (this.again) {
+          this.again = false;
+          this.schedule();
+        }
       }
-      // the step's time (the views' and their representations' updates) by the particles it added: the next step's
-      // particles toward its `stepMs` (steps by time)
+      // the step's time (the views' and their representations' updates) by the particles each set's views added: a
+      // set's share of the step's particles a ms, its next step's particles toward its `stepMs` (steps by time; the
+      // sets of a step together about its time)
       const ms = performance.now() - start;
-      let added = 0;
-      for (const step of steps) added += Math.max(0, particlesOf(step.cell.obj?.data as ParticleList) - step.before);
-      if (added > 0 && ms > 0) {
+      const addedBySet = new Map<ParticleTileSet, number>();
+      for (const step of steps) {
+        const added = Math.max(0, particlesOf(step.cell.obj?.data as ParticleList) - step.before);
+        addedBySet.set(step.set, (addedBySet.get(step.set) ?? 0) + added);
+      }
+      if (ms > 0) {
         for (const step of steps) {
+          const added = addedBySet.get(step.set)!;
+          if (added === 0) continue;
           const measured = added / ms;
           const before = this.rates.get(step.set);
           const rate = before === undefined ? measured : (before + measured) / 2;

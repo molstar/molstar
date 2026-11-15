@@ -72,7 +72,7 @@ export const ParticlePackProvider = DataFormatProvider({
  * ranges): read whole then
  */
 async function openParticlePackStreamed(plugin: PluginContext, asset: Asset, options: { readonly visuals: boolean }) {
-  const read = await getParticlePackSource(asset, plugin.managers.asset);
+  const read = await getParticlePackSource(asset, plugin.managers.asset, (m) => plugin.log.warn(`Particle pack: ${m}`));
 
   if (!read) return false;
   // not a pack as it is (gzipped: `.mspk.gz`; a server's error page): read whole then, which inflates it or says why not
