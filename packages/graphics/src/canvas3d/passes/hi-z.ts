@@ -196,6 +196,15 @@ export class HiZPass {
    * tests on the GPU only (not read); other layouts of its eyes build none
    */
   render(camera: Camera | StereoCamera, complete = false, read = true) {
+    if (!read) {
+      // the CPU test's levels (read back) of an earlier frame no more: frames of levels not read (stereo's eyes,
+      // illumination) test nothing on the CPU, and the next frame that does (stereo or illumination off) none until
+      // its own are read
+      this.reader.reset();
+      this.reading = false;
+      this.frameLag = 0;
+      this.ready = false;
+    }
     this.plan(this.renderBuilder, camera, this.props, this.gpuCulling, complete, read);
   }
 
@@ -215,6 +224,9 @@ export class HiZPass {
   private occluder?: OccluderGrid;
   private occluderTexture?: Texture;
   private occluderUploaded?: OccluderGrid;
+  /** the slices' atlas of the last grid uploaded: of the next where the same size */
+  private occluderAtlas?: Float32Array;
+
   private occluderRenderable?: HiZOccluderRenderable;
   private readonly invViewProjection = Mat4();
   private readonly viewProjection = Mat4();
@@ -240,7 +252,12 @@ export class HiZPass {
       const rows = Math.ceil(nz / columns);
       const width = columns * nx;
       const height = rows * ny;
-      const atlas = new Float32Array(width * height);
+      // the last's array where of the same size (a view's steps: a grid each, of millions of cells)
+      const atlas =
+        this.occluderAtlas?.length === width * height
+          ? this.occluderAtlas.fill(0)
+          : (this.occluderAtlas = new Float32Array(width * height));
+
       for (let z = 0; z < nz; ++z) {
         const ox = (z % columns) * nx;
         const oy = Math.floor(z / columns) * ny;

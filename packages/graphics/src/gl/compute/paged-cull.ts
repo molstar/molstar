@@ -57,6 +57,8 @@ const RecordVec4s = PagedRecordWords / 4;
 export const PagedPoseWords = 8;
 /** a page without pose slots (the device's buffer limit reached) */
 const NoSlots = 0xffffffff;
+/** the transient transform of an object at rest */
+const IdentityTransform = Mat4.identity();
 
 /** a workgroup a group of a page's particles (the cull's): its centers' box reduced (`groupBoxes`) */
 export const PagedCullComposeKernel = KernelCode('paged-cull-compose', [PagedCullWorkgroupKeys]);
@@ -64,6 +66,12 @@ export const PagedCullKernel = KernelCode('paged-cull', [PagedCullWorkgroupKeys]
 export const PagedCullArgsKernel = KernelCode('paged-cull-args', [64]);
 
 const PagedCullUniforms = {
+  /**
+   * the object's transient transform (`uObjectTransform`, a drag's preview) and its largest scale: the spheres tested
+   * moved by it, as the draws move the object
+   */
+  uObjectTransform: UniformSpec('m4'),
+  uObjectScale: UniformSpec('f'),
   uPlane0: UniformSpec('v4'),
   uPlane1: UniformSpec('v4'),
   uPlane2: UniformSpec('v4'),
@@ -247,6 +255,8 @@ export interface PagedCullView {
   readonly rasterRegions?: boolean;
   /** the sphere raster's split (`MergedRasterParams`), with `rasterRegions` */
   readonly raster?: { readonly radius: number; readonly scale: number; readonly near: number };
+  /** the object's transient transform (`uObjectTransform`), the identity where none */
+  readonly objectTransform?: Mat4;
 }
 
 /** The clip objects a cull is of (`packStorageClipObjects`'s, `ClipStorageVec4s` a clip object) */
@@ -336,6 +346,8 @@ export function createPagedCuller(compute: ComputeContext, resources: GraphicsRe
   const emptyHiZ = createEmptyHiZ(resources);
 
   const uniforms = {
+    uObjectTransform: ValueCell.create(Mat4.identity()),
+    uObjectScale: ValueCell.create(1),
     uPlane0: ValueCell.create(Vec4()),
     uPlane1: ValueCell.create(Vec4()),
     uPlane2: ValueCell.create(Vec4()),
@@ -813,6 +825,10 @@ export function createPagedCuller(compute: ComputeContext, resources: GraphicsRe
         Vec4.set(uniforms.uCameraPlane.ref.value, normal[0], normal[1], normal[2], constant),
       );
       ValueCell.update(uniforms.uLevels, Mat4.copy(uniforms.uLevels.ref.value, view.levels));
+      const objectTransform = view.objectTransform ?? IdentityTransform;
+      ValueCell.update(uniforms.uObjectTransform, Mat4.copy(uniforms.uObjectTransform.ref.value, objectTransform));
+      ValueCell.updateIfChanged(uniforms.uObjectScale, Mat4.getMaxScaleOnAxis(objectTransform));
+
       ValueCell.updateIfChanged(uniforms.uLevelCount, view.levelCount);
       const levels = Math.max(1, view.levelCount);
       const ghost = !!view.ghost;

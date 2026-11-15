@@ -193,6 +193,21 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
       expect((object.values as any).markerAverage.ref.value).toBe(0);
 
+      // the same slot list colored otherwise: what is marked kept, the object too (not laid out again)
+      const recolor = (colorTheme: object) =>
+        plugin
+          .build()
+          .to(repr.ref)
+          .update(ParticlesRepresentation3D, (old) => ({ ...old, colorTheme }) as never)
+          .commit();
+      expect(r.mark(loci, MarkerAction.Highlight)).toBe(true);
+      await recolor({ name: 'uniform', params: { value: 0xff0000 } });
+      expect(r.renderObjects[0]).toBe(object);
+      expect((object.values as any).markerAverage.ref.value).toBeGreaterThan(0);
+      await recolor({ name: 'particle-index', params: {} });
+      expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
+      expect(await image()).toEqual(allFlat);
+
       // picks through the canvas, its frames multi-sampled over time: the canvas' frame the culled one. The first an
       // async one drawn incomplete (a draw skipped, as while a program compiles), then again as work settles: of the
       // canvas' frame then, not one of its own

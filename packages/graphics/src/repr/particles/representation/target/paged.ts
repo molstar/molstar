@@ -14,8 +14,11 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ParticleList, Particle, ParticleTarget } from '@molstar/model/model/particles/particle-list';
 import { type ParticlePage, ParticleSlots } from '@molstar/model/model/particles/particle-slots';
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
-import { ParticleTileOpaque } from '@molstar/model/model/particles/particle-tile-opaque';
+import { type ParticleDensityGrid, ParticleTileOpaque } from '@molstar/model/model/particles/particle-tile-opaque';
 import { setOccluderGrid } from '@molstar/graphics/gl/occluder-grid';
+import type { ParticleTileSet } from '@molstar/model/model/particles/particle-tiles';
+import { arrayExtend } from '@molstar/core/util/array';
+
 import { type Loci as ModelLoci, EmptyLoci, isEveryLoci } from '@molstar/model/model/loci';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { PagedCullChanges } from '@molstar/graphics/gl/compute/paged-cull';
@@ -380,8 +383,11 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
     }
   }
 
-  /** the tiles the object's occluder grid is of (`setOccluderGrid`) */
+  /** the tiles the object's occluder grid is of (`setOccluderGrid`), and the grid of them (none: none) */
   let occluderTiles: ArrayLike<number> | undefined;
+  let occluder:
+    | { readonly set: ParticleTileSet; readonly grid: ParticleDensityGrid; readonly tiles: ArrayLike<number> }
+    | undefined;
 
   async function update(
     ctx: VisualContext,
@@ -402,7 +408,13 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
     const memberColors = next.pages?.pages.length === 0 ? byMember : isByMember(theme, targets);
     const modeChanged = memberColors !== byMember;
     byMember = memberColors;
-    const changes = !newMembers && !modeChanged && list ? ParticleSlots.getChanges(list, next) : undefined;
+    // the same pages again (a theme, props or clipping changed): no page changed, not all of them written again
+    const changes =
+      !newMembers && !modeChanged && list
+        ? list.pages && list.pages === next.pages
+          ? { from: list.pages, added: [], removed: [], posed: [] }
+          : ParticleSlots.getChanges(list, next)
+        : undefined;
     if (!changes) reset();
 
     const placement = placementOf(targets, props);
@@ -427,10 +439,11 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
       ParticleSlots.forEachPage(next, add);
     }
     const storeChanges = store.takeChanges();
-    pending.written.push(...storeChanges.written);
-    pending.released.push(...storeChanges.released);
-    pending.runs.push(...storeChanges.runs);
-    pending.extras.push(...storeChanges.extras);
+    // appended one by one: a spread of a store's every page (a reset of a large view) is past the arguments' limit
+    arrayExtend(pending.written, storeChanges.written);
+    arrayExtend(pending.released, storeChanges.released);
+    arrayExtend(pending.runs, storeChanges.runs);
+    arrayExtend(pending.extras, storeChanges.extras);
     pending.grown = pending.grown || storeChanges.grown;
 
     // the pool: made where the store's members are more (the object made again); a member filled where the store
@@ -472,46 +485,56 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
       }
     }
 
-    // the layers: all where they are new or the theme changed, else the pages written; colors by member none
-    const all = ensureLayers() || !changes || colorChanged || poolMade || storeChanges.grown;
+    // the layers: all where they are new or the theme changed, else the pages written; colors by member none. The
+    // markers all cleared where the store's texels are laid out again, else those of the pages written (a store page's
+    // texels another tile's before, marked or not): a theme changed keeps what is marked
+    const layersMade = ensureLayers();
+    const all = layersMade || !changes || colorChanged || poolMade || storeChanges.grown;
+    const clearMarkers = layersMade || !changes || poolMade || storeChanges.grown;
     const ranges: number[] = [];
     if (all) {
       if (!byMember) {
         for (const block of store.blockList) fillColors(block, theme, ranges);
         TextureChanges.update(colors, undefined);
       }
-      markers.ref.value.array.fill(0);
-      ValueCell.updateIfChanged(markerCells.markerAverage, 0);
-      ValueCell.updateIfChanged(markerCells.markerStatus, 0);
-      ValueCell.updateIfChanged(markerCells.uMarker, 0);
-      TextureChanges.update(markers, undefined);
     } else if (written.length > 0) {
       for (const block of written) {
         if (byMember) pushBlockRanges(block, ranges);
         else fillColors(block, theme, ranges);
       }
       if (!byMember) TextureChanges.update(colors, ranges);
-      // their markers clear (a store page's texels another tile's before, marked or not)
-      if (markerCells.markerStatus.ref.value !== 0) {
-        const array = markers.ref.value.array;
-        for (let k = 0; k < ranges.length; k += 2) array.fill(0, ranges[k], ranges[k + 1]);
-        const average = getMarkersAverage(array, store.pageCapacity * StorePageSize);
-        ValueCell.updateIfChanged(markerCells.markerAverage, average);
-        ValueCell.updateIfChanged(markerCells.markerStatus, average === 0 ? 0 : -1);
-        ValueCell.updateIfChanged(markerCells.uMarker, average === 0 ? 0 : -1);
-        TextureChanges.update(markers, ranges);
-      }
+    }
+    if (clearMarkers) {
+      markers.ref.value.array.fill(0);
+      ValueCell.updateIfChanged(markerCells.markerAverage, 0);
+      ValueCell.updateIfChanged(markerCells.markerStatus, 0);
+      ValueCell.updateIfChanged(markerCells.uMarker, 0);
+      TextureChanges.update(markers, undefined);
+    } else if (written.length > 0 && markerCells.markerStatus.ref.value !== 0) {
+      const writtenRanges: number[] = [];
+      for (const block of written) pushBlockRanges(block, writtenRanges);
+      const array = markers.ref.value.array;
+      for (let k = 0; k < writtenRanges.length; k += 2) array.fill(0, writtenRanges[k], writtenRanges[k + 1]);
+      const average = getMarkersAverage(array, store.pageCapacity * StorePageSize);
+      ValueCell.updateIfChanged(markerCells.markerAverage, average);
+      ValueCell.updateIfChanged(markerCells.markerStatus, average === 0 ? 0 : -1);
+      ValueCell.updateIfChanged(markerCells.uMarker, average === 0 ? 0 : -1);
+      TextureChanges.update(markers, writtenRanges);
     }
 
     if (!object && pool.length > 0) {
       object = createMergedRenderObject(pool, { gpuCulling: true, source: createSource() });
       occluderTiles = undefined;
     }
-    // what its shown tiles hide (their opacities): the depth pyramid primed from it (`HiZPass.setOccluder`)
+    // what its shown tiles hide (their opacities): the depth pyramid primed from it (`HiZPass.setOccluder`); a view's
+    // step the last grid updated in place by the tiles it added and let go, not made again
     const view = isTargetOccluderOff(props) ? undefined : ParticleTileView.of(next);
     if (object && view?.tiles !== occluderTiles) {
       occluderTiles = view?.tiles;
-      setOccluderGrid(object.state, view ? ParticleTileOpaque.getDensityGrid(view.set, view.tiles) : undefined);
+      const last = occluder?.set === view?.set ? occluder : undefined;
+      const grid = view ? ParticleTileOpaque.updateDensityGrid(view.set, view.tiles, last) : undefined;
+      occluder = view && grid ? { set: view.set, grid, tiles: view.tiles } : undefined;
+      setOccluderGrid(object.state, grid);
     }
 
     list = next;

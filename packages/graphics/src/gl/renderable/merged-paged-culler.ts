@@ -116,7 +116,8 @@ export function createPagedMergedCuller(
   let seenOffsets = new Float64Array(0);
   let seenBlocks = -1;
   /** the view of the last dispatch and the data's version: a still view culls nothing again (its records stand) */
-  const dispatchedKey = new Float64Array(6 * 4 + 4 + 16 + 4 + 3).fill(NaN);
+  // the frustum, the camera plane, the level ranges, the rest, the raster's split, the transient transform
+  const dispatchedKey = new Float64Array(6 * 4 + 4 + 16 + 4 + 3 + 16).fill(NaN);
   const dispatchKey = new Float64Array(dispatchedKey.length);
   let segmentDataVersion = -1;
   let frontSegments = -1;
@@ -459,19 +460,23 @@ export function createPagedMergedCuller(
    * blocks as their levels' where the split is on, the ghost's in the frustum)
    */
   let predicted = new Uint8Array(0);
-  function predictRecords(cameraPlane: Plane3D, frustum: Frustum3D, raster: boolean) {
+  function predictRecords(cameraPlane: Plane3D, frustum: Frustum3D, raster: boolean, objectTransform: Mat4) {
     const levels = levelBlocks();
     const blocks = recordBlocks();
     if (predicted.length !== blocks * segmentCount) predicted = new Uint8Array(blocks * segmentCount);
     predicted.fill(0);
     const sp = memberSpheres;
+    // as the kernel tests them: moved by the transient transform
+    const t = objectTransform;
+    const objectScale = Mat4.getMaxScaleOnAxis(t);
     for (let s = 0; s < segmentCount; ++s) {
       const o = s * 4;
-      const r = sp[o + 3];
-      if (!(r >= 0)) continue;
-      const x = sp[o];
-      const y = sp[o + 1];
-      const z = sp[o + 2];
+      if (!(sp[o + 3] >= 0)) continue;
+      const r = sp[o + 3] * objectScale;
+      const x = t[0] * sp[o] + t[4] * sp[o + 1] + t[8] * sp[o + 2] + t[12];
+      const y = t[1] * sp[o] + t[5] * sp[o + 1] + t[9] * sp[o + 2] + t[13];
+      const z = t[2] * sp[o] + t[6] * sp[o + 1] + t[10] * sp[o + 2] + t[14];
+
       let inside = true;
       for (let i = 0; i < 6 && inside; ++i) {
         const { normal: n, constant } = frustum[i as 0];
@@ -787,6 +792,9 @@ export function createPagedMergedCuller(
       key[48] = raster?.radius ?? 0;
       key[49] = raster?.scale ?? 0;
       key[50] = raster?.near ?? 0;
+      // the object's transient transform (a drag's preview): what is drawn moves, culled again
+      const objectTransform = values.uObjectTransform.ref.value;
+      key.set(objectTransform, 51);
       let same = true;
       for (let i = 0; same && i < key.length; ++i) same = key[i] === dispatchedKey[i];
       if (same) {
@@ -797,10 +805,19 @@ export function createPagedMergedCuller(
       recordsGeneration += 1;
       recordsCompact = false;
       dispatchVersion += 1;
-      predictRecords(cameraPlane, frustum, rasterRegion && !!raster);
+      predictRecords(cameraPlane, frustum, rasterRegion && !!raster, objectTransform);
       setAllRecords();
       culler.cull(
-        { frustum, cameraPlane, levels: levelRanges, levelCount, ghost, rasterRegions: rasterRegion, raster },
+        {
+          frustum,
+          cameraPlane,
+          levels: levelRanges,
+          levelCount,
+          ghost,
+          rasterRegions: rasterRegion,
+          raster,
+          objectTransform,
+        },
         pyramid,
       );
       ghostDispatched = ghost;

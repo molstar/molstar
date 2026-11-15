@@ -194,6 +194,12 @@ fn outside(plane: vec4<f32>, p: vec3<f32>, r: f32) -> bool {
     return dot(plane.xyz, p) + plane.w < -r;
 }
 
+/** a sphere of the object as drawn: moved by its transient transform (\`uObjectTransform\`, the identity at rest) */
+fn moved(sphere: vec4<f32>) -> vec4<f32> {
+    let center = uParams.uObjectTransform * vec4<f32>(sphere.xyz, 1.0);
+    return vec4<f32>(center.xyz, sphere.w * uParams.uObjectScale);
+}
+
 /**
  * Whether the sphere raster draws an instance at \`p\` of reach \`radius\` (its scale \`scale\`) at \`level\` (uRasterRadius
  * above 0, as the merged culler's \`rasterized\`): in front of the near plane, its member's largest sphere at the level's
@@ -246,7 +252,7 @@ fn pageState(g: u32, lid: u32) -> u32 {
             let group = page * (PageSize / WgKeys) + (g % PageSize) / WgKeys;
             let lo = groupBoxes[group * 2u].xyz;
             let hi = groupBoxes[group * 2u + 1u].xyz;
-            let sphere = vec4<f32>((lo + hi) * 0.5, length(hi - lo) * 0.5 + uParams.uMaxReach);
+            let sphere = moved(vec4<f32>((lo + hi) * 0.5, length(hi - lo) * 0.5 + uParams.uMaxReach));
             let word = u32(uParams.uPageBitsBase) + group / 32u;
             let bit = 1u << (group % 32u);
             let marked = (atomicLoad(&occludedBits[word]) & bit) != 0u;
@@ -301,9 +307,12 @@ fn instance(g: u32, pageOf: u32) -> Instance {
     let scale = m.scale;
     let index = page * PageSize + j;
     let slot = first + j;
-    let p = positionOf(index, bitcast<vec4<f32>>(tables[page * 4u]));
     let md = bitcast<vec4<f32>>(tables[u32(uParams.uMembersBase) + member]);
-    let radius = md.w * scale;
+    // as drawn (the vertex stage moves the poses by the transient transform): the tests of the moved sphere
+    let s = moved(vec4<f32>(positionOf(index, bitcast<vec4<f32>>(tables[page * 4u])), md.w * scale));
+    let p = s.xyz;
+    let radius = s.w;
+
     if (outside(uParams.uPlane0, p, radius) || outside(uParams.uPlane1, p, radius) ||
         outside(uParams.uPlane2, p, radius) || outside(uParams.uPlane3, p, radius) ||
         outside(uParams.uPlane4, p, radius) || outside(uParams.uPlane5, p, radius)) {

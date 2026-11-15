@@ -409,6 +409,8 @@ export function createMergedCuller(
   let rasterDispatched = false;
   let secondPending = false;
   let secondDispatched = false;
+  /** per list its second phase's (`getSecondLists`): the same object each frame */
+  const secondListOf = new WeakMap<MultiDrawBaseData, MultiDrawBaseData>();
   /**
    * What the cells were split from (`syncLayout`), per member: its grid, the grid's layout and placement
    * (`moveInstanceGrid`), its transforms' and bounds' versions. A member's grid moved from the same layout builds the
@@ -1292,8 +1294,17 @@ export function createMergedCuller(
       const key = `${segmentCount},${levelCount},${args.ref.value.id},${rasterRegions}`;
       if (levels !== listsLevels || key !== listsKey) buildLists(levels, key);
       const buffer = secondArgs.ref.value;
-      return (withRaster ? lists : levelLists).map((l) => ({ ...l, indirect: { ...l.indirect!, buffer } }));
+      // a list's second the same object each frame (its fields the list's now): a level's draw block is made once a
+      // level object (WebGPU's), a new one a frame would leave one behind each frame
+      return (withRaster ? lists : levelLists).map((l) => {
+        let second = secondListOf.get(l);
+        if (second) Object.assign(second, l);
+        else secondListOf.set(l, (second = { ...l }));
+        second.indirect = { ...l.indirect!, buffer };
+        return second;
+      });
     },
+
     getLists: (levels, withRaster = true) => {
       // the raster regions too where they exist and the raster does not draw them (another view, not ready); the
       // levels' lists the same objects either way, so that their draws (and recordings of them) stay the same

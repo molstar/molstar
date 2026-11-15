@@ -332,6 +332,18 @@ describe('createPosesTransform', () => {
     expectClose(getInstanceMatrices(a), getInstanceMatrices(b));
   });
 
+  it('draws a built grid made pending in the instances own order: the rows as the poses', () => {
+    const { poses } = makePoses(60);
+    const built = createPosesTransform(poses, sphere, 40, 8);
+    // a grid of cells: its instances in the cells' order, not serial
+    expect(Array.from(built.aInstance.ref.value)).not.toEqual(Array.from({ length: 60 }, (_, i) => i));
+    const pending = createPosesTransform(poses, sphere, 40, 8, built, true);
+    expect(pending.instanceGrid.ref.value.pending).toBeDefined();
+    // the rows as the poses (no order): in theirs
+    expect(Array.from(pending.aInstance.ref.value)).toEqual(Array.from({ length: 60 }, (_, i) => i));
+    expectClose(rowsOf(pending), rowsOf(createPosesTransform(poses, sphere, 40, 8, undefined, true)));
+  });
+
   it('applies the representation matrix to the poses, and a move to their matrix without touching an instance', () => {
     const { poses, matrices } = makePoses(30);
     const a = createPosesTransform(poses, sphere, 40, 8);

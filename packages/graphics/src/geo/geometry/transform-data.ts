@@ -6,7 +6,8 @@
 
 import { ValueCell } from '@molstar/core/util';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
-import { getSharedSerial } from '@molstar/core/util/array';
+import { getSharedSerial, isSharedSerial } from '@molstar/core/util/array';
+
 import { Sphere3D } from '@molstar/core/math/geometry';
 import {
   calcInstanceGrid,
@@ -341,6 +342,8 @@ function updatePosesData(
       grid.batchSize === batchSize &&
       Sphere3D.exactEquals(grid.pending.invariantBoundingSphere, invariantBoundingSphere!) &&
       transformData.aInstance.ref.value.length === instanceCount &&
+      // in the instances' own order: not a built grid's (a built grid made pending keeps its cells' order otherwise)
+      isSharedSerial(transformData.aInstance.ref.value) &&
       !grid.placement;
     if (!same) {
       ValueCell.update(

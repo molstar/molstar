@@ -169,5 +169,7 @@ export function getLodPixelLevelsValue(
   base = 1,
 ): LodLevelsValue {
   const lodLevels = getLodPixelLevels(pixelSize);
-  return lodLevels.length > 0 ? getLodLevelsValue(lodLevels, sizeFactor, count, pixelSize, radius, base) : [];
+  if (lodLevels.length > 0) return getLodLevelsValue(lodLevels, sizeFactor, count, pixelSize, radius, base);
+  // none, its base kept (coarse sites, every `base`-th of a whole): levels on again are of the whole still
+  return base > 1 ? Object.assign([], { base }) : [];
 }

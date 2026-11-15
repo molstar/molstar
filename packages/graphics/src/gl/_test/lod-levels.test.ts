@@ -130,6 +130,20 @@ describe('levels of detail by size on screen', () => {
     expect(none.length).toBe(0);
   });
 
+  it("keeps coarse items' base through levels off: on again, the levels of the whole", () => {
+    const spheres = Spheres.createEmpty();
+    const props = { ...PD.getDefaultValues(Spheres.Params), lodPixelSize: 3 };
+    const values = Spheres.Utils.createValuesSimple(spheres, props, ColorNames.orange, 1);
+    const count = values.uVertexCount.ref.value;
+    ValueCell.update(values.lodLevels, getLodPixelLevelsValue(count, 3, 1, undefined, 10));
+    Spheres.Utils.updateValues(values, { ...props, lodPixelSize: 0 });
+    expect((values.lodLevels.ref.value as LodLevelsValue).length).toBe(0);
+    Spheres.Utils.updateValues(values, props);
+    const on = values.lodLevels.ref.value as LodLevelsValue & { base?: number };
+    expect(on.base).toBe(10);
+    expect(on.map((l) => l[4])).toEqual(getLodPixelLevelsValue(count, 3, 1, undefined, 10).map((l) => l[4]));
+  });
+
   it('coarse items (every 10th of a whole): each level drawn as its stride of the whole, the finer ones as the first', () => {
     const whole = getLodPixelLevelsValue(1000, 3, 1);
     const coarse = getLodPixelLevelsValue(100, 3, 1, undefined, 10);

@@ -23,6 +23,8 @@ import {
   ParticleValues,
 } from '@molstar/model/model/particles/particle-list';
 import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
+import { ValueCell } from '@molstar/core/util/value-cell';
+
 import { OrderedSet } from '@molstar/core/data/int';
 import type { MergedGraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
@@ -727,6 +729,17 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
       expect(differing(await draw(main, eyes, 'frame'), mainImage)).toBe(0);
       expect(differing(await draw(other, eyes, 'frame'), otherImage)).toBe(0);
       expect(differing(await draw(main, createFrame(), 'frame'), mainImage)).toBe(0);
+
+      // moved by its transient transform (a drag's preview) to where only the moved is in view: culled as drawn, the
+      // image of the lattice at rest seen from as far
+      const offset = Vec3.create(600, 0, 0);
+      const moved = cameraAt(Vec3.create(645, 45, 45), 70, Vec3.create(840, 80, 120));
+      const transform = (object.values as { uObjectTransform: ValueCell<Mat4> }).uObjectTransform;
+      ValueCell.update(transform, Mat4.fromTranslation(Mat4(), offset));
+      let movedImage = await draw(moved, createFrame(), 'frame');
+      movedImage = await draw(moved, createFrame(), 'frame');
+      expect(differing(movedImage, otherImage)).toBeLessThan(8);
+      ValueCell.update(transform, Mat4.identity());
 
       renderer.dispose();
       scene.clear();
