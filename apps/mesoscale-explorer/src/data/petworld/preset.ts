@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,7 +33,6 @@ function getSpacefillParams(color: Color, graphics: GraphicsMode) {
         ignoreHydrogens: true,
         instanceGranularity: true,
         ignoreLight: true,
-        lodLevels: gmp.lodLevels,
         quality: 'lowest', // avoid 'auto', triggers boundary calc
         clip: {
           variant: 'instance',

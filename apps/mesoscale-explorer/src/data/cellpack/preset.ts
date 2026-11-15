@@ -32,7 +32,6 @@ function getSpacefillParams(color: Color, sizeFactor: number, graphics: Graphics
         ignoreHydrogens: false,
         instanceGranularity: true,
         ignoreLight: true,
-        lodLevels: gmp.lodLevels,
         quality: 'lowest', // avoid 'auto', triggers boundary calc
         sizeFactor,
         clip: {

@@ -64,6 +64,12 @@ export function getDataType(gl: GLRenderingContext, dataType: DataType) {
   }
 }
 
+/** Whether `array` holds 32-bit integers (a typed or a segmented array) */
+function isIntegerArray(array: ArrayType | SegmentedArray) {
+  const ctor = SegmentedArray.is(array) ? array.ctor : array.constructor;
+  return ctor === Uint32Array || ctor === Int32Array;
+}
+
 function dataTypeFromArray(gl: GLRenderingContext, array: ArrayType) {
   if (array instanceof Uint8Array) {
     return gl.UNSIGNED_BYTE;
@@ -143,19 +149,28 @@ function createBuffer(
   const _usageHint = getUsageHint(gl, usageHint);
   const _bufferType = getBufferType(gl, bufferType);
   // segmented arrays: of merged render objects, float or encoded (int16) attributes and uint32 elements
-  const _dataType = SegmentedArray.is(array)
-    ? bufferType === 'elements'
-      ? gl.UNSIGNED_INT
-      : array.ctor === Int16Array
-        ? gl.SHORT
-        : gl.FLOAT
-    : dataTypeFromArray(gl, array);
+  // integer attributes (ids): floats on WebGL1, which has no integer attributes
+  const asFloats = bufferType === 'attribute' && !isWebGL2(gl) && isIntegerArray(array);
+  const toUpload = <A extends ArrayType>(data: A): ArrayType => (asFloats ? Float32Array.from(data) : data);
+  const _dataType = asFloats
+    ? gl.FLOAT
+    : SegmentedArray.is(array)
+      ? bufferType === 'elements'
+        ? gl.UNSIGNED_INT
+        : array.ctor === Int16Array
+          ? gl.SHORT
+          : array.ctor === Uint32Array
+            ? gl.UNSIGNED_INT
+            : array.ctor === Int32Array
+              ? gl.INT
+              : gl.FLOAT
+      : dataTypeFromArray(gl, array);
   const _bpe = array.BYTES_PER_ELEMENT;
   const _length = array.length;
   /** the parts of a segmented array written */
   let segmented: SegmentedArray.Uploaded | undefined;
 
-  const writePart = (data: ArrayType, offset: number) => gl.bufferSubData(_bufferType, offset * _bpe, data);
+  const writePart = (data: ArrayType, offset: number) => gl.bufferSubData(_bufferType, offset * _bpe, toUpload(data));
 
   function updateData(array: ArrayType | SegmentedArray) {
     gl.bindBuffer(_bufferType, _buffer);
@@ -164,7 +179,7 @@ function createBuffer(
       segmented = SegmentedArray.writeChanged(array, undefined, writePart);
     } else {
       segmented = undefined;
-      gl.bufferData(_bufferType, array, _usageHint);
+      gl.bufferData(_bufferType, toUpload(array), _usageHint);
     }
   }
   updateData(array);
@@ -193,9 +208,9 @@ function createBuffer(
       if (SegmentedArray.is(array)) {
         segmented = SegmentedArray.writeChanged(array, segmented, writePart);
       } else if (count - offset === array.length) {
-        gl.bufferSubData(_bufferType, 0, array);
+        gl.bufferSubData(_bufferType, 0, toUpload(array));
       } else {
-        gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count));
+        gl.bufferSubData(_bufferType, offset * _bpe, toUpload(array.subarray(offset, offset + count)));
       }
     },
 
@@ -214,6 +229,28 @@ export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemS
     case 'oct16':
       // two normalized shorts, read as floats
       return gl.FLOAT_VEC2;
+    case 'uint32':
+    case 'int32': {
+      // floats on WebGL1 (no integer attributes)
+      if (!isWebGL2(gl))
+        return itemSize === 1
+          ? gl.FLOAT
+          : itemSize === 2
+            ? gl.FLOAT_VEC2
+            : itemSize === 3
+              ? gl.FLOAT_VEC3
+              : gl.FLOAT_VEC4;
+      const gl2 = gl as WebGL2RenderingContext;
+      if (kind === 'uint32')
+        return itemSize === 1
+          ? gl2.UNSIGNED_INT
+          : itemSize === 2
+            ? gl2.UNSIGNED_INT_VEC2
+            : itemSize === 3
+              ? gl2.UNSIGNED_INT_VEC3
+              : gl2.UNSIGNED_INT_VEC4;
+      return itemSize === 1 ? gl2.INT : itemSize === 2 ? gl2.INT_VEC2 : itemSize === 3 ? gl2.INT_VEC3 : gl2.INT_VEC4;
+    }
     case 'float32':
       switch (itemSize) {
         case 1:
@@ -256,8 +293,14 @@ export function createAttributeBuffer<T extends ArrayType | SegmentedArray, S ex
 
   const buffer = createBuffer(gl, array, usageHint, 'attribute');
   const { _bufferType, _dataType, _bpe } = buffer;
-  // integer data are encoded unit vectors (`oct-normals.ts`): normalized
-  const normalized = _dataType !== gl.FLOAT;
+  // integers read as integers (WebGL2: `vertexAttribIPointer`, ids); short data are encoded unit vectors
+  // (`oct-normals.ts`): normalized
+  const integer = _dataType === gl.UNSIGNED_INT || _dataType === gl.INT;
+  const normalized = !integer && _dataType !== gl.FLOAT;
+  const pointer = (location: number, size: number, offset: number) => {
+    if (integer) (gl as WebGL2RenderingContext).vertexAttribIPointer(location, size, _dataType, 0, offset);
+    else gl.vertexAttribPointer(location, size, _dataType, normalized, 0, offset);
+  };
 
   return {
     ...buffer,
@@ -274,7 +317,7 @@ export function createAttributeBuffer<T extends ArrayType | SegmentedArray, S ex
         }
       } else {
         state.enableVertexAttrib(location);
-        gl.vertexAttribPointer(location, itemSize, _dataType, normalized, 0, 0);
+        pointer(location, itemSize, 0);
         instancedArrays.vertexAttribDivisor(location, divisor);
       }
     },
@@ -286,7 +329,7 @@ export function createAttributeBuffer<T extends ArrayType | SegmentedArray, S ex
           gl.vertexAttribPointer(location + i, 4, _dataType, false, itemSize * _bpe, i * 4 * _bpe + o);
         }
       } else {
-        gl.vertexAttribPointer(location, itemSize, _dataType, normalized, 0, o);
+        pointer(location, itemSize, o);
       }
     },
   };

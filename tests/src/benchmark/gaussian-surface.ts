@@ -16,7 +16,7 @@ import {
 import { extractIsosurface } from '@molstar/graphics/gl/webgl/compute/marching-cubes/isosurface';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 import {
   computeStructureGaussianDensity,
   computeStructureGaussianDensityTexture,

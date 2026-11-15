@@ -44,14 +44,22 @@ function getIdentifiers(source: string, prefix: 'u' | 't' | 'a') {
   return new Set(code.match(new RegExp(`\\b${prefix}[A-Z]\\w*`, 'g')) ?? []);
 }
 
-/** referenced in a shared chunk only in `dBump` (or `dSubstance`) branches, defined by the schemas of geometries with these uniforms */
-const ConditionalUniforms = new Set(['uBumpFrequency', 'uBumpAmplitude']);
+/**
+ * referenced in a shared chunk only in `dBump` (or `dSubstance`) and `dSites` (the quad chunk of spheres and points)
+ * branches, defined by the schemas of geometries with these uniforms
+ */
+const ConditionalUniforms = new Set(['uBumpFrequency', 'uBumpAmplitude', 'uSiteOrigin', 'uSiteScale']);
 
 const Guards: [string, 'u' | 't' | 'a', RenderableSchema['k']['type'], Set<string>][] = [
   ['uniforms', 'u', 'uniform', ConditionalUniforms],
   ['textures', 't', 'texture', new Set()],
   // the segment data of merged items, read from `tSegment` by macros of the segment's index (`common-vert-params`)
-  ['attributes', 'a', 'attribute', new Set(['aSegmentSphere', 'aSegmentLod'])],
+  [
+    'attributes',
+    'a',
+    'attribute',
+    new Set(['aSegmentSphere', 'aSegmentLod', 'aSegmentStride', 'aSegmentItem', 'aSegmentSites']),
+  ],
 ];
 
 describe('shader identifiers', () => {

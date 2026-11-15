@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createCopyRenderable } from '@molstar/graphics/gl/compute/util';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { WebGPU } from './webgpu-module.js';
@@ -29,15 +29,13 @@ describe.skipIf(!WebGPU.module)('read-only depth passes on WebGPU', () => {
       color.define(Size, Size);
       const depth = resources.texture('image-depth', 'depth-stencil', 'float-stencil', 'nearest');
       depth.define(Size, Size);
-      const framebuffer = resources.framebuffer();
-      color.attachFramebuffer(framebuffer, 'color0');
-      depth.attachFramebuffer(framebuffer, 'depth');
+      const attachments = resources.renderPassAttachments([color], depth);
       // the depth in the red channel of the color target
       const copy = createCopyRenderable(graphics, depth);
       const pass = (depthReadOnly: boolean) => {
-        graphics.beginRenderPass(framebuffer, { clear: { color: [0, 0, 0, 0] } });
+        graphics.beginRenderPass(attachments, { clear: { color: [0, 0, 0, 0] } });
         graphics.endRenderPass();
-        graphics.beginRenderPass(framebuffer, { depthReadOnly });
+        graphics.beginRenderPass(attachments, { depthReadOnly });
         graphics.setViewport(0, 0, Size, Size);
         copy.render();
         graphics.endRenderPass();
@@ -50,7 +48,7 @@ describe.skipIf(!WebGPU.module)('read-only depth passes on WebGPU', () => {
         await graphics.waitForGpuCommandsComplete();
       };
 
-      graphics.beginRenderPass(framebuffer, { clear: { depth: 0.25, stencil: 0 } });
+      graphics.beginRenderPass(attachments, { clear: { depth: 0.25, stencil: 0 } });
       graphics.endRenderPass();
       await draw(true);
       const pixels = await graphics.readTextureData(color);
@@ -61,7 +59,7 @@ describe.skipIf(!WebGPU.module)('read-only depth passes on WebGPU', () => {
       await draw(false);
       expect(graphics.takeErrors().length).toBeGreaterThan(0);
 
-      graphics.beginRenderPass(framebuffer, { depthReadOnly: true });
+      graphics.beginRenderPass(attachments, { depthReadOnly: true });
       expect(() => graphics.clear({ depth: 0 })).toThrow(/read-only/);
       graphics.endRenderPass();
     } finally {

@@ -21,6 +21,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `camera.reset-axes` | Align the view with the x, y and z axes | view; needs canvas | animate |
 | `camera.set` | Set the camera | view; needs canvas | position, target, up, animate, distance, radius, sceneRadius, showsAll |
 | `camera.zoom` | Zoom | view; needs canvas | factor, animate |
+| `canvas.backend` | Switch the graphics backend | view; needs canvas | backend |
 | `canvas.background` | Set the background | needs canvas | color |
 | `canvas.camera` | Set the camera | needs canvas | mode, fov |
 | `canvas.clipping` | Clip the scene | needs canvas | clip, far |
@@ -46,9 +47,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `component.visibility` | Show or hide a component |  | component, visible, structure |
 | `contents.get` | List the contents | read | structure |
 | `contents.visibility` | Show or hide an entity or a chain |  | entity, chain, visible, structure |
-| `export.image` | Export an image | view; no undo; needs canvas | size, transparent, crop, box, format, quality, axes, name |
-| `export.image-copy` | Copy an image | view; no undo; needs canvas, page | size, transparent, crop, box, format, quality, axes |
-| `export.preview` | Preview an image | view; no undo; needs canvas; ui-only | size, transparent, crop, box, format, quality, axes, max |
+| `export.image` | Export an image | view; no undo; needs canvas | size, transparent, crop, box, format, quality, axes, scale, name |
+| `export.image-copy` | Copy an image | view; no undo; needs canvas, page | size, transparent, crop, box, format, quality, axes, scale |
+| `export.preview` | Preview an image | view; no undo; needs canvas; ui-only | size, transparent, crop, box, format, quality, axes, scale, max |
 | `export.viewport` | Export the viewport state | view; no undo; needs canvas | name |
 | `focus.again` | Focus again | view | entry |
 | `focus.clear` | Clear the focus | view |  |

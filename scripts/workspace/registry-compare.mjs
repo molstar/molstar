@@ -2,7 +2,7 @@
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Acceptance comparison for the plugin-composition refactor (.v6/plans/plugin-composition.md, section 6): dumps what
+ * Acceptance comparison for the plugin-composition refactor: dumps what
  * the default spec and the Viewer register (`registry-dump.mjs`) and compares it with the step-0 baseline in
  * `.v6/baselines`. Providers must match by name and order, apart from the intentional differences of section 6.1, and
  * the baseline transformer ids must all still be registered.
@@ -30,17 +30,38 @@ const Allowed = {
   externalThemes: ['external-structure', 'external-volume'],
   /** The open-anything handler is the registered `DefaultDragAndDrop` fallback instead of being hard-coded. */
   dragAndDrop: ['open-files'],
-  /** Formats new in v6: NAMD extended system files (periodic boxes for coordinates). */
-  formats: ['xsc'],
+  /** Formats new in v6: NAMD extended system files (periodic boxes for coordinates); particle packs, with the particles. */
+  formats: ['xsc', 'particle_pack'],
   /**
    * Parsers take String, Binary and Response Data (`Download` and `ReadFile` give Response Data, `.v6/data-response`):
    * the data actions that list `Response Data` are taken out of the String and Binary Data lists of both dumps.
    */
   responseData: 'Response Data',
-  /** Transforms new in v6: moving a shape or a particle list by hand (as a structure); the particle one with particles */
-  transforms: ['ms-plugin.transform-shape-provider', 'ms-plugin.transform-particle-list'],
+  /**
+   * Transforms new in v6: moving a shape or a particle list by hand (as a structure); the particle one with particles;
+   * a particle pack's list, with particles; particle tiles (of a list, of a pack read by range) and their views, with
+   * particles
+   */
+  transforms: [
+    'ms-plugin.transform-shape-provider',
+    'ms-plugin.transform-particle-list',
+    'ms-plugin.particle-list-from-pack',
+    'ms-plugin.particle-tile-set-from-list',
+    'ms-plugin.particle-tile-set-from-pack',
+    'ms-plugin.particle-tiles-view',
+  ],
+  /** Behaviors new in v6, the Viewer's: a particle tiles view following the camera, with particles */
+  viewerBehaviors: ['ms-plugin.particle-tiles-follow-camera'],
 };
-const isParticleListTransform = (id) => id === 'ms-plugin.transform-particle-list';
+/** The allowed entries registered with the particles only (`ParticlesRegistry`): present where they are composed */
+const ParticleOnly = new Set([
+  'particle_pack',
+  'ms-plugin.transform-particle-list',
+  'ms-plugin.particle-list-from-pack',
+  'ms-plugin.particle-tile-set-from-list',
+  'ms-plugin.particle-tile-set-from-pack',
+  'ms-plugin.particle-tiles-view',
+]);
 
 /** Section 6.1, the response data row: the parsers the current dump lists for Response Data, out of both dumps. */
 function withoutResponseData(expected, current) {
@@ -61,7 +82,7 @@ function withoutResponseData(expected, current) {
 }
 
 /**
- * Particles are opt-in (`ParticlesRegistry`, breaking-v6-changes.md): the default spec registers none of them, so the
+ * Particles are opt-in (`ParticlesRegistry`): the default spec registers none of them, so the
  * baseline's particle entries are taken out before comparing it. The Viewer composes `ParticlesRegistry` (as in 5.12)
  * and is compared with them, as that registry adds them (`asComposed`): the particle themes in the particles scope only
  * (not the structure and volume scopes, where they never apply), and the particle formats and animation as a block of
@@ -125,6 +146,7 @@ function withoutAllowed(target) {
   }
   copy.dragAndDrop = copy.dragAndDrop.filter((n) => !Allowed.dragAndDrop.includes(n));
   copy.formats = copy.formats.filter((n) => !Allowed.formats.includes(n));
+  if (copy.behaviors) copy.behaviors = copy.behaviors.filter((n) => !Allowed.viewerBehaviors.includes(n));
   const data = copy.actions.data;
   data.all = data.all.filter((id) => !Allowed.transforms.includes(id));
   for (const [from, ids] of Object.entries(data.byFromType)) {
@@ -188,11 +210,15 @@ try {
       if (!c.dragAndDrop.includes(name)) problems.push(`${target}.dragAndDrop: expected '${name}'`);
     }
     for (const name of Allowed.formats) {
+      if (ParticleOnly.has(name) && !viewer) continue;
       if (!c.formats.includes(name)) problems.push(`${target}.formats: expected '${name}'`);
     }
+    for (const id of Allowed.viewerBehaviors) {
+      if (viewer && !c.behaviors?.includes(id)) problems.push(`${target}.behaviors: expected '${id}'`);
+    }
     for (const id of Allowed.transforms) {
-      // the particle list's only where the particles are composed (the Viewer)
-      if (isParticleListTransform(id) && !viewer) continue;
+      // the particles' only where they are composed (the Viewer)
+      if (ParticleOnly.has(id) && !viewer) continue;
       if (!c.actions.data.all.includes(id)) problems.push(`${target}.actions.data.all: expected '${id}'`);
     }
     if (!c.actions.data.byFromType[Allowed.responseData]?.includes('ms-plugin.parse-cif')) {

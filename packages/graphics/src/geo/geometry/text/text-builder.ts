@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { int32ToFloatBits } from '../center-group.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ChunkedArray } from '@molstar/core/data/util';
 import { Text } from './text.js';
@@ -60,7 +61,8 @@ export namespace TextBuilder {
       b2: number,
       b3: number,
     ) => {
-      caAdd4(data, x, y, z, group);
+      // the group as its bits (`rgb32f-i32`: exact past 2^24)
+      caAdd4(data, x, y, z, int32ToFloatBits(group));
       caAdd4(data, depth, tether ? 1 : 0, 0, 0);
       caAdd4(data, a0, a1, a2, a3);
       caAdd4(data, b0, b1, b2, b3);

@@ -2,8 +2,15 @@
 
 ## Status
 
-- **Current**: steps 1 to 3 done; next: the yeast cell measured, then whether the structure representations want
-  step 2. Benchmark case `clip/postsyn-drag` (PetWorld as the viewer adds its particles, culled on the GPU, a clip plane
+- **Current**: steps 1 to 3 done, the yeast cell measured (`clip/yeast-drag`: the yeast cell from its pack, 5,639
+  targets): a frame 12.9 ms, the representation's update 9.83 ms (from about 74 ms a mousemove before steps 1-2). Of it
+  the scene's update the representation's `updated` sets off (`Canvas3D`'s `add`): each merged object's `sync` checks
+  ~15 cells of each member (~4 ms), its culler's `sync` built its layout keys as strings of every member (~2 ms); the
+  clip values set ~1.5 ms. The culler's keys now numbers in arrays compared in place: 12.9 -> 10.5 ms a frame, the
+  update 9.83 -> 7.65 ms. Next: a clip-only update that skips the merged objects' member checks (no member's layout,
+  data or aggregates change; their uniforms read per draw, the culler's clip per dispatch): observing every cell a
+  member's `sync` reads costs a `Set` a cell (100k members), so a signal of its own (a scene update of the uniforms
+  alone); then whether the structure representations want step 2. Benchmark case `clip/postsyn-drag` (PetWorld as the viewer adds its particles, culled on the GPU, a clip plane
   moved every frame; WebGPU, RTX): the representation's update a frame 1.59 -> 1.50 ms (step 1) -> 0.22 ms (step 2),
   the frame 2.72 -> 0.93 ms. PetWorld has few targets; the yeast cell's cost is per target, so it gains more.
   - **Step 1 done**: the merge check without `Object.keys` (a render object's values keep their keys: none

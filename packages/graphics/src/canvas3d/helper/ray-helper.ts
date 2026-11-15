@@ -71,7 +71,13 @@ export class RayHelper {
     // this camera is synthetic (ray-aligned), never the main camera - always a fresh,
     // never-reused frame token, so it can never share/collide with the main draw's frame
     // the overlay is not tested against the scene depth of the last draw: this camera is not the drawn one
-    this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, createFrame(), false);
+    const frame = createFrame();
+    // no pass open yet: GPU culling for this camera of the objects that draw nothing without (a page store's)
+    if (this.renderBuilder.drawing) {
+      renderer.update(camera, scene, frame);
+      renderer.prepareCullView(scene.primitives);
+    }
+    this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, frame, false);
 
     if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.render');
   }

@@ -6,6 +6,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { expectNoAxeViolations } from '@molstar/prism-ui/testing/axe';
@@ -256,23 +257,23 @@ describe('the viewer shell with a trajectory and a volume (axe)', () => {
       const g = page.mounted.root.querySelector<HTMLElement>('[role=group][aria-label=Models]');
       return g ? (g.querySelector('input[type=range]') ? 'full' : 'compact') : 'none';
     };
+    // Each step waits for the bar it expects, not for a quiet DOM: the trajectory source reads once per animation frame,
+    // and in the whole quick lane the bar's update came after `quiet()` returned (the expanded canvas' bar missing).
+    const expectBar = (mode: ReturnType<typeof bar>) =>
+      vi.waitFor(() => expect(bar()).toBe(mode), { timeout: 5000, interval: 20 });
     page.mounted.shell.show('structure');
     await quiet();
     expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();
     // The row has the controls, paused: no bar on the canvas.
-    expect(bar()).toBe('none');
+    await expectBar('none');
     page.mounted.shell.show('selection');
-    await quiet();
-    expect(bar()).toBe('full');
+    await expectBar('full');
     page.mounted.shell.show('structure');
-    await quiet();
-    expect(bar()).toBe('none');
+    await expectBar('none');
     page.mounted.shell.setExpanded(true);
-    await quiet();
-    expect(bar()).toBe('full');
+    await expectBar('full');
     page.mounted.shell.setExpanded(false);
-    await quiet();
-    expect(bar()).toBe('none');
+    await expectBar('none');
   });
 
   it(

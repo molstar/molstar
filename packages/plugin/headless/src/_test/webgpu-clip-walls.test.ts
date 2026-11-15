@@ -90,12 +90,12 @@ describe.skipIf(!WebGPU.module)('clip walls on a solid-interior cap', () => {
           ...PD.getDefaultValues(Mesh.Params),
           alpha: 0.4,
           ignoreLight: true,
-          ...(layer === 'overlay' ? { occludedAlpha: 0.25 } : {}),
         };
         await walls.createOrUpdate(wallProps, {}).run();
         walls.setState({
           transform: clipObjectFrame(Plane, { center: Vec3(), radius: 6 } as Parameters<typeof clipObjectFrame>[1]),
           layer,
+          ...(layer === 'overlay' ? { occludedAlpha: 0.25 } : {}),
         });
         canvas.add(box);
         canvas.add(walls);

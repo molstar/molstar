@@ -78,7 +78,6 @@ const graphicsStub = {
     texture: () => new Proxy({} as any, { get: (t, k) => (k === 'then' ? undefined : k in t ? t[k] : () => {}) }),
     ownsTexture: () => true,
   },
-  namedTextures: {},
 } as any;
 
 const ctx = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };

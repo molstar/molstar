@@ -15,6 +15,7 @@ import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import type { DebugHelper } from '@molstar/graphics/canvas3d/helper/debug-registry';
+import { getInstanceMatrices } from '@molstar/graphics/geo/geometry/transform-data';
 
 export const MeshHelperParams = {
   meshNormals: PD.Boolean(false, { description: 'Show normals of visible mesh render objects.' }),
@@ -112,7 +113,7 @@ function createNormalLines(values: MeshValues): Lines | undefined {
   const positions = values.aPosition.ref.value;
   const normals = values.aNormal.ref.value;
   const indices = values.elements.ref.value;
-  const transforms = values.aTransform.ref.value;
+  const transforms = getInstanceMatrices(values);
   const instanceCount = values.uInstanceCount.ref.value;
 
   const vertexCount = positions.length / 3;

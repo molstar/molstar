@@ -7,10 +7,10 @@
 import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import { ImagePass } from '@molstar/graphics/canvas3d/passes/image';
 import { type AssetManager, DefaultAssetManager } from '@molstar/core/util/assets';
-import { isWebGPUContext, type WebGPUFeatures, type WebGPULimits } from '@molstar/graphics/gl/webgpu/context';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createWebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
-import { createWebGLBackend } from '@molstar/graphics/gl/webgl/backend';
+import { isWebGPUContext, type WebGPUFeatures, type WebGPULimits } from '@molstar/graphics/gl/contexts/webgpu';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
+import { createWebGPUBackend } from '@molstar/graphics/gl/contexts/webgpu';
+import { createWebGLBackend } from '@molstar/graphics/gl/contexts/webgl';
 import type { GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { type Capabilities, type CapabilityReport, getCapabilities, getWebGLCapabilityReport } from './capabilities.js';

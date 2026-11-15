@@ -17,8 +17,14 @@ import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { sphereVertexCount } from '@molstar/graphics/geo/primitive/sphere';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
+import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
-import { Particle, type ParticleList, getFiberParticleMask } from '@molstar/model/model/particles/particle-list';
+import {
+  Particle,
+  type ParticleList,
+  ParticleValues,
+  getFiberParticleMask,
+} from '@molstar/model/model/particles/particle-list';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval, OrderedSet } from '@molstar/core/data/int';
@@ -30,6 +36,9 @@ import { Representation, type RepresentationContext, type RepresentationParamsGe
 import { ParticleRepresentation, ParticleRepresentationProvider } from '../representation.js';
 import { ParticleVisual } from '../visual.js';
 import { chooseVisual } from '../../visual-factory.js';
+
+/** A particle's position read (`GridPositions.get`) */
+const _position = Vec3();
 
 // ---- Params -----------------------------------------------------------------
 
@@ -59,9 +68,10 @@ function getExcludedParticleMask(particles: ParticleList, props: SpacefillPartic
   const { count, targets } = particles;
   // note: `fiberMask` is cached on the particle list and must not be mutated
   const mask = fiberMask ? new Uint8Array(fiberMask) : new Uint8Array(count);
-  for (let i = 0; i < count; ++i) {
-    if (targetMapping.has(targets[i])) mask[i] = 1;
-  }
+  // by the targets' runs (`ParticleValues`): a lookup a run, not a particle
+  ParticleValues.forEachRun(targets, count, (start, end, target) => {
+    if (targetMapping.has(target)) mask.fill(1, start, end);
+  });
   return mask;
 }
 
@@ -79,8 +89,8 @@ function createSpacefillSphereImpostor(
   const builder = SpheresBuilder.create(Math.max(1, count), Math.max(1, Math.ceil(count / 10)), spheres);
   for (let i = 0; i < count; ++i) {
     if (excludedMask && excludedMask[i]) continue;
-    const o = i * 3;
-    builder.add(coordinates[o], coordinates[o + 1], coordinates[o + 2], i);
+    GridPositions.get(coordinates, i, _position);
+    builder.add(_position[0], _position[1], _position[2], i);
   }
   const result = builder.getSpheres();
   result.setBoundingSphere(Particle.getBoundary(particles).sphere);
@@ -134,7 +144,7 @@ function createSpacefillSphereMesh(
     if (excludedMask && excludedMask[i]) continue;
     location.index = i;
     const radius = theme.size.size(location);
-    Vec3.fromArray(center, coordinates, i * 3);
+    GridPositions.get(coordinates, i, center);
     builderState.currentGroup = i;
     addSphere(builderState, center, radius, detail);
   }
@@ -279,5 +289,6 @@ export const SpacefillParticlesRepresentationProvider = ParticleRepresentationPr
   defaultValues: PD.getDefaultValues(SpacefillParticlesParams),
   defaultColorTheme: { name: 'particle-index' },
   defaultSizeTheme: { name: 'particle-size' },
-  isApplicable: (data: ParticleList) => data.count > 0,
+  // a slot list (its pages: `ParticleSlots`) not yet read here
+  isApplicable: (data: ParticleList) => data.count > 0 && !data.pages,
 });

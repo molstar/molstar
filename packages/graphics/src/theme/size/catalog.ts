@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { namedCatalog } from '@molstar/graphics/util/named-catalog';
+import { namedCatalog } from '@molstar/core/util/named-catalog';
 import { ParticleSizeThemeProvider } from './particle-size.js';
 import { PhysicalSizeThemeProvider } from './physical.js';
 import { ShapeGroupSizeThemeProvider } from './shape-group.js';

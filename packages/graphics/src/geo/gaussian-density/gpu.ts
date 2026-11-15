@@ -29,8 +29,14 @@ import {
   DefineSpec,
   type Values,
 } from '@molstar/graphics/gl/renderable/schema';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 import { isTimingMode } from '@molstar/core/util/debug';
+import { createScratch } from '@molstar/graphics/gl/scratch';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('gaussian-density/gpu textures');
+const ScratchTargets = createScratch<RenderPassAttachments>('gaussian-density/gpu targets');
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('gaussian-density/gpu renderables');
 
 export const GaussianDensitySchema = {
   drawCount: ValueSpec('number'),
@@ -70,11 +76,12 @@ export function isGaussianDensityTextureSupported(graphics: GraphicsContext) {
   return graphics.isProgramSupported(GaussianDensityShaderCode) || isComputeGaussianDensitySupported(graphics);
 }
 
-function getFramebuffer(graphics: GraphicsContext): Framebuffer {
-  if (!graphics.namedFramebuffers[GaussianDensityName]) {
-    graphics.namedFramebuffers[GaussianDensityName] = graphics.resources.framebuffer();
-  }
-  return graphics.namedFramebuffers[GaussianDensityName];
+function getTarget(graphics: GraphicsContext): RenderPassAttachments {
+  return ScratchTargets.getOrCreate(
+    graphics,
+    () => createRenderPassAttachments(graphics.resources, []),
+    GaussianDensityName,
+  );
 }
 
 function getTexture(
@@ -86,10 +93,7 @@ function getTexture(
   filter: TextureFilter,
 ): Texture {
   const _name = `${GaussianDensityName}-${name}`;
-  if (!graphics.namedTextures[_name]) {
-    graphics.namedTextures[_name] = graphics.resources.texture(kind, format, type, filter);
-  }
-  return graphics.namedTextures[_name];
+  return ScratchTextures.getOrCreate(graphics, () => graphics.resources.texture(kind, format, type, filter), _name);
 }
 
 /**
@@ -243,7 +247,7 @@ function calcGaussianDensityTexture2d(
 
   const { uCurrentSlice, uCurrentX, uCurrentY } = renderable.values;
 
-  const framebuffer = getFramebuffer(graphics);
+  const target = getTarget(graphics);
 
   if (!texture)
     texture = halfFloatRenderTarget
@@ -256,8 +260,8 @@ function calcGaussianDensityTexture2d(
   // console.log(renderable)
 
   function render(fbTex: Texture, clear: boolean) {
-    fbTex.attachFramebuffer(framebuffer, 0);
-    graphics.beginRenderPass(framebuffer, { label: 'gaussian density' });
+    target.color = [fbTex];
+    graphics.beginRenderPass(target, { label: 'gaussian density' });
     if (clear) {
       graphics.setViewport(0, 0, width, height);
       graphics.setScissor(0, 0, width, height);
@@ -385,7 +389,7 @@ function calcGaussianDensityTexture3d(
 
   const { uCurrentSlice } = renderable.values;
 
-  const framebuffer = getFramebuffer(graphics);
+  const target = getTarget(graphics);
   graphics.setViewport(0, 0, dx, dy);
   graphics.setScissor(0, 0, dx, dy);
 
@@ -400,8 +404,8 @@ function calcGaussianDensityTexture3d(
   function render(fbTex: Texture, clear: boolean) {
     for (let i = 0; i < dz; ++i) {
       ValueCell.update(uCurrentSlice, i);
-      fbTex.attachFramebuffer(framebuffer, 0, i);
-      graphics.beginRenderPass(framebuffer, {
+      target.color = [{ texture: fbTex, layer: i }];
+      graphics.beginRenderPass(target, {
         label: 'gaussian density',
         ...(clear ? { clear: { color: [0, 0, 0, 0] } } : {}),
       });
@@ -494,9 +498,9 @@ function getGaussianDensityRenderable(
   radiusFactor: number,
 ) {
   // console.log('radiusFactor', radiusFactor);
-  if (graphics.namedComputeRenderables[GaussianDensityName]) {
+  if (ScratchRenderables.get(graphics, GaussianDensityName)) {
     const extent = Vec3.sub(Vec3(), box.max, box.min);
-    const v = graphics.namedComputeRenderables[GaussianDensityName].values;
+    const v = ScratchRenderables.get(graphics, GaussianDensityName)!.values;
 
     ValueCell.updateIfChanged(v.drawCount, 6);
     ValueCell.updateIfChanged(v.instanceCount, drawCount);
@@ -521,25 +525,29 @@ function getGaussianDensityRenderable(
     ValueCell.updateIfChanged(v.dGridTexType, minDistanceTexture.getDepth() > 0 ? '3d' : '2d');
     ValueCell.updateIfChanged(v.dCalcType, 'density');
 
-    graphics.namedComputeRenderables[GaussianDensityName].update();
+    ScratchRenderables.get(graphics, GaussianDensityName)!.update();
   } else {
-    graphics.namedComputeRenderables[GaussianDensityName] = createGaussianDensityRenderable(
+    ScratchRenderables.set(
       graphics,
-      drawCount,
-      positions,
-      radii,
-      groups,
-      minDistanceTexture,
-      box,
-      gridDim,
-      gridTexDim,
-      gridTexScale,
-      smoothness,
-      resolution,
-      radiusFactor,
+      createGaussianDensityRenderable(
+        graphics,
+        drawCount,
+        positions,
+        radii,
+        groups,
+        minDistanceTexture,
+        box,
+        gridDim,
+        gridTexDim,
+        gridTexScale,
+        smoothness,
+        resolution,
+        radiusFactor,
+      ),
+      GaussianDensityName,
     );
   }
-  return graphics.namedComputeRenderables[GaussianDensityName];
+  return ScratchRenderables.get(graphics, GaussianDensityName)!;
 }
 
 function createGaussianDensityRenderable(

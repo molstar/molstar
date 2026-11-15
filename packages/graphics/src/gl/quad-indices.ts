@@ -6,7 +6,7 @@
 
 /**
  * Quad items (sphere impostors, points: six vertex ids per item, two triangles, no elements) drawn indexed: four
- * vertex shader invocations per item instead of six (`sphere-impostors.md`, indexed quads). Item `i` is the indices
+ * vertex shader invocations per item instead of six (indexed quads). Item `i` is the indices
  * `6i + QuadIndexPattern`, ids of the six-vertex quad whose corners the shaders map (0 (-1, 1), 1 (-1, -1), 2 (1, 1),
  * 4 (1, -1)): its triangles are those of the six vertices, so the shaders, the draw counts (6 per item, indices now)
  * and the draw bases stay, and an indexed draw of a range draws what the unindexed draw of it does

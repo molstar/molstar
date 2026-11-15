@@ -21,7 +21,6 @@ import { Sphere3D } from '@molstar/core/math/geometry';
 import { StateObjectCell, StateObjectRef, StateSelection } from '@molstar/core/state';
 import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
-import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import type { MesoscaleExplorerState } from '@molstar/mesoscale-explorer/app';
 import { Material } from '@molstar/core/util/material';
 
@@ -85,7 +84,6 @@ export const StyleParams = {
 };
 
 export const LodParams = {
-  lodLevels: Spheres.Params.lodLevels,
   lodPixelSize: Spheres.Params.lodPixelSize,
   cellSize: Spheres.Params.cellSize,
   batchSize: Spheres.Params.batchSize,
@@ -254,19 +252,12 @@ export function getMesoscaleGroupParams(graphicsMode: GraphicsMode): MesoscaleGr
 
 //
 
-export type LodLevels = (typeof SpacefillRepresentationProvider.defaultValues)['lodLevels'];
-
-/** Levels of detail by size on screen (`lodPixelSize`) */
-export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): LodLevels {
-  return Spheres.LodPixelPresets[graphicsMode].lodLevels;
-}
-
 export type GraphicsMode = 'ultra' | 'quality' | 'balanced' | 'performance' | 'custom';
 
 export function getGraphicsModeProps(graphicsMode: Exclude<GraphicsMode, 'custom'>) {
   return {
-    lodLevels: getLodLevels(graphicsMode),
-    lodPixelSize: Spheres.LodPixelPresets[graphicsMode].lodPixelSize,
+    // levels of detail by size on screen
+    lodPixelSize: Spheres.LodPixelPresets[graphicsMode],
     approximate: graphicsMode !== 'quality' && graphicsMode !== 'ultra',
     alphaThickness: graphicsMode === 'performance' ? 15 : 12,
   };

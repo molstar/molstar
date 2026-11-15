@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { QueryLanguageEntry } from './targets/languages.js';
@@ -259,7 +260,10 @@ export type ViewerSlot =
   | 'playback'
   | `inspector:${SceneNodeKind}`;
 
-/** The Image section's shared frame, an `export.picture` view's subject: the resolution and the axes the person set. */
+/**
+ * The Image section's shared frame, an `export.picture` view's subject: the resolution, the axes and the scale line the
+ * person set.
+ */
 export interface ExportFrame {
   /** `viewport`, or the frame's pixels (a preset's or a custom size). */
   get(): ExportFrameValues;
@@ -271,6 +275,7 @@ export interface ExportFrameValues {
     | { readonly name: 'viewport' }
     | { readonly name: 'custom'; readonly params: { readonly width: number; readonly height: number } };
   readonly axes: boolean;
+  readonly scale: boolean;
   /** The crop, as fractions of the frame (the preview's box, auto or the person's). */
   readonly box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
 }

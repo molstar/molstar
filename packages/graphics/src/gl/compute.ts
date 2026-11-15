@@ -183,4 +183,9 @@ export interface ComputeContext {
    */
   beginComputePass: (options: { label: string }) => void;
   endComputePass: () => void;
+  /**
+   * Submits the commands recorded so far (an open pass ended): they run before the writes made after
+   * (`StorageBuffer.write` goes ahead of commands not yet submitted)
+   */
+  submit: () => void;
 }

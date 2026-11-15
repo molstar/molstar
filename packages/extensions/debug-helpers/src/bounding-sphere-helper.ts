@@ -127,11 +127,16 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
         transform: ro.values.transform,
         extraTransform: ro.values.extraTransform,
         hasExtraTransform: ro.values.hasExtraTransform,
+        // a particle target's poses (`TransformData.poses`), none on objects without them
+        poses: ro.values.poses ?? ValueCell.create(undefined),
+        instancePoses: ro.values.instancePoses ?? ValueCell.create(undefined),
         uInstanceCount: ro.values.uInstanceCount,
         instanceCount: ro.values.instanceCount,
         aInstance: ro.values.aInstance,
         hasReflection: ro.values.hasReflection,
         instanceGrid: ro.values.instanceGrid,
+        instanceCellSize: ro.values.instanceCellSize,
+        instanceBatchSize: ro.values.instanceBatchSize,
       },
     );
     if (newInstanceData) this.instancesData.set(ro, newInstanceData);

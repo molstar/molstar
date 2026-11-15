@@ -13,7 +13,13 @@ import { getPaletteParams, getPalette } from '@molstar/core/util/color/palette';
 import type { TableLegend, ScaleLegend } from '@molstar/core/util/legend';
 import { ColorLists, getColorListFromName } from '@molstar/core/util/color/lists';
 import { ColorThemeCategory } from './categories.js';
-import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
+import { fillByIndex, fillByLocation, forEachPageList, getPagedPainting } from './particle-pages.js';
+import {
+  Particle,
+  type ParticleList,
+  type ParticleRuns,
+  ParticleValues,
+} from '@molstar/model/model/particles/particle-list';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xcccccc);
@@ -29,21 +35,26 @@ function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
   return undefined;
 }
 
-function buildCompartmentColorIndex(particles: ParticleList): { colorIndex: Int32Array; compartmentCount: number } {
-  const { count, compartments } = particles;
-  const colorIndex = new Int32Array(count).fill(-1);
-  if (!compartments) return { colorIndex, compartmentCount: 0 };
-
-  // Map raw compartment indices to dense sequential palette indices.
+/**
+ * A particle's palette index: its compartment's, dense in the order of `compartmentInfo` (a slot list's and a view's of
+ * some tiles the same: the catalog's), those it does not hold after them as first met, -1 without one; in the
+ * compartments' form (`ParticleValues`: runs a run, not a particle)
+ */
+function buildCompartmentColorIndex(particles: ParticleList): {
+  colorIndex: ParticleValues<Int32Array> | undefined;
+  compartmentCount: number;
+} {
+  const { count, compartments, compartmentInfo } = particles;
+  if (!compartments) return { colorIndex: undefined, compartmentCount: 0 };
   const compartmentSet = new Map<number, number>();
-  for (let i = 0; i < count; ++i) {
-    const c = compartments[i];
+  if (compartmentInfo) {
+    for (const c of compartmentInfo.keys())
+      if (c >= 0 && !compartmentSet.has(c)) compartmentSet.set(c, compartmentSet.size);
+  }
+  ParticleValues.forEachRun(compartments, count, (_start, _end, c) => {
     if (c >= 0 && !compartmentSet.has(c)) compartmentSet.set(c, compartmentSet.size);
-  }
-  for (let i = 0; i < count; ++i) {
-    const c = compartments[i];
-    if (c >= 0) colorIndex[i] = compartmentSet.get(c)!;
-  }
+  });
+  const colorIndex = ParticleValues.map(compartments, count, (c) => (c >= 0 ? compartmentSet.get(c)! : -1));
   return { colorIndex, compartmentCount: compartmentSet.size };
 }
 
@@ -69,10 +80,46 @@ export function ParticleCompartmentColorTheme(
 ): ColorTheme<ParticleCompartmentColorThemeParams> {
   let color: LocationColor;
   let legend: ScaleLegend | TableLegend | undefined;
+  let particleRuns: ParticleRuns | undefined;
+  let fillParticleColors: ColorTheme<ParticleCompartmentColorThemeParams>['fillParticleColors'];
 
   const particles = getParticleList(ctx);
-  if (particles) {
+  if (particles?.pages) {
+    // a slot list: the compartments by its info (one for all pages), else by those its pages hold, in their order
+    const dense = new Map<number, number>();
+    if (particles.compartmentInfo) {
+      for (const c of particles.compartmentInfo.keys()) if (c >= 0 && !dense.has(c)) dense.set(c, dense.size);
+    } else {
+      forEachPageList(particles, (list) => {
+        if (!list.compartments) return;
+        ParticleValues.forEachRun(list.compartments, list.count, (_s, _e, c) => {
+          if (c >= 0 && !dense.has(c)) dense.set(c, dense.size);
+        });
+      });
+    }
+    const palette = getPalette(dense.size, props);
+    legend = palette.legend;
+    const colors: Color[] = [];
+    for (let k = 0; k < dense.size; ++k) colors[k] = palette.color(k);
+    const painting = getPagedPainting((page) => {
+      const { compartments } = page;
+      const colorIndex = compartments
+        ? ParticleValues.map(compartments, page.count, (c) => (c >= 0 ? (dense.get(c) ?? -1) : -1))
+        : undefined;
+      return {
+        color: (i) => {
+          const ci = colorIndex ? ParticleValues.get(colorIndex, i) : -1;
+          return ci >= 0 ? colors[ci] : DefaultColor;
+        },
+        fill: (out, offset) => fillByIndex(colorIndex, colors, page.count, DefaultColor, out, offset),
+      };
+    }, DefaultColor);
+    color = painting.color;
+    fillParticleColors = painting.fill;
+  } else if (particles) {
     const { colorIndex, compartmentCount } = buildCompartmentColorIndex(particles);
+    // a color a run of the index (a pack's: a run a target)
+    if (colorIndex && ParticleValues.isRuns(colorIndex)) particleRuns = colorIndex;
     const palette = getPalette(compartmentCount, props);
     legend = palette.legend;
 
@@ -80,7 +127,7 @@ export function ParticleCompartmentColorTheme(
     const colors: Color[] = [];
     for (let k = 0; k < compartmentCount; ++k) colors[k] = palette.color(k);
     const pick = (particleIndex: number) => {
-      const ci = colorIndex[particleIndex];
+      const ci = colorIndex ? ParticleValues.get(colorIndex, particleIndex) : -1;
       return ci >= 0 ? colors[ci] : DefaultColor;
     };
 
@@ -90,6 +137,10 @@ export function ParticleCompartmentColorTheme(
       }
       return DefaultColor;
     };
+    fillParticleColors = (list, out, offset) =>
+      list === particles
+        ? fillByIndex(colorIndex, colors, list.count, DefaultColor, out, offset)
+        : fillByLocation(color, list, out, offset);
   } else {
     color = () => DefaultColor;
   }
@@ -101,6 +152,8 @@ export function ParticleCompartmentColorTheme(
     props,
     description: Description,
     legend,
+    particleRuns,
+    fillParticleColors,
   };
 }
 
@@ -114,5 +167,7 @@ export const ParticleCompartmentColorThemeProvider: ColorTheme.Provider<
   factory: ParticleCompartmentColorTheme,
   getParams: getParticleCompartmentColorThemeParams,
   defaultValues: PD.getDefaultValues(ParticleCompartmentColorThemeParams),
-  isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx) && ctx.particles?.compartments !== undefined,
+  isApplicable: (ctx: ThemeDataContext) =>
+    !!getParticleList(ctx) &&
+    (ctx.particles?.compartments !== undefined || !!ctx.particles?.pages?.pages[0]?.list.compartments),
 };

@@ -15,9 +15,18 @@ export interface BufferRange {
   readonly size: number;
 }
 
+/** A copy of `BufferPages.copy` */
+export interface BufferCopy {
+  readonly from: BufferRange;
+  readonly fromOffset: number;
+  readonly to: BufferRange;
+  readonly toOffset: number;
+  readonly size: number;
+}
+
 /**
  * Shared GPU buffers (pages) that data of many owners is sub-allocated in: draws binding ranges of one buffer cost the
- * replay of a render bundle far less than buffers of their own (see `shared-draw-resources.md`). A range freed becomes
+ * replay of a render bundle far less than buffers of their own. A range freed becomes
  * reusable after the next submission: commands recorded before may still read it, and a queue write runs before them
  */
 export interface BufferPages {
@@ -34,6 +43,12 @@ export interface BufferPages {
    * zeros
    */
   write(range: BufferRange, array: ArrayBufferView, byteOffset?: number): void;
+  /**
+   * Copies each of `copies` (`size` bytes, a multiple of 4, at `fromOffset` of `from` to `toOffset` of `to`) on the
+   * GPU, as if all read before any is written, submitted at once: after the writes before, before those after. A
+   * `from` may be freed after (its bytes kept until a submission followed): data moved without uploading it again
+   */
+  copy(copies: readonly BufferCopy[]): void;
   /** pages in use and their bytes */
   readonly pageCount: number;
   readonly pageBytes: number;
@@ -52,7 +67,7 @@ export function createBufferPages(
     /** of offsets and sizes, `RangeAlignment` by default (uniform ranges need the dynamic offset alignment) */
     readonly alignment?: number;
     readonly label: string;
-    /** advances with each submission (`GraphicsContext.submitCount`) */
+    /** advances with each submission (`DrawLists.submitCount`) */
     readonly getSubmitCount: () => number;
     /** a range was freed: for the owner to reclaim it after the next submission, or once idle (`reclaim`) */
     readonly onFree?: () => void;
@@ -69,7 +84,7 @@ export function createBufferPages(
   const createPage = (size: number, dedicated: boolean): Page => {
     const buffer = device.createBuffer({
       size,
-      usage: options.usage | BufferUsage.COPY_DST,
+      usage: options.usage | BufferUsage.COPY_DST | BufferUsage.COPY_SRC,
       label: `${options.label} ${pages.length}`,
     });
     const page = { buffer, allocator: createRangeAllocator(size, alignment), dedicated };
@@ -151,6 +166,48 @@ export function createBufferPages(
         tail.set(new Uint8Array(array.buffer, array.byteOffset + bytes, rest));
         device.queue.writeBuffer(range.buffer, offset + bytes, tail);
       }
+    },
+    copy(copies) {
+      let total = 0;
+      let shared = false;
+      const sources = new Set<GPUBuffer>();
+      for (const c of copies) {
+        total += c.size;
+        sources.add(c.from.buffer);
+      }
+      if (total <= 0) return;
+      for (const c of copies) if (sources.has(c.to.buffer)) shared = true;
+      const encoder = device.createCommandEncoder({ label: `${options.label} copy` });
+      let staging: GPUBuffer | undefined;
+      if (shared) {
+        // a buffer read and written (a range's bytes moved within it, or into another's read too): all read into a
+        // buffer of their own first (a buffer can't be copied into itself; a copy may overwrite another's source)
+        staging = device.createBuffer({ size: total, usage: BufferUsage.COPY_SRC | BufferUsage.COPY_DST });
+        let at = 0;
+        for (const c of copies) {
+          if (c.size > 0) encoder.copyBufferToBuffer(c.from.buffer, c.from.offset + c.fromOffset, staging, at, c.size);
+          at += c.size;
+        }
+        at = 0;
+        for (const c of copies) {
+          if (c.size > 0) encoder.copyBufferToBuffer(staging, at, c.to.buffer, c.to.offset + c.toOffset, c.size);
+          at += c.size;
+        }
+      } else {
+        for (const c of copies) {
+          if (c.size > 0) {
+            encoder.copyBufferToBuffer(
+              c.from.buffer,
+              c.from.offset + c.fromOffset,
+              c.to.buffer,
+              c.to.offset + c.toOffset,
+              c.size,
+            );
+          }
+        }
+      }
+      device.queue.submit([encoder.finish()]);
+      staging?.destroy();
     },
     get pageCount() {
       return pages.length;

@@ -28,9 +28,19 @@ import { RenderState } from '../../render-state.js';
 import { ShaderCode } from '../../shader-code.js';
 import { isUniformValueScalar } from '../../uniform.js';
 import { isWebGLContext } from '../context.js';
+import { asGLTexture } from '../texture.js';
 import { registerGlslProgram } from '../programs.js';
 import { quad_vert } from '../shader/quad.vert.js';
 import { grid3dTemplate_frag } from '../shader/util/grid3d-template.frag.js';
+import { createScratch } from '../../scratch.js';
+import type { Texture } from '../../texture.js';
+import type { Framebuffer } from '../framebuffer.js';
+import type { ComputeRenderable } from '../../renderable.js';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('compute/grid3d textures');
+const ScratchFramebuffers = createScratch<Framebuffer>('compute/grid3d framebuffers');
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('compute/grid3d renderables');
 
 /**
  * grid3d with fragment shaders (WebGL): a fragment per cell of a square texture, the values packed into rgba8 and read
@@ -93,19 +103,16 @@ function createWebGLGrid3dCompute<S extends RenderableSchema, P, CS>(
     const webgl = graphics;
     const schema = getGrid3dComputeSchema(spec, webgl.isWebGL2);
 
-    if (!webgl.namedFramebuffers[FrameBufferName]) {
-      webgl.namedFramebuffers[FrameBufferName] = webgl.resources.framebuffer();
-    }
-    const framebuffer = webgl.namedFramebuffers[FrameBufferName];
+    const framebuffer = ScratchFramebuffers.getOrCreate(webgl, () => webgl.resources.framebuffer(), FrameBufferName);
 
-    if (!webgl.namedTextures[Texture0Name]) {
-      webgl.namedTextures[Texture0Name] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    if (!ScratchTextures.get(webgl, Texture0Name)) {
+      ScratchTextures.set(webgl, webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'), Texture0Name);
     }
-    if (spec.cumulative && !webgl.namedTextures[Texture1Name]) {
-      webgl.namedTextures[Texture1Name] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    if (spec.cumulative && !ScratchTextures.get(webgl, Texture1Name)!) {
+      ScratchTextures.set(webgl, webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'), Texture1Name);
     }
 
-    const tex = [webgl.namedTextures[Texture0Name], webgl.namedTextures[Texture1Name]];
+    const tex = [ScratchTextures.get(webgl, Texture0Name)!, ScratchTextures.get(webgl, Texture1Name)!];
 
     const [nx, ny, nz] = grid.dimensions;
     const uWidth = Math.ceil(Math.sqrt(nx * ny * nz));
@@ -127,7 +134,7 @@ function createWebGLGrid3dCompute<S extends RenderableSchema, P, CS>(
       (values as any).CUMULATIVE = true;
     }
 
-    let renderable = webgl.namedComputeRenderables[id];
+    let renderable = ScratchRenderables.get(webgl, id)!;
     let cells: RenderableValues;
     if (renderable) {
       cells = renderable.values as RenderableValues;
@@ -159,10 +166,10 @@ function createWebGLGrid3dCompute<S extends RenderableSchema, P, CS>(
 
       resetGl(webgl, uWidth);
 
-      tex[0].attachFramebuffer(framebuffer, 'color0');
+      asGLTexture(tex[0]).attachFramebuffer(framebuffer, 'color0');
       webgl.beginRenderPass(framebuffer, { label: 'grid3d clear', clear: { color: [0, 0, 0, 0] } });
 
-      tex[1].attachFramebuffer(framebuffer, 'color0');
+      asGLTexture(tex[1]).attachFramebuffer(framebuffer, 'color0');
       webgl.beginRenderPass(framebuffer, { label: 'grid3d clear', clear: { color: [0, 0, 0, 0] } });
 
       if (spec.cumulative.yieldPeriod && !isTimingMode) {
@@ -174,7 +181,7 @@ function createWebGLGrid3dCompute<S extends RenderableSchema, P, CS>(
       if (isTimingMode) webgl.timer.group('Grid3dCompute.renderBatch');
       for (let i = 0; i < states.length; i++) {
         ValueCell.update(cells.tCumulativeSum, tex[(i + 1) % 2]);
-        tex[i % 2].attachFramebuffer(framebuffer, 'color0');
+        asGLTexture(tex[i % 2]).attachFramebuffer(framebuffer, 'color0');
         webgl.beginRenderPass(framebuffer, { label: 'grid3d' });
         resetGl(webgl, uWidth);
         spec.cumulative.update(params, states[i], cells as any);
@@ -196,7 +203,7 @@ function createWebGLGrid3dCompute<S extends RenderableSchema, P, CS>(
       if (isTimingMode) webgl.timer.groupEnd('Grid3dCompute.renderCumulative');
     } else {
       tex[0].define(uWidth, uWidth);
-      tex[0].attachFramebuffer(framebuffer, 'color0');
+      asGLTexture(tex[0]).attachFramebuffer(framebuffer, 'color0');
       webgl.beginRenderPass(framebuffer, { label: 'grid3d' });
       resetGl(webgl, uWidth);
       renderable.update();

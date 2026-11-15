@@ -391,7 +391,7 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
   });
 
   // the levels are of the main camera: built from the eyes' depth they could hide what the next mono frame sees
-  it('builds no levels from the depth of a stereo frame', async () => {
+  it('builds one pyramid of both eyes from the depth of a stereo frame', async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -407,17 +407,29 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
         canvas.tick(now(), { isSynchronous: true });
         await canvas.graphics.resources.pending.whenReady();
       };
+      // the levels built without objects culled on the GPU (an empty scene)
+      canvas.setProps({ hiZ: { enabled: true } } as never);
       await frame();
       const render = vi.spyOn(HiZPass.prototype, 'render');
       const clear = vi.spyOn(HiZPass.prototype, 'clear');
       await frame();
       expect(render).toHaveBeenCalled();
+      const pass = render.mock.contexts[0];
+      expect(pass.gpuPyramid).toBeDefined();
+      expect(pass.gpuPyramid?.second).toBeUndefined();
       canvas.setProps({ camera: { stereo: { name: 'on', params: {} } } } as never);
       render.mockClear();
       clear.mockClear();
-      await frame();
-      expect(render).not.toHaveBeenCalled();
-      expect(clear).toHaveBeenCalled();
+      // the eyes side by side: the left's levels, then the right's (`OcclusionPyramid.second`), once the stereo frame's
+      // draws are ready (no levels of a frame with draws skipped)
+      for (let i = 0; i < 10 && !pass.gpuPyramid?.second; ++i) await frame();
+      expect(render).toHaveBeenCalled();
+      expect(clear).not.toHaveBeenCalled();
+      const second = pass.gpuPyramid?.second;
+      expect(second).toBeDefined();
+      expect(second!.split).toBeCloseTo(0.5, 2);
+      render.mockRestore();
+      clear.mockRestore();
     } finally {
       plugin.dispose();
     }

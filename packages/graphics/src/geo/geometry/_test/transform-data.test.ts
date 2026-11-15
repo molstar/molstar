@@ -9,7 +9,18 @@ import { fillIdentityTransform } from '@molstar/core/math/linear-algebra/3d/tran
 import { ValueCell } from '@molstar/core/util';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { createIdentityTransform, createTransform, moveTransformData, updateTransformData } from '../transform-data.js';
+import {
+  createIdentityTransform,
+  createPosesTransform,
+  createTransform,
+  getInstanceMatrices,
+  moveTransformData,
+  type TransformData,
+  updateTransformData,
+} from '../transform-data.js';
+import { InstanceTransforms, type InstancePoses } from '@molstar/core/math/geometry/instance-transforms';
+import { Quat } from '@molstar/core/math/linear-algebra/3d/quat';
+import { hasInstanceCells, writeAffineRowsOf } from '../../../gl/transform-parts.js';
 
 function makeTransforms(count: number, factory: (i: number) => Mat4) {
   const array = new Float32Array(count * 16);
@@ -217,6 +228,27 @@ function expectMoved(before: Float32Array, after: Float32Array, count: number) {
   }
 }
 
+describe("the instances' cell and batch sizes", () => {
+  it("are the transform data's, as created and rebuilt, cells above a size of 1, the poses' too", () => {
+    const transforms = makeTransforms(30, (i) => Mat4.fromTranslation(Mat4(), Vec3.create(i * 40, 0, 0)));
+    const sphere = Sphere3D.create(Vec3(), 1);
+    const td = createTransform(transforms, 30, sphere, 100, 8);
+    expect([td.instanceCellSize.ref.value, td.instanceBatchSize.ref.value]).toEqual([100, 8]);
+    expect(hasInstanceCells(td)).toBe(true);
+    // culled as a whole, its levels at full detail: by the size asked for, whatever the grid holds
+    updateTransformData(td, sphere, 1, 8);
+    expect(hasInstanceCells(td)).toBe(false);
+    updateTransformData(td, sphere, 0, 0);
+    expect([td.instanceCellSize.ref.value, td.instanceBatchSize.ref.value]).toEqual([0, 0]);
+    expect(hasInstanceCells(createIdentityTransform())).toBe(false);
+    const positions = new Float32Array(30 * 3).map((_, k) => (k % 3 === 0 ? k * 10 : 0));
+    const poses = InstanceTransforms.ofPoses({ positions, count: 30, first: 0, center: Vec3() });
+    const posed = createPosesTransform(poses, sphere, 50, 4);
+    expect([posed.instanceCellSize.ref.value, posed.instanceBatchSize.ref.value]).toEqual([50, 4]);
+    expect(hasInstanceCells(posed)).toBe(true);
+  });
+});
+
 describe('moveTransformData', () => {
   it('moves the transforms and the grid as a whole, its cells and instance order kept', () => {
     const count = 40;
@@ -250,5 +282,94 @@ describe('moveTransformData', () => {
     const version = data.aTransform.ref.version;
     expect(moveTransformData(data, move)).toBe(false);
     expect(data.aTransform.ref.version).toBe(version);
+  });
+});
+
+/** `count` poses of as many particles (scaled, rotated) around `center`, and their matrices (`T(p) R(q) S(s) T(-c)`) */
+function makePoses(count: number) {
+  const positions = new Float32Array(count * 3);
+  const rotations = new Float32Array(count * 4);
+  const scales = new Float32Array(count);
+  const q = Quat();
+  for (let i = 0; i < count; ++i) {
+    Vec3.toArray(Vec3.create((i % 7) * 40, Math.floor(i / 7) * 35, (i % 3) * 50), positions, i * 3);
+    Quat.setAxisAngle(q, Vec3.normalize(Vec3(), Vec3.create(1, i % 5, 2)), i * 0.3);
+    rotations.set(q, i * 4);
+    scales[i] = 1 + (i % 4) * 0.5;
+  }
+  const center = Vec3.create(2, -1, 3);
+  const poses: InstancePoses = { kind: 'poses', count, positions, rotations, scales, first: 0, center };
+  const matrices = new Float32Array(count * 16);
+  const m = Mat4();
+  for (let i = 0; i < count; ++i) Mat4.toArray(InstanceTransforms.getMatrix(poses, i, m), matrices, i * 16);
+  return { poses, matrices };
+}
+
+function rowsOf(t: TransformData) {
+  const n = t.instanceCount.ref.value;
+  return writeAffineRowsOf(t, n, new Float32Array(n * 12));
+}
+
+function expectClose(a: ArrayLike<number>, b: ArrayLike<number>, eps = 1e-3) {
+  expect(a.length).toBe(b.length);
+  for (let k = 0; k < a.length; ++k) expect(Math.abs(a[k] - b[k])).toBeLessThan(eps);
+}
+
+// a particle target's instances as poses read as the same instances as matrices
+describe('createPosesTransform', () => {
+  const sphere = Sphere3D.create(Vec3.create(2, -1, 3), 5);
+
+  it('draws poses as their matrices: the rows, the grid and its order, no matrix made', () => {
+    const { poses, matrices } = makePoses(60);
+    const a = createPosesTransform(poses, sphere, 40, 8);
+    const b = createTransform(matrices, 60, sphere, 40, 8);
+    expect(a.aTransform.ref.value.length).toBe(0);
+    expect(a.transform.ref.value.length).toBe(0);
+    expect(a.instanceGrid.ref.value.cellTransform.length).toBe(0);
+    expect(Array.from(a.aInstance.ref.value)).toEqual(Array.from(b.aInstance.ref.value));
+    expectClose(a.instanceGrid.ref.value.cellSpheres, b.instanceGrid.ref.value.cellSpheres, 1e-2);
+    expectClose(rowsOf(a), rowsOf(b));
+    expectClose(getInstanceMatrices(a), getInstanceMatrices(b));
+  });
+
+  it('applies the representation matrix to the poses, and a move to their matrix without touching an instance', () => {
+    const { poses, matrices } = makePoses(30);
+    const a = createPosesTransform(poses, sphere, 40, 8);
+    const b = createTransform(matrices, 30, sphere, 40, 8);
+    const matrix = Mat4.mul(
+      Mat4(),
+      Mat4.fromTranslation(Mat4(), Vec3.create(5, 6, 7)),
+      Mat4.fromRotation(Mat4(), 0.4, Vec3.create(0, 1, 0)),
+    );
+    for (const t of [a, b]) {
+      ValueCell.update(t.matrix, Mat4.copy(Mat4(), matrix));
+      updateTransformData(t, sphere, 40, 8);
+    }
+    expectClose(rowsOf(a), rowsOf(b));
+
+    const c = createPosesTransform(poses, sphere, 40, 8);
+    const d = createTransform(matrices, 30, sphere, 40, 8);
+    const move = Mat4.fromTranslation(Mat4(), Vec3.create(100, 0, -50));
+    const grid = c.instanceGrid.ref.value;
+    expect(moveTransformData(c, move)).toBe(true);
+    expect(moveTransformData(d, move)).toBe(true);
+    expect(c.poses.ref.value!.positions).toBe(poses.positions);
+    expect(c.instanceGrid.ref.value.cellOffsets).toBe(grid.cellOffsets);
+    expectClose(rowsOf(c), rowsOf(d));
+    expectClose(c.instanceGrid.ref.value.cellSpheres, d.instanceGrid.ref.value.cellSpheres, 1e-2);
+  });
+
+  it('turns the poses into matrices for an extra transform and a mirroring matrix', () => {
+    const { poses, matrices } = makePoses(20);
+    const a = createPosesTransform(poses, sphere, 40, 8);
+    const b = createTransform(matrices, 20, sphere, 40, 8);
+    const mirror = Mat4.fromScaling(Mat4(), Vec3.create(-1, 1, 1));
+    for (const t of [a, b]) {
+      ValueCell.update(t.matrix, Mat4.copy(Mat4(), mirror));
+      updateTransformData(t, sphere, 40, 8);
+    }
+    expect(a.poses.ref.value).toBeUndefined();
+    expect(a.hasReflection.ref.value).toBe(b.hasReflection.ref.value);
+    expectClose(rowsOf(a), rowsOf(b));
   });
 });

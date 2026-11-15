@@ -5,8 +5,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ShapeGetter } from '@molstar/graphics/repr/shape/representation';
 import type { Geometry, GeometryUtils } from '../geometry/geometry.js';
+import type { RuntimeContext } from '@molstar/core/task';
+import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { Shape } from '@molstar/model/model/shape';
 
 export interface ShapeProvider<D, G extends Geometry, P extends Geometry.Params<G>> {
   label: string;
@@ -20,3 +22,10 @@ export interface ShapeProvider<D, G extends Geometry, P extends Geometry.Params<
    */
   transparency?: (group: number) => number;
 }
+
+export type ShapeGetter<D, G extends Geometry, P extends Geometry.Params<G>> = (
+  ctx: RuntimeContext,
+  data: D,
+  props: PD.Values<P>,
+  shape?: Shape<G>,
+) => Shape<G> | Promise<Shape<G>>;

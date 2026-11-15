@@ -147,15 +147,20 @@ void main() {
 
     float fragmentDepth = gl_FragCoord.z;
 
-    vec3 packedGroup = texture2D(tGroupTex, vUv).rgb;
-    float group = packedGroup == vec3(0.0) ? -1.0 : unpackRGBToInt(packedGroup);
+    // the group in four bytes (id + 1, the top byte in alpha), -1 where none; the data index an integer (WebGL2)
+    GroupId group = unpackGroupId(texture2D(tGroupTex, vUv));
+    #if __VERSION__ == 100
+        float dataIndex = uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group;
+    #else
+        int dataIndex = uInstanceGranularity ? int(vInstance) : int(vInstance) * uGroupCount + group;
+    #endif
 
     // apply per-group transparency
     #if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive) || defined(dRenderVariant_tracing) || defined(dRenderVariant_marking))
         float transparency = 0.0;
         #if defined(dTransparencyType_texture)
             // an empty pixel (no group) has no data
-            if (group != -1.0) transparency = read_tTransparency((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r;
+            if (group != GroupId(-1)) transparency = read_tTransparency(dataIndex).r;
         #endif
         transparency *= uTransparencyStrength;
 
@@ -181,43 +186,43 @@ void main() {
 
     #if defined(dNeedsMarker)
         float marker = uMarker;
-        if (group == -1.0) {
+        if (group == GroupId(-1)) {
             marker = 0.0;
         } else if (uMarker == -1.0) {
-            marker = read_tMarker((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r;
+            marker = read_tMarker(dataIndex).r;
             marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
         }
     #endif
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
         float emissive = uEmissive;
-        if (group == -1.0) {
+        if (group == GroupId(-1)) {
             emissive = 0.0;
         } else {
             #ifdef dEmissive
                 #if defined(dEmissiveType_texture)
-                    emissive += read_tEmissive((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r * uEmissiveStrength;
+                    emissive += read_tEmissive(dataIndex).r * uEmissiveStrength;
                 #endif
             #endif
         }
     #endif
 
     #if defined(dRenderVariant_pick)
-        if (group == -1.0) discard;
+        if (group == GroupId(-1)) discard;
 
         ${check_picking_alpha}
         #ifdef requiredDrawBuffers
-            gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
-            gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
-            gl_FragData[2] = vec4(packIntToRGB(group), 1.0);
+            gl_FragColor = packPickId(uObjectId);
+            gl_FragData[1] = packPickId(vInstance);
+            gl_FragData[2] = packPickId(group);
             gl_FragData[3] = packDepthToRGBA(fragmentDepth);
         #else
             if (uPickType == 1) {
-                gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
+                gl_FragColor = packPickId(uObjectId);
             } else if (uPickType == 2) {
-                gl_FragColor = vec4(packIntToRGB(vInstance), 1.0);
+                gl_FragColor = packPickId(vInstance);
             } else {
-                gl_FragColor = vec4(packIntToRGB(group), 1.0);
+                gl_FragColor = packPickId(group);
             }
         #endif
     #elif defined(dRenderVariant_depth)
@@ -244,9 +249,9 @@ void main() {
         // mix material with overpaint
         #if defined(dOverpaint)
             vec4 overpaint = vec4(0.0);
-            if (group != -1.0) {
+            if (group != GroupId(-1)) {
                 #if defined(dOverpaintType_texture)
-                    overpaint = read_tOverpaint((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group));
+                    overpaint = read_tOverpaint(dataIndex);
                 #endif
                 overpaint *= uOverpaintStrength;
             }

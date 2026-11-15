@@ -18,6 +18,7 @@ import { ValueCell } from '@molstar/core/util';
 import type { Mutable } from '@molstar/core/util/type-helpers';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import {
   type ComputeContext,
@@ -31,26 +32,32 @@ import { type LodLevelsValue, LodView } from '../renderable.js';
 import type { SpheresValues } from '../renderable/spheres.js';
 import type { MergedRasterInput } from '../renderable/merged-culler.js';
 import { UniformSpec } from '../renderable/schema.js';
-import { packAffineRowsOf } from '../affine-rows.js';
-import type { SegmentedArray } from '../segmented-array.js';
+import { getTransformParts, hasInstanceCells } from '../transform-parts.js';
+import { CulledData } from '../culled-data.js';
 import { ReversedZeroToOne } from '../depth-range.js';
 import { getScratchBuffer } from './scratch.js';
-import { getDispatchSize } from './prefix-sum.js';
+import { createPrefixSum, getDispatchSize, type PrefixSum, PrefixSumKernels } from './prefix-sum.js';
 
 /**
- * Small opaque spheres drawn by kernels instead of quads (`sphere-compute-raster.md`): a pass appends the chunks of 64
+ * Small opaque spheres drawn by kernels instead of quads: a pass appends the chunks of 64
  * spheres of each drawn instance at each level it is drawn at, `sphere-raster-cull` for unmerged objects (a thread
  * per instance: the frustum, the levels' ranges), `sphere-raster-regions` for merged ones culled on the GPU (a thread
  * per slot of the culler's compacted instances); `sphere-raster-args` writes their indirect dispatch, `sphere-raster`
- * (a workgroup per chunk, a thread per sphere) writes each pixel a sphere covers into the visibility buffer: per pixel
+ * (a workgroup per 4 or 16 chunks by their spheres, a thread per sphere) writes each pixel a sphere covers into the visibility buffer: per pixel
  * the nearest sphere's id and depth, one `atomicStoreMax` of `vec2u(id, depth)` (`atomicMinMax64`). A dispatch of
  * each per object: its data pages bound as they are (`RenderItem.getDataLayer`), its values packed into the kernels'
  * uniforms, its chunks in a region of the frame's (`SphereRasterTable`).
  */
 export const SphereRasterCullKernel = KernelCode('sphere-raster-cull', [64]);
 export const SphereRasterRegionsKernel = KernelCode('sphere-raster-regions', [64]);
+/** a raster record's blocks of 64 instances, the regions' workgroups (their first blocks a prefix sum) */
+export const SphereRasterBlocksKernel = KernelCode('sphere-raster-blocks', [64]);
+/** the blocks' total after their firsts, and the regions' indirect dispatch */
+export const SphereRasterBlocksArgsKernel = KernelCode('sphere-raster-blocks-args', [1]);
 export const SphereRasterArgsKernel = KernelCode('sphere-raster-args', [1]);
 export const SphereRasterKernel = KernelCode('sphere-raster', [64]);
+/** The raster for chunks of few spheres, more of them a workgroup (`SphereRasterWideChunksPerWorkgroup`) */
+export const SphereRasterWideKernel = KernelCode('sphere-raster-wide', [64]);
 
 /** Levels of an object the kernels handle (as the merged culler, `MaxCullLevels`) */
 export const MaxSphereRasterLevels = 4;
@@ -58,7 +65,10 @@ export const MaxSphereRasterLevels = 4;
 /** Bytes per pixel of the visibility buffer: the id and the depth (`vec2u`), 0 where empty */
 export const SphereRasterVisibilityBytes = 8;
 
-/** u32 words per chunk: (slot, first, end, level), (`aInstance`, group-instance offset, group offset, scale) */
+/**
+ * u32 words per chunk: (slot, first item, items, level and stride: `level | stride << 2`), (`aInstance`, group-instance
+ * offset, group offset, scale): lane `k` draws item `first + k * stride` (a level draws every stride-th item)
+ */
 export const SphereRasterChunkWords = 8;
 
 /** What every pass reads */
@@ -77,10 +87,11 @@ const SphereRasterParams = {
   uVertexCount: UniformSpec('i'),
   /** per level (column) its range, fade and scale as `uLod`: min, max, overlap, scale (no fade or cull where 0) */
   uLevels: UniformSpec('m4'),
-  /** per level its spheres (the first of `tPositionGroup`, in level order; unmerged objects) */
+  /** per level its spheres (every stride-th of `tPositionGroup`; unmerged objects) and its stride */
   uLevelCounts: UniformSpec('v4'),
+  uLevelStrides: UniformSpec('v4'),
   uLevelCount: UniformSpec('i'),
-  /** the object's slot in the counters (`CounterWords` each) and the indirect arguments (8 words each) */
+  /** the object's slot in the counters (`CounterWords` each) and the indirect arguments (`SphereRasterArgsWords` each) */
   uObjectIndex: UniformSpec('i'),
   /** the object's region of the frame's chunks */
   uChunkBase: UniformSpec('i'),
@@ -98,7 +109,7 @@ export const SphereRasterCullSchema = {
   uClipObjectCount: UniformSpec('i'),
   clipObjects: StorageBufferSpec('vec4<f32>', 'read'),
   transforms: StorageBufferSpec('vec4<f32>', 'read'),
-  instances: StorageBufferSpec('f32', 'read'),
+  instances: StorageBufferSpec('u32', 'read'),
   counter: StorageBufferSpec('atomic<u32>', 'read-write'),
   chunks: StorageBufferSpec('vec4<u32>', 'read-write'),
 };
@@ -114,13 +125,33 @@ export const SphereRasterRegionsSchema = {
   /** the raster regions' first record and slot (`MergedRasterInput`) */
   uRecordBase: UniformSpec('i'),
   uSlotBase: UniformSpec('i'),
+  /** the raster records (the levels' times the segments) */
+  uRecordCount: UniformSpec('i'),
   records: StorageBufferSpec('u32', 'read'),
+  /** a raster record's first block (a workgroup of its instances), the blocks' total after them */
+  blockFirsts: StorageBufferSpec('u32', 'read'),
   /** the culler's instance indices and the instances' data (`MergedRasterInput`, `CulledData`) */
   indices: StorageBufferSpec('u32', 'read'),
   data: StorageBufferSpec('vec4<f32>', 'read'),
   segmentPage: StorageBufferSpec('u32', 'read'),
   counter: StorageBufferSpec('atomic<u32>', 'read-write'),
   chunks: StorageBufferSpec('vec4<u32>', 'read-write'),
+};
+
+export const SphereRasterBlocksSchema = {
+  uRecordCount: UniformSpec('i'),
+  uRecordWords: UniformSpec('i'),
+  uRecordBase: UniformSpec('i'),
+  records: StorageBufferSpec('u32', 'read'),
+  blocks: StorageBufferSpec('u32', 'read-write'),
+};
+
+export const SphereRasterBlocksArgsSchema = {
+  uRecordCount: UniformSpec('i'),
+  /** the prefix sum's total (its first word) */
+  totals: StorageBufferSpec('u32', 'read'),
+  blockFirsts: StorageBufferSpec('u32', 'read-write'),
+  dispatchArgs: StorageBufferSpec('u32', 'read-write'),
 };
 
 export const SphereRasterArgsSchema = {
@@ -139,6 +170,13 @@ export const SphereRasterSchema = {
   /** the rows of instances of one sphere (`appendChunks`), 64 a workgroup, not the chunks */
   uSingles: UniformSpec('i'),
   uPositionOffset: UniformSpec('i'),
+  /**
+   * the centers: 0 `tPositionGroup`'s, else quantized (`tSite`, spheres' `dSites`) by 1 the object's origin and
+   * scale (`uSiteOrigin`, `uSiteScale`), 2 the slot's segment's (merged, `CulledData`)
+   */
+  uSites: UniformSpec('i'),
+  uSiteOrigin: UniformSpec('v3'),
+  uSiteScale: UniformSpec('f'),
   uSizeOffset: UniformSpec('i'),
   /** `uSizeIndexType`, -1 for a uniform size (`uSize`) */
   uSizeIndexType: UniformSpec('i'),
@@ -172,17 +210,39 @@ export const SphereRasterSchema = {
 };
 
 /**
- * Pixels above which a sphere is drawn by its chunk's whole workgroup (its pixels strided over the threads), not by its
- * thread alone (`sphere-compute-raster.md` step 8: a thread per sphere loses to the impostors on large spheres)
+ * Spheres of more than one pixel are drawn by their workgroup's threads together, their pixels in a row strided over
+ * them, not each by its thread (a warp as long as its largest sphere); those of
+ * more than this one after another, each strided over the threads (64 of them in a row would not fit the 25 bits)
  */
-export const SphereRasterLargePixels = 64;
+export const SphereRasterLargePixels = 4096;
+
+/**
+ * Chunks a workgroup of the raster draws, their spheres dealt over its threads 64 at a time: most chunks hold few
+ * spheres (an instance's at a coarse level; the yeast cell about 7), a workgroup each mostly idle threads.
+ * Two kernels, the count a constant of each (a count read at run time cost
+ * 5-10 %): an object's chunks by `SphereRasterWideChunksPerWorkgroup` where they hold `SphereRasterWideSpheres`
+ * spheres or fewer on average (the arguments, `sphere_raster_args_wgsl`, give the other kernel no workgroups), else by
+ * this. More chunks a workgroup lose its parallelism: MG_1184 zoomed to 0.3 (38 spheres a chunk) 1 a workgroup 1.79 ms,
+ * 4 1.50, 8 1.66, 16 2.05; the yeast cell (7) 6.36, 4.05, 3.66, 3.52
+ */
+export const SphereRasterChunksPerWorkgroup = 4;
+export const SphereRasterWideChunksPerWorkgroup = 16;
+export const SphereRasterWideSpheres = 16;
+
+/** An object's indirect arguments: the raster's chunks, its singles, the wide raster's chunks (4 words each) */
+export const SphereRasterArgsWords = 12;
+const ArgsBytes = SphereRasterArgsWords * 4;
 
 /** The kernels to prepare (`ComputeContext.prepareKernels`) */
 export const SphereRasterKernels = [
   { code: SphereRasterCullKernel, schema: SphereRasterCullSchema },
   { code: SphereRasterRegionsKernel, schema: SphereRasterRegionsSchema },
+  { code: SphereRasterBlocksKernel, schema: SphereRasterBlocksSchema },
+  { code: SphereRasterBlocksArgsKernel, schema: SphereRasterBlocksArgsSchema },
+  ...PrefixSumKernels,
   { code: SphereRasterArgsKernel, schema: SphereRasterArgsSchema },
   { code: SphereRasterKernel, schema: SphereRasterSchema },
+  { code: SphereRasterWideKernel, schema: SphereRasterSchema },
 ];
 
 /** The view the spheres are drawn in */
@@ -251,8 +311,8 @@ export function decodeSphereRasterId(table: SphereRasterTable, chunks: Uint32Arr
   const range = table.ranges.find((r) => chunk >= r.chunkBase && chunk < r.chunkBase + r.chunkCapacity);
   if (!range) return undefined;
   const o = chunk * SphereRasterChunkWords;
-  const item = chunks[o + 1] + ((id - 1) % 64);
-  return { object: range.object, slot: chunks[o], item, level: chunks[o + 3], instance: chunks[o + 4] };
+  const item = chunks[o + 1] + ((id - 1) % 64) * (chunks[o + 3] >>> 2);
+  return { object: range.object, slot: chunks[o], item, level: chunks[o + 3] & 3, instance: chunks[o + 4] };
 }
 
 /** Whether the kernels can draw `values` at all: levels within `MaxSphereRasterLevels` */
@@ -264,10 +324,18 @@ export function canRasterSpheres(values: SpheresValues) {
 type Cells<S> = { [k in keyof S]: ValueCell<any> };
 
 type ObjectKernels = {
+  /** a merged object's regions' dispatch: its raster records' blocks and their dispatch (`dispatchRegions`) */
+  blocks?: {
+    kernel: ComputeKernel;
+    argsKernel: ComputeKernel;
+    values: Cells<typeof SphereRasterBlocksSchema>;
+    argsValues: Cells<typeof SphereRasterBlocksArgsSchema>;
+  };
   /** the pass appending the chunks: `sphere-raster-cull` or `sphere-raster-regions` */
   chunk: ComputeKernel;
   args: ComputeKernel;
   raster: ComputeKernel;
+  rasterWide: ComputeKernel;
   rasterSingles: ComputeKernel;
   chunkValues: Cells<typeof SphereRasterCullSchema> | Cells<typeof SphereRasterRegionsSchema>;
   rasterValues: Cells<typeof SphereRasterSchema>;
@@ -306,8 +374,12 @@ export interface SphereRaster {
   destroy: () => void;
 }
 
-/** An object's counters: chunk rows written, single rows written, those two drawn already, all rows asked for */
-const CounterWords = 5;
+/**
+ * An object's counters: chunk rows written, single rows written, those two drawn already, all rows asked for, the
+ * spheres of the chunk rows
+ */
+export const SphereRasterCounterWords = 6;
+const CounterWords = SphereRasterCounterWords;
 
 /** The least chunks of a merged object to start with, 2 MB */
 const InitialChunkCapacity = 65536;
@@ -318,18 +390,57 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     k.chunk.destroy();
     k.args.destroy();
     k.raster.destroy();
+    k.rasterWide.destroy();
     k.rasterSingles.destroy();
     k.transforms?.destroy();
     k.instances?.destroy();
     k.clipObjects.destroy();
+    if (k.blocks) {
+      k.blocks.kernel.destroy();
+      k.blocks.argsKernel.destroy();
+      k.blocks.values.blocks.ref.value.destroy();
+      k.blocks.argsValues.blockFirsts.ref.value.destroy();
+      k.blocks.argsValues.dispatchArgs.ref.value.destroy();
+    }
   }
   /** bound while there is no pyramid */
   const emptyHiZ = createEmptyHiZ(resources);
   const range = [0, 0, 0];
   const levels = Mat4();
   const levelCounts = Vec4();
+  const levelStrides = Vec4();
   let counter: StorageBuffer | undefined;
   let args: StorageBuffer | undefined;
+  let prefixSum: PrefixSum | undefined;
+  /**
+   * a merged object's regions' dispatch: its raster records' blocks (a workgroup of a record's instances each), their
+   * firsts by a prefix sum, the dispatch from their total; the regions' kernel a workgroup a block (in the open pass)
+   */
+  function dispatchRegions(k: ObjectKernels, culled: MergedRasterInput, records: StorageBuffer) {
+    const b = k.blocks!;
+    const n = Math.max(1, culled.levels * culled.segmentCount);
+    const grow = (cell: ValueCell<StorageBuffer>, bytes: number, label: string) => {
+      if (cell.ref.value.byteLength >= bytes) return;
+      cell.ref.value.destroy();
+      ValueCell.update(cell, compute.createBuffer(Math.ceil((bytes * 1.25) / 16) * 16, label));
+    };
+    grow(b.values.blocks, n * 4, 'sphere raster blocks');
+    grow(b.argsValues.blockFirsts, (n + 1) * 4, 'sphere raster block firsts');
+    ValueCell.updateIfChanged(b.values.uRecordCount, n);
+    ValueCell.updateIfChanged(b.values.uRecordWords, culled.recordWords);
+    ValueCell.updateIfChanged(b.values.uRecordBase, culled.recordBase);
+    ValueCell.updateIfChanged(b.values.records, records);
+    b.kernel.dispatch(Math.ceil(n / 64));
+    prefixSum ??= createPrefixSum(compute);
+    const totals = prefixSum.run(b.values.blocks.ref.value, b.argsValues.blockFirsts.ref.value, n);
+    ValueCell.updateIfChanged(b.argsValues.uRecordCount, n);
+    ValueCell.update(b.argsValues.totals, totals);
+    b.argsKernel.dispatch(1);
+    const v = k.chunkValues as Cells<typeof SphereRasterRegionsSchema>;
+    ValueCell.updateIfChanged(v.uRecordCount, n);
+    ValueCell.updateIfChanged(v.blockFirsts, b.argsValues.blockFirsts.ref.value);
+    k.chunk.dispatchIndirect(b.argsValues.dispatchArgs.ref.value, 0);
+  }
   /** the objects of the last `draw` */
   const prepared: { k: ObjectKernels; threads: number; index: number; culled?: MergedRasterInput }[] = [];
   let readCounts: (() => void) | undefined;
@@ -351,6 +462,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       uVertexCount: ValueCell.create(0),
       uLevels: ValueCell.create(Mat4()),
       uLevelCounts: ValueCell.create(Vec4()),
+      uLevelStrides: ValueCell.create(Vec4()),
       uLevelCount: ValueCell.create(0),
       uObjectIndex: ValueCell.create(0),
       uChunkBase: ValueCell.create(0),
@@ -372,7 +484,9 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
           uSegmentOffset: ValueCell.create(0),
           uRecordBase: ValueCell.create(0),
           uSlotBase: ValueCell.create(0),
+          uRecordCount: ValueCell.create(0),
           records: ValueCell.create(culled.records),
+          blockFirsts: ValueCell.create(culled.records),
           indices: ValueCell.create(culled.indices),
           data: ValueCell.create(culled.data),
           segmentPage: ValueCell.create(culled.records),
@@ -396,6 +510,9 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       uMaxRadius: ValueCell.create(0),
       uSingles: ValueCell.create(0),
       uPositionOffset: ValueCell.create(0),
+      uSites: ValueCell.create(0),
+      uSiteOrigin: ValueCell.create(Vec3()),
+      uSiteScale: ValueCell.create(1),
       uSizeOffset: ValueCell.create(0),
       uSizeIndexType: ValueCell.create(0),
       uSize: ValueCell.create(1),
@@ -423,12 +540,36 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       counter: counterCell,
       args: ValueCell.create(args!),
     };
+    let blocks: ObjectKernels['blocks'];
+    if (culled) {
+      const values = {
+        uRecordCount: ValueCell.create(0),
+        uRecordWords: ValueCell.create(0),
+        uRecordBase: ValueCell.create(0),
+        records: ValueCell.create(culled.records),
+        blocks: ValueCell.create(compute.createBuffer(16, 'sphere raster blocks')),
+      };
+      const argsValues = {
+        uRecordCount: ValueCell.create(0),
+        totals: ValueCell.create(culled.records),
+        blockFirsts: ValueCell.create(compute.createBuffer(16, 'sphere raster block firsts')),
+        dispatchArgs: ValueCell.create(compute.createBuffer(16, 'sphere raster regions dispatch')),
+      };
+      blocks = {
+        kernel: compute.createKernel(SphereRasterBlocksKernel, SphereRasterBlocksSchema, values),
+        argsKernel: compute.createKernel(SphereRasterBlocksArgsKernel, SphereRasterBlocksArgsSchema, argsValues),
+        values,
+        argsValues,
+      };
+    }
     k = {
+      blocks,
       chunk: culled
         ? compute.createKernel(SphereRasterRegionsKernel, SphereRasterRegionsSchema, chunkValues as never)
         : compute.createKernel(SphereRasterCullKernel, SphereRasterCullSchema, chunkValues as never),
       args: compute.createKernel(SphereRasterArgsKernel, SphereRasterArgsSchema, argsValues),
       raster: compute.createKernel(SphereRasterKernel, SphereRasterSchema, rasterValues),
+      rasterWide: compute.createKernel(SphereRasterWideKernel, SphereRasterSchema, rasterValues),
       rasterSingles: compute.createKernel(SphereRasterKernel, SphereRasterSchema, {
         ...rasterValues,
         uSingles: ValueCell.create(1),
@@ -446,36 +587,49 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     return k;
   }
 
-  /** unmerged objects: the instances' transforms (their rows) and `aInstance`, packed where they changed */
+  /**
+   * unmerged objects: the instances' transforms (`CulledData`, a segment a part: a merged object's members, by their
+   * encoding) and `aInstance`, written where they changed
+   */
   function updateInstances(k: ObjectKernels, values: SpheresValues) {
     const count = values.instanceCount.ref.value;
     const { aTransform, aInstance } = values;
     if (k.instanceVersions[0] === aTransform.ref.version && k.instanceVersions[1] === aInstance.ref.version) return;
     const n = Math.max(1, count);
-    if (k.transforms!.byteLength < n * 48) {
+    const parts = getTransformParts(values, count);
+    const segments = {
+      count: parts.length,
+      instanceBases: parts.map((p) => p.first),
+      instanceCounts: parts.map((p) => p.transforms.count),
+    };
+    const layout = CulledData.layout(parts, aInstance.ref.value as Uint32Array, segments, undefined, count, 1 << 18);
+    if (k.transforms!.byteLength < layout.vec4s * 16) {
       k.transforms!.destroy();
-      k.transforms = compute.createBuffer(n * 48, 'sphere raster transforms');
+      k.transforms = compute.createBuffer(layout.vec4s * 16, 'sphere raster transforms');
       ValueCell.update(k.rasterValues.transforms, k.transforms);
     }
+    const transforms = k.transforms!;
+    layout.write((d, o) => transforms.write(d, o));
     if (k.instances!.byteLength < Math.ceil(n / 4) * 16) {
       k.instances!.destroy();
       k.instances = compute.createBuffer(Math.ceil(n / 4) * 16, 'sphere raster instances');
       ValueCell.update((k.chunkValues as Cells<typeof SphereRasterCullSchema>).instances, k.instances);
     }
     if (count > 0) {
-      // a merged object's: its members' as parts
-      const transform = aTransform.ref.value as Float32Array | SegmentedArray<Float32Array>;
-      k.transforms!.write(packAffineRowsOf(transform, count, new Float32Array(count * 12)));
-      k.instances!.write((aInstance.ref.value as Float32Array).subarray(0, count));
+      k.instances!.write((aInstance.ref.value as Uint32Array).subarray(0, count));
     }
     k.instanceVersions[0] = aTransform.ref.version;
     k.instanceVersions[1] = aInstance.ref.version;
   }
 
-  /** the levels' uniforms into `levels` and `levelCounts` (the spheres of unmerged objects' levels), their count */
+  /**
+   * the levels' uniforms into `levels`, `levelCounts` and `levelStrides` (the spheres of unmerged objects' levels: every
+   * stride-th), their count
+   */
   function getLevels(lodLevels: LodLevelsValue | undefined, values: SpheresValues, view: SphereRasterView) {
     Mat4.setZero(levels);
     Vec4.set(levelCounts, 0, 0, 0, 0);
+    Vec4.set(levelStrides, 1, 1, 1, 1);
     if (!lodLevels || lodLevels.length === 0) {
       // the object's own range, as its draw block's `uLod`
       const lod = values.uLod.ref.value;
@@ -491,10 +645,10 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       LodView.getRange(lodLevels, j, view.lod, range);
       levels[j * 4] = range[0];
       levels[j * 4 + 1] = range[1];
-      levels[j * 4 + 2] = range[2];
-      levels[j * 4 + 3] = lodLevels[j][4];
+      levels[j * 4 + 3] = lodLevels[j][3];
       // vertices of the quads, 6 a sphere
-      levelCounts[j] = lodLevels[j][3] / 6;
+      levelCounts[j] = lodLevels[j][2] / 6;
+      levelStrides[j] = lodLevels[j][4] ?? 1;
     }
     return n;
   }
@@ -504,7 +658,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
    * (`createRenderable`'s `cull`)
    */
   function getUnmergedLevels(values: SpheresValues) {
-    if (values.instanceGrid.ref.value.cellSize <= 1) return undefined;
+    if (!hasInstanceCells(values)) return undefined;
     return values.lodLevels.ref.value as LodLevelsValue | undefined;
   }
 
@@ -554,7 +708,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     const lodLevels = getUnmergedLevels(values);
     let perInstance = 0;
     if (!lodLevels || lodLevels.length === 0) perInstance = Math.ceil(values.uVertexCount.ref.value / 64);
-    else for (const l of lodLevels) perInstance += Math.ceil(l[3] / 6 / 64);
+    else for (const l of lodLevels) perInstance += Math.ceil(l[2] / 6 / 64);
     return perInstance * values.instanceCount.ref.value;
   }
 
@@ -565,7 +719,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
         counter?.destroy();
         args?.destroy();
         counter = compute.createBuffer(words * 4, 'sphere raster counters');
-        args = compute.createBuffer(Math.max(1, objects.length) * 32, 'sphere raster args');
+        args = compute.createBuffer(Math.max(1, objects.length) * ArgsBytes, 'sphere raster args');
         for (const k of kernels.values()) {
           ValueCell.update(k.rasterValues.counter, counter);
           ValueCell.update(k.argsValues.args, args);
@@ -575,9 +729,17 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
 
       // a region per object
       const ranges: Mutable<SphereRasterRange>[] = [];
+      const wanted = objects.map(getCapacity);
+      // within the largest buffer a kernel binds (2 GiB on most devices: 67 M chunks): the capacities scaled down
+      // where they exceed it together (two yeast cells' merged objects, each doubled for the counts read back, 3 GB),
+      // the chunks past an object's capacity dropped as when a view needs more than it has
+      const maxChunks = Math.floor(compute.maxStorageBufferSize / 32);
+      let total = 0;
+      for (const c of wanted) total += c;
+      const fit = total > maxChunks ? maxChunks / total : 1;
       let chunkCount = 0;
       for (let i = 0; i < objects.length; ++i) {
-        const chunkCapacity = getCapacity(objects[i]);
+        const chunkCapacity = fit < 1 ? Math.floor(wanted[i] * fit) : wanted[i];
         ranges.push({
           object: i,
           chunkBase: chunkCount,
@@ -596,7 +758,8 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
         const { item, values, culled } = object;
         const instanceCount = culled ? culled.instanceCount : values.instanceCount.ref.value;
         if (instanceCount === 0 || values.uVertexCount.ref.value === 0 || ranges[i].chunkCapacity === 0) continue;
-        const positions = item.getDataLayer?.('tPositionGroup');
+        const sites = values.dSites.ref.value;
+        const positions = item.getDataLayer?.(sites ? 'tSite' : 'tPositionGroup');
         if (!positions) continue;
         const uniformSize = values.dSizeType.ref.value === 'uniform';
         const sizes = uniformSize ? positions : item.getDataLayer?.('tSize');
@@ -627,6 +790,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
         const levelCount = getLevels(lodLevels, values, view);
         ValueCell.update(c.uLevels, Mat4.copy(c.uLevels.ref.value, levels));
         ValueCell.update(c.uLevelCounts, Vec4.copy(c.uLevelCounts.ref.value, levelCounts));
+        ValueCell.update(c.uLevelStrides, Vec4.copy(c.uLevelStrides.ref.value, levelStrides));
         ValueCell.updateIfChanged(c.uLevelCount, culled ? culled.levels : levelCount);
         ValueCell.updateIfChanged(c.uObjectIndex, i);
         ValueCell.updateIfChanged(c.uChunkBase, ranges[i].chunkBase);
@@ -634,6 +798,11 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
         // merged objects: their raster regions' instances whole (the culler's split per instance)
         ValueCell.updateIfChanged(c.uMaxRadius, culled ? 1e9 : view.maxRadius);
         ValueCell.updateIfChanged(c.uPositionOffset, positions.offset);
+        ValueCell.updateIfChanged(c.uSites, sites ? (culled ? 2 : 1) : 0);
+        if (sites) {
+          ValueCell.update(c.uSiteOrigin, Vec3.copy(c.uSiteOrigin.ref.value, values.uSiteOrigin.ref.value));
+          ValueCell.updateIfChanged(c.uSiteScale, values.uSiteScale.ref.value);
+        }
         ValueCell.updateIfChanged(c.uSizeOffset, uniformSize ? 0 : sizes.offset);
         ValueCell.updateIfChanged(c.uSizeIndexType, uniformSize ? -1 : values.uSizeIndexType.ref.value);
         ValueCell.updateIfChanged(c.uSize, values.uSize.ref.value);
@@ -688,12 +857,17 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       }
 
       compute.beginComputePass({ label: 'sphere raster' });
-      for (const { k, threads, index } of prepared) {
-        const { x, y } = getDispatchSize(Math.ceil(threads / 64), 65535);
-        k.chunk.dispatch(x, y);
+      for (const { k, threads, index, culled } of prepared) {
+        if (culled) {
+          dispatchRegions(k, culled, culled.records);
+        } else {
+          const { x, y } = getDispatchSize(Math.ceil(threads / 64), 65535);
+          k.chunk.dispatch(x, y);
+        }
         k.args.dispatch(1);
-        k.raster.dispatchIndirect(args!, index * 32);
-        k.rasterSingles.dispatchIndirect(args!, index * 32 + 16);
+        k.raster.dispatchIndirect(args!, index * ArgsBytes);
+        k.rasterWide.dispatchIndirect(args!, index * ArgsBytes + 32);
+        k.rasterSingles.dispatchIndirect(args!, index * ArgsBytes + 16);
       }
       compute.endComputePass();
       const drawnObjects = objects.slice();
@@ -704,7 +878,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     },
     second: () => {
       compute.beginComputePass({ label: 'sphere raster, second phase' });
-      for (const { k, threads, index, culled } of prepared) {
+      for (const { k, index, culled } of prepared) {
         if (!culled?.secondDispatched) continue;
         ValueCell.updateIfChanged(k.argsValues.uMark, 1);
         k.args.dispatch(1);
@@ -713,11 +887,11 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
           (k.chunkValues as Cells<typeof SphereRasterRegionsSchema>).records,
           culled.secondRecords,
         );
-        const { x, y } = getDispatchSize(Math.ceil(threads / 64), 65535);
-        k.chunk.dispatch(x, y);
+        dispatchRegions(k, culled, culled.secondRecords);
         k.args.dispatch(1);
-        k.raster.dispatchIndirect(args!, index * 32);
-        k.rasterSingles.dispatchIndirect(args!, index * 32 + 16);
+        k.raster.dispatchIndirect(args!, index * ArgsBytes);
+        k.rasterWide.dispatchIndirect(args!, index * ArgsBytes + 32);
+        k.rasterSingles.dispatchIndirect(args!, index * ArgsBytes + 16);
       }
       compute.endComputePass();
       readCounts?.();
@@ -738,6 +912,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       emptyHiZ.destroy();
       counter?.destroy();
       args?.destroy();
+      prefixSum?.destroy();
     },
   };
 }

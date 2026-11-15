@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { int32ToFloatBits } from '../center-group.js';
 import { ChunkedArray } from '@molstar/core/data/util';
 import { Lines } from './lines.js';
 import { type Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -53,7 +54,8 @@ export namespace LinesBuilder {
       endZ: number,
       group: number,
     ) => {
-      caAdd4(data, startX, startY, startZ, group);
+      // the group as its bits (`rgb32f-i32`: exact past 2^24)
+      caAdd4(data, startX, startY, startZ, int32ToFloatBits(group));
       caAdd4(data, endX, endY, endZ, 0);
     };
 
@@ -133,7 +135,7 @@ export namespace StripLinesBuilder {
 
     const addPoint = (x: number, y: number, z: number) => {
       if (pointCount > 0) {
-        caAdd4(data, prevX, prevY, prevZ, stripGroup);
+        caAdd4(data, prevX, prevY, prevZ, int32ToFloatBits(stripGroup));
         caAdd4(data, x, y, z, pointCount > 1 ? 1 : 0);
       }
       prevX = x;

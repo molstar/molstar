@@ -209,7 +209,7 @@ export class PluginContext {
   } as const;
 
   readonly dataFormats = new DataFormatRegistry();
-  /** Where structures' bonds can come from, chosen by name in the structure transforms (bond-providers plan §3). */
+  /** Where structures' bonds can come from, chosen by name in the structure transforms. */
   readonly bondProviders = new BondProviderRegistry();
 
   readonly builders = {

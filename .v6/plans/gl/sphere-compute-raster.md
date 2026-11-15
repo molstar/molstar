@@ -120,7 +120,9 @@
      plane's normal through the eye). Objects without an instance grid are not culled and draw their spheres whole
      with the object's `uLod` (`createRenderable`), merged members without one at each level they overlap (the
      culler's records): the raster follows each.
-   - **The raster kernel**: a workgroup per chunk, a thread per sphere: center by the instance transform, size by
+   - **The raster kernel**: a workgroup per 4 chunks, or 16 where they hold 16 spheres or fewer on average
+     ([sphere-raster-workgroups.md](sphere-raster-workgroups.md) item 2), a thread per sphere: center by the instance
+     transform, size by
      `assign_size` and the level's scale; the pixels whose centers it can cover from its exact perspective bounds (the
      tangents from the eye; step 1: 3× fewer pixels tested than its radius +1, where most spheres are under a pixel),
      per pixel the ray's front hit, `atomicStoreMax`. No workgroup tile (step 1: slower). Spheres through the near
@@ -145,9 +147,11 @@
    an id maps back to (object, instance slot, item, level) by its chunk (few regions: merged objects make about one
    per representation).
    - Merged objects culled on the GPU: the culler's regions of instance indices (`MergedRasterInput`,
-     `Renderable.getRasterInput` once `prepareCull` dispatched): a thread per slot finds its region (level and segment)
-     in the indirect records, appends the record's spheres if within its count, at the segment's scale of the level
-     (`tSegment`). The culler's frustum and levels are then the raster's. A merged object's members share one material
+     `Renderable.getRasterInput` once `prepareCull` dispatched): a workgroup a block of 64 of a raster record's
+     instances (`sphere-raster-blocks`: a record's blocks, their firsts a prefix sum, the dispatch indirect from their
+     total), its record by a search of the firsts, its slots' spheres appended at the segment's scale of the level
+     (`tSegment`). Not a thread a slot of every level's regions: the yeast's 126 M threads 2.7 ms a phase for none, the
+     raster pass 3.5 -> 0.85 ms. The culler's frustum and levels are then the raster's. A merged object's members share one material
      (one `uSizeFactor`). Others: their instances as stored.
    - **The data pages directly, the object's values packed**: the kernels bind the pages of `tPositionGroup` and
      `tSize` (`RenderItem.getDataLayer`: the page as a read-only storage buffer, the layer's first word), so the spheres
@@ -155,9 +159,8 @@
      `uSizeFactor`, the model scale, the levels' ranges and counts, the instance and group counts) go into the table's
      record per object, written from the item's values when they change. Not the object blocks: their pages are
      uniform-only, their layout is generated per program variant, and a block moves to a ring slot when it changes
-     after a draw read it. Transforms: the culler's instance data for merged objects (`CulledData`, the rows first; a
-     chunk's slot is the instance's index there), a packed
-     copy for the others (their instanced attributes are in vertex-only geometry pages).
+     after a draw read it. Transforms: the culler's instance data for merged objects (`CulledData`; a chunk's slot is the
+     instance's index there), the same layout packed for the others (their instanced attributes are in vertex-only geometry pages).
 5. **The resolve**: per drawn object, one triangle covering the viewport in the opaque pass, before the other opaque
    objects, with the object's own bindings: the color program built with `dSphereResolve`
    (`RenderItem.renderFullscreen`, WebGPU; its program cached per variant and define).
@@ -429,7 +432,8 @@
      large on screen near the camera, impostors whatever the split, fragment-bound; leaving out spheres in the vertex
      stage does not touch it, the mixed spheres added to the raster's work.
    - **Large spheres by the workgroup** (done, the original option in its simplest form): a sphere covering more than
-     `SphereRasterLargePixels` (64) pixels is queued in the chunk's workgroup memory and drawn by all 64 threads, its
+     `SphereRasterLargePixels` (64; since [sphere-raster-workgroups.md](sphere-raster-workgroups.md) item 4 all of more
+     than one pixel, their pixels in a row) is queued in the chunk's workgroup memory and drawn by all 64 threads, its
      pixels strided over them, after a barrier (no second kernel, no buffer: a chunk's spheres fit the queue; the
      per-thread early returns a `valid` flag, the per-pixel work `rasterPixel`). Dawn: the raster test against the CPU
      reference with no limit passes as before. `only`, every sphere by the raster, ms (impostors / before / after):

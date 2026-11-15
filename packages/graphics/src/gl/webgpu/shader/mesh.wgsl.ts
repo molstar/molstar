@@ -64,38 +64,42 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         // fourth word, e.g. of draws of the CPU's upper bound) are left out below
         let isDrawn = in.vertexIndex < isoDrawn();
         let slot = select(0u, isoSlot(in.vertexIndex), isDrawn);
-        let group = f32(isoPackedGroup(slot)) - 1.0;
+        let group = i32(isoPackedGroup(slot)) - 1;
         let basePosition = isoPosition(slot);
         let baseNormal = isoNormal(slot);
     #elif defined(dGeometryType_textureMesh)
         // unindexed, the vertex data in textures (e.g. computed on the GPU)
-        let group = unpackRGBToInt(readFromTexture(tGroup, vertexId).rgb);
+        // four bytes (as \`packPickId\`: the 24 low bits of group + 1 in rgb, the top byte in alpha)
+        let packed = vec4<u32>(readFromTexture(tGroup, vertexId) * 255.0 + 0.5);
+        let group = i32(((packed.a << 24u) | (packed.r << 16u) | (packed.g << 8u) | packed.b) - 1u);
         let basePosition = readFromTexture(tPosition, vertexId).xyz;
         let baseNormal = readFromTexture(tNormal, vertexId).xyz;
     #else
-        let group = in.aGroup;
+        let group = i32(in.aGroup);
         let basePosition = in.aPosition;
         let baseNormal = octDecode(in.aNormal);
     #endif
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
     let transform = applyTumble(aTransform, invariantBoundingSphere(in));
-    let model = uGlobal.uModel * uObject.uObjectTransform * transform;
-    let modelView = uGlobal.uView * model;
     ${assign_wiggle_wgsl}
-    var position4 = vec4<f32>(applyWiggle(basePosition, group, wiggle), 1.0);
+    var position4 = vec4<f32>(applyWiggle(basePosition, f32(group), wiggle), 1.0);
     #if defined(dGeometryType_mesh)
         if (uObject.uScreenSize > 0.0) {
             // constant on screen: scaled about the instance's origin by the world size of a CSS pixel there, as
             // \`OverlayCamera\` bounds it
-            let originDepth = max(-(modelView * vec4<f32>(0.0, 0.0, 0.0, 1.0)).z, 0.0);
+            let originDepth = max(-(uGlobal.uModelView * (uObject.uObjectTransform * transform[3])).z, 0.0);
             let pixelDistance = select(2.0 * originDepth, 2.0, uGlobal.uIsOrtho == 1.0);
             let pixelSize = pixelDistance / (uGlobal.uProjection[1][1] * uGlobal.uCssHeight);
             position4 = vec4<f32>(position4.xyz * (uObject.uScreenSize * pixelSize / uGlobal.uModelScale), 1.0);
         }
     #endif
-    out.vModelPosition = (model * position4).xyz;
-    let mvPosition = modelView * position4;
+    // the position transformed, not the matrices multiplied first (three 4x4 products a vertex): the instance's
+    // transform, the object's transient one, then the model and view
+    let placed = transform * position4;
+    let world = uObject.uObjectTransform * placed;
+    out.vModelPosition = (uGlobal.uModel * world).xyz;
+    let mvPosition = uGlobal.uModelView * world;
     out.vViewPosition = mvPosition.xyz;
     out.position = uGlobal.uProjection * mvPosition;
     #if defined(dGeometryType_mesh)
@@ -121,10 +125,12 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let gridPosition = basePosition;
     // where the instance is placed, without the transient transform: grids are built from \`aTransform\` (\`uModel\` is
     // the camera's uniform scale, its scene group's view the identity)
-    let gridModelPosition = (transform * position4).xyz;
+    let gridModelPosition = placed.xyz;
     ${assign_varyings_wgsl}
 
-    var normal = normalize(adjoint(modelView) * normalize(baseNormal));
+    // the normal by each transform's cofactors in turn (those of a product are the product of theirs)
+    let instanceNormal = adjoint(uObject.uObjectTransform) * (adjoint(transform) * normalize(baseNormal));
+    var normal = normalize(adjoint(uGlobal.uModelView) * instanceNormal);
     #if defined(dFlipSided)
         if (uMaterial.uDoubleSided == 0u) {
             normal = -normal;
@@ -254,8 +260,8 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
         ${pick_output_wgsl}
         #if defined(dSolidInterior)
             if (capPass) {
-                // 16777214 is PickingId.Null, the cap picks the whole instance
-                out.group = vec4<f32>(packIntToRGB(16777214.0), 1.0);
+                // PickingId.Null (white, the clear): the cap picks the whole instance
+                out.group = vec4<f32>(1.0);
             }
         #endif
     #elif defined(dRenderVariant_marking)

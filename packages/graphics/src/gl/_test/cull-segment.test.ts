@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { InstanceTransforms } from '@molstar/core/math/geometry/instance-transforms';
 import { calcInstanceGrid, type InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
 import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
@@ -97,35 +98,36 @@ describe('culling a segment', () => {
     instanceCount: ValueCell.create(grid.cellOffsets[grid.cellCount]),
     uLod: ValueCell.create(Vec4()),
     instanceGrid: ValueCell.create(grid),
+    instanceCellSize: ValueCell.create(grid.cellSize),
     boundingSphere: ValueCell.create(Sphere3D.create(Vec3.create(95, 95, 95), 170)),
   };
 
   it.each([
-    ['whole, one level', [0, 0, -400], [[0, 1e7, 0, 600, 1]]],
+    ['whole, one level', [0, 0, -400], [[0, 1e7, 600, 1]]],
     [
       'whole, levels',
       [95, 95, -300],
       [
-        [0, 380, 0, 600, 1],
-        [380, 450, 0, 60, 2],
-        [450, 1e7, 0, 6, 4],
+        [0, 380, 600, 1],
+        [380, 450, 60, 2],
+        [450, 1e7, 6, 4],
       ],
     ],
     [
       'inside, levels',
       [95, 95, 40],
       [
-        [0, 60, 0, 600, 1],
-        [60, 120, 0, 60, 2],
-        [120, 1e7, 0, 6, 4],
+        [0, 60, 600, 1],
+        [60, 120, 60, 2],
+        [120, 1e7, 6, 4],
       ],
     ],
     [
       'partly outside the view',
       [300, 95, -100],
       [
-        [0, 250, 0, 600, 1],
-        [250, 1e7, 0, 60, 2],
+        [0, 250, 600, 1],
+        [250, 1e7, 60, 2],
       ],
     ],
   ] as const)('draws what the cells give one by one: %s', (_, eye, levels) => {
@@ -158,8 +160,8 @@ describe('culling a segment', () => {
   it('culls a grid moved by a transient transform as its cells moved, and as before once it is the identity', () => {
     const { frustum, cameraPlane } = view(Vec3.create(95, 95, -300), Vec3.create(95, 95, 95));
     const level = [
-      [0, 380, 0, 600, 1],
-      [380, 1e7, 0, 60, 2],
+      [0, 380, 600, 1],
+      [380, 1e7, 60, 2],
     ] as unknown as LodLevelsValue;
     const lodLevels = ValueCell.create(level);
     // turned about y by 30° and moved half out of the view
@@ -211,7 +213,7 @@ describe('culling a segment', () => {
   // clip version; the ghost pass's lists (`clipGhost`) the other way round: what the clip objects reach
   it('leaves out what clip objects clip whole, as the cells give it, and follows a clip change; the ghost what they reach', () => {
     const { frustum, cameraPlane } = view(Vec3.create(95, 95, -300), Vec3.create(95, 95, 95));
-    const level = [[0, 1e7, 0, 600, 1]] as unknown as LodLevelsValue;
+    const level = [[0, 1e7, 600, 1]] as unknown as LodLevelsValue;
     const lodLevels = ValueCell.create(level);
     const clip = (y: number, angle: number) =>
       Clip.getClip({
@@ -284,7 +286,7 @@ describe('culling a segment', () => {
   // instance clipping tests an instance's center: the cells' and batches' spheres shrunk to their centers
   it('culls by the instance centers for instance clipping', () => {
     const { frustum, cameraPlane } = view(Vec3.create(95, 95, -300), Vec3.create(95, 95, 95));
-    const lodLevels = ValueCell.create([[0, 1e7, 0, 600, 1]] as unknown as LodLevelsValue);
+    const lodLevels = ValueCell.create([[0, 1e7, 600, 1]] as unknown as LodLevelsValue);
     // above y 94 clipped: the cells of the rows at 100 and 110 (centered at 105, 11 away) reach it with their spheres
     // (radius 12.1), not with their centers (10.1 less the instances' radius)
     const objects = Clip.getClip({
@@ -357,17 +359,28 @@ describe('the marked instances of a segment', () => {
     instanceCount: ValueCell.create(100),
     uLod: ValueCell.create(Vec4()),
     instanceGrid: ValueCell.create({ ...createGrid(), cellSize }),
+    instanceCellSize: ValueCell.create(cellSize),
     boundingSphere: ValueCell.create(Sphere3D()),
   });
 
   it('draws the marked instances in view at the levels they reach, runs joined', () => {
     const lodLevels = ValueCell.create([
-      [0, 100, 0, 600, 1],
-      [100, 1e7, 0, 60, 2],
+      [0, 100, 600, 1],
+      [100, 1e7, 60, 2],
     ] as unknown as LodLevelsValue);
     const mdb = createSegmentedMdbList();
     const prepared = mdb.prepare(lodLevels, 4, true, LodView());
-    mdb.markedSegment(values(20), segment, prepared, counts, positions, transforms, sphere, cameraPlane, frustum);
+    mdb.markedSegment(
+      values(20),
+      segment,
+      prepared,
+      counts,
+      positions,
+      matrices(transforms),
+      sphere,
+      cameraPlane,
+      frustum,
+    );
     // 5 to 7 at 60 to 80 Å, 70 at 710 Å; 99 outside the view
     expect(lists(mdb)).toEqual([
       [600, 1005, 3],
@@ -388,7 +401,7 @@ describe('the marked instances of a segment', () => {
       undefined,
       counts,
       reversed,
-      reorderedTransforms,
+      matrices(reorderedTransforms),
       sphere,
       cameraPlane,
       frustum,
@@ -398,14 +411,34 @@ describe('the marked instances of a segment', () => {
   });
 
   it('draws a gridless segment at full detail, without levels at once', () => {
-    const lodLevels = [[0, 1e7, 0, 60, 1]] as unknown as LodLevelsValue;
+    const lodLevels = [[0, 1e7, 60, 1]] as unknown as LodLevelsValue;
     const mdb = createSegmentedMdbList();
     mdb.prepare(ValueCell.create(lodLevels), 4, true, LodView());
-    mdb.markedSegment(values(0), segment, lodLevels, counts, positions, transforms, sphere, cameraPlane, frustum);
+    mdb.markedSegment(
+      values(0),
+      segment,
+      lodLevels,
+      counts,
+      positions,
+      matrices(transforms),
+      sphere,
+      cameraPlane,
+      frustum,
+    );
     expect(lists(mdb)).toEqual([[6000, 1005, 3, 6000, 1070, 1]]);
 
     mdb.prepare(undefined, 4, false, LodView());
-    mdb.markedSegment(values(0), segment, undefined, counts, positions, transforms, sphere, cameraPlane, frustum);
+    mdb.markedSegment(
+      values(0),
+      segment,
+      undefined,
+      counts,
+      positions,
+      matrices(transforms),
+      sphere,
+      cameraPlane,
+      frustum,
+    );
     expect(lists(mdb)).toEqual([[6000, 1005, 3, 6000, 1070, 1]]);
   });
 });
@@ -422,3 +455,8 @@ describe('instance positions', () => {
     expect(Array.from(positions(instances, 4))).toEqual([0, 1, 2, 3]);
   });
 });
+
+/** `transforms` (16 floats an instance) as the culler reads them */
+function matrices(transforms: Float32Array) {
+  return InstanceTransforms.ofMatrices(transforms, transforms.length / 16);
+}

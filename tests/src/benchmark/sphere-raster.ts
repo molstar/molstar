@@ -10,9 +10,13 @@ import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { BufferUsage, MapMode, TextureUsage } from '@molstar/graphics/gl/webgpu/constants';
-import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
-import { getLodPixelBoundary, getStrides, type LodLevels } from '@molstar/graphics/geo/geometry/lod-levels';
-import { Spheres as SpheresGeometry } from '@molstar/graphics/geo/geometry/spheres/spheres';
+import { isWebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
+import {
+  getLodPixelBoundary,
+  getLodPixelLevels,
+  getNestedStrides,
+  type LodLevels,
+} from '@molstar/graphics/geo/geometry/lod-levels';
 import {
   createTargetParticleTransform,
   ParticleTargetRepresentationParams,
@@ -80,13 +84,15 @@ interface Target {
 }
 
 /**
- * `atoms` ordered into the levels of `lodLevels` (coarsest first) as the impostors order them (`orderPositionGroup`,
- * `getLodLevelsValue`): per level its count and scale, finest first; one level of every atom without levels
+ * `atoms` ordered into the levels of `lodLevels` (coarsest first; the prototype's own copy, the impostors draw every
+ * stride-th of the atoms in their order), per level its count and scale, finest first; one level of every atom without
+ * levels
  */
 function levelOrder(atoms: Float32Array, lodLevels: LodLevels, sizeFactor: number) {
   const n = atoms.length / 4;
   if (lodLevels.length === 0) return { atoms, counts: [n], scales: [1] };
-  const strides = getStrides(lodLevels, sizeFactor);
+  // coarsest first
+  const strides = getNestedStrides(lodLevels, sizeFactor).reverse();
   const levels = new Uint8Array(n);
   for (let j = 0; j < n; ++j) {
     let k = 0;
@@ -1406,7 +1412,7 @@ function rasterCase(id: string, description: string, setup: () => Promise<Raster
   return { id, description, setup, paths: { webgpu: (graphics, input) => runPrototype(id, graphics, input) } };
 }
 
-const NoLod = { lodLevels: [], lodPixelSize: 0 };
+const NoLod = { lodPixelSize: 0 };
 
 /**
  * The prototype on the globule and PetWorld (`postsynstubby_2-no_bonds.bcif` in `.benchmark/`), whole and zoomed,
@@ -1430,16 +1436,16 @@ export const SphereRasterCases: BenchmarkCase<RasterInput>[] = [
   ...[undefined, 0.3].map((zoom) =>
     rasterCase(
       `sphere-raster/postsyn${zoom ? '-zoom' : ''}-${label}`,
-      `PetWorld particle targets as spacefill${zoom ? ', zoomed to 0.3 of the distance' : ''}, the \`quality\` levels by distance, the impostors culled on the GPU, ${label}`,
+      `PetWorld particle targets as spacefill${zoom ? ', zoomed to 0.3 of the distance' : ''}, the \`quality\` levels by size on screen (3 px), the impostors culled on the GPU, ${label}`,
       async () => {
         const list = await getPostsyn();
-        const levels = SpheresGeometry.LodLevelsPresets.quality;
+        const levels = pixelLevels(3, Math.PI / 4, size.height);
         return {
           label: `PetWorld${zoom ? ' zoomed' : ''}`,
           size,
           zoom,
           spheres: () => particleSpheres(list, levels),
-          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, levels, undefined, 0)]),
+          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3)]),
         };
       },
     ),
@@ -1453,7 +1459,7 @@ export const SphereRasterCases: BenchmarkCase<RasterInput>[] = [
  * pixel covers, `getLodLevelsValue`, at the nominal radius)
  */
 function pixelLevels(pixelSize: number, fov: number, height: number): LodLevels {
-  const chain = SpheresGeometry.LodPixelPresets.quality.lodLevels;
+  const chain = getLodPixelLevels(pixelSize);
   const k = (2 * Math.tan(fov / 2)) / height;
   return chain.map((l, j) => ({
     ...l,
@@ -1516,18 +1522,7 @@ SphereRasterCases.push(
                 zoom,
                 rotate,
                 spheres: () => particleSpheres(list, pixelLevels(pixelSize, Math.PI / 4, size.height)),
-                scene: (g) =>
-                  Promise.all([
-                    postsynRepr(
-                      g,
-                      list,
-                      true,
-                      undefined,
-                      SpheresGeometry.LodPixelPresets.quality.lodLevels,
-                      undefined,
-                      pixelSize,
-                    ),
-                  ]),
+                scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, pixelSize)]),
               };
             },
           ),
@@ -1537,34 +1532,34 @@ SphereRasterCases.push(
   ),
   rasterCase(
     'sphere-raster/postsyn-zoom-hiz-720p',
-    'PetWorld zoomed, the `quality` levels, the impostors culled on the GPU with Hi-Z (the raster: frustum only)',
+    'PetWorld zoomed, the `quality` levels (3 px), the impostors culled on the GPU with Hi-Z (the raster: frustum only)',
     async () => {
       const list = await getPostsyn();
-      const levels = SpheresGeometry.LodLevelsPresets.quality;
+      const levels = pixelLevels(3, Math.PI / 4, Size.height);
       return {
         label: 'PetWorld zoomed (impostors with Hi-Z)',
         size: Size,
         zoom: 0.3,
         props: { hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true } },
         spheres: () => particleSpheres(list, levels),
-        scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, levels, undefined, 0)]),
+        scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3)]),
       };
     },
   ),
   ...[undefined, 0.3].map((zoom) =>
     rasterCase(
       `sphere-raster/postsyn${zoom ? '-zoom' : ''}-rotating-720p`,
-      `PetWorld${zoom ? ' zoomed' : ''}, the \`quality\` levels, the camera rotating 2° a frame (both sides)`,
+      `PetWorld${zoom ? ' zoomed' : ''}, the \`quality\` levels (3 px), the camera rotating 2° a frame (both sides)`,
       async () => {
         const list = await getPostsyn();
-        const levels = SpheresGeometry.LodLevelsPresets.quality;
+        const levels = pixelLevels(3, Math.PI / 4, Size.height);
         return {
           label: `PetWorld${zoom ? ' zoomed' : ''}, rotating`,
           size: Size,
           zoom,
           rotate: true,
           spheres: () => particleSpheres(list, levels),
-          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, levels, undefined, 0)]),
+          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3)]),
         };
       },
     ),
@@ -1579,7 +1574,7 @@ SphereRasterCases.push(
         size: Size,
         zoom: 0.3,
         spheres: () => particleSpheres(list, []),
-        scene: (g) => Promise.all([postsynRepr(g, list, false, undefined, [], undefined, 0)]),
+        scene: (g) => Promise.all([postsynRepr(g, list, false, undefined, 0)]),
       };
     },
   ),

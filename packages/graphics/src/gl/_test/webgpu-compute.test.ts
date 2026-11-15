@@ -52,6 +52,14 @@ import {
   SphereRasterRegionsSchema,
   SphereRasterSchema,
 } from '../compute/sphere-raster.js';
+import {
+  SceneCellBinKernel,
+  SceneCellBinSchema,
+  SceneCellSpheresKernel,
+  SceneCellSpheresSchema,
+} from '../compute/scene-cells.js';
+import { CulledPosesKernel, CulledPosesSchema } from '../compute/culled-poses.js';
+import { U32RunsKernel, U32RunsSchema } from '../compute/u32-runs.js';
 import { DefineSpec, TextureSpec, UniformSpec } from '../renderable/schema.js';
 import type { DefineValues } from '../shader-code.js';
 import { preprocessShader } from '../shader-preprocessor.js';
@@ -94,6 +102,10 @@ const BuiltInKernels: [KernelCode, KernelSchema, { [k: string]: string | boolean
   [SphereRasterRegionsKernel, SphereRasterRegionsSchema, {}],
   [SphereRasterArgsKernel, SphereRasterArgsSchema, {}],
   [SphereRasterKernel, SphereRasterSchema, {}],
+  [SceneCellBinKernel, SceneCellBinSchema, {}],
+  [SceneCellSpheresKernel, SceneCellSpheresSchema, {}],
+  [CulledPosesKernel, CulledPosesSchema, {}],
+  [U32RunsKernel, U32RunsSchema, {}],
 ];
 
 describe('webgpu compute', () => {

@@ -7,6 +7,15 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 ## Decisions open
 
+- **A test changed to wait for its condition, its cause not understood** (Alexander). The axe shell's "shows the canvas'
+  full trajectory bar unless the trajectory's row is on screen" (`viewer/src/ui/_test/accessibility.test.tsx`) began
+  failing in the whole quick lane with a graphics refactor, `Canvas3D.create`'s representations moved to
+  `graphics/src/canvas3d/representations.ts` (no behavior change found reading it line by line): 5 of 7 full-lane runs
+  failed from that commit, none of 5 before; alone and in its folder it always passed. The bar was `none`, not `full`,
+  after `setExpanded(true)`: its update came after `quiet()` (80 ms of an unchanged DOM) returned, the trajectory source
+  reading once per animation frame. Each step now waits for the bar it expects (`vi.waitFor`), so the test no longer
+  races; why the refactor moved the lane's timing (module load order of the moved imports, a hunch) is open, and so is
+  whether another test waiting on `quiet()` races the same way.
 - **One schema vocabulary; reconsider zod** (David). The workspace describes and checks data three ways: Mol\*'s
   `ParamDefinition` (operations, options, Settings: `viewer/src/options.ts`, the API areas), io-ts in MolViewSpec
   (`mvs/builder/src/tree/generic/field-schema.ts`, the builder and the runtime) and zod in `@molstar/ai` (the agent's

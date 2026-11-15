@@ -2,12 +2,13 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
 import { structureProps } from '../load-helpers.js';
 
-// A Mol*-specific bond provider on a structure node, through `custom.molstar_bond_provider` (bond-providers plan §4.2).
+// A Mol*-specific bond provider on a structure node, through `custom.molstar_bond_provider`.
 
 const node = (params: object, custom?: object) => ({ kind: 'structure', params, custom }) as any;
 

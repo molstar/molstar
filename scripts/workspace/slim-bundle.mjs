@@ -1,5 +1,7 @@
 /**
- * Bundle check of the slim-plugin acceptance target (.v6/designs/plugin-composition.md §12, plan step 4).
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Bundle check of the slim-plugin acceptance target (.v6/designs/plugin-composition.md §12).
  *
  * Builds the example entry of `slim-exclusions.json` twice with esbuild, the way `scripts/esbuild/app.mjs` builds
  * examples (same `molstar-src` condition, production minification, source `.js` extension mapping):
@@ -11,6 +13,9 @@
  *
  * Nothing is written to the repository: the builds run with `write: false`. Style and static asset imports resolve to
  * empty modules, so sizes are JavaScript bytes only.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';

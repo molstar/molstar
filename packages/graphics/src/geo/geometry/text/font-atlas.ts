@@ -321,7 +321,7 @@ export class FontAtlas {
       }
 
       this.currentX += this.scratchW;
-      // written in place: shared textures of the atlas upload these rows again (`.v6/plans/gl/shared-textures.md` §3)
+      // written in place: shared textures of the atlas upload these rows again
       TextureChanges.writeRows(this.texture, this.currentY, this.currentY + this.scratchH);
     }
 

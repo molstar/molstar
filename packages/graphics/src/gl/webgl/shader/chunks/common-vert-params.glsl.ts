@@ -5,6 +5,7 @@
  */
 
 import { InstanceDataVec4s } from '../../../renderable/merged.js';
+import { SegmentTexels } from '../../../renderable/schema.js';
 
 export const common_vert_params = `
 #if defined(dClipObjects)
@@ -49,43 +50,54 @@ vec3 gridModelPosition;
 #if defined(dInstanceData)
     // the instance data of merged render items on WebGL2 without base instances (see \`getInstanceDataSchema\`): read
     // from a texture at the draw's first instance plus gl_InstanceID, instead of instanced attributes re-pointed per draw
-    // (those stay declared, unread); 5 texels per instance: the transform's rows, (instance, segment groups), (segment
-    // index). Rows of 1 << uInstanceDataShift instances, addressed by a shift and a mask (an integer division is
-    // emulated); read by most chunks, once per vertex into globals (\`readInstanceData\`, first in main by the group
-    // chunks)
-    ivec2 instanceDataCoord;
+    // (those stay declared, unread); 4 texels per instance: the transform's rows, (instance, segment index); the
+    // segments' groups in a slot each after the instances (\`uInstanceDataSegments\`); in pages of instances, a texture
+    // each, bound per draw (\`uInstanceBase\` the page's). Rows of 1 << uInstanceDataShift
+    // slots, addressed by a shift and a mask (an integer division is emulated); read by most chunks, once per vertex
+    // into globals (\`readInstanceData\`, first in main by the group chunks)
     mat4 instanceTransform;
-    vec4 instanceSegment;
-    float instanceSegmentIndex;
+    uint instanceId;
+    ivec4 instanceSegment;
+    ivec2 instanceDataSlot(int i) {
+        return ivec2((i & ((1 << uInstanceDataShift) - 1)) * ${InstanceDataVec4s}, i >> uInstanceDataShift);
+    }
     void readInstanceData() {
-        int i = uInstanceBase + gl_InstanceID;
-        instanceDataCoord = ivec2((i & ((1 << uInstanceDataShift) - 1)) * ${InstanceDataVec4s}, i >> uInstanceDataShift);
+        ivec2 c = instanceDataSlot(uInstanceBase + gl_InstanceID);
         instanceTransform = affineFromRows(
-            texelFetch(tInstanceData, instanceDataCoord, 0),
-            texelFetch(tInstanceData, instanceDataCoord + ivec2(1, 0), 0),
-            texelFetch(tInstanceData, instanceDataCoord + ivec2(2, 0), 0)
+            texelFetch(tInstanceData, c, 0),
+            texelFetch(tInstanceData, c + ivec2(1, 0), 0),
+            texelFetch(tInstanceData, c + ivec2(2, 0), 0)
         );
-        instanceSegment = texelFetch(tInstanceData, instanceDataCoord + ivec2(3, 0), 0);
-        instanceSegmentIndex = texelFetch(tInstanceData, instanceDataCoord + ivec2(4, 0), 0).x;
+        vec4 ids = texelFetch(tInstanceData, c + ivec2(3, 0), 0);
+        instanceId = floatBitsToUint(ids.x);
+        int segment = floatBitsToInt(ids.y);
+        vec4 groups = texelFetch(tInstanceData, instanceDataSlot(uInstanceDataSegments + segment), 0);
+        instanceSegment = ivec4(floatBitsToInt(groups.xyz), segment);
     }
     #define aTransform instanceTransform
-    #define aInstance instanceSegment.x
-    #define aSegment vec4(instanceSegment.yzw, instanceSegmentIndex)
+    // the integers as their bits (\`packInstanceData\`)
+    #define aInstance instanceId
+    #define aSegment instanceSegment
 #endif
 
 #if defined(dSegmented)
-    // the segment data of merged render items: the groups per instance, the sphere and level scales by the instance's
+    // the segment data of merged render items: the groups per instance, the sphere, level scales and strides and first item
+    // (spheres', points') by the instance's
     // segment (\`aSegment.w\`), see SegmentSchema
-    #define aSegmentSphere read_tSegment(int(aSegment.w) * 2)
-    #define aSegmentLod read_tSegment(int(aSegment.w) * 2 + 1)
-    #define groupInstanceIndex(inst, grp) (aSegment.y + (inst) * aSegment.x + (grp))
-    #define groupIndex(grp) (aSegment.z + (grp))
+    #define aSegmentSphere read_tSegment(int(aSegment.w) * ${SegmentTexels})
+    #define aSegmentLod read_tSegment(int(aSegment.w) * ${SegmentTexels} + 1)
+    #define aSegmentStride read_tSegment(int(aSegment.w) * ${SegmentTexels} + 2)
+    #define aSegmentItem read_tSegment(int(aSegment.w) * ${SegmentTexels} + 3)
+    #define aSegmentSites read_tSegment(int(aSegment.w) * ${SegmentTexels} + 4)
+    #define groupInstanceIndex(inst, grp) (int(aSegment.y) + int(inst) * int(aSegment.x) + int(grp))
+    #define groupIndex(grp) (int(aSegment.z) + int(grp))
     #define InvariantBoundingSphere aSegmentSphere
 #else
-    #define groupInstanceIndex(inst, grp) ((inst) * float(uGroupCount) + (grp))
-    #define groupIndex(grp) (grp)
+    #define groupInstanceIndex(inst, grp) (int(inst) * uGroupCount + int(grp))
+    #define groupIndex(grp) int(grp)
     #define InvariantBoundingSphere uInvariantBoundingSphere
 #endif
-// the index of the marker and layer data, per instance or group instance (uInstanceGranularity)
-#define granularityIndex(inst, grp) (uInstanceGranularity ? (inst) : groupInstanceIndex(inst, grp))
+// the index of the marker and layer data, per instance or group instance (uInstanceGranularity); integers: the instance
+// ids (\`aInstance\`) and offsets past 2^24 exact (WebGL2; floats on WebGL1)
+#define granularityIndex(inst, grp) (uInstanceGranularity ? int(inst) : groupInstanceIndex(inst, grp))
 `;

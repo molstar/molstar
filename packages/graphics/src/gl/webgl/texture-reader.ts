@@ -16,6 +16,7 @@ import type { PixelPackBuffer } from './buffer.js';
 import { isWebGL2 } from './compat.js';
 import type { WebGLContext } from './context.js';
 import { endRenderPass } from './render-pass.js';
+import { asGLTexture } from './texture.js';
 
 /** Reverses the order of the `rows` rows of `rowLength` values of `array`, GL reads rows bottom to top */
 function flipRows(array: Uint8Array | Float32Array, rowLength: number, rows: number) {
@@ -57,7 +58,7 @@ export function createWebGLTextureReader<F extends TextureReadFormat = 'rgba8'>(
 
   /** binds the read framebuffer with `texture` attached */
   function bind(texture: Texture) {
-    texture.attachFramebuffer(framebuffer, 'color0');
+    asGLTexture(texture).attachFramebuffer(framebuffer, 'color0');
     framebuffer.bind();
     if (isFloat && readsRed === undefined) {
       readsRed =

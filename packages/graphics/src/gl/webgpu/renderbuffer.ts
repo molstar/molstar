@@ -7,7 +7,7 @@
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '../renderbuffer.js';
 import { TextureUsage } from './constants.js';
-import { asWebGPUFramebuffer, type WebGPUAttachment } from './framebuffer.js';
+import type { WebGPUAttachment, WebGPUAttachmentSet } from './attachment-set.js';
 import { countResource, createByteAccount, type WebGPUResourceEnv } from './texture.js';
 
 const getNextRenderbufferId = idFactory();
@@ -46,7 +46,18 @@ function getBytesPerTexel(format: GPUTextureFormat) {
   }
 }
 
-export interface WebGPURenderbuffer extends Renderbuffer, WebGPUAttachment {}
+export interface WebGPURenderbuffer extends Renderbuffer, WebGPUAttachment {
+  attach: (set: WebGPUAttachmentSet) => void;
+  detach: (set: WebGPUAttachmentSet) => void;
+}
+
+const WebGPURenderbuffers = new WeakSet<Renderbuffer>();
+
+/** Narrows to `WebGPURenderbuffer`, throws for renderbuffers of another backend */
+export function asWebGPURenderbuffer(renderbuffer: Renderbuffer): WebGPURenderbuffer {
+  if (!WebGPURenderbuffers.has(renderbuffer)) throw new Error('expected a WebGPU renderbuffer');
+  return renderbuffer as WebGPURenderbuffer;
+}
 
 /** Attachment-only texture (not sampled) */
 export function createWebGPURenderbuffer(
@@ -110,11 +121,11 @@ export function createWebGPURenderbuffer(
 
     getByteCount: () => (texture ? width * height * getBytesPerTexel(gpuFormat) : 0),
     bind: () => {},
-    attachFramebuffer: (framebuffer) => {
-      asWebGPUFramebuffer(framebuffer).attach(attachment, renderbuffer);
+    attach: (set) => {
+      set.attach(attachment, renderbuffer);
     },
-    detachFramebuffer: (framebuffer) => {
-      asWebGPUFramebuffer(framebuffer).detach(attachment);
+    detach: (set) => {
+      set.detach(attachment);
     },
     releaseStorage,
     setSize: (w: number, h: number) => {
@@ -130,5 +141,6 @@ export function createWebGPURenderbuffer(
       uncount();
     },
   };
+  WebGPURenderbuffers.add(renderbuffer);
   return renderbuffer;
 }

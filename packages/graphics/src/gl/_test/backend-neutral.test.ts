@@ -92,15 +92,13 @@ function getBackendModule(file: string, specifier: string): string | undefined {
 /** Backend modules that neutral code may import */
 const PendingModules: { [module: string]: string } = {
   'webgl/compat': 'isWebGL2, see the feature check allowlist',
-  'webgl/backend': 'backend descriptors, consumers select the backends they ship',
-  'webgpu/backend': 'backend descriptors, consumers select the backends they ship',
 };
 
-/** Other backend imports outside the backends: creating contexts */
-const ImportAllowlist: { [file: string]: string } = {
-  'packages/graphics/src/canvas3d/webgl.ts': 'createContext, getGLContext: `createWebGLCanvas3DContext` (WebGL)',
-  'packages/plugin/headless/src/screenshot.ts': 'the contexts of the headless gl package and of Dawn (Node.js)',
-};
+/** Other backend imports outside the backends (none: contexts are made through `gl/contexts/*`) */
+const ImportAllowlist: { [file: string]: string } = {};
+
+/** The ways into the backends: their sets (`gl/backends/*`), contexts (`gl/contexts/*`), extensions (`gl/extend/*`) */
+const EntryFolders = /\/gl\/(backends|contexts|extend)\/[^/]+$/;
 
 describe('backend import resolution', () => {
   it('resolves relative and package imports by path', () => {
@@ -129,7 +127,7 @@ describe('backend-neutral imports', () => {
       lines.forEach((line, i) => {
         for (const [, specifier] of line.matchAll(ImportPattern)) {
           const module = getBackendModule(file, specifier);
-          if (!module || PendingModules[module]) continue;
+          if (!module || PendingModules[module] || EntryFolders.test(file)) continue;
           if (!imports.has(file)) imports.set(file, []);
           imports.get(file)!.push(`${file}:${i + 1}: ${line.trim()}`);
         }
@@ -200,7 +198,7 @@ describe('backend isolation', () => {
   }
 });
 
-/** Fixed-function state, clears, draw buffers and copies; use `setRenderState`, `clear`, `setDrawBuffers` and `copyFromFramebuffer` */
+/** Fixed-function state, clears, draw buffers and copies; use `setRenderState`, `clear`, render pass attachments and `copyFromTexture` */
 const RenderStatePatterns = [
   /\bstate\.(enable|disable|blend\w*|colorMask|depthMask|depthFunc|clearColor|clearDepth|clearStencil|cullFace|frontFace|stencil\w*|viewport|scissor)\(/,
   /\bgl\.(clear\w*|copyTexSubImage2D|drawBuffers|enable|disable|blend\w*|colorMask|depthMask|viewport|scissor)\(/,
@@ -218,10 +216,7 @@ const TargetBindPatterns = [
 ];
 
 /** Files binding targets for WebGL readback */
-const TargetBindAllowlist: { [file: string]: string } = {
-  'packages/graphics/src/gl/render-target.ts':
-    '`RenderTarget.bind` implementation (binds its framebuffer for readPixels)',
-};
+const TargetBindAllowlist: { [file: string]: string } = {};
 
 describe('backend-neutral render state', () => {
   const stateViolations: string[] = [];

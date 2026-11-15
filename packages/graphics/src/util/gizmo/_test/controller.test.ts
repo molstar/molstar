@@ -6,6 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { floatBitsToInt32 } from '../../../geo/geometry/center-group.js';
 import { OrderedSet } from '@molstar/core/data/int';
 import { Mat4, Vec3, type Vec4 } from '@molstar/core/math/linear-algebra';
 import { Binding } from '@molstar/core/util/binding';
@@ -347,8 +348,8 @@ describe('GizmoController', () => {
     expect(c.owns(body)).toBe(true);
     expect(handles.state.layer).toBe('overlay');
     expect(body.state.layer).toBe('overlay');
-    expect(handles.props.occludedAlpha).toBe(DefaultOccludedAlpha.handles);
-    expect(body.props.occludedAlpha).toBe(DefaultOccludedAlpha.body);
+    expect(handles.state.occludedAlpha).toBe(DefaultOccludedAlpha.handles);
+    expect(body.state.occludedAlpha).toBe(DefaultOccludedAlpha.body);
     expect(handles.props.screenSize).toBe(0);
     c.dispose();
 
@@ -364,7 +365,7 @@ describe('GizmoController', () => {
     });
     await settle();
     expect(sized.added[0].props.screenSize).toBe(80);
-    expect(sized.added[0].props.occludedAlpha).toBe(0.5);
+    expect(sized.added[0].state.occludedAlpha).toBe(0.5);
     d.dispose();
   });
 
@@ -606,6 +607,29 @@ describe('GizmoController', () => {
     fake.fake.interaction.hover.next({ current: { repr: fixed, loci } });
     expect(fake.fake.attribs.trackball.bindings.dragRotate).toBe(Binding.Empty);
     expect(transparencyOf(fixed)).toEqual(transparencyOf(world));
+    c.dispose();
+  });
+
+  it('draws a mesh part lit where it says so, unlit by default', async () => {
+    const fake = fakeCanvas();
+    const { handles, groups } = transformHandles(1, { planes: false, rotate: false });
+    const c = new GizmoController(fake.canvas, {
+      ...fakeBinding(),
+      layout: () => ({
+        parts: [
+          { role: 'handle', geometry: handles },
+          { role: 'handle', geometry: handles, lit: true, screenSize: 90 },
+        ],
+        groups,
+        frame: Mat4.identity(),
+      }),
+    });
+    await settle();
+    expect(fake.added).toHaveLength(2);
+    const flat = fake.added.find((r) => r.props.screenSize === 0)!;
+    const shaded = fake.added.find((r) => r.props.screenSize === 90)!;
+    expect(flat.props.ignoreLight).toBe(true);
+    expect(shaded.props.ignoreLight).toBe(false);
     c.dispose();
   });
 
@@ -883,7 +907,12 @@ function linesOf(lines: Lines) {
   const out: { from: number[]; to: number[]; group: number }[] = [];
   for (let i = 0; i < lines.lineCount; i++) {
     const o = i * LineStride;
-    out.push({ from: [a[o], a[o + 1], a[o + 2]], to: [a[o + 4], a[o + 5], a[o + 6]], group: a[o + 3] });
+    // the group an int32 as its bits
+    out.push({
+      from: [a[o], a[o + 1], a[o + 2]],
+      to: [a[o + 4], a[o + 5], a[o + 6]],
+      group: floatBitsToInt32(a[o + 3]),
+    });
   }
   return out;
 }

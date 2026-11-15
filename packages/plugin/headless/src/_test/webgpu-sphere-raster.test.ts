@@ -20,6 +20,8 @@ import { Renderer } from '@molstar/graphics/gl/renderer';
 import { createFrame, LodView } from '@molstar/graphics/gl/renderable';
 import { ReversedZeroToOne } from '@molstar/graphics/gl/depth-range';
 import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
+import type { LodLevels } from '@molstar/graphics/geo/geometry/lod-levels';
+import { setLodLevelsByDistance } from './lod-levels-by-distance.js';
 import {
   createSphereRaster,
   decodeSphereRasterId,
@@ -44,7 +46,7 @@ function getCameraPlane(camera: Camera) {
 }
 
 /** Spheres at several depths, as an instance at each of `translations` */
-function createSpheres(translations: Vec3[], params: Partial<PD.Values<Spheres.Params>> = {}) {
+function createSpheres(translations: Vec3[], params: Partial<PD.Values<Spheres.Params>> = {}, levels?: LodLevels) {
   const count = 12;
   const centers = new Float32Array(count * 3);
   const groups = new Float32Array(count);
@@ -62,6 +64,7 @@ function createSpheres(translations: Vec3[], params: Partial<PD.Values<Spheres.P
   const transform = createTransform(transforms, n, Sphere3D.create(Vec3(), 12), props.cellSize, props.batchSize);
   const simple = BaseGeometry.createSimple(ColorNames.orange as never, 1, transform);
   const values = Spheres.Utils.createValues(spheres, simple.transform, simple.locationIterator, simple.theme, props);
+  if (levels) setLodLevelsByDistance(values, levels, props.sizeFactor);
   return createRenderObject('spheres', values, Spheres.Utils.createRenderableState(props), -1);
 }
 
@@ -283,14 +286,10 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
       const plane = getCameraPlane(camera);
       const boundary =
         (Plane3D.distanceToPoint(plane, translations[0]) + Plane3D.distanceToPoint(plane, translations[1])) / 2;
-      const object = createSpheres(translations, {
-        sizeFactor: 3,
-        lodPixelSize: 0,
-        lodLevels: [
-          { minDistance: 0, maxDistance: boundary, overlap: 0, stride: 1, scaleBias: 3 },
-          { minDistance: boundary, maxDistance: 1e6, overlap: 0, stride: 108, scaleBias: 3 },
-        ],
-      });
+      const object = createSpheres(translations, { sizeFactor: 3 }, [
+        { minDistance: 0, maxDistance: boundary, stride: 1, scaleBias: 3 },
+        { minDistance: boundary, maxDistance: 1e6, stride: 108, scaleBias: 3 },
+      ]);
       const scene = Scene.create(graphics);
       scene.add(object);
       scene.commit();
@@ -298,9 +297,10 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
       const item = scene.renderables[0].renderItem;
       const levels = values.lodLevels.ref.value as unknown as number[][];
       expect(levels.length).toBe(2);
-      // the coarse level's spheres the first of the level order
-      const coarse = levels[1][3] / 6;
-      expect(coarse).toBeLessThan(values.uVertexCount.ref.value);
+      // the coarse level's spheres every stride-th (108 at size factor 3: 4)
+      const stride = levels[1][4];
+      expect(stride).toBe(4);
+      expect(levels[1][2] / 6).toBe(Math.ceil(values.uVertexCount.ref.value / stride));
 
       const raster = createSphereRaster(compute, graphics.resources);
       const vis = compute.createBuffer(Size * Size * SphereRasterVisibilityBytes);
@@ -327,9 +327,9 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
         const sphere = decodeSphereRasterId(table, chunks, data[o * 2]);
         if (!sphere) continue;
         slots[sphere.slot] += 1;
-        // the instance's spheres at its level: the far one's at the coarse level, the first of the level order
+        // the instance's spheres at its level: the far one's at the coarse level, every stride-th
         expect(sphere.level).toBe(sphere.slot);
-        if (sphere.level === 1) expect(sphere.item).toBeLessThan(coarse);
+        if (sphere.level === 1) expect(sphere.item % stride).toBe(0);
       }
       expect(slots[0]).toBeGreaterThan(0);
       expect(slots[1]).toBeGreaterThan(0);
@@ -373,18 +373,18 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
 
       const raster = createSphereRaster(compute, graphics.resources);
       const vis = compute.createBuffer(Size * Size * SphereRasterVisibilityBytes);
-      // without levels, and with two by distance faded into each other, the second member at their boundary (drawn at
+      // without levels, and with two by distance whose ranges overlap, the second member at their boundary (drawn at
       // both)
       const boundary = Plane3D.distanceToPoint(plane, Vec3.create(0, 6, -15));
       const levels = [
-        { minDistance: 0, maxDistance: boundary + 4, overlap: 4, stride: 1, scaleBias: 3 },
-        { minDistance: boundary - 4, maxDistance: 1e6, overlap: 4, stride: 32, scaleBias: 3 },
+        { minDistance: 0, maxDistance: boundary + 4, stride: 1, scaleBias: 3 },
+        { minDistance: boundary - 4, maxDistance: 1e6, stride: 32, scaleBias: 3 },
       ];
       // (the stride divided by the size factor cubed: 4)
-      for (const params of [{}, { lodPixelSize: 0, lodLevels: levels }]) {
+      for (const lodLevels of [undefined, levels]) {
         const members = [
-          createSpheres([Vec3.create(-6, 0, 10), Vec3.create(6, 0, -40)], params),
-          createSpheres([Vec3.create(0, 6, -15)], params),
+          createSpheres([Vec3.create(-6, 0, 10), Vec3.create(6, 0, -40)], {}, lodLevels),
+          createSpheres([Vec3.create(0, 6, -15)], {}, lodLevels),
         ];
         const mergedScene = Scene.create(graphics);
         mergedScene.add(createMergedRenderObject(members, { gpuCulling: true }));
@@ -410,7 +410,7 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
         }
         expect(culled).toBeDefined();
         expect(culled!.segmentCount).toBe(2);
-        expect(culled!.levelCount).toBe('lodLevels' in params ? 2 : 0);
+        expect(culled!.levelCount).toBe(lodLevels ? 2 : 0);
 
         const depths = async (objects: Parameters<typeof raster.draw>[0]) => {
           vis.clear();
@@ -437,6 +437,67 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
         expect(Array.from(merged)).toEqual(Array.from(unmerged));
       }
 
+      raster.destroy();
+      vis.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
+  it('keeps its chunks within the largest buffer a kernel binds, its objects sharing it', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      if (!graphics.capabilities.atomicMinMax64) return;
+      const compute = graphics.compute!;
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      camera.setState({ ...camera.getFocus(Vec3.create(0, 2, -15), 40), radiusMax: 40 }, 0);
+      camera.update();
+      const view: SphereRasterView = {
+        modelView: camera.view,
+        projection: camera.projection,
+        cameraPlane: Plane3D.toArray(getCameraPlane(camera), Vec4(), 0),
+        modelScale: 1,
+        near: camera.near,
+        width: Size,
+        height: Size,
+        maxRadius: 1e6,
+        lod: LodView(),
+      };
+      // a chunk an instance (12 spheres), 6 chunks wanted in all: 4 fit
+      const members = [
+        createSpheres([Vec3.create(-6, 0, 10), Vec3.create(6, 0, -40), Vec3.create(0, -6, -20)]),
+        createSpheres([Vec3.create(0, 6, -15), Vec3.create(6, 6, -15), Vec3.create(-6, 6, -15)]),
+      ];
+      const scene = Scene.create(graphics);
+      for (const m of members) scene.add(m);
+      scene.commit();
+      const limited = Object.create(compute, { maxStorageBufferSize: { value: 4 * 32 } });
+      const raster = createSphereRaster(limited, graphics.resources);
+      const vis = compute.createBuffer(Size * Size * SphereRasterVisibilityBytes);
+      const objects = scene.renderables.map((r) => ({
+        item: r.renderItem,
+        values: r.values as unknown as SpheresValues,
+      }));
+      const table = raster.draw(objects, view, vis);
+      let chunks = 0;
+      for (const r of table.ranges) chunks += r.chunkCapacity;
+      expect(chunks).toBeLessThanOrEqual(4);
+      expect(chunks).toBeGreaterThan(0);
+      // both objects drawn in part
+      for (const r of table.ranges) expect(r.chunkCapacity).toBeGreaterThan(0);
+      const data = new Uint32Array(await vis.readAsync());
+      let drawn = 0;
+      for (let o = 0; o < Size * Size; ++o) if (data[o * 2 + 1] !== 0) drawn += 1;
+      expect(drawn).toBeGreaterThan(0);
       raster.destroy();
       vis.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);

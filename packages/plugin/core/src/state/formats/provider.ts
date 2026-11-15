@@ -13,6 +13,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObject, StateObjectRef, StateTransformer } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
 import type { FileNameInfo } from '@molstar/core/util/file-info';
+import type { Asset } from '@molstar/core/util/assets';
 import { PluginStateObject } from '../objects.js';
 
 export interface DataFormatProvider<P = any, R = any, V = any, D = any, Id extends string = string> {
@@ -54,6 +55,12 @@ export interface DataFormatProvider<P = any, R = any, V = any, D = any, Id exten
    */
   parseRaw?(plugin: PluginContext, ctx: RuntimeContext, data: StringLike | Uint8Array, params?: P): Promise<D>;
   visuals?(plugin: PluginContext, data: R): Promise<V> | undefined;
+  /**
+   * Opens `asset` without reading it whole where the format can (a tile-ordered particle pack read by range: a file's
+   * slices, a URL's ranges), with its default visuals where asked: true where it did, else the caller reads it whole
+   * (`parse`). Tried before a file is read or a URL downloaded (`OpenFiles`, `DownloadFile`)
+   */
+  stream?(plugin: PluginContext, asset: Asset, options: { readonly visuals: boolean }): Promise<boolean>;
   defaultData?: D;
 }
 

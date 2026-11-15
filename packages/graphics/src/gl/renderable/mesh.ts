@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { createInstanceStorage, usesInstanceStorage, withInstanceStorage } from '../instance-storage.js';
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
 import type { GraphicsContext } from '../context.js';
 import type { Transparency } from '../render-item.js';
@@ -31,7 +32,8 @@ import { ValueCell } from '@molstar/core/util';
 
 export const MeshSchema = {
   ...BaseSchema,
-  aGroup: AttributeSpec('float32', 1, 0),
+  /** integers: groups past 2^24 exact */
+  aGroup: AttributeSpec('uint32', 1, 0),
   aPosition: AttributeSpec('float32', 3, 0),
   /** unit normals, three floats on the CPU, octahedral in two snorm16 on the GPU (`oct-normals.ts`) */
   aNormal: AttributeSpec('oct16', 2, 0),
@@ -65,13 +67,13 @@ export type MeshSchema = typeof MeshSchema;
 export type MeshValues = Values<MeshSchema>;
 
 /** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
-export const MeshRenderableSchema = {
+export const MeshRenderableSchema = withInstanceStorage({
   ...GlobalUniformSchema,
   ...GlobalTextureSchema,
   ...GlobalDefineSchema,
   ...InternalSchema,
   ...MeshSchema,
-};
+});
 
 export function MeshRenderable(
   ctx: GraphicsContext,
@@ -89,6 +91,9 @@ export function MeshRenderable(
     dLightCount: ValueCell.create(globals.dLightCount),
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
+  // poses read by index from storage where the context does (`instance-storage.ts`), not packed as rows
+  const storage = usesInstanceStorage(ctx, values) ? createInstanceStorage(ctx.compute!, renderValues) : undefined;
+  Object.assign(renderValues, storage?.values ?? { dInstanceStorage: ValueCell.create(false) });
   const shaderCode = MeshShaderCode;
   const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
@@ -99,5 +104,5 @@ export function MeshRenderable(
     transparency,
   );
 
-  return createRenderable(renderItem, renderValues, state);
+  return createRenderable(renderItem, renderValues, state, storage);
 }

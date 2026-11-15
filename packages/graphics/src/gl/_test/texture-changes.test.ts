@@ -62,17 +62,28 @@ describe('texture changes', () => {
     expect(TextureChanges.get(cell.ref.value, all, cell.ref.version, n)).toBeUndefined();
   });
 
-  it('merge near ranges, and upload all where scattered or filling much', () => {
+  it('merge near ranges, the scattered across their smallest gaps, and upload all where filling much', () => {
     const n = 100_000;
     expect(TextureChanges.mergeRanges([10, 20, 30, 40, 1000, 1010], n)).toEqual([10, 40, 1000, 1010]);
     // every other group of a range: one range
     const alternate: number[] = [];
     for (let i = 0; i < 2000; i += 2) alternate.push(i, i + 1);
     expect(TextureChanges.mergeRanges(alternate, n)).toEqual([0, 1999]);
-    // many far apart: all
+    // far apart, a few: each
     const scattered: number[] = [];
     for (let i = 0; i < 20; ++i) scattered.push(i * 1000, i * 1000 + 1);
-    expect(TextureChanges.mergeRanges(scattered, n)).toBeUndefined();
+    expect(TextureChanges.mergeRanges(scattered, n)).toEqual(scattered);
+    // far apart, many: 64, merged across the smallest gaps (those within a group, 299, closed first)
+    const many: number[] = [];
+    for (let i = 0; i < 80; ++i) many.push(i * 1000, i * 1000 + 1, i * 1000 + 300, i * 1000 + 301);
+    const merged = TextureChanges.mergeRanges(many, n)!;
+    expect(merged.length).toBe(2 * 64);
+    for (let k = 0; k < merged.length; k += 2) expect(merged[k + 1]).toBeGreaterThan(merged[k]);
+    // every range still covered
+    for (let k = 0; k < many.length; k += 2) {
+      expect(merged.some((_, j) => j % 2 === 0 && merged[j] <= many[k] && many[k + 1] <= merged[j + 1])).toBe(true);
+    }
+    expect(TextureChanges.mergeSmallestGaps([0, 1, 10, 11, 100, 101], 2)).toEqual([0, 11, 100, 101]);
     // more than half: all
     expect(TextureChanges.mergeRanges([0, 60_000], n)).toBeUndefined();
   });

@@ -139,6 +139,19 @@ describe.skipIf(!WebGPU.module)('the corner axes in the screen layer on WebGPU',
     }
   });
 
+  it('picks the axes at any opacity (a widget, not held to the picking alpha threshold)', async () => {
+    const { plugin, canvas, pickAt } = await setup();
+    try {
+      const faint = { ...AxesOn, axes: { ...AxesOn.axes, params: { ...(AxesOn.axes.params as any), alpha: 0.2 } } };
+      canvas.setProps({ camera: { ...canvas.props.camera, helper: faint as CameraHelperProps } });
+      expect(canvas.props.renderer.pickingAlphaThreshold).toBeGreaterThan(0.2);
+      const x = await pickAt(Origin[0] + 35, Origin[1]);
+      expect(x && isCameraAxesLoci(x.loci) && x.loci.elements[0].groupId).toBe(CameraHelperAxis.X);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
   it('draws the axes into images as their props say', async () => {
     const { plugin, colorAt } = await setup();
     try {

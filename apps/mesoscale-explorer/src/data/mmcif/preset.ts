@@ -34,12 +34,8 @@ function getSpacefillParams(color: Color, scaleFactor: number, graphics: Graphic
         ignoreHydrogens: false,
         instanceGranularity: false,
         ignoreLight: true,
-        lodLevels: gmp.lodLevels.map((l) => {
-          return {
-            ...l,
-            stride: Math.max(1, Math.round(l.stride / Math.pow(scaleFactor, l.scaleBias))),
-          };
-        }),
+        // the spheres scaled by the size theme: the levels by their largest size
+        lodRadius: 0,
         quality: 'lowest', // avoid 'auto', triggers boundary calc
         clip: {
           variant: clipVariant,

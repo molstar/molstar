@@ -5,6 +5,7 @@
  */
 
 import { type AttributeLayoutEntry, getAttributeLayout } from '../attribute-layout.js';
+import type { AttributeKind } from '../buffer.js';
 import { type DefineLookup, isUsed, type RenderableSchema, type UniformBlock } from '../renderable/schema.js';
 import { type BindingLayout, type TextureBinding, UniformBlockInfo, UniformBlocks } from '../uniform-layout.js';
 import { getWgslStorageBindings, getWgslUniformDeclarations } from './uniform-declarations.js';
@@ -50,14 +51,16 @@ export function getWgslTextureDeclarations(layout: BindingLayout, isReferenced?:
   return lines.join('\n');
 }
 
-function getWgslAttributeType(itemSize: number) {
+/** The WGSL type of an attribute: `u32`, `i32` (and their vectors) for integers (`uint32`, `int32`) */
+function getWgslAttributeType(itemSize: number, kind: AttributeKind = 'float32') {
+  const scalar = kind === 'uint32' ? 'u32' : kind === 'int32' ? 'i32' : 'f32';
   switch (itemSize) {
     case 1:
-      return 'f32';
+      return scalar;
     case 2:
     case 3:
     case 4:
-      return `vec${itemSize}<f32>`;
+      return `vec${itemSize}<${scalar}>`;
     default:
       throw new Error(`unsupported attribute item size '${itemSize}'`);
   }
@@ -75,7 +78,7 @@ export function getWgslVertexInputs(entry: AttributeLayoutEntry): { name: string
       type: 'vec4<f32>',
     }));
   }
-  return [{ name: entry.name, location: entry.location, type: getWgslAttributeType(entry.itemSize) }];
+  return [{ name: entry.name, location: entry.location, type: getWgslAttributeType(entry.itemSize, entry.kind) }];
 }
 
 /** Attributes of `schema` that are vertex inputs, in location order */

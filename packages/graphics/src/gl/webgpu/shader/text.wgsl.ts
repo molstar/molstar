@@ -57,7 +57,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let textFlags = read_tText(item * 4 + 1); // depth, tether
     let textA = read_tText(item * 4 + 2);
     let textB = read_tText(item * 4 + 3);
-    let group = textPosition.w;
+    // an integer (\`rgb32f-i32\`)
+    let group = readGroup_tText(item * 4);
     var mapping: vec2<f32>;
     var texCoord: vec2<f32>;
     if (textFlags.y > 0.5) {
@@ -82,15 +83,15 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     var offsetZ = (uMaterial.uOffsetZ + textFlags.x * 0.95) * scale;
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = uObject.uObjectTransform * aTransform;
-    let position4 = vec4<f32>(textPosition.xyz, 1.0);
+    // the position transformed, not the matrices multiplied first
+    let world = uObject.uObjectTransform * (aTransform * vec4<f32>(textPosition.xyz, 1.0));
     let hasEyeCamera = uGlobal.uHasEyeCamera != 0u;
-    var mvPosition = uGlobal.uModelView * transform * position4;
+    var mvPosition = uGlobal.uModelView * world;
     if (hasEyeCamera) {
-        mvPosition = uGlobal.uModelViewEye * transform * position4;
+        mvPosition = uGlobal.uModelViewEye * world;
     }
 
-    out.vModelPosition = (uGlobal.uModel * transform * position4).xyz;
+    out.vModelPosition = (uGlobal.uModel * world).xyz;
 
     var mvCenter = vec4<f32>(mvPosition.xyz, 1.0);
 

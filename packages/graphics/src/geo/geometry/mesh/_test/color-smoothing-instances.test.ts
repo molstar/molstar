@@ -164,10 +164,10 @@ function createValues(geometry: Geometry, layer: Layer, image: DataArray<Uint8Ar
   ValueCell.update(values.uGroupCount, geometry.groupCount);
   const { permutation } = geometry;
   if (permutation) {
-    const aInstance = values.aInstance.ref.value;
+    // a new array, as the grid makes its order: the instances' own order is a shared serial view (read only)
+    ValueCell.update(values.aInstance, Uint32Array.from(permutation));
     const aTransform = values.aTransform.ref.value;
     permutation.forEach((p, k) => {
-      aInstance[k] = p;
       aTransform.set(transforms.subarray(p * 16, (p + 1) * 16), k * 16);
     });
   }

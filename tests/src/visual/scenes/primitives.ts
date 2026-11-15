@@ -167,6 +167,28 @@ export function sphereGrid(n: number, spacing: number): Spheres {
   return builder.getSpheres();
 }
 
+/**
+ * `sphereGrid` from quantized centers (`Spheres.fromSites`: int16 by an origin and a scale, exact for spacings of
+ * multiples of 0.25), its floats where `graphics` draws no sites (WebGL1)
+ */
+export function sphereSitesGrid(n: number, spacing: number, graphics: GraphicsContext): Spheres {
+  if (!Spheres.isSitesSupported(graphics)) return sphereGrid(n, spacing);
+  const offset = ((n - 1) * spacing) / 2;
+  const origin = Vec3.create(-offset, -offset, -offset);
+  const scale = 0.25;
+  const data = new Int16Array(n * n * n * 4);
+  let g = 0;
+  for (let i = 0; i < n; ++i) {
+    for (let j = 0; j < n; ++j) {
+      for (let k = 0; k < n; ++k) {
+        data.set([(i * spacing) / scale, (j * spacing) / scale, (k * spacing) / scale, 0], g * 4);
+        g++;
+      }
+    }
+  }
+  return Spheres.fromSites({ data, origin, scale }, n * n * n);
+}
+
 /** Cylinders from the origin along 8 directions with alternating caps */
 export function cylinderStar(length: number): Cylinders {
   const builder = CylindersBuilder.create(8, 1);

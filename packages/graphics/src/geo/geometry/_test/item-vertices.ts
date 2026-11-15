@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { getDataWords } from '../center-group.js';
 import { CylinderStride } from '../cylinders/cylinders.js';
 import { LineStride } from '../lines/lines.js';
 
@@ -17,7 +18,9 @@ const BoxMapping = [-1, 1, -1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, -1, 
 export function perVertexCylinders(data: Float32Array, count: number) {
   const start = new Float32Array(count * 18);
   const end = new Float32Array(count * 18);
-  const group = new Float32Array(count * 6);
+  // the groups an int32 as its bits
+  const words = getDataWords(data);
+  const group = new Int32Array(count * 6);
   const scale = new Float32Array(count * 6);
   const cap = new Float32Array(count * 6);
   const colorMode = new Float32Array(count * 6);
@@ -28,7 +31,7 @@ export function perVertexCylinders(data: Float32Array, count: number) {
       const v = i * 6 + k;
       start.set(data.subarray(o, o + 3), v * 3);
       end.set(data.subarray(o + 4, o + 7), v * 3);
-      group[v] = data[o + 3];
+      group[v] = words[o + 3];
       scale[v] = data[o + 7];
       cap[v] = data[o + 8];
       colorMode[v] = data[o + 9];
@@ -53,7 +56,8 @@ const LineMapping = [-1, -1, 1, -1, -1, 1, 1, 1];
 export function perVertexLines(data: Float32Array, count: number) {
   const start = new Float32Array(count * 12);
   const end = new Float32Array(count * 12);
-  const group = new Float32Array(count * 4);
+  const words = getDataWords(data);
+  const group = new Int32Array(count * 4);
   const mapping = new Float32Array(count * 8);
   for (let i = 0; i < count; i++) {
     const o = i * LineStride;
@@ -61,7 +65,7 @@ export function perVertexLines(data: Float32Array, count: number) {
       const v = i * 4 + k;
       start.set(data.subarray(o, o + 3), v * 3);
       end.set(data.subarray(o + 4, o + 7), v * 3);
-      group[v] = data[o + 3];
+      group[v] = words[o + 3];
     }
     mapping.set(LineMapping, i * 8);
   }

@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Color } from '@molstar/core/util/color';
@@ -31,6 +32,10 @@ export interface CanvasState {
   readonly background: string;
   readonly transparentBackground: boolean;
   readonly illumination: boolean;
+  /** The graphics backend drawing it (`webgpu`, `webgl2`, `webgl`). */
+  readonly backend: string;
+  /** The backends it can switch to (`canvas.backend`), the current one among them; one or none: no switch. */
+  readonly backends: readonly string[];
   /** The props themselves, for readers of other parts. */
   readonly props: Canvas3DProps;
 }
@@ -111,7 +116,11 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
   const canvas = fromChanged(
     scope,
     () => canvasState(plugin),
-    merge(plugin.events.canvas3d.settingsUpdated, plugin.behaviors.canvas3d.initialized),
+    merge(
+      plugin.events.canvas3d.settingsUpdated,
+      plugin.events.canvas3d.backendChanged,
+      plugin.behaviors.canvas3d.initialized,
+    ),
     (a, b) =>
       a === b ||
       (!!a &&
@@ -119,6 +128,7 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
         a.background === b.background &&
         a.transparentBackground === b.transparentBackground &&
         a.illumination === b.illumination &&
+        a.backend === b.backend &&
         // By value: `canvas3d.props` is a new object at each read, and `settingsUpdated` fires for a camera focus too.
         PD.areEqual(Canvas3DParams, a.props, b.props)),
   );
@@ -183,6 +193,11 @@ type TaskEvent =
   | { id: number; level: 'none' | 'background'; useOverlay?: boolean; progress: import('@molstar/core/task').Progress }
   | { id: number };
 
+/** The ids of the backends the plugin's context was created from, each once (WebGPU's sets list WebGL's too). */
+export function graphicsBackendIds(plugin: PluginContext): readonly string[] {
+  return Array.from(new Set(plugin.graphicsBackends.map((b) => b.id)));
+}
+
 function canvasState(plugin: PluginContext): CanvasState | undefined {
   const props = plugin.canvas3d?.props;
   if (!props) return undefined;
@@ -190,6 +205,8 @@ function canvasState(plugin: PluginContext): CanvasState | undefined {
     background: Color.toHexStyle(props.renderer.backgroundColor),
     transparentBackground: !!props.transparentBackground,
     illumination: !!props.illumination?.enabled,
+    backend: plugin.canvas3d?.graphics?.capabilities.backend ?? '',
+    backends: graphicsBackendIds(plugin),
     props,
   };
 }

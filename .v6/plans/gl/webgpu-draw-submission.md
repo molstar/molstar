@@ -163,7 +163,7 @@ arrays in storage arenas with shared object groups; object records by `firstInst
 
 **Opaque pass done** (step 6, first part), behind `RendererProps.drawLists` (hidden, off by default):
 
-- **Neutral**: `GraphicsContext.createDrawList?()` (WebGPU; WebGL has none and draws as before): `replay(globals)`,
+- **Neutral**: `GraphicsContext.drawLists?.create()` (WebGPU; WebGL has none and draws as before): `replay(globals)`,
   `record(globals, draw)`, `reset()`. The WebGPU list keeps a render bundle per target layout (`PassTarget.key`, at
   most 4: canvas and image passes), replayed while the pass binds the global slot and global textures it was recorded
   with (`WebGPUGlobalBindings.getState`, which takes the slot as a draw would, keeping later passes' offsets).
@@ -188,7 +188,7 @@ arrays in storage arenas with shared object groups; object records by `firstInst
 **Pick, depth, marking and opaque emissive passes done** (step 6, second part): the renderer's `drawPass` replays or
 records every pass of these kinds, drawn directly where it can't be recorded (`planPass`: caps); the lists are per group
 and pass, one per time the pass is drawn between two submissions (the pick types, stereo eyes, marking samples): the
-n-th draw after a submission binds the n-th slot of the global ring each time (`GraphicsContext.submitCount`; counted
+n-th draw after a submission binds the n-th slot of the global ring each time (`DrawLists.submitCount`; counted
 per frame token before, which marking-only redraws keep while the camera rests, so they recorded new lists every redraw
 and never replayed), and per pass, so that submissions drawing other passes (a pick, a marking redraw) don't shift a
 pass's lists. Checked: `--draw-lists` 146 pass, 27 cases drawn without replay (29 before); `webgpu-draw-lists`
@@ -222,7 +222,7 @@ illumination (and cases whose pipelines compile while recording under load). Nex
 most clears.
 
 **Data changes replay** (markers on hover, colors, uniforms): a replay skips the render items' `render`, which writes
-uniform slots and vertex data. `GraphicsContext.captureDraws` (WebGPU) runs draws against a capturing pass state:
+uniform slots and vertex data. `DrawLists.capture` (WebGPU) runs draws against a capturing pass state:
 their data written as by drawing, nothing encoded, what they bind returned as text (pipelines, bind groups with
 offsets, buffers, draw arguments). The renderer captures each planned draw after recording; a plan that differs only
 in values (`comparePlans` 'data') captures the changed draws again and replays where each binds what it bound

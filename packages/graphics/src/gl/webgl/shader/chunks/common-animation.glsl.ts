@@ -10,7 +10,7 @@
  * compile time
  */
 export const common_animation = `
-vec3 applyWiggle(vec3 pos, float groupId, float instanceId) {
+vec3 applyWiggle(vec3 pos, float groupId, int instanceId) {
     #if defined(dWiggleAnimation) || defined(dWiggle)
     if (!uEnableAnimation) return pos;
     float amplitude = uWiggleAmplitude;

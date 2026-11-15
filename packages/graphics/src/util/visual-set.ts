@@ -12,7 +12,8 @@ import type { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
 import type { Geometry, GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Representation, RepresentationProvider } from '@molstar/graphics/repr/representation';
-import { ShapeRepresentation, type ShapeGetter } from '@molstar/graphics/repr/shape/representation';
+import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
+import type { ShapeGetter } from '@molstar/graphics/geo/shape/provider';
 import { Theme, type ThemeDataContext, type ThemeRegistryContext } from '@molstar/graphics/theme/theme';
 
 /** Any representation, whatever its params and state (`AnyRepresentation` fixes them to the base ones) */

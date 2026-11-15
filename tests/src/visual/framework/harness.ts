@@ -20,10 +20,10 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import type { CameraHelperProps } from '@molstar/graphics/canvas3d/helper/camera-helper';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
-import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
+import { WebGPUUnsupportedError } from '@molstar/graphics/gl/contexts/webgpu';
 import { type BackendInstance } from './backend.js';
 import { DefaultTestSize, type SceneContext, type VisualTestCase } from './test-case.js';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 
 /** Deterministic baseline; tests opt into effects explicitly */
 export const BaseCanvasProps: PartialCanvas3DProps = {
@@ -332,7 +332,13 @@ export async function renderTest(
 
     return {
       image,
-      errors: [...interactErrors, ...releaseErrors, ...instance.takeErrors(), ...log.errors],
+      errors: [
+        ...interactErrors,
+        ...releaseErrors,
+        ...instance.takeErrors(),
+        ...log.errors,
+        ...(test.checkImage?.(image) ?? []),
+      ],
       warnings: log.warnings,
       timeMs: performance.now() - start,
     };

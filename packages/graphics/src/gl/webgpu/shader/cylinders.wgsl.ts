@@ -74,7 +74,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let cylinderStart = read_tCylinder(item * 3); // start xyz, group
     let cylinderEnd = read_tCylinder(item * 3 + 1); // end xyz, radius scale
     let cylinderFlags = read_tCylinder(item * 3 + 2); // cap, color mode
-    let group = cylinderStart.w;
+    // an integer (\`rgb32f-i32\`)
+    let group = readGroup_tCylinder(item * 3);
     let colorMode = cylinderFlags.y;
     // -1 or 1 along the axis, across it and up
     let mapping = vec3<f32>(
@@ -86,14 +87,15 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_size_wgsl}
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = uObject.uObjectTransform * applyTumble(aTransform, invariantBoundingSphere(in));
+    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
     ${assign_wiggle_wgsl}
-    let wigStart = applyWiggle(cylinderStart.xyz, group, wiggle);
-    let wigEnd = applyWiggle(cylinderEnd.xyz, group, wiggle);
-    let modelTransform = uGlobal.uModel * transform;
+    let wigStart = applyWiggle(cylinderStart.xyz, f32(group), wiggle);
+    let wigEnd = applyWiggle(cylinderEnd.xyz, f32(group), wiggle);
 
-    let start = (modelTransform * vec4<f32>(wigStart, 1.0)).xyz;
-    let end = (modelTransform * vec4<f32>(wigEnd, 1.0)).xyz;
+    // the ends transformed, not the matrices multiplied first: the instance's transform, the object's transient one,
+    // then the model
+    let start = (uGlobal.uModel * (uObject.uObjectTransform * (transform * vec4<f32>(wigStart, 1.0)))).xyz;
+    let end = (uGlobal.uModel * (uObject.uObjectTransform * (transform * vec4<f32>(wigEnd, 1.0)))).xyz;
     let vSize = size * cylinderEnd.w * uGlobal.uModelScale;
     out.vCylinderStart = vec4<f32>(start, vSize);
     out.vCylinderEnd = vec4<f32>(end, cylinderFlags.x);

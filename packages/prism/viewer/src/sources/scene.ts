@@ -2771,7 +2771,7 @@ function typeValue(s: StructureRef, data: Structure): string {
 
 function sourceForm(s: StructureRef, data: Structure, bondProviders: BondProviderRegistry): PD.Params {
   const types = structureTypes(s, data);
-  // bond-providers plan §4.1: hidden with the built-in bonds as the only choice, so such a viewer looks as before
+  // hidden with the built-in bonds as the only choice, so such a viewer looks as before
   const model = s.model?.cell.obj?.data;
   const bondOptions = bondProviders.options(model).length;
   // The model shown is not here: a structure with several has a row of its own under it (its frames, a scrubber and

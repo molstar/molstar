@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -13,7 +14,7 @@ import { BondProvider } from '@molstar/model/model/structure/structure/unit/bond
 import { cbs, expectOk, headlessViewer, until } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// `structure.bonds` and the inspector's Bonds field (bond-providers plan §4.1) on a headless viewer.
+// `structure.bonds` and the inspector's Bonds field on a headless viewer.
 
 const structureCell = (v: PrismViewer) => v.plugin.managers.structure.hierarchy.current.structures[0].cell;
 const typeParams = (v: PrismViewer) => (structureCell(v).transform.params as any).type;

@@ -52,12 +52,6 @@ function getSpacefillParams(color: Color, sizeFactor: number, graphics: Graphics
         ignoreHydrogens: true,
         instanceGranularity: true,
         ignoreLight: true,
-        lodLevels: gmp.lodLevels.map((l) => {
-          return {
-            ...l,
-            stride: Math.max(1, Math.round(l.stride / Math.pow(sizeFactor, l.scaleBias))),
-          };
-        }),
         quality: 'lowest', // avoid 'auto', triggers boundary calc
         sizeFactor,
         clip: {

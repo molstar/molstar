@@ -11,7 +11,6 @@ import { ShaderCode } from '@molstar/graphics/gl/shader-code';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { RenderState } from '@molstar/graphics/gl/render-state';
 import type { Texture } from '@molstar/graphics/gl/texture';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import type { Scene } from '@molstar/graphics/gl/scene';
@@ -22,6 +21,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ICamera } from '../camera.js';
 import type { PassBuilder } from './pass-builder.js';
 import type { PassTargets } from './pass-targets.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 export const ClipGhostParams = {
   color: PD.Color(Color(0x8c8c8c)),
@@ -56,9 +56,10 @@ export class ClipGhostPass {
   private readonly renderable: ClipGhostRenderable;
   /**
    * the image's color alone (`colorTexture`, the target's of the last composite): the depths the composite reads are
-   * not attached, as the image's framebuffer may have its opaque depth
+   * not attached, as the image's target may have its opaque depth
    */
-  private readonly framebuffer: Framebuffer;
+  /** the composite's target: the caller's color (`colorTexture`) with the pass's own depth, where it has one */
+  private readonly compositeTarget: RenderPassAttachments;
   private colorTexture: Texture | undefined;
   private width: number;
   private height: number;
@@ -93,7 +94,7 @@ export class ClipGhostPass {
     const [w, h] = this.getTargetSize();
     this.target = targets.createRenderTarget(w, h, 'depth-stencil', 'uint8', 'nearest');
     this.renderable = getClipGhostRenderable(graphics, this.target.texture, depth);
-    this.framebuffer = graphics.resources.framebuffer();
+    this.compositeTarget = createRenderPassAttachments(graphics.resources, []);
   }
 
   private getTargetSize() {
@@ -172,10 +173,10 @@ export class ClipGhostPass {
     if (changed) this.renderable.update();
 
     if (this.colorTexture !== target.texture) {
-      target.texture.attachFramebuffer(this.framebuffer, 'color0');
+      this.compositeTarget.color = [target.texture];
       this.colorTexture = target.texture;
     }
-    b.begin(this.framebuffer, { label: 'clip ghost composite' });
+    b.begin(this.compositeTarget, { label: 'clip ghost composite' });
     if (b.drawing) {
       const { x, y, width, height } = camera.viewport;
       this.graphics.setViewport(x, y, width, height);
@@ -202,7 +203,7 @@ export class ClipGhostPass {
 
   dispose() {
     this.renderable.dispose();
-    this.framebuffer.destroy();
+    this.compositeTarget.destroy();
   }
 }
 

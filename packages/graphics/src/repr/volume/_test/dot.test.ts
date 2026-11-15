@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { getDataWords } from '../../../geo/geometry/center-group.js';
 import { describe, expect, it } from 'vitest';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { Grid, Volume } from '@molstar/model/model/volume';
@@ -28,8 +29,9 @@ function createTestVolume(dimensions: [number, number, number], data: number[]):
 }
 
 /** The group of each sphere, in the order of the geometry */
+/** the groups an int32 as its bits */
 const groupsOf = (spheres: Spheres) =>
-  Array.from({ length: spheres.sphereCount }, (_, i) => spheres.positionGroup.ref.value.array[i * 4 + 3]);
+  Array.from({ length: spheres.sphereCount }, (_, i) => getDataWords(spheres.positionGroup.ref.value.array)[i * 4 + 3]);
 
 describe('volume dot representation', () => {
   it('adds sphere impostor dots in Morton order for LOD sampling', () => {
@@ -42,7 +44,7 @@ describe('volume dot representation', () => {
       {
         isoValue: Volume.IsoValue.absolute(0.5),
         perturbPositions: false,
-        lodLevels: [{ minDistance: 0, maxDistance: 0, overlap: 0, stride: 0, scaleBias: 3 }],
+        lodPixelSize: 3,
       } as any,
     );
 
@@ -59,7 +61,7 @@ describe('volume dot representation', () => {
       {
         isoValue: Volume.IsoValue.absolute(0.5),
         perturbPositions: false,
-        lodLevels: [],
+        lodPixelSize: 0,
       } as any,
     );
 

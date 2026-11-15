@@ -47,14 +47,15 @@
     "./math/_test/*": null,
     "./math/fourier-transform/_test/*": null,
     "./math/geometry/_test/*": null,
+    "./math/geometry/marching-cubes/_test/*": null,
     "./math/geometry/spacegroup/_test/*": null,
     "./math/graph/_test/*": null,
     "./math/linear-algebra/_test/*": null,
     "./state/_test/*": null,
     "./task/util/_test/*": null,
     "./util/_test/*": null,
-    "./util/input/_test/*": null,
-    "./util/color/_test/*": null
+    "./util/color/_test/*": null,
+    "./util/input/_test/*": null
   },
   "files": [
     "lib",

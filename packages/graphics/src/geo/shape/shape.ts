@@ -9,6 +9,8 @@ import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { CentroidHelper } from '@molstar/core/math/geometry/centroid-helper';
 import type { GroupMapping } from '../util.js';
+import type { Spheres } from '../geometry/spheres/spheres.js';
+import { decodeSitesPositionGroup } from '../geometry/spheres/sphere-sites.js';
 import { ShapeGroupSizeTheme } from '@molstar/graphics/theme/size/shape-group';
 import { ShapeGroupColorTheme } from '@molstar/graphics/theme/color/shape-group';
 import type { Theme } from '@molstar/graphics/theme/theme';
@@ -142,8 +144,13 @@ export function getGroupBoundingSphere(loci: ShapeGroup.Loci, boundingSphere?: S
     sphereHelperRadius(loci.groups, geometry.groupMapping, end, transforms, 1);
   } else if (geometry.kind === 'spheres' || geometry.kind === 'text') {
     // the mappings' indices are offsets into the position groups and the text data (the label's position there)
-    const positions =
-      geometry.kind === 'spheres' ? geometry.positionGroup.ref.value.array : geometry.textData.ref.value.array;
+    const sites = geometry.kind === 'spheres' ? geometry.sites : undefined;
+    const positions = sites
+      ? // quantized centers decoded (a transient copy), at the mapping's offsets
+        decodeSitesPositionGroup(sites.data, (geometry as Spheres).sphereCount, sites.origin, sites.scale)
+      : geometry.kind === 'spheres'
+        ? geometry.positionGroup.ref.value.array
+        : geometry.textData.ref.value.array;
     const indexScale = 1;
     sphereHelperInclude(loci.groups, geometry.groupMapping, positions, transforms, indexScale);
     sphereHelper.finishedIncludeStep();

@@ -3,6 +3,7 @@
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Mat3, Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -460,7 +461,7 @@ export function periodicModelProps(custom: { [key: string]: unknown } | undefine
 
 /**
  * Create props for `StructureFromModel` transformer from a structure node. A Mol*-specific bond provider comes from
- * `custom.molstar_bond_provider` (`{ name, params? }`, bond-providers plan §4.2); a name the plugin lacks falls back to
+ * `custom.molstar_bond_provider` (`{ name, params? }`); a name the plugin lacks falls back to
  * the built-in bonds, with a warning when the snapshot is applied.
  */
 export function structureProps(node: MolstarNode<'structure'>): StateTransformer.Params<StructureFromModel> {

@@ -10,6 +10,9 @@ here.
 
 ## [Unreleased]
 
+- Fix per-vertex colors and sizes of instanced geometry (e.g. a volume color theme on an assembly's surface), and the
+  instance colors and sizes of geometry exports, being placed by another instance's transform where the instance grid
+  reorders the instances
 - Fix the loci of a pick of a whole unit (elements, polymers, intra-unit bonds) holding one index past the unit's
   elements
 - Fix the surfaces of a whole structure (Gaussian surface and density, molecular surface, blob surface) taking one

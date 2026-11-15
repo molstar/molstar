@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -50,6 +51,7 @@ export const FormParams = {
   ),
   transparent: PD.Boolean(false, { hideIf: (v: { mode?: string }) => !isImage(v) }),
   axes: PD.Boolean(false, { label: 'Axes' }),
+  scale: PD.Boolean(false, { label: 'Scale line' }),
 };
 
 type FormValues = PD.Values<typeof FormParams>;
@@ -71,6 +73,7 @@ export function imageValues(v: FormValues): Record<string, unknown> {
     quality: v.format.name === 'png' ? 0.9 : (v.format.params as { quality: number }).quality,
     transparent: isImage(v) && v.transparent,
     axes: v.axes,
+    scale: v.scale,
   };
 }
 
@@ -79,9 +82,9 @@ export function imageValues(v: FormValues): Record<string, unknown> {
 export function frameValues(v: FormValues, box: CropBox): ExportFrameValues {
   const r = v.resolution;
   const crop = { ...box };
-  if (r.name === 'viewport') return { size: { name: 'viewport' }, axes: v.axes, box: crop };
+  if (r.name === 'viewport') return { size: { name: 'viewport' }, axes: v.axes, scale: v.scale, box: crop };
   const { width, height } = frameOf(v, undefined)!;
-  return { size: { name: 'custom', params: { width, height } }, axes: v.axes, box: crop };
+  return { size: { name: 'custom', params: { width, height } }, axes: v.axes, scale: v.scale, box: crop };
 }
 
 function frameOf(v: FormValues, viewport: { width: number; height: number } | undefined) {

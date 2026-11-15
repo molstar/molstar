@@ -26,7 +26,7 @@ void main() {
     vec4 mvPosition = uModelView * transform * uUnitToCartn * unitCoord;
 
     vModelPosition = (uModel * transform * uUnitToCartn * unitCoord).xyz;
-    vInstance = aInstance;
+    vInstance = float(aInstance);
     vBoundingSphere = vec4(
         (uModel * transform * vec4(uInvariantBoundingSphere.xyz, 1.0)).xyz,
         uModelScale * uInvariantBoundingSphere.w

@@ -82,7 +82,7 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
         state.createGeometry =
           !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
           newProps.perturbPositions !== currentProps.perturbPositions ||
-          (newProps.lodLevels.length > 0 && currentProps.lodLevels.length === 0);
+          (newProps.lodPixelSize > 0 && !(currentProps.lodPixelSize > 0));
       },
       geometryUtils: Spheres.Utils,
     },
@@ -182,7 +182,7 @@ export function createVolumeSphereImpostor(
   // Morton ordering keeps stride-based LOD sampling spatially balanced.
   // Only worthwhile when LOD levels are configured; otherwise use the
   // direct row-major path to avoid the extra allocations and sort.
-  const useMortonOrder = props.lodLevels.length > 0;
+  const useMortonOrder = props.lodPixelSize > 0;
 
   if (useMortonOrder) {
     // Recursive octree traversal over the bounding power-of-two cube,

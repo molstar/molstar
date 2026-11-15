@@ -98,6 +98,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
       ),
       transparent: PD.Boolean(false),
       axes: CameraHelperParams.axes,
+      scale: { ...CameraHelperParams.scale, label: 'Scale Line' },
       illumination: PD.Group({
         extraIterations: PD.Numeric(1, { min: 0, max: 5, step: 1 }),
         targetIterationTimeMs: PD.Numeric(300, { min: 100, max: 3000, step: 10 }),
@@ -115,6 +116,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
       transparent: this.params.transparent.defaultValue,
       format: { name: 'png', params: {} },
       axes: { name: 'off', params: {} },
+      scale: { name: 'off', params: {} },
       resolution: this.params.resolution.defaultValue,
       illumination: this.params.illumination.defaultValue,
     }),
@@ -205,7 +207,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
     const { floatRenderTarget } = c.graphics.capabilities;
     return c.getImagePass({
       transparentBackground: this.values.transparent,
-      cameraHelper: { axes: this.values.axes, scale: c.props.camera.helper.scale },
+      cameraHelper: { axes: this.values.axes, scale: this.values.scale },
       multiSample: {
         ...c.props.multiSample,
         mode: isPreview ? 'off' : 'on',
@@ -228,7 +230,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
     if (this._imagePass) {
       const c = this.plugin.canvas3d!;
       this._imagePass.setProps({
-        cameraHelper: { axes: this.values.axes, scale: c.props.camera.helper.scale },
+        cameraHelper: { axes: this.values.axes, scale: this.values.scale },
         transparentBackground: this.values.transparent,
         postprocessing: this.getPostprocessingProps(),
         marking: { ...c.props.marking },
@@ -365,7 +367,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
 
     const canvasProps = this.plugin.canvas3d!.props;
     this.previewPass.setProps({
-      cameraHelper: { axes: this.values.axes, scale: canvasProps.camera.helper.scale },
+      cameraHelper: { axes: this.values.axes, scale: this.values.scale },
       transparentBackground: this.values.transparent,
       postprocessing: canvasProps.postprocessing,
       marking: canvasProps.marking,

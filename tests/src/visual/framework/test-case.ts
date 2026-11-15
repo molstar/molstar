@@ -7,7 +7,7 @@
 import { Canvas3D, Canvas3DContext, type PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { type GraphicsContext } from '@molstar/graphics/gl/context';
-import { type WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { type WebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 import { Representation } from '@molstar/graphics/repr/representation';
 import { type CapabilityKey } from './capabilities.js';
 import type { BackendProfile } from './backend.js';

@@ -36,6 +36,7 @@
     "./state/queries/structure/_test/*": null,
     "./state/transforms/_test/*": null,
     "./state/transforms/data/_test/*": null,
+    "./state/transforms/particles/_test/*": null,
     "./state/transforms/structure/_test/*": null
   },
   "files": [

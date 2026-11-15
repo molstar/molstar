@@ -427,17 +427,17 @@ void main() {
                     float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
                     if ((1.0 - smoothstep(uFogNear, uFogFar, abs(viewZ))) * uAlpha < 0.1) discard;
                     #ifdef requiredDrawBuffers
-                        gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
-                        gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
-                        gl_FragData[2] = vec4(packIntToRGB(surfaceGroup), 1.0);
+                        gl_FragColor = packPickId(uObjectId);
+                        gl_FragData[1] = packPickId(vInstance);
+                        gl_FragData[2] = packPickId(surfaceGroup);
                         gl_FragData[3] = packDepthToRGBA(fragmentDepth);
                     #else
                         if (uPickType == 1) {
-                            gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
+                            gl_FragColor = packPickId(uObjectId);
                         } else if (uPickType == 2) {
-                            gl_FragColor = vec4(packIntToRGB(vInstance), 1.0);
+                            gl_FragColor = packPickId(vInstance);
                         } else {
-                            gl_FragColor = vec4(packIntToRGB(surfaceGroup), 1.0);
+                            gl_FragColor = packPickId(surfaceGroup);
                         }
                     #endif
                 #else

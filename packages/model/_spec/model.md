@@ -89,8 +89,36 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
 - **Volume** (`model/volume/`): a `Grid` (`Tensor` cells, a spacegroup or matrix transform, stats, periodicity) and
   instances (transforms). Iso values absolute or relative (σ). Property bags `_propertyData` and `_localPropertyData`
   (caches on `volume.parent ?? volume`).
-- **ParticleList** (`model/particles/`): packed coordinates, optional rotations, radii, fibers and attributes; targets
-  (a structure, shape or volume per particle); lazily derived transforms and target groups.
+- **ParticleList** (`model/particles/`): packed coordinates (float32 or on a grid, `Positions`: loops over all branch on
+  the kind once, the others read `GridPositions.get`), optional rotations (unit float32 or snorm16 quaternions,
+  `ParticleRotations`: readers rotate by `2 / |q|²`, no decoded copy), radii, fibers and attributes; targets (a
+  structure, shape or volume per particle); lazily derived transforms and target groups.
+- **Particle tiles** (`model/particles/particle-tiles.ts`, `.v6/plans/particle-tiles.md`): a list subdivided on a
+  regular grid, a particle in the tile of its center; a light catalog of what the tiles share known up front (a target's
+  kind and what decides its programs, the targets' info, entities, compartments), the tiles' particles and the targets'
+  data served on demand (sync or a task), a target one object for all tiles so whatever is keyed by it is one. A tile's
+  frames the same particles posed otherwise (`Particle.withPoses`); a particle's key its index in the whole (its tile's
+  base). Memory is the app's to measure: the model gives counts and byte estimates. The loader
+  (`particle-tile-loader.ts`): the tiles wanted by priority, a few at once, a load no longer wanted cancelled, a tile's
+  targets loaded once for all tiles; what is ready kept until released (letting go is the app's). The visibility
+  (`particle-tile-visibility.ts`): the tiles a camera would see something of (in view by their reach, the box grown by
+  their targets' radius; not sub-pixel; not hidden behind the tiles in front: their optical depth gathered front to back
+  along a small grid of the camera's rays on the CPU, a ray opaque at 7, from the back of what made it so). The
+  opacities (`particle-tile-opaque.ts`): per block of a tile's cell the optical depth a length of its content, by its
+  density (molecules of volume fraction φ and mean chord ℓ pass a line of length L with probability exp(-φL/ℓ); a
+  molecule a solid sphere of its volume, its mass's). A heuristic (densities a mean, gaps finer than the rays not seen),
+  erring towards keeping. The view (`particle-tile-view.ts`): one list of some ready tiles at a frame, by target (a
+  target one run), a particle's key its index in the whole (kept across views of other tiles), per target its
+  composition (its tiles and their ranges: which targets' instances another view changes); a frame step the previous
+  view's particles posed otherwise (`Particle.withPoses`).
+- **Slot lists** (`model/particles/particle-slots.ts`, `.v6/plans/particle-slots.md`): `ParticleList.pages` set, a
+  particle's index its slot (kept while it lives), `count` the slots, a page a slot range with a flat list of its own,
+  the slots no page holds gaps; its own per-particle fields empty (read its pages: `ParticleSlots.forEachPage`); a
+  version's changes from the one before (`pagesFrom`: pages added and removed, the earlier version known by its pages
+  object, not its list: a list holds its own `pagesFrom`, a chain keeping every version and removed page). A flat list
+  (no pages) as it is; a consumer that does not read pages takes `ParticleSlots.flatten`. A tile set's slot view
+  (`ParticleTileView.createSlots`): a tile's list its page at its base, a particle's slot its key; a tile added or let
+  go a page.
 - **Sequence** (`model/sequence/`): protein, DNA, RNA or generic sequences with seq ids and microheterogeneity;
   alignment (`alignment/`).
 - **Shape** (`model/shape/`): structural only; graphics builds the renderable one.

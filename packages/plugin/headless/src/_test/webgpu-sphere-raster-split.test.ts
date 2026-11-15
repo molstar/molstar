@@ -13,6 +13,7 @@ import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { createTransform } from '@molstar/graphics/geo/geometry/transform-data';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
+import { setLodLevelsByDistance } from './lod-levels-by-distance.js';
 import { Renderer, type RendererProps } from '@molstar/graphics/gl/renderer';
 import { createFrame } from '@molstar/graphics/gl/renderable';
 import { createMergedRenderObject, createRenderObject, hasForeignResources } from '@molstar/graphics/gl/render-object';
@@ -43,16 +44,16 @@ function createMember(offset: Vec3, color: number, stride?: number) {
     ...PD.getDefaultValues(Spheres.Params),
     cellSize: 8,
     batchSize: 32,
-    ...(stride && { lodLevels: [{ minDistance: 0, maxDistance: 1e7, overlap: 0, stride, scaleBias: 1 }] }),
   };
   const transform = createTransform(transforms, count, Sphere3D.create(Vec3(), 2.5), props.cellSize, props.batchSize);
   const simple = BaseGeometry.createSimple(color as never, 1, transform);
   const values = Spheres.Utils.createValues(spheres, simple.transform, simple.locationIterator, simple.theme, props);
+  if (stride) setLodLevelsByDistance(values, [{ minDistance: 0, maxDistance: 1e7, stride, scaleBias: 1 }], 1);
   return createRenderObject('spheres', values, Spheres.Utils.createRenderableState(props), -1);
 }
 
 // merged objects culled on the GPU: the culler puts the instances the raster draws into regions of their own, the
-// impostors draw the others (`sphere-compute-raster.md`, the split per instance)
+// impostors draw the others (the split per instance)
 describe.skipIf(!WebGPU.module)('sphere raster split per instance on WebGPU', () => {
   it('draws the near instances as impostors, the far ones by the raster, as the impostors draw all', async () => {
     const plugin = await HeadlessPluginContext.create(

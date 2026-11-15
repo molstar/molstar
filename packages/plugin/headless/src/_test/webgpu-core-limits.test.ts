@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { InstanceCopyKernel, InstanceCopySchema } from '@molstar/graphics/gl/compute/cell-cull';
 import { canCullOnGpu } from '@molstar/graphics/gl/renderable/merged';
-import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
+import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/contexts/webgpu';
 import { WebGPU } from './webgpu-module.js';
 
 // a device with the core limits (what every WebGPU device has): kernels binding more storage buffers than a stage may

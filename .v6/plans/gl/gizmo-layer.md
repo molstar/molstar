@@ -39,8 +39,9 @@
   cases `overlay/**`):
   - `dOverlay` is a define of the object (`BaseSchema`), set by Canvas3D when it routes a representation, not a scene
     global: no global define to thread through every renderable, and precompile signatures carry it.
-  - `occludedAlpha` and `occludedSaturation` are hidden geometry params (`BaseGeometry.Params`), the material uniforms
-    `uOccludedAlpha`, `uOccludedSaturation`; default 1 (on top, as step 1).
+  - `occludedAlpha` is a field of `Representation.State` (applied by the canvas with `layer`; it was a hidden geometry
+    param, in every representation's params), the material uniform `uOccludedAlpha`; default 1 (on top, as step 1).
+    `occludedSaturation` was removed.
   - The occlusion compares view z, not depth: the overlay's depth is of its own planes, the scene's opaque depth
     (`tDepth`) of the scene's (the globals `uOccluderNear`, `uOccluderFar`, set by `Renderer.renderOverlay` and
     `renderPick` from a `Renderer.Occluder`).

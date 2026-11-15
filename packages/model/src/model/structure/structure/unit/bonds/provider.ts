@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
  * After the proof of concept by Paul Pillot (molstar/molstar#1939).
  */
@@ -15,7 +16,7 @@ import type { InterUnitBonds, IntraUnitBonds } from './data.js';
 import type { InterBondComputationProps } from './inter-compute.js';
 
 /**
- * A kind of bonds: named, with params, making instances (bond-providers plan §2). The state tree stores the name and
+ * A kind of bonds: named, with params, making instances. The state tree stores the name and
  * the params; the instance is what units and structures hold.
  */
 export interface BondProvider<P extends PD.Params = PD.Params> {
@@ -36,7 +37,7 @@ export interface BondProvider<P extends PD.Params = PD.Params> {
 export namespace BondProvider {
   /**
    * What a `Unit.Atomic` and a `Structure` hold, fixed at their construction: two reads of `unit.bonds` return the same
-   * object. Not bound to a model or a structure, so it survives `remapModel` (bond-providers plan §2).
+   * object. Not bound to a model or a structure, so it survives `remapModel`.
    */
   export interface Instance {
     readonly provider: BondProvider;

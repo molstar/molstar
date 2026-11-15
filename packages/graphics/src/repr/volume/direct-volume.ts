@@ -24,13 +24,13 @@ import {
   createVolumeTexture2d,
   createVolumeTexture3d,
   eachVolumeLoci,
-  getVolumeTexture2dLayout,
 } from './util.js';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { VolumeVisual } from './visual.js';
 import { clamp } from '@molstar/core/math/interpolate';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
   const bbox = Box3D();

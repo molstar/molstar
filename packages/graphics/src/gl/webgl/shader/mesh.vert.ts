@@ -61,8 +61,9 @@ void main(){
     #else
         vec3 normal = octDecode(aNormal);
     #endif
-    mat3 normalMatrix = adjoint(modelView);
-    vec3 transformedNormal = normalize(normalMatrix * normalize(normal));
+    // the normal by each transform's cofactors in turn (those of a product are the product of theirs)
+    vec3 instanceNormal = adjoint(uObjectTransform) * (adjoint(transform) * normalize(normal));
+    vec3 transformedNormal = normalize(adjoint(uModelView) * instanceNormal);
     #if defined(dFlipSided)
         if (!uDoubleSided) { // TODO checking uDoubleSided should not be required, ASR
             transformedNormal = -transformedNormal;

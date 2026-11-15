@@ -10,6 +10,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import type { InstancePoses } from '@molstar/core/math/geometry/instance-transforms';
 import { getDrawnBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { StateSelection } from '@molstar/core/state';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
@@ -286,7 +287,13 @@ describe('particles', () => {
       // moved from the grid first built: its cells and instance order kept, so the GPU culling keeps its split
       expect(grid.layout, `move ${i}`).toBe(first.layout ?? first);
       expect(grid.cellOffsets).toBe(first.cellOffsets);
-      expect(values().aTransform.ref.value).toBe(grid.cellTransform);
+      // placed by poses (a spheres or mesh target): no matrix an instance, the move composed into the poses' matrix
+      const poses = values().instancePoses.ref.value as InstancePoses;
+      expect(poses.kind).toBe('poses');
+      expect(values().aTransform.ref.value.length).toBe(0);
+      expect(grid.cellTransform.length).toBe(0);
+      expect(poses.order).toBe(grid.cellInstance);
+      expect(poses.matrix![12]).toBeCloseTo(dx, 1);
       expect(values().boundingSphere.ref.value.center[0]).toBeCloseTo(x + dx, 0);
       expect(grid.cellSpheres[0]).toBeCloseTo(first.cellSpheres[0] + dx, 1);
     }

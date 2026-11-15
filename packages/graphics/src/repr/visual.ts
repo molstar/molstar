@@ -22,8 +22,11 @@ import type { ParamDefinition as PD } from '@molstar/core/util/param-definition'
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
-import { updateTransformData } from '@molstar/graphics/geo/geometry/transform-data';
-import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
+import { getInstanceTransforms, updateTransformData } from '@molstar/graphics/geo/geometry/transform-data';
+import {
+  calculateInstancesBoundingSphere,
+  calculateTransformDataBoundingSphere,
+} from '@molstar/graphics/gl/renderable/util';
 import { ValueCell } from '@molstar/core/util';
 import { TextureChanges } from '@molstar/graphics/gl/renderable/texture-changes';
 import type { Overpaint } from '@molstar/graphics/theme/overpaint';
@@ -885,16 +888,14 @@ namespace Visual {
     updateTransformData(
       values,
       values.invariantBoundingSphere.ref.value,
-      values.instanceGrid.ref.value.cellSize,
-      values.instanceGrid.ref.value.batchSize,
+      values.instanceCellSize.ref.value,
+      values.instanceBatchSize.ref.value,
     );
-    // from the transforms as drawn (`aTransform`: the matrix and any extra transform applied), as the geometries do
-    const boundingSphere = calculateTransformBoundingSphere(
-      values.invariantBoundingSphere.ref.value,
-      values.aTransform.ref.value,
-      values.instanceCount.ref.value,
-      0,
-    );
+    // from the transforms as drawn (the matrix and any extra transform applied; matrices or poses), as the geometries do
+    // (the box sphere where the object asks for it at any count, `instanceSphereFast`)
+    const boundingSphere = (values as { instanceSphereFast?: ValueCell<boolean> }).instanceSphereFast?.ref.value
+      ? calculateTransformDataBoundingSphere(values.invariantBoundingSphere.ref.value, values)
+      : calculateInstancesBoundingSphere(values.invariantBoundingSphere.ref.value, getInstanceTransforms(values));
     ValueCell.update(values.boundingSphere, boundingSphere);
   }
 

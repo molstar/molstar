@@ -35,7 +35,8 @@ export const CylindersSchema = {
    * Per cylinder 3 texels (`Cylinders.cylinderData`): start xyz and group, end xyz and radius scale, cap and color mode;
    * drawn as boxes of 6 vertex ids by the shared box indices (`quad-indices.ts`)
    */
-  tCylinder: DataSpec('rgba32f'),
+  // three elements per cylinder, the first's fourth the group (an integer)
+  tCylinder: DataSpec('rgb32f-i32', undefined, 3),
 
   padding: ValueSpec('number'),
   uDoubleSided: UniformSpec('b', 'material'),

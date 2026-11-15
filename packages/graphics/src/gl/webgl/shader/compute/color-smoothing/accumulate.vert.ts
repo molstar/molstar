@@ -20,14 +20,14 @@ varying vec4 vColor;
 
 void main() {
     vec3 position = readFromTexture(tPosition, SampleID, uGeoTexDim).xyz;
-    vec3 packedGroup = readFromTexture(tGroup, SampleID, uGeoTexDim).rgb;
+    vec4 packedGroup = readFromTexture(tGroup, SampleID, uGeoTexDim);
     // a vertex of a cell no corner of which has a group: no color (outside the target)
-    if (packedGroup == vec3(0.0)) {
+    if (packedGroup == vec4(0.0)) {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         gl_PointSize = 0.0;
         return;
     }
-    float group = unpackRGBToInt(packedGroup);
+    float group = float(unpackGroupId(packedGroup));
 
     position = (aTransform * vec4(position, 1.0)).xyz;
     gl_PointSize = 7.0;
@@ -41,7 +41,7 @@ void main() {
     #if defined(dColorType_group)
         vColor = readFromTexture(tColor, group, uColorTexDim);
     #elif defined(dColorType_groupInstance)
-        vColor = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim);
+        vColor = readFromTexture(tColor, float(aInstance) * float(uGroupCount) + group, uColorTexDim);
     #endif
 }
 `;

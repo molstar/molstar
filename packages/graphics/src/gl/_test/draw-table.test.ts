@@ -117,7 +117,7 @@ describe('draw table', () => {
     // spheres default to no levels: an empty list, culled and replayed as any object
     expect(values.lodLevels.ref.value.length).toBe(0);
     expect(getDrawFacts(values) & DrawFact.LodLevels).toBe(0);
-    ValueCell.update(values.lodLevels, Object.assign([[0, 100, 0, 6, 1]], { pixelSize: 0 }) as never);
+    ValueCell.update(values.lodLevels, Object.assign([[0, 100, 6, 1]], { pixelSize: 0 }) as never);
     expect(getDrawFacts(values) & DrawFact.LodLevels).toBeTruthy();
   });
 

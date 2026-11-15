@@ -8,11 +8,12 @@ import { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { Volume } from '@molstar/model/model/volume';
 import { DirectVolumeRepresentationProvider } from '@molstar/graphics/repr/volume/direct-volume';
 import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
+import { DotRepresentationProvider } from '@molstar/graphics/repr/volume/dot';
 import { SliceRepresentationProvider } from '@molstar/graphics/repr/volume/slice';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type CapabilityKey } from '../framework/capabilities.js';
-import { type TestView, type VisualTestCase } from '../framework/test-case.js';
+import { DefaultTestSize, type TestView, type VisualTestCase } from '../framework/test-case.js';
 import {
   cylinderStar,
   lineCages,
@@ -23,16 +24,29 @@ import {
   rowTransforms,
   shapeRepr,
   sphereGrid,
+  sphereSitesGrid,
   textLabels,
   textureMeshFromMesh,
 } from '../scenes/primitives.js';
-import { blobVolume, gpuBlobVolume, negatedVolume, segmentedBlobVolume, volumeRepr } from '../scenes/volume.js';
+import {
+  blobVolume,
+  DiscVolumeDims,
+  discVolume,
+  gpuBlobVolume,
+  negatedVolume,
+  segmentedBlobVolume,
+  volumeRepr,
+} from '../scenes/volume.js';
 import { SegmentRepresentationProvider } from '@molstar/graphics/repr/volume/segment';
 import { exampleStructure, globuleStructure, helixStructure, structureRepr } from '../scenes/structure.js';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { GaussianVolumeRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-volume';
 import { OrderedSet } from '@molstar/core/data/int';
 import { ValueCell } from '@molstar/core/util';
+import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
+import { createDataArray } from '@molstar/graphics/gl/renderable/util';
+import { setColorType } from '@molstar/graphics/geo/geometry/color-data';
+import { setSizeType } from '@molstar/graphics/geo/geometry/size-data';
 import { Material } from '@molstar/core/util/material';
 import type { Representation } from '@molstar/graphics/repr/representation';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -46,6 +60,85 @@ import {
   probeZeroWeightNormalization,
 } from '@molstar/graphics/geo/geometry/texture-mesh/color-smoothing';
 import type { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
+
+/** The geometries of the disc's groups past 2^24: isosurfaces (GPU, CPU) and dots (spheres, points) */
+const DiscGroupIdsKinds = {
+  gpu: { id: 'geometry/texture-mesh/isosurface-gpu-group-ids', name: 'GPU isosurface' },
+  cpu: { id: 'geometry/mesh/isosurface-cpu-group-ids', name: 'CPU isosurface' },
+  'dot-sphere': { id: 'geometry/spheres/volume-dot-group-ids', name: 'Dots as spheres' },
+  'dot-point': { id: 'geometry/points/volume-dot-group-ids', name: 'Dots as points' },
+} as const;
+
+/**
+ * A geometry of a grid of more than 2^24 voxels, an isosurface (on the GPU, else the CPU) or dots (spheres, points: a
+ * dot per voxel, `tPositionGroup`'s group an integer), its groups past 2^24 picked
+ */
+function discGroupIdsCase(kind: keyof typeof DiscGroupIdsKinds): VisualTestCase {
+  const gpu = kind === 'gpu';
+  const dot = kind === 'dot-sphere' || kind === 'dot-point';
+  return {
+    id: DiscGroupIdsKinds[kind].id,
+    description:
+      `${DiscGroupIdsKinds[kind].name} of a disc` +
+      ' in the last slice of a grid of more than 2^24 voxels (256 × 256 × 258), seen from the ' +
+      "empty slices (it faces them): its groups, the voxels' indices, past 2^24. Picked across the canvas: each group a " +
+      'voxel of the last two slices within the disc, every one past 2^24, some odd (a float index past 2^24 rounds to ' +
+      'even; a 24-bit group reads 16,777,214).',
+    requires: gpu
+      ? ['floatRenderTarget', 'multipleRenderTargets', 'integerIds']
+      : dot
+        ? [...Impostor, 'integerIds']
+        : ['integerIds'],
+    view: { direction: [-0.2, -0.3, 1] },
+    // points a voxel apart, about a pixel: their quads' edges round differently on WebGPU and WebGL2, single pixels of
+    // the moiré between them (93 of 65,536)
+    ...(kind === 'dot-point' && { tolerance: { maxDiffRatio: 0.004 } }),
+    scene: async ({ graphics }) => [
+      dot
+        ? await volumeRepr(graphics, DotRepresentationProvider, discVolume(), {
+            isoValue: Volume.IsoValue.absolute(0.5),
+            visuals: [kind === 'dot-sphere' ? 'sphere' : 'point'],
+          })
+        : await volumeRepr(graphics, IsosurfaceRepresentationProvider, discVolume(), {
+            isoValue: Volume.IsoValue.absolute(0.5),
+            tryUseGpu: gpu,
+          }),
+    ],
+    interact: async (ctx) => {
+      const [nx, ny, nz] = DiscVolumeDims;
+      const base = 1 << 24;
+      const errors: string[] = [];
+      let picks = 0;
+      let past = 0;
+      let odd = 0;
+      const { width, height } = DefaultTestSize;
+      for (let y = 8; y < height; y += 16) {
+        for (let x = 8; x < width; x += 16) {
+          const picked = await ctx.canvas3d.asyncIdentify(Vec2.create(x, y))?.wait();
+          if (!picked) continue;
+          picks++;
+          const g = picked.id.groupId;
+          const k = Math.floor(g / (nx * ny));
+          const j = Math.floor((g % (nx * ny)) / nx);
+          const i = g % nx;
+          const d = Math.hypot(i - nx / 2, j - ny / 2);
+          // the vertices on the edges between the last two slices: their first voxel's (cap) or either (edge)
+          if (k < nz - 2 || k > nz - 1 || d > 90) {
+            if (errors.length < 3) errors.push(`group ${g} (voxel ${i}, ${j}, ${k}) not at the disc`);
+          }
+          if (g >= base) {
+            past++;
+            if (g % 2 === 1) odd++;
+          }
+        }
+      }
+      if (picks === 0) errors.push('nothing picked');
+      else if (past < picks) errors.push(`${picks - past} of ${picks} picked groups below 2^24`);
+      else if (odd === 0) errors.push(`no odd group of ${past} past 2^24 (rounded to even)`);
+      return errors;
+    },
+  };
+}
 
 export const ObliqueView: TestView = { direction: [-0.4, -0.5, -1] };
 
@@ -267,6 +360,78 @@ export const GeometryCases: VisualTestCase[] = [
     scene: async () => [await shapeRepr('spheres', sphereGrid(3, 3))],
   },
   {
+    id: 'geometry/spheres/sites',
+    description:
+      'As `geometry/spheres/grid` from quantized centers (`Spheres.fromSites`, int16 by an origin and a scale, exact here): the same image.',
+    requires: Impostor,
+    fallback: {
+      requires: ['sphereSites'],
+      overrides: { scene: async () => [await shapeRepr('spheres', sphereGrid(3, 3))] },
+    },
+    view: ObliqueView,
+    scene: async (ctx) => [await shapeRepr('spheres', sphereSitesGrid(3, 3, ctx.graphics))],
+  },
+  {
+    id: 'geometry/spheres/instance-ids',
+    description:
+      'Two instances of ids past 2^24 (16,777,217 and 16,777,219), colored by instance from a layer that long: red and ' +
+      'green, their even neighbours (where a float rounds them) blue. Integer ids read their own colors: no blue; picked ' +
+      'across the canvas, the ids are those two (32-bit pick ids).',
+    requires: [...Impostor, 'integerIds'],
+    view: ObliqueView,
+    scene: async () => {
+      const repr = await shapeRepr('spheres', sphereGrid(1, 1), { transforms: rowTransforms(2, 3) });
+      const values = repr.renderObjects[0].values as unknown as SpheresValues;
+      const base = 1 << 24;
+      ValueCell.update(values.aInstance, Uint32Array.of(base + 1, base + 3));
+      const colors = createDataArray(base + 4, 4, Uint8Array);
+      const set = (i: number, r: number, g: number, b: number) => colors.array.set([r, g, b, 255], i * 4);
+      set(base, 0, 0, 255);
+      set(base + 1, 255, 0, 0);
+      set(base + 2, 0, 0, 255);
+      set(base + 3, 0, 255, 0);
+      ValueCell.update(values.tColor, colors);
+      setColorType(values, 'instance');
+      // the markers by group instance (one group): as long, unmarked; a uniform size (shapes' by group instance)
+      ValueCell.update(values.tMarker, createDataArray(base + 4, 1, Uint8Array));
+      ValueCell.update(values.uSize, 1);
+      setSizeType(values, 'uniform');
+      return [repr];
+    },
+    interact: async (ctx) => {
+      // picked on a grid over the canvas: the instances' own ids, past 2^24 (the alpha byte of the instance target)
+      const ids = new Set<number>();
+      const { width, height } = DefaultTestSize;
+      for (let y = 16; y < height; y += 32) {
+        for (let x = 16; x < width; x += 32) {
+          const picked = await ctx.canvas3d.asyncIdentify(Vec2.create(x, y))?.wait();
+          if (picked) ids.add(picked.id.instanceId);
+        }
+      }
+      const base = 1 << 24;
+      const found = [...ids].sort((a, b) => a - b);
+      return found.length === 2 && found[0] === base + 1 && found[1] === base + 3
+        ? []
+        : [`picked instance ids ${found.join(', ')}, not ${base + 1} and ${base + 3}`];
+    },
+    checkImage: (image) => {
+      let red = 0;
+      let green = 0;
+      let blue = 0;
+      for (let i = 0; i < image.data.length; i += 4) {
+        const [r, g, b] = [image.data[i], image.data[i + 1], image.data[i + 2]];
+        if (r > g + 40 && r > b + 40) red++;
+        else if (g > r + 40 && g > b + 40) green++;
+        else if (b > r + 40 && b > g + 40) blue++;
+      }
+      const errors: string[] = [];
+      if (red === 0) errors.push('no red instance (id 2^24 + 1)');
+      if (green === 0) errors.push('no green instance (id 2^24 + 3)');
+      if (blue > 0) errors.push(`${blue} blue pixels: an id rounded to its neighbour`);
+      return errors;
+    },
+  },
+  {
     id: 'geometry/spheres/instanced',
     requires: Impostor,
     view: ObliqueView,
@@ -281,16 +446,14 @@ export const GeometryCases: VisualTestCase[] = [
   {
     id: 'geometry/spheres/lod-levels',
     description:
-      'Per-level `uLod` is set via multi-draw data; everything is in the far level: every 8th sphere at 2x size.',
+      'Per-level `uLod` is set via multi-draw data; levels by size on screen at a pixel size that puts everything in the second level: every 10th sphere at 2.15x size.',
     requires: Impostor,
     view: ObliqueView,
     scene: async () => [
       await shapeRepr('spheres', sphereGrid(6, 1.5), {
         props: {
-          lodLevels: [
-            { minDistance: 0, maxDistance: 1, overlap: 0, stride: 1, scaleBias: 1 },
-            { minDistance: 1, maxDistance: 10000000, overlap: 0, stride: 8, scaleBias: 3 },
-          ],
+          // the smallest sphere drawn, in pixels: above the size of the spheres here, so coarser levels draw
+          lodPixelSize: 75,
         },
       }),
     ],
@@ -311,17 +474,16 @@ export const GeometryCases: VisualTestCase[] = [
   },
   {
     id: 'geometry/points/lod-levels',
-    description: 'As spheres: everything is in the far level, every 8th point at 2x size.',
+    description:
+      'As spheres, levels by size on screen: the points spread over the levels by their depth (fewer, larger points the farther).',
     view: ObliqueView,
     scene: async () => [
       await shapeRepr('points', pointSphere(400, 4), {
         props: {
           pointStyle: 'circle',
           sizeFactor: 4,
-          lodLevels: [
-            { minDistance: 0, maxDistance: 1, overlap: 0, stride: 1, scaleBias: 1 },
-            { minDistance: 1, maxDistance: 10000000, overlap: 0, stride: 8, scaleBias: 3 },
-          ],
+          // the smallest sphere drawn, in pixels: above the size of the spheres here, so coarser levels draw
+          lodPixelSize: 75,
         },
       }),
     ],
@@ -464,6 +626,10 @@ export const GeometryCases: VisualTestCase[] = [
     view: ObliqueView,
     scene: async ({ graphics }) => [await updatedIsosurface(graphics, 0.9, 0.5)],
   },
+  discGroupIdsCase('gpu'),
+  discGroupIdsCase('cpu'),
+  discGroupIdsCase('dot-sphere'),
+  discGroupIdsCase('dot-point'),
   {
     id: 'geometry/mesh/segment-cpu',
     description: 'Volume segmentation (three labeled blobs), a CPU surface per segment.',

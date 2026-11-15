@@ -21,6 +21,15 @@ fn packIntToRGB(v: f32) -> vec3<f32> {
     return c / 255.0;
 }
 
+/**
+ * A pick id (object, instance, group) in 32 bits: the 24 low bits of \`id + 1\` in rgb (as \`packIntToRGB\`), the top byte
+ * in alpha; the null (2^32 - 2) the targets' clear, white
+ */
+fn packPickId(id: u32) -> vec4<f32> {
+    let v = id + 1u;
+    return vec4<f32>(f32((v >> 16u) & 255u), f32((v >> 8u) & 255u), f32(v & 255u), f32(v >> 24u)) / 255.0;
+}
+
 fn unpackRGBToInt(rgb: vec3<f32>) -> f32 {
     return (floor(rgb.r * 255.0 + 0.5) * 256.0 * 256.0 + floor(rgb.g * 255.0 + 0.5) * 256.0 + floor(rgb.b * 255.0 + 0.5)) - 1.0;
 }

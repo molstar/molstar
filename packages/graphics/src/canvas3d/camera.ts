@@ -9,6 +9,7 @@ import { Viewport, cameraProject, cameraUnproject } from './camera/util.js';
 import { CameraTransitionManager, type CameraTransitionOptions } from './camera/transition.js';
 import { BehaviorSubject, Subject } from 'rxjs';
 import type { Scene } from '@molstar/graphics/gl/scene';
+import type { CullView } from '../gl/camera.js';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import type { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
@@ -65,6 +66,8 @@ export class Camera implements ICamera {
   readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
   readonly viewOffset = Camera.ViewOffset();
   readonly crop = Camera.Crop();
+  /** the views drawn together culled as one (`RenderCamera.cullView`): a frame's jittered samples (`setJitter`) */
+  cullView: CullView | undefined = undefined;
 
   readonly disabled = false as const;
 

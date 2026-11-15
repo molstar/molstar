@@ -4,9 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { ProgramVariant } from '../../render-item.js';
+import { registerBuiltInWgslPrograms, type WgslProgram } from './program-registry.js';
 import type { DefineValues } from '../../shader-code.js';
-import type { DefineLookup } from '../../renderable/schema.js';
 import { getWgslDefineLookup, getWgslDefines } from '../program.js';
 import { copy_wgsl } from './copy.wgsl.js';
 import { cylinders_wgsl } from './cylinders.wgsl.js';
@@ -24,7 +23,7 @@ import { cas_wgsl } from './cas.wgsl.js';
 import { direct_volume_wgsl } from './direct-volume.wgsl.js';
 import { dof_wgsl } from './dof.wgsl.js';
 import { illumination_compose_wgsl, trace_wgsl } from './illumination.wgsl.js';
-import { hi_z_wgsl } from './hi-z.wgsl.js';
+import { hi_z_occluder_wgsl, hi_z_wgsl } from './hi-z.wgsl.js';
 import { volume_composite_wgsl } from './volume-composite.wgsl.js';
 import { image_wgsl } from './image.wgsl.js';
 import { fxaa_wgsl } from './fxaa.wgsl.js';
@@ -36,19 +35,6 @@ import { smaa_blend_wgsl, smaa_edges_wgsl, smaa_weights_wgsl } from './smaa.wgsl
 import { ssao_wgsl } from './ssao.wgsl.js';
 import { spheres_wgsl } from './spheres.wgsl.js';
 import { text_wgsl } from './text.wgsl.js';
-
-/**
- * A WGSL program, by the name of the `ShaderCode` it replaces. `source` may depend on the variant's defines (a lookup
- * of the flattened names, `dX` and `dX_value`): what a variant turns off (a feature's helpers, the reads of its
- * textures) is left out of the source, so that it is not bound; defines inside the source are for small branches
- */
-export interface WgslProgram {
-  readonly source: string | ((defines: DefineLookup) => string);
-  /** render variants the source implements */
-  readonly variants: readonly ProgramVariant[];
-  /** the first feature selected by `defines` that the source doesn't implement */
-  readonly getUnsupported?: (defines: DefineValues) => string | undefined;
-}
 
 /** The source of a program (`WgslProgram.source`) for the variant of `defineValues` */
 export function resolveWgslSource(source: WgslProgram['source'], defineValues: DefineValues) {
@@ -138,6 +124,7 @@ const Programs: { [name: string]: WgslProgram } = {
   },
   ssao: { source: ssao_wgsl, variants: ['compute'] },
   'hi-z': { source: hi_z_wgsl, variants: ['compute'] },
+  'hi-z-occluder': { source: hi_z_occluder_wgsl, variants: ['compute'] },
   'volume-composite': { source: volume_composite_wgsl, variants: ['compute'] },
   'evaluate-wboit': { source: evaluate_wboit_wgsl, variants: ['compute'] },
   'Bloom Luminosity': { source: bloom_luminosity_wgsl, variants: ['compute'] },
@@ -190,12 +177,13 @@ const Programs: { [name: string]: WgslProgram } = {
     getUnsupported: (d) => getUnsupported('points', d),
   },
 };
+registerBuiltInWgslPrograms(Programs);
 
-export function getWgslProgram(name: string): WgslProgram | undefined {
-  return Programs[name];
-}
-
-/** The names of the registered programs (e.g. for a check that every one compiles) */
-export function getWgslProgramNames(): string[] {
-  return Object.keys(Programs);
-}
+export {
+  getWgslProgram,
+  getWgslProgramNames,
+  hasWgslProgram,
+  registerWgslProgram,
+  unregisterWgslProgram,
+  type WgslProgram,
+} from './program-registry.js';

@@ -28,6 +28,15 @@ import type { GraphicsStats } from './stats.js';
 import { getDrawnBoundingSphere, transformSphereAt } from './renderable/util.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
+import { InstanceTransforms } from '@molstar/core/math/geometry/instance-transforms';
+import {
+  applyPendingGrid,
+  getObjectTransforms,
+  hasInstanceCells,
+  type InstanceGridValues,
+  type TransformValues,
+} from './transform-parts.js';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Clip } from '@molstar/core/util/clip';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
@@ -200,7 +209,6 @@ export interface Renderable<T extends RenderableValues> {
   ) => void;
   /** `clipGhost`: of the ghost pass's lists, as `cull`'s */
   uncull: (lod: LodView, clipGhost?: boolean) => void;
-  cullSimple: (d: number, radius: number, scale: number, lod: LodView, clipGhost?: boolean) => void;
   /**
    * Culls on the GPU, where the renderable does (merged render objects, see `merged-culler.ts`): called by
    * `Renderer.prepareCull` before the passes of `frame` (no pass open), its `cull` with the same planes then draws the
@@ -217,6 +225,13 @@ export interface Renderable<T extends RenderableValues> {
     /** the ghost pass's lists too (`Renderer.renderClipGhost`), where the object has a ghost */
     clipGhost?: boolean,
   ) => boolean;
+  /**
+   * Culls on the GPU for a view of its own (`Renderer.prepareCullView`: the thickness pass, a ray's pick; no pass
+   * open), not tested against a pyramid: where the renderable draws nothing without (a page store's, which has no CPU
+   * culling); its `cull` with the same camera then draws the result. The view's culling replaces the last one: the
+   * next `prepareCull` culls the frame's view again
+   */
+  prepareCullView?: (cameraPlane: Plane3D, frustum: Frustum3D, frame: Frame, lod: LodView) => boolean;
   /**
    * Culled on the GPU for the sphere raster only (`gpuCulling` 'auto' by its spheres, not its instances): its spheres;
    * `Renderer.prepareCull` leaves it to the CPU culling where the raster does not take it. Undefined for the others
@@ -273,7 +288,7 @@ export interface Renderable<T extends RenderableValues> {
   readonly programVersion: number;
   /**
    * Advances when what decides the draw calls besides the values and the program changes: the ranges of the instances
-   * and levels of detail drawn (`cull`, `uncull`, `cullSimple`), the level uniforms; equal versions mean the same calls
+   * and levels of detail drawn (`cull`, `uncull`), the level uniforms; equal versions mean the same calls
    * (what a recorded pass replays). Compared by those writing the ranges, a number to read
    */
   /**
@@ -385,37 +400,61 @@ export function appendMdbDrawKey(list: readonly MultiDrawBaseData[], out: DrawKe
   }
 }
 
-function getMdbData(cellCount: number, mdbData?: MultiDrawBaseData): MultiDrawBaseData {
-  if (mdbData && mdbData.instanceCounts.length >= cellCount) {
+/**
+ * The entries a list starts with: lists grow as culling emits draws (`growMdbData`), so they hold what was drawn, not
+ * a draw a cell of every cell (a merged object's members' cells: tens of millions of a large scene's instances); a
+ * list culled on the GPU emits none
+ */
+const InitialMdbCapacity = 1024;
+
+function getMdbData(capacity: number, mdbData?: MultiDrawBaseData): MultiDrawBaseData {
+  const length = Math.min(capacity, InitialMdbCapacity);
+  if (mdbData && mdbData.instanceCounts.length >= length) {
     return mdbData;
   } else {
     return {
-      firsts: new Int32Array(cellCount),
-      counts: new Int32Array(cellCount),
-      offsets: new Int32Array(cellCount),
-      instanceCounts: new Int32Array(cellCount),
-      baseVertices: new Int32Array(cellCount),
-      baseInstances: new Uint32Array(cellCount),
+      firsts: new Int32Array(length),
+      counts: new Int32Array(length),
+      offsets: new Int32Array(length),
+      instanceCounts: new Int32Array(length),
+      baseVertices: new Int32Array(length),
+      baseInstances: new Uint32Array(length),
       count: 0,
       uniforms: [],
     };
   }
 }
 
+/** `l`'s arrays grown to hold at least `min` entries (by half again: amortized), its entries kept */
+function growMdbData(l: MultiDrawBaseData, min: number) {
+  const length = Math.max(min, Math.ceil(l.firsts.length * 1.5), 64);
+  const grow = <A extends Int32Array | Uint32Array>(a: A, out: A) => {
+    out.set(a.subarray(0, l.count));
+    return out;
+  };
+  l.firsts = grow(l.firsts, new Int32Array(length));
+  l.counts = grow(l.counts, new Int32Array(length));
+  l.offsets = grow(l.offsets, new Int32Array(length));
+  l.instanceCounts = grow(l.instanceCounts, new Int32Array(length));
+  l.baseVertices = grow(l.baseVertices, new Int32Array(length));
+  l.baseInstances = grow(l.baseInstances, new Uint32Array(length));
+}
+
 //
 
 /**
- * Levels of detail: per level its range and fade (`overlap`), the vertices it draws and its spheres' scale. The range
+ * Levels of detail: per level its range, the vertices it draws and its spheres' scale. The range
  * in Å of distance from the camera plane, or with `pixelSize` above 0 (the smallest sphere drawn, in CSS pixels) in Å a
  * CSS pixel covers (the last level's maximum `Infinity`),
- * converted to distances per view (`LodView`, `screen-space-lod.md`)
+ * converted to distances per view (`LodView`)
  */
 export type LodLevelsValue = [
   minDistance: number,
   maxDistance: number,
-  overlap: number,
   count: number,
   scale: number,
+  /** the level's stride: it draws every stride-th item (`getLodItem`) */
+  stride: number,
 ][] & {
   readonly pixelSize?: number;
 };
@@ -426,7 +465,6 @@ const MaxLodDistance = 1e9;
 /**
  * What converts levels by size on screen (`LodLevelsValue.pixelSize`) into distances: the Å a CSS pixel covers per Å of
  * view depth (perspective), or everywhere (orthographic), from the projection and the viewport's height in CSS pixels
- * (`screen-space-lod.md`)
  */
 export interface LodView {
   /** Å per CSS pixel per Å of view depth, 0 for orthographic */
@@ -454,26 +492,23 @@ export namespace LodView {
   }
 
   /**
-   * Level `j`'s range and fade in distances, into `out` (min, max, overlap): as they are without `pixelSize`; with it the
+   * Level `j`'s range in distances, into `out` (min, max): as they are without `pixelSize`; with it the
    * pixel sizes divided by the depth scale, or (orthographic, or no view yet) all distances for the level of the view's
    * pixel size and none for the others
    */
   export function getRange(levels: LodLevelsValue, j: number, view: LodView, out: number[]) {
-    const [min, max, overlap] = levels[j];
+    const [min, max] = levels[j];
     if (!((levels.pixelSize ?? 0) > 0)) {
       out[0] = min;
       out[1] = max;
-      out[2] = overlap;
     } else if (view.depthScale > 0) {
       const k = view.depthScale;
       out[0] = min / k;
       out[1] = Math.min(max / k, MaxLodDistance);
-      out[2] = overlap / k;
     } else {
       const drawn = min <= view.pixelSize && view.pixelSize < max;
       out[0] = drawn ? 0 : -2;
       out[1] = drawn ? MaxLodDistance : -1;
-      out[2] = 0;
     }
     return out;
   }
@@ -485,9 +520,11 @@ export type CullValues = {
   readonly instanceCount: ValueCell<number>;
   readonly uLod: ValueCell<Vec4>;
   readonly instanceGrid: ValueCell<InstanceGrid>;
+  /** culled and decimated by cells (`hasInstanceCells`) */
+  readonly instanceCellSize: ValueCell<number>;
   readonly boundingSphere: ValueCell<Sphere3D>;
   readonly lodLevels?: ValueCell<unknown>;
-  /** clip objects without a clipping layer cull what they clip whole (`getCullClipObjects`, `clip-culling.md`) */
+  /** clip objects without a clipping layer cull what they clip whole (`getCullClipObjects`) */
   readonly dClipObjects?: ValueCell<boolean>;
   readonly dClipping?: ValueCell<boolean>;
   readonly clipObjects?: ValueCell<Clip.Objects>;
@@ -659,7 +696,7 @@ export interface SegmentedMdbList {
   /**
    * append draw entries for the instances with a count above 0 (`counts` by instance id, `MarkerData.markerInstanceCounts`)
    * in the frustum, each at the levels its sphere reaches (`positions` the draw position of each id, as the grid
-   * reordered them: `createInstancePositions`; `transforms` in draw order, `sphere` their invariant one), as
+   * reordered them: `createInstancePositions`; `transforms` in draw order, either encoding, `sphere` their invariant one), as
    * `cullSegment` a cell; no occlusion: the hidden ones are drawn too (their ghost edges)
    */
   markedSegment: (
@@ -668,19 +705,10 @@ export interface SegmentedMdbList {
     lodLevels: LodLevelsValue | undefined,
     counts: Uint32Array,
     positions: Uint32Array,
-    transforms: Float32Array,
+    transforms: InstanceTransforms,
     sphere: Sphere3D,
     cameraPlane: Plane3D,
     frustum: Frustum3D,
-  ) => void;
-  /** append the draw entry for the lod level matching the given distance (the ranges of the last `prepare`) */
-  cullSimpleSegment: (
-    values: CullValues,
-    segment: CullSegment,
-    lodLevels: LodLevelsValue,
-    d: number,
-    radius: number,
-    scale: number,
   ) => void;
 }
 
@@ -738,11 +766,11 @@ export function createSegmentedMdbList(): SegmentedMdbList {
   const range: number[] = [0, 0, 0];
 
   const s = Sphere3D();
+  const markedCenter = Vec3();
 
   // flattened lod tuples, avoids nested array loads in the hot cell loop; the ranges in distances (`prepare`)
   const lodMin: number[] = [];
   const lodMax: number[] = [];
-  const lodOverlap: number[] = [];
   const lodCount: number[] = [];
 
   function prepare(
@@ -754,9 +782,10 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     const lodLevels = lodCell?.ref.value as LodLevelsValue | undefined;
     const hasLodLevels = !!lodLevels && lodLevels.length > 0;
     const levelCount = hasLodLevels ? lodLevels.length : 1;
-    // segmented (merged) items also carry their segments' level scales (`tSegment`, up to 4 levels) - members' scales
-    // can differ, unlike min/max/overlap
-    const uniformCount = segmented ? 2 : 1;
+    // segmented (merged) items also carry their segments' level scales and strides (`tSegment`, up to 4 levels, the
+    // level by `uLodLevel`) - members' can differ, unlike min/max; unmerged ones the level's stride (`uLodStride`: quad
+    // `p` draws item `p * stride`)
+    const uniformCount = 2;
 
     list.length = levelCount;
     const viewChanged =
@@ -769,20 +798,22 @@ export function createSegmentedMdbList(): SegmentedMdbList {
         LodView.getRange(lodLevels, j, lod, range);
         lodMin[j] = range[0];
         lodMax[j] = range[1];
-        lodOverlap[j] = range[2];
         const l = list[j];
         let created = false;
         if (l.uniforms.length !== uniformCount) {
           l.uniforms.length = uniformCount;
           l.uniforms[0] = ['uLod', ValueCell.create(Vec4())];
-          if (segmented) l.uniforms[1] = ['uLodLevel', ValueCell.create(Math.min(j, 3))];
+          l.uniforms[1] = segmented
+            ? ['uLodLevel', ValueCell.create(Math.min(j, 3))]
+            : ['uLodStride', ValueCell.create(lodLevels[j][4] ?? 1)];
           created = true;
         }
         if (uniformsNeedUpdate || created) {
           ValueCell.update(
             l.uniforms[0][1],
-            Vec4.set(l.uniforms[0][1].ref.value as Vec4, lodMin[j], lodMax[j], lodOverlap[j], lodLevels[j][4]),
+            Vec4.set(l.uniforms[0][1].ref.value as Vec4, lodMin[j], lodMax[j], 0, lodLevels[j][3]),
           );
+          if (!segmented) ValueCell.updateIfChanged(l.uniforms[1][1], lodLevels[j][4] ?? 1);
         }
       } else {
         list[j].uniforms.length = 0;
@@ -815,6 +846,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     ) {
       l.instanceCounts[o - 1] += instanceCount;
     } else {
+      if (o >= l.firsts.length) growMdbData(l, o + 1);
       l.firsts[o] = first;
       l.offsets[o] = offset;
       l.counts[o] = count;
@@ -842,13 +874,12 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     const { first, offset, instanceBase } = segment;
     const [minDistance, maxDistance] = values.uLod.ref.value;
     const hasLod = minDistance !== 0 || maxDistance !== 0;
-    const grid = values.instanceGrid.ref.value;
 
     const levelCount = lodLevels ? lodLevels.length : 0;
-    for (let j = 0; j < levelCount; ++j) lodCount[j] = lodLevels![j][3];
+    for (let j = 0; j < levelCount; ++j) lodCount[j] = lodLevels![j][2];
     const clip = getCullClipObjects(values);
 
-    if (grid.cellSize <= 1) {
+    if (!hasInstanceCells(values)) {
       if (!wholeSegmentFallback) return false;
 
       // no instance grid for this segment, cull it as a whole
@@ -872,9 +903,9 @@ export function createSegmentedMdbList(): SegmentedMdbList {
       }
       if (lodLevels) {
         // no per-cell distance to decimate by here, so draw full detail for
-        // whichever level(s) match (keeps the level's uLod min/max/overlap
-        // fade correct, matches the plain render path's full-detail draw for
-        // ungridded objects, see the `cellSize <= 1` bail in createRenderable's cull)
+        // whichever level(s) match (keeps the level's uLod min/max
+        // correct, matches the plain render path's full-detail draw for
+        // ungridded objects, see the `hasInstanceCells` bail in createRenderable's cull)
         for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
           if (d + b.radius < lodMin[j] || d - b.radius > lodMax[j]) continue;
           emit(list[j], first, offset, drawCount, instanceCount, instanceBase);
@@ -1038,7 +1069,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
 
     if (lodLevels) {
       for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
-        emit(list[j], segment.first, segment.offset, lodLevels[j][3], instanceCount, segment.instanceBase);
+        emit(list[j], segment.first, segment.offset, lodLevels[j][2], instanceCount, segment.instanceBase);
       }
     } else {
       emit(list[0], segment.first, segment.offset, drawCount, instanceCount, segment.instanceBase);
@@ -1051,7 +1082,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     lodLevels: LodLevelsValue | undefined,
     counts: Uint32Array,
     positions: Uint32Array,
-    transforms: Float32Array,
+    transforms: InstanceTransforms,
     sphere: Sphere3D,
     cameraPlane: Plane3D,
     frustum: Frustum3D,
@@ -1064,9 +1095,8 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     const [minDistance, maxDistance] = values.uLod.ref.value;
     const hasLod = minDistance !== 0 || maxDistance !== 0;
     // gridless segments are drawn at full detail at their levels (`cullSegment`)
-    const gridless = values.instanceGrid.ref.value.cellSize <= 1;
+    const gridless = !hasInstanceCells(values);
     const levelCount = lodLevels ? lodLevels.length : 0;
-    const [cx, cy, cz] = sphere.center;
     setCullPlanes(frustum, cameraPlane);
     // as drawn: the transient transform after the instances'
     const o = values.uObjectTransform?.ref.value;
@@ -1076,11 +1106,11 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     for (let id = 0, il = Math.min(instanceCount, counts.length); id < il; ++id) {
       if (counts[id] === 0) continue;
       const k = positions[id];
-      const t = k * 16;
-      const m = transforms;
-      let x = m[t] * cx + m[t + 4] * cy + m[t + 8] * cz + m[t + 12];
-      let y = m[t + 1] * cx + m[t + 5] * cy + m[t + 9] * cz + m[t + 13];
-      let z = m[t + 2] * cx + m[t + 6] * cy + m[t + 10] * cz + m[t + 14];
+      // the marked instances alone, so one at a time by the encoding
+      InstanceTransforms.getPoint(transforms, k, sphere.center, markedCenter);
+      let x = markedCenter[0];
+      let y = markedCenter[1];
+      let z = markedCenter[2];
       if (moved) {
         const ox = o[0] * x + o[4] * y + o[8] * z + o[12];
         const oy = o[1] * x + o[5] * y + o[9] * z + o[13];
@@ -1088,21 +1118,14 @@ export function createSegmentedMdbList(): SegmentedMdbList {
         x = ox;
         y = oy;
       }
-      const scale = Math.sqrt(
-        Math.max(
-          m[t] * m[t] + m[t + 1] * m[t + 1] + m[t + 2] * m[t + 2],
-          m[t + 4] * m[t + 4] + m[t + 5] * m[t + 5] + m[t + 6] * m[t + 6],
-          m[t + 8] * m[t + 8] + m[t + 9] * m[t + 9] + m[t + 10] * m[t + 10],
-        ),
-      );
-      const r = sphere.radius * scale * objectScale;
+      const r = sphere.radius * InstanceTransforms.getMaxScale(transforms, k) * objectScale;
       if (!intersectsCullFrustum(x, y, z, r)) continue;
       const d = cullCameraDistance(x, y, z);
       if (hasLod && (d + r < minDistance || d - r > maxDistance)) continue;
       if (lodLevels) {
         for (let j = 0; j < levelCount; ++j) {
           if (d + r < lodMin[j] || d - r > lodMax[j]) continue;
-          emit(list[j], first, offset, gridless ? drawCount : lodLevels[j][3], 1, instanceBase + k);
+          emit(list[j], first, offset, gridless ? drawCount : lodLevels[j][2], 1, instanceBase + k);
         }
       } else {
         emit(list[0], first, offset, drawCount, 1, instanceBase + k);
@@ -1110,32 +1133,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     }
   }
 
-  function cullSimpleSegment(
-    values: CullValues,
-    segment: CullSegment,
-    lodLevels: LodLevelsValue,
-    d: number,
-    radius: number,
-    scale: number,
-  ) {
-    if (values.drawCount.ref.value === 0 || values.instanceCount.ref.value === 0) return;
-
-    for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
-      if (d + radius < lodMax[j] * scale) {
-        emit(
-          list[j],
-          segment.first,
-          segment.offset,
-          lodLevels[j][3],
-          values.instanceCount.ref.value,
-          segment.instanceBase,
-        );
-        break;
-      }
-    }
-  }
-
-  return { list, prepare, append: emit, cullSegment, fullSegment, markedSegment, cullSimpleSegment };
+  return { list, prepare, append: emit, cullSegment, fullSegment, markedSegment };
 }
 
 /**
@@ -1165,10 +1163,10 @@ export function getMarkedDrawVersion(marked: boolean, markedVersion: number, dra
  * the cell's value and version stay
  */
 export function createInstancePositions() {
-  let array: Float32Array | undefined;
+  let array: Uint32Array | undefined;
   let version = -1;
   let positions = new Uint32Array(0);
-  return (instances: ValueCell<Float32Array>, count: number) => {
+  return (instances: ValueCell<Uint32Array>, count: number) => {
     const a = instances.ref.value;
     if (a !== array || instances.ref.version !== version || positions.length < count) {
       if (positions.length < count) positions = new Uint32Array(count);
@@ -1217,7 +1215,7 @@ type GraphicsRenderableValues = RenderableValues & BaseValues;
  * What a cull read, to skip the next with the same (still frames redo every object's culling otherwise): the view's
  * version (`LodView.version`, the renderer compares the view once per update) and the versions of the culled values'
  * cells. Not for an occlusion test (its levels change between frames) nor in timing mode (the culled counts are per
- * frame); `invalidate` where the lists changed otherwise (`uncull`, `cullSimple`)
+ * frame); `invalidate` where the lists changed otherwise (`uncull`)
  */
 export function createCullView() {
   let viewVersion = 0;
@@ -1279,6 +1277,8 @@ export function createRenderable<T extends GraphicsRenderableValues>(
   renderItem: GraphicsRenderItem,
   values: T,
   state: RenderableState,
+  /** the instances' data in storage (`instance-storage.ts`): synced on updates, destroyed with the renderable */
+  storage?: { sync(): void; destroy(): void },
 ): Renderable<T> {
   const id = getNextRenderableId();
 
@@ -1302,6 +1302,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     instanceCount: values.instanceCount,
     uLod: values.uLod,
     instanceGrid: values.instanceGrid,
+    instanceCellSize: values.instanceCellSize,
     boundingSphere: values.boundingSphere,
     lodLevels: values.lodLevels,
     dClipObjects: values.dClipObjects,
@@ -1329,7 +1330,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     if (cullValues.drawCount.ref.value === 0) return;
     if (cullValues.instanceCount.ref.value === 0) return;
     const grid = cullValues.instanceGrid.ref.value;
-    if (grid.cellSize <= 1) return;
+    if (!hasInstanceCells(cullValues)) return;
 
     const lodLevels = set.mdb.prepare(cullValues.lodLevels, grid.cellCount, false, lod);
     set.mdb.cullSegment(
@@ -1347,24 +1348,6 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     set.cullEnabled = true;
     if (!clipGhost) setMarkedView(cameraPlane, frustum, lod);
     set.lastCullFrame = frame;
-  };
-
-  const cullSimple = (d: number, radius: number, scale: number, lod: LodView) => {
-    set.cullEnabled = false;
-    // a scaled model's levels are not kept per sphere by the shader: no marked lists
-    if (set === visibleSet) markedLod = undefined;
-
-    const lodLevels = set.mdb.prepare(
-      cullValues.lodLevels,
-      Math.max(1, cullValues.instanceGrid.ref.value.cellCount),
-      false,
-      lod,
-    );
-    if (!lodLevels) return;
-
-    set.mdb.cullSimpleSegment(cullValues, ZeroCullSegment, lodLevels, d, radius, scale);
-
-    set.cullEnabled = true;
   };
 
   // the marked instances alone (`renderMarked`), at the levels of the view of the last `cull`
@@ -1388,9 +1371,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     const lod = markedLod;
     // as `cull` draws its lists: with a grid
     const culled =
-      cullValues.instanceGrid.ref.value.cellSize > 1 &&
-      cullValues.drawCount.ref.value > 0 &&
-      cullValues.instanceCount.ref.value > 0;
+      hasInstanceCells(cullValues) && cullValues.drawCount.ref.value > 0 && cullValues.instanceCount.ref.value > 0;
     if (!culled || !lod || !counts) {
       markedUsed = false;
       markedKey.reset();
@@ -1421,7 +1402,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
       levels,
       counts.ref.value,
       markedPositions(values.aInstance, cullValues.instanceCount.ref.value),
-      values.aTransform.ref.value,
+      getObjectTransforms(values as unknown as TransformValues),
       values.invariantBoundingSphere.ref.value,
       markedPlane,
       markedFrustum,
@@ -1468,12 +1449,6 @@ export function createRenderable<T extends GraphicsRenderableValues>(
       set.cullEnabled = false;
       set.drawVersion = getDrawVersion();
     },
-    cullSimple: (d: number, radius: number, scale: number, lod: LodView, clipGhost = false) => {
-      set = getSet(clipGhost);
-      set.cullView.invalidate();
-      cullSimple(d, radius, scale, lod);
-      set.drawVersion = getDrawVersion();
-    },
     render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
       renderItem.render(variant, globals, set.cullEnabled ? set.mdb.list : undefined);
     },
@@ -1506,12 +1481,18 @@ export function createRenderable<T extends GraphicsRenderableValues>(
       return visibleSet.drawVersion;
     },
     update: () => {
+      // never drawn from a pending grid: built and applied (`render-object.ts` `createRenderable`)
+      if (values.instanceGrid) applyPendingGrid(values as unknown as InstanceGridValues);
+      storage?.sync();
       renderItem.update();
       visibleSet.lastCullFrame = undefined;
       ghostSet.lastCullFrame = undefined;
       markedKey.reset();
     },
-    dispose: () => renderItem.destroy(),
+    dispose: () => {
+      renderItem.destroy();
+      storage?.destroy();
+    },
   };
 }
 

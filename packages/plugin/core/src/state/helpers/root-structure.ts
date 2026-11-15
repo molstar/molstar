@@ -23,7 +23,7 @@ const EmptyBondProviders = new BondProviderRegistry();
 
 /**
  * The params every mode shares. `bonds` offers the plugin's bond providers applicable to the model; without a plugin
- * only the built-in bonds (bond-providers plan §4).
+ * only the built-in bonds.
  */
 function commonStructureParams(model?: Model, plugin?: PluginContext) {
   return {

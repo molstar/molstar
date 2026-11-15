@@ -8,6 +8,7 @@ import { ValueCell } from '@molstar/core/util';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { now } from '@molstar/core/util/now';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
+import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import type { ComputeContext, StorageBuffer } from '../compute.js';
 import type { GraphicsResources } from '../context.js';
@@ -47,19 +48,21 @@ export interface SphereRasterPassView extends Omit<SphereRasterView, 'cameraPlan
   /** the renderer's camera plane (world space); into the objects' space by the model matrix */
   readonly cameraPlane: Vec4;
   readonly model: Mat4;
+  /** the view's origin in its target in pixels (top-left): the resolve's fragments relative to it */
+  readonly origin: readonly [number, number];
   /** the view's frame and culling planes: merged objects only in the view culled on the GPU */
   readonly cull: { readonly frame: Frame; readonly cameraPlane: Plane3D; readonly frustum: Frustum3D };
   /** a second phase of GPU culling follows (`SphereRasterPass.second`) */
   readonly twoPhase?: boolean;
   /**
    * objects culled on the GPU only (`sphereRaster` 'auto'): unmerged objects' split per sphere leaves their quads drawn
-   * all the same, the raster's work added (`sphere-compute-raster.md` step 6)
+   * all the same, the raster's work added
    */
   readonly culledOnly?: boolean;
 }
 
 /**
- * The sphere raster in the renderer's opaque pass (`sphere-compute-raster.md`): `prepare` before the pass (no pass
+ * The sphere raster in the renderer's opaque pass: `prepare` before the pass (no pass
  * open) dispatches the raster of the eligible spheres of a view and sets the drawn objects' `uRaster*` values, so their
  * impostors leave out its spheres in the color pass; `resolve` in the opaque pass draws their resolves; `finish`
  * after it, the impostors draw all spheres again (other views and passes of the frame). Merged objects culled on the
@@ -233,6 +236,15 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
         ValueCell.updateIfChanged(values.uRasterChunkBase, range.chunkBase);
         ValueCell.updateIfChanged(values.uRasterChunkCount, range.chunkCapacity);
         ValueCell.updateIfChanged(values.uRasterWidth, view.width);
+        if (
+          values.uRasterOrigin.ref.value[0] !== view.origin[0] ||
+          values.uRasterOrigin.ref.value[1] !== view.origin[1]
+        ) {
+          ValueCell.update(
+            values.uRasterOrigin,
+            Vec2.set(values.uRasterOrigin.ref.value, view.origin[0], view.origin[1]),
+          );
+        }
         if (!Mat4.areEqual(values.uRasterLevels.ref.value, range.levels, 0)) {
           ValueCell.update(values.uRasterLevels, Mat4.copy(values.uRasterLevels.ref.value, range.levels));
         }

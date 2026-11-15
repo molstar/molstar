@@ -559,7 +559,7 @@
   "src/mol-geo/util/location-iterator.ts": "packages/graphics/src/geo/util/location-iterator.ts",
   "src/mol-geo/util/marching-cubes/algorithm.ts": "packages/graphics/src/geo/util/marching-cubes/algorithm.ts",
   "src/mol-geo/util/marching-cubes/builder.ts": "packages/graphics/src/geo/util/marching-cubes/builder.ts",
-  "src/mol-geo/util/marching-cubes/tables.ts": "packages/graphics/src/geo/util/marching-cubes/tables.ts",
+  "src/mol-geo/util/marching-cubes/tables.ts": "packages/core/src/math/geometry/marching-cubes/tables.ts",
   "src/mol-gl/_spec/cylinders.spec.ts": "packages/graphics/src/gl/_test/cylinders.test.ts",
   "src/mol-gl/_spec/direct-volume.spec.ts": "packages/graphics/src/gl/_test/direct-volume.test.ts",
   "src/mol-gl/_spec/gl.shim.ts": "packages/graphics/src/gl/_test/gl.shim.ts",

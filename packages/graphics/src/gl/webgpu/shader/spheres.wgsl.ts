@@ -6,6 +6,7 @@
 
 import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { CulledData } from '../../culled-data.js';
 import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { sphere_shared_wgsl } from './chunks/sphere.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
@@ -31,6 +32,7 @@ import {
   wboit_output_wgsl,
 } from './chunks/output.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
+import { assign_site_color_wgsl } from './chunks/site-color.wgsl.js';
 import { read_from_texture_wgsl } from './chunks/read-from-texture.wgsl.js';
 import {
   assign_quad_position_group_wgsl,
@@ -88,9 +90,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 
     ${assign_quad_position_group_wgsl}
     ${assign_wiggle_wgsl}
-    position = applyWiggle(position, group, wiggle);
+    position = applyWiggle(position, f32(group), wiggle);
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = uObject.uObjectTransform * applyTumble(aTransform, invariantBoundingSphere(in));
 
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
@@ -98,14 +99,17 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let modelScale = uGlobal.uModelScale;
     var radius = size * modelScale;
 
-    let position4 = vec4<f32>(position, 1.0);
-    out.vModelPosition = (uGlobal.uModel * transform * position4).xyz; // for clipping in the fragment stage
+    // the position transformed, not the matrices multiplied first (three 4x4 products a vertex): the instance's
+    // transform, the object's transient one, then the model and view
+    let position4 = uObject.uObjectTransform * (applyTumble(aTransform, invariantBoundingSphere(in)) * vec4<f32>(position, 1.0));
+    out.vModelPosition = (uGlobal.uModel * position4).xyz; // for clipping in the fragment stage
 
     ${assign_lod_factor_wgsl}
     radius *= lodFactor;
 
-    var mvPosition = uGlobal.uModelView * transform * position4;
+    var mvPosition = uGlobal.uModelView * position4;
     out.vViewPosition = mvPosition.xyz;
+    ${assign_site_color_wgsl('segmentSiteColorBase(in)')}
 
     // through the near plane with none of it beyond
     var nearNone = false;
@@ -190,6 +194,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 }
 
 #if defined(dSphereResolve)
+${CulledData.wgsl('sRasterTransforms', 'raster')}
+
 struct Resolved {
     out: VertexOutput,
     hit: bool,
@@ -203,7 +209,8 @@ struct Resolved {
 fn resolveSphere(position: vec4<f32>) -> Resolved {
     var resolved: Resolved;
     resolved.hit = false;
-    let pixel = vec2<u32>(position.xy);
+    // the view's pixel (\`uRasterOrigin\`: a view offset in its target, stereo's right eye)
+    let pixel = vec2<u32>(position.xy - uObject.uRasterOrigin);
     let v = sRasterVisibility[pixel.y * u32(uObject.uRasterWidth) + pixel.x];
     if (v.x == 0u) {
         return resolved;
@@ -215,44 +222,65 @@ fn resolveSphere(position: vec4<f32>) -> Resolved {
     }
     let e = sRasterChunks[chunk * 2u];
     let instance = sRasterChunks[chunk * 2u + 1u];
-    let vertexId = i32(e.y + (v.x - 1u) % 64u);
-    let positionGroup = read_tPositionGroup(vertexId);
-    let group = positionGroup.w;
-    let o = e.x * 3u;
-    // the object's transient transform after the instance's, as the raster applies it
-    let transform = uObject.uObjectTransform * affineTransform(sRasterTransforms[o], sRasterTransforms[o + 1u], sRasterTransforms[o + 2u]);
+    // lane \`k\` of the chunk: item \`first + k * stride\` (\`SphereRasterChunkWords\`)
+    let vertexId = i32(e.y + ((v.x - 1u) % 64u) * (e.w >> 2u));
+    #if defined(dSites)
+        // quantized centers by the object's origin and scale (merged: the slot's segment's, \`CulledData\`)
+        #if defined(dSegmented)
+            let siteSegment = u32(rasterSegment(e.x).w);
+            let siteOriginScale = rasterSegmentSites(siteSegment);
+            let group = i32(u32(vertexId) - rasterSegmentItem(siteSegment));
+        #else
+            let siteOriginScale = vec4<f32>(uObject.uSiteOrigin, uObject.uSiteScale);
+            let group = vertexId;
+        #endif
+        let site = read_tSite(vertexId);
+        let positionGroup = vec4<f32>(siteOriginScale.xyz + site.xyz * siteOriginScale.w, f32(group));
+        // the index of the site's type in the size table (\`siteType\` sizes; merged, the segment's table)
+        #if defined(dSegmented)
+            let siteSizeIndex = i32(rasterSegmentSizeBase(siteSegment)) + i32(site.w);
+        #else
+            let siteSizeIndex = i32(site.w);
+        #endif
+    #else
+        let positionGroup = read_tPositionGroup(vertexId);
+        // an integer (\`rgb32f-i32\`)
+        let group = readGroup_tPositionGroup(vertexId);
+    #endif
+    // the object's transient transform after the instance's, as the raster applies it (\`CulledData\`)
+    let rows = rasterRows(e.x);
+    let transform = uObject.uObjectTransform * affineTransform(rows[0], rows[1], rows[2]);
 
     // the instance as the vertex stage reads it: the group offsets the chunk holds
     var in: VertexInput;
-    in.aInstance = f32(instance.x);
+    in.aInstance = instance.x;
     #if defined(dSegmented)
-        in.aSegment = vec4<f32>(0.0, f32(instance.y), f32(instance.z), 0.0);
+        // and the segment (an object color its texel)
+        in.aSegment = vec4<i32>(0, i32(instance.y), i32(instance.z), rasterSegment(e.x).w);
     #endif
     var out: VertexOutput;
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
 
-    let position4 = vec4<f32>(positionGroup.xyz, 1.0);
-    out.vModelPosition = (uGlobal.uModel * transform * position4).xyz;
+    // the center as the raster transforms it: the instance's transform first
+    let placed = transform * vec4<f32>(positionGroup.xyz, 1.0);
+    out.vModelPosition = (uGlobal.uModel * placed).xyz;
     var radius = size * uGlobal.uModelScale;
     // the chunk's level at its scale, as \`assign_lod_factor\`
-    let lod = uObject.uRasterLevels[e.w];
+    let lod = uObject.uRasterLevels[e.w & 3u];
     let scale = bitcast<f32>(instance.w);
     if (lod.w != 0.0 && (lod.x != 0.0 || lod.y != 0.0)) {
-        if (uGlobal.uModelScale != 1.0) {
-            radius *= scale;
-        } else {
-            let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
-            radius *= lodAt(d, lod.xyz, scale).factor;
-        }
+        let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
+        radius *= lodAt(d, lod.xyz, scale).factor;
     }
-    // the center as the raster transforms it: the instance's transform first
-    let mvPosition = uGlobal.uModelView * (transform * position4);
+    let mvPosition = uGlobal.uModelView * placed;
     out.vViewPosition = mvPosition.xyz;
+    ${assign_site_color_wgsl('i32(rasterSegmentSiteColorBase(siteSegment))')}
     out.vSphere = vec4<f32>(-mvPosition.xyz / mvPosition.w, radius);
     // the view ray through the pixel's center as the raster casts it (\`sphere-raster.wgsl.ts\`), as the quad's point
     let viewport = uGlobal.uViewport.zw;
-    let ndc = vec2<f32>(position.x / viewport.x * 2.0 - 1.0, 1.0 - position.y / viewport.y * 2.0);
+    let local = position.xy - uObject.uRasterOrigin;
+    let ndc = vec2<f32>(local.x / viewport.x * 2.0 - 1.0, 1.0 - local.y / viewport.y * 2.0);
     let projection = uGlobal.uProjection;
     out.vPoint = vec3<f32>(
         (ndc.x + projection[2].x) / projection[0][0],

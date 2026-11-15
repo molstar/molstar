@@ -62,66 +62,16 @@ import { ssaoBlur_frag } from './shader/ssao-blur.frag.js';
 import { ssao_frag } from './shader/ssao.frag.js';
 import { text_frag } from './shader/text.frag.js';
 import { text_vert } from './shader/text.vert.js';
+import { registerGlslProgram } from './program-registry.js';
 
-/** Fragment shader output types, only applicable for WebGL2 */
-export type FragOutTypes = { [k in number]: 'vec4' | 'ivec4' };
-
-/** GLSL sources of a program */
-export interface GlslProgram {
-  readonly vert: string;
-  readonly frag: string;
-  readonly outTypes: FragOutTypes;
-}
-
-const reSingleLineComment = /[ \t]*\/\/.*\n/g;
-const reMultiLineComment = /[ \t]*\/\*[\s\S]*?\*\//g;
-const reMultipleLinebreaks = /\n{2,}/g;
-
-/** Chunks are composed in TS by the shader modules (see `gl/webgl/shader`), this only strips comments and blank lines */
-function normalizeSource(text: string) {
-  if (/^\s*#include\b/m.test(text)) {
-    throw new Error(`'#include' is not supported, shader sources compose their chunks in TS`);
-  }
-  return text
-    .trim()
-    .replace(reSingleLineComment, '\n')
-    .replace(reMultiLineComment, '\n')
-    .replace(reMultipleLinebreaks, '\n');
-}
-
-/**
- * GLSL sources by program name (`ShaderCode.name`), as registered; normalized on first use (`getGlslProgram`): the
- * regexes over every program's sources at module load were most of its import, for programs a session may never draw
- */
-const Programs = new Map<string, { source: GlslProgram; normalized?: GlslProgram }>();
-
-/**
- * Registers the GLSL sources of the program `name` (`ShaderCode.name`), replacing earlier ones; for programs
- * generated at runtime (e.g. grid3d) and custom programs
- */
-export function registerGlslProgram(name: string, vert: string, frag: string, outTypes: FragOutTypes = {}) {
-  Programs.set(name, { source: { vert, frag, outTypes } });
-}
-
-/** The GLSL sources of the program `name`, throws for unknown programs */
-export function getGlslProgram(name: string): GlslProgram {
-  const program = Programs.get(name);
-  if (!program) throw new Error(`no GLSL sources for program '${name}'`);
-  if (!program.normalized) {
-    const { vert, frag, outTypes } = program.source;
-    program.normalized = { vert: normalizeSource(vert), frag: normalizeSource(frag), outTypes };
-  }
-  return program.normalized;
-}
-
-export function hasGlslProgram(name: string) {
-  return Programs.has(name);
-}
-
-/** The names of the registered programs (e.g. for a check that every one compiles) */
-export function getGlslProgramNames(): string[] {
-  return [...Programs.keys()];
-}
+export {
+  type FragOutTypes,
+  type GlslProgram,
+  getGlslProgram,
+  getGlslProgramNames,
+  hasGlslProgram,
+  registerGlslProgram,
+} from './program-registry.js';
 
 // geometry
 registerGlslProgram('points', points_vert, points_frag);
@@ -162,6 +112,8 @@ registerGlslProgram('trace', quad_vert, trace_frag);
 registerGlslProgram('evaluate-wboit', quad_vert, evaluateWboit_frag);
 registerGlslProgram('copy', quad_vert, copy_frag);
 registerGlslProgram('hi-z', quad_vert, hiZ_frag);
+// the first level primed from an occluder grid on WebGPU alone (`HiZPass.setOccluder`): the plain level here
+registerGlslProgram('hi-z-occluder', quad_vert, hiZ_frag);
 registerGlslProgram('volume-composite', quad_vert, volumeComposite_frag);
 
 // compute

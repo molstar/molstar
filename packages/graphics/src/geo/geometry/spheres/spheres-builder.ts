@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { int32ToFloatBits } from '../center-group.js';
 import { ChunkedArray } from '@molstar/core/data/util';
 import { Spheres } from './spheres.js';
 
@@ -27,7 +28,8 @@ export namespace SpheresBuilder {
 
     return {
       add: (x: number, y: number, z: number, group: number) => {
-        caAdd4(positionGroup, x, y, z, group);
+        // the group as its bits (`rgb32f-i32`: exact past 2^24)
+        caAdd4(positionGroup, x, y, z, int32ToFloatBits(group));
       },
       getSpheres: () => {
         const array = ChunkedArray.compactTrimmed(positionGroup) as Float32Array;

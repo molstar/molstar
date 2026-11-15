@@ -120,7 +120,7 @@ export const GpuCullingOptions: [GpuCullingValue, string][] = [
 /**
  * Instances per draw (a segment and level) from which `gpuCulling: 'auto'` culls on the GPU: it replays a draw per
  * segment and level every frame (about 0.28 µs each), the CPU culling costs about 10 ns per instance in frames whose
- * view changed (`merged-render-objects.md`, step 6)
+ * view changed
  */
 export const AutoGpuCullingThreshold = 30;
 
@@ -135,7 +135,7 @@ export const AutoGpuCullingMinInstances = 50000;
 /**
  * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
  * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
- * an integrated GPU), about 0.1 ms slower at a few hundred (`sphere-compute-raster.md`). Such an object is merged for
+ * an integrated GPU), about 0.1 ms slower at a few hundred. Such an object is merged for
  * it, the renderer culling it on the GPU only where the raster takes it (`Renderable.rasterSpheres`,
  * `sphereRasterObjects`), else on the CPU
  */
@@ -221,16 +221,6 @@ export namespace BaseGeometry {
       description: 'Visual/rendering quality of the representation.',
     }),
     material: Material.getParam(),
-    occludedAlpha: PD.Numeric(
-      1,
-      { min: 0, max: 1, step: 0.01 },
-      {
-        isHidden: true,
-        description:
-          'In the overlay layer: the opacity of the parts behind the scene (1 drawn on top, 0 hidden by the scene, ' +
-          'between x-ray).',
-      },
-    ),
     clip: PD.Group(Clip.Params),
     clipGhost: PD.Boolean(true, {
       description: 'What the clip objects remove drawn as a ghost, where the canvas draws ghosts (`clipGhost`).',
@@ -296,9 +286,11 @@ export namespace BaseGeometry {
     return {
       alpha: ValueCell.create(props.alpha),
       uAlpha: ValueCell.create(clamp(props.alpha, 0, 1)),
+      // set by the canvas from the representation's state (`occludedAlpha`, `pickAtAnyAlpha`)
+      uPickingAlphaMin: ValueCell.create(0),
       // set by the canvas for its overlay layer
       dOverlay: ValueCell.create(false),
-      uOccludedAlpha: ValueCell.create(clamp(props.occludedAlpha, 0, 1)),
+      uOccludedAlpha: ValueCell.create(1),
       uVertexCount: ValueCell.create(counts.vertexCount),
       // filled by the render item when used, see `BaseSchema.aVertex`
       aVertex: ValueCell.create(new Float32Array(0)),
@@ -367,7 +359,6 @@ export namespace BaseGeometry {
   export function updateValues(values: BaseValues, props: PD.Values<Params>) {
     ValueCell.updateIfChanged(values.alpha, props.alpha);
     ValueCell.updateIfChanged(values.uAlpha, clamp(props.alpha, 0, 1));
-    ValueCell.updateIfChanged(values.uOccludedAlpha, clamp(props.occludedAlpha, 0, 1));
     ValueCell.updateIfChanged(values.uMetalness, props.material.metalness);
     ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
     ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);

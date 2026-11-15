@@ -29,7 +29,7 @@ export interface PassState {
 const NoOffsets: readonly number[] = [];
 
 /**
- * An encoder that only lists what the commands bind, as text (`GraphicsContext.captureDraws`): pipelines, bind groups
+ * An encoder that only lists what the commands bind, as text (`DrawLists.capture`): pipelines, bind groups
  * with offsets, buffers and draw arguments, objects by an id per object; viewport, scissor and stencil reference are the
  * pass's (not of a recording) and left out
  */

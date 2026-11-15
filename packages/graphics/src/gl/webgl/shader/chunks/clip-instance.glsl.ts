@@ -6,7 +6,7 @@
 
 export const clip_instance = `
 #if defined(dClipVariant_instance) && defined(dClipObjects)
-    vec3 mCenter = (uModel * uObjectTransform * aTransform * vec4(InvariantBoundingSphere.xyz, 1.0)).xyz;
+    vec3 mCenter = (uModel * (uObjectTransform * (aTransform * vec4(InvariantBoundingSphere.xyz, 1.0)))).xyz;
     // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
     if (clipTest(mCenter / uModelScale) != uClipGhost) {
         // move out of [ -w, +w ] to 'discard' in vert shader

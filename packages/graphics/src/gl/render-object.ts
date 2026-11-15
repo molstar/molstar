@@ -42,12 +42,14 @@ import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { isNullTexture, type Texture, transferTexture } from './texture.js';
 import type { StorageBuffer } from './compute.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import { applyPendingGrid, type InstanceGridValues } from './transform-parts.js';
 import {
   canMergeValues,
   createMergedValues,
   isMergeableType,
   type Merged,
   type MergeableValues,
+  type MergedInstanceSource,
   MergedRenderable,
   type MergedType,
   getMergedRenderableSchema,
@@ -152,8 +154,11 @@ export function canMergeRenderObjects(members: readonly GraphicsRenderObject[], 
  */
 export function createMergedRenderObject<T extends RenderObjectType>(
   members: readonly GraphicsRenderObject<T>[],
-  /** `rasterOnly`: culled on the GPU for the sphere raster only (`Renderable.rasterSpheres`) */
-  options?: { readonly gpuCulling?: boolean; readonly rasterOnly?: boolean },
+  /**
+   * `rasterOnly`: culled on the GPU for the sphere raster only (`Renderable.rasterSpheres`); `source`: the instances
+   * kept elsewhere (`MergedInstanceSource`)
+   */
+  options?: { readonly gpuCulling?: boolean; readonly rasterOnly?: boolean; readonly source?: MergedInstanceSource },
 ): MergedGraphicsRenderObject<T> {
   if (!isMergeableType(members[0].type)) throw new Error(`unsupported merged render object type '${members[0].type}'`);
   const merged = createMergedValues(
@@ -161,6 +166,7 @@ export function createMergedRenderObject<T extends RenderObjectType>(
     members.map((m) => m.values as MergeableValues),
     options?.gpuCulling,
     options?.rasterOnly,
+    options?.source,
   );
   return {
     id: getNextId(),
@@ -174,7 +180,12 @@ export function createMergedRenderObject<T extends RenderObjectType>(
 }
 
 function isTexture(x: unknown): x is Texture {
-  return typeof x === 'object' && x !== null && typeof (x as Texture).attachFramebuffer === 'function';
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    typeof (x as Texture).define === 'function' &&
+    typeof (x as Texture).getWidth === 'function'
+  );
 }
 
 function isStorageBuffer(x: unknown): x is StorageBuffer {
@@ -332,6 +343,11 @@ export function createRenderable<T extends RenderObjectType>(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<any> {
+  // a pending grid (`InstanceGrid.pending`) built and applied where nothing draws the instances by index: an object not
+  // merged (a merged object culled on the GPU builds its members' where a CPU cull needs them)
+  if (!isMergedRenderObject(o) && (o.values as { instanceGrid?: unknown }).instanceGrid) {
+    applyPendingGrid(o.values as unknown as InstanceGridValues);
+  }
   const renderable = _createRenderable(ctx, o, transparency, globals);
   RenderableKinds.set(renderable, {
     type: isMergedRenderObject(o) ? o.merged.type : o.type,

@@ -13,6 +13,7 @@ import { StringBuilder } from '@molstar/core/util';
 import { Color } from '@molstar/core/util/color/color';
 import { zip } from '@molstar/core/util/zip/zip';
 import { MeshExporter, type AddMeshInput } from '@molstar/geo-export-extension/mesh-exporter';
+import { getInstanceMatricesById } from '@molstar/graphics/geo/geometry/transform-data';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -83,7 +84,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
     const overpaintType = values.overpaintType.ref.value;
     const transparencyType = values.transparencyType.ref.value;
     const uAlpha = values.uAlpha.ref.value;
-    const aTransform = values.aTransform.ref.value;
+    const aTransform = getInstanceMatricesById(values);
     const instanceCount = values.uInstanceCount.ref.value;
 
     let interpolatedColors: Uint8Array | undefined;

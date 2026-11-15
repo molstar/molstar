@@ -9,8 +9,8 @@ import { Points } from './points/points.js';
 import { Text, TextStride } from './text/text.js';
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
 import type { LocationIterator } from '../util/location-iterator.js';
-import type { ColorType } from './color-data.js';
-import type { SizeType } from './size-data.js';
+import type { ColorType } from '@molstar/graphics/theme/color';
+import type { SizeType } from '@molstar/graphics/theme/size';
 import { Lines, LineStride } from './lines/lines.js';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { DirectVolume } from './direct-volume/direct-volume.js';
@@ -26,7 +26,7 @@ import type { RenderObjectValues } from '@molstar/graphics/gl/render-object';
 import { TextureMesh } from './texture-mesh/texture-mesh.js';
 import { Image } from './image/image.js';
 import { CylinderStride, Cylinders } from './cylinders/cylinders.js';
-import { arrayMaxPackedIntToRGB } from '@molstar/core/util/number-packing';
+import { arrayMaxPackedIntToRGBA } from '@molstar/core/util/number-packing';
 
 export type GeometryKind =
   | 'mesh'
@@ -180,6 +180,8 @@ export namespace Geometry {
       case 'points':
         return getPositionGroupGroupCount(geometry.positionGroup.ref.value, geometry.pointCount);
       case 'spheres':
+        // quantized centers: sphere `i` of group `i`
+        if (geometry.sites) return geometry.sphereCount;
         return getPositionGroupGroupCount(geometry.positionGroup.ref.value, geometry.sphereCount);
       case 'cylinders':
         return getPositionGroupGroupCount(geometry.cylinderData.ref.value, geometry.cylinderCount, CylinderStride);
@@ -192,7 +194,7 @@ export namespace Geometry {
       case 'direct-volume':
         return 1;
       case 'image':
-        return arrayMaxPackedIntToRGB(geometry.groupTexture.ref.value.array, 4) + 1;
+        return arrayMaxPackedIntToRGBA(geometry.groupTexture.ref.value.array, 4) + 1;
       case 'texture-mesh':
         return geometry.groupCount;
     }

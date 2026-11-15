@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { WebGPU } from './webgpu-module.js';
 

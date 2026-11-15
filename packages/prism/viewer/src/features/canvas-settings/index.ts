@@ -4,12 +4,14 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { OperationFn } from '../../api/area.js';
 import { operationCommand, runAsCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
 import {
+  type BackendParams,
   type CameraParams,
   type ClippingParams,
   canvasSettingsOperations,
@@ -26,6 +28,7 @@ declare module '../../api/canvas.js' {
     readonly camera: OperationFn<typeof CameraParams>;
     readonly clipping: OperationFn<typeof ClippingParams>;
     readonly xr: OperationFn<typeof XrParams>;
+    readonly backend: OperationFn<typeof BackendParams>;
   }
 }
 
@@ -69,6 +72,12 @@ export const CanvasSettingsFeature: ViewerExtension = {
         alias: ['perspective', 'orthographic', 'field of view'],
       }),
       operationCommand(api, canvas.clipping, { category: 'Canvas', icon: 'scan', alias: ['clip', 'slab'] }),
+      // Offered only where there is another backend (the operation's `when`).
+      operationCommand(api, canvas.backend, {
+        category: 'Canvas',
+        icon: 'monitor-cog',
+        alias: ['backend', 'webgpu', 'webgl', 'graphics', 'renderer'],
+      }),
       // Offered only where WebXR is (the operation's `when`).
       ...(canvas.xr
         ? [
