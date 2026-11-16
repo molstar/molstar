@@ -160,7 +160,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     #if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit) || defined(dRenderVariant_colorDpoit)
         // drawn by the sphere raster (\`rasterizesSphere\`), with a margin: a sphere at its limits drawn by both, never
         // by neither (the raster's arithmetic is not the vertex stage's)
-        if (uObject.uRasterMaxRadius > 0.0 && uGlobal.uIsOrtho == 0.0) {
+        if (uObject.uRasterMaxRadius > 0.0) {
             let b = spherePixelBounds(out.vViewPosition, radius, uGlobal.uProjection, uGlobal.uViewport.zw);
             if (rasterizesSphere(out.vViewPosition, radius, uGlobal.uNear * 1.001, b, uObject.uRasterMaxRadius * 0.999)) {
                 out.position.z = 2.0 * out.position.w;
@@ -280,16 +280,21 @@ fn resolveSphere(position: vec4<f32>) -> Resolved {
     out.vViewPosition = mvPosition.xyz;
     ${assign_site_color_wgsl('i32(rasterSegmentSiteColorBase(siteSegment))')}
     out.vSphere = vec4<f32>(-mvPosition.xyz / mvPosition.w, radius);
-    // the view ray through the pixel's center as the raster casts it (\`sphere-raster.wgsl.ts\`), as the quad's point
+    // the view ray through the pixel's center as the raster casts it (\`sphere-raster.wgsl.ts\`), as the quad's point:
+    // perspective a point on its ray from the eye, orthographic the pixel's point at the sphere's depth (the quad's)
     let viewport = uGlobal.uViewport.zw;
     let local = position.xy - uObject.uRasterOrigin;
     let ndc = vec2<f32>(local.x / viewport.x * 2.0 - 1.0, 1.0 - local.y / viewport.y * 2.0);
     let projection = uGlobal.uProjection;
-    out.vPoint = vec3<f32>(
-        (ndc.x + projection[2].x) / projection[0][0],
-        (ndc.y + projection[2].y) / projection[1][1],
-        -1.0
-    );
+    if (uGlobal.uIsOrtho == 1.0) {
+        out.vPoint = vec3<f32>((ndc - projection[3].xy) / vec2<f32>(projection[0][0], projection[1][1]), mvPosition.z);
+    } else {
+        out.vPoint = vec3<f32>(
+            (ndc.x + projection[2].x) / projection[0][0],
+            (ndc.y + projection[2].y) / projection[1][1],
+            -1.0
+        );
+    }
     out.position = position;
     #if defined(dClipSphere)
         // the raster tested the sphere: every one by pixel, as it drew it

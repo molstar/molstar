@@ -250,7 +250,7 @@ export interface SphereRasterView {
   /** the camera's view times the renderer's model matrix (`uModelView`) */
   readonly modelView: Mat4;
   /**
-   * the camera's GL projection, perspective (orthographic views draw impostors); bound with reversed `[0, 1]` depth as
+   * the camera's GL projection, perspective or orthographic (parallel rays); bound with reversed `[0, 1]` depth as
    * the WebGPU programs' (`ReversedZeroToOne`), so that a hit's depth is its `frag_depth`
    */
   readonly projection: Mat4;

@@ -196,6 +196,8 @@ export const InstanceCopySchema = {
   uRasterRadius: UniformSpec('f'),
   uRasterScale: UniformSpec('f'),
   uRasterNear: UniformSpec('f'),
+  /** 1 orthographic: a sphere's size on screen the same at every distance (`MergedRasterParams.ortho`) */
+  uRasterOrtho: UniformSpec('f'),
   uRasterLevels: UniformSpec('i'),
   /** instance clipping (`getInstanceClipCount`): the instances' centers tested against the clip objects too */
   uClipInstance: UniformSpec('i'),

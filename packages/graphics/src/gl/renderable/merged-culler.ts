@@ -196,9 +196,23 @@ export interface MergedRasterInput {
  */
 export interface MergedRasterParams {
   readonly radius: number;
-  /** pixels per Å of radius over the distance: the projection's focal scale times half the viewport */
+  /**
+   * the projection's focal scale times half the viewport: perspective pixels per Å of radius over the distance,
+   * orthographic (`ortho`) pixels per Å of radius (times the camera's scale)
+   */
   readonly scale: number;
   readonly near: number;
+  /** an orthographic view: a sphere's size on screen the same at every distance */
+  readonly ortho: boolean;
+}
+
+/**
+ * Whether the raster draws a sphere of radius `r` at distance `d` from the camera plane (`MergedRasterParams`), its
+ * near test aside: at most `radius` pixels in half size, by the tangents from the eye (perspective) or by its radius
+ * (orthographic); the kernels' `rasterized` alike
+ */
+export function isRasterSize(raster: MergedRasterParams, r: number, d: number) {
+  return r * raster.scale <= raster.radius * (raster.ortho ? 1 : Math.sqrt(Math.max(d * d - r * r, 0)));
 }
 
 /** The culling's kernels, the same for every object: prepared once a culler is created, or by `Canvas3D.precompile` */
@@ -334,6 +348,7 @@ export function createMergedCuller(
     uRasterRadius: ValueCell.create(0),
     uRasterScale: ValueCell.create(0),
     uRasterNear: ValueCell.create(0),
+    uRasterOrtho: ValueCell.create(0),
     uRasterLevels: ValueCell.create(0),
     uClipInstance: ValueCell.create(0),
     uPhase: ValueCell.create(0),
@@ -1068,9 +1083,7 @@ export function createMergedCuller(
             segmentInfo[o + 5] * segmentScales[s] * objectScale * segmentInfo[o + 8 + Math.min(j, 3)] * 1.001;
           const nearest = Math.max(d - r, min);
           toRaster =
-            segmentInfo[o + 3] > 0 &&
-            nearest - largest > raster.near &&
-            largest * raster.scale <= raster.radius * Math.sqrt(Math.max(nearest * nearest - largest * largest, 0));
+            segmentInfo[o + 3] > 0 && nearest - largest > raster.near && isRasterSize(raster, largest, nearest);
         }
         if (!toRaster) next[j * segmentCount + s] = 1;
       }
@@ -1191,7 +1204,8 @@ export function createMergedCuller(
       const rasterChanged =
         copyValues.uRasterRadius.ref.value !== (raster?.radius ?? 0) ||
         copyValues.uRasterScale.ref.value !== (raster?.scale ?? 0) ||
-        copyValues.uRasterNear.ref.value !== (raster?.near ?? 0);
+        copyValues.uRasterNear.ref.value !== (raster?.near ?? 0) ||
+        copyValues.uRasterOrtho.ref.value !== (raster?.ortho ? 1 : 0);
       const viewChanged = !isDispatched(cameraPlane, frustum, min, max);
       if (!rasterChanged && !ghostChanged && !viewChanged && isPyramidDispatched(pyramid)) {
         compactRecords();
@@ -1209,6 +1223,7 @@ export function createMergedCuller(
       ValueCell.updateIfChanged(copyValues.uRasterRadius, raster?.radius ?? 0);
       ValueCell.updateIfChanged(copyValues.uRasterScale, raster?.scale ?? 0);
       ValueCell.updateIfChanged(copyValues.uRasterNear, raster?.near ?? 0);
+      ValueCell.updateIfChanged(copyValues.uRasterOrtho, raster?.ortho ? 1 : 0);
       rasterDispatched = !!raster;
       ghostDispatched = ghost;
       ValueCell.updateIfChanged(cellValues.uGhostRegion, ghost ? ghostIndex : 0);

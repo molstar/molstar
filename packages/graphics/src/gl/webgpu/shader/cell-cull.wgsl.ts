@@ -271,8 +271,9 @@ fn rasterized(sphere: vec4<f32>, segment: u32, j: u32) -> bool {
     if (d - r <= uParams.uRasterNear) {
         return false;
     }
-    // the tangents from the eye, as the raster's bounds
-    return r * uParams.uRasterScale <= uParams.uRasterRadius * sqrt(max(d * d - r * r, 0.0));
+    // the tangents from the eye, as the raster's bounds; orthographic its radius (\`isRasterSize\`)
+    let extent = select(sqrt(max(d * d - r * r, 0.0)), 1.0, uParams.uRasterOrtho != 0.0);
+    return r * uParams.uRasterScale <= uParams.uRasterRadius * extent;
 }
 
 /** instance \`i\` into slot \`t\` of a region, by its index */

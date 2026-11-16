@@ -348,20 +348,28 @@ fn sphereSize(i: u32, group: u32, e: vec4<u32>, slot: u32) -> f32 {
 fn rasterPixel(px: vec2<i32>, c: vec3<f32>, radius: f32, id: u32, flag: i32, clipPixels: bool) {
     let projection = uParams.uProjection;
     let viewport = uParams.uViewport;
-    // the view ray through the pixel's center
+    // the view ray through the pixel's center: from the eye (perspective), or along -z from the pixel's point on the
+    // camera plane (orthographic, \`projection[2][3]\` not -1, as \`spherePixelBounds\`)
     let ndc = vec2<f32>((f32(px.x) + 0.5) / viewport.x * 2.0 - 1.0, 1.0 - (f32(px.y) + 0.5) / viewport.y * 2.0);
-    let ray = normalize(vec3<f32>(
-        (ndc.x + projection[2].x) / projection[0][0],
-        (ndc.y + projection[2].y) / projection[1][1],
-        -1.0
-    ));
-    let hits = raySphere(ray, c, radius);
+    var origin = vec3<f32>(0.0);
+    var ray: vec3<f32>;
+    if (projection[2][3] == -1.0) {
+        ray = normalize(vec3<f32>(
+            (ndc.x + projection[2].x) / projection[0][0],
+            (ndc.y + projection[2].y) / projection[1][1],
+            -1.0
+        ));
+    } else {
+        origin = vec3<f32>((ndc - projection[3].xy) / vec2<f32>(projection[0][0], projection[1][1]), 0.0);
+        ray = vec3<f32>(0.0, 0.0, -1.0);
+    }
+    let hits = raySphere(ray, c - origin, radius);
     if (hits.x < 0.0) { return; }
     var t = hits.y;
     if (clipPixels) {
-        let front = clipModel(ray * hits.y);
+        let front = clipModel(origin + ray * hits.y);
         if (clipTest(front, flag)) {
-            let back = clipModel(ray * hits.z);
+            let back = clipModel(origin + ray * hits.z);
             if (uParams.uSolidInterior != 0) {
                 // the first point inside the sphere no clip object removes (the front is before the near plane)
                 let s = clipExit(front, back, 0.0, flag);
@@ -374,7 +382,7 @@ fn rasterPixel(px: vec2<i32>, c: vec3<f32>, radius: f32, id: u32, flag: i32, cli
             }
         }
     }
-    let hit = ray * t;
+    let hit = origin + ray * t;
     let clip = projection * vec4<f32>(hit, 1.0);
     // reversed depth, as \`frag_depth\`: nearer is larger, and positive floats order as their bits; beyond the far plane
     // clipped (a negative depth's bits would win)

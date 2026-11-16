@@ -55,136 +55,142 @@ function createMember(offset: Vec3, color: number, stride?: number) {
 // merged objects culled on the GPU: the culler puts the instances the raster draws into regions of their own, the
 // impostors draw the others (the split per instance)
 describe.skipIf(!WebGPU.module)('sphere raster split per instance on WebGPU', () => {
-  it('draws the near instances as impostors, the far ones by the raster, as the impostors draw all', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
-    try {
-      await plugin.init();
-      const graphics = plugin.canvas3d!.graphics;
-      if (!graphics.capabilities.atomicMinMax64) return;
-      const members = [
-        createMember(Vec3.create(0, 0, 0), ColorNames.orange),
-        createMember(Vec3.create(0, 4, -3), ColorNames.green),
-      ];
-      const scene = Scene.create(graphics);
-      const merged = createMergedRenderObject(members, { gpuCulling: true });
-      scene.add(merged);
-      scene.commit();
-      const renderable = scene.renderables[0];
-
-      // along the columns, from just in front of the first instances
-      const camera = new Camera();
-      Viewport.set(camera.viewport, 0, 0, Size, Size);
-      camera.setState(
-        { ...camera.getFocus(Vec3.create(0, 2, -40), 50), position: Vec3.create(0, 6, 14), radiusMax: 120 },
-        0,
+  // orthographic: every instance the same size on screen, so the raster takes the near ones too at its radius
+  it.each(['perspective', 'orthographic'] as const)(
+    'draws the near instances as impostors, the far ones by the raster, as the impostors draw all (%s)',
+    async (mode) => {
+      const plugin = await HeadlessPluginContext.create(
+        { webgpu: WebGPU.module! },
+        DefaultPluginSpec(),
+        { width: Size, height: Size },
+        { backend: 'webgpu' },
       );
-      camera.update();
+      try {
+        await plugin.init();
+        const graphics = plugin.canvas3d!.graphics;
+        if (!graphics.capabilities.atomicMinMax64) return;
+        const members = [
+          createMember(Vec3.create(0, 0, 0), ColorNames.orange),
+          createMember(Vec3.create(0, 4, -3), ColorNames.green),
+        ];
+        const scene = Scene.create(graphics);
+        const merged = createMergedRenderObject(members, { gpuCulling: true });
+        scene.add(merged);
+        scene.commit();
+        const renderable = scene.renderables[0];
 
-      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
-      const render = async (props: Partial<RendererProps>) => {
-        const renderer = Renderer.create(graphics, props);
-        await graphics.resources.preparePipelines(
-          renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+        // along the columns, from just in front of the first instances
+        const camera = new Camera();
+        Viewport.set(camera.viewport, 0, 0, Size, Size);
+        camera.setState(
+          { ...camera.getFocus(Vec3.create(0, 2, -40), 50), position: Vec3.create(0, 6, 14), radiusMax: 120, mode },
+          0,
         );
-        let resolved = 0;
-        const item = renderable.renderItem;
-        const renderFullscreen = item.renderFullscreen!;
-        item.renderFullscreen = (...args) => {
-          const drawn = renderFullscreen(...args);
-          if (drawn) resolved += 1;
-          return drawn;
+        camera.update();
+
+        const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+        const render = async (props: Partial<RendererProps>) => {
+          const renderer = Renderer.create(graphics, props);
+          await graphics.resources.preparePipelines(
+            renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+          );
+          let resolved = 0;
+          const item = renderable.renderItem;
+          const renderFullscreen = item.renderFullscreen!;
+          item.renderFullscreen = (...args) => {
+            const drawn = renderFullscreen(...args);
+            if (drawn) resolved += 1;
+            return drawn;
+          };
+          const frame = async () => {
+            resolved = 0;
+            renderer.setViewport(0, 0, Size, Size);
+            renderer.update(camera, scene, createFrame());
+            renderer.prepareCull(scene);
+            renderer.prepareSphereRaster(scene, camera);
+            graphics.beginRenderPass(target);
+            renderer.clear(true);
+            renderer.renderOpaque(scene, camera);
+            graphics.flush();
+            return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+          };
+          let pixels: number[] = [];
+          // the culling and raster kernels and the resolve compile in the background
+          for (let i = 0; i < 30; ++i) {
+            pixels = await frame();
+            await graphics.resources.pending.whenReady();
+            if (props.sphereRaster === 'off' ? i > 3 : resolved > 0 && i > 3) break;
+          }
+          // the same view again: the opaque pass replays its recording (`drawLists`), with the raster on too
+          for (let i = 0; i < 4; ++i) await frame();
+          const { drawLists } = graphics.stats;
+          const replayed = drawLists.replayed;
+          const direct = drawLists.chunksDirect;
+          const recorded = drawLists.recorded;
+          expect(await frame()).toEqual(pixels);
+          expect(drawLists.replayed).toBe(replayed + 1);
+          expect(drawLists.chunksDirect).toBe(direct);
+          expect(drawLists.recorded).toBe(recorded);
+          if (props.sphereRaster !== 'off') expect(resolved).toBe(1);
+          item.renderFullscreen = renderFullscreen;
+          // a context without compute (a switch to WebGL): the raster's buffers leave the object with its renderer, else
+          // it counts as holding resources of the previous context and is dropped from the scene for good
+          const noCompute = () => ({ resources: { ownsTexture: () => true } }) as unknown as GraphicsContext;
+          if (props.sphereRaster !== 'off') expect(hasForeignResources(merged, noCompute())).toBe(true);
+          renderer.dispose();
+          expect(hasForeignResources(merged, noCompute())).toBe(false);
+          return { pixels, resolved };
         };
-        const frame = async () => {
-          resolved = 0;
-          renderer.setViewport(0, 0, Size, Size);
-          renderer.update(camera, scene, createFrame());
-          renderer.prepareCull(scene);
-          renderer.prepareSphereRaster(scene, camera);
-          graphics.beginRenderPass(target);
-          renderer.clear(true);
-          renderer.renderOpaque(scene, camera);
-          graphics.flush();
-          return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+
+        // the raster's input of its last view
+        const getRasterInput = renderable.getRasterInput!;
+        let input: ReturnType<typeof getRasterInput>;
+        renderable.getRasterInput = (...args) => {
+          input = getRasterInput(...args) ?? input;
+          return input;
         };
-        let pixels: number[] = [];
-        // the culling and raster kernels and the resolve compile in the background
-        for (let i = 0; i < 30; ++i) {
-          pixels = await frame();
-          await graphics.resources.pending.whenReady();
-          if (props.sphereRaster === 'off' ? i > 3 : resolved > 0 && i > 3) break;
+        const impostors = await render({ sphereRaster: 'off' });
+        expect(new Set(impostors.pixels).size).toBeGreaterThan(4);
+        // orthographic the spheres about 2.2 px in radius at every distance: all of them the raster's at 4
+        const sphereRasterRadius = mode === 'perspective' ? 2 : 4;
+        const split = await render({ sphereRaster: 'on', sphereRasterRadius });
+        expect(split.resolved).toBeGreaterThan(0);
+        // `auto` draws objects culled on the GPU as `on`
+        const auto = await render({ sphereRaster: 'auto', sphereRasterRadius });
+        expect(auto.resolved).toBeGreaterThan(0);
+        expect(auto.pixels).toEqual(split.pixels);
+
+        // both kinds of region hold instances: the impostors' (near) and the raster's (far); orthographic the raster's
+        renderable.getRasterInput = getRasterInput;
+        expect(input).toBeDefined();
+        const records = new Uint32Array(await input!.records.readAsync());
+        const counts = (from: number, to: number) => {
+          let n = 0;
+          for (let r = from; r < to; ++r) n += records[r * input!.recordWords + 1];
+          return n;
+        };
+        if (mode === 'perspective') expect(counts(0, input!.recordBase)).toBeGreaterThan(0);
+        expect(counts(input!.recordBase, 2 * input!.recordBase)).toBeGreaterThan(0);
+
+        // the same image, but where the raster's and the fragment stage's arithmetic decide an edge differently
+        let differ = 0;
+        for (let i = 0; i < impostors.pixels.length; i += 4) {
+          const d = Math.max(
+            Math.abs(impostors.pixels[i] - split.pixels[i]),
+            Math.abs(impostors.pixels[i + 1] - split.pixels[i + 1]),
+            Math.abs(impostors.pixels[i + 2] - split.pixels[i + 2]),
+          );
+          if (d > 8) differ += 1;
         }
-        // the same view again: the opaque pass replays its recording (`drawLists`), with the raster on too
-        for (let i = 0; i < 4; ++i) await frame();
-        const { drawLists } = graphics.stats;
-        const replayed = drawLists.replayed;
-        const direct = drawLists.chunksDirect;
-        const recorded = drawLists.recorded;
-        expect(await frame()).toEqual(pixels);
-        expect(drawLists.replayed).toBe(replayed + 1);
-        expect(drawLists.chunksDirect).toBe(direct);
-        expect(drawLists.recorded).toBe(recorded);
-        if (props.sphereRaster !== 'off') expect(resolved).toBe(1);
-        item.renderFullscreen = renderFullscreen;
-        // a context without compute (a switch to WebGL): the raster's buffers leave the object with its renderer, else
-        // it counts as holding resources of the previous context and is dropped from the scene for good
-        const noCompute = () => ({ resources: { ownsTexture: () => true } }) as unknown as GraphicsContext;
-        if (props.sphereRaster !== 'off') expect(hasForeignResources(merged, noCompute())).toBe(true);
-        renderer.dispose();
-        expect(hasForeignResources(merged, noCompute())).toBe(false);
-        return { pixels, resolved };
-      };
+        expect(differ).toBeLessThanOrEqual(Size * Size * 0.02);
 
-      // the raster's input of its last view
-      const getRasterInput = renderable.getRasterInput!;
-      let input: ReturnType<typeof getRasterInput>;
-      renderable.getRasterInput = (...args) => {
-        input = getRasterInput(...args) ?? input;
-        return input;
-      };
-      const impostors = await render({ sphereRaster: 'off' });
-      expect(new Set(impostors.pixels).size).toBeGreaterThan(4);
-      const split = await render({ sphereRaster: 'on', sphereRasterRadius: 2 });
-      expect(split.resolved).toBeGreaterThan(0);
-      // `auto` draws objects culled on the GPU as `on`
-      const auto = await render({ sphereRaster: 'auto', sphereRasterRadius: 2 });
-      expect(auto.resolved).toBeGreaterThan(0);
-      expect(auto.pixels).toEqual(split.pixels);
-
-      // both kinds of region hold instances: the impostors' (near) and the raster's (far)
-      renderable.getRasterInput = getRasterInput;
-      expect(input).toBeDefined();
-      const records = new Uint32Array(await input!.records.readAsync());
-      const counts = (from: number, to: number) => {
-        let n = 0;
-        for (let r = from; r < to; ++r) n += records[r * input!.recordWords + 1];
-        return n;
-      };
-      expect(counts(0, input!.recordBase)).toBeGreaterThan(0);
-      expect(counts(input!.recordBase, 2 * input!.recordBase)).toBeGreaterThan(0);
-
-      // the same image, but where the raster's and the fragment stage's arithmetic decide an edge differently
-      let differ = 0;
-      for (let i = 0; i < impostors.pixels.length; i += 4) {
-        const d = Math.max(
-          Math.abs(impostors.pixels[i] - split.pixels[i]),
-          Math.abs(impostors.pixels[i + 1] - split.pixels[i + 1]),
-          Math.abs(impostors.pixels[i + 2] - split.pixels[i + 2]),
-        );
-        if (d > 8) differ += 1;
+        target.destroy();
+        expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
       }
-      expect(differ).toBeLessThanOrEqual(Size * Size * 0.02);
-
-      target.destroy();
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  });
+    },
+  );
 
   // a merged object moved by its transient transform (`uObjectTransform`, a drag's frame) stays with the raster: the
   // culling and the raster move its spheres by it, drawn as the same move baked into its members

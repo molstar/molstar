@@ -192,9 +192,13 @@ export function createGpuCulling(host: GpuCullingHost): GpuCulling {
   const getCullRaster = (camera: RenderCamera): MergedRasterParams | undefined => {
     if (!isSphereRasterView(camera)) return undefined;
     const P = camera.projection;
+    const ortho = camera.state.mode === 'orthographic';
+    // the culler's sizes unscaled: perspective over the distance (a ratio), orthographic in view units (`camera.scale`)
+    const focal = Math.max(P[0] * viewport.width, P[5] * viewport.height) / 2;
     return {
       radius: getSphereRasterRadius(),
-      scale: Math.max(P[0] * viewport.width, P[5] * viewport.height) / 2,
+      scale: ortho ? focal * camera.scale : focal,
+      ortho,
       // the culler's distances unscaled (`GpuCullingHost.cameraPlane`)
       near: camera.near / camera.scale,
     };
@@ -216,14 +220,13 @@ export function createGpuCulling(host: GpuCullingHost): GpuCulling {
     return values.dGeometryType?.ref.value === 'spheres' && values.uAlpha?.ref.value === 1;
   };
   /**
-   * whether the raster draws the view: perspective, at any scale; a viewport anywhere in its target (stereo's right eye),
-   * the visibility buffer the view's, the resolve's pixels offset by its origin; not one starting outside the target
-   * (cropped by the backend where the device does not take it)
+   * whether the raster draws the view: perspective or orthographic, at any scale; a viewport anywhere in its target
+   * (stereo's right eye), the visibility buffer the view's, the resolve's pixels offset by its origin; not one starting
+   * outside the target (cropped by the backend where the device does not take it)
    */
-  const isSphereRasterView = (camera: RenderCamera) => {
+  const isSphereRasterView = (_camera: RenderCamera) => {
     if (!isRasterAvailable()) return false;
-    if (viewport.x < 0 || viewport.y < 0) return false;
-    return camera.state.mode !== 'orthographic';
+    return viewport.x >= 0 && viewport.y >= 0;
   };
   /** the largest half size in pixels of the target the raster draws */
   const getSphereRasterRadius = () =>

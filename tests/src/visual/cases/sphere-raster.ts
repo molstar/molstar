@@ -307,6 +307,27 @@ export const SphereRasterCases: VisualTestCase[] = [
     },
   ),
   rasterCase(
+    'globule-orthographic',
+    'The globule seen by an orthographic camera: the raster casts parallel rays (from each pixel on the camera plane), ' +
+      'its spheres the same size at every depth, those up to 6 px by the raster.',
+    async (ctx) => [await globule(ctx)],
+    { canvasProps: { camera: { mode: 'orthographic' } } },
+  ),
+  rasterCase(
+    'merged-grid-orthographic',
+    'The copies merged and culled on the GPU, orthographic: the split per instance by the size on screen alone (no ' +
+      'distance), the culler and the raster deciding alike.',
+    async (ctx) => [await globuleGrid(ctx)],
+    { radius: 4, canvasProps: { camera: { mode: 'orthographic' } } },
+  ),
+  rasterCase(
+    'clip-pixel-orthographic',
+    'The globule clipped by pixel by a tilted plane, orthographic, all by the raster (`only`): the caps of the solid ' +
+      'interiors along parallel rays, as the impostors show them.',
+    async (ctx) => [await globule(ctx, { clip: PixelClip })],
+    { sphereRaster: 'only', canvasProps: { camera: { mode: 'orthographic' } } },
+  ),
+  rasterCase(
     'merged-stereo',
     'The copies merged and culled on the GPU in side-by-side stereo, a wide eye separation: both eyes culled as one ' +
       '(a frustum enclosing both, one culling a frame), both drawn by the raster (the right eye offset in its target): ' +

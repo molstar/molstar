@@ -120,6 +120,8 @@ const PagedCullUniforms = {
   uRasterRadius: UniformSpec('f'),
   uRasterScale: UniformSpec('f'),
   uRasterNear: UniformSpec('f'),
+  /** 1 orthographic: a sphere's size on screen the same at every distance (`MergedRasterParams.ortho`) */
+  uRasterOrtho: UniformSpec('f'),
   uRasterBase: UniformSpec('i'),
   uRasterRowsBase: UniformSpec('i'),
   /**
@@ -254,7 +256,7 @@ export interface PagedCullView {
   /** the raster's regions (the levels' again, level-major after theirs): its split's instances into them (`raster`) */
   readonly rasterRegions?: boolean;
   /** the sphere raster's split (`MergedRasterParams`), with `rasterRegions` */
-  readonly raster?: { readonly radius: number; readonly scale: number; readonly near: number };
+  readonly raster?: { readonly radius: number; readonly scale: number; readonly near: number; readonly ortho: boolean };
   /** the object's transient transform (`uObjectTransform`), the identity where none */
   readonly objectTransform?: Mat4;
 }
@@ -377,6 +379,7 @@ export function createPagedCuller(compute: ComputeContext, resources: GraphicsRe
     uRasterRadius: ValueCell.create(0),
     uRasterScale: ValueCell.create(0),
     uRasterNear: ValueCell.create(0),
+    uRasterOrtho: ValueCell.create(0),
     uRasterBase: ValueCell.create(0),
     uRasterRowsBase: ValueCell.create(0),
     uMaxReach: ValueCell.create(0),
@@ -844,6 +847,7 @@ export function createPagedCuller(compute: ComputeContext, resources: GraphicsRe
       ValueCell.updateIfChanged(uniforms.uRasterRadius, split?.radius ?? 0);
       ValueCell.updateIfChanged(uniforms.uRasterScale, split?.scale ?? 0);
       ValueCell.updateIfChanged(uniforms.uRasterNear, split?.near ?? 0);
+      ValueCell.updateIfChanged(uniforms.uRasterOrtho, split?.ortho ? 1 : 0);
       // the phases' cursors (the second's bound as the first's prior)
       ValueCell.update(counts, firstCounts);
       ValueCell.update(prior, secondCounts);

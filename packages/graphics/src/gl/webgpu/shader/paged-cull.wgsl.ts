@@ -218,8 +218,9 @@ fn rasterized(p: vec3<f32>, radius: f32, scale: f32, member: u32, level: u32) ->
     if (d - r <= uParams.uRasterNear) {
         return false;
     }
-    // the tangents from the eye, as the raster's bounds
-    return r * uParams.uRasterScale <= uParams.uRasterRadius * sqrt(max(d * d - r * r, 0.0));
+    // the tangents from the eye, as the raster's bounds; orthographic its radius (\`isRasterSize\`)
+    let extent = select(sqrt(max(d * d - r * r, 0.0)), 1.0, uParams.uRasterOrtho != 0.0);
+    return r * uParams.uRasterScale <= uParams.uRasterRadius * extent;
 }
 
 /** the region of a visible instance: its member's at its level, or its level's raster region's */
