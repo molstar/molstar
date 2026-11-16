@@ -31,7 +31,9 @@ same with batching, 2.43 ms). Merging works on WebGL as well.
 - **How** (`createMergedValues`): one render object whose vertex attributes, elements and theme layers are the
   members' arrays as parts (`SegmentedArray`: each at its vertex, element or texel base, indices biased by the vertex
   base at upload; a layer's image sized as a copy would be), instances concatenated with per-instance segment
-  data (`aSegment`: group and data offsets; `aSegmentSphere`; `aSegmentLod`: the members' level scales); `segments`
+  data (`aSegment`: group and data offsets; `aSegmentSphere`; `aSegmentLod`: the members' level scales; `aSegmentStride`,
+  `aSegmentItem`: their level strides and first item, spheres' and points'; `aSegmentSites`: spheres' quantized
+  centers' origin and scale); `segments`
   holds per member its instance, vertex, draw and element ranges. Members keep their own render objects (not drawn).
 - **Updates** (`sync`, on the merged renderable's `update`): every member's value versions compared, a changed
   member's geometry and layer parts advanced (the render item writes those parts only), level scales copied,
@@ -225,6 +227,12 @@ Steps:
    0.94 / 0.76 ms, zoomed 6.14 / 5.17, zoomed rotating 6.56 / 5.64; storage, heap and setup unchanged; 8 a side no
    better (5.11 zoomed, 5.81 rotating, add and commit 50 ms more). No pixel differs from no occlusion still; rotating 4
    and 76 pixels of 921,600 (whole, zoomed). `webgpu-gpu-culling` now expects at most the CPU culling's instances.
+   Since replaced by one grid over all instances ([particle-pack.md](../particle-pack.md) step 7; built on the GPU,
+   `scene-cells.ts`, [load-time.md](load-time.md) step 4):
+   with each instance tested in the copy (9), a cell's size decides only the instance tests skipped, not what is
+   drawn, and the split per member made about a cell an instance of sparse members (the yeast cell: 24.7 M cells,
+   471 MB). MG_1184 (WebGPU, `sphere-raster-mg/*-off`): the opaque pass and the frames unchanged (whole 0.62 / 0.62
+   ms, zoomed 4.47 / 4.45, zoomed at 2560×1440 16.1 / 16.2), the culling ±0.03 ms, storage 188.6 to 170.8 MB.
 9. **Each instance tested in the copy** (done): the copy kernel's thread per instance of a drawn cell tests the
    instance's sphere as the cell's (`sphereLevels`, shared: the frustum, the distance ranges, the pyramid) and copies it
    at the levels of both. Its sphere computed in the kernel from its transform's rows and its segment's invariant
@@ -333,7 +341,11 @@ Steps:
    instance data (transforms, instance ids, segment data: 7 texels an instance) from a texture at the draw's first
    instance (`uInstanceBase`, set per draw as `uDrawId`) plus `gl_InstanceID` (`dInstanceData`, macros in
    `common-vert-params` in place of the attributes, which stay declared and unread; programs offset only the
-   attributes they read), filled by the WebGL render item from the instance values (`getInstanceDataSchema`). At 1000
+   attributes they read), filled by the WebGL render item from the instance values (`getInstanceDataSchema`). Now 4
+   texels an instance (the transform's rows; the instance and its segment's index, the segment's groups in a table after
+   the instances), in pages of 2^22 instances (256 MiB), a texture each bound per draw, a draw across pages split: the
+   yeast cell's 31.5 M instances at 80 B were 2.5 GB, and ANGLE's D3D11 allocates no texture above about 1.2 GB (an
+   RGBA32F 16384 × 4800 does, × 5200 not); it drew nothing. At 1000
    units (WebGL 2): spacefill still 1.59 to 0.47 ms, hover 4.39 to 1.49; cartoon still 1.59 to 0.71, hover 4.40 to
    1.89, recolor 4.82 to 3.85. WebGL1 keeps the offsets. Profiled zoomed (`merging/postsyn-lod-pixel3-zoom-nohiz`,
    WebGL2 on D3D11, no base instances: 11.6k draws, CPU 3.7 ms): culling 61% (`cullSegment`, `emit`, the frustum

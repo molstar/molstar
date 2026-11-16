@@ -352,25 +352,38 @@ function getAxesMeshShape(props: AxesProps, shape?: Shape<Mesh>, planes = false)
   );
 }
 
+/**
+ * A widget: clicked at any opacity, not only above the picking threshold (`Representation.State.pickAtAnyAlpha`, which
+ * the canvas applies to representations; these render objects are none)
+ */
+function asWidget<T extends GraphicsRenderObject>(renderObject: T): T {
+  ValueCell.updateIfChanged(renderObject.values.uPickingAlphaMin, 1);
+  return renderObject;
+}
+
 function createMeshRenderObject(props: AxesProps) {
   const shape = getAxesMeshShape(props);
-  return ShapeUtils.createRenderObject(shape, {
-    ...PD.getDefaultValues(Mesh.Params),
-    ...props,
-    // shaded: an arrow toward the viewer reads as one, not as a flat disk
-    ignoreLight: false,
-    cellSize: 0,
-  });
+  return asWidget(
+    ShapeUtils.createRenderObject(shape, {
+      ...PD.getDefaultValues(Mesh.Params),
+      ...props,
+      // shaded: an arrow toward the viewer reads as one, not as a flat disk
+      ignoreLight: false,
+      cellSize: 0,
+    }),
+  );
 }
 
 function createPlanesRenderObject(props: AxesProps) {
   const shape = getAxesMeshShape(props, undefined, true);
-  return ShapeUtils.createRenderObject(shape, {
-    ...PD.getDefaultValues(Mesh.Params),
-    ...props,
-    ignoreLight: true,
-    cellSize: 0,
-  });
+  return asWidget(
+    ShapeUtils.createRenderObject(shape, {
+      ...PD.getDefaultValues(Mesh.Params),
+      ...props,
+      ignoreLight: true,
+      cellSize: 0,
+    }),
+  );
 }
 
 //
@@ -419,10 +432,12 @@ function getAxesTextShape(props: AxesProps, shape?: Shape<Text>) {
 
 function createTextRenderObject(props: AxesProps) {
   const shape = getAxesTextShape(props);
-  return ShapeUtils.createRenderObject(shape, {
-    ...PD.getDefaultValues(Text.Params),
-    ...props,
-    alpha: props.labelOpacity,
-    cellSize: 0,
-  });
+  return asWidget(
+    ShapeUtils.createRenderObject(shape, {
+      ...PD.getDefaultValues(Text.Params),
+      ...props,
+      alpha: props.labelOpacity,
+      cellSize: 0,
+    }),
+  );
 }

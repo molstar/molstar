@@ -75,7 +75,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let vertexId = item * 2 + select(1, 0, corner < 2);
     let lineStart = read_tLine(item * 2); // start xyz, group
     let lineEnd = read_tLine(item * 2 + 1); // end xyz, whether the line continues the one before
-    let group = lineStart.w;
+    // an integer (\`rgb32f-i32\`)
+    let group = readGroup_tLine(item * 2);
     // -1 or 1: left or right, start or end
     var mapping = vec2<f32>(select(1.0, -1.0, corner == 0 || corner == 2), select(1.0, -1.0, corner < 2));
     var segmentStart = lineStart.xyz;
@@ -90,22 +91,23 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_size_wgsl}
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = uObject.uObjectTransform * applyTumble(aTransform, invariantBoundingSphere(in));
+    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
     ${assign_wiggle_wgsl}
-    let wigStart = applyWiggle(segmentStart, group, wiggle);
-    let wigEnd = applyWiggle(segmentEnd, group, wiggle);
-    let model = uGlobal.uModel * transform;
-    let modelView = uGlobal.uView * model;
+    let wigStart = applyWiggle(segmentStart, f32(group), wiggle);
+    let wigEnd = applyWiggle(segmentEnd, f32(group), wiggle);
+    // the positions transformed, not the matrices multiplied first: the instance's transform, the object's transient
+    // one, then the model and view
+    let worldStart = uObject.uObjectTransform * (transform * vec4<f32>(wigStart, 1.0));
+    let worldEnd = uObject.uObjectTransform * (transform * vec4<f32>(wigEnd, 1.0));
 
     // camera space
-    var start = modelView * vec4<f32>(wigStart, 1.0);
-    var end = modelView * vec4<f32>(wigEnd, 1.0);
+    var start = uGlobal.uModelView * worldStart;
+    var end = uGlobal.uModelView * worldEnd;
 
     // assign position
     let isStart = mapping.y < 0.5;
-    let position4 = vec4<f32>(select(wigEnd, wigStart, isStart), 1.0);
     out.vViewPosition = select(end.xyz, start.xyz, isStart);
-    out.vModelPosition = (model * position4).xyz;
+    out.vModelPosition = (uGlobal.uModel * select(worldEnd, worldStart, isStart)).xyz;
 
     // special case for perspective projection, and segments that terminate either in, or behind, the camera plane
     let perspective = uGlobal.uProjection[2][3] == -1.0;
@@ -159,9 +161,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     #if defined(dClipVariant_pixel) && defined(dClipObjects)
         // pixel clipping by the bounding sphere of the item's line (not the segment of a strip's start corners, which
         // continue the line before): a line clipped whole moved out of [0, w], one not cut not tested per fragment
-        let modelTransform = uGlobal.uModel * transform;
-        let lineA = (modelTransform * vec4<f32>(applyWiggle(lineStart.xyz, group, wiggle), 1.0)).xyz;
-        let lineB = (modelTransform * vec4<f32>(applyWiggle(lineEnd.xyz, group, wiggle), 1.0)).xyz;
+        let lineA = (uGlobal.uModel * (uObject.uObjectTransform * (transform * vec4<f32>(applyWiggle(lineStart.xyz, f32(group), wiggle), 1.0)))).xyz;
+        let lineB = (uGlobal.uModel * (uObject.uObjectTransform * (transform * vec4<f32>(applyWiggle(lineEnd.xyz, f32(group), wiggle), 1.0)))).xyz;
         // the ghost pass (\`uClipGhost\`): a line whole by its center, kept where clipped, not tested per fragment
         var clipClass: u32;
         if (uGlobal.uClipGhost != 0u) {

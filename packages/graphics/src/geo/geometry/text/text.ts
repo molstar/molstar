@@ -7,11 +7,12 @@
  * @author Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>
  */
 
+import { getDataWords } from '../center-group.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ValueCell } from '@molstar/core/util';
 import type { GeometryUtils } from '../geometry.js';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
-import type { TransformData } from '../transform-data.js';
+import { type TransformData, getInstanceRows } from '../transform-data.js';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { createColors } from '../color-data.js';
 import { createSizes, getMaxSize } from '../size-data.js';
@@ -134,7 +135,7 @@ export namespace Text {
       },
       get groupMapping() {
         if (text.textData.ref.version !== currentGroup) {
-          groupMapping = createGroupMapping(text.textData.ref.value.array, text.charCount, TextStride, 3);
+          groupMapping = createGroupMapping(getDataWords(text.textData.ref.value.array), text.charCount, TextStride, 3);
           currentGroup = text.textData.ref.version;
         }
         return groupMapping;
@@ -202,12 +203,14 @@ export namespace Text {
     // per data vertex (1 per item, see `Geometry.getVertexCount`): the label's position
     const d = text.textData.ref.value.array;
     const m = transform.aTransform.ref.value;
+    // the instance's row: the grid stores them in its order (`getInstanceRows`)
+    const rows = getInstanceRows(transform);
     const getLocation = (groupIndex: number, instanceIndex: number) => {
       const o = groupIndex * TextStride;
       if (instanceIndex < 0) {
         Vec3.fromArray(p, d, o);
       } else {
-        Vec3.transformMat4Offset(p, d, m, 0, o, instanceIndex * 16);
+        Vec3.transformMat4Offset(p, d, m, 0, o, (rows ? rows[instanceIndex] : instanceIndex) * 16);
       }
       return location;
     };

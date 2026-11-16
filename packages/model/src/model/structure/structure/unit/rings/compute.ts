@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Segmentation, SortedArray } from '@molstar/core/data/int';
@@ -15,8 +16,8 @@ import type { Column } from '@molstar/core/data/db';
 import { arraySetAdd, arraySetRemove } from '@molstar/core/util/array';
 
 /**
- * The rings of a unit over `bonds`, by default the unit's own. A bond provider passes the graph it is building
- * (bond-providers plan §2): reading `unit.bonds` from inside the provider would compute them again.
+ * The rings of a unit over `bonds`, by default the unit's own. A bond provider passes the graph it is building:
+ * reading `unit.bonds` from inside the provider would compute them again.
  */
 export function computeRings(unit: Unit.Atomic, bonds: IntraUnitBonds = unit.bonds) {
   const size = largestResidue(unit);

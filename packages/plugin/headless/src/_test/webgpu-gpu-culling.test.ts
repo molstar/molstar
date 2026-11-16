@@ -7,12 +7,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { Mat4, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Quat, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
+import { InstanceTransforms } from '@molstar/core/math/geometry/instance-transforms';
 import { now } from '@molstar/core/util/now';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
-import { createTransform } from '@molstar/graphics/geo/geometry/transform-data';
+import {
+  createPosesTransform,
+  createTransform,
+  moveTransformData,
+  type TransformData,
+} from '@molstar/graphics/geo/geometry/transform-data';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Renderer } from '@molstar/graphics/gl/renderer';
 import { createFrame } from '@molstar/graphics/gl/renderable';
@@ -24,10 +30,12 @@ import {
   isMergedRenderObject,
 } from '@molstar/graphics/gl/render-object';
 import {
+  createMergedCuller,
   MergedCullerCounts,
   MergedCullerLimits,
   MergedCullKernels,
 } from '@molstar/graphics/gl/renderable/merged-culler';
+import { createMergedValues } from '@molstar/graphics/gl/renderable/merged';
 import { moveInstanceGrid } from '@molstar/core/math/geometry/instance-grid';
 import { Scene } from '@molstar/graphics/gl/scene';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
@@ -63,6 +71,51 @@ function createMember(offset: Vec3, color: number, params: Partial<PD.Values<Sph
 }
 
 describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
+  it("writes the identity region in an order set, kept through its regions' layouts", async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      const members = [createMember(Vec3.create(0, 0, 0), ColorNames.orange), createMember(Vec3(), ColorNames.blue)];
+      const values = members.map((m) => m.values as never);
+      const culler = createMergedCuller(
+        graphics.compute!,
+        graphics.resources,
+        createMergedValues('spheres', values, true),
+        values,
+        true,
+      );
+      const n = members.length * Copies * Copies;
+      const region = async () => {
+        const buffer = culler.values.sCulledIndices.ref.value;
+        return Array.from(new Uint32Array(await buffer.readAsync(culler.identityBase * 4, n * 4)));
+      };
+      const own = Array.from({ length: n }, (_, i) => i);
+      expect(await region()).toEqual(own);
+      // each member's instances reversed (a grid's order of instances written in another)
+      const order = Uint32Array.from(own, (i) => (i < n / 2 ? n / 2 - 1 - i : n - 1 - (i - n / 2)));
+      culler.setIdentityOrder(order);
+      expect(await region()).toEqual(Array.from(order));
+      // laid out again (the members' grids changed: the cells and regions anew): the order kept
+      const layouts = MergedCullerCounts.layouts;
+      ValueCell.update(members[1].values.instanceGrid, { ...members[1].values.instanceGrid.ref.value });
+      culler.sync();
+      expect(MergedCullerCounts.layouts).toBe(layouts + 1);
+      expect(await region()).toEqual(Array.from(order));
+      culler.setIdentityOrder(undefined);
+      expect(await region()).toEqual(own);
+      culler.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
   it('draws the cells the CPU culling draws, from indirect lists', async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
@@ -230,17 +283,19 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       { width: Size, height: Size },
       { backend: 'webgpu' },
     );
-    const { maxWorkgroupsPerDimension, dataBlockInstances } = MergedCullerLimits;
+    const { maxWorkgroupsPerDimension, dataBlockInstances, sceneCellInstances } = MergedCullerLimits;
     try {
       await plugin.init();
       // the instances' data written a few instances at a time (`writeCulledData`), each member in several blocks
       MergedCullerLimits.dataBlockInstances = 7;
+      // cells of an instance each (`buildSceneCells`): the members in planes apart, small cells
+      MergedCullerLimits.sceneCellInstances = 0.1;
       const graphics = plugin.canvas3d!.graphics;
       // more than one workgroup (64) of cells and of instances: split into rows below
       const members = [
         createMember(Vec3.create(0, 0, 0), ColorNames.orange),
-        createMember(Vec3.create(2.5, 2.5, 1), ColorNames.green),
-        createMember(Vec3.create(-2.5, 3, -1), ColorNames.blue),
+        createMember(Vec3.create(2.5, 2.5, 10), ColorNames.green),
+        createMember(Vec3.create(-2.5, 3, 20), ColorNames.blue),
       ];
       const cpu = createMergedRenderObject(members);
       const gpu = createMergedRenderObject(members, { gpuCulling: true });
@@ -317,6 +372,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
     } finally {
       MergedCullerLimits.maxWorkgroupsPerDimension = maxWorkgroupsPerDimension;
       MergedCullerLimits.dataBlockInstances = dataBlockInstances;
+      MergedCullerLimits.sceneCellInstances = sceneCellInstances;
       plugin.dispose();
     }
   }, 60_000);
@@ -819,7 +875,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
   }, 60_000);
 
   // clip objects (by pixel, without a clipping layer) cull the cells and instances they clip whole on the GPU as on the
-  // CPU (`clip-culling.md`): fewer instances drawn, the same image
+  // CPU: fewer instances drawn, the same image
   it('leaves out what clip objects clip whole, drawing what the CPU culling draws', async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
@@ -1030,7 +1086,479 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       plugin.dispose();
     }
   });
+
+  it('draws members with pending grids as with built ones: their data in their order, the grids built for a CPU cull', async () => {
+    const plugin = await createPlugin();
+    try {
+      const graphics = plugin.canvas3d!.graphics;
+      const pending = createPosedMembers(true);
+      const built = createPosedMembers();
+      for (const t of pending.poseTransforms) {
+        expect(t.instanceGrid.ref.value.pending).toBeDefined();
+        expect(t.instanceGrid.ref.value.cellCount).toBe(0);
+      }
+      const scene = (objects: GraphicsRenderObject[]) => {
+        const s = Scene.create(graphics);
+        for (const o of objects) s.add(o);
+        s.commit();
+        return s;
+      };
+      const scenes = [
+        scene([createMergedRenderObject(pending.poses, { gpuCulling: true })]),
+        scene([createMergedRenderObject(built.poses, { gpuCulling: true })]),
+      ];
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      const { center, radius } = scenes[1].boundingSphere;
+      camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius * 0.2, 0, 0)), radius * 0.5), 0);
+      camera.update();
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      const indirect = new Set<Scene>();
+      for (const s of scenes) {
+        await graphics.resources.preparePipelines(
+          renderer.collect({ name: 'opaque' }, s, graphics.describeTarget(target)),
+        );
+        const item = s.renderables[0].renderItem;
+        const render = item.render;
+        item.render = (variant, globals, list) => {
+          if (list?.[0]?.indirect) indirect.add(s);
+          render(variant, globals, list);
+        };
+      }
+      const frame = async (s: Scene, cullOnGpu = true) => {
+        renderer.update(camera, s, createFrame());
+        if (cullOnGpu) renderer.prepareCull(s);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.setViewport(0, 0, Size, Size);
+        renderer.renderOpaque(s, camera);
+        graphics.flush();
+        const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+        await graphics.resources.pending.whenReady();
+        return pixels;
+      };
+      for (let i = 0; i < 20 && !(indirect.has(scenes[0]) && indirect.has(scenes[1])); ++i) {
+        await frame(scenes[0]);
+        await frame(scenes[1]);
+      }
+      // culled on the GPU: the same image, no grid built, the members' data in their own order
+      const gpu = [await frame(scenes[0]), await frame(scenes[1])];
+      expect(indirect.has(scenes[0])).toBe(true);
+      expect(new Set(gpu[1]).size).toBeGreaterThan(2);
+      expect(countDifferentPixels(gpu[0], gpu[1])).toBeLessThanOrEqual(Size * Size * 0.002);
+      for (const t of pending.poseTransforms) {
+        expect(t.instanceGrid.ref.value.pending).toBeDefined();
+        expect(Array.from(t.aInstance.ref.value)).toEqual(
+          Array.from({ length: t.instanceCount.ref.value }, (_, k) => k),
+        );
+      }
+      // a view culled on the CPU (no `prepareCull`): the grids built, the lists their cells' in the identity region,
+      // what the built grids draw; the members' data as it was
+      camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(-radius * 0.3, 0, 0)), radius * 0.4), 0);
+      camera.update();
+      const cpu = [await frame(scenes[0], false), await frame(scenes[1], false)];
+      expect(new Set(cpu[1]).size).toBeGreaterThan(2);
+      expect(countDifferentPixels(cpu[0], cpu[1])).toBeLessThanOrEqual(Size * Size * 0.002);
+      for (const t of pending.poseTransforms) expect(t.instanceGrid.ref.value.pending).toBeDefined();
+      // back on the GPU: as before
+      expect(countDifferentPixels(await frame(scenes[0]), await frame(scenes[1]))).toBeLessThanOrEqual(
+        Size * Size * 0.002,
+      );
+
+      // not merged: nothing draws them by index, the pending grids built and applied (the data in their order)
+      const unmerged = createPosedMembers(true);
+      const plain = scene(unmerged.poses);
+      for (const t of unmerged.poseTransforms) {
+        expect(t.instanceGrid.ref.value.pending).toBeUndefined();
+        expect(t.instanceGrid.ref.value.cellCount).toBeGreaterThan(0);
+      }
+      const reference = scene(createPosedMembers().poses);
+      for (const s of [plain, reference]) {
+        await graphics.resources.preparePipelines(
+          renderer.collect({ name: 'opaque' }, s, graphics.describeTarget(target)),
+        );
+      }
+      expect(countDifferentPixels(await frame(plain, false), await frame(reference, false))).toBe(0);
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it('updates pending members whose poses changed alone without a layout: the cells and the poses again', async () => {
+    const plugin = await createPlugin();
+    try {
+      const graphics = plugin.canvas3d!.graphics;
+      const shift = Vec3.create(1.5, -2, 0.5);
+      const posed = createPosedMembers(true);
+      const reference = createPosedMembers(true, shift);
+      const scene = (objects: GraphicsRenderObject[]) => {
+        const s = Scene.create(graphics);
+        for (const o of objects) s.add(o);
+        s.commit();
+        return s;
+      };
+      const scenes = [
+        scene([createMergedRenderObject(posed.poses, { gpuCulling: true })]),
+        scene([createMergedRenderObject(reference.poses, { gpuCulling: true })]),
+      ];
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      const { center, radius } = scenes[1].boundingSphere;
+      camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius * 0.2, 0, 0)), radius * 0.5), 0);
+      camera.update();
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      const indirect = new Set<Scene>();
+      for (const s of scenes) {
+        await graphics.resources.preparePipelines(
+          renderer.collect({ name: 'opaque' }, s, graphics.describeTarget(target)),
+        );
+        const item = s.renderables[0].renderItem;
+        const render = item.render;
+        item.render = (variant, globals, list) => {
+          if (list?.[0]?.indirect) indirect.add(s);
+          render(variant, globals, list);
+        };
+      }
+      const frame = async (s: Scene) => {
+        renderer.update(camera, s, createFrame());
+        renderer.prepareCull(s);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.setViewport(0, 0, Size, Size);
+        renderer.renderOpaque(s, camera);
+        graphics.flush();
+        const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+        await graphics.resources.pending.whenReady();
+        return pixels;
+      };
+      for (let i = 0; i < 20 && !(indirect.has(scenes[0]) && indirect.has(scenes[1])); ++i) {
+        await frame(scenes[0]);
+        await frame(scenes[1]);
+      }
+      const before = await frame(scenes[0]);
+      const expected = await frame(scenes[1]);
+      expect(countDifferentPixels(before, expected)).toBeGreaterThan(20);
+
+      // the members' poses changed alone (the reference's), in place: their pending grids kept
+      const { layouts, poses } = MergedCullerCounts;
+      posed.poseTransforms.forEach((t, k) => {
+        const grid = t.instanceGrid.ref.value;
+        const next = reference.poseTransforms[k].poses.ref.value!;
+        createPosesTransform(next, Sphere3D.create(Vec3(), 2.5), 8, 32, t, true);
+        expect(t.instanceGrid.ref.value).toBe(grid);
+        const values = posed.poses[k].values;
+        ValueCell.update(values.boundingSphere, reference.poses[k].values.boundingSphere.ref.value);
+      });
+      scenes[0].renderables[0].update();
+      expect(MergedCullerCounts.layouts).toBe(layouts);
+      expect(MergedCullerCounts.poses).toBe(poses + 1);
+      expect(countDifferentPixels(await frame(scenes[0]), expected)).toBeLessThanOrEqual(Size * Size * 0.002);
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it('draws members placed by poses, read by index, as members of the same matrices', async () => {
+    const plugin = await createPlugin();
+    try {
+      const graphics = plugin.canvas3d!.graphics;
+      const { poses, matrices } = createPosedMembers();
+      const scenes = [
+        createMergedRenderObject(poses, { gpuCulling: true }),
+        createMergedRenderObject(matrices, { gpuCulling: true }),
+        createMergedRenderObject(matrices),
+      ].map((o) => {
+        const scene = Scene.create(graphics);
+        scene.add(o);
+        scene.commit();
+        return scene;
+      });
+      // the culled programs read the poses' data (no rows), the CPU-culled object the matrices' rows
+      expect(scenes[0].renderables[0].values.instancePoses?.ref.value?.kind).toBe('segmented');
+      expect(scenes[1].renderables[0].values.instancePoses?.ref.value).toBeUndefined();
+
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      const { center, radius } = scenes[2].boundingSphere;
+      expect(scenes[0].boundingSphere.radius).toBeCloseTo(radius, 3);
+      camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius * 0.2, 0, 0)), radius * 0.5), 0);
+      camera.update();
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      for (const scene of scenes) {
+        await graphics.resources.preparePipelines(
+          renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+        );
+      }
+      const indirect = new Set<Scene>();
+      for (const scene of scenes) {
+        const item = scene.renderables[0].renderItem;
+        const render = item.render;
+        item.render = (variant, globals, list) => {
+          if (list?.[0]?.indirect) indirect.add(scene);
+          render(variant, globals, list);
+        };
+      }
+      const frame = async (scene: Scene) => {
+        renderer.update(camera, scene, createFrame());
+        renderer.prepareCull(scene);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.setViewport(0, 0, Size, Size);
+        renderer.renderOpaque(scene, camera);
+        graphics.flush();
+        const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+        await graphics.resources.pending.whenReady();
+        return pixels;
+      };
+      for (let i = 0; i < 20 && !(indirect.has(scenes[0]) && indirect.has(scenes[1])); ++i) {
+        await frame(scenes[0]);
+        await frame(scenes[1]);
+      }
+      const [posed, culled, cpu] = [await frame(scenes[0]), await frame(scenes[1]), await frame(scenes[2])];
+      expect(indirect.has(scenes[0])).toBe(true);
+      expect(indirect.has(scenes[2])).toBe(false);
+      expect(new Set(cpu).size).toBeGreaterThan(2);
+      expect(culled).toEqual(cpu);
+      // the rows built on the GPU from the pose, not packed on the CPU: the same image within float rounding
+      expect(countDifferentPixels(posed, cpu)).toBeLessThanOrEqual(Size * Size * 0.002);
+
+      // the sphere raster alone: its kernels and the resolve reading the culler's data, an unmerged object's its own
+      if (graphics.capabilities.atomicMinMax64) {
+        const unmerged = [poses, matrices].map((members) => {
+          const scene = Scene.create(graphics);
+          for (const m of members) scene.add(m);
+          scene.commit();
+          return scene;
+        });
+        const raster = Renderer.create(graphics, { sphereRaster: 'only' });
+        const rasterFrame = async (scene: Scene) => {
+          await graphics.resources.preparePipelines(
+            raster.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+          );
+          let resolved = 0;
+          for (const r of scene.renderables) {
+            const item = r.renderItem;
+            const renderFullscreen = item.renderFullscreen!;
+            item.renderFullscreen = (...args) => {
+              const drawn = renderFullscreen(...args);
+              if (drawn) resolved += 1;
+              return drawn;
+            };
+          }
+          let pixels: number[] = [];
+          for (let i = 0; i < 30; ++i) {
+            resolved = 0;
+            raster.setViewport(0, 0, Size, Size);
+            raster.update(camera, scene, createFrame());
+            raster.prepareCull(scene);
+            raster.prepareSphereRaster(scene, camera);
+            graphics.beginRenderPass(target);
+            raster.clear(true);
+            raster.renderOpaque(scene, camera);
+            graphics.flush();
+            pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+            await graphics.resources.pending.whenReady();
+            if (resolved > 0 && i > 3) break;
+          }
+          expect(resolved).toBeGreaterThan(0);
+          return pixels;
+        };
+        // the raster's regions turned on at its first dispatch: the regions laid out again, not the cells
+        const { layouts } = MergedCullerCounts;
+        const rasterCulled = await rasterFrame(scenes[1]);
+        expect(MergedCullerCounts.layouts).toBe(layouts);
+        expect(new Set(rasterCulled).size).toBeGreaterThan(2);
+        expect(countDifferentPixels(await rasterFrame(scenes[0]), rasterCulled)).toBeLessThanOrEqual(
+          Size * Size * 0.002,
+        );
+        const rasterUnmerged = await rasterFrame(unmerged[1]);
+        expect(new Set(rasterUnmerged).size).toBeGreaterThan(2);
+        expect(countDifferentPixels(await rasterFrame(unmerged[0]), rasterUnmerged)).toBeLessThanOrEqual(
+          Size * Size * 0.002,
+        );
+        raster.dispose();
+      }
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
 });
+
+describe.skipIf(!WebGPU.module)('instances of poses on WebGPU', () => {
+  it('draws objects of poses culled on the CPU from their instance data, as objects of the same matrices', async () => {
+    const plugin = await createPlugin();
+    try {
+      const graphics = plugin.canvas3d!.graphics;
+      const { poses, matrices, poseTransforms, matrixTransforms } = createPosedMembers();
+      const createScene = (objects: GraphicsRenderObject[]) => {
+        const scene = Scene.create(graphics);
+        for (const o of objects) scene.add(o);
+        scene.commit();
+        return scene;
+      };
+      // unmerged, and merged culled on the CPU
+      const scenes = [
+        createScene(poses),
+        createScene(matrices),
+        createScene([createMergedRenderObject(poses)]),
+        createScene([createMergedRenderObject(matrices)]),
+      ];
+      // the instances read from storage by index (`dInstanceStorage`), not packed as rows into vertex buffers
+      for (const scene of [scenes[0], scenes[2]]) {
+        for (const r of scene.renderables) expect(r.values.dInstanceStorage?.ref.value).toBe(true);
+      }
+      for (const scene of [scenes[1], scenes[3]]) {
+        for (const r of scene.renderables) expect(r.values.dInstanceStorage?.ref.value).toBeFalsy();
+      }
+
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      const { center, radius } = scenes[1].boundingSphere;
+      camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius * 0.2, 0, 0)), radius * 0.5), 0);
+      camera.update();
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      const draw = async (scene: Scene) => {
+        await graphics.resources.preparePipelines(
+          renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+        );
+        renderer.update(camera, scene, createFrame());
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.setViewport(0, 0, Size, Size);
+        renderer.renderOpaque(scene, camera);
+        graphics.flush();
+        const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+        await graphics.resources.pending.whenReady();
+        return pixels;
+      };
+      // drawn again where the frame started work (a pipeline the preparation did not cover compiles at the first draw
+      // of this context, for matrices as for poses)
+      const frame = async (scene: Scene) => {
+        for (let i = 0; i < 5; ++i) {
+          const tracked = graphics.resources.pending.trackedCount;
+          const pixels = await draw(scene);
+          if (graphics.resources.pending.trackedCount === tracked) return pixels;
+        }
+        throw new Error('the frame keeps starting work');
+      };
+      const compare = async () => {
+        const images = [];
+        for (const scene of scenes) images.push(await frame(scene));
+        expect(new Set(images[1]).size).toBeGreaterThan(2);
+        expect(countDifferentPixels(images[0], images[1])).toBeLessThanOrEqual(Size * Size * 0.002);
+        expect(countDifferentPixels(images[2], images[3])).toBeLessThanOrEqual(Size * Size * 0.002);
+        return images[1];
+      };
+      const before = await compare();
+
+      // moved: the poses' matrix (no instance touched), the matrices: the instance data written again on the update
+      const move = Mat4.fromTranslation(Mat4(), Vec3.create(4, -3, 0));
+      for (const t of [poseTransforms[0], matrixTransforms[0]]) expect(moveTransformData(t, move)).toBe(true);
+      for (const scene of scenes) {
+        scene.update(undefined, false);
+        scene.commit();
+      }
+      expect(countDifferentPixels(await compare(), before)).toBeGreaterThan(0);
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
+});
+
+/** Pixels (RGBA bytes) of `a` and `b` whose channels differ by more than 2 */
+function countDifferentPixels(a: ArrayLike<number>, b: ArrayLike<number>) {
+  let n = 0;
+  for (let o = 0; o < a.length; o += 4) {
+    for (let c = 0; c < 4; ++c) {
+      if (Math.abs(a[o + c] - b[o + c]) > 2) {
+        n += 1;
+        break;
+      }
+    }
+  }
+  return n;
+}
+
+/**
+ * `createMember`'s spheres placed by poses of one particle list (rotated, scaled, about a center): three members, by a
+ * range of the list (two, the second with a matrix: rotated and moved) and by indices; and members of the same
+ * instances as matrices (`InstanceTransforms.getMatrix`)
+ */
+/**
+ * `pendingGrid`: the poses' grids pending (`InstanceGrid.pending`), built where a CPU cull needs them; `shift`: every
+ * other particle moved by it (poses changed alone)
+ */
+function createPosedMembers(pendingGrid = false, shift?: Vec3) {
+  const n = Copies * Copies;
+  const total = 3 * n + 2;
+  const positions = new Float32Array(total * 3);
+  const rotations = new Float32Array(total * 4);
+  const scales = new Float32Array(total);
+  const q = Quat();
+  const axis = Vec3();
+  for (let e = 0; e < total; ++e) {
+    const i = e % n;
+    const m = Math.floor(e / n);
+    positions[e * 3] = (i % Copies) * 6 + m * 2.5;
+    positions[e * 3 + 1] = Math.floor(i / Copies) * 6 - m;
+    positions[e * 3 + 2] = m * 1.5;
+    Vec3.normalize(axis, Vec3.create(Math.sin(e), Math.cos(e * 1.3), 0.5));
+    Quat.toArray(Quat.setAxisAngle(q, axis, e * 0.7), rotations, e * 4);
+    // one not above 0: read as 1
+    scales[e] = e === 5 ? 0 : 0.8 + (e % 5) * 0.1;
+    if (shift && e % 2 === 0) for (let k = 0; k < 3; ++k) positions[e * 3 + k] += shift[k];
+  }
+  const center = Vec3.create(0.3, -0.2, 0.4);
+  const moved = Mat4.mul(
+    Mat4(),
+    Mat4.fromTranslation(Mat4(), Vec3.create(-3, 2, -1)),
+    Mat4.fromRotation(Mat4(), 0.4, Vec3.create(0, 0, 1)),
+  );
+  const reversed = Array.from({ length: n }, (_, k) => 2 * n + 1 - k);
+  const lists = [
+    InstanceTransforms.ofPoses({ count: n, positions, rotations, scales, first: 0, center }),
+    InstanceTransforms.ofPoses({ count: n, positions, rotations, scales, first: n, center, matrix: moved }),
+    InstanceTransforms.ofPoses({ count: n, positions, rotations, scales, indices: reversed, center }),
+  ];
+  const colors = [ColorNames.orange, ColorNames.green, ColorNames.blue];
+  const centers = new Float32Array([0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, -1.2, 0, 0, 0, -1.2, 0]);
+  const groups = new Float32Array([0, 1, 2, 3, 4]);
+  const props = { ...PD.getDefaultValues(Spheres.Params), cellSize: 8, batchSize: 32 };
+  const create = (transform: TransformData, k: number) => {
+    const spheres = Spheres.create(centers, groups, 5);
+    const simple = BaseGeometry.createSimple(colors[k] as never, 1, transform);
+    const values = Spheres.Utils.createValues(spheres, simple.transform, simple.locationIterator, simple.theme, props);
+    return createRenderObject('spheres', values, Spheres.Utils.createRenderableState(props), -1);
+  };
+  const sphere = Sphere3D.create(Vec3(), 2.5);
+  const poseTransforms = lists.map((p) =>
+    createPosesTransform(p, sphere, props.cellSize, props.batchSize, undefined, pendingGrid),
+  );
+  const matrixTransforms = lists.map((p) => {
+    const array = new Float32Array(n * 16);
+    const m = Mat4();
+    for (let i = 0; i < n; ++i) Mat4.toArray(InstanceTransforms.getMatrix(p, i, m), array, i * 16);
+    return createTransform(array, n, sphere, props.cellSize, props.batchSize);
+  });
+  return {
+    poses: poseTransforms.map(create),
+    matrices: matrixTransforms.map(create),
+    poseTransforms,
+    matrixTransforms,
+  };
+}
 
 async function createPlugin() {
   const plugin = await HeadlessPluginContext.create(

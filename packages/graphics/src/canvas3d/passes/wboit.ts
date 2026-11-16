@@ -15,11 +15,11 @@ import { RenderState } from '@molstar/graphics/gl/render-state';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { ValueCell } from '@molstar/core/util';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode } from '@molstar/core/util/debug';
 import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
 import type { PassTargets } from './pass-targets.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 export const EvaluateWboitSchema = {
   ...QuadSchema,
@@ -55,11 +55,11 @@ const WboitCapabilities = ['floatBlend', 'depthTexture', 'multipleRenderTargets'
 export class WboitPass {
   private readonly renderable: EvaluateWboitRenderable;
 
-  private readonly framebuffer: Framebuffer;
+  /** the two accumulation textures, with the transparency depth-stencil where given */
+  private readonly target: RenderPassAttachments;
   private readonly textureA: Texture;
   private readonly textureB: Texture;
   /** the stencil (and depth) of solid interior caps, shared, see the constructor */
-  private readonly depthRenderbuffer: Renderbuffer | null;
 
   private _supported = false;
   get supported() {
@@ -72,7 +72,7 @@ export class WboitPass {
   }
 
   bind(b: PassBuilder) {
-    b.begin(this.framebuffer, { label: 'wboit transparent', clear: { color: [0, 0, 0, 1] } });
+    b.begin(this.target, { label: 'wboit transparent', clear: { color: [0, 0, 0, 1] } });
   }
 
   render(b: PassBuilder) {
@@ -90,15 +90,6 @@ export class WboitPass {
         Vec2.set(this.renderable.values.uTexSize.ref.value, width, height),
       );
     }
-  }
-
-  private _init() {
-    this.framebuffer.setDrawBuffers(2);
-
-    this.textureA.attachFramebuffer(this.framebuffer, 'color0');
-    this.textureB.attachFramebuffer(this.framebuffer, 'color1');
-
-    this.depthRenderbuffer?.attachFramebuffer(this.framebuffer);
   }
 
   /** Why wboit is not available, if it is not: programs or capabilities missing */
@@ -140,12 +131,9 @@ export class WboitPass {
       : targets.texture('image-float32', 'rgba', 'float', 'nearest');
     this.textureB.define(width, height);
 
-    this.depthRenderbuffer = depthStencil;
-
     this.renderable = getEvaluateWboitRenderable(graphics, this.textureA, this.textureB);
-    this.framebuffer = resources.framebuffer();
+    this.target = createRenderPassAttachments(resources, [this.textureA, this.textureB], depthStencil ?? undefined);
 
     this._supported = true;
-    this._init();
   }
 }

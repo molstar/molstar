@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -11,7 +12,7 @@ import { EntityType } from '../../../model/types.js';
 import { stringToWords } from '@molstar/core/util/string';
 
 /**
- * The generic bond providers (bond-providers plan §2.4, §5): `'none'`, the built-in bonds without the distance-based
+ * The generic bond providers: `'none'`, the built-in bonds without the distance-based
  * ones, and `'per-unit'`, other providers chosen per unit by rules.
  */
 export { NoComputedBondsProvider, PerUnitBondProvider };
@@ -46,7 +47,7 @@ const EntityTypes = Object.keys(EntityType)
   .filter((k) => Number.isNaN(Number(k)) && k !== 'unknown')
   .map((k) => [k, stringToWords(k)] as [string, string]);
 
-/** What a rule matches: properties the same for every element of a chain and every operator (plan §5). */
+/** What a rule matches: properties the same for every element of a chain and every operator. */
 const MatchParams = PD.MappedStatic('entity-type', {
   'entity-type': PD.MultiSelect(['non-polymer'], EntityTypes, { label: 'Entity types' }),
   'label-asym-id': PD.Text('', { label: 'Chains', description: 'label_asym_id, comma-separated' }),
@@ -108,7 +109,7 @@ function matcher(match: Match): (unit: Unit.Atomic) => boolean {
 /**
  * Other providers chosen per unit: the first rule matching a unit decides its intra-unit bonds, units no rule
  * matches get the built-in ones, and one provider decides the bonds between units. Serializable as plain params, so
- * per-unit choice needs nothing of the model layer beyond units with their own instances (plan §5).
+ * per-unit choice needs nothing of the model layer beyond units with their own instances.
  */
 const PerUnitBondProvider: BondProvider<PerUnitParams> = {
   name: PerUnitName,

@@ -36,11 +36,11 @@ import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Color } from '@molstar/core/util/color/color';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import { now } from '@molstar/core/util/now';
 import { clamp } from '@molstar/core/math/interpolate';
 import type { DrawPass } from './draw.js';
 import type { RenderContext } from '../util.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 export const TracingParams = {
   rendersPerFrame: PD.Interval(
@@ -83,7 +83,10 @@ export const TracingParams = {
 export type TracingProps = PD.Values<typeof TracingParams>;
 
 export class TracingPass {
-  private readonly framebuffer: Framebuffer;
+  /** the tracing input: shaded, normal and color, with the draw pass's opaque depth */
+  private readonly inputTarget: RenderPassAttachments;
+  /** the thickness, with the transparency passes' depth-stencil */
+  private readonly thicknessPass: RenderPassAttachments;
 
   readonly colorTextureOpaque: Texture;
   readonly normalTextureOpaque: Texture;
@@ -131,17 +134,20 @@ export class TracingPass {
       this.colorTextureOpaque.define(width, height);
     }
 
-    this.framebuffer = graphics.resources.framebuffer();
-    this.framebuffer.setDrawBuffers(3);
-
-    this.shadedTextureOpaque.attachFramebuffer(this.framebuffer, 'color0');
-    this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
-    this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
+    this.inputTarget = createRenderPassAttachments(
+      graphics.resources,
+      [this.shadedTextureOpaque, this.normalTextureOpaque, this.colorTextureOpaque],
+      drawPass.depthTextureOpaque,
+    );
 
     // the farthest back faces, drawn with the transparency passes' depth-stencil buffer (depth cleared by the pass,
     // stencil per solid interior cap, not read after): the trace reads the packed depth only
     this.thicknessTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
-    drawPass.depthTargetTransparent.depthRenderbuffer!.attachFramebuffer(this.thicknessTarget.framebuffer);
+    this.thicknessPass = createRenderPassAttachments(
+      graphics.resources,
+      [this.thicknessTarget.texture],
+      drawPass.depthTargetTransparent.depthRenderbuffer!,
+    );
     this.accumulateTarget = targets.createRenderTarget(width, height, 'none', 'float32');
     this.composeTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
@@ -184,15 +190,15 @@ export class TracingPass {
     // opaque pass); with `clipGhost`, the ghost pass's lists too (drawn when the illuminated image is composed)
     const skippedDraws = this.graphics.stats.skippedDraws;
     if (b.drawing) renderer.prepareCull(scene.primitives, !!occlusion, clipGhost);
-    this.drawPass.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
-    b.begin(this.framebuffer, { label: 'tracing input' });
+    this.inputTarget.depth = this.drawPass.depthTextureOpaque;
+    b.begin(this.inputTarget, { label: 'tracing input' });
     if (b.drawing) renderer.clear(true);
     b.renderer({ name: 'tracing' }, scene.primitives, () => renderer.renderTracing(scene.primitives, camera));
     if (occlusion && b.drawing && renderer.cullSecondPending > 0) {
       // a pyramid of a depth lacking skipped draws (pipelines compiling) would hide what they hide
       const pyramid = occlusion(b, camera, this.graphics.stats.skippedDraws === skippedDraws);
       renderer.prepareCullSecond(scene.primitives, pyramid);
-      b.begin(this.framebuffer, { label: 'tracing input second' });
+      b.begin(this.inputTarget, { label: 'tracing input second' });
       renderer.renderTracingSecond(scene.primitives, camera);
     }
 
@@ -202,8 +208,12 @@ export class TracingPass {
       // the farthest back faces of everything in view, also of what the front hides whole: never culled by the front's
       // occlusion (its pyramid or lists); a frame of its own, so the merged objects draw the CPU culling's lists
       // (frustum and levels of detail, the occlusion test is off in illumination)
-      if (b.drawing) renderer.update(camera, scene, createFrame(), true);
-      b.begin(this.thicknessTarget, {
+      if (b.drawing) {
+        renderer.update(camera, scene, createFrame(), true);
+        // the objects that draw nothing without culled on the GPU for it (a page store's; no pass open)
+        renderer.prepareCullView(scene.primitives);
+      }
+      b.begin(this.thicknessPass, {
         label: 'thickness',
         // the farthest back faces (`renderDepthOpaqueBack`), depth reversed: cleared to the near plane (packed as ones)
         clear: { color: [1, 1, 1, 1], depth: 1 },

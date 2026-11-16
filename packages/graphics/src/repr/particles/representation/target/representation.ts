@@ -19,14 +19,15 @@ import {
 } from '@molstar/model/model/particles/particle-list';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Theme } from '@molstar/graphics/theme/theme';
-import { type GraphicsRenderObject, getNextMaterialId } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getNextMaterialId, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { Subject } from 'rxjs';
-import { Task } from '@molstar/core/task';
+import { type RuntimeContext, Task } from '@molstar/core/task';
 import { type Loci as ModelLoci, EmptyLoci, isEveryLoci, EveryLoci } from '@molstar/model/model/loci';
 import { type MarkerAction, MarkerActions } from '@molstar/core/util/marker-action';
 import type { LocationCallback } from '../../../util.js';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
+import { getLodPixelLevelCount } from '@molstar/graphics/geo/geometry/lod-levels';
 import { OrderedSet } from '@molstar/core/data/int';
 import { mergeRenderObjectsByType, pickMergedLoci, type MergedEntry } from '../../../merged.js';
 import { Visual } from '../../../visual.js';
@@ -38,7 +39,10 @@ import {
   createParticleTargetPropsProvider,
   getTargetGeometryChoice,
   getTargetGeometryUtils,
+  isPosesGeometry,
+  type ParticleTargetProps,
   type TargetVisual,
+  isTargetOccluderOff,
 } from './common.js';
 import type { ObjectSignature } from '@molstar/graphics/gl/precompile';
 import {
@@ -50,6 +54,16 @@ import {
   withMergedSignatures,
 } from '../../../signatures.js';
 import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
+import { getSitesSignatureDefines } from './sites.js';
+import { getStructureSignatureDefines, type SiteColorProps } from './site-color.js';
+import { createTargetPagedObject, type TargetSlotsObject } from './paged.js';
+import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
+import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
+import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
+import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
+import { ParticleDensityGrid } from '@molstar/model/model/particles/particle-tile-opaque';
+import { type OccluderGrid, setOccluderGrid, usesOccluderGrid } from '@molstar/graphics/gl/occluder-grid';
+import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 
 export { ParticleTargetRepresentationParams };
 export type { ParticleTargetRepresentationProps };
@@ -87,6 +101,14 @@ export function ParticleTargetRepresentation(
   const targetVisuals = new Map<number, TargetVisual>();
 
   let mergedByType = new Map<string, MergedEntry<TargetVisual>>();
+  /**
+   * a slot list's object on GPU culling (`paged.ts`): its instances a page store's, culled and composed on the GPU,
+   * updated by the list's changes
+   */
+  let slots: TargetSlotsObject | undefined;
+  let slotsVersion = 0;
+  /** what the visuals draw: the list, or a slot list flattened where not culled on the GPU (its keys its slots) */
+  let drawn: ParticleList | undefined;
 
   /** What the last full update built from: a later one changing the clip alone sets it on the visuals (`isClipOnly`) */
   let built: { particles: ParticleList; theme: Theme; props: ParticleTargetRepresentationProps } | undefined;
@@ -96,7 +118,9 @@ export function ParticleTargetRepresentation(
    * drag), nothing to rebuild and nothing merged otherwise; every target's full update and the merge check are skipped
    */
   function isClipOnly() {
-    if (!built || built.particles !== _particles || built.theme !== _theme || targetVisuals.size === 0) return false;
+    // what is drawn: the targets' visuals, or the store's object (a slot list on the GPU)
+    if (!built || built.particles !== _particles || built.theme !== _theme) return false;
+    if (targetVisuals.size === 0 && !slots?.renderObject) return false;
     const before = built.props;
     if (before.clip === _props.clip) return false;
     for (const k in _props) {
@@ -116,17 +140,26 @@ export function ParticleTargetRepresentation(
     // Quality-derived props are resolved per target (see `createParticleTargetPropsProvider`),
     // since each target has its own data and its own geometry params.
     Object.assign(_props, props);
+    // how it draws a tile view (its clip objects, its opacity): what the view's picks go by, a moved cut too (a
+    // clipping gizmo's drag updates the representation alone, not the state)
+    ParticleTileDrawings.set(self, _particles, _props);
 
     if (isClipOnly()) {
       const clip = _props.clip;
       built!.props = { ..._props };
       return serialize(
         Task.create('ParticleTargetRepresentation clip', async () => {
-          // every member, also of a merged object (its first member's cells are the merged object's): one leaving its
-          // group draws right
-          for (const visual of targetVisuals.values()) {
-            if (visual.renderObject) BaseGeometry.updateClip(visual.renderObject.values as any, clip);
+          // what is drawn alone: a visual not merged, a merged object's first member (its clip cells the object's);
+          // not the thousands of other members (not read while merged): a full update gives them the clip
+          // (`BaseGeometry.updateValues`) before they are merged again
+          for (const ro of renderObjects) {
+            if (ro === slots?.renderObject) continue;
+            const values = isMergedRenderObject(ro) ? ro.members[0].values : ro.values;
+            BaseGeometry.updateClip(values as any, clip);
           }
+          // the store's object: its uniforms and its cull's clip, no page written again
+          slots?.updateClip(clip);
+
           updated.next(version++);
         }),
       );
@@ -135,7 +168,40 @@ export function ParticleTargetRepresentation(
     const task = Task.create('ParticleTargetRepresentation', async (runtime) => {
       if (!_particles) return;
 
-      const particles = _particles;
+      let particles = _particles;
+      // a tile-ordered list (a pack written with tiles) drawn whole as a slot list of all its tiles: a tile a range,
+      // as a tile view draws them; not a target an index set (its particles a run a tile)
+      if (!particles.pages && canCullOnGpu(graphics)) particles = ParticleTileView.ofWhole(particles) ?? particles;
+      if (particles.pages && canCullOnGpu(graphics)) {
+        // a slot list: the store's object alone
+        for (const visual of targetVisuals.values()) visual.destroy();
+        targetVisuals.clear();
+        mergedByType.clear();
+        slots ??= createTargetPagedObject(materialId, graphics);
+        // the themes of the slot list where it is another (the list's index their arrays by its particles)
+        const theme = particles === _particles ? _theme : getSlotsTheme(_theme, particles);
+        await slots.update({ graphics, runtime }, particles, theme, _props);
+        renderObjects.length = 0;
+        const object = slots.renderObject;
+        if (object) {
+          slots.applyState((ro) => applyState(ro, _state));
+          if (_state.previewTransform) Visual.setPreviewTransform(object, _state.previewTransform);
+          renderObjects.push(object);
+          geometryState.add(object.id, slotsVersion++);
+        }
+        geometryState.snapshot();
+        drawn = particles;
+        built = { particles, theme: _theme, props: { ..._props } };
+        updated.next(version++);
+        return;
+      }
+      if (slots) {
+        slots.destroy();
+        slots = undefined;
+      }
+      // a slot list not culled on the GPU: drawn flat, picked by its keys (its slots), not marked
+      if (particles.pages) particles = ParticleSlots.flatten(particles);
+      drawn = particles;
       const targets = particles.targetMapping ?? new Map<number, ParticleTarget>();
 
       // Grouping by target id is computed once per particle list and cached on it.
@@ -188,6 +254,7 @@ export function ParticleTargetRepresentation(
       }
 
       updateRenderObjectList(entries);
+      await setOccluder(runtime);
       geometryState.snapshot();
       built = { particles, theme: _theme, props: { ..._props } };
       updated.next(version++);
@@ -208,6 +275,24 @@ export function ParticleTargetRepresentation(
     );
   }
 
+  /**
+   * What the list drawn whole by its targets hides on its objects (`setOccluderGrid`): its density grid, a pack's or
+   * computed once in `runtime`'s task (`occluder`; without one only a grid known); none moved (the grid in the list's
+   * frame), with clip objects (the grid's rays march what they cut away too: it would hide what they reveal; a change
+   * of their count a full update, `isSameClipDefines`) or where the backend does not use it
+   */
+  async function setOccluder(runtime?: RuntimeContext) {
+    let grid: OccluderGrid | undefined;
+    if (_particles && !isTargetOccluderOff(_props) && Mat4.isIdentity(_state.transform) && usesOccluderGrid(graphics)) {
+      grid = ParticleDensityGrid.get(_particles);
+      if (!grid && _props.occluder === 'compute' && runtime) {
+        grid = await ParticleDensityGrid.computeTask(_particles).runInContext(runtime);
+        if (grid) ParticleDensityGrid.set(_particles, grid);
+      }
+    }
+    for (const ro of renderObjects) setOccluderGrid(ro.state, grid);
+  }
+
   function applyState(renderObject: GraphicsRenderObject, state: Partial<Representation.State>) {
     if (state.visible !== undefined) renderObject.state.visible = state.visible;
     if (state.pickable !== undefined) renderObject.state.pickable = state.pickable;
@@ -221,28 +306,42 @@ export function ParticleTargetRepresentation(
       if (visual.renderObject) applyState(visual.renderObject, state);
       if (state.transform !== undefined) visual.setTransform(state.transform);
     }
+    // a slot list's object: its members' state (its own their first's); no transform of its own yet
+    slots?.applyState((ro) => applyState(ro, state));
     // on what is drawn: a merged object moves as one, its members' are not read (`mergeRenderObjectsByType`)
     const preview = state.previewTransform;
     if (preview !== undefined) for (const ro of renderObjects) Visual.setPreviewTransform(ro, preview);
+    if (state.transform !== undefined && targetVisuals.size > 0) void setOccluder();
   }
 
   function setTheme(theme: Theme) {
     _theme = theme;
   }
 
+  /** the particle of index `i` of what the visuals draw: a flattened slot list's its key (its slot) */
+  function particleLoci(i: number) {
+    const index = drawn && drawn !== _particles && drawn.keys ? drawn.keys[i] : i;
+    return Particle.Loci(_particles!, OrderedSet.ofSingleton(index));
+  }
+
   function getMergedLoci(pickingId: PickingId): ModelLoci | undefined {
     if (!_particles) return undefined;
-    const particles = _particles;
     return pickMergedLoci(mergedByType, pickingId, (visual, index, localInstanceId) => {
       const indices = visual.particleIndices;
       return !indices || localInstanceId < 0 || localInstanceId >= OrderedSet.size(indices)
         ? EmptyLoci
-        : Particle.Loci(particles, OrderedSet.ofSingleton(OrderedSet.getAt(indices, localInstanceId)));
+        : particleLoci(OrderedSet.getAt(indices, localInstanceId));
     });
   }
 
   function getLoci(pickingId: PickingId): ModelLoci {
     if (!_particles) return EmptyLoci;
+    if (slots) {
+      const loci = slots.getLoci(pickingId) ?? EmptyLoci;
+      // a list drawn as its tiles' slot list (`ParticleTileView.ofWhole`): its slots its indices
+      if (Particle.isLoci(loci) && loci.particles !== _particles) return Particle.Loci(_particles, loci.indices);
+      return loci;
+    }
 
     const mergedLoci = getMergedLoci(pickingId);
     if (mergedLoci !== undefined) return mergedLoci;
@@ -253,7 +352,7 @@ export function ParticleTargetRepresentation(
         // instanceId is local to this target visual; map to global particle index
         const indices = visual.particleIndices;
         if (!indices || instanceId < 0 || instanceId >= OrderedSet.size(indices)) return EmptyLoci;
-        return Particle.Loci(_particles, OrderedSet.ofSingleton(OrderedSet.getAt(indices, instanceId)));
+        return particleLoci(OrderedSet.getAt(indices, instanceId));
       }
     }
     return EmptyLoci;
@@ -282,6 +381,9 @@ export function ParticleTargetRepresentation(
       // Change to `EveryLoci` to allow for downstream optimizations
       loci = EveryLoci;
     }
+    if (slots) return slots.mark(loci, action);
+    // a flattened slot list: its loci by slot, its visuals' by index
+    if (drawn !== _particles) return false;
     let changed = false;
     for (const visual of targetVisuals.values()) {
       changed = visual.mark(loci, action) || changed;
@@ -290,15 +392,19 @@ export function ParticleTargetRepresentation(
   }
 
   function destroy() {
+    ParticleTileDrawings.set(self, undefined, undefined);
     for (const visual of targetVisuals.values()) {
       visual.destroy();
     }
     targetVisuals.clear();
     mergedByType.clear();
     renderObjects.length = 0;
+    slots?.destroy();
+    slots = undefined;
+    drawn = undefined;
   }
 
-  return {
+  const self: ParticleTargetRepresentation = {
     label: 'Particle Target',
     get updated() {
       return updated;
@@ -338,6 +444,7 @@ export function ParticleTargetRepresentation(
       getParticleTargetSignatures(props, ctx),
     destroy,
   };
+  return self;
 }
 
 /**
@@ -352,7 +459,10 @@ function getParticleTargetSignatures(
   ctx: SignatureContext,
 ): ObjectSignature[] {
   const particles = ctx.data;
-  if (!Particle.is(particles) || !particles.targetMapping?.size) return [];
+  // a slot list's object: compiled as it is first drawn (its pages' targets not grouped); a tile-ordered list's too
+  // where drawn as its tiles' slot list (`ParticleTileView.ofWhole`, culled on the GPU)
+  if (!Particle.is(particles) || !particles.targetMapping?.size || particles.pages) return [];
+  if (ctx.graphics && canCullOnGpu(ctx.graphics) && ParticleTiles.getDirectory(particles)) return [];
   const groups = getParticleTargetGroups(particles);
   // the same targets, groups, props and context as last: a list moved as a whole (the release of a move), where each
   // target's signatures cost a visual's values (848 targets of a cellpack model: 80 ms)
@@ -382,12 +492,17 @@ function computeParticleTargetSignatures(
   const uniformSize = ctx.size.types.length === 1 && ctx.size.types[0] === 'uniform';
   // per geometry type: the signatures, the objects (a target each) and their particles
   const byType = new Map<string, { signatures: ObjectSignature[]; objects: number; instances: number }>();
+  // a target's signatures by what they are made from (its props, one object per kind and quality, its geometry choice,
+  // sizes and defines): the yeast cell's 5,639 targets a few, not a visual's values each (300 ms); added once
+  const memo = new Map<ParticleTargetProps, Map<string, ObjectSignature[]>>();
+  const added = new Set<ObjectSignature[]>();
   for (let g = 0; g < groups.targetIds.length; g++) {
     const target = targetMapping.get(groups.targetIds[g]);
     const count = OrderedSet.size(groups.sets[g]);
     if (!target || count === 0) continue;
+    const baseProps = targetProps(target);
     // marking is per particle (see `createTargetVisual`)
-    const tProps = { ...targetProps(target), instanceGranularity: true };
+    const tProps = { ...baseProps, instanceGranularity: true };
     const choice = getTargetGeometryChoice(target, tProps, ctx.graphics);
     const size: SignatureContext['size'] =
       choice === 'volume-dot-spheres' || choice === 'volume-dot-mesh'
@@ -401,14 +516,32 @@ function computeParticleTargetSignatures(
         ? getSurfaceSignatureDefines(tProps, ctx.graphics)
         : target.kind === 'shape' && target.shape.geometry.kind === 'mesh'
           ? { dVaryingGroup: [(target.shape.geometry as Mesh).varyingGroup.ref.value] }
-          : undefined;
+          : // a sites target's impostors from its quantized sites, their second color (by its data)
+            target.kind === 'sites' && choice === 'structure-spheres'
+            ? getSitesSignatureDefines(target.sites, tProps as unknown as SiteColorProps, ctx.graphics)
+            : target.kind === 'structure' && choice === 'structure-spheres'
+              ? getStructureSignatureDefines(tProps as unknown as SiteColorProps)
+              : undefined;
     const utils = getTargetGeometryUtils(target, choice);
-    const signatures = getGeometrySignatures(utils, tProps, { ...ctx, size }, visualDefines);
+    const shapeKind = target.kind === 'shape' ? target.shape.geometry.kind : '';
+    const memoKey = `${choice}|${shapeKind}|${size.types.join()}|${visualDefines ? JSON.stringify(visualDefines) : ''}`;
+    let byKey = memo.get(baseProps);
+    if (!byKey) memo.set(baseProps, (byKey = new Map()));
+    let signatures = byKey.get(memoKey);
+    if (!signatures) {
+      // placed by poses where the geometry is (`createTargetParticleTransform`): their instances read from storage on
+      // WebGPU (`dInstanceStorage`)
+      signatures = getGeometrySignatures(utils, tProps, { ...ctx, size }, visualDefines).map((s) =>
+        isPosesGeometry(s.type) ? { ...s, instancePoses: true } : s,
+      );
+      byKey.set(memoKey, signatures);
+    }
     for (const s of signatures) {
       let entry = byType.get(s.type);
       if (!entry) byType.set(s.type, (entry = { signatures: [], objects: 0, instances: 0 }));
-      entry.signatures.push(s);
+      if (!added.has(signatures)) entry.signatures.push(s);
     }
+    added.add(signatures);
     const type = signatures[0]?.type;
     if (type) {
       const entry = byType.get(type)!;
@@ -417,7 +550,7 @@ function computeParticleTargetSignatures(
     }
   }
   const out: ObjectSignature[] = [];
-  const levels = props.lodLevels.length;
+  const levels = getLodPixelLevelCount(props.lodPixelSize);
   for (const { signatures, objects, instances } of byType.values()) {
     out.push(...withMergedSignatures(signatures, props, { objects, instances, levels, graphics: ctx.graphics }));
   }
@@ -452,5 +585,30 @@ export const ParticleTargetRepresentationProvider: ParticleTargetRepresentationP
   defaultValues: PD.getDefaultValues(ParticleTargetRepresentationParams),
   defaultColorTheme: { name: 'particle-entity' },
   defaultSizeTheme: { name: 'uniform', props: { value: 1.6 } },
-  isApplicable: (data: any) => !!(data as ParticleList).targetMapping?.size,
+  // a slot list of no tiles yet (the camera seeing none of them, or before the first loads) by its catalog's targets:
+  // its params normalized against it (`State`), the type not applicable then dropped for good
+  isApplicable: (data: any) => {
+    const list = data as ParticleList;
+    return !!list.targetMapping?.size || (!!list.pages && list.targetInfo.size > 0);
+  },
 };
+
+/** per theme and slot list the theme made again for it (`getSlotsTheme`) */
+const slotsThemes = new WeakMap<Theme, { list: ParticleList; theme: Theme }>();
+
+/**
+ * `theme` (a list's) made again for `list`, a slot list of its particles (`ParticleTileView.ofWhole`): its color
+ * and size themes of the same props, read by the slot list's pages
+ */
+function getSlotsTheme(theme: Theme, list: ParticleList): Theme {
+  const kept = slotsThemes.get(theme);
+  if (kept?.list === list) return kept.theme;
+  const ctx = { particles: list };
+  const next: Theme = {
+    ...theme,
+    color: theme.color.factory(ctx, theme.color.props),
+    size: theme.size.factory(ctx, theme.size.props),
+  };
+  slotsThemes.set(theme, { list, theme: next });
+  return next;
+}

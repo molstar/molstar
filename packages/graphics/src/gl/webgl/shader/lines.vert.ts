@@ -68,7 +68,8 @@ void main(){
     int vertexId = item * 2 + (corner < 2 ? 0 : 1);
     vec4 lineStart, lineEnd; // start xyz and group, end xyz and whether the line continues the one before
     read_tLine2(item * 2, lineStart, lineEnd);
-    float group = lineStart.w;
+    // an integer (\`rgb32f-i32\`; WebGL1 a float)
+    GroupId group = readGroup_tLine(item * 2);
     // -1 or 1: left or right, start or end
     vec2 mapping = vec2(corner == 0 || corner == 2 ? -1.0 : 1.0, corner < 2 ? -1.0 : 1.0);
     vec3 segmentStart = lineStart.xyz;
@@ -85,21 +86,22 @@ void main(){
     ${assign_clipping_varying}
     ${assign_size}
 
-    mat4 transform = uObjectTransform * applyTumble(aTransform);
-    vec3 wigStart = applyWiggle(segmentStart, group, aInstance);
-    vec3 wigEnd = applyWiggle(segmentEnd, group, aInstance);
-    mat4 model = uModel * transform;
-    mat4 modelView = uView * model;
+    mat4 transform = applyTumble(aTransform);
+    vec3 wigStart = applyWiggle(segmentStart, float(group), int(aInstance));
+    vec3 wigEnd = applyWiggle(segmentEnd, float(group), int(aInstance));
+    // the positions transformed, not the matrices multiplied first: the instance's transform, the object's transient
+    // one, then the model and view
+    vec4 worldStart = uObjectTransform * (transform * vec4(wigStart, 1.0));
+    vec4 worldEnd = uObjectTransform * (transform * vec4(wigEnd, 1.0));
 
     // camera space
-    vec4 start = modelView * vec4(wigStart, 1.0);
-    vec4 end = modelView * vec4(wigEnd, 1.0);
+    vec4 start = uModelView * worldStart;
+    vec4 end = uModelView * worldEnd;
 
     // assign position
-    vec4 position4 = vec4((mapping.y < 0.5) ? wigStart : wigEnd, 1.0);
     vViewPosition = (mapping.y < 0.5) ? start.xyz : end.xyz;
 
-    vModelPosition = (model * position4).xyz; // for clipping in frag shader
+    vModelPosition = (uModel * ((mapping.y < 0.5) ? worldStart : worldEnd)).xyz; // for clipping in frag shader
 
     // special case for perspective projection, and segments that terminate either in, or behind, the camera plane
     // clearly the gpu firmware has a way of addressing this issue when projecting into ndc space
@@ -165,9 +167,8 @@ void main(){
     #if defined(dClipVariant_pixel) && defined(dClipObjects)
         // pixel clipping by the bounding sphere of the item's line (not the segment of a strip's start corners, which
         // continue the line before): a line clipped whole moved out of [ -w, +w ], one not cut not tested per fragment
-        mat4 modelTransform = uModel * transform;
-        vec3 lineA = (modelTransform * vec4(applyWiggle(lineStart.xyz, group, aInstance), 1.0)).xyz;
-        vec3 lineB = (modelTransform * vec4(applyWiggle(lineEnd.xyz, group, aInstance), 1.0)).xyz;
+        vec3 lineA = (uModel * (uObjectTransform * (transform * vec4(applyWiggle(lineStart.xyz, float(group), int(aInstance)), 1.0)))).xyz;
+        vec3 lineB = (uModel * (uObjectTransform * (transform * vec4(applyWiggle(lineEnd.xyz, float(group), int(aInstance)), 1.0)))).xyz;
         // the ghost pass (\`uClipGhost\`): a line whole by its center, kept where clipped, not tested per fragment
         int clipClass = uClipGhost
             ? (clipTest((lineA + lineB) * 0.5 / uModelScale) ? 0 : 2)

@@ -6,7 +6,8 @@
 
 // The quick allocation tier (`test:perf`) of a frame at rest (the view unchanged): the renderer's update, and its opaque
 // pass (the pass walk over a scene, its render items' draws and uniform writes; on WebGPU the draw list's replay), to
-// the drawing buffer and into a render target (an offscreen pass, as post-processing's). On
+// the drawing buffer and into a render target (an offscreen pass, as post-processing's), and drawn directly (draw lists
+// off: every draw encoded again, as a frame of a changing scene). On
 // WebGL the GL shim (WebGL1: every uniform a classic one), on WebGPU a stub device (stub-gpu.ts); no GPU. Each with its
 // positive control.
 
@@ -28,9 +29,9 @@ const Size = 64;
 
 /**
  * A renderer and a scene of four meshes and four sphere sets (two programs, alternating), its programs or pipelines
- * ready (WebGPU compiles them in the background: frames until none skips a draw)
+ * ready (WebGPU compiles them in the background: frames until none skips a draw); `drawLists` off: drawn directly
  */
-async function createFrameCase(backend: 'webgl' | 'webgpu') {
+async function createFrameCase(backend: 'webgl' | 'webgpu', drawLists = true) {
   const ctx: GraphicsContext =
     backend === 'webgl'
       ? createContext(createGl(Size, Size, { preserveDrawingBuffer: true }))
@@ -44,7 +45,7 @@ async function createFrameCase(backend: 'webgl' | 'webgpu') {
   const camera = new Camera({ position: Vec3.create(0, 0, 50) });
   camera.viewport = { x: 0, y: 0, width: Size, height: Size };
   camera.update();
-  const renderer = Renderer.create(ctx);
+  const renderer = Renderer.create(ctx, { drawLists });
   renderer.setViewport(0, 0, Size, Size);
   const scene = Scene.create(ctx);
   for (let i = 0; i < 4; ++i) {
@@ -86,6 +87,12 @@ for (const backend of ['webgl', 'webgpu'] as const) {
   it(`opaque pass at rest (${backend})`, async ({ task }) => {
     const { ctx, opaque } = await createFrameCase(backend);
     quickCase(task, `frame: opaque pass at rest (${backend})`, () => opaque());
+    ctx.destroy();
+  });
+
+  it(`opaque pass drawn directly (${backend})`, async ({ task }) => {
+    const { ctx, opaque } = await createFrameCase(backend, false);
+    quickCase(task, `frame: opaque pass drawn directly (${backend})`, () => opaque());
     ctx.destroy();
   });
 

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { getDataWords } from '../center-group.js';
 import { ValueCell } from '@molstar/core/util';
 import { type Mat4, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { transformPositionArray, type GroupMapping, createGroupMapping } from '../../util.js';
@@ -11,7 +12,7 @@ import type { GeometryUtils } from '../geometry.js';
 import { createColors } from '../color-data.js';
 import { createMarkers } from '../marker-data.js';
 import { createSizes } from '../size-data.js';
-import type { TransformData } from '../transform-data.js';
+import { type TransformData, getInstanceRows } from '../transform-data.js';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import type { LinesValues } from '@molstar/graphics/gl/renderable/lines';
 import type { Mesh } from '../mesh/mesh.js';
@@ -140,7 +141,12 @@ export namespace Lines {
       },
       get groupMapping() {
         if (lines.lineData.ref.version !== currentGroup) {
-          groupMapping = createGroupMapping(lines.lineData.ref.value.array, lines.lineCount, LineStride, 3);
+          groupMapping = createGroupMapping(
+            getDataWords(lines.lineData.ref.value.array),
+            lines.lineCount,
+            LineStride,
+            3,
+          );
           currentGroup = lines.lineData.ref.version;
         }
         return groupMapping;
@@ -193,12 +199,14 @@ export namespace Lines {
     const p = location.position;
     const d = lines.lineData.ref.value.array;
     const m = transform.aTransform.ref.value;
+    // the instance's row: the grid stores them in its order (`getInstanceRows`)
+    const rows = getInstanceRows(transform);
     const getLocation = (groupIndex: number, instanceIndex: number) => {
       const o = (groupIndex >> 1) * LineStride + (groupIndex & 1) * 4;
       if (instanceIndex < 0) {
         Vec3.fromArray(p, d, o);
       } else {
-        Vec3.transformMat4Offset(p, d, m, 0, o, instanceIndex * 16);
+        Vec3.transformMat4Offset(p, d, m, 0, o, (rows ? rows[instanceIndex] : instanceIndex) * 16);
       }
       return location;
     };

@@ -67,6 +67,12 @@
       "private": false
     },
     {
+      "name": "@molstar/particle-pack-cli",
+      "path": "cli/particle-pack",
+      "kind": "cli",
+      "private": true
+    },
+    {
       "name": "@molstar/mvs-builder",
       "path": "packages/mvs/builder",
       "kind": "library",

@@ -73,10 +73,18 @@ fn sphereNearBounds(p: vec3<f32>, r: f32, near: f32, projection: mat4x4<f32>) ->
 }
 
 /**
- * The pixels of a \`viewport\`-sized target the sphere of \`sphereBounds\` (perspective) spans: min x, min y, max x,
- * max y in pixel coordinates (y down), continuous
+ * The pixels of a \`viewport\`-sized target the sphere spans: min x, min y, max x, max y in pixel coordinates (y down),
+ * continuous; perspective by \`sphereBounds\`, orthographic (\`projection[2][3]\` not -1, as \`hiZProjectSphere\`) its
+ * center's offset by the radius
  */
 fn spherePixelBounds(p: vec3<f32>, r: f32, projection: mat4x4<f32>, viewport: vec2<f32>) -> vec4<f32> {
+    if (projection[2][3] != -1.0) {
+        let ox = vec2<f32>(p.x - r, p.x + r) * projection[0][0] + projection[3].x;
+        let oy = vec2<f32>(p.y + r, p.y - r) * projection[1][1] + projection[3].y;
+        let x = ox * 0.5 + 0.5;
+        let y = 0.5 - oy * 0.5;
+        return vec4<f32>(x.x * viewport.x, y.x * viewport.y, x.y * viewport.x, y.y * viewport.y);
+    }
     let b = sphereBounds(p, r, projection);
     // the bounds are negated, without the off-axis terms
     let x = (vec2<f32>(-b.z, -b.x) - projection[2].x) * 0.5 + 0.5;

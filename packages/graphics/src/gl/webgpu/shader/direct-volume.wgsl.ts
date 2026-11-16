@@ -60,7 +60,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let mvPosition = uGlobal.uModelView * aTransform * uObject.uUnitToCartn * unitCoord;
 
     out.vModelPosition = (uGlobal.uModel * aTransform * uObject.uUnitToCartn * unitCoord).xyz;
-    out.vInstance = in.aInstance;
+    out.vInstance = f32(in.aInstance);
     let sphere = uObject.uInvariantBoundingSphere;
     out.vBoundingSphere = vec4<f32>((uGlobal.uModel * aTransform * vec4<f32>(sphere.xyz, 1.0)).xyz, uGlobal.uModelScale * sphere.w);
     out.vTransform0 = in.aTransform0;
@@ -551,9 +551,9 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
             if ((1.0 - smoothstep(uGlobal.uFogNear, uGlobal.uFogFar, abs(viewZ))) * uMaterial.uAlpha < 0.1) {
                 discard;
             }
-            out.object = vec4<f32>(packIntToRGB(f32(uObject.uObjectId)), 1.0);
-            out.instance = vec4<f32>(packIntToRGB(in.vInstance), 1.0);
-            out.group = vec4<f32>(packIntToRGB(surfaceGroup), 1.0);
+            out.object = packPickId(u32(uObject.uObjectId));
+            out.instance = packPickId(u32(in.vInstance));
+            out.group = packPickId(u32(surfaceGroup));
             out.depth = packDepthToRGBA(fragmentDepth);
         #endif
         return out;

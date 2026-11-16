@@ -37,7 +37,6 @@ const graphicsStub = {
     texture: () => new Proxy({} as any, { get: (t, k) => (k === 'then' ? undefined : k in t ? t[k] : () => {}) }),
     ownsTexture: () => true,
   },
-  namedTextures: {},
 } as any;
 
 async function load1cbs() {

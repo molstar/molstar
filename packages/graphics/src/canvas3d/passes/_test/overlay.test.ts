@@ -18,6 +18,7 @@ import { createFrame } from '@molstar/graphics/gl/renderable';
 import { OverlayPass } from '../overlay.js';
 import type { PassBuilder } from '../pass-builder.js';
 import type { PassTargets } from '../pass-targets.js';
+import { isRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 /** What the pass does with the renderer, in order */
 function setup(count = 1) {
@@ -53,13 +54,21 @@ function setup(count = 1) {
     occluderDepth: { value: undefined, writable: true },
   }) as OverlayHelper;
 
-  const framebuffer = { id: 1 };
-  const depthRenderbuffer = { attachFramebuffer: vi.fn(), setSize: vi.fn(), getByteCount: () => 0 };
+  const depthRenderbuffer = { setSize: vi.fn(), getByteCount: () => 0 };
   const targets = {
-    graphics: { resources: { framebuffer: () => framebuffer } },
+    graphics: {
+      resources: {
+        renderPassAttachments: (color: unknown, depth: unknown) => ({
+          kind: 'render-pass-attachments',
+          color,
+          depth,
+          destroy: vi.fn(),
+        }),
+      },
+    },
     renderbuffer: () => depthRenderbuffer,
   } as unknown as PassTargets;
-  const texture = { attachFramebuffer: vi.fn() };
+  const texture = { id: 3 };
   const target = { texture } as unknown as RenderTarget;
   const sceneDepth = { id: 2 } as unknown as Texture;
 
@@ -90,7 +99,6 @@ function setup(count = 1) {
     calls,
     occluders,
     begun,
-    framebuffer,
     texture,
     target,
     depthRenderbuffer,
@@ -101,20 +109,24 @@ function setup(count = 1) {
 
 describe('overlay pass', () => {
   it("draws onto the target with a depth of its own, the overlay's planes, and no occlusion test", () => {
-    const { pass, b, ctx, calls, begun, framebuffer, texture, target, depthRenderbuffer, sceneDepth } = setup();
-    expect(depthRenderbuffer.attachFramebuffer).toHaveBeenCalledWith(framebuffer);
-
+    const { pass, b, ctx, calls, begun, texture, target, depthRenderbuffer, sceneDepth } = setup();
     pass.render(b, ctx, target, sceneDepth);
-    expect(texture.attachFramebuffer).toHaveBeenCalledWith(framebuffer, 'color0');
-    expect(begun).toEqual([framebuffer]);
+    // the target's color with the pass's own depth, named as a whole (the backends attach them when the pass begins)
+    expect(begun).toHaveLength(1);
+    const attachments = begun[0] as RenderPassAttachments;
+    expect(isRenderPassAttachments(attachments)).toBe(true);
+    expect(attachments.color).toEqual([texture]);
+    expect(attachments.depth).toBe(depthRenderbuffer);
     // the overlay's bounds, 10 around the origin, 100 in front of the camera
     expect(calls).toEqual(['clearDepth', 'update near 89.9', 'renderOverlay occlusion off']);
     // the scene's occlusion test is back
     expect(ctx.renderer.occlusionTest).not.toBeNull();
 
-    // the same target: attached once
+    // the same target: the same attachments, their color not made again
+    const color = attachments.color;
     pass.render(b, ctx, target, sceneDepth);
-    expect(texture.attachFramebuffer).toHaveBeenCalledTimes(1);
+    expect(begun[1]).toBe(attachments);
+    expect(attachments.color).toBe(color);
   });
 
   it("tests against the scene's depth with the scene's planes, and keeps it for picking", () => {
@@ -132,9 +144,10 @@ describe('overlay pass', () => {
   });
 
   it('plans the opaque and the transparent pass when preparing (occluded parts of opaque objects)', () => {
-    const { pass, b, ctx, calls, begun, framebuffer, target, sceneDepth } = setup();
+    const { pass, b, ctx, calls, begun, target, sceneDepth } = setup();
     pass.render({ ...b, drawing: false }, ctx, target, sceneDepth);
-    expect(begun).toEqual([framebuffer]);
+    expect(begun).toHaveLength(1);
+    expect(isRenderPassAttachments(begun[0])).toBe(true);
     expect(calls).toEqual([]);
     expect(vi.mocked(b.renderer).mock.calls.map((c) => c[0])).toEqual([
       { name: 'opaque' },

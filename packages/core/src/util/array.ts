@@ -92,6 +92,32 @@ export function fillSerial<T extends NumberArray>(array: T, n?: number) {
   return array;
 }
 
+/** The serial arrays (`getSharedSerial`): their buffers, a new one each time it grows */
+const sharedSerialBuffers = new WeakSet<ArrayBufferLike>();
+let sharedSerial = new Uint32Array(0);
+sharedSerialBuffers.add(sharedSerial.buffer);
+
+/**
+ * A view of `0, 1, ..., n - 1` (uint32), of one array shared by all (grown as asked, by doubling): no array of its own
+ * nor a pass over it for each of many serial ranges (millions of instances, `aInstance`). Read only: a writer of
+ * other values corrupts every view (writing the same values is harmless). `isSharedSerial` tells such a view
+ */
+export function getSharedSerial(n: number): Uint32Array {
+  if (n > sharedSerial.length) {
+    const grown = new Uint32Array(Math.max(n, sharedSerial.length * 2));
+    grown.set(sharedSerial);
+    for (let i = sharedSerial.length, il = grown.length; i < il; ++i) grown[i] = i;
+    sharedSerial = grown;
+    sharedSerialBuffers.add(grown.buffer);
+  }
+  return sharedSerial.subarray(0, n);
+}
+
+/** Whether `array` is a view of `getSharedSerial`: `0, 1, ..., array.length - 1` */
+export function isSharedSerial(array: ArrayLike<number>): boolean {
+  return array instanceof Uint32Array && array.byteOffset === 0 && sharedSerialBuffers.has(array.buffer);
+}
+
 export function arrayRemoveInPlace<T>(xs: T[], x: T) {
   let i = 0,
     found = false;

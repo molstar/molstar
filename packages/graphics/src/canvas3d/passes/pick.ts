@@ -11,7 +11,6 @@ import { PickType, type Renderer } from '@molstar/graphics/gl/renderer';
 import type { Frame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
 import type { Texture } from '@molstar/graphics/gl/texture';
@@ -23,6 +22,7 @@ import { unpackRGBAToDepth, unpackRGBToInt } from '@molstar/core/util/number-pac
 import type { ICamera } from '../camera.js';
 import { Viewport } from '../camera/util.js';
 import type { Helper } from '../helper/helper.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 export type PickData = { id: PickingId; position: Vec3 };
 
@@ -57,7 +57,14 @@ export const DefaultPickOptions = {
   pickPadding: 1,
   maxAsyncReadLag: 5,
 };
-export type PickOptions = typeof DefaultPickOptions;
+export type PickOptions = typeof DefaultPickOptions & {
+  /**
+   * the canvas' frame now: a pick drawn again later without one (its render incomplete, its read failed) of the frame
+   * then, so it reuses that frame's cull (a GPU cull's lists), not a cull of its own (a merged object's CPU cull builds
+   * every member's grid)
+   */
+  readonly getFrame?: () => Frame;
+};
 
 //
 
@@ -67,17 +74,13 @@ export class PickPass {
   private readonly groupPickTarget: RenderTarget;
   private readonly depthPickTarget: RenderTarget;
 
-  private readonly framebuffer: Framebuffer;
+  /** the four pick textures (multiple render targets) with the depth-stencil */
+  private readonly target: RenderPassAttachments;
 
   private readonly objectPickTexture: Texture;
   private readonly instancePickTexture: Texture;
   private readonly groupPickTexture: Texture;
   private readonly depthPickTexture: Texture;
-
-  private readonly objectPickFramebuffer: Framebuffer;
-  private readonly instancePickFramebuffer: Framebuffer;
-  private readonly groupPickFramebuffer: Framebuffer;
-  private readonly depthPickFramebuffer: Framebuffer;
 
   private readonly depthRenderbuffer: Renderbuffer;
 
@@ -109,20 +112,6 @@ export class PickPass {
       this.depthPickTexture = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
       this.depthPickTexture.define(this.pickWidth, this.pickHeight);
 
-      this.framebuffer = resources.framebuffer();
-
-      this.objectPickFramebuffer = resources.framebuffer();
-      this.instancePickFramebuffer = resources.framebuffer();
-      this.groupPickFramebuffer = resources.framebuffer();
-      this.depthPickFramebuffer = resources.framebuffer();
-
-      this.framebuffer.setDrawBuffers(4);
-
-      this.objectPickTexture.attachFramebuffer(this.framebuffer, 'color0');
-      this.instancePickTexture.attachFramebuffer(this.framebuffer, 'color1');
-      this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
-      this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
-
       this.depthRenderbuffer = resources.renderbuffer(
         'depth32f-stencil8',
         'depth-stencil',
@@ -130,12 +119,11 @@ export class PickPass {
         this.pickHeight,
       );
 
-      this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
-
-      this.objectPickTexture.attachFramebuffer(this.objectPickFramebuffer, 'color0');
-      this.instancePickTexture.attachFramebuffer(this.instancePickFramebuffer, 'color0');
-      this.groupPickTexture.attachFramebuffer(this.groupPickFramebuffer, 'color0');
-      this.depthPickTexture.attachFramebuffer(this.depthPickFramebuffer, 'color0');
+      this.target = createRenderPassAttachments(
+        resources,
+        [this.objectPickTexture, this.instancePickTexture, this.groupPickTexture, this.depthPickTexture],
+        this.depthRenderbuffer,
+      );
     } else {
       this.objectPickTarget = graphics.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
       this.instancePickTarget = graphics.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
@@ -165,17 +153,12 @@ export class PickPass {
 
   dispose() {
     if (this.graphics.capabilities.multipleRenderTargets) {
-      this.framebuffer.destroy();
+      this.target.destroy();
 
       this.objectPickTexture.destroy();
       this.instancePickTexture.destroy();
       this.groupPickTexture.destroy();
       this.depthPickTexture.destroy();
-
-      this.objectPickFramebuffer.destroy();
-      this.instancePickFramebuffer.destroy();
-      this.groupPickFramebuffer.destroy();
-      this.depthPickFramebuffer.destroy();
 
       this.depthRenderbuffer.destroy();
     } else {
@@ -264,10 +247,9 @@ export class PickPass {
       // the overlay is drawn over the scene, so it takes its pixels: the scene's depth is cleared; where it is behind
       // the scene, its occluded alpha decides (the scene's depth of the last draw, see `apply_occlusion`)
       const overlayCamera = b.drawing ? overlay.getCamera(camera) : camera;
-      if (b.drawing) {
-        renderer.clearDepth();
-        renderer.update(overlayCamera, overlay.scene, frame);
-      }
+      // the clear's pipeline prepared (a clear inside the pass, WebGPU: a draw)
+      b.clear({ depth: 0 }, () => renderer.clearDepth());
+      if (b.drawing) renderer.update(overlayCamera, overlay.scene, frame);
       const depth = overlayOcclusion ? overlay.occluderDepth : undefined;
       const occluder = depth
         ? { depth, depthAlpha: overlay.occluderDepthAlpha, near: camera.near, far: camera.far }
@@ -283,7 +265,7 @@ export class PickPass {
 
     // the screen layer last, its depth cleared: a corner widget takes its pixels
     if (helper.screen.isEnabled) {
-      if (b.drawing) renderer.clearDepth();
+      b.clear({ depth: 0 }, () => renderer.clearDepth());
       helper.screen.forEach(camera, (screenScene, screenCamera) => {
         if (b.drawing) renderer.update(screenCamera, screenScene, frame);
         b.renderer(pass, screenScene, () => {
@@ -311,7 +293,7 @@ export class PickPass {
   ) {
     const o = overlayOcclusion;
     if (this.graphics.capabilities.multipleRenderTargets) {
-      b.begin(this.framebuffer, { label: 'pick' });
+      b.begin(this.target, { label: 'pick' });
       this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.None, frame, o);
       // if (this.pickWidth < 256) {
       //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
@@ -450,9 +432,10 @@ export class PickBuffers {
     return 1 - unpackRGBAToDepth(b[idx], b[idx + 1], b[idx + 2], b[idx + 3]);
   }
 
+  /** An id in 32 bits: rgb its 24 low bits, alpha its top byte (`packPickId`) */
   private getId(x: number, y: number, buffer: Uint8Array) {
     const idx = this.getIdx(x, y);
-    return unpackRGBToInt(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
+    return buffer[idx + 3] * 16777216 + unpackRGBToInt(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
   }
 
   getPickingId(x: number, y: number): PickingId | undefined {

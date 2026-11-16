@@ -165,7 +165,8 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
       ball.setState({ layer: 'overlay' });
       canvas.update(ball);
       const occlude = async (occludedAlpha: number) => {
-        await ball.createOrUpdate({ occludedAlpha }).run();
+        ball.setState({ occludedAlpha });
+        canvas.update(ball);
         return { picked: await pickCenter(), color: await centerColor(true) };
       };
 
@@ -202,9 +203,8 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
     const { plugin, canvas, spacefill, ball, pickCenter, centerColor } = await setup();
     try {
       plugin.renderer.imagePass.setProps({ multiSample: { ...DefaultCanvas3DParams.multiSample, mode: 'off' } });
-      ball.setState({ layer: 'overlay' });
+      ball.setState({ layer: 'overlay', occludedAlpha: 0 });
       canvas.update(ball);
-      await ball.createOrUpdate({ occludedAlpha: 0 }).run();
       const seeThrough = async (alpha: number) => {
         await spacefill.createOrUpdate({ alpha }).run();
         canvas.update(spacefill);

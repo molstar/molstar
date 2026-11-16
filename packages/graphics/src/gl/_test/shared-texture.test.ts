@@ -27,8 +27,6 @@ import { createContext } from '../webgl/context.js';
 import { createGl } from './gl.shim.js';
 import { tryGetGLContext } from './gl.js';
 
-// .v6/plans/gl/shared-textures.md
-
 /** An atlas-like image: one object, written in place, with a `version` */
 function createAtlas(n = 4096) {
   const image = createTextureImage(n, 1, Uint8Array) as TextureImage<Uint8Array>;

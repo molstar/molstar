@@ -77,8 +77,32 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   the mesoscale models (23.8 ms, no back depth), auto stays the default (too thick on other models); the back depth at
   half resolution shelved, the rest dropped.
 
+- [graphics-review.md](graphics-review.md): done: the graphics layer review triaged against this branch: late
+  callbacks, buffer reclaim, Dawn and visual smoke tests in CI, the multi-sample savings, the large closures split
+  (`Renderer.create`, `Canvas3D.create`), the backend folders internal, layering, render pass attachments
+  (framebuffers internal to the backends); its follow-ups (geo-split, core GPU compute) deferred.
+
+- [overlay-review-followups.md](overlay-review-followups.md): done: from testing the overlay layer, the scale line an
+  export option of its own (a breaking-changes entry), widgets picked at any opacity and `occludedAlpha` in
+  `Representation.State` (not hidden geometry params), lit gizmo meshes as an opt-in (`GizmoPart.lit`).
+
+- [sphere-raster-workgroups.md](sphere-raster-workgroups.md): the sphere raster's work shared in workgroups: measured by
+  stage, chunks packed (the yeast cell's raster 5.9 -> 3.5 ms), pixels shared over the workgroup (zoomed 8-15 %);
+  subgroup atomics, persistent workgroups and kernel variants measured and dropped.
+
 ## In progress or paused
 
+- [load-time.md](load-time.md): the yeast cell's load, 14.2 s of CPU to the first frame, now first drawn 2.47 s after
+  navigation in Prism (the GPU-side structures built on the GPU or not at all, uploads of runs and colors cut, the
+  precompile complete); stopped, what is left of the 1.7 s from the data listed in its Status.
+- [instance-index.md](instance-index.md): the instance grid split: steps 1 to 4 done (the grids pending, built at the
+  first CPU cull; pose changes without a layout); adds and removals after a plan for editable particle lists; the
+  WebGL steps 5 and 6 deferred.
+
+- [stereo-gpu-culling.md](stereo-gpu-culling.md): every view of a frame culled on the GPU: one cull for stereo's eyes
+  (both by the sphere raster), a scaled camera culled in the unscaled world (XR), occlusion against one pyramid of both
+  eyes (the yeast cell in stereo 8.1 ms a still frame, 60 before); multiview on WebGL and view instancing on WebGPU (a
+  proposal) deferred.
 - [backend-selection.md](backend-selection.md): the Viewer and the plugin default to `auto` (WebGPU where capable);
   backend sets, the bundle check, Viewer variants with one backend and runtime switching
   keeping the scene done.
@@ -192,10 +216,6 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 
 ## Not started
 
-- [graphics-review.md](graphics-review.md): the graphics layer review triaged against this branch: late callbacks on
-  WebGL (C1-C3), WebGPU buffer reclaim, Dawn and visual smoke tests in CI, a GLSL/WGSL schema cross-check, measured
-  multi-sample savings, the large closures split; next: batch A.
-
 - [clip-drag.md](clip-drag.md): a clip object's drag on the yeast cell was about 74 ms a mousemove, all CPU (every
   particle target updated in full, every merged group checked); the merge check cheap and a clip-only path done
   (PetWorld's update a frame 1.59 -> 0.22 ms); next: the yeast cell measured.
@@ -227,6 +247,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   instead of copied attributes (12× smaller), read through a culled program variant; past 2 GiB a buffer.
 - [webgpu-xr.md](webgpu-xr.md): XR on WebGPU through `XRGPUBinding` behind the neutral `GraphicsXR`.
 - [core-gpu-compute.md](core-gpu-compute.md): a neutral map-kernel tier and GPU algorithms in core.
+- [geo-split.md](geo-split.md): the non-GL part of geo into core (the marching cubes done; primitives, array math, then
+  geometry data split from rendering).
 - [attribute-color-size.md](attribute-color-size.md): per-vertex color and size attributes, to be considered.
 - [dual-source-blending.md](dual-source-blending.md): dual-source blending where available, for features (colored
   transmission in blended transparency, per-pixel accumulation weights); not for performance, and not for the passes

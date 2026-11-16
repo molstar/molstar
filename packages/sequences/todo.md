@@ -153,6 +153,13 @@ shows the wild type's letter. Case 15 colors the cell under uncolored letters in
 
 ## Follow-ups
 
+**Heavy lane on Windows: two failures** (2026-11-14). `viewer/_test/svg/cli.test.ts`'s confined-root case makes a
+symlink (`symlinkSync`), which Windows refuses without elevated rights or developer mode (EPERM): skip it there, or a
+junction for a directory. `viewer/_test/exports.test.ts`'s "unused-exports listing" expects `zzNobodyMentionsThis`
+listed and gets nothing: the listing's program (`scripts/exports.js`, `unused`) over a written folder of packages,
+likely a path or a module resolution of Windows'. Seen in a run of `pnpm test:heavy` while working on particle tiles;
+not looked into.
+
 **Bug: a mark's loci past the link's chains** (2026-11-07). `StructureLink.fromLoci`
 (`packages/prism/viewer/src/sequence/molstar/link.ts`) throws "Cannot read properties of undefined (reading 'system')":
 `chainMember[c]` gives a slot past `chains`, so `this.chains[m]` is undefined. Called from the marks' subscription

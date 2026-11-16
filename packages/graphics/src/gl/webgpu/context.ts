@@ -12,11 +12,12 @@ import { Subject } from 'rxjs';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { fromHalfFloat } from '@molstar/core/util/number-conversion';
 import type { TextureReadFormat } from '../texture-reader.js';
-import { createWebGPUTextureReader } from './texture-reader.js';
+import { createWebGPUTextureReader, type WebGPUTextureReadContext } from './texture-reader.js';
 import { now } from '@molstar/core/util/now';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { GraphicsCapabilities } from '../capabilities.js';
 import {
+  type DrawLists,
   type GraphicsContext,
   type GraphicsDestroyOptions,
   type GraphicsResources,
@@ -25,6 +26,7 @@ import {
   type PipelineRequest,
   type RenderPassOptions,
   type RenderPassTarget,
+  type TargetDescriptor,
 } from '../context.js';
 import {
   ComputeRenderVariants,
@@ -46,11 +48,11 @@ import { createWebGPUTimerSource } from './timer.js';
 import { BufferUsage, MapMode, TextureUsage } from './constants.js';
 import { notSupported } from './errors.js';
 import {
-  createWebGPUFramebuffer,
-  isWebGPUFramebuffer,
+  createWebGPUAttachmentSet,
+  isWebGPUAttachmentSet,
   type WebGPUAttachment,
-  type WebGPUFramebuffer,
-} from './framebuffer.js';
+  type WebGPUAttachmentSet,
+} from './attachment-set.js';
 import { asWebGPUGlobalBindings, createWebGPUGlobalBindings, type WebGPUBindingContext } from './global-bindings.js';
 import { createWebGPUProgramCache, type WebGPUProgram, type WebGPUProgramCache } from './program.js';
 import { createWebGPUProgramItem, createWebGPURenderItem } from './render-item.js';
@@ -73,9 +75,9 @@ import {
   type Release,
   type WebGPUResourceEnv,
 } from './texture.js';
-import { createWebGPURenderbuffer } from './renderbuffer.js';
+import { asWebGPURenderbuffer, createWebGPURenderbuffer } from './renderbuffer.js';
 import { createRenderTargetFromResources, type RenderTarget } from '../render-target.js';
-import { type CubeFaces, createNullTexture, decodeImage, type Texture } from '../texture.js';
+import { type CubeFaces, createNullTexture, decodeImage, type Texture, type TextureAttachment } from '../texture.js';
 import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
 import {
   BoxItems,
@@ -93,6 +95,17 @@ import { type BufferPages, createBufferPages } from './buffer-pages.js';
 import { createBundlePassState, createCaptureEncoder, createPassState, type PassState } from './pass-state.js';
 import { getWgslProgram } from './shader/programs.js';
 import type { WgslSampler } from './wgsl-declarations.js';
+import {
+  type BackendRenderPassAttachments,
+  createBackendRenderPassAttachments,
+  createFixedRenderPassAttachments,
+  isRenderPassAttachments,
+  isTextureAttachment,
+  type RenderPassAttachmentsBackend,
+} from '../render-pass-attachments.js';
+
+/** render pass attachments of this backend, on an attachment set each */
+type GPURenderPassAttachments = BackendRenderPassAttachments<WebGPUAttachmentSet>;
 
 const AllProgramVariants: ProgramVariant[] = [...GraphicsRenderVariants, ...ComputeRenderVariants];
 const DepthStencilFormat: GPUTextureFormat = 'depth24plus-stencil8';
@@ -144,7 +157,7 @@ export interface WebGPUDrawContext extends WebGPUBindingContext, WebGPUResourceE
   readonly linkables: WebGPULinkables;
   /**
    * Shared buffers the vertex and index data of render items is sub-allocated in: draws binding ranges of a few buffers
-   * replay far faster than draws binding buffers of their own (`shared-draw-resources.md`)
+   * replay far faster than draws binding buffers of their own
    */
   readonly geometryPages: BufferPages;
   /** Shared storage buffers the theme layers of render items are sub-allocated in (`data-layers.ts`) */
@@ -156,7 +169,7 @@ export interface WebGPUDrawContext extends WebGPUBindingContext, WebGPUResourceE
    * share their object bind group (`render-item.ts`)
    */
   readonly uniformPages: BufferPages;
-  /** Textures shared by render items (`.v6/plans/gl/shared-textures.md` §2), gone with the device */
+  /** Textures shared by render items, gone with the device */
   readonly sharedTextures: SharedTextures;
   /** The index buffer of quad items (spheres, points), shared by all (`quad-indices.ts`), a buffer of its own */
   readonly quadIndices: QuadIndices<GPUBuffer>;
@@ -191,6 +204,7 @@ export interface WebGPULinkable {
 
 export interface WebGPUContext extends GraphicsContext {
   readonly device: GPUDevice;
+  readonly drawLists: DrawLists;
   /**
    * Whether a viewport partly outside the target is set as given (cropped); false where the device rejects one, which
    * is then clipped to the target; undefined until the probe answers (`testViewportOutsideTarget`)
@@ -202,7 +216,7 @@ export interface WebGPUContext extends GraphicsContext {
   readonly boxIndices: QuadIndices<GPUBuffer>;
   /** The index buffer of line items, shared by all */
   readonly lineIndices: QuadIndices<GPUBuffer>;
-  /** Textures shared by render items (`.v6/plans/gl/shared-textures.md`), as WebGL's `resources.sharedTextures` */
+  /** Textures shared by render items, as WebGL's `resources.sharedTextures` */
   readonly sharedTextures: SharedTextures;
   /**
    * Records the draws of `draw` into a render bundle for the open pass's target, instead of the pass; undefined when
@@ -687,12 +701,12 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return drawingBuffer;
   }
 
-  function describeFramebuffer(framebuffer: WebGPUFramebuffer): WebGPUTargetDescriptor {
-    const colorFormats = framebuffer.getColorAttachments().map((c) => {
+  function describeAttachmentSet(set: WebGPUAttachmentSet): WebGPUTargetDescriptor {
+    const colorFormats = set.getColorAttachments().map((c) => {
       if (!c) throw new Error('color attachment of the target is missing');
       return c.format;
     });
-    const depth = framebuffer.getDepthAttachment();
+    const depth = set.getDepthAttachment();
     return {
       key: getTargetKey(colorFormats, depth?.format),
       colorFormats,
@@ -716,23 +730,28 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return options?.depthReadOnly ? withDepthReadOnly(descriptor) : descriptor;
   }
 
-  function describeWritableTarget(target: RenderPassTarget): WebGPUTargetDescriptor {
-    if (target === 'drawing-buffer') return drawingBufferTarget;
-    const framebuffer = 'framebuffer' in target ? target.framebuffer : target;
-    if ('framebuffer' in target && drawTargets.has(target)) return drawingBufferTarget;
-    if (isWebGPUFramebuffer(framebuffer)) return describeFramebuffer(framebuffer);
-    throw new Error('expected a WebGPU framebuffer or render target');
+  function describeWritableTarget(passTo: RenderPassTarget): WebGPUTargetDescriptor {
+    if (passTo === 'drawing-buffer') return drawingBufferTarget;
+    const target = isRenderPassAttachments(passTo) ? (passTo as GPURenderPassAttachments).getBackendTarget() : passTo;
+    if ('attachments' in target && drawTargets.has(target)) return drawingBufferTarget;
+    const set = 'attachments' in target ? (target.attachments as GPURenderPassAttachments).getBackendTarget() : target;
+    if (isWebGPUAttachmentSet(set)) return describeAttachmentSet(set);
+    throw new Error('expected WebGPU render pass attachments or a render target');
   }
 
   /**
-   * The pass target of each framebuffer, made again where its attachments (`version`), their views (storage recreated)
-   * or its size changed: a pass into a framebuffer makes none (and its descriptor is kept, `getPassDescriptor`)
+   * The pass target of each attachment set, made again where its attachments (`version`), their views (storage
+   * recreated) or its size changed: a pass into a set makes none (and its descriptor is kept, `getPassDescriptor`)
    */
-  const framebufferTargets = new WeakMap<
-    WebGPUFramebuffer,
+  const attachmentSetTargets = new WeakMap<
+    WebGPUAttachmentSet,
     { version: number; colors: WebGPUAttachment[]; depth?: WebGPUAttachment; target: PassTarget }
   >();
-  function isFramebufferTargetCurrent(c: { colors: WebGPUAttachment[]; depth?: WebGPUAttachment; target: PassTarget }) {
+  function isAttachmentSetTargetCurrent(c: {
+    colors: WebGPUAttachment[];
+    depth?: WebGPUAttachment;
+    target: PassTarget;
+  }) {
     const { target } = c;
     for (let i = 0, il = c.colors.length; i < il; ++i) {
       if (c.colors[i].getAttachmentView() !== target.colorViews[i]) return false;
@@ -742,13 +761,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return !!first && first.getWidth() === target.width && first.getHeight() === target.height;
   }
 
-  function getFramebufferTarget(framebuffer: WebGPUFramebuffer): PassTarget {
-    const cached = framebufferTargets.get(framebuffer);
-    if (cached && cached.version === framebuffer.version && isFramebufferTargetCurrent(cached)) return cached.target;
-    const colors = framebuffer.getColorAttachments();
-    const depth = framebuffer.getDepthAttachment();
+  function getAttachmentSetTarget(set: WebGPUAttachmentSet): PassTarget {
+    const cached = attachmentSetTargets.get(set);
+    if (cached && cached.version === set.version && isAttachmentSetTargetCurrent(cached)) return cached.target;
+    const colors = set.getColorAttachments();
+    const depth = set.getDepthAttachment();
     const first = colors[0] ?? depth;
-    if (!first) throw new Error('render pass on a framebuffer without attachments');
+    if (!first) throw new Error('render pass without attachments');
     const colorViews: GPUTextureView[] = [];
     for (let i = 0; i < colors.length; ++i) {
       const view = colors[i]?.getAttachmentView();
@@ -767,8 +786,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       width: first.getWidth(),
       height: first.getHeight(),
     };
-    framebufferTargets.set(framebuffer, {
-      version: framebuffer.version,
+    attachmentSetTargets.set(set, {
+      version: set.version,
       colors: colors as WebGPUAttachment[],
       depth,
       target,
@@ -783,12 +802,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return getDrawingBuffer().target;
   }
 
-  function getPassTarget(target: RenderPassTarget): PassTarget {
-    if (target === 'drawing-buffer') return getDrawingBufferTarget();
-    const framebuffer = 'framebuffer' in target ? target.framebuffer : target;
-    if ('framebuffer' in target && drawTargets.has(target)) return getDrawingBufferTarget();
-    if (isWebGPUFramebuffer(framebuffer)) return getFramebufferTarget(framebuffer);
-    throw new Error('expected a WebGPU framebuffer or render target');
+  function getPassTarget(passTo: RenderPassTarget): PassTarget {
+    if (passTo === 'drawing-buffer') return getDrawingBufferTarget();
+    const target = isRenderPassAttachments(passTo) ? (passTo as GPURenderPassAttachments).getBackendTarget() : passTo;
+    if ('attachments' in target && drawTargets.has(target)) return getDrawingBufferTarget();
+    const set = 'attachments' in target ? (target.attachments as GPURenderPassAttachments).getBackendTarget() : target;
+    if (isWebGPUAttachmentSet(set)) return getAttachmentSetTarget(set);
+    throw new Error('expected WebGPU render pass attachments or a render target');
   }
 
   /** Rows of a 2d texture (or of the rectangle with a top-left origin), tightly packed, top to bottom */
@@ -829,6 +849,23 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   /** texture formats of the `TextureReader` formats, four bytes per texel */
   const ReaderFormats: { [F in TextureReadFormat]: GPUTextureFormat } = { rgba8: 'rgba8unorm', r32f: 'r32float' };
+
+  /** what the context's texture readers use (`createWebGPUTextureReader`) */
+  const textureReadContext: WebGPUTextureReadContext = {
+    device,
+    submit: () => submit(),
+    getTexture: (texture, format) => {
+      const t = asWebGPUTexture(texture);
+      const gpuTexture = t.getGPUTexture();
+      if (!gpuTexture) throw new Error('texture without storage');
+      if (t.format !== ReaderFormats[format]) notSupported(`reading textures of format '${t.format}' as '${format}'`);
+      return gpuTexture;
+    },
+    countStaging: (bytes, buffers) => {
+      byteCounts.pixelPack += bytes;
+      stats.resourceCounts.pixelPack += buffers;
+    },
+  };
 
   /** bytes per texel and its channels, of formats `readTextureData` reads */
   const ReadableFormats: { [k: string]: { bytes: number; channels: number; type: 'ubyte' | 'float' | 'half' } } = {
@@ -1056,7 +1093,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   /** the render bundle being recorded (`recordRenderBundle`), the draws' state meanwhile */
   let recording: { state: PassState; failed?: string } | undefined;
-  /** the draws being captured (`captureDraws`): their state, encoding nothing */
+  /** the draws being captured (`DrawLists.capture`): their state, encoding nothing */
   let capturing: PassState | undefined;
 
   /**
@@ -1638,6 +1675,31 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     parallelCompile: true,
   };
 
+  const attachmentsBackend: RenderPassAttachmentsBackend<WebGPUAttachmentSet> = {
+    createTarget: () => {
+      const set = createWebGPUAttachmentSet();
+      const uncount = countResource(stats, 'framebuffer');
+      const destroy = set.destroy;
+      set.destroy = () => {
+        destroy();
+        uncount();
+      };
+      return set;
+    },
+    destroyTarget: (set) => set.destroy(),
+    attachColor: (set, texture, index, layer) =>
+      asWebGPUTexture(texture).attach(set, index as TextureAttachment, layer),
+    detachColor: (set, texture, index) => asWebGPUTexture(texture).detach(set, index as TextureAttachment),
+    attachDepth: (set, depth) => {
+      if (isTextureAttachment(depth)) asWebGPUTexture(depth).attach(set, 'depth');
+      else asWebGPURenderbuffer(depth).attach(set);
+    },
+    detachDepth: (set, depth) => {
+      if (isTextureAttachment(depth)) asWebGPUTexture(depth).detach(set, 'depth');
+      else asWebGPURenderbuffer(depth).detach(set);
+    },
+    setDrawBuffers: (set, count) => set.setDrawBuffers(count),
+  };
   const resources: GraphicsResources = {
     limits: {
       maxTextureSize: device.limits.maxTextureDimension2D,
@@ -1678,16 +1740,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       };
       return texture;
     },
-    framebuffer: () => {
-      const framebuffer = createWebGPUFramebuffer();
-      const uncount = countResource(stats, 'framebuffer');
-      const destroy = framebuffer.destroy;
-      framebuffer.destroy = () => {
-        destroy();
-        uncount();
-      };
-      return framebuffer;
-    },
+    renderPassAttachments: (color, depth) => createBackendRenderPassAttachments(attachmentsBackend, color, depth),
     renderbuffer: (format, attachment, width, height) =>
       createWebGPURenderbuffer(env, format, attachment, width, height),
     uniformBuffer: () => notSupported('uniformBuffer'),
@@ -1731,17 +1784,19 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     device,
     recordRenderBundle,
     executeRenderBundles,
-    createDrawList,
-    captureDraws,
-    get submitCount() {
-      return submitCount;
+    drawLists: {
+      create: createDrawList,
+      capture: captureDraws,
+      get submitCount() {
+        return submitCount;
+      },
+      get resourcesVersion() {
+        // both only advance: their sum advances with either
+        return getSharedIndicesVersion() + drawContext.sharedTextures.version;
+      },
     },
     get viewportOutsideTarget() {
       return viewportOutsideTarget;
-    },
-    get drawResourcesVersion() {
-      // both only advance: their sum advances with either
-      return getSharedIndicesVersion() + drawContext.sharedTextures.version;
     },
     quadIndices: drawContext.quadIndices,
     boxIndices: drawContext.boxIndices,
@@ -1783,10 +1838,6 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
     xr,
 
-    namedFramebuffers: Object.create(null),
-    namedTextures: Object.create(null),
-    namedComputeRenderables: Object.create(null),
-
     isProgramSupported: (shaderCode) => strict || getWgslProgram(shaderCode.name) !== undefined,
     createProgramItem: (drawMode, shaderCode, schema, defineValues, linearTextures, transparency) =>
       createWebGPUProgramItem(drawContext, drawMode, shaderCode, schema, defineValues, linearTextures, transparency),
@@ -1819,12 +1870,11 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       const target: RenderTarget = {
         id: -1,
         texture: createNullTexture(),
-        framebuffer: createWebGPUFramebuffer(),
         depthRenderbuffer: null,
+        attachments: createFixedRenderPassAttachments(createWebGPUAttachmentSet()),
         getByteCount: () => 0,
         getWidth: () => drawingBufferWidth,
         getHeight: () => drawingBufferHeight,
-        bind: () => {},
         setSize: () => {},
         destroy: () => {},
       };
@@ -1857,6 +1907,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     },
 
     describeTarget,
+    prepareClear: (target: TargetDescriptor, values: ClearValues) =>
+      clearDraw.prepare(target as WebGPUTargetDescriptor, values),
     beginRenderPass: (target: RenderPassTarget, options?: RenderPassOptions) => {
       endComputePass();
       endPassEncoder();
@@ -1952,14 +2004,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       if (t.format !== 'rgba8unorm') notSupported(`reading textures of format '${t.format}'`);
       return readGPUTexture(gpuTexture, 4, { x, y, width, height });
     },
-    createTextureReader: (options) =>
-      createWebGPUTextureReader((texture, format, x, y, width, height) => {
-        const t = asWebGPUTexture(texture);
-        const gpuTexture = t.getGPUTexture();
-        if (!gpuTexture) throw new Error('texture without storage');
-        if (t.format !== ReaderFormats[format]) notSupported(`reading textures of format '${t.format}' as '${format}'`);
-        return readGPUTexture(gpuTexture, 4, { x, y, width, height });
-      }, options),
+    createTextureReader: (options) => createWebGPUTextureReader(textureReadContext, options),
     readTextureData: async (texture: Texture) => {
       const t = asWebGPUTexture(texture);
       const gpuTexture = t.getGPUTexture();

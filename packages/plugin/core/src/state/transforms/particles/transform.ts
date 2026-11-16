@@ -25,6 +25,8 @@ const TransformParticleList = PluginStateTransform.BuiltIn({
     transform: TransformParam,
   },
 })({
+  // a slot list (its pages) not yet moved here
+  isApplicable: (a) => !a.data.pages,
   canAutoUpdate({ newParams }) {
     return newParams.transform.name !== 'matrix';
   },

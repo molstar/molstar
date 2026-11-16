@@ -34,6 +34,13 @@ import { computeColorSmoothing, isComputeColorSmoothingSupported } from '@molsta
 import type { StorageBuffer } from '@molstar/graphics/gl/compute';
 import { type DataArray, getDataTextureImage } from '@molstar/graphics/gl/renderable/util';
 import { getRowReachedTest, getSplatInstances } from '../mesh/color-smoothing.js';
+import { createScratch } from '@molstar/graphics/gl/scratch';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('texture-mesh/color-smoothing textures');
+const ScratchTargets = createScratch<RenderPassAttachments>('texture-mesh/color-smoothing targets');
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('texture-mesh/color-smoothing renderables');
 
 export const ColorAccumulateSchema = {
   drawCount: ValueSpec('number'),
@@ -43,7 +50,7 @@ export const ColorAccumulateSchema = {
   uGroupCount: UniformSpec('i', 'material'),
 
   aTransform: AttributeSpec('float32', 16, 1),
-  aInstance: AttributeSpec('float32', 1, 1),
+  aInstance: AttributeSpec('uint32', 1, 1),
   aSample: AttributeSpec('float32', 1, 0),
 
   uGeoTexDim: UniformSpec('v2', 'material'),
@@ -74,7 +81,7 @@ interface AccumulateInput {
   instanceCount: number;
   groupCount: number;
   transformBuffer: Float32Array;
-  instanceBuffer: Float32Array;
+  instanceBuffer: Uint32Array;
   positionTexture: Texture;
   groupTexture: Texture;
   /** the page table and positions of a surface in the vertex arena (WebGPU), instead of the textures; smoothed with
@@ -111,9 +118,9 @@ function getAccumulateRenderable(
   resolution: number,
   stride: number,
 ): ComputeRenderable<ColorAccumulateValues> {
-  if (ctx.namedComputeRenderables[ColorAccumulateName]) {
+  if (ScratchRenderables.get(ctx, ColorAccumulateName)) {
     const extent = Vec3.sub(Vec3(), box.max, box.min);
-    const v = ctx.namedComputeRenderables[ColorAccumulateName].values as ColorAccumulateValues;
+    const v = ScratchRenderables.get(ctx, ColorAccumulateName)!.values as ColorAccumulateValues;
 
     const sampleCount = Math.round(input.vertexCount / stride);
     if (sampleCount > v.drawCount.ref.value || stride !== v.stride.ref.value) {
@@ -150,11 +157,11 @@ function getAccumulateRenderable(
     ValueCell.update(v.uBboxSize, extent);
     ValueCell.updateIfChanged(v.uResolution, resolution);
 
-    ctx.namedComputeRenderables[ColorAccumulateName].update();
+    ScratchRenderables.get(ctx, ColorAccumulateName)!.update();
   } else {
-    ctx.namedComputeRenderables[ColorAccumulateName] = createAccumulateRenderable(ctx, input, box, resolution, stride);
+    ScratchRenderables.set(ctx, createAccumulateRenderable(ctx, input, box, resolution, stride), ColorAccumulateName);
   }
-  return ctx.namedComputeRenderables[ColorAccumulateName];
+  return ScratchRenderables.get(ctx, ColorAccumulateName)!;
 }
 
 function createAccumulateRenderable(
@@ -218,18 +225,18 @@ function getNormalizeRenderable(
   color: Texture,
   count: Texture,
 ): ComputeRenderable<ColorNormalizeValues> {
-  if (ctx.namedComputeRenderables[ColorNormalizeName]) {
-    const v = ctx.namedComputeRenderables[ColorNormalizeName].values as ColorNormalizeValues;
+  if (ScratchRenderables.get(ctx, ColorNormalizeName)) {
+    const v = ScratchRenderables.get(ctx, ColorNormalizeName)!.values as ColorNormalizeValues;
 
     ValueCell.update(v.tColor, color);
     ValueCell.update(v.tCount, count);
     ValueCell.update(v.uTexSize, Vec2.set(v.uTexSize.ref.value, color.getWidth(), color.getHeight()));
 
-    ctx.namedComputeRenderables[ColorNormalizeName].update();
+    ScratchRenderables.get(ctx, ColorNormalizeName)!.update();
   } else {
-    ctx.namedComputeRenderables[ColorNormalizeName] = createColorNormalizeRenderable(ctx, color, count);
+    ScratchRenderables.set(ctx, createColorNormalizeRenderable(ctx, color, count), ColorNormalizeName);
   }
-  return ctx.namedComputeRenderables[ColorNormalizeName];
+  return ScratchRenderables.get(ctx, ColorNormalizeName)!;
 }
 
 function createColorNormalizeRenderable(ctx: GraphicsContext, color: Texture, count: Texture) {
@@ -330,7 +337,7 @@ export function getTextureMeshSplatInstances(
   if (splatCount === instanceCount || splatCount === 0) return all;
 
   const transforms = new Float32Array(splatCount * 16);
-  const instances = new Float32Array(splatCount);
+  const instances = new Uint32Array(splatCount);
   for (let i = 0, k = 0; i < instanceCount; ++i) {
     if (!splat[i]) continue;
     transforms.set(transformBuffer.subarray(i * 16, i * 16 + 16), k * 16);
@@ -345,43 +352,58 @@ export type ColorSmoothingOptions = {
   stride: number;
 };
 
-/** The framebuffer and the accumulation targets (weighted colors, weights) of the point sprite path */
+/** The accumulation targets (weighted colors, weights) of the point sprite path, and the normalization's target */
 function getAccumulateTargets(graphics: GraphicsContext) {
   const {
     resources,
     capabilities: { halfFloatRenderTarget, mixedAttachmentFormats },
   } = graphics;
-  if (!graphics.namedFramebuffers[ColorAccumulateName]) {
-    graphics.namedFramebuffers[ColorAccumulateName] = resources.framebuffer();
-  }
-  const framebuffer = graphics.namedFramebuffers[ColorAccumulateName];
 
   if (mixedAttachmentFormats) {
-    if (!graphics.namedTextures[ColorAccumulateName]) {
-      graphics.namedTextures[ColorAccumulateName] = halfFloatRenderTarget
-        ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-        : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    if (!ScratchTextures.get(graphics, ColorAccumulateName)) {
+      ScratchTextures.set(
+        graphics,
+        halfFloatRenderTarget
+          ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+          : resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+        ColorAccumulateName,
+      );
     }
 
-    if (!graphics.namedTextures[ColorCountName]) {
-      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'r', 'float', 'nearest');
+    if (!ScratchTextures.get(graphics, ColorCountName)) {
+      ScratchTextures.set(graphics, resources.texture('image-float32', 'r', 'float', 'nearest'), ColorCountName);
     }
   } else {
     // webgl1 requires consistent bit plane counts
     // this is quite wasteful but good enough for medium size meshes
 
-    if (!graphics.namedTextures[ColorAccumulateName]) {
-      graphics.namedTextures[ColorAccumulateName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    if (!ScratchTextures.get(graphics, ColorAccumulateName)) {
+      ScratchTextures.set(
+        graphics,
+        resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+        ColorAccumulateName,
+      );
     }
 
-    if (!graphics.namedTextures[ColorCountName]) {
-      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    if (!ScratchTextures.get(graphics, ColorCountName)) {
+      ScratchTextures.set(graphics, resources.texture('image-float32', 'rgba', 'float', 'nearest'), ColorCountName);
     }
   }
 
-  const accumulateTexture = graphics.namedTextures[ColorAccumulateName];
-  const countTexture = graphics.namedTextures[ColorCountName];
-  return { framebuffer, accumulateTexture, countTexture };
+  const accumulateTexture = ScratchTextures.get(graphics, ColorAccumulateName)!;
+  const countTexture = ScratchTextures.get(graphics, ColorCountName)!;
+  const accumulate = ScratchTargets.getOrCreate(
+    graphics,
+    () => createRenderPassAttachments(resources, [accumulateTexture, countTexture]),
+    ColorAccumulateName,
+  );
+  // its color the texture normalized into
+  const normalize = ScratchTargets.getOrCreate(
+    graphics,
+    () => createRenderPassAttachments(resources, []),
+    ColorNormalizeName,
+  );
+  return { accumulate, normalize, accumulateTexture, countTexture };
 }
 
 /** Per context: whether the point sprite path writes cells without weight as 0, once known */
@@ -415,19 +437,13 @@ function isZeroWeightNormalizedToZero(graphics: GraphicsContext) {
 }
 
 async function runZeroWeightProbe(graphics: GraphicsContext) {
-  const { framebuffer, accumulateTexture, countTexture } = getAccumulateTargets(graphics);
+  const { accumulate, normalize, accumulateTexture, countTexture } = getAccumulateTargets(graphics);
   accumulateTexture.define(1, 1);
   countTexture.define(1, 1);
-  accumulateTexture.attachFramebuffer(framebuffer, 0);
-  countTexture.attachFramebuffer(framebuffer, 1);
-  framebuffer.setDrawBuffers(2);
-  graphics.beginRenderPass(framebuffer, { label: 'color smoothing probe clear' });
+  graphics.beginRenderPass(accumulate, { label: 'color smoothing probe clear' });
   graphics.setViewport(0, 0, 1, 1);
   graphics.setScissor(0, 0, 1, 1);
   graphics.clear({ color: [0, 0, 0, 0] });
-  accumulateTexture.detachFramebuffer(framebuffer, 0);
-  countTexture.detachFramebuffer(framebuffer, 1);
-  framebuffer.setDrawBuffers(1);
 
   // as the normalization below: additive into a cleared rgba8 target
   const target = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
@@ -435,13 +451,14 @@ async function runZeroWeightProbe(graphics: GraphicsContext) {
     target.define(1, 1);
     const normalizeRenderable = getNormalizeRenderable(graphics, accumulateTexture, countTexture);
     graphics.setRenderState(RenderState.Additive);
-    target.attachFramebuffer(framebuffer, 0);
-    graphics.beginRenderPass(framebuffer, { label: 'color smoothing probe' });
+    normalize.color = [target];
+    graphics.beginRenderPass(normalize, { label: 'color smoothing probe' });
     graphics.setViewport(0, 0, 1, 1);
     graphics.setScissor(0, 0, 1, 1);
     graphics.clear({ color: [0, 0, 0, 0] });
     normalizeRenderable.render();
-    target.detachFramebuffer(framebuffer, 0);
+    // the probe's target goes: not named after it
+    normalize.color = [];
     const { array } = await graphics.readTextureData(target);
     for (let i = 0; i < 4; ++i) if (array[i] !== 0) return false;
     return true;
@@ -500,7 +517,7 @@ export function calcTextureMeshColorSmoothing(
 
   if (!isInstanceType) {
     input.instanceCount = 1;
-    input.instanceBuffer = new Float32Array([0]);
+    input.instanceBuffer = new Uint32Array([0]);
     input.transformBuffer = new Float32Array(Mat4.id);
   }
 
@@ -541,17 +558,13 @@ export function calcTextureMeshColorSmoothing(
     return { texture, gridDim, gridTexDim: Vec2.create(width, height), gridTransform, type };
   }
 
-  const { framebuffer, accumulateTexture, countTexture } = getAccumulateTargets(graphics);
+  const { accumulate, normalize, accumulateTexture, countTexture } = getAccumulateTargets(graphics);
   accumulateTexture.define(width, height);
   countTexture.define(width, height);
 
-  accumulateTexture.attachFramebuffer(framebuffer, 0);
-  countTexture.attachFramebuffer(framebuffer, 1);
-
   const accumulateRenderable = getAccumulateRenderable(graphics, samples, expandedBox, resolution, stride);
 
-  framebuffer.setDrawBuffers(2);
-  graphics.beginRenderPass(framebuffer, { label: 'color accumulate' });
+  graphics.beginRenderPass(accumulate, { label: 'color accumulate' });
 
   const { uCurrentSlice, uCurrentX, uCurrentY } = accumulateRenderable.values;
 
@@ -582,22 +595,6 @@ export function calcTextureMeshColorSmoothing(
     currX += dx;
   }
 
-  accumulateTexture.detachFramebuffer(framebuffer, 0);
-  countTexture.detachFramebuffer(framebuffer, 1);
-  framebuffer.setDrawBuffers(1);
-
-  // const accImage = new Float32Array(width * height * 4);
-  // accumulateTexture.attachFramebuffer(framebuffer, 0);
-  // webgl.readPixels(0, 0, width, height, accImage);
-  // console.log(accImage);
-  // printTextureImage({ array: accImage, width, height }, { scale: 1 });
-
-  // const cntImage = new Float32Array(width * height * 4);
-  // countTexture.attachFramebuffer(framebuffer, 0);
-  // webgl.readPixels(0, 0, width, height, cntImage);
-  // console.log(cntImage);
-  // printTextureImage({ array: cntImage, width, height }, { scale: 1 });
-
   // normalize
 
   if (!texture || isNullTexture(texture)) {
@@ -608,18 +605,12 @@ export function calcTextureMeshColorSmoothing(
   const normalizeRenderable = getNormalizeRenderable(graphics, accumulateTexture, countTexture);
 
   graphics.setRenderState(RenderState.Additive);
-  texture.attachFramebuffer(framebuffer, 0);
-  graphics.beginRenderPass(framebuffer, { label: 'color normalize' });
+  normalize.color = [texture];
+  graphics.beginRenderPass(normalize, { label: 'color normalize' });
   graphics.setViewport(0, 0, width, height);
   graphics.setScissor(0, 0, width, height);
   graphics.clear({ color: [0, 0, 0, 0] });
   normalizeRenderable.render();
-
-  // const normImage = new Uint8Array(width * height * 4);
-  // texture.attachFramebuffer(framebuffer, 0);
-  // webgl.readPixels(0, 0, width, height, normImage);
-  // console.log(normImage);
-  // printTextureImage({ array: normImage, width, height }, { scale: 1 });
 
   if (isTimingMode) graphics.timer.groupEnd('calcTextureMeshColorSmoothing');
 
@@ -658,15 +649,14 @@ export function applyTextureMeshColorSmoothing(
   const run = () => {
     const tripled = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-    if (!graphics.namedTextures[ColorSmoothingColorName]) {
-      graphics.namedTextures[ColorSmoothingColorName] = graphics.resources.texture(
-        'image-uint8',
-        'rgba',
-        'ubyte',
-        'nearest',
+    if (!ScratchTextures.get(graphics, ColorSmoothingColorName)) {
+      ScratchTextures.set(
+        graphics,
+        graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'),
+        ColorSmoothingColorName,
       );
     }
-    const colorData = graphics.namedTextures[ColorSmoothingColorName];
+    const colorData = ScratchTextures.get(graphics, ColorSmoothingColorName)!;
     colorData.load(getDataTextureImage(values.tColor.ref.value, 4));
 
     const smoothingData = calcTextureMeshColorSmoothing(
@@ -721,15 +711,14 @@ export function applyTextureMeshOverpaintSmoothing(
   const run = () => {
     const tripled = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-    if (!graphics.namedTextures[ColorSmoothingRgbaName]) {
-      graphics.namedTextures[ColorSmoothingRgbaName] = graphics.resources.texture(
-        'image-uint8',
-        'rgba',
-        'ubyte',
-        'nearest',
+    if (!ScratchTextures.get(graphics, ColorSmoothingRgbaName)) {
+      ScratchTextures.set(
+        graphics,
+        graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'),
+        ColorSmoothingRgbaName,
       );
     }
-    const colorData = graphics.namedTextures[ColorSmoothingRgbaName];
+    const colorData = ScratchTextures.get(graphics, ColorSmoothingRgbaName)!;
     colorData.load(getDataTextureImage(values.tOverpaint.ref.value, 4));
 
     const smoothingData = calcTextureMeshColorSmoothing(
@@ -785,15 +774,14 @@ export function applyTextureMeshTransparencySmoothing(
   const run = () => {
     const tripled = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-    if (!graphics.namedTextures[ColorSmoothingAlphaName]) {
-      graphics.namedTextures[ColorSmoothingAlphaName] = graphics.resources.texture(
-        'image-uint8',
-        'r',
-        'ubyte',
-        'nearest',
+    if (!ScratchTextures.get(graphics, ColorSmoothingAlphaName)) {
+      ScratchTextures.set(
+        graphics,
+        graphics.resources.texture('image-uint8', 'r', 'ubyte', 'nearest'),
+        ColorSmoothingAlphaName,
       );
     }
-    const colorData = graphics.namedTextures[ColorSmoothingAlphaName];
+    const colorData = ScratchTextures.get(graphics, ColorSmoothingAlphaName)!;
     colorData.load(getDataTextureImage(values.tTransparency.ref.value, 1));
 
     const smoothingData = calcTextureMeshColorSmoothing(
@@ -849,15 +837,14 @@ export function applyTextureMeshEmissiveSmoothing(
   const run = () => {
     const tripled = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-    if (!graphics.namedTextures[ColorSmoothingAlphaName]) {
-      graphics.namedTextures[ColorSmoothingAlphaName] = graphics.resources.texture(
-        'image-uint8',
-        'r',
-        'ubyte',
-        'nearest',
+    if (!ScratchTextures.get(graphics, ColorSmoothingAlphaName)) {
+      ScratchTextures.set(
+        graphics,
+        graphics.resources.texture('image-uint8', 'r', 'ubyte', 'nearest'),
+        ColorSmoothingAlphaName,
       );
     }
-    const colorData = graphics.namedTextures[ColorSmoothingAlphaName];
+    const colorData = ScratchTextures.get(graphics, ColorSmoothingAlphaName)!;
     colorData.load(getDataTextureImage(values.tEmissive.ref.value, 1));
 
     const smoothingData = calcTextureMeshColorSmoothing(
@@ -913,15 +900,14 @@ export function applyTextureMeshSubstanceSmoothing(
   const run = () => {
     const tripled = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-    if (!graphics.namedTextures[ColorSmoothingRgbaName]) {
-      graphics.namedTextures[ColorSmoothingRgbaName] = graphics.resources.texture(
-        'image-uint8',
-        'rgba',
-        'ubyte',
-        'nearest',
+    if (!ScratchTextures.get(graphics, ColorSmoothingRgbaName)) {
+      ScratchTextures.set(
+        graphics,
+        graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'),
+        ColorSmoothingRgbaName,
       );
     }
-    const colorData = graphics.namedTextures[ColorSmoothingRgbaName];
+    const colorData = ScratchTextures.get(graphics, ColorSmoothingRgbaName)!;
     colorData.load(getDataTextureImage(values.tSubstance.ref.value, 4));
 
     const smoothingData = calcTextureMeshColorSmoothing(

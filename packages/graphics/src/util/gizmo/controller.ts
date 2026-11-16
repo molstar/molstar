@@ -135,6 +135,11 @@ export interface GizmoPart {
   /** Its alpha, 1 by default (a faint fill: below 0.5 it is not picked). Not for a body (`bodyAlpha`) */
   readonly alpha?: number;
   /**
+   * A mesh shaded by the canvas's lights (a handle's solid head), unlit by default: flat, its color the same from any
+   * side. Not for lines and points (unlit)
+   */
+  readonly lit?: boolean;
+  /**
    * Its half toward the viewer only (a ring's front): cut by a plane through the frame's origin across the view, set as
    * the camera or the gizmo moves; whole while a `rotate` handle of the gizmo is dragged
    */
@@ -636,11 +641,11 @@ export class GizmoController<T> {
       layer: 'overlay',
       ...(body ? { pickable: false } : part.role === 'hit' ? { pickOnly: true } : {}),
       ...(part.when ? { visible: false } : {}),
+      occludedAlpha: body ? occludedAlpha.body : occludedAlpha.handles,
       ...ghost,
     };
     const common = {
       alpha: body ? bodyAlpha : ghost ? GhostAlpha : (part.alpha ?? 1),
-      occludedAlpha: body ? occludedAlpha.body : occludedAlpha.handles,
       ...(part.front && !ghost ? { clip: this.#frontClip(layout, false) } : {}),
     };
     const draw = <G extends Mesh | Lines | Points>(
@@ -675,7 +680,7 @@ export class GizmoController<T> {
     const g = part.geometry;
     switch (g.kind) {
       case 'mesh':
-        return draw(Mesh.Utils, g, 1, { screenSize, ignoreLight: true, ...(drawn ? { emissive: glow } : {}) });
+        return draw(Mesh.Utils, g, 1, { screenSize, ignoreLight: !part.lit, ...(drawn ? { emissive: glow } : {}) });
       // the thin parts, as wide on screen at any zoom
       case 'lines':
         return draw(Lines.Utils, g, lineWidth, { ...glowing, sizeFactor: 1, lineSizeAttenuation: false });
@@ -822,7 +827,7 @@ export class GizmoController<T> {
       getShape,
       Lines.Utils,
       this.#guideFrame(d),
-      { sizeFactor: 1, lineSizeAttenuation: false, occludedAlpha: 1 },
+      { sizeFactor: 1, lineSizeAttenuation: false },
       { layer: 'overlay', pickable: false },
     );
   }

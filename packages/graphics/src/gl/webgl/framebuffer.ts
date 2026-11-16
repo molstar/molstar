@@ -1,15 +1,32 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { idFactory } from '@molstar/core/util/id-factory';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
-import type { AttachmentRef, Framebuffer } from '../framebuffer.js';
 import type { WebGLExtensions } from './extensions.js';
 import { endRenderPass } from './render-pass.js';
 import type { WebGLState } from './state.js';
+
+/** A texture or renderbuffer by its id (the resources may wrap the objects they create, ids stay) */
+export interface AttachmentRef {
+  readonly kind: 'texture' | 'renderbuffer';
+  readonly id: number;
+}
+
+/** A framebuffer object, what render pass attachments draw with and the WebGL compute draws into */
+export interface Framebuffer {
+  readonly id: number;
+
+  bind: () => void;
+  /** Number of color attachments written by draws; default 1 */
+  setDrawBuffers: (count: number) => void;
+  /** The textures and renderbuffers attached (layers of 3d textures as their texture) */
+  getAttachments: () => readonly AttachmentRef[];
+  destroy: () => void;
+}
 
 const getNextFramebufferId = idFactory();
 
@@ -88,6 +105,44 @@ export function setAttachmentStorage(
   }
   if (resource && ensure) storage.set(attachment, { resource, ensure });
   else storage.delete(attachment);
+}
+
+/**
+ * What each attachment point of a framebuffer holds (its GL texture or renderbuffer and layer), as the attach and detach
+ * methods set it: attaching the same again changes nothing, so it is skipped, without ending the open pass or making
+ * the driver check the framebuffer again (passes attach their targets every frame)
+ */
+const Attached = new WeakMap<WebGLFramebuffer, Map<number, { object: object; layer: number }>>();
+
+/** Whether `attachment` of `framebuffer` holds `object` at `layer` (false where untracked, e.g. stand-ins in tests) */
+export function isAttached(framebuffer: Framebuffer, attachment: number, object: object | null, layer = 0) {
+  const glFramebuffer = (framebuffer as GLFramebufferObject).getGLFramebuffer?.();
+  if (typeof glFramebuffer !== 'object' || glFramebuffer === null || object === null) return false;
+  const current = Attached.get(glFramebuffer)?.get(attachment);
+  return !!current && current.object === object && current.layer === layer;
+}
+
+/** Records that `attachment` of `framebuffer` holds `object` at `layer`, nothing with `object` undefined (detached) */
+export function setAttached(
+  gl: GLRenderingContext,
+  framebuffer: Framebuffer,
+  attachment: number,
+  object: object | null | undefined,
+  layer = 0,
+) {
+  const glFramebuffer = (framebuffer as GLFramebufferObject).getGLFramebuffer?.();
+  if (typeof glFramebuffer !== 'object' || glFramebuffer === null) return;
+  let attached = Attached.get(glFramebuffer);
+  if (!attached) Attached.set(glFramebuffer, (attached = new Map()));
+  // the combined point replaces the depth and stencil ones and the other way round, as `setAttachmentStorage`
+  if (attachment === gl.DEPTH_STENCIL_ATTACHMENT) {
+    attached.delete(gl.DEPTH_ATTACHMENT);
+    attached.delete(gl.STENCIL_ATTACHMENT);
+  } else if (attachment === gl.DEPTH_ATTACHMENT || attachment === gl.STENCIL_ATTACHMENT) {
+    attached.delete(gl.DEPTH_STENCIL_ATTACHMENT);
+  }
+  if (object) attached.set(attachment, { object, layer });
+  else attached.delete(attachment);
 }
 
 /** Binds `framebuffer` to change its attachments, without allocating their storage (see `setAttachmentStorage`) */

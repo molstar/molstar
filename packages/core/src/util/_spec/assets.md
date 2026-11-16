@@ -67,3 +67,12 @@ The code is the truth for how; this file records the rules the code relies on, e
   download of the URL fetches again; the entry forgets its key, so its release does not reach a new one). Why: a text
   format then holds one copy, its text, as before held bytes; a session still saves the asset (`file`).
 - Not while other assets of the URL share the bytes (the URL cache entry has other holds): they read them.
+
+## 7. Sessions
+
+- A session (`.molx`, `PluginStateSnapshotManager.serialize`) holds every held asset's file, at most
+  `PluginConfig.State.MaxSessionAssetBytes` (1 GiB; a host sets its own, `serialize`'s `maxAssetBytes` a call's)
+  together; a save past it fails, naming the largest, before any is read. Why: the zip is made in memory (each file read
+  whole and deflated into a buffer of its size, one buffer for the archive, no zip64), and a session that opened without
+  a file it needs would fail later, worse. A state (`.molj`) holds none.
+- A file that compresses little (a particle pack, compressed data, images, video: by its name) is stored as it is.

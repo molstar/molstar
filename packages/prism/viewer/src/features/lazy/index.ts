@@ -151,7 +151,10 @@ export const LazyRemoteStates: LazyViewerExtension = {
   load: async () => (await import('../remote-states/index.js')).RemoteStatesFeature,
 };
 
-/** Mol*'s particle transformers (`ParticlesRegistry`), by id: a session holding one loads the particles feature */
+/**
+ * Mol*'s particle transformers (`ParticlesRegistry`) and the behavior the feature adds (the tiles following the camera),
+ * by id: a session holding one loads the particles feature
+ */
 const ParticleTransformers = [
   'parse-artiatomi-em',
   'particle-list-from-artiatomi-em',
@@ -160,6 +163,7 @@ const ParticleTransformers = [
   'particle-list-from-cryoet-data-portal-ndjson',
   'parse-simularium',
   'particle-trajectory-from-simularium',
+  'particle-list-from-pack',
   'particle-list-from-relion-star',
   'parse-dynamo-tbl',
   'particle-list-from-dynamo-tbl',
@@ -168,6 +172,10 @@ const ParticleTransformers = [
   'transform-particle-list',
   'particles-representation-3d',
   'particle-list-unitcell-3d',
+  'particle-tile-set-from-list',
+  'particle-tile-set-from-pack',
+  'particle-tiles-view',
+  'particle-tiles-follow-camera',
 ].map((name) => `ms-plugin.${name}`);
 
 export const LazyParticles: LazyViewerExtension = {
@@ -225,8 +233,9 @@ export const LazyParticles: LazyViewerExtension = {
         'artiatomi_em_particles',
         'mmcif_particles',
         'simularium_particles',
+        'particle_pack',
       ],
-      fileExtensions: ['star', 'tbl', 'ndjson', 'em', 'simularium'],
+      fileExtensions: ['star', 'tbl', 'ndjson', 'em', 'simularium', 'mspk'],
       // CellPack and PetWorld assemblies are mmCIF: claimed by their content, other mmCIF stays a structure
       sniff: {
         extensions: ['cif', 'bcif'],

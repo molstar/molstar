@@ -15,6 +15,8 @@ import type {
   ParticleRepresentationRef,
 } from '@molstar/plugin/state/manager/particles/hierarchy-state';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
+import { ParticleTilesFollowCamera } from '@molstar/plugin/behavior/dynamic/particle-tiles';
+import { PluginSpec } from '@molstar/plugin/spec';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
 import { ParticleListFromTrajectory, ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
@@ -45,8 +47,15 @@ import { TransformParticleList } from '@molstar/plugin/state/transforms/particle
 // state, like `representation.set`), visibility and removal. It follows `volume`: a `particles` names a list by label
 // or state ref, else the only one loaded; several are `ambiguous`, with their labels in the hint.
 
-/** The feature's plugin parts: Mol*'s particles, opt-in (`ParticlesRegistry`), which its operations run on */
-export const ParticlesPlugin = { registry: ParticlesRegistry, behaviors: [] } as const;
+/**
+ * The feature's plugin parts: Mol*'s particles, opt-in (`ParticlesRegistry`), which its operations run on, and a particle
+ * tiles view by the camera following it (the Viewer's: a tile-ordered pack opened by range shows its first pick alone
+ * without)
+ */
+export const ParticlesPlugin = {
+  registry: ParticlesRegistry,
+  behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera)],
+} as const;
 
 const ListParam = () =>
   PD.Text('', { description: 'A particle list by label or state ref; empty: the only one loaded' });
@@ -247,6 +256,9 @@ export class ParticlesApi extends ApiArea {
       const name = listName(ctx, l);
       const data = l.cell.obj?.data;
       if (!data) return ApiResult.fail('not-found', `${name} is not loaded.`);
+      // a view of tiles read as the camera moves (a slot list): its targets the pack's, what `ParticleListWithTargets`
+      // does not apply to (made again at every step)
+      if (data.pages) return ApiResult.fail('blocked', `${name} is read tile by tile: its targets are the pack's.`);
       if (!file && !source.trim()) {
         return ApiResult.fail('invalid', 'Which object do the particles stand for?', 'Give a file, a PDB id or a URL.');
       }
@@ -525,7 +537,10 @@ export class ParticlesApi extends ApiArea {
       const name = listName(ctx, l);
       const data = l.cell.obj?.data;
       if (!data) return ApiResult.fail('blocked', `${name} is not loaded yet.`);
+      // a view of tiles read as the camera moves (a slot list): `TransformParticleList` does not apply to it
+      if (data.pages) return ApiResult.fail('blocked', `${name} is read tile by tile: it cannot be moved.`);
       const wanted = wantedTransform(v, 'particles.transform-reset');
+
       if (isFailure(wanted)) return wanted;
       const state = ctx.plugin.state.data;
       const ref = l.cell.transform.ref;

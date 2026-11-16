@@ -48,7 +48,7 @@ export const ColorAccumulateSchema = {
   isoTable: StorageBufferSpec('u32', 'read'),
   isoVertices: StorageBufferSpec('u32', 'read'),
   transforms: StorageBufferSpec('mat4x4<f32>', 'read'),
-  instances: StorageBufferSpec('f32', 'read'),
+  instances: StorageBufferSpec('u32', 'read'),
   sums: StorageBufferSpec('atomic<u32>', 'read-write'),
 };
 
@@ -91,7 +91,7 @@ export interface ColorSmoothingSamples {
   instanceCount: number;
   groupCount: number;
   transformBuffer: Float32Array;
-  instanceBuffer: Float32Array;
+  instanceBuffer: Uint32Array;
   /** the page table and positions of the surface in the vertex arena */
   chunks: { table: StorageBuffer; vertices: StorageBuffer };
   colorData: Texture;

@@ -51,8 +51,6 @@ export function getPrimitiveTopology(drawMode: DrawMode): GPUPrimitiveTopology {
       return 'triangle-list';
     case 'triangle-strip':
       return 'triangle-strip';
-    default:
-      throw new Error(`draw mode '${drawMode}' is not supported by WebGPU`);
   }
 }
 

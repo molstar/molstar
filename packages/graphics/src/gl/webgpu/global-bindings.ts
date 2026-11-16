@@ -155,7 +155,7 @@ export function createWebGPUGlobalBindings(
   /**
    * per layout, the groups by their textures (`getTextureEntries`): passes alternating between texture sets (the
    * marking passes, depth and mask) keep binding the same groups, which recordings compare by identity
-   * (`GraphicsContext.captureDraws`); the most recent `MaxGlobalGroupsPerLayout`
+   * (`DrawLists.capture`); the most recent `MaxGlobalGroupsPerLayout`
    */
   const groups = new Map<GPUBindGroupLayout, Map<string, Cached>>();
 

@@ -162,11 +162,11 @@ loaded scene unchanged:
 
    | model    | parse                    | targets               | kept            | peak heap       | image     |
    | -------- | ------------------------ | --------------------- | --------------- | --------------- | --------- |
-   | PetWorld | 1.03–1.15 -> 0.47 s      | 445–452 -> 420–440 ms | 0.87 -> 0.74 GB | 0.93 -> 0.66 GB | unchanged |
-   | MG_1184  | 1.36–1.39 -> 0.87–0.90 s | 930–969 -> 833–913 ms | 1.01 -> 0.88 GB | 1.18 -> 0.96 GB | unchanged |
+   | PetWorld | 1.03ï¿½1.15 -> 0.47 s      | 445ï¿½452 -> 420ï¿½440 ms | 0.87 -> 0.74 GB | 0.93 -> 0.66 GB | unchanged |
+   | MG_1184  | 1.36ï¿½1.39 -> 0.87ï¿½0.90 s | 930ï¿½969 -> 833ï¿½913 ms | 1.01 -> 0.88 GB | 1.18 -> 0.96 GB | unchanged |
 
    PetWorld's chains cost about 100 ms of its parse (3.7 M rows: two columns decoded, 25 ms, and compared a row, 70 ms);
-   cellPACK's none (a target a chain). Not exact: radii as float32 move a packed size by one step (0.01 Å) at a rounding
+   cellPACK's none (a target a chain). Not exact: radii as float32 move a packed size by one step (0.01 ï¿½) at a rounding
    half. Open: a target's structure on demand.
 3. **The culler's segment as an index**, done: `CulledData` holds each instance's segment index (4 B) and each
    segment's groups (a vec4, `MergedSegments.groupCounts`, `groupInstanceOffsets`, `groupBases`), `culledSegment`
@@ -175,7 +175,8 @@ loaded scene unchanged:
    the CPU, WebGL2's instance data), so a culled object never makes it. 8 cells 972 -> 916 MB; the yeast cell 13.03 ->
    12.44 GB kept, the peak 13.94 -> 13.46 GB, the first frame 74 -> 64 s.
 4. **The file's bytes**: the MessagePack columns as views of the downloaded bytes (`decodeMsgPack` copies on purpose:
-   element access, `view(data.buffer)` callers; measure), or the bytes released once parsed. -1.1 GB.
+   element access, `view(data.buffer)` callers; measure), or the bytes released once parsed. -1.1 GB. For files made
+   for it, [particle-pack.md](particle-pack.md): the transforms as views of the file's bytes, the list's own arrays.
 5. **The label indices** made where a label is asked for. -0.25 GB.
 
 Steps 1 to 3 bring it to about 9 GB by the estimates; 4 and 5 add margin.

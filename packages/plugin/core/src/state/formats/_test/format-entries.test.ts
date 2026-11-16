@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -49,6 +50,7 @@ import { CryoEtDataPortalNdjsonParticles, ParticleListFromCryoEtDataPortalNdjson
 import { ArtiatomiEmParticles, ParticleListFromArtiatomiEm } from '../particles/em.js';
 import { MmcifParticles, ParticleListFromMmcifAssembly } from '../particles/mmcif-assembly.js';
 import { ParticleTrajectoryFromSimularium, SimulariumParticles } from '../particles/simularium.js';
+import { ParticleListFromPack, ParticlePack } from '../particles/pack.js';
 import { Mmcif, TrajectoryFromMmCif } from '../trajectory/mmcif.js';
 import { CifCore, TrajectoryFromCifCore } from '../trajectory/cif-core.js';
 import { Pdb, Pdbqt, Pqr, TrajectoryFromPDB } from '../trajectory/pdb.js';
@@ -135,6 +137,12 @@ const Particles: Spec[] = [
     entry: SimulariumParticles,
     provider: BuiltInParticlesFormats[5],
     actions: [ParticleTrajectoryFromSimularium],
+    visuals: ComplexParticleVisuals,
+  },
+  {
+    entry: ParticlePack,
+    provider: BuiltInParticlesFormats[6],
+    actions: [ParticleListFromPack],
     visuals: ComplexParticleVisuals,
   },
 ];

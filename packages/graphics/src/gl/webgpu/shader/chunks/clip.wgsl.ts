@@ -236,21 +236,22 @@ fn clipSphereClass(p: vec3<f32>, r: f32, flag: i32) -> u32 {
 
 /**
  * Clipping by clip objects read from storage (compute kernels, which have no material block): per clip object five
- * vec4s in `buffer` from vec4 `base`, its frame's columns (`Clip.Objects.frame`) and its shape (half size, the type
+ * vec4s in `buffer` from vec4 `base` (or by `buffer` as a vec4's expression of its index), its frame's columns (`Clip.Objects.frame`) and its shape (half size, the type
  * in `w`, negative where inverted), `count` of them (expressions); the functions of `clip_core_wgsl`, without a flag
  * (no clipping layer: pass 0) or a solid interior's clip object
  */
-export function clip_storage_wgsl(buffer: string, base: string, count: string) {
+export function clip_storage_wgsl(buffer: string | ((index: string) => string), base: string, count: string) {
+  const row = typeof buffer === 'string' ? (index: string) => `${buffer}[${index}]` : buffer;
   return /* wgsl */ `
 ${clip_shape_wgsl}
 
 fn clipObjectFrame(i: i32) -> mat4x4<f32> {
     let o = ${base} + u32(i) * 5u;
-    return mat4x4<f32>(${buffer}[o], ${buffer}[o + 1u], ${buffer}[o + 2u], ${buffer}[o + 3u]);
+    return mat4x4<f32>(${row('o')}, ${row('o + 1u')}, ${row('o + 2u')}, ${row('o + 3u')});
 }
 
 fn clipObjectShape(i: i32) -> vec4<f32> {
-    return ${buffer}[${base} + u32(i) * 5u + 4u];
+    return ${row(`${base} + u32(i) * 5u + 4u`)};
 }
 
 fn isClipObjectActive(i: i32, flag: i32) -> bool {
@@ -356,7 +357,7 @@ export function clip_flag_wgsl(clipping: string) {
 /** Instance clipping in the vertex stage: moves the vertex out of the clip volume; expects \`aTransform\` and \`clipFlag\` */
 export const clip_instance_wgsl = /* wgsl */ `
 #if defined(dClipVariant_instance) && defined(dClipObjects)
-    let clipCenter = (uGlobal.uModel * uObject.uObjectTransform * aTransform * vec4<f32>(invariantBoundingSphere(in).xyz, 1.0)).xyz;
+    let clipCenter = (uGlobal.uModel * (uObject.uObjectTransform * (aTransform * vec4<f32>(invariantBoundingSphere(in).xyz, 1.0)))).xyz;
     // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
     if (clipTest(clipCenter / uGlobal.uModelScale, clipFlag) != (uGlobal.uClipGhost != 0u)) {
         // move out of [0, w] to 'discard' in the vertex stage

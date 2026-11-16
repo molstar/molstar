@@ -7,7 +7,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';

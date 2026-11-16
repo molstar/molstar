@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -38,6 +38,36 @@ const tmpDepthRGBA = Vec4();
 export function unpackRGBAToDepth(r: number, g: number, b: number, a: number) {
   Vec4.set(tmpDepthRGBA, r / 255, g / 255, b / 255, a / 255);
   return Vec4.dot(tmpDepthRGBA, UnpackFactors);
+}
+
+/**
+ * encode a non-negative integer (below 2^32 - 1) as four bytes into array at offset: value + 1 (0 none), its 24 low bits
+ * in rgb as `packIntToRGBArray`, its top byte in alpha (GLSL `unpackGroupId`)
+ */
+export function packIntToRGBAArray(value: number, array: NumberArray, offset: number) {
+  let v = Math.round(value) + 1;
+  array[offset + 2] = v % 256;
+  v = Math.floor(v / 256);
+  array[offset + 1] = v % 256;
+  v = Math.floor(v / 256);
+  array[offset] = v % 256;
+  array[offset + 3] = Math.floor(v / 256) % 256;
+  return array;
+}
+
+/** decode an integer encoded as four bytes (`packIntToRGBAArray`): -1 where none (all zero) */
+export function unpackRGBAToInt(r: number, g: number, b: number, a: number) {
+  return unpackRGBToInt(r, g, b) + Math.floor(a) * 16777216;
+}
+
+/** The largest integer encoded as four bytes (`packIntToRGBAArray`) of `array`, every `stride` bytes */
+export function arrayMaxPackedIntToRGBA(array: NumberArray, stride: number) {
+  let max = -Infinity;
+  for (let i = 0, il = array.length; i < il; i += stride) {
+    const v = unpackRGBAToInt(array[i], array[i + 1], array[i + 2], array[i + 3]);
+    if (v > max) max = v;
+  }
+  return max;
 }
 
 export function arrayMaxPackedIntToRGB(array: NumberArray, stride: number) {

@@ -14,6 +14,7 @@ import { ValueCell } from '@molstar/core/util';
 import { createClipping } from '@molstar/graphics/geo/geometry/clipping-data';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
+import { FxaaParams } from '@molstar/graphics/canvas3d/passes/fxaa';
 import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { EveryLoci } from '@molstar/model/model/loci';
@@ -55,6 +56,32 @@ async function untilRasterDrawn({ graphics, canvas3d }: SceneContext): Promise<s
   return [
     `the sphere raster drew no object (${reports.slice(-3).join('; ') || 'nothing logged'}; ${r.sphereRaster} ${r.sphereRasterRadius} ${canvas3d.props.camera.mode} debug ${isDebugMode})`,
   ];
+}
+
+/**
+ * Stereo's eyes turned after frames at rest: a frame drawn, culled against the occlusion levels of the views before (no
+ * second phase), then frames not requested: one catching up (`Canvas3DFrameRenderHost.requestFrame`), against
+ * levels of the turned views
+ */
+async function stereoTurned(ctx: SceneContext): Promise<string[]> {
+  const { graphics, canvas3d } = ctx;
+  const errors = await untilRasterDrawn(ctx);
+  const tick = async (request: boolean) => {
+    await graphics.resources.pending.whenReady();
+    if (request) canvas3d.requestDraw();
+    canvas3d.tick(now(), { isSynchronous: true });
+    await graphics.waitForGpuCommandsComplete();
+  };
+  // the levels of the views at rest
+  await tick(true);
+  await tick(true);
+  const { position, target } = canvas3d.camera.state;
+  const turned = Vec3.rotateAroundAxis(Vec3(), Vec3.sub(Vec3(), position, target), Vec3.unitY, Math.PI / 12);
+  canvas3d.camera.setState({ position: Vec3.add(turned, turned, target) }, 0);
+  await tick(true);
+  await tick(false);
+  await tick(false);
+  return errors;
 }
 
 /** A grid of `n`³ translations `spacing` apart, centered */
@@ -177,6 +204,8 @@ function rasterCase(
     canvasProps?: PartialCanvas3DProps;
     view?: VisualTestCase['view'];
     interact?: VisualTestCase['interact'];
+    capture?: VisualTestCase['capture'];
+    size?: VisualTestCase['size'];
   } = {},
 ): VisualTestCase {
   const { sphereRaster = 'on', radius = 6, canvasProps = {} } = options;
@@ -186,6 +215,8 @@ function rasterCase(
     requires: Impostor,
     canvasProps: { ...canvasProps, renderer: { ...canvasProps.renderer, sphereRaster, sphereRasterRadius: radius } },
     view: options.view ?? ObliqueView,
+    ...(options.capture && { capture: options.capture }),
+    ...(options.size && { size: options.size }),
     // the image's target compiles the resolve again: images before the capture. The frames of `untilRasterDrawn`
     // check that the raster draws, also where a headless browser reads the canvas of WebGPU as blank
     imagePassRepeats: 3,
@@ -255,17 +286,74 @@ export const SphereRasterCases: VisualTestCase[] = [
   ),
   rasterCase(
     'merged-grid-lod',
-    'The copies with two levels of detail faded into each other (every 4th sphere, larger, from mid distance): the ' +
-      "levels' ranges, scales and fade in the raster as the impostors have them.",
-    async (ctx) => [
-      await globuleGrid(ctx, {
-        lodLevels: [
-          { minDistance: 0, maxDistance: 220, overlap: 40, stride: 1, scaleBias: 1 },
-          { minDistance: 220, maxDistance: 10000000, overlap: 40, stride: 4, scaleBias: 3 },
-        ],
-      }),
-    ],
+    'The copies with levels of detail by size on screen (every 10th sphere, larger, from mid distance): the ' +
+      "levels' ranges and scales in the raster as the impostors have them.",
+    async (ctx) => [await globuleGrid(ctx, { lodPixelSize: 11 })],
     { radius: 4 },
+  ),
+  rasterCase(
+    'merged-grid-lod-scaled',
+    "The copies with levels of detail, the camera scaled (XR's world scale, 0.05): culled on the GPU and the levels " +
+      'chosen in the unscaled world, drawn by the raster: as `merged-grid-lod`.',
+    async (ctx) => [await globuleGrid(ctx, { lodPixelSize: 11 })],
+    {
+      radius: 4,
+      // the canvas's camera scaled (an image pass draws with a camera of its own)
+      capture: 'canvas',
+      interact: async ({ canvas3d }) => {
+        canvas3d.camera.scale = 0.05;
+        return [];
+      },
+    },
+  ),
+  rasterCase(
+    'globule-orthographic',
+    'The globule seen by an orthographic camera: the raster casts parallel rays (from each pixel on the camera plane), ' +
+      'its spheres the same size at every depth, those up to 6 px by the raster.',
+    async (ctx) => [await globule(ctx)],
+    { canvasProps: { camera: { mode: 'orthographic' } } },
+  ),
+  rasterCase(
+    'merged-grid-orthographic',
+    'The copies merged and culled on the GPU, orthographic: the split per instance by the size on screen alone (no ' +
+      'distance), the culler and the raster deciding alike.',
+    async (ctx) => [await globuleGrid(ctx)],
+    { radius: 4, canvasProps: { camera: { mode: 'orthographic' } } },
+  ),
+  rasterCase(
+    'clip-pixel-orthographic',
+    'The globule clipped by pixel by a tilted plane, orthographic, all by the raster (`only`): the caps of the solid ' +
+      'interiors along parallel rays, as the impostors show them.',
+    async (ctx) => [await globule(ctx, { clip: PixelClip })],
+    { sphereRaster: 'only', canvasProps: { camera: { mode: 'orthographic' } } },
+  ),
+  rasterCase(
+    'merged-stereo',
+    'The copies merged and culled on the GPU in side-by-side stereo, a wide eye separation: both eyes culled as one ' +
+      '(a frustum enclosing both, one culling a frame), both drawn by the raster (the right eye offset in its target): ' +
+      'as the impostors culled per eye.',
+    async (ctx) => [await globuleGrid(ctx, {})],
+    {
+      capture: 'canvas',
+      size: { width: 384, height: 192 },
+      canvasProps: { camera: { stereo: { name: 'on', params: { eyeSeparation: 1, focus: 3 } } } },
+    },
+  ),
+  rasterCase(
+    'merged-stereo-turned',
+    'The copies merged in stereo, both eyes culled against occlusion levels of both (one pyramid, the eyes side by ' +
+      'side), the camera turned after frames at rest: what came into view drawn.',
+    async (ctx) => [await globuleGrid(ctx, {})],
+    {
+      capture: 'canvas',
+      size: { width: 384, height: 192 },
+      // FXAA: the depth drawn into the texture the occlusion levels read (none drawing straight to the canvas)
+      canvasProps: {
+        camera: { stereo: { name: 'on', params: { eyeSeparation: 1, focus: 3 } } },
+        postprocessing: { antialiasing: { name: 'fxaa', params: PD.getDefaultValues(FxaaParams) } },
+      },
+      interact: stereoTurned,
+    },
   ),
   rasterCase(
     'clip-instance',
@@ -366,8 +454,7 @@ export const SphereRasterCases: VisualTestCase[] = [
   }),
   rasterCase(
     'stereo',
-    'The globule in side-by-side stereo: the raster draws the left eye (the viewport at the origin), the right eye ' +
-      'the impostors.',
+    'The globule in side-by-side stereo: the raster draws both eyes (the right eye offset in its target).',
     async (ctx) => [await globule(ctx)],
     { canvasProps: { camera: { stereo: { name: 'on', params: { eyeSeparation: 0.062, focus: 10 } } } } },
   ),

@@ -11,7 +11,7 @@ import { HiZPass } from '@molstar/graphics/canvas3d/passes/hi-z';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 64;

@@ -29,13 +29,20 @@ import type { GraphicsStats } from '../stats.js';
 import { hashString, hashFnv32a } from '@molstar/core/data/util';
 import type { DefineValues, ShaderCode } from '../shader-code.js';
 import type { RenderableSchema } from '../renderable/schema.js';
-import { createRenderbuffer } from './renderbuffer.js';
+import { asGLRenderbuffer, createRenderbuffer, type GLRenderbuffer } from './renderbuffer.js';
+import {
+  createBackendRenderPassAttachments,
+  isTextureAttachment,
+  type RenderPassAttachmentsBackend,
+} from '../render-pass-attachments.js';
+import type { Framebuffer } from './framebuffer.js';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '../renderbuffer.js';
-import { createTexture, createCubeTexture, type GLTexture, registerGLTexture } from './texture.js';
+import { asGLTexture, createTexture, createCubeTexture, type GLTexture, registerGLTexture } from './texture.js';
 import {
   type CubeFaces,
   decodeImage,
   type Texture,
+  type TextureAttachment,
   type TextureFilter,
   type TextureFormat,
   type TextureKind,
@@ -102,8 +109,16 @@ export interface WebGLResources extends GraphicsResources {
   program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => Program;
   shader: (type: ShaderType, source: string) => Shader;
   texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => GLTexture;
+  /** a framebuffer of the backend (render pass attachments draw with one each, the WebGL compute its own) */
+  framebuffer: () => Framebuffer;
+  renderbuffer: (
+    format: RenderbufferFormat,
+    attachment: RenderbufferAttachment,
+    width: number,
+    height: number,
+  ) => GLRenderbuffer;
   cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => GLTexture;
-  /** Textures shared by render items, from `texture` (`.v6/plans/gl/shared-textures.md` §2) */
+  /** Textures shared by render items, from `texture` */
   sharedTextures: SharedTextures;
   /** The index buffer of quad items (spheres, points), shared by all (`quad-indices.ts`) */
   quadIndices: QuadIndices<ElementsBuffer>;
@@ -132,6 +147,24 @@ export function createResources(
   /** whether the context is lost: its objects are gone, also once the canvas' context is restored (on the same `gl`) */
   isLost: () => boolean = () => false,
 ): WebGLResources {
+  /** how render pass attachments attach to the framebuffers of this backend (skipped where attached already) */
+  const attachmentsBackend: RenderPassAttachmentsBackend<Framebuffer> = {
+    createTarget: () => wrap('framebuffer', createFramebuffer(gl, extensions, state)),
+    destroyTarget: (framebuffer) => framebuffer.destroy(),
+    attachColor: (framebuffer, texture, index, layer) =>
+      asGLTexture(texture).attachFramebuffer(framebuffer, index as TextureAttachment, layer),
+    detachColor: (framebuffer, texture, index) =>
+      asGLTexture(texture).detachFramebuffer(framebuffer, index as TextureAttachment),
+    attachDepth: (framebuffer, depth) => {
+      if (isTextureAttachment(depth)) asGLTexture(depth).attachFramebuffer(framebuffer, 'depth');
+      else asGLRenderbuffer(depth).attachFramebuffer(framebuffer);
+    },
+    detachDepth: (framebuffer, depth) => {
+      if (isTextureAttachment(depth)) asGLTexture(depth).detachFramebuffer(framebuffer, 'depth');
+      else asGLRenderbuffer(depth).detachFramebuffer(framebuffer);
+    },
+    setDrawBuffers: (framebuffer, count) => framebuffer.setDrawBuffers(count),
+  };
   const sets: { [k in ResourceName]: Set<Resource> } = {
     attribute: new Set<Resource>(),
     elements: new Set<Resource>(),
@@ -315,9 +348,15 @@ export function createResources(
   // gone with the resources, their textures with the others
   const dataPages: { [F in DataFormat]?: DataTexturePages } = {};
   const createDataPageTexture = (format: DataFormat) =>
-    format === 'rgba32f'
+    format === 'rgba32f' || (format === 'rgb32f-i32' && !isWebGL2(gl))
       ? texture('image-float32', 'rgba', 'float', 'nearest')
-      : texture('image-uint8', format === 'r8' ? 'r' : 'rgba', 'ubyte', 'nearest');
+      : format === 'rgb32f-i32'
+        ? // the words as one `RGBA32I` texel (WebGL2; WebGL1 floats, the groups converted, `convertGroupsToFloat`)
+          texture('image-int32', 'rgba', 'int', 'nearest')
+        : format === 'rgba16i'
+          ? // int16 x 4 as one `RG32I` texel (WebGL2)
+            texture('image-int32', 'rg', 'int', 'nearest')
+          : texture('image-uint8', format === 'r8' ? 'r' : 'rgba', 'ubyte', 'nearest');
 
   return {
     limits,
@@ -361,6 +400,7 @@ export function createResources(
     framebuffer: () => {
       return wrap('framebuffer', createFramebuffer(gl, extensions, state));
     },
+    renderPassAttachments: (color, depth) => createBackendRenderPassAttachments(attachmentsBackend, color, depth),
     program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => {
       return wrapCached(programCache.get({ defineValues, shaderCode, schema }));
     },

@@ -116,7 +116,7 @@ function clearStats(stats: GraphicsStats) {
 function getPassLabel(target: RenderPassTarget | 'compute', label?: string) {
   if (label) return label;
   if (target === 'drawing-buffer' || target === 'compute') return target;
-  return 'framebuffer' in target ? `render-target ${target.id}` : `framebuffer ${target.id}`;
+  return 'kind' in target ? 'attachments' : `render-target ${target.id}`;
 }
 
 type Segment = { elapsed?: number; done: boolean; invalid: boolean };

@@ -17,13 +17,23 @@ import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { ValueCell } from '@molstar/core/util';
 import { Color } from '@molstar/core/util/color/color';
+import { createObjectColor, createTextureColor } from '../../geo/geometry/color-data.js';
+import { createDataArray } from '../renderable/util.js';
 import { NullLocation } from '@molstar/model/model/location';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Cylinders, CylinderStride } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { getDrawnBoundingSphere } from '../renderable/util.js';
+import { SegmentTexels } from '../renderable/schema.js';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
+import { getDataWords } from '../../geo/geometry/center-group.js';
+
+/** `count` items of a position group's array: xyz and the group (an int32 as its bits) */
+function items(array: Float32Array, count: number) {
+  const words = getDataWords(array);
+  return Array.from({ length: count * 4 }, (_, i) => (i % 4 === 3 ? words[i] : array[i]));
+}
 
 function createSpheresRenderObject(centers: Float32Array, groups: Float32Array, count: number) {
   const spheres = Spheres.create(centers, groups, count);
@@ -81,19 +91,81 @@ describe('merged', () => {
 
     const g0 = a.values.uGroupCount.ref.value;
     const g1 = b.values.uGroupCount.ref.value;
-    // per instance its segment's group count and offsets and the segment's index; per segment its sphere, level scales
+    // per instance its segment's group count and offsets and the segment's index; per segment its sphere, level scales,
+    // strides and first item (`SegmentTexels` elements)
     const aSegment = (mv as any).aSegment.ref.value as Float32Array;
     expect(Array.from(aSegment.subarray(0, 8))).toEqual([g0, 0, 0, 0, g1, 1 * g0 - 1 * g1, g0, 1]);
     const segment = (mv as any).tSegment.ref.value.array as Float32Array;
     const sphere = b.values.invariantBoundingSphere.ref.value;
-    expect(Array.from(segment.subarray(8, 12))).toEqual(Array.from(Float32Array.of(...sphere.center, sphere.radius)));
+    const o = SegmentTexels * 4;
+    expect(Array.from(segment.subarray(o, o + 4))).toEqual(
+      Array.from(Float32Array.of(...sphere.center, sphere.radius)),
+    );
+    // no levels: every item (stride 1); the second member's first item 3 (its high and low 16 bits)
+    expect(Array.from(segment.subarray(o + 8, o + 16))).toEqual([1, 1, 1, 1, 0, 3, 0, 0]);
 
     // second member's positions start at texel 3 in the merged position texture
     const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
-    expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
-    expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
+    expect(items(pg.subarray(3 * 4, 3 * 4 + 4), 1)).toEqual([2, 0, 0, 0]);
+    expect(items(pg.subarray(4 * 4, 4 * 4 + 4), 1)).toEqual([0, 2, 0, 1]);
 
     expect((mv as any).dSegmented.ref.value).toBe(true);
+  });
+
+  it("keeps its members' object colors: a texel each, read by the segment; not merged with colors per instance", () => {
+    const [a, b] = createMembers();
+    createObjectColor(Color(0xff0000), a.values as any);
+    createObjectColor(Color(0x00ff00), b.values as any);
+    expect(canMergeRenderObjects([a, b])).toBe(true);
+    const merged = createMergedRenderObject([a, b]);
+    const mv = merged.values as any;
+    expect(mv.colorType.ref.value).toBe('object');
+    expect(mv.dColorType.ref.value).toBe('texture');
+    // the segment's texel (`ColorTypeIndex`)
+    expect(mv.uColorIndexType.ref.value).toBe(5);
+    expect(mv.tColor.ref.value.count).toBe(2);
+    expect(Array.from(SegmentedArray.flatten(mv.tColor.ref.value.array).subarray(0, 8))).toEqual([
+      255, 0, 0, 255, 0, 255, 0, 255,
+    ]);
+    // a member's color changed: its texel
+    createObjectColor(Color(0x0000ff), b.values as any);
+    merged.merged.sync();
+    expect(Array.from(SegmentedArray.flatten(mv.tColor.ref.value.array).subarray(4, 8))).toEqual([0, 0, 255, 255]);
+    // colors per instance: the same define, another granularity
+    const [c] = createMembers();
+    createTextureColor(createDataArray(1, 4, Uint8Array), 'instance', c.values as any);
+    expect(canMergeRenderObjects([a, c])).toBe(false);
+  });
+
+  it("packs the members' second color tables by site type, a member's first entry in its segment data", () => {
+    const [a, b] = createMembers();
+    const table = (count: number, first: number) => {
+      const array = new Uint8Array(count * 4).map((_, i) => first + i);
+      return { array, count };
+    };
+    for (const [m, t] of [
+      [a, table(2, 10)],
+      [b, table(3, 50)],
+    ] as const) {
+      const v = m.values as any;
+      ValueCell.update(v.dSiteColor, 'siteType');
+      ValueCell.update(v.tSiteColor, t);
+    }
+    expect(canMergeRenderObjects([a, b])).toBe(true);
+    const mv = createMergedRenderObject([a, b]).values as any;
+    const packed = mv.tSiteColor.ref.value;
+    expect(packed.count).toBe(5);
+    expect(Array.from(SegmentedArray.flatten(packed.array).subarray(0, 20))).toEqual([
+      ...Array.from({ length: 8 }, (_, i) => 10 + i),
+      ...Array.from({ length: 12 }, (_, i) => 50 + i),
+    ]);
+    // the size table's first entry, then the second color's (none, and the first member's 2)
+    const segment = mv.tSegment.ref.value.array as Float32Array;
+    expect(segment[(0 * SegmentTexels + 1) * 4 + 11]).toBe(0);
+    expect(segment[(1 * SegmentTexels + 1) * 4 + 11]).toBe(2);
+    // a member without the second color does not merge with them
+    const [c] = createMembers();
+    expect(canMergeRenderObjects([a, c])).toBe(false);
   });
 
   it('sync', () => {
@@ -190,8 +262,8 @@ describe('merged', () => {
     expect(merged.merged.segments.drawBases).toEqual([0, 3 * 6]);
 
     const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
-    expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
-    expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
+    expect(items(pg.subarray(3 * 4, 3 * 4 + 4), 1)).toEqual([2, 0, 0, 0]);
+    expect(items(pg.subarray(4 * 4, 4 * 4 + 4), 1)).toEqual([0, 2, 0, 1]);
   });
 
   it('cylinders colored per vertex', () => {

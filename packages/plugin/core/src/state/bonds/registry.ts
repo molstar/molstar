@@ -2,19 +2,20 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Model } from '@molstar/model/model/structure';
 import { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
 
-/** A stored choice of bond provider: what the state tree holds (bond-providers plan §4). */
+/** A stored choice of bond provider: what the state tree holds. */
 export type BondProviderChoice = BondProvider.Choice;
 
 /**
  * The bond providers a plugin offers, keyed by name and counted like the other registries (plugin-composition §4.2):
  * the same object again counts up, a different object under a taken name throws, removal counts down. Providers may
- * be added and removed at any time (bond-providers plan §3); existing structures keep the instances they hold.
+ * be added and removed at any time; existing structures keep the instances they hold.
  *
  * `'default'` (`BondProvider.Default`, the built-in bonds) is always there and is not an entry: it cannot be added or
  * removed, it is the first option, and every name that does not resolve falls back to it.
@@ -97,7 +98,7 @@ export class BondProviderRegistry implements BondProvider.Context {
   /**
    * The param of a choice of provider: a `PD.Mapped` over the providers applicable to `model`, `'default'` first, each
    * with its own params for the model. Normalization against it maps an unregistered or non-applicable name to
-   * `'default'` (bond-providers plan §4). Never throws, with or without a model.
+   * `'default'`. Never throws, with or without a model.
    */
   getParam(model?: Model, info?: PD.Info) {
     return this.choiceParam(model, undefined, { label: 'Bonds', description: 'Where the bonds come from', ...info });

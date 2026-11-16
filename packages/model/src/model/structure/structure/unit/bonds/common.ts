@@ -15,7 +15,7 @@ export interface BondComputationProps {
   noCompute: boolean;
   /**
    * Only the bonds the format states (index pairs, struct_conn, the component dictionary): no bonds from distance
-   * thresholds, and no hydrogens bonded by distance where the dictionary lacks them (bond-providers plan §2.4).
+   * thresholds, and no hydrogens bonded by distance where the dictionary lacks them.
    */
   noDistance: boolean;
   maxRadius: number;

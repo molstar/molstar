@@ -167,7 +167,7 @@ Steps:
 2. **Direct draws and lists** (done): the quad items (`ShaderCode.quads`: spheres, points) without elements of their
    own bind the shared buffer and draw indexed, direct, level lists and multi-draws (WebGL: the elements paths with the
    lists' offsets, `first * 4` for quads; WebGPU: `setIndexBuffer`, `drawIndexed`), unindexed past the limit. Points
-   came along (they share the shaders' quad). Draw lists: `GraphicsContext.drawResourcesVersion` (WebGPU: the buffer's
+   came along (they share the shaders' quad). Draw lists: `DrawLists.resourcesVersion` (WebGPU: the buffer's
    id) in the snapshot inputs, and a recording binding a replaced buffer does not replay after the walk either
    (`drawChunk`); the growth within a frame is safe, the old buffer released after the submission (`draw-lists`: a
    replaced buffer records again, fails without the checks). Images identical (`render/7qpd-spacefill`,

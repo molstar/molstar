@@ -218,3 +218,38 @@ export function radixSort<T extends Int32Array | Uint32Array>(data: T, maxValue?
   if (a !== data) data.set(a);
   return data;
 }
+
+/**
+ * The indices `0..n-1` of `keys` (non-negative integers) ordered by their key, ascending, equal keys by index (stable):
+ * an LSD radix sort (8-bit digits) of the indices, the keys read in place. `maxValue` is an inclusive upper bound of the
+ * keys and determines the number of passes; it is computed from the keys when omitted. Two index arrays of `n`.
+ */
+export function radixSortIndices(keys: Int32Array | Uint32Array, maxValue?: number): Int32Array {
+  const n = keys.length;
+  let max = maxValue;
+  if (max === undefined) {
+    max = 0;
+    for (let i = 0; i < n; i++) {
+      if (keys[i] > max) max = keys[i];
+    }
+  }
+
+  let a = new Int32Array(n);
+  for (let i = 0; i < n; i++) a[i] = i;
+  if (n < 2) return a;
+  let b = new Int32Array(n);
+  const counts = _radixCounts;
+  for (let shift = 0; shift < 32 && max >>> shift > 0; shift += 8) {
+    counts.fill(0);
+    for (let i = 0; i < n; i++) counts[((keys[a[i]] >>> shift) & 0xff) + 1]++;
+    for (let i = 0; i < 256; i++) counts[i + 1] += counts[i];
+    for (let i = 0; i < n; i++) {
+      const k = a[i];
+      b[counts[(keys[k] >>> shift) & 0xff]++] = k;
+    }
+    const t = a;
+    a = b;
+    b = t;
+  }
+  return a;
+}

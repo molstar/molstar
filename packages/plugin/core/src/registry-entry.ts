@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
@@ -168,7 +169,7 @@ function entryRegistrations(t: Targets, entry: PluginRegistryEntry, out: Registr
   }
 
   for (const p of entry.formats ?? []) out.push(registration(t.formats, p, p, [p.name]));
-  // before the presets, which build structures with them (bond-providers plan §3)
+  // before the presets, which build structures with them
   for (const p of entry.structure?.bondProviders ?? []) out.push(registration(t.bondProviders, p, p, [p.name]));
 
   for (const p of entry.structure?.presets?.hierarchy ?? []) {

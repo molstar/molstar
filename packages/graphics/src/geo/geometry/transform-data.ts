@@ -6,14 +6,19 @@
 
 import { ValueCell } from '@molstar/core/util';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
-import { fillSerial } from '@molstar/core/util/array';
-import type { Sphere3D } from '@molstar/core/math/geometry';
+import { getSharedSerial, isSharedSerial } from '@molstar/core/util/array';
+
+import { Sphere3D } from '@molstar/core/math/geometry';
 import {
   calcInstanceGrid,
   createEmptyInstanceGrid,
+  createPendingInstanceGrid,
   type InstanceGrid,
   moveInstanceGrid,
 } from '@molstar/core/math/geometry/instance-grid';
+import { InstanceTransforms, type InstancePoses } from '@molstar/core/math/geometry/instance-transforms';
+import { getObjectTransforms, type InstancePosesValue } from '../../gl/transform-parts.js';
+import { setTransformDataCenters } from '../../gl/renderable/util.js';
 
 export type TransformData = {
   /**
@@ -39,15 +44,115 @@ export type TransformData = {
   extraTransform: ValueCell<Float32Array>;
   /** whether extraTransform is used, see aTransform */
   hasExtraTransform: ValueCell<boolean>;
+  /**
+   * the instances as poses (a particle target's) in place of `transform` (empty then): in their
+   * order, the moves composed into their `matrix` (`moveTransformData`); none with matrices. An extra transform or a
+   * mirroring `matrix` turns them into matrices (`updateTransformData`)
+   */
+  poses: ValueCell<InstancePoses | undefined>;
+  /**
+   * `poses` as drawn in place of `aTransform` (empty then): the grid's order (`aInstance`), `matrix` applied
+   */
+  instancePoses: ValueCell<InstancePosesValue>;
 
   uInstanceCount: ValueCell<number>;
   instanceCount: ValueCell<number>;
-  aInstance: ValueCell<Float32Array>;
+  /**
+   * the instance of each row: in the instances' own order a view of the shared serial array (`getSharedSerial`, read
+   * only: replaced, never written), in a grid's its `cellInstance`
+   */
+  aInstance: ValueCell<Uint32Array>;
 
   hasReflection: ValueCell<boolean>;
 
   instanceGrid: ValueCell<InstanceGrid>;
+  /**
+   * the cell and batch sizes the instances' grid is built with (`calcInstanceGrid`): a cell size above 1 culls the
+   * instances by cells and decimates their levels of detail by cell (`hasInstanceCells`)
+   */
+  instanceCellSize: ValueCell<number>;
+  instanceBatchSize: ValueCell<number>;
+  /** the instances' bounding sphere the box sphere at any count (`TransformValues.instanceSphereFast`) */
+  instanceSphereFast?: ValueCell<boolean>;
 };
+
+/**
+ * The instances' placements (`aTransform`, in draw order) by their encoding, what the CPU readers take (the bounds,
+ * the position iterators, the culling of marked instances): the poses as drawn (`instancePoses`), else matrices
+ */
+export function getInstanceTransforms(
+  t: Pick<TransformData, 'aTransform' | 'instanceCount'> & { readonly instancePoses?: ValueCell<InstancePosesValue> },
+): InstanceTransforms {
+  return getObjectTransforms(t);
+}
+
+const instanceRows = new WeakMap<object, { version: number; rows: Uint32Array | undefined }>();
+
+/**
+ * Each instance's row of the transforms as stored (the inverse of `aInstance`: the instance grid stores the rows in its
+ * order, row `k` instance `aInstance[k]`), for what reads a transform by instance: the position iterators, whose
+ * instances' values the shaders read by `aInstance` (per vertex and instance colors and sizes); undefined where the
+ * rows are in the instances' order. Kept per `aInstance`'s version
+ */
+export function getInstanceRows(t: Pick<TransformData, 'aInstance' | 'instanceCount'>): Uint32Array | undefined {
+  const cell = t.aInstance;
+  const version = cell.ref.version;
+  const kept = instanceRows.get(cell);
+  if (kept && kept.version === version) return kept.rows;
+  const instances = cell.ref.value;
+  const n = t.instanceCount.ref.value;
+  let identity = true;
+  for (let k = 0; k < n; ++k) {
+    if (instances[k] !== k) {
+      identity = false;
+      break;
+    }
+  }
+  let rows: Uint32Array | undefined;
+  if (!identity) {
+    rows = new Uint32Array(n);
+    for (let k = 0; k < n; ++k) rows[instances[k]] = k;
+  }
+  instanceRows.set(cell, { version, rows });
+  return rows;
+}
+
+/**
+ * The instances' matrices as drawn (`aTransform`'s, or built from the poses: `InstanceTransforms.getMatrix`), for the
+ * readers that take matrices and run rarely (export, the debug helpers, color smoothing): a new array with poses
+ */
+export function getInstanceMatrices(
+  t: Pick<TransformData, 'aTransform' | 'instanceCount'> & { readonly instancePoses?: ValueCell<InstancePosesValue> },
+): Float32Array {
+  const poses = t.instancePoses?.ref.value;
+  if (poses?.kind !== 'poses') return t.aTransform.ref.value;
+  return writeMatrices(poses, new Float32Array(poses.count * 16));
+}
+
+/**
+ * `getInstanceMatrices` in the instances' order: matrix `i` instance `i`'s (`getInstanceRows`), as the values read by
+ * instance are (`tColor`, `tSize` by `aInstance`); for the readers that pair them (the geo exports). The rows as
+ * stored where they are in that order already, else a new array
+ */
+export function getInstanceMatricesById(
+  t: Pick<TransformData, 'aTransform' | 'aInstance' | 'instanceCount'> & {
+    readonly instancePoses?: ValueCell<InstancePosesValue>;
+  },
+): Float32Array {
+  const matrices = getInstanceMatrices(t);
+  const rows = getInstanceRows(t);
+  if (!rows) return matrices;
+  const n = t.instanceCount.ref.value;
+  const out = new Float32Array(n * 16);
+  for (let i = 0; i < n; ++i) out.set(matrices.subarray(rows[i] * 16, rows[i] * 16 + 16), i * 16);
+  return out;
+}
+
+function writeMatrices(t: InstanceTransforms, out: Float32Array) {
+  const m = Mat4();
+  for (let i = 0; i < t.count; ++i) Mat4.toArray(InstanceTransforms.getMatrix(t, i, m), out, i * 16);
+  return out;
+}
 
 /** whether a transform's upper 3x3 has a negative determinant (`Mat3.determinant`, inlined: millions of instances) */
 function checkReflection(t: Float32Array, instanceCount: number) {
@@ -109,12 +214,10 @@ export function createTransform(
     ValueCell.update(transformData.aTransform, aTransform);
 
     ValueCell.updateIfChanged(transformData.hasExtraTransform, false);
+    ValueCell.updateIfChanged(transformData.poses, undefined);
+    ValueCell.updateIfChanged(transformData.instancePoses, undefined);
 
-    const aInstance =
-      transformData.aInstance.ref.value.length >= instanceCount
-        ? transformData.aInstance.ref.value
-        : new Float32Array(instanceCount);
-    ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount));
+    ValueCell.update(transformData.aInstance, getSharedSerial(instanceCount));
 
     ValueCell.update(transformData.hasReflection, hasReflection);
   } else {
@@ -128,16 +231,154 @@ export function createTransform(
       transform: ValueCell.create(adopt ? transformArray : new Float32Array(transformArray)),
       extraTransform: ValueCell.create(new Float32Array(0)),
       hasExtraTransform: ValueCell.create(false),
+      poses: ValueCell.create(undefined),
+      instancePoses: ValueCell.create(undefined),
       uInstanceCount: ValueCell.create(instanceCount),
       instanceCount: ValueCell.create(instanceCount),
-      aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+      aInstance: ValueCell.create(getSharedSerial(instanceCount)),
       hasReflection: ValueCell.create(hasReflection),
       instanceGrid: ValueCell.create(createEmptyInstanceGrid()),
+      instanceCellSize: ValueCell.create(cellSize),
+      instanceBatchSize: ValueCell.create(batchSize),
     };
   }
 
   updateTransformData(transformData, invariantBoundingSphere, cellSize, batchSize, oneCopy);
   return transformData;
+}
+
+/**
+ * The transform data of instances placed by `poses` (in their order, without `order`; a particle target's): no
+ * matrix made, the grid built from the poses (`calcInstanceGrid`'s `poses`). `transformData` updated in place where
+ * given (its `matrix` kept, its extra transform cleared). `pendingGrid`: the grid not built, pending
+ * (`InstanceGrid.pending`, through rebuilds and moves), the instances in their own order: for what draws them by index
+ * and builds the grid where a cull needs its cells (a merged object culled on the GPU)
+ */
+export function createPosesTransform(
+  poses: InstancePoses,
+  invariantBoundingSphere: Sphere3D | undefined,
+  cellSize: number,
+  batchSize: number,
+  transformData?: TransformData,
+  pendingGrid = false,
+): TransformData {
+  const instanceCount = poses.count;
+  if (transformData) {
+    ValueCell.update(transformData.matrix, transformData.matrix.ref.value);
+    ValueCell.update(transformData.transform, EmptyTransform);
+    ValueCell.updateIfChanged(transformData.uInstanceCount, instanceCount);
+    ValueCell.updateIfChanged(transformData.instanceCount, instanceCount);
+    ValueCell.updateIfChanged(transformData.hasExtraTransform, false);
+    ValueCell.update(transformData.poses, poses);
+    ValueCell.update(transformData.hasReflection, false);
+  } else {
+    transformData = {
+      aTransform: ValueCell.create(EmptyTransform),
+      matrix: ValueCell.create(Mat4.identity()),
+      uObjectTransform: ValueCell.create(Mat4.identity()),
+      transform: ValueCell.create(EmptyTransform),
+      extraTransform: ValueCell.create(new Float32Array(0)),
+      hasExtraTransform: ValueCell.create(false),
+      poses: ValueCell.create(poses),
+      instancePoses: ValueCell.create(undefined),
+      uInstanceCount: ValueCell.create(instanceCount),
+      instanceCount: ValueCell.create(instanceCount),
+      aInstance: ValueCell.create(getSharedSerial(instanceCount)),
+      hasReflection: ValueCell.create(false),
+      instanceGrid: ValueCell.create(createEmptyInstanceGrid()),
+      instanceCellSize: ValueCell.create(cellSize),
+      instanceBatchSize: ValueCell.create(batchSize),
+    };
+  }
+  // pending or not as asked: `updatePosesData` keeps a pending grid pending
+  const grid = transformData.instanceGrid.ref.value;
+  if (pendingGrid && invariantBoundingSphere && !grid.pending) {
+    ValueCell.update(
+      transformData.instanceGrid,
+      createPendingInstanceGrid(cellSize, batchSize, invariantBoundingSphere),
+    );
+  } else if (!pendingGrid && grid.pending) {
+    ValueCell.update(transformData.instanceGrid, createEmptyInstanceGrid());
+  }
+  updateTransformData(transformData, invariantBoundingSphere, cellSize, batchSize);
+  return transformData;
+}
+
+/** `transform` and `aTransform` of instances placed by poses */
+const EmptyTransform = new Float32Array(0);
+
+/**
+ * The poses of `transformData` turned into matrices (`transform`, in the instances' order), where they cannot stay
+ * poses: an extra transform (a matrix an instance), a mirroring `matrix` (poses do not reflect)
+ */
+function posesToMatrices(transformData: TransformData, poses: InstancePoses) {
+  const transform = writeMatrices(poses, new Float32Array(poses.count * 16));
+  ValueCell.update(transformData.poses, undefined);
+  ValueCell.update(transformData.instancePoses, undefined);
+  ValueCell.update(transformData.transform, transform);
+  ValueCell.update(transformData.aTransform, new Float32Array(poses.count * 16));
+  ValueCell.update(transformData.hasReflection, checkReflection(transform, poses.count));
+}
+
+/** `transformData`'s poses (`poses`) as drawn: the grid built from them, `matrix` composed into theirs */
+function updatePosesData(
+  transformData: TransformData,
+  poses: InstancePoses,
+  invariantBoundingSphere: Sphere3D | undefined,
+  cellSize: number,
+  batchSize: number,
+) {
+  const instanceCount = poses.count;
+  const matrix = transformData.matrix.ref.value;
+  const placed: InstancePoses = Mat4.isIdentity(matrix)
+    ? poses
+    : { ...poses, matrix: poses.matrix ? Mat4.mul(Mat4(), matrix, poses.matrix) : Mat4.copy(Mat4(), matrix) };
+  const grid = transformData.instanceGrid.ref.value;
+  if (hasInstanceGrid(invariantBoundingSphere, instanceCount) && grid.pending) {
+    // still pending: no grid built, the instances in their own order; the grid and `aInstance` kept where they hold
+    // (the poses changed alone: `Particle.withPoses`), so what is laid out by them is not laid out again
+    const same =
+      grid.cellSize === cellSize &&
+      grid.batchSize === batchSize &&
+      Sphere3D.exactEquals(grid.pending.invariantBoundingSphere, invariantBoundingSphere!) &&
+      transformData.aInstance.ref.value.length === instanceCount &&
+      // in the instances' own order: not a built grid's (a built grid made pending keeps its cells' order otherwise)
+      isSharedSerial(transformData.aInstance.ref.value) &&
+      !grid.placement;
+    if (!same) {
+      ValueCell.update(
+        transformData.instanceGrid,
+        createPendingInstanceGrid(cellSize, batchSize, invariantBoundingSphere!),
+      );
+      ValueCell.update(transformData.aInstance, getSharedSerial(instanceCount));
+    }
+    ValueCell.update(transformData.instancePoses, placed);
+  } else if (hasInstanceGrid(invariantBoundingSphere, instanceCount)) {
+    const aInstance = getSharedSerial(instanceCount);
+    const instanceGrid = calcInstanceGrid(
+      {
+        instanceCount,
+        instance: aInstance,
+        transform: EmptyTransform,
+        poses: placed,
+        invariantBoundingSphere: invariantBoundingSphere!,
+      },
+      cellSize,
+      batchSize,
+    );
+    ValueCell.update(transformData.instanceGrid, instanceGrid);
+    ValueCell.update(transformData.aInstance, instanceGrid.cellInstance);
+    ValueCell.update(transformData.instancePoses, { ...placed, order: instanceGrid.cellInstance });
+  } else {
+    ValueCell.update(transformData.aInstance, getSharedSerial(instanceCount));
+    ValueCell.update(transformData.instancePoses, placed);
+  }
+  // a new value each time: what packs rows reads `aTransform`'s version
+  ValueCell.update(transformData.aTransform, new Float32Array(0));
+  // the grid's pass over the centers, the instances' bounding sphere's (`calculateTransformDataBoundingSphere`)
+  const centers = transformData.instanceGrid.ref.value.centers;
+  if (centers && hasInstanceGrid(invariantBoundingSphere, instanceCount))
+    setTransformDataCenters(transformData, centers);
 }
 
 /** whether `transformData.transform` is kept as the grid's one copy (`createTransform`'s `oneCopy`): in its order */
@@ -161,7 +402,7 @@ function restoreInstanceOrder(transformData: TransformData, instanceCount: numbe
   }
   ValueCell.update(transformData.transform, transform);
   ValueCell.update(transformData.aTransform, new Float32Array(instanceCount * 16));
-  ValueCell.update(transformData.aInstance, fillSerial(new Float32Array(instanceCount)));
+  ValueCell.update(transformData.aInstance, getSharedSerial(instanceCount));
 }
 
 /**
@@ -173,6 +414,22 @@ function restoreInstanceOrder(transformData: TransformData, instanceCount: numbe
  */
 export function moveTransformData(transformData: TransformData, move: Mat4): boolean {
   if (transformData.hasExtraTransform.ref.value || !Mat4.isIdentity(transformData.matrix.ref.value)) return false;
+  const poses = transformData.poses.ref.value;
+  if (poses) {
+    // no instance touched: the move composed into the poses' matrix, the grid moved
+    if (Mat4.determinant(move) < 0) return false;
+    const matrix = poses.matrix ? Mat4.mul(Mat4(), move, poses.matrix) : Mat4.copy(Mat4(), move);
+    const moved = { ...poses, matrix };
+    ValueCell.update(transformData.poses, moved);
+    const grid = transformData.instanceGrid.ref.value;
+    const instancePoses = transformData.instancePoses.ref.value as InstancePoses;
+    // a pending grid moved too: its placement, what the GPU culler's moves read
+    const moves = grid.cellCount > 0 || !!grid.pending;
+    ValueCell.update(transformData.instanceGrid, moves ? moveInstanceGrid(grid, move) : grid);
+    ValueCell.update(transformData.instancePoses, { ...instancePoses, matrix });
+    ValueCell.update(transformData.aTransform, new Float32Array(0));
+    return true;
+  }
   const instanceCount = transformData.instanceCount.ref.value;
   const transform = transformData.transform.ref.value;
   const grid = transformData.instanceGrid.ref.value;
@@ -239,13 +496,24 @@ export function updateTransformData(
   batchSize: number,
   oneCopy?: boolean,
 ) {
+  ValueCell.updateIfChanged(transformData.instanceCellSize, cellSize);
+  ValueCell.updateIfChanged(transformData.instanceBatchSize, batchSize);
+  const poses = transformData.poses.ref.value;
+  if (poses) {
+    if (!transformData.hasExtraTransform.ref.value && Mat4.determinant(transformData.matrix.ref.value) >= 0) {
+      updatePosesData(transformData, poses, invariantBoundingSphere, cellSize, batchSize);
+      return;
+    }
+    posesToMatrices(transformData, poses);
+  }
   const wasOneCopy = isOneCopy(transformData);
   // the rebuild reads the instances' order: the grid's one copy restored to it first (a copy for the rebuild)
   if (wasOneCopy) restoreInstanceOrder(transformData, transformData.instanceCount.ref.value);
   const keepOneCopy = oneCopy ?? wasOneCopy;
   const aTransform = transformData.aTransform.ref.value;
-  const aInstance = transformData.aInstance.ref.value;
   const instanceCount = transformData.instanceCount.ref.value;
+  // the instances in their own order (the grid's order its `cellInstance`)
+  const aInstance = getSharedSerial(instanceCount);
   const matrix = transformData.matrix.ref.value;
   const transform = transformData.transform.ref.value;
   const extraTransform = transformData.extraTransform.ref.value;
@@ -276,10 +544,6 @@ export function updateTransformData(
     }
   }
 
-  for (let i = 0; i < instanceCount; i++) {
-    aInstance[i] = i;
-  }
-
   if (withGrid) {
     const instanceGrid = calcInstanceGrid(
       {
@@ -297,6 +561,8 @@ export function updateTransformData(
     ValueCell.update(transformData.aTransform, instanceGrid.cellTransform);
     // one copy: the grid's, its rows' instances `aInstance` (the instances' order let go)
     if (keepOneCopy && isTransform) ValueCell.update(transformData.transform, instanceGrid.cellTransform);
+    // the grid's pass over the centers, the instances' bounding sphere's (`calculateTransformDataBoundingSphere`)
+    if (instanceGrid.centers) setTransformDataCenters(transformData, instanceGrid.centers);
   } else {
     ValueCell.update(transformData.aInstance, aInstance);
     ValueCell.update(transformData.aTransform, aTransform);

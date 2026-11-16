@@ -187,11 +187,16 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
         const firstPart = await read();
         expect(firstPart).not.toEqual(reference);
         expect(new Set(firstPart).size).toBeLessThanOrEqual(2);
-        // nothing hidden by the frame's own: all drawn by the second part, the image the same
+        // nothing hidden by the frame's own: all drawn by the second part, the image the same; the second's lists
+        // (levels: a draw block each) watched
+        const renderItem = (scene.renderables[0] as unknown as { renderItem: { render: (...a: unknown[]) => void } })
+          .renderItem;
+        const draws = vi.spyOn(renderItem, 'render');
         renderer.prepareCullSecond(scene, clear.get());
         graphics.beginRenderPass(target);
         renderer.renderOpaqueSecond(scene, camera);
         expect(await read()).toEqual(reference);
+        const secondLists = draws.mock.calls.map((c) => c[2]).filter(Array.isArray);
 
         // the left hidden by the previous frame's: the first part the right, the second the left after it
         await whole();
@@ -202,8 +207,15 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
         expect(rightOnly).not.toEqual(reference);
         renderer.prepareCullSecond(scene, clear.get());
         graphics.beginRenderPass(target);
+        draws.mockClear();
         renderer.renderOpaqueSecond(scene, camera);
         expect(await read()).toEqual(reference);
+        // the next frame's second: the same level objects (no draw block made again each frame)
+        const nextLists = draws.mock.calls.map((c) => c[2]).filter(Array.isArray);
+        expect(secondLists.length).toBeGreaterThan(0);
+        expect(nextLists.flat()).toEqual(secondLists.flat());
+        for (let i = 0; i < secondLists.flat().length; ++i) expect(nextLists.flat()[i]).toBe(secondLists.flat()[i]);
+        draws.mockRestore();
         if (props.sphereRaster !== 'off') {
           // each phase with instances of chunks and of single spheres in the raster's regions, the second's after the
           // first's: else the above does not test drawing the new ones only
@@ -391,7 +403,7 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
   });
 
   // the levels are of the main camera: built from the eyes' depth they could hide what the next mono frame sees
-  it('builds no levels from the depth of a stereo frame', async () => {
+  it('builds one pyramid of both eyes from the depth of a stereo frame', async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -407,17 +419,37 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
         canvas.tick(now(), { isSynchronous: true });
         await canvas.graphics.resources.pending.whenReady();
       };
+      // the levels built without objects culled on the GPU (an empty scene)
+      canvas.setProps({ hiZ: { enabled: true } } as never);
       await frame();
       const render = vi.spyOn(HiZPass.prototype, 'render');
       const clear = vi.spyOn(HiZPass.prototype, 'clear');
       await frame();
       expect(render).toHaveBeenCalled();
+      const pass = render.mock.contexts[0];
+      expect(pass.gpuPyramid).toBeDefined();
+      expect(pass.gpuPyramid?.second).toBeUndefined();
+      // the CPU test's levels as read back of a frame before (an empty scene reads none back)
+      const cpu = pass as unknown as { ready: boolean };
+      const cpuReady = () => cpu.ready;
+      cpu.ready = true;
+
       canvas.setProps({ camera: { stereo: { name: 'on', params: {} } } } as never);
       render.mockClear();
       clear.mockClear();
-      await frame();
-      expect(render).not.toHaveBeenCalled();
-      expect(clear).toHaveBeenCalled();
+      // the eyes side by side: the left's levels, then the right's (`OcclusionPyramid.second`), once the stereo frame's
+      // draws are ready (no levels of a frame with draws skipped)
+      for (let i = 0; i < 10 && !pass.gpuPyramid?.second; ++i) await frame();
+      expect(render).toHaveBeenCalled();
+      expect(clear).not.toHaveBeenCalled();
+      const second = pass.gpuPyramid?.second;
+      expect(second).toBeDefined();
+      expect(second!.split).toBeCloseTo(0.5, 2);
+      // the CPU test's levels the main camera's of before: let go (stereo off, they would test the view of then)
+      expect(cpuReady()).toBe(false);
+
+      render.mockRestore();
+      clear.mockRestore();
     } finally {
       plugin.dispose();
     }

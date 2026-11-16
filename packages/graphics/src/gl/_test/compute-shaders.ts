@@ -78,6 +78,7 @@ export const ComputeShaders: [name: string, shaderCode: ShaderCode, schema: Rend
   ],
   ['histogram-pyramid-sum', histogramSum.HistopyramidSumShaderCode, histogramSum.HistopyramidSumSchema],
   ['hi-z', hiZ.HiZShaderCode, hiZ.HiZSchema],
+  ['hi-z-occluder', hiZ.HiZOccluderShaderCode, hiZ.HiZOccluderSchema],
   ['active-voxels', activeVoxels.ActiveVoxelsShaderCode, activeVoxels.ActiveVoxelsSchema],
   ['isosurface', isosurface.IsosurfaceShaderCode, isosurface.IsosurfaceSchema],
   ['copy', computeUtil.CopyShaderCode, computeUtil.CopySchema],

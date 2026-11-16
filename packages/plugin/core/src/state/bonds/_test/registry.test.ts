@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
@@ -32,7 +33,7 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { SortedArray } from '@molstar/core/data/int';
 
-// The plugin's bond providers (bond-providers plan §3, §4): the registry's rules, the param a transform offers and its
+// The plugin's bond providers: the registry's rules, the param a transform offers and its
 // fallback to the built-in bonds, and the instance a structure built through the state tree gets.
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');

@@ -41,7 +41,8 @@ void main(void){
     vec4 textPosition, textFlags, textA, textB; // position and group, depth and tether, then corners or rectangles
     read_tText2(item * 4, textPosition, textFlags);
     read_tText2(item * 4 + 2, textA, textB);
-    float group = textPosition.w;
+    // an integer (\`rgb32f-i32\`; WebGL1 a float)
+    GroupId group = readGroup_tText(item * 4);
     vec2 mapping;
     vec2 texCoord;
     if (textFlags.y > 0.5) {
@@ -69,13 +70,11 @@ void main(void){
     float offsetY = uOffsetY * scale;
     float offsetZ = (uOffsetZ + textFlags.x * 0.95) * scale;
 
-    vec4 position4 = vec4(textPosition.xyz, 1.0);
-    mat4 transform = uObjectTransform * aTransform;
-    vec4 mvPosition = uHasEyeCamera
-         ? uModelViewEye * transform * position4
-         : uModelView * transform * position4;
+    // the position transformed, not the matrices multiplied first
+    vec4 world = uObjectTransform * (aTransform * vec4(textPosition.xyz, 1.0));
+    vec4 mvPosition = uHasEyeCamera ? uModelViewEye * world : uModelView * world;
 
-    vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
+    vModelPosition = (uModel * world).xyz; // for clipping in frag shader
 
     // TODO
     // #ifdef FIXED_SIZE

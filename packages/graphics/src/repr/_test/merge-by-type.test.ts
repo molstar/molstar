@@ -120,7 +120,7 @@ describe('mergeRenderObjectsByType', () => {
 
     // so are new levels of detail (compared by value, not by the cell's version)
     for (const { renderObject } of entries) {
-      ValueCell.update(renderObject.values.lodLevels, [[0, 50, 0, 1, 1, 1, 1, 0, 50]] as never);
+      ValueCell.update(renderObject.values.lodLevels, [[0, 50, 1, 1, 1, 1, 0, 50]] as never);
     }
     expect(
       checks(() => {

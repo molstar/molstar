@@ -36,14 +36,14 @@ const occlusions = variants<{ occludedAlpha: number }>({
 });
 
 /** A gray box in the scene, a torus (mesh) and spheres (impostors) through it in the overlay */
-function overlayScene(props: { occludedAlpha: number }, spheres: boolean) {
+function overlayScene(occlusion: { occludedAlpha: number }, spheres: boolean) {
   return async (): Promise<Representation.Any[]> => {
     const box = await shapeRepr('box', meshBox(5), { colors: [Color(0x999999)] });
-    const torus = await shapeRepr('torus', meshTorus(3), { colors: [Color(0x377eb8)], props });
-    torus.setState({ layer: 'overlay' });
+    const torus = await shapeRepr('torus', meshTorus(3), { colors: [Color(0x377eb8)] });
+    torus.setState({ layer: 'overlay', ...occlusion });
     if (!spheres) return [box, torus];
-    const balls = await shapeRepr('spheres', sphereGrid(2, 4), { colors: [Color(0xe41a1c)], props });
-    balls.setState({ layer: 'overlay' });
+    const balls = await shapeRepr('spheres', sphereGrid(2, 4), { colors: [Color(0xe41a1c)] });
+    balls.setState({ layer: 'overlay', ...occlusion });
     return [box, torus, balls];
   };
 }
@@ -73,11 +73,11 @@ function clipWallsScene(object: Clip.Props['objects'][number], overlay: boolean)
     });
     const walls = await shapeRepr('walls', clipWallsMesh(object, 6), {
       colors: [Color(0x377eb8)],
-      props: { alpha: 0.4, ignoreLight: true, ...(overlay ? { occludedAlpha: 0.25 } : { depthOffset: 0.02 }) },
+      props: { alpha: 0.4, ignoreLight: true, ...(overlay ? {} : { depthOffset: 0.02 }) },
     });
     walls.setState({
       transform: clipObjectFrame(object, { center: Vec3(), radius: 6 } as Parameters<typeof clipObjectFrame>[1]),
-      ...(overlay ? { layer: 'overlay' as const } : {}),
+      ...(overlay ? { layer: 'overlay' as const, occludedAlpha: 0.25 } : {}),
     });
     return [box, walls];
   };
@@ -88,9 +88,9 @@ async function screenSizeScene(): Promise<Representation.Any[]> {
   const box = await shapeRepr('box', meshBox(5), { colors: [Color(0x999999)] });
   const torus = await shapeRepr('torus', meshTorus(1), {
     colors: [Color(0x377eb8)],
-    props: { occludedAlpha: 0.25, screenSize: 20 },
+    props: { screenSize: 20 },
   });
-  torus.setState({ layer: 'overlay' });
+  torus.setState({ layer: 'overlay', occludedAlpha: 0.25 });
   return [box, torus];
 }
 
@@ -103,14 +103,13 @@ async function facingScene(): Promise<Representation.Any[]> {
     colors: [Color(0x377eb8)],
     size: 120,
     props: {
-      occludedAlpha: 0.25,
       sizeFactor: 1,
       pointSizeAttenuation: false,
       pointStyle: 'ring' as const,
       pointRingWidth: 0.1,
     },
   });
-  circle.setState({ layer: 'overlay' });
+  circle.setState({ layer: 'overlay', occludedAlpha: 0.25 });
   return [box, circle];
 }
 
@@ -424,6 +423,23 @@ export const OverlayCases: VisualTestCase[] = [
     }),
   ),
   {
+    id: 'screen/image-scaled',
+    description:
+      'An image twice the canvas: the axes and the scale line twice as large, as the canvas shows them (the same length).',
+    imageScale: 2,
+    canvasProps: {
+      camera: {
+        mode: 'orthographic',
+        helper: {
+          ...axesProps('top-left'),
+          scale: { name: 'on', params: PD.getDefaultValues(ScaleLineParams) },
+        },
+      },
+    },
+    view: ObliqueView,
+    scene: async () => [await shapeRepr('box', meshBox(5), { colors: [Color(0x999999)] })],
+  },
+  {
     id: 'screen/axes/stereo',
     description: 'The corner axes in each eye of side-by-side stereo.',
     capture: 'canvas',
@@ -461,9 +477,8 @@ export const OverlayCases: VisualTestCase[] = [
         const scene = await shapeRepr('box', meshBox(5), { colors: [Color(0x999999)], props: box.value });
         const torus = await shapeRepr('torus', meshTorus(3), {
           colors: [Color(0x377eb8)],
-          props: { occludedAlpha: 0 },
         });
-        torus.setState({ layer: 'overlay' });
+        torus.setState({ layer: 'overlay', occludedAlpha: 0 });
         return [scene, torus];
       },
     }),

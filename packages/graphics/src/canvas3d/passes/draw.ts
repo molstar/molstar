@@ -6,7 +6,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
-import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { GraphicsContext, RenderPassTarget } from '@molstar/graphics/gl/context';
 import { RenderState } from '@molstar/graphics/gl/render-state';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
@@ -34,6 +34,7 @@ import { type ClipGhostOption, ClipGhostPass } from './clip-ghost.js';
 import type { RenderContext } from '../util.js';
 import { createPrepareBuilder, type PassBuilder } from './pass-builder.js';
 import type { PassTargets } from './pass-targets.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 type Props = {
   postprocessing: PostprocessingProps;
@@ -46,6 +47,9 @@ type Props = {
 };
 
 export type TransparencyMode = 'wboit' | 'dpoit' | 'blended';
+
+/** The depth a target draws with in the draw pass (`DrawPass.pass`) */
+type TargetDepth = 'own' | 'none' | 'opaque-texture' | 'color-renderbuffer';
 
 export class DrawPass {
   /** the pyramid builder of the eye being planned (`RenderContext.occlusion`) where it can read the opaque depth */
@@ -109,8 +113,41 @@ export class DrawPass {
     }
     this.resetTransparencyAttachments();
   }
+  /** the attachments of a target with a depth other than its own, by target and depth */
+  private readonly depthPasses = new Map<RenderTarget, Map<TargetDepth, RenderPassAttachments>>();
+  /**
+   * The opaque depth as the passes after the opaque pass draw with it: the depth texture, or with packed depth the
+   * color target's depth-stencil (the opaque pass's own)
+   */
+  private readonly opaqueDepth: TargetDepth;
+
+  /**
+   * `target` drawing with `depth`: its own (as created), none, the opaque depth texture, or the color target's
+   * depth-stencil; itself where that is its own, else attachments naming it
+   */
+  private pass(target: RenderTarget, depth: TargetDepth): RenderPassTarget {
+    // the color target's own depth is its depth-stencil, a target without depth draws without one
+    if (depth === 'color-renderbuffer' && target === this.colorTarget) depth = 'own';
+    if (depth === 'none' && !target.depthRenderbuffer) depth = 'own';
+    // the drawing buffer takes no other attachment
+    if (depth === 'own' || target === this.drawTarget) return target;
+    let passes = this.depthPasses.get(target);
+    if (!passes) this.depthPasses.set(target, (passes = new Map()));
+    let pass = passes.get(depth);
+    if (!pass) {
+      const attachment =
+        depth === 'opaque-texture'
+          ? this.depthTextureOpaque
+          : depth === 'color-renderbuffer'
+            ? (this.colorTarget.depthRenderbuffer ?? undefined)
+            : undefined;
+      pass = createRenderPassAttachments(this.graphics.resources, [target.texture], attachment);
+      passes.set(depth, pass);
+    }
+    return pass;
+  }
+
   private resetTransparencyAttachments() {
-    this.depthTextureOpaque.detachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
     this.marking.invalidate();
   }
   /**
@@ -149,6 +186,7 @@ export class DrawPass {
     this.transparentColorTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     this.packedDepth = !capabilities.depthTexture;
+    this.opaqueDepth = this.packedDepth ? 'color-renderbuffer' : 'opaque-texture';
 
     this.depthTargetTransparent = targets.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
     this.depthTextureTransparent = this.depthTargetTransparent.texture;
@@ -253,8 +291,7 @@ export class DrawPass {
     // occlude emitters against real opaque depth so glow can't bleed through opaque foreground; packed depth builds its own
     const occludeWithOpaqueDepth = !this.packedDepth;
     if (occludeWithOpaqueDepth) {
-      this.depthTextureOpaque.attachFramebuffer(bloom.emissiveTarget.framebuffer, 'depth');
-      b.begin(bloom.emissiveTarget, { label: 'emissive' });
+      b.begin(this.pass(bloom.emissiveTarget, 'opaque-texture'), { label: 'emissive' });
     }
     b.renderer({ name: 'emissiveOpaque', occludeWithOpaqueDepth }, scene.primitives, () =>
       renderer.renderEmissiveOpaque(scene.primitives, camera, this.depthTextureTransparent, occludeWithOpaqueDepth),
@@ -263,10 +300,6 @@ export class DrawPass {
       b.renderer({ name: 'emissiveTransparent' }, scene.primitives, () =>
         renderer.renderEmissiveTransparent(scene.primitives, camera, this.depthTextureTransparent),
       );
-    }
-    if (occludeWithOpaqueDepth) {
-      this.depthTextureOpaque.detachFramebuffer(bloom.emissiveTarget.framebuffer, 'depth');
-      bloom.emissiveTarget.depthRenderbuffer?.attachFramebuffer(bloom.emissiveTarget.framebuffer);
     }
   }
 
@@ -325,37 +358,8 @@ export class DrawPass {
   }
 
   /**
-   * Draws the volumes at the reduced resolution (`VolumePass`) onto `target`; the opaque depth, which the pass reads, is
-   * detached from `target` meanwhile where `depthAttached`
-   */
-  private renderVolumesReduced(
-    b: PassBuilder,
-    renderer: Renderer,
-    camera: ICamera,
-    scene: Scene,
-    target: RenderTarget,
-    depthAttached: boolean,
-  ) {
-    if (depthAttached) this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
-    this.volume.render(
-      b,
-      renderer,
-      camera,
-      scene,
-      this.depthTextureOpaque,
-      target,
-      this.volumeScale,
-      this.transparencyMode,
-    );
-    if (depthAttached) {
-      this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
-      b.begin(target, { label: 'volume composite' });
-    }
-  }
-
-  /**
-   * Draws the volumes onto `target` (at the reduced resolution, or as the transparency mode draws them at the full
-   * size); `depthAttached`: the opaque depth is attached to `target` (see `renderVolumesReduced`)
+   * Draws the volumes onto `target`: at the reduced resolution (`VolumePass`) composited without depth (the pass reads
+   * the opaque depth), or as the transparency mode draws them at the full size, with `depth`
    */
   private renderVolumes(
     b: PassBuilder,
@@ -363,20 +367,30 @@ export class DrawPass {
     camera: ICamera,
     scene: Scene,
     target: RenderTarget,
-    depthAttached: boolean,
+    depth: TargetDepth,
   ) {
     if (VolumePass.isEnabled(this.volumeScale, this.packedDepth)) {
-      this.renderVolumesReduced(b, renderer, camera, scene, target, depthAttached);
+      this.volume.render(
+        b,
+        renderer,
+        camera,
+        scene,
+        this.depthTextureOpaque,
+        target,
+        this.volumeScale,
+        this.transparencyMode,
+        this.pass(target, 'none'),
+      );
     } else if (this.transparencyMode === 'wboit' && this.wboit.supported) {
       // a weighted blended layer of their own
       this.wboit.bind(b);
       b.renderer({ name: 'wboitTransparent' }, scene.volumes, () =>
         renderer.renderWboitTransparent(scene.volumes, camera, this.depthTextureOpaque),
       );
-      b.begin(target, { label: 'wboit evaluate' });
+      b.begin(this.pass(target, depth), { label: 'wboit evaluate' });
       this.wboit.render(b);
     } else {
-      b.begin(target, { label: 'volume' });
+      b.begin(this.pass(target, depth), { label: 'volume' });
       b.renderer({ name: 'volume' }, scene.volumes, () =>
         renderer.renderVolume(scene.volumes, camera, this.depthTextureOpaque),
       );
@@ -405,17 +419,14 @@ export class DrawPass {
   ) {
     if (!this.dpoit.supported) throw new Error('expected dpoit to be supported');
 
-    this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-    b.begin(this.colorTarget, { label: 'opaque' });
+    b.begin(this.pass(this.colorTarget, 'opaque-texture'), { label: 'opaque' });
     if (b.drawing) renderer.clear(true);
 
     // render opaque primitives
     if (scene.hasOpaque) {
       b.renderer({ name: 'opaque' }, scene.primitives, () => renderer.renderOpaque(scene.primitives, camera));
-      this.planOpaqueSecond(b, renderer, camera, scene, this.colorTarget);
+      this.planOpaqueSecond(b, renderer, camera, scene, this.colorTarget, 'opaque-texture');
     }
-
-    this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
 
     if (this.isTransparentDepthRequired(scene, postprocessingProps)) {
       b.begin(this.depthTargetTransparent, { label: 'transparent depth' });
@@ -434,12 +445,12 @@ export class DrawPass {
     if (hasTransparent) {
       const target = isPostprocessingEnabled ? this.transparentColorTarget : this.colorTarget;
       if (isPostprocessingEnabled && b.drawing) {
-        b.begin(target, { label: 'transparent clear' });
+        b.begin(this.pass(target, 'none'), { label: 'transparent clear' });
         renderer.clear(false, false, true);
       }
 
       // volumes under the transparent primitives (one layer, not split at their surfaces)
-      if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, target, false);
+      if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, target, 'none');
 
       const dpoitTextures = this.dpoit.bind(b);
       b.renderer({ name: 'dpoitTransparent' }, scene.primitives, () =>
@@ -456,14 +467,14 @@ export class DrawPass {
         );
 
         if (iterations > 1) {
-          b.begin(target, { label: 'dpoit blend back' });
+          b.begin(this.pass(target, 'none'), { label: 'dpoit blend back' });
           this.dpoit.renderBlendBack(b);
         }
         if (isTimingMode && b.drawing) this.graphics.timer.groupEnd('DpoitPass.layer');
       }
 
       // evaluate dpoit
-      b.begin(target, { label: 'dpoit evaluate' });
+      b.begin(this.pass(target, 'none'), { label: 'dpoit evaluate' });
       this.dpoit.render(b);
     }
 
@@ -474,7 +485,7 @@ export class DrawPass {
     // without transparent primitives, volumes over the postprocessed image
     if (hasVolumes && !hasTransparent) {
       const target = isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget;
-      this.renderVolumes(b, renderer, camera, scene, target, target === this.colorTarget);
+      this.renderVolumes(b, renderer, camera, scene, target, 'none');
     }
   }
 
@@ -488,14 +499,13 @@ export class DrawPass {
   ) {
     if (!this.wboit.supported) throw new Error('expected wboit to be supported');
 
-    this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-    b.begin(this.colorTarget, { label: 'opaque' });
+    b.begin(this.pass(this.colorTarget, 'opaque-texture'), { label: 'opaque' });
     if (b.drawing) renderer.clear(true);
 
     // render opaque primitives
     if (scene.hasOpaque) {
       b.renderer({ name: 'opaque' }, scene.primitives, () => renderer.renderOpaque(scene.primitives, camera));
-      this.planOpaqueSecond(b, renderer, camera, scene, this.colorTarget);
+      this.planOpaqueSecond(b, renderer, camera, scene, this.colorTarget, 'opaque-texture');
     }
 
     if (this.isTransparentDepthRequired(scene, postprocessingProps)) {
@@ -514,13 +524,14 @@ export class DrawPass {
     const hasTransparent = scene.opacityAverage < 1;
     if (hasTransparent) {
       const target = isPostprocessingEnabled ? this.transparentColorTarget : this.colorTarget;
+      const depth = target === this.colorTarget ? 'opaque-texture' : 'none';
       if (isPostprocessingEnabled && b.drawing) {
-        b.begin(target, { label: 'transparent clear' });
+        b.begin(this.pass(target, 'none'), { label: 'transparent clear' });
         renderer.clear(false, false, true);
       }
 
       // volumes under the transparent primitives (one layer, not split at their surfaces)
-      if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, target, target === this.colorTarget);
+      if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, target, depth);
 
       this.wboit.bind(b);
       b.renderer({ name: 'wboitTransparent' }, scene.primitives, () =>
@@ -528,7 +539,7 @@ export class DrawPass {
       );
 
       // evaluate wboit
-      b.begin(target, { label: 'wboit evaluate' });
+      b.begin(this.pass(target, depth), { label: 'wboit evaluate' });
       this.wboit.render(b);
     }
 
@@ -539,45 +550,31 @@ export class DrawPass {
     // without transparent primitives, volumes over the postprocessed image
     if (hasVolumes && !hasTransparent) {
       const target = isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget;
-      this.renderVolumes(b, renderer, camera, scene, target, target === this.colorTarget);
+      this.renderVolumes(b, renderer, camera, scene, target, target === this.colorTarget ? 'opaque-texture' : 'none');
     }
-  }
-
-  /** Draws the volumes onto `target` of the blended mode, its opaque depth (texture or renderbuffer) detached meanwhile */
-  private renderBlendedVolumes(
-    b: PassBuilder,
-    renderer: Renderer,
-    camera: ICamera,
-    scene: Scene,
-    target: RenderTarget,
-  ) {
-    if (!this.packedDepth) {
-      this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
-    } else {
-      this.colorTarget.depthRenderbuffer?.detachFramebuffer(target.framebuffer);
-    }
-    this.renderVolumes(b, renderer, camera, scene, target, false);
-    if (!this.packedDepth) {
-      this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
-    } else {
-      this.colorTarget.depthRenderbuffer?.attachFramebuffer(target.framebuffer);
-    }
-    b.begin(target, { label: 'volume' });
   }
 
   /**
    * After the opaque pass's first part (on `target`), where a second phase of GPU culling is pending: the pyramid of the
    * depth so far, the second phase, and the second part on `target` again (loaded), its pass open after as before. No
-   * pyramid of a depth lacking skipped draws (pipelines compiling): it would hide what they hide
+   * pyramid of a depth lacking skipped draws (pipelines compiling): it would hide what they hide. `depth`: the opaque
+   * pass's
    */
-  private planOpaqueSecond(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, target: RenderTarget) {
+  private planOpaqueSecond(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    target: RenderTarget,
+    depth: TargetDepth,
+  ) {
     const { occlusion } = this;
     if (!occlusion || !b.drawing || renderer.cullSecondPending === 0) return;
     const complete = this.graphics.stats.skippedDraws === this.skippedDraws;
     const pyramid = occlusion(b, camera, complete);
     // compute passes: the opaque pass ends, where the pyramid's passes did not end it
     renderer.prepareCullSecond(scene.primitives, pyramid);
-    b.begin(target, { label: 'opaque second' });
+    b.begin(this.pass(target, depth), { label: 'opaque second' });
     renderer.renderOpaqueSecond(scene.primitives, camera);
   }
 
@@ -593,16 +590,13 @@ export class DrawPass {
     if (toDrawingBuffer) {
       b.begin(this.drawTarget, { label: 'opaque' });
     } else {
-      if (!this.packedDepth) {
-        this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-      }
-      b.begin(this.colorTarget, { label: 'opaque' });
+      b.begin(this.pass(this.colorTarget, this.opaqueDepth), { label: 'opaque' });
     }
 
     if (b.drawing) renderer.clear(true);
     if (scene.hasOpaque) {
       b.renderer({ name: 'opaque' }, scene.primitives, () => renderer.renderOpaque(scene.primitives, camera));
-      if (!toDrawingBuffer) this.planOpaqueSecond(b, renderer, camera, scene, this.colorTarget);
+      if (!toDrawingBuffer) this.planOpaqueSecond(b, renderer, camera, scene, this.colorTarget, this.opaqueDepth);
     }
 
     if (!toDrawingBuffer) {
@@ -614,7 +608,7 @@ export class DrawPass {
         b.renderer({ name: 'depthOpaque' }, scene.primitives, () =>
           renderer.renderDepthOpaque(scene.primitives, camera),
         );
-        b.begin(this.colorTarget, { label: 'transparent' });
+        b.begin(this.pass(this.colorTarget, this.opaqueDepth), { label: 'transparent' });
       }
 
       const transparentDepth = this.isTransparentDepthRequired(scene, postprocessingProps);
@@ -637,60 +631,29 @@ export class DrawPass {
         if (isPostprocessingEnabled) {
           b.begin(this.transparentColorTarget, { label: 'transparent' });
           if (b.drawing) renderer.clear(false, false, true);
-          if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, this.transparentColorTarget, false);
-
-          if (!this.packedDepth) {
-            this.depthTextureOpaque.attachFramebuffer(this.transparentColorTarget.framebuffer, 'depth');
-          } else {
-            this.colorTarget.depthRenderbuffer?.attachFramebuffer(this.transparentColorTarget.framebuffer);
-          }
-          b.begin(this.transparentColorTarget, { label: 'transparent' });
+          if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, this.transparentColorTarget, 'none');
+          b.begin(this.pass(this.transparentColorTarget, this.opaqueDepth), { label: 'transparent' });
         } else if (hasVolumes) {
-          this.renderBlendedVolumes(b, renderer, camera, scene, this.colorTarget);
-          b.begin(this.colorTarget, { label: 'transparent' });
+          this.renderVolumes(b, renderer, camera, scene, this.colorTarget, 'none');
+          b.begin(this.pass(this.colorTarget, this.opaqueDepth), { label: 'transparent' });
         } else if (transparentDepth) {
           // back from the transparent depth (an overlay's occlusion needs it without post-processing)
-          b.begin(this.colorTarget, { label: 'transparent' });
+          b.begin(this.pass(this.colorTarget, this.opaqueDepth), { label: 'transparent' });
         }
 
         b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
           renderer.renderBlendedTransparent(scene.primitives, camera),
         );
-
-        if (isPostprocessingEnabled) {
-          if (!this.packedDepth) {
-            this.depthTextureOpaque.detachFramebuffer(this.transparentColorTarget.framebuffer, 'depth');
-          } else {
-            this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.transparentColorTarget.framebuffer);
-          }
-        }
       }
 
       if (isPostprocessingEnabled) {
-        if (!this.packedDepth) {
-          this.depthTextureOpaque.detachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
-        } else {
-          this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.postprocessing.target.framebuffer);
-        }
-
         this.renderPostprocessing(b, renderer, camera, scene, transparentBackground, postprocessingProps);
-
-        if (!this.packedDepth) {
-          this.depthTextureOpaque.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
-        } else {
-          this.colorTarget.depthRenderbuffer?.attachFramebuffer(this.postprocessing.target.framebuffer);
-        }
       }
 
       // without transparent primitives, volumes over the postprocessed image
       if (hasVolumes && !hasTransparent) {
-        this.renderBlendedVolumes(
-          b,
-          renderer,
-          camera,
-          scene,
-          isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget,
-        );
+        const target = isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget;
+        this.renderVolumes(b, renderer, camera, scene, target, 'none');
       }
     } else if (scene.opacityAverage < 1) {
       b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
@@ -810,7 +773,7 @@ export class DrawPass {
       );
     }
 
-    b.begin(target, { label: 'helpers' });
+    b.begin(this.pass(target, this.opaqueDepth), { label: 'helpers' });
     // with DOF, the overlay after it (`_renderOutput`)
     this._renderHelpers(b, ctx, target, !dofEnabled);
 
@@ -845,10 +808,6 @@ export class DrawPass {
   private _renderHelpers(b: PassBuilder, ctx: RenderContext<ICamera>, target: RenderTarget, withOverlay: boolean) {
     const { renderer, camera, helper, frame } = ctx;
     if (helper.debug.isEnabled || helper.pointer.isEnabled) {
-      if (!this.packedDepth) {
-        this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
-        b.begin(target, { label: 'helpers' });
-      }
       if (helper.debug.isEnabled) {
         if (b.drawing) helper.debug.syncVisibility();
         for (const scene of helper.debug.scenes) {
@@ -862,15 +821,10 @@ export class DrawPass {
         }
         this.renderBlended(b, renderer, helper.pointer.scene, helper.pointer.camera);
       }
-      if (!this.packedDepth) {
-        this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
-        b.begin(target, { label: 'helpers' });
-      }
     }
 
     if (withOverlay && (helper.overlay.isEnabled || helper.screen.isEnabled)) {
       this.overlay.render(b, ctx, target, this.depthTextureOpaque, target === this.drawTarget);
-      b.begin(target, { label: 'helpers' });
     }
   }
 

@@ -6,6 +6,7 @@
 
 import type { ValueCell } from '@molstar/core/util';
 import { SegmentedArray } from './segmented-array.js';
+import { hasInstancePoses, type TransformValues, writeAffineRowsOf } from './transform-parts.js';
 
 /**
  * Affine transforms on the GPU: an attribute of item size 12 holds per item the first three rows of a column-major
@@ -66,9 +67,10 @@ export function packAffineRowsOf(
 /**
  * A cell with the transforms of `cell` as rows (`packAffineRows`), repacked when its version changes; values other than
  * a `Float32Array` or a `SegmentedArray` of them (instanced attributes written on the GPU) pass through; observers are
- * those of `cell`
+ * those of `cell`. With `values` holding poses (`instancePoses`, `cell` their `aTransform`, empty, its version theirs)
+ * the rows packed from them (`writeAffineRowsOf`)
  */
-export function affineRowsCell<T>(cell: ValueCell<T>): ValueCell<T> {
+export function affineRowsCell<T>(cell: ValueCell<T>, values?: TransformValues): ValueCell<T> {
   const ref = { id: cell.ref.id, version: -1, value: undefined as unknown };
   return {
     get observers() {
@@ -81,7 +83,14 @@ export function affineRowsCell<T>(cell: ValueCell<T>): ValueCell<T> {
       const source = cell.ref;
       if (source.version !== ref.version || source.id !== ref.id) {
         const v = source.value as unknown;
-        if (v instanceof Float32Array || (SegmentedArray.is(v) && v.ctor === Float32Array)) {
+        if (values && hasInstancePoses(values)) {
+          const count = values.instanceCount.ref.value;
+          const out =
+            ref.value instanceof Float32Array && ref.value.length === count * 12
+              ? ref.value
+              : new Float32Array(count * 12);
+          ref.value = writeAffineRowsOf(values, count, out);
+        } else if (v instanceof Float32Array || (SegmentedArray.is(v) && v.ctor === Float32Array)) {
           const count = Math.floor(v.length / 16);
           const out =
             ref.value instanceof Float32Array && ref.value.length === count * 12

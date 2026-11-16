@@ -6,6 +6,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Button, domView, type ShellModel } from '@molstar/prism-ui';
@@ -122,6 +123,8 @@ export function extensionUIPort(
               ...(s.order !== undefined ? { order: s.order } : {}),
               ...(s.keywords ? { keywords: s.keywords } : {}),
               ...(s.open ? { open: true } : {}),
+              ...(s.when ? { when: s.when } : {}),
+              ...(s.whenChanged ? { whenChanged: s.whenChanged } : {}),
               render: s.render,
             })),
           ),

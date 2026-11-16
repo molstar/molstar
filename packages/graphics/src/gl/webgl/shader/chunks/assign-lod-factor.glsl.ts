@@ -18,15 +18,12 @@ if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
     #else
         float lodScale = uLod.w;
     #endif
-    if (uModelScale != 1.0) {
-        lodFactor = lodScale;
-    } else {
-        float d = (dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w) / uModelScale;
-        lodFactor = min(
-            smoothstep(uLod.x, uLod.x + uLod.z, d),
-            1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
-        ) * lodScale;
-        lodCulled = d < uLod.x || d > uLod.y;
-    }
+    // the distance unscaled, as the instances are culled (any camera scale)
+    float d = (dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w) / uModelScale;
+    lodFactor = min(
+        smoothstep(uLod.x, uLod.x + uLod.z, d),
+        1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
+    ) * lodScale;
+    lodCulled = d < uLod.x || d > uLod.y;
 }
 `;

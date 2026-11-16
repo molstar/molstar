@@ -9,7 +9,7 @@ import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { LineStride, type Lines } from '@molstar/graphics/geo/geometry/lines/lines';
 import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
-import { PositionGroupStride } from '@molstar/graphics/geo/geometry/center-group';
+import { floatBitsToInt32, PositionGroupStride } from '@molstar/graphics/geo/geometry/center-group';
 import type { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { CutShapes, type CutObject } from '../../cuts.js';
 import type { GizmoPart } from '@molstar/graphics/util/gizmo/controller';
@@ -42,7 +42,8 @@ function lineGroupsOf(lines: Lines | undefined) {
   const groups = new Set<number>();
   if (!lines) return groups;
   const { array } = lines.lineData.ref.value;
-  for (let i = 0; i < lines.lineCount; i++) groups.add(array[i * LineStride + 3]);
+  // the groups an int32 as its bits
+  for (let i = 0; i < lines.lineCount; i++) groups.add(floatBitsToInt32(array[i * LineStride + 3]));
   return groups;
 }
 
@@ -58,7 +59,7 @@ function extent(mesh: Mesh) {
 function pointAt(points: Points, i: number) {
   const a = points.positionGroup.ref.value.array;
   const o = i * PositionGroupStride;
-  return { center: [a[o], a[o + 1], a[o + 2]], group: a[o + 3] };
+  return { center: [a[o], a[o + 1], a[o + 2]], group: floatBitsToInt32(a[o + 3]) };
 }
 
 function pointGroupsOf(points: Points | undefined) {
@@ -175,7 +176,7 @@ describe('the clipping gizmos geometry', () => {
     ]);
     for (let i = 0; i < g.handleLines!.lineCount; i++) {
       const o = i * LineStride;
-      const [b, c] = sections.get(array[o + 3])!;
+      const [b, c] = sections.get(floatBitsToInt32(array[o + 3]))!;
       const p = [array[o], array[o + 1], array[o + 2]];
       const off = [0, 1, 2].find((a) => a !== b && a !== c)!;
       expect(p[off]).toBeCloseTo(0, 4);

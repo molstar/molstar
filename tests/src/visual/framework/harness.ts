@@ -20,10 +20,10 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import type { CameraHelperProps } from '@molstar/graphics/canvas3d/helper/camera-helper';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
-import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
+import { WebGPUUnsupportedError } from '@molstar/graphics/gl/contexts/webgpu';
 import { type BackendInstance } from './backend.js';
 import { DefaultTestSize, type SceneContext, type VisualTestCase } from './test-case.js';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 
 /** Deterministic baseline; tests opt into effects explicitly */
 export const BaseCanvasProps: PartialCanvas3DProps = {
@@ -226,6 +226,11 @@ export async function renderTest(
   }
 
   context.setProps({ transparency: test.contextProps?.transparency ?? 'blended' });
+  // the case's time 0 (the renderer's `uTime`, of the animations): a capture without a tick of its own (the image pass)
+  // would draw at the time the last case's tick left, another on each page (a WebGPU case's reference a webgl2 page's)
+  const t0 = now();
+  canvas3d.resetTime(t0);
+  canvas3d.tick(t0, { manualDraw: true });
 
   const p = getTestCanvasProps(test);
   p.renderer = { ...p.renderer, drawLists: !!options.drawLists };
@@ -319,20 +324,28 @@ export async function renderTest(
     });
     // no `updateBackground`: the render waits for the background images itself (pending work)
 
+    const scale = test.imageScale ?? 1;
+    const [imageWidth, imageHeight] = [Math.round(width * scale), Math.round(height * scale)];
     for (let i = 0; i < repeats; ++i) {
-      await imagePass.getImageData(SyncRuntimeContext, width, height);
+      await imagePass.getImageData(SyncRuntimeContext, imageWidth, imageHeight);
       await context.graphics.resources.pending.whenReady();
     }
     const { drawLists } = context.graphics.stats;
     const replayed = drawLists.replayed;
-    const image = await imagePass.getImageData(SyncRuntimeContext, width, height);
+    const image = await imagePass.getImageData(SyncRuntimeContext, imageWidth, imageHeight);
     await context.graphics.waitForGpuCommandsComplete();
     if (options.drawLists && drawLists.replayed === replayed)
       log.warnings.push('draw lists: the captured frame replayed nothing');
 
     return {
       image,
-      errors: [...interactErrors, ...releaseErrors, ...instance.takeErrors(), ...log.errors],
+      errors: [
+        ...interactErrors,
+        ...releaseErrors,
+        ...instance.takeErrors(),
+        ...log.errors,
+        ...(test.checkImage?.(image) ?? []),
+      ],
       warnings: log.warnings,
       timeMs: performance.now() - start,
     };

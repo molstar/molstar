@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // Headless CPU and memory profile of the data pipeline: parse → model → structure → bonds → props → representation
@@ -109,7 +110,6 @@ const graphicsStub = meshMode
         texture: () => new Proxy({} as any, { get: (t, k) => (k === 'then' ? undefined : k in t ? t[k] : () => {}) }),
         ownsTexture: () => true,
       },
-      namedTextures: {},
     } as any);
 
 const v8gc = (globalThis as any).gc as (options?: object) => void;

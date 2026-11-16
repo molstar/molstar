@@ -3,10 +3,21 @@
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
-import { arrayMax, arrayMean, arrayMin, arrayRms, arrayStats, filterInPlace, range } from '../array.js';
+import {
+  arrayMax,
+  arrayMean,
+  arrayMin,
+  arrayRms,
+  arrayStats,
+  filterInPlace,
+  getSharedSerial,
+  isSharedSerial,
+  range,
+} from '../array.js';
 
 describe('filterInPlace', () => {
   it('filterInPlace works', async () => {
@@ -43,5 +54,29 @@ describe('arrayStats', () => {
     ]) {
       expect(arrayStats(a)).toEqual({ min: arrayMin(a), max: arrayMax(a), mean: arrayMean(a), rms: arrayRms(a) });
     }
+  });
+});
+
+describe('getSharedSerial', () => {
+  it('is 0 to n - 1, views of one array grown as asked, the views before kept', () => {
+    const a = getSharedSerial(5);
+    expect(Array.from(a)).toEqual([0, 1, 2, 3, 4]);
+    const b = getSharedSerial(1000);
+    expect(b.length).toBe(1000);
+    for (let i = 0; i < 1000; ++i) expect(b[i]).toBe(i);
+    expect(Array.from(a)).toEqual([0, 1, 2, 3, 4]);
+    // a view of the same array where it is long enough
+    expect(getSharedSerial(10).buffer).toBe(b.buffer);
+  });
+
+  it('tells its views from other arrays', () => {
+    const a = getSharedSerial(8);
+    expect(isSharedSerial(a)).toBe(true);
+    expect(isSharedSerial(getSharedSerial(0))).toBe(true);
+    // not from the start, a copy, another type
+    expect(isSharedSerial(a.subarray(2))).toBe(false);
+    expect(isSharedSerial(a.slice())).toBe(false);
+    expect(isSharedSerial(Uint32Array.from([0, 1, 2]))).toBe(false);
+    expect(isSharedSerial([0, 1, 2])).toBe(false);
   });
 });

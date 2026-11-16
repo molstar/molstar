@@ -45,7 +45,15 @@ const Expected: { [program: string]: { glsl: string[]; wgsl: string[] } } = {
   },
   spheres: {
     glsl: ['dLightCount', ...Grids, 'uClipObjectCount', 'uDrawId', 'uPickType'],
-    wgsl: ['uRasterChunkBase', 'uRasterChunkCount', 'uRasterLevels', 'uRasterMaxRadius', 'uRasterWidth', 'uViewport'],
+    wgsl: [
+      'uRasterChunkBase',
+      'uRasterChunkCount',
+      'uRasterLevels',
+      'uRasterMaxRadius',
+      'uRasterOrigin',
+      'uRasterWidth',
+      'uViewport',
+    ],
   },
   cylinders: {
     glsl: ['dLightCount', ...Grids, 'uClipObjectCount', 'uDrawId', 'uPickType'],

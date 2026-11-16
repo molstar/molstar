@@ -6,6 +6,11 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { now } from '@molstar/core/util/now';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
+import { Clip } from '@molstar/core/util/clip';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ValueCell } from '@molstar/core/util/value-cell';
+
 import { HiZPass } from '@molstar/graphics/canvas3d/passes/hi-z';
 import { createPrepareBuilder } from '@molstar/graphics/canvas3d/passes/pass-builder';
 import { Renderer } from '@molstar/graphics/gl/renderer';
@@ -25,6 +30,118 @@ const Pdb = `${Array.from({ length: 48 }, (_, i) => {
 }).join('\n')}\nEND\n`;
 
 describe.skipIf(!WebGPU.module)('Hi-Z on WebGPU', () => {
+  it('primes the first level from an occluder grid, what its clip objects remove hiding nothing', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
+      const canvas = plugin.canvas3d!;
+      canvas.setProps({ multiSample: { ...canvas.props.multiSample, mode: 'off' } });
+      const { graphics } = canvas;
+      const passes = plugin.renderer.canvas3dContext!.passes;
+      const hiZ = new HiZPass(graphics, passes.draw, undefined, { enabled: true, minLevel: 1 });
+      hiZ.setViewport(0, 0, Size, Size);
+      // a dense grid all over the view (the atoms' box, 0 to 7.5 Å, and far around it): every ray opaque in it
+      const n = 8;
+      const grid = {
+        min: Vec3.create(-200, -200, -50),
+        max: Vec3.create(200, 200, 50),
+        dimensions: [n, n, n] as [number, number, number],
+        density: new Float32Array(n * n * n).fill(1),
+      };
+      /** the clip values of an object (`ClipStorageValues`, as a renderable's) of `objects` */
+      const clipOf = (objects: Partial<PD.Values<typeof Clip.Params>['objects'][number]>[]) => {
+        const defaults = PD.getDefaultValues(Clip.Params.objects.element);
+        const clip = Clip.getClip({ variant: 'pixel', objects: objects.map((o) => ({ ...defaults, ...o })) }).objects;
+        return {
+          dClipObjects: ValueCell.create(clip.count > 0),
+          dClipVariant: ValueCell.create('pixel'),
+          dClipping: ValueCell.create(false),
+          uClipObjectCount: ValueCell.create(clip.count),
+          uClipObjectFrame: ValueCell.create(clip.frame),
+          uClipObjectShape: ValueCell.create(clip.shape),
+        };
+      };
+      let time = now();
+      const prepare = createPrepareBuilder(graphics, Renderer.create(graphics));
+      /** the first level's texels with a depth (not the background's 0), the left and right halves' */
+      const primed = async (occluder: typeof grid | undefined, clip?: ReturnType<typeof clipOf>) => {
+        hiZ.setOccluder(occluder, clip);
+        for (let i = 0; i < 2; ++i) {
+          canvas.commit(true);
+          canvas.requestDraw();
+          canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+          await graphics.resources.pending.whenReady();
+          hiZ.setOccluder(occluder, clip);
+          hiZ.plan(prepare, canvas.camera);
+          hiZ.render(canvas.camera);
+        }
+        const pyramid = hiZ.gpuPyramid!;
+        const { texture } = pyramid;
+        const width = texture.getWidth();
+        const height = texture.getHeight();
+        const levels = new Float32Array(width * height);
+        const reader = graphics.createTextureReader({ format: 'r32f' });
+        reader.start([texture], 0, 0, width, height);
+        for (let t = 0; t < 500 && reader.check([levels]) === 'pending'; ++t) {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        reader.dispose();
+        const ts = 1 << (pyramid.levelCount - 1 - pyramid.minLevel);
+        let left = 0;
+        let right = 0;
+        for (let ty = 0; ty < ts; ++ty) {
+          for (let tx = 0; tx < ts; ++tx) {
+            if (!(levels[ty * width + tx] > 0)) continue;
+            if (tx < ts / 2) left += 1;
+            else right += 1;
+          }
+        }
+        return { left, right, all: ts * ts };
+      };
+      const drawn = await primed(undefined);
+      // the grid: every texel primed (its rays opaque within the grid)
+      const whole = await primed(grid);
+      expect(whole.left + whole.right).toBe(whole.all);
+      // a plane through the camera's target clipping what is left of it (turned about z by 90°, its frame's y the
+      // world's -x): the left half as drawn (a ray from the eye left of the target there all along)
+      const at = Vec3.create(canvas.camera.state.target[0], 0, 0);
+      const half = clipOf([{ type: 'plane', position: at, rotation: { axis: Vec3.create(0, 0, 1), angle: 90 } }]);
+      const cut = await primed(grid, half);
+      expect(cut.right).toBe(whole.right);
+      expect(cut.left).toBeLessThan(whole.left / 2);
+      expect(cut.left).toBeGreaterThanOrEqual(drawn.left);
+      // a cube about all of the grid: all of it clipped away, the level as drawn
+      const box = clipOf([{ type: 'cube', scale: Vec3.create(1000, 1000, 1000) }]);
+      const gone = await primed(grid, box);
+      expect(gone.left + gone.right).toBe(drawn.left + drawn.right);
+      // inverted, a small sphere far out of view kept alone: nothing the rays pass kept, the level as drawn
+      const far = clipOf([
+        { type: 'sphere', invert: true, position: Vec3.create(5000, 0, 0), scale: Vec3.create(2, 2, 2) },
+      ]);
+      const none = await primed(grid, far);
+      expect(none.left + none.right).toBe(drawn.left + drawn.right);
+      // the cut moved (its uniforms alone, the grid as it was): the right half clipped instead
+      const other = clipOf([{ type: 'plane', position: at, rotation: { axis: Vec3.create(0, 0, 1), angle: -90 } }]);
+      const moved = await primed(grid, other);
+      expect(moved.left).toBe(whole.left);
+      expect(moved.right).toBeLessThan(whole.right / 2);
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      hiZ.dispose();
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
   it('levels whose depth is the farthest of the pixels they cover, frame after frame', async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },

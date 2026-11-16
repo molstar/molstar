@@ -22,12 +22,12 @@ import type { ImagePass, ImageProps } from '@molstar/graphics/canvas3d/passes/im
 import { Passes } from '@molstar/graphics/canvas3d/passes/passes';
 import { PostprocessingParams, type PostprocessingProps } from '@molstar/graphics/canvas3d/passes/postprocessing';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { createContext } from '@molstar/graphics/gl/webgl/context';
+import { createContext } from '@molstar/graphics/gl/contexts/webgl';
 import {
   createWebGPUContext,
   requestWebGPUDevice,
   type WebGPUContextOptions,
-} from '@molstar/graphics/gl/webgpu/context';
+} from '@molstar/graphics/gl/contexts/webgpu';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { PixelData } from '@molstar/core/util/image';

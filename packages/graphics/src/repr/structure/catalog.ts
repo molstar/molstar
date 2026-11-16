@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { namedCatalog } from '@molstar/graphics/util/named-catalog';
+import { namedCatalog } from '@molstar/core/util/named-catalog';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick.js';
 import { BlobSurfaceRepresentationProvider } from './representation/blob-surface.js';
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate.js';

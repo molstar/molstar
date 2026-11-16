@@ -44,9 +44,16 @@ async function render(fragDepthInBundles?: boolean) {
       canvas.requestDraw();
       canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
     };
-    // pipelines (and the probe) settle, then frames record and replay
-    frame();
-    await canvas.graphics.resources.pending.whenReady();
+    // pipelines (and the probe) settle, then frames record and replay: until a frame skips no draw and leaves nothing
+    // pending (a pipeline a later frame starts compiling skips that frame's draws, slower under load)
+    const { pending } = canvas.graphics.resources;
+    for (let i = 0; i < 20; ++i) {
+      const skipped = stats.skippedDraws;
+      frame();
+      const settled = stats.skippedDraws === skipped && pending.isReady();
+      await pending.whenReady();
+      if (settled) break;
+    }
     const replayed = stats.drawLists.replayed;
     for (let i = 0; i < 4; ++i) frame();
     const image = await plugin.getImageRaw({ width: Size, height: Size });

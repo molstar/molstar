@@ -20,13 +20,7 @@ import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
 import { Mat4, Tensor, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { fillSerial } from '@molstar/core/util/array';
-import {
-  createSegmentTexture2d,
-  eachVolumeLoci,
-  getSegmentMaskValue,
-  getVolumeGpuFallbackReason,
-  getVolumeTexture2dLayout,
-} from './util.js';
+import { createSegmentTexture2d, eachVolumeLoci, getSegmentMaskValue, getVolumeGpuFallbackReason } from './util.js';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
@@ -44,7 +38,13 @@ import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { type VolumeKey, VolumeVisual } from './visual.js';
 import { selectVisual } from '../visual-factory.js';
-import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
+import { estimateIsosurfaceVertexCount } from '@molstar/core/math/geometry/marching-cubes/estimate';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
+import { createScratch } from '@molstar/graphics/gl/scratch';
+import type { Texture } from '@molstar/graphics/gl/texture';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('volume/segment textures');
 
 export const VolumeSegmentParams = {
   segments: PD.Converted(
@@ -265,10 +265,11 @@ function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, graphic
     throw new Error('volume too large for gpu segment extraction');
   }
 
-  if (!graphics.namedTextures[SegmentTextureName]) {
-    graphics.namedTextures[SegmentTextureName] = resources.texture('image-uint8', 'r', 'ubyte', 'linear');
-  }
-  const texture = graphics.namedTextures[SegmentTextureName];
+  const texture = ScratchTextures.getOrCreate(
+    graphics,
+    () => resources.texture('image-uint8', 'r', 'ubyte', 'linear'),
+    SegmentTextureName,
+  );
 
   texture.define(texDim, texDim);
   // load volume into sub-section of texture

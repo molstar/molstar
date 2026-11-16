@@ -376,6 +376,16 @@ namespace Representation {
     layer: Layer;
     /** The place in the screen layer (`layer` 'screen') */
     screen: ScreenPlacement;
+    /**
+     * In the overlay layer: the opacity of its parts behind the scene's opaque depth (1 drawn on top, 0 hidden by the
+     * scene, between x-ray); applied by the canvas, as `layer`
+     */
+    occludedAlpha: number;
+    /**
+     * Picked whatever its opacity (a widget: the corner axes, a gizmo's handle), else not below the picking alpha
+     * threshold; applied by the canvas, as `layer`
+     */
+    pickAtAnyAlpha: boolean;
   }
   export function createState(): State {
     return {
@@ -396,6 +406,8 @@ namespace Representation {
       markerActions: MarkerActions.All,
       layer: 'scene',
       screen: DefaultScreenPlacement,
+      occludedAlpha: 1,
+      pickAtAnyAlpha: false,
     };
   }
   export function updateState(state: State, update: Partial<State>) {
@@ -416,6 +428,8 @@ namespace Representation {
     if (update.markerActions !== undefined) state.markerActions = update.markerActions;
     if (update.layer !== undefined) state.layer = update.layer;
     if (update.screen !== undefined) state.screen = update.screen;
+    if (update.occludedAlpha !== undefined) state.occludedAlpha = update.occludedAlpha;
+    if (update.pickAtAnyAlpha !== undefined) state.pickAtAnyAlpha = update.pickAtAnyAlpha;
   }
   export interface StateBuilder<S extends State> {
     create(): S;

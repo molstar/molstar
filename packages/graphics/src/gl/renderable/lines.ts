@@ -33,7 +33,8 @@ export const LinesSchema = {
    * Per line 2 texels (`Lines.lineData`): start xyz and group, end xyz and whether it continues the line before (strips);
    * drawn as quads of 4 vertex ids by the shared line indices (`quad-indices.ts`)
    */
-  tLine: DataSpec('rgba32f'),
+  // two elements per line, the first's fourth the group (an integer)
+  tLine: DataSpec('rgb32f-i32', undefined, 2),
   dLineSizeAttenuation: DefineSpec('boolean'),
   uDoubleSided: UniformSpec('b', 'material'),
   dFlipSided: DefineSpec('boolean'),

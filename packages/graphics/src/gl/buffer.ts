@@ -24,8 +24,16 @@ export type ArrayKind = keyof DataTypeArrayType;
 
 /** 12: an affine transform as its first three rows (`affine-rows.ts`), 16: a `mat4` */
 export type AttributeItemSize = 1 | 2 | 3 | 4 | 12 | 16;
-/** `oct16`: unit vectors, three floats on the CPU, two snorm16 on the GPU (`oct-normals.ts`) */
-export type AttributeKind = 'float32' | 'oct16';
+/**
+ * `oct16`: unit vectors, three floats on the CPU, two snorm16 on the GPU (`oct-normals.ts`); `uint32`, `int32`: integers
+ * (ids and offsets past 2^24), floats on WebGL1 (no integer attributes)
+ */
+export type AttributeKind = 'float32' | 'oct16' | 'uint32' | 'int32';
+
+/** Whether attributes of `kind` are integers (WebGL2 and WebGPU; floats on WebGL1) */
+export function isIntegerAttributeKind(kind: AttributeKind) {
+  return kind === 'uint32' || kind === 'int32';
+}
 
 export type AttributeDefs = {
   [k: string]: { kind: AttributeKind; itemSize: AttributeItemSize; divisor: number };

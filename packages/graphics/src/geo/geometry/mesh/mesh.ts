@@ -19,14 +19,15 @@ import {
 import type { GeometryUtils } from '../geometry.js';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { createMarkers } from '../marker-data.js';
-import type { TransformData } from '../transform-data.js';
+import { type TransformData, getInstanceRows, getInstanceTransforms } from '../transform-data.js';
+import { InstanceTransforms } from '@molstar/core/math/geometry/instance-transforms';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import { createColors } from '../color-data.js';
 import { ChunkedArray, hashFnv32a, invertCantorPairing, sortedCantorPairing } from '@molstar/core/data/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
   calculateInvariantBoundingSphere,
-  calculateTransformBoundingSphere,
+  calculateInstancesBoundingSphere,
 } from '@molstar/graphics/gl/renderable/util';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
@@ -58,8 +59,8 @@ export interface Mesh {
   readonly indexBuffer: ValueCell<Uint32Array>;
   /** Normal buffer as array of xyz values for each vertex wrapped in a value cell */
   readonly normalBuffer: ValueCell<Float32Array>;
-  /** Group buffer as array of group ids for each vertex wrapped in a value cell */
-  readonly groupBuffer: ValueCell<Float32Array>;
+  /** Group buffer as array of group ids for each vertex wrapped in a value cell (integers: past 2^24 exact) */
+  readonly groupBuffer: ValueCell<Uint32Array>;
   /** Indicates that group may vary within a triangle, wrapped in a value cell */
   readonly varyingGroup: ValueCell<boolean>;
 
@@ -79,7 +80,7 @@ export namespace Mesh {
     vertices: Float32Array,
     indices: Uint32Array,
     normals: Float32Array,
-    groups: Float32Array,
+    groups: Uint32Array,
     vertexCount: number,
     triangleCount: number,
     mesh?: Mesh,
@@ -93,7 +94,7 @@ export namespace Mesh {
     const vb = mesh ? mesh.vertexBuffer.ref.value : new Float32Array(0);
     const ib = mesh ? mesh.indexBuffer.ref.value : new Uint32Array(0);
     const nb = mesh ? mesh.normalBuffer.ref.value : new Float32Array(0);
-    const gb = mesh ? mesh.groupBuffer.ref.value : new Float32Array(0);
+    const gb = mesh ? mesh.groupBuffer.ref.value : new Uint32Array(0);
     return create(vb, ib, nb, gb, 0, 0, mesh);
   }
 
@@ -112,7 +113,7 @@ export namespace Mesh {
     vertices: Float32Array,
     indices: Uint32Array,
     normals: Float32Array,
-    groups: Float32Array,
+    groups: Uint32Array,
     vertexCount: number,
     triangleCount: number,
   ): Mesh {
@@ -163,7 +164,7 @@ export namespace Mesh {
     vertices: Float32Array,
     indices: Uint32Array,
     normals: Float32Array,
-    groups: Float32Array,
+    groups: Uint32Array,
     vertexCount: number,
     triangleCount: number,
     mesh: Mesh,
@@ -261,7 +262,7 @@ export namespace Mesh {
     const normal = ChunkedArray.create(Float32Array, 3, 1024, nb);
     normal.currentIndex = vertexCount * 3;
     normal.elementCount = vertexCount;
-    const group = ChunkedArray.create(Float32Array, 1, 1024, gb);
+    const group = ChunkedArray.create(Uint32Array, 1, 1024, gb);
     group.currentIndex = vertexCount;
     group.elementCount = vertexCount;
 
@@ -788,14 +789,18 @@ export namespace Mesh {
     const n = location.normal;
     const vs = mesh.vertexBuffer.ref.value;
     const ns = mesh.normalBuffer.ref.value;
-    const m = transform.aTransform.ref.value;
+    const t = getInstanceTransforms(transform);
+    // the instance's row: the grid stores them in its order (`getInstanceRows`)
+    const rows = getInstanceRows(transform);
+    const local = Vec3();
     const getLocation = (groupIndex: number, instanceIndex: number) => {
       if (instanceIndex < 0) {
         Vec3.fromArray(p, vs, groupIndex * 3);
         Vec3.fromArray(n, ns, groupIndex * 3);
       } else {
-        Vec3.transformMat4Offset(p, vs, m, 0, groupIndex * 3, instanceIndex * 16);
-        Vec3.transformDirectionOffset(n, ns, m, 0, groupIndex * 3, instanceIndex * 16);
+        const row = rows ? rows[instanceIndex] : instanceIndex;
+        InstanceTransforms.getPoint(t, row, Vec3.fromArray(local, vs, groupIndex * 3), p);
+        InstanceTransforms.getDirection(t, row, Vec3.fromArray(local, ns, groupIndex * 3), n);
       }
       return location;
     };
@@ -826,12 +831,7 @@ export namespace Mesh {
     const counts = { drawCount: mesh.triangleCount * 3, vertexCount: mesh.vertexCount, groupCount, instanceCount };
 
     const invariantBoundingSphere = Sphere3D.clone(mesh.boundingSphere);
-    const boundingSphere = calculateTransformBoundingSphere(
-      invariantBoundingSphere,
-      transform.aTransform.ref.value,
-      instanceCount,
-      0,
-    );
+    const boundingSphere = calculateInstancesBoundingSphere(invariantBoundingSphere, getInstanceTransforms(transform));
 
     return {
       dGeometryType: ValueCell.create('mesh'),
@@ -914,12 +914,7 @@ export namespace Mesh {
 
   function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
     const invariantBoundingSphere = Sphere3D.clone(mesh.boundingSphere);
-    const boundingSphere = calculateTransformBoundingSphere(
-      invariantBoundingSphere,
-      values.aTransform.ref.value,
-      values.instanceCount.ref.value,
-      0,
-    );
+    const boundingSphere = calculateInstancesBoundingSphere(invariantBoundingSphere, getInstanceTransforms(values));
 
     if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
       ValueCell.update(values.boundingSphere, boundingSphere);

@@ -22,14 +22,20 @@ Regions hold a 4-byte index into the instances' data, stored once, instead of co
   `mesoscale-scale.md`). Ten regions, 6.2 M instances: 4.2 GB in three buffers (2.98 GB the largest) -> 0.35 GB of data
   and 0.25 GB of indices. The data reaches 2 GiB at about 38 M instances, the indices at 50 M with ten regions.
 - **The data** (`CulledData`, `culled-data.ts`): one buffer (one binding: the vertex stage's storage buffers are few, the
-  sphere resolve has three and the theme layers up to four pages) in blocks: the transforms' affine rows (three vec4s
-  each, from 0), `aInstance` (four a vec4), each instance's segment index (four a vec4), each segment's groups (a vec4:
-  `aSegment` composed from those two, `culledSegment`). The transforms first: the sphere raster and its resolve read
-  them as they read an unmerged object's (stride three), unchanged.
+  sphere resolve has three and the theme layers up to four pages) in blocks: a header (the counts, where the slots
+  start), each instance's slot word (u32: the slot, a bit for a pose), `aInstance` and segment index (four a vec4
+  each), each segment's groups (a vec4: `aSegment` composed from the index and the groups, `culledSegment`), then the
+  slots: an instance of matrices its affine rows (three vec4s), an id of poses `t = p - s R c` with `s` and the
+  quaternion (two vec4s, its part's matrix folded in). The reader (`culledRows`) builds a pose's rows; the sphere
+  raster and its resolve read an unmerged object's transforms in the same layout (its own buffer, a segment a part).
+  A page store's (`CulledPagedFlag` in the header, `particle-slots.md` 6f): no instance arrays, its composed poses
+  after the segments (a pose slot a particle, composed as its page is written; `aInstance` its store index and the
+  segment in its last words, the quaternion snorm16), its regions' indices the pose slots, the readers branching on
+  the header (one address for all).
 - **The culled program variant** (`dCulled`, `CulledSchema` in `merged.ts`, WebGPU): the merged schema's instanced
   attributes are used `!dCulled`; the culled programs read the index from storage at `instance_index` (which includes
   the record's first instance; a `u32` vertex input would need an attribute kind of its own, WebGL's too), then the
-  instance's data (`sCulledData`, `uCulledInstanceCount` for the blocks), into the program's `VertexInput` by a
+  instance's data (`sCulledData`, the blocks found from its header), into the program's `VertexInput` by a
   generated reader; a generated `vertexMain` calls the program's own, renamed (`webgpu/culled.ts`). The program sources
   stay as they are. As the dropped version did (`3f3081d93`), with three rows (not seven vec4s) in one buffer. A culled
   item binds no instanced vertex buffers.

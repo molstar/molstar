@@ -9,7 +9,9 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import type { InstancePoses } from '@molstar/core/math/geometry/instance-transforms';
 import { getDrawnBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { StateSelection } from '@molstar/core/state';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
@@ -20,6 +22,9 @@ import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { type ParticleListInfo, particleUnitCellOf } from '../operations.js';
 import { particlesFile } from '../../../api/_test/volume-fixtures.js';
+import { particleTransformCell } from '../../../sources/particle-transform.js';
+import { CustomProperties } from '@molstar/model/model/custom-property';
+import { writeParticlePack } from '@molstar/model/formats/particles/pack';
 
 // `particles` (api.md §2) on a headless viewer, over a small CryoET NDJSON file made in memory.
 
@@ -159,13 +164,14 @@ describe('particles', () => {
     await v.api.load.files({ files: [particlesFile()] });
     const list = () => v.plugin.managers.particles.hierarchy.current.lists[0];
     // what the representation draws: the list at the end of its decorators
-    const drawn = () => (list().representations[0].cell.obj!.data.sourceData as ParticleList).coordinates;
-    const loaded = Array.from(list().cell.obj!.data.coordinates);
+    const drawn = () =>
+      GridPositions.toFloat((list().representations[0].cell.obj!.data.sourceData as ParticleList).coordinates);
+    const loaded = Array.from(GridPositions.toFloat(list().cell.obj!.data.coordinates));
 
     expectOk(await v.api.particles!.transform({ translation: Vec3.create(10, 0, 0) }));
     Array.from(drawn()).forEach((x, i) => expect(x).toBeCloseTo(loaded[i] + (i % 3 === 0 ? 10 : 0), 4));
     // the hierarchy's list is the one loaded, the representations still under it
-    expect(Array.from(list().cell.obj!.data.coordinates)).toEqual(loaded);
+    expect(Array.from(GridPositions.toFloat(list().cell.obj!.data.coordinates))).toEqual(loaded);
     expect(list().representations).toHaveLength(1);
     expect(((await v.api.particles!.transform({ translation: Vec3.create(10, 0, 0) })) as any).unchanged).toBe(true);
 
@@ -180,6 +186,38 @@ describe('particles', () => {
 
     expectOk(await v.api.history.undo());
     expect(drawn()[0]).not.toBeCloseTo(loaded[0], 2);
+  });
+
+  it('neither moves a view of tiles read as the camera moves (a tile-ordered pack) nor sets its targets', async () => {
+    const v = await headlessViewer();
+    const n = 64;
+    const list: ParticleList = {
+      label: 'lattice',
+      count: n,
+      targets: new Int32Array(n).fill(1),
+      targetInfo: new Map([[1, { name: 'one' }]]),
+      targetMapping: new Map([
+        [1, { kind: 'sites', sites: { count: 1, positions: new Float32Array(3), radii: new Float32Array(1).fill(2) } }],
+      ]),
+      coordinates: Float32Array.from({ length: n * 3 }, (_, k) => (Math.floor(k / 3) % 4) * 30 + (k % 3) * 20),
+      getParticleLabel: (i) => `particle ${i}`,
+      sourceData: { kind: 'test', name: 'test', data: {} },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    const pack = writeParticlePack(list, { tiles: 2 });
+    expectOk(await v.api.load.files({ files: [new File([pack], 'lattice.mspk')] }));
+    const slots = () => v.plugin.managers.particles.hierarchy.current.lists[0];
+    await until(() => !!slots()?.cell.obj?.data.pages);
+    expect(slots().cell.obj!.data.pages).toBeDefined();
+    expect(await v.api.particles!.transform({ translation: Vec3.create(10, 0, 0) })).toMatchObject({
+      ok: false,
+      code: 'blocked',
+    });
+    expect(
+      await v.api.particles!.targets({ source: '1crn', target: '', file: undefined as never, particles: '' }),
+    ).toMatchObject({ ok: false, code: 'blocked' });
+    expect(particleTransformCell(v.plugin.state.data, slots().cell.transform.ref)).toBeUndefined();
   });
 
   it("shows, styles and hides a list's unit cell; a list without one says so", async () => {
@@ -286,7 +324,13 @@ describe('particles', () => {
       // moved from the grid first built: its cells and instance order kept, so the GPU culling keeps its split
       expect(grid.layout, `move ${i}`).toBe(first.layout ?? first);
       expect(grid.cellOffsets).toBe(first.cellOffsets);
-      expect(values().aTransform.ref.value).toBe(grid.cellTransform);
+      // placed by poses (a spheres or mesh target): no matrix an instance, the move composed into the poses' matrix
+      const poses = values().instancePoses.ref.value as InstancePoses;
+      expect(poses.kind).toBe('poses');
+      expect(values().aTransform.ref.value.length).toBe(0);
+      expect(grid.cellTransform.length).toBe(0);
+      expect(poses.order).toBe(grid.cellInstance);
+      expect(poses.matrix![12]).toBeCloseTo(dx, 1);
       expect(values().boundingSphere.ref.value.center[0]).toBeCloseTo(x + dx, 0);
       expect(grid.cellSpheres[0]).toBeCloseTo(first.cellSpheres[0] + dx, 1);
     }

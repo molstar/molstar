@@ -40,14 +40,13 @@ void main(){
     ${assign_marker_varying}
     ${assign_clipping_varying}
 
-    mat4 transform = uObjectTransform * applyTumble(aTransform);
-    mat4 model = uModel * transform;
-    mat4 modelView = uView * model;
-    position = applyWiggle(position, group, aInstance);
-    vec4 position4 = vec4(position, 1.0);
+    position = applyWiggle(position, float(group), int(aInstance));
+    // the position transformed, not the matrices multiplied first: the instance's transform, the object's transient
+    // one, then the model and view
+    vec4 world = uObjectTransform * (applyTumble(aTransform) * vec4(position, 1.0));
     // for clipping in frag shader
-    vModelPosition = (model * position4).xyz;
-    vec4 mvPosition = modelView * position4;
+    vModelPosition = (uModel * world).xyz;
+    vec4 mvPosition = uModelView * world;
     vViewPosition = mvPosition.xyz;
 
     ${assign_size}

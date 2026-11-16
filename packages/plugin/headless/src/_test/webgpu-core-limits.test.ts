@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { InstanceCopyKernel, InstanceCopySchema } from '@molstar/graphics/gl/compute/cell-cull';
 import { canCullOnGpu } from '@molstar/graphics/gl/renderable/merged';
-import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
+import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/contexts/webgpu';
 import { WebGPU } from './webgpu-module.js';
 
 // a device with the core limits (what every WebGPU device has): kernels binding more storage buffers than a stage may
@@ -18,7 +18,13 @@ describe.skipIf(!WebGPU.module)('WebGPU core limits', () => {
     for (const limits of ['core', 'adapter'] as const) {
       const device = await requestWebGPUDevice('default', gpu, limits);
       if (!device) throw new Error('no WebGPU device');
-      const graphics = createWebGPUContext(device, { width: 16, height: 16, ownsDevice: true });
+      // `gpu` kept alive with the context (collected while its device is in use, Dawn's Node.js bindings crash)
+      const graphics = createWebGPUContext(device, {
+        width: 16,
+        height: 16,
+        ownsDevice: true,
+        requestDevice: () => requestWebGPUDevice('default', gpu, limits),
+      });
       try {
         const fits = device.limits.maxStorageBuffersPerShaderStage >= 8;
         expect(graphics.compute!.isKernelSupported(InstanceCopyKernel, InstanceCopySchema)).toBe(fits);

@@ -26,3 +26,27 @@ describe('projectSphere', () => {
     expect(Array.from(rect).map((v) => +v.toFixed(3))).toEqual([0.6, 0.35, 0.65, 0.4]);
   });
 });
+
+describe('projectSphere off axis', () => {
+  /** the point `p` (view space) in [0, 1] of the viewport, y from the top */
+  function screen(p: Vec3, projection: Mat4) {
+    const c = Vec4.transformMat4(Vec4(), Vec4.create(p[0], p[1], p[2], 1), projection);
+    return [(c[0] / c[3]) * 0.5 + 0.5, (c[1] / c[3]) * -0.5 + 0.5];
+  }
+
+  for (const [name, projection] of [
+    ['perspective', Mat4.perspective(Mat4(), -0.4, 1.6, 0.7, -1.3, 1, 100)],
+    ['orthographic', Mat4.ortho(Mat4(), -12, 28, 25, -15, 1, 100)],
+  ] as const) {
+    it(`bounds a small sphere around its center's projection (${name}, a stereo eye's or view offset's frustum)`, () => {
+      const p = Vec3.create(3, -2, -20);
+      const [x, y] = screen(p, projection);
+      const rect = projectSphere(Vec4(), p, 0.01, projection);
+      expect(rect[0]).toBeLessThan(x);
+      expect(rect[2]).toBeGreaterThan(x);
+      expect(rect[1]).toBeLessThan(y);
+      expect(rect[3]).toBeGreaterThan(y);
+      expect(rect[2] - rect[0]).toBeLessThan(0.01);
+    });
+  }
+});

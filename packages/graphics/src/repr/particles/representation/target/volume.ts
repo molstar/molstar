@@ -16,7 +16,7 @@ import { checkSphereImpostorSupport } from '../../../structure/visual/util/commo
 
 /** The subset of representation props needed to build a volume target geometry. */
 export type VolumeTargetProps = VolumeIsosurfaceProps &
-  Pick<VolumeSphereProps, 'perturbPositions' | 'sizeFactor' | 'detail' | 'lodLevels'> & {
+  Pick<VolumeSphereProps, 'perturbPositions' | 'sizeFactor' | 'detail' | 'lodPixelSize'> & {
     type: string;
     tryUseImpostor: boolean;
   };

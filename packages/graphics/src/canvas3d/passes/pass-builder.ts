@@ -12,7 +12,7 @@ import type {
   TargetDescriptor,
 } from '@molstar/graphics/gl/context';
 import type { ComputeRenderable } from '@molstar/graphics/gl/renderable';
-import type { RenderState } from '@molstar/graphics/gl/render-state';
+import type { ClearValues, RenderState } from '@molstar/graphics/gl/render-state';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import type { Scene } from '@molstar/graphics/gl/scene';
 
@@ -37,6 +37,11 @@ export interface PassBuilder {
   renderer(pass: Renderer.Pass, group: Scene.Group, draw: () => void, all?: boolean): void;
   /** a full-screen renderable drawn with `state` */
   quad(renderable: ComputeRenderable<any>, state: RenderState): void;
+  /**
+   * a clear of `values` (which attachments: their values are not needed) inside the pass, `draw` clears (preparing:
+   * what the clear needs, e.g. a WebGPU clear draw's pipeline, `GraphicsContext.prepareClear`)
+   */
+  clear(values: ClearValues, draw: () => void): void;
 }
 
 /** Draws the plan */
@@ -49,6 +54,7 @@ export function createRenderBuilder(graphics: GraphicsContext): PassBuilder {
       graphics.setRenderState(state);
       renderable.render();
     },
+    clear: (_values, draw) => draw(),
   };
 }
 
@@ -102,5 +108,6 @@ export function createPrepareBuilder(
     },
     quad: (renderable, state) =>
       request([{ item: renderable.renderItem, variant: 'compute', state, target: getTarget() }]),
+    clear: (values) => graphics.prepareClear?.(getTarget(), values),
   };
 }

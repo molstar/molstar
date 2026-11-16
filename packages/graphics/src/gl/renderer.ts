@@ -6,19 +6,18 @@
  */
 
 import type { OcclusionPyramid } from './compute/cell-cull.js';
-import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
-import type { ICamera } from '@molstar/graphics/canvas3d/camera';
+import { Viewport } from '@molstar/core/util/viewport';
+import type { RenderCamera } from './camera.js';
 import type { Scene } from './scene.js';
 import type { GraphicsContext, PipelineRequest, TargetDescriptor } from './context.js';
 import { Mat4, Vec3, Vec4, Vec2 } from '@molstar/core/math/linear-algebra';
-import { type CullBatch, type GraphicsRenderable, type Frame, createFrame, DrawKey, LodView } from './renderable.js';
+import { type GraphicsRenderable, type Frame, createFrame, LodView } from './renderable.js';
 import { getDrawnBoundingSphere } from './renderable/util.js';
 import {
   DrawFact,
   DrawRow,
   DrawState,
   type DrawTable,
-  getCheckFacts,
   getDrawFacts,
   getDrawState,
   hasCameraBounds,
@@ -26,7 +25,7 @@ import {
 import { Color } from '@molstar/core/util/color';
 import { ValueCell, deepEqual } from '@molstar/core/util';
 import { GlobalUniformSchema, type GlobalUniformValues, MaxLightCount } from './renderable/schema.js';
-import type { DrawList, GraphicsRenderVariant, ProgramItem } from './render-item.js';
+import type { GraphicsRenderVariant, ProgramItem } from './render-item.js';
 import type { ObjectSignature } from './precompile.js';
 import { getRenderableProgramSource } from './render-object.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -37,19 +36,23 @@ import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Clip } from '@molstar/core/util/clip';
-import { isDebugMode } from '@molstar/core/util/debug';
-import { createSphereRasterPass, isSphereRasterEligible, type SphereRasterPass } from './compute/sphere-raster-pass.js';
-import type { SpheresValues } from './renderable/spheres.js';
-import { projectSphere } from './project-sphere.js';
-import type { MergedRasterParams } from './renderable/merged-culler.js';
+import { RenderState } from './render-state.js';
 import {
-  BlendState,
-  type CullMode,
-  type DepthState,
-  type FrontFace,
-  RenderState,
-  type StencilState,
-} from './render-state.js';
+  Flag,
+  getObjectFacts,
+  getObjectState,
+  getPassDraws,
+  getSolidInteriorFillStates,
+  getSolidInteriorMarkState,
+  isPassDrawn,
+  OpaqueState,
+  type Pass as PassDrawsPass,
+  PassDraws,
+} from './renderer/pass-draws.js';
+import { createRendererDrawLists, type PassPart, WholePass } from './renderer/draw-lists.js';
+import { createSolidInteriorCaps } from './renderer/solid-interior-caps.js';
+import { createGpuCulling } from './renderer/gpu-culling.js';
+import { createRenderPassAttachments } from './render-pass-attachments.js';
 
 export interface RendererStats {
   programCount: number;
@@ -92,13 +95,19 @@ interface Renderer {
    * `side`: a frame of a pass's own within the frame (culled anew, e.g. the tracing's thickness), not counted as one:
    * the frame updated before it and after it are the same one
    */
-  update: (camera: ICamera, scene: Scene, frame: Frame, side?: boolean) => void;
+  update: (camera: RenderCamera, scene: Scene, frame: Frame, side?: boolean) => void;
   /**
    * Culls on the GPU (merged render objects, `Renderable.prepareCull`) with the planes of the last `update`: outside of
    * passes (compute), before the passes of the frame that draw with it; others draw the CPU culling's lists
    */
   /** `clipGhost`: the ghost pass draws this frame (`renderClipGhost`), its lists culled on the GPU too */
   prepareCull: (scene: Scene.Group, twoPhase?: boolean, clipGhost?: boolean) => void;
+  /**
+   * Culls on the GPU for a view of its own (a frame of its own: the thickness pass, a ray's pick) with the planes of the
+   * last `update`, no pass open: the objects that draw nothing without (`Renderable.prepareCullView`, a page store's);
+   * the others draw the CPU culling's lists there. Not tested against a pyramid
+   */
+  prepareCullView: (scene: Scene.Group) => void;
   /** The objects whose second phase is to run after the last `prepareCull` with `twoPhase` (none: no second part) */
   readonly cullSecondPending: number;
   /**
@@ -107,17 +116,17 @@ interface Renderer {
    */
   prepareCullSecond: (scene: Scene.Group, pyramid: OcclusionPyramid | undefined) => void;
   /** The opaque pass's second part: what the second phase found, on the first part's target */
-  renderOpaqueSecond: (group: Scene.Group, camera: ICamera) => void;
+  renderOpaqueSecond: (group: Scene.Group, camera: RenderCamera) => void;
   /**
    * The tracing pass's second part (illumination's input), as `renderOpaqueSecond`; the passes after it draw both
    * phases (the back depth)
    */
-  renderTracingSecond: (group: Scene.Group, camera: ICamera) => void;
+  renderTracingSecond: (group: Scene.Group, camera: RenderCamera) => void;
   /**
    * Draws the small opaque spheres of `scene` by the sphere raster (`sphereRaster`, WebGPU with `atomicMinMax64`) for
    * the next `renderOpaque`, which resolves them; after `update` and `prepareCull`, no pass open (compute)
    */
-  prepareSphereRaster: (scene: Scene.Group, camera: ICamera) => void;
+  prepareSphereRaster: (scene: Scene.Group, camera: RenderCamera) => void;
   /** The objects the last `prepareCull` culled on the GPU */
   readonly gpuCulledCount: number;
   setTime: (time: number) => void;
@@ -125,44 +134,44 @@ interface Renderer {
   /** `occluder`: for an overlay (`dOverlay`), the scene's opaque depth its occlusion tests against */
   renderPick: (
     group: Scene.Group,
-    camera: ICamera,
+    camera: RenderCamera,
     variant: 'pick' | 'depth',
     pickType: PickType,
     occluder?: Renderer.Occluder | null,
   ) => void;
-  renderDepth: (group: Scene.Group, camera: ICamera) => void;
-  renderDepthOpaque: (group: Scene.Group, camera: ICamera) => void;
-  renderDepthOpaqueBack: (group: Scene.Group, camera: ICamera) => void;
-  renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void;
+  renderDepth: (group: Scene.Group, camera: RenderCamera) => void;
+  renderDepthOpaque: (group: Scene.Group, camera: RenderCamera) => void;
+  renderDepthOpaqueBack: (group: Scene.Group, camera: RenderCamera) => void;
+  renderDepthTransparent: (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => void;
   /**
    * The ghost pass: what the clip objects remove, as depth (the `depth` variant, `uClipGhost`), of
    * the objects with a ghost (`DrawFact.ClipGhost`) the clip objects reach; `scale`: of a target at that fraction of
    * the resolution (the viewport set so), sizes in pixels scaled with it
    */
-  renderClipGhost: (group: Scene.Group, camera: ICamera, scale?: number) => void;
-  renderMarkingDepth: (group: Scene.Group, camera: ICamera) => void;
-  renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void;
+  renderClipGhost: (group: Scene.Group, camera: RenderCamera, scale?: number) => void;
+  renderMarkingDepth: (group: Scene.Group, camera: RenderCamera) => void;
+  renderMarkingMask: (group: Scene.Group, camera: RenderCamera, depthTexture: Texture | null) => void;
   renderEmissiveOpaque: (
     group: Scene.Group,
-    camera: ICamera,
+    camera: RenderCamera,
     depthTexture: Texture,
     occludeWithOpaqueDepth: boolean,
   ) => void;
-  renderEmissiveTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void;
-  renderTracing: (group: Scene.Group, camera: ICamera) => void;
-  renderBlended: (group: Scene, camera: ICamera) => void;
+  renderEmissiveTransparent: (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => void;
+  renderTracing: (group: Scene.Group, camera: RenderCamera) => void;
+  renderBlended: (group: Scene, camera: RenderCamera) => void;
   /**
    * An overlay (`dOverlay`), as `renderBlended`, over the scene's opaque depth (`occluder`): the transparent pass also
    * draws the occluded parts of opaque objects (`uOccludedAlpha` < 1)
    */
-  renderOverlay: (group: Scene.Group, camera: ICamera, occluder: Renderer.Occluder | null) => void;
-  renderOpaque: (group: Scene.Group, camera: ICamera) => void;
-  renderBlendedTransparent: (group: Scene.Group, camera: ICamera) => void;
-  renderVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void;
-  renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void;
+  renderOverlay: (group: Scene.Group, camera: RenderCamera, occluder: Renderer.Occluder | null) => void;
+  renderOpaque: (group: Scene.Group, camera: RenderCamera) => void;
+  renderBlendedTransparent: (group: Scene.Group, camera: RenderCamera) => void;
+  renderVolume: (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => void;
+  renderWboitTransparent: (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => void;
   renderDpoitTransparent: (
     group: Scene.Group,
-    camera: ICamera,
+    camera: RenderCamera,
     depthTexture: Texture,
     dpoitTextures: { depth: Texture; frontColor: Texture },
   ) => void;
@@ -337,16 +346,7 @@ namespace Renderer {
     readonly far: number;
   };
 
-  const enum Flag {
-    None = 0,
-    BlendedFront = 1,
-    BlendedBack = 2,
-    DepthBack = 3,
-    SolidInteriorMark = 4,
-    SolidInteriorFill = 5,
-  }
-
-  type SolidInteriorMode = 'opaque' | 'back' | 'blended' | 'oit';
+  export type Pass = PassDrawsPass;
 
   const enum Mask {
     All = 0,
@@ -354,369 +354,14 @@ namespace Renderer {
     Transparent = 2,
   }
 
-  // depth is reversed (near 1, far 0, see `DepthRangeTag`): nearer is greater
-  const DepthNearer: DepthState = { compare: 'greater', write: true };
-  const DepthNearerReadOnly: DepthState = { compare: 'greater', write: false };
-
-  const OpaqueState: RenderState = { depth: DepthNearer };
-  const OpaqueBackState: RenderState = { depth: { compare: 'less', write: true } };
-  /** test against caller-attached opaque depth, read-only + greater-equal (nearer or equal) so an emitter at its own depth still passes */
-  const EmissiveOccludedState: RenderState = { depth: { compare: 'greater-equal', write: false } };
-  /** max blending so overlapping faces don't accumulate */
-  const EmissiveTransparentState: RenderState = { blend: BlendState.Max, depth: DepthNearerReadOnly };
-  const BlendedTransparentState: RenderState = { blend: BlendState.Alpha, depth: DepthNearerReadOnly };
-  const BlendedTransparentBackgroundState: RenderState = {
-    blend: BlendState.Premultiplied,
-    depth: DepthNearerReadOnly,
-  };
-  /** depth test done manually in shader against `depthTexture` */
-  const VolumeState: RenderState = RenderState.Premultiplied;
-  const WboitState: RenderState = {
-    blend: BlendState(
-      BlendState.Component('add', 'one', 'one'),
-      BlendState.Component('add', 'zero', 'one-minus-src-alpha'),
-    ),
-  };
-  const DpoitState: RenderState = { blend: BlendState.Max };
-
-  const SolidInteriorMarkStencil: StencilState = {
-    front: { compare: 'always', failOp: 'keep', depthFailOp: 'keep', passOp: 'increment-wrap' },
-    back: { compare: 'always', failOp: 'keep', depthFailOp: 'keep', passOp: 'decrement-wrap' },
-    readMask: 0xff,
-    writeMask: 0xff,
-    reference: 0,
-  };
-  const SolidInteriorFillStencilKeep: StencilState = {
-    front: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'keep' },
-    back: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'keep' },
-    readMask: 0xff,
-    writeMask: 0xff,
-    reference: 0,
-  };
-  const SolidInteriorFillStencilZero: StencilState = {
-    front: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'zero' },
-    back: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'zero' },
-    readMask: 0xff,
-    writeMask: 0xff,
-    reference: 0,
-  };
-  const NoColorWrite = [false, false, false, false] as const;
-
-  const CullModes: CullMode[] = ['none', 'front', 'back'];
-  /** per-object cull and front face variants of the pass states */
-  const FaceStates = new WeakMap<RenderState, RenderState[]>();
-  function getFaceState(base: RenderState, cull: CullMode, frontFace: FrontFace) {
-    let states = FaceStates.get(base);
-    if (!states) {
-      states = [];
-      FaceStates.set(base, states);
-    }
-    const i = CullModes.indexOf(cull) * 2 + (frontFace === 'cw' ? 1 : 0);
-    return (states[i] ??= { ...base, cull, frontFace });
-  }
-
-  /**
-   * The render state of a draw of an object with the facts (`DrawFact`): the pass state with the object's cull and
-   * front face; `undefined` where the object isn't drawn (direct volumes in the `emissive` and `tracing` variants)
-   */
-  function getObjectState(
-    facts: number,
-    variant: GraphicsRenderVariant,
-    flag: Flag,
-    passState: RenderState,
-  ): RenderState | undefined {
-    const flipSided = (facts & DrawFact.FlipSided) !== 0;
-    const hasReflection = (facts & DrawFact.HasReflection) !== 0;
-    let cull: CullMode;
-    let frontFace: FrontFace = flipSided ? 'cw' : 'ccw';
-    if ((facts & DrawFact.DirectVolume) !== 0) {
-      if (variant === 'emissive' || variant === 'tracing') {
-        return; // not supported
-      }
-
-      // culling done in fragment shader
-      cull = 'none';
-      frontFace = 'ccw';
-    } else if (flag === Flag.BlendedFront) {
-      cull = flipSided ? 'front' : 'back';
-    } else if (
-      flag === Flag.DepthBack ||
-      flag === Flag.SolidInteriorMark ||
-      (flag === Flag.SolidInteriorFill && hasReflection)
-    ) {
-      // reflected instances flip the winding, so their exit faces are not back-facing
-      cull = 'none';
-    } else if (flag === Flag.BlendedBack || flag === Flag.SolidInteriorFill) {
-      cull = flipSided ? 'back' : 'front';
-    } else if ((facts & DrawFact.SingleSided) !== 0 && !hasReflection) {
-      cull = flipSided ? 'front' : 'back';
-    } else {
-      cull = 'none';
-    }
-    return getFaceState(passState, cull, frontFace);
-  }
-
-  /** marks the interior of a solid object in the stencil buffer, per pass state */
-  const SolidInteriorMarkStates = new WeakMap<RenderState, RenderState>();
-  function getSolidInteriorMarkState(passState: RenderState) {
-    let state = SolidInteriorMarkStates.get(passState);
-    if (!state) {
-      state = { ...passState, colorWrite: NoColorWrite, depth: undefined, stencil: SolidInteriorMarkStencil };
-      SolidInteriorMarkStates.set(passState, state);
-    }
-    return state;
-  }
-
-  type SolidInteriorFillStates = { readonly resolve?: RenderState; readonly fill: RenderState };
-  /** fills the marked interior (`oit` resolves the nearest back face first), per pass state and mode */
-  const SolidInteriorFillStatesCache = new WeakMap<RenderState, Map<SolidInteriorMode, SolidInteriorFillStates>>();
-  function getSolidInteriorFillStates(passState: RenderState, mode: SolidInteriorMode): SolidInteriorFillStates {
-    let cache = SolidInteriorFillStatesCache.get(passState);
-    if (!cache) SolidInteriorFillStatesCache.set(passState, (cache = new Map()));
-    let states = cache.get(mode);
-    if (!states) {
-      const writeDepth = mode === 'opaque' || mode === 'back';
-      let resolve: RenderState | undefined;
-      let depth: DepthState;
-      if (mode === 'oit') {
-        resolve = {
-          ...passState,
-          colorWrite: NoColorWrite,
-          depth: { compare: 'greater-equal', write: true },
-          stencil: SolidInteriorFillStencilKeep,
-        };
-        depth = { compare: 'equal', write: false };
-      } else {
-        depth = { compare: mode === 'back' ? 'less-equal' : 'greater-equal', write: writeDepth };
-      }
-      const fill: RenderState = {
-        ...passState,
-        depth,
-        stencil: writeDepth ? SolidInteriorFillStencilKeep : SolidInteriorFillStencilZero,
-      };
-      states = { resolve, fill };
-      cache.set(mode, states);
-    }
-    return states;
-  }
-
-  /**
-   * A check of a pass on an object's facts (`DrawFact`, `getCheckFacts`) and state (`DrawState`): bit tests, the same
-   * for an object of a draw table (its row) and any other (`getObjectFacts`)
-   */
-  type FactTest = (facts: number, state: number) => boolean;
-
-  const OpaqueBlockers =
-    DrawFact.AlphaOne | DrawFact.TransparencyFull | DrawFact.DirectVolume | DrawFact.FuzzyPoints | DrawFact.Xray;
-  const TransparentReasons =
-    DrawFact.AlphaBelowOne |
-    DrawFact.TransparencyAny |
-    DrawFact.DirectVolume |
-    DrawFact.FuzzyPoints |
-    DrawFact.TextOrImage |
-    DrawFact.Xray |
-    DrawFact.Occludable;
-
-  /** alpha 1, not fully transparent, not a direct volume, fuzzy points or x-ray shaded; or back faces opaque */
-  const checkOpaque: FactTest = (f) =>
-    (f & OpaqueBlockers) === DrawFact.AlphaOne || (f & DrawFact.BackfacesOpaque) !== 0;
-
-  /** not alpha 0, and alpha below 1, transparency, a direct volume, fuzzy points, text, an image or x-ray shaded */
-  const checkTransparent: FactTest = (f) => (f & DrawFact.AlphaZero) === 0 && (f & TransparentReasons) !== 0;
-
-  const checkPickable: FactTest = (_, s) => (s & DrawState.ColorOnly) === 0;
-
-  const checkMarkingDepth: FactTest = (f) =>
-    (f & (DrawFact.AlphaZero | DrawFact.TransparencyFull | DrawFact.MarkerFull)) === 0;
-
-  const checkMarkingMask: FactTest = (f) => (f & DrawFact.MarkerAny) !== 0;
-
-  const checkClipGhost: FactTest = (f) => (f & DrawFact.ClipGhost) !== 0;
-
-  const checkEmissive: FactTest = (f) => (f & DrawFact.Emissive) !== 0;
-
-  const isDirectVolume: FactTest = (f) => (f & DrawFact.DirectVolume) !== 0;
-
-  /** caps are drawn from back faces, which transparent passes discard when `transparentBackfaces` is 'off' */
-  const checkTransparentCap: FactTest = (f, s) => checkTransparent(f, s) && (f & DrawFact.BackfacesOff) === 0;
-
-  const checkAll: FactTest = () => true;
-
-  /** The facts of an object outside a draw table, for the checks (`FactTest`; its state: `getDrawState`) */
-  function getObjectFacts(r: GraphicsRenderable) {
-    return getCheckFacts(r.values);
-  }
-
-  /**
-   * whether an object with `state` draws in `pass`: the pick passes (the pick and its depth) skip objects that are not
-   * pickable, the others pick-only objects (hit areas)
-   */
-  function isPassDrawn(pass: PassDraws, state: number) {
-    return pass.pick ? (state & DrawState.Pickable) !== 0 : (state & DrawState.PickOnly) === 0;
-  }
-
-  /** A draw of an object in a pass */
-  type ObjectDraw = { readonly flag: Flag; readonly passState: RenderState };
-
-  /** The draws of a renderer pass, shared by drawing (`renderPass`) and collecting its pipeline requests (`collect`) */
-  interface PassDraws {
-    readonly variant: GraphicsRenderVariant;
-    /** a pick pass (the pick or its depth): pickable objects, pick-only ones included (`isPassDrawn`) */
-    readonly pick?: boolean;
-    /** objects the pass is for (by geometry), all if not given */
-    readonly select?: FactTest;
-    /** objects the pass draws in their current state (opacity, markers, emission, ...) */
-    readonly check: FactTest;
-    /** the draws of an object with the facts, in order */
-    readonly draws: (facts: number) => readonly ObjectDraw[];
-    /** solid interior caps of the objects passing `check`, `inline` right after each object, else after all objects */
-    readonly caps?: {
-      readonly check: FactTest;
-      readonly mode: SolidInteriorMode;
-      readonly passState: RenderState;
-      readonly inline?: boolean;
-    };
-  }
-
-  function singleDraw(passState: RenderState, flag = Flag.None): (facts: number) => readonly ObjectDraw[] {
-    const draws: readonly ObjectDraw[] = [{ flag, passState }];
-    return () => draws;
-  }
-
-  /** draws objects of `check` with `passState`, caps of the same objects */
-  function simplePassDraws(
-    variant: GraphicsRenderVariant,
-    check: FactTest,
-    passState: RenderState,
-    caps: { check?: FactTest; mode: SolidInteriorMode },
-  ): PassDraws {
-    return {
-      variant,
-      check,
-      draws: singleDraw(passState),
-      caps: { check: caps.check ?? check, mode: caps.mode, passState },
-    };
-  }
-
-  function createEmissiveOpaquePassDraws(occludeWithOpaqueDepth: boolean): PassDraws {
-    // without occluding opaque depth (packed depth): build own occluding depth from all opaque geometry
-    const passState = occludeWithOpaqueDepth ? EmissiveOccludedState : OpaqueState;
-    const check: FactTest = (f, s) => checkOpaque(f, s) && (!occludeWithOpaqueDepth || checkEmissive(f, s));
-    return simplePassDraws('emissive', check, passState, { mode: occludeWithOpaqueDepth ? 'blended' : 'opaque' });
-  }
-
-  function createBlendedTransparentPassDraws(transparentBackground: boolean): PassDraws {
-    const passState = transparentBackground ? BlendedTransparentBackgroundState : BlendedTransparentState;
-    const backAndFront: readonly ObjectDraw[] = [
-      { flag: Flag.BlendedBack, passState },
-      { flag: Flag.BlendedFront, passState },
-    ];
-    const front: readonly ObjectDraw[] = [{ flag: Flag.BlendedFront, passState }];
-    const single: readonly ObjectDraw[] = [{ flag: Flag.None, passState }];
-    return {
-      variant: 'color',
-      check: checkTransparent,
-      // render frontfaces and backfaces separately to avoid artefacts
-      draws: (f) => {
-        if ((f & DrawFact.DoubleSided) === 0) return single;
-        return (f & DrawFact.BackfacesOpaque) === 0 ? backAndFront : front;
-      },
-      caps: { check: checkTransparentCap, mode: 'blended', passState, inline: true },
-    };
-  }
-
-  const PassDraws = {
-    pick: { ...simplePassDraws('pick', checkPickable, OpaqueState, { mode: 'opaque' }), pick: true },
-    pickDepth: { ...simplePassDraws('depth', checkPickable, OpaqueState, { mode: 'opaque' }), pick: true },
-    depth: simplePassDraws('depth', checkAll, OpaqueState, { mode: 'opaque' }),
-    depthOpaque: simplePassDraws('depth', checkOpaque, OpaqueState, { mode: 'opaque' }),
-    depthOpaqueBack: {
-      variant: 'depth',
-      check: checkOpaque,
-      draws: singleDraw(OpaqueBackState, Flag.DepthBack),
-      caps: { check: checkOpaque, mode: 'back', passState: OpaqueBackState },
-    },
-    depthTransparent: simplePassDraws('depth', checkTransparent, OpaqueState, {
-      check: checkTransparentCap,
-      mode: 'opaque',
-    }),
-    // no caps: the ghost is the removed parts' surfaces
-    clipGhost: { variant: 'depth', check: checkClipGhost, draws: singleDraw(OpaqueState) } as PassDraws,
-    markingDepth: simplePassDraws('marking', checkMarkingDepth, OpaqueState, { mode: 'opaque' }),
-    markingMask: simplePassDraws('marking', checkMarkingMask, OpaqueState, { mode: 'opaque' }),
-    emissiveOpaque: createEmissiveOpaquePassDraws(false),
-    emissiveOpaqueOccluded: createEmissiveOpaquePassDraws(true),
-    emissiveTransparent: {
-      ...simplePassDraws(
-        'emissive',
-        (f, s) => checkTransparent(f, s) && checkEmissive(f, s),
-        EmissiveTransparentState,
-        { check: (f, s) => checkTransparentCap(f, s) && checkEmissive(f, s), mode: 'blended' },
-      ),
-      select: (f, s) => !isDirectVolume(f, s),
-    },
-    tracing: simplePassDraws('tracing', checkOpaque, OpaqueState, { mode: 'opaque' }),
-    tracingSecond: { variant: 'tracing', check: checkOpaque, draws: singleDraw(OpaqueState) } as PassDraws,
-    opaque: simplePassDraws('color', checkOpaque, OpaqueState, { mode: 'opaque' }),
-    opaqueSecond: { variant: 'color', check: checkOpaque, draws: singleDraw(OpaqueState) } as PassDraws,
-    blendedTransparent: createBlendedTransparentPassDraws(false),
-    blendedTransparentBackground: createBlendedTransparentPassDraws(true),
-    volume: { variant: 'color', select: isDirectVolume, check: checkAll, draws: singleDraw(VolumeState) },
-    wboitTransparent: simplePassDraws('color', checkTransparent, WboitState, {
-      check: checkTransparentCap,
-      mode: 'oit',
-    }),
-    dpoitTransparent: simplePassDraws('color', checkTransparent, DpoitState, {
-      check: checkTransparentCap,
-      mode: 'oit',
-    }),
-  } satisfies Record<string, PassDraws>;
-
-  /** A pass of the renderer, as its `render*` methods draw it (`renderBlended` is `opaque` and `blendedTransparent`) */
-  export type Pass =
-    | { readonly name: 'pick'; readonly variant: 'pick' | 'depth' }
-    | { readonly name: 'emissiveOpaque'; readonly occludeWithOpaqueDepth: boolean }
-    | {
-        readonly name:
-          | 'depth'
-          | 'depthOpaque'
-          | 'depthOpaqueBack'
-          | 'depthTransparent'
-          | 'clipGhost'
-          | 'markingDepth'
-          | 'markingMask'
-          | 'emissiveTransparent'
-          | 'tracing'
-          | 'opaque'
-          | 'blendedTransparent'
-          | 'volume'
-          | 'wboitTransparent'
-          | 'dpoitTransparent';
-      };
-
-  function getPassDraws(pass: Pass, transparentBackground: boolean): PassDraws {
-    switch (pass.name) {
-      case 'pick':
-        return pass.variant === 'pick' ? PassDraws.pick : PassDraws.pickDepth;
-      case 'emissiveOpaque':
-        return pass.occludeWithOpaqueDepth ? PassDraws.emissiveOpaqueOccluded : PassDraws.emissiveOpaque;
-      case 'blendedTransparent':
-        return transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent;
-      default:
-        return PassDraws[pass.name];
-    }
-  }
-
   /** 1x1 depth texture cleared to the far plane */
   function createFarDepthTexture(ctx: GraphicsContext) {
     const texture = ctx.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
     texture.define(1, 1);
-    const framebuffer = ctx.resources.framebuffer();
-    texture.attachFramebuffer(framebuffer, 'depth');
-    ctx.beginRenderPass(framebuffer, { clear: { depth: 0 } });
+    const target = createRenderPassAttachments(ctx.resources, [], texture);
+    ctx.beginRenderPass(target, { clear: { depth: 0 } });
     ctx.endRenderPass();
-    texture.detachFramebuffer(framebuffer, 'depth');
-    framebuffer.destroy();
+    target.destroy();
     return texture;
   }
 
@@ -786,6 +431,13 @@ namespace Renderer {
     const cameraPlane = Plane3D();
     const viewOffset = Vec2();
     const frustum = Frustum3D();
+    /**
+     * `cameraPlane` and `frustum` in the unscaled world (their constants over the camera scale), the instances' culling's
+     * (`Renderable.cull`, the GPU's): of a point `p` the scaled planes' distances of `s p` over `s`, so culled and the
+     * levels chosen as unscaled (XR's world scale); the same as them unscaled
+     */
+    const cullPlane = Plane3D();
+    const cullFrustum = Frustum3D();
     const lodView = LodView();
     /** the culling view of the last update (camera plane, frustum, level scales), see `LodView.version` */
     const lastView = new Float64Array(30);
@@ -807,8 +459,8 @@ namespace Renderer {
         set(o + 2, p.normal[2]);
         set(o + 3, p.constant);
       };
-      setPlane(cameraPlane, 0);
-      for (let i = 0; i < 6; ++i) setPlane(frustum[i as Frustum3D.PlaneIndex], (i + 1) * 4);
+      setPlane(cullPlane, 0);
+      for (let i = 0; i < 6; ++i) setPlane(cullFrustum[i as Frustum3D.PlaneIndex], (i + 1) * 4);
       set(28, lodView.depthScale);
       set(29, lodView.pixelSize);
       if (changed) lodView.version = ++viewVersions;
@@ -918,7 +570,7 @@ namespace Renderer {
 
     /**
      * Whether clip objects remove all of `r` within `sphere` (unscaled): with clip objects and no clipping layer
-     * (`DrawFact.ClipCull`), its bounding sphere clipped whole (`Clip.classifySphere`, `clip-culling.md`)
+     * (`DrawFact.ClipCull`), its bounding sphere clipped whole (`Clip.classifySphere`)
      */
     const clipSphere = Sphere3D();
     const isClippedWhole = (r: GraphicsRenderable, sphere: Sphere3D) => {
@@ -1052,7 +704,7 @@ namespace Renderer {
     /** the ghost pass's (`renderClipGhost`), the clip test inverted */
     const ghostRowVisibilities = new WeakMap<DrawTable, RowVisibility>();
     const occlusionSphere = Sphere3D();
-    /** drawing a pass from a draw list (`renderPassFromDrawList`): its rows unculled while the view moves */
+    /** drawing a pass from a draw list (`RendererDrawLists.render`): its rows unculled while the view moves */
     let drawingFromList = false;
     /** frames since the visible set last changed that count as moving (a rotation changes it nearly every frame) */
     const MovingFrames = 8;
@@ -1209,30 +861,21 @@ namespace Renderer {
     const cullObject = (r: GraphicsRenderable) => {
       if (clipGhost) updateGhostCull();
       const view = clipGhost ? ghostLodView : lodView;
-      const unscaled = modelScale === 1;
       const lodLevels = (drawFacts & DrawFact.LodLevels) !== 0;
-      if (unscaled) {
-        const hasInstanceGrid = (drawFacts & DrawFact.InstanceGrid) !== 0;
-        const hasMultipleInstances = (drawFacts & DrawFact.MultipleInstances) !== 0;
-        if (hasInstanceGrid && (hasMultipleInstances || lodLevels)) {
-          if (!viewChecked) {
-            updateViewVersion();
-            viewChecked = true;
-          }
-          // the marking mask drawing the marked instances alone needs no culling
-          if (drawingMarked && r.prepareMarked?.(cameraPlane, frustum, lodView)) return;
-          r.cull(cameraPlane, frustum, isOccluded, ctx.stats, currentFrame, view, clipGhost);
-        } else {
-          r.uncull(view, clipGhost);
+      const hasInstanceGrid = (drawFacts & DrawFact.InstanceGrid) !== 0;
+      const hasMultipleInstances = (drawFacts & DrawFact.MultipleInstances) !== 0;
+      if (hasInstanceGrid && (hasMultipleInstances || lodLevels)) {
+        if (!viewChecked) {
+          updateViewVersion();
+          viewChecked = true;
         }
+        // the marking mask drawing the marked instances alone needs no culling
+        if (drawingMarked && r.prepareMarked?.(cullPlane, cullFrustum, lodView)) return;
+        // in the unscaled world (`cullFrustum`); the occlusion pyramid's spheres scaled: not tested scaled
+        const occluded = modelScale === 1 ? isOccluded : null;
+        r.cull(cullPlane, cullFrustum, occluded, ctx.stats, currentFrame, view, clipGhost);
       } else {
-        if (lodLevels) {
-          const { center, radius } = boundingSphere;
-          const d = Plane3D.distanceToPoint(cameraPlane, center);
-          r.cullSimple(d, radius, modelScale, view, clipGhost);
-        } else {
-          r.uncull(view, clipGhost);
-        }
+        r.uncull(view, clipGhost);
       }
     };
 
@@ -1250,7 +893,7 @@ namespace Renderer {
       // culled all the same: the views of a frame culled already draw (and raster) by its lists (`getRasterInput`)
       cullObject(r);
       // the raster draws all its objects' spheres (`sphereRaster` 'only')
-      if (sphereRasterOnly && sphereRasterPass?.isDrawn(r)) return;
+      if (culling.isRasterDrawn(r)) return;
       if (drawingSecond && !r.renderSecond) return;
       const state = getObjectState(drawFacts, variant, flag, passState);
       if (!state) return;
@@ -1271,351 +914,57 @@ namespace Renderer {
       if (isVisible(r, variant)) drawObject(r, variant, flag, passState);
     };
 
-    const solidInteriorCapSupported = ctx.capabilities.fragDepth;
-    const canRenderSolidInteriorCaps = () => {
-      return solidInteriorCapSupported && ctx.hasRenderPassStencil();
-    };
-    /** of an object with the facts (`DrawFact.SolidInterior`) */
-    const hasSolidInteriorCap = (facts: number) => {
-      return solidInteriorCapSupported && (facts & DrawFact.SolidInterior) !== 0;
-    };
+    const {
+      supported: solidInteriorCapSupported,
+      canRender: canRenderSolidInteriorCaps,
+      has: hasSolidInteriorCap,
+      get: getSolidInteriorCaps,
+      segments: capSegments,
+      draw: drawSolidInteriorCaps,
+      drawAll: renderSolidInteriorCaps,
+    } = createSolidInteriorCaps({
+      ctx,
+      globals,
+      boundingSphere,
+      cameraPlane,
+      cameraPosition,
+      get modelScale() {
+        return modelScale;
+      },
+      get near() {
+        return globalUniforms.uNear.ref.value;
+      },
+      get cullSecondPending() {
+        return culling.secondPending;
+      },
+      drawObject,
+      isVisible,
+    });
 
-    const setSolidInteriorPass = (pass: number, clipIndex: number) => {
-      globals.setSolidInteriorCap(pass, clipIndex);
-    };
-
-    const renderSolidInteriorMark = (
-      r: GraphicsRenderable,
-      variant: GraphicsRenderVariant,
-      clipIndex: number,
-      passState: RenderState,
-      segments: readonly number[],
-    ) => {
-      ctx.clear({ stencil: 0 });
-      setSolidInteriorPass(2, clipIndex);
-      drawObject(r, variant, Flag.SolidInteriorMark, getSolidInteriorMarkState(passState), segments);
-    };
-
-    const renderSolidInteriorFill = (
-      r: GraphicsRenderable,
-      variant: GraphicsRenderVariant,
-      mode: SolidInteriorMode,
-      clipIndex: number,
-      passState: RenderState,
-      segments: readonly number[],
-    ) => {
-      setSolidInteriorPass(1, clipIndex);
-      const { resolve, fill } = getSolidInteriorFillStates(passState, mode);
-      if (resolve) {
-        // the OIT depth attachment is otherwise unused: resolve the nearest back face, then only draw that one
-        ctx.clear({ depth: 0 });
-        drawObject(r, variant, Flag.SolidInteriorFill, resolve, segments);
-      }
-      drawObject(r, variant, Flag.SolidInteriorFill, fill, segments);
-    };
-
-    const solidInteriorEye = Vec3();
-    const solidInteriorSphere = Sphere3D();
-
-    /**
-     * Whether near cuts the (scaled) sphere by more than a margin: the camera fits near to the front of the scene's
-     * sphere, and an object spanning the scene has its sphere's front there too, its geometry behind near
-     */
-    const cutsNear = (s: Sphere3D, near: number) => {
-      const d = Plane3D.distanceToPoint(cameraPlane, s.center);
-      return d - s.radius < near * (1 - 1e-4) && d + s.radius >= near;
-    };
-
-    const cutsNearSegment = (s: Sphere3D) =>
-      cutsNear(Sphere3D.scaleNX(solidInteriorSphere, s, modelScale), globalUniforms.uNear.ref.value);
-
-    /**
-     * Per cap of the last `getSolidInteriorCaps` (by position), the segments it cuts of an object drawing several (a
-     * merged object, `Renderable.renderSegments`), drawn instead of every member the object draws; empty where it cuts
-     * all or the object draws one
-     */
-    const capSegments: number[][] = [];
-
-    /**
-     * The segments `cuts` (by the segment's sphere, unscaled) into `capSegments[k]` (empty where all, or without
-     * `spheres`); false where none
-     */
-    const setCapSegments = (
-      spheres: readonly Sphere3D[] | undefined,
-      k: number,
-      cuts: (s: Sphere3D, objectIndex: number) => boolean,
-      objectIndex: number,
-    ) => {
-      const segments = (capSegments[k] ??= []);
-      segments.length = 0;
-      if (!spheres) return true;
-      for (let i = 0, il = spheres.length; i < il; ++i) if (cuts(spheres[i], objectIndex)) segments.push(i);
-      if (segments.length === 0) return false;
-      // whole also where it cuts all while a second phase of GPU culling is to come: its part draws no caps, and the
-      // object's lists hold the first phase's instances only
-      if (segments.length === spheres.length && cullSecondPending === 0) segments.length = 0;
-      return true;
-    };
-
-    let clipObjects: Clip.Objects | undefined;
-    const clipsSegment = (s: Sphere3D, objectIndex: number) => Clip.canIntersectSphere(clipObjects!, objectIndex, s);
-
-    /**
-     * The caps `r` draws in this frame into `out`: -1 for the near plane, the indices of the clip objects that cut it
-     * (camera dependent), and per cap the segments it cuts (`capSegments`): a merged object's sphere spans its
-     * members'; assumes `isVisible` returned true, which also set `boundingSphere`
-     */
-    const getSolidInteriorCaps = (r: GraphicsRenderable, mode: SolidInteriorMode, out: number[]) => {
-      out.length = 0;
-      const back = mode === 'back';
-      const spheres = r.renderSegments ? r.getSegmentSpheres?.() : undefined;
-      if (!back && cutsNear(boundingSphere, globalUniforms.uNear.ref.value)) {
-        if (setCapSegments(spheres, 0, cutsNearSegment, -1)) out.push(-1);
-      }
-
-      const clipInfo = r.getClipInfo();
-      if (clipInfo && clipInfo.capIndices.length > 0) {
-        const { objects, planes, capIndices } = clipInfo;
-        Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
-        clipObjects = objects;
-        for (let j = 0, jl = capIndices.length; j < jl; ++j) {
-          const i = capIndices[j];
-          if (objects.type[i] === Clip.Type.plane) {
-            const d = Plane3D.distanceToPoint(planes[i], solidInteriorEye) * modelScale;
-            if (back ? d >= -1e-4 : d <= 1e-4) continue;
-          }
-          if (setCapSegments(spheres, out.length, clipsSegment, i)) out.push(i);
-        }
-      }
-      return out;
-    };
-
-    const solidInteriorCapList: number[] = [];
-    /** the caps of `r`; assumes it is visible, `boundingSphere` set (`isVisible`, `setRowBoundingSphere`) */
-    const drawSolidInteriorCaps = (
-      r: GraphicsRenderable,
-      variant: GraphicsRenderVariant,
-      mode: SolidInteriorMode,
-      passState: RenderState,
-    ) => {
-      const caps = getSolidInteriorCaps(r, mode, solidInteriorCapList);
-      for (let j = 0, jl = caps.length; j < jl; ++j) {
-        renderSolidInteriorMark(r, variant, caps[j], passState, capSegments[j]);
-        renderSolidInteriorFill(r, variant, mode, caps[j], passState, capSegments[j]);
-      }
-      setSolidInteriorPass(0, -1);
-    };
-
-    const renderSolidInteriorCaps = (
-      renderables: ReadonlyArray<GraphicsRenderable>,
-      check: FactTest,
-      variant: GraphicsRenderVariant,
-      mode: SolidInteriorMode,
-      passState: RenderState,
-    ) => {
-      if (!solidInteriorCapSupported) return;
-      let hasCaps = false;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        const facts = getObjectFacts(r);
-        if (!hasSolidInteriorCap(facts) || !check(facts, getDrawState(r.state))) continue;
-        if (!hasCaps) {
-          if (!canRenderSolidInteriorCaps()) return;
-          hasCaps = true;
-        }
-        if (isVisible(r, variant)) drawSolidInteriorCaps(r, variant, mode, passState);
-      }
-    };
-
-    /** the camera scale of the last `update`: culled on the GPU only unscaled, as `cull` tests (`cullObject`) */
-    let updateScale = 1;
-    let getOcclusionPyramid: (() => OcclusionPyramid | undefined) | null = null;
-    let gpuCulledCount = 0;
-    /** the sum of the `recordsVersion`s of the objects of the last `prepareCull`: the draws a recording holds */
-    let cullRecords = 0;
-    let cullSecondPending = 0;
     /** drawing the opaque pass's second part (`drawObject`) */
     let drawingSecond = false;
     /** drawing the marking mask: objects draw their marked instances (`Renderable.renderMarked`) */
     let drawingMarked = false;
-    /** the objects' culling recorded and run together (`CullBatch`), reused */
-    const cullBatch: CullBatch = { clears: [], dispatches: [] };
-    const runCullBatch = (label: string) => {
-      const { clears, dispatches } = cullBatch;
-      for (let i = 0, il = clears.length; i < il; ++i) clears[i]();
-      if (dispatches.length > 0) {
-        ctx.compute!.beginComputePass({ label });
-        for (let i = 0, il = dispatches.length; i < il; ++i) dispatches[i]();
-        ctx.compute!.endComputePass();
-      }
-      clears.length = 0;
-      dispatches.length = 0;
-    };
-    /** the visible objects' `rasterSpheres`, reused */
-    const rasterSpheresOf: number[] = [];
-    const descending = (a: number, b: number) => b - a;
-    /**
-     * The spheres from which an object culled on the GPU for the raster only (`Renderable.rasterSpheres`) is culled there
-     * this frame: none where the raster does not draw the view (`'off'` too); `'auto'` the `sphereRasterObjects`
-     * largest visible ones (each object costs its own dispatches, whatever its size); `'on'` and `'only'` all of them
-     */
-    const getRasterSpheresMin = (renderables: ReadonlyArray<GraphicsRenderable>) => {
-      if (!cullRaster) return Infinity;
-      if (p.sphereRaster !== 'auto') return 0;
-      const budget = p.sphereRasterObjects;
-      if (budget <= 0) return Infinity;
-      rasterSpheresOf.length = 0;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        const spheres = r.rasterSpheres;
-        if (spheres !== undefined && r.state.visible) rasterSpheresOf.push(spheres);
-      }
-      if (rasterSpheresOf.length <= budget) return 0;
-      rasterSpheresOf.sort(descending);
-      return rasterSpheresOf[budget - 1];
-    };
-    const prepareCull = (scene: Scene.Group, twoPhase = false, clipGhost = false) => {
-      gpuCulledCount = 0;
-      cullRecords = 0;
-      cullSecondPending = 0;
-      if (updateScale !== 1) return;
-      const pyramid = getOcclusionPyramid?.();
-      const { renderables } = scene;
-      const rasterSpheresMin = getRasterSpheresMin(renderables);
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        const spheres = r.rasterSpheres;
-        // left to the CPU culling: drawn by its lists, as where the kernels are not ready; hidden, not culled at all
-        if (spheres !== undefined && (spheres < rasterSpheresMin || !r.state.visible)) continue;
-        if (r.prepareCull?.(cameraPlane, frustum, currentFrame, lodView, pyramid, cullRaster, cullBatch, clipGhost)) {
-          gpuCulledCount += 1;
-        }
-        cullRecords += r.recordsVersion ?? 0;
-        if (twoPhase && r.needsCullSecond?.(currentFrame)) cullSecondPending += 1;
-      }
-      runCullBatch('merged cell culling');
-    };
-    const prepareCullSecond = (scene: Scene.Group, pyramid: OcclusionPyramid | undefined) => {
-      const { renderables } = scene;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        renderables[i].prepareCullSecond?.(currentFrame, pyramid, cullBatch);
-      }
-      runCullBatch('merged cell culling, second phase');
-      if (pyramid) sphereRasterPass?.second();
-      else sphereRasterPass?.skipSecond();
-    };
-
-    let sphereRasterPass: SphereRasterPass | undefined;
-    /**
-     * the sphere raster's split per instance for the GPU culling of the next `prepareCull` (merged objects), from the
-     * camera of the last `update`; undefined where the raster does not draw the view (`prepareSphereRaster`)
-     */
-    let cullRaster: MergedRasterParams | undefined;
-    const getCullRaster = (camera: ICamera): MergedRasterParams | undefined => {
-      if (!isSphereRasterView(camera)) return undefined;
-      const P = camera.projection;
-      return {
-        radius: getSphereRasterRadius(),
-        scale: Math.max(P[0] * viewport.width, P[5] * viewport.height) / 2,
-        near: camera.near,
-      };
-    };
-    /** whether the raster is on and the device has it */
-    const isSphereRasterAvailable = () => p.sphereRaster !== 'off' && !!ctx.compute && ctx.capabilities.atomicMinMax64;
-    /**
-     * whether the raster may draw `r` (`isSphereRasterEligible`); a precompile list's stand-in (`collectSignatures`,
-     * without the values it reads) where it is of spheres and opaque
-     */
-    const isSphereRasterCandidate = (r: GraphicsRenderable) => {
-      const values = r.values as { [k: string]: ValueCell<any> | undefined };
-      if ('dSphereResolve' in values) {
-        // `auto`: objects that can be culled on the GPU only
-        if (p.sphereRaster === 'auto' && !r.getRasterInput) return false;
-        return isSphereRasterEligible(r.values as SpheresValues);
-      }
-      // `auto`: of objects culled on the GPU (unmerged ones never are, their signatures without the flag)
-      if (p.sphereRaster === 'auto' && (r as { gpuCulled?: boolean }).gpuCulled !== true) return false;
-      return values.dGeometryType?.ref.value === 'spheres' && values.uAlpha?.ref.value === 1;
-    };
-    /** whether the raster draws the view: perspective, unscaled, the viewport the whole target */
-    const isSphereRasterView = (camera: ICamera) => {
-      if (!isSphereRasterAvailable()) return false;
-      // the visibility buffer's pixels the fragments'; offsets and crops of a larger frame are the projection's
-      if (camera.state.mode === 'orthographic' || camera.scale !== 1) return false;
-      return viewport.x === 0 && viewport.y === 0;
-    };
-    /** the largest half size in pixels of the target the raster draws */
-    const getSphereRasterRadius = () =>
-      p.sphereRaster === 'only' ? 1e9 : p.sphereRasterRadius * globalUniforms.uPixelRatio.ref.value;
-    /** in the opaque pass with `sphereRaster` 'only': the raster's objects not drawn as impostors */
-    let sphereRasterOnly = false;
-    const sphereRasterModel = Mat4();
-    const sphereRasterModelView = Mat4();
-    const sphereRasterProjection = Mat4();
-    let sphereRasterNear = 0;
-    const sphereRasterCenter = Vec3();
-    const sphereRasterRect = Vec4();
-    /**
-     * the resolve of `r` scissored to its bounding sphere on screen (a pixel's margin), the viewport where the sphere
-     * reaches the near plane; false where it is off screen
-     */
-    const scissorSphereResolve = (r: GraphicsRenderable) => {
-      const { center, radius } = getDrawnBoundingSphere(r.values);
-      const c = Vec3.transformMat4(sphereRasterCenter, center, sphereRasterModelView);
-      const s = radius * Mat4.getMaxScaleOnAxis(sphereRasterModelView);
-      const { x, y, width, height } = viewport;
-      if (-c[2] - s <= sphereRasterNear) {
-        ctx.setScissor(x, y, width, height);
-        return true;
-      }
-      const rect = projectSphere(sphereRasterRect, c, s, sphereRasterProjection);
-      const x0 = Math.max(0, Math.floor(rect[0] * width) - 1);
-      const y0 = Math.max(0, Math.floor(rect[1] * height) - 1);
-      const x1 = Math.min(width, Math.ceil(rect[2] * width) + 1);
-      const y1 = Math.min(height, Math.ceil(rect[3] * height) + 1);
-      if (x1 <= x0 || y1 <= y0) return false;
-      ctx.setScissor(x + x0, y + y0, x1 - x0, y1 - y0);
-      return true;
-    };
-    const prepareSphereRaster = (group: Scene.Group, camera: ICamera) => {
-      sphereRasterPass?.finish();
-      if (!isSphereRasterView(camera)) return;
-      sphereRasterPass ??= createSphereRasterPass(ctx.compute!, ctx.resources);
-      Mat4.scaleUniformly(sphereRasterModel, group.view, camera.scale);
-      Mat4.mul(sphereRasterModelView, camera.view, sphereRasterModel);
-      Mat4.copy(sphereRasterProjection, camera.projection);
-      sphereRasterNear = camera.near;
-      sphereRasterPass.prepare(group.renderables, {
-        modelView: sphereRasterModelView,
-        projection: camera.projection,
-        cameraPlane: globalUniforms.uCameraPlane.ref.value,
-        model: sphereRasterModel,
-        modelScale: camera.scale,
-        near: camera.near,
-        width: viewport.width,
-        height: viewport.height,
-        maxRadius: getSphereRasterRadius(),
-        lod: lodView,
-        pyramid: getOcclusionPyramid?.(),
-        twoPhase: cullSecondPending > 0,
-        cull: { frame: currentFrame, cameraPlane, frustum },
-        culledOnly: p.sphereRaster === 'auto',
-      });
-    };
-
-    let cullRasterLogged = '';
-    const update = (camera: ICamera, scene: Scene, frame: Frame, side = false) => {
+    const culling = createGpuCulling({
+      ctx,
+      props: p,
+      globals,
+      globalUniforms,
+      viewport,
+      cameraPlane: cullPlane,
+      frustum: cullFrustum,
+      lodView,
+      get frame() {
+        return currentFrame;
+      },
+    });
+    const update = (camera: RenderCamera, scene: Scene, frame: Frame, side = false) => {
       if (!side && frame !== countedFrame) {
         frameCount += 1;
         countedFrame = frame;
       }
       currentFrame = frame;
-      cullRaster = getCullRaster(camera);
-      if (isDebugMode && p.sphereRaster !== 'off') {
-        const text = `sphere raster culling: ${cullRaster ? JSON.stringify(cullRaster) : 'off for this view'}`;
-        if (text !== cullRasterLogged) console.log(text);
-        cullRasterLogged = text;
-      }
+      culling.setView(camera);
 
       updateArray(globalUniforms.uView, camera.view);
       updateArray(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
@@ -1643,7 +992,10 @@ namespace Renderer {
       ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
       ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
 
-      Frustum3D.fromProjectionMatrix(frustum, camera.projectionView);
+      // views drawn together culled as one (stereo's eyes): their joint frustum and camera plane (`RenderCamera.cullView`)
+      const { cullView } = camera;
+      if (cullView) Frustum3D.copy(frustum, cullView.frustum);
+      else Frustum3D.fromProjectionMatrix(frustum, camera.projectionView);
       ValueCell.updateIfChanged(globalUniforms.uCssHeight, camera.viewport.height / ctx.pixelRatio);
       // levels of detail by size on screen: in CSS pixels, of the camera's viewport (not a pass's target)
       LodView.set(
@@ -1653,13 +1005,23 @@ namespace Renderer {
         camera.state.mode === 'orthographic',
       );
 
-      Plane3D.copy(cameraPlane, frustum[Frustum3D.PlaneIndex.Near]);
-      cameraPlane.constant -= Plane3D.distanceToPoint(cameraPlane, cameraPosition);
+      if (cullView) {
+        Plane3D.copy(cameraPlane, cullView.cameraPlane);
+      } else {
+        Plane3D.copy(cameraPlane, frustum[Frustum3D.PlaneIndex.Near]);
+        cameraPlane.constant -= Plane3D.distanceToPoint(cameraPlane, cameraPosition);
+      }
+      Plane3D.copy(cullPlane, cameraPlane);
+      Frustum3D.copy(cullFrustum, frustum);
+      if (camera.scale !== 1) {
+        const s = camera.scale;
+        cullPlane.constant /= s;
+        for (let i = 0; i < 6; ++i) cullFrustum[i as Frustum3D.PlaneIndex].constant /= s;
+      }
       // compared at the first cull after this update: updates of other cameras between (picking) don't cull
       viewChecked = false;
       setViewPlanes();
       updateArray(globalUniforms.uCameraPlane, Plane3D.toArray(cameraPlane, globalUniforms.uCameraPlane.ref.value, 0));
-      updateScale = camera.scale;
 
       ValueCell.updateIfChanged(globalUniforms.uMarkerAverage, scene.markerAverage);
 
@@ -1677,7 +1039,7 @@ namespace Renderer {
 
     const updateInternal = (
       group: Scene.Group,
-      camera: ICamera,
+      camera: RenderCamera,
       depthTexture: Texture | null,
       depthAlphaTexture: Texture | null,
       renderMask: Mask,
@@ -1720,13 +1082,6 @@ namespace Renderer {
       if (group.table) renderPassRows(pass, group.table);
       else renderPassObjects(pass, group);
     };
-
-    /**
-     * A part of a pass over a table's order: the objects of `[begin, end)` with their inline caps (`objects`), the caps
-     * drawn after all objects of the range (`caps`); a chunk of a draw list's recordings
-     */
-    type PassPart = { readonly begin: number; readonly end: number; readonly objects: boolean; readonly caps: boolean };
-    const WholePass: PassPart = { begin: 0, end: Infinity, objects: true, caps: true };
 
     /** `renderPass` from a table's rows (of `part`): visibility per view, the checks on bits */
     const renderPassRows = (pass: PassDraws, table: DrawTable, part: PassPart = WholePass) => {
@@ -1789,623 +1144,42 @@ namespace Renderer {
       if (caps && !caps.inline) renderSolidInteriorCaps(renderables, caps.check, variant, caps.mode, caps.passState);
     };
 
-    /**
-     * What a recording drew, by the rows of its table (`walkPass`): per draw its slot, object, render state and the
-     * versions of its program, values (`DrawTable.valuesVersions`) and draws (`Renderable.drawVersion`), and what it
-     * binds (`digests`, for data changes); the caps as a flat list (per object drawing caps: slot, program and values
-     * versions, count, caps); and what the walk read besides the rows, which unchanged with the table means the same
-     * draws (`isSnapshotCurrent`). Written in place, so that comparing a frame allocates nothing
-     */
-    type Snapshot = {
-      valid: boolean;
-      tableVersion: number;
-      valuesEpoch: number;
-      readonly view: Float64Array;
-      modelScale: number;
-      near: number;
-      caps: boolean;
-      /** `GraphicsContext.drawResourcesVersion` */
-      drawResources: number;
-      cullRecords: number;
-      count: number;
-      slots: Uint32Array;
-      programVersions: Uint32Array;
-      valuesVersions: Uint32Array;
-      drawVersions: Uint32Array;
-      readonly objects: GraphicsRenderable[];
-      readonly states: RenderState[];
-      readonly digests: (string | undefined)[];
-      readonly capKey: DrawKey;
-    };
-    const createSnapshot = (): Snapshot => ({
-      valid: false,
-      tableVersion: -1,
-      valuesEpoch: -1,
-      view: new Float64Array(28).fill(NaN),
-      modelScale: NaN,
-      near: NaN,
-      caps: false,
-      drawResources: -1,
-      cullRecords: 0,
-      count: 0,
-      slots: new Uint32Array(0),
-      programVersions: new Uint32Array(0),
-      valuesVersions: new Uint32Array(0),
-      drawVersions: new Uint32Array(0),
-      objects: [],
-      states: [],
-      digests: [],
-      capKey: DrawKey(),
+    const drawLists = createRendererDrawLists({
+      ctx,
+      globals,
+      viewPlanes,
+      capSegments,
+      get modelScale() {
+        return modelScale;
+      },
+      get near() {
+        return globalUniforms.uNear.ref.value;
+      },
+      get cullRecords() {
+        return culling.records;
+      },
+      get gpuCulledCount() {
+        return culling.culledCount;
+      },
+      get occlusionTest() {
+        return isOccluded !== null;
+      },
+      get drawingMarked() {
+        return drawingMarked;
+      },
+      renderPassRows,
+      getRowVisibility,
+      setRowBoundingSphere,
+      cullObject,
+      isRasterDrawn: culling.isRasterDrawn,
+      isCapsDrawn: () => solidInteriorCapSupported && canRenderSolidInteriorCaps(),
+      hasSolidInteriorCap,
+      getSolidInteriorCaps,
+      isSameView,
+      setDrawingFromList: (value) => {
+        drawingFromList = value;
+      },
     });
-    const ensureSnapshotDraws = (snap: Snapshot, n: number) => {
-      if (snap.slots.length > n) return;
-      const grow = (a: Uint32Array) => {
-        const b = new Uint32Array(Math.max(16, n * 2));
-        b.set(a);
-        return b;
-      };
-      snap.slots = grow(snap.slots);
-      snap.programVersions = grow(snap.programVersions);
-      snap.valuesVersions = grow(snap.valuesVersions);
-      snap.drawVersions = grow(snap.drawVersions);
-    };
-    const isCapsDrawn = () => solidInteriorCapSupported && canRenderSolidInteriorCaps();
-    const setSnapshotInputs = (snap: Snapshot, table: DrawTable) => {
-      snap.tableVersion = table.version;
-      snap.valuesEpoch = table.valuesEpoch;
-      snap.view.set(viewPlanes);
-      snap.modelScale = modelScale;
-      snap.near = globalUniforms.uNear.ref.value;
-      snap.caps = isCapsDrawn();
-      snap.drawResources = ctx.drawResourcesVersion ?? 0;
-      snap.cullRecords = cullRecords;
-    };
-    /**
-     * Whether nothing the walk read changed (the rows and order, values, programs, the view and model scale, the near
-     * plane, whether caps are drawn): the snapshot holds without walking. Not with an occlusion test (Hi-Z changes
-     * between frames)
-     */
-    const isSnapshotCurrent = (snap: Snapshot, table: DrawTable) => {
-      if (!snap.valid || isOccluded !== null) return false;
-      // volatile cells compared
-      table.refresh();
-      return snap.tableVersion === table.version && snap.valuesEpoch === table.valuesEpoch && isSameInputs(snap);
-    };
-    /** Whether what the walk read besides the table is unchanged (see `isSnapshotCurrent`) */
-    const isSameInputs = (snap: Snapshot) =>
-      isSameView(snap.view) &&
-      snap.modelScale === modelScale &&
-      snap.near === globalUniforms.uNear.ref.value &&
-      snap.caps === isCapsDrawn() &&
-      snap.drawResources === (ctx.drawResourcesVersion ?? 0) &&
-      snap.cullRecords === cullRecords;
-
-    const walkCapList: number[] = [];
-    /**
-     * The caps `r` (in `slot`) draws, at `c` of the snapshot's cap list: written, or compared (-1 where they differ);
-     * nothing where it draws none (one starting or stopping to draw caps changes the list all the same). Assumes `r`
-     * is visible, `boundingSphere` set; returns the position after its entry
-     */
-    const walkCaps = (
-      r: GraphicsRenderable,
-      slot: number,
-      valuesVersion: number,
-      mode: SolidInteriorMode,
-      key: DrawKey,
-      c: number,
-      write: boolean,
-    ) => {
-      const caps = getSolidInteriorCaps(r, mode, walkCapList);
-      if (caps.length === 0) return c;
-      if (write) {
-        DrawKey.add(key, slot);
-        DrawKey.add(key, r.programVersion);
-        DrawKey.add(key, valuesVersion);
-        DrawKey.add(key, caps.length);
-        for (let k = 0, kl = caps.length; k < kl; ++k) DrawKey.add(key, caps[k]);
-        // the segments each cap draws (`capSegments`): a recording replays while the same are cut
-        for (let k = 0, kl = caps.length; k < kl; ++k) {
-          const segments = capSegments[k];
-          DrawKey.add(key, segments.length);
-          for (let i = 0, il = segments.length; i < il; ++i) DrawKey.add(key, segments[i]);
-        }
-        return key.length;
-      }
-      const v = key.values;
-      if (c + 4 + caps.length > key.length) return -1;
-      if (v[c] !== slot || v[c + 1] !== r.programVersion || v[c + 2] !== valuesVersion || v[c + 3] !== caps.length) {
-        return -1;
-      }
-      for (let k = 0, kl = caps.length; k < kl; ++k) {
-        if (v[c + 4 + k] !== caps[k]) return -1;
-      }
-      let o = c + 4 + caps.length;
-      for (let k = 0, kl = caps.length; k < kl; ++k) {
-        const segments = capSegments[k];
-        if (o + 1 + segments.length > key.length || v[o] !== segments.length) return -1;
-        for (let i = 0, il = segments.length; i < il; ++i) if (v[o + 1 + i] !== segments[i]) return -1;
-        o += 1 + segments.length;
-      }
-      return o;
-    };
-
-    /**
-     * The draws of `pass` as `renderPassRows` draws them (culled the same way) with the caps they draw (the near plane
-     * and clip objects cutting objects, camera dependent), written into `snap` or compared with it: 'same'; 'data'
-     * where only values of draws changed (their data may have, see `flushDataChanges`); 'different' at the first draw,
-     * state, program, range or cap that differs
-     */
-    const walkPass = (
-      pass: PassDraws,
-      table: DrawTable,
-      snap: Snapshot,
-      write: boolean,
-      part: PassPart = WholePass,
-    ): 'same' | 'data' | 'different' => {
-      const { variant, select, check, draws, caps } = pass;
-      const withCaps = !!caps && isCapsDrawn();
-      const visible = getRowVisibility(table);
-      const { order, bits, objects, valuesVersions } = table;
-      const begin = part.begin;
-      const end = Math.min(part.end, table.count);
-      if (write) snap.capKey.length = 0;
-      let n = 0;
-      let c = 0;
-      let data = false;
-      for (let k = part.objects ? begin : end; k < end; ++k) {
-        const slot = order[k];
-        if (!visible[slot]) continue;
-        const o = slot * DrawRow.Stride;
-        const facts = bits[o + DrawRow.Facts];
-        const state = bits[o + DrawRow.State];
-        if (!isPassDrawn(pass, state) || (select && !select(facts, state)) || !check(facts, state)) continue;
-        const r = objects[slot]!;
-        setRowBoundingSphere(table, slot);
-        const objectDraws = draws(facts);
-        // as `drawObject`: culled, the raster's objects left out (`sphereRaster` 'only')
-        if (objectDraws.length > 0) cullObject(r);
-        if (objectDraws.length > 0 && !(sphereRasterOnly && sphereRasterPass?.isDrawn(r))) {
-          const { programVersion } = r;
-          const drawVersion = drawingMarked && r.renderMarked ? r.markedDrawVersion! : r.drawVersion;
-          const valuesVersion = valuesVersions[slot];
-          for (let j = 0, jl = objectDraws.length; j < jl; ++j) {
-            const renderState = getObjectState(facts, variant, objectDraws[j].flag, objectDraws[j].passState);
-            if (!renderState) continue;
-            if (write) {
-              ensureSnapshotDraws(snap, n);
-              snap.slots[n] = slot;
-              snap.objects[n] = r;
-              snap.states[n] = renderState;
-              snap.programVersions[n] = programVersion;
-              snap.valuesVersions[n] = valuesVersion;
-              snap.drawVersions[n] = drawVersion;
-              snap.digests[n] = undefined;
-            } else {
-              if (
-                n >= snap.count ||
-                snap.slots[n] !== slot ||
-                snap.objects[n] !== r ||
-                snap.states[n] !== renderState ||
-                snap.programVersions[n] !== programVersion ||
-                snap.drawVersions[n] !== drawVersion
-              ) {
-                return 'different';
-              }
-              if (snap.valuesVersions[n] !== valuesVersion) data = true;
-            }
-            n += 1;
-          }
-        }
-        if (withCaps && caps!.inline && hasSolidInteriorCap(facts) && caps!.check(facts, state)) {
-          c = walkCaps(r, slot, valuesVersions[slot], caps!.mode, snap.capKey, c, write);
-          if (c < 0) return 'different';
-        }
-      }
-      if (part.caps && withCaps && !caps!.inline) {
-        for (let k = begin; k < end; ++k) {
-          const slot = order[k];
-          if (!visible[slot]) continue;
-          const o = slot * DrawRow.Stride;
-          const facts = bits[o + DrawRow.Facts];
-          const state = bits[o + DrawRow.State];
-          if (!isPassDrawn(pass, state) || !hasSolidInteriorCap(facts) || !caps!.check(facts, state)) continue;
-          const r = objects[slot]!;
-          setRowBoundingSphere(table, slot);
-          c = walkCaps(r, slot, valuesVersions[slot], caps!.mode, snap.capKey, c, write);
-          if (c < 0) return 'different';
-        }
-      }
-      if (write) {
-        snap.count = n;
-        // shorter only where draws were dropped: no references kept to their objects
-        if (snap.objects.length > n) {
-          snap.objects.length = n;
-          snap.states.length = n;
-          snap.digests.length = n;
-        }
-        return 'same';
-      }
-      if (n !== snap.count || c !== snap.capKey.length) return 'different';
-      return data ? 'data' : 'same';
-    };
-
-    /** What the `i`th draw of `snap` binds, its data written as by drawing it (`GraphicsContext.captureDraws`) */
-    const captureDraw = (snap: Snapshot, i: number, variant: GraphicsRenderVariant) => {
-      return ctx.captureDraws!(() => {
-        ctx.setRenderState(snap.states[i]);
-        const r = snap.objects[i];
-        if (drawingMarked && r.renderMarked) r.renderMarked(variant, globals);
-        else r.render(variant, globals);
-      });
-    };
-
-    /**
-     * The draws of `snap` whose values changed written as by drawing them, without encoding them: true where each binds
-     * what it bound when recorded (only data changed, e.g. markers on hover), so the recording replays with it; false
-     * where one binds otherwise (a texture or buffer replaced, a draw count changed): record again
-     */
-    const flushDataChanges = (snap: Snapshot, table: DrawTable, variant: GraphicsRenderVariant) => {
-      if (!ctx.captureDraws) return false;
-      const { valuesVersions } = table;
-      for (let i = 0, il = snap.count; i < il; ++i) {
-        const version = valuesVersions[snap.slots[i]];
-        if (snap.valuesVersions[i] === version) continue;
-        const digest = snap.digests[i];
-        if (digest === undefined || captureDraw(snap, i, variant) !== digest) return false;
-        snap.valuesVersions[i] = version;
-      }
-      return true;
-    };
-
-    /**
-     * The draw lists of a group's pass, one per time it is drawn between two submissions (stereo eyes, sub-renders, the
-     * pick types, marking samples): the n-th draw of the pass after a submission binds the n-th global slot each time
-     * (`GraphicsContext.submitCount`), whether a frame or a marking redraw without a new frame; per pass, so that
-     * submissions drawing other passes (a pick, a marking redraw) don't shift the lists of a pass
-     */
-    type PassDrawLists = {
-      submit: number;
-      next: number;
-      lists: PassDrawList[];
-    };
-    /**
-     * A recording of a chunk (`part`) of a pass: its draw list and what it drew (`snapshot`, `valid` once recorded);
-     * for a chunk of objects, the rows its walk read (`rows`: per position of its range the slot, its row and values
-     * versions; `invalidations` of the table): unchanged, it holds while other objects change (`isChunkCurrent`)
-     */
-    type Chunk = {
-      readonly list: DrawList;
-      readonly snapshot: Snapshot;
-      readonly part: PassPart;
-      rows: Uint32Array;
-      rowCount: number;
-      invalidations: number;
-      /** the visibility of its rows per position (`getRowVisibility`) when drawn */
-      readonly visible: Uint8Array;
-      /** whether a visible row's draws follow the view besides its visibility (`isViewDependent`) */
-      viewDependent: boolean;
-      /** the submission its inputs last changed in (`drawChunk`: drawn directly while changing) */
-      changedAt: number;
-      /** how it was drawn last (`drawChunk`) */
-      outcome: ChunkOutcome;
-    };
-    type ChunkOutcome = 'unplanned' | 'replayed' | 'flushed' | 'empty' | 'recorded' | 'direct';
-    /**
-     * The recordings of a pass in chunks of `ChunkSize` objects of the table's order, then one of the caps drawn after
-     * all objects: a change of what the pass draws (an object marked, hidden, entering the view) records the chunks it
-     * touches again, the others replay (a hover sweeping across many objects, a zoomed view rotating)
-     */
-    type PassDrawList = {
-      readonly chunks: Chunk[];
-      caps: Chunk | undefined;
-      /** what the walks read when every chunk was last drawn: unchanged, all replay without a check of their own */
-      readonly inputs: Snapshot;
-    };
-    const ChunkSize = 64;
-    /**
-     * Submissions a chunk's inputs stay unchanged before it is recorded again after changing in consecutive ones: drawn
-     * directly meanwhile, its data or view changing every frame (a hover, a recolor, a rotation) would else be walked,
-     * flushed or recorded each frame, which cost more than drawing it (merged hover 19-21%, unmerged recolor 17-21%)
-     */
-    const StableSubmissions = 3;
-    /**
-     * Rows of a chunk drawn directly as cheaply as walked and flushed (a merged object is one row): more rows changing
-     * every frame (a hover sweeping across separate objects, a rotation) are flushed and replayed, cheaper than drawn
-     */
-    const FewChunkRows = 4;
-    /** The caps drawn after all objects, a chunk of their own */
-    const CapsPart: PassPart = { begin: 0, end: Infinity, objects: false, caps: true };
-    let groupDrawLists = new WeakMap<Scene.Group, Map<PassDraws, PassDrawLists>>();
-    const resetDrawLists = () => {
-      groupDrawLists = new WeakMap();
-    };
-    const getDrawList = (pass: PassDraws, group: Scene.Group) => {
-      if (!ctx.createDrawList) return;
-      let passLists = groupDrawLists.get(group);
-      if (!passLists) groupDrawLists.set(group, (passLists = new Map()));
-      let lists = passLists.get(pass);
-      if (!lists) passLists.set(pass, (lists = { submit: -1, next: 0, lists: [] }));
-      const submit = ctx.submitCount ?? 0;
-      if (lists.submit !== submit) {
-        lists.submit = submit;
-        lists.next = 0;
-      }
-      const i = lists.next++;
-      return (lists.lists[i] ??= { chunks: [], caps: undefined, inputs: createSnapshot() });
-    };
-    const createChunk = (part: PassPart): Chunk => ({
-      list: ctx.createDrawList!(),
-      snapshot: createSnapshot(),
-      part,
-      rows: new Uint32Array(part.objects ? 3 * ChunkSize : 0),
-      rowCount: -1,
-      invalidations: -1,
-      visible: new Uint8Array(part.objects ? ChunkSize : 0),
-      viewDependent: true,
-      changedAt: -Infinity,
-      outcome: 'empty',
-    });
-    /**
-     * Whether the draws of a row (`facts`) follow the view besides whether it is visible: instances culled
-     * (`cullObject`), levels of detail, solid interior caps (cut by the near plane)
-     */
-    /**
-     * Whether an object's draws in a pass change with the view: its levels and culled instances; its solid interior's
-     * caps only where the pass draws them with the object (`inlineCaps`), else the caps chunk compares all it read
-     */
-    const isViewDependent = (facts: number, inlineCaps: boolean) =>
-      (facts & DrawFact.LodLevels) !== 0 ||
-      (inlineCaps && (facts & DrawFact.SolidInterior) !== 0) ||
-      (facts & (DrawFact.InstanceGrid | DrawFact.MultipleInstances)) ===
-        (DrawFact.InstanceGrid | DrawFact.MultipleInstances);
-    /**
-     * Whether nothing the walk of `chunk` read changed: for a chunk of objects its rows (slots in order, row and values
-     * versions) and the table's invalidations, so that a change of other objects leaves it current; the caps chunk
-     * reads all objects (`isSnapshotCurrent`). Assumes the table refreshed
-     */
-    const isChunkCurrent = (chunk: Chunk, table: DrawTable) =>
-      chunk.part.objects
-        ? chunk.snapshot.valid && isChunkInputsCurrent(chunk, table)
-        : isSnapshotCurrent(chunk.snapshot, table);
-    /** `isChunkCurrent` of a chunk of objects but its recording: whether what it would draw is as when last drawn */
-    const isChunkInputsCurrent = (chunk: Chunk, table: DrawTable) => {
-      const { snapshot, part, rows } = chunk;
-      if (chunk.rowCount < 0 || isOccluded !== null) return false;
-      const end = Math.min(part.end, table.count);
-      if (snapshot.tableVersion !== table.version || snapshot.valuesEpoch !== table.valuesEpoch) {
-        if (chunk.invalidations !== table.invalidations || chunk.rowCount !== end - part.begin) return false;
-        const { order, rowVersions, valuesVersions } = table;
-        for (let k = part.begin, i = 0; k < end; ++k, i += 3) {
-          const slot = order[k];
-          if (rows[i] !== slot || rows[i + 1] !== rowVersions[slot] || rows[i + 2] !== valuesVersions[slot]) {
-            return false;
-          }
-        }
-      }
-      if (isSameInputs(snapshot)) return true;
-      // a recording binding a replaced resource is not current, whatever the view did
-      if (snapshot.drawResources !== (ctx.drawResourcesVersion ?? 0)) return false;
-      // the view changed (a camera rotating): the same draws where its rows are as visible as they were and none of them
-      // draws by the view otherwise
-      if (chunk.viewDependent || snapshot.modelScale !== modelScale || snapshot.caps !== isCapsDrawn()) return false;
-      const visible = getRowVisibility(table);
-      const { order } = table;
-      for (let k = part.begin, i = 0; k < end; ++k, ++i) {
-        if (visible[order[k]] !== chunk.visible[i]) return false;
-      }
-      return true;
-    };
-    /** `chunk` drawn as the table is now (`isChunkCurrent`) */
-    const setChunkInputs = (chunk: Chunk, table: DrawTable, inlineCaps: boolean) => {
-      const { snapshot, part, rows } = chunk;
-      setSnapshotInputs(snapshot, table);
-      if (!part.objects) return;
-      const end = Math.min(part.end, table.count);
-      const { order, rowVersions, valuesVersions } = table;
-      for (let k = part.begin, i = 0; k < end; ++k, i += 3) {
-        const slot = order[k];
-        rows[i] = slot;
-        rows[i + 1] = rowVersions[slot];
-        rows[i + 2] = valuesVersions[slot];
-      }
-      chunk.rowCount = Math.max(0, end - part.begin);
-      chunk.invalidations = table.invalidations;
-      const visible = getRowVisibility(table);
-      const { bits } = table;
-      let viewDependent = false;
-      for (let k = part.begin, i = 0; k < end; ++k, ++i) {
-        const slot = order[k];
-        chunk.visible[i] = visible[slot];
-        if (visible[slot] && isViewDependent(bits[slot * DrawRow.Stride + DrawRow.Facts], inlineCaps)) {
-          viewDependent = true;
-        }
-      }
-      chunk.viewDependent = viewDependent;
-    };
-    const isEmptySnapshot = (snapshot: Snapshot) => snapshot.count === 0 && snapshot.capKey.length === 0;
-
-    /**
-     * Draws `part` of `pass` from `chunk`: 'unplanned' replayed without walking (nothing the walk read changed),
-     * 'replayed' or 'flushed' (its data written first) after walking, 'empty' drawing nothing, 'recorded', 'direct'
-     * drawn without its recording while its inputs change in consecutive submissions (`StableSubmissions`)
-     */
-    const drawChunk = (pass: PassDraws, table: DrawTable, chunk: Chunk): ChunkOutcome => {
-      const outcome = drawChunkOnce(pass, table, chunk);
-      chunk.outcome = outcome;
-      return outcome;
-    };
-    /**
-     * Whether `chunk`, changed again in the submission after its last change, is drawn directly: where its recording
-     * was made again (draws changing every frame, a recolor), or it was drawn directly, or it has few rows
-     */
-    const isDrawnDirectly = (chunk: Chunk) =>
-      chunk.outcome === 'recorded' || chunk.outcome === 'direct' || chunk.rowCount <= FewChunkRows;
-    /**
-     * Whether `part` holds an object culled on the GPU while it moves: the records its lists hold change from frame to
-     * frame (a recording per frame would cost more than it saves), and multi-draw indirect, where the device has it, is
-     * not in bundles; so drawn directly. At rest they hold those with instances (`recordsCompact`), recorded as other
-     * draws
-     */
-    const isMultiDrawn = (table: DrawTable, part: PassPart) => {
-      if (gpuCulledCount === 0) return false;
-      const { order, objects } = table;
-      for (let k = part.begin, kl = Math.min(part.end, table.count); k < kl; ++k) {
-        if (objects[order[k]]?.recordsCompact === false) return true;
-      }
-      return false;
-    };
-    const drawChunkOnce = (pass: PassDraws, table: DrawTable, chunk: Chunk): ChunkOutcome => {
-      const { snapshot, list, part } = chunk;
-      const inlineCaps = !!pass.caps?.inline;
-      if (part.objects && isMultiDrawn(table, part)) {
-        renderPassRows(pass, table, part);
-        if (snapshot.valid) list.reset();
-        snapshot.valid = false;
-        setChunkInputs(chunk, table, inlineCaps);
-        return 'direct';
-      }
-      if (part.objects) {
-        const submit = ctx.submitCount ?? 0;
-        const current = isChunkInputsCurrent(chunk, table);
-        if (current && snapshot.valid) {
-          if (isEmptySnapshot(snapshot)) return 'empty';
-          if (list.replay(globals)) return 'unplanned';
-        } else if (
-          current
-            ? submit - chunk.changedAt < StableSubmissions && chunk.outcome === 'direct'
-            : submit - chunk.changedAt <= 1 && isDrawnDirectly(chunk)
-        ) {
-          // changing every frame, or not stable for long enough since: drawn as without draw lists
-          if (!current) chunk.changedAt = submit;
-          renderPassRows(pass, table, part);
-          // its recording no longer of the draws, released once
-          if (snapshot.valid) list.reset();
-          snapshot.valid = false;
-          setChunkInputs(chunk, table, inlineCaps);
-          return 'direct';
-        } else if (!current) {
-          chunk.changedAt = submit;
-        }
-      } else if (isChunkCurrent(chunk, table)) {
-        if (isEmptySnapshot(snapshot)) return 'empty';
-        if (list.replay(globals)) return 'unplanned';
-      }
-      // a recording binding a replaced resource (`GraphicsContext.drawResourcesVersion`) does not replay, whatever the
-      // walk finds
-      const bound = snapshot.drawResources === (ctx.drawResourcesVersion ?? 0);
-      const match = snapshot.valid && bound ? walkPass(pass, table, snapshot, false, part) : 'different';
-      if (match === 'same' || (match === 'data' && flushDataChanges(snapshot, table, pass.variant))) {
-        if (isEmptySnapshot(snapshot)) {
-          setChunkInputs(chunk, table, inlineCaps);
-          return 'empty';
-        }
-        if (list.replay(globals)) {
-          setChunkInputs(chunk, table, inlineCaps);
-          return match === 'data' ? 'flushed' : 'replayed';
-        }
-      } else {
-        // the draws changed: so are the recordings for other targets
-        list.reset();
-      }
-      // as drawn directly, the caps (and their clears) included
-      list.record(globals, () => renderPassRows(pass, table, part));
-      // drawing may change values (e.g. what culling writes): the snapshot after it is the recorded one
-      walkPass(pass, table, snapshot, true, part);
-      if (ctx.captureDraws) {
-        for (let i = 0, il = snapshot.count; i < il; ++i) snapshot.digests[i] = captureDraw(snapshot, i, pass.variant);
-      }
-      setChunkInputs(chunk, table, inlineCaps);
-      snapshot.valid = true;
-      // a chunk drawing nothing keeps no recording
-      if (isEmptySnapshot(snapshot)) list.reset();
-      return 'recorded';
-    };
-
-    /**
-     * The chunks of `drawList` replayed as recorded (those drawing nothing skipped), the caps chunk last (index
-     * `chunks.length`): the index of the first that can't replay (no recording for this target, globals bound
-     * otherwise), from which the chunks are drawn one by one; -1 where all replayed
-     */
-    const replayChunks = (drawList: PassDrawList) => {
-      const { chunks, caps } = drawList;
-      for (let c = 0, il = chunks.length; c < il; ++c) {
-        const { snapshot, list } = chunks[c];
-        // drawn directly last (`drawChunk`): no recording, its snapshot not of the draws
-        if (!snapshot.valid) return c;
-        if (!isEmptySnapshot(snapshot) && !list.replay(globals)) return c;
-      }
-      if (caps && !isEmptySnapshot(caps.snapshot) && !caps.list.replay(globals)) return chunks.length;
-      return -1;
-    };
-
-    /**
-     * Draws `pass` from a draw list (`drawLists`) chunk by chunk (`PassDrawList`): replays each chunk's recording while
-     * it draws the recorded draws with unchanged values, caps and globals, records it otherwise (as `renderPass` draws
-     * it); false without draw lists
-     */
-    const renderPassFromDrawList = (pass: PassDraws, group: Scene.Group) => {
-      const { table } = group;
-      if (!table) return false;
-      drawingFromList = true;
-      try {
-        return drawPassFromList(pass, group, table);
-      } finally {
-        drawingFromList = false;
-      }
-    };
-    const drawPassFromList = (pass: PassDraws, group: Scene.Group, table: DrawTable) => {
-      const drawList = getDrawList(pass, group);
-      if (!drawList) return false;
-      const { chunks, inputs } = drawList;
-      // volatile cells compared, once for all chunks
-      table.refresh();
-      // nothing any chunk's walk read changed: each replays its recording, from the first that can't one by one
-      let first = 0;
-      if (isSnapshotCurrent(inputs, table)) {
-        first = replayChunks(drawList);
-        if (first < 0) {
-          ctx.stats.drawLists.replayed += 1;
-          ctx.stats.drawLists.unplanned += 1;
-          return true;
-        }
-      }
-      inputs.valid = false;
-      const chunkCount = Math.ceil(table.count / ChunkSize);
-      while (chunks.length < chunkCount) {
-        const begin = chunks.length * ChunkSize;
-        chunks.push(createChunk({ begin, end: begin + ChunkSize, objects: true, caps: false }));
-      }
-      // objects removed: their chunks' recordings go
-      if (chunks.length > chunkCount) chunks.length = chunkCount;
-      let recorded = 0;
-      let direct = 0;
-      let unplanned = true;
-      let flushed = false;
-      const count = (result: ReturnType<typeof drawChunk>) => {
-        if (result === 'recorded') recorded += 1;
-        if (result === 'direct') direct += 1;
-        if (result !== 'unplanned' && result !== 'empty') unplanned = false;
-        if (result === 'flushed') flushed = true;
-      };
-      for (let c = first; c < chunkCount; ++c) count(drawChunk(pass, table, chunks[c]));
-      if (pass.caps && !pass.caps.inline) {
-        drawList.caps ??= createChunk(CapsPart);
-        count(drawChunk(pass, table, drawList.caps));
-      }
-      setSnapshotInputs(inputs, table);
-      inputs.valid = true;
-      const { drawLists } = ctx.stats;
-      drawLists.chunksDirect += direct;
-      if (recorded > 0) {
-        drawLists.recorded += 1;
-        drawLists.chunksRecorded += recorded;
-      } else {
-        drawLists.replayed += 1;
-        if (unplanned) drawLists.unplanned += 1;
-        if (flushed) drawLists.flushed += 1;
-      }
-      return true;
-    };
     const collect = (pass: Pass, group: Scene.Group, target: TargetDescriptor, options?: { all?: boolean }) => {
       return collectFrom(pass, group.renderables, target, !!options?.all);
     };
@@ -2484,13 +1258,13 @@ namespace Renderer {
         if (state) requests.push({ item: r.renderItem, variant, state, target });
       };
       // the opaque pass with the raster on: the resolves of its objects (`renderOpaque`), drawn before the impostors
-      const resolves = pass.name === 'opaque' && isSphereRasterAvailable();
+      const resolves = pass.name === 'opaque' && culling.isRasterAvailable();
       for (const r of renderables) {
         const facts = getObjectFacts(r);
         const state = getDrawState(r.state);
         if (r.state.disposed || (select && !select(facts, state)) || (!all && !check(facts, state))) continue;
         for (const { flag, passState } of draws(facts)) request(r, flag, passState);
-        if (resolves && isSphereRasterCandidate(r)) {
+        if (resolves && culling.isRasterCandidate(r)) {
           requests.push({ item: r.renderItem, variant: 'color', state: OpaqueState, target, define: 'dSphereResolve' });
         }
         if (caps && capsDrawn && hasSolidInteriorCap(facts) && (all || caps.check(facts, state))) {
@@ -2505,7 +1279,7 @@ namespace Renderer {
 
     /** `pass` replayed or recorded with the draw lists (`drawLists`) where it can be, drawn directly otherwise */
     const drawPass = (pass: PassDraws, group: Scene.Group) => {
-      if (p.drawLists && renderPassFromDrawList(pass, group)) return;
+      if (p.drawLists && drawLists.render(pass, group)) return;
       renderPass(pass, group);
     };
 
@@ -2518,7 +1292,7 @@ namespace Renderer {
 
     const renderPick = (
       group: Scene.Group,
-      camera: ICamera,
+      camera: RenderCamera,
       variant: 'pick' | 'depth',
       pickType: PickType,
       occluder?: Renderer.Occluder | null,
@@ -2528,29 +1302,29 @@ namespace Renderer {
       drawPass(variant === 'pick' ? PassDraws.pick : PassDraws.pickDepth, group);
     };
 
-    const renderDepth = (group: Scene.Group, camera: ICamera) => {
+    const renderDepth = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.All, false);
       drawPass(PassDraws.depth, group);
     };
 
-    const renderDepthOpaque = (group: Scene.Group, camera: ICamera) => {
+    const renderDepthOpaque = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
       drawPass(PassDraws.depthOpaque, group);
     };
 
-    const renderDepthOpaqueBack = (group: Scene.Group, camera: ICamera) => {
+    const renderDepthOpaqueBack = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
       ValueCell.updateIfChanged(globalUniforms.uDepthBack, true);
       renderPass(PassDraws.depthOpaqueBack, group);
       ValueCell.updateIfChanged(globalUniforms.uDepthBack, false);
     };
 
-    const renderDepthTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
+    const renderDepthTransparent = (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => {
       updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
       drawPass(PassDraws.depthTransparent, group);
     };
 
-    const renderClipGhost = (group: Scene.Group, camera: ICamera, scale = 1) => {
+    const renderClipGhost = (group: Scene.Group, camera: RenderCamera, scale = 1) => {
       updateInternal(group, camera, null, null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uClipGhost, true);
       const pixelRatio = globalUniforms.uPixelRatio.ref.value;
@@ -2566,13 +1340,13 @@ namespace Renderer {
       }
     };
 
-    const renderMarkingDepth = (group: Scene.Group, camera: ICamera) => {
+    const renderMarkingDepth = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Depth);
       drawPass(PassDraws.markingDepth, group);
     };
 
-    const renderMarkingMask = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+    const renderMarkingMask = (group: Scene.Group, camera: RenderCamera, depthTexture: Texture | null) => {
       updateInternal(group, camera, null, depthTexture, Mask.All, !!depthTexture);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Mask);
       drawingMarked = true;
@@ -2582,7 +1356,7 @@ namespace Renderer {
 
     const renderEmissiveOpaque = (
       group: Scene.Group,
-      camera: ICamera,
+      camera: RenderCamera,
       depthTexture: Texture,
       occludeWithOpaqueDepth: boolean,
     ) => {
@@ -2591,18 +1365,18 @@ namespace Renderer {
       drawPass(occludeWithOpaqueDepth ? PassDraws.emissiveOpaqueOccluded : PassDraws.emissiveOpaque, group);
     };
 
-    const renderEmissiveTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
+    const renderEmissiveTransparent = (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => {
       // tDepthAlpha = front transparent depth+alpha; emissive shader dims emitters behind it
       updateInternal(group, camera, null, depthTexture, Mask.Transparent, false);
       drawPass(PassDraws.emissiveTransparent, group);
     };
 
-    const renderTracing = (group: Scene.Group, camera: ICamera) => {
+    const renderTracing = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
       renderPass(PassDraws.tracing, group);
     };
 
-    const renderTracingSecond = (group: Scene.Group, camera: ICamera) => {
+    const renderTracingSecond = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
       // the pyramid's passes set theirs
       ctx.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
@@ -2610,10 +1384,10 @@ namespace Renderer {
       drawingSecond = true;
       renderPass(PassDraws.tracingSecond, group);
       drawingSecond = false;
-      cullSecondPending = 0;
+      culling.secondDone();
     };
 
-    const renderBlended = (scene: Scene, camera: ICamera) => {
+    const renderBlended = (scene: Scene, camera: RenderCamera) => {
       if (scene.hasOpaque) {
         renderOpaque(scene, camera);
       }
@@ -2622,7 +1396,7 @@ namespace Renderer {
       }
     };
 
-    const renderOverlay = (group: Scene.Group, camera: ICamera, occluder: Renderer.Occluder | null) => {
+    const renderOverlay = (group: Scene.Group, camera: RenderCamera, occluder: Renderer.Occluder | null) => {
       const depth = setOccluder(occluder);
       const depthAlpha = occluder?.depthAlpha ?? null;
       updateInternal(group, camera, depth, depthAlpha, Mask.Opaque, false);
@@ -2631,60 +1405,52 @@ namespace Renderer {
       drawPass(transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent, group);
     };
 
-    const renderOpaque = (group: Scene.Group, camera: ICamera) => {
+    const renderOpaque = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
       // the raster's spheres first, the impostors leave them out (`prepareSphereRaster`)
-      if (sphereRasterPass?.active) {
-        ctx.setRenderState(OpaqueState);
-        ctx.stats.sphereRasterResolves += sphereRasterPass.resolve(globals, scissorSphereResolve);
-        ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
-      }
+      culling.resolveRaster();
       // the objects' raster values change per view (set by `prepareSphereRaster`, reset by `finish`): their draws are
       // walked and their data flushed before a recording replays (`flushDataChanges`)
-      sphereRasterOnly = p.sphereRaster === 'only';
+      culling.beginOpaque();
       drawPass(PassDraws.opaque, group);
-      sphereRasterOnly = false;
+      culling.endOpaque();
       // the second part draws them too
-      if (cullSecondPending === 0) sphereRasterPass?.finish();
+      if (culling.secondPending === 0) culling.finishRaster();
     };
 
-    const renderOpaqueSecond = (group: Scene.Group, camera: ICamera) => {
+    const renderOpaqueSecond = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
       // the pyramid's passes set theirs
       ctx.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
       ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
-      if (sphereRasterPass?.active) {
-        ctx.setRenderState(OpaqueState);
-        ctx.stats.sphereRasterResolves += sphereRasterPass.resolve(globals, scissorSphereResolve);
-        ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
-      }
-      sphereRasterOnly = p.sphereRaster === 'only';
+      culling.resolveRaster();
+      culling.beginOpaque();
       drawingSecond = true;
       renderPass(PassDraws.opaqueSecond, group);
       drawingSecond = false;
-      sphereRasterOnly = false;
-      sphereRasterPass?.finish();
-      cullSecondPending = 0;
+      culling.endOpaque();
+      culling.finishRaster();
+      culling.secondDone();
     };
 
-    const renderBlendedTransparent = (group: Scene.Group, camera: ICamera) => {
+    const renderBlendedTransparent = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Transparent, false);
       drawPass(transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent, group);
     };
 
-    const renderVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
+    const renderVolume = (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => {
       updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
       drawPass(PassDraws.volume, group);
     };
 
-    const renderWboitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+    const renderWboitTransparent = (group: Scene.Group, camera: RenderCamera, depthTexture: Texture | null) => {
       updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
       drawPass(PassDraws.wboitTransparent, group);
     };
 
     const renderDpoitTransparent = (
       group: Scene.Group,
-      camera: ICamera,
+      camera: RenderCamera,
       depthTexture: Texture,
       dpoitTextures: { depth: Texture; frontColor: Texture },
     ) => {
@@ -2716,15 +1482,16 @@ namespace Renderer {
         }
       },
       update,
-      prepareCull,
-      prepareSphereRaster,
+      prepareCull: culling.prepare,
+      prepareCullView: culling.prepareView,
+      prepareSphereRaster: culling.prepareRaster,
       get cullSecondPending() {
-        return cullSecondPending;
+        return culling.secondPending;
       },
-      prepareCullSecond,
+      prepareCullSecond: culling.prepareSecond,
       renderOpaqueSecond,
       get gpuCulledCount() {
-        return gpuCulledCount;
+        return culling.culledCount;
       },
 
       renderPick,
@@ -2767,14 +1534,11 @@ namespace Renderer {
 
         if (props.drawLists !== undefined && props.drawLists !== p.drawLists) {
           p.drawLists = props.drawLists;
-          resetDrawLists();
+          drawLists.reset();
         }
         if (props.sphereRaster !== undefined && props.sphereRaster !== p.sphereRaster) {
           p.sphereRaster = props.sphereRaster;
-          if (p.sphereRaster === 'off') {
-            sphereRasterPass?.destroy();
-            sphereRasterPass = undefined;
-          }
+          if (p.sphereRaster === 'off') culling.rasterOff();
         }
         if (props.sphereRasterRadius !== undefined) p.sphereRasterRadius = props.sphereRasterRadius;
         if (props.sphereRasterObjects !== undefined) p.sphereRasterObjects = props.sphereRasterObjects;
@@ -2882,9 +1646,7 @@ namespace Renderer {
       get occlusionTest() {
         return isOccluded;
       },
-      setOcclusionPyramid: (get: (() => OcclusionPyramid | undefined) | null) => {
-        getOcclusionPyramid = get;
-      },
+      setOcclusionPyramid: culling.setOcclusionPyramid,
 
       props: p,
       get stats(): RendererStats {
@@ -2911,7 +1673,7 @@ namespace Renderer {
         return globalUniforms.uAmbientColor.ref.value;
       },
       dispose: () => {
-        sphereRasterPass?.destroy();
+        culling.destroy();
         globals.destroy();
         if (emptyDepthTexture !== emptyDepthAlphaTexture) emptyDepthTexture.destroy();
         emptyDepthAlphaTexture.destroy();

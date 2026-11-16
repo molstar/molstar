@@ -43,7 +43,8 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
-    "@types/webxr": "catalog:"
+    "@types/webxr": "catalog:",
+    "@molstar/model": "workspace:*"
   },
   "peerDependencies": {
     "gl": ">=6 <9",

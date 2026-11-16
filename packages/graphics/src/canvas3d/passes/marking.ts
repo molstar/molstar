@@ -36,6 +36,7 @@ import { clearJitter, setJitter } from './jitter.js';
 import type { RenderContext as BaseRenderContext } from '../util.js';
 import { updateOcclusionUpsample } from './ssao.js';
 import type { PassTargets } from './pass-targets.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 export const MarkingParams = {
   enabled: PD.Boolean(true),
@@ -125,6 +126,9 @@ export class MarkingPass {
 
   private readonly depthTarget: RenderTarget;
   private readonly maskTarget: RenderTarget;
+  /** the depth and mask targets with the transparency depth-stencil */
+  private readonly depthPass: RenderPassAttachments;
+  private readonly maskPass: RenderPassAttachments;
   /** premultiplied marking, the running average of the samples taken so far */
   private readonly layerTarget: RenderTarget;
 
@@ -171,8 +175,9 @@ export class MarkingPass {
     this.depthTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
     // linear so that it can be used as antialiasing input
     this.maskTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
-    depthStencil.attachFramebuffer(this.depthTarget.framebuffer);
-    depthStencil.attachFramebuffer(this.maskTarget.framebuffer);
+    // with the transparency depth-stencil, for the depth impostors and the caps' stencil
+    this.depthPass = createRenderPassAttachments(graphics.resources, [this.depthTarget.texture], depthStencil);
+    this.maskPass = createRenderPassAttachments(graphics.resources, [this.maskTarget.texture], depthStencil);
     const layerType = halfFloatRenderTarget ? 'fp16' : floatBlend ? 'float32' : 'uint8';
     this.layerTarget = targets.createRenderTarget(width, height, 'none', layerType);
 
@@ -582,7 +587,7 @@ export class MarkingPass {
     // list still costs)
     const volumes = this.graphics.capabilities.fragDepth && scene.volumes.renderables.length > 0;
     if (depthTest) {
-      b.begin(this.depthTarget, { label: 'marking depth' });
+      b.begin(this.depthPass, { label: 'marking depth' });
       if (b.drawing) renderer.clearDepth(true);
       if (sceneDepth) {
         if (b.drawing) this.setViewport(camera.viewport);
@@ -606,7 +611,7 @@ export class MarkingPass {
       }
     }
 
-    b.begin(this.maskTarget, { label: 'marking mask' });
+    b.begin(this.maskPass, { label: 'marking mask' });
     if (b.drawing) renderer.clear(false, true);
     // the mask draws marked objects only: as if marked, all objects
     b.renderer(
@@ -731,7 +736,7 @@ export class MarkingPass {
     b.quad(this.overlay, RenderState.Constant);
   }
 
-  /** Blends the layer over the currently bound framebuffer. */
+  /** Blends the layer over the target of the open render pass. */
   private compositeLayer(b: PassBuilder, viewport: Viewport) {
     if (b.drawing) this.setViewport(viewport);
     b.quad(this.composite, RenderState.Premultiplied);

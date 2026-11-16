@@ -4,11 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { SizeType, LocationSize } from '@molstar/graphics/geo/geometry/size-data';
+import type { Location } from '@molstar/model/model/location';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ThemeDataContext, ThemeRegistry, type ThemeProvider } from './theme.js';
 import { deepEqual } from '@molstar/core/util';
 import type { BuiltInSizeThemes } from './size/catalog.js';
+
+/** How a geometry stores its sizes: one, per instance, group or vertex */
+export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
+
+export type LocationSize = (location: Location) => number;
 
 export { SizeTheme };
 interface SizeTheme<P extends PD.Params> {

@@ -21,6 +21,8 @@ import type { VtpFile } from '@molstar/io/reader/vtp/schema';
 import type { PsfFile } from '@molstar/io/reader/psf/parser';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 import type { ParticleTrajectory } from '@molstar/model/model/particles/particle-trajectory';
+import type { ParticleTileSet } from '@molstar/model/model/particles/particle-tiles';
+import type { ParticleTileLoader } from '@molstar/model/model/particles/particle-tile-loader';
 import type { ShapeProvider } from '@molstar/graphics/geo/shape/provider';
 import type {
   Coordinates as _Coordinates,
@@ -318,6 +320,11 @@ export namespace PluginStateObject {
   export namespace Particle {
     export class Trajectory extends Create<ParticleTrajectory>({ name: 'Particle Trajectory', typeClass: 'Object' }) {}
     export class List extends Create<ParticleList>({ name: 'Particle List', typeClass: 'Object' }) {}
+    /** a particle list in tiles loaded on demand: the set and its loader (the tiles' and targets' states, one a set) */
+    export class TileSet extends Create<{ readonly set: ParticleTileSet; readonly loader: ParticleTileLoader }>({
+      name: 'Particle Tile Set',
+      typeClass: 'Object',
+    }) {}
     export class Representation3D extends CreateRepresentation3D<ParticleRepresentation<any>, ParticleList>({
       name: 'Particle 3D',
     }) {}

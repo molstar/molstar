@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Task } from '@molstar/core/task';
@@ -106,6 +107,7 @@ export const VideoExportParams = (ctx: ApiAreaContext) => {
       },
     ),
     axes: PD.Boolean(false, { description: 'Show the orientation axes' }),
+    scale: PD.Boolean(false, { description: 'Show the scale line' }),
     box: PD.Value<{ x: number; y: number; width: number; height: number }>(
       { x: 0, y: 0, width: 1, height: 1 },
       {
@@ -148,12 +150,14 @@ export function cropOf(b: { x: number; y: number; width: number; height: number 
 function configure(helper: ViewportScreenshotHelper, v: ExportValues): () => void {
   const before = { values: helper.values, cropParams: helper.cropParams, relativeCrop: helper.relativeCrop };
   const on = PD.getDefaultValues((CameraHelperParams.axes.map('on') as PD.Group<any>).params);
+  const scaleOn = PD.getDefaultValues((CameraHelperParams.scale.map('on') as PD.Group<any>).params);
   helper.behaviors.values.next({
     ...before.values,
     resolution: (v.size.name === 'custom' ? v.size : { name: v.size.name, params: {} }) as never,
     // A video has no alpha (MP4): an opaque background, whatever an image export left.
     transparent: false,
     axes: (v.axes ? { name: 'on', params: on } : { name: 'off', params: {} }) as never,
+    scale: (v.scale ? { name: 'on', params: scaleOn } : { name: 'off', params: {} }) as never,
   });
   // The crop given (the Export card's view's), else the whole frame: never found per frame, which would jump.
   helper.behaviors.cropParams.next({ ...before.cropParams, auto: false });

@@ -93,6 +93,7 @@ export const DrawFactCells = [
   'hasReflection',
   'dSolidInterior',
   'instanceGrid',
+  'instanceCellSize',
   'uInstanceCount',
   'lodLevels',
   'boundingSphere',
@@ -185,7 +186,7 @@ export function getCullFacts(values: Values): number {
   let f = 0;
   if (values.drawCount.ref.value) f |= DrawFact.DrawCount;
   if (hasCameraBounds(values)) f |= DrawFact.CameraBounds;
-  if (values.instanceGrid.ref.value.cellSize > 0) f |= DrawFact.InstanceGrid;
+  if (values.instanceCellSize.ref.value > 0) f |= DrawFact.InstanceGrid;
   if (values.uInstanceCount.ref.value > 1) f |= DrawFact.MultipleInstances;
   // empty (no levels) where the geometry has none set, as spheres by default
   if ((getValue(values, 'lodLevels') as ArrayLike<unknown> | undefined)?.length) f |= DrawFact.LodLevels;
