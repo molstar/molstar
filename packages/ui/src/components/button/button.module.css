@@ -1,0 +1,106 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.button {
+  /* Sizes (styles §4): the default is a row's height, `small` a control's (it sits in a form row), `tiny` a control's
+     with small text; an icon-only button is square. The icon follows the size, never its own attribute. */
+  --msui-button-height: var(--msui-row);
+  --msui-button-icon: var(--msui-icon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--msui-space-1);
+  height: max(var(--msui-button-height), var(--msui-touch-target, 0px));
+  padding: 0 var(--msui-space-2);
+  border-radius: var(--msui-radius-md);
+  background: var(--msui-control);
+  color: var(--msui-text);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  white-space: nowrap;
+  /* State changes are fast (styles §7). */
+  transition:
+    background var(--msui-motion-fast) var(--msui-ease),
+    color var(--msui-motion-fast) var(--msui-ease);
+
+  &:hover:not(:disabled) {
+    background: var(--msui-control-hover);
+  }
+
+  &:active:not(:disabled),
+  &[aria-pressed="true"] {
+    background: var(--msui-control-active);
+    /* Marked by more than a shade where contrast matters (--msui-selected-edge). */
+    box-shadow: inset 0 0 0 1px var(--msui-selected-edge);
+  }
+
+  &:disabled {
+    color: var(--msui-text-subtle);
+  }
+}
+
+.primary {
+  /* The action a block exists for: a soft wash of the accent, accent text; clear without shouting. */
+  background: color-mix(in oklab, var(--msui-accent), transparent 84%);
+  color: var(--msui-accent-strong);
+  font-weight: var(--msui-weight-strong);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--msui-accent), transparent 76%);
+  }
+
+  &:active:not(:disabled),
+  &[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--msui-accent), transparent 70%);
+    box-shadow: inset 0 0 0 1px var(--msui-selected-edge);
+  }
+
+  &:disabled {
+    background: color-mix(in oklab, var(--msui-accent), transparent 92%);
+    color: var(--msui-text-subtle);
+  }
+}
+
+/* Stretches across its container: the apply button at the end of a form. */
+.block {
+  width: 100%;
+}
+
+.ghost {
+  background: transparent;
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--msui-danger);
+  color: var(--msui-on-accent);
+}
+
+/* A control's height: a button in a form row lines up with the fields; its text where a field's text starts, a 12px
+   icon (styles §4.1: icons in controls are 12). */
+.small {
+  --msui-button-height: var(--msui-control-height);
+  --msui-button-icon: var(--msui-icon-sm);
+  padding: 0 var(--msui-control-inset);
+}
+
+/* A control's height, small text and a 12px icon: next to captions and counts. */
+.tiny {
+  --msui-button-height: var(--msui-control-height);
+  --msui-button-icon: var(--msui-icon-sm);
+  padding: 0 var(--msui-space-1);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+}
+
+.iconOnly {
+  width: max(var(--msui-button-height), var(--msui-touch-target, 0px));
+  padding: 0;
+}
+
+.icon {
+  --msui-icon-size: var(--msui-button-icon);
+  display: inline-flex;
+}

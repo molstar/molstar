@@ -7,6 +7,8 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { Select } from '../../components/select/select.js';
+import { TextInput } from '../../components/text-input/text-input.js';
 import { Heading, Note, page, story, TokenTable } from '../support.js';
 
 const meta: Meta = { title: 'Foundations/Spacing' };
@@ -65,10 +67,38 @@ export const Sizes_: StoryObj = {
           </div>
           <div class="msui-surface">
             <div class="msui-form">
-              {['Color', 'Size', 'Opacity', 'Quality'].map((l) => [
-                <span class="msui-label">{l}</span>,
-                <span class="msui-control">{l === 'Opacity' ? '0.8' : 'Auto'}</span>,
-              ])}
+              <span class="msui-label">Color</span>
+              <Select
+                size="sm"
+                aria-label="Color"
+                value="auto"
+                options={[
+                  ['auto', 'Auto'],
+                  ['uniform', 'Uniform'],
+                ]}
+              />
+              <span class="msui-label">Size</span>
+              <Select
+                size="sm"
+                aria-label="Size"
+                value="auto"
+                options={[
+                  ['auto', 'Auto'],
+                  ['uniform', 'Uniform'],
+                ]}
+              />
+              <span class="msui-label">Opacity</span>
+              <TextInput size="sm" aria-label="Opacity" value="0.8" />
+              <span class="msui-label">Quality</span>
+              <Select
+                size="sm"
+                aria-label="Quality"
+                value="auto"
+                options={[
+                  ['auto', 'Auto'],
+                  ['high', 'High'],
+                ]}
+              />
             </div>
           </div>
         </div>

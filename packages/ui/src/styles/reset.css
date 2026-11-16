@@ -1,0 +1,203 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * A reset scoped to UI roots (`.msui-root`: a `UiElement`, a story root), so host pages are untouched and host styles
+ * leaking in are neutralised (styles §8). Low specificity (`:where`) and the lowest layer: components override it.
+ */
+
+/*
+ * Cut-off text fades out at its end (no ellipsis), only when it is cut off: a scroll-driven animation on the element's
+ * own inline scroll timeline sets the fade's width, active only when there is overflow. An element opts in with
+ * `overflow: hidden`, `white-space: nowrap` and:
+ *   mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+ *   animation-name: msui-fade-overflow;
+ *   animation-fill-mode: both;
+ *   animation-timeline: scroll(self inline);
+ */
+@property --msui-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Only where scroll timelines exist: elsewhere the animation would hold its keyframe on the document timeline. */
+@supports (animation-timeline: scroll()) {
+  @keyframes msui-fade-overflow {
+    from,
+    to {
+      --msui-fade: 20px;
+    }
+  }
+}
+
+/*
+ * A scrolling area's edges fade where there is more to scroll that way: two scroll-driven animations on the area's own
+ * block timeline set the fades' heights. An area opts in with:
+ *   mask-image: linear-gradient(to bottom, transparent, #000 var(--msui-fade-top), #000 calc(100% - var(--msui-fade-bottom)), transparent);
+ *   animation-name: msui-fade-scroll-top, msui-fade-scroll-bottom;
+ *   animation-fill-mode: both;
+ *   animation-timing-function: linear;
+ *   animation-timeline: scroll(self block);
+ *   animation-range: 0 24px, calc(100% - 24px) 100%;
+ */
+@property --msui-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --msui-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@supports (animation-timeline: scroll()) {
+  @keyframes msui-fade-scroll-top {
+    from {
+      --msui-fade-top: 0px;
+    }
+    to {
+      --msui-fade-top: 16px;
+    }
+  }
+
+  @keyframes msui-fade-scroll-bottom {
+    from {
+      --msui-fade-bottom: 16px;
+    }
+    to {
+      --msui-fade-bottom: 0px;
+    }
+  }
+}
+
+/* Content that opens (`Show`'s `reveal`): grows to its height and fades in; `side` slides in, `fade` only fades. */
+@keyframes msui-reveal {
+  from {
+    height: 0;
+    padding-block: 0;
+    margin-block: 0;
+    opacity: 0;
+    overflow: clip;
+  }
+  to {
+    overflow: clip;
+  }
+}
+
+@keyframes msui-reveal-side {
+  from {
+    opacity: 0;
+    translate: 12px 0;
+  }
+}
+
+@keyframes msui-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@layer msui.reset {
+  :where(.msui-root) {
+    /* Heights animate to and from auto (a reveal grows to its height). */
+    interpolate-size: allow-keywords;
+    font-family: var(--msui-font-sans);
+    font-size: var(--msui-text-sm);
+    line-height: var(--msui-leading-sm);
+    color: var(--msui-text);
+    /* The host page's inherited text styles stop here. */
+    font-style: normal;
+    font-weight: var(--msui-weight-regular);
+    font-variant: normal;
+    text-align: start;
+    text-transform: none;
+    text-indent: 0;
+    letter-spacing: normal;
+    word-spacing: normal;
+    white-space: normal;
+    -webkit-font-smoothing: antialiased;
+    text-size-adjust: none;
+    /* An app, not a page: the arrow over labels; the text cursor only where text is typed. */
+    cursor: default;
+  }
+
+  :where(.msui-root) :where(input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, [contenteditable]) {
+    cursor: text;
+  }
+
+  :where(.msui-root),
+  :where(.msui-root) *,
+  :where(.msui-root) *::before,
+  :where(.msui-root) *::after {
+    box-sizing: border-box;
+  }
+
+  :where(.msui-root) :where(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, dd, figure, blockquote, pre) {
+    margin: 0;
+  }
+
+  :where(.msui-root) :where(ul, ol) {
+    padding: 0;
+    list-style: none;
+  }
+
+  :where(.msui-root) :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  :where(.msui-root) :where(button) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  :where(.msui-root) :where(button:disabled) {
+    cursor: default;
+  }
+
+  :where(.msui-root) :where(svg) {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  :where(.msui-root) :where(:focus-visible) {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: 1px;
+  }
+
+  :where(.msui-root) :where([data-reveal]) {
+    animation: msui-reveal var(--msui-motion-base) var(--msui-ease-in-out);
+  }
+
+  :where(.msui-root) :where([data-reveal="side"]) {
+    animation-name: msui-reveal-side;
+  }
+
+  :where(.msui-root) :where([data-reveal="fade"]) {
+    animation: msui-reveal-fade var(--msui-motion-slow) var(--msui-ease-in-out);
+  }
+
+  /* Every rounded corner takes the root's shape (styles §6): squircles where supported, round elsewhere. */
+  @supports (corner-shape: squircle) {
+    :where(.msui-root),
+    :where(.msui-root) *,
+    :where(.msui-root) *::before,
+    :where(.msui-root) *::after {
+      corner-shape: var(--msui-corner-shape);
+    }
+  }
+
+  :where(.msui-root) :where([hidden]) {
+    display: none !important;
+  }
+}

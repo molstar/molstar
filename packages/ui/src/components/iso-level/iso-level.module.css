@@ -1,0 +1,79 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Drag anywhere on the plot: the marker under the pointer, else the nearest, follows it. */
+.plot {
+  cursor: ew-resize;
+}
+
+/* What a level encloses, tinted in its color: the plot's whole width, moved (transform only) to start at the level. */
+.inside {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--msui-level, var(--msui-text-muted)), transparent 82%);
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* A marker's track spans the plot and is moved with transform; the marker sits on its left edge. */
+.track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* A 12px hit area centered on the line: the line (2px) down the plot, a handle (8px) at its top. */
+.marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--msui-space-3) / 2);
+  width: var(--msui-space-3);
+  pointer-events: auto;
+  cursor: ew-resize;
+  outline: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% - 1px);
+    width: 2px;
+    background: var(--msui-level, var(--msui-text));
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: var(--msui-space-1);
+    left: calc(50% - var(--msui-space-1));
+    width: var(--msui-space-2);
+    height: var(--msui-space-2);
+    border-radius: 50%;
+    background: var(--msui-level, var(--msui-text));
+    /* A ring in the well's color keeps it off the histogram and the line. */
+    box-shadow: 0 0 0 1px var(--msui-surface-sunken);
+    transition: transform var(--msui-motion-fast) var(--msui-ease);
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    transform: scale(1.25);
+  }
+
+  &:focus-visible::after {
+    box-shadow:
+      0 0 0 1px var(--msui-surface-sunken),
+      0 0 0 2px var(--msui-focus);
+  }
+}
+
+/* A level that is not shown: its marker and its tint faded. */
+.off {
+  opacity: 0.35;
+}

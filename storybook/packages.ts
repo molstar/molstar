@@ -11,6 +11,8 @@ import type { PluginOption } from 'vite';
 import { cssModulesPlugin, cssPackage } from '../packages/prism/ui/scripts/css.mjs';
 import { preactFolderPlugin } from './.storybook/preact-folder.js';
 import { seqstarFixtureFs } from '../packages/sequences/storybook/vite.js';
+// The UI's CSS generator, run as a Vite plugin (the package's `styles` script runs the same file).
+import { cssModulesPlugin as uiCssModulesPlugin, cssPackage as uiCssPackage } from '../packages/ui/scripts/css.mjs';
 
 export const monorepoRoot = fileURLToPath(new URL('..', import.meta.url));
 
@@ -37,7 +39,12 @@ export interface StoryPackage {
 export const StoryPackages: StoryPackage[] = [
   // Mol* UI (`@molstar/ui`): the foundations (tokens, alignment) and the runtime. Its preview module loads the
   // foundations' stylesheet and sets the toolbar's theme as `data-msui-theme`.
-  { dir: 'packages/ui', group: 'UI', preview: 'src/_stories/preview.ts' },
+  {
+    dir: 'packages/ui',
+    group: 'UI',
+    plugins: (root) => [uiCssModulesPlugin([uiCssPackage(root)])],
+    preview: 'src/_stories/preview.ts',
+  },
   {
     dir: 'packages/prism/ui',
     group: 'Prism',

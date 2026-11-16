@@ -8,6 +8,10 @@
 
 import { derive, State } from '@molstar/core/reactive';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { Button } from '../../components/button/button.js';
+import { Icon, type IconName } from '../../components/icon/icon.js';
+import { Select } from '../../components/select/select.js';
+import { TextInput } from '../../components/text-input/text-input.js';
 import type { Child } from '../../dom/index.js';
 import { Heading, Note, page, story } from '../support.js';
 
@@ -105,41 +109,58 @@ function GuideLines(props: { show: State<boolean>; grid: State<boolean> }) {
   );
 }
 
-function Icon(props: { glyph: string }) {
-  return <span class="msui-slot">{props.glyph}</span>;
+/** An icon in its slot: 16px for an object's icon, 12px (centered in the 16px slot) for a control's mark. */
+function Slot(props: { icon?: IconName; mark?: boolean }) {
+  return (
+    <span class="msui-slot" style={props.mark ? '--msui-icon-size: var(--msui-icon-sm)' : ''}>
+      {props.icon ? <Icon name={props.icon} /> : null}
+    </span>
+  );
 }
 
-/** A panel built with the primitives: a header, a tree with and without icons, two forms, numbers. */
+const Representations = [
+  ['cartoon', 'Cartoon'],
+  ['ball-and-stick', 'Ball & stick'],
+  ['spacefill', 'Spacefill'],
+] as const;
+
+const Colors = [
+  ['chain-id', 'Chain ID'],
+  ['element', 'Element'],
+  ['uniform', 'Uniform'],
+] as const;
+
+/** A panel built with the primitives and the components: a header, a tree with and without icons, forms, numbers. */
 function AlignedPanel() {
   return (
     <div class="msui-surface" style="padding-bottom: var(--msui-space-3);">
       <div class="msui-header">
-        <Icon glyph="◆" />
+        <Slot icon="structure" />
         Structure
       </div>
       <div class="msui-row">
-        <Icon glyph="▾" />
+        <Slot icon="chevron-down" mark />
         <span>1TQN</span>
         <span class="msui-num" style="color: var(--msui-text-subtle)">
           3,214
         </span>
       </div>
       <div class="msui-row" style="--msui-level: 1;">
-        <Icon glyph="●" />
+        <Slot icon="cartoon" />
         <span>Polymer</span>
         <span class="msui-num" style="color: var(--msui-text-subtle)">
           3,012
         </span>
       </div>
       <div class="msui-row" style="--msui-level: 1;">
-        <Icon glyph="" />
+        <Slot />
         <span>Ligand (no icon)</span>
         <span class="msui-num" style="color: var(--msui-text-subtle)">
           44
         </span>
       </div>
       <div class="msui-row" style="--msui-level: 1;">
-        <Icon glyph="●" />
+        <Slot icon="spacefill" />
         <span>Water</span>
         <span class="msui-num" style="color: var(--msui-text-subtle)">
           158
@@ -150,9 +171,11 @@ function AlignedPanel() {
       </div>
       <div class="msui-form">
         <span class="msui-label">Representation</span>
-        <span class="msui-control">Cartoon</span>
+        <Select size="sm" options={Representations} value="cartoon" aria-label="Representation" />
         <span class="msui-label">Color</span>
-        <span class="msui-control">Chain ID</span>
+        <Select size="sm" options={Colors} value="chain-id" aria-label="Color" />
+        <span class="msui-label">Label</span>
+        <TextInput size="sm" value="1TQN" aria-label="Label" />
         <span class="msui-label">Atoms</span>
         <span class="msui-value msui-num" style="text-align: start;">
           3,214 (read only)
@@ -171,6 +194,14 @@ function AlignedPanel() {
           <span class="msui-value msui-num">{value}</span>,
           <span style="color: var(--msui-text-subtle)">{unit}</span>,
         ])}
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: var(--msui-space-2); padding: var(--msui-space-2) var(--msui-inner) 0;">
+        <Button size="sm" variant="ghost">
+          Reset
+        </Button>
+        <Button size="sm" variant="primary">
+          Apply
+        </Button>
       </div>
     </div>
   );

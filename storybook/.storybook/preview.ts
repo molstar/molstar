@@ -19,7 +19,12 @@ const preview: Preview = {
       storySort: {
         order: [
           'UI',
-          ['Introduction', 'Foundations', ['Color', 'Type', 'Spacing', 'Shape', 'Alignment', 'Motion']],
+          [
+            'Introduction',
+            'Foundations',
+            ['Color', 'Type', 'Spacing', 'Icons', 'Shape', 'Alignment', 'Motion'],
+            'Components',
+          ],
           'Prism',
           [
             'Overview',

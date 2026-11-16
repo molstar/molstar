@@ -1,0 +1,239 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.select {
+  display: grid;
+  gap: var(--msui-space-1);
+  min-width: 0;
+}
+
+/* A row's height on its own (md); a control in a form row (sm, styles §4). Its text at the control inset (§5), the
+   chevron at its end: an indicator beside 12px text, so the small icon size (§4.1). */
+.button {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: flex;
+  align-items: center;
+  gap: var(--msui-icon-gap);
+  width: 100%;
+  min-width: 0;
+  height: var(--msui-row);
+  padding: 0 var(--msui-space-1) 0 var(--msui-control-inset);
+  border-radius: var(--msui-radius-md);
+  background: var(--msui-control);
+  /* Its edge where contrast matters (foundations, --msui-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msui-field-edge);
+  color: var(--msui-text);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  text-align: left;
+
+  &[data-size="sm"] {
+    height: var(--msui-control-height);
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msui-control-hover);
+  }
+
+  /* Inside the field: a field at a scrolling panel's edge would have a ring outside it cut off. */
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msui-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  color: var(--msui-text-muted);
+  transition: transform var(--msui-motion-fast) var(--msui-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+/* The options: a quiet surface with a hairline edge (inline), raised over the field (floating); the current one checked.
+   Its indicators (the check, a fold's chevron) at the small icon size beside 12px text (styles §4.1). */
+.list {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  max-height: 240px;
+  border-radius: var(--msui-radius-lg);
+  background: color-mix(in oklab, var(--msui-control), transparent 40%);
+  /* A hairline: in a block of the same tone it would blend in otherwise. */
+  box-shadow: inset 0 0 0 1px var(--msui-line);
+  animation: list-in var(--msui-motion-fast) var(--msui-ease);
+}
+
+/* It pads by the surface's pad; its rows pad the rest of the control inset, so their text starts where the field's
+   does: over the field, the current option lies on the field's text. */
+.listContent {
+  display: grid;
+  padding: var(--msui-space-1) var(--msui-surface-pad);
+}
+
+/* Over its field: it only fades in (a slide would move the current option off the field's text). */
+.floating[data-placement="over"] > .list {
+  animation-name: list-fade;
+}
+
+@keyframes list-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+/* A list row (styles §4): 24px, text 12/16 at the field's control inset; the check where the field's chevron is (its
+   end a unit from the list's edge, as the chevron's from the field's). */
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  min-height: var(--msui-row);
+  padding-inline: calc(var(--msui-control-inset) - var(--msui-surface-pad))
+    calc(var(--msui-space-1) - var(--msui-surface-pad));
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+    outline: none;
+  }
+
+  /* Marked by color and the check, not weight: over the field, its text keeps the field's glyphs. */
+  &[aria-selected="true"] {
+    color: var(--msui-accent-strong);
+  }
+}
+
+.optionLabel {
+  min-width: 0;
+}
+
+.group {
+  display: grid;
+}
+
+/* A group's fold: its name where the options' text starts (all of a list's text in one column, the field's: over the
+   field, any option lies on its text), the chevron where the checks are, turned while it is open. */
+.groupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  min-height: var(--msui-row);
+  padding-inline: calc(var(--msui-control-inset) - var(--msui-surface-pad))
+    calc(var(--msui-space-1) - var(--msui-surface-pad));
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  font-weight: var(--msui-weight-strong);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+    outline: none;
+  }
+}
+
+.groupChevron {
+  flex: none;
+  transition: transform var(--msui-motion-fast) var(--msui-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+/* Its options: in the list's text column (the group's head marks where it begins). */
+.groupBody {
+  display: grid;
+}
+
+.check {
+  flex: none;
+  visibility: hidden;
+
+  [aria-selected="true"] > & {
+    visibility: visible;
+  }
+}
+
+/* Floating options (Select's `over`, `Floating`): a popover in the top layer, placed by the script; its list opaque. */
+.floating {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  color: inherit;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+
+  & .option {
+    white-space: nowrap;
+  }
+
+  & > .list {
+    background: var(--msui-surface-raised);
+    box-shadow:
+      inset 0 0 0 1px var(--msui-line),
+      var(--msui-shadow-overlay);
+  }
+}
+
+/* A menu in a popover (`MenuPopover`): raised, as a select's floating options. */
+.menuPopover {
+  /* A menu's icons mark commands: the small size (styles §4.1). */
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: grid;
+  min-width: 180px;
+  /* Taller than the window (sub-entries opened in place): it scrolls rather than run off it. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  /* A surface (styles §5): its entries (rows padding --msui-inner) put their text on the inset. */
+  padding: var(--msui-space-1) var(--msui-surface-pad);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--msui-line),
+    var(--msui-shadow-overlay);
+  font-size: var(--msui-text-sm);
+  animation: list-in var(--msui-motion-fast) var(--msui-ease);
+}

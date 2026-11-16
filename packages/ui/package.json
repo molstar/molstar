@@ -18,10 +18,31 @@
       "types": "./lib/dom/index.d.ts",
       "import": "./lib/dom/index.js"
     },
-    "./dom/_test/*": null,
-    "./_test/*": null,
     "./styles/foundations.css": "./src/styles/foundations.css",
-    "./_stories/*": null
+    "./_stories/*": null,
+    "./_test/*": null,
+    "./components/action-footer/_test/*": null,
+    "./components/choices/_test/*": null,
+    "./components/color/_test/*": null,
+    "./components/context-menu/_test/*": null,
+    "./components/histogram/_test/*": null,
+    "./components/icon/_test/*": null,
+    "./components/iso-level/_test/*": null,
+    "./components/markdown/_test/*": null,
+    "./components/params/_test/*": null,
+    "./components/popover/_test/*": null,
+    "./components/reorder/_test/*": null,
+    "./components/scroll-area/_test/*": null,
+    "./components/segmented/_test/*": null,
+    "./components/select/_test/*": null,
+    "./components/text-input/_test/*": null,
+    "./components/toolbar/_test/*": null,
+    "./components/tooltip/_test/*": null,
+    "./components/transfer-function/_test/*": null,
+    "./components/virtual-list/_test/*": null,
+    "./dom/_test/*": null,
+    "./forms/_test/*": null,
+    "./testing/*": null
   },
   "files": [
     "lib",
@@ -29,13 +50,19 @@
     "!**/_test/**",
     "!**/_spec/**",
     "!**/_stories/**",
+    "!**/testing/**",
     "!**/*.tsbuildinfo"
   ],
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "test:perf": "vitest run --config vitest.perf.config.ts",
-    "typecheck:storybook": "tsc -p tsconfig.storybook.json"
+    "typecheck:storybook": "tsc -p tsconfig.storybook.json",
+    "styles": "node scripts/css.mjs",
+    "styles:check": "node scripts/css.mjs --check",
+    "styles:watch": "node scripts/css.mjs --watch",
+    "icons": "node scripts/icons.mjs",
+    "icons:check": "node scripts/icons.mjs --check"
   },
   "dependencies": {
     "tslib": "catalog:",
@@ -48,6 +75,8 @@
     "@molstar/test-harness": "workspace:*",
     "vitest": "catalog:",
     "@storybook/addon-docs": "catalog:",
-    "@storybook/web-components-vite": "catalog:"
+    "@storybook/web-components-vite": "catalog:",
+    "lightningcss": "catalog:",
+    "lucide-static": "catalog:"
   }
 }

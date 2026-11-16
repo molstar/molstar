@@ -6,10 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Child, defineElements, ViewElement } from '../dom/index.js';
+import { type Child, defineElements } from '../dom/index.js';
+import { UiElement } from '../elements/ui-element.js';
 
-/** Hosts a story's JSX in an element, so its bindings are disposed when Storybook removes it. */
-class StoryRoot extends ViewElement<() => Child> {
+/** Hosts a story's JSX in a UI root (its styles adopted), so its bindings are disposed when Storybook removes it. */
+class StoryRoot extends UiElement<() => Child> {
   static readonly tag = 'msui-story-root';
   protected render(content: () => Child): Child {
     return content();

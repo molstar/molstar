@@ -7,6 +7,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { Button } from '../../components/button/button.js';
 import { grid, Heading, Note, page, story, Swatch } from '../support.js';
 
 const meta: Meta = { title: 'Foundations/Color' };
@@ -83,7 +84,9 @@ function Layers() {
         </div>
       </div>
       <div style="display: flex; justify-content: flex-end; padding: var(--msui-space-3) var(--msui-inner) 0;">
-        <span style="color: var(--msui-accent); font-weight: var(--msui-weight-strong);">Apply</span>
+        <Button size="sm" variant="primary">
+          Apply
+        </Button>
       </div>
     </div>
   );

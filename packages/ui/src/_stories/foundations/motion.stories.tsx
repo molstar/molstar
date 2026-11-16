@@ -8,6 +8,9 @@
 
 import { derive, State } from '@molstar/core/reactive';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { Button } from '../../components/button/button.js';
+import { Icon } from '../../components/icon/icon.js';
+import { Select } from '../../components/select/select.js';
 import { Heading, Note, story } from '../support.js';
 
 const meta: Meta = { title: 'Foundations/Motion' };
@@ -49,11 +52,12 @@ function Fold(props: { label: string; items: readonly string[] }) {
         <span
           class="msui-slot"
           style={{
+            '--msui-icon-size': 'var(--msui-icon-sm)',
             transition: 'transform var(--msui-motion-fast) var(--msui-ease)',
             transform: derive(open, (o) => (o ? 'rotate(90deg)' : 'none')),
           }}
         >
-          ›
+          <Icon name="chevron-right" />
         </span>
         <span>{props.label}</span>
         <span />
@@ -126,21 +130,27 @@ export const Moves: StoryObj = {
             <section class="msui-surface" style="padding-bottom: var(--msui-space-3);">
               <div class="msui-header">State</div>
               <div style="padding: 0 var(--msui-inner) var(--msui-space-2);">
-                <Note>Hover and press change color (fast).</Note>
+                <Note>Hover and press change color (fast); an option list opens over its field.</Note>
               </div>
               <div class="msui-form">
-                <span class="msui-label">Hover me</span>
-                <button
-                  type="button"
-                  class="msui-control msui-motion-demo"
-                  style="cursor: pointer; transition: background var(--msui-motion-fast) var(--msui-ease);"
-                  on:pointerenter={(e) =>
-                    ((e.currentTarget as HTMLElement).style.background = 'var(--msui-control-hover)')
-                  }
-                  on:pointerleave={(e) => ((e.currentTarget as HTMLElement).style.background = '')}
-                >
-                  A control
-                </button>
+                <span class="msui-label">Buttons</span>
+                <div style="display: flex; gap: var(--msui-space-2);">
+                  <Button size="sm">Hover me</Button>
+                  <Button size="sm" variant="primary">
+                    Press me
+                  </Button>
+                </div>
+                <span class="msui-label">Select</span>
+                <Select
+                  size="sm"
+                  aria-label="Color"
+                  value="chain-id"
+                  options={[
+                    ['chain-id', 'Chain ID'],
+                    ['element', 'Element'],
+                    ['uniform', 'Uniform'],
+                  ]}
+                />
               </div>
             </section>
           </div>

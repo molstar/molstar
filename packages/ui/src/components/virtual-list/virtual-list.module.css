@@ -1,0 +1,74 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.list {
+  flex: 1 1 0;
+}
+
+/* As tall as all the rows; only the window is in it, moved to where it shows. Behind the rows, a skeleton of empty rows
+   (a quiet bar where a row's text would be, one per row height, from the text column after the icon slot to the row's
+   end inset; styles §5): a fast wheel or flick scrolls on the compositor before the rows are made, and what it uncovers
+   reads as rows loading, never as a blank patch. Painted by the compositor, it costs nothing; the rows cover it. */
+.content {
+  position: relative;
+  contain: strict;
+  width: 100%;
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(50% - 4px),
+    color-mix(in oklab, var(--msui-text) 7%, transparent) calc(50% - 4px),
+    color-mix(in oklab, var(--msui-text) 7%, transparent) calc(50% + 4px),
+    transparent calc(50% + 4px)
+  );
+  background-size: calc(100% - 2 * var(--msui-inner) - var(--msui-indent)) var(--msui-virtual-row, var(--msui-row));
+  background-repeat: repeat-y;
+  background-position: calc(var(--msui-inner) + var(--msui-indent)) 0;
+}
+
+/* A reveal (a node opened) uncovers no rows that are not made: no skeleton then, which would show through the rows
+   fading in. */
+.content[data-revealing] {
+  background-image: none;
+}
+
+.window {
+  position: absolute;
+  inset: 0 0 auto;
+  will-change: transform;
+  /* Opaque in the surface's color, so the skeleton shows only where no row is made yet (a list on another surface sets
+     `--msui-virtual-bg`). */
+  background-color: var(--msui-virtual-bg, var(--msui-surface));
+}
+
+/* A row of a `RecycledList`: placed by its own transform (its index × the row height); a recycled one is moved, never
+   made again. Opaque like `.window`: the content's skeleton shows only at a place no slot has reached yet (a fast scroll
+   uncovering more than a task's slice makes), the same bars as the keyed list's. */
+.row {
+  position: absolute;
+  inset: 0 0 auto;
+  contain: layout style;
+  background-color: var(--msui-virtual-bg, var(--msui-surface));
+}
+
+/* A reveal (`reveal`: a run of rows inserted, a node opened): the rows below glide to their new place over the rows
+   coming in, which fade in where they belong (reset.css' `msui-reveal-fade`). Only for that change: a scroll is never
+   animated (styles §7). */
+.glide {
+  z-index: 1;
+  transition: transform var(--msui-motion-base) var(--msui-ease-in-out);
+}
+
+.enter {
+  animation: msui-reveal-fade var(--msui-motion-base) var(--msui-ease-in-out);
+}
+
+/* In a scroll area at the panel's edge (ScrollArea `edge`): the content's end padding is the scrollbar's gutter, and the
+   rows stop before it, as far from the panel's edge as they start from its other side (they are placed absolutely, so
+   the padding alone does not keep them in). */
+.list[data-edge] .window,
+.list[data-edge] .row {
+  right: var(--msui-scroll-edge, var(--msui-space-1));
+}

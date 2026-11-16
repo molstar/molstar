@@ -1,0 +1,468 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The form: it pads the rest of the inset (styles §5), so in a surface (which pads --msui-surface-pad) its labels start
+   at the inset. Its own level is 0: a host's levels (a tree's --msui-level) do not leak in.
+   Its columns are the whole form's: the label column fits the widest label at any depth (`fit-content`), at least
+   --msui-label and at most half the form; every block and row down to the deepest is a subgrid of these two columns, so
+   the grid sizes the label column from every label in the form, and values share one column at every level. Pure CSS:
+   a label that appears (a fold opened, a choice changed) resizes it with no measuring. */
+.form {
+  --msui-params-level: 0;
+
+  display: grid;
+  grid-template-columns: fit-content(50%) minmax(0, 1fr);
+  column-gap: var(--msui-space-3);
+  padding-inline: var(--msui-inner);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+}
+
+/* The blocks between the form and its rows (a field with what opens under it, a nested level, a fold, an object list's
+   item), and the rows: subgrids of the form's two columns, spanning both. */
+.field,
+.fields,
+.fold,
+.item,
+.row {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  min-width: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* What a block holds spans both columns (a row subgrids them; a help box, an item's row spans them). */
+:is(.form, .field, .fields, .fold, .item) > * {
+  grid-column: 1 / -1;
+}
+
+/* A row (a list row: 24px) on the form's columns (styles §5): the label column, a gap, the value column to the inner
+   padding. Its control centered in the row. */
+.row {
+  align-items: center;
+  min-height: var(--msui-row);
+}
+
+.row > .label {
+  grid-column: 1;
+}
+
+.row > .control {
+  grid-column: 2;
+}
+
+/* The label: at least the label token wide, one line (styles §2: the column fits it; past the cap its text fades, its
+   full text in its tooltip, `data-tip-overflow`). A level (--msui-params-level, set by a nested block) indents it by
+   --msui-form-indent inside the same column. */
+.label {
+  display: flex;
+  align-items: center;
+  min-width: var(--msui-label);
+  padding-block: var(--msui-space-1);
+  padding-inline-start: calc(var(--msui-params-level, 0) * var(--msui-form-indent));
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+}
+
+/* A label's own text: fades at its end when the column's cap cuts it (reset.css, msui-fade-overflow). */
+.labelText {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/* The value column: a 20px control centered in the 24px row (styles §4); what trails it (a button) a unit after. */
+.control {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  min-height: var(--msui-row);
+}
+
+/* A text field: a control (20px), its text at the control inset (styles §5). */
+.input,
+.number,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  height: var(--msui-control-height);
+  margin: 0;
+  padding: 0 var(--msui-control-inset);
+  border: 0;
+  border-radius: var(--msui-radius-md);
+  background: var(--msui-control);
+  /* Its edge where contrast matters (foundations, --msui-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msui-field-edge);
+  color: var(--msui-text);
+  font: inherit;
+
+  &:hover {
+    background: var(--msui-control-hover);
+  }
+
+  /* Inside the field: a field at a scrolling panel's edge would have a ring outside it cut off. */
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+
+  &::placeholder {
+    color: var(--msui-text-subtle);
+  }
+}
+
+/* Numbers: tabular figures, by place (styles §5). */
+.number,
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.number {
+  text-align: end;
+}
+
+/* Several lines: the same field, taller (three lines and its padding), resized by hand. It starts at its row's top, its
+   padding a unit, so its first line is level with the label's first line (both 4px down in the row). */
+.textarea {
+  display: block;
+  height: auto;
+  min-height: calc(3 * var(--msui-leading-sm) + 2 * var(--msui-space-1));
+  padding-block: var(--msui-space-1);
+  resize: vertical;
+}
+
+/* A slider: the track from the control inset (where a field's text starts), the number in a box at the end. */
+.slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--msui-space-2);
+  width: 100%;
+}
+
+/* A quiet track (not the accent: a setting is not the action): its filled part a soft muted tone, a small knob. */
+.range {
+  --msui-params-fill: color-mix(in oklab, var(--msui-text-muted), transparent 45%);
+
+  width: calc(100% - var(--msui-control-inset));
+  height: var(--msui-control-height);
+  margin: 0 0 0 var(--msui-control-inset);
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: var(--msui-radius-sm);
+    background: linear-gradient(
+      to right,
+      var(--msui-params-fill) var(--msui-params-progress, 0%),
+      var(--msui-control-active) var(--msui-params-progress, 0%)
+    );
+  }
+
+  &::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+    border-radius: 50%;
+    background: var(--msui-text-muted);
+    appearance: none;
+    -webkit-appearance: none;
+    transition: transform var(--msui-motion-fast) var(--msui-ease);
+  }
+
+  &:hover::-webkit-slider-thumb,
+  &:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    border-radius: var(--msui-radius-sm);
+    background: var(--msui-control-active);
+  }
+
+  &::-moz-range-progress {
+    height: 4px;
+    border-radius: var(--msui-radius-sm);
+    background: var(--msui-params-fill);
+  }
+
+  &::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--msui-text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: 2px;
+    border-radius: var(--msui-radius-sm);
+  }
+}
+
+/* A switch: its left edge where a field's text starts (the control inset), 16px in the row; on is a neutral tone, as a
+   slider's filled part (a setting is not the action). */
+.switch {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 16px;
+  margin-inline-start: var(--msui-control-inset);
+  border-radius: 8px;
+  background: var(--msui-control-active);
+  box-shadow: inset 0 0 0 1px var(--msui-field-edge);
+
+  &[aria-checked="true"] {
+    background: var(--msui-text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: 2px;
+  }
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--msui-bg);
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.12);
+  transition: transform var(--msui-motion-fast) var(--msui-ease);
+
+  [aria-checked="true"] > & {
+    transform: translateX(12px);
+  }
+}
+
+/* A color's swatch in its field, at the control inset (where a field's text starts), its channels after it. */
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--msui-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msui-text), transparent 88%);
+}
+
+/* A value (data): fades when cut (styles §2). */
+.channels,
+.fileNames,
+.meta,
+.itemLabel {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msui-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.channels {
+  font-variant-numeric: tabular-nums;
+}
+
+.unsupported {
+  padding-inline-start: var(--msui-control-inset);
+  color: var(--msui-text-subtle);
+}
+
+/* A fold's header (Advanced, a category, a group): a row on the form's columns; the title on the label column (one
+   line, fading past the cap as a label does), a chevron after it; on the value column the preset its values match (a
+   value, at the control inset) and Presets at the end. */
+.foldHeader {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  max-width: 100%;
+  color: var(--msui-text-muted);
+  text-align: start;
+
+  &:hover {
+    color: var(--msui-text);
+  }
+}
+
+.chevron {
+  flex: none;
+  color: var(--msui-text-subtle);
+  transition: transform var(--msui-motion-fast) var(--msui-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+.meta {
+  flex: 1;
+  padding-inline-start: var(--msui-control-inset);
+  color: var(--msui-text-subtle);
+}
+
+/* Presets (a group's, an object list's, a curve's): a quiet button at the end of its row. Its label is the UI's own:
+   it keeps its width. */
+.presets {
+  flex: none;
+  margin-inline-start: auto;
+}
+
+/* A choice's or a switch's settings button: after the select, or at the end of a switch's row. */
+.expand {
+  flex: none;
+
+  &[aria-expanded="true"] {
+    background: var(--msui-control-active);
+  }
+}
+
+.switch ~ .expand {
+  margin-inline-start: auto;
+}
+
+/* Files: a field like a select's (its text at the control inset), the names once chosen, ✕ to clear; a drop target. */
+.file {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: var(--msui-control-height);
+  border-radius: var(--msui-radius-md);
+  background: var(--msui-control);
+  box-shadow: inset 0 0 0 1px var(--msui-field-edge);
+
+  &:hover {
+    background: var(--msui-control-hover);
+  }
+
+  &[data-dragging] {
+    background: var(--msui-control-hover);
+    outline: 1px dashed var(--msui-line-strong);
+    outline-offset: -1px;
+  }
+}
+
+.filePick {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--msui-control-inset);
+  border-radius: var(--msui-radius-md);
+  text-align: start;
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+}
+
+.fileNames {
+  flex: 1;
+  color: var(--msui-text);
+
+  &[data-empty] {
+    color: var(--msui-text-muted);
+  }
+}
+
+/* Clear: a square at the field's end, a 12px mark (styles §4.1). */
+.fileClear {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--msui-control-height);
+  height: var(--msui-control-height);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+
+  &:hover {
+    background: var(--msui-control-active);
+    color: var(--msui-text);
+  }
+}
+
+/* An object list's count: a value at the control inset; Add and Presets after it at the row's end. */
+.count {
+  flex: 1;
+  min-width: 0;
+  padding-inline-start: var(--msui-control-inset);
+  color: var(--msui-text-subtle);
+}
+
+.item {
+  display: grid;
+}
+
+/* An item: a list row (24px) whose text is on the label column of its level; hovered (or open), its box reaches a
+   control inset past the form's columns on both sides, as a help box does; edit and remove at its end. */
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-height: var(--msui-row);
+  margin-inline: calc(-1 * var(--msui-control-inset));
+  padding-inline: calc(var(--msui-control-inset) + var(--msui-params-level, 0) * var(--msui-form-indent)) 0;
+  border-radius: var(--msui-radius-md);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--msui-control-hover);
+  }
+}
+
+.itemLabel {
+  flex: 1;
+}
+
+/* Its end: the actions' last edge where the fields' right edge is (a control inset inside the box). */
+.itemRow > :last-child {
+  margin-inline-end: var(--msui-control-inset);
+}
+
+/* Edit and remove: shown on hover, while the item is open, or focused. */
+.itemAction {
+  flex: none;
+  opacity: 0;
+
+  &[aria-expanded="true"] {
+    background: var(--msui-control-active);
+  }
+
+  .itemRow:hover > &,
+  &:focus-visible,
+  [data-open] > .itemRow > & {
+    opacity: 1;
+  }
+}
+
+/* A row with several lines (a textarea): its label on the first line, level with the field's first line. */
+.row:has(> .control > .textarea) {
+  align-items: start;
+}

@@ -134,7 +134,14 @@
     --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 14%);
     --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 28%);
     --msui-accent-muted: color-mix(in oklab, var(--msui-accent), var(--msui-bg) 80%);
+    /* The accent pressed or hovered on an accent fill. */
+    --msui-accent-strong: color-mix(in oklab, var(--msui-accent), var(--msui-shade) 12%);
     --msui-focus: var(--msui-accent);
+    /* Behind what covers the page (a dialog). */
+    --msui-scrim: rgb(0 0 0 / 0.35);
+    /* A field's edge and a selected control's: none where the fill marks them, a line where contrast matters. */
+    --msui-field-edge: transparent;
+    --msui-selected-edge: transparent;
 
     /* §2 Type: each size with its line height, both on the 4px grid, so text in neighboring columns shares baselines. */
     --msui-font-sans: "Helvetica Neue", "Segoe UI", Helvetica, "Source Sans Pro", Arial, sans-serif;
@@ -165,7 +172,11 @@
     --msui-row: calc(6 * var(--msui-unit)); /* 24 */
     --msui-control-height: calc(var(--msui-row) - var(--msui-unit)); /* 20 */
     --msui-header: calc(8 * var(--msui-unit)); /* 32: a panel's header */
-    --msui-icon: calc(4 * var(--msui-unit)); /* 16 */
+    /* Icons (styles §4.1): paired with the text and the box they sit in. An icon takes `--msui-icon-size` from its
+       context (a button, a slot, a header sets it), else --msui-icon. */
+    --msui-icon-sm: calc(3 * var(--msui-unit)); /* 12: with small text (xs), in a tiny control */
+    --msui-icon: calc(4 * var(--msui-unit)); /* 16: in rows, controls, buttons, headers */
+    --msui-icon-lg: calc(5 * var(--msui-unit)); /* 20: with large text, empty states */
 
     /* §5 Alignment: the columns everything lines up on (see the primitives below). */
     /* Where text starts from a surface's edge: a header's, a row's and a form's text share this column. */
@@ -179,15 +190,23 @@
     --msui-icon-gap: var(--msui-space-1);
     /* One level of nesting: exactly an icon slot and its gap, so a child's text sits under its parent's text. */
     --msui-indent: calc(var(--msui-icon-slot) + var(--msui-icon-gap));
+    /* One level of a form (a group, a choice's settings): its labels have no icon to align under, so a level is a
+       step of the scale, not a slot. */
+    --msui-form-indent: var(--msui-space-3);
     /* Where a control's text starts inside it; a plain value (text in a form) starts there too. */
     --msui-control-inset: var(--msui-space-2);
     /* A form's label column: one width for every form, so values line up across forms and sections. */
     --msui-label: calc(28 * var(--msui-unit)); /* 112 */
 
     /* §6 Shape: radii by role, elevation for what floats, layers. */
+    /* Corners: round, or a squircle where the browser draws one (below); the shape is set once for every element in a
+       root (reset.css), so a subtree switches it with this token. */
+    --msui-corner-shape: round;
     --msui-radius-sm: 2px; /* inline marks: code, chips in text */
-    --msui-radius-md: 4px; /* controls and rows inside a surface */
     --msui-radius-lg: 8px; /* surfaces: panels, cards, popovers */
+    /* Controls and rows inside a surface: concentric with it, a surface's padding in, so their corners share its
+       centers (styles §6, nested corners). */
+    --msui-radius-md: max(0px, calc(var(--msui-radius-lg) - var(--msui-surface-pad)));
     --msui-edge: 0 0 0 1px var(--msui-line);
     /* A surface's edge: none where its step from the base shows; a line where contrast matters (below). */
     --msui-surface-edge: none;
@@ -206,11 +225,25 @@
     --msui-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  /* Squircles where the browser draws them: a superellipse reads tighter than a circle at the same radius, so the radii
+     grow by half (the nested ones follow: they derive from the surface's). */
+  @supports (corner-shape: squircle) {
+    :root,
+    :host,
+    [data-msui-theme] {
+      --msui-corner-shape: squircle;
+      --msui-radius-sm: 3px;
+      --msui-radius-lg: 12px;
+    }
+  }
+
   /* High contrast: muted text and lines keep their contrast (the theme, and any theme the system asks it of). */
   [data-msui-theme="contrast"] {
     --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 45%);
     --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 70%);
     --msui-surface-edge: inset 0 0 0 1px var(--msui-line-strong);
+    --msui-field-edge: var(--msui-line-strong);
+    --msui-selected-edge: var(--msui-accent);
   }
 
   @media (prefers-contrast: more) {
@@ -220,6 +253,8 @@
       --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 40%);
       --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 60%);
       --msui-surface-edge: inset 0 0 0 1px var(--msui-line-strong);
+      --msui-field-edge: var(--msui-line-strong);
+      --msui-selected-edge: var(--msui-accent);
     }
   }
 
@@ -255,6 +290,7 @@
     display: flex;
     align-items: center;
     gap: var(--msui-icon-gap);
+    --msui-icon-size: var(--msui-icon);
     height: var(--msui-header);
     padding-inline: var(--msui-inner);
     font-weight: var(--msui-weight-strong);
@@ -278,6 +314,7 @@
   }
 
   .msui-slot {
+    --msui-icon-size: var(--msui-icon);
     display: inline-flex;
     align-items: center;
     justify-content: center;

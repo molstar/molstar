@@ -1,0 +1,127 @@
+/** @jsxImportSource @molstar/ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { createRoot, isInside, menuKeys, on, rememberFocus } from '../../dom/index.js';
+import { Icon, type IconName } from '../icon/icon.js';
+import { classes } from './_generated/context-menu.module.css.js';
+
+/** One entry: what it is called, what it does; an icon is optional. */
+export interface ContextMenuItem {
+  id: string;
+  label: string;
+  icon?: IconName;
+  /** Why it cannot be used now: greyed, skipped by the arrows, the reason in its tooltip. */
+  disabled?: string;
+  /** Its key, as text (`⌘K`), quiet at the row's end. */
+  shortcut?: string;
+  run(): void;
+}
+
+/**
+ * Opens a menu at a point of the viewport (client px), in `root` (a UI root, so its tokens apply): below and to the
+ * right of the point, flipped to the other side where it would leave the window (so near the bottom edge it opens
+ * upward). It measures once, on opening. Closes on a choice, on Escape, on a press elsewhere and when the window resizes
+ * or scrolls; `close` ends it early. Returns that close. The arrows move between its items; closed, the focus goes back
+ * to where it was. Its rows are list rows (styles §4, §5): an icon slot, kept empty in a menu where some item has an
+ * icon, the label, the shortcut.
+ */
+export function openContextMenu(
+  root: HTMLElement,
+  at: { x: number; y: number },
+  items: readonly ContextMenuItem[],
+  onClose?: () => void,
+): () => void {
+  let closed = false;
+  let dispose = () => {};
+  const restore = rememberFocus();
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    // Its listeners go with its scope.
+    dispose();
+    restore(menu);
+    menu.remove();
+    onClose?.();
+  };
+  const outside = (e: PointerEvent) => {
+    if (!isInside(e, menu)) close();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    // Escape in another UI root on the page is not this menu's.
+    if (!isInside(e, menu) && !ownsKey(root, e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    close();
+  };
+  const icons = items.some((i) => i.icon);
+  let menu!: HTMLElement;
+  createRoot((d) => {
+    dispose = d;
+    menu = (
+      <div
+        class={classes.menu}
+        role="menu"
+        data-icons={icons ? '' : undefined}
+        onKeyDown={menuKeys}
+        onContextMenu={(e: Event) => e.preventDefault()}
+      >
+        {items.map((item) => (
+          <button
+            type="button"
+            role="menuitem"
+            class={classes.row}
+            aria-disabled={item.disabled ? 'true' : undefined}
+            data-tip={item.disabled}
+            onClick={() => {
+              if (item.disabled) return;
+              close();
+              item.run();
+            }}
+          >
+            {icons ? <span class={classes.slot}>{item.icon ? <Icon name={item.icon} /> : null}</span> : null}
+            <span class={classes.label}>{item.label}</span>
+            {item.shortcut ? <kbd class={classes.keys}>{item.shortcut}</kbd> : <span />}
+          </button>
+        ))}
+      </div>
+    ) as HTMLElement;
+    // In the menu's own scope (dom §6): removed when it closes.
+    on(document, 'pointerdown', outside, { capture: true });
+    on(document, 'keydown', onKey, { capture: true });
+    on(window, 'resize', close);
+    on(window, 'scroll', close, { capture: true });
+  });
+  root.append(menu);
+  // Measured once, now: the flip at the window's edges.
+  const w = menu.offsetWidth;
+  const h = menu.offsetHeight;
+  const x = at.x + w > window.innerWidth - 4 ? Math.max(4, at.x - w) : at.x;
+  const y = at.y + h > window.innerHeight - 4 ? Math.max(4, at.y - h) : at.y;
+  menu.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+  menu.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')?.focus({ preventScroll: true });
+  return close;
+}
+
+/**
+ * Whether a key pressed outside the menu is its root's: the focus is in the root's UI (its shadow host, or the UI root
+ * it is in), or nothing on the page has the focus and the pointer is over it. Outside any UI root, every key is.
+ */
+function ownsKey(root: HTMLElement, e: KeyboardEvent): boolean {
+  const node = root.getRootNode();
+  const host =
+    typeof ShadowRoot !== 'undefined' && node instanceof ShadowRoot
+      ? node.host
+      : (root.closest('.msui-root') ?? undefined);
+  if (!host) return true;
+  if (isInside(e, host)) return true;
+  const doc = host.ownerDocument;
+  const focused = doc.activeElement;
+  if (focused && focused !== doc.body && focused !== doc.documentElement) return false;
+  return host.matches(':hover');
+}
