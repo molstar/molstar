@@ -113,6 +113,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
         cameraFog: { name: 'off', params: {} },
         multiSample: { mode: 'off' } as never,
         postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+        // impostors alone: the sphere raster (`auto`) takes the slot store, culled on the GPU, not the flat view's
+        // objects, and decides a sphere's edge pixels unlike the impostors
+        renderer: { ...plugin.canvas3d!.props.renderer, sphereRaster: 'off' },
       });
       const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
       const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
