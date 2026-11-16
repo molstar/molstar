@@ -79,13 +79,21 @@ describe.skipIf(!WebGPU.module)('points on WebGPU', () => {
 
       const pixelRatio = canvas.graphics.pixelRatio;
       const c = Size / 2;
+      const { pending } = canvas.graphics.resources;
+      let time = 0;
       const pickAt = async (dx: number) => {
+        // a frame first: the pick renders what was drawn (a commit's own draw is held while the pipelines of a change
+        // prepare, slower under load; no loop draws later here)
+        canvas.requestDraw();
+        canvas.tick((time += 1000) as never, { isSynchronous: true });
+        await pending.whenReady();
         const pick = await canvas.asyncIdentify(Vec2.create((c + dx) / pixelRatio, c / pixelRatio))?.wait();
         return pick ? canvas.getLoci(pick.id).repr : undefined;
       };
-      // the pick's pipelines compile in the background
+      // the pick's pipelines compile in the background: picked again once they are ready (slower under load than any
+      // count of quick tries)
       const onRing = (Diameter / 2) * 0.85;
-      for (let i = 0; i < 20 && !(await pickAt(onRing)); i++);
+      for (let i = 0; i < 20 && !(await pickAt(onRing)); i++) await pending.whenReady();
 
       expect(await pickAt(onRing)).toBe(ring);
       expect(await pickAt(-onRing)).toBe(ring);
@@ -98,7 +106,8 @@ describe.skipIf(!WebGPU.module)('points on WebGPU', () => {
       await ring.createOrUpdate({ ...props, pointRingWidth: 1 }, {}).run();
       canvas.update(ring);
       canvas.commit(true);
-      for (let i = 0; i < 20 && !(await pickAt(0)); i++);
+      // the disk's pipeline compiles in the background (the ring's drawn meanwhile: its hole picked)
+      for (let i = 0; i < 20 && !(await pickAt(0)); i++) await pending.whenReady();
       expect(await pickAt(0)).toBe(ring);
       expect(canvas.graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {

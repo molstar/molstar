@@ -142,8 +142,10 @@ describe.skipIf(!WebGPU.module)('sphere sites on WebGPU', () => {
       const depths = async (objects: Parameters<typeof raster.draw>[0]) => {
         vis.clear();
         const table = raster.draw(objects, view, vis);
-        const data = new Uint32Array(await vis.readAsync());
-        const chunks = new Uint32Array(await table.chunks.readAsync());
+        // both read as drawn: the chunks a scratch buffer, let go once idle (a wait under load past it)
+        const [visData, chunkData] = await Promise.all([vis.readAsync(), table.chunks.readAsync()]);
+        const data = new Uint32Array(visData);
+        const chunks = new Uint32Array(chunkData);
         const out = new Uint32Array(Size * Size);
         const items = new Int32Array(Size * Size).fill(-1);
         for (let o = 0; o < Size * Size; ++o) {

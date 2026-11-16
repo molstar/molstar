@@ -177,8 +177,10 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
         };
         vis.clear();
         const table = raster.draw([{ item, values }], view, vis);
-        const data = new Uint32Array(await vis.readAsync());
-        const chunks = new Uint32Array(await table.chunks.readAsync());
+        // both read as drawn: the chunks a scratch buffer, let go once idle (a wait under load past it)
+        const [visData, chunkData] = await Promise.all([vis.readAsync(), table.chunks.readAsync()]);
+        const data = new Uint32Array(visData);
+        const chunks = new Uint32Array(chunkData);
         return { data, table, chunks, reference: referenceRaster(values, view) };
       };
 
@@ -320,8 +322,10 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
         },
         vis,
       );
-      const data = new Uint32Array(await vis.readAsync());
-      const chunks = new Uint32Array(await table.chunks.readAsync());
+      // both read as drawn: the chunks a scratch buffer, let go once idle (a wait under load past it)
+      const [visData, chunkData] = await Promise.all([vis.readAsync(), table.chunks.readAsync()]);
+      const data = new Uint32Array(visData);
+      const chunks = new Uint32Array(chunkData);
       const slots = [0, 0];
       for (let o = 0; o < Size * Size; ++o) {
         const sphere = decodeSphereRasterId(table, chunks, data[o * 2]);
@@ -415,8 +419,10 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
         const depths = async (objects: Parameters<typeof raster.draw>[0]) => {
           vis.clear();
           const table = raster.draw(objects, view, vis);
-          const data = new Uint32Array(await vis.readAsync());
-          const chunks = new Uint32Array(await table.chunks.readAsync());
+          // both read as drawn: the chunks a scratch buffer, let go once idle (a wait under load past it)
+          const [visData, chunkData] = await Promise.all([vis.readAsync(), table.chunks.readAsync()]);
+          const data = new Uint32Array(visData);
+          const chunks = new Uint32Array(chunkData);
           const out = new Uint32Array(Size * Size);
           for (let o = 0; o < Size * Size; ++o) {
             out[o] = data[o * 2 + 1];
