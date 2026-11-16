@@ -8,7 +8,7 @@
 // param, reshaping, moving between fields, the preview. `CommandInvocation` adds typing and running on top.
 
 import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
-import { sameShallow } from '@molstar/core/util/object';
+import { sameShallow, shallowEqualArrays } from '@molstar/core/util/object';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { argsFor, type FieldValue, type FormFieldView, keptValues, readValue } from '../forms/flat-fields.js';
 import type { InvocationInit, InvocationState } from './invocation-state.js';
@@ -16,6 +16,8 @@ import {
   type Built,
   build,
   type FieldChoices,
+  type FieldRange,
+  fieldRange,
   type InvocationOptions,
   isNumeric,
   listChoices,
@@ -47,6 +49,11 @@ export abstract class InvocationModel<Ctx> extends ReactiveModel {
   readonly sentence: ReadonlyState<readonly SentenceField[]>;
   /** What the active field takes (commands §3.3); none without an active field. */
   readonly choices: ReadonlyState<FieldChoices | undefined>;
+  /**
+   * The active field's slider range (commands §3.3), the same object while the field and its bounds are: a view keyed
+   * on it (a slider under the pointer) is not built again when the value changes.
+   */
+  readonly range: ReadonlyState<FieldRange | undefined>;
   /** The params the sentence does not hold, their values and what differs (commands §3.4). */
   readonly options: ReadonlyState<InvocationOptions>;
 
@@ -114,10 +121,17 @@ export abstract class InvocationModel<Ctx> extends ReactiveModel {
       (params, fields, values, field, proposed, error) =>
         sentenceFields(params, fields, values, field, proposed, error),
     );
-    this.choices = derive([sFields, sValues, sField, slice('text'), context], (fields, values, field, text, ctx) => {
+    // The active field's own value: a set of another field (or an option) does not list the choices again.
+    const sValue = derive([sValues, sField], (values, field) => (field === undefined ? undefined : values[field]));
+    this.choices = derive([sFields, sValue, sField, slice('text'), context], (fields, value, field, text, ctx) => {
       const f = fields.find((x) => x.id === field);
-      return f ? listChoices(f, text, values[f.id], command.fields?.[f.id], this.formatOf(f), ctx) : undefined;
+      return f ? listChoices(f, text, value, command.fields?.[f.id], this.formatOf(f), ctx) : undefined;
     });
+    this.range = derive(
+      [sFields, sField],
+      (fields, field) => fieldRange(fields.find((x) => x.id === field)),
+      sameShallow,
+    );
     this.options = derive([sParams, slice('formOnly'), slice('optionValues')], optionsOf);
 
     // `blocked` follows `when` both ways; the preview follows the context and the values.
@@ -205,11 +219,14 @@ export abstract class InvocationModel<Ctx> extends ReactiveModel {
     const s = this.#state.value;
     const values = this.#values;
     const active = s.field === name;
-    const proposed = options.proposed
-      ? s.proposed.includes(name)
+    // The same array unless it changes: a set that changes nothing leaves the state as it was.
+    const listed = s.proposed.includes(name);
+    const proposed =
+      !!options.proposed === listed
         ? s.proposed
-        : [...s.proposed, name]
-      : s.proposed.filter((x) => x !== name);
+        : listed
+          ? s.proposed.filter((x) => x !== name)
+          : [...s.proposed, name];
     this.patch({
       values,
       field: options.stay || !active ? s.field : (nextEmpty(s.fields, values, name) ?? name),
@@ -288,7 +305,11 @@ export abstract class InvocationModel<Ctx> extends ReactiveModel {
       const key = k as keyof InvocationState;
       if (partial[key] === undefined) delete next[key];
     }
-    if ('values' in partial || 'fields' in partial) next.missing = missingFields(next.fields, next.values);
+    if ('values' in partial || 'fields' in partial) {
+      // The same list unless it changed: a patch that changes nothing tells nothing (the state is compared shallowly).
+      const missing = missingFields(next.fields, next.values);
+      next.missing = shallowEqualArrays(missing, s.missing) ? s.missing : missing;
+    }
     this.#state.set(next);
   }
 
@@ -318,7 +339,7 @@ export abstract class InvocationModel<Ctx> extends ReactiveModel {
     const key = ready ? [this.#values, this.#options, picked?.value] : undefined;
     const ctx = this.init.context.value;
     const deps = this.init.previewDeps?.(ctx) ?? [ctx];
-    if (sameItems(key, this.#previewKey) && sameItems(deps, this.#previewDeps)) return;
+    if (sameKey(key, this.#previewKey) && shallowEqualArrays(deps, this.#previewDeps)) return;
     const shown = this.#previewKey !== undefined;
     this.#previewKey = key;
     this.#previewDeps = deps;
@@ -373,9 +394,7 @@ export abstract class InvocationModel<Ctx> extends ReactiveModel {
   }
 }
 
-function sameItems(a: readonly unknown[] | undefined, b: readonly unknown[] | undefined): boolean {
-  if (a === b) return true;
-  if (!a || !b || a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (!Object.is(a[i], b[i])) return false;
-  return true;
+/** Two preview keys (none: nothing drawn) are the same: both none, or the same items. */
+function sameKey(a: readonly unknown[] | undefined, b: readonly unknown[] | undefined): boolean {
+  return a === b || (!!a && !!b && shallowEqualArrays(a, b));
 }

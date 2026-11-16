@@ -58,15 +58,15 @@ export function ListMode(props: CommandMenuProps & { onPropose(words: string): v
   const prefixOf = (t: string) => prefixes.find((p) => t.startsWith(p.char));
 
   // A row the same as before (the same command at the same place) keeps its object: the list keeps its node. Keyed by
-  // the group browsed and by browsing or searching too: a row's path and meta are made with it. Rows are kept by what they were made from, so every reader of
-  // the derived list gets the same array (`keepSame` is stateful).
+  // the group browsed and by browsing or searching too: a row's path and meta are made with it.
   const keepSame = keepRows<Row>((r) => `${group.value ?? ''}|${query.value.trim() ? 's' : 'b'}|${rowKey(r)}`, sameRow);
-  let made: { t: string; g: string | undefined; c: unknown; gs: unknown; rows: Row[] } | undefined;
-  const rows = derive([query, group, manager.commands, manager.groups], (t, g, c, gs) => {
-    if (made && made.t === t && made.g === g && made.c === c && made.gs === gs) return made.rows;
-    made = { t, g, c, gs, rows: keepSame(listRows(manager, prefixOf, t, g)) };
-    return made.rows;
-  });
+  // Made again when the context changes too: a row's reason it cannot run (`when`) follows it while the menu is open.
+  // The same rows (kept objects) are the same list: nothing downstream is told.
+  const rows = derive(
+    [query, group, manager.commands, manager.groups, manager.context],
+    (t, g) => keepSame(listRows(manager, prefixOf, t, g)),
+    (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
+  );
   let current: readonly Row[] = [];
   const picks = () => current.filter((r): r is Pickable => r.kind !== 'caption');
   effect(rows, (r) => {

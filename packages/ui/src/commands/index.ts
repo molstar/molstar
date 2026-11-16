@@ -37,6 +37,7 @@ export {
   type CommandRun,
   type OpenResult,
 } from './manager.js';
+export { checkFormat } from './format.js';
 export { fuzzyScore, matchPositions, rankBy } from './match.js';
 export { aliases, type CommandMatch, type CommandQuery } from './query.js';
 export { type LazyCommands, type LazyRegistration } from './registry.js';
@@ -44,6 +45,7 @@ export type {
   ChangedOption,
   FieldChoice,
   FieldChoices,
+  FieldRange,
   InvocationOptions,
   SentenceField,
 } from './sentence.js';

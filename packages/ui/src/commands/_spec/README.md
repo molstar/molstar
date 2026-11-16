@@ -54,6 +54,10 @@ why; code comments cite its sections (`commands §3.3`). The code is the truth f
 - **Formats** are looked up through the `CommandFormats` port: `hint(ctx)`, `check(text, ctx)` (`{ ok, value }` or a
   message, `unreadable` for words), `complete(text, ctx)` (a completion with `fill` fills the text for editing). Why a
   port: what a "selection" or a "color" reads as is the app's.
+- **Every call into a format is guarded**: `check` through `checkFormat` (`format.ts`), which reads a throw as text the
+  format does not take, its message the error; `complete` and `hint` as nothing. Why: a format is the app's code, and
+  every reader (typing, the tail, Enter, the run's last check) must leave the invocation editable; a throw out of the
+  run's check once left it running for good.
 
 ### 2.3 Groups and shared arguments
 
@@ -100,6 +104,12 @@ active one), `text`, `pick`, `proposed`, `missing`, `error` (`{ field?, message,
   format: its completions, what the text reads as first (`detail: 'as typed'`), and its `hint`; a number: its presets
   that fit and, for a slider (min and max), its `range`; a text without a format: nothing. The field's value is marked
   `current`.
+- **What it follows**: the fields, the active field and its own value, the text, the context; a set of another field or
+  of an option does not list the choices again. Typing is one change (the text and its `pick` in a `batch`), listing the
+  choices once.
+- **`invocation.range`** (`FieldRange`: the field, min, max, step): the active slider's bounds, the same object while
+  they stand (compared shallowly). A view keyed on it (the slider under the pointer) is not built again as the value
+  changes; keyed on `choices`, which are made anew with each value, a drag ended after its first step.
 - **`pick`** is the highlighted item: typing highlights the first (not for a number: a typed number is taken as typed),
   `move(±1)` wraps, `point(i)` follows the pointer. The preview shows the highlighted item (§3.7).
 - **`accept(i?)`** takes the highlighted item (a `fill` item goes into the text instead), else reads the text: a number
@@ -159,9 +169,11 @@ it.
 
 `registerLazy({ make })`: made when wanted, not at each change of what they come from. `stale()` marks them; the next
 `query`, `children`, `groupPath`, a `get` of an id they may hold (one they made, or one not registered) or a key the
-app's or the person's layer binds makes them, or a microtask while the menu holds `want()`, so a render never registers.
-A make's swap is one change (`batch`). `make` returning `undefined` keeps what was made; one that throws is logged, and
-the next change tries again. An unbound key makes nothing (`handleKey` runs at every keystroke).
+app's or the person's layer binds makes them, or a microtask while a view holds `want()`, so a render never registers.
+`registered(id)` looks a command up without making anything: what a derived value or a render reads (`CommandButton`
+holds `want()` while shown and derives with `registered`). A make's swap is one change (`batch`). `make` returning
+`undefined` keeps what was made; one that throws is logged, and the next change tries again. An unbound key makes
+nothing (`handleKey` runs at every keystroke).
 
 ### 4.3 Query
 
@@ -203,7 +215,9 @@ props and ports). Props: `manager`, `onClose`, `initial?`, `group?`, `prefixes?`
   **Searching**: a direct alias first, then matching groups, then commands at any depth, the matched letters marked.
 - **Rows** are 24px list rows (styles §4–5): the 12px icon in the slot at the inset (the head's 16px icon above it), the
   title (a UI label, never cut), the meta (a path, a reason, a count: variable, it fades), the key as caps (`kbd` per
-  key in a `kbd`). Picking a blocked row says why above the list.
+  key in a `kbd`). Picking a blocked row says why above the list. Rows are made again when the context changes, so a
+  row's reason it cannot run follows the app while the menu is open; rows that stay the same keep their objects (and
+  their nodes), and the same rows are the same list.
 - **The highlighted row** goes to `manager.browse` (§4.5): its count replaces its meta. A group's shared argument shows
   as toggles under the head.
 - **A screenful at a time**: rows render 24 at first, more as the list scrolls or the highlight passes them; a spacer
@@ -271,7 +285,8 @@ Runs a command's key from a keydown the host forwards while the menu is closed; 
   digit (⌥T is "†" on macOS). A refused command is a `blocked` outcome, except on a plain key, which is then not taken.
 - **The per-key index** (`KeyIndex`): commands by their key in lower case, made once per list of commands and keymap. A
   keydown looks up its key and code, and reads the target and its path only when a command is on that key; it allocates
-  no list. Why: every keydown in the app comes here.
+  no list. Whether a lazy contribution is stale is a count the registry keeps, not a walk of them. Why: every keydown in
+  the app comes here.
 
 ### 6.2 Scopes
 

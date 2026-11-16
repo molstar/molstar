@@ -21,6 +21,7 @@ import {
   valueLabel,
 } from '../forms/flat-fields.js';
 import { rankBy } from './match.js';
+import { checkFormat } from './format.js';
 import type { CommandDefinition, CommandFieldHint, CommandFormat, CommandValues, FormatCompletion } from './types.js';
 
 /** The params as they are now: built again when a field that reshapes them changes. */
@@ -192,6 +193,20 @@ export interface FieldChoices {
   range?: { min?: number; max?: number; step?: number };
 }
 
+/** A slider field's bounds: what a view draws a range from (`InvocationModel.range`). */
+export interface FieldRange {
+  field: string;
+  min: number;
+  max: number;
+  step?: number;
+}
+
+/** The field's range when it is a slider with both bounds; none otherwise. */
+export function fieldRange(f: FormFieldView | undefined): FieldRange | undefined {
+  if (!f || f.kind !== 'slider' || f.min === undefined || f.max === undefined) return undefined;
+  return { field: f.id, min: f.min, max: f.max, ...(f.step !== undefined ? { step: f.step } : {}) };
+}
+
 /** Options first that the text names exactly, by value or label. */
 function exactFirst(all: readonly FormatCompletion[], ranked: FormatCompletion[], text: string): FormatCompletion[] {
   const w = text.trim().toLowerCase();
@@ -210,7 +225,7 @@ function formatCompletions<Ctx>(format: CommandFormat<Ctx>, text: string, ctx: C
   const completions = exactFirst(listed, listed, text);
   // Text that reads as a value comes first, as read ("A 120-133, 155" → "A:120-133, A:155"), so Enter takes what was
   // typed rather than a name that happens to match.
-  const typed = text.trim() ? format.check(text, ctx) : undefined;
+  const typed = text.trim() ? checkFormat(format, text, ctx) : undefined;
   if (typed?.ok && !completions.some((c) => c.value === typed.value))
     return [{ value: typed.value, label: typed.value, detail: 'as typed' }, ...completions];
   return completions;
@@ -282,6 +297,6 @@ export function isReadable<Ctx>(
   if (isNumeric(f)) return readNumber(text) !== undefined;
   if (f.options) return false;
   if (!format) return true;
-  const r = format.check(text, ctx);
+  const r = checkFormat(format, text, ctx);
   return r.ok || !r.unreadable;
 }

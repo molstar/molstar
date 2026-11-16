@@ -7,10 +7,12 @@
 // One open command (commands §3): its values (`InvocationModel`), and typing into its fields, taking choices, the keys
 // the menu forwards, the run, the assistant. DOM-free: the menu draws its states and calls its methods.
 
+import { batch } from '@molstar/core/reactive';
 import type { InvocationError, InvocationInit } from './invocation-state.js';
+import { checkFormat } from './format.js';
 import { errorMessage, InvocationModel } from './invocation-model.js';
-import { isNumeric, isReadable, listChoices, nextEmpty, readNumber } from './sentence.js';
-import type { CommandResult } from './types.js';
+import { isNumeric, isReadable, nextEmpty, readNumber } from './sentence.js';
+import type { CommandFormat, CommandResult } from './types.js';
 
 export class CommandInvocation<Ctx> extends InvocationModel<Ctx> {
   /** Stops a running assist. */
@@ -25,7 +27,7 @@ export class CommandInvocation<Ctx> extends InvocationModel<Ctx> {
       this.type(this.tailRest.join(' '));
       const s = this.state.value;
       const f = this.fieldOf(s.field);
-      if (f?.format && this.formatOf(f)?.check(s.text, init.context.value).ok) this.accept();
+      if (f?.format && checkOk(this.formatOf(f), s.text, init.context.value)) this.accept();
     }
     this.updatePreview();
   }
@@ -37,18 +39,22 @@ export class CommandInvocation<Ctx> extends InvocationModel<Ctx> {
     const s = this.state.value;
     const f = this.fieldOf(s.field);
     if (!f || !this.editing()) return;
-    const ctx = this.init.context.value;
-    const format = this.formatOf(f);
-    const { items } = listChoices(f, text, s.values[f.id], this.command.fields?.[f.id], format, ctx);
-    const readable = isReadable(f, text, format, ctx);
-    this.patch({
-      text,
-      // A typed number is taken as typed: a preset is highlighted only by the arrows.
-      pick: text.trim() && items.length && !isNumeric(f) ? 0 : -1,
-      canAssist: !!text.trim() && !items.length && !readable && this.#assistable(),
-      error: undefined,
-      escalated: undefined,
-      ...(s.proposed.includes(f.id) ? { proposed: s.proposed.filter((x) => x !== f.id) } : {}),
+    // One change: the text, then what its choices make of it (the derived `choices`, listed once for this text).
+    batch(() => {
+      this.patch({
+        text,
+        error: undefined,
+        escalated: undefined,
+        ...(s.proposed.includes(f.id) ? { proposed: s.proposed.filter((x) => x !== f.id) } : {}),
+      });
+      const items = this.choices.value?.items.length ?? 0;
+      const typed = !!text.trim();
+      this.patch({
+        // A typed number is taken as typed: a preset is highlighted only by the arrows.
+        pick: typed && items && !isNumeric(f) ? 0 : -1,
+        canAssist:
+          typed && !items && this.#assistable() && !isReadable(f, text, this.formatOf(f), this.init.context.value),
+      });
     });
   }
 
@@ -96,7 +102,7 @@ export class CommandInvocation<Ctx> extends InvocationModel<Ctx> {
     }
     const format = this.formatOf(f);
     if (!format) return this.set(f.id, text);
-    const r = format.check(text, this.init.context.value);
+    const r = checkFormat(format, text, this.init.context.value);
     if (r.ok) return this.set(f.id, r.value);
     this.patch({
       error: { field: f.id, message: r.message, ...(r.hint ? { hint: r.hint } : {}) },
@@ -229,7 +235,7 @@ export class CommandInvocation<Ctx> extends InvocationModel<Ctx> {
       for (const [k, v] of Object.entries(r.values)) {
         if (v === undefined) continue;
         const f = this.fieldOf(k);
-        const checked = f && f.format && typeof v === 'string' ? this.formatOf(f)?.check(v, ctx) : undefined;
+        const checked = f && f.format && typeof v === 'string' ? checkWith(this.formatOf(f), v, ctx) : undefined;
         if (checked && !checked.ok) rejected.push(`${k}: ${checked.message}`);
         else if (!this.set(k, checked?.ok ? checked.value : v, { proposed: true })) rejected.push(k);
       }
@@ -270,7 +276,7 @@ export class CommandInvocation<Ctx> extends InvocationModel<Ctx> {
       const v = values[f.id];
       const format = this.formatOf(f);
       if (format && typeof v === 'string') {
-        const r = format.check(v, ctx);
+        const r = checkFormat(format, v, ctx);
         if (!r.ok) return { field: f.id, message: r.message, ...(r.hint ? { hint: r.hint } : {}) };
       }
     }
@@ -281,4 +287,12 @@ export class CommandInvocation<Ctx> extends InvocationModel<Ctx> {
       return { message: errorMessage(e) };
     }
   }
+}
+
+function checkWith<Ctx>(format: CommandFormat<Ctx> | undefined, text: string, ctx: Ctx) {
+  return format ? checkFormat(format, text, ctx) : undefined;
+}
+
+function checkOk<Ctx>(format: CommandFormat<Ctx> | undefined, text: string, ctx: Ctx): boolean {
+  return !!checkWith(format, text, ctx)?.ok;
 }

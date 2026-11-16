@@ -162,6 +162,14 @@ export class CommandManager<Ctx> extends ReactiveModel {
     return this.#registry.get(id);
   }
 
+  /**
+   * The command registered under `id` now, without making lazy ones (commands §4.2): for a derived value or a render,
+   * which must not register. A view that shows lazy commands holds `want()`, so they are made in a microtask.
+   */
+  registered(id: string): CommandDefinition<Ctx> | undefined {
+    return this.#registry.byId().get(id);
+  }
+
   /** A group's path from the top level to it (itself last); empty for none or an unknown id. */
   groupPath(id: string | undefined): CommandGroup[] {
     return this.#registry.groupPath(id);

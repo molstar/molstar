@@ -59,24 +59,14 @@ export function FieldLine(props: {
 }
 
 /** A slider's range (a number with min and max): drag sets the value and keeps the field active. */
-export function RangeRow(props: {
-  invocation: CommandInvocation<any>;
-  choices: ReadonlyState<FieldChoices | undefined>;
-}) {
+export function RangeRow(props: { invocation: CommandInvocation<any> }) {
   const { invocation } = props;
-  // Keyed by what makes the slider (its field and range), not by the choices: they are derived anew with each value,
-  // and a new key would build a new input under the pointer, ending a drag after its first step.
-  const range = derive(props.choices, (c) =>
-    c?.range && c.range.min !== undefined && c.range.max !== undefined
-      ? `${c.field}\u0000${c.range.min}\u0000${c.range.max}\u0000${c.range.step ?? ''}`
-      : undefined,
-  );
+  // Keyed by the layer's range (the same object while the field and its bounds are): a value set while dragging keeps
+  // the input under the pointer.
   return (
-    <Show when={range}>
-      {() => {
-        const c = props.choices.value!;
-        const r = c.range!;
-        const field = invocation.sentence.value.find((f) => f.id === c.field);
+    <Show when={invocation.range}>
+      {(r) => {
+        const field = invocation.sentence.value.find((f) => f.id === r.field);
         const input = (
           <input
             class={classes.range}
@@ -84,17 +74,17 @@ export function RangeRow(props: {
             min={String(r.min)}
             max={String(r.max)}
             step={r.step === undefined ? 'any' : String(r.step)}
-            aria-label={field?.label ?? c.field}
-            onInput={(e) => invocation.set(c.field, Number(e.currentTarget.value), { stay: true })}
+            aria-label={field?.label ?? r.field}
+            onInput={(e) => invocation.set(r.field, Number(e.currentTarget.value), { stay: true })}
           />
         ) as HTMLInputElement;
         const shown = document.createTextNode('');
         const value = derive(invocation.sentence, (all) => {
-          const f = all.find((x) => x.id === c.field);
+          const f = all.find((x) => x.id === r.field);
           return f ? (f.value ?? f.defaultValue) : undefined;
         });
         watch([value], () => {
-          const v = typeof value.value === 'number' ? value.value : r.min!;
+          const v = typeof value.value === 'number' ? value.value : r.min;
           if (input.valueAsNumber !== v) input.value = String(v);
           setText(shown, String(v));
         });

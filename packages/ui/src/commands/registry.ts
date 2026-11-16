@@ -50,6 +50,8 @@ export class CommandRegistry<Ctx> {
   readonly #lazy = new Set<Lazy<Ctx>>();
   /** Holders of `want`: stale lazy commands are made in a microtask, not by the reads. */
   #wanted = 0;
+  /** How many lazy contributions are stale: what a keydown checks, a number rather than a walk of the set. */
+  #staleCount = 0;
   #making = false;
   #soon = false;
   #commandIndex: { of: readonly CommandDefinition<Ctx>[]; byId: Map<string, CommandDefinition<Ctx>> } | undefined;
@@ -123,15 +125,18 @@ export class CommandRegistry<Ctx> {
   registerLazy(source: LazyCommands<Ctx>): LazyRegistration {
     const lazy: Lazy<Ctx> = { source, stale: true, ids: new Set() };
     this.#lazy.add(lazy);
+    this.#staleCount++;
     if (this.#wanted) this.#makeSoon();
     return {
       stale: () => {
         if (!this.#lazy.has(lazy)) return;
+        if (!lazy.stale) this.#staleCount++;
         lazy.stale = true;
         if (this.#wanted) this.#makeSoon();
       },
       dispose: () => {
         if (!this.#lazy.delete(lazy)) return;
+        if (lazy.stale) this.#staleCount--;
         lazy.drop?.();
       },
     };
@@ -156,8 +161,7 @@ export class CommandRegistry<Ctx> {
 
   /** Is a lazy contribution stale (a bound key may name one of its commands)? */
   get anyStale(): boolean {
-    for (const lazy of this.#lazy) if (lazy.stale) return true;
-    return false;
+    return this.#staleCount > 0;
   }
 
   get(id: string): CommandDefinition<Ctx> | undefined {
@@ -217,12 +221,13 @@ export class CommandRegistry<Ctx> {
 
   /** Makes the stale lazy commands; each contribution's swap is one change of the lists. */
   #make(): void {
-    if (this.#making || !this.#lazy.size) return;
+    if (this.#making || !this.#staleCount) return;
     this.#making = true;
     try {
       for (const lazy of this.#lazy) {
         if (!lazy.stale) continue;
         lazy.stale = false;
+        this.#staleCount--;
         // A make that throws (or an id already taken) is said here, not to the read that asked: the lists stay as they
         // are, and the next change tries again.
         try {

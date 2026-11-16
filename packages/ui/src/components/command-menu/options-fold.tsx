@@ -58,11 +58,13 @@ export function OptionsFold(props: { invocation: CommandInvocation<any> }) {
                 const form = new ParamsFormModel(own, invocation.options.value.values as PD.Values<PD.Params>, {
                   onChange: (values, name) => invocation.set(name, values[name]),
                 });
-                // Set from elsewhere (a command's own form, the assistant): the form shows it.
+                // Set from elsewhere (a command's own form, the assistant): the form shows it. Its own edits come back
+                // as the values it holds already, key by key: no reload.
                 effect(
                   derive(invocation.options, (o) => o.values),
                   (v) => {
-                    if (v !== form.values.value) form.load(v as PD.Values<PD.Params>);
+                    const shown = form.values.value as Record<string, unknown>;
+                    if (x.formOnly.some((k) => !Object.is(v[k], shown[k]))) form.load(v as PD.Values<PD.Params>);
                   },
                 );
                 return (

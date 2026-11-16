@@ -10,7 +10,7 @@ import { derive } from '@molstar/core/reactive';
 import { formatChord } from '../../commands/keys.js';
 import type { CommandManager } from '../../commands/manager.js';
 import type { CommandDefinition, CommandValues } from '../../commands/types.js';
-import { type Child, Show } from '../../dom/index.js';
+import { type Child, onCleanup, Show } from '../../dom/index.js';
 import { Icon } from '../icon/icon.js';
 import { Button, type ButtonProps } from './button.js';
 
@@ -33,7 +33,10 @@ export function CommandButton(
   },
 ) {
   const { manager } = props;
-  const command = derive(manager.commands, () => manager.get(props.command));
+  // Wanted while shown: a lazy command it names is made in the registry's microtask, never inside this derive
+  // (commands §4.2: a render never registers); the derive only looks it up.
+  onCleanup(manager.want());
+  const command = derive(manager.commands, () => manager.registered(props.command));
   return (
     <Show when={command}>
       {(c: CommandDefinition<any>) => {

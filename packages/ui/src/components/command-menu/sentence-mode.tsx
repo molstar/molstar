@@ -200,7 +200,7 @@ export function SentenceMode(props: {
         {...(command.view ? { onView: goToView } : {})}
       />
       <FieldLine invocation={invocation} choices={invocation.choices} />
-      <RangeRow invocation={invocation} choices={invocation.choices} />
+      <RangeRow invocation={invocation} />
       <ChoiceList invocation={invocation} items={items} id={listId} optionId={optionId} onTaken={() => input.focus()} />
       <Show when={fieldView}>
         {(key) => {

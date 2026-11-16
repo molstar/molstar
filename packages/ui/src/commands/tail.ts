@@ -8,6 +8,7 @@
 
 import { type FieldValue, type FormFieldView, fits, isStringField, readValue } from '../forms/flat-fields.js';
 import type { CommandFormats } from './types.js';
+import { checkFormat } from './format.js';
 
 export interface TailReading {
   /** Values the tail gave, by field id (each fits its field). */
@@ -44,7 +45,7 @@ export function readTail<Ctx>(input: {
     const listed = format?.complete(phrase, ctx) ?? [];
     const exact = listed.find((c) => c.value.toLowerCase() === w || c.label.toLowerCase() === w);
     if (exact) return exact.value;
-    const read = format?.check(phrase, ctx);
+    const read = format ? checkFormat(format, phrase, ctx) : undefined;
     const all = read?.ok ? (format?.complete('', ctx) ?? []) : [];
     return read?.ok && all.some((c) => c.value === read.value) ? read.value : undefined;
   };
@@ -54,7 +55,8 @@ export function readTail<Ctx>(input: {
     const option = f.options?.find((o) => o.value.toLowerCase() === w || o.label.toLowerCase() === w);
     if (option) return option.value;
     if (f.options) return undefined;
-    const r = f.format ? formats.get(f.format)?.check(phrase, ctx) : undefined;
+    const fmt = f.format ? formats.get(f.format) : undefined;
+    const r = fmt ? checkFormat(fmt, phrase, ctx) : undefined;
     return r?.ok ? String(r.value) : f.format ? undefined : phrase;
   };
   const assign = (words: string[], withFormats: boolean) => {
@@ -115,7 +117,8 @@ export function readTail<Ctx>(input: {
   if (all.left.length && run)
     for (const f of fields) {
       if (!f.format || all.taken[f.id] !== undefined || !open(f)) continue;
-      const r = formats.get(f.format)?.check(leftText, ctx);
+      const fmt = formats.get(f.format);
+      const r = fmt ? checkFormat(fmt, leftText, ctx) : undefined;
       if (r?.ok && fits(f, r.value)) {
         all.taken[f.id] = r.value;
         placed = true;
