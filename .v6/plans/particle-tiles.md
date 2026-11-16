@@ -675,13 +675,18 @@
      render bundle recorded again), not the clip; picks 44 / 16 ms every 150 ms or so, a step 13 / 10 ms; the clip ghost
      a frame's CPU + 15 / + 8 ms. Left: a frame's draws of many members (fewer draws: members of a geometry drawn
      together, the bundles kept), the pick off the main thread (or the tiles' work cheaper where many are in view).
-   - 9l. **A tiled view's frame CPU**: the yeast at 16³ 22 ms a frame from outside, 45 inside (a camera orbit's and a
-     cut's drag alike: 9k), at best about 22 fps inside; the whole pack drawn by its targets (one object merged of its
-     5,639 members) as much inside (53 ms an orbit's frame, 4 outside): the draws given to the device (both phases') and
-     the queue's submit. Its draws: a member's region at each level, both phases of the culling over the members'
-     regions, the render bundles recorded again. First measured: how often the members drawn change between frames (a bundle kept while they do
-     not), whether a bundle is recorded again a frame for every object or only the paged one's; then the members of a
-     geometry drawn together (fewer draws).
+   - 9l. **A frame's CPU while the camera moves** (orbit or a cut's drag alike, 9k), the yeast tiled at 16³ or whole by
+     its targets (one object merged of its 5,639 members). Measured in the Viewer (Chrome, `--enable-unsafe-webgpu`,
+     1920 × 1080, RTX 4070 Ti, perspective), an orbit's frame from inside: whole 10,825 records, 4.0 ms (CPU tick 2.7 ms,
+     191 multi-draw-indirect calls) and 5.7 ms without multi-draw-indirect (tick 4.6 ms, a `drawIndexedIndirect` a
+     record, about 0.4 µs each); from outside 31 records, 4.5 ms. Tiled 35,000-38,000 records inside, 20-21 ms (tick 3-4.4
+     ms, long tasks 8 ms a frame), 16,000-17,500 outside, 34 ms (tick 4.5-5.3 ms, no long tasks: waiting, likely on the
+     GPU). A still camera replays its list: about 20 draws, 1 ms. Multi-draw-indirect (flagged Chrome only) saves about 2
+     ms of tick whole and little tiled (its records mostly in bundles, which it does not take). So the whole pack's draw
+     count is not the cost; the tiled view's frame is, outside its tick: its GPU passes while moving and the main thread's
+     tile work inside (not yet profiled). Headless Dawn with its default orthographic camera counts every record (45,072
+     inside): the sphere raster draws perspective views only, so no record is left out for it; with the Viewer's
+     perspective camera 11,002 inside and 26 outside, as Chrome, but 18 ms of CPU inside (its calls about 1.5 µs).
 
 ## Open questions (the spec's)
 
