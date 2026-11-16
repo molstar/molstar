@@ -7,7 +7,7 @@
     "jsxImportSource": "@molstar/ui/dom"
   },
   "include": ["src/**/*"],
-  "exclude": ["src/**/_test/**"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
   "references": [
     {
       "path": "../core"

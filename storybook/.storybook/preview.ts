@@ -18,6 +18,8 @@ const preview: Preview = {
       // whole to its parts and data, then prism-ui's components over stand-in models, the runtime last.
       storySort: {
         order: [
+          'UI',
+          ['Introduction', 'Foundations', ['Color', 'Type', 'Spacing', 'Shape', 'Alignment', 'Motion']],
           'Prism',
           [
             'Overview',
@@ -96,6 +98,7 @@ const preview: Preview = {
           { value: 'light', title: 'Light' },
           { value: 'dark', title: 'Dark' },
           { value: 'blue', title: 'Blue' },
+          { value: 'contrast', title: 'High contrast' },
           { value: 'auto', title: 'Auto (system)' },
         ],
         dynamicTitle: true,

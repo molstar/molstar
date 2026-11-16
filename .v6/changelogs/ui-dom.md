@@ -7,3 +7,7 @@
   listeners, observers, timers and `drag`, `ViewElement`, focus and tree keyboard helpers, `DomProbe`. A `watch` or a
   binding on states is a sink of the state graph: one object whatever the number of states, nothing allocated to mark
   it. Nothing uses it yet.
+- `@molstar/ui/styles/foundations.css`: the UI's foundations, design tokens (`--msui-*`: color by theme with
+  `data-msui-theme`, type on a 4px baseline grid, spacing, sizes, shape, motion) and alignment primitives (`.msui-*`:
+  one inset, icon slots, a level that is a slot, one label column, values where controls write, numbers by place).
+  Storybook: a new UI group with an introduction and the foundations' stories.

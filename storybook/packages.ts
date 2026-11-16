@@ -35,6 +35,9 @@ export interface StoryPackage {
 
 /** The packages Storybook collects stories from; register a package here to show its stories. */
 export const StoryPackages: StoryPackage[] = [
+  // Mol* UI (`@molstar/ui`): the foundations (tokens, alignment) and the runtime. Its preview module loads the
+  // foundations' stylesheet and sets the toolbar's theme as `data-msui-theme`.
+  { dir: 'packages/ui', group: 'UI', preview: 'src/_stories/preview.ts' },
   {
     dir: 'packages/prism/ui',
     group: 'Prism',
