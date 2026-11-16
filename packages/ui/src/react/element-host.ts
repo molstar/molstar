@@ -21,11 +21,18 @@ export interface UiElementHostProps {
  */
 export function UiElementHost(props: UiElementHostProps) {
   const ref = useRef<HTMLElement>(null);
+  // The keys set last time: one no longer given is set back to `undefined`, so the element drops it (a callback with a
+  // stale closure is not kept).
+  const set = useRef<readonly string[]>([]);
   const properties = props.properties;
   useLayoutEffect(() => {
     const el = ref.current as (HTMLElement & Record<string, unknown>) | null;
-    if (!el || !properties) return;
-    for (const key of Object.keys(properties)) el[key] = properties[key];
+    if (!el) return;
+    const keys = properties ? Object.keys(properties) : [];
+    for (const key of set.current) if (!properties || !Object.hasOwn(properties, key)) el[key] = undefined;
+    // Only what changed is written: an inline object (new each render) sets nothing that is already there.
+    for (const key of keys) if (el[key] !== properties![key]) el[key] = properties![key];
+    set.current = keys;
   }, [properties]);
   return createElement(props.tag, { ref, className: props.className, style: props.style });
 }

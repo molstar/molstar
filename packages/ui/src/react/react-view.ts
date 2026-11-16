@@ -36,8 +36,11 @@ export function reactView<Ctx>(
       });
       return () => {
         unmounted = true;
-        root.unmount();
         container.remove();
+        // After the current task: a view disposed from inside a React render or commit (a React app hosting a UI
+        // element whose view is this) must not unmount a root synchronously there (react §4). Detached first, so it is
+        // gone from the page at once.
+        queueMicrotask(() => root.unmount());
       };
     },
   };

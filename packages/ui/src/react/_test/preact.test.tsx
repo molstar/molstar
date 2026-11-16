@@ -7,7 +7,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BehaviorSubject, State } from '@molstar/core/reactive';
+import { BehaviorSubject, Observable, of, State, Subject } from '@molstar/core/reactive';
 import { createRoot } from 'preact/compat/client';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -60,6 +60,32 @@ describe('the React bindings on Preact (react aliased to preact/compat)', () => 
     act(() => source.next({ hot: 2, cold: 'b' }));
     expect(host.textContent).toBe('b');
     expect(renders).toBe(2);
+    act(() => dispose());
+  });
+
+  it('a stream that emits while subscribing shows that value, and follows later ones (Preact checks before it subscribes)', () => {
+    const later = new Subject<number>();
+    const source = new Observable<number>((subscriber) => {
+      subscriber.next(3);
+      return later.subscribe(subscriber);
+    });
+    const View = ({ ctx }: { ctx: Observable<number> }) => <b>{useReactive(ctx) ?? 'none'}</b>;
+    const host = document.createElement('div');
+    document.body.append(host);
+    let dispose: () => void = () => {};
+    act(() => {
+      dispose = reactView(View as any, { createRoot: createRoot as any }).mount(host, source, new ViewScope());
+    });
+    expect(host.textContent).toBe('3');
+    act(() => later.next(5));
+    expect(host.textContent).toBe('5');
+    act(() => dispose());
+    const cold = document.createElement('div');
+    document.body.append(cold);
+    act(() => {
+      dispose = reactView(View as any, { createRoot: createRoot as any }).mount(cold, of(4), new ViewScope());
+    });
+    expect(cold.textContent).toBe('4');
     act(() => dispose());
   });
 });

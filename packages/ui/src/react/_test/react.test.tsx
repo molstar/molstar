@@ -19,7 +19,7 @@ import {
   State,
   Subject,
 } from '@molstar/core/reactive';
-import { act, StrictMode, useSyncExternalStore } from 'react';
+import { act, Component, type ReactNode, StrictMode, useEffect, useSyncExternalStore } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Child } from '../../dom/index.js';
@@ -528,5 +528,70 @@ describe('views and elements', () => {
     const el = container.querySelector('msui-test-react-greeting') as Greeting;
     expect(el.model).toBe(model);
     expect(el.textContent).toBe('Hello Mol*');
+  });
+});
+
+class Boundary extends Component<{ children: ReactNode }, { error?: string }> {
+  override state: { error?: string } = {};
+  static getDerivedStateFromError(e: unknown) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+  override render() {
+    return this.state.error ? <i>{this.state.error}</i> : this.props.children;
+  }
+}
+
+describe('what the bindings do not hide', () => {
+  it('a derived value that throws when read reaches an error boundary; only an errored stream keeps its last value', async () => {
+    // A derived value read on mount that throws (a bug in app code) is not swallowed: the boundary shows it. (A throw
+    // while a set is told is core's to report: it happens in the set, before any listener.)
+    const items = new State<string[] | undefined>(undefined);
+    const first = derive(items, (x) => x![0]);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    function Probe() {
+      return <span>{useReactive(first)}</span>;
+    }
+    await act(async () =>
+      root.render(
+        <Boundary>
+          <Probe />
+        </Boundary>,
+      ),
+    );
+    expect(container.querySelector('i')?.textContent).toContain('Cannot read properties of undefined');
+    error.mockRestore();
+  });
+
+  it('a hosted element drops a property no longer given; an inline object writes only what changed', async () => {
+    const model = { name: 'Mol*' };
+    const onPick = () => {};
+    await act(async () => root.render(<UiElementHost tag="msui-test-react-greeting" properties={{ model, onPick }} />));
+    const el = container.querySelector('msui-test-react-greeting') as Greeting & { onPick?: unknown };
+    expect(el.onPick).toBe(onPick);
+    await act(async () => root.render(<UiElementHost tag="msui-test-react-greeting" properties={{ model }} />));
+    expect(el.onPick).toBeUndefined();
+    expect(el.model).toBe(model);
+  });
+
+  it("a view's root unmounts after the dispose (never synchronously inside a render), its container gone at once", async () => {
+    const cleaned = vi.fn();
+    const View = () => {
+      useEffect(() => cleaned, []);
+      return <b>view</b>;
+    };
+    const host = document.createElement('div');
+    document.body.append(host);
+    let dispose: () => void = () => {};
+    act(() => {
+      dispose = reactView(View, { createRoot }).mount(host, undefined, new ViewScope());
+    });
+    dispose();
+    expect(host.innerHTML).toBe('');
+    expect(cleaned).not.toHaveBeenCalled();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(cleaned).toHaveBeenCalledTimes(1);
+    host.remove();
   });
 });
