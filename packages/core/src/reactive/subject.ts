@@ -54,9 +54,11 @@ export class Subject<T> extends Listened<T> implements Observer<T>, Subscription
     return subscriber;
   }
 
-  /** A view without `next`, `error`, `complete` (a new one each call, as rxjs). */
+  private _view: Observable<T> | undefined = undefined;
+
+  /** A view without `next`, `error`, `complete`; made on first use and kept (rxjs makes one each call). */
   asObservable(): Observable<T> {
-    return new Observable<T>((subscriber: Subscriber<T>) => this.subscribe(subscriber));
+    return (this._view ??= new Observable<T>((subscriber: Subscriber<T>) => this.subscribe(subscriber)));
   }
 }
 

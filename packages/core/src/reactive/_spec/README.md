@@ -2,8 +2,7 @@
 
 `@molstar/core/reactive` (`packages/core/src/reactive/`): streams in rxjs 7's shape and states, on one listener base,
 built for few allocations. This spec is the rules the code relies on and why; code comments cite its sections
-(`reactive §4`). The code is the truth for how. The plan that moves the workspace onto it:
-[.v6/reactive/README.md](../../../../../.v6/reactive/README.md).
+(`reactive §4`). The code is the truth for how.
 
 | File              | What                                                                                  |
 | ----------------- | ------------------------------------------------------------------------------------- |
@@ -106,6 +105,11 @@ built for few allocations. This spec is the rules the code relies on and why; co
   current value gets the new one after it (the replay runs in a batch).
 - **`batch(fn)`** holds the flush to the outermost batch's end (also when `fn` throws); a node set back to what its
   listeners were told tells nothing.
+- **A set back keeps the version.** A state remembers its value and version at its first set of a held change (a batch,
+  or a flush running; the sets between two flushes are one change, an epoch); set back to that value, its version is
+  restored. Versions come from one counter, so a version names one value of one state, never reused. Why: what compares
+  versions (a derived value's stamps, `@molstar/ui/dom`'s bindings and watches) sees no change, and nothing recomputes,
+  writes or renders for it.
 - **A flush that does not settle** (a listener that sets its source forever) stops after 1,000,000 deliveries and
   reports.
 - **`RecordState`**: a `State` of a record, `sameShallow` by default (a set of an equal copy tells nothing), with
@@ -116,11 +120,25 @@ built for few allocations. This spec is the rules the code relies on and why; co
 - `_test/state.test.ts` has a property test: random graphs and set sequences, every listener's last value equal to a
   recompute from scratch.
 
+### 4.1 Sinks
+
+- The third kind of graph node (`Sink`, internal): sources and no value, for what renders or writes from states
+  (`@molstar/ui/dom`'s `watch` and bindings). It is a dependent of each node it follows (`follow`, `unfollow`: a slot in
+  the node's array, no object of its own; the node is hot while followed), marked with them, and run in the flush
+  (`_flush`) after the change has spread, once per flush however many of its sources changed. Why: a reader of N states
+  costs one object, its marking allocates nothing, and what it reads is consistent.
+- `graphNode(source)` is the node behind a source (a state's view unwrapped), undefined for a foreign one; `versionOf`
+  brings a node up to date and returns its version (a sink compares it to skip an unchanged value).
+- **`observed`** on a node is true while anything follows it: a listener, a subscriber, or a dependent (a derived value,
+  a sink). The flush tells a node's listeners only when it has some (`_hasListeners`).
+
 ## 5. Cost
 
 - `subject.subscribe(fn)`: one object (§2). `listen(fn)`: that object and the closure it returns.
 - `next`/`emit`: no allocation; one loop over the array.
-- `state.set` with listeners: no allocation once the graph is hot (the flush queue is one reused array, edges exist).
+- `state.set` with listeners or sinks: no allocation once the graph is hot. The flush queue is one reused array emptied
+  by count (an array's `length = 0` frees its store, and the next push allocated it again: 150 bytes a set, found by
+  `@molstar/ui`'s `test:perf`); edges exist.
 - A pipe stage: one `Observable` at `pipe` time, one subscriber per subscription; an operator's state is its
   subscriber's fields, no closures per subscription. `pipe` takes a rest array: built at setup, not per value.
 - `Subscription` finalizers and parents: `undefined`, one, or an array from two.

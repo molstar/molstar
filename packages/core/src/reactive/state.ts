@@ -31,8 +31,20 @@ const NOTHING: any = Object.freeze({ nothing: true });
 let globalVersion = 0;
 let batchDepth = 0;
 let flushing = false;
-/** Listened nodes that may have changed, in the order marked; a reused array (no allocation per change). */
-const pending: StateNode<any>[] = [];
+/**
+ * Moves at the end of each flush: the sets between two flushes are one change (a batch, or one set). A state remembers
+ * its value and version at the first set of an epoch, so a set back to that value restores the version (reactive §4).
+ */
+let epoch = 0;
+/** A state's versions come from one counter: a version names one value of one state, never reused for another. */
+let nextVersion = 0;
+/**
+ * Listened nodes that may have changed and marked sinks, in the order marked; a reused array (no allocation per
+ * change).
+ */
+const pending: (StateNode<any> | Sink | undefined)[] = [];
+/** The queue's length: emptied by count (an array's `length = 0` frees its store, and the next push allocates one). */
+let pendingCount = 0;
 /** A flush that tells more than this many nodes is a cycle (a listener that sets its own source forever). */
 const FlushLimit = 1_000_000;
 
@@ -45,14 +57,23 @@ function flush() {
   flushing = true;
   let i = 0;
   try {
-    for (; i < pending.length; i++) {
+    for (; i < pendingCount; i++) {
       if (i === FlushLimit) {
         reportUnhandledError(new Error(`reactive: changes did not settle after ${FlushLimit} deliveries (a cycle?)`));
         break;
       }
-      const node = pending[i];
+      const node = pending[i]!;
+      pending[i] = undefined;
       node._pending = false;
-      if (!node.observed) continue;
+      if (node instanceof Sink) {
+        try {
+          node._flush();
+        } catch (e) {
+          reportUnhandledError(e);
+        }
+        continue;
+      }
+      if (!node._hasListeners) continue;
       let value: unknown;
       try {
         value = node.value;
@@ -65,9 +86,14 @@ function flush() {
       node._deliver(value);
     }
   } finally {
-    for (let j = i; j < pending.length; j++) pending[j]._pending = false;
-    pending.length = 0;
+    // What a broken-off flush left (the cycle guard): unmarked and dropped.
+    for (let j = i; j < pendingCount; j++) {
+      pending[j]!._pending = false;
+      pending[j] = undefined;
+    }
+    pendingCount = 0;
     flushing = false;
+    epoch++;
   }
 }
 
@@ -97,14 +123,20 @@ export function signalChange(nodes: readonly Derived<any>[] | Derived<any> | und
   if (batchDepth === 0) flush();
 }
 
+/** What a node tells when it changes: a derived value, or a sink. */
+export interface Dependent {
+  _mark(): void;
+}
+
 /** A node of the state graph: a `State` or a derived value. */
-abstract class StateNode<T> extends Listened<T> implements ReadonlyState<T> {
+/** @internal */
+export abstract class StateNode<T> extends Listened<T> implements ReadonlyState<T> {
   /** @internal Bumped when the value changes (by `_equals`). */
   _version = 0;
   /** @internal Listened (1 while it has listeners) plus each derived value following it: hot while above 0. */
   _refs = 0;
   /** @internal The derived values following this one while they are hot. */
-  _dependents: Derived<any>[] | undefined = undefined;
+  _dependents: Dependent[] | undefined = undefined;
   /** @internal In the flush's queue. */
   _pending = false;
   /** @internal The value the listeners were last told. */
@@ -118,6 +150,19 @@ abstract class StateNode<T> extends Listened<T> implements ReadonlyState<T> {
   }
 
   abstract get value(): T;
+
+  /**
+   * Whether anything follows the node: a listener, a subscriber, or a dependent in the graph (a derived value, a sink:
+   * `@molstar/ui/dom`'s bindings and watches), reactive §4.1.
+   */
+  override get observed(): boolean {
+    return this._refs > 0;
+  }
+
+  /** @internal Whether it has listeners to tell (the flush's delivery). */
+  get _hasListeners(): boolean {
+    return this.listenerCount > 0;
+  }
 
   /** @internal Brings the value up to date and returns its version. */
   abstract _pull(): number;
@@ -142,13 +187,13 @@ abstract class StateNode<T> extends Listened<T> implements ReadonlyState<T> {
   }
 
   /** @internal */
-  _addDependent(d: Derived<any>): void {
+  _addDependent(d: Dependent): void {
     (this._dependents ??= []).push(d);
     if (this._refs++ === 0) this._hot();
   }
 
   /** @internal */
-  _removeDependent(d: Derived<any>): void {
+  _removeDependent(d: Dependent): void {
     const ds = this._dependents!;
     const i = ds.lastIndexOf(d);
     if (i >= 0) {
@@ -160,9 +205,9 @@ abstract class StateNode<T> extends Listened<T> implements ReadonlyState<T> {
 
   /** @internal Queues this for the flush when something listens. */
   protected _enqueue(): void {
-    if (!this._pending && this.observed) {
+    if (!this._pending && this.listenerCount > 0) {
       this._pending = true;
-      pending.push(this);
+      pending[pendingCount++] = this;
     }
   }
 
@@ -208,6 +253,9 @@ abstract class StateNode<T> extends Listened<T> implements ReadonlyState<T> {
 export class State<T> extends StateNode<T> {
   private _value: T;
   private _view: StateView<T> | undefined = undefined;
+  private _baseEpoch = -1;
+  private _baseValue: T | undefined = undefined;
+  private _baseVersion = 0;
 
   constructor(initial: T, equals: (a: T, b: T) => boolean = Object.is) {
     super(equals);
@@ -226,8 +274,22 @@ export class State<T> extends StateNode<T> {
 
   set(value: T): void {
     if (this._equals(this._value, value)) return;
+    // Only a held change (a batch, a flush running) can be set back before it is told: remember where it started.
+    if (batchDepth > 0 || flushing) {
+      if (this._baseEpoch !== epoch) {
+        this._baseEpoch = epoch;
+        this._baseValue = this._value;
+        this._baseVersion = this._version;
+      }
+    } else if (this._baseEpoch !== -1) {
+      this._baseEpoch = -1;
+      this._baseValue = undefined;
+    }
     this._value = value;
-    this._version++;
+    // Set back to where it was at the start of this change: its version too, so what compares versions (a derived
+    // value's stamps, a binding, a watch) sees no change.
+    this._version =
+      this._baseEpoch === epoch && this._equals(this._baseValue as T, value) ? this._baseVersion : ++nextVersion;
     globalVersion++;
     this._enqueue();
     this._markDependents();
@@ -572,6 +634,54 @@ export function derive(
     return new DerivedRecord(keys, list, fn, equals);
   }
   return new Derived1(unwrap(sources as ReadonlyState<unknown>), fn, equals);
+}
+
+/**
+ * @internal The third kind of graph node (reactive §4.1): sources and no value, for what renders or writes from states
+ * (`@molstar/ui/dom`'s `watch` and bindings). It is a dependent of each graph source it follows (a slot in the source's array,
+ * no object of its own), marked with them, and run in the flush (`_flush`), after the change has spread, so what it
+ * reads is consistent; once per flush however many of its sources changed.
+ */
+export abstract class Sink implements Dependent {
+  /** @internal */
+  _pending = false;
+  private _markedAt = -1;
+
+  /** @internal A source changed. */
+  _mark(): void {
+    if (this._markedAt === globalVersion) return;
+    this._markedAt = globalVersion;
+    if (this._pending) return;
+    this._pending = true;
+    pending[pendingCount++] = this;
+  }
+
+  /** @internal Run in the flush. */
+  abstract _flush(): void;
+}
+
+/**
+ * @internal The graph node behind `source` (a `State`, a derived value, a keyed value, a state's readonly view), or
+ * undefined for anything else (a `BehaviorSubject`, a foreign stream).
+ */
+export function graphNode(source: unknown): StateNode<any> | undefined {
+  const s = source instanceof StateView ? source._state : source;
+  return s instanceof StateNode ? s : undefined;
+}
+
+/** @internal Makes `dependent` a follower of `node` (it is marked with it); the node is hot while followed. */
+export function follow(node: StateNode<any>, dependent: Dependent): void {
+  node._addDependent(dependent);
+}
+
+/** @internal Undoes `follow`. */
+export function unfollow(node: StateNode<any>, dependent: Dependent): void {
+  node._removeDependent(dependent);
+}
+
+/** @internal A node's version (brought up to date: a derived value computes if it must). */
+export function versionOf(node: StateNode<any>): number {
+  return node._pull();
 }
 
 /** A state fed by a stream, with what stops it. */

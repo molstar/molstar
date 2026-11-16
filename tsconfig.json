@@ -239,6 +239,9 @@
       "path": "./packages/query-language"
     },
     {
+      "path": "./packages/ui"
+    },
+    {
       "path": "./packages/sequences/core"
     },
     {

@@ -499,6 +499,12 @@
       "private": false
     },
     {
+      "name": "@molstar/ui",
+      "path": "packages/ui",
+      "kind": "library",
+      "private": false
+    },
+    {
       "name": "@molstar/seq-core",
       "path": "packages/sequences/core",
       "kind": "library",

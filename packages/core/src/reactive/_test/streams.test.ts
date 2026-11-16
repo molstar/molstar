@@ -607,3 +607,30 @@ describe('promises', () => {
     await expect(ours.lastValueFrom(ours.from(Promise.reject('x')))).rejects.toBe('x');
   });
 });
+
+describe('review fixes', () => {
+  it('Subject.unsubscribe drops every listener (no skips while the list compacts)', () => {
+    const s = new Subject<number>();
+    for (let i = 0; i < 7; i++) s.subscribe(() => {});
+    s.unsubscribe();
+    expect(s.observed).toBe(false);
+    expect((s as any)._subs.length).toBe(0);
+  });
+
+  it('a time operator that completes after its downstream ended does not throw', () => {
+    const reported: unknown[] = [];
+    ReactiveConfig.onUnhandledError = (e) => reported.push(e);
+    const seen: number[] = [];
+    ours
+      .of(1)
+      .pipe(ours.debounceTime(10), ours.take(1))
+      .subscribe((v) => seen.push(v));
+    expect(seen).toEqual([1]);
+    expect(reported).toEqual([]);
+  });
+
+  it('asObservable is made once', () => {
+    const s = new Subject<number>();
+    expect(s.asObservable()).toBe(s.asObservable());
+  });
+});

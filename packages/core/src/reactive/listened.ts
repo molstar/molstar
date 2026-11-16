@@ -138,7 +138,14 @@ export abstract class Listened<T> extends Observable<T> implements SubscriberOwn
   protected removeAll(): void {
     const subs = this._subs;
     if (subs === undefined) return;
-    for (let i = 0; i < subs.length; i++) subs[i]?.unsubscribe();
+    // As a delivery: no compaction while the loop walks the list, so none is skipped.
+    this._depth++;
+    try {
+      const n = subs.length;
+      for (let i = 0; i < n; i++) subs[i]?.unsubscribe();
+    } finally {
+      if (--this._depth === 0) this._settle();
+    }
   }
 
   private _settle() {

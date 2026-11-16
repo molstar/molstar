@@ -204,7 +204,8 @@ describe('derive', () => {
     a.set(4);
     expect(seen).toEqual(['x0', 'y0']);
     expect(runs).toBe(3);
-    expect(a.observed).toBe(false);
+    // Followed by the derived value (a graph dependent), not by a listener of its own.
+    expect(a.observed).toBe(true);
   });
 
   it('stops following its sources when the last listener goes', () => {
@@ -212,11 +213,10 @@ describe('derive', () => {
     const d = derive(a, (x) => x + 1);
     const e = derive(d, (x) => x + 1);
     const stop = e.listen(() => {});
-    expect(a.observed).toBe(false);
+    expect(a.observed).toBe(true);
     expect((a as any)._refs).toBe(1);
     stop();
-    expect((a as any)._refs).toBe(0);
-    expect((d as any)._refs).toBe(0);
+    expect(a.observed || d.observed).toBe(false);
     a.set(5);
     expect(e.value).toBe(7);
   });
@@ -393,7 +393,42 @@ describe('random graphs (property)', () => {
         for (const node of nodes) expect(node.state.value).toBe(node.compute());
       }
       for (const stop of stops) stop();
-      for (const s of states) expect((s as any)._refs).toBe(0);
+      for (const s of states) expect(s.observed).toBe(false);
     }
+  });
+});
+
+describe('set back in a batch', () => {
+  it('restores the version: a derived value does not recompute, nothing is told', () => {
+    const a = new State(1);
+    let runs = 0;
+    const d = derive(a, (x) => {
+      runs++;
+      return x * 2;
+    });
+    const seen: number[] = [];
+    d.listen((v) => seen.push(v));
+    a.listen((v) => seen.push(v));
+    runs = 0;
+    batch(() => {
+      a.set(2);
+      a.set(1);
+    });
+    expect(runs).toBe(0);
+    expect(seen).toEqual([]);
+    a.set(3);
+    expect(seen).toEqual([3, 6]);
+  });
+
+  it('a new value after a set-back gets a version of its own (a cold read in between is not stale)', () => {
+    const a = new State(1);
+    const d = derive(a, (x) => x * 10);
+    batch(() => {
+      a.set(2);
+      expect(d.value).toBe(20);
+      a.set(1);
+      a.set(3);
+      expect(d.value).toBe(30);
+    });
   });
 });

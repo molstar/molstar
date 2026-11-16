@@ -61,9 +61,11 @@ export class Subscriber<T> extends Subscription implements Observer<T> {
     this.destination!.next(value);
   }
 
+  // The destination may be gone: an operator that tells a last value before it ends (`debounceTime` on complete) can
+  // have its downstream unsubscribe it meanwhile (a `take(1)`).
   protected _error(err: any): void {
     try {
-      this.destination!.error(err);
+      this.destination?.error(err);
     } finally {
       this.unsubscribe();
     }
@@ -71,7 +73,7 @@ export class Subscriber<T> extends Subscription implements Observer<T> {
 
   protected _complete(): void {
     try {
-      this.destination!.complete();
+      this.destination?.complete();
     } finally {
       this.unsubscribe();
     }

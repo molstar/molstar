@@ -1,0 +1,47 @@
+{
+  "name": "@molstar/ui",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* UI runtime: a JSX DOM runtime on Mol* core's reactive states",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./dom": {
+      "molstar-src": "./src/dom/index.ts",
+      "types": "./lib/dom/index.d.ts",
+      "import": "./lib/dom/index.js"
+    },
+    "./dom/_test/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test:perf": "vitest run --config vitest.perf.config.ts"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "@molstar/test-harness": "workspace:*",
+    "vitest": "catalog:"
+  }
+}
