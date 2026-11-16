@@ -59,7 +59,7 @@ function lodOf(values: { [k: string]: ValueCell<any> }) {
   const lod = values.uLod?.ref.value as ArrayLike<number> | undefined;
   const levels = values.lodLevels?.ref.value as ArrayLike<number>[] | undefined;
   const out = lod ? [lod[0], lod[1], lod[2], lod[3]] : [Number.NaN, Number.NaN, Number.NaN, Number.NaN];
-  if (levels) for (const l of levels) out.push(l[0], l[1], l[2]);
+  if (levels) for (const l of levels) out.push(l[0], l[1]);
   return out;
 }
 
@@ -67,14 +67,14 @@ function lodOf(values: { [k: string]: ValueCell<any> }) {
 function isLodOf(values: { [k: string]: ValueCell<any> }, lod: readonly number[]) {
   const u = values.uLod?.ref.value as ArrayLike<number> | undefined;
   const levels = values.lodLevels?.ref.value as ArrayLike<number>[] | undefined;
-  if (lod.length !== 4 + (levels ? levels.length * 3 : 0)) return false;
+  if (lod.length !== 4 + (levels ? levels.length * 2 : 0)) return false;
   if (u) {
     if (u[0] !== lod[0] || u[1] !== lod[1] || u[2] !== lod[2] || u[3] !== lod[3]) return false;
   } else if (!Number.isNaN(lod[0])) return false;
   if (levels) {
-    for (let i = 0, o = 4, il = levels.length; i < il; ++i, o += 3) {
+    for (let i = 0, o = 4, il = levels.length; i < il; ++i, o += 2) {
       const l = levels[i];
-      if (l[0] !== lod[o] || l[1] !== lod[o + 1] || l[2] !== lod[o + 2]) return false;
+      if (l[0] !== lod[o] || l[1] !== lod[o + 1]) return false;
     }
   }
   return true;

@@ -31,7 +31,7 @@ describe('cull view', () => {
     expect(view.isSame(lod, null, cells)).toBe(false);
     view.set(lod, cells);
     expect(view.isSame(lod, null, cells)).toBe(true);
-    // the lists changed otherwise (`uncull`, `cullSimple`)
+    // the lists changed otherwise (`uncull`)
     view.invalidate();
     expect(view.isSame(lod, null, cells)).toBe(false);
   });

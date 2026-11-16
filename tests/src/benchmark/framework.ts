@@ -7,7 +7,7 @@
 import type { Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { TimerResult } from '@molstar/graphics/gl/timer';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 
 /** CPU, or the GPU path of a backend */
 export type BenchmarkPath = 'cpu' | 'webgl' | 'webgpu';

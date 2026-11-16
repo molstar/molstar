@@ -13,6 +13,7 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { Geometry } from '@molstar/graphics/geo/geometry/geometry';
 import { Lines } from '@molstar/graphics/geo/geometry/lines/lines';
 import { LinesBuilder } from '@molstar/graphics/geo/geometry/lines/lines-builder';
+import { getFontAtlas } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
@@ -32,7 +33,7 @@ export const ScaleLineParams = {
   maxWidth: PD.Numeric(120, { min: 40, max: 400, step: 10 }, { description: 'The longest the line is (CSS pixels)' }),
   color: PD.Color(ColorNames.grey),
   lineWidth: PD.Numeric(2, { min: 1, max: 6, step: 0.5 }, { description: 'CSS pixels' }),
-  labelSize: PD.Numeric(20, { min: 8, max: 32, step: 1 }, { description: 'CSS pixels' }),
+  labelSize: PD.Numeric(14, { min: 8, max: 32, step: 1 }, { description: "The label's font size (CSS pixels)" }),
   labelOutline: PD.Numeric(
     0.2,
     { min: 0, max: 0.5, step: 0.01 },
@@ -183,8 +184,11 @@ function labelProps(props: ScaleLineProps) {
 }
 
 function buildText(props: ScaleLineProps, label: string, text?: Text) {
-  const builder = TextBuilder.create(labelProps(props), 16, 16, text);
-  builder.add(label, 0, 0, 0, 0, props.labelSize, 0);
+  const p = labelProps(props);
+  const builder = TextBuilder.create(p, 16, 16, text);
+  // a label's scale is its atlas line (the glyphs' buffer and distance range around the font): `labelSize` the font's
+  const atlas = getFontAtlas(p);
+  builder.add(label, 0, 0, 0, 0, (props.labelSize * atlas.lineHeight) / atlas.fontSize, 0);
   return builder.getText();
 }
 

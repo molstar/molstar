@@ -719,6 +719,9 @@ The registry dump comparison allows only these differences. A step that introduc
 | ------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Color themes  | `external-structure` and `external-volume` are present in all three scopes, as in 5.x; the prototype dropped them |
 | Drag and drop | The open-anything handler is listed as `open-files` (`DefaultDragAndDrop`, fallback) instead of being hard-coded  |
-| Formats       | `xsc` (NAMD extended system files: periodic boxes for coordinates), after the coordinates |
+| Formats       | `xsc` (NAMD extended system files: periodic boxes for coordinates), after the coordinates; with the particles, `particle_pack` (particle packs, `.mspk`) |
 | Data actions  | The parsers take Response Data, the text ones Binary Data too (`Download` and `ReadFile` give Response Data, `.v6/data-response`): `Response Data` is a from-type of its own, and the text parsers it lists are listed under Binary Data too |
 | Data actions  | Moving a model by hand besides structures: `transform-shape-provider` (Shape Provider) and, with the particles, `transform-particle-list` (Particle List) |
+| Data actions  | With the particles, a particle pack's list: `particle-list-from-pack` |
+| Data actions  | With the particles, particle tiles and their views: `particle-tile-set-from-list` (Particle List, Particle Trajectory), `particle-tile-set-from-pack` (Root: a pack read by range), `particle-tiles-view` (Particle Tile Set) |
+| Behaviors     | In the Viewer, with the particles: `particle-tiles-follow-camera` (a tiles view picks its tiles again as the camera moves) |

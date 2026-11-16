@@ -8,7 +8,7 @@
  * The typed arrays a segmented array is made of: vertex attributes (`Float32Array`, encoded normals `Int16Array`),
  * elements (`Uint32Array`) and data images (`Uint8Array`, `Float32Array`)
  */
-export type SegmentedArrayType = Float32Array | Uint32Array | Uint8Array | Int16Array;
+export type SegmentedArrayType = Float32Array | Uint32Array | Int32Array | Uint8Array | Int16Array;
 
 type ArrayCtor<T extends SegmentedArrayType> = { new (length: number): T; readonly BYTES_PER_ELEMENT: number };
 
@@ -27,6 +27,11 @@ export interface SegmentedArray<T extends SegmentedArrayType = SegmentedArrayTyp
   readonly byteLength: number;
   /** by offset, not overlapping */
   readonly parts: readonly SegmentedArray.Part<T>[];
+  /**
+   * the array this one extends (`SegmentedArray.extend`): its parts this one's first, the same objects, its length or
+   * shorter; an uploader of it writes the parts added (and those changed) alone
+   */
+  readonly from?: SegmentedArray<T>;
 }
 
 export namespace SegmentedArray {
@@ -55,6 +60,42 @@ export namespace SegmentedArray {
     for (const p of parts) length = Math.max(length, p.offset + p.count);
     const { BYTES_PER_ELEMENT } = ctor;
     return { kind: 'segmented-array', ctor, BYTES_PER_ELEMENT, length, byteLength: length * BYTES_PER_ELEMENT, parts };
+  }
+
+  /** Extensions kept in a line (`from`): an uploader further behind writes all */
+  const MaxExtensions = 16;
+
+  /**
+   * `a` with `parts` added after its own (by offset, within `length`): a new array extending `a` (`from`), so that what
+   * uploaded `a` writes the added parts alone; `length` at least `a`'s (its by default: longer, room to grow, zeros
+   * after the parts, its parts where they were)
+   */
+  export function extend<T extends SegmentedArrayType>(
+    a: SegmentedArray<T>,
+    parts: readonly Part<T>[],
+    length = a.length,
+  ): SegmentedArray<T> {
+    if (length < a.length) throw new Error('segmented array: an extension shorter');
+    let end = 0;
+    for (const p of a.parts) end = Math.max(end, p.offset + p.count);
+    for (const p of parts) {
+      if (p.offset < end || p.offset + p.count > length)
+        throw new Error('segmented array: a part not after the others');
+      end = p.offset + p.count;
+    }
+    // the line cut behind its last extensions (the arrays before kept alive by it otherwise), not at `a`: an uploader of
+    // `a` (one update behind, the usual) still writes the added parts alone, one further behind all
+    let last: SegmentedArray<T> = a;
+    for (let k = 1; k < MaxExtensions && last.from; ++k) last = last.from;
+    if (last.from) (last as { from?: SegmentedArray<T> }).from = undefined;
+    const byteLength = length * a.BYTES_PER_ELEMENT;
+    return { ...a, length, byteLength, parts: [...a.parts, ...parts], from: a };
+  }
+
+  /** whether `a` is `b` or extends it (`from`) */
+  function isExtensionOf(a: SegmentedArray, b: SegmentedArray) {
+    for (let x: SegmentedArray | undefined = a; x; x = x.from) if (x === b) return true;
+    return false;
   }
 
   /** The part's data, biased where it has a bias (into a new array: kept only for the write) */
@@ -108,7 +149,7 @@ export namespace SegmentedArray {
     return out;
   }
 
-  /** What an uploader has written of a segmented array: the array and its parts' versions */
+  /** What an uploader has written of a segmented array: the array and its parts' versions (none: a part not written) */
   export type Uploaded = { array: SegmentedArray; versions: number[] };
 
   export function uploaded(a: SegmentedArray): Uploaded {
@@ -116,11 +157,13 @@ export namespace SegmentedArray {
   }
 
   /**
-   * The element ranges (`[start, end)` pairs, by offset) of the parts of `a` changed since `last` was uploaded, and
-   * notes them uploaded in `last`; undefined (all) where `last` is of another array
+   * The element ranges (`[start, end)` pairs, by offset) of the parts of `a` changed since `last` was uploaded (those
+   * an extension added among them), and notes them uploaded in `last`; undefined (all) where `last` is of another
+   * array
    */
   export function changedRanges(a: SegmentedArray, last: Uploaded | undefined): number[] | undefined {
-    if (!last || last.array !== a) return undefined;
+    if (!last || !isExtensionOf(a, last.array)) return undefined;
+    last.array = a;
     const ranges: number[] = [];
     const { parts } = a;
     for (let i = 0, il = parts.length; i < il; ++i) {
@@ -141,10 +184,11 @@ export namespace SegmentedArray {
     last: Uploaded | undefined,
     write: (data: T, offset: number) => void,
   ): Uploaded {
-    if (!last || last.array !== a) {
+    if (!last || !isExtensionOf(a, last.array)) {
       forEachPart(a, write);
       return uploaded(a);
     }
+    last.array = a;
     const { parts } = a;
     for (let i = 0, il = parts.length; i < il; ++i) {
       const p = parts[i];

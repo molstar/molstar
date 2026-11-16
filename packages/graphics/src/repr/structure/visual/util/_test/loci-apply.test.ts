@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { getDataWords } from '@molstar/graphics/geo/geometry/center-group';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -294,10 +295,12 @@ describe('sphere impostors (perf-audit-2 07/P18)', async () => {
     for (const ignoreHydrogens of [false, true]) {
       const spheres = createStructureElementSphereImpostor({} as any, structure, theme, { ...props, ignoreHydrogens });
       const data = spheres.positionGroup.ref.value.array;
+      // the groups an int32 as its bits
+      const words = getDataWords(data);
       expect(spheres.sphereCount).toBeGreaterThan(0);
       // the spheres in any order (levels of detail): each at the position of the element its group names
       for (let k = 0; k < spheres.sphereCount; ++k) {
-        const g = data[k * 4 + 3];
+        const g = words[k * 4 + 3];
         const unit = structure.units[unitIndices[g]];
         unit.conformation.position(elementIndices[g], p);
         expect([data[k * 4], data[k * 4 + 1], data[k * 4 + 2]]).toEqual([p[0], p[1], p[2]].map(Math.fround));

@@ -3,7 +3,112 @@
 ## Status
 
 - **Current**: batches A and B done, B verified in CI (the Dawn job and the visual smoke run passing on the runners);
-  batch C (the multi-sample savings, measured first) done: P1, P2 and P3, P5 kept as is; batch D started with S5.
+  batch C (the multi-sample savings, measured first) done: P1, P2 and P3, P5 kept as is; batch D done: S5-S8,
+  W1-W3, P6-P9 done or decided, S2 and S3 done as far as they cut. The review is closed. Follow-ups
+  outside the review: [geo-split.md](geo-split.md) and [core-gpu-compute.md](core-gpu-compute.md), both deferred.
+  - **S2 done**, `Renderer.create` split by its seams into `gl/renderer/`: the pass tables (`pass-draws.ts`: per
+    pass its checks, draws and render states, solid interior states; module-level, no closure state) and the draw lists
+    (`draw-lists.ts`: snapshots, chunks, record and replay, behind `DrawListHost`, what they read of the renderer, its
+    frame state by getters) and the solid interior caps (`solid-interior-caps.ts`: the cuts of the near plane and clip
+    objects, per segment, marked and filled, behind `SolidInteriorCapsHost`) and GPU culling with the sphere raster
+    (`gpu-culling.ts`, one module: each reads the other, the raster's split culled with and its second phase run with
+    the culling's; the opaque passes drive it by named steps, `resolveRaster`, `beginOpaque`, `finishRaster`).
+    `renderer.ts` 2,924 to 1,668 lines, the allocation guards unchanged. Left in the closure: visibility and the ghost
+    cull (they set the bounding sphere and facts every draw reads), the uniforms' update, the passes' entry points.
+  - **S3 done**, `Canvas3D.create` split the same way: its modules take one `Canvas3DParts` (`canvas3d/parts.ts`:
+    the canvas's parts, getters for those a context change replaces), not a host each. First the preparation
+    (`canvas3d/prepare.ts`: `prepare`, `precompile`, `prepareObjects`, the warm-up, the pass targets' release).
+    Then the representations' membership (`canvas3d/representations.ts`: each representation's render objects in the
+    scene of its layer, kept in step, moved with the layer, dropped by a context change; the mark index) and the debug
+    stats (`console-stats.ts`), the marking (`marks.ts`). Then the camera reset (`camera-reset.ts`: requested by the
+    API or a commit that moved objects out of view, resolved after the whole scene committed) and what a frame draws
+    (`frame-render.ts`: the marking-only redraw, illumination or the draw pass, the Hi-Z levels, more marking
+    samples; when to draw stays, its flags shared with the scheduling), its marking redraw and occlusion callback
+    made once (hover 10.4 kB a step on WebGL, 15.8 on WebGPU, from 10.5 and 15.9). Then the parts bound to the
+    context (`context-parts.ts`: Hi-Z, renderer, shader manager, pick and ray helpers, multi-sample helper), made by one
+    function at the start and on a context change (`setContext` made them a second time, by hand). `canvas3d.ts` 3,077
+    to 2,200 lines. S3 done as far as it cuts; left in the closure on purpose: picking (thin over its helpers), frame
+    scheduling (`tick`, `draw`, `animate`) and the rest of `setContext` (both reassign the closure's state: a module
+    would turn it into a host of setters).
+  - **P6 done**: a WebGPU texture reader (picking) copies the textures of a read into one staging buffer, each at its
+    offset, in one command buffer and submit (four of each before), maps it once, and copies its rows straight into
+    the caller's arrays (an intermediate array per texture before: about 2 MB a dirty pick at 480×270); its staging
+    buffers kept for the next reads, two at most while a pick each frame waits for its map. Test:
+    `gl/_test/webgpu-texture-reader.test.ts` (the stub device's calls: no buffer made again, one encoder a read).
+  - **P8 done**: WebGL records what each attachment point of a framebuffer holds (by GL framebuffer: its GL texture or
+    renderbuffer and layer, `webgl/framebuffer.ts`, `isAttached`/`setAttached`); attaching the same again returns
+    before ending the open pass or any GL call, so the driver checks no framebuffer again (passes attach their targets
+    every frame). Any change attaches: another texture, point or layer, a renderbuffer on a texture's point, a detach;
+    the combined depth-stencil point clears the separate ones and back, as the storage tracking. Visual suite on WebGL2
+    (291) and WebGL1 (290) unchanged; `gl/_test/webgl-attachments.test.ts` counts the GL calls (medium: native `gl`,
+    the shim's GL objects are numbers, which the tracking leaves out).
+  - **W1 done**: framebuffers are internal to the backends. A pass names what it draws into as a whole, as WebGPU's
+    render pass descriptor: `RenderPassAttachments` (`gl/render-pass-attachments.ts`, `color` textures or 3d texture
+    layers in draw buffer order, `depth` a texture or renderbuffer), made by `resources.renderPassAttachments` and kept
+    by the pass (not a literal per begin: no allocation a frame), its fields changed between passes (ping-pong) and
+    destroyed with the pass. Each backend draws one with a target of its own (WebGL a framebuffer, WebGPU an attachment
+    set, `webgpu/attachment-set.ts`), brought in line on begin (`createBackendRenderPassAttachments`; attaching what a
+    point holds is skipped, P8). `RenderTarget` is a texture and a depth renderbuffer with the attachments naming them
+    (no framebuffer, no `bind`). The draw pass names the depth at each begin (`pass(target, depth)`: its own, none,
+    the opaque depth texture, or packed, the color target's depth-stencil), no record of what earlier passes left;
+    five begins that only changed the depth of a pass nothing drew in are gone. `Texture.copyFromTexture(source, …)`
+    replaces `copyFromFramebuffer` (WebGL reads through a framebuffer the source keeps). The WebGL compute keeps its framebuffers (`WebGLResources.framebuffer`,
+    `WebGLContext.beginRenderPass` takes one). Kept from the design: WebGPU's attachment set target cache (a pass into
+    unchanged attachments makes nothing). The pass targets record what passes draw into by object, not by key strings
+    (`forEachRenderPassAttachment`), and WebGL's attachment refs are made once: the hover 10.5 kB a step on WebGL
+    (10.6 before), 15.9 kB on WebGPU (17.2), the frame cases unchanged. Visual suite unchanged (291/290/296).
+  - **S8 done**, steps 1 and 2: the context's named caches (`namedTextures`, `namedFramebuffers`,
+    `namedComputeRenderables`, string-keyed dictionaries anyone wrote) are gone; a module keeps its scratch resources in
+    a `createScratch<T>(label)` of its own (`gl/scratch.ts`: a `WeakMap` per context, by name within the module, so
+    no two modules collide), 11 modules (the WebGL compute, the GPU Gaussian density, the texture mesh color smoothing,
+    the Gaussian surface's density textures, the volume segment). Every one was an intermediate a computation fills and
+    reads (none a result callers keep), so the lifetime is the context's, as before. Step 3, idle release (as the scratch
+    buffers have), decided against for now: scratch resources stay for the context's lifetime. If revisited: per module
+    (a cached compute renderable holds the textures it was made with), after measuring what they hold after a session
+    (the Gaussian surface's density textures the largest).
+  - **S7 done**: the folders of graphics in layers, lowest first `gl`, `theme`, `geo`, `formats` and `repr`,
+    `canvas3d` and `props`, `util` (`src/_test/layers.test.ts`: a folder imports only from lower ones, relative imports
+    included). `theme` sits below `geo` (geometries take a theme), so what the themes took of `geo` moved to them (the
+    color and size types; `isPositionLocation` from model). The renderer reads a camera of `gl`'s own (`gl/camera.ts`,
+    `RenderCamera`), `Viewport` from core; the marching cubes tables in core (`geo-split.md` step 1);
+    `getVolumeTexture2dLayout` in `geo/util` and `ShapeGetter` in `geo/shape/provider`, not `repr`; `namedCatalog` in
+    core, `util` the top layer (gizmos and their visual sets).
+  - **S6 done**: the backend folders' exports source-only (`molstar-src`): the published package doesn't export
+    `gl/webgl/*` and `gl/webgpu/*`, the repository (its harness, tests and builds, all on `molstar-src`) still reaches
+    them. Contexts through `gl/contexts/webgl` and `gl/contexts/webgpu` (factories, guards, types, backend descriptors),
+    what an extension uses through `gl/extend/webgl` (`registerGlslProgram`) and `gl/extend/webgpu`
+    (`registerWgslKernel`, and `registerWgslProgram`, new: an extension's program drew on WebGL only before). The GLSL
+    sources, chunks and assembly stay internal (an extension brings its own GLSL). The registries in modules of their own
+    (`webgl/program-registry.ts`, `webgpu/shader/program-registry.ts`, `kernel-registry.ts`), the built-in tables
+    registering into them: `gl/extend/*` reaches only the registries (`extend-imports.test.ts`), so registering an
+    extension's WGSL bundles none of WebGPU into a WebGL-only build, nor its GLSL any of WebGL into a WebGPU-only one. A Biome rule keeps in-repository
+    code outside graphics, tests and `tests/` out of the backend folders; `backend-neutral.test.ts` needs no allowlist.
+    `breaking-v6-changes.md` (Backend folders internal).
+  - **P9 done**: a WebGPU item's draw block made by a function of its own, once (`createDrawBlock`), not through two
+    closures a draw: a direct frame of 8 objects (draw lists off) 5,273 to 4,249 bytes; the mark buffer emptied in place
+    each render, not replaced. The classic uniforms' `.slice()` went with S5. Guarded: `frame: opaque pass drawn directly`
+    (`frame.quick.ts`, draw lists off), 128 bytes on WebGL, 4,249 on WebGPU.
+  - **P7 decided, kept**: a hover pick is made only when the pointer moved (`handleMove`), so a spin or rock with the
+    pointer still draws none; with the pointer moving, a pick a tick (30 Hz) for a pose one or two frames gone, nearly
+    right. Skipping them while `controls.isAnimating` would stop hover labels and highlights during a slow rock, for
+    little saved.
+  - **The representations' move broke a Prism test's timing** in the whole quick lane (5 of 7 runs, none before; no
+    behavior change found): Prism's axe test of the trajectory bar now waits for its condition, the cause open in
+    `packages/prism/TODO.md` (Decisions open).
+  - **Flaky Dawn tests**, older than this batch: `webgpu-bundle-frag-depth.test.ts` ("draws writing frag_depth
+    replay ...") fails about one run in four on Windows (replays 20 against 18): it compares replay counts across three
+    plugin sessions, which depend on when pipelines finish compiling. `webgpu-points.test.ts` ("picks a ring point on its
+    ring") and `webgpu-sphere-resolve.test.ts` ("shades alike from near and far") fail now and then in the whole
+    suite, passing alone.
+  - **W2 done**: the draw lists' context members one optional `GraphicsContext.drawLists` (`DrawLists`: `create`,
+    `submitCount`, `resourcesVersion`, `capture`), there with all four or not at all; the renderer checks it once, not
+    `captureDraws` apart. `RenderItem.renderFullscreen` and `getDataLayer` stay apart: features of their own (the
+    sphere raster's resolve, kernels reading an item's data), not a set.
+  - **W3 done** as agreed: `DrawMode` without `line-loop` and `triangle-fan` (no user; WebGPU has neither, so its
+    mapping no longer throws), the context's doc comment above its own declaration. The rest of the review's W3 list
+    left as is: `doNotForceWebGLContextLoss` (a WebGL option of the neutral destroy, named so), `readTextureData`'s
+    row rule (documented; rendered content read by `readTextureAsync`), the XR projection in GL clip depth (as the
+    camera builds every projection, see `depth-conventions.md`), the WebGL1 schema fields (with WebGL1, W4).
   - **S5 done**: the guards run on the shared harness (`test-harness/`, `@molstar/test-harness`, moved out of
     Seq\*), the graphics `test:perf` tier (`*.quick.ts` under `src/`, baseline `src/_test/perf-baseline.json`):
     `gl/_test/frame.quick.ts`, a frame at rest (the view unchanged) of 8 objects, its update and its opaque pass, on
@@ -119,16 +224,16 @@ the sphere raster or `scene.ts`.
 
 | Id | Verdict on this branch | Batch |
 | --- | --- | --- |
-| C1 | Confirmed: WebGL `load`, `loadData`, `loadRows` and the cube `load` have no `destroyed` check (`gl/webgl/texture.ts`); WebGPU's has it | A |
-| C2 | Confirmed: a skybox face's `source.then` has no rejection handler, so `onload` never runs and `pending.whenReady()` hangs; its blob URLs are never revoked | A |
-| C3 | Confirmed: a superseded background load writes `this.skybox.loaded` (the current entry), not its own (`canvas3d/passes/background.ts`) | A |
-| C4 | Confirmed: WebGPU `BufferPages.free` only queues; pages are reclaimed by a later `allocate` on the same pages | A |
+| C1 | Confirmed, fixed: WebGL `load`, `loadData`, `loadRows` and the cube `load` have no `destroyed` check (`gl/webgl/texture.ts`); WebGPU's has it | A |
+| C2 | Confirmed, fixed: a skybox face's `source.then` has no rejection handler, so `onload` never runs and `pending.whenReady()` hangs; its blob URLs are never revoked | A |
+| C3 | Confirmed, fixed: a superseded background load writes `this.skybox.loaded` (the current entry), not its own (`canvas3d/passes/background.ts`) | A |
+| C4 | Confirmed, fixed: WebGPU `BufferPages.free` only queues; pages are reclaimed by a later `allocate` on the same pages | A |
 | C5 | Confirmed, fixed: the WebGL material uniform cache evicted only at context destroy | A |
 | C6 | Confirmed, fixed: lines past the shared index limit (only boxes guarded) | A |
 | C7 | Confirmed, fixed: WebGL1 NPOT skybox faces with mipmaps (an incomplete cube map) | A |
-| C8 | Confirmed: `QuadIndices.get` releases the old buffer before the new one is made | A |
+| C8 | Confirmed, fixed: `QuadIndices.get` releases the old buffer before the new one is made | A |
 | C9 | Confirmed, fixed: `BackgroundPass.dispose` without callers, `Passes` without `dispose` | A |
-| S1 | Confirmed: CI installs the native backend without `--webgpu`, so the Dawn suite skips; visual tests by hand only | B |
+| S1 | Confirmed, fixed: CI installs the native backend without `--webgpu`, so the Dawn suite skips; visual tests by hand only | B |
 | S4 | Done: `gl/_test/shader-parity.test.ts` | B |
 | P1 | Done: the first frame after a change is sample 0, not drawn again | C |
 | P3 | Done: bind groups kept per bound textures, programs only on a filter change | C |
@@ -136,13 +241,17 @@ the sphere raster or `scene.ts`.
 | P2 | Done: moving frames compose nothing, hold replaced by a running average (see Status) | C |
 | P4 | Done on this branch: marking reads the scene's depth, per jittered sample too (marking-performance.md step 3) | - |
 | P5 | Decided: kept on every sample (feathery edges at level 2 without; see Status) | C |
-| P6-P9 | Small; with nearby work, P9 behind allocation guards | - |
-| S2, S3 | Agreed, long-term: `Renderer.create` and `Canvas3D.create` split along their seams | D |
+| P6 | Done: a pick read in one staging buffer and command buffer, the buffer kept, rows copied once | D |
+| P7 | Decided, kept: hover picks while the camera animates (see Status) | - |
+| P8 | Done: WebGL skips attaching what an attachment point holds already (see Status) | D |
+| P9 | Done: no closures per direct WebGPU draw, the mark buffer emptied in place (see Status) | D |
+| S2, S3 | Done as far as they cut: `Renderer.create` and `Canvas3D.create` split along their seams (see Status) | D |
 | S5 | Done: a frame at rest and the hover guarded on WebGL and WebGPU (see Status) | D |
-| S6 | Decided: the backend folders (`gl/webgl`, `gl/webgpu`) are internal; contexts made through `gl/contexts/*` | D |
-| S7, S8 | Agreed: layering inversions, owned kernel caches | D |
-| W1 | Agreed, long-term: target descriptors instead of mutable attachments, pass by pass (also P8) | D |
-| W2, W3 | Agreed: WebGPU-only draw-list members grouped, unused GL draw modes removed | D |
+| S6 | Done: the backend folders internal, contexts through `gl/contexts/*`, extensions through `gl/extend/*` | D |
+| S7 | Done: graphics' folders import one way, held by `src/_test/layers.test.ts` (see Status) | D |
+| S8 | Done: the named caches a scratch per module (`gl/scratch.ts`, see Status); kept for the context's lifetime, no idle release | D |
+| W1 | Done: render pass attachments, framebuffers internal to the backends (see Status) | D |
+| W2, W3 | Done: the draw-list members grouped (`GraphicsContext.drawLists`), the unused GL draw modes removed | D |
 | W4 | Decided: WebGL1 stays for now (as `minimum-capabilities.md` keeps it) | - |
 
 ## Steps
@@ -160,7 +269,7 @@ the sphere raster or `scene.ts`.
    memory (the hold target's 4 B/px and the targets left, at the canvas sizes measured) and quality (the settled image
    against hold's, and the intermediate ones, by the visual tests' comparison).
 4. **Batch D, structure**: S5 first (guards make the splits safe), then S2 and S3 by their seams, W2 and W3, S6 before
-   v6 freezes; W1 pass by pass when a pass is touched anyway.
+   v6 freezes; W1.
 5. **The backend folders internal (S6)**: contexts made through helpers outside them, `gl/contexts/webgl.ts` (a context
    from a GL context, a GL context from a canvas: `createContext`, `getGLContext`) and `gl/contexts/webgpu.ts`
    (`requestWebGPUDevice`, a context from a device, `WebGPUContextOptions`), each re-exporting its backend descriptors;

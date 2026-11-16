@@ -13,8 +13,8 @@
   illumination's composite and before antialiasing, without fog. It is out of the scene's bounds (camera reset and
   focus, the scene's near and far planes) and wins the pick wherever it is drawn. A `VisualSet` passes it with the state of
   `add`, `create` and `addShape`; a `setState` that changes it moves the representation.
-- Per object, how the scene's depth applies to the overlay: `occludedAlpha` (geometry param, hidden; 1 on top, 0 depth
-  tested, between x-ray) multiplies the alpha of the parts behind the scene. Parts too transparent to click leave the
+- Per object, how the scene's depth applies to the overlay: `occludedAlpha` (`Representation.State`, applied by the canvas as
+  `layer`; 1 on top, 0 depth tested, between x-ray) multiplies the alpha of the parts behind the scene. Parts too transparent to click leave the
   pick to the scene. GLSL and WGSL, every primitive geometry.
 - `screenSize` (mesh param, hidden): CSS pixels per unit of the mesh, the same size on screen at any zoom, in every
   pass (the pick at its scale, stereo, images); such objects are not culled by their bounds.
@@ -45,7 +45,8 @@
   what it does (a slide's or a ring's axis across the view, a plane's two, a ring's radius at the grab and now, a dashed
   line to the cursor and a double arrow there, a cross at the center of a trackball's turn), and a moved handle a grey copy where it started. A part may be shown only in a state
   (`GizmoPart.when`: its group hovered, a kind dragged), at an alpha of its own (`alpha`), or only its half toward
-  the viewer (`front`: a ring's, whole while it turns).
+  the viewer (`front`: a ring's, whole while it turns). Mesh parts are unlit (flat, the same color from any side); a
+  part shaded by the canvas's lights says so (`GizmoPart.lit`).
 - Hit areas larger than what is drawn: `Representation.State.pickOnly` (shape representations; `RenderableState.pickOnly`)
   is drawn in the pick passes only, and `ShapeBuilder.lociShape` reports its picks as another shape's loci.
   `hit` parts (`GizmoPart`), and `transformHandles` gives one: a thin shaft is grabbed anywhere along it.

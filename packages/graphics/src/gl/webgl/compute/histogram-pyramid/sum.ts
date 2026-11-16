@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,6 +15,14 @@ import { unpackRGBToInt } from '@molstar/core/util/number-packing';
 import { QuadSchema, QuadValues } from '../../../compute/util.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { setTexelViewport } from '../../render-pass-target.js';
+import { createScratch } from '../../../scratch.js';
+import type { Framebuffer } from '../../framebuffer.js';
+import { asGLTexture } from '../../texture.js';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('histogram-pyramid/sum textures');
+const ScratchFramebuffers = createScratch<Framebuffer>('histogram-pyramid/sum framebuffers');
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('histogram-pyramid/sum renderables');
 
 export const HistopyramidSumSchema = {
   ...QuadSchema,
@@ -26,16 +34,16 @@ type HistopyramidSumValues = Values<typeof HistopyramidSumSchema>;
 const HistopyramidSumName = 'histopyramid-sum';
 
 function getHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture): ComputeRenderable<HistopyramidSumValues> {
-  if (ctx.namedComputeRenderables[HistopyramidSumName]) {
-    const v = ctx.namedComputeRenderables[HistopyramidSumName].values as HistopyramidSumValues;
+  if (ScratchRenderables.get(ctx, HistopyramidSumName)) {
+    const v = ScratchRenderables.get(ctx, HistopyramidSumName)!.values as HistopyramidSumValues;
 
     ValueCell.update(v.tTexture, texture);
 
-    ctx.namedComputeRenderables[HistopyramidSumName].update();
+    ScratchRenderables.get(ctx, HistopyramidSumName)!.update();
   } else {
-    ctx.namedComputeRenderables[HistopyramidSumName] = createHistopyramidSumRenderable(ctx, texture);
+    ScratchRenderables.set(ctx, createHistopyramidSumRenderable(ctx, texture), HistopyramidSumName);
   }
-  return ctx.namedComputeRenderables[HistopyramidSumName];
+  return ScratchRenderables.get(ctx, HistopyramidSumName)!;
 }
 
 function createHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
@@ -59,19 +67,20 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
 
   const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture);
 
-  if (!ctx.namedFramebuffers[HistopyramidSumName]) {
-    ctx.namedFramebuffers[HistopyramidSumName] = resources.framebuffer();
-  }
-  const framebuffer = ctx.namedFramebuffers[HistopyramidSumName];
+  const framebuffer = ScratchFramebuffers.getOrCreate(ctx, () => resources.framebuffer(), HistopyramidSumName);
 
-  if (!ctx.namedTextures[HistopyramidSumName]) {
-    ctx.namedTextures[HistopyramidSumName] = capabilities.integerTextures
-      ? resources.texture('image-int32', 'rgba', 'int', 'nearest')
-      : resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-    ctx.namedTextures[HistopyramidSumName].define(1, 1);
+  if (!ScratchTextures.get(ctx, HistopyramidSumName)) {
+    ScratchTextures.set(
+      ctx,
+      capabilities.integerTextures
+        ? resources.texture('image-int32', 'rgba', 'int', 'nearest')
+        : resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'),
+      HistopyramidSumName,
+    );
+    ScratchTextures.get(ctx, HistopyramidSumName)!.define(1, 1);
   }
-  const sumTexture = ctx.namedTextures[HistopyramidSumName];
-  sumTexture.attachFramebuffer(framebuffer, 0);
+  const sumTexture = ScratchTextures.get(ctx, HistopyramidSumName)!;
+  asGLTexture(sumTexture).attachFramebuffer(framebuffer, 0);
 
   ctx.beginRenderPass(framebuffer, { label: 'histogram pyramid sum' });
   ctx.setRenderState(RenderState.Default);

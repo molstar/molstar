@@ -28,7 +28,6 @@ export const cylinders_frag = `
 precision highp float;
 precision highp int;
 
-varying mat4 vTransform;
 // the cylinder's start and size, end and cap, the same at every corner of its box: two flat varyings
 #if __VERSION__ == 100
     varying vec4 vCylinderStart;

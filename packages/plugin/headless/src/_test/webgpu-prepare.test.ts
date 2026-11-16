@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { createCopyRenderable } from '@molstar/graphics/gl/compute/util';
 import { RenderState } from '@molstar/graphics/gl/render-state';
-import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
+import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/contexts/webgpu';
 import { WebGPU } from './webgpu-module.js';
 
 describe.skipIf(!WebGPU.module)('preparePipelines on WebGPU', () => {
@@ -28,7 +28,7 @@ describe.skipIf(!WebGPU.module)('preparePipelines on WebGPU', () => {
       };
 
       const descriptor = graphics.describeTarget(target);
-      expect(descriptor).toEqual(graphics.describeTarget(target.framebuffer));
+      expect(descriptor).toEqual(graphics.describeTarget(target.attachments));
       expect(descriptor.key).not.toBe(graphics.describeTarget('drawing-buffer').key);
 
       await graphics.resources.preparePipelines([

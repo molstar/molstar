@@ -243,7 +243,7 @@ class Structure {
     if (this.state.interUnitBonds) return this.state.interUnitBonds;
     const parent = this.parent;
     let parentBonds = parent?.state.interUnitBonds;
-    // only the bonds of the same provider are the parent's to reuse (bond-providers plan §2.2)
+    // only the bonds of the same provider are the parent's to reuse
     const sameProvider = !!parent && this.state.bondProvider === parent.state.bondProvider;
     if (
       parent &&
@@ -297,7 +297,7 @@ class Structure {
     return this.state.interUnitBonds;
   }
 
-  /** Where the inter-unit bonds come from, and what the builder gives its units (bond-providers plan §2.2). */
+  /** Where the inter-unit bonds come from, and what the builder gives its units. */
   get bondProvider() {
     return this.state.bondProvider;
   }
@@ -714,7 +714,7 @@ namespace Structure {
     dynamicBonds?: boolean;
     /**
      * Where the bonds come from: the inter-unit bonds of this structure, and the intra-unit bonds of the units its
-     * builder makes (bond-providers plan §2.2). Inherited from `parent`; the built-in bonds by default.
+     * builder makes. Inherited from `parent`; the built-in bonds by default.
      */
     bondProvider?: BondProvider.Instance;
     interBondsValidUnit?: (unit: Unit) => boolean;
@@ -835,7 +835,7 @@ namespace Structure {
 
   /**
    * A new root given no provider (`Loci.toStructure` of a root's loci, a structure of units made elsewhere) takes its
-   * units' (bond-providers plan §2.2): the first atomic unit's, so the inter-unit bonds come from where the intra-unit
+   * units': the first atomic unit's, so the inter-unit bonds come from where the intra-unit
    * ones do.
    */
   function unitsBondProvider(units: ReadonlyArray<Unit>): BondProvider.Instance {

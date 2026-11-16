@@ -144,8 +144,18 @@ export class ScreenHelper {
   /** `scenes`, made again where the entries change: read every tick (`Canvas3D` commits the layers) */
   private sceneList: Scene[] | undefined = undefined;
   private readonly cameras = new WeakMap<ICamera, ScreenCamera>();
+  /**
+   * The layer's size relative to the canvas: an image larger than the canvas (`ImagePass`) draws the layer as large
+   * as the canvas shows it, its CSS pixel this many of the canvas's device pixels (1: the canvas's own)
+   */
+  pixelScale = 1;
 
   constructor(private graphics: GraphicsContext) {}
+
+  /** The device pixels of one of the layer's CSS pixels: the context's pixel ratio by `pixelScale` */
+  get pixelRatio() {
+    return this.graphics.pixelRatio * this.pixelScale;
+  }
 
   get isEnabled() {
     if (this.graphics.xr.session) return false;
@@ -204,7 +214,7 @@ export class ScreenHelper {
       const { center, radius } = scene.boundingSphere;
       // about its origin: the camera turns it there
       const extent = Vec3.magnitude(center) + radius;
-      draw(scene, camera.update(source, placement, extent, placement.inset ?? radius, this.graphics.pixelRatio));
+      draw(scene, camera.update(source, placement, extent, placement.inset ?? radius, this.pixelRatio));
     }
   }
 

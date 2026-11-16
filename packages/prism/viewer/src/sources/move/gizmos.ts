@@ -294,7 +294,9 @@ export class MoveGizmos {
     const list = plugin.managers.particles.hierarchy.current.lists.find((x) => x.cell.transform.ref === ref);
     if (list) {
       const data = list.cell.obj?.data;
-      if (!data?.count) return undefined;
+      // a view of tiles read as the camera moves (a slot list) is not moved (`particles.transform`)
+      if (!data?.count || data.pages) return undefined;
+
       const value: Placement = {
         matrix: currentParticleTransform(plugin.state.data, ref, data),
         center: Vec3.clone(Particle.getBoundary(data).sphere.center),

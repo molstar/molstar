@@ -146,31 +146,31 @@ describe('geometry builders', () => {
   it.each(sizes)('cylinders, %s estimate', (_, initialCount, chunkSize) => {
     const { counts, buffers } = cylinders(1000, initialCount, chunkSize);
     expect(counts).toEqual([1000]);
-    expect(buffers).toEqual(['d2d2e5d', 'c0c0e6e9', 'aed38295', '90fbc9d9', 'c8acd315', '792a8d45', '5251c38d']);
+    expect(buffers).toEqual(['d2d2e5d', 'c0c0e6e9', 'c95dcf05', '90fbc9d9', 'c8acd315', '792a8d45', '5251c38d']);
   });
 
   it.each(sizes)('lines, %s estimate', (_, initialCount, chunkSize) => {
     const { counts, buffers } = lines(1000, initialCount, chunkSize);
     expect(counts).toEqual([1000]);
-    expect(buffers).toEqual(['6666485', '63621c0d', 'a8e68ca5', 'e1d9cfc5', '2a9cd985']);
+    expect(buffers).toEqual(['6666485', '63621c0d', '69c9a545', 'e1d9cfc5', '2a9cd985']);
   });
 
   it.each(sizes)('spheres, %s estimate', (_, initialCount, chunkSize) => {
     const { counts, buffers } = spheres(1000, initialCount, chunkSize);
     expect(counts).toEqual([1000]);
-    expect(buffers).toEqual(['91985a36', '9fa62ea8']);
+    expect(buffers).toEqual(['91985a36', '8e15cb75']);
   });
 
   it.each(sizes)('points, %s estimate', (_, initialCount, chunkSize) => {
     const { counts, buffers } = points(1000, initialCount, chunkSize);
     expect(counts).toEqual([1000]);
-    expect(buffers).toEqual(['91985a36', '9fa62ea8']);
+    expect(buffers).toEqual(['91985a36', '8e15cb75']);
   });
 
   it.each(sizes)('mesh, %s estimate', (_, initialCount, chunkSize) => {
     const { counts, buffers } = mesh(200, initialCount * 20, chunkSize * 2);
     expect(counts).toEqual([5800, 9600]);
-    expect(buffers).toEqual(['36ebb248', '66875299', 'fc9eaf45', '1f7a316f']);
+    expect(buffers).toEqual(['36ebb248', '66875299', '3387d4c5', '1f7a316f']);
   });
 
   it('trims buffers an estimate overshoots', () => {

@@ -57,14 +57,13 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_varyings_wgsl}
 
     let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
-    let transform = uObject.uObjectTransform * applyTumble(aTransform, invariantBoundingSphere(in));
-    let model = uGlobal.uModel * transform;
-    let modelView = uGlobal.uView * model;
     ${assign_wiggle_wgsl}
-    position = applyWiggle(position, group, wiggle);
-    let position4 = vec4<f32>(position, 1.0);
-    out.vModelPosition = (model * position4).xyz;
-    var mvPosition = modelView * position4;
+    position = applyWiggle(position, f32(group), wiggle);
+    // the position transformed, not the matrices multiplied first: the instance's transform, the object's transient
+    // one, then the model and view
+    let world = uObject.uObjectTransform * (applyTumble(aTransform, invariantBoundingSphere(in)) * vec4<f32>(position, 1.0));
+    out.vModelPosition = (uGlobal.uModel * world).xyz;
+    var mvPosition = uGlobal.uModelView * world;
     out.vViewPosition = mvPosition.xyz;
 
     ${assign_size_wgsl}

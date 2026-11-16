@@ -9,7 +9,7 @@ import { now } from '@molstar/core/util/now';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { WebGPU } from './webgpu-module.js';
 
 /** two chains of a grid of atoms, side by side: an object each, chain A on the left */

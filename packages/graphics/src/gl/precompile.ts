@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { canUseInstanceStorage, InstanceStorageDefine } from './instance-storage.js';
+import { hasInstancePoses, type InstancePosesValue } from './transform-parts.js';
 import { ValueCell } from '@molstar/core/util';
 import type { GraphicsContext } from './context.js';
 import {
@@ -47,6 +49,12 @@ export interface ObjectSignature extends RenderableKind {
    * instances
    */
   readonly gpuCulled?: boolean;
+  /**
+   * Holds poses (`instancePoses`): its programs read the instances from storage where the context does
+   * (`dInstanceStorage`, `instance-storage.ts`) and it is not culled on the GPU; part of the key. Unset in lists
+   * derived from params
+   */
+  readonly instancePoses?: boolean;
 }
 
 /** How an object with `values` (its final alpha, `uAlpha`) draws now, see `ObjectSignature.opaque` */
@@ -94,6 +102,7 @@ export function getObjectSignature(renderable: GraphicsRenderable): ObjectSignat
     hasReflection: !!renderable.values.hasReflection?.ref.value,
     ...getDrawFlags(renderable.values as { [k: string]: ValueCell<unknown> | undefined }),
     gpuCulled: !!renderable.values.gpuCulling?.ref.value,
+    instancePoses: hasInstancePoses(renderable.values),
   };
 }
 
@@ -120,7 +129,7 @@ function getDefines(schema: RenderableSchema, values: { [k: string]: ValueCell<u
   for (const k of Object.keys(schema)) {
     if (schema[k].type !== 'define' || k === 'dRenderVariant' || ContextDefines.has(k)) continue;
     // by the context where a program item is made (`createSignatureProgramItem`: `gpuCulled` and a culler's support)
-    if (k === 'dCulled') continue;
+    if (k === 'dCulled' || k === 'dCulledPaged' || k === InstanceStorageDefine) continue;
     const value = values[k]?.ref.value;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') defines[k] = value;
   }
@@ -145,6 +154,7 @@ export function getRenderObjectSignature(object: GraphicsRenderObject): ObjectSi
     hasReflection: !!values.hasReflection?.ref.value,
     ...getDrawFlags(values),
     gpuCulled: !!values.gpuCulling?.ref.value,
+    instancePoses: hasInstancePoses(values as { instancePoses?: ValueCell<InstancePosesValue> }),
   };
 }
 
@@ -162,6 +172,7 @@ export function getSignatureKey(signature: ObjectSignature) {
     signature.doubleSided ? 'double' : '',
     signature.hasReflection ? 'reflection' : '',
     signature.merged && signature.gpuCulled ? 'gpu-culled' : '',
+    signature.instancePoses ? 'poses' : '',
   ].join('|');
 }
 
@@ -184,12 +195,18 @@ export function createSignatureProgramItem(
     if (source.schema[k].type !== 'define' || k === 'dRenderVariant') continue;
     // culled programs where the object is culled on the GPU in this context (its culler sets it, `CulledSchema`), not
     // as recorded (a list recorded where it was not)
+    const gpuCulled = !!signature.merged && !!signature.gpuCulled && canCullOnGpu(graphics);
+    // a page store's culled programs (`dCulledPaged`) not of params: its objects compile theirs as they come
     const value =
       k === 'dCulled'
         ? !!signature.gpuCulled && canCullOnGpu(graphics)
-        : ContextDefines.has(k)
-          ? globals[k as keyof GlobalDefines]
-          : signature.defines[k];
+        : k === 'dCulledPaged'
+          ? false
+          : k === InstanceStorageDefine
+            ? !!signature.instancePoses && !gpuCulled && canUseInstanceStorage(graphics)
+            : ContextDefines.has(k)
+              ? globals[k as keyof GlobalDefines]
+              : signature.defines[k];
     // number defines (e.g. counts) are define values as well, see `getWgslDefines`
     if (value !== undefined) defineValues[k] = ValueCell.create(value as DefineType);
   }

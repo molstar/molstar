@@ -49,7 +49,7 @@ fn cellIndex(c: vec3<u32>, cells: vec3<u32>) -> u32 {
 }
 `;
 
-/** The gradient normal and the group packing of the emit kernel */
+/** The gradient normal of the emit kernel */
 export const mc_vertex_wgsl = /* wgsl */ `
 fn gradientNormal(p: vec3<i32>) -> vec3<f32> {
     let g = vec3<f32>(
@@ -62,14 +62,5 @@ fn gradientNormal(p: vec3<i32>) -> vec3<f32> {
         return vec3<f32>(0.0);
     }
     return -normalize(g);
-}
-
-/** an integer (group id) packed into rgb, as \`packIntToRGB\` */
-fn packGroup(g: u32) -> vec3<f32> {
-    if (g >= 16777215u) {
-        return vec3<f32>(1.0);
-    }
-    let v = g + 1u;
-    return vec3<f32>(f32((v >> 16u) & 255u), f32((v >> 8u) & 255u), f32(v & 255u)) / 255.0;
 }
 `;

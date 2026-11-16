@@ -26,7 +26,7 @@ export interface SharedTexture {
 
 /**
  * Textures shared by the render items of a context: one per image object and texture spec, counted by holders, for
- * specs with `shared` (`TextureSpecOptions`), see `.v6/plans/gl/shared-textures.md` §2
+ * specs with `shared` (`TextureSpecOptions`)
  */
 export interface SharedTextures {
   acquire: (spec: TextureSpec<TextureKind>, image: SharedTextureImage) => SharedTexture;
@@ -34,7 +34,7 @@ export interface SharedTextures {
   readonly count: number;
   /**
    * Advances when an upload replaced the storage of a held texture (a grown image): draws recorded with it bind the old
-   * storage, also those of the other holders, whose values did not change (`GraphicsContext.drawResourcesVersion`)
+   * storage, also those of the other holders, whose values did not change (`DrawLists.resourcesVersion`)
    */
   readonly version: number;
 }

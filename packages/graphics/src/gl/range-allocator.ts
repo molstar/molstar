@@ -15,15 +15,20 @@ export interface RangeAllocator {
   /** the offset of a range of `size` units, -1 where none fits */
   allocate(size: number): number;
   free(offset: number, size: number): void;
+  /** `capacity` larger (none smaller): the units past the old free, merged with a free range ending there */
+  grow(capacity: number): void;
 }
 
-export function createRangeAllocator(capacity: number, alignment: number): RangeAllocator {
+export function createRangeAllocator(initialCapacity: number, alignment: number): RangeAllocator {
+  let capacity = initialCapacity;
   // free ranges by offset, as pairs in one array: [offset, size, offset, size, ...]
   const free: number[] = capacity > 0 ? [0, capacity] : [];
   let used = 0;
   const align = (n: number) => Math.ceil(n / alignment) * alignment;
   return {
-    capacity,
+    get capacity() {
+      return capacity;
+    },
     get used() {
       return used;
     },
@@ -61,6 +66,14 @@ export function createRangeAllocator(capacity: number, alignment: number): Range
       } else {
         free.splice(i, 0, offset, n);
       }
+    },
+    grow(size) {
+      if (size <= capacity) return;
+      const n = size - capacity;
+      const last = free.length - 2;
+      if (last >= 0 && free[last] + free[last + 1] === capacity) free[last + 1] += n;
+      else free.push(capacity, n);
+      capacity = size;
     },
   };
 }

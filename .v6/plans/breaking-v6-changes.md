@@ -142,6 +142,25 @@ Collapsible controls are no longer exported from `@molstar/plugin-ui/base`. Gaus
 signatures. The GPU helper behavior is carried over from v5; this audit does not redesign it. `fillIdentityTransform` is
 no longer exported by the graphics transform-data module.
 
+The marching cubes computation is core's, in `@molstar/core/math/geometry/marching-cubes/algorithm`
+(`computeMarchingCubes(ctx, builder, params)`, `MarchingCubesBuilder`, `MarchingCubesParams`), with its tables
+(`.../tables`, was `@molstar/graphics/geo/util/marching-cubes/tables`) and the vertex estimate (`.../estimate`, was
+`@molstar/graphics/geo/util/marching-cubes/estimate`). Graphics keeps the mesh and lines builders and
+`computeMarchingCubesMesh`/`computeMarchingCubesLines` with their signatures
+(`@molstar/graphics/geo/util/marching-cubes`).
+
+Graphics' folders import one way (`gl`, `theme`, `geo`, `repr`, `canvas3d` and `props`, `util`), which moved a few
+names: `ColorType`, `ColorTypeLocation`, `ColorTypeGrid`, `ColorTypeDirect` to `@molstar/graphics/theme/color` (were
+`geo/geometry/color-data`); `SizeType` and `LocationSize` to `@molstar/graphics/theme/size` (were
+`geo/geometry/size-data`); `getVolumeTexture2dLayout` to `@molstar/graphics/geo/util` (was `repr/volume/util`);
+`ShapeGetter` to `@molstar/graphics/geo/shape/provider` (was `repr/shape/representation`); `namedCatalog` to
+`@molstar/core/util/named-catalog` (was `@molstar/graphics/util/named-catalog`). `Renderer` takes a `RenderCamera`
+(`@molstar/graphics/gl/camera`, what it reads of a camera), which the canvas's cameras (`ICamera`) satisfy.
+
+`GraphicsContext.namedTextures`, `namedFramebuffers` and `namedComputeRenderables` were removed: a module keeps its
+scratch resources per context with `createScratch<T>(label)` (`@molstar/graphics/gl/scratch`: `get`, `set`,
+`getOrCreate`, by name within the module), released with the context's resources.
+
 `Tokens` now lives in `@molstar/core/util/token-ranges`, with the same `data`, `count`, and `indices` fields. The IO
 tokenizer retains its type re-export, so the mapped tokenizer import remains valid. `openRead` now lives in
 `@molstar/common-server/open-read`; the volume server's mapped common/file module retains its re-export and behavior.
@@ -169,7 +188,6 @@ Backend-neutral resource types moved out of `@molstar/graphics/gl/webgl/*`:
 | Symbols                                                                                                                                                                                              | v6 import                            |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | `Texture`, `Textures`, `TextureValues`, `TextureKind`, `TextureType`, `TextureFormat`, `TextureFilter`, `TextureAttachment`, `createNullTexture`, `isNullTexture`, `decodeImage`, `CubeFaces`        | `@molstar/graphics/gl/texture`       |
-| `Framebuffer`                                                                                                                                                                                        | `@molstar/graphics/gl/framebuffer`   |
 | `Renderbuffer`, `RenderbufferFormat`, `RenderbufferAttachment`                                                                                                                                       | `@molstar/graphics/gl/renderbuffer`  |
 | `RenderTarget`                                                                                                                                                                                       | `@molstar/graphics/gl/render-target` |
 | `ArrayType`, `AttributeItemSize`, `AttributeKind`, `AttributeValues`, `ElementsType`, `ElementsKind`, `UsageHint`, `DataType`                                                                        | `@molstar/graphics/gl/buffer`        |
@@ -179,14 +197,14 @@ Backend-neutral resource types moved out of `@molstar/graphics/gl/webgl/*`:
 | `UniformBuffer`, `UniformKind`, `UniformsList`, `UniformValues`, ...                                                                                                                                 | `@molstar/graphics/gl/uniform`       |
 
 The neutral `Texture` has no WebGL fields (`target`, `format`, `internalFormat`, `type`, `filter`) and no
-`bind`/`unbind`; WebGL code uses `GLTexture` from `@molstar/graphics/gl/webgl/texture`. `createNullTexture` takes no
+`bind`/`unbind`; the WebGL texture fields are internal to the backend (see Backend folders internal). `createNullTexture` takes no
 arguments.
 
 `RepresentationContext.webgl` and `VisualContext.webgl` are renamed to `graphics` and typed `GraphicsContext`, e.g.
 `provider.factory({ graphics: plugin.canvas3d?.graphics, ...themes }, getParams)`. Visual callbacks (`mustRecreate`,
 `processValues`, `setOverpaint`/`setTransparency`/`setEmissive`/`setSubstance`/`setWiggle`), visual constructors
 (`visualCtor(materialId, data, props, graphics)`) and `applyMesh*Smoothing` take a `GraphicsContext`; use
-`isWebGLContext` from `@molstar/graphics/gl/webgl/context` for WebGL-only code paths.
+`isWebGLContext` from `@molstar/graphics/gl/contexts/webgl` for WebGL-only code paths.
 
 The visual constructors of `UnitsRepresentation`, `ComplexRepresentation`, `VolumeRepresentation` and
 `ParticleRepresentation` are a `VisualFactory` (`@molstar/graphics/repr/visual-factory`): either
@@ -248,25 +266,30 @@ a neutral `RenderState` (`@molstar/graphics/gl/render-state`: blend, color write
 unset fields reset to the defaults, presets `RenderState.Default`/`Additive`/`Premultiplied`/`Alpha`/`Constant`),
 `ctx.setViewport`, `ctx.setScissor`/`ctx.disableScissor`, `ctx.setBlendConstant`, `ctx.clear({ color, depth, stencil })`
 (within the scissor rectangle, ignoring write masks, integer attachments included) and `ctx.flush()`.
-`WebGLContext.clear(red, green, blue, alpha)` (bind and clear the drawing buffer) was removed. Draw buffers are set with
-`framebuffer.setDrawBuffers(count)` (kept on context restore) instead of the `drawBuffers` extension, and
-`texture.copyFromFramebuffer(framebuffer, x, y, width, height, dstX, dstY)` replaces `GLTexture.bind` +
-`copyTexSubImage2D`. Most passes (`DrawPass`, postprocessing, antialiasing, bloom, DOF, marking, multi-sample,
-illumination, tracing, WBOIT, DPOIT, background) take a `GraphicsContext`. `ShadowPass.webgl` is renamed to `graphics`.
+`WebGLContext.clear(red, green, blue, alpha)` (bind and clear the drawing buffer) was removed.
+`texture.copyFromTexture(source, x, y, width, height, dstX, dstY)` replaces `GLTexture.bind` + `copyTexSubImage2D`.
+Most passes (`DrawPass`, postprocessing, antialiasing, bloom, DOF, marking, multi-sample, illumination, tracing, WBOIT,
+DPOIT, background) take a `GraphicsContext`. `ShadowPass.webgl` is renamed to `graphics`.
 
-Drawing happens in render passes: `ctx.beginRenderPass(target, { clear })` (a render target, framebuffer or
-`'drawing-buffer'`) and `ctx.endRenderPass()` replace binding targets before drawing. `bindDrawingBuffer` moved from
-`GraphicsContext` to `WebGLContext` (readback only). Copies, readback, attachment changes and `flush` end the open pass;
-in debug mode draws and clears outside of a pass throw.
+Drawing happens in render passes: `ctx.beginRenderPass(target, { clear })` (a render target, render pass attachments
+or `'drawing-buffer'`) and `ctx.endRenderPass()` replace binding targets before drawing. Framebuffers are internal to
+the backends: `Framebuffer` (`gl/framebuffer`), `resources.framebuffer()`, `Texture.attachFramebuffer`/
+`detachFramebuffer`/`copyFromFramebuffer`, `Renderbuffer.attachFramebuffer`/`detachFramebuffer` and
+`RenderTarget.framebuffer`/`bind` were removed. A pass names what it draws into as a whole, as WebGPU's render pass
+descriptor does: `resources.renderPassAttachments(color, depth)` (`gl/render-pass-attachments`; `color` textures in draw
+buffer order or `{ texture, layer }` of a 3d texture, `depth` a depth texture or renderbuffer), kept by the pass, its
+fields changed between passes, released by `destroy`; `RenderTarget.attachments` names a target's texture and depth.
+`bindDrawingBuffer` moved from `GraphicsContext` to `WebGLContext` (readback only). Copies, readback, attachment
+changes and `flush` end the open pass; in debug mode draws and clears outside of a pass throw.
 
 `Renderer.create` takes a `GraphicsContext`. `GraphicsRenderable.render(variant, globals)` and
 `RenderItem.render(variant, globals?, mdbDataList?)` take `GlobalBindings`
 (`ctx.createGlobalBindings(schema, uniforms, textures)`) instead of the number of shared textures; global uniforms and
 shared textures are applied by the render items.
 
-Shader sources compose their chunks in TS instead of `#include`: import the chunk modules from
-`@molstar/graphics/gl/webgl/shader/chunks/*` and interpolate them (`` `${common}` ``); registering a program throws on
-`#include`. Conditionals are resolved by a strict TS preprocessor (`@molstar/graphics/gl/shader-preprocessor`) before
+Shader sources compose their chunks in TS instead of `#include`: the package's chunk modules are interpolated
+(`` `${common}` ``), an extension's program brings its own (the backend folders are internal, see below); registering
+a program throws on `#include`. Conditionals are resolved by a strict TS preprocessor (`@molstar/graphics/gl/shader-preprocessor`) before
 compilation: `#if`/`#elif` support `defined`, `!`, `&&`, `||`, parentheses and integer comparisons of integer literals
 and defines with integer values, plus `#ifdef`/`#ifndef`/`#else`/`#endif`, object- and function-like `#define` and
 `#undef`; anything else (arithmetic in expressions, undefined names in evaluated expressions, other directives such as
@@ -292,8 +315,8 @@ from `tDepth` switch to `tDepthAlpha`.
 
 `Canvas3DContext` has a `graphics: GraphicsContext` field (custom implementations of the interface add it) and an async
 `Canvas3DContext.create(canvas, assetManager, backends, attribs, props)` that takes the backends to try in order
-(`WebGL2Backend`, `WebGLBackend` from `@molstar/graphics/gl/webgl/backend`, `WebGPUBackend` from
-`@molstar/graphics/gl/webgpu/backend`). `Canvas3DContext.fromCanvas` moved to
+(`WebGL2Backend`, `WebGLBackend` from `@molstar/graphics/gl/contexts/webgl`, `WebGPUBackend` from
+`@molstar/graphics/gl/contexts/webgpu`). `Canvas3DContext.fromCanvas` moved to
 `createWebGLCanvas3DContext(canvas, assetManager, attribs, props)` in `@molstar/graphics/canvas3d/webgl`, so that
 importing `Canvas3D` doesn't bundle the WebGL backend;
 `Canvas3DContext.fromGraphics(canvas, graphics, assetManager, attribs, props)` wraps a context created otherwise. The
@@ -302,7 +325,7 @@ plugin's default backends (without `PluginConfig.General.GraphicsBackends`) come
 to `@molstar/graphics/gl/backends/webgl` or `@molstar/graphics/gl/backends/webgpu`.
 
 `Canvas3D` and `Canvas3DContext` have a `graphics: GraphicsContext` field; `Canvas3D.webgl` and `Canvas3DContext.webgl`
-were removed (narrow `graphics` with `isWebGLContext` from `@molstar/graphics/gl/webgl/context` where WebGL is
+were removed (narrow `graphics` with `isWebGLContext` from `@molstar/graphics/gl/contexts/webgl` where WebGL is
 required). The WebGL context handles the loss and restore events of its canvas itself; `GraphicsContext.recreate` is
 implemented by every backend (a new context replacing a lost one; on WebGL once the browser restored the context),
 `simulateContextLoss()` loses the context for debugging, `release()` loses it on purpose to free its GPU resources
@@ -319,16 +342,31 @@ graphics context, which returns a promise and is tracked in `resources.pending` 
 
 ## Program descriptors and GLSL sources
 
-GLSL sources moved from `@molstar/graphics/gl/shader/*` to `@molstar/graphics/gl/webgl/shader/*`. `ShaderCode` is a
+GLSL sources moved from `@molstar/graphics/gl/shader/*` into the WebGL backend (internal, see below). `ShaderCode` is a
 descriptor without sources: `ShaderCode(name, extensions?, ignoreDefine?)` (no `vert`, `frag` and `outTypes`); each
 backend looks the sources up by the program name, which must be unique. Custom GLSL programs register their sources with
-`registerGlslProgram(name, vert, frag, outTypes?)` from `@molstar/graphics/gl/webgl/programs`. The GLSL assembly
-(`addShaderDefines`, `getContextDefineLookup`, `stripUniformDeclarations`, `stripSamplerDeclarations`,
-`stripAttributeDeclarations`, `ShaderUniformDeclarations`) moved to `@molstar/graphics/gl/webgl/shader-code`;
-`addShaderDefines` returns the GLSL sources (`{ vert, frag }`). The program name `accumulate` is now
+`registerGlslProgram(name, vert, frag, outTypes?)` from `@molstar/graphics/gl/extend/webgl`, and their WGSL for
+WebGPU with `registerWgslProgram(name, { source, variants, getUnsupported? })` from `@molstar/graphics/gl/extend/webgpu`
+(without it a program draws on WebGL only). The GLSL assembly (`addShaderDefines`, `getContextDefineLookup`, the
+`strip*Declarations`, `ShaderUniformDeclarations`) is internal to the WebGL backend. The program name `accumulate` is now
 `color-smoothing-accumulate` (texture mesh color smoothing); tracing's is gone (`trace` blends into its average).
 Marking's `edge` program is gone with `EdgeSchema` and `EdgeShaderCode` (`canvas3d/passes/marking`): the `overlay`
 program computes the edges from the mask.
+
+## Backend folders internal
+
+`@molstar/graphics/gl/webgl/*` and `@molstar/graphics/gl/webgpu/*` are internal to the package: their exports are
+source-only (the repository's `molstar-src` condition), so the published package doesn't export them. Contexts are made
+and recognized through `@molstar/graphics/gl/contexts/webgl` (`createContext`, `getGLContext`, `isWebGLContext`,
+`WebGLContext`, `WebGLContextProps`, `WebGL2Backend`, `WebGLBackend`, `createWebGLBackend`) and
+`@molstar/graphics/gl/contexts/webgpu` (`requestWebGPUDevice`, `createWebGPUContext`, `isWebGPUContext`, the context,
+option, limits and features types, `WebGPUBackend`, `AutoWebGPUBackend`, `createWebGPUBackend`,
+`WebGPUUnsupportedError`). What an extension uses: `@molstar/graphics/gl/extend/webgl` (`registerGlslProgram`,
+`hasGlslProgram`, `GlslProgram`, `FragOutTypes`) and
+`@molstar/graphics/gl/extend/webgpu` (`registerWgslProgram`, `hasWgslProgram`, `WgslProgram`, `registerWgslKernel`).
+The GLSL and WGSL sources, chunks and assembly, the backends' GPU compute (histogram pyramid, marching cubes, grid3d)
+and their resources (`GLTexture` and the like) are not public: neutral code reaches the compute through `getAtlasIsosurfaceExtraction` and
+`createGrid3dComputeRenderable`.
 
 ## Color type define
 
@@ -376,7 +414,11 @@ every frame are drawn directly; WebGL ignores it. Set it to false for direct dra
 
 `Renderable` has `programVersion` (incremented by `setTransparency`) and `drawVersion` (advanced when the instance and
 level of detail ranges it draws change, see `createDrawVersion`), which the renderer's draw lists compare; custom
-implementations add them. `GraphicsContext.createDrawList` is optional (WebGPU render bundles).
+implementations add them. `GraphicsContext.drawLists` is optional (WebGPU render bundles).
+
+`Renderable.cullSimple` (and the draw list builder's `cullSimpleSegment`) is removed: a scaled camera (XR's world
+scale) culls the instances with `cull`, the planes moved into the unscaled world, and the shaders fade the levels by
+distance at any scale; custom implementations drop it.
 
 ## Instance granularity
 
@@ -471,7 +513,7 @@ browser (CSS, pointer events, `ImageData`):
 - `Viewport` and `Camera.viewport`; `cameraProject`, `cameraUnproject`, `Camera.project`, `Camera.unproject` and
   `getRay` take and return window coordinates with y down (consumers that converted with `height - y` drop it).
 - `GraphicsContext.setViewport`, `setScissor`, `readRenderTarget` and `readTextureAsync` (rows top to bottom, as
-  before), texture readers (rows now top to bottom, were bottom to top) and `Texture.copyFromFramebuffer`.
+  before), texture readers (rows now top to bottom, were bottom to top) and `Texture.copyFromTexture`.
 - The `static-frame` and `relative-frame` viewport params of `Canvas3D` count `y` from the top.
 - Uniforms holding a window rectangle or uv offset are tagged with `UniformSpec.windowRect` (`bounds`, `rect`, `pixels`,
   `offset`, `@molstar/graphics/gl/window-rect`) and flipped by WebGL where it binds them; custom passes tag theirs.
@@ -1355,8 +1397,11 @@ layer (`Representation.State.layer` `'screen'`, `ScreenHelper`), without a camer
 `Helper.camera` is `Helper.axes` (the axes) and `Helper.screen` (the layer). `CameraAxesLoci`, `isCameraAxesLoci` and
 `CameraHelperAxis` are unchanged. `CameraHelperParams` and `CameraHelperProps` (so `Canvas3DParams.camera.helper` and
 `ImageProps.cameraHelper`) gain `scale`, a scale line (`ScaleLine`), `'on'` by default: props built by hand need it
-(`{ name: 'off', params: {} }` for none), and a viewer shows the scale line unless set off. The axes are sized in CSS
-pixels as before.
+(`{ name: 'off', params: {} }` for none), and a viewer shows the scale line unless set off. An app setting
+`camera.helper` with only `axes` gets the scale line too (the default fills it in): set
+`scale: { name: 'off', params: {} }` to keep it out. The axes are sized in CSS pixels as before. Exported images take
+the scale line as they take the axes, from an option of the export (`ViewportScreenshotHelper`'s `scale`, Prism's
+image and video export's `scale`), off by default, not from the canvas.
 
 ## The component manager's options keep a representation's own values
 
@@ -1377,8 +1422,8 @@ per item in one array, `positionGroup` (a `DataArray`, center xyz and group per 
 `groupBuffer` are removed from the geometries and from `SpheresValues` and `PointsValues`. Read centers and groups from
 `positionGroup.ref.value.array` (item `i` at `i * 4`, its group at `i * 4 + 3`). `Spheres.create` and `Points.create`
 still take separate centers and groups (interleaved into a new array); `fromPositionGroup` takes the array as stored.
-With levels of detail (`lodLevels`) the items of a sphere geometry are in the levels' order: the order has no meaning
-beyond the geometry (groups name the items). `groupMapping` of spheres and points maps a group to offsets into that
+The items keep their order with levels of detail (`lodPixelSize`): level `j` draws every `stride`-th item (the stride in
+the level's `LodLevelsValue` tuple, after its count and scale). `groupMapping` of spheres and points maps a group to offsets into that
 array (item index times 4), not item indices. `createGroupMapping` (`@molstar/graphics/geo/util`) takes the offset of
 the group within a step (`groupOffset`), `calculateInvariantBoundingSphere` and `transformPositionArray` a stride.
 
@@ -1435,3 +1480,102 @@ as extrema with their largest radius, and `Sphere3D.expand` keeps the extrema an
 (`Sphere3D.getExtremaRadius`), or its spheres and boxes come out too small by up to it; `BoundaryHelper.includeSphere`,
 `radiusSphere`, `Sphere3D.includes` and `Box3D.fromSphere3D` do. `Sphere3D.setExtrema(out, extrema, extremaRadius = 0)`
 sets it.
+
+## Particle list values as arrays or runs
+
+`ParticleList.targets`, `entities`, `compartments` and `radii` are `ParticleValues`
+(`@molstar/model/model/particles/particle-list`): a typed array as before, or runs (`{ kind: 'runs', offsets, values }`,
+a value a run of consecutive particles; a particle pack's list holds them so). Code indexing them (`list.targets[i]`)
+reads `ParticleValues.get(v, i)`, or visits all with `ParticleValues.forEachRun`; `ParticleValues.toArray` gives an
+array. `keys` is optional (none: a particle's key is its index). `InstancePoses`
+(`@molstar/core/math/geometry/instance-transforms`) has `scale`, every element's scale where `scales` is none.
+
+## Levels of detail by size on screen only
+
+The levels of detail by distance are removed: the `lodLevels` param (spheres, points, spacefill, volume dots, the
+particle representations; `@molstar/graphics/geo/geometry/spheres/spheres`, `…/points/points`), `Spheres.LodLevelsPresets`
+and `getLodLevelsParam` (`@molstar/graphics/geo/geometry/lod-levels`). Levels are by size on screen only:
+`lodPixelSize`, the smallest sphere drawn in CSS pixels (0 for none, the default of spheres and points; 3 for
+particles), with a fixed chain of strides (1, 10, 100, 1000, adjusted for the size factor and nested: each a multiple of
+the finer). `Spheres.LodPixelPresets` are the graphics modes' pixel sizes (`{ performance: 6, balanced: 4, quality: 3,
+ultra: 1.5 }`), not objects of levels and a pixel size. The levels have no fade: `overlap` is removed from
+`LodLevels` and from the tuples of `LodLevelsValue` (now min, max, count, scale and stride: the level draws every
+stride-th item, the items in their order). A state with `lodLevels` keeps its `lodPixelSize` (0: no
+levels); set `lodPixelSize` (e.g. `Spheres.LodPixelPresets.quality`) for levels.
+
+## Instance ids as integers
+
+Instance ids are `Uint32Array`s, not `Float32Array`s: `TransformData.aInstance`
+(`@molstar/graphics/geo/geometry/transform-data`), `InstanceGrid.cellInstance` and the `instance` input of the grid
+(`@molstar/core/math/geometry/instance-grid`), the color smoothing inputs' `instanceBuffer`, `CulledData.layout`'s
+`aInstance`; merged objects' `aSegment` is an `Int32Array`. The schema's `aInstance` is a `uint32` attribute, `aSegment`
+`int32` x 4 (`AttributeKind` gains `uint32` and `int32`, floats on WebGL1). Code setting `aInstance` passes a
+`Uint32Array`; shader code reading it uses an integer (`int(aInstance)`, `i32(in.aInstance)`).
+
+## Particle rotations as snorm16
+
+`ParticleList.rotations` (`@molstar/model/model/particles/particle-list`) is a `ParticleRotations`: unit quaternions as
+a `Float32Array`, or snorm16 as an `Int16Array` (a unit component times 32767, rounded: a particle pack's, version 3).
+Code reading it takes either: `ParticleRotations.get(rotations, i, out)` gives particle `i`'s unit quaternion, or a
+loop rotates by `q` as it is with `2 / |q|²` in place of 2 (`R(q)` is the same for `q` of any length);
+`ParticleRotations.toSnorm16` quantizes. Lists from the other formats and `Particle.transform` keep float32.
+`InstancePoses.rotations` (`@molstar/core/math/geometry/instance-transforms`) takes either as well.
+
+## Particle positions on a grid
+
+`ParticleList.coordinates` (`@molstar/model/model/particles/particle-list`) is a `Positions`
+(`@molstar/core/math/geometry/grid-positions`): float32 (`[x0, y0, z0, ...]`) as before, or a `GridPositions` (a
+particle pack's, version 4: 21 bits an axis in two u32s, `origin + step * u`). Code reading it takes either:
+`GridPositions.get(coordinates, i, out)` gives particle `i`'s position, `GridPositions.toFloat` a float32 copy; loops
+over all branch on `coordinates instanceof Float32Array` once. Lists from the other formats and `Particle.transform`
+keep float32. `InstancePoses.positions` (`@molstar/core/math/geometry/instance-transforms`) takes either as well.
+
+## Pick ids in 32 bits
+
+The object, instance and group ids of the pick targets are 32 bits each: id + 1, its 24 low bits in rgb, the top byte in
+alpha (was 24 bits, alpha 1, for objects and groups). `PickingId.Null` (`@molstar/graphics/geo/geometry/picking`) is
+4294967294 (2^32 - 2, the targets' white clear read as 32 bits; was 16777214, 2^24 - 2): the no-object id, and the
+group id of a pick naming the whole instance; `PickingId.InstanceNull` is gone (it was the same). Code comparing ids
+with `PickingId.Null` is unchanged. Shader code writing pick ids uses `packPickId` (GLSL, WGSL), not
+`packIntToRGB` with alpha 1. A geometry's `group` in the vertex stage is an integer (GLSL `GroupId`: `int` on
+WebGL2, `float` on WebGL1; WGSL `i32`): chunks reading it as a float convert it (`float(group)`, `f32(group)`).
+Texture meshes' `tGroup` holds the group the same way (its top byte in alpha, was 1; `unpackGroupId` reads it), as do
+the groups `readChunkedVertices` (`@molstar/graphics/gl/compute/marching-cubes/chunks`) reads back; its arena's
+normal is octahedral in 16 bits (`decodeOctahedral`), the group in 32.
+
+## Mesh groups as integers
+
+`Mesh.groupBuffer` (`@molstar/graphics/geo/geometry/mesh/mesh`) is a `Uint32Array`, not a `Float32Array`, and
+`Mesh.create` takes the groups so: groups past 2^24 exact (a large volume's isosurface, a group per voxel). The mesh
+schema's `aGroup` is a `uint32` attribute (floats on WebGL1). Code building meshes passes a `Uint32Array`
+(`MeshBuilder` does); shader code reading `aGroup` uses an integer (`int(aGroup)`, `i32(in.aGroup)`).
+
+## Groups as integers in every geometry
+
+The groups of spheres, points, cylinders, lines and text are int32s stored as their bits, not floats' values: groups
+past 2^24 exact (a large volume's dots, a group per voxel). Their data arrays stay `Float32Array`s:
+`Spheres.positionGroup`, `Points.positionGroup` (center xyz and group per item), `Cylinders.cylinderData`,
+`Lines.lineData` and `Text.textData` (the group the first texel's fourth float). The positions and other floats read as
+before, the groups through `getDataWords` (an `Int32Array` view) or `floatBitsToInt32`, written with
+`int32ToFloatBits` (`@molstar/graphics/geo/geometry/center-group`). `Spheres.create`, `Points.create` and the
+builders write the bits; code passing interleaved arrays to `fromPositionGroup` or `Cylinders`/`Lines`/`Text.create`,
+or reading a group at `[o + 3]`, converts. The schemas' `tPositionGroup`, `tCylinder`, `tLine` and `tText` are a
+`DataSpec('rgb32f-i32', usedIf, itemTexels)` (a data format of floats but the groups; floats on WebGL1, the groups
+converted where written, exact to 2^24): shader code reads the floats by `read_<name>(i)` as before and the group by
+`readGroup_<name>(i)` (an integer; reading its word as a float gives a denormal, which GPUs flush). An image's group
+texture (`Image.groupTexture`) holds the group in four bytes, id + 1 with the top byte in alpha
+(`packIntToRGBAArray`, `unpackRGBAToInt`, `@molstar/core/util/number-packing`; GLSL `unpackGroupId`), not three
+with alpha free.
+
+## Instance cell sizes on the transform data
+
+`TransformData` and a renderable's `BaseValues` have `instanceCellSize` and `instanceBatchSize` (set by
+`updateTransformData`, `createTransform`, `createPosesTransform`): whether instances are culled and their levels of
+detail decimated by cells is `hasInstanceCells` (a cell size above 1), no longer the instance grid's `cellSize`. Values
+or transform data built by hand add both (0 for none).
+
+## Scale line label size
+
+The scale line's `labelSize` (`ScaleLineParams`, `Canvas3D` `helper.scaleLine`) is the label's font size in CSS
+pixels, its default 14: it was the text's atlas line height (about 1.58 times the font size), its default 20. A value
+set by an app draws about 1.58 times as large as before: divide it by 1.58 for the old size (20 → 13).

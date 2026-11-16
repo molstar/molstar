@@ -86,7 +86,7 @@ come from their owners instead of being derived from the outside.
   keep equal. A drawn row's sphere and culling facts come from the row (`setRowBoundingSphere`, `cullFacts`), not
   from the values: with every object in view, reading `r.values.boundingSphere` per object was half of planning.
 - **Culling**: `r.cull` only for rows that cull instances. The renderable's `drawVersion` advances when the ranges
-  it draws change: `cull` and `cullSimple` compare their key after writing it (`createDrawVersion`), `uncull` only when
+  it draws change: `cull` compares its key after writing it (`createDrawVersion`), `uncull` only when
   culling was on; read as a number (compared on every read it cost five times the old key).
 - **Render states** from the facts (`getObjectState(facts, ...)`: geometry type, flip sided, single sided,
   reflection), cached per pass state, cull and front face (`getFaceState`): no values read per draw; a change that

@@ -254,10 +254,18 @@ export class ImagePass {
     Camera.copySnapshot(this._camera.state, this.camera.state);
     Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
     this._camera.update();
+    // the screen layer (the axes, the scale line) as large in the image as on the canvas: an image of twice the
+    // canvas's height draws it twice as large
+    const canvasHeight = this.camera.viewport.height;
+    this.helper.screen.pixelScale = canvasHeight > 0 ? this._height / canvasHeight : 1;
     // the scale line at this camera (the image's size, not the canvas's)
-    this.helper.scaleLine.update(this._camera, this.graphics.pixelRatio);
+    this.helper.scaleLine.update(this._camera, this.helper.screen.pixelRatio);
+    // culled against no pyramid: the canvas's is of its last frame's view, and an image has no second phase to bring
+    // back what that hides here
     this.renderer.setOcclusionTest(null);
+    this.renderer.setOcclusionPyramid(null);
     this._frame = createFrame();
+
     return {
       renderer: this.renderer,
       camera: this._camera,

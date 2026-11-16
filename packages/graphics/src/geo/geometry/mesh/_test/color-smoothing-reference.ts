@@ -8,7 +8,7 @@
 import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
 import { lerp } from '@molstar/core/math/interpolate';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import { getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 
 /**
  * The straightforward mesh color smoothing (as `calcMeshColorSmoothing` was before its optimization), the reference

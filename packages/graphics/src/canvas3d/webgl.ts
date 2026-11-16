@@ -5,8 +5,8 @@
  */
 
 import type { AssetManager } from '@molstar/core/util/assets';
-import { createContext, getGLContext } from '@molstar/graphics/gl/webgl/context';
-import { WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/webgl/backend';
+import { createContext, getGLContext } from '@molstar/graphics/gl/contexts/webgl';
+import { WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/contexts/webgl';
 import { Canvas3DContext } from './canvas3d.js';
 
 /**

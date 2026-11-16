@@ -102,9 +102,9 @@ export const assign_wiggle_wgsl = /* wgsl */ `
     #if defined(dWiggle)
         #if defined(dSegmented)
             let wiggleSegment = segmentGroups(in);
-            let wiggleGroupInstance = i32(wiggleSegment.y + in.aInstance * wiggleSegment.x + group);
+            let wiggleGroupInstance = wiggleSegment.y + i32(in.aInstance) * wiggleSegment.x + i32(group);
         #else
-            let wiggleGroupInstance = i32(in.aInstance * f32(uObject.uGroupCount) + group);
+            let wiggleGroupInstance = i32(in.aInstance) * i32(uObject.uGroupCount) + i32(group);
         #endif
         let wiggleIndex = select(wiggleGroupInstance, i32(in.aInstance), uObject.uInstanceGranularity != 0u);
         let wiggle = read_tWiggle(wiggleIndex).r * uMaterial.uWiggleStrength;

@@ -59,6 +59,8 @@ export interface Program extends GraphicsProgram {
   bindTextures: (textures: Textures) => void;
   /** Binds no texture at the units of the samplers `names` the program reads */
   unbindTextures: (names: readonly string[]) => void;
+  /** Binds `texture` at the unit of the sampler `name`, if the program reads it (one texture of several drawn with) */
+  bindTexture: (name: string, texture: Texture) => void;
 
   destroy: () => void;
 }
@@ -632,6 +634,12 @@ export function createProgram(
         gl.activeTexture(gl.TEXTURE0 + unit);
         gl.bindTexture(gl.TEXTURE_2D, null);
       }
+    },
+    bindTexture: (k: string, texture: Texture) => {
+      const unit = textureUnits[k];
+      if (unit === undefined) return;
+      state.boundTextures[unit] = undefined;
+      asGLTexture(texture).bind(unit);
     },
     bindTextures: (textures: Textures) => {
       let b = textureBindings.get(textures);

@@ -5,77 +5,40 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ValueCell } from '@molstar/core/util';
 import { createDataArray } from '@molstar/graphics/gl/renderable/util';
-import { orderPositionGroup, PositionGroupStride } from '../center-group.js';
+import {
+  floatBitsToInt32,
+  getDataWords,
+  getPositionGroupGroupCount,
+  int32ToFloatBits,
+  interleavePositionGroup,
+} from '../center-group.js';
 
-/** the items in the order of the levels of `strides`, as a pass over the items per level (coarsest first) */
-function reference(count: number, strides: readonly number[]) {
-  const level = (j: number) => {
-    let k = 0;
-    while (k < strides.length && j % strides[k] !== 0) ++k;
-    return k;
-  };
-  const order: number[] = [];
-  const offsets = [0];
-  for (let i = 0; i <= strides.length; ++i) {
-    for (let j = 0; j < count; ++j) if (level(j) === i) order.push(j);
-    if (i < strides.length) offsets.push(order.length * 6);
-  }
-  return { order, offsets: strides.length ? offsets : undefined };
-}
+const Groups = [0, 1, 7, 16777215, 16777216, 16777217, 16777219, 2 ** 30 + 3, -1];
 
-/** `count` items, the group of item j being j (the center j, 2j, 3j) */
-function createItems(count: number) {
-  const array = new Float32Array(count * PositionGroupStride);
-  for (let j = 0; j < count; ++j) array.set([j, 2 * j, 3 * j, j], j * PositionGroupStride);
-  return ValueCell.create(createDataArray(count, PositionGroupStride, Float32Array, array));
-}
-
-/** the groups in the cell's order, each item checked to be whole (its center moved with its group) */
-function groups(cell: ReturnType<typeof createItems>, count: number) {
-  const { array } = cell.ref.value;
-  const out: number[] = [];
-  for (let p = 0; p < count; ++p) {
-    const g = array[p * PositionGroupStride + 3];
-    expect([array[p * 4], array[p * 4 + 1], array[p * 4 + 2]]).toEqual([g, 2 * g, 3 * g]);
-    out.push(g);
-  }
-  return out;
-}
-
-describe('orderPositionGroup', () => {
-  const count = 1003;
-
-  it('orders the items into the levels of the strides, as a pass per level', () => {
-    for (const strides of [[16, 4, 1], [8, 2], [3], [1], [7, 5, 3]]) {
-      const cell = createItems(count);
-      const offsets = orderPositionGroup(cell, count, strides);
-      const expected = reference(count, strides);
-      expect(groups(cell, count)).toEqual(expected.order);
-      expect(offsets).toEqual(expected.offsets);
+describe('position groups', () => {
+  it('keep groups past 2^24 exact as their bits, through copies of the array', () => {
+    const array = new Float32Array(Groups.length);
+    for (let i = 0; i < Groups.length; i++) array[i] = int32ToFloatBits(Groups[i]);
+    // copied as typed arrays are (merging, levels of detail) and element by element through numbers
+    const copy = new Float32Array(array.length);
+    for (let i = 0; i < array.length; i++) copy[i] = array[i];
+    for (const a of [array, array.slice(), copy]) {
+      expect(Array.from(getDataWords(a))).toEqual(Groups);
+      expect(Array.from(a, floatBitsToInt32)).toEqual(Groups);
     }
   });
 
-  it('orders again from the order of the strides applied before, and back without strides', () => {
-    const cell = createItems(count);
-    orderPositionGroup(cell, count, [16, 4, 1]);
-    const offsets = orderPositionGroup(cell, count, [8, 2]);
-    expect(groups(cell, count)).toEqual(reference(count, [8, 2]).order);
-    expect(offsets).toEqual(reference(count, [8, 2]).offsets);
-    expect(orderPositionGroup(cell, count, [])).toBeUndefined();
-    expect(groups(cell, count)).toEqual(reference(count, []).order);
-  });
-
-  it('takes strides that are no positive integers as before', () => {
-    for (const strides of [
-      [2.5, 1],
-      [0, 3],
-    ]) {
-      const cell = createItems(count);
-      const offsets = orderPositionGroup(cell, count, strides);
-      expect(groups(cell, count)).toEqual(reference(count, strides).order);
-      expect(offsets).toEqual(reference(count, strides).offsets);
+  it('interleave centers and groups, the groups as their bits, and count the groups', () => {
+    const n = 3;
+    const centers = Float32Array.of(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    const groups = [5, 16777219, 2];
+    const array = interleavePositionGroup(centers, groups, n);
+    const words = getDataWords(array);
+    for (let i = 0; i < n; i++) {
+      expect(Array.from(array.subarray(i * 4, i * 4 + 3))).toEqual(Array.from(centers.subarray(i * 3, i * 3 + 3)));
+      expect(words[i * 4 + 3]).toBe(groups[i]);
     }
+    expect(getPositionGroupGroupCount(createDataArray(n, 4, Float32Array, array), n)).toBe(16777220);
   });
 });

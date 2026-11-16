@@ -230,7 +230,7 @@ Use the same public package specifiers inside and outside the repository:
 ```ts
 // packages/graphics/src/canvas3d/passes/illumination.ts
 import { ValueCell } from '@molstar/core/util/value-cell';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 ```
 
 Rules:

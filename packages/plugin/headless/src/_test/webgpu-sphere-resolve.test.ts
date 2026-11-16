@@ -58,6 +58,10 @@ async function render(sphereRaster: 'on' | 'off' | 'auto' | 'only', distance?: n
       type: 'spacefill',
       color: 'element-index',
     });
+    // committed whole before the camera is set: the scene's camera reset and its forced draw (whose controls keep the
+    // camera within their distance of the scene, far nearer than the far view) done now, not by a commit left to the
+    // image (a commit's budget runs out under load)
+    plugin.canvas3d!.commit(true);
     if (distance) {
       const camera = plugin.canvas3d!.camera;
       const { target } = camera.getSnapshot();
@@ -74,10 +78,15 @@ async function render(sphereRaster: 'on' | 'off' | 'auto' | 'only', distance?: n
       );
     }
     const image = () => plugin.getImageRaw({ width: Size, height: Size });
-    // pipelines and kernels compile in the background: frames drawn before they are ready draw impostors
-    for (let i = 0; i < 3; ++i) {
+    // pipelines and kernels compile in the background: frames drawn before they are ready draw impostors or skip
+    // draws; at least three images, then until one skips no draw and leaves nothing pending (slower under load)
+    const { stats, resources } = plugin.canvas3d!.graphics;
+    for (let i = 0; i < 20; ++i) {
+      const skipped = stats.skippedDraws;
       await image();
-      await plugin.canvas3d!.graphics.resources.pending.whenReady();
+      const settled = stats.skippedDraws === skipped && resources.pending.isReady();
+      await resources.pending.whenReady();
+      if (settled && i >= 2) break;
     }
     const pixels = Array.from((await image()).data);
     expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);

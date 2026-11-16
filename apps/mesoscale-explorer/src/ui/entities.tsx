@@ -35,7 +35,6 @@ import { Color } from '@molstar/core/util/color';
 import { CombinedColorControl } from '@molstar/plugin-ui/controls/color';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { EveryLoci, Loci } from '@molstar/model/model/loci';
-import { deepEqual } from '@molstar/core/util';
 import {
   ColorValueParam,
   ColorParams,
@@ -670,12 +669,11 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     const update = this.plugin.state.data.build();
 
-    const { lodLevels, lodPixelSize, approximate, alphaThickness } = getGraphicsModeProps(graphics);
+    const { lodPixelSize, approximate, alphaThickness } = getGraphicsModeProps(graphics);
 
     for (const r of getAllEntities(this.plugin)) {
       update.to(r).update((old) => {
         if (old.type) {
-          old.type.params.lodLevels = lodLevels;
           old.type.params.lodPixelSize = lodPixelSize;
           old.type.params.approximate = approximate;
           old.type.params.alphaThickness = alphaThickness;
@@ -685,7 +683,6 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     for (const g of getAllGroups(this.plugin)) {
       update.to(g).update((old) => {
-        old.lod.lodLevels = lodLevels;
         old.lod.lodPixelSize = lodPixelSize;
         old.lod.approximate = approximate;
       });
@@ -1006,7 +1003,6 @@ export class GroupNode extends Node<
     for (const r of this.allFilteredEntities) {
       update.to(r).update((old) => {
         if (old.type) {
-          old.type.params.lodLevels = values.lodLevels;
           old.type.params.lodPixelSize = values.lodPixelSize;
           old.type.params.cellSize = values.cellSize;
           old.type.params.batchSize = values.batchSize;
@@ -1366,7 +1362,6 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip'; isDisabled
     const p = this.cell.transform.params?.type?.params;
     if (!p) return;
     return {
-      lodLevels: p.lodLevels,
       lodPixelSize: p.lodPixelSize ?? 0,
       cellSize: p.cellSize,
       batchSize: p.batchSize,
@@ -1526,7 +1521,6 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip'; isDisabled
     (this.plugin.customState as MesoscaleExplorerState).graphicsMode = 'custom';
 
     if (
-      !deepEqual(params.type.params.lodLevels, values.lodLevels) ||
       params.type.params.lodPixelSize !== values.lodPixelSize ||
       params.type.params.cellSize !== values.cellSize ||
       params.type.params.batchSize !== values.batchSize ||
@@ -1536,7 +1530,6 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip'; isDisabled
         .build()
         .to(this.ref)
         .update((old) => {
-          old.type.params.lodLevels = values.lodLevels;
           old.type.params.lodPixelSize = values.lodPixelSize;
           old.type.params.cellSize = values.cellSize;
           old.type.params.batchSize = values.batchSize;

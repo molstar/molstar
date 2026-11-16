@@ -1,6 +1,8 @@
 {
   "frame: opaque pass at rest (webgl)": 128,
   "frame: opaque pass at rest (webgpu)": 784,
+  "frame: opaque pass drawn directly (webgl)": 128,
+  "frame: opaque pass drawn directly (webgpu)": 4248.7,
   "frame: opaque pass into a render target at rest (webgl)": 128,
   "frame: opaque pass into a render target at rest (webgpu)": 784,
   "frame: update at rest (webgl)": 96,

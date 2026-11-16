@@ -5,10 +5,22 @@
  */
 
 import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
-import { type HiZRenderable, createHiZRenderable } from '@molstar/graphics/gl/compute/hi-z';
+import {
+  type HiZRenderable,
+  createHiZRenderable,
+  type HiZOccluderRenderable,
+  createHiZOccluderRenderable,
+} from '@molstar/graphics/gl/compute/hi-z';
+import { type OccluderGrid, usesOccluderGrid } from '@molstar/graphics/gl/occluder-grid';
+import { Clip } from '@molstar/core/util/clip';
+import {
+  ClipStorageVec4s,
+  type ClipStorageValues,
+  getStorageClipVersion,
+  packStorageClipObjects,
+} from '@molstar/graphics/gl/clip-storage';
 import { projectSphere } from '@molstar/graphics/gl/project-sphere';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { RenderState } from '@molstar/graphics/gl/render-state';
 import { fasterLog2 as _fasterLog2 } from '@molstar/core/math/approx';
@@ -19,11 +31,42 @@ import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import type { Camera, ICamera } from '../camera.js';
+import { StereoCamera } from '../camera/stereo.js';
 import { Viewport } from '../camera/util.js';
 import type { DrawPass } from './draw.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { TextureReader } from '@molstar/graphics/gl/texture-reader';
 import type { OcclusionPyramid } from '@molstar/graphics/gl/compute/cell-cull';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
+
+/**
+ * Where a stereo camera's right eye begins, in [0, 1] of `viewport`'s width: both eyes enabled, side by side, each of
+ * the whole height, together the viewport; undefined otherwise (XR's views laid out another way)
+ */
+export function getStereoSplit(camera: StereoCamera, viewport: Viewport) {
+  const { left, right } = camera;
+  if (left.disabled || right.disabled) return undefined;
+  const l = left.viewport;
+  const r = right.viewport;
+  if (l.x !== viewport.x || r.x !== l.x + l.width || r.x + r.width !== viewport.x + viewport.width) return undefined;
+  if (l.y !== viewport.y || r.y !== viewport.y || l.height !== viewport.height || r.height !== viewport.height) {
+    return undefined;
+  }
+  return l.width / viewport.width;
+}
+
+/** Whether `pyramid` is of `camera`'s eyes as they are (`OcclusionPyramid.second` the right eye's) */
+export function isStereoPyramidOf(pyramid: OcclusionPyramid, camera: StereoCamera) {
+  const { second } = pyramid;
+  if (!second) return false;
+  const { left, right } = camera;
+  return (
+    Mat4.areEqual(pyramid.view, left.view, 0) &&
+    Mat4.areEqual(pyramid.projection, left.projection, 0) &&
+    Mat4.areEqual(second.view, right.view, 0) &&
+    Mat4.areEqual(second.projection, right.projection, 0)
+  );
+}
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
@@ -44,7 +87,7 @@ function depthToViewZ(depth: number, near: number, far: number, projection: Mat4
 
 type LevelData = {
   texture: Texture;
-  framebuffer: Framebuffer;
+  target: RenderPassAttachments;
   size: Vec2;
   invSize: Vec2;
   offset: number;
@@ -68,6 +111,15 @@ export const HiZParams = {
     description:
       "GPU occlusion culling catching up within the frame: what the previous frame's depth left out is tested against the frame's depth so far and drawn where visible. Exact while the camera moves; off, what comes into view shows a frame late, or not until the next draw.",
   }),
+  occluderOpticalDepth: PD.Numeric(
+    7,
+    { min: 1, max: 20, step: 1 },
+    {
+      label: 'Occluder Optical Depth',
+      description:
+        "Where content with an occluder grid (particles' densities) hides what is behind it, by the light passing: 37% at 1, 5% at 3, 0.1% at 7. Lower culls more behind thin content (faster, sometimes a gap), higher only behind dense. WebGPU.",
+    },
+  ),
 };
 export type HiZProps = PD.Values<typeof HiZParams>;
 
@@ -89,6 +141,10 @@ export class HiZPass {
   private buildFar = 0;
   private readonly buildView = Mat4();
   private readonly buildProjection = Mat4();
+  /** the second view of the levels being built (`OcclusionPyramid.second`): its split 1 without one */
+  private buildSplit = 1;
+  private readonly buildSecondView = Mat4();
+  private readonly buildSecondProjection = Mat4();
   private pyramid?: OcclusionPyramid;
   /** the builds of `pyramid` so far (`OcclusionPyramid.version`) */
   private pyramidVersion = 0;
@@ -142,9 +198,22 @@ export class HiZPass {
 
   /**
    * `complete`: no draw of the frame's depth skipped (e.g. a pipeline compiling): built also while other work is pending
-   * (a readback: a pick, the CPU test's own), else only once nothing is; `read`: for the CPU test as well (`enabled`)
+   * (a readback: a pick, the CPU test's own), else only once nothing is; `read`: for the CPU test as well (`enabled`).
+   * A stereo camera's eyes side by side over the viewport: one pyramid of both (`OcclusionPyramid.second`), for the
+   * tests on the GPU only (not read); other layouts of its eyes build none
    */
-  render(camera: Camera, complete = false, read = true) {
+  render(camera: Camera | StereoCamera, complete = false, read = true) {
+    // unsupported (e.g. WebGL1: no float targets or asynchronous reads): no reader, nothing to build
+    if (!this.supported) return;
+    if (!read) {
+      // the CPU test's levels (read back) of an earlier frame no more: frames of levels not read (stereo's eyes,
+      // illumination) test nothing on the CPU, and the next frame that does (stereo or illumination off) none until
+      // its own are read
+      this.reader.reset();
+      this.reading = false;
+      this.frameLag = 0;
+      this.ready = false;
+    }
     this.plan(this.renderBuilder, camera, this.props, this.gpuCulling, complete, read);
   }
 
@@ -158,6 +227,92 @@ export class HiZPass {
     const last = this.pyramid;
     this.plan(b, camera, this.props, true, true, false);
     return this.pyramid === last ? undefined : this.pyramid;
+  }
+
+  /** the occluder grid the first level is primed from, its texture (WebGPU; made at the first grid) */
+  private occluder?: OccluderGrid;
+  private occluderTexture?: Texture;
+  private occluderUploaded?: OccluderGrid;
+  /** the slices' atlas of the last grid uploaded: of the next where the same size */
+  private occluderAtlas?: Float32Array;
+
+  private occluderRenderable?: HiZOccluderRenderable;
+  private readonly invViewProjection = Mat4();
+  private readonly viewProjection = Mat4();
+
+  /**
+   * What the frame's content hides (`OccluderGrid`, a visible object's): the first level primed from it, a texel's
+   * depth the nearer of the drawn depth's and where its ray through the grid reaches the occlusion's threshold
+   * (`HiZProps.occluderOpticalDepth`), so the levels hold through the gaps between molecules. WebGPU; none: as drawn
+   */
+  setOccluder(grid: OccluderGrid | undefined, clip?: ClipStorageValues) {
+    // WebGPU's program primes the level (WebGL's builds it plain: no grid uploaded there)
+    this.occluder = this.supported && usesOccluderGrid(this.graphics) ? grid : undefined;
+    // the grid's object's clip objects (its values: a drag's moved cut too, its uniforms the same frame)
+    this.occluderClip = this.occluder ? clip : undefined;
+  }
+
+  /** the clip values of the occluder's object (`setOccluder`), and the version of them packed last */
+  private occluderClip?: ClipStorageValues;
+  private occluderClipVersion = '';
+  private occluderClipPackedOf?: ClipStorageValues;
+  private readonly occluderClipPacked = new Float32Array(Clip.MaxObjectCount * ClipStorageVec4s * 4);
+
+  /** the occluder renderable for the first level with `grid` uploaded, made where none */
+  private getOccluderRenderable(grid: OccluderGrid) {
+    const [nx, ny, nz] = grid.dimensions;
+    const columns = Math.ceil(Math.sqrt(nz));
+    if (!this.occluderTexture)
+      this.occluderTexture = this.graphics.resources.texture('image-float32', 'r', 'float', 'nearest');
+    if (this.occluderUploaded !== grid) {
+      // the slices along z side by side, `columns` a row
+      const rows = Math.ceil(nz / columns);
+      const width = columns * nx;
+      const height = rows * ny;
+      // the last's array where of the same size (a view's steps: a grid each, of millions of cells)
+      const atlas =
+        this.occluderAtlas?.length === width * height
+          ? this.occluderAtlas.fill(0)
+          : (this.occluderAtlas = new Float32Array(width * height));
+
+      for (let z = 0; z < nz; ++z) {
+        const ox = (z % columns) * nx;
+        const oy = Math.floor(z / columns) * ny;
+        for (let y = 0; y < ny; ++y) {
+          atlas.set(grid.density.subarray((z * ny + y) * nx, (z * ny + y + 1) * nx), (oy + y) * width + ox);
+        }
+      }
+      this.occluderTexture.load({ array: atlas, width, height });
+      this.occluderUploaded = grid;
+    }
+    if (!this.occluderRenderable) {
+      this.occluderRenderable = createHiZOccluderRenderable(
+        this.graphics,
+        this.drawPass.depthTextureOpaque,
+        this.occluderTexture,
+      );
+    }
+    const v = this.occluderRenderable.values;
+    ValueCell.update(v.uGridMin, Vec3.copy(v.uGridMin.ref.value, grid.min));
+    ValueCell.update(v.uGridMax, Vec3.copy(v.uGridMax.ref.value, grid.max));
+    ValueCell.update(v.uGridDims, Vec3.set(v.uGridDims.ref.value, nx, ny, nz));
+    ValueCell.updateIfChanged(v.uGridColumns, columns);
+    ValueCell.updateIfChanged(v.uOpticalDepth, this.props.occluderOpticalDepth);
+    // its clip objects packed where they changed (a cut moved: a frame's few floats)
+    const clip = this.occluderClip;
+    // its versions of the object packed last (another object's cells can be of the same versions)
+    const version = clip ? getStorageClipVersion(clip) : '';
+    if (clip !== this.occluderClipPackedOf || version !== this.occluderClipVersion) {
+      this.occluderClipPackedOf = clip;
+      this.occluderClipVersion = version;
+      const data = v.uClipData.ref.value;
+      const packed = this.occluderClipPacked;
+      const count = clip ? packStorageClipObjects(clip, packed) : 0;
+      for (let k = 0; k < data.length; ++k) data[k] = packed[k];
+      ValueCell.update(v.uClipData, data);
+      ValueCell.updateIfChanged(v.uClipCount, count);
+    }
+    return this.occluderRenderable;
   }
 
   /** Whether objects are culled on the GPU this frame (`Renderer.gpuCulledCount`), see `gpu` */
@@ -182,7 +337,7 @@ export class HiZPass {
    */
   plan(
     b: PassBuilder,
-    camera: ICamera,
+    camera: ICamera | StereoCamera,
     props: HiZProps = this.props,
     gpuCulling = this.gpuCulling,
     complete = false,
@@ -197,11 +352,25 @@ export class HiZPass {
       // draws are skipped while work is pending (e.g. a pipeline compiling), levels missing them would occlude
       // everything; a depth known complete is built also while other work is (a readback)
       if (!complete && !pending.isReady()) return;
+      const stereo = camera instanceof StereoCamera;
+      const split = stereo ? getStereoSplit(camera, this.viewport) : 1;
+      if (split === undefined) {
+        this.clear();
+        return;
+      }
       // built every frame for the tests on the GPU (`gpuPyramid`), also while the last read for the CPU test is pending
-      this.buildNear = camera.near;
-      this.buildFar = camera.far;
-      Mat4.copy(this.buildView, camera.view);
-      Mat4.copy(this.buildProjection, camera.projection);
+      const first = stereo ? camera.left : camera;
+      this.buildNear = first.near;
+      this.buildFar = first.far;
+      Mat4.copy(this.buildView, first.view);
+      Mat4.copy(this.buildProjection, first.projection);
+      this.buildSplit = split;
+      if (stereo) {
+        Mat4.copy(this.buildSecondView, camera.right.view);
+        Mat4.copy(this.buildSecondProjection, camera.right.projection);
+        // the CPU test reads one view's levels
+        read = false;
+      }
     }
 
     const { graphics } = this;
@@ -221,9 +390,55 @@ export class HiZPass {
     const s = Math.pow(2, Math.ceil(Math.log(Math.max(drawingBuffer.width, drawingBuffer.height)) / Math.log(2)) - 1);
 
     const levels = b.drawing ? this.levelData.length : Math.min(this.levelData.length, 2);
+    // the first level primed from the occluder grid where there is one (one view: not a stereo pair's)
+    const occluder = this.occluder && this.buildSplit >= 1 ? this.getOccluderRenderable(this.occluder) : undefined;
+    if (occluder) {
+      const o = occluder.values;
+      Mat4.mul(this.viewProjection, this.buildProjection, this.buildView);
+      Mat4.invert(this.invViewProjection, this.viewProjection);
+      ValueCell.update(o.uViewProjection, Mat4.copy(o.uViewProjection.ref.value, this.viewProjection));
+      ValueCell.update(o.uInvViewProjection, Mat4.copy(o.uInvViewProjection.ref.value, this.invViewProjection));
+      ValueCell.update(
+        o.uViewportRect,
+        Vec4.set(
+          o.uViewportRect.ref.value,
+          this.viewport.x / drawingBuffer.width,
+          this.viewport.y / drawingBuffer.height,
+          this.viewport.width / drawingBuffer.width,
+          this.viewport.height / drawingBuffer.height,
+        ),
+      );
+    }
     for (let i = 0; i < levels; ++i) {
       const td = this.levelData[i];
-      b.begin(td.framebuffer, { label: 'hi-z' });
+      b.begin(td.target, { label: 'hi-z' });
+      // the first level the occluder's where primed: its values as the level's
+      const lv = i === 0 && occluder ? occluder.values : v;
+      if (lv !== v) {
+        ValueCell.update(lv.uTexSize, td.size);
+        ValueCell.update(lv.uInvSize, Vec2.set(this.levelZeroInvSize, 1 / s, 1 / s));
+        ValueCell.update(
+          lv.uRect,
+          Vec4.set(
+            lv.uRect.ref.value,
+            this.viewport.x / drawingBuffer.width,
+            this.viewport.y / drawingBuffer.height,
+            td.size[0] / s,
+            td.size[1] / s,
+          ),
+        );
+        ValueCell.update(lv.tPreviousLevel, this.drawPass.depthTextureOpaque);
+        if (b.drawing) {
+          graphics.setViewport(0, 0, td.size[0], td.size[1]);
+          graphics.clear({ color: [0, 0, 0, 0] });
+        }
+        occluder!.update();
+        b.quad(occluder!, RenderState.Default);
+        if (b.drawing && i >= this.props.minLevel) {
+          this.tex.copyFromTexture(td.texture, 0, 0, td.size[0], td.size[1], td.offset, 0);
+        }
+        continue;
+      }
       ValueCell.update(v.uTexSize, td.size);
 
       if (i > 0) {
@@ -255,7 +470,7 @@ export class HiZPass {
       b.quad(this.renderable, RenderState.Default);
 
       if (b.drawing && i >= this.props.minLevel) {
-        this.tex.copyFromFramebuffer(td.framebuffer, 0, 0, td.size[0], td.size[1], td.offset, 0);
+        this.tex.copyFromTexture(td.texture, 0, 0, td.size[0], td.size[1], td.offset, 0);
       }
     }
 
@@ -263,6 +478,15 @@ export class HiZPass {
 
     if (b.drawing && pending.trackedCount === trackedCount) {
       const { width, height } = this.viewport;
+      const last = this.pyramid?.second;
+      const second =
+        this.buildSplit < 1
+          ? {
+              view: Mat4.copy(last?.view ?? Mat4(), this.buildSecondView),
+              projection: Mat4.copy(last?.projection ?? Mat4(), this.buildSecondProjection),
+              split: this.buildSplit,
+            }
+          : undefined;
       this.pyramid = {
         texture: this.tex,
         levelCount: this.levelData.length,
@@ -273,6 +497,7 @@ export class HiZPass {
         projection: Mat4.copy(this.pyramid?.projection ?? Mat4(), this.buildProjection),
         near: this.buildNear,
         far: this.buildFar,
+        second,
         version: ++this.pyramidVersion,
       };
       if (read && this.props.enabled && !this.reading) {
@@ -418,20 +643,19 @@ export class HiZPass {
     this.tex.define(Math.pow(2, levels - minLevel), Math.pow(2, levels - 1 - minLevel));
 
     for (const td of this.levelData) {
-      td.framebuffer.destroy();
+      td.target.destroy();
       td.texture.destroy();
     }
 
     this.levelData.length = 0;
     for (let i = 0; i < levels; ++i) {
-      const framebuffer = this.graphics.resources.framebuffer();
       const levelSize = Math.pow(2, levels - i - 1);
       const size = Vec2.create(levelSize, levelSize);
       const invSize = Vec2.create(1 / levelSize, 1 / levelSize);
       const texture = this.graphics.resources.texture('image-float32', 'r', 'float', 'nearest');
       texture.define(levelSize, levelSize);
-      texture.attachFramebuffer(framebuffer, 0);
-      this.levelData.push({ texture, framebuffer, size, invSize, offset: 0 });
+      const target = createRenderPassAttachments(this.graphics.resources, [texture]);
+      this.levelData.push({ texture, target, size, invSize, offset: 0 });
     }
 
     let offset = 0;
@@ -599,7 +823,7 @@ export class HiZPass {
     this.renderable.dispose();
 
     for (const td of this.levelData) {
-      td.framebuffer.destroy();
+      td.target.destroy();
       td.texture.destroy();
     }
   }

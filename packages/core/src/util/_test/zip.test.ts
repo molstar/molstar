@@ -27,6 +27,16 @@ describe('zip', () => {
     expect(unzipped).toEqual(data);
   });
 
+  it('stores the entries named as they are, the others deflated; both read back', async () => {
+    const same = new Uint8Array(4096).fill(7);
+    const data = { 'a.bin': same, 'b.bin': same.slice() };
+    const zipped = await zip(SyncRuntimeContext, data, new Set(['b.bin']));
+    // a's 4 KB deflated to a few bytes, b's 4 KB as they are
+    expect(zipped.byteLength).toBeGreaterThan(4096);
+    expect(zipped.byteLength).toBeLessThan(2 * 4096);
+    expect(await unzip(SyncRuntimeContext, zipped)).toEqual(data);
+  });
+
   it('ungzip skips an FEXTRA field (a BGZF block) by its XLEN and its bytes', async () => {
     const data = new TextEncoder().encode('data_1ABC\n_entry.id 1ABC\n'.repeat(20));
     const plain = gzipSync(data);

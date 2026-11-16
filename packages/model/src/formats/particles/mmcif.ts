@@ -121,7 +121,7 @@ interface BuiltMmcifParticleList {
 
 /**
  * A group of `_atom_site` rows (a target's): their centroid, their maximum distance from it, their sites (positions and
- * van der Waals radii, `ParticleSites`)
+ * van der Waals radii, and elements where the rows have them, `ParticleSites`)
  */
 interface AtomSiteGroup {
   readonly center: Vec3;
@@ -177,6 +177,8 @@ async function getAtomSiteGroups<K>(
     radiusSq: number;
     positions: Float32Array;
     radii: Float32Array;
+    /** the atomic number a site, where the rows have `type_symbol` */
+    elements: Uint8Array | undefined;
     /** the chains in the order they first appear (by entity and `label_asym_id`): labels, entities' ranks, counts */
     chainLabels: string[];
     chainIndex: Map<string, number>;
@@ -221,6 +223,7 @@ async function getAtomSiteGroups<K>(
           radiusSq: 0,
           positions: EmptyF32,
           radii: EmptyF32,
+          elements: undefined,
           chainLabels: [],
           chainIndex: new Map(),
           chainEntity: [],
@@ -278,6 +281,7 @@ async function getAtomSiteGroups<K>(
     acc.z /= acc.n;
     acc.positions = new Float32Array(acc.n * 3);
     acc.radii = new Float32Array(acc.n);
+    if (typeSymbol) acc.elements = new Uint8Array(acc.n);
     // by entity, then by first appearance (a stable sort): out of row order where an entity's chains are not consecutive
     const chainCount = acc.chainLabels.length;
     acc.order = Array.from({ length: chainCount }, (_, i) => i).sort((a, b) => acc.chainEntity[a] - acc.chainEntity[b]);
@@ -292,16 +296,18 @@ async function getAtomSiteGroups<K>(
     }
   }
 
-  // the van der Waals radius by element symbol as a model's (`ElementSymbol`, `AtomNumber`), once a symbol
-  const radiusOf = new Map<string, number>();
-  const radius = (row: number) => {
+  // the atomic number and van der Waals radius by element symbol as a model's (`ElementSymbol`, `AtomNumber`), once a
+  // symbol
+  const elementOf = new Map<string, { element: number; radius: number }>();
+  const element = (row: number) => {
     const symbol = typeSymbol ? typeSymbol.str(row) : '';
-    let r = radiusOf.get(symbol);
-    if (r === undefined) {
-      r = VdwRadiusOfNumber(AtomNumber(ElementSymbol(symbol)));
-      radiusOf.set(symbol, r);
+    let e = elementOf.get(symbol);
+    if (e === undefined) {
+      const n = AtomNumber(ElementSymbol(symbol));
+      e = { element: n, radius: VdwRadiusOfNumber(n) };
+      elementOf.set(symbol, e);
     }
-    return r;
+    return e;
   };
 
   let prevGroup = -1;
@@ -328,7 +334,9 @@ async function getAtomSiteGroups<K>(
     acc.positions[s * 3] = x[i];
     acc.positions[s * 3 + 1] = y[i];
     acc.positions[s * 3 + 2] = z[i];
-    acc.radii[s] = radius(i);
+    const e = element(i);
+    acc.radii[s] = e.radius;
+    if (acc.elements) acc.elements[s] = e.element;
     if (i % updateChunk === 0 && ctx.shouldUpdate) {
       await ctx.update({ message: 'Reading particle targets', current: rowCount + i, max: rowCount * 2 });
     }
@@ -345,6 +353,7 @@ async function getAtomSiteGroups<K>(
         count: acc.n,
         positions: acc.positions,
         radii: acc.radii,
+        elements: acc.elements,
         label: String(acc.key),
         chains: { offsets, labels: order.map((ci) => acc.chainLabels[ci]) },
       },

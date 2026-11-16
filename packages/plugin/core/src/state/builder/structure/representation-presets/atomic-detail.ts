@@ -60,7 +60,7 @@ export const AtomicDetailPreset = StructureRepresentationPresetProvider({
       structure.atomicResidueCount / structure.elementCount < 3;
 
     const m = structure.models[0];
-    // or a bond provider that says it gives complete bonds (bond-providers plan §4)
+    // or a bond provider that says it gives complete bonds
     const bondsGiven =
       !!IndexPairBonds.Provider.get(m) || StructConn.isExhaustive(m) || !!structure.bondProvider.bondsGiven;
 

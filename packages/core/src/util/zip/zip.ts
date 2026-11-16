@@ -302,15 +302,23 @@ async function deflateRaw(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>
   return new Uint8Array(buf.buffer, 0, off);
 }
 
-export function Zip(obj: { [k: string]: Uint8Array<ArrayBuffer> }, noCmpr = false) {
+/**
+ * `noCmpr`: no entry compressed (true), or the entries named (stored as they are: data that compresses little, whose
+ * deflate would cost a buffer of its size and time for nothing)
+ */
+export function Zip(obj: { [k: string]: Uint8Array<ArrayBuffer> }, noCmpr: boolean | ReadonlySet<string> = false) {
   return Task.create('Zip', (ctx) => zip(ctx, obj, noCmpr));
 }
 
-export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Array<ArrayBuffer> }, noCmpr = false) {
+export async function zip(
+  runtime: RuntimeContext,
+  obj: { [k: string]: Uint8Array<ArrayBuffer> },
+  noCmpr: boolean | ReadonlySet<string> = false,
+) {
   let tot = 0;
   const zpd: { [k: string]: { cpr: boolean; usize: number; crc: number; file: Uint8Array } } = {};
   for (const p in obj) {
-    const cpr = !_noNeed(p) && !noCmpr,
+    const cpr = !_noNeed(p) && (typeof noCmpr === 'boolean' ? !noCmpr : !noCmpr.has(p)),
       buf = obj[p];
     const crcValue = crc(buf, 0, buf.length);
     zpd[p] = {

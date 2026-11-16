@@ -15,16 +15,24 @@ import {
 } from './marching-cubes-chunks.wgsl.js';
 import { scan_add_wgsl, scan_block_wgsl } from './prefix-sum.wgsl.js';
 import { cell_cull_wgsl, cull_args_wgsl, instance_copy_wgsl } from './cell-cull.wgsl.js';
+import { scene_cell_bin_wgsl, scene_cell_spheres_wgsl } from './scene-cells.wgsl.js';
+import { culled_poses_wgsl } from './culled-poses.wgsl.js';
+import { paged_cull_args_wgsl, paged_cull_compose_wgsl, paged_cull_wgsl } from './paged-cull.wgsl.js';
+import { u32_runs_wgsl } from './u32-runs.wgsl.js';
 import { denoise_wgsl } from './denoise.wgsl.js';
 import {
   sphere_raster_args_wgsl,
+  sphere_raster_blocks_args_wgsl,
+  sphere_raster_blocks_wgsl,
   sphere_raster_cull_wgsl,
   sphere_raster_regions_wgsl,
   sphere_raster_wgsl,
 } from './sphere-raster.wgsl.js';
+import { SphereRasterChunksPerWorkgroup, SphereRasterWideChunksPerWorkgroup } from '../../compute/sphere-raster.js';
+import { registerWgslKernel } from './kernel-registry.js';
 
 /** WGSL compute kernels by the name of their `KernelCode`, like `programs.ts` for render programs */
-const Kernels = new Map<string, string>([
+const BuiltInKernels: [name: string, source: string][] = [
   ['scan-block', scan_block_wgsl],
   ['scan-add', scan_add_wgsl],
   ['mc-chunk-count', mc_chunk_count_wgsl],
@@ -40,24 +48,22 @@ const Kernels = new Map<string, string>([
   ['cell-cull', cell_cull_wgsl],
   ['instance-copy', instance_copy_wgsl],
   ['cull-args', cull_args_wgsl],
+  ['scene-cell-bin', scene_cell_bin_wgsl],
+  ['scene-cell-spheres', scene_cell_spheres_wgsl],
+  ['culled-poses', culled_poses_wgsl],
+  ['paged-cull-compose', paged_cull_compose_wgsl],
+  ['paged-cull', paged_cull_wgsl],
+  ['paged-cull-args', paged_cull_args_wgsl],
+  ['u32-runs', u32_runs_wgsl],
   ['illumination-denoise', denoise_wgsl],
   ['sphere-raster-cull', sphere_raster_cull_wgsl],
   ['sphere-raster-regions', sphere_raster_regions_wgsl],
+  ['sphere-raster-blocks', sphere_raster_blocks_wgsl],
+  ['sphere-raster-blocks-args', sphere_raster_blocks_args_wgsl],
   ['sphere-raster-args', sphere_raster_args_wgsl],
-  ['sphere-raster', sphere_raster_wgsl],
-]);
+  ['sphere-raster', sphere_raster_wgsl(SphereRasterChunksPerWorkgroup)],
+  ['sphere-raster-wide', sphere_raster_wgsl(SphereRasterWideChunksPerWorkgroup)],
+];
+for (const [name, source] of BuiltInKernels) registerWgslKernel(name, source);
 
-/** Registers the WGSL source of a kernel; the bindings are declared from its schema, see `getWgslKernelDeclarations` */
-export function registerWgslKernel(name: string, source: string) {
-  if (Kernels.has(name) && Kernels.get(name) !== source) throw new Error(`kernel '${name}' is already registered`);
-  Kernels.set(name, source);
-}
-
-export function getWgslKernel(name: string): string | undefined {
-  return Kernels.get(name);
-}
-
-/** The names of the registered kernels (e.g. for a check that every one compiles) */
-export function getWgslKernelNames(): string[] {
-  return [...Kernels.keys()];
-}
+export { getWgslKernel, getWgslKernelNames, registerWgslKernel } from './kernel-registry.js';

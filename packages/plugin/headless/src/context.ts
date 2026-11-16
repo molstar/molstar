@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'fs';
@@ -37,6 +38,8 @@ export class HeadlessPluginContext extends PluginContext {
     (this.canvas3d as Canvas3D) = this.renderer.canvas3d;
     // its props (transparency, pick scale) are set through the plugin (`setCanvas3DContextProps`, state snapshots)
     (this.canvas3dContext as Canvas3DContext | undefined) = this.renderer.canvas3dContext;
+    // told as the viewer's would be: behaviors waiting for a canvas (one following the camera) get this one
+    if (this.canvas3d) this.canvas3dReady();
   }
 
   /** Like the constructor, also for the `webgpu` backend (`rendererOptions.backend`), whose device is requested asynchronously */

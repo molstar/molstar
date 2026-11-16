@@ -13,7 +13,7 @@ import { isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { WebGPU } from './webgpu-module.js';
 
 /** a compact grid of atoms, filling the view */

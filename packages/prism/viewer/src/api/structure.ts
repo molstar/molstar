@@ -137,7 +137,7 @@ export class StructureApi extends ApiArea {
     },
   });
 
-  // bond-providers plan §4.1: where a structure's bonds come from, one of the plugin's bond providers.
+  // where a structure's bonds come from, one of the plugin's bond providers.
   readonly bonds = this.operation({
     id: 'structure.bonds',
     title: 'Choose where bonds come from',

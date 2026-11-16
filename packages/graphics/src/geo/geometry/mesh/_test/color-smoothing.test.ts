@@ -19,7 +19,7 @@ import {
   type TextureImage,
 } from '@molstar/graphics/gl/renderable/util';
 import type { Texture } from '@molstar/graphics/gl/texture';
-import { getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 import { setColorType } from '../../color-data.js';
 import { setEmissiveType } from '../../emissive-data.js';
 import { setOverpaintType } from '../../overpaint-data.js';

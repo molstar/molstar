@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,7 +24,7 @@ void main() {
     ${assign_position}
 
     vUv = aUv;
-    vInstance = aInstance;
+    vInstance = float(aInstance);
     vPosition = aPosition;
 }
 `;

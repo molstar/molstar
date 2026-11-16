@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { asciiWrite } from '@molstar/io/common/ascii';
@@ -10,6 +11,7 @@ import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { PLUGIN_VERSION } from '@molstar/plugin/version';
 import { RuntimeContext } from '@molstar/core/task';
 import { MeshExporter, type AddMeshInput } from '@molstar/geo-export-extension/mesh-exporter';
+import { getInstanceMatricesById } from '@molstar/graphics/geo/geometry/transform-data';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -40,7 +42,7 @@ export class StlExporter extends MeshExporter<StlData> {
     const v3 = Vec3();
     const stride = isGeoTexture ? 4 : 3;
 
-    const aTransform = values.aTransform.ref.value;
+    const aTransform = getInstanceMatricesById(values);
     const instanceCount = values.uInstanceCount.ref.value;
 
     for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {

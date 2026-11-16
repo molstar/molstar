@@ -34,8 +34,9 @@ export const TextSchema = {
    * Per item 4 texels (`Text.textData`): the label's position and group, depth and whether a tether, corners, texture
    * coordinates; drawn as quads of 4 vertex ids by the shared line indices (`quad-indices.ts`)
    */
-  tText: DataSpec('rgba32f'),
-  // one font atlas per font, shared by the texts (`.v6/plans/gl/shared-textures.md`)
+  // four elements per item, the first's fourth the group (an integer)
+  tText: DataSpec('rgb32f-i32', undefined, 4),
+  // one font atlas per font, shared by the texts
   tFont: TextureSpec('image-uint8', 'r', 'ubyte', 'linear', undefined, { shared: true }),
   padding: ValueSpec('number'),
 

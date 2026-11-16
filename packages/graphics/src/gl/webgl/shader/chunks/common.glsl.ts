@@ -86,9 +86,48 @@ vec3 packIntToRGB(in float value) {
     c.r = mod(value, 256.0);
     return c / 255.0;
 }
+// a pick id (object, instance, group) in 32 bits: the 24 low bits of id + 1 in rgb (as packIntToRGB), the top byte in
+// alpha; ids as floats (WebGL1, volumes and images: below 2^24) with alpha 0. The null (2^32 - 2) is the
+// targets' clear, white
+vec4 packPickId(const in float id) {
+    return vec4(packIntToRGB(id), 0.0);
+}
+#if __VERSION__ != 100
+    vec4 packPickId(const in uint id) {
+        uint v = id + 1u;
+        return vec4(float((v >> 16u) & 255u), float((v >> 8u) & 255u), float(v & 255u), float(v >> 24u)) / 255.0;
+    }
+    vec4 packPickId(const in int id) {
+        return packPickId(uint(id));
+    }
+#else
+    vec4 packPickId(const in int id) {
+        return packPickId(float(id));
+    }
+#endif
+#define PickIdNull vec4(1.0)
+
+// a geometry's group: an integer (exact past 2^24), a float on WebGL1 (no integer attributes)
+#if __VERSION__ == 100
+    #define GroupId float
+#else
+    #define GroupId int
+#endif
 float unpackRGBToInt(const in vec3 rgb) {
     return (floor(rgb.r * 255.0 + 0.5) * 256.0 * 256.0 + floor(rgb.g * 255.0 + 0.5) * 256.0 + floor(rgb.b * 255.0 + 0.5)) - 1.0;
 }
+
+// a group stored as four bytes (\`packPickId\`: id + 1; e.g. an isosurface's \`tGroup\`), all zero where none
+#if __VERSION__ == 100
+    GroupId unpackGroupId(const in vec4 c) {
+        return unpackRGBToInt(c.rgb) + floor(c.a * 255.0 + 0.5) * 16777216.0;
+    }
+#else
+    GroupId unpackGroupId(const in vec4 c) {
+        uvec4 b = uvec4(c * 255.0 + 0.5);
+        return int(((b.a << 24u) | (b.r << 16u) | (b.g << 8u) | b.b) - 1u);
+    }
+#endif
 
 vec2 packUnitIntervalToRG(const in float v) {
     vec2 enc;

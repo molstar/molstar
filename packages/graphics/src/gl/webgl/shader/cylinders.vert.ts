@@ -27,7 +27,6 @@ ${color_vert_params}
 ${common_clip}
 ${common_animation}
 
-varying mat4 vTransform;
 // the cylinder's start and size, end and cap, the same at every corner of its box: two flat varyings
 #if __VERSION__ == 100
     varying vec4 vCylinderStart;
@@ -62,7 +61,8 @@ void main() {
     // start xyz and group, end xyz and radius scale, cap and color mode
     vec4 cylinderStart, cylinderEnd, cylinderFlags;
     read_tCylinder3(item * 3, cylinderStart, cylinderEnd, cylinderFlags);
-    float group = cylinderStart.w;
+    // an integer (\`rgb32f-i32\`; WebGL1 a float)
+    GroupId group = readGroup_tCylinder(item * 3);
     float colorMode = cylinderFlags.y;
     // -1 or 1 along the axis, across it and up
     vec3 mapping = vec3(
@@ -76,14 +76,14 @@ void main() {
     ${assign_clipping_varying}
     ${assign_size}
 
-    mat4 transform = uObjectTransform * applyTumble(aTransform);
-    vec3 wigStart = applyWiggle(cylinderStart.xyz, group, aInstance);
-    vec3 wigEnd = applyWiggle(cylinderEnd.xyz, group, aInstance);
-    mat4 modelTransform = uModel * transform;
+    mat4 transform = applyTumble(aTransform);
+    vec3 wigStart = applyWiggle(cylinderStart.xyz, float(group), int(aInstance));
+    vec3 wigEnd = applyWiggle(cylinderEnd.xyz, float(group), int(aInstance));
 
-    vTransform = modelTransform;
-    vCylinderStart.xyz = (modelTransform * vec4(wigStart, 1.0)).xyz;
-    vCylinderEnd.xyz = (modelTransform * vec4(wigEnd, 1.0)).xyz;
+    // the ends transformed, not the matrices multiplied first: the instance's transform, the object's transient one,
+    // then the model
+    vCylinderStart.xyz = (uModel * (uObjectTransform * (transform * vec4(wigStart, 1.0)))).xyz;
+    vCylinderEnd.xyz = (uModel * (uObjectTransform * (transform * vec4(wigEnd, 1.0)))).xyz;
     vCylinderStart.w = size * cylinderEnd.w * uModelScale;
     vCylinderEnd.w = cylinderFlags.x;
 

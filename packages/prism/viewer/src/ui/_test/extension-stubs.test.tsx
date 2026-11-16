@@ -6,6 +6,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Scope } from '@molstar/prism-ui/dom/scope';
@@ -30,6 +31,32 @@ function show(shell: ShellModel) {
   section.render.mount(host, {} as never, new Scope());
   return host;
 }
+
+describe('extension sections', () => {
+  it("keep their `when` and `whenChanged` (the graphics backend's shown with more than one)", () => {
+    const shell = new ShellModel();
+    const port = extensionUIPort(shell, {} as never, {} as ViewerUIContext);
+    const many = { value: false };
+    const changed = { value: 0, subscribe: () => ({ unsubscribe() {} }) } as never;
+    port.register('x', {
+      sections: [
+        {
+          id: 'x.section.a',
+          slot: 'export',
+          title: 'A',
+          when: () => many.value,
+          whenChanged: changed,
+          render: { mount() {} } as never,
+        },
+      ],
+    });
+    const [section] = shell.sections('export').value;
+    expect(section.whenChanged).toBe(changed);
+    expect(section.when?.({} as never)).toBe(false);
+    many.value = true;
+    expect(section.when?.({} as never)).toBe(true);
+  });
+});
 
 describe('lazy placeholders', () => {
   it('loads when shown; a failed load shows Retry, and a placeholder put back does not load again', async () => {

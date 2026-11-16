@@ -14,7 +14,6 @@ import type { ValueCell } from '@molstar/core/util';
 import type { PendingWork } from './pending-work.js';
 import type { now } from '@molstar/core/util/now';
 import type { GraphicsCapabilities } from './capabilities.js';
-import type { Framebuffer } from './framebuffer.js';
 import type { RenderTarget } from './render-target.js';
 import type {
   ComputeRenderItem,
@@ -26,7 +25,6 @@ import type {
   ProgramVariant,
   Transparency,
 } from './render-item.js';
-import type { ComputeRenderable } from './renderable.js';
 import type { RenderableSchema, RenderableValues } from './renderable/schema.js';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from './renderbuffer.js';
 import type { ClearValues, RenderState } from './render-state.js';
@@ -44,6 +42,7 @@ import type {
 import type { GraphicsTimer } from './timer.js';
 import type { UniformBuffer, UniformsList } from './uniform.js';
 import type { UniformBlockLayout } from './uniform-layout.js';
+import type { RenderPassAttachments, RenderPassColorAttachment } from './render-pass-attachments.js';
 
 export interface GraphicsLimits {
   readonly maxTextureSize: number;
@@ -69,7 +68,11 @@ export interface GraphicsResources {
   ownsTexture: (texture: Texture) => boolean;
   /** Loads the faces, tracked in `pending`; `onload` reports when they are loaded or failed to */
   cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => Texture;
-  framebuffer: () => Framebuffer;
+  /** The attachments a render pass draws into, named as a whole (see `RenderPassAttachments`) */
+  renderPassAttachments: (
+    color: readonly RenderPassColorAttachment[],
+    depth?: Texture | Renderbuffer,
+  ) => RenderPassAttachments;
   renderbuffer: (
     format: RenderbufferFormat,
     attachment: RenderbufferAttachment,
@@ -111,8 +114,11 @@ export type RenderTargetDepthStencil = 'none' | 'depth' | 'depth-stencil';
 export type RenderTargetType = 'uint8' | 'float32' | 'fp16';
 export type RenderTargetFormat = 'rgba' | 'r';
 
-/** Target of a render pass, `drawing-buffer` is the canvas or XR layer */
-export type RenderPassTarget = RenderTarget | Framebuffer | 'drawing-buffer';
+/**
+ * Target of a render pass, `drawing-buffer` is the canvas or XR layer; render pass attachments name the textures a pass
+ * draws into as a whole (`createRenderPassAttachments`)
+ */
+export type RenderPassTarget = RenderTarget | RenderPassAttachments | 'drawing-buffer';
 
 /**
  * What pipelines depend on of a render pass target: the formats of its attachments (`GraphicsContext.describeTarget`);
@@ -175,7 +181,6 @@ export interface GraphicsXR {
   getView: (view: XRView, out: GraphicsXRView) => boolean;
 }
 
-/** Backend-neutral graphics context, implemented by `WebGLContext` */
 /** Texture contents read back, four values per texel, see `GraphicsContext.readTextureData` */
 export interface TextureData {
   readonly array: Uint8Array | Float32Array;
@@ -183,6 +188,31 @@ export interface TextureData {
   readonly height: number;
 }
 
+/**
+ * Draw lists for replaying a pass's draws (WebGPU render bundles), with what deciding whether a recording is current
+ * needs, see `GraphicsContext.drawLists`
+ */
+export interface DrawLists {
+  create: () => DrawList;
+  /**
+   * Advances with each submission of the queued commands, where the per-submission uniform rings restart: the n-th
+   * global block written after a submission gets the same slot each time, what a draw list's recording binds
+   */
+  readonly submitCount: number;
+  /**
+   * Advances when a resource that recorded draws bind is replaced (the shared quad indices grown, a shared texture's
+   * storage replaced by a grown image): recordings made before are not current
+   */
+  readonly resourcesVersion: number;
+  /**
+   * Runs `draw` in the open pass without encoding it, its data written as by drawing (uniform slots, vertex data), and
+   * returns what its commands bind (pipelines, bind groups with offsets, buffers, draw arguments): equal for the
+   * draws of a recording means the recording draws the current data
+   */
+  capture: (draw: () => void) => string;
+}
+
+/** Backend-neutral graphics context, implemented by `WebGLContext` and `WebGPUContext` */
 export interface GraphicsContext {
   readonly capabilities: GraphicsCapabilities;
   readonly resources: GraphicsResources;
@@ -218,13 +248,6 @@ export interface GraphicsContext {
 
   readonly xr: GraphicsXR;
 
-  /** Cache for frambuffers, managed by consumers */
-  readonly namedFramebuffers: { [name: string]: Framebuffer };
-  /** Cache for textures, managed by consumers */
-  readonly namedTextures: { [name: string]: Texture };
-  /** Cache for compute renderables, managed by consumers */
-  readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> };
-
   /** Whether the backend implements `shaderCode`; passes whose programs it doesn't are unsupported and fall back */
   isProgramSupported: (shaderCode: ShaderCode) => boolean;
   createGraphicsRenderItem: (
@@ -256,25 +279,8 @@ export interface GraphicsContext {
   ) => ProgramItem;
   /** Uniforms (`schema` and `uniforms`) and textures shared by the render items of a pass */
   createGlobalBindings: (schema: RenderableSchema, uniforms: UniformsList, textures: Textures) => GlobalBindings;
-  /** Draw lists for replaying a pass's draws (WebGPU render bundles); not where draws can't be recorded (WebGL) */
-  createDrawList?: () => DrawList;
-  /**
-   * Advances with each submission of the queued commands, where the per-submission uniform rings restart: the n-th
-   * global block written after a submission gets the same slot each time, what a draw list's recording binds (with
-   * draw lists, `createDrawList`)
-   */
-  readonly submitCount?: number;
-  /**
-   * Advances when a resource that recorded draws bind is replaced (the shared quad indices grown, a shared texture's
-   * storage replaced by a grown image): recordings made before are not current (with draw lists, `createDrawList`)
-   */
-  readonly drawResourcesVersion?: number;
-  /**
-   * Runs `draw` in the open pass without encoding it, its data written as by drawing (uniform slots, vertex data), and
-   * returns what its commands bind (pipelines, bind groups with offsets, buffers, draw arguments): equal for the
-   * draws of a recording means the recording draws the current data (with draw lists, `createDrawList`)
-   */
-  captureDraws?: (draw: () => void) => string;
+  /** Draw lists for replaying a pass's draws (WebGPU render bundles); none where draws can't be recorded (WebGL) */
+  readonly drawLists?: DrawLists;
 
   createRenderTarget: (
     width: number,
@@ -295,6 +301,11 @@ export interface GraphicsContext {
   beginRenderPass: (target: RenderPassTarget, options?: RenderPassOptions) => void;
   /** The attachment formats of `target` as currently attached, for `resources.preparePipelines` */
   describeTarget: (target: RenderPassTarget, options?: Pick<RenderPassOptions, 'depthReadOnly'>) => TargetDescriptor;
+  /**
+   * Prepares what a clear of `values` inside a pass on `target` (`describeTarget`) needs, ahead of it (WebGPU: the clear
+   * draw's pipeline, else made at the clear); nothing where clears need nothing (WebGL)
+   */
+  prepareClear?: (target: TargetDescriptor, values: ClearValues) => void;
   endRenderPass: () => void;
   /** Whether the target of the open render pass has a stencil buffer */
   hasRenderPassStencil: () => boolean;

@@ -1123,6 +1123,37 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  cli/particle-pack:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../packages/io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../packages/model
+      '@types/argparse':
+        specifier: 'catalog:'
+        version: 2.0.17
+      argparse:
+        specifier: 'catalog:'
+        version: 2.0.1
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   cli/state-docs:
     dependencies:
       '@molstar/core':
@@ -3021,6 +3052,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24

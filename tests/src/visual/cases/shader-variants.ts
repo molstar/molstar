@@ -5,7 +5,7 @@
  */
 
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import { isWebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
 import { PluginContext } from '@molstar/plugin/context';
@@ -25,7 +25,7 @@ import {
 import type { BackendProfile } from '../framework/backend.js';
 import { type VisualTestCase } from '../framework/test-case.js';
 
-// The variants scenes reach (`.v6/plans/gl/shader-analysis.md`, step 3) compiled on each profile: GLSL by ANGLE and the
+// The variants scenes reach compiled on each profile: GLSL by ANGLE and the
 // driver, WGSL by Tint. A case per source (`--filter 'shaders/<source>'` runs one: a problem in isolation), one for the
 // kernels, and one for the coverage of every program (all sources, minutes per profile)
 

@@ -18,7 +18,7 @@ struct VertexOutput {
     @location(0) vModelPosition: vec3<f32>,
     @location(1) vViewPosition: vec3<f32>,
 #if defined(dRenderVariant_pick)
-    @location(2) @interpolate(flat) vPickIds: vec2<f32>,
+    @location(2) @interpolate(flat) vPickIds: vec2<u32>,
 #endif
 // scalars share locations (each counts against the 16 inter-stage variables, whatever its size): the palette
 // coordinate in the color's alpha (unread, materials take \`uAlpha\`), the marker with the clipping flags (both flat by
@@ -49,7 +49,9 @@ ${extra}
 
 /**
  * Item `vertexId` of the quad from `vertex_index` (6 vertices, two triangles per item) with its `position` and
- * `group` from `tPositionGroup`, and the quad corner `mapping` (-1 or 1 per axis)
+ * `group` from `tPositionGroup`, and the quad corner `mapping` (-1 or 1 per axis): quad `p` of a level of detail draws
+ * item `p * stride` (the items in their order; merged, from the member's first item, `segmentItem`); quantized centers
+ * (`dSites`) from `tSite` by the object's origin and scale (merged, the member's, `segmentSites`), the group the item's
  */
 export const assign_quad_position_group_wgsl = /* wgsl */ `
     let m = i32(in.vertexIndex) % 6;
@@ -61,10 +63,36 @@ export const assign_quad_position_group_wgsl = /* wgsl */ `
     } else if (m == 4) {
         mapping = vec2<f32>(1.0, -1.0);
     }
-    let vertexId = i32(in.vertexIndex) / 6;
-    let positionGroup = read_tPositionGroup(vertexId);
-    var position = positionGroup.xyz;
-    let group = positionGroup.w;
+    var vertexId = i32(in.vertexIndex) / 6;
+    #if defined(dSegmented)
+        // the member's stride at the level drawn (1 without levels, or drawn whole) from its first item
+        let itemBase = segmentItem(in);
+        vertexId = itemBase + (vertexId - itemBase) * i32(segmentStride(in)[clamp(uDraw.uLodLevel, 0, 3)]);
+    #else
+        // at least 1: a draw before its uniforms are written draws every item
+        vertexId *= max(1, i32(uDraw.uLodStride));
+    #endif
+    #if defined(dSites)
+        #if defined(dSegmented)
+            let siteOriginScale = segmentSites(in);
+            let group = vertexId - itemBase;
+        #else
+            let siteOriginScale = vec4<f32>(uObject.uSiteOrigin, uObject.uSiteScale);
+            let group = vertexId;
+        #endif
+        let site = read_tSite(vertexId);
+        var position = siteOriginScale.xyz + site.xyz * siteOriginScale.w;
+        // the index of the site's type in the size table (\`siteType\` sizes; merged, from the member's table)
+        #if defined(dSegmented)
+            let siteSizeIndex = segmentSizeBase(in) + i32(site.w);
+        #else
+            let siteSizeIndex = i32(site.w);
+        #endif
+    #else
+        var position = read_tPositionGroup(vertexId).xyz;
+        // an integer (\`rgb32f-i32\`)
+        let group = readGroup_tPositionGroup(vertexId);
+    #endif
 `;
 
 /**
@@ -83,14 +111,11 @@ export const assign_lod_factor_wgsl = /* wgsl */ `
         #else
             let lodScale = lod.w;
         #endif
-        if (uGlobal.uModelScale != 1.0) {
-            lodFactor = lodScale;
-        } else {
-            let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
-            let level = lodAt(d, lod.xyz, lodScale);
-            lodFactor = level.factor;
-            lodCulled = level.culled;
-        }
+        // the distance unscaled, as the instances are culled (any camera scale)
+        let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
+        let level = lodAt(d, lod.xyz, lodScale);
+        lodFactor = level.factor;
+        lodCulled = level.culled;
     }
 `;
 
@@ -157,16 +182,17 @@ export const assign_varyings_wgsl = /* wgsl */ `
     #if defined(dSegmented)
         // the data of merged render items, offset per segment (see \`SegmentSchema\`)
         let segment = segmentGroups(in);
-        let groupInstanceIndex = i32(segment.y + in.aInstance * segment.x + group);
-        let groupIndex = i32(segment.z + group);
+        // integers: the instance ids and offsets past 2^24 exact
+        let groupInstanceIndex = segment.y + i32(in.aInstance) * segment.x + i32(group);
+        let groupIndex = segment.z + i32(group);
     #else
-        let groupInstanceIndex = i32(in.aInstance * f32(uObject.uGroupCount) + group);
+        let groupInstanceIndex = i32(in.aInstance) * i32(uObject.uGroupCount) + i32(group);
         let groupIndex = i32(group);
     #endif
     let vertexInstanceIndex = instanceIndex * uObject.uVertexCount + vertexId;
 
     #if defined(dRenderVariant_pick)
-        out.vPickIds = vec2<f32>(in.aInstance, group);
+        out.vPickIds = vec2<u32>(in.aInstance, u32(group));
     #endif
 
     #if defined(dNeedsMarker)
@@ -177,13 +203,18 @@ export const assign_varyings_wgsl = /* wgsl */ `
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
         #if defined(dColorType_texture)
             // the texture's index by the color type (\`ColorTypeIndex\`): instance, group, groupInstance, vertex,
-            // vertexInstance
+            // vertexInstance, object (the object's texel; merged, its segment's)
             var colorIndex = instanceIndex;
             switch uObject.uColorIndexType {
                 case 1: { colorIndex = groupIndex; }
                 case 2: { colorIndex = groupInstanceIndex; }
                 case 3: { colorIndex = vertexId; }
                 case 4: { colorIndex = vertexInstanceIndex; }
+                #if defined(dSegmented)
+                    case 5: { colorIndex = i32(in.aSegment.w); }
+                #else
+                    case 5: { colorIndex = 0; }
+                #endif
                 default: {}
             }
             #if defined(dDualColor)
@@ -269,9 +300,12 @@ export const assign_size_wgsl = /* wgsl */ `
     #if defined(dSizeType_uniform)
         var size = uMaterial.uSize;
     #else
-        let sizeDataIndex = sizeIndex(
+        var sizeDataIndex = sizeIndex(
             uObject.uSizeIndexType, instanceIndex, groupIndex, groupInstanceIndex, vertexId, vertexInstanceIndex
         );
+        #if defined(dSites)
+            if (uObject.uSizeIndexType == 5) { sizeDataIndex = siteSizeIndex; }
+        #endif
         var size = unpackSize(read_tSize(sizeDataIndex));
     #endif
     size *= uMaterial.uSizeFactor;

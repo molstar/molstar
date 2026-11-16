@@ -617,5 +617,6 @@ export function createWebGPUComputeContext(env: WebGPUComputeEnv): ComputeContex
     ownsBuffer: (buffer) => ownBuffers.has(buffer),
     beginComputePass: (options) => env.beginComputePass(options),
     endComputePass: () => env.endComputePass(),
+    submit: () => env.flush(),
   };
 }

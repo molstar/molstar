@@ -204,7 +204,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
   from: SO.Molecule.Trajectory,
   to: SO.Molecule.Structure,
   params(a, plugin: PluginContext | undefined) {
-    // the same choice as `StructureFromModel`'s, for the frames' representative model (bond-providers plan §4)
+    // the same choice as `StructureFromModel`'s, for the frames' representative model
     const registry = plugin?.bondProviders ?? new BondProviderRegistry();
     // the frames as `ModelFromTrajectory` shows them: whole by default
     return { bonds: PD.Optional(registry.getParam(a?.data.representative)), ...periodicParamsFor(a?.data) };

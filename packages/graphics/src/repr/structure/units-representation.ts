@@ -22,6 +22,7 @@ import { getNextMaterialId, type GraphicsRenderObject } from '@molstar/graphics/
 import { Theme } from '@molstar/graphics/theme/theme';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
+import { getLodPixelLevelCount } from '@molstar/graphics/geo/geometry/lod-levels';
 import { Loci, EmptyLoci, isEveryLoci, isDataLoci, EveryLoci } from '@molstar/model/model/loci';
 import { MarkerAction, MarkerActions } from '@molstar/core/util/marker-action';
 import { Overpaint } from '@molstar/graphics/theme/overpaint';
@@ -530,12 +531,12 @@ export function UnitsRepresentation<P extends StructureParams>(
       const structure = ctx.data;
       const groups = StructureSymmetry.computeChildAwareTransformGroups(structure);
       const data = groups.map((group) => ({ structure, group }));
-      const lodLevels = (props as { lodLevels?: readonly unknown[] }).lodLevels;
+      const lodPixelSize = (props as { lodPixelSize?: number }).lodPixelSize ?? 0;
       const counts = {
         objects: groups.length,
         instances: structure.units.length,
         spheres: structure.elementCount,
-        levels: lodLevels?.length ?? 0,
+        levels: getLodPixelLevelCount(lodPixelSize),
         graphics: ctx.graphics,
       };
       return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx, data), p, counts);

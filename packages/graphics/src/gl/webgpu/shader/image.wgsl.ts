@@ -50,14 +50,14 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
     let transform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
     // the transient transform of an object shown moved (\`uObjectTransform\`) after the instance's
-    let model = uGlobal.uModel * uObject.uObjectTransform * transform;
-    let position4 = vec4<f32>(in.aPosition, 1.0);
-    out.vModelPosition = (model * position4).xyz;
-    let mvPosition = uGlobal.uView * model * position4;
+    // the position transformed, not the matrices multiplied first
+    let world = uObject.uObjectTransform * (transform * vec4<f32>(in.aPosition, 1.0));
+    out.vModelPosition = (uGlobal.uModel * world).xyz;
+    let mvPosition = uGlobal.uModelView * world;
     out.vViewPosition = mvPosition.xyz;
     out.position = uGlobal.uProjection * mvPosition;
     out.vUv = in.aUv;
-    out.vInstance = in.aInstance;
+    out.vInstance = f32(in.aInstance);
     out.vPosition = in.aPosition;
     return out;
 }
@@ -162,18 +162,18 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     let fragmentDepth = in.position.z;
     let interior = false;
 
-    let packedGroup = sample_tGroupTex(uv).rgb;
-    let group = select(unpackRGBToInt(packedGroup), -1.0, all(packedGroup == vec3<f32>(0.0)));
-    let instance = in.vInstance;
-    let groupCount = f32(uObject.uGroupCount);
-    // the marker and layer data per instance or group instance
-    let dataIndex = select(i32(instance * groupCount + group), i32(instance), uObject.uInstanceGranularity != 0u);
+    // the group in four bytes (id + 1, the top byte in alpha), -1 where none
+    let b = vec4<u32>(sample_tGroupTex(uv) * 255.0 + 0.5);
+    let group = i32(((b.a << 24u) | (b.r << 16u) | (b.g << 8u) | b.b) - 1u);
+    let instance = i32(in.vInstance);
+    // the marker and layer data per instance or group instance, an integer
+    let dataIndex = select(instance * i32(uObject.uGroupCount) + group, instance, uObject.uInstanceGranularity != 0u);
 
     // per-group transparency
     #if defined(dTransparency) && !defined(dRenderVariant_depth)
         #if defined(dTransparencyType_texture)
             // an empty pixel (no group) has no data
-            var transparency = select(read_tTransparency(dataIndex).r, 0.0, group == -1.0);
+            var transparency = select(read_tTransparency(dataIndex).r, 0.0, group == -1);
         #else
             var transparency = 0.0;
         #endif
@@ -204,7 +204,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
 
     #if defined(dNeedsMarker)
         var marker = uObject.uMarker;
-        if (group == -1.0) {
+        if (group == -1) {
             marker = 0.0;
         } else if (uObject.uMarker == -1.0) {
             marker = read_tMarker(dataIndex).r;
@@ -214,7 +214,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
         var emissive = uMaterial.uEmissive;
-        if (group == -1.0) {
+        if (group == -1) {
             emissive = 0.0;
         } else {
             #if defined(dEmissive)
@@ -226,18 +226,19 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     #endif
 
     #if defined(dRenderVariant_pick)
-        if (group == -1.0) {
+        if (group == -1) {
             discard;
         }
         let pickViewZ = depthToViewZ(uGlobal.uIsOrtho, fragmentDepth, uGlobal.uNear, uGlobal.uFar);
         let pickFogAlpha = (1.0 - smoothstep(uGlobal.uFogNear, uGlobal.uFogFar, abs(pickViewZ))) * alpha;
         // if not opaque enough ignore so the element below can be picked
-        if (alpha < uGlobal.uPickingAlphaThreshold || pickFogAlpha < 0.1) {
+        // widgets are picked at any opacity (uPickingAlphaMin 1)
+        if (max(alpha, uMaterial.uPickingAlphaMin) < uGlobal.uPickingAlphaThreshold || pickFogAlpha < 0.1) {
             discard;
         }
-        out.object = vec4<f32>(packIntToRGB(f32(uObject.uObjectId)), 1.0);
-        out.instance = vec4<f32>(packIntToRGB(instance), 1.0);
-        out.group = vec4<f32>(packIntToRGB(group), 1.0);
+        out.object = packPickId(u32(uObject.uObjectId));
+        out.instance = packPickId(u32(instance));
+        out.group = packPickId(u32(group));
         out.depth = packDepthToRGBA(fragmentDepth);
     #elif defined(dRenderVariant_depth)
         if (renderMask == MaskTransparent) {
@@ -262,7 +263,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         // mix material with overpaint
         #if defined(dOverpaint)
             var overpaint = vec4<f32>(0.0);
-            if (group != -1.0) {
+            if (group != -1) {
                 #if defined(dOverpaintType_texture)
                     overpaint = read_tOverpaint(dataIndex);
                 #endif

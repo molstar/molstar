@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { Mat4, Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
-import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
+import { estimateIsosurfaceVertexCount } from '@molstar/core/math/geometry/marching-cubes/estimate';
 import type { ComputeContext, StorageBuffer } from '@molstar/graphics/gl/compute';
 import {
   IsosurfaceChunkSize,

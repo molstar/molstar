@@ -37,6 +37,7 @@ import { BloomPass } from './bloom.js';
 import type { RenderContext } from '../util.js';
 import { Denoiser, isComputeDenoiseSupported } from '@molstar/graphics/gl/compute/denoise';
 import { type ClipGhostOption, ClipGhostPass } from './clip-ghost.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 let IlluminationWarningShown = false;
 
@@ -99,6 +100,8 @@ export class IlluminationPass {
   private readonly tracing: TracingPass;
 
   private readonly transparentTarget: RenderTarget;
+  /** the transparent target with the draw pass's opaque depth (blended transparency, helpers) */
+  private readonly transparentWithDepth: RenderPassAttachments;
   private readonly outputTarget: RenderTarget;
 
   readonly packedDepth: boolean;
@@ -170,6 +173,11 @@ export class IlluminationPass {
     this.markingShading = { name: 'traced', shaded: this.tracing.shadedTextureOpaque };
 
     this.transparentTarget = drawPass.targets.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
+    this.transparentWithDepth = createRenderPassAttachments(
+      graphics.resources,
+      [this.transparentTarget.texture],
+      drawPass.depthTextureOpaque,
+    );
     this.outputTarget = drawPass.targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     this.copyRenderable = createCopyRenderable(graphics, this.transparentTarget.texture);
@@ -271,12 +279,10 @@ export class IlluminationPass {
         b.begin(this.transparentTarget, { label: 'dpoit evaluate' });
         this.drawPass.dpoit.render(b);
       } else {
-        depthOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
-        b.begin(this.transparentTarget, { label: 'transparent' });
+        b.begin(this.transparentWithDepth, { label: 'transparent' });
         b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
           renderer.renderBlendedTransparent(scene.primitives, camera),
         );
-        depthOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
       }
 
       if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled || overlayOcclusion) {
@@ -316,8 +322,7 @@ export class IlluminationPass {
     const { renderer, camera, helper, frame } = ctx;
     b.begin(this.transparentTarget, { label: 'helpers' });
     if (helper.debug.isEnabled || helper.pointer.isEnabled) {
-      this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
-      b.begin(this.transparentTarget, { label: 'helpers' });
+      b.begin(this.transparentWithDepth, { label: 'helpers' });
       if (helper.debug.isEnabled) {
         if (b.drawing) helper.debug.syncVisibility();
         for (const scene of helper.debug.scenes) {
@@ -331,7 +336,6 @@ export class IlluminationPass {
         }
         this.drawPass.renderBlended(b, renderer, helper.pointer.scene, helper.pointer.camera);
       }
-      this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
       b.begin(this.transparentTarget, { label: 'helpers' });
     }
   }

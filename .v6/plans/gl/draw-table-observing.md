@@ -25,7 +25,7 @@ What reads what the table observes:
 1. **Rows** (`SlotObserver`): `DrawFactCells`, `boundingSphere`, `uLod` and the state. Unchanged.
 2. **Values versions** (`valuesVersions`, `valuesEpoch`): the renderer's plans and recordings (`walkPass`,
    `isChunkInputsCurrent`, `flushDataChanges`, `walkCaps`). A changed version means "draw it again without encoding
-   and compare what it binds" (`captureDraws`): what matters is what `render()` writes or binds. On WebGPU
+   and compare what it binds" (`DrawLists.capture`): what matters is what `render()` writes or binds. On WebGPU
    (`webgpu/render-item.ts`) that is the uniform blocks (material, object, draw), the vertex buffers (attribute
    versions compared in `getVertexBuffer`, written when drawn), the index buffer, the textures and data layers
    (`update`), `drawIndirect`, and the pipeline: a define change replaces the program (`invalidatePrograms`), seen only

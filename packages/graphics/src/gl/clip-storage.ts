@@ -42,7 +42,7 @@ export function getPixelClipCount(values: ClipStorageValues) {
 }
 
 /**
- * Those culling spheres they clip whole (`clipSphereClass`, `clip-culling.md`), either variant: none with a clipping
+ * Those culling spheres they clip whole (`clipSphereClass`), either variant: none with a clipping
  * layer (its flags exempt groups)
  */
 export function getCullClipCount(values: ClipStorageValues) {

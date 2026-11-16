@@ -16,6 +16,12 @@ import { PluginStateObject } from '../objects.js';
 
 async function processFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean) {
   const info = getFileNameInfo(file.file?.name ?? '');
+  // a format opening it without reading it whole (a tile-ordered particle pack by range) first
+  const streaming =
+    format === 'auto'
+      ? plugin.dataFormats.list.find(({ provider: p }) => p.stream && p.binaryExtensions?.includes(info.ext))?.provider
+      : plugin.dataFormats.get(format);
+  if (streaming?.stream && (await streaming.stream(plugin, file, { visuals }))) return;
   const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
   const { data } = await plugin.builders.data.readFile({ file, isBinary });
   const provider = format === 'auto' ? plugin.dataFormats.auto(info, data.cell?.obj!) : plugin.dataFormats.get(format);
@@ -153,6 +159,9 @@ export const DownloadFile = StateAction.build({
               return;
             }
             const provider = plugin.dataFormats.get(params.format)!;
+            // opened without a download where the format can (a tile-ordered particle pack by range)
+            const url = typeof params.url === 'string' ? Asset.Url(params.url) : params.url;
+            if (provider.stream && (await provider.stream(plugin, url, { visuals: params.visuals }))) return;
 
             const data = await plugin.builders.data.download({ url: params.url, isBinary: params.isBinary });
             const parsed = await provider.parse(plugin, data);

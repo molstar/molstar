@@ -212,7 +212,7 @@ describe('marching cubes', () => {
     const reference = await mesh({ isoLevel: Iso, scalarField: field([0, 1, 2]), idField: idField([0, 1, 2]) });
     expect(reference).toMatchInlineSnapshot(`
       {
-        "groups": "29b8b82f",
+        "groups": "aacc94be",
         "indices": "0f128387",
         "normals": "c95610fe",
         "triangleCount": 1105,
@@ -250,7 +250,7 @@ describe('marching cubes', () => {
     const withIds = await mesh({ isoLevel: Iso, scalarField: field([1, 2, 0]), idField: idField([2, 0, 1]), ...range });
     expect(withIds).toMatchInlineSnapshot(`
       {
-        "groups": "071a954d",
+        "groups": "0c8332fe",
         "indices": "917d772a",
         "normals": "1d3d0c25",
         "triangleCount": 885,
@@ -275,7 +275,7 @@ describe('marching cubes', () => {
     expect(ranged).toMatchInlineSnapshot(`
       {
         "ends": "7365e025",
-        "groups": "f21ccef5",
+        "groups": "a1fc888d",
         "lineCount": 919,
         "starts": "09dd4f59",
       }

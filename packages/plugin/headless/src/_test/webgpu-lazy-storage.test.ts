@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
+import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/contexts/webgpu';
 import { asWebGPUTexture } from '@molstar/graphics/gl/webgpu/texture';
 import { WebGPU } from './webgpu-module.js';
 

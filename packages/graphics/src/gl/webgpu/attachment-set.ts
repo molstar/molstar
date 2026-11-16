@@ -5,12 +5,17 @@
  */
 
 import { idFactory } from '@molstar/core/util/id-factory';
-import type { AttachmentRef, Framebuffer } from '../framebuffer.js';
 import type { TextureAttachment } from '../texture.js';
 
-const getNextFramebufferId = idFactory();
+/** A texture or renderbuffer by its id (the resources may wrap the objects they create, ids stay) */
+export interface AttachmentRef {
+  readonly kind: 'texture' | 'renderbuffer';
+  readonly id: number;
+}
 
-/** A texture or renderbuffer attached to a framebuffer */
+const getNextAttachmentSetId = idFactory();
+
+/** A texture or renderbuffer in an attachment set */
 export interface WebGPUAttachment {
   readonly format: GPUTextureFormat;
   readonly hasStencil: boolean;
@@ -20,12 +25,21 @@ export interface WebGPUAttachment {
   getGPUTexture: () => GPUTexture | undefined;
   getWidth: () => number;
   getHeight: () => number;
-  /** what it is of, for `Framebuffer.getAttachments` (layer attachments: their texture's) */
+  /** what it is of, for `WebGPUAttachmentSet.getAttachments` (layer attachments: their texture's) */
   readonly ref: AttachmentRef;
 }
 
-/** Attachments of a render pass target; WebGPU has no framebuffer objects, passes name their attachments */
-export interface WebGPUFramebuffer extends Framebuffer {
+/**
+ * The attachments of a render pass target, kept as a set the render pass descriptor is made from (WebGPU has no
+ * framebuffer objects: passes name their attachments)
+ */
+export interface WebGPUAttachmentSet {
+  readonly id: number;
+  /** Number of color attachments written by draws; default 1 */
+  setDrawBuffers: (count: number) => void;
+  /** The textures and renderbuffers attached (layers of 3d textures as their texture) */
+  getAttachments: () => readonly AttachmentRef[];
+  destroy: () => void;
   attach: (attachment: TextureAttachment, target: WebGPUAttachment) => void;
   detach: (attachment: TextureAttachment) => void;
   /** color attachments `0` to `drawBuffers - 1`, empty for depth-only targets */
@@ -36,45 +50,60 @@ export interface WebGPUFramebuffer extends Framebuffer {
   readonly version: number;
 }
 
-const Framebuffers = new WeakSet<Framebuffer>();
+const AttachmentSets = new WeakSet<object>();
 
-export function isWebGPUFramebuffer(framebuffer: Framebuffer): framebuffer is WebGPUFramebuffer {
-  return Framebuffers.has(framebuffer);
+export function isWebGPUAttachmentSet(set: object): set is WebGPUAttachmentSet {
+  return AttachmentSets.has(set);
 }
 
-/** Narrows to `WebGPUFramebuffer`, throws for framebuffers of another backend */
-export function asWebGPUFramebuffer(framebuffer: Framebuffer): WebGPUFramebuffer {
-  if (!isWebGPUFramebuffer(framebuffer)) throw new Error('expected a WebGPU framebuffer');
-  return framebuffer;
+/** Narrows to `WebGPUAttachmentSet`, throws for objects of another backend */
+export function asWebGPUAttachmentSet(set: object): WebGPUAttachmentSet {
+  if (!isWebGPUAttachmentSet(set)) throw new Error('expected a WebGPU attachment set');
+  return set;
 }
 
 function getColorIndex(attachment: TextureAttachment): number | undefined {
   if (typeof attachment === 'number') return attachment;
-  const m = attachment.match(/^color(\d)$/);
-  return m ? parseInt(m[1]) : undefined;
+  // 'color0' to 'color7', without a regular expression (attached every pass: no match objects)
+  if (attachment.length === 6 && attachment.startsWith('color')) return attachment.charCodeAt(5) - 48;
+  return undefined;
 }
 
-export function createWebGPUFramebuffer(): WebGPUFramebuffer {
+export function createWebGPUAttachmentSet(): WebGPUAttachmentSet {
   const colors: (WebGPUAttachment | undefined)[] = [];
   let depth: WebGPUAttachment | undefined;
   let drawBuffers = 1;
   let version = 0;
 
-  const framebuffer: WebGPUFramebuffer = {
-    id: getNextFramebufferId(),
-    bind: () => {},
+  const set: WebGPUAttachmentSet = {
+    id: getNextAttachmentSetId(),
     setDrawBuffers: (count: number) => {
       if (count !== drawBuffers) version += 1;
       drawBuffers = count;
     },
     attach: (attachment, texture) => {
       const index = getColorIndex(attachment);
+      const current = index !== undefined ? colors[index] : depth;
+      // the same texture (slice) again: no change
+      if (
+        current &&
+        current.ref.kind === texture.ref.kind &&
+        current.ref.id === texture.ref.id &&
+        current.depthSlice === texture.depthSlice
+      ) {
+        if (current !== texture) {
+          if (index !== undefined) colors[index] = texture;
+          else depth = texture;
+        }
+        return;
+      }
       if (index !== undefined) colors[index] = texture;
       else depth = texture;
       version += 1;
     },
     detach: (attachment) => {
       const index = getColorIndex(attachment);
+      if ((index !== undefined ? colors[index] : depth) === undefined) return;
       if (index !== undefined) colors[index] = undefined;
       else depth = undefined;
       version += 1;
@@ -101,6 +130,6 @@ export function createWebGPUFramebuffer(): WebGPUFramebuffer {
       depth = undefined;
     },
   };
-  Framebuffers.add(framebuffer);
-  return framebuffer;
+  AttachmentSets.add(set);
+  return set;
 }

@@ -14,7 +14,7 @@ import { UniformSizeTheme } from '@molstar/graphics/theme/size/uniform';
 import { Lines } from '@molstar/graphics/geo/geometry/lines/lines';
 import { LinesBuilder } from '@molstar/graphics/geo/geometry/lines/lines-builder';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
-import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
+import { Particle, type ParticleList, ParticleRotations } from '@molstar/model/model/particles/particle-list';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval, OrderedSet } from '@molstar/core/data/int';
@@ -25,6 +25,7 @@ import { ParticleRepresentation, ParticleRepresentationProvider } from '../repre
 import { ParticleVisual } from '../visual.js';
 import type { Location } from '@molstar/model/model/location';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
+import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Quat } from '@molstar/core/math/linear-algebra/3d/quat';
 
@@ -77,12 +78,10 @@ function createAxesGeometry(
   const builder = LinesBuilder.create(segmentCount, Math.max(1, Math.ceil(segmentCount / 10)), lines);
 
   for (let i = 0; i < count; ++i) {
-    Vec3.fromArray(_pos, coordinates, i * 3);
+    GridPositions.get(coordinates, i, _pos);
 
     if (rotations) {
-      const o = i * 4;
-      Quat.set(_q, rotations[o], rotations[o + 1], rotations[o + 2], rotations[o + 3]);
-      Mat4.fromQuat(_m, _q);
+      Mat4.fromQuat(_m, ParticleRotations.get(rotations, i, _q));
     } else {
       Mat4.setIdentity(_m);
     }
@@ -248,5 +247,6 @@ export const OrientationParticlesRepresentationProvider = ParticleRepresentation
   defaultValues: PD.getDefaultValues(OrientationParticlesParams),
   defaultColorTheme: { name: 'particle-index' },
   defaultSizeTheme: { name: 'particle-size' },
-  isApplicable: (data: ParticleList) => data.count > 0 && !!data.rotations,
+  // a slot list (its pages: `ParticleSlots`) not yet read here
+  isApplicable: (data: ParticleList) => data.count > 0 && !data.pages && !!data.rotations,
 });

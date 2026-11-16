@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,10 @@ import { ValueSpec, AttributeSpec, UniformSpec, type Values, TextureSpec, Define
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { ShaderCode } from '../shader-code.js';
 import { type ComputeRenderable, createComputeRenderable } from '../renderable.js';
+import { createScratch } from '../scratch.js';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('compute/util renderables');
 
 export const QuadPositions = new Float32Array([
   1.0,
@@ -70,10 +74,10 @@ export function createCopyRenderable(ctx: GraphicsContext, texture: Texture, pac
 const SharedCopyName = 'shared-copy';
 
 export function getSharedCopyRenderable(ctx: GraphicsContext, texture: Texture) {
-  if (!ctx.namedComputeRenderables[SharedCopyName]) {
-    ctx.namedComputeRenderables[SharedCopyName] = createCopyRenderable(ctx, createNullTexture());
+  if (!ScratchRenderables.get(ctx, SharedCopyName)) {
+    ScratchRenderables.set(ctx, createCopyRenderable(ctx, createNullTexture()), SharedCopyName);
   }
-  const copy = ctx.namedComputeRenderables[SharedCopyName] as CopyRenderable;
+  const copy = ScratchRenderables.get(ctx, SharedCopyName)! as CopyRenderable;
   ValueCell.update(copy.values.tColor, texture);
   ValueCell.update(
     copy.values.uTexSize,

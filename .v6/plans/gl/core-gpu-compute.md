@@ -2,7 +2,26 @@
 
 ## Status
 
-- **Current**: not started. Its prerequisites are done: the WebGPU compute interface and the texture mesh color
+- **Re-read against the code** (after the backend folders became internal, `graphics-review.md` S6): what changed
+  since this plan was written, and the order it suggests now:
+  - **grid3d is tier 2 already, in graphics' vocabulary.** `gl/compute/grid3d.ts` is backend-neutral: one spec with
+    GLSL and WGSL bodies (`mainCode`, `utilCode`, `returnCode`, `wgsl`), a compute kernel on WebGPU, a fragment
+    implementation the WebGL backend registers (`registerGrid3dFragmentImplementation`), cumulative passes. What keeps
+    it in graphics is its types: `RenderableSchema`, `TextureSpec`/`UniformSpec`, `UnboxedValues`,
+    `GraphicsContext`. The alpha-orbitals extension uses nothing else of graphics for its compute (`gpu/compute.ts`:
+    float textures of centers, coefficients and exponents, integer uniforms as loop bounds).
+  - **The GPU Gaussian density has no read-back consumer.** The surfaces and the density volume use it as a texture
+    (into the GPU marching cubes, or drawn); the CPU paths use core's `GaussianDensityCPU`. Moving its GPU path to core
+    (step 5 below) serves no caller today.
+  - **The marching cubes stay in graphics**, a geometry algorithm (`geo/util/marching-cubes`, producing `Mesh` and
+    `Lines`), CPU and GPU. Their tables, which `gl/compute/marching-cubes` imports from `geo` (an inversion), move
+    down to `gl` under S7 (`graphics-review.md`), not to core.
+  - **The registries' lesson** (S6): a registry in a module of its own, the built-in table registering into it, so that
+    registering imports nothing heavy. Here: core supplies kernel bodies; graphics registers them into its program and
+    kernel registries on first use, as grid3d registers its GLSL program today. Core never touches a registry of
+    graphics.
+- **Current**: deferred, not started (as the geometry split's step 2, [geo-split.md](geo-split.md)); the open
+  question below (injection or a registry) is decided when it is taken up. Its prerequisites are done: the WebGPU compute interface and the texture mesh color
   smoothing ([webgpu-compute.md](webgpu-compute.md)); grid3d runs as a kernel on WebGPU (decision 6A there), so this
   plan is about the neutral map-kernel tier and core-level algorithms, not about missing GPU paths.
 - Planned after the WebGPU texture mesh color smoothing ([webgpu-compute.md](webgpu-compute.md)). The WebGPU-only
@@ -25,7 +44,7 @@
 | Gaussian density                                                          | CPU in core, GPU in `graphics/geo/gaussian-density{,/gpu}.ts` | density/min-distance/group grids; as texture for rendering, or read back      | Grid values (read back) yes; texture output for GPU isosurface stays in graphics                                  |
 | Grid evaluation (`createGrid3dComputeRenderable`, `gl/compute/grid3d.ts`) | graphics                                                      | per-cell values, read back (`Float32Array`)                                   | Yes, the generic primitive (used by the alpha-orbitals extension, which would then not need graphics for compute) |
 | Marching cubes (GPU: histogram pyramid, active voxels, isosurface)        | graphics                                                      | texture-mesh buffers for rendering                                            | No, render-integrated                                                                                             |
-| Marching cubes (CPU, `geo/util/marching-cubes`)                           | graphics (produces `Mesh`)                                    | mesh                                                                          | Separate question (output type is graphics geometry)                                                              |
+| Marching cubes (CPU, `geo/util/marching-cubes`)                           | graphics (produces `Mesh`)                                    | mesh                                                                          | No, a geometry algorithm: stays in graphics (`geo`)                                                               |
 | Color smoothing (mesh/texture-mesh)                                       | graphics                                                      | color textures                                                                | No, render-integrated                                                                                             |
 | Future candidates                                                         | -                                                             | e.g. molecular surface fields, distance/contact computations, spatial lookups | Yes if results are read back or consumed through opaque handles                                                   |
 
@@ -76,7 +95,26 @@ smoothing; marching cubes, the density and the accumulation stay tier 3.
 - Graphics keeps thin adapters where rendering needs GPU-resident results (e.g. density texture into GPU marching
   cubes), built on the same handles.
 
-## Steps
+## Steps (revised order)
+
+What the re-read suggests, smallest and most useful first; the original steps follow for the interface's details.
+
+1. **The guard test** (original step 2): core, io and model import nothing of graphics or plugin, `import type`
+   included.
+2. **grid3d's spec in core's vocabulary** (`@molstar/core/gpu`, type-only): the grid, the inputs as neutral kinds
+   (uniforms by scalar type, data arrays of 1 to 4 floats per element, with a size), the bodies per language, the
+   loop bounds and the cumulative states; `values(params, grid)` returns plain arrays and numbers. `GpuCompute` is what
+   runs a spec: `isSupported(spec)`, `run(ctx, spec, grid, params): Promise<Float32Array>`.
+3. **Graphics implements `GpuCompute`** on its contexts (`graphics.gpuCompute`, or an adapter in `gl/extend`), on the
+   grid3d mechanism of today: the neutral inputs become textures and uniforms of a schema (WebGL fragment shaders) or
+   the kernel's bindings (WebGPU); the bodies register into graphics' registries on first use.
+4. **The alpha-orbitals compute on `GpuCompute`**: its spec moves to core types, it is handed the GPU by its caller
+   (the plugin's canvas, `graphics.gpuCompute`), and imports nothing of graphics for compute; CPU fallback as today.
+5. **Gaussian density**: its grid computation moves to core with a GPU path on `GpuCompute` only once a read-back
+   consumer exists (none today; the texture paths stay in graphics either way).
+6. **Document** the moves in `breaking-v6-changes.md`: grid3d's path and spec.
+
+## Steps (original)
 
 1. Prerequisites: `GraphicsContext` with capabilities, neutral resources, async readback (done in the backend split),
    the WebGPU compute interface (done).
@@ -93,6 +131,14 @@ smoothing; marching cubes, the density and the accumulation stay tier 3.
 
 ## Open questions
 
+- **How core gets the GPU: injection or a registry.** The original design passes `gpu?: GpuCompute` to each algorithm
+  (no global state; the caller chooses the context). A registry in core (graphics registering a provider per context)
+  would spare the callers the argument, but a context is per canvas, and a global provider would pick one for them:
+  injection recommended, the registries only for kernel bodies inside graphics.
+- **Where `GpuCompute` lives in graphics**: a member of `GraphicsContext` (every backend implements it) or an adapter
+  (`gl/extend`, `toGpuCompute(graphics)`) that keeps the context's interface as it is.
+- **Data inputs**: grid3d uploads float textures (WebGL1 included); a neutral data array maps to a texture on WebGL and
+  a storage buffer on WebGPU, its size limits are WebGL's texture size.
 - Strictly type-only, or a tiny runtime part in core (e.g. kernel spec helpers/validation)?
 - Kernel body language: GLSL + WGSL per kernel vs. one language with translation (depends on the WGSL strategy plan).
 - Opaque GPU handles across packages: lifetime/ownership (who destroys), context loss.

@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { getDataWords } from '../center-group.js';
 import { ValueCell } from '@molstar/core/util';
 import { type Mat4, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { transformPositionArray, type GroupMapping, createGroupMapping } from '../../util.js';
@@ -12,7 +13,7 @@ import type { GeometryUtils } from '../geometry.js';
 import { createColors } from '../color-data.js';
 import { createMarkers } from '../marker-data.js';
 import { createSizes, getMaxSize } from '../size-data.js';
-import type { TransformData } from '../transform-data.js';
+import { type TransformData, getInstanceRows } from '../transform-data.js';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
@@ -114,7 +115,7 @@ export namespace Cylinders {
       get groupMapping() {
         if (cylinders.cylinderData.ref.version !== currentGroup) {
           const { array } = cylinders.cylinderData.ref.value;
-          groupMapping = createGroupMapping(array, cylinders.cylinderCount, CylinderStride, 3);
+          groupMapping = createGroupMapping(getDataWords(array), cylinders.cylinderCount, CylinderStride, 3);
           currentGroup = cylinders.cylinderData.ref.version;
         }
         return groupMapping;
@@ -193,12 +194,14 @@ export namespace Cylinders {
     const p = location.position;
     const d = cylinders.cylinderData.ref.value.array;
     const m = transform.aTransform.ref.value;
+    // the instance's row: the grid stores them in its order (`getInstanceRows`)
+    const rows = getInstanceRows(transform);
     const getLocation = (groupIndex: number, instanceIndex: number) => {
       const o = (groupIndex >> 1) * CylinderStride + (groupIndex & 1) * 4;
       if (instanceIndex < 0) {
         Vec3.fromArray(p, d, o);
       } else {
-        Vec3.transformMat4Offset(p, d, m, 0, o, instanceIndex * 16);
+        Vec3.transformMat4Offset(p, d, m, 0, o, (rows ? rows[instanceIndex] : instanceIndex) * 16);
       }
       return location;
     };

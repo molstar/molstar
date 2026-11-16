@@ -8,10 +8,10 @@
 import type { SizeTheme } from '../size.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ThemeDataContext } from '../theme.js';
-import type { LocationSize } from '@molstar/graphics/geo/geometry/size-data';
+import type { LocationSize } from '../size.js';
 import { Volume } from '@molstar/model/model/volume/volume';
 import type { Location } from '@molstar/model/model/location';
-import { isPositionLocation } from '@molstar/graphics/geo/util/location-iterator';
+import { isPositionLocation } from '@molstar/model/model/position-location';
 import { Grid } from '@molstar/model/model/volume/grid';
 import { clamp } from '@molstar/core/math/interpolate';
 

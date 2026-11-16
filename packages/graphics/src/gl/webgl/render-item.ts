@@ -52,8 +52,8 @@ import {
 } from './data-textures.js';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { SegmentedArray } from '../segmented-array.js';
-import type { DataTexturePages, DataTextureRange } from './data-pages.js';
-import { InstanceDataVec4s, packInstanceData } from '../renderable/merged.js';
+import { convertGroupsToFloat, type DataTexturePages, type DataTextureRange } from './data-pages.js';
+import { getInstanceDataSegmentCount, InstanceDataVec4s, packInstanceData } from '../renderable/merged.js';
 import { TextureChanges } from '../renderable/texture-changes.js';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import type { VertexArray } from './vertex-array.js';
@@ -80,14 +80,10 @@ export function getDrawMode(ctx: WebGLContext, drawMode: DrawMode) {
       return gl.LINES;
     case 'line-strip':
       return gl.LINE_STRIP;
-    case 'line-loop':
-      return gl.LINE_LOOP;
     case 'triangles':
       return gl.TRIANGLES;
     case 'triangle-strip':
       return gl.TRIANGLE_STRIP;
-    case 'triangle-fan':
-      return gl.TRIANGLE_FAN;
   }
 }
 
@@ -272,6 +268,12 @@ function getWebGL1Schema(schema: RenderableSchema): RenderableSchema {
   let adapted: { [k: string]: RenderableSchema[string] } | undefined;
   for (const k of Object.keys(schema)) {
     const spec = schema[k];
+    if (spec.type === 'data' && spec.format === 'rgba16i') {
+      // no integer textures: the data never used (spheres' quantized centers, `Spheres.isSitesSupported`)
+      adapted ??= { ...schema };
+      delete adapted[k];
+      continue;
+    }
     if (spec.type !== 'uniform' || !(spec as UniformSpec<UniformKind>).loopBound) continue;
     adapted ??= { ...schema };
     adapted[k] = DefineSpec('number');
@@ -298,6 +300,8 @@ export function getInstanceDataSchema(schema: RenderableSchema): RenderableSchem
       tInstanceData: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
       uInstanceBase: UniformSpec('i', undefined, 'draw'),
       uInstanceDataShift: UniformSpec('i'),
+      /** the first slot of the segments' groups, after the instances (`packInstanceData`) */
+      uInstanceDataSegments: UniformSpec('i'),
       dInstanceData: DefineSpec('boolean'),
     };
     instanceDataSchemas.set(schema, result);
@@ -309,21 +313,40 @@ export function getInstanceDataSchema(schema: RenderableSchema): RenderableSchem
 const InstanceDataShift = 8;
 
 /**
- * Writes the instance data of merged `values` into the image of `tInstanceData`, grown where too small: rows of
- * 1 << `uInstanceDataShift` instances, which the shader addresses by a shift and a mask
+ * Instances a page of `tInstanceData` at most, a texture each: 256 MiB (64 bytes an instance). ANGLE's D3D11 backend
+ * allocates no texture above about 1.2 GB (an RGBA32F 16384 × 4800 does, × 5200 not, RTX 4070 Ti); the yeast cell's
+ * 31.5 M instances are 2 GB
+ */
+const InstanceDataPageInstances = 1 << 22;
+
+/**
+ * The pages of the instance data of merged `values`: `size` instances each (the last fewer), their segments' groups
+ * after (`uInstanceDataSegments`, `size`); the first the image of `tInstanceData`, the others images for the render
+ * item's own textures. Rows of 1 << `uInstanceDataShift` slots, which the shader addresses by a shift and a mask
  */
 function updateInstanceData(values: RenderableValues, maxTextureSize: number) {
-  const count: number = Math.max(1, values.instanceCount.ref.value);
+  const instanceCount: number = values.instanceCount.ref.value;
+  const segmentCount = getInstanceDataSegmentCount(values);
+  const size = Math.max(1, Math.min(instanceCount, InstanceDataPageInstances));
+  // the instances' slots, then the segments'
+  const slots = size + segmentCount;
   let shift = InstanceDataShift;
-  while (count > maxTextureSize << shift && InstanceDataVec4s << (shift + 1) <= maxTextureSize) ++shift;
+  while (slots > maxTextureSize << shift && InstanceDataVec4s << (shift + 1) <= maxTextureSize) ++shift;
   const width = InstanceDataVec4s << shift;
-  const height = Math.ceil(count / (1 << shift));
+  const height = Math.ceil(slots / (1 << shift));
   const length = width * height * 4;
-  const previous = (values.tInstanceData.ref.value as TextureImage<Float32Array>).array;
-  const array = previous.length >= length ? previous : new Float32Array(length);
-  packInstanceData(values, array);
-  ValueCell.update(values.tInstanceData, { array, width, height });
+  const images: TextureImage<Float32Array>[] = [];
+  for (let first = 0; first < Math.max(1, instanceCount); first += size) {
+    const previous =
+      images.length === 0 ? (values.tInstanceData.ref.value as TextureImage<Float32Array>).array : undefined;
+    const array = previous && previous.length >= length ? previous : new Float32Array(length);
+    packInstanceData(values, array, first, Math.min(size, instanceCount - first), size);
+    images.push({ array, width, height });
+  }
+  ValueCell.update(values.tInstanceData, images[0]);
   ValueCell.updateIfChanged(values.uInstanceDataShift, shift);
+  ValueCell.updateIfChanged(values.uInstanceDataSegments, size);
+  return { size, pages: images.slice(1) };
 }
 
 /**
@@ -358,6 +381,9 @@ export function createRenderItem<T extends string>(
     schema.aSegment !== undefined;
   /** the versions of the instance values `tInstanceData` was written from */
   const instanceDataVersions: number[] = [];
+  /** the instances a page of the instance data, the pages after the first (`tInstanceData`'s), textures of their own */
+  let instanceDataPageSize = Infinity;
+  const instanceDataPages: Texture[] = [];
   const instanceDataKeys = ['instanceCount', 'aTransform', 'aInstance', 'aSegment'];
   const syncInstanceData = () => {
     let changed = false;
@@ -368,7 +394,14 @@ export function createRenderItem<T extends string>(
         changed = true;
       }
     }
-    if (changed) updateInstanceData(values, resources.limits.maxTextureSize);
+    if (!changed) return;
+    const { size, pages } = updateInstanceData(values, resources.limits.maxTextureSize);
+    instanceDataPageSize = size;
+    while (instanceDataPages.length > pages.length) instanceDataPages.pop()!.destroy();
+    for (let p = 0; p < pages.length; ++p) {
+      instanceDataPages[p] ??= resources.texture('image-float32', 'rgba', 'float', 'nearest');
+      instanceDataPages[p].load(pages[p]);
+    }
   };
   if (instanceData) {
     schema = getInstanceDataSchema(schema);
@@ -377,6 +410,7 @@ export function createRenderItem<T extends string>(
       tInstanceData: ValueCell.create(createTextureImage(1, 4, Float32Array)),
       uInstanceBase: ValueCell.create(0),
       uInstanceDataShift: ValueCell.create(InstanceDataShift),
+      uInstanceDataSegments: ValueCell.create(0),
       dInstanceData: ValueCell.create(true),
     };
     syncInstanceData();
@@ -385,6 +419,14 @@ export function createRenderItem<T extends string>(
   // the data arrays (`DataSpec`) in ranges of the context's data pages, the texture's size and the offset object uniforms
   // of this backend (`data-pages.ts`, `data-textures.ts`)
   const dataTextures = new Map<string, DataTextureState>();
+  /** WebGL1: the `rgb32f-i32` arrays by their items' elements, the groups converted to floats where written */
+  const groupTexels = new Map<string, number>();
+  if (!ctx.isWebGL2) {
+    for (const name of Object.keys(schema)) {
+      const spec = schema[name];
+      if (spec.type === 'data' && spec.format === 'rgb32f-i32') groupTexels.set(name, spec.itemTexels ?? 1);
+    }
+  }
   const dataSchema = getDataTextureSchema(schema);
   if (dataSchema !== schema) {
     schema = dataSchema;
@@ -408,6 +450,8 @@ export function createRenderItem<T extends string>(
    */
   const writeData = (name: string, data: DataArray<any>, ranges?: readonly number[]) => {
     const d = dataTextures.get(name)!;
+    const texels = groupTexels.get(name);
+    if (texels !== undefined) data = convertGroupsToFloat(data, texels);
     let all = ranges === undefined;
     if (data.count > d.range.size) {
       d.pages.free(d.range);
@@ -543,9 +587,11 @@ export function createRenderItem<T extends string>(
     programs[rv] = createProgramVariant(ctx, getRenderVariant(rv, transparency), defineValues, shaderCode, schema);
   }
 
-  // the textures of specs with `shared`, by name, released instead of destroyed (`.v6/plans/gl/shared-textures.md` §4)
+  // the textures of specs with `shared`, by name, released instead of destroyed
   const sharedTextures = new Map<string, SharedTexture>();
   const textures = createTextures(ctx, schema, textureValues, sharedTextures);
+  /** the first page of the instance data, bound with the others (`instanceDataPages` the rest) */
+  const instanceDataTexture = instanceData ? textures.find(([k]) => k === 'tInstanceData')?.[1] : undefined;
   for (const [name, d] of dataTextures) {
     writeData(name, textureValues[name].ref.value as unknown as DataArray<any>);
     textures.push([name, d.range.texture]);
@@ -782,13 +828,44 @@ export function createRenderItem<T extends string>(
                 }
               }
             }
+          } else if (instanceData) {
+            // the instance data's pages, the draw's instances in each it covers (a draw a page)
+            let page = 0;
+            for (let i = 0; i < mdbData.count; ++i) {
+              if (mdbData.counts[i] === 0) continue;
+              program.uniform('uDrawId', i);
+              let base = mdbData.baseInstances[i];
+              let n = mdbData.instanceCounts[i];
+              while (n > 0) {
+                const p = Math.floor(base / instanceDataPageSize);
+                const m = Math.min(n, (p + 1) * instanceDataPageSize - base);
+                if (p !== page) {
+                  page = p;
+                  program.bindTexture('tInstanceData', p === 0 ? instanceDataTexture! : instanceDataPages[p - 1]);
+                }
+                program.uniform('uInstanceBase', base - p * instanceDataPageSize);
+                if (eb) {
+                  instancedArrays.drawElementsInstanced(
+                    glDrawMode,
+                    mdbData.counts[i],
+                    eb._dataType,
+                    mdbData.offsets[i],
+                    m,
+                  );
+                } else {
+                  instancedArrays.drawArraysInstanced(glDrawMode, mdbData.firsts[i], mdbData.counts[i], m);
+                }
+                base += m;
+                n -= m;
+              }
+            }
+            if (page !== 0) program.bindTexture('tInstanceData', instanceDataTexture!);
           } else {
             const offsets = getOffsetsInstances(program);
             if (eb) {
               for (let i = 0; i < mdbData.count; ++i) {
                 if (mdbData.counts[i] > 0) {
                   program.uniform('uDrawId', i);
-                  if (instanceData) program.uniform('uInstanceBase', mdbData.baseInstances[i]);
                   if (offsets && mdbData.baseInstances[i] !== instanceOffset) {
                     instanceOffset = mdbData.baseInstances[i];
                     program.offsetAttributes(instanceBuffers, instanceOffset);
@@ -806,7 +883,6 @@ export function createRenderItem<T extends string>(
               for (let i = 0; i < mdbData.count; ++i) {
                 if (mdbData.counts[i] > 0) {
                   program.uniform('uDrawId', i);
-                  if (instanceData) program.uniform('uInstanceBase', mdbData.baseInstances[i]);
                   if (offsets && mdbData.baseInstances[i] !== instanceOffset) {
                     instanceOffset = mdbData.baseInstances[i];
                     program.offsetAttributes(instanceBuffers, instanceOffset);
@@ -1020,6 +1096,8 @@ export function createRenderItem<T extends string>(
           programs[k].destroy();
         }
         if (vertexArray) vertexArray.destroy();
+        for (const page of instanceDataPages) page.destroy();
+        instanceDataPages.length = 0;
         for (const list of [textures, materialTextures]) {
           for (const [k, texture] of list) {
             const held = sharedTextures.get(k);

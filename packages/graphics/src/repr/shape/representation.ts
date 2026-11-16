@@ -25,20 +25,14 @@ import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval, OrderedSet } from '@molstar/core/data/int';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { Visual } from '../visual.js';
-import { type RuntimeContext, Task } from '@molstar/core/task';
+import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { getGeometrySignatures, type SignatureContext } from '../signatures.js';
+import type { ShapeGetter } from '@molstar/graphics/geo/shape/provider';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>
   extends Representation<D, P> {}
-
-export type ShapeGetter<D, G extends Geometry, P extends Geometry.Params<G>> = (
-  ctx: RuntimeContext,
-  data: D,
-  props: PD.Values<P>,
-  shape?: Shape<G>,
-) => Shape<G> | Promise<Shape<G>>;
 
 export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> {
   /** Hook to modify representation props */

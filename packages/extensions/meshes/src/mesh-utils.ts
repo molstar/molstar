@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 /** Helper functions for manipulation with mesh data. */
@@ -81,7 +82,7 @@ export function copy(m: Mesh, modification?: MeshModificationParams): Mesh {
   const vertices = new Float32Array(m.vertexBuffer.ref.value);
   const indices = new Uint32Array(m.indexBuffer.ref.value);
   const normals = new Float32Array(m.normalBuffer.ref.value);
-  const groups = new Float32Array(m.groupBuffer.ref.value);
+  const groups = new Uint32Array(m.groupBuffer.ref.value);
   const result = Mesh.create(vertices, indices, normals, groups, nVertices, nTriangles);
   if (modification) {
     modify(result, modification);
@@ -102,7 +103,7 @@ export function concat(...meshes: Mesh[]): Mesh {
     meshes.map((m) => m.normalBuffer.ref.value),
   );
   const groups = concatArrays(
-    Float32Array,
+    Uint32Array,
     meshes.map((m) => m.groupBuffer.ref.value),
   );
   const newIndices = [];
@@ -149,7 +150,7 @@ export async function meshFromCif(
   }
   const vertices = flattenCoords(x, y, z);
   const normals = new Float32Array(3 * nVertices);
-  const groups = new Float32Array(vertex_meshId);
+  const groups = new Uint32Array(vertex_meshId);
   const mesh = Mesh.create(vertices, indices, normals, groups, nVertices, nTriangles);
 
   invertSides ??= isInverted(mesh);
@@ -274,7 +275,7 @@ export function fakeFakeMesh1(): Mesh {
   const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
   const indices = new Uint32Array([0, 1, 2]);
   const normals = new Float32Array([0, 0, 1]);
-  const groups = new Float32Array([0]);
+  const groups = new Uint32Array([0]);
   return Mesh.create(vertices, indices, normals, groups, nVertices, nTriangles);
 }
 
@@ -285,7 +286,7 @@ export function fakeMesh4(): Mesh {
   const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
   const indices = new Uint32Array([0, 2, 1, 0, 1, 3, 1, 2, 3, 2, 0, 3]);
   const normals = new Float32Array([-1, -1, -1, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
-  const groups = new Float32Array([0, 1, 2, 3]);
+  const groups = new Uint32Array([0, 1, 2, 3]);
   return Mesh.create(vertices, indices, normals, groups, nVertices, nTriangles);
 }
 
@@ -321,7 +322,7 @@ export function meshFromBox(box: [[number, number, number], [number, number, num
   const indices = new Uint32Array([
     2, 1, 0, 1, 2, 3, 1, 4, 0, 4, 1, 5, 3, 5, 1, 5, 3, 7, 2, 7, 3, 7, 2, 6, 0, 6, 2, 6, 0, 4, 4, 7, 6, 7, 4, 5,
   ]);
-  const groups = new Float32Array([group, group, group, group, group, group, group, group]);
+  const groups = new Uint32Array([group, group, group, group, group, group, group, group]);
   const normals = new Float32Array(8);
   const mesh = Mesh.create(vertices, indices, normals, groups, 8, 12);
   Mesh.computeNormals(mesh); // normals only necessary if flatShaded==false

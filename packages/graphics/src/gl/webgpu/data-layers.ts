@@ -8,12 +8,15 @@ import { StorageBufferSpec } from '../compute.js';
 import { type RenderableSchema, UniformSpec } from '../renderable/schema.js';
 
 /**
- * The theme layers (`DataSpec`) WebGPU reads from shared storage pages (`shared-draw-resources.md`): data by index
+ * The theme layers (`DataSpec`) WebGPU reads from shared storage pages: data by index
  * (group, instance or vertex), WebGL lays them out in data textures. `rgba8` one `u32` per element, `r8` four elements
  * per `u32`, `rgba32f` four `u32` (the floats' bits), the formats of their specs; the arrays are the layers'
  * `DataArray`s, element `i` at the same index. The positions and groups of spheres and points (`tPositionGroup`, one
- * element per item) the cylinders' data (`tCylinder`, three per cylinder), the lines' (`tLine`, two per line) and the text's (`tText`,
- * four per item) are layers too, and so is merged items' segment data (`tSegment`, two per segment)
+ * element per item), the cylinders' data (`tCylinder`, three per cylinder), the lines' (`tLine`, two per line) and the
+ * text's (`tText`, four per item) are layers too (`rgb32f-i32`: the groups integers, `readGroup_<layer>`), and so is
+ * merged items' segment data (`tSegment`, `SegmentTexels` per segment). Spheres'
+ * quantized centers (`tSite`, `rgba16i`: int16 x, y, z and a uint16, two `u32` an element) are one too, and their second
+ * color (`tSiteColor`, a table by site type or an element a site). Sixteen layers: the page define's 32 bits
  */
 export const DataLayers = {
   tColor: 'rgba8',
@@ -25,15 +28,17 @@ export const DataLayers = {
   tSubstance: 'rgba8',
   tClipping: 'r8',
   tWiggle: 'r8',
-  tPositionGroup: 'rgba32f',
-  tCylinder: 'rgba32f',
+  tPositionGroup: 'rgb32f-i32',
+  tCylinder: 'rgb32f-i32',
   tSegment: 'rgba32f',
-  tLine: 'rgba32f',
-  tText: 'rgba32f',
+  tLine: 'rgb32f-i32',
+  tText: 'rgb32f-i32',
+  tSite: 'rgba16i',
+  tSiteColor: 'rgba8',
 } as const;
 export type DataLayer = keyof typeof DataLayers;
 /** Bytes per element of the encodings of `DataLayers` */
-export const DataLayerElementBytes = { rgba8: 4, r8: 1, rgba32f: 16 } as const;
+export const DataLayerElementBytes = { rgba8: 4, r8: 1, rgba32f: 16, 'rgb32f-i32': 16, rgba16i: 8 } as const;
 export const DataLayerNames = Object.keys(DataLayers) as DataLayer[];
 
 export function isDataLayer(name: string): name is DataLayer {
@@ -110,17 +115,33 @@ export function getDataLayerAccessors(schema: RenderableSchema, isReferenced: (n
   const lines: string[] = [];
   for (const layer of getSchemaLayers(schema)) {
     const fn = `read_${layer}`;
-    if (!isReferenced(fn)) continue;
     const DataPageName = DataPageNames[getDataLayerPage(pages, layer)];
     const offset = `u32(uObject.${getDataOffsetName(layer)})`;
+    if (DataLayers[layer] === 'rgb32f-i32' && isReferenced(`readGroup_${layer}`)) {
+      // the group an integer: its word never read as a float (integer bits a denormal, which GPUs flush)
+      lines.push(`fn readGroup_${layer}(i: i32) -> i32 {`);
+      lines.push(`    return bitcast<i32>(${DataPageName}[${offset} + u32(i) * 4u + 3u]);`);
+      lines.push('}');
+    }
+    if (!isReferenced(fn)) continue;
     if (DataLayers[layer] === 'rgba8') {
       lines.push(`fn ${fn}(i: i32) -> vec4<f32> {`);
       lines.push(`    return unpack4x8unorm(${DataPageName}[${offset} + u32(i)]);`);
-    } else if (DataLayers[layer] === 'rgba32f') {
+    } else if (DataLayers[layer] === 'rgba32f' || DataLayers[layer] === 'rgb32f-i32') {
+      // `rgb32f-i32`: the group's word too, as float bits (`readGroup_<layer>` the integer)
       lines.push(`fn ${fn}(i: i32) -> vec4<f32> {`);
       lines.push(`    let o = ${offset} + u32(i) * 4u;`);
       lines.push(
         `    return bitcast<vec4<f32>>(vec4<u32>(${DataPageName}[o], ${DataPageName}[o + 1u], ${DataPageName}[o + 2u], ${DataPageName}[o + 3u]));`,
+      );
+    } else if (DataLayers[layer] === 'rgba16i') {
+      // little-endian int16 x, y in the first word, z and the uint16 in the second: the signed ones sign-extended
+      lines.push(`fn ${fn}(i: i32) -> vec4<f32> {`);
+      lines.push(`    let o = ${offset} + u32(i) * 2u;`);
+      lines.push(`    let a = ${DataPageName}[o];`);
+      lines.push(`    let b = ${DataPageName}[o + 1u];`);
+      lines.push(
+        '    return vec4<f32>(f32(bitcast<i32>(a << 16u) >> 16u), f32(bitcast<i32>(a) >> 16u), f32(bitcast<i32>(b << 16u) >> 16u), f32(b >> 16u));',
       );
     } else {
       lines.push(`fn ${fn}(i: i32) -> vec4<f32> {`);
@@ -135,14 +156,16 @@ export function getDataLayerAccessors(schema: RenderableSchema, isReferenced: (n
 
 /** Whether `isReferenced` names an accessor of a layer of `schema`: the page is bound then */
 export function usesDataLayers(schema: RenderableSchema, isReferenced: (name: string) => boolean) {
-  return getSchemaLayers(schema).some((n) => isReferenced(`read_${n}`));
+  return getSchemaLayers(schema).some((n) => isReferenced(`read_${n}`) || isReferenced(`readGroup_${n}`));
 }
 
 /** The pages (`DataPageNames`) the accessors `isReferenced` names read in the layout `pages`: those bound */
 export function getReadDataPages(schema: RenderableSchema, isReferenced: (name: string) => boolean, pages = 0) {
   const read = new Set<string>();
   for (const layer of getSchemaLayers(schema)) {
-    if (isReferenced(`read_${layer}`)) read.add(DataPageNames[getDataLayerPage(pages, layer)]);
+    if (isReferenced(`read_${layer}`) || isReferenced(`readGroup_${layer}`)) {
+      read.add(DataPageNames[getDataLayerPage(pages, layer)]);
+    }
   }
   return read;
 }

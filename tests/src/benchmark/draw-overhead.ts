@@ -6,7 +6,7 @@
 
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { BufferUsage, ShaderStage, TextureUsage } from '@molstar/graphics/gl/webgpu/constants';
-import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import { isWebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import type { BenchmarkCase, PathRun } from './framework.js';
 
 /** Draws per frame: the objects of `draw-table/boxes-10k` */
@@ -30,13 +30,13 @@ const VertexAttributes = 5;
  * - `shared-offsets-indirect`: the same, each draw an indexed indirect draw of its arguments in one buffer (what GPU
  *   culling writes); `-culled`: half of them with an instance count of 0 (culled)
  * - `shared-first-instance`: shared bind groups and buffers set once, per draw only the draw, the object selected by
- *   `firstInstance` from a storage array (layer B of `webgpu-draw-submission.md`); `-indirect`: each draw an indexed
+ *   `firstInstance` from a storage array; `-indirect`: each draw an indexed
  *   indirect draw with its first instance in the arguments (`indirect-first-instance`; what GPU culling of merged
  *   render objects draws: a fixed list, one per segment and level), `-culled` half of them, `-empty` all with an
  *   instance count of 0
  * - `shared-immediates`: shared bind groups and buffers set once, per draw the object's data (16 bytes) set as
  *   immediates (`setImmediates`, WGSL `var<immediate>`) and the draw; `-index`: per draw an index into a storage array
- *   of the objects as immediates (4 bytes): per-draw data without a dynamic offset (`multi-draw-indirect.md` step 4)
+ *   of the objects as immediates (4 bytes): per-draw data without a dynamic offset
  * - `instanced`: one draw of all objects (batched)
  * - `merged`: the objects' geometry in one buffer, indices rebased to it, an object id per vertex selecting the object
  *   from a storage array: one indexed draw of all (batched without instancing, objects of different geometry);
@@ -564,7 +564,7 @@ function overheadCase(variant: Variant, bundled: boolean, description: string): 
 
 /**
  * What replaying 10k draws costs on WebGPU by how they bind their objects (`draw-overhead/*`, not in the default
- * runs): the upper bound of shared object records (layer B of `webgpu-draw-submission.md`) and of batching, against
+ * runs): the upper bound of shared object records and of batching, against
  * draws binding as Mol* does today; tiny cubes, so that the times are the submission's, not the GPU's drawing
  */
 export const DrawOverheadCases: BenchmarkCase<any>[] = [

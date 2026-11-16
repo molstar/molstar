@@ -9,6 +9,22 @@ import type { DataArray } from '../renderable/util.js';
 import { createRangeAllocator, type RangeAllocator } from '../range-allocator.js';
 import type { GLTexture } from './texture.js';
 import { getDataTextureSize } from './data-textures.js';
+import { SegmentedArray } from '../segmented-array.js';
+
+/**
+ * `rgb32f-i32` data as floats (WebGL1, no integer textures): each item's group (of `itemTexels` elements, the first's
+ * fourth word) its int32 as a float, exact to 2^24 (a copy; WebGL1 the fallback)
+ */
+export function convertGroupsToFloat(data: DataArray<any>, itemTexels: number): DataArray<Float32Array> {
+  const n = data.count * 4;
+  const array = data.array as Float32Array | SegmentedArray<Float32Array>;
+  const src = SegmentedArray.is(array) ? SegmentedArray.read(array, 0, n) : array.subarray(0, n);
+  const out = new Float32Array(src.length);
+  out.set(src);
+  const words = new Int32Array(src.buffer, src.byteOffset, src.length);
+  for (let i = 3, step = itemTexels * 4; i < src.length; i += step) out[i] = words[i];
+  return { array: out, count: data.count };
+}
 
 /**
  * WebGL's pages of data arrays (`DataSpec`), as WebGPU's storage pages: textures of one format shared by the data of
@@ -46,10 +62,22 @@ export function isDataPageTexture(texture: object) {
 }
 
 /** Bytes per element of the formats */
-export const DataFormatBytes: { readonly [F in DataFormat]: number } = { rgba8: 4, r8: 1, rgba32f: 16 };
+export const DataFormatBytes: { readonly [F in DataFormat]: number } = {
+  rgba8: 4,
+  r8: 1,
+  rgba32f: 16,
+  'rgb32f-i32': 16,
+  rgba16i: 8,
+};
 
-/** Elements per page: 1M of the 8-bit formats (4 MB of `rgba8`), 256K of `rgba32f` (4 MB) */
-const PageElements: { readonly [F in DataFormat]: number } = { rgba8: 1 << 20, r8: 1 << 20, rgba32f: 1 << 18 };
+/** Elements per page: 1M of the 8-bit formats (4 MB of `rgba8`), 256K of `rgba32f` (4 MB), 512K of `rgba16i` (4 MB) */
+const PageElements: { readonly [F in DataFormat]: number } = {
+  rgba8: 1 << 20,
+  r8: 1 << 20,
+  rgba32f: 1 << 18,
+  'rgb32f-i32': 1 << 18,
+  rgba16i: 1 << 19,
+};
 /** Element offsets and sizes: 4 keeps small ranges from splitting rows into many pieces */
 const Alignment = 4;
 

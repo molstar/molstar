@@ -22,9 +22,11 @@ fn hiZViewZ(depth: f32) -> f32 {
     return depth * (far - near) - far;
 }
 
-/** the screen rectangle (min x, min y, max x, max y in [0, 1]) of a sphere at \`p\` (view space) */
-fn hiZProjectSphere(p: vec3<f32>, r: f32) -> vec4<f32> {
-    let P = uParams.uHiZProjection;
+/**
+ * the screen rectangle (min x, min y, max x, max y in [0, 1], y from the top) of a sphere at \`p\` (view space) by
+ * projection \`P\`, as \`projectSphere\` (its off-axis terms: stereo's eyes)
+ */
+fn hiZProjectSphere(p: vec3<f32>, r: f32, P: mat4x4<f32>) -> vec4<f32> {
     if (P[2][3] == -1.0) {
         // Mara and McGuire 2013, as specialized by Kapoulkine (niagara)
         let pr = p * r;
@@ -35,30 +37,38 @@ fn hiZProjectSphere(p: vec3<f32>, r: f32) -> vec4<f32> {
         let vy = sqrt(p.y * p.y + pzr2);
         let miny = ((vy * p.y - pr.z) / (vy * p.z + pr.y)) * P[1][1];
         let maxy = ((vy * p.y + pr.z) / (vy * p.z - pr.y)) * P[1][1];
-        return vec4<f32>(maxx * -0.5 + 0.5, miny * 0.5 + 0.5, minx * -0.5 + 0.5, maxy * 0.5 + 0.5);
+        let o = vec2<f32>(P[2][0] * -0.5, P[2][1] * 0.5);
+        return vec4<f32>(maxx * -0.5 + 0.5, miny * 0.5 + 0.5, minx * -0.5 + 0.5, maxy * 0.5 + 0.5) + o.xyxy;
     }
     let minx = (p.x + r) * P[0][0];
     let maxx = (p.x - r) * P[0][0];
     let miny = (p.y + r) * P[1][1];
     let maxy = (p.y - r) * P[1][1];
-    return vec4<f32>(maxx * 0.5 + 0.5, miny * -0.5 + 0.5, minx * 0.5 + 0.5, maxy * -0.5 + 0.5);
+    let o = vec2<f32>(P[3][0] * 0.5, P[3][1] * -0.5);
+    return vec4<f32>(maxx * 0.5 + 0.5, miny * -0.5 + 0.5, minx * 0.5 + 0.5, maxy * -0.5 + 0.5) + o.xyxy;
 }
 
 fn hiZDepth(x: i32, y: i32) -> f32 {
     return hiZViewZ(textureLoad(tHiZ, vec2<i32>(x, y), 0).r);
 }
 
-fn occluded(sphere: vec4<f32>) -> bool {
-    if (uParams.uHiZ == 0u) {
-        return false;
-    }
-    let vp = (uParams.uHiZView * vec4<f32>(sphere.xyz, 1.0)).xyz;
+/**
+ * whether a sphere is behind the pyramid in one view: its camera \`view\` and \`projection\`, its levels from \`x0\` over
+ * \`xw\` of the pyramid's width (\`uHiZSplit\`); outside the view not occluded
+ */
+fn occludedIn(sphere: vec4<f32>, view: mat4x4<f32>, projection: mat4x4<f32>, x0: f32, xw: f32) -> bool {
+    let vp = (view * vec4<f32>(sphere.xyz, 1.0)).xyz;
     let r = sphere.w * 1.2 + 1.52;
     let z = vp.z + r;
     if (-z < uParams.uHiZDepthRange.x) {
         return false;
     }
-    let aabb = hiZProjectSphere(vp, r);
+    let rect = hiZProjectSphere(vp, r, projection);
+    // within the view: its rectangle not reaching into the other view's levels
+    if (rect.x < 0.0 || rect.y < 0.0 || rect.z >= 1.0 || rect.w >= 1.0) {
+        return false;
+    }
+    let aabb = vec4<f32>(x0 + rect.x * xw, rect.y, x0 + rect.z * xw, rect.w);
     let w = aabb.z - aabb.x;
     let h = aabb.w - aabb.y;
     let pr = max(w * uParams.uHiZViewport.x, h * uParams.uHiZViewport.y);
@@ -66,26 +76,26 @@ fn occluded(sphere: vec4<f32>) -> bool {
     let minLevel = uParams.uHiZMinLevel;
     var lod = max(i32(ceil(log2(pr / 2.0))), minLevel);
     var ts = 0;
-    var x0 = 0;
-    var x1 = 0;
-    var y0 = 0;
-    var y1 = 0;
+    var x0t = 0;
+    var x1t = 0;
+    var y0t = 0;
+    var y1t = 0;
     // the texels the rectangle covers, at most two per axis: a level up where it straddles three
     loop {
         if (lod >= levels) {
             return false;
         }
         ts = 1 << u32(levels - 1 - lod);
-        x0 = i32(floor(aabb.x * f32(ts)));
-        x1 = i32(floor(aabb.z * f32(ts)));
-        y0 = i32(floor(aabb.y * f32(ts)));
-        y1 = i32(floor(aabb.w * f32(ts)));
-        if (x1 - x0 <= 1 && y1 - y0 <= 1) {
+        x0t = i32(floor(aabb.x * f32(ts)));
+        x1t = i32(floor(aabb.z * f32(ts)));
+        y0t = i32(floor(aabb.y * f32(ts)));
+        y1t = i32(floor(aabb.w * f32(ts)));
+        if (x1t - x0t <= 1 && y1t - y0t <= 1) {
             break;
         }
         lod += 1;
     }
-    if (x0 < 0 || y0 < 0 || x1 >= ts || y1 >= ts) {
+    if (x0t < 0 || y0t < 0 || x1t >= ts || y1t >= ts) {
         return false;
     }
     // the levels from \`minLevel\` side by side: level i of size 2^(levels - 1 - i)
@@ -93,8 +103,21 @@ fn occluded(sphere: vec4<f32>) -> bool {
     for (var i = minLevel; i < lod; i++) {
         offset += 1 << u32(levels - 1 - i);
     }
-    return z <= hiZDepth(x0 + offset, y0) && z <= hiZDepth(x1 + offset, y0) && z <= hiZDepth(x0 + offset, y1) &&
-        z <= hiZDepth(x1 + offset, y1);
+    return z <= hiZDepth(x0t + offset, y0t) && z <= hiZDepth(x1t + offset, y0t) && z <= hiZDepth(x0t + offset, y1t) &&
+        z <= hiZDepth(x1t + offset, y1t);
+}
+
+/** behind the pyramid: in its view, and in its second where it has one (\`uHiZSplit\` under 1, stereo's right eye) */
+fn occluded(sphere: vec4<f32>) -> bool {
+    if (uParams.uHiZ == 0u) {
+        return false;
+    }
+    let split = uParams.uHiZSplit;
+    if (!occludedIn(sphere, uParams.uHiZView, uParams.uHiZProjection, 0.0, split)) {
+        return false;
+    }
+    return split >= 1.0 ||
+        occludedIn(sphere, uParams.uHiZSecondView, uParams.uHiZSecondProjection, split, 1.0 - split);
 }
 `;
 
@@ -181,6 +204,11 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>, @builtin(num_workgroups) g
     if (cell >= u32(uParams.uCellCount)) {
         return;
     }
+    // an empty cell (\`scene-cells.ts\`): no instances to draw
+    if (cellSpheres[cell].w < 0.0) {
+        cellLevels[cell] = 0u;
+        return;
+    }
     let sphere = moved(cellSpheres[cell]);
     var bits = sphereLevels(sphere);
     if (uParams.uGhostRegion > 0 && ghostSphere(sphere)) {
@@ -199,7 +227,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>, @builtin(num_workgroups) g
  */
 export const instance_copy_wgsl = /* wgsl */ `
 ${sphere_test_wgsl}
-${CulledData.wgsl('data', 'u32(uParams.uInstanceCount)')}
+${CulledData.wgsl('data')}
 /** in an instance's cell: the first phase drew it */
 const DrawnBit = 0x80000000u;
 
@@ -213,9 +241,10 @@ var<workgroup> wgBase: u32;
 fn instanceSphere(i: u32, segment: u32) -> vec4<f32> {
     let s = segmentData[segment * 3u];
     // the transform's rows (\`affine-rows.ts\`)
-    let r0 = culledTransform0(i);
-    let r1 = culledTransform1(i);
-    let r2 = culledTransform2(i);
+    let rows = culledRows(i);
+    let r0 = rows[0];
+    let r1 = rows[1];
+    let r2 = rows[2];
     let center = vec3<f32>(dot(r0.xyz, s.xyz) + r0.w, dot(r1.xyz, s.xyz) + r1.w, dot(r2.xyz, s.xyz) + r2.w);
     let c0 = vec3<f32>(r0.x, r1.x, r2.x);
     let c1 = vec3<f32>(r0.y, r1.y, r2.y);
@@ -242,8 +271,9 @@ fn rasterized(sphere: vec4<f32>, segment: u32, j: u32) -> bool {
     if (d - r <= uParams.uRasterNear) {
         return false;
     }
-    // the tangents from the eye, as the raster's bounds
-    return r * uParams.uRasterScale <= uParams.uRasterRadius * sqrt(max(d * d - r * r, 0.0));
+    // the tangents from the eye, as the raster's bounds; orthographic its radius (\`isRasterSize\`)
+    let extent = select(sqrt(max(d * d - r * r, 0.0)), 1.0, uParams.uRasterOrtho != 0.0);
+    return r * uParams.uRasterScale <= uParams.uRasterRadius * extent;
 }
 
 /** instance \`i\` into slot \`t\` of a region, by its index */

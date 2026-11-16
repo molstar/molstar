@@ -14,7 +14,8 @@ import { SizeTheme } from '@molstar/graphics/theme/size';
 import { ParticleTargetRepresentationProvider } from '../target/representation.js';
 
 // A clip object moved over particle targets (a clipping gizmo's drag): the clip alone set on what is drawn, merged
-// objects included; a change of its defines or of another prop updates the targets in full.
+// objects included (their first member alone: the others given it at the next full update); a change of its defines
+// or of another prop updates the targets in full.
 
 /** a site at the origin, as a target */
 const site = (): ParticleTarget => ({
@@ -92,6 +93,36 @@ describe('particle targets, a clip object moved', () => {
       // the targets not updated in full
       expect(lodVersion(repr)).toBe(lod);
     }
+    repr.destroy();
+  });
+
+  it('sets it on a merged object alone, not its other members: one leaving the group takes it then', async () => {
+    const list = particles();
+    const repr = create();
+    await repr.createOrUpdate({ renderMerged: true, gpuCulling: false, clip: clipOf(1) }, list).run();
+    const { members } = repr.renderObjects[0] as unknown as { members: { values: unknown }[] };
+    expect(members).toHaveLength(2);
+    const clipX = (values: unknown) =>
+      (values as { clipObjects: { ref: { value: Clip.Objects } } }).clipObjects.ref.value.position[0];
+    await repr.createOrUpdate({ clip: clipOf(3) }).run();
+    expect(drawnClip(repr)).toEqual([[3]]);
+    // the second member not read while merged, not set
+    expect(clipX(members[1].values)).toBe(1);
+    // no longer merged: each drawn alone, with the clip as moved
+    await repr.createOrUpdate({ renderMerged: false }).run();
+    expect(drawnClip(repr)).toEqual([[3], [3]]);
+    repr.destroy();
+  });
+
+  it('draws the clip it was built with again after a drag (an undo): what the drag set on the members undone', async () => {
+    const list = particles();
+    const repr = create();
+    const built = clipOf(1);
+    await repr.createOrUpdate({ renderMerged: true, gpuCulling: false, clip: built }, list).run();
+    await repr.createOrUpdate({ clip: clipOf(3) }).run();
+    expect(drawnClip(repr)).toEqual([[3]]);
+    await repr.createOrUpdate({ renderMerged: false, clip: built }).run();
+    expect(drawnClip(repr)).toEqual([[1], [1]]);
     repr.destroy();
   });
 

@@ -4,10 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { now } from '@molstar/core/util/now';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas';
+import { ScaleLineParams } from '@molstar/graphics/canvas3d/helper/scale-line';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -23,6 +27,24 @@ END
 `;
 
 describe.skipIf(!WebGPU.module)('HeadlessPluginContext on WebGPU', () => {
+  it('tells its canvas as initialized: what waits for one (a behavior following the camera) gets it', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: 16, height: 16 },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      let told = false;
+      plugin.behaviors.canvas3d.initialized.subscribe(() => (told = true)).unsubscribe();
+      expect(told).toBe(true);
+      await plugin.canvas3dInitialized;
+    } finally {
+      plugin.dispose();
+    }
+  });
+
   it('renders a structure', async () => {
     const webgpu = WebGPU.module!;
 
@@ -100,6 +122,74 @@ describe.skipIf(!WebGPU.module)('HeadlessPluginContext on WebGPU', () => {
       expect(reacquiredImage.data).toEqual(image.data);
     } finally {
       plugin.dispose();
+    }
+  });
+
+  it('draws the scale line again on a new context (the screen layer made again, as the axes)', async () => {
+    // its label drawn into a font atlas, which Node has no canvas for: a stand-in that draws nothing (the line drawn)
+    const context = {
+      measureText: () => ({ width: 8 }),
+      clearRect() {},
+      fillText() {},
+      getImageData: (_x: number, _y: number, w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+    };
+    setCanvasModule({ createCanvas: () => ({ getContext: () => context }) });
+    // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
+    if (typeof ImageData === 'undefined') {
+      vi.stubGlobal(
+        'ImageData',
+        class {
+          constructor(
+            readonly data: Uint8ClampedArray,
+            readonly width: number,
+            readonly height: number,
+          ) {}
+        },
+      );
+    }
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: 64, height: 64 },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+      // the canvas's frame (what draws the screen layer; an image export draws its own camera helper)
+      const canvas = plugin.canvas3d!;
+      let time = now();
+      const image = async () => {
+        for (let i = 0; i < 4; ++i) {
+          canvas.commit(true);
+          canvas.requestDraw();
+          canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
+          await canvas.graphics.resources.pending.whenReady();
+        }
+        return Array.from((await (canvas.graphics as WebGPUContext).readDrawingBuffer()).data);
+      };
+      const without = await image();
+      plugin.canvas3d!.setProps({
+        camera: { helper: { scale: { name: 'on', params: PD.getDefaultValues(ScaleLineParams) } } },
+      } as never);
+      const drawn = await image();
+      expect(drawn).not.toEqual(without);
+
+      const lostDevice = (plugin.canvas3d!.graphics as WebGPUContext).device;
+      const restored = new Promise<void>((resolve) =>
+        plugin.canvas3d!.contextChanged.subscribe(({ reason }) => {
+          if (reason === 'restore') resolve();
+        }),
+      );
+      lostDevice.destroy();
+      await restored;
+      expect(await image()).toEqual(drawn);
+    } finally {
+      plugin.dispose();
+      // the module state put back (files share their worker's modules)
+      setCanvasModule(undefined as never);
     }
   });
 });

@@ -21,10 +21,16 @@ import { ParticleListFromCryoEtDataPortalNdjson } from '@molstar/plugin/state/fo
 import { ParticleListFromArtiatomiEm } from '@molstar/plugin/state/formats/particles/em';
 import { ParticleListFromMmcifAssembly } from '@molstar/plugin/state/formats/particles/mmcif-assembly';
 import { ParticleTrajectoryFromSimularium } from '@molstar/plugin/state/formats/particles/simularium';
+import { ParticleListFromPack } from '@molstar/plugin/state/formats/particles/pack';
 import { ParticleListFromTrajectory, ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
 import { TransformParticleList } from '@molstar/plugin/state/transforms/particles/transform';
 import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
+import {
+  ParticleTileSetFromList,
+  ParticleTileSetFromPack,
+  ParticleTilesView,
+} from '@molstar/plugin/state/transforms/particles/tiles';
 import { AnimateParticleTrajectory } from '@molstar/plugin/state/animation/built-in/particles';
 import { ExternalColorThemes } from '@molstar/plugin/themes/external';
 
@@ -73,11 +79,15 @@ export const ParticleActions: PluginRegistryEntry = {
     ParticleListFromArtiatomiEm,
     ParticleListFromMmcifAssembly,
     ParticleTrajectoryFromSimularium,
+    ParticleListFromPack,
     ParticleListFromTrajectory,
     ParticleListWithTargets,
     TransformParticleList,
     ParticleListUnitcell3D,
     ParticlesRepresentation3D,
+    ParticleTileSetFromList,
+    ParticleTileSetFromPack,
+    ParticleTilesView,
   ],
 };
 

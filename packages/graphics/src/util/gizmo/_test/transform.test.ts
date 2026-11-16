@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { getDataWords } from '../../../geo/geometry/center-group.js';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { describe, expect, it } from 'vitest';
 import { LineStride, type Lines } from '../../../geo/geometry/lines/lines.js';
@@ -24,8 +25,9 @@ function groupsOf(part: GizmoPart | Mesh | Lines | Points) {
     return out;
   }
   if (g.kind === 'mesh') return new Set(Array.from(g.groupBuffer.ref.value));
-  const { array } = g.positionGroup.ref.value;
-  return new Set(Array.from({ length: g.pointCount }, (_, i) => array[i * 4 + 3]));
+  // the groups an int32 as its bits
+  const words = getDataWords(g.positionGroup.ref.value.array);
+  return new Set(Array.from({ length: g.pointCount }, (_, i) => words[i * 4 + 3]));
 }
 
 /** The vertices of a mesh, as points */

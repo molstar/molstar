@@ -867,7 +867,7 @@ export namespace BondType {
     Disulfide = 0x8,
     Aromatic = 0x10,
     Computed = 0x20,
-    /** A covalent bond whose order the source did not state: 1, to be perceived (bond-providers plan §2). */
+    /** A covalent bond whose order the source did not state: 1, to be perceived. */
     OrderUnknown = 0x40,
     // currently at most 16 flags are supported!!
   }

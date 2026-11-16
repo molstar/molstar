@@ -13,7 +13,7 @@
   `getVertexBuffer` keeps its slot entry. 2.31 to 2.20 ms (`boxes-1000` 2.64 to 2.50). Then the culling of still
   frames: every gridded or leveled object culled again each frame (a frame token only); now skipped while the view and
   the culled cells' versions stay (`createCullView`, renderables and merged ones; not with an occlusion test, not in
-  timing mode, invalidated by `uncull` and `cullSimple`; `cull-view` test). The view as a version (`LodView.version`):
+  timing mode, invalidated by `uncull`; `cull-view` test). The view as a version (`LodView.version`):
   the renderer compares the camera plane, frustum and level scales once, at the first cull after an update, with those
   of the last cull (updates of other cameras between, as picking's, don't cull); compared per object first (28
   numbers, 7% of WebGL2's unmerged frame). 2.20 to 1.62 ms (rotating 2.43 to 2.21; merged 1000 units 0.31 to 0.20,

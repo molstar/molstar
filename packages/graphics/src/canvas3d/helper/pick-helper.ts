@@ -102,9 +102,9 @@ export class PickHelper {
     const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
     const { renderer, scene, helper } = this;
 
-    // share one frame across both eyes (and with the caller's frame, e.g. Canvas3D's, when given)
-    // so a resting camera can reuse the main draw's cull instead of always recomputing
-    const f = frame ?? createFrame();
+    // share one frame across both eyes (and with the caller's frame, e.g. Canvas3D's, when given, else its frame now:
+    // a pick drawn again later) so a resting camera can reuse the main draw's cull instead of always recomputing
+    const f = frame ?? this.getFrame?.() ?? createFrame();
 
     renderer.setTransparentBackground(false);
     if (b.drawing) {
@@ -267,6 +267,8 @@ export class PickHelper {
   }
 
   private disposed = false;
+  /** the canvas' frame now (`PickOptions.getFrame`) */
+  private readonly getFrame: (() => Frame) | undefined;
 
   dispose() {
     this.disposed = true;
@@ -288,6 +290,7 @@ export class PickHelper {
     this.renderBuilder = createRenderBuilder(graphics);
     // before the viewport: it sets the spiral of pixels searched around the pick
     this.pickPadding = options.pickPadding;
+    this.getFrame = options.getFrame;
     this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
     if (!checkAsyncPickingSupport(this.buffers)) {

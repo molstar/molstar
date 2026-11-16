@@ -302,7 +302,8 @@ export const pick_output_wgsl = /* wgsl */ `
     let pickViewZ = depthToViewZ(uGlobal.uIsOrtho, fragmentDepth, uGlobal.uNear, uGlobal.uFar);
     let pickFogFactor = smoothstep(uGlobal.uFogNear, uGlobal.uFogFar, abs(pickViewZ));
     let pickFogAlpha = (1.0 - pickFogFactor) * uMaterial.uAlpha;
-    var pickAlpha = uMaterial.uAlpha;
+    // widgets are picked at any opacity (uPickingAlphaMin 1)
+    var pickAlpha = max(uMaterial.uAlpha, uMaterial.uPickingAlphaMin);
     #if defined(dXrayShaded)
         // add bias to make picking xray shaded elements easier
         pickAlpha = calcXrayShadedAlpha(pickAlpha, normal) + (0.3 * uGlobal.uPickingAlphaThreshold);
@@ -317,8 +318,8 @@ export const pick_output_wgsl = /* wgsl */ `
             discard;
         #endif
     }
-    out.object = vec4<f32>(packIntToRGB(f32(uObject.uObjectId)), 1.0);
-    out.instance = vec4<f32>(packIntToRGB(in.vPickIds.x), 1.0);
-    out.group = vec4<f32>(packIntToRGB(in.vPickIds.y), 1.0);
+    out.object = packPickId(u32(uObject.uObjectId));
+    out.instance = packPickId(in.vPickIds.x);
+    out.group = packPickId(in.vPickIds.y);
     out.depth = packDepthToRGBA(fragmentDepth);
 `;

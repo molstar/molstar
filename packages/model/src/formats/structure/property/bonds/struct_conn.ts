@@ -180,7 +180,7 @@ export namespace StructConn {
       const orderType = pdbx_value_order.value(i) || '';
       let flags = BondType.Flag.None;
       let order = 1;
-      // no order in the file and none in the table: 1, flagged for providers that perceive orders (bond-providers plan §2)
+      // no order in the file and none in the table: 1, flagged for providers that perceive orders
       let orderUnknown = false;
 
       switch (orderType) {

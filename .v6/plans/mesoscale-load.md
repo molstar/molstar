@@ -64,7 +64,7 @@
    not built at all): the impostors 354 → 181 ms, PetWorld's visuals busy 1031 → 947 ms. The spheres' level of
    detail order (`forEachInLevelOrder`, done): the items of each stride marked (no modulo an item and level) and placed
    by a counting sort in one pass (not a pass over the items per level), the same order: about 120 → 62 ms on
-   PetWorld.
+   PetWorld. Since removed: the items keep their order, a level drawing every stride-th (`screen-space-lod.md`).
 3. **The GPU culler's sync at the commit** (`MergedCuller.sync`), 934 → 455 ms of MG_1184: the instance copy reads
    the identity region, not a packed copy of it (`instanceData`, 80 B an instance uploaded again); the cells' spheres
    into a typed array, not pushed (1.4 M cells); no array and no closure per instance. Left: `splitCell` (168–184 ms

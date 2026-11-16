@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { radixSort } from '../sort.js';
+import { radixSort, radixSortIndices } from '../sort.js';
 
 function randomUints(n: number, max: number) {
   const data = new Uint32Array(n);
@@ -70,5 +70,38 @@ describe('radixSortUint', () => {
       radixSort(data);
       expectSorted(data, reference);
     }
+  });
+});
+
+describe('radixSortIndices', () => {
+  /** keys of a fixed sequence (a linear congruential generator): deterministic */
+  function keysOf(n: number, max: number) {
+    const keys = new Uint32Array(n);
+    let x = 12345;
+    for (let i = 0; i < n; i++) {
+      x = (Math.imul(x, 1103515245) + 12345) >>> 0;
+      keys[i] = x % max;
+    }
+    return keys;
+  }
+
+  it('orders the indices by key, equal keys by index, for 1 to 4 passes', () => {
+    for (const max of [2 ** 8, 2 ** 16, 2 ** 24, 2 ** 31]) {
+      const keys = keysOf(500, max);
+      const reference = Array.from(keys.keys()).sort((a, b) => keys[a] - keys[b] || a - b);
+      expect(Array.from(radixSortIndices(keys))).toEqual(reference);
+    }
+  });
+
+  it('keeps equal keys in index order, the keys unchanged', () => {
+    const keys = Int32Array.of(3, 1, 3, 0, 1, 3);
+    expect(Array.from(radixSortIndices(keys, 3))).toEqual([3, 1, 4, 0, 2, 5]);
+    expect(Array.from(keys)).toEqual([3, 1, 3, 0, 1, 3]);
+  });
+
+  it('handles empty, single and all-zero keys', () => {
+    expect(Array.from(radixSortIndices(new Uint32Array(0)))).toEqual([]);
+    expect(Array.from(radixSortIndices(Uint32Array.of(7)))).toEqual([0]);
+    expect(Array.from(radixSortIndices(new Uint32Array(4)))).toEqual([0, 1, 2, 3]);
   });
 });

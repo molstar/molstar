@@ -75,22 +75,37 @@ vec4 baseVoxel(vec2 pos) {
     return texture2D(tActiveVoxelsBase, pos / uSize);
 }
 
+// the group of the voxel at \`p\`, its index: in integers past 2^24, four bytes (\`packPickId\`); WebGL1
+// in floats, the null (white, the whole instance) past 2^24 - 1
 vec4 getGroup(const in vec3 p) {
+    #if __VERSION__ == 100
+        vec3 q = p;
+        vec3 d = uGridDataDim;
+        float group;
+    #else
+        ivec3 q = ivec3(p + 0.5);
+        ivec3 d = ivec3(uGridDataDim + 0.5);
+        int group;
+    #endif
     // note that we swap x and z because the texture is flipped around y
     #if defined(dAxisOrder_012)
-        float group = p.z + p.y * uGridDataDim.z + p.x * uGridDataDim.z * uGridDataDim.y; // 210
+        group = q.z + q.y * d.z + q.x * d.z * d.y; // 210
     #elif defined(dAxisOrder_021)
-        float group = p.y + p.z * uGridDataDim.y + p.x * uGridDataDim.y * uGridDataDim.z; // 120
+        group = q.y + q.z * d.y + q.x * d.y * d.z; // 120
     #elif defined(dAxisOrder_102)
-        float group = p.z + p.x * uGridDataDim.z + p.y * uGridDataDim.z * uGridDataDim.x; // 201
+        group = q.z + q.x * d.z + q.y * d.z * d.x; // 201
     #elif defined(dAxisOrder_120)
-        float group = p.x + p.z * uGridDataDim.x + p.y * uGridDataDim.x * uGridDataDim.z; // 021
+        group = q.x + q.z * d.x + q.y * d.x * d.z; // 021
     #elif defined(dAxisOrder_201)
-        float group = p.y + p.x * uGridDataDim.y + p.z * uGridDataDim.y * uGridDataDim.x; // 102
+        group = q.y + q.x * d.y + q.z * d.y * d.x; // 102
     #elif defined(dAxisOrder_210)
-        float group = p.x + p.y * uGridDataDim.x + p.z * uGridDataDim.x * uGridDataDim.y; // 012
+        group = q.x + q.y * d.x + q.z * d.x * d.y; // 012
     #endif
-    return vec4(group > 16777215.5 ? vec3(1.0) : packIntToRGB(group), 1.0);
+    #if __VERSION__ == 100
+        return group > 16777215.5 ? PickIdNull : packPickId(group);
+    #else
+        return packPickId(group);
+    #endif
 }
 
 #ifdef dPackedGroup
@@ -294,13 +309,13 @@ void main(void) {
         // webgl1 does not support 'flat' interpolation (i.e. no interpolation)
         // ensure a constant group id per triangle as needed
         #ifdef dPackedGroup
-            gl_FragData[1] = vec4(cellGroup(coord3d, edgeIndex), 1.0);
+            gl_FragData[1] = vec4(cellGroup(coord3d, edgeIndex), 0.0);
         #else
             gl_FragData[1] = getGroup(coord3d);
         #endif
     #else
         #ifdef dPackedGroup
-            gl_FragData[1] = vec4(t < 0.5 ? d0.rgb : d1.rgb, 1.0);
+            gl_FragData[1] = vec4(t < 0.5 ? d0.rgb : d1.rgb, 0.0);
         #else
             gl_FragData[1] = getGroup(t < 0.5 ? b0 : b1);
         #endif
