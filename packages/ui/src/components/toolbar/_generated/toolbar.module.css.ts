@@ -23,7 +23,6 @@ export const classes = {
   'level': 'msui-toolbar-level',
   'mark': 'msui-toolbar-mark',
   'menu': 'msui-toolbar-menu',
-  'menu-in': 'msui-toolbar-menu-in',
   'menuRoot': 'msui-toolbar-menuRoot',
   'row': 'msui-toolbar-row',
   'slot': 'msui-toolbar-slot',
@@ -202,15 +201,8 @@ defineStyles('components/toolbar/toolbar.module.css', `@layer msui.components {
   color: var(--msui-text);
   font-size: var(--msui-text-sm);
   line-height: var(--msui-leading-sm);
-  animation: msui-toolbar-menu-in var(--msui-motion-fast) var(--msui-ease);
   display: grid;
   overflow-y: auto;
-}
-
-@keyframes msui-toolbar-menu-in {
-  from {
-    opacity: 0;
-  }
 }
 
 .msui-toolbar-row {

@@ -103,6 +103,15 @@
   }
 }
 
+/* What floats in (styles §7.1): it fades in and rises from its anchor by --msui-rise, toward where it opens
+   (`--msui-rise-x`, `--msui-rise-y` set by the side it opens on). */
+@keyframes msui-float-in {
+  from {
+    opacity: 0;
+    translate: var(--msui-rise-x, 0) var(--msui-rise-y, 0);
+  }
+}
+
 @layer msui.reset {
   :where(.msui-root) {
     /* Heights animate to and from auto (a reveal grows to its height). */

@@ -19,8 +19,6 @@ export const classes = {
   'groupHead': 'msui-select-groupHead',
   'label': 'msui-select-label',
   'list': 'msui-select-list',
-  'list-fade': 'msui-select-list-fade',
-  'list-in': 'msui-select-list-in',
   'listContent': 'msui-select-listContent',
   'menuPopover': 'msui-select-menuPopover',
   'option': 'msui-select-option',
@@ -93,29 +91,11 @@ defineStyles('components/select/select.module.css', `@layer msui.components {
   background: color-mix(in oklab, var(--msui-control), transparent 40%);
   max-height: 240px;
   box-shadow: inset 0 0 0 1px var(--msui-line);
-  animation: msui-select-list-in var(--msui-motion-fast) var(--msui-ease);
 }
 
 .msui-select-listContent {
   padding: var(--msui-space-1) var(--msui-surface-pad);
   display: grid;
-}
-
-.msui-select-floating[data-placement="over"] > .msui-select-list {
-  animation-name: msui-select-list-fade;
-}
-
-@keyframes msui-select-list-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes msui-select-list-in {
-  from {
-    opacity: 0;
-    transform: translateY(-2px);
-  }
 }
 
 .msui-select-option {
@@ -197,15 +177,32 @@ defineStyles('components/select/select.module.css', `@layer msui.components {
 
 .msui-select-floating {
   color: inherit;
-  background: none;
-  border: 0;
   width: max-content;
   max-width: calc(100vw - 16px);
+  animation: msui-float-in var(--msui-enter);
+  background: none;
+  border: 0;
   margin: 0;
   padding: 0;
   position: fixed;
   inset: auto;
   overflow: visible;
+
+  &[data-side="below"] {
+    --msui-rise-y: calc(-1 * var(--msui-rise));
+  }
+
+  &[data-side="above"] {
+    --msui-rise-y: var(--msui-rise);
+  }
+
+  &[data-side="right"] {
+    --msui-rise-x: calc(-1 * var(--msui-rise));
+  }
+
+  &[data-side="left"] {
+    --msui-rise-x: var(--msui-rise);
+  }
 
   & .msui-select-option {
     white-space: nowrap;
@@ -228,7 +225,6 @@ defineStyles('components/select/select.module.css', `@layer msui.components {
   box-shadow: inset 0 0 0 1px var(--msui-line),
     var(--msui-shadow-overlay);
   font-size: var(--msui-text-sm);
-  animation: msui-select-list-in var(--msui-motion-fast) var(--msui-ease);
   display: grid;
   overflow-y: auto;
 }

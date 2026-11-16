@@ -83,6 +83,13 @@ defineStyles('styles/reset.css', `@property --msui-fade {
   }
 }
 
+@keyframes msui-float-in {
+  from {
+    opacity: 0;
+    translate: var(--msui-rise-x, 0) var(--msui-rise-y, 0);
+  }
+}
+
 @layer msui.reset {
   :where(.msui-root) {
     interpolate-size: allow-keywords;

@@ -1,0 +1,347 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * The command menu (commands §5): a raised surface over a scrim. Its columns are the foundations' (styles §5): the head's
+ * icon in the slot at the inset, over the rows' icons; what is typed starts on the rows' text column (inset + slot +
+ * gap). The list pads its sides by the surface's pad, its rows the rest of the inset.
+ */
+
+/* Fills its positioned container; what is behind stays visible (previews draw there). */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msui-z-dialog);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh var(--msui-space-4) var(--msui-space-4);
+  background: color-mix(in oklab, var(--msui-bg), transparent 70%);
+}
+
+.menu {
+  /* Its icons mark commands and choices: the small size in the 16px slot (styles §4.1). */
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: min(480px, 76vh);
+  overflow: hidden;
+  border-radius: var(--msui-radius-lg);
+  /* A surface (not raised): its tokens and controls take the raised step and show on it. */
+  background: var(--msui-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--msui-line),
+    var(--msui-shadow-overlay);
+  color: var(--msui-text);
+  font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);
+}
+
+/* The head: the slot at the inset, then the line typed into (crumbs and the input, or the sentence). */
+.head {
+  flex: none;
+  display: grid;
+  grid-template-columns: var(--msui-icon-slot) minmax(0, 1fr);
+  column-gap: var(--msui-icon-gap);
+  align-items: start;
+  min-height: calc(10 * var(--msui-unit));
+  padding: var(--msui-space-2) var(--msui-inset);
+  border-bottom: 1px solid var(--msui-line);
+}
+
+/* Its icon: an object's size (a header's, styles §4.1), centered on the first line. */
+.headSlot {
+  --msui-icon-size: var(--msui-icon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--msui-icon-slot);
+  height: var(--msui-row);
+  color: var(--msui-text-muted);
+}
+
+.headLine {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  height: var(--msui-row);
+}
+
+/* What is typed reads a step larger than the rows. */
+.input {
+  flex: 1;
+  min-width: 0;
+  height: var(--msui-row);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--msui-text);
+  /* The rows' size: the line typed and the lines listed read as one (a larger input set the head apart). */
+  font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);
+  outline: none;
+
+  &::placeholder {
+    color: var(--msui-text-subtle);
+  }
+}
+
+/* The group being browsed, before the input; a click goes back to that level. */
+.crumb {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  height: var(--msui-control-height);
+  padding-inline: var(--msui-space-1);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+  }
+}
+
+.message {
+  margin: 0;
+  padding: var(--msui-space-1) var(--msui-inset);
+  color: var(--msui-text-muted);
+}
+
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
+
+  &:has(.listContent:empty) {
+    display: none;
+  }
+}
+
+.listContent {
+  display: grid;
+  align-content: start;
+  padding: var(--msui-space-1) var(--msui-surface-pad);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--msui-space-5) var(--msui-inset);
+  color: var(--msui-text-subtle);
+  text-align: center;
+}
+
+/* The rows not rendered yet: their height, so the scroll bar is the whole list's. */
+.rest {
+  pointer-events: none;
+}
+
+/* A heading of the list, xs muted on the text column (styles §4.1). */
+.caption {
+  display: flex;
+  align-items: flex-end;
+  height: var(--msui-row);
+  padding-block-end: var(--msui-space-1);
+  padding-inline-start: calc(var(--msui-inner) + var(--msui-icon-slot) + var(--msui-icon-gap));
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+}
+
+/* A list row (styles §4, §5): the slot, the title, what it says more (shrinks, fades), what ends it. */
+.row {
+  display: grid;
+  /* The icon slot, the title (whole: never cut, styles §2), what trails at the end (a path, a count, a detail: it
+     yields and fades first), the key. */
+  grid-template-columns: var(--msui-icon-slot) minmax(max-content, 1fr) minmax(0, auto) auto;
+  column-gap: var(--msui-icon-gap);
+  align-items: center;
+  height: var(--msui-row);
+  padding-inline: var(--msui-inner);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text);
+  cursor: default;
+
+  &[aria-selected="true"] {
+    background: var(--msui-control-hover);
+  }
+
+  &[aria-selected="true"] .rowMeta {
+    color: var(--msui-text-muted);
+  }
+
+  &[aria-disabled="true"] {
+    color: var(--msui-text-subtle);
+  }
+}
+
+.rowSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--msui-icon-slot);
+  height: var(--msui-icon);
+  color: var(--msui-text-muted);
+}
+
+/* A command's title is a UI label: whole (styles §2). */
+.rowTitle {
+  white-space: nowrap;
+
+  & mark {
+    background: none;
+    color: var(--msui-accent);
+    font-weight: var(--msui-weight-strong);
+  }
+
+  /* The field's value now: the accent text (a choice's chosen one, styles §4.1). */
+  &[data-current] {
+    color: var(--msui-accent);
+  }
+}
+
+/* The words typed after a direct alias. */
+.tail {
+  margin-inline-start: var(--msui-space-1);
+  color: var(--msui-text-muted);
+}
+
+/* Variable content (a path, a count, a reason): cut off, it fades (reset.css). */
+.rowMeta {
+  justify-self: end;
+  overflow: hidden;
+  text-align: end;
+  padding-inline-start: var(--msui-space-2);
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/* What ends a row (a key, a group's chevron): quiet, clear of the meta. */
+.rowEnd {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: var(--msui-space-2);
+  color: var(--msui-text-subtle);
+}
+
+/* A group's shared argument: quiet toggles under the head, the label at the text column. */
+.shared {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-height: var(--msui-header);
+  padding-inline: calc(var(--msui-inset) + var(--msui-icon-slot) + var(--msui-icon-gap)) var(--msui-inset);
+  border-bottom: 1px solid var(--msui-line);
+}
+
+.sharedTitle {
+  margin-inline-end: var(--msui-space-2);
+  color: var(--msui-text-subtle);
+}
+
+.sharedOption {
+  height: var(--msui-control-height);
+  padding-inline: var(--msui-control-inset);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msui-control);
+    color: var(--msui-accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+}
+
+/* The assistant under the list: a row of its own, quiet; the default (↵) when no command matches. */
+.ask {
+  flex: none;
+  display: grid;
+  grid-template-columns: var(--msui-icon-slot) auto minmax(0, 1fr) auto;
+  column-gap: var(--msui-icon-gap);
+  align-items: center;
+  height: var(--msui-row);
+  margin: 0 var(--msui-surface-pad) var(--msui-space-1);
+  padding-inline: var(--msui-inner);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text);
+  text-align: left;
+
+  &:hover,
+  &[data-default] {
+    background: var(--msui-control-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+
+  &[data-setup] {
+    grid-template-columns: var(--msui-icon-slot) minmax(0, 1fr);
+    color: var(--msui-text-muted);
+  }
+}
+
+.askSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--msui-icon-slot);
+  color: var(--msui-accent);
+
+  [data-setup] > & {
+    color: var(--msui-text-subtle);
+  }
+}
+
+.askLabel {
+  white-space: nowrap;
+}
+
+.askText {
+  overflow: hidden;
+  padding-inline-start: var(--msui-space-2);
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.askKeys {
+  color: var(--msui-text-subtle);
+  font: inherit;
+  font-size: var(--msui-text-xs);
+}
+
+/* Read by screen readers only: what a search found (a polite status). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

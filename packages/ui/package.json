@@ -18,12 +18,19 @@
       "types": "./lib/dom/index.d.ts",
       "import": "./lib/dom/index.js"
     },
+    "./react": {
+      "molstar-src": "./src/react/index.ts",
+      "types": "./lib/react/index.d.ts",
+      "import": "./lib/react/index.js"
+    },
     "./styles/foundations.css": "./src/styles/foundations.css",
     "./_stories/*": null,
     "./_test/*": null,
+    "./commands/_test/*": null,
     "./components/action-footer/_test/*": null,
     "./components/choices/_test/*": null,
     "./components/color/_test/*": null,
+    "./components/command-menu/_test/*": null,
     "./components/context-menu/_test/*": null,
     "./components/histogram/_test/*": null,
     "./components/icon/_test/*": null,
@@ -35,6 +42,7 @@
     "./components/scroll-area/_test/*": null,
     "./components/segmented/_test/*": null,
     "./components/select/_test/*": null,
+    "./components/skeleton/_test/*": null,
     "./components/text-input/_test/*": null,
     "./components/toolbar/_test/*": null,
     "./components/tooltip/_test/*": null,
@@ -42,6 +50,8 @@
     "./components/virtual-list/_test/*": null,
     "./dom/_test/*": null,
     "./forms/_test/*": null,
+    "./react/_test/*": null,
+    "./styles/_test/*": null,
     "./testing/*": null
   },
   "files": [
@@ -68,6 +78,14 @@
     "tslib": "catalog:",
     "@molstar/core": "workspace:*"
   },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
@@ -77,6 +95,10 @@
     "@storybook/addon-docs": "catalog:",
     "@storybook/web-components-vite": "catalog:",
     "lightningcss": "catalog:",
-    "lucide-static": "catalog:"
+    "lucide-static": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "preact": "catalog:"
   }
 }

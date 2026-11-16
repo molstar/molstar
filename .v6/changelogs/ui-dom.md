@@ -14,9 +14,18 @@
   (opens over its field), popover, context menu, color picker, choices (a radio group when it shows a selection,
   labels never cut), virtual and recycled lists, drag to reorder, legend, markdown, action footer, logo (the Mol*
   wordmark), a generic toolbar (groups as blocks or on one surface with separators, menu buttons, submenus), a
-  segmented picker (icons or text in a well), an iso level control and a transfer function editor over a shared
-  histogram plot (values in σ or absolute) and the params form with its model (no rxjs). Styles compile from CSS
-  modules into registered modules (`pnpm -C packages/ui styles`, `styles:check` keeps spacing on the 4px grid);
-  corners are squircles where supported, nested corners concentric; icons take their size from their container.
+  segmented picker (icons or text in a well), skeleton placeholders for what loads (crossfading into their content),
+  an iso level control and a transfer function editor over a shared histogram plot (values in σ or absolute) and the
+  params form with its model (no rxjs). Styles compile from CSS modules into registered modules (`pnpm -C packages/ui
+  styles`, `styles:check` keeps spacing on the 4px grid); corners are squircles where supported, nested corners
+  concentric; transitions are one vocabulary (floats rise from their anchor, folds grow and shrink, swaps crossfade in
+  place); icons take their size from their container.
 - Fix `PD.ObjectList` ignoring its `ctor` option: a list's "Add" now creates the item it gives, not the element's
   defaults.
+- `@molstar/ui/react`: React bindings over core's reactive sources (`useReactive`, `useReactiveProp`,
+  `useReactiveModel`), `reactView` for React or Preact views, and `UiElementHost`. A state is read through its `value`
+  and followed by its changes only, so subscribing never notifies React's store; React is an optional peer dependency.
+- `@molstar/ui/commands` and the command menu (`components/command-menu`): commands over PD params with keys, groups,
+  presets and formats; in the menu, the command's sentence is its editor, the list under it always the active field's
+  choices, and the rest of the params in an Options fold.
+

@@ -203,14 +203,7 @@
   color: var(--msui-text);
   font-size: var(--msui-text-sm);
   line-height: var(--msui-leading-sm);
-  animation: menu-in var(--msui-motion-fast) var(--msui-ease);
-}
-
-/* It keeps its size: it only fades (styles §7). */
-@keyframes menu-in {
-  from {
-    opacity: 0;
-  }
+  /* Its entrance is its floating layer's (styles §7.1). */
 }
 
 /* A row: the icon slot at the inset, the label a level in (inset + --msui-indent), the hint, and in a menu with checks

@@ -341,11 +341,13 @@ export function Floating(props: {
     const w = el.offsetWidth;
     let top: number;
     let left: number;
+    let side = 'over';
     if (beside) {
       // Its side, or the other where it would leave the window and the other has more room.
       const right = window.innerWidth - r.right;
       const onRight = placement === 'right' ? right >= w + 8 || right >= r.left : !(r.left >= w + 8 || r.left >= right);
       left = onRight ? r.right + gap : r.left - gap - w;
+      side = onRight ? 'right' : 'left';
       top = props.align === 'end' ? r.bottom - h + shift : r.top - shift;
     } else {
       if (placement === 'over') {
@@ -355,10 +357,14 @@ export function Floating(props: {
         const below = window.innerHeight - r.bottom;
         const fitsBelow = below >= h + 8 || below >= r.top;
         const fitsAbove = r.top >= h + 8 || r.top >= below;
-        top = (placement === 'above' ? !fitsAbove : fitsBelow) ? r.bottom + gap : r.top - h - gap;
+        const under = placement === 'above' ? !fitsAbove : fitsBelow;
+        top = under ? r.bottom + gap : r.top - h - gap;
+        side = under ? 'below' : 'above';
       }
       left = column ? column.left : props.align === 'end' ? r.right - w + shift : r.left - shift;
     }
+    // The side it took (a flip counts), for its entrance (styles §7.1); written when it changes.
+    if (el.dataset.side !== side) el.dataset.side = side;
     // Kept on screen: one that grew past the bottom (a submenu opened in place) moves up, over its anchor if it must.
     el.style.left = `${Math.max(8, Math.min(left, window.innerWidth - 8 - w))}px`;
     el.style.top = `${Math.max(4, Math.min(top, window.innerHeight - 8 - h))}px`;

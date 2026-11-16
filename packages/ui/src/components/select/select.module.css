@@ -79,7 +79,6 @@
   background: color-mix(in oklab, var(--msui-control), transparent 40%);
   /* A hairline: in a block of the same tone it would blend in otherwise. */
   box-shadow: inset 0 0 0 1px var(--msui-line);
-  animation: list-in var(--msui-motion-fast) var(--msui-ease);
 }
 
 /* It pads by the surface's pad; its rows pad the rest of the control inset, so their text starts where the field's
@@ -87,24 +86,6 @@
 .listContent {
   display: grid;
   padding: var(--msui-space-1) var(--msui-surface-pad);
-}
-
-/* Over its field: it only fades in (a slide would move the current option off the field's text). */
-.floating[data-placement="over"] > .list {
-  animation-name: list-fade;
-}
-
-@keyframes list-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes list-in {
-  from {
-    opacity: 0;
-    transform: translateY(-2px);
-  }
 }
 
 /* A list row (styles §4): 24px, text 12/16 at the field's control inset; the check where the field's chevron is (its
@@ -204,6 +185,25 @@
   color: inherit;
   width: max-content;
   max-width: calc(100vw - 16px);
+  /* It floats in (styles §7.1) from the side it opened on (`data-side`, where it was placed: a flip counts); over its
+     field it only fades, so the current option stays on the field's text. It leaves at once: a pick or Esc is done. */
+  animation: msui-float-in var(--msui-enter);
+
+  &[data-side="below"] {
+    --msui-rise-y: calc(-1 * var(--msui-rise));
+  }
+
+  &[data-side="above"] {
+    --msui-rise-y: var(--msui-rise);
+  }
+
+  &[data-side="right"] {
+    --msui-rise-x: calc(-1 * var(--msui-rise));
+  }
+
+  &[data-side="left"] {
+    --msui-rise-x: var(--msui-rise);
+  }
 
   & .option {
     white-space: nowrap;
@@ -235,5 +235,4 @@
     inset 0 0 0 1px var(--msui-line),
     var(--msui-shadow-overlay);
   font-size: var(--msui-text-sm);
-  animation: list-in var(--msui-motion-fast) var(--msui-ease);
 }

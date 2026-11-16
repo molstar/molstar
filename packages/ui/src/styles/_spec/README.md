@@ -101,6 +101,10 @@ Things that belong together visually share a column; each column is a token, so 
 - The Alignment stories draw the columns over a panel built with the primitives, and over the same content laid out ad
   hoc.
 
+- **What loads is a placeholder in place** (`components/skeleton`): its shapes on the columns and lines of the content
+  that replaces it (a row's slot and text column, a label and a control, text lines), shown after a moment (300ms), so
+  nothing moves when the content arrives and a quick load shows nothing.
+
 ## 6. Shape
 
 - Radii by role: `sm` (2px) inline marks, `lg` (8px) surfaces, `md` controls and rows inside a surface. Elevation
@@ -130,3 +134,23 @@ Things that belong together visually share a column; each column is a token, so 
 - Move what the eye follows; pick the move by what must not change (grow in a flow, slide a panel, fade what keeps its
   size); transform, opacity and grid tracks only; nothing on a first render or for rows of a list. Every duration is 0
   under `prefers-reduced-motion`.
+
+### 7.1 Transitions
+
+What enters and leaves the UI, one vocabulary (tokens `--msui-enter`, `--msui-exit`, `--msui-rise`, `--msui-ease-in`):
+
+- **Enter slower than leave.** What enters takes `--msui-enter` (base, eased out: it arrives and settles); what leaves
+  `--msui-exit` (fast, eased in: it gets out of the way). Why: arrival is what the eye follows; a departure that lingers
+  delays what was asked for.
+- **A float rises from its anchor** (`msui-float-in`: fade, and `--msui-rise` from the side it opened on; `Floating`
+  marks the side it took, a flip included). Every floating layer (a select's list, a popover, a menu, a context menu)
+  enters this way and leaves at once: a pick or Esc is done. Over its field (a select) it only fades, so the current
+  option stays on the field's text.
+- **A fold grows and shrinks** (`Show`'s `reveal`): to its height on opening, back to nothing on closing, both over
+  base, eased in and out. The closing plays through the runtime's `Motion.close`, which a UI root installs
+  (`styles/transitions.ts`); without Web Animations or under reduced motion the content goes at once.
+- **A swap crossfades in place**: what replaces content in the same place (a placeholder by its content: `Loaded`)
+  shares its cell; the old fades out (exit) as the new fades in. Nothing moves when the two have the same shape (§5,
+  placeholders).
+- **Not animated**: a first render, the rows of a list (scrolling, filtering), what follows the pointer, values that
+  change in place (a number, a label). Why: motion there is noise, and costs on hot paths.

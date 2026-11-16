@@ -223,6 +223,12 @@
     --msui-motion-slow: 360ms;
     --msui-ease: cubic-bezier(0.2, 0, 0, 1);
     --msui-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --msui-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    /* §7.1 Transitions: what enters takes base and eases out (it arrives and settles); what leaves takes fast and
+       eases in (it gets out of the way). A float rises from its anchor by --msui-rise. */
+    --msui-enter: var(--msui-motion-base) var(--msui-ease);
+    --msui-exit: var(--msui-motion-fast) var(--msui-ease-in);
+    --msui-rise: var(--msui-space-1);
   }
 
   /* Squircles where the browser draws them: a superellipse reads tighter than a circle at the same radius, so the radii

@@ -175,6 +175,10 @@ defineStyles('styles/foundations.css', `@layer msui.foundations {
     --msui-motion-slow: .36s;
     --msui-ease: cubic-bezier(.2, 0, 0, 1);
     --msui-ease-in-out: cubic-bezier(.4, 0, .2, 1);
+    --msui-ease-in: cubic-bezier(.4, 0, 1, 1);
+    --msui-enter: var(--msui-motion-base) var(--msui-ease);
+    --msui-exit: var(--msui-motion-fast) var(--msui-ease-in);
+    --msui-rise: var(--msui-space-1);
   }
 
   @supports (corner-shape: squircle) {

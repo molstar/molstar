@@ -1,0 +1,105 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* What loads (styles §5): placeholder shapes where the content will be, on its columns and lines, so nothing moves
+   when it arrives. A shape is a tint of the text color (it reads on any surface and theme); one light band sweeps over
+   every shape at once (the gradient is fixed to the viewport, so all shapes share its phase). */
+.loading {
+  display: grid;
+  min-width: 0;
+  /* Shown after a moment: a load quicker than that never flashes a placeholder. */
+  animation: in var(--msui-motion-base) var(--msui-ease) var(--msui-skeleton-delay, 300ms) backwards;
+}
+
+@keyframes in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Content and its placeholder in one place (`Loaded`): both in the one grid cell, so one fades out over the other. */
+.swap {
+  display: grid;
+  min-width: 0;
+
+  & > * {
+    grid-area: 1 / 1;
+    min-width: 0;
+  }
+}
+
+.layer {
+  display: grid;
+  min-width: 0;
+}
+
+.shape {
+  --msui-skeleton-tint: color-mix(in oklab, currentColor, transparent 90%);
+  --msui-skeleton-band: color-mix(in oklab, currentColor, transparent 95%);
+
+  display: block;
+  min-width: 0;
+  border-radius: var(--msui-radius-sm);
+  background:
+    linear-gradient(100deg, transparent 40%, var(--msui-skeleton-band) 50%, transparent 60%) 0 0 / 200vw 100% fixed,
+    var(--msui-skeleton-tint);
+  animation: sweep 1600ms linear infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position-x: 100vw;
+  }
+  to {
+    background-position-x: -100vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shape {
+    animation: none;
+    background: var(--msui-skeleton-tint);
+  }
+}
+
+/* A line of text: the line's box (its leading), a bar half its height centered in it, as a line of words. */
+.line {
+  display: flex;
+  align-items: center;
+  height: var(--msui-leading-sm);
+
+  & > .shape {
+    height: var(--msui-space-2);
+  }
+
+  &[data-size="xs"] {
+    height: var(--msui-leading-xs);
+  }
+
+  &[data-size="md"] {
+    height: var(--msui-leading-md);
+
+    & > .shape {
+      height: var(--msui-space-3);
+    }
+  }
+}
+
+/* A row (styles §5): the row primitive's columns; the icon a square of the icon size in its slot, the text a bar on
+   the text column. */
+.icon {
+  width: var(--msui-icon);
+  height: var(--msui-icon);
+  border-radius: var(--msui-radius-sm);
+}
+
+.text {
+  height: var(--msui-space-2);
+}
+
+.round {
+  border-radius: 50%;
+}

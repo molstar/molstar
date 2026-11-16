@@ -25,6 +25,9 @@
   color: var(--msui-text);
   font-size: var(--msui-text-sm);
   line-height: var(--msui-leading-sm);
+  /* It floats in from the pointer (styles §7.1; `translate`, apart from the transform that places it). */
+  --msui-rise-y: calc(-1 * var(--msui-rise));
+  animation: msui-float-in var(--msui-enter);
 }
 
 /* A list row (styles §4, §5): the label at the inset, or after an icon slot when the menu has icons; the key at its end. */

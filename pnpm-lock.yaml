@@ -3536,6 +3536,9 @@ importers:
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24
@@ -3545,6 +3548,15 @@ importers:
       lucide-static:
         specifier: 'catalog:'
         version: 1.48.0
+      preact:
+        specifier: 'catalog:'
+        version: 10.29.8
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 18.3.1(react@18.3.1)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
