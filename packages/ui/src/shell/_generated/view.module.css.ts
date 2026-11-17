@@ -27,6 +27,11 @@ export const classes = {
   'headerButton': 'msui-shell-view-headerButton',
   'heading': 'msui-shell-view-heading',
   'host': 'msui-shell-view-host',
+  'row': 'msui-shell-view-row',
+  'rowDescription': 'msui-shell-view-rowDescription',
+  'rowLabel': 'msui-shell-view-rowLabel',
+  'rowText': 'msui-shell-view-rowText',
+  'rowTrailing': 'msui-shell-view-rowTrailing',
   'stack': 'msui-shell-view-stack',
   'title': 'msui-shell-view-title',
   'toolbar': 'msui-shell-view-toolbar',
@@ -187,8 +192,41 @@ defineStyles('shell/view.module.css', `@layer msui.components {
   display: flex;
 }
 
-.msui-shell-view-footer {
+.msui-shell-view-footer, .msui-shell-view-row {
   min-width: 0;
+}
+
+.msui-shell-view-rowText {
+  align-items: baseline;
+  gap: var(--msui-space-1);
+  white-space: nowrap;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.msui-shell-view-rowLabel, .msui-shell-view-rowDescription {
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
+}
+
+.msui-shell-view-rowLabel {
+  flex: 0 auto;
+}
+
+.msui-shell-view-rowDescription {
+  color: var(--msui-text-muted);
+  flex: 1 1 0;
+}
+
+.msui-shell-view-rowTrailing {
+  align-items: center;
+  gap: var(--msui-space-1);
+  display: flex;
 }
 
 .msui-shell-view-heading {

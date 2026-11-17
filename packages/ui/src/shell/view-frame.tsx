@@ -8,9 +8,16 @@
 
 import { Button } from '../components/button/button.js';
 import { type ContextMenuItem, openContextMenu } from '../components/context-menu/context-menu.js';
-import { Icon } from '../components/icon/icon.js';
+import { Icon, type IconName } from '../components/icon/icon.js';
 import { ScrollArea } from '../components/scroll-area/scroll-area.js';
-import { type Child, onCleanup, requireScope, type ViewRenderer } from '../dom/index.js';
+import {
+  type Child,
+  type ElementProps,
+  type MaybeReactive,
+  onCleanup,
+  requireScope,
+  type ViewRenderer,
+} from '../dom/index.js';
 import { classes } from './_generated/view.module.css.js';
 import type { ViewRef } from './layout.js';
 import type { ShellModel, ShellViewContext, ShellViewDef, ViewPlacement } from './shell-model.js';
@@ -254,6 +261,46 @@ export function ViewFooter(props: { children: Child }) {
   });
   onCleanup(() => el.remove());
   return el;
+}
+
+/**
+ * A list or tree row (styles §8.5): an icon slot (kept when empty), the label, then a muted description on the same line,
+ * what trails (a count, an action). Its label and description fade where they are cut off, and the row carries the
+ * shell's side tooltip: while either is cut off, a card beside the view shows both whole (`data-tip-row`, from a pointer
+ * over the text or the keyboard's focus on the row). `level` indents it a slot per level (a tree).
+ */
+export function ViewRow(
+  props: {
+    icon?: IconName | Child;
+    label: MaybeReactive<string>;
+    description?: MaybeReactive<string>;
+    trailing?: Child;
+    level?: number;
+    class?: string;
+  } & Omit<ElementProps<HTMLDivElement>, 'class' | 'children'>,
+) {
+  const { icon, label, description, trailing, level, class: cls, ...rest } = props;
+  return (
+    <div
+      {...rest}
+      class={cls ? `msui-row ${classes.row} ${cls}` : `msui-row ${classes.row}`}
+      data-tip-row=""
+      style={level ? `--msui-level: ${level}` : undefined}
+    >
+      <span class="msui-slot">{typeof icon === 'string' ? <Icon name={icon as IconName} /> : (icon ?? null)}</span>
+      <span class={classes.rowText}>
+        <span class={classes.rowLabel} data-tip-part="">
+          {label}
+        </span>
+        {description !== undefined ? (
+          <span class={classes.rowDescription} data-tip-part="">
+            {description}
+          </span>
+        ) : null}
+      </span>
+      {trailing !== undefined ? <span class={classes.rowTrailing}>{trailing}</span> : null}
+    </div>
+  );
 }
 
 /** A small heading inside a view (a group of rows without a fold): xs, muted, on the text column. */

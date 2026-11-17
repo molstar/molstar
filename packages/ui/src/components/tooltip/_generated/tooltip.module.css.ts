@@ -39,7 +39,7 @@ defineStyles('components/tooltip/tooltip.module.css', `@layer msui.components {
 }
 
 .msui-tooltip-tooltip[data-kind="row"] {
-  max-width: 320px;
+  max-width: 480px;
   padding: var(--msui-space-1) var(--msui-control-inset);
   border-radius: var(--msui-radius-lg);
   background: var(--msui-surface-raised);

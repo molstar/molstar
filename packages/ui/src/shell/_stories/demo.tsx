@@ -15,13 +15,12 @@ import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { SkeletonRows } from '../../components/skeleton/skeleton.js';
 import { TextInput } from '../../components/text-input/text-input.js';
-import { installTooltips } from '../../components/tooltip/tooltip.js';
-import { type Child, domView, For, onCleanup } from '../../dom/index.js';
+import { type Child, domView, For } from '../../dom/index.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import { ShellModel, type ShellOptions, type ShellViewDef } from '../shell-model.js';
 import { type ShellBusy, ShellView } from '../shell-view.js';
 import { SectionList } from '../section-list.js';
-import { ViewEmpty, ViewFooter, ViewHeading, ViewStack, ViewToolbar } from '../view-frame.js';
+import { ViewEmpty, ViewFooter, ViewHeading, ViewRow, ViewStack, ViewToolbar } from '../view-frame.js';
 
 // Generic views for the shell's stories: what an app (or an extension) contributes, written only with the view
 // primitives (shell foundations, styles §8): no padding, gaps or type of their own.
@@ -46,7 +45,15 @@ const lighting = {
   shadows: PD.Boolean(true),
 };
 
-const layerNames = ['Background', 'Grid', 'Annotations', 'Selection', 'Measurements', 'Labels', 'Overlay'];
+/** The demo's layers: a tree (level), each with a description; some long enough to be cut off in a panel. */
+const layers: { name: string; description: string; level: number; icon: 'layers' | 'image' | 'tag' | 'ruler' }[] = [
+  { name: 'Background', description: 'Gradient, 3 stops', level: 0, icon: 'image' },
+  { name: 'Annotations of the selected region', description: '128 items, 4 hidden', level: 0, icon: 'tag' },
+  { name: 'Labels', description: 'Names and identifiers, shown on hover', level: 1, icon: 'tag' },
+  { name: 'Measurements', description: 'Distances and angles, 6 items', level: 1, icon: 'ruler' },
+  { name: 'Selection', description: 'Highlighted with an outline', level: 0, icon: 'layers' },
+  { name: 'Overlay with a very long name that does not fit', description: 'Drawn last', level: 0, icon: 'layers' },
+];
 
 function HomeView() {
   return (
@@ -72,23 +79,27 @@ function HomeView() {
 
 function LayersView() {
   const filter = new State('');
-  const shown = derive(filter, (f) => layerNames.filter((n) => n.toLowerCase().includes(f.toLowerCase())));
+  const shown = derive(filter, (f) => layers.filter((l) => l.name.toLowerCase().includes(f.toLowerCase())));
   return (
     <ViewStack>
       <ViewToolbar label="Layers">
         <TextInput value={filter} onInput={(v) => filter.set(v)} placeholder="Filter layers" />
         <Button variant="ghost" size="sm" icon={<Icon name="plus" />} title="Add a layer" />
       </ViewToolbar>
-      <div class="msui-list" role="list">
-        <For each={shown} by={(n) => n}>
-          {(name) => (
-            <div class="msui-row" role="listitem">
-              <span class="msui-slot">
-                <Icon name="layers" />
-              </span>
-              <span>{name}</span>
-              <Button variant="ghost" size="xs" icon={<Icon name="eye" />} title={`Hide ${name}`} />
-            </div>
+      <div class="msui-list" role="tree" aria-label="Layers">
+        <For each={shown} by={(l) => l.name}>
+          {(l) => (
+            // Cut off, its name and description show whole in a card beside the view (the shell's side tooltip).
+            <ViewRow
+              role="treeitem"
+              tabIndex={0}
+              aria-level={String(l.level + 1)}
+              level={l.level}
+              icon={l.icon}
+              label={l.name}
+              description={l.description}
+              trailing={<Button variant="ghost" size="xs" icon={<Icon name="eye" />} title={`Hide ${l.name}`} />}
+            />
           )}
         </For>
       </div>
@@ -314,10 +325,7 @@ export function DemoShell(props: { options?: DemoOptions; children?: Child }) {
   ]);
   o.setup?.(shell);
   return (
-    <div
-      ref={(el: HTMLElement) => onCleanup(installTooltips(el))}
-      style={`width: ${o.width ?? '100%'}; height: ${o.height ?? '100vh'}; display: flex;`}
-    >
+    <div style={`width: ${o.width ?? '100%'}; height: ${o.height ?? '100vh'}; display: flex;`}>
       <ShellView
         shell={shell}
         main={() => <MainPlaceholder />}

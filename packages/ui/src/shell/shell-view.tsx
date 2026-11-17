@@ -10,6 +10,7 @@ import { derive, type ReadonlyState, State } from '@molstar/core/reactive';
 import { Button } from '../components/button/button.js';
 import { openContextMenu } from '../components/context-menu/context-menu.js';
 import { Icon } from '../components/icon/icon.js';
+import { installTooltips } from '../components/tooltip/tooltip.js';
 import { dismissable } from '../components/popover/dismiss.js';
 import {
   type Child,
@@ -57,7 +58,7 @@ import type { ShellModel, ViewPlacement } from './shell-model.js';
 import { viewBody, viewContext, ViewFrame } from './view-frame.js';
 import { railMenu, viewMenu, type WindowAdjust } from './view-menu.js';
 
-/** What holds the app (shell §3.5, busy): a label, a progress 0–1 (none: indeterminate), a cancel. */
+/** What holds the app (shell §3.6, busy): a label, a progress 0–1 (none: indeterminate), a cancel. */
 export interface ShellBusy {
   readonly label: string;
   readonly progress?: number;
@@ -86,6 +87,11 @@ export interface ShellViewProps {
    * is a right-click (or Shift+F10) on a view's header, its tab or its rail button; ✕ closes.
    */
   readonly viewMenu?: boolean;
+  /**
+   * The shell's tooltips (default on): one layer for everything in it, the app's views included (`data-tip`, and a
+   * row's card beside its view, `data-tip-row`). Off when the app installs its own around the shell.
+   */
+  readonly tooltips?: boolean;
   /** The shell's accessible name (its region). */
   readonly label?: string;
   readonly class?: string;
@@ -120,6 +126,7 @@ export function ShellView(props: ShellViewProps) {
     />
   ) as HTMLElement;
   observeResize(root, () => shell.setWidth(root.clientWidth));
+  if (props.tooltips !== false) onCleanup(installTooltips(root));
   watch([shell.mode], () => setAttr(root, 'data-mode', shell.mode.value));
   on<KeyboardEvent>(root, 'keydown', (e) => {
     if (e.key === 'F6' && !e.defaultPrevented) {
@@ -645,7 +652,8 @@ function GroupView(props: { shell: ShellModel; id: string; bodies: ViewBodies })
   const open = derive(shell.layout, (l) => !findGroup(l, id)?.group.collapsed);
   const enter = entering();
   return (
-    <div class={classes.group} data-group={id}>
+    // A row's tooltip card goes outside the group, toward the roomier side (the main area).
+    <div class={classes.group} data-group={id} data-tip-edge="">
       <Show when={key}>
         {() => {
           const s = state.value;
@@ -980,6 +988,7 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
       role="dialog"
       aria-modal="false"
       data-window={id}
+      data-tip-edge=""
       data-enter={props.enter ? '' : undefined}
     />
   ) as HTMLElement;
@@ -1129,7 +1138,7 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
 // Layers: the card, the page, the modal
 
 /**
- * The card (shell §3.5): one at a time, in the right column's place (over its groups, the rail beside it), full height; it
+ * The card (shell §3.6): one at a time, in the right column's place (over its groups, the rail beside it), full height; it
  * closes on its ✕, Escape, or a press outside it, the main area included (not a persistent card).
  */
 function CardHost(props: { shell: ShellModel; bodies: ViewBodies; into: HTMLElement }) {
@@ -1147,12 +1156,12 @@ function CardHost(props: { shell: ShellModel; bodies: ViewBodies; into: HTMLElem
             anchor: open.anchor,
             close: () => shell.closeCard(),
             outside: !open.def.persistent,
-            // Escape anywhere is the card's, but not with the focus in a window or a dialog: that one's (shell §3.5).
+            // Escape anywhere is the card's, but not with the focus in a window or a dialog: that one's (shell §3.6).
             ownsKey: (e) => !(eventTarget(e) as Element | null)?.closest?.('[data-window], [role="dialog"]'),
             refocus: () => open.anchor as HTMLElement | undefined,
           });
           el = (
-            <div class={classes.card} data-card={open.ref}>
+            <div class={classes.card} data-card={open.ref} data-tip-edge="">
               <KeptFrame
                 shell={shell}
                 bodies={props.bodies}
@@ -1175,7 +1184,7 @@ function CardHost(props: { shell: ShellModel; bodies: ViewBodies; into: HTMLElem
   return null;
 }
 
-/** The page (shell §3.5): opaque over the main area, its own header; Escape or ✕ close it, the focus goes back. */
+/** The page (shell §3.6): opaque over the main area, its own header; Escape or ✕ close it, the focus goes back. */
 function PageHost(props: { shell: ShellModel; bodies: ViewBodies }) {
   const { shell } = props;
   return (
@@ -1203,7 +1212,7 @@ function PageHost(props: { shell: ShellModel; bodies: ViewBodies }) {
   );
 }
 
-/** The modal (shell §3.5): over the whole shell with a scrim; Tab stays in it, the rest is inert; Escape or ✕ close it. */
+/** The modal (shell §3.6): over the whole shell with a scrim; Tab stays in it, the rest is inert; Escape or ✕ close it. */
 function ModalHost(props: { shell: ShellModel; bodies: ViewBodies }) {
   const { shell } = props;
   return (
@@ -1344,7 +1353,7 @@ function FileDrop(props: { onDrop: (files: File[]) => void; label?: string }) {
 // Compact
 
 /**
- * Compact (shell §3.6): the main area over a bottom sheet; the sheet shows the card, else the top window's view (a window
+ * Compact (shell §3.7): the main area over a bottom sheet; the sheet shows the card, else the top window's view (a window
  * opens as a card here), else the open docked view; its bar holds the views marked `compactBar` and More (the rest).
  */
 function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLElement }) {
@@ -1376,7 +1385,7 @@ function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
   return (
     <div class={classes.compact}>
       {props.main}
-      <div class={classes.sheet} data-open={derive(key, (k) => String(!!k))}>
+      <div class={classes.sheet} data-open={derive(key, (k) => String(!!k))} data-tip-edge="">
         <div class={classes.sheetContent} hidden={derive(key, (k) => !k)}>
           <Show when={key}>
             {() => {

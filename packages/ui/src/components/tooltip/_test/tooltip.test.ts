@@ -109,6 +109,59 @@ describe('tooltips', () => {
     expect(tip().style.paddingBlock).toBe('');
   });
 
+  it("puts a row's card outside its edge: on the side the edge asks for, else the roomier side", () => {
+    const rect = (left: number, right: number, top = 100, height = 24) =>
+      ({ left, right, top, bottom: top + height, width: right - left, height, x: left, y: top }) as DOMRect;
+    root.insertAdjacentHTML(
+      'beforeend',
+      '<div id="edge" data-tip-edge=""><div id="r" data-tip-row=""><span data-tip-part="">A long name</span></div></div>',
+    );
+    const edge = root.querySelector('#edge') as HTMLElement;
+    const row = root.querySelector('#r') as HTMLElement;
+    const part = row.firstElementChild as HTMLElement;
+    Object.defineProperty(part, 'scrollWidth', { value: 120 });
+    Object.defineProperty(part, 'clientWidth', { value: 60 });
+    vi.stubGlobal('innerWidth', 1000);
+    row.getBoundingClientRect = () => rect(700, 940);
+    tip().getBoundingClientRect = () => rect(0, 200, 0, 24);
+    const x = () => Number(/translate\((-?[\d.]+)px/.exec(tip().style.transform)?.[1]);
+    const showAt = (left: number, right: number, ask = '') => {
+      part.dispatchEvent(new PointerEvent('pointerout', { bubbles: true }));
+      edge.dataset.tipEdge = ask;
+      edge.getBoundingClientRect = () => rect(left, right, 0, 600);
+      over(part);
+      vi.advanceTimersByTime(400);
+    };
+    // A panel at the right: the room is on its left (toward the main area).
+    showAt(680, 960);
+    expect(tip().hidden).toBe(false);
+    expect(x()).toBe(680 - 8 - 200);
+    // A panel at the left: its right.
+    showAt(0, 300);
+    expect(x()).toBe(308);
+    // Asked for the right, with room there: the right, though the left has more.
+    showAt(500, 700, 'right');
+    expect(x()).toBe(708);
+  });
+
+  it("shows a row's card when the keyboard focuses the row (a tree's arrows), not a button in it", () => {
+    root.insertAdjacentHTML(
+      'beforeend',
+      '<div id="k" data-tip-row="" tabindex="0"><span data-tip-part="">A long name</span><button id="kb">x</button></div>',
+    );
+    const row = root.querySelector('#k') as HTMLElement;
+    const part = row.firstElementChild as HTMLElement;
+    Object.defineProperty(part, 'scrollWidth', { value: 120 });
+    Object.defineProperty(part, 'clientWidth', { value: 60 });
+    // jsdom has no :focus-visible; the row matches it here.
+    const matches = row.matches.bind(row);
+    row.matches = ((s: string) => (s === ':focus-visible' ? true : matches(s))) as typeof row.matches;
+    row.focus();
+    expect(tip().hidden).toBe(false);
+    (root.querySelector('#kb') as HTMLElement).focus();
+    expect(tip().hidden).toBe(true);
+  });
+
   it('waits for its delay on the scope: none shows while the scope is paused, the wait resumes with it', () => {
     const scoped = document.createElement('div');
     document.body.append(scoped);

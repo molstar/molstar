@@ -192,6 +192,47 @@
   min-width: 0;
 }
 
+/* A row (`ViewRow`): the `.msui-row` primitive's columns (slot, text, trailing); its text one line, the label then the
+   description, each fading where it is cut off (the side tooltip shows them whole). */
+.row {
+  min-width: 0;
+}
+
+.rowText {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.rowLabel,
+.rowDescription {
+  min-width: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/* The label keeps its width first; the description takes what is left (it is cut first). */
+.rowLabel {
+  flex: 0 1 auto;
+}
+
+.rowDescription {
+  flex: 1 1 0;
+  color: var(--msui-text-muted);
+}
+
+.rowTrailing {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+}
+
 .heading {
   margin: 0;
   padding: var(--msui-space-2) var(--msui-inner) 0;

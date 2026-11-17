@@ -181,7 +181,16 @@ keeps its state (a canvas is not rebuilt).
 - Its menu: Dock, Move with the keyboard, Resize with the keyboard (arrows by 4 px, Shift 16; Enter or Escape ends;
   outlined meanwhile), Reset position (centered at its default size), Move to another window, Reset layout.
 
-### 3.5 Layers
+### 3.5 Tooltips
+
+- The shell installs one tooltip layer over itself (`installTooltips`, the `tooltips` prop, default on), so the app's
+  views and extensions' get tooltips without installing their own.
+- Its docked groups, windows, card and sheet are tooltip edges (`data-tip-edge`): a row's card (`ViewRow`,
+  `data-tip-row`) goes outside the view it is in, on the side with room (a docked group's: toward the main area), never
+  over the view; with no room on either side, none. A row's card shows from a pointer over its text or the keyboard's
+  focus on the row.
+
+### 3.6 Layers
 
 - **Card** (`home: 'card'`): one at a time, in the right column's place (its width, the rail beside it; with no column,
   340 px at the right edge), full height, over the docked groups. Closes on its ✕, Escape, a press outside (not a
@@ -198,7 +207,7 @@ keeps its state (a canvas is not rebuilt).
 - **Status slot** (`status` prop): the main area's bottom left, 8 px in; its content is the app's, the pointer passes
   through the slot's empty parts.
 
-### 3.6 Compact and embedded
+### 3.7 Compact and embedded
 
 - **Compact**: the tree is not rendered; the main area sits over a bottom sheet (`min(45cqh, 420px)`) and a bar of 44 px
   buttons (a touch target; icon and label). The sheet shows the card, else the top window's view (a window is a card
@@ -207,7 +216,7 @@ keeps its state (a canvas is not rebuilt).
 - **Embedded**: the desktop layout with the rail starting hidden and windows at 0.8 of their size; it does not switch to
   compact.
 
-### 3.7 Motion
+### 3.8 Motion
 
 On the motion vocabulary (styles §7.1), none at the first render, none under reduced motion (every duration 0):
 

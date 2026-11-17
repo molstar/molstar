@@ -335,3 +335,22 @@ describe('ShellView: a view’s footer', () => {
     m.dispose();
   });
 });
+
+describe('ShellView: tooltips', () => {
+  it('installs one tooltip layer; its groups and windows are the edges a row’s card goes outside of', () => {
+    const m = mountShell([probeView('home'), probeView('layers')]);
+    m.shell.show('home');
+    m.shell.float('layers');
+    flush();
+    expect(m.qa('[role="tooltip"]').length).toBe(1);
+    expect(m.q('[data-group="right"]')?.hasAttribute('data-tip-edge')).toBe(true);
+    expect(m.q('[data-window]')?.hasAttribute('data-tip-edge')).toBe(true);
+    m.dispose();
+  });
+
+  it('none of its own with `tooltips: false`', () => {
+    const m = mountShell([probeView('home')], {}, { tooltips: false });
+    expect(m.q('[role="tooltip"]')).toBeNull();
+    m.dispose();
+  });
+});

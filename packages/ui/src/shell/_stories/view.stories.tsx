@@ -21,7 +21,16 @@ import { installTooltips } from '../../components/tooltip/tooltip.js';
 import { type Child, domView, For, onCleanup } from '../../dom/index.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import { ShellModel, type ShellViewDef, type ViewPlacement } from '../shell-model.js';
-import { ViewEmpty, ViewError, ViewFooter, ViewFrame, ViewHeading, ViewStack, ViewToolbar } from '../view-frame.js';
+import {
+  ViewEmpty,
+  ViewError,
+  ViewFooter,
+  ViewFrame,
+  ViewHeading,
+  ViewRow,
+  ViewStack,
+  ViewToolbar,
+} from '../view-frame.js';
 import { viewMenu } from '../view-menu.js';
 
 /**
@@ -268,6 +277,7 @@ function Framed(props: { view: () => Child; options?: FrameOptions }) {
   return (
     <div
       ref={(el: HTMLElement) => onCleanup(installTooltips(el))}
+      data-tip-edge=""
       style={`display: flex; flex-direction: column; width: ${width}px; height: ${height}px; ${box}`}
     >
       <ViewFrame
@@ -374,6 +384,53 @@ export const ListWithToolbar = stage(() => (
   </div>
 ));
 
+const treeRows: { name: string; description: string; level: number; icon: 'layers' | 'tag' | 'ruler' }[] = [
+  { name: 'Annotations of the selected region', description: '128 items, 4 hidden', level: 0, icon: 'tag' },
+  { name: 'Labels', description: 'Names and identifiers, shown on hover', level: 1, icon: 'tag' },
+  { name: 'Measurements', description: 'Distances and angles', level: 1, icon: 'ruler' },
+  { name: 'Overlay with a very long name that does not fit', description: 'Drawn last', level: 0, icon: 'layers' },
+  { name: 'Grid', description: 'Every 10 units', level: 0, icon: 'layers' },
+];
+
+function RowsView() {
+  return (
+    <ViewStack>
+      <div class="msui-list" role="tree" aria-label="Layers">
+        {treeRows.map((r) => (
+          <ViewRow
+            role="treeitem"
+            tabIndex={0}
+            aria-level={String(r.level + 1)}
+            level={r.level}
+            icon={r.icon}
+            label={r.name}
+            description={r.description}
+            trailing={<Button variant="ghost" size="xs" icon={<Icon name="eye" />} title={`Hide ${r.name}`} />}
+          />
+        ))}
+      </div>
+    </ViewStack>
+  );
+}
+
+/**
+ * Rows (`ViewRow`): a slot, the label, a muted description, what trails; a level indents a slot (a tree). Cut off, a
+ * row's name and description fade, and a card beside the view shows them whole: hover a row's text, or Tab into the
+ * list and move with the arrows. The card goes outside the view, on the side with room (in the shell: toward the main
+ * area).
+ */
+export const Rows = stage(() => (
+  // One above the other: each view's cards go to its open side (beside each other, one's cards would cover the other).
+  <div style="display: grid; gap: var(--msui-space-5); justify-items: start;">
+    <Labelled label="Wide (420)">
+      <Framed view={RowsView} options={{ width: 420, height: 240 }} />
+    </Labelled>
+    <Labelled label="Narrow (280)">
+      <Framed view={RowsView} options={{ width: 280, height: 240 }} />
+    </Labelled>
+  </div>
+));
+
 /** Empty, loading and error: what goes here and how (one line, an action), a skeleton in place, an error line. */
 export const EmptyLoadingError = stage(() => (
   <div style={row}>
@@ -390,9 +447,8 @@ export const EmptyLoadingError = stage(() => (
 ));
 
 /**
- * A footer of actions kept at the bottom while the content scrolls (scroll the body), docked and in a window. The footer
- * goes after the content's `ViewStack`, as the body's own child: inside the stack it sticks while the content scrolls
- * but does not reach the bottom when the content is short (the last box).
+ * A footer of actions under the body's scroll, at the view's bottom, docked and in a window: wherever the view writes
+ * its `ViewFooter` (after its `ViewStack` or inside it), it moves into the body's footer slot.
  */
 export const Footer = stage(() => (
   <div style={row}>

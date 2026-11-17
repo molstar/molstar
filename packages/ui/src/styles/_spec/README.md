@@ -236,8 +236,13 @@ and extensions, docked or in a window, line up as one UI only if none sets its o
 `shell/view-frame.tsx`, so a view (an extension's too) composes these and sets no padding, gap or type of its own:
 
 - `ViewFrame` (header and body; `viewBody`), `ViewStack` (a run of blocks, `gap` `blocks` or `sections`), `ViewToolbar`,
-  `ViewEmpty`, `ViewError`, `ViewFooter`, `ViewHeading`, and `SectionList` (`shell/section-list.tsx`: a slot's sections
-  as `Expandable`s).
+  `ViewEmpty`, `ViewError`, `ViewFooter`, `ViewHeading`, `ViewRow`, and `SectionList` (`shell/section-list.tsx`: a
+  slot's sections as `Expandable`s).
+- **A row** (`ViewRow`): the `.msui-row` columns (a slot kept when empty, the text, what trails), `level` indenting a
+  slot per level; its text one line, the label then a muted description, each fading where it is cut off, the label
+  keeping its width first. It carries the side tooltip (`data-tip-row`, its parts `data-tip-part`): while a part is cut
+  off, a card beside the view shows the whole text, at the row's height and the parts' sizes and weights. Why: a name is
+  data a person needs whole; a card beside the panel shows it without covering the next rows.
 
 ## 9. Delivery
 

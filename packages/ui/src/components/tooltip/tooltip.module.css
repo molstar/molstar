@@ -32,7 +32,7 @@
 /* Beside a tree row (Claude Code's sidebar does the same): a card at the row's text size, the whole text, wrapping when
    long; the panel's colors and the glass edge, so it reads as more of the row, not as a hint. */
 .tooltip[data-kind="row"] {
-  max-width: 320px;
+  max-width: 480px; /* a row's card: its name whole on one line where it can be */
   padding: var(--msui-space-1) var(--msui-control-inset);
   border-radius: var(--msui-radius-lg);
   background: var(--msui-surface-raised);

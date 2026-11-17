@@ -16,10 +16,12 @@ const ShowDelayMs = 350;
  * other side where there is no room), on hover or keyboard focus (never for an element in an `inert` part: hidden UI takes no pointer). One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
  * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
- * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
- * one is cut off, from a pointer over a part: a card beside the row, outside its panel (`role="tabpanel"`, or
- * `data-tip-edge`) and clear of its edge, at the row's height and its parts' sizes and weights, its text level with the
- * row's (on its left, or its right where there is no room).
+ * `data-tip-row` (a list or tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted)
+ * while one is cut off, from a pointer over a part or the keyboard's focus on the row: a card beside the row, outside
+ * its panel (the closest `data-tip-edge`, else `role="tabpanel"`) and clear of its edge, at the row's height and its
+ * parts' sizes and weights, its text level with the row's. Its side: the edge's `data-tip-edge="left"` or `"right"` if
+ * there is room there, else the side with more room (toward the content a panel sits beside); none where neither has
+ * room (a card over the panel would cover the next rows).
  * Called in a scope (its listeners are `on`'s: paused and released with it); returns the uninstall function.
  */
 export function installTooltips(root: HTMLElement): () => void {
@@ -69,12 +71,26 @@ export function installTooltips(root: HTMLElement): () => void {
     let y: number;
     let panel: DOMRect | undefined;
     if (side === 'beside') {
-      // Outside the panel the row is in (its tab panel), clear of its edge; on its left, or its right without room.
-      const edge = el.closest('[data-tip-edge], [role="tabpanel"]')?.getBoundingClientRect() ?? r;
+      // Outside the panel the row is in, clear of its edge: on the side it asks for if there is room, else the roomier.
+      const host = el.closest<HTMLElement>('[data-tip-edge]') ?? el.closest<HTMLElement>('[role="tabpanel"]');
+      const edge = host?.getBoundingClientRect() ?? r;
       panel = edge;
       const clear = 8;
-      x = edge.left - clear - t.width;
-      if (x < 4) x = edge.right + clear;
+      const left = edge.left - clear - t.width;
+      const right = edge.right + clear;
+      const fitsLeft = left >= 4;
+      const fitsRight = right + t.width <= window.innerWidth - 4;
+      const asked = host?.dataset.tipEdge;
+      const roomLeft = edge.left;
+      const roomRight = window.innerWidth - edge.right;
+      x =
+        asked === 'left' && fitsLeft
+          ? left
+          : asked === 'right' && fitsRight
+            ? right
+            : fitsLeft && (!fitsRight || roomLeft >= roomRight)
+              ? left
+              : right;
       y = r.top + (r.height - t.height) / 2;
     } else if (side === 'left' || side === 'right') {
       // Beside it; to the other side when there is no room (never pushed back over the element).
@@ -133,13 +149,14 @@ export function installTooltips(root: HTMLElement): () => void {
     timer.start(ShowDelayMs);
   };
 
-  const tipOf = (e: Event) => {
+  const tipOf = (e: Event, focus = false) => {
     const at = e.target as Element | null;
     const el = at?.closest?.<HTMLElement>('[data-tip], [data-tip-overflow], [data-tip-row]') ?? undefined;
     // Hidden UI is inert (a panel behind a card, a folded section): no tip for it, whatever hit it.
     if (el?.closest('[inert]')) return undefined;
-    // A row answers only over its text (not its chevron or its buttons).
-    if (el?.dataset.tipRow !== undefined && !at?.closest('[data-tip-part]')) return undefined;
+    // A row answers a pointer only over its text (not its chevron or its buttons), the keyboard's focus on the row itself
+    // (the arrows in a list or a tree), not on a button in it.
+    if (el?.dataset.tipRow !== undefined && (focus ? at !== el : !at?.closest('[data-tip-part]'))) return undefined;
     return el;
   };
 
@@ -155,7 +172,7 @@ export function installTooltips(root: HTMLElement): () => void {
     if (el && !el.contains(e.relatedTarget as Node)) hide();
   };
   const onFocus = (e: FocusEvent) => {
-    const el = tipOf(e);
+    const el = tipOf(e, true);
     if (el?.matches(':focus-visible')) show(el, true, false);
   };
 
