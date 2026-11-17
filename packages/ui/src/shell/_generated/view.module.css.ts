@@ -80,6 +80,14 @@ defineStyles('shell/view.module.css', `@layer msui.components {
   overflow: hidden;
 }
 
+.msui-shell-view-title[data-view] {
+  align-items: center;
+  animation: none;
+  display: flex;
+  overflow: visible;
+  mask-image: none;
+}
+
 .msui-shell-view-actions {
   align-items: center;
   gap: var(--msui-space-1);

@@ -154,6 +154,12 @@
     --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 14%);
     --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 28%);
     --msui-accent-muted: color-mix(in oklab, var(--msui-accent), var(--msui-bg) 80%);
+    /* The Mol* logo's colors, left to right (the wordmark's gradient, its glass): lighter on a dark theme (by the
+       theme's color scheme); a host may set them. */
+    --msui-logo-1: light-dark(#7a4f2f, #d29a68);
+    --msui-logo-2: light-dark(#e0ae2c, #f5d36b);
+    --msui-logo-3: light-dark(#6f9a80, #a8d8bc);
+    --msui-logo-4: light-dark(#3f86ad, #79bfe6);
     /* The accent pressed or hovered on an accent fill. */
     --msui-accent-strong: color-mix(in oklab, var(--msui-accent), var(--msui-shade) 12%);
     --msui-focus: var(--msui-accent);

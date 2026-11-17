@@ -21,10 +21,6 @@ export const classes = {
 
 defineStyles('components/logo/wordmark.module.css', `@layer msui.components {
 .msui-logo-wordmark-wordmark {
-  --msui-logo-1: light-dark(#7a4f2f, #d29a68);
-  --msui-logo-2: light-dark(#e0ae2c, #f5d36b);
-  --msui-logo-3: light-dark(#6f9a80, #a8d8bc);
-  --msui-logo-4: light-dark(#3f86ad, #79bfe6);
   width: calc(57px * var(--msui-wordmark-scale, 1));
   height: calc(22px * var(--msui-wordmark-scale, 1));
   flex: none;

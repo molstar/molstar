@@ -159,7 +159,14 @@ export function ViewFrame(props: ViewFrameProps) {
           }}
         >
           {props.tabs ?? (
-            <h2 class={classes.title} id={titleId} title={def.title}>
+            // A heading that is a view (a wordmark) is drawn as it is: not clipped, not faded (its own size).
+            <h2
+              class={classes.title}
+              id={titleId}
+              title={def.title}
+              data-view={typeof heading === 'function' ? '' : undefined}
+              aria-label={typeof heading === 'function' ? def.title : undefined}
+            >
               {typeof heading === 'function' ? heading() : heading}
             </h2>
           )}

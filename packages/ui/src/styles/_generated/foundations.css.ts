@@ -137,6 +137,10 @@ defineStyles('styles/foundations.css', `@property --msui-motion-fast {
     --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 14%);
     --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 28%);
     --msui-accent-muted: color-mix(in oklab, var(--msui-accent), var(--msui-bg) 80%);
+    --msui-logo-1: light-dark(#7a4f2f, #d29a68);
+    --msui-logo-2: light-dark(#e0ae2c, #f5d36b);
+    --msui-logo-3: light-dark(#6f9a80, #a8d8bc);
+    --msui-logo-4: light-dark(#3f86ad, #79bfe6);
     --msui-accent-strong: color-mix(in oklab, var(--msui-accent), var(--msui-shade) 12%);
     --msui-focus: var(--msui-accent);
     --msui-scrim: #00000059;

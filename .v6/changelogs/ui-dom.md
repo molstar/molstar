@@ -49,3 +49,8 @@
   View primitives (`ViewStack`, `ViewToolbar`, `ViewEmpty`, `ViewError`, `ViewFooter`, `ViewHeading`, `SectionList`)
   and the shell foundations (styles §8) keep contributed views aligned. Storybook: UI › Shell (Shell, View, Rail,
   Window).
+- `@molstar/ui` glass wordmark (`components/logo/glass-wordmark.tsx`, `glass.ts`): the Mol\* wordmark cut into glass
+  pieces that assemble each time it shows (a view's heading: the shell's Home), lean under the pointer and shatter on
+  a press. It asks for frames only while something moves (none at rest, none while a resting pointer holds the pieces
+  leaned, none while hidden) and a frame allocates nothing (guarded by `test:perf`); the cut and the pieces' atlas are
+  shared by every glass. The logo's colors are foundation tokens (`--msui-logo-*`).

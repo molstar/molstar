@@ -5,13 +5,8 @@
  */
 
 /* At its drawn size (55 × 20 and a 1 px margin, on the pixel grid): scaled, its lines would blur unevenly. The logo's
-   colors (`--msui-logo-1` … `-4`, a host may set them): lighter on a dark theme (by the theme's color scheme). */
+   colors are tokens (`--msui-logo-1` … `-4`, foundations.css). */
 .wordmark {
-  --msui-logo-1: light-dark(#7a4f2f, #d29a68);
-  --msui-logo-2: light-dark(#e0ae2c, #f5d36b);
-  --msui-logo-3: light-dark(#6f9a80, #a8d8bc);
-  --msui-logo-4: light-dark(#3f86ad, #79bfe6);
-
   position: relative;
   display: block;
   flex: none;

@@ -12,6 +12,7 @@ import { ActionFooter } from '../../components/action-footer/action-footer.js';
 import { Button } from '../../components/button/button.js';
 import { Expandable, ExpandableList } from '../../components/expandable/expandable.js';
 import { Icon } from '../../components/icon/icon.js';
+import { GlassWordmark } from '../../components/logo/glass-wordmark.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { SkeletonRows } from '../../components/skeleton/skeleton.js';
 import { TextInput } from '../../components/text-input/text-input.js';
@@ -192,6 +193,8 @@ export function demoViews(): ShellViewDef[] {
     {
       id: 'home',
       title: 'Home',
+      // The Mol* wordmark as glass: it assembles each time Home opens.
+      heading: () => <GlassWordmark />,
       icon: 'molstar',
       place: 'head',
       order: 0,

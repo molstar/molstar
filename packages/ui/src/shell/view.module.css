@@ -57,6 +57,15 @@
   animation-timeline: scroll(self inline);
 }
 
+/* A heading that is a view (a wordmark): drawn whole, its effects reaching past its box. */
+.title[data-view] {
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  mask-image: none;
+  animation: none;
+}
+
 .actions {
   display: flex;
   flex: none;

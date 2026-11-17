@@ -37,6 +37,7 @@
     "./components/histogram/_test/*": null,
     "./components/icon/_test/*": null,
     "./components/iso-level/_test/*": null,
+    "./components/logo/_test/*": null,
     "./components/markdown/_test/*": null,
     "./components/params/_test/*": null,
     "./components/popover/_test/*": null,

@@ -8,7 +8,10 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '../../../_stories/support.js';
-import type { Child } from '../../../dom/index.js';
+import { State } from '@molstar/core/reactive';
+import { type Child, Show } from '../../../dom/index.js';
+import { Button } from '../../button/button.js';
+import { GlassWordmark } from '../glass-wordmark.js';
 import { MolstarWordmark } from '../wordmark.js';
 
 const meta: Meta = { title: 'Components/Logo' };
@@ -89,6 +92,50 @@ export const Live: StoryObj = {
             <MolstarWordmark scale={3} flash="reveal" live />
           </Labelled>
         </div>
+      </div>
+    )),
+};
+
+function GlassPanel(props: { theme: 'light' | 'dark' }) {
+  // Remounted on demand (a new key): it assembles each time it shows.
+  const shown = new State(1);
+  return (
+    <div
+      data-msui-theme={props.theme}
+      class="msui-surface"
+      style="gap: var(--msui-space-4); padding: var(--msui-space-6);"
+    >
+      <span style={caption}>
+        The wordmark as glass at 1×, 2× and 3×: it assembles as it shows; the pieces lean under the pointer; a press
+        shatters it and it snaps back. At rest it draws nothing.
+      </span>
+      <div style="display: flex; gap: var(--msui-space-6); align-items: center; flex-wrap: wrap; min-height: 96px;">
+        <Show when={shown}>
+          {() => (
+            <>
+              <GlassWordmark />
+              <GlassWordmark scale={2} />
+              <GlassWordmark scale={3} />
+            </>
+          )}
+        </Show>
+      </div>
+      <div>
+        <Button size="sm" onClick={() => shown.set(shown.value + 1)}>
+          Show again
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** The glass wordmark (a view's heading, the shell's Home): on a light and a dark theme. */
+export const Glass: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--msui-space-5); padding: var(--msui-space-5)">
+        <GlassPanel theme="light" />
+        <GlassPanel theme="dark" />
       </div>
     )),
 };

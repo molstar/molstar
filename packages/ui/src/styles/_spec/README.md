@@ -16,6 +16,8 @@ Storybook › UI › Foundations) cite its sections (`styles §5`).
 - A dark base takes larger steps (`--msui-step-*`): a mix toward white reads as a smaller change than the same mix
   toward black.
 - The accent is for actions and the picked item only; separation is by surface first, hairlines second.
+- The Mol\* logo's colors are tokens (`--msui-logo-1` … `-4`, lighter on a dark scheme by `light-dark()`): the
+  wordmark's gradient and its glass read them, and a host may set them.
 - Contrast: the `contrast` theme and `prefers-contrast: more` keep muted text and lines at their contrast, and give a
   surface an edge (`--msui-surface-edge`): its step from a black base does not show.
 
