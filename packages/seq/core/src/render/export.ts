@@ -17,7 +17,7 @@ import {
   type Want,
 } from '@molstar/seqx-core/data';
 import { checkSeqSpec } from '@molstar/seqx-core/lang';
-import { type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
+import { OverlayBuilder, type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
 import { type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfig, renderConfig } from './config.js';
@@ -25,6 +25,7 @@ import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
 import type { Emphasis } from './layer-type.js';
+import { OverlaySources } from './overlay-sources.js';
 import { Renderer } from './renderer.js';
 import { drawListsToSvg } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
@@ -41,11 +42,13 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
   for (const s of view.sections) {
     const source = model.systems.get(s.axis.system)?.source;
     if (source) out.add(source);
-    for (const t of s.tracks)
+    for (const t of s.tracks) {
+      if (t.template) out.add(t.template.source);
       for (const l of t.layers) {
         const src = layerSource(model, l);
         if (src) out.add(src.source);
       }
+    }
   }
   return out;
 }
@@ -194,6 +197,13 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
   // the deadline covers opening the sources too
   const until = clock.now() + timeout;
   const attached = new Set<string>();
+  // tier 2: the store's dynamic nodes, and the sources they need (their inline rows, the nested sources templates
+  // reach), attached as they arrive and let go at the end
+  const overlays = new OverlayBuilder({
+    ...(options.runtimes ? { runtimes: options.runtimes } : {}),
+    ...(options.resolve ? { config: options.resolve } : {}),
+  });
+  const nested = new OverlaySources(store, options.assets ?? NoAssets);
   let settled = true;
   try {
     let timer: unknown;
@@ -235,9 +245,11 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds; the
     // export waits for its view alone, never its margins
     for (let round = 0; settled && round < 8; round++) {
-      const f = renderer.frame({ ...frameInput, settled: false });
+      const overlay = overlays.of(model, store);
+      issues.push(...(await nested.sync(overlay, view)));
+      const f = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: false });
       const wants = f.wants.filter((w) => w.priority !== 'margin');
-      const key = wantsKey(wants);
+      const key = `${wantsKey(wants)}#${store.nodeVersion.value}`;
       if (key === last) break;
       last = key;
       wanter.want(wants);
@@ -246,7 +258,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
         break;
       }
     }
-    const frame = renderer.frame({ ...frameInput, settled: true });
+    const frame = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: true });
     issues.push(...frame.layout.issues);
     if (!settled)
       issues.push(
@@ -271,6 +283,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     });
     return { svg, settled, issues, lists: frame.lists };
   } finally {
+    nested.dispose();
     wanter.dispose();
     controller.abort();
     if (own) store.retire();

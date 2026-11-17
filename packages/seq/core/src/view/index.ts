@@ -21,5 +21,7 @@ export {
   type ResolvedView,
   resolveView,
   resolveViews,
+  type TrackTemplate,
   type ViewLink,
 } from './view.js';
+export { expandTemplate, templateNeeds, templateNodes } from './templates.js';

@@ -5,10 +5,11 @@
  */
 
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import type { Want } from '@molstar/seqx-core/data';
+import { fitLevel, type Want } from '@molstar/seqx-core/data';
 import { partOf } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import {
+  expandTemplate,
   followRange,
   type ResolvedLayer,
   type ResolvedSection,
@@ -220,7 +221,18 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       );
     const top = y;
     const tracks: TrackLayout[] = [];
+    // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
+    // wanted, so the nodes it brings arrive
+    const shown: ResolvedTrack[] = [];
     for (const track of section.tracks) {
+      if (!track.template) {
+        shown.push(track);
+        continue;
+      }
+      if (axis) wantTemplate(input, section, track.template.source, axis, wants);
+      shown.push(...expandTemplate(input.model, overlay, section, track));
+    }
+    for (const track of shown) {
       if (tracks.length) y += config.trackGap;
       const h = trackHeight(track, config);
       const box: Box = { x: dataX, y, width: dataW, height: h };
@@ -274,7 +286,20 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   }
   // a layer gone from the view lets its last layout go
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
+  for (const i of overlay.issues) report(i);
   return { width, height, dpr, tokens: input.tokens, config, sections, wants, issues };
+}
+
+/** A template source's region in view, on the section's system as the source names it, at the level that fits. */
+function wantTemplate(input: LayoutInput, section: ResolvedSection, source: string, axis: AxisTransform, out: Want[]) {
+  const coverage = input.data.coverage(source);
+  const name = input.model.systems.get(section.axis.system)?.name;
+  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
+  if (!coverage || !info) return;
+  const level = fitLevel(coverage.levels, 1 / axis.devicePx);
+  const pieces = axis.visible([]);
+  for (let i = 0; i + 1 < pieces.length; i += 2)
+    out.push({ source, system: info.name, start: Math.floor(pieces[i]), end: Math.ceil(pieces[i + 1]), level });
 }
 
 function trackHeight(track: ResolvedTrack, config: RenderConfig): number {
