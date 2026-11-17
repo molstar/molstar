@@ -157,6 +157,10 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
 - **Range sets and edge cases**: moving Location's range-set operations into `@molstar/core/data/int`, and the proposed
   edge-case outcomes: "ok".
 
+- **Overnight run and gate decisions**: "continue all the way to the end of stage 7 as an overnight run"; "also for
+  gate decisions: if there is a way to make something configurable, then do that as choose your recommendation as the
+  default".
+
 ## Reconciliation
 
 - "JSON with S-expression printing" fits §one-recursive-form (the spelling is the project's choice); meso\* chose

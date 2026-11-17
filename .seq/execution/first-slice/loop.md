@@ -25,11 +25,14 @@ subagents it starts. Read this file and `state.md` before every step.
      lane asked for (dependencies, inventory, tsconfig references, exports' `_test` nulls, Storybook registration),
      install, and run the checks again on the merged tree;
    - copy the report's drift, gaps and followups into `drift/`, `gaps.md` and `followups.md`.
-6. **Drift** (§drift-notes): where code and a design disagree, write `drift/<topic>.md` (what, where, the options, a
+6. **Configurable over fixed** (the author's rule for gate decisions): where a decision could reasonably go more than
+   one way, it becomes a config item or a param with the recommendation as its default; briefs say so, and gaps.md lists
+   each such default.
+7. **Drift** (§drift-notes): where code and a design disagree, write `drift/<topic>.md` (what, where, the options, a
    recommendation), continue with what it does not block, and bring it to the author at the next gate.
-7. **What is drawn** lands with its story; at the gate the orchestrator opens it in Storybook (the browser pane), in
+8. **What is drawn** lands with its story; at the gate the orchestrator opens it in Storybook (the browser pane), in
    light and dark, and takes a screenshot for the report.
-8. **Update** `state.md` (done, in progress, next, decisions, blockers, how to verify) and tick `plan.md` after every
+9. **Update** `state.md` (done, in progress, next, decisions, blockers, how to verify) and tick `plan.md` after every
    merged item, before starting a new lane, and before stopping; commit the work folder (orchestrator only).
 
 ## Gates

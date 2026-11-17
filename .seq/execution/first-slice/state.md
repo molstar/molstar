@@ -8,6 +8,10 @@ recommended and listed in gaps.md for the author's morning review; the stop cond
 permission, a check red twice, a public API change beyond what is agreed, a budget a design blocks) still stop it, and
 the stage 7 performance targets are measured and reported, not confirmed.
 
+**Gate decisions** (the author, 2026-11-17: "also for gate decisions: if there is a way to make something configurable,
+then do that as choose your recommendation as the default"): a choice a gate or a lane would make one way is made a
+config item (or a param) with the recommendation as its default, and listed in gaps.md.
+
 ## Done
 
 - Stage 1 (lane A, the tree core): merged `fbc27cde5`.
