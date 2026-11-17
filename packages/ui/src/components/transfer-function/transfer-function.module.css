@@ -177,3 +177,13 @@
   display: flex;
   justify-content: flex-end;
 }
+
+/* What a point's keys do, for assistive technology (`aria-describedby`): not drawn. */
+.help {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

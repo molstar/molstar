@@ -8,7 +8,7 @@
 
 import { derive, type ReadonlyState, type State } from '@molstar/core/reactive';
 import { clamp } from '@molstar/core/math/interpolate';
-import { type Child, setAttr, watch } from '../../dom/index.js';
+import { type Child, drag, effect, frameState, setAttr, watch } from '../../dom/index.js';
 import { state } from '../../state.js';
 import { classes } from './_generated/histogram.module.css.js';
 
@@ -132,7 +132,14 @@ export function UnitSwitch(props: { unit: State<ValueUnit> }) {
   const buttons = units.map(
     (u) =>
       (
-        <button type="button" role="radio" class={classes.unit} data-tip={UnitLabels[u][1]} onClick={() => unit.set(u)}>
+        <button
+          type="button"
+          role="radio"
+          class={classes.unit}
+          aria-label={UnitLabels[u][1]}
+          data-tip={UnitLabels[u][1]}
+          onClick={() => unit.set(u)}
+        >
           {UnitLabels[u][0]}
         </button>
       ) as HTMLButtonElement,
@@ -218,3 +225,82 @@ export function AxisLabels(props: { stats: ValueStats; unit: ReadonlyState<Value
 
 /** The control's root class (it pads the rest of the inset in a surface, styles §5). */
 export const controlClass: string = classes.control;
+
+/** A place on the plot: x from its left, y from its bottom, as fractions (not clamped: past an edge reads past 0 or 1). */
+export interface PlotPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * A drag on a plot (the volume controls' shared gesture): `start` picks what a press drags (its key; undefined: none),
+ * `move` takes each place, once a frame (the moves a frame state, dom §3) and where it is let go (and the press's own,
+ * with `snap`: the dragged thing jumps to the pointer), `end` the end of the
+ * gesture however it ends (a step: `onCommit`). The plot's box is read at each step, not once at the press: a panel that
+ * scrolls under a drag does not shift the values (one read a frame).
+ */
+export function plotGesture<K>(
+  plot: HTMLElement,
+  handlers: { start(e: PointerEvent, at: PlotPoint): K | undefined; move(key: K, at: PlotPoint): void; end(): void },
+  options: { snap?: boolean } = {},
+): void {
+  let px = 0;
+  let py = 0;
+  let key: K | undefined;
+  let moves = 0;
+  const moved = frameState(0);
+  const at = (): PlotPoint => {
+    const r = plot.getBoundingClientRect();
+    return { x: (px - r.left) / (r.width || 1), y: 1 - (py - r.top) / (r.height || 1) };
+  };
+  effect(moved, () => {
+    if (key !== undefined) handlers.move(key, at());
+  });
+  drag(plot, {
+    start: (e) => {
+      if (e.button !== 0) return undefined;
+      px = e.clientX;
+      py = e.clientY;
+      const k = handlers.start(e, at());
+      if (k === undefined) return undefined;
+      e.preventDefault();
+      key = k;
+      if (options.snap) handlers.move(k, at());
+      return k;
+    },
+    move: (e) => {
+      px = e.clientX;
+      py = e.clientY;
+      moved.offer(++moves);
+    },
+    // Let go: where it was let go, now. Ended otherwise (cancelled, the scope paused or gone): no more steps. Either way
+    // the gesture is over.
+    end: (k, how, e) => {
+      if (how === 'up' && e) {
+        px = e.clientX;
+        py = e.clientY;
+        handlers.move(k, at());
+      }
+      key = undefined;
+      handlers.end();
+    },
+  });
+}
+
+/**
+ * Keys as one gesture: a key held or pressed again before it is released is one step, ended (`commit`) when the key is
+ * up. `stepped()` after a key moved something; `up` is the keyup handler.
+ */
+export function keySteps(commit: () => void): { stepped(): void; up(): void } {
+  let keyed = false;
+  return {
+    stepped: () => {
+      keyed = true;
+    },
+    up: () => {
+      if (!keyed) return;
+      keyed = false;
+      commit();
+    },
+  };
+}

@@ -16,6 +16,7 @@ export const classes = {
   'foot': 'msui-transfer-function-foot',
   'handle': 'msui-transfer-function-handle',
   'handleTrack': 'msui-transfer-function-handleTrack',
+  'help': 'msui-transfer-function-help',
   'on': 'msui-transfer-function-on',
   'palette': 'msui-transfer-function-palette',
   'palettes': 'msui-transfer-function-palettes',
@@ -184,6 +185,15 @@ defineStyles('components/transfer-function/transfer-function.module.css', `@laye
 .msui-transfer-function-foot {
   justify-content: flex-end;
   display: flex;
+}
+
+.msui-transfer-function-help {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
 }
 }
 `);

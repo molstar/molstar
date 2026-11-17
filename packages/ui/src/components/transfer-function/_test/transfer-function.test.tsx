@@ -266,3 +266,84 @@ describe('applyPalette', () => {
     expect(colored.map((p) => p.color)).toEqual([0x000000, 0x7f7f7f, 0xfefefe]);
   });
 });
+
+describe('the transfer function, against its host', () => {
+  const four = (): TransferPoint[] => [
+    { x: 0, alpha: 0, color: 0xff0000 },
+    { x: 1, alpha: 0.05, color: 0xff0000 },
+    { x: 2, alpha: 0.05, color: 0x0000ff },
+    { x: 3, alpha: 0, color: 0x0000ff },
+  ];
+
+  it('drags the point a press added even when the host applies the changes later', async () => {
+    slowPresses();
+    const points = state<readonly TransferPoint[]>(four());
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(
+      () => (
+        <TransferFunction
+          stats={stats}
+          points={points}
+          // The host's own commit: the change lands a microtask later.
+          onChange={(p) => queueMicrotask(() => points.set(p))}
+        />
+      ),
+      container,
+    );
+    flush();
+    const plot = container.querySelector<HTMLElement>('[data-tip^="Drag a point"]')!;
+    plot.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 100 }) as DOMRect;
+    plot.dispatchEvent(pointer('pointerdown', { x: 35, y: 50 }));
+    // Before the host applied the insert: a move moves the new point, not the third one at its index.
+    plot.dispatchEvent(pointer('pointerup', { x: 38, y: 50 }));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(points.value.map((q) => q.x)).toEqual([0, 1, expect.closeTo(1.8, 6), 2, 3]);
+    dispose();
+  });
+
+  it('reads the plot where it is at each step: a panel that scrolls under a drag does not shift the value', () => {
+    slowPresses();
+    const t = mount();
+    let top = 0;
+    t.plot().getBoundingClientRect = () => ({ left: 0, top, width: 100, height: 100 }) as DOMRect;
+    const p = t.sliders()[1];
+    p.dispatchEvent(pointer('pointerdown', { x: 10, y: 50 }));
+    // The panel scrolls 40px up under the pointer; the pointer follows the point.
+    top = -40;
+    p.dispatchEvent(pointer('pointerup', { x: 20, y: 10 }));
+    // 20 of 100: value 0, kept after the first point (Gap); its height 0.5 of the plot (y 10 at top -40).
+    expect(t.points.value[1].x).toBeCloseTo(0 + 0.001 * 10, 6);
+    // Mid-height on the log axis (1e-3 to 1, its bottom band zero): 10^(−3 + 3 × 0.46 / 0.96) ≈ 0.0274; the box read at
+    // the press (top 0) would have put it at 0.9 of the height, ≈ 0.49.
+    expect(t.points.value[1].alpha).toBeCloseTo(0.0274, 3);
+    t.dispose();
+  });
+
+  it('is drawn again for new statistics; its unit radios and points say what they are', () => {
+    const s = state({ ...stats });
+    const points = state<readonly TransferPoint[]>(four());
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(
+      () => <TransferFunction stats={s} points={points} onChange={(p) => points.set(p)} />,
+      container,
+    );
+    flush();
+    const slider = () => container.querySelector<HTMLElement>('[data-point]')!;
+    expect(slider().getAttribute('aria-valuemax')).toBe('8');
+    s.set({ min: -4, max: 16, mean: 0, sigma: 2 });
+    flush();
+    expect(slider().getAttribute('aria-valuemax')).toBe('8');
+    // In σ: 16 is 8 σ with σ 2; the axis' end in absolute values follows too.
+    const unit = container.querySelector<HTMLElement>('[role=radio][aria-label="Absolute values"]')!;
+    unit.click();
+    flush();
+    expect(slider().getAttribute('aria-valuemax')).toBe('16');
+    expect(container.querySelector('[role=radio][aria-label="σ from the mean"]')).not.toBeNull();
+    const help = document.getElementById(slider().getAttribute('aria-describedby')!)!;
+    expect(help.textContent).toContain('up and down change its opacity');
+    dispose();
+  });
+});

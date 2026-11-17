@@ -160,3 +160,23 @@ describe('the iso level control', () => {
     expect(r.worked).toBe(true);
   });
 });
+
+describe('the iso level control, against its host', () => {
+  it('is drawn again for new statistics (another map), its axis and markers on them', () => {
+    const stats = state({ min: -10, max: 10, mean: 0, sigma: 1 });
+    const levels = state<readonly IsoLevel[]>([{ id: 'a', label: 'Positive', value: 2 }]);
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(
+      () => <IsoLevelControl stats={stats} levels={levels} unit={state<ValueUnit>('absolute')} onChange={() => {}} />,
+      container,
+    );
+    flush();
+    const marker = () => container.querySelector<HTMLElement>('[role=slider]')!;
+    expect(marker().getAttribute('aria-valuemax')).toBe('10');
+    stats.set({ min: -50, max: 50, mean: 0, sigma: 5 });
+    flush();
+    expect(marker().getAttribute('aria-valuemax')).toBe('50');
+    dispose();
+  });
+});

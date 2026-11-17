@@ -7,17 +7,7 @@
  */
 
 import { derive, type ReadonlyState, type State } from '@molstar/core/reactive';
-import {
-  drag,
-  effect,
-  For,
-  frameState,
-  type MaybeReactive,
-  setAttr,
-  setClass,
-  setStyle,
-  watch,
-} from '../../dom/index.js';
+import { For, type MaybeReactive, Show, setAttr, setClass, setStyle, watch } from '../../dom/index.js';
 import { held } from '../../state.js';
 import { colorToHex } from '../color/color-picker.js';
 import {
@@ -25,7 +15,9 @@ import {
   controlClass,
   type Histogram,
   HistogramPlot,
+  keySteps,
   PlotHeader,
+  plotGesture,
   UnitSwitch,
   unitState,
   type ValueStats,
@@ -53,8 +45,11 @@ export interface IsoLevel {
 export interface IsoLevelProps {
   /** The header's title (default "Levels"); also names the section. */
   title?: string;
-  /** The values' statistics: the axis spans [min, max]; σ is counted from the mean. */
-  stats: ValueStats;
+  /**
+   * The values' statistics: the axis spans [min, max]; σ is counted from the mean. A state or a stream when they change
+   * (another map): the control is drawn again for them.
+   */
+  stats: MaybeReactive<ValueStats>;
   /** Counts of the values; none (yet): an empty well. */
   histogram?: MaybeReactive<Histogram | undefined>;
   /** The levels, with any change made through `onChange` already in (the control shows what it is given). */
@@ -80,6 +75,12 @@ const BigStep = 1;
  * unit. Model-free: the levels come in as data, a move goes out through `onChange`, the end of a gesture `onCommit`.
  */
 export function IsoLevelControl(props: IsoLevelProps) {
+  const stats = held<ValueStats | undefined>(props.stats, undefined);
+  return <Show when={stats}>{(s) => <IsoLevels {...props} stats={s} />}</Show>;
+}
+
+/** The control for one set of statistics. */
+function IsoLevels(props: IsoLevelProps & { stats: ValueStats }) {
   const { stats } = props;
   const axis = valueAxis(stats);
   const unit = unitState(props.unit);
@@ -98,57 +99,31 @@ export function IsoLevelControl(props: IsoLevelProps) {
   };
   const commit = () => props.onCommit?.();
 
-  // Dragging: the pointer's x is input, published once a frame (a frame state; its value only a tick), and the level
-  // follows it then. The drag's listeners are attached once (`drag`).
-  let rect: DOMRect | undefined;
-  let dragging: string | undefined;
-  let pointerX = 0;
-  let moves = 0;
-  const moved = frameState(0);
-  const step = () => {
-    if (dragging === undefined || !rect) return;
-    props.onChange(dragging, axis.valueAt((pointerX - rect.left) / (rect.width || 1)));
-  };
-  effect(moved, step);
+  // Dragging (the shared plot gesture): the marker under the pointer, else the nearest, follows it, once a frame.
   const plotDrag = (el: HTMLElement) =>
-    drag(el, {
-      start: (e) => {
-        if (e.button !== 0) return undefined;
-        rect = el.getBoundingClientRect();
-        const hit = (e.target as Element).closest?.<HTMLElement>('[data-level]')?.dataset.level;
-        const x = (e.clientX - rect.left) / (rect.width || 1);
-        let nearest: IsoLevel | undefined;
-        for (const l of levels.value) {
-          if (!nearest || Math.abs(axis.at(l.value) - x) < Math.abs(axis.at(nearest.value) - x)) nearest = l;
-        }
-        dragging = hit ?? nearest?.id;
-        if (dragging === undefined) return undefined;
-        e.preventDefault();
-        for (const m of el.querySelectorAll<HTMLElement>('[data-level]')) {
-          if (m.dataset.level === dragging) m.focus({ preventScroll: true });
-        }
-        pointerX = e.clientX;
-        step();
-        return dragging;
+    plotGesture<string>(
+      el,
+      {
+        start: (e, at) => {
+          const hit = (e.target as Element).closest?.<HTMLElement>('[data-level]')?.dataset.level;
+          let nearest: IsoLevel | undefined;
+          for (const l of levels.value) {
+            if (!nearest || Math.abs(axis.at(l.value) - at.x) < Math.abs(axis.at(nearest.value) - at.x)) nearest = l;
+          }
+          const id = hit ?? nearest?.id;
+          if (id === undefined) return undefined;
+          for (const m of el.querySelectorAll<HTMLElement>('[data-level]')) {
+            if (m.dataset.level === id) m.focus({ preventScroll: true });
+          }
+          return id;
+        },
+        move: (id, at) => props.onChange(id, axis.valueAt(at.x)),
+        end: commit,
       },
-      move: (e) => {
-        pointerX = e.clientX;
-        moved.offer(++moves);
-      },
-      // Let go: where it was let go, now. Ended otherwise (cancelled, the scope paused or gone): no more steps. Either way the
-      // gesture is over.
-      end: (_id, how, e) => {
-        if (how === 'up' && e) {
-          pointerX = e.clientX;
-          step();
-        }
-        dragging = undefined;
-        rect = undefined;
-        commit();
-      },
-    });
+      { snap: true },
+    );
 
-  let keyed = false;
+  const keys = keySteps(commit);
   const onKey = (id: string) => (e: KeyboardEvent) => {
     const level = levels.value.find((l) => l.id === id);
     if (!level || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -170,21 +145,15 @@ export function IsoLevelControl(props: IsoLevelProps) {
                   : undefined;
     if (to === undefined) return;
     e.preventDefault();
-    keyed = true;
+    keys.stepped();
     props.onChange(id, axis.clamp(to));
-  };
-  // A key held or pressed again before it is released is one gesture: it ends when the key is up.
-  const onKeyUp = () => {
-    if (!keyed) return;
-    keyed = false;
-    commit();
   };
 
   const marker = (id: string) => {
     const level = levelOf(id);
     const inside = (<span class={classes.inside} aria-hidden="true" />) as HTMLElement;
     const handle = (
-      <span class={classes.marker} data-level={id} role="slider" tabIndex={0} onKeyDown={onKey(id)} onKeyUp={onKeyUp} />
+      <span class={classes.marker} data-level={id} role="slider" tabIndex={0} onKeyDown={onKey(id)} onKeyUp={keys.up} />
     ) as HTMLElement;
     const track = (<span class={classes.track}>{handle}</span>) as HTMLElement;
     // The marker's own properties: one watch for the level and the unit.

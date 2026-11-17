@@ -23,9 +23,6 @@ export function rowsAhead(speed: number, rowHeight: number, screen: number, atLe
   return Math.max(atLeast, Math.min(bySpeed, MaxScreensAhead * Math.max(1, screen)));
 }
 
-/** How long an opened run's rows take to come in (`--msui-motion-base`), and a frame's margin for its end. */
-export const RevealMs = 240;
-
 /**
  * The run of rows `next` inserted into `prev` and nothing else (a node opened, its children loaded): `[at, at + count)`
  * in `next`, or undefined for any other change (rows removed, moved, or inserted in more than one place). A list's

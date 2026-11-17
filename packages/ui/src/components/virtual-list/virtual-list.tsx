@@ -7,30 +7,25 @@
  */
 
 import { derive, type ReadonlyState } from '@molstar/core/reactive';
-import { bind, type Child, For, flush, flushFrame, frameState, observeResize, on, onCleanup } from '../../dom/index.js';
-import { state } from '../../state.js';
+import { type Child, For, observeResize, onCleanup, restartable, setAttr, watch } from '../../dom/index.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
-import { insertedRun, NativeMs, RevealMs, rowsAhead } from './window.js';
+import { listWindow, revealMs, type VirtualListHandle } from './list-window.js';
+import { insertedRun } from './window.js';
 
-/** A row's height until the rows lay out: `--msui-row` (styles §4). */
-export const DefaultRowHeight = 24;
-
-/** What a `VirtualList` lets its owner do (its `ref`). */
-export interface VirtualListHandle {
-  /** Brings the row at `index` into view (to the nearest edge) and renders it before returning. */
-  scrollToIndex(index: number): void;
-}
+export { DefaultRowHeight, type VirtualListHandle } from './list-window.js';
 
 /**
  * A long list that renders only what is on screen (and a screenful around it, at least `overscan` rows): rows of
- * one height (a row, `--msui-row`, by default), in a `ScrollArea`. A tree is a list here too: its shown nodes, flattened (`flattenTree`), so 5,000 cells cost what 40 do,
- * expanding one only recomputes the list, and scrolling swaps a few rows. Rows are keyed: one that stays in the window
- * keeps its nodes while its item is the same value (`keepRows`), so it should follow its own record (by id) for changes.
+ * one height (a row, `--msui-row`, by default), in a `ScrollArea`. A tree is a list here too: its shown nodes,
+ * flattened (`flattenTree`), so 5,000 cells cost what 40 do, expanding one only recomputes the list, and scrolling swaps
+ * a few rows. Rows are keyed: one that stays in the window keeps its nodes while its item is the same value
+ * (`keepRows`), so it should follow its own record (by id) for changes. The window is `listWindow`'s (list-window.ts).
  *
  * Rows are of one height, measured: the window's height over its rows, read from a `ResizeObserver` entry (no layout
- * read). `rowHeight` holds until the first rows lay out, so rows a host makes taller (a touch layout) need nothing. What would make a row taller (an inline menu, a body opened under it) goes elsewhere (a popover, the
- * inspector), and a tree's extra lines (Show all, Loading…) are rows of their own.
+ * read). `rowHeight` holds until the first rows lay out, so rows a host makes taller (a touch layout) need nothing.
+ * What would make a row taller (an inline menu, a body opened under it) goes elsewhere (a popover, the inspector), and a
+ * tree's extra lines (Show all, Loading…) are rows of their own.
  */
 export function VirtualList<T>(props: {
   items: ReadonlyState<readonly T[]>;
@@ -56,195 +51,101 @@ export function VirtualList<T>(props: {
    * below gliding down, as a tree's rows open. Any other change, and a scroll, is instant.
    */
   reveal?: boolean;
+  /**
+   * Each row says its place in the whole list (`aria-posinset`, `aria-setsize` on its element), not in the window: a
+   * flat list's options (a listbox). A tree's rows say their place among their siblings themselves (`flattenTree`).
+   */
+  positions?: boolean;
 }) {
-  const overscan = props.overscan ?? 8;
-  // The scroll position in the frame lane (dom §3): scroll events can come several a frame; the window
-  // moves once a frame, in the frame's tick (before its paint).
-  const top = frameState(0);
-  const height = state(0);
-  const rowHeight = state(props.rowHeight ?? DefaultRowHeight);
-  let viewport: HTMLElement | undefined;
-  const measure = () => {
-    if (!viewport) return;
-    // Both read before either is set: setting `top` makes rows, and a read after that would lay them out here, in the
-    // scroll event (measured: 1.7 of a jump's 4.4 ms), rather than once at the frame.
-    const t = viewport.scrollTop;
-    const h = viewport.clientHeight;
-    top.offer(t);
-    if (h !== height.value) height.set(h);
-  };
-  // Before the first measure (no height yet), a screenful.
-  const viewHeight = (h: number) => h || 800;
-  // The window: the rows in the DOM, [first, last). It stays while what shows (and a few rows past it) is in it, so a
-  // scroll within it costs nothing; past that, it moves ahead of the scroll by a screenful and keeps `overscan` rows
-  // behind: the browser scrolls before the scroll event reaches the list (a wheel or a flick moves the content on the
-  // compositor first), so what it uncovers must already be there or the rows blink in a frame late. A jump (a
-  // scrollbar's drag, a far wheel step) makes only what shows and `overscan` rows around it, about a screenful, and the
-  // window grows a screenful each way once the scrolling rests: making a row costs, and a drag makes a window a frame.
-  const win = state({ first: 0, last: 0 });
-  let items: readonly unknown[] = [];
-  let lastTop = 0;
-  // When the wheel or a touch last moved it: the compositor scrolls those before the list hears (a thumb's drag and
-  // `scrollToIndex` set the position themselves, and need no margin for speed).
-  let nativeAt = Number.NEGATIVE_INFINITY;
-  const native = () => {
-    nativeAt = performance.now();
-  };
-  let resting: ReturnType<typeof setTimeout> | undefined;
-  const RestMs = 120;
-  const place = (rest: boolean) => {
-    const n = items.length;
-    const rh = rowHeight.value;
-    const t = top.value;
-    const screenFirst = Math.min(n, Math.floor(t / rh));
-    const screenLast = Math.min(n, Math.ceil((t + viewHeight(height.value)) / rh));
-    const screen = screenLast - screenFirst;
-    const down = t >= lastTop;
-    // Its speed (px since the last frame: the window is placed once a frame, the frame lane), when the compositor moves
-    // it.
-    const speed = performance.now() - nativeAt < NativeMs ? Math.abs(t - lastTop) : 0;
-    lastTop = t;
-    const { first: wf, last: wl } = win.value;
-    // Ahead of the scroll, at least half a screen stays made (a wheel's step or a flick is about that much in one frame),
-    // more at speed (`rowsAhead`, window.ts); behind it, `overscan` rows.
-    const guardAhead = rowsAhead(speed, rh, screen, Math.max(overscan, Math.ceil(screen / 2)));
-    const covered =
-      wf <= Math.max(0, screenFirst - (down ? overscan : guardAhead)) &&
-      wl >= Math.min(n, screenLast + (down ? guardAhead : overscan)) &&
-      wl <= n;
-    let first: number;
-    let last: number;
-    if (rest) {
-      first = screenFirst - screen;
-      last = screenLast + screen;
-    } else if (covered) return;
-    else if (screenLast <= wf || screenFirst >= wl) {
-      // What shows and two rows (a drag makes a window a frame, so it makes little more than it shows); ahead, where the
-      // scroll will be at its speed (a wheel's large steps).
-      const fast = rowsAhead(speed, rh, screen, 2);
-      first = screenFirst - (down ? 2 : fast);
-      last = screenLast + (down ? fast : 2);
-    } else {
-      const ahead = rowsAhead(speed, rh, screen, Math.max(overscan, screen));
-      first = screenFirst - (down ? overscan : ahead);
-      last = screenLast + (down ? ahead : overscan);
-    }
-    first = Math.max(0, first);
-    last = Math.min(n, last);
-    if (first !== wf || last !== wl) win.set({ first, last });
-  };
-  const scrolled = () => {
-    endReveal();
-    place(false);
-    if (resting !== undefined) clearTimeout(resting);
-    resting = setTimeout(() => {
-      resting = undefined;
-      place(true);
-    }, RestMs);
-  };
+  let windowEl: HTMLElement | undefined;
   // A reveal (`reveal`): the keys of the run inserted, whose rows grow in as they are made; the rows' height is not
   // measured meanwhile (a growing row is not a row's height). It ends after its time, or at a scroll.
   const entering = new Set<unknown>();
   const grown: Element[] = [];
-  let revealEnd: ReturnType<typeof setTimeout> | undefined;
+  let revealing = false;
   function endReveal() {
-    if (revealEnd === undefined) return;
-    clearTimeout(revealEnd);
-    revealEnd = undefined;
+    if (!revealing) return;
+    revealing = false;
+    revealEnd.cancel();
     entering.clear();
     for (const el of grown) el.removeAttribute('data-reveal');
     grown.length = 0;
   }
+  // Held while the list is paused (dom §6), so a hidden list ends its reveal when it shows again.
+  const revealEnd = restartable(endReveal);
+  const list = listWindow({
+    items: props.items,
+    rowHeight: props.rowHeight,
+    overscan: props.overscan,
+    onScroll: () => endReveal(),
+  });
+  const { rowHeight } = list;
   // Compared where the rows are cut (`range`, read before the rows are made), with the rows last cut.
   const keyOf = (item: T): unknown => props.itemKey(item);
   let laid: readonly T[] = [];
-  const noteRun = (list: readonly T[]) => {
-    if (!props.reveal || list === laid) return;
-    const run = insertedRun(laid, list, keyOf);
-    laid = list;
+  const noteRun = (rows: readonly T[]) => {
+    if (!props.reveal || rows === laid) return;
+    const run = insertedRun(laid, rows, keyOf);
+    laid = rows;
     if (!run) return;
     endReveal();
-    for (let i = run.at; i < run.at + run.count; i++) entering.add(keyOf(list[i]));
-    revealEnd = setTimeout(endReveal, RevealMs);
+    const ms = revealMs(windowEl);
+    if (!ms) return;
+    for (let i = run.at; i < run.at + run.count; i++) entering.add(keyOf(rows[i]));
+    revealing = true;
+    revealEnd.start(ms);
   };
-  onCleanup(() => {
-    if (resting !== undefined) clearTimeout(resting);
-    endReveal();
-  });
-  bind(
-    derive([props.items, height.asReadonly, rowHeight.asReadonly], (list, h, rh) => ({ list, h, rh })),
-    ({ list: next }) => {
-      items = next;
-      place(true);
-    },
-  );
-  bind(top, scrolled);
+  onCleanup(endReveal);
   const range = derive(
-    [props.items, win.asReadonly, rowHeight.asReadonly],
-    (list, w, rh) => {
-      noteRun(list);
-      return { items: list, first: Math.min(w.first, list.length), last: Math.min(w.last, list.length), rh };
+    [props.items, list.range, rowHeight],
+    (rows, w, rh) => {
+      noteRun(rows);
+      return { items: rows, first: Math.min(w.first, rows.length), last: Math.min(w.last, rows.length), rh };
     },
     (a, b) => a.items === b.items && a.first === b.first && a.last === b.last && a.rh === b.rh,
   );
   const shown = derive(range, (r) => r.items.slice(r.first, r.last));
-  props.ref?.({
-    scrollToIndex(index) {
-      const rh = rowHeight.value;
-      const view = viewHeight(height.value);
-      const y = index * rh;
-      let t = top.value;
-      if (y < t) t = y;
-      else if (y + rh > t + view) t = y + rh - view;
-      if (t !== top.value) {
-        // A jump, not a motion: no speed (the margin ahead stays what it is at rest).
-        lastTop = t;
-        if (viewport) viewport.scrollTop = t;
-        // Now, not at the scroll event: the row is in the DOM when this returns (a tree's keyboard focuses it next).
-        top.offer(t);
-      }
-      // And rendered: the frame's tick now (the window), then the `watch`es.
-      flushFrame();
-      flush();
-    },
-  });
+  props.ref?.(list.handle);
   return (
     <ScrollArea
       class={`${classes.list} ${props.class ?? ''}`}
       contentClass={classes.content}
       edge={props.edge}
       fade={false}
-      viewportRef={(el) => {
-        viewport = el;
-        // Scoped (dom §6): detached while hidden, gone with the list.
-        on(el, 'scroll', measure, { passive: true });
-        on(el, 'wheel', native, { passive: true });
-        on(el, 'touchmove', native, { passive: true });
-        observeResize(el, measure);
-        queueMicrotask(measure);
-      }}
+      viewportRef={(el) => list.attach(el)}
       role={props.role}
       aria-label={props['aria-label']}
       ref={(el: HTMLElement) => props.contentRef?.(el)}
       style={{
-        height: derive([props.items, rowHeight.asReadonly], (items, rh) => `${items.length * rh}px`),
+        height: derive([props.items, rowHeight], (items, rh) => `${items.length * rh}px`),
         // The skeleton's row height (virtual-list.module.css): what the browser uncovers before the rows are made.
-        '--msui-virtual-row': derive(rowHeight.asReadonly, (rh) => `${rh}px`),
+        '--msui-virtual-row': derive(rowHeight, (rh) => `${rh}px`),
       }}
     >
       <div
         class={classes.window}
         style={{ transform: derive(range, (r) => `translateY(${r.first * r.rh}px)`) }}
         ref={(el: HTMLElement) => {
+          windowEl = el;
           // The rows' height: the window's over the rows made (not the rows planned: `For` time-slices new rows, and
           // a window with fewer than planned would read short), from the observer's entry (after layout, nothing read).
           observeResize(el, (entries) => {
             const h = entries[entries.length - 1].contentRect.height;
             const count = el.childElementCount;
-            if (count <= 0 || h <= 0 || revealEnd !== undefined) return;
-            const rh = h / count;
-            if (Math.abs(rh - rowHeight.value) > 0.5) rowHeight.set(rh);
+            if (count <= 0 || h <= 0 || revealing) return;
+            list.setRowHeight(h / count);
           });
+          // Each row's place in the whole list, in window order (the rows are in it in order).
+          if (props.positions)
+            watch([range, shown], () => {
+              const r = range.value;
+              const total = String(r.items.length);
+              let i = r.first;
+              for (const row of el.children) {
+                setAttr(row, 'aria-posinset', String(++i));
+                setAttr(row, 'aria-setsize', total);
+              }
+            });
         }}
       >
         <For each={shown} by={props.itemKey}>

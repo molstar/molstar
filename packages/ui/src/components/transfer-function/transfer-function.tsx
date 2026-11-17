@@ -9,19 +9,7 @@
 import { derive, type ReadonlyState, type State } from '@molstar/core/reactive';
 import { clamp } from '@molstar/core/math/interpolate';
 import { Color } from '@molstar/core/util/color/color';
-import {
-  drag,
-  effect,
-  For,
-  frameState,
-  type MaybeReactive,
-  Show,
-  setAttr,
-  setClass,
-  setStyle,
-  uniqueId,
-  watch,
-} from '../../dom/index.js';
+import { For, type MaybeReactive, Show, setAttr, setClass, setStyle, uniqueId, watch } from '../../dom/index.js';
 import { held, state } from '../../state.js';
 import { Button } from '../button/button.js';
 import { ColorPicker, colorToHex } from '../color/color-picker.js';
@@ -30,7 +18,9 @@ import {
   controlClass,
   type Histogram,
   HistogramPlot,
+  keySteps,
   PlotHeader,
+  plotGesture,
   UnitSwitch,
   unitState,
   type ValueAxis,
@@ -71,8 +61,11 @@ export interface TransferPalette {
 export interface TransferFunctionProps {
   /** The header's title (default "Transfer function"); also names the section. */
   title?: string;
-  /** The values' statistics: the axis spans [min, max]; σ is counted from the mean. */
-  stats: ValueStats;
+  /**
+   * The values' statistics: the axis spans [min, max]; σ is counted from the mean. A state or a stream when they change
+   * (another map): the control is drawn again for them.
+   */
+  stats: MaybeReactive<ValueStats>;
   /** Counts of the values; none (yet): an empty well. */
   histogram?: MaybeReactive<Histogram | undefined>;
   /** The control points in order of `x`, with any change made through `onChange` already in (a state the caller sets). */
@@ -189,6 +182,12 @@ const alphaText = (a: number) => (a === 0 ? '0' : a < 0.01 ? a.toPrecision(2) : 
  * Model-free: the points come in as data (a state the caller sets from `onChange`), the end of a gesture `onCommit`.
  */
 export function TransferFunction(props: TransferFunctionProps) {
+  const stats = held<ValueStats | undefined>(props.stats, undefined);
+  return <Show when={stats}>{(s) => <TransferCurve {...props} stats={s} />}</Show>;
+}
+
+/** The control for one set of statistics. */
+function TransferCurve(props: TransferFunctionProps & { stats: ValueStats }) {
   const { stats } = props;
   const axis = valueAxis(stats);
   const unit = unitState(props.unit);
@@ -236,14 +235,18 @@ export function TransferFunction(props: TransferFunctionProps) {
     return derive(points, (l) => (last = l[i] ?? last));
   };
 
-  /** A point moved to (x, alpha), kept between its neighbours. */
-  const moveTo = (i: number, x: number, alpha: number) => {
-    const list = [...points.value];
-    if (!list[i]) return;
+  /**
+   * A point moved to (x, alpha), kept between its neighbours, in `base` (a gesture's own list: what it last gave out,
+   * whether or not the caller has applied it yet) or the points shown. Returns the list given out.
+   */
+  const moveTo = (i: number, x: number, alpha: number, base: readonly TransferPoint[] = points.value) => {
+    const list = [...base];
+    if (!list[i]) return base;
     const lo = i > 0 ? list[i - 1].x + Gap * axis.span : stats.min;
     const hi = i < list.length - 1 ? list[i + 1].x - Gap * axis.span : stats.max;
     list[i] = { ...list[i], x: clamp(x, lo, hi), alpha: clamp(alpha, 0, 1) };
     change(list);
+    return list;
   };
   const remove = (i: number) => {
     const list = [...points.value];
@@ -255,23 +258,10 @@ export function TransferFunction(props: TransferFunctionProps) {
     commit();
   };
 
-  // ---- Points dragged on the plot: the pointer is input, published once a frame (a frame state; its value a tick) ----
-  let rect: DOMRect | undefined;
-  let dragging: number | undefined;
-  let pointerX = 0;
-  let pointerY = 0;
-  let moves = 0;
-  const moved = frameState(0);
-  const placeAt = (clientX: number, clientY: number) => ({
-    x: axis.valueAt((clientX - rect!.left) / (rect!.width || 1)),
-    y: clamp(1 - (clientY - rect!.top) / (rect!.height || 1), 0, 1),
-  });
-  const step = () => {
-    if (dragging === undefined || !rect) return;
-    const p = placeAt(pointerX, pointerY);
-    moveTo(dragging, p.x, alphaAt(p.y));
-  };
-  effect(moved, step);
+  // ---- Points dragged on the plot (the shared plot gesture: once a frame, the plot's box read at each step) ----
+  // The gesture keeps its own list (what it last gave out): a point it added is dragged even when the caller applies
+  // `onChange` later (its own state commit), and never a neighbour that is still at that index in the points shown.
+  let working: readonly TransferPoint[] | undefined;
   let lastPress: { index: number; time: number } | undefined;
   const pressedTwice = (index: number) => {
     const now = performance.now();
@@ -280,55 +270,40 @@ export function TransferFunction(props: TransferFunctionProps) {
     return twice;
   };
   const plotDrag = (el: HTMLElement) =>
-    drag(el, {
-      start: (e) => {
-        if (e.button !== 0) return undefined;
-        rect = el.getBoundingClientRect();
+    plotGesture<number>(el, {
+      start: (e, at) => {
         const hit = (e.target as Element).closest?.<HTMLElement>('[data-point]')?.dataset.point;
         let index: number;
         if (hit !== undefined) {
           index = Number(hit);
           if (pressedTwice(index)) {
-            rect = undefined;
             remove(index);
             return undefined;
           }
+          working = points.value;
         } else {
           // A new point where it was pressed, in the color the curve has there, then dragged from there.
-          const p = placeAt(e.clientX, e.clientY);
+          const x = axis.valueAt(at.x);
           const list = [...points.value];
-          index = list.findIndex((q) => q.x > p.x);
+          index = list.findIndex((q) => q.x > x);
           if (index < 0) index = list.length;
-          list.splice(index, 0, { x: p.x, alpha: alphaAt(p.y), color: transferColorAt(list, p.x) });
+          list.splice(index, 0, { x, alpha: alphaAt(clamp(at.y, 0, 1)), color: transferColorAt(list, x) });
           change(list);
+          working = list;
         }
-        e.preventDefault();
         markers[index]?.focus({ preventScroll: true });
-        dragging = index;
-        pointerX = e.clientX;
-        pointerY = e.clientY;
         return index;
       },
-      move: (e) => {
-        pointerX = e.clientX;
-        pointerY = e.clientY;
-        moved.offer(++moves);
+      move: (i, at) => {
+        working = moveTo(i, axis.valueAt(at.x), alphaAt(clamp(at.y, 0, 1)), working);
       },
-      // Let go: where it was let go, now. Ended otherwise (cancelled, the scope paused or gone): no more steps. Either way the
-      // gesture is over.
-      end: (_i, how, e) => {
-        if (how === 'up' && e) {
-          pointerX = e.clientX;
-          pointerY = e.clientY;
-          step();
-        }
-        dragging = undefined;
-        rect = undefined;
+      end: () => {
+        working = undefined;
         commit();
       },
     });
 
-  let keyed = false;
+  const keys = keySteps(commit);
   const onPointKey = (i: number) => (e: KeyboardEvent) => {
     const p = points.value[i];
     if (!p || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -361,15 +336,11 @@ export function TransferFunction(props: TransferFunctionProps) {
               : undefined;
     if (!next) return;
     e.preventDefault();
-    keyed = true;
+    keys.stepped();
     moveTo(i, next[0], next[1]);
   };
-  // Keys held or pressed again before they are released are one gesture: it ends when the key is up.
-  const onKeyUp = () => {
-    if (!keyed) return;
-    keyed = false;
-    commit();
-  };
+  // What a point's keys do (a slider in two directions): said once, for every point.
+  const keysHelp = uniqueId('msui-tf-keys');
 
   // ---- What all the points draw together: the curve, the area, its gradient and the color bar (one watch) ----
   const gradientId = uniqueId('msui-tf');
@@ -415,8 +386,9 @@ export function TransferFunction(props: TransferFunctionProps) {
         role="slider"
         tabIndex={0}
         aria-label={`Point ${i + 1}`}
+        aria-describedby={keysHelp}
         onKeyDown={onPointKey(i)}
-        onKeyUp={onKeyUp}
+        onKeyUp={keys.up}
       />
     ) as HTMLElement;
     markers[i] = el;
@@ -513,6 +485,10 @@ export function TransferFunction(props: TransferFunctionProps) {
         <For each={indices}>{(i) => colorHandle(i)}</For>
       </div>
       <AxisLabels stats={stats} unit={unit} />
+      <span id={keysHelp} class={classes.help}>
+        Left and right move the point along the values, up and down change its opacity; Shift moves further; Enter opens
+        its color; Delete removes it.
+      </span>
       <Show when={derive(editing, (i) => (i === undefined ? undefined : { i }))}>
         {({ i }) => (
           <PointColor
@@ -527,7 +503,9 @@ export function TransferFunction(props: TransferFunctionProps) {
               change(list);
             }}
             onRemove={() => {
-              handles[i - 1]?.focus();
+              // The focus to a neighbour's handle: the one before; for the first, its own (handles are by place: it
+              // shows the next point once this one goes).
+              (handles[i - 1] ?? handles[i])?.focus();
               remove(i);
             }}
             onClose={(refocus) => {
