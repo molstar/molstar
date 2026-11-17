@@ -37,6 +37,10 @@
     `data-msui-theme`; `config` the alternative); a headless viewer uses the config's `theme`.
 13. `pnpm check:workspace` is red on `@molstar/ui`'s export `./components/logo/_generated/glass-wordmark.module.css`
     (no source; pre-existing, `packages/ui` unchanged from master): for the UI's owner, not this slice.
+14. Lane I's defaults: `StoreSettings.summaries` (`factor` 16, `maxLength` 2^24; `false` off; not yet in
+    `ViewerConfig`), `ResolveConfig.maxNestedDepth` 2 (EC-179), `for_each` (`depth` 0, `order` `key`, `-` descending,
+    `filter` none, string equality), `delayedSource`/`delayedRuntime` (`delayMs` 0, real clock), node retention (the
+    entries that carried a node, its source's coverage, an explicit `hold`) (`drift/regions.md`).
 
 ## Agreed but not built
 

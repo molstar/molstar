@@ -63,3 +63,13 @@ of EC-30; NCBI codes beyond 1, 2, 11; projecting rects; reverse paths carried ac
 - `packages/seq/TODO.md`: drop the examples package and the thin Canvas2D viewer; add the items above.
 - The Features and Examples pages in Storybook.
 
+## From lane I (by region)
+
+- Shown placements, the selection and highlights hold their nodes (only `store.hold` does now).
+- A static layer whose `data` names a dynamic node waits for it instead of reporting `seq.view.layer.data`.
+- Per-template re-expansion; instance layers kept across overlay versions (preparation cached).
+- The overlay's sync issues in the viewer's `layoutIssues`.
+- `summaries` in `ViewerConfig`; summaries for systems of unknown length or past `maxLength`.
+- Mixed strands within an item checked (the first row's strand is taken).
+- Dynamic nodes in `not`'s universe.
+
