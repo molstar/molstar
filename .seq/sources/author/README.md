@@ -150,6 +150,10 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
 - **Second review**: "let's run one more indepedent review with opus, and look for spec and design gaps too"; then
   "Yes, both in order" (fix the contradictions, then write the missing designs in the review's order).
 
+- **The first slice's plan**: "let's do the plan in .seq/execution first, plan different steps, etc as the principles
+  recommend. once the plan is approved, we do loop and then start"; then "approve both, write the loop file" (the plan
+  and Gate 0's recommended choices).
+
 ## Reconciliation
 
 - "JSON with S-expression printing" fits §one-recursive-form (the spelling is the project's choice); meso\* chose

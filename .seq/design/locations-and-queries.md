@@ -7,9 +7,10 @@ meso\* though Seq\*'s forms build locations over data (meso\*'s select child nod
 interaction grammar, which acts on items and rows, not only on ranges. This design settles the types and the first
 forms.
 
-## Provisional
+## Settled
 
-Recommended, to confirm: the three result types and the default numbering. The first forms grow with the examples.
+Accepted as recommended (the author, 2026-11-17, at the first slice's Gate 0): the three result types and labels 1-based
+by default. The first forms grow with the examples.
 
 ## Decision
 

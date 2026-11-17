@@ -15,7 +15,7 @@ smallest end-to-end slice that tests the riskiest decisions first; after it, the
 
 ## Gate 0: before any lane
 
-- [ ] GATE 0: the author confirms the provisional choices the slice builds on (each with its recommendation):
+- [x] GATE 0 (2026-11-17, "approve both"; range reads wait for bigWig, the slice reads its FASTA whole): the author confirms the provisional choices the slice builds on (each with its recommendation):
   - meso\*'s tree core: fork into `repr` now, migrate meso\* later ([language-description](../../design/language-description.md));
   - the slice's kinds and param names (same);
   - the three result types and labels 1-based by default ([locations-and-queries](../../design/locations-and-queries.md));
@@ -88,7 +88,7 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 - [ ] I1 (4a) a synthetic asynchronous `seq` source with a fake clock: coverage, levels, tiles, pending vs empty,
       errors, cancellation, eviction, summaries (value pyramids); planning through the static codon map; then FASTA
-      with its index (read whole, or by range if Gate 0 takes range reads)
+      with its index (read whole: Gate 0)
 - [ ] I2 (4b) dynamic nodes: a transcript with its item coordinate system and codon map; the overlay; planning through
       a dynamic map; node lifetime against eviction
 - [ ] I3 (4c) the transcript's domains as a nested source, shown by a track template

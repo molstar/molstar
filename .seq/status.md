@@ -13,7 +13,7 @@ Start here. What is built, what is open, what comes next, and where to read.
 
 The architecture is reconciled after the independent review; read [design/version-1.md](design/version-1.md) first.
 
-1. **The first slice**: planned in `execution/first-slice/plan.md`, awaiting the author's approval and Gate 0.
+1. **The first slice**: planned and approved, Gate 0 settled; the loop is `execution/first-slice/loop.md`.
 2. **Provisional, to confirm on the first slice**: the root nouns ([design/building-blocks.md](design/building-blocks.md)),
    the source protocol's shape ([design/sources.md](design/sources.md)), the performance numbers
    ([design/performance.md](design/performance.md)), the UX foundations' numbers ([design/ux-foundations.md](design/ux-foundations.md)).
@@ -21,10 +21,6 @@ The architecture is reconciled after the independent review; read [design/versio
    base-library changes, each when its work starts ([design/base-library.md](design/base-library.md)).
 4. **To decide as the work reaches them**: worker boundaries, the asset manager's range reads, structure and map
    runtimes, accessibility, versioning under 0.x (version-1, Open).
-5. **Provisional in the new designs**: the fork-or-migrate choice for meso\* and the slice's param names
-   ([design/language-description.md](design/language-description.md)), the result types and default numbering
-   ([design/locations-and-queries.md](design/locations-and-queries.md)), the tile size and table columns
-   ([design/protocol.md](design/protocol.md)).
 
 ## Language version
 

@@ -4,7 +4,9 @@ Branch: `packages-seq`. No lanes started.
 
 ## Done
 
-The plan is written (`plan.md`), awaiting the author's approval.
+- The plan approved and Gate 0 settled (the author: "approve both"; range reads wait for bigWig, the slice reads its
+  FASTA whole). The settled choices are copied into language-description, locations-and-queries and protocol.
+- `loop.md` written; lane A's brief written (`briefs/a-tree-core.md`).
 
 ## In progress
 
@@ -12,17 +14,16 @@ Nothing.
 
 ## Next
 
-1. The author approves the plan and settles Gate 0 (`plan.md`, Gate 0).
-2. Write `loop.md` and lane A's brief (`briefs/a-tree-core.md`); start lane A.
+Start lane A (stage 1) per `loop.md`, step 4, with the brief and the meso\* source path in the launch instructions.
 
 ## Decisions taken
 
-None yet in this work.
+- Gate 0, as recommended (see `plan.md`).
 
 ## Blockers / open questions
 
-- Gate 0's choices (`plan.md`).
+None.
 
 ## Verify
 
-The scaffold checks and `pnpm format:check` (green at the plan's commit).
+The scaffold checks and `pnpm format:check` (green at the loop's commit).

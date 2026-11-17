@@ -6,10 +6,10 @@ The second review (2026-11-17) found the first slice blocked here first: no desi
 looks like, what the slice's kinds and params are, how the builder reads, or how far `@molstar/core/repr` departs from
 meso\*'s tree core. This design settles them for the first slice.
 
-## Provisional
+## Settled
 
-Recommended, to confirm: the fork-or-migrate choice for meso\* (below) and the slice's param names. The rest follows from
-agreed designs ([format.md](format.md), [tree-core.md](tree-core.md), [composition.md](composition.md)).
+Accepted as recommended (the author, 2026-11-17, at the first slice's Gate 0: "approve both"): fork the tree core into
+`repr` now and migrate meso\* later; the slice's kinds and param names as below. The rest follows from agreed designs ([format.md](format.md), [tree-core.md](tree-core.md), [composition.md](composition.md)).
 
 ## Decision
 

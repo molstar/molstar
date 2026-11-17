@@ -7,10 +7,11 @@ store's keys unable to name a system or a nested source, no plan for requests th
 another, and node lifetime colliding with the cache's eviction. Inline data already goes through the protocol in the
 first slice's step 3, so the types are needed first. This design gives them.
 
-## Provisional
+## Settled
 
-Recommended, to confirm: the tile size, the shapes' column names and the level scheme. They are the first slice's to
-exercise; the slice's synthetic source and the `seq` format test them before FASTA and bigWig.
+Accepted as recommended (the author, 2026-11-17, at the first slice's Gate 0): tiles of 1,024 bins, the shapes' column
+names and levels as bin widths, exercised by the slice's synthetic source and the `seq` format before FASTA and bigWig.
+Range reads in `AssetManager` wait for bigWig; the slice reads its small FASTA whole.
 
 ## Decision
 
