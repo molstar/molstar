@@ -71,8 +71,12 @@ export interface ValuesLay {
   hoverWidth: number;
 }
 
+/** `a`, or a larger copy of it: `push` grows while it fills, so the bars pushed so far are kept. */
 function grow(a: Float32Array, n: number): Float32Array {
-  return n <= a.length ? a : new Float32Array(Math.max(n, 2 * a.length));
+  if (n <= a.length) return a;
+  const b = new Float32Array(Math.max(n, 2 * a.length));
+  b.set(a);
+  return b;
 }
 
 function push(lay: ValuesLay, x0: number, x1: number, lo: number, hi: number) {
