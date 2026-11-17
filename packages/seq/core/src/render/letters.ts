@@ -10,7 +10,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep } from './config.js';
-import { NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, layerSource, placeholderSpans, readTiles } from './layer-data.js';
 import {
@@ -61,10 +61,6 @@ export interface LettersLay {
   failed: number[];
   tokens: SeqTokens;
   hoverWidth: number;
-}
-
-function grow<T extends Int32Array | Uint16Array | Uint32Array | Float32Array>(a: T, n: number): T {
-  return n <= a.length ? a : new (a.constructor as new (n: number) => T)(Math.max(n, 2 * a.length));
 }
 
 /** The letter code at a position of a table, or 0. */
@@ -153,12 +149,12 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     tables.sort((a, b) => a.start - b.start);
     let count = 0;
     for (let i = 0; i + 1 < vis.length; i += 2) count += vis[i + 1] - vis[i];
-    lay.pos = grow(lay.pos, count);
-    lay.code = grow(lay.code, count);
-    lay.fill = grow(lay.fill, count);
-    lay.ink = grow(lay.ink, count);
-    lay.x0 = grow(lay.x0, count);
-    lay.x1 = grow(lay.x1, count);
+    lay.pos = grown(lay.pos, count);
+    lay.code = grown(lay.code, count);
+    lay.fill = grown(lay.fill, count);
+    lay.ink = grown(lay.ink, count);
+    lay.x0 = grown(lay.x0, count);
+    lay.x1 = grown(lay.x1, count);
     let t = 0;
     for (let i = 0; i + 1 < vis.length; i += 2) {
       for (let p = vis[i]; p < vis[i + 1]; p++) {

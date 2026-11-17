@@ -11,7 +11,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import { type AxisTransform, Cut } from './axis.js';
 import { type DensityStep, densityStep, fontSize } from './config.js';
-import { Anchor, type ImageData, NoColor, type PassName, type PassWriter, Round } from './draw-lists.js';
+import { Anchor, grown, type ImageData, NoColor, type PassName, type PassWriter, Round } from './draw-lists.js';
 import { LaneIndex, StickyLanes } from './lanes.js';
 import {
   dataRegions,
@@ -105,10 +105,6 @@ export interface RangesLay {
   categories: Map<string, number>;
 }
 
-function grow<T extends Int32Array | Uint8Array | Float32Array>(a: T, n: number): T {
-  return n <= a.length ? a : new (a.constructor as new (n: number) => T)(Math.max(n, 2 * a.length));
-}
-
 function fieldAt(fields: RangesList['fields'], name: string, i: number): string | undefined {
   const f = fields?.find((x) => x.name === name);
   if (!f) return undefined;
@@ -164,12 +160,12 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
 function pushMark(lay: RangesLay, x0: number, x1: number, lane: number, item: number, round: number) {
   const j = lay.m++;
   if (j >= lay.mx0.length) {
-    lay.mx0 = grow(lay.mx0, j + 1);
-    lay.mx1 = grow(lay.mx1, j + 1);
-    lay.mlane = grow(lay.mlane, j + 1);
-    lay.mitem = grow(lay.mitem, j + 1);
-    lay.mround = grow(lay.mround, j + 1);
-    lay.mlabel = grow(lay.mlabel, j + 1);
+    lay.mx0 = grown(lay.mx0, j + 1);
+    lay.mx1 = grown(lay.mx1, j + 1);
+    lay.mlane = grown(lay.mlane, j + 1);
+    lay.mitem = grown(lay.mitem, j + 1);
+    lay.mround = grown(lay.mround, j + 1);
+    lay.mlabel = grown(lay.mlabel, j + 1);
   }
   lay.mx0[j] = x0;
   lay.mx1[j] = x1;
@@ -273,7 +269,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     let row = false;
     if (step !== 'density' && !densities.length) {
       const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => lay.starts[a] - lay.starts[b] || a - b);
-      lay.lanes = grow(lay.lanes, n);
+      lay.lanes = grown(lay.lanes, n);
       const lanes = lay.lanes.subarray(0, n);
       const assign = (cap: number) => {
         lay.laneCount = lay.sticky.assign(lay.ids, lay.starts, lay.ends, order, cap, ctx.settled, lanes);

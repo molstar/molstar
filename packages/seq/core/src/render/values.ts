@@ -9,7 +9,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, perPosition } from './config.js';
-import type { PassName, PassWriter } from './draw-lists.js';
+import { grown, type PassName, type PassWriter } from './draw-lists.js';
 import {
   dataRegions,
   type LayerSource,
@@ -71,21 +71,13 @@ export interface ValuesLay {
   hoverWidth: number;
 }
 
-/** `a`, or a larger copy of it: `push` grows while it fills, so the bars pushed so far are kept. */
-function grow(a: Float32Array, n: number): Float32Array {
-  if (n <= a.length) return a;
-  const b = new Float32Array(Math.max(n, 2 * a.length));
-  b.set(a);
-  return b;
-}
-
 function push(lay: ValuesLay, x0: number, x1: number, lo: number, hi: number) {
   const j = lay.n++;
   if (j >= lay.x0.length) {
-    lay.x0 = grow(lay.x0, j + 1);
-    lay.x1 = grow(lay.x1, j + 1);
-    lay.lo = grow(lay.lo, j + 1);
-    lay.v = grow(lay.v, j + 1);
+    lay.x0 = grown(lay.x0, j + 1);
+    lay.x1 = grown(lay.x1, j + 1);
+    lay.lo = grown(lay.lo, j + 1);
+    lay.v = grown(lay.v, j + 1);
   }
   lay.x0[j] = x0;
   lay.x1[j] = x1;

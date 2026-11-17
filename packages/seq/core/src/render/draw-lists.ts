@@ -34,7 +34,11 @@ export const Anchor = { start: 0, middle: 1, end: 2 } as const;
 /** No color: an absent stroke, or a glyph run colored per letter. */
 export const NoColor = 0;
 
-function grown<T extends Float32Array | Uint32Array | Uint16Array | Uint8Array>(a: T, need: number): T {
+/** `a`, or a larger copy of it with its contents kept (buffers grow while they fill). */
+export function grown<T extends Float32Array | Int32Array | Uint32Array | Uint16Array | Uint8Array>(
+  a: T,
+  need: number,
+): T {
   if (need <= a.length) return a;
   const next = new (a.constructor as new (n: number) => T)(Math.max(need, a.length * 2));
   next.set(a);
