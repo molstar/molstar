@@ -64,6 +64,14 @@ export interface ViewerConfig {
     /** Wheel deltas within one frame are applied once, at the frame (true); false: at each event. */
     readonly coalesceWheel: boolean;
   };
+  readonly theme: {
+    /**
+     * Where a mounted viewer takes its token table from: the computed style of its root (`root`, the default: the
+     * `--msui-*` and `--seq-*` properties, redrawn when `data-msui-theme` changes) or the context's built-in table of
+     * the `theme` item (`config`). A headless viewer always uses the config.
+     */
+    readonly source: 'root' | 'config';
+  };
   readonly canvas: {
     /**
      * The canvas's height: the layout's content (`content`, the default: tracks below the page are not laid out, so
@@ -109,6 +117,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
   follow: { followerMoves: 'ignore', cyclicArc: 'wrap' },
   navigate: { wheelZoomStep: 1.25, keyPanFraction: 0.1, coalesceWheel: true },
+  theme: { source: 'root' },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },
   pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50, lineHeight: 16 },
 };

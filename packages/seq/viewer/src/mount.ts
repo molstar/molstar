@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas';
+import { CanvasBackend, type CanvasLike, FontCache, readCssTokens, ThemeAttribute } from '@molstar/seqx-viewer/canvas';
 import type { SeqViewer } from './viewer.js';
 
 // The mounted UI (_spec/README.md "Input"): the canvas stack (the base canvas, the overlay above it and the labels above
@@ -29,7 +29,23 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   container.append(base, overlay, labels);
   target.appendChild(container);
 
-  const fonts = new FontCache(viewer.context.tokens.fonts);
+  // the token table: the root's computed style (`theme.source: 'root'`) read before the first frame, and again when
+  // `data-msui-theme` changes on the document element or the nearest ancestor that has it; else the config's
+  let themeObserver: MutationObserver | undefined;
+  if (viewer.config.theme.source === 'root') {
+    viewer.setTokens(readCssTokens(container));
+    if (typeof MutationObserver !== 'undefined') {
+      themeObserver = new MutationObserver(() => {
+        viewer.setTokens(readCssTokens(container));
+      });
+      const options = { attributes: true, attributeFilter: [ThemeAttribute] };
+      const holder = target.closest(`[${ThemeAttribute}]`);
+      themeObserver.observe(doc.documentElement, options);
+      if (holder && holder !== doc.documentElement) themeObserver.observe(holder, options);
+    }
+  }
+
+  const fonts = new FontCache(viewer.tokens.fonts);
   const backend = new CanvasBackend(
     base as unknown as CanvasLike,
     overlay as unknown as CanvasLike,
@@ -138,6 +154,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   return () => {
     for (const [type, fn, options] of listeners) container.removeEventListener(type, fn, options);
     observer?.disconnect();
+    themeObserver?.disconnect();
     query?.removeEventListener('change', onRatio);
     fontFaces?.removeEventListener?.('loadingdone', onFonts);
     viewer.useBackend(undefined);

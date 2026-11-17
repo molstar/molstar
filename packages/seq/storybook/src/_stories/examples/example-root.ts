@@ -84,7 +84,12 @@ class ExampleRoot extends UiElement<ExampleView> {
         r.issues.length ? `: ${r.issues.map((i) => i.message).join('; ')}` : ''
       }`;
     };
-    const unlisten = [viewer.rested.listen(() => void drawSvg()), viewer.layoutIssues.listen(() => void drawSvg())];
+    // a theme switch changes the viewer's tokens (read from this root's CSS): the SVG is drawn with them again
+    const unlisten = [
+      viewer.rested.listen(() => void drawSvg()),
+      viewer.layoutIssues.listen(() => void drawSvg()),
+      viewer.tokensVersion.listen(() => void drawSvg()),
+    ];
     onCleanup(() => {
       alive = false;
       for (const off of unlisten) off();
