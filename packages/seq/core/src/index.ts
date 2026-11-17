@@ -9,4 +9,4 @@
 // own as it is built (`@molstar/seqx-core/<folder>`).
 
 /** The version of the SeqViewSpec language this package reads and writes (_spec/README.md, Versions). */
-export const LanguageVersion = '0.0.0';
+export { SeqLanguageVersion as LanguageVersion } from './lang/language.js';
