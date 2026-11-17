@@ -19,7 +19,9 @@ checks it cannot express.
 
 - **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data` and `views` (reserved ids of the
   same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
-  `track`, `layer` (ids optional on a layer only). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`,
+  `track`, `layer` (ids optional on a layer only). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a
+  coding sequence of its own (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind
+  param is `node_kind`, since `kind` is reserved). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`,
   `data`) are `ref` params naming the kinds they take; a reference is an address.
 - **Positions** are 0-based, ranges half-open. A range with `start > end` wraps the origin where its sequence is
   `cyclic` and is an error elsewhere; a section's `range` follows the same rule. Strands are `+` or `-`. Exons of a
@@ -37,7 +39,8 @@ checks it cannot express.
   or `value`), an `index` only for a file, letters of the alphabet, row intervals, bounds and strands (the issue's path
   carries the row), what a map method needs, exons, a codon map's alphabets, section ranges, that a reference names a
   node of a kind its param takes, that a layer's data is what its type draws (reported once: a kind the param does not
-  take is the reference's issue alone), that `follow` chains end. Extents are checked where the letters are inline.
+  take is the reference's issue alone; a template's layer without data draws each instance's node), that a template's
+  `source` names a source, that `follow` chains end. Extents are checked where the letters are inline.
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
 
 ## Language builder
@@ -184,9 +187,9 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 ### Protocol
 
 - A **format runtime** (`FormatRuntime`: `name`, `formats`, `open(source, { assets, signal })`) opens a `SourceEntry`
-  (`address`, `format`, `uri` or inline `value`) to an `OpenedSource`: its `coverage` and `read(request, signal)`.
-  `assets` is a narrow port (`readText(uri, signal)`). Why: a runtime is tested with a fake, never the network. A file
-  that cannot be read is a `SourceOpenError` with `seq.source.unreadable`.
+  (`address`, `format`, `uri` or inline `value`, an `index` for a format read with one) to an `OpenedSource`: its
+  `coverage` and `read(request, signal)`. `assets` is a narrow port (`readText(uri, signal)`). Why: a runtime is tested
+  with a fake, never the network. A file that cannot be read is a `SourceOpenError` with `seq.source.unreadable`.
 - **Coverage**: systems (unique names, lengths ≥ 0, alphabet, cyclic, aliases), shapes per listed system (with a ranges
   table's fields), integer levels ≥ 1 as bin widths, ascending, at least one (`[1]` without levels), nodes known up
   front (`checkCoverage`).
@@ -222,6 +225,31 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   level is not served. A list without ids gets `row` from its place in the file. Inline data (`inlineSeq`) is one pair
   over the whole system at level 1, its length in the coverage.
 
+### Asynchronous sources
+
+- `delayedSource(inner, { clock, delayMs })` answers as `inner` does, each answer after a delay (a number, or by the
+  request) on a `StoreClock`; an abort rejects at once and clears the timer; 0 is no timer. `asyncSeqSource(data)` is
+  the synthetic by-region source (`seq` data answered so); `delayedRuntime(runtime, { formats })` gives it a format of
+  its own (`seq-async`). Why: the store's states (pending, cancelled, evicted, failed) are driven by a fake clock in
+  tests and seen in a story with the real one, through one source.
+
+### Summaries
+
+- A source that lists level 1 alone and serves values on a system of known length up to `summaries.maxLength` (2^24)
+  gets a value pyramid when attached (`withSummaries`, the store's `summaries` setting; `false`: none): levels
+  `[1, f, f², …]` (`factor` 16) up to the longest such system. A coarse level's values are built per level, each from
+  the level below (`binValues`, `coarsenBins`: min, max, count-weighted mean, NaN not counted), from the whole system
+  read once at level 1; its other shapes are read at level 1 over the same region. Why: a values layer zoomed out reads
+  a coarse level within the tile bound, and a level costs one pass over the one below.
+
+### FASTA
+
+- `FastaRuntime` (`fasta`): the file read whole through the assets port (range reads wait for bigWig); with an `index`
+  (`.fai`: name, length, offset, bases and bytes a line) the records are found by it once it is checked against the file
+  (five integer fields, unique names, each record after its header line, full lines of the stated size, ending within
+  the file), else refused (`seq.source.malformed`); without one, the index is built from the file (`faidx`, samtools'
+  layout). A file that is not ASCII is refused: offsets count bytes. Coverage: a system a record, letters, level 1.
+
 ### Store
 
 - **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it, so no
@@ -256,7 +284,8 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   `whenSettled(timeout?)` resolves `false` on a timeout.
 - **Nodes** are held, not cached: by each data entry that carried them, by their source's coverage while attached, and
   by `hold`; with no holder they go quietly. A re-answer takes in its nodes before releasing the old ones. The same key
-  with other content keeps the held node (`seq.store.node_conflict`).
+  with other content keeps the held node (`seq.store.node_conflict`). `nodes` lists the entries held now and
+  `nodeVersion` moves only when one comes or goes: the overlay's version.
 - Time is a `StoreClock` (real timers by default): tests drive a fake one and never wait.
 
 ## Resolve
@@ -269,7 +298,7 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 `ResolveConfig`, each choice with its recommended default (`DefaultResolveConfig`): `maxPathSteps` (4),
 `maxPathCandidates` (16), `encoding` (`cheapest`; `runs` or `expanded` hold every bounded map so, for tests and
 comparisons), `openQueryLength` (int32's max: what the query forms read on a system of unknown length, so labels resolve
-there; layout never reads it).
+there; layout never reads it), `maxNestedDepth` (2: the levels of nested sources the overlay requests, EC-179).
 
 ### Systems, sources, annotations
 
@@ -330,6 +359,8 @@ there; layout never reads it).
   starts from and its `places` are both systems. The copy rule is in the search: after climbing out of a unit to its
   molecule a path never steps down to a unit of it, so a longer legal path wins (EC-25); a path ending at a ranged unit
   is clipped by its step (EC-26).
+- **Edges**: `edgesFrom(system)` lists the spec's maps from a system, both ways: what a search reads, so the overlay
+  searches over them and its own.
 - **Kept**: a search is done once per model (the reverse read as the inverse), and carried to the next resolve with the
   map entries of every system it read; it is kept while those are the same objects (entries are kept by hash), so an
   edit elsewhere keeps the path object. Why: a map added or changed where the search looked can make it shorter or
@@ -350,8 +381,34 @@ there; layout never reads it).
 ### Issues
 
 `seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
-`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `path.none`, `path.ambiguous`, `path.limit`. A test
-checks the catalog against the sources.
+`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `path.none`, `path.ambiguous`, `path.limit`, and the
+overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
+
+## Overlay
+
+`resolve/overlay.ts` (`@molstar/seqx-core/resolve`): tier 2, the store's dynamic nodes over the static model, never part
+of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version and model; `EmptyOverlay`).
+
+- **A node** is `(source, key)`, addressed `<source>/(node :key <key>)` (`nodeAddress`); its depth is 0 under a spec
+  source and one more under each source node between (`root`: the spec source). A node whose source is no longer held
+  waits.
+- **Checked by the description**: each node is validated and normalized as a node of its kind under `data` (cached per
+  node object); an invalid one is left out (`seq.resolve.node.invalid`). Refs are absolute addresses (the description's
+  `ref` spelling): a `target` names a spec system or an item system the overlay holds, a `source` a spec source or a
+  held source node; anything else leaves the node out (`seq.resolve.node.ref`). Each issue once per overlay.
+- **Annotations** resolve as the spec's (`resolveAnnotationNode`): inline rows are a `seq` source named by the node's
+  address; a `source` reads by region on the target's name.
+- **Item systems** (EC-177): an item of a ranges node with `map: 'codon'` (its rows by `id`, else by row; genomic order,
+  the first row's strand) gets `<node>/(item :id <id>)` (`itemAddress`): protein, `floor(coding / 3)` residues (a stop
+  counts as one), named by its id, with a codon map onto the target (`resolveMapNode`, so its issues are the static
+  ones). Made when something names it or a path is first asked for, never before.
+- **Paths**: between spec systems the static model's own; with a dynamic end, a search over `edgesFrom` and the
+  overlay's item maps with the same bounds, kept per overlay. Why per overlay: an arrival may add a shorter path; one
+  search per version, never on hover.
+- **Nested sources** (EC-179): `nested(needs)` lists the source nodes at a depth some template on their root needs,
+  bound to the first runtime that reads their format (`OverlayOptions.runtimes`; none: `seq.resolve.source.runtime`);
+  one deeper than `maxNestedDepth` is `seq.resolve.node.depth` and not listed. Why on need: a nested source is a
+  request, and a view that shows no domains asks for none.
 
 ## Resolved view
 
@@ -375,7 +432,7 @@ no target.
   axis's shape.
 - **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
   resolved so hover and selection never compose; the same system is the identity.
-- **A track**: its address, its label (its id when absent), its height.
+- **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`; none has a fallback yet),
   its other params as written, its theme channels as values (`color`), its data and the static path from the data's
   system to the section's (none when the same). Data is the section's letters for a `letters` layer without data, an
@@ -383,6 +440,16 @@ no target.
   shape of that node (none for a query on a sequence). A type this version does not draw is `seq.view.layer.type`; data
   naming nothing is `seq.view.layer.data`; data of a shape the type does not draw is `seq.view.layer.shape`; data no
   static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer not placed.
+- **Templates** (`templates.ts`): a template is `{ source, kind, depth, order, filter }` (`depth` 0, `order` `key` when
+  absent); its layers without data are not placed (no issue). `templateNeeds(view)` is the depth each template source
+  needs. `templateNodes` selects the overlay's nodes of the kind at the depth under the source whose params equal the
+  filter's values (as written), ordered by key or a param (numbers by value, else as strings; `-` descending), then by
+  address. `expandTemplate(model, overlay, section, track)` gives a track a node, `<track>/(node :at <node>)`, labeled
+  by the template's label and its top ancestor's key, its data-less layers drawing the node's annotation with its access
+  plan and length, carried to the section along `overlay.path` (not placed without one); kept per overlay. Why at
+  layout: the resolved view stays pure, and an arrival only makes a new overlay.
+- A layer's `data` may carry `access` and `length` (an instance's, from the overlay): what reads it takes them before
+  the model's.
 - `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
   `follow.unplaced`; a test checks the catalog.
 
@@ -495,6 +562,9 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   arc, `followArc`) of the leader's positions in view (`followRange`).
 - A section whose length is unknown takes the length its source's coverage gives once attached, else waits
   (`seq.render.axis.pending`).
+- **Templates** are expanded here over the frame's overlay (`expandTemplate`); a template's source region in view, on
+  the section's system as the source names it, is wanted at the level that fits, so the nodes it brings arrive. The
+  overlay's issues are the layout's.
 - Cell edges snap to the device grid (`snap`). One label column for every track of a view.
 
 ### Lanes and Hits
@@ -515,6 +585,13 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   versions of the entries (and the coverages) the last layout read. An equal key keeps the layout and the lists and
   redraws the emphasis passes alone; anything else lays out again into the same buffers. Same inputs, same lists.
 
+### The overlay's sources
+
+- `OverlaySources(store, assets).sync(overlay, view)`: a dynamic annotation's inline rows are attached as a `seq` source
+  under the node's address, and the nested sources the view's templates need (`overlay.nested`) through their runtimes;
+  each kept while its node is the same store entry, detached when it goes (or changes), so a node's data lives as long
+  as the node. One attached by another consumer of a shared store is left alone. `dispose` detaches what it attached.
+
 ### Backends
 
 - **Recording** (`recordDrawLists`): a line a primitive, pass by pass, numbers to two decimals, colors `#rrggbbaa`
@@ -527,8 +604,9 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 ### Export
 
 - `renderSvg(spec, { size, viewport?, runtimes, … })`: checks and resolves the spec, opens the sources its view reads
-  (`attachSources`: inline data through `seq`, a source node through its runtime; assets refused unless a reader is
-  given, `NoAssets`), wants through a want set of its own (EC-125), lays out until its wants hold, waits for them to
+  (`attachSources`: inline data through `seq`, a source node through its runtime, a template's source; assets refused
+  unless a reader is given, `NoAssets`), wants through a want set of its own (EC-125), each round reads the overlay and
+  syncs its sources (let go at the end), lays out until its wants and the store's node version hold, waits for them to
   settle, and draws once more with the view settled. It waits for its view's wants alone, never their margins.
 - **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
   opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`.
