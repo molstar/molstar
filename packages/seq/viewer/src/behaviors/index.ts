@@ -8,3 +8,4 @@
 
 export * from './hover.js';
 export * from './navigate.js';
+export * from './providers.js';

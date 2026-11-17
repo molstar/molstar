@@ -89,6 +89,100 @@ from is kept (the resolver keeps entries by hash), a changed one is opened again
 cleared. A source that cannot be opened is an issue at its address (`issues`); a failed opening, or a coverage the store
 refuses (its own report), is forgotten so the next sync tries again. Retired with its owner, the store with it.
 
+## Composition
+
+`viewer-spec.ts`, `viewer.ts`, `default-spec.ts`: a viewer is composed from an explicit spec, as a Mol* plugin is.
+
+- `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
+  override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
+  parts; none for a headless viewer). `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the `seq`
+  runtime, the `hover` and `navigate` behaviors, the default ports and the canvas; an application spreads it.
+- `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
+  (spec, view, hover, store), the binding table, the behaviors (one of each name; a behavior's `commands` join the
+  viewer's), then the UI into `target` when there is one and the spec has `ui.canvas`. Without a target it is headless:
+  models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and the bindings, the UI the behaviors.
+- The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits
+  for the picture (sources open, wanted data arrived, the view at rest).
+- **The frame** (`draw`): the renderer lays the view out when anything it reads changed, else redraws the emphasis
+  passes alone (a hover); the layout's wants go to the store through the viewer's want set; the backend draws. A frame
+  is asked for by `schedule`, one frame callback (`@molstar/ui/dom`, on `DomHost`) however many changes asked; the
+  wheel's own frame is asked for first, so its deltas apply in the frame that draws them. Changes that ask: the model,
+  the resolved view, a viewport, the hover, the store's version and settledness, a resize.
+- **Settled**: the view counts as settled `canvas.settleMs` after its last move and while the store has nothing pending
+  (open domains computed, lanes packed).
+- **Size**: the width is the target's; the data box is the width less the layout's inset, label column and gap
+  (`dataX`), set as every section's width. The height is the layout's content (`canvas.height: 'content'`: laid out at
+  the last content height, again when it changed, at most `canvas.maxHeight`) or fixed. The renderer takes one window
+  for all sections: the first section that leads gives it.
+- **The picture as SVG** (`renderSvg`): the context's export of the shown spec, size and window through the viewer's
+  store, at the last frame's device pixel ratio (the density steps are in device pixels, so it is the picture the canvas
+  shows); the context's `renderSvg` of the same spec, size and window gives the same string.
+- **Retire** (`retire()`): the viewer is marked retired first (its disposer is registered last, so it runs first), so
+  the teardown that follows asks for no frame; the frame callback and the settle timer are cancelled, then the mounted
+  UI, the behaviors, the want set, the models and the context's owned ports go. After it no frame is pending and input
+  is ignored. A spec that fails to compose (a behavior listed twice) retires what it made.
+- **Behaviors by provider**: the input finds a behavior by its provider (`viewer.behavior(HoverProvider)`), whatever the
+  spec calls it; one the spec does not list is a `seq.viewer.behavior.missing` issue (`behaviorIssues`), once, and the
+  gesture does nothing.
+- `rested` moves each time the view comes to rest (`canvas.settleMs` after its last move): what follows the picture (the
+  SVG beside it) redraws on it. `load` opens the sources once.
+
+## Ports
+
+`ports/index.ts`: the viewer's defaults for the core's port factories (core `_spec`, Context). Assets:
+`browserAssetsPort(policy?)`, a `DefaultAssetManager` under the browser policy with the page as base (a host passes its
+own manager with `disposeWithViewer: false`). Text metrics: a canvas where there is a DOM (`browserTextMetrics`, the
+same CSS fonts the backend draws with), else the core's bundled table.
+
+## Canvas2D backend
+
+`canvas/`: `CanvasBackend` draws the core's draw lists on three stacked canvases at a device pixel ratio, the order of
+the passes.
+
+- The canvases stack as the passes do, bottom to top: the base (background, data), the overlay (highlight, selection,
+  hover, cursor, which takes no events) and the labels, so the picture is the SVG's (a test compares the two orders). A
+  hover redraws the overlay only: it is cleared and its passes drawn; an overlay with nothing to clear and nothing to
+  draw is not touched. A rebuilt layout draws the base and the labels (a canvas cleared first) and then the overlay.
+- The scale a canvas is drawn at is its backing size over its CSS size (the backing size is rounded), not the ratio
+  asked for.
+- A rect with a radius is the core's `squirclePath` replayed; a path is replayed from its commands; a clip is `save` +
+  `clip`, a pass left open is closed; a text past its max width fades through a gradient clip (never ellipsized); an
+  image goes through one pixel buffer a size, copied at each draw.
+- **Reused**: colors are strings kept per value, fonts per shorthand (`FontCache`, a role written as the token table's
+  stack, written again when the tokens' stacks change), glyphs per code; nothing is allocated per frame once warm (a
+  faded text makes a gradient; a dashed path an array).
+- `Context2D` and `CanvasLike` are what the backend calls of a 2D context and a canvas: the tests record the calls with
+  a fake context.
+- `canvasTextMetrics(ctx)`: the text metrics port over a context's `measureText`, the font set only when it changes.
+
+## Input
+
+`input.ts` (`ViewerInput`, `viewer.input`): pointer, wheel and key events as calls in canvas coordinates, DOM-free; the
+mounted UI (`mount.ts`) translates events into them and a test makes the same calls. Every gesture goes through the
+binding table; per move one hit record and one modifiers record are reused.
+
+- **Pointer**: a move drags when a drag is begun (`down` on a target whose `drag` binding exists) and always hovers
+  through the hover behavior. `leave` clears what this pointer owns.
+- **A resting pointer is hit again** once a frame in which the layout was rebuilt (EC-143, `pointer.rehit`): the hover
+  follows the data under the pointer while the view moves, with no pointer event. Why once a frame: several moves of the
+  view in one frame change what is under the pointer once. Not while dragging, nor after a leave.
+- **Wheel**: the `wheel` gesture with the event's modifiers (pixels; lines and pages scaled). **Pinch**: a trackpad's
+  pinch arrives as a wheel with Ctrl held and small pixel deltas (`pointer.pinchFromCtrlWheel`, at most
+  `pointer.pinchMaxDelta`): it is the `pinch` gesture with no modifiers (the Ctrl is the gesture's), zoom factor
+  `exp(−deltaY · pointer.pinchSpeed)`. On macOS every Ctrl+wheel is a pinch (Ctrl is no zoom modifier there); elsewhere
+  a larger delta is a mouse wheel with Ctrl, which is `mod`: zoom. Line deltas are `pointer.lineHeight` px, a page the
+  viewport's own width or height. Over the label column the zoom is about the section's first visible position. True
+  when a binding took it, and the page does not scroll.
+- **Double click**: the bound command with the section and what to focus (the element's extent, else the position's
+  cell, in offsets).
+- **Keys**: the commands' shortcuts, run on the section under the pointer (else the first); the `@molstar/ui` keymap
+  replaces this when the commands join a command manager.
+- **Mounted**: a focusable container with the three canvases, listeners on the container only (a drag ends on
+  `pointerup`, `pointercancel` and `lostpointercapture`; Space, held for a drag that pans on data, does not scroll the
+  page while the canvas has focus), a `ResizeObserver` for the width, a media query for the device pixel ratio now (made
+  again after each change, a frame asked for), a web font arriving measures text again; the function `mountCanvas`
+  returns takes away every listener, the observer and the nodes.
+
 ## Behaviors
 
 Small policies over the models (`behaviors/`), each reading the bindings.
@@ -97,11 +191,11 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   nothing or a leave clears what that owner holds only. A host's other hover sources use their own tokens.
 - `navigate`: a drag (`pan`), a wheel (`pan` by the larger delta, so Shift with a vertical wheel pans sideways; `zoom`
   about the pointer) and a pinch (`zoom`) through the bindings; wheel deltas within one frame are applied once at the
-  frame (`navigate.coalesceWheel`, through `DomHost.requestAnimationFrame`); a section gone by the frame is dropped;
-  `dispose` drops what is pending and later frames do nothing. The view's moves are commands (`view.fit`, `view.focus`,
-  `view.zoom-in`, `view.zoom-out`, `view.pan-left`, `view.pan-right`) with default keys for the keymap, single keys
-  scoped to the viewer (`scope: 'canvas'`); `when` says why one cannot run (no section, a follower that does not move,
-  nothing to focus) instead of a throw.
+  frame (`navigate.coalesceWheel`, through a frame callback that `dispose` cancels); a section gone by the frame is
+  dropped; `dispose` drops what is pending and later frames do nothing. The view's moves are commands (`view.fit`,
+  `view.focus`, `view.zoom-in`, `view.zoom-out`, `view.pan-left`, `view.pan-right`) with default keys for the keymap,
+  single keys scoped to the viewer (`scope: 'canvas'`); `when` says why one cannot run (no section, a follower that does
+  not move, nothing to focus) instead of a throw.
 
 ## Bindings
 
@@ -135,5 +229,9 @@ the presets bind has a kind (tested).
 over the defaults): `foundations.preset`, `density.letterMinPx`, `density.dotMinPx`, `bindings.preset`,
 `store.cacheBytes`, `store.inFlight`, `store.tileBins`, `hover.projectLinked`, `hover.closeCodons`,
 `viewport.maxPxPerPosition`, `viewport.groupEqualAxes`, `viewport.onResize`, `follow.followerMoves`, `follow.cyclicArc`,
-`navigate.wheelZoomStep`, `navigate.keyPanFraction`, `navigate.coalesceWheel`. Each a choice with its recommended
-default; `ParamDefinition`s come with the settings form.
+`navigate.wheelZoomStep`, `navigate.keyPanFraction`, `navigate.coalesceWheel`, `canvas.height` (`content`),
+`canvas.maxHeight` (2048), `canvas.dpr` (`device`), `canvas.settleMs` (150), `pointer.rehit` (true),
+`pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta` (50), `pointer.lineHeight`
+(16). Each a choice with its recommended default; `ParamDefinition`s come with the settings form. As items in a spec:
+`viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the
+same pairs.
