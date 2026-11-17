@@ -8,9 +8,12 @@
 // language builder, the `seq.lang.*` issue catalog and the language-level checks (_spec/README.md).
 
 export {
+  type Address,
   type Addressed,
   createSeqSpec,
   type DataBuilder,
+  type Params,
+  type RefValue,
   type SectionBuilder,
   type SeqSpecBuilder,
   type SeqSpecOptions,

@@ -5,52 +5,67 @@
  */
 
 // The language builder (_spec/README.md, Language builder): the way most specs are written. It reads as the spec does
-// (`b.data.sequence(...)`, `b.views.view(...)`), every call returns the address of what it adds, so a handle stands
-// wherever an address does, and `build` gives the normalized tree the generic engine of `@molstar/core/repr/builder`
-// builds. Calls are recorded as they are written and replayed on the engine, so misuse that types do not reach (an id
-// twice, a malformed id) is thrown where it is written.
+// (`b.data.sequence(...)`, `b.views.view(...)`), every call returns the address of what it adds, branded by the kind
+// it names, and a reference param takes a handle of a kind it allows (or an address written out). `build` gives the
+// normalized tree the generic engine of `@molstar/core/repr/builder` builds. Calls are recorded as they are written
+// and replayed on the engine, so misuse that types do not reach (an id twice, a malformed id) is thrown where it is
+// written.
 
 import { createBuilder, type ParamsFor } from '@molstar/core/repr/builder';
 import { IdHint, IdPattern, type Issue, type Node, printAddress } from '@molstar/core/repr/tree';
 import { checkSeqSpec } from './check.js';
 import { type SeqKinds, SeqLanguage, SeqLanguageVersion } from './language.js';
 
-type Params<C extends keyof SeqKinds & string> = ParamsFor<SeqKinds, C>;
+declare const KindBrand: unique symbol;
 
-/** What stands where an address does: the address, or a builder that has one. */
-export interface Addressed {
-  readonly address: string;
+/** The address of a node of kind `K`, as the builder returns it: a string that says what it names. */
+export type Address<K extends string = string> = string & { readonly [KindBrand]: K };
+
+/** A builder that has an address: it stands where the address does. */
+export interface Addressed<K extends string = string> {
+  readonly address: Address<K>;
+  toString(): string;
 }
 
-type Followed = Omit<Params<'section'>, 'follow'> & { readonly follow?: string | Addressed };
+/** What a reference param takes: a handle of an allowed kind, or an address written out (any string that is no handle). */
+export type RefValue<K extends string> = Address<K> | Addressed<K> | (string & { readonly [KindBrand]?: undefined });
+
+type Fields<C extends keyof SeqKinds> = SeqKinds[C] extends { params: infer F } ? F : Record<never, never>;
+
+/** The params of a kind as the builder takes them: the description's, its reference params typed by their `kinds`. */
+export type Params<C extends keyof SeqKinds & string> = {
+  [P in keyof ParamsFor<SeqKinds, C>]: P extends keyof Fields<C>
+    ? Fields<C>[P] extends { type: 'ref'; kinds: readonly (infer K extends string)[] }
+      ? RefValue<K>
+      : ParamsFor<SeqKinds, C>[P]
+    : ParamsFor<SeqKinds, C>[P];
+};
 
 export interface DataBuilder {
-  source(id: string, params: Params<'source'>): string;
-  sequence(id: string, params: Params<'sequence'>): string;
-  ranges(id: string, params: Params<'ranges'>): string;
-  values(id: string, params: Params<'values'>): string;
-  map(id: string, params: Params<'map'>): string;
+  source(id: string, params: Params<'source'>): Address<'source'>;
+  sequence(id: string, params: Params<'sequence'>): Address<'sequence'>;
+  ranges(id: string, params: Params<'ranges'>): Address<'ranges'>;
+  values(id: string, params: Params<'values'>): Address<'values'>;
+  map(id: string, params: Params<'map'>): Address<'map'>;
 }
 
 export interface ViewsBuilder {
-  view(id: string, body?: (view: ViewBuilder) => void): string;
-  view(id: string, params: Params<'view'>, body?: (view: ViewBuilder) => void): string;
+  view(id: string, body?: (view: ViewBuilder) => void): Address<'view'>;
+  view(id: string, params: Params<'view'>, body?: (view: ViewBuilder) => void): Address<'view'>;
 }
 
-export interface ViewBuilder extends Addressed {
-  section(id: string, params: Followed, body?: (section: SectionBuilder) => void): SectionBuilder;
+export interface ViewBuilder extends Addressed<'view'> {
+  section(id: string, params: Params<'section'>, body?: (section: SectionBuilder) => void): SectionBuilder;
 }
 
-export interface SectionBuilder extends Addressed {
+export interface SectionBuilder extends Addressed<'section'> {
   track(id: string, params?: Params<'track'>, body?: (track: TrackBuilder) => void): TrackBuilder;
-  toString(): string;
 }
 
-export interface TrackBuilder extends Addressed {
-  /** A layer; with an id it has an address and is returned as a builder, without one it is anonymous. */
-  layer(params: Params<'layer'>): TrackBuilder;
-  layer(id: string, params: Params<'layer'>): TrackBuilder;
-  toString(): string;
+export interface TrackBuilder extends Addressed<'track'> {
+  /** A layer with an id, and its address; a layer without one has none to return. */
+  layer(id: string, params: Params<'layer'>): Address<'layer'>;
+  layer(params: Params<'layer'>): undefined;
 }
 
 export interface SeqSpecBuilder {
@@ -60,6 +75,7 @@ export interface SeqSpecBuilder {
   build(): Node;
   /** The issues of the spec so far: the description's, then the language's. */
   check(): Issue[];
+  toString(): string;
 }
 
 export interface SeqSpecOptions {
@@ -79,15 +95,19 @@ interface Rec {
 
 type Engine = Record<string, (...args: unknown[]) => unknown>;
 
-function refs(
-  params: Record<string, unknown> | undefined,
-  keys: readonly string[],
-): Record<string, unknown> | undefined {
-  if (!params) return params;
-  const out = { ...params };
-  for (const k of keys) {
-    const v = out[k];
-    if (v && typeof v === 'object' && 'address' in v) out[k] = (v as Addressed).address;
+type Described = Readonly<Record<string, { readonly params?: Readonly<Record<string, { readonly type: string }>> }>>;
+
+/**
+ * The params with each reference param's handle read as its address; which params are references is the
+ * description's (`type: 'ref'`), never a list here.
+ */
+function addresses(kind: string, params: unknown): Record<string, unknown> | undefined {
+  if (!params || typeof params !== 'object') return params as undefined;
+  const fields = (SeqLanguage.kinds as Described)[kind]?.params;
+  const out = { ...(params as Record<string, unknown>) };
+  for (const key of Object.keys(out)) {
+    const v = out[key];
+    if (fields?.[key]?.type === 'ref' && v && typeof v === 'object' && 'address' in v) out[key] = v.address;
   }
   return out;
 }
@@ -106,68 +126,61 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
       parent.ids.add(id);
     }
     const address = printAddress([...parent.address.split('/').filter(Boolean), ...(id !== undefined ? [id] : [])]);
-    const rec: Rec = {
-      kind,
-      id,
-      params: params as Record<string, unknown> | undefined,
-      children: [],
-      ids: new Set(),
-      address,
-    };
+    const rec: Rec = { kind, id, params: addresses(kind, params), children: [], ids: new Set(), address };
     parent.children.push(rec);
     return rec;
   }
 
   const dataKind = (kind: string) => (id: string, params: unknown) => add(data, kind, id, params).address;
-  const dataBuilder: DataBuilder = {
+  const dataBuilder = {
     source: dataKind('source'),
     sequence: dataKind('sequence'),
     ranges: dataKind('ranges'),
     values: dataKind('values'),
     map: dataKind('map'),
-  };
+  } as unknown as DataBuilder;
 
   function trackBuilder(rec: Rec): TrackBuilder {
-    const self: TrackBuilder = {
-      address: rec.address,
-      layer(...argv: [Params<'layer'>] | [string, Params<'layer'>]) {
+    return {
+      address: rec.address as Address<'track'>,
+      layer(...argv: unknown[]) {
         const [id, params] = typeof argv[0] === 'string' ? [argv[0], argv[1]] : [undefined, argv[0]];
-        add(rec, 'layer', id, refs(params, ['data']));
-        return self;
+        const layer = add(rec, 'layer', id as string | undefined, params);
+        return id === undefined ? undefined : layer.address;
       },
       toString: () => rec.address,
-    };
-    return self;
+    } as TrackBuilder;
   }
   function sectionBuilder(rec: Rec): SectionBuilder {
     return {
-      address: rec.address,
+      address: rec.address as Address<'section'>,
       track(id, params, body) {
         const t = trackBuilder(add(rec, 'track', id, params));
         body?.(t);
-        return t as TrackBuilder;
+        return t;
       },
       toString: () => rec.address,
     };
   }
   function viewBuilder(rec: Rec): ViewBuilder {
     return {
-      address: rec.address,
+      address: rec.address as Address<'view'>,
       section(id, params, body) {
-        const s = sectionBuilder(add(rec, 'section', id, refs(params as Record<string, unknown>, ['follow'])));
+        const s = sectionBuilder(add(rec, 'section', id, params));
         body?.(s);
         return s;
       },
+      toString: () => rec.address,
     };
   }
-  const viewsBuilder: ViewsBuilder = {
+  const viewsBuilder = {
     view(id: string, a?: unknown, b?: unknown) {
       const [params, body] = typeof a === 'function' ? [undefined, a] : [a, b];
       const rec = add(views, 'view', id, params);
       (body as ((v: ViewBuilder) => void) | undefined)?.(viewBuilder(rec));
       return rec.address;
     },
-  };
+  } as unknown as ViewsBuilder;
 
   /** Replays a recorded node on the engine's body. */
   function emit(body: Engine, rec: Rec): void {
@@ -185,10 +198,5 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     });
   }
 
-  return {
-    data: dataBuilder,
-    views: viewsBuilder,
-    build,
-    check: () => checkSeqSpec(build()),
-  };
+  return { data: dataBuilder, views: viewsBuilder, build, check: () => checkSeqSpec(build()), toString: () => '/' };
 }

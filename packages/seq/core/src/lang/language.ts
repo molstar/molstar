@@ -81,7 +81,7 @@ export const SeqLanguage = defineLanguage({
       },
     },
     ranges: {
-      doc: 'Ranges on a sequence, 0-based and half-open: an annotation.',
+      doc: 'Ranges on a sequence, 0-based and half-open: an annotation. On a cyclic sequence a range may start after it ends: it wraps the origin.',
       parents: ['data'],
       ids: 'required',
       params: {
@@ -94,7 +94,7 @@ export const SeqLanguage = defineLanguage({
             id: { type: 'column', of: 'category', doc: 'An identifier of each range.' },
             label: { type: 'list', of: { type: 'string', doc: 'A label.' }, doc: 'A label of each range.' },
             category: { type: 'column', of: 'category', doc: 'A category of each range (a theme colors by it).' },
-            strand: { type: 'column', of: 'category', doc: 'The strand of each range, `+` or `-`.' },
+            strand: { type: 'column', of: 'category', doc: 'The strand of each range: `+` or `-`.' },
           },
           doc: 'The ranges inline, a column for each field (instead of `source`).',
         },
@@ -139,7 +139,7 @@ export const SeqLanguage = defineLanguage({
             start: { type: 'column', of: 'int32', required: true, doc: 'The first position of each exon on `to`.' },
             end: { type: 'column', of: 'int32', required: true, doc: 'The position after the last, of each exon.' },
           },
-          doc: 'For `codon`: the exons on `to`, in the order of the protein.',
+          doc: 'For `codon`: the exons on `to`, in genomic order and not overlapping; `strand` says which way the protein runs.',
         },
         strand: { type: 'string', enum: ['+', '-'], doc: 'For `codon`: the strand of the gene on `to`.' },
       },
@@ -178,7 +178,7 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
-        height: { type: 'number', min: 0, unit: 'px', doc: 'The height of the track in pixels.' },
+        height: { type: 'number', min: 0, doc: 'The height of the track in px.' },
       },
     },
     layer: {

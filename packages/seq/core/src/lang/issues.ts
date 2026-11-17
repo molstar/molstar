@@ -21,6 +21,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A `data` container has an id other than `data`, or a `views` container one other than `views`',
     hint: 'The containers have reserved ids',
   },
+  'seq.lang.source.index': {
+    severity: 'error',
+    description: 'A source with an inline `value` has an `index`, which only a file read by region has',
+    hint: 'Drop the `index`, or give a `uri` instead of the `value`',
+  },
   'seq.lang.source.content': {
     severity: 'error',
     description: 'A source has both a `uri` and an inline `value`, or neither',
@@ -43,8 +48,13 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.ranges.interval': {
     severity: 'error',
-    description: 'A row of ranges starts before position 0 or ends before it starts',
-    hint: 'Ranges are 0-based and half-open: 0 <= start <= end',
+    description: 'A row of ranges starts before position 0, or ends before it starts on a sequence that is not cyclic',
+    hint: 'Ranges are 0-based and half-open: 0 <= start <= end; only a cyclic sequence has ranges that wrap',
+  },
+  'seq.lang.ranges.strand': {
+    severity: 'error',
+    description: 'A strand of a row of ranges is neither `+` nor `-`',
+    hint: 'The strand column holds `+` or `-`',
   },
   'seq.lang.ranges.bounds': {
     severity: 'error',
@@ -71,6 +81,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A codon map does not go from a protein to a dna or rna sequence',
     hint: 'A codon map is a protein on its gene',
   },
+  'seq.lang.map.exons': {
+    severity: 'error',
+    description: 'An exon of a codon map ends before it starts, or overlaps or precedes the exon before it',
+    hint: 'List the exons in genomic order, each from its start to its end, none overlapping',
+  },
   'seq.lang.ref.target': {
     severity: 'error',
     description: 'A reference names no node of the spec, or one of a kind the param does not take',
@@ -81,6 +96,12 @@ export const LangIssues = defineIssues('seq.lang', {
     description:
       'A layer’s data does not fit its type: `ranges` draws ranges, `values` draws values, `letters` draws letters',
     hint: 'Give data of the kind the type draws',
+  },
+  'seq.lang.section.range': {
+    severity: 'error',
+    description:
+      'The range of a section ends before it starts on a sequence that is not cyclic, or runs past the inline letters of its system',
+    hint: 'A range is [start, end) within the system',
   },
   'seq.lang.section.follow': {
     severity: 'error',

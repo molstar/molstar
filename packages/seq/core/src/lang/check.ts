@@ -4,12 +4,23 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// What the description cannot say (language-level checks, `seq.lang.*`): one of two params, what a method needs, what
-// a reference names. `checkSeqSpec` is the description's validation, then these checks on a tree that passed it.
+// What the description cannot say (language-level checks, `seq.lang.*`; _spec/README.md, Language): one of two params,
+// what a method needs, what a reference names. `checkSeqSpec` is the gates in order: the version, the description's
+// validation with normalization, then these checks on the normalized tree.
 
-import { type Issue, issueOf, type Node, printAddress, type TreePath, type Value } from '@molstar/core/repr/tree';
-import { exactAddress, hasErrors, isColumn } from '@molstar/core/repr/tree';
-import { validate } from '@molstar/core/repr/schema';
+import { validateAndNormalize } from '@molstar/core/repr/schema';
+import {
+  CategoryColumn,
+  exactAddress,
+  hasErrors,
+  type Issue,
+  isColumn,
+  issueOf,
+  type Node,
+  printAddress,
+  type TreePath,
+  type Value,
+} from '@molstar/core/repr/tree';
 import { LangIssues } from './issues.js';
 import { SeqLanguage, SeqLanguageVersion } from './language.js';
 
@@ -30,14 +41,31 @@ const Letters: Readonly<Record<string, RegExp>> = {
 
 const MaxMajor = Number(SeqLanguageVersion.split('.')[0]);
 
-/** The issues of a spec against the description (`repr.*`), and, when it is valid, the language's own (`seq.lang.*`). */
+/**
+ * The issues of a spec, in gates (_spec/README.md, Language): a newer major version is `seq.lang.version.unsupported`
+ * alone (the description of this version says nothing of a newer spec); else the description's (`repr.*`, the tree
+ * normalized, so a spec read from JSON has typed columns); and, when it has no error, the language's own (`seq.lang.*`).
+ */
 export function checkSeqSpec(spec: Node): Issue[] {
-  const issues = validate(SeqLanguage, spec);
-  if (hasErrors(issues)) return issues;
-  return [...issues, ...checkSeqLang(spec)];
+  const version = spec.kind === 'spec' ? spec.params?.version : undefined;
+  const major = typeof version === 'string' ? /^(\d+)\./.exec(version) : null;
+  if (major && Number(major[1]) > MaxMajor) {
+    return [
+      issueOf(LangIssues, 'seq.lang.version.unsupported', 'The spec is written in a newer major version', {
+        hint: LangIssues.codes['seq.lang.version.unsupported'].hint,
+        path: ['params', 'version'],
+      }),
+    ];
+  }
+  const read = validateAndNormalize(SeqLanguage, spec);
+  if (hasErrors(read.issues) || !read.node) return [...read.issues];
+  return [...read.issues, ...checkSeqLang(read.node)];
 }
 
-/** The `seq.lang.*` checks alone, for a tree that is valid against `SeqLanguage` (a normalized one). */
+/**
+ * The `seq.lang.*` checks alone, for a normalized tree that is valid against `SeqLanguage` and whose version is
+ * readable.
+ */
 export function checkSeqLang(spec: Node): Issue[] {
   const issues: Issue[] = [];
   const all: Placed[] = [];
@@ -53,8 +81,9 @@ export function checkSeqLang(spec: Node): Issue[] {
   all.push({ node: spec, path: [], address: '/' });
   spec.children?.forEach((c, i) => visit(c, ['children', i], []));
 
-  const report = (code: Code, message: string, at: Placed, param?: string) => {
-    const path = param ? [...at.path, 'params', param] : at.path;
+  /** `tail` is where in the node: a param, and below it a column and a row index. */
+  const report = (code: Code, message: string, at: Placed, ...tail: (string | number)[]) => {
+    const path = tail.length ? [...at.path, 'params', ...tail] : at.path;
     issues.push(
       issueOf(LangIssues, code, message, {
         hint: LangIssues.codes[code].hint,
@@ -76,11 +105,18 @@ export function checkSeqLang(spec: Node): Issue[] {
     return typeof letters === 'string' ? letters : undefined;
   };
   const xor = (a: boolean, b: boolean) => a !== b;
-
-  // the version
-  const major = Number(String(p(spec, 'version')).split('.')[0]);
-  if (major > MaxMajor)
-    report('seq.lang.version.unsupported', 'The spec is written in a newer major version', all[0], 'version');
+  /** The sequence a param names, with what is known of its extent. */
+  const systemOf = (n: Node, key: string) => {
+    const t = target(n, key)?.node;
+    if (t?.kind !== 'sequence') return undefined;
+    const letters = p(t, 'letters');
+    return { cyclic: p(t, 'cyclic') === true, length: typeof letters === 'string' ? letters.length : undefined };
+  };
+  const kindsOf = (kind: string, key: string): readonly string[] | undefined => {
+    const f = (SeqLanguage.kinds as Record<string, { params?: Record<string, { kinds?: readonly string[] }> }>)[kind]
+      .params?.[key];
+    return f?.kinds;
+  };
 
   for (const at of all) {
     const n = at.node;
@@ -92,6 +128,8 @@ export function checkSeqLang(spec: Node): Issue[] {
       case 'source':
         if (!xor(p(n, 'uri') !== undefined, p(n, 'value') !== undefined))
           report('seq.lang.source.content', 'A source has one of `uri` and `value`', at);
+        if (p(n, 'value') !== undefined && p(n, 'index') !== undefined)
+          report('seq.lang.source.index', 'An inline value has no index', at, 'index');
         break;
       case 'sequence': {
         if (!xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
@@ -106,19 +144,28 @@ export function checkSeqLang(spec: Node): Issue[] {
         if (!xor(rows !== undefined, p(n, 'source') !== undefined))
           report('seq.lang.ranges.content', 'A ranges node has one of `rows` and `source`', at);
         if (rows) {
-          const { start, end } = rows;
+          const { start, end, strand } = rows;
           if (isColumn(start) && isColumn(end)) {
             const s = start as ArrayLike<number>;
             const e = end as ArrayLike<number>;
-            const length = lettersOf(n, 'target')?.length;
-            let bad = false;
-            let past = false;
+            const sys = systemOf(n, 'target');
+            let bad = -1;
+            let past = -1;
             for (let i = 0; i < Math.min(s.length, e.length); i++) {
-              if (s[i] < 0 || e[i] < s[i]) bad = true;
-              else if (length !== undefined && e[i] > length) past = true;
+              if (bad < 0 && (s[i] < 0 || (e[i] < s[i] && !sys?.cyclic))) bad = i;
+              if (past < 0 && sys?.length !== undefined && (s[i] > sys.length || e[i] > sys.length)) past = i;
             }
-            if (bad) report('seq.lang.ranges.interval', 'A range is not an interval', at, 'rows');
-            else if (past) report('seq.lang.ranges.bounds', 'A range ends past the sequence', at, 'rows');
+            if (bad >= 0) report('seq.lang.ranges.interval', 'A range is not an interval', at, 'rows', 'start', bad);
+            if (past >= 0) report('seq.lang.ranges.bounds', 'A range is past the sequence', at, 'rows', 'end', past);
+          }
+          if (strand instanceof CategoryColumn) {
+            for (let i = 0; i < strand.length; i++) {
+              const v = strand.get(i);
+              if (v !== null && v !== '+' && v !== '-') {
+                report('seq.lang.ranges.strand', 'A strand is + or -', at, 'rows', 'strand', i);
+                break;
+              }
+            }
           }
         }
         break;
@@ -140,6 +187,24 @@ export function checkSeqLang(spec: Node): Issue[] {
             ? has('by') && !has('exons') && !has('strand')
             : has('exons') && has('strand') && !has('by');
         if (!fits) report('seq.lang.map.params', 'The params do not fit the method', at);
+        const exons = p(n, 'exons') as Record<string, Value> | undefined;
+        if (exons && isColumn(exons.start) && isColumn(exons.end)) {
+          const s = exons.start as ArrayLike<number>;
+          const e = exons.end as ArrayLike<number>;
+          for (let i = 0; i < Math.min(s.length, e.length); i++) {
+            if (e[i] < s[i] || (i > 0 && s[i] < e[i - 1])) {
+              report(
+                'seq.lang.map.exons',
+                'The exons are not in order, or one ends before it starts',
+                at,
+                'exons',
+                'start',
+                i,
+              );
+              break;
+            }
+          }
+        }
         if (method === 'codon') {
           const from = target(n, 'from')?.node;
           const to = target(n, 'to')?.node;
@@ -154,14 +219,25 @@ export function checkSeqLang(spec: Node): Issue[] {
       }
       case 'layer': {
         const type = p(n, 'type');
-        const data = p(n, 'data');
-        if (data === undefined) {
+        if (p(n, 'data') === undefined) {
           if (type !== 'letters') report('seq.lang.layer.data', 'The layer has no data', at);
         } else {
+          // a kind the param does not take is the reference's issue alone
           const kind = target(n, 'data')?.node.kind;
           const want = type === 'letters' ? 'sequence' : type;
-          if (kind !== undefined && kind !== want)
+          if (kind !== undefined && kindsOf('layer', 'data')?.includes(kind) && kind !== want)
             report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
+        }
+        break;
+      }
+      case 'section': {
+        const range = p(n, 'range');
+        const sys = systemOf(n, 'of');
+        if (Array.isArray(range) && range.length === 2) {
+          const [s, e] = range as number[];
+          if (e < s && !sys?.cyclic) report('seq.lang.section.range', 'The range ends before it starts', at, 'range');
+          else if (sys?.length !== undefined && (s > sys.length || e > sys.length))
+            report('seq.lang.section.range', 'The range is past the system', at, 'range');
         }
         break;
       }

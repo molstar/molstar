@@ -91,6 +91,11 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.source('s', { format: 'fasta' });
     return b.build();
   },
+  'seq.lang.source.index': () => {
+    const b = createSeqSpec();
+    b.data.source('s', { format: 'json', value: [1], index: 'x.idx' });
+    return b.build();
+  },
   'seq.lang.sequence.content': () => {
     const b = createSeqSpec();
     b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT', source: '/data/x' });
@@ -111,6 +116,12 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
     b.data.ranges('r', { target: s, rows: { start: [3], end: [1] } });
+    return b.build();
+  },
+  'seq.lang.ranges.strand': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.ranges('r', { target: s, rows: { start: [0, 1], end: [1, 2], strand: ['+', 'x'] } });
     return b.build();
   },
   'seq.lang.ranges.bounds': () => {
@@ -143,6 +154,21 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.map('m', { from: s, to: s, method: 'codon', exons: EXONS, strand: '+' });
     return b.build();
   },
+  'seq.lang.map.exons': () => {
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEE' });
+    const g = b.data.sequence('g', { alphabet: 'dna', letters: 'ACGTACGTAC' });
+    b.data.map('m', { from: p, to: g, method: 'codon', exons: { start: [0, 3], end: [5, 8] }, strand: '+' });
+    return b.build();
+  },
+  'seq.lang.section.range': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s, range: [3, 1] });
+    });
+    return b.build();
+  },
   'seq.lang.ref.target': () => {
     const b = createSeqSpec();
     b.data.ranges('r', { target: '/data/missing', rows: { start: [0], end: [1] } });
@@ -166,6 +192,129 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     return b.build();
   },
 };
+
+const sequence = (b: ReturnType<typeof createSeqSpec>, cyclic: boolean) =>
+  b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT', cyclic });
+
+const spec = (...data: Node[]): Node => ({
+  kind: 'spec',
+  params: { version: '0.0.0' },
+  children: [{ kind: 'data', id: 'data', children: data }],
+});
+const dna: Node = { kind: 'sequence', id: 's', params: { alphabet: 'dna', letters: 'A' } };
+
+describe('the gates and the places', () => {
+  it('a newer major version is reported alone, whatever else the spec holds', () => {
+    const future: Node = {
+      kind: 'spec',
+      params: { version: '1.0.0' },
+      children: [{ kind: 'from-the-future', id: 'x' }],
+    };
+    expect(checkSeqSpec(future).map((i) => i.code)).toEqual(['seq.lang.version.unsupported']);
+    expect(checkSeqSpec({ ...future, params: { version: '0.9.0' } }).map((i) => i.code)).toEqual([
+      'repr.schema.kind.unknown',
+    ]);
+  });
+
+  it('a spec read from JSON is normalized first, so its columns are checked', () => {
+    const bad = Misuses['seq.lang.ranges.interval']();
+    const read = parseJson(printJson(bad, { language: SeqLanguage })).node as Node;
+    expect(checkSeqSpec(read).map((i) => i.code)).toEqual(['seq.lang.ranges.interval']);
+  });
+
+  it('row-level issues say which row', () => {
+    const [i] = checkSeqSpec(Misuses['seq.lang.ranges.strand']());
+    expect(i.path?.slice(-3)).toEqual(['rows', 'strand', 1]);
+    const [e] = checkSeqSpec(Misuses['seq.lang.map.exons']());
+    expect(e.path?.slice(-3)).toEqual(['exons', 'start', 1]);
+  });
+
+  it('a range that starts after it ends wraps a cyclic sequence, and is an error on any other', () => {
+    for (const cyclic of [true, false]) {
+      const b = createSeqSpec();
+      const s = sequence(b, cyclic);
+      b.data.ranges('r', { target: s, rows: { start: [6], end: [2] } });
+      b.views.view('v', (v) => {
+        v.section('sec', { of: s, range: [6, 2] });
+      });
+      const codes = b.check().map((i) => i.code);
+      expect(codes).toEqual(cyclic ? [] : ['seq.lang.ranges.interval', 'seq.lang.section.range']);
+    }
+  });
+
+  it('a wrapped range still stays within the letters', () => {
+    const b = createSeqSpec();
+    b.data.ranges('r', { target: sequence(b, true), rows: { start: [6], end: [9] } });
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.ranges.bounds']);
+  });
+
+  it('a layer whose data is of a kind its param does not take is reported once', () => {
+    const b = createSeqSpec();
+    const s = sequence(b, false);
+    const src = b.data.source('src', { format: 'fasta', uri: 'x.fa' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s })
+        .track('t')
+        .layer({ type: 'ranges', data: src as never });
+    });
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.ref.target']);
+  });
+
+  const generic: [string, Node][] = [
+    [
+      'repr.schema.parent.invalid',
+      { kind: 'spec', params: { version: '0.0.0' }, children: [{ kind: 'track', id: 't' }] },
+    ],
+    ['repr.schema.id.missing', spec({ kind: 'sequence', params: { alphabet: 'dna', letters: 'A' } })],
+    [
+      'repr.schema.column.type',
+      spec(dna, {
+        kind: 'ranges',
+        id: 'r',
+        params: { target: '/data/s', rows: { start: new Float32Array([0]), end: new Int32Array([1]) } },
+      }),
+    ],
+    [
+      'repr.schema.table.length',
+      spec(dna, { kind: 'ranges', id: 'r', params: { target: '/data/s', rows: { start: [0, 1], end: [1] } } }),
+    ],
+  ];
+  for (const [code, tree] of generic)
+    it(`${code} comes from the description, and stops the language's checks`, () => {
+      const codes = checkSeqSpec(tree).map((i) => i.code);
+      expect(codes).toContain(code);
+      expect(codes.every((c) => c.startsWith('repr.'))).toBe(true);
+    });
+
+  it('keeps NaN in values through JSON, plain and tagged', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACG' });
+    b.data.values('v', { target: s, values: new Float32Array([1, Number.NaN, 3]) });
+    const built = b.build();
+    for (const language of [SeqLanguage, undefined]) {
+      const text = printJson(built, { language });
+      expect(text).toContain('null');
+      const read = validateAndNormalize(SeqLanguage, parseJson(text).node as Node);
+      expect(read.issues).toEqual([]);
+      expect(hashNode(read.node as Node)).toBe(hashNode(built));
+    }
+  });
+
+  it('keeps a column in custom data, tagged, through JSON', () => {
+    const built = p53Spec();
+    const data = built.children?.[0] as Node;
+    const withCustom: Node = {
+      ...built,
+      children: [{ ...data, custom: { depth: new Float32Array([1, 2.5]) } }, ...(built.children?.slice(1) ?? [])],
+    };
+    const text = printJson(withCustom, { language: SeqLanguage });
+    expect(text).toContain('"$column":"float32"');
+    const read = validateAndNormalize(SeqLanguage, parseJson(text).node as Node);
+    expect(read.issues).toEqual([]);
+    expect(hashNode(read.node as Node)).toBe(hashNode(withCustom));
+    expect(checkSeqSpec(withCustom)).toEqual([]);
+  });
+});
 
 describe('the misuses', () => {
   it('cover the catalog', () => {
