@@ -5,13 +5,15 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { checkCodec, CodecIssues } from '../../../codec/index.js';
-import { categoryColumn, type Node, pathToPointer, TreeIssues } from '../../../tree/index.js';
+import { CodecIssues, ConformanceLanguage, checkCodec } from '../../../codec/index.js';
+import { Mini } from '../../../schema/_test/fixtures.js';
+import { categoryColumn, hashNode, type Node, pathToPointer, TreeIssues } from '../../../tree/index.js';
 import { parseSexpr, printSexpr, printSexprLine, SexprCodec, sexprCodec } from '../index.js';
 
 describe('repr/codecs/sexpr', () => {
   it('conforms to the codec interface', () => {
     expect(checkCodec(SexprCodec)).toEqual([]);
+    expect(checkCodec(sexprCodec({ language: ConformanceLanguage }))).toEqual([]);
   });
 
   it('prints a spec for people, and reads the same spelling back', () => {
@@ -42,7 +44,7 @@ describe('repr/codecs/sexpr', () => {
         },
       ],
     };
-    const text = printSexpr(node);
+    const text = printSexpr(node, { language: Mini });
     expect(text).toBe(
       [
         '(spec :version 0.0.0 :title p53',
@@ -57,23 +59,43 @@ describe('repr/codecs/sexpr', () => {
     );
     const back = parseSexpr(text);
     expect(back.issues).toEqual([]);
-    expect(printSexpr(back.node!)).toBe(text);
+    expect(printSexpr(back.node!, { language: Mini })).toBe(text);
   });
 
   it('elides a column past its head, and its reader refuses it', () => {
     const node: Node = { kind: 'values', params: { v: new Float32Array(3_000_000).fill(0.5) } };
     const text = printSexprLine(node);
-    expect(text).toBe('(values :v [float32 × 3,000,000: 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 …])');
+    expect(text).toBe('(values :v {float32 × 3,000,000: 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 …})');
     const { node: back, issues } = parseSexpr(text);
     expect(back).toBeUndefined();
     expect(issues.map((i) => [i.code, i.offset])).toEqual([['repr.codec.sexpr.elided', 11]]);
     expect(printSexprLine({ kind: 'x', params: { c: categoryColumn(['a', null, 'a']) } }, { head: 2 })).toBe(
-      '(x :c [category × 3: a nil …])',
+      '(x :c {category × 3: a nil …})',
     );
-    // a longer head keeps it whole
+    // a longer head keeps it whole; a list of the same values is a list, never an elided column
     expect(sexprCodec({ head: 4 }).encode({ kind: 'x', params: { c: new Int8Array([1, 2, 3, 4]) } })).toBe(
-      '(x :c [1 2 3 4])',
+      '(x :c (:$column int8 :values [1 2 3 4]))',
     );
+    expect(parseSexpr('(x :c [float32 × 3])').node?.params?.c).toEqual(['float32', '×', 3]);
+    expect(parseSexpr('(x :c {int8})').issues.map((i) => i.code)).toEqual(['repr.codec.sexpr.syntax']);
+  });
+
+  it('spells a column outside a declared param tagged, read back typed', () => {
+    const node: Node = {
+      kind: 'x',
+      params: { a: categoryColumn(['b', null, 'a']) },
+      custom: { f: new Float64Array([1.5, Number.NaN]) },
+    };
+    const text = printSexprLine(node);
+    expect(text).toBe(
+      '(x :a (:$column category :dict [b a] :codes [0 -1 1]) :$custom (:f (:$column float64 :values [1.5 nan])))',
+    );
+    expect(hashNode(parseSexpr(text).node!)).toBe(hashNode(node));
+    for (const bad of ['(:$column int8 :values [300])', '(:$column category :dict [a] :codes [2])', '(:$column int8)'])
+      expect(
+        parseSexpr(`(x :c ${bad})`).issues.map((i) => i.code),
+        bad,
+      ).toEqual(['repr.tree.value.tag']);
   });
 
   it('reads a word opening with / as an address, canonically, and a bad one as an issue', () => {

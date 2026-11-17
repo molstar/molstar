@@ -48,6 +48,10 @@ export interface Codec<T extends string | Uint8Array = string | Uint8Array> {
 /** The codecs' codes: reading text or bytes that are no tree. */
 export const CodecIssues = defineIssues('repr.codec', {
   'repr.codec.json.syntax': { severity: 'error', description: 'The text is not JSON' },
+  'repr.codec.json.duplicate_key': {
+    severity: 'error',
+    description: 'An object names the same key twice (JSON.parse would keep the last silently)',
+  },
   'repr.codec.sexpr.syntax': {
     severity: 'error',
     description: 'The text is not S-expressions: an unbalanced bracket, an unterminated string, a malformed word',

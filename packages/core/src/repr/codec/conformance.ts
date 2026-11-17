@@ -168,6 +168,28 @@ export function conformanceTrees(): readonly { readonly name: string; readonly n
       },
     },
     {
+      name: 'columns outside declared params: custom data, an any param, a NaN with a payload and a sign bit',
+      node: {
+        kind: 'doc',
+        params: {
+          any: {
+            c: new Float64Array([1.5, Number.NaN]),
+            k: categoryColumn(['x', null, 'y', 'x']),
+            l: [new Uint8Array([7])],
+          },
+        },
+        custom: { col: new Int16Array([-3, 3]) },
+        children: [
+          {
+            kind: 'item',
+            id: 'nan',
+            params: { f32: oddNaN(Float32Array), f64: oddNaN(Float64Array), any: oddNaN(Float32Array) },
+            custom: { f64: oddNaN(Float64Array) },
+          },
+        ],
+      },
+    },
+    {
       name: 'a table with an extra column',
       node: {
         kind: 'doc',
@@ -183,6 +205,22 @@ export function conformanceTrees(): readonly { readonly name: string; readonly n
     { name: 'a deep tree', node: deep(64) },
   ];
   return trees.map(({ name, node }) => ({ name, node: normalize(ConformanceLanguage, node) }));
+}
+
+/** NaNs with a payload and with the sign bit set, which must hash and compare as the canonical NaN. */
+function oddNaN(type: typeof Float32Array | typeof Float64Array): Float32Array | Float64Array {
+  const column = new type(3);
+  const view = new DataView(column.buffer);
+  if (type === Float32Array) {
+    view.setUint32(0, 0x7fc00001, true);
+    view.setUint32(4, 0xffc00000, true);
+  } else {
+    view.setUint32(4, 0x7ff80000, true);
+    view.setUint32(0, 1, true);
+    view.setUint32(12, 0xfff80000, true);
+  }
+  column[2] = 1;
+  return column;
 }
 
 function deep(depth: number): Node {

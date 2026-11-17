@@ -33,7 +33,13 @@ export {
   type TableSpec,
   type UnitsHook,
 } from './language.js';
-export { type NormalizeOptions, normalize, validateAndNormalize } from './normalize.js';
+export {
+  type ColumnPlaces,
+  declaredColumnPlaces,
+  type NormalizeOptions,
+  normalize,
+  validateAndNormalize,
+} from './normalize.js';
 export {
   refHint,
   SchemaIssues,

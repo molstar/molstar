@@ -6,4 +6,4 @@
 
 // @molstar/core/repr/codecs/json: the JSON codec, the default interchange (_spec/README.md "Codecs").
 
-export { fromJson, JsonCodec, jsonCodec, parseJson, printJson, toJson } from './json.js';
+export { fromJson, JsonCodec, type JsonOptions, jsonCodec, parseJson, printJson, toJson } from './json.js';

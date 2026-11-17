@@ -93,6 +93,28 @@ describe('repr/tree: columns', () => {
     expect(() => categoryFromCodes(['a'], [1])).toThrow();
   });
 
+  it('every NaN of a float column is the canonical NaN, made so in place (the tree owns the column)', () => {
+    const odd = new Float32Array(2);
+    new DataView(odd.buffer).setUint32(0, 0x7fc00001, true); // a payload
+    new DataView(odd.buffer).setUint32(4, 0xffc00000, true); // the sign bit
+    const plain = new Float32Array([Number.NaN, Number.NaN]);
+    expect(hashColumn(odd)).toBe(hashColumn(plain));
+    expect(columnsEqual(odd, plain)).toBe(true);
+    expect(Array.from(new Uint32Array(odd.buffer))).toEqual([0x7fc00000, 0x7fc00000]);
+    const odd64 = new Float64Array(1);
+    new DataView(odd64.buffer).setUint32(4, 0xfff80000, true);
+    expect(toColumn('float64', odd64)).toBe(odd64);
+    expect(columnsEqual(odd64, new Float64Array([Number.NaN]))).toBe(true);
+  });
+
+  it('takes ownership: no copy, and the hash is computed once', () => {
+    const c = new Int32Array([1, 2]);
+    expect(toColumn('int32', c)).toBe(c);
+    const h = hashColumn(c);
+    c[0] = 9; // never done to an owned column: the cached hash shows it is not looked at again
+    expect(hashColumn(c)).toBe(h);
+  });
+
   it('identity is by bytes: NaN is NaN, -0 is not 0', () => {
     expect(columnsEqual(new Float64Array([Number.NaN]), new Float64Array([Number.NaN]))).toBe(true);
     expect(columnsEqual(new Float64Array([-0]), new Float64Array([0]))).toBe(false);

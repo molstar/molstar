@@ -32,6 +32,10 @@ export interface Issue {
   readonly path?: TreePath;
   /** Where in the tree, by address (`/data/p53`), when the place has one. */
   readonly address?: string;
+  /** How many times this code and cause occurred, when issues are deduplicated (dedupe is not built yet). */
+  readonly count?: number;
+  /** The first places of a deduplicated issue (at most ten). */
+  readonly places?: readonly IssuePlace[];
 }
 
 export interface IssueCodeInfo {

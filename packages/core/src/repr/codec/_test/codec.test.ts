@@ -20,7 +20,10 @@ describe('repr/codec: the conformance suite', () => {
       ...JsonCodec,
       encode: (node) => printJson(strip(node)),
     };
-    expect(checkCodec(dropsCustom)).toEqual(['ids, custom data and extension kinds: the decoded tree is not the tree']);
+    expect(checkCodec(dropsCustom)).toEqual([
+      'ids, custom data and extension kinds: the decoded tree is not the tree',
+      'columns outside declared params: custom data, an any param, a NaN with a payload and a sign bit: the decoded tree is not the tree',
+    ]);
     const refuses: Codec<string> = { ...JsonCodec, decode: () => parseJson('{') };
     expect(checkCodec(refuses)).toHaveLength(conformanceTrees().length);
     const throws: Codec<string> = {

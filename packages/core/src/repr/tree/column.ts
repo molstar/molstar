@@ -11,6 +11,7 @@
 // entry), so its identity is the sequence of its values and any encoding that writes the values gives it back.
 
 import { murmurHash3_128, murmurHash3_128_fromBytes } from '../../data/util/hash-functions.js';
+import { arrayEqual } from '../../util/array.js';
 
 export type NumericColumn =
   | Int8Array
@@ -170,16 +171,33 @@ function bytesOf(view: ArrayBufferView): Uint8Array {
   return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
 }
 
+const Canonical = new WeakSet<Column>();
+
+/**
+ * The column with every NaN of a float column made the canonical NaN (any payload or sign bit), in place: the tree
+ * owns a column once it is given one, so NaN is one value for hashing and equality. Once per column object.
+ */
+export function canonicalColumn<C extends Column>(column: C): C {
+  if (Canonical.has(column)) return column;
+  if (column instanceof Float32Array || column instanceof Float64Array) {
+    for (let i = 0; i < column.length; i++) if (Number.isNaN(column[i])) column[i] = Number.NaN;
+  }
+  Canonical.add(column);
+  return column;
+}
+
 const Seed = 0x72657072; // 'repr'
 const Hashes = new WeakMap<Column, string>();
 
 /**
  * A column's identity as 32 hex digits: its element type and its bytes (a category: its dictionary and its codes),
- * hashed once per column object. Bytes are the platform's, little-endian on every engine that runs this.
+ * hashed once per column object (the tree owns it: never mutated after). Its NaNs are made canonical first. Bytes are
+ * the platform's, little-endian on every engine that runs this.
  */
 export function hashColumn(column: Column): string {
   let hash = Hashes.get(column);
   if (hash !== undefined) return hash;
+  canonicalColumn(column);
   if (column instanceof CategoryColumn) {
     const codes = murmurHash3_128_fromBytes(bytesOf(column.codes), Seed);
     hash = murmurHash3_128(`category:${JSON.stringify(column.dict)}:${codes}`, Seed);
@@ -192,34 +210,35 @@ export function hashColumn(column: Column): string {
   return hash;
 }
 
-/** Whether two columns are equal: the same element type and the same bytes (so NaN is NaN, and -0 is not 0). */
+/**
+ * Whether two columns are equal: the same element type and the same bytes, NaNs canonical (so NaN is NaN, and -0 is
+ * not 0). Two columns whose hashes are both cached and differ are unequal at once.
+ */
 export function columnsEqual(a: Column, b: Column): boolean {
   if (a === b) return true;
   const type = columnType(a);
   if (type !== columnType(b) || a.length !== b.length) return false;
+  const ha = Hashes.get(a);
+  const hb = Hashes.get(b);
+  if (ha !== undefined && hb !== undefined && ha !== hb) return false;
   if (a instanceof CategoryColumn) {
     const c = b as CategoryColumn;
-    if (a.dict.length !== c.dict.length) return false;
-    for (let i = 0; i < a.dict.length; i++) if (a.dict[i] !== c.dict[i]) return false;
-    return bytesEqual(bytesOf(a.codes), bytesOf(c.codes));
+    return arrayEqual(a.dict, c.dict) && arrayEqual(a.codes, c.codes);
   }
-  return bytesEqual(bytesOf(a), bytesOf(b as NumericColumn));
-}
-
-function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
+  canonicalColumn(a);
+  canonicalColumn(b);
+  return arrayEqual(bytesOf(a), bytesOf(b as NumericColumn));
 }
 
 /**
  * A plain array as a column of `type`, or undefined when an item does not fit: an integer type takes integers in its
  * range; a float type takes numbers and `null` (missing, NaN); a category takes strings and, with `missing`, `null`.
- * A column of `type` is returned as it is; a column of another type does not fit.
+ * A column of `type` is taken as it is, no copy: the tree owns it from then on (its NaNs made canonical in place, its
+ * hash cached; never mutate it after). A column of another type does not fit.
  */
 export function toColumn(type: ColumnType, value: unknown, missing = false): Column | undefined {
   const have = columnType(value);
-  if (have !== undefined) return have === type ? (value as Column) : undefined;
+  if (have !== undefined) return have === type ? canonicalColumn(value as Column) : undefined;
   if (!Array.isArray(value)) return undefined;
   if (type === 'category') {
     for (const v of value) if (typeof v !== 'string' && !(missing && v === null)) return undefined;
@@ -236,7 +255,7 @@ export function toColumn(type: ColumnType, value: unknown, missing = false): Col
     else if (typeof v === 'number') out[i] = v;
     else return undefined;
   }
-  return out;
+  return canonicalColumn(out);
 }
 
 /** The index of the first item of a plain array that does not fit a column of `type`, or -1 (see `toColumn`). */

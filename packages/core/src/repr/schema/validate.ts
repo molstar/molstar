@@ -169,10 +169,12 @@ function checker(language: Language | undefined, options: ValidateOptions) {
   function nodeIn(lang: Language, n: Node, parent: string | undefined) {
     const spec = own(lang.kinds, n.kind);
     if (!spec) {
-      // an extension's kind (format.md "Unknown kinds"): kept, reported, skipped
+      // an extension's kind (format.md "Unknown kinds"): kept, reported, its params skipped; its children are the
+      // language's, checked with no parent rule (what may sit under it is the extension's)
       if (kindNamespace(n.kind) !== undefined && kindNamespace(n.kind) !== lang.id)
         report('repr.schema.kind.extension', 'A kind of an extension this reader lacks', undefined, 'kind');
       else report('repr.schema.kind.unknown', `Not a kind of ${lang.id}`, list(Object.keys(lang.kinds)), 'kind');
+      children(lang, n, undefined);
       return;
     }
     if (parent !== undefined && !spec.parents.includes(parent)) {
@@ -191,6 +193,10 @@ function checker(language: Language | undefined, options: ValidateOptions) {
     fields(spec.params ?? {}, n.params ?? {}, 'param');
     path.pop();
     if (spec.data) args(spec.data, n.args ?? []);
+    children(lang, n, n.kind);
+  }
+
+  function children(lang: Language, n: Node, parent: string | undefined) {
     if (!n.children) return;
     path.push('children');
     // ids are local: unique among siblings, so a node's address (its ids from the root) is unique
@@ -204,7 +210,7 @@ function checker(language: Language | undefined, options: ValidateOptions) {
         seen.add(id);
       }
       const childAddress = address && id !== undefined && IdPattern.test(id) ? [...address, id] : undefined;
-      node(lang, child, n.kind, childAddress);
+      node(lang, child, parent, childAddress);
       path.pop();
     }
     path.pop();

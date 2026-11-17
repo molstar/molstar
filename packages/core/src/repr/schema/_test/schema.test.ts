@@ -163,6 +163,24 @@ describe('repr/schema: validation', () => {
       expect(codes(spec(p53, domains(rows, extra))), JSON.stringify(rows)).toEqual(want);
   });
 
+  it("keeps checking and normalizing below an unknown kind, with the language's kinds", () => {
+    const ext: Node = {
+      kind: 'ext:track',
+      id: 'e',
+      children: [
+        { kind: 'sequence', id: 's', params: { alphabet: 'klingon' } },
+        { kind: 'values', id: 'v', params: { target: '/data/s', values: [0.5] } },
+      ],
+    };
+    const issues = validate(Mini, spec(ext));
+    expect(issues.map((i) => [i.code, i.address])).toEqual([
+      ['repr.schema.kind.extension', '/data/e'],
+      ['repr.schema.param.enum', '/data/e/s'],
+    ]);
+    const n = normalize(Mini, spec(ext));
+    expect(n.children![0].children![0].children![1].params!.values).toBeInstanceOf(Float32Array);
+  });
+
   it('reads a float column with null and NaN as missing', () => {
     const v: Node = { kind: 'values', id: 'v', params: { target: '/data/p53', values: [0.5, null, Number.NaN] } };
     expect(codes(spec(p53, v))).toEqual([]);

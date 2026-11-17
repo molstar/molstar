@@ -23,6 +23,7 @@
 // is read as an address, `:$custom`, columns elided, definitions' declared params gone (definitions wait).
 
 import { CodecIssues, type Codec, type DecodeOptions, type Decoded } from '../../codec/codec.js';
+import { type ColumnPlaces, declaredColumnPlaces, type Language } from '../../schema/index.js';
 import {
   addressWordEnd,
   assertKeys,
@@ -30,7 +31,9 @@ import {
   type Atom,
   CategoryColumn,
   type Column,
+  type ColumnType,
   ColumnTypes,
+  categoryFromCodes,
   columnType,
   Delimiter,
   IdHint,
@@ -53,6 +56,7 @@ import {
   readWord,
   TreeIssues,
   type TreePath,
+  toColumn,
   type Value,
   type ValueRecord,
 } from '../../tree/index.js';
@@ -61,8 +65,10 @@ import {
 const RESERVED = /[{},]/;
 /** The keyword custom data is spelled under: `$` keeps it apart from every param. */
 const CustomKey = '$custom';
-/** An elided column's opening: `[float32 × `. */
-const ELIDED = new RegExp(`^\\[(${ColumnTypes.join('|')}) ×`);
+/** The keyword a tagged column is spelled with: `(:$column int32 :values [1 2])`. */
+const ColumnKey = '$column';
+/** An elided column's opening, a brace form no value reads as (braces are reserved): `{float32 × `. */
+const ELIDED = new RegExp(`^\\{(${ColumnTypes.join('|')}) ×`);
 
 // ---- reading ----
 
@@ -95,13 +101,6 @@ function read(text: string, start = 0, end = text.length): { forms: SNode[]; err
     if (c === ' ' || c === '\t' || c === '\r' || c === '\n') i++;
     else if (c === ';') while (i < end && text[i] !== '\n') i++;
     else if (c === '(' || c === '[') {
-      if (c === '[' && ELIDED.test(text.slice(i, i + 16)))
-        return fail(
-          'An elided column',
-          i,
-          CodecIssues.codes['repr.codec.sexpr.elided'].hint,
-          'repr.codec.sexpr.elided',
-        );
       if (stack.length === MaxDepth)
         return fail(`Nested deeper than ${MaxDepth} levels`, i, undefined, 'repr.tree.depth_exceeded');
       stack.push({ t: c === '(' ? 'list' : 'vector', items: [], start: i++ });
@@ -111,7 +110,9 @@ function read(text: string, start = 0, end = text.length): { forms: SNode[]; err
       if ((open.t === 'list') !== (c === ')')) return fail(`${c} closes the ${open.t} opened at ${open.start}`, i);
       push(open);
       i++;
-    } else if (RESERVED.test(c)) return fail(`${c} is reserved`, i, 'quote a string that holds it');
+    } else if (c === '{' && ELIDED.test(text.slice(i, i + 16)))
+      return fail('An elided column', i, CodecIssues.codes['repr.codec.sexpr.elided'].hint, 'repr.codec.sexpr.elided');
+    else if (RESERVED.test(c)) return fail(`${c} is reserved`, i, 'quote a string that holds it');
     else if (c === '"') {
       const s = readQuoted(text, i, end);
       if (!s) return fail('An unterminated or malformed string', i);
@@ -136,7 +137,7 @@ function read(text: string, start = 0, end = text.length): { forms: SNode[]; err
       const raw = text.slice(from, i);
       if (c === ':') {
         const name = raw.slice(1);
-        if (name !== CustomKey && !KeywordPattern.test(name))
+        if (name !== CustomKey && name !== ColumnKey && !KeywordPattern.test(name))
           return fail('Not a keyword', from, 'a letter or _, then letters, digits, _ or -; or quote it, :"…"');
         push({ t: 'keyword', name, start: from });
         continue;
@@ -310,6 +311,7 @@ function toValue(s: SNode, path: TreePath, issues: Issue[], data: DataForms): Va
   if (s.t === 'list') {
     const head = s.items[0];
     if (head?.t === 'atom' && head.word) return toNode(s, path, issues, data);
+    if (head?.t === 'keyword' && head.name === ColumnKey) return taggedColumn(s.items, s.start, path, issues, data);
     if (!head || head.t === 'keyword')
       return (
         pairs(s.items, path, issues, data, (_, at) =>
@@ -328,6 +330,36 @@ function toValue(s: SNode, path: TreePath, issues: Issue[], data: DataForms): Va
   return null;
 }
 
+/**
+ * A tagged column, `(:$column int32 :values [1 2])` or `(:$column category :dict [a b] :codes [0 1 -1])`, typed here;
+ * one that does not read is `repr.tree.value.tag`.
+ */
+function taggedColumn(items: readonly SNode[], at: number, path: TreePath, issues: Issue[], data: DataForms): Value {
+  const fields: Record<string, Value> = {};
+  for (let i = 0; i + 1 < items.length; i += 2) {
+    const k = items[i];
+    if (k.t !== 'keyword') break;
+    fields[k.name] = toValue(items[i + 1], path, issues, data);
+  }
+  const type = fields[ColumnKey];
+  const keys = Object.keys(fields).sort().join(',');
+  let column: Column | undefined;
+  if (items.length % 2 === 0 && type === 'category' && keys === '$column,codes,dict') {
+    const { dict, codes } = fields;
+    if (
+      Array.isArray(dict) &&
+      dict.every((d) => typeof d === 'string') &&
+      Array.isArray(codes) &&
+      codes.every((c) => Number.isInteger(c) && (c as number) >= -1 && (c as number) < dict.length)
+    )
+      column = categoryFromCodes(dict as string[], codes as number[]);
+  } else if (items.length % 2 === 0 && typeof type === 'string' && keys === '$column,values')
+    column = ColumnTypes.includes(type as ColumnType) ? toColumn(type as ColumnType, fields.values) : undefined;
+  if (column) return column;
+  issues.push(issue('repr.tree.value.tag', 'A malformed tagged column', at, path, '(:$column int32 :values [1 2])'));
+  return null;
+}
+
 // ---- printing ----
 
 const WIDTH = 80;
@@ -340,6 +372,13 @@ type Doc =
 export interface PrintOptions {
   /** A column longer than this prints elided, its first `head` values shown (default 8). */
   readonly head?: number;
+  /**
+   * The language whose declared column params print as plain lists; every other column is tagged
+   * (`(:$column int32 :values [1 2])`). Without one, every column is tagged.
+   */
+  readonly language?: Language;
+  /** The languages its slots name. */
+  readonly languages?: (id: string) => Language | undefined;
 }
 
 const close = (o: '(' | '[') => (o === '(' ? ')' : ']');
@@ -350,7 +389,8 @@ const entries = (r: ValueRecord) => Object.keys(r).filter((k) => r[k] !== undefi
 /** `3000000` as `3,000,000`. */
 const grouped = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-function printer(head: number) {
+function printer(head: number, places?: ColumnPlaces) {
+  const declared = (container: object, key: string | number) => places?.get(container)?.has(key) ?? false;
   function nodeDoc(node: Node): Doc {
     assertPrintable(node);
     const parts: [string | null, Doc][] = [];
@@ -359,38 +399,58 @@ function printer(head: number) {
     // do; the args keep their order either way
     const args = node.args ?? [];
     let lead = 0;
-    while (lead < args.length && !isNode(args[lead])) parts.push([null, valueDoc(args[lead++])]);
-    for (const key of entries(node.params ?? {})) parts.push([key, valueDoc(node.params![key])]);
+    while (lead < args.length && !isNode(args[lead])) parts.push([null, valueDoc(args[lead], declared(args, lead++))]);
+    for (const key of entries(node.params ?? {}))
+      parts.push([key, valueDoc(node.params![key], declared(node.params!, key))]);
     if (node.custom && entries(node.custom).length) parts.push([CustomKey, valueDoc(node.custom)]);
     for (const child of node.children ?? []) parts.push([null, nodeDoc(child)]);
-    for (let i = lead; i < args.length; i++) parts.push([null, valueDoc(args[i])]);
+    for (let i = lead; i < args.length; i++) parts.push([null, valueDoc(args[i], declared(args, i))]);
     return { open: '(', head: node.kind, parts };
   }
 
-  function columnDoc(column: Column): Doc {
+  const list = (items: readonly string[]): Doc => ({ open: '[', parts: items.map((x) => [null, x] as [null, Doc]) });
+
+  /** A declared column a plain list, any other tagged; past the head, elided in a brace form the reader refuses. */
+  function columnDoc(column: Column, plain: boolean): Doc {
     const type = columnType(column)!;
     const n = Math.min(column.length, head);
     const items: string[] = new Array(n);
     for (let i = 0; i < n; i++)
       items[i] = printAddressAtom(column instanceof CategoryColumn ? column.get(i) : column[i]);
-    if (column.length <= head) return { open: '[', parts: items.map((x) => [null, x] as [null, Doc]) };
-    // elided: one atom-like text the reader refuses (`repr.codec.sexpr.elided`)
-    return `[${type} × ${grouped(column.length)}:${items.map((x) => ` ${x}`).join('')} …]`;
+    if (column.length > head) return `{${type} × ${grouped(column.length)}:${items.map((x) => ` ${x}`).join('')} …}`;
+    if (plain) return list(items);
+    if (column instanceof CategoryColumn)
+      return {
+        open: '(',
+        parts: [
+          [ColumnKey, 'category'],
+          ['dict', list(column.dict.map(printAddressAtom))],
+          ['codes', list(Array.from(column.codes, String))],
+        ],
+      };
+    return {
+      open: '(',
+      parts: [
+        [ColumnKey, type],
+        ['values', list(items)],
+      ],
+    };
   }
 
-  function valueDoc(v: Value): Doc {
+  function valueDoc(v: Value, plain = false): Doc {
     if (v === null || typeof v !== 'object') return printAddressAtom(v);
-    if (isColumn(v)) return columnDoc(v);
-    if (Array.isArray(v)) return { open: '[', parts: v.map((x) => [null, valueDoc(x)] as [null, Doc]) };
+    if (isColumn(v)) return columnDoc(v, plain);
+    if (Array.isArray(v))
+      return { open: '[', parts: v.map((x, i) => [null, valueDoc(x, declared(v, i))] as [null, Doc]) };
     if (isNode(v)) return nodeDoc(v);
     const r = v as ValueRecord;
     assertKeys(r);
-    return { open: '(', parts: entries(r).map((k) => [k, valueDoc(r[k])] as [string, Doc]) };
+    return { open: '(', parts: entries(r).map((k) => [k, valueDoc(r[k], declared(r, k))] as [string, Doc]) };
   }
   return { nodeDoc, valueDoc };
 }
 
-const keyText = (k: string) => (k === CustomKey ? `:${CustomKey}` : printKey(k));
+const keyText = (k: string) => (k === CustomKey || k === ColumnKey ? `:${k}` : printKey(k));
 
 function flat(d: Doc): string {
   if (typeof d === 'string') return d;
@@ -449,9 +509,16 @@ function fill(parts: readonly [string | null, Doc][], column: number): string {
   return [...lines, `${cur}]`].join('\n');
 }
 
+function printerFor(node: Node, options: PrintOptions) {
+  const places = options.language
+    ? declaredColumnPlaces(options.language, node, { languages: options.languages })
+    : undefined;
+  return printer(options.head ?? 8, places);
+}
+
 /** The tree's printing: `parseSexpr(printSexpr(x))` is `x` once normalized, unless a column was elided. */
 export function printSexpr(node: Node, options: PrintOptions = {}): string {
-  return layout(printer(options.head ?? 8).nodeDoc(node), 0);
+  return layout(printerFor(node, options).nodeDoc(node), 0);
 }
 
 /**
@@ -470,7 +537,7 @@ export function printForm(
 
 /** The tree's printing on one line, however long. */
 export function printSexprLine(node: Node, options: PrintOptions = {}): string {
-  return flat(printer(options.head ?? 8).nodeDoc(node));
+  return flat(printerFor(node, options).nodeDoc(node));
 }
 
 /** The S-expression codec: a printing for people that elides long columns (`head`), whose reader refuses them. */

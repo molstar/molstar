@@ -7,18 +7,24 @@
 // The JSON encoding of the tree (_spec/README.md "Codecs"; format.md): the default interchange, readable by any tool.
 // A node is `{ kind, id?, params?, custom?, children?, args? }`, a list an array, a record an object without `kind`
 // (the keys `kind`, `__proto__` and `$…` are reserved); the atoms JSON lacks are tagged objects,
-// `{ "$number": "NaN" }` (also `Infinity`, `-Infinity`, `-0`) and `{ "$bigint": "123" }`. A typed column is a plain
-// array: a float column's NaN is `null`, its infinities and -0 are tagged as above; a category's values are strings
-// and `null` (missing). Decoding is schema-free: a column comes back as a plain array, typed by normalization.
-// Parsing is strict and reports every issue it finds, each with its path. Written from meso*'s tree core; `custom` and
+// `{ "$number": "NaN" }` (also `Infinity`, `-Infinity`, `-0`) and `{ "$bigint": "123" }`. A typed column in a declared
+// column param (the encoder is given the language) is a plain array: a float column's NaN is `null`, its infinities
+// and -0 tagged as above; a category's values are strings and `null` (missing); decoding gives it back plain, and
+// normalization types it. Any other column is tagged, `{ "$column": "int32", "values": […] }` (a category:
+// `{ "$column": "category", "dict": […], "codes": […] }`), and decodes typed with no language. Parsing is strict
+// (a duplicate key is an issue, not last-wins) and reports every issue it finds, each with its path. Written from meso*'s tree core; `custom` and
 // columns are the delta.
 
-import type { Codec, DecodeOptions, Decoded } from '../../codec/codec.js';
+import { type Codec, CodecIssues, type DecodeOptions, type Decoded } from '../../codec/codec.js';
+import { type ColumnPlaces, declaredColumnPlaces, type Language } from '../../schema/index.js';
 import {
   assertKeys,
   assertPrintable,
   CategoryColumn,
   type Column,
+  type ColumnType,
+  ColumnTypes,
+  categoryFromCodes,
   columnType,
   IdHint,
   IdPattern,
@@ -34,6 +40,7 @@ import {
   type Node,
   TreeIssues,
   type TreePath,
+  toColumn,
   type Value,
   type ValueRecord,
 } from '../../tree/index.js';
@@ -46,24 +53,50 @@ const SpecialNumbers: Readonly<Record<string, number>> = {
   '-0': -0,
 };
 
+export interface JsonOptions {
+  /** Indentation for people; compact by default. */
+  readonly indent?: number;
+  /**
+   * The language whose declared column params are written as plain arrays; every other column is tagged
+   * (`{ "$column": "int32", "values": […] }`). Without one, every column is tagged.
+   */
+  readonly language?: Language;
+  /** The languages its slots name. */
+  readonly languages?: (id: string) => Language | undefined;
+}
+
 /** The JSON-ready value of a node (for `JSON.stringify`). */
-export function toJson(node: Node): unknown {
+export function toJson(node: Node, options: JsonOptions = {}): unknown {
+  const places = options.language
+    ? declaredColumnPlaces(options.language, node, { languages: options.languages })
+    : undefined;
+  return nodeToJson(node, places);
+}
+
+function nodeToJson(node: Node, places: ColumnPlaces | undefined): unknown {
   assertPrintable(node);
   const out: Record<string, unknown> = { kind: node.kind };
   if (node.id !== undefined) out.id = node.id;
-  if (node.params !== undefined) out.params = recordToJson(node.params);
-  if (node.custom !== undefined) out.custom = recordToJson(node.custom);
-  if (node.children !== undefined) out.children = node.children.map(toJson);
-  if (node.args?.length) out.args = node.args.map(valueToJson);
+  if (node.params !== undefined) out.params = recordToJson(node.params, places);
+  if (node.custom !== undefined) out.custom = recordToJson(node.custom, places);
+  if (node.children !== undefined) out.children = node.children.map((c) => nodeToJson(c, places));
+  if (node.args?.length) out.args = listToJson(node.args, places);
   return out;
 }
 
-function recordToJson(record: ValueRecord): Record<string, unknown> {
+function recordToJson(record: ValueRecord, places: ColumnPlaces | undefined): Record<string, unknown> {
   assertKeys(record);
+  const declared = places?.get(record);
   const out: Record<string, unknown> = {};
   // an `undefined` value is absent, as in the other printer and the hash
-  for (const key of Object.keys(record)) if (record[key] !== undefined) out[key] = valueToJson(record[key]);
+  for (const key of Object.keys(record))
+    if (record[key] !== undefined) out[key] = valueToJson(record[key], places, declared?.has(key) ?? false);
   return out;
+}
+
+function listToJson(list: readonly Value[], places: ColumnPlaces | undefined): unknown[] {
+  const declared = places?.get(list);
+  return list.map((v, i) => valueToJson(v, places, declared?.has(i) ?? false));
 }
 
 function numberToJson(value: number): unknown {
@@ -71,7 +104,8 @@ function numberToJson(value: number): unknown {
   return { $number: Object.is(value, -0) ? '-0' : String(value) };
 }
 
-function columnToJson(column: Column): unknown[] {
+/** A column's values: a float column's NaN `null` (format.md), a category's strings and `null`. */
+function columnValuesToJson(column: Column): unknown[] {
   if (column instanceof CategoryColumn) {
     const out: (string | null)[] = new Array(column.length);
     for (let i = 0; i < column.length; i++) out[i] = column.get(i);
@@ -82,7 +116,6 @@ function columnToJson(column: Column): unknown[] {
     for (let i = 0; i < column.length; i++) out[i] = column[i];
     return out;
   }
-  // a float column's missing value is NaN, written `null` (format.md)
   for (let i = 0; i < column.length; i++) {
     const v = column[i];
     out[i] = Number.isNaN(v) ? null : numberToJson(v);
@@ -90,22 +123,29 @@ function columnToJson(column: Column): unknown[] {
   return out;
 }
 
-function valueToJson(value: Value): unknown {
+/** A column outside a declared column param, tagged so that it decodes typed with no language. */
+function taggedColumn(column: Column): unknown {
+  if (column instanceof CategoryColumn)
+    return { $column: 'category', dict: column.dict, codes: Array.from(column.codes) };
+  return { $column: columnType(column), values: columnValuesToJson(column) };
+}
+
+function valueToJson(value: Value, places: ColumnPlaces | undefined, declared: boolean): unknown {
   if (typeof value === 'number') return numberToJson(value);
   if (typeof value === 'bigint') return { $bigint: value.toString() };
   if (value === null || typeof value !== 'object') return value;
-  if (isColumn(value)) return columnToJson(value);
-  if (Array.isArray(value)) return value.map(valueToJson);
-  if (isNode(value)) return toJson(value);
-  return recordToJson(value as ValueRecord);
+  if (isColumn(value)) return declared ? columnValuesToJson(value) : taggedColumn(value);
+  if (Array.isArray(value)) return listToJson(value, places);
+  if (isNode(value)) return nodeToJson(value, places);
+  return recordToJson(value as ValueRecord, places);
 }
 
 /** The tree as JSON text. */
-export function printJson(node: Node, indent?: number): string {
-  return JSON.stringify(toJson(node), null, indent);
+export function printJson(node: Node, options: JsonOptions = {}): string {
+  return JSON.stringify(toJson(node, options), null, options.indent);
 }
 
-/** A tree from JSON text; a leading byte order mark is skipped (offsets count it). */
+/** A tree from JSON text, strictly: a key given twice in an object is an issue; a byte order mark is skipped. */
 export function parseJson(text: string): Decoded {
   const bom = text.charCodeAt(0) === 0xfeff ? 1 : 0;
   let value: unknown;
@@ -116,16 +156,56 @@ export function parseJson(text: string): Decoded {
     const offset = /position (\d+)/.exec(String(e))?.[1];
     return {
       issues: [
-        {
-          code: 'repr.codec.json.syntax',
-          severity: 'error',
-          message: 'Not JSON',
-          ...(offset !== undefined ? { offset: +offset + bom } : {}),
-        },
+        issueOf(CodecIssues, 'repr.codec.json.syntax', 'Not JSON', {
+          offset: offset !== undefined ? +offset + bom : undefined,
+        }),
       ],
     };
   }
+  // JSON.parse keeps the last of a duplicate key: a second scan finds them (valid JSON only, so it can be simple)
+  const duplicates = duplicateKeys(text, bom);
+  if (duplicates.length) return { issues: duplicates };
   return fromJson(value);
+}
+
+/** Every key given twice in one object of valid JSON text, with its offset and path. */
+function duplicateKeys(text: string, start: number): Issue[] {
+  const issues: Issue[] = [];
+  type Frame = { readonly object: boolean; keys?: Set<string>; key: string | number };
+  const stack: Frame[] = [];
+  const path = () => stack.map((f) => f.key);
+  for (let i = start; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if (c === 0x22 /* " */) {
+      const from = i;
+      let escaped = false;
+      for (i++; text.charCodeAt(i) !== 0x22; i++) {
+        if (text.charCodeAt(i) === 0x5c /* \ */) {
+          escaped = true;
+          i++;
+        }
+      }
+      const top = stack[stack.length - 1];
+      if (!top?.object) continue;
+      let j = i + 1;
+      while (text.charCodeAt(j) <= 0x20) j++;
+      if (text.charCodeAt(j) !== 0x3a /* : */) continue;
+      const key = escaped ? (JSON.parse(text.slice(from, i + 1)) as string) : text.slice(from + 1, i);
+      top.key = key;
+      if (top.keys!.has(key))
+        issues.push(
+          issueOf(CodecIssues, 'repr.codec.json.duplicate_key', 'A key given twice', { offset: from, path: path() }),
+        );
+      top.keys!.add(key);
+    } else if (c === 0x7b /* { */) stack.push({ object: true, keys: new Set(), key: '' });
+    else if (c === 0x5b /* [ */) stack.push({ object: false, key: 0 });
+    else if (c === 0x7d || c === 0x5d) stack.pop();
+    else if (c === 0x2c /* , */) {
+      const top = stack[stack.length - 1];
+      if (top && !top.object) top.key = (top.key as number) + 1;
+    }
+  }
+  return issues;
 }
 
 /** A tree from a JSON value (as `JSON.parse` gives it), strictly. */
@@ -238,6 +318,7 @@ function decodeValue(value: unknown, path: TreePath, issues: Issue[], depth: num
     const keys = Object.keys(value);
     if (keys.length === 1 && (keys[0] === '$number' || keys[0] === '$bigint'))
       return decodeTag(keys[0], value, path, issues);
+    if (Object.hasOwn(value, '$column')) return decodeColumn(value, path, issues);
     return decodeRecord(value, path, issues, depth + 1);
   }
   report(issues, 'repr.tree.value.shape', path, 'Not a value');
@@ -254,14 +335,47 @@ function decodeTag(tag: '$number' | '$bigint', value: Record<string, unknown>, p
   return null;
 }
 
-/** The JSON codec: compact text (`indent` for people). */
-export function jsonCodec(options: { readonly indent?: number } = {}): Codec<string> {
+/**
+ * A tagged column, `{ "$column": type, "values": […] }` or `{ "$column": "category", "dict": […], "codes": […] }`,
+ * typed here; one that does not read is `repr.tree.value.tag`.
+ */
+function decodeColumn(value: Record<string, unknown>, path: TreePath, issues: Issue[]): Value {
+  const type = value.$column;
+  const keys = Object.keys(value).sort().join(',');
+  let column: Column | undefined;
+  if (type === 'category') {
+    const { dict, codes } = value;
+    const fits =
+      keys === '$column,codes,dict' &&
+      Array.isArray(dict) &&
+      dict.every((d) => typeof d === 'string') &&
+      Array.isArray(codes) &&
+      codes.every((c) => Number.isInteger(c) && c >= -1 && c < dict.length);
+    if (fits) column = categoryFromCodes(dict as string[], codes as number[]);
+  } else if (typeof type === 'string' && ColumnTypes.includes(type as ColumnType) && keys === '$column,values') {
+    const values = value.values;
+    const numbers = Array.isArray(values)
+      ? values.map((v) =>
+          isObject(v) && Object.keys(v).length === 1 && typeof v.$number === 'string'
+            ? (SpecialNumbers[v.$number] ?? v)
+            : v,
+        )
+      : undefined;
+    column = toColumn(type as ColumnType, numbers);
+  }
+  if (column) return column;
+  report(issues, 'repr.tree.value.tag', path, 'A malformed tagged column', '{ "$column": type, "values": […] }');
+  return null;
+}
+
+/** The JSON codec: compact text (`indent` for people); `language` writes its declared columns as plain arrays. */
+export function jsonCodec(options: JsonOptions = {}): Codec<string> {
   return {
     id: 'json',
     output: 'text',
-    typedColumns: false,
+    typedColumns: true,
     elides: false,
-    encode: (node) => printJson(node, options.indent),
+    encode: (node) => printJson(node, options),
     decode: (text: string, _options?: DecodeOptions) => parseJson(text),
   };
 }

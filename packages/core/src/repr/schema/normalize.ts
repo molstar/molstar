@@ -10,7 +10,19 @@
 // pipeline is decode, migrate, then validate and normalize (`validateAndNormalize`). Unchanged subtrees are shared:
 // a tree that is already normalized comes back as the same object.
 
-import { hasErrors, type Issue, isNode, isRecord, type Node, own, toColumn, type Value } from '../tree/index.js';
+import {
+  type Column,
+  columnType,
+  hasErrors,
+  type Issue,
+  isColumn,
+  isNode,
+  isRecord,
+  type Node,
+  own,
+  toColumn,
+  type Value,
+} from '../tree/index.js';
 import type { Fields, KindSpec, Language, ParamType } from './language.js';
 import { type ValidateOptions, validate, validateValue } from './validate.js';
 
@@ -55,11 +67,11 @@ export function normalize(language: Language, root: Node, options: NormalizeOpti
   const resolve = (id: string) => (id === language.id ? language : options.languages?.(id));
 
   function node(lang: Language, n: Node): Node {
+    // an unknown (extension) kind is kept as it is; its children are still the language's
     const spec: KindSpec | undefined = own(lang.kinds, n.kind);
-    if (!spec) return n;
-    const params = spec.params && n.params ? record(spec.params, n.params) : n.params;
+    const params = spec?.params && n.params ? record(spec.params, n.params) : n.params;
     let args = n.args;
-    if (spec.data && n.args) {
+    if (spec?.data && n.args) {
       const specs = spec.data.args;
       const out = n.args.map((v, i) => (specs.length ? value(specs[Math.min(i, specs.length - 1)], v) : v));
       if (out.some((v, i) => v !== n.args![i])) args = out;
@@ -141,4 +153,72 @@ export function validateAndNormalize(
   const issues = validate(language, root, options);
   if (hasErrors(issues)) return { issues };
   return { node: normalize(language, root, options), issues };
+}
+
+/**
+ * Where a tree's columns sit in declared column params (a table's declared columns included): each container (a
+ * params record, a table, a list, a data form's args) with the keys or indices that hold one. A codec writes a column
+ * there as a plain array (normalization types it on read) and tags every other column (`$column`), so a column in
+ * `custom`, an `any` param or an undeclared table column comes back typed (_spec/README.md "Codecs").
+ */
+export type ColumnPlaces = WeakMap<object, Set<string | number>>;
+
+export function declaredColumnPlaces(language: Language, root: Node, options: NormalizeOptions = {}): ColumnPlaces {
+  const places: ColumnPlaces = new WeakMap();
+  const resolve = (id: string) => (id === language.id ? language : options.languages?.(id));
+  const mark = (container: object, key: string | number) => {
+    let keys = places.get(container);
+    if (!keys) places.set(container, (keys = new Set()));
+    keys.add(key);
+  };
+
+  function node(lang: Language, n: Node) {
+    const spec: KindSpec | undefined = own(lang.kinds, n.kind);
+    if (spec?.params && n.params) record(spec.params, n.params);
+    if (spec?.data && n.args) {
+      const specs = spec.data.args;
+      if (specs.length) n.args.forEach((v, i) => value(specs[Math.min(i, specs.length - 1)], v, n.args!, i));
+    }
+    for (const c of n.children ?? []) node(lang, c);
+  }
+
+  function record(specs: Fields, values: Readonly<Record<string, Value>>) {
+    for (const key of Object.keys(values)) {
+      const spec = own(specs, key);
+      if (spec && values[key] !== undefined && needs(spec)) value(spec, values[key], values, key);
+    }
+  }
+
+  function value(t: ParamType, v: Value, container: object, key: string | number) {
+    switch (t.type) {
+      case 'column':
+        if (columnType(v) === t.of) mark(container, key);
+        return;
+      case 'table':
+      case 'record':
+        if (isRecord(v)) record(t.type === 'table' ? t.columns : t.fields, v);
+        return;
+      case 'list':
+        if (Array.isArray(v) && needs(t.of)) v.forEach((x, i) => value(t.of, x, v, i));
+        return;
+      case 'map':
+        if (isRecord(v) && needs(t.of)) for (const k of Object.keys(v)) value(t.of, v[k], v, k);
+        return;
+      case 'union': {
+        const m = isColumn(v)
+          ? t.of.find((x) => x.type === 'column' && x.of === columnType(v as Column))
+          : t.of.find((x) => needs(x) && validateValue(x, v, { languages: resolve, maxIssues: 1 }).length === 0);
+        if (m) value(m, v, container, key);
+        return;
+      }
+      case 'node': {
+        const lang = isNode(v) ? resolve(t.language) : undefined;
+        if (lang) node(lang, v as Node);
+        return;
+      }
+    }
+  }
+
+  node(language, root);
+  return places;
 }

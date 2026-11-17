@@ -5,35 +5,62 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { checkCodec } from '../../../codec/index.js';
-import { categoryColumn, pathToPointer, TreeIssues } from '../../../tree/index.js';
+import { ConformanceLanguage, checkCodec } from '../../../codec/index.js';
+import { Mini } from '../../../schema/_test/fixtures.js';
+import { CategoryColumn, categoryColumn, type Node, pathToPointer, TreeIssues } from '../../../tree/index.js';
 import { fromJson, JsonCodec, jsonCodec, parseJson, printJson } from '../index.js';
 
 describe('repr/codecs/json', () => {
-  it('conforms to the codec interface', () => {
+  it('conforms to the codec interface, with and without the language', () => {
     expect(checkCodec(JsonCodec)).toEqual([]);
     expect(checkCodec(jsonCodec({ indent: 2 }))).toEqual([]);
+    expect(checkCodec(jsonCodec({ language: ConformanceLanguage }))).toEqual([]);
   });
 
-  it('writes NaN as null inside a float column, and tags the atoms JSON lacks elsewhere', () => {
-    const text = printJson({
-      kind: 'x',
-      params: {
-        f: new Float32Array([0.5, Number.NaN, Number.POSITIVE_INFINITY, -0]),
-        i: new Int8Array([-1, 2]),
-        c: categoryColumn(['a', null]),
-        n: Number.NaN,
-        z: -0,
-        b: 7n,
-      },
-      custom: { note: 1 },
-    });
+  const values: Node = {
+    kind: 'values',
+    id: 'v',
+    params: {
+      target: '/data/p53',
+      values: new Float32Array([0.5, Number.NaN, Number.POSITIVE_INFINITY, -0]),
+      scale: Number.NaN,
+    },
+    custom: { c: categoryColumn(['a', null]), i: new Int8Array([-1, 2]), z: -0, b: 7n },
+  };
+
+  it('writes a declared column as a plain array (NaN null), tags any other column and the atoms JSON lacks', () => {
+    const text = printJson(values, { language: Mini });
     expect(text).toBe(
-      '{"kind":"x","params":{"f":[0.5,null,{"$number":"Infinity"},{"$number":"-0"}],"i":[-1,2],"c":["a",null],' +
-        '"n":{"$number":"NaN"},"z":{"$number":"-0"},"b":{"$bigint":"7"}},"custom":{"note":1}}',
+      '{"kind":"values","id":"v","params":{"target":"/data/p53","values":[0.5,null,{"$number":"Infinity"},{"$number":"-0"}],' +
+        '"scale":{"$number":"NaN"}},"custom":{"c":{"$column":"category","dict":["a"],"codes":[0,-1]},' +
+        '"i":{"$column":"int8","values":[-1,2]},"z":{"$number":"-0"},"b":{"$bigint":"7"}}}',
     );
-    // schema-free: columns come back as plain arrays (normalization types them)
-    expect(parseJson(text).node?.params?.f).toEqual([0.5, null, Number.POSITIVE_INFINITY, -0]);
+    // schema-free: a declared column comes back plain (normalization types it), a tagged one typed
+    const back = parseJson(text).node!;
+    expect(back.params?.values).toEqual([0.5, null, Number.POSITIVE_INFINITY, -0]);
+    expect(back.custom?.i).toEqual(new Int8Array([-1, 2]));
+    expect(back.custom?.c).toBeInstanceOf(CategoryColumn);
+    // without the language every column is tagged
+    expect(printJson(values)).toContain('"values":{"$column":"float32","values":[0.5,null,');
+  });
+
+  it('refuses a malformed tagged column and a key given twice', () => {
+    for (const bad of [
+      '{"$column":"int8","values":[300]}',
+      '{"$column":"int9","values":[]}',
+      '{"$column":"category","dict":["a"],"codes":[1]}',
+      '{"$column":"int8","values":[],"x":1}',
+    ])
+      expect(
+        parseJson(`{"kind":"x","params":{"c":${bad}}}`).issues.map((i) => i.code),
+        bad,
+      ).toEqual(['repr.tree.value.tag']);
+    const dup = parseJson('{"kind":"x","params":{"a":1,"b":[{"c":1,"\\u0063":2}],"a":3}}');
+    expect(dup.node).toBeUndefined();
+    expect(dup.issues.map((i) => [i.code, pathToPointer(i.path ?? [])])).toEqual([
+      ['repr.codec.json.duplicate_key', '/params/b/0/c'],
+      ['repr.codec.json.duplicate_key', '/params/a'],
+    ]);
   });
 
   it('reports every issue, by code, with its path', () => {

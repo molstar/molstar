@@ -51,6 +51,7 @@ export {
   type ColumnType,
   ColumnTypes,
   categoryColumn,
+  canonicalColumn,
   categoryFromCodes,
   columnConstructor,
   columnMisfit,

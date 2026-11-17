@@ -28,6 +28,36 @@
       "types": "./lib/reactive/index.d.ts",
       "import": "./lib/reactive/index.js"
     },
+    "./repr/tree": {
+      "molstar-src": "./src/repr/tree/index.ts",
+      "types": "./lib/repr/tree/index.d.ts",
+      "import": "./lib/repr/tree/index.js"
+    },
+    "./repr/schema": {
+      "molstar-src": "./src/repr/schema/index.ts",
+      "types": "./lib/repr/schema/index.d.ts",
+      "import": "./lib/repr/schema/index.js"
+    },
+    "./repr/builder": {
+      "molstar-src": "./src/repr/builder/index.ts",
+      "types": "./lib/repr/builder/index.d.ts",
+      "import": "./lib/repr/builder/index.js"
+    },
+    "./repr/codec": {
+      "molstar-src": "./src/repr/codec/index.ts",
+      "types": "./lib/repr/codec/index.d.ts",
+      "import": "./lib/repr/codec/index.js"
+    },
+    "./repr/codecs/json": {
+      "molstar-src": "./src/repr/codecs/json/index.ts",
+      "types": "./lib/repr/codecs/json/index.d.ts",
+      "import": "./lib/repr/codecs/json/index.js"
+    },
+    "./repr/codecs/sexpr": {
+      "molstar-src": "./src/repr/codecs/sexpr/index.ts",
+      "types": "./lib/repr/codecs/sexpr/index.d.ts",
+      "import": "./lib/repr/codecs/sexpr/index.js"
+    },
     "./task": {
       "molstar-src": "./src/task/index.ts",
       "types": "./lib/task/index.d.ts",
