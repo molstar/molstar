@@ -20,17 +20,21 @@ config item (or a param) with the recommendation as its default, and listed in g
   format, scaffold checks). Designs updated: format (tagged columns), language-description (column `required`,
   `seq.query.*`), locations-and-queries (`chain` as Nodes, `:of`, quoted `.n` labels, the boundary rule), protocol
   (`AssetReader`, `form`, `list`, row identity, malformed not retried, `over_budget`), data-store (want sets, `evicted`).
+- Stage 3 (lanes C2 range sets into core, E resolve): merged; gate green (500 tests); `seqx-core` exports `./resolve`
+  and `./view`.
 
 ## In progress
 
-- Stage 3: lane E (resolve, strong) and lane C2 (range sets into core, fast), from the commit after this one.
-  The author restarted the loop without objecting to the five stage-2 decisions; the loop proceeds on them as
-  recommended, still open to change (gaps.md).
+- Stage 4: lane G (viewer models) merged after one review round (merge, then `4643e6653`: `./models` and `./behaviors`
+  entries); the merged tree 547 tests (repr, data/int, packages/seq), about 0.4 s; tsc, lint, format, scaffold checks
+  green. Lane F (render, branch `seq/f-render`, checks green when rerun: 334 tests) is under review (strong); its fix
+  round, then the merge with the `./render` export and `_test` null.
 
 ## Next
 
-On confirmation: write lane E's brief (the static model implementing `QueryModel` incl. `chain` and annotation
-`fields`; maps; paths; projection; the resolved view; binding `SourceEntry` to the language's source node) and start it.
+- Merge F; reconcile its hit type with G's (`models/hover.ts` `Hit`: `{layer?, section?, system, position?, element?,
+  extent?, target?}`); fold `drift/render.md` and `drift/viewer-models.md` into the designs; the stage 4 gate.
+- Then lane H's brief (stage 5) and start it.
 
 ## Decisions taken (awaiting the author)
 

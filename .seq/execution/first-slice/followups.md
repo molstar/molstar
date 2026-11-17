@@ -32,3 +32,24 @@ cuts and builds number arrays); core tests for `Empty`, non-integers and `overla
 From lane E: `QuerySystem.length` optional (pending) in the query model instead of `openQueryLength`; the isoform half
 of EC-30; NCBI codes beyond 1, 2, 11; projecting rects; reverse paths carried across models; an allocation check of
 `projectRanges` at a checkpoint.
+
+## From lane F (render)
+
+- An overlay type for tier 2 (only a version is used now).
+- Highlight channels (the pass exists, empty).
+- A canvas adapter for the text port (lane H).
+- A summary pyramid for inline values zoomed out (inline data is level 1 only; a large inline system zoomed out hits the
+  store's tile cap).
+- An allocation check of the draw and hover loops (`layout` still allocates small arrays).
+- A legend's place in the chrome.
+- The Nightingale reference adapter.
+
+## From lane G (viewer models)
+
+- `SpecModel.applyPatch(patch, { against, context })` once the tree core has patches.
+- EC-113 scroll groups across viewers or views; EC-114 ring windows.
+- EC-143 re-hit of a resting pointer each frame the view moves (lane H); trackpad pinch onto `pinch`/`wheel` (lane H).
+- Wrapping pans on a cyclic axis (only clamped now).
+- An allocation guard for `hover.set` and the bindings' resolve (opt-in tier).
+- `ParamDefinition`s for the config items.
+

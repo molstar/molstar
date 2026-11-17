@@ -19,6 +19,17 @@
 8. The TP53 exon coordinates in `resolve/_test/p53-geometry.ts` were written from memory (lengths add to 3 × 393 + a
    stop): check them against RefSeq NM_000546 before relying on them.
 
+9. Lane F's `RenderConfig` defaults: density thresholds (device px per position: letters 14, cells 3, dots 1, bars
+   1/64), label column 112 and gap 8, inset 8, track gap 4, section gap 8, track heights (letters 20, ranges 36, values
+   32), lane 12 and gap 2, letters 9–14 px, mono advance 0.6 em, fonts (`12px sans` labels, `10px sans` items), fade 12
+   px, squircle radius (a third of the height, max 8, none under 6 px), outline widths (hover 1.5, selection 1.5, cursor
+   2.5), want margin (half the view each side), `followArc` shortest; `renderSvg` (`timeoutMs` 10 s, light theme, no
+   assets unless a reader is given, `dpr` 1); a values layer's `domain`, else open (`drift/render.md`).
+10. Lane G's `ViewerConfig` defaults: `hover.closeCodons` true, `viewport.maxPxPerPosition` 32,
+    `viewport.groupEqualAxes` true, `viewport.onResize` `keep-zoom`, `follow.followerMoves` `ignore`, `follow.cyclicArc`
+    `wrap`, `navigate.wheelZoomStep` 1.25, `navigate.keyPanFraction` 0.1, `navigate.coalesceWheel` true; the default
+    preset has no click or drag-select bindings until the selection lane (`drift/viewer-models.md`).
+
 ## Agreed but not built
 
 Stages 3 to 7; the follow-ups in `followups.md` (the tree core's pending union, version-aware validate, `checkRefs`,

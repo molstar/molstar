@@ -78,7 +78,7 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 - [ ] F (strong) `seqx-core/render`: the layer-type contract; `letters`, `ranges`, `values`; the tracks layout; draw
       lists (units, passes, primitives in reused buffers); hit indexes; stable lanes; the token table; the text metrics
       port with the Node table; the recording and SVG backends; `renderSvg` (asynchronous, waits to settle)
-- [ ] G (strong) `seqx-viewer` models: `SpecModel`, `ViewModel` (a scroll group, one follow through the codon map),
+- [x] G (strong) `seqx-viewer` models: `SpecModel`, `ViewModel` (a scroll group, one follow through the codon map),
       `HoverModel` (ownership, projection), `StoreModel`; the `hover` and `navigate` behaviors; the gesture-binding table
 - [ ] GATE: review of F and G (strong)
 
