@@ -398,11 +398,14 @@ one label column (112, gap 8), track and section gaps (4, 8), a track's height b
 none (letters 20, ranges 36, values 32), the lane (12, gap 2), the density thresholds, the letter sizes (9 to 14) and
 the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), the fade (12), the squircle's ratio, cap
 and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the want margin (half the view a side),
-a follower's arc (`shortest`).
+a follower's arc (`shortest`), what ranges past the lanes do (`ranges.overflow`: `extra-lanes`), how values aggregate
+below a pixel (`values.aggregate`: `minmax`).
 
-- **Density steps** (`densityStep`), in device pixels a position, shared by every layer type: `letters` from 14, `cells`
-  from 3, `dots` from 1, `bars` from 1/64, else `density`. Letters, cells and dots draw a mark a position; bars and
-  density at most one a device column a lane. Why device pixels: a mark a pixel is what bounds the lists.
+- **Density steps** (`densityStep(cssPx, dpr, config)`), shared by every layer type, each threshold in its unit
+  (`densityUnits`): `letters` from 10 CSS px, `cells` from 3 device px, `dots` from 1, `bars` from 1/64, else `density`.
+  The letters step never starts below the width the smallest letter size needs (its advance and 2 px), so it never shows
+  cells without letters. Letters, cells and dots draw a mark a position; bars and density at most one a device column a
+  lane. Why two units: legibility is in CSS pixels; what bounds the lists is a mark a device pixel.
 
 ### Tokens
 
@@ -421,6 +424,8 @@ a follower's arc (`shortest`).
   it (`createTextMetrics`). A font is shorthand naming a family role (`12px sans`, `10px mono`); a backend writes the
   role's stack. Node measures with the bundled table (`bundledTextMetrics`): Arial-compatible sans advances, a 0.6 em
   mono. Letters are never measured: centered in their cells, one size a row, the largest of the scale that fits.
+- The port has a `version`, bumped by `clear` (a web font arrived): part of the draw lists' key.
+- Font sizes are read from the config once a layout, never per label per draw.
 
 ### Draw lists
 
@@ -434,6 +439,8 @@ a follower's arc (`shortest`).
   keep the order its primitives were added in. Colors are `0xRRGGBBAA`; `NoColor` (0) is none.
 - **Bounded by the screen**: at most one primitive a device column a lane, or one a cell when cells are a device pixel
   or wider; tracks below the page are not laid out.
+- **Nothing allocated once warm on the draw and emphasis paths**: one `PassWriter` a pass, kept by the lists (`writer`);
+  the selection's spans and the density strip's bytes are kept and reused while the size holds.
 
 ### Shapes
 
@@ -455,11 +462,14 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   letters on them, a tick a position at `dots`, one bar a piece in view at `bars` and `density` (presence needs no
   data).
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
-  exon); labels inside marks 24 px or wider. At `bars` a lane's marks touching within a device pixel merge into a run;
-  at `density`, or a density table, or when items overflow the lanes, one heat strip, a device column a pixel.
-- `values`: a bar a position, or at `bars` and `density` a device column's maximum (positions or bins). Missing (NaN) is
-  a 2 px neutral mark at the baseline. The domain is the layer's `domain` param, else open: computed from the values in
-  view when the view settles, held while it does not.
+  exon); labels inside marks 24 px or wider, drawn in the `labels` pass. At `bars` a lane's marks touching within a
+  device pixel merge into a run; at `density`, or a density table, one heat strip, a device column a pixel. Items past
+  the lanes collapse into a density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or
+  the whole layer becomes the strip (`'layer'`).
+- `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
+  baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
+  Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
+  computed from the values in view when the view settles, held while it does not.
 
 ### Data
 
@@ -467,15 +477,24 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   the region in view carried back along the layer's path, at the level that fits a device pixel's positions there
   (`fitLevel`); the view at `view` priority and a margin each side at `margin`.
 - A tile not asked for, pending or evicted draws as a pending placeholder (EC-169), a failed one as a conflict tint; an
-  unknown source (not attached) is pending. Items are deduped by key (`id`, else `row`), start and end: a range repeated
-  in the tiles it touches is drawn once, and the two rows of a wrapped item stay two pieces.
+  unknown source (not attached) is pending. Two regions sharing a tile (a cyclic view wrapping a short system) read its
+  entry once.
+- **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
+  extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
+  another piece of one item (a wrapped row).
 
 ### Tracks layout
 
 - Sections stacked; each an `AxisTransform`: its pieces (`[start, end, …]` in display order) end to end as display
-  units, the viewport a window of them (`{ start, end }`, all by default) across the data box. A follower's pieces are
-  `followRange` of its leader's positions in view (its whole width, genomic order). A section whose length is unknown
-  takes the length its source's coverage gives once attached, else waits (`seq.render.axis.pending`).
+  units, the viewport a window of them (`{ start, end }`, all by default) across the data box. A span that only touches
+  the view's edge is not in view (a boundary on the edge is).
+- **Leaders first**: axes are made in the order of `follow`, so a follower placed above its leader follows it; a leader
+  not in the view is `seq.render.follow.leader`, a cycle `seq.render.follow.cycle`, and the section shows its own range.
+- **A follower follows continuously**: its window is the images of its leader's window edges (`point`), in genomic
+  order; where an edge maps nowhere, the leader's view has two pieces or the window wraps a cyclic origin, the hull (or
+  arc, `followArc`) of the leader's positions in view (`followRange`).
+- A section whose length is unknown takes the length its source's coverage gives once attached, else waits
+  (`seq.render.axis.pending`).
 - Cell edges snap to the device grid (`snap`). One label column for every track of a view.
 
 ### Lanes and Hits
@@ -483,17 +502,18 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 - **Sticky lanes** (`StickyLanes`): an item keeps its lane while it is in view; a new item takes the first lane free
   over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
   when a neighboring region arrives.
-- **Hits** are `{ layer, element?, position?, system }`: `layer` the layer's key (its address, else its track's and
-  `:index`), `element` an item's `{ owner, key }`, `position` on the section's system. Cells by arithmetic on the axis;
-  items by `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost
-  layer with an element under the point wins, else the topmost with a position.
+- **Hits** are `{ layer, section, element?, extent?, position?, system }`: `layer` the layer's key (its address, else
+  its track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a
+  Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
+  `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
+  element under the point wins, else the topmost with a position.
 
 ### The key
 
 - `Renderer.frame` keys a frame by the model's hash, the view, the size and device pixel ratio, the viewport, the token
-  table's version, the overlay's version, whether the view settled, the config, and the versions of the entries (and the
-  coverages) the last layout read. An equal key keeps the layout and the lists and redraws the emphasis passes alone;
-  anything else lays out again into the same buffers. Same inputs, same lists.
+  table's version, the text metrics' version, the overlay's version, whether the view settled, the config, and the
+  versions of the entries (and the coverages) the last layout read. An equal key keeps the layout and the lists and
+  redraws the emphasis passes alone; anything else lays out again into the same buffers. Same inputs, same lists.
 
 ### Backends
 
@@ -501,17 +521,22 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   (`none` for no color): the committed records' format.
 - **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
   images as runs of rects, fades as gradient masks, metadata as `data-*` attributes. Every text and attribute from a
-  spec or data is escaped, characters XML forbids dropped.
+  spec or data is escaped; a character XML forbids becomes U+FFFD, one for one, so a glyph run stays aligned with its x
+  list. Ids take a prefix (`idPrefix`).
 
 ### Export
 
 - `renderSvg(spec, { size, viewport?, runtimes, … })`: checks and resolves the spec, opens the sources its view reads
   (`attachSources`: inline data through `seq`, a source node through its runtime; assets refused unless a reader is
   given, `NoAssets`), wants through a want set of its own (EC-125), lays out until its wants hold, waits for them to
-  settle or `timeoutMs` (10 s; then `seq.render.unsettled`), and draws once more with the view settled. It answers
-  `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed.
+  settle, and draws once more with the view settled. It waits for its view's wants alone, never their margins.
+- **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
+  opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`.
+- It answers `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed, and
+  its ids take a prefix (`idPrefix`, by default `s` and a hash of the spec). On a shared store it reports only the
+  issues of the sources it attached.
 
 ### Issues
 
-- `seq.render.*` (`RenderIssues`): `view`, `color`, `layer.type`, `layer.letters`, `axis.pending` (info), `source`,
-  `unsettled`; a test checks the catalog.
+- `seq.render.*` (`RenderIssues`): `view`, `color`, `layer.type`, `layer.letters`, `axis.pending` (info),
+  `follow.leader`, `follow.cycle`, `source`, `unsettled`; a test checks the catalog.
