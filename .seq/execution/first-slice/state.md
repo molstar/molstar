@@ -32,15 +32,18 @@ config item (or a param) with the recommendation as its default, and listed in g
   green. `check:workspace` fails on a pre-existing `@molstar/ui` export (`./components/logo/_generated/
   glass-wordmark.module.css`, no source; `packages/ui` is unchanged from master): not this slice's.
 - The integration gate's visual pass (Storybook on 6007) found two bugs, being fixed before the gate passes:
-  1. the Tracks story's canvas draws the Conservation values only on the right third (the SVG draws all): a fixer
-     (strong) on branch `seq/fix-values-canvas`;
-  2. the viewer and the stories stay light in the dark theme: the browser tokens are not read from the UI root's
-     computed style (tokens.ts says they should be); next, after fix 1.
+  1. fixed: the canvas drew the Conservation values only on the right third. Layers' `grow` dropped what was written
+     when a buffer grew mid-fill (values, ranges, letters); one copying `grown` now (merge of `seq/fix-values-canvas`,
+     then `c960f158a`), with tests;
+  2. the viewer and the stories stay light in the dark theme (browser tokens not read from the UI root): a fixer
+     (fast) on `seq/fix-theme`.
+- Stage 6: lane I started from `c960f158a` (`briefs/i-regions.md`) while fix 2 runs (it touches little of what lane I
+  does); the stage 5 gate closes when fix 2 is merged and the stories are screenshotted in light and dark.
 
 ## Next
 
-- Merge both fixes, rerun the checks, screenshots light and dark, pass the gate.
-- Then lane I (`briefs/i-regions.md`, written).
+- Merge fix 2, rerun the checks, screenshots light and dark, pass the stage 5 gate.
+- On lane I's report: verify, review (strong), one fix round, merge; the stage 6 gate.
 
 ## Decisions taken (awaiting the author)
 
