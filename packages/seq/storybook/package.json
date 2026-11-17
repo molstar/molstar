@@ -1,0 +1,30 @@
+{
+  "name": "@molstar/seqx-storybook",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Seq* (next) in Storybook: the docs pages and the examples, collected by the repository's Storybook (storybook/packages.ts) under `Seq* (next)`.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./_stories/*": null
+  },
+  "files": [],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/seqx-core": "workspace:*",
+    "@molstar/seqx-viewer": "workspace:*",
+    "@molstar/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@storybook/addon-docs": "catalog:",
+    "@storybook/web-components-vite": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

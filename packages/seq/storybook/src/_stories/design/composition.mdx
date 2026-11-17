@@ -1,0 +1,52 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Composition" />
+
+# Composition
+
+A spec is short and declarative, written by people and agents. What the viewer, the data runtimes and other renderers
+need is explicit. In between sit intermediate representations (IRs), compiled by pure passes, so each consumer reads one
+compiled form.
+
+## Levels
+
+One tree, with one level per concern. Each level is a language with its own description and version.
+
+| Level         | Holds                                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| `sources`     | where data comes from, in its own format                                                             |
+| `model`       | coordinate systems (sequences, units, copies, structure chains, alignments, trees), numberings, maps |
+| `annotations` | data on systems in the six shapes, and computed annotations                                          |
+| `views`       | views, sections, tracks, layers, themes, focus, highlights                                           |
+| `refs`        | your names for addresses: bookmarks, regions, sets                                                   |
+| `snapshots`   | named patches over the base: a story's steps                                                         |
+
+- Languages embed each other through slots. A layer's data can be a query, a filter is a query, and a theme is a small
+  language of its own.
+- **Definitions and uses.** Anything definable can be written in place, or defined once and used by address with
+  arguments and overrides. This covers named themes, track templates (one definition becoming a track per row or per
+  sample), section styles and a lab's own numbering schemes.
+- **Session is not the spec.** The viewport, the selection, the hover and open panels are transient. Snapshots and refs
+  are how a spec names a view state on purpose.
+
+## The IRs
+
+```
+spec ─read─▶ checked spec ─▶ data IR ─▶ model IR ─▶ annotation IR ─▶ view IR ─layout─▶ render IR ─▶ backend
+                                ▲                                         │
+                                └──── requests for the regions in view ◀──┘
+```
+
+- **Data IR**: one entry per source, with its format and the runtime the application bound to it. This is where data
+  runtimes plug in: a runtime answers the one protocol for its entry.
+- **Model IR**: every coordinate system, units and copies, maps resolved to their encodings, and paths precomposed.
+- **Annotation IR**: each annotation's shape, fields and access plan (inline typed columns, or regions and levels from a
+  source) and the summaries it needs.
+- **View IR**: the resolved view, which is public and renderer-independent.
+- **Render IR**: draw lists for one size and viewport, bounded by the pixels on screen.
+
+Requests flow back. From the view IR and the viewport, each visible layer asks for the regions and levels it needs. The
+answers go to a data store, never into the spec or the IRs.
+
+Every IR entry is keyed by its address and versioned by its inputs, so a patch recompiles only what it touched. The
+viewer, an export or another renderer then applies differences instead of rebuilding.

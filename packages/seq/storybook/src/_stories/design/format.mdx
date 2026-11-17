@@ -1,0 +1,66 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Format" />
+
+# Format
+
+## One tree, two encodings
+
+A spec is a tree, stored in either of two interchangeable encodings:
+
+- **MessagePack**, the default for files and transfer. It is compact, and a column of numbers stays a typed array
+  (`Float32Array`, `Int32Array`, …).
+- **JSON**, for reading, diffs and tools that only speak JSON. A typed column is a plain array; a missing value is
+  `null`.
+
+Both decode to the same tree, and a reader tells them apart by the first byte. The builder keeps the typed arrays you
+give it.
+
+Every node has the same shape:
+
+```json
+{ "kind": "sequence", "id": "p53", "params": { "alphabet": "protein" }, "children": [] }
+```
+
+`id` is unique among its siblings. An **address** is the path of ids from the root, such as `/data/p53`, and refs
+between nodes are addresses. An address names a node rather than counting to it, so inserting and reordering nodes keeps
+it.
+
+## Printed as S-expressions
+
+For reading, a spec prints compactly. A reader for this spelling lowers it back to the same tree, but specs are always
+stored as MessagePack or JSON. The printed form is for inspection, docs, tests and agents.
+
+```lisp
+(spec :version "0.1.0"
+  (data
+    (sequence p53 :alphabet protein :source (ref /data/uniprot))))
+```
+
+The exact printed shape follows the language description; this is an illustration.
+
+## The language is data
+
+One description declares the kinds, where each may sit, the id policy, the params (type, default, bounds, docs) and the
+refs. Everything else is derived from it, so nothing is written twice:
+
+- validation, reporting every issue with a stable code and a hint;
+- defaults;
+- the builder's TypeScript types;
+- these docs' reference pages, and the agent skill.
+
+## The builder
+
+Most specs are written with the typed builder rather than by hand. Its types come from the language description, so a
+kind in the wrong place or a wrong param is a type error where it is written. It produces the same tree a reader would.
+
+## Versions
+
+The language has one version. Older specs are migrated by explicit functions; a newer major version is refused with an
+issue. A kind the reader does not know, from a newer minor version or a missing extension, is kept, reported and
+skipped, or drawn as its fallback.
+
+## Patches
+
+A spec changes only by patches: `set`, `unset`, `insert`, `remove`, `move`, each naming a node by address. A batch is
+all or nothing and returns its inverse, so undo comes for free. `diff(a, b)` is the patch from `a` to `b`.

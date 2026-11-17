@@ -1,0 +1,170 @@
+# UX foundations
+
+## Intent
+
+The author, 2026-11-17: "i would like to have better visual fidelity and nicer UI in general. so we should write "ux
+foundations" at start too, similar to the ones the packages/ui has .. but target to showing the sequence data, when to
+squircles, etc. … basically i want this to also look really nice. and the default behavior should be good too ..
+consistent logic for selections, toggling, etc."
+
+`@molstar/ui`'s foundations (its `styles/_spec`: color, type, spacing, sizes, alignment, shape, motion) govern the
+chrome: headers, menus, legends, panels. These foundations extend them to the data: letters, cells, marks, tracks, and
+what the pointer and keyboard do to them. The chrome uses `--msui-*` as it is; the data's tokens (`--seq-*`) are
+derived from them, so a theme switches both.
+
+## Provisional
+
+This is the first statement. The numbers (sizes, steps, durations) are settled by the foundation stories, which draw
+each rule on real data beside its violation, as `@molstar/ui`'s do; the grammar in section 8 is settled by its
+conformance tests.
+
+## 0. Configurable, with rules that hold
+
+The author, 2026-11-17: "for "ux foundations" and "Extensibility": should "layouting/spacing/etc" be
+extensible/configurable?" Yes, by the rule that what can be configurable is ([extensibility.md](extensibility.md)):
+
+- **Every number here is a setting**: the spacing unit and scale, row heights, gaps, the label column, insets, letter
+  sizes, density thresholds, radii, motion durations, and every color through the data tokens (`--seq-*`, derived from
+  `--msui-*`). They come in presets (compact, comfortable, figure for export, print) that a viewer configuration or a
+  section's style picks and overrides field by field.
+- **Layouts are an extension point**: tracks, text, rings and dot plots are the built-in layouts, written as an
+  extension would be. A layout takes a section of the view IR, the settings and a size, and gives geometry, hit-testing
+  and draw lists; it passes the layout conformance suite.
+- **The rules hold whatever the values**: positions on the configured unit's grid; one label column a view; columns
+  aligned to the device pixel across sections that share an axis; density steps that never move content; the emphasis
+  order; square continuous data and squircle discrete marks; the grammar's fixed rules (section 8). The suite checks
+  them on every layout and preset.
+
+## 1. Color
+
+- **Data and chrome never share a color role.** The accent (`--msui-accent`) is for actions and what is picked:
+  selection and the focus cursor. Data colors (palettes, residue schemes, values) never use it, and selection never
+  uses a data color. Why: a picked residue must read as picked whatever scheme colors it.
+- **Palettes are tokens per theme.** Every categorical palette, ramp and residue scheme has light and dark variants,
+  checked for distinctness (neighbors in a palette stay apart for the common color-vision deficiencies) and for
+  contrast against the track background.
+- **Ink follows its fill.** A letter on a colored cell takes dark or light ink by the cell's luminance (the canvas-ink
+  rule), at 4.5:1 or better. Why: a scheme that colors cells must not cost the letters.
+- **Missing is not zero.** Missing, unobserved and unmapped each have one neutral treatment (a gray family derived from
+  the theme), distinct from the lowest value of any ramp.
+- **Conflict is one color**, the theme's warning hue, for a mismatch, a conflicting map element, a failed load.
+
+## 2. Type
+
+- **Letters** are set in one monospaced data face with tabular metrics, centered in their cells on the cap height, in
+  sizes on a short scale tied to the cell (section 3). Two ink weights only: regular, and strong for a reference row or
+  an emphasized letter.
+- **Labels and numbers** in the chrome use `@molstar/ui`'s type scale; rulers and numbering use tabular figures and
+  never overlap (a label that does not fit is skipped, not shrunk).
+- **One letter, one size per row**: a row shows letters for all its positions or none (EC-116).
+
+## 3. Grid
+
+- **The cell is the unit of data.** A position is a cell whose width is set by the zoom; letters show when the cell is at
+  least the smallest legible size, then cells only.
+- **Rows are on the 4px grid**: a letters row 20px by default (16 compact, 24 comfortable), feature rows 8 to 16px,
+  value tracks in multiples of 4. Track gaps 4px within a group, 8px between groups.
+- **One label column**: track and row labels sit in a column on `@molstar/ui`'s inset and label width, so the data
+  starts at one x for every track of a view, in both layouts (tracks and text).
+- **Columns stay aligned across sections** that share an axis (scroll groups), to the device pixel.
+
+## 4. Density
+
+What a cell shows steps down as it narrows, at fixed thresholds in device pixels, without moving anything:
+
+1. letters (with their colored cells);
+2. cells only, colored;
+3. dots or ticks per position (sequence present, letter hidden);
+4. bars per run (a feature, a gap run);
+5. density (a heat strip: coverage, conservation, variant counts).
+
+Each step keeps the previous step's positions and colors, so zooming reads as resolution changing, never as the
+picture changing. The thresholds are shared by every layer type.
+
+## 5. Shape: when to squircle
+
+- **Continuous data is square.** Letter cells, alignment grids, matrices, dot plots, value bars: adjacency carries
+  meaning (a run reads as one run), so no corner is rounded.
+- **Discrete things are squircles.** A feature, a domain, a ligand chip, a bookmark, a label pill, a selection's
+  outline, a hover card: rounded with the superellipse `@molstar/ui` uses for surfaces (`--msui-corner-shape`), its
+  radius proportional to its height (a third), capped by the surface radius.
+- **Small things are square.** Below 6px in either dimension a discrete mark drops its rounding: a corner that can't be
+  seen is noise, and adjacent items must not leave gaps.
+- **Cut ends are square.** An item cut by the view's edge, an intron collapse or a block boundary has square ends on the
+  cut side and rounded ends where it really ends (the frame rule, EC-100).
+- **Outlines are concentric.** A selection or hover outline around a squircle mark takes the mark's radius plus the
+  outline's offset, so the gap is even.
+- **One path, every backend.** Squircles are drawn as a path in the draw lists, never left to a backend's rounded
+  rectangle, so Canvas2D and SVG draw the same curve.
+
+## 6. Marks and emphasis
+
+- **Layers of emphasis, in a fixed order** from below to above: data; highlight channels (named, each a tint of its
+  color under the data); selection (an accent tint under the data and an accent outline over it); hover (an outline at
+  3:1 or better against its surroundings, EC-138); the keyboard cursor (an accent outline, thicker). A higher one never
+  hides a lower one entirely.
+- **Hover is the same everywhere**: one outline style for a cell, a range, a row, a pair; projected hovers on linked
+  sections take the same style, lighter.
+- **Selection is one look** in tracks, text, rings and dot plots.
+- **Boundaries** (an insertion point, an indel, a zero-length item) draw as a hairline with a pinned caret, never as a
+  cell (EC-127).
+
+## 7. Motion
+
+- **Navigation that jumps animates**: focus, reveal, a snapshot's view, zoom by a step (base duration, eased in and
+  out); the eye follows the content to its new place.
+- **Navigation that follows the hand does not**: drag to pan, wheel and pinch zoom track the input directly.
+- **Data does not animate**: arriving regions draw in place (no fade on every tile); a density step is instant.
+- **Reduced motion**: every animation is a cut.
+
+## 8. Interaction grammar
+
+One grammar for every layout, layer type and target. A gesture acts on **the element under the pointer at the
+granularity of what was hit**: a cell (a residue, a column of an alignment), an item (a feature, a pair), a row (by its
+header), a column (by the ruler), a track (by its header).
+
+**The grammar is configurable** (the author, 2026-11-17: "the controls grammar should be configurable"). It is data: a
+table of bindings from a gesture (with its modifiers and what it hits) to an action, and every action is a command
+(`@molstar/ui/commands`). The table below is the default. An application composing the viewer replaces bindings, adds
+its own, or picks a preset (for example one where a drag on data pans, as genome browsers do); a user's changes are a
+settings layer over it. The rules that stay fixed whatever the bindings:
+
+- **One configuration per viewer, applied to every view in it**: a gesture means the same thing in tracks, text, rings
+  and dot plots of one viewer. Why: consistency is the point of a grammar; configurability must not bring back
+  per-view behavior.
+- **Granularity comes from the hit, not the binding**: a binding says "select", the hit says a codon or an item.
+- **Modifiers are platform-aware** (Cmd on macOS, Ctrl elsewhere), never browser zoom keys or Tab (EC-155).
+- **Every action stays reachable** by a command and from the keyboard, whatever the pointer bindings.
+- **Conflicts are reported**: two bindings for one gesture is an issue when the configuration is built, not a race at
+  run time.
+
+| Gesture | Effect |
+|---|---|
+| hover | the element is hovered here and on every linked section; nothing else changes |
+| click | the selection becomes the element; clicking the only selected element clears it |
+| Shift+click | extends the selection from its anchor to the element (a range in one system; a run of rows) |
+| Cmd/Ctrl+click | toggles the element in or out of the selection, keeping the rest |
+| click on empty space, Esc | clears the selection (Esc first cancels a gesture in progress) |
+| drag on data | selects a range, snapped to the granularity hit (whole codons over nucleotides, whole items over items) |
+| drag on an axis, navigator or with Space held | pans |
+| wheel, two-finger scroll | pans; Cmd/Ctrl+wheel or pinch zooms about the pointer |
+| double-click | focuses the element (zooms to it); on empty space, fits the view |
+| arrows | move the keyboard cursor; Shift+arrows extend the selection from it; Enter focuses; Space toggles |
+
+- **Selection is a location**, held per system and projected: what is selected in a protein shows on its gene, its
+  structure and its alignment rows.
+- **Toggles are uniform**: hiding a track, collapsing a group, pinning a row, showing a layer: one gesture, one state
+  shown in the chrome (an icon, never only a color), one undo step when it changes the spec.
+- **View state is not history**: hover, selection, the cursor, the viewport are transient; edits to the spec (a
+  bookmark, a hidden track, a theme) are patches, one undo step each, with a preview while a gesture is in progress that
+  ends in its patch or a cancel.
+- **Every gesture has a keyboard way and a command**, and the context menu lists what applies to the element under the
+  pointer, in the same words as the commands.
+
+## 9. Chrome
+
+- Built from `@molstar/ui` components and tokens only: track headers, legends, the hover card, menus, toolbars,
+  navigators' frames. Section headers are `@molstar/ui` headers (32px); track header rows are rows (24px).
+- A track header names its data and shows its state (hidden layers, filters, a pending load) as icons in fixed slots.
+- Legends sit with their track or in one legend panel, never over data.
+- Loading regions show a placeholder in place (`@molstar/ui`'s rule), never as empty data (EC-169).

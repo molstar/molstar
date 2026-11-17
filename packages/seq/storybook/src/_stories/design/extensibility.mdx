@@ -1,0 +1,120 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Extensibility" />
+
+# Extensibility
+
+Seq\* is a library that applications compose: a structure viewer's sequence panel, a genome browser's tracks, a design
+tool, a figure. The rule is simple: **what can be configurable, is**, and every registry is open to extensions. The
+defaults should still be good on their own.
+
+## Configuration
+
+Settings live in three places, depending on what they are about.
+
+- **The spec**: what is shown and how it looks as data (layers, themes, palettes, numbering, focus). It travels with the
+  view.
+- **The viewer configuration**: how the viewer behaves and looks in one application, set when the application composes
+  it. This covers:
+  - the interaction grammar's bindings;
+  - behaviors and their params;
+  - density thresholds and data tokens;
+  - animation;
+  - defaults for what a spec leaves unset;
+  - which runtimes and extensions are present.
+- **User settings**: a layer over the viewer configuration, such as a rebinding, a compact density or a theme.
+
+The layers stack: built-in defaults, then the viewer configuration, then user settings. You can ask any setting for its
+effective value and where it came from. Configuration is typed data with defaults, bounds and docs, so it is validated,
+documented and editable in a generated settings form.
+
+Configurable does not mean inconsistent. One configuration applies to every view in a viewer, and the fixed rules (one
+grammar, the foundations) hold whatever the values.
+
+## Composing a viewer
+
+A viewer is made from an explicit spec, the way a Mol\* plugin is made from its `PluginSpec`:
+
+```ts
+const viewer = createSeqViewer(
+  {
+    ...DefaultSeqViewerSpec(),
+    registry: [...DefaultSeqViewerSpec().registry, BigWigFormat, MyLayer],
+    config: [[SeqConfig.Foundations.Preset, 'compact']],
+    ports: { assets: () => ({ manager: plugin.managers.asset, disposeWithViewer: false }) },
+  },
+  element,
+);
+```
+
+- **Registry entries** are pure data: node kinds, layer types, layouts, themes, formats, map runtimes, numbering
+  schemes, query functions, commands and chrome parts. They register in order. Registration is atomic and counted, and
+  it is undone when the viewer retires.
+- **Behaviors** come with params. **Bindings** are the gesture grammar's preset plus overrides. **Config** items are
+  typed settings.
+- **Ports** are factories with ownership. An unset port gets its default adapter, which the viewer disposes. A port the
+  host passes in, such as a Mol\* plugin's asset manager, stays the host's.
+- `DefaultSeqViewerSpec()` lists the defaults. Nothing registers itself on import, so what isn't listed isn't in the
+  bundle.
+- Without a target element the viewer is headless. `createSeqContext(spec)` renders to SVG with no viewer at all.
+
+## Ports
+
+The core does no I/O. Everything that touches the outside goes through a port that the application binds when it
+composes the viewer. Each port has a default adapter, so the viewer works out of the box, and any adapter can be
+replaced.
+
+| Port                        | Default adapter                                                            |
+| --------------------------- | -------------------------------------------------------------------------- |
+| Assets (fetch)              | Mol\*'s asset manager, with range reads; a host can pass its own           |
+| Archive                     | zip (read and write), a directory, in memory                               |
+| Format runtimes             | FASTA, alignments, tables, Newick, MessagePack, JSON, bigWig               |
+| Map runtimes                | pairwise alignment                                                         |
+| Text metrics                | a canvas in the browser, a bundled table in Node                           |
+| Backends, writers           | Canvas2D, SVG, PNG, FASTA, archives                                        |
+| Host, compute               | the UI runtime's clock and frames; a worker pool                           |
+| Storage, clipboard          | local storage, the browser's clipboard                                     |
+| Links                       | Mol\*'s link grammar                                                       |
+| Structure runtime, services | none in the core; the showcases bind Mol\* and UniProt, PDBe, AlphaFold DB |
+
+## Layout and spacing
+
+Every number in the UX foundations is a setting: the spacing unit, row heights, gaps, the label column, letter sizes,
+density thresholds, radii and durations. They come in presets (compact, comfortable, figure, print). Layouts are an
+extension point too, and the built-in ones (tracks, text, rings, dot plots) are written as extensions. Whatever the
+values, the foundations' rules hold: the grid, one label column, aligned columns, density steps that don't move content.
+
+## Extension points
+
+| Point                             | An extension adds                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Node kinds                        | new kinds anywhere in the spec, described like the built-ins, with a fallback                           |
+| Custom fields                     | namespaced fields on any node and extra columns on any table, kept by readers that don't own them       |
+| Formats                           | readers (a file format onto the one protocol) and writers (FASTA, SVG, PDF, a session for another tool) |
+| Layouts                           | how a section is laid out, from the view IR                                                             |
+| Layer types                       | a way to draw: params, layout, hit-testing, and a fallback                                              |
+| Themes, palettes, residue schemes | how a channel is computed                                                                               |
+| Map runtimes                      | a way to compute a map (align, SIFTS lookup, gene model to codons)                                      |
+| Numbering schemes, codon tables   | labels and translation                                                                                  |
+| Query functions                   | generators, modifiers and filters                                                                       |
+| Commands, behaviors, bindings     | what the viewer can do, and what gestures do                                                            |
+| Backends, text metrics            | where draw lists go                                                                                     |
+| Structure runtimes                | binding structures to a structure viewer such as Mol\*                                                  |
+| Chrome parts                      | track header actions, context menu items, hover card sections, panels                                   |
+
+## How an extension plugs in
+
+- An extension is **registry entries**: a namespaced record of what it contributes at each point.
+- The application **lists them in the viewer's spec**, or a behavior registers them at run time. Nothing registers
+  itself on import, and there is no global registry.
+- **Built-ins use the same points.** Every layer type, theme and runtime that ships with Seq\* is written the way an
+  extension would be.
+- In a spec, an extension's kinds are **namespaced** (`ext:kind`) and **declare a fallback** to a built-in. A reader
+  without the extension draws the fallback, or omits the node, and reports it. The rest of the spec still opens.
+- A **custom field** under a namespace a reader doesn't know is carried through unchanged: patches, diffs and printing
+  keep it. A host puts its own fields under its namespace, never as new top-level params.
+- **Conflicts are errors** when the viewer is composed: two contributions with one id, or one gesture bound twice.
+  Nothing depends on registration order.
+
+A worked example (a layer type, a theme, a command and its binding) will appear here once the first extension point is
+built.

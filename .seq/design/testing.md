@@ -1,0 +1,81 @@
+# Testing strategy
+
+## Intent
+
+The author, 2026-11-17: "also what is our testing strategy?"
+
+Tests must prove the promises the other designs make (the features, the edge cases, the performance targets, the
+foundations' rules, the ports' contracts) and stay fast enough for the edit loop. The previous implementation's tests
+were thorough and heavier than its code (about 119k lines against 103k, seven tiers); here the same promises are held
+by fewer, more generic mechanisms.
+
+## Decision
+
+### What is tested, by what
+
+| Promise | Held by |
+|---|---|
+| The language: validation, defaults, migrations, every issue code | per-level tests from the language description: each kind's examples valid, each documented misuse giving its code |
+| Encodings and printing | properties: `decode(encode(x)) = x` for MessagePack and JSON, `json(msgpack(x)) = json(x)`, `parse(print(x)) = x`, over generated trees (typed columns of every kind, NaN, custom fields, extension kinds) |
+| Patches | properties: `apply(a, diff(a, b)) = b`, `apply(apply(a, p), inverse(p)) = a`, over random edits; all-or-nothing on failure |
+| Addresses | properties: `parse(print(a)) = a`; selection bounded; every numbering case (insertion codes, IMGT order, cyclic, reversed pieces); rects on every two-axis geometry |
+| Maps | the same cases on every encoding of the same map (implicit, runs, expanded), equal answers; paths against a brute-force oracle on small graphs |
+| Ports | one conformance suite per port, run on every adapter, built-in or an application's (§suites-next-to-ports), with fixtures, never the network |
+| Layouts and the foundations' rules | the layout suite on every layout and preset: grid, one label column, aligned columns, density steps that don't move content, emphasis order, shapes |
+| The interaction grammar | the grammar suite: each default binding and preset, on each layout and target kind, against the models in Node (no DOM) |
+| Edge cases | each kept item a named test in its area's folder; the area's plan lists them, its record says each outcome ([edge-cases.md](edge-cases.md)) |
+| Examples | every view, three ways: it validates, resolves and lays out with no unexpected issues; it renders to SVG with its draw-list record and printed spec compared to the committed ones; it opens in Storybook |
+| Rendering parity | the Canvas2D and SVG backends' recorded calls equal for the same draw lists; pixels compared in the heavy lane |
+| The resolved view is general | the Nightingale reference adapter draws its subset from the view IR alone |
+| Performance | time bounds (`itWithin`), scaling ratios (cost follows pixels: ten times the data at most 1.2 times the frame; twice the pixels at most twice), allocation in the hot loops, heap growth on retire ([performance.md](performance.md)) |
+| Size | a check on the built entries against the size targets |
+| Parsers and readers | fuzzed (formats, addresses, CIGAR, the S-expression reader): never a throw, always issues |
+
+### Fast by budget
+
+The author: "we should keep fast test in mind too to implement this efficiently." The previous implementation's tests
+slowed the edit loop; here speed is a requirement with numbers:
+
+- **The quick lane for all of `packages/seq` runs in under 5 s** on the reference machine; a test file in under 1 s; a
+  single quick test in under 50 ms. A test past its budget is fixed (waste) or moved with a quick representative
+  (nature), in the change that made it slow.
+- **No warm-ups, no loops of thousands, no wall clocks in the quick lane**; fixtures computed once per file, never per
+  test; one viewer per file where a viewer is needed; property tests at a small, fixed number of seeded cases (more in
+  the heavy lane).
+- **Records stay small**: a draw-list record is per example view at one size, and compared as text.
+- **The opt-in tiers stay opt-in**: allocation and heap guards run by hand at checkpoints, never in the edit loop or on
+  every push.
+
+### Where each runs: the repository's lanes
+
+- **Quick** (every push, the edit loop; the whole of `packages/seq` in seconds): unit and property tests at small
+  sizes, the conformance suites, the edge cases, every example's validate, resolve, layout and SVG record, the models
+  and the grammar in Node, the layout suite on the default preset, short fuzz runs.
+- **Medium** (every push, its own job): the layout suite on every preset, every example in both encodings and every
+  preset, the Storybook smoke (every story opens without an error), the chrome's accessibility (axe), larger fixtures.
+- **Heavy** (nightly, by hand, labelled PRs): time bounds and scaling ratios, full fuzz, pixel comparisons in Chrome,
+  the render CLI in a process, the scale fixtures (a whole genome by region, 10M lazy rows).
+- **Opt-in tiers, by hand at checkpoints** (the shared `test-harness`): allocation (`quickCase`) for the draw and hover
+  loops only, heap guards on viewer retire. Not the previous implementation's seven tiers.
+
+### How tests are written
+
+- **Models in Node**: every model is tested without a DOM; views opt into jsdom per file; timers and frames through
+  the host port, so no test waits on a clock.
+- **Records, not screenshots, in the quick lane**: draw-list records and printed specs are committed text, reviewed as
+  diffs; a change to one is a change to look at, not to accept blindly.
+- **Fixtures are small and committed**; large ones are generated in code (seeded), never stored; the network is never
+  reached (the asset port's test adapter refuses it).
+- **The previous implementation's answers are guidelines, not fixtures** (the author, 2026-11-17: "let's take them as
+  guidelines. i think the testing in the old package got really slow and messed up the dev process a lot"): where a
+  behavior is kept, its old answers (maps, projections, numbering, layout positions) are read when writing the test and
+  the code, and the test states the expected answer itself, small and local. No recorded oracle runs.
+- **Proportionate** (§proportionate-tests): a test costs about what its subject does; a slow test by nature moves lane
+  and keeps a quick representative; a slow test by waste is fixed.
+
+## Consequences
+
+- A feature is `done` ([features.md](features.md)) when its view passes the three ways and its edge cases have
+  outcomes; a performance target holds only once its test exists.
+- Each port, layout and language ships its suite beside it, so an extension is tested by the same suite as the
+  built-ins.

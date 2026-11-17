@@ -250,6 +250,12 @@
     },
     {
       "path": "./packages/sequences/nightingale"
+    },
+    {
+      "path": "./packages/seq/core"
+    },
+    {
+      "path": "./packages/seq/viewer"
     }
   ]
 }

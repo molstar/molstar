@@ -74,6 +74,13 @@ export const StoryPackages: StoryPackage[] = [
     plugins: () => [seqstarFixtureFs()],
     preview: 'src/preview.ts',
   },
+  // Seq* (next), the new implementation in packages/seq: its docs pages and examples, on @molstar/ui (the same theme
+  // decorator as the UI group). Temporary group name until it replaces Seq*.
+  {
+    dir: 'packages/seq/storybook',
+    group: 'Seq* (next)',
+    preview: 'src/_stories/preview.ts',
+  },
 ];
 
 export function packageRoot(pkg: StoryPackage) {

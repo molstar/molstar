@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // Never built: the stories and their support code, checked here (no emit).
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "rootDir": "../../..",
+    "types": ["node"],
+    "jsxImportSource": "@molstar/ui/dom"
+  },
+  "include": ["src/**/*"]
+}

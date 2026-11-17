@@ -539,6 +539,24 @@
       "path": "packages/sequences/storybook",
       "kind": "storybook",
       "private": true
+    },
+    {
+      "name": "@molstar/seqx-core",
+      "path": "packages/seq/core",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seqx-viewer",
+      "path": "packages/seq/viewer",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seqx-storybook",
+      "path": "packages/seq/storybook",
+      "kind": "storybook",
+      "private": true
     }
   ]
 }

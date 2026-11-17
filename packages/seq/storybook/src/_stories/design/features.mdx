@@ -1,0 +1,79 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Features" />
+
+# Features
+
+What this version will contain. Nothing is built yet; each feature will link its view here once it runs.
+
+## Planned
+
+- **Language**:
+  - a spec written with a typed builder, stored as MessagePack (the default) or JSON, printed as S-expressions;
+  - validation that reports every issue;
+  - versions and migrations;
+  - patches with undo, a correct `diff`;
+  - snapshots.
+- **Coordinates and maps**:
+  - indices and labels; numbering schemes (Kabat, IMGT);
+  - cyclic systems;
+  - map kinds: identity, offset, numbering, segments, pairwise, alignment, codon, structure;
+  - maps written inline, read from a source, or computed by a runtime, and held compressed;
+  - direction on every run; paths and projection; codon tables;
+  - structure maps (SIFTS in abstract form);
+  - pieces, reversed blocks and collapsed introns.
+- **Data and sources**:
+  - sequences, units, copies and ligands;
+  - alignments and trees;
+  - the six annotation shapes, keyed tables and joins, gene hierarchies;
+  - one source protocol, self-describing sources, prefetch;
+  - opening on a gene by name;
+  - the text formats: FASTA, alignments, tables, Newick.
+- **Layers and themes**:
+  - letters, ranges, values (with points, split and log scale), variants, pairs, matrix, grids and dot plots, logo,
+    secondary structure, ruler, frames, rows;
+  - fallbacks;
+  - themes, residue schemes, shared domains, legends, size channels.
+- **Views**:
+  - tracks and text layouts, alignment figures;
+  - blocks, rings, navigators;
+  - follow and scroll groups, merged copies.
+- **Interaction and editing**:
+  - a configurable gesture grammar;
+  - hover across linked sections, selection, the keyboard cursor;
+  - focus and reveal, highlights;
+  - search and queries;
+  - undo and redo, track and group editing;
+  - the hover card and context menu.
+- **Rendering**:
+  - the resolved view and draw lists as public forms;
+  - Canvas2D, SVG and PNG, the same picture;
+  - a render CLI, a text-metrics port;
+  - the UX foundations.
+- **Ports with default adapters**: fetch, archives (zip), runtimes, text metrics, backends, writers, compute, storage,
+  clipboard, links.
+- **Configuration and extensions**:
+  - settings in layers, with a generated form;
+  - layout and spacing in presets, layouts as extensions;
+  - extension descriptors;
+  - node kinds and custom fields;
+  - every registry open.
+- **Addressing**: local, hierarchical ids; addresses as `path/(query :key value)` for nodes, locations, elements and
+  rects; user-defined refs (bookmarks are refs); commands and markdown links act on addresses; copy link.
+- **Integration and showcases**:
+  - a Nightingale reference rendering of a subset;
+  - bigWig read by region, as proof that a genome format plugs in;
+  - an application composing services (UniProt, PDBe, AlphaFold DB) and reading structure files;
+  - the Mol\* link: a lab's position-indexed predictions mapped onto a structure's `label` and `auth` numbering.
+
+## Deferred
+
+Each is deferred until the trigger named for it.
+
+- **A published JSON Schema**: until an outside reader or an agent tool needs one.
+- **More genome formats (2bit, BigBed, VCF, PAF)**: after bigWig, each with the dataset that needs it.
+- **Dynamic nodes and track templates**: until a dataset with per-region nodes.
+- **Layers across sections, contact maps, and a MAF over a genome**: until the synteny views.
+- **Writers (FASTA, PDF)**: until the first writer extension.
+- **Agent tools**: until the language description and addressing are built.
+- **A React adapter**: until a React host asks.

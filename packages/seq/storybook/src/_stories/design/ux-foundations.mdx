@@ -1,0 +1,84 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/UX foundations" />
+
+# UX foundations
+
+`@molstar/ui`'s foundations govern the chrome: headers, menus, legends, panels. These extend them to the data: letters,
+cells, marks, tracks, and what the pointer and keyboard do. Data tokens (`--seq-*`) are derived from `--msui-*`, so a
+theme switches both. Foundation stories will draw each rule on real data, beside its violation.
+
+## Color
+
+- Data and chrome never share a color role. The accent marks what is picked (selection, the cursor); data colors never
+  use it.
+- Every palette and residue scheme has light and dark variants, checked for distinctness and contrast.
+- A letter on a colored cell takes dark or light ink by the cell's luminance.
+- Missing, unobserved and unmapped each have one neutral gray, never the low end of a ramp. A conflict is one warning
+  color.
+
+## Type
+
+- Letters are set in one monospaced data face, centered in their cells, in sizes tied to the cell, with two weights.
+- Rulers and numbering use tabular figures and skip a label rather than shrink it.
+- A row shows letters for all its positions or none.
+
+## Grid
+
+- The cell is the unit of data. Rows are on the 4px grid: a letters row is 20px (16 compact, 24 comfortable).
+- Track labels share one column, so data starts at one x in every track, in both layouts.
+- Sections that share an axis stay aligned to the device pixel.
+
+## Density
+
+As cells narrow, what they show steps down without moving anything: letters → colored cells → dots → bars per run →
+density. Every layer type uses the same thresholds.
+
+## Shape: when to squircle
+
+- **Continuous data is square**: letter cells, alignment grids, matrices, value bars. Adjacency carries meaning.
+- **Discrete things are squircles**: features, domains, ligand chips, bookmarks, selection outlines, the hover card.
+  Their radius is proportional to their height.
+- **Small things are square**: below 6px a corner can't be seen.
+- **Cut ends are square**: an item cut by the view or a collapsed intron keeps a square end where it is cut.
+- **Outlines are concentric** with what they surround.
+- Squircles are paths in the draw lists, so the canvas and the SVG draw the same curve.
+
+## Emphasis
+
+From below to above: data, highlights, selection, hover, the keyboard cursor. A higher layer never hides a lower one.
+Hover and selection look the same in tracks, text, rings and dot plots, and on every linked section.
+
+## Motion
+
+Jumps animate: focus, reveal, snapshots and zoom steps. What follows the hand doesn't: drag, wheel and pinch. Data never
+animates. Under reduced motion every animation is a cut.
+
+## One grammar for every view
+
+A gesture acts on the element under the pointer, at the granularity of what was hit: a cell, an item, a row, a column, a
+track.
+
+The grammar is configurable. It is a table that binds gestures to actions, and every action is a command. The table
+below is the default. An application can replace bindings or pick a preset (for example, drag on data pans, as in a
+genome browser), and a user's settings layer over that. One configuration applies to every view in a viewer, so a
+gesture still means the same thing everywhere. Conflicting bindings are reported, and every action stays reachable by a
+command and from the keyboard.
+
+| Gesture          | Effect                                                           |
+| ---------------- | ---------------------------------------------------------------- |
+| hover            | hovered here and on every linked section; nothing else changes   |
+| click            | select it; clicking the only selected element clears             |
+| Shift+click      | extend from the anchor                                           |
+| Cmd/Ctrl+click   | toggle it in or out                                              |
+| empty click, Esc | clear (Esc first cancels a gesture)                              |
+| drag on data     | select a range, snapped (whole codons, whole items)              |
+| drag on an axis  | pan                                                              |
+| wheel            | pan; with Cmd/Ctrl, or pinch, zoom about the pointer             |
+| double-click     | focus; on empty space, fit                                       |
+| arrows           | move the cursor; with Shift extend; Enter focuses; Space toggles |
+
+- Selection is a location, shown on every system it maps to.
+- Toggles (hide a track, collapse a group) are one gesture, one visible state and one undo step.
+- Hover, selection and the viewport are not history. Edits to the spec are, one undo step each.
+- Every gesture also has a keyboard way and a command.
