@@ -59,7 +59,7 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 2b: range sets into core (lane C2, fast, beside stage 3)
 
-- [ ] C2 `@molstar/core/data/int`: half-open range sets (normalize, union, intersect, subtract, overlap by binary
+- [x] C2 `@molstar/core/data/int`: half-open range sets (normalize, union, intersect, subtract, overlap by binary
       search) moved from `seqx-core/query/location.ts` with its property tests; Location uses them; core's `_spec`,
       exports and a changelog entry (the author approved the move, 2026-11-17)
 

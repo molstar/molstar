@@ -25,3 +25,6 @@ missing ends as the system's ends).
 From lane C's review: the tree core unions staged `pending` across segments (repr); dynamic nodes in `not`'s universe; a
 Location limit (what it counts); whether range-set operations move to `@molstar/core/data/int` (the author's call); open
 or streamed systems in `(all)` and `not` (lane E).
+
+From lane C2's review: `HalfOpenRanges.combine` as a linear two-pointer merge into a presized array (today it sorts the
+cuts and builds number arrays); core tests for `Empty`, non-integers and `overlaps` without a length.

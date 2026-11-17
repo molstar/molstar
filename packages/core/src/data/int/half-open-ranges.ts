@@ -46,7 +46,10 @@ namespace HalfOpenRanges {
     return Int32Array.from(out);
   }
 
-  /** Combines two normalized range sets by a predicate on (in a, in b). */
+  /**
+   * Combines two normalized range sets by a predicate on (in a, in b). `keep(false, false)` must be false: positions in
+   * neither set are never kept (no complement), so only union-, intersection- and difference-like predicates apply.
+   */
   export function combine(
     a: HalfOpenRanges,
     b: HalfOpenRanges,

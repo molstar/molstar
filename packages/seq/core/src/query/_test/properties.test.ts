@@ -5,7 +5,7 @@
  */
 
 // Seeded properties at small, fixed counts: the range-set operations against a bitset oracle, identity however a
-// Location is built, and (the ranges' own properties are core's `HalfOpenRanges` tests).
+// Location is built; the ranges' own properties are tested in core (`HalfOpenRanges`).
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { describe, expect, it } from 'vitest';
