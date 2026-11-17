@@ -56,6 +56,17 @@ describe('HoverModel: ownership (EC-141)', () => {
     off();
   });
 
+  it('an element is the same hover by its key, whatever extent object comes with it; no owner is refused', () => {
+    const { hover } = setup();
+    const element = { owner: '/data/domains', key: 'TAD' };
+    expect(hover.set({ system: Protein, element, extent: rangesLocation(Protein, [0, 3]) }, 'x')).toBe(true);
+    expect(hover.set({ system: Protein, element: { ...element }, extent: rangesLocation(Protein, [0, 3]) }, 'x')).toBe(
+      false,
+    );
+    expect(hover.set(residue(1), undefined)).toBe(false);
+    expect(hover.owner).toBe('x');
+  });
+
   it('an element’s hover is its extent; a hit’s target is what it hit', () => {
     const { hover } = setup();
     const extent = rangesLocation(Protein, [0, 3]);
@@ -128,9 +139,19 @@ describe('the hover behavior', () => {
     // unbound on a target: no hover there
     const none = hoverBehavior(
       hover,
-      bindingTable(DefaultBindings, [[{ gesture: 'hover', target: 'any', action: null }]]),
+      bindingTable(DefaultBindings, [[{ gesture: 'hover', modifiers: '*', target: 'any', action: null }]]),
     );
     none.move(residue(1));
     expect(hover.owner).toBe('structure');
+  });
+
+  it('holds with any modifier held', () => {
+    const { hover } = setup();
+    const pointer = hoverBehavior(hover, bindingTable());
+    for (const m of [{}, { shift: true }, { mod: true }, { alt: true }, { space: true }]) {
+      pointer.leave();
+      pointer.move(residue(1), m);
+      expect(hover.owner).toBe(pointer.owner);
+    }
   });
 });

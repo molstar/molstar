@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { DomHost } from '@molstar/ui/dom';
 import { describe, expect, it, vi } from 'vitest';
 import { navigateBehavior } from '../behaviors/navigate.js';
@@ -33,7 +34,7 @@ function setup(config = viewerConfig(), bindings = bindingTable()) {
     const v = view.get(s)!;
     return [v.start, v.end];
   };
-  return { view, nav, range };
+  return { spec, view, nav, range };
 }
 
 describe('the navigate behavior', () => {
@@ -85,7 +86,40 @@ describe('the navigate behavior', () => {
     expect(range(ProteinSection)[1]).toBeCloseTo(3.2, 10);
     await byId.get('view.fit')!.run({}, { section: ProteinSection }, signal);
     expect(range(ProteinSection)).toEqual([0, 4]);
-    expect(() => byId.get('view.zoom-in')!.run({}, { section: GeneSection }, signal)).toThrow('cannot move');
-    expect(() => byId.get('view.zoom-in')!.run({}, { section: undefined }, signal)).toThrow('No section');
+    await byId.get('view.focus')!.run({}, { section: ProteinSection, focus: { start: 1, end: 3 } }, signal);
+    expect(range(ProteinSection)).toEqual([1, 3]);
+    // greyed with a reason, never a throw
+    const zoomIn = byId.get('view.zoom-in')!;
+    expect(zoomIn.when!({ section: GeneSection })).toBe('The section follows another and does not move on its own');
+    expect(zoomIn.when!({ section: undefined })).toBe('No section to move');
+    expect(zoomIn.when!({ section: ProteinSection })).toBe(true);
+    expect(byId.get('view.focus')!.when!({ section: ProteinSection })).toBe('Nothing to focus');
+    // single keys work where the viewer has focus
+    expect(byId.get('view.fit')!.scope).toBe('canvas');
+    expect(zoomIn.scope).toBe('canvas');
+    expect(byId.get('view.pan-left')!.scope).toBeUndefined();
+  });
+
+  it('disposed, a pending frame does nothing; a section gone by the frame is dropped', () => {
+    const frame = frames();
+    const { view, nav, range, spec } = setup();
+    view.setRange(ProteinSection, 1, 3);
+    nav.wheel(ProteinSection, 0, 10, 0, {}, 'cell');
+    nav.dispose();
+    frame();
+    expect(range(ProteinSection)).toEqual([1, 3]);
+    nav.wheel(ProteinSection, 0, 10, 0, {}, 'cell');
+    frame();
+    expect(range(ProteinSection)).toEqual([1, 3]);
+
+    const other = navigateBehavior(view, bindingTable());
+    other.wheel(ProteinSection, 0, 10, 0, {}, 'cell');
+    const b = createSeqSpec();
+    const g = b.data.sequence('g', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('main', (v) => void v.section('gene', { of: g }));
+    spec.apply(b.build());
+    expect(view.get(ProteinSection)).toBeUndefined();
+    expect(() => frame()).not.toThrow();
+    expect(view.get(GeneSection)).toMatchObject({ start: 0, end: 4 });
   });
 });

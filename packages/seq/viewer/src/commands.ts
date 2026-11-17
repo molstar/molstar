@@ -30,7 +30,6 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'view.zoom-out': 'navigate',
   'view.pan-left': 'navigate',
   'view.pan-right': 'navigate',
-  'view.show': 'session',
 };
 
 /** A command's change kind: the table's, then `extra` (an extension's commands); undefined when unknown. */

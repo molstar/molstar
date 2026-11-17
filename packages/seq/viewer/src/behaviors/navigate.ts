@@ -9,16 +9,17 @@
 // applied once, at the frame (`DomHost`), when `navigate.coalesceWheel`. Followers never lead: a move asked of one is
 // the view model's to ignore or detach (EC-114).
 
-import type { CommandDefinition } from '@molstar/ui/commands/types';
+import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { DomHost } from '@molstar/ui/dom';
 import type { BindingTable, ModifierState } from '../bindings.js';
 import { DefaultViewerConfig, type ViewerConfig } from '../config.js';
 import type { HitTarget } from '../models/hover.js';
 import type { ViewModel } from '../models/view.js';
 
-/** Which section a command acts on: the one under the pointer or with focus. */
+/** Which section a command acts on (the one under the pointer or with focus), and what to focus (offsets). */
 export interface NavigateContext {
   readonly section: string | undefined;
+  readonly focus?: { readonly start: number; readonly end: number };
 }
 
 export interface NavigateBehavior {
@@ -30,9 +31,16 @@ export interface NavigateBehavior {
   pinch(section: string, scale: number, x: number, modifiers: ModifierState, target: HitTarget): boolean;
   /** The view's moves as commands (keys through the keymap; every move reachable by a command). */
   readonly commands: readonly CommandDefinition<NavigateContext>[];
+  /** Drops pending wheel deltas; later frames do nothing. */
+  dispose(): void;
 }
 
-const NoModifiers: ModifierState = {};
+interface Pending {
+  pan: number;
+  zoom: number;
+  x: number;
+  scheduled: boolean;
+}
 
 export function navigateBehavior(
   view: ViewModel,
@@ -41,7 +49,8 @@ export function navigateBehavior(
 ): NavigateBehavior {
   const { wheelZoomStep, keyPanFraction, coalesceWheel } = config.navigate;
   // the wheel's pending deltas, one record per section, applied at the next frame
-  const pending = new Map<string, { pan: number; zoom: number; x: number; scheduled: boolean }>();
+  const pending = new Map<string, Pending>();
+  let disposed = false;
 
   const offsetAt = (section: string, x: number) => {
     const v = view.get(section);
@@ -50,73 +59,90 @@ export function navigateBehavior(
 
   const apply = (section: string) => {
     const p = pending.get(section);
-    if (!p) return;
+    if (disposed || !p) return;
     p.scheduled = false;
+    // a section gone since: its record goes too
+    if (!view.get(section)) {
+      pending.delete(section);
+      return;
+    }
     if (p.pan) view.panPx(section, p.pan);
     if (p.zoom) view.zoom(section, wheelZoomStep ** p.zoom, offsetAt(section, p.x));
     p.pan = p.zoom = 0;
   };
 
-  const step = (section: string | undefined, fn: (s: string) => boolean, done: string) => {
-    if (section === undefined) throw new Error('No section to move');
-    if (!fn(section)) throw new Error('The section cannot move');
-    return { message: done };
+  const movable = (ctx: NavigateContext): true | string =>
+    ctx.section === undefined
+      ? 'No section to move'
+      : view.canMove(ctx.section)
+        ? true
+        : 'The section follows another and does not move on its own';
+
+  const command = (
+    id: string,
+    title: string,
+    move: (section: string, ctx: NavigateContext) => boolean,
+    done: string,
+    shortcut: CommandDefinition<NavigateContext>['shortcut'],
+    when: (ctx: NavigateContext) => true | string = movable,
+  ): CommandDefinition<NavigateContext> => ({
+    id,
+    title,
+    category: 'View',
+    shortcut,
+    // a single key works where the viewer has focus, never globally
+    ...(shortcut && !shortcut.alt && !shortcut.mod && !shortcut.shift ? { scope: 'canvas' } : {}),
+    when,
+    run: (_, ctx): CommandResult => ({ message: ctx.section !== undefined && move(ctx.section, ctx) ? done : '' }),
+  });
+
+  const panBy = (section: string, fraction: number) => {
+    const v = view.get(section);
+    return !!v && view.pan(section, fraction * (v.end - v.start));
   };
 
   const commands: CommandDefinition<NavigateContext>[] = [
-    {
-      id: 'view.fit',
-      title: 'Fit the view',
-      category: 'View',
-      shortcut: { key: '0' },
-      run: (_, ctx) => step(ctx.section, (s) => view.fit(s), 'Fitted'),
-    },
-    {
-      id: 'view.zoom-in',
-      title: 'Zoom in',
-      category: 'View',
-      shortcut: { key: '=' },
-      run: (_, ctx) => step(ctx.section, (s) => view.zoom(s, wheelZoomStep), 'Zoomed in'),
-    },
-    {
-      id: 'view.zoom-out',
-      title: 'Zoom out',
-      category: 'View',
-      shortcut: { key: '-' },
-      run: (_, ctx) => step(ctx.section, (s) => view.zoom(s, 1 / wheelZoomStep), 'Zoomed out'),
-    },
-    {
-      id: 'view.pan-left',
-      title: 'Pan left',
-      category: 'View',
-      shortcut: { key: 'ArrowLeft', alt: true },
-      run: (_, ctx) => step(ctx.section, (s) => panBy(s, -keyPanFraction), 'Panned left'),
-    },
-    {
-      id: 'view.pan-right',
-      title: 'Pan right',
-      category: 'View',
-      shortcut: { key: 'ArrowRight', alt: true },
-      run: (_, ctx) => step(ctx.section, (s) => panBy(s, keyPanFraction), 'Panned right'),
-    },
+    command(
+      'view.fit',
+      'Fit the view',
+      (s) => view.fit(s),
+      'Fitted',
+      { key: '0' },
+      (ctx) => (ctx.section === undefined ? 'No section to fit' : true),
+    ),
+    command(
+      'view.focus',
+      'Focus',
+      (s, ctx) => view.setRange(s, ctx.focus!.start, ctx.focus!.end),
+      'Focused',
+      undefined,
+      (ctx) => (ctx.focus ? movable(ctx) : 'Nothing to focus'),
+    ),
+    command('view.zoom-in', 'Zoom in', (s) => view.zoom(s, wheelZoomStep), 'Zoomed in', { key: '=' }),
+    command('view.zoom-out', 'Zoom out', (s) => view.zoom(s, 1 / wheelZoomStep), 'Zoomed out', { key: '-' }),
+    command('view.pan-left', 'Pan left', (s) => panBy(s, -keyPanFraction), 'Panned left', {
+      key: 'ArrowLeft',
+      alt: true,
+    }),
+    command('view.pan-right', 'Pan right', (s) => panBy(s, keyPanFraction), 'Panned right', {
+      key: 'ArrowRight',
+      alt: true,
+    }),
   ];
-
-  function panBy(section: string, fraction: number): boolean {
-    const v = view.get(section);
-    return !!v && view.pan(section, fraction * (v.end - v.start));
-  }
 
   return {
     commands,
     drag(section, dx, modifiers, target) {
       // dragging content right shows what is left of it
-      return bindings.resolve('drag', modifiers, target) === 'pan' && view.panPx(section, -dx);
+      return !disposed && bindings.resolve('drag', modifiers, target) === 'pan' && view.panPx(section, -dx);
     },
-    wheel(section, dx, dy, x, modifiers = NoModifiers, target) {
+    wheel(section, dx, dy, x, modifiers, target) {
+      if (disposed) return;
       const action = bindings.resolve('wheel', modifiers, target);
       if (action !== 'pan' && action !== 'zoom') return;
       let p = pending.get(section);
       if (!p) pending.set(section, (p = { pan: 0, zoom: 0, x, scheduled: false }));
+      // the larger delta pans; with Shift a vertical wheel pans sideways too
       if (action === 'pan') p.pan += Math.abs(dx) > Math.abs(dy) ? dx : dy;
       else {
         p.zoom += -dy / 100;
@@ -129,7 +155,15 @@ export function navigateBehavior(
       }
     },
     pinch(section, scale, x, modifiers, target) {
-      return bindings.resolve('pinch', modifiers, target) === 'zoom' && view.zoom(section, scale, offsetAt(section, x));
+      return (
+        !disposed &&
+        bindings.resolve('pinch', modifiers, target) === 'zoom' &&
+        view.zoom(section, scale, offsetAt(section, x))
+      );
+    },
+    dispose() {
+      disposed = true;
+      pending.clear();
     },
   };
 }

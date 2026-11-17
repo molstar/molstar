@@ -16,8 +16,9 @@ export const ViewerIssues = defineIssues('seq.viewer', {
   },
   'seq.viewer.binding.action': {
     severity: 'error',
-    description: 'A binding names an action that is neither a model method nor a command of the viewer',
-    hint: 'Name a method (hover, pan, zoom, drag-select) or a command id',
+    description:
+      'A binding names an action the viewer does not have (no model method, no command defined); it is left out',
+    hint: 'Name a method (hover, pan, zoom) or the id of a command the viewer defines',
   },
   'seq.viewer.binding.key': {
     severity: 'warning',

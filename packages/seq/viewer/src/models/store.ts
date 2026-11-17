@@ -64,7 +64,8 @@ export class StoreModel extends ReactiveModel {
   /**
    * Opens the static model's sources (each `source` bound to a runtime, and each inline access plan) and attaches each
    * to the store under its address; a source whose entry is the object it was opened from is kept, one gone is
-   * detached. Resolves when the openings started now have settled.
+   * detached (its issue cleared). A source that failed to open, or whose coverage the store refused, is tried again
+   * by the next sync. Resolves when the openings started now have settled.
    */
   async sync(model: StaticModel, assets: AssetReader): Promise<void> {
     const wanted = new Map<string, { entry: SourceEntry; runtime: FormatRuntime }>();
@@ -80,7 +81,11 @@ export class StoreModel extends ReactiveModel {
       o.abort.abort();
       this._open.delete(address);
       this.store.detach(address);
+      this._report(address, undefined);
     }
+    // a source that failed and is no longer wanted takes its issue with it
+    const stale = this._issues.value.filter((i) => i.address !== undefined && !wanted.has(i.address));
+    for (const i of stale) this._report(i.address!, undefined);
     const started: Promise<void>[] = [];
     for (const [address, { entry, runtime }] of wanted) {
       if (this._open.has(address)) continue;
@@ -99,9 +104,15 @@ export class StoreModel extends ReactiveModel {
         return;
       }
       this._report(address, undefined);
-      this.store.attach(address, opened);
+      // a coverage the store refuses is its report (`store.issues`); forgotten here, so a later sync tries again
+      if (!this.store.attach(address, opened)) {
+        opened.dispose();
+        this._open.delete(address);
+      }
     } catch (e) {
       if (isAbortError(e) || o.abort.signal.aborted) return;
+      // forgotten, so a later sync tries again
+      if (this._open.get(address) === o) this._open.delete(address);
       const issue =
         e instanceof SourceOpenError && e.issues[0]
           ? e.issues[0]

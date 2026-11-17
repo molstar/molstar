@@ -105,9 +105,11 @@ export class HoverModel extends ReactiveModel {
 
   /**
    * Hovers what `hit` names for `owner`, taking the hover from any other owner; no hit clears it if `owner` holds it.
-   * Copies the hit (no object is kept or made); false when nothing changed.
+   * Copies the hit (no object is kept or made); false when nothing changed. An element is the same hover by its key
+   * (a layer may make its extent again on each move); an undefined owner is refused (it could never clear it).
    */
   set(hit: Hit | undefined, owner: unknown): boolean {
+    if (owner === undefined) return false;
     if (!hit) return this.clear(owner);
     const r = this._record;
     const position = hit.position ?? Number.NaN;
@@ -119,7 +121,7 @@ export class HoverModel extends ReactiveModel {
       r.section === section &&
       (r.position === position || (Number.isNaN(r.position) && Number.isNaN(position))) &&
       keysEqual(r.element, hit.element) &&
-      r.extent === hit.extent
+      (hit.element !== undefined || r.extent === hit.extent)
     )
       return false;
     r.owner = owner;
@@ -171,10 +173,7 @@ export class HoverModel extends ReactiveModel {
     const target = view?.sections.find((s) => s.address === section);
     if (!view || !target) return EmptyLocation;
     const system = target.axis.system;
-    const closed = this._closedOf(
-      own,
-      view.sections.map((s) => s.axis.system),
-    );
+    const closed = this._closedOf(own);
     const parts: { system: string; ranges: ArrayLike<number> }[] = [];
     for (const part of closed.parts) {
       if (part.system === system) parts.push({ system, ranges: part.ranges });
@@ -205,8 +204,10 @@ export class HoverModel extends ReactiveModel {
     this._projected.clear();
   }
 
-  private _closedOf(own: Location, systems: readonly string[]): Location {
+  /** The hover closed among the view's systems: once per version. */
+  private _closedOf(own: Location): Location {
     if (this._closed) return this._closed;
+    const systems = this._view.resolved.value?.sections.map((s) => s.axis.system) ?? [];
     this._closed = this.config.hover.closeCodons ? this._spec.model.value.close(own, systems) : own;
     return this._closed;
   }

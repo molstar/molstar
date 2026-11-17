@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SeqRuntime } from '@molstar/seqx-core/data';
+import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { DomHost } from '@molstar/ui/dom';
@@ -55,5 +55,50 @@ describe('StoreModel', () => {
     await m.sync(resolveSpec(b.build(), { runtimes: [SeqRuntime] }), assets);
     expect(m.issues.value.map((i) => [i.code, i.address])).toEqual([['seq.source.unreadable', '/data/remote']]);
     m.retire();
+  });
+
+  it('a failed opening is tried again by the next sync; a source detached takes its issue with it', async () => {
+    let opens = 0;
+    const flaky: FormatRuntime = {
+      name: 'flaky',
+      formats: ['flaky'],
+      open: async () => {
+        if (++opens === 1) throw new Error('not yet');
+        return {
+          coverage: { systems: [{ name: 'g', length: 10 }], shapes: [], levels: [1] },
+          read: () => Promise.reject(new Error('unused')),
+          dispose: () => {},
+        };
+      },
+    };
+    const spec = (withSource: boolean) => {
+      const b = createSeqSpec();
+      if (withSource) {
+        const src = b.data.source('remote', { format: 'flaky', uri: 'r' });
+        b.data.sequence('g', { alphabet: 'dna', source: src });
+      } else b.data.sequence('g', { alphabet: 'dna', letters: 'ACGT' });
+      return resolveSpec(b.build(), { runtimes: [flaky] });
+    };
+    const m = new StoreModel();
+    const model = spec(true);
+    await m.sync(model, assets);
+    expect(m.issues.value.map((i) => i.address)).toEqual(['/data/remote']);
+    await m.sync(model, assets);
+    expect(opens).toBe(2);
+    expect(m.issues.value).toEqual([]);
+    expect(m.store.coverage('/data/remote')?.systems[0].length).toBe(10);
+    // gone: detached
+    await m.sync(spec(false), assets);
+    expect(m.store.coverage('/data/remote')).toBeUndefined();
+
+    // a failure no longer wanted takes its issue with it
+    opens = 0;
+    const n = new StoreModel();
+    await n.sync(spec(true), assets);
+    expect(n.issues.value.length).toBe(1);
+    await n.sync(spec(false), assets);
+    expect(n.issues.value).toEqual([]);
+    m.retire();
+    n.retire();
   });
 });

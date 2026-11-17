@@ -72,4 +72,26 @@ describe('SpecModel', () => {
     expect(refused.failed).toBe(true);
     history.dispose();
   });
+
+  it('a change outside the history makes its earlier steps unsafe: undo never restores over it', async () => {
+    const spec = new SpecModel(proteinOnGene());
+    const history = new HistoryModel(spec);
+    spec.attachHistory(history);
+    await history.run(
+      'Retitle',
+      person,
+      async (context) => spec.apply(proteinOnGene({ title: 'one' }), { context }),
+      SpecRunOptions,
+    );
+    // inside a run nothing is invalidated
+    expect((await history.undo()).ok).toBe(true);
+    await history.redo();
+    const outside = proteinOnGene({ title: 'outside' });
+    spec.apply(outside);
+    const undo = await history.undo();
+    expect(undo.ok).toBe(false);
+    expect(!undo.ok && undo.code).toBe('unsafe');
+    expect(spec.root.value).toBe(outside);
+    history.dispose();
+  });
 });
