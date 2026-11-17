@@ -63,6 +63,18 @@ export {
   type SystemEntry,
 } from './model.js';
 export {
+  buildOverlay,
+  EmptyOverlay,
+  itemAddress,
+  type NestedSource,
+  type NodeReader,
+  nodeAddress,
+  type Overlay,
+  OverlayBuilder,
+  type OverlayNode,
+  type OverlayOptions,
+} from './overlay.js';
+export {
   composeEdges,
   DefaultPathBounds,
   type Edge,
