@@ -69,7 +69,7 @@ extensible/configurable?" Yes, by the rule that what can be configurable is ([ex
 
 ## 4. Density
 
-What a cell shows steps down as it narrows, at fixed thresholds in device pixels, without moving anything:
+What a cell shows steps down as it narrows, at fixed thresholds, without moving anything:
 
 1. letters (with their colored cells);
 2. cells only, colored;
@@ -78,7 +78,11 @@ What a cell shows steps down as it narrows, at fixed thresholds in device pixels
 5. density (a heat strip: coverage, conservation, variant counts).
 
 Each step keeps the previous step's positions and colors, so zooming reads as resolution changing, never as the
-picture changing. The thresholds are shared by every layer type.
+picture changing. The thresholds are shared by every layer type. Each step's unit is a config item (`densityUnits`); by default letters are
+measured in CSS px (10), the other steps in device px (cells 3, dots 1, bars 1/64) (default; to confirm with the author).
+Why: a letter's legibility is in CSS pixels (a size that needs 14 device px at DPR 1 needs only 7 at DPR 2), while what
+bounds the draw lists is a mark a device pixel. The letters step never starts below the width the
+smallest letter size needs, so cells never show without letters.
 
 ## 5. Shape: when to squircle
 
@@ -101,7 +105,9 @@ picture changing. The thresholds are shared by every layer type.
 - **Layers of emphasis, in a fixed order** from below to above: data; highlight channels (named, each a tint of its
   color under the data); selection (an accent tint under the data and an accent outline over it); hover (an outline at
   3:1 or better against its surroundings, EC-138); the keyboard cursor (an accent outline, thicker). A higher one never
-  hides a lower one entirely.
+  hides a lower one entirely. **Current pass order** (`selection` after `data`): the selection's tint is drawn
+  translucent over the data, with its outline, not under it (default; to confirm with the author: the alternative is a
+  separate under-data pass). Why over: a pass under the data is hidden by opaque cells.
 - **Hover is the same everywhere**: one outline style for a cell, a range, a row, a pair; projected hovers on linked
   sections take the same style, lighter.
 - **Selection is one look** in tracks, text, rings and dot plots.

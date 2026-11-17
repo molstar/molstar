@@ -49,6 +49,9 @@ Four forms, each public, documented in the core's `_spec`, and each a stable pla
 - **A render entry and a CLI**: `renderSvg(spec, { size, viewport?, runtimes })`, asynchronous (it waits for the data
   the export needs to settle, [data-store.md](data-store.md)), and a command that renders a spec file
   to SVG or PNG, so a reply like the JBrowse one can put both pictures side by side without writing code.
+- **`renderSvg` answers `{ svg, settled, issues, lists }`**: the SVG carries `data-*` attributes for whether it settled
+  and the open domains it computed; the lists are returned for tests. A section whose length is unknown takes the length
+  its source's coverage gives once attached, else the export reports `seq.render.axis.pending` and waits.
 - **Light to depend on**: the resolved view and draw lists are importable without the viewer, the UI or any format
   runtime; reading a spec needs only the core's language entry.
 - **A reference renderer that is not ours**: a subset of the resolved view (letters, ranges, values, variants) is also

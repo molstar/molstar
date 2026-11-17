@@ -25,6 +25,7 @@ author, 2026-11-17).
   node entries held by their holders, not cached ([protocol.md](protocol.md), Lifetime).
 - **Answers carry nodes**: a region's answer holds tables and the data nodes it brings; the nodes are entries of their
   source, identified by (source, key), and form the resolved model's dynamic overlay ([dynamic-nodes.md](dynamic-nodes.md)).
+- **The store's clock is readable** (`clock`): an export's deadline runs on it, so a shared store's clock (or a fake one in tests) times the export too.
 - **Inline data** goes through the same store, as entries that are loaded at once; one path for drawing.
 - **Want sets per consumer**: `store.wanter()` gives each consumer (the live view, an export) its own want set, merged
   by best priority; an export never touches the live view's wants (EC-125). Over the byte bound, wanted prefetch and

@@ -15,7 +15,7 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 
 | Model | Holds | Change kind ([changes.md](changes.md)) |
 |---|---|---|
-| `SpecModel` | the spec's root (immutable), its revision (the root's hash), the preview overlay; applies patches; the `HistoryPort` checkpoint is the root | spec patch, preview |
+| `SpecModel` | the spec's root (immutable), its revision (the root's hash), the preview overlay; applies changes (a whole new root, or a function of the old one, until the tree core has a patch format, then `repr` patches); with a history attached, a change outside a run invalidates its earlier steps; the `HistoryPort` checkpoint is the root | spec patch, preview |
 | `ViewModel` | the view shown; per section its viewport; scroll groups and follows | session |
 | `HoverModel` | the hover: a Location, an element key, its owner, its system | session |
 | `SelectionModel` | the selection: element keys and a Location, the anchor, the cursor | session |
@@ -23,21 +23,28 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 | `StoreModel` | the data store ([data-store.md](data-store.md)) | data |
 | `ConfigModel` | the configuration, read-only after composition | configuration |
 
+- **Hit type**: the viewer's hit is the render hit ([layout-and-draw-lists.md](layout-and-draw-lists.md)) with a `target` added.
 - **Session state** is the `ViewModel`, `HoverModel`, `SelectionModel` and `HighlightModel`'s state, expressed in
   addresses and Locations; a host may save it beside the spec (`viewer.session()` and `viewer.restore(session)`), never in
   it.
 
 ### Viewport, scroll groups and follow
 
-- **A viewport per section**: the visible range on its axis (in positions, fractional) and the vertical scroll; zoom is
-  the range's width against the section's width.
-- **A scroll group** shares one viewport among sections on equal axes (EC-113).
+- **A viewport per section**: the visible range as offsets along its axis in display order (fractional; 0 at the first
+  position shown) and the vertical scroll; zoom is the range's width against the section's width. Why offsets, not
+  positions: a section's `range` and a cyclic range over the origin read like a whole system. A saved session stores
+  positions, never offsets, since offsets change meaning when the axis does.
+- **A scroll group** shares the range only among sections on equal axes (EC-113; `viewport.groupEqualAxes`, true); each
+  section keeps its own vertical scroll and width.
 - **A follow** is a section whose viewport is derived from another's through a map: the leader's range projected along
-  the path between their systems, at scale 1, 3 or 1/3 (a codon step); followers never lead (EC-114). For "p53's protein
+  the path between their systems, at scale 1, 3 or 1/3 (a codon step); followers never lead (EC-114; `follow.followerMoves`: `ignore`, or `detach`). The ends are the continuous images of the
+  leader's (maps.md: continuous within a run), the hull only where an end maps nowhere. A cyclic follower's range past the
+  origin wraps (`follow.cyclicArc`: `wrap`, its viewport runs past the axis total and `pieces` splits it; `hull` the
+  alternative). For "p53's protein
   on its gene", the gene section follows the protein section through the codon map.
 - **Viewports survive updates**: an equal axis keeps its viewport; a changed one keeps center and zoom when the center
   is still shown, else fits (EC-111); a move before the section has a width is kept as an intent (EC-112).
-- Collapsed introns (layout maps) come after the first slice; the slice's gene section shows the gene's full range.
+- A viewport is clamped to `viewport.maxPxPerPosition`, and a resize keeps the zoom (`viewport.onResize`: `keep-zoom`, or `keep-range`). Collapsed introns (layout maps) come after the first slice; the slice's gene section shows the gene's full range.
 
 ### Hover and selection
 
@@ -61,7 +68,7 @@ with its params as config items. Later: `hoverCard`, `contextMenu`, `snapshots`,
 - **A gesture binding** is `{ gesture, modifiers, target, action }`: gestures are `click`, `double-click`, `drag`,
   `wheel`, `pinch`, `key`; targets are the hit's kind (cell, item, row, column, track, empty, axis); actions name either a
   model method (hover, drag-select, pan: continuous, allocation-free) or a command (discrete). Key gestures go through
-  `@molstar/ui`'s `Keymap`; pointer gestures through this table, which the grammar's presets fill
+  `@molstar/ui`'s `Keymap`; pointer gestures (including `hover`) through this table, a `key` binding in it being reported; a `'*'` modifier matches whatever is held and is tried after exact matches (hover is bound with it, Shift+wheel pans, Alt is unbound for the platform); selection bindings wait for the selection lane. The table is filled by the grammar's presets
   ([ux-foundations.md](ux-foundations.md), section 8).
 - **Commands** are `@molstar/ui/commands` definitions with Seq\*'s metadata: `changeKind: 'patch' | 'session' |
   'navigate'`, kept beside the definition (`@molstar/ui`'s `CommandDefinition` has no such field; Seq\* keeps a table by
@@ -70,8 +77,10 @@ with its params as config items. Later: `hoverCard`, `contextMenu`, `snapshots`,
 ### Configuration items of the first slice
 
 `foundations.preset` (`comfortable`), `density.letterMinPx`, `density.dotMinPx`, `bindings.preset` (`default`),
-`store.cacheBytes` (64 MB), `store.inFlight` (6), `store.tileBins` (1,024), `hover.projectLinked` (true). Each a
-`ParamDefinition` with a default; the slice may read them from a default object of this shape.
+`store.cacheBytes` (64 MB), `store.inFlight` (6), `store.tileBins` (1,024), `hover.projectLinked` (true), `hover.closeCodons`, `viewport.maxPxPerPosition`, `viewport.groupEqualAxes` (true),
+`viewport.onResize` (`keep-zoom`), `follow.followerMoves` (`ignore`), `follow.cyclicArc` (`wrap`), `navigate.*` (wheel
+zoom step, key pan fraction, wheel coalescing). Each a choice with a default; the slice reads them from a plain default
+object of this shape, and the `ParamDefinition`s come with the settings form.
 
 ## Consequences
 

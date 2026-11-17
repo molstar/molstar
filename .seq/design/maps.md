@@ -22,6 +22,11 @@ to structural data .. basically SIFTS, but in abstract form."
     a kind: a codon map computed from a gene model is a `codon` map.
   - **encoding**, how a resolved map is held: implicit (arithmetic), runs (segments), or expanded (per position, for
     the region asked), always the cheapest that answers the map interface.
+- **A follow is continuous within a run**: a follower's window edges are the continuous images of the leader's window
+  edges (`Follow.point`), so a follower moves smoothly and is exact at element edges, in the viewer and in an export
+  alike. `Follow.point` is valid within one run of the path only (an intron breaks it); where an end maps nowhere, or
+  the ends cross, the follower takes the hull of the image of the leader's positions in view (`followRange`). On a minus
+  strand the hull is in genomic order (columns run opposite to the protein); reversed pieces follow later.
 - **One interface**: every resolved map answers the image of a range forward and back as runs, the boundary rules and
   the status of each element (paired, conflict, unpaired). Paths compose encodings without expanding them; projection
   reads only the interface.

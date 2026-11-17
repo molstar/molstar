@@ -75,12 +75,14 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 4: render and models (two lanes in parallel, after E's types)
 
-- [ ] F (strong) `seqx-core/render`: the layer-type contract; `letters`, `ranges`, `values`; the tracks layout; draw
+- [x] F (strong) `seqx-core/render`: the layer-type contract; `letters`, `ranges`, `values`; the tracks layout; draw
       lists (units, passes, primitives in reused buffers); hit indexes; stable lanes; the token table; the text metrics
       port with the Node table; the recording and SVG backends; `renderSvg` (asynchronous, waits to settle)
 - [x] G (strong) `seqx-viewer` models: `SpecModel`, `ViewModel` (a scroll group, one follow through the codon map),
       `HoverModel` (ownership, projection), `StoreModel`; the `hover` and `navigate` behaviors; the gesture-binding table
-- [ ] GATE: review of F and G (strong)
+- [x] GATE (2026-11-17): review of F and G (strong), each fixed in one round and merged; the merged tree 581 tests
+      (about 0.4 s), tsc with tests, lint, format, scaffold checks green; drift folded into the designs (two items marked
+      to confirm: the selection tint's order, letters' density in CSS px); nothing drawn in Storybook until stage 5
 
 ### Stage 5: the viewer and the views (lane H, fast, after F and G)
 

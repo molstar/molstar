@@ -20,21 +20,22 @@ config item (or a param) with the recommendation as its default, and listed in g
   format, scaffold checks). Designs updated: format (tagged columns), language-description (column `required`,
   `seq.query.*`), locations-and-queries (`chain` as Nodes, `:of`, quoted `.n` labels, the boundary rule), protocol
   (`AssetReader`, `form`, `list`, row identity, malformed not retried, `over_budget`), data-store (want sets, `evicted`).
+- Stage 4 (lanes F render, G viewer models): merged, each after one review round; `seqx-core` exports `./render`,
+  `seqx-viewer` `./models` and `./behaviors`; the viewer's `Hit` extends the render hit; gate green (581 tests).
 - Stage 3 (lanes C2 range sets into core, E resolve): merged; gate green (500 tests); `seqx-core` exports `./resolve`
   and `./view`.
 
 ## In progress
 
-- Stage 4: lane G (viewer models) merged after one review round (merge, then `4643e6653`: `./models` and `./behaviors`
-  entries); the merged tree 547 tests (repr, data/int, packages/seq), about 0.4 s; tsc, lint, format, scaffold checks
-  green. Lane F (render, branch `seq/f-render`, checks green when rerun: 334 tests) is under review (strong); its fix
-  round, then the merge with the `./render` export and `_test` null.
+- Stage 5: lane H (viewer, Canvas2D, composition, examples, stories; fast), brief `briefs/h-viewer.md`, branch
+  `seq/h-viewer`. The examples package exists empty (`2dde56c97`), wired into the workspace and the Storybook package.
 
 ## Next
 
-- Merge F; reconcile its hit type with G's (`models/hover.ts` `Hit`: `{layer?, section?, system, position?, element?,
-  extent?, target?}`); fold `drift/render.md` and `drift/viewer-models.md` into the designs; the stage 4 gate.
-- Then lane H's brief (stage 5) and start it.
+- On H's report: verify, review (strong), one fix round, merge; register the Vite fixtures plugin in
+  `storybook/packages.ts`; the integration gate (medium lane, Storybook typecheck, `pnpm build` + `check:workspace`,
+  the two stories in light and dark with screenshots).
+- Then stage 6 (lane I).
 
 ## Decisions taken (awaiting the author)
 
