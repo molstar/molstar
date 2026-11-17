@@ -65,9 +65,11 @@ function at(r: FaiRecord, p: number): number {
 
 /**
  * Why an index does not describe a file, or undefined: each record starts a line after its header, its lines hold
- * `lineBases` bases and a break of `lineWidth − lineBases` bytes, and it ends within the file.
+ * `lineBases` bases and a break of `lineWidth − lineBases` bytes, its last base is followed by a line break or the end
+ * of the file, no `>` is inside its bytes, and no two records' bytes overlap.
  */
 export function checkFai(records: readonly FaiRecord[], fasta: string): string | undefined {
+  const spans: [number, number, string][] = [];
   for (const r of records) {
     const why = `the index does not fit the file at ${r.name}`;
     if (r.length > 0 && (r.lineBases < 1 || r.lineWidth <= r.lineBases)) return `${why}: its line sizes`;
@@ -76,13 +78,22 @@ export function checkFai(records: readonly FaiRecord[], fasta: string): string |
     const name = header < 0 ? '' : fasta.slice(header + 1, r.offset - 1).split(/\s/)[0];
     if (name !== r.name) return `${why}: its header`;
     if (r.length === 0) continue;
-    if (at(r, r.length - 1) >= fasta.length) return `${why}: it ends past the file`;
+    const last = at(r, r.length - 1);
+    if (last >= fasta.length) return `${why}: it ends past the file`;
+    const after = fasta.slice(last + 1, last + 3);
+    if (after !== '' && after[0] !== '\n' && after !== '\r\n' && !(after === '\r' && last + 2 === fasta.length))
+      return `${why}: its last line does not end where it says`;
+    if (fasta.slice(r.offset, last + 1).includes('>')) return `${why}: it runs into another record`;
+    spans.push([r.offset, last + 1, r.name]);
     // every full line ends where the index says
     for (let p = r.lineBases; p <= r.length; p += r.lineBases) {
       const end = at(r, p - 1) + 1;
       if (p < r.length && !/^\r?\n$/.test(fasta.slice(end, end + r.lineWidth - r.lineBases))) return `${why}: a line`;
     }
   }
+  spans.sort((a, b) => a[0] - b[0]);
+  for (let i = 1; i < spans.length; i++)
+    if (spans[i][0] < spans[i - 1][1]) return `the records ${spans[i - 1][2]} and ${spans[i][2]} overlap`;
   return undefined;
 }
 
@@ -96,13 +107,24 @@ function lettersOf(r: FaiRecord, fasta: string): string {
   return out;
 }
 
-/** The index of a FASTA file, as `samtools faidx` writes it; throws on lines of unequal length within a record. */
+/**
+ * The index of a FASTA file, as `samtools faidx` writes it; throws on lines of unequal length within a record, and on
+ * a sequence line after an empty one within a record (an empty line ends its sequence).
+ */
 export function faidx(fasta: string): string {
   const out: string[] = [];
   const lines = fasta.split('\n');
   let pos = 0;
   let cur:
-    | { name: string; offset: number; length: number; lineBases: number; lineWidth: number; short: boolean }
+    | {
+        name: string;
+        offset: number;
+        length: number;
+        lineBases: number;
+        lineWidth: number;
+        short: boolean;
+        ended: boolean;
+      }
     | undefined;
   const flush = () => {
     if (cur) out.push(`${cur.name}\t${cur.length}\t${cur.offset}\t${cur.lineBases}\t${cur.lineWidth}`);
@@ -119,8 +141,12 @@ export function faidx(fasta: string): string {
         lineBases: 0,
         lineWidth: 0,
         short: false,
+        ended: false,
       };
-    } else if (cur && raw.replace(/\r$/, '').length) {
+    } else if (cur && !raw.replace(/\r$/, '').length) {
+      if (cur.length > 0) cur.ended = true;
+    } else if (cur) {
+      if (cur.ended) throw new Error(`A sequence line of ${cur.name} follows an empty line`);
       const bases = raw.replace(/\r$/, '').length;
       if (cur.short || (cur.lineBases && bases > cur.lineBases))
         throw new Error(`The lines of ${cur.name} are of unequal length`);
@@ -150,7 +176,9 @@ export function openFasta(fasta: string, index?: string, source: SourceEntry = {
   let records: readonly FaiRecord[];
   if (index === undefined) {
     try {
-      records = parseFai(faidx(fasta)).records ?? [];
+      const parsed = parseFai(faidx(fasta));
+      if (!parsed.records) throw new Error(parsed.issue);
+      records = parsed.records;
     } catch (e) {
       throw malformed(source, String((e as Error).message));
     }

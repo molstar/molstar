@@ -69,6 +69,30 @@ describe('FASTA with its index', () => {
     expect(refusal('>a\nACÉ\n')?.message).toMatch(/ASCII/);
   });
 
+  it('refuses a record longer than it is, a wrong CRLF line width, and overlapping records', () => {
+    const two = '>a\nACGT\n>b\nACGT\n';
+    expect(refusal(two, faidx(two))).toBeUndefined();
+    expect(refusal(two, 'a\t6\t3\t4\t5\n')?.message).toMatch(/another record/);
+    // the last base followed by neither a break nor the end of the file
+    expect(refusal(two, 'a\t3\t3\t4\t5\n')?.message).toMatch(/last line/);
+    const crlf = '>a\r\nACGT\r\nAC\r\n';
+    expect(refusal(crlf, faidx(crlf))).toBeUndefined();
+    expect(refusal(crlf, 'a\t6\t4\t4\t5\n')?.message).toMatch(/line/);
+    expect(refusal(two, 'a\t4\t3\t4\t5\nb\t4\t11\t4\t5\nc\t2\t3\t4\t5\n')?.message).toMatch(/header|overlap/);
+    const dup = '>a\nACGT\n>a x\nACGT\n';
+    expect(refusal(dup, 'a\t4\t3\t4\t5\nb\t2\t3\t4\t5\n')).toBeDefined();
+  });
+
+  it('an empty line ends a record: a later sequence line in it is refused, as samtools does', () => {
+    expect(() => faidx('>a\nACGT\n\nTTGG\n')).toThrow(/empty line/);
+    expect(refusal('>a\nACGT\n\nTTGG\n')?.code).toBe('seq.source.malformed');
+    expect(faidx('>a\nACGT\n\n>b\nTT\n')).toBe('a\t4\t3\t4\t5\nb\t2\t12\t2\t3\n');
+  });
+
+  it('without an index, duplicate names are the parse issue, never an empty source', () => {
+    expect(refusal('>a\nAC\n>a\nGT\n')?.message).toMatch(/twice/);
+  });
+
   it('as a runtime: the file and its index read through the assets port', async () => {
     const files: Record<string, string> = { 'g.fa': Fasta, 'g.fa.fai': faidx(Fasta), 'bad.fai': 'x\n' };
     const assets = {
