@@ -19,7 +19,7 @@ const run = (address: string, limit = 100, model: QueryModel = Model) => evaluat
 function loc(address: string): [string, number[]][] | string[] {
   const r = run(address);
   if (r.result?.type !== 'location') return codes(r);
-  return r.result.location.parts.map((p) => [p.system, [...p.ranges]]);
+  return r.result.location.parts.map((p): [string, number[]] => [p.system, [...p.ranges]]);
 }
 
 function keys(address: string): (string | number)[] | string[] {
