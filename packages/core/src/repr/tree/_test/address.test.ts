@@ -9,9 +9,12 @@ import {
   type AddressPattern,
   exactAddress,
   type FormResolver,
+  type FormResolverInput,
   matchesAddress,
+  type Named,
   type Node,
   parseAddress,
+  type Segment,
   type Selected,
   printAddress,
   selectAddress,
@@ -55,11 +58,11 @@ describe('repr/tree: address grammar', () => {
       '/*',
       '/data/p53',
       '/data/*',
-      '/data/p53/(range :from 94 :to 292 :numbering uniprot)',
+      '/data/p53/(range :from 94 :numbering uniprot :to 292)',
       '/data/1tup/(chain :id A)/(at :label 94A :numbering auth)',
       '/data/globins/(row :id "HBA_HUMAN/1-141")',
-      '/data/globins/(rect :rows (rows :from "HBA_HUMAN/1-141" :to "HBB_HUMAN/1-146") :columns (range :from 30 :to 60))',
-      '/data/meth/(rect :states (states :in [s1 s2]) :positions (range :from 7610000 :to 7620000))',
+      '/data/globins/(rect :columns (range :from 30 :to 60) :rows (rows :from "HBA_HUMAN/1-141" :to "HBB_HUMAN/1-146"))',
+      '/data/meth/(rect :positions (range :from 7610000 :to 7620000) :states (states :in [s1 s2]))',
       '/views/main/(section :of /data/p53)',
       '/data/genes/(node :key T1)',
       '/data/x/(f :a -1 :b 1e+21 :c nan :d nil :e true :f "a b" :g 5n :h [] :i ext:kind)',
@@ -85,9 +88,9 @@ describe('repr/tree: address grammar', () => {
     });
   });
 
-  it('canonicalizes spacing and an address value', () => {
-    const { pattern } = parseAddress('/a/( f   :x  [ 1  2 ]  :y /b/( c :z 1 ) )');
-    expect(print(pattern!)).toBe('/a/(f :x [1 2] :y /b/(c :z 1))');
+  it('canonicalizes spacing, key order and an address value', () => {
+    const { pattern } = parseAddress('/a/( f   :y /b/( c :z 1 :a 2 )  :x  [ 1  2 ] )');
+    expect(print(pattern!)).toBe('/a/(f :x [1 2] :y /b/(c :a 2 :z 1))');
   });
 
   it('reports what is not an address, by code and offset', () => {
@@ -179,46 +182,95 @@ describe('repr/tree: selection by child selection (the default resolver)', () =>
 });
 
 describe('repr/tree: the form-resolver table', () => {
-  /** A range over what the prefix names: a value the tree does not know. */
-  const range: FormResolver = ({ form, prefix }) => {
-    if (prefix.type !== 'nodes') return { issues: [] };
-    const nodes = (prefix as { matches: readonly { address: readonly string[] }[] }).matches;
-    return {
-      result: {
-        type: 'location',
-        value: nodes.map((m) => ({ system: printAddress(m.address), from: form.params?.from, to: form.params?.to })),
-      },
-    };
-  };
+  const nodesOf = (n: Named) => (n.kind === 'nodes' ? n.matches : []);
+  /** A range over what the prefix names: a value the tree does not know; a warning when it is empty. */
+  const range: FormResolver = ({ form, prefix }) => ({
+    result: {
+      kind: 'other',
+      type: 'location',
+      value: nodesOf(prefix).map((m) => ({ system: printAddress(m.address), from: form.params?.from })),
+    },
+    ...(form.params?.from === 0 ? { issues: [{ code: 'test.empty', severity: 'warning', message: 'Empty' }] } : {}),
+    ...(form.params?.from === -1 ? { complete: false, pending: ['region 1'] } : {}),
+  });
   /** Children by kind at any depth below: nodes, so ids and `/*` may follow. */
-  const deep: FormResolver = ({ form, prefix, limit }) => {
-    const out: { node: Node; address: string[] }[] = [];
-    const go = (n: Node, a: readonly string[]) => {
+  const deep: FormResolver = ({ form, prefix }) => {
+    const out: Selected[] = [];
+    const go = (n: Node, a: readonly Segment[]) => {
       for (const c of n.children ?? []) {
         if (c.id === undefined) continue;
         if (c.kind === form.params?.of) out.push({ node: c, address: [...a, c.id] });
         go(c, [...a, c.id]);
       }
     };
-    for (const m of (prefix as { matches: readonly Selected[] }).matches) go(m.node, m.address);
-    return out.length > limit ? { issues: [] } : { result: { type: 'nodes', matches: out } };
+    for (const m of nodesOf(prefix)) go(m.node, m.address);
+    return { result: { kind: 'nodes', matches: out } };
   };
-  const resolvers = { range, deep };
+  /** A dynamic node no id names, addressed by its form: `/data/genes/(node :key T1)`. */
+  const dynamic: FormResolver = ({ form, prefix }) => ({
+    result: {
+      kind: 'nodes',
+      matches: nodesOf(prefix).map((m) => ({
+        node: { kind: 'gene', params: { key: form.params?.key ?? null } },
+        address: [...m.address, form],
+      })),
+    },
+  });
+  /** What it is given, to check the bounds reach it. */
+  let seen: FormResolverInput | undefined;
+  const spy: FormResolver = (input) => ((seen = input), { result: input.prefix });
+  const failing: FormResolver = () => ({ issues: [{ code: 'test.fail', severity: 'error', message: 'No' }] });
+  const resolvers = { range, deep, node: dynamic, spy, failing };
 
   it('hands what the prefix names to the resolver, and returns its result', () => {
     const r = selectAddress(Spec, '/data/p53/(range :from 94 :to 292)', { limit: 9, resolvers });
     expect(r.issues).toEqual([]);
     expect(r.matches).toEqual([]);
-    expect(r.result).toEqual({ type: 'location', value: [{ system: '/data/p53', from: 94, to: 292 }] });
+    expect(r.result).toEqual({ kind: 'other', type: 'location', value: [{ system: '/data/p53', from: 94 }] });
   });
 
-  it('lets ids, child selection and /* follow a resolver of nodes', () => {
+  it('passes the bounds to the resolver', () => {
+    const signal = new AbortController().signal;
+    selectAddress(Spec, '/data/(spy)', { limit: 3, maxDepth: 7, resolvers, signal, deadline: 1e15 });
+    expect(seen).toMatchObject({ limit: 3, maxDepth: 7, signal, deadline: 1e15, root: Spec });
+  });
+
+  it("carries a resolver's warnings and its completeness; only its errors fail", () => {
+    const w = selectAddress(Spec, '/data/p53/(range :from 0)', { limit: 9, resolvers });
+    expect(w.result?.type).toBe('location');
+    expect(w.issues.map((i) => [i.code, i.severity])).toEqual([['test.empty', 'warning']]);
+    const p = selectAddress(Spec, '/data/p53/(range :from -1)', { limit: 9, resolvers });
+    expect([p.complete, p.pending]).toEqual([false, ['region 1']]);
+    const e = selectAddress(Spec, '/data/(failing)', { limit: 9, resolvers });
+    expect([e.matches, e.result, e.issues.map((i) => i.code)]).toEqual([[], undefined, ['test.fail']]);
+  });
+
+  it('names a node by a form where no id does', () => {
+    const r = selectAddress(Spec, '/data/(node :key T1)', { limit: 9, resolvers });
+    expect(r.matches.map((m) => printAddress(m.address))).toEqual(['/data/(node :key T1)']);
+  });
+
+  it('lets ids, child selection and /* follow a resolver of nodes; the limit bounds the final matches', () => {
     const r = selectAddress(Spec, '/(deep :of section)', { limit: 9, resolvers });
     expect(r.matches.map((m) => printAddress(m.address))).toEqual(['/views/main/protein', '/views/main/gene']);
     const s = selectAddress(Spec, '/(deep :of ranges)/*', { limit: 9, resolvers });
     expect(s.matches.map((m) => printAddress(m.address))).toEqual(['/data/domains', '/data/domains/x1']);
+    // two sections in a step, one in the end: within a limit of one
+    const first: FormResolver = ({ prefix }) => ({ result: { kind: 'nodes', matches: nodesOf(prefix).slice(-1) } });
+    const one = selectAddress(Spec, '/(deep :of section)/(first)', { limit: 1, resolvers: { ...resolvers, first } });
+    expect(one.matches.map((m) => printAddress(m.address))).toEqual(['/views/main/gene']);
+    expect(selectAddress(Spec, '/(deep :of section)', { limit: 1, resolvers }).issues[0].code).toBe(
+      'repr.tree.address.limit_exceeded',
+    );
     // a resolver's form kind is the resolver's to check, not the language's
     expect(selectAddress(Spec, '/(deep :of view)', { limit: 9, resolvers, kinds: new Set() }).issues).toEqual([]);
+  });
+
+  it('stops on an aborted signal between steps', () => {
+    const c = new AbortController();
+    const abort: FormResolver = ({ prefix }) => (c.abort(), { result: prefix });
+    const r = selectAddress(Spec, '/data/(abort)/p53', { limit: 9, resolvers: { abort }, signal: c.signal });
+    expect(r.issues.map((i) => i.code)).toEqual(['repr.tree.address.cancelled']);
   });
 
   it('refuses an id, a form without a resolver or /* after a result that is not nodes', () => {
@@ -233,5 +285,14 @@ describe('repr/tree: the form-resolver table', () => {
         a,
       ).toEqual(['repr.tree.address.resolver']);
     }
+  });
+});
+
+describe('repr/tree: a numeric-looking key', () => {
+  it('matches a string id only when quoted', () => {
+    const tree: Node = { kind: 'r', children: [{ kind: 'chain', id: 'c', params: { id: '1' } }] };
+    const ids = (a: string) => selectAddress(tree, a, { limit: 9 }).matches.length;
+    expect(ids('/(chain :id "1")')).toBe(1);
+    expect(ids('/(chain :id 1)')).toBe(0);
   });
 });

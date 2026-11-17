@@ -26,7 +26,7 @@
 
 import { Delimiter, KeywordPattern, printAtom, printKey, readQuoted, readWord } from './atoms.js';
 import { valuesEqual } from './hash.js';
-import { type Issue, issueOf, TreeIssues } from './issues.js';
+import { hasErrors, type Issue, issueOf, TreeIssues } from './issues.js';
 import {
   type Atom,
   IdHint,
@@ -86,7 +86,8 @@ export function printAddress(segments: readonly Segment[], subtree = false): str
 function printForm(form: Node): string {
   let out = `(${form.kind}`;
   const params = form.params ?? {};
-  for (const key of Object.keys(params)) {
+  // keys sorted: a form's canonical spelling does not depend on the order it was written in
+  for (const key of Object.keys(params).sort()) {
     if (params[key] === undefined) continue;
     out += ` ${printKey(key)} ${printFormValue(params[key])}`;
   }
@@ -502,19 +503,22 @@ function knownKinds(form: Node, kinds: ReadonlySet<string>): boolean {
   return true;
 }
 
-/** A selected node and its address (ids only: every selected node is addressable). */
+/**
+ * A selected node and its address as segments: ids, or forms where a resolver named the node by one
+ * (`/data/genes/(node :key T1)`, a dynamic node that has no id path). Child selection gives ids only.
+ */
 export interface Selected {
   readonly node: Node;
-  readonly address: Address;
+  readonly address: readonly Segment[];
 }
 
 /**
- * What an address, or its prefix, names: nodes (exact addresses), or what a form resolver made of them (`type` is
- * the resolver's: a location, elements; `value` is opaque to the tree).
+ * What an address, or its prefix, names: nodes, or what a form resolver made of them (`type` is the resolver's: a
+ * location, elements; `value` is opaque to the tree).
  */
 export type Named =
-  | { readonly type: 'nodes'; readonly matches: readonly Selected[] }
-  | { readonly type: string; readonly value: unknown };
+  | { readonly kind: 'nodes'; readonly matches: readonly Selected[] }
+  | { readonly kind: 'other'; readonly type: string; readonly value: unknown };
 
 export interface FormResolverInput {
   /** The form, as read. */
@@ -522,23 +526,36 @@ export interface FormResolverInput {
   /** What the address before the form names (the root, as nodes, for a first segment). */
   readonly prefix: Named;
   readonly root: Node;
-  /** The caller's limit: a result of more nodes or elements is the resolver's issue, never a truncation. */
+  /** The caller's bounds: a result of more nodes or elements than `limit` is the resolver's issue, never a truncation. */
   readonly limit: number;
+  readonly maxDepth: number;
+  /** The caller's signal and deadline (a `performance.now()` time), for a resolver that walks. */
+  readonly signal?: AbortSignal;
+  readonly deadline?: number;
+}
+
+export interface FormResolverResult {
+  readonly result?: Named;
+  /** Errors fail the selection; warnings and infos are carried into its issues. */
+  readonly issues?: readonly Issue[];
+  /**
+   * Reserved for evaluation over data read by region (locations-and-queries.md "Staged"): `false` when the result
+   * covers only what is loaded, `pending` what is not. Carried into the selection, not acted on yet.
+   */
+  readonly complete?: boolean;
+  readonly pending?: unknown;
 }
 
 /**
  * What a form of one kind means (locations-and-queries.md): it receives what the prefix names and returns one of its
  * result types, or issues. A result of nodes lets ids, child selection and `/*` follow it.
  */
-export type FormResolver = (input: FormResolverInput) => {
-  readonly result?: Named;
-  readonly issues?: readonly Issue[];
-};
+export type FormResolver = (input: FormResolverInput) => FormResolverResult;
 
 export interface SelectOptions {
   /**
    * At most this many matches, a non-negative integer or an explicit `Infinity` (else `repr.tree.address.option`);
-   * more is `repr.tree.address.limit_exceeded` and no matches.
+   * more is `repr.tree.address.limit_exceeded` and no matches. It bounds the final matches, not a step's.
    */
   readonly limit: number;
   /**
@@ -558,7 +575,7 @@ export interface SelectOptions {
    * applies to nodes only.
    */
   readonly resolvers?: Readonly<Record<string, FormResolver>>;
-  /** Cancels the walk: read before it and every `CancelEvery` nodes it visits (and between segments). */
+  /** Cancels the walk: read before it and every `CancelEvery` nodes it visits. */
   readonly signal?: AbortSignal;
   /** A `performance.now()` time the walk stops at, read as the signal is. */
   readonly deadline?: number;
@@ -568,11 +585,15 @@ export interface SelectOptions {
 export const CancelEvery = 1024;
 
 export interface Selection {
-  /** The nodes named, in document order, each once; empty when there is an issue or the result is not nodes. */
+  /** The nodes named, in document order, each once; empty when there is an error or the result is not nodes. */
   readonly matches: readonly Selected[];
   /** What a form resolver made, when the address names something other than nodes. */
-  readonly result?: { readonly type: string; readonly value: unknown };
+  readonly result?: { readonly kind: 'other'; readonly type: string; readonly value: unknown };
+  /** Errors (then no matches and no result), or the resolvers' warnings and infos. */
   readonly issues: readonly Issue[];
+  /** Reserved: `false` when a resolver said its result covers only what is loaded. */
+  readonly complete?: boolean;
+  readonly pending?: unknown;
 }
 
 /**
@@ -628,19 +649,19 @@ export function selectAddress(root: Node, address: AddressPattern | string, opti
         : undefined;
   const before = over();
   if (before) return { matches: [], issues: [before] };
-  if (segments.some(resolved)) return staged(root, pattern, { limit, maxDepth, resolvers: resolvers!, over });
+  let visits = 0;
+  /** Counts a visited node; every CancelEvery reads the signal and the clock (no allocation). */
+  const visit = (): Issue | undefined => {
+    if ((!signal && !timed) || ++visits < CancelEvery) return undefined;
+    visits = 0;
+    return over();
+  };
+  if (segments.some(resolved))
+    return staged(root, pattern, { limit, maxDepth, resolvers: resolvers!, signal, deadline, visit, over });
 
   const matches: Selected[] = [];
   const path: string[] = [];
   let stop: Issue | undefined;
-  let visits = 0;
-  /** Counts a visited node; every CancelEvery reads the signal and the clock (no allocation). */
-  const visit = () => {
-    if ((!signal && !timed) || ++visits < CancelEvery) return true;
-    visits = 0;
-    stop = over();
-    return !stop;
-  };
   const emit = (node: Node) => {
     if (matches.length >= limit) {
       stop = limitIssue(limit);
@@ -650,7 +671,7 @@ export function selectAddress(root: Node, address: AddressPattern | string, opti
   };
   const deeper = () => {
     if (path.length < maxDepth) return true;
-    stop = issue('repr.tree.address.depth_exceeded', `The walk goes deeper than ${maxDepth} levels`);
+    stop = depthIssue(maxDepth);
     return false;
   };
   const below = (node: Node) => {
@@ -660,7 +681,7 @@ export function selectAddress(root: Node, address: AddressPattern | string, opti
     for (let k = 0; k < children.length; k++) {
       const id = children[k].id;
       if (id === undefined) continue;
-      if (!visit() || !deeper()) return;
+      if ((stop = visit()) || !deeper()) return;
       path.push(id);
       below(children[k]);
       path.pop();
@@ -680,7 +701,7 @@ export function selectAddress(root: Node, address: AddressPattern | string, opti
       const child = children[k];
       const id = child.id;
       if (id === undefined) continue;
-      if (!visit()) return;
+      if ((stop = visit())) return;
       if (typeof s === 'string' ? id !== s : !matchesForm(s, child)) continue;
       if (!deeper()) return;
       path.push(id);
@@ -700,10 +721,12 @@ const limitIssue = (limit: number) =>
     undefined,
     'narrow the address, or raise the limit',
   );
+const depthIssue = (maxDepth: number) =>
+  issue('repr.tree.address.depth_exceeded', `The walk goes deeper than ${maxDepth} levels`);
 
 /**
  * A pattern with resolved forms, segment by segment: what each prefix names is handed to the next step, nodes or a
- * resolver's result. Bounded by the limit per step and by the signal and the deadline between steps.
+ * resolver's result. The limit bounds the final matches; the signal and the deadline are read inside every step.
  */
 function staged(
   root: Node,
@@ -712,75 +735,101 @@ function staged(
     limit: number;
     maxDepth: number;
     resolvers: Readonly<Record<string, FormResolver>>;
+    signal?: AbortSignal;
+    deadline?: number;
+    visit: () => Issue | undefined;
     over: () => Issue | undefined;
   },
 ): Selection {
-  const fail = (message: string): Selection => ({
-    matches: [],
-    issues: [issue('repr.tree.address.resolver', message)],
-  });
-  let named: Named = { type: 'nodes', matches: [{ node: root, address: [] }] };
-  const nodesOf = (n: Named) => (n.type === 'nodes' ? (n as { matches: readonly Selected[] }).matches : undefined);
+  const failed = (issues: readonly Issue[]): Selection => ({ matches: [], issues });
+  const fail = (message: string) => failed([issue('repr.tree.address.resolver', message)]);
+  const carried: Issue[] = [];
+  let complete: boolean | undefined;
+  let pending: unknown;
+  let named: Named = { kind: 'nodes', matches: [{ node: root, address: [] }] };
   for (let i = 0; i < pattern.segments.length; i++) {
     const s = pattern.segments[i];
     const late = o.over();
-    if (late) return { matches: [], issues: [late] };
+    if (late) return failed([late]);
     const resolver = typeof s === 'string' ? undefined : own(o.resolvers, s.kind);
     if (resolver) {
-      const r = resolver({ form: s as Node, prefix: named, root, limit: o.limit });
-      if (r.issues?.length) return { matches: [], issues: r.issues };
+      const r = resolver({
+        form: s as Node,
+        prefix: named,
+        root,
+        limit: o.limit,
+        maxDepth: o.maxDepth,
+        signal: o.signal,
+        deadline: o.deadline,
+      });
+      // a resolver's warnings never abort the selection: only its errors do
+      if (r.issues && hasErrors(r.issues)) return failed(r.issues);
+      if (r.issues) carried.push(...r.issues);
+      if (r.complete === false) {
+        complete = false;
+        pending = r.pending;
+      }
       if (!r.result) return fail(`The resolver of segment ${i + 1} gave no result`);
       named = r.result;
       continue;
     }
-    const prefix = nodesOf(named);
-    if (!prefix) return fail(`Segment ${i + 1} applies to nodes, and its prefix names a ${named.type}`);
+    if (named.kind !== 'nodes') return fail(`Segment ${i + 1} applies to nodes, and its prefix names a ${named.type}`);
     const next: Selected[] = [];
-    for (const m of prefix) {
-      if (m.address.length >= o.maxDepth)
-        return {
-          matches: [],
-          issues: [issue('repr.tree.address.depth_exceeded', `The walk goes deeper than ${o.maxDepth} levels`)],
-        };
+    for (const m of named.matches) {
+      if (m.address.length >= o.maxDepth) return failed([depthIssue(o.maxDepth)]);
       for (const child of m.node.children ?? []) {
         if (child.id === undefined) continue;
+        const stop = o.visit();
+        if (stop) return failed([stop]);
         if (typeof s === 'string' ? child.id !== s : !matchesForm(s, child)) continue;
-        if (next.length >= o.limit) return { matches: [], issues: [limitIssue(o.limit)] };
         next.push({ node: child, address: [...m.address, child.id] });
         if (typeof s === 'string') break;
       }
     }
-    named = { type: 'nodes', matches: next };
+    named = { kind: 'nodes', matches: next };
   }
-  const nodes = nodesOf(named);
-  if (!nodes) {
+  const done = (sel: Omit<Selection, 'issues'>): Selection => ({
+    ...sel,
+    issues: carried,
+    ...(complete === false ? { complete, pending } : {}),
+  });
+  if (named.kind !== 'nodes') {
     if (pattern.subtree) return fail(`/* applies to nodes, and the address names a ${named.type}`);
-    return { matches: [], result: named as { type: string; value: unknown }, issues: [] };
+    return done({ matches: [], result: named });
   }
   if (!pattern.subtree) {
-    if (nodes.length > o.limit) return { matches: [], issues: [limitIssue(o.limit)] };
-    return { matches: nodes, issues: [] };
+    if (named.matches.length > o.limit) return failed([limitIssue(o.limit)]);
+    return done({ matches: named.matches });
   }
-  // every addressable node below each, each once (a resolver's nodes may hold one another)
+  // every addressable node below each, each once (a resolver's nodes may hold one another); one path stack per root
   const out: Selected[] = [];
   const seen = new Set<Node>();
-  const below = (m: Selected): Issue | undefined => {
-    if (seen.has(m.node)) return undefined;
-    seen.add(m.node);
-    if (out.length >= o.limit) return limitIssue(o.limit);
-    out.push(m);
-    for (const child of m.node.children ?? []) {
-      if (child.id === undefined) continue;
-      if (m.address.length >= o.maxDepth)
-        return issue('repr.tree.address.depth_exceeded', `The walk goes deeper than ${o.maxDepth} levels`);
-      const stop = below({ node: child, address: [...m.address, child.id] });
-      if (stop) return stop;
-    }
-    return undefined;
-  };
-  for (const m of nodes) {
-    const stop = below(m);
-    if (stop) return { matches: [], issues: [stop] };
+  let stop: Issue | undefined;
+  for (const m of named.matches) {
+    const path: Segment[] = m.address.slice();
+    const below = (node: Node) => {
+      if (seen.has(node)) return;
+      seen.add(node);
+      if (out.length >= o.limit) {
+        stop = limitIssue(o.limit);
+        return;
+      }
+      out.push({ node, address: path.slice() });
+      for (const child of node.children ?? []) {
+        if (child.id === undefined) continue;
+        if ((stop = o.visit())) return;
+        if (path.length >= o.maxDepth) {
+          stop = depthIssue(o.maxDepth);
+          return;
+        }
+        path.push(child.id);
+        below(child);
+        path.pop();
+        if (stop) return;
+      }
+    };
+    below(m.node);
+    if (stop) return failed([stop]);
   }
-  return { matches: out, issues: [] };
+  return done({ matches: out });
 }

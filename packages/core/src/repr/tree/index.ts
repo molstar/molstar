@@ -17,6 +17,7 @@ export {
   exactAddress,
   type FormResolver,
   type FormResolverInput,
+  type FormResolverResult,
   formEnd,
   isCanonicalAddress,
   isExactAddress,
