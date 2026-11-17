@@ -345,53 +345,35 @@ export class ViewModel extends ReactiveModel {
   }
 
   /**
-   * A follower's viewport: its leader's range carried along the follow path at its scale (1, 3 or 1/3), continuously
-   * within a run (`point`), else the hull of the integer image (`followRange`); its own top and width.
+   * A follower's viewport: its leader's range carried along the follow path at its scale (1, 3 or 1/3): the exact hull
+   * of the whole positions' image (`followRange`: over an intron, the shortest arc on a cyclic follower), its ends moved
+   * in by the leader's fractions times the scale, so it moves smoothly within a run; its own top and width.
    */
   private _followed(s: SectionState, total: number | undefined): Viewport | undefined {
     const follow = s.section.follow!;
     const lead = this.get(follow.leader);
     const prev = this.get(s.section.address);
     if (!lead) return prev;
-    const leaderAxis = follow.leaderAxis;
-    const ps = positionAt(leaderAxis, lead.start);
-    const pe = positionAt(leaderAxis, lead.end);
-    let range: [number, number] | undefined;
-    if (ps !== undefined && pe !== undefined) {
-      const a = follow.point(ps);
-      const b = endPoint(follow, pe);
-      if (a !== undefined && b !== undefined) range = [Math.min(a, b), Math.max(a, b)];
-      else {
-        const hull = followRangeOf(s.section, ps, pe);
-        if (hull) range = hull;
-      }
-    }
+    const ps = positionAt(follow.leaderAxis, lead.start);
+    const pe = positionAt(follow.leaderAxis, lead.end);
     const axis = s.section.axis;
     let start = prev?.start ?? 0;
     let end = prev?.end ?? total ?? 0;
-    if (range) {
-      const a = nearestOffsetOf(axis, range[0]);
-      const b = nearestOffsetOf(axis, range[1]);
+    const pieces =
+      ps === undefined || pe === undefined ? undefined : followRange(s.section, [Math.floor(ps), Math.ceil(pe)]);
+    if (pieces && pieces.length >= 2) {
+      // the fractions of the leader's first and last positions shown, on the follower's side of the path
+      const head = (ps! - Math.floor(ps!)) * follow.scale;
+      const tail = (Math.ceil(pe!) - pe!) * follow.scale;
+      const lo = pieces[0] + (follow.dir === 1 ? head : tail);
+      const hi = pieces[pieces.length - 1] - (follow.dir === 1 ? tail : head);
+      const a = nearestOffsetOf(axis, lo);
+      const b = nearestOffsetOf(axis, hi);
       if (a !== undefined && b !== undefined) [start, end] = [Math.min(a, b), Math.max(a, b)];
     }
     const pending = lead.pending || total === undefined || s.width <= 0;
     return { start, end, top: s.top, width: s.width, pending, leader: follow.leader };
   }
-}
-
-type Follow = NonNullable<ResolvedSection['follow']>;
-
-/** The image of a range's end: the far edge of the element before it when it is whole (`point` reads its start). */
-function endPoint(follow: Follow, x: number): number | undefined {
-  if (!Number.isInteger(x)) return follow.point(x);
-  const p = follow.point(x - 1);
-  return p === undefined ? undefined : p + follow.scale * follow.dir;
-}
-
-/** The hull of the integer image of `[start, end)` positions, for ends that map nowhere. */
-function followRangeOf(section: ResolvedSection, start: number, end: number): [number, number] | undefined {
-  const pieces = section.follow ? followRange(section, [Math.floor(start), Math.ceil(end)]) : undefined;
-  return pieces && pieces.length >= 2 ? [pieces[0], pieces[pieces.length - 1]] : undefined;
 }
 
 /** The view's sections with every leader before its followers (a chain of follows, EC-114); a cycle is cut. */

@@ -17,6 +17,7 @@ export const View = '/views/main';
 export const ProteinSection = '/views/main/protein';
 export const TwinSection = '/views/main/twin';
 export const GeneSection = '/views/main/gene';
+export const Gene2Section = '/views/main/gene2';
 
 export interface FixtureOptions {
   readonly strand?: '+' | '-';
@@ -25,6 +26,8 @@ export interface FixtureOptions {
   /** A second protein section on the same axis (a scroll group). */
   readonly twin?: boolean;
   readonly title?: string;
+  /** A second gene section following the first: a chain of follows. */
+  readonly chain?: boolean;
   /** The gene's length (24). */
   readonly geneLength?: number;
 }
@@ -45,7 +48,9 @@ export function proteinOnGene(options: FixtureOptions = {}): Node {
     const protein = v.section('protein', { of: p, ...range });
     protein.track('letters').layer('l', { type: 'letters' });
     if (options.twin) v.section('twin', { of: p, ...range });
-    v.section('gene', { of: g, follow: protein }).track('letters').layer('l', { type: 'letters' });
+    const gene = v.section('gene', { of: g, follow: protein });
+    gene.track('letters').layer('l', { type: 'letters' });
+    if (options.chain) v.section('gene2', { of: g, follow: gene });
   });
   return b.build();
 }
