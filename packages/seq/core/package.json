@@ -19,7 +19,13 @@
       "types": "./lib/*.d.ts",
       "import": "./lib/*.js"
     },
-    "./_test/*": null
+    "./lang": {
+      "molstar-src": "./src/lang/index.ts",
+      "types": "./lib/lang/index.d.ts",
+      "import": "./lib/lang/index.js"
+    },
+    "./_test/*": null,
+    "./lang/_test/*": null
   },
   "files": [
     "lib",
@@ -29,7 +35,8 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "typecheck:test": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@molstar/core": "workspace:*",
