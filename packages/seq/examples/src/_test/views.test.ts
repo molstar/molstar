@@ -4,7 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createSeqContext } from '@molstar/seqx-core/context/index';
 import { SeqRuntime } from '@molstar/seqx-core/data';
@@ -112,6 +114,34 @@ describe('the Node assets adapter', () => {
     await expect(read('//example.org/a.seq')).rejects.toThrow(/not read/);
     await expect(read('../package.json')).rejects.toThrow(/not read/);
     await expect(read('fixtures/../../package.json')).rejects.toThrow(/not read/);
+  });
+
+  it('reads the fixtures folder alone: not the package’s other files, its modules or an absolute path', async () => {
+    await expect(read('package.json')).rejects.toThrow(/not read/);
+    await expect(read('src/index.ts')).rejects.toThrow(/not read/);
+    await expect(read('node_modules/typescript/package.json')).rejects.toThrow(/not read/);
+    await expect(read('/etc/passwd')).rejects.toThrow(/not read/);
+    await expect(read(`${PackageFolder}package.json`)).rejects.toThrow(/not read/);
+    await expect(read('fixtures/p53/none.seq')).rejects.toThrow(/not read/);
+    await expect(read('fixtures/p53')).rejects.toThrow();
+  });
+
+  it('refuses a link that leads out of the folder, by the real path', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'seqx-assets-'));
+    try {
+      mkdirSync(join(dir, 'fixtures'));
+      writeFileSync(join(dir, 'secret.txt'), 'secret');
+      writeFileSync(join(dir, 'fixtures', 'ok.txt'), 'fine');
+      symlinkSync(join(dir, 'secret.txt'), join(dir, 'fixtures', 'link.txt'));
+      symlinkSync(dir, join(dir, 'fixtures', 'up'));
+      const reader = nodeFixtureAssets(dir).reader;
+      const signal = new AbortController().signal;
+      expect(await reader.readText('fixtures/ok.txt', signal)).toBe('fine');
+      await expect(reader.readText('fixtures/link.txt', signal)).rejects.toThrow(/not read/);
+      await expect(reader.readText('fixtures/up/secret.txt', signal)).rejects.toThrow(/not read/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('a render without the port reads nothing: the source is an issue, never a read', async () => {
