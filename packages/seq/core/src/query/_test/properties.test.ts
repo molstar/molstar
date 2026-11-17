@@ -5,7 +5,7 @@
  */
 
 // Seeded properties at small, fixed counts: the range-set operations against a bitset oracle, identity however a
-// Location is built, and a short fuzz of normalization and overlap.
+// Location is built, and (the ranges' own properties are core's `HalfOpenRanges` tests).
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { describe, expect, it } from 'vitest';
@@ -14,8 +14,6 @@ import {
   intersectLocations,
   location,
   locationsEqual,
-  normalizeRanges,
-  overlapsRanges,
   partOf,
   subtractLocations,
   unionLocations,
@@ -42,19 +40,6 @@ function bits(pairs: ArrayLike<number>): boolean[] {
 const rangesOf = (l: ReturnType<typeof location>, system = '/s') => partOf(l, system)?.ranges ?? new Int32Array(0);
 
 describe('query: Location properties', () => {
-  it('normalizeRanges gives sorted, disjoint, non-adjacent, non-empty ranges covering the same positions', () => {
-    const rng = new PCG(7);
-    for (let c = 0; c < Cases; c++) {
-      const pairs = randomPairs(rng, 10);
-      const r = normalizeRanges(pairs);
-      for (let i = 0; i < r.length; i += 2) {
-        expect(r[i]).toBeLessThan(r[i + 1]);
-        if (i) expect(r[i]).toBeGreaterThan(r[i - 1]);
-      }
-      expect(bits(r)).toEqual(bits(pairs));
-    }
-  });
-
   it('union, intersect and subtract match the bitset oracle', () => {
     const rng = new PCG(11);
     for (let c = 0; c < Cases; c++) {
@@ -101,26 +86,5 @@ describe('query: Location properties', () => {
       expect(locationsEqual(a, b)).toBe(true);
       expect(hashLocation(a)).toBe(hashLocation(b));
     }
-  });
-
-  it('overlapsRanges matches a scan for items and boundaries, at the system end too', () => {
-    const rng = new PCG(17);
-    for (let c = 0; c < Cases; c++) {
-      const r = normalizeRanges(randomPairs(rng));
-      const b = bits(r);
-      for (let k = 0; k < 8; k++) {
-        const s = rng.int() % (Size + 1);
-        const e = Math.min(Size, s + (rng.int() % 6));
-        const expected =
-          s === e ? (s === Size ? r.length > 0 && r[r.length - 1] === Size : b[s]) : b.slice(s, e).some((v) => v);
-        expect(overlapsRanges(r, s, e, Size), `${[...r]} [${s}, ${e})`).toBe(expected);
-      }
-    }
-  });
-
-  it('refuses a position outside int32, never wraps it', () => {
-    expect(() => normalizeRanges([0, 2 ** 31])).toThrow(/int32/);
-    expect(() => normalizeRanges([-(2 ** 31) - 1, 0])).toThrow(/int32/);
-    expect([...normalizeRanges([2 ** 31 - 2, 2 ** 31 - 1])]).toEqual([2 ** 31 - 2, 2 ** 31 - 1]);
   });
 });

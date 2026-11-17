@@ -10,12 +10,13 @@
 // hashed by `hashLocation`. A cyclic system's wrapped range is two ranges, as any two ranges are. Equality is
 // structural: rects are kept as given (sorted, each once), never merged into fewer rects covering the same cells.
 
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { hash2, hashFnv32a, hashString } from '@molstar/core/data/util/hash-functions';
 import { compareStrings } from './compare.js';
 
 /** Whether a number is a position a Location holds: an integer within int32 (an Int32Array would wrap others). */
 export function isPosition(n: number): boolean {
-  return Number.isInteger(n) && n >= -0x80000000 && n <= 0x7fffffff;
+  return HalfOpenRanges.isInt32(n);
 }
 
 /** The positions of one system: sorted, merged, half-open `[start, end)` pairs, none empty. */
@@ -56,25 +57,7 @@ export interface RectInput {
  * position (`isPosition`) is a programmer error and throws, never wraps: callers given data check it and report.
  */
 export function normalizeRanges(ranges: ArrayLike<number>): Int32Array {
-  const n = ranges.length >> 1;
-  if (ranges.length % 2 !== 0) throw new Error('Ranges are [start, end] pairs');
-  const order: number[] = [];
-  for (let i = 0; i < n; i++) {
-    const s = ranges[2 * i];
-    const e = ranges[2 * i + 1];
-    if (!isPosition(s) || !isPosition(e)) throw new Error('A range end is not an int32 integer');
-    if (e > s) order.push(i);
-  }
-  order.sort((x, y) => ranges[2 * x] - ranges[2 * y]);
-  const out: number[] = [];
-  for (const i of order) {
-    const s = ranges[2 * i];
-    const e = ranges[2 * i + 1];
-    const last = out.length - 1;
-    if (last > 0 && s <= out[last]) out[last] = Math.max(out[last], e);
-    else out.push(s, e);
-  }
-  return Int32Array.from(out);
+  return HalfOpenRanges.normalize(ranges);
 }
 
 function part(system: string, ranges: ArrayLike<number>): LocationPart {
@@ -142,20 +125,14 @@ export function partOf(l: Location, system: string): LocationPart | undefined {
 /** How many positions the parts hold (rects not counted). */
 export function positionCount(l: Location): number {
   let n = 0;
-  for (const p of l.parts) for (let i = 0; i < p.ranges.length; i += 2) n += p.ranges[i + 1] - p.ranges[i];
+  for (const p of l.parts) n += HalfOpenRanges.size(p.ranges);
   return n;
 }
 
 // ---- identity ----
 
-function compareRanges(a: Int32Array, b: Int32Array): number {
-  const n = Math.min(a.length, b.length);
-  for (let i = 0; i < n; i++) if (a[i] !== b[i]) return a[i] - b[i];
-  return a.length - b.length;
-}
-
 function compareParts(a: LocationPart, b: LocationPart): number {
-  return compareStrings(a.system, b.system) || compareRanges(a.ranges, b.ranges);
+  return compareStrings(a.system, b.system) || HalfOpenRanges.compare(a.ranges, b.ranges);
 }
 
 /** A total order of rects: by side a, then side b. */
@@ -190,40 +167,17 @@ export function hashLocation(l: Location): number {
 
 // ---- set operations on parts (per system); rects by the rule each names ----
 
-/** Merges two sorted, merged range lists by a predicate on (in a, in b). */
-function combine(a: Int32Array, b: Int32Array, keep: (inA: boolean, inB: boolean) => boolean): Int32Array {
-  const cuts: number[] = [];
-  for (let i = 0; i < a.length; i++) cuts.push(a[i]);
-  for (let i = 0; i < b.length; i++) cuts.push(b[i]);
-  cuts.sort((x, y) => x - y);
-  const out: number[] = [];
-  let ia = 0;
-  let ib = 0;
-  for (let k = 0; k + 1 < cuts.length; k++) {
-    const s = cuts[k];
-    const e = cuts[k + 1];
-    if (e === s) continue;
-    while (ia < a.length && a[ia + 1] <= s) ia += 2;
-    while (ib < b.length && b[ib + 1] <= s) ib += 2;
-    const inA = ia < a.length && a[ia] <= s;
-    const inB = ib < b.length && b[ib] <= s;
-    if (!keep(inA, inB)) continue;
-    const last = out.length - 1;
-    if (last > 0 && out[last] === s) out[last] = e;
-    else out.push(s, e);
-  }
-  return Int32Array.from(out);
-}
-
-const None = new Int32Array(0);
-
 function combineParts(a: Location, b: Location, keep: (inA: boolean, inB: boolean) => boolean): LocationPart[] {
   const systems = new Set<string>();
   for (const p of a.parts) systems.add(p.system);
   for (const p of b.parts) systems.add(p.system);
   const out: LocationPart[] = [];
   for (const system of [...systems].sort(compareStrings)) {
-    const ranges = combine(partOf(a, system)?.ranges ?? None, partOf(b, system)?.ranges ?? None, keep);
+    const ranges = HalfOpenRanges.combine(
+      partOf(a, system)?.ranges ?? HalfOpenRanges.Empty,
+      partOf(b, system)?.ranges ?? HalfOpenRanges.Empty,
+      keep,
+    );
     if (ranges.length) out.push(Object.freeze({ system, ranges }));
   }
   return out;
@@ -243,8 +197,8 @@ export function intersectLocations(a: Location, b: Location): Location {
   for (const r of a.rects)
     for (const q of b.rects) {
       if (r.a.system !== q.a.system || r.b.system !== q.b.system) continue;
-      const ra = combine(r.a.ranges, q.a.ranges, (x, y) => x && y);
-      const rb = combine(r.b.ranges, q.b.ranges, (x, y) => x && y);
+      const ra = HalfOpenRanges.intersect(r.a.ranges, q.a.ranges);
+      const rb = HalfOpenRanges.intersect(r.b.ranges, q.b.ranges);
       if (ra.length && rb.length)
         rects.push(
           Object.freeze({
@@ -267,25 +221,7 @@ export function subtractLocations(a: Location, b: Location): Location {
   );
 }
 
-/**
- * Whether a half-open item `[start, end)` overlaps the ranges. A zero-length item (a boundary) at `p` overlaps `[s, e)`
- * when `s ≤ p < e`; one at the system's end (`p = length`, given) overlaps a range ending there, so `(all)` holds it.
- * O(log n): a binary search over the ends (the ranges are disjoint and sorted, so their ends are too). Written here, not
- * with core's `SortedArray`, whose searches read a plain sorted array, not every other entry of interleaved pairs.
- */
+/** Whether a half-open item `[start, end)` overlaps the ranges (`HalfOpenRanges.overlaps`: boundaries, the system's end). */
 export function overlapsRanges(ranges: Int32Array, start: number, end: number, length?: number): boolean {
-  const n = ranges.length >> 1;
-  if (!n) return false;
-  if (start === end && start === length) return ranges[2 * n - 1] === length;
-  // the first range whose end is past the item's start
-  let lo = 0;
-  let hi = n;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (ranges[2 * mid + 1] > start) hi = mid;
-    else lo = mid + 1;
-  }
-  if (lo === n) return false;
-  const s = ranges[2 * lo];
-  return start === end ? s <= start : s < end;
+  return HalfOpenRanges.overlaps(ranges, start, end, length);
 }
