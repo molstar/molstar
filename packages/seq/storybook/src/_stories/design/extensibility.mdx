@@ -10,23 +10,16 @@ defaults should still be good on their own.
 
 ## Configuration
 
-Settings live in three places, depending on what they are about.
+In this version, settings live in two places:
 
 - **The spec**: what is shown and how it looks as data (layers, themes, palettes, numbering, focus). It travels with the
   view.
-- **The viewer configuration**: how the viewer behaves and looks in one application, set when the application composes
-  it. This covers:
-  - the interaction grammar's bindings;
-  - behaviors and their params;
-  - density thresholds and data tokens;
-  - animation;
-  - defaults for what a spec leaves unset;
-  - which runtimes and extensions are present.
-- **User settings**: a layer over the viewer configuration, such as a rebinding, a compact density or a theme.
+- **The viewer configuration**: one typed set of config items, given when the application composes the viewer. It covers
+  the gesture bindings, behaviors and their params, the foundations' preset and numbers, limits, and defaults for what a
+  spec leaves unset.
 
-The layers stack: built-in defaults, then the viewer configuration, then user settings. You can ask any setting for its
-effective value and where it came from. Configuration is typed data with defaults, bounds and docs, so it is validated,
-documented and editable in a generated settings form.
+Later, user settings will layer over the configuration, any setting will report its effective value and where it came
+from, and a settings form will be generated from the config items' descriptions.
 
 Configurable does not mean inconsistent. One configuration applies to every view in a viewer, and the fixed rules (one
 grammar, the foundations) hold whatever the values.

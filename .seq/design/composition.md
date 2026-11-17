@@ -48,33 +48,37 @@ spec
   the viewer's models. Its shape and whether it is saved (beside the spec, never in it) is decided with the viewer's
   models; snapshots and refs are how a spec names a view state on purpose.
 
-### Three compiled forms
+### Three compiled forms, in three tiers by what keys them
 
 ```
-spec ─read─▶ checked spec ─resolve─▶ resolved model ─▶ resolved view ─layout─▶ draw lists ─▶ backend
- (decode, migrate,          (systems, maps, paths;      (sections, tracks,      (for a size,
-  validate, defaults)        sources bound; annotations  layers, themes,         a viewport and
-                             and their access plans)     placement through maps) the data store)
-                                       ▲                                              │
-                                       └── data store ◀── runtimes ◀── requests ◀─────┘
+                 keyed by the spec's hashes                       keyed by the store's versions
+spec ─read─▶ checked spec ─resolve─▶ static model ─▶ resolved view │ overlay ─▶ draw lists ─▶ backend
+                                                                   │    ▲          ▲
+                                                 data store ◀── runtimes ◀── requests (resolved view + viewport)
 ```
 
-- **Resolved model**: every coordinate system and its numberings; units and copy groups; maps resolved to their
-  encodings with paths precomposed ([maps.md](maps.md)); each source with the runtime bound to it (unavailable with an
-  issue when none); each annotation's shape, fields and access plan (inline columns, or regions and levels from a
-  source). Pure, cached by the spec's hashes, keyed by address; dynamic nodes from the data store join it as a
-  versioned overlay ([dynamic-nodes.md](dynamic-nodes.md)).
-- **Resolved view** (public, renderer-independent, [rendering.md](rendering.md)): sections with their axes and layout
-  maps, tracks, layers with themes as values or value functions, each layer's fallback chain, and how its data reaches
-  its section. No data, no pixels, no fonts, no target: it is the same for every renderer. Pure, cached, keyed.
-- **Draw lists**: the resolved view laid out for a size, a viewport, a target (which picks each layer's first drawable
-  fallback) and the data store's current entries. Recomputed for what changed; built into reused buffers, so pure by
-  contract (same inputs, same lists), not by allocation ([performance.md](performance.md)).
-- **The data store** ([data-store.md](data-store.md)) sits outside the passes: requests flow from the resolved view and
-  the viewport to the runtimes; answers land in the store with versions; the draw lists' cache key includes the
-  versions of the entries they read. Nothing from the store goes into the spec, the resolved model or the resolved view.
-- **Keys and versions**: every entry of a compiled form carries its address and a version from its inputs, so the
-  viewer, an export or another renderer applies differences, not rebuilds.
+- **Tier 1, pure, keyed by the spec's hashes**:
+  - **the static model**: every coordinate system the spec declares and its numberings; units and copy groups; maps
+    the spec declares, resolved to their encodings, with paths precomposed ([maps.md](maps.md)); each source with the
+    runtime bound to it (unavailable with an issue when none); each annotation's shape, fields and access plan.
+  - **the resolved view** (public, renderer-independent, [rendering.md](rendering.md)): built over the static model
+    only. Sections, tracks, layers with themes as values or value functions, fallback chains, and for each layer its
+    data as an address or a query and the path from its data's system to its section's when that path is static. It
+    holds no data, no dynamic node, no pixels, no fonts, no target.
+- **Tier 2, keyed by the store's versions**: **the overlay**: the dynamic nodes held in the data store (systems, maps,
+  annotations, nested sources), with the paths through dynamic maps composed when the overlay's version changes, for the
+  systems it touched ([dynamic-nodes.md](dynamic-nodes.md)). It is never part of tier 1, so a stream never invalidates
+  the resolved view.
+- **Tier 3, per frame, keyed by both plus the size, viewport and target**: **the draw lists**: the resolved view laid
+  out from the static model, the overlay and the store's data entries; a layer whose data or path is in the overlay
+  resolves it here (a pending layer waits, never "unplaced"); a template expands here into a track per matching node;
+  the target picks each layer's first drawable fallback. Built into reused buffers, pure by contract
+  ([layout-and-draw-lists.md](layout-and-draw-lists.md)).
+- **The data store** ([data-store.md](data-store.md)) sits beside the tiers: requests flow from the resolved view and the
+  viewport to the runtimes; answers land in the store with versions. Data entries feed tier 3; node entries feed tier
+  2. Nothing from the store goes into tier 1.
+- **Summaries** (pyramids, indexes) belong to their store entry, built when it loads, evicted with it
+  ([performance.md](performance.md)).
 
 ## Rejected alternatives
 
@@ -84,6 +88,6 @@ spec ─read─▶ checked spec ─resolve─▶ resolved model ─▶ resolved 
 ## Consequences
 
 - Each consumer reads one form: the viewer and exports the draw lists, other viewers (Nightingale, JBrowse) the
-  resolved view, runtimes their source entries in the resolved model, tests any of them.
+  resolved view with the overlay and the store, runtimes their source entries in the static model, tests any of them.
 - The core's folders follow the pipeline: `lang/` (the description, the builder), `resolve/`, `view/`, `data/` (the
   protocol, the store, the runtime contract), `render/` (layout, draw lists, the SVG and recording backends).

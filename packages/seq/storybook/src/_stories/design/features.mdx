@@ -24,9 +24,8 @@ What this version will contain. Nothing is built yet; each feature will link its
 - **Data and sources**:
   - sequences, units, copies and ligands;
   - alignments and trees;
-  - the six annotation shapes, keyed tables and joins, gene hierarchies;
+  - the six annotation shapes;
 
-  - opening on a gene by name;
   - the text formats: FASTA, alignments, tables, Newick.
 
 - **Streaming and patches**: how state changes. Patches edit the spec and are the only undoable changes; streams bring
@@ -36,7 +35,7 @@ What this version will contain. Nothing is built yet; each feature will link its
   - snapshots: named patches over the base (leaving a step is navigation, not undo);
   - patches on streamed things (a bookmark on a transcript that comes and goes), and a command to keep a region on
     purpose;
-  - patch streams from an agent, a collaborator or a host, applied in order;
+  - patch streams from an agent or a host, applied in order (collaboration later);
   - every command says whether it edits the spec, changes the session or only navigates;
   - self-describing sources: format, location, index, assembly, aliases, fields;
   - one source protocol for inline and streamed data: what a source covers, and a region at a level of detail;

@@ -39,11 +39,10 @@ standardized, and we convert other formats onto it".
 - **No whole-data manifest in the meaning**: a value domain left open means the data in view, computed when the view settles ([data-store.md](data-store.md)); a categorical value not
   listed in the theme takes a color by a stable hash of the value; lengths come from the source's coverage answer.
 
-## Provisional
+## The protocol's types
 
-The protocol's exact shape (the request and the answer, how levels of detail are named, how a runtime declares the
-formats it reads, cancellation and caching) is settled by the first two runtimes: inline `seq` data, and FASTA by URI
-with a region request. bigWig and 2bit runtimes follow as the first genome-scale check.
+Settled in [protocol.md](protocol.md): runtimes, coverage, requests, answers and their table shapes, errors, the `seq`
+format, the store's keys and request planning across maps.
 
 ## Rejected alternatives
 

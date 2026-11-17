@@ -7,6 +7,13 @@ is the agreed direction with its details still open; it says what would settle t
 | Design | Covers |
 |---|---|
 | [version-1.md](version-1.md) | **start here**: version 1's architecture as reconciled after the review, what it fixes, what it defers, and the order of work |
+| [language-description.md](language-description.md) | the tree core's delta from meso\*, the description's shape (column and table params), the slice's kinds, the builder, issue codes |
+| [locations-and-queries.md](locations-and-queries.md) | Nodes, Elements and Locations as result types; address forms by kind; numberings in forms; the first forms; staged evaluation |
+| [protocol.md](protocol.md) | runtimes, coverage, requests and answers with table shapes, errors, the `seq` format, the store's keys, planning across maps, node lifetime |
+| [layout-and-draw-lists.md](layout-and-draw-lists.md) | the layer-type contract, the layout interface, draw lists (units, passes, primitives, buffers), hit-testing, stable lanes, colors and fonts without CSS |
+| [viewer-models.md](viewer-models.md) | the models and session state, viewports, scroll groups and follow, hover and selection, behaviors, gesture bindings, command change kinds, the slice's config items |
+| [examples-and-stories.md](examples-and-stories.md) | the examples package, fixtures in Node and Storybook, one story per view |
+| [security.md](security.md) | the asset policy, defaults by host, bounds on everything a spec sizes, escaping |
 | [features.md](features.md) | the scope of this version: one row per feature with its status, design, edge cases and view (provisional: the first pass) |
 | [vision.md](vision.md) | what Seq\* is, what it is for, and what is deliberately simpler this time |
 | [building-blocks.md](building-blocks.md) | the root nouns (§name-the-roots) and how they fit: spec, data, coordinate systems, maps, views, layers, themes, queries, issues |

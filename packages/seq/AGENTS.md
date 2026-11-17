@@ -14,7 +14,7 @@ new implementation, built on `@molstar/core/reactive` and `@molstar/ui`.
 - **Names**: `seqx` is temporary; the packages become `@molstar/seq-*` when they replace the current Seq\* packages.
 - **The spec** of each package is its `_spec/`: what, never how; code comments cite its sections. Where code and spec
   disagree, fix whichever is wrong in the same commit.
-- **Open items** are [TODO.md](TODO.md); what this version contains is the Storybook's Features page.
+- **Open items** are [TODO.md](TODO.md); the Storybook's Features page summarizes what this version contains.
 - **Imports**: core imports `@molstar/core` and an allowlist of other Mol\* entries (each with its reason, enforced by
   the lint once the rule is added with the first such import); the viewer adds `@molstar/seqx-core` and `@molstar/ui`.
   Never a whole package by default. Inside a package each folder is an entry; across folders name the entry, never a

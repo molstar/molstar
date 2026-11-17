@@ -35,7 +35,7 @@ that shows it (dataset: view).
 | Validation, every issue | stable codes, hints, counts, severity with one meaning | planned | [format](format.md) | 6, 76–78, 86–89 | Antibody: invalid labels |
 | Versions and migrations | one semver, explicit migrations, lenient minors | planned | [format](format.md) | 72–74, 235 | — |
 | Encodings | JSON by default; MessagePack for large inline data (typed columns as extension types); columns declared, hashed by bytes | planned | [format](format.md) | 53, 90 | every view (both encodings in its test) |
-| Archives, through a port | a spec with its data files and an index, read and written by the archive port; a zip adapter out of the box | planned | [ports](ports.md) | 91 | every dataset, saved and opened as an archive |
+| Archives, over the assets port | a spec with its data files and an index, read and written as zip, entries resolved as assets | planned | [ports](ports.md) | 91 | every dataset, saved and opened as an archive |
 | Published JSON Schema | derived from the description | deferred | [format](format.md) | — | trigger: an outside reader or agent tool needs it |
 
 ## Coordinates and maps
@@ -88,7 +88,8 @@ what undo does to each.
 | Snapshots | named patches over the base, a player | no: leaving a step is navigation | planned | [format](format.md) | 84, 85 | p53: a story |
 | Patches on streamed things | a bookmark or a ref naming a dynamic node; waits while the node is not held | yes | planned | [changes](changes.md), [addressing](addressing.md) | — | p53: transcripts by region |
 | Keep this region | a command that turns streamed data into spec content on purpose (an inline copy, a ref) | yes | planned | [changes](changes.md) | 175 | p53: the gene's region by region |
-| Patch streams | patches from an agent, a collaborator or a host applied in order, all or nothing each; a stale base refused or rebased by the host | yes, each a step | planned | [changes](changes.md) | 81, 93 | an editing story with an agent's patches |
+| Patch streams | an agent's or a host's patches applied in order through the history, each a step, refused when made against another revision | yes, each a step | planned | [changes](changes.md) | 81 | an editing story with an agent's patches |
+| Concurrent writers | collaborators' patches rebased over local ones | — | deferred | [changes](changes.md) | 93 | trigger: a collaborative host |
 | Session state | the viewport, the selection, the hover, the cursor, open panels: transient, held by the viewer's models | no | planned | [changes](changes.md) | — | every view |
 | Change kinds of commands | every command declares whether it patches the spec, changes session state or navigates; menus show what undo will undo | — | planned | [changes](changes.md) | — | the command palette |
 
@@ -189,6 +190,7 @@ what undo does to each.
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
 | Ports with default adapters | assets (`AssetManager`), text metrics, structure; formats, maps, backends as registry entries | planned | [ports](ports.md) | — | Extensibility page |
+| Security bounds | an asset policy by host, bounds on everything a spec sizes, escaped output | planned | [security](security.md) | 76, 86, 91, 126 | tests |
 | Configurable layout and spacing | every foundation number a setting, in presets; layouts behind one internal interface | planned | [ux-foundations](ux-foundations.md) | — | foundation stories, a preset switcher |
 | Typed configuration | one set of config items at composition (`ParamDefinition`) | planned | [extensibility](extensibility.md) | — | Extensibility page |
 | Settings in layers | user settings over the configuration; effective values with origin | deferred | [extensibility](extensibility.md) | — | trigger: the typed configuration has users |

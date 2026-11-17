@@ -17,8 +17,8 @@ previous implementation and the JBrowse reply, what it defers, and the order of 
   S-expression codecs in core, MessagePack in io ([tree-core.md](tree-core.md)).
 - **JSON by default, MessagePack for large inline data**; typed columns declared in the description, hashed by bytes,
   printed elided; large data in sources ([format.md](format.md)).
-- **Three compiled forms**: resolved model, resolved view (public, no data, no target), draw lists (for a size, a
-  viewport, a target and the data store) ([composition.md](composition.md), [rendering.md](rendering.md)).
+- **Three compiled forms in three tiers**: the static model and the resolved view (from the spec), the overlay (dynamic
+  nodes from the store), the draw lists (per frame) ([composition.md](composition.md), [rendering.md](rendering.md)).
 - **A data store** with keyed, versioned entries, pending vs empty, settle, open domains at settle
   ([data-store.md](data-store.md)); answers carry nodes as well as tables, the resolved model's dynamic overlay
   ([dynamic-nodes.md](dynamic-nodes.md)).
@@ -63,27 +63,49 @@ surfaces (one UI, internal layouts and chrome parts), and its edge cases kept, c
 
 ## Order of work: the first slice
 
-The smallest end-to-end slice that tests the riskiest decisions first (the review's, accepted):
+The smallest end-to-end slice that tests the riskiest decisions first (the first review's, refined by the second):
 
-1. **Tree core, minimal**: `repr/tree` (node, values with typed columns, hashes, addresses, issues), `repr/schema`,
-   `repr/builder`, the codec interface, the JSON and S-expression codecs, into `@molstar/core`.
-2. **The language description, first slice**, with the query language's first forms (it is designed here, with
-   addressing, not apart): `spec`, `data` with a sequence, `ranges` and `values` annotations, an `offset` map and a
-   `codon` map; `views` with sections, tracks, the `letters`, `ranges` and `values` layers.
-3. **End to end**: inline data through the data store → resolved model → resolved view → draw lists → the SVG and
-   recording backends, and a thin Canvas2D viewer with projected hover. Two views: p53 tracks, and p53's protein on
-   its gene.
-4. **One source by region** through the data store, carrying nodes as well as tables (the author: dynamic nodes "might
-   be really hard to do later"): a synthetic asynchronous source first, sending a transcript as a dynamic node (its item
-   coordinate system, its codon map, a nested source of domains) shown by a track template; then FASTA with its index
-   ([dynamic-nodes.md](dynamic-nodes.md)).
-5. **Measure**: frame time, allocation, test time, bundle size; confirm or move the targets.
+1. **Tree core, minimal** ([tree-core.md](tree-core.md), [language-description.md](language-description.md)): the
+   delta from meso\* (typed columns, `custom`, severity, namespaced kinds), `repr/tree`, `repr/schema` with `column`
+   and `table`, `repr/builder`, the codec interface, JSON and S-expression codecs, normalization on read, the
+   form-resolver table for addresses.
+2. **The language, first slice** ([language-description.md](language-description.md),
+   [locations-and-queries.md](locations-and-queries.md)): `SeqLanguage` with the slice's kinds, the builder, the issue
+   catalog; the Location and element types; the first forms (`range`, `at`, `all`, `item`, `node`, `extent`).
+3. **End to end** ([composition.md](composition.md), [protocol.md](protocol.md), [layout-and-draw-lists.md](layout-and-draw-lists.md),
+   [viewer-models.md](viewer-models.md), [examples-and-stories.md](examples-and-stories.md)): inline data as `seq`
+   sources through the store; the static model and the resolved view; draw lists with the `letters`, `ranges` and
+   `values` layer types, the tracks layout, the passes, the token table; the SVG, recording and Canvas2D backends; the
+   `SpecModel`, `ViewModel` (a scroll group, one follow), `HoverModel` with projection, `StoreModel`; the examples
+   package. Two views: p53 tracks, and p53's protein on its gene (following through the codon map, the gene's full range;
+   collapsed introns later).
+4. **By region**, in three steps ([protocol.md](protocol.md), [dynamic-nodes.md](dynamic-nodes.md)):
+   - **4a, tables by region**: a synthetic asynchronous `seq` source with a fake clock: coverage, levels, tiles, pending
+     vs empty, cancellation, errors, eviction, summaries; then FASTA with its index;
+   - **4b, nodes**: the source sends a transcript as a dynamic node with its item coordinate system and codon map; the
+     overlay; planning through a dynamic map; node lifetime against eviction;
+   - **4c, nested sources and templates**: the transcript's domains as a nested source, shown by a track template.
+5. **Measure**: frame time, allocation, test time, bundle size; confirm or move the targets
+   ([performance.md](performance.md)).
 
-Then: patches and `diff`, the MessagePack codec, structure maps and the Mol\* showcase, addressing and links, the
-remaining layers and layouts, the typed configuration, the other datasets.
+## Milestones after the slice
+
+Version 1's planned features ([features.md](features.md)) come in milestones, each shippable:
+
+1. **Core editing and addressing**: patches and `diff`, undo through the history, previews, snapshots, refs and
+   bookmarks, addresses and links, selection and the grammar's defaults, the security bounds, the MessagePack codec.
+2. **Figures**: the text layout, alignment figures, rings, dot plots, the remaining layers and themes, the UX
+   foundations' stories and presets, SVG and PNG export, the render CLI.
+3. **Integration**: structure maps and the Mol\* showcase, services, bigWig and range reads, the Nightingale reference,
+   archives.
+4. **Genomes** (later): the deferred list above.
 
 ## Open, to decide as the work reaches them
 
-- Session state's shape and whether it is saved (with the viewer's models).
 - Worker boundaries (with the compute port).
 - The asset manager's range reads (with bigWig; a public API change to `@molstar/core`).
+- The runtimes for structures and computed maps (with milestone 3; [maps.md](maps.md)).
+- Accessibility beyond the chrome (the cursor and hover announced, forced colors, titles in exported SVG) and the
+  wording of issue messages for translation: with milestone 2.
+- Versioning under 0.x (every 0.x minor may break; migrations start at 1.0) and extension versions: before the first
+  release.

@@ -147,6 +147,9 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
 - **Streaming and patches**: "maybe even have top level "Streaming and patches" .. because in a way, these are related
   features? and be able to track what is undoable etc too?" ([design/changes.md](../../design/changes.md)).
 
+- **Second review**: "let's run one more indepedent review with opus, and look for spec and design gaps too"; then
+  "Yes, both in order" (fix the contradictions, then write the missing designs in the review's order).
+
 ## Reconciliation
 
 - "JSON with S-expression printing" fits §one-recursive-form (the spelling is the project's choice); meso\* chose

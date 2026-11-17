@@ -24,7 +24,7 @@ changes data store entries, so the draw lists rebuild what read them.
   the transcript is loaded, and the bookmark waits while it isn't.
 - **Streams never become patches.** Arriving data never enters the spec. Keeping a region is a command that writes a
   patch on purpose.
-- **Patches can stream too.** Edits from an agent, a collaborator or a host are applied in order, each all or nothing. A
-  patch whose base no longer matches is refused or rebased by the host.
+- **Patches can stream too.** Edits from an agent or a host are applied in order through the history, each a step, and a
+  patch made against another revision is refused. Concurrent writers (collaboration) come later.
 - **Every command says its kind**: it edits the spec, changes the session, or only navigates. Menus can then show what
   undo will undo, and agents can tell an edit from a look.

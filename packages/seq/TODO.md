@@ -13,9 +13,10 @@ to end to SVG and a thin Canvas2D viewer, one source by region, then measure.
   `codon` map), `views` (sections, tracks, `letters`, `ranges`, `values` layers); the query language's first forms.
 - **End to end**: the data store, the resolved model, the resolved view, draw lists, the SVG and recording backends, a
   thin Canvas2D viewer with projected hover; views: p53 tracks, p53's protein on its gene.
-- **One source by region, with dynamic nodes**: a synthetic asynchronous source sending a transcript as a dynamic node
-  (its own coordinate system, a codon map, a nested source of domains) shown by a track template; then FASTA with its
-  index.
+- **By region, in three steps**: tables by region from a synthetic asynchronous source (levels, tiles, pending,
+  cancellation, eviction), then FASTA with its index; dynamic nodes (a transcript with its own coordinate system and
+  codon map); nested sources and track templates.
+- **The examples package** (`packages/seq/examples`): fixtures and one builder module per view, tested in Node.
 - **Measure**: frame time, allocation, test time, bundle size.
 - **Then**: patches and `diff`, MessagePack (from io), structure maps and the Mol\* showcase, addressing and links,
   bigWig, the remaining layers and layouts, the typed configuration, the other datasets, the UX foundation stories.

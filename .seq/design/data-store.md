@@ -9,9 +9,8 @@ author, 2026-11-17).
 
 ## Decision
 
-- **One store per viewer** (or per headless render context), outside the compiled forms. Entries are keyed by
-  `(source address, region, level)`; a region is a range on the source's system snapped to the level's tile size, so
-  overlapping requests share entries.
+- **One store per viewer** (or per headless render context), outside the compiled forms. Data entries are keyed by
+  `(source, system, level, tile)` and node entries by `(source, key)`, encoded as strings ([protocol.md](protocol.md)).
 - **An entry's state** is one of `pending`, `loaded`, `empty`, `failed` (with its issue). Pending is never drawn or hit
   as empty (EC-169); failed shows its issue on the track and is retried by policy (EC-174).
 - **Versions**: each entry has a version that changes when its state or data changes; the store has a version that
@@ -22,7 +21,8 @@ author, 2026-11-17).
 - **Requests**: from the resolved view and the viewport, each visible layer asks for (source, region, level); the store
   dedupes, orders (view, margin, prefetch; EC-172), bounds what is in flight, cancels what left the view after a grace
   (EC-173), and passes the rest to the source's runtime through the source protocol ([sources.md](sources.md)).
-- **Eviction**: byte-bounded (64 MB by default, a setting), least recently used, never an entry in view.
+- **Eviction**: data entries byte-bounded (64 MB by default, a setting), least recently used, never an entry in view;
+  node entries held by their holders, not cached ([protocol.md](protocol.md), Lifetime).
 - **Answers carry nodes**: a region's answer holds tables and the data nodes it brings; the nodes are entries of their
   source, identified by (source, key), and form the resolved model's dynamic overlay ([dynamic-nodes.md](dynamic-nodes.md)).
 - **Inline data** goes through the same store, as entries that are loaded at once; one path for drawing.
@@ -36,6 +36,7 @@ author, 2026-11-17).
 
 ## Consequences
 
-- The resolved model and the resolved view stay pure and cached; only draw lists and legends read the store.
+- Tier 1 (the static model and the resolved view) never reads the store; node entries feed the overlay (tier 2); data
+  entries feed the draw lists and legends (tier 3) ([composition.md](composition.md)).
 - The store's conformance tests: pending vs empty, dedupe, cancellation, eviction never in view, versions, settle and
   open domains, with a synthetic asynchronous source and a fake clock.

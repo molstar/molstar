@@ -41,7 +41,8 @@ structures should be chosen appropriately".
   | text layout | lines laid out lazily, only the lines in view, with their offsets kept for scrolling |
 
 - **Summaries cost a fraction of the data**: a pyramid of 4× steps adds at most a third of its base; summaries are
-  built once at load for inline data (in a worker for large data), or served by the source when its format has them.
+  built once when a store entry is loaded (on the main thread in time slices until the compute port exists), or served
+  by the source when its format has them; they belong to their store entry and are evicted with it.
 - **What is tested**: frame time is flat across the scale fixtures (ten times the data, at most 1.2 times the frame
   time on the same view size), and proportional to the view size (twice the pixels, at most twice the time); a
   region query's cost grows with log n, measured as a ratio.

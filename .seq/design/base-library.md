@@ -34,7 +34,7 @@ a guide and writing the generic piece in core with its test; `packages/seq` neve
 | number and value formatting | `@molstar/core/util/number`, `string-format` | `toPrecision`, `FormatTemplate` |
 | params, bindings | `@molstar/core/util/param-definition`, `binding` | `ParamDefinition`, `Binding` |
 | reactive state | `@molstar/core/reactive` | `State`, `derive`, `KeyedState`, `ReactiveModel` |
-| history, commands, keymaps, settings forms | `@molstar/ui/history`, `commands`, `forms` | `HistoryPort`, `Keymap`, `ParamsFormModel` |
+| history, commands, keymaps | `@molstar/ui/history`, `commands` | `HistoryPort` (checkpoints), `Keymap`, `CommandManager`; `forms` later, with the settings form |
 
 ## Extend in place
 
@@ -64,7 +64,7 @@ Written anew in core with their tests, the previous code read as a guide.
 | Piece | Goes to | Why |
 |---|---|---|
 | the tree core | `@molstar/core/repr` | decided ([tree-core.md](tree-core.md)) |
-| an S-expression reader and printer | `@molstar/core/repr/tree` (with the tree core) | meso\*'s, generic |
+| an S-expression reader and printer | `@molstar/core/repr/codecs/sexpr` (with the tree core) | meso\*'s, generic |
 | a worker pool | `@molstar/core/task` | when the compute port comes ([ports.md](ports.md)) |
 | a ring buffer | `@molstar/core/data/util` | input and frame history without allocation |
 | genomic unit formatting and tick steps | `@molstar/core/util/number` | kb and Mb, nice tick steps for rulers |
@@ -74,7 +74,7 @@ Written anew in core with their tests, the previous code read as a guide.
 
 - Two luminance functions (`Color.luminance` and `canvas-ink`): one.
 - Two schedulers (`@molstar/core/task/util/scheduler` and the frame scheduler the viewer needs): the viewer's frames go
-  through the host port (`@molstar/ui/dom`), not a third scheduler.
+  through `@molstar/ui/dom`'s `DomHost`, not a third scheduler.
 - The previous implementation's own sets, colors, hashes, inflate and text measuring: not carried over; Seq\* uses
   core's.
 

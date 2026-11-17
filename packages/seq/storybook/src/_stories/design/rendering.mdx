@@ -16,11 +16,10 @@ spec ─resolve─▶ resolved view ─layout─▶ draw lists ─▶ backend: C
 
 - **The spec**, documented by the language reference. A viewer can map the language onto its own model, as a JBrowse
   converter did.
-- **The resolved view**. Refs are followed, defaults filled, maps resolved, themes turned into values, and a fallback
-  chosen for every layer the target cannot draw. Data comes through the source protocol, by region. It has no pixels and
-  no fonts.
-- **Draw lists**. The resolved view is laid out for a size and a viewport, as typed primitives (rects, paths, glyph
-  runs, text) in passes. Hit-testing reads the same layout.
+- **The resolved view**. Refs are followed, defaults filled, maps resolved, themes turned into values, and each layer's
+  fallback chain listed. It holds no data, no pixels, no fonts and no target, so it is the same for every renderer.
+- **Draw lists**. The resolved view is laid out for a size, a viewport and a target (which picks each layer's first
+  drawable fallback), from the data store's entries, as typed primitives in passes. Hit-testing reads the same layout.
 - **Backends** draw the draw lists. Canvas2D draws on screen; SVG is a string with no DOM; PNG comes from either; a
   recording backend serves tests. An application can add its own.
 

@@ -62,7 +62,7 @@ slowed the edit loop; here speed is a requirement with numbers:
 ### How tests are written
 
 - **Models in Node**: every model is tested without a DOM; views opt into jsdom per file; timers and frames through
-  the host port, so no test waits on a clock.
+  `DomHost`, patched in tests, so no test waits on a clock.
 - **Records, not screenshots, in the quick lane**: draw-list records and printed specs are committed text, reviewed as
   diffs; a change to one is a change to look at, not to accept blindly.
 - **Fixtures are small and committed**; large ones are generated in code (seeded), never stored; the network is never

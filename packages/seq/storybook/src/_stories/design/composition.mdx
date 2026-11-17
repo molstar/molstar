@@ -22,22 +22,22 @@ spec
 - **Session is not the spec.** The viewport, the selection, the hover and open panels are transient. Snapshots and refs
   are how a spec names a view state on purpose.
 
-## Three compiled forms
+## Three compiled forms, in three tiers
 
 ```
-spec ─read─▶ checked spec ─resolve─▶ resolved model ─▶ resolved view ─layout─▶ draw lists ─▶ backend
-                                                                                   ▲
-                                                 data store ◀── runtimes ◀── requests for the regions in view
+     keyed by the spec                                 keyed by the data store
+spec ─▶ static model ─▶ resolved view   │   overlay ─▶ draw lists ─▶ backend
+                                        │      ▲          ▲
+                    data store ◀── runtimes ◀── requests for the regions in view
 ```
 
-- **Resolved model**: every coordinate system, maps resolved with their paths, each source bound to its runtime, and
-  each annotation's fields and access plan.
-- **Resolved view**: views, sections, tracks and layers, with themes resolved and fallback chains. It holds no data, no
-  pixels and no target, so it is the same for every renderer, and other viewers can read it.
-- **Draw lists**: the resolved view laid out for a size, a viewport and a target, from the data store's current entries.
+- **Static model and resolved view** (from the spec only): coordinate systems, maps and their paths, sources bound to
+  runtimes, annotations' access plans; then views, sections, tracks and layers with themes resolved and fallback chains.
+  The resolved view holds no data, no streamed nodes and no target, so it is the same for every renderer.
+- **Overlay** (from the data store): the nodes that arrive with data, such as transcripts and their coordinate systems,
+  with paths through them. A stream never invalidates the resolved view.
+- **Draw lists** (per frame): the resolved view laid out for a size, a viewport and a target, from the overlay and the
+  store's data. Layers waiting for data wait here, and templates expand here.
 
-The **data store** sits outside the passes. Visible layers ask for regions, runtimes answer, and entries arrive with
-versions. Pending is never drawn as empty. Nothing from the store goes into the spec or the resolved forms.
-
-Every entry of a compiled form is keyed by its address and versioned by its inputs, so a patch recompiles only what it
-touched.
+The data store sits beside the tiers. Visible layers ask for regions, runtimes answer, and entries arrive with versions.
+Pending is never drawn as empty. Nothing from the store goes into the spec, the static model or the resolved view.

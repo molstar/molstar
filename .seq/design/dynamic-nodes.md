@@ -33,8 +33,9 @@ first slice exercises them.
   the node is left out. The same key with other params keeps the held node, with an issue.
 - **Where they live**: in the data store, as entries of their source ([data-store.md](data-store.md)); never in the spec,
   its history or its patches (EC-175).
-- **The resolved model is static plus an overlay** ([composition.md](composition.md)): the static part comes from the
-  spec (pure, cached by hash); the overlay holds the dynamic nodes in the store, versioned with it. Systems, maps and
+- **The overlay is a tier of its own** ([composition.md](composition.md)): the static model and the resolved view come
+  from the spec (pure, cached by hash) and never hold a dynamic node; the overlay holds the dynamic nodes in the store,
+  versioned with it, and the draw lists read both. Systems, maps and
   annotations from the overlay join the model as the static ones do; paths through a dynamic map are composed when the
   overlay's version changes, for the systems it touched, never on hover.
 - **Naming before arrival**: a spec may name a dynamic node before it is held; what names it waits (a layer pending, its

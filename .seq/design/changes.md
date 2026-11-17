@@ -33,15 +33,19 @@ whether it is undoable, keeps that clear.
 | configuration | a binding, a preset, a config item | the viewer's configuration | no (settings history is the host's) | no | no | — |
 | registration | an extension registered by a behavior | the viewer's registries | its undo function | no | no | — |
 
-- **Undo is the spec's patch history only** (`@molstar/ui/history`'s `HistoryPort`, with `repr/patch`'s inverses):
-  one step a batch, a gesture's preview ending in one step. Nothing else enters it.
+- **Undo is the spec's history only**, through `@molstar/ui/history`'s `HistoryPort`, which works by checkpoints: a
+  checkpoint is the spec's immutable root (structural sharing makes it cheap), a revision is the root's hash, and
+  `restore` sets the root back. One step a batch, a gesture's preview ending in one step. Nothing else enters it.
+  `repr/patch`'s inverses serve `diff`, patch streams and agents, not the undo stack.
 - **Patches may name streamed things**: a bookmark on a dynamic node (`/data/genes/(node :key T1)`) is a patch like any
   other; undoing it works whether or not the node is held; the ref waits while it is not ([addressing.md](addressing.md)).
 - **Streams never become patches**: arriving data never enters the spec or its history (EC-175); "keep this region" is
   a command that writes a patch (an inline copy, a ref), on purpose.
-- **Patches can stream too**: a sequence of patches (an agent's edits, a collaborator's, a host's echo) is applied in
-  order, each all or nothing; a patch whose base revision no longer matches is refused or rebased by the host, never
-  applied blindly (EC-81, EC-93).
+- **Patches can stream too, in version 1 from one writer at a time**: an agent's or a host's patches are applied
+  through the same history, each a step (an agent's turn may group its calls into one, as `HistoryStep.turn` allows);
+  a patch names the revision it was made against and is refused when that is not the current one (EC-81). Concurrent
+  writers (collaboration, rebase) are deferred: a change made outside the history invalidates the earlier steps, as
+  `HistoryPort`'s rule says, so it waits for a design of its own (EC-93).
 - **Every command says its change kind**: a command's description declares whether it writes a patch, changes session
   state or only navigates, so menus can show what undo will undo and agents can tell an edit from a look.
 
