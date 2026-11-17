@@ -256,6 +256,9 @@
     },
     {
       "path": "./packages/seq/viewer"
+    },
+    {
+      "path": "./packages/seq/examples"
     }
   ]
 }

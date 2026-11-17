@@ -18,6 +18,7 @@
   "dependencies": {
     "@molstar/core": "workspace:*",
     "@molstar/seqx-core": "workspace:*",
+    "@molstar/seqx-examples": "workspace:*",
     "@molstar/seqx-viewer": "workspace:*",
     "@molstar/ui": "workspace:*"
   },

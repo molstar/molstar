@@ -553,6 +553,12 @@
       "private": true
     },
     {
+      "name": "@molstar/seqx-examples",
+      "path": "packages/seq/examples",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/seqx-storybook",
       "path": "packages/seq/storybook",
       "kind": "storybook",
