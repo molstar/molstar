@@ -9,7 +9,15 @@
 // A codon step is a scale: a residue `k` is the triplet `3k, 3k + 1, 3k + 2` of fine places, so every map on the
 // protein's side is scaled by 3 and the whole path is one linear map of fine places.
 
-import { composeLinear, ImplicitLinear, isEmptyLinear, type Linear, linearsEqual, scaleLinear } from './linear.js';
+import {
+  composeLinear,
+  ImplicitLinear,
+  isEmptyLinear,
+  type Linear,
+  linearDir,
+  linearsEqual,
+  scaleLinear,
+} from './linear.js';
 
 /** `1`: a codon step from residues to nucleotides; `-1`: back; `0`: none (positions to positions). */
 export type Step = -1 | 0 | 1;
@@ -81,22 +89,48 @@ export function composeEdges(from: string, edges: readonly Edge[]): Path | undef
 
 // ---- what a path answers ----
 
-/** The image of `[start, end, …]` pairs as `[start, end, …]` pairs on the target (unsorted, possibly overlapping). */
-export function projectRanges(p: Path, ranges: ArrayLike<number>): number[] {
-  const out: number[] = [];
+/**
+ * The image of `[start, end, …]` pairs as `[start, end, …]` pairs on the target (unsorted, possibly overlapping). With
+ * `out`, it is cleared and filled, so a warm buffer is reused with no allocation (the hover loop's); without, a new
+ * array.
+ */
+export function projectRanges(p: Path, ranges: ArrayLike<number>, out: number[] = []): number[] {
+  out.length = 0;
   for (let i = 0; i + 1 < ranges.length; i += 2) {
     const s = ranges[i];
     const e = ranges[i + 1];
-    const runs = p.step === 1 ? p.linear.forward(3 * s, 3 * e) : p.linear.forward(s, e);
-    for (const r of runs) {
-      const lo = r.dir === 1 ? r.to : r.to - r.length + 1;
-      const hi = lo + r.length;
-      // nucleotides lift to the residues whose triplets they are in
-      if (p.step === -1) out.push(Math.floor(lo / 3), Math.ceil(hi / 3));
-      else out.push(lo, hi);
-    }
+    const from = out.length;
+    if (p.step === 1) p.linear.targets(3 * s, 3 * e, out);
+    else p.linear.targets(s, e, out);
+    // nucleotides lift to the residues whose triplets they are in
+    if (p.step === -1)
+      for (let j = from; j < out.length; j += 2) {
+        out[j] = Math.floor(out[j] / 3);
+        out[j + 1] = Math.ceil(out[j + 1] / 3);
+      }
   }
   return out;
+}
+
+/**
+ * The continuous image of a position `x` (a viewport's fractional edge): the edge where element `floor(x)` starts on
+ * the target, plus the fraction times the scale in the run's direction; undefined where the element maps nowhere. A
+ * follower moves smoothly with its leader within a run.
+ */
+export function projectPoint(p: Path, x: number): number | undefined {
+  const k = Math.floor(x);
+  const frac = x - k;
+  const r = p.linear.forward(p.step === 1 ? 3 * k : k, (p.step === 1 ? 3 * k : k) + 1)[0];
+  if (!r) return undefined;
+  const edge = r.dir === 1 ? r.to : r.to + 1;
+  if (p.step === 1) return edge + frac * 3 * r.dir;
+  if (p.step === -1) return (edge + frac * r.dir) / 3;
+  return edge + frac * r.dir;
+}
+
+/** The direction of a path: −1 where it reverses (a minus-strand gene), else 1 (its first run's for a path that turns). */
+export function pathDir(p: Path): 1 | -1 {
+  return linearDir(p.linear);
 }
 
 /** The fine image of one place, with the direction of its run, or undefined. */
@@ -138,7 +172,7 @@ export function pathStatus(p: Path, k: number): ElementStatus {
 // ---- search ----
 
 export interface PathGraph {
-  /** The steps out of a system. */
+  /** The steps out of a system: the systems whose steps the search asks are what its answer depends on. */
   edgesFrom(system: string): readonly Edge[];
 }
 

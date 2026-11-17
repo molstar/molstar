@@ -9,9 +9,10 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { OpenLength, resolveSpec } from '@molstar/seqx-core/resolve/index';
+import { createResolver, resolveSpec } from '@molstar/seqx-core/resolve/index';
 import { describe, expect, it } from 'vitest';
 import { EXONS, P53_LETTERS, p53Spec } from '../../lang/_test/p53.js';
+import { p53GeometrySpec } from '../../resolve/_test/p53-geometry.js';
 import { followRange, resolveView, resolveViews } from '../view.js';
 
 const model = resolveSpec(p53Spec());
@@ -25,7 +26,8 @@ describe('resolved view: the p53 example', () => {
     expect(main.issues).toEqual([]);
     expect(main.sections.map((s) => [s.address, s.axis])).toEqual([
       ['/views/main/protein', { system: '/data/p53', length: 30, cyclic: false, ranges: [0, 30] }],
-      ['/views/main/gene', { system: '/data/tp53', cyclic: false, ranges: [0, OpenLength] }],
+      // the gene's length is not known yet: its axis is pending
+      ['/views/main/gene', { system: '/data/tp53', cyclic: false }],
     ]);
     expect(resolveViews(model)).toEqual([main]);
     expect(resolveView(model, '/views/main')).toBe(main);
@@ -62,16 +64,33 @@ describe('resolved view: the p53 example', () => {
 
   it('resolves the gene’s follow to the codon path, three nucleotides a residue', () => {
     const follow = main.sections[1].follow!;
-    expect([follow.leader, follow.scale, follow.path.from, follow.path.to, follow.path.step]).toEqual([
+    expect([follow.leader, follow.scale, follow.dir, follow.path.from, follow.path.to, follow.path.step]).toEqual([
       '/views/main/protein',
       3,
+      -1,
       '/data/p53',
       '/data/tp53',
       1,
     ]);
-    expect(followRange(main.sections[1], 0, 1)).toEqual({ start: 197, end: 200 });
-    expect(followRange(main.sections[1], 0, 30)).toEqual({ start: 100, end: 200 });
-    expect(followRange(main.sections[0], 0, 1)).toBeUndefined();
+    expect(followRange(main.sections[1], [0, 1])).toEqual([197, 200]);
+    expect(followRange(main.sections[1], [0, 30])).toEqual([100, 200]);
+    expect(followRange(main.sections[0], [0, 1])).toBeUndefined();
+  });
+
+  it('moves a follower smoothly: the continuous image of a leader position, against it on the minus strand', () => {
+    const follow = main.sections[1].follow!;
+    expect(follow.point(0)).toBe(200);
+    expect(follow.point(0.5)).toBe(198.5);
+    expect(follow.point(1)).toBe(197);
+    expect(follow.point(31)).toBeUndefined();
+  });
+
+  it('precomposes the paths between its sections', () => {
+    expect(main.links.map((l) => [l.from, l.to, l.path.step])).toEqual([
+      ['/views/main/protein', '/views/main/gene', 1],
+      ['/views/main/gene', '/views/main/protein', -1],
+    ]);
+    expect(main.links[0].path).toBe(main.sections[1].follow!.path);
   });
 });
 
@@ -156,12 +175,85 @@ describe('resolved view: cyclic sections', () => {
   const v = resolveView(resolveSpec(b.build()), '/views/v')!;
 
   it('a range that wraps the origin is two ranges (EC-9, EC-10)', () => {
-    expect(v.sections[1].axis.ranges).toEqual([0, 2, 8, 10]);
+    // in display order: from its start to the origin, then on
+    expect(v.sections[1].axis.ranges).toEqual([8, 10, 0, 2]);
   });
 
-  it('a follower on a cyclic system takes the shortest arc (EC-12)', () => {
+  it('a follower on a cyclic system takes the shortest arc, in the axis’s shape (EC-12)', () => {
     expect(v.sections[1].follow?.scale).toBe(1);
-    expect(followRange(v.sections[1], 1, 5)).toEqual({ start: 8, end: 2 });
-    expect(followRange(v.sections[1], 0, 2)).toEqual({ start: 7, end: 9 });
+    expect(followRange(v.sections[1], [1, 5])).toEqual([8, 10, 0, 2]);
+    expect(followRange(v.sections[1], [0, 2])).toEqual([7, 9]);
+    expect(followRange(v.sections[1], [1, 5], { arc: 'hull' })).toEqual([0, 10]);
+  });
+
+  it('a leader range over its cyclic origin is split before it is carried', () => {
+    const c = createSeqSpec();
+    const pl = c.data.sequence('plasmid', { alphabet: 'dna', letters: 'ACGTACGTAC', cyclic: true });
+    const copy = c.data.sequence('copy', { alphabet: 'dna', letters: 'ACGTACGTAC' });
+    c.data.map('m', { from: pl, to: copy, method: 'offset', by: 0 });
+    c.views.view('v', (view) => {
+      const lead = view.section('pl', { of: pl });
+      view.section('copy', { of: copy, follow: lead });
+    });
+    const f = resolveView(resolveSpec(c.build()), '/views/v')!.sections[1];
+    // [8, 2) on the plasmid: 8, 9, 0, 1; their hull on the copy, which is not cyclic
+    expect(followRange(f, [8, 2])).toEqual([0, 10]);
+    expect(followRange(f, [8, 10, 0, 2])).toEqual([0, 10]);
+    expect(followRange(f, [3, 5])).toEqual([3, 5]);
+  });
+});
+
+describe('resolved view: p53 on chr17', () => {
+  it('draws the protein’s domains on the gene through the codon path, following the protein', () => {
+    const m = resolveSpec(p53GeometrySpec());
+    const v = resolveView(m, '/views/main')!;
+    expect(v.issues).toEqual([]);
+    const gene = v.sections[1];
+    expect(gene.axis).toEqual({ system: '/data/chr17', cyclic: false });
+    expect(gene.tracks[0].layers[0].path?.step).toBe(1);
+    expect(followRange(gene, [93, 292])).toEqual([7673743, 7676089]);
+    expect(gene.follow?.dir).toBe(-1);
+  });
+
+  it('an edit through a resolver rebuilds the view and keeps its paths', () => {
+    const resolver = createResolver();
+    const spec = p53GeometrySpec();
+    const a = resolveView(resolver.resolve(spec), '/views/main')!;
+    // a track's label changes: the data is the same
+    const views = spec.children!.find((c) => c.kind === 'views')!;
+    const relabel = (n: Node): Node =>
+      n.kind === 'track'
+        ? { ...n, params: { ...n.params, label: 'Domains' } }
+        : { ...n, children: n.children?.map(relabel) };
+    const next: Node = { ...spec, children: spec.children!.map((c) => (c === views ? relabel(c) : c)) };
+    const b = resolveView(resolver.resolve(next), '/views/main')!;
+    expect(b).not.toBe(a);
+    expect(b.sections[1].tracks[0].label).toBe('Domains');
+    expect(b.sections[1].follow!.path).toBe(a.sections[1].follow!.path);
+    expect(b.sections[1].tracks[0].layers[0].path).toBe(a.sections[1].tracks[0].layers[0].path);
+  });
+});
+
+describe('resolved view: what does not resolve', () => {
+  function view(build: (b: ReturnType<typeof createSeqSpec>) => void) {
+    const b = createSeqSpec();
+    build(b);
+    return resolveView(resolveSpec(b.build()), '/views/v')!;
+  }
+
+  it('a section of no system, a layer of an unknown type, a layer whose type does not draw its data', () => {
+    const v = view((b) => {
+      const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MK' });
+      const vals = b.data.values('vals', { target: s, values: new Float32Array([1, 2]) });
+      b.views.view('v', (vb) => {
+        vb.section('none', { of: '/data/missing' }).track('t').layer({ type: 'ranges', data: vals });
+        const t = vb.section('s', { of: s }).track('t');
+        t.layer({ type: 'ranges', data: vals });
+        t.layer({ type: 'arcs' as 'ranges', data: vals });
+      });
+    });
+    expect(codes(v.issues)).toEqual(['seq.view.section.system', 'seq.view.layer.shape', 'seq.view.layer.type']);
+    expect(v.sections[0].tracks[0].layers[0].placed).toBe(false);
+    expect(v.sections[1].tracks[0].layers.map((l) => l.placed)).toEqual([false, false]);
   });
 });

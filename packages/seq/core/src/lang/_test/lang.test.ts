@@ -242,6 +242,30 @@ describe('the gates and the places', () => {
     }
   });
 
+  it('a coding sequence crosses a cyclic origin only in its last exon, and only on a cyclic gene (EC-11)', () => {
+    const run = (cyclic: boolean, start: number[], end: number[], table?: number) => {
+      const b = createSeqSpec();
+      const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MK' });
+      const g = sequence(b, cyclic);
+      b.data.map('m', { from: p, to: g, method: 'codon', exons: { start, end }, strand: '+', table });
+      return b.check().map((i) => i.code);
+    };
+    expect(run(true, [6], [0])).toEqual([]);
+    expect(run(true, [3, 6], [5, 2])).toEqual([]);
+    expect(run(false, [6], [0])).toEqual(['seq.lang.map.exons']);
+    // past the first exon's start, or not the last exon
+    expect(run(true, [3, 6], [5, 4])).toEqual(['seq.lang.map.exons']);
+    expect(run(true, [6, 7], [2, 8])).toEqual(['seq.lang.map.exons']);
+    expect(run(true, [6], [0], 11)).toEqual([]);
+  });
+
+  it('a genetic code table is a codon map’s param; a sequence may name its record in its source', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT', name: 'chr1' });
+    b.data.map('m', { from: s, to: s, method: 'offset', by: 1, table: 2 });
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.map.params']);
+  });
+
   it('a wrapped range still stays within the letters', () => {
     const b = createSeqSpec();
     b.data.ranges('r', { target: sequence(b, true), rows: { start: [6], end: [9] } });

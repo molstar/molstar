@@ -7,8 +7,8 @@
 // The static model (_spec/README.md "Resolve"): tier 1, pure, over a checked spec. Every coordinate system the spec
 // declares, its maps resolved to their encodings, paths composed on demand and kept, each source bound to its runtime
 // and each annotation's access plan. It implements the query forms' model, so queries run on a real spec. Entries are
-// keyed by address and cached by the hashes of the nodes they read: a resolver given an edited spec rebuilds only
-// what the edit touched.
+// keyed by address and cached by the hashes of the nodes they read, and paths by the map entries their search read: a
+// resolver given an edited spec rebuilds only what the edit touched.
 
 import type { ParamsFor } from '@molstar/core/repr/builder';
 import {
@@ -48,34 +48,57 @@ import {
   rangesLocation,
   unionLocations,
 } from '@molstar/seqx-core/query';
-import { codingLength, codonRuns, codonLinear } from './codon.js';
-import { ResolveIssues } from './issues.js';
-import { composeLinear, type Encoding, ImplicitLinear, isEmptyLinear, type Linear } from './linear.js';
 import {
-  DefaultPathBounds,
-  type Edge,
-  findPath,
-  inversePath,
-  type Path,
-  type PathBounds,
-  projectRanges,
-  type Step,
-} from './paths.js';
+  codingLength,
+  codonLinear,
+  codonRuns,
+  DefaultGeneticCode,
+  type GeneticCode,
+  GeneticCodes,
+  hasUnsplitExon,
+} from './codon.js';
+import { ResolveIssues } from './issues.js';
+import { composeLinear, type Encoding, expand, ImplicitLinear, isEmptyLinear, type Linear, toRuns } from './linear.js';
+import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
 
 /** The length a system of unknown length (letters from a source, a streamed genome) answers the query forms with. */
 export const OpenLength = 0x7fffffff;
+
+/** The choices of the resolve pass, each with its recommended default (`DefaultResolveConfig`). */
+export interface ResolveConfig {
+  /** Counted maps a path takes at most: 4. */
+  readonly maxPathSteps: number;
+  /** Shortest candidates compared at most before a path is refused as over the limit: 16. */
+  readonly maxPathCandidates: number;
+  /** How bounded maps are held: the cheapest encoding that answers (default), or all as runs, or all expanded. */
+  readonly encoding: 'cheapest' | 'runs' | 'expanded';
+  /**
+   * The length the query forms read on a system whose length is unknown, so labels resolve there before its source is
+   * opened: int32's max. Layout never reads it: an axis of unknown length is pending.
+   */
+  readonly openQueryLength: number;
+}
+
+export const DefaultResolveConfig: ResolveConfig = {
+  maxPathSteps: 4,
+  maxPathCandidates: 16,
+  encoding: 'cheapest',
+  openQueryLength: OpenLength,
+};
 
 /** A coordinate system the spec declares: a sequence, its length when its letters are inline. */
 export interface SystemEntry {
   readonly address: string;
   readonly kind: 'sequence';
   readonly alphabet: 'protein' | 'dna' | 'rna';
-  /** Undefined: open, known only once its source is opened. */
+  /** Undefined: unknown until its source is opened (pending, never a guess). */
   readonly length?: number;
   readonly cyclic: boolean;
   readonly letters?: string;
   /** The source of its letters. */
   readonly source?: string;
+  /** The name its source knows it by: its `name`, else its id. */
+  readonly name: string;
   /** Its numberings: the built-ins (`index`, `ordinal`) until the language declares others. */
   readonly numberings: readonly string[];
   /** How its letters are read. */
@@ -91,6 +114,8 @@ export interface MapEntry {
   readonly encoding: Encoding;
   readonly step: Step;
   readonly linear: Linear;
+  /** A codon map's genetic code: its `table`, 1 when absent; undefined when that code is not built. */
+  readonly code?: GeneticCode;
 }
 
 /** The language's params of a source: one definition, the description's. */
@@ -146,12 +171,13 @@ export interface StaticModel extends QueryModel {
   readonly spec: Node;
   /** The spec's hash: equal specs give the same model. */
   readonly hash: string;
+  readonly config: ResolveConfig;
   readonly systems: ReadonlyMap<string, SystemEntry>;
   readonly maps: ReadonlyMap<string, MapEntry>;
   readonly sources: ReadonlyMap<string, SourceBinding>;
   readonly annotations: ReadonlyMap<string, AnnotationEntry>;
   readonly issues: readonly Issue[];
-  /** The shortest unambiguous path, composed once and kept. */
+  /** The shortest unambiguous path, composed once and kept (across resolves while the maps its search read hold). */
   path(from: string, to: string): PathResult;
   /**
    * A Location carried onto a system: each part along its path (rects are not carried yet); a part with no path is
@@ -159,8 +185,8 @@ export interface StaticModel extends QueryModel {
    */
   project(loc: Location, to: string, options?: { close?: boolean }): Projection;
   /**
-   * Closure, one step (EC-30): nucleotides gain their residues and lift to their whole codons, through the codon
-   * maps between the systems named (every system when none are).
+   * Closure, one step (EC-30): nucleotides gain their residues and lift to their whole codons, through each codon map
+   * between the systems named (every system when none are), along the map itself.
    */
   close(loc: Location, among?: readonly string[]): Location;
 }
@@ -168,17 +194,23 @@ export interface StaticModel extends QueryModel {
 export interface ResolveOptions {
   /** The format runtimes the application composed; inline data always reads through the `seq` runtime. */
   readonly runtimes?: readonly FormatRuntime[];
-  readonly bounds?: PathBounds;
+  readonly config?: Partial<ResolveConfig>;
 }
 
 export interface Resolver {
   resolve(spec: Node): StaticModel;
 }
 
+/** A path search's outcome and the map entries of the systems it read: valid while those are the same. */
+interface PathEntry {
+  readonly found: { readonly path: Path } | { readonly why: 'none' | 'ambiguous' | 'limit' };
+  readonly deps: ReadonlyMap<string, readonly MapEntry[]>;
+}
+
 /** A resolve pass that keeps its entries between specs, by address and the hashes of the nodes each reads. */
 export function createResolver(options: ResolveOptions = {}): Resolver {
   let entries = new Map<string, unknown>();
-  let last: StaticModel | undefined;
+  let last: Model | undefined;
   return {
     resolve(spec) {
       if (last && last.hash === hashNode(spec)) return last;
@@ -188,7 +220,7 @@ export function createResolver(options: ResolveOptions = {}): Resolver {
         next.set(key, v);
         return v;
       };
-      last = build(spec, options, cached);
+      last = build(spec, options, cached, last?.pathEntries);
       entries = next;
       return last;
     },
@@ -209,7 +241,8 @@ interface Placed {
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
-function build(spec: Node, options: ResolveOptions, cached: Cached): StaticModel {
+function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: ReadonlyMap<string, PathEntry>): Model {
+  const config: ResolveConfig = { ...DefaultResolveConfig, ...options.config };
   const issues: Issue[] = [];
   const data: Placed[] = [];
   const byAddress = new Map<string, Placed>();
@@ -242,15 +275,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached): StaticModel
   const sources = new Map<string, SourceBinding>();
   for (const at of data) {
     if (at.node.kind !== 'source') continue;
-    const binding = cached(`${at.address}|${key(at.node)}`, () => bindSource(at, runtimes));
-    if (!binding.runtime)
-      issues.push(
-        issueOf(ResolveIssues, 'seq.resolve.source.runtime', 'No runtime reads the format of the source', {
-          address: at.address,
-          hint: ResolveIssues.codes['seq.resolve.source.runtime'].hint,
-        }),
-      );
-    sources.set(at.address, binding);
+    const bound = cached(`${at.address}|${key(at.node)}`, () => bindSource(at, runtimes));
+    issues.push(...bound.issues);
+    sources.set(at.address, bound.binding);
   }
 
   const systems = new Map<string, SystemEntry>();
@@ -269,8 +296,8 @@ function build(spec: Node, options: ResolveOptions, cached: Cached): StaticModel
     const from = ref(at, 'from', ['sequence']);
     const to = ref(at, 'to', ['sequence']);
     if (!from || !to) continue;
-    const entry = cached(`${at.address}|${key(at.node, from.node, to.node)}`, () =>
-      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!),
+    const entry = cached(`${at.address}|${key(at.node, from.node, to.node)}|${config.encoding}`, () =>
+      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config),
     );
     maps.set(at.address, entry.map);
     issues.push(...entry.issues);
@@ -282,24 +309,55 @@ function build(spec: Node, options: ResolveOptions, cached: Cached): StaticModel
     const target = ref(at, 'target', ['sequence']);
     if (!target) continue;
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
-    annotations.set(
-      at.address,
-      cached(`${at.address}|${key(at.node, target.node)}`, () =>
-        annotationEntry(at, systems.get(target.address)!, src?.address),
-      ),
+    const entry = cached(`${at.address}|${key(at.node, target.node)}`, () =>
+      annotationEntry(at, systems.get(target.address)!, src?.address),
     );
+    annotations.set(at.address, entry.annotation);
+    issues.push(...entry.issues);
   }
 
-  return new Model(spec, systems, maps, sources, annotations, issues, options.bounds ?? DefaultPathBounds);
+  return new Model(spec, config, systems, maps, sources, annotations, issues, carried);
 }
 
 // ---- entries ----
 
-function bindSource(at: Placed, runtimes: readonly FormatRuntime[]): SourceBinding {
-  const params = { ...(at.node.params ?? {}) } as unknown as SourceParams;
-  const entry: BoundSourceEntry = { ...params, address: at.address };
-  const runtime = runtimes.find((r) => r.formats.includes(entry.format));
-  return runtime ? { address: at.address, entry, runtime } : { address: at.address, entry };
+const SourceKeys = ['uri', 'value', 'index', 'fields', 'assembly'] as const;
+
+/** A source's entry from its params, bound to the first runtime that reads its format; none is an issue. */
+function bindSource(at: Placed, runtimes: readonly FormatRuntime[]): { binding: SourceBinding; issues: Issue[] } {
+  const format = p(at.node, 'format');
+  const entry: Record<string, unknown> = { address: at.address, format: typeof format === 'string' ? format : '' };
+  for (const k of SourceKeys) if (p(at.node, k) !== undefined) entry[k] = p(at.node, k);
+  const bound = entry as unknown as BoundSourceEntry;
+  const place = (code: 'seq.resolve.source.format' | 'seq.resolve.source.runtime') => ({
+    address: at.address,
+    hint: ResolveIssues.codes[code].hint,
+  });
+  if (typeof format !== 'string' || !format)
+    return {
+      binding: { address: at.address, entry: bound },
+      issues: [
+        issueOf(
+          ResolveIssues,
+          'seq.resolve.source.format',
+          'The source names no format',
+          place('seq.resolve.source.format'),
+        ),
+      ],
+    };
+  const runtime = runtimes.find((r) => r.formats.includes(format));
+  if (runtime) return { binding: { address: at.address, entry: bound, runtime }, issues: [] };
+  return {
+    binding: { address: at.address, entry: bound },
+    issues: [
+      issueOf(
+        ResolveIssues,
+        'seq.resolve.source.runtime',
+        'No runtime reads the format of the source',
+        place('seq.resolve.source.runtime'),
+      ),
+    ],
+  };
 }
 
 /** Inline tables as a `seq` source of one tile over the whole system, named by the system's address. */
@@ -314,18 +372,20 @@ function inlinePlan(
   return { kind: 'inline', source: { address, format: 'seq', value }, runtime: SeqRuntime, system: name, shape };
 }
 
-/** A source read by region; the system is named by the node's id (a source with one system per sequence). */
-function sourcePlan(source: string, address: string, shape: Shape): AccessPlan {
-  return { kind: 'source', source, system: address.slice(address.lastIndexOf('/') + 1), shape };
+/** A source read by region, the system by the name the source knows it by. */
+function sourcePlan(source: string, system: string, shape: Shape): AccessPlan {
+  return { kind: 'source', source, system, shape };
 }
 
 function sequenceEntry(at: Placed, source: string | undefined): SystemEntry {
   const letters = p(at.node, 'letters');
+  const name = p(at.node, 'name');
   const base = {
     address: at.address,
     kind: 'sequence' as const,
     alphabet: p(at.node, 'alphabet') as SystemEntry['alphabet'],
     cyclic: p(at.node, 'cyclic') === true,
+    name: typeof name === 'string' ? name : (at.node.id ?? ''),
     numberings: ['index', 'ordinal'],
   };
   if (typeof letters === 'string') {
@@ -333,25 +393,44 @@ function sequenceEntry(at: Placed, source: string | undefined): SystemEntry {
     const length = letters.length;
     return { ...base, length, letters, access: inlinePlan(at.address, { ...base, length }, 'letters', tables) };
   }
-  return { ...base, ...(source ? { source } : {}), access: sourcePlan(source ?? '', at.address, 'letters') };
+  return { ...base, ...(source ? { source } : {}), access: sourcePlan(source ?? '', base.name, 'letters') };
 }
 
-function mapEntry(at: Placed, from: SystemEntry, to: SystemEntry): { map: MapEntry; issues: Issue[] } {
+type MapCode =
+  | 'seq.resolve.map.empty'
+  | 'seq.resolve.map.codon_length'
+  | 'seq.resolve.map.table'
+  | 'seq.resolve.length.unknown';
+
+function mapEntry(
+  at: Placed,
+  from: SystemEntry,
+  to: SystemEntry,
+  config: ResolveConfig,
+): { map: MapEntry; issues: Issue[] } {
   const issues: Issue[] = [];
-  const report = (code: 'seq.resolve.map.empty' | 'seq.resolve.map.codon_length', message: string) =>
+  const report = (code: MapCode, message: string) =>
     issues.push(issueOf(ResolveIssues, code, message, { address: at.address, hint: ResolveIssues.codes[code].hint }));
   const method = p(at.node, 'method');
   let linear: Linear;
   let step: Step = 0;
+  let code: GeneticCode | undefined;
   if (method === 'codon') {
     step = 1;
     const exons = p(at.node, 'exons') as unknown as { start: ArrayLike<number>; end: ArrayLike<number> };
     const strand = p(at.node, 'strand') === '-' ? '-' : '+';
-    const coding = codingLength(codonRuns(exons.start, exons.end, strand));
+    const size = to.cyclic ? to.length : undefined;
+    const unsplit = hasUnsplitExon(exons.start, exons.end, size);
+    if (unsplit) report('seq.resolve.length.unknown', 'An exon crosses the origin of a gene of unknown length');
+    const coding = codingLength(codonRuns(exons.start, exons.end, strand, size));
     const n = from.length;
-    if (coding % 3 !== 0 || (n !== undefined && coding !== 3 * n && coding !== 3 * n + 3))
+    // a coding sequence missing a piece is not judged until it is whole
+    if (!unsplit && (coding % 3 !== 0 || (n !== undefined && coding !== 3 * n && coding !== 3 * n + 3)))
       report('seq.resolve.map.codon_length', 'The exons are not three nucleotides a residue');
-    linear = codonLinear(exons.start, exons.end, strand);
+    const table = p(at.node, 'table');
+    code = GeneticCodes[typeof table === 'number' ? table : DefaultGeneticCode];
+    if (!code) report('seq.resolve.map.table', 'The genetic code of the map is not built');
+    linear = codonLinear(exons.start, exons.end, strand, size);
     // what lies past either sequence maps nowhere (EC-21)
     if (to.length !== undefined) linear = composeLinear(linear, new ImplicitLinear(0, 1, 0, to.length));
     if (n !== undefined) linear = composeLinear(new ImplicitLinear(0, 1, 0, 3 * n), linear);
@@ -363,6 +442,8 @@ function mapEntry(at: Placed, from: SystemEntry, to: SystemEntry): { map: MapEnt
     else linear = new ImplicitLinear(by, 1, Math.max(0, -by), Math.min(lf, (to.length ?? Infinity) - by));
   }
   if (isEmptyLinear(linear)) report('seq.resolve.map.empty', 'The map pairs no position');
+  if (config.encoding !== 'cheapest' && linear.runs())
+    linear = config.encoding === 'runs' ? toRuns(linear) : expand(linear, linear.lo, linear.hi);
   const map: MapEntry = {
     address: at.address,
     kind: method === 'codon' ? 'codon' : 'offset',
@@ -371,28 +452,54 @@ function mapEntry(at: Placed, from: SystemEntry, to: SystemEntry): { map: MapEnt
     encoding: linear.encoding,
     step,
     linear,
+    ...(code ? { code } : {}),
   };
   return { map, issues };
 }
 
 const Strands: Readonly<Record<string, number>> = { '+': 1, '-': -1 };
 
-function annotationEntry(at: Placed, target: SystemEntry, source: string | undefined): AnnotationEntry {
+function annotationEntry(
+  at: Placed,
+  target: SystemEntry,
+  source: string | undefined,
+): { annotation: AnnotationEntry; issues: Issue[] } {
   const shape = at.node.kind as 'ranges' | 'values';
   const base = { address: at.address, shape, target: target.address };
+  const bySource = (s: Shape) => ({
+    annotation: { ...base, fields: [], access: sourcePlan(source ?? '', target.name, s) },
+    issues: [],
+  });
   if (shape === 'values') {
     const values = p(at.node, 'values');
-    if (!isColumn(values)) return { ...base, fields: [], access: sourcePlan(source ?? '', target.address, 'values') };
+    if (!isColumn(values)) return bySource('values');
     const tables: Tables = { values: { form: 'positions', start: 0, value: values as Float32Array } };
-    return { ...base, fields: [], access: inlinePlan(at.address, target, 'values', tables) };
+    return {
+      annotation: { ...base, fields: [], access: inlinePlan(at.address, target, 'values', tables) },
+      issues: [],
+    };
   }
   const rows = p(at.node, 'rows') as Record<string, Value> | undefined;
-  if (!rows) return { ...base, fields: [], access: sourcePlan(source ?? '', target.address, 'ranges') };
-  const { items, table, fields } = inlineRanges(rows, target);
-  return { ...base, fields, items, access: inlinePlan(at.address, target, 'ranges', { ranges: table }) };
+  if (!rows) return bySource('ranges');
+  const { items, table, fields, wrappedUnknown } = inlineRanges(rows, target);
+  const issues = wrappedUnknown
+    ? [
+        issueOf(ResolveIssues, 'seq.resolve.length.unknown', 'A row wraps the origin of a sequence of unknown length', {
+          address: at.address,
+          hint: ResolveIssues.codes['seq.resolve.length.unknown'].hint,
+        }),
+      ]
+    : [];
+  return {
+    annotation: { ...base, fields, items, access: inlinePlan(at.address, target, 'ranges', { ranges: table }) },
+    issues,
+  };
 }
 
-/** Inline rows as items and a ranges table: a row that wraps a cyclic origin is two rows of one item (EC-9, EC-10). */
+/**
+ * Inline rows as items and a ranges table: a row that wraps a cyclic origin is two rows of one item (EC-9, EC-10); on
+ * a sequence of unknown length it is left out, and said.
+ */
 function inlineRanges(rows: Record<string, Value>, target: SystemEntry) {
   const start = rows.start as Int32Array;
   const end = rows.end as Int32Array;
@@ -405,20 +512,25 @@ function inlineRanges(rows: Record<string, Value>, target: SystemEntry) {
   const s: number[] = [];
   const e: number[] = [];
   const rowOf: number[] = [];
-  const length = target.length ?? OpenLength;
+  const length = target.length;
+  let wrappedUnknown = false;
   for (let i = 0; i < start.length; i++) {
     const fields: Record<string, Atom> = {};
     if (label) fields.label = label[i] ?? null;
     if (category) fields.category = category.get(i);
     if (strand) fields.strand = strand.get(i);
     const key = id?.get(i) ?? i;
-    const pieces: [number, number][] =
-      start[i] > end[i]
-        ? [
-            [start[i], length],
-            [0, end[i]],
-          ]
-        : [[start[i], end[i]]];
+    let pieces: [number, number][] = [[start[i], end[i]]];
+    if (start[i] > end[i]) {
+      if (length === undefined) {
+        wrappedUnknown = true;
+        continue;
+      }
+      pieces = [
+        [start[i], length],
+        [0, end[i]],
+      ];
+    }
     for (const [a, b] of pieces) {
       items.push({ key, start: a, end: b, ...(fieldNames.length ? { fields } : {}) });
       s.push(a);
@@ -438,26 +550,38 @@ function inlineRanges(rows: Record<string, Value>, target: SystemEntry) {
     ...(id ? { id: categoryColumn(pick((i) => id.get(i))) } : { row: Int32Array.from(rowOf) }),
     ...(columns.length ? { fields: columns } : {}),
   };
-  return { items, table, fields: fieldNames };
+  return { items, table, fields: fieldNames, wrappedUnknown };
 }
 
 // ---- the model ----
 
+/** A codon map read both ways along itself: for closure. */
+interface CodonPaths {
+  readonly map: MapEntry;
+  readonly down: Path;
+  readonly up: Path;
+}
+
 class Model implements StaticModel {
   readonly hash: string;
-  private readonly paths = new Map<string, PathResult>();
+  /** The path searches of this model, by `from`, `to`; the next resolve carries them. */
+  readonly pathEntries = new Map<string, PathEntry>();
+  private readonly results = new Map<string, PathResult>();
   private readonly edges = new Map<string, Edge[]>();
+  private readonly edgeMaps = new Map<string, MapEntry[]>();
+  private readonly codons: CodonPaths[] = [];
   private readonly querySystems = new Map<string, QuerySystem>();
   private readonly queryAnnotations = new Map<string, QueryAnnotation | undefined>();
 
   constructor(
     readonly spec: Node,
+    readonly config: ResolveConfig,
     readonly systems: ReadonlyMap<string, SystemEntry>,
     readonly maps: ReadonlyMap<string, MapEntry>,
     readonly sources: ReadonlyMap<string, SourceBinding>,
     readonly annotations: ReadonlyMap<string, AnnotationEntry>,
     readonly issues: readonly Issue[],
-    private readonly bounds: PathBounds,
+    private readonly carried?: ReadonlyMap<string, PathEntry>,
   ) {
     this.hash = hashNode(spec);
     for (const m of maps.values()) {
@@ -472,33 +596,63 @@ class Model implements StaticModel {
       };
       for (const e of [fwd, back]) {
         let list = this.edges.get(e.from);
-        if (!list) this.edges.set(e.from, (list = []));
+        if (!list) {
+          this.edges.set(e.from, (list = []));
+          this.edgeMaps.set(e.from, []);
+        }
         list.push(e);
+        this.edgeMaps.get(e.from)!.push(m);
       }
+      if (m.step !== 0)
+        this.codons.push({ map: m, down: composeEdges(m.to, [back])!, up: composeEdges(m.from, [fwd])! });
     }
+  }
+
+  /** A carried search is valid while every system it read has the same map entries. */
+  private valid(entry: PathEntry): boolean {
+    for (const [system, maps] of entry.deps) {
+      const now = this.edgeMaps.get(system) ?? [];
+      if (now.length !== maps.length) return false;
+      for (let i = 0; i < now.length; i++) if (now[i] !== maps[i]) return false;
+    }
+    return true;
+  }
+
+  private entry(from: string, to: string): PathEntry {
+    const k = `${from}\u0000${to}`;
+    let e = this.pathEntries.get(k);
+    if (e) return e;
+    const old = this.carried?.get(k);
+    if (old && this.valid(old)) e = old;
+    else {
+      const deps = new Map<string, readonly MapEntry[]>();
+      const r = findPath(
+        {
+          edgesFrom: (s) => {
+            if (!deps.has(s)) deps.set(s, this.edgeMaps.get(s) ?? []);
+            return this.edges.get(s) ?? [];
+          },
+        },
+        from,
+        to,
+        { maxSteps: this.config.maxPathSteps, maxCandidates: this.config.maxPathCandidates },
+      );
+      e = { found: r.ok ? { path: r.path } : { why: r.why }, deps };
+    }
+    this.pathEntries.set(k, e);
+    return e;
   }
 
   path(from: string, to: string): PathResult {
     const k = `${from}\u0000${to}`;
-    let r = this.paths.get(k);
+    let r = this.results.get(k);
     if (r) return r;
-    const back = this.paths.get(`${to}\u0000${from}`);
-    if (back) r = back.path ? { path: inversePath(back.path) } : back;
-    else {
-      const found = findPath({ edgesFrom: (s) => this.edges.get(s) ?? [] }, from, to, this.bounds);
-      if (found.ok) r = { path: found.path };
-      else {
-        const code = found.why === 'none' ? 'seq.resolve.path.none' : 'seq.resolve.path.ambiguous';
-        const message =
-          found.why === 'none'
-            ? 'No path of maps joins the systems'
-            : found.why === 'limit'
-              ? 'More shortest paths join the systems than are compared'
-              : 'Several shortest paths join the systems and map them differently';
-        r = { issue: issueOf(ResolveIssues, code, message, { address: to, hint: ResolveIssues.codes[code].hint }) };
-      }
-    }
-    this.paths.set(k, r);
+    // a path read the other way is the inverse of the one found
+    const back = this.pathEntries.get(`${to}\u0000${from}`);
+    const e = back && !this.pathEntries.has(k) ? back : this.entry(from, to);
+    if ('path' in e.found) r = { path: e === back ? inversePath(e.found.path) : e.found.path };
+    else r = { issue: pathIssue(e.found.why, from, to) };
+    this.results.set(k, r);
     return r;
   }
 
@@ -520,13 +674,21 @@ class Model implements StaticModel {
   close(loc: Location, among?: readonly string[]): Location {
     const allowed = among ? new Set(among) : undefined;
     let out = loc;
-    for (const m of this.maps.values()) {
-      if (m.step === 0 || (allowed && (!allowed.has(m.from) || !allowed.has(m.to)))) continue;
-      const nt = partOf(loc, m.to);
+    for (const { map, down, up } of this.codons) {
+      if (allowed && (!allowed.has(map.from) || !allowed.has(map.to))) continue;
+      const nt = partOf(loc, map.to);
       if (!nt) continue;
-      const residues = this.project(rangesLocation(m.to, nt.ranges), m.from).location;
-      const codons = this.project(residues, m.to).location;
-      out = unionLocations(out, unionLocations(residues, codons));
+      const residues = projectRanges(down, nt.ranges);
+      const codons = projectRanges(up, residues);
+      out = unionLocations(
+        out,
+        location({
+          parts: [
+            { system: map.from, ranges: residues },
+            { system: map.to, ranges: codons },
+          ],
+        }),
+      );
     }
     return out;
   }
@@ -540,7 +702,7 @@ class Model implements StaticModel {
     if (!e) return undefined;
     s = {
       address,
-      length: e.length ?? OpenLength,
+      length: e.length ?? this.config.openQueryLength,
       cyclic: e.cyclic,
       numbering: () => undefined,
       numberingIds: () => [],
@@ -552,7 +714,7 @@ class Model implements StaticModel {
   annotation(address: string): QueryAnnotation | undefined {
     if (this.queryAnnotations.has(address)) return this.queryAnnotations.get(address);
     const e = this.annotations.get(address);
-    const a = e?.shape === 'ranges' ? queryAnnotation(e, this.systems.get(e.target)) : undefined;
+    const a = e?.shape === 'ranges' ? queryAnnotation(e, this.systems.get(e.target), this.config) : undefined;
     this.queryAnnotations.set(address, a);
     return a;
   }
@@ -568,9 +730,29 @@ class Model implements StaticModel {
   }
 }
 
+/** A path's issue, at the system it starts from, with both systems as its places. */
+function pathIssue(why: 'none' | 'ambiguous' | 'limit', from: string, to: string): Issue {
+  const code =
+    why === 'none'
+      ? 'seq.resolve.path.none'
+      : why === 'limit'
+        ? 'seq.resolve.path.limit'
+        : 'seq.resolve.path.ambiguous';
+  const message =
+    why === 'none'
+      ? 'No path of maps joins the systems'
+      : why === 'limit'
+        ? 'More shortest paths join the systems than are compared'
+        : 'Several shortest paths join the systems and map them differently';
+  return {
+    ...issueOf(ResolveIssues, code, message, { address: from, hint: ResolveIssues.codes[code].hint }),
+    places: [{ address: from }, { address: to }],
+  };
+}
+
 /** Inline items answer at once; a source's are pending over what was asked (no data in tier 1). */
-function queryAnnotation(e: AnnotationEntry, target: SystemEntry | undefined): QueryAnnotation {
-  const length = target?.length ?? OpenLength;
+function queryAnnotation(e: AnnotationEntry, target: SystemEntry | undefined, config: ResolveConfig): QueryAnnotation {
+  const length = target?.length ?? config.openQueryLength;
   return {
     address: e.address,
     target: e.target,

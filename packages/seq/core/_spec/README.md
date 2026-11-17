@@ -23,8 +23,12 @@ checks it cannot express.
   `data`) are `ref` params naming the kinds they take; a reference is an address.
 - **Positions** are 0-based, ranges half-open. A range with `start > end` wraps the origin where its sequence is
   `cyclic` and is an error elsewhere; a section's `range` follows the same rule. Strands are `+` or `-`. Exons of a
-  codon map are in genomic order and do not overlap (`strand` says which way the protein runs). Why: one convention for
-  every coordinate the language writes.
+  codon map are in genomic order and do not overlap (`strand` says which way the protein runs); on a cyclic gene the
+  last exon may cross the origin (`end < start`, ending at or before the first exon's start, EC-11). Why: one convention
+  for every coordinate the language writes.
+- **Defaults in params**: a codon map's `table` is the NCBI genetic code, 1 when absent; a sequence's `name` is the
+  record its source knows it by, its id when absent. Neither is filled in by normalization, so a spec that leaves them
+  out hashes as it did.
 - **Gate order of `checkSeqSpec`**: (1) the version: a newer major is `seq.lang.version.unsupported` alone, since this
   version's description says nothing of a newer spec; (2) the description's validation with normalization (`repr.*`,
   columns typed, so a spec read from JSON is checked as one built); (3) the language's checks (`seq.lang.*`), only when
@@ -258,19 +262,29 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 ## Resolve
 
 `src/resolve/` (`@molstar/seqx-core/resolve`): the static model, tier 1: pure, over a checked spec, nothing from the
-store. `resolveSpec(spec, { runtimes })`, or `createResolver` to keep entries between specs.
+store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep entries and paths between specs.
+
+### Configuration
+
+`ResolveConfig`, each choice with its recommended default (`DefaultResolveConfig`): `maxPathSteps` (4),
+`maxPathCandidates` (16), `encoding` (`cheapest`; `runs` or `expanded` hold every bounded map so, for tests and
+comparisons), `openQueryLength` (int32's max: what the query forms read on a system of unknown length, so labels resolve
+there; layout never reads it).
 
 ### Systems, sources, annotations
 
-- **Systems**: each `sequence`, with its alphabet, cyclic flag, the built-in numberings (`index`, `ordinal`), and its
-  length when its letters are inline; else it is open (its source tells). The query forms read an open system's length
-  as `OpenLength` (int32's max). Why: labels resolve on a gene whose letters are streamed, and nothing in tier 1 waits.
+- **Systems**: each `sequence`, with its alphabet, cyclic flag, the built-in numberings (`index`, `ordinal`), its `name`
+  (the record its source knows it by: the param, else its id), and its length when its letters are inline; else the
+  length is unknown, pending until the source is opened, never a guess. Why: nothing in tier 1 waits, and nothing lays
+  out on a made-up length.
 - **Sources**: each `source` node bound to a `SourceEntry` made from its params (`SourceParams`, the description's: one
-  definition) and to the first runtime of the caller's registry whose `formats` holds its `format`; none is
-  `seq.resolve.source.runtime` and the source is unavailable.
+  definition) and to the first runtime of the caller's registry whose `formats` holds its `format`. No format is
+  `seq.resolve.source.format`, no runtime `seq.resolve.source.runtime`; either way the source is unavailable.
 - **Access plans**: inline letters, rows and values are a `seq` source of one tile over the whole system (the `seq`
-  runtime, whatever the registry), named by the system's address; a node with a `source` reads it by region, the system
-  named by the node's id. A wrapped row on a cyclic sequence is two rows of one item, in the items and the table.
+  runtime, whatever the registry), named by the system's address; a node with a `source` reads it by region, its system
+  by the system's `name`.
+- **Wrapped rows**: a row that wraps a cyclic origin is two rows of one item, in the items and the table (EC-9). On a
+  sequence of unknown length it is left out with `seq.resolve.length.unknown` until the length is known.
 - **The query forms' model**: `system`, `annotation` (ranges; inline items at once, a source's pending over what is
   asked); `node` and `chain` answer none (no overlay, no structures in tier 1), and the form reports
   `seq.query.node.missing`.
@@ -280,19 +294,28 @@ store. `resolveSpec(spec, { runtimes })`, or `createResolver` to keep entries be
 ### Maps
 
 - **One interface** (`Linear`): the image of `[start, end)` forward and back as runs (`from`, `to`, `length`, `dir`:
-  `from + i ↦ to + dir·i`), the whole map as canonical runs when bounded, the inverse. At most one image per source
-  position; backward may be one-to-many (a fusion) and is not ambiguous.
+  `from + i ↦ to + dir·i`), the target ranges into a caller's buffer (`targets`, no allocation beyond its growth), the
+  whole map as canonical runs when bounded, the inverse. At most one image per source position; backward may be
+  one-to-many (a fusion) and is not ambiguous.
+- **Every position has a direction**, a lone one too: canonical runs join only where a run continues the last in the
+  same direction, and the expanded encoding keeps a direction per position. Why: a boundary lands after or before a
+  position by its direction, so with directions kept every encoding answers alike, and `linearsEqual` (directions
+  included) agrees with the boundaries.
 - **Encodings**: `implicit` (`k ↦ d + dir·k` on `[lo, hi)`, modulo a cyclic target's length), `runs`, `expanded` (a
-  position each, for a region asked). Every encoding of a map gives the same answers. Canonical runs join position by
-  position, so equal maps give equal lists. Composition composes encodings: implicit with implicit is implicit, else
-  runs; nothing is expanded.
+  position each, for a region asked). Every encoding of a map gives the same answers; `runs()` is computed once.
+  Composition composes encodings: implicit with implicit is implicit, else runs; nothing is expanded.
 - **Offset**: implicit; positions whose image falls off a non-cyclic target map nowhere (EC-21); onto a cyclic target
   the image wraps, split at the origin (EC-11).
 - **Codon**: the coding sequence's runs, fine place `c` (residue `c / 3`) to a nucleotide; plus strand in genomic order,
-  minus strand from the highest exon's end downward (EC-15); one exon is implicit. A coding length that is not whole
-  codons, or not 3 per residue with or without a stop, is `seq.resolve.map.codon_length` (EC-17). `codonStatus` reads
-  letters through the standard code: T and U alike, an ambiguous codon (X) pairs with any residue, a first start codon
-  reads M, TGA pairs with U and TAG with O, other stops pair with nothing (EC-16).
+  minus strand from the highest exon's end downward (EC-15); one piece is implicit. On a cyclic gene the last exon may
+  cross the origin and is split there (EC-11); on one of unknown length it is left out with
+  `seq.resolve.length.unknown`. A coding length that is not whole codons, or not 3 per residue with or without a stop,
+  is `seq.resolve.map.codon_length` (EC-17), judged only when no piece is left out.
+- **Genetic codes**: a codon map's `table` (NCBI id, 1 when absent); built: 1, 2 and 11 (`GeneticCodes`); another is
+  `seq.resolve.map.table` and the map has no code. `codonStatus` reads letters through the code: T and U alike, an IUPAC
+  letter stands for its set of bases and the codon pairs with every amino acid of the codons it stands for, an unknown
+  residue (X) pairs with any codon, a first codon pairs with M where the code starts there, TGA pairs with U and TAG
+  with O, other stops pair with nothing; a minus-strand codon is read on the complement (EC-16).
 - A map that pairs nothing is `seq.resolve.map.empty`; a partial one is no issue.
 
 ### Paths
@@ -300,25 +323,35 @@ store. `resolveSpec(spec, { runtimes })`, or `createResolver` to keep entries be
 - **A path** is one `Linear` between two systems and a `step`: `1` (residues to nucleotides), `-1`, or `0`. Across a
   codon step the residue side is in fine places (`3k + j`), every map on it scaled by 3. Why: one linear map answers
   every question of the path; a protein through a chromosome is as sparse as its coding sequence (EC-27).
-- **Search** (`findPath`): by counted length from 0, at most 4 counted steps, unit steps free, at most one codon step
-  (EC-19), each system once. Candidates that pair nothing are dropped; equal compositions count once; distinct ones are
-  `seq.resolve.path.ambiguous` (EC-23, EC-24), as are more than 16; none within the bound is `seq.resolve.path.none`.
-  The copy rule is in the search: after climbing out of a unit to its molecule a path never steps down to a unit of it,
-  so a longer legal path wins (EC-25); a path ending at a ranged unit is clipped by its step (EC-26). Paths are found
-  once per model, the reverse read as the inverse.
-- **Projection** (`projectRanges`, `StaticModel.project`): ranges along the path; from nucleotides to residues, the
-  residues they touch (EC-18). A part with no path is left out with its issue; rects are not projected yet.
+- **Search** (`findPath`): by counted length from 0, at most `maxPathSteps` counted steps, unit steps free, at most one
+  codon step (EC-19), each system once. Candidates that pair nothing are dropped; equal compositions count once;
+  distinct ones are `seq.resolve.path.ambiguous` (EC-23, EC-24); more than `maxPathCandidates` is
+  `seq.resolve.path.limit`; none within the bound is `seq.resolve.path.none`. A path issue's `address` is the system it
+  starts from and its `places` are both systems. The copy rule is in the search: after climbing out of a unit to its
+  molecule a path never steps down to a unit of it, so a longer legal path wins (EC-25); a path ending at a ranged unit
+  is clipped by its step (EC-26).
+- **Kept**: a search is done once per model (the reverse read as the inverse), and carried to the next resolve with the
+  map entries of every system it read; it is kept while those are the same objects (entries are kept by hash), so an
+  edit elsewhere keeps the path object. Why: a map added or changed where the search looked can make it shorter or
+  ambiguous; nothing else can.
+- **Projection** (`projectRanges(path, ranges, out?)`, `StaticModel.project`): ranges along the path, into the caller's
+  buffer when given; from nucleotides to residues, the residues they touch (EC-18). A part with no path is left out with
+  its issue; rects are not projected yet.
+- **A point** (`projectPoint`): the continuous image of a fractional position: where element `floor(x)` starts on the
+  target plus the fraction times the scale in its run's direction. `pathDir` is the path's direction (its first run's).
 - **Boundaries** (`projectBoundary`, EC-28, EC-29): the boundary before element `k` lands before its first image, else
   after element `k − 1`'s, else nowhere; onto residues, one inside a codon lands after its residue.
 - **Status** (`pathStatus`): paired when the element's whole image exists (a residue's three nucleotides), else
   unpaired; `conflict` comes from letters (`codonStatus`).
-- **Closure** (`close`, EC-30): one step through the codon maps among the systems named: nucleotides gain their residues
-  and lift to their whole codons.
+- **Closure** (`close`, EC-30): one step through each codon map among the systems named, along the map itself (not a
+  shortest path, which two isoforms of one gene make ambiguous): nucleotides gain their residues and lift to their whole
+  codons.
 
 ### Issues
 
-`seq.resolve.*` (`ResolveIssues`): `ref.missing` (a spec not checked), `source.runtime`, `map.empty`,
-`map.codon_length`, `path.none`, `path.ambiguous`. A test checks the catalog against the sources.
+`seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
+`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `path.none`, `path.ambiguous`, `path.limit`. A test
+checks the catalog against the sources.
 
 ## Resolved view
 
@@ -326,17 +359,29 @@ store. `resolveSpec(spec, { runtimes })`, or `createResolver` to keep entries be
 `resolveViews(model)`), built over the static model alone, kept per model and view. No data, no dynamic node, no pixels,
 no target.
 
-- **A view**: its address, its `layout`, its sections in order, its issues.
-- **A section**: an axis (its system, its length unless open, cyclic, the positions shown as `[start, end, …]` pairs:
-  the whole system, its `range`, or two ranges when a cyclic range wraps), its tracks, and its follow.
-- **A follow**: the leader's address, the path from the leader's system to the follower's and the scale of a position (3
-  across a codon step from residues, 1/3 back, else 1); no path is `seq.view.follow.unplaced` and no follow.
-  `followRange` carries a leader's range: the image's hull, or on a cyclic system the shortest arc holding it (EC-12).
+- **A view**: its address, its `layout`, its sections in order, its links, its issues.
+- **A section**: an axis, its tracks, and its follow. A section whose `of` names no system is `seq.view.section.system`;
+  its layers are not placed.
+- **An axis**: its system, its length unless unknown, cyclic, and the positions shown as `[start, end, …]` pieces in
+  display order: the whole system, its `range`, or for a cyclic range that wraps the origin two pieces, from its start
+  to the origin then on (`[8, 10, 0, 2]`). Without a known length, showing all of the system or wrapping, `ranges` is
+  absent: the layout waits for the length. Why: one shape for a wrapped range everywhere, the order it is drawn in.
+- **A follow**: the leader's address and axis, the path from the leader's system to the follower's, the scale of a
+  position (3 across a codon step from residues, 1/3 back, else 1), its direction (−1 on a minus-strand gene), and
+  `point(x)`, the continuous image of a leader position (`projectPoint`), so a follower moves smoothly. No path is
+  `seq.view.follow.unplaced` and no follow. `followRange(section, pieces, { arc })` carries a leader's pieces (the
+  axis's shape; a piece over a cyclic origin, `start > end`, is split first) to the follower's: the image's hull, or on
+  a cyclic follower the shortest arc holding it (EC-12, `arc: 'shortest'`, the default; `'hull'` takes the hull), in the
+  axis's shape.
+- **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
+  resolved so hover and selection never compose; the same system is the identity.
 - **A track**: its address, its label (its id when absent), its height.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`; none has a fallback yet),
   its other params as written, its theme channels as values (`color`), its data and the static path from the data's
   system to the section's (none when the same). Data is the section's letters for a `letters` layer without data, an
-  address (`kind: 'address'`), or a query kept as written (`kind: 'query'`) on the system its first node is on. Data
-  naming nothing is `seq.view.layer.data`; data no static path brings to the section is `seq.view.layer.unplaced`, and
-  the layer is not placed.
-- `seq.view.*` (`ViewIssues`): `layer.data`, `layer.unplaced`, `follow.unplaced`; a test checks the catalog.
+  address (`kind: 'address'`), or a query kept as written (`kind: 'query'`) on the system its first node is on, with the
+  shape of that node (none for a query on a sequence). A type this version does not draw is `seq.view.layer.type`; data
+  naming nothing is `seq.view.layer.data`; data of a shape the type does not draw is `seq.view.layer.shape`; data no
+  static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer not placed.
+- `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
+  `follow.unplaced`; a test checks the catalog.

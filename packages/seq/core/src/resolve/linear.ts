@@ -6,12 +6,13 @@
 
 // The one-to-one part of a map and its encodings (_spec/README.md "Resolve", Maps): implicit (arithmetic), runs
 // (segments) and expanded (a position each, for a region). Each answers the same interface: the image of a range
-// forward and back as runs, the whole map as runs when it is bounded, and its inverse. Composition composes encodings
-// (two implicit maps give an implicit one, anything else gives runs) and never expands one.
+// forward and back as runs (or as target ranges into a caller's buffer), the whole map as runs when it is bounded,
+// and its inverse. Every position has a direction, a lone one too, so a boundary lands the same on every encoding.
+// Composition composes encodings (two implicit maps give an implicit one, anything else gives runs), never expands.
 
 /**
  * Source positions `[from, from + length)` mapped to the target: `from + i` is `to + dir * i`. Direction is part of
- * every run, so a reverse strand and an inversion are the same mechanism.
+ * every run, a run of one position too, so a reverse strand and an inversion are the same mechanism.
  */
 export interface Run {
   readonly from: number;
@@ -30,6 +31,11 @@ export interface Linear {
   readonly hi: number;
   /** The images of `[start, end)` as runs, sorted by source; what no run holds maps nowhere. */
   forward(start: number, end: number): Run[];
+  /**
+   * The target positions of `[start, end)` appended to `out` as `[start, end)` pairs, in source order, unsorted and
+   * possibly adjacent; nothing allocated beyond `out`'s growth.
+   */
+  targets(start: number, end: number, out: number[]): void;
   /** The preimages of target positions `[start, end)` as runs from the target to the source, sorted by target. */
   backward(start: number, end: number): Run[];
   /** The whole map as canonical runs, or undefined when it is unbounded (an offset on an open system). */
@@ -56,55 +62,36 @@ export function clipRun(r: Run, start: number, end: number): Run | undefined {
   return { from: s, to: r.to + r.dir * (s - r.from), length: e - s, dir: r.dir };
 }
 
-const byFrom = (a: Run, b: Run) => a.from - b.from || a.to - b.to;
+const byFrom = (a: Run, b: Run) => a.from - b.from || a.to - b.to || a.dir - b.dir;
 
 /**
- * Runs in their one canonical form: sorted by source, and joined greedily position by position, so equal maps give
- * equal lists whatever runs they were built from. A run of one position takes its direction from a neighbor it joins;
- * runs over the same source positions (a map read backwards that is one-to-many) are kept apart.
+ * Runs in their one canonical form: sorted by source, a run joined to the next when it continues it in the same
+ * direction. Equal maps give equal lists whatever runs they were built from; runs over the same source positions (a
+ * map read backwards that is one-to-many) are kept apart.
  */
 export function canonicalRuns(input: readonly Run[]): Run[] {
   const runs = input.filter((r) => r.length > 0).sort(byFrom);
   const out: Run[] = [];
   let cur: { from: number; to: number; length: number; dir: 1 | -1 } | undefined;
-  const push = () => {
-    if (cur) out.push({ from: cur.from, to: cur.to, length: cur.length, dir: cur.dir });
-  };
   for (const r of runs) {
-    if (cur && r.from === cur.from + cur.length) {
-      const last = cur.to + cur.dir * (cur.length - 1);
-      const step = r.to - last;
-      if (step === 1 || step === -1) {
-        const dir = cur.length === 1 ? (step as 1 | -1) : cur.dir;
-        if (step === dir) {
-          cur.dir = dir;
-          if (r.length === 1 || r.dir === dir) {
-            cur.length += r.length;
-            continue;
-          }
-          // the run's first position joins, the rest turns
-          cur.length += 1;
-          push();
-          cur = { from: r.from + 1, to: r.to + r.dir, length: r.length - 1, dir: r.dir };
-          continue;
-        }
-      }
+    if (cur && r.dir === cur.dir && r.from === cur.from + cur.length && r.to === cur.to + cur.dir * cur.length) {
+      cur.length += r.length;
+      continue;
     }
-    push();
+    if (cur) out.push(cur);
     cur = { from: r.from, to: r.to, length: r.length, dir: r.dir };
   }
-  push();
+  if (cur) out.push(cur);
   return out;
 }
 
-/** Whether two canonical run lists are the same map (a run of one position has no direction). */
+/** Whether two canonical run lists are the same map, directions included. */
 export function runsEqual(a: readonly Run[], b: readonly Run[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
     const x = a[i];
     const y = b[i];
-    if (x.from !== y.from || x.to !== y.to || x.length !== y.length) return false;
-    if (x.length > 1 && x.dir !== y.dir) return false;
+    if (x.from !== y.from || x.to !== y.to || x.length !== y.length || x.dir !== y.dir) return false;
   }
   return true;
 }
@@ -114,16 +101,21 @@ export function wrapRun(r: Run, size: number): Run[] {
   const out: Run[] = [];
   let from = r.from;
   let left = r.length;
-  let to = (((r.to % size) + size) % size) | 0;
+  let to = ((r.to % size) + size) % size;
   while (left > 0) {
-    const room = r.dir === 1 ? size - to : to + 1;
-    const n = Math.min(left, room);
+    const n = Math.min(left, r.dir === 1 ? size - to : to + 1);
     out.push({ from, to, length: n, dir: r.dir });
     from += n;
     left -= n;
     to = r.dir === 1 ? 0 : size - 1;
   }
   return out;
+}
+
+/** Appends the target range of `length` positions from `to` in `dir` (a run's image) to `out`. */
+function pushTargets(out: number[], to: number, length: number, dir: 1 | -1) {
+  if (dir === 1) out.push(to, to + length);
+  else out.push(to - length + 1, to + 1);
 }
 
 // ---- implicit ----
@@ -150,13 +142,34 @@ export class ImplicitLinear implements Linear {
     return this.size === undefined ? [run] : wrapRun(run, this.size);
   }
 
+  targets(start: number, end: number, out: number[]): void {
+    const s = Math.max(start, this.lo);
+    const e = Math.min(end, this.hi);
+    if (e <= s) return;
+    const size = this.size;
+    if (size === undefined) {
+      pushTargets(out, this.d + this.dir * s, e - s, this.dir);
+      return;
+    }
+    let left = e - s;
+    let to = (((this.d + this.dir * s) % size) + size) % size;
+    while (left > 0) {
+      const n = Math.min(left, this.dir === 1 ? size - to : to + 1);
+      pushTargets(out, to, n, this.dir);
+      left -= n;
+      to = this.dir === 1 ? 0 : size - 1;
+    }
+  }
+
   backward(start: number, end: number): Run[] {
     return this.inverse().forward(start, end);
   }
 
+  private cached?: readonly Run[];
   runs(): readonly Run[] | undefined {
     if (!Number.isFinite(this.lo) || !Number.isFinite(this.hi)) return undefined;
-    return canonicalRuns(this.forward(this.lo, this.hi));
+    if (!this.cached) this.cached = canonicalRuns(this.forward(this.lo, this.hi));
+    return this.cached;
   }
 
   private inv?: Linear;
@@ -192,8 +205,8 @@ export class RunsLinear implements Linear {
     this.hi = this.list.length ? m : 0;
   }
 
-  forward(start: number, end: number): Run[] {
-    const out: Run[] = [];
+  /** The first run whose source reaches past `start`. */
+  private first(start: number): number {
     let lo = 0;
     let hi = this.list.length;
     while (lo < hi) {
@@ -201,11 +214,25 @@ export class RunsLinear implements Linear {
       if (this.reach[mid] > start) hi = mid;
       else lo = mid + 1;
     }
-    for (let i = lo; i < this.list.length && this.list[i].from < end; i++) {
+    return lo;
+  }
+
+  forward(start: number, end: number): Run[] {
+    const out: Run[] = [];
+    for (let i = this.first(start); i < this.list.length && this.list[i].from < end; i++) {
       const c = clipRun(this.list[i], start, end);
       if (c) out.push(c);
     }
     return out;
+  }
+
+  targets(start: number, end: number, out: number[]): void {
+    for (let i = this.first(start); i < this.list.length && this.list[i].from < end; i++) {
+      const r = this.list[i];
+      const s = Math.max(r.from, start);
+      const e = Math.min(r.from + r.length, end);
+      if (e > s) pushTargets(out, r.to + r.dir * (s - r.from), e - s, r.dir);
+    }
   }
 
   backward(start: number, end: number): Run[] {
@@ -228,36 +255,39 @@ export class RunsLinear implements Linear {
 
 // ---- expanded ----
 
-/** One image a position over `[lo, lo + image.length)`, -1 where none: only for a region asked. */
+/**
+ * One image a position over `[lo, lo + image.length)`, -1 where none, and the direction of each position (1 or -1),
+ * so a lone position answers a boundary as its runs do: only for a region asked.
+ */
 export class ExpandedLinear implements Linear {
   readonly encoding = 'expanded';
   readonly hi: number;
   constructor(
     readonly lo: number,
     readonly image: Int32Array,
+    readonly dirs: Int8Array,
   ) {
     this.hi = lo + image.length;
   }
 
-  /** The runs of `[start, end)`; read one position wider on each side so a lone position keeps its direction. */
   forward(start: number, end: number): Run[] {
+    return this.scan(Math.max(start, this.lo), Math.min(end, this.hi));
+  }
+
+  targets(start: number, end: number, out: number[]): void {
     const s = Math.max(start, this.lo);
     const e = Math.min(end, this.hi);
-    if (e <= s) return [];
-    const wide = this.scan(Math.max(this.lo, s - 1), Math.min(this.hi, e + 1));
-    const out: Run[] = [];
-    for (const r of wide) {
-      const c = clipRun(r, s, e);
-      if (c) out.push(c);
+    for (let k = s; k < e; k++) {
+      const t = this.image[k - this.lo];
+      if (t >= 0) out.push(t, t + 1);
     }
-    return out;
   }
 
   private scan(s: number, e: number): Run[] {
     const runs: Run[] = [];
     for (let k = s; k < e; k++) {
       const t = this.image[k - this.lo];
-      if (t >= 0) runs.push({ from: k, to: t, length: 1, dir: 1 });
+      if (t >= 0) runs.push({ from: k, to: t, length: 1, dir: this.dirs[k - this.lo] === -1 ? -1 : 1 });
     }
     return canonicalRuns(runs);
   }
@@ -266,8 +296,10 @@ export class ExpandedLinear implements Linear {
     return this.inverse().forward(start, end);
   }
 
+  private cached?: readonly Run[];
   runs(): readonly Run[] {
-    return this.scan(this.lo, this.hi);
+    if (!this.cached) this.cached = this.scan(this.lo, this.hi);
+    return this.cached;
   }
 
   private inv?: Linear;
@@ -286,12 +318,18 @@ export function toRuns(l: Linear): RunsLinear {
 
 /** A linear map expanded over `[lo, hi)`: for tests and the small regions a per-position form is asked for. */
 export function expand(l: Linear, lo: number, hi: number): ExpandedLinear {
-  const image = new Int32Array(Math.max(0, hi - lo)).fill(-1);
-  for (const r of l.forward(lo, hi)) for (let i = 0; i < r.length; i++) image[r.from + i - lo] = r.to + r.dir * i;
-  return new ExpandedLinear(lo, image);
+  const n = Math.max(0, hi - lo);
+  const image = new Int32Array(n).fill(-1);
+  const dirs = new Int8Array(n).fill(1);
+  for (const r of l.forward(lo, hi))
+    for (let i = 0; i < r.length; i++) {
+      image[r.from + i - lo] = r.to + r.dir * i;
+      dirs[r.from + i - lo] = r.dir;
+    }
+  return new ExpandedLinear(lo, image, dirs);
 }
 
-/** Whether two maps are the same: implicit ones by their arithmetic, others by their canonical runs. */
+/** Whether two maps are the same: implicit ones by their arithmetic, others by their canonical runs, directions too. */
 export function linearsEqual(a: Linear, b: Linear): boolean {
   const ra = a.runs();
   const rb = b.runs();
@@ -306,6 +344,12 @@ export function linearsEqual(a: Linear, b: Linear): boolean {
 export function isEmptyLinear(l: Linear): boolean {
   const r = l.runs();
   return r ? r.length === 0 : l.hi <= l.lo;
+}
+
+/** The direction of a map: its arithmetic's, or its first run's (a map that turns has several). */
+export function linearDir(l: Linear): 1 | -1 {
+  if (l instanceof ImplicitLinear) return l.dir;
+  return l.runs()?.[0]?.dir ?? 1;
 }
 
 // ---- composition ----

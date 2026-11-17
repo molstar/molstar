@@ -7,9 +7,10 @@
 // The edge cases of maps on every encoding of the same map (implicit where it is arithmetic, runs, expanded over its
 // domain), with equal answers; and seeded properties at small counts.
 
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { describe, expect, it } from 'vitest';
-import { codonLinear, codonPairs, codonRuns, codonStatus, translateCodon } from '../codon.js';
+import { codonLinear, codonPairs, codonRuns, codonStatus, GeneticCodes, translateCodon } from '../codon.js';
 import {
   canonicalRuns,
   composeLinear,
@@ -21,7 +22,17 @@ import {
   RunsLinear,
   toRuns,
 } from '../linear.js';
-import { composeEdges, type Edge, type Path, pathStatus, projectBoundary, projectRanges } from '../paths.js';
+import {
+  composeEdges,
+  type Edge,
+  type Path,
+  pathDir,
+  pathStatus,
+  projectBoundary,
+  projectPoint,
+  projectRanges,
+} from '../paths.js';
+import { TP53_EXONS, TP53_LENGTH } from './p53-geometry.js';
 
 /** The same map in each encoding it has: the given one, runs, and expanded over `[lo, hi)`. */
 function encodings(l: Linear, lo: number, hi: number): Linear[] {
@@ -42,17 +53,11 @@ function backPath(p: Path): Path {
 }
 
 /** Image ranges as sorted, merged pairs. */
-function merged(pairs: number[]): number[] {
-  const order: [number, number][] = [];
-  for (let i = 0; i < pairs.length; i += 2) order.push([pairs[i], pairs[i + 1]]);
-  order.sort((a, b) => a[0] - b[0]);
-  const out: number[] = [];
-  for (const [s, e] of order) {
-    if (out.length && s <= out[out.length - 1]) out[out.length - 1] = Math.max(out[out.length - 1], e);
-    else out.push(s, e);
-  }
-  return out;
-}
+const merged = (pairs: number[]): number[] => [...HalfOpenRanges.normalize(pairs)];
+
+/** A path of one step over a linear map. */
+const stepPath = (l: Linear): Path =>
+  composeEdges('/a', [{ map: '/m', from: '/a', to: '/b', backward: false, step: 0, linear: l }])!;
 
 const same = <T>(values: T[]) => {
   for (const v of values) expect(v).toEqual(values[0]);
@@ -112,6 +117,17 @@ describe('maps: codon (EC-15 to EC-18)', () => {
     }
   });
 
+  it('projects into a caller’s buffer, cleared and reused', () => {
+    const out: number[] = [];
+    for (const p of codonPaths(minus, 90)) {
+      expect(projectRanges(p, [0, 1], out)).toBe(out);
+      projectRanges(p, [13, 14], out);
+      expect(merged(out)).toEqual([148, 150, 160, 161]);
+      projectRanges(backPath(p), [160, 161], out);
+      expect(out).toEqual([13, 14]);
+    }
+  });
+
   it('plus strand: in genomic order, a junction splitting residue 16 (EC-15)', () => {
     for (const p of codonPaths(plus, 90)) {
       expect(merged(projectRanges(p, [0, 1]))).toEqual([100, 103]);
@@ -140,17 +156,64 @@ describe('maps: codon (EC-15 to EC-18)', () => {
     }
   });
 
-  it('codon status: T and U alike, ambiguity X, a first start as M, Sec and Pyl, stops pair with nothing (EC-16)', () => {
+  it('a coding sequence may cross a cyclic origin, on either strand (EC-11)', () => {
+    // a plasmid of 20: exons [3, 6) and [17, 3) over the origin: 3 + 6 nucleotides, 3 residues
+    const plus = codonLinear([3, 17], [6, 3], '+', 20);
+    const minus = codonLinear([3, 17], [6, 3], '-', 20);
+    expect(codonRuns([3, 17], [6, 3], '+', 20)).toEqual([
+      { from: 0, to: 3, length: 3, dir: 1 },
+      { from: 3, to: 17, length: 3, dir: 1 },
+      { from: 6, to: 0, length: 3, dir: 1 },
+    ]);
+    for (const p of codonPaths(plus, 9)) expect(merged(projectRanges(p, [1, 3]))).toEqual([0, 3, 17, 20]);
+    for (const p of codonPaths(minus, 9)) {
+      // read downward from 2: 2, 1, 0, then 19, 18, 17, then 5, 4, 3
+      expect(merged(projectRanges(p, [0, 1]))).toEqual([0, 3]);
+      expect(merged(projectRanges(p, [1, 2]))).toEqual([17, 20]);
+      expect(projectBoundary(p, 1)).toBe(20);
+    }
+  });
+
+  it('human TP53: 393 residues on ten minus-strand exons of chr17 (EC-15)', () => {
+    const l = codonLinear(TP53_EXONS.start, TP53_EXONS.end, '-');
+    expect(codonRuns(TP53_EXONS.start, TP53_EXONS.end, '-').reduce((n, r) => n + r.length, 0)).toBe(
+      3 * TP53_LENGTH + 3,
+    );
+    for (const p of codonPaths(l, 3 * TP53_LENGTH + 3)) {
+      // the start codon at the top of exon 2; residue 24 split by the exon 2–3 junction; the last residue in exon 11
+      expect(merged(projectRanges(p, [0, 1]))).toEqual([7676591, 7676594]);
+      expect(merged(projectRanges(p, [24, 25]))).toEqual([7676402, 7676403, 7676520, 7676522]);
+      expect(merged(projectRanges(p, [392, 393]))).toEqual([7669611, 7669614]);
+      // the DNA-binding domain over exons 4 to 8
+      const dbd = merged(projectRanges(p, [93, 292]));
+      expect([dbd.length / 2, dbd[0], dbd[dbd.length - 1]]).toEqual([5, 7673743, 7676089]);
+      expect(merged(projectRanges(backPath(p), [7676591, 7676594]))).toEqual([0, 1]);
+    }
+  });
+
+  it('codon status: IUPAC codes as their sets, a start as M, Sec and Pyl, stops pair with nothing (EC-16)', () => {
     expect(translateCodon('AUG')).toBe('M');
     expect(translateCodon('ATG')).toBe('M');
     expect(translateCodon('ANG')).toBe('X');
     expect(translateCodon('TAA')).toBe('*');
+    // GCN is alanine whatever N is; AAR lysine; AAN lysine or asparagine
+    expect(translateCodon('GCN')).toBe('A');
+    expect(codonPairs('K', 'AAR', false)).toBe(true);
+    expect(codonPairs('N', 'AAN', false)).toBe(true);
+    expect(codonPairs('W', 'AAN', false)).toBe(false);
+    expect(codonPairs('X', 'TAA', false)).toBe(true);
+    // the vertebrate mitochondrial code: TGA is W, AGA a stop, ATA a start
+    expect(codonPairs('W', 'TGA', false, GeneticCodes[2])).toBe(true);
+    expect(codonPairs('R', 'AGA', false, GeneticCodes[2])).toBe(false);
+    expect(codonPairs('M', 'ATA', true, GeneticCodes[2])).toBe(true);
+    expect(codonPairs('M', 'GTG', true, GeneticCodes[11])).toBe(true);
     expect(codonPairs('M', 'TTG', true)).toBe(true);
     expect(codonPairs('M', 'TTG', false)).toBe(false);
     expect(codonPairs('U', 'TGA', false)).toBe(true);
     expect(codonPairs('O', 'TAG', false)).toBe(true);
     expect(codonPairs('W', 'TAA', false)).toBe(false);
     expect(codonPairs('K', 'NNN', false)).toBe(true);
+    expect(codonPairs('W', 'NNN', false)).toBe(true);
     // a gene of 12 on the plus strand: M K (conflict: TAA) W, the last residue's triplet cut short
     const l = codonLinear([0], [11], '+');
     expect(codonStatus(l, 'MKWQ', 'ATGAAATAATG')).toEqual(['paired', 'paired', 'conflict', 'unpaired']);
@@ -195,10 +258,60 @@ describe('maps: boundaries (EC-28, EC-29)', () => {
 
   it('an offset boundary maps nowhere when neither neighbor maps', () => {
     for (const l of encodings(new ImplicitLinear(-5, 1, 5, 10), 0, 10)) {
-      const p = composeEdges('/a', [{ map: '/m', from: '/a', to: '/b', backward: false, step: 0, linear: l }])!;
+      const p = stepPath(l);
       expect(projectBoundary(p, 3)).toBeUndefined();
       expect(projectBoundary(p, 5)).toBe(0);
       expect(projectBoundary(p, 10)).toBe(5);
+    }
+  });
+});
+
+describe('maps: a boundary is the same on every encoding (EC-28)', () => {
+  it('a one-nucleotide minus-strand exon: the boundary after it lands below it', () => {
+    // exons [100, 101) and [110, 112): c 0, 1 → 111, 110; c 2 → 100, a lone position read downward
+    const l = codonLinear([100, 110], [101, 112], '-');
+    for (const p of codonPaths(l, 3)) {
+      expect(projectBoundary(p, 0)).toBe(112);
+      // after the last residue: below its last nucleotide, 100
+      expect(projectBoundary(p, 1)).toBe(100);
+      const back = backPath(p);
+      expect(projectBoundary(back, 101)).toBe(1);
+      expect(projectBoundary(back, 100)).toBe(1);
+    }
+    const [a, ...rest] = encodings(l, 0, 3);
+    for (const b of rest) expect(linearsEqual(a, b)).toBe(true);
+  });
+
+  it('a one-position run read downward, on runs and expanded', () => {
+    const one = new RunsLinear([{ from: 0, to: 5, length: 1, dir: -1 }]);
+    for (const l of encodings(one, 0, 1)) {
+      expect(projectBoundary(stepPath(l), 0)).toBe(6);
+      expect(projectBoundary(stepPath(l), 1)).toBe(5);
+      expect(linearsEqual(l, one)).toBe(true);
+    }
+    expect(linearsEqual(one, new RunsLinear([{ from: 0, to: 5, length: 1, dir: 1 }]))).toBe(false);
+  });
+
+  it('on an offset that wraps a cyclic origin', () => {
+    // 0..2 → 7..9, 3..5 → 0..2 on a plasmid of 10
+    for (const l of encodings(new ImplicitLinear(7, 1, 0, 6, 10), 0, 6)) {
+      const p = stepPath(l);
+      expect(projectBoundary(p, 0)).toBe(7);
+      expect(projectBoundary(p, 3)).toBe(0);
+      expect(projectBoundary(p, 6)).toBe(3);
+    }
+  });
+
+  it('on an inversion: a reversed run that is no codon map', () => {
+    // [10, 20) shown reversed onto [0, 10): 10 → 9, …, 19 → 0
+    const inv = new RunsLinear([{ from: 10, to: 9, length: 10, dir: -1 }]);
+    for (const l of encodings(inv, 10, 20)) {
+      const p = stepPath(l);
+      expect(merged(projectRanges(p, [12, 15]))).toEqual([5, 8]);
+      expect(projectBoundary(p, 12)).toBe(8);
+      expect(projectBoundary(p, 20)).toBe(0);
+      expect(pathDir(p)).toBe(-1);
+      expect(projectPoint(p, 12.5)).toBe(7.5);
     }
   });
 });
@@ -219,13 +332,17 @@ describe('maps: one-to-many backward (EC-20)', () => {
 });
 
 describe('maps: canonical runs and composition', () => {
-  it('runs join position by position, whatever pieces they come in', () => {
+  it('runs join only where they continue in the same direction; a lone position keeps its own', () => {
     const a = canonicalRuns([
-      { from: 0, to: 5, length: 1, dir: 1 },
-      { from: 1, to: 4, length: 1, dir: 1 },
       { from: 2, to: 3, length: 2, dir: -1 },
+      { from: 0, to: 5, length: 1, dir: 1 },
+      { from: 1, to: 4, length: 1, dir: -1 },
     ]);
-    expect(a).toEqual([{ from: 0, to: 5, length: 4, dir: -1 }]);
+    expect(a).toEqual([
+      { from: 0, to: 5, length: 1, dir: 1 },
+      { from: 1, to: 4, length: 3, dir: -1 },
+    ]);
+    expect(linearsEqual(new RunsLinear(a), new RunsLinear([{ from: 0, to: 5, length: 4, dir: -1 }]))).toBe(false);
   });
 
   it('two implicit maps compose to an implicit one; implicit through runs to runs', () => {

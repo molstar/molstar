@@ -9,6 +9,21 @@
 import { defineIssues } from '@molstar/core/repr/tree';
 
 export const ViewIssues = defineIssues('seq.view', {
+  'seq.view.section.system': {
+    severity: 'error',
+    description: 'A section’s `of` names no system of the spec; its layers are not placed',
+    hint: 'Name a sequence of the spec',
+  },
+  'seq.view.layer.type': {
+    severity: 'warning',
+    description: 'A layer’s type is not one this version draws, and it has no fallback that is',
+    hint: 'Types drawn: letters, ranges, values',
+  },
+  'seq.view.layer.shape': {
+    severity: 'error',
+    description: 'A layer’s type does not draw the shape of its data (ranges drawn as values, values as letters)',
+    hint: 'Give data of the shape the type draws, or a type that draws it',
+  },
   'seq.view.layer.data': {
     severity: 'error',
     description: 'A layer’s data names nothing the static model holds: no sequence, no annotation',

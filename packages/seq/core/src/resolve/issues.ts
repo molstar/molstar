@@ -15,6 +15,11 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'A reference the resolve pass follows names no node of a kind it takes (the spec was not checked)',
     hint: 'Check the spec first: checkSeqSpec reports what it names',
   },
+  'seq.resolve.source.format': {
+    severity: 'error',
+    description: 'A source names no format (the spec was not checked); it is unavailable',
+    hint: 'Give the source a `format`',
+  },
   'seq.resolve.source.runtime': {
     severity: 'warning',
     description:
@@ -32,6 +37,17 @@ export const ResolveIssues = defineIssues('seq.resolve', {
       'A codon map’s exons are not whole codons, or not as many as its protein has residues (with or without a stop)',
     hint: 'A coding sequence is three nucleotides a residue; it cannot start mid-codon',
   },
+  'seq.resolve.map.table': {
+    severity: 'warning',
+    description: 'A codon map names a genetic code that is not built; its codons have no status',
+    hint: 'Codes built: 1 (standard), 2 (vertebrate mitochondrial), 11 (bacterial and plastid)',
+  },
+  'seq.resolve.length.unknown': {
+    severity: 'warning',
+    description:
+      'A row or an exon wraps the origin of a cyclic sequence whose length is not known yet; it is left out until it is',
+    hint: 'Give the sequence its letters inline, or wait for its source',
+  },
   'seq.resolve.path.none': {
     severity: 'warning',
     description: 'No path of maps joins two systems within the bound (at most four maps and one codon step)',
@@ -41,5 +57,10 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     severity: 'warning',
     description: 'Several shortest paths join two systems and map them differently; none is taken',
     hint: 'Two maps join the same systems: drop one, or map through one system',
+  },
+  'seq.resolve.path.limit': {
+    severity: 'warning',
+    description: 'More shortest paths join two systems than the search compares; none is taken',
+    hint: 'Map through fewer systems, or raise the candidate bound in the configuration',
   },
 });

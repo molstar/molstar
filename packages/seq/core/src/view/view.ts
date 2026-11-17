@@ -7,8 +7,10 @@
 // The resolved view (_spec/README.md "Resolved view"): tier 1, over the static model only. Views, sections (an axis:
 // a system and its range), tracks, layers with their params, themes as values, each layer's fallback chain and its
 // data as an address or a query with the static path from the data's system to its section's. Follow links resolved
-// to their paths and scales. No data, no dynamic node, no pixels, no target: the same for every renderer.
+// to their paths, directions and scales, and every path between the view's sections precomposed. No data, no dynamic
+// node, no pixels, no target: the same for every renderer.
 
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import {
   exactAddress,
   type Issue,
@@ -18,12 +20,21 @@ import {
   printAddress,
   type Value,
 } from '@molstar/core/repr/tree';
-import { OpenLength, type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve/index';
+import {
+  identityPath,
+  type Path,
+  pathDir,
+  projectPoint,
+  projectRanges,
+  type StaticModel,
+} from '@molstar/seqx-core/resolve/index';
 import { ViewIssues } from './issues.js';
+
+type Shape = 'letters' | 'ranges' | 'values';
 
 /** A layer type: what it draws and the simpler type a reader that lacks it draws instead. */
 export interface LayerType {
-  readonly shape: 'letters' | 'ranges' | 'values';
+  readonly shape: Shape;
   readonly fallback?: string;
 }
 
@@ -34,21 +45,33 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
   values: { shape: 'values' },
 };
 
-/** An axis: a system and the positions shown, `[start, end, …]` pairs (two when a cyclic range wraps the origin). */
+/**
+ * An axis: a system and the positions shown, `[start, end, …]` pairs in display order: one piece, or two when a cyclic
+ * range wraps the origin (`[8, 10, 0, 2]`). `ranges` is undefined while the system's length is unknown and the
+ * section shows all of it, or wraps: the layout waits for the length (pending, never a guess).
+ */
 export interface Axis {
   readonly system: string;
-  /** Undefined: open (its source tells). */
   readonly length?: number;
   readonly cyclic: boolean;
-  readonly ranges: readonly number[];
+  readonly ranges?: readonly number[];
 }
 
-/** How a section follows another: the path from the leader's system to its own, and the scale of a position. */
+/** How a section follows another: the path from the leader's system to its own, its direction and scale. */
 export interface Follow {
   readonly leader: string;
+  /** The leader's axis: a leader range that wraps its origin is split on it. */
+  readonly leaderAxis: Axis;
   readonly path: Path;
   /** Follower positions per leader position: 3 from residues to nucleotides, 1/3 back, else 1. */
   readonly scale: number;
+  /** −1 where the follower runs against the leader (a minus-strand gene), else 1. */
+  readonly dir: 1 | -1;
+  /**
+   * The continuous image of a leader position (a viewport's fractional edge): where element `floor(x)` starts plus
+   * the fraction times the scale in the run's direction; undefined where it maps nowhere.
+   */
+  point(x: number): number | undefined;
 }
 
 /** What a layer draws: an address of a node, or a query; the system its data is on and the shape it reads. */
@@ -56,7 +79,8 @@ export interface LayerData {
   readonly kind: 'address' | 'query';
   readonly address: string;
   readonly system: string;
-  readonly shape: 'letters' | 'ranges' | 'values';
+  /** The shape of the node it names (a query on a sequence: undefined, a location of any shape). */
+  readonly shape?: Shape;
 }
 
 export interface ResolvedLayer {
@@ -73,7 +97,7 @@ export interface ResolvedLayer {
   readonly data?: LayerData;
   /** The static path from the data's system to the section's; undefined when the same system or none. */
   readonly path?: Path;
-  /** Whether its data reaches its section: false with an issue. */
+  /** Whether it can be drawn: its type known, its data fitting it and reaching its section; false with an issue. */
   readonly placed: boolean;
 }
 
@@ -91,10 +115,19 @@ export interface ResolvedSection {
   readonly tracks: readonly ResolvedTrack[];
 }
 
+/** A path between two sections of a view, precomposed: hover and selection are projected along it. */
+export interface ViewLink {
+  readonly from: string;
+  readonly to: string;
+  readonly path: Path;
+}
+
 export interface ResolvedView {
   readonly address: string;
   readonly layout: string;
   readonly sections: readonly ResolvedSection[];
+  /** Every ordered pair of its sections a static path joins (the same system: the identity). */
+  readonly links: readonly ViewLink[];
   readonly issues: readonly Issue[];
 }
 
@@ -136,28 +169,38 @@ function nodeAt(root: Node, address: string): Node | undefined {
 
 const param = (n: Node, key: string): Value | undefined => n.params?.[key];
 
+type Report = (code: keyof typeof ViewIssues.codes, message: string, at: string, cause?: Issue) => void;
+
 function build(model: StaticModel, view: Node, address: string): ResolvedView {
   const issues: Issue[] = [];
-  const report = (code: keyof typeof ViewIssues.codes, message: string, at: string, cause?: Issue) =>
+  const report: Report = (code, message, at, cause) =>
     issues.push(
       issueOf(ViewIssues, code, message, {
         address: at,
         hint: cause ? `${cause.message}: ${cause.hint ?? ''}`.trim() : ViewIssues.codes[code].hint,
       }),
     );
-  const sections: ResolvedSection[] = [];
-  const systemOf = new Map<string, string>();
   const sectionNodes = (view.children ?? []).filter((c) => c.kind === 'section' && c.id !== undefined);
-  for (const s of sectionNodes) systemOf.set(`${address}/${s.id}`, exactAddress(param(s, 'of')) ?? '');
-
+  const axes = new Map<string, Axis>();
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
-    const axis = axisOf(model, systemOf.get(at)!, param(s, 'range'));
+    const system = exactAddress(param(s, 'of'));
+    if (system === undefined || !model.systems.has(system))
+      report('seq.view.section.system', 'The section shows no system of the spec', at);
+    axes.set(at, axisOf(model, system ?? '', param(s, 'range')));
+  }
+
+  const sections: ResolvedSection[] = [];
+  for (const s of sectionNodes) {
+    const at = `${address}/${s.id}`;
+    const axis = axes.get(at)!;
+    const known = model.systems.has(axis.system);
     let follow: Follow | undefined;
     const leader = exactAddress(param(s, 'follow'));
-    if (leader !== undefined) {
-      const r = model.path(systemOf.get(leader) ?? '', axis.system);
-      if (r.path) follow = { leader, path: r.path, scale: r.path.step === 1 ? 3 : r.path.step === -1 ? 1 / 3 : 1 };
+    const leaderAxis = leader === undefined ? undefined : axes.get(leader);
+    if (leader !== undefined && leaderAxis && known && model.systems.has(leaderAxis.system)) {
+      const r = model.path(leaderAxis.system, axis.system);
+      if (r.path) follow = followOf(leader, leaderAxis, r.path);
       else report('seq.view.follow.unplaced', 'The section cannot follow its leader', at, r.issue);
     }
     const tracks: ResolvedTrack[] = [];
@@ -166,8 +209,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       const ta = `${at}/${t.id}`;
       const layers: ResolvedLayer[] = [];
       (t.children ?? []).forEach((l, index) => {
-        if (l.kind !== 'layer') return;
-        layers.push(layerOf(model, l, index, ta, axis.system, report));
+        if (l.kind === 'layer') layers.push(layerOf(model, l, index, ta, known ? axis.system : undefined, report));
       });
       const label = param(t, 'label');
       const height = param(t, 'height');
@@ -180,21 +222,43 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     }
     sections.push({ address: at, axis, ...(follow ? { follow } : {}), tracks });
   }
+
+  // every path between the view's sections, composed now so hover never composes
+  const links: ViewLink[] = [];
+  for (const a of sections)
+    for (const b of sections) {
+      if (a === b || !model.systems.has(a.axis.system) || !model.systems.has(b.axis.system)) continue;
+      const path =
+        a.axis.system === b.axis.system ? identityPath(a.axis.system) : model.path(a.axis.system, b.axis.system).path;
+      if (path) links.push({ from: a.address, to: b.address, path });
+    }
   const layout = param(view, 'layout');
-  return { address, layout: typeof layout === 'string' ? layout : 'tracks', sections, issues };
+  return { address, layout: typeof layout === 'string' ? layout : 'tracks', sections, links, issues };
+}
+
+function followOf(leader: string, leaderAxis: Axis, path: Path): Follow {
+  return {
+    leader,
+    leaderAxis,
+    path,
+    scale: path.step === 1 ? 3 : path.step === -1 ? 1 / 3 : 1,
+    dir: pathDir(path),
+    point: (x) => projectPoint(path, x),
+  };
 }
 
 function axisOf(model: StaticModel, system: string, range: Value | undefined): Axis {
   const s = model.systems.get(system);
   const cyclic = s?.cyclic ?? false;
   const length = s?.length;
-  const end = length ?? OpenLength;
-  let ranges: number[] = [0, end];
+  const base = { system, ...(length !== undefined ? { length } : {}), cyclic };
   if (Array.isArray(range) && range.length === 2) {
     const [a, b] = range as number[];
-    ranges = a > b && cyclic ? [0, b, a, end] : [a, b];
+    if (a <= b || !cyclic) return { ...base, ranges: [a, b] };
+    // display order: from the start to the origin, then on
+    return length === undefined ? base : { ...base, ranges: [a, length, 0, b] };
   }
-  return { system, ...(length !== undefined ? { length } : {}), cyclic, ranges };
+  return length === undefined ? base : { ...base, ranges: [0, length] };
 }
 
 function layerOf(
@@ -202,12 +266,12 @@ function layerOf(
   l: Node,
   index: number,
   track: string,
-  system: string,
-  report: (code: keyof typeof ViewIssues.codes, message: string, at: string, cause?: Issue) => void,
+  system: string | undefined,
+  report: Report,
 ): ResolvedLayer {
   const type = String(param(l, 'type'));
   const address = l.id === undefined ? undefined : `${track}/${l.id}`;
-  const at = address ?? track;
+  const at = address ?? `${track}`;
   const fallbacks: string[] = [];
   for (let t: string | undefined = type; t !== undefined && !fallbacks.includes(t); t = LayerTypes[t]?.fallback)
     fallbacks.push(t);
@@ -222,11 +286,22 @@ function layerOf(
     params,
     theme: color === undefined ? {} : { color },
   };
+  const layerType = LayerTypes[type];
+  if (!layerType) {
+    report('seq.view.layer.type', 'The layer’s type is not one this version draws', at);
+    return { ...base, placed: false };
+  }
+  // a section with no system was reported; its layers are not placed
+  if (system === undefined) return { ...base, placed: false };
 
   const data = dataOf(model, param(l, 'data'), type, system);
   if (!data) {
     report('seq.view.layer.data', 'The layer’s data names nothing the static model holds', at);
     return { ...base, placed: false };
+  }
+  if (data.shape !== undefined && data.shape !== layerType.shape) {
+    report('seq.view.layer.shape', 'The layer’s type does not draw the shape of its data', at);
+    return { ...base, data, placed: false };
   }
   if (data.system === system) return { ...base, data, placed: true };
   const r = model.path(data.system, system);
@@ -239,57 +314,62 @@ function layerOf(
 
 /** A layer's data: the section's letters when it names none; an address's node; a query's first node. */
 function dataOf(model: StaticModel, value: Value | undefined, type: string, section: string): LayerData | undefined {
-  const shape = LayerTypes[type]?.shape ?? 'ranges';
   if (value === undefined)
-    return type === 'letters' ? { kind: 'address', address: section, system: section, shape } : undefined;
+    return type === 'letters' ? { kind: 'address', address: section, system: section, shape: 'letters' } : undefined;
   if (typeof value !== 'string') return undefined;
+  const parsed = parseAddress(value).pattern;
+  if (!parsed) return undefined;
   const exact = exactAddress(value);
-  let prefix = exact;
-  if (prefix === undefined) {
-    const p = parseAddress(value).pattern;
-    const ids: string[] = [];
-    for (const s of p?.segments ?? []) {
-      if (typeof s !== 'string') break;
-      ids.push(s);
-    }
-    if (!ids.length) return undefined;
-    prefix = printAddress(ids);
+  const ids: string[] = [];
+  for (const s of parsed.segments) {
+    if (typeof s !== 'string') break;
+    ids.push(s);
   }
+  if (!ids.length) return undefined;
+  const prefix = printAddress(ids);
   const kind = exact === undefined ? 'query' : 'address';
-  const address = exact ?? printAddress(parseAddress(value).pattern!.segments);
-  if (model.systems.has(prefix)) return { kind, address, system: prefix, shape };
+  const address = exact ?? printAddress(parsed.segments);
+  if (model.systems.has(prefix))
+    return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
   const a = model.annotations.get(prefix);
-  return a ? { kind, address, system: a.target, shape } : undefined;
+  return a ? { kind, address, system: a.target, shape: a.shape } : undefined;
 }
 
 /**
- * A follower's range from its leader's `[start, end)`: the image along the follow's path, its hull; on a cyclic
- * system the shortest arc that holds the image (EC-12), `start > end` when it wraps. Undefined when nothing maps.
+ * A follower's range from its leader's, both as `[start, end, …]` pieces in display order (an axis's shape). A leader
+ * piece that wraps its cyclic origin (`start > end`) is split on it first. The image's hull, or on a cyclic follower
+ * the shortest arc that holds it (EC-12), as two pieces when it wraps; `arc: 'hull'` takes the hull there too.
+ * Undefined when nothing maps.
  */
 export function followRange(
   section: ResolvedSection,
-  start: number,
-  end: number,
-): { start: number; end: number } | undefined {
-  if (!section.follow) return undefined;
-  const image = projectRanges(section.follow.path, [Math.floor(start), Math.ceil(end)]);
-  if (!image.length) return undefined;
-  const pairs: [number, number][] = [];
-  for (let i = 0; i < image.length; i += 2) pairs.push([image[i], image[i + 1]]);
-  pairs.sort((a, b) => a[0] - b[0]);
-  const { cyclic, length } = section.axis;
-  if (!cyclic || length === undefined) return { start: pairs[0][0], end: Math.max(...pairs.map((p) => p[1])) };
-  // the arc is the circle less its widest gap
-  let best = -1;
-  let from = 0;
-  let to = 0;
-  let reach = pairs[0][1];
-  for (let i = 1; i < pairs.length; i++) {
-    const gap = pairs[i][0] - reach;
-    if (gap > best) [best, from, to] = [gap, pairs[i][0], reach];
-    reach = Math.max(reach, pairs[i][1]);
+  leader: readonly number[],
+  options: { readonly arc?: 'shortest' | 'hull' } = {},
+): number[] | undefined {
+  const follow = section.follow;
+  if (!follow) return undefined;
+  const pieces: number[] = [];
+  const ll = follow.leaderAxis.length;
+  for (let i = 0; i + 1 < leader.length; i += 2) {
+    const s = Math.floor(leader[i]);
+    const e = Math.ceil(leader[i + 1]);
+    if (s > e && follow.leaderAxis.cyclic && ll !== undefined) pieces.push(s, ll, 0, e);
+    else pieces.push(s, e);
   }
-  const around = length - reach + pairs[0][0];
-  if (around >= best) return { start: pairs[0][0], end: reach };
-  return { start: from, end: to };
+  const image = HalfOpenRanges.normalize(projectRanges(follow.path, pieces));
+  const n = image.length;
+  if (!n) return undefined;
+  const { cyclic, length } = section.axis;
+  if (!cyclic || length === undefined || options.arc === 'hull') return [image[0], image[n - 1]];
+  // the arc is the circle less its widest gap: around the origin, or between two pieces
+  let best = length - image[n - 1] + image[0];
+  let arc = [image[0], image[n - 1]];
+  for (let i = 2; i < n; i += 2) {
+    const gap = image[i] - image[i - 1];
+    if (gap > best) {
+      best = gap;
+      arc = [image[i], length, 0, image[i - 1]];
+    }
+  }
+  return arc;
 }

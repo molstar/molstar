@@ -21,4 +21,5 @@ export {
   type ResolvedView,
   resolveView,
   resolveViews,
+  type ViewLink,
 } from './view.js';

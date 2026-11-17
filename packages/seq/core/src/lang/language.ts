@@ -78,6 +78,10 @@ export const SeqLanguage = defineLanguage({
         letters: { type: 'string', doc: 'The letters inline (instead of `source`).' },
         source: { type: 'ref', kinds: ['source'], doc: 'The source that holds the letters (instead of `letters`).' },
         cyclic: { type: 'boolean', default: false, doc: 'Whether the sequence wraps around.' },
+        name: {
+          type: 'string',
+          doc: 'The name its source knows it by (a FASTA record, a chromosome); the node’s id when absent.',
+        },
       },
     },
     ranges: {
@@ -139,9 +143,14 @@ export const SeqLanguage = defineLanguage({
             start: { type: 'column', of: 'int32', required: true, doc: 'The first position of each exon on `to`.' },
             end: { type: 'column', of: 'int32', required: true, doc: 'The position after the last, of each exon.' },
           },
-          doc: 'For `codon`: the exons on `to`, in genomic order and not overlapping; `strand` says which way the protein runs.',
+          doc: 'For `codon`: the exons on `to`, in genomic order and not overlapping; `strand` says which way the protein runs. On a cyclic `to`, the last exon may end before it starts: it crosses the origin.',
         },
         strand: { type: 'string', enum: ['+', '-'], doc: 'For `codon`: the strand of the gene on `to`.' },
+        table: {
+          type: 'integer',
+          min: 1,
+          doc: 'For `codon`: the NCBI genetic code the codons are read with; 1 (the standard code) when absent.',
+        },
       },
     },
     view: {
