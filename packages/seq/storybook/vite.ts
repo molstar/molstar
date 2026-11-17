@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, normalize, relative, sep } from 'node:path';
 
@@ -16,19 +16,26 @@ import { join, normalize, relative, sep } from 'node:path';
 const FixturesRoot = fileURLToPath(new URL('../examples/fixtures', import.meta.url));
 const Prefix = '/fixtures/';
 
-/** The file a URL path names under `root`, or undefined: not under the prefix, not a file, or above the root. */
+/** The file a URL path names under `root`, or undefined: not under the prefix, not a file, or out of the folder. */
 export function fixtureFile(urlPath: string, root: string = FixturesRoot): string | undefined {
-  if (!urlPath.startsWith(Prefix)) return undefined;
+  // the query and the fragment are not the path: cut before decoding
+  const path = urlPath.split(/[?#]/, 1)[0];
+  if (!path.startsWith(Prefix)) return undefined;
   let rel: string;
   try {
-    rel = decodeURIComponent(urlPath.slice(Prefix.length).split('?')[0]);
+    rel = decodeURIComponent(path.slice(Prefix.length));
   } catch {
     return undefined;
   }
+  if (rel.includes('\0')) return undefined;
   const file = normalize(join(root, rel));
   if (file !== root && !file.startsWith(root + sep)) return undefined;
   try {
-    return statSync(file).isFile() ? file : undefined;
+    if (!statSync(file).isFile()) return undefined;
+    // the real path: a link in the folder may lead anywhere
+    const real = realpathSync(file);
+    const realRoot = realpathSync(root);
+    return real.startsWith(realRoot + sep) ? file : undefined;
   } catch {
     return undefined;
   }
@@ -45,7 +52,7 @@ function listFiles(dir: string): string[] {
 }
 
 interface Middlewares {
-  use(fn: (req: { url?: string }, res: ServerResponse, next: () => void) => void): void;
+  use(fn: (req: { url?: string; method?: string }, res: ServerResponse, next: () => void) => void): void;
 }
 
 interface ServerResponse {
@@ -59,10 +66,12 @@ export function seqExampleFixtures(root: string = FixturesRoot) {
     name: 'seqx-example-fixtures',
     configureServer(server: { middlewares: Middlewares }) {
       server.middlewares.use((req, res, next) => {
+        // GET and HEAD only: any other method is the server's to answer
+        if (req.method !== undefined && req.method !== 'GET' && req.method !== 'HEAD') return next();
         const file = req.url ? fixtureFile(req.url, root) : undefined;
         if (!file) return next();
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.end(readFileSync(file));
+        res.end(req.method === 'HEAD' ? '' : readFileSync(file));
       });
     },
     generateBundle(this: { emitFile(file: { type: 'asset'; fileName: string; source: Uint8Array }): void }) {
