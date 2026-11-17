@@ -83,6 +83,7 @@ export interface TextMetricsPort extends PortResult {
 /** A structure runtime binds structure systems to a structure viewer: no adapter in this version, unset. */
 export interface StructurePort extends PortResult {
   readonly runtime: unknown;
+  dispose?(): void;
 }
 
 /** The ports of a composition, each a factory called once. Unset: the default adapter, owned by the owner. */
@@ -159,29 +160,42 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
   const disposers: (() => void)[] = [];
 
+  // a factory that throws leaves nothing made behind: the ports already made are disposed, last first
   let assets: AssetReader = NoAssets;
-  if (spec.ports?.assets) {
-    const port = spec.ports.assets();
-    if ('reader' in port) {
-      assets = port.reader;
-      if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
-    } else {
-      assets = policyAssets(port.manager, port.policy ?? HeadlessAssetPolicy);
-      if (port.disposeWithViewer !== false) disposers.push(() => port.manager.dispose());
-    }
-  }
-
-  let text: TextMetrics;
-  if (spec.ports?.textMetrics) {
-    const port = spec.ports.textMetrics();
-    text = createTextMetrics((font) => (s) => port.measure(font, s));
-    if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
-  } else text = bundledTextMetrics();
-
   let structure: unknown;
-  if (spec.ports?.structure) {
-    const port = spec.ports.structure();
-    structure = port.runtime;
+  let text: TextMetrics = undefined as never;
+  try {
+    if (spec.ports?.assets) {
+      const port = spec.ports.assets();
+      if ('reader' in port) {
+        assets = port.reader;
+        if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
+      } else {
+        assets = policyAssets(port.manager, port.policy ?? HeadlessAssetPolicy);
+        if (port.disposeWithViewer !== false) disposers.push(() => port.manager.dispose());
+      }
+    }
+
+    if (spec.ports?.textMetrics) {
+      const port = spec.ports.textMetrics();
+      text = createTextMetrics((font) => (s) => port.measure(font, s));
+      if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
+    } else text = bundledTextMetrics();
+
+    if (spec.ports?.structure) {
+      const port = spec.ports.structure();
+      structure = port.runtime;
+      if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
+    }
+  } catch (e) {
+    for (const d of disposers.reverse()) {
+      try {
+        d();
+      } catch {
+        // the factory's failure is the one reported
+      }
+    }
+    throw e;
   }
 
   const tokens = builtInTokens(theme);

@@ -14,6 +14,7 @@ export {
   checkLocation,
   HeadlessAssetPolicy,
   policyAssets,
+  utf8Length,
 } from './assets.js';
 export {
   type AssetsPort,

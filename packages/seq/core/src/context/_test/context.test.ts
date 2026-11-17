@@ -17,6 +17,7 @@ import {
   createSeqContext,
   HeadlessAssetPolicy,
   policyAssets,
+  utf8Length,
   SeqCoreConfig,
 } from '../index.js';
 
@@ -65,6 +66,44 @@ describe('asset policy', () => {
     expect(checkLocation('../ok', { ...p, confine: false })).toEqual({ url: 'https://example.org/ok' });
   });
 
+  it('classifies a location by the URL it resolves to: no spelling of another host or folder gets through', () => {
+    const p = { ...HeadlessAssetPolicy, relative: true, base: 'https://example.org/app/page.html', confine: true };
+    const spellings = [
+      ' //evil.com/a',
+      '\\\\evil.com/a',
+      '/\\evil.com/a',
+      '\t//evil.com/a',
+      '\n/\t/evil.com/a',
+      '/etc/passwd',
+      '/app/../x',
+      '%2e%2e/secret',
+      '.%2e/secret',
+      '..%2fsecret',
+      'a/../../secret',
+      '\thttp://evil.com/',
+      ' https://evil.com/',
+      'file:///etc/passwd',
+      'data:text/plain,hi',
+      'blob:https://example.org/abc',
+      'javascript:alert(1)',
+    ];
+    for (const u of spellings) expect(checkLocation(u, p), JSON.stringify(u)).toHaveProperty('refused');
+    // with the browser's schemes and a host list the same spellings reach no other host either
+    const listed = { ...BrowserAssetPolicy, base: p.base, hosts: ['x.org'] };
+    for (const u of [' //evil.com/a', '\\\\evil.com/a', '/\\evil.com/a', '\thttps://evil.com/', 'data:text/plain,hi'])
+      expect(checkLocation(u, listed), JSON.stringify(u)).toHaveProperty('refused');
+    // what is allowed stays allowed, spelled with the parser's own forgiveness
+    expect(checkLocation(' d/a.seq\n', p)).toEqual({ url: 'https://example.org/app/d/a.seq' });
+    expect(checkLocation('d/./b/../a.seq', p)).toEqual({ url: 'https://example.org/app/d/a.seq' });
+  });
+
+  it('a file base: relative locations stay in its folder, another host is refused', () => {
+    const p = { ...HeadlessAssetPolicy, relative: true, base: 'file:///pkg/fixtures/', confine: true };
+    expect(checkLocation('p53/a.seq', p)).toEqual({ url: 'file:///pkg/fixtures/p53/a.seq' });
+    for (const u of ['../package.json', '//host/share/a', '/etc/passwd', 'file:///etc/passwd', '%2e%2e/x'])
+      expect(checkLocation(u, p), u).toHaveProperty('refused');
+  });
+
   it('a refused read rejects before the manager is asked; a read under the policy goes through', async () => {
     const urls: string[] = [];
     const { manager } = fakeManager('hello', urls);
@@ -79,6 +118,14 @@ describe('asset policy', () => {
     const { manager } = fakeManager('x'.repeat(100));
     const small = policyAssets(manager, { ...BrowserAssetPolicy, base, maxBytes: 10 });
     await expect(small.readText('d.seq', noSignal)).rejects.toThrow('larger than the limit');
+    // bytes, not characters: 4 letters of 3 bytes are over a limit of 10
+    const wide = policyAssets(fakeManager('\u20ac\u20ac\u20ac\u20ac').manager, {
+      ...BrowserAssetPolicy,
+      base,
+      maxBytes: 10,
+    });
+    await expect(wide.readText('d.seq', noSignal)).rejects.toThrow('larger than the limit');
+    expect(utf8Length('a\u00e9\u20ac\ud83d\ude00')).toBe(1 + 2 + 3 + 4);
     vi.useFakeTimers();
     try {
       const slow = {
@@ -172,6 +219,21 @@ describe('createSeqContext', () => {
     const b = createSeqContext({ ports: { assets: () => ({ reader, dispose, disposeWithViewer: false }) } });
     a.retire();
     b.retire();
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('a factory that throws disposes the ports already made, last first, and a structure port with them', () => {
+    const order: string[] = [];
+    const assets = () => ({ reader: { readText: async () => '' }, dispose: () => order.push('assets') });
+    const text = () => ({ measure: () => 1, dispose: () => order.push('text') });
+    const structure = () => {
+      throw new Error('no structure');
+    };
+    expect(() => createSeqContext({ ports: { assets, textMetrics: text, structure } })).toThrow('no structure');
+    expect(order).toEqual(['text', 'assets']);
+    // a structure port made is disposed with the context
+    const dispose = vi.fn();
+    createSeqContext({ ports: { structure: () => ({ runtime: {}, dispose }) } }).retire();
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
