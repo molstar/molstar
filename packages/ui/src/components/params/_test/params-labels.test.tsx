@@ -74,7 +74,10 @@ describe('ParamsForm labels (WCAG 4.1.2)', () => {
 
   it("names a field that shows a value by the row's label and the value (a select, a choice, lists, a matrix, a curve)", async () => {
     const form = new ParamsFormModel({
-      mode: PD.Select('a', [['a', 'Alpha'], ['b', 'Beta']] as [string, string][]),
+      mode: PD.Select('a', [
+        ['a', 'Alpha'],
+        ['b', 'Beta'],
+      ] as [string, string][]),
       kind: PD.MappedStatic('x', { x: PD.Group({}), y: PD.Group({}) }),
       chains: PD.MultiSelect(['A'], PD.arrayToOptions(['A', 'B'])),
       colors: PD.ColorList('viridis' as any),

@@ -322,9 +322,7 @@ function ParamRow(props: {
         ),
       );
     case 'select':
-      return wrap(
-        <SelectRow label={label} labelId={labelId} head={head} options={param.options} binding={binding} />,
-      );
+      return wrap(<SelectRow label={label} labelId={labelId} head={head} options={param.options} binding={binding} />);
     case 'color':
       return wrap(<ColorRow label={label} labelId={labelId} head={head} binding={binding} />);
     case 'multi-select':
@@ -541,15 +539,16 @@ function Toggle(props: { binding: FieldBinding<boolean>; labelId?: string }) {
 function NumberControl(props: { param: PD.Numeric; binding: FieldBinding<number>; labelId?: string }) {
   const { param, binding, labelId } = props;
   // Typed numbers keep to whichever bounds exist and to the step's decimals (`holdNumber`).
-  const box = (cls: string) => (
-    <NumberInput
-      class={cls}
-      aria-labelledby={labelId}
-      range={param}
-      current={() => binding.value.value}
-      commit={(v) => binding.set(v)}
-    />
-  ) as HTMLInputElement;
+  const box = (cls: string) =>
+    (
+      <NumberInput
+        class={cls}
+        aria-labelledby={labelId}
+        range={param}
+        current={() => binding.value.value}
+        commit={(v) => binding.set(v)}
+      />
+    ) as HTMLInputElement;
   // A slider needs both bounds; otherwise a number field.
   if (param.min === undefined || param.max === undefined) {
     const input = box(`${classes.input} ${classes.numeric}`);

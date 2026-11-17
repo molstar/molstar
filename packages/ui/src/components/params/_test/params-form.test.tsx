@@ -146,7 +146,9 @@ describe('ParamsForm', () => {
     expect((form.values.value as any).occlusion).toEqual({ name: 'on', params: custom });
     fieldNamed(container, 'Kind')!.click();
     await flush();
-    [...container.querySelectorAll<HTMLButtonElement>('[role=listbox] button')].find((b) => b.textContent?.trim() === 'B')!.click();
+    [...container.querySelectorAll<HTMLButtonElement>('[role=listbox] button')]
+      .find((b) => b.textContent?.trim() === 'B')!
+      .click();
     await flush();
     expect((form.values.value as any).kind).toEqual({ name: 'b', params: { size: 3 } });
   });
