@@ -17,10 +17,10 @@ the previous implementation good. Simplicity here is fewer mechanisms, not fewer
   specs in another viewer and probing the format (EC-185 to EC-244).
 - **Every item has one of three outcomes**, decided when its area is built, never by omission:
   - **kept**: a test or an example view shows it (the test name or the story cites the behavior, not the number);
-  - **changed**: the new design handles it differently, and says how (proposed so far, to confirm: EC-133, palette order by first occurrence, is
+  - **changed**: the new design handles it differently, and says how (confirmed by the author, 2026-11-17, "ok": EC-133, palette order by first occurrence, is
     changed by fetch-by-region; EC-55's doc conflict is settled as "drawn at the value, the domain bounds the height");
   - **dropped**: only by the author's decision, recorded in the design of its area with the reason.
-- **Known flaws are fixed, not ported** (recommended; the author confirms): EC-130 (minus-strand secondary structure), EC-135 (ESPript and gaps), EC-151
+- **Known flaws are fixed, not ported** (confirmed by the author, 2026-11-17): EC-130 (minus-strand secondary structure), EC-135 (ESPript and gaps), EC-151
   (cross-block text selection, deferred before), EC-181 (repeated ids across structures).
 - **The reply's cases are cases, not wishes**: what it asked for that the designs take (EC-185 to EC-206, EC-235,
   EC-236) is built and tested like any other item; what is deferred (EC-209, EC-213, EC-223 and the smaller layer

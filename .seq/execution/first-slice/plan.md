@@ -57,6 +57,12 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
       round; the merged tree 233 tests in about 0.3 s, tsc (tests too), lint, format, scaffold checks green; designs
       updated from the drift; the orchestrator's decisions await the author (gaps.md)
 
+### Stage 2b: range sets into core (lane C2, fast, beside stage 3)
+
+- [ ] C2 `@molstar/core/data/int`: half-open range sets (normalize, union, intersect, subtract, overlap by binary
+      search) moved from `seqx-core/query/location.ts` with its property tests; Location uses them; core's `_spec`,
+      exports and a changelog entry (the author approved the move, 2026-11-17)
+
 ### Stage 3: resolve (lane E, strong, after B and C)
 
 - [ ] E1 the static model: systems, units, numberings; `offset` and `codon` maps in their encodings (implicit, runs);

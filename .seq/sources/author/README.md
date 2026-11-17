@@ -154,6 +154,9 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
   recommend. once the plan is approved, we do loop and then start"; then "approve both, write the loop file" (the plan
   and Gate 0's recommended choices).
 
+- **Range sets and edge cases**: moving Location's range-set operations into `@molstar/core/data/int`, and the proposed
+  edge-case outcomes: "ok".
+
 ## Reconciliation
 
 - "JSON with S-expression printing" fits §one-recursive-form (the spelling is the project's choice); meso\* chose

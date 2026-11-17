@@ -52,6 +52,7 @@ Written anew in core with their tests, the previous code read as a guide.
 
 | Piece | Goes to | What |
 |---|---|---|
+| half-open range sets | `@molstar/core/data/int` | sorted, merged half-open ranges in `Int32Array`s with union, intersection, subtraction and overlap by binary search, taken from Seq\*'s Location (the author, 2026-11-17: "ok") |
 | interval index | `@molstar/core/data` | an implicit interval tree over sorted typed columns (overlap queries by region) |
 | summary pyramids | `@molstar/core/math` | value pyramids (min, max, mean, count) and class pyramids by level ([performance.md](performance.md)) |
 | genetic codes | `@molstar/core/algorithms/sequence/` (a module beside `needleman-wunsch`) | NCBI codon tables, Sec and Pyl, one- and three-letter codes |

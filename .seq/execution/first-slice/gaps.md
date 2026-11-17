@@ -23,5 +23,3 @@ Stages 3 to 7; the follow-ups in `followups.md` (the tree core's pending union, 
 ## Waiting for the author
 
 - Items 1 to 5 above.
-- Whether range-set operations (Location's union, intersect, subtract) move to `@molstar/core/data/int`.
-- The edge-case outcomes proposed in `.seq/design/edge-cases.md`.
