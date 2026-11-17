@@ -235,12 +235,15 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 
 ### Summaries
 
-- A source that lists level 1 alone and serves values on a system of known length up to `summaries.maxLength` (2^24)
-  gets a value pyramid when attached (`withSummaries`, the store's `summaries` setting; `false`: none): levels
-  `[1, f, f², …]` (`factor` 16) up to the longest such system. A coarse level's values are built per level, each from
-  the level below (`binValues`, `coarsenBins`: min, max, count-weighted mean, NaN not counted), from the whole system
-  read once at level 1; its other shapes are read at level 1 over the same region. Why: a values layer zoomed out reads
-  a coarse level within the tile bound, and a level costs one pass over the one below.
+- A source that lists level 1 alone and serves values on a system of known length gets coarse levels when attached
+  (`withSummaries`, the store's `summaries` setting; `false`: none): `[1, f, f², …]` (`factor` 16) up to its longest
+  values system. A system up to `summaries.maxLength` (2^24) gets a pyramid: read whole once at level 1 (checked by
+  `checkAnswer` with the store's `maxRows`), every level built from the one below (`binValues`, `coarsenBins`: min, max,
+  count-weighted mean, NaN not counted), then the level-1 values let go; its bytes (`summaryBytes`) count against
+  `maxBytes` and go with the source. A longer system's coarse tile is binned on the fly from a level-1 read of that tile
+  alone, refused (malformed) past `maxRows` positions. A caller's abort is noticed at once, even while the shared read
+  goes on. Other shapes at a coarse level are read at level 1 over the same region. Why: a values layer zoomed out reads
+  a coarse level within the tile bound, a level costs one pass over the one below, and memory stays within the bound.
 
 ### FASTA
 

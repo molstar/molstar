@@ -20,7 +20,7 @@ import {
   type Tables,
 } from './protocol.js';
 import { checkCoverage } from './seq-format.js';
-import { DefaultSummarySettings, type SummarySettings, withSummaries } from './summaries.js';
+import { DefaultSummarySettings, type SummarySettings, summaryBytes, withSummaries } from './summaries.js';
 import { answerBytes, checkAnswer, DefaultMaxRows, isEmptyAnswer } from './tables.js';
 
 // The data store (_spec/README.md "Data", Store): entries by key in keyed states, versioned; the want sets of its
@@ -282,6 +282,13 @@ export class DataStore extends ReactiveModel {
     return this._bytes;
   }
 
+  /** The bytes the attached sources' value pyramids hold: counted against `maxBytes` with the entries'. */
+  get summaryBytes(): number {
+    let n = 0;
+    for (const s of this._sources.values()) n += summaryBytes(s.opened);
+    return n;
+  }
+
   /** Requests in flight now. */
   get inFlight(): number {
     return this._inFlight;
@@ -304,7 +311,7 @@ export class DataStore extends ReactiveModel {
     }
     // a level-1 source's values get a pyramid, so a values layer zoomed out reads a coarse level
     const summaries = this.settings.summaries;
-    const opened = summaries ? withSummaries(source, summaries) : source;
+    const opened = summaries ? withSummaries(source, summaries, this.settings.maxRows) : source;
     const names = new Map<string, string>();
     for (const s of opened.coverage.systems) {
       names.set(s.name, s.name);
@@ -837,7 +844,8 @@ export class DataStore extends ReactiveModel {
    * `evicted`. Never the view, never a request on its way. Still over: over budget, reported once each time.
    */
   private _evict(): void {
-    const max = this.settings.maxBytes;
+    // a pyramid is not evicted (it goes with its source), but it leaves the entries less room
+    const max = this.settings.maxBytes - this.summaryBytes;
     for (const rank of [Unwanted, Rank.prefetch, Rank.margin]) {
       if (this._bytes <= max) break;
       for (const slot of [...this._slots.values()]) {

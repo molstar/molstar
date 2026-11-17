@@ -213,4 +213,83 @@ describe('value summaries', () => {
     off.attach(S, asyncSeqSource(data));
     expect(off.coverage(S)?.levels).toEqual([1]);
   });
+
+  /** One values system of `length`, served at level 1 in one pair. */
+  function signal(length: number, value: (i: number) => number = (i) => i % 7): SeqData {
+    return {
+      coverage: { systems: [{ name: 's', length }], shapes: [{ system: 's', shape: 'values' }], levels: [1] },
+      pairs: [
+        {
+          request: { system: 's', start: 0, end: length, level: 1, shapes: ['values'] },
+          answer: {
+            ok: true,
+            tables: {
+              values: { form: 'positions', start: 0, value: Float32Array.from({ length }, (_, i) => value(i)) },
+            },
+          },
+        },
+      ],
+    };
+  }
+  const go = new AbortController().signal;
+
+  it('over maxLength, a coarse tile is binned on the fly from its own level-1 values', async () => {
+    const src = withSummaries(asyncSeqSource(signal(1000, (i) => i)), { factor: 4, maxLength: 200 });
+    expect(src.coverage.levels).toEqual([1, 4, 16, 64, 256]);
+    const a = await src.read({ system: 's', start: 0, end: 1000, level: 64, shapes: ['values'] }, go);
+    if (!a.ok || a.tables.values?.form !== 'bins') throw new Error('bins');
+    const v = a.tables.values;
+    expect([v.start, v.count.length, v.min[0], v.max[0], v.count[15]]).toEqual([0, 16, 0, 63, 1000 - 960]);
+    const b = await src.read({ system: 's', start: 512, end: 1000, level: 64, shapes: ['values'] }, go);
+    if (!b.ok || b.tables.values?.form !== 'bins') throw new Error('bins');
+    expect([b.tables.values.start, b.tables.values.min[0]]).toEqual([512, 512]);
+    expect((src as unknown as { summaryBytes: number }).summaryBytes).toBe(0);
+    // a tile over maxRows positions is refused, not read
+    const tight = withSummaries(asyncSeqSource(signal(1000)), { factor: 4, maxLength: 200 }, 100);
+    expect(await tight.read({ system: 's', start: 0, end: 1000, level: 64, shapes: ['values'] }, go)).toMatchObject({
+      ok: false,
+      kind: 'malformed',
+    });
+  });
+
+  it('a pyramid’s bytes count against the store’s bound; its whole-system read is checked as any answer', async () => {
+    const clock = new FakeClock();
+    const store = new DataStore({ clock, settings: { summaries: { factor: 4, maxLength: 1 << 20 } } });
+    store.attach(S, asyncSeqSource(signal(4096)));
+    store.want([{ source: S, system: 's', start: 0, end: 4096, level: 64 }]);
+    await clock.advance(0);
+    expect(store.get(dataKey(S, 's', 64, 0))?.status).toBe('loaded');
+    // levels 4, 16, 64, 256, 1024: 1024 + 256 + 64 + 16 + 4 bins of four float32s
+    expect(store.summaryBytes).toBe(16 * (1024 + 256 + 64 + 16 + 4));
+    // a bound the pyramid alone fills: nothing else fits, and it is said
+    const tight = new DataStore({ clock, settings: { maxBytes: 1000, summaries: { factor: 4, maxLength: 1 << 20 } } });
+    tight.attach(S, asyncSeqSource(signal(4096)));
+    tight.want([{ source: S, system: 's', start: 0, end: 4096, level: 64 }]);
+    await clock.advance(0);
+    expect(tight.overBudget.value).toBe(true);
+    // a source whose whole-system answer lies outside the region asked
+    const malformed = {
+      coverage: signal(10).coverage,
+      read: (): Promise<RegionAnswer> =>
+        Promise.resolve({ ok: true, tables: { values: { form: 'positions', start: 5, value: new Float32Array(10) } } }),
+      dispose() {},
+    };
+    const src = withSummaries(malformed, { factor: 2, maxLength: 100 });
+    expect(await src.read({ system: 's', start: 0, end: 10, level: 2, shapes: ['values'] }, go)).toMatchObject({
+      ok: false,
+      kind: 'malformed',
+    });
+  });
+
+  it('a caller’s abort is noticed before the shared whole-system read settles', async () => {
+    const clock = new FakeClock();
+    const src = withSummaries(asyncSeqSource(signal(1000), { clock, delayMs: 100 }), { factor: 4, maxLength: 2000 });
+    const a = new AbortController();
+    const first = src.read({ system: 's', start: 0, end: 1000, level: 16, shapes: ['values'] }, a.signal);
+    const second = src.read({ system: 's', start: 0, end: 1000, level: 16, shapes: ['values'] }, go);
+    a.abort();
+    await expect(first).rejects.toMatchObject({ name: 'AbortError' });
+    await clock.advance(100);
+    expect(await second).toMatchObject({ ok: true });
+  });
 });
