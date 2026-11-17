@@ -19,3 +19,13 @@
 8. **Fixtures' place**: `examples.md` says the storybook package; `examples-and-stories.md` (followed) says
    `packages/seq/examples/fixtures`. Fix `examples.md`.
 9. **EC-143** is not in `edge-cases.md`; built as: re-hit once per frame in which the layout was rebuilt.
+
+## From the review (strong)
+
+10. **The asset manager's fetch** (`@molstar/core` `data-source`): it sends cookies on relative reads (`credentials`
+    default), follows redirects to disallowed hosts, ignores the signal, and checks size only after reading the whole
+    body. security.md asks for no credentials and refusal before allocating. The fix is a core API change
+    (`credentials: 'omit'`, `redirect: 'error'`, the signal passed through, a streamed byte limit): **the author's
+    call** (base-library.md). Until then the seq policy says what it does not enforce.
+11. **Canvas and SVG pass order**: labels above emphasis on both (a third canvas), with a test comparing the two
+    backends' order.
