@@ -5,9 +5,10 @@
  */
 
 // The S-expression printing of the tree and its reader (_spec/README.md "Codecs"; format.md): for people, docs, tests
-// and agents; never a file type, never stored. The reader lowers the same spelling to the same tree, columns aside: a
-// column prints as a list when short and elided past its head (`[float32 × 3,000,000: 0.12 0.15 …]`), which the reader
-// refuses.
+// and agents; never a file type, never stored. The reader lowers the same spelling to the same tree: a column in a
+// declared column param (the printer is given the language) prints as a list, any other tagged,
+// `(:$column int32 :values [1 2])`; past its head a column is elided in a brace form the reader refuses,
+// `{float32 × 3,000,000: 0.12 0.15 …}`.
 //
 //   node    (kind [id] :param value … :$custom (…) child …)   a word head; an optional id; keyword params; custom
 //                                                 data under the reserved keyword `:$custom`; children are forms

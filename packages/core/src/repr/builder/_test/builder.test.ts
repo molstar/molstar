@@ -41,6 +41,36 @@ describe('repr/builder: the engine', () => {
     expect(hashNode(normalize(Mini, parseJson(printJson(node)).node!))).toBe(hashNode(node));
   });
 
+  it('returns each new node’s address as its handle', () => {
+    const handles: (string | undefined)[] = [];
+    mini.root({ version: '0' }, (s) => {
+      const data: string = s.data('data', {}, (d) => {
+        const p53: string = d.sequence('p53', { alphabet: 'protein' });
+        handles.push(p53, d.ranges('r', { target: p53, rows: { start: [0], end: [1] } }));
+      });
+      handles.push(data);
+    });
+    expect(handles).toEqual(['/data/p53', '/data/r', '/data']);
+    // a slot's node has no address, nor what is built under it
+    mini.forms.data('d', {}, (d) => {
+      const none: undefined = d.sequence('x', { alphabet: 'dna' });
+      handles.push(none);
+    });
+    expect(handles[3]).toBeUndefined();
+  });
+
+  it('takes ownership of a typed array it is given: no copy, hashed once', () => {
+    const start = new Int32Array([0, 10]);
+    const node = mini.root({ version: '0' }, (s) =>
+      s.data('data', {}, (d) => d.ranges('r', { target: '/data/p53', rows: { start, end: [5, 20] } })),
+    );
+    const rows = node.children![0].children![0].params!.rows as Record<string, unknown>;
+    expect(rows.start).toBe(start);
+    const h = hashNode(node);
+    start[0] = 99; // never done to an owned column: the cached hashes show it is not looked at again
+    expect(hashNode(node)).toBe(h);
+  });
+
   it('checks a tree against the description', () => {
     const bad = mini.root({ version: '0.0.0' }, (s) =>
       s.data('data', {}, (d) => (d as never as Record<string, (...a: unknown[]) => void>).sequence('x', {})),

@@ -17,21 +17,22 @@ Written from meso\*'s tree core (`@molstar/meso-core` in the molstar-ludo reposi
 | `codecs/sexpr` | the S-expression printing and its reader                                             |
 
 **Imports go one way**: `tree` ← `schema` ← `builder`; `codec` imports `tree` and `schema` (the conformance trees are
-normalized); `codecs/*` import `tree` and `codec`. Nothing here imports outside `@molstar/core` (`hash-functions` is the
-one dependency). Why: a codec needs no language, the tree needs no codec, and MessagePack lives in `@molstar/io` beside
-its library.
+normalized); `codecs/*` import `tree`, `schema` (where a language's declared columns sit) and `codec`. Nothing here
+imports outside `@molstar/core` (`hash-functions` and `util/array` are its dependencies). Each folder is an entry of the
+package (`@molstar/core/repr/tree`, …, `@molstar/core/repr/codecs/sexpr`), exported as `./state` is. Why: a codec needs
+no language, the tree needs no codec, and MessagePack lives in `@molstar/io` beside its library.
 
 ## The tree
 
 - **One node shape**: `{ kind, id?, params?, custom?, children?, args? }`. `id` is local (unique among siblings), so an
   address is the path of ids. `args` holds a data form's positional values (a query, a theme expression); a node with
   `args` has no id and no children. Why: one recursive form every language is spelled in.
-- **`custom`** is extension data on any node: kept, hashed and encoded, never validated against the kind. A codec
-  without a language gives its columns back as plain arrays (normalization does not reach it).
+- **`custom`** is extension data on any node: kept, hashed and encoded, never validated against the kind. Its columns
+  are encoded tagged (Codecs), so they come back typed with no language.
 - **Kinds** are words, optionally namespaced: `^([a-z][a-z0-9_-]*:)?[a-z][a-z0-9_-]*$` (`ext:track`). Why: extension
   kinds stay apart from the language's and from each other's.
 - **Reserved keys**: `kind`, `__proto__` and `$…` in params, custom data and records. `$` is the encodings' (JSON's
-  tagged atoms, the printing's `:$custom`).
+  tagged atoms and `$column`, the printing's `:$custom` and `:$column`).
 - **Readers are bounded** at `MaxDepth` (512) levels; trees built in code are hashed, printed and validated by
   recursion.
 
@@ -43,7 +44,11 @@ its library.
 - **A category is canonical**: made by `categoryColumn` / `categoryFromCodes` only, its dictionary in the order of first
   use with no unused entry. Why: its identity is then the sequence of its values, so an encoding that writes the values
   (JSON's plain array) gives the same bytes back.
-- **A column is never mutated** once in a tree: its hash is cached per column object, as a node's is per node.
+- **The tree owns a column it is given** (`toColumn`, `normalize`, the builder): no copy is made, its NaNs are made the
+  canonical NaN in place, its hash is cached per column object as a node's is per node, so it is never mutated after.
+  Why: a large column costs no copy, and its hash is computed once.
+- **One NaN**: every NaN of a float column is the canonical NaN (any payload or sign bit rewritten, `canonicalColumn`,
+  once per column, also before hashing and comparing). Why: identity is by bytes, and NaN means missing, one value.
 
 ## Identity
 
@@ -53,7 +58,7 @@ its library.
   order and encodings; an unchanged subtree costs nothing.
 - **Columns by element type and bytes** (`hashColumn`, `columnsEqual`): NaN equals NaN, -0 is not 0, an `Int8Array` is
   not a `Uint8Array` of the same bytes, a typed column is not the plain array of its values. Bytes are the platform's
-  (little-endian on every engine that runs this).
+  (little-endian on every engine that runs this). Two columns whose cached hashes differ are unequal without a scan.
 - **`valuesEqual`** compares atoms by `Object.is`, columns by bytes, lists and records structurally, nodes by hash.
 
 ## Atoms' spelling
@@ -68,22 +73,35 @@ quantities need no quotes, and no units table is needed to read them (locations-
 
 - **Grammar** (addressing.md): `address = "/" | ("/" step)+ ["/*"]`, `step = id | form`,
   `form = "(" kind (":" key value)* ")"`, `value = atom | list | form | address`. Read by the tree's own small reader
-  (no codec), printed canonically on one line: `parse(print(a)) = a`. Messages never quote the address: an offset says
-  where.
+  (no codec), printed canonically on one line, a form's keys sorted: `(range :from 94 :to 292)` whatever order it was
+  written in, so equal addresses print alike. `parse(print(a)) = a` up to key order. Messages never quote the address:
+  an offset says where.
+- **A numeric-looking key is a number**: `(chain :id 1)` compares the number 1 and never matches a string id `"1"`;
+  quote it to match one, `(chain :id "1")`. The atoms' rule decides, not the param's type (a form is read without a
+  language).
 - **Selection** (`selectAddress`) is bounded: a required `limit`, `maxDepth`, a `signal` and a `deadline`; more is an
   issue, never a truncation. Kinds and params of forms are checked against the caller's when given.
 - **The form-resolver table** (`SelectOptions.resolvers`, by form kind): a resolver receives what the prefix names
-  (`Named`: nodes, or an earlier resolver's result) and returns a result or issues. A form without a resolver is
-  meso\*'s child selection (`matchesForm`), which applies to nodes only; an id, a resolver-less form or `/*` after a
-  result that is not nodes is `repr.tree.address.resolver`. Without resolvers in the pattern, the walk is meso\*'s (one
-  path stack, an address copied per match). Why: one grammar, each language deciding what its forms mean.
+  (`Named`: `{ kind: 'nodes', matches }` or `{ kind: 'other', type, value }`) with the caller's `limit`, `maxDepth`,
+  `signal` and `deadline`, and returns a result or issues. A form without a resolver is meso\*'s child selection
+  (`matchesForm`), which applies to nodes only; an id, a resolver-less form or `/*` after a result that is not nodes is
+  `repr.tree.address.resolver`. Why: one grammar, each language deciding what its forms mean.
+- **A selected node's address is segments**: ids, or a form where a resolver names a node no id path does
+  (`/data/genes/(node :key T1)`, a dynamic node).
+- **A resolver's errors fail the selection; its warnings and infos are carried** into the selection's issues. Its
+  `complete: false` and `pending` are carried too, reserved for evaluation over data read by region (not acted on).
+- **Staged selection** (a pattern with a resolved form) goes segment by segment: the `limit` bounds the final matches,
+  not a step's; the signal and the deadline are read between steps and every `CancelEvery` nodes inside them and the
+  `/*` walk, which keeps one path stack per root. Without resolvers in the pattern, the walk is meso\*'s (one path
+  stack, an address copied per match).
 - **Matching** (`matchesForm`): the same atom (`Object.is`), an atom held by a list param, an equal list, or a node
   fitting a nested form. Defaults are not applied.
 - **Relative addresses** (`./part`) are not read: they belong to definitions, which wait.
 
 ## Issues
 
-- **One shape**: `{ code, severity, message, hint?, offset?, path?, address? }`. `code` is stable and namespaced
+- **One shape**: `{ code, severity, message, hint?, offset?, path?, address?, count?, places? }`; `count` and `places`
+  (the first ten) are for deduplicated issues, whose dedupe is not built yet. `code` is stable and namespaced
   (`repr.tree.*`, `repr.schema.*`, `repr.schema.language.*`, `repr.codec.*`); `severity` is the code's, from its
   catalog: `error` the input is invalid, `warning` something is lost (kept, skipped, not reported), `info` never changes
   what is drawn. `path` is the step path (`['children', 3, 'params', 'x']`); `address` is beside it where the place has
@@ -115,7 +133,9 @@ quantities need no quotes, and no units table is needed to read them (locations-
   missing required ones, types, enums, patterns, ranges, ids (missing, forbidden, duplicate among siblings), parents,
   slots (language, kind), refs' spelling, data forms' arity, columns' element types, tables.
 - **An unknown kind in a foreign namespace** is `repr.schema.kind.extension`, a warning: kept, reported, skipped
-  (format.md "Unknown kinds"). An unknown kind without one is an error.
+  (format.md "Unknown kinds"). An unknown kind without one is an error. Either way its children are checked with the
+  language's kinds, with no parent rule for them (what sits under it is the extension's); normalization goes on below it
+  too. Why: a spec with one extension node keeps every check of what the language does know.
 - **A union** reads a node by the member that takes its kind, anything else by the first member it fits quietly.
 - **Refs**: their spelling only (an address that parses, or an id). What they name is a resolve pass's, not built.
 
@@ -134,17 +154,27 @@ quantities need no quotes, and no units table is needed to read them (locations-
   guarantees: `decode(encode(x))` normalized is `x` (by hash) unless the codec elides; `encode` is deterministic.
 - **The conformance suite** (`codec/conformance.ts`) is data and a function (`checkCodec`), no test framework, so a
   codec elsewhere (MessagePack in `@molstar/io`) runs the same suite from its own test. Its trees cover every atom, odd
-  keys, slots, data forms, custom data, extension kinds, columns of every element type with their edge values, a table
-  and a deep tree; its columns are short (at most 8 values).
+  keys, slots, data forms, custom data, extension kinds, columns of every element type with their edge values, NaNs with
+  a payload and a sign bit, columns in custom data and in an `any` param, a table and a deep tree; its columns are short
+  (at most 8 values).
+- **Where a column is plain and where tagged**: given the language (`language`, `languages` options), an encoder writes
+  a column in a declared column param (a table's declared columns included; `declaredColumnPlaces`) as a plain list,
+  which normalization types on read. Every other column (in `custom`, an `any` param, an undeclared table column, or all
+  of them without a language) is tagged, and decodes typed with no language. Why: JSON stays plain where a reader knows
+  the language, and no column is ever lost to a plain array nothing types.
 - **JSON** (`codecs/json`): `{ kind, id?, params?, custom?, children?, args? }`; atoms JSON lacks as
-  `{ "$number": "NaN" | "Infinity" | "-Infinity" | "-0" }` and `{ "$bigint": "…" }`; a column a plain array, a float
-  column's NaN `null` (its infinities and -0 tagged), a category's values strings and `null`. Strict, every issue with
-  its path; a byte order mark skipped.
+  `{ "$number": "NaN" | "Infinity" | "-Infinity" | "-0" }` and `{ "$bigint": "…" }`; a plain column a plain array, a
+  float column's NaN `null` (its infinities and -0 tagged), a category's values strings and `null`; a tagged column
+  `{ "$column": "int32", "values": […] }` or `{ "$column": "category", "dict": […], "codes": […] }` (malformed:
+  `repr.tree.value.tag`). Strict: a key given twice in an object is `repr.codec.json.duplicate_key` (JSON.parse would
+  keep the last silently), every issue with its path; a byte order mark skipped.
 - **S-expressions** (`codecs/sexpr`): a printing for people, never stored.
   `(kind id :param value … :$custom (…) child …)`; one line when it fits in 80 columns, else one argument a line; a word
-  opening with `/` is an address, read through its forms. A column prints as a list up to its head (8 by default) and
-  elided past it (`[float32 × 3,000,000: 0.5 0.5 … …]`), which the reader refuses (`repr.codec.sexpr.elided`). Data
-  forms are read as such when the reader is told their kinds (`dataForms`).
+  opening with `/` is an address, read through its forms. A plain column prints as a list, a tagged one as
+  `(:$column int32 :values [1 2])` or `(:$column category :dict [a b] :codes [0 1 -1])`, both up to the head (8 by
+  default); past it a column is elided in a brace form, `{float32 × 3,000,000: 0.5 0.5 … …}`, which no value reads as
+  (braces are reserved) and the reader refuses (`repr.codec.sexpr.elided`). Data forms are read as such when the reader
+  is told their kinds (`dataForms`).
 
 ## Builder
 
@@ -154,6 +184,9 @@ quantities need no quotes, and no units table is needed to read them (locations-
   id twice under one parent, a malformed id, a kind under the wrong parent).
 - **It builds the normalized tree**: `root` and `forms` return what `normalize` gives, so a built tree and the same tree
   read from JSON are equal. `check` is `validate`. Printing is the codecs' (`printSexpr`).
+- **Handles are addresses**: a kind's method returns the new node's address (`/data/p53`) when it has one (an id under
+  the root or under a node with an address), else `undefined`; the types say which (a slot's body, or a body under a
+  node without an id, builds no addresses). A language's builder wraps them.
 - **It imports `tree` and `schema` only** (a test): a script that writes specs loads no codec and no language.
 
 ## Tests
@@ -161,4 +194,5 @@ quantities need no quotes, and no units table is needed to read them (locations-
 `_test/` per folder, quick lane: the tree (hash pinned to meso\*'s, columns, atoms), addresses (grammar round trip,
 issues, selection, resolvers), the schema (every misuse by code, severity and address; columns and tables;
 normalization; units hook; docs), both codecs through the conformance suite and their own cases, the builder (normalized
-output, runtime errors, `@ts-expect-error` misuse), and the issue catalog against the sources.
+output, handles, ownership, runtime errors, `@ts-expect-error` misuse), the issue catalog against the sources, and a
+short seeded fuzz of the three readers (never a throw, always a tree or issues).
