@@ -1,0 +1,17 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { P53Views } from '@molstar/seqx-examples';
+import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { exampleStory } from '../example-root.js';
+
+const view = P53Views.find((v) => v.id === 'gene-by-region')!;
+
+const meta: Meta = { title: 'Examples/p53/Gene by region' };
+export default meta;
+
+/** The region read region by region with a delay: transcripts arrive as dynamic nodes, TP53's with their domains. */
+export const GeneByRegion: StoryObj = { render: () => exampleStory(view) };

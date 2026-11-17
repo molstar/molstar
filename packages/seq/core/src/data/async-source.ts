@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { abortError, type FormatRuntime, type OpenedSource } from './protocol.js';
+import { abortError, type FormatRuntime, type OpenedSource, type RegionRequest } from './protocol.js';
 import type { SeqData } from './seq-format.js';
 import { openSeq } from './seq-runtime.js';
 import { RealClock, type StoreClock } from './store.js';
@@ -16,18 +16,19 @@ import { RealClock, type StoreClock } from './store.js';
 export interface DelayOptions {
   /** The clock the delay runs on: real timers by default. */
   readonly clock?: StoreClock;
-  /** Each answer's delay in ms (0: as soon as the inner source answers, no timer). */
-  readonly delayMs?: number;
+  /** Each answer's delay in ms, or by its request (0: as soon as the inner source answers, no timer). */
+  readonly delayMs?: number | ((request: RegionRequest) => number);
 }
 
 /** A source answering as `inner` does, each answer after `delayMs` on `clock`; an abort rejects at once. */
 export function delayedSource(inner: OpenedSource, options: DelayOptions = {}): OpenedSource {
   const clock = options.clock ?? RealClock;
-  const delay = options.delayMs ?? 0;
+  const delayOf = options.delayMs ?? 0;
   return {
     coverage: inner.coverage,
     read(request, signal) {
       if (signal.aborted) return Promise.reject(abortError());
+      const delay = typeof delayOf === 'number' ? delayOf : delayOf(request);
       if (delay <= 0) return inner.read(request, signal);
       return new Promise((resolve, reject) => {
         const onAbort = () => {

@@ -5,6 +5,8 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
+import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import * as geneByRegion from './p53/gene-by-region.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as tracks from './p53/tracks.js';
 
@@ -18,6 +20,11 @@ export interface ExampleView {
   /** What the view shows, a sentence. */
   readonly summary: string;
   build(): Node;
+  /**
+   * What a viewer of the view needs besides the default registry (a runtime of a format its sources name); answers
+   * delayed by `delayMs` (the view's own pacing when absent; 0 in tests: no timer).
+   */
+  registry?(options?: { readonly delayMs?: number }): readonly SeqRegistryEntry[];
 }
 
 export const P53Views: readonly ExampleView[] = [
@@ -35,6 +42,15 @@ export const P53Views: readonly ExampleView[] = [
     summary:
       'The gene’s section follows the protein’s through the codon map: minus strand, three exons, introns skipped.',
     build: proteinOnGene.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'gene-by-region',
+    title: 'Gene by region',
+    summary:
+      'The gene’s region read region by region: transcripts arrive as dynamic nodes, a track each, and TP53’s bring their domains, shown through each transcript’s codon map.',
+    build: geneByRegion.build,
+    registry: geneByRegion.registry,
   },
 ];
 

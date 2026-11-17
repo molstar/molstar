@@ -11,6 +11,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 const Stories: Readonly<Record<string, readonly [title: string, name: string]>> = {
   tracks: ['Tracks', 'tracks'],
   'protein-on-gene': ['Protein on its gene', 'protein-on-its-gene'],
+  'gene-by-region': ['Gene by region', 'gene-by-region'],
 };
 
 const sanitize = (s: string) =>
