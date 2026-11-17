@@ -282,6 +282,8 @@ export interface DemoOptions extends ShellOptions {
   status?: boolean;
   /** The Mol* star that shows a hidden rail (default on). */
   railToggle?: boolean;
+  /** What the drop overlay says. */
+  dropLabel?: string;
 }
 
 /** A shell with the demo's views, sections and rail items, in a box of the given size. */
@@ -327,14 +329,21 @@ export function DemoShell(props: { options?: DemoOptions; children?: Child }) {
     { id: 'commands', icon: 'command', title: 'Commands', caption: '⌘K', run: () => shell.show('confirm') },
   ]);
   o.setup?.(shell);
+  // What was dropped last, in the status slot (the demo has no loader: it only names them).
+  const dropped = new State('');
+  const onDropFiles = (files: File[]) =>
+    dropped.set(
+      `Dropped ${files.length === 1 ? files[0].name : `${files.length} files: ${files.map((f) => f.name).join(', ')}`}`,
+    );
   return (
     <div style={`width: ${o.width ?? '100%'}; height: ${o.height ?? '100vh'}; display: flex;`}>
       <ShellView
         shell={shell}
         main={() => <MainPlaceholder />}
-        status={o.status ? () => <span class="msui-label">Ready</span> : undefined}
+        status={o.status ? () => <span class="msui-label">{derive(dropped, (d) => d || 'Ready')}</span> : undefined}
         busy={o.busy}
-        onDropFiles={() => {}}
+        onDropFiles={onDropFiles}
+        dropLabel={o.dropLabel}
         railToggle={o.railToggle}
       />
     </div>

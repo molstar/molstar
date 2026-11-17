@@ -157,3 +157,27 @@ export const Themes: StoryObj = {
       </div>
     )),
 };
+
+/**
+ * Files dropped anywhere on the shell (`onDropFiles`): drag files from your desktop over it. While a drag carries files,
+ * one overlay says what a drop does (`dropLabel`); a drag of anything else (text, a link) shows nothing. Dropped, the
+ * files go to the app (here, named in the status slot).
+ */
+export const FileDrop = shellStory({
+  status: true,
+  dropLabel: 'Drop files to open them',
+  setup: (s) => s.show('home'),
+});
+
+/** The drop overlay as it shows while files are dragged over the shell (a drag started by the story). */
+export const FileDropOverlay: StoryObj = {
+  ...shellStory({ status: true, dropLabel: 'Drop structures, sessions or maps to open them' }),
+  play: async ({ canvasElement }) => {
+    await new Promise((r) => setTimeout(r, 50));
+    const shell = canvasElement.querySelector('[role="application"]');
+    if (!shell || typeof DataTransfer !== 'function') return;
+    const data = new DataTransfer();
+    data.items.add(new File(['data'], 'example.cif'));
+    shell.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: data }));
+  },
+};
