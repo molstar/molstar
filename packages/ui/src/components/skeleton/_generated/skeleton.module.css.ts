@@ -11,13 +11,14 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'icon': 'msui-skeleton-icon',
   'in': 'msui-skeleton-in',
+  'label': 'msui-skeleton-label',
   'layer': 'msui-skeleton-layer',
   'line': 'msui-skeleton-line',
   'loading': 'msui-skeleton-loading',
+  'pulse': 'msui-skeleton-pulse',
   'round': 'msui-skeleton-round',
   'shape': 'msui-skeleton-shape',
   'swap': 'msui-skeleton-swap',
-  'sweep': 'msui-skeleton-sweep',
   'text': 'msui-skeleton-text',
 } as const;
 
@@ -32,6 +33,15 @@ defineStyles('components/skeleton/skeleton.module.css', `@layer msui.components 
   from {
     opacity: 0;
   }
+}
+
+.msui-skeleton-label {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
 }
 
 .msui-skeleton-swap {
@@ -50,29 +60,21 @@ defineStyles('components/skeleton/skeleton.module.css', `@layer msui.components 
 }
 
 .msui-skeleton-shape {
-  --msui-skeleton-tint: color-mix(in oklab, currentColor, transparent 90%);
-  --msui-skeleton-band: color-mix(in oklab, currentColor, transparent 95%);
   border-radius: var(--msui-radius-sm);
-  background: linear-gradient(100deg, transparent 40%, var(--msui-skeleton-band) 50%, transparent 60%) 0 0 / 200vw 100% fixed,
-    var(--msui-skeleton-tint);
+  background: color-mix(in oklab, currentColor, transparent 90%);
   min-width: 0;
-  animation: 1.6s linear infinite msui-skeleton-sweep;
+  animation: msui-skeleton-pulse 1.6s var(--msui-ease-in-out) var(--msui-skeleton-delay, .3s) infinite;
   display: block;
 }
 
-@keyframes msui-skeleton-sweep {
-  from {
-    background-position-x: 100vw;
-  }
-
-  to {
-    background-position-x: -100vw;
+@keyframes msui-skeleton-pulse {
+  50% {
+    opacity: .5;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .msui-skeleton-shape {
-    background: var(--msui-skeleton-tint);
     animation: none;
   }
 }

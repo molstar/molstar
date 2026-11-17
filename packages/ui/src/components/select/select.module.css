@@ -186,8 +186,18 @@
   width: max-content;
   max-width: calc(100vw - 16px);
   /* It floats in (styles §7.1) from the side it opened on (`data-side`, where it was placed: a flip counts); over its
-     field it only fades, so the current option stays on the field's text. It leaves at once: a pick or Esc is done. */
-  animation: msui-float-in var(--msui-enter);
+     field it only fades, so the current option stays on the field's text. It leaves at once: a pick or Esc is done.
+     Its own offsets first: they are custom properties, which inherit, so a layer inside another (a select in a popover,
+     a submenu) would otherwise rise by its parent's too. A list to pick from (options, a menu) enters fast; a panel
+     (a popover: a dialog) at --msui-enter. */
+  --msui-rise-x: 0px;
+  --msui-rise-y: 0px;
+
+  animation: msui-float-in var(--msui-motion-fast) var(--msui-ease);
+
+  &:has(> [role="dialog"]) {
+    animation: msui-float-in var(--msui-enter);
+  }
 
   &[data-side="below"] {
     --msui-rise-y: calc(-1 * var(--msui-rise));

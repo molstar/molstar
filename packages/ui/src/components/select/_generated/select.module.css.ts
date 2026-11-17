@@ -177,9 +177,11 @@ defineStyles('components/select/select.module.css', `@layer msui.components {
 
 .msui-select-floating {
   color: inherit;
+  --msui-rise-x: 0px;
+  --msui-rise-y: 0px;
   width: max-content;
   max-width: calc(100vw - 16px);
-  animation: msui-float-in var(--msui-enter);
+  animation: msui-float-in var(--msui-motion-fast) var(--msui-ease);
   background: none;
   border: 0;
   margin: 0;
@@ -187,6 +189,10 @@ defineStyles('components/select/select.module.css', `@layer msui.components {
   position: fixed;
   inset: auto;
   overflow: visible;
+
+  &:has( > [role="dialog"]) {
+    animation: msui-float-in var(--msui-enter);
+  }
 
   &[data-side="below"] {
     --msui-rise-y: calc(-1 * var(--msui-rise));

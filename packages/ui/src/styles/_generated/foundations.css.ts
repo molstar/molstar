@@ -8,7 +8,25 @@
 
 import { defineStyles } from '../registry.js';
 
-defineStyles('styles/foundations.css', `@layer msui.foundations {
+defineStyles('styles/foundations.css', `@property --msui-motion-fast {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: .1s;
+}
+
+@property --msui-motion-base {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: .2s;
+}
+
+@property --msui-motion-slow {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: .36s;
+}
+
+@layer msui.foundations {
   :root, :host, [data-msui-theme="light"] {
     color-scheme: light;
     --msui-bg: #f1efea;

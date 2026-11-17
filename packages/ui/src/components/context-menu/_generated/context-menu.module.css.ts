@@ -29,8 +29,9 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msui.com
   color: var(--msui-text);
   font-size: var(--msui-text-sm);
   line-height: var(--msui-leading-sm);
+  --msui-rise-x: 0px;
   --msui-rise-y: calc(-1 * var(--msui-rise));
-  animation: msui-float-in var(--msui-enter);
+  animation: msui-float-in var(--msui-motion-fast) var(--msui-ease);
   display: grid;
   position: fixed;
   top: 0;

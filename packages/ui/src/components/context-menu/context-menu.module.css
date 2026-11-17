@@ -25,9 +25,11 @@
   color: var(--msui-text);
   font-size: var(--msui-text-sm);
   line-height: var(--msui-leading-sm);
-  /* It floats in from the pointer (styles §7.1; `translate`, apart from the transform that places it). */
+  /* It floats in from the pointer (styles §7.1; `translate`, apart from the transform that places it), fast: a menu to
+     pick from. Both offsets its own (custom properties inherit). */
+  --msui-rise-x: 0px;
   --msui-rise-y: calc(-1 * var(--msui-rise));
-  animation: msui-float-in var(--msui-enter);
+  animation: msui-float-in var(--msui-motion-fast) var(--msui-ease);
 }
 
 /* A list row (styles §4, §5): the label at the inset, or after an icon slot when the menu has icons; the key at its end. */

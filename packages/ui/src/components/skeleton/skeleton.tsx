@@ -15,18 +15,15 @@ import { classes } from './_generated/skeleton.module.css.js';
 export type SkeletonTextSize = 'xs' | 'sm' | 'md';
 
 /**
- * Where content is loading: holds placeholder shapes, says "Loading" to assistive technology once (`role="status"`,
- * the shapes themselves are hidden from it), and shows only after a moment (`--msui-skeleton-delay`, 300ms), so a quick
- * load never flashes it. Put it where the content goes and swap it for the content (`Show`).
+ * Where content is loading: holds placeholder shapes (hidden from assistive technology) and its words for it, `label`
+ * ("Loading" by default), in a polite status region: said once as it appears. It shows only after a moment
+ * (`--msui-skeleton-delay`, 300ms), so a quick load never flashes it. Put it where the content goes and swap it for the
+ * content (`Loaded` does both, and marks the area busy meanwhile).
  */
 export function Loading(props: { label?: string; children: Child; class?: string }) {
   return (
-    <div
-      class={props.class ? `${classes.loading} ${props.class}` : classes.loading}
-      role="status"
-      aria-busy="true"
-      aria-label={props.label ?? 'Loading'}
-    >
+    <div class={props.class ? `${classes.loading} ${props.class}` : classes.loading} role="status">
+      <span class={classes.label}>{props.label ?? 'Loading'}</span>
       {props.children}
     </div>
   );
@@ -48,7 +45,12 @@ export function Loaded<T>(props: {
 }) {
   const value = held<T | undefined>(props.when, undefined);
   return (
-    <div class={props.class ? `${classes.swap} ${props.class}` : classes.swap}>
+    // The area is busy while its content loads (`aria-busy` on what loads, not on the status region: busy there would
+    // hold its words back).
+    <div
+      class={props.class ? `${classes.swap} ${props.class}` : classes.swap}
+      aria-busy={derive(value, (v) => (v ? undefined : 'true'))}
+    >
       <Show when={derive(value, (v) => !v)} reveal="fade">
         {() => <Loading label={props.label}>{props.placeholder()}</Loading>}
       </Show>

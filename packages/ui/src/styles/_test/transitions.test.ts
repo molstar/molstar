@@ -8,6 +8,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Motion } from '../../dom/index.js';
+import { adoptStyles, releaseStyles } from '../registry.js';
 import { installTransitions, milliseconds } from '../transitions.js';
 
 describe('transitions', () => {
@@ -51,5 +52,17 @@ describe('transitions', () => {
     Motion.close = own;
     installTransitions();
     expect(Motion.close).toBe(own);
+  });
+
+  it('goes with the styles: a root that adopts them (a UiElement, or the app itself) gets the closings', () => {
+    Motion.close = undefined;
+    adoptStyles(document);
+    expect(Motion.close).toBeDefined();
+    releaseStyles(document);
+  });
+
+  it('reads registered times as they come back resolved', () => {
+    expect(milliseconds('0.36s')).toBe(360);
+    expect(milliseconds('0s')).toBe(0);
   });
 });

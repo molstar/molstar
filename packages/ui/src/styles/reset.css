@@ -188,12 +188,13 @@
     animation: msui-reveal var(--msui-motion-base) var(--msui-ease-in-out);
   }
 
+  /* A fold grows over base, eased in and out (it closes the same way); what slides or fades in enters (§7.1). */
   :where(.msui-root) :where([data-reveal="side"]) {
-    animation-name: msui-reveal-side;
+    animation: msui-reveal-side var(--msui-enter);
   }
 
   :where(.msui-root) :where([data-reveal="fade"]) {
-    animation: msui-reveal-fade var(--msui-motion-slow) var(--msui-ease-in-out);
+    animation: msui-reveal-fade var(--msui-enter);
   }
 
   /* Every rounded corner takes the root's shape (styles §6): squircles where supported, round elsewhere. */

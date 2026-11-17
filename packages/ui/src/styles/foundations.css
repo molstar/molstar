@@ -9,6 +9,26 @@
  * a few base colors; every shade derives from them where the theme applies, so a subtree with its own
  * `data-msui-theme` gets consistent shades. Hosts override any token on any element.
  */
+/* The durations (§7) are times, registered: what reads one back (a closing played by script, styles/transitions.ts) gets
+   it resolved ("0.2s"), whether a theme wrote it as a time, a calc() or another var(). */
+@property --msui-motion-fast {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 100ms;
+}
+
+@property --msui-motion-base {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 200ms;
+}
+
+@property --msui-motion-slow {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 360ms;
+}
+
 @layer msui.foundations {
   /* §1 Color: the base colors of each theme. */
   :root,

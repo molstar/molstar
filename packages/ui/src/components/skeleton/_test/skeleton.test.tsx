@@ -20,7 +20,7 @@ function mount(content: () => any) {
 }
 
 describe('Skeleton', () => {
-  it('a loading region says so once; its shapes are hidden from assistive technology', () => {
+  it('a loading region says its words in a status region; its shapes are hidden from assistive technology', () => {
     const { container, dispose } = mount(() => (
       <Loading label="Loading components">
         <SkeletonRows count={3} />
@@ -29,10 +29,12 @@ describe('Skeleton', () => {
       </Loading>
     ));
     const status = container.querySelector('[role="status"]')!;
-    expect(status.getAttribute('aria-label')).toBe('Loading components');
-    expect(status.getAttribute('aria-busy')).toBe('true');
-    // Every child of the region is hidden: 3 rows, 2 lines, 1 block.
-    expect([...status.children].map((c) => c.getAttribute('aria-hidden'))).toEqual(Array(6).fill('true'));
+    // Its words are its content (a live region says its content, not a label), and it is not busy itself (that would
+    // hold them back).
+    expect(status.textContent).toBe('Loading components');
+    expect(status.hasAttribute('aria-busy')).toBe(false);
+    // Past the words, every child is hidden: 3 rows, 2 lines, 1 block.
+    expect([...status.children].slice(1).map((c) => c.getAttribute('aria-hidden'))).toEqual(Array(6).fill('true'));
     dispose();
   });
 
@@ -73,12 +75,16 @@ describe('Loaded', () => {
         {(text) => <p>{text}</p>}
       </Loaded>
     ));
-    expect(container.querySelector('[role="status"]')?.getAttribute('aria-label')).toBe('Loading the summary');
+    expect(container.querySelector('[role="status"]')?.textContent).toBe('Loading the summary');
     expect(container.querySelector('p')).toBeNull();
+    // The area is busy while it loads.
+    const area = container.querySelector('[role="status"]')!.parentElement!;
+    expect(area.getAttribute('aria-busy')).toBe('true');
     loaded.set('1TQN');
     await flush();
     // No Web Animations here: the placeholder goes at once; the content enters with its fade.
     expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(area.hasAttribute('aria-busy')).toBe(false);
     const layer = container.querySelector('p')!.parentElement!;
     expect(layer.getAttribute('data-reveal')).toBe('fade');
     expect(layer.parentElement!.children).toHaveLength(1);

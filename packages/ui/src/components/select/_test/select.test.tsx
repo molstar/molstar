@@ -7,6 +7,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flush as flushDom, render } from '../../../dom/index.js';
 import { state } from '../../../state.js';
@@ -200,5 +202,38 @@ describe('Floating', () => {
     dispose();
     document.dispatchEvent(new Event('scroll'));
     expect(rect).toHaveBeenCalledTimes(2);
+  });
+
+  it('records the side it took, a flip included, for its entrance; its rise offsets are its own', async () => {
+    const anchor = document.createElement('button');
+    document.body.append(anchor);
+    const rect = (top: number, height: number) =>
+      ({ top, bottom: top + height, left: 10, right: 110, width: 100, height, x: 10, y: top }) as DOMRect;
+    // Near the bottom of the window: a list asked below opens above.
+    anchor.getBoundingClientRect = () => rect(window.innerHeight - 30, 20);
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(
+      () => (
+        <Floating anchor={anchor}>
+          <div class="list" />
+        </Floating>
+      ),
+      container,
+    );
+    const floating = container.firstElementChild as HTMLElement;
+    Object.defineProperty(floating, 'offsetHeight', { value: 200 });
+    await flush();
+    expect(floating.dataset.side).toBe('above');
+    anchor.getBoundingClientRect = () => rect(40, 20);
+    document.dispatchEvent(new Event('scroll'));
+    expect(floating.dataset.side).toBe('below');
+    dispose();
+    // Custom properties inherit: the floating layer sets both offsets itself before its side's, so a layer inside
+    // another (a select in a popover) never rises by its parent's.
+    // The source (the generated module keeps its text in the registry); tests run from the repository's root.
+    const css = readFileSync(resolve(process.cwd(), 'packages/ui/src/components/select/select.module.css'), 'utf8');
+    const base = /\n\.floating \{[^}]*?--msui-rise-x: 0px;\s*--msui-rise-y: 0px;/;
+    expect(css).toMatch(base);
   });
 });

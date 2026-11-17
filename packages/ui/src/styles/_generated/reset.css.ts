@@ -161,11 +161,11 @@ defineStyles('styles/reset.css', `@property --msui-fade {
   }
 
   :where(.msui-root) :where([data-reveal="side"]) {
-    animation-name: msui-reveal-side;
+    animation: msui-reveal-side var(--msui-enter);
   }
 
   :where(.msui-root) :where([data-reveal="fade"]) {
-    animation: msui-reveal-fade var(--msui-motion-slow) var(--msui-ease-in-out);
+    animation: msui-reveal-fade var(--msui-enter);
   }
 
   @supports (corner-shape: squircle) {

@@ -5,6 +5,7 @@
  */
 
 import { DomHost } from '../dom/host.js';
+import { installTransitions } from './transitions.js';
 
 /**
  * The styles of `@molstar/ui` (styles §8). Each CSS file is compiled into a generated module (`x.css.ts`, see
@@ -56,6 +57,9 @@ export type StyleRoot = Document | ShadowRoot;
  * `<style>` element (in the head, or first in the shadow root).
  */
 export function adoptStyles(root: StyleRoot = document): void {
+  // The closings go with the styles (styles §7.1): any root that takes the UI's styles, by a `UiElement` or by the app,
+  // gets folds that animate closed as they animate open.
+  installTransitions();
   const adopted = roots.get(root);
   if (adopted) {
     adopted.users++;

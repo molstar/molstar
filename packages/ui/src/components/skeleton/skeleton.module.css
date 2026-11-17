@@ -5,8 +5,8 @@
  */
 
 /* What loads (styles §5): placeholder shapes where the content will be, on its columns and lines, so nothing moves
-   when it arrives. A shape is a tint of the text color (it reads on any surface and theme); one light band sweeps over
-   every shape at once (the gradient is fixed to the viewport, so all shapes share its phase). */
+   when it arrives. A shape is a tint of the text color (it reads on any surface and theme); the shapes pulse together
+   (opacity only, styles §7: no paint per frame), from when the region shows. */
 .loading {
   display: grid;
   min-width: 0;
@@ -18,6 +18,16 @@
   from {
     opacity: 0;
   }
+}
+
+/* What assistive technology reads: the region's words, not drawn (the shapes are hidden from it). */
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Content and its placeholder in one place (`Loaded`): both in the one grid cell, so one fades out over the other. */
@@ -36,32 +46,24 @@
   min-width: 0;
 }
 
+/* A shape pulses after the region's delay, so every shape of a region is in phase and none runs while unseen. */
 .shape {
-  --msui-skeleton-tint: color-mix(in oklab, currentColor, transparent 90%);
-  --msui-skeleton-band: color-mix(in oklab, currentColor, transparent 95%);
-
   display: block;
   min-width: 0;
   border-radius: var(--msui-radius-sm);
-  background:
-    linear-gradient(100deg, transparent 40%, var(--msui-skeleton-band) 50%, transparent 60%) 0 0 / 200vw 100% fixed,
-    var(--msui-skeleton-tint);
-  animation: sweep 1600ms linear infinite;
+  background: color-mix(in oklab, currentColor, transparent 90%);
+  animation: pulse 1600ms var(--msui-ease-in-out) var(--msui-skeleton-delay, 300ms) infinite;
 }
 
-@keyframes sweep {
-  from {
-    background-position-x: 100vw;
-  }
-  to {
-    background-position-x: -100vw;
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .shape {
     animation: none;
-    background: var(--msui-skeleton-tint);
   }
 }
 

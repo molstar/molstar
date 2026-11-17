@@ -103,7 +103,9 @@ Things that belong together visually share a column; each column is a token, so 
 
 - **What loads is a placeholder in place** (`components/skeleton`): its shapes on the columns and lines of the content
   that replaces it (a row's slot and text column, a label and a control, text lines), shown after a moment (300ms), so
-  nothing moves when the content arrives and a quick load shows nothing.
+  nothing moves when the content arrives and a quick load shows nothing. Its shapes pulse together (opacity only); its
+  words are text in a polite status region (said as it appears), and the area that loads is `aria-busy` meanwhile
+  (`Loaded`), not the status region (busy would hold its words back).
 
 ## 6. Shape
 
@@ -145,10 +147,15 @@ What enters and leaves the UI, one vocabulary (tokens `--msui-enter`, `--msui-ex
 - **A float rises from its anchor** (`msui-float-in`: fade, and `--msui-rise` from the side it opened on; `Floating`
   marks the side it took, a flip included). Every floating layer (a select's list, a popover, a menu, a context menu)
   enters this way and leaves at once: a pick or Esc is done. Over its field (a select) it only fades, so the current
-  option stays on the field's text.
+  option stays on the field's text. A list to pick from (options, a menu) enters fast (`--msui-motion-fast`): it is
+  waited on; a panel (a popover) at `--msui-enter`. Each layer sets both offsets itself: they are custom properties,
+  which inherit, and a layer inside another (a select in a popover, a submenu) must not rise by its parent's.
 - **A fold grows and shrinks** (`Show`'s `reveal`): to its height on opening, back to nothing on closing, both over
-  base, eased in and out. The closing plays through the runtime's `Motion.close`, which a UI root installs
-  (`styles/transitions.ts`); without Web Animations or under reduced motion the content goes at once.
+  base, eased in and out. What slides or fades in (`reveal` `side`, `fade`) enters at `--msui-enter` and fades out at
+  the exit. The closing plays through the runtime's `Motion.close`, installed with the styles (`adoptStyles`, so any
+  root that takes them, `styles/transitions.ts`); without Web Animations or under reduced motion the content goes at
+  once. The durations are registered `<time>` properties, so the closing reads them resolved whatever a theme wrote (a
+  `calc()`, a `var()`).
 - **A swap crossfades in place**: what replaces content in the same place (a placeholder by its content: `Loaded`)
   shares its cell; the old fades out (exit) as the new fades in. Nothing moves when the two have the same shape (§5,
   placeholders).

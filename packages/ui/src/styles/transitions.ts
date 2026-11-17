@@ -7,7 +7,7 @@
 import { Motion, type RevealKind } from '../dom/index.js';
 
 /**
- * The UI's closings (styles §7.1), installed into the runtime's `Motion` once (a UI root does it on connect): content
+ * The UI's closings (styles §7.1), installed into the runtime's `Motion` once (with the styles: `adoptStyles`): content
  * that opened with `Show`'s `reveal` plays it back as it goes. A fold shrinks to nothing over `--msui-motion-base`
  * (eased in and out, as it opened); a slid or faded one fades out over `--msui-exit` (fast, eased in). Durations come
  * from the tokens on the element, so reduced motion (every duration 0) or no Web Animations means no animation: the
@@ -36,7 +36,7 @@ function playClosing(el: Element, kind: RevealKind): Animation | undefined {
   return (el as HTMLElement).animate(frames, { duration, easing });
 }
 
-/** A CSS time (`100ms`, `0.2s`) in milliseconds; 0 for none. */
+/** A CSS time in ms (`100ms`, `0.2s`; the duration tokens are registered times: they read back resolved); 0 for none. */
 export function milliseconds(time: string): number {
   const t = time.trim();
   if (t.endsWith('ms')) return Number.parseFloat(t) || 0;
