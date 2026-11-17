@@ -92,7 +92,8 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - **The overlay** (tier 2): `overlay(model, view, { runtimes, assets })` gives a frame the overlay of the store's
   dynamic nodes (`OverlayBuilder`: one a node version and model; its version is part of the frame's key) and, when it or
   the view changed, syncs its sources (`OverlaySources`: a dynamic annotation's rows, the nested sources the view's
-  templates reach), whose failures are issues here. Why here: the store and what is attached to it have one owner.
+  templates reach), whose failures are issues here while their node is held (cleared when it opens or goes). Why here:
+  the store and what is attached to it have one owner.
 
 ## Composition
 

@@ -45,6 +45,8 @@ export class StoreModel extends ReactiveModel {
   private _overlays: OverlayBuilder | undefined;
   private _overlaySources: OverlaySources | undefined;
   private _synced: { overlay: Overlay; view: ResolvedView } | undefined;
+  /** The addresses of the overlay's sources reported as unopened: cleared when they open or their node goes. */
+  private _overlayFailed = new Set<string>();
   private readonly _issues = new State<readonly Issue[]>([]);
   /** Sources that could not be opened, one issue each (the store's own reports are `store.issues`). */
   readonly issues: ReadonlyState<readonly Issue[]> = this._issues.asReadonly;
@@ -115,7 +117,14 @@ export class StoreModel extends ReactiveModel {
       this._synced = { overlay, view };
       this._overlaySources ??= new OverlaySources(this.store, ctx.assets);
       void this._overlaySources.sync(overlay, view).then((issues) => {
-        if (!this.isRetired) for (const i of issues) this._report(i.address ?? '', i);
+        if (this.isRetired) return;
+        const now = new Set<string>();
+        for (const i of issues) {
+          now.add(i.address ?? '');
+          this._report(i.address ?? '', i);
+        }
+        for (const a of this._overlayFailed) if (!now.has(a)) this._report(a, undefined);
+        this._overlayFailed = now;
       });
     }
     return overlay;

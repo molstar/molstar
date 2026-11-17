@@ -246,7 +246,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     // export waits for its view alone, never its margins
     for (let round = 0; settled && round < 8; round++) {
       const overlay = overlays.of(model, store);
-      issues.push(...(await nested.sync(overlay, view)));
+      await nested.sync(overlay, view);
       const f = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: false });
       const wants = f.wants.filter((w) => w.priority !== 'margin');
       const key = `${wantsKey(wants)}#${store.nodeVersion.value}`;
@@ -260,6 +260,8 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     }
     const frame = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: true });
     issues.push(...frame.layout.issues);
+    // what the overlay's sources could not open, while their nodes are held
+    issues.push(...nested.issues);
     if (!settled)
       issues.push(
         issueOf(RenderIssues, 'seq.render.unsettled', 'The export did not settle before its timeout', {

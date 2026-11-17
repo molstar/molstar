@@ -4,10 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Node } from '@molstar/core/repr/tree';
-import { type FormatRuntime, type OpenedSource, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { issueOf, type Node } from '@molstar/core/repr/tree';
+import {
+  type FormatRuntime,
+  type OpenedSource,
+  type SeqData,
+  SeqRuntime,
+  SourceOpenError,
+  seqToValue,
+} from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { nodeAddress, resolveSpec } from '@molstar/seqx-core/resolve';
+import { nodeAddress, ResolveIssues, resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it, vi } from 'vitest';
 import { StoreModel } from '../models/store.js';
@@ -136,5 +143,29 @@ describe('StoreModel: the overlay', () => {
     expect(store.coverage(Genes)).toBeUndefined();
     expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();
+  });
+
+  it('a nested source that cannot be opened is an issue while its node is held, cleared when it goes', async () => {
+    const broken: FormatRuntime = {
+      name: 'broken',
+      formats: ['broken'],
+      open: () =>
+        Promise.reject(new SourceOpenError([issueOf(ResolveIssues, 'seq.resolve.source.runtime', 'Cannot open')])),
+    };
+    const m = new StoreModel();
+    const { model, view } = spec(1, 'broken');
+    await m.sync(model, assets);
+    m.store.want([{ source: Genes, system: 'g', start: 0, end: 100, level: 1 }]);
+    await m.store.whenSettled();
+    const c = { runtimes: [SeqRuntime, broken], assets };
+    m.overlay(model, view, c);
+    await flush();
+    await flush();
+    expect(m.issues.value.map((i) => i.address)).toEqual([nodeAddress(Genes, 'T1-more')]);
+    m.store.detach(Genes);
+    m.overlay(model, view, c);
+    await flush();
+    expect(m.issues.value).toEqual([]);
+    m.retire();
   });
 });

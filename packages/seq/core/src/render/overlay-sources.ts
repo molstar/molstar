@@ -19,13 +19,16 @@ import { RenderIssues } from './issues.js';
 // The overlay's sources (_spec/README.md "Render", The overlay's sources): what the overlay needs read goes through the
 // store like any source. A dynamic annotation's inline rows are a `seq` source under the node's address; a nested
 // source is opened only when a template of the view needs its depth (the overlay lists it). Each is kept while its
-// node is the same entry, and detached when its node goes, so a node's data lives as long as the node.
+// node is the same entry, and detached when its node goes, so a node's data lives as long as the node. What could not be
+// opened is an issue while its node is held, opened again at the next sync, and cleared when it opens or its node goes.
 
 interface Held {
   /** The node entry it was opened for: a node that comes back is opened again. */
   readonly identity: unknown;
   readonly abort: AbortController;
   attached: boolean;
+  /** Why it could not be opened. */
+  failed?: readonly Issue[];
 }
 
 export class OverlaySources {
@@ -36,9 +39,16 @@ export class OverlaySources {
     private readonly assets: AssetReader,
   ) {}
 
+  /** Why the sources it holds could not be opened, now. */
+  get issues(): Issue[] {
+    const out: Issue[] = [];
+    for (const h of this.held.values()) if (h.failed) out.push(...h.failed);
+    return out;
+  }
+
   /**
-   * Opens what the overlay needs now and lets go of what it no longer lists. Resolves, with the issues of what could
-   * not be opened, when the openings this call started have settled.
+   * Opens what the overlay needs now (a failed one again) and lets go of what it no longer lists. Resolves, with the
+   * issues of what cannot be opened now (`issues`), when the openings this call started have settled.
    */
   async sync(overlay: Overlay, view: ResolvedView): Promise<Issue[]> {
     const wanted = new Map<string, { identity: unknown; open: (signal: AbortSignal) => Promise<OpenedSource> }>();
@@ -59,10 +69,10 @@ export class OverlaySources {
         });
     }
     for (const [address, h] of [...this.held]) {
-      if (wanted.get(address)?.identity === h.identity && (!h.attached || this.store.coverage(address))) continue;
+      const kept = h.attached ? this.store.coverage(address) !== undefined : !h.failed;
+      if (wanted.get(address)?.identity === h.identity && kept) continue;
       this.release(address, h);
     }
-    const issues: Issue[] = [];
     const started: Promise<void>[] = [];
     for (const [address, w] of wanted) {
       // one held, or attached by another consumer of a shared store
@@ -78,20 +88,22 @@ export class OverlaySources {
           },
           (e) => {
             if (isAbortError(e) || h.abort.signal.aborted) return;
-            if (e instanceof SourceOpenError) issues.push(...e.issues.map((i) => ({ ...i, address })));
-            else
-              issues.push(
-                issueOf(RenderIssues, 'seq.render.source', `The source could not be opened: ${String(e)}`, {
-                  address,
-                  hint: RenderIssues.codes['seq.render.source'].hint,
-                }),
-              );
+            if (this.held.get(address) !== h) return;
+            h.failed =
+              e instanceof SourceOpenError
+                ? e.issues.map((i) => ({ ...i, address }))
+                : [
+                    issueOf(RenderIssues, 'seq.render.source', `The source could not be opened: ${String(e)}`, {
+                      address,
+                      hint: RenderIssues.codes['seq.render.source'].hint,
+                    }),
+                  ];
           },
         ),
       );
     }
     await Promise.all(started);
-    return issues;
+    return this.issues;
   }
 
   private release(address: string, h: Held): void {

@@ -595,7 +595,9 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 - `OverlaySources(store, assets).sync(overlay, view)`: a dynamic annotation's inline rows are attached as a `seq` source
   under the node's address, and the nested sources the view's templates need (`overlay.nested`) through their runtimes;
   each kept while its node is the same store entry, detached when it goes (or changes), so a node's data lives as long
-  as the node. One attached by another consumer of a shared store is left alone. `dispose` detaches what it attached.
+  as the node. One that cannot be opened is an issue (`issues`) while its node is held, opened again at the next sync,
+  cleared when it opens or its node goes; `renderSvg` reports those left at its end. One attached by another consumer of
+  a shared store is left alone. `dispose` detaches what it attached.
 
 ### Backends
 
