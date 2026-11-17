@@ -22,6 +22,14 @@ export interface Numbering {
   labelAt(index: number): string | undefined;
   /** The first position with this label, or -1. */
   indexOf(label: string): number;
+  /**
+   * Optional, for a numbering that answers without a scan (`index`, `ordinal`, an offset): a range start's position,
+   * the first whose label is at or after `label` in the order of labels, or a range end's, the last at or before it;
+   * -1 when none is. Without it, the forms scan the positions (bounded by the caller's signal and deadline).
+   */
+  snap?(label: string, side: 'start' | 'end'): number;
+  /** Optional, as `snap`: up to `count` labels nearest `label` in the order of labels, for an issue's hint. */
+  nearest?(label: string, count: number): string[];
 }
 
 /** A coordinate system: a sequence, a unit, an alignment's columns. */
@@ -63,6 +71,8 @@ export interface QueryAnnotation {
   readonly address: string;
   /** The address of the system its items are on. */
   readonly target: string;
+  /** The fields its items have: `(item :<field> v)` names one of them or `id`, else it is an issue. */
+  readonly fields: readonly string[];
   /** Its items overlapping a location on the target (every item when undefined), with what is pending. */
   items(over?: Location): ItemsRead;
 }
@@ -72,4 +82,9 @@ export interface QueryModel {
   annotation(address: string): QueryAnnotation | undefined;
   /** A dynamic node held under a node by its key (`(node :key T1)`), or undefined. */
   node?(owner: string, key: Atom): Node | undefined;
+  /**
+   * A chain of a structure by its id (`(chain :id A)`), or undefined: a system data makes, addressed by its form
+   * (`/data/1tup/(chain :id A)`), so `system` answers that address too.
+   */
+  chain?(owner: string, id: Atom): Node | undefined;
 }

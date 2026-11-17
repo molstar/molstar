@@ -10,6 +10,7 @@
 // each once, compared and hashed.
 
 import { hash2, hashString } from '@molstar/core/data/util/hash-functions';
+import { compareStrings } from './compare.js';
 
 export interface ElementKey {
   /** The owner's address, printed canonically (`/data/p53/domains`). */
@@ -23,8 +24,6 @@ export interface Elements {
 }
 
 export const EmptyElements: Elements = Object.freeze({ keys: Object.freeze([]) });
-
-const compareStrings = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** By owner, then numbers before strings, numbers by value, strings by code unit. */
 export function compareElementKeys(a: ElementKey, b: ElementKey): number {

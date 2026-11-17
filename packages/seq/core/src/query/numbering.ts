@@ -6,10 +6,10 @@
 
 // Numberings and labels at the edge (_spec/README.md "Queries", Numberings and labels): the built-ins `index`
 // (0-based) and `ordinal` (1-based, the default), the lookup of a declared numbering (a unit's own before its
-// molecule's), and labels resolved to positions: a single label exactly, a range's missing end snapped inward, a
-// backwards range refused unless the system is cyclic, where it wraps as two ranges short of a whole lap.
+// molecule's), and labels resolved to positions: a single label exactly, a range's missing end snapped inward. Labels
+// need not rise with the index (IMGT): the forms snap first, then apply one rule in index order.
 
-import { compareLabels } from './labels.js';
+import { compareLabels, parseLabel } from './labels.js';
 import type { Numbering, QuerySystem } from './model.js';
 
 /** The numbering forms use without `:numbering`: 1-based. */
@@ -18,16 +18,39 @@ export const BuiltInNumberings: readonly string[] = ['index', 'ordinal'];
 
 const IntegerLabel = /^(0|-?[1-9]\d*)$/;
 
-/** Positions numbered from `first` (`index`: 0, `ordinal`: 1). */
+/**
+ * Positions numbered from `first` (`index`: 0, `ordinal`: 1). Its labels rise with the index, so `snap` and `nearest`
+ * answer in O(1): a label's integer places it (a suffix puts it just after its integer, a name after every number).
+ */
 export function sequentialNumbering(id: string, length: number, first: number): Numbering {
+  const labelAt = (i: number) => (Number.isInteger(i) && i >= 0 && i < length ? `${i + first}` : undefined);
+  const snap = (label: string, side: 'start' | 'end') => {
+    const p = parseLabel(label);
+    if (p.int === undefined) return side === 'start' ? -1 : length - 1;
+    if (side === 'start') {
+      const i = Math.max(0, p.int - first + (p.kind === 0 ? 0 : 1));
+      return i < length ? i : -1;
+    }
+    const i = Math.min(length - 1, p.int - first);
+    return i >= 0 ? i : -1;
+  };
   return {
     id,
     length,
-    labelAt: (i) => (Number.isInteger(i) && i >= 0 && i < length ? `${i + first}` : undefined),
+    labelAt,
     indexOf: (label) => {
       if (!IntegerLabel.test(label)) return -1;
       const i = Number(label) - first;
       return i >= 0 && i < length ? i : -1;
+    },
+    snap,
+    nearest: (label, count) => {
+      const s = snap(label, 'start');
+      const at = s < 0 ? length : s;
+      const from = Math.max(0, Math.min(at - (count >> 1), length - count));
+      const out: string[] = [];
+      for (let i = from; i < Math.min(length, from + count); i++) out.push(`${i + first}`);
+      return out;
     },
   };
 }
@@ -72,36 +95,94 @@ export function labelIndex(of: NumberingOf, system: QuerySystem, label: string):
   return j >= 0 && j < system.length ? j : -1;
 }
 
+/** Counts a visited position; the forms pass one that reads their signal and deadline. */
+export type Tick = () => void;
+
+const noTick: Tick = () => {};
+
+/** Whether the numbering's own `snap` and `nearest` answer for the system: its indices are the system's. */
+const direct = (of: NumberingOf, system: QuerySystem) => of.shift === 0 && of.numbering.length === system.length;
+
 /**
  * Snaps a label the numbering lacks inward, by the order of labels: a range's start to the first position whose label
- * is at or after it, its end to the last whose label is at or before it; -1 when none is. Only the unit's positions
- * are scanned.
+ * is at or after it, its end to the last whose label is at or before it; -1 when none is. The numbering's own `snap`
+ * answers when it has one, else the unit's positions are scanned, each a tick.
  */
-export function snapLabel(of: NumberingOf, system: QuerySystem, label: string, side: 'start' | 'end'): number {
+export function snapLabel(
+  of: NumberingOf,
+  system: QuerySystem,
+  label: string,
+  side: 'start' | 'end',
+  tick: Tick = noTick,
+): number {
+  const { numbering } = of;
+  if (numbering.snap && direct(of, system)) return numbering.snap(label, side);
   if (side === 'start') {
     for (let j = 0; j < system.length; j++) {
-      const l = of.numbering.labelAt(j - of.shift);
+      tick();
+      const l = numbering.labelAt(j - of.shift);
       if (l !== undefined && compareLabels(l, label) >= 0) return j;
     }
     return -1;
   }
   for (let j = system.length - 1; j >= 0; j--) {
-    const l = of.numbering.labelAt(j - of.shift);
+    tick();
+    const l = numbering.labelAt(j - of.shift);
     if (l !== undefined && compareLabels(l, label) <= 0) return j;
   }
   return -1;
 }
 
-/** Up to `count` labels of the system nearest a label in the order of labels, for an issue's hint. */
-export function nearestLabels(of: NumberingOf, system: QuerySystem, label: string, count = 6): string[] {
-  const all: string[] = [];
-  for (let j = 0; j < system.length; j++) {
-    const l = of.numbering.labelAt(j - of.shift);
-    if (l !== undefined) all.push(l);
+/** Whether any position in `[from, to)` of the system has a label (each position a tick). */
+export function anyLabelIn(of: NumberingOf, from: number, to: number, tick: Tick = noTick): boolean {
+  for (let j = from; j < to; j++) {
+    tick();
+    if (of.numbering.labelAt(j - of.shift) !== undefined) return true;
   }
-  all.sort(compareLabels);
-  let at = all.findIndex((l) => compareLabels(l, label) >= 0);
-  if (at < 0) at = all.length;
-  const from = Math.max(0, Math.min(at - (count >> 1), all.length - count));
-  return all.slice(from, from + count);
+  return false;
+}
+
+/** How many positions a hint scans at most: past it, a hint names no labels (it is help, not an answer). */
+export const HintScanLimit = 1 << 16;
+
+/**
+ * Up to `count` labels of the system nearest a label in the order of labels, for an issue's hint: the numbering's own
+ * `nearest`, else a scan keeping only the `count` nearest on each side (no list of every label); none past
+ * HintScanLimit positions.
+ */
+export function nearestLabels(
+  of: NumberingOf,
+  system: QuerySystem,
+  label: string,
+  count = 6,
+  tick: Tick = noTick,
+): string[] {
+  const { numbering } = of;
+  if (numbering.nearest && direct(of, system)) return numbering.nearest(label, count);
+  if (system.length > HintScanLimit) return [];
+  // the greatest labels before it (ascending) and the least at or after it (ascending), each at most `count`
+  const below: string[] = [];
+  const above: string[] = [];
+  for (let j = 0; j < system.length; j++) {
+    tick();
+    const l = numbering.labelAt(j - of.shift);
+    if (l === undefined) continue;
+    if (compareLabels(l, label) < 0) {
+      if (below.length === count && compareLabels(l, below[0]) <= 0) continue;
+      insertSorted(below, l);
+      if (below.length > count) below.shift();
+    } else {
+      if (above.length === count && compareLabels(l, above[count - 1]) >= 0) continue;
+      insertSorted(above, l);
+      if (above.length > count) above.pop();
+    }
+  }
+  const take = Math.min(below.length, Math.max(count >> 1, count - above.length));
+  return [...below.slice(below.length - take), ...above].slice(0, count);
+}
+
+function insertSorted(list: string[], l: string) {
+  let i = list.length;
+  while (i > 0 && compareLabels(list[i - 1], l) > 0) i--;
+  list.splice(i, 0, l);
 }

@@ -42,9 +42,11 @@ function system(
 
 /** An annotation whose items are loaded only over `loaded` (all of them when undefined). */
 function annotation(address: string, target: string, rows: readonly QueryItem[], loaded?: [number, number]) {
+  const fields = [...new Set(rows.flatMap((r) => Object.keys(r.fields ?? {})))];
   const a: QueryAnnotation & { reads: number } = {
     address,
     target,
+    fields,
     reads: 0,
     items(over?: Location): ItemsRead {
       a.reads++;
@@ -103,11 +105,28 @@ const Ab = system('/data/ab', 12, [AbKabat, AbImgt, AbAuth]);
 
 export const Systems = {
   p53: system('/data/p53', 393, [offsetNumbering('uniprot', 393, 1), labelsNumbering('dup', ['1', '2', '2', '3'])]),
-  plasmid: system('/data/plasmid', 100, [], { cyclic: true }),
+  // `gapped`: 1-based, with no label at positions 5 and 96
+  plasmid: system(
+    '/data/plasmid',
+    100,
+    [
+      labelsNumbering(
+        'gapped',
+        Array.from({ length: 100 }, (_, i) => (i === 4 || i === 95 ? undefined : `${i + 1}`)),
+      ),
+    ],
+    { cyclic: true },
+  ),
+  // a chain is a system data makes, addressed by its form
+  chainA: system('/data/1tup/(chain :id A)', 6, [labelsNumbering('auth', ['92', '93', '94', '94A', '95', '96'])]),
   ab: Ab,
   unit: system('/data/abunit', 8, [UnitAuth], { parent: { system: Ab, start: 2 } }),
   empty: system('/data/empty', 0),
-  offset: system('/data/offset', 6, [offsetNumbering('skip', 6, -3, true)]),
+  offset: system('/data/offset', 6, [
+    offsetNumbering('skip', 6, -3, true),
+    // `.n` labels, `100.10` distinct from `100.1`
+    labelsNumbering('dot', ['100', '100.1', '100.10', '101', '102', '103']),
+  ]),
 };
 
 export const Annotations = {
@@ -123,7 +142,10 @@ export const Annotations = {
     { key: 'ori', start: 90, end: 100 },
     { key: 'ori', start: 0, end: 5 },
     { key: 'gene', start: 20, end: 40 },
+    // a boundary at the system's end
+    { key: 'end', start: 100, end: 100 },
   ]),
+  sites: annotation('/data/1tup/sites', '/data/1tup/(chain :id A)', [{ key: 's1', start: 3, end: 4 }]),
   // read by region: loaded over [0, 50) only
   peaks: annotation(
     '/data/p53/peaks',
@@ -149,7 +171,13 @@ export const Spec: Node = {
       node('sequence', 'empty'),
       node('sequence', 'offset'),
       node('genes', 'genes'),
+      node('structure', '1tup', [node('ranges', 'sites')]),
     ]),
+    {
+      kind: 'refs',
+      id: 'refs',
+      children: [{ kind: 'ref', id: 'dbd', params: { to: '/data/p53/(range :from 94 :to 292)' } }],
+    },
     node('views', 'views', [node('view', 'main', [node('section', 'protein'), node('section', 'gene')])]),
   ],
 };
@@ -162,4 +190,6 @@ export const Model: QueryModel = {
   annotation: (a) => AnnotationsByAddress.get(a),
   node: (owner: string, key: Atom) =>
     owner === '/data/genes' && (key === 'T1' || key === 'T2') ? { kind: 'gene', params: { key } } : undefined,
+  chain: (owner: string, id: Atom) =>
+    owner === '/data/1tup' && id === 'A' ? { kind: 'chain', params: { id } } : undefined,
 };

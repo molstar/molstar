@@ -7,9 +7,16 @@
 // The Location (_spec/README.md "Queries", Location): positions on systems. Per system one part, its ranges sorted,
 // merged, half-open index pairs in one Int32Array (`[start0, end0, start1, end1, …]`); rects pair two parts (two
 // axes). A Location is a value: built normalized by `location`, never mutated after, compared by `locationsEqual`,
-// hashed by `hashLocation`. A cyclic system's wrapped range is two ranges, as any two ranges are.
+// hashed by `hashLocation`. A cyclic system's wrapped range is two ranges, as any two ranges are. Equality is
+// structural: rects are kept as given (sorted, each once), never merged into fewer rects covering the same cells.
 
 import { hash2, hashFnv32a, hashString } from '@molstar/core/data/util/hash-functions';
+import { compareStrings } from './compare.js';
+
+/** Whether a number is a position a Location holds: an integer within int32 (an Int32Array would wrap others). */
+export function isPosition(n: number): boolean {
+  return Number.isInteger(n) && n >= -0x80000000 && n <= 0x7fffffff;
+}
 
 /** The positions of one system: sorted, merged, half-open `[start, end)` pairs, none empty. */
 export interface LocationPart {
@@ -44,7 +51,10 @@ export interface RectInput {
   readonly b: PartInput;
 }
 
-/** Sorts and merges `[start, end, …]` pairs (adjacent ones too), dropping empty ones; a new array. */
+/**
+ * Sorts and merges `[start, end, …]` pairs (adjacent ones too), dropping empty ones; a new array. An end that is not a
+ * position (`isPosition`) is a programmer error and throws, never wraps: callers given data check it and report.
+ */
 export function normalizeRanges(ranges: ArrayLike<number>): Int32Array {
   const n = ranges.length >> 1;
   if (ranges.length % 2 !== 0) throw new Error('Ranges are [start, end] pairs');
@@ -52,7 +62,7 @@ export function normalizeRanges(ranges: ArrayLike<number>): Int32Array {
   for (let i = 0; i < n; i++) {
     const s = ranges[2 * i];
     const e = ranges[2 * i + 1];
-    if (!Number.isInteger(s) || !Number.isInteger(e)) throw new Error('A range end is not an integer');
+    if (!isPosition(s) || !isPosition(e)) throw new Error('A range end is not an int32 integer');
     if (e > s) order.push(i);
   }
   order.sort((x, y) => ranges[2 * x] - ranges[2 * y]);
@@ -137,8 +147,6 @@ export function positionCount(l: Location): number {
 }
 
 // ---- identity ----
-
-const compareStrings = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 function compareRanges(a: Int32Array, b: Int32Array): number {
   const n = Math.min(a.length, b.length);
@@ -259,13 +267,25 @@ export function subtractLocations(a: Location, b: Location): Location {
   );
 }
 
-/** Whether a half-open item `[start, end)` overlaps the ranges; a zero-length one at `p` when `start ≤ p < end`. */
-export function overlapsRanges(ranges: Int32Array, start: number, end: number): boolean {
-  // the ranges are sorted: stop at the first that starts past the item
-  for (let i = 0; i < ranges.length; i += 2) {
-    const s = ranges[i];
-    if (start === end ? s > start : s >= end) return false;
-    if (start < ranges[i + 1]) return true;
+/**
+ * Whether a half-open item `[start, end)` overlaps the ranges. A zero-length item (a boundary) at `p` overlaps `[s, e)`
+ * when `s ≤ p < e`; one at the system's end (`p = length`, given) overlaps a range ending there, so `(all)` holds it.
+ * O(log n): a binary search over the ends (the ranges are disjoint and sorted, so their ends are too). Written here, not
+ * with core's `SortedArray`, whose searches read a plain sorted array, not every other entry of interleaved pairs.
+ */
+export function overlapsRanges(ranges: Int32Array, start: number, end: number, length?: number): boolean {
+  const n = ranges.length >> 1;
+  if (!n) return false;
+  if (start === end && start === length) return ranges[2 * n - 1] === length;
+  // the first range whose end is past the item's start
+  let lo = 0;
+  let hi = n;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (ranges[2 * mid + 1] > start) hi = mid;
+    else lo = mid + 1;
   }
-  return false;
+  if (lo === n) return false;
+  const s = ranges[2 * lo];
+  return start === end ? s <= start : s < end;
 }

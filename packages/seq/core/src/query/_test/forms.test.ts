@@ -4,11 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { parseAddress, printAddress, selectAddress } from '@molstar/core/repr/tree';
-import { describe, expect, it } from 'vitest';
+import { type FormResolver, parseAddress, printAddress, selectAddress } from '@molstar/core/repr/tree';
+import { describe, expect, it, vi } from 'vitest';
 import { type Evaluation, evaluateQuery, QueryFormKinds, queryResolvers } from '../forms.js';
 import { QueryIssues } from '../issues.js';
-import type { Location } from '../location.js';
+import { fromNamed } from '../result.js';
+import { type Location, rangesLocation } from '../location.js';
 import type { QueryModel } from '../model.js';
 import { Annotations, Model, Spec } from './fixture.js';
 
@@ -145,8 +146,12 @@ describe('query forms: elements and nodes', () => {
     expect(keys('/data/p53/domains/(items :overlapping (range :from 50 :to 100))')).toEqual(['DBD', 'TAD']);
     // an address as the location; a zero-length item where its point is inside
     expect(keys('/data/p53/domains/(items :overlapping /data/p53/(at :label 301))')).toEqual([1]);
-    // a location on another system overlaps nothing here
-    expect(keys('/data/p53/domains/(items :overlapping /data/plasmid/(all))')).toEqual([]);
+    // a location on another system overlaps nothing here, and says so (no projection yet)
+    const other = run('/data/p53/domains/(items :overlapping /data/plasmid/(all))');
+    expect(other.result?.type === 'elements' && other.result.elements.keys).toEqual([]);
+    expect(other.issues.map((i) => [i.code, i.severity, i.address])).toEqual([
+      ['seq.query.location.unreachable', 'warning', '/data/plasmid'],
+    ]);
     expect(keys('/data/p53/domains/(items :overlapping /data/p53/domains/(item :id DBD))')).toEqual([
       'seq.query.form.type',
     ]);
@@ -178,7 +183,7 @@ describe('query forms: conversions', () => {
   });
 
   it('round trip: the items overlapping an extent hold the elements', () => {
-    expect(keys('/data/plasmid/features/(items :overlapping (range :from 98 :to 2))')).toEqual(['ori']);
+    expect(keys('/data/plasmid/features/(items :overlapping (range :from 98 :to 2))')).toEqual(['end', 'ori']);
   });
 });
 
@@ -242,11 +247,152 @@ describe('query forms: staged and bounded evaluation', () => {
       ...Model,
       annotation: (a) =>
         a === '/data/p53/domains'
-          ? { address: a, target: p53, items: () => (c.abort(), { items: many }) }
+          ? { address: a, target: p53, fields: [], items: () => (c.abort(), { items: many }) }
           : Model.annotation(a),
     };
     const r = evaluateQuery(Spec, model, '/data/p53/domains/(items)', { limit: Infinity, signal: c.signal });
     expect(codes(r)).toEqual(['repr.tree.address.cancelled']);
+  });
+
+  /** An annotation of `n` items whose read runs `onRead` (aborts a signal, moves a clock). */
+  const readsOf = (n: number, onRead: () => void): QueryModel => {
+    const rows = Array.from({ length: n }, (_, i) => ({ key: i, start: i, end: i + 1 }));
+    return {
+      ...Model,
+      annotation: (a) =>
+        a === '/data/p53/domains'
+          ? { address: a, target: p53, fields: [], items: () => (onRead(), { items: rows }) }
+          : Model.annotation(a),
+    };
+  };
+
+  it('nested forms share one visit counter: two reads under CancelEvery each still stop', () => {
+    const c = new AbortController();
+    const model = readsOf(600, () => c.abort());
+    const one = evaluateQuery(Spec, model, '/data/p53/domains/(items)', { limit: Infinity, signal: c.signal });
+    expect(codes(one)).toEqual([]);
+    const c2 = new AbortController();
+    const both = evaluateQuery(
+      Spec,
+      readsOf(600, () => c2.abort()),
+      '/data/p53/domains/(or :of [(items) (items)])',
+      {
+        limit: Infinity,
+        signal: c2.signal,
+      },
+    );
+    expect(codes(both)).toEqual(['repr.tree.address.cancelled']);
+  });
+
+  it('stops at a deadline passed during a read', () => {
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const r = evaluateQuery(
+      Spec,
+      readsOf(2000, () => (now = 10)),
+      '/data/p53/domains/(items)',
+      {
+        limit: Infinity,
+        deadline: 5,
+      },
+    );
+    expect(codes(r)).toEqual(['repr.tree.address.deadline_exceeded']);
+  });
+
+  it('two staged segments: the result is incomplete (the union of their pending regions is the core’s)', () => {
+    const pend: FormResolver = ({ prefix }) => ({
+      result: prefix,
+      complete: false,
+      pending: rangesLocation('/data/x', [0, 1]),
+    });
+    const t = queryResolvers(Model, { pend });
+    const s = selectAddress(Spec, '/data/p53/(pend)/peaks/(items :overlapping (range :to 100))', {
+      limit: 9,
+      resolvers: t,
+    });
+    expect(s.complete).toBe(false);
+    // today the selection keeps the last segment's pending regions
+    expect((s.pending as Location).parts.map((p) => [p.system, [...p.ranges]])).toEqual([[p53, [50, 100]]]);
+  });
+});
+
+describe('query forms: chains, rects, labels (review round)', () => {
+  const chainA = '/data/1tup/(chain :id A)';
+
+  it('chain: a data-made system addressed by its form, a prefix location forms read', () => {
+    const r = run('/data/1tup/(chain :id A)');
+    expect(r.result?.type === 'nodes' && r.result.nodes.map((m) => printAddress(m.address))).toEqual([chainA]);
+    expect(loc('/data/1tup/(chain :id A)/(at :label 94A :numbering auth)')).toEqual([[chainA, [3, 4]]]);
+    const b = run('/data/1tup/(chain :id B)');
+    expect(b.issues.map((i) => i.code)).toEqual(['seq.query.node.missing']);
+    expect(codes(run('/data/1tup/(chain :id A :x 1)'))).toEqual(['seq.query.form.param']);
+    // an annotation on a chain: its nested location reads the chain as its prefix
+    expect(keys('/data/1tup/sites/(items :overlapping (range :from 94A :to 95 :numbering auth))')).toEqual(['s1']);
+  });
+
+  it('rect: two locations on two axes, each one system; sides never wrap (EC-10)', () => {
+    const r = run('/data/p53/(rect :a (range :from 10 :to 25) :b /data/plasmid/(range :from 40 :to 55))');
+    expect(
+      r.result?.type === 'location' &&
+        r.result.location.rects.map((x) => [x.a.system, [...x.a.ranges], x.b.system, [...x.b.ranges]]),
+    ).toEqual([[p53, [9, 25], '/data/plasmid', [39, 55]]]);
+    expect(codes(run('/data/plasmid/(rect :a (range :from 91 :to 10) :b (all))'))).toEqual(['seq.query.range.wrap']);
+    // the same range wraps outside a rect
+    expect(loc('/data/plasmid/(range :from 91 :to 10)')).toEqual([['/data/plasmid', [0, 10, 90, 100]]]);
+    expect(codes(run('/data/p53/(rect :a (all) :b /data/p53/domains/(item :id TAD))'))).toEqual([
+      'seq.query.form.type',
+    ]);
+    expect(codes(run('/data/p53/(rect :a (or :of [(all) /data/plasmid/(all)]) :b (all))'))).toEqual([
+      'seq.query.form.type',
+    ]);
+    expect(codes(run('/data/p53/(not :of (rect :a (all) :b (all)))'))).toEqual(['seq.query.form.unsupported']);
+    expect(codes(run('/data/p53/domains/(items :overlapping /data/p53/(rect :a (all) :b (all)))'))).toEqual([
+      'seq.query.form.unsupported',
+    ]);
+  });
+
+  it('snaps first, then one index-order rule: a cyclic snapped range wraps; IMGT snapped pairs (EC-6, EC-7)', () => {
+    // no label at 5 and 96: 96 starts at 97, 5 ends at 4
+    expect(loc('/data/plasmid/(range :from 96 :to 5 :numbering gapped)')).toEqual([['/data/plasmid', [0, 4, 96, 100]]]);
+    // IMGT (111, 111A, 112A, 112, 113): 111B starts at 112A, 112B ends at 112
+    expect(loc('/data/ab/(range :from 111B :to 112B :numbering imgt)')).toEqual([['/data/ab', [5, 7]]]);
+    expect(loc('/data/ab/(range :from 112B :to 112B :numbering imgt)')).toEqual([]);
+    expect(loc('/data/ab/(range :from 112B :to 111B :numbering imgt)')).toEqual(['seq.query.range.backwards']);
+    // a snapped end over a hole: 84 to 84 holds nothing (82C and 85 around a position with no label)
+    expect(loc('/data/ab/(range :from 84 :to 84 :numbering kabat)')).toEqual([]);
+  });
+
+  it('.n labels are quoted; 100.10 is not 100.1 (EC-2, EC-3)', () => {
+    expect(loc('/data/offset/(at :label "100.1" :numbering dot)')).toEqual([['/data/offset', [1, 2]]]);
+    expect(loc('/data/offset/(at :label "100.10" :numbering dot)')).toEqual([['/data/offset', [2, 3]]]);
+    const bare = run('/data/offset/(at :label 100.1 :numbering dot)');
+    expect([codes(bare), bare.issues[0].hint]).toEqual([['seq.query.label.syntax'], 'a .n label is quoted: "100.1"']);
+    expect(loc('/data/offset/(range :from "100.1" :to 101 :numbering dot)')).toEqual([['/data/offset', [1, 4]]]);
+  });
+
+  it('a boundary at the system end overlaps a range ending there, so (all) holds it', () => {
+    expect(keys('/data/plasmid/features/(items :overlapping (all))')).toEqual(['end', 'gene', 'ori']);
+    expect(keys('/data/plasmid/features/(items :overlapping (range :from 50 :to 99))')).toEqual(['ori']);
+  });
+
+  it('item: an unknown field is an issue', () => {
+    const r = run('/data/p53/domains/(item :colour red)');
+    expect([codes(r), r.issues[0].hint]).toEqual([['seq.query.form.param'], 'params: id, label, type']);
+  });
+
+  it('refuses an operand naming a ref: refs are not resolved yet', () => {
+    expect(codes(run('/data/p53/domains/(items :overlapping /refs/dbd)'))).toEqual(['seq.query.ref.unresolved']);
+  });
+
+  it("refuses an item's extent outside int32", () => {
+    const model: QueryModel = {
+      ...Model,
+      annotation: (a) =>
+        a === '/data/p53/domains'
+          ? { address: a, target: p53, fields: [], items: () => ({ items: [{ key: 'x', start: 0, end: 2 ** 31 }] }) }
+          : Model.annotation(a),
+    };
+    expect(codes(run('/data/p53/domains/(extent :of (item :id x))', 9, model))).toEqual(['seq.query.position.invalid']);
   });
 });
 
@@ -261,6 +407,24 @@ describe('query forms: the table', () => {
     expect(selectAddress(Spec, '/data/p53/(not :of (mine))', { limit: 9, resolvers: t }).issues[0].code).toBe(
       'seq.query.form.type',
     );
+  });
+
+  it('refuses a caller resolver named as a query form: a form is never replaced silently', () => {
+    expect(() => queryResolvers(Model, { range: () => ({}) })).toThrow(/clashes/);
+  });
+
+  it('reads a Named as a result only when its value has the type’s shape', () => {
+    expect(fromNamed({ kind: 'other', type: 'location', value: 5 })).toBeUndefined();
+    expect(fromNamed({ kind: 'other', type: 'elements', value: { keys: [{ owner: 1 }] } })).toBeUndefined();
+    expect(fromNamed({ kind: 'other', type: 'location', value: rangesLocation('/a', [0, 1]) })?.type).toBe('location');
+  });
+
+  it('prints a string that looks like a number quoted, so it reads back a string', () => {
+    const form = { kind: 'item', params: { id: '1' } };
+    const text = printAddress(['data', 'p53', 'domains', form]);
+    expect(text).toBe('/data/p53/domains/(item :id "1")');
+    expect(keys(text)).toEqual(['1']);
+    expect(printAddress(['x', { kind: 'at', params: { label: '100.10' } }])).toBe('/x/(at :label "100.10")');
   });
 
   it('reads and prints the forms canonically', () => {

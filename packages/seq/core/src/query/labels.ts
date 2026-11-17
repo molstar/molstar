@@ -7,10 +7,13 @@
 // Labels (_spec/README.md "Queries", Numberings and labels): positions are 0-based half-open indices inside, labels
 // are inclusive names of positions at the edge, converted once where a form is read and never mixed in one table.
 // A label is an integer with an optional suffix: letters (an insertion code, `94A`) or `.n` (`100.1`); any other word
-// is a name (a numbering of names). Labels have one order, so a label a numbering lacks is still placed.
+// is a name (a numbering of names). Labels have one order, so a label a numbering lacks is still placed. A `.n` label
+// is written quoted in a form (`(at :label "100.1")`): bare, `100.1` is the number 100.1, not a label.
+
+import { compareStrings } from './compare.js';
 
 /** A label read: its integer, its suffix kind (none, letters, `.n`) and suffix; a name has no integer. */
-interface ParsedLabel {
+export interface ParsedLabel {
   readonly int?: number;
   /** 0 none, 1 letters, 2 `.n`; names sort after every numbered label. */
   readonly kind: 0 | 1 | 2;
@@ -19,15 +22,14 @@ interface ParsedLabel {
 
 const LabelPattern = /^([+-]?\d+)(?:([A-Za-z]+)|\.(\d+))?$/;
 
-function parseLabel(label: string): ParsedLabel {
+/** A label's integer, suffix kind and suffix (a name: no integer, the whole label as its suffix). */
+export function parseLabel(label: string): ParsedLabel {
   const m = LabelPattern.exec(label);
   if (!m) return { kind: 0, suffix: label };
   if (m[2] !== undefined) return { int: Number(m[1]), kind: 1, suffix: m[2] };
   if (m[3] !== undefined) return { int: Number(m[1]), kind: 2, suffix: m[3] };
   return { int: Number(m[1]), kind: 0, suffix: '' };
 }
-
-const compareStrings = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 /**
  * The order of labels: by integer; then no suffix, then letters (shorter first, then alphabetic ignoring case), then
@@ -57,16 +59,17 @@ export function compareLabels(a: string, b: string): number {
 const Int32Max = 2 ** 31 - 1;
 
 /** What `readLabel` gives: the label's text, or why the value is not a label. */
-export type LabelRead = { readonly label: string } | { readonly error: 'syntax' | 'int32' };
+export type LabelRead = { readonly label: string } | { readonly error: 'syntax' | 'int32' | 'fraction' };
 
 /**
- * A form's label value: an integer (`94`) or a word (`94A`, `100.1`, a name). A number that is not an integer, or an
- * empty word, is not a label; a label whose integer is outside int32 is refused, never wrapped. A written integer keeps
- * its spelling as JavaScript prints it (`094` is read as the number 94, so the label `94`).
+ * A form's label value: an integer (`94`) or a word (`94A`, `"100.1"`, a name). A number that is not an integer is
+ * not a label (`fraction`: a `.n` label is written quoted), nor is an empty word; a label whose integer is outside int32
+ * is refused, never wrapped. A written integer keeps its spelling as JavaScript prints it (`094` is read as the number
+ * 94, so the label `94`); a quoted label keeps its own (`"100.10"` is not `"100.1"`).
  */
 export function readLabel(value: unknown): LabelRead {
   if (typeof value === 'number') {
-    if (!Number.isInteger(value)) return { error: 'syntax' };
+    if (!Number.isInteger(value)) return { error: Number.isFinite(value) ? 'fraction' : 'syntax' };
     return Math.abs(value) > Int32Max ? { error: 'int32' } : { label: `${value}` };
   }
   if (typeof value !== 'string' || !value.trim() || value !== value.trim()) return { error: 'syntax' };

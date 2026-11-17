@@ -21,13 +21,22 @@ export {
 } from './elements.js';
 export { type Evaluation, evaluateQuery, type QueryOptions, QueryFormKinds, queryResolvers } from './forms.js';
 export { type QueryIssueCode, QueryIssues } from './issues.js';
-export { compareLabels, hasLabelSuffix, isNoInsertionCode, type LabelRead, readLabel } from './labels.js';
+export {
+  compareLabels,
+  hasLabelSuffix,
+  isNoInsertionCode,
+  type LabelRead,
+  type ParsedLabel,
+  parseLabel,
+  readLabel,
+} from './labels.js';
 export {
   compareRects,
   EmptyLocation,
   hashLocation,
   intersectLocations,
   isEmptyLocation,
+  isPosition,
   type Location,
   type LocationPart,
   type LocationRect,
@@ -45,14 +54,17 @@ export {
 } from './location.js';
 export type { ItemsRead, Numbering, QueryAnnotation, QueryItem, QueryModel, QuerySystem } from './model.js';
 export {
+  anyLabelIn,
   BuiltInNumberings,
   DefaultNumbering,
   findNumbering,
+  HintScanLimit,
   labelIndex,
   type NumberingOf,
   nearestLabels,
   numberingIds,
   sequentialNumbering,
   snapLabel,
+  type Tick,
 } from './numbering.js';
 export { fromNamed, namedType, type QueryResult, type QueryResultType, toNamed } from './result.js';

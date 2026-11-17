@@ -32,11 +32,32 @@ export function toNamed(r: QueryResult): Named {
   }
 }
 
-/** A result of a `Named`, or undefined when another resolver made it (a type the queries do not know). */
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+
+/** Whether a value has a Location's shape: parts and rects as arrays, each part a system and an Int32Array. */
+function isLocation(v: unknown): v is Location {
+  if (!isObject(v) || !Array.isArray(v.parts) || !Array.isArray(v.rects)) return false;
+  const part = (p: unknown) => isObject(p) && typeof p.system === 'string' && p.ranges instanceof Int32Array;
+  return v.parts.every(part) && v.rects.every((r: unknown) => isObject(r) && part(r.a) && part(r.b));
+}
+
+/** Whether a value has Elements' shape: keys, each an owner and a string or number key. */
+function isElements(v: unknown): v is Elements {
+  if (!isObject(v) || !Array.isArray(v.keys)) return false;
+  return v.keys.every(
+    (k: unknown) =>
+      isObject(k) && typeof k.owner === 'string' && (typeof k.key === 'string' || typeof k.key === 'number'),
+  );
+}
+
+/**
+ * A result of a `Named`, or undefined when another resolver made it: a type the queries do not know, or a value
+ * whose shape is not the type's (a resolver of another language using the same type name).
+ */
 export function fromNamed(n: Named): QueryResult | undefined {
   if (n.kind === 'nodes') return { type: 'nodes', nodes: n.matches };
-  if (n.type === 'elements') return { type: 'elements', elements: n.value as Elements };
-  if (n.type === 'location') return { type: 'location', location: n.value as Location };
+  if (n.type === 'elements' && isElements(n.value)) return { type: 'elements', elements: n.value };
+  if (n.type === 'location' && isLocation(n.value)) return { type: 'location', location: n.value };
   return undefined;
 }
 

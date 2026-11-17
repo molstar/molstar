@@ -8,13 +8,14 @@ import { describe, expect, it } from 'vitest';
 import { compareLabels, hasLabelSuffix, isNoInsertionCode, readLabel } from '../labels.js';
 import {
   findNumbering,
+  HintScanLimit,
   labelIndex,
   nearestLabels,
   numberingIds,
   sequentialNumbering,
   snapLabel,
 } from '../numbering.js';
-import { Systems } from './fixture.js';
+import { labelsNumbering, Systems } from './fixture.js';
 
 describe('query: labels', () => {
   it('order: integer, then no suffix, then letters (shorter first, case-blind), then .n (EC-2)', () => {
@@ -34,7 +35,10 @@ describe('query: labels', () => {
     expect(readLabel(2 ** 31 - 1)).toEqual({ label: '2147483647' });
     expect(readLabel(2 ** 31)).toEqual({ error: 'int32' });
     expect(readLabel('99999999999A')).toEqual({ error: 'int32' });
-    for (const bad of [1.5, '', ' 9', true, null, [1]]) expect(readLabel(bad)).toEqual({ error: 'syntax' });
+    for (const bad of ['', ' 9', true, null, [1], Number.NaN]) expect(readLabel(bad)).toEqual({ error: 'syntax' });
+    // a .n label is a word: bare, 100.1 is a number, and the issue says to quote it
+    expect(readLabel(100.1)).toEqual({ error: 'fraction' });
+    expect([readLabel('100.1'), readLabel('100.10')]).toEqual([{ label: '100.1' }, { label: '100.10' }]);
   });
 
   it('knows the spellings of no insertion code, and which labels have a suffix (EC-5)', () => {
@@ -71,6 +75,39 @@ describe('query: numberings', () => {
     expect([labelIndex(kabat, unit, '80'), labelIndex(kabat, unit, '88')]).toEqual([-1, -1]);
     expect(findNumbering(unit, 'nope')).toBeUndefined();
     expect(numberingIds(unit).sort()).toEqual(['auth', 'imgt', 'index', 'kabat', 'ordinal']);
+  });
+
+  it('index and ordinal snap and hint in O(1), as a scan of the same labels does', () => {
+    const length = 40;
+    const ord = { numbering: sequentialNumbering('ordinal', length, 1), shift: 0 };
+    const scanned = {
+      numbering: labelsNumbering(
+        'scan',
+        Array.from({ length }, (_, i) => `${i + 1}`),
+      ),
+      shift: 0,
+    };
+    const sys = { ...Systems.empty, length };
+    for (const l of ['-3', '0', '1', '5', '5A', '5.1', '40', '40A', '41', '99', 'H1'])
+      for (const side of ['start', 'end'] as const)
+        expect(snapLabel(ord, sys, l, side), `${l} ${side}`).toBe(snapLabel(scanned, sys, l, side));
+    for (const l of ['0', '5', '5A', '38', '99'])
+      expect(nearestLabels(ord, sys, l, 4), l).toEqual(nearestLabels(scanned, sys, l, 4));
+    // a scan ticks each position it reads; the O(1) answer reads none
+    let ticks = 0;
+    snapLabel(scanned, sys, '99', 'start', () => ticks++);
+    const scanTicks = ticks;
+    snapLabel(ord, sys, '99', 'start', () => ticks++);
+    expect([scanTicks, ticks]).toEqual([length, length]);
+  });
+
+  it('a hint on a long system without its own nearest names no labels, and lists none of every label', () => {
+    const length = HintScanLimit + 1;
+    const n = { numbering: labelsNumbering('long', []), shift: 0 };
+    let reads = 0;
+    const numbering = { ...n.numbering, length, labelAt: () => (reads++, '1') };
+    expect(nearestLabels({ numbering, shift: 0 }, { ...Systems.empty, length }, '5')).toEqual([]);
+    expect(reads).toBe(0);
   });
 
   it('snaps a missing range end inward by the order of labels (EC-6)', () => {

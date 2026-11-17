@@ -68,9 +68,28 @@ export const QueryIssues = defineIssues('seq.query', {
     severity: 'warning',
     description: 'A range holds no position once its ends are snapped to labels the numbering has',
   },
+  'seq.query.range.wrap': {
+    severity: 'error',
+    description: 'A rect’s side wraps past a cyclic system’s origin: rect sides never wrap',
+    hint: 'split the rect in two at the origin',
+  },
+  'seq.query.position.invalid': {
+    severity: 'error',
+    description:
+      'Data gives a position a location cannot hold: not a 32-bit integer, or an extent ending before it starts',
+  },
+  'seq.query.location.unreachable': {
+    severity: 'warning',
+    description: 'A location is on a system the items are not on, and projection is not built yet: it overlaps nothing',
+  },
+  'seq.query.ref.unresolved': {
+    severity: 'error',
+    description: 'An operand names a ref, and refs are not resolved yet',
+    hint: 'write the address the ref names',
+  },
   'seq.query.node.missing': {
     severity: 'warning',
-    description: 'No node is held under the prefix with the key',
+    description: 'No node (a dynamic node, a chain) is held under the prefix with the key',
   },
 });
 
