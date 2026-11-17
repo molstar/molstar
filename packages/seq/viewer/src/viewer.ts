@@ -384,6 +384,8 @@ export class SeqViewer extends ReactiveModel {
     input.dpr = dpr;
     input.settled = this._quiet && this.store.store.settled.value;
     input.emphasis = this._emphasis;
+    // tier 2: the store's dynamic nodes (its version is part of the frame's key)
+    input.overlay = this.store.overlay(model, resolved, this.context);
 
     let frame = renderer.frame(input);
     let rebuilt = frame.rebuilt;

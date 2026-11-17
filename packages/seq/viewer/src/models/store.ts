@@ -21,7 +21,9 @@ import {
   SourceOpenError,
   type StoreClock,
 } from '@molstar/seqx-core/data';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { OverlaySources } from '@molstar/seqx-core/render';
+import { type Overlay, OverlayBuilder, type StaticModel } from '@molstar/seqx-core/resolve';
+import type { ResolvedView } from '@molstar/seqx-core/view';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 
@@ -40,6 +42,9 @@ interface Opening {
 export class StoreModel extends ReactiveModel {
   readonly store: DataStore;
   private readonly _open = new Map<string, Opening>();
+  private _overlays: OverlayBuilder | undefined;
+  private _overlaySources: OverlaySources | undefined;
+  private _synced: { overlay: Overlay; view: ResolvedView } | undefined;
   private readonly _issues = new State<readonly Issue[]>([]);
   /** Sources that could not be opened, one issue each (the store's own reports are `store.issues`). */
   readonly issues: ReadonlyState<readonly Issue[]> = this._issues.asReadonly;
@@ -94,6 +99,24 @@ export class StoreModel extends ReactiveModel {
       started.push(this._attach(address, opening, runtime, assets));
     }
     await Promise.all(started);
+  }
+
+  /**
+   * Tier 2 for a frame: the overlay of the store's dynamic nodes now (one a node version), its sources (a dynamic
+   * annotation's rows, the nested sources the view's templates reach) opened when it or the view changes, and let go
+   * with their nodes. What cannot be opened is an issue here, as a source of the model's.
+   */
+  overlay(model: StaticModel, view: ResolvedView, ctx: { runtimes: readonly FormatRuntime[]; assets: AssetReader }) {
+    this._overlays ??= new OverlayBuilder({ runtimes: ctx.runtimes, config: model.config });
+    const overlay = this._overlays.of(model, this.store);
+    if (this._synced?.overlay !== overlay || this._synced.view !== view) {
+      this._synced = { overlay, view };
+      this._overlaySources ??= new OverlaySources(this.store, ctx.assets);
+      void this._overlaySources.sync(overlay, view).then((issues) => {
+        if (!this.isRetired) for (const i of issues) this._report(i.address ?? '', i);
+      });
+    }
+    return overlay;
   }
 
   private async _attach(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {
