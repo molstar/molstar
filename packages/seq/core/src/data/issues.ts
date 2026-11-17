@@ -31,7 +31,7 @@ export const SourceIssues = defineIssues('seq.source', {
   },
   'seq.source.no_data': {
     severity: 'error',
-    description: 'A `seq` source has neither inline data (`value`) nor a location (`uri`)',
+    description: 'A source has neither inline data (`value`) nor a location (`uri`) its format reads',
   },
 });
 

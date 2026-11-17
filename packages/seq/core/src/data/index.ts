@@ -8,6 +8,7 @@
 // (_spec/README.md "Data"). Named re-exports only.
 
 export { asyncSeqSource, type DelayOptions, delayedRuntime, delayedSource } from './async-source.js';
+export { checkFai, FastaRuntime, type FaiRecord, faidx, openFasta, parseFai } from './fasta.js';
 export { SourceIssues, StoreIssues } from './issues.js';
 export { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan, tileWidth } from './keys.js';
 export {
