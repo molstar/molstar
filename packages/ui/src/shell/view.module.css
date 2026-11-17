@@ -1,0 +1,202 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The view frame (styles §8): a header, then a body that scrolls. It fills its place (a docked
+   group, a window, a card); its surface is the place's. */
+.frame {
+  /* A view's padding at its sides (styles §8.2): its blocks (sections' wells, a form, rows) sit this far from its edges,
+     and pad the rest of their own inset inside. */
+  --msui-view-pad: 6px; /* off-grid: between a surface pad (4, cramped against the edges) and two units (8, loose) */
+
+  display: flex;
+  /* It fills its place, whatever lays that out (a window, a card, a page, a modal: flex rows). */
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  color: var(--msui-text);
+  font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);
+}
+
+/* The header: the title on the inset, what trails it ending on the trailing column (styles §8.2: a sm button's icon
+   ends where a section's chevron and a field's chevron do). 32 high, or a rail button tall beside the rail
+   (`data-head="rail"`), so the content starts where the rail's first button ends. */
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msui-space-1);
+  height: var(--msui-header);
+  /* On the view's text column: its padding and a block's own (`--msui-inner`). */
+  padding-inline: calc(var(--msui-view-pad) + var(--msui-inner));
+  min-width: 0;
+
+  &[data-head="rail"] {
+    height: var(--msui-shell-head, var(--msui-header));
+  }
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--msui-text-md);
+  font-weight: var(--msui-weight-strong);
+  line-height: var(--msui-leading-md);
+  /* A long title fades (styles §2). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msui-space-1);
+}
+
+.headerButton {
+  display: inline-flex;
+  flex: none;
+}
+
+/* The body: one scroll (styles §8.4). Its content pads the view's padding at the sides and the bottom (so a section's
+   header, a form's labels and a row's text land on the view's text column, each padding the rest) and a unit under the
+   header. */
+/* The body and its footer slot under it: the body scrolls, the footer stays. */
+.bodyWrap {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* A view's footer (`ViewFooter` moves in): the view's width, its padding at the sides (an `ActionFooter` pads as a
+   row), a hairline above. Nothing in it: nothing shown. */
+.footerSlot {
+  flex: none;
+  padding: var(--msui-space-1) var(--msui-view-pad);
+  box-shadow: 0 -1px 0 var(--msui-shell-line, var(--msui-line));
+
+  &:empty {
+    display: none;
+  }
+}
+
+.bodyContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: var(--msui-space-1) var(--msui-view-pad) var(--msui-view-pad);
+}
+
+/* Under a strip of tabs, two units: the open tab's accent line is an edge, and the first row would sit on it. */
+.frame:has(> .header [role="tablist"]) .bodyContent {
+  padding-top: var(--msui-space-2);
+}
+
+.bodyHost {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: var(--msui-space-2);
+  min-width: 0;
+}
+
+/* A view that fills the body and scrolls its own parts (a virtual list, a plot). */
+.fill {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fillHost {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.host {
+  min-width: 0;
+}
+
+/* A run of content: blocks two units apart, sections one (an `ExpandableList`'s rhythm). A column that fills the body,
+   so a `ViewFooter` in it still goes to the bottom. */
+.stack {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: var(--msui-space-2);
+  min-width: 0;
+
+  &[data-gap="sections"] {
+    gap: var(--msui-space-1);
+  }
+}
+
+/* Tools for the whole view: a row high, its text at the inset (the surface pad is the body's). */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-height: var(--msui-row);
+  padding-inline: var(--msui-inner);
+}
+
+.empty {
+  display: grid;
+  gap: var(--msui-space-2);
+  justify-items: start;
+  padding: var(--msui-space-2) var(--msui-inner);
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--msui-text-muted);
+}
+
+.emptyAction {
+  display: flex;
+  gap: var(--msui-space-1);
+}
+
+.error {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-height: var(--msui-row);
+  padding-inline: var(--msui-inner);
+  color: var(--msui-danger);
+}
+
+.footer {
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  padding: var(--msui-space-2) var(--msui-inner) 0;
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-xs);
+  font-weight: var(--msui-weight-strong);
+  line-height: var(--msui-leading-xs);
+}

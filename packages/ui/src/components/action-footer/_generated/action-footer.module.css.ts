@@ -80,7 +80,7 @@ defineStyles('components/action-footer/action-footer.module.css', `@layer msui.c
 
 .msui-action-footer-apply {
   gap: var(--msui-icon-gap);
-  padding-inline: var(--msui-control-inset);
+  padding-inline: var(--msui-control-inset) var(--msui-space-1);
   color: var(--msui-accent);
   font-weight: var(--msui-weight-strong);
   flex: none;

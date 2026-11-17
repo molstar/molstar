@@ -12,7 +12,8 @@ const ShowDelayMs = 350;
 
 /**
  * Tooltips for icon buttons: any element in `root` with `data-tip` (the text) gets one, placed by `data-tip-side`
- * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus (never for an element in an `inert` part: hidden UI takes no pointer). One element is reused,
+ * (`left` for the rail and the canvas stack, `right`, `top` for the bottom of the canvas, `bottom` by default; to the
+ * other side where there is no room), on hover or keyboard focus (never for an element in an `inert` part: hidden UI takes no pointer). One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
  * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
  * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
@@ -75,15 +76,19 @@ export function installTooltips(root: HTMLElement): () => void {
       x = edge.left - clear - t.width;
       if (x < 4) x = edge.right + clear;
       y = r.top + (r.height - t.height) / 2;
-    } else if (side === 'left') {
-      x = r.left - gap - t.width;
+    } else if (side === 'left' || side === 'right') {
+      // Beside it; to the other side when there is no room (never pushed back over the element).
+      const left = r.left - gap - t.width;
+      const right = r.right + gap;
+      x = side === 'left' ? (left >= 4 ? left : right) : right + t.width <= window.innerWidth - 4 ? right : left;
       y = r.top + (r.height - t.height) / 2;
-    } else if (side === 'top') {
-      x = r.left + (r.width - t.width) / 2;
-      y = r.top - gap - t.height;
     } else {
+      // Below it (or above, `top`); to the other side when there is no room.
+      const above = r.top - gap - t.height;
+      const below = r.bottom + gap;
+      const fitsBelow = below + t.height <= window.innerHeight - 4;
+      y = side === 'top' ? (above >= 4 ? above : below) : fitsBelow || above < 4 ? below : above;
       x = r.left + (r.width - t.width) / 2;
-      y = r.bottom + gap;
     }
     x = Math.max(4, Math.min(x, window.innerWidth - t.width - 4));
     y = Math.max(4, Math.min(y, window.innerHeight - t.height - 4));

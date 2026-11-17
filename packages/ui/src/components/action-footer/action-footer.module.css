@@ -8,7 +8,7 @@
    reset in the icon slot on the inset, the info at the text column after the slot (inset + `--msui-indent`). The
    actions are controls (20px, centered in the row): text-only, their text where a control's text sits
    (`--msui-control-inset` inside the box), so the last box ends on the inner padding, the right edge of the fields and
-   rows above. */
+   rows above; the action's text ends a unit inside it, on the trailing column (styles §8.2). */
 .footer {
   display: flex;
   align-items: center;
@@ -83,7 +83,8 @@
   flex: none;
   gap: var(--msui-icon-gap);
   margin-inline-start: auto;
-  padding-inline: var(--msui-control-inset);
+  /* Its text ends on the trailing column (styles §8.2), where the fields' chevrons above end: a unit inside the box. */
+  padding-inline: var(--msui-control-inset) var(--msui-space-1);
   color: var(--msui-accent);
   font-weight: var(--msui-weight-strong);
 

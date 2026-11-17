@@ -39,3 +39,13 @@
 - `@molstar/ui` expandable panels (`components/expandable`): a header that opens a body under it, open a well holding
   both; the body renders on first open and stays, inert and paused, while closed; opening grows it in, closing plays
   back; open state kept by the panel or by the host (a `State`); `flat` for inside a surface.
+- `@molstar/ui/shell`: a generic, app-independent shell. Views (what were tabs, cards, dialogs, pages) are registered
+  once and placed by one docking model: groups in a split layout beside the app's main area (the right column, its
+  top group's views on a rail at the edge, a lower group with tabs: Split below, Move up/down) or floating as windows
+  (move, resize, raise, keyboard Move/Resize, several views as tabs, several instances of a view); cards in the right
+  column's place, pages over the main area, modals over everything. Views keep their state while they move and pause
+  while hidden; the rail steps down with the height and overflows into More, hides behind the Mol\* star; compact (a
+  bottom sheet) and embedded modes; F6 between regions; the layout is a validated value the app saves and restores.
+  View primitives (`ViewStack`, `ViewToolbar`, `ViewEmpty`, `ViewError`, `ViewFooter`, `ViewHeading`, `SectionList`)
+  and the shell foundations (styles §8) keep contributed views aligned. Storybook: UI › Shell (Shell, View, Rail,
+  Window).

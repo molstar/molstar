@@ -161,3 +161,92 @@ What enters and leaves the UI, one vocabulary (tokens `--msui-enter`, `--msui-ex
   placeholders).
 - **Not animated**: a first render, the rows of a list (scrolling, filtering), what follows the pointer, values that
   change in place (a number, a label). Why: motion there is noise, and costs on hot paths.
+
+## 8. Shell
+
+The shell's sizes and how a view's content is composed (`shell/shell.module.css`, `shell/view.module.css`,
+`shell/view-frame.tsx`); the shell's behaviour is its own spec (`shell/_spec/README.md`). Why: views from different apps
+and extensions, docked or in a window, line up as one UI only if none sets its own padding, gaps or type.
+
+### 8.1 Sizes
+
+- **Rail**: 40 wide (`--msui-shell-rail`), padded by `--msui-surface-pad`, so a button is 32 wide. A button is 32 tall
+  (`--msui-shell-button`) from a shell height of 620, 28 from 520, 24 below (container queries on the shell, equal to
+  `RailSteps` in `rail.ts`); a captioned one a caption (`--msui-shell-caption`, 12) taller. Its icon is 16 (it names an
+  object, §4.1). Sections are a hairline apart (a unit short of the rail's edges) with a unit of space on each side (8
+  in all, `RailSectionGap`); in the foot (More, the foot's views, the tools, Hide) space alone.
+- **A docked view's header beside the rail** (`--msui-shell-head`) is the rail's padding plus a button: 4 + 32 = 36, so
+  the content starts where the rail's first button ends. Why: the header and the rail read as one band, the open view's
+  button level with its title.
+- **A window's and a lower group's header**: `--msui-header` (32).
+- **Hairlines are half a line** (`--msui-shell-line`, half `--msui-line`): the shell's parts are told apart by their
+  surfaces first, a line only where two of one surface meet (the column and the rail, the rail's sections, a group under
+  another, the footer). Why: the shell frames the app's content; its lines should not compete with it.
+- A splitter's hit area is 8 (`--msui-shell-splitter`), centred over the hairline between the nodes. The compact
+  layout's bar is 44 (a touch target).
+
+### 8.2 Columns
+
+- **A view pads its sides by 6** (`--msui-view-pad`, on the frame; off the grid on purpose): its blocks (sections'
+  wells, a form, rows) sit that far from its edges. Why: a surface pad (4) read as cramped against the panel's edges and
+  the rail, two units (8) as loose.
+- **Text on one column**, the view's padding plus a block's own (`--msui-inner`): 6 + 8 = 14. The header pads its start
+  by the same sum; each block in the body (a section's header, a form, a list's rows, `ViewToolbar`, `ViewEmpty`,
+  `ViewError`, `ViewHeading`) pads `--msui-inner` inside the body's padding. A view never pads its own content again.
+- **Trailing controls end on one column**, a unit inside the text column's mirror (18 from the right edge): where a
+  field's chevron ends (the view's padding, the form's `--msui-inner`, the unit a field keeps after its chevron: 6 + 8 +
+  4). The header pads its end by the same 14 and a sm icon button's 12 icon sits 4 inside it; an `Expandable`'s chevron:
+  6 + 8 + 4; an `ActionFooter`'s action text likewise. Why: a view's header actions, its sections' chevrons and its
+  fields' chevrons are read as one column.
+- **Tabs** in a header start at the view's padding (the header's start padding less `--msui-inner`), each padded by
+  `--msui-space-2`, so a tab's icon is on the text column.
+
+### 8.3 Heights and rhythm
+
+- **Under a strip of tabs** the body starts two units down (8), not one: the open tab's accent line is an edge the first
+  row would otherwise sit on.
+- Heights: a docked header 36 (§8.1), a window's or a lower group's 32; a section header 32 (`--msui-header`; flat, a
+  row); rows, form rows and `ViewToolbar` a row (24); controls 20.
+- The title is md (14/20), strong, one line, fading when cut (§2); the header's parts are a unit apart.
+- The body pads a unit (`--msui-space-1`) at top and bottom. Its top-level blocks are two units apart (`--msui-space-2`,
+  the body's gap and `ViewStack`'s default); sections one (`ExpandableList`, `ViewStack gap="sections"`). An open
+  section has a unit under its header and two at its bottom (`Expandable`).
+- `ViewEmpty` pads two units around its line and its action; `ViewHeading` two units above it, xs strong muted.
+
+### 8.4 Composition
+
+- **Order**: header → an optional `ViewToolbar` for the whole view (a search, filters, Add) → the content (sections, a
+  form, a list) → an optional `ViewFooter` of actions (an `ActionFooter`). The footer is not in the scroll: written
+  anywhere in the view, it moves into its body's footer slot, under the `ScrollArea`, at the view's full width with its
+  padding, a hairline above. Why: in the scroll, its fade washed over the footer and its bar ran past it. An
+  `ActionFooter`'s action text ends on the trailing column (§8.2), over the fields' chevrons.
+- **One scroll**: the body is the one `ScrollArea`; a view that virtualizes or plots (`fill`) fills the body and scrolls
+  its own parts. Never a scroll inside a scroll.
+- **Actions**: the view's own in its header (`actions`: ghost, sm icon buttons) or its footer (labelled); an action on
+  one item on its row; the rail holds views and app-wide tools only.
+- **Empty, loading, error**: empty says what goes here and how to get it, one muted line and an action, at the inset,
+  not centred in a void (`ViewEmpty`); loading is a skeleton in place (§5); an error is a line in the content, in the
+  danger color with a 12 icon and what to do (`ViewError`, `role="alert"`), not a toast.
+- **Width**: a view works at a new docked group's width (280, `DefaultGroupSize`) and stays usable down to the least a
+  place gives it (a docked group 180, `MinGroupSize`; a window 240 × 160, `MinWindow`); labels are never cut (§2), names
+  fade.
+
+### 8.5 Primitives
+
+`shell/view-frame.tsx`, so a view (an extension's too) composes these and sets no padding, gap or type of its own:
+
+- `ViewFrame` (header and body; `viewBody`), `ViewStack` (a run of blocks, `gap` `blocks` or `sections`), `ViewToolbar`,
+  `ViewEmpty`, `ViewError`, `ViewFooter`, `ViewHeading`, and `SectionList` (`shell/section-list.tsx`: a slot's sections
+  as `Expandable`s).
+
+## 9. Delivery
+
+- **Styles come with what uses them.** Each CSS file compiles into a generated module (`_generated/x.css.ts`,
+  `scripts/css.mjs`) that registers its CSS when imported (`registry.ts`); a UI root (a `UiElement`, a story root)
+  adopts the registered styles into its document or shadow root when it connects, the base styles (`base.ts`: the reset
+  and the foundations) first. Why: a page gets exactly the styles of the components it uses, with no stylesheet to link
+  in any build setup.
+- **Layers, lowest first**: `msui.reset`, `msui.foundations`, `msui.primitives`, `msui.components`, `msui.overrides`;
+  host styles outside the layers always win.
+- **The reset is scoped to UI roots** (`.msui-root`, `:where` specificity, the lowest layer): host pages are untouched,
+  and host styles leaking into a root are neutralised.

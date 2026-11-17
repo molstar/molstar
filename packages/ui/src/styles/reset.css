@@ -6,7 +6,7 @@
 
 /*
  * A reset scoped to UI roots (`.msui-root`: a `UiElement`, a story root), so host pages are untouched and host styles
- * leaking in are neutralised (styles §8). Low specificity (`:where`) and the lowest layer: components override it.
+ * leaking in are neutralised (styles §9). Low specificity (`:where`) and the lowest layer: components override it.
  */
 
 /*

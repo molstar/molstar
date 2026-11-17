@@ -8,7 +8,7 @@ import { DomHost } from '../dom/host.js';
 import { installTransitions } from './transitions.js';
 
 /**
- * The styles of `@molstar/ui` (styles §8). Each CSS file is compiled into a generated module (`x.css.ts`, see
+ * The styles of `@molstar/ui` (styles §9). Each CSS file is compiled into a generated module (`x.css.ts`, see
  * `scripts/css.mjs`) that registers its CSS here when imported, so a page gets exactly the styles of the components it
  * uses. Roots adopt the registered styles into their document or shadow root on connect: no stylesheet to link, in any
  * build setup.

@@ -54,6 +54,7 @@
     "./elements/_test/*": null,
     "./forms/_test/*": null,
     "./react/_test/*": null,
+    "./shell/_test/*": null,
     "./styles/_test/*": null,
     "./testing/*": null
   },
@@ -102,6 +103,7 @@
     "@types/react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "preact": "catalog:"
+    "preact": "catalog:",
+    "axe-core": "catalog:"
   }
 }
