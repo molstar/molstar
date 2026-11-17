@@ -114,6 +114,10 @@ export class RecordingContext implements Context2D {
     this.call('drawImage', x, y, w, h);
   }
 
+  measureText(text: string) {
+    return { width: text.length * 7 };
+  }
+
   /** The calls made, with the log cleared. */
   take(): string[] {
     return this.log.splice(0);

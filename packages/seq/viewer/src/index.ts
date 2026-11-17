@@ -11,3 +11,14 @@ import { LanguageVersion } from '@molstar/seqx-core';
 
 /** The SeqViewSpec language version this viewer draws. */
 export const ViewerLanguageVersion = LanguageVersion;
+
+export { type KeyState, ViewerInput, type WheelState } from './input.js';
+export { createSeqViewer, SeqViewer, type ViewerCommand } from './viewer.js';
+export {
+  type BehaviorContext,
+  type BehaviorProvider,
+  type SeqViewerBehavior,
+  type SeqViewerBindings,
+  type SeqViewerSpec,
+  type SeqViewerUI,
+} from './viewer-spec.js';
