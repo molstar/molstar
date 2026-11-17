@@ -2,7 +2,7 @@
 
 ## Intent
 
-Seq\* is a language for sequence views and a viewer for it. A **spec** (a tree, stored as MessagePack or JSON) says what data there is
+Seq\* is a language for sequence views and a viewer for it. A **spec** (a tree, stored as JSON by default) says what data there is
 (sequences, alignments, annotations, the maps between them) and how to show it (sections of tracks of layers). Every
 position lives in a **coordinate system**, and **maps** connect systems: a protein onto its gene's codons across
 introns, an alignment's rows onto its columns, a design onto its wild type, a chain onto its structure. Data placed on
@@ -10,7 +10,7 @@ one system shows on every system it maps to, and hover, selection and focus foll
 
 It serves three readers equally: people writing specs by hand or through a builder, agents writing and patching specs
 (the language is small, documented from its own description and validated with every issue reported), and other
-viewers (a documented tree in JSON or MessagePack, a resolved view and one data protocol, so a reader needs no Seq\* code to open a
+viewers (a documented tree in JSON, a resolved view and one data protocol, so a reader needs no Seq\* code to open a
 spec). Most specs are written with the typed builder; JSON is what they are stored and exchanged as.
 
 ## Simpler this time

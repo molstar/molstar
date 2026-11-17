@@ -13,8 +13,7 @@ Start here. What is built, what is open, what comes next, and where to read.
 
 The architecture is reconciled after the independent review; read [design/version-1.md](design/version-1.md) first.
 
-1. **The first slice** (version-1, Order of work): its designs are written (language description, locations and
-   queries, protocol, layout and draw lists, viewer models, examples and stories, security); start with the tree core.
+1. **The first slice**: planned in `execution/first-slice/plan.md`, awaiting the author's approval and Gate 0.
 2. **Provisional, to confirm on the first slice**: the root nouns ([design/building-blocks.md](design/building-blocks.md)),
    the source protocol's shape ([design/sources.md](design/sources.md)), the performance numbers
    ([design/performance.md](design/performance.md)), the UX foundations' numbers ([design/ux-foundations.md](design/ux-foundations.md)).
