@@ -14,3 +14,14 @@
    Cheap today; a followup.
 7. **Instance labels**: the template's label plus its top ancestor's key; nodes have no label param. Option: add one
    to the description.
+
+## From the review (strong), decided with defaults in the fix round
+
+- Nodes are also held while shown (a placed instance, a node whose item system a shown layer uses, a node a held node
+  names): `nodes.holdShown`, default true (dynamic-nodes.md's lifetime rule).
+- Nested sources are wanted by region for the shown instances, not only the template's root source.
+- `maxTemplateTracks` (default 200) caps expansion, with an issue.
+- Summaries over `maxLength`: binned on the fly from a bounded level-1 read (or not served); the pyramid counted in the
+  store's budget.
+- Followups: per-template re-expansion (EC-178); the overlay keyed on what it reads of the model (a view-only edit
+  rebuilds it today).
