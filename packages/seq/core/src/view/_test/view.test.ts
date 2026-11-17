@@ -9,7 +9,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { createResolver, resolveSpec } from '@molstar/seqx-core/resolve/index';
+import { createResolver, resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
 import { EXONS, P53_LETTERS, p53Spec } from '../../lang/_test/p53.js';
 import { p53GeometrySpec } from '../../resolve/_test/p53-geometry.js';

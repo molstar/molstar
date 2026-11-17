@@ -34,10 +34,22 @@
       "types": "./lib/data/index.d.ts",
       "import": "./lib/data/index.js"
     },
+    "./resolve": {
+      "molstar-src": "./src/resolve/index.ts",
+      "types": "./lib/resolve/index.d.ts",
+      "import": "./lib/resolve/index.js"
+    },
+    "./view": {
+      "molstar-src": "./src/view/index.ts",
+      "types": "./lib/view/index.d.ts",
+      "import": "./lib/view/index.js"
+    },
     "./_test/*": null,
     "./lang/_test/*": null,
     "./query/_test/*": null,
-    "./data/_test/*": null
+    "./data/_test/*": null,
+    "./resolve/_test/*": null,
+    "./view/_test/*": null
   },
   "files": [
     "lib",

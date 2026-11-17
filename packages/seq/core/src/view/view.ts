@@ -27,7 +27,7 @@ import {
   projectPoint,
   projectRanges,
   type StaticModel,
-} from '@molstar/seqx-core/resolve/index';
+} from '@molstar/seqx-core/resolve';
 import { ViewIssues } from './issues.js';
 
 type Shape = 'letters' | 'ranges' | 'values';
