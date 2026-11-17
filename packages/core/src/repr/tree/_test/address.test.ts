@@ -12,6 +12,7 @@ import {
   matchesAddress,
   type Node,
   parseAddress,
+  type Selected,
   printAddress,
   selectAddress,
 } from '../index.js';
@@ -192,14 +193,14 @@ describe('repr/tree: the form-resolver table', () => {
   /** Children by kind at any depth below: nodes, so ids and `/*` may follow. */
   const deep: FormResolver = ({ form, prefix, limit }) => {
     const out: { node: Node; address: string[] }[] = [];
-    const go = (n: Node, a: string[]) => {
+    const go = (n: Node, a: readonly string[]) => {
       for (const c of n.children ?? []) {
         if (c.id === undefined) continue;
         if (c.kind === form.params?.of) out.push({ node: c, address: [...a, c.id] });
         go(c, [...a, c.id]);
       }
     };
-    for (const m of (prefix as { matches: { node: Node; address: string[] }[] }).matches) go(m.node, m.address);
+    for (const m of (prefix as { matches: readonly Selected[] }).matches) go(m.node, m.address);
     return out.length > limit ? { issues: [] } : { result: { type: 'nodes', matches: out } };
   };
   const resolvers = { range, deep };

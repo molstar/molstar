@@ -57,6 +57,7 @@
     "./math/graph/_test/*": null,
     "./math/linear-algebra/_test/*": null,
     "./reactive/_test/*": null,
+    "./repr/builder/_test/*": null,
     "./repr/codec/_test/*": null,
     "./repr/codecs/json/_test/*": null,
     "./repr/codecs/sexpr/_test/*": null,
