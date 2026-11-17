@@ -164,6 +164,17 @@ describe('createSeqContext', () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
+  it('takes a reader as the assets port (a second adapter), disposed with the context unless the host keeps it', async () => {
+    const dispose = vi.fn();
+    const reader = { readText: vi.fn(async () => 'text') };
+    const a = createSeqContext({ ports: { assets: () => ({ reader, dispose }) } });
+    expect(await a.assets.readText('x', noSignal)).toBe('text');
+    const b = createSeqContext({ ports: { assets: () => ({ reader, dispose, disposeWithViewer: false }) } });
+    a.retire();
+    b.retire();
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
   it('measures text through the port', () => {
     const measure = vi.fn((font: string, text: string) => text.length * 7);
     const ctx = createSeqContext({ ports: { textMetrics: () => ({ measure }) } });

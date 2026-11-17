@@ -59,11 +59,20 @@ export interface PortResult {
   readonly disposeWithViewer?: boolean;
 }
 
-export interface AssetsPort extends PortResult {
+/** The default adapter: the application's `AssetManager` behind a policy. */
+export interface ManagedAssetsPort extends PortResult {
   readonly manager: AssetManager;
   /** What may be read through the manager; the headless default (nothing) when absent. */
   readonly policy?: AssetPolicy;
 }
+
+/** Another adapter, a second one of the port: a reader of its own (the test adapter that refuses the network). */
+export interface ReaderAssetsPort extends PortResult {
+  readonly reader: AssetReader;
+  dispose?(): void;
+}
+
+export type AssetsPort = ManagedAssetsPort | ReaderAssetsPort;
 
 export interface TextMetricsPort extends PortResult {
   /** The width of `text` set in `font`, CSS px. */
@@ -153,8 +162,13 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
   let assets: AssetReader = NoAssets;
   if (spec.ports?.assets) {
     const port = spec.ports.assets();
-    assets = policyAssets(port.manager, port.policy ?? HeadlessAssetPolicy);
-    if (port.disposeWithViewer !== false) disposers.push(() => port.manager.dispose());
+    if ('reader' in port) {
+      assets = port.reader;
+      if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
+    } else {
+      assets = policyAssets(port.manager, port.policy ?? HeadlessAssetPolicy);
+      if (port.disposeWithViewer !== false) disposers.push(() => port.manager.dispose());
+    }
   }
 
   let text: TextMetrics;
@@ -205,6 +219,6 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
 }
 
 /** A default assets port: a new `DefaultAssetManager` under a policy, disposed with its owner. */
-export function defaultAssetsPort(policy: AssetPolicy = HeadlessAssetPolicy): AssetsPort {
+export function defaultAssetsPort(policy: AssetPolicy = HeadlessAssetPolicy): ManagedAssetsPort {
   return { manager: new DefaultAssetManager(), policy };
 }
