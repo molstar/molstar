@@ -29,9 +29,15 @@
       "types": "./lib/query/index.d.ts",
       "import": "./lib/query/index.js"
     },
+    "./data": {
+      "molstar-src": "./src/data/index.ts",
+      "types": "./lib/data/index.d.ts",
+      "import": "./lib/data/index.js"
+    },
     "./_test/*": null,
     "./lang/_test/*": null,
-    "./query/_test/*": null
+    "./query/_test/*": null,
+    "./data/_test/*": null
   },
   "files": [
     "lib",
