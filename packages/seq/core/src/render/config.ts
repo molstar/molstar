@@ -7,18 +7,24 @@
 // The layout's settings (_spec/README.md "Render", Configuration): every number is a setting with its recommended
 // default; the density steps and their thresholds, shared by every layer type.
 
-/** What a cell shows as it narrows, at fixed thresholds in device pixels per position, without moving anything. */
+/** What a cell shows as it narrows, at fixed thresholds per position, without moving anything. */
 export type DensityStep = 'letters' | 'cells' | 'dots' | 'bars' | 'density';
 
 export const DensitySteps: readonly DensityStep[] = ['letters', 'cells', 'dots', 'bars', 'density'];
 
-/** The lowest device pixels per position of each step: letters at 14 and up, cells at 3, dots at 1, bars at 1/64. */
+/**
+ * The lowest pixels per position of each step, in the unit `DensityUnits` gives it: letters from 10 CSS px, cells
+ * from 3 device px, dots from 1, bars from 1/64.
+ */
 export interface DensityThresholds {
   readonly letters: number;
   readonly cells: number;
   readonly dots: number;
   readonly bars: number;
 }
+
+/** The unit of each step's threshold: CSS pixels (what a reader sees: letters) or device pixels (what bounds lists). */
+export type DensityUnits = { readonly [K in keyof DensityThresholds]: 'css' | 'device' };
 
 export interface RenderConfig {
   /** The page's inset around everything, in CSS px. */
@@ -35,6 +41,7 @@ export interface RenderConfig {
   readonly laneHeight: number;
   readonly laneGap: number;
   readonly density: DensityThresholds;
+  readonly densityUnits: DensityUnits;
   /** Letter sizes, a short scale (CSS px); the largest that fits the cell is used. */
   readonly letterSizes: readonly number[];
   /** The mono face's advance per em, so a letter's size is known from its cell with no measuring. */
@@ -55,6 +62,10 @@ export interface RenderConfig {
   readonly margin: number;
   /** A follower's leader pieces carried as their image's hull, or the shortest arc on a cyclic follower. */
   readonly followArc: 'shortest' | 'hull';
+  /** Ranges: items past the lanes collapse into a density row at the bottom (`extra-lanes`), or the whole layer does. */
+  readonly ranges: { readonly overflow: 'extra-lanes' | 'layer' };
+  /** Values below a device pixel a position: each column's extent (`minmax`, negative extremes show) or its maximum. */
+  readonly values: { readonly aggregate: 'minmax' | 'max' };
 }
 
 export const DefaultRenderConfig: RenderConfig = {
@@ -66,7 +77,8 @@ export const DefaultRenderConfig: RenderConfig = {
   heights: { letters: 20, ranges: 36, values: 32 },
   laneHeight: 12,
   laneGap: 2,
-  density: { letters: 14, cells: 3, dots: 1, bars: 1 / 64 },
+  density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
+  densityUnits: { letters: 'css', cells: 'device', dots: 'device', bars: 'device' },
   letterSizes: [9, 10, 11, 12, 13, 14],
   monoAdvance: 0.6,
   labelFont: '12px sans',
@@ -78,6 +90,8 @@ export const DefaultRenderConfig: RenderConfig = {
   outline: { hover: 1.5, selection: 1.5, cursor: 2.5 },
   margin: 0.5,
   followArc: 'shortest',
+  ranges: { overflow: 'extra-lanes' },
+  values: { aggregate: 'minmax' },
 };
 
 /** A config with some fields overridden (the nested ones whole or field by field). */
@@ -87,17 +101,34 @@ export function renderConfig(over: Partial<RenderConfig> = {}): RenderConfig {
     ...over,
     heights: { ...DefaultRenderConfig.heights, ...over.heights },
     density: { ...DefaultRenderConfig.density, ...over.density },
+    densityUnits: { ...DefaultRenderConfig.densityUnits, ...over.densityUnits },
+    ranges: { ...DefaultRenderConfig.ranges, ...over.ranges },
+    values: { ...DefaultRenderConfig.values, ...over.values },
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
   };
 }
 
-/** The step a cell of `devicePx` device pixels per position shows. */
-export function densityStep(devicePx: number, t: DensityThresholds): DensityStep {
-  if (devicePx >= t.letters) return 'letters';
-  if (devicePx >= t.cells) return 'cells';
-  if (devicePx >= t.dots) return 'dots';
-  if (devicePx >= t.bars) return 'bars';
+/**
+ * The step a cell of `cssPx` CSS pixels per position shows at a device pixel ratio, each threshold in its unit. The
+ * letters step never starts below the width the smallest letter size needs, so it never shows cells without letters.
+ */
+export function densityStep(cssPx: number, dpr: number, config: RenderConfig): DensityStep {
+  const t = config.density;
+  const u = config.densityUnits;
+  const at = (k: keyof DensityThresholds) => (u[k] === 'css' ? cssPx : cssPx * dpr);
+  const minLetters = (config.letterSizes[0] ?? 0) * config.monoAdvance + 2;
+  const letters = u.letters === 'css' ? Math.max(t.letters, minLetters) : Math.max(t.letters, minLetters * dpr);
+  if (at('letters') >= letters) return 'letters';
+  if (at('cells') >= t.cells) return 'cells';
+  if (at('dots') >= t.dots) return 'dots';
+  if (at('bars') >= t.bars) return 'bars';
   return 'density';
+}
+
+/** The size of a font's shorthand in px (12 when it names none). */
+export function fontSize(font: string): number {
+  const m = /(\d+(?:\.\d+)?)px/.exec(font);
+  return m ? Number(m[1]) : 12;
 }
 
 /** Whether a step draws a mark per position (per cell), not per device column. */

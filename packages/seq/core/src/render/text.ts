@@ -16,12 +16,18 @@ export interface TextMetrics {
   measure(font: string, text: string): number;
   /** Drops every cached width (a web font arrived): the caller lays out again. */
   clear(): void;
+  /** Bumped by `clear`: part of the draw lists' key, so a frame after it measures again. */
+  readonly version: number;
 }
 
 /** A metrics port over a width function per font (a canvas's `measureText` in the browser). */
 export function createTextMetrics(measureIn: (font: string) => (text: string) => number): TextMetrics {
   const byFont = new Map<string, TextMeasure>();
+  let version = 0;
   return {
+    get version() {
+      return version;
+    },
     measure(font, text) {
       let m = byFont.get(font);
       if (!m) byFont.set(font, (m = new TextMeasure(measureIn(font))));
@@ -29,6 +35,7 @@ export function createTextMetrics(measureIn: (font: string) => (text: string) =>
     },
     clear() {
       for (const m of byFont.values()) m.clear();
+      version++;
     },
   };
 }

@@ -105,6 +105,8 @@ export function readTiles(
 ): TileRead {
   const out: TileRead = { entries: [], pending: [], failed: [] };
   const known = data.coverage(src.source) !== undefined;
+  // two regions can share a tile (a cyclic view wrapping a short system): each entry is read once
+  const seen = new Set<string>();
   for (let i = 0; i + 1 < regions.length; i += 2) {
     const start = regions[i];
     const end = regions[i + 1];
@@ -122,8 +124,10 @@ export function readTiles(
     }
     for (const key of data.keysOf(want)) {
       const e = data.get(key);
-      if (e?.status === 'loaded') out.entries.push(e);
-      else if (e?.status === 'empty') continue;
+      if (e?.status === 'loaded') {
+        if (!seen.has(key)) out.entries.push(e);
+        seen.add(key);
+      } else if (e?.status === 'empty') continue;
       else if (e?.status === 'failed') out.failed.push(Math.max(start, e.region.start), Math.min(end, e.region.end));
       else if (e) out.pending.push(Math.max(start, e.region.start), Math.min(end, e.region.end));
       else out.pending.push(start, end);

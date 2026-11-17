@@ -430,6 +430,15 @@ export class DrawLists {
     return this._strings[id];
   }
 
+  private readonly _writers = new Map<PassName, PassWriter>();
+
+  /** The writer of a pass: one a pass, kept, so drawing allocates none. */
+  writer(pass: PassName): PassWriter {
+    let w = this._writers.get(pass);
+    if (!w) this._writers.set(pass, (w = new PassWriter(this, this.passes[pass])));
+    return w;
+  }
+
   /** Primitives in every pass. */
   get size(): number {
     let n = 0;

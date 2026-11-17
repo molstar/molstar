@@ -16,8 +16,8 @@ import {
   type ResolvedView,
 } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
-import { DefaultRenderConfig, type RenderConfig } from './config.js';
-import { Anchor, type DrawLists, NoColor, type PassName, Passes, PassWriter } from './draw-lists.js';
+import { DefaultRenderConfig, fontSize, type RenderConfig } from './config.js';
+import { Anchor, type DrawLists, NoColor, type PassName, Passes, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { EmptyOverlay } from './layer-type.js';
@@ -50,8 +50,9 @@ export interface TrackLayout {
   readonly track: ResolvedTrack;
   /** The data box. */
   readonly box: Box;
-  /** The label's measured width (drawing never measures). */
+  /** The label's measured width and its baseline (drawing never measures). */
   readonly labelWidth: number;
+  readonly labelY: number;
   readonly layers: readonly LayerLayout[];
 }
 
@@ -104,26 +105,44 @@ export function layerKey(track: ResolvedTrack, layer: ResolvedLayer): string {
   return layer.address ?? `${track.address}:${layer.index}`;
 }
 
-/** The axis pieces of a section: its own, a follower's from its leader's view, or the length its source gave. */
-function sectionPieces(
-  section: ResolvedSection,
-  model: StaticModel,
-  data: StoreReader,
-  axes: ReadonlyMap<string, AxisTransform>,
-  config: RenderConfig,
-): number[] | undefined {
-  if (section.follow) {
-    const leader = axes.get(section.follow.leader);
-    if (leader) return followRange(section, leader.visible([]), { arc: config.followArc });
-  }
+/** A section's own pieces: its axis's, or the length its source gave once open; undefined while unknown. */
+function ownPieces(section: ResolvedSection, model: StaticModel, data: StoreReader): number[] | undefined {
   if (section.axis.ranges) return [...section.axis.ranges];
-  // a length the source knows once it is open
   const system = model.systems.get(section.axis.system);
   if (!system?.source) return undefined;
   const info = data
     .coverage(system.source)
     ?.systems.find((s) => s.name === system.name || s.aliases?.includes(system.name));
   return info?.length === undefined ? undefined : [0, info.length];
+}
+
+/**
+ * A follower's pieces and window from its leader's view, continuously: the images of the leader's window edges
+ * (`point`) within a run, so a follower moves with its leader as the viewer's does; the hull (or arc) of the leader's
+ * positions in view where an edge maps nowhere, the leader's view has two pieces, or the window wraps a cyclic origin.
+ */
+function followAxis(section: ResolvedSection, leader: AxisTransform, config: RenderConfig) {
+  const follow = section.follow!;
+  if (leader.offsets.length === 1) {
+    const at = (u: number) => leader.pieces[0] + u;
+    const edge = (x: number) => follow.point(x) ?? follow.point(x - 1e-9);
+    const a = edge(at(leader.u0));
+    const b = edge(at(leader.u1));
+    const { cyclic, length } = section.axis;
+    if (
+      a !== undefined &&
+      b !== undefined &&
+      a !== b &&
+      !(cyclic && length !== undefined && Math.abs(b - a) > length / 2)
+    ) {
+      const lo = Math.min(a, b);
+      const hi = Math.max(a, b);
+      const s = Math.floor(lo);
+      return { pieces: [s, Math.ceil(hi)], viewport: { start: lo - s, end: hi - s } };
+    }
+  }
+  const pieces = followRange(section, leader.visible([]), { arc: config.followArc });
+  return pieces ? { pieces } : undefined;
 }
 
 export function layoutView(input: LayoutInput, state = new LayoutState()): ViewLayout {
@@ -143,18 +162,56 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   };
   const dataX = config.inset + config.labelWidth + config.labelGap;
   const dataW = Math.max(1, width - dataX - config.inset);
-  const axes = new Map<string, AxisTransform>();
+  // axes first, leaders before their followers (a follower may come first in the view)
+  const bySection = new Map(input.view.sections.map((s) => [s.address, s]));
+  const axes = new Map<string, AxisTransform | undefined>();
+  const visiting = new Set<string>();
+  const axisOf = (section: ResolvedSection): AxisTransform | undefined => {
+    if (axes.has(section.address)) return axes.get(section.address);
+    const at = section.address;
+    let made: { pieces: number[]; viewport?: Viewport } | undefined;
+    if (section.follow) {
+      const leaderSection = bySection.get(section.follow.leader);
+      if (visiting.has(at) || !leaderSection) {
+        const cycle = visiting.has(at);
+        const code = cycle ? 'seq.render.follow.cycle' : 'seq.render.follow.leader';
+        report(
+          issueOf(
+            RenderIssues,
+            code,
+            cycle ? 'The section follows itself through its leaders' : 'The section’s leader is not in the view',
+            {
+              address: at,
+              hint: RenderIssues.codes[code].hint,
+            },
+          ),
+        );
+      } else {
+        visiting.add(at);
+        const leader = axisOf(leaderSection);
+        visiting.delete(at);
+        if (leader) made = followAxis(section, leader, config);
+      }
+    }
+    if (!made) {
+      const own = ownPieces(section, input.model, input.data);
+      if (own) made = { pieces: own, ...(input.viewport ? { viewport: input.viewport } : {}) };
+    }
+    const axis = made?.pieces.length
+      ? new AxisTransform(section.axis.system, made.pieces, dataX, dataW, dpr, made.viewport)
+      : undefined;
+    if (!axes.has(at)) axes.set(at, axis);
+    return axes.get(at);
+  };
+  for (const section of input.view.sections) axisOf(section);
+  const labelSize = fontSize(config.labelFont);
   const sections: SectionLayout[] = [];
   const used = new Set<string>();
   let y = config.inset;
   for (const section of input.view.sections) {
     if (sections.length) y += config.sectionGap;
-    const pieces = sectionPieces(section, input.model, input.data, axes, config);
-    const axis = pieces?.length
-      ? new AxisTransform(section.axis.system, pieces, dataX, dataW, dpr, section.follow ? undefined : input.viewport)
-      : undefined;
-    if (axis) axes.set(section.address, axis);
-    else
+    const axis = axes.get(section.address);
+    if (!axis)
       report(
         issueOf(RenderIssues, 'seq.render.axis.pending', 'The section’s length is not known yet', {
           address: section.address,
@@ -204,7 +261,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
           used.add(key);
           layers.push({ key, layer, type, lay });
         }
-      tracks.push({ track, box, labelWidth: input.text.measure(config.labelFont, track.label), layers });
+      tracks.push({
+        track,
+        box,
+        labelWidth: input.text.measure(config.labelFont, track.label),
+        labelY: box.y + box.height / 2 + labelSize * 0.35,
+        layers,
+      });
       y += h;
     }
     sections.push({ section, ...(axis ? { axis } : {}), y: top, height: y - top, tracks });
@@ -233,7 +296,7 @@ export function drawView(
   lists.height = layout.height;
   const { tokens, config } = layout;
   for (const pass of passes) {
-    const out = new PassWriter(lists, lists.passes[pass]);
+    const out = lists.writer(pass);
     if (pass === 'background') out.rect(0, 0, layout.width, layout.height, tokens.colors['msui-bg']);
     for (const s of layout.sections) {
       for (const t of s.tracks) {
@@ -244,11 +307,10 @@ export function drawView(
             out.rect(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
             break;
           case 'labels': {
-            const size = Number(/(\d+(?:\.\d+)?)px/.exec(config.labelFont)?.[1] ?? 12);
             out.text(
               t.track.label,
               config.inset,
-              box.y + box.height / 2 + size * 0.35,
+              t.labelY,
               Anchor.start,
               config.labelFont,
               tokens.colors['msui-text-muted'],
@@ -278,7 +340,7 @@ export function drawView(
             }
             break;
         }
-        if (pass === 'background' || pass === 'labels' || !t.layers.length) continue;
+        if (pass === 'background' || !t.layers.length) continue;
         const clip = pass === 'data';
         if (clip) out.clip(box.x, box.y, box.width, box.height);
         for (const l of t.layers) l.type.draw(l.lay, pass, out, emphasis);
@@ -287,6 +349,9 @@ export function drawView(
     }
   }
 }
+
+/** The selection's spans, kept between draws (the emphasis loop allocates nothing once warm). */
+const selectionSpans: number[] = [];
 
 /** The selection on a section's system: an accent tint over the track and an accent outline around each range. */
 function drawSelection(
@@ -299,7 +364,8 @@ function drawSelection(
 ) {
   const part = emphasis.selection ? partOf(emphasis.selection, axis.system) : undefined;
   if (!part) return;
-  const spans: number[] = [];
+  const spans = selectionSpans;
+  spans.length = 0;
   for (let i = 0; i + 1 < part.ranges.length; i += 2) axis.spans(part.ranges[i], part.ranges[i + 1], spans);
   const accent = tokens.colors['msui-accent'];
   const w = config.outline.selection;

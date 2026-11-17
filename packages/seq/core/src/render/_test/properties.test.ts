@@ -28,13 +28,22 @@ import { BIG, BigRuntime, bigSpec, P53, p53TracksSpec } from './fixtures.js';
 import { blocks, settle } from './helpers.js';
 
 const DataWidth = 600;
+/** p53's domains (the fixture's). */
+const Domains = [
+  [0, 61],
+  [63, 94],
+  [93, 292],
+  [318, 360],
+  [323, 355],
+  [363, 393],
+];
 const { inset, labelWidth, labelGap } = DefaultRenderConfig;
 const Width = DataWidth + inset + labelWidth + labelGap + inset;
 const Size = { width: Width, height: 120 };
 /** Lanes a track's box holds: letters 1, ranges 3 (36 px of 12), values 1. */
 const Lanes = [1, 3, 1];
 
-/** Device pixels per position that land on each step. */
+/** Pixels per position (CSS = device at DPR 1) that land on each step. */
 const Steps: [DensityStep, number][] = [
   ['letters', 20],
   ['cells', 5],
@@ -48,7 +57,7 @@ describe('draw lists: bounded by the screen', () => {
     const big = bigSpec();
     const p53 = p53TracksSpec();
     for (const [step, px] of Steps) {
-      expect(densityStep(px, DefaultRenderConfig.density)).toBe(step);
+      expect(densityStep(px, 1, DefaultRenderConfig)).toBe(step);
       const n = DataWidth / px;
       const mid = Math.floor(BIG / 2);
       const viewport = step === 'density' ? { start: 0, end: BIG } : { start: mid, end: mid + n };
@@ -76,9 +85,13 @@ describe('draw lists: bounded by the screen', () => {
       // p53 shows the same positions where it has them: the same counts a device column
       if (n > P53.length) continue;
       const p = await renderSvg(p53, { size: Size, viewport: { start: 100, end: 100 + n } });
-      const [pl, , pv] = blocks(p.lists);
+      const [pl, pr, pv] = blocks(p.lists);
       expect(pl).toEqual(letters);
       expect(pv.rects).toBe(signal.rects);
+      // ranges: the same bound, and a mark (with at most its label) a domain in view
+      const inView = Domains.filter(([a, b]) => a < 100 + n && b > 100).length;
+      expect(pr.rects).toBe(inView);
+      expect(pr.rects + pr.images + pr.texts).toBeLessThanOrEqual(DataWidth * Lanes[1]);
     }
   });
 
@@ -102,20 +115,33 @@ describe('draw lists: hits where the marks are', () => {
       const x = (ranges.mx0[j] + ranges.mx1[j]) / 2;
       const y = ranges.box.y + (ranges.mlane[j] + 0.5) * ranges.laneHeight;
       const hit = hitView(f.layout, x, y);
-      expect(hit?.element).toEqual({ owner: '/data/domains', key: ranges.keys[ranges.mitem[j]] });
+      const item = ranges.mitem[j];
+      expect(hit?.element).toEqual({ owner: '/data/domains', key: ranges.keys[item] });
+      expect(hit?.extent).toEqual(rangesLocation('/data/p53', [ranges.starts[item], ranges.ends[item]]));
       expect(hit?.system).toBe('/data/p53');
+      expect(hit?.section).toBe('protein');
     }
     // lane 0 between TAD's end (61) and PRR's start (63): no item
     const gap = s.renderer.lists;
     expect(gap.size).toBeGreaterThan(0);
     const x = f.layout.sections[0].axis!.x(62) + 1;
     const between = hitView(f.layout, x, ranges.box.y + 0.5 * ranges.laneHeight);
-    expect(between).toEqual({ layer: '/views/main/protein/domains:0', position: 62, system: '/data/p53' });
+    expect(between).toEqual({
+      layer: '/views/main/protein/domains:0',
+      section: 'protein',
+      position: 62,
+      system: '/data/p53',
+    });
 
     const letters = track(0).layers[0].lay as LettersLay;
     for (let j = 0; j < letters.n; j++) {
       const hit = hitView(f.layout, (letters.x0[j] + letters.x1[j]) / 2, letters.box.y + 1);
-      expect(hit).toEqual({ layer: '/views/main/protein/letters:0', position: letters.pos[j], system: '/data/p53' });
+      expect(hit).toEqual({
+        layer: '/views/main/protein/letters:0',
+        section: 'protein',
+        position: letters.pos[j],
+        system: '/data/p53',
+      });
     }
     // the label column and the page's margin hit nothing
     expect(hitView(f.layout, 4, letters.box.y + 1)).toBeUndefined();
@@ -136,9 +162,13 @@ describe('draw lists: emphasis', () => {
       },
     });
     expect(f.rebuilt).toBe(false);
-    // three tracks, two ranges each: a tint and an outline (the cell of position 20 starts at 128 + 20 · 20)
-    expect(blocks(f.lists, 'selection')).toEqual([]);
+    // three tracks, two ranges each: a tint and an outline; positions 3 to 6 start at 128 + 3 · 20 (the cursor's
+    // cell, 20, at 128 + 20 · 20)
     expect(f.lists.passes.selection.rects.n).toBe(12);
+    expect(recordDrawLists(f.lists, ['selection']).split('\n').slice(2, 4)).toEqual([
+      'rect 188 8 60 20 #8f4c062e',
+      'rect 188.75 8.75 58.5 18.5 none stroke #8f4c06ff 1.5',
+    ]);
     expect(f.lists.passes.cursor.rects.n).toBe(3);
     const lines = recordDrawLists(f.lists, ['cursor']).split('\n');
     expect(lines[2]).toBe('rect 529.25 9.25 17.5 17.5 none stroke #8f4c06ff 2.5');
@@ -163,7 +193,7 @@ describe('draw lists: pure and keyed', () => {
     const again = s.renderer.frame(input);
     expect(again.rebuilt).toBe(false);
     expect(again.key).toBe(key);
-    const hover = { layer: '/views/main/protein/letters:0', position: 3, system: '/data/p53' };
+    const hover = { layer: '/views/main/protein/letters:0', section: 'protein', position: 3, system: '/data/p53' };
     const hovered = s.renderer.frame({ ...input, emphasis: { hover } });
     expect(hovered.rebuilt).toBe(false);
     expect(hovered.lists.passes.hover.size).toBe(1);

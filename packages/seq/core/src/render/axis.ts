@@ -121,7 +121,8 @@ export class AxisTransform {
       if (b < a || (b === a && (a === pe || s !== e))) continue;
       let xa = this.xOfUnit(this.offsets[k] + a - ps);
       let xb = this.xOfUnit(this.offsets[k] + b - ps);
-      if (xb < left || xa > right) continue;
+      // a span that only touches the view's edge is not in view; a boundary on the edge is
+      if (s === e ? xb < left || xa > right : xb <= left || xa >= right) continue;
       let cut = 0;
       if (a > s || xa < left) cut |= Cut.left;
       if (b < e || xb > right) cut |= Cut.right;

@@ -34,6 +34,16 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A section’s system has no known length yet (its source is not open): its tracks wait',
     hint: 'The section draws once its source gives the length',
   },
+  'seq.render.follow.leader': {
+    severity: 'warning',
+    description: 'A section follows one that is not in its view: it shows its own range',
+    hint: 'Follow a section of the same view',
+  },
+  'seq.render.follow.cycle': {
+    severity: 'warning',
+    description: 'Sections follow each other in a cycle: the first one met shows its own range',
+    hint: 'End the chain of follows at a section that follows none',
+  },
   'seq.render.source': {
     severity: 'error',
     description: 'A source could not be opened for the render: its layers stay pending',

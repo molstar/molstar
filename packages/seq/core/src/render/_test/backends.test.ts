@@ -89,13 +89,15 @@ describe('the SVG backend', () => {
     // the image's two red pixels are one run; the clear one is not drawn
     expect(svg).toContain('<rect x="10" y="30" width="120" height="4" fill="#ff0000"/>');
     expect(svg).toContain('mask="url(#f1)"');
+    // ids take a prefix, so two documents inlined in one page do not collide
+    expect(drawListsToSvg(sample(), { idPrefix: 'a-' })).toContain('clip-path="url(#a-c0)"');
     expect(svg).toContain('A &lt;long&gt; label');
     expect(svg.endsWith('</svg>')).toBe(true);
   });
 
-  it('escapes text and attributes and drops what XML forbids', () => {
+  it('escapes text and attributes; a character XML forbids becomes U+FFFD, one for one', () => {
     expect(escapeXml(`<script>alert("x")</script> & 'q'\u0001`)).toBe(
-      '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &#39;q&#39;',
+      '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &#39;q&#39;�',
     );
   });
 

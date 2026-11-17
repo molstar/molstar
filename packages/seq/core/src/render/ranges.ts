@@ -6,10 +6,11 @@
 
 import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
 import type { RangesDensity, RangesList } from '@molstar/seqx-core/data';
+import { rangesLocation } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import { type AxisTransform, Cut } from './axis.js';
-import { type DensityStep, densityStep } from './config.js';
+import { type DensityStep, densityStep, fontSize } from './config.js';
 import { Anchor, type ImageData, NoColor, type PassName, type PassWriter, Round } from './draw-lists.js';
 import { LaneIndex, StickyLanes } from './lanes.js';
 import {
@@ -21,7 +22,17 @@ import {
   readTiles,
   toSection,
 } from './layer-data.js';
-import type { Box, Emphasis, Hit, LayerType, LayoutContext, LegendSpec, Overlay, StoreReader } from './layer-type.js';
+import {
+  type Box,
+  type Emphasis,
+  type Hit,
+  type LayerType,
+  type LayoutContext,
+  type LegendSpec,
+  type Overlay,
+  type StoreReader,
+  sectionId,
+} from './layer-type.js';
 import { reportColor } from './letters.js';
 import { drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
@@ -30,8 +41,11 @@ import { categoryToken, inkOn, mixColors, resolveColor, type SeqTokens, withAlph
 // The `ranges` layer type (_spec/README.md "Render", Layer types): items in sticky lanes. Each item is carried onto
 // the section along the layer's path (a domain on its gene: a piece an exon) and drawn as a squircle where it is big
 // enough, square below, with square ends where the view or a piece's edge cuts it (the frame rule). Below a device
-// pixel a position, the marks of a lane merge into one bar a run; at the density step, or when the items overflow the
-// lanes, the layer is one heat strip, a device column a pixel. Ranges cut across tiles are deduped by `id` or `row`.
+// pixel a position, the marks of a lane merge into one bar a run; at the density step the layer is one heat strip, a
+// device column a pixel. Items past the lanes collapse into a density row at the bottom (`ranges.overflow`:
+// `extra-lanes`), or the whole layer does (`layer`). An item's key is its `id`, else its `row`, else its tile and
+// index; a key seen in an earlier tile is not drawn again (a range repeated in the tiles it touches), and within one
+// tile a repeated key is another piece of one item (a wrapped row).
 
 export interface RangesPrep {
   readonly src?: LayerSource;
@@ -45,13 +59,16 @@ type Mode = 'items' | 'bars' | 'density';
 export interface RangesLay {
   key: string;
   system: string;
+  section: string;
   owner: string;
+  /** The data's system: an element's extent is on it. */
+  dataSystem: string;
   box: Box;
   axis: AxisTransform;
   step: DensityStep;
   mode: Mode;
   tokens: SeqTokens;
-  /** The items in view, deduped: element key, extent on the data's system, label, fill. */
+  /** The items in view: element key, lane id, extent on the data's system, label, fill. */
   keys: (string | number)[];
   ids: string[];
   starts: number[];
@@ -61,7 +78,7 @@ export interface RangesLay {
   lanes: Int32Array;
   laneCount: number;
   laneHeight: number;
-  /** Items that did not fit the lanes (the layer then draws its density). */
+  /** Items that did not fit the lanes: drawn in the density row (or the layer's density). */
   overflow: number;
   /** Marks: drawn extents (snapped), lane, item (−1 for a merged run), round ends, label width. */
   m: number;
@@ -72,11 +89,18 @@ export interface RangesLay {
   mround: Uint8Array;
   mlabel: Float32Array;
   index: LaneIndex;
+  /** The heat strip and its band: the whole box, or the bottom row past the lanes. */
   density?: ImageData;
+  densityY: number;
+  densityH: number;
+  /** The strip's buffers, kept while the box's columns do not change. */
+  strip: { image?: ImageData; diff: Float64Array; counts: Float64Array };
   pending: number[];
   failed: number[];
   sticky: StickyLanes;
   font: string;
+  fontSize: number;
+  hoverWidth: number;
   radius: { ratio: number; max: number; min: number };
   categories: Map<string, number>;
 }
@@ -97,7 +121,9 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
   return {
     key: ctx.key,
     system: ctx.axis.system,
+    section: sectionId(ctx.section),
     owner: prep.owner,
+    dataSystem: prep.src?.dataSystem ?? '',
     box: ctx.box,
     axis: ctx.axis,
     step: 'cells',
@@ -121,10 +147,15 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     mround: new Uint8Array(64),
     mlabel: new Float32Array(64),
     index: new LaneIndex(),
+    densityY: 0,
+    densityH: 0,
+    strip: { diff: new Float64Array(0), counts: new Float64Array(0) },
     pending: [],
     failed: [],
     sticky: new StickyLanes(),
     font: ctx.config.itemFont,
+    fontSize: fontSize(ctx.config.itemFont),
+    hoverWidth: ctx.config.outline.hover,
     radius: { ratio: ctx.config.squircleRatio, max: ctx.config.squircleMax, min: ctx.config.squircleMin },
     categories: new Map(),
   };
@@ -163,7 +194,17 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: RangesLay): RangesLay {
     const lay = prev ?? newLay(ctx, prep);
     const { axis, box, config, tokens } = ctx;
-    Object.assign(lay, { key: ctx.key, system: axis.system, owner: prep.owner, box, axis, tokens });
+    lay.key = ctx.key;
+    lay.system = axis.system;
+    lay.section = sectionId(ctx.section);
+    lay.owner = prep.owner;
+    lay.dataSystem = prep.src?.dataSystem ?? '';
+    lay.box = box;
+    lay.axis = axis;
+    lay.tokens = tokens;
+    lay.font = config.itemFont;
+    lay.fontSize = fontSize(config.itemFont);
+    lay.hoverWidth = config.outline.hover;
     lay.keys.length = 0;
     lay.ids.length = 0;
     lay.starts.length = 0;
@@ -185,7 +226,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       fixed = resolveColor(prep.color, tokens);
       if (fixed === undefined) reportColor(ctx);
     }
-    const step = densityStep(axis.devicePx, config.density);
+    const step = densityStep(axis.scale, axis.dpr, config);
     lay.step = step;
     const regions = dataRegions(src, axis);
     const level = layerLevel(src, data, axis);
@@ -193,8 +234,9 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     placeholderSpans(src, axis, read.pending, lay.pending);
     placeholderSpans(src, axis, read.failed, lay.failed);
 
-    // the items, each once: a range repeated in the tiles it touches has one key, start and end
-    const seen = new Set<string>();
+    // the items: a key seen in an earlier tile is that range again; repeated within a tile, another piece of it
+    const earlier = new Set<string | number>();
+    const occurrences = new Map<string | number, number>();
     const densities: { table: RangesDensity; level: number }[] = [];
     for (const e of read.entries) {
       const t = e.tables.ranges;
@@ -203,15 +245,19 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         densities.push({ table: t, level: e.region.level });
         continue;
       }
+      const here: (string | number)[] = [];
       for (let i = 0; i < t.start.length; i++) {
-        const key: string | number = t.id ? (t.id.get(i) ?? i) : t.row ? t.row[i] : `${t.start[i]}:${t.end[i]}`;
-        const id = `${typeof key === 'number' ? 'n' : 's'}${key}@${t.start[i]}:${t.end[i]}`;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        const label = fieldAt(t.fields, 'label', i) ?? (t.id ? (t.id.get(i) ?? undefined) : undefined);
+        const id = t.id?.get(i);
+        const key: string | number =
+          id !== null && id !== undefined ? id : t.row ? t.row[i] : `${e.region.level}/${e.region.tile}:${i}`;
+        if (earlier.has(key)) continue;
+        here.push(key);
+        const k = occurrences.get(key) ?? 0;
+        occurrences.set(key, k + 1);
+        const label = fieldAt(t.fields, 'label', i) ?? id ?? undefined;
         const category = fieldAt(t.fields, 'category', i);
         lay.keys.push(key);
-        lay.ids.push(id);
+        lay.ids.push(`${typeof key === 'number' ? 'n' : 's'}${key}#${k}`);
         lay.starts.push(t.start[i]);
         lay.ends.push(t.end[i]);
         lay.labels.push(label);
@@ -219,22 +265,41 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         if (category !== undefined) lay.categories.set(category, fill);
         lay.fills.push(fill);
       }
+      for (const k of here) earlier.add(k);
     }
     const n = lay.keys.length;
     const maxLanes = Math.max(1, Math.floor(box.height / config.laneHeight));
     lay.laneHeight = box.height / maxLanes;
+    let row = false;
     if (step !== 'density' && !densities.length) {
       const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => lay.starts[a] - lay.starts[b] || a - b);
       lay.lanes = grow(lay.lanes, n);
       const lanes = lay.lanes.subarray(0, n);
-      lay.laneCount = lay.sticky.assign(lay.ids, lay.starts, lay.ends, order, maxLanes, ctx.settled, lanes);
-      for (let i = 0; i < n; i++) if (lanes[i] < 0) lay.overflow++;
+      const assign = (cap: number) => {
+        lay.laneCount = lay.sticky.assign(lay.ids, lay.starts, lay.ends, order, cap, ctx.settled, lanes);
+        lay.overflow = 0;
+        for (let i = 0; i < n; i++) if (lanes[i] < 0) lay.overflow++;
+      };
+      assign(maxLanes);
+      // past the lanes: the last lane becomes a density row of what does not fit; the rest stay items
+      if (lay.overflow && config.ranges.overflow === 'extra-lanes' && maxLanes > 1) {
+        assign(maxLanes - 1);
+        row = true;
+      }
     }
-    lay.mode = step === 'density' || densities.length || lay.overflow ? 'density' : step === 'bars' ? 'bars' : 'items';
+    lay.mode =
+      step === 'density' || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
 
     if (lay.mode === 'density') {
-      densityStrip(lay, src, axis, densities, tokens);
+      lay.densityY = box.y;
+      lay.densityH = box.height;
+      densityStrip(lay, src, axis, densities, tokens, false);
       return lay;
+    }
+    if (row) {
+      lay.densityY = box.y + (maxLanes - 1) * lay.laneHeight;
+      lay.densityH = lay.laneHeight;
+      densityStrip(lay, src, axis, [], tokens, true);
     }
 
     // marks: each item's pieces on the section, square where cut, round where the item really ends
@@ -265,7 +330,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       }
     }
     if (lay.mode === 'bars') mergeRuns(lay, px);
-    // labels inside marks wide enough, faded past their width
+    // labels inside marks wide enough, faded past their width (drawn in the labels pass)
     if (lay.mode === 'items' && lay.laneHeight >= 10)
       for (let j = 0; j < lay.m; j++) {
         const label = lay.mitem[j] >= 0 ? lay.labels[lay.mitem[j]] : undefined;
@@ -277,14 +342,12 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
 
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
     const { box, tokens } = lay;
+    const gap = lay.laneHeight >= 6 ? 2 : 0;
     if (pass === 'data') {
       drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
       drawSpans(out, lay.failed, box.y, box.height, withAlpha(tokens.colors['seq-conflict'], 0.25));
-      if (lay.density) {
-        out.image(box.x, box.y, box.width, box.height, lay.density);
-        return;
-      }
-      const gap = lay.laneHeight >= 6 ? 2 : 0;
+      if (lay.density) out.image(box.x, lay.densityY, box.width, lay.densityH, lay.density);
+      if (lay.mode === 'density') return;
       for (let j = 0; j < lay.m; j++) {
         const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2;
         const h = lay.laneHeight - gap;
@@ -297,27 +360,33 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
             ? squircleRadius(w, h, lay.radius.ratio, lay.radius.max, lay.radius.min)
             : 0;
         out.rect(lay.mx0[j], y, w, h, fill, NoColor, 0, r, lay.mround[j]);
-        if (lay.mlabel[j] > 0) {
-          const label = lay.labels[item] as string;
-          const size = Number(/(\d+(?:\.\d+)?)px/.exec(lay.font)?.[1] ?? 10);
-          out.text(
-            label,
-            lay.mx0[j] + 3,
-            y + h / 2 + size * 0.35,
-            Anchor.start,
-            lay.font,
-            inkOn(fill, tokens),
-            lay.mlabel[j],
-            w - 6,
-          );
-        }
+      }
+      return;
+    }
+    if (pass === 'labels') {
+      for (let j = 0; j < lay.m; j++) {
+        if (!(lay.mlabel[j] > 0)) continue;
+        const item = lay.mitem[j];
+        const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2;
+        const h = lay.laneHeight - gap;
+        const w = lay.mx1[j] - lay.mx0[j];
+        out.text(
+          lay.labels[item] as string,
+          lay.mx0[j] + 3,
+          y + h / 2 + lay.fontSize * 0.35,
+          Anchor.start,
+          lay.font,
+          inkOn(lay.fills[item], tokens),
+          lay.mlabel[j],
+          w - 6,
+        );
       }
       return;
     }
     if (pass === 'hover') {
       const h = emphasis?.hover;
       if (!h || h.layer !== lay.key || !h.element) return;
-      const gap = lay.laneHeight >= 6 ? 2 : 0;
+      const half = lay.hoverWidth / 2;
       for (let j = 0; j < lay.m; j++) {
         const item = lay.mitem[j];
         if (item < 0 || lay.keys[item] !== h.element.key) continue;
@@ -327,14 +396,14 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         const r = lay.mround[j] ? squircleRadius(w, hh, lay.radius.ratio, lay.radius.max, lay.radius.min) : 0;
         // concentric: the outline's radius is the mark's plus its offset
         out.rect(
-          lay.mx0[j] - 1,
-          y - 1,
-          w + 2,
-          hh + 2,
+          lay.mx0[j] - half,
+          y - half,
+          w + 2 * half,
+          hh + 2 * half,
           NoColor,
           tokens.colors['seq-hover'],
-          1.5,
-          r > 0 ? r + 1 : 0,
+          lay.hoverWidth,
+          r > 0 ? r + half : 0,
           lay.mround[j],
         );
       }
@@ -345,13 +414,18 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     const { box } = lay;
     if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) return undefined;
     const position = lay.axis.positionAt(x);
-    const base = { layer: lay.key, system: lay.system, ...(position >= 0 ? { position } : {}) };
+    const base = { layer: lay.key, section: lay.section, system: lay.system, ...(position >= 0 ? { position } : {}) };
     if (lay.mode === 'density') return base;
     const lane = Math.floor((y - box.y) / lay.laneHeight);
     const j = lay.index.at(lane, x);
     if (j < 0) return base;
     const item = lay.mitem[j];
-    return item < 0 ? base : { ...base, element: { owner: lay.owner, key: lay.keys[item] } };
+    if (item < 0) return base;
+    return {
+      ...base,
+      element: { owner: lay.owner, key: lay.keys[item] },
+      extent: rangesLocation(lay.dataSystem, [lay.starts[item], lay.ends[item]]),
+    };
   },
 
   legend(lay): LegendSpec | undefined {
@@ -390,16 +464,29 @@ function mergeRuns(lay: RangesLay, px: number) {
   }
 }
 
-/** One heat strip: items (or a source's density bins) counted a device column, colored low to high. */
+/**
+ * One heat strip: items (all, or with `overflowOnly` those past the lanes) and a source's density bins, counted a
+ * device column, colored low to high. Its buffers are kept while the box's columns do not change.
+ */
 function densityStrip(
   lay: RangesLay,
   src: LayerSource,
   axis: AxisTransform,
   densities: readonly { table: RangesDensity; level: number }[],
   tokens: SeqTokens,
+  overflowOnly: boolean,
 ) {
   const cols = axis.columns;
-  const diff = new Float64Array(cols + 1);
+  const strip = lay.strip;
+  if (strip.diff.length !== cols + 1) {
+    strip.diff = new Float64Array(cols + 1);
+    strip.counts = new Float64Array(cols);
+  } else strip.diff.fill(0);
+  if (!strip.image || strip.image.width !== cols)
+    strip.image = { width: cols, height: 1, data: new Uint8Array(4 * cols) };
+  else strip.image.data.fill(0);
+  const { diff, counts } = strip;
+  const data = strip.image.data;
   const pieces: number[] = [];
   const spans: number[] = [];
   const add = (s: number, e: number, v: number) => {
@@ -415,18 +502,17 @@ function densityStrip(
       }
     }
   };
-  for (let i = 0; i < lay.keys.length; i++) add(lay.starts[i], Math.max(lay.ends[i], lay.starts[i] + 1), 1);
+  for (let i = 0; i < lay.keys.length; i++)
+    if (!overflowOnly || lay.lanes[i] < 0) add(lay.starts[i], Math.max(lay.ends[i], lay.starts[i] + 1), 1);
   for (const { table, level } of densities)
     for (let i = 0; i < table.bin.length; i++) add(table.bin[i] * level, (table.bin[i] + 1) * level, table.count[i]);
   let max = 0;
   let run = 0;
-  const counts = new Float64Array(cols);
   for (let c = 0; c < cols; c++) {
     run += diff[c];
     counts[c] = run;
     if (run > max) max = run;
   }
-  const data = new Uint8Array(4 * cols);
   const low = tokens.colors['seq-density-low'];
   const high = tokens.colors['seq-density-high'];
   for (let c = 0; c < cols; c++) {
@@ -437,5 +523,5 @@ function densityStrip(
     data[4 * c + 2] = (color >>> 8) & 0xff;
     data[4 * c + 3] = color & 0xff;
   }
-  lay.density = { width: cols, height: 1, data };
+  lay.density = strip.image;
 }

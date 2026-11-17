@@ -4,12 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { hashString } from '@molstar/core/data/util/hash-functions';
 import { hasErrors, type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import {
   type AssetReader,
   DataStore,
   type FormatRuntime,
   type OpenedSource,
+  RealClock,
+  type StoreClock,
   SourceOpenError,
   type Want,
 } from '@molstar/seqx-core/data';
@@ -57,6 +60,8 @@ export interface AttachOptions {
   readonly signal?: AbortSignal;
   /** The store's sources to open (all the model names when absent). */
   readonly only?: ReadonlySet<string>;
+  /** Collects the addresses this call attached. */
+  readonly attached?: Set<string>;
 }
 
 /**
@@ -84,8 +89,15 @@ export async function attachSources(
     [...opens].map(async ([address, open]) => {
       if ((options.only && !options.only.has(address)) || store.coverage(address)) return;
       try {
-        store.attach(address, await open());
+        const opened = await open();
+        // a caller that gave up (a timeout) attaches nothing late
+        if (ctx.signal.aborted) {
+          opened.dispose();
+          return;
+        }
+        if (store.attach(address, opened)) options.attached?.add(address);
       } catch (e) {
+        if (ctx.signal.aborted) return;
         if (e instanceof SourceOpenError) issues.push(...e.issues.map((i) => ({ ...i, address })));
         else
           issues.push(
@@ -122,8 +134,12 @@ export interface RenderSvgOptions {
   readonly resolve?: Partial<ResolveConfig>;
   /** What sources may read: nothing by default. */
   readonly assets?: AssetReader;
-  /** How long the export waits for its data, ms: 10 s by default. */
+  /** How long the export waits for its sources to open and its data to settle, ms: 10 s by default. */
   readonly timeoutMs?: number;
+  /** The time the timeout runs on: a shared store's clock (it does not expose its own), a fake one in tests. */
+  readonly clock?: StoreClock;
+  /** Prefixes the SVG's ids: by default `s` and a hash of the spec, so two exports inlined in one page differ. */
+  readonly idPrefix?: string;
   readonly dpr?: number;
   readonly emphasis?: Emphasis;
   /** A store to read through (a viewer's): the export wants through a want set of its own. A new one by default. */
@@ -170,17 +186,35 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
   }
   issues.push(...view.issues);
   const own = !options.store;
-  const store = options.store ?? new DataStore();
+  const clock = options.clock ?? RealClock;
+  const store = options.store ?? new DataStore({ clock });
   const controller = new AbortController();
   const wanter = store.wanter();
+  const timeout = options.timeoutMs ?? 10_000;
+  // the deadline covers opening the sources too
+  const until = clock.now() + timeout;
+  const attached = new Set<string>();
+  let settled = true;
   try {
-    issues.push(
-      ...(await attachSources(model, store, {
+    let timer: unknown;
+    const expired = new Promise<undefined>((resolve) => {
+      timer = clock.setTimeout(() => resolve(undefined), timeout);
+    });
+    const opened = await Promise.race([
+      attachSources(model, store, {
         ...(options.assets ? { assets: options.assets } : {}),
         signal: controller.signal,
         only: viewSources(model, view),
-      })),
-    );
+        attached,
+      }),
+      expired,
+    ]);
+    clock.clearTimeout(timer);
+    if (opened) issues.push(...opened);
+    else {
+      settled = false;
+      controller.abort();
+    }
     const tokens = options.tokens ?? builtInTokens(options.theme ?? 'light');
     const config = renderConfig(options.config);
     const renderer = new Renderer({
@@ -197,18 +231,17 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       dpr: options.dpr ?? 1,
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
     };
-    const timeout = options.timeoutMs ?? 10_000;
-    const until = Date.now() + timeout;
-    let settled = true;
     let last = '';
-    // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds
-    for (let round = 0; round < 8; round++) {
+    // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds; the
+    // export waits for its view alone, never its margins
+    for (let round = 0; settled && round < 8; round++) {
       const f = renderer.frame({ ...frameInput, settled: false });
-      const key = wantsKey(f.wants);
+      const wants = f.wants.filter((w) => w.priority !== 'margin');
+      const key = wantsKey(wants);
       if (key === last) break;
       last = key;
-      wanter.want(f.wants);
-      if (!(await wanter.whenSettled(Math.max(0, until - Date.now())))) {
+      wanter.want(wants);
+      if (!(await wanter.whenSettled(Math.max(0, until - clock.now())))) {
         settled = false;
         break;
       }
@@ -221,7 +254,8 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
           hint: RenderIssues.codes['seq.render.unsettled'].hint,
         }),
       );
-    issues.push(...store.issues.value);
+    // a shared store's issues are its other consumers' too: only those of the sources this export attached
+    issues.push(...store.issues.value.filter((i) => own || (i.address !== undefined && attached.has(i.address))));
     const domains: string[] = [];
     for (const s of frame.layout.sections)
       for (const t of s.tracks)
@@ -232,6 +266,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const svg = drawListsToSvg(frame.lists, {
       fonts: tokens.fonts,
       fade: config.fade,
+      idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
       metadata: { 'seq-settled': String(settled), ...(domains.length ? { 'seq-domains': domains.join(';') } : {}) },
     });
     return { svg, settled, issues, lists: frame.lists };

@@ -140,7 +140,7 @@ export class LaneIndex {
   order = new Int32Array(0);
   /** Where each lane's marks start in `order`; `laneStart[lanes]` is the count. */
   laneStart = new Int32Array(1);
-  runMax = new Float32Array(0);
+  runMax = new Float64Array(0);
   private x0: ArrayLike<number> = [];
   private x1: ArrayLike<number> = [];
 
@@ -158,7 +158,7 @@ export class LaneIndex {
       const seg = order.subarray(counts[l], counts[l + 1]);
       seg.sort((a, b) => x0[a] - x0[b]);
     }
-    const runMax = new Float32Array(order.length);
+    const runMax = new Float64Array(order.length);
     for (let l = 0; l < laneCount; l++) {
       let m = Number.NEGATIVE_INFINITY;
       for (let k = counts[l]; k < counts[l + 1]; k++) {

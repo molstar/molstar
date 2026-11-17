@@ -33,9 +33,12 @@ const XmlEscapes: Readonly<Record<string, string>> = {
 /** The characters XML 1.0 forbids: controls but tab, newline and return; U+FFFE and U+FFFF. */
 const Forbidden = new RegExp('[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\ufffe\\uffff]', 'g');
 
-/** Text and attribute values escaped; characters XML forbids (controls but tab, newline, return) dropped. */
+/**
+ * Text and attribute values escaped; a character XML forbids (a control but tab, newline, return) becomes U+FFFD, one
+ * for one, so a glyph run stays aligned with its x list.
+ */
 export function escapeXml(s: string): string {
-  return s.replace(Forbidden, '').replace(/[&<>"']/g, (c) => XmlEscapes[c]);
+  return s.replace(Forbidden, '\ufffd').replace(/[&<>"']/g, (c) => XmlEscapes[c]);
 }
 
 /** `#rrggbb` and an opacity attribute when not opaque. */
@@ -79,11 +82,14 @@ export interface SvgOptions {
   readonly metadata?: Readonly<Record<string, string>>;
   /** How far a text past its max width fades out, px (the layout's `fade`). */
   readonly fade?: number;
+  /** Prefixes the document's ids (clips, masks), so two documents inlined in one page do not collide. */
+  readonly idPrefix?: string;
 }
 
 /** The draw lists as an SVG document of their size. */
 export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): string {
   const fonts = options.fonts ?? DefaultFonts;
+  const prefix = (options.idPrefix ?? '').replace(/[^A-Za-z0-9_-]/g, '');
   const defs: string[] = [];
   const body: string[] = [];
   let ids = 0;
@@ -142,7 +148,7 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       let mask = '';
       if (l.width[i] > l.maxWidth[i]) {
         // faded past its max width, never ellipsized: a gradient from opaque to clear over the last `fade` px
-        const id = `f${ids++}`;
+        const id = `${prefix}f${ids++}`;
         const x0 = anchor === 'start' ? l.x[i] : anchor === 'end' ? l.x[i] - l.maxWidth[i] : l.x[i] - l.maxWidth[i] / 2;
         const x1 = x0 + l.maxWidth[i];
         const fade = Math.min(options.fade ?? 12, l.maxWidth[i] / 2);
@@ -186,7 +192,7 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       body.push('</g>');
     },
     clip(l, i) {
-      const id = `c${ids++}`;
+      const id = `${prefix}c${ids++}`;
       defs.push(
         `<clipPath id="${id}"><rect x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}"/></clipPath>`,
       );

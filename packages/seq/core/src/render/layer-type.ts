@@ -59,12 +59,24 @@ export interface LayoutContext {
   report(issue: Issue): void;
 }
 
-/** What is under a point: a layer and the element (an item's key) or the position there, on the section's system. */
+/**
+ * What is under a point: a layer, its section (the section's id), and the element (an item's key, with its extent when
+ * the layer knows it) or the position there, on the section's system.
+ */
 export interface Hit {
   readonly layer: string;
+  readonly section: string;
   readonly element?: ElementKey;
+  /** The element's extent, on its data's system. */
+  readonly extent?: Location;
   readonly position?: number;
   readonly system: string;
+}
+
+/** A section's id: the last step of its address. */
+export function sectionId(section: { readonly address: string }): string {
+  const a = section.address;
+  return a.slice(a.lastIndexOf('/') + 1);
 }
 
 /** What the emphasis passes draw: the hover, the selection (a Location), the keyboard cursor. */

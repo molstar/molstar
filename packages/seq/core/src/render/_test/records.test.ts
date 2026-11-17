@@ -16,7 +16,9 @@ import { p53GeneSpec, p53TracksSpec } from './fixtures.js';
 
 function compare(name: string, record: string) {
   const file = fileURLToPath(new URL(`./records/${name}.txt`, import.meta.url));
-  if (process.env.SEQ_RECORDS === 'update' || !existsSync(file)) writeFileSync(file, record);
+  if (process.env.SEQ_RECORDS === 'update') writeFileSync(file, record);
+  // a missing record is a failure: it is written on purpose, never by accident
+  expect(existsSync(file), `no record ${name}: run with SEQ_RECORDS=update`).toBe(true);
   expect(record).toBe(readFileSync(file, 'utf8'));
 }
 
@@ -25,7 +27,9 @@ describe('draw-list records', () => {
     const r = await renderSvg(p53TracksSpec(), {
       size: { width: 640, height: 116 },
       viewport: { start: 84, end: 112 },
-      emphasis: { hover: { layer: '/views/main/protein/letters:0', position: 90, system: '/data/p53' } },
+      emphasis: {
+        hover: { layer: '/views/main/protein/letters:0', section: 'protein', position: 90, system: '/data/p53' },
+      },
     });
     expect(r.settled).toBe(true);
     expect(r.issues).toEqual([]);

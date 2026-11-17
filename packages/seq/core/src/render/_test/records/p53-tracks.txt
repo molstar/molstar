@@ -38,9 +38,7 @@ glyphs "14px mono" 22.9 per P 137 #2d271eff, A 155 #2d271eff, P 173 #2d271eff, A
 unclip
 clip 128 32 504 36
 rect 128 33 180 10 #8c8c8cff squircle 3.33 right
-text "Proline-rich" 131 41.5 start "10px sans" #2d271eff width 50.56 max 174
 rect 290 45 342 10 #7aa3a6ff squircle 3.33 left
-text "DNA-binding" 293 53.5 start "10px sans" #2d271eff width 56.68 max 336
 unclip
 clip 128 72 504 32
 rect 128 81 18 23 #5b7c99ff
@@ -80,4 +78,6 @@ pass cursor
 pass labels
 text "p53" 8 22.2 start "12px sans" #6b655cff width 20.02 max 112
 text "Domains" 8 54.2 start "12px sans" #6b655cff width 47.34 max 112
+text "Proline-rich" 131 41.5 start "10px sans" #2d271eff width 50.56 max 174
+text "DNA-binding" 293 53.5 start "10px sans" #2d271eff width 56.68 max 336
 text "Conservation" 8 92.2 start "12px sans" #6b655cff width 70.69 max 112

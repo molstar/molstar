@@ -13,7 +13,16 @@ import { type DensityStep, densityStep } from './config.js';
 import { NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, layerSource, placeholderSpans, readTiles } from './layer-data.js';
-import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
+import {
+  type Box,
+  type Emphasis,
+  type Hit,
+  type LayerType,
+  type LayoutContext,
+  type Overlay,
+  sectionId,
+  type StoreReader,
+} from './layer-type.js';
 import { drawSpans, outlineCell } from './marks.js';
 import { inkOn, letterToken, resolveColor, type SeqTokens, withAlpha } from './tokens.js';
 
@@ -31,6 +40,8 @@ export interface LettersPrep {
 export interface LettersLay {
   key: string;
   system: string;
+  /** The section's id (hits name it). */
+  section: string;
   box: Box;
   axis: AxisTransform;
   step: DensityStep;
@@ -49,6 +60,7 @@ export interface LettersLay {
   pending: number[];
   failed: number[];
   tokens: SeqTokens;
+  hoverWidth: number;
 }
 
 function grow<T extends Int32Array | Uint16Array | Uint32Array | Float32Array>(a: T, n: number): T {
@@ -81,6 +93,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const lay: LettersLay = prev ?? {
       key: ctx.key,
       system: axis.system,
+      section: sectionId(ctx.section),
       box,
       axis,
       step: 'cells',
@@ -97,9 +110,12 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       pending: [],
       failed: [],
       tokens,
+      hoverWidth: config.outline.hover,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
+    lay.section = sectionId(ctx.section);
+    lay.hoverWidth = config.outline.hover;
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;
@@ -119,7 +135,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
         );
       return lay;
     }
-    const step = densityStep(axis.devicePx, config.density);
+    const step = densityStep(axis.scale, axis.dpr, config);
     lay.step = step;
     const vis = axis.visible([]);
     if (step === 'bars' || step === 'density') {
@@ -170,6 +186,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       const cell = axis.scale;
       for (const s of config.letterSizes)
         if (s * config.monoAdvance <= cell - 2 && s <= box.height * 0.75) lay.fontSize = s;
+      // the step starts where the smallest size fits the cell: a short row still shows its letters
+      if (!lay.fontSize) lay.fontSize = config.letterSizes[0] ?? 9;
       lay.font = `${lay.fontSize}px mono`;
     }
     return lay;
@@ -199,7 +217,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     if (pass === 'hover') {
       const h = emphasis?.hover;
       if (!h || h.layer !== lay.key || h.position === undefined) return;
-      outlineCell(out, lay.axis, h.position, box, tokens.colors['seq-hover'], 1.5);
+      outlineCell(out, lay.axis, h.position, box, tokens.colors['seq-hover'], lay.hoverWidth);
     }
   },
 
@@ -208,7 +226,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     if (y < box.y || y >= box.y + box.height) return undefined;
     const position = lay.axis.positionAt(x);
     if (position < 0) return undefined;
-    return { layer: lay.key, position, system: lay.system };
+    return { layer: lay.key, section: lay.section, position, system: lay.system };
   },
 };
 

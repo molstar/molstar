@@ -17,7 +17,7 @@ import type { SeqTokens } from './tokens.js';
 import { BuiltInLayerTypes, drawView, LayoutState, layoutView, type ViewLayout } from './tracks.js';
 
 // Frames keyed by what they read (_spec/README.md "Render", The key): the model's hash, the view, the size, the
-// viewport, the device pixel ratio, the token table's version, the overlay's version, whether the view settled, and the
+// viewport, the device pixel ratio, the token table's version, the text metrics' version, the overlay's version, whether the view settled, and the
 // versions of the store entries the last layout read. An equal key reuses the layout and the lists and redraws only the
 // emphasis passes (a hover); anything else lays out again into the same buffers.
 
@@ -62,7 +62,7 @@ export class Renderer {
   private readonly reads = new Map<string, number>();
   private readonly coverages = new Map<string, Coverage | undefined>();
 
-  constructor(private readonly options: RendererOptions) {
+  constructor(readonly options: RendererOptions) {
     this.tokens = options.tokens;
     this.config = options.config ?? DefaultRenderConfig;
     this.configKey = (hashString(JSON.stringify(this.config)) >>> 0).toString(16);
@@ -86,6 +86,7 @@ export class Renderer {
       `${input.size.width}x${input.size.height}@${dpr}`,
       vp,
       this.tokens.version,
+      this.options.text.version,
       overlay.version,
       input.settled ? 's' : 'm',
       this.configKey,

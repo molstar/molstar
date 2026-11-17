@@ -14,7 +14,9 @@ export {
   type DensityStep,
   DensitySteps,
   type DensityThresholds,
+  type DensityUnits,
   densityStep,
+  fontSize,
   perPosition,
   type RenderConfig,
   renderConfig,
@@ -69,6 +71,7 @@ export {
   type LegendSpec,
   type Overlay,
   type StoreReader,
+  sectionId,
 } from './layer-type.js';
 export { type LettersLay, type LettersPrep, LettersType } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
