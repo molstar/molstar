@@ -65,12 +65,13 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 3: resolve (lane E, strong, after B and C)
 
-- [ ] E1 the static model: systems, units, numberings; `offset` and `codon` maps in their encodings (implicit, runs);
+- [x] E1 the static model: systems, units, numberings; `offset` and `codon` maps in their encodings (implicit, runs);
       paths and projection with the copy rule and closure; sources bound to runtimes; annotations' access plans
-- [ ] E2 the resolved view: views, sections, tracks, layers, themes as values, fallback chains, each layer's data and
+- [x] E2 the resolved view: views, sections, tracks, layers, themes as values, fallback chains, each layer's data and
       static path
-- [ ] E3 maps' edge cases on every encoding (EC-9 to EC-32 that apply to offset and codon) with equal answers
-- [ ] GATE: review (strong)
+- [x] E3 maps' edge cases on every encoding (EC-9 to EC-32 that apply to offset and codon) with equal answers
+- [x] GATE (2026-11-17): lane E merged after one review round; the merged tree 500 tests (repr, data/int, packages/seq)
+      in about 0.4 s, tsc with tests, lint, format green
 
 ### Stage 4: render and models (two lanes in parallel, after E's types)
 

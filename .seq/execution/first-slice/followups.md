@@ -28,3 +28,7 @@ or streamed systems in `(all)` and `not` (lane E).
 
 From lane C2's review: `HalfOpenRanges.combine` as a linear two-pointer merge into a presized array (today it sorts the
 cuts and builds number arrays); core tests for `Empty`, non-integers and `overlaps` without a length.
+
+From lane E: `QuerySystem.length` optional (pending) in the query model instead of `openQueryLength`; the isoform half
+of EC-30; NCBI codes beyond 1, 2, 11; projecting rects; reverse paths carried across models; an allocation check of
+`projectRanges` at a checkpoint.

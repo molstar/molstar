@@ -11,6 +11,14 @@
    when view work waits; a narrow `AssetReader` for runtimes.
 5. Lane B's `seq.lang.*` codes and letter alphabets (`drift/lang-codes.md`).
 
+6. Configurable defaults added (the author's rule): `ResolveConfig` (`maxPathSteps` 4, `maxPathCandidates` 16, `encoding`
+   `cheapest`, `openQueryLength` 2^31−1); `sequence.name` (default: the node's id); `map.table` (NCBI code, default 1;
+   1, 2 and 11 built); `followRange`'s `arc` (`shortest`).
+7. Paths are cached across resolves keyed by the map entries of every system the search read (safer than the entries
+   used; lane E's call).
+8. The TP53 exon coordinates in `resolve/_test/p53-geometry.ts` were written from memory (lengths add to 3 × 393 + a
+   stop): check them against RefSeq NM_000546 before relying on them.
+
 ## Agreed but not built
 
 Stages 3 to 7; the follow-ups in `followups.md` (the tree core's pending union, version-aware validate, `checkRefs`,
