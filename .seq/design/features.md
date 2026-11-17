@@ -68,16 +68,32 @@ that shows it (dataset: view).
 | Annotations, six shapes | ranges, values, pairs, matrix, grid, rows | planned | [building-blocks](building-blocks.md) | 45–63 | every dataset |
 | Keyed tables and joins | rows keyed by id joined to items, rows, states | deferred | — | 106, 224 | trigger: the Genomes milestone ([version-1](version-1.md)) |
 | Gene hierarchies | gene, transcript, exon (several levels) | deferred | — | 227 | trigger: the Genomes milestone ([version-1](version-1.md)) |
-| One source protocol | coverage and regions, levels of detail, pending vs empty | planned | [sources](sources.md), [data-store](data-store.md) | 169–175, 185–199 | p53: the gene's region by region |
-| Self-describing sources | format, location, index, assembly, aliases, fields | planned | [sources](sources.md) | 185–191, 196–198 | p53: the gene's region from FASTA with its index |
 | Formats in the core | FASTA, aligned FASTA, A3M, Stockholm, Clustal, Newick, TSV, CSV, JSON | planned | [sources](sources.md) | 38–40, 49, 50, 92 | every dataset |
-| A genome format, as proof | bigWig read by region and zoom level, a format runtime like any other (the author: "at least one as proof of concept") | planned | [sources](sources.md) | 169–175, 186, 201 | p53: conservation signal over the gene's region |
 | More genome formats | 2bit, BigBed, VCF with tabix, PAF | deferred | [sources](sources.md) | 208 | trigger: the bigWig runtime done; each with the dataset that needs it |
 | Services at the application layer | UniProt, PDBe (SIFTS), AlphaFold DB as runtimes an application composes, not in the core; recorded fixtures offline, live optional | planned | [sources](sources.md) | 51 | Storybook: an application composing services |
 | Structure files at the application layer | mmCIF and BinaryCIF read (through Mol\*'s readers) for chains, `label` and `auth` numbering, insertion codes, observed residues | planned | [maps](maps.md) | 3–5, 118 | Storybook: predictions onto a structure |
-| Prefetch and cancellation | view, margin, prefetch; grace; retries | planned | [data-store](data-store.md) | 172–174 | p53: the gene's region by region |
-| Dynamic nodes and templates | data nodes that arrive with regions; a track per node | deferred | — | 176–179 | trigger: a dataset with per-region nodes |
 | Name index | open on a gene by name from a file read by region | deferred | — | 228 | trigger: the Genomes milestone ([version-1](version-1.md)) |
+
+## Streaming: the source protocol and the data store
+
+| Feature | What | Status | Design | Cases | View |
+|---|---|---|---|---|---|
+| Self-describing sources | format, location, index, assembly, aliases, fields | planned | [sources](sources.md) | 185–191, 196–198 | p53: the gene's region from FASTA with its index |
+| The source protocol | a source answers what it covers (systems, lengths, levels, nodes known up front) and a region at a level of detail; one protocol for inline and streamed data | planned | [sources](sources.md) | 169–175, 185–199 | p53: the gene's region by region |
+| Answers carry nodes | tables plus data nodes (sequences, maps, annotations, nested sources), identity by (source, key) | planned | [dynamic-nodes](dynamic-nodes.md) | 175–180 | p53: transcripts by region |
+| Levels of detail | the coarsest level that fits a device column; a format's own zoom levels used when it has them (bigWig) | planned | [performance](performance.md), [sources](sources.md) | 170, 171 | p53: conservation signal over the gene's region |
+| The data store | entries by (source, region, level), versioned; pending, loaded, empty, failed; reactive per entry | planned | [data-store](data-store.md) | 169 | p53: the gene's region by region |
+| Prefetch and cancellation | view, margin, prefetch; grace; retries | planned | [data-store](data-store.md) | 172–174 | p53: the gene's region by region |
+| Eviction | byte-bounded, least recently used, never what is in view | planned | [data-store](data-store.md) | — | p53: the gene's region by region |
+| Settle and open domains | open value domains computed when the view settles; legends state their domain | planned | [data-store](data-store.md) | 201–205 | p53: tracks |
+| Export waits for data | `renderSvg` requests what its viewport needs and waits to settle, or says it is unsettled | planned | [data-store](data-store.md), [rendering](rendering.md) | 125 | every view (SVG) |
+| Dynamic nodes and templates | data nodes that arrive with regions (item coordinate systems, nested sources); a track per node by template | planned | [dynamic-nodes](dynamic-nodes.md) | 175–180 | p53: transcripts by region |
+| Item coordinate systems | an item's own system from its `map`, made on demand, keeping its id when it returns | planned | [dynamic-nodes](dynamic-nodes.md) | 176, 177 | p53: transcripts by region |
+| Nested sources | requested on need, bounded depth | planned | [dynamic-nodes](dynamic-nodes.md) | 179 | p53: transcripts by region |
+| Format runtimes | a registry entry per format, converting it onto the protocol; one shared conformance contract | planned | [sources](sources.md), [ports](ports.md) | — | every source |
+| A genome format, as proof | bigWig read by region and zoom level, a format runtime like any other (the author: "at least one as proof of concept") | planned | [sources](sources.md) | 169–175, 186, 201 | p53: conservation signal over the gene's region |
+| A synthetic asynchronous source | seeded, with a fake clock: the protocol's test source and the first slice's | planned | [version-1](version-1.md) | — | tests; a Storybook story |
+| Range reads of assets | the asset manager's page cache for indexed formats (a base-library change) | planned | [base-library](base-library.md) | — | p53: conservation signal |
 
 ## Layers and themes
 

@@ -141,6 +141,9 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
   manager, configurable layout); the first is now settled the other way (JSON by default, MessagePack an option, as
   recommended), the other two accepted with the rest.
 
+- **Dynamic nodes**: "wouldn't this be needed to have a good streaming protocol though? i would almost lean to do it
+  now, because it might be really hard to do later." ([design/dynamic-nodes.md](../../design/dynamic-nodes.md)).
+
 ## Reconciliation
 
 - "JSON with S-expression printing" fits §one-recursive-form (the spelling is the project's choice); meso\* chose

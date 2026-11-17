@@ -38,7 +38,8 @@ spec
   address's forms), themes (a channel's value), patches (snapshots). Addresses are the query language's forms after a
   path ([addressing.md](addressing.md)).
 - **Definitions and uses wait**: themes and styles may be named once in `views` and referred to by address (a plain
-  ref); `def` with arguments and overrides, and templates used per member of a set, come when an example needs them.
+  ref); `def` with arguments and overrides come when an example needs them. Track templates over a source's dynamic
+  nodes are in ([dynamic-nodes.md](dynamic-nodes.md)).
 - **Extension kinds** sit in any level under their namespace, with a fallback ([extensibility.md](extensibility.md)).
 
 ### Session is not the spec
@@ -61,7 +62,8 @@ spec ─read─▶ checked spec ─resolve─▶ resolved model ─▶ resolved 
 - **Resolved model**: every coordinate system and its numberings; units and copy groups; maps resolved to their
   encodings with paths precomposed ([maps.md](maps.md)); each source with the runtime bound to it (unavailable with an
   issue when none); each annotation's shape, fields and access plan (inline columns, or regions and levels from a
-  source). Pure, cached by the spec's hashes, keyed by address.
+  source). Pure, cached by the spec's hashes, keyed by address; dynamic nodes from the data store join it as a
+  versioned overlay ([dynamic-nodes.md](dynamic-nodes.md)).
 - **Resolved view** (public, renderer-independent, [rendering.md](rendering.md)): sections with their axes and layout
   maps, tracks, layers with themes as values or value functions, each layer's fallback chain, and how its data reaches
   its section. No data, no pixels, no fonts, no target: it is the same for every renderer. Pure, cached, keyed.

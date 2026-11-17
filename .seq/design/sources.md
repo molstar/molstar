@@ -24,6 +24,8 @@ standardized, and we convert other formats onto it".
   data already in the protocol's shape), where it is (`uri`, plus `index` when the format has one; or an inline
   `value`), and what it holds when the format does not say (the assembly's identifiers, a column-to-field map). The
   spec is complete without host code.
+- **Answers carry nodes as well as tables** (sequences, maps, annotations, nested sources), identified by (source,
+  key) ([dynamic-nodes.md](dynamic-nodes.md)).
 - **One protocol** is what the model and the viewer read: a source, opened, answers *what it covers* (its sequences
   and lengths, or the region it can serve) and *give me this region at this level of detail* as typed tables in the
   model's own shapes (sequences, ranges, values, pairs, matrix, grid, rows). Small inline data is read through the same

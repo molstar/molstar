@@ -20,7 +20,8 @@ previous implementation and the JBrowse reply, what it defers, and the order of 
 - **Three compiled forms**: resolved model, resolved view (public, no data, no target), draw lists (for a size, a
   viewport, a target and the data store) ([composition.md](composition.md), [rendering.md](rendering.md)).
 - **A data store** with keyed, versioned entries, pending vs empty, settle, open domains at settle
-  ([data-store.md](data-store.md)).
+  ([data-store.md](data-store.md)); answers carry nodes as well as tables, the resolved model's dynamic overlay
+  ([dynamic-nodes.md](dynamic-nodes.md)).
 - **Maps** by kind, sourcing and encoding, structure maps included ([maps.md](maps.md)).
 - **Addresses** as `path/(form :key value)`, with strings, lists and URL encoding specified; what data makes reached
   by forms ([addressing.md](addressing.md)).
@@ -52,7 +53,8 @@ surfaces (one UI, internal layouts and chrome parts), and its edge cases kept, c
 - Layers across sections, synteny, contact maps, MAF over a genome, and the **Genomes dataset** with them: a later
   milestone, after version 1's views run.
 - The genome formats beyond bigWig (2bit, BigBed, VCF, PAF, GFF, chain files): with the Genomes milestone.
-- Definitions and uses with arguments, templates per member of a set: when an example needs them.
+- Definitions and uses with arguments: when an example needs them (track templates over dynamic nodes are in version 1,
+  [dynamic-nodes.md](dynamic-nodes.md)).
 - Layouts and chrome parts as public extension points: when an outside application needs one.
 - Settings layers, effective values with origin, a generated settings form: after the typed configuration has users.
 - The compute port (workers): when a profile shows the main thread is the limit; its boundary decided then.
@@ -71,7 +73,10 @@ The smallest end-to-end slice that tests the riskiest decisions first (the revie
 3. **End to end**: inline data through the data store → resolved model → resolved view → draw lists → the SVG and
    recording backends, and a thin Canvas2D viewer with projected hover. Two views: p53 tracks, and p53's protein on
    its gene.
-4. **One source by region** through the data store: FASTA with its index (or a synthetic asynchronous source first).
+4. **One source by region** through the data store, carrying nodes as well as tables (the author: dynamic nodes "might
+   be really hard to do later"): a synthetic asynchronous source first, sending a transcript as a dynamic node (its item
+   coordinate system, its codon map, a nested source of domains) shown by a track template; then FASTA with its index
+   ([dynamic-nodes.md](dynamic-nodes.md)).
 5. **Measure**: frame time, allocation, test time, bundle size; confirm or move the targets.
 
 Then: patches and `diff`, the MessagePack codec, structure maps and the Mol\* showcase, addressing and links, the

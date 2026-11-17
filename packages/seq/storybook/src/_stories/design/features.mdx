@@ -27,9 +27,18 @@ What this version will contain. Nothing is built yet; each feature will link its
   - sequences, units, copies and ligands;
   - alignments and trees;
   - the six annotation shapes, keyed tables and joins, gene hierarchies;
-  - one source protocol, self-describing sources, prefetch;
+
   - opening on a gene by name;
   - the text formats: FASTA, alignments, tables, Newick.
+
+- **Streaming**:
+  - self-describing sources: format, location, index, assembly, aliases, fields;
+  - one source protocol for inline and streamed data: what a source covers, and a region at a level of detail;
+  - answers that carry nodes as well as tables (transcripts, nested sources, their own coordinate systems), shown by
+    track templates;
+  - a data store with versioned entries, pending never drawn as empty, prefetch, cancellation and byte-bounded eviction;
+  - open value domains computed when the view settles; exports that wait for their data;
+  - format runtimes as registry entries, bigWig as the proof, a synthetic asynchronous source for tests.
 - **Layers and themes**:
   - letters, ranges, values (with points, split and log scale), variants, pairs, matrix, grids and dot plots, logo,
     secondary structure, ruler, frames, rows;
@@ -72,7 +81,6 @@ What this version will contain. Nothing is built yet; each feature will link its
 Each is deferred until the trigger named for it.
 
 - **A published JSON Schema**: until an outside reader or an agent tool needs one.
-- **Dynamic nodes and track templates**: until a dataset with per-region nodes.
 - **The Genomes milestone**: layers across sections and synteny, contact maps, a MAF over a genome, values for genomics
   (points, split, log scale), variants by sample, matrices, keyed joins, gene hierarchies, and the genome formats beyond
   bigWig: after version 1's views run.
