@@ -31,17 +31,17 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 1: the tree core in `@molstar/core/repr` (lane A, strong)
 
-- [ ] A1 `repr/tree`: node with `custom`; values with typed columns (identity by type and bytes, cached hash); Merkle
+- [x] A1 `repr/tree`: node with `custom`; values with typed columns (identity by type and bytes, cached hash); Merkle
       hashes; issues with severity; namespaced kind pattern; addresses with the form-resolver table (meso\*'s child
       selection as the default)
-- [ ] A2 `repr/schema`: languages as data with `column` and `table` params; validation with every issue; defaults;
+- [x] A2 `repr/schema`: languages as data with `column` and `table` params; validation with every issue; defaults;
       normalization on read (columns to typed arrays)
-- [ ] A3 `repr/builder`: the typed builder's engine
-- [ ] A4 `repr/codec`: the codec interface and its suite; `codecs/json`, `codecs/sexpr` (columns elided in print)
-- [ ] A5 `repr/_spec` (rules and reasons, what is built); `package.json` exports and `_test` nulls; a v6 changelog entry
+- [x] A3 `repr/builder`: the typed builder's engine
+- [x] A4 `repr/codec`: the codec interface and its suite; `codecs/json`, `codecs/sexpr` (columns elided in print)
+- [x] A5 `repr/_spec` (rules and reasons, what is built); `package.json` exports and `_test` nulls; a v6 changelog entry
       (`.v6/changelogs/core-repr.md`)
-- [ ] GATE: quick lane green within budget (`repr` under 2 s); review (strong model, reading the code against
-      language-description and tree-core)
+- [x] GATE (2026-11-17): quick lane green within budget (71 tests, about 0.2 s); review (strong) done, its blockers
+      fixed in one round; merged `fbc27cde5`
 
 ### Stage 2: the language, locations, the protocol (three lanes in parallel, after stage 1)
 

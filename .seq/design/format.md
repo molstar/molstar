@@ -32,7 +32,11 @@ description of the language that everything else derives from.
     their types and bytes are.
   - **Missing is NaN** in float columns, written `null` in JSON; integer columns have no missing value unless their
     type says so.
-  - **Printing elides columns** past a short head (`[float32 × 3,000,000: 0.12 0.15 …]`); the S-expression reader
+  - **Undeclared columns are tagged**: a column outside a declared `column` param (in `custom`, an `any` param, under an
+    unknown kind) is written with its type, `{"$column": "float32", "values": […]}` in JSON and
+    `(:$column float32 :values […])` in the S-expression printing; declared columns are plain arrays when the codec is
+    given the language (lane A's review; to confirm with the author).
+  - **Printing elides columns** past a short head (`{float32 × 3,000,000: 0.12 0.15 …}`, braces reserved); the S-expression reader
     refuses an elided column.
 - **Encodings**, both lossless for the value model:
   - **JSON is the default interchange** (as recommended by the review, accepted by the author: "rest as recommended"):

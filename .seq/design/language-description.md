@@ -49,9 +49,10 @@ const SeqLanguage = defineLanguage({
     ranges:   { doc, parents: ['data'], ids: 'required', params: {
                   target: { type: 'ref', kinds: ['sequence'], required: true, doc },
                   rows:   { type: 'table', columns: {
-                            start: { type: 'column', of: 'int32', doc }, end: { type: 'column', of: 'int32', doc },
+                            start: { type: 'column', of: 'int32', required: true, doc },
+                            end: { type: 'column', of: 'int32', required: true, doc },
                             id: { type: 'column', of: 'category', doc }, label: { type: 'list', of: { type: 'string' }, doc } },
-                          required: ['start', 'end'], doc } } },
+                          doc } } },
     // values, map (offset, codon), source, views, view, section, track, layer, theme forms: the tables below
   },
 });
@@ -62,7 +63,8 @@ const SeqLanguage = defineLanguage({
   are positional `args`, as meso\*'s.
 - **`column`**: `{ type: 'column', of: 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'float32' | 'float64' |
   'category', missing?: boolean }`; integer columns have no missing value unless `missing` (then a validity list).
-- **`table`**: `{ type: 'table', columns: Fields, required?: string[], key?: string }`: columns of equal length, checked;
+- **`table`**: `{ type: 'table', columns: Fields, key?: string }`: columns of equal length, checked; a column is required
+  by its own `required: true`, as a record's fields are (lane A, drift resolved);
   extra columns allowed and kept (custom fields of a table, [extensibility.md](extensibility.md)).
 - **Slots**: a param of `type: 'node'` naming a sublanguage (`query`, `theme`) holds a data form of it, read and printed
   in place ([locations-and-queries.md](locations-and-queries.md)).
