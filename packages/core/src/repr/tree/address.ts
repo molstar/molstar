@@ -197,8 +197,7 @@ export function parseAddressIn(
       if (part === '*') {
         if (next !== end) return fail('repr.tree.address.syntax', '* ends an address', from);
         subtree = true;
-      } else if (!IdPattern.test(part))
-        return fail('repr.tree.address.syntax', 'A segment is not an id', from, IdHint);
+      } else if (!IdPattern.test(part)) return fail('repr.tree.address.syntax', 'A segment is not an id', from, IdHint);
       else if (segments.length === MaxDepth)
         return fail('repr.tree.address.depth_exceeded', `More than ${MaxDepth} segments`, from);
       else segments.push(part);
@@ -263,7 +262,9 @@ function readForm(text: string, i: number, end: number, depth: number): Read<{ f
     issue: issue('repr.tree.address.syntax', message, at, hint),
   });
   if (depth > MaxDepth)
-    return { issue: issueOf(TreeIssues, 'repr.tree.depth_exceeded', `Nested deeper than ${MaxDepth} levels`, { offset: i }) };
+    return {
+      issue: issueOf(TreeIssues, 'repr.tree.depth_exceeded', `Nested deeper than ${MaxDepth} levels`, { offset: i }),
+    };
   const open = i;
   i = skipSpace(text, i + 1, end);
   const headEnd = wordEnd(text, i, end);
@@ -495,7 +496,9 @@ function nestedForms(v: Value): Node[] {
 function knownKinds(form: Node, kinds: ReadonlySet<string>): boolean {
   if (!kinds.has(form.kind)) return false;
   const params = form.params;
-  if (params) for (const key of Object.keys(params)) for (const n of nestedForms(params[key])) if (!knownKinds(n, kinds)) return false;
+  if (params)
+    for (const key of Object.keys(params))
+      for (const n of nestedForms(params[key])) if (!knownKinds(n, kinds)) return false;
   return true;
 }
 
@@ -527,7 +530,10 @@ export interface FormResolverInput {
  * What a form of one kind means (locations-and-queries.md): it receives what the prefix names and returns one of its
  * result types, or issues. A result of nodes lets ids, child selection and `/*` follow it.
  */
-export type FormResolver = (input: FormResolverInput) => { readonly result?: Named; readonly issues?: readonly Issue[] };
+export type FormResolver = (input: FormResolverInput) => {
+  readonly result?: Named;
+  readonly issues?: readonly Issue[];
+};
 
 export interface SelectOptions {
   /**
@@ -688,7 +694,12 @@ export function selectAddress(root: Node, address: AddressPattern | string, opti
 }
 
 const limitIssue = (limit: number) =>
-  issue('repr.tree.address.limit_exceeded', `More than ${limit} matches`, undefined, 'narrow the address, or raise the limit');
+  issue(
+    'repr.tree.address.limit_exceeded',
+    `More than ${limit} matches`,
+    undefined,
+    'narrow the address, or raise the limit',
+  );
 
 /**
  * A pattern with resolved forms, segment by segment: what each prefix names is handed to the next step, nodes or a
@@ -704,7 +715,10 @@ function staged(
     over: () => Issue | undefined;
   },
 ): Selection {
-  const fail = (message: string): Selection => ({ matches: [], issues: [issue('repr.tree.address.resolver', message)] });
+  const fail = (message: string): Selection => ({
+    matches: [],
+    issues: [issue('repr.tree.address.resolver', message)],
+  });
   let named: Named = { type: 'nodes', matches: [{ node: root, address: [] }] };
   const nodesOf = (n: Named) => (n.type === 'nodes' ? (n as { matches: readonly Selected[] }).matches : undefined);
   for (let i = 0; i < pattern.segments.length; i++) {
@@ -724,7 +738,10 @@ function staged(
     const next: Selected[] = [];
     for (const m of prefix) {
       if (m.address.length >= o.maxDepth)
-        return { matches: [], issues: [issue('repr.tree.address.depth_exceeded', `The walk goes deeper than ${o.maxDepth} levels`)] };
+        return {
+          matches: [],
+          issues: [issue('repr.tree.address.depth_exceeded', `The walk goes deeper than ${o.maxDepth} levels`)],
+        };
       for (const child of m.node.children ?? []) {
         if (child.id === undefined) continue;
         if (typeof s === 'string' ? child.id !== s : !matchesForm(s, child)) continue;

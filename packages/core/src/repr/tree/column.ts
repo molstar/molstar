@@ -22,15 +22,7 @@ export type NumericColumn =
   | Float32Array
   | Float64Array;
 
-export type NumericColumnType =
-  | 'int8'
-  | 'uint8'
-  | 'int16'
-  | 'uint16'
-  | 'int32'
-  | 'uint32'
-  | 'float32'
-  | 'float64';
+export type NumericColumnType = 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'float32' | 'float64';
 
 export type ColumnType = NumericColumnType | 'category';
 

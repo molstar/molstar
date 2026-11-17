@@ -57,6 +57,7 @@
     "./math/graph/_test/*": null,
     "./math/linear-algebra/_test/*": null,
     "./reactive/_test/*": null,
+    "./repr/schema/_test/*": null,
     "./repr/tree/_test/*": null,
     "./state/_test/*": null,
     "./task/util/_test/*": null,

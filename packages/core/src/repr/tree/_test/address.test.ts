@@ -107,7 +107,10 @@ describe('repr/tree: address grammar', () => {
     for (const [text, code] of cases) {
       const { pattern, issues } = parseAddress(text);
       expect(pattern, text).toBeUndefined();
-      expect(issues.map((i) => i.code), text).toEqual([code]);
+      expect(
+        issues.map((i) => i.code),
+        text,
+      ).toEqual([code]);
       expect(issues[0].severity).toBe('error');
       expect(typeof issues[0].offset).toBe('number');
     }
@@ -218,9 +221,16 @@ describe('repr/tree: the form-resolver table', () => {
   });
 
   it('refuses an id, a form without a resolver or /* after a result that is not nodes', () => {
-    for (const a of ['/data/p53/(range :from 1)/x', '/data/p53/(range :from 1)/(item)', '/data/p53/(range :from 1)/*']) {
+    for (const a of [
+      '/data/p53/(range :from 1)/x',
+      '/data/p53/(range :from 1)/(item)',
+      '/data/p53/(range :from 1)/*',
+    ]) {
       const r = selectAddress(Spec, a, { limit: 9, resolvers });
-      expect(r.issues.map((i) => i.code), a).toEqual(['repr.tree.address.resolver']);
+      expect(
+        r.issues.map((i) => i.code),
+        a,
+      ).toEqual(['repr.tree.address.resolver']);
     }
   });
 });

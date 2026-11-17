@@ -96,11 +96,13 @@ export const TreeIssues = defineIssues('repr.tree', {
   },
   'repr.tree.node.shape': {
     severity: 'error',
-    description: 'A node is not an object with a `kind`, or has a key other than kind, id, params, custom, children, args',
+    description:
+      'A node is not an object with a `kind`, or has a key other than kind, id, params, custom, children, args',
   },
   'repr.tree.node.kind': {
     severity: 'error',
-    description: 'A kind is not a word (a lowercase letter, then a-z, 0-9, _ or -), optionally after a namespace and `:`',
+    description:
+      'A kind is not a word (a lowercase letter, then a-z, 0-9, _ or -), optionally after a namespace and `:`',
   },
   'repr.tree.node.id': {
     severity: 'error',
@@ -114,7 +116,10 @@ export const TreeIssues = defineIssues('repr.tree', {
     severity: 'error',
     description: 'A param or record key is `kind`, `__proto__`, or starts with `$` (tagged atoms)',
   },
-  'repr.tree.value.tag': { severity: 'error', description: 'A tagged atom (`$number`, `$bigint`) has a malformed payload' },
+  'repr.tree.value.tag': {
+    severity: 'error',
+    description: 'A tagged atom (`$number`, `$bigint`) has a malformed payload',
+  },
   'repr.tree.address.syntax': {
     severity: 'error',
     description: 'Not an address: /, then ids or query forms separated by /, optionally ending in /*',
@@ -143,7 +148,8 @@ export const TreeIssues = defineIssues('repr.tree', {
   },
   'repr.tree.address.option': {
     severity: 'error',
-    description: 'A selection option is out of range: a limit or maxDepth that is not a non-negative integer or Infinity',
+    description:
+      'A selection option is out of range: a limit or maxDepth that is not a non-negative integer or Infinity',
   },
   'repr.tree.address.limit_exceeded': {
     severity: 'error',
