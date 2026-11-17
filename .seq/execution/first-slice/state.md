@@ -2,6 +2,12 @@
 
 Branch: `packages-seq`.
 
+**Overnight run** (the author, 2026-11-17: "continue all the way to the end of stage 7 as an overnight run"): the loop
+continues through every gate to the end of stage 7 without waiting; decisions a gate would ask for are made as
+recommended and listed in gaps.md for the author's morning review; the stop conditions of loop.md (a refused
+permission, a check red twice, a public API change beyond what is agreed, a budget a design blocks) still stop it, and
+the stage 7 performance targets are measured and reported, not confirmed.
+
 ## Done
 
 - Stage 1 (lane A, the tree core): merged `fbc27cde5`.
