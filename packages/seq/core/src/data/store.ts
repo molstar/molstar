@@ -291,9 +291,11 @@ export class DataStore extends ReactiveModel {
 
   /**
    * Attaches an opened source under its address. Its coverage is checked first: a malformed one is an issue and the
-   * source stays unavailable (`false`).
+   * source stays unavailable (`false`); a retired store attaches nothing (`false`).
    */
   attach(address: string, source: OpenedSource): boolean {
+    // a late opening after the store is retired is the caller's to dispose
+    if (this.isRetired) return false;
     if (this._sources.has(address)) this.detach(address);
     const bad = checkCoverage(source.coverage);
     if (bad) {

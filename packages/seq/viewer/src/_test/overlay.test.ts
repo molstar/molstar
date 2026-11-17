@@ -5,11 +5,11 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
-import { type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { type FormatRuntime, type OpenedSource, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { nodeAddress, resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { StoreModel } from '../models/store.js';
 
 // The viewer holds tier 2: the store model gives a frame the overlay of the store's dynamic nodes (one a node
@@ -20,14 +20,17 @@ const assets = { readText: () => Promise.reject(new Error('no network in tests')
 const Genes = '/data/genes';
 
 /** A gene region whose one answer brings a transcript and a nested source (whose coverage lists nothing). */
-function genes(): SeqData {
+function genes(nestedFormat = 'seq'): SeqData {
   const transcript: Node = {
     kind: 'ranges',
     params: { target: '/data/gene', rows: { start: [10], end: [40], id: ['T1'] } },
   };
   const nested: Node = {
     kind: 'source',
-    params: { format: 'seq', value: seqToValue({ coverage: { systems: [], shapes: [], levels: [1] }, pairs: [] }) },
+    params: {
+      format: nestedFormat,
+      value: seqToValue({ coverage: { systems: [], shapes: [], levels: [1] }, pairs: [] }),
+    },
   };
   return {
     coverage: { systems: [{ name: 'g', length: 100 }], shapes: [{ system: 'g', shape: 'letters' }], levels: [1] },
@@ -47,9 +50,9 @@ function genes(): SeqData {
   };
 }
 
-function spec(depth: number) {
+function spec(depth: number, nestedFormat = 'seq') {
   const b = createSeqSpec();
-  const src = b.data.source('genes', { format: 'seq', value: seqToValue(genes()) });
+  const src = b.data.source('genes', { format: 'seq', value: seqToValue(genes(nestedFormat)) });
   const gene = b.data.sequence('gene', { alphabet: 'dna', source: src, name: 'g' });
   b.views.view('main', (v) =>
     v
@@ -100,5 +103,38 @@ describe('StoreModel: the overlay', () => {
     expect(m.store.coverage(nodeAddress(Genes, 'T1'))).toBeUndefined();
     expect(m.store.coverage(nodeAddress(Genes, 'T1-more'))).toBeUndefined();
     m.retire();
+  });
+
+  it('retired with a nested source opening: the late opening is disposed, nothing attached, no timer left', async () => {
+    vi.useFakeTimers();
+    let finish: (o: OpenedSource) => void = () => {};
+    let disposed = false;
+    const slow: FormatRuntime = {
+      name: 'slow',
+      formats: ['slow'],
+      open: () => new Promise<OpenedSource>((r) => (finish = r)),
+    };
+    const m = new StoreModel();
+    const { model, view } = spec(1, 'slow');
+    await m.sync(model, assets);
+    m.store.want([{ source: Genes, system: 'g', start: 0, end: 100, level: 1 }]);
+    await m.store.whenSettled();
+    m.overlay(model, view, { runtimes: [SeqRuntime, slow], assets });
+    const store = m.store;
+    m.retire();
+    finish({
+      coverage: { systems: [], shapes: [], levels: [1] },
+      read: () => Promise.reject(new Error('no')),
+      dispose: () => {
+        disposed = true;
+      },
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(disposed).toBe(true);
+    expect(store.coverage(nodeAddress(Genes, 'T1-more'))).toBeUndefined();
+    expect(store.coverage(Genes)).toBeUndefined();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
   });
 });

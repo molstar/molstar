@@ -60,6 +60,8 @@ export class StoreModel extends ReactiveModel {
       clock: options.clock ?? DomHostClock,
     });
     this.registerPermanentDispose(() => {
+      // the overlay's openings first: one that settles later is disposed, never attached
+      this._overlaySources?.dispose();
       for (const o of this._open.values()) o.abort.abort();
       this._open.clear();
       this.store.retire();
