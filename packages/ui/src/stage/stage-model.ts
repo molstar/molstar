@@ -151,6 +151,9 @@ export class StageModel {
   /** The canvas is faded out: empty, under the mark (or never drawn yet). */
   readonly quiet: ReadonlyState<boolean>;
 
+  /** How long the mark fades out (ms, `StageMarkFadeOutMs` by default): the view's transition takes it. */
+  readonly markFadeOutMs: number;
+
   readonly #markOn: boolean;
   readonly #delay: number;
   readonly #fadeOut: number;
@@ -168,10 +171,15 @@ export class StageModel {
     this.#placement = new State(options.hoverPlacement ?? 'auto');
     this.#delay = options.emptyDelayMs ?? StageEmptyDelayMs;
     this.#fadeOut = options.markFadeOutMs ?? StageMarkFadeOutMs;
+    this.markFadeOutMs = this.#fadeOut;
     this.#timers = options.timers ?? GlobalTimers;
 
     this.background = this.#background;
-    this.ink = derive(this.#background, inkForColor, (a, b) => a.theme === b.theme && a.color === b.color);
+    this.ink = derive(
+      this.#background,
+      inkForColor,
+      (a, b) => a.theme === b.theme && a.color === b.color && a.resolved === b.resolved,
+    );
     this.empty = this.#empty;
     this.busy = this.#busy;
     this.hover = { lines: this.#lines };
@@ -258,6 +266,8 @@ export class StageModel {
     this.#timer = this.#timers.setTimeout(() => {
       this.#timer = undefined;
       this.#step(this.#pending);
+      // Gone after the fade: the next wait (an empty stage's mark) starts now (stage §1).
+      if (this.#pending === 'gone') this.#decide();
     }, ms);
   }
 
@@ -275,9 +285,11 @@ export class StageModel {
 
   /**
    * One wait at a time (the next phase): drawn, the mark fades out; empty and idle, it comes after the delay; busy,
-   * nothing changes (a mark up stays, one not yet up waits) and the wait starts over after.
+   * nothing changes (a mark up stays, one not yet up waits) and the wait starts over after. A fade out under way always
+   * ends in `gone` (whatever comes meanwhile: the view sees the mark go, and a splash assembles again when it comes back).
    */
   #decide(): void {
+    if (this.#mark.value === 'out' && this.#timer !== undefined && !this.#disposed) return;
     this.#cancel();
     if (this.#disposed || !this.#markOn) return;
     if (!this.#empty.value) {

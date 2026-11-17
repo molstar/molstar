@@ -5,7 +5,8 @@
  */
 
 // The quick allocation tier (`test:perf`) of the hover label (stage §3.1): beside the pointer, a move and the frame that
-// places it (one read, one write of cached offsets) allocate nothing; the hide and show swap neither. The label and its
+// places it (one read, one write of cached offsets) allocate nothing, nor does the layer's box read again after a resize
+// or a scroll; the hide and show swap neither. The label and its
 // layer are stand-ins (a DOM's rect and style writes are the browser's, not this code's).
 
 import { quickCase } from '@molstar/test-harness/quick';
@@ -62,6 +63,19 @@ const cases: Record<string, () => (i: number) => void> = {
     });
     follower.setContent(true);
     return (i) => {
+      follower.move(100 + (i % 1100), 100 + (i % 700), false, true);
+      runFrame();
+    };
+  },
+  /** Beside the pointer, the stage resized or scrolled now and then: the layer's box read again in the next frame. */
+  cursorResized() {
+    let follower!: HoverFollower;
+    createRoot(() => {
+      follower = new HoverFollower(label, () => layer, false, 'out');
+    });
+    follower.setContent(true);
+    return (i) => {
+      if ((i & 15) === 0) follower.invalidate();
       follower.move(100 + (i % 1100), 100 + (i % 700), false, true);
       runFrame();
     };

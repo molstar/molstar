@@ -127,6 +127,31 @@ describe('Splash', () => {
     dispose();
   });
 
+  it('follows reduced motion as it changes: on, whole and still at once; off, a press moves it again', () => {
+    // A media query list the test can change (its `change` event, as a browser's).
+    const query = Object.assign(new EventTarget(), { matches: false });
+    vi.stubGlobal('matchMedia', () => query);
+    const { container, dispose } = mount();
+    frames(48);
+    expect(pendingFrameCallbacks()).toBeGreaterThan(0);
+    query.matches = true;
+    query.dispatchEvent(new Event('change'));
+    // One frame: the word whole, then nothing.
+    frames(32);
+    expect(pendingFrameCallbacks()).toBe(0);
+    const word = container.querySelector('[role="img"]')!;
+    word.dispatchEvent(new PointerEvent('pointerdown', { clientX: 40, clientY: 20, cancelable: true }));
+    expect(pendingFrameCallbacks()).toBe(0);
+    query.matches = false;
+    query.dispatchEvent(new Event('change'));
+    frames(32);
+    word.dispatchEvent(new PointerEvent('pointerdown', { clientX: 40, clientY: 20, cancelable: true }));
+    expect(pendingFrameCallbacks()).toBeGreaterThan(0);
+    frames(3000);
+    expect(pendingFrameCallbacks()).toBe(0);
+    dispose();
+  });
+
   it('under reduced motion: one still frame', () => {
     reduced = true;
     const { container, dispose } = mount();

@@ -4,40 +4,73 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { CommandDefinition } from '../commands/types.js';
+import type { CommandDefinition, KeyChord } from '../commands/types.js';
 import type { HistoryModel, UndoResult } from './history-model.js';
+
+/** The commands' ids: a view reads their keys from the app's command manager by these (history §4). */
+export const HistoryCommandIds = { undo: 'edit.undo', redo: 'edit.redo' } as const;
+
+/** Undo's and Redo's own keys (⌘Z and ⇧⌘Z on macOS, Ctrl elsewhere): before the app's or the person's keymap. */
+export const HistoryShortcuts: { readonly undo: KeyChord; readonly redo: KeyChord } = {
+  undo: { key: 'z', mod: true },
+  redo: { key: 'z', mod: true, shift: true },
+};
+
+/** The commands' words (history §6); the refusals are the model's (`HistoryModel.labels`). */
+export interface HistoryCommandLabels {
+  readonly undo: string;
+  readonly redo: string;
+  /** What a done Undo says ("Undone: Set color"). */
+  readonly undone: (step: string) => string;
+  readonly redone: (step: string) => string;
+}
+
+export const DefaultHistoryCommandLabels: HistoryCommandLabels = {
+  undo: 'Undo',
+  redo: 'Redo',
+  undone: (step) => `Undone: ${step}`,
+  redone: (step) => `Redone: ${step}`,
+};
 
 /**
  * Undo and Redo as commands (history §1, headless §0.1): the menu, ⌘Z and an agent do what the History view's buttons
- * do. An app registers them with its command manager, in its category. A refusal fails the command with its reason.
+ * do. An app registers them with its command manager, in its category. A refusal fails the command with its reason;
+ * while a run is in flight both are greyed with the model's `running` reason.
  */
 export function historyCommands<C, Ctx = unknown>(
   history: HistoryModel<C>,
   category = 'Edit',
+  labels: Partial<HistoryCommandLabels> = {},
 ): CommandDefinition<Ctx>[] {
-  const settle = async (p: Promise<UndoResult>, verb: string) => {
+  const l = { ...DefaultHistoryCommandLabels, ...labels };
+  const settle = async (p: Promise<UndoResult>, said: (step: string) => string) => {
     const r = await p;
     if (!r.ok) throw new Error(r.reason);
-    return { message: `${verb}: ${r.step.label}` };
+    return { message: said(r.step.label) };
   };
   return [
     {
-      id: 'edit.undo',
-      title: 'Undo',
+      id: HistoryCommandIds.undo,
+      title: l.undo,
       category,
       icon: 'undo-2',
-      shortcut: { key: 'z', mod: true },
-      when: () => history.undoBlocked.value ?? (history.canUndo.value ? true : 'Nothing to undo'),
-      run: () => settle(history.undo(), 'Undone'),
+      shortcut: HistoryShortcuts.undo,
+      when: () => history.undoBlocked.value ?? (history.canUndo.value ? true : history.labels.nothingToUndo),
+      run: () => settle(history.undo(), l.undone),
     },
     {
-      id: 'edit.redo',
-      title: 'Redo',
+      id: HistoryCommandIds.redo,
+      title: l.redo,
       category,
       icon: 'redo-2',
-      shortcut: { key: 'z', mod: true, shift: true },
-      when: () => (history.canRedo.value ? true : 'Nothing to redo'),
-      run: () => settle(history.redo(), 'Redone'),
+      shortcut: HistoryShortcuts.redo,
+      when: () =>
+        history.running.value > 0
+          ? history.labels.running
+          : history.canRedo.value
+            ? true
+            : history.labels.nothingToRedo,
+      run: () => settle(history.redo(), l.redone),
     },
   ];
 }

@@ -116,7 +116,7 @@ describe('StatusLine', () => {
     status.setTasks(tasks(0));
     flush();
     const pills = () => [...host.querySelectorAll('[data-task]')];
-    const cancel = () => host.querySelectorAll<HTMLButtonElement>('button[aria-label="Cancel"]:not([hidden])');
+    const cancel = () => host.querySelectorAll<HTMLButtonElement>('button[aria-label^="Cancel"]:not([hidden])');
     const first = pills();
     const button = cancel()[0];
     expect(first).toHaveLength(2);
@@ -127,6 +127,8 @@ describe('StatusLine', () => {
     }
     expect(pills()).toEqual(first);
     expect(cancel()[0]).toBe(button);
+    // Named after its task (two running tasks are told apart), following its label.
+    expect(button.getAttribute('aria-label')).toBe('Cancel Loading 5');
     expect(host.textContent).toContain('Loading 5');
     const bar = first[0].querySelector('[role=progressbar]') as HTMLElement;
     expect(bar.getAttribute('aria-valuenow')).toBe('50');
@@ -138,6 +140,47 @@ describe('StatusLine', () => {
     flush();
     expect(cancel()).toHaveLength(0);
     expect(host.textContent).not.toContain('Loading');
+  });
+});
+
+describe('StatusLine labels', () => {
+  it('takes its text from `labels` (the rest English): the log tips, the ✕, each task’s Cancel, a chip’s ✕', () => {
+    const status = new StatusModel();
+    const host = mount(() => (
+      <div>
+        <StatusLine
+          status={status}
+          onOpenLog={() => {}}
+          labels={{ showProblems: 'Probleme', dismiss: 'Schließen', cancel: (t) => `${t} abbrechen` }}
+        />
+        <StatusChips status={status} labels={{ clear: (c) => `${c} leeren`, clearTip: 'Leeren' }} />
+      </div>
+    ));
+    status.post('Kaputt', 'error');
+    status.setTasks([
+      { id: '1', label: 'Laden', abort: () => {} },
+      { id: '2', label: 'Rechnen', abort: () => {} },
+    ]);
+    status.setChips([{ id: 'sel', label: '3 Reste', dismiss: () => {} }]);
+    flush();
+    expect(host.querySelector('button[data-tip="Probleme"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="Schließen"]')).not.toBeNull();
+    const cancels = [...host.querySelectorAll('[data-task] button')].map((b) => b.getAttribute('aria-label'));
+    expect(cancels).toEqual(['Laden abbrechen', 'Rechnen abbrechen']);
+    const clear = host.querySelector('button[aria-label="3 Reste leeren"]')!;
+    expect(clear.getAttribute('data-tip')).toBe('Leeren');
+    status.retire();
+  });
+
+  it('names each task’s Cancel after its task by default', () => {
+    const status = new StatusModel();
+    const host = mount(() => <StatusLine status={status} onOpenLog={() => {}} />);
+    status.post('Broken', 'error');
+    status.setTasks([{ id: '1', label: 'Loading', abort: () => {} }]);
+    flush();
+    expect(host.querySelector('button[data-tip="Show the problems in the log"]')).not.toBeNull();
+    expect(host.querySelector('[data-task] button')?.getAttribute('aria-label')).toBe('Cancel Loading');
+    status.retire();
   });
 });
 

@@ -18,6 +18,7 @@ import { SkeletonRows } from '../../components/skeleton/skeleton.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import type { ToolbarGroup } from '../../components/toolbar/toolbar.js';
 import { type Child, domView, For, onCleanup, Show } from '../../dom/index.js';
+import { GlassEmptyMark } from '../../stage/glass-empty-mark.js';
 import { BandPlaceholder, StagePlaceholder, structureLines } from '../../stage/placeholders.js';
 import { Stage } from '../../stage/stage.js';
 import { StageModel } from '../../stage/stage-model.js';
@@ -388,6 +389,7 @@ function DemoStage(props: {
   return (
     <Stage
       model={stage}
+      emptyMark={GlassEmptyMark}
       top={props.top?.()}
       canvas={
         <Show

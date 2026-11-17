@@ -6,12 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { derive, type ReadonlyState, State } from '@molstar/core/reactive';
+import { derive, isState, type ReadonlyState, State } from '@molstar/core/reactive';
 import { ExpandableList, Expandable } from '../components/expandable/expandable.js';
 import { Icon, type IconName } from '../components/icon/icon.js';
-import { ParamsForm, paramsMatch, searchRest } from '../components/params/params-form.js';
+import { ParamsForm, type ParamsSearch, searchParams, searchRest } from '../components/params/params-form.js';
 import { TextInput } from '../components/text-input/text-input.js';
-import { type Child, Show } from '../dom/index.js';
+import { type Child, effect, For, type MaybeReactive, onCleanup, Show } from '../dom/index.js';
 import { ViewEmpty, ViewStack, ViewToolbar } from '../shell/view-frame.js';
 import { classes } from './_generated/settings-view.module.css.js';
 import type { ParamsFormModel } from './params-form.js';
@@ -32,10 +32,18 @@ function groupRest(group: SettingsGroup, text: string): string {
   return searchRest(group.title, text.trim().toLowerCase().replace(/\s+/g, ' '));
 }
 
-/** Whether a group shows for the text: its title and settings match every word between them (any group for none). */
+/**
+ * A group's search for the text (none for no text): its title takes the words it contains, its settings' rows the rest
+ * (`searchParams`, over the form's current values: a hidden or `hideIf`-hidden setting never counts).
+ */
+export function groupSearch(group: SettingsGroup, text: string): ParamsSearch | undefined {
+  if (!text.trim()) return undefined;
+  return searchParams(group.form.params, groupRest(group, text), group.form.values.value);
+}
+
+/** Whether a group shows for the text: its title and shown settings match every word between them (any for none). */
 export function groupMatches(group: SettingsGroup, text: string): boolean {
-  const rest = groupRest(group, text);
-  return !rest || paramsMatch(group.form.params, rest);
+  return groupSearch(group, text)?.any ?? true;
 }
 
 /**
@@ -46,42 +54,70 @@ export function matchingGroups(groups: readonly SettingsGroup[], text: string): 
   return groups.filter((g) => groupMatches(g, text));
 }
 
+/** Settings' words (styles §8): strings, or functions for what names the search. */
+export interface SettingsLabels {
+  readonly search: string;
+  readonly searchPlaceholder: string;
+  readonly noMatch: (query: string) => string;
+}
+
+export const DefaultSettingsLabels: SettingsLabels = {
+  search: 'Search settings',
+  searchPlaceholder: 'Search settings',
+  noMatch: (q) => `No setting matches “${q}”.`,
+};
+
 /**
  * Settings (styles §8): a search over every group's settings, then the groups as `Expandable` panels, the first open.
  * While searching, only matching rows show, their groups open and the rest hide; the words may span a group's title and
- * its settings, and a group whose title takes them all shows whole. With no match, "No setting matches".
- * Built with the view primitives, so it sits in any view.
+ * its settings, and a group whose title takes them all shows whole. With no match, "No setting matches". Each group's
+ * search is one walk per query and values, read by the group and its rows alike. The groups may be a state (an app
+ * adding an extension's). Built with the view primitives, so it sits in any view.
  */
 export function SettingsView(props: {
-  groups: readonly SettingsGroup[];
+  groups: MaybeReactive<readonly SettingsGroup[]>;
   /** The search text: the host's (a command can search), else the view's own. */
   query?: State<string>;
   /** After the groups (an app's extensions' sections). */
   more?: () => Child;
+  labels?: Partial<SettingsLabels>;
 }) {
+  const l = { ...DefaultSettingsLabels, ...props.labels };
   const query = props.query ?? new State('');
+  const groups: ReadonlyState<readonly SettingsGroup[]> = isState(props.groups)
+    ? (props.groups as ReadonlyState<readonly SettingsGroup[]>)
+    : new State(props.groups as readonly SettingsGroup[]);
   const searching = derive(query, (t) => t.trim().length > 0);
-  const none = derive(query, (t) => !!t.trim() && !props.groups.some((g) => groupMatches(g, t)));
+  // Each group says whether it shows (by id): "No setting matches" when none does, read from their one walk each.
+  const shown = new State<ReadonlyMap<string, boolean>>(new Map());
+  const report = (id: string, on: boolean | undefined) => {
+    if (shown.value.get(id) === on) return;
+    const next = new Map(shown.value);
+    if (on === undefined) next.delete(id);
+    else next.set(id, on);
+    shown.set(next);
+  };
+  const none = derive([searching, shown, groups], (s, m, list) => s && list.every((g) => m.get(g.id) === false));
   return (
     <ViewStack class={classes.settings}>
       <ViewToolbar>
         <TextInput
           search
           class={classes.search}
-          aria-label="Search settings"
-          placeholder="Search settings"
+          aria-label={l.search}
+          placeholder={l.searchPlaceholder}
           value={query}
           onInput={(v) => query.set(v)}
         />
       </ViewToolbar>
       <ExpandableList>
-        {props.groups.map((group, i) => (
-          <Group group={group} query={query} searching={searching} open={i === 0} />
-        ))}
+        <For each={groups} by={(g) => g.id}>
+          {(group, index) => (
+            <Group group={group} query={query} searching={searching} open={index.value === 0} report={report} />
+          )}
+        </For>
       </ExpandableList>
-      <Show when={none}>
-        {() => <ViewEmpty>{derive(query, (q) => `No setting matches “${q.trim()}”.`)}</ViewEmpty>}
-      </Show>
+      <Show when={none}>{() => <ViewEmpty>{derive(query, (q) => l.noMatch(q.trim()))}</ViewEmpty>}</Show>
       {props.more?.()}
     </ViewStack>
   );
@@ -93,13 +129,18 @@ function Group(props: {
   query: ReadonlyState<string>;
   searching: ReadonlyState<boolean>;
   open: boolean;
+  report(id: string, shown: boolean | undefined): void;
 }) {
   const { group, query } = props;
   // The person's own open or closed; the search opens it over that, and lets it go back after.
   const own = new State(props.open);
   const open = derive([own, props.searching], (o, s) => o || s);
-  const hidden = derive(query, (t) => !groupMatches(group, t));
-  // The form gets the words its title leaves ('': every setting in it shows).
+  // One walk per query and values: whether the group shows, and which of its rows do (the form reads it).
+  const search = derive([query, group.form.values], (t) => groupSearch(group, t));
+  const hidden = derive(search, (s) => !!s && !s.any);
+  effect(hidden, (h) => props.report(group.id, !h));
+  onCleanup(() => props.report(group.id, undefined));
+  // The form gets the words its title leaves ('': every setting in it shows), for its folds' open while searching.
   const filter = derive(query, (t) => groupRest(group, t));
   return (
     <div hidden={hidden} data-settings-group={group.id}>
@@ -117,7 +158,7 @@ function Group(props: {
         open={open}
         onToggle={(o) => own.set(o)}
       >
-        {() => <ParamsForm form={group.form} filter={filter} />}
+        {() => <ParamsForm form={group.form} filter={filter} search={search} />}
       </Expandable>
     </div>
   );

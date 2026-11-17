@@ -16,6 +16,7 @@ import { Durationless, Timeline } from '../../components/playback/timeline-model
 import { onCleanup } from '../../dom/index.js';
 import { StatusChips, StatusLine } from '../../status/status-line.js';
 import { StatusModel } from '../../status/status-model.js';
+import { GlassEmptyMark } from '../glass-empty-mark.js';
 import { Stage } from '../stage.js';
 import { StageModel, type StageModelOptions } from '../stage-model.js';
 import { StageToolbar } from '../toolbar.js';
@@ -61,6 +62,7 @@ export const Empty: StoryObj = {
         <StageBox>
           <Stage
             model={stage}
+            emptyMark={GlassEmptyMark}
             canvas={<DemoCanvas stage={stage} />}
             lead={
               <div style="display: flex; gap: var(--msui-space-2)">
@@ -136,6 +138,7 @@ export const Busy: StoryObj = {
         <StageBox>
           <Stage
             model={stage}
+            emptyMark={GlassEmptyMark}
             canvas={<DemoCanvas stage={stage} />}
             lead={
               <Button size="sm" onClick={() => stage.setBusy(!stage.busy.value)}>

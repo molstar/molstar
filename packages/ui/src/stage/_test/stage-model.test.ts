@@ -5,8 +5,16 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { colorHex, inkForColor, InkThreshold, luminance, parseColor, themeForLuminance } from '../canvas-ink.js';
-import { StageModel } from '../stage-model.js';
+import {
+  colorHex,
+  inkForColor,
+  InkThreshold,
+  luminance,
+  parseColor,
+  parseColorAlpha,
+  themeForLuminance,
+} from '../canvas-ink.js';
+import { StageModel, type StageTimers } from '../stage-model.js';
 
 // The stage's model in plain Node (stage §1, headless): the ink, the measured inputs with their defaults, the hover
 // lines, and the empty mark's wait on fake timers.
@@ -39,9 +47,30 @@ describe('canvas ink', () => {
     expect(colorHex(0x0a0b0c)).toBe('#0a0b0c');
   });
 
-  it('counts a color it cannot parse as white', () => {
-    expect(inkForColor('papayawhip')).toEqual({ theme: 'light', color: '#ffffff' });
-    expect(inkForColor('#123456')).toEqual({ theme: 'dark', color: '#123456' });
+  it('parses names, hsl(), percent channels, alphas and transparent', () => {
+    expect(parseColor('navy')).toBe(0x000080);
+    expect(parseColor('PapayaWhip')).toBe(0xffefd5);
+    expect(parseColor('rgb(50% 0% 0%)')).toBe(0x800000);
+    expect(parseColor('rgba(100%, 50%, 0%, 0.5)')).toBe(0xff8000);
+    expect(parseColor('hsl(0 0% 5%)')).toBe(0x0d0d0d);
+    expect(parseColor('hsla(120, 100%, 25%, 1)')).toBe(0x008000);
+    expect(parseColor('hsl(0.5turn 100% 50%)')).toBe(0x00ffff);
+    expect(parseColor('#0008')).toBe(0x000000);
+    expect(parseColorAlpha('#00000080')?.[1]).toBeCloseTo(0.5, 2);
+    expect(parseColorAlpha('rgb(0 0 0 / 0%)')).toEqual([0, 0]);
+    expect(parseColorAlpha('transparent')).toEqual([0, 0]);
+    expect(parseColor('oklch(0.2 0 0)')).toBeUndefined();
+    expect(parseColor('var(--bg)')).toBeUndefined();
+    expect(parseColor('constructor')).toBeUndefined();
+    expect(parseColor('rgb(1, 2)')).toBeUndefined();
+  });
+
+  it('keeps the app’s color; one it cannot read (or a transparent one) is light and unresolved: the view’s', () => {
+    expect(inkForColor('#123456')).toEqual({ theme: 'dark', color: '#123456', resolved: true });
+    expect(inkForColor('hsl(0 0% 5%)')).toEqual({ theme: 'dark', color: 'hsl(0 0% 5%)', resolved: true });
+    expect(inkForColor('navy').theme).toBe('dark');
+    expect(inkForColor('oklch(0.2 0 0)')).toEqual({ theme: 'light', color: 'oklch(0.2 0 0)', resolved: false });
+    expect(inkForColor('transparent')).toEqual({ theme: 'light', color: 'transparent', resolved: false });
   });
 });
 
@@ -55,12 +84,12 @@ describe('StageModel', () => {
 
   it('derives the ink from the background, a new value only when it changes', () => {
     const stage = new StageModel({ empty: false });
-    expect(stage.ink.value).toEqual({ theme: 'light', color: '#ffffff' });
+    expect(stage.ink.value).toEqual({ theme: 'light', color: '#ffffff', resolved: true });
     const seen: string[] = [];
     const off = stage.ink.subscribe((ink) => seen.push(ink.theme));
     stage.setBackground('#101418');
     stage.setBackground('#101418');
-    expect(stage.ink.value).toEqual({ theme: 'dark', color: '#101418' });
+    expect(stage.ink.value).toEqual({ theme: 'dark', color: '#101418', resolved: true });
     expect(seen.at(-1)).toBe('dark');
     off.unsubscribe();
     stage.dispose();
@@ -186,6 +215,52 @@ describe('StageModel', () => {
     expect(off.mark.value).toBe('gone');
     stage.dispose();
     off.dispose();
+  });
+
+  it('a fade out always ends in gone, even when emptied again while busy (a splash assembles again)', () => {
+    // Injected timers, run by hand: what the model waits on, in order.
+    const pending = new Map<number, { fn: () => void; ms: number }>();
+    let next = 0;
+    const timers: StageTimers = {
+      setTimeout: (fn, ms) => {
+        pending.set(++next, { fn, ms });
+        return next;
+      },
+      clearTimeout: (id) => {
+        pending.delete(id as number);
+      },
+    };
+    const fire = (ms: number) => {
+      const [id, t] = [...pending].find(([, t]) => t.ms === ms)!;
+      pending.delete(id);
+      t.fn();
+    };
+    const stage = new StageModel({ timers });
+    const phases: string[] = [];
+    const off = stage.mark.subscribe((p) => phases.push(p));
+    fire(700);
+    stage.setEmpty(false);
+    expect(stage.mark.value).toBe('out');
+    // Emptied again during the fade, while busy (a new load): the fade's timer keeps running.
+    stage.setBusy(true);
+    stage.setEmpty(true);
+    expect([...pending.values()].map((t) => t.ms)).toEqual([250]);
+    fire(250);
+    expect(stage.mark.value).toBe('gone');
+    // Idle: the wait for the mark again, which comes up anew.
+    stage.setBusy(false);
+    fire(700);
+    expect(stage.mark.value).toBe('in');
+    // (Its current phase first, if the state tells a new subscriber.)
+    expect(phases.slice(phases[0] === 'gone' ? 1 : 0)).toEqual(['in', 'out', 'gone', 'in']);
+    // Emptied again during a fade, idle: gone first, then the wait.
+    stage.setEmpty(false);
+    stage.setEmpty(true);
+    fire(250);
+    expect(stage.mark.value).toBe('gone');
+    expect([...pending.values()].map((t) => t.ms)).toEqual([700]);
+    off.unsubscribe();
+    stage.dispose();
   });
 
   it('disposed, waits no more', () => {

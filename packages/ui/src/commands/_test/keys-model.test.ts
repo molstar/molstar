@@ -93,4 +93,30 @@ describe('the keys model', () => {
     keys.record('nothing');
     expect(keys.recording.value).toBeUndefined();
   });
+
+  it('says the same change again: the text differs by a trailing no-break space, so it is told', () => {
+    const { keys } = setup();
+    const told: string[] = [];
+    const stop = keys.said.listen!((t) => told.push(t));
+    keys.resetAll();
+    keys.resetAll();
+    keys.resetAll();
+    stop();
+    expect(told).toEqual([
+      'Every key is back to its default.',
+      'Every key is back to its default.\u00a0',
+      'Every key is back to its default.',
+    ]);
+  });
+
+  it('says it in the app’s words', () => {
+    const { manager } = setup();
+    const keys = new KeysModel(manager, {
+      labels: { cleared: (c) => `${c} : aucune touche.`, resetAll: 'Tout est rétabli.' },
+    });
+    keys.clear('next');
+    expect(keys.said.value).toBe('Next step : aucune touche.');
+    keys.resetAll();
+    expect(keys.said.value).toBe('Tout est rétabli.');
+  });
 });

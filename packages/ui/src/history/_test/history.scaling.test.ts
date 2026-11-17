@@ -30,7 +30,7 @@ it('an agent turn of R runs joining one entry', async () => {
         }
       },
       teardown: ({ h, end, n }) => {
-        expect(h.steps.value[0].runs.length).toBe(n);
+        expect(h.steps.value[0].runCount).toBe(n);
         end();
         h.dispose();
       },

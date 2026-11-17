@@ -32,7 +32,7 @@ defineStyles('stage/empty-stage.module.css', `@layer msui.components {
 
   &[data-phase="out"] {
     opacity: 0;
-    transition: opacity .25s var(--msui-ease-in);
+    transition: opacity var(--msui-stage-mark-out, .25s) var(--msui-ease-in);
 
     & > * {
       pointer-events: none;

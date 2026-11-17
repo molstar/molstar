@@ -20,10 +20,63 @@ import type { CommandDefinition } from './types.js';
 
 export type { InputBinding, InputBindingGroup } from './keys-model.js';
 
+/** Help's words (commands §6.6): strings, or functions for what names a command or a key. */
+export interface HelpLabels {
+  /** The conflicts' section (its accessible name). */
+  readonly conflicts: string;
+  /** After a conflict's keys: the commands on them and their scope (undefined: global). */
+  readonly conflict: (commands: readonly string[], scope: string | undefined) => string;
+  readonly everywhere: string;
+  readonly commands: string;
+  readonly changeKeys: string;
+  /** The keyless commands' choice: its accessible name and its placeholder. */
+  readonly giveKey: string;
+  readonly giveKeyPlaceholder: string;
+  readonly resetAll: string;
+  readonly noKey: string;
+  readonly or: string;
+  readonly change: string;
+  readonly changeTip: (command: string) => string;
+  readonly clear: string;
+  readonly clearTip: (command: string) => string;
+  readonly reset: string;
+  readonly resetTip: (command: string) => string;
+  /** The recorder's accessible name. */
+  readonly recorder: (command: string) => string;
+  readonly recorderText: string;
+  /** The default keys that work everywhere (an app's `global` replaces them). */
+  readonly closeAction: string;
+  readonly nextControl: string;
+}
+
+export const DefaultHelpLabels: HelpLabels = {
+  conflicts: 'Shortcut conflicts',
+  conflict: (commands, scope) =>
+    ` is used by ${commands.join(' and ')}${scope ? ` (in ${scope})` : ''}: only the first that can run takes it.`,
+  everywhere: 'Everywhere',
+  commands: 'Commands',
+  changeKeys: 'Change keys',
+  giveKey: 'Give a key to a command',
+  giveKeyPlaceholder: 'Give a key to…',
+  resetAll: 'Reset all',
+  noKey: 'no key',
+  or: 'or',
+  change: 'Change',
+  changeTip: (c) => `Change the key of ${c}`,
+  clear: 'Clear',
+  clearTip: (c) => `Remove the key of ${c}`,
+  reset: 'Reset',
+  resetTip: (c) => `Back to the default key of ${c}`,
+  recorder: (c) => `Press the new keys for ${c}; Escape cancels`,
+  recorderText: 'Press keys…',
+  closeAction: 'Close a menu, a card or a dialog',
+  nextControl: 'Next control',
+};
+
 /** The keys that work everywhere unless an app says otherwise. */
-const DefaultGlobalKeys: readonly InputBinding[] = [
-  { action: 'Close a menu, a card or a dialog', input: ['Esc'] },
-  { action: 'Next control', input: ['Tab'], or: ['Shift', 'Tab'] },
+const defaultGlobalKeys = (l: HelpLabels): readonly InputBinding[] => [
+  { action: l.closeAction, input: ['Esc'] },
+  { action: l.nextControl, input: ['Tab'], or: ['Shift', 'Tab'] },
 ];
 
 /**
@@ -40,22 +93,32 @@ export function HelpView(props: {
   intro?: () => Child;
   /** The model, when the host keeps it (an agent or a test drives it); else the view's own. */
   keys?: KeysModel<any>;
+  labels?: Partial<HelpLabels>;
 }) {
+  const l = { ...DefaultHelpLabels, ...props.labels };
   const model = props.keys ?? new KeysModel(props.commands);
   const conflicts = derive(model.conflicts, (c) => (c.length ? c : undefined));
   const recording = new KeyedSelector(model.recording);
+  // Controlled: the command being recorded while it is keyless, else the placeholder again (after a key is taken or
+  // the recording is cancelled).
+  const given = derive([model.recording, model.keyless], (id, keyless) =>
+    id && keyless.some((c) => c.id === id) ? id : '',
+  );
   return (
     <ViewStack class={classes.help}>
       {props.intro?.()}
       <Show when={conflicts}>
         {(list) => (
-          <section class={classes.conflicts} aria-label="Shortcut conflicts">
+          <section class={classes.conflicts} aria-label={l.conflicts}>
             <Icon name="triangle-alert" />
             <div>
               {list.map((x) => (
                 <p class={classes.conflict}>
-                  <Keys input={chordKeys(x.chord)} /> is used by {x.commands.map((c) => c.title).join(' and ')}
-                  {x.scope === 'global' ? '' : ` (in ${x.scope})`}: only the first that can run takes it.
+                  <Keys input={chordKeys(x.chord)} />
+                  {l.conflict(
+                    x.commands.map((c) => c.title),
+                    x.scope === 'global' ? undefined : x.scope,
+                  )}
                 </p>
               ))}
             </div>
@@ -63,24 +126,24 @@ export function HelpView(props: {
         )}
       </Show>
       {(props.bindings ?? []).map((group) => (
-        <Group title={group.title} bindings={group.bindings} />
+        <Group title={group.title} bindings={group.bindings} or={l.or} />
       ))}
-      <Group title="Everywhere" bindings={props.global ?? DefaultGlobalKeys} />
-      <section class={classes.group} aria-label="Commands">
+      <Group title={l.everywhere} bindings={props.global ?? defaultGlobalKeys(l)} or={l.or} />
+      <section class={classes.group} aria-label={l.commands}>
         <div class={classes.headingRow}>
-          <ViewHeading>Commands</ViewHeading>
+          <ViewHeading>{l.commands}</ViewHeading>
           <Button
             size="xs"
             variant="ghost"
             pressed={model.editing}
             onClick={() => model.setEditing(!model.editing.value)}
           >
-            Change keys
+            {l.changeKeys}
           </Button>
         </div>
         <dl class={classes.list}>
           <For each={model.listed} by={(c) => c.id}>
-            {(c) => <CommandKeys model={model} command={c} recording={recording.key(c.id)} />}
+            {(c) => <CommandKeys model={model} command={c} recording={recording.key(c.id)} labels={l} />}
           </For>
         </dl>
         <Show when={derive(model.editing, (e) => (e ? true : undefined))}>
@@ -90,15 +153,15 @@ export function HelpView(props: {
                 {(keyless) => (
                   <Select
                     size="sm"
-                    aria-label="Give a key to a command"
-                    options={[['', 'Give a key to…'], ...keyless.map((c) => [c.id, c.title] as const)]}
-                    value=""
+                    aria-label={l.giveKey}
+                    options={[['', l.giveKeyPlaceholder], ...keyless.map((c) => [c.id, c.title] as const)]}
+                    value={given}
                     onChange={(id) => id && model.record(id)}
                   />
                 )}
               </Show>
               <Button size="xs" variant="ghost" onClick={() => model.resetAll()}>
-                Reset all
+                {l.resetAll}
               </Button>
             </div>
           )}
@@ -116,8 +179,9 @@ function CommandKeys(props: {
   model: KeysModel<any>;
   command: CommandDefinition<any>;
   recording: ReadonlyState<boolean>;
+  labels: HelpLabels;
 }) {
-  const { model, command: c } = props;
+  const { model, command: c, labels: l } = props;
   const keymap = model.manager.keymap;
   const state = derive(keymap.layers, () => ({ chord: model.manager.shortcut(c), remapped: keymap.isRemapped(c.id) }));
   const chord = derive(state, (s) => s.chord);
@@ -128,45 +192,30 @@ function CommandKeys(props: {
         <Show
           when={derive(props.recording, (r) => (r ? true : undefined))}
           fallback={() => (
-            <Show when={chord} fallback={() => <span class={classes.or}>no key</span>}>
+            <Show when={chord} fallback={() => <span class={classes.or}>{l.noKey}</span>}>
               {(k) => <Keys input={chordKeys(k)} />}
             </Show>
           )}
         >
-          {() => <Recorder model={model} command={c} />}
+          {() => <Recorder model={model} command={c} labels={l} />}
         </Show>
         <Show when={derive(model.editing, (e) => (e ? true : undefined))}>
           {() => (
             <span class={classes.edit}>
-              <Button
-                size="xs"
-                variant="ghost"
-                title={`Change the key of ${c.title}`}
-                onClick={() => model.record(c.id)}
-              >
-                Change
+              <Button size="xs" variant="ghost" title={l.changeTip(c.title)} onClick={() => model.record(c.id)}>
+                {l.change}
               </Button>
               <Show when={derive(state, (s) => (s.chord ? true : undefined))}>
                 {() => (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    title={`Remove the key of ${c.title}`}
-                    onClick={() => model.clear(c.id)}
-                  >
-                    Clear
+                  <Button size="xs" variant="ghost" title={l.clearTip(c.title)} onClick={() => model.clear(c.id)}>
+                    {l.clear}
                   </Button>
                 )}
               </Show>
               <Show when={derive(state, (s) => (s.remapped ? true : undefined))}>
                 {() => (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    title={`Back to the default key of ${c.title}`}
-                    onClick={() => model.reset(c.id)}
-                  >
-                    Reset
+                  <Button size="xs" variant="ghost" title={l.resetTip(c.title)} onClick={() => model.reset(c.id)}>
+                    {l.reset}
                   </Button>
                 )}
               </Show>
@@ -178,17 +227,22 @@ function CommandKeys(props: {
   );
 }
 
-/** Waiting for the new keys: a key-shaped well that takes the focus and every key; Esc or leaving it cancels. */
-function Recorder(props: { model: KeysModel<any>; command: CommandDefinition<any> }) {
-  const { model, command: c } = props;
+/**
+ * Waiting for the new keys: a key-shaped well that takes the focus and every key but Tab (no chord: it moves the focus
+ * on, and leaving cancels); Esc cancels too.
+ */
+function Recorder(props: { model: KeysModel<any>; command: CommandDefinition<any>; labels: HelpLabels }) {
+  const { model, command: c, labels: l } = props;
   const el = (
     <span
       class={classes.recorder}
       tabIndex={0}
       role="button"
-      aria-label={`Press the new keys for ${c.title}; Escape cancels`}
+      aria-label={l.recorder(c.title)}
       onBlur={() => model.cancel()}
       onKeyDown={(e: KeyboardEvent) => {
+        // Tab is no chord (`chordFromEvent`): it leaves, and the blur cancels; a keyboard user is never trapped.
+        if (e.key === 'Tab') return;
         // Nothing behind the recorder takes these keys (an app's shortcuts, a menu's Escape).
         e.preventDefault();
         e.stopPropagation();
@@ -197,7 +251,7 @@ function Recorder(props: { model: KeysModel<any>; command: CommandDefinition<any
         if (chord) model.recorded(chord, c.id);
       }}
     >
-      Press keys…
+      {l.recorderText}
     </span>
   ) as HTMLElement;
   // After whatever opened it settles its own focus (a closing choice gives it back to its button).
@@ -205,7 +259,7 @@ function Recorder(props: { model: KeysModel<any>; command: CommandDefinition<any
   return el;
 }
 
-function Group(props: { title: string; bindings: readonly InputBinding[] }) {
+function Group(props: { title: string; bindings: readonly InputBinding[]; or: string }) {
   return (
     <section class={classes.group} aria-label={props.title}>
       <ViewHeading>{props.title}</ViewHeading>
@@ -217,7 +271,7 @@ function Group(props: { title: string; bindings: readonly InputBinding[] }) {
               <Keys input={b.input} />
               {b.or ? (
                 <>
-                  <span class={classes.or}>or</span>
+                  <span class={classes.or}>{props.or}</span>
                   <Keys input={b.or} />
                 </>
               ) : null}

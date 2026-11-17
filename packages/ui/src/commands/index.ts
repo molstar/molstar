@@ -15,6 +15,7 @@ export {
   chordFromEvent,
   chordId,
   chordKeys,
+  ariaKeyShortcut,
   chordMatches,
   formatChord,
   isMac,
@@ -22,7 +23,13 @@ export {
   KeyPlatform,
   type KeyEventLike,
 } from './keys.js';
-export { type InputBinding, type InputBindingGroup, KeysModel } from './keys-model.js';
+export {
+  DefaultKeysLabels,
+  type InputBinding,
+  type InputBindingGroup,
+  type KeysLabels,
+  KeysModel,
+} from './keys-model.js';
 export {
   type KeyConflict,
   KeyIndex,

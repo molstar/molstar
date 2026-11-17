@@ -70,16 +70,31 @@ export function ParamsForm(props: {
    * is set. A search over settings.
    */
   filter?: ReadonlyState<string>;
+  /**
+   * The search's result for this form, when the host computes it already (settings: one walk per query decides both
+   * whether a group shows and which rows do). Else the form walks its params once per filter text and values.
+   */
+  search?: ReadonlyState<ParamsSearch | undefined>;
 }) {
+  const filter = normalized(props.filter);
+  const { form } = props;
+  const search =
+    props.search ??
+    (filter && derive([filter, form.values], (q, v) => (q ? searchParams(form.params, q, v) : undefined)));
   return (
     <div class={classes.form}>
-      <FormRows form={props.form} filter={normalized(props.filter)} level={0} />
+      <FormRows form={form} filter={filter} search={search} level={0} />
     </div>
   );
 }
 
 /** A form's rows at a level (the top of a form, an object list's item). */
-function FormRows(props: { form: ParamsFormModel<any>; filter?: ReadonlyState<string>; level: number }) {
+function FormRows(props: {
+  form: ParamsFormModel<any>;
+  filter?: ReadonlyState<string>;
+  search?: ReadonlyState<ParamsSearch | undefined>;
+  level: number;
+}) {
   const { form } = props;
   return (
     <ParamControls
@@ -87,7 +102,7 @@ function FormRows(props: { form: ParamsFormModel<any>; filter?: ReadonlyState<st
       field={(name) => ({ value: form.field(name), set: (v) => form.set(name, v) })}
       visible={(name) => (form.params[name].hideIf ? form.visible(name) : undefined)}
       filter={props.filter}
-      place={{ form, path: '', level: props.level }}
+      place={{ form, path: '', level: props.level, search: props.search }}
     />
   );
 }
@@ -98,12 +113,15 @@ interface Place {
   path: string;
   /** The nesting depth: labels indent by this many `--msui-form-indent`. */
   level: number;
+  /** The search's rows by path (undefined while there is no search): what a row, a section and a fold read. */
+  search?: ReadonlyState<ParamsSearch | undefined>;
 }
 
 const at = (place: Place, path: string, deeper = false): Place => ({
   form: place.form,
   path,
   level: deeper ? place.level + 1 : place.level,
+  search: place.search,
 });
 
 /** A block of rows one level deeper: its labels step in, the label column shrinks as much (styles §5). */
@@ -142,19 +160,25 @@ function ParamControls(props: {
     if (!visibles.has(name)) visibles.set(name, props.visible(name));
     return visibles.get(name);
   };
+  const search = place.search;
   // A section is hidden while none of its rows shows (all hidden by their hideIf, none matching a search): one watch of
-  // their hideIfs and the search. None when a row among them always shows and there is no search.
+  // their hideIfs and the search, a lookup by path in the search's one walk. None when a row among them always shows
+  // and there is no search.
   const hiddenWhenEmpty = (el: HTMLElement, names: string[]) => {
-    if (!filter && names.some((n) => !visible(n))) return el;
+    if (!search && names.some((n) => !visible(n))) return el;
     const sources: WatchSource[] = [];
     for (const n of names) {
       const v = visible(n);
       if (v) sources.push(v);
     }
-    if (filter) sources.push(filter);
+    if (search) sources.push(search);
     watch(sources, () => {
-      const q = filter?.value ?? '';
-      setAttr(el, 'hidden', !names.some((n) => visible(n)?.value !== false && matches(n, params[n], q)));
+      const found = search?.value;
+      setAttr(
+        el,
+        'hidden',
+        !names.some((n) => visible(n)?.value !== false && (!found || found.rows.get(`${place.path}/${n}`) === true)),
+      );
     });
     return el;
   };
@@ -243,27 +267,100 @@ export function searchRest(text: string, q: string): string {
     .join(' ');
 }
 
-/** Whether any of the params (or anything inside them) matches a search text: a settings group with no match hides. */
-export function paramsMatch(params: PD.Params, text: string): boolean {
-  const q = text.trim().toLowerCase().replace(/\s+/g, ' ');
-  return Object.keys(params).some((k) => !params[k].isHidden && matches(k, params[k], q));
+/**
+ * A search over a form's params (styles §8, settings): which rows show, by their path in the form (`/name`, a group's
+ * `/group/name`, a choice's case `/choice:case/name`), and whether any does. One walk per search text and values: rows,
+ * sections, folds and settings groups read it instead of walking again each.
+ */
+export interface ParamsSearch {
+  readonly rows: ReadonlyMap<string, boolean>;
+  /** Some row shows. */
+  readonly any: boolean;
 }
 
-/** Whether a param or anything inside it matches the (normalized) filter text, its words over the path (`searchRest`). */
-function matches(name: string, param: PD.Any, q: string): boolean {
-  if (!q) return true;
-  const rest = searchRest(param.description ?? '', searchRest(labelOf(name, param), q));
-  if (!rest) return true;
-  if (param.type === 'group') return Object.keys(param.params).some((k) => matches(k, param.params[k], rest));
-  if (param.type === 'mapped') {
-    return param.select.options.some(([option]) => {
-      const inner = param.map(option);
-      return inner.type === 'group'
-        ? Object.keys(inner.params).some((k) => matches(k, inner.params[k], rest))
-        : matches(option, inner, rest);
-    });
+/** Whether any of the params (or anything inside them) shows for a search text: a settings group with no match hides. */
+export function paramsMatch(params: PD.Params, text: string, values?: Record<string, unknown>): boolean {
+  return searchParams(params, text.trim().toLowerCase().replace(/\s+/g, ' '), values).any;
+}
+
+/**
+ * The rows a (normalized) search text shows, as `ParamsForm` lays them out: a row shows when its label and description
+ * take every word, or a row inside it shows (its words passed down: `searchRest`). Rows that are never shown are never
+ * counted: hidden params, plain values, a `hideIf` that holds on the `values` (the form's, a group's own), a choice's
+ * other cases. A choice also shows when one of its options' labels (or ids) takes the words. Without `values`, hideIfs
+ * are not asked and every case of a choice is searched.
+ */
+export function searchParams(params: PD.Params, q: string, values?: Record<string, unknown>): ParamsSearch {
+  const rows = new Map<string, boolean>();
+  const any = searchLevel(params, q, values, '', rows);
+  return { rows, any };
+}
+
+/** The cases a choice maps to, by option: `map` may build its params each call, so it runs once per option. */
+const mappedCases = new WeakMap<PD.Mapped<any>, Map<string, PD.Any>>();
+
+function caseOf(param: PD.Mapped<any>, option: string): PD.Any {
+  let cases = mappedCases.get(param);
+  if (!cases) mappedCases.set(param, (cases = new Map()));
+  let inner = cases.get(option);
+  if (!inner) cases.set(option, (inner = param.map(option)));
+  return inner;
+}
+
+function searchLevel(
+  params: PD.Params,
+  q: string,
+  values: Record<string, unknown> | undefined,
+  path: string,
+  rows: Map<string, boolean>,
+): boolean {
+  let any = false;
+  for (const k of Object.keys(params)) {
+    const p = params[k];
+    if (p.isHidden || p.type === 'value') continue;
+    if (values && p.hideIf?.(values)) continue;
+    if (searchRow(k, p, q, values ? (values[k] as any) : undefined, !!values, `${path}/${k}`, rows)) any = true;
   }
-  return false;
+  return any;
+}
+
+function searchRow(
+  name: string,
+  param: PD.Any,
+  q: string,
+  value: any,
+  hasValues: boolean,
+  path: string,
+  rows: Map<string, boolean>,
+): boolean {
+  // Converted: its row is what it converts to (`ParamRow`).
+  const p: PD.Any =
+    param.type === 'converted'
+      ? ({ ...param.converted, label: param.converted.label ?? labelOf(name, param) } as PD.Any)
+      : param;
+  const rest = q && searchRest(p.description ?? '', searchRest(labelOf(name, p), q));
+  let shown = !rest;
+  if (p.type === 'group') {
+    if (searchLevel(p.params, rest, hasValues ? (value ?? {}) : undefined, path, rows)) shown = true;
+  } else if (p.type === 'mapped') {
+    if (rest && p.select.options.some(([id, label]) => !searchRest(label, rest) || !searchRest(id, rest))) shown = true;
+    const cases = hasValues
+      ? value?.name !== undefined
+        ? [value.name as string]
+        : []
+      : p.select.options.map((o) => o[0]);
+    for (const option of cases) {
+      const inner = caseOf(p, option);
+      const at = `${path}:${option}`;
+      const found =
+        inner.type === 'group'
+          ? searchLevel(inner.params, rest, hasValues ? (value?.params ?? {}) : undefined, at, rows)
+          : searchRow(option, inner, rest, value?.params, hasValues, at, rows);
+      if (found) shown = true;
+    }
+  }
+  rows.set(path, shown);
+  return shown;
 }
 
 function ParamRow(props: {
@@ -287,20 +384,23 @@ function ParamRow(props: {
     return <ParamRow name={name} param={as} binding={converted} visible={visible} filter={filter} place={place} />;
   }
   const label = labelOf(name, param);
-  // Hidden by its hideIf and the search: one watch of both (none when neither applies).
+  // Hidden by its hideIf and the search (its path in the search's one walk): one watch of both (none when neither).
+  const search = place.search;
   const sources: WatchSource[] = [];
   if (visible) sources.push(visible);
-  if (filter) sources.push(filter);
+  if (search) sources.push(search);
   const wrapper = (...children: Child[]) => {
     const el = (<div class={classes.field}>{children}</div>) as HTMLElement;
     if (sources.length)
-      watch(sources, () =>
-        setAttr(el, 'hidden', !((visible?.value ?? true) && matches(name, param, filter?.value ?? ''))),
-      );
+      watch(sources, () => {
+        const found = search?.value;
+        setAttr(el, 'hidden', !((visible?.value ?? true) && (!found || found.rows.get(place.path) === true)));
+      });
     return el;
   };
-  // A group or a choice passes down the words its own name does not match: all of them matched, all of its rows show.
-  const inner = filter && derive(filter, (q) => searchRest(label, q));
+  // A group or a choice passes down the words its label and description do not match (as the search's walk): all of
+  // them matched, all of its rows show.
+  const inner = filter && derive(filter, (q) => searchRest(param.description ?? '', searchRest(label, q)));
   if (param.type === 'group') {
     return wrapper(
       <GroupControl

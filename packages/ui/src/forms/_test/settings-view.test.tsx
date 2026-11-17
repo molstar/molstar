@@ -124,6 +124,70 @@ describe('the settings view', () => {
     expect(matchingGroups(v.gs, ' ')).toHaveLength(3);
   });
 
+  it('counts no hidden setting: a group whose only match is hidden hides, and "No setting matches" shows', async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const form = new ParamsFormModel({
+      mode: PD.Select('simple', [
+        ['simple', 'Simple'],
+        ['expert', 'Expert'],
+      ]),
+      secret: PD.Numeric(1, {}, { isHidden: true, label: 'Secret depth' }),
+      tuning: PD.Numeric(1, {}, { label: 'Tuning depth', hideIf: (v: any) => v.mode !== 'expert' }),
+    });
+    const query = new State('depth');
+    dispose = render(() => <SettingsView groups={[{ id: 'adv', title: 'Advanced', form }]} query={query} />, container);
+    flush();
+    await tick();
+    const group = container.querySelector<HTMLElement>('[data-settings-group="adv"]')!;
+    expect(group.hidden).toBe(true);
+    expect(container.textContent).toContain('No setting matches “depth”.');
+    form.set('mode', 'expert');
+    flush();
+    await tick();
+    expect(group.hidden).toBe(false);
+    expect(container.textContent).not.toContain('No setting matches');
+  });
+
+  it('takes the groups as a state: an added group shows and is searched', async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const [look, camera] = groups();
+    const list = new State<readonly SettingsGroup[]>([look]);
+    const query = new State('field');
+    dispose = render(() => <SettingsView groups={list} query={query} />, container);
+    flush();
+    await tick();
+    expect(container.textContent).toContain('No setting matches');
+    list.set([look, camera]);
+    flush();
+    await tick();
+    expect(container.querySelector<HTMLElement>('[data-settings-group="camera"]')?.hidden).toBe(false);
+    expect(container.textContent).not.toContain('No setting matches');
+    list.set([look]);
+    flush();
+    expect(container.querySelector('[data-settings-group="camera"]')).toBeNull();
+    expect(container.textContent).toContain('No setting matches');
+  });
+
+  it('speaks the app’s words', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    dispose = render(
+      () => (
+        <SettingsView
+          groups={groups()}
+          query={new State('zzz')}
+          labels={{ search: 'Chercher', noMatch: (q) => `Rien pour ${q}` }}
+        />
+      ),
+      container,
+    );
+    flush();
+    expect(container.querySelector('input[aria-label="Chercher"]')).not.toBeNull();
+    expect(container.textContent).toContain('Rien pour zzz');
+  });
+
   it('is accessible (axe)', async () => {
     const v = mount();
     expect(await axeViolations(v.container)).toBe('');

@@ -67,10 +67,10 @@ defineStyles('stage/stage.module.css', `@layer msui.components {
 
 .msui-stage-slot {
   pointer-events: none;
+}
 
-  & > * {
-    pointer-events: auto;
-  }
+:where(.msui-stage-slot) > * {
+  pointer-events: auto;
 }
 
 .msui-stage-top {
@@ -154,6 +154,11 @@ defineStyles('stage/stage.module.css', `@layer msui.components {
   .msui-stage-stage[data-toolbar="hidden"] & {
     opacity: 0;
     pointer-events: none;
+  }
+
+  .msui-stage-stage[data-toolbar="hidden"] &:focus-within {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 

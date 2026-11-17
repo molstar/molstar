@@ -317,15 +317,20 @@ Written once with `mod` (⌘ on macOS, Ctrl elsewhere); `chordKeys` (one cap per
 platform, `chordId` compares them (a symbol's Shift is part of it). **The platform** is `KeyPlatform.mac`, detected once
 from the browser by core's `isApplePlatform` (false outside a browser) and settable by a host (tests, a forced
 platform); every default `mac` reads it. Why: one detection for the whole UI, in core with the other browser checks.
+`ariaKeyShortcut` writes a chord in `aria-keyshortcuts`' syntax (`Meta+Z` on macOS, `Control+Z` elsewhere).
 
 ### 6.6 Help and changing keys
 
-`KeysModel(manager)` (DOM-free): `listed` (commands with a key, those the person remapped or cleared, the one being
-recorded), `conflicts`, `keyless`; `setEditing`, `record(id)`, `recorded(chord)`, `cancel`, `clear`, `reset`,
-`resetAll`, each through the keymap (§6.3), and `said`: what the last change did (with what a new key now shares). Why a
-model: an agent or a test changes keys as the view does. `HelpView({ commands, bindings?, global?, intro?, keys? })`
-renders it with the app's input bindings (`InputBindingGroup`: mouse, touch) and the keys that work everywhere: the
-conflicts first, a recorder that takes every key (Esc or leaving cancels), `said` in a polite live region. It has no
+`KeysModel(manager, { labels? })` (DOM-free): `listed` (commands with a key, those the person remapped or cleared, the
+one being recorded), `conflicts`, `keyless`; `setEditing`, `record(id)`, `recorded(chord)`, `cancel`, `clear`, `reset`,
+`resetAll`, each through the keymap (§6.3), and `said`: what the last change did (with what a new key now shares), in
+`KeysLabels`' words. The same text again toggles a trailing no-break space (as `StatusModel.spoken`), so a live region
+is told and says it again (Reset all twice). Why a model: an agent or a test changes keys as the view does.
+`HelpView({ commands, bindings?, global?, intro?, keys?, labels? })` renders it with the app's input bindings
+(`InputBindingGroup`: mouse, touch) and the keys that work everywhere: the conflicts first, a recorder that takes every
+key but Tab (no chord: it leaves, and leaving cancels, so a keyboard user is never trapped; Esc cancels too), `said` in
+a polite live region. "Give a key to…" is controlled: it names the keyless command while it is recorded, its placeholder
+again after a key is taken or the recording is cancelled. Every word is `HelpLabels`' (`DefaultHelpLabels`). It has no
 scroll of its own (a view's body is the one, styles §8.4).
 
 ## 7. Menus and buttons by command id

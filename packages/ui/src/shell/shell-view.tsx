@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { derive, type ReadonlyState, State } from '@molstar/core/reactive';
+import { derive, listen, type ReadonlyState, State } from '@molstar/core/reactive';
 import { Button } from '../components/button/button.js';
-import { openContextMenu, openMenuBeside } from '../components/context-menu/context-menu.js';
+import { type ContextMenuItem, openContextMenu, openMenuBeside } from '../components/context-menu/context-menu.js';
 import { Icon, type IconName } from '../components/icon/icon.js';
 import { installTooltips } from '../components/tooltip/tooltip.js';
 import { dismissable } from '../components/popover/dismiss.js';
@@ -40,11 +40,8 @@ import {
 } from '../dom/index.js';
 import { classes } from './_generated/shell.module.css.js';
 import {
-  allGroups,
   TopGroup,
-  containsLeaf,
   DefaultGroupSize,
-  columnOf,
   dockedGroups,
   findGroup,
   MinGroupSize,
@@ -53,12 +50,16 @@ import {
   gridPeers,
   inRegion,
   type GroupNode,
+  type LayoutIndex,
   type LayoutNode,
+  layoutIndex,
   mainNode,
+  nodeOf,
   type Rect,
   railGroup,
   rightColumn,
   type ShellLayout,
+  type SplitNode,
   stacked,
   type ViewRef,
 } from './layout.js';
@@ -68,6 +69,7 @@ import {
   type RailItem,
   type ShellModel,
   type ShellViewDef,
+  keyOf,
   type ViewPlacement,
   viewIdOf,
 } from './shell-model.js';
@@ -145,9 +147,17 @@ export interface ShellViewProps {
  */
 export function ShellView(props: ShellViewProps) {
   const { shell } = props;
+  const t = shell.labels;
   const owner = requireScope('ShellView');
   const mainArea = (
-    <div class={classes.main} data-msui-shell-main="" tabIndex={-1} aria-label="Main area" role="region" />
+    <div
+      class={classes.main}
+      data-msui-shell-main=""
+      data-msui-region=""
+      tabIndex={-1}
+      aria-label={t.mainArea}
+      role="region"
+    />
   ) as HTMLElement;
   const bodies = new ViewBodies(shell, owner, {
     menuButton: !!props.viewMenu,
@@ -193,8 +203,9 @@ export function ShellView(props: ShellViewProps) {
     <div
       class={props.class ? `${classes.shell} ${props.class}` : classes.shell}
       role="application"
-      aria-roledescription="workspace"
-      aria-label={props.label ?? 'Workspace'}
+      aria-roledescription={t.workspaceRole}
+      aria-label={props.label ?? t.workspace}
+      data-msui-shell=""
     />
   ) as HTMLElement;
   observeResize(root, () => shell.setWidth(root.clientWidth));
@@ -219,9 +230,9 @@ export function ShellView(props: ShellViewProps) {
   const doc = root.ownerDocument;
   shell.setFullscreenAvailable(
     typeof root.requestFullscreen !== 'function'
-      ? 'This browser has no fullscreen'
+      ? t.fullscreenNoApi
       : doc.fullscreenEnabled === false
-        ? 'Fullscreen is not allowed here (the page embedding this does not allow it)'
+        ? t.fullscreenNotAllowed
         : true,
   );
   effect(shell.fullscreenRequest, (on) => {
@@ -256,9 +267,9 @@ export function ShellView(props: ShellViewProps) {
       <>
         {layout}
         <ModalHost shell={shell} bodies={bodies} />
-        {props.busy ? <BusyOverlay busy={props.busy} /> : null}
+        {props.busy ? <BusyOverlay busy={props.busy} cancel={t.cancel} /> : null}
         {props.onDropFiles ? (
-          <FileDrop onDrop={props.onDropFiles} label={props.dropLabel} formats={props.dropFormats} />
+          <FileDrop onDrop={props.onDropFiles} label={props.dropLabel ?? t.dropFiles} formats={props.dropFormats} />
         ) : null}
       </>
     ) as Node,
@@ -310,14 +321,13 @@ class ViewBodies {
     readonly ui: { readonly menuButton: boolean; readonly railToggle: boolean; readonly main: HTMLElement },
   ) {
     // A view that leaves the layout and every layer, or is unregistered: its body goes. Followed by what is placed,
-    // registered and layered (a key: not every layout write, a drag's sizes, sweeps).
+    // registered and layered (compared, not keyed by a string: not every layout write, a drag's sizes, sweeps).
     effect(
-      derive([shell.layout, shell.views, shell.card, shell.page, shell.modal], (l, v, c, p, m) => {
-        let key = `${c?.ref}|${p?.ref}|${m?.ref}`;
-        for (const g of allGroups(l)) key += `|${g.views.join(',')}`;
-        for (const [id, def] of v) key += `|${id}:${defId(def)}`;
-        return key;
-      }),
+      derive(
+        [shell.layout, shell.views, shell.card, shell.page, shell.modal],
+        (l, v, c, p, m) => ({ l, v, c: c?.ref, p: p?.ref, m: m?.ref }),
+        (a, b) => a.v === b.v && a.c === b.c && a.p === b.p && a.m === b.m && samePlaced(a.l, b.l),
+      ),
       () => this.#sweep(),
     );
   }
@@ -391,20 +401,35 @@ class ViewBodies {
   }
 }
 
-/** The instance key of a ref (`id#key`), if it has one. */
-function keyOf(ref: ViewRef): string | undefined {
-  const i = ref.indexOf('#');
-  return i < 0 ? undefined : ref.slice(i + 1);
+/** Whether two layouts place the same views (wherever). */
+function samePlaced(a: ShellLayout, b: ShellLayout): boolean {
+  if (a === b) return true;
+  const x = layoutIndex(a).views;
+  const y = layoutIndex(b).views;
+  if (x.size !== y.size) return false;
+  for (const ref of x.keys()) if (!y.has(ref)) return false;
+  return true;
 }
 
-/** A number for each view definition (a key that changes when a view is registered anew under its id). */
-const defIds = new WeakMap<ShellViewDef, number>();
-let nextDefId = 1;
-function defId(def: ShellViewDef | undefined): number {
-  if (!def) return 0;
-  let id = defIds.get(def);
-  if (id === undefined) defIds.set(def, (id = nextDefId++));
-  return id;
+function sameList(a: readonly string[], b: readonly string[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/** Whether two values of a group read the same (its views, the one shown, its fold, its size). */
+function sameGroup(a: GroupNode | undefined, b: GroupNode | undefined): boolean {
+  return (
+    a === b ||
+    (!!a &&
+      !!b &&
+      a.id === b.id &&
+      a.active === b.active &&
+      !!a.collapsed === !!b.collapsed &&
+      a.size === b.size &&
+      sameList(a.views, b.views))
+  );
 }
 
 /**
@@ -489,6 +514,12 @@ function shownViews(shell: ShellModel, g: GroupNode | undefined): ViewRef[] {
   return g ? g.views.filter((v) => shell.shows(v)) : [];
 }
 
+/** Whether a group has a view that shows (no list made: asked per node while the tree's state is written). */
+function hasShown(shell: ShellModel, g: GroupNode): boolean {
+  for (const v of g.views) if (shell.shows(v)) return true;
+  return false;
+}
+
 /** The view a group shows: its active one if it shows, else its first that does. */
 function activeOf(shell: ShellModel, g: GroupNode | undefined): ViewRef | undefined {
   const shown = shownViews(shell, g);
@@ -507,7 +538,7 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
     leafEl: props.main,
     rootOf: (l) => l.root,
     // Covered by the card (it takes the right column's place): paused and inert, as hidden UI is.
-    covered: (l, n) => !!shell.card.value && n.kind === 'group' && l.rail && isInRightColumn(l, n.id),
+    covered: (l, n) => !!shell.card.value && n.kind === 'group' && l.rail && layoutIndex(l).rightGroups.has(n.id),
     // Expanded (shell §3.9): the main area alone; every group away, paused.
     away: (_, n) => shell.expanded.value && n.kind === 'group',
     sources: [shell.card, shell.expanded],
@@ -549,6 +580,16 @@ function Region(props: { shell: ShellModel; bodies: ViewBodies; content: HTMLEle
     const m = shell.maximized.value;
     return m && (m === 'content' || inRegion(l, m)) ? m : undefined;
   };
+  // Several panes shown (a maximized one shows alone: no mark of being the active one).
+  const several = derive([shell.layout, shell.maximized], (l, m) => !!mainNode(l).root && !m);
+  const marked = derive([shell.activePane, shell.layout], (p) => shell.paneNode(p));
+  // The shell's own mark of the active pane (several panes); what a pane shows on its status is the pane's (`ctx.pane`).
+  // Written as either changes and after each rebuild (the panes' wrappers are new then).
+  const mark = (host: HTMLElement) => {
+    for (const el of host.querySelectorAll('[data-pane]')) {
+      setAttr(el, 'data-active', props.mark && several.value && el.getAttribute('data-pane') === marked.value);
+    }
+  };
   const tree = DockTree({
     shell,
     bodies,
@@ -558,15 +599,13 @@ function Region(props: { shell: ShellModel; bodies: ViewBodies; content: HTMLEle
     // Maximized (shell §2.1): only that pane and what holds it.
     away: (l, n) => {
       const m = alone(l);
-      return !!m && !!mainNode(l).root && !holds(n, m);
+      return !!m && !!mainNode(l).root && !holds(layoutIndex(l), n, m);
     },
     sources: [shell.maximized],
     motion: false,
+    onBuild: mark,
   });
   tree.classList.add(classes.region);
-  // Several panes: the active one is marked (a shared toolbar follows it, shell §2.1).
-  // Several panes shown (a maximized one shows alone: no mark of being the active one).
-  const several = derive([shell.layout, shell.maximized], (l, m) => !!mainNode(l).root && !m);
   watch([several], () => setAttr(tree, 'data-panes', several.value));
   // The pane under a press or the focus is the active one.
   const paneOf = (target: EventTarget | null): string | undefined => {
@@ -593,20 +632,16 @@ function Region(props: { shell: ShellModel; bodies: ViewBodies; content: HTMLEle
   });
   on(tree, 'pointerover', (e: Event) => shell.setPaneHovered(paneOf(e.target)));
   on(tree, 'pointerleave', () => shell.setPaneHovered(undefined));
-  const marked = derive([shell.activePane, shell.layout], (p) => shell.paneNode(p));
-  // The shell's own mark of the active pane (several panes); what a pane shows on its status is the pane's (`ctx.pane`).
-  watch([marked, several], () => {
-    for (const el of tree.querySelectorAll('[data-pane]')) {
-      setAttr(el, 'data-active', props.mark && several.value && el.getAttribute('data-pane') === marked.value);
-    }
-  });
+  watch([marked, several], () => mark(tree));
   return tree;
 }
 
-/** Whether a node is a pane (`content` or a group's id) or holds it. */
-function holds(n: LayoutNode, pane: string): boolean {
-  if (n.id === pane) return true;
-  return n.kind === 'split' && n.children.some((c) => holds(c, pane));
+/** Whether a node is a pane (`content` or a group's id) or holds it (up the pane's parents: no walk of the subtree). */
+function holds(ix: LayoutIndex, n: LayoutNode, pane: string): boolean {
+  for (let id: string | undefined = pane; id !== undefined; id = ix.parents.get(id)?.id) {
+    if (id === n.id) return true;
+  }
+  return false;
 }
 
 interface DockTreeOptions {
@@ -627,11 +662,13 @@ interface DockTreeOptions {
    * area's panes: a pane maximized or back shows at once (sliding each pane out in turn drew every layout between).
    */
   motion?: boolean;
+  /** After each rebuild (its nodes are new): what is written on them from outside (the active pane's mark). */
+  onBuild?: (host: HTMLElement) => void;
 }
 
 /**
  * A docked tree (shell §3): groups and splits around the level's leaf. Built only when its structure changes
- * (`shapeOf`); everything else is written in place (`applyState`): which nodes show and which are folded, which takes
+ * (`sameShape`); everything else is written in place (`applyState`): which nodes show and which are folded, which takes
  * the rest, the sizes, the splitters' sides. Why: rebuilding moves the leaf (the app's canvas), which drops the focus in
  * it and ends a splitter's drag; folding the right group or hiding the rail must not. Each group's element is kept by id
  * while the tree around it changes (its view stays mounted).
@@ -677,14 +714,24 @@ function DockTree(o: DockTreeOptions): HTMLElement {
   };
   // The last size written to each node (a write only when it changed: a drag's frames touch one node).
   const sizes = new Map<HTMLElement, number>();
+  // Whether each node shows, asked once a node per write (a folded group asks its column's, a split its children's).
+  const shown = new Map<LayoutNode, boolean>();
   const applyState = (l: ShellLayout) => {
+    const ix = layoutIndex(l);
+    shown.clear();
+    const away = (n: LayoutNode) => o.away?.(l, n) ?? false;
+    const shows = (n: LayoutNode): boolean => {
+      let v = shown.get(n);
+      if (v === undefined) shown.set(n, (v = nodeShows(shell, l, ix, n, shows)));
+      return v;
+    };
     const walk = (n: LayoutNode, flex: boolean, at: 'start' | 'end' | undefined) => {
       const el = nodes.get(n.id);
       const covered = o.covered?.(l, n) ?? false;
-      const shows = nodeShows(shell, l, n) && !(o.away?.(l, n) ?? false);
+      const show = shows(n) && !away(n);
       if (el) {
-        showNode(el, n, shows);
-        setAttr(el, 'data-folded', n.kind === 'group' && !!n.collapsed && railGroup(l)?.id !== n.id);
+        showNode(el, n, show);
+        setAttr(el, 'data-folded', n.kind === 'group' && !!n.collapsed && ix.rail?.id !== n.id);
         setAttr(el, 'data-flex', flex);
         setAttr(el, 'data-at', at ?? false);
         // The node that takes the rest has no splitter (hidden for assistive tech too, not only by its style).
@@ -699,22 +746,42 @@ function DockTree(o: DockTreeOptions): HTMLElement {
           }
         }
       }
-      if (n.kind === 'group') groups.get(n.id)?.scope.setActive(shows && !covered);
+      if (n.kind === 'group') groups.get(n.id)?.scope.setActive(show && !covered);
       if (n.kind !== 'split') return;
-      const f = flexIndex(shell, l, n, o.leaf, o.away);
-      n.children.forEach((c, i) => walk(c, i === f, i === f ? undefined : i > f ? 'start' : 'end'));
+      const f = flexIndex(ix, n, o.leaf, shows, away);
+      for (let i = 0; i < n.children.length; i++) {
+        walk(n.children[i], i === f, i === f ? undefined : i > f ? 'start' : 'end');
+      }
     };
     walk(o.rootOf(l), true, undefined);
   };
+  const sources = o.sources ?? [];
+  // Written again only when what it reads changes (shell §3.1): the tree's nodes, sizes, folds and views, what shows,
+  // the rail, and the options' sources; a window's move or the other tree's drag skips it.
   effect(
-    derive([shell.layout, shell.absent, shell.views, ...(o.sources ?? [])], (l, a, v, ...rest) => ({ l, a, v, rest })),
+    derive(
+      [shell.layout, shell.absent, shell.views, shell.hiddenViews, ...sources],
+      (l, a, v, h, ...rest) => ({ l, a, v, h, rest }),
+      (x, y) =>
+        x.a === y.a &&
+        x.v === y.v &&
+        x.h === y.h &&
+        x.l.rail === y.l.rail &&
+        x.rest.every((r, i) => r === y.rest[i]) &&
+        sameTree(o.rootOf(x.l), o.rootOf(y.l)),
+    ),
     ({ l }) => {
       applyState(l);
       settled = true;
     },
   );
   let buildScope: ViewScope | undefined;
-  const shape = derive(shell.layout, (l) => shapeOf(l, o.rootOf(l)));
+  // Rebuilt only when its structure changes (compared, not keyed by a string made at each write).
+  const shape = derive(
+    shell.layout,
+    (l) => l,
+    (a, b) => railGroup(a)?.id === railGroup(b)?.id && sameShape(o.rootOf(a), o.rootOf(b)),
+  );
   effect(shape, () => {
     const l = shell.layout.value;
     buildScope?.dispose();
@@ -739,6 +806,7 @@ function DockTree(o: DockTreeOptions): HTMLElement {
     settled = false;
     applyState(l);
     settled = was;
+    o.onBuild?.(host);
     for (const [id, g] of groups) {
       if (used.has(id)) continue;
       g.scope.dispose();
@@ -752,49 +820,64 @@ function DockTree(o: DockTreeOptions): HTMLElement {
   return host;
 }
 
-/** Whether a node shows: a group with a view to show (a rail group folded does not: its rail stays), a split with one. */
-function nodeShows(shell: ShellModel, l: ShellLayout, n: LayoutNode): boolean {
+/**
+ * Whether a node shows: a group with a view to show (a rail group folded does not: its rail stays), a split with one.
+ * `shows` asks it of another node (memoized by the caller: once a node per write).
+ */
+function nodeShows(
+  shell: ShellModel,
+  l: ShellLayout,
+  ix: LayoutIndex,
+  n: LayoutNode,
+  shows: (n: LayoutNode) => boolean,
+): boolean {
   if (n.kind === 'main' || n.kind === 'content') return true;
   if (n.kind === 'group') {
-    if (shownViews(shell, n).length === 0) return false;
-    if (n.collapsed && railGroup(l)?.id === n.id) return false;
-    if (!l.rail && isInRightColumn(l, n.id)) return false;
+    if (!hasShown(shell, n)) return false;
+    if (n.collapsed && ix.rail?.id === n.id) return false;
+    if (!l.rail && ix.rightGroups.has(n.id)) return false;
     // A folded group shows its header only beside an open group of its column: with every group of the column folded,
     // the column closes to the rail (no header left alone over an empty column).
     if (n.collapsed) {
-      const column = columnOf(l, n.id);
+      const column = ix.columns.get(n.id);
       const open = (c: LayoutNode): boolean =>
         c.kind === 'group'
-          ? c.id !== n.id && !c.collapsed && shownViews(shell, c).length > 0
+          ? c.id !== n.id && !c.collapsed && hasShown(shell, c)
           : c.kind === 'split' && c.children.some(open);
       return !!column && column.children.some(open);
     }
     return true;
   }
-  return n.children.some((c) => nodeShows(shell, l, c));
+  for (const c of n.children) if (shows(c)) return true;
+  return false;
 }
 
-function isInRightColumn(l: ShellLayout, id: string): boolean {
-  const col = rightColumn(l);
-  if (!col) return false;
-  if (col.kind === 'group') return col.id === id;
-  const walk = (n: LayoutNode): boolean =>
-    n.kind === 'group' ? n.id === id : n.kind === 'split' && n.children.some(walk);
-  return walk(col);
+/** Whether two trees read the same to `applyState`: nodes, order, direction, sizes, folds, views (not the active one). */
+function sameTree(a: LayoutNode, b: LayoutNode): boolean {
+  if (a === b) return true;
+  if (a.kind !== b.kind || a.id !== b.id) return false;
+  if (a.kind === 'group') {
+    const g = b as GroupNode;
+    return a.size === g.size && !!a.collapsed === !!g.collapsed && sameList(a.views, g.views);
+  }
+  if (a.kind === 'split') {
+    const s = b as SplitNode;
+    if (a.dir !== s.dir || a.size !== s.size || a.children.length !== s.children.length) return false;
+    for (let i = 0; i < a.children.length; i++) if (!sameTree(a.children[i], s.children[i])) return false;
+  }
+  // The main area is a leaf of the shell's tree (its region is the other tree's).
+  return true;
 }
 
-/**
- * The docked tree's structure: its nodes, their order and direction, which group is the rail's. Equal structures build
- * equal trees; the rest (shown, folded, which takes the rest, sizes) is written in place.
- */
-function shapeOf(l: ShellLayout, root: LayoutNode): string {
-  const rail = railGroup(l)?.id;
-  const walk = (n: LayoutNode): string => {
-    if (n.kind === 'main' || n.kind === 'content') return n.kind;
-    if (n.kind === 'group') return `g:${n.id}${n.id === rail ? '@' : ''}`;
-    return `${n.dir}:${n.id}(${n.children.map(walk).join(',')})`;
-  };
-  return walk(root);
+/** Whether two trees have one structure (`buildNode`'s): nodes, order, direction. */
+function sameShape(a: LayoutNode, b: LayoutNode): boolean {
+  if (a === b) return true;
+  if (a.kind !== b.kind || a.id !== b.id) return false;
+  if (a.kind !== 'split') return true;
+  const s = b as SplitNode;
+  if (a.dir !== s.dir || a.children.length !== s.children.length) return false;
+  for (let i = 0; i < a.children.length; i++) if (!sameShape(a.children[i], s.children[i])) return false;
+  return true;
 }
 
 /**
@@ -802,16 +885,15 @@ function shapeOf(l: ShellLayout, root: LayoutNode): string {
  * size, else the first that shows open (a folded group gives its height to the other).
  */
 function flexIndex(
-  shell: ShellModel,
-  l: ShellLayout,
-  n: LayoutNode & { kind: 'split' },
+  ix: LayoutIndex,
+  n: SplitNode,
   leaf: 'main' | 'content',
-  away?: (l: ShellLayout, n: LayoutNode) => boolean,
+  shows: (n: LayoutNode) => boolean,
+  away: (n: LayoutNode) => boolean,
 ): number {
-  const open = (c: LayoutNode) =>
-    nodeShows(shell, l, c) && !(c.kind === 'group' && c.collapsed) && !(away?.(l, c) ?? false);
+  const open = (c: LayoutNode) => shows(c) && !(c.kind === 'group' && c.collapsed) && !away(c);
   // The leaf takes the rest, unless it is away (another pane maximized): then the pane that shows does.
-  let flex = n.children.findIndex((c) => containsLeaf(c, leaf) && !(away?.(l, c) ?? false));
+  let flex = n.children.findIndex((c) => holds(ix, c, leaf) && !away(c));
   if (flex < 0) flex = n.children.findIndex((c) => (c as GroupNode).size === undefined && open(c));
   if (flex < 0) flex = n.children.findIndex(open);
   return Math.max(0, flex);
@@ -873,18 +955,6 @@ function buildNode(
   return wrap;
 }
 
-function sizeOf(n: LayoutNode, id: string): number | undefined {
-  if (n.kind === 'main') return n.root ? sizeOf(n.root, id) : undefined;
-  if (n.kind === 'content') return undefined;
-  if (n.id === id) return n.size;
-  if (n.kind === 'split')
-    for (const c of n.children) {
-      const s = sizeOf(c, id);
-      if (s !== undefined) return s;
-    }
-  return undefined;
-}
-
 /** A splitter on a sized node's edge toward the node that takes the rest: drags or arrows resize it. */
 function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column'; wrap: HTMLElement; min: number }) {
   const { shell, id, dir } = props;
@@ -901,7 +971,7 @@ function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column';
       role="separator"
       tabIndex={0}
       aria-orientation={dir === 'row' ? 'vertical' : 'horizontal'}
-      aria-label="Resize"
+      aria-label={shell.labels.resize}
       aria-valuemin={String(props.min)}
       onKeyDown={(e: KeyboardEvent) => {
         const step = e.shiftKey ? 64 : 16;
@@ -918,7 +988,10 @@ function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column';
     if (next.value > 0) shell.resize(id, next.value);
   });
   // Its value is the node's size (a focusable separator says where it is).
-  const value = derive(shell.layout, (l) => sizeOf(l.root, id));
+  const value = derive(shell.layout, (l) => {
+    const n = nodeOf(l, id);
+    return n?.kind === 'group' || n?.kind === 'split' ? n.size : undefined;
+  });
   watch([value], () => setAttr(el, 'aria-valuenow', value.value === undefined ? false : String(value.value)));
   // In a lined-up grid, the cells at its place in the other lines move with it: their splitters light with it (hovered,
   // focused, dragged), so the line across reads as one.
@@ -978,24 +1051,28 @@ function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column';
 /** A docked group: its view's frame, with the group's tabs in its header when it is not the rail's. */
 function GroupView(props: { shell: ShellModel; id: string; bodies: ViewBodies }) {
   const { shell, id, bodies } = props;
-  const state = derive([shell.layout, shell.absent, shell.views], (l) => {
-    const g = findGroup(l, id)?.group;
-    const rail = railGroup(l)?.id === id;
-    const views = shownViews(shell, g);
-    return { active: activeOf(shell, g), rail, views, key: `${activeOf(shell, g)}|${rail}|${views.join(',')}` };
-  });
-  const key = derive(state, (s) => s.key);
-  const open = derive(shell.layout, (l) => !findGroup(l, id)?.group.collapsed);
+  const node = groupNode(shell, (l) => findGroup(l, id)?.group);
+  const isRail = derive(shell.layout, (l) => railGroup(l)?.id === id);
+  const state = derive(
+    [node, isRail, shell.absent, shell.views, shell.hiddenViews],
+    (g, rail) => ({ active: activeOf(shell, g), rail, views: shownViews(shell, g) }),
+    (a, b) => a.active === b.active && a.rail === b.rail && sameList(a.views, b.views),
+  );
+  const key = derive(state, (s) => `${s.active}|${s.rail}|${s.views.join(',')}`);
+  const open = derive(node, (g) => !g?.collapsed);
   const enter = entering();
   return (
     // A row's tooltip card goes outside the group, toward the roomier side (the main area).
-    <div class={classes.group} data-group={id} data-tip-edge="">
+    <div class={classes.group} data-group={id} data-tip-edge="" data-msui-region="">
       <Show when={key}>
         {() => {
           const s = state.value;
           if (!s.active) return null;
           const ref = s.active;
-          const tabs = !s.rail && s.views.length > 1 ? <Tabs shell={shell} views={s.views} active={ref} /> : undefined;
+          const tabs =
+            !s.rail && s.views.length > 1 ? (
+              <Tabs shell={shell} views={s.views} active={ref} menu={(r) => viewMenu(shell, r)} />
+            ) : undefined;
           let header!: HTMLElement;
           return enter(
             <KeptFrame
@@ -1030,23 +1107,24 @@ function GroupView(props: { shell: ShellModel; id: string; bodies: ViewBodies })
  */
 function PaneGroupView(props: { shell: ShellModel; id: string; bodies: ViewBodies }) {
   const { shell, id, bodies } = props;
-  const state = derive([shell.layout, shell.absent, shell.views], (l) => {
-    const g = findGroup(l, id)?.group;
-    const views = shownViews(shell, g);
-    const active = activeOf(shell, g);
-    return { active, views, key: `${active}|${views.join(',')}` };
-  });
-  const key = derive(state, (s) => s.key);
+  const state = shownState(
+    shell,
+    groupNode(shell, (l) => findGroup(l, id)?.group),
+  );
+  const key = derive(state, (s) => `${s.active}|${s.views.join(',')}`);
   const enter = entering();
   return (
-    <div class={classes.group} data-group={id} data-tip-edge="">
+    <div class={classes.group} data-group={id} data-tip-edge="" data-msui-region="">
       <Show when={key}>
         {() => {
           const s = state.value;
           if (!s.active) return null;
           const ref = s.active;
           const def = shell.view(ref);
-          const tabs = s.views.length > 1 ? <Tabs shell={shell} views={s.views} active={ref} /> : undefined;
+          const tabs =
+            s.views.length > 1 ? (
+              <Tabs shell={shell} views={s.views} active={ref} menu={(r) => paneMenu(shell, r)} />
+            ) : undefined;
           let header!: HTMLElement;
           return enter(
             <KeptFrame
@@ -1075,20 +1153,21 @@ function PaneGroupView(props: { shell: ShellModel; id: string; bodies: ViewBodie
  */
 function TopOverlay(props: { shell: ShellModel; bodies: ViewBodies }) {
   const { shell, bodies } = props;
-  const state = derive([shell.layout, shell.absent, shell.views], (l) => {
-    const g = mainNode(l).top;
-    const views = shownViews(shell, g);
-    const active = activeOf(shell, g);
-    return { active, views, key: `${active}|${views.join(',')}` };
-  });
-  const key = derive(state, (s) => s.key);
+  const state = shownState(
+    shell,
+    groupNode(shell, (l) => mainNode(l).top),
+  );
+  const key = derive(state, (s) => `${s.active}|${s.views.join(',')}`);
   return (
-    <div class={classes.topOverlay} data-group={TopGroup}>
+    <div class={classes.topOverlay} data-group={TopGroup} data-msui-region="">
       <Show when={key}>
         {() => {
           const s = state.value;
           if (!s.active) return null;
-          const tabs = s.views.length > 1 ? <Tabs shell={shell} views={s.views} active={s.active} /> : undefined;
+          const tabs =
+            s.views.length > 1 ? (
+              <Tabs shell={shell} views={s.views} active={s.active} menu={(r) => paneMenu(shell, r)} />
+            ) : undefined;
           return (
             <KeptFrame
               shell={shell}
@@ -1116,8 +1195,36 @@ function anchorIn(el: Element | undefined, shell: ShellModel, main: HTMLElement)
   return { x: Math.min(r.left - a.left, area.width), y: Math.max(0, r.top - a.top), width: r.width, height: r.height };
 }
 
-/** A group's labelled tabs (a group not at the rail, a window of several views): a tab list, the arrows between. */
-function Tabs(props: { shell: ShellModel; views: readonly ViewRef[]; active: ViewRef }) {
+/** A group's value, a new one only when it reads differently (a drag's frames and a window's move write none). */
+function groupNode(
+  shell: ShellModel,
+  of: (l: ShellLayout) => GroupNode | undefined,
+): ReadonlyState<GroupNode | undefined> {
+  return derive(shell.layout, of, sameGroup);
+}
+
+/** The views of a group that show and the one it shows, a new value only when they change. */
+function shownState(
+  shell: ShellModel,
+  node: ReadonlyState<GroupNode | undefined>,
+): ReadonlyState<{ active: ViewRef | undefined; views: ViewRef[] }> {
+  return derive(
+    [node, shell.absent, shell.views, shell.hiddenViews],
+    (g) => ({ active: activeOf(shell, g), views: shownViews(shell, g) }),
+    (a, b) => a.active === b.active && sameList(a.views, b.views),
+  );
+}
+
+/**
+ * A group's labelled tabs (a group not at the rail, a window of several views): a tab list, the arrows between. A tab's
+ * context menu (or Shift+F10) is `menu`'s: the view's where it is docked or in a window, the pane's in the main area.
+ */
+function Tabs(props: {
+  shell: ShellModel;
+  views: readonly ViewRef[];
+  active: ViewRef;
+  menu: (ref: ViewRef) => ContextMenuItem[];
+}) {
   const { shell } = props;
   const list = (
     <div class={classes.tabs} role="tablist">
@@ -1133,17 +1240,13 @@ function Tabs(props: { shell: ShellModel; views: readonly ViewRef[]; active: Vie
             onClick={() => shell.select(ref)}
             onContextMenu={(e: MouseEvent) => {
               e.preventDefault();
-              openContextMenu(
-                menuRoot(e.currentTarget as Element),
-                { x: e.clientX, y: e.clientY },
-                viewMenu(shell, ref),
-              );
+              openContextMenu(menuRoot(e.currentTarget as Element), { x: e.clientX, y: e.clientY }, props.menu(ref));
             }}
             onKeyDown={(e: KeyboardEvent) => {
               if ((e.key === 'F10' && e.shiftKey) || e.key === 'ContextMenu') {
                 e.preventDefault();
                 const r = (e.currentTarget as Element).getBoundingClientRect();
-                openContextMenu(menuRoot(e.currentTarget as Element), { x: r.left, y: r.bottom }, viewMenu(shell, ref));
+                openContextMenu(menuRoot(e.currentTarget as Element), { x: r.left, y: r.bottom }, props.menu(ref));
               }
             }}
           >
@@ -1174,12 +1277,13 @@ function menuRoot(el: Element): HTMLElement {
  */
 function Rail(props: { shell: ShellModel; hideable: boolean }) {
   const { shell } = props;
+  const t = shell.labels;
   const height = new State(0);
+  const railNode = groupNode(shell, railGroup);
   // The rail's buttons, a new list only when they change (not at each layout write: a drag's sizes, a window's move).
   const entries = derive(
-    [shell.layout, shell.absent, shell.views, shell.railItems],
-    (l, absent, _, items) => {
-      const g = railGroup(l);
+    [railNode, shell.absent, shell.views, shell.railItems, shell.hiddenViews],
+    (g, absent, _, items) => {
       const views = shownViews(shell, g).map((ref) => ({ ref, def: shell.view(ref)! }));
       const tools = items.filter((i) => !absent.has(`item:${i.id}`));
       return railEntries(views, tools);
@@ -1193,11 +1297,10 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
     (e, h) => fitRail(e, h),
     (a, b) => a.step === b.step && a.hidden.size === b.hidden.size && [...a.hidden].every((id) => b.hidden.has(id)),
   );
-  const active = derive([shell.layout, shell.absent, shell.views], (l) => {
-    const g = railGroup(l);
-    return g && !g.collapsed ? activeOf(shell, g) : undefined;
-  });
-  const rail = (<nav class={classes.rail} aria-label="Views and tools" />) as HTMLElement;
+  const active = derive([railNode, shell.absent, shell.views, shell.hiddenViews], (g) =>
+    g && !g.collapsed ? activeOf(shell, g) : undefined,
+  );
+  const rail = (<nav class={classes.rail} aria-label={t.rail} data-msui-region="" />) as HTMLElement;
   observeResize(rail, () => {
     const h = Math.round(rail.clientHeight);
     if (h !== height.value) height.set(h);
@@ -1276,8 +1379,10 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
           <div
             class={classes.railSection}
             role={tablist ? 'tablist' : 'group'}
+            data-rail-section={name}
             aria-orientation={tablist ? 'vertical' : undefined}
-            aria-label={name}
+            // Named for people (its views, or tools), not by its internal section (`head`, `group:app`).
+            aria-label={tablist ? shell.labels.railViews : shell.labels.railTools}
           >
             <For each={list} by={(e) => e.id}>
               {(e) => button(e)}
@@ -1309,8 +1414,8 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
                   class={classes.railButton}
                   data-rail-button=""
                   data-tip-side="left"
-                  aria-label="More"
-                  data-tip="More"
+                  aria-label={t.more}
+                  data-tip={t.more}
                   aria-haspopup="menu"
                   ref={(el: HTMLElement) => (moreButton = el)}
                   onClick={() => {
@@ -1340,8 +1445,8 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
                 class={classes.railButton}
                 data-rail-button=""
                 data-tip-side="left"
-                aria-label="Hide the views"
-                data-tip="Hide the views"
+                aria-label={t.hideViews}
+                data-tip={t.hideViews}
                 onClick={() => shell.toggleRail(false)}
               >
                 <Icon name="chevrons-right" />
@@ -1367,7 +1472,7 @@ function RailToggle(props: { shell: ShellModel; compact: ReadonlyState<boolean>;
           <Button
             variant="ghost"
             icon={<Icon name={props.icon} />}
-            title="Show the views"
+            title={shell.labels.showViews}
             onClick={() => shell.toggleRail(true)}
           />
         </div>
@@ -1428,14 +1533,20 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
         a.rect.width === b.rect.width &&
         a.rect.height === b.rect.height),
   );
-  const view = derive([shell.layout, shell.absent, shell.views, shell.maximized], (l, _a, _v, maximized) => {
-    const g = findGroup(l, id)?.group;
-    const views = shownViews(shell, g);
-    const active = activeOf(shell, g);
-    // Its view maximized (shell §2.1): out over the main area (`MaximizedHost`), its body back here after.
-    const out = !!active && active === maximized;
-    return { active: out ? undefined : active, views, key: `${active}|${views.join(',')}|${out}` };
-  });
+  const view = derive(
+    [
+      shownState(
+        shell,
+        groupNode(shell, (l) => findGroup(l, id)?.group),
+      ),
+      shell.maximized,
+    ],
+    (s, maximized) => {
+      // Its view maximized (shell §2.1): out over the main area (`MaximizedHost`), its body back here after.
+      const out = !!s.active && s.active === maximized;
+      return { active: out ? undefined : s.active, views: s.views, key: `${s.active}|${s.views.join(',')}|${out}` };
+    },
+  );
   const key = derive(view, (v) => v.key);
   const notExpanded = derive(
     [shell.expanded, shell.maximized, shell.layout],
@@ -1454,6 +1565,7 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
       aria-modal="false"
       data-window={id}
       data-tip-edge=""
+      data-msui-region=""
       data-enter={props.enter ? '' : undefined}
     />
   ) as HTMLElement;
@@ -1469,11 +1581,19 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
   });
   // Its name, and nothing on screen when none of its views can show (unregistered, flagged off, hidden): not an empty
   // box with no header to close it by.
+  // Named by its pane's title, followed as it changes (`setTitle`, shell §2.1).
+  let stopTitle: (() => void) | undefined;
   watch([key], () => {
     const active = view.value.active;
     setAttr(el, 'hidden', !active);
-    setAttr(el, 'aria-label', active ? shell.paneTitle(active).value : 'Window');
+    stopTitle?.();
+    stopTitle = undefined;
+    if (!active) return setAttr(el, 'aria-label', shell.labels.window);
+    const title = shell.paneTitle(active);
+    setAttr(el, 'aria-label', title.value);
+    stopTitle = listen(title, () => setAttr(el, 'aria-label', title.value));
   });
+  onCleanup(() => stopTitle?.());
   on(el, 'pointerdown', () => shell.raise(id), { capture: true });
   // A window's view is a pane too (a detached stage): pressed or focused, it is the active one.
   const activate = () => {
@@ -1483,6 +1603,8 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
   on(el, 'pointerdown', activate, { capture: true });
   on(el, 'focusin', activate);
   on(el, 'focusin', () => shell.raise(id));
+  // Its pane's status (shell §2.1): hovered and focused, fed as the region's are.
+  paneInputs(shell, el, () => view.value.active);
   const closeAll = () => {
     for (const v of findGroup(shell.layout.value, id)?.group.views ?? []) shell.close(v);
   };
@@ -1561,7 +1683,11 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
                 bodies={props.bodies}
                 ref={ref}
                 placement="window"
-                tabs={v.views.length > 1 ? <Tabs shell={shell} views={v.views} active={ref} /> : undefined}
+                tabs={
+                  v.views.length > 1 ? (
+                    <Tabs shell={shell} views={v.views} active={ref} menu={(r) => viewMenu(shell, r)} />
+                  ) : undefined
+                }
                 headerRef={(h) => (header = h)}
                 onClose={closeAll}
                 menu={() =>
@@ -1614,6 +1740,19 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
 }
 
 /**
+ * A pane's hover and focus outside the region (a window's view, a window's pane maximized), fed to the model as the
+ * region's are (shell §2.1): the pointer over `el`, the focus in it.
+ */
+function paneInputs(shell: ShellModel, el: HTMLElement, pane: () => string | undefined): void {
+  on(el, 'pointerover', () => shell.setPaneHovered(pane()));
+  on(el, 'pointerleave', () => shell.setPaneHovered(undefined));
+  on(el, 'focusin', () => shell.setPaneFocused(pane()));
+  on(el, 'focusout', (e: FocusEvent) => {
+    if (!el.contains(e.relatedTarget as Node | null)) shell.setPaneFocused(undefined);
+  });
+}
+
+/**
  * A window's pane maximized (shell §2.1): its body out of the window, over the main area (the shell's chrome stays),
  * its frame without a header for a stage (a panel keeps its header, its ✕ shows every pane again); back in its window
  * after.
@@ -1624,7 +1763,11 @@ function MaximizedHost(props: { shell: ShellModel; bodies: ViewBodies }) {
   return (
     <Show when={windowed}>
       {(ref) => (
-        <div class={classes.maximizedPane} data-maximized-pane={ref}>
+        <div
+          class={classes.maximizedPane}
+          data-maximized-pane={ref}
+          ref={(el: HTMLElement) => paneInputs(shell, el, () => ref)}
+        >
           <KeptFrame
             shell={shell}
             bodies={bodies}
@@ -1666,7 +1809,7 @@ function CardHost(props: { shell: ShellModel; bodies: ViewBodies; into: HTMLElem
             refocus: () => open.anchor as HTMLElement | undefined,
           });
           el = (
-            <div class={classes.card} data-card={open.ref} data-tip-edge="">
+            <div class={classes.card} data-card={open.ref} data-tip-edge="" data-msui-region="">
               <KeptFrame
                 shell={shell}
                 bodies={props.bodies}
@@ -1762,7 +1905,7 @@ function ModalHost(props: { shell: ShellModel; bodies: ViewBodies }) {
  * What holds the app (shell §3.6, busy): a scrim and one card, the rest inert (the shell's layout wrapper). A dialog:
  * the focus goes to it (its Cancel, else the card) and stays in it, and goes back when it ends.
  */
-function BusyOverlay(props: { busy: ReadonlyState<ShellBusy | undefined> }) {
+function BusyOverlay(props: { busy: ReadonlyState<ShellBusy | undefined>; cancel: string }) {
   // A new task replacing one (another label) keeps the overlay: shown while there is one.
   const some = derive(props.busy, (b) => !!b);
   return (
@@ -1802,7 +1945,7 @@ function BusyOverlay(props: { busy: ReadonlyState<ShellBusy | undefined> }) {
                 <span style="flex: 1">{derive(props.busy, (x) => x?.label ?? '')}</span>
                 {b?.cancel ? (
                   <Button size="sm" onClick={() => props.busy.value?.cancel?.()}>
-                    Cancel
+                    {props.cancel}
                   </Button>
                 ) : null}
               </div>
@@ -1816,7 +1959,7 @@ function BusyOverlay(props: { busy: ReadonlyState<ShellBusy | undefined> }) {
 }
 
 /** Files dragged over the shell: an overlay saying what a drop does; dropped, they go to `onDrop`. */
-function FileDrop(props: { onDrop: (files: File[]) => void; label?: string; formats?: string }) {
+function FileDrop(props: { onDrop: (files: File[]) => void; label: string; formats?: string }) {
   const over = new State(false);
   let depth = 0;
   const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes('Files');
@@ -1846,9 +1989,11 @@ function FileDrop(props: { onDrop: (files: File[]) => void; label?: string; form
   };
   const drop = (e: DragEvent) => {
     if (!hasFiles(e)) return;
-    e.preventDefault();
     depth = 0;
     over.set(false);
+    // A view under the drop that took it (prevented its default) handled it: not the shell's too.
+    if (e.defaultPrevented) return;
+    e.preventDefault();
     const files = [...(e.dataTransfer?.files ?? [])];
     if (files.length) props.onDrop(files);
   };
@@ -1866,7 +2011,7 @@ function FileDrop(props: { onDrop: (files: File[]) => void; label?: string; form
         {() => (
           <div class={classes.drop}>
             <div class={classes.dropText}>
-              <span>{props.label ?? 'Drop files to open them'}</span>
+              <span>{props.label}</span>
               {props.formats ? <span class={classes.dropFormats}>{props.formats}</span> : null}
             </div>
           </div>
@@ -1955,7 +2100,7 @@ function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
           </Show>
         </div>
         <div class={classes.sheetBar}>
-          <div class={classes.sheetTabs} role="tablist" aria-label="Views">
+          <div class={classes.sheetTabs} role="tablist" aria-label={shell.labels.compactBar} data-msui-region="">
             <For each={derive(bar, (b) => b.buttons)} by={(r) => r}>
               {(ref) => {
                 const def = shell.view(ref)!;
@@ -2007,7 +2152,7 @@ function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
                 }}
               >
                 <Icon name="ellipsis" />
-                <span>More</span>
+                <span>{shell.labels.more}</span>
               </button>
             )}
           </Show>
@@ -2020,13 +2165,18 @@ function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
 // ---------------------------------------------------------------------------------------------------------------------
 // F6
 
-/** The regions F6 moves between (shell §4): the main area, each docked group that shows, the rail, each window. */
+/**
+ * The regions F6 moves between (shell §4): the main area, each docked group that shows, the rail, each window, the card,
+ * the compact bar. The shell marks its own (`data-msui-region`): not found by a label (translated) or a tag (an app's
+ * `nav` in a view), nor in a shell nested in a view.
+ */
 function cycleRegions(root: HTMLElement, dir: 1 | -1): void {
-  const regions = [
-    ...root.querySelectorAll<HTMLElement>(
-      '[data-msui-shell-main], [data-group], nav, [data-window], [data-card], [role="tablist"][aria-label="Views"]',
-    ),
-  ].filter((r) => !r.closest('[hidden], [inert], [data-shown="false"]') && r.getClientRects().length > 0);
+  const regions = [...root.querySelectorAll<HTMLElement>('[data-msui-region]')].filter(
+    (r) =>
+      r.closest('[data-msui-shell]') === root &&
+      !r.closest('[hidden], [inert], [data-shown="false"]') &&
+      r.getClientRects().length > 0,
+  );
   if (!regions.length) return;
   const now = deepActiveElement();
   // The innermost region holding the focus (windows are in the main area: a later region in document order).

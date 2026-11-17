@@ -19,7 +19,8 @@ import {
   setStyle,
 } from '../dom/index.js';
 import { classes } from './_generated/stage.module.css.js';
-import { EmptyStage } from './empty-stage.js';
+import { type InkTheme, parseColorAlpha, themeForColor } from './canvas-ink.js';
+import { type EmptyMark, EmptyStage } from './empty-stage.js';
 import { HoverLabel } from './hover-label.js';
 import type { StageModel } from './stage-model.js';
 
@@ -50,8 +51,11 @@ export interface StageProps {
   insets?: MaybeReactive<{ readonly bottomLeft: number; readonly bottomRight: number }>;
   /** Anything else over the canvas (full size; only its content takes the pointer). */
   overlays?: Child;
-  /** What shows on the empty stage (stage §4), the app's: default the Mol* glass splash; `() => null` for none. */
-  emptyMark?: (ctx: { readonly compact: boolean }) => Child;
+  /**
+   * What shows on the empty stage (stage §4), the app's; none by default (the mark's wait and `quiet` still run). The
+   * Mol* glass is `GlassEmptyMark` (`./glass-empty-mark.js`, not bundled unless imported).
+   */
+  emptyMark?: EmptyMark;
   /** What the pointer must be over for the hover label: the canvas and `data-msui-hover-source` (the band) by default. */
   hoverOver?: (target: Element) => boolean;
   class?: string;
@@ -64,6 +68,39 @@ const holdPinch = (e: WheelEvent) => {
   if (e.ctrlKey) e.preventDefault();
 };
 const holdGesture = (e: Event) => e.preventDefault();
+
+/** A 1 px 2D canvas: what the CSS engine draws a color as (any syntax it knows), read back as sRGB. */
+let probe: OffscreenCanvasRenderingContext2D | null | undefined;
+
+/** A computed CSS color as `[0xRRGGBB, alpha]`: parsed, or drawn and read back where it is in another syntax. */
+function readComputed(css: string): readonly [number, number] | undefined {
+  const parsed = parseColorAlpha(css);
+  if (parsed) return parsed;
+  if (probe === undefined)
+    probe = typeof OffscreenCanvas === 'undefined' ? null : new OffscreenCanvas(1, 1).getContext('2d');
+  if (!probe) return undefined;
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = css;
+  probe.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
+  return [(r << 16) | (g << 8) | b, a / 255];
+}
+
+/**
+ * The ink of a color the model could not read (`CanvasInk.resolved` false, stage §2), through the CSS engine: the
+ * stage's computed background (its `var()`s and syntaxes resolved), or, transparent, the first opaque one behind it.
+ * Undefined while not in the page.
+ */
+function resolveInk(el: Element): InkTheme | undefined {
+  if (!el.isConnected) return undefined;
+  const view = el.ownerDocument.defaultView;
+  if (!view) return undefined;
+  for (let e: Element | null = el; e; e = e.parentElement) {
+    const c = readComputed(view.getComputedStyle(e).backgroundColor);
+    if (c && c[1] > 0) return themeForColor(c[0]);
+  }
+  return undefined;
+}
 
 /**
  * The stage (stage §2): the app's canvas, and over it one layer of chrome in the canvas's ink (`StageModel.ink`: its
@@ -119,9 +156,20 @@ export function Stage(props: StageProps) {
     </div>
   ) as HTMLElement;
 
+  // The app's color as given; its theme the model's, or, where the model could not read it, the CSS engine's (once in
+  // the page: now, else at the first measure).
+  let unresolved = false;
+  const resolve = () => {
+    unresolved = false;
+    const theme = resolveInk(root);
+    if (theme) setAttr(ink, 'data-msui-theme', theme);
+    else unresolved = !root.isConnected;
+  };
   bind(model.ink, (v) => {
     setStyle(root, '--msui-stage-color', v.color);
     setAttr(ink, 'data-msui-theme', v.theme);
+    if (!v.resolved) resolve();
+    else unresolved = false;
   });
   bind(model.quiet, (q) => setAttr(canvasBox, 'data-quiet', q));
   bind(model.compact, (c) => setAttr(root, 'data-compact', c));
@@ -139,6 +187,7 @@ export function Stage(props: StageProps) {
   observeResize(root, (entries) => {
     const r = entries[entries.length - 1]?.contentRect;
     if (r) model.setSize(r.width, r.height);
+    if (unresolved) resolve();
   });
   if (band) {
     observeResize(band.firstElementChild ?? band, (entries) => {

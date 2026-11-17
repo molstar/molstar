@@ -17,7 +17,8 @@ actions), and its view. Code comments cite its sections (`log §2`).
   status line showed); a source: what wrote it (a filter each).
 - **`entries` are oldest first** (newest last). Why: a log reads down, and the view keeps its end in view.
 - `sources` are the sources as first written (not sorted), told only when one is new: the filters do not move while
-  entries come.
+  entries come. A source whose last entry the bound drops is forgotten (it comes back, at the end, when written again);
+  a filter on it goes back to every source. Why: ids in source names grew the list and the toolbar without limit.
 - `filter` is `{ kinds?, source? }`: the kinds shown (any of them; none: every kind) and the source (a name, `null` for
   the messages, absent for every source); the two combine (`LogAll`, `LogProblems` = warning and error).
   `toggleKind(kind)` (from every kind: that kind alone; else add or take out; the last out: every kind) and
@@ -40,11 +41,13 @@ actions), and its view. Code comments cite its sections (`log §2`).
 
 ## 3. The view
 
+- Words: `labels?: Partial<LogViewLabels>` over `DefaultLogViewLabels` (the filters' names and tooltips, the empty
+  lines); the model writes no text of its own.
 - `LogView` fills its parent (a flex column; styles §8.4: a view that virtualizes fills the body). A `ViewToolbar`: the
   filters as icon toggles, each named by its `aria-label`, said in its tooltip, `aria-pressed`: All, then a kind each
   (Info, Success, Warnings, Errors; debug shows under All), then, once something wrote with a source, Messages and a
-  source each (pressed again: every source), then the text filter (`TextInput search`: Escape empties it). Then the
-  entries.
+  source each (pressed again: every source), then the text filter (no Problems toggle: `LogProblems` is the warning and
+  error toggles pressed, what a status line sets) (`TextInput search`: Escape empties it). Then the entries.
 - **The entries are a `RecycledList` of `ViewRow`s**: one line each, a kind icon (its color by kind), the text fading
   where cut, the detail, source and time as the description, the whole in the row's side tooltip (`data-tip-row`). Why:
   a long session's log costs a screenful of rows, and scrolling re-points them.

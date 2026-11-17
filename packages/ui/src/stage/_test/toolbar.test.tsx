@@ -8,7 +8,7 @@
  */
 
 import { derive, State } from '@molstar/core/reactive';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flush, render } from '../../dom/index.js';
 import type { ToolbarGroup, ToolbarMenuRow } from '../../components/toolbar/toolbar.js';
 import { stubPointerCapture } from '../../testing/gestures.js';
@@ -26,9 +26,41 @@ beforeAll(() => {
   document.head.append(style);
 });
 
+// Every mount disposed after its test: an open menu's document listeners would outlive it (files share a worker).
+const mounted: (() => void)[] = [];
 afterEach(() => {
+  for (const dispose of mounted.splice(0)) dispose();
   document.body.innerHTML = '';
 });
+
+/** jsdom has no ResizeObserver: a stub keeping the observers by element. */
+const observers = new Map<Element, Set<ResizeObserverCallback>>();
+beforeEach(() => {
+  observers.clear();
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      readonly #fn: ResizeObserverCallback;
+      constructor(fn: ResizeObserverCallback) {
+        this.#fn = fn;
+      }
+      observe(el: Element) {
+        let s = observers.get(el);
+        if (!s) observers.set(el, (s = new Set()));
+        s.add(this.#fn);
+      }
+      unobserve() {}
+      disconnect() {
+        for (const s of observers.values()) s.delete(this.#fn);
+      }
+    },
+  );
+});
+const resize = (el: Element, width: number) => {
+  const entry = { target: el, contentRect: { width, height: 400 } } as unknown as ResizeObserverEntry;
+  for (const fn of [...(observers.get(el) ?? [])]) fn([entry], {} as ResizeObserver);
+  flush();
+};
 
 const settle = async () => {
   for (let i = 0; i < 4; i++) await Promise.resolve();
@@ -77,6 +109,7 @@ function mount(props: Partial<StageToolbarProps>, stageTop = 100, buttonTop = 50
   document.body.append(stage);
   vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({ top: stageTop } as DOMRect);
   const dispose = render(() => <StageToolbar groups={groups()} {...props} />, stage);
+  mounted.push(dispose);
   for (const b of stage.querySelectorAll('[data-toolbar-button]'))
     vi.spyOn(b, 'getBoundingClientRect').mockReturnValue({ top: buttonTop } as DOMRect);
   const root = stage.querySelector<HTMLElement>('[data-msui-stage-toolbar]')!;
@@ -122,6 +155,59 @@ describe('StageToolbar', () => {
     (rows[1] as HTMLElement).click();
     expect(spin.value).toBe(true);
     spin.set(false);
+  });
+
+  it('folded: a submenu opens under the pointer; the open menu is neither rebuilt nor re-measured', async () => {
+    const live = new State(groups());
+    const t = mount({ collapsed: true, groups: live });
+    const folded = t.root.querySelector<HTMLElement>('[data-toolbar-button][aria-label="Toolbar"]')!;
+    vi.spyOn(folded, 'getBoundingClientRect').mockReturnValue({ top: 300 } as DOMRect);
+    over(folded);
+    await settle();
+    const menu = t.menu()!;
+    const rows = t.rows(menu);
+    const projection = rows[2] as HTMLElement;
+    expect(projection.getAttribute('aria-haspopup')).toBe('menu');
+    expect(projection.getAttribute('aria-expanded')).toBe('false');
+    // A submenu's row is a menu button inside the toolbar too: the pointer on it opens its submenu, nothing else.
+    vi.spyOn(projection, 'getBoundingClientRect').mockReturnValue({ top: 200 } as DOMRect);
+    over(projection);
+    await settle();
+    expect(projection.getAttribute('aria-expanded')).toBe('true');
+    expect(t.root.querySelectorAll('[role="menu"]')).toHaveLength(2);
+    expect(t.menu()).toBe(menu);
+    expect(t.rows(menu)[2]).toBe(projection);
+    expect(t.root.style.getPropertyValue('--msui-stage-menu-room')).toBe('184px');
+    // The groups changing while it is open: its rows stay (built again as it next opens).
+    live.set(groups().slice(0, 1));
+    flush();
+    expect(t.rows(t.menu())).toHaveLength(4);
+    expect(projection.getAttribute('aria-expanded')).toBe('true');
+    t.dispose();
+  });
+
+  it('takes its text from `labels` and its folded icon from `foldedIcon`', () => {
+    const t = mount({
+      collapsed: true,
+      foldedIcon: 'settings',
+      labels: { folded: 'Werkzeuge', foldedToolbar: 'Leiste', tools: 'Bühne' },
+    });
+    const folded = t.root.querySelector<HTMLElement>('[data-toolbar-button][aria-label="Werkzeuge"]');
+    expect(folded).not.toBeNull();
+    expect(folded!.closest('[role="toolbar"]')?.getAttribute('aria-label')).toBe('Leiste');
+    expect(t.root.querySelector('[role="toolbar"][aria-label="Bühne"]')).not.toBeNull();
+    expect(folded!.querySelector('svg, [data-icon]')).not.toBeNull();
+  });
+
+  it('auto without a stage: folds while the element it is placed in is narrow', async () => {
+    const t = mount({});
+    const bar = t.root.firstElementChild as HTMLElement;
+    await settle();
+    expect(bar.hidden).toBe(false);
+    resize(t.stage, 320);
+    expect(bar.hidden).toBe(true);
+    resize(t.stage, 900);
+    expect(bar.hidden).toBe(false);
   });
 
   it('auto: folds while the stage is compact', () => {

@@ -6,7 +6,7 @@
 
 import type { ContextMenuItem } from '../components/context-menu/context-menu.js';
 import { allGroups, columnOf, findView, inRegion, mainNode, type Rect, RightGroup, type ViewRef } from './layout.js';
-import type { ShellModel } from './shell-model.js';
+import { keyOf, type ShellModel, viewIdOf } from './shell-model.js';
 
 /** What a window's keyboard adjusting does (its menu's Move, Resize). */
 export type WindowAdjust = 'move' | 'resize';
@@ -25,42 +25,43 @@ export function viewMenu(
   const place = findView(layout, ref);
   const def = shell.view(ref);
   if (!place || !def) return [];
+  const t = shell.labels;
   const items: ContextMenuItem[] = [];
   if (place.window) {
-    items.push({ id: 'dock', label: 'Dock', icon: 'panel-right', run: () => shell.dock(ref) });
+    items.push({ id: 'dock', label: t.dock, icon: 'panel-right', run: () => shell.dock(ref) });
     if (options.adjust) {
-      items.push({ id: 'move', label: 'Move with the keyboard', icon: 'move-3d', run: () => options.adjust?.('move') });
+      items.push({ id: 'move', label: t.moveWithKeyboard, icon: 'move-3d', run: () => options.adjust?.('move') });
       items.push({
         id: 'resize',
-        label: 'Resize with the keyboard',
+        label: t.resizeWithKeyboard,
         icon: 'maximize-2',
         run: () => options.adjust?.('resize'),
       });
     }
     if (options.resetPosition) {
-      items.push({ id: 'reset-position', label: 'Reset position', icon: 'rotate-ccw', run: options.resetPosition });
+      items.push({ id: 'reset-position', label: t.resetPosition, icon: 'rotate-ccw', run: options.resetPosition });
     }
   } else {
     items.push({
       id: 'float',
-      label: 'Float',
+      label: t.float,
       icon: 'app-window',
       run: () => shell.float(ref, options.anchorRect?.()),
     });
     if (place.group.views.length > 1) {
-      items.push({ id: 'split', label: 'Split below', icon: 'panel-bottom', run: () => shell.splitBelow(ref) });
+      items.push({ id: 'split', label: t.splitBelow, icon: 'panel-bottom', run: () => shell.splitBelow(ref) });
     }
     const column = columnOf(layout, place.group.id);
     if (column) {
       const groups = column.children.filter((c) => c.kind === 'group');
       const i = groups.findIndex((g) => g.id === place.group.id);
-      if (i > 0) items.push({ id: 'up', label: 'Move up', icon: 'arrow-up', run: () => shell.moveInColumn(ref, -1) });
+      if (i > 0) items.push({ id: 'up', label: t.moveUp, icon: 'arrow-up', run: () => shell.moveInColumn(ref, -1) });
       if (i >= 0 && i < groups.length - 1) {
-        items.push({ id: 'down', label: 'Move down', icon: 'arrow-down', run: () => shell.moveInColumn(ref, 1) });
+        items.push({ id: 'down', label: t.moveDown, icon: 'arrow-down', run: () => shell.moveInColumn(ref, 1) });
       }
     }
     if (place.group.id !== RightGroup && (def.home ?? RightGroup) === RightGroup) {
-      items.push({ id: 'dock', label: 'Dock right', icon: 'panel-right', run: () => shell.dock(ref) });
+      items.push({ id: 'dock', label: t.dockRight, icon: 'panel-right', run: () => shell.dock(ref) });
     }
   }
   items.push(...stageItems(shell, ref));
@@ -71,15 +72,15 @@ export function viewMenu(
     if (!first) continue;
     items.push({
       id: `into:${g.id}`,
-      label: `Move to the ${first.title} window`,
+      label: t.moveToWindow(first.title),
       icon: 'app-window',
       run: () => shell.move(ref, { kind: 'group', id: g.id }),
     });
   }
   if (!place.window && (def.instances ?? 'single') === 'single') {
-    items.push({ id: 'hide', label: 'Hide', icon: 'eye-off', run: () => shell.hide(ref) });
+    items.push({ id: 'hide', label: t.hide, icon: 'eye-off', run: () => shell.hide(ref) });
   }
-  items.push({ id: 'reset', label: 'Reset layout', icon: 'list-restart', run: () => shell.resetLayout() });
+  items.push({ id: 'reset', label: t.resetLayout, icon: 'list-restart', run: () => shell.resetLayout() });
   return items;
 }
 
@@ -91,20 +92,21 @@ function stageItems(shell: ShellModel, ref: ViewRef): ContextMenuItem[] {
   const l = shell.layout.value;
   const place = findView(l, ref);
   if (place && !place.window && inRegion(l, place.group.id)) return [];
+  const t = shell.labels;
   const items: ContextMenuItem[] = [
-    { id: 'stage-right', label: 'Beside the main view', icon: 'panel-right', run: () => shell.split(ref, 'right') },
-    { id: 'stage-below', label: 'Below the main view', icon: 'panel-bottom', run: () => shell.split(ref, 'bottom') },
+    { id: 'stage-right', label: t.besideMain, icon: 'panel-right', run: () => shell.split(ref, 'right') },
+    { id: 'stage-below', label: t.belowMain, icon: 'panel-bottom', run: () => shell.split(ref, 'bottom') },
   ];
   if (shell.top !== 'overlay') {
     items.push({
       id: 'stage-above',
-      label: 'Above the main view',
+      label: t.aboveMain,
       icon: 'panel-top',
       run: () => shell.split(ref, 'top'),
     });
   }
   if (shell.top !== 'split') {
-    items.push({ id: 'stage-top', label: 'Over the main view’s top', icon: 'panel-top', run: () => shell.toTop(ref) });
+    items.push({ id: 'stage-top', label: t.overMainTop, icon: 'panel-top', run: () => shell.toTop(ref) });
   }
   return items;
 }
@@ -122,43 +124,44 @@ export function paneMenu(
   const place = findView(l, ref);
   const def = shell.view(ref);
   if (!place || !def) return [];
+  const t = shell.labels;
   const items: ContextMenuItem[] = [];
   const onTop = mainNode(l).top?.id === place.group.id;
   if (!onTop) {
     const maximized = shell.maximized.value === place.group.id;
     items.push(
       maximized
-        ? { id: 'restore', label: 'Show every pane', icon: 'minimize-2', run: () => shell.maximize(undefined) }
-        : { id: 'maximize', label: 'Maximize', icon: 'maximize-2', run: () => shell.maximize(place.group.id) },
+        ? { id: 'restore', label: t.showEveryPane, icon: 'minimize-2', run: () => shell.maximize(undefined) }
+        : { id: 'maximize', label: t.maximize, icon: 'maximize-2', run: () => shell.maximize(place.group.id) },
     );
     if (place.group.views.length > 1) {
       items.push(
-        { id: 'split-right', label: 'Split right', icon: 'panel-right', run: () => shell.split(ref, 'right', ref) },
-        { id: 'split-below', label: 'Split below', icon: 'panel-bottom', run: () => shell.split(ref, 'bottom', ref) },
+        { id: 'split-right', label: t.splitRight, icon: 'panel-right', run: () => shell.split(ref, 'right', ref) },
+        { id: 'split-below', label: t.splitBelow, icon: 'panel-bottom', run: () => shell.split(ref, 'bottom', ref) },
       );
     }
     if (shell.top !== 'split') {
       items.push({
         id: 'stage-top',
-        label: 'Over the main view’s top',
+        label: t.overMainTop,
         icon: 'panel-top',
         run: () => shell.toTop(ref),
       });
     }
-    items.push({ id: 'grid', label: 'Arrange as a grid', icon: 'layout-grid', run: () => shell.arrangeGrid() });
+    items.push({ id: 'grid', label: t.arrangeGrid, icon: 'layout-grid', run: () => shell.arrangeGrid() });
   } else if (shell.top !== 'overlay') {
     items.push({
       id: 'stage-above',
-      label: 'Above the main view',
+      label: t.aboveMain,
       icon: 'panel-top',
       run: () => shell.split(ref, 'top'),
     });
   }
-  items.push({ id: 'float', label: 'Float', icon: 'app-window', run: () => shell.float(ref, options.anchorRect?.()) });
+  items.push({ id: 'float', label: t.float, icon: 'app-window', run: () => shell.float(ref, options.anchorRect?.()) });
   if ((def.home ?? RightGroup) === RightGroup) {
-    items.push({ id: 'dock', label: 'Dock right', icon: 'panel-right', run: () => shell.dock(ref) });
+    items.push({ id: 'dock', label: t.dockRight, icon: 'panel-right', run: () => shell.dock(ref) });
   }
-  items.push({ id: 'close', label: 'Close', icon: 'x', run: () => shell.close(ref) });
+  items.push({ id: 'close', label: t.closePane, icon: 'x', run: () => shell.close(ref) });
   return items;
 }
 
@@ -167,13 +170,22 @@ export function paneMenu(
  * area's corner brings it back), Reset layout.
  */
 export function railMenu(shell: ShellModel, ref: ViewRef | undefined): ContextMenuItem[] {
+  const t = shell.labels;
   const items: ContextMenuItem[] = [];
-  if (ref) items.push({ id: 'hide', label: 'Hide', icon: 'eye-off', run: () => shell.hide(ref) });
+  if (ref) items.push({ id: 'hide', label: t.hide, icon: 'eye-off', run: () => shell.hide(ref) });
   for (const h of shell.layout.value.hidden) {
     const def = shell.view(h);
-    if (def) items.push({ id: `show:${h}`, label: `Show ${def.title}`, icon: def.icon, run: () => shell.show(h) });
+    // An instance shows as itself (its key kept).
+    if (def) {
+      items.push({
+        id: `show:${h}`,
+        label: t.showView(def.title),
+        icon: def.icon,
+        run: () => shell.show(viewIdOf(h), { key: keyOf(h) }),
+      });
+    }
   }
-  items.push({ id: 'hide-rail', label: 'Hide the rail', icon: 'eye-off', run: () => shell.toggleRail(false) });
-  items.push({ id: 'reset', label: 'Reset layout', icon: 'list-restart', run: () => shell.resetLayout() });
+  items.push({ id: 'hide-rail', label: t.hideRail, icon: 'eye-off', run: () => shell.toggleRail(false) });
+  items.push({ id: 'reset', label: t.resetLayout, icon: 'list-restart', run: () => shell.resetLayout() });
   return items;
 }

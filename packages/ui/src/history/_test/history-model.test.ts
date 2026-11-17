@@ -123,8 +123,9 @@ describe('HistoryModel', () => {
       order.push('second');
     });
     expect(h.undoBlocked.value).toMatch(/running/);
+    expect(h.undoBlockedCode.value).toBe('running');
     await tick();
-    expect((await h.undo()).ok).toBe(false);
+    expect(await h.undo()).toMatchObject({ ok: false, code: 'running' });
     g.open();
     await Promise.all([first, second]);
     expect(order).toEqual(['first start', 'first end', 'second']);
@@ -239,8 +240,13 @@ describe('HistoryModel', () => {
     expect(h.steps.value.map((x) => x.label)).toEqual(['Make it pretty', 'person', 'Make it pretty']);
 
     const asked = await h.undoTurn('t1');
-    expect(asked).toMatchObject({ ok: false, laterSteps: 1 });
-    const r = await h.undoTurn('t1', { discardLater: true });
+    expect(asked).toMatchObject({
+      ok: false,
+      code: 'later-steps',
+      laterSteps: 1,
+      reason: '1 later step would be undone too',
+    });
+    const r = await h.undoTurn(agent, { discardLater: true });
     expect(r.ok).toBe(true);
     expect(s.get().a).toBe(0);
     expect(h.steps.value).toHaveLength(0);
@@ -264,7 +270,8 @@ describe('HistoryModel', () => {
     h.invalidate('Changed outside the viewer');
     expect(h.steps.value[0].unsafe).toBe('Changed outside the viewer');
     const r = await h.undo();
-    expect(r).toMatchObject({ ok: false });
+    expect(r).toMatchObject({ ok: false, code: 'unsafe', reason: 'Changed outside the viewer' });
+    expect(h.steps.value[0].unsafeCode).toBe('changed');
     expect(s.get().a).toBe(1);
   });
 
@@ -295,11 +302,11 @@ describe('HistoryModel', () => {
     expect(h.checkpointing.value).toBe(true);
   });
 
-  it('takes no checkpoint over the hard limit, and says the scene is too large', async () => {
+  it('takes no checkpoint over the hard limit, and says it is too large', async () => {
     const s = store({ a: 0 });
     const h = new HistoryModel({ ...s.port, size: () => 1e9 }, { hardLimit: { ms: 1e9, bytes: 1000 } });
     await h.run('big', person, async () => s.set('a', 1));
-    expect(h.steps.value[0].unsafe).toMatch(/too large/);
+    expect(h.steps.value[0]).toMatchObject({ unsafe: 'Too large to undo', unsafeCode: 'too-large' });
     expect(h.canUndo.value).toBe(false);
   });
 
@@ -321,7 +328,7 @@ describe('HistoryModel', () => {
     for (let i = 0; i < 5; i++) await h.run(`call ${i}`, { kind: 'agent', turn: 't' }, async () => s.set('a', i));
     end();
     expect(taken).toBe(1);
-    expect(h.steps.value[0].unsafe).toMatch(/too large/);
+    expect(h.steps.value[0].unsafeCode).toBe('too-large');
     time += 60_000;
     await h.group('Later', script, async (ctx) => {
       await h.run('x', script, async () => s.set('a', 9), { within: ctx });
@@ -502,5 +509,222 @@ describe('HistoryModel.moveTo', () => {
     expectOk(await h.moveTo(two.id));
     expect(s.get().a).toBe(2);
     expect(h.redoable.value.map((x) => x.id)).toEqual([three.id]);
+  });
+});
+
+describe('HistoryModel, its words', () => {
+  it('refuses with a code and the labels’ text; the defaults name no domain', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryModel(s.port, {
+      labels: { nothingToUndo: 'Rien à annuler', laterSteps: (n) => `${n} de plus` },
+    });
+    expect(h.undoBlocked.value).toBe('Rien à annuler');
+    expect(h.undoBlockedCode.value).toBe('nothing-to-undo');
+    expect(await h.redo()).toEqual({ ok: false, code: 'nothing-to-redo', reason: 'Nothing to redo' });
+    expect(await h.undoTo(42)).toMatchObject({ code: 'not-in-history' });
+    await h.run('one', person, async () => s.set('a', 1));
+    expect(await h.moveTo(h.steps.value[0].id)).toMatchObject({ code: 'latest' });
+    expect(await h.undoTurn('nope')).toMatchObject({ code: 'turn-empty' });
+    const words = Object.values(h.labels).map((v) => (typeof v === 'function' ? v(2) : v));
+    expect(words.join(' ')).not.toMatch(/scene|viewer|structure/i);
+  });
+});
+
+describe('HistoryModel, its limits (history §5)', () => {
+  it('keeps at most `maxRedo` redo steps, the farthest dropped', async () => {
+    const s = store({ a: 0 });
+    let taken = 0;
+    const h = new HistoryModel({ ...s.port, checkpoint: () => (taken++, s.port.checkpoint()) }, { maxRedo: 2 });
+    for (let i = 1; i <= 4; i++) await h.run(`Set a to ${i}`, person, async () => s.set('a', i));
+    for (let i = 0; i < 4; i++) expectOk(await h.undo());
+    expect(h.redoable.value.map((x) => x.label)).toEqual(['Set a to 1', 'Set a to 2']);
+    expectOk(await h.redo());
+    expectOk(await h.redo());
+    expect(await h.redo()).toMatchObject({ ok: false, code: 'nothing-to-redo' });
+    expect(s.get().a).toBe(2);
+    // No Redo at all: Undo takes no checkpoint of the state it leaves.
+    h.setLimits({ maxRedo: 0 });
+    expect(h.redoable.value).toEqual([]);
+    const before = taken;
+    expectOk(await h.undo());
+    expect(taken).toBe(before);
+    expect(h.canRedo.value).toBe(false);
+  });
+
+  it('lists at most `maxRuns` runs of a step, the latest, and counts them all', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryModel(s.port, { maxRuns: 3 });
+    const agent = { kind: 'agent', turn: 't' };
+    const end = h.beginGroup('Turn', agent);
+    for (let i = 0; i < 8; i++) await h.run(`r${i}`, agent, async () => s.set('a', i));
+    end();
+    const [step] = h.steps.value;
+    expect(step).toMatchObject({ runCount: 8, droppedRuns: 5, runs: ['r5', 'r6', 'r7'] });
+    expect(step.lastRuns(2)).toEqual(['r6', 'r7']);
+    // The checkpoint is the turn's: Undo still restores before its first run.
+    expectOk(await h.undo());
+    expect(s.get().a).toBe(0);
+    const g = await h.group('Many', script, async (ctx) => {
+      for (let i = 0; i < 5; i++) await h.run(`g${i}`, script, async () => s.set('a', i), { within: ctx });
+    });
+    expect(g.step).toMatchObject({ runCount: 5, droppedRuns: 2, runs: ['g2', 'g3', 'g4'] });
+  });
+
+  it('changes its limits at runtime: past a lowered one the oldest go at once', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryModel(s.port);
+    expect(h.limits).toEqual({ capacity: 100, checkpoints: 10, maxRedo: 100, maxRuns: 1000 });
+    for (let i = 1; i <= 6; i++) await h.run(`Set a to ${i}`, person, async () => s.set('a', i));
+    h.setLimits({ capacity: 4, checkpoints: 2 });
+    expect(h.steps.value.map((x) => x.label)).toEqual([6, 5, 4, 3].map((i) => `Set a to ${i}`));
+    expect(h.steps.value.map((x) => x.unsafeCode)).toEqual([undefined, undefined, 'too-old', 'too-old']);
+    expect(h.steps.value[2].unsafe).toBe('Too old to undo: the last 2 steps can be undone');
+    // The checkpoints count never passes the capacity.
+    h.setLimits({ capacity: 1, checkpoints: 5 });
+    expect(h.limits).toMatchObject({ capacity: 1, checkpoints: 1 });
+    expect(h.steps.value).toHaveLength(1);
+  });
+});
+
+describe('HistoryModel, not recording (history §1)', () => {
+  it('runs in order but records no step, and makes the steps before it unsafe', async () => {
+    const s = store({ a: 0 });
+    let taken = 0;
+    const h = new HistoryModel({ ...s.port, checkpoint: () => (taken++, s.port.checkpoint()) });
+    await h.run('one', person, async () => s.set('a', 1));
+    h.setRecording(false);
+    expect(h.recording.value).toBe(false);
+    const before = taken;
+    const out = await h.run('two', person, async () => s.set('a', 2));
+    expect(out.step).toBeUndefined();
+    expect(taken).toBe(before);
+    expect(s.get().a).toBe(2);
+    expect(h.steps.value.map((x) => x.label)).toEqual(['one']);
+    expect(h.steps.value[0]).toMatchObject({ unsafeCode: 'not-recorded' });
+    expect(await h.undo()).toMatchObject({ ok: false, code: 'unsafe' });
+    // A group too; work that changed nothing (`record` false, `undoable: false`) leaves the steps as they are.
+    h.setRecording(true);
+    await h.run('three', person, async () => s.set('a', 3));
+    h.setRecording(false);
+    await h.run('same', person, async () => 'same', { record: () => false });
+    await h.run('upload', person, async () => undefined, { undoable: false });
+    expect(h.steps.value[0].unsafe).toBeUndefined();
+    await h.group('g', script, async (ctx) => {
+      await h.run('x', script, async () => s.set('a', 4), { within: ctx });
+    });
+    expect(h.steps.value[0].unsafeCode).toBe('not-recorded');
+  });
+
+  it('records by origin and label through `recordIf`', async () => {
+    const s = store({ a: 0 });
+    const asked: [string, string | undefined][] = [];
+    const h = new HistoryModel(s.port, {
+      recordIf: (origin, label) => {
+        asked.push([origin.kind, label]);
+        return origin.kind !== 'script';
+      },
+    });
+    await h.run('mine', person, async () => s.set('a', 1));
+    await h.run(
+      (v: number) => `computed ${v}`,
+      person,
+      async () => 2,
+    );
+    await h.run('scripted', script, async () => s.set('a', 3));
+    expect(asked).toEqual([
+      ['person', 'mine'],
+      ['person', undefined],
+      ['script', 'scripted'],
+    ]);
+    expect(h.steps.value.map((x) => x.label)).toEqual(['computed 2', 'mine']);
+    expect(h.steps.value.every((x) => x.unsafeCode === 'not-recorded')).toBe(true);
+  });
+});
+
+describe('HistoryModel, a clear or a change during a run (history §1)', () => {
+  it('records a run that a clear overtook as nothing, and restores nothing when it fails', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryModel(s.port);
+    await h.run('old', person, async () => s.set('a', 1));
+    const g = gate();
+    const run = h.run('slow', person, async () => {
+      await g.p;
+      s.set('a', 2);
+    });
+    await tick();
+    // A new scene while it runs.
+    s.set('a', 100);
+    h.clear();
+    g.open();
+    expect((await run).step).toBeUndefined();
+    expect(h.steps.value).toEqual([]);
+    expect(h.canUndo.value).toBe(false);
+
+    const g2 = gate();
+    const failing = h.run(
+      'fails',
+      person,
+      async () => {
+        await g2.p;
+        return false;
+      },
+      { failed: (v) => !v },
+    );
+    await tick();
+    s.set('a', 7);
+    h.clear();
+    g2.open();
+    expect(await failing).toMatchObject({ failed: true, restored: false });
+    expect(s.get().a).toBe(7);
+  });
+
+  it('records a run that an invalidate overtook as unsafe', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryModel(s.port);
+    const g = gate();
+    const run = h.run('slow', person, async () => {
+      await g.p;
+      s.set('a', 2);
+    });
+    await tick();
+    h.invalidate('Changed elsewhere');
+    g.open();
+    const out = await run;
+    expect(out.step).toMatchObject({ unsafe: 'Changed elsewhere', unsafeCode: 'changed' });
+    expect(await h.undo()).toMatchObject({ ok: false, code: 'unsafe' });
+    expect(s.get().a).toBe(2);
+  });
+
+  it('clears what turned checkpoints off; an open turn goes on in a new entry', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryModel({ ...s.port, size: () => 10_000 }, { budget: { ms: 1e9, bytes: 1000 } });
+    const agent = { kind: 'agent', turn: 't' };
+    h.beginGroup('Turn', agent);
+    await h.run('one', agent, async () => s.set('a', 1));
+    expect(h.checkpointsOff.value).toBeDefined();
+    h.clear();
+    expect(h.checkpointsOff.value).toBeUndefined();
+    expect(h.checkpointing.value).toBe(true);
+    await h.run('two', agent, async () => s.set('a', 2));
+    expect(h.steps.value).toHaveLength(1);
+    expect(h.steps.value[0]).toMatchObject({ label: 'Turn', runs: ['two'] });
+  });
+});
+
+describe('HistoryModel.undoTurn', () => {
+  it('undoes the turn of one origin, not another kind’s with the same turn id', async () => {
+    const s = store({ a: 0, b: 0 });
+    const h = new HistoryModel(s.port);
+    const one = { kind: 'agent', turn: 't1' };
+    const other = { kind: 'helper', turn: 't1' };
+    const endOne = h.beginGroup('Agent', one);
+    await h.run('a', one, async () => s.set('a', 1));
+    endOne();
+    const endOther = h.beginGroup('Helper', other);
+    await h.run('b', other, async () => s.set('b', 1));
+    endOther();
+    expectOk(await h.undoTurn(other));
+    expect(s.get()).toEqual({ a: 1, b: 0 });
+    expect(h.steps.value.map((x) => x.label)).toEqual(['Agent']);
   });
 });

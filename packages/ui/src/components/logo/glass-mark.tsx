@@ -11,8 +11,9 @@ import { classes } from './_generated/glass-mark.module.css.js';
 import { Glass, type GlassColors, type GlassTiming } from './glass.js';
 import { WordmarkGeometry } from './wordmark.js';
 
-function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** The reduced-motion query, where there is one (followed: a change while the mark shows takes effect at once). */
+function reducedMotionQuery(): MediaQueryList | undefined {
+  return typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : undefined;
 }
 
 export interface GlassMarkProps {
@@ -38,7 +39,8 @@ export interface GlassMarkProps {
  * Each time it shows (its scope becomes active) it assembles from its pieces; they lean under the pointer, and a press
  * shatters it for a moment before it gathers again. It draws only while something moves, in the page's one frame tick
  * (`frames`): at rest, with a pointer resting over it, hidden (its scope paused) or off screen (`IntersectionObserver`)
- * it asks for no frames. Under reduced motion, or with nothing to draw with, one still frame of the word whole.
+ * it asks for no frames. Under reduced motion (followed as it changes), or with nothing to draw with, one still frame of
+ * the word whole.
  */
 export function GlassMark(props: GlassMarkProps): Node {
   const scale = Math.max(1, Math.round(props.scale));
@@ -74,8 +76,10 @@ export function GlassMark(props: GlassMarkProps): Node {
   if (props.data) root.setAttribute(props.data, '');
 
   const ctx = canvas.getContext('2d');
-  const still = prefersReducedMotion() || typeof Path2D !== 'function' || !ctx;
-  const glass = new Glass(props.seed, props.travel);
+  const noDrawing = typeof Path2D !== 'function' || !ctx;
+  const reduced = reducedMotionQuery();
+  let still = noDrawing || !!reduced?.matches;
+  let glass = new Glass(props.seed, props.travel);
   // The word's drawing origin in the canvas (its viewBox runs from -1).
   const origin = margin + scale;
   let dpr = 0;
@@ -148,8 +152,22 @@ export function GlassMark(props: GlassMarkProps): Node {
     }
   });
 
-  if (!still) {
+  // Reduced motion turned on or off while it shows: on, the word whole and still at once (a new glass is whole); off,
+  // it moves from the next pointer on.
+  if (reduced && typeof reduced.addEventListener === 'function') {
+    on(reduced, 'change', () => {
+      const next = noDrawing || reduced.matches;
+      if (next === still) return;
+      still = next;
+      if (still) glass = new Glass(props.seed, props.travel);
+      last = 0;
+      loop.request();
+    });
+  }
+
+  if (!noDrawing) {
     // The pointer, in drawing units: the box is read when it comes in (not per move: no layout reads at pointer rate).
+    // Its listeners do nothing while still (reduced motion may turn off while it shows).
     let box: DOMRect | undefined;
     const at = (e: PointerEvent) => {
       box ??= root.getBoundingClientRect();
@@ -159,16 +177,19 @@ export function GlassMark(props: GlassMarkProps): Node {
       box = root.getBoundingClientRect();
     });
     on<PointerEvent>(root, 'pointermove', (e) => {
+      if (still) return;
       const p = at(e);
       glass.setPointer(p.u, p.v);
       loop.request();
     });
     on(root, 'pointerleave', () => {
-      glass.clearPointer();
       box = undefined;
+      if (still) return;
+      glass.clearPointer();
       loop.request();
     });
     on<PointerEvent>(root, 'pointerdown', (e) => {
+      if (still) return;
       // A press is the glass's: no text selection starts there (a double press selected the words around it). Not
       // stopped: what listens around it (a layer closing on a press outside) still hears it.
       e.preventDefault();

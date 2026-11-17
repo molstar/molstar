@@ -13,7 +13,8 @@ Code comments cite this spec's sections (`stage §2`). The code is the truth for
 | `hover-label.tsx`                                    | `HoverLabel`, `HoverFollower` (§3.1)                                                        |
 | `toolbar.tsx`                                        | `StageToolbar`, `collapsedRows` (§3.2)                                                      |
 | `empty-stage.tsx`, `../components/splash/splash.tsx` | `EmptyStage`, `Splash` (§4)                                                                 |
-| `placeholders.tsx`                                   | `StagePlaceholder`, `BandPlaceholder`: stand-ins for stories and tests (§6)                 |
+| `glass-empty-mark.tsx`                               | `GlassEmptyMark`: the Mol\* glass as an empty mark, opt in (§4)                             |
+| `placeholders.tsx`                                   | `StagePlaceholder`, `BandPlaceholder`: stand-ins for stories and tests, unpublished (§6)    |
 
 ## 1. The model
 
@@ -26,8 +27,10 @@ Code comments cite this spec's sections (`stage §2`). The code is the truth for
 - **The mark's wait is the model's**, on injectable timers (`timers`, the globals by default, read at each call): empty
   and idle `emptyDelayMs` (700) brings the mark up (`mark: 'in'`) and quiets the canvas; any `busy` restarts the wait (a
   load never flashes it); work alone never takes a mark down; something drawn takes it out (`'out'`, `markFadeOutMs`
-  250), only if it showed (else straight to `'gone'`). Why in the model: headless, the same states follow (with fake
-  timers in tests).
+  250, `markFadeOutMs`: the view's transition takes it), only if it showed (else straight to `'gone'`). A fade out
+  always ends in `'gone'`, whatever comes meanwhile (emptied again, busy): the view sees the mark go, so a mark that
+  plays as it shows (the splash) plays again; the next wait starts then. Why in the model: headless, the same states
+  follow (with fake timers in tests).
 - **`quiet`**: the canvas is faded out while the mark is up, and from the start until something is drawn (nothing of an
   empty canvas shows before the mark). A stage made with `mark: false` is never quiet.
 
@@ -37,10 +40,15 @@ Code comments cite this spec's sections (`stage §2`). The code is the truth for
   canvas's ink: the band (`top`), the empty mark, `lead` (top left, below the band), the hover label, the bottom bar
   (`status` | `chips` | `corner`), `overlays`. The stage's background is the canvas's color.
 - **Ink** (`inkForColor`): the chrome's theme is the canvas's, by its color's WCAG luminance at 0.179 (where black and
-  white text contrast equally): `dark` chrome on a dark canvas. A color that does not parse counts as white. Why: the UI
-  theme says nothing about what the app draws; a light toolbar on a black scene is lost.
-- **The chrome takes no pointer; its content does** (`.slot > *`): the canvas under it stays the app's everywhere the
-  chrome draws nothing.
+  white text contrast equally): `dark` chrome on a dark canvas. Why: the UI theme says nothing about what the app draws;
+  a light toolbar on a black scene is lost. The app's color is kept as given (`--msui-stage-color`); the model parses
+  hex, `rgb()`/`hsl()` (numbers or percentages, an alpha), the CSS names and `transparent`. What it cannot read
+  (`oklch()`, `var()`) or a transparent color is `resolved: false` (light, headless); the view then asks the CSS engine
+  once per color: the stage's computed background (drawn on a 1 px `OffscreenCanvas` where it is in another syntax), or
+  for a transparent one the first opaque background behind it. Why: never a white stage for a color the app meant.
+- **The chrome takes no pointer; its content does** (`:where(.slot) > *`, no specificity: a component's own
+  `pointer-events`, the hover label's, the status line's, wins whatever the order the styles load in): the canvas under
+  it stays the app's everywhere the chrome draws nothing.
 - **The band** is a slot over the canvas (a docked band is the shell's: a pane above the stage, shell §2.1; which one,
   or both, is the app's choice (the shell's `top` option), and the shell hands the overlay's view to this slot): its
   backdrop is the canvas color, fading out below its content over `--msui-stage-band-fade` (24), the faded part letting
@@ -59,8 +67,8 @@ Code comments cite this spec's sections (`stage §2`). The code is the truth for
   clear. The stage does not know what covers it.
 - **`toolbarShown`** (a value or a state; default shown): whether the corner's toolbar shows is the app's, from what it
   knows: a pane's status from its layout (shell §2.1: active, hovered, focused), so several stages show one toolbar. The
-  stage reads no layout. Hidden, it fades out and takes no pointer; it stays in the tab order (the focus coming in makes
-  its pane focused, and the app shows it).
+  stage reads no layout. Hidden, it fades out and takes no pointer; it stays in the tab order, and the focus in it shows
+  it (`:focus-within`, whatever the app does: a keyboard user never works in an invisible toolbar).
 
 ## 3. Over the canvas
 
@@ -73,8 +81,9 @@ Code comments cite this spec's sections (`stage §2`). The code is the truth for
   canvas or be squeezed. The corner while the size is unknown (headless). **Corner**: the stage's bottom right, above
   the corner's toolbar (`--msui-hover-label-*` on the corner), its own width (the cell is as narrow as a folded
   toolbar); it does not move. **Cursor**: beside the pointer, flipped near the edges: one read (the layer's box, the
-  label's size) and one write (two offsets as custom properties, from cached `px` strings) a frame, on `frames`; 0 B a
-  move (`_test/hover-label.quick.ts`).
+  label's size) and one write (two offsets as custom properties, from cached `px` strings) a frame, on `frames`; the
+  layer and its box are cached, read again after the stage resizes (`observeResize`), anything scrolls (a capture
+  listener on the document) or the pointer comes in; 0 B a move and its frame (`_test/hover-label.quick.ts`).
 - It appears at once; an emptied label stays one frame (a fast move from one item to the next swaps its text in place,
   no blink), then fades out with its last text; a held button (a drag, a rotation) hides it at once; out of the
   accessibility tree while hidden. It shows only over the canvas and `data-msui-hover-source` (the band). Its listeners
@@ -85,23 +94,32 @@ Code comments cite this spec's sections (`stage §2`). The code is the truth for
 - `StageToolbar` is `components/toolbar` in the `corner`: its menus open **upward**, as tall as the room above (the
   stage's top to the button, less the menu's gap and the edge: `--msui-stage-menu-room`), measured once as a menu is
   about to open (a capture listener on the bar, no layout read per frame); a row wider than the corner scrolls across
-  (`ScrollArea`).
+  (`ScrollArea`). Only while no menu of it is open, and never for a target inside a menu (a submenu's row is a menu
+  button too, and the popover the bar's descendant): measuring from a row would shrink the open menu.
 - **Folded** (`collapsed`: `auto` by `StageModel.compact`, or fixed, or a state): one button whose menu lists the rows
   (`collapsedRows`): `leadRows`, then each block's shown items, a hairline between blocks; a toggle is checkable, an
   action a row, a menu a submenu led by the item's own action. The rows are built as the menu opens (the items' current
-  faces and states). The row stays mounted, hidden, inert and paused (`activity`).
+  faces and states), never while it is open (rebuilt under the pointer, its submenus never open). The row stays mounted,
+  hidden, inert and paused (`activity`). `auto` without `stage`: folded while the element it is placed in (the closest
+  `[data-msui-stage]`, else its parent) is narrower than `StageCompactWidth` (that element's width, not its own: its own
+  changes as it folds).
+- **Text and icon are the app's**: `labels` (`StageToolbarLabels`, `DefaultStageToolbarLabels` English), `foldedIcon`
+  (`wrench`).
 - On touch a tap opens a button's menu with its own action first (`components/toolbar`'s rule).
 
 ## 4. The empty stage and the splash
 
 - `EmptyStage` shows while `StageModel.mark` is not `gone`: the app's mark (`Stage`'s `emptyMark`, given whether the
-  stage is compact; default `DefaultEmptyMark`, the glass splash; `() => null` for none: the stage is a base, the mark
-  is the app's); it fades in slowly and out in 250 ms (`data-phase`). Only the word takes the pointer.
+  stage is compact, rendered again when that changes). **None by default**: the stage is a base and names no brand
+  (nothing shows; the wait and `quiet` still run). The Mol\* glass is opt in, `GlassEmptyMark` in a module the stage
+  does not import (an app without it does not bundle the glass). It fades in slowly and out over `markFadeOutMs`
+  (`--msui-stage-mark-out`, `data-phase`). Only the mark takes the pointer.
 - `Splash` is the glass wordmark large (`components/logo/glass.ts`, travel 1, the splash's gathering): one canvas sized
   for its pieces; it assembles each time it shows (its scope becomes active), leans under the pointer, shatters on a
   press and gathers again. It asks for frames only while something moves, never at rest, never while hidden (scope
-  paused) or off screen (`IntersectionObserver`: what was to come is asked for when it is back). Reduced motion or no 2D
-  canvas: one still frame. Glass only: other fields come with their own spec.
+  paused) or off screen (`IntersectionObserver`: what was to come is asked for when it is back). Reduced motion
+  (followed as it changes: on, the word whole and still at once) or no 2D canvas: one still frame. Glass only: other
+  fields come with their own spec.
 
 ## 5. Several stages
 
@@ -114,10 +132,13 @@ whether a toolbar is per stage or shared over the main area is the app's.
 - `StagePlaceholder` (a three-chain assembly drawn space-filling, SVG) and `BandPlaceholder` (residue boxes under a
   ruler, a selection, the hovered column written once a frame) stand in for a 3D canvas and a sequence band in stories
   and tests; they feed the model's hover lines (`structureLines`, `residueLines`). The stories never load a real canvas.
+  Molecular stand-ins are not the library's: not published (`exports` null, left out of `files`); stories and tests
+  import them by relative path.
 
 ## Tests
 
 `_test/`: the model and the ink in plain Node (`stage-model.test.ts`, fake timers); the views in jsdom (`stage`,
 `hover-label`, `toolbar`, `placeholders`; `components/splash/_test`), axe over the stage's states (empty with the mark,
-loaded with the toolbar, a dark band, the label at the cursor). `test:perf`: `hover-label.quick.ts` (a cursor move and
-its frame, a corner move with holds: 0 B).
+loaded with the toolbar, a dark band, the label at the cursor); the CSS rules a test cannot see in jsdom read from the
+generated module. `test:perf`: `hover-label.quick.ts` (a cursor move and its frame, with the layer invalidated now and
+then; a corner move with holds: 0 B).

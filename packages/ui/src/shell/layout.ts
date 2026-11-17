@@ -137,6 +137,111 @@ export function defaultLayout(
 // ---------------------------------------------------------------------------------------------------------------------
 // Reading
 
+/**
+ * What the layout's readers ask of it, looked up once per layout value (`layoutIndex`, kept by the value: a layout is
+ * immutable, so every reader of one value, the model's derived states and the view's trees, shares one index). Why: a
+ * drag writes a layout a frame, and each tree, group, splitter and port asked again by walking it (O(n²) a frame).
+ */
+export interface LayoutIndex {
+  /** The main area's node (the first in the tree; a bare one when it has none). */
+  readonly main: MainNode;
+  /** Every group in the tree, in document order (`dockedGroups`). */
+  readonly docked: readonly GroupNode[];
+  /** Every node of the tree (the main area's region and its top group included) by id; the first of an id wins. */
+  readonly nodes: ReadonlyMap<string, LayoutNode>;
+  /** Each node's parent split (or the main area, for its region's root and its top group). */
+  readonly parents: ReadonlyMap<string, LayoutNode>;
+  /** Where each view is (docked first, then the windows). */
+  readonly views: ReadonlyMap<ViewRef, ViewPlace>;
+  /** Each group by id (docked first, then the windows). */
+  readonly groups: ReadonlyMap<string, ViewPlace>;
+  readonly rail: GroupNode | undefined;
+  readonly rightColumn: LayoutNode | undefined;
+  /** The groups of the right column. */
+  readonly rightGroups: ReadonlySet<string>;
+  /** The groups of the main area's region and its top group. */
+  readonly regionGroups: ReadonlySet<string>;
+  /** Every node of the main area's region (panes and splits). */
+  readonly regionNodes: ReadonlySet<string>;
+  /** The column split each group is a direct child of. */
+  readonly columns: ReadonlyMap<string, SplitNode>;
+}
+
+const indexes = new WeakMap<ShellLayout, LayoutIndex>();
+
+/** The layout's index (`LayoutIndex`), built at the first ask of a layout value and kept with it. */
+export function layoutIndex(layout: ShellLayout): LayoutIndex {
+  let ix = indexes.get(layout);
+  if (!ix) indexes.set(layout, (ix = buildIndex(layout)));
+  return ix;
+}
+
+function buildIndex(layout: ShellLayout): LayoutIndex {
+  const docked: GroupNode[] = [];
+  const nodes = new Map<string, LayoutNode>();
+  const parents = new Map<string, LayoutNode>();
+  const columns = new Map<string, SplitNode>();
+  let main: MainNode | undefined;
+  const walk = (n: LayoutNode, parent: LayoutNode | undefined, nested: boolean) => {
+    if (!nodes.has(n.id)) {
+      nodes.set(n.id, n);
+      if (parent) parents.set(n.id, parent);
+    }
+    if (n.kind === 'group') docked.push(n);
+    else if (n.kind === 'split') {
+      for (const c of n.children) {
+        if (n.dir === 'column' && c.kind === 'group') columns.set(c.id, n);
+        walk(c, n, nested);
+      }
+    } else if (n.kind === 'main') {
+      if (!main && !nested) main = n;
+      // The main area's region, then its top overlay (shell §2.1).
+      if (n.root) walk(n.root, n, true);
+      if (n.top) walk(n.top, n, true);
+    }
+  };
+  walk(layout.root, undefined, false);
+  const groups = new Map<string, ViewPlace>();
+  const views = new Map<ViewRef, ViewPlace>();
+  const add = (place: ViewPlace) => {
+    if (!groups.has(place.group.id)) groups.set(place.group.id, place);
+    for (const v of place.group.views) if (!views.has(v)) views.set(v, place);
+  };
+  for (const g of docked) add({ group: g });
+  for (const w of layout.windows) add({ group: w.group, window: w });
+  const m = main ?? { kind: 'main', id: 'main' };
+  const regionNodes = new Set<string>();
+  const regionGroups = new Set<string>();
+  const inRegion = (n: LayoutNode) => {
+    regionNodes.add(n.id);
+    if (n.kind === 'group') regionGroups.add(n.id);
+    else if (n.kind === 'split') for (const c of n.children) inRegion(c);
+  };
+  if (m.root) inRegion(m.root);
+  if (m.top) regionGroups.add(m.top.id);
+  const column = findRightColumn(layout);
+  const rightGroups = new Set<string>();
+  const inColumn = (n: LayoutNode) => {
+    if (n.kind === 'group') rightGroups.add(n.id);
+    else if (n.kind === 'split') for (const c of n.children) inColumn(c);
+  };
+  if (column) inColumn(column);
+  return {
+    main: m,
+    docked,
+    nodes,
+    parents,
+    views,
+    groups,
+    rail: findRailGroup(layout),
+    rightColumn: column,
+    rightGroups,
+    regionGroups,
+    regionNodes,
+    columns,
+  };
+}
+
 /** Where a view is: its group, and whether that group is a window's. */
 export interface ViewPlace {
   readonly group: GroupNode;
@@ -144,46 +249,28 @@ export interface ViewPlace {
 }
 
 /** Every group in the tree, in document order (left to right, top to bottom). */
-export function dockedGroups(layout: ShellLayout): GroupNode[] {
-  const out: GroupNode[] = [];
-  const walk = (n: LayoutNode) => {
-    if (n.kind === 'group') out.push(n);
-    else if (n.kind === 'split') for (const c of n.children) walk(c);
-    else if (n.kind === 'main') {
-      // The main area's region, then its top overlay (shell §2.1).
-      if (n.root) walk(n.root);
-      if (n.top) out.push(n.top);
-    }
-  };
-  walk(layout.root);
-  return out;
+export function dockedGroups(layout: ShellLayout): readonly GroupNode[] {
+  return layoutIndex(layout).docked;
 }
 
 /** The main area's node. */
 export function mainNode(layout: ShellLayout): MainNode {
-  let found: MainNode | undefined;
-  const walk = (n: LayoutNode) => {
-    if (n.kind === 'main') found = n;
-    else if (n.kind === 'split') for (const c of n.children) if (!found) walk(c);
-  };
-  walk(layout.root);
-  return found ?? { kind: 'main', id: 'main' };
+  return layoutIndex(layout).main;
+}
+
+/** A node of the tree by id (the main area's region and its top group included). */
+export function nodeOf(layout: ShellLayout, id: string): LayoutNode | undefined {
+  return layoutIndex(layout).nodes.get(id);
 }
 
 /** Whether a node of any kind (a pane, a split) is in the main area's region. */
 export function regionHas(layout: ShellLayout, id: string): boolean {
-  const root = mainNode(layout).root;
-  const walk = (n: LayoutNode): boolean => n.id === id || (n.kind === 'split' && n.children.some(walk));
-  return !!root && walk(root);
+  return layoutIndex(layout).regionNodes.has(id);
 }
 
 /** Whether a docked group is in the main area's region (beside the app's content, shell §2.1) or its top overlay. */
 export function inRegion(layout: ShellLayout, groupId: string): boolean {
-  const main = mainNode(layout);
-  if (main.top?.id === groupId) return true;
-  const walk = (n: LayoutNode): boolean =>
-    n.kind === 'group' ? n.id === groupId : n.kind === 'split' && n.children.some(walk);
-  return !!main.root && walk(main.root);
+  return layoutIndex(layout).regionGroups.has(groupId);
 }
 
 /** Every group, docked then windows (in stacking order). */
@@ -197,15 +284,11 @@ export function stacked(layout: ShellLayout): WindowNode[] {
 }
 
 export function findView(layout: ShellLayout, ref: ViewRef): ViewPlace | undefined {
-  for (const g of dockedGroups(layout)) if (g.views.includes(ref)) return { group: g };
-  for (const w of layout.windows) if (w.group.views.includes(ref)) return { group: w.group, window: w };
-  return undefined;
+  return layoutIndex(layout).views.get(ref);
 }
 
 export function findGroup(layout: ShellLayout, id: string): ViewPlace | undefined {
-  for (const g of dockedGroups(layout)) if (g.id === id) return { group: g };
-  for (const w of layout.windows) if (w.group.id === id) return { group: w.group, window: w };
-  return undefined;
+  return layoutIndex(layout).groups.get(id);
 }
 
 /** Every view in the layout (docked and in windows). */
@@ -218,6 +301,10 @@ export function placedViews(layout: ShellLayout): ViewRef[] {
  * child of the root row, or the root's right column). Undefined when no group is docked at the right edge.
  */
 export function railGroup(layout: ShellLayout): GroupNode | undefined {
+  return layoutIndex(layout).rail;
+}
+
+function findRailGroup(layout: ShellLayout): GroupNode | undefined {
   let n: LayoutNode = layout.root;
   for (;;) {
     if (n.kind === 'group') return n;
@@ -230,6 +317,10 @@ export function railGroup(layout: ShellLayout): GroupNode | undefined {
 
 /** The docked column at the shell's right edge (the rail's group, or the column split it is the top of). */
 export function rightColumn(layout: ShellLayout): LayoutNode | undefined {
+  return layoutIndex(layout).rightColumn;
+}
+
+function findRightColumn(layout: ShellLayout): LayoutNode | undefined {
   const root = layout.root;
   if (root.kind !== 'split' || root.dir !== 'row') return undefined;
   const last = root.children[root.children.length - 1];
@@ -365,7 +456,16 @@ function withLeaf(
 
 function normalizeShallow(split: SplitNode, leaf: 'main' | 'content'): SplitNode {
   const flex = split.children.findIndex((c) => containsLeaf(c, leaf));
-  return { ...split, children: split.children.map((c, i) => (i === flex ? withoutSize(c) : c)) };
+  const min = leaf === 'content' ? MinPaneSize : MinGroupSize;
+  return {
+    ...split,
+    children: split.children.map((c, i) => (i === flex ? withoutSize(c) : withLeastSize(c, min))),
+  };
+}
+
+/** A sized node at least `min` (the level's least size; a stored size is clamped here, not when read). */
+function withLeastSize(n: LayoutNode, min: number): LayoutNode {
+  return (n.kind === 'group' || n.kind === 'split') && n.size !== undefined && n.size < min ? { ...n, size: min } : n;
 }
 
 /** Whether a node holds a level's leaf (the main area, or the app's content in the main area's region). */
@@ -560,6 +660,17 @@ export function resizeNode(layout: ShellLayout, id: string, size: number): Shell
   return normalize({ ...layout, root: root! });
 }
 
+/** Several docked nodes' sizes at once (px; a node that takes the rest keeps none; the level's least size kept). */
+export function setSizes(layout: ShellLayout, sizes: ReadonlyMap<string, number>): ShellLayout {
+  const root = mapTree(layout.root, (n) => {
+    const s = sizes.get(n.id);
+    return s !== undefined && (n.kind === 'group' || n.kind === 'split') && n.size !== undefined
+      ? { ...n, size: s }
+      : n;
+  });
+  return normalize({ ...layout, root: root! });
+}
+
 function isGridShape(dir: 'row' | 'column', children: readonly LayoutNode[]): boolean {
   const first = children[0];
   if (children.length < 2 || first?.kind !== 'split' || first.dir === dir) return false;
@@ -659,11 +770,7 @@ export function keepHidden(layout: ShellLayout, hidden: readonly ViewRef[]): She
 
 /** Whether a docked group is in the right column (the rail's group and those under it). */
 export function inRightColumn(layout: ShellLayout, groupId: string): boolean {
-  const col = rightColumn(layout);
-  if (!col) return false;
-  const walk = (n: LayoutNode): boolean =>
-    n.kind === 'group' ? n.id === groupId : n.kind === 'split' && n.children.some(walk);
-  return walk(col);
+  return layoutIndex(layout).rightGroups.has(groupId);
 }
 
 /** Moves a view one place up or down among the docked groups of its column (Move up, Move down). */
@@ -681,15 +788,7 @@ export function moveInColumn(layout: ShellLayout, ref: ViewRef, dir: -1 | 1): Sh
 
 /** The column split a docked group is in, if it is in one. */
 export function columnOf(layout: ShellLayout, groupId: string): SplitNode | undefined {
-  let found: SplitNode | undefined;
-  const walk = (n: LayoutNode) => {
-    if (n.kind === 'main' && n.root) return walk(n.root);
-    if (n.kind !== 'split') return;
-    if (n.dir === 'column' && n.children.some((c) => c.kind === 'group' && c.id === groupId)) found = n;
-    for (const c of n.children) walk(c);
-  };
-  walk(layout.root);
-  return found;
+  return layoutIndex(layout).columns.get(groupId);
 }
 
 export function setHidden(layout: ShellLayout, ref: ViewRef, hidden: boolean): ShellLayout {
@@ -733,7 +832,8 @@ export function validateLayout(value: unknown): ShellLayout | undefined {
 
 function validNode(v: unknown, depth: number): LayoutNode | undefined {
   if (!isObject(v) || depth > 16) return undefined;
-  const size = typeof v.size === 'number' && Number.isFinite(v.size) ? Math.max(MinGroupSize, v.size) : undefined;
+  // The least size is the level's (`normalize`: a pane's is `MinPaneSize`, a docked group's `MinGroupSize`).
+  const size = typeof v.size === 'number' && Number.isFinite(v.size) ? v.size : undefined;
   if (v.kind === 'main') {
     const root = validNode(v.root, depth + 1);
     const top = validNode(v.top, depth + 1);

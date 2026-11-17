@@ -146,6 +146,27 @@ describe('LogModel', () => {
     expect(log.sources.value).toEqual(['X']);
   });
 
+  it('forgets a source once the bound dropped its last entry; a filter on it goes back to every source', () => {
+    const log = new LogModel({ size: 3 });
+    for (let i = 0; i < 5; i++) log.write({ text: `t${i}`, source: `job ${i}` });
+    log.flush();
+    expect(log.sources.value).toEqual(['job 2', 'job 3', 'job 4']);
+    log.setSource('job 2');
+    log.toggleKind('info');
+    log.write({ text: 'more', source: 'job 4' });
+    log.flush();
+    expect(log.sources.value).toEqual(['job 3', 'job 4']);
+    expect(log.filter.value).toEqual({ kinds: ['info'] });
+    // A source written again comes back, at the end.
+    log.write({ text: 'again', source: 'job 0' });
+    log.flush();
+    expect(log.sources.value).toEqual(['job 4', 'job 0']);
+    // Ids in the names never grow the list past the bound.
+    for (let i = 0; i < 100; i++) log.write({ text: `x${i}`, source: `run ${i}` });
+    log.flush();
+    expect(log.sources.value).toHaveLength(3);
+  });
+
   it('takes an injected scheduler, and writes nothing once disposed', () => {
     const queued: (() => void)[] = [];
     const log = new LogModel({ schedule: (fn) => queued.push(fn) });

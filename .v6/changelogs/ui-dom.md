@@ -97,4 +97,21 @@
   mark (`paneMark`) and the stage's empty mark (`emptyMark`). A grid's line lights across as one.
   Status messages take a plain `scope` (`post(…, { scope })`) and a `StatusLine` a `scope` (`{ id }`, `{ rest }`): a
   result shows in the pane it changed, one line speaks. A `Stage` keeps its bottom bar clear of `insets`.
+- `@molstar/ui` review fixes (shell, stage, status, views):
+  - Words: every view takes `labels` (`ShellLabels` through `ShellOptions.labels`, `StatusLabels`,
+    `StageToolbarLabels`, `HistoryLabels` and `HistoryViewLabels`, `LogViewLabels`, `HelpLabels`, `KeysLabels`,
+    `SettingsLabels`), English by default and domain-neutral; history refusals carry a `code`.
+  - History limits (`capacity`, `checkpoints`, `maxRedo`, `maxRuns`, `setLimits`): what goes past them is dropped with
+    its checkpoint; `setRecording(false)` and `recordIf` keep runs out of the history (earlier steps then unsafe);
+    `clear`/`invalidate` during a run no longer record a stale step; a long turn's view is linear (latest runs, the
+    rest behind Show all).
+  - Shell: every layout write keeps the maximized pane and the active pane valid and forgets a gone pane's state; a
+    per-layout index replaces the per-frame tree walks, and window moves no longer touch the docked trees; region sizes
+    are clamped as the main area shrinks; stored sizes keep their level's minimum; window panes report hover and focus;
+    tab menus are the pane menu in panes; F6 finds regions by data attributes; drops a view took are not passed on.
+  - Stage: the folded toolbar's submenus open; any CSS color for the background (the engine resolves what the model
+    cannot); a hidden toolbar shows when focused; no empty mark by default (`GlassEmptyMark` is opt-in, not bundled
+    otherwise); the cursor label reads layout only on resize or scroll; the placeholders are not published.
+  - Views: the settings search skips what is not shown and walks once per query; Help's recorder lets Tab through;
+    the log forgets sources it no longer holds; Undo's keys follow the keymap and the platform.
 

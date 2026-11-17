@@ -63,7 +63,7 @@ export interface LogModelOptions {
   readonly schedule?: (fn: () => void) => void;
 }
 
-/** A warning or an error: what the Problems filter shows and what the bound drops last. */
+/** A warning or an error: what `LogProblems` shows and what the bound drops last. */
 export function isProblem(e: Pick<LogEntry, 'kind'>): boolean {
   return e.kind === 'warning' || e.kind === 'error';
 }
@@ -108,7 +108,8 @@ export function boundLog(list: readonly LogEntry[], size: number): readonly LogE
 
 /**
  * A log (log §1): `write` an entry (a burst within a task is one change: written a microtask later, or at `flush`),
- * one bound (`size`) with the problems kept longest, the sources as written, a filter and a text query, the entries
+ * one bound (`size`) with the problems kept longest, the sources as written (forgotten with their last entry), a
+ * filter and a text query, the entries
  * they pass (`filtered`), `clear`. `save()` gives the entries as data (headless).
  */
 export class LogModel {
@@ -141,7 +142,10 @@ export class LogModel {
     return this.#entries.asReadonly;
   }
 
-  /** The sources written, in the order first written (a filter each); told only when one is new. */
+  /**
+   * The sources written, in the order first written (a filter each); told only when one is new, or when the bound
+   * dropped a source's last entry (it is forgotten).
+   */
   get sources(): ReadonlyState<readonly string[]> {
     return this.#sources.asReadonly;
   }
@@ -216,9 +220,25 @@ export class LogModel {
     const next = new Array<LogEntry>(list.length + pending.length);
     for (let i = 0; i < list.length; i++) next[i] = list[i];
     for (let i = 0; i < pending.length; i++) next[list.length + i] = pending[i];
+    const bounded = boundLog(next, this.size);
+    // A source whose entries the bound dropped is forgotten (log §2): ids in source names would grow the list (and the
+    // filters) without limit. One pass over the bounded list, only when the bound dropped something.
+    let forgotten = false;
+    if (bounded.length < next.length && this.#known.size) {
+      const present = new Set<string>();
+      for (const e of bounded) if (e.source !== undefined) present.add(e.source);
+      if (present.size < this.#known.size) {
+        for (const s of this.#known) if (!present.has(s)) this.#known.delete(s);
+        sources = (sources ?? this.#sources.value).filter((s) => present.has(s));
+        forgotten = true;
+      }
+    }
     batch(() => {
-      this.#entries.set(boundLog(next, this.size));
+      this.#entries.set(bounded);
       if (sources) this.#sources.set(sources);
+      // The filter's source is gone: every source again (the filter stays valid).
+      const source = this.#filter.value.source;
+      if (forgotten && typeof source === 'string' && !this.#known.has(source)) this.setSource(undefined);
     });
   }
 

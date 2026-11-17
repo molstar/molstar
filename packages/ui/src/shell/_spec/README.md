@@ -5,17 +5,17 @@ docks them around the main area, floats them as windows, or shows them in a laye
 and its reasons; how a view's content is laid out is the foundations' (`styles §8`). Code comments cite its sections
 (`shell §2`). The code is the truth for how.
 
-| File                                  | What                                                                                                |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `layout.ts`                           | `ShellLayout`, its invariants (`normalize`), operations, validation, window placement: pure (§2)    |
-| `shell-model.ts`                      | `ShellModel`: registrations, the layout as a `State`, layers, navigation, modes, persistence (§2)   |
-| `rail.ts`                             | `RailSteps`, `railEntries`, `fitRail`: the rail's order, steps and More (§3.2)                      |
-| `view-menu.ts`                        | `viewMenu`, `paneMenu`, `railMenu`: the layout menus (§2, §2.1, §3)                                 |
-| `pane-map.ts`                         | `PaneMap<T>`: what the app keeps a pane, app side (§2.1)                                            |
-| `view-frame.tsx`                      | `ViewFrame`, `ViewHost`, `viewBody`, the view primitives (`ViewStack` … `ViewHeading`, `styles §8`) |
-| `section-list.tsx`                    | `SectionList`: a slot's sections as `Expandable`s (§2)                                              |
-| `shell-view.tsx`                      | `ShellView`: the trees (the shell's, the main area's region), rail, windows, layers, F6 (§2.1, §3)  |
-| `shell.module.css`, `view.module.css` | the shell's sizes and the view frame (`styles §8`)                                                  |
+| File                                  | What                                                                                                 |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `layout.ts`                           | `ShellLayout`, its invariants (`normalize`), its index, operations, validation, placement: pure (§2) |
+| `shell-model.ts`                      | `ShellModel`: registrations, the layout, layers, navigation, modes, persistence (§2); labels (§6)    |
+| `rail.ts`                             | `RailSteps`, `railEntries`, `fitRail`: the rail's order, steps and More (§3.2)                       |
+| `view-menu.ts`                        | `viewMenu`, `paneMenu`, `railMenu`: the layout menus (§2, §2.1, §3)                                  |
+| `pane-map.ts`                         | `PaneMap<T>`: what the app keeps a pane, app side (§2.1)                                             |
+| `view-frame.tsx`                      | `ViewFrame`, `ViewHost`, `viewBody`, the view primitives (`ViewStack` … `ViewHeading`, `styles §8`)  |
+| `section-list.tsx`                    | `SectionList`: a slot's sections as `Expandable`s (§2)                                               |
+| `shell-view.tsx`                      | `ShellView`: the trees (the shell's, the main area's region), rail, windows, layers, F6 (§2.1, §3)   |
+| `shell.module.css`, `view.module.css` | the shell's sizes and the view frame (`styles §8`)                                                   |
 
 ## 1. Principles
 
@@ -79,7 +79,12 @@ pure function on it ending in `normalize`, so the model only ever holds a valid 
   parent); every child but the one taking the rest has a size of at least `MinGroupSize` (180; default
   `DefaultGroupSize`, 280); a group's `active` one of its views that is not hidden; each view in one place; window
   rectangles at least `MinWindow` (240 × 160), windows renumbered by stacking order; ids unique. Why: the view renders
-  any tree it is given; every rule it relies on is checked once, here.
+  any tree it is given; every rule it relies on is checked once, here. A stored size is clamped here too, by its level
+  (`validateLayout` reads it as stored): a pane's least is not a docked group's.
+- **The index** (`layoutIndex`): what readers ask of a layout value (a node, its parent, a view's or a group's place,
+  the rail group, the right column, the region, a group's column), built at the first ask and kept with the value
+  (immutable). `findView`, `findGroup`, `inRegion`, `railGroup`, `columnOf` … read it. Why: a drag writes a layout a
+  frame, and every tree node, group, splitter and port asked again by walking it.
 - **Instances**: a view is `single` (default: one place; `show` brings it where it is) or `many`: each instance is a ref
   `id#key` (`viewRef`, `viewIdOf`), its own place, size, `subject` and section focus, opened by
   `show(id, { key, subject })` (key `default` when none) and gone on close. Instances are not placed at registration;
@@ -99,8 +104,11 @@ pure function on it ending in `normalize`, so the model only ever holds a valid 
   `resize(node, px)`; `setWindowRect`; `raise`; `hide`/`unhide`; `toggleRail`; `resetLayout`. A group left empty goes; a
   split left with one child collapses.
 - **Close** (`close`): a layer's view leaves its layer; a docked single view is hidden (its place kept); a single view
-  with a docked home closed from a window goes back home hidden (closed, not docked); a `float` view or an instance
-  leaves the layout, and an instance's subject and focus go.
+  with a docked home closed from a window goes back home hidden (closed, not docked); a `float` view, an instance or a
+  view in the main area's region leaves the layout, and its subject and focus go.
+- **Every layout write** (`#setLayout`, one place) keeps what refers to the layout true in the same batch: the maximize
+  and the active pane (§2.1); what was kept for a ref that left the layout and every layer goes (its port's states, its
+  own title): a port an app still holds keeps working, a new one is made on demand.
 - **Visible flags** (`visible`): while false the view is `absent`: it leaves its strip and the rail, keeps its place,
   and comes back there. `shows(ref)` is registered, not absent, not hidden.
 - **Hidden views** (`hide`, `unhide`, `hiddenViews`; `layout.hidden`): out of view by the person's choice, without
@@ -139,8 +147,9 @@ into the other):
   `toggleMaximized`, `float`, `close`. **Pane to layout**: only `setTitle` (an instance's own title, "Stage D": frames,
   tabs and windows show it, `paneTitle`). What a pane shows on its status or insets (its toolbar while active, a bottom
   bar kept clear) is the pane's. Hover and focus are the view's inputs (`setPaneHovered`, `setPaneFocused`), the `over`
-  chrome's widths too (`setOverChrome`); headless they stay off. A splitter is the layout's: pressing, focusing or
-  hovering it changes no pane (resizing is not choosing).
+  chrome's widths too (`setOverChrome`), fed by the region and by each window (and a window's pane maximized); headless
+  they stay off. A splitter is the layout's: pressing, focusing or hovering it changes no pane (resizing is not
+  choosing).
 - **What a pane holds is the app's** (`PaneMap<T>`, `pane-map.ts`, app side, DOM-free): the app keeps its own entry a
   pane (a stage's model, a plugin), keyed by pane id; `active` is the active pane's entry, from the shell's `activePane`
   (any state of an id). A shared toolbar acts on `panes.active.value` and posts its result with the pane as the
@@ -151,6 +160,10 @@ into the other):
 - **Invariants** (`normalize`, the main area's rule one level down): exactly one `content` in a region with a tree, none
   outside it, put back at the left when lost; the node holding it takes the rest; a tree that is only the content is
   none; panes are at least `MinPaneSize` (64: a strip above the content is a few rows, not a panel).
+- **Sizes within the main area** (`setArea`, `resize` of a pane): in each split, the sized panes leave the one taking
+  the rest its least (its even share of the room, at most `MinMainSize`); over it, the pane being resized (and its grid
+  peers) gives way first, then the rest shrink in proportion, each at least `MinPaneSize`. Why: a main area made smaller
+  must not squeeze the content to nothing; a lined-up grid shrinks line by line and stays one.
 - **Stage views** (`ShellViewDef.stage`): a canvas, not a panel: alone in its pane it has no header (the frame is named
   by its title); with tabs, its tabs. One canvas a stage view or viewports of one canvas is the app's choice (a page has
   about 16 WebGL contexts); the shell only gives each its body and size.
@@ -165,10 +178,14 @@ into the other):
   group's id: the others away and paused), or a window's view (its ref: out of its window over the main area,
   `MaximizedHost`, its body kept and back in its window after; the other windows inert and paused). The shell's chrome
   stays: maximize is the pane's, expand the shell's (§3.9). Panes show and hide at once, no slide (the slide is a
-  panel's, folding beside the main area; panes sliding out in turn drew every layout between). It ends when its pane
-  closes or the layout resets; `activePane`, `setActivePane` (the pane last pressed or focused, in the region or a
-  window; `paneNode` maps a region pane to its node). Commands: `view.maximize-pane`, `view.close-pane`,
-  `view.grid-panes` (the active pane).
+  panel's, folding beside the main area; panes sliding out in turn drew every layout between). It ends at any layout
+  write that leaves its id no region node nor windowed view (closed, floated, docked, restored without it), when a view
+  is shown or moved into the region outside it (it would stay hidden behind it; the top overlay on a maximized content
+  shows), and on reset. `activePane`, `setActivePane` (the pane last pressed or focused, in the region or a window;
+  `paneNode` maps a region pane to its node): back to `content` at the write its ref stops being a pane (closed, docked
+  out of the main area). What maximizing a pane maximizes is `maximizeTarget` (its region node, its ref in a window,
+  else `content`): the port and `view.maximize-pane` (enabled with several panes or the active one in a window).
+  Commands: `view.maximize-pane`, `view.close-pane`, `view.grid-panes` (the active pane).
 - **Close**: a view closed in the region leaves the layout; shown again, it goes to its home.
 - **Windows** may hold a stage view (a detached 3D window): its body moves between the window and the region without a
   remount, its chrome its own; a press or the focus in it makes it the active pane.
@@ -205,10 +222,13 @@ keeps its state (a canvas is not rebuilt).
   one body (`viewBody`: a `ScrollArea`, or with `fill` a box the view fills). The same in every place (`placement`:
   `docked`, `window`, `card`, `page`, `modal`, `sheet`; the view reads it from its context). Why: a view looks the same
   wherever a person puts it.
-- **The tree is rebuilt only when its structure changes** (`shapeOf`: nodes, order, direction, the rail's group); which
-  nodes show and which are folded, which takes the rest, the sizes and the splitters' sides are written in place
-  (`applyState`, a size only when it changed). Why: rebuilding moves the main area (the app's canvas), which drops the
-  focus in it and ends a splitter's drag; folding a split column or hiding the rail must not.
+- **The tree is rebuilt only when its structure changes** (`sameShape`: nodes, order, direction, the rail's group);
+  which nodes show and which are folded, which takes the rest, the sizes and the splitters' sides are written in place
+  (`applyState`, a size only when it changed; whether a node shows asked once a node). `applyState` runs only when what
+  it reads changes (its tree's nodes, sizes, folds and views, what shows, the rail, its sources): a window's move and
+  the other tree's drag skip it. What the rebuild makes anew is marked again after it (the active pane, `onBuild`). Why:
+  rebuilding moves the main area (the app's canvas), which drops the focus in it and ends a splitter's drag; folding a
+  split column or hiding the rail must not.
 - **What is derived follows every source it reads and changes only when its result does** (the rail's buttons and fit, a
   window's rectangle, the bodies kept): a drag's frames write the layout, and only what the drag moves is written.
 - **Bodies are kept across moves** (`ViewBodies`): a view's body is made once, in a scope of its own, and handed to the
@@ -236,7 +256,8 @@ keeps its state (a canvas is not rebuilt).
 - A press on a view's button selects it, or folds the column when it is the open one (`select`); a folded rail group's
   node does not show, the rail stays. The open view's button is its background only (`aria-selected`).
 - A view button's context menu (or Shift+F10, the menu key) is `railMenu`: Hide, Show for each hidden view, Hide the
-  rail, Reset layout. A tab's (Shift+F10 too) is the view's menu.
+  rail, Reset layout (Show brings an instance back as itself, its key kept). A tab's (Shift+F10 too) is the menu of
+  where it is: the view's docked or in a window, the pane's (`paneMenu`) in the main area and its top overlay.
 - **The rail's toggle** (`railToggle` prop, default on): a Hide button (») ends the rail's foot; with `layout.rail`
   false the rail and every group of the right column are gone, and a star button in the main area's top-right corner
   (`RailToggle`, not in compact) shows them again. The same in embedded, where the rail starts hidden. Showing a view of
@@ -294,7 +315,8 @@ keeps its state (a canvas is not rebuilt).
   progress bar (indeterminate without `progress`), Cancel when it has `cancel`. The rest of the shell is inert; the
   focus goes to it (Cancel, else the card), stays in it, and goes back when it ends.
 - **File drop** (`onDropFiles`): files dragged over the shell show one overlay (`dropLabel`, and `dropFormats` under it:
-  what can be dropped); the cursor says copy; dropped, they go to `onDropFiles`. Without it, no overlay and no handling.
+  what can be dropped); the cursor says copy; dropped, they go to `onDropFiles`, unless a view under the drop took it
+  (prevented its default). Without it, no overlay and no handling.
 - **No status slot**: the main area's chrome (status, chips, its toolbar) is the stage's (`stage/`), placed in the main
   area by the app.
 
@@ -333,9 +355,10 @@ On the motion vocabulary (styles §7.1), none at the first render, none under re
   model asks, the view does it on the shell's root and writes back what the browser did (its own Esc too). Where it
   cannot be (no Fullscreen API, an iframe that does not allow it) `fullscreenAvailable` says why, the command is greyed
   with it and asking does nothing. Headless: unavailable.
-- **Commands** (`shellCommands(shell)`, `shell-commands.ts`): `view.expand`, `view.fullscreen`, `view.toggle-rail`,
-  `view.reset-layout` (and §2.1's pane commands); the app registers them with its command manager. Every person-facing
-  operation of the shell is a model method; these are the ones a person asks for by name.
+- **Commands** (`shellCommands(shell, category?)`, `shell-commands.ts`): `view.expand`, `view.fullscreen`,
+  `view.toggle-rail`, `view.reset-layout` (and §2.1's pane commands), titled and answered in `shell.labels` (§6); the
+  app registers them with its command manager. Every person-facing operation of the shell is a model method; these are
+  the ones a person asks for by name.
 
 ## 4. Keyboard and accessibility
 
@@ -347,12 +370,17 @@ On the motion vocabulary (styles §7.1), none at the first render, none under re
 - **Roles**: the root `application` (`aria-roledescription="workspace"`, labelled by `label`); the main area a `region`
   ("Main area"); a view a `section` labelled by its `h2` title (or by `aria-label` when tabs replace it); the rail a
   `nav` whose view sections are vertical `tablist`s and whose item sections are `group`s; a group's or a window's tabs a
-  `tablist` of `tab`s; splitters `separator`s; a window a non-modal `dialog`; the modal a modal `dialog`; busy an
-  `alertdialog` with a `progressbar`; `ViewToolbar` a `toolbar`; `ViewError` an `alert`.
+  `tablist` of `tab`s; splitters `separator`s; a window a non-modal `dialog` (named by its pane's title, as it changes);
+  the modal a modal `dialog`; busy an `alertdialog` with a `progressbar`; `ViewToolbar` a `toolbar`; `ViewError` an
+  `alert`.
 - **Roving focus**: the rail (vertical) and each tab row (horizontal) are one Tab stop, the arrows between their buttons
   (`rovingFocus`).
 - **F6 / Shift+F6** (on the root) cycle the regions that show: the main area, each docked group, the rail, each window,
-  the card, the compact bar; the focus goes to a region's first focusable (the main area itself).
+  the card, the compact bar; the focus goes to a region's first focusable (the main area itself). The shell marks its
+  own (`data-msui-region`, under its root's `data-msui-shell`): not found by a label (translated) or a tag (an app's
+  `nav` in a view), nor in a shell nested in a view.
+- **Ids**: an element id the shell makes starts with its model's `uid` and encodes a ref one to one (`idPart`): two
+  shells on a page, or refs `a#b` and `a_b`, never share one.
 - **Escape** goes through `dismissable` (`components/popover/dismiss.ts`): one layer per press, the innermost (last
   opened) first: a menu or list, then a window's keyboard adjust, the window (only from inside it), the card, the page,
   the modal.
@@ -366,3 +394,12 @@ On the motion vocabulary (styles §7.1), none at the first render, none under re
 The main area's content and its toolbar (its corner is kept clear only by the rail toggle), the status and the log (the
 status slot; a log is a view), Home and every other view, the rail items, the commands that call the operations, where
 the layout is stored, and whether a session restores it.
+
+## 6. Labels
+
+Every word the shell shows or says (its chrome, its menus, its commands, the fullscreen reasons, the rail's sections:
+`railViews`, `railTools`, never their internal names) is in `ShellLabels`; `DefaultShellLabels` is English. Strings, or
+functions for those with a title in them (`close(title)`, `moveToWindow(title)`). The app passes `ShellOptions.labels`
+(a `Partial`), merged once in the model (`shell.labels`, frozen), so the view, `viewMenu` / `paneMenu` / `railMenu` and
+`shellCommands` read the same words, headless too. Why: the shell is a base library; an app in another language replaces
+its words without forking it. A view's own words are the view's. Search aliases of the commands stay English.

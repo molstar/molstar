@@ -28,9 +28,32 @@ export interface InputBindingGroup {
   readonly bindings: readonly InputBinding[];
 }
 
+/** What changing keys says (commands §6.6): strings, or functions for what names a command or a key. */
+export interface KeysLabels {
+  /** A key recorded: the command, its new keys as shown, the commands it now shares them with. */
+  readonly recorded: (command: string, keys: string, sharedWith: readonly string[]) => string;
+  readonly cleared: (command: string) => string;
+  /** Back to its default key (none: undefined). */
+  readonly reset: (command: string, keys: string | undefined) => string;
+  readonly resetAll: string;
+}
+
+export const DefaultKeysLabels: KeysLabels = {
+  recorded: (command, keys, shared) =>
+    `${command}: ${keys}${shared.length ? `, also used by ${shared.join(' and ')}` : ''}.`,
+  cleared: (command) => `${command}: no key.`,
+  reset: (command, keys) => `${command}: ${keys ?? 'no key'} again.`,
+  resetAll: 'Every key is back to its default.',
+};
+
+export interface KeysModelOptions {
+  readonly labels?: Partial<KeysLabels>;
+}
+
 /** The keys Help lists and changes: the commands' keys after the keymap, conflicts, and the edit in progress. */
 export class KeysModel<Ctx> {
   readonly #manager: CommandManager<Ctx>;
+  readonly #labels: KeysLabels;
   readonly #editing = new State(false);
   readonly #recording = new State<string | undefined>(undefined);
   readonly #said = new State('');
@@ -42,8 +65,9 @@ export class KeysModel<Ctx> {
   /** Commands with no key now, by title: what a key can be given to. */
   readonly keyless: ReadonlyState<readonly CommandDefinition<Ctx>[]>;
 
-  constructor(manager: CommandManager<Ctx>) {
+  constructor(manager: CommandManager<Ctx>, options: KeysModelOptions = {}) {
     this.#manager = manager;
+    this.#labels = { ...DefaultKeysLabels, ...options.labels };
     const keymap = manager.keymap;
     this.listed = derive([manager.commands, keymap.layers, this.#recording], (all, _, rec) =>
       all.filter((c) => manager.shortcut(c) || keymap.isRemapped(c.id) || c.id === rec),
@@ -65,7 +89,10 @@ export class KeysModel<Ctx> {
   get recording(): ReadonlyState<string | undefined> {
     return this.#recording.asReadonly;
   }
-  /** What the last change did, to be said once (a polite live region). */
+  /**
+   * What the last change did, to be said once (a polite live region): the same text again (Reset all twice) toggles a
+   * trailing no-break space, so the region is told and says it again (as `StatusModel.spoken`).
+   */
   get said(): ReadonlyState<string> {
     return this.#said.asReadonly;
   }
@@ -96,8 +123,12 @@ export class KeysModel<Ctx> {
     const keymap = this.#manager.keymap;
     keymap.remap(c.id, chord);
     const others = keymap.sharing(c.id, chord, this.#manager.commands.value);
-    this.#said.set(
-      `${c.title}: ${formatChord(chord)}${others.length ? `, also used by ${others.map((o) => o.title).join(' and ')}` : ''}.`,
+    this.#say(
+      this.#labels.recorded(
+        c.title,
+        formatChord(chord),
+        others.map((o) => o.title),
+      ),
     );
   }
 
@@ -106,7 +137,7 @@ export class KeysModel<Ctx> {
     const c = this.#manager.get(id);
     if (!c) return;
     this.#manager.keymap.remap(id, null);
-    this.#said.set(`${c.title}: no key.`);
+    this.#say(this.#labels.cleared(c.title));
   }
 
   /** Back to the app's or the command's own key. */
@@ -116,13 +147,17 @@ export class KeysModel<Ctx> {
     const keymap = this.#manager.keymap;
     keymap.reset(id);
     const d = keymap.defaultShortcut(c);
-    this.#said.set(`${c.title}: ${d ? formatChord(d) : 'no key'} again.`);
+    this.#say(this.#labels.reset(c.title, d ? formatChord(d) : undefined));
   }
 
   /** Every key back to its default. */
   resetAll(): void {
     this.#manager.keymap.resetAll();
-    this.#said.set('Every key is back to its default.');
+    this.#say(this.#labels.resetAll);
+  }
+
+  #say(text: string) {
+    this.#said.set(text === this.#said.value ? `${text}\u00a0` : text);
   }
 }
 

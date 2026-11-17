@@ -78,6 +78,33 @@ export function formatChord(chord: KeyChord, mac = isMac()): string {
   return chordKeys(chord, mac).join(mac ? '' : '+');
 }
 
+/** ARIA's names of the keys `Named` shows as symbols (`aria-keyshortcuts` uses `KeyboardEvent.key`). */
+const AriaNamed: Readonly<Record<string, string>> = {
+  arrowup: 'ArrowUp',
+  arrowdown: 'ArrowDown',
+  arrowleft: 'ArrowLeft',
+  arrowright: 'ArrowRight',
+  escape: 'Escape',
+  enter: 'Enter',
+  backspace: 'Backspace',
+  delete: 'Delete',
+  ' ': 'Space',
+};
+
+/**
+ * A chord in `aria-keyshortcuts`' syntax for this platform: `Meta+Shift+Z` on macOS, `Control+Shift+Z` elsewhere
+ * (modifiers first, the key last).
+ */
+export function ariaKeyShortcut(chord: KeyChord, mac = isMac()): string {
+  const keys: string[] = [];
+  if (chord.mod) keys.push(mac ? 'Meta' : 'Control');
+  if (chord.alt) keys.push('Alt');
+  if (chord.shift) keys.push('Shift');
+  const key = chord.key.toLowerCase();
+  keys.push(AriaNamed[key] ?? (key.length === 1 ? key.toUpperCase() : chord.key));
+  return keys.join('+');
+}
+
 /** A single character that is not a letter, a digit or a space: it implies its Shift (`?` is Shift+/ on most layouts). */
 export function isSymbolKey(key: string): boolean {
   return /^[^\p{L}\p{N}\s]$/u.test(key);

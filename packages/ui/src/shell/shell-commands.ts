@@ -5,7 +5,7 @@
  */
 
 import type { CommandDefinition } from '../commands/types.js';
-import { mainNode } from './layout.js';
+import { findView, mainNode } from './layout.js';
 import type { ShellModel } from './shell-model.js';
 
 /**
@@ -13,22 +13,32 @@ import type { ShellModel } from './shell-model.js';
  * do the same. An app registers them with its command manager (`manager.register(shellCommands(shell))` or its own
  * equivalent), in its category.
  */
-export function shellCommands<Ctx = unknown>(shell: ShellModel, category = 'View'): CommandDefinition<Ctx>[] {
+export function shellCommands<Ctx = unknown>(
+  shell: ShellModel,
+  category = shell.labels.commandCategory,
+): CommandDefinition<Ctx>[] {
+  // The shell's words (shell §6): the app's, merged in the model.
+  const t = shell.labels;
+  // Several panes in the main area, or the active one in a window (a detached stage maximizes over the main area).
+  const panes = () =>
+    mainNode(shell.layout.value).root || findView(shell.layout.value, shell.activePane.value)?.window
+      ? true
+      : t.onePane;
   return [
     {
       id: 'view.expand',
-      title: 'Expand the main area',
+      title: t.expandTitle,
       category,
       icon: 'maximize-2',
       alias: ['expand', 'focus mode'],
       run: () => {
         shell.toggleExpanded();
-        return { message: shell.expanded.value ? 'Expanded: Escape to come back' : 'Back from expanded' };
+        return { message: shell.expanded.value ? t.expandedMessage : t.notExpandedMessage };
       },
     },
     {
       id: 'view.fullscreen',
-      title: 'Fullscreen',
+      title: t.fullscreenTitle,
       category,
       icon: 'fullscreen',
       alias: ['full screen'],
@@ -40,62 +50,62 @@ export function shellCommands<Ctx = unknown>(shell: ShellModel, category = 'View
     },
     {
       id: 'view.toggle-rail',
-      title: 'Show or hide the views',
+      title: t.toggleRailTitle,
       category,
       icon: 'chevrons-right',
       run: () => {
         shell.toggleRail();
-        return { message: shell.railShown.value ? 'Views shown' : 'Views hidden' };
+        return { message: shell.railShown.value ? t.viewsShownMessage : t.viewsHiddenMessage };
       },
     },
     {
       id: 'view.maximize-pane',
-      title: 'Maximize the pane',
+      title: t.maximizePaneTitle,
       category,
       icon: 'maximize',
       alias: ['maximize', 'zoom pane'],
-      // Only with several panes in the main area (shell §2.1).
-      when: () => (mainNode(shell.layout.value).root ? true : 'There is one pane'),
+      // Only with several panes (shell §2.1), or the active pane in a window.
+      when: panes,
       run: () => {
-        const node = shell.paneNode(shell.activePane.value) ?? 'content';
-        shell.toggleMaximize(node);
-        return { message: shell.maximized.value ? 'Maximized: Escape to come back' : 'All panes' };
+        // The port's rule: the active pane's region node, its ref in a window, else the content.
+        shell.toggleMaximize(shell.maximizeTarget(shell.activePane.value));
+        return { message: shell.maximized.value ? t.maximizedMessage : t.allPanesMessage };
       },
     },
     {
       id: 'view.grid-panes',
-      title: 'Arrange the panes as a grid',
+      title: t.gridTitle,
       category,
       icon: 'layout-grid',
       alias: ['grid', 'tile panes'],
-      when: () => (mainNode(shell.layout.value).root ? true : 'There is one pane'),
+      when: () => (mainNode(shell.layout.value).root ? true : t.onePane),
       run: () => {
         shell.arrangeGrid();
-        return { message: 'Panes arranged as a grid' };
+        return { message: t.gridMessage };
       },
     },
     {
       id: 'view.close-pane',
-      title: 'Close the pane',
+      title: t.closePaneTitle,
       category,
       icon: 'x',
       // The app's content is no pane to close; a view beside it is.
       when: () =>
-        shell.activePane.value !== 'content' && shell.paneNode(shell.activePane.value) ? true : 'Nothing to close',
+        shell.activePane.value !== 'content' && shell.paneNode(shell.activePane.value) ? true : t.nothingToClose,
       run: () => {
+        // The active pane falls back to the content as its ref leaves (shell §2.1).
         shell.close(shell.activePane.value);
-        shell.setActivePane('content');
-        return { message: 'Pane closed' };
+        return { message: t.paneClosedMessage };
       },
     },
     {
       id: 'view.reset-layout',
-      title: 'Reset the layout',
+      title: t.resetLayoutTitle,
       category,
       icon: 'list-restart',
       run: () => {
         shell.resetLayout();
-        return { message: 'Layout reset' };
+        return { message: t.layoutResetMessage };
       },
     },
   ];

@@ -50,13 +50,14 @@
   pointer-events: none;
 }
 
-/* A slot takes no pointer; its content does. */
+/* A slot takes no pointer; its content does, unless its own rule says otherwise (`:where`: no specificity, so a
+   component's class, the hover label's `pointer-events: none`, wins whatever the order the styles load in). */
 .slot {
   pointer-events: none;
+}
 
-  & > * {
-    pointer-events: auto;
-  }
+:where(.slot) > * {
+  pointer-events: auto;
 }
 
 /* The band over the canvas's top: its content on the canvas's color, which fades out below it over
@@ -141,7 +142,8 @@
 }
 
 /* The corner's toolbar. Hidden by the app (`toolbarShown` false: a stage that is not the active one): faded out and
-   out of the pointer's way, still in the tab order (the focus coming in makes the pane focused, and the app shows it). */
+   out of the pointer's way, still in the tab order; the focus in it shows it (whether or not the app does: a keyboard
+   user never works in an invisible toolbar). */
 .tools {
   display: flex;
   transition: opacity var(--msui-motion-fast) var(--msui-ease);
@@ -149,6 +151,11 @@
   .stage[data-toolbar="hidden"] & {
     opacity: 0;
     pointer-events: none;
+  }
+
+  .stage[data-toolbar="hidden"] &:focus-within {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 

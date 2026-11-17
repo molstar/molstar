@@ -7,12 +7,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { State } from '@molstar/core/reactive';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type Child, DomHost, flush, render, ViewScope } from '../../dom/index.js';
 import { fakeContext, stubPath2D } from '../../components/logo/_test/fake-canvas.js';
 import { classes } from '../_generated/stage.module.css.js';
+import type { EmptyMark } from '../empty-stage.js';
+import { GlassEmptyMark } from '../glass-empty-mark.js';
 import { BandPlaceholder, structureLines, StagePlaceholder } from '../placeholders.js';
 import { Stage } from '../stage.js';
 import { StageModel } from '../stage-model.js';
@@ -64,6 +68,7 @@ function mount(
     chips?: Child;
     corner?: Child;
     toolbarShown?: boolean | State<boolean>;
+    emptyMark?: EmptyMark;
   } = () => ({}),
   scope = new ViewScope(),
 ) {
@@ -106,6 +111,39 @@ describe('Stage', () => {
     flush();
     expect(root.style.getPropertyValue('--msui-stage-color')).toBe('#0b0e14');
     expect(ink.getAttribute('data-msui-theme')).toBe('dark');
+    // The app's color as given, whatever its syntax (a named one, an hsl()).
+    stage.setBackground('navy');
+    flush();
+    expect(root.style.getPropertyValue('--msui-stage-color')).toBe('navy');
+    expect(ink.getAttribute('data-msui-theme')).toBe('dark');
+    stage.setBackground('hsl(0 0% 95%)');
+    flush();
+    expect(ink.getAttribute('data-msui-theme')).toBe('light');
+  });
+
+  it('keeps a color the model cannot read, and themes by what the CSS engine makes of it', () => {
+    const stage = new StageModel({ empty: false });
+    const { root, ink } = mount(stage);
+    // jsdom has no oklch(): the computed background as a browser gives it.
+    const computed = vi
+      .spyOn(window, 'getComputedStyle')
+      .mockImplementation(
+        (el) => ({ backgroundColor: el === root ? 'rgb(12, 12, 14)' : 'rgba(0, 0, 0, 0)' }) as CSSStyleDeclaration,
+      );
+    stage.setBackground('oklch(0.2 0.01 260)');
+    flush();
+    expect(root.style.getPropertyValue('--msui-stage-color')).toBe('oklch(0.2 0.01 260)');
+    expect(ink.getAttribute('data-msui-theme')).toBe('dark');
+    // Transparent: what is behind it (the first opaque background up the tree).
+    computed.mockImplementation(
+      (el) =>
+        ({ backgroundColor: el === document.body ? 'rgb(20, 20, 20)' : 'rgba(0, 0, 0, 0)' }) as CSSStyleDeclaration,
+    );
+    stage.setBackground('transparent');
+    flush();
+    expect(root.style.getPropertyValue('--msui-stage-color')).toBe('transparent');
+    expect(ink.getAttribute('data-msui-theme')).toBe('dark');
+    computed.mockRestore();
   });
 
   it('layers the canvas, then the chrome; the slots hold the app’s content', () => {
@@ -183,7 +221,7 @@ describe('Stage', () => {
   it('shows the mark after the wait, quiets the canvas, and takes it out when something comes', () => {
     vi.useFakeTimers();
     const stage = new StageModel();
-    const { root, canvas } = mount(stage);
+    const { root, canvas } = mount(stage, () => ({ emptyMark: GlassEmptyMark }));
     expect(canvas.hasAttribute('data-quiet')).toBe(true);
     expect(root.querySelector('[data-msui-stage-empty]')).toBeNull();
     vi.advanceTimersByTime(700);
@@ -198,6 +236,39 @@ describe('Stage', () => {
     vi.advanceTimersByTime(250);
     flush();
     expect(root.querySelector('[data-msui-stage-empty]')).toBeNull();
+  });
+
+  it('shows no mark by default (the stage is neutral); the wait and the quiet canvas still run', () => {
+    vi.useFakeTimers();
+    const stage = new StageModel();
+    const { root, canvas } = mount(stage);
+    vi.advanceTimersByTime(700);
+    flush();
+    expect(stage.mark.value).toBe('in');
+    expect(canvas.hasAttribute('data-quiet')).toBe(true);
+    expect(root.querySelector('[data-msui-stage-empty]')).toBeNull();
+    expect(root.querySelector('[data-msui-splash]')).toBeNull();
+  });
+
+  it('renders the mark again as the stage turns compact; fades it out over the model’s time', () => {
+    vi.useFakeTimers();
+    const stage = new StageModel({ markFadeOutMs: 400 });
+    const seen: boolean[] = [];
+    const { root } = mount(stage, () => ({
+      emptyMark: (ctx) => {
+        seen.push(ctx.compact);
+        return <i data-mark="" />;
+      },
+    }));
+    vi.advanceTimersByTime(700);
+    flush();
+    const empty = root.querySelector<HTMLElement>('[data-msui-stage-empty]')!;
+    expect(empty.style.getPropertyValue('--msui-stage-mark-out')).toBe('400ms');
+    resize(root, 300, 320);
+    resize(root, 300, 360);
+    resize(root, 300, 900);
+    expect(seen).toEqual([false, true, false]);
+    expect(empty.querySelectorAll('[data-mark]')).toHaveLength(1);
   });
 
   it('feeds the hover label from the canvas, at the corner above the toolbar', async () => {
@@ -217,6 +288,27 @@ describe('Stage', () => {
     flush();
     expect(root.querySelector(`.${classes.corner} [role=tooltip]`)).toBeNull();
     expect(root.querySelector('[role=tooltip][data-placement="cursor"]')).not.toBeNull();
+  });
+});
+
+describe('the stage’s styles', () => {
+  const css = readFileSync(path.resolve(import.meta.dirname, '../_generated/stage.module.css.ts'), 'utf8');
+  const empty = readFileSync(path.resolve(import.meta.dirname, '../_generated/empty-stage.module.css.ts'), 'utf8');
+
+  it('shows a hidden toolbar while the focus is in it (a keyboard user never works in an invisible one)', () => {
+    // Nested under `.tools` (the generated CSS keeps the nesting).
+    const rule = /\.msui-stage-stage\[data-toolbar="hidden"\] &:focus-within \{([^}]*)\}/.exec(css)?.[1];
+    expect(rule).toMatch(/opacity: 1/);
+    expect(rule).toMatch(/pointer-events: auto/);
+  });
+
+  it('gives a slot’s content the pointer with no specificity (a component’s own rule wins, whatever the order)', () => {
+    expect(css).toMatch(/:where\(\.msui-stage-slot\) > \*/);
+    expect(css).not.toMatch(/\.msui-stage-slot > \*/);
+  });
+
+  it('fades the mark out over the model’s time (`--msui-stage-mark-out`), not a fixed one', () => {
+    expect(empty).toMatch(/transition: opacity var\(--msui-stage-mark-out, (250ms|\.25s)\)/);
   });
 });
 
@@ -302,24 +394,25 @@ describe('the stage is accessible (axe)', () => {
       ]}
     />
   );
-  const states: [string, () => StageModel, (s: StageModel) => Record<string, Child>][] = [
-    ['empty, the mark up', () => new StageModel(), () => ({})],
+  const states: [string, () => StageModel, (s: StageModel) => ReturnType<NonNullable<Parameters<typeof mount>[1]>>][] =
     [
-      'loaded, toolbar and status',
-      () => new StageModel({ empty: false }),
-      () => ({ corner: tools(), status: <span>Ready</span> }),
-    ],
-    [
-      'a band on top, dark',
-      () => new StageModel({ empty: false, background: '#000000' }),
-      () => ({ top: <BandPlaceholder selection={[4, 9]} /> }),
-    ],
-    [
-      'hover at the cursor',
-      () => new StageModel({ empty: false, hoverPlacement: 'cursor' }),
-      () => ({ corner: tools() }),
-    ],
-  ];
+      ['empty, the mark up', () => new StageModel(), () => ({ emptyMark: GlassEmptyMark })],
+      [
+        'loaded, toolbar and status',
+        () => new StageModel({ empty: false }),
+        () => ({ corner: tools(), status: <span>Ready</span> }),
+      ],
+      [
+        'a band on top, dark',
+        () => new StageModel({ empty: false, background: '#000000' }),
+        () => ({ top: <BandPlaceholder selection={[4, 9]} /> }),
+      ],
+      [
+        'hover at the cursor',
+        () => new StageModel({ empty: false, hoverPlacement: 'cursor' }),
+        () => ({ corner: tools() }),
+      ],
+    ];
   for (const [name, make, slots] of states) {
     it(name, async () => {
       vi.useFakeTimers();

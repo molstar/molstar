@@ -8,10 +8,10 @@
  */
 
 import { State } from '@molstar/core/reactive';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DomHost, render } from '../../dom/index.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRoot, DomHost, render } from '../../dom/index.js';
 import { classes } from '../_generated/hover-label.module.css.js';
-import { HoverLabel } from '../hover-label.js';
+import { type FollowedLabel, type FollowedLayer, HoverFollower, HoverLabel } from '../hover-label.js';
 import type { HoverLine } from '../stage-model.js';
 
 // The hover label (stage §3.1): in the corner by default, beside the pointer when asked; text only; it appears at once
@@ -55,6 +55,58 @@ async function mount(placement: 'corner' | 'cursor', initial: readonly HoverLine
   const shown = () => !label.classList.contains(classes.out) && !label.hasAttribute('aria-hidden');
   return { label, lines, move, leave, shown, dispose };
 }
+
+describe('hover label beside the pointer: the layer’s box', () => {
+  it('is read once, and again only after `invalidate` (a resize, a scroll, the pointer coming in)', () => {
+    let reads = 0;
+    const layer: FollowedLayer = {
+      getBoundingClientRect: () => {
+        reads++;
+        return { left: 10, top: 20 };
+      },
+      clientWidth: 1000,
+      clientHeight: 800,
+    };
+    const written = new Map<string, string>();
+    const label: FollowedLabel = {
+      offsetWidth: 100,
+      offsetHeight: 30,
+      classList: { toggle: () => true },
+      style: { setProperty: (k, v) => written.set(k, v) },
+      setAttribute: () => {},
+      removeAttribute: () => {},
+    };
+    let follower!: HoverFollower;
+    const dispose = createRoot((d) => {
+      follower = new HoverFollower(label, () => layer, false, 'out');
+      return d;
+    });
+    follower.setContent(true);
+    for (let i = 0; i < 3; i++) {
+      follower.move(100 + i, 100, false, true);
+      frame();
+    }
+    expect(reads).toBe(1);
+    expect(written.get('--msui-hover-x')).toBe('104px');
+    follower.invalidate();
+    follower.move(200, 100, false, true);
+    frame();
+    expect(reads).toBe(2);
+    expect(written.get('--msui-hover-x')).toBe('202px');
+    dispose();
+  });
+
+  it('is invalidated by a scroll anywhere and the pointer coming in', async () => {
+    const invalidate = vi.spyOn(HoverFollower.prototype, 'invalidate');
+    const { dispose } = await mount('cursor');
+    const area = document.body.lastElementChild!;
+    document.dispatchEvent(new Event('scroll'));
+    area.dispatchEvent(new PointerEvent('pointerenter'));
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    dispose();
+    invalidate.mockRestore();
+  });
+});
 
 describe('hover label placement', () => {
   it('is in the corner by default and never moves there', async () => {

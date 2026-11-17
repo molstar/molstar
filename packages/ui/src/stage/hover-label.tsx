@@ -7,13 +7,14 @@
  */
 
 import { State } from '@molstar/core/reactive';
-import { bind, frames, on, requireScope, runInScope } from '../dom/index.js';
+import { bind, frames, observeResize, on, requireScope, runInScope } from '../dom/index.js';
 import { classes } from './_generated/hover-label.module.css.js';
 import type { HoverAt, HoverLabelModel, HoverLine, HoverRun } from './stage-model.js';
 
 // The hover label (stage §3.1): what is under the pointer, in the stage's corner or beside the pointer. Its content is the
-// model's lines (text only); its place beside the pointer is one layout read and one write a frame, allocating nothing
-// (`_test/hover-label.quick.ts`).
+// model's lines (text only); its place beside the pointer is the label's size read and one write a frame, allocating
+// nothing (`_test/hover-label.quick.ts`); the layer's box is read once and again only after a resize, a scroll or the
+// pointer coming in.
 
 /** The label's distance from the pointer (px). */
 const Offset = 12;
@@ -64,7 +65,7 @@ export interface FollowedLabel {
   removeAttribute(name: string): void;
 }
 
-/** What the label is placed in (its offset parent): read once a frame while it follows the pointer. */
+/** What the label is placed in (its offset parent): read once, and again after `HoverFollower.invalidate`. */
 export interface FollowedLayer {
   getBoundingClientRect(): { readonly left: number; readonly top: number };
   readonly clientWidth: number;
@@ -85,8 +86,9 @@ function px(n: number): string {
  * Whether and where the label shows (stage §3.1): at once when the pointer comes with content (in the corner; beside the
  * pointer in the frame that places it); a drag (a button held) or no content hides it at once; the pointer leaving
  * waits a frame (out and back, or across a small element, keeps it). Beside the pointer it is placed once a frame: the
- * layer's box and the label's size read, then the two offsets written (custom properties of cached strings), flipped
- * near the edges. Made in a scope: its frames are the scope's.
+ * label's size read, then the two offsets written (custom properties of cached strings), flipped near the edges; the
+ * layer and its box are cached until `invalidate` (a resize, a scroll: no rect allocated a frame). Made in a scope: its
+ * frames are the scope's.
  */
 export class HoverFollower {
   #x = 0;
@@ -97,6 +99,12 @@ export class HoverFollower {
   #shown = false;
   #left = -1;
   #top = -1;
+  /** The layer's box, cached (`#cached`) until `invalidate`. */
+  #cached = false;
+  #layerLeft = 0;
+  #layerTop = 0;
+  #layerWidth = 0;
+  #layerHeight = 0;
   readonly #label: FollowedLabel;
   readonly #layer: () => FollowedLayer | null;
   readonly #corner: boolean;
@@ -133,6 +141,11 @@ export class HoverFollower {
     this.#update();
   }
 
+  /** The layer moved or resized (a resize, a scroll, the pointer coming in): its box is read again in the next frame. */
+  invalidate(): void {
+    this.#cached = false;
+  }
+
   setContent(has: boolean): void {
     this.#content = has;
     this.#update();
@@ -162,18 +175,30 @@ export class HoverFollower {
     else this.#label.setAttribute('aria-hidden', 'true');
   }
 
-  /** One read (the layer's box, the label's size), then one write (its offsets, only when they moved). */
+  /** The layer's box, read when not cached; false while there is no layer (not laid out). */
+  #measure(): boolean {
+    if (this.#cached) return true;
+    const layer = this.#layer();
+    if (!layer) return false;
+    const rect = layer.getBoundingClientRect();
+    this.#layerLeft = rect.left;
+    this.#layerTop = rect.top;
+    this.#layerWidth = layer.clientWidth;
+    this.#layerHeight = layer.clientHeight;
+    this.#cached = true;
+    return true;
+  }
+
+  /** One read (the label's size; the layer's box when not cached), then one write (its offsets, only when they moved). */
   #place(): void {
     if (!this.#visible()) return;
-    const layer = this.#layer();
-    if (layer) {
-      const rect = layer.getBoundingClientRect();
-      const x = this.#x - rect.left;
-      const y = this.#y - rect.top;
+    if (this.#measure()) {
+      const x = this.#x - this.#layerLeft;
+      const y = this.#y - this.#layerTop;
       const w = this.#label.offsetWidth;
       const h = this.#label.offsetHeight;
-      const left = Math.max(0, Math.round(x + Offset + w > layer.clientWidth ? x - Offset - w : x + Offset));
-      const top = Math.max(0, Math.round(y + Offset + h > layer.clientHeight ? y - Offset - h : y + Offset));
+      const left = Math.max(0, Math.round(x + Offset + w > this.#layerWidth ? x - Offset - w : x + Offset));
+      const top = Math.max(0, Math.round(y + Offset + h > this.#layerHeight ? y - Offset - h : y + Offset));
       if (left !== this.#left) {
         this.#left = left;
         this.#label.style.setProperty('--msui-hover-x', px(left));
@@ -247,6 +272,13 @@ export function HoverLabel(props: HoverLabelProps) {
         follower.move(e.clientX, e.clientY, e.buttons !== 0, !over || over(e.target as Element)),
       );
       on(area, 'pointerleave', () => follower.leave());
+      if (corner) return;
+      // The layer's box, cached by the follower: read again after the stage resizes, anything scrolls, or the pointer
+      // comes in (a stage moved without resizing).
+      const invalidate = () => follower.invalidate();
+      on(area, 'pointerenter', invalidate);
+      observeResize(area, invalidate);
+      on(area.ownerDocument, 'scroll', invalidate, { capture: true, passive: true });
     });
   });
   return label;

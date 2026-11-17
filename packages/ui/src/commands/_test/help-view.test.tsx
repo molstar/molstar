@@ -129,6 +129,64 @@ describe('the help view', () => {
     expect(p.saved).toEqual([]);
   });
 
+  it('lets Tab through the recorder: it leaves, and the blur cancels', async () => {
+    const p = setup();
+    p.button(p.commands(), 'Change keys').click();
+    flush();
+    p.button(p.row('Reset camera'), 'Change').click();
+    flush();
+    await tick();
+    const recorder = p.row('Reset camera').querySelector('[role="button"]') as HTMLElement;
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    recorder.dispatchEvent(tab);
+    expect(tab.defaultPrevented).toBe(false);
+    expect(p.saved).toEqual([]);
+    recorder.blur();
+    flush();
+    expect(p.row('Reset camera').querySelector('[role="button"]')).toBeNull();
+  });
+
+  it('gives a key from a choice that shows its placeholder again after a pick and a cancel', async () => {
+    const p = setup();
+    p.button(p.commands(), 'Change keys').click();
+    flush();
+    const choice = () => p.container.querySelector('button[aria-label="Give a key to a command"]') as HTMLElement;
+    expect(choice().textContent).toContain('Give a key to…');
+    choice().click();
+    flush();
+    const option = [...document.querySelectorAll('[role="option"]')].find((o) =>
+      o.textContent?.includes('No key at first'),
+    ) as HTMLElement;
+    option.click();
+    flush();
+    await tick();
+    // Recording it: the choice names it; cancelled, the placeholder again.
+    expect(choice().textContent).toContain('No key at first');
+    const recorder = p.row('No key at first').querySelector('[role="button"]') as HTMLElement;
+    recorder.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    flush();
+    expect(choice().textContent).toContain('Give a key to…');
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+  });
+
+  it('speaks the app’s words', () => {
+    KeyPlatform.mac = true;
+    const manager = new CommandManager<object>({
+      context: new State<object>({}).asReadonly,
+      formats: { get: () => undefined },
+    });
+    const container = document.createElement('div');
+    document.body.append(container);
+    dispose = render(
+      () => (
+        <HelpView commands={manager} labels={{ everywhere: 'Partout', closeAction: 'Fermer', commands: 'Commandes' }} />
+      ),
+      container,
+    );
+    expect(container.querySelector('[aria-label="Partout"]')?.textContent).toContain('Fermer');
+    expect(container.querySelector('[aria-label="Commandes"]')).not.toBeNull();
+  });
+
   it('is accessible (axe), changing keys too', async () => {
     const p = setup();
     p.button(p.commands(), 'Change keys').click();

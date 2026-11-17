@@ -36,7 +36,7 @@ describe('ShellView: the rail', () => {
     const m = mountShell(views());
     const tabs = m.qa('nav [role="tab"]').map((b) => b.getAttribute('aria-label'));
     expect(tabs).toEqual(['Home', 'Layers', 'Inspect', 'Help']);
-    const lists = m.qa('nav [role="tablist"]').map((l) => l.getAttribute('aria-label'));
+    const lists = m.qa('nav [role="tablist"]').map((l) => l.getAttribute('data-rail-section'));
     expect(lists).toEqual(['head', 'strip', 'foot']);
     m.dispose();
   });
@@ -136,6 +136,17 @@ describe('ShellView: the rail', () => {
     // Closed before the shell goes: an open menu's listeners would outlive the test (files share a worker).
     key(document.activeElement!, 'Escape');
     expect(document.querySelector('[role="menu"]')).toBeNull();
+    m.dispose();
+  });
+
+  it('the rail’s sections are named for people: its views and its tools (not their internal sections)', () => {
+    const m = mountShell(views(), { labels: { railViews: 'Vues', railTools: 'Outils' } });
+    m.shell.registerRailItems([{ id: 'theme', icon: 'sun', title: 'Theme', run: () => {} }]);
+    flush();
+    const names = [...m.rail()!.querySelectorAll('[role="tablist"], [role="group"]')].map((e) =>
+      e.getAttribute('aria-label'),
+    );
+    expect(new Set(names)).toEqual(new Set(['Vues', 'Outils']));
     m.dispose();
   });
 

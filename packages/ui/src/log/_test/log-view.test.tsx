@@ -12,7 +12,7 @@ import { DomHost, flush, render } from '../../dom/index.js';
 import { shownInOrder } from '../../testing/virtual-list.js';
 import { axeViolations } from '../../testing/axe.js';
 import { LogModel } from '../log-model.js';
-import { LogView } from '../log-view.js';
+import { DefaultLogViewLabels, LogView } from '../log-view.js';
 
 // The log's view (log §3): recycled one-line rows, newest last and kept at the bottom, the filters and the text filter.
 
@@ -161,6 +161,29 @@ describe('LogView', () => {
     const { el } = mount(new LogModel());
     flush();
     expect(el.textContent).toContain('Nothing is logged yet.');
+  });
+
+  it('speaks the app’s words', () => {
+    const el = document.createElement('div');
+    document.body.append(el);
+    const dispose = render(
+      () => (
+        <LogView
+          log={new LogModel()}
+          labels={{
+            empty: 'Rien encore.',
+            all: 'Tout',
+            kind: { ...DefaultLogViewLabels.kind, error: { label: 'Erreurs', tip: 'Les erreurs' } },
+          }}
+        />
+      ),
+      el,
+    );
+    flush();
+    expect(el.textContent).toContain('Rien encore.');
+    expect(el.querySelector('button[aria-label="Tout"]')).not.toBeNull();
+    expect(el.querySelector('button[aria-label="Erreurs"]')?.getAttribute('data-tip')).toBe('Les erreurs');
+    dispose();
   });
 
   it('is accessible (axe): empty, and with entries filtered', async () => {

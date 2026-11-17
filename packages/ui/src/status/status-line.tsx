@@ -29,6 +29,31 @@ import { state } from '../state.js';
 import { classes } from './_generated/status-line.module.css.js';
 import type { StatusKind, StatusModel, StatusTask } from './status-model.js';
 
+/** The status views' own text (English by default, `DefaultStatusLabels`); parametrized ones are functions. */
+export interface StatusLabels {
+  /** The message's tooltip when a click opens the log at its problems (an error). */
+  showProblems: string;
+  /** The message's tooltip when a click opens the whole log. */
+  showLog: string;
+  /** A pill's ✕. */
+  dismiss: string;
+  /** A task's Cancel, named after its task (two running tasks are told apart). */
+  cancel: (task: string) => string;
+  /** A chip's ✕: its accessible name, after the chip. */
+  clear: (chip: string) => string;
+  /** A chip's ✕: its tooltip. */
+  clearTip: string;
+}
+
+export const DefaultStatusLabels: StatusLabels = {
+  showProblems: 'Show the problems in the log',
+  showLog: 'Show the log',
+  dismiss: 'Dismiss',
+  cancel: (task) => `Cancel ${task}`,
+  clear: (chip) => `Clear ${chip}`,
+  clearTip: 'Clear',
+};
+
 export interface StatusLineProps {
   status: StatusModel;
   /**
@@ -44,6 +69,7 @@ export interface StatusLineProps {
    * in the app takes it). No scope: everything (one line in the app).
    */
   scope?: { readonly id?: string; readonly rest?: boolean };
+  labels?: Partial<StatusLabels>;
   class?: string;
 }
 
@@ -54,6 +80,7 @@ export interface StatusLineProps {
  */
 export function StatusLine(props: StatusLineProps) {
   const { status } = props;
+  const labels = { ...DefaultStatusLabels, ...props.labels };
   const openLog = props.onOpenLog
     ? (kind: StatusKind) => {
         status.log.setFilter(kind === 'error' ? LogProblems : LogAll);
@@ -84,14 +111,15 @@ export function StatusLine(props: StatusLineProps) {
             kind={m.kind}
             icon={<Icon name={LogKindIcons[m.kind]} />}
             text={m.text}
-            tip={openLog ? (m.kind === 'error' ? 'Show the problems in the log' : 'Show the log') : undefined}
+            tip={openLog ? (m.kind === 'error' ? labels.showProblems : labels.showLog) : undefined}
             onClick={openLog ? () => openLog(m.kind) : undefined}
             // An error stays until its ✕ (the others fade, the model's timer).
             onDismiss={m.kind === 'error' ? () => status.dismiss(m.id) : undefined}
+            dismissLabel={labels.dismiss}
           />
         )}
       </Show>
-      {home ? <TaskPills status={status} /> : null}
+      {home ? <TaskPills status={status} labels={labels} /> : null}
       {props.after}
     </div>
   );
@@ -110,6 +138,7 @@ export interface StatusPillProps {
   label?: string;
   onClick?(): void;
   onDismiss?(): void;
+  /** The ✕'s name and tooltip (default `DefaultStatusLabels.dismiss`). */
   dismissLabel?: string;
   /**
    * Dismissed on its own after this many ms (a finished turn), a ring around the ✕ drawing the time left; the pointer
@@ -194,8 +223,8 @@ export function StatusPill(props: StatusPillProps) {
         <button
           type="button"
           class={classes.button}
-          aria-label={props.dismissLabel ?? 'Dismiss'}
-          data-tip={props.dismissLabel ?? 'Dismiss'}
+          aria-label={props.dismissLabel ?? DefaultStatusLabels.dismiss}
+          data-tip={props.dismissLabel ?? DefaultStatusLabels.dismiss}
           onClick={() => props.onDismiss?.()}
         >
           <Icon name="x" />
@@ -222,14 +251,18 @@ export function StatusPill(props: StatusPillProps) {
  * The status line's tasks, a pill each following its task by id: a task's record is replaced on every progress event,
  * and a pill made anew would restart its spinner and replace its Cancel under a press (status §2).
  */
-export function TaskPills(props: { status: StatusModel }) {
+export function TaskPills(props: { status: StatusModel; labels?: Partial<StatusLabels> }) {
   const { status } = props;
-  return <For each={status.taskIds}>{(id) => <TaskPill task={status.task(id)} />}</For>;
+  return <For each={status.taskIds}>{(id) => <TaskPill task={status.task(id)} labels={props.labels} />}</For>;
 }
 
-/** One task: made once; one render writes its label, its progress and whether it can be cancelled. */
-export function TaskPill(props: { task: ReadonlyState<StatusTask | undefined> }) {
+/**
+ * One task: made once; one render writes its label, its progress and whether it can be cancelled (its Cancel named
+ * after it: `StatusLabels.cancel`).
+ */
+export function TaskPill(props: { task: ReadonlyState<StatusTask | undefined>; labels?: Partial<StatusLabels> }) {
   const { task } = props;
+  const cancelLabel = props.labels?.cancel ?? DefaultStatusLabels.cancel;
   const label = document.createTextNode('');
   const fill = (<span class={classes.fill} />) as HTMLElement;
   const bar = (
@@ -240,13 +273,7 @@ export function TaskPill(props: { task: ReadonlyState<StatusTask | undefined> })
   // Hidden by its attribute, not removed: whether a task can be cancelled may change as it runs. The click reads the
   // task's latest `abort`.
   const cancel = (
-    <button
-      type="button"
-      class={classes.button}
-      aria-label="Cancel"
-      data-tip="Cancel"
-      onClick={() => task.value?.abort?.()}
-    >
+    <button type="button" class={classes.button} onClick={() => task.value?.abort?.()}>
       <Icon name="x" />
     </button>
   ) as HTMLElement;
@@ -271,12 +298,22 @@ export function TaskPill(props: { task: ReadonlyState<StatusTask | undefined> })
     setAttr(bar, 'aria-valuenow', t.progress === undefined ? undefined : String(percent));
     setAttr(bar, 'aria-label', t.label);
     setAttr(cancel, 'hidden', !t.abort);
+    const name = cancelLabel(t.label);
+    setAttr(cancel, 'aria-label', name);
+    setAttr(cancel, 'data-tip', name);
   });
   return root;
 }
 
 /** What the person works on now (a selection, a focus) as chips (status §2): a click activates one, its ✕ clears it. */
-export function StatusChips(props: { status: StatusModel; lead?: Child; class?: string }) {
+export function StatusChips(props: {
+  status: StatusModel;
+  lead?: Child;
+  labels?: Partial<StatusLabels>;
+  class?: string;
+}) {
+  const clear = props.labels?.clear ?? DefaultStatusLabels.clear;
+  const clearTip = props.labels?.clearTip ?? DefaultStatusLabels.clearTip;
   return (
     <div class={props.class ? `${classes.chips} ${props.class}` : classes.chips}>
       {props.lead ?? null}
@@ -290,8 +327,8 @@ export function StatusChips(props: { status: StatusModel; lead?: Child; class?: 
               <button
                 type="button"
                 class={classes.button}
-                aria-label={`Clear ${chip.label}`}
-                data-tip="Clear"
+                aria-label={clear(chip.label)}
+                data-tip={clearTip}
                 onClick={() => chip.dismiss?.()}
               >
                 <Icon name="x" />

@@ -40,6 +40,28 @@ describe('historyCommands', () => {
 
   it('a refused undo fails with its reason', async () => {
     const h = setup();
-    await expect(h.undo.run({}, undefined, h.signal)).rejects.toThrow();
+    await expect(h.undo.run({}, undefined, h.signal)).rejects.toThrow('Nothing to undo');
+  });
+
+  it('greys both while a run is in flight, Redo too', async () => {
+    const h = setup();
+    await h.history.run('Set a to 1', { kind: 'person' }, async () => void h.set(1));
+    await h.history.undo();
+    let open!: () => void;
+    const running = h.history.run('Slow', { kind: 'person' }, () => new Promise<void>((r) => (open = r)));
+    expect(h.undo.when!(undefined)).toBe('A change is running');
+    expect(h.redo.when!(undefined)).toBe('A change is running');
+    await new Promise((r) => setTimeout(r, 0));
+    open();
+    await running;
+    expect(h.redo.when!(undefined)).toBe('Nothing to redo');
+  });
+
+  it('says what it did in the app’s words', async () => {
+    const h = setup();
+    const [undo] = historyCommands(h.history, 'Edit', { undo: 'Annuler', undone: (s) => `Annulé : ${s}` });
+    expect(undo.title).toBe('Annuler');
+    await h.history.run('Set a to 1', { kind: 'person' }, async () => void h.set(1));
+    expect(await undo.run({}, undefined, h.signal)).toEqual({ message: 'Annulé : Set a to 1' });
   });
 });

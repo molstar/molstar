@@ -119,7 +119,8 @@ export interface ViewFrameProps {
 export function ViewFrame(props: ViewFrameProps) {
   const { shell, ref, def } = props;
   const ctx = viewContext(shell, ref, props.placement);
-  const titleId = `${props.id ?? `msui-view-${ref.replace(/[^\w-]/g, '_')}`}-title`;
+  // Unique on the page: the shell's own prefix (two shells), the ref encoded one to one (`a#b` and `a_b` differ).
+  const titleId = `${props.id ?? `${shell.uid}-view-${idPart(ref)}`}-title`;
   // Its pane's own title when it gave one (an instance: "Stage D", shell §2.1), else the view's.
   const title = shell.paneTitle(ref);
   const heading = def.heading ?? title;
@@ -191,7 +192,7 @@ export function ViewFrame(props: ViewFrameProps) {
                 variant="ghost"
                 size="sm"
                 icon={<Icon name="ellipsis" />}
-                title={derive(title, (t) => `${t}: layout`)}
+                title={derive(title, (t) => shell.labels.layoutMenu(t))}
                 onClick={openMenu}
               />
             </span>
@@ -201,7 +202,7 @@ export function ViewFrame(props: ViewFrameProps) {
               variant="ghost"
               size="sm"
               icon={<Icon name="x" />}
-              title={derive(title, (t) => `Close ${t}`)}
+              title={derive(title, (t) => shell.labels.close(t))}
               class={classes.headerButton}
               onClick={() => props.onClose?.()}
             />
@@ -211,6 +212,14 @@ export function ViewFrame(props: ViewFrameProps) {
       </section>
     ) as HTMLElement
   );
+}
+
+/**
+ * A ref as a part of an element id, one to one: letters, digits and `-` as they are, every other character (`_`
+ * included) as `_<hex>_`.
+ */
+export function idPart(ref: string): string {
+  return ref.replace(/[^A-Za-z0-9-]/g, (c) => `_${c.codePointAt(0)!.toString(16)}_`);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

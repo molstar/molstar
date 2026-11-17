@@ -6,6 +6,7 @@
   "glass: stepAndDraw": 0,
   "hover label: cornerMove": 0,
   "hover label: cursorMove": 0,
+  "hover label: cursorResized": 0,
   "sinks: bindWrite": 0,
   "sinks: frameOffers": 0,
   "sinks: setBack": 0,
