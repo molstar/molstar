@@ -1,0 +1,68 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Options fold (commands §5.3): a head a row tall (its chevron in the slot at the inset, the title on the text
+   column, the summary muted after it), then a params form whose labels start at the inset (styles §5). */
+.fold {
+  border-top: 1px solid var(--msui-line);
+  padding: var(--msui-space-1) var(--msui-surface-pad);
+}
+
+.head {
+  display: grid;
+  grid-template-columns: var(--msui-icon-slot) auto minmax(0, 1fr);
+  column-gap: var(--msui-icon-gap);
+  align-items: center;
+  width: 100%;
+  height: var(--msui-row);
+  padding-inline: var(--msui-inner);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text);
+  text-align: left;
+
+  &:hover {
+    background: var(--msui-control-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--msui-icon-slot);
+  color: var(--msui-text-muted);
+  transition: transform var(--msui-motion-fast) var(--msui-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+.title {
+  white-space: nowrap;
+}
+
+/* What differs from the defaults: variable content, it fades when cut. */
+.summary {
+  overflow: hidden;
+  padding-inline-start: var(--msui-space-2);
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/* The form pads its own inner inset: in the fold's surface pad, its labels start at the inset. */
+.body {
+  padding-block: var(--msui-space-1);
+}

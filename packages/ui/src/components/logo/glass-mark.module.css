@@ -1,0 +1,48 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The word's box (its drawn size); the canvas reaches past it by a margin each way, for the pieces (it takes no room
+   and no pointer: the word's box does). */
+.mark {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  /* A picture to press, not text: a selection neither starts here nor takes it in. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.canvas {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* The colors the canvas draws with, read from these (the logo's tokens, the edges' subtle text). */
+.probe {
+  display: none;
+
+  &[data-n="1"] {
+    color: var(--msui-logo-1);
+  }
+
+  &[data-n="2"] {
+    color: var(--msui-logo-2);
+  }
+
+  &[data-n="3"] {
+    color: var(--msui-logo-3);
+  }
+
+  &[data-n="4"] {
+    color: var(--msui-logo-4);
+  }
+
+  &[data-n="0"] {
+    color: var(--msui-text-subtle);
+  }
+}

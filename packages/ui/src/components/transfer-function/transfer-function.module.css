@@ -1,0 +1,189 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The plot: its top corners the well's, its bottom on the color bar (a fill that touches, styles §6). Press on it to
+   add a point there. */
+.plot {
+  border-radius: var(--msui-radius-sm) var(--msui-radius-sm) 0 0;
+  cursor: crosshair;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The area under the curve in the colors the points give (the data's own), over the histogram. */
+.area {
+  opacity: 0.72;
+}
+
+.curve {
+  fill: none;
+  stroke: var(--msui-text);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* A point's track spans the plot and is moved with transform; the point is centered on its top left. */
+.track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* A 12px hit area, an 8px dot in it. */
+.point {
+  position: absolute;
+  top: calc(-1 * var(--msui-space-3) / 2);
+  left: calc(-1 * var(--msui-space-3) / 2);
+  width: var(--msui-space-3);
+  height: var(--msui-space-3);
+  pointer-events: auto;
+  cursor: grab;
+  outline: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 2px; /* off-grid: an 8px dot centered in the 12px hit area */
+    border-radius: 50%;
+    background: var(--msui-surface);
+    box-shadow: inset 0 0 0 1.5px var(--msui-text);
+    transition: transform var(--msui-motion-fast) var(--msui-ease);
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    transform: scale(1.25);
+  }
+
+  &:focus-visible::after {
+    box-shadow:
+      inset 0 0 0 1.5px var(--msui-text),
+      0 0 0 2px var(--msui-focus);
+  }
+}
+
+/* The point whose color is open. */
+.on::after {
+  background: var(--msui-accent);
+  box-shadow: inset 0 0 0 1.5px var(--msui-accent);
+}
+
+/* The color bar under the plot (its bottom corners the well's), the points' color handles hanging under it. */
+.colors {
+  position: relative;
+  height: var(--msui-space-4);
+}
+
+.bar {
+  height: var(--msui-space-2);
+  border-radius: 0 0 var(--msui-radius-sm) var(--msui-radius-sm);
+}
+
+.handleTrack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* A tab in its point's color, centered under it, from the bar's middle down; a click opens its color. */
+.handle {
+  position: absolute;
+  top: var(--msui-space-1);
+  left: calc(-1 * var(--msui-space-2) / 2);
+  width: var(--msui-space-2);
+  height: var(--msui-space-3);
+  padding: 0;
+  border: 0;
+  border-radius: var(--msui-radius-sm);
+  background: var(--msui-stop, var(--msui-text-muted));
+  box-shadow:
+    0 0 0 1px var(--msui-surface),
+    0 0 0 2px color-mix(in oklab, var(--msui-text), transparent 60%);
+  pointer-events: auto;
+  cursor: pointer;
+  outline: none;
+
+  &:hover {
+    box-shadow:
+      0 0 0 1px var(--msui-surface),
+      0 0 0 2px var(--msui-text);
+  }
+
+  &:focus-visible,
+  &[aria-expanded="true"] {
+    box-shadow:
+      0 0 0 1px var(--msui-surface),
+      0 0 0 2px var(--msui-focus);
+  }
+}
+
+/* The palettes: a list of rows in the popover, each its swatches and its name (the text at the inset). */
+.palettes {
+  display: grid;
+}
+
+.palette {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-2);
+  height: var(--msui-row);
+  padding-inline: var(--msui-inner);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text);
+  text-align: start;
+  white-space: nowrap;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msui-control-hover);
+    outline: none;
+  }
+}
+
+.swatches {
+  display: flex;
+  flex: none;
+  width: calc(16 * var(--msui-unit));
+  height: var(--msui-space-3);
+  overflow: hidden;
+  border-radius: var(--msui-radius-sm);
+  box-shadow: inset 0 0 0 1px var(--msui-line);
+}
+
+.swatch {
+  flex: 1;
+}
+
+/* The point's color in the popover: the picker on the inset, removing the point under it at the right. */
+.panel {
+  display: grid;
+  gap: var(--msui-space-2);
+  padding: var(--msui-space-1) var(--msui-inner) 0;
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* What a point's keys do, for assistive technology (`aria-describedby`): not drawn. */
+.help {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

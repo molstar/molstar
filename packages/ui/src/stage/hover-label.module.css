@@ -1,0 +1,94 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The hover label (stage §3.1): a raised surface over the canvas, taking no pointer. Opaque, no backdrop filter: a blur
+   under a label that follows the pointer would be recomputed every frame. */
+.label {
+  position: absolute;
+  z-index: var(--msui-z-tooltip);
+  max-width: calc(70 * var(--msui-unit));
+  padding: var(--msui-space-2) var(--msui-space-3);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--msui-line),
+    var(--msui-shadow-float);
+  color: var(--msui-text);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  pointer-events: none;
+  /* Appears at once: the transition is the hiding's (`.out`). */
+  transition: none;
+}
+
+/* Beside the pointer: placed by two offsets the follower writes once a frame (whole px). */
+.cursor {
+  top: 0;
+  left: 0;
+  transform: translate(var(--msui-hover-x, 0px), var(--msui-hover-y, 0px));
+  will-change: transform;
+}
+
+/* In the corner: at its offset parent's bottom right; the stage puts it above its bottom bar's corner. Its own width
+   (up to its max): the corner's cell is as narrow as the toolbar in it (one button, folded), which must not squeeze it. */
+.corner {
+  right: var(--msui-hover-label-right, var(--msui-space-3));
+  bottom: var(--msui-hover-label-bottom, var(--msui-space-3));
+  width: max-content;
+}
+
+/* The lines, at most `--msui-hover-label-height` tall: past it the label is cut and fades over its last lines (it takes
+   no pointer, so it cannot scroll). The fade is placed from the top: a shorter label is never faded, with no measuring.
+   On the body, not the label: a mask on the label would clip its edge and shadow. */
+.body {
+  --cap: var(--msui-hover-label-height, calc(64 * var(--msui-unit)));
+
+  display: grid;
+  max-height: var(--cap);
+  overflow: hidden;
+  /* A long name with no space (a path) wraps where it must, never cut at the right edge. */
+  overflow-wrap: anywhere;
+  mask-image: linear-gradient(to bottom, #000 calc(var(--cap) - 2.5em), transparent var(--cap));
+}
+
+/* Hidden: fades over a short beat (styles §7.1: what leaves gets out of the way), holding its last text; visibility
+   follows when the fade ends (out of hit testing and the accessibility tree). */
+.out {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--msui-motion-fast) var(--msui-ease-in),
+    visibility 0s var(--msui-motion-fast);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.primary {
+  font-weight: var(--msui-weight-strong);
+}
+
+.secondary {
+  color: var(--msui-text-muted);
+}
+
+/* A list item: its marker hangs, the text wraps under itself. */
+.item {
+  padding-inline-start: 1em;
+  text-indent: -1em;
+}
+
+/* Link text: shown as a link (the label takes no pointer: it is not followed). */
+.link {
+  color: var(--msui-accent-strong);
+  text-decoration: underline;
+}
+
+.code {
+  font-family: var(--msui-font-mono);
+  font-size: 0.95em;
+}

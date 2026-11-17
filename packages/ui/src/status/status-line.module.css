@@ -1,0 +1,275 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The status line (status §2): ink on what is behind it (a stage's canvas), no frame, a soft halo of the background so
+   it reads over a molecule too. The stage may set the ink and the halo (`--msui-status-ink`, `--msui-status-halo`). A
+   column of lines growing upward; only the lines take the pointer. */
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--msui-status-ink, var(--msui-text));
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+/* Read by screen readers, not shown (the pill shows the same message). */
+.announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A line: a row high, its icon, its text (fading when cut), what follows, its ✕ a small square at its end. */
+.pill {
+  --msui-icon-size: var(--msui-icon);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  max-width: 100%;
+  min-height: var(--msui-row);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px var(--msui-status-halo, var(--msui-bg)),
+    0 0 6px var(--msui-status-halo, var(--msui-bg));
+  animation: pill-in var(--msui-enter);
+
+  &[data-kind="error"] {
+    color: var(--msui-danger);
+  }
+
+  &[data-kind="warning"] {
+    color: var(--msui-warning);
+  }
+
+  &[data-kind="success"] {
+    color: var(--msui-success);
+  }
+
+  &[data-task] {
+    animation: none;
+  }
+}
+
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--msui-rise));
+  }
+}
+
+/* The line's body (a button when it opens the log): the icon, the text, what follows. */
+.main {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  height: var(--msui-row);
+  padding: 0 var(--msui-space-1);
+  border: 0;
+  border-radius: var(--msui-radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+
+  &:is(button) {
+    cursor: pointer;
+  }
+
+  &:is(button):hover .text {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (styles §2). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/* A ✕ (dismiss, cancel, clear): a row-high square. */
+.button {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--msui-row);
+  height: var(--msui-row);
+  padding: 0;
+  border: 0;
+  border-radius: var(--msui-radius-md);
+  background: none;
+  color: inherit;
+  opacity: 0.8;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--msui-control-hover);
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* A line that goes on its own: a ring around its ✕, drawn down over the time left; held with the line's hover or
+   focus (as its timer). */
+.countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--msui-icon-lg);
+  height: var(--msui-icon-lg);
+  transform: translate(-50%, -50%) rotate(-90deg);
+  pointer-events: none;
+
+  & circle {
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 1.5;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+    opacity: 0.6;
+    animation: countdown var(--msui-countdown, 8s) linear forwards;
+  }
+
+  .pill:hover &,
+  .pill:focus-within & {
+    & circle {
+      animation-play-state: paused;
+    }
+  }
+}
+
+@keyframes countdown {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
+/* A task's progress: a short bar after its label. */
+.progress {
+  display: block;
+  flex: none;
+  width: calc(12 * var(--msui-unit));
+  height: var(--msui-unit);
+  overflow: hidden;
+  border-radius: var(--msui-radius-sm);
+  background: var(--msui-line-strong);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--msui-accent);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown {
+    display: none;
+  }
+
+  .spin {
+    animation: none;
+  }
+}
+
+/* Chips: what the person works on (a selection), a little more presence than the messages: a raised surface each. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--msui-space-2);
+  min-width: 0;
+}
+
+.chip {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: var(--msui-header);
+  padding-inline: var(--msui-space-1);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface-raised);
+  box-shadow: var(--msui-shadow-float);
+  color: var(--msui-text);
+  white-space: nowrap;
+}
+
+.chipMain {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  height: var(--msui-row);
+  padding: 0 var(--msui-space-2);
+  border: 0;
+  border-radius: var(--msui-radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--msui-text-md);
+  line-height: var(--msui-leading-md);
+
+  &:enabled {
+    cursor: pointer;
+  }
+
+  &:enabled:hover {
+    background: var(--msui-control-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+}

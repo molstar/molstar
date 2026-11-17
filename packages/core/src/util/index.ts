@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,6 +9,7 @@ import { BitFlags } from './bit-flags.js';
 import { StringBuilder } from './string-builder.js';
 import { UUID } from './uuid.js';
 import { Mask } from './mask.js';
+import { shallowEqualArrays, shallowEqualObjects } from './object.js';
 import type { Progress } from '@molstar/core/task';
 
 export * from './value-cell.js';
@@ -21,96 +22,21 @@ export function round(n: number, d: number) {
   return Math.round(f * n) / f;
 }
 
-export function arrayEqual<T>(arr1: T[], arr2: T[]) {
-  const length = arr1.length;
-  if (length !== arr2.length) return false;
-  for (let i = 0; i < length; i++) {
-    if (arr1[i] !== arr2[i]) {
-      return false;
-    }
-  }
-  return true;
+// One implementation each, in `object.ts` and `array.ts`; the names here are kept.
+export { arrayEqual } from './array.js';
+export { deepEqual, shallowEqualArrays, shallowEqualObjects } from './object.js';
+
+/** Two arrays item by item, two objects by their own keys (`Object.is`); `null` and `undefined` differ. */
+export function shallowEqual(a: any, b: any): boolean {
+  if (Object.is(a, b)) return true;
+  const arrA = Array.isArray(a);
+  if (arrA !== Array.isArray(b)) return false;
+  if (arrA) return shallowEqualArrays(a, b);
+  if (a && b && typeof a === 'object' && typeof b === 'object') return shallowEqualObjects(a, b);
+  return false;
 }
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
-
-export function deepEqual(a: any, b: any) {
-  // from https://github.com/epoberezkin/fast-deep-equal MIT
-  if (a === b) return true;
-
-  const arrA = Array.isArray(a);
-  const arrB = Array.isArray(b);
-
-  if (arrA && arrB) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  if (arrA !== arrB) return false;
-
-  if (a && b && typeof a === 'object' && typeof b === 'object') {
-    const keys = Object.keys(a);
-    if (keys.length !== Object.keys(b).length) return false;
-
-    const dateA = a instanceof Date;
-    const dateB = b instanceof Date;
-    if (dateA && dateB) return a.getTime() === b.getTime();
-    if (dateA !== dateB) return false;
-
-    const regexpA = a instanceof RegExp;
-    const regexpB = b instanceof RegExp;
-    if (regexpA && regexpB) return a.toString() === b.toString();
-    if (regexpA !== regexpB) return false;
-
-    for (let i = 0; i < keys.length; i++) {
-      if (!hasOwnProperty.call(b, keys[i])) return false;
-    }
-
-    for (let i = 0; i < keys.length; i++) {
-      if (!deepEqual(a[keys[i]], b[keys[i]])) return false;
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-export function shallowEqual(a: any, b: any) {
-  if (a === b) return true;
-  const arrA = Array.isArray(a);
-  const arrB = Array.isArray(b);
-  if (arrA && arrB) return shallowEqualArrays(a, b);
-  if (arrA !== arrB) return false;
-  if (a && b && typeof a === 'object' && typeof b === 'object') {
-    return shallowEqualObjects(a, b);
-  }
-  return false;
-}
-
-export function shallowEqualObjects(a: {}, b: {}) {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  const keys = Object.keys(a);
-  if (Object.keys(b).length !== keys.length) return false;
-  for (const k of keys) {
-    if (!hasOwnProperty.call(a, k) || (a as any)[k] !== (b as any)[k]) return false;
-  }
-  return true;
-}
-
-export function shallowEqualArrays(a: any[], b: any[]) {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  if (a.length !== b.length) return false;
-  for (let i = 0, il = a.length; i < il; ++i) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
-}
 
 /** Returns `value` if not `undefined`, otherwise returns `defaultValue` */
 export function defaults<T>(value: T | undefined, defaultValue: T): T {

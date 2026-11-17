@@ -88,6 +88,7 @@
         "packages/prism/assistant/vitest*.config.ts",
         "packages/ai/vitest*.config.ts",
         "packages/graphics/vitest*.config.ts",
+        "packages/ui/vitest*.config.ts",
         "apps/docs/astro.config.ts",
         "examples/minimal-prism-viewer/vite.config.ts"
       ],

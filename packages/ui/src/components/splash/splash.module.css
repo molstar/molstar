@@ -1,0 +1,11 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The splash over the glass mark's own box (logo/glass-mark.module.css): it owns its touches (a stage does not scroll
+   under it), where a heading in a scrolling view must not. */
+.splash {
+  touch-action: none;
+}

@@ -1,0 +1,193 @@
+/** @vitest-environment jsdom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { openContextMenu, openMenuBeside } from '../context-menu.js';
+
+afterEach(() => {
+  // A menu left open keeps its listeners on the document past its DOM (the files share a worker): closed first.
+  for (const menu of document.querySelectorAll('[role="menu"]')) {
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  }
+  document.body.innerHTML = '';
+});
+
+describe('openContextMenu', () => {
+  const setup = () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const run = vi.fn();
+    const closed = vi.fn();
+    const close = openContextMenu(root, { x: 10, y: 20 }, [{ id: 'a', label: 'Color by pLDDT', run }], closed);
+    return { root, run, closed, close };
+  };
+  const menu = (root: HTMLElement) => root.querySelector('[role="menu"]');
+
+  it('opens with its items, focuses the first, runs one and closes on the choice', () => {
+    const { root, run, closed } = setup();
+    expect(menu(root)?.textContent).toContain('Color by pLDDT');
+    expect(document.activeElement).toBe(root.querySelector('[role="menuitem"]'));
+    (root.querySelector('[role="menuitem"]') as HTMLElement).click();
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(menu(root)).toBeNull();
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps an icon slot for every item when one has an icon, and none when none has', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    openContextMenu(root, { x: 0, y: 0 }, [
+      { id: 'a', label: 'With', icon: 'eye', run: () => {} },
+      { id: 'b', label: 'Without', run: () => {} },
+    ]);
+    const rows = root.querySelectorAll('[role="menuitem"]');
+    expect(rows[0].querySelector('svg')).not.toBeNull();
+    expect(rows[1].querySelector('svg')).toBeNull();
+    expect(rows[0].children).toHaveLength(3);
+    expect(rows[1].children).toHaveLength(3);
+    const plain = document.createElement('div');
+    document.body.append(plain);
+    openContextMenu(plain, { x: 0, y: 0 }, [{ id: 'a', label: 'Plain', run: () => {} }]);
+    expect(plain.querySelector('[role="menuitem"]')!.children).toHaveLength(2);
+  });
+
+  it('greys a disabled item with its reason (its tooltip and description), opens past it, reaches it by the arrows, and does not run it', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const run = vi.fn();
+    openContextMenu(root, { x: 0, y: 0 }, [
+      { id: 'a', label: 'Off', disabled: 'Nothing selected', run },
+      { id: 'b', label: 'On', run: () => {} },
+    ]);
+    const [off, on] = root.querySelectorAll<HTMLElement>('[role="menuitem"]');
+    expect(off.getAttribute('aria-disabled')).toBe('true');
+    expect(off.dataset.tip).toBe('Nothing selected');
+    expect(off.getAttribute('aria-description')).toBe('Nothing selected');
+    expect(on.hasAttribute('aria-description')).toBe(false);
+    expect(document.activeElement).toBe(on);
+    // APG menus: a disabled item takes the focus (its reason is read), it is not activated.
+    on.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(off);
+    off.click();
+    expect(run).not.toHaveBeenCalled();
+    expect(menu(root)).not.toBeNull();
+  });
+
+  it('closes on Escape and on a press elsewhere, and not on a press inside', () => {
+    const a = setup();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu(a.root)).toBeNull();
+    const b = setup();
+    menu(b.root)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(menu(b.root)).not.toBeNull();
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(menu(b.root)).toBeNull();
+  });
+
+  it("does not take Escape pressed in another UI root's shadow root, and does not stop it", () => {
+    const hostA = document.createElement('div');
+    const hostB = document.createElement('div');
+    document.body.append(hostA, hostB);
+    const rootA = document.createElement('div');
+    hostA.attachShadow({ mode: 'open' }).append(rootA);
+    const inputB = document.createElement('input');
+    hostB.attachShadow({ mode: 'open' }).append(inputB);
+    openContextMenu(rootA, { x: 0, y: 0 }, [{ id: 'a', label: 'A', run: () => {} }]);
+    const seen = vi.fn();
+    document.addEventListener('keydown', seen);
+    inputB.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }));
+    expect(menu(rootA)).not.toBeNull();
+    expect(seen).toHaveBeenCalledTimes(1);
+    // inside A it closes
+    rootA
+      .querySelector('button')
+      ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }));
+    expect(menu(rootA)).toBeNull();
+    document.removeEventListener('keydown', seen);
+  });
+
+  it('its rows are no Tab stops; Tab closes it, the focus back where it was', () => {
+    const before = document.createElement('button');
+    document.body.append(before);
+    before.focus();
+    const { root, closed } = setup();
+    const row = root.querySelector<HTMLElement>('[role="menuitem"]')!;
+    expect(row.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(row);
+    row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    expect(menu(root)).toBeNull();
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(before);
+  });
+
+  it('closes by its own return, once, and takes its listeners with it', () => {
+    const { closed, close } = setup();
+    close();
+    close();
+    expect(closed).toHaveBeenCalledTimes(1);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('openMenuBeside', () => {
+  /** A button at a place of the viewport (jsdom has no layout: its rect is given). */
+  const button = (rect: { left: number; top: number; width: number; height: number }) => {
+    const el = document.createElement('button');
+    document.body.append(el);
+    el.getBoundingClientRect = () =>
+      ({
+        ...rect,
+        right: rect.left + rect.width,
+        bottom: rect.top + rect.height,
+        x: rect.left,
+        y: rect.top,
+      }) as DOMRect;
+    return el;
+  };
+  const choice = (chosen: string) =>
+    ['light', 'dark', 'auto'].map((id) => ({ id, label: id, checked: id === chosen, run: vi.fn() }));
+
+  it('a choice: radio rows, the chosen one checked and focused', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const close = openMenuBeside(root, button({ left: 900, top: 100, width: 32, height: 32 }), choice('dark'));
+    const rows = [...root.querySelectorAll('[role="menuitemradio"]')];
+    expect(rows.map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
+    expect(document.activeElement).toBe(rows[1]);
+    // The check's slot is kept on every row: the labels hold their column.
+    expect(rows.every((r) => r.lastElementChild?.tagName === 'SPAN')).toBe(true);
+    // Closed: an open menu's listeners outlive the DOM (the files share a worker).
+    close();
+  });
+
+  it('opens to the left of the button, its top at the button’s; low on the window, its bottom at the button’s', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const place = (top: number) => {
+      root.innerHTML = '';
+      const close = openMenuBeside(root, button({ left: 900, top, width: 32, height: 32 }), choice('light'));
+      const transform = root.querySelector<HTMLElement>('[role="menu"]')!.style.transform;
+      close();
+      return transform;
+    };
+    // jsdom's own getters, put back after (the files share a worker's modules and globals).
+    const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+    const height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 160 });
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 100 });
+    try {
+      // window.innerHeight is 768 in jsdom: the right edge 4 px left of the button.
+      expect(place(100)).toBe('translate(736px, 100px)');
+      expect(place(700)).toBe(`translate(736px, ${700 + 32 - 100}px)`);
+    } finally {
+      if (width) Object.defineProperty(HTMLElement.prototype, 'offsetWidth', width);
+      if (height) Object.defineProperty(HTMLElement.prototype, 'offsetHeight', height);
+    }
+  });
+});

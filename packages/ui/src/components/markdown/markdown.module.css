@@ -1,0 +1,164 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Two sizes on the type scale (styles §2): the UI's 12/16 (`sm`) and reading text at 14/20 (`md`); headings a step up
+   and strong, code a step down. Blocks stack on the 4px grid (styles §3). */
+.markdown {
+  --md-text: var(--msui-text-sm);
+  --md-leading: var(--msui-leading-sm);
+  --md-heading: var(--msui-text-md);
+  --md-heading-leading: var(--msui-leading-md);
+  --md-code: var(--msui-text-xs);
+  --md-gap: var(--msui-space-2);
+
+  display: grid;
+  gap: var(--md-gap);
+  min-width: 0;
+  font-size: var(--md-text);
+  line-height: var(--md-leading);
+
+  &[data-size="md"] {
+    --md-text: var(--msui-text-md);
+    --md-leading: var(--msui-leading-md);
+    --md-heading: var(--msui-text-lg);
+    --md-heading-leading: var(--msui-leading-lg);
+    --md-code: var(--msui-text-sm);
+    --md-gap: var(--msui-space-3);
+  }
+
+  & h3,
+  & h4,
+  & h5,
+  & h6 {
+    margin: 0;
+    font-size: var(--md-text);
+    line-height: var(--md-leading);
+    font-weight: var(--msui-weight-strong);
+  }
+
+  /* `#` and `##`: a step up. */
+  & h3,
+  & h4 {
+    font-size: var(--md-heading);
+    line-height: var(--md-heading-leading);
+  }
+
+  & p {
+    margin: 0;
+  }
+
+  & ul,
+  & ol {
+    display: grid;
+    gap: var(--msui-space-1);
+    margin: 0;
+    padding-inline-start: var(--msui-indent);
+  }
+
+  & ul {
+    list-style: disc;
+  }
+
+  & ol {
+    list-style: decimal;
+  }
+
+  & code {
+    padding: 0 var(--msui-space-1);
+    border-radius: var(--msui-radius-sm);
+    background: var(--msui-control);
+    font-family: var(--msui-font-mono);
+    font-size: var(--md-code);
+    /* Inside a line, it never makes the line taller than the text's leading (the lines stay on the grid). */
+    line-height: 1;
+  }
+
+  & pre {
+    margin: 0;
+    overflow-x: auto;
+    padding: var(--msui-space-2);
+    border-radius: var(--msui-radius-md);
+    background: var(--msui-control);
+    font-family: var(--msui-font-mono);
+    font-size: var(--md-code);
+    line-height: var(--msui-leading-sm);
+
+    & code {
+      padding: 0;
+      background: none;
+      line-height: inherit;
+    }
+  }
+
+  /* A hairline that takes no room: what follows stays on the grid. */
+  & hr {
+    margin: 0 0 -1px;
+    border: 0;
+    border-top: 1px solid var(--msui-line);
+  }
+
+  & img {
+    max-width: 100%;
+    border-radius: var(--msui-radius-sm);
+  }
+
+  & a {
+    color: var(--msui-accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      border-radius: var(--msui-radius-sm);
+      outline: 2px solid var(--msui-focus);
+    }
+  }
+}
+
+/* The media a host shows above the text (an audio player). */
+.media {
+  display: grid;
+
+  & audio {
+    width: 100%;
+    height: var(--msui-header);
+  }
+}
+
+/* A table scrolls sideways by itself when it is wider than the text. Cells are a row tall (styles §4: a unit above and
+   below a line of 16), the hairline drawn inside them so it adds nothing. */
+.table {
+  overflow-x: auto;
+
+  & table {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & th,
+  & td {
+    padding: var(--msui-space-1) var(--msui-space-2);
+    box-shadow: inset 0 -1px var(--msui-line);
+    text-align: left;
+  }
+
+  /* The first column's text on the text's own edge (the inset in a surface), the last one's end on it. */
+  & th:first-child,
+  & td:first-child {
+    padding-inline-start: 0;
+  }
+
+  & th:last-child,
+  & td:last-child {
+    padding-inline-end: 0;
+  }
+
+  & th {
+    font-weight: var(--msui-weight-strong);
+  }
+}

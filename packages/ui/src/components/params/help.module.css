@@ -1,0 +1,116 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A field's label text: one line; past the label column's cap it fades at its end (styles §2), its full text in its
+   tooltip (`data-tip-overflow`). */
+.text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+
+  /* There is help: a dotted underline says so (and the text opens it). */
+  &[data-help] {
+    text-decoration: underline dotted color-mix(in oklab, currentColor, transparent 45%);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    cursor: help;
+  }
+}
+
+/* The ? after the label's text (it stays when the text fades: 16px, a 12px mark, styles §4.1); shown on the row's
+   hover, while the help is open, or focused. */
+.toggle {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--msui-icon-slot);
+  height: var(--msui-leading-sm);
+  margin-inline-start: var(--msui-space-1);
+  border-radius: 50%;
+  color: var(--msui-text-subtle);
+  opacity: 0;
+
+  /* The hit area: 24px (or the touch target) around the 16px look, over the row's empty space. */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(var(--msui-row), var(--msui-touch-target, 0px));
+    height: max(var(--msui-row), var(--msui-touch-target, 0px));
+    transform: translate(-50%, -50%);
+  }
+
+  :where([data-field]:hover) &,
+  &[aria-expanded="true"],
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    color: var(--msui-text);
+  }
+}
+
+/* The help, under its row: its text on the label column of the row's level (styles §5), the quiet box reaching a
+   control inset past it on both sides (as a hovered row's), the description then the legend. A subgrid of the form's
+   columns (its negative margin and its padding cancel, so the tracks stay where the rows have them): what it holds
+   spans both, a table legend's entries sit on them. */
+.help {
+  display: grid;
+  grid-template-columns: subgrid;
+  row-gap: var(--msui-space-2);
+  margin-block: 0 var(--msui-space-1);
+  margin-inline: calc(var(--msui-params-level, 0) * var(--msui-form-indent) - var(--msui-control-inset))
+    calc(-1 * var(--msui-control-inset));
+  padding: var(--msui-space-1) var(--msui-control-inset);
+  border-radius: var(--msui-radius-md);
+  background: color-mix(in oklab, var(--msui-control), transparent 40%);
+}
+
+.description {
+  margin: 0;
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+
+  & code {
+    padding: 0 var(--msui-space-1);
+    border-radius: var(--msui-radius-sm);
+    background: var(--msui-control);
+    font-family: var(--msui-font-mono);
+    /* Within the line: a mono font's taller ascent would grow the line box off the grid. */
+    line-height: 1;
+  }
+}
+
+/* What the box holds spans the form's two columns. */
+.help > * {
+  grid-column: 1 / -1;
+}
+
+/* A table legend: its entries two to a line on the form's columns, the label column's and the value column's where
+   controls write (a control inset in, styles §5), so they line up with the rows above and below. */
+.help > .table {
+  display: grid;
+  grid-template-columns: subgrid;
+  /* The form's column gap (a subgrid's `normal`), not the legend's own. */
+  gap: var(--msui-space-1) normal;
+
+  /* (No title here: entries only.) */
+  & > :nth-child(even) {
+    padding-inline-start: var(--msui-control-inset);
+  }
+}

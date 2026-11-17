@@ -8,6 +8,7 @@ node_modules/
 .pnpm-store/
 debug.log
 npm-debug.log
+debug-storybook.log
 tsconfig.tsbuildinfo
 tsconfig.commonjs.tsbuildinfo
 
