@@ -12,6 +12,7 @@ is the agreed direction with its details still open; it says what would settle t
 | [building-blocks.md](building-blocks.md) | the root nouns (§name-the-roots) and how they fit: spec, data, coordinate systems, maps, views, layers, themes, queries, issues |
 | [maps.md](maps.md) | maps: kind, sourcing (inline, a source, computed by a runtime) and encoding (implicit, runs, expanded); structure maps (SIFTS in abstract form) |
 | [composition.md](composition.md) | one language with four levels (data, views, refs, snapshots); session apart; three compiled forms (resolved model, resolved view, draw lists) |
+| [changes.md](changes.md) | streaming and patches as one incremental model; every kind of change with where it lives and whether it is undoable, saved, addressable |
 | [dynamic-nodes.md](dynamic-nodes.md) | data that arrives as nodes (sequences, maps, annotations, nested sources, item coordinate systems), the resolved model's overlay, track templates |
 | [data-store.md](data-store.md) | where data read by region lives: keyed, versioned entries, pending vs empty, requests, eviction, settle and open domains |
 | [base-library.md](base-library.md) | what Seq\* reuses from `@molstar/core`, `io` and `ui`, what to extend, promote and add there (provisional, each the author's call) |

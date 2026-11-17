@@ -144,6 +144,9 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
 - **Dynamic nodes**: "wouldn't this be needed to have a good streaming protocol though? i would almost lean to do it
   now, because it might be really hard to do later." ([design/dynamic-nodes.md](../../design/dynamic-nodes.md)).
 
+- **Streaming and patches**: "maybe even have top level "Streaming and patches" .. because in a way, these are related
+  features? and be able to track what is undoable etc too?" ([design/changes.md](../../design/changes.md)).
+
 ## Reconciliation
 
 - "JSON with S-expression printing" fits §one-recursive-form (the spelling is the project's choice); meso\* chose

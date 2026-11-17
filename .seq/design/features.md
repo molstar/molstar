@@ -21,7 +21,7 @@ what the version contains, so scope never grows or shrinks silently (the author,
 - **Version 1 and later milestones**: what version 1 contains and the order of work is [version-1.md](version-1.md);
   rows deferred to the Genomes milestone come back together.
 
-Columns: the feature; what it does; its status; the design; the edge cases it covers (EC numbers, catalog); the view
+Columns: the feature; what it does; (in Streaming and patches) what undo does to it; its status; the design; the edge cases it covers (EC numbers, catalog); the view
 that shows it (dataset: view).
 
 ## Language and spec
@@ -34,8 +34,6 @@ that shows it (dataset: view).
 | S-expression printing and reading | inspection, docs, tests, agent input; never stored | planned | [format](format.md) | — | every view (printed beside it) |
 | Validation, every issue | stable codes, hints, counts, severity with one meaning | planned | [format](format.md) | 6, 76–78, 86–89 | Antibody: invalid labels |
 | Versions and migrations | one semver, explicit migrations, lenient minors | planned | [format](format.md) | 72–74, 235 | — |
-| Patches, inverses, diff | five ops by address, all or nothing, `diff` correct | planned | [format](format.md) | 78–83, 236 | every editing view |
-| Snapshots | named patches over the base, a player | planned | [format](format.md) | 84, 85 | p53: a story |
 | Encodings | JSON by default; MessagePack for large inline data (typed columns as extension types); columns declared, hashed by bytes | planned | [format](format.md) | 53, 90 | every view (both encodings in its test) |
 | Archives, through a port | a spec with its data files and an index, read and written by the archive port; a zip adapter out of the box | planned | [ports](ports.md) | 91 | every dataset, saved and opened as an archive |
 | Published JSON Schema | derived from the description | deferred | [format](format.md) | — | trigger: an outside reader or agent tool needs it |
@@ -74,26 +72,46 @@ that shows it (dataset: view).
 | Structure files at the application layer | mmCIF and BinaryCIF read (through Mol\*'s readers) for chains, `label` and `auth` numbering, insertion codes, observed residues | planned | [maps](maps.md) | 3–5, 118 | Storybook: predictions onto a structure |
 | Name index | open on a gene by name from a file read by region | deferred | — | 228 | trigger: the Genomes milestone ([version-1](version-1.md)) |
 
-## Streaming: the source protocol and the data store
+## Streaming and patches
 
-| Feature | What | Status | Design | Cases | View |
-|---|---|---|---|---|---|
-| Self-describing sources | format, location, index, assembly, aliases, fields | planned | [sources](sources.md) | 185–191, 196–198 | p53: the gene's region from FASTA with its index |
-| The source protocol | a source answers what it covers (systems, lengths, levels, nodes known up front) and a region at a level of detail; one protocol for inline and streamed data | planned | [sources](sources.md) | 169–175, 185–199 | p53: the gene's region by region |
-| Answers carry nodes | tables plus data nodes (sequences, maps, annotations, nested sources), identity by (source, key) | planned | [dynamic-nodes](dynamic-nodes.md) | 175–180 | p53: transcripts by region |
-| Levels of detail | the coarsest level that fits a device column; a format's own zoom levels used when it has them (bigWig) | planned | [performance](performance.md), [sources](sources.md) | 170, 171 | p53: conservation signal over the gene's region |
-| The data store | entries by (source, region, level), versioned; pending, loaded, empty, failed; reactive per entry | planned | [data-store](data-store.md) | 169 | p53: the gene's region by region |
-| Prefetch and cancellation | view, margin, prefetch; grace; retries | planned | [data-store](data-store.md) | 172–174 | p53: the gene's region by region |
-| Eviction | byte-bounded, least recently used, never what is in view | planned | [data-store](data-store.md) | — | p53: the gene's region by region |
-| Settle and open domains | open value domains computed when the view settles; legends state their domain | planned | [data-store](data-store.md) | 201–205 | p53: tracks |
-| Export waits for data | `renderSvg` requests what its viewport needs and waits to settle, or says it is unsettled | planned | [data-store](data-store.md), [rendering](rendering.md) | 125 | every view (SVG) |
-| Dynamic nodes and templates | data nodes that arrive with regions (item coordinate systems, nested sources); a track per node by template | planned | [dynamic-nodes](dynamic-nodes.md) | 175–180 | p53: transcripts by region |
-| Item coordinate systems | an item's own system from its `map`, made on demand, keeping its id when it returns | planned | [dynamic-nodes](dynamic-nodes.md) | 176, 177 | p53: transcripts by region |
-| Nested sources | requested on need, bounded depth | planned | [dynamic-nodes](dynamic-nodes.md) | 179 | p53: transcripts by region |
-| Format runtimes | a registry entry per format, converting it onto the protocol; one shared conformance contract | planned | [sources](sources.md), [ports](ports.md) | — | every source |
-| A genome format, as proof | bigWig read by region and zoom level, a format runtime like any other (the author: "at least one as proof of concept") | planned | [sources](sources.md) | 169–175, 186, 201 | p53: conservation signal over the gene's region |
-| A synthetic asynchronous source | seeded, with a fake clock: the protocol's test source and the first slice's | planned | [version-1](version-1.md) | — | tests; a Storybook story |
-| Range reads of assets | the asset manager's page cache for indexed formats (a base-library change) | planned | [base-library](base-library.md) | — | p53: conservation signal |
+How state changes ([changes.md](changes.md)): patches edit the spec and are the only undoable changes; streams bring
+data into the store and are never undone or saved. Both are increments by address with versions. The Undo column says
+what undo does to each.
+
+### Patches
+
+| Feature | What | Undo | Status | Design | Cases | View |
+|---|---|---|---|---|---|---|
+| Patches, inverses, diff | five ops by address, all or nothing, `diff` correct | yes, one step a batch | planned | [format](format.md) | 78–83, 236 | every editing view |
+| Undo and redo | every spec edit; previews end in a patch or a cancel | — | planned | [ux-foundations](ux-foundations.md) | 163, 164 | every editing view |
+| Previews | a gesture shows its change as a transient overlay over the spec, ending in one patch or a cancel | its final patch | planned | [changes](changes.md) | 163 | every editing view |
+| Snapshots | named patches over the base, a player | no: leaving a step is navigation | planned | [format](format.md) | 84, 85 | p53: a story |
+| Patches on streamed things | a bookmark or a ref naming a dynamic node; waits while the node is not held | yes | planned | [changes](changes.md), [addressing](addressing.md) | — | p53: transcripts by region |
+| Keep this region | a command that turns streamed data into spec content on purpose (an inline copy, a ref) | yes | planned | [changes](changes.md) | 175 | p53: the gene's region by region |
+| Patch streams | patches from an agent, a collaborator or a host applied in order, all or nothing each; a stale base refused or rebased by the host | yes, each a step | planned | [changes](changes.md) | 81, 93 | an editing story with an agent's patches |
+| Session state | the viewport, the selection, the hover, the cursor, open panels: transient, held by the viewer's models | no | planned | [changes](changes.md) | — | every view |
+| Change kinds of commands | every command declares whether it patches the spec, changes session state or navigates; menus show what undo will undo | — | planned | [changes](changes.md) | — | the command palette |
+
+### Streaming: the source protocol and the data store
+
+| Feature | What | Undo | Status | Design | Cases | View |
+|---|---|---|---|---|---|---|
+| Self-describing sources | format, location, index, assembly, aliases, fields | no: data | planned | [sources](sources.md) | 185–191, 196–198 | p53: the gene's region from FASTA with its index |
+| The source protocol | a source answers what it covers (systems, lengths, levels, nodes known up front) and a region at a level of detail; one protocol for inline and streamed data | no: data | planned | [sources](sources.md) | 169–175, 185–199 | p53: the gene's region by region |
+| Answers carry nodes | tables plus data nodes (sequences, maps, annotations, nested sources), identity by (source, key) | no: data | planned | [dynamic-nodes](dynamic-nodes.md) | 175–180 | p53: transcripts by region |
+| Levels of detail | the coarsest level that fits a device column; a format's own zoom levels used when it has them (bigWig) | no: data | planned | [performance](performance.md), [sources](sources.md) | 170, 171 | p53: conservation signal over the gene's region |
+| The data store | entries by (source, region, level), versioned; pending, loaded, empty, failed; reactive per entry | no: data | planned | [data-store](data-store.md) | 169 | p53: the gene's region by region |
+| Prefetch and cancellation | view, margin, prefetch; grace; retries | no: data | planned | [data-store](data-store.md) | 172–174 | p53: the gene's region by region |
+| Eviction | byte-bounded, least recently used, never what is in view | no: data | planned | [data-store](data-store.md) | — | p53: the gene's region by region |
+| Settle and open domains | open value domains computed when the view settles; legends state their domain | no: data | planned | [data-store](data-store.md) | 201–205 | p53: tracks |
+| Export waits for data | `renderSvg` requests what its viewport needs and waits to settle, or says it is unsettled | no: data | planned | [data-store](data-store.md), [rendering](rendering.md) | 125 | every view (SVG) |
+| Dynamic nodes and templates | data nodes that arrive with regions (item coordinate systems, nested sources); a track per node by template | no: data | planned | [dynamic-nodes](dynamic-nodes.md) | 175–180 | p53: transcripts by region |
+| Item coordinate systems | an item's own system from its `map`, made on demand, keeping its id when it returns | no: data | planned | [dynamic-nodes](dynamic-nodes.md) | 176, 177 | p53: transcripts by region |
+| Nested sources | requested on need, bounded depth | no: data | planned | [dynamic-nodes](dynamic-nodes.md) | 179 | p53: transcripts by region |
+| Format runtimes | a registry entry per format, converting it onto the protocol; one shared conformance contract | no: data | planned | [sources](sources.md), [ports](ports.md) | — | every source |
+| A genome format, as proof | bigWig read by region and zoom level, a format runtime like any other (the author: "at least one as proof of concept") | no: data | planned | [sources](sources.md) | 169–175, 186, 201 | p53: conservation signal over the gene's region |
+| A synthetic asynchronous source | seeded, with a fake clock: the protocol's test source and the first slice's | no: data | planned | [version-1](version-1.md) | — | tests; a Storybook story |
+| Range reads of assets | the asset manager's page cache for indexed formats (a base-library change) | no: data | planned | [base-library](base-library.md) | — | p53: conservation signal |
 
 ## Layers and themes
 
@@ -151,7 +169,6 @@ that shows it (dataset: view).
 | Search and results | matchers (exact, degenerate, regex, approximate); stepping; saved as sets | planned | — | 161 | p53: search |
 | Query language | composable queries, printed and read as S-expressions | planned | [building-blocks](building-blocks.md) | 89, 229 | p53: queries |
 | User-defined refs | named addresses in a `refs` container; bookmarks and location sets are refs; rewritten on move | planned | [addressing](addressing.md) | 162 | Antibody: CDR bookmarks |
-| Undo and redo | every spec edit; previews end in a patch or a cancel | planned | [ux-foundations](ux-foundations.md) | 163, 164 | every editing view |
 | Track and group editing | hide, reorder, collapse, theme changes | planned | [ux-foundations](ux-foundations.md) | — | every dataset's editing view |
 | Hover card and context menu | actions on the element; keyboard menu | planned | [ux-foundations](ux-foundations.md) | 156, 166 | p53: tracks |
 
