@@ -29,6 +29,10 @@
     `viewport.groupEqualAxes` true, `viewport.onResize` `keep-zoom`, `follow.followerMoves` `ignore`, `follow.cyclicArc`
     `wrap`, `navigate.wheelZoomStep` 1.25, `navigate.keyPanFraction` 0.1, `navigate.coalesceWheel` true; the default
     preset has no click or drag-select bindings until the selection lane (`drift/viewer-models.md`).
+11. Lane H's defaults: `canvas.height` `content` (max 2048), `canvas.dpr` `device`, `canvas.settleMs` 150,
+    `pointer.rehit` true, `pointer.pinchFromCtrlWheel` true, `pointer.pinchSpeed` 0.01, `pointer.pinchMaxDelta` 50;
+    `BrowserAssetPolicy` (https and relative under the page, confined to the base folder, 256 MB, 30 s, no credentials),
+    `HeadlessAssetPolicy` reads nothing (`drift/viewer.md`).
 
 ## Agreed but not built
 

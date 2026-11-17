@@ -53,3 +53,13 @@ of EC-30; NCBI codes beyond 1, 2, 11; projecting rects; reverse paths carried ac
 - An allocation guard for `hover.set` and the bindings' resolve (opt-in tier).
 - `ParamDefinition`s for the config items.
 
+## From lane H (viewer and views)
+
+- Registry: a `types` option on `renderSvg`, then layer-type, theme and palette entries; atomic, counted, undoable
+  run-time registration.
+- Touch pinch (two pointers); the Mol* structure port; the `@molstar/ui` keymap and command manager.
+- An allocation check by hand of the canvas draw and hover loops.
+- `vitest` in the storybook package's dev dependencies; move the Vite plugin's test under `src`.
+- `packages/seq/TODO.md`: drop the examples package and the thin Canvas2D viewer; add the items above.
+- The Features and Examples pages in Storybook.
+
