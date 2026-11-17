@@ -151,6 +151,18 @@ the passes.
 - **Reused**: colors are strings kept per value, fonts per shorthand (`FontCache`, a role written as the token table's
   stack, written again when the tokens' stacks change), glyphs per code; nothing is allocated per frame once warm (a
   faded text makes a gradient; a dashed path an array).
+- **Tokens** (`canvas/css-tokens.ts`, `readCssTokens(root)`): a mounted viewer reads the token table from the computed
+  style of its container: `--msui-*` (`@molstar/ui`'s theme, the chrome tokens and `--msui-font-sans|mono`) and
+  `--seq-*` (data colors a host sets) as `createTokens` takes them. A custom property keeps its text (`color-mix(…)`),
+  so a value that is no hex or `rgb()` is resolved by the browser through a probe element's `color`. A token the CSS
+  does not define falls back to the built-in table of the theme the root shows (`data-msui-theme` on the nearest
+  ancestor or the document element, `light` by default; a theme whose `color-scheme` is dark takes the dark table). Why
+  not the config's theme: a host's theme switch is CSS, and the viewer must follow it without being told.
+- **A theme switch**: a `MutationObserver` on `data-msui-theme` of the document element and of the nearest ancestor that
+  has it reads the table again; `viewer.setTokens` keeps the current one when its version is equal (no redraw, no new
+  layout key), else the renderer's tokens change, the base canvas is redrawn and `tokensVersion` moves (the SVG beside
+  the canvas redraws on it). `retire()` disconnects the observer. `viewer.renderSvg` draws with `viewer.tokens`, so the
+  SVG shows the theme the canvas shows.
 - `Context2D` and `CanvasLike` are what the backend calls of a 2D context and a canvas: the tests record the calls with
   a fake context.
 - `canvasTextMetrics(ctx)`: the text metrics port over a context's `measureText`, the font set only when it changes.
@@ -230,8 +242,9 @@ over the defaults): `foundations.preset`, `density.letterMinPx`, `density.dotMin
 `store.cacheBytes`, `store.inFlight`, `store.tileBins`, `hover.projectLinked`, `hover.closeCodons`,
 `viewport.maxPxPerPosition`, `viewport.groupEqualAxes`, `viewport.onResize`, `follow.followerMoves`, `follow.cyclicArc`,
 `navigate.wheelZoomStep`, `navigate.keyPanFraction`, `navigate.coalesceWheel`, `canvas.height` (`content`),
-`canvas.maxHeight` (2048), `canvas.dpr` (`device`), `canvas.settleMs` (150), `pointer.rehit` (true),
-`pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta` (50), `pointer.lineHeight`
-(16). Each a choice with its recommended default; `ParamDefinition`s come with the settings form. As items in a spec:
-`viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the
-same pairs.
+`theme.source` (`root`: a mounted viewer reads its root's CSS; `config`: the core's `theme` item; a headless viewer
+always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`), `canvas.settleMs` (150), `pointer.rehit`
+(true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta` (50),
+`pointer.lineHeight` (16). Each a choice with its recommended default; `ParamDefinition`s come with the settings form.
+As items in a spec: `viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the core's items
+(`SeqCoreConfig`) are the same pairs.

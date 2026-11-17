@@ -19,6 +19,7 @@ import {
   type Viewport as RenderViewport,
   hitView,
 } from '@molstar/seqx-core/render';
+import type { SeqTokens } from '@molstar/seqx-core/render';
 import { type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
@@ -63,6 +64,11 @@ export class SeqViewer extends ReactiveModel {
   /** Moves each time the view comes to rest (`canvas.settleMs` after its last move): what follows the picture waits for it. */
   readonly rested: ReadonlyState<number>;
 
+  /** Moves to the token table's version each time the tokens change (`setTokens`): what follows the picture redraws. */
+  readonly tokensVersion: ReadonlyState<number>;
+  /** The token table the frames and the SVG are drawn with: the context's, or the root's CSS when mounted. */
+  tokens: SeqTokens;
+
   /** The canvas's size in CSS px (the data's width and the content's height by default). */
   width = 0;
   height = 0;
@@ -74,6 +80,7 @@ export class SeqViewer extends ReactiveModel {
   private readonly _issues = new State<readonly Issue[]>([]);
   private readonly _behaviorIssues = new State<readonly Issue[]>([]);
   private readonly _rested = new State(0);
+  private readonly _tokensVersion = new State(0);
   private readonly _handles = new Map<BehaviorProvider<any, any>, unknown>();
   private _frameId: number | undefined;
   private _rehitting = false;
@@ -112,6 +119,8 @@ export class SeqViewer extends ReactiveModel {
     this.layoutIssues = this._issues.asReadonly;
     this.behaviorIssues = this._behaviorIssues.asReadonly;
     this.rested = this._rested.asReadonly;
+    this.tokensVersion = this._tokensVersion.asReadonly;
+    this.tokens = this.context.tokens;
 
     this.spec = new SpecModel(createSeqSpec().build(), {
       runtimes: this.context.runtimes,
@@ -263,6 +272,20 @@ export class SeqViewer extends ReactiveModel {
     this.schedule();
   }
 
+  /**
+   * Sets the token table (a theme switch). A table equal to the current one, by its version, is no change; else the
+   * renderer keeps its layout key's token version, the backend redraws and a frame is asked for.
+   */
+  setTokens(tokens: SeqTokens): boolean {
+    if (this._retired || tokens.version === this.tokens.version) return false;
+    this.tokens = tokens;
+    if (this._renderer) this._renderer.tokens = tokens;
+    this._baseDirty = true;
+    this._tokensVersion.set(tokens.version);
+    this.schedule();
+    return true;
+  }
+
   /** Drops what was measured: a web font arrived. */
   invalidateText(): void {
     this.context.text.clear();
@@ -356,7 +379,7 @@ export class SeqViewer extends ReactiveModel {
         model,
         view: resolved,
         data: this.store.store,
-        tokens: this.context.tokens,
+        tokens: this.tokens,
         text: this.context.text,
         config: this.context.renderConfig,
       });
@@ -487,6 +510,7 @@ export class SeqViewer extends ReactiveModel {
       ...(vp ? { viewport: { start: vp.start, end: vp.end } } : {}),
       store: this.store.store,
       dpr: this.dpr,
+      tokens: this.tokens,
       ...options,
     });
   }
