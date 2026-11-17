@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The store's keys and tiles (_spec/README.md "Data", Keys): a data entry is (source, system, level, tile), a node
+// The store's keys and tiles (_spec/README.md "Data", Store): a data entry is (source, system, level, tile), a node
 // entry (source, key), each one string for `KeyedState`. Keys are written, never parsed: an entry keeps its parts.
 
 /** Bins per tile, by default: a region at a level snaps to whole tiles, so overlapping requests share them. */
