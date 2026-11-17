@@ -12,7 +12,8 @@ code follows, the decisions, what the format means) moves into the packages' `_s
 ## Provenance
 
 - The package is `.seq/oz/`: the oz principles (`.principles/` in the oz exploration repository), copied at commit
-  `7d03f60` (2026-11-17), unedited. An update from it is a merge from that base.
+  `7d03f60` (2026-11-17). An update from it is a merge from that base. Edited once: its `workspace` and `layout`
+  modules removed (not adopted here) and their citations reworded, at the review's recommendation.
 - `queries/` and `agent-interface/` here: from the meso\* instance of the same package (`.meso/principles/` in the
   molstar-ludo repository), copied at commit `84c41cd84` (2026-11-17). Their links were repointed at `.seq/oz/`, and
   queries' rule 14 (§bounded-work) became a pointer, the package's representations module now holding it.
@@ -52,8 +53,8 @@ it: read the package's first.
 
 ## Adaptations
 
-- **workspace**, **layout**: not adopted. The repository's toolchain, tree and package rules (root `AGENTS.md`,
-  `check:workspace`) win.
+- **workspace**, **layout**: not adopted, and removed from `.seq/oz/`; citations of their ids read "not adopted here".
+  The repository's toolchain, tree and package rules (root `AGENTS.md`, `check:workspace`) win.
 - **architecture**: its layout (`lib/`, `packages/<product>/*`, `apps/`) maps onto Mol\*'s. The libraries
   `packages/{core,io,model,graphics}` and `packages/ui` play `lib/`, and Seq\* is the product (`packages/seq/*`). The
   root package rules win where they differ. Kept for ports, commands, errors and performance.
@@ -62,7 +63,7 @@ it: read the package's first.
   kept.
 - **ui**: the runtime and design system are `@molstar/core/reactive` and `@molstar/ui` (no rxjs; React only as an
   optional adapter); §frontend-state is taken as written.
-- **representations**: one tree, encoded as MessagePack (the default) or JSON, with an S-expression printer (and
+- **representations**: one tree, encoded as JSON (the default) or MessagePack, with an S-expression printer (and
   reader) for inspection, never a file type of its own (the author, 2026-11-17). This is §one-recursive-form's "the spelling is the
   project's choice", made here.
 - **_core, `.execution/`**: committed and kept after the close, as in meso\*; §execution-unreferenced stands.

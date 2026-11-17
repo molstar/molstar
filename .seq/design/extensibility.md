@@ -22,26 +22,18 @@ should be fixed when it can be a setting or an extension.
 
 ### Configuration: what can be configured, is
 
-- **Three places, by what the setting is about**:
-  - **the spec**: what is shown and how it looks as data (layers, themes, palettes, numbering, focus). It travels with
-    the view.
-  - **the viewer configuration**: how the viewer behaves and looks in an application (the interaction grammar's
-    bindings, behaviors and their params, density thresholds, foundation tokens, animation, defaults for anything a
-    spec leaves unset, which runtimes and extensions are present). Set when the application composes the viewer.
-  - **user settings**: a layer over the viewer configuration (a rebinding, a compact density, a theme), kept by the
-    application.
-- **Layered, never merged by accident**: built-in defaults → the viewer configuration → user settings, and the spec
-  for what belongs to the spec. Each layer names only what it changes; the effective value of any setting can be asked
-  for with where it came from.
-- **Configuration is data**, described the way the language is (typed params with defaults, bounds and docs), so it is
-  validated with every issue reported, documented from its description, and editable in a generated settings form
-  (`@molstar/ui`'s params forms).
-- **What is configurable** (the first list; anything else found fixed is a gap to fix, not a rule): spacing, sizes and
-  every number of the UX foundations, in presets (compact, comfortable, figure, print); which adapter each port has; the grammar's
-  bindings and presets; each behavior and its params; density thresholds and letter sizes; the data tokens (`--seq-*`)
-  and every palette and residue scheme; animation durations; hover and selection styles; chrome parts shown (headers,
-  legends, navigators, hover card); limits (path length, issue counts, request concurrency); text metrics; the codon
-  tables and numbering schemes available.
+- **The rule is the direction; this version builds its first step** (the author's rule, "what we can make configurable,
+  we should"; the review's cuts accepted, "rest as recommended"):
+  - **in this version**: the spec holds what is shown and how it looks as data; the viewer's configuration is one typed
+    set of config items given at composition (`ParamDefinition`, as Mol\*'s `PluginConfigItem`s), holding the foundations'
+    preset and numbers, the grammar's preset and bindings, behaviors' params, limits and defaults;
+  - **later**: user settings layered over it, the effective value of a setting with where it came from, and a generated
+    settings form (`@molstar/ui`'s params forms read `ParamDefinition`, so the form needs no second description).
+- **What is configurable** (the first list; anything else found fixed is a gap to fix, not a rule): the foundations'
+  numbers in presets (compact, comfortable, figure, print); the grammar's bindings and presets; each behavior and its
+  params; density thresholds and letter sizes; the data tokens (`--seq-*`) and every palette and residue scheme;
+  animation durations; chrome parts shown; limits (path length, issue counts, request concurrency); the codon tables and
+  numbering schemes available.
 - **Configurable does not mean inconsistent**: one configuration applies to every view of a viewer, and the fixed rules
   of a configured area (the grammar's, the foundations') hold whatever the values ([ux-foundations.md](ux-foundations.md)).
 
@@ -55,17 +47,17 @@ should be fixed when it can be a setting or an extension.
   | custom fields | namespaced fields on any node (`custom: { "<ns>": {…} }`) and extra columns on any table: kept through parse, patch, diff and print untouched by readers that do not own them, validated by the extension that does, readable by themes, filters and queries as fields |
   | formats | readers (a data format onto the one protocol: FASTA, GFF, bigWig, PAF, a SIFTS table, …) and writers (a selection as FASTA, a figure as SVG or PDF, a view as a session for another tool) |
   | layer types | a way to draw (its params, its layout and draw-list output, its hit-testing, its fallback) |
-  | layouts | how a section is laid out (tracks, text, rings, dot plots built in): geometry, hit-testing and draw lists from the view IR, passing the layout suite ([ux-foundations.md](ux-foundations.md)) |
-  | ports | any port's adapter ([ports.md](ports.md)): fetch, archive, compute, storage, clipboard, links, services, the structure runtime |
+  | ports | the three ports' adapters ([ports.md](ports.md)): assets, text metrics, structure |
   | themes, palettes, residue schemes | how a channel is computed |
   | map runtimes | a way to compute a map of a given kind (align, SIFTS lookup, gene model to codons) ([maps.md](maps.md)) |
   | numbering schemes, codon tables | labels and translation |
   | query functions | generators, modifiers, filters in the query language |
   | commands, behaviors, bindings | what the viewer can do and what gestures do |
-  | backends, text metrics | where draw lists go ([rendering.md](rendering.md)) |
-  | structure runtimes | binding structure systems to a structure viewer (Mol\*) |
-  | chrome parts | track header actions, context menu items, hover card sections, panels |
+  | backends | where draw lists go ([rendering.md](rendering.md)) |
 
+- **Internal until an outside user**: layouts (tracks, text, rings, dot plots) and chrome parts (track header actions,
+  context menu items, hover card sections, panels) are written behind internal interfaces, opened as extension points
+  when an application needs one; definitions and uses wait likewise ([composition.md](composition.md)).
 - **An extension is registry entries**, as a Mol\* plugin's ([viewer-composition.md](viewer-composition.md)): a
   namespaced record of providers for each point, listed in the viewer's spec (one composition root) or registered by a
   behavior at run time with its undo; nothing registers itself on import, and there is no global registry.
@@ -88,5 +80,5 @@ should be fixed when it can be a setting or an extension.
 ## Consequences
 
 - The Storybook's Extensibility page shows a small extension end to end (a layer type, a theme, a command and a
-  binding) and the configuration layers, with the effective-value lookup.
-- The settings form, the docs and the agent skill list every setting and extension point from their descriptions.
+  binding) and a composed viewer's configuration.
+- The docs and the agent skill list every setting and extension point from their descriptions.

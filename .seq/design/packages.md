@@ -16,7 +16,7 @@ the viewer needs).
 - **Imports from other Mol\* packages, carefully and selectively** (the author, 2026-11-17: "we can import from other
   mol* parts now, but very carefully and seletively"): beyond `@molstar/core` and `@molstar/ui`, a package imports only
   entries on its allowlist, each with its reason (first: `@molstar/io`'s MessagePack decoder, for the default encoding),
-  enforced by the lint's restricted imports. A whole package is never allowed, only entries; a generic piece that many
+  enforced by the lint's restricted imports (the rule for `packages/seq` is added with its first import). A whole package is never allowed, only entries; a generic piece that many
   would want goes to `@molstar/core` instead (the tree core, [tree-core.md](tree-core.md)).
 - **Names**: `seqx` while the previous `@molstar/seq-*` packages exist; renamed to `@molstar/seq-*` in the change that
   deletes them.

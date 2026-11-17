@@ -1,99 +1,87 @@
-# Composition: languages, levels and the IRs
+# Composition: the spec's levels and the compiled forms
 
 ## Intent
 
 The author, 2026-11-17: "expand on how the "spec" will be composed? the views etc .. similar to how meso composes many
 concepts. and do we need intermediate representation the spec compiles/expands to? i think this should streamline many
-things, including mapping the "streaming ports" etc?"
+things, including mapping the "streaming ports" etc?"; after the review: one version, and the architecture reconciled
+("this is not just about scope, but about reconciling the architecture").
 
-A spec is written by people and agents, short and declarative. What the viewer, the source runtimes and other
-renderers need is explicit: every ref followed, every default filled, every map resolved, every request known. Between
-them sit intermediate representations (IRs), compiled by pure passes, so each consumer reads one compiled form and none
-re-derives it.
+A spec is short and declarative. What the viewer, the source runtimes and other renderers need is explicit: refs
+followed, defaults filled, maps resolved, requests known. Between them sit three compiled forms.
 
 ## Precedents
 
-- meso\*: languages by level (data, molecular, scene, time, view, session), one tree; slots embed one language in
-  another; definitions in containers, used by reference with arguments and overrides; IRs (data, scene, time, view,
-  render) compiled by pure passes cached by hash and keyed by address; streamed data declared in the spec, loaded by
-  the runtime through ports, never written back; the render IR keyed and versioned so an executor commits differences
-  ([sources/meso](../sources/meso/README.md): its packages, state and runtime specs).
-- The previous implementation: one document grammar with `data` and `view` under a root; `compile` and `resolveView`
-  as two passes; streamed sources resolved by host stream providers against a manifest ([sources/seqstar](../sources/seqstar/README.md)).
+- meso\*: levels in one tree, slots embedding sublanguages, definitions and uses, IRs compiled by pure passes cached by
+  hash and keyed by address, streamed data never written back ([sources/meso](../sources/meso/README.md)).
+- The previous implementation: `data` and `view` under a root; `compile` and `resolveView` as two passes; streamed
+  sources resolved against a manifest ([sources/seqstar](../sources/seqstar/README.md)).
 
 ## Decision
 
-### The spec is composed of levels, each a language
+### One language, four levels
 
-| Level | Language | Holds |
-|---|---|---|
-| `sources` | data | where data comes from: a source per file, service or inline value, in its own format ([sources.md](sources.md)) |
-| `model` | model | coordinate systems: sequences, units, complexes and copies, structures' chains, alignments and their rows, trees; numberings; maps between systems ([maps.md](maps.md)) |
-| `annotations` | annotation | data on systems in the six shapes, read from sources or written inline; computed nodes (a query's result, coverage, conservation) |
-| `views` | view | views, sections (axes and pieces), tracks, layers, themes, focus, highlights; the layouts (tracks, text, rings, dot plots) |
-| `refs` | refs | user-defined names for addresses: bookmarks, regions, sets ([addressing.md](addressing.md)) |
-| `snapshots` | patch | named patches over the base: a story's steps |
+```
+spec
+├── data        sources, sequences (units, complexes, copies, structure chains), alignments, trees,
+│               numberings, maps, annotations (the six shapes), computed annotations
+├── views       views → sections → tracks → layers; themes; focus; highlights
+├── refs        user-defined names for addresses (bookmarks, regions, sets)
+└── snapshots   named patches over the base
+```
 
-- **One tree, one root**: `spec` holds the levels as its children, each with a reserved id, so `/views/main` and
-  `/model/p53` are addresses. A level may be absent; a small spec writes `sources`, `model` and `views` only.
-- **Each language has its own description and version**, as meso\*'s do; the spec's version is the set of them. A
-  level's language is described once ([format.md](format.md)) and validated, documented and typed for the builder from
-  that description.
-- **Languages embed each other through slots**: a layer's `data` is a ref or a query (the query language), a filter
-  is a query, a theme is a node of the theme sublanguage, a computed annotation holds a query or a provider's params.
-  Sublanguages: queries, themes, patches, addresses.
-- **Definitions and uses** (meso\*'s `def` and `use`): anything definable is written in place or defined once and used
-  by address, with arguments and overrides. Definition containers: `views/themes` (named themes and palettes),
-  `views/tracks` (track templates: a track with layers, used per sequence or per sample), `views/styles` (section
-  styles and presets), `model/numberings` (schemes a lab defines). A template used per member of a set (every row,
-  every sample) is how many tracks come from one definition.
-- **Extensions add kinds to a level** under their namespace, with a fallback ([extensibility.md](extensibility.md)).
+- **One language, one version** (the author: "one"); the levels are container kinds with reserved ids, so addresses
+  read `/data/p53`, `/views/main`, `/refs/dbd`, `/snapshots/step3`. A small spec writes `data` and `views` only.
+- **Data kinds sit under `data`** (a source, a sequence, a map, an annotation) and refer to each other by address;
+  their order is free.
+- **Sublanguages in slots**, described in the same language description: queries (a layer's data, a filter, an
+  address's forms), themes (a channel's value), patches (snapshots). Addresses are the query language's forms after a
+  path ([addressing.md](addressing.md)).
+- **Definitions and uses wait**: themes and styles may be named once in `views` and referred to by address (a plain
+  ref); `def` with arguments and overrides, and templates used per member of a set, come when an example needs them.
+- **Extension kinds** sit in any level under their namespace, with a fallback ([extensibility.md](extensibility.md)).
 
 ### Session is not the spec
 
-- What is shown now (the view chosen, the viewport, the selection, the hover, the cursor, open panels) is session
-  state: transient, reconstructible, saved beside the spec when saved at all, never in it. Snapshots and refs are how
-  a spec names a view state on purpose.
+- The view shown, the viewport, the selection, the hover, the cursor, open panels: session state, transient, held by
+  the viewer's models. Its shape and whether it is saved (beside the spec, never in it) is decided with the viewer's
+  models; snapshots and refs are how a spec names a view state on purpose.
 
-### The IRs
-
-Pure passes, each cached by its input's hash and keyed by address, so a patch recompiles only what it touched:
+### Three compiled forms
 
 ```
-spec ─read─▶ checked spec ─compile─▶ data IR ──▶ model IR ──▶ annotation IR ──▶ view IR ─layout─▶ render IR ─▶ backend
- (decode, migrate,          (sources bound   (systems,      (shapes, fields,     (the resolved   (draw lists
-  validate, defaults)        to runtimes)     maps, paths)   access plans)        view)           for a viewport)
-                                  ▲                                                    │
-                                  └──── requests: what each visible layer needs ◀──────┘  (session: viewport)
+spec ─read─▶ checked spec ─resolve─▶ resolved model ─▶ resolved view ─layout─▶ draw lists ─▶ backend
+ (decode, migrate,          (systems, maps, paths;      (sections, tracks,      (for a size,
+  validate, defaults)        sources bound; annotations  layers, themes,         a viewport and
+                             and their access plans)     placement through maps) the data store)
+                                       ▲                                              │
+                                       └── data store ◀── runtimes ◀── requests ◀─────┘
 ```
 
-- **Data IR**: one entry per source: its address, its format and the runtime bound to it (by the application's
-  composition), its location and index, what it declares it covers. This is where the streaming ports map: a runtime
-  binds to a data IR entry, never to a spec node, and answers the one protocol for it. A source with no runtime is an
-  entry marked unavailable with its issue.
-- **Model IR**: the coordinate systems table (every system with its length, alphabet, cyclic flag, numberings), units
-  and copy groups, the maps resolved to their encodings ([maps.md](maps.md)) with their sourcing (inline, a data IR
-  entry by region, a computed job), and the map graph with its paths precomposed (never on hover). Nodes made from
-  data (a structure's chains, an alignment's rows) are here, keyed by address.
-- **Annotation IR**: per annotation, its shape, its system, its fields and their types, and its access plan: inline
-  tables (typed columns), or regions and levels from a data IR entry, with the multi-resolution summaries it needs
-  ([performance.md](performance.md)).
-- **View IR** (the public resolved view, [rendering.md](rendering.md)): sections with their axes and layout maps,
-  tracks, layers with themes resolved to values or value functions, fallbacks chosen for the target, and for each
-  layer how its data reaches its section (direct, or through a path). Renderer-independent.
-- **Render IR**: the view IR laid out for a size and a viewport, as draw lists; recomputed per frame for what changed,
-  bounded by the pixels on screen ([performance.md](performance.md)).
-- **Requests flow back**: from the view IR and the session's viewport, each visible layer says which regions at which
-  level it needs; the data IR's runtimes answer through the protocol; answers land in a data store keyed by (source,
-  region, level), never in the spec or the IRs, and the render IR draws from it.
-- **Keys and versions**: every IR entry carries its address as key and a version from its inputs' hashes, so the
+- **Resolved model**: every coordinate system and its numberings; units and copy groups; maps resolved to their
+  encodings with paths precomposed ([maps.md](maps.md)); each source with the runtime bound to it (unavailable with an
+  issue when none); each annotation's shape, fields and access plan (inline columns, or regions and levels from a
+  source). Pure, cached by the spec's hashes, keyed by address.
+- **Resolved view** (public, renderer-independent, [rendering.md](rendering.md)): sections with their axes and layout
+  maps, tracks, layers with themes as values or value functions, each layer's fallback chain, and how its data reaches
+  its section. No data, no pixels, no fonts, no target: it is the same for every renderer. Pure, cached, keyed.
+- **Draw lists**: the resolved view laid out for a size, a viewport, a target (which picks each layer's first drawable
+  fallback) and the data store's current entries. Recomputed for what changed; built into reused buffers, so pure by
+  contract (same inputs, same lists), not by allocation ([performance.md](performance.md)).
+- **The data store** ([data-store.md](data-store.md)) sits outside the passes: requests flow from the resolved view and
+  the viewport to the runtimes; answers land in the store with versions; the draw lists' cache key includes the
+  versions of the entries they read. Nothing from the store goes into the spec, the resolved model or the resolved view.
+- **Keys and versions**: every entry of a compiled form carries its address and a version from its inputs, so the
   viewer, an export or another renderer applies differences, not rebuilds.
+
+## Rejected alternatives
+
+- A language and a version per level, and five IRs (data, model, annotation, view, render), as first drafted: more
+  descriptions and boundaries than the work needs; data, model and annotation resolve together.
 
 ## Consequences
 
-- Each consumer reads one compiled form: the viewer the view and render IRs, a source runtime its data IR entry, an
-  export the render IR, Nightingale and other viewers the view IR, tests any of them.
-- The storybook's Format, Sources and Rendering pages describe the levels and the IRs; a Composition page shows a
-  spec and each IR it compiles to, side by side.
-- The core's folders follow the pipeline: `lang/` (one folder per level and sublanguage), `ir/`, `compile/`, `data/`
-  (the protocol, the store, the runtimes' port), `render/`; the packages design lists them as they are built.
+- Each consumer reads one form: the viewer and exports the draw lists, other viewers (Nightingale, JBrowse) the
+  resolved view, runtimes their source entries in the resolved model, tests any of them.
+- The core's folders follow the pipeline: `lang/` (the description, the builder), `resolve/`, `view/`, `data/` (the
+  protocol, the store, the runtime contract), `render/` (layout, draw lists, the SVG and recording backends).

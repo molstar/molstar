@@ -134,6 +134,13 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
   existing "plugins" already composes, and it should configure all the ports, asset mangers, etc"
   ([design/viewer-composition.md](../../design/viewer-composition.md)).
 
+- **After the independent review** (an advisor's read, 2026-11-17): "one" version; the tree core "codec indepedent and
+  about abstract patterns"; "this is not just about scope, but about reconciling the architecture, fixing things from
+  the "reply", etc"; "rest as recommended" ([design/version-1.md](../../design/version-1.md)). The review also found that
+  three of the author's questions had been recorded as decisions (MessagePack as the default, reusing the asset
+  manager, configurable layout); the first is now settled the other way (JSON by default, MessagePack an option, as
+  recommended), the other two accepted with the rest.
+
 ## Reconciliation
 
 - "JSON with S-expression printing" fits §one-recursive-form (the spelling is the project's choice); meso\* chose

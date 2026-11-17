@@ -2,44 +2,47 @@
 
 ## Intent
 
-The author, 2026-11-17, on bringing meso\*'s tree core (the tree, schema-as-data, patches, addresses, the S-expression
-reader and printer, the builder engine) here: "yes i think we can bring this to packages/core here. standard headers,
-since both are mol*".
+The author, 2026-11-17, on bringing meso\*'s tree core here: "yes i think we can bring this to packages/core here.
+standard headers, since both are mol*"; then, after the review found MessagePack could not live in core: "make the
+repr "codec indepedent" and about abstract patterns then?"
 
-Seq\* and meso\* need the same foundation: one node shape, languages described as data, validation with every issue,
-addresses with query segments, patches with inverses, codecs and hashes, a typed builder. meso\* built and hardened it
-(`@molstar/meso-core` in the molstar-ludo repository, about 7,000 lines of source and 5,700 of tests). It moves into
-`@molstar/core`, generic and documented, so Seq\* builds on it and meso\* can later use it from here instead of its own
-copy.
+Seq\* and meso\* need the same foundation: one node shape, values with identity, languages described as data,
+validation with every issue, addresses with query segments, patches with inverses, a typed builder. meso\* built it
+(`@molstar/meso-core` in the molstar-ludo repository). Its abstract part moves into `@molstar/core/repr`; codecs stay at
+the edge, beside the libraries they need.
 
 ## Decision
 
-- **What moves**, from meso-core's folders: `tree` (the node, JSON and S-expression codecs, Merkle hashes, addresses
-  with query segments, issues), `schema` (languages as data: kinds, params, unions, refs, definitions and uses,
-  validation, docs), `patch` (operations, apply with inverses, history, refs rewritten on move, both spellings),
-  `builder` (the typed builder's engine) and `descriptors` (languages, IRs and runtimes described as data, gathered by
-  the caller).
-- **What stays in meso\* for now**: `locators`, `context` and `units` (Settled, below).
-- **Headers**: the standard Mol\* header with the year and `@author` lines (both are Mol\*'s; no provenance line
-  needed beyond the authors, who are the same).
-- **MessagePack from `@molstar/io`**: its encoder and decoder, extended with typed columns as extension types
-  `0x11`–`0x18` (Seq\*'s default encoding, [format.md](format.md), [base-library.md](base-library.md)); JSON and MessagePack as the stored encodings, S-expressions as the printing, per language
-  user's choice (meso\* keeps S-expressions as its spelling, Seq\* stores MessagePack or JSON).
-- **Spec and tests**: a `_spec` beside the module, from meso-core's (`schema.md`, `patch.md`, `builder.md` and its
-  README), cut to rules and reasons; the tests brought over within the fast-test budgets ([testing.md](testing.md)):
-  property tests at a small fixed number of seeded cases, the scaling tests moved to the heavy lane.
-- **Its own work**: a work id of its own (`tree-core`), done before the Seq\* language work that builds on it; meso\*
-  is not changed by it (it lives in another repository).
-
-## Settled
-
-- **The entry is `@molstar/core/repr`** (the author, 2026-11-17: "ok" to the recommendation): `repr/tree`,
-  `repr/schema`, `repr/patch`, `repr/builder`, `repr/descriptors`, after the principles' representations module;
-  `state` is Mol\*'s state tree, and `spec` would read as a `_spec` folder.
-- **Units wait** (the author: "ok let's wait"): quantities with units stay in meso\* until something here needs them;
-  the schema's tie to them becomes a hook, so the move does not bring them along.
+- **`@molstar/core/repr` is codec-independent**: the abstract patterns only.
+  - `repr/tree`: the node, values and their identity (typed columns by element type and bytes, hashed once and cached on
+    the node), Merkle hashes, addresses with query segments, issues.
+  - `repr/schema`: languages as data (kinds, params with types including column types, unions, refs), validation with
+    every issue, defaults, docs.
+  - `repr/patch`: operations by address, apply with inverses, refs rewritten on move, `diff`.
+  - `repr/builder`: the typed builder's engine.
+  - `repr/codec`: the codec interface (a tree to bytes or text and back, with the value model's guarantees) and its
+    conformance suite; no codec in it.
+- **Codecs live where their libraries do**:
+  - JSON and the S-expression reader and printer: `@molstar/core/repr/codecs/json` and `…/sexpr` (no dependencies).
+  - MessagePack: in `@molstar/io`, on its existing `encodeMsgPack` and `decodeMsgPack` and their extension hooks (no
+    change to io's codec), as a repr codec with typed columns `0x11`–`0x18`; `@molstar/seqx-core` imports it through
+    its allowlist.
+- **The first move is minimal** (the review's first slice): `tree`, `schema`, `builder`, the codec interface and the
+  JSON and S-expression codecs, enough for the first Seq\* slice; `patch` and `descriptors` follow when the slice needs
+  them. Definitions and uses (`def`, arguments, overrides) wait ([composition.md](composition.md)).
+- **What stays in meso\* for now**: `locators`, `context`, `units`; the schema's tie to units becomes a hook (the
+  author: units "ok let's wait").
+- **Issues**: one shape, `{ code, severity, path, message, hint? }` with a stable namespaced code; `path` the step path
+  meso\* uses, with the address beside it where the place has one; severity means one thing everywhere (error: invalid
+  input; warning: something is lost; info: never changes what is drawn). meso\*'s issue gains the severity in the move.
+- **History**: `repr/patch` gives inverses; the undo stack is `@molstar/ui/history`'s (`HistoryPort`), not a second one.
+- **Headers**: the standard Mol\* header with the year and `@author` lines.
+- **Spec and tests**: a `_spec` beside the module with what is built; tests within the fast budgets
+  ([testing.md](testing.md)).
+- **The entry's name is `@molstar/core/repr`** (the author: "ok"). The review noted `@molstar/graphics/repr` means
+  visual representations; the name stands, and the module's README says which it is.
 
 ## Consequences
 
-- `@molstar/seqx-core` imports the tree core from `@molstar/core`; its own language levels are descriptions on it.
+- `@molstar/seqx-core` describes its one language on `repr` and picks its codecs (JSON by default, MessagePack from io).
 - A public API is added to `@molstar/core`; the change goes into the v6 changelog entry of its branch.

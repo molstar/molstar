@@ -1,0 +1,39 @@
+# The data store
+
+## Intent
+
+The review found the pure-pass story broken at the data: data read by region arrives asynchronously, is not in the
+spec, and the draw lists depend on it. This design says where that data lives, how it is keyed and versioned, how the
+viewer learns it arrived, and what "an open domain" means when data comes by region (accepted as recommended, the
+author, 2026-11-17).
+
+## Decision
+
+- **One store per viewer** (or per headless render context), outside the compiled forms. Entries are keyed by
+  `(source address, region, level)`; a region is a range on the source's system snapped to the level's tile size, so
+  overlapping requests share entries.
+- **An entry's state** is one of `pending`, `loaded`, `empty`, `failed` (with its issue). Pending is never drawn or hit
+  as empty (EC-169); failed shows its issue on the track and is retried by policy (EC-174).
+- **Versions**: each entry has a version that changes when its state or data changes; the store has a version that
+  changes when any entry does. The draw lists' cache key includes the versions of the entries they read, so a frame
+  after an arrival redraws only what read the new entry.
+- **Notification**: the store is a reactive model (`@molstar/core/reactive`): `entry(key)` gives a keyed state
+  (`KeyedState`), so only what reads an entry is told; the viewer schedules a frame on change.
+- **Requests**: from the resolved view and the viewport, each visible layer asks for (source, region, level); the store
+  dedupes, orders (view, margin, prefetch; EC-172), bounds what is in flight, cancels what left the view after a grace
+  (EC-173), and passes the rest to the source's runtime through the source protocol ([sources.md](sources.md)).
+- **Eviction**: byte-bounded (64 MB by default, a setting), least recently used, never an entry in view.
+- **Inline data** goes through the same store, as entries that are loaded at once; one path for drawing.
+- **Headless and export**: `renderSvg` is asynchronous: it requests what the export's size and viewport need and waits
+  for those entries to settle (or a timeout, after which the export says it is unsettled, EC-125). The live viewer's
+  viewport is never changed by an export.
+- **Open domains**: a value domain left open is computed from the loaded entries in the view when the view settles (no
+  pending requests, no gesture in progress), not every frame; during a pan or zoom the last settled domain holds, so
+  colors and heights do not shimmer. An export computes it for its own viewport and records it in the SVG's metadata.
+  A legend states the domain it shows.
+
+## Consequences
+
+- The resolved model and the resolved view stay pure and cached; only draw lists and legends read the store.
+- The store's conformance tests: pending vs empty, dedupe, cancellation, eviction never in view, versions, settle and
+  open domains, with a synthetic asynchronous source and a fake clock.

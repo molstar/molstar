@@ -25,8 +25,6 @@ The package's modules. A project that adopts it keeps its own manifest in its in
 | [ui](ui/README.md) | rule set | UI code, models, design system, Storybook, views | frontend state and logic (view layer, models, responsiveness), design system and Storybook, views as representations |
 | [testing](testing/README.md) | rule set | tests, tiers, conformance suites, CI, evals | test tiers, app-level integration and smoke tests, CI, conformance library |
 | [_core](_core/README.md) | rule set | any non-trivial work (the `principles` skill loads it) | stable: how the principles work ([system.md](_core/system.md)) and how work is run ([workflow.md](_core/workflow.md)): agent context and specs, design/plan/implement, iteration, keeping design, spec and code honest, meeting the author where they are. |
-| [workspace](workspace/README.md) | rule set | packages and their names, the entry point's tasks, lint and format | one entry point, language-neutral contracts, family folders, lint and format (e.g. Biome, Prettier) |
-| [layout](layout/README.md) | layout | top-level folders | the top-level layout (§top-level-layout) and a minimal tree; a project keeps its full codebase tree in its instance |
 | [_template](_template/README.md) | (skeletons) | adding a module | one skeleton per kind, for adding a module |
 
 The sources the rules are drawn from and tested against (application ideas, existing codebases) live in the project's `.sources/` (§sources); they point at the rules, never the other way (§self-contained).
@@ -44,7 +42,7 @@ The sources the rules are drawn from and tested against (application ideas, exis
 9. Tests are fast and tiered, with one gate before merge; a small **conformance library** supplies the checks that define correct implementations (§tests, §conformance-suites).
 10. **Design first**, plan with a checklist, loop with a `state.md`; process files are reconciled before the close and then kept, never cited, as the work's archive (§design-plan-implement).
 11. Spec is the map, code is the territory: intent lives in designs, and disagreement is a **signal** to triage, not a verdict (§agent-context, §recursive-loop).
-12. Enforce rules with tools where possible (one linter-formatter, a narrow fallback for the rest, one line width), and never let tools rewrite agent context (`.principles/`, the instance's `.<instance>/`, `.design/`, `.sources/`, `_spec/`, `.execution/`, `.records/`, `AGENTS.md`) (§one-linter-formatter, §no-auto-format).
+12. Enforce rules with tools where possible (one linter-formatter, a narrow fallback for the rest, one line width), and never let tools rewrite agent context (`.principles/`, the instance's `.<instance>/`, `.design/`, `.sources/`, `_spec/`, `.execution/`, `.records/`, `AGENTS.md`) (oz's `one-linter-formatter` (not adopted here), §no-auto-format).
 13. Changes travel as **transactions**: data, all or nothing, one round trip; optimism lives in the shared store, never in a component (§optimistic-transactions).
 14. The base offers mechanisms; **applications set policy and meaning** (access, statuses, conflict rules, budgets). Agents meet the author where they are and reconcile each application against the base in the instance's sources (§author, §access).
 
@@ -54,7 +52,7 @@ The rules change the same way everything else does (§recursive-loop): evidence 
 
 ## Open items
 
-1. Which second language comes first (Rust/WASM for hot paths and repr-core, Python for data and evals?); the workspace is already multi-language (§one-entry-point, §language-neutral-contracts), the patterns are TypeScript only for now.
+1. Which second language comes first (Rust/WASM for hot paths and repr-core, Python for data and evals?); the workspace is already multi-language (oz's `one-entry-point` (not adopted here), oz's `language-neutral-contracts` (not adopted here)), the patterns are TypeScript only for now.
 2. The concrete id scheme and hash function for entities and subtrees (§identity-and-hashing), and whether the default server-ordered collaboration log is enough.
 3. Whether to enforce relative test speed automatically (flag tests slower than N times their subject) or leave it to review (§proportionate-tests).
 4. Not yet covered by any rule: release/deploy and rollback, configuration and environments, structured logging and tracing beyond the command record (§recorded-invocations).

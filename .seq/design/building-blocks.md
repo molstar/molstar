@@ -91,7 +91,7 @@ lacks it draws instead).
 **Theme.** A channel (color, size) and how its value is computed: `uniform`, by a field's values (a palette, binned or
 continuous, a domain open to the data in view), by rules (thresholds), by a named scheme. Data, never code.
 
-**Snapshot.** A named patch over the spec: a story's step, a bookmark.
+**Snapshot.** A named patch over the spec: a story's step. (A bookmark is a ref.)
 
 **Issue.** `{ code, severity, path, message, hint? }` with a stable namespaced code, from every pass (validate,
 resolve, load, draw); reported, never thrown, unless the spec cannot be read at all.

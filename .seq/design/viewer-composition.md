@@ -33,7 +33,7 @@ interface SeqViewerSpec {
   behaviors: readonly SeqViewerSpec.Behavior[];
   /** The interaction grammar: a preset and binding overrides (ux-foundations.md, section 8). */
   bindings?: SeqViewerSpec.Bindings;
-  /** Settings as [item, value] pairs: foundations' presets and numbers, limits, defaults for what a spec leaves unset. */
+  /** Settings as [item, value] pairs, as the plugin's config: foundations' preset and numbers, limits, defaults. */
   config?: readonly [SeqConfigItem, unknown][];
   /** Port adapters, each a factory with ownership; unset ports take their default adapter. */
   ports?: SeqViewerSpec.Ports;
@@ -43,28 +43,29 @@ interface SeqViewerSpec {
 ```
 
 - **Registry entries are pure data**, as the plugin's: a record of providers grouped by kind, no behaviors, no config,
-  no functions run at registration. Kinds: node kinds (per level), layer types, layouts, themes and palettes, residue
-  schemes, numbering schemes and codon tables, format readers and writers, map runtimes, query functions, commands,
-  chrome parts. Keys are names; extension names are namespaced ([extensibility.md](extensibility.md)).
+  no functions run at registration. Kinds in this version: node kinds, layer types, themes and palettes, residue
+  schemes, numbering schemes and codon tables, format readers and writers, map runtimes, backends, query functions,
+  commands. Keys are names; extension names are namespaced ([extensibility.md](extensibility.md)). Layouts and chrome
+  parts are internal interfaces until an outside user needs them.
 - **Ports are factories with ownership**, as `PluginSpec.assetManager`:
 
   ```ts
   interface Ports {
     assets?: () => { manager: AssetManager; disposeWithViewer?: boolean };
-    host?: () => { host: DomHost; disposeWithViewer?: boolean };
-    compute?: …; storage?: …; clipboard?: …; textMetrics?: …; links?: …; structure?: …;
-    backends?: readonly BackendProvider[];
+    textMetrics?: () => { measure: (font: string, text: string) => number; disposeWithViewer?: boolean };
+    structure?: () => { runtime: StructureRuntime; disposeWithViewer?: boolean };
   }
   ```
 
   Each is called once per viewer. Unset, the viewer makes the default adapter and disposes it with itself; a host that
   passes its own (a Mol\* plugin's asset manager) sets `disposeWithViewer: false` and keeps it ([ports.md](ports.md)).
-  Format and map runtimes and services are registry entries, since they are providers by name; the ports carry what is
-  one per viewer.
+  Formats, map runtimes, backends and services are registry entries, since they are providers by name; the ports carry
+  what is one per viewer. Time and frames are `@molstar/ui/dom`'s `DomHost`, not a port.
 - **Behaviors** are as the plugin's: a provider and its params, initialized after the registry, able to register more
   entries at run time through `viewer.register(entry)` and to undo them.
-- **Config items** are typed settings with defaults, bounds and docs; `config` is the viewer configuration layer, user
-  settings layer over it through the storage port ([extensibility.md](extensibility.md)).
+- **Config items** are typed settings described with `ParamDefinition`, as the plugin's `PluginConfigItem`s: one typed
+  configuration set at composition. User settings layered over it, the effective-value lookup and a generated settings
+  form come later ([extensibility.md](extensibility.md)).
 
 ### Creating a viewer
 
@@ -77,8 +78,8 @@ interface SeqViewerSpec {
   entries, behaviors, bindings and settings. An application spreads it and changes what it needs, or writes a smaller
   spec; what is not imported and listed is not in its bundle.
 - **Headless without a viewer**: `createSeqContext(spec)` in the core takes the registry, the config and the ports a
-  render needs (assets, text metrics, compute, backends) and gives the compile and `renderSvg`, for the CLI, servers
-  and tests.
+  render needs (assets, text metrics, backends) and gives the resolve passes and `renderSvg`, for the CLI, servers and
+  tests.
 - **Disposal**: `viewer.retire()` disposes what the viewer made, its owned ports included, and undoes its
   registrations; a host's ports are left to the host.
 

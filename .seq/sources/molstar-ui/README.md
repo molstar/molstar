@@ -22,7 +22,10 @@ a `_spec` per folder). Seq\* is the first package built on `@molstar/ui`.
 
 ## What we leave
 
-- `shell` (a whole app shell), `stage` (a 3D stage's chrome), `forms` (PD params): not a sequence viewer's needs now.
+- `shell` (a whole app shell) and `stage`'s chrome (a 3D stage's): not a sequence viewer's needs; `stage/canvas-ink`'s
+  luminance is replaced by `Color.luminance` ([base-library](../../design/base-library.md)).
+- `forms` (the params form over `ParamDefinition`): later, when settings get a generated form
+  ([extensibility](../../design/extensibility.md)).
 - `testing/*` and `_stories/support.tsx` are not exported; copy what is needed.
 
 ## Reconciliation

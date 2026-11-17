@@ -9,7 +9,8 @@ What this version will contain. Nothing is built yet; each feature will link its
 ## Planned
 
 - **Language**:
-  - a spec written with a typed builder, stored as MessagePack (the default) or JSON, printed as S-expressions;
+  - a spec written with a typed builder, stored as JSON (or MessagePack for large inline data), printed as
+    S-expressions;
   - validation that reports every issue;
   - versions and migrations;
   - patches with undo, a correct `diff`;
@@ -50,11 +51,11 @@ What this version will contain. Nothing is built yet; each feature will link its
   - Canvas2D, SVG and PNG, the same picture;
   - a render CLI, a text-metrics port;
   - the UX foundations.
-- **Ports with default adapters**: fetch, archives (zip), runtimes, text metrics, backends, writers, compute, storage,
-  clipboard, links.
+- **Ports with default adapters**: assets (Mol\*'s asset manager), text metrics, structure; archives over the assets
+  port.
 - **Configuration and extensions**:
-  - settings in layers, with a generated form;
-  - layout and spacing in presets, layouts as extensions;
+  - one typed configuration (settings in layers and a generated form come later);
+  - layout and spacing in presets;
   - extension descriptors;
   - node kinds and custom fields;
   - every registry open.
@@ -71,9 +72,10 @@ What this version will contain. Nothing is built yet; each feature will link its
 Each is deferred until the trigger named for it.
 
 - **A published JSON Schema**: until an outside reader or an agent tool needs one.
-- **More genome formats (2bit, BigBed, VCF, PAF)**: after bigWig, each with the dataset that needs it.
 - **Dynamic nodes and track templates**: until a dataset with per-region nodes.
-- **Layers across sections, contact maps, and a MAF over a genome**: until the synteny views.
+- **The Genomes milestone**: layers across sections and synteny, contact maps, a MAF over a genome, values for genomics
+  (points, split, log scale), variants by sample, matrices, keyed joins, gene hierarchies, and the genome formats beyond
+  bigWig: after version 1's views run.
 - **Writers (FASTA, PDF)**: until the first writer extension.
 - **Agent tools**: until the language description and addressing are built.
 - **A React adapter**: until a React host asks.

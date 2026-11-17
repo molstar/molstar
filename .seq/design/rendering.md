@@ -22,15 +22,16 @@ reply" Colin was able to render it in Jbrowse".
 
 Four forms, each public, documented in the core's `_spec`, and each a stable place another renderer can attach:
 
-1. **The spec** (JSON, documented by the language's generated reference pages): a viewer that maps the language onto its own model reads this, as the
-   JBrowse converter did.
-2. **The resolved view** (core, pure; the view IR of [composition.md](composition.md)): the spec with refs followed, defaults filled, maps resolved to segment tables,
-   themes resolved to values, fallbacks chosen per layer type the target declares it can draw, and data reached through
-   the source protocol by region. Renderer-independent: no pixels, no fonts. Other viewers (JBrowse, Nightingale) read
-   this to get Seq\*'s meaning without reimplementing it.
-3. **Draw lists** (core, pure): the resolved view laid out for a size and a viewport, as plain typed lists of
-   primitives (rects, paths, glyph runs, text, images) in passes (background, data, overlay), with clips. Hit-testing
-   reads the same layout.
+1. **The spec** (JSON by default, documented by the language's generated reference pages): a viewer that maps the
+   language onto its own model reads this, as the JBrowse converter did.
+2. **The resolved view** (core, pure; [composition.md](composition.md)): views, sections, tracks and layers with refs
+   followed, defaults filled, maps resolved, themes as values or value functions, each layer's fallback chain, and how
+   each layer's data reaches its section. No data, no pixels, no fonts, no target: the same for every renderer. Other
+   viewers (JBrowse, Nightingale) read it, and read data through the same source protocol and store.
+3. **Draw lists** (core): the resolved view laid out for a size, a viewport, a target (which picks each layer's first
+   drawable fallback) and the data store's entries ([data-store.md](data-store.md)), as typed lists of primitives
+   (rects, paths, glyph runs, text, images) in passes, with clips. Built into reused buffers: pure by contract (same
+   inputs, same lists). Hit-testing reads the same layout.
 4. **Backends** (the render port): a backend draws draw lists. Canvas2D on screen, SVG (a string, no DOM), PNG (from
    the SVG or a canvas), and a recording backend for tests. An application may add its own (WebGL, a PDF writer).
 
@@ -43,9 +44,10 @@ Four forms, each public, documented in the core's `_spec`, and each a stable pla
   (pretext's prepare and layout split, lines for the text view, inline chips) is proposed as an extension of that
   module in the core, not a private copy (root `AGENTS.md`, reuse before writing helpers). Pretext itself throws without
   a canvas, so it is a candidate for the browser adapter of the text view's inline layout, not the port's only one.
-- **One picture**: the Canvas2D and SVG backends receive the same draw lists, so they differ only in rasterization. A
-  test compares their recorded draw calls; a visual test (heavy lane) compares pixels.
-- **A render entry and a CLI**: `renderSvg(spec, { size, viewport?, runtimes })` and a command that renders a spec file
+- **One picture**: the Canvas2D and SVG backends receive the same draw lists, so they differ only in rasterization; the
+  quick lane tests the draw lists through the recording backend, the heavy lane compares the two backends' pixels.
+- **A render entry and a CLI**: `renderSvg(spec, { size, viewport?, runtimes })`, asynchronous (it waits for the data
+  the export needs to settle, [data-store.md](data-store.md)), and a command that renders a spec file
   to SVG or PNG, so a reply like the JBrowse one can put both pictures side by side without writing code.
 - **Light to depend on**: the resolved view and draw lists are importable without the viewer, the UI or any format
   runtime; reading a spec needs only the core's language entry.
@@ -65,5 +67,5 @@ Four forms, each public, documented in the core's `_spec`, and each a stable pla
 
 - The resolved view's and draw lists' shapes are contracts with their own section in the core's `_spec`; a change to
   them is a language-level change (versioned, listed in the changelog).
-- Every example renders to SVG in a quick-lane test, with its draw-list record kept; Storybook shows the canvas and the
-  SVG side by side for any example.
+- Every example renders to SVG in a test; a few representative views keep a draw-list record ([testing.md](testing.md));
+  Storybook shows the canvas and the SVG side by side for any example.

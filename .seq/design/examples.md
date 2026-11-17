@@ -11,28 +11,28 @@ one), showing one way of looking or one editing experience, and exercising named
 
 ## Decision
 
-- **Six datasets**, each a fixture in the storybook package (small files, read through the source protocol like any
+- **Five datasets in version 1, a sixth later**, each a fixture in the storybook package (small files, read through the source protocol like any
   other data; the large-scale variants generated in code, never stored):
 
   | Dataset | Holds |
   |---|---|
-  | **p53** | human TP53: the protein (UniProt P04637) with features and variants; its gene on chromosome 17 (minus strand, 11 exons, introns); a structure's chains (the DNA-binding domain in four copies, author numbering, unobserved residues); an ortholog alignment (about 12 species) |
+  | **p53** | human TP53: the protein (UniProt P04637) with features and variants; its gene on chromosome 17 (minus strand, 11 exons, introns), and the gene's region as a small FASTA with its index and a bigWig conservation signal, read by region; a structure's chains (the DNA-binding domain in four copies, author numbering, unobserved residues); an ortholog alignment (about 12 species) |
   | **Globins** | a globin family alignment (about 50 rows, with an insert column and a reference row) and its tree; hemoglobin (α2β2, two molecules, four units, heme ligands); a generated 10,000-row variant for scale |
   | **Antibody** | a Fab: heavy and light chains numbered Kabat and IMGT (insertion codes, IMGT out of index order), CDRs, a designed variant with indels against the wild type |
   | **Plasmid** | a cyclic construct (about 2.7 kb): features crossing the origin on both strands, a CDS across the origin, restriction sites |
   | **tRNA** | a tRNA with base pairs (pairs on one system, nested and crossing), modified bases, a covariance alignment |
-  | **Genomes** | two small toy assemblies with synteny (an inversion, a translocation, a gap), name aliases and an HLA-style contig name; genes with transcripts (three levels), a name index; multi-sample signal in one file, GWAS points, a per-pair LD table, a variant matrix by sample with a long deletion, methylation with missing values, transcript-level results keyed by id; FASTA with an index and values read by region |
+  | **Genomes** (a later milestone, [version-1.md](version-1.md)) | two small toy assemblies with synteny (an inversion, a translocation, a gap), name aliases and an HLA-style contig name; genes with transcripts (three levels), a name index; multi-sample signal in one file, GWAS points, a per-pair LD table, a variant matrix by sample with a long deletion, methylation with missing values, transcript-level results keyed by id; FASTA with an index and values read by region |
 
 - **Views per dataset** (the first list; each names the edge cases it carries):
 
   | Dataset | Views |
   |---|---|
-  | p53 | text figure with feature underlines and variant marks (EC-94 to 99); tracks with features, values and secondary structure; the protein on its gene through codons, introns collapsed, minus strand (EC-15, 18, 29, 31, 117, 144); structure chains linked, unobserved gray, copies merged and split (EC-65, 118); orthologs aligned, with hover across rows; queries and search with results stepping and bookmarks (EC-161, 162); a story in snapshots (EC-84, 85) |
+  | p53 | text figure with feature underlines and variant marks (EC-94 to 99); tracks with features, values and secondary structure; the protein on its gene through codons, introns collapsed, minus strand (EC-15, 18, 29, 31, 117, 144); structure chains linked, unobserved gray, copies merged and split (EC-65, 118); the gene's region by region with its conservation signal (EC-169 to 175, EC-201); the minus-strand gene's features in both directions; orthologs aligned, with hover across rows; queries and search with results stepping and bookmarks (EC-161, 162); a story in snapshots (EC-84, 85) |
   | Globins | family alignment with conservation logo and rows by tree (EC-38, 43, 106); collapsed clades with a summary (EC-100, 103); ESPript-style text figure (EC-97); hemoglobin complex with heme chips and copy groups (EC-64, 65); the 10,000-row alignment, lazy rows and keyboard cursor (EC-41, 44, 154) |
   | Antibody | numbering schemes side by side, Kabat vs IMGT labels (EC-2 to 8); design vs wild type with indel carets (EC-29); CDR selection and editing as bookmarks with undo (EC-162, 164) |
   | Plasmid | ring with a linear detail following its window (EC-108, 114); a feature across the origin selected and focused by shortest arc (EC-9 to 14); the rotated linear view |
   | tRNA | arcs nested and crossing (EC-129); base-pair matrix as a dot plot with crosshair hover and rectangle selection (EC-109, 145); covariance alignment with pairs |
-  | Genomes | synteny ribbons with an inversion (direction on segments, EC-206); a dot plot of one genome against the other; both genomes on one ring (EC-210); signal by region with an open domain and with a one-sided domain (EC-169 to 175, EC-201, EC-202); many signals split from one file, log scale (EC-214, EC-215); a Manhattan plot of points with a threshold line, colored by LD to a chosen lead (EC-216, EC-217, EC-219); samples' variants as rows with the deletion solid (EC-222); methylation matrix by region (EC-220); transcripts colored by joined results gated on padj (EC-224); open on a gene by name (EC-228); a liftover by chain file (EC-212); the genome by region from FASTA with its index, names aliased (EC-186 to EC-189) |
+  | Genomes (later) | synteny ribbons with an inversion (direction on segments, EC-206); a dot plot of one genome against the other; both genomes on one ring (EC-210); signal by region with an open domain and with a one-sided domain (EC-169 to 175, EC-201, EC-202); many signals split from one file, log scale (EC-214, EC-215); a Manhattan plot of points with a threshold line, colored by LD to a chosen lead (EC-216, EC-217, EC-219); samples' variants as rows with the deletion solid (EC-222); methylation matrix by region (EC-220); transcripts colored by joined results gated on padj (EC-224); open on a gene by name (EC-228); a liftover by chain file (EC-212); the genome by region from FASTA with its index, names aliased (EC-186 to EC-189) |
 
 - **Showcases at the application layer**, in the storybook package (they compose what an application would, and are
   not core features):

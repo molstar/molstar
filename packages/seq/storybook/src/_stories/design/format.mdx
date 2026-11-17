@@ -6,15 +6,15 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 ## One tree, two encodings
 
-A spec is a tree, stored in either of two interchangeable encodings:
+A spec is a tree in one language with one version. It is stored in either of two interchangeable encodings:
 
-- **MessagePack**, the default for files and transfer. It is compact, and a column of numbers stays a typed array
-  (`Float32Array`, `Int32Array`, …).
-- **JSON**, for reading, diffs and tools that only speak JSON. A typed column is a plain array; a missing value is
-  `null`.
+- **JSON**, the default: readable, diffable, and open to any tool or viewer without Seq\* code. A column of numbers is a
+  plain array, and a missing value is `null`.
+- **MessagePack**, an option for large inline data. A column of numbers is written as a typed array.
 
-Both decode to the same tree, and a reader tells them apart by the first byte. The builder keeps the typed arrays you
-give it.
+Columns are declared in the language with their element type (`int32`, `float32`, …), so both encodings decode to the
+same typed arrays, and columns are compared and hashed by their bytes. Large data belongs in sources, read by region,
+not inline. A reader tells the encodings apart by the first byte.
 
 Every node has the same shape:
 
@@ -29,7 +29,7 @@ it.
 ## Printed as S-expressions
 
 For reading, a spec prints compactly. A reader for this spelling lowers it back to the same tree, but specs are always
-stored as MessagePack or JSON. The printed form is for inspection, docs, tests and agents.
+stored as JSON or MessagePack. The printed form is for inspection, docs, tests and agents.
 
 ```lisp
 (spec :version "0.1.0"

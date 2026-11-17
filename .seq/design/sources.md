@@ -28,13 +28,13 @@ standardized, and we convert other formats onto it".
   and lengths, or the region it can serve) and *give me this region at this level of detail* as typed tables in the
   model's own shapes (sequences, ranges, values, pairs, matrix, grid, rows). Small inline data is read through the same
   protocol, so there is one path.
-- **Runtimes bind to the data IR**: a source compiles to a data IR entry (its format, location, coverage), and the
+- **Runtimes bind to resolved sources**: a source resolves to an entry of the resolved model (its format, location, coverage), and the
   application's runtime for that format binds to the entry, never to the spec node ([composition.md](composition.md)).
 - **A runtime per format**, provided by the application: a port the application binds (§executors-by-composition),
   that turns a format into the protocol. The core ships the protocol, the `seq` format and the small text formats
   (FASTA, alignments, tables, Newick); binary and indexed genome formats are runtimes an application adds. A source
   whose format has no runtime is unavailable, with an issue; the rest of the spec opens.
-- **No whole-data manifest in the meaning**: a value domain left open means the data in view; a categorical value not
+- **No whole-data manifest in the meaning**: a value domain left open means the data in view, computed when the view settles ([data-store.md](data-store.md)); a categorical value not
   listed in the theme takes a color by a stable hash of the value; lengths come from the source's coverage answer.
 
 ## Provisional

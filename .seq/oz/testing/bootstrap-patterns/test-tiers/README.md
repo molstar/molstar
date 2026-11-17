@@ -56,7 +56,7 @@ does not call, or at sizes where the fixed cost dominates, stays green on a quad
 
 ## CI layer
 
-CI calls the same tasks people and agents run; there is no CI-only logic (§ci-enforces, §one-entry-point). Toolchains
+CI calls the same tasks people and agents run; there is no CI-only logic (§ci-enforces, oz's `one-entry-point` (not adopted here)). Toolchains
 come from the entry point's pinned configuration (mise in the examples), so adding a language changes the tasks, not
 the workflow.
 

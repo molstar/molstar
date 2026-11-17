@@ -12,29 +12,17 @@ Start here. What is built, what is open, what comes next, and where to read.
 
 ## Open, by importance
 
-- **Next work: the tree core** ([design/tree-core.md](design/tree-core.md)): meso\*'s tree core into `@molstar/core`, its
-  own work id; the entry is `@molstar/core/repr`; units wait.
+The architecture is reconciled after the independent review; read [design/version-1.md](design/version-1.md) first.
 
-0. **The scope** ([design/features.md](design/features.md), Provisional): review the `deferred` rows first.
-
-1. **The root nouns** ([design/building-blocks.md](design/building-blocks.md), Provisional): the author's review.
-2. **The language description** (`defineLanguage`): its shape, validation with every issue, the builder's types, the
-   printer; the first slice is the spec, data and one view kind.
-3. **The source protocol** ([design/sources.md](design/sources.md), Provisional): settled by inline `seq` data and
-   FASTA by region.
-4. **The coordinate model**: systems, maps with direction on every segment, paths, projection.
-5. **The first example end to end**: the p53 text view, through resolve, layout, draw lists, and both the SVG and
-   Canvas2D backends.
-6. **Performance targets** ([design/performance.md](design/performance.md), Provisional): the author confirms the
-   numbers; each gets its test as its area is built.
-7. **UX foundations** ([design/ux-foundations.md](design/ux-foundations.md), Provisional): settled by the foundation
-   stories and the grammar's conformance tests.
-8. **Edge-case outcomes** ([design/edge-cases.md](design/edge-cases.md)): the proposed changes and flaw fixes await
-   the author's confirmation; every other item gets its outcome when its area is built.
-
-## Next
-
-The language description, design first: a draft in `execution/<work-id>/`, agreed into `design/language.md`.
+1. **The first slice** (version-1, Order of work): the tree core minimal, the language's first slice with the query
+   language's first forms, end to end to SVG and a thin Canvas2D viewer, one source by region, then measure.
+2. **Provisional, to confirm on the first slice**: the root nouns ([design/building-blocks.md](design/building-blocks.md)),
+   the source protocol's shape ([design/sources.md](design/sources.md)), the performance numbers
+   ([design/performance.md](design/performance.md)), the UX foundations' numbers ([design/ux-foundations.md](design/ux-foundations.md)).
+3. **Waiting for the author**: the proposed edge-case outcomes ([design/edge-cases.md](design/edge-cases.md)); the
+   base-library changes, each when its work starts ([design/base-library.md](design/base-library.md)).
+4. **To decide as the work reaches them**: session state's shape and saving, worker boundaries, the asset manager's range
+   reads (version-1, Open).
 
 ## Language version
 

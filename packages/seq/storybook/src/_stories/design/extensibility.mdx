@@ -47,9 +47,9 @@ const viewer = createSeqViewer(
 );
 ```
 
-- **Registry entries** are pure data: node kinds, layer types, layouts, themes, formats, map runtimes, numbering
-  schemes, query functions, commands and chrome parts. They register in order. Registration is atomic and counted, and
-  it is undone when the viewer retires.
+- **Registry entries** are pure data: node kinds, layer types, themes, formats, map runtimes, backends, numbering
+  schemes, query functions and commands. They register in order. Registration is atomic and counted, and it is undone
+  when the viewer retires.
 - **Behaviors** come with params. **Bindings** are the gesture grammar's preset plus overrides. **Config** items are
   typed settings.
 - **Ports** are factories with ownership. An unset port gets its default adapter, which the viewer disposes. A port the
@@ -57,32 +57,30 @@ const viewer = createSeqViewer(
 - `DefaultSeqViewerSpec()` lists the defaults. Nothing registers itself on import, so what isn't listed isn't in the
   bundle.
 - Without a target element the viewer is headless. `createSeqContext(spec)` renders to SVG with no viewer at all.
+- Configuration in this version is one typed set of config items. User settings layered over it, and a generated
+  settings form, come later.
 
 ## Ports
 
-The core does no I/O. Everything that touches the outside goes through a port that the application binds when it
-composes the viewer. Each port has a default adapter, so the viewer works out of the box, and any adapter can be
-replaced.
+What is one per viewer and touches the outside is a port, bound in the viewer's spec with a default adapter. What is
+looked up by name (formats, map runtimes, backends) is a registry entry instead.
 
-| Port                        | Default adapter                                                            |
-| --------------------------- | -------------------------------------------------------------------------- |
-| Assets (fetch)              | Mol\*'s asset manager, with range reads; a host can pass its own           |
-| Archive                     | zip (read and write), a directory, in memory                               |
-| Format runtimes             | FASTA, alignments, tables, Newick, MessagePack, JSON, bigWig               |
-| Map runtimes                | pairwise alignment                                                         |
-| Text metrics                | a canvas in the browser, a bundled table in Node                           |
-| Backends, writers           | Canvas2D, SVG, PNG, FASTA, archives                                        |
-| Host, compute               | the UI runtime's clock and frames; a worker pool                           |
-| Storage, clipboard          | local storage, the browser's clipboard                                     |
-| Links                       | Mol\*'s link grammar                                                       |
-| Structure runtime, services | none in the core; the showcases bind Mol\* and UniProt, PDBe, AlphaFold DB |
+| Port         | Default adapter                                                             |
+| ------------ | --------------------------------------------------------------------------- |
+| Assets       | Mol\*'s `AssetManager`; a host can pass its own, so downloads are shared    |
+| Text metrics | Mol\*'s `TextMeasure` with a canvas in the browser, a bundled table in Node |
+| Structure    | none in the core; the showcases bind Mol\*                                  |
+
+Time and frames come from the UI runtime's host. Archives are read and written over the assets port. A compute port
+(workers), and ports for storage, clipboard and links, come when a host needs them.
 
 ## Layout and spacing
 
 Every number in the UX foundations is a setting: the spacing unit, row heights, gaps, the label column, letter sizes,
-density thresholds, radii and durations. They come in presets (compact, comfortable, figure, print). Layouts are an
-extension point too, and the built-in ones (tracks, text, rings, dot plots) are written as extensions. Whatever the
-values, the foundations' rules hold: the grid, one label column, aligned columns, density steps that don't move content.
+density thresholds, radii and durations. They come in presets (compact, comfortable, figure, print). Layouts (tracks,
+text, rings, dot plots) share one internal interface, which opens as an extension point when an application needs one.
+Whatever the values, the foundations' rules hold: the grid, one label column, aligned columns, density steps that don't
+move content.
 
 ## Extension points
 
@@ -91,7 +89,6 @@ values, the foundations' rules hold: the grid, one label column, aligned columns
 | Node kinds                        | new kinds anywhere in the spec, described like the built-ins, with a fallback                           |
 | Custom fields                     | namespaced fields on any node and extra columns on any table, kept by readers that don't own them       |
 | Formats                           | readers (a file format onto the one protocol) and writers (FASTA, SVG, PDF, a session for another tool) |
-| Layouts                           | how a section is laid out, from the view IR                                                             |
 | Layer types                       | a way to draw: params, layout, hit-testing, and a fallback                                              |
 | Themes, palettes, residue schemes | how a channel is computed                                                                               |
 | Map runtimes                      | a way to compute a map (align, SIFTS lookup, gene model to codons)                                      |

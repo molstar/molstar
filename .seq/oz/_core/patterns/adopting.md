@@ -57,7 +57,7 @@ it:
   supersedes §<bootstrap-id> here. The project's own new patterns start as sketches, in
   `.<instance>/principles/<module>/sketch-patterns/`.
 - **Optionally, the full tree**: the project's own codebase tree, with the rule ids behind each folder, at
-  `.<instance>/principles/layout/tree.md` (the package's [layout/tree.md](../../layout/tree.md) is the minimal one).
+  `.<instance>/principles/layout/tree.md` (the package's `layout/tree.md` (not adopted here) is the minimal one).
 - **Verify:** the manifest exists at `.<instance>/principles/README.md`, every row of its module tables points at
   a folder that exists, and `git check-ignore .tmp/x` names it while `git check-ignore .<instance>/execution/x` names nothing.
 

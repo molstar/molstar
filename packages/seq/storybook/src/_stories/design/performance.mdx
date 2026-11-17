@@ -4,8 +4,8 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Performance
 
-Targets for time, memory and size, set before the code so the design is held to them. Each target will get a test that
-holds it; a target without a test is a wish. The numbers are a first proposal.
+Targets for time, memory and size, set before the code so the design is held to them. The numbers are measured on the
+first end-to-end slice and then confirmed; each confirmed target gets a test that holds it.
 
 ## Cost follows pixels
 
@@ -44,7 +44,7 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
 | First paint of a dataset view                     | under 100 ms once the data is in memory |
 | An edit (patch, resolve, redraw), or its undo     | under 16 ms                             |
 | Open a 10,000 × 300 alignment                     | under 300 ms                            |
-| Open a 3M-nucleotide sequence with tracks         | under 1 s                               |
+| Open a 3M-nucleotide sequence from a file         | under 1 s                               |
 | A region from a source, decoded to drawn          | the next frame                          |
 | bigWig region at the right zoom level, local file | under 50 ms                             |
 | Export a view to SVG                              | under 200 ms                            |
@@ -77,7 +77,7 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
 
 Every target holds at these sizes:
 
-- a 35,000-residue sequence, and 3M nucleotides inline;
+- a 35,000-residue sequence, and 3M nucleotides from a file;
 - a whole human genome, read by region;
 - alignments of 10,000 × 300 and 1,000 × 2,000, and 10M lazy rows;
 - 200 copies of one chain;

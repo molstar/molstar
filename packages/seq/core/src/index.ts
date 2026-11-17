@@ -5,7 +5,7 @@
  */
 
 // The core of Seq* (next): the SeqViewSpec language, the coordinate model, the source protocol and the pure passes
-// from a spec to draw lists. What it holds and how it is layered: _spec/README.md. Each folder becomes an entry of its
+// from a spec to draw lists. What it holds: _spec/README.md. Each folder becomes an entry of its
 // own as it is built (`@molstar/seqx-core/<folder>`).
 
 /** The version of the SeqViewSpec language this package reads and writes (_spec/README.md, Versions). */

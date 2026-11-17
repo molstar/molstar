@@ -16,7 +16,10 @@ what the version contains, so scope never grows or shrinks silently (the author,
   previous implementation had that is not listed is an omission to fix, not a decision.
 - **Provisional**: the first pass below is a proposal. `planned` rows are the recommended scope of this version; the
   `deferred` rows are the ones to review first.
-- **Before `.seq/` is deleted**, this list becomes the Storybook's Features page, each row linking its view.
+- **Before `.seq/` is deleted**, this list becomes the Storybook's Features page, each row linking its view; the Cases
+  column goes with the catalog it cites.
+- **Version 1 and later milestones**: what version 1 contains and the order of work is [version-1.md](version-1.md);
+  rows deferred to the Genomes milestone come back together.
 
 Columns: the feature; what it does; its status; the design; the edge cases it covers (EC numbers, catalog); the view
 that shows it (dataset: view).
@@ -25,7 +28,7 @@ that shows it (dataset: view).
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
-| JSON spec, one node shape | `{ kind, id, params, children }`, addresses, refs | planned | [format](format.md) | 68–71, 77 | every view |
+| One tree, one node shape | `{ kind, id, params, children }`, addresses, refs | planned | [format](format.md) | 68–71, 77 | every view |
 | Language as data | one description: validation, defaults, builder types, docs, agent skill | planned | [format](format.md) | 86–88 | — |
 | Typed builder | the main way to write a spec; misuse is a type error | planned | [format](format.md) | — | every view |
 | S-expression printing and reading | inspection, docs, tests, agent input; never stored | planned | [format](format.md) | — | every view (printed beside it) |
@@ -33,7 +36,7 @@ that shows it (dataset: view).
 | Versions and migrations | one semver, explicit migrations, lenient minors | planned | [format](format.md) | 72–74, 235 | — |
 | Patches, inverses, diff | five ops by address, all or nothing, `diff` correct | planned | [format](format.md) | 78–83, 236 | every editing view |
 | Snapshots | named patches over the base, a player | planned | [format](format.md) | 84, 85 | p53: a story |
-| MessagePack encoding | the default for files and transfer; typed columns as extension types; interchangeable with JSON | planned | [format](format.md) | 53, 90 | every view (both encodings in its test) |
+| Encodings | JSON by default; MessagePack for large inline data (typed columns as extension types); columns declared, hashed by bytes | planned | [format](format.md) | 53, 90 | every view (both encodings in its test) |
 | Archives, through a port | a spec with its data files and an index, read and written by the archive port; a zip adapter out of the box | planned | [ports](ports.md) | 91 | every dataset, saved and opened as an archive |
 | Published JSON Schema | derived from the description | deferred | [format](format.md) | — | trigger: an outside reader or agent tool needs it |
 
@@ -45,9 +48,9 @@ that shows it (dataset: view).
 | Numbering schemes | offset, segments, labels, names; Kabat, IMGT | planned | [maps](maps.md) | 2–8 | Antibody: Kabat vs IMGT |
 | Cyclic systems | origin, wrapped ranges, shortest arc | planned | [building-blocks](building-blocks.md) | 9–14 | Plasmid: across the origin |
 | Map kinds | identity, offset, numbering, segments, pairwise, alignment, codon, structure | planned | [maps](maps.md) | 15–30 | p53: protein on its gene |
-| Map sourcing | inline, from a source by region, computed by a runtime | planned | [maps](maps.md) | 212 | Genomes: liftover by chain file |
+| Map sourcing | inline, from a source by region, computed by a runtime | planned | [maps](maps.md) | 212 | p53: structure map computed by alignment |
 | Map encodings | implicit, runs, expanded by region; composed without expanding | planned | [maps](maps.md) | 27, 33, 34 | Globins: 10,000 rows |
-| Direction on every run | inversions, reverse strands, reversed pairs rows | planned | [maps](maps.md) | 206 | Genomes: synteny with an inversion |
+| Direction on every run | inversions, reverse strands, reversed pairs rows | planned | [maps](maps.md) | 206 | p53: the minus-strand gene; Plasmid: features on both strands |
 | Paths and projection | bounded shortest paths, the copy rule, ambiguity reported | planned | [maps](maps.md) | 19–28, 207 | p53: structure chains |
 | Closure | a nucleotide lifts to its residue, one step | planned | [building-blocks](building-blocks.md) | 30, 144 | p53: protein on its gene |
 | Structure systems and maps | chain instances, SIFTS in abstract form | planned | [maps](maps.md) | 65, 118 | p53: structure chains |
@@ -63,18 +66,18 @@ that shows it (dataset: view).
 | Alignments | gaps, insert columns, numbered rows, lazy rows | planned | [building-blocks](building-blocks.md) | 38–44 | Globins: family |
 | Trees | given (Newick) or computed; clades collapse | planned | — | 43, 100, 103 | Globins: family by tree |
 | Annotations, six shapes | ranges, values, pairs, matrix, grid, rows | planned | [building-blocks](building-blocks.md) | 45–63 | every dataset |
-| Keyed tables and joins | rows keyed by id joined to items, rows, states | planned | — | 106, 224 | Genomes: transcripts by joined results |
-| Gene hierarchies | gene, transcript, exon (several levels) | planned | — | 227 | Genomes: genes with transcripts |
-| One source protocol | coverage and regions, levels of detail, pending vs empty | planned | [sources](sources.md) | 169–175, 185–199 | Genomes: by region |
-| Self-describing sources | format, location, index, assembly, aliases, fields | planned | [sources](sources.md) | 185–191, 196–198 | Genomes: FASTA with its index |
+| Keyed tables and joins | rows keyed by id joined to items, rows, states | deferred | — | 106, 224 | trigger: the Genomes milestone ([version-1](version-1.md)) |
+| Gene hierarchies | gene, transcript, exon (several levels) | deferred | — | 227 | trigger: the Genomes milestone ([version-1](version-1.md)) |
+| One source protocol | coverage and regions, levels of detail, pending vs empty | planned | [sources](sources.md), [data-store](data-store.md) | 169–175, 185–199 | p53: the gene's region by region |
+| Self-describing sources | format, location, index, assembly, aliases, fields | planned | [sources](sources.md) | 185–191, 196–198 | p53: the gene's region from FASTA with its index |
 | Formats in the core | FASTA, aligned FASTA, A3M, Stockholm, Clustal, Newick, TSV, CSV, JSON | planned | [sources](sources.md) | 38–40, 49, 50, 92 | every dataset |
-| A genome format, as proof | bigWig read by region and zoom level, a format runtime like any other (the author: "at least one as proof of concept"; bigWig recommended: it exercises the index, levels of detail and values) | planned | [sources](sources.md) | 169–175, 186, 201 | Genomes: signal by region |
+| A genome format, as proof | bigWig read by region and zoom level, a format runtime like any other (the author: "at least one as proof of concept") | planned | [sources](sources.md) | 169–175, 186, 201 | p53: conservation signal over the gene's region |
 | More genome formats | 2bit, BigBed, VCF with tabix, PAF | deferred | [sources](sources.md) | 208 | trigger: the bigWig runtime done; each with the dataset that needs it |
 | Services at the application layer | UniProt, PDBe (SIFTS), AlphaFold DB as runtimes an application composes, not in the core; recorded fixtures offline, live optional | planned | [sources](sources.md) | 51 | Storybook: an application composing services |
 | Structure files at the application layer | mmCIF and BinaryCIF read (through Mol\*'s readers) for chains, `label` and `auth` numbering, insertion codes, observed residues | planned | [maps](maps.md) | 3–5, 118 | Storybook: predictions onto a structure |
-| Prefetch and cancellation | view, margin, prefetch; grace; retries | planned | [sources](sources.md) | 172–174 | Genomes: by region |
+| Prefetch and cancellation | view, margin, prefetch; grace; retries | planned | [data-store](data-store.md) | 172–174 | p53: the gene's region by region |
 | Dynamic nodes and templates | data nodes that arrive with regions; a track per node | deferred | — | 176–179 | trigger: a dataset with per-region nodes |
-| Name index | open on a gene by name from a file read by region | planned | [sources](sources.md) | 228 | Genomes: open on a gene |
+| Name index | open on a gene by name from a file read by region | deferred | — | 228 | trigger: the Genomes milestone ([version-1](version-1.md)) |
 
 ## Layers and themes
 
@@ -82,10 +85,12 @@ that shows it (dataset: view).
 |---|---|---|---|---|---|
 | Letters | cells and letters, density steps, letter caps | planned | [ux-foundations](ux-foundations.md) | 116, 117, 120–122 | p53: tracks |
 | Ranges | lanes, labels, collapse, split, line styles, arrowheads | planned | — | 45, 104, 105, 128, 226, 232 | p53: tracks |
-| Values | bars, line, area, points; split; log scale; reference line | planned | — | 52–57, 201, 202, 214–217 | Genomes: signal, Manhattan |
-| Variants | sites, samples as rows, long deletions solid | planned | — | 222 | Genomes: samples' variants |
+| Values | bars, line, area; shared domains; open domains at settle | planned | [data-store](data-store.md) | 52–57, 201, 202 | p53: tracks |
+| Values for genomics | points, split by sample, log scale, reference line | deferred | — | 214–217 | trigger: the Genomes milestone ([version-1](version-1.md))
+| Variants | sites colored by a field | planned | — | — | p53: variants |
+| Variants by sample | samples as rows, long deletions solid | deferred | — | 222 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Pairs | arcs above and below, kinds, chords on rings | planned | — | 62, 63, 129 | tRNA: arcs |
-| Matrix | positions × states, majority and maximum density | planned | — | 60, 61, 220 | Genomes: methylation |
+| Matrix | positions × states, majority and maximum density | deferred | — | 60, 61, 220 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Grid and dot plots | a value per pair of positions; crosshair hover | planned | — | 58, 59, 109, 145 | tRNA: base-pair dot plot |
 | Logo | stacked letters by bits or probability | planned | — | — | Globins: family |
 | Secondary structure | helices and strands, cut ends square | planned | — | 67, 130 | p53: tracks |
@@ -95,10 +100,10 @@ that shows it (dataset: view).
 | Fallbacks | every layer type declares one; readers degrade predictably | planned | [extensibility](extensibility.md) | 74, 238–244 | Nightingale reference |
 | Themes | uniform, field palettes (binned, continuous, log), rules, schemes | planned | [ux-foundations](ux-foundations.md) | 133–137, 203–205, 215 | p53: themes |
 | Residue schemes | Clustal X, Zappo, Taylor, hydrophobicity, nucleotides, ESPript | planned | [ux-foundations](ux-foundations.md) | 135 | Globins: family |
-| Shared domains | domain groups across layers | planned | — | 56 | Genomes: signal |
+| Shared domains | domain groups across layers | planned | — | 56 | p53: tracks |
 | Legends | ramps and steps, merged, painted vs vocabulary | planned | [ux-foundations](ux-foundations.md) | 132, 204 | p53: themes |
 | Size channels | thickness, glyph, radius, width, opacity | planned | — | 137, 242 | p53: tracks |
-| Layers across sections | ribbons between sections, a dot plot with its own y section | deferred | [rendering](rendering.md) | 209, 210 | trigger: synteny views; Genomes would carry them |
+| Layers across sections | ribbons between sections, a dot plot with its own y section | deferred | — | 209 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Contact maps | binned grids by region and level (Hi-C) | deferred | — | 223 | trigger: layers across sections |
 | MAF over a genome | a multiple alignment on a genome axis | deferred | — | 213 | trigger: a dataset that needs it |
 
@@ -109,9 +114,10 @@ that shows it (dataset: view).
 | Tracks layout | sections, tracks, groups, summaries | planned | [building-blocks](building-blocks.md) | 101–105 | p53: tracks |
 | Text layout | wrapped groups of ten, lanes, inline labels | planned | — | 94–99 | p53: text figure |
 | Alignment figures | rows in text, ESPript style, numbers per row | planned | — | 97 | Globins: ESPript figure |
-| Blocks | side by side, stacked, many blocks, two assemblies on one axis | planned | — | 102, 115, 210 | Genomes: both genomes |
+| Blocks | side by side, stacked, many blocks | planned | — | 102, 115 | p53: structure chains |
+| Two assemblies on one axis | blocks of two genomes on one axis or ring | deferred | — | 210 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Rings | tracks as rings, labels with leaders, a window | planned | — | 108, 114 | Plasmid: ring with linear detail |
-| Navigators | strip, miniature, ideogram, vertical overview | planned | — | 110 | Genomes: by region |
+| Navigators | strip, miniature, ideogram, vertical overview | planned | — | 110 | p53: the gene's region; Globins: 10,000 rows |
 | Follow and scroll groups | sections follow through maps (scale 1, 3, 1/3) | planned | — | 113, 114, 211 | p53: protein on its gene |
 | Viewport persistence | keep center and zoom across updates; pending intents | planned | — | 111, 112 | every view |
 | Copies merged or split | `×N` blocks, hover for every member | planned | — | 65 | Globins: hemoglobin |
@@ -149,13 +155,14 @@ that shows it (dataset: view).
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
-| Ports with default adapters | fetch, archive, format and map runtimes, structure runtime, text metrics, backends, writers, host, compute, storage, clipboard, links, services; each with a suite | planned | [ports](ports.md) | — | Extensibility page |
-| Configurable layout and spacing | every foundation number a setting, in presets; layouts as an extension point with a suite | planned | [ux-foundations](ux-foundations.md) | — | foundation stories, a preset switcher |
-| Settings in layers | defaults, viewer configuration, user settings; effective values with origin | planned | [extensibility](extensibility.md) | — | Extensibility page |
-| Generated settings form | from the settings' description | planned | [extensibility](extensibility.md) | — | Extensibility page |
+| Ports with default adapters | assets (`AssetManager`), text metrics, structure; formats, maps, backends as registry entries | planned | [ports](ports.md) | — | Extensibility page |
+| Configurable layout and spacing | every foundation number a setting, in presets; layouts behind one internal interface | planned | [ux-foundations](ux-foundations.md) | — | foundation stories, a preset switcher |
+| Typed configuration | one set of config items at composition (`ParamDefinition`) | planned | [extensibility](extensibility.md) | — | Extensibility page |
+| Settings in layers | user settings over the configuration; effective values with origin | deferred | [extensibility](extensibility.md) | — | trigger: the typed configuration has users |
+| Generated settings form | from the config items' `ParamDefinition` | deferred | [extensibility](extensibility.md) | — | trigger: settings in layers |
 | Extension descriptors | passed at composition; conflicts are errors | planned | [extensibility](extensibility.md) | — | Extensibility page |
 | Node kinds and custom fields | namespaced, carried through untouched | planned | [extensibility](extensibility.md) | 235 | Extensibility page |
-| Every registry open | layer types, themes, formats, map runtimes, queries, commands, backends, chrome parts | planned | [extensibility](extensibility.md) | — | Extensibility page |
+| Registry entries | node kinds, layer types, themes, formats, map runtimes, backends, query functions, commands; layouts and chrome parts internal until an outside user | planned | [extensibility](extensibility.md) | — | Extensibility page |
 
 ## Integration
 

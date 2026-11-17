@@ -24,9 +24,9 @@ by fewer, more generic mechanisms.
 | Layouts and the foundations' rules | the layout suite on every layout and preset: grid, one label column, aligned columns, density steps that don't move content, emphasis order, shapes |
 | The interaction grammar | the grammar suite: each default binding and preset, on each layout and target kind, against the models in Node (no DOM) |
 | Edge cases | each kept item a named test in its area's folder; the area's plan lists them, its record says each outcome ([edge-cases.md](edge-cases.md)) |
-| Examples | every view, three ways: it validates, resolves and lays out with no unexpected issues; it renders to SVG with its draw-list record and printed spec compared to the committed ones; it opens in Storybook |
-| Rendering parity | the Canvas2D and SVG backends' recorded calls equal for the same draw lists; pixels compared in the heavy lane |
-| The resolved view is general | the Nightingale reference adapter draws its subset from the view IR alone |
+| Examples | every view: it validates, resolves and lays out with no unexpected issues and renders to SVG (quick); it opens in Storybook (medium); about six representative views keep a committed draw-list record and printed spec, compared as text |
+| Rendering | the draw lists through the recording backend (quick); the Canvas2D and SVG backends' pixels compared (heavy) |
+| The resolved view is general | the Nightingale reference adapter draws its subset from the resolved view and the data store alone |
 | Performance | time bounds (`itWithin`), scaling ratios (cost follows pixels: ten times the data at most 1.2 times the frame; twice the pixels at most twice), allocation in the hot loops, heap growth on retire ([performance.md](performance.md)) |
 | Size | a check on the built entries against the size targets |
 | Parsers and readers | fuzzed (formats, addresses, CIGAR, the S-expression reader): never a throw, always issues |
@@ -36,20 +36,21 @@ by fewer, more generic mechanisms.
 The author: "we should keep fast test in mind too to implement this efficiently." The previous implementation's tests
 slowed the edit loop; here speed is a requirement with numbers:
 
-- **The quick lane for all of `packages/seq` runs in under 5 s** on the reference machine; a test file in under 1 s; a
-  single quick test in under 50 ms. A test past its budget is fixed (waste) or moved with a quick representative
+- **The quick lane for all of `packages/seq` runs in under 30 s** on the reference machine, each folder's tests in
+  under 2 s, a test file in under 1 s (the review's budgets, accepted). A quick test over 100 ms is looked at. A test past its budget is fixed (waste) or moved with a quick representative
   (nature), in the change that made it slow.
 - **No warm-ups, no loops of thousands, no wall clocks in the quick lane**; fixtures computed once per file, never per
   test; one viewer per file where a viewer is needed; property tests at a small, fixed number of seeded cases (more in
   the heavy lane).
-- **Records stay small**: a draw-list record is per example view at one size, and compared as text.
+- **Records stay few**: about six representative views keep a draw-list record, at one size, compared as text; the
+  rest are checked by properties (no issues, bounded draw lists, hits where marks are), not by records.
 - **The opt-in tiers stay opt-in**: allocation and heap guards run by hand at checkpoints, never in the edit loop or on
   every push.
 
 ### Where each runs: the repository's lanes
 
 - **Quick** (every push, the edit loop; the whole of `packages/seq` in seconds): unit and property tests at small
-  sizes, the conformance suites, the edge cases, every example's validate, resolve, layout and SVG record, the models
+  sizes, the conformance suites, the edge cases, every example's validate, resolve, layout and SVG render, the few records, the models
   and the grammar in Node, the layout suite on the default preset, short fuzz runs.
 - **Medium** (every push, its own job): the layout suite on every preset, every example in both encodings and every
   preset, the Storybook smoke (every story opens without an error), the chrome's accessibility (axe), larger fixtures.

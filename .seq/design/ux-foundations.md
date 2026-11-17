@@ -27,13 +27,12 @@ extensible/configurable?" Yes, by the rule that what can be configurable is ([ex
   sizes, density thresholds, radii, motion durations, and every color through the data tokens (`--seq-*`, derived from
   `--msui-*`). They come in presets (compact, comfortable, figure for export, print) that a viewer configuration or a
   section's style picks and overrides field by field.
-- **Layouts are an extension point**: tracks, text, rings and dot plots are the built-in layouts, written as an
-  extension would be. A layout takes a section of the view IR, the settings and a size, and gives geometry, hit-testing
-  and draw lists; it passes the layout conformance suite.
-- **The rules hold whatever the values**: positions on the configured unit's grid; one label column a view; columns
+- **Layouts share one internal interface**: tracks, text, rings and dot plots take a section of the resolved view, the
+  settings and a size, and give geometry, hit-testing and draw lists; the interface opens as an extension point when an
+  application needs one ([extensibility.md](extensibility.md)).
+- **The rules hold whatever the values**, checked by one set of tests over every layout and preset: positions on the configured unit's grid; one label column a view; columns
   aligned to the device pixel across sections that share an axis; density steps that never move content; the emphasis
-  order; square continuous data and squircle discrete marks; the grammar's fixed rules (section 8). The suite checks
-  them on every layout and preset.
+  order; square continuous data and squircle discrete marks; the grammar's fixed rules (section 8).
 
 ## 1. Color
 

@@ -9,20 +9,19 @@ Everything in a view has an address, so a paper, a notebook, a chat with an agen
 ## Ids and addresses
 
 Ids are local: an id only has to be unique among its siblings. A node's address is the path of ids from the root, the
-way an IPv6 address is a path of groups: `/data/p53/features`. `/data/p53/*` names a whole subtree. Nodes made from data
-take ids from their keys, such as `/data/1tup/A` for a chain or `/data/globins/rows/HBA_HUMAN` for a row.
+way an IPv6 address is a path of groups: `/data/p53/features`. `/data/p53/*` names a whole subtree. What data makes (a
+structure's chains, an alignment's rows, items) is reached by forms, such as `/data/1tup/(chain :id A)`.
 
 A segment can also be a query form, `(kind :key value)`, which selects among what the path so far names. It is the same
 grammar meso\* uses:
 
-| Address                                                                                            | Names                                           |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `/data/p53/(range :from 120 :to 130 :numbering uniprot)`                                           | residues 120 to 130 in UniProt numbering        |
-| `/data/1tup/A/(at :label 94A :numbering auth)`                                                     | one residue by author number and insertion code |
-| `/data/p53/features/(item :type domain)`                                                           | every domain                                    |
-| `/data/globins/(rect :rows (rows :from HBA_HUMAN :to HBB_HUMAN) :columns (range :from 30 :to 60))` | a block of an alignment                         |
-| `/data/trna/pairs/(rect :a (range :from 10 :to 25) :b (range :from 40 :to 55))`                    | a rectangle of a dot plot                       |
-| `/views/main/(viewport :focus /refs/dbd)`                                                          | a view opened on a named region                 |
+| Address                                                                                                            | Names                                           |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `/data/p53/(range :from 120 :to 130 :numbering uniprot)`                                                           | residues 120 to 130 in UniProt numbering        |
+| `/data/1tup/(chain :id A)/(at :label 94A :numbering auth)`                                                         | one residue by author number and insertion code |
+| `/data/p53/features/(item :type domain)`                                                                           | every domain                                    |
+| `/data/globins/(rect :rows (rows :from "HBA_HUMAN/1-141" :to "HBB_HUMAN/1-146") :columns (range :from 30 :to 60))` | a block of an alignment                         |
+| `/data/trna/pairs/(rect :a (range :from 10 :to 25) :b (range :from 40 :to 55))`                                    | a rectangle of a dot plot                       |
 
 Rects (two ranges over two axes) can be selected, highlighted, focused and linked just like ranges.
 

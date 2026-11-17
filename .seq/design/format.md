@@ -1,68 +1,75 @@
-# The format: one tree, JSON and MessagePack
+# The format: one tree, one language, codecs at the edge
 
 ## Intent
 
-A spec is a tree people, agents and other programs read and write. It needs encodings that are lossless and
-interchangeable, one of them compact enough for real data (typed columns of numbers), a way to inspect it compactly, a typed builder most specs are written with, and a description of the language that everything else derives from.
+A spec is a tree people, agents and other programs read and write. It needs one language with one version, a value
+model that holds real data (typed columns of numbers) without making equality and hashing slow, encodings that are
+lossless and interchangeable, a compact printing for inspection, a typed builder most specs are written with, and a
+description of the language that everything else derives from.
 
 ## Precedents
 
-- The previous SeqViewSpec: JSON, MolViewSpec-like nodes (`kind`, `ref`, `params`, `children`), parameter tables in
-  TypeScript, a generated reference, no published schema ([sources/jbrowse-reply](../sources/jbrowse-reply/README.md)
-  point 5).
-- meso\*: S-expressions canonical (`.sexpr` files), JSON a lossless second encoding, languages described as
-  S-expression data with a TypeScript twin ([sources/meso](../sources/meso/README.md)).
+- The previous SeqViewSpec: JSON, MolViewSpec-like nodes, parameter tables in TypeScript, a generated reference, no
+  published schema ([sources/jbrowse-reply](../sources/jbrowse-reply/README.md) point 5); typed columns written to
+  MessagePack as extension types `0x11`–`0x18`.
+- meso\*: S-expressions canonical, JSON a lossless second encoding, languages described as data
+  ([sources/meso](../sources/meso/README.md)).
 
 ## Decision
 
-- **The tree is canonical; JSON and MessagePack are two lossless encodings of it** (the author, 2026-11-17: "yes, let's
-  keep using JSON with s expression printing for easier inspection"; then "maybe msgpack should be the default? it's
-  interchangeable with JSON. and we already spent a lot of time getting the builder … understand typedarrays etc?").
-  - **MessagePack is the default** for files and transfer: compact, and a typed column of numbers is written as an
-    extension type (`0x11`–`0x18`: int8, uint8, int16, uint16, int32, uint32, float32, float64, little-endian), read back
-    as that typed array without a copy where alignment allows.
-  - **JSON is the readable encoding**: for docs, diffs, hand edits and tools that only speak JSON. A typed column is a
-    plain array; a float32 column is written as its shortest decimals; NaN (missing) as `null`.
-  - **One data model**: a number means its value (a float32 its shortest decimal); a typed column means the array of
-    its numbers, NaN as missing. Encoding a tree in either and decoding it gives an equal tree; a typed array is a
-    storage choice, never a different meaning. A reader tells the two apart by the first byte.
-  - **The builder keeps typed arrays as given** (a column passed as a `Float32Array` stays one in the tree), and offers
-    `float32` and other column kinds for numbers given as lists.
-  - There is no `.sexpr` file type; the S-expression spelling is never stored.
-- **S-expressions are a printing**: `print(spec)` gives a compact, diffable view for people, docs, tests and agents;
-  a reader for the same spelling exists for tests and agent input, and lowers to the same tree. It is never stored.
-- **One node shape**: `{ kind, id?, params?, custom?, children? }`. `id` is local (unique among siblings); an address is
-  the path of ids from the root with query forms as segments (`/data/p53/(range :from 120 :to 130)`), meso\*'s grammar;
-  refs are addresses, and authors name their own in a `refs` container ([addressing.md](addressing.md)).
-- **The language is data**: one TypeScript description (`defineLanguage`, typed `as const`) declares kinds, where each
-  may sit, the id policy, params with types, defaults, bounds and docs, and refs. From it are derived: validation
-  (every issue, stable codes), defaults, the builder's types, the docs pages
-  and the agent skill. Nothing is written twice.
-- **Versions**: the language has one semver. A spec says its version; a reader migrates older specs with explicit
-  tree-to-tree functions, and refuses newer major versions with an issue.
+- **One language, one version** (the author, 2026-11-17: "one"). The spec's levels (`data`, `views`, `refs`,
+  `snapshots`) are container kinds of that one language ([composition.md](composition.md)), not languages of their own.
+  A spec says its version; a reader migrates older specs with explicit tree-to-tree functions and refuses a newer major
+  version with an issue.
+- **The tree and its value model are codec-independent** (the author: make the tree core "codec indepedent and about
+  abstract patterns"). The tree core ([tree-core.md](tree-core.md)) defines nodes, values and their identity; codecs
+  read and write them at the edge and live where their libraries do.
+- **Typed columns are declared, not guessed**: a param that holds a column says its element type in the language
+  description (`int32`, `float32`, `float64`, `uint8`, a dictionary-coded category). The builder and every codec give
+  that param that typed array, so a column decoded from JSON is the same typed array the builder made. Why: equality,
+  hashing and printing need no value-by-value comparison across array kinds.
+  - **Identity by bytes**: a column hashes by its bytes and element type, cached on its node; two columns are equal when
+    their types and bytes are.
+  - **Missing is NaN** in float columns, written `null` in JSON; integer columns have no missing value unless their
+    type says so.
+  - **Printing elides columns** past a short head (`[float32 × 3,000,000: 0.12 0.15 …]`); the S-expression reader
+    refuses an elided column.
+- **Encodings**, both lossless for the value model:
+  - **JSON is the default interchange** (as recommended by the review, accepted by the author: "rest as recommended"):
+    readable, diffable, readable by any tool and any other viewer without Seq\* code; columns as plain arrays.
+  - **MessagePack is the option for large inline data**: typed columns as extension types `0x11`–`0x18`
+    (little-endian), decoded without a copy where aligned. A reader tells the two apart by the first byte.
+  - **Large data belongs in sources**, not inline (§bulk-data-not-nodes): a spec carries small inline values; a
+    3-million-letter sequence or a dense signal is a file read through the source protocol ([sources.md](sources.md)).
+- **S-expressions are a printing**: `print(spec)` for people, docs, tests and agents; a reader lowers the same spelling
+  to the same tree (columns aside). Never a file type, never stored.
+- **One node shape**: `{ kind, id?, params?, custom?, children? }`. `id` is local; an address is the path of ids with
+  query forms as segments ([addressing.md](addressing.md)).
+- **The language is data**: one description declares kinds, where each may sit, the id policy, params with types
+  (column types included), defaults, bounds and docs, and refs. Validation (every issue, stable codes), defaults, the
+  builder's types, the docs and the agent skill derive from it.
 - **Unknown kinds** in a newer minor version, or in an extension namespace the reader lacks, are kept, reported and
-  skipped (with the kind's declared fallback when it has one), never a failure of the whole spec.
-- **Patches** (`set`, `unset`, `insert`, `remove`, `move`, each by address) are the only way a spec changes; a batch
-  is all or nothing and returns its inverse; `diff(a, b)` returns the patch from `a` to `b`, tested as
-  `apply(a, diff(a, b)) = b`.
-
-- **The builder is the main way to write a spec** (the author, 2026-11-17: "the main use case will will using the
-  "builder" to create the views"): typed from the description, it makes a misplaced kind or a wrong param a type error
-  where it is written, and produces the same tree a reader would.
-- **No published JSON Schema, initially** (the author, 2026-11-17: "i am not sure we need to publish the JSON schema, at
-  least initially. it could end up being bloated"). The description could derive one later; that waits for a consumer
-  that needs it (an outside reader or an agent tool that validates without the core).
+  skipped (with the kind's declared fallback), never a failure of the whole spec.
+- **Patches** (`set`, `unset`, `insert`, `remove`, `move`, by address) are the only way a spec changes; a batch is all
+  or nothing and returns its inverse; `diff(a, b)` returns the patch from `a` to `b`. Columns are replaced whole by a
+  patch, never edited element by element.
+- **The builder is the main way to write a spec** (the author: "the main use case will will using the "builder" to
+  create the views"), typed from the description; misuse is a type error where it is written.
+- **No published JSON Schema, initially** (the author: "it could end up being bloated"); the description could derive
+  one when a consumer needs it.
 
 ## Rejected alternatives
 
-- S-expressions canonical (meso\*): rejected by the author for this language; the spelling most readers and tools
-  share is JSON.
-- JSON Schema or a validation library as the description: one issue at a time, no slots, no builder types; the
-  description is the source, and anything else is derived from it.
+- MessagePack as the default (proposed by the author as a question, "maybe msgpack should be the default?"): it would
+  make the default file unreadable to tools and viewers without a MessagePack reader and Seq\*'s extension types, the
+  JBrowse reply's portability point; kept as the option for large inline data.
+- A typed array as "only a storage choice", equal by value to a plain array: makes hashing and `diff` of large columns
+  slow and subtle.
+- A language and a version per level: ten versioned descriptions for one spec.
+- S-expressions canonical (meso\*): rejected by the author for this language.
 
 ## Consequences
 
-- `decode(encode(x)) = x` for both encodings, `json(msgpack(x)) = json(x)`, `parse(print(x)) = x` and
-  `apply(a, diff(a, b)) = b` are tested properties, typed columns of every kind and NaN included (§round-trip-equality is meso\*'s; here
-  they are conformance tests of the core).
-- The language reference (generated docs pages) is what documents the JSON for readers without the core.
+- `decode(encode(x)) = x` for both codecs, `json(msgpack(x)) = json(x)`, `parse(print(x)) = x` (columns aside) and
+  `apply(a, diff(a, b)) = b` are tested properties at small sizes.
+- The language reference (generated docs pages) documents the JSON for readers without the core.

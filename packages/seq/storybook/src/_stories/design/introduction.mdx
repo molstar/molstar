@@ -4,9 +4,9 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Seq\* (next)
 
-Seq\* is **SeqViewSpec**, a language for sequence views, and a viewer for it. A **spec** is a tree, stored as
-MessagePack or JSON, that says what data there is and how to show it. Every position lives in a **coordinate system**,
-and **maps** connect systems:
+Seq\* is **SeqViewSpec**, a language for sequence views, and a viewer for it. A **spec** is a tree, stored as JSON by
+default, that says what data there is and how to show it. Every position lives in a **coordinate system**, and **maps**
+connect systems:
 
 - a protein onto its gene's codons, across introns;
 - an alignment's rows onto its columns;
@@ -40,7 +40,7 @@ built.
 
 - **Building blocks**: the nouns of the language.
 - **Composition**: the spec's levels, definitions and uses, and the IRs a spec compiles to.
-- **Format**: one tree in MessagePack or JSON, its printing, the language as data, versions and patches.
+- **Format**: one tree, JSON by default, its printing, the language as data, versions and patches.
 - **Sources**: one protocol, and formats converted onto it.
 - **Rendering**: the forms other renderers attach to, and the backends.
 - **UX foundations**: how the data looks, and one configurable grammar for gestures.

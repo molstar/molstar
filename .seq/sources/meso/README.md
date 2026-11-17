@@ -29,8 +29,8 @@ where the lessons on building such languages were learned. Its `.meso/` is the p
 
 ## What we leave
 
-- **S-expressions as the canonical spelling and `.sexpr` files**: here JSON is canonical, S-expressions a printing
-  (the author's decision, [author](../author/README.md)).
+- **S-expressions as the canonical spelling and `.sexpr` files**: here JSON is the default encoding, MessagePack an
+  option, S-expressions a printing (the author's decisions, [author](../author/README.md)).
 - Its time, animation, illustration and packing languages, the Prism adapter, the converters.
 - Its own id checker (`.meso/tooling`): here the package's checks run as they are.
 
