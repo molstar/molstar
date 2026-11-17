@@ -86,14 +86,17 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 5: the viewer and the views (lane H, fast, after F and G)
 
-- [ ] H1 the Canvas2D backend with the overlay canvas for emphasis passes
-- [ ] H2 `createSeqViewer`, `DefaultSeqViewerSpec`, the three ports (assets with the policy wrapper's defaults, text
+- [x] H1 the Canvas2D backend with the overlay canvas for emphasis passes
+- [x] H2 `createSeqViewer`, `DefaultSeqViewerSpec`, the three ports (assets with the policy wrapper's defaults, text
       metrics, structure unset), `createSeqContext`
-- [ ] H3 `packages/seq/examples` (orchestrator adds it to the workspace, inventory and tsconfig): fixtures and the two
+- [x] H3 `packages/seq/examples` (orchestrator adds it to the workspace, inventory and tsconfig): fixtures and the two
       views' builder modules, with their tests (build, validate, resolve, lay out, SVG); two draw-list records
-- [ ] H4 stories: `Seq* (next)/Examples/p53/{Tracks, Protein on its gene}`, canvas and SVG side by side, the printed
+- [x] H4 stories: `Seq* (next)/Examples/p53/{Tracks, Protein on its gene}`, canvas and SVG side by side, the printed
       spec beside them; a visual pass in light and dark
-- [ ] GATE: integration (both views in Storybook and in tests); medium lane green; review (strong)
+- [x] GATE (2026-11-18): integration: lane H merged after one review round; both p53 views in Storybook (light and
+      dark, canvas and SVG side by side) and in tests; two bugs the visual pass found fixed (layers' buffers dropped
+      contents when they grew; the mounted viewer ignored the UI theme); 678 quick tests, medium lane, typechecks, lint,
+      format, `pnpm build` green; `check:workspace` red on a pre-existing `@molstar/ui` export, not this slice's
 
 ### Stage 6: by region (lane I, strong, after stage 5)
 

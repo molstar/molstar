@@ -33,6 +33,10 @@
     `pointer.rehit` true, `pointer.pinchFromCtrlWheel` true, `pointer.pinchSpeed` 0.01, `pointer.pinchMaxDelta` 50;
     `BrowserAssetPolicy` (https and relative under the page, confined to the base folder, 256 MB, 30 s, no credentials),
     `HeadlessAssetPolicy` reads nothing (`drift/viewer.md`).
+12. The theme fix's `theme.source` (`root` when mounted: tokens from the UI root's computed style, following
+    `data-msui-theme`; `config` the alternative); a headless viewer uses the config's `theme`.
+13. `pnpm check:workspace` is red on `@molstar/ui`'s export `./components/logo/_generated/glass-wordmark.module.css`
+    (no source; pre-existing, `packages/ui` unchanged from master): for the UI's owner, not this slice.
 
 ## Agreed but not built
 
