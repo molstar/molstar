@@ -27,15 +27,20 @@ config item (or a param) with the recommendation as its default, and listed in g
 
 ## In progress
 
-- Stage 5: lane H (viewer, Canvas2D, composition, examples, stories; fast), brief `briefs/h-viewer.md`, branch
-  `seq/h-viewer`. The examples package exists empty (`2dde56c97`), wired into the workspace and the Storybook package.
+- Stage 5: lane H merged after one review round (merge, then `d410648d7`: entries `./context`, `./canvas`, `./ports`;
+  the fixtures plugin registered). The merged tree: 665 quick tests, typechecks, lint, format, medium lane, `pnpm build`
+  green. `check:workspace` fails on a pre-existing `@molstar/ui` export (`./components/logo/_generated/
+  glass-wordmark.module.css`, no source; `packages/ui` is unchanged from master): not this slice's.
+- The integration gate's visual pass (Storybook on 6007) found two bugs, being fixed before the gate passes:
+  1. the Tracks story's canvas draws the Conservation values only on the right third (the SVG draws all): a fixer
+     (strong) on branch `seq/fix-values-canvas`;
+  2. the viewer and the stories stay light in the dark theme: the browser tokens are not read from the UI root's
+     computed style (tokens.ts says they should be); next, after fix 1.
 
 ## Next
 
-- On H's report: verify, review (strong), one fix round, merge; register the Vite fixtures plugin in
-  `storybook/packages.ts`; the integration gate (medium lane, Storybook typecheck, `pnpm build` + `check:workspace`,
-  the two stories in light and dark with screenshots).
-- Then stage 6 (lane I).
+- Merge both fixes, rerun the checks, screenshots light and dark, pass the gate.
+- Then lane I (`briefs/i-regions.md`, written).
 
 ## Decisions taken (awaiting the author)
 
