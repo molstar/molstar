@@ -1,6 +1,6 @@
 # State: first-slice   (updated 2026-11-17, by the orchestrator)
 
-Branch: `packages-seq`. No lanes started.
+Branch: `packages-seq`. Lane A running (branch `seq/a-tree-core`, its own worktree, strong model).
 
 ## Done
 
@@ -10,11 +10,12 @@ Branch: `packages-seq`. No lanes started.
 
 ## In progress
 
-Nothing.
+- Lane A (stage 1, the tree core), started from `54532c3f7` with `briefs/a-tree-core.md`.
 
 ## Next
 
-Start lane A (stage 1) per `loop.md`, step 4, with the brief and the meso\* source path in the launch instructions.
+On lane A's report: verify its checks, review (strong, diff against the designs), merge, add the changelog entry, run
+the stage 1 gate, report to the author. Then write briefs B, C, D and start stage 2.
 
 ## Decisions taken
 
