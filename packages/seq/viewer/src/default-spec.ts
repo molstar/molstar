@@ -6,7 +6,7 @@
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { HoverProvider, NavigateProvider } from '@molstar/seqx-viewer/behaviors';
-import { defaultPorts } from '@molstar/seqx-viewer/ports/index';
+import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
 // The default spec (_spec/README.md "Composition"): the built-in entries, behaviors, ports and UI, as data. An

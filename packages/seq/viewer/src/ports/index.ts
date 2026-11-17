@@ -11,9 +11,9 @@ import {
   BrowserAssetPolicy,
   type SeqPorts,
   type TextMetricsPort,
-} from '@molstar/seqx-core/context/index';
+} from '@molstar/seqx-core/context';
 import { bundledWidth } from '@molstar/seqx-core/render';
-import { browserTextMetrics } from '@molstar/seqx-viewer/canvas/index';
+import { browserTextMetrics } from '@molstar/seqx-viewer/canvas';
 
 // The viewer's default ports (_spec/README.md "Ports"): each a factory with ownership, called once per viewer. Assets: a
 // new `DefaultAssetManager` under the browser policy (https and relative locations under the page, no credentials,

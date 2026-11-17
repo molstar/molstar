@@ -7,7 +7,7 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { AssetRefused, checkLocation, type ReaderAssetsPort } from '@molstar/seqx-core/context/index';
+import { AssetRefused, checkLocation, type ReaderAssetsPort } from '@molstar/seqx-core/context';
 
 // The assets port's Node adapter for the examples (and a second adapter of the port, for its suite): a location is read
 // relative to the package folder (`fixtures/p53/tp53-gene.seq`, the way a spec names it) and only when it is a file

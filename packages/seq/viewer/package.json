@@ -24,12 +24,23 @@
       "types": "./lib/behaviors/index.d.ts",
       "import": "./lib/behaviors/index.js"
     },
+    "./canvas": {
+      "molstar-src": "./src/canvas/index.ts",
+      "types": "./lib/canvas/index.d.ts",
+      "import": "./lib/canvas/index.js"
+    },
+    "./ports": {
+      "molstar-src": "./src/ports/index.ts",
+      "types": "./lib/ports/index.d.ts",
+      "import": "./lib/ports/index.js"
+    },
     "./*": {
       "molstar-src": "./src/*.ts",
       "types": "./lib/*.d.ts",
       "import": "./lib/*.js"
     },
-    "./_test/*": null
+    "./_test/*": null,
+    "./canvas/_test/*": null
   },
   "files": [
     "lib",

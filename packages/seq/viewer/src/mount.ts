@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas/index';
+import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas';
 import type { SeqViewer } from './viewer.js';
 
 // The mounted UI (_spec/README.md "Input"): the canvas stack (the base canvas, the overlay above it and the labels above

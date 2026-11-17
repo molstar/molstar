@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createSeqContext } from '@molstar/seqx-core/context/index';
+import { createSeqContext } from '@molstar/seqx-core/context';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';

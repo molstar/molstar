@@ -7,7 +7,7 @@
 // The viewer's configuration items of the first slice (_spec/README.md "Configuration"): one default object of the
 // shape the models read. Where a behavior could go more than one way, it is an item here with the recommended default.
 
-import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context/index';
+import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 
 /** What the models and behaviors read; read-only after composition. */
 export interface ViewerConfig {

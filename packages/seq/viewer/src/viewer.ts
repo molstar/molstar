@@ -7,7 +7,7 @@
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
-import { createSeqContext, type SeqContext } from '@molstar/seqx-core/context/index';
+import { createSeqContext, type SeqContext } from '@molstar/seqx-core/context';
 import {
   type Emphasis,
   type Frame,
@@ -23,7 +23,7 @@ import { type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
-import type { CanvasBackend } from '@molstar/seqx-viewer/canvas/index';
+import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import { HoverModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { ViewerInput } from './input.js';

@@ -14,6 +14,11 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
+    "./context": {
+      "molstar-src": "./src/context/index.ts",
+      "types": "./lib/context/index.d.ts",
+      "import": "./lib/context/index.js"
+    },
     "./*": {
       "molstar-src": "./src/*.ts",
       "types": "./lib/*.d.ts",
@@ -55,7 +60,8 @@
     "./data/_test/*": null,
     "./resolve/_test/*": null,
     "./view/_test/*": null,
-    "./render/_test/*": null
+    "./render/_test/*": null,
+    "./context/_test/*": null
   },
   "files": [
     "lib",

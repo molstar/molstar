@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-core/context/index';
+import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { HoverModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';

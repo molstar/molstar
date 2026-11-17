@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { TextMetricsPort } from '@molstar/seqx-core/context/index';
+import type { TextMetricsPort } from '@molstar/seqx-core/context';
 import { DefaultFonts, type FontStacks } from '@molstar/seqx-core/render';
 import { FontCache } from './font.js';
 
