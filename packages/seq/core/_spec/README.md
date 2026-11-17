@@ -385,3 +385,133 @@ no target.
   static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer not placed.
 - `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
   `follow.unplaced`; a test checks the catalog.
+
+## Render
+
+`src/render/` (`@molstar/seqx-core/render`): tier 3, the resolved view laid out for a size, a viewport, a target and the
+store's entries, as draw lists; hit-testing on the same layout; the recording and SVG backends; `renderSvg`.
+
+### Configuration
+
+`RenderConfig`, each choice with its recommended default (`DefaultRenderConfig`, `renderConfig(over)`): the inset (8),
+one label column (112, gap 8), track and section gaps (4, 8), a track's height by its layers' types when the spec gives
+none (letters 20, ranges 36, values 32), the lane (12, gap 2), the density thresholds, the letter sizes (9 to 14) and
+the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), the fade (12), the squircle's ratio, cap
+and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the want margin (half the view a side),
+a follower's arc (`shortest`).
+
+- **Density steps** (`densityStep`), in device pixels a position, shared by every layer type: `letters` from 14, `cells`
+  from 3, `dots` from 1, `bars` from 1/64, else `density`. Letters, cells and dots draw a mark a position; bars and
+  density at most one a device column a lane. Why device pixels: a mark a pixel is what bounds the lists.
+
+### Tokens
+
+- `SeqTokens`: every color the lists use (`msui-*` chrome, `seq-*` data: tracks, ink, missing, pending, conflict,
+  residue and nucleotide classes, eight categories, the density ramp), as `0xRRGGBBAA`, and the font stacks of the two
+  family roles. Node has a light and a dark table (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
+- **Its version is a hash of its content**, part of the draw lists' key: a theme switch redraws, an equal table does
+  not. Why a hash: pure by contract, so an export from Node and a viewer agree on equal tables.
+- **A spec's color** is a hex literal or `token:<name>` (`seq-<name>`, then `msui-<name>`, then `<name>`); anything else
+  is `seq.render.color` and the layer's default. **Ink follows its fill**: the dark or the light ink, whichever
+  contrasts more.
+
+### Text
+
+- The port is `measure(font, text)` in CSS px with one `TextMeasure` (`@molstar/core/util/text-measure`) a font behind
+  it (`createTextMetrics`). A font is shorthand naming a family role (`12px sans`, `10px mono`); a backend writes the
+  role's stack. Node measures with the bundled table (`bundledTextMetrics`): Arial-compatible sans advances, a 0.6 em
+  mono. Letters are never measured: centered in their cells, one size a row, the largest of the scale that fits.
+
+### Draw lists
+
+- CSS pixels, origin top left; a list per pass, drawn in order: `background`, `data`, `highlight`, `selection`, `hover`,
+  `cursor`, `labels` (`Passes`; the last four but labels are `EmphasisPasses`).
+- **Primitives** as structs of arrays in growable typed arrays kept frame to frame (`reset` zeroes counts): `rect` (x,
+  y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round), `path` (move, line, cubic,
+  close in shared arrays; fill, stroke, dash), `glyphs` (a run of letters in one font, an x a letter at its center, one
+  baseline, a color a letter or one), `text` (an interned string, x, y, anchor, font, color, its measured width and a
+  max width: faded past it, never ellipsized), `image` (RGBA bytes the layer owns), `clip` and `unclip`. A pass's `ops`
+  keep the order its primitives were added in. Colors are `0xRRGGBBAA`; `NoColor` (0) is none.
+- **Bounded by the screen**: at most one primitive a device column a lane, or one a cell when cells are a device pixel
+  or wider; tracks below the page are not laid out.
+
+### Shapes
+
+- Continuous data (cells, value bars) is square; discrete marks (ranges) are squircles, radius a third of the height,
+  capped, square below the minimum. An end cut by the view, a piece of the axis or a piece of the item's own image (an
+  exon) is square; a mark cut at both ends is square. The squircle is one curve, `squirclePath` (each corner a cubic on
+  |x|⁴ + |y|⁴ = 1), that every backend draws. Outlines are concentric.
+
+### Layer types
+
+`LayerType<Prep, Lay>`: `name`, `fallback?`, `prepare(layer, model)` (tier 1, cached per resolved layer),
+`layout(prep, ctx, data, overlay, prev?)` (per viewport; `prev` is its last layout, to reuse buffers and keep lanes),
+`draw(lay, pass, out, emphasis?)`, `hit(lay, x, y)`, `legend?(lay)`. `LayoutContext`: the track's box, the axis
+transform, the section, the layer's key, the device pixel ratio, the config, the tokens, the text port, whether the view
+settled, `want` and `report`. A layer draws the first type of its fallback chain the target has; none is
+`seq.render.layer.type`.
+
+- `letters`: a section's own letters (through a path: `seq.render.layer.letters`); a cell a position colored by class,
+  letters on them, a tick a position at `dots`, one bar a piece in view at `bars` and `density` (presence needs no
+  data).
+- `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
+  exon); labels inside marks 24 px or wider. At `bars` a lane's marks touching within a device pixel merge into a run;
+  at `density`, or a density table, or when items overflow the lanes, one heat strip, a device column a pixel.
+- `values`: a bar a position, or at `bars` and `density` a device column's maximum (positions or bins). Missing (NaN) is
+  a 2 px neutral mark at the baseline. The domain is the layer's `domain` param, else open: computed from the values in
+  view when the view settles, held while it does not.
+
+### Data
+
+- A layer's data is its node's access plan (an inline node's own address as the store's source, else its source node),
+  the region in view carried back along the layer's path, at the level that fits a device pixel's positions there
+  (`fitLevel`); the view at `view` priority and a margin each side at `margin`.
+- A tile not asked for, pending or evicted draws as a pending placeholder (EC-169), a failed one as a conflict tint; an
+  unknown source (not attached) is pending. Items are deduped by key (`id`, else `row`), start and end: a range repeated
+  in the tiles it touches is drawn once, and the two rows of a wrapped item stay two pieces.
+
+### Tracks layout
+
+- Sections stacked; each an `AxisTransform`: its pieces (`[start, end, …]` in display order) end to end as display
+  units, the viewport a window of them (`{ start, end }`, all by default) across the data box. A follower's pieces are
+  `followRange` of its leader's positions in view (its whole width, genomic order). A section whose length is unknown
+  takes the length its source's coverage gives once attached, else waits (`seq.render.axis.pending`).
+- Cell edges snap to the device grid (`snap`). One label column for every track of a view.
+
+### Lanes and Hits
+
+- **Sticky lanes** (`StickyLanes`): an item keeps its lane while it is in view; a new item takes the first lane free
+  over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
+  when a neighboring region arrives.
+- **Hits** are `{ layer, element?, position?, system }`: `layer` the layer's key (its address, else its track's and
+  `:index`), `element` an item's `{ owner, key }`, `position` on the section's system. Cells by arithmetic on the axis;
+  items by `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost
+  layer with an element under the point wins, else the topmost with a position.
+
+### The key
+
+- `Renderer.frame` keys a frame by the model's hash, the view, the size and device pixel ratio, the viewport, the token
+  table's version, the overlay's version, whether the view settled, the config, and the versions of the entries (and the
+  coverages) the last layout read. An equal key keeps the layout and the lists and redraws the emphasis passes alone;
+  anything else lays out again into the same buffers. Same inputs, same lists.
+
+### Backends
+
+- **Recording** (`recordDrawLists`): a line a primitive, pass by pass, numbers to two decimals, colors `#rrggbbaa`
+  (`none` for no color): the committed records' format.
+- **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
+  images as runs of rects, fades as gradient masks, metadata as `data-*` attributes. Every text and attribute from a
+  spec or data is escaped, characters XML forbids dropped.
+
+### Export
+
+- `renderSvg(spec, { size, viewport?, runtimes, … })`: checks and resolves the spec, opens the sources its view reads
+  (`attachSources`: inline data through `seq`, a source node through its runtime; assets refused unless a reader is
+  given, `NoAssets`), wants through a want set of its own (EC-125), lays out until its wants hold, waits for them to
+  settle or `timeoutMs` (10 s; then `seq.render.unsettled`), and draws once more with the view settled. It answers
+  `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed.
+
+### Issues
+
+- `seq.render.*` (`RenderIssues`): `view`, `color`, `layer.type`, `layer.letters`, `axis.pending` (info), `source`,
+  `unsettled`; a test checks the catalog.
