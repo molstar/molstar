@@ -110,7 +110,7 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 
 ### Issue codes
 
-- **Namespaces**: `repr.*` (tree, schema, patch, codec), `seq.lang.*` (checks the description cannot express),
+- **Namespaces**: `repr.*` (tree, schema, patch, codec), `seq.lang.*` (checks the description cannot express), `seq.query.*`,
   `seq.resolve.*`, `seq.source.*`, `seq.store.*`, `seq.view.*`, `seq.render.*`, `seq.address.*`.
 - **A catalog**, as meso\*'s `IssueCodeInfo`: each code with its severity, doc and hint, generated into the docs; a test
   fails on a code used and not cataloged.

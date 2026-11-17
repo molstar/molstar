@@ -50,10 +50,12 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 - [x] C (strong) `seqx-core/query`: Location (parts and rects), element keys, the three result types, the first forms
       as resolvers (`range`, `at`, `all`, `item`, `node`, `extent`, `items`), numberings `index` and `ordinal`, labels
       EC-1 to EC-8
-- [ ] D (strong) `seqx-core/data`: the protocol's types, the `seq` format (round trip), `FormatRuntime` for `seq`, the
+- [x] D (strong) `seqx-core/data`: the protocol's types, the `seq` format (round trip), `FormatRuntime` for `seq`, the
       store (keys, states, versions, `KeyedState` per entry, requests ordered and bounded, cancellation, byte-bounded
       eviction) with a fake clock
-- [ ] GATE: each lane's quick tests green; review of C and D (strong)
+- [x] GATE (2026-11-17): B, C, D merged (`77d03dfc1`, `5fa7c43d4`, `6e885495a`), each reviewed (strong) and fixed in one
+      round; the merged tree 233 tests in about 0.3 s, tsc (tests too), lint, format, scaffold checks green; designs
+      updated from the drift; the orchestrator's decisions await the author (gaps.md)
 
 ### Stage 3: resolve (lane E, strong, after B and C)
 

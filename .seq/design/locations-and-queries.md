@@ -18,8 +18,8 @@ by default. The first forms grow with the examples.
 
 | Type | Holds | Made by | Used for |
 |---|---|---|---|
-| **Nodes** | exact addresses of spec nodes and held dynamic nodes | ids, kind forms (`(section :of …)`), `(node :key …)` | refs, layers' data, commands on tracks and views |
-| **Elements** | keys of things data makes: items of an annotation, rows of an alignment, chains of a structure, pairs | `(item …)`, `(row …)`, `(chain …)`, `(pair …)` | clicking, toggling, bookmarks on features, labels |
+| **Nodes** | exact addresses of spec nodes, data-made systems and held dynamic nodes | ids, kind forms (`(section :of …)`), `(node :key …)`, `(chain :id …)` | refs, layers' data, commands on tracks and views |
+| **Elements** | keys of things data makes: items of an annotation, rows of an alignment, pairs | `(item …)`, `(row …)`, `(pair …)` | clicking, toggling, bookmarks on features, labels |
 | **Location** | positions on systems: per system, sorted merged ranges; and rects over two axes | `(range …)`, `(at …)`, `(rect …)`, `(all)`, an element's extent | hover, selection, focus, highlights, layers' placement |
 
 - **A Location** is `{ parts: { system, ranges: Int32Array }[], rects: { a: Part, b: Part }[] }`: ranges as sorted,
@@ -45,6 +45,9 @@ by default. The first forms grow with the examples.
 - **`:numbering <id>`** names a numbering of the system: one declared under its sequence (a `numbering` child: offset,
   segments, labels, a scheme), or a built-in: `index` (0-based positions) and `ordinal` (1-based). Without `:numbering`,
   labels are `ordinal` (1-based), stated once here (the JBrowse reply's guess, EC-195).
+- **`.n` labels are quoted** (`(at :label "100.1")`): unquoted, `100.1` reads as a number.
+- **A boundary** (a zero-length item) at p overlaps [s, e) when s ≤ p < e; a boundary at the system's end overlaps a
+  range ending there, so `(all)` contains it.
 - **Labels resolve at the edge** with the rules EC-1 to EC-8 (order, insertion codes, a missing end snapping inward, an
   unknown single label reported with the labels that exist).
 
@@ -57,10 +60,11 @@ by default. The first forms grow with the examples.
 | `(rect :a <location> :b <location>)` | Location | a dot plot's rectangle |
 | `(all)` | Location | a whole system |
 | `(item :id k)`, `(item :<field> v)` | Elements | `/data/p53/domains/(item :label DNA-binding)` |
-| `(row :id k)`, `(chain :id k)` | Elements | `/data/1tup/(chain :id A)` |
+| `(chain :id k)` | Nodes (a system) | `/data/1tup/(chain :id A)` |
+| `(row :id k)` | Elements | with alignments |
 | `(node :key k)` | Nodes | `/data/genes/(node :key T1)` |
-| `(extent <elements>)`, `(items :overlapping <location>)` | Location, Elements | conversions |
-| `(and …)`, `(or …)`, `(not …)` | the type of their arguments | combinators over one type |
+| `(extent :of <elements>)`, `(items :overlapping <location>)` | Location, Elements | conversions |
+| `(and :of [ … ])`, `(or :of [ … ])`, `(not :of …)` | the type of their arguments | combinators over one type (keyword params: the address grammar has no positional ones) |
 
 Later, with the examples that need them: `expand`, `onto` (projection as a query), `search` (motifs), `group`.
 

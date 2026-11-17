@@ -4,32 +4,27 @@ Branch: `packages-seq`.
 
 ## Done
 
-- Gate 0 settled; `loop.md` and the briefs.
-- **Stage 1** (lane A, the tree core in `@molstar/core/repr`): merged `fbc27cde5`; the review's blockers fixed in one
-  round; the gate green on the merged tree (73 tests, about 0.3 s; tsc, lint, format, scaffold checks); the changelog
-  entry `.v6/changelogs/core-repr.md`; format.md (tagged undeclared columns) and language-description.md (a column's own
-  `required`) updated.
+- Stage 1 (lane A, the tree core): merged `fbc27cde5`.
+- Stage 2 (lanes B language, C queries, D protocol and store): merged `77d03dfc1`, `5fa7c43d4`, `6e885495a`; each
+  reviewed and fixed in one round; the gate green on the merged tree (233 tests, about 0.3 s; tsc with tests, lint,
+  format, scaffold checks). Designs updated: format (tagged columns), language-description (column `required`,
+  `seq.query.*`), locations-and-queries (`chain` as Nodes, `:of`, quoted `.n` labels, the boundary rule), protocol
+  (`AssetReader`, `form`, `list`, row identity, malformed not retried, `over_budget`), data-store (want sets, `evicted`).
 
 ## In progress
 
-- Stage 2: lane B merged (`77d03dfc1`, review fixed in one round), lane C merged (`5fa7c43d4`, review fixed in one
-  round; the merged tree 180 tests green; a test typing fix `bc5fe4894`); lane D in its review's fix round.
+Nothing: the loop waits for the author's confirmation of the orchestrator's decisions (gaps.md) before stage 3.
 
 ## Next
 
-On each report: verify, review (strong), one fix round, merge (exports in `packages/seq/core/package.json` are the
-orchestrator's: the lanes ask for them), gate, report. Then stage 3 (lane E).
+On confirmation: write lane E's brief (the static model implementing `QueryModel` incl. `chain` and annotation
+`fields`; maps; paths; projection; the resolved view; binding `SourceEntry` to the language's source node) and start it.
 
-## Decisions taken
+## Decisions taken (awaiting the author)
 
-- Gate 0 as recommended.
-- Undeclared columns tagged in JSON and the printing (the orchestrator, from lane A's review): to confirm with the author.
-
-## Blockers / open questions
-
-- The author's confirmation of the tagged columns (non-blocking: lanes C and D do not depend on it).
+See gaps.md, "Built but not agreed".
 
 ## Verify
 
 `pnpm test:unit packages/core/src/repr packages/seq/`, `npx tsc -b packages/core packages/seq/core packages/seq/viewer`,
-`pnpm lint`, `pnpm format:check`, the scaffold checks.
+`pnpm -C packages/seq/core typecheck:test`, `pnpm lint`, `pnpm format:check`, the scaffold checks.

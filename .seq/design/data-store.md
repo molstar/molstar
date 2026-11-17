@@ -26,6 +26,10 @@ author, 2026-11-17).
 - **Answers carry nodes**: a region's answer holds tables and the data nodes it brings; the nodes are entries of their
   source, identified by (source, key), and form the resolved model's dynamic overlay ([dynamic-nodes.md](dynamic-nodes.md)).
 - **Inline data** goes through the same store, as entries that are loaded at once; one path for drawing.
+- **Want sets per consumer**: `store.wanter()` gives each consumer (the live view, an export) its own want set, merged
+  by best priority; an export never touches the live view's wants (EC-125). Over the byte bound, wanted prefetch and
+  margin tiles may become `evicted` (not asked again until they leave and re-enter the want set); view tiles and requests
+  in flight never are.
 - **Headless and export**: `renderSvg` is asynchronous: it requests what the export's size and viewport need and waits
   for those entries to settle (or a timeout, after which the export says it is unsettled, EC-125). The live viewer's
   viewport is never changed by an export.

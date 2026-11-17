@@ -23,7 +23,7 @@ A format runtime is a registry entry ([ports.md](ports.md)):
 interface FormatRuntime {
   readonly name: string;                        // 'fasta', 'bigwig', 'seq'
   readonly formats: readonly string[];          // the `format` values it reads
-  open(source: SourceEntry, ctx: { assets: AssetManager; signal: AbortSignal }): Promise<OpenedSource>;
+  open(source: SourceEntry, ctx: { assets: AssetReader; signal: AbortSignal }): Promise<OpenedSource>;  // AssetReader: the assets port's narrow shape
 }
 interface OpenedSource {
   readonly coverage: Coverage;                  // known after open
@@ -58,15 +58,17 @@ type RegionAnswer =
 
 - **Table shapes** (typed columns, [format.md](format.md)):
   - `letters`: `{ start, letters }` (a string, or codes with an alphabet);
-  - `ranges`: `start`, `end` (int32), `strand` (int8: −1, 0, 1), `id` (category), then the fields the coverage lists;
-    at a coarse level a source may answer density instead: `bin` (int32), `count` (float32), by `category`;
+  - every table carries a `form` (ranges: `list` or `density`; values: per position or per bin);
+  - `ranges` as a `list`: `start`, `end` (int32), `strand` (int8: −1, 0, 1), `id` (category) or else a stable `row`
+    (int32, the row's place in its source) so a range sliced across tiles is one range, and `fields` as a list of
+    `{ name, column }`; as `density` at a coarse level: `bin` (int32), `count` (float32), by `category`;
   - `values`: at level 1, `value` (float32) per position from `start`; at a coarser level, per bin: `min`, `max`,
     `mean`, `count` (float32) from `start` with the level's bin width.
   - `pairs`, `matrix`, `grid`, `rows`: with the Genomes milestone.
 - **Nodes** in an answer refer to each other by `(node :key K)`, resolved against the answering source, and to spec
   nodes by address ([dynamic-nodes.md](dynamic-nodes.md)).
 - **Errors**: `failed` is retried with backoff then a cooldown, reported once (EC-174); `not-served` is never retried;
-  `malformed` is a failure with its issue; `too-large` asks for a coarser level. Cancellation rejects with an
+  `malformed` is a failure with its issue, never retried (failed with a cooldown); `too-large` asks for a coarser level. Cancellation rejects with an
   `AbortError`, never an error state.
 - **The `seq` format** is the protocol written down: a source with `format: 'seq'` holds a coverage and a list of
   `{ request, answer }` pairs, inline (`value`) or as a JSON or MessagePack file. It serves fixtures, tests and the
@@ -97,7 +99,7 @@ type RegionAnswer =
 
 - **Data entries are a byte-bounded cache** (64 MB by default), least recently used, never an entry in view. When what
   is in view alone exceeds the bound, the store asks for the next coarser level for the widest layers and reports it
-  once (`seq.store.over-budget`, info).
+  once (`seq.store.over_budget`, info).
 - **Node entries are held, not cached**: each counts its holders (data entries that carried it, placements shown, the
   selection, highlights, other held nodes naming it). A data entry's eviction releases its holds; a node with no holder
   is evicted, quietly, with what it alone named. A ref or bookmark in the spec does not hold a node: it waits for it.
