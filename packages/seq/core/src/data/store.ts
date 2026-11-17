@@ -19,11 +19,13 @@ import {
   type Shape,
   type Tables,
 } from './protocol.js';
-import { answerBytes, checkTables, isEmptyAnswer } from './tables.js';
+import { checkCoverage } from './seq-format.js';
+import { answerBytes, checkAnswer, DefaultMaxRows, isEmptyAnswer } from './tables.js';
 
-// The data store (_spec/README.md "Data", Store): entries by key in keyed states, versioned; requests deduped by
-// tile, ordered and bounded in flight, cancelled after a grace, retried by policy; a byte-bounded cache that never
-// evicts what is in view; nodes held by what carried them.
+// The data store (_spec/README.md "Data", Store): entries by key in keyed states, versioned; the want sets of its
+// consumers merged; requests deduped by tile, ordered and bounded in flight, cancelled after a grace (at once when the
+// view waits), retried by policy; a byte-bounded cache that never drops what is wanted; nodes held by what carried
+// them.
 
 /** Where a wanted region stands: in the view, its margin, or prefetched (EC-172's order). */
 export type Priority = 'view' | 'margin' | 'prefetch';
@@ -54,7 +56,10 @@ export interface TileRegion {
   readonly end: number;
 }
 
-/** A data entry: pending is never drawn or hit as empty (EC-169); failed carries its issue. */
+/**
+ * A data entry: pending is never drawn or hit as empty (EC-169); failed carries its issue; evicted is wanted but
+ * dropped for the byte bound, not asked again while it stays wanted.
+ */
 export type DataEntry =
   | { readonly status: 'pending'; readonly version: number; readonly region: TileRegion }
   | {
@@ -73,7 +78,8 @@ export type DataEntry =
       readonly region: TileRegion;
       readonly kind: FailureKind;
       readonly issue: Issue;
-    };
+    }
+  | { readonly status: 'evicted'; readonly version: number; readonly region: TileRegion };
 
 export type EntryStatus = DataEntry['status'];
 
@@ -105,9 +111,18 @@ export interface StoreSettings {
   readonly maxBytes: number;
   /** Requests in flight at most (EC-172). */
   readonly maxInFlight: number;
+  /** Tiles one want may cover; more is an issue and the want is not requested (work bounded before it starts). */
+  readonly maxTilesPerWant: number;
+  /** Rows a list or density table may hold in one answer. */
+  readonly maxRows: number;
+  /** Issues kept; then one `seq.store.limit_exceeded`. */
+  readonly maxIssues: number;
   /** How long a request that left the wanted set stays in flight before it is cancelled (EC-173). */
   readonly graceMs: number;
-  /** A `failed` (or malformed) answer: tried `attempts` times with backoff `baseMs · factor^n`, then a cooldown. */
+  /**
+   * A `failed` answer: tried `attempts` times with backoff `baseMs · factor^n`, then a cooldown (a `malformed` one goes
+   * to the cooldown at once).
+   */
   readonly retry: {
     readonly attempts: number;
     readonly baseMs: number;
@@ -120,11 +135,37 @@ export const DefaultStoreSettings: StoreSettings = {
   tileBins: DefaultTileBins,
   maxBytes: 64 * 1024 * 1024,
   maxInFlight: 6,
+  maxTilesPerWant: 256,
+  maxRows: DefaultMaxRows,
+  maxIssues: 100,
   graceMs: 300,
   retry: { attempts: 3, baseMs: 500, factor: 2, cooldownMs: 30_000 },
 };
 
-type Phase = 'queued' | 'flight' | 'backoff' | 'cooldown' | 'done';
+/** A consumer's want set (the live view, an export): merged with the others by best priority. */
+export interface Wanter {
+  /** The regions this consumer needs now, all of them. */
+  want(wants: readonly Want[]): void;
+  /** `true` when none of this consumer's tiles is pending; `false` after `timeoutMs` (if given) without (EC-125). */
+  whenSettled(timeoutMs?: number): Promise<boolean>;
+  /** The keys of the entries this consumer wants. */
+  readonly keys: ReadonlySet<string>;
+  /** Withdraws its wants. */
+  dispose(): void;
+}
+
+/**
+ * `queued`, `flight`: being asked; `backoff`: waiting to be asked again after a failure; `cooldown`: failed, waiting
+ * longer; `done`: answered (or let go: `retryable` says it is asked again when wanted); `evicted`: wanted, dropped for
+ * the bound.
+ */
+type Phase = 'queued' | 'flight' | 'backoff' | 'cooldown' | 'done' | 'evicted';
+
+interface PlannedTile {
+  rank: number;
+  readonly region: TileRegion;
+  readonly shapes: readonly Shape[];
+}
 
 /** A tile's bookkeeping (one per entry key). */
 interface Slot {
@@ -138,11 +179,13 @@ interface Slot {
   /** Bumped when a request is let go, so its late answer is dropped. */
   token: number;
   controller: AbortController | undefined;
-  /** The grace or retry timer. */
+  request: RegionRequest | undefined;
+  /** The grace, backoff or cooldown timer. */
   timer: unknown;
-  /** Answers that failed in a row. */
+  /** When it left the wanted set while in flight (EC-173's order), else -1. */
+  staleSince: number;
+  /** `failed` answers in a row; kept while it is away and back. */
   attempts: number;
-  /** A failure past its cooldown: asked again when wanted. */
   retryable: boolean;
   bytes: number;
   nodes: readonly string[];
@@ -155,10 +198,19 @@ interface AttachedSource {
   readonly nodes: readonly string[];
 }
 
+interface Reported {
+  readonly source: string;
+  readonly id: string;
+  readonly issue: Issue;
+}
+
+/** The store-wide reports' source. */
+const StoreWide = '';
+
 /**
  * One store per viewer: data entries by `<source>|<system>|<level>|<tile>`, node entries by `<source>#<key>`, each a
- * keyed state so only what reads an entry is told. `want` sets the regions needed now; the store requests the tiles
- * they cover from the attached sources.
+ * keyed state so only what reads an entry is told. Each consumer's `Wanter` (the live view's is `want`) sets the
+ * regions it needs now; the store requests the tiles they cover from the attached sources.
  */
 export class DataStore extends ReactiveModel {
   readonly settings: StoreSettings;
@@ -170,11 +222,14 @@ export class DataStore extends ReactiveModel {
   private readonly _nodes = new KeyedState<string, NodeEntry>();
   private readonly _holders = new Map<string, number>();
   private readonly _queue: Slot[] = [];
+  private readonly _wanters = new Set<WantSet>();
+  private readonly _live: WantSet;
   private _inFlight = 0;
   private _bytes = 0;
   private _counter = 0;
   private _order = 0;
-  private readonly _reported = new Set<string>();
+  private readonly _reported: Reported[] = [];
+  private _capped = false;
   private readonly _version = new State(0);
   private readonly _settled = new State(true);
   private readonly _overBudget = new State(false);
@@ -184,6 +239,7 @@ export class DataStore extends ReactiveModel {
     super();
     this.settings = { ...DefaultStoreSettings, ...options.settings };
     this._clock = options.clock ?? RealClock;
+    this._live = this.wanter() as WantSet;
   }
 
   /** Moves when any entry does. */
@@ -191,17 +247,17 @@ export class DataStore extends ReactiveModel {
     return this._version;
   }
 
-  /** No wanted tile pending and nothing wanted in flight. */
+  /** No wanted entry pending (a failed one waiting to be asked again is settled). */
   get settled(): ReadonlyState<boolean> {
     return this._settled;
   }
 
-  /** What is in view alone is over the byte bound (reported once, `seq.store.over_budget`). */
+  /** What is in view alone is over the byte bound (reported once each time, `seq.store.over_budget`). */
   get overBudget(): ReadonlyState<boolean> {
     return this._overBudget;
   }
 
-  /** What the sources and the store reported, each cause once per source. */
+  /** What the sources and the store reported: each cause once per source, at most `maxIssues`. */
   get issues(): ReadonlyState<readonly Issue[]> {
     return this._issues;
   }
@@ -218,29 +274,41 @@ export class DataStore extends ReactiveModel {
 
   // Sources
 
-  attach(address: string, opened: OpenedSource): void {
+  /**
+   * Attaches an opened source under its address. Its coverage is checked first: a malformed one is an issue and the
+   * source stays unavailable (`false`).
+   */
+  attach(address: string, opened: OpenedSource): boolean {
     if (this._sources.has(address)) this.detach(address);
+    const bad = checkCoverage(opened.coverage);
+    if (bad) {
+      this._run(() => this._report(address, { ...bad, address }));
+      return false;
+    }
     const names = new Map<string, string>();
     for (const s of opened.coverage.systems) {
       names.set(s.name, s.name);
       for (const a of s.aliases ?? []) if (!names.has(a)) names.set(a, s.name);
     }
-    batch(() => {
+    this._run(() => {
       const nodes = this._intakeNodes(address, opened.coverage.nodes);
       this._sources.set(address, { opened, names, nodes });
     });
+    return true;
   }
 
-  /** Lets a source go: its requests cancelled, its entries and the holds they and its coverage had released. */
+  /**
+   * Lets a source go: its requests cancelled, its entries and the holds they and its coverage had released, its
+   * reports cleared. Wants of it stay and wait for a source attached again under the address.
+   */
   detach(address: string): void {
     const s = this._sources.get(address);
     if (!s) return;
-    batch(() => {
+    this._run(() => {
       for (const slot of [...this._slots.values()]) if (slot.region.source === address) this._drop(slot);
       for (const k of s.nodes) this._release(k);
       this._sources.delete(address);
-      this._pump();
-      this._updateSettled();
+      this._clearReports(address);
     });
     s.opened.dispose();
   }
@@ -275,7 +343,7 @@ export class DataStore extends ReactiveModel {
     return () => {
       if (!held) return;
       held = false;
-      batch(() => this._release(k));
+      this._run(() => this._release(k));
     };
   }
 
@@ -290,49 +358,94 @@ export class DataStore extends ReactiveModel {
 
   // Requests
 
-  /**
-   * The regions needed now, all of them: each tile they cover is requested once (deduped), in the order of its best
-   * priority, then of first want. What left the set is cancelled after the grace if in flight, dropped if not yet
-   * asked for, and otherwise kept in the cache.
-   */
+  /** A new consumer's want set (an export's, beside the live view's), merged with the others by best priority. */
+  wanter(): Wanter {
+    const set = new WantSet(this);
+    this._wanters.add(set);
+    return set;
+  }
+
+  /** The live view's want set (`wanter()` for another consumer). */
   want(wants: readonly Want[]): void {
-    batch(() => {
-      const next = new Map<string, { rank: number; region: TileRegion; shapes: readonly Shape[] }>();
-      for (const w of wants) {
-        const t = this._tiles(w);
-        if (!t) continue;
-        const rank = Rank[w.priority ?? 'view'];
-        for (let tile = t.first; tile <= t.last; tile++) {
-          const key = dataKey(w.source, t.system, t.level, tile);
-          const at = next.get(key);
-          if (at) at.rank = Math.min(at.rank, rank);
-          else {
-            const { start, end } = tileRegion(tile, t.level, this.settings.tileBins, t.length);
-            const region = { source: w.source, system: t.system, level: t.level, tile, start, end };
-            next.set(key, { rank, region, shapes: t.shapes });
-          }
-        }
-      }
-      for (const slot of [...this._slots.values()])
-        if (slot.rank !== Unwanted && !next.has(slot.key)) this._unwant(slot);
-      for (const [key, w] of next) {
-        const slot = this._slots.get(key);
-        if (!slot) this._create(key, w.region, w.shapes, w.rank);
-        else this._rewant(slot, w.rank);
-      }
-      this._pump();
-      this._evict();
-      this._updateSettled();
-    });
+    this._live.want(wants);
   }
 
   /** Resolves `true` when settled, `false` after `timeoutMs` (if given) without settling (EC-125). */
   whenSettled(timeoutMs?: number): Promise<boolean> {
-    if (this._settled.value) return Promise.resolve(true);
+    return this._waitFor(() => this._settled.value, timeoutMs);
+  }
+
+  protected override onRetire(): void {
+    batch(() => {
+      for (const w of [...this._wanters]) w.dispose();
+      for (const address of [...this._sources.keys()]) this.detach(address);
+    });
+  }
+
+  /** @internal Plans a consumer's wants into tiles. */
+  _plan(wants: readonly Want[]): Map<string, PlannedTile> {
+    const next = new Map<string, PlannedTile>();
+    for (const w of wants) {
+      const t = this._tiles(w);
+      if (!t || t.last < t.first) continue;
+      if (t.last - t.first + 1 > this.settings.maxTilesPerWant) {
+        const message = `A wanted region covers ${t.last - t.first + 1} tiles, more than ${this.settings.maxTilesPerWant}`;
+        this._run(() =>
+          this._report(w.source, issueOf(StoreIssues, 'seq.store.too_many_tiles', message, { address: w.source })),
+        );
+        continue;
+      }
+      const rank = Rank[w.priority ?? 'view'];
+      for (let tile = t.first; tile <= t.last; tile++) {
+        const key = dataKey(w.source, t.system, t.level, tile);
+        const at = next.get(key);
+        if (at) at.rank = Math.min(at.rank, rank);
+        else {
+          const { start, end } = tileRegion(tile, t.level, this.settings.tileBins, t.length);
+          const region = { source: w.source, system: t.system, level: t.level, tile, start, end };
+          next.set(key, { rank, region, shapes: t.shapes });
+        }
+      }
+    }
+    return next;
+  }
+
+  /**
+   * @internal The want sets merged and applied: each tile requested once, in the order of its best priority, then of
+   * first want. What left every set is cancelled after the grace if in flight, dropped if not yet asked for or
+   * evicted, and otherwise kept (in the cache, or in its backoff).
+   */
+  _apply(): void {
+    this._run(() => {
+      const merged = new Map<string, PlannedTile>();
+      for (const set of this._wanters)
+        for (const [key, t] of set.tiles) {
+          const at = merged.get(key);
+          if (!at) merged.set(key, { ...t });
+          else at.rank = Math.min(at.rank, t.rank);
+        }
+      for (const slot of [...this._slots.values()])
+        if (slot.rank !== Unwanted && !merged.has(slot.key)) this._unwant(slot);
+      for (const [key, w] of merged) {
+        const slot = this._slots.get(key);
+        if (!slot) this._create(key, w.region, w.shapes, w.rank);
+        else this._rewant(slot, w.rank);
+      }
+    });
+  }
+
+  /** @internal */
+  _removeSet(set: WantSet): void {
+    if (this._wanters.delete(set)) this._apply();
+  }
+
+  /** @internal Resolves `true` once `check` holds after a change, `false` after `timeoutMs`. */
+  _waitFor(check: () => boolean, timeoutMs?: number): Promise<boolean> {
+    if (check()) return Promise.resolve(true);
     return new Promise((resolve) => {
       let timer: unknown;
-      const stop = this._settled.listen((s) => {
-        if (!s) return;
+      const stop = this._version.listen(() => {
+        if (!check()) return;
         stop();
         if (timer !== undefined) this._clock.clearTimeout(timer);
         resolve(true);
@@ -342,12 +455,6 @@ export class DataStore extends ReactiveModel {
           stop();
           resolve(false);
         }, timeoutMs);
-    });
-  }
-
-  protected override onRetire(): void {
-    batch(() => {
-      for (const address of [...this._sources.keys()]) this.detach(address);
     });
   }
 
@@ -364,6 +471,16 @@ export class DataStore extends ReactiveModel {
     const [first, last] = tileSpan(w.start, end, level, this.settings.tileBins);
     const shapes = cov.shapes.filter((x) => x.system === system).map((x) => x.shape);
     return { system, level, length, first, last, shapes };
+  }
+
+  /** Runs a change in one batch, then starts what may start, keeps the bound and the settled state. */
+  private _run(fn: () => void): void {
+    batch(() => {
+      fn();
+      this._pump();
+      this._evict();
+      this._updateSettled();
+    });
   }
 
   private _setEntry(slot: Slot, entry: DataEntry): void {
@@ -385,7 +502,9 @@ export class DataStore extends ReactiveModel {
       phase: 'queued',
       token: 0,
       controller: undefined,
+      request: undefined,
       timer: undefined,
+      staleSince: -1,
       attempts: 0,
       retryable: false,
       bytes: 0,
@@ -411,9 +530,12 @@ export class DataStore extends ReactiveModel {
     slot.rank = rank;
     if (was === Unwanted) slot.order = this._order++;
     this._touch(slot);
-    // Back within its grace: it stays in flight.
-    if (slot.phase === 'flight') this._clearTimer(slot);
-    else if (slot.phase === 'done' && slot.retryable) this._enqueue(slot);
+    if (slot.phase === 'flight' && slot.staleSince >= 0) {
+      // Back within its grace: it stays in flight.
+      this._clearTimer(slot);
+      slot.staleSince = -1;
+    } else if (slot.phase === 'done' && slot.retryable) this._enqueue(slot);
+    // A slot in backoff or cooldown keeps its timer and its attempts; an evicted one waits to leave the set.
   }
 
   private _unwant(slot: Slot): void {
@@ -421,43 +543,49 @@ export class DataStore extends ReactiveModel {
     switch (slot.phase) {
       case 'flight':
         // EC-173: a grace before cancelling, so a jitter back keeps the request; the oldest stale goes first.
-        slot.timer = this._clock.setTimeout(() => this._cancel(slot), this.settings.graceMs);
+        slot.staleSince = this._clock.now();
+        slot.timer = this._clock.setTimeout(() => this._graceOver(slot), this.settings.graceMs);
         break;
       case 'queued':
-      case 'backoff':
         if (this.get(slot.key)?.status === 'pending') this._drop(slot);
         else {
           this._dequeue(slot);
-          this._clearTimer(slot);
           slot.phase = 'done';
           slot.retryable = true;
         }
         break;
+      case 'evicted':
+        this._drop(slot);
+        break;
     }
   }
 
-  private _cancel(slot: Slot): void {
+  private _graceOver(slot: Slot): void {
     slot.timer = undefined;
     if (slot.phase !== 'flight' || slot.rank !== Unwanted) return;
-    batch(() => {
-      if (this.get(slot.key)?.status === 'pending') this._drop(slot);
-      else {
-        this._letGo(slot);
-        slot.phase = 'done';
-        slot.retryable = true;
-      }
-      this._pump();
-      this._updateSettled();
-    });
+    this._run(() => this._cancel(slot));
+  }
+
+  /** A stale request let go: a pending entry goes with it, a failed one stays, asked again when wanted. */
+  private _cancel(slot: Slot): void {
+    if (this.get(slot.key)?.status === 'pending') this._drop(slot);
+    else {
+      this._clearTimer(slot);
+      this._letGo(slot);
+      slot.phase = 'done';
+      slot.retryable = true;
+    }
   }
 
   /** Stops a request in flight: aborted, its answer dropped when it comes. */
   private _letGo(slot: Slot): void {
     if (slot.phase !== 'flight') return;
     slot.token++;
-    slot.controller?.abort();
+    slot.staleSince = -1;
+    const c = slot.controller;
     slot.controller = undefined;
     this._inFlight--;
+    c?.abort();
   }
 
   private _dequeue(slot: Slot): void {
@@ -471,12 +599,17 @@ export class DataStore extends ReactiveModel {
     this._dequeue(slot);
     this._clearTimer(slot);
     this._slots.delete(slot.key);
-    this._bytes -= slot.bytes;
-    slot.bytes = 0;
-    for (const k of slot.nodes) this._release(k);
-    slot.nodes = [];
+    this._free(slot);
     this._entries.delete(slot.key);
     this._version.set(this._next());
+  }
+
+  private _free(slot: Slot): void {
+    this._bytes -= slot.bytes;
+    slot.bytes = 0;
+    const nodes = slot.nodes;
+    slot.nodes = [];
+    for (const k of nodes) this._release(k);
   }
 
   private _enqueue(slot: Slot): void {
@@ -487,11 +620,28 @@ export class DataStore extends ReactiveModel {
 
   // Requests in flight
 
+  /** The oldest stale request in flight. */
+  private _oldestStale(): Slot | undefined {
+    let out: Slot | undefined;
+    for (const s of this._slots.values())
+      if (s.phase === 'flight' && s.staleSince >= 0 && (!out || s.staleSince < out.staleSince)) out = s;
+    return out;
+  }
+
   private _pump(): void {
     const max = this.settings.maxInFlight;
-    if (this._inFlight >= max || this._queue.length === 0) return;
+    if (this._queue.length === 0) return;
     this._queue.sort((a, b) => a.rank - b.rank || a.order - b.order);
-    while (this._inFlight < max && this._queue.length) this._start(this._queue.shift()!);
+    while (this._queue.length) {
+      if (this._inFlight >= max) {
+        // EC-173: the view waits, so the oldest stale request goes now, not after its grace.
+        const stale = this._queue[0].rank === Rank.view ? this._oldestStale() : undefined;
+        if (!stale) break;
+        this._cancel(stale);
+        continue;
+      }
+      this._start(this._queue.shift()!);
+    }
   }
 
   private _start(slot: Slot): void {
@@ -504,15 +654,25 @@ export class DataStore extends ReactiveModel {
     const token = ++slot.token;
     const { system, start, end, level } = slot.region;
     const request: RegionRequest = { system, start, end, level, shapes: slot.shapes };
-    let reading: Promise<RegionAnswer>;
+    slot.request = request;
+    let reading: unknown;
     try {
       reading = source.opened.read(request, controller.signal);
     } catch (e) {
       reading = Promise.reject(e);
     }
-    reading.then(
-      (answer) => this._onAnswer(slot, token, answer),
-      (error) => this._onError(slot, token, error),
+    if (typeof (reading as Promise<unknown> | null)?.then !== 'function') {
+      this._answered(slot, () => this._malformed(slot, 'the read did not return a promise'));
+      return;
+    }
+    (reading as Promise<RegionAnswer>).then(
+      (answer) => {
+        if (this._current(slot, token)) this._run(() => this._answered(slot, () => this._onAnswer(slot, answer)));
+      },
+      (error) => {
+        // An abort the store asked for was let go already (`_current` is false): never an error state.
+        if (this._current(slot, token)) this._run(() => this._answered(slot, () => this._onError(slot, error)));
+      },
     );
   }
 
@@ -520,49 +680,44 @@ export class DataStore extends ReactiveModel {
     return slot.token === token && slot.phase === 'flight' && this._slots.get(slot.key) === slot;
   }
 
-  private _onAnswer(slot: Slot, token: number, answer: RegionAnswer): void {
-    if (!this._current(slot, token)) return;
-    batch(() => {
-      this._settle(slot);
-      if (!answer.ok) this._failure(slot, answer.kind, answer.issue);
-      else {
-        const bad = checkTables(answer.tables);
-        if (bad) {
-          const issue = issueOf(SourceIssues, 'seq.source.malformed', `The source answered a region malformed: ${bad}`);
-          this._failure(slot, 'malformed', issue);
-        } else this._loaded(slot, answer.tables, answer.nodes);
-      }
-      this._pump();
-      this._evict();
-      this._updateSettled();
-    });
-  }
-
-  private _onError(slot: Slot, token: number, error: unknown): void {
-    // An abort the store asked for was let go already (`_current` is false): never an error state.
-    if (!this._current(slot, token)) return;
-    batch(() => {
-      this._settle(slot);
-      const message = isAbortError(error) ? 'The read was aborted by the source' : 'The read failed';
-      this._failure(slot, 'failed', issueOf(SourceIssues, 'seq.source.failed', message));
-      this._pump();
-      this._updateSettled();
-    });
-  }
-
-  /** An answer came: the request is no longer in flight. */
-  private _settle(slot: Slot): void {
+  /** An answer came: the request is no longer in flight; what handling it throws makes it malformed. */
+  private _answered(slot: Slot, handle: () => void): void {
     this._clearTimer(slot);
     slot.controller = undefined;
+    slot.staleSince = -1;
     slot.phase = 'done';
     this._inFlight--;
+    try {
+      handle();
+    } catch {
+      this._malformed(slot, 'the answer could not be taken in');
+    }
+  }
+
+  private _malformed(slot: Slot, why: string): void {
+    const message = `The source answered a region malformed: ${why}`;
+    this._failure(slot, 'malformed', issueOf(SourceIssues, 'seq.source.malformed', message));
+  }
+
+  private _onAnswer(slot: Slot, answer: RegionAnswer): void {
+    const bad = checkAnswer(answer, slot.request!, this.settings.maxRows);
+    if (bad) this._malformed(slot, bad);
+    else if (!answer.ok) this._failure(slot, answer.kind, answer.issue);
+    else this._loaded(slot, answer.tables, answer.nodes);
+  }
+
+  private _onError(slot: Slot, error: unknown): void {
+    // An abort the store did not ask for is the source's failure.
+    const message = isAbortError(error) ? 'The read was aborted by the source' : 'The read failed';
+    this._failure(slot, 'failed', issueOf(SourceIssues, 'seq.source.failed', message));
   }
 
   private _loaded(slot: Slot, tables: Tables, nodes: readonly DynamicNode[] | undefined): void {
     slot.attempts = 0;
-    for (const k of slot.nodes) this._release(k);
-    slot.nodes = this._intakeNodes(slot.region.source, nodes);
-    this._bytes -= slot.bytes;
+    // The new nodes first, then the old released: a node in both is never dropped between.
+    const held = this._intakeNodes(slot.region.source, nodes);
+    this._free(slot);
+    slot.nodes = held;
     const empty = isEmptyAnswer(tables, nodes);
     slot.bytes = empty ? 0 : answerBytes(tables, nodes);
     this._bytes += slot.bytes;
@@ -570,73 +725,79 @@ export class DataStore extends ReactiveModel {
     const version = this._next();
     const region = slot.region;
     if (empty) this._setEntry(slot, { status: 'empty', version, region });
-    else this._setEntry(slot, { status: 'loaded', version, region, tables, nodes: slot.nodes, bytes: slot.bytes });
-    if (slot.rank === Unwanted) this._clearTimer(slot);
+    else this._setEntry(slot, { status: 'loaded', version, region, tables, nodes: held, bytes: slot.bytes });
   }
 
-  /** EC-174: `failed` and `malformed` retried with backoff, then a cooldown; the others never; each reported once. */
+  /**
+   * EC-174: `failed` is retried with backoff (the entry as it was), then fails with a cooldown; `malformed` fails with
+   * the cooldown at once; `not-served` and `too-large` are never retried. Each cause is reported once.
+   */
   private _failure(slot: Slot, kind: FailureKind, issue: Issue): void {
     const source = slot.region.source;
     this._report(source, { ...issue, address: issue.address ?? source });
     const retry = this.settings.retry;
-    const fail = () =>
-      this._setEntry(slot, { status: 'failed', version: this._next(), region: slot.region, kind, issue });
-    if (kind !== 'failed' && kind !== 'malformed') {
-      fail();
-      return;
-    }
-    slot.attempts++;
-    if (slot.attempts < retry.attempts) {
+    if (kind === 'failed' && slot.attempts + 1 < retry.attempts) {
+      slot.attempts++;
       slot.phase = 'backoff';
       const delay = retry.baseMs * retry.factor ** (slot.attempts - 1);
-      slot.timer = this._clock.setTimeout(() => this._retry(slot), delay);
+      slot.timer = this._clock.setTimeout(() => this._backoffOver(slot), delay);
       return;
     }
     slot.attempts = 0;
-    fail();
-    slot.phase = 'cooldown';
-    slot.timer = this._clock.setTimeout(() => this._cooled(slot), retry.cooldownMs);
+    this._setEntry(slot, { status: 'failed', version: this._next(), region: slot.region, kind, issue });
+    if (kind === 'failed' || kind === 'malformed') {
+      slot.phase = 'cooldown';
+      slot.timer = this._clock.setTimeout(() => this._backoffOver(slot), retry.cooldownMs);
+    } else slot.phase = 'done';
   }
 
-  private _retry(slot: Slot): void {
+  /** A backoff or a cooldown is over: asked again if wanted, else when it is wanted again. */
+  private _backoffOver(slot: Slot): void {
     slot.timer = undefined;
-    if (this._slots.get(slot.key) !== slot || slot.phase !== 'backoff') return;
-    batch(() => {
+    if (this._slots.get(slot.key) !== slot || (slot.phase !== 'backoff' && slot.phase !== 'cooldown')) return;
+    this._run(() => {
+      slot.phase = 'done';
+      slot.retryable = true;
       if (slot.rank !== Unwanted) this._enqueue(slot);
-      else if (this.get(slot.key)?.status === 'pending') this._drop(slot);
-      else {
-        slot.phase = 'done';
-        slot.retryable = true;
-      }
-      this._pump();
-      this._updateSettled();
     });
   }
 
-  private _cooled(slot: Slot): void {
-    slot.timer = undefined;
-    if (this._slots.get(slot.key) !== slot || slot.phase !== 'cooldown') return;
-    slot.phase = 'done';
-    slot.retryable = true;
-    if (slot.rank === Unwanted) return;
-    batch(() => {
-      this._enqueue(slot);
-      this._pump();
-    });
-  }
+  // Reports
 
   private _report(source: string, issue: Issue): void {
     const id = `${source}\u0000${issue.code}`;
-    if (this._reported.has(id)) return;
-    this._reported.add(id);
-    this._issues.set([...this._issues.value, issue]);
+    if (this._reported.some((r) => r.id === id)) return;
+    if (this._reported.length >= this.settings.maxIssues) {
+      if (!this._capped) {
+        this._capped = true;
+        this._publishIssues();
+      }
+      return;
+    }
+    this._reported.push({ source, id, issue });
+    this._publishIssues();
+  }
+
+  private _clearReports(source: string): void {
+    const before = this._reported.length;
+    for (let i = this._reported.length - 1; i >= 0; i--)
+      if (this._reported[i].source === source) this._reported.splice(i, 1);
+    if (this._reported.length === before) return;
+    this._capped = false;
+    this._publishIssues();
+  }
+
+  private _publishIssues(): void {
+    const list = this._reported.map((r) => r.issue);
+    if (this._capped)
+      list.push(issueOf(StoreIssues, 'seq.store.limit_exceeded', `More than ${this.settings.maxIssues} issues`));
+    this._issues.set(list);
   }
 
   private _updateSettled(): void {
     let settled = true;
     for (const slot of this._slots.values()) {
-      if (slot.rank === Unwanted) continue;
-      if (slot.phase === 'queued' || slot.phase === 'flight' || slot.phase === 'backoff') {
+      if (slot.rank !== Unwanted && this._entries.get(slot.key)?.status === 'pending') {
         settled = false;
         break;
       }
@@ -647,30 +808,29 @@ export class DataStore extends ReactiveModel {
   // Eviction
 
   /**
-   * Least recently used first among what is not wanted, then prefetched, then in the margin; never what is in view or
-   * a request on its way. When what is left is still over the bound, the store is over budget (reported once a time).
+   * Least recently used first among what is not wanted; still over, the wanted prefetch then margin tiles become
+   * `evicted`. Never the view, never a request on its way. Still over: over budget, reported once each time.
    */
   private _evict(): void {
     const max = this.settings.maxBytes;
-    while (this._bytes > max) {
-      let victim: Slot | undefined;
-      for (const slot of this._slots.values()) {
-        if (slot.rank === Rank.view || slot.phase === 'queued' || slot.phase === 'flight' || slot.phase === 'backoff')
-          continue;
-        if (slot.bytes === 0) continue;
-        if (!victim || slot.rank > victim.rank) victim = slot;
-        if (victim.rank === Unwanted) break;
+    for (const rank of [Unwanted, Rank.prefetch, Rank.margin]) {
+      if (this._bytes <= max) break;
+      for (const slot of [...this._slots.values()]) {
+        if (this._bytes <= max) break;
+        if (slot.rank !== rank || slot.bytes === 0 || slot.phase !== 'done') continue;
+        if (rank === Unwanted) this._drop(slot);
+        else {
+          this._free(slot);
+          slot.phase = 'evicted';
+          this._setEntry(slot, { status: 'evicted', version: this._next(), region: slot.region });
+        }
       }
-      if (!victim) break;
-      this._drop(victim);
     }
     const over = this._bytes > max;
     if (over && !this._overBudget.value) {
-      this._issues.set([
-        ...this._issues.value,
-        issueOf(StoreIssues, 'seq.store.over_budget', 'What is in view is over the store’s byte bound'),
-      ]);
-    }
+      const message = 'What is in view is over the store’s byte bound';
+      this._report(StoreWide, issueOf(StoreIssues, 'seq.store.over_budget', message));
+    } else if (!over && this._overBudget.value) this._clearReports(StoreWide);
     this._overBudget.set(over);
   }
 
@@ -693,10 +853,8 @@ export class DataStore extends ReactiveModel {
         this._nodes.set(k, { source, key: n.key, node: n.node, version });
         this._version.set(version);
       } else if (!nodesEqual(held.node, n.node)) {
-        const issue = issueOf(StoreIssues, 'seq.store.node_conflict', 'A node came again with other content: kept', {
-          address: source,
-        });
-        this._report(source, issue);
+        const message = 'A node came again with other content: kept';
+        this._report(source, issueOf(StoreIssues, 'seq.store.node_conflict', message, { address: source }));
       }
     }
     return keys;
@@ -714,5 +872,36 @@ export class DataStore extends ReactiveModel {
       this._nodes.delete(k);
       this._version.set(this._next());
     }
+  }
+}
+
+class WantSet implements Wanter {
+  tiles = new Map<string, PlannedTile>();
+  private _disposed = false;
+
+  constructor(private readonly _store: DataStore) {}
+
+  get keys(): ReadonlySet<string> {
+    return new Set(this.tiles.keys());
+  }
+
+  want(wants: readonly Want[]): void {
+    if (this._disposed) return;
+    this.tiles = this._store._plan(wants);
+    this._store._apply();
+  }
+
+  whenSettled(timeoutMs?: number): Promise<boolean> {
+    return this._store._waitFor(() => {
+      for (const k of this.tiles.keys()) if (this._store.get(k)?.status === 'pending') return false;
+      return true;
+    }, timeoutMs);
+  }
+
+  dispose(): void {
+    if (this._disposed) return;
+    this._disposed = true;
+    this.tiles = new Map();
+    this._store._removeSet(this);
   }
 }

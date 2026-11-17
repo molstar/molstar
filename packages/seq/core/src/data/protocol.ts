@@ -75,14 +75,24 @@ export interface LettersTable {
   readonly alphabet?: string;
 }
 
-/** `ranges` as rows: `strand` −1, 0, 1 (absent: 0); `fields` the columns the coverage lists, one value a row. */
-export interface RangesRows {
-  readonly form: 'rows';
+/** A ranges field: a named column, one value a row (any name: `kind` and `$x` too). */
+export interface RangesField {
+  readonly name: string;
+  readonly column: Column;
+}
+
+/**
+ * `ranges` as a list: `strand` −1, 0, 1 (absent: 0); `fields` the columns the coverage lists. A row's identity is its
+ * `id`, else `row` (stable across the tiles it is cut into): readers dedupe a range over a tile's edge by it.
+ */
+export interface RangesList {
+  readonly form: 'list';
   readonly start: Int32Array;
   readonly end: Int32Array;
   readonly strand?: Int8Array;
   readonly id?: CategoryColumn;
-  readonly fields?: Readonly<Record<string, Column>>;
+  readonly row?: Int32Array;
+  readonly fields?: readonly RangesField[];
 }
 
 /** `ranges` at a coarse level as density: a count per bin (bin index on the system, at the level's width). */
@@ -110,7 +120,7 @@ export interface ValuesBins {
   readonly count: Float32Array;
 }
 
-export type RangesTable = RangesRows | RangesDensity;
+export type RangesTable = RangesList | RangesDensity;
 export type ValuesTable = ValuesPositions | ValuesBins;
 
 export interface Tables {
@@ -122,10 +132,12 @@ export interface Tables {
 export type Table = LettersTable | RangesTable | ValuesTable;
 
 /**
- * Why a region was not answered: `failed` is retried with backoff then a cooldown, `not-served` never, `malformed`
- * is a failure with its issue, `too-large` asks for a coarser level.
+ * Why a region was not answered: `failed` is retried with backoff then a cooldown, `malformed` fails at once with a
+ * cooldown, `not-served` and `too-large` (ask a coarser level) are never retried.
  */
 export type FailureKind = 'failed' | 'not-served' | 'malformed' | 'too-large';
+
+export const FailureKinds: readonly FailureKind[] = ['failed', 'not-served', 'malformed', 'too-large'];
 
 export type RegionAnswer =
   | { readonly ok: true; readonly tables: Tables; readonly nodes?: readonly DynamicNode[] }

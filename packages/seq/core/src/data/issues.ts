@@ -25,6 +25,10 @@ export const SourceIssues = defineIssues('seq.source', {
     description: 'A region is too large for a source at its level; a coarser level is asked for',
     hint: 'Zoom in, or let the view use a coarser level',
   },
+  'seq.source.unreadable': {
+    severity: 'error',
+    description: 'A source’s file could not be read when it was opened',
+  },
   'seq.source.no_data': {
     severity: 'error',
     description: 'A `seq` source has neither inline data (`value`) nor a location (`uri`)',
@@ -36,6 +40,15 @@ export const StoreIssues = defineIssues('seq.store', {
   'seq.store.over_budget': {
     severity: 'info',
     description: 'What is in view alone is over the store’s byte bound; a coarser level is asked for the widest layers',
+  },
+  'seq.store.too_many_tiles': {
+    severity: 'warning',
+    description: 'A wanted region covers more tiles than the store asks for at once; it is not requested',
+    hint: 'Ask for it at a coarser level',
+  },
+  'seq.store.limit_exceeded': {
+    severity: 'warning',
+    description: 'The store reported as many issues as it keeps; later ones are left out',
   },
   'seq.store.node_conflict': {
     severity: 'warning',

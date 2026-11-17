@@ -210,16 +210,12 @@ describe('failures (EC-174)', () => {
     expect(store.issues.value.map((i) => i.code)).toEqual(['seq.source.failed', 'seq.source.not_served']);
   });
 
-  it('a malformed answer is a failure with its issue', async () => {
+  it('a malformed answer fails at once with a cooldown, never retried before it', async () => {
     const malformed: RegionAnswer = {
       ok: true,
-      tables: { ranges: { form: 'rows', start: Int32Array.of(1, 2), end: Int32Array.of(3) } },
+      tables: { ranges: { form: 'list', start: Int32Array.of(1, 2), end: Int32Array.of(3) } },
     };
-    const { clock, store } = setup({
-      delayMs: 10,
-      settings: { retry: { attempts: 1, baseMs: 1, factor: 1, cooldownMs: 1e6 } },
-      answer: () => malformed,
-    });
+    const { clock, source, store } = setup({ delayMs: 10, answer: () => malformed });
     store.want([view(0, 1024)]);
     await clock.advance(10);
     expect(store.get(key(0))).toMatchObject({
@@ -227,6 +223,96 @@ describe('failures (EC-174)', () => {
       kind: 'malformed',
       issue: { code: 'seq.source.malformed' },
     });
+    await clock.advance(29_000);
+    expect(source.reads.length).toBe(1);
+    await clock.advance(1_000);
+    expect(source.reads.length).toBe(2);
+  });
+
+  it('a result that is no promise, or an answer that throws when read, is malformed; nothing stays in flight', async () => {
+    const clock = new FakeClock();
+    const throwing = {
+      ok: true,
+      get tables(): never {
+        throw new Error('boom');
+      },
+    };
+    let n = 0;
+    const odd = {
+      coverage: syntheticCoverage(),
+      dispose() {},
+      read: () => (n++ === 0 ? null : Promise.resolve(throwing)) as unknown as Promise<RegionAnswer>,
+    };
+    const store = new DataStore({ clock });
+    store.attach(S, odd);
+    store.want([view(0, 2048)]);
+    await flush();
+    expect(store.get(key(0))).toMatchObject({ status: 'failed', kind: 'malformed' });
+    expect(store.get(key(1))).toMatchObject({ status: 'failed', kind: 'malformed' });
+    expect(store.inFlight).toBe(0);
+    expect(store.settled.value).toBe(true);
+  });
+
+  it('too large is never retried', async () => {
+    const tooLarge: RegionAnswer = {
+      ok: false,
+      kind: 'too-large',
+      issue: issueOf(SourceIssues, 'seq.source.too_large', 'Too many'),
+    };
+    const { clock, source, store } = setup({ delayMs: 10, answer: () => tooLarge });
+    store.want([view(0, 1024)]);
+    await clock.advance(120_000);
+    expect(source.reads.length).toBe(1);
+    expect(store.get(key(0))).toMatchObject({ status: 'failed', kind: 'too-large' });
+  });
+
+  it('an AbortError the source raised itself is a failure', async () => {
+    const own = new Error('gone');
+    own.name = 'AbortError';
+    const { clock, store } = setup({ delayMs: 10, answer: () => own });
+    store.want([view(0, 1024)]);
+    await clock.advance(10);
+    expect(store.issues.value.map((i) => i.code)).toEqual(['seq.source.failed']);
+    expect(store.get(key(0))?.status).toBe('pending');
+    expect(store.inFlight).toBe(0);
+  });
+
+  it('keep their backoff across a move away and back: not asked at once, attempts kept', async () => {
+    const { clock, source, store } = setup({ delayMs: 10, answer: () => failed() });
+    store.want([view(0, 1024)]);
+    await clock.advance(10);
+    store.want([view(8192, 9216)]);
+    store.want([view(0, 1024)]);
+    expect(source.reads.filter((r) => r.request.start === 0).length).toBe(1);
+    await clock.advance(500);
+    expect(source.reads.filter((r) => r.request.start === 0).length).toBe(2);
+    await clock.advance(10);
+    store.want([]);
+    await clock.advance(1000);
+    store.want([view(0, 1024)]);
+    // The second backoff (1,000) is over while away: asked again now, and its failure is the third (failed).
+    expect(source.reads.filter((r) => r.request.start === 0).length).toBe(3);
+    await clock.advance(10);
+    expect(store.get(key(0))).toMatchObject({ status: 'failed', kind: 'failed' });
+  });
+
+  it('settle after a cooldown: a failed entry asked again is settled, and stays current', async () => {
+    const { clock, store } = setup({
+      delayMs: 10,
+      settings: { retry: { attempts: 1, baseMs: 1, factor: 1, cooldownMs: 1000 } },
+      answer: (r, n) => (n === 1 ? failed() : rangesAnswer(r)),
+    });
+    const settles: boolean[] = [];
+    store.settled.listen((s) => settles.push(s));
+    store.want([view(0, 1024)]);
+    await clock.advance(10);
+    expect(store.get(key(0))?.status).toBe('failed');
+    await clock.advance(1000);
+    expect(store.inFlight).toBe(1);
+    expect(store.settled.value).toBe(true);
+    await clock.advance(10);
+    expect(store.get(key(0))?.status).toBe('loaded');
+    expect(settles).toEqual([false, true]);
   });
 });
 
@@ -260,6 +346,78 @@ describe('eviction', () => {
     expect(store.issues.value.map((i) => i.code)).toEqual(['seq.store.over_budget']);
     store.want([view(0, 1024)]);
     expect(store.overBudget.value).toBe(false);
+    expect(store.issues.value).toEqual([]);
+  });
+
+  it('never drops what is wanted: prefetch then margin become evicted, not asked again, without a loop', async () => {
+    const probe = setup({ delayMs: 1 });
+    probe.store.want([view(0, 1024)]);
+    await probe.clock.advance(1);
+    const b = tileBytes(probe.store);
+    const { clock, source, store } = setup({ delayMs: 1, settings: { maxBytes: 2 * b + b / 2 } });
+    const wants = [
+      view(0, 1024),
+      view(1024, 2048, { priority: 'margin' }),
+      view(2048, 3072, { priority: 'prefetch' }),
+      view(3072, 4096, { priority: 'margin' }),
+    ];
+    // A planner that wants again on every change.
+    const stop = store.version.listen(() => store.want(wants));
+    store.want(wants);
+    await clock.advance(10);
+    expect([0, 1, 2, 3].map((t) => store.get(key(t))?.status)).toEqual(['loaded', 'evicted', 'evicted', 'loaded']);
+    expect(source.reads.length).toBe(4);
+    await clock.advance(100);
+    expect(source.reads.length).toBe(4);
+    expect(store.settled.value).toBe(true);
+    // Leaving and coming back asks again.
+    stop();
+    store.want([view(0, 1024)]);
+    expect(store.get(key(2))).toBeUndefined();
+  });
+
+  it('never touches a request in flight', async () => {
+    const { clock, source, store } = setup({ delayMs: 100, settings: { maxBytes: 1, graceMs: 1000 } });
+    store.want([view(0, 1024)]);
+    await clock.advance(100);
+    store.want([view(1024, 2048)]);
+    expect(store.get(key(0))).toBeUndefined();
+    store.want([view(4096, 5120)]);
+    await clock.advance(50);
+    expect(source.reads[1].aborted).toBe(false);
+    expect(store.get(key(1))?.status).toBe('pending');
+  });
+});
+
+describe('want sets', () => {
+  it('of an export merge with the live view’s and settle on their own (EC-125)', async () => {
+    const { clock, source, store } = setup({ delayMs: 100 });
+    store.want([view(0, 1024)]);
+    await clock.advance(100);
+    const exporter = store.wanter();
+    exporter.want([view(0, 2048, { priority: 'prefetch' })]);
+    expect(source.reads.length).toBe(2);
+    expect([...exporter.keys]).toEqual([key(0), key(1)]);
+    const done = exporter.whenSettled();
+    await clock.advance(100);
+    expect(await done).toBe(true);
+    exporter.dispose();
+    expect(store.get(key(0))?.status).toBe('loaded');
+    expect(store.get(key(1))?.status).toBe('loaded');
+    store.want([]);
+    expect(store.get(key(1))?.status).toBe('loaded');
+  });
+
+  it('are bounded: lengths clip, a want over the tile cap is an issue and not asked', () => {
+    const { source, store } = setup({ settings: { maxTilesPerWant: 4 } });
+    store.want([view(999_000, 2_000_000)]);
+    expect(source.reads.map((r) => [r.request.start, r.request.end])).toEqual([
+      [998_400, 999_424],
+      [999_424, 1_000_000],
+    ]);
+    store.want([view(0, 10 * 1024)]);
+    expect(source.reads.length).toBe(2);
+    expect(store.issues.value.map((i) => [i.code, i.address])).toEqual([['seq.store.too_many_tiles', S]]);
   });
 });
 
@@ -326,6 +484,91 @@ describe('nodes', () => {
     expect(store.node(S, 'T1').value?.node).toBe(T1);
     store.detach(S);
     expect(store.getNode(S, 'T1')).toBeUndefined();
+  });
+});
+
+describe('cancellation when the view waits (EC-173)', () => {
+  it('lets the oldest stale request go at once, not after its grace', async () => {
+    const { clock, source, store } = setup({ delayMs: 1000, settings: { maxInFlight: 2, graceMs: 5000 } });
+    store.want([view(0, 2048)]);
+    await clock.advance(10);
+    store.want([view(1024, 2048)]);
+    await clock.advance(10);
+    store.want([view(8192, 9216)]);
+    expect(source.reads.map((r) => [r.request.start, r.aborted])).toEqual([
+      [0, true],
+      [1024, false],
+      [8192, false],
+    ]);
+    store.want([view(8192, 10240)]);
+    expect(source.reads.map((r) => r.aborted)).toEqual([true, true, false, false]);
+  });
+
+  it('and a detach during a grace leaves no timer behind', async () => {
+    const { clock, source, store } = setup({ delayMs: 1000 });
+    store.want([view(0, 1024)]);
+    store.want([]);
+    store.detach(S);
+    expect(clock.pending).toBe(0);
+    await clock.advance(5000);
+    expect(source.reads[0].aborted).toBe(true);
+    expect(store.inFlight).toBe(0);
+  });
+});
+
+describe('coverage', () => {
+  it('is checked on attach: a malformed one is an issue and the source unavailable', () => {
+    const clock = new FakeClock();
+    const store = new DataStore({ clock });
+    const bad = (coverage: object) => new SyntheticSource(coverage as never, clock);
+    expect(store.attach(S, bad({ ...syntheticCoverage(), levels: [10, 1] }))).toBe(false);
+    expect(store.attach('/b', bad({ ...syntheticCoverage(), levels: [] }))).toBe(false);
+    expect(store.attach('/c', bad({ ...syntheticCoverage(), levels: [0.5] }))).toBe(false);
+    expect(store.attach('/d', bad({ ...syntheticCoverage(), systems: [{ name: 'chr1', length: -1 }] }))).toBe(false);
+    expect(store.issues.value.map((i) => [i.code, i.address])).toEqual([
+      ['seq.source.malformed', S],
+      ['seq.source.malformed', '/b'],
+      ['seq.source.malformed', '/c'],
+      ['seq.source.malformed', '/d'],
+    ]);
+    expect(store.coverage(S)).toBeUndefined();
+    store.want([view(0, 1024)]);
+    expect(store.get(key(0))).toBeUndefined();
+  });
+});
+
+describe('versions', () => {
+  it('move only for the entries that changed', async () => {
+    const { clock, store } = setup();
+    store.want([view(0, 1024)]);
+    await clock.advance(100);
+    const first = store.get(key(0))!;
+    const told: number[] = [];
+    store.entry(key(0)).listen((e) => told.push(e!.version));
+    store.want([view(0, 2048)]);
+    await clock.advance(100);
+    expect(store.get(key(1))?.status).toBe('loaded');
+    expect(store.get(key(0))).toBe(first);
+    expect(told).toEqual([]);
+    expect(store.version.value).toBe(store.get(key(1))!.version);
+  });
+});
+
+describe('issues', () => {
+  it('are deduped, capped, and cleared with their source', async () => {
+    const { clock, store } = setup({
+      delayMs: 10,
+      settings: { maxIssues: 1 },
+      answer: (r) =>
+        r.start === 0
+          ? failed()
+          : { ok: false, kind: 'not-served', issue: issueOf(SourceIssues, 'seq.source.not_served', 'No') },
+    });
+    store.want([view(0, 3072)]);
+    await clock.advance(2000);
+    expect(store.issues.value.map((i) => i.code)).toEqual(['seq.source.failed', 'seq.store.limit_exceeded']);
+    store.detach(S);
+    expect(store.issues.value).toEqual([]);
   });
 });
 

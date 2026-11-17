@@ -15,6 +15,7 @@ export {
   type Coverage,
   type DynamicNode,
   type FailureKind,
+  FailureKinds,
   type FieldInfo,
   type FormatRuntime,
   isAbortError,
@@ -22,7 +23,8 @@ export {
   type OpenContext,
   type OpenedSource,
   type RangesDensity,
-  type RangesRows,
+  type RangesField,
+  type RangesList,
   type RangesTable,
   type RegionAnswer,
   type RegionRequest,
@@ -38,6 +40,7 @@ export {
   type ValuesTable,
 } from './protocol.js';
 export {
+  checkCoverage,
   decodeSeq,
   encodeSeq,
   inlineSeq,
@@ -61,5 +64,17 @@ export {
   type StoreSettings,
   type TileRegion,
   type Want,
+  type Wanter,
 } from './store.js';
-export { answerBytes, checkTables, isEmptyAnswer, NodeBytes, sliceTable, tableRows } from './tables.js';
+export {
+  answerBytes,
+  type Cut,
+  checkAnswer,
+  checkTables,
+  DefaultMaxRows,
+  isEmptyAnswer,
+  joinTables,
+  NodeBytes,
+  sliceTable,
+  tableRows,
+} from './tables.js';

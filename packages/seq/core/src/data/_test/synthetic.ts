@@ -16,9 +16,12 @@ interface Timer {
   fn: () => void;
 }
 
-/** Lets promise callbacks run: the store's `then` after a source resolves. */
-export async function flush(): Promise<void> {
-  for (let i = 0; i < 8; i++) await Promise.resolve();
+/**
+ * Lets promise callbacks run until the microtask queue is quiet: `setImmediate` runs after every microtask queued
+ * before it (and those they queue), and is no timer of the clock.
+ */
+export function flush(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 export class FakeClock implements StoreClock {
@@ -117,7 +120,7 @@ export function rangesAnswer(r: RegionRequest): RegionAnswer {
     ok: true,
     tables: {
       ranges: {
-        form: 'rows',
+        form: 'list',
         start: Int32Array.from(starts),
         end: Int32Array.from(starts, (s) => s + 10),
         id: categoryColumn(starts.map((s) => `r${s}`)),

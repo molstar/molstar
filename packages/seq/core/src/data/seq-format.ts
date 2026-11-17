@@ -9,7 +9,6 @@ import {
   ColumnTypes,
   columnType,
   type Issue,
-  type IssueCatalog,
   issueOf,
   isNode,
   isRecord,
@@ -22,7 +21,6 @@ import { SourceIssues } from './issues.js';
 import type {
   Coverage,
   DynamicNode,
-  FailureKind,
   FieldInfo,
   RegionAnswer,
   RegionRequest,
@@ -31,7 +29,7 @@ import type {
   SystemInfo,
   Tables,
 } from './protocol.js';
-import { Shapes } from './protocol.js';
+import { FailureKinds, Shapes } from './protocol.js';
 import { checkTables } from './tables.js';
 
 // The `seq` format (_spec/README.md "Data", The seq format): the protocol written down, a coverage and the
@@ -50,8 +48,6 @@ export interface SeqData {
 
 /** The node kind of a `seq` file. */
 export const SeqKind = 'seq';
-
-const FailureKinds: readonly FailureKind[] = ['failed', 'not-served', 'malformed', 'too-large'];
 
 /** An answer as a value: a failure's `kind` is written `failure` (a record with `kind` reads as a node). */
 function answerToValue(a: RegionAnswer): ValueRecord {
@@ -158,7 +154,11 @@ function readNodes(r: ValueRecord, path: TreePath): readonly DynamicNode[] | und
 function readCoverage(v: unknown, path: TreePath): Coverage {
   const r = rec(v, path);
   const systems = list(r.systems, [...path, 'systems']).map((s, i) => readSystem(s, [...path, 'systems', i]));
-  const names = new Set(systems.map((s) => s.name));
+  const names = new Set<string>();
+  systems.forEach((s, i) => {
+    if (names.has(s.name)) fail([...path, 'systems', i, 'name'], 'a system listed twice');
+    names.add(s.name);
+  });
   list(r.shapes, [...path, 'shapes']).forEach((s, i) => {
     const p = [...path, 'shapes', i];
     const sr = rec(s, p);
@@ -226,14 +226,28 @@ export function readSeq(value: Value): { data?: SeqData; issues: readonly Issue[
     return { data: { coverage, pairs }, issues: [] };
   } catch (e) {
     if (!(e instanceof Malformed)) throw e;
-    return {
-      issues: [
-        issueOf(SourceIssues as IssueCatalog<'seq.source.malformed'>, 'seq.source.malformed', e.message, {
-          path: e.path,
-        }),
-      ],
-    };
+    return { issues: [malformed(e)] };
   }
+}
+
+/**
+ * A coverage checked as `readSeq` checks a file's (systems with unique names and lengths of at least 0, shapes of
+ * listed systems, integer levels of at least 1, ascending, at least one): the first misfit as an issue.
+ */
+export function checkCoverage(coverage: Coverage): Issue | undefined {
+  try {
+    readCoverage(coverage, ['coverage']);
+    return undefined;
+  } catch (e) {
+    if (!(e instanceof Malformed)) throw e;
+    return malformed(e);
+  }
+}
+
+function malformed(e: Malformed): Issue {
+  return issueOf(SourceIssues, 'seq.source.malformed', `The coverage or data is malformed: ${e.message}`, {
+    path: e.path,
+  });
 }
 
 /** The shapes a table record holds, in the protocol's order. */
@@ -250,13 +264,13 @@ export function inlineSeq(system: SystemInfo, tables: Tables, nodes?: readonly D
   const length = system.length ?? extentOf(tables);
   const shapeInfo: ShapeInfo[] = shapes.map((shape) => {
     const r = tables.ranges;
-    if (shape !== 'ranges' || r?.form !== 'rows' || !r.fields) return { system: system.name, shape };
-    const fields = Object.entries(r.fields).map(([name, c]) => ({ name, type: columnType(c) ?? 'float64' }));
+    if (shape !== 'ranges' || r?.form !== 'list' || !r.fields) return { system: system.name, shape };
+    const fields = r.fields.map((f) => ({ name: f.name, type: columnType(f.column) ?? 'float64' }));
     return { system: system.name, shape, fields };
   });
   const answer: RegionAnswer = nodes ? { ok: true, tables, nodes } : { ok: true, tables };
   return {
-    coverage: { systems: [system], shapes: shapeInfo, levels: [1] },
+    coverage: { systems: [{ ...system, length }], shapes: shapeInfo, levels: [1] },
     pairs: [{ request: { system: system.name, start: 0, end: length, level: 1, shapes }, answer }],
   };
 }
@@ -265,7 +279,7 @@ function extentOf(tables: Tables): number {
   let end = 0;
   const { letters: l, ranges: r, values: v } = tables;
   if (l) end = Math.max(end, l.start + l.letters.length);
-  if (r?.form === 'rows') for (let i = 0; i < r.end.length; i++) end = Math.max(end, r.end[i]);
+  if (r?.form === 'list') for (let i = 0; i < r.end.length; i++) end = Math.max(end, r.end[i]);
   if (v?.form === 'positions') end = Math.max(end, v.start + v.value.length);
   return end;
 }
