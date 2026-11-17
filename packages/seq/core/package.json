@@ -24,8 +24,14 @@
       "types": "./lib/lang/index.d.ts",
       "import": "./lib/lang/index.js"
     },
+    "./query": {
+      "molstar-src": "./src/query/index.ts",
+      "types": "./lib/query/index.d.ts",
+      "import": "./lib/query/index.js"
+    },
     "./_test/*": null,
-    "./lang/_test/*": null
+    "./lang/_test/*": null,
+    "./query/_test/*": null
   },
   "files": [
     "lib",
