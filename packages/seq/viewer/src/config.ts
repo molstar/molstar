@@ -48,6 +48,11 @@ export interface ViewerConfig {
      * which then has its own viewport until it is attached again (`attach`, or a fit).
      */
     readonly followerMoves: 'ignore' | 'detach';
+    /**
+     * A follower's range over a cyclic origin: kept as the wrap, two pieces (`wrap`, the default), or the hull of
+     * the image (`hull`).
+     */
+    readonly cyclicArc: 'wrap' | 'hull';
   };
   readonly navigate: {
     /** The zoom factor of one wheel notch (100 px of delta) with the zoom modifier, and of a key zoom. */
@@ -66,7 +71,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
   hover: { projectLinked: true, closeCodons: true },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
-  follow: { followerMoves: 'ignore' },
+  follow: { followerMoves: 'ignore', cyclicArc: 'wrap' },
   navigate: { wheelZoomStep: 1.25, keyPanFraction: 0.1, coalesceWheel: true },
 };
 

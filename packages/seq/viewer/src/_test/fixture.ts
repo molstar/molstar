@@ -28,6 +28,10 @@ export interface FixtureOptions {
   readonly title?: string;
   /** A second gene section following the first: a chain of follows. */
   readonly chain?: boolean;
+  /** The gene section leads and the protein section follows it. */
+  readonly reverse?: boolean;
+  /** A second view, `/views/other`, with the gene alone. */
+  readonly other?: boolean;
   /** The gene's length (24). */
   readonly geneLength?: number;
 }
@@ -45,6 +49,11 @@ export function proteinOnGene(options: FixtureOptions = {}): Node {
   });
   b.views.view('main', (v) => {
     const range = options.range ? { range: [...options.range] } : {};
+    if (options.reverse) {
+      const gene = v.section('gene', { of: g });
+      v.section('protein', { of: p, follow: gene, ...range });
+      return;
+    }
     const protein = v.section('protein', { of: p, ...range });
     protein.track('letters').layer('l', { type: 'letters' });
     if (options.twin) v.section('twin', { of: p, ...range });
@@ -52,10 +61,35 @@ export function proteinOnGene(options: FixtureOptions = {}): Node {
     gene.track('letters').layer('l', { type: 'letters' });
     if (options.chain) v.section('gene2', { of: g, follow: gene });
   });
+  if (options.other) b.views.view('other', (v) => void v.section('gene', { of: g }));
   return b.build();
 }
 
 /** A Location's parts as plain arrays, to compare. */
 export function partsOf(loc: { parts: readonly { system: string; ranges: Int32Array }[] } | undefined) {
   return loc?.parts.map((p) => [p.system, [...p.ranges]]);
+}
+
+export const Plasmid = '/data/c';
+export const PlasmidSection = '/views/main/plasmid';
+
+/**
+ * A protein of 4 residues on a cyclic plasmid of 30 nucleotides, its coding sequence over the origin: one exon from
+ * 24 to 6. Residue 2 is nucleotides 0–2. `reverse`: the plasmid section leads.
+ */
+export function proteinOnPlasmid(options: { reverse?: boolean } = {}): Node {
+  const b = createSeqSpec({ title: 'p on a plasmid' });
+  const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
+  const c = b.data.sequence('c', { alphabet: 'dna', letters: 'ACG'.repeat(10), cyclic: true });
+  b.data.map('m', { from: p, to: c, method: 'codon', exons: { start: [24], end: [6] }, strand: '+' });
+  b.views.view('main', (v) => {
+    if (options.reverse) {
+      const plasmid = v.section('plasmid', { of: c });
+      v.section('protein', { of: p, follow: plasmid });
+    } else {
+      const protein = v.section('protein', { of: p });
+      v.section('plasmid', { of: c, follow: protein });
+    }
+  });
+  return b.build();
 }
