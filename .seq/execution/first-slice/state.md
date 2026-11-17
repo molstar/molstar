@@ -12,8 +12,8 @@ Branch: `packages-seq`.
 
 ## In progress
 
-- Stage 2: lanes B (language, fast model), C (locations and queries, strong), D (protocol and store, strong), from the
-  merge commit, briefs in `briefs/`.
+- Stage 2: lane B merged (`77d03dfc1`, review fixed in one round), lane C merged (`5fa7c43d4`, review fixed in one
+  round; the merged tree 180 tests green; a test typing fix `bc5fe4894`); lane D in its review's fix round.
 
 ## Next
 

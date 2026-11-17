@@ -45,9 +45,9 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 2: the language, locations, the protocol (three lanes in parallel, after stage 1)
 
-- [ ] B (fast) `seqx-core/lang`: `SeqLanguage` with the slice's kinds; the builder (`createSeqSpec`); the issue catalog
+- [x] B (fast) `seqx-core/lang`: `SeqLanguage` with the slice's kinds; the builder (`createSeqSpec`); the issue catalog
       with its test; the p53 example built, printed, encoded both ways, validated, misuses giving their codes
-- [ ] C (strong) `seqx-core/query`: Location (parts and rects), element keys, the three result types, the first forms
+- [x] C (strong) `seqx-core/query`: Location (parts and rects), element keys, the three result types, the first forms
       as resolvers (`range`, `at`, `all`, `item`, `node`, `extent`, `items`), numberings `index` and `ordinal`, labels
       EC-1 to EC-8
 - [ ] D (strong) `seqx-core/data`: the protocol's types, the `seq` format (round trip), `FormatRuntime` for `seq`, the

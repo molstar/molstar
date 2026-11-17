@@ -21,3 +21,7 @@ From lane C: the `rect`, `row` and `chain` forms; lane E's static model implemen
 conformance); per-key element access with access plans; EC-8 across a codon step (lane E); the `_spec` "Queries" section
 (lane C's settled semantics: `not`'s universe, rect complement refused, zero-length overlap, snapping by label order,
 missing ends as the system's ends).
+
+From lane C's review: the tree core unions staged `pending` across segments (repr); dynamic nodes in `not`'s universe; a
+Location limit (what it counts); whether range-set operations move to `@molstar/core/data/int` (the author's call); open
+or streamed systems in `(all)` and `not` (lane E).
