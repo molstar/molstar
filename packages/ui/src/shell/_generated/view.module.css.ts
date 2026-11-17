@@ -171,6 +171,14 @@ defineStyles('shell/view.module.css', `@layer msui.components {
   min-height: var(--msui-row);
   padding-inline: var(--msui-inner);
   display: flex;
+
+  &:has( > input:first-child) {
+    padding-inline-start: 0;
+  }
+
+  &:has( > input:last-child) {
+    padding-inline-end: 0;
+  }
 }
 
 .msui-shell-view-empty {

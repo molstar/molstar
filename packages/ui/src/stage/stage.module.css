@@ -1,0 +1,172 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The stage (stage §2, styles §8): the app's canvas, and over it one layer of chrome in the canvas's ink. The layer and
+   its slots take no pointer; what is in them does. Sizes: the edge the chrome keeps from the stage's (a unit pair, 8),
+   the band's fade (24: two rows' gap, a soft edge that lets the scene through). */
+.stage {
+  --msui-stage-edge: var(--msui-space-2);
+  --msui-stage-band-fade: var(--msui-space-5);
+  --msui-stage-top-inset: 0px;
+
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container: msui-stage / inline-size;
+  background: var(--msui-stage-color, #ffffff);
+  isolation: isolate;
+}
+
+/* The app's canvas: it fills the stage. Quiet (empty, under the mark) it fades out, and back in as something comes. */
+.canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  transition: opacity var(--msui-motion-slow) var(--msui-ease);
+
+  &[data-quiet] {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* The chrome, themed by the canvas's ink (`data-msui-theme`); its base text color restated, as the theme sets tokens. */
+.ink {
+  position: absolute;
+  inset: 0;
+  color: var(--msui-text);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  pointer-events: none;
+}
+
+/* A slot takes no pointer; its content does. */
+.slot {
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+/* The band over the canvas's top: its content on the canvas's color, which fades out below it over
+   `--msui-stage-band-fade`; the faded part (a pseudo-element of the slot, which takes no pointer) lets it through. */
+.top {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  pointer-events: none;
+
+  &::after {
+    content: "";
+    display: block;
+    height: var(--msui-stage-band-fade);
+    background: linear-gradient(to bottom, var(--msui-stage-color, #ffffff), transparent);
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.band {
+  background: var(--msui-stage-color, #ffffff);
+  pointer-events: auto;
+}
+
+/* The top left, below the band's content. */
+.lead {
+  position: absolute;
+  top: calc(var(--msui-stage-top-inset) + var(--msui-stage-edge));
+  left: var(--msui-stage-edge);
+  display: grid;
+  justify-items: start;
+  gap: var(--msui-space-2);
+  max-width: calc(100% - 2 * var(--msui-stage-edge));
+}
+
+/* The bottom bar: status | chips | corner, on the stage's edge; each column as wide as its content allows. */
+.bottom {
+  position: absolute;
+  /* Clear of what covers the stage's bottom corners (`insets`: a shell's shared chrome over this pane). */
+  right: calc(var(--msui-stage-edge) + var(--msui-stage-inset-right, 0px));
+  bottom: var(--msui-stage-edge);
+  left: calc(var(--msui-stage-edge) + var(--msui-stage-inset-left, 0px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "status chips corner";
+  align-items: end;
+  gap: var(--msui-space-2);
+  pointer-events: none;
+}
+
+.status {
+  grid-area: status;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--msui-space-1);
+  min-width: 0;
+}
+
+.chips {
+  grid-area: chips;
+  display: flex;
+  justify-content: center;
+  gap: var(--msui-space-1);
+}
+
+/* The corner: the toolbar, and the hover label above it (`--msui-hover-label-*`: its offset parent is this). */
+.corner {
+  --msui-hover-label-right: 0px;
+  --msui-hover-label-bottom: calc(100% + var(--msui-space-2));
+
+  position: relative;
+  grid-area: corner;
+  display: flex;
+  justify-content: flex-end;
+  align-items: end;
+  min-width: 0;
+}
+
+/* The corner's toolbar. Hidden by the app (`toolbarShown` false: a stage that is not the active one): faded out and
+   out of the pointer's way, still in the tab order (the focus coming in makes the pane focused, and the app shows it). */
+.tools {
+  display: flex;
+  transition: opacity var(--msui-motion-fast) var(--msui-ease);
+
+  .stage[data-toolbar="hidden"] & {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Narrow (`StageCompactWidth`, 480): the status on a row of its own above the chips and the corner. */
+@container msui-stage (width < 480px) {
+  .bottom {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "status status"
+      "chips corner";
+  }
+
+  .chips {
+    justify-content: flex-start;
+  }
+}
+
+.overlays {
+  position: absolute;
+  inset: 0;
+}

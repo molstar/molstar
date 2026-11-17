@@ -77,12 +77,13 @@ its sections (`dom §2.2`). The code is the truth for how.
 
 - **Microtask lane**: marked watches and the task lane's work, one microtask a burst.
 - **Frame lane**: a `FrameState` keeps only the latest `offer` (nothing allocated, no listener told); the first offer in
-  a frame asks for the page's one animation frame. The tick runs the frame callbacks (`requestFrameCallback`, in the
-  order asked; a cancel reaches one of the running frame too), publishes the offered frame states in one `batch` (each a
-  `set`: compared, marked in the graph, so `derive` follows it as any state; a value over several sees none torn), runs
-  the frame lane's work, then the microtask lane and the watches with a frame state among their sources. Why: input
-  comes several times a frame; it is batched at its source, once a frame for the whole page. `flushFrame()` runs the
-  tick's publish and renders now; `flush()` never publishes.
+  a frame asks for the page's one animation frame (asked again of a new `DomHost.requestAnimationFrame`: a tick pending
+  on a swapped host, a test's stub dropped with its queue, would never run and the lane would stall). The tick runs the
+  frame callbacks (`requestFrameCallback`, in the order asked; a cancel reaches one of the running frame too), publishes
+  the offered frame states in one `batch` (each a `set`: compared, marked in the graph, so `derive` follows it as any
+  state; a value over several sees none torn), runs the frame lane's work, then the microtask lane and the watches with
+  a frame state among their sources. Why: input comes several times a frame; it is batched at its source, once a frame
+  for the whole page. `flushFrame()` runs the tick's publish and renders now; `flush()` never publishes.
 - **`DomHost`**: the microtask, frame, idle, timer and clock APIs are read through one object, whose defaults read the
   globals at each call (fake timers drive them). A test or a host without a browser replaces them.
 

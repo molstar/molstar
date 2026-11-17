@@ -52,11 +52,11 @@ function checkInvariants(l: ShellLayout) {
       }
       const shown = n.views.filter((v) => !l.hidden.includes(v));
       if (shown.length) expect(shown).toContain(n.active);
-    } else {
+    } else if (n.kind === 'split') {
       expect(n.children.length).toBeGreaterThanOrEqual(2);
       expect(n.dir).not.toBe(parentDir);
       // One child takes the rest: the one holding the main area, else the first.
-      const unsized = n.children.filter((c) => c.kind === 'main' || c.size === undefined);
+      const unsized = n.children.filter((c) => c.kind === 'main' || c.kind === 'content' || c.size === undefined);
       expect(unsized.length).toBeGreaterThanOrEqual(1);
       for (const c of n.children) walk(c, n.dir);
     }

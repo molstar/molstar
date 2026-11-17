@@ -18,6 +18,8 @@ why; code comments cite its sections (`commands §3.3`). The code is the truth f
 | `tail.ts`              | reading the words typed after an alias (§3.6)                                               |
 | `keys.ts`, `keymap.ts` | chords, the keymap's layers, the per-key index (§6)                                         |
 | `items.ts`             | `commandItem`, `commandItems` (§7)                                                          |
+| `keys-model.ts`        | `KeysModel`: what Help lists, conflicts, keys recorded, cleared, reset (§6.6)               |
+| `help-view.tsx`        | `HelpView`: the one view in the layer, over `KeysModel` (§6.6)                              |
 
 ## 1. The layer
 
@@ -199,8 +201,8 @@ new highlight, none, or `open` aborts the count's signal and clears the preview.
 
 `components/command-menu` (`CommandMenu`; files: `command-menu.tsx` the shell, `list.tsx` + `rows.tsx` the list,
 `sentence-mode.tsx` + `sentence.tsx` the sentence, `choices.tsx`, `options-fold.tsx`, `footer.tsx` keys, `types.ts` the
-props and ports). Props: `manager`, `onClose`, `initial?`, `group?`, `prefixes?`, `assistant?`, `direct?`, `forms?`,
-`fieldViews?`. `CommandButton` is in `components/button/command-button.tsx` (§7's rules, as a button).
+props and ports). Props: `manager`, `onClose`, `initial?`, `group?`, `prefixes?`, `assistant?`, `help?`, `direct?`,
+`forms?`, `fieldViews?`. `CommandButton` is in `components/button/command-button.tsx` (§7's rules, as a button).
 
 ### 5.1 The shell and the list
 
@@ -224,8 +226,9 @@ props and ports). Props: `manager`, `onClose`, `initial?`, `group?`, `prefixes?`
   keeps the rest's height. Not `VirtualList`: rows and captions mix, and the highlighted option must exist for
   `aria-activedescendant` without a layout pass.
 - **The list's filter is a frame state** (dom §3): keys faster than frames filter once.
-- **Prefixes and `?`**: a prefix's items replace the rows (`{ text }` from an item edits the line); `?` lists the
-  prefixes (picking one types it), then every command with a key.
+- **Prefixes and `?`**: a prefix's items replace the rows (`{ text }` from an item edits the line); `?` lists the app's
+  help first when it gives one (`help`: opens its `HelpView`, the menu closes), the prefixes (picking one types it),
+  then every command with a key.
 - **The Ask row** (`CommandMenuAssistant`: `ready`, `propose`, `ask`, `setup`), only when the host gives one: ⌘↵, or ↵
   when nothing matches (it is then drawn as the default). A proposal opens its sentence filled in, under a line saying
   where it came from; nothing runs until Enter. Not ready: a quiet row to the setup.
@@ -314,6 +317,16 @@ Written once with `mod` (⌘ on macOS, Ctrl elsewhere); `chordKeys` (one cap per
 platform, `chordId` compares them (a symbol's Shift is part of it). **The platform** is `KeyPlatform.mac`, detected once
 from the browser by core's `isApplePlatform` (false outside a browser) and settable by a host (tests, a forced
 platform); every default `mac` reads it. Why: one detection for the whole UI, in core with the other browser checks.
+
+### 6.6 Help and changing keys
+
+`KeysModel(manager)` (DOM-free): `listed` (commands with a key, those the person remapped or cleared, the one being
+recorded), `conflicts`, `keyless`; `setEditing`, `record(id)`, `recorded(chord)`, `cancel`, `clear`, `reset`,
+`resetAll`, each through the keymap (§6.3), and `said`: what the last change did (with what a new key now shares). Why a
+model: an agent or a test changes keys as the view does. `HelpView({ commands, bindings?, global?, intro?, keys? })`
+renders it with the app's input bindings (`InputBindingGroup`: mouse, touch) and the keys that work everywhere: the
+conflicts first, a recorder that takes every key (Esc or leaving cancels), `said` in a polite live region. It has no
+scroll of its own (a view's body is the one, styles §8.4).
 
 ## 7. Menus and buttons by command id
 

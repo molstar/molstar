@@ -62,6 +62,16 @@ describe('a prefix’s rows', () => {
     expect(t.input().value).toBe('@');
     expect(t.input().placeholder).toBe('Scene');
   });
+
+  it('`?` starts with the app’s help, when it has one: picking it opens the help and closes the menu', () => {
+    const help = vi.fn();
+    const t = mount({ manager: manager(), help });
+    t.type('?');
+    expect(t.rows()[0]).toContain('Keyboard and mouse');
+    t.key('Enter');
+    expect(help).toHaveBeenCalledTimes(1);
+    expect(t.closed()).toBe(1);
+  });
 });
 
 describe('the Ask row', () => {

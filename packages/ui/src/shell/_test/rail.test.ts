@@ -31,6 +31,19 @@ describe('railEntries', () => {
     expect(es.map((e) => e.id)).toEqual(['view:home', 'view:a', 'view:b', 'item:cmd', 'view:help', 'item:theme']);
     expect(es.map((e) => e.section)).toEqual(['head', 'strip', 'strip', 'group:g', 'foot', 'tools']);
   });
+
+  it('a corner item comes last (under the Hide button), whatever its group, and stays when the rail runs short', () => {
+    const es = railEntries(
+      [view('home', { place: 'head' }), view('a'), view('b'), view('help', { place: 'foot' })],
+      [item('commands', { corner: true, group: 'g' }), item('theme')],
+    );
+    expect(es.map((e) => e.id)).toEqual(['view:home', 'view:a', 'view:b', 'view:help', 'item:theme', 'item:commands']);
+    expect(es.at(-1)?.section).toBe('corner');
+    // Too short for all of them: the others leave first.
+    const fit = fitRail(es, RailSteps[RailSteps.length - 1].button * 3 + 2 * RailPad + 3 * RailSectionGap);
+    expect(fit.hidden.size).toBeGreaterThan(0);
+    expect(fit.hidden.has('item:commands')).toBe(false);
+  });
 });
 
 describe('fitRail', () => {

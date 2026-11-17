@@ -4,19 +4,24 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { ContextMenuItem } from '../components/context-menu/context-menu.js';
 import { batch, derive, listen, type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Child } from '../dom/index.js';
 import type { ViewRenderer } from '../dom/view.js';
 import type { IconName } from '../components/icon/icon.js';
 import {
   allGroups,
+  arrangeGrid,
   clampRect,
   defaultLayout,
   findGroup,
   findView,
   type GroupNode,
+  type LayoutNode,
+  inRegion,
   inRightColumn,
   keepHidden,
+  mainNode,
   MinGroupSize,
   MinMainSize,
   RailWidth,
@@ -45,7 +50,8 @@ import {
 } from './layout.js';
 
 /** Where a view is shown (shell §3): it may look different in each. */
-export type ViewPlacement = 'docked' | 'window' | 'card' | 'page' | 'modal' | 'sheet';
+/** Where a view shows (`stage`: a pane of the main area's region; `top`: overlaid on the content's top; shell §2.1). */
+export type ViewPlacement = 'docked' | 'window' | 'card' | 'page' | 'modal' | 'sheet' | 'stage' | 'top';
 
 /** What a view is rendered with. */
 export interface ShellViewContext {
@@ -61,10 +67,74 @@ export interface ShellViewContext {
   readonly placement: ViewPlacement;
   /** Closes it where it is (a card, a window, an instance; a docked view is hidden). */
   close(): void;
+  /** Its pane's port (shell §2.1): what the layout tells the pane, and the little the pane tells the layout. */
+  readonly pane: PanePort;
 }
 
-/** Where a view goes when it is first shown (shell §2): a docked group, a window, or one of the shell's layers. */
-export type ViewHome = string | 'float' | 'card' | 'page' | 'modal';
+/**
+ * Where a view goes when it is first shown (shell §2): a docked group, a window, one of the shell's layers, or the main
+ * area's region (`stage`: beside the app's content; `top`: on the content's top, overlaid or split by the shell's `top`
+ * option; shell §2.1).
+ */
+export type ViewHome = string | 'float' | 'card' | 'page' | 'modal' | 'stage' | 'top';
+
+/** A side of a node in the main area's region. */
+export type StageSide = 'left' | 'right' | 'top' | 'bottom';
+
+/**
+ * A pane's status as the layout knows it (shell §2.1), for the pane's own content to react to (a stage shows its
+ * toolbar while active or hovered): the layout gives the status, the panel decides what it shows.
+ */
+export interface PaneStatus {
+  /** The pane a person or an agent works in (`activePane`): one at a time (the app's content when nothing was chosen). */
+  readonly active: boolean;
+  /** The pointer is over it. */
+  readonly hovered: boolean;
+  /** The focus is in it. */
+  readonly focused: boolean;
+  /** It is the one maximized pane. */
+  readonly maximized: boolean;
+  /** Several panes show (not one alone, nor one maximized): one on its own needs no mark of being the active one. */
+  readonly several: boolean;
+}
+
+/**
+ * What of a pane's bottom edge the shell's own chrome covers (px from each corner; shell §2.1): `ShellView`'s `over`
+ * sits over the main area's bottom corners, so the pane in a corner keeps its own bottom bar clear of it.
+ */
+export interface PaneInsets {
+  readonly bottomLeft: number;
+  readonly bottomRight: number;
+}
+
+const NoInsets: PaneInsets = { bottomLeft: 0, bottomRight: 0 };
+
+/**
+ * A pane's port (shell §2.1): the layout's side of a pane. The layout tells the pane where it stands (`status`, `insets`)
+ * and does to it what a person does (expand, maximize, float, close); the pane tells the layout only its title. What a
+ * pane holds (a stage, a plugin) is the app's: the layout never stores it (`PaneMap` keeps it, app side).
+ */
+export interface PanePort {
+  /** `content` (the app's main view) or a view's ref. */
+  readonly id: string;
+  readonly status: ReadonlyState<PaneStatus>;
+  readonly insets: ReadonlyState<PaneInsets>;
+  /** Its title (an instance's own: "Stage D"): tabs, a window's header, a frame's name. Returns the undo. */
+  setTitle(title: string): () => void;
+  /**
+   * Shows it alone in the main area, or every pane again (shell §2.1): a pane of the region alone, a window's out of its
+   * window over the main area. The shell's chrome stays (that is `expand`, the shell's).
+   */
+  toggleMaximized(): void;
+  float(): void;
+  close(): void;
+}
+
+/**
+ * Where a `top` view goes (shell §2.1): overlaid on the content's top (the app places it: a stage's band slot), above
+ * the content in a split of its own, or either (both offered).
+ */
+export type TopMode = 'overlay' | 'split' | 'both';
 
 /** A view contributed by the app or an extension (shell §2: what a tab, a card, a dialog or a page is). */
 export interface ShellViewDef {
@@ -100,6 +170,14 @@ export interface ShellViewDef {
   readonly persistent?: boolean;
   /** Its content takes the body's whole height and scrolls its own parts (the body does not scroll). */
   readonly fill?: boolean;
+  /**
+   * A stage (shell §2.1): a canvas, not a panel. It fills its frame, and alone in its group in the main area's region it
+   * has no header (a lone canvas has no chrome above it; its menu is a right-click on its tab when it has one).
+   */
+  readonly stage?: boolean;
+  /** With `home: 'stage'`: the side of the app's content it opens on (default right), and its size there (px). */
+  readonly stageSide?: StageSide;
+  readonly stageSize?: number;
 }
 
 /** A section contributed to a slot of a view (an Export view's `export` slot): extensions add sections, not views. */
@@ -129,13 +207,24 @@ export interface RailItem {
   readonly title: string;
   /** Items of one group sit together, a hairline between groups; items without one go at the foot. */
   readonly group?: string;
+  /**
+   * In the shell's bottom-right corner: the rail's last button, under its Hide button (the command menu; shell §3.2).
+   * Its `group` is ignored; it stays when the rail runs short.
+   */
+  readonly corner?: boolean;
   readonly order?: number;
   readonly priority?: number;
   /** A small caption under its icon (a shortcut). */
   readonly caption?: string;
   readonly pressed?: ReadonlyState<boolean>;
   readonly visible?: ReadonlyState<boolean>;
-  run(anchor: Element): void;
+  /**
+   * What a press does; `anchor` is the button (to place what it opens). An item with a `menu` and no `run` opens the
+   * menu on a press (not on hover: the pointer travels along the rail, and the hover is the tooltip's).
+   */
+  run?(anchor: Element): void;
+  /** Its menu, read as it opens (a choice's rows mark the chosen one with `checked`): beside the button, on a press. */
+  menu?(): readonly ContextMenuItem[];
 }
 
 /** A view open in one of the shell's layers (a card, a page, a modal). */
@@ -156,6 +245,8 @@ export interface ShellOptions {
   readonly layout?: unknown;
   /** The right group's width (default 340). */
   readonly size?: number;
+  /** Where a `top` view goes (shell §2.1): `split` (default; above the content), `overlay` (on its top), or `both`. */
+  readonly top?: TopMode;
 }
 
 /** Options of `show`. */
@@ -174,6 +265,8 @@ export interface ShowOptions {
 }
 
 const DefaultWindow = { width: 360, height: 320 } as const;
+/** A `top` view's height in a split above the content (px: its header and a few rows). */
+const TopSize = 96;
 
 /** A view's ref: its id, or `id#key`. */
 export function viewRef(id: string, key?: string): ViewRef {
@@ -187,6 +280,8 @@ export function viewIdOf(ref: ViewRef): string {
 }
 
 const isLayerHome = (home: ViewHome | undefined) => home === 'card' || home === 'page' || home === 'modal';
+/** A home that places a view when it is shown, not when it is registered: a window, the main area's region. */
+const isShownHome = (home: ViewHome | undefined) => home === 'float' || home === 'stage' || home === 'top';
 
 /**
  * The shell's state (shell §2), DOM-free: what is registered (views, sections, rail items), the layout (a `State` of
@@ -216,6 +311,25 @@ export class ShellModel {
   readonly #focus = new Map<ViewRef, State<string | undefined>>();
   readonly #sectionOpen = new Map<string, boolean>();
   readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
+  /** Expanded (shell §3.9): the main area alone (`{}`), or one pane alone over the whole shell (`{ pane }`). */
+  readonly #expanded = new State(false);
+  readonly #maximized = new State<string | undefined>(undefined);
+  /** A grid asked for before the main area had a size (`arrangeGrid`). */
+  #gridPending: { columns?: number } | undefined;
+  readonly #activePane = new State('content');
+  readonly #hoveredPane = new State<string | undefined>(undefined);
+  readonly #focusedPane = new State<string | undefined>(undefined);
+  readonly #paneStatus = new Map<string, ReadonlyState<PaneStatus>>();
+  readonly #titles = new State<ReadonlyMap<string, string>>(new Map());
+  readonly #paneTitles = new Map<string, ReadonlyState<string>>();
+  readonly #ports = new Map<string, PanePort>();
+  readonly #paneInsets = new Map<string, ReadonlyState<PaneInsets>>();
+  /** The widths of the shell's chrome over the main area's bottom corners (`over`), the view's input. */
+  readonly #overChrome = new State<PaneInsets>(NoInsets);
+  readonly #top: TopMode;
+  readonly #fullscreen = new State(false);
+  readonly #fullscreenRequest = new State<boolean | undefined>(undefined);
+  readonly #fullscreenAvailable = new State<true | string>('Fullscreen is not available here');
   readonly #hiddenViews: ReadonlyState<readonly ViewRef[]>;
   readonly #railShown: ReadonlyState<boolean>;
   /** Each view's last window rectangle this session (a window closed and opened again comes back there). */
@@ -225,6 +339,7 @@ export class ShellModel {
     this.#modeOption = options.mode ?? 'auto';
     this.#compactWidth = options.compactWidth ?? 720;
     this.#size = options.size ?? 340;
+    this.#top = options.top ?? 'split';
     this.#defaultLayout = defaultLayout([], { size: options.size });
     this.#layout = new State(validateLayout(options.layout) ?? this.#defaultLayout);
     this.#mode = derive(this.#width, (w) =>
@@ -306,7 +421,7 @@ export class ShellModel {
   #placeMissing(layout: ShellLayout, defs: readonly ShellViewDef[]): ShellLayout {
     let l = layout;
     for (const d of defs) {
-      if ((d.instances ?? 'single') !== 'single' || isLayerHome(d.home) || d.home === 'float') continue;
+      if ((d.instances ?? 'single') !== 'single' || isLayerHome(d.home) || isShownHome(d.home)) continue;
       if (findView(l, d.id)) continue;
       l = this.#placeAtHome(l, d.id, d, false);
     }
@@ -315,6 +430,7 @@ export class ShellModel {
 
   /** `ref` into its def's docked home group (made beside the main area when it is not there), at its order. */
   #placeAtHome(layout: ShellLayout, ref: ViewRef, def: ShellViewDef, activate: boolean): ShellLayout {
+    if (def.home === 'stage' || def.home === 'top') return this.#placeInStage(layout, ref, def);
     const home = typeof def.home === 'string' && !isLayerHome(def.home) && def.home !== 'float' ? def.home : RightGroup;
     const place = findGroup(layout, home);
     let l: ShellLayout;
@@ -338,6 +454,16 @@ export class ShellModel {
       if (!activate) l = setCollapsed(l, home, true);
     }
     return l;
+  }
+
+  /** A view with a home in the main area's region, placed there (shell §2.1): beside the content, or on its top. */
+  #placeInStage(layout: ShellLayout, ref: ViewRef, def: ShellViewDef): ShellLayout {
+    if (def.home === 'top') {
+      return this.#top === 'split'
+        ? moveView(layout, ref, { kind: 'edge', of: 'content', side: 'top', size: def.stageSize ?? TopSize })
+        : moveView(layout, ref, { kind: 'top' });
+    }
+    return moveView(layout, ref, { kind: 'edge', of: 'content', side: def.stageSide ?? 'right', size: def.stageSize });
   }
 
   get sectionsAll(): ReadonlyState<readonly ShellSection[]> {
@@ -427,6 +553,7 @@ export class ShellModel {
   resetLayout(): void {
     batch(() => {
       this.#lastRects.clear();
+      this.#maximized.set(undefined);
       const l = this.#placeMissing(this.#defaultLayout, [...this.#views.value.values()]);
       // Embedded keeps its rail hidden (the host page drives it).
       this.#layout.set(this.#modeOption === 'embedded' ? setRail(l, false) : l);
@@ -459,6 +586,8 @@ export class ShellModel {
         } else this.#modal.set(open);
         return;
       }
+      // Opening a docked view (or a window) leaves Expand: what it opens must show.
+      if (this.#expanded.value) this.#expanded.set(false);
       // Opening a docked view leaves a card (it shows in the card's place).
       if (this.#card.value && !options.target) this.#card.set(undefined);
       let l = this.#layout.value;
@@ -512,6 +641,13 @@ export class ShellModel {
       if (!place) return;
       const def = this.view(ref);
       if (place.window) this.#lastRects.set(ref, place.window.rect);
+      if (this.#maximized.value === ref) this.#maximized.set(undefined);
+      // In the main area's region: it leaves (shown again, it goes to its home), and the pane's maximize ends.
+      if (!place.window && inRegion(l, place.group.id)) {
+        if (this.#maximized.value === place.group.id && place.group.views.length === 1) this.#maximized.set(undefined);
+        this.#layout.set(removeView(l, ref));
+        return;
+      }
       if (!place.window && (def?.instances ?? 'single') === 'single' && def?.home !== 'float') {
         this.#layout.set(setHidden(l, ref, true));
         return;
@@ -569,6 +705,236 @@ export class ShellModel {
     this.#layout.set(setGroupState(next, rail.id, rail.active, rail.collapsed === true));
   }
 
+  // ---------------------------------------------------------------------------------------------------------------
+  // The main area's region (shell §2.1)
+
+  /**
+   * `ref` beside a node of the main area's region (`of`: the app's content, a region group's id, or a view's ref: its
+   * group), on `side`, `size` px (default half the node, at least `MinGroupSize`; the caller passes it when it knows).
+   * A view opened anew comes in; a placed one moves (from the right column, a window, another pane).
+   */
+  split(ref: ViewRef, side: StageSide, of = 'content', size?: number): void {
+    const l = this.#layout.value;
+    const at = of === 'content' ? of : (findGroup(l, of)?.group.id ?? findView(l, of)?.group.id);
+    if (!at || (at !== 'content' && !inRegion(l, at))) return;
+    batch(() => {
+      if (this.#expanded.value) this.#expanded.set(false);
+      this.#maximized.set(undefined);
+      this.#layout.set(moveView(l, ref, { kind: 'edge', of: at, side, size }));
+    });
+  }
+
+  /**
+   * The main area's panes as a grid (shell §2.1, `arrangeGrid`): equal cells over the main area, lined up (a line across
+   * moves as one) when the panes fill it. `columns` defaults to the square root of the panes, rounded up.
+   */
+  arrangeGrid(columns?: number): void {
+    batch(() => {
+      this.#maximized.set(undefined);
+      this.#layout.set(arrangeGrid(this.#layout.value, this.#area.value, columns));
+      // Asked before the main area was measured (an app arranging as it starts): arranged again at its first size.
+      this.#gridPending = this.#area.value.width > 0 ? undefined : { columns };
+    });
+  }
+
+  /** `ref` overlaid on the top of the main area's content (shell §2.1): the app places it (a stage's band slot). */
+  toTop(ref: ViewRef): void {
+    this.#layout.set(moveView(this.#layout.value, ref, { kind: 'top' }));
+  }
+
+  /** The shell's `top` option: where a `top` view goes. */
+  get top(): TopMode {
+    return this.#top;
+  }
+
+  /**
+   * The pane shown alone in the main area (shell §2.1): a region node (`content` or a group's id: the rest away and
+   * paused) or a window's view (its ref: out of its window over the main area, back after); Escape back; undefined:
+   * every pane.
+   */
+  get maximized(): ReadonlyState<string | undefined> {
+    return this.#maximized.asReadonly;
+  }
+
+  maximize(pane: string | undefined): void {
+    const l = this.#layout.value;
+    if (pane === undefined) return this.#maximized.set(undefined);
+    // A view in a window: out over the main area, held by its ref.
+    if (findView(l, pane)?.window) return this.#maximized.set(pane);
+    if (pane !== 'content' && !inRegion(l, pane)) return;
+    this.#maximized.set(mainNode(l).root ? pane : undefined);
+  }
+
+  toggleMaximize(pane: string): void {
+    this.maximize(this.#maximized.value === pane ? undefined : pane);
+  }
+
+  /**
+   * The pane of the main area's region a person or an agent last worked in (pressed, focused, chosen): `content` or a
+   * view's ref. What follows it (a shared toolbar, the status) is the app's (shell §2.1).
+   */
+  get activePane(): ReadonlyState<string> {
+    return this.#activePane.asReadonly;
+  }
+
+  setActivePane(pane: string): void {
+    if (pane !== this.#activePane.value) this.#activePane.set(pane);
+  }
+
+  /**
+   * A pane's status (`content` or a view's ref; shell §2.1): active, hovered, focused, maximized, several panes. One
+   * state a pane, told only when a field changes. Hover and focus are the view's inputs (`setPaneHovered`,
+   * `setPaneFocused`); headless, they stay off.
+   */
+  paneStatus(pane: string): ReadonlyState<PaneStatus> {
+    let st = this.#paneStatus.get(pane);
+    if (!st) {
+      st = derive(
+        [this.#activePane, this.#hoveredPane, this.#focusedPane, this.#maximized, this.#layout],
+        (active, hovered, focused, maximized, l): PaneStatus => {
+          // A pane: the app's content, a view in the region, or a view in a window (a detached stage).
+          const node = this.paneNode(pane) ?? (findView(l, pane)?.window ? pane : undefined);
+          return {
+            active: !!node && active === pane,
+            hovered: !!node && hovered === pane,
+            focused: !!node && focused === pane,
+            maximized: !!node && (maximized === node || maximized === pane),
+            several: !!mainNode(l).root && !maximized,
+          };
+        },
+        (a, b) =>
+          a.active === b.active &&
+          a.hovered === b.hovered &&
+          a.focused === b.focused &&
+          a.maximized === b.maximized &&
+          a.several === b.several,
+      );
+      this.#paneStatus.set(pane, st);
+    }
+    return st;
+  }
+
+  /**
+   * A pane's port (`content` or a view's ref; shell §2.1): one a pane, made once. A view gets its own as `ctx.pane`, the
+   * app's content as `main`'s `pane`.
+   */
+  panePort(pane: string): PanePort {
+    let port = this.#ports.get(pane);
+    if (!port) {
+      port = {
+        id: pane,
+        status: this.paneStatus(pane),
+        insets: this.paneInsets(pane),
+        setTitle: (title) => this.setPaneTitle(pane, title),
+        toggleMaximized: () => this.toggleMaximize(this.paneNode(pane) ?? pane),
+        float: () => {
+          if (pane !== 'content') this.float(pane);
+        },
+        close: () => {
+          if (pane !== 'content') this.close(pane);
+        },
+      };
+      this.#ports.set(pane, port);
+    }
+    return port;
+  }
+
+  /** A pane's own title (the pane's port: `setTitle`). The last set wins; the undo takes only its own back. */
+  setPaneTitle(pane: string, title: string): () => void {
+    const map = new Map(this.#titles.value);
+    map.set(pane, title);
+    this.#titles.set(map);
+    return () => {
+      if (this.#titles.value.get(pane) !== title) return;
+      const next = new Map(this.#titles.value);
+      next.delete(pane);
+      this.#titles.set(next);
+    };
+  }
+
+  /** A pane's title: its own (`setPaneTitle`), else its view's (the app's content: "Main"). */
+  paneTitle(pane: string): ReadonlyState<string> {
+    let st = this.#paneTitles.get(pane);
+    if (!st) {
+      st = derive([this.#titles, this.#views], (m) => m.get(pane) ?? this.view(pane)?.title ?? 'Main');
+      this.#paneTitles.set(pane, st);
+    }
+    return st;
+  }
+
+  /**
+   * What of a pane's bottom edge the shell's chrome over the main area covers (shell §2.1): the pane at the main area's
+   * bottom left gets the `over` status's width, the one at the bottom right the `over` corner's; a pane shown alone
+   * (maximized) both. None in a window.
+   */
+  paneInsets(pane: string): ReadonlyState<PaneInsets> {
+    let st = this.#paneInsets.get(pane);
+    if (!st) {
+      st = derive(
+        [this.#layout, this.#overChrome, this.#maximized],
+        (l, chrome, maximized): PaneInsets => {
+          if (!chrome.bottomLeft && !chrome.bottomRight) return NoInsets;
+          // Alone (maximized, in the region or out of its window): every corner is its.
+          const alone = maximized ? this.#paneOfNode(l, maximized) : undefined;
+          const corners = alone !== undefined ? { left: alone, right: alone } : this.#cornerPanes(l);
+          return {
+            bottomLeft: corners.left === pane ? chrome.bottomLeft : 0,
+            bottomRight: corners.right === pane ? chrome.bottomRight : 0,
+          };
+        },
+        (a, b) => a.bottomLeft === b.bottomLeft && a.bottomRight === b.bottomRight,
+      );
+      this.#paneInsets.set(pane, st);
+    }
+    return st;
+  }
+
+  /** The widths of the shell's chrome over the main area's bottom corners (`ShellView`'s `over`): the view's input. */
+  setOverChrome(chrome: PaneInsets): void {
+    const c = this.#overChrome.value;
+    if (c.bottomLeft !== chrome.bottomLeft || c.bottomRight !== chrome.bottomRight) this.#overChrome.set(chrome);
+  }
+
+  /** The panes in the main area's bottom corners: down the last child of each column, the first or last of each row. */
+  #cornerPanes(l: ShellLayout): { left?: string; right?: string } {
+    const root = mainNode(l).root;
+    if (!root) return { left: 'content', right: 'content' };
+    const walk = (n: LayoutNode, side: 'left' | 'right'): string | undefined => {
+      if (n.kind === 'content') return 'content';
+      if (n.kind === 'group') return n.active ?? n.views[0];
+      if (n.kind !== 'split') return undefined;
+      const c = n.dir === 'column' || side === 'right' ? n.children[n.children.length - 1] : n.children[0];
+      return c && walk(c, side);
+    };
+    return { left: walk(root, 'left'), right: walk(root, 'right') };
+  }
+
+  /** The pane a region node shows (`content`, or its group's view). */
+  #paneOfNode(l: ShellLayout, node: string): string | undefined {
+    if (node === 'content') return node;
+    const g = findGroup(l, node)?.group;
+    // A window's maximized pane is held by its view's ref.
+    return g ? (g.active ?? g.views[0]) : findView(l, node)?.window ? node : undefined;
+  }
+
+  /** The pane the pointer is over (`content`, a view's ref), or none: the view's input. */
+  setPaneHovered(pane: string | undefined): void {
+    if (pane !== this.#hoveredPane.value) this.#hoveredPane.set(pane);
+  }
+
+  /** The pane the focus is in, or none: the view's input. */
+  setPaneFocused(pane: string | undefined): void {
+    if (pane !== this.#focusedPane.value) this.#focusedPane.set(pane);
+  }
+
+  /** The region node a pane is in (`content`, or the group of a view's ref), if it is in the region. */
+  paneNode(pane: string): string | undefined {
+    if (pane === 'content') return pane;
+    const l = this.#layout.value;
+    const place = findView(l, pane);
+    return place && !place.window && inRegion(l, place.group.id) ? place.group.id : undefined;
+  }
+
   /** A docked view into a new group under its own (Split below). */
   splitBelow(ref: ViewRef): void {
     const place = findView(this.#layout.value, ref);
@@ -597,7 +963,9 @@ export class ShellModel {
     let next = l;
     for (let guard = 0; guard < 8; guard++) {
       const root = next.root as SplitNode;
-      const sized = root.children.filter((c): c is GroupNode | SplitNode => c.kind !== 'main' && c.size !== undefined);
+      const sized = root.children.filter(
+        (c): c is GroupNode | SplitNode => (c.kind === 'group' || c.kind === 'split') && c.size !== undefined,
+      );
       const total = sized.reduce((t, c) => t + (c.size ?? 0), 0);
       if (total <= room || !sized.length) break;
       const largest = sized.reduce((a, b) => ((b.size ?? 0) > (a.size ?? 0) ? b : a));
@@ -673,6 +1041,68 @@ export class ShellModel {
   }
 
   // ---------------------------------------------------------------------------------------------------------------
+  // Expand and Fullscreen (shell §3.9)
+
+  /**
+   * Expanded: the shell's own chrome steps away (the rail, the docked column, the windows: hidden, paused) and the main
+   * area takes the shell, showing what it shows (every pane, or the maximized one); the layers (card, page, modal) still
+   * open over it. The shell's presentation, not a pane's: a pane alone is `maximize` (shell §2.1); an app wanting both
+   * from one button calls both. What is open, not the layout: not saved. Showing a docked view or a window leaves it.
+   */
+  get expanded(): ReadonlyState<boolean> {
+    return this.#expanded.asReadonly;
+  }
+
+  expand(): void {
+    this.#expanded.set(true);
+  }
+
+  collapseExpanded(): void {
+    this.#expanded.set(false);
+  }
+
+  toggleExpanded(): void {
+    this.#expanded.set(!this.#expanded.value);
+  }
+
+  /** Whether the shell is fullscreen now (the view writes back what the browser did, its own Esc included). */
+  get fullscreen(): ReadonlyState<boolean> {
+    return this.#fullscreen.asReadonly;
+  }
+
+  /** What was asked of fullscreen (the view does it, then writes the result); undefined: nothing pending. */
+  get fullscreenRequest(): ReadonlyState<boolean | undefined> {
+    return this.#fullscreenRequest.asReadonly;
+  }
+
+  /**
+   * Whether fullscreen can be asked for here, and if not, why (an iframe that forbids it; headless: there is no screen).
+   * The view says so as it mounts.
+   */
+  get fullscreenAvailable(): ReadonlyState<true | string> {
+    return this.#fullscreenAvailable.asReadonly;
+  }
+
+  /** Asks for fullscreen (or out of it); nothing where it is not available. */
+  requestFullscreen(on = !this.#fullscreen.value): void {
+    if (this.#fullscreenAvailable.value !== true) return;
+    this.#fullscreenRequest.set(on);
+  }
+
+  /** The view's: what the browser did (and the request is done). */
+  setFullscreen(on: boolean): void {
+    batch(() => {
+      this.#fullscreen.set(on);
+      this.#fullscreenRequest.set(undefined);
+    });
+  }
+
+  /** The view's: whether fullscreen can be asked for, or why not. */
+  setFullscreenAvailable(available: true | string): void {
+    this.#fullscreenAvailable.set(available);
+  }
+
+  // ---------------------------------------------------------------------------------------------------------------
   // A view's own state
 
   /** What an instance is about (`show`'s `subject`). */
@@ -716,7 +1146,12 @@ export class ShellModel {
     if (a.width === width && a.height === height) return;
     batch(() => {
       this.#area.set({ width, height });
-      this.#layout.set(this.#clampWindows(this.#layout.value));
+      let l = this.#clampWindows(this.#layout.value);
+      if (this.#gridPending && width > 0) {
+        l = arrangeGrid(l, { width, height }, this.#gridPending.columns);
+        this.#gridPending = undefined;
+      }
+      this.#layout.set(l);
     });
   }
 

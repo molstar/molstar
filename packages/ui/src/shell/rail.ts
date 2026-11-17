@@ -38,7 +38,10 @@ export function railStep(height: number): RailStep {
 /** One button of the rail. */
 export interface RailEntry {
   readonly id: string;
-  /** The section it sits in: `head`, `strip`, a rail item's group, `foot`, `tools` (items without a group). */
+  /**
+   * The section it sits in: `head`, `strip`, a rail item's group, `foot`, `tools` (items without a group), `corner`
+   * (items marked `corner`: after the rail's own Hide button, the shell's bottom-right corner).
+   */
   readonly section: string;
   /** Higher goes under More sooner. */
   readonly priority: number;
@@ -47,7 +50,10 @@ export interface RailEntry {
   readonly item?: RailItem;
 }
 
-/** The rail's buttons in order: the head views, the strip's, the items by group, the foot's views, the other items. */
+/**
+ * The rail's buttons in order: the head views, the strip's, the items by group, the foot's views, the other items, the
+ * corner's items. A corner item without a priority stays when the rail runs short (it is the corner's one button).
+ */
 export function railEntries(
   views: readonly { readonly ref: ViewRef; readonly def: ShellViewDef }[],
   items: readonly RailItem[],
@@ -70,12 +76,14 @@ export function railEntries(
   for (const v of views) if (v.def.place === 'head') all.push(view(v, 'head'));
   for (const v of views) if (!v.def.place || v.def.place === 'strip') all.push(view(v, 'strip'));
   const groups: string[] = [];
-  for (const i of items) if (i.group !== undefined && !groups.includes(i.group)) groups.push(i.group);
+  for (const i of items) if (i.group !== undefined && !i.corner && !groups.includes(i.group)) groups.push(i.group);
   const byOrder = (a: RailItem, b: RailItem) => (a.order ?? 0) - (b.order ?? 0);
   for (const g of groups)
-    for (const i of items.filter((x) => x.group === g).sort(byOrder)) all.push(item(i, `group:${g}`));
+    for (const i of items.filter((x) => x.group === g && !x.corner).sort(byOrder)) all.push(item(i, `group:${g}`));
   for (const v of views) if (v.def.place === 'foot') all.push(view(v, 'foot'));
-  for (const i of items.filter((x) => x.group === undefined).sort(byOrder)) all.push(item(i, 'tools'));
+  for (const i of items.filter((x) => x.group === undefined && !x.corner).sort(byOrder)) all.push(item(i, 'tools'));
+  for (const i of items.filter((x) => x.corner).sort(byOrder))
+    all.push({ ...item(i, 'corner'), priority: i.priority ?? -1 });
   // Without a priority: the position in the rail (the foot goes first).
   return all.map((e, i) => (Number.isNaN(e.priority) ? { ...e, priority: i } : e));
 }

@@ -75,8 +75,8 @@ function moreViews(options: DemoOptions['setup'] = () => {}): DemoOptions['setup
 
 /**
  * The three height steps, side by side: normal (≥ 620), compact (≥ 520) and small (below). The buttons shrink, the
- * captioned one (⌘K) keeps its caption; the sections (head: Home; strip; the app's group: Theme; foot: Settings, Help;
- * tools: Commands) keep a hairline between them.
+ * captioned one (⌘K) keeps its caption; the sections (head: Home; strip; foot: Settings, Help; tools: Theme; the corner,
+ * under Hide: Commands) keep a hairline between them.
  */
 export const Steps = stage(() => (
   <div style={row}>

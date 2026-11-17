@@ -9,6 +9,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'check': 'msui-context-menu-check',
   'keys': 'msui-context-menu-keys',
   'label': 'msui-context-menu-label',
   'menu': 'msui-context-menu-menu',
@@ -63,6 +64,10 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msui.com
     outline-offset: -2px;
   }
 
+  &[role="menuitemradio"][aria-checked="true"] {
+    color: var(--msui-accent-strong);
+  }
+
   &[aria-disabled="true"] {
     color: var(--msui-text-subtle);
     cursor: default;
@@ -86,6 +91,15 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msui.com
   font-family: inherit;
   font-size: var(--msui-text-xs);
   padding-inline-start: var(--msui-space-2);
+}
+
+.msui-context-menu-check {
+  --msui-icon-size: var(--msui-icon-sm);
+  width: var(--msui-icon-slot);
+  justify-content: center;
+  align-items: center;
+  padding-inline-start: var(--msui-space-2);
+  display: inline-flex;
 }
 }
 `);

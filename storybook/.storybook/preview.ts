@@ -23,7 +23,13 @@ const preview: Preview = {
             'Introduction',
             'Foundations',
             ['Color', 'Type', 'Spacing', 'Icons', 'Shape', 'Alignment', 'Motion'],
+            'Brand',
             'Components',
+            'Views',
+            ['Settings', 'Help', 'History', 'Log'],
+            'Shell',
+            'Stage',
+            ['Stage', 'Split', 'Status', 'Toolbar', 'Hover label'],
           ],
           'Prism',
           [

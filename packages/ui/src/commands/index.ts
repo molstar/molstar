@@ -22,6 +22,7 @@ export {
   KeyPlatform,
   type KeyEventLike,
 } from './keys.js';
+export { type InputBinding, type InputBindingGroup, KeysModel } from './keys-model.js';
 export {
   type KeyConflict,
   KeyIndex,

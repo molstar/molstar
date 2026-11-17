@@ -17,13 +17,19 @@ export const classes = {
   'compact': 'msui-shell-compact',
   'dock': 'msui-shell-dock',
   'drop': 'msui-shell-drop',
+  'dropFormats': 'msui-shell-dropFormats',
+  'dropText': 'msui-shell-dropText',
   'grip': 'msui-shell-grip',
   'group': 'msui-shell-group',
   'layout': 'msui-shell-layout',
   'main': 'msui-shell-main',
   'mainContent': 'msui-shell-mainContent',
+  'maximizedPane': 'msui-shell-maximizedPane',
   'modal': 'msui-shell-modal',
   'node': 'msui-shell-node',
+  'over': 'msui-shell-over',
+  'overCorner': 'msui-shell-overCorner',
+  'overStatus': 'msui-shell-overStatus',
   'page': 'msui-shell-page',
   'progress': 'msui-shell-progress',
   'rail': 'msui-shell-rail',
@@ -32,6 +38,7 @@ export const classes = {
   'railFoot': 'msui-shell-railFoot',
   'railSection': 'msui-shell-railSection',
   'railToggle': 'msui-shell-railToggle',
+  'region': 'msui-shell-region',
   'scrim': 'msui-shell-scrim',
   'sheet': 'msui-shell-sheet',
   'sheetBar': 'msui-shell-sheetBar',
@@ -41,9 +48,10 @@ export const classes = {
   'shell': 'msui-shell-shell',
   'split': 'msui-shell-split',
   'splitter': 'msui-shell-splitter',
-  'status': 'msui-shell-status',
   'tab': 'msui-shell-tab',
   'tabs': 'msui-shell-tabs',
+  'topOverlay': 'msui-shell-topOverlay',
+  'tree': 'msui-shell-tree',
   'window': 'msui-shell-window',
   'windowTabs': 'msui-shell-windowTabs',
   'windows': 'msui-shell-windows',
@@ -149,22 +157,88 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
   container: shell-main / size;
 }
 
-.msui-shell-mainContent {
+.msui-shell-tree {
+  flex: auto;
+  min-width: 0;
+  min-height: 0;
   display: flex;
+}
+
+.msui-shell-region {
   position: absolute;
   inset: 0;
 }
 
-.msui-shell-status {
-  bottom: var(--msui-space-2);
-  left: var(--msui-space-2);
-  max-width: calc(100% - 2 * var(--msui-space-2));
+.msui-shell-mainContent {
+  flex: auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+.msui-shell-region [data-dir] > .msui-shell-node + .msui-shell-node:before {
+  content: "";
+  z-index: 2;
+  background: var(--msui-shell-line);
   pointer-events: none;
   position: absolute;
+}
 
-  & > * {
+.msui-shell-region [data-dir="row"] > .msui-shell-node + .msui-shell-node:before {
+  width: 1px;
+  inset: 0 auto 0 0;
+}
+
+.msui-shell-region [data-dir="column"] > .msui-shell-node + .msui-shell-node:before {
+  height: 1px;
+  inset: 0 0 auto;
+}
+
+.msui-shell-region[data-panes] [data-pane]:after {
+  content: "";
+  z-index: 3;
+  background: var(--msui-accent);
+  opacity: 0;
+  pointer-events: none;
+  height: 2px;
+  transition: opacity var(--msui-motion-fast) var(--msui-ease);
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.msui-shell-region[data-panes] [data-pane][data-active]:after {
+  opacity: 1;
+}
+
+.msui-shell-over {
+  z-index: 1;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--msui-space-2);
+  padding: var(--msui-space-2);
+  pointer-events: none;
+  display: flex;
+  position: absolute;
+  inset: auto 0 0;
+
+  & > * > * {
     pointer-events: auto;
   }
+}
+
+.msui-shell-overStatus {
+  min-width: 0;
+}
+
+.msui-shell-overCorner {
+  flex: none;
+}
+
+.msui-shell-topOverlay {
+  flex-direction: column;
+  min-width: 0;
+  display: flex;
 }
 
 .msui-shell-railToggle {
@@ -229,7 +303,7 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
     right: 0;
   }
 
-  &:hover, &:focus-visible, &[data-dragging] {
+  &:hover, &:focus-visible, &[data-dragging], &[data-linked] {
     background: color-mix(in oklab, var(--msui-accent) 40%, transparent);
     outline: none;
   }
@@ -326,6 +400,18 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
 .msui-shell-windows {
   z-index: 2;
   pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.msui-shell-shell[data-expanded] .msui-shell-windows {
+  display: none;
+}
+
+.msui-shell-maximizedPane {
+  z-index: 2;
+  background: var(--msui-surface);
+  display: flex;
   position: absolute;
   inset: 0;
 }
@@ -538,6 +624,27 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
   place-items: center;
   display: grid;
   position: absolute;
+}
+
+.msui-shell-dropText {
+  gap: var(--msui-space-1);
+  text-align: center;
+  justify-items: center;
+  display: grid;
+}
+
+.msui-shell-dropFormats {
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-sm);
+  font-weight: var(--msui-weight-regular);
+}
+
+.msui-shell-shell[data-fill="page"] {
+  z-index: var(--msui-z-overlay);
+  width: auto;
+  height: auto;
+  position: fixed;
+  inset: 0;
 }
 
 .msui-shell-compact {

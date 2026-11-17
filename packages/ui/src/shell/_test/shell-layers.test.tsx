@@ -516,7 +516,8 @@ describe('ShellView: compact', () => {
   it('starts compact by its option', () => {
     const m = mountShell([probeView('layers', { compactBar: true })], { mode: 'compact' });
     expect(m.q('[role="tablist"][aria-label="Views"]')).not.toBeNull();
-    expect(m.q('[data-node]')).toBeNull();
+    // No docked tree beside the main area (the main area's own region is in it, in every mode).
+    expect([...m.root.querySelectorAll('[data-node]')].filter((n) => !n.closest('[data-msui-shell-main]'))).toEqual([]);
     m.dispose();
   });
 });

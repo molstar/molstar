@@ -191,3 +191,20 @@ describe('ShellModel', () => {
     expect(s.sections('export').value).toEqual([]);
   });
 });
+
+describe('ShellModel: Expand and Fullscreen, headless', () => {
+  it('expands and comes back; showing a docked view leaves it; fullscreen is unavailable without a view', () => {
+    const s = shell();
+    s.expand();
+    expect(s.expanded.value).toBe(true);
+    s.show('layers');
+    expect(s.expanded.value).toBe(false);
+    s.toggleExpanded();
+    expect(s.expanded.value).toBe(true);
+    s.collapseExpanded();
+    expect(s.expanded.value).toBe(false);
+    expect(typeof s.fullscreenAvailable.value).toBe('string');
+    s.requestFullscreen(true);
+    expect(s.fullscreenRequest.value).toBeUndefined();
+  });
+});

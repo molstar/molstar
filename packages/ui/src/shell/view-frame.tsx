@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { derive } from '@molstar/core/reactive';
 import { Button } from '../components/button/button.js';
 import { type ContextMenuItem, openContextMenu } from '../components/context-menu/context-menu.js';
 import { Icon, type IconName } from '../components/icon/icon.js';
@@ -39,6 +40,7 @@ export function viewContext(
       return typeof placement === 'function' ? placement() : placement;
     },
     close: () => shell.close(ref),
+    pane: shell.panePort(ref),
   };
 }
 
@@ -85,8 +87,11 @@ export interface ViewFrameProps {
   readonly ref: ViewRef;
   readonly def: ShellViewDef;
   readonly placement: ViewPlacement;
-  /** `rail`: the header is a rail button tall (a docked group beside the rail, styles §8); default 32. */
-  readonly head?: 'rail' | 'header';
+  /**
+   * `rail`: the header is a rail button tall (a docked group beside the rail, styles §8); default 32. `none`: no header
+   * (a stage alone in its pane, shell §2.1: a canvas has no chrome above it; the frame is named by the view's title).
+   */
+  readonly head?: 'rail' | 'header' | 'none';
   /** In place of the title: a strip of tabs (a group of several views not at the rail). */
   readonly tabs?: Child;
   /**
@@ -115,8 +120,10 @@ export function ViewFrame(props: ViewFrameProps) {
   const { shell, ref, def } = props;
   const ctx = viewContext(shell, ref, props.placement);
   const titleId = `${props.id ?? `msui-view-${ref.replace(/[^\w-]/g, '_')}`}-title`;
-  const heading = def.heading ?? def.title;
-  const landmark = props.placement === 'docked' || props.placement === 'sheet';
+  // Its pane's own title when it gave one (an instance: "Stage D", shell §2.1), else the view's.
+  const title = shell.paneTitle(ref);
+  const heading = def.heading ?? title;
+  const landmark = props.placement === 'docked' || props.placement === 'sheet' || props.placement === 'stage';
   let menuButton!: HTMLElement;
   const openMenu = (at?: { x: number; y: number }, from?: Element) => {
     const items = props.menu?.();
@@ -136,14 +143,15 @@ export function ViewFrame(props: ViewFrameProps) {
       <section
         class={props.class ? `${classes.frame} ${props.class}` : classes.frame}
         role={landmark ? undefined : 'none'}
-        aria-labelledby={landmark && !props.tabs ? titleId : undefined}
-        aria-label={landmark && props.tabs ? def.title : undefined}
+        aria-labelledby={landmark && !props.tabs && props.head !== 'none' ? titleId : undefined}
+        aria-label={landmark && (props.tabs || props.head === 'none') ? title : undefined}
         data-placement={props.placement}
         data-msui-view={ref}
       >
         <header
           class={classes.header}
           data-head={props.head ?? 'header'}
+          hidden={props.head === 'none'}
           ref={(el: HTMLElement) => props.headerRef?.(el)}
           onContextMenu={(e: MouseEvent) => {
             // A tab's own menu is the tab's.
@@ -163,9 +171,9 @@ export function ViewFrame(props: ViewFrameProps) {
             <h2
               class={classes.title}
               id={titleId}
-              title={def.title}
+              title={title}
               data-view={typeof heading === 'function' ? '' : undefined}
-              aria-label={typeof heading === 'function' ? def.title : undefined}
+              aria-label={typeof heading === 'function' ? title : undefined}
             >
               {typeof heading === 'function' ? heading() : heading}
             </h2>
@@ -183,7 +191,7 @@ export function ViewFrame(props: ViewFrameProps) {
                 variant="ghost"
                 size="sm"
                 icon={<Icon name="ellipsis" />}
-                title={`${def.title}: layout`}
+                title={derive(title, (t) => `${t}: layout`)}
                 onClick={openMenu}
               />
             </span>
@@ -193,7 +201,7 @@ export function ViewFrame(props: ViewFrameProps) {
               variant="ghost"
               size="sm"
               icon={<Icon name="x" />}
-              title={`Close ${def.title}`}
+              title={derive(title, (t) => `Close ${t}`)}
               class={classes.headerButton}
               onClick={() => props.onClose?.()}
             />

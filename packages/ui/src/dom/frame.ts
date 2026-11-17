@@ -24,11 +24,14 @@ export const FrameLane: { work: (() => void) | undefined; after: (() => void) | 
 };
 
 let requested = false;
+/** The host asked for the pending tick: a host swapped since (a test's stub) never runs it, so the new one is asked. */
+let requestedOf: typeof DomHost.requestAnimationFrame | undefined;
 
 /** Asks for the frame's tick (once a frame). */
 export function requestFrame(): void {
-  if (requested) return;
+  if (requested && requestedOf === DomHost.requestAnimationFrame) return;
   requested = true;
+  requestedOf = DomHost.requestAnimationFrame;
   FrameCounts.requested++;
   DomHost.requestAnimationFrame(frameTick);
 }

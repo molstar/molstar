@@ -501,7 +501,7 @@ function SharedChoice(props: { manager: CommandManager<any>; group: CommandGroup
   return el;
 }
 
-/** `?`: the prefixes (picking one types it), then every command with a key. */
+/** `?`: the app's help (`help`), the prefixes (picking one types it), then every command with a key. */
 function helpPrefix(props: CommandMenuProps, type: (text: string) => void): CommandMenuPrefix {
   return {
     char: '?',
@@ -519,6 +519,18 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
           return true;
         },
       }));
+      // The app's help first, when it has one: its bindings and every key, in one place.
+      const help: CommandMenuItem[] = props.help
+        ? [
+            {
+              id: 'help:view',
+              label: 'Keyboard and mouse',
+              detail: 'Help',
+              icon: 'circle-help',
+              run: () => props.help?.(),
+            },
+          ]
+        : [];
       const keys: CommandMenuItem[] = [];
       for (const c of props.manager.commands.value) {
         const chord = props.manager.shortcut(c);
@@ -534,7 +546,7 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
           },
         });
       }
-      return [...prefixes, ...keys].filter((i) => !q || i.label.toLowerCase().includes(q));
+      return [...help, ...prefixes, ...keys].filter((i) => !q || i.label.toLowerCase().includes(q));
     },
   };
 }

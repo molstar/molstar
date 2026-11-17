@@ -4,18 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Generated from glass-wordmark.module.css by scripts/css.mjs; do not edit.
+// Generated from glass-mark.module.css by scripts/css.mjs; do not edit.
 
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
-  'canvas': 'msui-logo-glass-wordmark-canvas',
-  'probe': 'msui-logo-glass-wordmark-probe',
-  'wordmark': 'msui-logo-glass-wordmark-wordmark',
+  'canvas': 'msui-logo-glass-mark-canvas',
+  'mark': 'msui-logo-glass-mark-mark',
+  'probe': 'msui-logo-glass-mark-probe',
 } as const;
 
-defineStyles('components/logo/glass-wordmark.module.css', `@layer msui.components {
-.msui-logo-glass-wordmark-wordmark {
+defineStyles('components/logo/glass-mark.module.css', `@layer msui.components {
+.msui-logo-glass-mark-mark {
   vertical-align: middle;
   -webkit-user-select: none;
   user-select: none;
@@ -25,12 +25,12 @@ defineStyles('components/logo/glass-wordmark.module.css', `@layer msui.component
   position: relative;
 }
 
-.msui-logo-glass-wordmark-canvas {
+.msui-logo-glass-mark-canvas {
   pointer-events: none;
   position: absolute;
 }
 
-.msui-logo-glass-wordmark-probe {
+.msui-logo-glass-mark-probe {
   display: none;
 
   &[data-n="1"] {

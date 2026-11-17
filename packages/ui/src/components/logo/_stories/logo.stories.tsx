@@ -14,7 +14,7 @@ import { Button } from '../../button/button.js';
 import { GlassWordmark } from '../glass-wordmark.js';
 import { MolstarWordmark } from '../wordmark.js';
 
-const meta: Meta = { title: 'Components/Logo' };
+const meta: Meta = { title: 'Brand' };
 export default meta;
 
 const surface =

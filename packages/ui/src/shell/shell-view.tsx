@@ -8,8 +8,8 @@
 
 import { derive, type ReadonlyState, State } from '@molstar/core/reactive';
 import { Button } from '../components/button/button.js';
-import { openContextMenu } from '../components/context-menu/context-menu.js';
-import { Icon } from '../components/icon/icon.js';
+import { openContextMenu, openMenuBeside } from '../components/context-menu/context-menu.js';
+import { Icon, type IconName } from '../components/icon/icon.js';
 import { installTooltips } from '../components/tooltip/tooltip.js';
 import { dismissable } from '../components/popover/dismiss.js';
 import {
@@ -41,14 +41,20 @@ import {
 import { classes } from './_generated/shell.module.css.js';
 import {
   allGroups,
+  TopGroup,
+  containsLeaf,
   DefaultGroupSize,
   columnOf,
   dockedGroups,
   findGroup,
   MinGroupSize,
+  MinPaneSize,
   findView,
+  gridPeers,
+  inRegion,
   type GroupNode,
   type LayoutNode,
+  mainNode,
   type Rect,
   railGroup,
   rightColumn,
@@ -57,9 +63,16 @@ import {
   type ViewRef,
 } from './layout.js';
 import { fitRail, type RailEntry, railEntries } from './rail.js';
-import { type ShellModel, type ShellViewDef, type ViewPlacement, viewIdOf } from './shell-model.js';
+import {
+  type PanePort,
+  type RailItem,
+  type ShellModel,
+  type ShellViewDef,
+  type ViewPlacement,
+  viewIdOf,
+} from './shell-model.js';
 import { viewBody, viewContext, ViewFrame } from './view-frame.js';
-import { railMenu, viewMenu, type WindowAdjust } from './view-menu.js';
+import { paneMenu, railMenu, viewMenu, type WindowAdjust } from './view-menu.js';
 
 /** What holds the app (shell §3.6, busy): a label, a progress 0–1 (none: indeterminate), a cancel. */
 export interface ShellBusy {
@@ -70,21 +83,45 @@ export interface ShellBusy {
 
 export interface ShellViewProps {
   readonly shell: ShellModel;
-  /** The app's main view (a canvas, a document): rendered once, kept across modes. */
-  readonly main: () => Child;
-  /** The status slot (the main area's bottom left): the app's. */
-  readonly status?: () => Child;
+  /**
+   * The app's main view (a canvas, a document): rendered once, kept across modes. `top` is the views overlaid on its top
+   * (shell §2.1), for the app to place (a stage's band slot: `<Stage top={top()} …/>`).
+   */
+  readonly main: (ctx: {
+    top: () => Child;
+    /** The app's content as a pane (shell §2.1): its status, its insets, its title. */
+    pane: PanePort;
+  }) => Child;
+  /**
+   * Chrome over the whole main area, once (shell §2.1): its `status` at the bottom left, its `corner` at the bottom right,
+   * over every pane and under the windows (a toolbar shared by the panes follows `shell.activePane`). Each stage keeps
+   * its own slots too: which chrome goes where is the app's.
+   */
+  readonly over?: { readonly status?: () => Child; readonly corner?: () => Child };
   /** While set, a scrim and its card hold the app. */
   readonly busy?: ReadonlyState<ShellBusy | undefined>;
   /** Files dropped anywhere on the shell; without it, no drop overlay. */
   readonly onDropFiles?: (files: File[]) => void;
   /** What the drop overlay says. */
   readonly dropLabel?: string;
+  /** What can be dropped, a hint under the label ("PDB, mmCIF, sessions"). */
+  readonly dropFormats?: string;
   /**
-   * The rail can be hidden (default on): a Hide button at its foot, and the Mol* star in the main area's corner that
-   * shows it again.
+   * How far Expand reaches (shell §3.9): `shell` (default: the main area takes the shell's box) or `page` (the shell
+   * itself fills the page while expanded: a viewer embedded in a page).
+   */
+  readonly fill?: 'shell' | 'page';
+  /**
+   * The rail can be hidden (default on): a Hide button at its foot, and a button in the main area's corner that shows
+   * it again, with `railToggleIcon` (the app's mark; default the Mol* star).
    */
   readonly railToggle?: boolean;
+  readonly railToggleIcon?: IconName;
+  /**
+   * The shell's own mark of the active pane while several show (an accent line along its top edge; default on). Off:
+   * the panes mark themselves from their status (`ctx.pane`), or nothing does.
+   */
+  readonly paneMark?: boolean;
   /**
    * A ⋯ button in each view's header for its layout menu (Float, Dock, Split below, …). Off by default: the same menu
    * is a right-click (or Shift+F10) on a view's header, its tab or its rail button; ✕ closes.
@@ -109,18 +146,45 @@ export interface ShellViewProps {
 export function ShellView(props: ShellViewProps) {
   const { shell } = props;
   const owner = requireScope('ShellView');
-  // The app's main view: made once, moved between the desktop and compact layouts (its state, a canvas, kept).
-  const mainContent = (<div class={classes.mainContent}>{props.main()}</div>) as HTMLElement;
   const mainArea = (
     <div class={classes.main} data-msui-shell-main="" tabIndex={-1} aria-label="Main area" role="region" />
   ) as HTMLElement;
-  mainArea.append(mainContent);
   const bodies = new ViewBodies(shell, owner, {
     menuButton: !!props.viewMenu,
     railToggle: props.railToggle !== false,
     main: mainArea,
   });
   onCleanup(() => bodies.dispose());
+  // The app's main view: made once, moved between the desktop and compact layouts (its state, a canvas, kept); its
+  // top overlay is the app's to place (shell §2.1).
+  const mainContent = (
+    <div class={classes.mainContent}>
+      {props.main({
+        top: () => <TopOverlay shell={shell} bodies={bodies} />,
+        pane: shell.panePort('content'),
+      })}
+    </div>
+  ) as HTMLElement;
+  // The main area's region: the content and the views docked beside it (shell §2.1); the app's chrome over it.
+  mainArea.append(Region({ shell, bodies, content: mainContent, mark: props.paneMark !== false }));
+  if (props.over) {
+    const status = (<div class={classes.overStatus}>{props.over.status?.() ?? null}</div>) as HTMLElement;
+    const corner = (<div class={classes.overCorner}>{props.over.corner?.() ?? null}</div>) as HTMLElement;
+    mainArea.append(
+      (
+        <div class={classes.over}>
+          {status}
+          {corner}
+        </div>
+      ) as HTMLElement,
+    );
+    // What the shared chrome covers of the panes in the main area's bottom corners (shell §2.1): its widths, and the
+    // gap a pane keeps from it (the bar's padding, a unit each side), told to the panes through their ports.
+    const covered = (el: HTMLElement) => (el.offsetWidth > 0 ? el.offsetWidth + 16 : 0);
+    const measure = () => shell.setOverChrome({ bottomLeft: covered(status), bottomRight: covered(corner) });
+    observeResize(status, measure);
+    observeResize(corner, measure);
+  }
   observeResize(mainArea, () => shell.setArea(mainArea.clientWidth, mainArea.clientHeight));
   // Under a page, the app's main view takes no pointer or focus (the page covers it).
   watch([shell.page], () => setAttr(mainContent, 'inert', !!shell.page.value));
@@ -136,6 +200,38 @@ export function ShellView(props: ShellViewProps) {
   observeResize(root, () => shell.setWidth(root.clientWidth));
   if (props.tooltips !== false) onCleanup(installTooltips(root));
   watch([shell.mode], () => setAttr(root, 'data-mode', shell.mode.value));
+  // Expand (shell §3.9): the main area alone; with `fill: 'page'`, the shell over the page.
+  watch([shell.expanded], () => {
+    setAttr(root, 'data-expanded', shell.expanded.value);
+    setAttr(root, 'data-fill', shell.expanded.value && props.fill === 'page' ? 'page' : false);
+  });
+  // Escape steps back, after whatever is inside took it (a menu, a card: they prevent its default): out of Expand, then
+  // out of a maximized pane.
+  on<KeyboardEvent>(root, 'keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    if (shell.expanded.value) shell.collapseExpanded();
+    else if (shell.maximized.value) shell.maximize(undefined);
+    else return;
+    e.preventDefault();
+  });
+  // Fullscreen: the model asks, the view does it on the shell's root and writes back what the browser did (its own Esc
+  // too); where the page or an iframe forbids it, the model says why.
+  const doc = root.ownerDocument;
+  shell.setFullscreenAvailable(
+    typeof root.requestFullscreen !== 'function'
+      ? 'This browser has no fullscreen'
+      : doc.fullscreenEnabled === false
+        ? 'Fullscreen is not allowed here (the page embedding this does not allow it)'
+        : true,
+  );
+  effect(shell.fullscreenRequest, (on) => {
+    if (on === undefined) return;
+    const done = () => shell.setFullscreen(doc.fullscreenElement === root);
+    const ask = on ? root.requestFullscreen?.() : doc.fullscreenElement ? doc.exitFullscreen?.() : undefined;
+    if (ask && typeof ask.then === 'function') ask.then(done, done);
+    else done();
+  });
+  on(doc, 'fullscreenchange', () => shell.setFullscreen(doc.fullscreenElement === root));
   on<KeyboardEvent>(root, 'keydown', (e) => {
     if (e.key === 'F6' && !e.defaultPrevented) {
       e.preventDefault();
@@ -161,7 +257,9 @@ export function ShellView(props: ShellViewProps) {
         {layout}
         <ModalHost shell={shell} bodies={bodies} />
         {props.busy ? <BusyOverlay busy={props.busy} /> : null}
-        {props.onDropFiles ? <FileDrop onDrop={props.onDropFiles} label={props.dropLabel} /> : null}
+        {props.onDropFiles ? (
+          <FileDrop onDrop={props.onDropFiles} label={props.dropLabel} formats={props.dropFormats} />
+        ) : null}
       </>
     ) as Node,
   );
@@ -173,14 +271,17 @@ export function ShellView(props: ShellViewProps) {
         <Show when={derive(compact, (c) => !c)}>
           {() =>
             activity(
+              // Covered by a page: inert and paused (away while expanded: each window pauses its own frame, below).
               derive(shell.page, (p) => !p),
               () => <WindowsLayer shell={shell} bodies={bodies} />,
             )
           }
         </Show>
+        <MaximizedHost shell={shell} bodies={bodies} />
         <PageHost shell={shell} bodies={bodies} />
-        {props.status ? <div class={classes.status}>{props.status()}</div> : null}
-        {props.railToggle === false ? null : <RailToggle shell={shell} compact={compact} />}
+        {props.railToggle === false ? null : (
+          <RailToggle shell={shell} compact={compact} icon={props.railToggleIcon ?? 'molstar'} />
+        )}
       </>
     ) as Node,
   );
@@ -342,7 +443,7 @@ function KeptFrame(props: {
   bodies: ViewBodies;
   ref: ViewRef;
   placement: ViewPlacement;
-  head?: 'rail' | 'header';
+  head?: 'rail' | 'header' | 'none';
   tabs?: Child;
   menu?: () => ReturnType<typeof viewMenu>;
   onClose?: () => void;
@@ -396,16 +497,150 @@ function activeOf(shell: ShellModel, g: GroupNode | undefined): ViewRef | undefi
 
 function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLElement; props: ShellViewProps }) {
   const { shell, bodies } = props;
-  const owner = requireScope('Desktop');
   const dock = (<div class={classes.dock} />) as HTMLElement;
   // The card's place in the dock, kept apart from the tree (which is replaced at each layout change).
   const cardSlot = (<div class={classes.cardSlot} />) as HTMLElement;
-  // Each group's element, kept by id while the tree around it changes (its view stays mounted).
+  const tree = DockTree({
+    shell,
+    bodies,
+    leaf: 'main',
+    leafEl: props.main,
+    rootOf: (l) => l.root,
+    // Covered by the card (it takes the right column's place): paused and inert, as hidden UI is.
+    covered: (l, n) => !!shell.card.value && n.kind === 'group' && l.rail && isInRightColumn(l, n.id),
+    // Expanded (shell §3.9): the main area alone; every group away, paused.
+    away: (_, n) => shell.expanded.value && n.kind === 'group',
+    sources: [shell.card, shell.expanded],
+  });
+  dock.append(tree, cardSlot);
+  // The card: over the right column (the rail beside it), or at the main area's right edge.
+  const cardWidth = derive(shell.layout, (l) => {
+    const col = rightColumn(l);
+    return col && l.rail && (col.kind === 'group' || col.kind === 'split') ? (col.size ?? 340) : 340;
+  });
+  watch([cardWidth], () => dock.style.setProperty('--msui-shell-card', `${cardWidth.value}px`));
+  dock.style.position = 'relative';
+  return (
+    <>
+      {dock}
+      <CardHost shell={shell} bodies={bodies} into={cardSlot} />
+      <Show
+        when={derive(
+          [shell.layout, shell.absent, shell.views, shell.expanded],
+          (l, _a, _v, e) => !!railGroup(l) && l.rail && !e,
+        )}
+        reveal="side"
+      >
+        {() => <Rail shell={shell} hideable={bodies.ui.railToggle} />}
+      </Show>
+    </>
+  );
+}
+
+/**
+ * The main area's region (shell §2.1): the app's content and the views docked beside it, one tree of the same groups,
+ * splits and splitters as the shell's. Its panes: the pane a person works in is the shell's active pane (a press, the
+ * focus), marked while there are several; a maximized pane shows alone, the rest away and paused, Escape back.
+ */
+function Region(props: { shell: ShellModel; bodies: ViewBodies; content: HTMLElement; mark: boolean }) {
+  const { shell, bodies } = props;
+  // The region's node shown alone: the maximized one, when it is the region's (a window's comes out over it instead).
+  const alone = (l: ShellLayout): string | undefined => {
+    const m = shell.maximized.value;
+    return m && (m === 'content' || inRegion(l, m)) ? m : undefined;
+  };
+  const tree = DockTree({
+    shell,
+    bodies,
+    leaf: 'content',
+    leafEl: props.content,
+    rootOf: (l) => mainNode(l).root ?? { kind: 'content', id: 'content' },
+    // Maximized (shell §2.1): only that pane and what holds it.
+    away: (l, n) => {
+      const m = alone(l);
+      return !!m && !!mainNode(l).root && !holds(n, m);
+    },
+    sources: [shell.maximized],
+    motion: false,
+  });
+  tree.classList.add(classes.region);
+  // Several panes: the active one is marked (a shared toolbar follows it, shell §2.1).
+  // Several panes shown (a maximized one shows alone: no mark of being the active one).
+  const several = derive([shell.layout, shell.maximized], (l, m) => !!mainNode(l).root && !m);
+  watch([several], () => setAttr(tree, 'data-panes', several.value));
+  // The pane under a press or the focus is the active one.
+  const paneOf = (target: EventTarget | null): string | undefined => {
+    // A splitter is the layout's, not the pane's it sits in: pressing, focusing or hovering it changes no pane.
+    if ((target as Element | null)?.closest?.('[role="separator"]')) return undefined;
+    const node = (target as Element | null)?.closest?.('[data-pane]');
+    if (!node || !tree.contains(node)) return undefined;
+    const id = node.getAttribute('data-pane')!;
+    if (id === 'content') return id;
+    return activeOf(shell, findGroup(shell.layout.value, id)?.group);
+  };
+  const activate = (e: Event) => {
+    const pane = paneOf(e.target);
+    if (pane) shell.setActivePane(pane);
+  };
+  on(tree, 'pointerdown', activate, { capture: true });
+  // The pane's status (shell §2.1): the view feeds the model where the pointer and the focus are.
+  on(tree, 'focusin', (e: Event) => {
+    activate(e);
+    shell.setPaneFocused(paneOf(e.target));
+  });
+  on(tree, 'focusout', (e: FocusEvent) => {
+    if (!paneOf(e.relatedTarget)) shell.setPaneFocused(undefined);
+  });
+  on(tree, 'pointerover', (e: Event) => shell.setPaneHovered(paneOf(e.target)));
+  on(tree, 'pointerleave', () => shell.setPaneHovered(undefined));
+  const marked = derive([shell.activePane, shell.layout], (p) => shell.paneNode(p));
+  // The shell's own mark of the active pane (several panes); what a pane shows on its status is the pane's (`ctx.pane`).
+  watch([marked, several], () => {
+    for (const el of tree.querySelectorAll('[data-pane]')) {
+      setAttr(el, 'data-active', props.mark && several.value && el.getAttribute('data-pane') === marked.value);
+    }
+  });
+  return tree;
+}
+
+/** Whether a node is a pane (`content` or a group's id) or holds it. */
+function holds(n: LayoutNode, pane: string): boolean {
+  if (n.id === pane) return true;
+  return n.kind === 'split' && n.children.some((c) => holds(c, pane));
+}
+
+interface DockTreeOptions {
+  shell: ShellModel;
+  bodies: ViewBodies;
+  /** The level's leaf (shell §2.1): the main area at the shell's level, the app's content in the main area's region. */
+  leaf: 'main' | 'content';
+  leafEl: HTMLElement;
+  rootOf: (l: ShellLayout) => LayoutNode;
+  /** A node covered (inert and paused, still shown): the right column under a card. */
+  covered?: (l: ShellLayout, n: LayoutNode) => boolean;
+  /** A node away (not shown, paused): the groups while expanded, the other panes while one is maximized. */
+  away?: (l: ShellLayout, n: LayoutNode) => boolean;
+  /** What `covered` and `away` read besides the layout. */
+  sources?: readonly ReadonlyState<unknown>[];
+  /**
+   * Groups slide in and out as they show and hide (default on: a panel folding beside the main area). Off for the main
+   * area's panes: a pane maximized or back shows at once (sliding each pane out in turn drew every layout between).
+   */
+  motion?: boolean;
+}
+
+/**
+ * A docked tree (shell §3): groups and splits around the level's leaf. Built only when its structure changes
+ * (`shapeOf`); everything else is written in place (`applyState`): which nodes show and which are folded, which takes
+ * the rest, the sizes, the splitters' sides. Why: rebuilding moves the leaf (the app's canvas), which drops the focus in
+ * it and ends a splitter's drag; folding the right group or hiding the rail must not. Each group's element is kept by id
+ * while the tree around it changes (its view stays mounted).
+ */
+function DockTree(o: DockTreeOptions): HTMLElement {
+  const { shell, bodies } = o;
+  const owner = requireScope('DockTree');
+  const host = (<div class={classes.tree} />) as HTMLElement;
   const groups = new Map<string, { el: HTMLElement; scope: ViewScope }>();
-  // Every node's element by id. The tree is built only when its structure changes (`shapeOf`); everything else is
-  // written in place (`applyState`): which nodes show and which are folded, which takes the rest, the sizes, the
-  // splitters' sides. Why: rebuilding moves the main area (the app's canvas), which drops the focus in it and ends a
-  // splitter's drag; folding the right group or hiding the rail must not.
   const nodes = new Map<string, HTMLElement>();
   // A group that opens slides in, one that closes slides out before it goes (styles §7.1, `side`); not at the first
   // write, nor when the tree was just rebuilt (its nodes are new).
@@ -418,7 +653,8 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
       closing.delete(el);
       pending.cancel();
     }
-    if (shows === was || !settled || n.kind !== 'group') return setAttr(el, 'data-shown', shows ? false : 'false');
+    if (shows === was || !settled || n.kind !== 'group' || o.motion === false)
+      return setAttr(el, 'data-shown', shows ? false : 'false');
     if (shows) {
       setAttr(el, 'data-shown', false);
       el.removeAttribute('data-reveal');
@@ -442,12 +678,10 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
   // The last size written to each node (a write only when it changed: a drag's frames touch one node).
   const sizes = new Map<HTMLElement, number>();
   const applyState = (l: ShellLayout) => {
-    const card = !!shell.card.value;
     const walk = (n: LayoutNode, flex: boolean, at: 'start' | 'end' | undefined) => {
       const el = nodes.get(n.id);
-      // Covered by the card (it takes the right column's place): paused and inert, as hidden UI is.
-      const covered = card && n.kind === 'group' && l.rail && isInRightColumn(l, n.id);
-      const shows = nodeShows(shell, l, n);
+      const covered = o.covered?.(l, n) ?? false;
+      const shows = nodeShows(shell, l, n) && !(o.away?.(l, n) ?? false);
       if (el) {
         showNode(el, n, shows);
         setAttr(el, 'data-folded', n.kind === 'group' && !!n.collapsed && railGroup(l)?.id !== n.id);
@@ -457,7 +691,7 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
         const splitter = el.lastElementChild;
         if (splitter?.getAttribute('role') === 'separator') setAttr(splitter, 'hidden', flex);
         setAttr(el, 'inert', covered);
-        if (!flex && n.kind !== 'main') {
+        if (!flex && (n.kind === 'group' || n.kind === 'split')) {
           const size = n.size ?? DefaultGroupSize;
           if (sizes.get(el) !== size) {
             sizes.set(el, size);
@@ -467,20 +701,20 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
       }
       if (n.kind === 'group') groups.get(n.id)?.scope.setActive(shows && !covered);
       if (n.kind !== 'split') return;
-      const f = flexIndex(shell, l, n);
+      const f = flexIndex(shell, l, n, o.leaf, o.away);
       n.children.forEach((c, i) => walk(c, i === f, i === f ? undefined : i > f ? 'start' : 'end'));
     };
-    walk(l.root, true, undefined);
+    walk(o.rootOf(l), true, undefined);
   };
   effect(
-    derive([shell.layout, shell.absent, shell.views, shell.card], (l, a, v, c) => ({ l, a, v, c })),
+    derive([shell.layout, shell.absent, shell.views, ...(o.sources ?? [])], (l, a, v, ...rest) => ({ l, a, v, rest })),
     ({ l }) => {
       applyState(l);
       settled = true;
     },
   );
   let buildScope: ViewScope | undefined;
-  const shape = derive(shell.layout, (l) => shapeOf(l));
+  const shape = derive(shell.layout, (l) => shapeOf(l, o.rootOf(l)));
   effect(shape, () => {
     const l = shell.layout.value;
     buildScope?.dispose();
@@ -489,9 +723,18 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
     nodes.clear();
     sizes.clear();
     const tree = runInScope(buildScope, () =>
-      buildNode(shell, l.root, undefined, { groups, used, owner, bodies, main: props.main, nodes }),
+      buildNode(shell, o.rootOf(l), undefined, {
+        groups,
+        used,
+        owner,
+        bodies,
+        leaf: o.leaf,
+        leafEl: o.leafEl,
+        nodes,
+        region: o.leaf === 'content',
+      }),
     );
-    dock.replaceChildren(tree, cardSlot);
+    host.replaceChildren(tree);
     const was = settled;
     settled = false;
     applyState(l);
@@ -506,27 +749,12 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
   onCleanup(() => {
     for (const g of groups.values()) g.scope.dispose();
   });
-  // The card: over the right column (the rail beside it), or at the main area's right edge.
-  const cardWidth = derive(shell.layout, (l) => {
-    const col = rightColumn(l);
-    return col && l.rail && col.kind !== 'main' ? (col.size ?? 340) : 340;
-  });
-  watch([cardWidth], () => dock.style.setProperty('--msui-shell-card', `${cardWidth.value}px`));
-  dock.style.position = 'relative';
-  return (
-    <>
-      {dock}
-      <CardHost shell={shell} bodies={bodies} into={cardSlot} />
-      <Show when={derive([shell.layout, shell.absent, shell.views], (l) => !!railGroup(l) && l.rail)} reveal="side">
-        {() => <Rail shell={shell} hideable={bodies.ui.railToggle} />}
-      </Show>
-    </>
-  );
+  return host;
 }
 
 /** Whether a node shows: a group with a view to show (a rail group folded does not: its rail stays), a split with one. */
 function nodeShows(shell: ShellModel, l: ShellLayout, n: LayoutNode): boolean {
-  if (n.kind === 'main') return true;
+  if (n.kind === 'main' || n.kind === 'content') return true;
   if (n.kind === 'group') {
     if (shownViews(shell, n).length === 0) return false;
     if (n.collapsed && railGroup(l)?.id === n.id) return false;
@@ -559,23 +787,31 @@ function isInRightColumn(l: ShellLayout, id: string): boolean {
  * The docked tree's structure: its nodes, their order and direction, which group is the rail's. Equal structures build
  * equal trees; the rest (shown, folded, which takes the rest, sizes) is written in place.
  */
-function shapeOf(l: ShellLayout): string {
+function shapeOf(l: ShellLayout, root: LayoutNode): string {
   const rail = railGroup(l)?.id;
   const walk = (n: LayoutNode): string => {
-    if (n.kind === 'main') return 'main';
+    if (n.kind === 'main' || n.kind === 'content') return n.kind;
     if (n.kind === 'group') return `g:${n.id}${n.id === rail ? '@' : ''}`;
     return `${n.dir}:${n.id}(${n.children.map(walk).join(',')})`;
   };
-  return walk(l.root);
+  return walk(root);
 }
 
 /**
  * The child of a split that takes the rest: the one holding the main area, else the first that shows open with no
  * size, else the first that shows open (a folded group gives its height to the other).
  */
-function flexIndex(shell: ShellModel, l: ShellLayout, n: LayoutNode & { kind: 'split' }): number {
-  const open = (c: LayoutNode) => nodeShows(shell, l, c) && !(c.kind === 'group' && c.collapsed);
-  let flex = n.children.findIndex((c) => c.kind === 'main' || (c.kind === 'split' && containsMainNode(c)));
+function flexIndex(
+  shell: ShellModel,
+  l: ShellLayout,
+  n: LayoutNode & { kind: 'split' },
+  leaf: 'main' | 'content',
+  away?: (l: ShellLayout, n: LayoutNode) => boolean,
+): number {
+  const open = (c: LayoutNode) =>
+    nodeShows(shell, l, c) && !(c.kind === 'group' && c.collapsed) && !(away?.(l, c) ?? false);
+  // The leaf takes the rest, unless it is away (another pane maximized): then the pane that shows does.
+  let flex = n.children.findIndex((c) => containsLeaf(c, leaf) && !(away?.(l, c) ?? false));
   if (flex < 0) flex = n.children.findIndex((c) => (c as GroupNode).size === undefined && open(c));
   if (flex < 0) flex = n.children.findIndex(open);
   return Math.max(0, flex);
@@ -586,8 +822,11 @@ interface BuildContext {
   readonly used: Set<string>;
   readonly owner: ViewScope;
   readonly bodies: ViewBodies;
-  readonly main: HTMLElement;
+  readonly leaf: 'main' | 'content';
+  readonly leafEl: HTMLElement;
   readonly nodes: Map<string, HTMLElement>;
+  /** The main area's region: its groups and its content are panes. */
+  readonly region: boolean;
 }
 
 /** A node's element (and its children's); what changes without the structure is `applyState`'s. */
@@ -597,11 +836,13 @@ function buildNode(
   parentDir: 'row' | 'column' | undefined,
   ctx: BuildContext,
 ): HTMLElement {
-  const { groups, used, owner, bodies, main } = ctx;
+  const { groups, used, owner, bodies } = ctx;
   const wrap = (<div class={classes.node} data-node={n.id} />) as HTMLElement;
   ctx.nodes.set(n.id, wrap);
-  if (n.kind === 'main') {
-    wrap.append(main);
+  if (ctx.region && (n.kind === 'group' || n.kind === 'content')) wrap.setAttribute('data-pane', n.id);
+  if (n.kind === 'main' || n.kind === 'content') {
+    // The leaf takes the rest: no splitter of its own (a sized neighbour's is on the neighbour).
+    if (n.kind === ctx.leaf) wrap.append(ctx.leafEl);
     return wrap;
   }
   if (n.kind === 'group') {
@@ -609,7 +850,11 @@ function buildNode(
     let g = groups.get(n.id);
     if (!g) {
       const scope = owner.child();
-      const el = runInScope(scope, () => (<GroupView shell={shell} id={n.id} bodies={bodies} />) as HTMLElement);
+      const el = runInScope(scope, () =>
+        ctx.region
+          ? ((<PaneGroupView shell={shell} id={n.id} bodies={bodies} />) as HTMLElement)
+          : ((<GroupView shell={shell} id={n.id} bodies={bodies} />) as HTMLElement),
+      );
       g = { el, scope };
       groups.set(n.id, g);
     }
@@ -621,16 +866,16 @@ function buildNode(
   }
   // Every node in a split has its splitter; it shows on a sized node (`data-at`: the side toward the one that takes
   // the rest), written in place.
-  if (parentDir) wrap.append(<Splitter shell={shell} id={n.id} dir={parentDir} wrap={wrap} />);
+  if (parentDir)
+    wrap.append(
+      <Splitter shell={shell} id={n.id} dir={parentDir} wrap={wrap} min={ctx.region ? MinPaneSize : MinGroupSize} />,
+    );
   return wrap;
 }
 
-function containsMainNode(n: LayoutNode): boolean {
-  return n.kind === 'main' || (n.kind === 'split' && n.children.some(containsMainNode));
-}
-
 function sizeOf(n: LayoutNode, id: string): number | undefined {
-  if (n.kind === 'main') return undefined;
+  if (n.kind === 'main') return n.root ? sizeOf(n.root, id) : undefined;
+  if (n.kind === 'content') return undefined;
   if (n.id === id) return n.size;
   if (n.kind === 'split')
     for (const c of n.children) {
@@ -641,7 +886,7 @@ function sizeOf(n: LayoutNode, id: string): number | undefined {
 }
 
 /** A splitter on a sized node's edge toward the node that takes the rest: drags or arrows resize it. */
-function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column'; wrap: HTMLElement }) {
+function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column'; wrap: HTMLElement; min: number }) {
   const { shell, id, dir } = props;
   // Its side (toward the node that takes the rest) is its node's, written in place: read when it is used.
   const sign = () => (props.wrap.dataset.at === 'start' ? -1 : 1);
@@ -657,7 +902,7 @@ function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column';
       tabIndex={0}
       aria-orientation={dir === 'row' ? 'vertical' : 'horizontal'}
       aria-label="Resize"
-      aria-valuemin={String(MinGroupSize)}
+      aria-valuemin={String(props.min)}
       onKeyDown={(e: KeyboardEvent) => {
         const step = e.shiftKey ? 64 : 16;
         const keys = dir === 'row' ? ['ArrowLeft', 'ArrowRight'] : ['ArrowUp', 'ArrowDown'];
@@ -675,14 +920,57 @@ function Splitter(props: { shell: ShellModel; id: string; dir: 'row' | 'column';
   // Its value is the node's size (a focusable separator says where it is).
   const value = derive(shell.layout, (l) => sizeOf(l.root, id));
   watch([value], () => setAttr(el, 'aria-valuenow', value.value === undefined ? false : String(value.value)));
+  // In a lined-up grid, the cells at its place in the other lines move with it: their splitters light with it (hovered,
+  // focused, dragged), so the line across reads as one.
+  let lit: Element[] = [];
+  const light = (on: boolean) => {
+    for (const p of lit) p.removeAttribute('data-linked');
+    lit = [];
+    if (!on) return;
+    const tree = props.wrap.closest(`.${classes.tree}`);
+    for (const peer of gridPeers(shell.layout.value, id)) {
+      const s = tree?.querySelector(`[data-node="${peer}"] > [role="separator"]`);
+      if (s) {
+        s.setAttribute('data-linked', '');
+        lit.push(s);
+      }
+    }
+  };
+  let hovered = false;
+  let focused = false;
+  let dragging = false;
+  const relight = () => light(hovered || focused || dragging);
+  on(el, 'pointerenter', () => {
+    hovered = true;
+    relight();
+  });
+  on(el, 'pointerleave', () => {
+    hovered = false;
+    relight();
+  });
+  on(el, 'focus', () => {
+    focused = true;
+    relight();
+  });
+  on(el, 'blur', () => {
+    focused = false;
+    relight();
+  });
+  onCleanup(() => light(false));
   drag(el, {
     start: (e) => {
       e.preventDefault();
+      dragging = true;
+      relight();
       el.setAttribute('data-dragging', '');
       return { from: dir === 'row' ? e.clientX : e.clientY, size: size(), sign: sign() };
     },
     move: (e, s) => next.offer(s.size + ((dir === 'row' ? e.clientX : e.clientY) - s.from) * s.sign),
-    end: () => el.removeAttribute('data-dragging'),
+    end: () => {
+      el.removeAttribute('data-dragging');
+      dragging = false;
+      relight();
+    },
   });
   return el;
 }
@@ -735,6 +1023,90 @@ function GroupView(props: { shell: ShellModel; id: string; bodies: ViewBodies })
   );
 }
 
+/**
+ * A group in the main area's region (shell §2.1): a pane. A stage alone has no header (a canvas has no chrome above it;
+ * its pane's menu is the canvas's right-click, the app's); several views show their tabs; a panel shows its header. Its
+ * ✕ closes its views (they leave the region; shown again they go home).
+ */
+function PaneGroupView(props: { shell: ShellModel; id: string; bodies: ViewBodies }) {
+  const { shell, id, bodies } = props;
+  const state = derive([shell.layout, shell.absent, shell.views], (l) => {
+    const g = findGroup(l, id)?.group;
+    const views = shownViews(shell, g);
+    const active = activeOf(shell, g);
+    return { active, views, key: `${active}|${views.join(',')}` };
+  });
+  const key = derive(state, (s) => s.key);
+  const enter = entering();
+  return (
+    <div class={classes.group} data-group={id} data-tip-edge="">
+      <Show when={key}>
+        {() => {
+          const s = state.value;
+          if (!s.active) return null;
+          const ref = s.active;
+          const def = shell.view(ref);
+          const tabs = s.views.length > 1 ? <Tabs shell={shell} views={s.views} active={ref} /> : undefined;
+          let header!: HTMLElement;
+          return enter(
+            <KeptFrame
+              shell={shell}
+              bodies={bodies}
+              ref={ref}
+              placement="stage"
+              head={def?.stage && !tabs ? 'none' : 'header'}
+              tabs={tabs}
+              headerRef={(el) => (header = el)}
+              onClose={() => {
+                for (const v of findGroup(shell.layout.value, id)?.group.views ?? []) shell.close(v);
+              }}
+              menu={() => paneMenu(shell, ref, { anchorRect: () => anchorIn(header, shell, bodies.ui.main) })}
+            />,
+          );
+        }}
+      </Show>
+    </div>
+  );
+}
+
+/**
+ * The top overlay (shell §2.1): the views the layout puts on the top of the main area's content, for the app to place
+ * (`main`'s `top`: a stage's band slot). The active one's body, no header (its tabs when there are several).
+ */
+function TopOverlay(props: { shell: ShellModel; bodies: ViewBodies }) {
+  const { shell, bodies } = props;
+  const state = derive([shell.layout, shell.absent, shell.views], (l) => {
+    const g = mainNode(l).top;
+    const views = shownViews(shell, g);
+    const active = activeOf(shell, g);
+    return { active, views, key: `${active}|${views.join(',')}` };
+  });
+  const key = derive(state, (s) => s.key);
+  return (
+    <div class={classes.topOverlay} data-group={TopGroup}>
+      <Show when={key}>
+        {() => {
+          const s = state.value;
+          if (!s.active) return null;
+          const tabs = s.views.length > 1 ? <Tabs shell={shell} views={s.views} active={s.active} /> : undefined;
+          return (
+            <KeptFrame
+              shell={shell}
+              bodies={bodies}
+              ref={s.active}
+              placement="top"
+              head={tabs ? 'header' : 'none'}
+              tabs={tabs}
+              onClose={() => shell.close(s.active!)}
+              menu={() => paneMenu(shell, s.active!)}
+            />
+          );
+        }}
+      </Show>
+    </div>
+  );
+}
+
 /** A rectangle of `el` relative to the shell's main area (where a window opens beside it). */
 function anchorIn(el: Element | undefined, shell: ShellModel, main: HTMLElement): Rect | undefined {
   if (!el) return undefined;
@@ -776,7 +1148,7 @@ function Tabs(props: { shell: ShellModel; views: readonly ViewRef[]; active: Vie
             }}
           >
             <Icon name={def.icon} />
-            {def.heading && typeof def.heading === 'string' ? def.heading : def.title}
+            {def.heading && typeof def.heading === 'string' ? def.heading : shell.paneTitle(ref)}
           </button>
         );
       })}
@@ -832,6 +1204,13 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
   });
   rovingFocus(rail, { items: '[data-rail-button]', axis: 'vertical', attributes: ['aria-selected'] });
   const section = (name: string) => (es: readonly RailEntry[]) => es.filter((e) => e.section === name);
+  // A rail item's press: its `run`, else its menu beside the button (aria-expanded while open).
+  const press = (item: RailItem, anchor: Element) => {
+    if (item.run) return item.run(anchor);
+    if (!item.menu) return;
+    anchor.setAttribute('aria-expanded', 'true');
+    openMenuBeside(menuRoot(rail), anchor, item.menu(), 'left', () => anchor.setAttribute('aria-expanded', 'false'));
+  };
   const button = (e: RailEntry) => {
     if (e.view) {
       const { ref, def } = e.view;
@@ -876,7 +1255,8 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
         data-captioned={item.caption ? '' : undefined}
         aria-label={item.title}
         data-tip={item.title}
-        onClick={(ev: MouseEvent) => item.run(ev.currentTarget as Element)}
+        aria-haspopup={item.menu && !item.run ? 'menu' : undefined}
+        onClick={(ev: MouseEvent) => press(item, ev.currentTarget as Element)}
       >
         <Icon name={item.icon} />
         {item.caption ? <span class={classes.railCaption}>{item.caption}</span> : null}
@@ -934,15 +1314,14 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
                   aria-haspopup="menu"
                   ref={(el: HTMLElement) => (moreButton = el)}
                   onClick={() => {
-                    const r = moreButton.getBoundingClientRect();
-                    openContextMenu(
+                    openMenuBeside(
                       menuRoot(rail),
-                      { x: r.left, y: r.top },
+                      moreButton,
                       overflow.value.map((e) => ({
                         id: e.id,
                         label: e.view ? e.view.def.title : e.item!.title,
                         icon: e.view ? e.view.def.icon : e.item!.icon,
-                        run: () => (e.view ? shell.select(e.view.ref) : e.item!.run(moreButton)),
+                        run: () => (e.view ? shell.select(e.view.ref) : press(e.item!, moreButton)),
                       })),
                     );
                   }}
@@ -969,6 +1348,7 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
               </button>
             </div>
           ) : null}
+          {run('corner')}
         </div>
       </>
     ) as Node,
@@ -976,17 +1356,17 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
   return rail;
 }
 
-/** The rail's toggle (the Mol* star): in the main area's corner, it shows the rail and the docked column, or hides them. */
-function RailToggle(props: { shell: ShellModel; compact: ReadonlyState<boolean> }) {
+/** The rail's toggle (the app's mark): in the main area's corner, it shows the rail and the docked column again. */
+function RailToggle(props: { shell: ShellModel; compact: ReadonlyState<boolean>; icon: IconName }) {
   const { shell } = props;
-  const shown = derive([shell.railShown, props.compact], (r, c) => !c && !r);
+  const shown = derive([shell.railShown, props.compact, shell.expanded], (r, c, e) => !c && !r && !e);
   return (
     <Show when={shown}>
       {() => (
         <div class={classes.railToggle}>
           <Button
             variant="ghost"
-            icon={<Icon name="molstar" />}
+            icon={<Icon name={props.icon} />}
             title="Show the views"
             onClick={() => shell.toggleRail(true)}
           />
@@ -1011,8 +1391,14 @@ function WindowsLayer(props: { shell: ShellModel; bodies: ViewBodies }) {
   // Windows there at the first render stay still; one opened later floats in.
   let ready = false;
   queueMicrotask(() => (ready = true));
+  // Away while expanded, or under a window's maximized pane: out of the focus order and the pointer's way (hidden by
+  // the style while expanded; each frame pauses).
+  const away = derive(
+    [shell.expanded, shell.maximized, shell.layout],
+    (e, m, l) => e || (!!m && !!findView(l, m)?.window),
+  );
   return (
-    <div class={classes.windows}>
+    <div class={classes.windows} ref={(el: HTMLElement) => watch([away], () => setAttr(el, 'inert', away.value))}>
       <For each={ids} by={(id) => id}>
         {(id) => <WindowView shell={shell} bodies={props.bodies} id={id} enter={ready} />}
       </For>
@@ -1042,12 +1428,19 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
         a.rect.width === b.rect.width &&
         a.rect.height === b.rect.height),
   );
-  const view = derive([shell.layout, shell.absent, shell.views], (l) => {
+  const view = derive([shell.layout, shell.absent, shell.views, shell.maximized], (l, _a, _v, maximized) => {
     const g = findGroup(l, id)?.group;
     const views = shownViews(shell, g);
-    return { active: activeOf(shell, g), views, key: `${activeOf(shell, g)}|${views.join(',')}` };
+    const active = activeOf(shell, g);
+    // Its view maximized (shell §2.1): out over the main area (`MaximizedHost`), its body back here after.
+    const out = !!active && active === maximized;
+    return { active: out ? undefined : active, views, key: `${active}|${views.join(',')}|${out}` };
   });
   const key = derive(view, (v) => v.key);
+  const notExpanded = derive(
+    [shell.expanded, shell.maximized, shell.layout],
+    (e, m, l) => !e && !(m && findView(l, m)?.window),
+  );
   const adjusting = new State<WindowAdjust | undefined>(undefined);
   const enterView = entering();
   const rect = frameState<Rect | undefined>(undefined);
@@ -1079,9 +1472,16 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
   watch([key], () => {
     const active = view.value.active;
     setAttr(el, 'hidden', !active);
-    setAttr(el, 'aria-label', shell.view(active ?? '')?.title ?? 'Window');
+    setAttr(el, 'aria-label', active ? shell.paneTitle(active).value : 'Window');
   });
   on(el, 'pointerdown', () => shell.raise(id), { capture: true });
+  // A window's view is a pane too (a detached stage): pressed or focused, it is the active one.
+  const activate = () => {
+    const active = view.value.active;
+    if (active) shell.setActivePane(active);
+  };
+  on(el, 'pointerdown', activate, { capture: true });
+  on(el, 'focusin', activate);
   on(el, 'focusin', () => shell.raise(id));
   const closeAll = () => {
     for (const v of findGroup(shell.layout.value, id)?.group.views ?? []) shell.close(v);
@@ -1199,7 +1599,8 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
                 if (how === 'up' && e) rect.offer({ ...s.r, x: s.r.x + e.clientX - s.x, y: s.r.y + e.clientY - s.y });
               },
             });
-            return enterView(frame);
+            // Away while expanded (shell §3.9): hidden and paused; a window whose view is out (expanded) has dropped it.
+            return enterView(activity(notExpanded, () => frame) as Node);
           }}
         </Show>
         {grip('right')}
@@ -1210,6 +1611,32 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
   );
   el.tabIndex = -1;
   return el;
+}
+
+/**
+ * A window's pane maximized (shell §2.1): its body out of the window, over the main area (the shell's chrome stays),
+ * its frame without a header for a stage (a panel keeps its header, its ✕ shows every pane again); back in its window
+ * after.
+ */
+function MaximizedHost(props: { shell: ShellModel; bodies: ViewBodies }) {
+  const { shell, bodies } = props;
+  const windowed = derive([shell.maximized, shell.layout], (m, l) => (m && findView(l, m)?.window ? m : undefined));
+  return (
+    <Show when={windowed}>
+      {(ref) => (
+        <div class={classes.maximizedPane} data-maximized-pane={ref}>
+          <KeptFrame
+            shell={shell}
+            bodies={bodies}
+            ref={ref}
+            placement="stage"
+            head={shell.view(ref)?.stage ? 'none' : 'header'}
+            onClose={() => shell.maximize(undefined)}
+          />
+        </div>
+      )}
+    </Show>
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1389,7 +1816,7 @@ function BusyOverlay(props: { busy: ReadonlyState<ShellBusy | undefined> }) {
 }
 
 /** Files dragged over the shell: an overlay saying what a drop does; dropped, they go to `onDrop`. */
-function FileDrop(props: { onDrop: (files: File[]) => void; label?: string }) {
+function FileDrop(props: { onDrop: (files: File[]) => void; label?: string; formats?: string }) {
   const over = new State(false);
   let depth = 0;
   const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes('Files');
@@ -1408,7 +1835,10 @@ function FileDrop(props: { onDrop: (files: File[]) => void; label?: string }) {
     over.set(true);
   };
   const overHandler = (e: DragEvent) => {
-    if (hasFiles(e)) e.preventDefault();
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    // A drop opens a copy of the files (the cursor says so), never moves them.
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
   };
   const leave = () => {
     depth = Math.max(0, depth - 1);
@@ -1432,7 +1862,16 @@ function FileDrop(props: { onDrop: (files: File[]) => void; label?: string }) {
   return (
     <>
       {anchor}
-      <Show when={over}>{() => <div class={classes.drop}>{props.label ?? 'Drop files to open them'}</div>}</Show>
+      <Show when={over}>
+        {() => (
+          <div class={classes.drop}>
+            <div class={classes.dropText}>
+              <span>{props.label ?? 'Drop files to open them'}</span>
+              {props.formats ? <span class={classes.dropFormats}>{props.formats}</span> : null}
+            </div>
+          </div>
+        )}
+      </Show>
     </>
   );
 }

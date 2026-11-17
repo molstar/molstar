@@ -5,7 +5,7 @@
  */
 
 import type { ContextMenuItem } from '../components/context-menu/context-menu.js';
-import { allGroups, columnOf, findView, type Rect, RightGroup, type ViewRef } from './layout.js';
+import { allGroups, columnOf, findView, inRegion, mainNode, type Rect, RightGroup, type ViewRef } from './layout.js';
 import type { ShellModel } from './shell-model.js';
 
 /** What a window's keyboard adjusting does (its menu's Move, Resize). */
@@ -63,6 +63,7 @@ export function viewMenu(
       items.push({ id: 'dock', label: 'Dock right', icon: 'panel-right', run: () => shell.dock(ref) });
     }
   }
+  items.push(...stageItems(shell, ref));
   // Into a window that is open (a window holds several views as tabs).
   for (const g of allGroups(layout)) {
     if (g.id === place.group.id || !layout.windows.some((w) => w.group.id === g.id)) continue;
@@ -79,6 +80,85 @@ export function viewMenu(
     items.push({ id: 'hide', label: 'Hide', icon: 'eye-off', run: () => shell.hide(ref) });
   }
   items.push({ id: 'reset', label: 'Reset layout', icon: 'list-restart', run: () => shell.resetLayout() });
+  return items;
+}
+
+/**
+ * Into the main area's region (shell §2.1): beside the app's content, above it, on its top (as the shell's `top`
+ * option allows). Not for a view already there (its pane menu moves it).
+ */
+function stageItems(shell: ShellModel, ref: ViewRef): ContextMenuItem[] {
+  const l = shell.layout.value;
+  const place = findView(l, ref);
+  if (place && !place.window && inRegion(l, place.group.id)) return [];
+  const items: ContextMenuItem[] = [
+    { id: 'stage-right', label: 'Beside the main view', icon: 'panel-right', run: () => shell.split(ref, 'right') },
+    { id: 'stage-below', label: 'Below the main view', icon: 'panel-bottom', run: () => shell.split(ref, 'bottom') },
+  ];
+  if (shell.top !== 'overlay') {
+    items.push({
+      id: 'stage-above',
+      label: 'Above the main view',
+      icon: 'panel-top',
+      run: () => shell.split(ref, 'top'),
+    });
+  }
+  if (shell.top !== 'split') {
+    items.push({ id: 'stage-top', label: 'Over the main view’s top', icon: 'panel-top', run: () => shell.toTop(ref) });
+  }
+  return items;
+}
+
+/**
+ * A pane's menu (shell §2.1: a view in the main area's region, or on its top): Maximize or Show every pane; split it
+ * beside another pane's; Float; back to its home (Dock right); onto or off the top; Close.
+ */
+export function paneMenu(
+  shell: ShellModel,
+  ref: ViewRef,
+  options: { anchorRect?: () => Rect | undefined } = {},
+): ContextMenuItem[] {
+  const l = shell.layout.value;
+  const place = findView(l, ref);
+  const def = shell.view(ref);
+  if (!place || !def) return [];
+  const items: ContextMenuItem[] = [];
+  const onTop = mainNode(l).top?.id === place.group.id;
+  if (!onTop) {
+    const maximized = shell.maximized.value === place.group.id;
+    items.push(
+      maximized
+        ? { id: 'restore', label: 'Show every pane', icon: 'minimize-2', run: () => shell.maximize(undefined) }
+        : { id: 'maximize', label: 'Maximize', icon: 'maximize-2', run: () => shell.maximize(place.group.id) },
+    );
+    if (place.group.views.length > 1) {
+      items.push(
+        { id: 'split-right', label: 'Split right', icon: 'panel-right', run: () => shell.split(ref, 'right', ref) },
+        { id: 'split-below', label: 'Split below', icon: 'panel-bottom', run: () => shell.split(ref, 'bottom', ref) },
+      );
+    }
+    if (shell.top !== 'split') {
+      items.push({
+        id: 'stage-top',
+        label: 'Over the main view’s top',
+        icon: 'panel-top',
+        run: () => shell.toTop(ref),
+      });
+    }
+    items.push({ id: 'grid', label: 'Arrange as a grid', icon: 'layout-grid', run: () => shell.arrangeGrid() });
+  } else if (shell.top !== 'overlay') {
+    items.push({
+      id: 'stage-above',
+      label: 'Above the main view',
+      icon: 'panel-top',
+      run: () => shell.split(ref, 'top'),
+    });
+  }
+  items.push({ id: 'float', label: 'Float', icon: 'app-window', run: () => shell.float(ref, options.anchorRect?.()) });
+  if ((def.home ?? RightGroup) === RightGroup) {
+    items.push({ id: 'dock', label: 'Dock right', icon: 'panel-right', run: () => shell.dock(ref) });
+  }
+  items.push({ id: 'close', label: 'Close', icon: 'x', run: () => shell.close(ref) });
   return items;
 }
 

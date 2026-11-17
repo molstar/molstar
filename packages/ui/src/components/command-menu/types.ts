@@ -25,6 +25,8 @@ export interface CommandMenuProps {
   group?: string;
   /** The assistant: typed words get an Ask row. */
   assistant?: CommandMenuAssistant;
+  /** Opens the app's help (a `HelpView`): the first row of `?`, then the menu closes. */
+  help?: () => void;
   /** Opened for one command from elsewhere: its sentence is the menu, so Esc (and ⌫ past its start) closes the menu. */
   direct?: boolean;
   /** Commands' own forms, by command id (commands §5.4). */

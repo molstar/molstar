@@ -6,7 +6,7 @@
 
 /* The word's box (its drawn size); the canvas reaches past it by a margin each way, for the pieces (it takes no room
    and no pointer: the word's box does). */
-.wordmark {
+.mark {
   position: relative;
   display: inline-block;
   flex: none;

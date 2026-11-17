@@ -217,7 +217,7 @@ function ParamControls(props: {
 
 /** The filter text, trimmed and lower-cased; undefined when there is no filter. */
 function normalized(filter?: ReadonlyState<string>): ReadonlyState<string> | undefined {
-  return filter && derive(filter, (q) => q.trim().toLowerCase());
+  return filter && derive(filter, (q) => q.trim().toLowerCase().replace(/\s+/g, ' '));
 }
 
 function searching(filter?: ReadonlyState<string>): ReadonlyState<boolean> | undefined {
@@ -228,24 +228,39 @@ function labelOf(name: string, param: PD.Any): string {
   return param.label || camelCaseToWords(name);
 }
 
+/**
+ * The words of a (normalized) search a level does not match: a search's words may each match at any level of a row's
+ * path (a settings group, a nested group, the row's own label or description), so "perf qua" finds Performance ›
+ * Quality. Each level takes the words its text contains and passes the rest down; nothing left: the level shows whole.
+ */
+export function searchRest(text: string, q: string): string {
+  if (!q) return q;
+  const t = text.toLowerCase();
+  if (!q.includes(' ')) return t.includes(q) ? '' : q;
+  return q
+    .split(' ')
+    .filter((w) => w && !t.includes(w))
+    .join(' ');
+}
+
 /** Whether any of the params (or anything inside them) matches a search text: a settings group with no match hides. */
 export function paramsMatch(params: PD.Params, text: string): boolean {
-  const q = text.trim().toLowerCase();
+  const q = text.trim().toLowerCase().replace(/\s+/g, ' ');
   return Object.keys(params).some((k) => !params[k].isHidden && matches(k, params[k], q));
 }
 
-/** Whether a param or anything inside it matches the (normalized) filter text. */
+/** Whether a param or anything inside it matches the (normalized) filter text, its words over the path (`searchRest`). */
 function matches(name: string, param: PD.Any, q: string): boolean {
   if (!q) return true;
-  if (labelOf(name, param).toLowerCase().includes(q)) return true;
-  if (param.description?.toLowerCase().includes(q)) return true;
-  if (param.type === 'group') return Object.keys(param.params).some((k) => matches(k, param.params[k], q));
+  const rest = searchRest(param.description ?? '', searchRest(labelOf(name, param), q));
+  if (!rest) return true;
+  if (param.type === 'group') return Object.keys(param.params).some((k) => matches(k, param.params[k], rest));
   if (param.type === 'mapped') {
     return param.select.options.some(([option]) => {
       const inner = param.map(option);
       return inner.type === 'group'
-        ? Object.keys(inner.params).some((k) => matches(k, inner.params[k], q))
-        : matches(option, inner, q);
+        ? Object.keys(inner.params).some((k) => matches(k, inner.params[k], rest))
+        : matches(option, inner, rest);
     });
   }
   return false;
@@ -284,8 +299,8 @@ function ParamRow(props: {
       );
     return el;
   };
-  // A group or a choice whose own name matches shows all of its rows.
-  const inner = filter && derive(filter, (q) => (label.toLowerCase().includes(q) ? '' : q));
+  // A group or a choice passes down the words its own name does not match: all of them matched, all of its rows show.
+  const inner = filter && derive(filter, (q) => searchRest(label, q));
   if (param.type === 'group') {
     return wrapper(
       <GroupControl

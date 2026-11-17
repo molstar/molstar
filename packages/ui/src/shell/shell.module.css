@@ -119,23 +119,97 @@
   container: shell-main / size;
 }
 
-.mainContent {
-  position: absolute;
-  inset: 0;
+/* A docked tree's box (shell §3): the shell's, beside the rail; the main area's region, filling the main area. */
+.tree {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
 }
 
-/* The status slot: the main area's bottom left, its content the app's. */
-.status {
+/* The main area's region (shell §2.1): the app's content and the panes docked beside it, under the windows. */
+.region {
   position: absolute;
-  bottom: var(--msui-space-2);
-  left: var(--msui-space-2);
-  max-width: calc(100% - 2 * var(--msui-space-2));
+  inset: 0;
+}
+
+/* The app's content: its pane of the region (the whole main area while nothing is docked beside it). */
+.mainContent {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Panes side by side or stacked: a hairline between them, over what they show (a canvas runs to its pane's edge). */
+.region [data-dir] > .node + .node::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  background: var(--msui-shell-line);
+  pointer-events: none;
+}
+
+.region [data-dir="row"] > .node + .node::before {
+  inset: 0 auto 0 0;
+  width: 1px;
+}
+
+.region [data-dir="column"] > .node + .node::before {
+  inset: 0 0 auto;
+  height: 1px;
+}
+
+/* The active pane, while there are several: an accent line along its top edge, as the open tab's (styles §7: the same
+   mark for "this one"), fading in; over what it shows, taking no pointer. */
+.region[data-panes] [data-pane]::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  height: 2px;
+  background: var(--msui-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--msui-motion-fast) var(--msui-ease);
+}
+
+.region[data-panes] [data-pane][data-active]::after {
+  opacity: 1;
+}
+
+/* The app's chrome over the whole main area (shell §2.1): a bottom bar over every pane, at the stage's edge; only its
+   content takes the pointer. */
+.over {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  padding: var(--msui-space-2);
   pointer-events: none;
 
-  & > * {
+  & > * > * {
     pointer-events: auto;
   }
+}
+
+.overStatus {
+  min-width: 0;
+}
+
+.overCorner {
+  flex: none;
+}
+
+/* The top overlay (shell §2.1): its view as tall as its content, where the app places it (a stage's band slot). */
+.topOverlay {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 /* The rail's toggle (the Mol* star): the main area's top right corner, a rail button. */
@@ -208,7 +282,9 @@
 
   &:hover,
   &:focus-visible,
-  &[data-dragging] {
+  &[data-dragging],
+  /* A grid's line: the cells at its place in the other lines move with it, so their splitters light with it. */
+    &[data-linked] {
     background: color-mix(in oklab, var(--msui-accent) 40%, transparent);
     outline: none;
   }
@@ -317,6 +393,20 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
+}
+
+/* Expanded (shell §3.9): the windows away (paused by the view), not only inert. */
+.shell[data-expanded] .windows {
+  display: none;
+}
+
+/* A window's pane maximized: over the whole main area, under the page and the modal. */
+.maximizedPane {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  background: var(--msui-surface);
 }
 
 /* A window: a raised surface with an edge and a float shadow, its header the drag handle. */
@@ -544,6 +634,29 @@
   font-size: var(--msui-text-md);
   font-weight: var(--msui-weight-strong);
   pointer-events: none;
+}
+
+/* The drop overlay's words: what a drop does, then what can be dropped (quiet). */
+.dropText {
+  display: grid;
+  gap: var(--msui-space-1);
+  justify-items: center;
+  text-align: center;
+}
+
+.dropFormats {
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-sm);
+  font-weight: var(--msui-weight-regular);
+}
+
+/* Expanded with `fill: 'page'` (shell §3.9): the shell over the page (no change to the page itself). */
+.shell[data-fill="page"] {
+  position: fixed;
+  inset: 0;
+  z-index: var(--msui-z-overlay);
+  width: auto;
+  height: auto;
 }
 
 /* Compact (below its compact width): the main area over a bottom sheet holding the views; a bar of buttons under it. */

@@ -106,6 +106,39 @@ describe('ShellView: the rail', () => {
     m.dispose();
   });
 
+  it('a rail item with a menu opens it on a press (not on hover), read as it opens; a choice picks', () => {
+    const theme = new State('light');
+    const m = mountShell(views());
+    m.shell.registerRailItems([
+      {
+        id: 'theme',
+        icon: 'sun-moon',
+        title: 'Theme',
+        menu: () =>
+          ['light', 'dark'].map((id) => ({ id, label: id, checked: theme.value === id, run: () => theme.set(id) })),
+      },
+    ]);
+    flush();
+    const button = m.railButton('Theme')!;
+    expect(button.getAttribute('aria-haspopup')).toBe('menu');
+    button.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    button.click();
+    const rows = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')];
+    expect(rows.map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false']);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    rows[1].click();
+    expect(theme.value).toBe('dark');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    // Opened again: it reads the choice anew.
+    button.click();
+    expect(document.querySelector('[aria-checked="true"]')?.textContent).toContain('dark');
+    // Closed before the shell goes: an open menu's listeners would outlive the test (files share a worker).
+    key(document.activeElement!, 'Escape');
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    m.dispose();
+  });
+
   it('a visible flag removes and restores a view’s rail button', () => {
     const shown = new State(false);
     const m = mountShell([...views(), probeView('kin', { visible: shown, order: 1.5 })]);

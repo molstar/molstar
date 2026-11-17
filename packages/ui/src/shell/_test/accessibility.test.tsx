@@ -60,8 +60,8 @@ function shellWith(setup: (s: ShellModel) => void, options = {}) {
     probeView('confirm', { home: 'modal' }),
     probeView('plot', { home: 'float', instances: 'many' }),
   ];
-  const m = mountShell(views, options, { status: () => <span>Ready</span> });
-  m.shell.registerRailItems([{ id: 'theme', icon: 'sun-moon', title: 'Theme', group: 'app', run: () => {} }]);
+  const m = mountShell(views, options);
+  m.shell.registerRailItems([{ id: 'theme', icon: 'sun-moon', title: 'Theme', run: () => {} }]);
   setup(m.shell);
   flush();
   current = m;

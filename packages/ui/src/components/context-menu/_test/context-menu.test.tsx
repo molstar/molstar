@@ -7,9 +7,13 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { openContextMenu } from '../context-menu.js';
+import { openContextMenu, openMenuBeside } from '../context-menu.js';
 
 afterEach(() => {
+  // A menu left open keeps its listeners on the document past its DOM (the files share a worker): closed first.
+  for (const menu of document.querySelectorAll('[role="menu"]')) {
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  }
   document.body.innerHTML = '';
 });
 
@@ -128,5 +132,62 @@ describe('openContextMenu', () => {
     expect(closed).toHaveBeenCalledTimes(1);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(closed).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('openMenuBeside', () => {
+  /** A button at a place of the viewport (jsdom has no layout: its rect is given). */
+  const button = (rect: { left: number; top: number; width: number; height: number }) => {
+    const el = document.createElement('button');
+    document.body.append(el);
+    el.getBoundingClientRect = () =>
+      ({
+        ...rect,
+        right: rect.left + rect.width,
+        bottom: rect.top + rect.height,
+        x: rect.left,
+        y: rect.top,
+      }) as DOMRect;
+    return el;
+  };
+  const choice = (chosen: string) =>
+    ['light', 'dark', 'auto'].map((id) => ({ id, label: id, checked: id === chosen, run: vi.fn() }));
+
+  it('a choice: radio rows, the chosen one checked and focused', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const close = openMenuBeside(root, button({ left: 900, top: 100, width: 32, height: 32 }), choice('dark'));
+    const rows = [...root.querySelectorAll('[role="menuitemradio"]')];
+    expect(rows.map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
+    expect(document.activeElement).toBe(rows[1]);
+    // The check's slot is kept on every row: the labels hold their column.
+    expect(rows.every((r) => r.lastElementChild?.tagName === 'SPAN')).toBe(true);
+    // Closed: an open menu's listeners outlive the DOM (the files share a worker).
+    close();
+  });
+
+  it('opens to the left of the button, its top at the button’s; low on the window, its bottom at the button’s', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const place = (top: number) => {
+      root.innerHTML = '';
+      const close = openMenuBeside(root, button({ left: 900, top, width: 32, height: 32 }), choice('light'));
+      const transform = root.querySelector<HTMLElement>('[role="menu"]')!.style.transform;
+      close();
+      return transform;
+    };
+    // jsdom's own getters, put back after (the files share a worker's modules and globals).
+    const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+    const height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 160 });
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 100 });
+    try {
+      // window.innerHeight is 768 in jsdom: the right edge 4 px left of the button.
+      expect(place(100)).toBe('translate(736px, 100px)');
+      expect(place(700)).toBe(`translate(736px, ${700 + 32 - 100}px)`);
+    } finally {
+      if (width) Object.defineProperty(HTMLElement.prototype, 'offsetWidth', width);
+      if (height) Object.defineProperty(HTMLElement.prototype, 'offsetHeight', height);
+    }
   });
 });

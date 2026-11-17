@@ -20,7 +20,24 @@ export interface ContextMenuItem {
   disabled?: string;
   /** Its key, as text (`⌘K`), quiet at the row's end. */
   shortcut?: string;
+  /**
+   * One of a single choice (`menuitemradio`): the chosen one (true) in the accent with a check at the row's end. Set on
+   * every item of the choice.
+   */
+  checked?: boolean;
   run(): void;
+}
+
+/** Where a menu goes: its corner (x, y), and where it goes instead when it would leave the window. */
+interface MenuPlace {
+  /** The menu's left edge, or its right edge with `alignEnd`. */
+  readonly x: number;
+  /** Its top. */
+  readonly y: number;
+  /** Its right edge at `x` (it opens to the left of `x`). */
+  readonly alignEnd?: boolean;
+  /** Its bottom here instead of its top at `y` where it would leave the window's bottom (default: `y`). */
+  readonly bottom?: number;
 }
 
 /**
@@ -37,6 +54,40 @@ export function openContextMenu(
   items: readonly ContextMenuItem[],
   onClose?: () => void,
 ): () => void {
+  return openMenu(root, at, items, onClose);
+}
+
+/**
+ * Opens a menu beside a button (a rail's, at a window's edge): on its `side`, its top at the button's top, or its bottom
+ * at the button's bottom where it would leave the window (a button low on the rail opens upward); a unit clear of the
+ * button. Otherwise as `openContextMenu`.
+ */
+export function openMenuBeside(
+  root: HTMLElement,
+  anchor: Element,
+  items: readonly ContextMenuItem[],
+  side: 'left' | 'right' = 'left',
+  onClose?: () => void,
+): () => void {
+  const r = anchor.getBoundingClientRect();
+  // A unit (styles §3) clear of the button.
+  const gap = 4;
+  return openMenu(
+    root,
+    side === 'left'
+      ? { x: r.left - gap, y: r.top, alignEnd: true, bottom: r.bottom }
+      : { x: r.right + gap, y: r.top, bottom: r.bottom },
+    items,
+    onClose,
+  );
+}
+
+function openMenu(
+  root: HTMLElement,
+  at: MenuPlace,
+  items: readonly ContextMenuItem[],
+  onClose?: () => void,
+): () => void {
   let closed = false;
   let dispose = () => {};
   const restore = rememberFocus();
@@ -50,6 +101,7 @@ export function openContextMenu(
     onClose?.();
   };
   const icons = items.some((i) => i.icon);
+  const checks = items.some((i) => i.checked !== undefined);
   let menu!: HTMLElement;
   createRoot((d) => {
     dispose = d;
@@ -64,7 +116,8 @@ export function openContextMenu(
         {items.map((item) => (
           <button
             type="button"
-            role="menuitem"
+            role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
+            aria-checked={item.checked === undefined ? undefined : String(item.checked)}
             tabIndex={-1}
             class={classes.row}
             aria-disabled={item.disabled ? 'true' : undefined}
@@ -78,7 +131,13 @@ export function openContextMenu(
           >
             {icons ? <span class={classes.slot}>{item.icon ? <Icon name={item.icon} /> : null}</span> : null}
             <span class={classes.label}>{item.label}</span>
-            {item.shortcut ? <kbd class={classes.keys}>{item.shortcut}</kbd> : <span />}
+            {item.shortcut ? (
+              <kbd class={classes.keys}>{item.shortcut}</kbd>
+            ) : checks ? (
+              <span class={classes.check}>{item.checked ? <Icon name="check" /> : null}</span>
+            ) : (
+              <span />
+            )}
           </button>
         ))}
       </div>
@@ -98,10 +157,21 @@ export function openContextMenu(
   // Measured once, now: the flip at the window's edges.
   const w = menu.offsetWidth;
   const h = menu.offsetHeight;
-  const x = at.x + w > window.innerWidth - 4 ? Math.max(4, at.x - w) : at.x;
-  const y = at.y + h > window.innerHeight - 4 ? Math.max(4, at.y - h) : at.y;
+  const left = at.alignEnd ? at.x - w : at.x;
+  const x = at.alignEnd
+    ? left < 4
+      ? Math.min(window.innerWidth - w - 4, at.x)
+      : left
+    : left + w > window.innerWidth - 4
+      ? Math.max(4, at.x - w)
+      : left;
+  const y = at.y + h > window.innerHeight - 4 ? Math.max(4, (at.bottom ?? at.y) - h) : at.y;
   menu.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-  menu.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')?.focus({ preventScroll: true });
+  // The chosen one of a choice first, else the first usable.
+  (
+    menu.querySelector<HTMLElement>('[aria-checked="true"]:not([aria-disabled="true"])') ??
+    menu.querySelector<HTMLElement>('[role^="menuitem"]:not([aria-disabled="true"])')
+  )?.focus({ preventScroll: true });
   return close;
 }
 

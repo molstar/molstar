@@ -22,7 +22,10 @@ const shellStory = (options: DemoOptions = {}): StoryObj => ({
 });
 
 /** The right group open on Home, the rail beside it: the shell as an app starts. */
-export const Open = shellStory({ setup: (s) => s.show('home'), status: true });
+export const Open = shellStory({ setup: (s) => s.show('home') });
+
+/** Nothing loaded yet: the stage shows the glass mark (after 700 ms); drop a file on the shell to "load" it. */
+export const EmptyStage = shellStory({ empty: true, dropLabel: 'Drop files to open them' });
 
 /** Folded to the rail: the main area takes the room; a press on a rail button opens its view. */
 export const Folded = shellStory();
@@ -148,7 +151,6 @@ export const Themes: StoryObj = {
               options={{
                 mode: 'desktop',
                 height: '100vh',
-                status: true,
                 setup: (s) => s.show('layers'),
               }}
             />
@@ -161,17 +163,19 @@ export const Themes: StoryObj = {
 /**
  * Files dropped anywhere on the shell (`onDropFiles`): drag files from your desktop over it. While a drag carries files,
  * one overlay says what a drop does (`dropLabel`); a drag of anything else (text, a link) shows nothing. Dropped, the
- * files go to the app (here, named in the status slot).
+ * files go to the app (here, the stage fills and the status names them).
  */
 export const FileDrop = shellStory({
-  status: true,
   dropLabel: 'Drop files to open them',
   setup: (s) => s.show('home'),
 });
 
 /** The drop overlay as it shows while files are dragged over the shell (a drag started by the story). */
 export const FileDropOverlay: StoryObj = {
-  ...shellStory({ status: true, dropLabel: 'Drop structures, sessions or maps to open them' }),
+  ...shellStory({
+    dropLabel: 'Drop structures, sessions or maps to open them',
+    dropFormats: 'PDB, mmCIF, BinaryCIF, MOL2, SDF, CCP4, sessions (.molx)',
+  }),
   play: async ({ canvasElement }) => {
     await new Promise((r) => setTimeout(r, 50));
     const shell = canvasElement.querySelector('[role="application"]');
@@ -180,4 +184,50 @@ export const FileDropOverlay: StoryObj = {
     data.items.add(new File(['data'], 'example.cif'));
     shell.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: data }));
   },
+};
+
+/**
+ * Expanded (`view.expand`): the main area alone, the rail, the docked column and the windows away (paused); a card or
+ * a page still opens over it. Escape, or showing a docked view, brings the rest back.
+ */
+export const Expanded = shellStory({
+  setup: (s) => {
+    s.show('home');
+    s.show('details', { key: 'a', subject: 'Item A' });
+    s.expand();
+  },
+});
+
+/**
+ * Expanded with `fill: 'page'`: a shell embedded in a page (here a box in a page of text) fills the page while expanded;
+ * the page itself is not changed. The button toggles it.
+ */
+export const ExpandedPage: StoryObj = {
+  render: () =>
+    story(() => {
+      let shell: ShellModel | undefined;
+      return (
+        <div style="display: grid; gap: var(--msui-space-3); padding: var(--msui-space-5); max-width: 720px;">
+          <p style="margin: 0; color: var(--msui-text-muted);">
+            A page with a viewer in it. Expand fills the page with it; Escape, or the button again, brings it back.
+          </p>
+          <div>
+            <button type="button" onClick={() => shell?.toggleExpanded()}>
+              Expand the viewer
+            </button>
+          </div>
+          <DemoShell
+            options={{
+              mode: 'embedded',
+              fill: 'page',
+              width: '640px',
+              height: '400px',
+              setup: (s) => {
+                shell = s;
+              },
+            }}
+          />
+        </div>
+      );
+    }),
 };

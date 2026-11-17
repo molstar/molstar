@@ -60,6 +60,11 @@
     outline-offset: -2px;
   }
 
+  /* The chosen one of a choice: the accent text, not bold (as a toolbar's menu). */
+  &[role="menuitemradio"][aria-checked="true"] {
+    color: var(--msui-accent-strong);
+  }
+
   &[aria-disabled="true"] {
     color: var(--msui-text-subtle);
     cursor: default;
@@ -86,5 +91,16 @@
   font-family: inherit;
   font-size: var(--msui-text-xs);
   /* Clear of the label: with the columns' gap, the space between groups (styles §3). */
+  padding-inline-start: var(--msui-space-2);
+}
+
+/* A choice's check, at the row's end: the chosen one's, the others' slot kept (the labels' column holds). */
+.check {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--msui-icon-slot);
   padding-inline-start: var(--msui-space-2);
 }

@@ -167,6 +167,16 @@
   gap: var(--msui-space-1);
   min-height: var(--msui-row);
   padding-inline: var(--msui-inner);
+
+  /* A field at an end (a search) pads its own text: its box sits at the block edge, lined up with the sections'
+     wells, and its text lands on the text column (styles §8.2). */
+  &:has(> input:first-child) {
+    padding-inline-start: 0;
+  }
+
+  &:has(> input:last-child) {
+    padding-inline-end: 0;
+  }
 }
 
 .empty {

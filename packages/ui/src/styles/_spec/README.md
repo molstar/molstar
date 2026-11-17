@@ -194,7 +194,9 @@ and extensions, docked or in a window, line up as one UI only if none sets its o
   the rail, two units (8) as loose.
 - **Text on one column**, the view's padding plus a block's own (`--msui-inner`): 6 + 8 = 14. The header pads its start
   by the same sum; each block in the body (a section's header, a form, a list's rows, `ViewToolbar`, `ViewEmpty`,
-  `ViewError`, `ViewHeading`) pads `--msui-inner` inside the body's padding. A view never pads its own content again.
+  `ViewError`, `ViewHeading`) pads `--msui-inner` inside the body's padding. A view never pads its own content again. A
+  field at either end of a `ViewToolbar` (a search) is the exception: it pads its own text, so its box sits at the block
+  edge, in line with the sections' wells, and its text still lands on the column.
 - **Trailing controls end on one column**, a unit inside the text column's mirror (18 from the right edge): where a
   field's chevron ends (the view's padding, the form's `--msui-inner`, the unit a field keeps after its chevron: 6 + 8 +
   4). The header pads its end by the same 14 and a sm icon button's 12 icon sits 4 inside it; an `Expandable`'s chevron:

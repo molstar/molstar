@@ -178,12 +178,22 @@ describe('ParamsForm', () => {
     await flush();
     expect(shown()).toEqual(['Rotate Speed', 'Zoom Speed']);
 
+    // Words across levels: the group's name takes one, a row's the other.
+    filter.set('track  ZOOM');
+    await flush();
+    expect(shown()).toEqual(['Zoom Speed']);
+    filter.set('track pick');
+    await flush();
+    expect(shown()).toEqual([]);
+
     filter.set('');
     await flush();
     expect(shown()).toEqual(['Pick Padding', 'Tooltips']);
 
     expect(paramsMatch(params, 'zoom')).toBe(true);
     expect(paramsMatch(params, 'nothing')).toBe(false);
+    expect(paramsMatch(params, 'trackball speed')).toBe(true);
+    expect(paramsMatch(params, 'trackball tooltips')).toBe(false);
   });
 
   it('marks a label with help (dotted underline); its text and the ? after it open the help; a long label wraps, its ? after it', async () => {
