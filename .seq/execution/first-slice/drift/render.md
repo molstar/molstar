@@ -22,3 +22,15 @@ lane's; each is to be folded into the design at the stage 4 gate unless the auth
 9. **`renderSvg`'s result**: `{ svg, settled, issues, lists }`; the SVG carries `data-*` attributes for settled and open
    domains.
 10. **`query` layers** read the whole annotation they start at; filtering belongs to the sublanguage slice.
+
+## From the review (strong), decided with defaults in the fix round
+
+- Selection tint over the data (pass order) vs ux-foundations §6 "under the data": kept over; the author to pick.
+- Letters threshold measured in CSS px, other steps in device px (a config item per step); supersedes item 5's open
+  question unless the author decides otherwise.
+- Overflow collapses only the extra lanes into a density row (`ranges.overflow`, default `extra-lanes`; `layer` the
+  alternative).
+- Values aggregate min and max per device column (`values.aggregate`, default `minmax`).
+- Item labels in the `labels` pass, not `data`.
+- The export follows continuously like the viewer (`point` within a run).
+- Minus-strand followers in genomic order; reversed pieces a followup.
