@@ -28,6 +28,36 @@
       "types": "./lib/reactive/index.d.ts",
       "import": "./lib/reactive/index.js"
     },
+    "./repr/tree": {
+      "molstar-src": "./src/repr/tree/index.ts",
+      "types": "./lib/repr/tree/index.d.ts",
+      "import": "./lib/repr/tree/index.js"
+    },
+    "./repr/schema": {
+      "molstar-src": "./src/repr/schema/index.ts",
+      "types": "./lib/repr/schema/index.d.ts",
+      "import": "./lib/repr/schema/index.js"
+    },
+    "./repr/builder": {
+      "molstar-src": "./src/repr/builder/index.ts",
+      "types": "./lib/repr/builder/index.d.ts",
+      "import": "./lib/repr/builder/index.js"
+    },
+    "./repr/codec": {
+      "molstar-src": "./src/repr/codec/index.ts",
+      "types": "./lib/repr/codec/index.d.ts",
+      "import": "./lib/repr/codec/index.js"
+    },
+    "./repr/codecs/json": {
+      "molstar-src": "./src/repr/codecs/json/index.ts",
+      "types": "./lib/repr/codecs/json/index.d.ts",
+      "import": "./lib/repr/codecs/json/index.js"
+    },
+    "./repr/codecs/sexpr": {
+      "molstar-src": "./src/repr/codecs/sexpr/index.ts",
+      "types": "./lib/repr/codecs/sexpr/index.d.ts",
+      "import": "./lib/repr/codecs/sexpr/index.js"
+    },
     "./task": {
       "molstar-src": "./src/task/index.ts",
       "types": "./lib/task/index.d.ts",
@@ -57,6 +87,12 @@
     "./math/graph/_test/*": null,
     "./math/linear-algebra/_test/*": null,
     "./reactive/_test/*": null,
+    "./repr/builder/_test/*": null,
+    "./repr/codec/_test/*": null,
+    "./repr/codecs/json/_test/*": null,
+    "./repr/codecs/sexpr/_test/*": null,
+    "./repr/schema/_test/*": null,
+    "./repr/tree/_test/*": null,
     "./state/_test/*": null,
     "./task/util/_test/*": null,
     "./util/_test/*": null,
