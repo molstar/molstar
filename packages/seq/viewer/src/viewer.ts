@@ -423,7 +423,8 @@ export class SeqViewer extends ReactiveModel {
 
   /**
    * The picture as an SVG string: the same view, size and window through the context's ports and this viewer's store
-   * (data already loaded is shared). At device pixel ratio 1, whatever the screen's: an export is device independent.
+   * (data already loaded is shared), at the device pixel ratio of the last frame: the density steps are in device
+   * pixels, so this is the picture the canvas shows (`dpr: 1` for a device independent export).
    */
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
@@ -433,6 +434,7 @@ export class SeqViewer extends ReactiveModel {
       ...(resolved ? { view: resolved.address } : {}),
       ...(vp ? { viewport: { start: vp.start, end: vp.end } } : {}),
       store: this.store.store,
+      dpr: this.dpr,
       ...options,
     });
   }

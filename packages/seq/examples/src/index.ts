@@ -5,7 +5,7 @@
  */
 
 // The examples of Seq* (next): a few datasets, many views. Each view is a builder module over a dataset's fixtures,
-// exporting `build()`; `views.ts` lists them. The Node assets adapter reads the fixtures from the package folder.
+// exporting `build()`; `views.ts` lists them. The Node assets adapter (`@molstar/seqx-examples/node-assets`, it imports
+// `node:fs`) is an entry of its own, so a browser bundle of the views never pulls it in.
 
-export { nodeFixtureAssets, PackageFolder } from './node-assets.js';
 export { ExampleViews, type ExampleView, P53Views } from './views.js';

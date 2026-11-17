@@ -540,3 +540,32 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 
 - `seq.render.*` (`RenderIssues`): `view`, `color`, `layer.type`, `layer.letters`, `axis.pending` (info),
   `follow.leader`, `follow.cycle`, `source`, `unsettled`; a test checks the catalog.
+
+## Context
+
+`@molstar/seqx-core/context`: the headless composition. One place lists what a render needs; the viewer composes the
+same pieces. Nothing registers on import and there is no global registry.
+
+- `createSeqContext({ registry?, config?, ports? })`: the registry's runtimes, the configuration and the ports, and
+  through them `check`, `resolve`, `view` (the resolve passes) and `renderSvg`. `retire()` disposes what the context
+  made or was told to dispose.
+- **Registry entries** are data: `{ kind: 'format-runtime', runtime }` in this version. The same runtime object again is
+  no change; another under one name is an error listing every conflict (nothing registered). Layer types, themes and the
+  other kinds join when `renderSvg` takes them (a `types` option); run-time, atomic and undoable registration is the
+  viewer's followup. Why only runtimes: a layer type the SVG export cannot draw would make the canvas and the export
+  differ.
+- **Configuration** is `[item, value]` pairs (`SeqConfigItem`, `configItem(key)`); the core's items are `SeqCoreConfig`
+  (`theme`, `render`, `resolve`). Items of other keys are another package's (the viewer's `group.item` keys).
+- **Ports** are factories with ownership, each called once; unset, the default: no reads (`NoAssets`) and the bundled
+  text metrics. A result's `disposeWithViewer` is true unless `false`: a host that passes its own keeps it.
+  - **assets**: either the application's `AssetManager` behind `policyAssets` (`ManagedAssetsPort`, with a policy), or a
+    reader of its own (`ReaderAssetsPort`: a test adapter that refuses the network, the Node fixtures' adapter). Why
+    two: a suite per port needs a second adapter, and an `AssetManager` is not what a test or a CLI has.
+  - **text metrics**: `measure(font, text)`; the context wraps it in the per-font cache (`createTextMetrics`).
+  - **structure**: none in this version (`runtime` unset).
+- **The asset policy** (`AssetPolicy`): absolute locations need an allowed scheme (none by default) and, when listed, a
+  host; relative ones resolve against `base` and, with `confine`, stay in its folder; `maxBytes` (the body is read
+  whole, then checked) and `timeoutMs`; no credentials or headers are ever sent. `BrowserAssetPolicy` is `https:`,
+  relative under the page, 256 MB, 30 s; `HeadlessAssetPolicy` reads nothing. A refusal rejects with `AssetRefused`,
+  which a source's opening turns into an issue on the source (`seq.source.unreadable`). Why: a spec's `uri` is untrusted
+  input.
