@@ -1,0 +1,196 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// The render tests' specs: p53 as tracks (letters, domains, conservation), p53 on a toy gene of its own (the gene's
+// section following the protein's), and a 3M-position system read by region from a synthetic runtime with levels.
+
+import { categoryColumn, type Node } from '@molstar/core/repr/tree';
+import {
+  type Coverage,
+  type FormatRuntime,
+  type OpenedSource,
+  type RegionAnswer,
+  type RegionRequest,
+} from '@molstar/seqx-core/data';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+
+/** Human p53 (UniProt P04637), 393 residues. */
+export const P53 =
+  'MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD';
+
+/** A seeded generator (a 32-bit LCG): fixtures are generated, never stored. */
+export function seeded(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 0x100000000;
+  };
+}
+
+/** Conservation: a value a residue in [0, 1], two missing (NaN). */
+export function conservation(): Float32Array {
+  const r = seeded(53);
+  const v = Float32Array.from({ length: P53.length }, () => Math.round(r() * 100) / 100);
+  v[100] = Number.NaN;
+  v[101] = Number.NaN;
+  return v;
+}
+
+function domains(b: ReturnType<typeof createSeqSpec>, p53: Parameters<typeof b.data.ranges>[1]['target']) {
+  return b.data.ranges('domains', {
+    target: p53,
+    rows: {
+      start: new Int32Array([0, 63, 93, 318, 323, 363]),
+      end: new Int32Array([61, 94, 292, 360, 355, 393]),
+      id: ['TAD', 'PRR', 'DBD', 'NLS', 'TET', 'CTD'],
+      label: [
+        'Transactivation',
+        'Proline-rich',
+        'DNA-binding',
+        'Nuclear localization',
+        'Tetramerization',
+        'C-terminal',
+      ],
+      category: ['activation', 'linker', 'binding', 'signal', 'oligomer', 'regulatory'],
+    },
+  });
+}
+
+/** p53 as tracks: its letters, its domains (in lanes), its conservation. */
+export function p53TracksSpec(): Node {
+  const b = createSeqSpec({ title: 'p53 tracks' });
+  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+  const d = domains(b, p53);
+  const c = b.data.values('conservation', { target: p53, values: conservation() });
+  b.views.view('main', (v) => {
+    const s = v.section('protein', { of: p53 });
+    s.track('letters', { label: 'p53' }).layer({ type: 'letters' });
+    s.track('domains', { label: 'Domains' }).layer({ type: 'ranges', data: d });
+    s.track('conservation', { label: 'Conservation' }).layer({ type: 'values', data: c });
+  });
+  return b.build();
+}
+
+/** The toy gene's exons (minus strand, genomic order): 300 + 420 + 462 = 1182 nucleotides, 393 codons and a stop. */
+export const GENE_EXONS = { start: [100, 480, 960], end: [400, 900, 1422] };
+
+export const GENE_LENGTH = 1500;
+
+/** The toy gene's letters: seeded. */
+export function geneLetters(): string {
+  const r = seeded(17);
+  let s = '';
+  for (let i = 0; i < GENE_LENGTH; i++) s += 'ACGT'[Math.floor(r() * 4)];
+  return s;
+}
+
+/** p53 on its gene: the protein's section (letters, domains), the gene's following it (letters, the domains on it). */
+export function p53GeneSpec(): Node {
+  const b = createSeqSpec({ title: 'p53 on its gene' });
+  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+  const gene = b.data.sequence('tp53', { alphabet: 'dna', letters: geneLetters() });
+  b.data.map('p53-on-gene', { from: p53, to: gene, method: 'codon', exons: GENE_EXONS, strand: '-' });
+  const d = domains(b, p53);
+  b.views.view('main', (v) => {
+    const protein = v.section('protein', { of: p53 });
+    protein.track('letters', { label: 'p53' }).layer({ type: 'letters' });
+    protein.track('domains', { label: 'Domains' }).layer({ type: 'ranges', data: d });
+    const g = v.section('gene', { of: gene, follow: protein });
+    g.track('letters', { label: 'TP53' }).layer({ type: 'letters' });
+    g.track('domains', { label: 'Domains on the gene' }).layer({ type: 'ranges', data: d });
+  });
+  return b.build();
+}
+
+// ---- a 3M-position system read by region ----
+
+export const BIG = 3_000_000;
+
+/** Bin widths the synthetic source serves. */
+export const BigLevels = [1, 64, 4096];
+
+const BigCoverage: Coverage = {
+  systems: [{ name: 'chr', length: BIG, alphabet: 'dna' }],
+  shapes: [
+    { system: 'chr', shape: 'letters' },
+    { system: 'chr', shape: 'ranges' },
+    { system: 'chr', shape: 'values' },
+  ],
+  levels: BigLevels,
+};
+
+const hash = (p: number) => (Math.imul(p ^ 0x9e3779b9, 0x85ebca6b) >>> 13) & 0xffff;
+
+/** Items every 50 positions, 70 long (two lanes), each `r<start>`; a level above 1 answers their density. */
+function bigAnswer(r: RegionRequest): RegionAnswer {
+  const tables: { letters?: unknown; ranges?: unknown; values?: unknown } = {};
+  const L = r.level;
+  if (r.shapes.includes('letters') && L === 1) {
+    let s = '';
+    for (let p = r.start; p < r.end; p++) s += 'ACGT'[hash(p) & 3];
+    tables.letters = { form: 'letters', start: r.start, letters: s };
+  }
+  if (r.shapes.includes('ranges')) {
+    if (L === 1) {
+      const starts: number[] = [];
+      for (let p = Math.ceil(r.start / 50) * 50; p < r.end; p += 50) starts.push(p);
+      tables.ranges = {
+        form: 'list',
+        start: Int32Array.from(starts),
+        end: Int32Array.from(starts, (s) => Math.min(s + 70, BIG)),
+        id: categoryColumn(starts.map((s) => `r${s}`)),
+      };
+    } else {
+      const lo = Math.floor(r.start / L);
+      const hi = Math.ceil(r.end / L);
+      const bins = Int32Array.from({ length: hi - lo }, (_, i) => lo + i);
+      tables.ranges = { form: 'density', bin: bins, count: Float32Array.from(bins, (b) => (L / 50) * (1 + (b % 3))) };
+    }
+  }
+  if (r.shapes.includes('values')) {
+    if (L === 1)
+      tables.values = {
+        form: 'positions',
+        start: r.start,
+        value: Float32Array.from({ length: r.end - r.start }, (_, i) => hash(r.start + i) / 0xffff),
+      };
+    else {
+      const start = Math.floor(r.start / L) * L;
+      const n = Math.ceil(r.end / L) - start / L;
+      const v = Float32Array.from({ length: n }, (_, i) => hash(start + i * L) / 0xffff);
+      tables.values = { form: 'bins', start, min: v, max: v, mean: v, count: new Float32Array(n).fill(L) };
+    }
+  }
+  return { ok: true, tables: tables as never };
+}
+
+export const BigRuntime: FormatRuntime = {
+  name: 'synthetic',
+  formats: ['synthetic'],
+  async open(): Promise<OpenedSource> {
+    return {
+      coverage: BigCoverage,
+      read: async (r) => bigAnswer(r),
+      dispose() {},
+    };
+  },
+};
+
+/** A 3M-position system from the synthetic runtime: letters, ranges and values, each read by region. */
+export function bigSpec(): Node {
+  const b = createSeqSpec({ title: '3M positions' });
+  const src = b.data.source('synthetic', { format: 'synthetic', uri: 'synthetic:chr' });
+  const chr = b.data.sequence('chr', { alphabet: 'dna', source: src });
+  const r = b.data.ranges('items', { target: chr, source: src });
+  const v = b.data.values('signal', { target: chr, source: src });
+  b.views.view('main', (view) => {
+    const s = view.section('chr', { of: chr });
+    s.track('letters').layer({ type: 'letters' });
+    s.track('items').layer({ type: 'ranges', data: r });
+    s.track('signal').layer({ type: 'values', data: v });
+  });
+  return b.build();
+}
