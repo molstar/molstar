@@ -11,6 +11,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import {
   expandTemplate,
   followRange,
+  templateNodes,
   type ResolvedLayer,
   type ResolvedSection,
   type ResolvedTrack,
@@ -230,7 +231,20 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
         continue;
       }
       if (axis) wantTemplate(input, section, track.template.source, axis, wants);
-      shown.push(...expandTemplate(input.model, overlay, section, track));
+      const instances = expandTemplate(input.model, overlay, section, track, config.maxTemplateTracks);
+      if (instances.length >= config.maxTemplateTracks && templateNodes(track, overlay).length > instances.length)
+        report(
+          issueOf(
+            RenderIssues,
+            'seq.render.template.limit',
+            `The template selects more than ${instances.length} nodes`,
+            {
+              address: track.address,
+              hint: RenderIssues.codes['seq.render.template.limit'].hint,
+            },
+          ),
+        );
+      shown.push(...instances);
     }
     for (const track of shown) {
       if (tracks.length) y += config.trackGap;

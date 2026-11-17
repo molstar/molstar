@@ -53,4 +53,14 @@ describe('track templates', () => {
     );
     expect(b.check().map((i) => i.code)).toContain('repr.schema.param.enum');
   });
+
+  it('expands annotations only: a template over source nodes is refused by the description', () => {
+    const b = createSeqSpec();
+    b.data.source('genes', { format: 'seq', uri: 'genes.seq' });
+    b.views.view('main', (v) =>
+      // @ts-expect-error: a source node has nothing a layer draws
+      v.section('s', { of: '/data/x' }).track('t', { for_each: { source: '/data/genes', node_kind: 'source' } }),
+    );
+    expect(b.check().map((i) => i.code)).toContain('repr.schema.param.enum');
+  });
 });

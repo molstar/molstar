@@ -204,9 +204,9 @@ export const SeqLanguage = defineLanguage({
             },
             node_kind: {
               type: 'string',
-              enum: ['sequence', 'ranges', 'values', 'map', 'source'],
+              enum: ['ranges', 'values'],
               required: true,
-              doc: 'The kind of node a track is made for.',
+              doc: 'The kind of node a track is made for: an annotation, which its layers draw.',
             },
             depth: {
               type: 'integer',

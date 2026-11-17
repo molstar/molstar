@@ -93,6 +93,15 @@ describe('dynamic nodes through templates', () => {
     expect(renderer.options.model).toBe(model);
   });
 
+  it('a template makes at most maxTemplateTracks tracks, and says so past it', async () => {
+    const r = await renderSvg(transcriptsSpec(), { size, runtimes: [SeqRuntime], config: { maxTemplateTracks: 1 } });
+    expect(r.issues.map((i) => [i.code, i.address])).toEqual([
+      ['seq.render.template.limit', '/views/main/gene/transcripts'],
+    ]);
+    expect(r.svg).toContain('Transcript T1<');
+    expect(r.svg).not.toContain('Transcript T2<');
+  });
+
   it('past the nesting limit a nested source is an issue, never opened (EC-179)', async () => {
     const r = await renderSvg(transcriptsSpec({ domains: true }), {
       size,

@@ -101,16 +101,18 @@ export function expandTemplate(
   overlay: Overlay,
   section: ResolvedSection,
   track: ResolvedTrack,
+  max = Number.POSITIVE_INFINITY,
 ): readonly ResolvedTrack[] {
   if (!track.template) return [];
   let byTrack = expansions.get(overlay);
   if (!byTrack) expansions.set(overlay, (byTrack = new Map()));
-  const k = `${section.address}\u0000${track.address}`;
+  const k = `${section.address}\u0000${track.address}\u0000${max}`;
   const hit = byTrack.get(k);
   if (hit) return hit;
   const segments = parseAddress(track.address).pattern?.segments ?? [];
   const out: ResolvedTrack[] = [];
-  for (const node of templateNodes(track, overlay)) {
+  // at most `max` instances: the work is bounded before it starts
+  for (const node of templateNodes(track, overlay).slice(0, max)) {
     const address = printAddress([...segments, { kind: 'node', params: { at: node.address } }]);
     const layers = track.layers.map((l) =>
       l.placed || l.data ? l : instanceLayer(model, overlay, l, node, address, section.axis.system),

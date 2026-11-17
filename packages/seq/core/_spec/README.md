@@ -21,8 +21,9 @@ checks it cannot express.
   same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
   `track`, `layer` (ids optional on a layer only). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a
   coding sequence of its own (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind
-  param is `node_kind`, since `kind` is reserved). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`,
-  `data`) are `ref` params naming the kinds they take; a reference is an address.
+  param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params
+  (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is
+  an address.
 - **Positions** are 0-based, ranges half-open. A range with `start > end` wraps the origin where its sequence is
   `cyclic` and is an error elsewhere; a section's `range` follows the same rule. Strands are `+` or `-`. Exons of a
   codon map are in genomic order and do not overlap (`strand` says which way the protein runs); on a cyclic gene the
@@ -468,8 +469,8 @@ one label column (112, gap 8), track and section gaps (4, 8), a track's height b
 none (letters 20, ranges 36, values 32), the lane (12, gap 2), the density thresholds, the letter sizes (9 to 14) and
 the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), the fade (12), the squircle's ratio, cap
 and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the want margin (half the view a side),
-a follower's arc (`shortest`), what ranges past the lanes do (`ranges.overflow`: `extra-lanes`), how values aggregate
-below a pixel (`values.aggregate`: `minmax`).
+a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), what ranges past the
+lanes do (`ranges.overflow`: `extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`).
 
 - **Density steps** (`densityStep(cssPx, dpr, config)`), shared by every layer type, each threshold in its unit
   (`densityUnits`): `letters` from 10 CSS px, `cells` from 3 device px, `dots` from 1, `bars` from 1/64, else `density`.
@@ -565,9 +566,10 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   arc, `followArc`) of the leader's positions in view (`followRange`).
 - A section whose length is unknown takes the length its source's coverage gives once attached, else waits
   (`seq.render.axis.pending`).
-- **Templates** are expanded here over the frame's overlay (`expandTemplate`); a template's source region in view, on
-  the section's system as the source names it, is wanted at the level that fits, so the nodes it brings arrive. The
-  overlay's issues are the layout's.
+- **Templates** are expanded here over the frame's overlay (`expandTemplate`), at most `maxTemplateTracks` instances
+  (the first in order; more is `seq.render.template.limit`, so the work is bounded before it starts); a template's
+  source region in view, on the section's system as the source names it, is wanted at the level that fits, so the nodes
+  it brings arrive. The overlay's issues are the layout's.
 - Cell edges snap to the device grid (`snap`). One label column for every track of a view.
 
 ### Lanes and Hits
@@ -620,7 +622,7 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 ### Issues
 
 - `seq.render.*` (`RenderIssues`): `view`, `color`, `layer.type`, `layer.letters`, `axis.pending` (info),
-  `follow.leader`, `follow.cycle`, `source`, `unsettled`; a test checks the catalog.
+  `follow.leader`, `follow.cycle`, `source`, `template.limit`, `unsettled`; a test checks the catalog.
 
 ## Context
 

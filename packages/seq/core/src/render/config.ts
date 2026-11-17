@@ -62,6 +62,8 @@ export interface RenderConfig {
   readonly margin: number;
   /** A follower's leader pieces carried as their image's hull, or the shortest arc on a cyclic follower. */
   readonly followArc: 'shortest' | 'hull';
+  /** Tracks one template expands into at most; more is `seq.render.template.limit` and the rest are not laid out. */
+  readonly maxTemplateTracks: number;
   /** Ranges: items past the lanes collapse into a density row at the bottom (`extra-lanes`), or the whole layer does. */
   readonly ranges: { readonly overflow: 'extra-lanes' | 'layer' };
   /** Values below a device pixel a position: each column's extent (`minmax`, negative extremes show) or its maximum. */
@@ -90,6 +92,7 @@ export const DefaultRenderConfig: RenderConfig = {
   outline: { hover: 1.5, selection: 1.5, cursor: 2.5 },
   margin: 0.5,
   followArc: 'shortest',
+  maxTemplateTracks: 200,
   ranges: { overflow: 'extra-lanes' },
   values: { aggregate: 'minmax' },
 };

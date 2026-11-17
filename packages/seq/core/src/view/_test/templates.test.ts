@@ -21,6 +21,7 @@ function setup(forEach: Record<string, unknown>, kind = 'ranges') {
   const b = createSeqSpec();
   const genes = b.data.source('genes', { format: 'seq', uri: 'genes.seq' });
   b.data.sequence('gene', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
+  b.data.sequence('gene2', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
   b.views.view('main', (v) =>
     v
       .section('gene', { of: '/data/gene' })
@@ -31,9 +32,9 @@ function setup(forEach: Record<string, unknown>, kind = 'ranges') {
   return { model, view: resolveViews(model)[0] };
 }
 
-const ranges = (start: number, coding: boolean): Node => ({
+const ranges = (start: number, coding: boolean, target = '/data/gene'): Node => ({
   kind: 'ranges',
-  params: { target: '/data/gene', ...(coding ? { map: 'codon' } : {}), rows: { start: [start], end: [start + 9] } },
+  params: { target, ...(coding ? { map: 'codon' } : {}), rows: { start: [start], end: [start + 9] } },
 });
 const source = (uri: string): Node => ({ kind: 'source', params: { format: 'seq', uri } });
 
@@ -44,7 +45,7 @@ function reader(nodes: [string, Node][]) {
 }
 
 const nodes = reader([
-  ['b', ranges(50, true)],
+  ['b', ranges(50, true, '/data/gene2')],
   ['a', ranges(90, false)],
   ['c', ranges(10, true)],
   ['s1', source('z.seq')],
@@ -68,10 +69,11 @@ describe('track templates', () => {
     expect(templateNodes(byKey.view.sections[0].tracks[0], o).map((n) => n.key)).toEqual(['a', 'b', 'c']);
     const desc = setup({ order: '-key' });
     expect(templateNodes(desc.view.sections[0].tracks[0], o).map((n) => n.key)).toEqual(['c', 'b', 'a']);
-    const byUri = setup({ order: 'uri' }, 'source');
-    expect(templateNodes(byUri.view.sections[0].tracks[0], o).map((n) => n.key)).toEqual(['s2', 's3', 's1']);
-    const byUriDesc = setup({ order: '-uri' }, 'source');
-    expect(templateNodes(byUriDesc.view.sections[0].tracks[0], o).map((n) => n.key)).toEqual(['s1', 's3', 's2']);
+    // by a param, ties by address
+    const byTarget = setup({ order: 'target' });
+    expect(templateNodes(byTarget.view.sections[0].tracks[0], o).map((n) => n.key)).toEqual(['a', 'c', 'b']);
+    const byTargetDesc = setup({ order: '-target' });
+    expect(templateNodes(byTargetDesc.view.sections[0].tracks[0], o).map((n) => n.key)).toEqual(['b', 'a', 'c']);
   });
 
   it('keep the nodes whose params match the filter', () => {
@@ -101,5 +103,7 @@ describe('track templates', () => {
     });
     expect(expandTemplate(model, o, section, section.tracks[0])).toBe(tracks);
     expect(expandTemplate(model, EmptyOverlay, section, section.tracks[0])).toEqual([]);
+    // at most `max` instances, the first in order
+    expect(expandTemplate(model, o, section, section.tracks[0], 2).map((t) => t.label)).toEqual(['T a', 'T b']);
   });
 });
