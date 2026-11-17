@@ -33,6 +33,7 @@
     "./components/color/_test/*": null,
     "./components/command-menu/_test/*": null,
     "./components/context-menu/_test/*": null,
+    "./components/expandable/_test/*": null,
     "./components/histogram/_test/*": null,
     "./components/icon/_test/*": null,
     "./components/iso-level/_test/*": null,

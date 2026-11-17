@@ -36,3 +36,6 @@
   markdown loads only data: and same-origin images unless `remoteImages`. The runtime disposes and resumes every child
   scope, writes bindings parents first, publishes frame states in one batch, and creates `a`, `title`, `style` and
   `script` in SVG in the SVG namespace.
+- `@molstar/ui` expandable panels (`components/expandable`): a header that opens a body under it, open a well holding
+  both; the body renders on first open and stays, inert and paused, while closed; opening grows it in, closing plays
+  back; open state kept by the panel or by the host (a `State`); `flat` for inside a surface.
