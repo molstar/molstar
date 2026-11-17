@@ -563,9 +563,18 @@ same pieces. Nothing registers on import and there is no global registry.
     two: a suite per port needs a second adapter, and an `AssetManager` is not what a test or a CLI has.
   - **text metrics**: `measure(font, text)`; the context wraps it in the per-font cache (`createTextMetrics`).
   - **structure**: none in this version (`runtime` unset).
-- **The asset policy** (`AssetPolicy`): absolute locations need an allowed scheme (none by default) and, when listed, a
-  host; relative ones resolve against `base` and, with `confine`, stay in its folder; `maxBytes` (the body is read
-  whole, then checked) and `timeoutMs`; no credentials or headers are ever sent. `BrowserAssetPolicy` is `https:`,
-  relative under the page, 256 MB, 30 s; `HeadlessAssetPolicy` reads nothing. A refusal rejects with `AssetRefused`,
-  which a source's opening turns into an issue on the source (`seq.source.unreadable`). Why: a spec's `uri` is untrusted
-  input.
+- **The asset policy** (`AssetPolicy`): a decision on the location, made on the URL it resolves to, never on the string
+  it came in as (the parser drops spaces, tabs and newlines, and reads `//host`, `\\host` and `/\host` as another host).
+  A location with a scheme is absolute: its scheme must be allowed (none by default) and, when hosts are listed, its
+  host. One without is relative: it must resolve to the base's own scheme and host and, with `confine`, stay under the
+  base's folder (`..`, `%2e%2e` and a rooted path resolve out of it; an encoded separator is refused). `maxBytes` counts
+  bytes (a text's UTF-8 length) and `timeoutMs` bounds the wait. `BrowserAssetPolicy` is `https:`, relative under the
+  page, 256 MB, 30 s; `HeadlessAssetPolicy` reads nothing. A refusal rejects with `AssetRefused`, which a source's
+  opening turns into an issue on the source (`seq.source.unreadable`). Why: a spec's `uri` is untrusted input.
+  - **Not yet enforced** (the manager has no such option): credentials (`fetch`'s default: cookies go to the page's own
+    origin), redirects (followed), abort (the result is dropped, the download goes on), a size limit before the body is
+    read (checked after), and a timeout that cancels. They need `@molstar/core`'s `fetchData` and `AssetManager.resolve`
+    to take `credentials: 'omit'`, `redirect: 'error'`, a signal passed to `fetch` and a byte limit counted while the
+    body streams (refused before allocating); then this policy passes them.
+- A port factory that throws leaves nothing made: the ports already made are disposed, last first; a structure port made
+  is disposed with the context.
