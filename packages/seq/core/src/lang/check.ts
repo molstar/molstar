@@ -118,9 +118,26 @@ export function checkSeqLang(spec: Node): Issue[] {
     return f?.kinds;
   };
 
+  /** The layers of template tracks: one without data draws each instance's node. */
+  const templateLayers = new Set<Node>();
   for (const at of all) {
     const n = at.node;
     switch (n.kind) {
+      case 'track': {
+        const each = p(n, 'for_each') as Record<string, Value> | undefined;
+        if (!each) break;
+        for (const c of n.children ?? []) templateLayers.add(c);
+        const t = byAddress.get(exactAddress(each.source) ?? '');
+        if (t?.node.kind !== 'source')
+          report(
+            'seq.lang.ref.target',
+            'The reference names no node of a kind this param takes',
+            at,
+            'for_each',
+            'source',
+          );
+        break;
+      }
       case 'data':
       case 'views':
         if (n.id !== n.kind) report('seq.lang.container.id', `The id of ${n.kind} is \`${n.kind}\``, at);
@@ -224,7 +241,7 @@ export function checkSeqLang(spec: Node): Issue[] {
       case 'layer': {
         const type = p(n, 'type');
         if (p(n, 'data') === undefined) {
-          if (type !== 'letters') report('seq.lang.layer.data', 'The layer has no data', at);
+          if (type !== 'letters' && !templateLayers.has(n)) report('seq.lang.layer.data', 'The layer has no data', at);
         } else {
           // a kind the param does not take is the reference's issue alone
           const kind = target(n, 'data')?.node.kind;
