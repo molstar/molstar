@@ -184,15 +184,19 @@ export function checkSeqLang(spec: Node): Issue[] {
         const has = (k: string) => p(n, k) !== undefined;
         const fits =
           method === 'offset'
-            ? has('by') && !has('exons') && !has('strand')
+            ? has('by') && !has('exons') && !has('strand') && !has('table')
             : has('exons') && has('strand') && !has('by');
         if (!fits) report('seq.lang.map.params', 'The params do not fit the method', at);
         const exons = p(n, 'exons') as Record<string, Value> | undefined;
         if (exons && isColumn(exons.start) && isColumn(exons.end)) {
           const s = exons.start as ArrayLike<number>;
           const e = exons.end as ArrayLike<number>;
-          for (let i = 0; i < Math.min(s.length, e.length); i++) {
-            if (e[i] < s[i] || (i > 0 && s[i] < e[i - 1])) {
+          const count = Math.min(s.length, e.length);
+          const cyclic = systemOf(n, 'to')?.cyclic === true;
+          // on a cyclic gene the last exon may cross the origin, ending at or before the first one starts (EC-11)
+          const wraps = (i: number) => cyclic && i === count - 1 && e[i] <= s[0];
+          for (let i = 0; i < count; i++) {
+            if ((e[i] < s[i] && !wraps(i)) || (i > 0 && s[i] < e[i - 1])) {
               report(
                 'seq.lang.map.exons',
                 'The exons are not in order, or one ends before it starts',
