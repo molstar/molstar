@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CanvasBackend } from '../canvas/backend.js';
 import { FakeCanvas } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { HoverProvider } from '../behaviors/providers.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { viewerItem } from '../config.js';
 import { Gene, Protein, proteinOnGene } from './fixture.js';
@@ -41,12 +42,14 @@ async function make(options: { canvas?: boolean; width?: number } = {}) {
   viewers.push(viewer);
   const base = new FakeCanvas();
   const overlay = new FakeCanvas();
-  if (options.canvas) viewer.useBackend(new CanvasBackend(base, overlay));
+  const labels = new FakeCanvas();
+  const backend = new CanvasBackend(base, overlay, labels);
+  if (options.canvas) viewer.useBackend(backend);
   await viewer.load(proteinOnGene());
   viewer.resize(options.width ?? 600);
   await viewer.settle();
   frames.flush();
-  return { viewer, base, overlay, frames };
+  return { viewer, base, overlay, labels, backend, frames };
 }
 
 describe('createSeqViewer', () => {
@@ -103,24 +106,29 @@ describe('createSeqViewer', () => {
 });
 
 describe('the Canvas2D drawing', () => {
-  it('draws the picture on the base canvas and sizes both canvases for the device ratio', async () => {
-    const { viewer, base, overlay } = await make({ canvas: true });
+  it('draws the picture on the stacked canvases and sizes them for the device ratio', async () => {
+    const { viewer, base, overlay, labels } = await make({ canvas: true });
+    expect(labels.width).toBe(base.width);
     expect(base.width).toBe(viewer.width * viewer.dpr);
     expect(base.height).toBe(viewer.height * viewer.dpr);
     expect(overlay.width).toBe(base.width);
     expect(base.context.calls('fillRect').length).toBeGreaterThan(3);
-    expect(base.context.calls('fillText').length).toBeGreaterThan(4);
+    // the letters are data, on the base canvas; the track labels are above everything
+    expect(base.context.calls('fillText').length).toBeGreaterThan(3);
+    expect(labels.context.calls('fillText').length).toBeGreaterThan(0);
   });
 
   it('a hover redraws the overlay only', async () => {
-    const { viewer, base, overlay, frames } = await make({ canvas: true });
+    const { viewer, base, overlay, labels, frames } = await make({ canvas: true });
     base.context.take();
+    labels.context.take();
     overlay.context.take();
     const layouts = viewer.counts.layouts;
     viewer.input.move(cellX(1), ProteinY);
     frames.flush();
     expect(viewer.hover.active).toBe(true);
     expect(base.context.take()).toEqual([]);
+    expect(labels.context.take()).toEqual([]);
     expect(overlay.context.calls('clearRect').length).toBe(1);
     expect(overlay.context.calls('strokeRect').length).toBeGreaterThan(0);
     // no layout was made for it: only the emphasis passes
@@ -207,10 +215,17 @@ describe('input through the bindings', () => {
     const { viewer, frames } = await make();
     viewer.input.mac = true;
     const start = () => viewer.view.get('/views/main/protein')!;
-    // on macOS Ctrl is no zoom modifier: a mouse's Ctrl+wheel is a plain wheel (a pan, nothing to pan at full fit)
+    // elsewhere a Ctrl+wheel of a mouse's size is the wheel with Ctrl, which is the zoom modifier there
+    viewer.input.mac = false;
     viewer.input.wheel(cellX(2), ProteinY, { deltaX: 0, deltaY: -100, ctrlKey: true });
     frames.flush();
-    expect(start().end - start().start).toBe(4);
+    expect(4 / (start().end - start().start)).toBeCloseTo(1.25, 5);
+    // on macOS Ctrl is no zoom modifier: a Ctrl+wheel is always a pinch, whatever its delta (exp(1) for 100 px)
+    viewer.input.mac = true;
+    viewer.view.fit('/views/main/protein');
+    viewer.input.wheel(cellX(2), ProteinY, { deltaX: 0, deltaY: -100, ctrlKey: true });
+    frames.flush();
+    expect(4 / (start().end - start().start)).toBeCloseTo(Math.exp(1), 5);
 
     const off = createSeqViewer({
       ...DefaultSeqViewerSpec(),
@@ -309,6 +324,109 @@ describe('a resting pointer while the view moves (EC-143)', () => {
   });
 });
 
+describe('the picture follows a pan under a resting pointer (EC-143)', () => {
+  it('draws the base canvas again: the layout moved under the pointer, whether or not the hover changed with it', async () => {
+    const { viewer, backend, base, labels, frames } = await make({ canvas: true });
+    viewer.input.move(cellX(0), ProteinY);
+    frames.flush();
+    const before = { ...backend.counts };
+    base.context.take();
+    labels.context.take();
+    const frameCount = viewer.counts.frames;
+    viewer.view.setRange('/views/main/protein', 2, 4);
+    frames.flush();
+    // the hover moved with the data (cell 0 → 2), and still the base was drawn for the new window
+    expect(viewer.hover.current.position).toBe(2);
+    expect(backend.counts.base).toBe(before.base + 1);
+    expect(backend.counts.labels).toBe(before.labels + 1);
+    expect(base.context.calls('fillText').length).toBeGreaterThan(0);
+    // one frame did it: the re-hit asks for no frame of its own
+    expect(viewer.counts.frames).toBe(frameCount + 1);
+  });
+
+  it('draws the base canvas when the pan leaves the hover as it was', async () => {
+    const { viewer, backend, frames } = await make({ canvas: true });
+    // over the label column: nothing to hit before or after
+    viewer.input.move(40, ProteinY);
+    frames.flush();
+    const before = backend.counts.base;
+    viewer.view.setRange('/views/main/protein', 2, 4);
+    frames.flush();
+    expect(backend.counts.base).toBe(before + 1);
+  });
+});
+
+describe('behaviors the spec does not list', () => {
+  it('a gesture that needs one is an issue, once, and does nothing', async () => {
+    frames = installFrames();
+    const spec = DefaultSeqViewerSpec();
+    const v = createSeqViewer({ ...spec, ui: undefined, behaviors: [], config: TinyConfig });
+    viewers.push(v);
+    await v.load(proteinOnGene());
+    v.resize(600);
+    await v.settle();
+    v.input.move(cellX(1), ProteinY);
+    v.input.move(cellX(2), ProteinY);
+    expect(v.input.wheel(cellX(1), ProteinY, { deltaX: 0, deltaY: 10 })).toBe(false);
+    expect(v.hover.active).toBe(false);
+    expect(v.behaviorIssues.value.map((i) => [i.code, i.address])).toEqual([
+      ['seq.viewer.behavior.missing', 'hover'],
+      ['seq.viewer.behavior.missing', 'navigate'],
+    ]);
+  });
+
+  it('finds a behavior by its provider, whatever the spec calls it', async () => {
+    const { viewer } = await make();
+    expect(viewer.behavior(HoverProvider)).toBeDefined();
+    expect(viewer.behaviorIssues.value).toEqual([]);
+  });
+});
+
+describe('wheel details', () => {
+  it('a line is pointer.lineHeight px, a page the viewport’s own axis', async () => {
+    const { viewer, frames } = await make();
+    viewer.input.mac = false;
+    const span = () => {
+      const v = viewer.view.get('/views/main/protein')!;
+      return v.end - v.start;
+    };
+    viewer.input.wheel(cellX(1), ProteinY, { deltaX: 0, deltaY: -3, ctrlKey: true, deltaMode: 1 });
+    frames.flush();
+    // 3 lines of 16 px: the wheel step's power of 48 / 100
+    expect(4 / span()).toBeCloseTo(1.25 ** 0.48, 5);
+    // a page: scaled by the height for a vertical delta, by the width for a horizontal one
+    viewer.view.fit('/views/main/protein');
+    const before = viewer.view.get('/views/main/protein')!.start;
+    viewer.input.wheel(cellX(1), ProteinY, { deltaX: 0, deltaY: -0.5, ctrlKey: true, deltaMode: 2 });
+    frames.flush();
+    expect(4 / span()).toBeCloseTo(1.25 ** ((viewer.height * 0.5) / 100), 5);
+    expect(before).toBe(0);
+  });
+
+  it('over the label column the zoom is about the section’s first visible position', async () => {
+    const { viewer, frames } = await make();
+    viewer.input.mac = false;
+    viewer.view.setRange('/views/main/protein', 1, 3);
+    frames.flush();
+    viewer.input.wheel(10, ProteinY, { deltaX: 0, deltaY: -100, ctrlKey: true });
+    frames.flush();
+    const v = viewer.view.get('/views/main/protein')!;
+    expect(v.start).toBeCloseTo(1, 6);
+    expect(v.end).toBeLessThan(3);
+  });
+});
+
+describe('load', () => {
+  it('opens the sources once', async () => {
+    frames = installFrames();
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(v);
+    const sync = vi.spyOn(v.store, 'sync');
+    await v.load(proteinOnGene());
+    expect(sync).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('retire', () => {
   it('leaves no frame, timer or listener behind: a frame asked for before does nothing', async () => {
     const { viewer, base, frames } = await make({ canvas: true });
@@ -316,11 +434,13 @@ describe('retire', () => {
     viewer.input.move(cellX(1), ProteinY);
     viewer.input.wheel(cellX(1), ProteinY, { deltaX: 0, deltaY: -100, ctrlKey: true, deltaMode: 1 });
     // a frame and a settle timer are pending
-    expect(frames.pending).toBeGreaterThan(0);
+    expect(frames.callbacks).toBeGreaterThan(0);
     expect(timers.live).toBe(1);
     const drawn = viewer.counts.frames;
     base.context.take();
     viewer.retire();
+    // retire cancels the frame it asked for, and the wheel's own: none is pending, no timer is live
+    expect(frames.callbacks).toBe(0);
     expect(timers.live).toBe(0);
     frames.flush();
     expect(viewer.counts.frames).toBe(drawn);
@@ -329,8 +449,25 @@ describe('retire', () => {
     viewer.input.wheel(cellX(1), ProteinY, { deltaX: 0, deltaY: -100, ctrlKey: true, deltaMode: 1 });
     frames.flush();
     expect(viewer.counts.frames).toBe(drawn);
+    expect(frames.callbacks).toBe(0);
     expect(frames.pending).toBe(0);
     expect(timers.live).toBe(0);
+  });
+
+  it('retired first: the UI’s teardown and the behaviors’ asks no frame', async () => {
+    const { viewer, frames } = await make({ canvas: true });
+    frames.flush();
+    expect(frames.callbacks).toBe(0);
+    let askedWhileRetiring = 0;
+    const ask = vi.spyOn(viewer, 'schedule');
+    viewer.useBackend(undefined);
+    frames.flush();
+    ask.mockClear();
+    // what the disposers do: the backend is dropped, the models retire; none asks for a frame
+    viewer.retire();
+    askedWhileRetiring = frames.callbacks;
+    expect(askedWhileRetiring).toBe(0);
+    expect(viewer.retired).toBe(true);
   });
 
   it('disposes the ports it made and leaves a host’s', async () => {

@@ -79,7 +79,19 @@ export interface CanvasBackendOptions {
 }
 
 const OverlayPasses: readonly PassName[] = ['highlight', 'selection', 'hover', 'cursor'];
-const BasePasses: readonly PassName[] = ['background', 'data', 'labels'];
+const BasePasses: readonly PassName[] = ['background', 'data'];
+const LabelPasses: readonly PassName[] = ['labels'];
+
+/** The most image strips kept: a strip past it shares the last slot (an image is put and drawn at once). */
+const MaxImageSlots = 16;
+
+interface ImageSlot {
+  readonly canvas: CanvasLike;
+  readonly ctx: Context2D;
+  width: number;
+  height: number;
+  image: { readonly data: Uint8ClampedArray };
+}
 
 /** A color `0xrrggbbaa` as CSS, kept per value. */
 class ColorCache {
@@ -111,16 +123,18 @@ export class CanvasBackend {
   width = 0;
   height = 0;
   /** Draws counted: what the tests (and a profile) read. */
-  readonly counts = { base: 0, overlay: 0 };
+  readonly counts = { base: 0, overlay: 0, labels: 0 };
+  /** The canvases' scale: the backing size over the CSS size (the rounded backing size, not the ratio asked for). */
+  private _sx = 1;
+  private _sy = 1;
   private readonly _base: Context2D;
   private readonly _overlay: Context2D;
+  private readonly _labels: Context2D;
   private readonly _colors = new ColorCache();
   private readonly _glyphs: string[] = [];
   private readonly _scratch = new PathList();
-  private readonly _images = new Map<
-    string,
-    { canvas: CanvasLike; ctx: Context2D; image: { readonly data: Uint8ClampedArray } }
-  >();
+  /** A slot per image strip of a pass (its index there): the strips a view draws are few and their sizes stay. */
+  private readonly _slots: ImageSlot[] = [];
   private readonly _fade: number;
   private _overlayDirty = false;
   private _list: DrawLists | undefined;
@@ -130,25 +144,31 @@ export class CanvasBackend {
   constructor(
     readonly base: CanvasLike,
     readonly overlay: CanvasLike,
+    readonly labels: CanvasLike,
     private readonly options: CanvasBackendOptions = {},
   ) {
     const b = base.getContext('2d');
     const o = overlay.getContext('2d');
-    if (!b || !o) throw new Error('A 2D canvas context is not available');
+    const t = labels.getContext('2d');
+    if (!b || !o || !t) throw new Error('A 2D canvas context is not available');
     this._base = this._ctx = b;
     this._overlay = o;
+    this._labels = t;
     this.fonts = options.fonts ?? new FontCache();
     this._fade = options.fade ?? 12;
     this._visitor = this._makeVisitor();
   }
 
-  /** Sizes both canvases for `width` × `height` CSS px at `dpr`; true when anything changed (a redraw follows). */
+  /**
+   * Sizes the three canvases for `width` × `height` CSS px at `dpr`; true when anything changed (a redraw follows). The
+   * backing size is rounded, so the scale drawn with is the backing size over the CSS size.
+   */
   resize(width: number, height: number, dpr: number): boolean {
     if (width === this.width && height === this.height && dpr === this.dpr) return false;
     this.width = width;
     this.height = height;
     this.dpr = dpr;
-    for (const c of [this.base, this.overlay]) {
+    for (const c of [this.base, this.overlay, this.labels]) {
       // assigning a canvas's size clears it
       c.width = Math.max(1, Math.round(width * dpr));
       c.height = Math.max(1, Math.round(height * dpr));
@@ -157,16 +177,26 @@ export class CanvasBackend {
         c.style.height = `${height}px`;
       }
     }
+    this._sx = this.base.width / width;
+    this._sy = this.base.height / height;
     this._overlayDirty = false;
     return true;
   }
 
   /**
-   * Draws the lists: the base canvas when `base` (a layout was rebuilt), the overlay always (a hover, a selection or
-   * the cursor changed, or the base did). An overlay with nothing to clear and nothing to draw is left alone.
+   * Draws the lists: the base canvas (background, data) and the labels canvas above everything when `base` (a layout
+   * was rebuilt), the overlay between them always (a hover, a selection or the cursor changed, or the base did). The
+   * canvases stack as the passes do, so the picture is the SVG's. An overlay with nothing to clear and nothing to draw is
+   * left alone.
    */
   draw(lists: DrawLists, base: boolean): void {
-    if (base) this._drawPasses(lists, this._base, BasePasses, true);
+    if (base) {
+      this._drawPasses(lists, this._base, BasePasses, true);
+      this.counts.labels++;
+      this._labels.setTransform(this._sx, 0, 0, this._sy, 0, 0);
+      this._labels.clearRect(0, 0, this.width, this.height);
+      this._drawPasses(lists, this._labels, LabelPasses, false);
+    }
     this._drawOverlay(lists);
   }
 
@@ -181,7 +211,7 @@ export class CanvasBackend {
     if (!any && !this._overlayDirty) return;
     this.counts.overlay++;
     const ctx = this._overlay;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.setTransform(this._sx, 0, 0, this._sy, 0, 0);
     ctx.clearRect(0, 0, this.width, this.height);
     this._drawPasses(lists, ctx, OverlayPasses, false);
     this._overlayDirty = any;
@@ -189,7 +219,7 @@ export class CanvasBackend {
 
   private _drawPasses(lists: DrawLists, ctx: Context2D, passes: readonly PassName[], countBase: boolean): void {
     if (countBase) this.counts.base++;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.setTransform(this._sx, 0, 0, this._sy, 0, 0);
     ctx.textBaseline = 'alphabetic';
     this._list = lists;
     this._ctx = ctx;
@@ -251,19 +281,29 @@ export class CanvasBackend {
     }
   }
 
-  private _image(img: DrawImage, x: number, y: number, w: number, h: number): void {
-    const key = `${img.width}x${img.height}`;
-    let slot = this._images.get(key);
+  private _image(img: DrawImage, strip: number, x: number, y: number, w: number, h: number): void {
+    const at = Math.min(strip, MaxImageSlots - 1);
+    let slot = this._slots[at];
     if (!slot) {
       const canvas = this.options.createCanvas
         ? this.options.createCanvas(img.width, img.height)
         : (Object.assign(document.createElement('canvas'), { width: img.width, height: img.height }) as CanvasLike);
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      slot = { canvas, ctx, image: ctx.createImageData(img.width, img.height) };
-      this._images.set(key, slot);
+      this._slots[at] = slot = {
+        canvas,
+        ctx,
+        width: img.width,
+        height: img.height,
+        image: ctx.createImageData(img.width, img.height),
+      };
+    } else if (slot.width !== img.width || slot.height !== img.height) {
+      // the strip's size changed: its canvas and pixel buffer are made again, in place
+      slot.canvas.width = slot.width = img.width;
+      slot.canvas.height = slot.height = img.height;
+      slot.image = slot.ctx.createImageData(img.width, img.height);
     }
-    // the layer owns and reuses its bytes: they are copied into the one buffer of this size at each draw
+    // the layer owns and reuses its bytes: they are copied into the slot's buffer at each draw
     slot.image.data.set(img.data);
     slot.ctx.putImageData(slot.image, 0, 0);
     const ctx = this._ctx;
@@ -355,7 +395,7 @@ export class CanvasBackend {
         ctx.fillText(lists.string(l.str[i]), x, l.y[i]);
       },
       image: (l, i) => {
-        this._image(l.images[i], l.x[i], l.y[i], l.w[i], l.h[i]);
+        this._image(l.images[i], i, l.x[i], l.y[i], l.w[i], l.h[i]);
       },
       clip: (l, i) => {
         const ctx = this._ctx;

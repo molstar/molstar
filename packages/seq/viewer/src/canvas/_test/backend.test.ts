@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Anchor, DrawLists, lineTo, moveTo, Round } from '@molstar/seqx-core/render';
+import { Anchor, DrawLists, drawListsToSvg, lineTo, moveTo, Passes, Round } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { CanvasBackend } from '../backend.js';
 import { canvasTextMetrics } from '../metrics.js';
@@ -17,12 +17,14 @@ const BLUE = 0x0000ff80;
 function setup() {
   const base = new FakeCanvas();
   const overlay = new FakeCanvas();
+  const labels = new FakeCanvas();
   const images = new FakeCanvas();
-  const backend = new CanvasBackend(base, overlay, { createCanvas: () => images });
+  const backend = new CanvasBackend(base, overlay, labels, { createCanvas: () => images });
   backend.resize(200, 100, 2);
   base.context.take();
   overlay.context.take();
-  return { base, overlay, images, backend };
+  labels.context.take();
+  return { base, overlay, labels, images, backend };
 }
 
 function lists(): DrawLists {
@@ -37,7 +39,7 @@ describe('CanvasBackend', () => {
   it('sizes both canvases for the device pixel ratio and sets the CSS size', () => {
     const base = new FakeCanvas();
     const overlay = new FakeCanvas();
-    const b = new CanvasBackend(base, overlay);
+    const b = new CanvasBackend(base, overlay, new FakeCanvas());
     expect(b.resize(200, 100, 1.5)).toBe(true);
     expect([base.width, base.height, overlay.width, overlay.height]).toEqual([300, 150, 300, 150]);
     expect(base.style).toEqual({ width: '200px', height: '100px' });
@@ -112,7 +114,7 @@ describe('CanvasBackend', () => {
   });
 
   it('fades a text past its max width through a gradient clip, and draws one that fits plainly', () => {
-    const { base, backend } = setup();
+    const { labels: base, backend } = setup();
     const l = new DrawLists();
     const out = l.writer('labels');
     out.text('short', 8, 20, Anchor.start, '12px sans', RED, 30, 100);
@@ -159,29 +161,33 @@ describe('CanvasBackend', () => {
     expect(base.context.calls('drawImage')).toEqual(['drawImage(10, 10, 20, 20)', 'drawImage(10, 10, 20, 20)']);
   });
 
-  it('draws the base passes on the base canvas and the emphasis passes on the overlay', () => {
-    const { base, overlay, backend } = setup();
+  it('draws the background and data on the base canvas, the emphasis on the overlay, the labels above both', () => {
+    const { base, overlay, labels, backend } = setup();
     const l = lists();
     l.writer('hover').rect(1, 1, 5, 5, 0, BLUE, 1);
     l.writer('labels').text('x', 0, 0, Anchor.start, '12px sans', RED, 5);
     backend.draw(l, true);
-    expect(base.context.calls('fillText').length).toBe(1);
+    expect(labels.context.calls('fillText').length).toBe(1);
+    expect(labels.context.calls('clearRect').length).toBe(1);
+    expect(base.context.calls('fillText').length).toBe(0);
     expect(base.context.calls('strokeRect').length).toBe(0);
     expect(overlay.context.calls('strokeRect')).toEqual(['strokeRect(1, 1, 5, 5)']);
   });
 
   it('a hover redraws the overlay only: the base canvas is not touched', () => {
-    const { base, overlay, backend } = setup();
+    const { base, overlay, labels, backend } = setup();
     const l = lists();
     backend.draw(l, true);
-    expect(backend.counts).toEqual({ base: 1, overlay: 0 });
+    expect(backend.counts).toEqual({ base: 1, overlay: 0, labels: 1 });
     base.context.take();
+    labels.context.take();
     overlay.context.take();
     // the hover appears: only the emphasis passes are rebuilt (the renderer resets them alone)
     l.reset(['highlight', 'selection', 'hover', 'cursor']);
     l.writer('hover').rect(1, 1, 5, 5, 0, BLUE, 1);
     backend.draw(l, false);
     expect(base.context.take()).toEqual([]);
+    expect(labels.context.take()).toEqual([]);
     expect(overlay.context.calls('clearRect')).toEqual(['clearRect(0, 0, 200, 100)']);
     expect(overlay.context.calls('strokeRect').length).toBe(1);
     // it moves: the overlay is cleared and drawn again
@@ -200,7 +206,71 @@ describe('CanvasBackend', () => {
     backend.draw(l, false);
     expect(overlay.context.take()).toEqual([]);
     expect(base.context.take()).toEqual([]);
-    expect(backend.counts).toEqual({ base: 1, overlay: 3 });
+    expect(backend.counts).toEqual({ base: 1, overlay: 3, labels: 1 });
+  });
+
+  it('draws with the backing size over the CSS size: a rounded canvas is not drawn at the ratio asked for', () => {
+    const base = new FakeCanvas();
+    const b = new CanvasBackend(base, new FakeCanvas(), new FakeCanvas());
+    b.resize(101, 50, 1.5);
+    expect([base.width, base.height]).toEqual([152, 75]);
+    base.context.take();
+    const l = new DrawLists();
+    l.writer('background').rect(0, 0, 101, 50, RED);
+    b.draw(l, true);
+    expect(base.context.take()[0]).toBe(`setTransform(${Math.round((152 / 101) * 100) / 100}, 0, 0, 1.5, 0, 0)`);
+  });
+
+  it('keeps a slot per image strip: a strip’s buffer is kept while its size stays, made again in place when it changes', () => {
+    const made: FakeCanvas[] = [];
+    const base = new FakeCanvas();
+    const b = new CanvasBackend(base, new FakeCanvas(), new FakeCanvas(), {
+      createCanvas: () => {
+        const c = new FakeCanvas();
+        made.push(c);
+        return c;
+      },
+    });
+    b.resize(100, 100, 1);
+    const strip = (w: number, h: number) => ({ width: w, height: h, data: new Uint8Array(w * h * 4) });
+    const draw = (sizes: number[]) => {
+      const l = new DrawLists();
+      sizes.forEach((n, i) => l.writer('data').image(0, i * 10, 50, 8, strip(n, 1)));
+      b.draw(l, true);
+    };
+    draw([4, 8]);
+    draw([4, 8]);
+    expect(made.length).toBe(2);
+    expect(made.map((c) => c.context.calls('createImageData').length)).toEqual([1, 1]);
+    // the second strip changes its size: its canvas is resized, no new canvas
+    draw([4, 16]);
+    expect(made.length).toBe(2);
+    expect(made[1].width).toBe(16);
+    expect(made[1].context.calls('createImageData').length).toBe(2);
+    // more strips than slots: the extra share the last one, nothing grows without bound
+    draw(Array.from({ length: 40 }, () => 4));
+    expect(made.length).toBeLessThanOrEqual(16);
+  });
+
+  it('the canvases stack as the SVG’s passes do: the same order, pass by pass', () => {
+    const { base, overlay, labels, backend } = setup();
+    // one rect a pass, each a color of its own whose red channel is the pass's place
+    const l = new DrawLists();
+    Passes.forEach((name, i) => l.writer(name).rect(1, 1, 5, 5, ((10 + i) << 24) | 0xff));
+    backend.draw(l, true);
+    const red = (log: string[]) =>
+      log
+        .map((c) => /fillStyle=rgba\((\d+),/.exec(c)?.[1])
+        .filter((x) => x !== undefined)
+        .map(Number);
+    // bottom to top: the base canvas, the overlay, the labels
+    const canvasOrder = [...red(base.context.log), ...red(overlay.context.log), ...red(labels.context.log)];
+    const svg = drawListsToSvg(l);
+    const svgOrder = [...svg.matchAll(/data-pass="(\w+)"/g)].map(
+      (m) => Passes.indexOf(m[1] as (typeof Passes)[number]) + 10,
+    );
+    expect(svgOrder).toEqual(Passes.map((_, i) => i + 10));
+    expect(canvasOrder).toEqual(svgOrder);
   });
 
   it('keeps colors and glyph strings: drawing the same lists twice makes the same calls', () => {

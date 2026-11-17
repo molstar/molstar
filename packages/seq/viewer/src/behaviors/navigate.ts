@@ -10,7 +10,7 @@
 // the view model's to ignore or detach (EC-114).
 
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { DomHost } from '@molstar/ui/dom';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom';
 import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
@@ -38,7 +38,8 @@ interface Pending {
   pan: number;
   zoom: number;
   x: number;
-  scheduled: boolean;
+  /** The frame callback asked for, until it runs. */
+  frame: number | undefined;
 }
 
 export function navigateBehavior(
@@ -59,7 +60,7 @@ export function navigateBehavior(
   const apply = (section: string) => {
     const p = pending.get(section);
     if (disposed || !p) return;
-    p.scheduled = false;
+    p.frame = undefined;
     // a section gone since: its record goes too
     if (!view.get(section)) {
       pending.delete(section);
@@ -140,7 +141,7 @@ export function navigateBehavior(
       const action = bindings.resolve('wheel', modifiers, target);
       if (action !== 'pan' && action !== 'zoom') return;
       let p = pending.get(section);
-      if (!p) pending.set(section, (p = { pan: 0, zoom: 0, x, scheduled: false }));
+      if (!p) pending.set(section, (p = { pan: 0, zoom: 0, x, frame: undefined }));
       // the larger delta pans; with Shift a vertical wheel pans sideways too
       if (action === 'pan') p.pan += Math.abs(dx) > Math.abs(dy) ? dx : dy;
       else {
@@ -148,10 +149,7 @@ export function navigateBehavior(
         p.x = x;
       }
       if (!coalesceWheel) apply(section);
-      else if (!p.scheduled) {
-        p.scheduled = true;
-        DomHost.requestAnimationFrame(() => apply(section));
-      }
+      else if (p.frame === undefined) p.frame = requestFrameCallback(() => apply(section));
     },
     pinch(section, scale, x, modifiers, target) {
       return (
@@ -162,6 +160,7 @@ export function navigateBehavior(
     },
     dispose() {
       disposed = true;
+      for (const p of pending.values()) if (p.frame !== undefined) cancelFrameCallback(p.frame);
       pending.clear();
     },
   };

@@ -90,8 +90,13 @@ export interface ViewerConfig {
     readonly pinchFromCtrlWheel: boolean;
     /** A pinch's zoom factor is `exp(-deltaY · pinchSpeed)`. */
     readonly pinchSpeed: number;
-    /** A Ctrl+wheel with a larger delta than this (px) is a mouse wheel, not a pinch. */
+    /**
+     * A Ctrl+wheel with a larger delta than this (px) is a mouse wheel, not a pinch (not on macOS, where Ctrl+wheel is
+     * always a pinch: Ctrl is no zoom modifier there).
+     */
     readonly pinchMaxDelta: number;
+    /** Pixels a line of a wheel in line mode (`deltaMode` 1) scrolls: 16. A page (mode 2) is the viewport's own axis. */
+    readonly lineHeight: number;
   };
 }
 
@@ -105,7 +110,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   follow: { followerMoves: 'ignore', cyclicArc: 'wrap' },
   navigate: { wheelZoomStep: 1.25, keyPanFraction: 0.1, coalesceWheel: true },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },
-  pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50 },
+  pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50, lineHeight: 16 },
 };
 
 type DeepPartial<T> = { readonly [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost, pendingFrameCallbacks } from '@molstar/ui/dom';
 import { vi } from 'vitest';
 
 // A fake frame host: `DomHost`'s frames are collected and run by `flush`, its timers are counted and run by `fire`, so a
@@ -19,8 +19,10 @@ export interface Timers {
 
 export interface Frames {
   readonly timers: Timers;
-  /** Frames asked for and not yet run. */
+  /** Frames asked of the host and not yet run (a cancelled callback leaves its tick queued: see `callbacks`). */
   readonly pending: number;
+  /** Frame callbacks (what a viewer asks) asked for and neither run nor cancelled. */
+  readonly callbacks: number;
   /** Runs the asked frames, and those they ask for, until none is left. */
   flush(): void;
   restore(): void;
@@ -55,6 +57,9 @@ export function installFrames(): Frames {
     timers,
     get pending() {
       return queue.length;
+    },
+    get callbacks() {
+      return pendingFrameCallbacks();
     },
     flush() {
       for (let i = 0; i < 20 && queue.length; i++) {

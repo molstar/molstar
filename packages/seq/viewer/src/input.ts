@@ -6,7 +6,12 @@
 
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
 import { type ModifierState, modifiersOf } from '@molstar/seqx-viewer/bindings';
-import type { HoverBehavior, NavigateBehavior } from '@molstar/seqx-viewer/behaviors';
+import {
+  type HoverBehavior,
+  HoverProvider,
+  type NavigateBehavior,
+  NavigateProvider,
+} from '@molstar/seqx-viewer/behaviors';
 import { type Hit, type HitTarget, hitTarget, offsetOf } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
 
@@ -31,7 +36,6 @@ export interface WheelState extends KeyState {
 }
 
 const NoModifiers: ModifierState = {};
-const LineHeight = 16;
 
 function platformIsMac(): boolean {
   return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform ?? '');
@@ -51,11 +55,11 @@ export class ViewerInput {
   constructor(private readonly viewer: SeqViewer) {}
 
   private get hoverBehavior(): HoverBehavior | undefined {
-    return this.viewer.behaviors.get('hover');
+    return this.viewer.behavior(HoverProvider);
   }
 
   private get navigateBehavior(): NavigateBehavior | undefined {
-    return this.viewer.behaviors.get('navigate');
+    return this.viewer.behavior(NavigateProvider);
   }
 
   /** Whether the pointer is over the canvas. */
@@ -152,12 +156,19 @@ export class ViewerInput {
     const nav = this.navigateBehavior;
     if (section === undefined || !nav) return false;
     const { pointer } = this.viewer.config;
-    const unit = e.deltaMode === 1 ? LineHeight : e.deltaMode === 2 ? this.viewer.height : 1;
-    const dx = e.deltaX * unit;
-    const dy = e.deltaY * unit;
+    // lines are `pointer.lineHeight` px; a page is the viewport's own extent on each axis
+    const ux = e.deltaMode === 1 ? pointer.lineHeight : e.deltaMode === 2 ? this.viewer.width : 1;
+    const uy = e.deltaMode === 1 ? pointer.lineHeight : e.deltaMode === 2 ? this.viewer.height : 1;
+    const dx = e.deltaX * ux;
+    const dy = e.deltaY * uy;
     const target = hitTarget(this._hitAt(x, y));
-    const local = x - this.viewer.dataX;
-    if (e.ctrlKey && pointer.pinchFromCtrlWheel && !e.deltaMode && Math.abs(dy) <= pointer.pinchMaxDelta) {
+    // over the label column the zoom is about the section's first visible position, never before it
+    const width = this.viewer.view.get(section)?.width ?? 0;
+    const local = Math.min(Math.max(x - this.viewer.dataX, 0), width);
+    // on macOS Ctrl is no zoom modifier, so a Ctrl+wheel is a pinch whatever its delta; elsewhere a large delta is a mouse
+    const pinch =
+      e.ctrlKey && pointer.pinchFromCtrlWheel && (this.mac || (!e.deltaMode && Math.abs(dy) <= pointer.pinchMaxDelta));
+    if (pinch) {
       // the pinch's own modifiers: none (the Ctrl is the gesture's, not a key held)
       const taken = this.viewer.bindings.resolve('pinch', NoModifiers, target) !== undefined;
       if (taken) nav.pinch(section, Math.exp(-dy * pointer.pinchSpeed), local, NoModifiers, target);
@@ -199,6 +210,11 @@ export class ViewerInput {
     if (hit.position === undefined) return undefined;
     const start = offsetOf(axis, Math.floor(hit.position));
     return start === undefined ? undefined : { start, end: start + 1 };
+  }
+
+  /** Whether a binding takes Space as a modifier: the page's own Space (a scroll) is then the viewer's while it has focus. */
+  get spaceIsModifier(): boolean {
+    return this.viewer.bindings.bindings.some((b) => Array.isArray(b.modifiers) && b.modifiers.includes('space'));
   }
 
   /** The Space key, held for a drag that pans on any target. */

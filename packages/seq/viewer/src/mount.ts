@@ -7,8 +7,8 @@
 import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas/index';
 import type { SeqViewer } from './viewer.js';
 
-// The mounted UI (_spec/README.md "Input"): the canvas stack (a base canvas and the overlay above it, which takes no
-// events) in a focusable container, and the DOM events translated into the viewer's input calls. Chrome beyond the
+// The mounted UI (_spec/README.md "Input"): the canvas stack (the base canvas, the overlay above it and the labels above
+// that; only the container takes events) in a focusable container, and the DOM events translated into the viewer's input calls. Chrome beyond the
 // canvas is not built in this version: the track labels are the layout's own. Every listener, observer and node it
 // adds is taken away by the function it returns.
 
@@ -22,16 +22,20 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   Object.assign(container.style, { position: 'relative', width: '100%', outline: 'none', touchAction: 'none' });
   const base = doc.createElement('canvas');
   const overlay = doc.createElement('canvas');
+  const labels = doc.createElement('canvas');
   Object.assign(base.style, { display: 'block' });
-  Object.assign(overlay.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
-  container.append(base, overlay);
+  for (const c of [overlay, labels])
+    Object.assign(c.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
+  container.append(base, overlay, labels);
   target.appendChild(container);
 
   const fonts = new FontCache(viewer.context.tokens.fonts);
-  const backend = new CanvasBackend(base as unknown as CanvasLike, overlay as unknown as CanvasLike, {
-    fonts,
-    fade: viewer.context.renderConfig.fade,
-  });
+  const backend = new CanvasBackend(
+    base as unknown as CanvasLike,
+    overlay as unknown as CanvasLike,
+    labels as unknown as CanvasLike,
+    { fonts, fade: viewer.context.renderConfig.fade },
+  );
   viewer.useBackend(backend);
 
   const input = viewer.input;
@@ -67,7 +71,9 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       },
       undefined,
     ],
+    // a drag ends however the pointer is lost: cancelled by the platform, or its capture taken away
     ['pointercancel', () => input.up(), undefined],
+    ['lostpointercapture', () => input.up(), undefined],
     [
       'wheel',
       (e: WheelEvent) => {
@@ -87,8 +93,11 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'keydown',
       (e: KeyboardEvent) => {
-        if (e.key === ' ') input.setSpace(true);
-        else if (input.key(e)) e.preventDefault();
+        if (e.key === ' ') {
+          input.setSpace(true);
+          // Space is a modifier here: the page does not scroll with it while the canvas has focus
+          if (input.spaceIsModifier) e.preventDefault();
+        } else if (input.key(e)) e.preventDefault();
       },
       undefined,
     ],
@@ -106,6 +115,21 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   }
   measure();
 
+  // the device pixel ratio changes (a window moved to another screen, a zoom): the query for the ratio now holds is
+  // listened to once, and made again for the new one
+  const win = doc.defaultView;
+  let query: MediaQueryList | undefined;
+  const onRatio = () => {
+    watchRatio();
+    viewer.schedule();
+  };
+  const watchRatio = () => {
+    query?.removeEventListener('change', onRatio);
+    query = win?.matchMedia?.(`(resolution: ${win.devicePixelRatio}dppx)`);
+    query?.addEventListener('change', onRatio);
+  };
+  watchRatio();
+
   // a web font arrived: what was measured is measured again
   const fontFaces = doc.fonts;
   const onFonts = () => viewer.invalidateText();
@@ -114,6 +138,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   return () => {
     for (const [type, fn, options] of listeners) container.removeEventListener(type, fn, options);
     observer?.disconnect();
+    query?.removeEventListener('change', onRatio);
     fontFaces?.removeEventListener?.('loadingdone', onFonts);
     viewer.useBackend(undefined);
     container.remove();

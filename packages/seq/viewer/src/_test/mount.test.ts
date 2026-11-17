@@ -20,6 +20,8 @@ let frames: Frames;
 let viewer: SeqViewer | undefined;
 const listeners = { added: 0, removed: 0 };
 const observers = { observed: 0, disconnected: 0 };
+/** The media queries asked for and their change listeners, as `matchMedia` made them. */
+let queries: { media: string; listeners: Set<() => void> }[] = [];
 
 class FakeResizeObserver {
   observe() {
@@ -52,6 +54,19 @@ beforeEach(() => {
     return remove.apply(this, a);
   });
   vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+  queries = [];
+  // jsdom has none: defined on the document's window, which the mount reads
+  const matchMedia = (media: string) => {
+    const q = { media, listeners: new Set<() => void>() };
+    queries.push(q);
+    return {
+      media,
+      matches: true,
+      addEventListener: (_: string, fn: () => void) => q.listeners.add(fn),
+      removeEventListener: (_: string, fn: () => void) => q.listeners.delete(fn),
+    } as unknown as MediaQueryList;
+  };
+  Object.defineProperty(document.defaultView!, 'matchMedia', { configurable: true, writable: true, value: matchMedia });
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(600);
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (this: HTMLCanvasElement) {
     const ctx = ((this as any).__ctx ??= new RecordingContext());
@@ -65,6 +80,8 @@ afterEach(() => {
   frames.restore();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  Reflect.deleteProperty(document.defaultView!, 'matchMedia');
+  Object.defineProperty(document.defaultView!, 'devicePixelRatio', { configurable: true, value: 1 });
   document.body.innerHTML = '';
 });
 
@@ -87,9 +104,11 @@ const at = (type: string, x: number, y: number, init: MouseEventInit = {}) =>
 describe('the mounted canvas stack', () => {
   it('makes a focusable container with the base canvas and the overlay above it, sized to the layout', async () => {
     const { container, viewer } = await mount();
-    const [base, overlay] = Array.from(container.querySelectorAll('canvas'));
+    const [base, overlay, labels] = Array.from(container.querySelectorAll('canvas'));
     expect(container.tabIndex).toBe(0);
     expect(overlay.style.pointerEvents).toBe('none');
+    expect(labels.style.pointerEvents).toBe('none');
+    expect(labels.width).toBe(base.width);
     expect(base.width).toBe(600 * viewer.dpr);
     expect(base.style.height).toBe(`${viewer.height}px`);
     expect((base as any).__ctx.calls('fillRect').length).toBeGreaterThan(3);
@@ -141,6 +160,51 @@ describe('the mounted canvas stack', () => {
     viewer.input.up();
     container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
     expect(viewer.input.down(300, 18)).toBe(false);
+  });
+
+  it('a drag ends when the pointer is cancelled or its capture is lost', async () => {
+    const { container, viewer } = await mount();
+    for (const end of ['pointercancel', 'lostpointercapture']) {
+      container.dispatchEvent(at('pointerdown', 40, 18, { button: 0 }));
+      expect(viewer.input.dragging).toBe(true);
+      container.dispatchEvent(at(end, 40, 18));
+      expect(viewer.input.dragging).toBe(false);
+    }
+  });
+
+  it('Space does not scroll the page while it is the pan modifier and the canvas has focus', async () => {
+    const { container, viewer } = await mount();
+    expect(viewer.input.spaceIsModifier).toBe(true);
+    const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    container.dispatchEvent(space);
+    expect(space.defaultPrevented).toBe(true);
+    // a key no command has is the page's
+    const other = new KeyboardEvent('keydown', { key: 'q', bubbles: true, cancelable: true });
+    container.dispatchEvent(other);
+    expect(other.defaultPrevented).toBe(false);
+  });
+
+  it('a change of the device pixel ratio asks for a frame and listens for the next ratio', async () => {
+    const { viewer, container } = await mount();
+    expect(queries.length).toBe(1);
+    expect(queries[0].media).toBe('(resolution: 1dppx)');
+    expect(queries[0].listeners.size).toBe(1);
+    frames.flush();
+    const drawn = viewer.counts.frames;
+    // the ratio changes: the listener of the old query goes, a query for the new ratio is made, a frame follows
+    vi.stubGlobal('devicePixelRatio', 2);
+    Object.defineProperty(document.defaultView!, 'devicePixelRatio', { configurable: true, value: 2 });
+    for (const fn of [...queries[0].listeners]) fn();
+    expect(queries[0].listeners.size).toBe(0);
+    expect(queries.length).toBe(2);
+    expect(queries[1].media).toBe('(resolution: 2dppx)');
+    expect(queries[1].listeners.size).toBe(1);
+    frames.flush();
+    expect(viewer.counts.frames).toBe(drawn + 1);
+    expect(viewer.dpr).toBe(2);
+    expect(container.querySelector('canvas')!.width).toBe(viewer.width * 2);
+    viewer.retire();
+    expect(queries[1].listeners.size).toBe(0);
   });
 
   it('retire takes away every listener it added, the observer and the nodes, and no frame or timer is left', async () => {

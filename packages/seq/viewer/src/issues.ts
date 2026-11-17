@@ -20,6 +20,11 @@ export const ViewerIssues = defineIssues('seq.viewer', {
       'A binding names an action the viewer does not have (no model method, no command defined); it is left out',
     hint: 'Name a method (hover, pan, zoom) or the id of a command the viewer defines',
   },
+  'seq.viewer.behavior.missing': {
+    severity: 'warning',
+    description: 'A gesture needs a behavior the viewer spec does not list; the gesture does nothing',
+    hint: 'List the behavior in the viewer spec (the default spec has it)',
+  },
   'seq.viewer.binding.key': {
     severity: 'warning',
     description: 'A key gesture in the pointer bindings: keys are bound through the keymap',

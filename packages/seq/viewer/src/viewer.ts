@@ -6,7 +6,7 @@
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import type { Issue, Node } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import { createSeqContext, type SeqContext } from '@molstar/seqx-core/context/index';
 import {
   type Emphasis,
@@ -21,13 +21,14 @@ import {
 } from '@molstar/seqx-core/render';
 import { type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { DomHost } from '@molstar/ui/dom';
+import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas/index';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import { HoverModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { ViewerInput } from './input.js';
-import type { BehaviorContext, SeqViewerSpec } from './viewer-spec.js';
+import { ViewerIssues } from './issues.js';
+import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
 
 // The viewer (_spec/README.md "Composition"): composed from a spec by `createSeqViewer`, as a Mol* plugin is: the
@@ -57,6 +58,10 @@ export class SeqViewer extends ReactiveModel {
   readonly commands: ViewerCommand[] = [];
   /** The layout's issues of the last frame (a color it cannot read, a layer it cannot draw). */
   readonly layoutIssues: ReadonlyState<readonly Issue[]>;
+  /** The viewer's own: a gesture that needs a behavior the spec does not list, once each. */
+  readonly behaviorIssues: ReadonlyState<readonly Issue[]>;
+  /** Moves each time the view comes to rest (`canvas.settleMs` after its last move): what follows the picture waits for it. */
+  readonly rested: ReadonlyState<number>;
 
   /** The canvas's size in CSS px (the data's width and the content's height by default). */
   width = 0;
@@ -67,6 +72,11 @@ export class SeqViewer extends ReactiveModel {
   readonly counts = { frames: 0, layouts: 0 };
 
   private readonly _issues = new State<readonly Issue[]>([]);
+  private readonly _behaviorIssues = new State<readonly Issue[]>([]);
+  private readonly _rested = new State(0);
+  private readonly _handles = new Map<BehaviorProvider<any, any>, unknown>();
+  private _frameId: number | undefined;
+  private _rehitting = false;
   private readonly _emphasis: Mutable<Emphasis> = {};
   private readonly _emphasisHit = {} as Mutable<RenderHit>;
   private readonly _size = { width: 0, height: 0 };
@@ -77,7 +87,6 @@ export class SeqViewer extends ReactiveModel {
   private _rendererFor: unknown[] = [];
   private _wanter: { want(w: readonly any[]): void; dispose(): void } | undefined;
   private _frame: Frame | undefined;
-  private _scheduled = false;
   private _quiet = true;
   private _settleTimer: unknown;
   private _syncing: Promise<void> = Promise.resolve();
@@ -101,6 +110,8 @@ export class SeqViewer extends ReactiveModel {
     });
     this.registerPermanentDispose(() => this.context.retire());
     this.layoutIssues = this._issues.asReadonly;
+    this.behaviorIssues = this._behaviorIssues.asReadonly;
+    this.rested = this._rested.asReadonly;
 
     this.spec = new SpecModel(createSeqSpec().build(), {
       runtimes: this.context.runtimes,
@@ -126,12 +137,19 @@ export class SeqViewer extends ReactiveModel {
       config: this.config,
       bindings: this.bindings,
     };
-    for (const b of viewerSpec.behaviors) {
-      if (this.behaviors.has(b.provider.name)) throw new Error(`The behavior ${b.provider.name} is listed twice`);
-      const handle = b.provider.create(context, b.params);
-      this.behaviors.set(b.provider.name, handle);
-      if (Array.isArray(handle?.commands)) this.commands.push(...handle.commands);
-      if (typeof handle?.dispose === 'function') this.registerPermanentDispose(() => handle.dispose());
+    try {
+      for (const b of viewerSpec.behaviors) {
+        if (this.behaviors.has(b.provider.name)) throw new Error(`The behavior ${b.provider.name} is listed twice`);
+        const handle = b.provider.create(context, b.params);
+        this.behaviors.set(b.provider.name, handle);
+        this._handles.set(b.provider, handle);
+        if (Array.isArray(handle?.commands)) this.commands.push(...handle.commands);
+        if (typeof handle?.dispose === 'function') this.registerPermanentDispose(() => handle.dispose());
+      }
+    } catch (e) {
+      // what was made is not left behind
+      this.retire();
+      throw e;
     }
     this.input = new ViewerInput(this);
 
@@ -146,15 +164,38 @@ export class SeqViewer extends ReactiveModel {
       this.schedule();
     });
     this._followViewports();
+    if (target && viewerSpec.ui?.canvas) this.registerPermanentDispose(mountCanvas(this, target));
+    // registered last, so it runs first: everything after it (the UI's teardown, the behaviors, the models) is disposed
+    // while the viewer is retired, and none of it asks for a frame
     this.registerPermanentDispose(() => {
       this._retired = true;
+      if (this._frameId !== undefined) cancelFrameCallback(this._frameId);
+      this._frameId = undefined;
       DomHost.clearTimeout(this._settleTimer);
+      this._settleTimer = undefined;
       this._wanter?.dispose();
-      this._viewportListeners.forEach((u) => u());
+      for (const u of this._viewportListeners) u();
       this._viewportListeners.length = 0;
     });
+  }
 
-    if (target && viewerSpec.ui?.canvas) this.registerPermanentDispose(mountCanvas(this, target));
+  /**
+   * The handle of a behavior by its provider (what the input calls). One the spec does not list is reported once as an
+   * issue (`behaviorIssues`) and the gesture does nothing.
+   */
+  behavior<H>(provider: BehaviorProvider<any, H>): H | undefined {
+    if (this._handles.has(provider)) return this._handles.get(provider) as H;
+    if (!this._behaviorIssues.value.some((i) => i.address === provider.name))
+      this._behaviorIssues.set([
+        ...this._behaviorIssues.value,
+        issueOf(
+          ViewerIssues,
+          'seq.viewer.behavior.missing',
+          `The viewer has no ${provider.name} behavior: its gestures do nothing`,
+          { address: provider.name, hint: ViewerIssues.codes['seq.viewer.behavior.missing'].hint },
+        ),
+      ]);
+    return undefined;
   }
 
   /** Whether `retire` has run: a frame asked for before it does nothing. */
@@ -169,9 +210,10 @@ export class SeqViewer extends ReactiveModel {
    * `view`: the view's address (the first by default).
    */
   async load(root: Node, options: { view?: string } = {}): Promise<void> {
+    // a new root syncs the sources through the model's own listener: once
     this.spec.apply(root);
     this.view.show(options.view);
-    await this._sync();
+    await this._syncing;
   }
 
   private _sync(): Promise<void> {
@@ -263,16 +305,17 @@ export class SeqViewer extends ReactiveModel {
     this._settleTimer = DomHost.setTimeout(() => {
       this._settleTimer = undefined;
       this._quiet = true;
+      this._rested.set(this._rested.value + 1);
       this.schedule();
     }, this.config.canvas.settleMs);
   }
 
-  /** Asks for a frame: one a `requestAnimationFrame`, whatever asked. */
+  /** Asks for a frame: one a frame (`@molstar/ui/dom`'s frame callbacks, on `DomHost`), whatever asked; `retire` cancels it. */
   schedule(): void {
-    if (this._scheduled || this._retired) return;
-    this._scheduled = true;
-    DomHost.requestAnimationFrame(() => {
-      this._scheduled = false;
+    // a re-hit's own hover change is drawn by the frame that made it
+    if (this._frameId !== undefined || this._retired || this._rehitting) return;
+    this._frameId = requestFrameCallback(() => {
+      this._frameId = undefined;
       if (!this._retired) this.draw();
     });
   }
@@ -343,6 +386,7 @@ export class SeqViewer extends ReactiveModel {
     input.emphasis = this._emphasis;
 
     let frame = renderer.frame(input);
+    let rebuilt = frame.rebuilt;
     if (!fixed) {
       const last = frame.layout.sections.at(-1);
       const content = last ? Math.ceil(last.y + last.height + this.context.renderConfig.inset) : 32;
@@ -350,10 +394,11 @@ export class SeqViewer extends ReactiveModel {
         this._contentHeight = content;
         size.height = Math.min(this.config.canvas.maxHeight, Math.max(content, 32));
         frame = renderer.frame(input);
+        rebuilt ||= frame.rebuilt;
       }
     }
     this.height = size.height;
-    if (frame.rebuilt) {
+    if (rebuilt) {
       this.counts.layouts++;
       this._wanter?.want(frame.wants);
       this._issues.set(frame.layout.issues);
@@ -361,16 +406,23 @@ export class SeqViewer extends ReactiveModel {
     this._frame = frame;
 
     // a resting pointer is hit again once a frame the view moves under it (EC-143)
-    if (frame.rebuilt && this.config.pointer.rehit && this.input.rehit()) {
-      this._updateEmphasis();
-      frame = renderer.frame(input);
-      this._frame = frame;
+    // (what that frame laid out is still to be drawn: `rebuilt` is the layout's, not the emphasis redraw's)
+    if (rebuilt && this.config.pointer.rehit) {
+      this._rehitting = true;
+      const changed = this.input.rehit();
+      this._rehitting = false;
+      if (changed) {
+        this._updateEmphasis();
+        frame = renderer.frame(input);
+        this._frame = frame;
+      }
     }
 
     const backend = this._backend;
     if (backend) {
+      backend.fonts.setStacks(renderer.tokens.fonts);
       this._baseDirty = backend.resize(size.width, size.height, dpr) || this._baseDirty;
-      backend.draw(frame.lists, frame.rebuilt || this._baseDirty);
+      backend.draw(frame.lists, rebuilt || this._baseDirty);
       this._baseDirty = false;
     }
     this.counts.frames++;
