@@ -309,6 +309,8 @@ describe('ShellView: windows', () => {
     flush();
     expect(rectOf(w)).toEqual({ ...r0, x: r0.x + 30, y: r0.y + 20 });
     header.dispatchEvent(pointer('pointerup', { x: 140, y: 130 }));
+    // The release's place goes through the frame lane (a commit beside it would be overwritten by its pending value).
+    flushFrame();
     flush();
     expect(rectOf(w)).toEqual({ ...r0, x: r0.x + 40, y: r0.y + 30 });
     // A press on a header button is the button's.
@@ -323,11 +325,13 @@ describe('ShellView: windows', () => {
     corner.dispatchEvent(pointer('pointerdown', { x: 0, y: 0 }));
     corner.dispatchEvent(pointer('pointermove', { x: 10, y: 20 }));
     corner.dispatchEvent(pointer('pointerup', { x: 10, y: 20 }));
+    flushFrame();
     flush();
     expect(rectOf(w)).toEqual({ x: r0.x + 40, y: r0.y + 30, width: r0.width + 10, height: r0.height + 20 });
     const right = w.querySelector<HTMLElement>('[data-edge="right"]')!;
     right.dispatchEvent(pointer('pointerdown', { x: 0, y: 0 }));
     right.dispatchEvent(pointer('pointerup', { x: 10, y: 50 }));
+    flushFrame();
     flush();
     expect(rectOf(w)).toEqual({ x: r0.x + 40, y: r0.y + 30, width: r0.width + 20, height: r0.height + 20 });
     m.dispose();
@@ -433,10 +437,11 @@ describe('ShellView: card, page, modal', () => {
     await microtasks();
     const dialog = m.q('[role="dialog"][aria-modal="true"]')!;
     expect(dialog.getAttribute('aria-label')).toBe('Confirm');
-    const scrim = dialog.parentElement!;
-    const siblings = [...scrim.parentElement!.children].filter((c) => c !== scrim);
-    expect(siblings.length).toBeGreaterThan(0);
-    for (const s of siblings) expect(s.hasAttribute('inert')).toBe(true);
+    // The shell's layout (everything but the layers that hold the app) is inert: decided as the modal opens, whatever is
+    // in it then (a window opened under it too).
+    const layout = m.q('[data-msui-shell-main]')!.closest('[class*="layout"]')!;
+    expect(layout.hasAttribute('inert')).toBe(true);
+    expect(layout.contains(dialog)).toBe(false);
     expect(dialog.contains(document.activeElement)).toBe(true);
     const all = [...dialog.querySelectorAll<HTMLElement>('button, input')];
     all.at(-1)!.focus();
@@ -445,7 +450,7 @@ describe('ShellView: card, page, modal', () => {
     expect(document.activeElement).toBe(all[0]);
     key(document.activeElement!, 'Escape');
     expect(m.q('[aria-modal="true"]')).toBeNull();
-    for (const s of siblings) expect(s.hasAttribute('inert')).toBe(false);
+    expect(layout.hasAttribute('inert')).toBe(false);
     expect(document.activeElement).toBe(anchor);
     m.dispose();
   });

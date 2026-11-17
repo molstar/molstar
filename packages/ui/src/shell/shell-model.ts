@@ -14,6 +14,13 @@ import {
   defaultLayout,
   findGroup,
   findView,
+  type GroupNode,
+  inRightColumn,
+  keepHidden,
+  MinGroupSize,
+  MinMainSize,
+  RailWidth,
+  type SplitNode,
   type LayoutTarget,
   mergeGroup,
   moveInColumn,
@@ -106,8 +113,10 @@ export interface ShellSection {
   /** Words it is also found by. */
   readonly keywords?: readonly string[];
   readonly order?: number;
-  /** Shown only while this holds. */
+  /** Shown only while this holds: asked again when the view's subject changes, and when `whenChanged` changes. */
   readonly when?: (ctx: ShellViewContext) => boolean;
+  /** Changes when `when` may answer otherwise for reasons the list cannot see (a value fetched for the subject). */
+  readonly whenChanged?: ReadonlyState<unknown>;
   /** Open until folded, in a list whose sections start folded. */
   readonly open?: boolean;
   readonly render: ViewRenderer<ShellViewContext>;
@@ -206,6 +215,9 @@ export class ShellModel {
   readonly #subjects = new Map<ViewRef, State<unknown>>();
   readonly #focus = new Map<ViewRef, State<string | undefined>>();
   readonly #sectionOpen = new Map<string, boolean>();
+  readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
+  readonly #hiddenViews: ReadonlyState<readonly ViewRef[]>;
+  readonly #railShown: ReadonlyState<boolean>;
   /** Each view's last window rectangle this session (a window closed and opened again comes back there). */
   readonly #lastRects = new Map<ViewRef, Rect>();
 
@@ -219,6 +231,8 @@ export class ShellModel {
       this.#modeOption !== 'auto' ? this.#modeOption : w > 0 && w < this.#compactWidth ? 'compact' : 'desktop',
     );
     if (this.#modeOption === 'embedded') this.#layout.set(setRail(this.#layout.value, false));
+    this.#hiddenViews = derive(this.#layout, (l) => l.hidden);
+    this.#railShown = derive(this.#layout, (l) => l.rail);
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -332,9 +346,15 @@ export class ShellModel {
 
   /** The sections of a slot, by order. */
   sections(slot: string): ReadonlyState<readonly ShellSection[]> {
-    return derive(this.#sections, (all) =>
-      all.filter((s) => s.slot === slot).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
-    );
+    // One derived state a slot, made once (every list of the slot shares it).
+    let d = this.#slots.get(slot);
+    if (!d) {
+      d = derive(this.#sections, (all) =>
+        all.filter((s) => s.slot === slot).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+      );
+      this.#slots.set(slot, d);
+    }
+    return d;
   }
 
   registerSections(sections: readonly ShellSection[]): () => void {
@@ -342,9 +362,26 @@ export class ShellModel {
     return () => this.#sections.set(this.#sections.value.filter((s) => !sections.includes(s)));
   }
 
+  /** Adds the app's rail items; their `visible` flags are followed as views' are (`absent`, `item:<id>`). */
   registerRailItems(items: readonly RailItem[]): () => void {
-    this.#railItems.set([...this.#railItems.value, ...items]);
-    return () => this.#railItems.set(this.#railItems.value.filter((i) => !items.includes(i)));
+    const stops: (() => void)[] = [];
+    batch(() => {
+      for (const i of items) {
+        if (!i.visible) continue;
+        const flag = i.visible;
+        const write = () => this.#setAbsent(`item:${i.id}`, !flag.value);
+        write();
+        stops.push(listen(flag, write));
+      }
+      this.#railItems.set([...this.#railItems.value, ...items]);
+    });
+    return () => {
+      for (const stop of stops) stop();
+      batch(() => {
+        for (const i of items) if (i.visible) this.#setAbsent(`item:${i.id}`, false);
+        this.#railItems.set(this.#railItems.value.filter((i) => !items.includes(i)));
+      });
+    };
   }
 
   /** Whether a section is open, as the person left it this session (`undefined`: not touched yet). */
@@ -382,7 +419,7 @@ export class ShellModel {
   restore(value: unknown): boolean {
     const l = validateLayout(value);
     if (!l) return false;
-    this.#layout.set(this.#placeMissing(this.#clampWindows(l), [...this.#views.value.values()]));
+    this.#layout.set(this.#clampSizes(this.#placeMissing(this.#clampWindows(l), [...this.#views.value.values()])));
     return true;
   }
 
@@ -436,7 +473,9 @@ export class ShellModel {
       } else {
         l = this.#placeAtHome(l, ref, def, true);
       }
-      this.#layout.set(l.rail || !railGroup(l)?.views.includes(ref) ? l : setRail(l, true));
+      // Shown in the right column while the rail (and the column with it) is hidden: the rail comes back.
+      const now = findView(l, ref);
+      this.#layout.set(l.rail || !now || now.window || !inRightColumn(l, now.group.id) ? l : setRail(l, true));
     });
   }
 
@@ -525,6 +564,8 @@ export class ShellModel {
     if (!rail || !from || rail.id === groupId || from.window) return;
     let next = l;
     for (const v of from.group.views) next = moveView(next, v, { kind: 'group', id: rail.id });
+    // What the person hid stays hidden (a move shows a view: not this one).
+    next = keepHidden(next, l.hidden);
     this.#layout.set(setGroupState(next, rail.id, rail.active, rail.collapsed === true));
   }
 
@@ -540,8 +581,32 @@ export class ShellModel {
     this.#layout.set(moveInColumn(this.#layout.value, ref, dir));
   }
 
+  /** A docked node's size: at least `MinGroupSize`, at most what leaves the main area `MinMainSize` (the shell's width known). */
   resize(nodeId: string, size: number): void {
-    this.#layout.set(resizeNode(this.#layout.value, nodeId, size));
+    this.#layout.set(this.#clampSizes(resizeNode(this.#layout.value, nodeId, size)));
+  }
+
+  /**
+   * The docked sizes of the root row kept within the shell's width: their sum, the rail and the main area's least size
+   * (`MinMainSize`) fit; the largest gives way first. Nothing while the width is not known.
+   */
+  #clampSizes(l: ShellLayout): ShellLayout {
+    const width = this.#width.value;
+    if (!width || l.root.kind !== 'split' || l.root.dir !== 'row') return l;
+    const room = width - (l.rail ? RailWidth : 0) - MinMainSize;
+    let next = l;
+    for (let guard = 0; guard < 8; guard++) {
+      const root = next.root as SplitNode;
+      const sized = root.children.filter((c): c is GroupNode | SplitNode => c.kind !== 'main' && c.size !== undefined);
+      const total = sized.reduce((t, c) => t + (c.size ?? 0), 0);
+      if (total <= room || !sized.length) break;
+      const largest = sized.reduce((a, b) => ((b.size ?? 0) > (a.size ?? 0) ? b : a));
+      const over = total - room;
+      const to = Math.max(MinGroupSize, (largest.size ?? 0) - over);
+      if (to === largest.size) break;
+      next = resizeNode(next, largest.id, to);
+    }
+    return next;
   }
 
   setWindowRect(groupId: string, rect: Rect): void {
@@ -568,7 +633,7 @@ export class ShellModel {
   }
 
   get hiddenViews(): ReadonlyState<readonly ViewRef[]> {
-    return derive(this.#layout, (l) => l.hidden);
+    return this.#hiddenViews;
   }
 
   /** Shows or hides the rail (and the docked column with it). */
@@ -577,7 +642,7 @@ export class ShellModel {
   }
 
   get railShown(): ReadonlyState<boolean> {
-    return derive(this.#layout, (l) => l.rail);
+    return this.#railShown;
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -637,7 +702,12 @@ export class ShellModel {
 
   /** `auto`'s mode follows this (the shell's own width, px). */
   setWidth(width: number): void {
-    if (width !== this.#width.value) this.#width.set(width);
+    if (width === this.#width.value) return;
+    batch(() => {
+      this.#width.set(width);
+      // A narrower shell: the docked sizes give way so the main area keeps its least width.
+      this.#layout.set(this.#clampSizes(this.#layout.value));
+    });
   }
 
   /** The main area's size: windows open and stay inside it. */

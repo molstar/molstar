@@ -19,6 +19,7 @@ export const classes = {
   'drop': 'msui-shell-drop',
   'grip': 'msui-shell-grip',
   'group': 'msui-shell-group',
+  'layout': 'msui-shell-layout',
   'main': 'msui-shell-main',
   'mainContent': 'msui-shell-mainContent',
   'modal': 'msui-shell-modal',
@@ -67,6 +68,13 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
   position: relative;
   overflow: hidden;
   container: shell / size;
+}
+
+.msui-shell-layout {
+  flex: auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
 }
 
 @container shell (height <= 619px) {
@@ -181,6 +189,26 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
   }
 }
 
+.msui-shell-node:not([data-at]) > .msui-shell-splitter {
+  display: none;
+}
+
+.msui-shell-node[data-at="start"] > .msui-shell-splitter[data-dir="row"] {
+  left: calc(-.5 * var(--msui-shell-splitter));
+}
+
+.msui-shell-node[data-at="end"] > .msui-shell-splitter[data-dir="row"] {
+  right: calc(-.5 * var(--msui-shell-splitter));
+}
+
+.msui-shell-node[data-at="start"] > .msui-shell-splitter[data-dir="column"] {
+  top: calc(-.5 * var(--msui-shell-splitter));
+}
+
+.msui-shell-node[data-at="end"] > .msui-shell-splitter[data-dir="column"] {
+  bottom: calc(-.5 * var(--msui-shell-splitter));
+}
+
 .msui-shell-splitter {
   z-index: 2;
   touch-action: none;
@@ -199,22 +227,6 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
     cursor: row-resize;
     left: 0;
     right: 0;
-  }
-
-  &[data-at="start"][data-dir="row"] {
-    left: calc(-.5 * var(--msui-shell-splitter));
-  }
-
-  &[data-at="end"][data-dir="row"] {
-    right: calc(-.5 * var(--msui-shell-splitter));
-  }
-
-  &[data-at="start"][data-dir="column"] {
-    top: calc(-.5 * var(--msui-shell-splitter));
-  }
-
-  &[data-at="end"][data-dir="column"] {
-    bottom: calc(-.5 * var(--msui-shell-splitter));
   }
 
   &:hover, &:focus-visible, &[data-dragging] {
@@ -338,6 +350,10 @@ defineStyles('shell/shell.module.css', `@layer msui.components {
   &[data-enter] {
     --msui-rise-y: var(--msui-rise);
     animation: msui-float-in var(--msui-enter);
+  }
+
+  &[hidden] {
+    display: none;
   }
 
   &[data-adjusting] {

@@ -76,6 +76,10 @@ export const RightGroup = 'right';
 
 /** Smallest sizes a docked group or a window takes (px). */
 export const MinGroupSize = 180;
+/** The least width the main area keeps when docked sizes grow (px). */
+export const MinMainSize = 240;
+/** The rail's width (px; `--msui-shell-rail`). */
+export const RailWidth = 40;
 /** A docked group's size when nothing gave it one (px). */
 export const DefaultGroupSize = 280;
 export const MinWindow = { width: 240, height: 160 } as const;
@@ -460,7 +464,25 @@ export function mergeGroup(layout: ShellLayout, fromId: string, intoId: string):
   if (!from || fromId === intoId || !findGroup(layout, intoId)) return layout;
   let next = layout;
   for (const v of from.group.views) next = moveView(next, v, { kind: 'group', id: intoId });
-  return from.group.active ? selectView(next, from.group.active) : next;
+  // Views the person hid stay hidden (a move shows a view: not these).
+  next = keepHidden(next, layout.hidden);
+  return from.group.active && !layout.hidden.includes(from.group.active) ? selectView(next, from.group.active) : next;
+}
+
+/** `layout` with the views of `hidden` that it still places hidden again (after moves, which show what they move). */
+export function keepHidden(layout: ShellLayout, hidden: readonly ViewRef[]): ShellLayout {
+  const placed = new Set(placedViews(layout));
+  const again = hidden.filter((v) => placed.has(v) && !layout.hidden.includes(v));
+  return again.length ? normalize({ ...layout, hidden: [...layout.hidden, ...again] }) : layout;
+}
+
+/** Whether a docked group is in the right column (the rail's group and those under it). */
+export function inRightColumn(layout: ShellLayout, groupId: string): boolean {
+  const col = rightColumn(layout);
+  if (!col) return false;
+  const walk = (n: LayoutNode): boolean =>
+    n.kind === 'group' ? n.id === groupId : n.kind === 'split' && n.children.some(walk);
+  return walk(col);
 }
 
 /** Moves a view one place up or down among the docked groups of its column (Move up, Move down). */
@@ -518,7 +540,8 @@ export function validateLayout(value: unknown): ShellLayout | undefined {
       if (!g || g.kind !== 'group' || !isObject(r)) continue;
       const nums = [r.x, r.y, r.width, r.height];
       if (!nums.every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
-      windows.push({ group: g, rect: r as unknown as Rect, z: typeof w.z === 'number' ? w.z : windows.length + 1 });
+      const z = typeof w.z === 'number' && Number.isFinite(w.z) ? w.z : windows.length + 1;
+      windows.push({ group: g, rect: r as unknown as Rect, z });
     }
   }
   const hidden = Array.isArray(value.hidden) ? value.hidden.filter((v): v is string => typeof v === 'string') : [];

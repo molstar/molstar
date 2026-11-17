@@ -48,11 +48,12 @@ pure function on it ending in `normalize`, so the model only ever holds a valid 
   stays on a press outside), `fill?` (the content fills the body and scrolls its own parts). `registerViews` returns its
   undo (an extension unloads); an unregistered view keeps its place in the layout (it lands there when registered again)
   and leaves any layer it was open in.
-- **Sections** (`ShellSection`: `slot`, `title`, `heading?`, `order`, `when?`, `open?`, `render`): what extensions add
-  to another view's slot instead of a view of their own (`registerSections`). `SectionList` shows a slot's sections as
-  `Expandable`s by order, each open as the person left it this session (`sectionOpen`), else open, or folded under
-  `collapsed` unless its own `open`. `show(id, { section })` opens that section and scrolls it into view (`ctx.focus`, a
-  new value at each such `show`).
+- **Sections** (`ShellSection`: `slot`, `title`, `heading?`, `order`, `when?`, `whenChanged?`, `open?`, `render`): what
+  extensions add to another view's slot instead of a view of their own (`registerSections`). A section shows while its
+  `when` holds, asked again as the view's subject changes and as its `whenChanged` does (a value fetched for the
+  subject). `SectionList` shows a slot's sections as `Expandable`s by order, each open as the person left it this
+  session (`sectionOpen`), else open, or folded under `collapsed` unless its own `open`. `show(id, { section })` opens
+  that section and scrolls it into view (`ctx.focus`, a new value at each such `show`).
 - **Rail items** (`RailItem`: `run(anchor)`, `group?`, `order?`, `priority?`, `caption?`, `pressed?`, `visible?`):
   app-wide tools on the rail that are no view (the theme, the command menu); `registerRailItems` returns its undo.
 - **A group** (`GroupNode`): views shown one at a time, its `active` one, `collapsed` (only its strip shows), a `size`
@@ -123,9 +124,12 @@ keeps its state (a canvas is not rebuilt).
   one body (`viewBody`: a `ScrollArea`, or with `fill` a box the view fills). The same in every place (`placement`:
   `docked`, `window`, `card`, `page`, `modal`, `sheet`; the view reads it from its context). Why: a view looks the same
   wherever a person puts it.
-- **The tree is rebuilt only when its shape changes** (`shapeOf`: nodes, order, direction, which takes the rest); sizes,
-  which show and which are folded are written in place. Why: rebuilding moves the main area (the app's canvas), which
-  drops the focus in it and ends a splitter's drag.
+- **The tree is rebuilt only when its structure changes** (`shapeOf`: nodes, order, direction, the rail's group); which
+  nodes show and which are folded, which takes the rest, the sizes and the splitters' sides are written in place
+  (`applyState`, a size only when it changed). Why: rebuilding moves the main area (the app's canvas), which drops the
+  focus in it and ends a splitter's drag; folding a split column or hiding the rail must not.
+- **What is derived follows every source it reads and changes only when its result does** (the rail's buttons and fit, a
+  window's rectangle, the bodies kept): a drag's frames write the layout, and only what the drag moves is written.
 - **Bodies are kept across moves** (`ViewBodies`): a view's body is made once, in a scope of its own, and handed to the
   frame that shows it now; released by every frame it is paused and detached, not disposed. It is disposed when the view
   leaves the layout and every layer. Why: a scroll, a draft or a plot's zoom survives popping out, docking back and
@@ -168,14 +172,17 @@ keeps its state (a canvas is not rebuilt).
 - The view menu (`viewMenu`) of a docked view: Float, Split below (its group has another view), Move up / Move down (in
   a column), Dock right (away from its home `right`), Move to each open window, Hide (single), Reset layout.
 - **Splitters** sit on a sized node's edge toward the node that takes the rest (`role="separator"`, focusable): a drag
-  (in the frame lane) or the arrows (16 px, Shift 64) resize it; the size is clamped by `MinGroupSize`.
+  (in the frame lane) or the arrows (16 px, Shift 64) resize it; the size is at least `MinGroupSize` and at most what
+  leaves the main area `MinMainSize` (240) beside the rail; a narrower shell, or a stored size, gives way the same.
 
 ### 3.4 Windows
 
 - A window (`WindowView`) floats over the main area, never over a docked group: a raised surface with an edge and a
   float shadow, a 32 px header (its title, or tabs when it holds several views), `role="dialog"`, `aria-modal="false"`.
 - Its header drags it (not from a button, tab or field), its right edge, bottom edge and corner resize it, both in the
-  frame lane and committed on release; it stays clamped in the main area (§2). A press or focus in it raises it.
+  frame lane, the release's place committed through it too; it stays clamped in the main area (§2). A press or focus in
+  it raises it; the windows' nodes keep a stable order (by id), so a raise moves none (moving one would drop the focus
+  in it): the stack is each window's `z-index`. A window none of whose views can show is hidden.
 - ✕ or Escape (with the focus in it) closes its views (`close`, §2); a press outside does not. Why: a window is kept
   beside the work, not dismissed by it.
 - Its menu: Dock, Move with the keyboard, Resize with the keyboard (arrows by 4 px, Shift 16; Enter or Escape ends;
@@ -194,14 +201,16 @@ keeps its state (a canvas is not rebuilt).
 
 - **Card** (`home: 'card'`): one at a time, in the right column's place (its width, the rail beside it; with no column,
   340 px at the right edge), full height, over the docked groups. Closes on its ✕, Escape, a press outside (not a
-  `persistent` one), opening a page, or showing a docked view. Its first focusable gets the focus.
+  `persistent` one), opening a page, or showing a docked view. The groups it covers are inert and paused while it is
+  open. Opened from the keyboard, its first control gets the focus; else the card itself (§4).
 - **Page** (`home: 'page'`): opaque over the main area (`role="region"`), its own header; Escape or ✕ close it; opening
-  it closes the card.
+  it closes the card. What it covers (the app's main view, the windows) is inert, the windows paused.
 - **Modal** (`home: 'modal'`): centered over the whole shell on a scrim, at most 480 px wide, `role="dialog"`,
-  `aria-modal="true"`; Tab stays in it (`trapTab`), the rest of the shell is `inert`; Escape or ✕ close it. For a
-  confirmation or a short task.
+  `aria-modal="true"`; Tab stays in it (`trapTab`), the rest of the shell is `inert` (its layout wrapper, whatever is in
+  it as it changes); Escape or ✕ close it. For a confirmation or a short task.
 - **Busy** (`busy` prop, a `ShellBusy`): a scrim and one card holding the app (`role="alertdialog"`): the label, a
-  progress bar (indeterminate without `progress`), Cancel when it has `cancel`.
+  progress bar (indeterminate without `progress`), Cancel when it has `cancel`. The rest of the shell is inert; the
+  focus goes to it (Cancel, else the card), stays in it, and goes back when it ends.
 - **File drop** (`onDropFiles`): files dragged over the shell show one overlay (`dropLabel`); dropped, they go to
   `onDropFiles`. Without it, no overlay and no handling.
 - **Status slot** (`status` prop): the main area's bottom left, 8 px in; its content is the app's, the pointer passes
@@ -210,9 +219,10 @@ keeps its state (a canvas is not rebuilt).
 ### 3.7 Compact and embedded
 
 - **Compact**: the tree is not rendered; the main area sits over a bottom sheet (`min(45cqh, 420px)`) and a bar of 44 px
-  buttons (a touch target; icon and label). The sheet shows the card, else the top window's view (a window is a card
-  here), else the first open docked group's view; its ✕ closes the card or the window, or folds the docked group. The
-  bar holds the `compactBar` views; the rest are under More. No windows layer, no rail toggle.
+  buttons (a touch target; icon and label). The sheet shows the card, else the view picked last (from the bar or More,
+  by a `show`, a window opened or raised: a window is a card here); a bar button picked again closes the sheet; its ✕
+  closes the card or the window, or the sheet. The bar holds the `compactBar` views; the rest are under More. No windows
+  layer, no rail toggle.
 - **Embedded**: the desktop layout with the rail starting hidden and windows at 0.8 of their size; it does not switch to
   compact.
 

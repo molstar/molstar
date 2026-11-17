@@ -30,6 +30,14 @@
   font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);
 }
 
+/* Everything but the layers that hold the app (a modal, busy): made inert while one is up. */
+.layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* The rail's steps by the shell's height (kept equal to `RailSteps` in rail.ts by its test). */
 @container shell (max-height: 619px) {
   .rail,
@@ -156,7 +164,28 @@
   }
 }
 
-/* A splitter: a hit area over the boundary between a sized node and the one before or after it. */
+/* A splitter: a hit area over the boundary between a sized node and the one before or after it; only on a sized node
+   (the one that takes the rest has none), on its side toward that one (`data-at` on the node, written in place). */
+.node:not([data-at]) > .splitter {
+  display: none;
+}
+
+.node[data-at="start"] > .splitter[data-dir="row"] {
+  left: calc(-0.5 * var(--msui-shell-splitter));
+}
+
+.node[data-at="end"] > .splitter[data-dir="row"] {
+  right: calc(-0.5 * var(--msui-shell-splitter));
+}
+
+.node[data-at="start"] > .splitter[data-dir="column"] {
+  top: calc(-0.5 * var(--msui-shell-splitter));
+}
+
+.node[data-at="end"] > .splitter[data-dir="column"] {
+  bottom: calc(-0.5 * var(--msui-shell-splitter));
+}
+
 .splitter {
   position: absolute;
   z-index: 2;
@@ -175,22 +204,6 @@
     right: 0;
     height: var(--msui-shell-splitter);
     cursor: row-resize;
-  }
-
-  &[data-at="start"][data-dir="row"] {
-    left: calc(-0.5 * var(--msui-shell-splitter));
-  }
-
-  &[data-at="end"][data-dir="row"] {
-    right: calc(-0.5 * var(--msui-shell-splitter));
-  }
-
-  &[data-at="start"][data-dir="column"] {
-    top: calc(-0.5 * var(--msui-shell-splitter));
-  }
-
-  &[data-at="end"][data-dir="column"] {
-    bottom: calc(-0.5 * var(--msui-shell-splitter));
   }
 
   &:hover,
@@ -331,6 +344,10 @@
     --msui-rise-y: var(--msui-rise);
 
     animation: msui-float-in var(--msui-enter);
+  }
+
+  &[hidden] {
+    display: none;
   }
 
   &[data-adjusting] {

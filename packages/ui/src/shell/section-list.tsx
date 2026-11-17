@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { derive, State } from '@molstar/core/reactive';
+import { derive, listen, State } from '@molstar/core/reactive';
 import { Expandable, ExpandableList } from '../components/expandable/expandable.js';
-import { effect, For } from '../dom/index.js';
+import { effect, For, onCleanup } from '../dom/index.js';
 import type { ShellModel, ShellSection, ShellViewContext } from './shell-model.js';
 import { ViewHost } from './view-frame.js';
 
@@ -28,7 +28,19 @@ export function SectionList(props: {
 }) {
   const { shell, ctx } = props;
   const view = ctx.ref;
-  const sections = derive(shell.sections(props.slot), (all) => all.filter((s) => !s.when || s.when(ctx)));
+  // `when` asked again as the subject changes and as any section's `whenChanged` does (followed while the list lives).
+  const asked = new State(0);
+  let stops: (() => void)[] = [];
+  effect(shell.sections(props.slot), (all) => {
+    for (const stop of stops) stop();
+    stops = all.filter((s) => s.whenChanged).map((s) => listen(s.whenChanged!, () => asked.set(asked.value + 1)));
+  });
+  onCleanup(() => {
+    for (const stop of stops) stop();
+  });
+  const sections = derive([shell.sections(props.slot), ctx.subject, asked], (all) =>
+    all.filter((s) => !s.when || s.when(ctx)),
+  );
   return (
     <ExpandableList>
       <For each={sections} by={(s) => s.id}>
