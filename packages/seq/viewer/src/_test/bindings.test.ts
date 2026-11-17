@@ -13,7 +13,7 @@ const shift = { shift: true };
 const mod = { mod: true };
 const space = { space: true };
 
-describe('gesture bindings (ux-foundations §8)', () => {
+describe('gesture bindings', () => {
   it('the default preset resolves each gesture by the hit’s target', () => {
     const t = bindingTable();
     expect(t.issues).toEqual([]);

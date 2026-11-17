@@ -17,7 +17,7 @@ import { DefaultViewerConfig, type ViewerConfig } from '../config.js';
 import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
-/** What a hit's target is, for the gesture bindings (ux-foundations §8): the granularity comes from the hit. */
+/** What a hit's target is, for the gesture bindings (_spec/README.md "Bindings"): the granularity comes from the hit. */
 export type HitTarget = 'cell' | 'item' | 'row' | 'column' | 'track' | 'empty' | 'axis';
 
 /**

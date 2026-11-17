@@ -8,7 +8,7 @@
 // viewer keeps a table by command id: whether a command writes a spec patch (undoable, one step), changes session
 // state, or only navigates. Menus show what Undo will undo from it; agents tell an edit from a look.
 
-/** What a command changes ("Streaming and patches"): a spec patch, session state, or the viewports only. */
+/** What a command changes (_spec/README.md "Commands"): a spec patch, session state, or the viewports only. */
 export type ChangeKind = 'patch' | 'session' | 'navigate';
 
 /** The model methods a binding may name: continuous, allocation-free, never commands (no history, no outcome). */

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The gesture bindings (_spec/README.md "Bindings"; ux-foundations §8): `{ gesture, modifiers, target, action }`, one
+// The gesture bindings (_spec/README.md "Bindings"): `{ gesture, modifiers, target, action }`, one
 // table per viewer. The action names a model method (continuous) or a command (discrete); the hit says the
 // granularity. Pointer gestures only: keys go through `@molstar/ui`'s keymap. Built from a preset and overrides,
 // conflicts reported when the table is built, never a race at run time.
@@ -39,7 +39,7 @@ export interface ModifierState {
   readonly space?: boolean;
 }
 
-/** The modifiers of a pointer event: Cmd is `mod` on macOS, Ctrl elsewhere (ux-foundations §8). */
+/** The modifiers of a pointer event: Cmd is `mod` on macOS, Ctrl elsewhere. */
 export function modifiersOf(
   e: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean },
   mac: boolean,
@@ -58,7 +58,7 @@ const each = (
   modifiers?: readonly Modifier[],
 ): GestureBinding[] => targets.map((target) => ({ gesture, target, action, ...(modifiers ? { modifiers } : {}) }));
 
-/** The default grammar (ux-foundations §8). */
+/** The default grammar. */
 export const DefaultBindings: readonly GestureBinding[] = [
   { gesture: 'hover', target: 'any', action: 'hover' },
   ...each(ElementTargets, 'click', 'selection.set'),
