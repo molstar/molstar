@@ -13,7 +13,9 @@ Branch: `packages-seq`.
 
 ## In progress
 
-Nothing: the loop waits for the author's confirmation of the orchestrator's decisions (gaps.md) before stage 3.
+- Stage 3: lane E (resolve, strong) and lane C2 (range sets into core, fast), from the commit after this one.
+  The author restarted the loop without objecting to the five stage-2 decisions; the loop proceeds on them as
+  recommended, still open to change (gaps.md).
 
 ## Next
 
