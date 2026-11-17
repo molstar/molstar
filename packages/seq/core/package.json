@@ -44,12 +44,18 @@
       "types": "./lib/view/index.d.ts",
       "import": "./lib/view/index.js"
     },
+    "./render": {
+      "molstar-src": "./src/render/index.ts",
+      "types": "./lib/render/index.d.ts",
+      "import": "./lib/render/index.js"
+    },
     "./_test/*": null,
     "./lang/_test/*": null,
     "./query/_test/*": null,
     "./data/_test/*": null,
     "./resolve/_test/*": null,
-    "./view/_test/*": null
+    "./view/_test/*": null,
+    "./render/_test/*": null
   },
   "files": [
     "lib",

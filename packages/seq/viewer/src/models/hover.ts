@@ -11,6 +11,7 @@
 // EC-144), then carried along the view's links (paths found under the copy rule, EC-25).
 
 import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
+import type { Hit as RenderHit } from '@molstar/seqx-core/render';
 import { type ElementKey, EmptyLocation, type Location, location, rangesLocation } from '@molstar/seqx-core/query';
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -25,14 +26,7 @@ export type HitTarget = 'cell' | 'item' | 'row' | 'column' | 'track' | 'empty' |
  * position, on a system. `section` and `target` may be given; otherwise they are read from the layer's address and
  * from what was hit (an element: an item; a position: a cell; neither: empty space).
  */
-export interface Hit {
-  readonly layer?: string;
-  readonly section?: string;
-  readonly system: string;
-  readonly position?: number;
-  readonly element?: ElementKey;
-  /** The element's extent, when the layer knows it. */
-  readonly extent?: Location;
+export interface Hit extends Omit<RenderHit, 'layer' | 'section'>, Partial<Pick<RenderHit, 'layer' | 'section'>> {
   readonly target?: HitTarget;
 }
 

@@ -136,7 +136,7 @@ export interface RenderSvgOptions {
   readonly assets?: AssetReader;
   /** How long the export waits for its sources to open and its data to settle, ms: 10 s by default. */
   readonly timeoutMs?: number;
-  /** The time the timeout runs on: a shared store's clock (it does not expose its own), a fake one in tests. */
+  /** The time the timeout runs on; default the given store's clock, else the real one (a fake one in tests). */
   readonly clock?: StoreClock;
   /** Prefixes the SVG's ids: by default `s` and a hash of the spec, so two exports inlined in one page differ. */
   readonly idPrefix?: string;
@@ -186,7 +186,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
   }
   issues.push(...view.issues);
   const own = !options.store;
-  const clock = options.clock ?? RealClock;
+  const clock = options.clock ?? options.store?.clock ?? RealClock;
   const store = options.store ?? new DataStore({ clock });
   const controller = new AbortController();
   const wanter = store.wanter();

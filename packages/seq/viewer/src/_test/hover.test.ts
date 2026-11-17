@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { Hit as RenderHit } from '@molstar/seqx-core/render';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import { hoverBehavior } from '../behaviors/hover.js';
@@ -153,5 +154,13 @@ describe('the hover behavior', () => {
       pointer.move(residue(1), m);
       expect(hover.owner).toBe(pointer.owner);
     }
+  });
+});
+
+describe('the render hit', () => {
+  it('is a viewer hit as the layout gives it', () => {
+    const r: RenderHit = { layer: 'l', section: 's', system: 'p', position: 3 };
+    const h: Hit = r;
+    expect(hitTarget(h)).toBe('cell');
   });
 });

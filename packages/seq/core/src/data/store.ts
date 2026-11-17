@@ -235,6 +235,11 @@ export class DataStore extends ReactiveModel {
   private readonly _overBudget = new State(false);
   private readonly _issues = new State<readonly Issue[]>([]);
 
+  /** The clock the store's timers run on (a caller sharing the store keeps time on it). */
+  get clock(): StoreClock {
+    return this._clock;
+  }
+
   constructor(options: { settings?: Partial<StoreSettings>; clock?: StoreClock } = {}) {
     super();
     this.settings = { ...DefaultStoreSettings, ...options.settings };
