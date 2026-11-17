@@ -43,17 +43,17 @@ describe('HistoryModel', () => {
   it('records a step per run and undoes the latest', async () => {
     const s = store({ a: 0 });
     const h = new HistoryModel(s.port);
-    expect(h.canUndo.value).toBe(false);
+    expect(h.undoBlocked.value).toBeDefined();
     await h.run('Set a to 1', person, async () => s.set('a', 1));
     await h.run('Set a to 2', person, async () => s.set('a', 2));
     expect(h.steps.value.map((x) => x.label)).toEqual(['Set a to 2', 'Set a to 1']);
-    expect(h.canUndo.value).toBe(true);
+    expect(h.undoBlocked.value).toBeUndefined();
     const r = await h.undo();
     expect(r.ok).toBe(true);
     expect(s.get().a).toBe(1);
     await h.undo();
     expect(s.get().a).toBe(0);
-    expect(h.undoBlocked.value).toBe('Nothing to undo');
+    expect(h.undoBlocked.value?.reason).toBe('Nothing to undo');
   });
 
   it('redoes what undo took back, in order, until a new step', async () => {
@@ -122,8 +122,7 @@ describe('HistoryModel', () => {
     const second = h.run('Second', person, async () => {
       order.push('second');
     });
-    expect(h.undoBlocked.value).toMatch(/running/);
-    expect(h.undoBlockedCode.value).toBe('running');
+    expect(h.undoBlocked.value).toMatchObject({ code: 'running', reason: expect.stringMatching(/running/) });
     await tick();
     expect(await h.undo()).toMatchObject({ ok: false, code: 'running' });
     g.open();
@@ -239,7 +238,7 @@ describe('HistoryModel', () => {
     end();
     expect(h.steps.value.map((x) => x.label)).toEqual(['Make it pretty', 'person', 'Make it pretty']);
 
-    const asked = await h.undoTurn('t1');
+    const asked = await h.undoTurn({ kind: 'agent', turn: 't1' });
     expect(asked).toMatchObject({
       ok: false,
       code: 'later-steps',
@@ -256,8 +255,8 @@ describe('HistoryModel', () => {
     const s = store({ a: 0 });
     const h = new HistoryModel(s.port);
     await h.run('Set a', person, async () => s.set('a', 1));
-    await h.run('Already so', person, async () => 'same', { record: () => false });
-    await h.run('Upload', person, async () => undefined, { undoable: false });
+    await h.run('Already so', person, async () => 'same', { changed: () => false });
+    await h.run('Upload', person, async () => undefined, { changed: false });
     expect(h.steps.value.map((x) => x.label)).toEqual(['Set a']);
     expect((await h.undo()).ok).toBe(true);
     expect(s.get().a).toBe(0);
@@ -307,7 +306,7 @@ describe('HistoryModel', () => {
     const h = new HistoryModel({ ...s.port, size: () => 1e9 }, { hardLimit: { ms: 1e9, bytes: 1000 } });
     await h.run('big', person, async () => s.set('a', 1));
     expect(h.steps.value[0]).toMatchObject({ unsafe: 'Too large to undo', unsafeCode: 'too-large' });
-    expect(h.canUndo.value).toBe(false);
+    expect(h.undoBlocked.value).toBeDefined();
   });
 
   it('past the hard limit, takes no snapshot for a while, then tries again; a clear or undo turned on lets it at once', async () => {
@@ -384,12 +383,12 @@ describe('HistoryModel', () => {
     const s = store({ a: 0 });
     const h = new HistoryModel(s.port);
     const g = await h.group('Show', script, async (ctx) => {
-      await h.run('Apply a snapshot', script, async () => s.set('a', 1), { within: ctx, undoable: false });
+      await h.run('Apply a snapshot', script, async () => s.set('a', 1), { within: ctx, changed: false });
     });
     expect(g.runs).toEqual([]);
     expect(h.steps.value).toEqual([]);
     const both = await h.group('Both', script, async (ctx) => {
-      await h.run('Apply a snapshot', script, async () => s.set('a', 2), { within: ctx, undoable: false });
+      await h.run('Apply a snapshot', script, async () => s.set('a', 2), { within: ctx, changed: false });
       await h.run('Set b', script, async () => s.set('b', 1), { within: ctx });
     });
     expect(both.runs).toEqual(['Set b']);
@@ -471,16 +470,16 @@ describe('HistoryModel, to a step', () => {
     expect(await h.undoTo(12345)).toMatchObject({ ok: false });
   });
 
-  it('stops undoing at a step it cannot undo, and says why', async () => {
+  it('refuses up front to undo past a step it cannot undo, and says why (all or none)', async () => {
     const s = store({ a: 0 });
     const h = new HistoryModel(s.port);
     await h.run('one', person, async () => s.set('a', 1));
     h.invalidate('Changed elsewhere');
     await h.run('two', person, async () => s.set('a', 2));
     const r = await h.undoTo(h.steps.value[1].id);
-    expect(r).toMatchObject({ ok: false, reason: 'Changed elsewhere' });
-    expect(s.get().a).toBe(1);
-    expect(h.undoBlocked.value).toBe('Changed elsewhere');
+    expect(r).toMatchObject({ ok: false, code: 'unsafe', reason: 'Changed elsewhere' });
+    expect(s.get().a).toBe(2);
+    expect(h.steps.value).toHaveLength(2);
   });
 
   it('stamps steps with the injected clock', async () => {
@@ -518,13 +517,12 @@ describe('HistoryModel, its words', () => {
     const h = new HistoryModel(s.port, {
       labels: { nothingToUndo: 'Rien à annuler', laterSteps: (n) => `${n} de plus` },
     });
-    expect(h.undoBlocked.value).toBe('Rien à annuler');
-    expect(h.undoBlockedCode.value).toBe('nothing-to-undo');
+    expect(h.undoBlocked.value).toEqual({ code: 'nothing-to-undo', reason: 'Rien à annuler' });
     expect(await h.redo()).toEqual({ ok: false, code: 'nothing-to-redo', reason: 'Nothing to redo' });
     expect(await h.undoTo(42)).toMatchObject({ code: 'not-in-history' });
     await h.run('one', person, async () => s.set('a', 1));
     expect(await h.moveTo(h.steps.value[0].id)).toMatchObject({ code: 'latest' });
-    expect(await h.undoTurn('nope')).toMatchObject({ code: 'turn-empty' });
+    expect(await h.undoTurn({ kind: 'agent', turn: 'nope' })).toMatchObject({ code: 'turn-empty' });
     const words = Object.values(h.labels).map((v) => (typeof v === 'function' ? v(2) : v));
     expect(words.join(' ')).not.toMatch(/scene|viewer|structure/i);
   });
@@ -602,12 +600,12 @@ describe('HistoryModel, not recording (history §1)', () => {
     expect(h.steps.value.map((x) => x.label)).toEqual(['one']);
     expect(h.steps.value[0]).toMatchObject({ unsafeCode: 'not-recorded' });
     expect(await h.undo()).toMatchObject({ ok: false, code: 'unsafe' });
-    // A group too; work that changed nothing (`record` false, `undoable: false`) leaves the steps as they are.
+    // A group too; work that changed nothing (`changed` false, before or by its value) leaves the steps as they are.
     h.setRecording(true);
     await h.run('three', person, async () => s.set('a', 3));
     h.setRecording(false);
-    await h.run('same', person, async () => 'same', { record: () => false });
-    await h.run('upload', person, async () => undefined, { undoable: false });
+    await h.run('same', person, async () => 'same', { changed: () => false });
+    await h.run('upload', person, async () => undefined, { changed: false });
     expect(h.steps.value[0].unsafe).toBeUndefined();
     await h.group('g', script, async (ctx) => {
       await h.run('x', script, async () => s.set('a', 4), { within: ctx });
@@ -615,11 +613,11 @@ describe('HistoryModel, not recording (history §1)', () => {
     expect(h.steps.value[0].unsafeCode).toBe('not-recorded');
   });
 
-  it('records by origin and label through `recordIf`', async () => {
+  it('records by origin and label through a `recording` rule', async () => {
     const s = store({ a: 0 });
     const asked: [string, string | undefined][] = [];
     const h = new HistoryModel(s.port, {
-      recordIf: (origin, label) => {
+      recording: (origin, label) => {
         asked.push([origin.kind, label]);
         return origin.kind !== 'script';
       },
@@ -658,7 +656,7 @@ describe('HistoryModel, a clear or a change during a run (history §1)', () => {
     g.open();
     expect((await run).step).toBeUndefined();
     expect(h.steps.value).toEqual([]);
-    expect(h.canUndo.value).toBe(false);
+    expect(h.undoBlocked.value).toBeDefined();
 
     const g2 = gate();
     const failing = h.run(
@@ -726,5 +724,127 @@ describe('HistoryModel.undoTurn', () => {
     expectOk(await h.undoTurn(other));
     expect(s.get()).toEqual({ a: 1, b: 0 });
     expect(h.steps.value.map((x) => x.label)).toEqual(['Agent']);
+  });
+});
+
+describe('HistoryModel, review regressions', () => {
+  /** A number state whose checkpoints are counted. */
+  function counted(measure?: () => number) {
+    const s = { v: 0, taken: 0 };
+    const port: HistoryPort<number> = {
+      checkpoint: () => {
+        s.taken++;
+        return s.v;
+      },
+      restore: async (c) => {
+        s.v = c;
+      },
+    };
+    return { s, port, measure };
+  }
+
+  it('makes earlier steps unsafe after a run it does not record that fails: Undo never wipes its change', async () => {
+    const { s, port } = counted();
+    const h = new HistoryModel(port);
+    await h.run('a', person, async () => void (s.v = 1));
+    h.setRecording(false);
+    await expect(
+      h.run('b', person, async () => {
+        s.v = 2;
+        throw new Error('half done');
+      }),
+    ).rejects.toThrow('half done');
+    expect(h.steps.value[0].unsafeCode).toBe('not-recorded');
+    expect(await h.undo()).toMatchObject({ ok: false, code: 'unsafe' });
+    expect(s.v).toBe(2);
+    // A failure by its value, and a group's, too.
+    h.setRecording(true);
+    await h.run('c', person, async () => void (s.v = 3));
+    h.setRecording(false);
+    await h.run('d', person, async () => ((s.v = 4), false), { failed: (ok) => !ok });
+    expect(h.steps.value[0].unsafeCode).toBe('not-recorded');
+    h.setRecording(true);
+    await h.run('e', person, async () => void (s.v = 5));
+    h.setRecording(() => false);
+    await expect(
+      h.group('f', script, async () => {
+        s.v = 6;
+        throw new Error('no');
+      }),
+    ).rejects.toThrow();
+    expect(h.steps.value[0].unsafeCode).toBe('not-recorded');
+    expect(s.v).toBe(6);
+  });
+
+  it('takes one checkpoint for a turn while per-step checkpoints are off', async () => {
+    const { s, port } = counted();
+    const h = new HistoryModel(port);
+    h.setCheckpointing(false);
+    const agent = { kind: 'agent', turn: 't' };
+    const end = h.beginGroup('Turn', agent);
+    for (let i = 0; i < 20; i++) await h.run(`r${i}`, agent, async () => void s.v++);
+    end();
+    expect(s.taken).toBe(1);
+    expect(h.steps.value).toHaveLength(1);
+    expect(h.steps.value[0].runCount).toBe(20);
+    expectOk(await h.undo());
+    expect(s.v).toBe(0);
+  });
+
+  it('undoes a turn by its origin only, its kind included', async () => {
+    const { s, port } = counted();
+    const h = new HistoryModel(port);
+    const assistant = { kind: 'assistant', turn: 't1' };
+    const end = h.beginGroup('Turn', assistant);
+    await h.run('r', assistant, async () => void s.v++);
+    end();
+    expect(await h.undoTurn({ kind: 'agent', turn: 't1' })).toMatchObject({ ok: false, code: 'turn-empty' });
+    expectOk(await h.undoTurn(assistant));
+    expect(s.v).toBe(0);
+  });
+
+  it('times the checkpoint Undo takes for Redo against the budget', async () => {
+    let t = 0;
+    const { s, port } = counted();
+    // Each checkpoint takes 100 ms, over the 50 ms budget: three in a row turn checkpoints off.
+    const h = new HistoryModel({ ...port, checkpoint: () => ((t += 100), port.checkpoint()) }, { measure: () => t });
+    await h.run('a', person, async () => void (s.v = 1));
+    expect(h.checkpointing.value).toBe(true);
+    await h.undo();
+    await h.redo();
+    await h.undo();
+    expect(h.checkpointing.value).toBe(false);
+    expect(h.checkpointsOff.value).toBeDefined();
+  });
+
+  it('refuses a move to an unknown step as not in the history', async () => {
+    const { port } = counted();
+    const h = new HistoryModel(port);
+    expect(await h.moveTo(999)).toMatchObject({ ok: false, code: 'not-in-history' });
+    expect(await h.redoTo(999)).toMatchObject({ ok: false, code: 'not-in-history' });
+  });
+
+  it('undoes to a step all or none: past an unsafe one it refuses up front', async () => {
+    const { s, port } = counted();
+    const h = new HistoryModel(port, { checkpoints: 2 });
+    for (let i = 0; i < 4; i++) await h.run(`s${i}`, person, async () => void (s.v = i + 1));
+    const oldest = h.steps.value[3].id;
+    expect(await h.undoTo(oldest)).toMatchObject({ ok: false, code: 'unsafe' });
+    expect(h.steps.value).toHaveLength(4);
+    expect(s.v).toBe(4);
+    expectOk(await h.undoTo(h.steps.value[1].id));
+    expect(s.v).toBe(2);
+  });
+
+  it('ends a group once: an end called late leaves the next group of the origin open', async () => {
+    const { s, port } = counted();
+    const h = new HistoryModel(port);
+    const agent = { kind: 'agent', turn: 't' };
+    const first = h.beginGroup('One', agent);
+    h.beginGroup('Two', agent);
+    first();
+    await h.run('a', agent, async () => void s.v++);
+    await h.run('b', agent, async () => void s.v++);
+    expect(h.steps.value.map((x) => [x.label, x.runCount])).toEqual([['Two', 2]]);
   });
 });

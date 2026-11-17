@@ -12,13 +12,13 @@
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { type PlaybackClock, TimerClock } from './clock.js';
+import { DefaultPlaybackLabels, type PlaybackLabels } from './labels.js';
 
-/** What `TimelineRow` reads and does. A model has the fields its kind needs (`timelineKind`). */
+/**
+ * What `TimelineRow` reads and does. A model has the fields its kind needs (`timelineKind`). It holds no words: the row's
+ * name is the view's `label`, the rest its `labels` (playback §3).
+ */
 export interface TimelineModel {
-  /** What it plays ("Spin", "Simulation"): the row's name. */
-  readonly label?: string | ReadonlyState<string>;
-  /** What one of a counted model's frames, or a durationless model's steps, is called (default `frame`, `step`). */
-  readonly unit?: string;
   readonly playing: ReadonlyState<boolean>;
   togglePlay(): void;
 
@@ -77,48 +77,34 @@ export function formatSeconds(s: number): string {
   return (Math.max(0, s) || 0).toFixed(1);
 }
 
-/** Time run, whole: "12 s", "1:05", "1:02:05". */
-export function formatElapsed(s: number): string {
-  const t = Math.floor(Math.max(0, s) || 0);
-  if (t < 60) return `${t} s`;
-  const h = Math.floor(t / 3600);
-  const m = Math.floor((t % 3600) / 60);
-  const sec = String(t % 60).padStart(2, '0');
-  return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
-}
-
-/** Where it is, shown in the row: "0.4 / 0.8 s", "3 / 10", "12 s · step 340". */
-export function timelinePosition(model: TimelineModel): string {
+/**
+ * Where it is, shown in the row: "0.4 / 0.8 s", "3 / 10", "12 s · step 340" (`labels`: the words, English by default).
+ */
+export function timelinePosition(model: TimelineModel, labels: PlaybackLabels = DefaultPlaybackLabels): string {
   const kind = timelineKind(model);
-  if (kind === 'timed') return `${formatSeconds(model.time?.value ?? 0)} / ${formatSeconds(model.duration!.value)} s`;
+  if (kind === 'timed')
+    return labels.timedPosition(formatSeconds(model.time?.value ?? 0), formatSeconds(model.duration!.value));
   if (kind === 'counted') return `${(model.index?.value ?? 0) + 1} / ${model.count!.value}`;
-  return ranParts(model).join(' · ');
+  return ranParts(model, labels, ' · ');
 }
 
 /**
  * Where it is, said (a scrubber's or a durationless status's `aria-valuetext`): "1.2 s of 4.0 s", "frame 3 of 10";
  * durationless "running, 12 s", "paused at step 340" (with both: "running, 12 s, step 340").
  */
-export function timelineValueText(model: TimelineModel): string {
+export function timelineValueText(model: TimelineModel, labels: PlaybackLabels = DefaultPlaybackLabels): string {
   const kind = timelineKind(model);
   if (kind === 'timed')
-    return `${formatSeconds(model.time?.value ?? 0)} s of ${formatSeconds(model.duration!.value)} s`;
-  if (kind === 'counted') return `${model.unit ?? 'frame'} ${(model.index?.value ?? 0) + 1} of ${model.count!.value}`;
-  const parts = ranParts(model).join(', ');
-  if (model.playing.value) return parts ? `running, ${parts}` : 'running';
-  return parts ? `paused at ${parts}` : 'paused';
+    return labels.timedValue(formatSeconds(model.time?.value ?? 0), formatSeconds(model.duration!.value));
+  if (kind === 'counted') return labels.countedValue((model.index?.value ?? 0) + 1, model.count!.value);
+  const ran = ranParts(model, labels, ', ');
+  return model.playing.value ? labels.running(ran) : labels.paused(ran);
 }
 
-function ranParts(model: TimelineModel): string[] {
-  const parts: string[] = [];
-  if (model.elapsed) parts.push(formatElapsed(model.elapsed.value));
-  if (model.steps) parts.push(`${model.unit ?? 'step'} ${model.steps.value}`);
-  return parts;
-}
-
-/** A speed as a choice says it: "1×", "0.5×". */
-export function formatSpeed(speed: number): string {
-  return `${speed}×`;
+function ranParts(model: TimelineModel, labels: PlaybackLabels, separator: string): string {
+  const elapsed = model.elapsed ? labels.elapsed(model.elapsed.value) : '';
+  const steps = model.steps ? labels.stepCount(model.steps.value) : '';
+  return elapsed && steps ? `${elapsed}${separator}${steps}` : elapsed || steps;
 }
 
 // --- Reference models ---------------------------------------------------------------------------------------------
@@ -127,8 +113,6 @@ export function formatSpeed(speed: number): string {
 export const DefaultSpeeds: readonly number[] = [0.25, 0.5, 1, 2, 4];
 
 interface Common {
-  readonly label?: string;
-  readonly unit?: string;
   readonly clock?: PlaybackClock;
   /** A speed choice: these (default none: no choice); `speed` the one to start at (default 1). */
   readonly speeds?: readonly number[];
@@ -153,8 +137,6 @@ export interface TimelineOptions extends Common {
  * (`periodic`) or stops there; played from the end, it starts over. Ticks only while playing.
  */
 export class Timeline implements TimelineModel {
-  readonly label: string | undefined;
-  readonly unit: string | undefined;
   readonly periodic: boolean;
   readonly duration: ReadonlyState<number> | undefined;
   readonly time: ReadonlyState<number> | undefined;
@@ -171,8 +153,6 @@ export class Timeline implements TimelineModel {
 
   constructor(options: TimelineOptions) {
     this.#options = options;
-    this.label = options.label;
-    this.unit = options.unit;
     this.periodic = options.periodic !== false;
     this.#timed = options.duration !== undefined;
     this.#length = new State(this.#timed ? options.duration! : (options.count ?? 0));
@@ -194,8 +174,9 @@ export class Timeline implements TimelineModel {
     return this.speeds ? this.#speed.asReadonly : undefined;
   }
 
-  /** A time (s) or a frame, held to the length. */
+  /** A time (s) or a frame, held to the length; not a number: nothing. */
   seek(at: number): void {
+    if (Number.isNaN(at)) return;
     const max = this.#timed ? this.#length.value : this.#length.value - 1;
     const v = Math.min(Math.max(this.#timed ? at : Math.round(at), 0), Math.max(max, 0));
     if (v === this.#at.value) return;
@@ -203,15 +184,19 @@ export class Timeline implements TimelineModel {
     this.#options.onSeek?.(v);
   }
 
-  /** Changes the length (more frames loaded, a shorter animation); where it is stays where it can. */
+  /**
+   * Changes the length (more frames loaded, a shorter animation); where it is stays where it can. Nothing left to play
+   * (no length, one frame) stops it.
+   */
   setLength(length: number): void {
-    this.#length.set(Math.max(0, length));
+    this.#length.set(Math.max(0, length) || 0);
     this.seek(this.#at.value);
+    if (this.#end() <= 0) this.pause();
   }
 
   play(): void {
     if (this.#playing.value) return;
-    const end = this.#timed ? this.#length.value : this.#length.value - 1;
+    const end = this.#end();
     if (end <= 0) return;
     if (this.#at.value >= end && !this.periodic) this.seek(0);
     this.#playing.set(true);
@@ -239,6 +224,11 @@ export class Timeline implements TimelineModel {
     this.pause();
   }
 
+  /** The last time or frame: 0 or less, nothing to play. */
+  #end(): number {
+    return this.#timed ? this.#length.value : this.#length.value - 1;
+  }
+
   #fps(): number {
     return this.#options.fps ?? (this.#timed ? 30 : 10);
   }
@@ -252,6 +242,8 @@ export class Timeline implements TimelineModel {
   }
 
   #tick(): void {
+    // Shortened under it to nothing to play (`setLength` stops it; an app's own length state may not).
+    if (this.#end() <= 0) return this.pause();
     const length = this.#length.value;
     if (this.#timed) {
       const t = this.#at.value + this.#speed.value / this.#fps();
@@ -285,12 +277,10 @@ export interface DurationlessOptions extends Common {
 }
 
 /**
- * A durationless reference model: playing takes a step every `stepMs` over its speed, each `stepMs` of run time;
- * paused, one step at a time; restart goes back to none. Ticks only while playing.
+ * A durationless reference model: playing takes a step every `stepMs` over its speed, so a step is that long of run
+ * time (`elapsed`: half as long at 2×); paused, one step at a time; restart goes back to none. Ticks only while playing.
  */
 export class Durationless implements TimelineModel {
-  readonly label: string | undefined;
-  readonly unit: string | undefined;
   readonly elapsed: ReadonlyState<number> | undefined;
   readonly steps: ReadonlyState<number> | undefined;
   readonly speeds: readonly number[] | undefined;
@@ -301,12 +291,13 @@ export class Durationless implements TimelineModel {
   readonly #steps = new State(0);
   readonly #playing = new State(false);
   readonly #speed: State<number>;
+  /** The run time and the steps at the last speed change: `elapsed` counts on from there (playback §2). */
+  #baseElapsed = 0;
+  #baseSteps = 0;
   #stop: (() => void) | undefined;
 
   constructor(options: DurationlessOptions = {}) {
     this.#options = options;
-    this.label = options.label;
-    this.unit = options.unit;
     this.elapsed = options.elapsed === false ? undefined : this.#elapsed.asReadonly;
     this.steps = options.steps === false ? undefined : this.#steps.asReadonly;
     this.speeds = options.speeds;
@@ -341,6 +332,8 @@ export class Durationless implements TimelineModel {
 
   setSpeed(speed: number): void {
     if (!(speed > 0) || speed === this.#speed.value) return;
+    this.#baseElapsed = this.#elapsed.value;
+    this.#baseSteps = this.#steps.value;
     this.#speed.set(speed);
     if (this.#stop) this.#start();
   }
@@ -350,6 +343,8 @@ export class Durationless implements TimelineModel {
   }
 
   #restart(): void {
+    this.#baseElapsed = 0;
+    this.#baseSteps = 0;
     this.#steps.set(0);
     this.#elapsed.set(0);
     this.#options.onRestart?.();
@@ -362,8 +357,9 @@ export class Durationless implements TimelineModel {
   #step(): void {
     const n = this.#steps.value + 1;
     this.#steps.set(n);
-    // From the count, not summed: no drift.
-    this.#elapsed.set((n * (this.#options.stepMs ?? 100)) / 1000);
+    // A step is `stepMs` over the speed it ran at: counted on from the last speed change, not summed (no drift).
+    const stepS = (this.#options.stepMs ?? 100) / 1000 / this.#speed.value;
+    this.#elapsed.set(this.#baseElapsed + (n - this.#baseSteps) * stepS);
     this.#options.onStep?.(n);
   }
 

@@ -13,7 +13,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { flush, render } from '../../dom/index.js';
 import { axeViolations } from '../../testing/axe.js';
 import { ParamsFormModel } from '../params-form.js';
-import { matchingGroups, type SettingsGroup, SettingsView } from '../settings-view.js';
+import { searchParams } from '../../components/params/params-form.js';
+import { type SettingsGroup, SettingsView } from '../settings-view.js';
+
+/** The groups a text shows, headless: the one search, each group's title its scope. */
+const matchingGroups = (groups: readonly SettingsGroup[], text: string) =>
+  groups.filter((g) => searchParams(g.form.params, text, { values: g.form.values.value, scope: g.title })?.any ?? true);
 
 // Settings: groups of forms with one search over all (matching groups open, the rest hide, "No setting matches"), on
 // `Expandable`, the first open.
@@ -178,12 +183,13 @@ describe('the settings view', () => {
         <SettingsView
           groups={groups()}
           query={new State('zzz')}
-          labels={{ search: 'Chercher', noMatch: (q) => `Rien pour ${q}` }}
+          labels={{ toolbar: 'Réglages', search: 'Chercher', noMatch: (q) => `Rien pour ${q}` }}
         />
       ),
       container,
     );
     flush();
+    expect(container.querySelector('[role="toolbar"]')?.getAttribute('aria-label')).toBe('Réglages');
     expect(container.querySelector('input[aria-label="Chercher"]')).not.toBeNull();
     expect(container.textContent).toContain('Rien pour zzz');
   });

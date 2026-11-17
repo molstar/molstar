@@ -25,7 +25,7 @@ const shellStory = (options: DemoOptions = {}): StoryObj => ({
 export const Open = shellStory({ setup: (s) => s.show('home') });
 
 /** Nothing loaded yet: the stage shows the glass mark (after 700 ms); drop a file on the shell to "load" it. */
-export const EmptyStage = shellStory({ empty: true, dropLabel: 'Drop files to open them' });
+export const EmptyStage = shellStory({ empty: true });
 
 /** Folded to the rail: the main area takes the room; a press on a rail button opens its view. */
 export const Folded = shellStory();
@@ -125,8 +125,8 @@ export const HiddenViews: StoryObj = {
   ...shellStory({
     setup: (s) => {
       s.show('home');
-      s.hide('inspect');
-      s.hide('loading');
+      s.close('inspect');
+      s.close('loading');
     },
   }),
   play: async ({ canvasElement }) => {
@@ -162,18 +162,17 @@ export const Themes: StoryObj = {
 
 /**
  * Files dropped anywhere on the shell (`onDropFiles`): drag files from your desktop over it. While a drag carries files,
- * one overlay says what a drop does (`dropLabel`); a drag of anything else (text, a link) shows nothing. Dropped, the
- * files go to the app (here, the stage fills and the status names them).
+ * one overlay says what a drop does (`labels.dropFiles`); a drag of anything else (text, a link) shows nothing.
+ * Dropped, the files go to the app (here, the stage fills and the status names them).
  */
 export const FileDrop = shellStory({
-  dropLabel: 'Drop files to open them',
   setup: (s) => s.show('home'),
 });
 
 /** The drop overlay as it shows while files are dragged over the shell (a drag started by the story). */
 export const FileDropOverlay: StoryObj = {
   ...shellStory({
-    dropLabel: 'Drop structures, sessions or maps to open them',
+    labels: { dropFiles: 'Drop structures, sessions or maps to open them' },
     dropFormats: 'PDB, mmCIF, BinaryCIF, MOL2, SDF, CCP4, sessions (.molx)',
   }),
   play: async ({ canvasElement }) => {
@@ -194,7 +193,7 @@ export const Expanded = shellStory({
   setup: (s) => {
     s.show('home');
     s.show('details', { key: 'a', subject: 'Item A' });
-    s.expand();
+    s.toggleExpanded(true);
   },
 });
 

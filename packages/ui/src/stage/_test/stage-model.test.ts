@@ -5,16 +5,11 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  colorHex,
-  inkForColor,
-  InkThreshold,
-  luminance,
-  parseColor,
-  parseColorAlpha,
-  themeForLuminance,
-} from '../canvas-ink.js';
+import { colorHex, inkForColor, InkThreshold, luminance, parseColorAlpha, themeForLuminance } from '../canvas-ink.js';
 import { StageModel, type StageTimers } from '../stage-model.js';
+
+/** A color's `0xRRGGBB`, its alpha left out. */
+const rgbOf = (text: string) => parseColorAlpha(text)?.[0];
 
 // The stage's model in plain Node (stage §1, headless): the ink, the measured inputs with their defaults, the hover
 // lines, and the empty mark's wait on fake timers.
@@ -37,32 +32,32 @@ describe('canvas ink', () => {
   });
 
   it('parses the colors an app sets', () => {
-    expect(parseColor('#abc')).toBe(0xaabbcc);
-    expect(parseColor('#A1B2C3')).toBe(0xa1b2c3);
-    expect(parseColor('#a1b2c3ff')).toBe(0xa1b2c3);
-    expect(parseColor('rgb(1, 2, 3)')).toBe(0x010203);
-    expect(parseColor('rgba(255 0 0 / 0.5)')).toBe(0xff0000);
-    expect(parseColor(' black ')).toBe(0);
-    expect(parseColor('linear-gradient(red, blue)')).toBeUndefined();
+    expect(rgbOf('#abc')).toBe(0xaabbcc);
+    expect(rgbOf('#A1B2C3')).toBe(0xa1b2c3);
+    expect(rgbOf('#a1b2c3ff')).toBe(0xa1b2c3);
+    expect(rgbOf('rgb(1, 2, 3)')).toBe(0x010203);
+    expect(rgbOf('rgba(255 0 0 / 0.5)')).toBe(0xff0000);
+    expect(rgbOf(' black ')).toBe(0);
+    expect(rgbOf('linear-gradient(red, blue)')).toBeUndefined();
     expect(colorHex(0x0a0b0c)).toBe('#0a0b0c');
   });
 
   it('parses names, hsl(), percent channels, alphas and transparent', () => {
-    expect(parseColor('navy')).toBe(0x000080);
-    expect(parseColor('PapayaWhip')).toBe(0xffefd5);
-    expect(parseColor('rgb(50% 0% 0%)')).toBe(0x800000);
-    expect(parseColor('rgba(100%, 50%, 0%, 0.5)')).toBe(0xff8000);
-    expect(parseColor('hsl(0 0% 5%)')).toBe(0x0d0d0d);
-    expect(parseColor('hsla(120, 100%, 25%, 1)')).toBe(0x008000);
-    expect(parseColor('hsl(0.5turn 100% 50%)')).toBe(0x00ffff);
-    expect(parseColor('#0008')).toBe(0x000000);
+    expect(rgbOf('navy')).toBe(0x000080);
+    expect(rgbOf('PapayaWhip')).toBe(0xffefd5);
+    expect(rgbOf('rgb(50% 0% 0%)')).toBe(0x800000);
+    expect(rgbOf('rgba(100%, 50%, 0%, 0.5)')).toBe(0xff8000);
+    expect(rgbOf('hsl(0 0% 5%)')).toBe(0x0d0d0d);
+    expect(rgbOf('hsla(120, 100%, 25%, 1)')).toBe(0x008000);
+    expect(rgbOf('hsl(0.5turn 100% 50%)')).toBe(0x00ffff);
+    expect(rgbOf('#0008')).toBe(0x000000);
     expect(parseColorAlpha('#00000080')?.[1]).toBeCloseTo(0.5, 2);
     expect(parseColorAlpha('rgb(0 0 0 / 0%)')).toEqual([0, 0]);
     expect(parseColorAlpha('transparent')).toEqual([0, 0]);
-    expect(parseColor('oklch(0.2 0 0)')).toBeUndefined();
-    expect(parseColor('var(--bg)')).toBeUndefined();
-    expect(parseColor('constructor')).toBeUndefined();
-    expect(parseColor('rgb(1, 2)')).toBeUndefined();
+    expect(rgbOf('oklch(0.2 0 0)')).toBeUndefined();
+    expect(rgbOf('var(--bg)')).toBeUndefined();
+    expect(rgbOf('constructor')).toBeUndefined();
+    expect(rgbOf('rgb(1, 2)')).toBeUndefined();
   });
 
   it('keeps the app’s color; one it cannot read (or a transparent one) is light and unresolved: the view’s', () => {
@@ -71,6 +66,13 @@ describe('canvas ink', () => {
     expect(inkForColor('navy').theme).toBe('dark');
     expect(inkForColor('oklch(0.2 0 0)')).toEqual({ theme: 'light', color: 'oklch(0.2 0 0)', resolved: false });
     expect(inkForColor('transparent')).toEqual({ theme: 'light', color: 'transparent', resolved: false });
+  });
+
+  it('leaves a color that is not opaque to the view: a nearly transparent black is not dark', () => {
+    // What is behind it shows through (the view composites it, stage §2): its own channels say nothing alone.
+    expect(inkForColor('rgba(0,0,0,0.05)')).toEqual({ theme: 'light', color: 'rgba(0,0,0,0.05)', resolved: false });
+    expect(inkForColor('#000000f0').resolved).toBe(false);
+    expect(inkForColor('#000000ff')).toEqual({ theme: 'dark', color: '#000000ff', resolved: true });
   });
 });
 
@@ -124,7 +126,7 @@ describe('StageModel', () => {
     const before = changes;
     stage.setHover([...lines]);
     expect(changes).toBe(before);
-    stage.clearHover();
+    stage.setHover([]);
     expect(stage.hover.lines.value).toEqual([]);
     stage.setHoverPlacement('cursor');
     expect(stage.hoverPlacement.value).toBe('cursor');
@@ -146,6 +148,21 @@ describe('StageModel', () => {
     stage.setHoverPlacement('corner');
     expect(stage.hoverAt.value).toBe('corner');
     stage.dispose();
+  });
+
+  it('takes its compact and short sizes as options (480 and 360 by default)', () => {
+    const stage = new StageModel({ compactWidth: 700, shortHeight: 200 });
+    expect([stage.compactWidth, stage.shortHeight]).toEqual([700, 200]);
+    stage.setSize(600, 300);
+    expect([stage.compact.value, stage.hoverAt.value]).toEqual([true, 'cursor']);
+    stage.setSize(800, 250);
+    expect([stage.compact.value, stage.hoverAt.value]).toEqual([false, 'corner']);
+    stage.setSize(800, 150);
+    expect(stage.hoverAt.value).toBe('cursor');
+    const plain = new StageModel();
+    expect([plain.compactWidth, plain.shortHeight]).toEqual([480, 360]);
+    stage.dispose();
+    plain.dispose();
   });
 
   it('starts empty and quiet; the mark comes after the delay, empty and idle', () => {

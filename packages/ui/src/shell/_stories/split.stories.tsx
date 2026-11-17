@@ -13,7 +13,7 @@ import type { ShellModel } from '../shell-model.js';
 import { DemoShell, type DemoOptions } from './demo.js';
 
 // The split stage (shell §2.1): the main area is a region of panes around the app's stage, in the shell's one layout.
-// A stage is a view (`stage: true`): beside the app's, below it, in a window; a sequence docks above or over its top; a
+// A stage is a view (`canvas: true`): beside the app's, below it, in a window; a sequence docks above or over its top; a
 // panel docks beside it. Right-click a pane's header (a panel's, or a stage's tab) for its menu; the ⋯ menu of a view
 // in the right column offers the stage.
 
@@ -71,7 +71,7 @@ export const Maximized = splitStory({
   setup: (s) => {
     s.show('stage', { key: 'b' });
     s.show('panel');
-    s.maximize(paneOf(s, 'stage#b'));
+    s.maximize('stage#b');
   },
 });
 

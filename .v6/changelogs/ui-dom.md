@@ -81,7 +81,7 @@
   (`home: 'top'`, `toTop`; the shell's `top` option: `split`, `overlay`, `both`; `main` gets `{ top }` for the
   stage's band slot). A pane maximizes (Escape back), the active pane is tracked (`activePane`) and ringed, `over` puts
   chrome once over the main area (a shared toolbar), each stage keeps its own; `paneMenu`, `view.maximize-pane`,
-  `view.close-pane`. Stored layouts read as before. Storybook: UI › Stage › Split.
+  `view.close-pane`. Storybook: UI › Stage › Split.
 - `@molstar/ui` stage hover label: `hoverPlacement: 'auto'` (the new default, `hoverAt`): the corner on a roomy stage,
   beside the pointer on a narrow or short one (a small pane, a window); a corner label takes its own width (a folded
   toolbar's narrow corner no longer squeezes it).
@@ -114,4 +114,22 @@
     otherwise); the cursor label reads layout only on resize or scroll; the placeholders are not published.
   - Views: the settings search skips what is not shown and walks once per query; Help's recorder lets Tab through;
     the log forgets sources it no longer holds; Undo's keys follow the keymap and the platform.
-
+- `@molstar/ui` second review round (one way to do each thing; every word through `labels`):
+  - Shell: a pane's open tab never folds it; compact keeps region and top views in their panes; the active and the
+    maximized pane follow tab switches; a pane is a view ref everywhere; only panes that show count (`several`, insets,
+    the grid); layout writes keep unchanged subtrees; restore and reset forget gone views' subjects, focus and a pending
+    grid; `minSize` holds for every window; `dock(ref, into?)`. One method each: `close(ref)` (was `closeCard`,
+    `closePage`, `closeModal`, `hide`), `toggleExpanded(on?)` (was `expand`, `collapseExpanded`); a view's `canvas` and
+    `region: { side, size }` (were `stage`, `stageSide`, `stageSize`); `defaultLayout()` takes nothing; a stored layout
+    of the wrong shape is rejected, never filled in.
+  - Stage and playback: `PlaybackLabels` (the screen-reader value text too); a row's name is its view's `label`;
+    `setLength(0)` while playing pauses; a stepper from none steps to an end; durationless time follows the speed;
+    translucent backgrounds composite for their ink and unresolved colors resolve again on a theme switch;
+    `StageModelOptions.compactWidth`/`shortHeight`; the folded toolbar keeps rows that share a label (`withOwnAction`).
+    `Splash` is `GlassSplash` (its name through `WordmarkLabels`); `parseColor`, `clearHover` and the duplicate
+    `aria-label`/`dismissLabel` props are gone.
+  - Views: a failing unrecorded run marks earlier steps unsafe; `undoTo` is all or none (unreachable rows disabled);
+    checkpoints off means none per run; one way to skip recording (`recording`, a run's `changed`); `undoBlocked` is
+    the one undo state; `beginGroup` returns its end; `undoTurn` takes an origin; `historyCommands(history, options)`;
+    history rows are kept between runs. `HelpView` takes `keys`; `ParamsFormLabels`; one `searchParams` for the form
+    and settings; `LogView` named by `labels.list`; a full log keeps its newest entry.

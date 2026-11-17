@@ -49,6 +49,7 @@ right); the views are standalone.
   (`role="progressbar"`, hidden when indeterminate) and whether Cancel shows (hidden by its attribute; the click reads
   the latest `abort`).
 - **`StatusChips`**: a raised chip each; a click activates it, its ✕ clears it.
-- **Text is the app's**: `labels` (`StatusLabels`, `DefaultStatusLabels` English) on `StatusLine`, `TaskPills`,
-  `TaskPill`, `StatusChips`; parametrized ones are functions. A task's Cancel is named after its task (`cancel(label)`,
-  `Cancel Loading 1tqn`): two running tasks' buttons are told apart.
+- **Text is the app's**: `labels` (`StatusLabels`, `DefaultStatusLabels` English) on `StatusLine`, `StatusPill`,
+  `TaskPills`, `TaskPill`, `StatusChips`, one prop on each (no per-string props); parametrized ones are functions. A
+  task's Cancel is named after its task (`cancel(label)`, `Cancel Loading 1tqn`): two running tasks' buttons are told
+  apart.

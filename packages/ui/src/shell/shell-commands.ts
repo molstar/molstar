@@ -67,8 +67,7 @@ export function shellCommands<Ctx = unknown>(
       // Only with several panes (shell §2.1), or the active pane in a window.
       when: panes,
       run: () => {
-        // The port's rule: the active pane's region node, its ref in a window, else the content.
-        shell.toggleMaximize(shell.maximizeTarget(shell.activePane.value));
+        shell.toggleMaximize(shell.activePane.value);
         return { message: shell.maximized.value ? t.maximizedMessage : t.allPanesMessage };
       },
     },

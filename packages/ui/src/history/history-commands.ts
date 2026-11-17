@@ -32,6 +32,12 @@ export const DefaultHistoryCommandLabels: HistoryCommandLabels = {
   redone: (step) => `Redone: ${step}`,
 };
 
+export interface HistoryCommandsOptions {
+  /** The commands' category in the app's menu ('Edit'). */
+  readonly category?: string;
+  readonly labels?: Partial<HistoryCommandLabels>;
+}
+
 /**
  * Undo and Redo as commands (history §1, headless §0.1): the menu, ⌘Z and an agent do what the History view's buttons
  * do. An app registers them with its command manager, in its category. A refusal fails the command with its reason;
@@ -39,10 +45,10 @@ export const DefaultHistoryCommandLabels: HistoryCommandLabels = {
  */
 export function historyCommands<C, Ctx = unknown>(
   history: HistoryModel<C>,
-  category = 'Edit',
-  labels: Partial<HistoryCommandLabels> = {},
+  options: HistoryCommandsOptions = {},
 ): CommandDefinition<Ctx>[] {
-  const l = { ...DefaultHistoryCommandLabels, ...labels };
+  const category = options.category ?? 'Edit';
+  const l = { ...DefaultHistoryCommandLabels, ...options.labels };
   const settle = async (p: Promise<UndoResult>, said: (step: string) => string) => {
     const r = await p;
     if (!r.ok) throw new Error(r.reason);
@@ -55,7 +61,7 @@ export function historyCommands<C, Ctx = unknown>(
       category,
       icon: 'undo-2',
       shortcut: HistoryShortcuts.undo,
-      when: () => history.undoBlocked.value ?? (history.canUndo.value ? true : history.labels.nothingToUndo),
+      when: () => history.undoBlocked.value?.reason ?? true,
       run: () => settle(history.undo(), l.undone),
     },
     {

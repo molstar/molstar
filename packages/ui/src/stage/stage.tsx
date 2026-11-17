@@ -18,6 +18,7 @@ import {
   setAttr,
   setStyle,
 } from '../dom/index.js';
+import { onThemeChange } from '../components/logo/theme-change.js';
 import { classes } from './_generated/stage.module.css.js';
 import { type InkTheme, parseColorAlpha, themeForColor } from './canvas-ink.js';
 import { type EmptyMark, EmptyStage } from './empty-stage.js';
@@ -86,20 +87,36 @@ function readComputed(css: string): readonly [number, number] | undefined {
   return [(r << 16) | (g << 8) | b, a / 255];
 }
 
+const byte = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+
 /**
  * The ink of a color the model could not read (`CanvasInk.resolved` false, stage §2), through the CSS engine: the
- * stage's computed background (its `var()`s and syntaxes resolved), or, transparent, the first opaque one behind it.
- * Undefined while not in the page.
+ * stage's computed background (its `var()`s and syntaxes resolved) composited over what is behind it (each background
+ * up the tree to the first opaque one, source over in sRGB as CSS blends; past the last, the page's white). A nearly
+ * transparent color is the color behind it, not its own. Undefined while not in the page.
  */
 function resolveInk(el: Element): InkTheme | undefined {
   if (!el.isConnected) return undefined;
   const view = el.ownerDocument.defaultView;
   if (!view) return undefined;
-  for (let e: Element | null = el; e; e = e.parentElement) {
+  // Front to back: what each layer adds, weighted by what still shows through the ones over it (`rest`).
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let rest = 1;
+  for (let e: Element | null = el; e && rest > 0; e = e.parentElement) {
     const c = readComputed(view.getComputedStyle(e).backgroundColor);
-    if (c && c[1] > 0) return themeForColor(c[0]);
+    if (!c || c[1] <= 0) continue;
+    const w = c[1] * rest;
+    r += ((c[0] >> 16) & 0xff) * w;
+    g += ((c[0] >> 8) & 0xff) * w;
+    b += (c[0] & 0xff) * w;
+    rest *= 1 - c[1];
   }
-  return undefined;
+  r += 255 * rest;
+  g += 255 * rest;
+  b += 255 * rest;
+  return themeForColor((byte(r) << 16) | (byte(g) << 8) | byte(b));
 }
 
 /**
@@ -156,8 +173,10 @@ export function Stage(props: StageProps) {
     </div>
   ) as HTMLElement;
 
-  // The app's color as given; its theme the model's, or, where the model could not read it, the CSS engine's (once in
-  // the page: now, else at the first measure).
+  // The app's color as given; its theme the model's, or, where the model could not read it, the CSS engine's (stage
+  // §2): once in the page (now, else at the first measure), and again when the theme around it changes (a `var()`, a
+  // `light-dark()` or a translucent color over the page's background follows the theme); a few style reads, only then.
+  let resolving = false;
   let unresolved = false;
   const resolve = () => {
     unresolved = false;
@@ -168,8 +187,12 @@ export function Stage(props: StageProps) {
   bind(model.ink, (v) => {
     setStyle(root, '--msui-stage-color', v.color);
     setAttr(ink, 'data-msui-theme', v.theme);
-    if (!v.resolved) resolve();
+    resolving = !v.resolved;
+    if (resolving) resolve();
     else unresolved = false;
+  });
+  onThemeChange(root, () => {
+    if (resolving) resolve();
   });
   bind(model.quiet, (q) => setAttr(canvasBox, 'data-quiet', q));
   bind(model.compact, (c) => setAttr(root, 'data-compact', c));

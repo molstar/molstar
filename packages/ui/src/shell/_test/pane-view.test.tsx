@@ -23,8 +23,8 @@ afterEach(() => {
 
 const views = () => [
   probeView('home', { place: 'head', order: 0 }),
-  probeView('stage', { title: 'Stage B', stage: true, home: 'stage', instances: 'many' }),
-  probeView('plot', { home: 'stage', stageSide: 'bottom' }),
+  probeView('stage', { title: 'Stage B', canvas: true, home: 'stage', instances: 'many' }),
+  probeView('plot', { home: 'stage', region: { side: 'bottom' } }),
   probeView('panel'),
 ];
 const pane = (m: ReturnType<typeof mountShell>, id: string) => m.q(`[data-pane="${id}"]`);

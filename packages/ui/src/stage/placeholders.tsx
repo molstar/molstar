@@ -143,9 +143,8 @@ export function structureLines(index: number): readonly HoverLine[] {
   const chain = Math.floor(index / ChainResidues);
   const c = Residues[(index * 7) % Residues.length];
   return [
-    { role: 'title', runs: [{ text: `${c} ${(index % ChainResidues) + 1}`, bold: true }] },
+    { runs: [{ text: `${c} ${(index % ChainResidues) + 1}`, bold: true }] },
     {
-      role: 'text',
       runs: [{ text: 'Chain ' }, { text: String.fromCharCode(65 + chain), code: true }, { text: ` · ${kind(c)}` }],
     },
   ];
@@ -262,8 +261,8 @@ export interface BandPlaceholderProps {
 export function residueLines(row: number, index: number): readonly HoverLine[] {
   const c = Residues[(index + row * 37) % Residues.length];
   return [
-    { role: 'title', runs: [{ text: `${c} ${index + 1}`, bold: true }] },
-    { role: 'text', runs: [{ text: `Chain ${String.fromCharCode(65 + row)} · ${kind(c)}` }] },
+    { runs: [{ text: `${c} ${index + 1}`, bold: true }] },
+    { runs: [{ text: `Chain ${String.fromCharCode(65 + row)} · ${kind(c)}` }] },
   ];
 }
 

@@ -5,10 +5,10 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DefaultPlaybackLabels, formatElapsed } from '../labels.js';
 import { Stepper } from '../stepper-model.js';
 import {
   Durationless,
-  formatElapsed,
   Timeline,
   type TimelineModel,
   timelineKind,
@@ -61,6 +61,19 @@ describe('the stepper', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('steps from none to the first or the last; ignores a step that is not a number', () => {
+    const s = new Stepper({ steps: steps(5), index: -1 });
+    s.previous();
+    expect(s.index.value).toBe(4);
+    const t = new Stepper({ steps: steps(5), index: -1 });
+    t.next();
+    expect(t.index.value).toBe(0);
+    t.goTo(Number.NaN);
+    expect(t.index.value).toBe(0);
+    t.goTo(2.7);
+    expect(t.index.value).toBe(2);
+  });
+
   it('keeps its place when the steps change, none with none', () => {
     const s = new Stepper({ steps: steps(4), index: 3 });
     s.setSteps(steps(2));
@@ -102,6 +115,32 @@ describe('a timed timeline', () => {
     t.dispose();
   });
 
+  it('stops when shortened to nothing to play, never a time that is not a number', () => {
+    let tick = () => {};
+    const clock = {
+      every: (_ms: number, f: () => void) => {
+        tick = f;
+        return () => {
+          tick = () => {};
+        };
+      },
+    };
+    const t = new Timeline({ duration: 2, clock });
+    t.play();
+    tick();
+    t.setLength(0);
+    tick();
+    expect([t.time!.value, t.playing.value]).toEqual([0, false]);
+    t.seek(Number.NaN);
+    expect(t.time!.value).toBe(0);
+    const c = new Timeline({ count: 5, clock });
+    c.play();
+    c.seek(3);
+    c.setLength(1);
+    tick();
+    expect([c.index!.value, c.playing.value]).toEqual([0, false]);
+  });
+
   it('is not shown without a length', () => {
     const t = new Timeline({ duration: 0 });
     expect(timelineShown(t)).toBe(false);
@@ -118,7 +157,8 @@ describe('a counted timeline', () => {
     expect(t.index!.value).toBe(2);
     expect(timelinePosition(t)).toBe('3 / 10');
     expect(timelineValueText(t)).toBe('frame 3 of 10');
-    expect(timelineValueText(new Timeline({ count: 4, unit: 'model' }))).toBe('model 1 of 4');
+    const models = { ...DefaultPlaybackLabels, countedValue: (i: number, n: number) => `model ${i} of ${n}` };
+    expect(timelineValueText(new Timeline({ count: 4 }), models)).toBe('model 1 of 4');
     t.togglePlay();
     vi.advanceTimersByTime(1000);
     expect(t.index!.value).toBe(7);
@@ -143,9 +183,16 @@ describe('a durationless timeline', () => {
     expect(timelinePosition(d)).toBe('12 s · step 120');
     d.setSpeed(2);
     vi.advanceTimersByTime(1000);
+    // Twice as many steps in a second, each half as long: the time run is the wall clock's.
     expect(d.steps!.value).toBe(140);
+    expect(d.elapsed!.value).toBeCloseTo(13);
     d.togglePlay();
     expect(vi.getTimerCount()).toBe(0);
+    d.setSpeed(0.5);
+    d.stepOnce!();
+    expect(d.elapsed!.value).toBeCloseTo(13.2);
+    d.restart!();
+    expect([d.elapsed!.value, d.steps!.value]).toEqual([0, 0]);
   });
 
   it('steps once only while paused, restarts, and says what it has', () => {

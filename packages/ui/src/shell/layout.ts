@@ -96,7 +96,7 @@ export const RightGroup = 'right';
 /** The id of the group overlaid on the top of the main area's content (shell §2.1). */
 export const TopGroup = 'top';
 
-/** Smallest sizes a docked group or a window takes (px). */
+/** Smallest size a docked group takes (px). */
 export const MinGroupSize = 180;
 /**
  * Smallest size a pane of the main area's region takes (px, shell §2.1): a strip docked above the content is a few rows,
@@ -109,29 +109,20 @@ export const MinMainSize = 240;
 export const RailWidth = 40;
 /** A docked group's size when nothing gave it one (px). */
 export const DefaultGroupSize = 280;
+/** The right column's width when it is made (px; `ShellOptions.size`), and the card's without a column. */
+export const DefaultColumnSize = 340;
+/** A group split below another (Split below, px). */
+export const DefaultSplitSize = 240;
+/** A `top` view's height in a split above the content (px: its header and a few rows; shell §2.1). */
+export const DefaultTopSize = 96;
+/** A window's size when its view gives none (px). */
+export const DefaultWindowSize = { width: 360, height: 320 } as const;
+/** Smallest size a window takes (px). */
 export const MinWindow = { width: 240, height: 160 } as const;
 
-/** The default layout: the main area, the right group beside it (340 wide). */
-export function defaultLayout(
-  rightViews: readonly ViewRef[] = [],
-  options?: { size?: number; active?: ViewRef },
-): ShellLayout {
-  return normalize({
-    version: LayoutVersion,
-    root: {
-      kind: 'split',
-      id: 'root',
-      dir: 'row',
-      children: [
-        { kind: 'main', id: 'main' },
-        { kind: 'group', id: RightGroup, views: rightViews, active: options?.active, size: options?.size ?? 340 },
-      ],
-    },
-    windows: [],
-    hidden: [],
-    rail: true,
-    seq: 1,
-  });
+/** The default layout: the main area alone (the right group is made as the first view is placed in it). */
+export function defaultLayout(): ShellLayout {
+  return { version: LayoutVersion, root: { kind: 'main', id: 'main' }, windows: [], hidden: [], rail: true, seq: 1 };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -165,6 +156,8 @@ export interface LayoutIndex {
   readonly regionNodes: ReadonlySet<string>;
   /** The column split each group is a direct child of. */
   readonly columns: ReadonlyMap<string, SplitNode>;
+  /** The cells at the same place in the other lines of their grid (`gridPeers`), for the cells of a grid only. */
+  readonly gridPeers: ReadonlyMap<string, readonly string[]>;
 }
 
 const indexes = new WeakMap<ShellLayout, LayoutIndex>();
@@ -181,6 +174,7 @@ function buildIndex(layout: ShellLayout): LayoutIndex {
   const nodes = new Map<string, LayoutNode>();
   const parents = new Map<string, LayoutNode>();
   const columns = new Map<string, SplitNode>();
+  const peers = new Map<string, string[]>();
   let main: MainNode | undefined;
   const walk = (n: LayoutNode, parent: LayoutNode | undefined, nested: boolean) => {
     if (!nodes.has(n.id)) {
@@ -189,6 +183,7 @@ function buildIndex(layout: ShellLayout): LayoutIndex {
     }
     if (n.kind === 'group') docked.push(n);
     else if (n.kind === 'split') {
+      if (n.grid) gridLines(n, peers);
       for (const c of n.children) {
         if (n.dir === 'column' && c.kind === 'group') columns.set(c.id, n);
         walk(c, n, nested);
@@ -239,7 +234,22 @@ function buildIndex(layout: ShellLayout): LayoutIndex {
     regionGroups,
     regionNodes,
     columns,
+    gridPeers: peers,
   };
+}
+
+/** Each cell of a grid's lines: the cells at its place in the other lines (`LayoutIndex.gridPeers`). */
+function gridLines(grid: SplitNode, peers: Map<string, string[]>): void {
+  for (const line of grid.children) {
+    if (line.kind !== 'split') continue;
+    for (let i = 0; i < line.children.length; i++) {
+      const list: string[] = [];
+      for (const other of grid.children) {
+        if (other !== line && other.kind === 'split' && other.children[i]) list.push(other.children[i].id);
+      }
+      peers.set(line.children[i].id, list);
+    }
+  }
 }
 
 /** Where a view is: its group, and whether that group is a window's. */
@@ -280,7 +290,7 @@ export function allGroups(layout: ShellLayout): GroupNode[] {
 
 /** The windows bottom to top. */
 export function stacked(layout: ShellLayout): WindowNode[] {
-  return [...layout.windows].sort((a, b) => a.z - b.z);
+  return stacked0(layout.windows);
 }
 
 export function findView(layout: ShellLayout, ref: ViewRef): ViewPlace | undefined {
@@ -339,11 +349,15 @@ export function containsMain(n: LayoutNode): boolean {
  * whose views are all gone leaves; one holding only hidden views stays, to come back to); no split with fewer than two
  * children (one child takes its place, with the split's size); no split directly in a split of its direction (its
  * children join the parent); a group's active view one of its views (else its first that is not hidden); each view in one
- * place; windows' rectangles at least the minimum size; ids unique.
+ * place; windows' rectangles at least the minimum size; ids unique. A node that needs no change is kept as it is (the
+ * same object), and so is every node above it whose children are all kept: a write that moves one node (a window's
+ * move, a drag's size) rebuilds only the path to it, and readers compare nodes by identity.
  */
 export function normalize(layout: ShellLayout): ShellLayout {
   const seen = new Set<ViewRef>();
   const ids = new Set<string>();
+  const hidden = layout.hidden.length ? new Set(layout.hidden) : undefined;
+  const isHidden = (v: ViewRef) => !!hidden?.has(v);
   let seq = layout.seq;
   const freshId = (prefix: string) => {
     let id: string;
@@ -352,14 +366,26 @@ export function normalize(layout: ShellLayout): ShellLayout {
     return id;
   };
   const group = (g: GroupNode): GroupNode | undefined => {
-    const views = g.views.filter((v) => typeof v === 'string' && !seen.has(v));
-    for (const v of views) seen.add(v);
+    // A copy of the views only when one is dropped (another place has it, or it is no ref).
+    let copy: ViewRef[] | undefined;
+    for (let i = 0; i < g.views.length; i++) {
+      const v = g.views[i];
+      if (typeof v === 'string' && !seen.has(v)) {
+        seen.add(v);
+        copy?.push(v);
+      } else if (!copy) copy = g.views.slice(0, i);
+    }
+    const views = copy ?? g.views;
     if (views.length === 0) return undefined;
-    const shown = views.filter((v) => !layout.hidden.includes(v));
-    const active = g.active && shown.includes(g.active) ? g.active : shown[0];
+    let active = g.active;
+    if (active === undefined || isHidden(active) || !views.includes(active)) active = views.find((v) => !isHidden(v));
     const id = ids.has(g.id) ? freshId('g') : g.id;
     ids.add(id);
-    return clean({ ...g, id, views, active, collapsed: g.collapsed || undefined });
+    const collapsed = g.collapsed || undefined;
+    if (views === g.views && active === g.active && id === g.id && collapsed === g.collapsed && !hasUndefined(g)) {
+      return g;
+    }
+    return clean({ ...g, id, views, active, collapsed });
   };
   // The tree's one leaf that takes the rest: the main area at the top, the app's content in the main area's region
   // (shell §2.1). Each level keeps exactly one of its leaf and none of the other's.
@@ -368,39 +394,53 @@ export function normalize(layout: ShellLayout): ShellLayout {
     if (n.kind === 'main' || n.kind === 'content') {
       if (n.kind !== leaf || counts[leaf]++ > 0) return undefined;
       ids.add(n.id);
-      return n.kind === 'main' ? mainArea(n) : { kind: 'content', id: 'content' };
+      if (n.kind === 'main') return mainArea(n);
+      return hasOnly(n, 2) ? n : { kind: 'content', id: 'content' };
     }
     if (n.kind === 'group') return group(n);
-    const children: LayoutNode[] = [];
-    for (const c of n.children) {
+    let children: LayoutNode[] | undefined;
+    for (let i = 0; i < n.children.length; i++) {
+      const c = n.children[i];
       const k = node(c, leaf);
-      if (!k) continue;
       // A split of the same direction joins this one.
-      if (k.kind === 'split' && k.dir === n.dir) children.push(...k.children);
+      const joins = k?.kind === 'split' && k.dir === n.dir;
+      if ((k !== c || joins) && !children) children = n.children.slice(0, i) as LayoutNode[];
+      if (!children || !k) continue;
+      if (joins) children.push(...(k as SplitNode).children);
       else children.push(k);
     }
-    if (children.length === 0) return undefined;
-    if (children.length === 1) {
-      const only = children[0];
-      return only.kind === 'main' || only.kind === 'content' ? only : clean({ ...only, size: n.size ?? only.size });
+    const list = children ?? n.children;
+    if (list.length === 0) return undefined;
+    if (list.length === 1) {
+      const only = list[0];
+      if (only.kind === 'main' || only.kind === 'content') return only;
+      const size = n.size ?? only.size;
+      return size === only.size ? only : clean({ ...only, size });
     }
     const id = ids.has(n.id) ? freshId('s') : n.id;
     ids.add(id);
-    // The child holding the level's leaf (or, without one, the first) takes the rest: it has no size.
-    const flex = children.findIndex((c) => containsLeaf(c, leaf));
+    // The child holding the level's leaf (or, without one, the first) takes the rest: it has no size. Every other
+    // child has a size, at least the level's least (a group made without one gets the default).
+    const flex = list.findIndex((c) => containsLeaf(c, leaf));
     const at = flex >= 0 ? flex : 0;
-    // Every other child has a size, at least the minimum (a group made without one gets the default).
-    const sized = children.map((c, i) =>
-      i === at || c.kind === 'main' || c.kind === 'content'
-        ? withoutSize(c)
-        : {
-            ...c,
-            size: Math.max(leaf === 'content' ? MinPaneSize : MinGroupSize, Math.round(c.size ?? DefaultGroupSize)),
-          },
-    );
+    const min = leaf === 'content' ? MinPaneSize : MinGroupSize;
+    let sized: LayoutNode[] | undefined;
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      let k: LayoutNode = c;
+      if (i === at || c.kind === 'main' || c.kind === 'content') k = withoutSize(c);
+      else {
+        const size = Math.max(min, Math.round(c.size ?? DefaultGroupSize));
+        if (size !== c.size) k = { ...c, size };
+      }
+      if (k !== c && !sized) sized = list.slice(0, i);
+      sized?.push(k);
+    }
+    const out = sized ?? list;
     // A grid stays one while its children line up: splits of the other direction, as many children each.
-    const grid = n.grid && isGridShape(n.dir, sized) ? (true as const) : undefined;
-    return clean({ ...n, id, children: sized, grid });
+    const grid = n.grid && isGridShape(n.dir, out) ? (true as const) : undefined;
+    if (out === n.children && id === n.id && grid === n.grid && !hasUndefined(n)) return n;
+    return clean({ ...n, id, children: out, grid });
   };
   /** The main area with its region normalized: the content kept in it (at the left when it was lost), or no tree. */
   const mainArea = (m: MainNode): MainNode => {
@@ -409,36 +449,80 @@ export function normalize(layout: ShellLayout): ShellLayout {
     let root = m.root ? node(m.root, 'content') : undefined;
     if (root && counts.content === 0) root = withLeaf(root, { kind: 'content', id: 'content' }, ids, freshId);
     counts.content = outer;
-    // The content alone is no tree (the region as it was before anything docked there).
+    // The content alone is no tree.
     if (root?.kind === 'content') root = undefined;
-    const top = m.top ? group({ ...m.top, id: TopGroup, size: undefined }) : undefined;
-    return clean({
-      kind: 'main' as const,
-      id: 'main' as const,
-      root,
-      top: top && clean({ ...top, size: undefined }),
-    });
+    // The top group: its own id, no size.
+    const t =
+      m.top &&
+      (m.top.id === TopGroup && m.top.size === undefined ? m.top : { ...m.top, id: TopGroup, size: undefined });
+    const top = t && group(t);
+    if (root === m.root && top === m.top && !hasUndefined(m)) return m;
+    return clean({ kind: 'main' as const, id: 'main' as const, root, top });
   };
   let root = node(layout.root, 'main');
   if (counts.main === 0) root = withLeaf(root, mainArea({ kind: 'main', id: 'main' }), ids, freshId);
-  const windows: WindowNode[] = [];
-  for (const w of stacked(layout)) {
-    const g = group(w.group);
-    if (!g) continue;
-    windows.push({
-      group: { ...g, size: undefined, collapsed: undefined },
-      rect: minRect(w.rect),
-      z: windows.length + 1,
-    });
+  let windows: WindowNode[] | undefined;
+  const order = stackOrder(layout.windows);
+  for (let i = 0; i < order.length; i++) {
+    const w = order[i];
+    let g = group(w.group);
+    if (g && (g.size !== undefined || g.collapsed !== undefined))
+      g = clean({ ...g, size: undefined, collapsed: undefined });
+    const rect = g && minRect(w.rect);
+    const z = (windows?.length ?? i) + 1;
+    const same = g === w.group && rect === w.rect && z === w.z && order === layout.windows;
+    if (!same && !windows) windows = order.slice(0, i) as WindowNode[];
+    if (windows && g && rect) windows.push(same ? w : { group: g, rect, z });
+  }
+  let hiddenList: readonly ViewRef[] = layout.hidden;
+  for (let i = 0; i < layout.hidden.length; i++) {
+    const v = layout.hidden[i];
+    if (!seen.has(v) || layout.hidden.indexOf(v) !== i) {
+      hiddenList = layout.hidden.filter((x, j, a) => seen.has(x) && a.indexOf(x) === j);
+      break;
+    }
+  }
+  if (
+    root === layout.root &&
+    !windows &&
+    hiddenList === layout.hidden &&
+    seq === layout.seq &&
+    layout.version === LayoutVersion &&
+    hasOnly(layout, 6)
+  ) {
+    return layout;
   }
   return {
     version: LayoutVersion,
     root: root!,
-    windows,
-    hidden: layout.hidden.filter((v, i, a) => seen.has(v) && a.indexOf(v) === i),
+    windows: windows ?? layout.windows,
+    hidden: hiddenList,
     rail: layout.rail,
     seq,
   };
+}
+
+/** The windows bottom to top: the same array when it is in order already. */
+function stackOrder(windows: readonly WindowNode[]): readonly WindowNode[] {
+  for (let i = 1; i < windows.length; i++) if (windows[i - 1].z > windows[i].z) return stacked0(windows);
+  return windows;
+}
+
+function stacked0(windows: readonly WindowNode[]): WindowNode[] {
+  return [...windows].sort((a, b) => a.z - b.z);
+}
+
+/** Whether an object has a field set to undefined (a layout is compared and serialized as plain data: none). */
+function hasUndefined(o: object): boolean {
+  for (const k in o) if ((o as Record<string, unknown>)[k] === undefined) return true;
+  return false;
+}
+
+/** Whether an object has at most `n` fields. */
+function hasOnly(o: object, n: number): boolean {
+  let i = 0;
+  for (const _ in o) if (++i > n) return false;
+  return true;
 }
 
 /** A level's leaf put back at the left of what is left of its tree (the leaf alone when nothing is). */
@@ -487,13 +571,13 @@ function clean<T extends object>(o: T): T {
   return out;
 }
 
+/** A window's rectangle in whole px, at least `MinWindow` (the same object when it is already). */
 function minRect(r: Rect): Rect {
-  return {
-    x: Math.round(r.x),
-    y: Math.round(r.y),
-    width: Math.max(MinWindow.width, Math.round(r.width)),
-    height: Math.max(MinWindow.height, Math.round(r.height)),
-  };
+  const x = Math.round(r.x);
+  const y = Math.round(r.y);
+  const width = Math.max(MinWindow.width, Math.round(r.width));
+  const height = Math.max(MinWindow.height, Math.round(r.height));
+  return x === r.x && y === r.y && width === r.width && height === r.height ? r : { x, y, width, height };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -504,8 +588,8 @@ export type LayoutTarget =
   /** Into a group (at `index` of its views; default the end). */
   | { readonly kind: 'group'; readonly id: string; readonly index?: number }
   /**
-   * Beside a group or the main area: a new group on that side, `size` px (default half the room, at least
-   * `MinGroupSize`; the caller passes the room it knows).
+   * Beside a node (a group, the main area, the app's content, a split): a new group on that side, `size` px (default
+   * `DefaultGroupSize`; at least the level's least, `normalize`).
    */
   | {
       readonly kind: 'edge';
@@ -519,30 +603,44 @@ export type LayoutTarget =
   /** Overlaid on the top of the main area's content (shell §2.1). */
   | { readonly kind: 'top' };
 
-/** Maps every node of the tree (bottom up); `fn` returns the node or undefined to remove it. */
+/**
+ * Maps every node of the tree (bottom up); `fn` returns the node or undefined to remove it. A split whose children all
+ * come back as they were is handed to `fn` as it is (the same object): an operation that changes one node rebuilds only
+ * the path to it.
+ */
 function mapTree(n: LayoutNode, fn: (n: LayoutNode) => LayoutNode | undefined): LayoutNode | undefined {
   if (n.kind === 'split') {
-    const children = n.children.map((c) => mapTree(c, fn)).filter((c): c is LayoutNode => !!c);
-    return fn({ ...n, children });
+    let children: LayoutNode[] | undefined;
+    for (let i = 0; i < n.children.length; i++) {
+      const c = n.children[i];
+      const k = mapTree(c, fn);
+      if (k !== c && !children) children = n.children.slice(0, i) as LayoutNode[];
+      if (children && k) children.push(k);
+    }
+    return fn(children ? { ...n, children } : n);
   }
   if (n.kind === 'main' && (n.root || n.top)) {
     // Into the main area's region and top overlay (shell §2.1); its group removed, no overlay.
     const root = n.root && mapTree(n.root, fn);
-    const top = n.top && fn(n.top);
-    return fn(clean({ ...n, root: root ?? undefined, top: top?.kind === 'group' ? top : undefined }) as LayoutNode);
+    const t = n.top && fn(n.top);
+    const top = t?.kind === 'group' ? t : undefined;
+    return fn(root === n.root && top === n.top ? n : clean({ ...n, root, top }));
   }
   return fn(n);
 }
 
+/** Maps every group, docked and in windows; the layout as it is when `fn` returns every group as it was. */
 function mapGroups(layout: ShellLayout, fn: (g: GroupNode) => GroupNode | undefined): ShellLayout {
   const root = mapTree(layout.root, (n) => (n.kind === 'group' ? fn(n) : n)) ?? { kind: 'main', id: 'main' };
-  const windows = layout.windows
-    .map((w) => {
-      const g = fn(w.group);
-      return g ? { ...w, group: g } : undefined;
-    })
-    .filter((w): w is WindowNode => !!w);
-  return { ...layout, root, windows };
+  let windows: WindowNode[] | undefined;
+  for (let i = 0; i < layout.windows.length; i++) {
+    const w = layout.windows[i];
+    const g = fn(w.group);
+    if (g !== w.group && !windows) windows = layout.windows.slice(0, i) as WindowNode[];
+    if (windows && g) windows.push(g === w.group ? w : { ...w, group: g });
+  }
+  if (root === layout.root && !windows) return layout;
+  return { ...layout, root, windows: windows ?? layout.windows };
 }
 
 /** The layout without `ref` in any group (a group left empty goes, a split left with one child collapses). */
@@ -653,22 +751,27 @@ export function setCollapsed(layout: ShellLayout, groupId: string, collapsed: bo
 export function resizeNode(layout: ShellLayout, id: string, size: number): ShellLayout {
   const s = Math.max(regionHas(layout, id) ? MinPaneSize : MinGroupSize, Math.round(size));
   // In a grid's line: the cell at the same place in every line resizes with it (the line across moves as one).
-  const ids = new Set([id, ...gridPeers(layout, id)]);
+  const peers = gridPeers(layout, id);
   const root = mapTree(layout.root, (n) =>
-    ids.has(n.id) && (n.kind === 'group' || n.kind === 'split') && n.size !== undefined ? { ...n, size: s } : n,
+    (n.id === id || peers.includes(n.id)) &&
+    (n.kind === 'group' || n.kind === 'split') &&
+    n.size !== undefined &&
+    n.size !== s
+      ? { ...n, size: s }
+      : n,
   );
-  return normalize({ ...layout, root: root! });
+  return root === layout.root ? layout : normalize({ ...layout, root: root! });
 }
 
 /** Several docked nodes' sizes at once (px; a node that takes the rest keeps none; the level's least size kept). */
 export function setSizes(layout: ShellLayout, sizes: ReadonlyMap<string, number>): ShellLayout {
   const root = mapTree(layout.root, (n) => {
     const s = sizes.get(n.id);
-    return s !== undefined && (n.kind === 'group' || n.kind === 'split') && n.size !== undefined
+    return s !== undefined && (n.kind === 'group' || n.kind === 'split') && n.size !== undefined && n.size !== s
       ? { ...n, size: s }
       : n;
   });
-  return normalize({ ...layout, root: root! });
+  return root === layout.root ? layout : normalize({ ...layout, root: root! });
 }
 
 function isGridShape(dir: 'row' | 'column', children: readonly LayoutNode[]): boolean {
@@ -678,45 +781,35 @@ function isGridShape(dir: 'row' | 'column', children: readonly LayoutNode[]): bo
   return children.every((c) => c.kind === 'split' && c.dir !== dir && c.children.length === n);
 }
 
-/** The ids of the cells at the same place as `id` in the other lines of its grid (none outside a grid). */
-export function gridPeers(layout: ShellLayout, id: string): string[] {
-  const peers: string[] = [];
-  const walk = (n: LayoutNode) => {
-    if (n.kind === 'main' && n.root) return walk(n.root);
-    if (n.kind !== 'split') return;
-    if (n.grid) {
-      for (const line of n.children) {
-        if (line.kind !== 'split') continue;
-        const i = line.children.findIndex((c) => c.id === id);
-        if (i < 0) continue;
-        for (const other of n.children) if (other !== line && other.kind === 'split') peers.push(other.children[i].id);
-      }
-    }
-    for (const c of n.children) walk(c);
-  };
-  walk(layout.root);
-  return peers;
+const NoPeers: readonly string[] = [];
+
+/** The ids of the cells at the same place as `id` in the other lines of its grid (none outside a grid; indexed). */
+export function gridPeers(layout: ShellLayout, id: string): readonly string[] {
+  return layoutIndex(layout).gridPeers.get(id) ?? NoPeers;
 }
 
 /**
- * The main area's region as a grid (shell §2.1): its panes (the app's content first, then the docked groups in order)
- * in `columns` columns (default the square root, rounded up), rows filled top to bottom; equal sizes over `area` (px).
- * A full grid is lined up (`grid`); one with a short last column is not (its lines would not match).
+ * The main area's region as a grid (shell §2.1): its panes that show (the app's content first, then the docked groups
+ * in order; `shows`, default every group) in `columns` columns (default the square root, rounded up), filled top to
+ * bottom; equal sizes over `area` (px). A full grid is lined up (`grid`); one with a short last column is not (its lines
+ * would not match). A group that does not show (its views flagged off) keeps a place after the grid, taking no room.
  */
 export function arrangeGrid(
   layout: ShellLayout,
   area: { width: number; height: number },
   columns?: number,
+  shows: (g: GroupNode) => boolean = () => true,
 ): ShellLayout {
   const main = mainNode(layout);
   if (!main.root) return layout;
   const panes: LayoutNode[] = [];
+  const rest: LayoutNode[] = [];
   const walk = (n: LayoutNode) => {
     if (n.kind === 'split') for (const c of n.children) walk(c);
-    else if (n.kind === 'group' || n.kind === 'content') panes.push(withoutSize(n));
+    else if (n.kind === 'content') panes.unshift(withoutSize(n));
+    else if (n.kind === 'group') (shows(n) ? panes : rest).push(withoutSize(n));
   };
   walk(main.root);
-  panes.sort((a, b) => (a.kind === 'content' ? -1 : b.kind === 'content' ? 1 : 0));
   const cols = Math.max(1, Math.min(panes.length, Math.round(columns ?? Math.ceil(Math.sqrt(panes.length)))));
   const rows = Math.ceil(panes.length / cols);
   const width = Math.round(area.width / cols) || DefaultGroupSize;
@@ -732,6 +825,7 @@ export function arrangeGrid(
         : { kind: 'split', id: `s${seq++}`, dir: 'column', children: cells, size: width },
     );
   }
+  lines.push(...rest);
   const root: LayoutNode =
     lines.length === 1 ? lines[0] : { kind: 'split', id: `s${seq++}`, dir: 'row', children: lines, grid: true };
   const next = mapTree(layout.root, (n) => (n.kind === 'main' ? { ...n, root } : n))!;
@@ -804,64 +898,67 @@ export function setRail(layout: ShellLayout, shown: boolean): ShellLayout {
 // Stored layouts
 
 /**
- * A stored layout back as a layout, or undefined when it is not one (another version, a wrong shape): checked field by
- * field, then normalized (shell §2, persistence). Unknown view refs are kept: a view that registers later lands where
- * it was left.
+ * A stored layout back as a layout, or undefined when it is not one (another version, or any field of a wrong shape or
+ * missing: no field is filled in, a stored layout is the value `save` gave or nothing), then normalized (shell §2,
+ * persistence). Unknown view refs are kept: a view that registers later lands where it was left.
  */
 export function validateLayout(value: unknown): ShellLayout | undefined {
   if (!isObject(value) || value.version !== LayoutVersion) return undefined;
+  const { windows, hidden, rail, seq } = value;
+  if (!Array.isArray(windows) || !isStrings(hidden) || typeof rail !== 'boolean' || !isNumber(seq)) return undefined;
   const root = validNode(value.root, 0);
   if (!root) return undefined;
-  const windows: WindowNode[] = [];
-  if (Array.isArray(value.windows)) {
-    for (const w of value.windows) {
-      if (!isObject(w)) continue;
-      const g = validNode(w.group, 0);
-      const r = w.rect;
-      if (!g || g.kind !== 'group' || !isObject(r)) continue;
-      const nums = [r.x, r.y, r.width, r.height];
-      if (!nums.every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
-      const z = typeof w.z === 'number' && Number.isFinite(w.z) ? w.z : windows.length + 1;
-      windows.push({ group: g, rect: r as unknown as Rect, z });
-    }
+  const wins: WindowNode[] = [];
+  for (const w of windows) {
+    if (!isObject(w) || !isNumber(w.z) || !isObject(w.rect)) return undefined;
+    const g = validNode(w.group, 0);
+    const { x, y, width, height } = w.rect;
+    if (g?.kind !== 'group' || !isNumber(x) || !isNumber(y) || !isNumber(width) || !isNumber(height)) return undefined;
+    wins.push({ group: g, rect: { x, y, width, height }, z: w.z });
   }
-  const hidden = Array.isArray(value.hidden) ? value.hidden.filter((v): v is string => typeof v === 'string') : [];
-  const seq = typeof value.seq === 'number' && Number.isFinite(value.seq) ? Math.max(1, Math.floor(value.seq)) : 1;
-  return normalize({ version: LayoutVersion, root, windows, hidden, rail: value.rail !== false, seq });
+  return normalize({ version: LayoutVersion, root, windows: wins, hidden, rail, seq: Math.max(1, Math.floor(seq)) });
 }
 
+/** A stored node, or undefined when it or anything in it is not of its shape. */
 function validNode(v: unknown, depth: number): LayoutNode | undefined {
   if (!isObject(v) || depth > 16) return undefined;
   // The least size is the level's (`normalize`: a pane's is `MinPaneSize`, a docked group's `MinGroupSize`).
-  const size = typeof v.size === 'number' && Number.isFinite(v.size) ? v.size : undefined;
+  const size = v.size;
+  if (size !== undefined && !isNumber(size)) return undefined;
   if (v.kind === 'main') {
-    const root = validNode(v.root, depth + 1);
-    const top = validNode(v.top, depth + 1);
-    return clean({ kind: 'main' as const, id: 'main' as const, root, top: top?.kind === 'group' ? top : undefined });
+    const root = v.root === undefined ? undefined : validNode(v.root, depth + 1);
+    const top = v.top === undefined ? undefined : validNode(v.top, depth + 1);
+    if ((v.root !== undefined && !root) || (v.top !== undefined && top?.kind !== 'group')) return undefined;
+    return clean({ kind: 'main' as const, id: 'main' as const, root, top: top as GroupNode | undefined });
   }
   if (v.kind === 'content') return { kind: 'content', id: 'content' };
-  if (v.kind === 'group' && typeof v.id === 'string' && Array.isArray(v.views)) {
-    const views = v.views.filter((x): x is string => typeof x === 'string');
-    return clean({
-      kind: 'group' as const,
-      id: v.id,
-      views,
-      active: typeof v.active === 'string' ? v.active : undefined,
-      collapsed: v.collapsed === true || undefined,
-      size,
-    });
+  if (typeof v.id !== 'string') return undefined;
+  if (v.kind === 'group') {
+    const { views, active, collapsed } = v;
+    if (!isStrings(views) || (active !== undefined && typeof active !== 'string')) return undefined;
+    if (collapsed !== undefined && typeof collapsed !== 'boolean') return undefined;
+    return clean({ kind: 'group' as const, id: v.id, views, active, collapsed: collapsed || undefined, size });
   }
-  if (
-    v.kind === 'split' &&
-    typeof v.id === 'string' &&
-    (v.dir === 'row' || v.dir === 'column') &&
-    Array.isArray(v.children)
-  ) {
-    const children = v.children.map((c) => validNode(c, depth + 1)).filter((c): c is LayoutNode => !!c);
+  if (v.kind === 'split' && (v.dir === 'row' || v.dir === 'column') && Array.isArray(v.children)) {
+    if (v.grid !== undefined && typeof v.grid !== 'boolean') return undefined;
+    const children: LayoutNode[] = [];
+    for (const c of v.children) {
+      const n = validNode(c, depth + 1);
+      if (!n) return undefined;
+      children.push(n);
+    }
     const grid = v.grid === true ? (true as const) : undefined;
     return clean({ kind: 'split' as const, id: v.id, dir: v.dir as 'row' | 'column', children, size, grid });
   }
   return undefined;
+}
+
+function isNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+
+function isStrings(v: unknown): v is string[] {
+  return Array.isArray(v) && v.every((x) => typeof x === 'string');
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -872,8 +969,9 @@ function isObject(v: unknown): v is Record<string, unknown> {
 // Window placement
 
 /**
- * A window's rectangle kept inside the area it floats over (shell §2): no larger than the area, and placed so that all
- * of it is in when it fits; its header (its top `keep` px) is always in.
+ * A window's rectangle kept inside the area it floats over (shell §2): at least `MinWindow`, no larger than the area
+ * (unless the area is smaller than `MinWindow`), and placed so that all of it is in (its top-left at least, when the
+ * area is smaller): its header stays reachable.
  */
 export function clampRect(rect: Rect, area: { width: number; height: number }): Rect {
   const width = Math.min(Math.max(MinWindow.width, rect.width), Math.max(MinWindow.width, area.width));

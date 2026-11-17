@@ -7,15 +7,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { derive, type ReadonlyState } from '@molstar/core/reactive';
 import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { render } from '../../../dom/index.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';
 import { fieldNamed } from './named.js';
 import { state } from '../../../state.js';
-import { ParamsForm, paramsMatch, searchParams } from '../params-form.js';
+import { ParamsForm, searchParams } from '../params-form.js';
 import { presetIndex } from '../presets.js';
 import { classes as helpClasses } from '../_generated/help.module.css.js';
+
+/** A form's search over a text, as a host derives it. */
+const searchOf = (form: ParamsFormModel<any>, text: ReadonlyState<string>) =>
+  derive([text, form.values], (t, values) => searchParams(form.params, t, { values }));
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -163,7 +168,7 @@ describe('ParamsForm', () => {
     const filter = state('');
     const container = document.createElement('div');
     document.body.append(container);
-    render(() => <ParamsForm form={form} filter={filter} />, container);
+    render(() => <ParamsForm form={form} search={searchOf(form, filter)} />, container);
     // The visible rows' labels (a group's header is not a row).
     const shown = () =>
       [...container.querySelectorAll(`.${helpClasses.text}`)]
@@ -190,10 +195,10 @@ describe('ParamsForm', () => {
     await flush();
     expect(shown()).toEqual(['Pick Padding', 'Tooltips']);
 
-    expect(paramsMatch(params, 'zoom')).toBe(true);
-    expect(paramsMatch(params, 'nothing')).toBe(false);
-    expect(paramsMatch(params, 'trackball speed')).toBe(true);
-    expect(paramsMatch(params, 'trackball tooltips')).toBe(false);
+    expect(!!searchParams(params, 'zoom')?.any).toBe(true);
+    expect(!!searchParams(params, 'nothing')?.any).toBe(false);
+    expect(!!searchParams(params, 'trackball speed')?.any).toBe(true);
+    expect(!!searchParams(params, 'trackball tooltips')?.any).toBe(false);
   });
 
   it('searches only rows that can show: not hidden params, plain values, hideIf on the values, other cases', () => {
@@ -224,23 +229,25 @@ describe('ParamsForm', () => {
       ),
     };
     const values = PD.getDefaultValues(params) as any;
-    expect(searchParams(params, 'secret', values).any).toBe(false);
-    expect(searchParams(params, 'carried', values).any).toBe(false);
-    expect(searchParams(params, 'tuning', values).any).toBe(false);
-    expect(searchParams(params, 'tuning', { ...values, mode: 'expert' }).rows.get('/tuning')).toBe(true);
+    expect(searchParams(params, 'secret', { values })!.any).toBe(false);
+    expect(searchParams(params, 'carried', { values })!.any).toBe(false);
+    expect(searchParams(params, 'tuning', { values })!.any).toBe(false);
+    expect(searchParams(params, 'tuning', { values: { ...values, mode: 'expert' } })!.rows.get('/tuning')).toBe(true);
     // A group whose only match is hidden by its hideIf does not show.
-    const depth = searchParams(params, 'depth', values);
+    const depth = searchParams(params, 'depth', { values })!;
     expect(depth.rows.get('/inner')).toBe(false);
-    expect(searchParams(params, 'depth', { ...values, inner: { flag: true, depth: 1 } }).rows.get('/inner/depth')).toBe(
-      true,
-    );
+    expect(
+      searchParams(params, 'depth', { values: { ...values, inner: { flag: true, depth: 1 } } })!.rows.get(
+        '/inner/depth',
+      ),
+    ).toBe(true);
     // The chosen case's rows only; an option's label (not just its id) shows the choice.
-    expect(searchParams(params, 'width', values).any).toBe(false);
-    expect(searchParams(params, 'radius', values).rows.get('/shape:ball/radius')).toBe(true);
-    expect(searchParams(params, 'cuboid', values).rows.get('/shape')).toBe(true);
-    expect(searchParams(params, 'box', values).rows.get('/shape')).toBe(true);
+    expect(searchParams(params, 'width', { values })!.any).toBe(false);
+    expect(searchParams(params, 'radius', { values })!.rows.get('/shape:ball/radius')).toBe(true);
+    expect(searchParams(params, 'cuboid', { values })!.rows.get('/shape')).toBe(true);
+    expect(searchParams(params, 'box', { values })!.rows.get('/shape')).toBe(true);
     // Without values (any case, no hideIf), as before.
-    expect(paramsMatch(params, 'width')).toBe(true);
+    expect(!!searchParams(params, 'width')?.any).toBe(true);
   });
 
   it('maps a choice’s cases once each, not once per keystroke', () => {
@@ -263,7 +270,7 @@ describe('ParamsForm', () => {
       ),
     };
     calls = 0;
-    for (const q of ['b', 'be', 'bet', 'beta', 'x']) paramsMatch(params, q);
+    for (const q of ['b', 'be', 'bet', 'beta', 'x']) searchParams(params, q);
     expect(calls).toBe(2);
   });
 
@@ -282,7 +289,7 @@ describe('ParamsForm', () => {
     const filter = state('tuning');
     const container = document.createElement('div');
     document.body.append(container);
-    const dispose = render(() => <ParamsForm form={form} filter={filter} />, container);
+    const dispose = render(() => <ParamsForm form={form} search={searchOf(form, filter)} />, container);
     await flush();
     const rowOf = (text: string) =>
       [...container.querySelectorAll(`.${helpClasses.text}`)].find((el) => el.textContent === text);

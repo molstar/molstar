@@ -59,7 +59,7 @@ describe('historyCommands', () => {
 
   it('says what it did in the app’s words', async () => {
     const h = setup();
-    const [undo] = historyCommands(h.history, 'Edit', { undo: 'Annuler', undone: (s) => `Annulé : ${s}` });
+    const [undo] = historyCommands(h.history, { labels: { undo: 'Annuler', undone: (s) => `Annulé : ${s}` } });
     expect(undo.title).toBe('Annuler');
     await h.history.run('Set a to 1', { kind: 'person' }, async () => void h.set(1));
     expect(await undo.run({}, undefined, h.signal)).toEqual({ message: 'Annulé : Set a to 1' });

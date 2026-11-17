@@ -21,7 +21,13 @@ import {
   setAttr,
   setStyle,
 } from '../dom/index.js';
-import { Toolbar, type ToolbarGroup, type ToolbarItem, type ToolbarMenuRow } from '../components/toolbar/toolbar.js';
+import {
+  Toolbar,
+  type ToolbarGroup,
+  type ToolbarItem,
+  type ToolbarMenuRow,
+  withOwnAction,
+} from '../components/toolbar/toolbar.js';
 import { classes } from './_generated/toolbar.module.css.js';
 import { StageCompactWidth, type StageModel } from './stage-model.js';
 
@@ -35,7 +41,7 @@ const MenuGap = 8;
 
 /** The stage toolbar's own text (English by default, `DefaultStageToolbarLabels`). */
 export interface StageToolbarLabels {
-  /** The row's accessible name (`aria-label` takes precedence). */
+  /** The row's accessible name. */
   tools: string;
   /** The folded button's name and tooltip. */
   folded: string;
@@ -69,7 +75,6 @@ export interface StageToolbarProps {
   /** The folded button's icon (default `wrench`). */
   foldedIcon?: IconName;
   labels?: Partial<StageToolbarLabels>;
-  'aria-label'?: string;
 }
 
 /** The folded toolbar's button. */
@@ -81,8 +86,8 @@ function valueOf<T>(v: T | ReadonlyState<T>): T {
 
 /**
  * A toolbar item as a row of the folded toolbar's menu: a toggle (checkable) or an action; an item with a menu is a
- * submenu of its rows, led by its own action (unless a row of the menu already is it). Its face, disabled state and
- * menu as they are now (the rows are built as the menu opens). Hidden items have none.
+ * submenu of its rows, led by its own action (`withOwnAction`: unless a row of the menu already is it, by id). Its face,
+ * disabled state and menu as they are now (the rows are built as the menu opens). Hidden items have none.
  */
 export function toolRow(item: ToolbarItem, group: string, anchor: () => HTMLElement): ToolbarMenuRow | undefined {
   if (item.visible !== undefined && !valueOf(item.visible)) return undefined;
@@ -100,20 +105,7 @@ export function toolRow(item: ToolbarItem, group: string, anchor: () => HTMLElem
   };
   const menu = item.menu === undefined ? undefined : valueOf(item.menu);
   if (!menu?.length) return { ...base, ...(item.pressed ? { pressed: item.pressed } : {}), run };
-  const own: ToolbarMenuRow[] =
-    item.run && !menu.some((m) => m.label === label)
-      ? [
-          {
-            id: `${item.id}:run`,
-            label,
-            icon,
-            group: '\u0000own',
-            ...(item.pressed ? { pressed: item.pressed } : {}),
-            run,
-          },
-        ]
-      : [];
-  return { ...base, items: [...own, ...menu] };
+  return { ...base, items: withOwnAction(item, menu, anchor) };
 }
 
 /** The folded toolbar's rows: `lead`'s first (a group of their own), then each block's items, a hairline between. */
@@ -164,7 +156,7 @@ export function StageToolbar(props: StageToolbarProps) {
       <div class={classes.bar}>
         <ScrollArea axis="x" class={classes.scroll} contentClass={classes.row}>
           {props.lead}
-          <Toolbar groups={groups} menuSide="above" elevated aria-label={props['aria-label'] ?? labels.tools} />
+          <Toolbar groups={groups} menuSide="above" elevated aria-label={labels.tools} />
         </ScrollArea>
         {props.aside}
       </div>

@@ -11,6 +11,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { Heading, Note, story } from '../../../_stories/support.js';
 import { type Child, onCleanup } from '../../../dom/index.js';
 import { installTooltips } from '../../tooltip/tooltip.js';
+import type { PlaybackLabels } from '../labels.js';
 import { MuteButton, PlaybackDeck, StepCard as StepCardView, StepperRow, TimelineRow } from '../playback.js';
 import { type Step, Stepper as StepperRef } from '../stepper-model.js';
 import { DefaultSpeeds, Durationless as DurationlessRef, Timeline as TimelineRef } from '../timeline-model.js';
@@ -58,6 +59,15 @@ function owned<T extends { dispose(): void }>(model: T): T {
   return model;
 }
 
+/** An app's words for what one frame is (a structure's models). */
+const ModelLabels: Partial<PlaybackLabels> = {
+  frames: 'Models',
+  frame: 'Model',
+  previousFrame: 'Previous model',
+  nextFrame: 'Next model',
+  countedValue: (frame, count) => `model ${frame} of ${count}`,
+};
+
 /** Stepped: dots up to seven; past that "i / N" opens a filterable list. A mute at the end. */
 export const Stepper: StoryObj = {
   render: () =>
@@ -88,12 +98,14 @@ export const Timeline: StoryObj = {
       <Backdrop>
         <Heading>Timed</Heading>
         <PlaybackDeck>
-          <TimelineRow model={owned(new TimelineRef({ label: 'Transition', duration: 2.4 }))} />
+          <TimelineRow model={owned(new TimelineRef({ duration: 2.4 }))} label="Transition" />
         </PlaybackDeck>
         <Heading>By count, with a speed</Heading>
         <PlaybackDeck>
           <TimelineRow
-            model={owned(new TimelineRef({ label: '1ABC', count: 50, unit: 'model', speeds: DefaultSpeeds }))}
+            model={owned(new TimelineRef({ count: 50, speeds: DefaultSpeeds }))}
+            label="1ABC"
+            labels={ModelLabels}
           />
         </PlaybackDeck>
       </Backdrop>
@@ -107,30 +119,30 @@ export const Timeline: StoryObj = {
 export const Durationless: StoryObj = {
   render: () =>
     story(() => {
-      const running = owned(new DurationlessRef({ label: 'Simulation', speeds: DefaultSpeeds }));
+      const running = owned(new DurationlessRef({ speeds: DefaultSpeeds }));
       running.play();
-      const paused = owned(new DurationlessRef({ label: 'Simulation', speeds: DefaultSpeeds }));
+      const paused = owned(new DurationlessRef({ speeds: DefaultSpeeds }));
       for (let i = 0; i < 340; i++) paused.stepOnce?.();
-      const steps = owned(new DurationlessRef({ label: 'Stream', elapsed: false, restart: false }));
-      const spin = owned(new DurationlessRef({ label: 'Spin', steps: false, stepOnce: false, restart: false }));
+      const steps = owned(new DurationlessRef({ elapsed: false, restart: false }));
+      const spin = owned(new DurationlessRef({ steps: false, stepOnce: false, restart: false }));
       spin.play();
       return (
         <Backdrop>
           <Heading>Running</Heading>
           <PlaybackDeck>
-            <TimelineRow model={running} icon="orbit" />
+            <TimelineRow model={running} label="Simulation" icon="orbit" />
           </PlaybackDeck>
           <Heading>Paused at a step</Heading>
           <PlaybackDeck>
-            <TimelineRow model={paused} icon="orbit" />
+            <TimelineRow model={paused} label="Simulation" icon="orbit" />
           </PlaybackDeck>
           <Heading>Steps only</Heading>
           <PlaybackDeck>
-            <TimelineRow model={steps} icon="refresh-cw" />
+            <TimelineRow model={steps} label="Stream" icon="refresh-cw" />
           </PlaybackDeck>
           <Heading>A spin: play and its time</Heading>
           <PlaybackDeck>
-            <TimelineRow model={spin} icon="rotate-3d" />
+            <TimelineRow model={spin} label="Spin" icon="rotate-3d" />
           </PlaybackDeck>
         </Backdrop>
       );
@@ -156,9 +168,9 @@ export const Deck: StoryObj = {
       <Backdrop width={400}>
         <PlaybackDeck>
           <StepperRow model={owned(new StepperRef({ steps: Tour }))} />
-          <TimelineRow model={owned(new TimelineRef({ label: 'Transition', duration: 1.6 }))} />
-          <TimelineRow model={owned(new TimelineRef({ label: '1ABC', count: 20, unit: 'model' }))} />
-          <TimelineRow model={owned(new DurationlessRef({ label: 'Spin', steps: false, speeds: DefaultSpeeds }))} />
+          <TimelineRow model={owned(new TimelineRef({ duration: 1.6 }))} label="Transition" />
+          <TimelineRow model={owned(new TimelineRef({ count: 20 }))} label="1ABC" labels={ModelLabels} />
+          <TimelineRow model={owned(new DurationlessRef({ steps: false, speeds: DefaultSpeeds }))} label="Spin" />
         </PlaybackDeck>
       </Backdrop>
     )),

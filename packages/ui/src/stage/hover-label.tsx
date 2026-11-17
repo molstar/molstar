@@ -19,21 +19,14 @@ import type { HoverAt, HoverLabelModel, HoverLine, HoverRun } from './stage-mode
 /** The label's distance from the pointer (px). */
 const Offset = 12;
 
-/** A line as an element: plain text (the first is the title), or formatted runs. Text only (`textContent`). */
+/** A line as an element: plain text or formatted runs, the first the title. Text only (`textContent`). */
 function lineElement(line: HoverLine, index: number): HTMLElement {
   const el = document.createElement('span');
-  if (typeof line === 'string') {
-    el.className = index === 0 ? classes.primary : classes.secondary;
-    el.textContent = line;
-    return el;
-  }
+  const rich = typeof line !== 'string';
   el.className =
-    line.role === 'title'
-      ? classes.primary
-      : line.role === 'item'
-        ? `${classes.secondary} ${classes.item}`
-        : classes.secondary;
-  for (const run of line.runs) el.append(runNode(run));
+    index === 0 ? classes.primary : rich && line.item ? `${classes.secondary} ${classes.item}` : classes.secondary;
+  if (rich) for (const run of line.runs) el.append(runNode(run));
+  else el.textContent = line;
   return el;
 }
 
@@ -235,7 +228,6 @@ export function HoverLabel(props: HoverLabelProps) {
   const label = (
     <div
       class={`${classes.label} ${classes.out} ${corner ? classes.corner : classes.cursor}${props.class ? ` ${props.class}` : ''}`}
-      role="tooltip"
       aria-hidden="true"
       data-placement={corner ? 'corner' : 'cursor'}
     >

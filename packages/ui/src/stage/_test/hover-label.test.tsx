@@ -48,7 +48,7 @@ async function mount(placement: 'corner' | 'cursor', initial: readonly HoverLine
   const dispose = render(() => <HoverLabel model={{ lines }} area={() => area} placement={placement} />, area);
   // The pointer's listeners attach once the label is in the page (a microtask).
   await Promise.resolve();
-  const label = area.querySelector<HTMLElement>('[role=tooltip]')!;
+  const label = area.querySelector<HTMLElement>('[data-placement]')!;
   const move = (buttons = 0) =>
     area.dispatchEvent(new PointerEvent('pointermove', { clientX: 40, clientY: 30, buttons, bubbles: true }));
   const leave = () => area.dispatchEvent(new PointerEvent('pointerleave'));
@@ -133,9 +133,8 @@ describe('hover label placement', () => {
 describe('hover label content', () => {
   it('renders runs as elements, never as markup', async () => {
     const { label } = await mount('corner', [
-      { role: 'title', runs: [{ text: 'PHE', bold: true }, { text: ' <img src=x onerror=alert(1)>' }] },
+      { runs: [{ text: 'PHE', bold: true }, { text: ' <img src=x onerror=alert(1)>' }] },
       {
-        role: 'text',
         runs: [
           { text: 'H', code: true },
           { text: '2', sub: true },
@@ -147,6 +146,28 @@ describe('hover label content', () => {
     expect(label.querySelector('sub')?.textContent).toBe('2');
     expect(label.querySelector('img')).toBeNull();
     expect(label.textContent).toContain('<img src=x onerror=alert(1)>');
+  });
+
+  it('takes its first line as the title, plain or formatted; an item is indented', async () => {
+    const { label } = await mount('corner', [
+      { runs: [{ text: 'PHE 12', bold: true }] },
+      'Chain A',
+      { item: true, runs: [{ text: '• ligand' }] },
+    ]);
+    const lines = [...(label.firstElementChild?.children ?? [])];
+    expect(lines.map((l) => l.className)).toEqual([
+      classes.primary,
+      classes.secondary,
+      `${classes.secondary} ${classes.item}`,
+    ]);
+    const plain = await mount('corner', ['ALA 12', 'Chain B']);
+    expect(plain.label.firstElementChild?.firstElementChild?.className).toBe(classes.primary);
+  });
+
+  it('is no tooltip (nothing it describes): text shown, and out of the accessibility tree while hidden', async () => {
+    const { label } = await mount('corner');
+    expect(label.hasAttribute('role')).toBe(false);
+    expect(label.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('keeps the last label a frame when it empties, and swaps in the next without hiding', async () => {

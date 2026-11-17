@@ -14,7 +14,7 @@ import { Button } from '../../button/button.js';
 import { Stage } from '../../../stage/stage.js';
 import { StageModel } from '../../../stage/stage-model.js';
 import { StagePlaceholder } from '../../../stage/placeholders.js';
-import { Splash } from '../splash.js';
+import { GlassSplash } from '../splash.js';
 
 const meta: Meta = { title: 'Components/Splash' };
 export default meta;
@@ -60,7 +60,7 @@ export const Idle: StoryObj = {
       read.start(0);
       return (
         <div style="display: grid; gap: var(--msui-space-4); justify-items: center; padding: calc(24 * var(--msui-unit)) var(--msui-space-5)">
-          <Show when={shown}>{() => <Splash />}</Show>
+          <Show when={shown}>{() => <GlassSplash />}</Show>
           <span style="color: var(--msui-text-muted)" class="msui-num">
             frames asked for on the page: {counted}
           </span>

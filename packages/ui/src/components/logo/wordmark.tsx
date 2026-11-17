@@ -63,6 +63,15 @@ function Stop(props: { offset: string; color: 1 | 2 | 3 | 4 }) {
   return <stop offset={props.offset} style={{ 'stop-color': `var(--msui-logo-${props.color})` }} />;
 }
 
+/** The wordmarks' own text (`MolstarWordmark`, the glass's; `DefaultWordmarkLabels`). */
+export interface WordmarkLabels {
+  /** What the image says (its accessible name): the word it draws. */
+  mark: string;
+}
+
+/** The word the wordmark draws, as its accessible name (the image is that word, so its name is too). */
+export const DefaultWordmarkLabels: WordmarkLabels = { mark: 'Mol*' };
+
 /**
  * The Mol* wordmark, outlined in the text color (a heading, an empty canvas). A flash of the logo's colors runs along
  * the outline now and then (often, or wiped in once and kept) and on hover: a copy stroked with the logo's gradient,
@@ -79,6 +88,7 @@ export function MolstarWordmark(props: {
    * centred on the cursor, moving with it, fading in on enter and back out on leave.
    */
   live?: boolean;
+  labels?: Partial<WordmarkLabels>;
 }) {
   const id = `msui-wordmark-${++gradients}`;
   const scale = Math.max(1, Math.round(props.scale ?? 1));
@@ -119,7 +129,7 @@ export function MolstarWordmark(props: {
       data-flash={props.flash ?? 'rare'}
       data-live={props.live ? '' : undefined}
       role="img"
-      aria-label="Mol*"
+      aria-label={props.labels?.mark ?? DefaultWordmarkLabels.mark}
     >
       {svg({ class: classes.outline, stroke: 'currentColor' })}
       {svg({ class: classes.flash, stroke: `url(#${id})`, hidden: true })}

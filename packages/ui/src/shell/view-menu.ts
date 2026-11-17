@@ -12,9 +12,10 @@ import { keyOf, type ShellModel, viewIdOf } from './shell-model.js';
 export type WindowAdjust = 'move' | 'resize';
 
 /**
- * A view's layout menu (shell §2: pop out and dock back are moves): Float or Dock; Split below, Move up, Move down in a
- * docked column; Move to another group; Hide; Reset layout. A window's adds Move, Resize (from the keyboard) and Reset
- * position.
+ * A view's layout menu (shell §2, §3.3: pop out and dock back are moves): a docked view's Float, Split below, Move up,
+ * Move down (in a column), Dock right (away from the right group); a window's Dock (to its home), Move and Resize (from
+ * the keyboard), Reset position; then into the main area's region (§2.1), Move to each other window, Hide (a single
+ * view docked: `close`), Reset layout.
  */
 export function viewMenu(
   shell: ShellModel,
@@ -60,8 +61,8 @@ export function viewMenu(
         items.push({ id: 'down', label: t.moveDown, icon: 'arrow-down', run: () => shell.moveInColumn(ref, 1) });
       }
     }
-    if (place.group.id !== RightGroup && (def.home ?? RightGroup) === RightGroup) {
-      items.push({ id: 'dock', label: t.dockRight, icon: 'panel-right', run: () => shell.dock(ref) });
+    if (place.group.id !== RightGroup) {
+      items.push({ id: 'dock', label: t.dockRight, icon: 'panel-right', run: () => shell.dock(ref, RightGroup) });
     }
   }
   items.push(...stageItems(shell, ref));
@@ -78,7 +79,7 @@ export function viewMenu(
     });
   }
   if (!place.window && (def.instances ?? 'single') === 'single') {
-    items.push({ id: 'hide', label: t.hide, icon: 'eye-off', run: () => shell.hide(ref) });
+    items.push({ id: 'hide', label: t.hide, icon: 'eye-off', run: () => shell.close(ref) });
   }
   items.push({ id: 'reset', label: t.resetLayout, icon: 'list-restart', run: () => shell.resetLayout() });
   return items;
@@ -112,8 +113,9 @@ function stageItems(shell: ShellModel, ref: ViewRef): ContextMenuItem[] {
 }
 
 /**
- * A pane's menu (shell §2.1: a view in the main area's region, or on its top): Maximize or Show every pane; split it
- * beside another pane's; Float; back to its home (Dock right); onto or off the top; Close.
+ * A pane's menu (shell §2.1: a view in the main area's region, or on its top): Maximize or Show every pane, Split right
+ * and below (a group of several), onto the top, Arrange as a grid (or, on the top, Above the main view); Float; Dock
+ * right; Close.
  */
 export function paneMenu(
   shell: ShellModel,
@@ -128,11 +130,10 @@ export function paneMenu(
   const items: ContextMenuItem[] = [];
   const onTop = mainNode(l).top?.id === place.group.id;
   if (!onTop) {
-    const maximized = shell.maximized.value === place.group.id;
     items.push(
-      maximized
+      shell.maximized.value === ref
         ? { id: 'restore', label: t.showEveryPane, icon: 'minimize-2', run: () => shell.maximize(undefined) }
-        : { id: 'maximize', label: t.maximize, icon: 'maximize-2', run: () => shell.maximize(place.group.id) },
+        : { id: 'maximize', label: t.maximize, icon: 'maximize-2', run: () => shell.maximize(ref) },
     );
     if (place.group.views.length > 1) {
       items.push(
@@ -158,21 +159,19 @@ export function paneMenu(
     });
   }
   items.push({ id: 'float', label: t.float, icon: 'app-window', run: () => shell.float(ref, options.anchorRect?.()) });
-  if ((def.home ?? RightGroup) === RightGroup) {
-    items.push({ id: 'dock', label: t.dockRight, icon: 'panel-right', run: () => shell.dock(ref) });
-  }
+  items.push({ id: 'dock', label: t.dockRight, icon: 'panel-right', run: () => shell.dock(ref, RightGroup) });
   items.push({ id: 'close', label: t.closePane, icon: 'x', run: () => shell.close(ref) });
   return items;
 }
 
 /**
- * A rail button's menu (a context menu, Shift+F10): Hide, Show each hidden view, Hide the rail (the Mol* star in the main
- * area's corner brings it back), Reset layout.
+ * A rail button's menu (a context menu, Shift+F10): Hide (`close`), Show each hidden view, Hide the rail (the rail
+ * toggle in the main area's corner brings it back), Reset layout.
  */
 export function railMenu(shell: ShellModel, ref: ViewRef | undefined): ContextMenuItem[] {
   const t = shell.labels;
   const items: ContextMenuItem[] = [];
-  if (ref) items.push({ id: 'hide', label: t.hide, icon: 'eye-off', run: () => shell.hide(ref) });
+  if (ref) items.push({ id: 'hide', label: t.hide, icon: 'eye-off', run: () => shell.close(ref) });
   for (const h of shell.layout.value.hidden) {
     const def = shell.view(h);
     // An instance shows as itself (its key kept).

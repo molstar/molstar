@@ -193,6 +193,24 @@ describe('boundLog', () => {
   it('drops the oldest non-problems first, then the oldest problems', () => {
     const list = [e(1, 'error'), e(2, 'info'), e(3, 'warning'), e(4, 'debug'), e(5, 'success')];
     expect(boundLog(list, 3).map((x) => x.id)).toEqual([1, 3, 5]);
-    expect(boundLog(list, 1).map((x) => x.id)).toEqual([3]);
+    // The problems alone fill it: the oldest problems go, but the newest entry stays.
+    expect(boundLog(list, 1).map((x) => x.id)).toEqual([5]);
+    expect(boundLog(list, 2).map((x) => x.id)).toEqual([3, 5]);
+    expect(boundLog(list.slice(0, 3), 1).map((x) => x.id)).toEqual([3]);
+  });
+
+  it('shows what was just written in a small log full of problems, a trickle at a time', () => {
+    const log = new LogModel({ size: 2, schedule: () => {} });
+    log.write({ text: 'e1', kind: 'error' });
+    log.write({ text: 'e2', kind: 'error' });
+    log.flush();
+    for (let i = 0; i < 3; i++) {
+      log.write({ text: `i${i}` });
+      log.flush();
+      expect(log.entries.value.map((x) => x.text)).toEqual(['e2', `i${i}`]);
+    }
+    log.write({ text: 'e3', kind: 'error' });
+    log.flush();
+    expect(log.entries.value.map((x) => x.text)).toEqual(['e2', 'e3']);
   });
 });

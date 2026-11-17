@@ -34,6 +34,7 @@ import {
   stacked,
   validateLayout,
 } from '../layout.js';
+import { rightLayout } from './layouts.js';
 
 /** Every invariant `normalize` promises (layout.ts). */
 function checkInvariants(l: ShellLayout) {
@@ -78,11 +79,13 @@ function checkInvariants(l: ShellLayout) {
   for (const h of l.hidden) expect(views.has(h)).toBe(true);
 }
 
-const base = () => defaultLayout(['home', 'layers', 'settings'], { active: 'home' });
+const base = () => rightLayout(['home', 'layers', 'settings'], 'home');
 
 describe('the shell layout', () => {
-  it('starts as the main area and the right group beside it, 340 wide, its first view active', () => {
-    const l = defaultLayout(['home', 'layers']);
+  it('starts as the main area alone; the right group beside it, 340 wide, its first view active', () => {
+    expect(defaultLayout().root).toEqual({ kind: 'main', id: 'main' });
+    checkInvariants(defaultLayout());
+    const l = rightLayout(['home', 'layers']);
     checkInvariants(l);
     expect(l.root).toEqual({
       kind: 'split',
@@ -181,7 +184,7 @@ describe('the shell layout', () => {
     };
     const refs = ['a', 'b', 'c', 'd', 'e', 'f#1', 'f#2'];
     for (let run = 0; run < 40; run++) {
-      let l = defaultLayout(refs.slice(0, 3));
+      let l = rightLayout(refs.slice(0, 3));
       for (let step = 0; step < 60; step++) {
         const ref = refs[rand(refs.length)];
         const groups = allGroups(l);
@@ -213,17 +216,37 @@ describe('the shell layout', () => {
 });
 
 describe('stored layouts', () => {
-  it('drops another version or a wrong shape', () => {
+  it('drops another version, and any field of a wrong shape or missing (nothing is filled in)', () => {
+    const stored = JSON.parse(JSON.stringify(base()));
+    expect(validateLayout(stored)).toEqual(base());
     expect(validateLayout(undefined)).toBeUndefined();
-    expect(validateLayout({ ...base(), version: 2 })).toBeUndefined();
-    expect(validateLayout({ ...base(), root: { kind: 'nope' } })).toBeUndefined();
+    expect(validateLayout({ ...stored, version: 2 })).toBeUndefined();
+    expect(validateLayout({ ...stored, root: { kind: 'nope' } })).toBeUndefined();
+    for (const field of ['windows', 'hidden', 'rail', 'seq']) {
+      const { [field]: _, ...missing } = stored;
+      expect(validateLayout(missing), field).toBeUndefined();
+    }
+    expect(validateLayout({ ...stored, hidden: [3] })).toBeUndefined();
+    const group = (extra: object) => ({ ...stored, root: { kind: 'group', id: 'right', views: ['a'], ...extra } });
+    expect(validateLayout(group({}))).toBeDefined();
+    expect(validateLayout(group({ views: ['a', 3] }))).toBeUndefined();
+    expect(validateLayout(group({ size: 'wide' }))).toBeUndefined();
+    expect(validateLayout(group({ collapsed: 1 }))).toBeUndefined();
+    const win = {
+      group: { kind: 'group', id: 'w', views: ['x'] },
+      rect: { x: 0, y: 0, width: 300, height: 200 },
+      z: 1,
+    };
+    expect(validateLayout({ ...stored, windows: [win] })).toBeDefined();
+    expect(validateLayout({ ...stored, windows: [{ ...win, z: Number.NaN }] })).toBeUndefined();
+    expect(validateLayout({ ...stored, windows: [{ ...win, rect: { ...win.rect, width: 'wide' } }] })).toBeUndefined();
   });
 
-  it('keeps unknown view ids, puts the main area back, clamps sizes, drops broken windows', () => {
+  it('keeps unknown view ids, puts the main area back, clamps sizes', () => {
     const stored = {
       version: 1,
-      root: { kind: 'group', id: 'right', views: ['later', 3], size: 5 },
-      windows: [{ group: { kind: 'group', id: 'w', views: ['x'] }, rect: { x: 0, y: 0, width: 'wide', height: 1 } }],
+      root: { kind: 'group', id: 'right', views: ['later'], size: 5 },
+      windows: [{ group: { kind: 'group', id: 'w', views: ['x'] }, rect: { x: 0, y: 0, width: 10, height: 1 }, z: 1 }],
       hidden: ['later', 'gone'],
       rail: false,
       seq: 4,
@@ -232,7 +255,7 @@ describe('stored layouts', () => {
     checkInvariants(l);
     expect(l.root).toMatchObject({ kind: 'split', dir: 'row' });
     expect(dockedGroups(l)[0]).toMatchObject({ id: 'right', views: ['later'], size: MinGroupSize });
-    expect(l.windows).toEqual([]);
+    expect(l.windows[0].rect).toEqual({ x: 0, y: 0, ...MinWindow });
     expect(l.hidden).toEqual(['later']);
     expect(l.rail).toBe(false);
   });

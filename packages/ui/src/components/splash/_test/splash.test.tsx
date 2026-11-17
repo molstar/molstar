@@ -10,12 +10,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DomHost, pendingFrameCallbacks, render, ViewScope } from '../../../dom/index.js';
 import { fakeContext, stubPath2D } from '../../logo/_test/fake-canvas.js';
-import { Splash } from '../splash.js';
+import { GlassSplash } from '../splash.js';
 
 // The splash (stage §4): it assembles when it shows, draws only while something moves, none at rest, off screen or
 // hidden; under reduced motion one still frame.
 
-describe('Splash', () => {
+describe('GlassSplash', () => {
   const host = DomHost.requestAnimationFrame;
   let queue: ((t: number) => void)[] = [];
   let now = 0;
@@ -66,7 +66,7 @@ describe('Splash', () => {
   function mount(scope = new ViewScope()) {
     const container = document.createElement('div');
     document.body.append(container);
-    const dispose = render(() => <Splash scale={2} />, container, scope);
+    const dispose = render(() => <GlassSplash scale={2} />, container, scope);
     return { container, dispose, scope };
   }
 

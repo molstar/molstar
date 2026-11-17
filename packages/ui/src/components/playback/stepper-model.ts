@@ -29,8 +29,11 @@ export interface StepperModel {
   readonly markdown?: MarkdownHost;
   /** Steps on by itself (a slideshow). */
   readonly playing: ReadonlyState<boolean>;
+  /** The step before, the last from the first; with none current, the last. */
   previous(): void;
+  /** The step after, the first from the last; with none current, the first. */
   next(): void;
+  /** To a step (0-based, held to the steps); not a number: nothing. */
   goTo(index: number): void;
   togglePlay(): void;
   /** Follows a link in the description that the markdown does not (`#key`, an app's own). */
@@ -106,7 +109,7 @@ export class Stepper implements StepperModel {
 
   goTo(index: number): void {
     const n = this.#steps.value.length;
-    if (!n) return;
+    if (!n || Number.isNaN(index)) return;
     this.#index.set(Math.min(Math.max(Math.trunc(index), 0), n - 1));
     if (this.#stop) this.#start();
   }
@@ -118,7 +121,9 @@ export class Stepper implements StepperModel {
 
   previous(): void {
     const n = this.#steps.value.length;
-    if (n) this.goTo((this.#index.value - 1 + n) % n);
+    const i = this.#index.value;
+    // None current (-1): the last, as `next` from none is the first.
+    if (n) this.goTo(i < 0 ? n - 1 : (i - 1 + n) % n);
   }
 
   play(): void {

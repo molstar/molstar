@@ -31,7 +31,7 @@ describe('Expand', () => {
     m.shell.show('tool');
     flush();
     expect(m.rail()).not.toBeNull();
-    m.shell.expand();
+    m.shell.toggleExpanded(true);
     flush();
     expect(m.rail()).toBeNull();
     expect(m.groupNode('right')?.getAttribute('data-shown')).toBe('false');
@@ -44,11 +44,11 @@ describe('Expand', () => {
   it('Escape leaves it (after anything inside took it), and so does showing a docked view', () => {
     const m = mountShell(views());
     m.shell.show('home');
-    m.shell.expand();
+    m.shell.toggleExpanded(true);
     flush();
     key(m.main(), 'Escape');
     expect(m.shell.expanded.value).toBe(false);
-    m.shell.expand();
+    m.shell.toggleExpanded(true);
     m.shell.show('layers');
     flush();
     expect(m.shell.expanded.value).toBe(false);
@@ -60,7 +60,7 @@ describe('Expand', () => {
     const m = mountShell(views(), {}, { fill: 'page' });
     const root = m.root.querySelector('[role="application"]')!;
     expect(root.hasAttribute('data-fill')).toBe(false);
-    m.shell.expand();
+    m.shell.toggleExpanded(true);
     flush();
     expect(root.getAttribute('data-fill')).toBe('page');
     m.dispose();

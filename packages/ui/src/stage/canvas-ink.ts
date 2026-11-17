@@ -21,8 +21,9 @@ export interface CanvasInk {
   /** The app's color as given (the stage's background). */
   readonly color: string;
   /**
-   * Whether `theme` was read from the color. False for a color this module does not parse (`oklch()`, `var()`) or a
-   * transparent one: `theme` is then `light`, and a view resolves it through the CSS engine (stage §2).
+   * Whether `theme` was read from the color. False for a color this module does not parse (`oklch()`, `var()`) or one
+   * not opaque (alpha below 1: what is behind it shows through): `theme` is then `light`, and a view resolves it
+   * through the CSS engine (stage §2).
    */
   readonly resolved: boolean;
 }
@@ -129,23 +130,19 @@ export function parseColorAlpha(text: string): readonly [color: number, alpha: n
   return Object.hasOwn(ColorNames, t) ? [ColorNames[t as keyof typeof ColorNames] as number, 1] : undefined;
 }
 
-/** A CSS color (`parseColorAlpha`) as `0xRRGGBB`, its alpha ignored (`transparent` is black); undefined otherwise. */
-export function parseColor(text: string): number | undefined {
-  return parseColorAlpha(text)?.[0];
-}
-
 /** `0xRRGGBB` as `#rrggbb`. */
 export function colorHex(color: number): string {
   return `#${(color & 0xffffff).toString(16).padStart(6, '0')}`;
 }
 
 /**
- * The ink on a background color (a CSS color, kept as given). A color that does not parse, or a transparent one (what
- * is behind it shows), is not resolved: light chrome until a view reads it through the CSS engine (stage §2).
+ * The ink on a background color (a CSS color, kept as given). A color that does not parse, or one not opaque (what is
+ * behind it shows through: a nearly transparent black is the page's color, not black), is not resolved: light chrome
+ * until a view composites it over what is behind it through the CSS engine (stage §2).
  */
 export function inkForColor(color: string): CanvasInk {
   const parsed = parseColorAlpha(color);
-  return parsed === undefined || parsed[1] === 0
+  return parsed === undefined || parsed[1] < 1
     ? { theme: 'light', color, resolved: false }
     : { theme: themeForColor(parsed[0]), color, resolved: true };
 }

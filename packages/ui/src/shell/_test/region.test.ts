@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 import {
   arrangeGrid,
   TopGroup,
-  defaultLayout,
   findView,
   inRegion,
   type LayoutNode,
@@ -20,14 +19,15 @@ import {
   type ShellLayout,
   validateLayout,
 } from '../layout.js';
+import { rightLayout } from './layouts.js';
 import { PaneMap } from '../pane-map.js';
 import { shellCommands } from '../shell-commands.js';
 import { ShellModel, type ShellViewDef } from '../shell-model.js';
 
 // The main area's region (shell §2.1): views beside the app's content, the content always there and taking the rest,
-// no tree once only the content is left; the top overlay; stored layouts (an old bare main stays as it was).
+// no tree once only the content is left; the top overlay; stored layouts.
 
-const base = () => defaultLayout(['home', 'layers']);
+const base = () => rightLayout(['home', 'layers']);
 const leaves = (n: LayoutNode | undefined): string[] =>
   !n
     ? []
@@ -132,14 +132,14 @@ describe('the main area’s region', () => {
     expect(inRegion(l, findView(l, 'seq')!.group.id)).toBe(true);
   });
 
-  it('a stored layout keeps its region and top overlay; an old one (a bare main) reads as before', () => {
+  it('a stored layout keeps its region and top overlay; a region that is the content alone is none', () => {
     let l = moveView(base(), '3d#b', { kind: 'edge', of: 'content', side: 'right' });
     l = moveView(l, 'seq', { kind: 'top' });
     const back = validateLayout(JSON.parse(JSON.stringify(l)))!;
     expect(back).toEqual(l);
-    const old = validateLayout(JSON.parse(JSON.stringify(base())))!;
-    expect(mainNode(old).root).toBeUndefined();
-    expect(old).toEqual(base());
+    const alone = validateLayout(JSON.parse(JSON.stringify(removeView(removeView(l, '3d#b'), 'seq'))))!;
+    expect(mainNode(alone).root).toBeUndefined();
+    expect(alone.root).toEqual(base().root);
   });
 });
 
@@ -206,9 +206,9 @@ describe('ShellModel: the main area’s region, headless', () => {
     const s = new ShellModel({ top });
     s.registerViews([
       view('home'),
-      view('3d', { stage: true, home: 'stage', instances: 'many' }),
+      view('3d', { canvas: true, home: 'stage', instances: 'many' }),
       view('seq', { home: 'top' }),
-      view('plot', { home: 'stage', stageSide: 'bottom', stageSize: 200 }),
+      view('plot', { home: 'stage', region: { side: 'bottom', size: 200 } }),
     ]);
     return s;
   };
@@ -255,15 +255,15 @@ describe('ShellModel: the main area’s region, headless', () => {
     expect(maximize.when!(undefined)).toBe(true);
     s.setActivePane('3d#b');
     maximize.run({}, undefined, new AbortController().signal);
-    const node = s.paneNode('3d#b')!;
-    expect(s.maximized.value).toBe(node);
+    expect(s.maximized.value).toBe('3d#b');
     expect(closePane.when!(undefined)).toBe(true);
     closePane.run({}, undefined, new AbortController().signal);
     expect(s.maximized.value).toBeUndefined();
     expect(s.activePane.value).toBe('content');
     expect(closePane.when!(undefined)).toBe('Nothing to close');
-    // Not a pane of the region: nothing.
-    s.maximize('right');
+    // A view docked beside the main area is no pane to maximize.
+    s.show('home');
+    s.maximize('home');
     expect(s.maximized.value).toBeUndefined();
   });
 
@@ -293,7 +293,7 @@ describe('ShellModel: the main area’s region, headless', () => {
     const before = told;
     s.setActivePane('3d#b');
     s.setPaneHovered('3d#b');
-    s.maximize(s.paneNode('3d#b'));
+    s.maximize('3d#b');
     // Maximized, it shows alone: not one of several.
     expect(b.value).toEqual({ active: true, hovered: true, focused: false, maximized: true, several: false });
     expect(content.value.active).toBe(false);
@@ -316,7 +316,7 @@ describe('ShellModel: the main area’s region, headless', () => {
     undo();
     expect(s.paneTitle('3d#b').value).toBe('3d');
     port.toggleMaximized();
-    expect(s.maximized.value).toBe(s.paneNode('3d#b'));
+    expect(s.maximized.value).toBe('3d#b');
     port.toggleMaximized();
     expect(s.maximized.value).toBeUndefined();
     // The content is no view: it neither floats nor closes.
@@ -334,7 +334,7 @@ describe('ShellModel: the main area’s region, headless', () => {
     // Side by side: the content holds the bottom left, B the bottom right.
     expect(content.value).toEqual({ bottomLeft: 120, bottomRight: 0 });
     expect(b.value).toEqual({ bottomLeft: 0, bottomRight: 96 });
-    s.maximize(s.paneNode('3d#b'));
+    s.maximize('3d#b');
     expect(b.value).toEqual({ bottomLeft: 120, bottomRight: 96 });
     expect(content.value).toEqual({ bottomLeft: 0, bottomRight: 0 });
   });

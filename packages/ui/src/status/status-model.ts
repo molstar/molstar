@@ -13,10 +13,9 @@ import { type LogEntry, LogModel } from '../log/log-model.js';
 
 export type StatusKind = 'info' | 'success' | 'warning' | 'error';
 
-/** A message posted: the log's entry for it (no source: a message). */
 /**
- * A message on show: its log entry, and its scope (status §1: what it is about, a plain string the app chooses, e.g.
- * a pane's id; the line of that scope shows it; none: the line that takes the rest).
+ * A message posted: its log entry (no source: a message), its kind, and its scope (status §1: what it is about, a plain
+ * string the app chooses, e.g. a pane's id; the line of that scope shows it; none: the line that takes the rest).
  */
 export type StatusMessage = LogEntry & { readonly kind: StatusKind; readonly scope?: string };
 

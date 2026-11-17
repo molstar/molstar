@@ -26,16 +26,7 @@ export const LogKindIcons: Readonly<Record<LogKind, IconName>> = {
   debug: 'terminal',
 };
 
-/** An entry's time as the log says it (hours, minutes, seconds). */
-export const logTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-/** An entry's description: its detail, its source, its time. */
-export function logDescription(e: LogEntry): string {
-  const at = logTime.format(e.time);
-  if (e.detail && e.source) return `${e.detail} · ${e.source} · ${at}`;
-  if (e.detail || e.source) return `${e.detail ?? e.source} · ${at}`;
-  return at;
-}
+const logTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /** The kinds with a toggle (debug entries show under All). */
 const ToggledKinds = ['info', 'success', 'warning', 'error'] as const;
@@ -56,10 +47,12 @@ export interface LogViewLabels {
   readonly filter: string;
   /** The text filter's accessible name. */
   readonly filterLabel: string;
-  /** The list's accessible name (the `label` prop wins). */
+  /** The list's accessible name. */
   readonly list: string;
   readonly empty: string;
   readonly noMatch: string;
+  /** An entry's description: its detail, its source, its time (the time format and separators are the app's). */
+  readonly description: (entry: LogEntry) => string;
 }
 
 export const DefaultLogViewLabels: LogViewLabels = {
@@ -82,6 +75,12 @@ export const DefaultLogViewLabels: LogViewLabels = {
   list: 'Log',
   empty: 'Nothing is logged yet.',
   noMatch: 'Nothing matches the filter.',
+  description: (e) => {
+    const at = logTime.format(e.time);
+    if (e.detail && e.source) return `${e.detail} · ${e.source} · ${at}`;
+    if (e.detail || e.source) return `${e.detail ?? e.source} · ${at}`;
+    return at;
+  },
 };
 
 interface SourceChoice {
@@ -96,8 +95,6 @@ export interface LogViewProps {
   log: LogModel;
   /** A source's icon in the filters (a tag when absent). */
   sourceIcons?: Readonly<Record<string, IconName>>;
-  /** The list's accessible name (the labels' `list`). */
-  label?: string;
   labels?: Partial<LogViewLabels>;
   class?: string;
 }
@@ -214,7 +211,7 @@ export function LogView(props: LogViewProps) {
         class={classes.entries}
         edge
         role="log"
-        aria-label={props.label ?? l.list}
+        aria-label={l.list}
         ref={(h) => {
           handle = h;
         }}
@@ -223,14 +220,14 @@ export function LogView(props: LogViewProps) {
           // At the end once laid out: the newest entry shows first.
           toEnd.request();
         }}
-        slot={logRow}
+        slot={() => logRow(l.description)}
       />
     </div>
   );
 }
 
 /** A recycled row of the log: made once, shown one entry, then another as the list scrolls or grows. */
-function logRow(): VirtualSlot<LogEntry> {
+function logRow(describe: (entry: LogEntry) => string): VirtualSlot<LogEntry> {
   const label = new State('');
   const description = new State('');
   // An icon per kind, made the first time this row shows that kind.
@@ -254,7 +251,7 @@ function logRow(): VirtualSlot<LogEntry> {
         icon = next;
       }
       label.set(e.text);
-      description.set(logDescription(e));
+      description.set(describe(e));
     },
   };
 }

@@ -38,7 +38,6 @@ defineStyles('stage/stage.module.css', `@layer msui.components {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  container: msui-stage / inline-size;
 }
 
 .msui-stage-canvas {
@@ -162,14 +161,14 @@ defineStyles('stage/stage.module.css', `@layer msui.components {
   }
 }
 
-@container msui-stage (width < 480px) {
-  .msui-stage-bottom {
+.msui-stage-stage[data-compact] {
+  & .msui-stage-bottom {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "status status"
                          "chips corner";
   }
 
-  .msui-stage-chips {
+  & .msui-stage-chips {
     justify-content: flex-start;
   }
 }

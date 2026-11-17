@@ -40,8 +40,8 @@ const shellWith = (options = {}) => {
   const s = new ShellModel(options);
   s.registerViews([
     def('home', { place: 'head' }),
-    def('stage', { title: 'Stage B', stage: true, home: 'stage', instances: 'many' }),
-    def('plot', { home: 'stage', stageSide: 'bottom' }),
+    def('stage', { title: 'Stage B', canvas: true, home: 'stage', instances: 'many' }),
+    def('plot', { home: 'stage', region: { side: 'bottom' } }),
     def('panel'),
   ]);
   return s;
@@ -54,8 +54,8 @@ describe('a maximize follows the layout', () => {
     const s = shellWith();
     s.show('stage', { key: 'b' });
     s.show('plot');
-    s.maximize(groupOf(s, 'plot'));
-    expect(s.maximized.value).toBe(groupOf(s, 'plot'));
+    s.maximize('plot');
+    expect(s.maximized.value).toBe('plot');
     s.float('plot');
     expect(s.maximized.value).toBeUndefined();
   });
@@ -64,14 +64,14 @@ describe('a maximize follows the layout', () => {
     const s = shellWith();
     s.show('stage', { key: 'b' });
     const g1 = groupOf(s, 'stage#b');
-    s.maximize(g1);
+    s.maximize('stage#b');
     s.show('plot');
     expect(findView(s.layout.value, 'plot')).toBeDefined();
     expect(s.maximized.value).toBeUndefined();
-    // Into the maximized group itself: it stays.
-    s.maximize(g1);
+    // Into the maximized pane's group itself: it stays, on what the group shows now.
+    s.maximize('stage#b');
     s.move('panel', { kind: 'group', id: g1 });
-    expect(s.maximized.value).toBe(g1);
+    expect(s.maximized.value).toBe('panel');
   });
 
   it('a window’s view maximized ends when it docks; a restore without the pane ends it', () => {
@@ -83,12 +83,13 @@ describe('a maximize follows the layout', () => {
     s.dock('stage#b');
     expect(s.maximized.value).toBeUndefined();
     s.show('plot');
-    s.maximize(groupOf(s, 'plot'));
+    s.maximize('plot');
     const stored = s.save();
     s.close('plot');
     expect(s.maximized.value).toBeUndefined();
     s.restore(stored);
-    s.maximize(groupOf(s, 'plot'));
+    s.maximize('plot');
+    expect(s.maximized.value).toBe('plot');
     s.restore({ ...stored, root: { kind: 'main', id: 'main' } });
     expect(s.maximized.value).toBeUndefined();
   });
@@ -134,7 +135,6 @@ describe('the active pane follows the layout', () => {
     expect(max.when?.(undefined)).toBe(true);
     max.run({}, undefined, new AbortController().signal);
     expect(s.maximized.value).toBe('stage#b');
-    expect(s.maximizeTarget('content')).toBe('content');
   });
 });
 
@@ -162,7 +162,7 @@ describe('what is kept for a pane', () => {
     s.setActivePane('stage#b');
     expect(port.status.value).toMatchObject({ active: true, several: true });
     port.toggleMaximized();
-    expect(s.maximized.value).toBe(groupOf(s, 'stage#b'));
+    expect(s.maximized.value).toBe('stage#b');
     // A title set before the view is placed stays (only a ref that leaves loses it).
     s.setPaneTitle('stage#c', 'Stage C');
     s.show('plot');
@@ -181,10 +181,11 @@ describe('select and Show keep an instance’s key', () => {
     expect(keyOf('stage')).toBeUndefined();
   });
 
-  it('the rail menu’s Show brings back that instance', () => {
+  it('the rail menu’s Show brings back that instance (hidden in a stored layout)', () => {
     const s = shellWith();
     s.show('stage', { key: 'x' });
-    s.hide('stage#x');
+    s.restore({ ...s.save(), hidden: ['stage#x'] });
+    expect(s.layout.value.hidden).toEqual(['stage#x']);
     const show = railMenu(s, undefined).find((i) => i.id === 'show:stage#x')!;
     expect(show.label).toBe('Show Stage B');
     show.run?.();
@@ -296,7 +297,7 @@ describe('the shell’s words (shell §6)', () => {
     expect(viewMenu(s, 'panel').find((i) => i.id === 'float')!.label).toBe('Flotter');
     s.show('plot');
     expect(paneMenu(s, 'plot').find((i) => i.id === 'maximize')!.label).toBe('Agrandir');
-    s.hide('panel');
+    s.close('panel');
     expect(railMenu(s, undefined).find((i) => i.id === 'show:panel')!.label).toBe('Montrer Panel');
     const commands = shellCommands(s);
     expect(commands.find((c) => c.id === 'view.grid-panes')!.title).toBe('Grille');

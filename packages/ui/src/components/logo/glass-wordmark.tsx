@@ -8,6 +8,7 @@
 
 import type { GlassTiming } from './glass.js';
 import { GlassMark } from './glass-mark.js';
+import type { WordmarkLabels } from './wordmark.js';
 
 /** How far the pieces travel, as a factor of a splash's: a heading has little room. */
 const Travel = 0.35;
@@ -28,6 +29,8 @@ export function GlassWordmark(props: {
   class?: string;
   /** Whether it assembles as it shows (asked each time it shows); otherwise it shows whole. Default: always. */
   assemble?: () => boolean;
+  /** Its accessible name (`mark`: the word it draws). */
+  labels?: Partial<WordmarkLabels>;
 }): Node {
   return (
     <GlassMark
@@ -38,6 +41,7 @@ export function GlassWordmark(props: {
       timing={Quick}
       assemble={props.assemble}
       class={props.class}
+      labels={props.labels}
     />
   ) as Node;
 }

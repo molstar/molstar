@@ -14,6 +14,7 @@ import { state } from '../../../state.js';
 import { lostReleases, stubPointerCapture } from '../../../testing/gestures.js';
 import { LineGraphRow } from '../extra-controls.js';
 import type { FieldBinding } from '../field-binding.js';
+import { DefaultParamsFormLabels } from '../labels.js';
 
 beforeAll(stubPointerCapture);
 afterEach(() => {
@@ -32,7 +33,15 @@ describe('LineGraphRow', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(
-      () => <LineGraphRow head="Curve" label="Curve" param={PD.LineGraph(start as never)} binding={binding} />,
+      () => (
+        <LineGraphRow
+          head="Curve"
+          label="Curve"
+          param={PD.LineGraph(start as never)}
+          binding={binding}
+          labels={DefaultParamsFormLabels}
+        />
+      ),
       container,
     );
     container.querySelector<HTMLButtonElement>('[aria-label=Curve]')!.click();

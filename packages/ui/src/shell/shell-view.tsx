@@ -41,8 +41,9 @@ import {
 import { classes } from './_generated/shell.module.css.js';
 import {
   TopGroup,
+  DefaultColumnSize,
   DefaultGroupSize,
-  dockedGroups,
+  DefaultWindowSize,
   findGroup,
   MinGroupSize,
   MinPaneSize,
@@ -76,7 +77,10 @@ import {
 import { viewBody, viewContext, ViewFrame } from './view-frame.js';
 import { paneMenu, railMenu, viewMenu, type WindowAdjust } from './view-menu.js';
 
-/** What holds the app (shell §3.6, busy): a label, a progress 0–1 (none: indeterminate), a cancel. */
+/**
+ * What holds the app (shell §3.6, busy): a label, a progress 0–1 (none: indeterminate), a cancel. The overlay shows the
+ * current value: a task replacing another changes its label, its progress and its Cancel (shown while it has one).
+ */
 export interface ShellBusy {
   readonly label: string;
   readonly progress?: number;
@@ -102,11 +106,9 @@ export interface ShellViewProps {
   readonly over?: { readonly status?: () => Child; readonly corner?: () => Child };
   /** While set, a scrim and its card hold the app. */
   readonly busy?: ReadonlyState<ShellBusy | undefined>;
-  /** Files dropped anywhere on the shell; without it, no drop overlay. */
+  /** Files dropped anywhere on the shell; without it, no drop overlay (it says `labels.dropFiles`). */
   readonly onDropFiles?: (files: File[]) => void;
-  /** What the drop overlay says. */
-  readonly dropLabel?: string;
-  /** What can be dropped, a hint under the label ("PDB, mmCIF, sessions"). */
+  /** What can be dropped, a hint under the overlay's words (a list of formats). */
   readonly dropFormats?: string;
   /**
    * How far Expand reaches (shell §3.9): `shell` (default: the main area takes the shell's box) or `page` (the shell
@@ -134,16 +136,14 @@ export interface ShellViewProps {
    * row's card beside its view, `data-tip-row`). Off when the app installs its own around the shell.
    */
   readonly tooltips?: boolean;
-  /** The shell's accessible name (its region). */
-  readonly label?: string;
   readonly class?: string;
 }
 
 /**
- * The shell (shell §1–4): the app's main area with the docked layout around it (the right column of groups, the rail
- * at the edge), windows over the main area, a card in the right column's place, a page over the main area, a modal
- * over everything; compact below its compact width (the views in a bottom sheet). Mode by its own width, the rail's
- * steps by its height.
+ * The shell (shell §1–4): the app's main area (its region of panes) with the docked layout around it (the right column
+ * of groups, the rail at the edge), windows over the main area, a card in the right column's place, a page over the
+ * main area, a modal over everything; compact below its compact width (the views in a bottom sheet). Mode by its own
+ * width, the rail's steps by its height. Its accessible name is `labels.workspace`.
  */
 export function ShellView(props: ShellViewProps) {
   const { shell } = props;
@@ -204,7 +204,7 @@ export function ShellView(props: ShellViewProps) {
       class={props.class ? `${classes.shell} ${props.class}` : classes.shell}
       role="application"
       aria-roledescription={t.workspaceRole}
-      aria-label={props.label ?? t.workspace}
+      aria-label={t.workspace}
       data-msui-shell=""
     />
   ) as HTMLElement;
@@ -220,7 +220,7 @@ export function ShellView(props: ShellViewProps) {
   // out of a maximized pane.
   on<KeyboardEvent>(root, 'keydown', (e) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
-    if (shell.expanded.value) shell.collapseExpanded();
+    if (shell.expanded.value) shell.toggleExpanded(false);
     else if (shell.maximized.value) shell.maximize(undefined);
     else return;
     e.preventDefault();
@@ -269,12 +269,13 @@ export function ShellView(props: ShellViewProps) {
         <ModalHost shell={shell} bodies={bodies} />
         {props.busy ? <BusyOverlay busy={props.busy} cancel={t.cancel} /> : null}
         {props.onDropFiles ? (
-          <FileDrop onDrop={props.onDropFiles} label={props.dropLabel ?? t.dropFiles} formats={props.dropFormats} />
+          <FileDrop onDrop={props.onDropFiles} label={t.dropFiles} formats={props.dropFormats} />
         ) : null}
       </>
     ) as Node,
   );
-  // The layers over the main area (in it in both modes): windows (desktop only), the page, the status slot.
+  // The layers over the main area (in it in both modes): windows (desktop only), a window's maximized pane, the page,
+  // the rail toggle.
   mainArea.append(
     (
       <>
@@ -399,6 +400,14 @@ class ViewBodies {
     for (const b of this.#bodies.values()) b.scope.dispose();
     this.#bodies.clear();
   }
+}
+
+/** Whether two lists of rail entries are the same buttons (ids, and the def or item each shows). */
+function sameEntries(a: readonly RailEntry[], b: readonly RailEntry[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((e, i) => e.id === b[i].id && e.view?.def === b[i].view?.def && e.item === b[i].item)
+  );
 }
 
 /** Whether two layouts place the same views (wherever). */
@@ -547,7 +556,9 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
   // The card: over the right column (the rail beside it), or at the main area's right edge.
   const cardWidth = derive(shell.layout, (l) => {
     const col = rightColumn(l);
-    return col && l.rail && (col.kind === 'group' || col.kind === 'split') ? (col.size ?? 340) : 340;
+    return col && l.rail && (col.kind === 'group' || col.kind === 'split')
+      ? (col.size ?? DefaultColumnSize)
+      : DefaultColumnSize;
   });
   watch([cardWidth], () => dock.style.setProperty('--msui-shell-card', `${cardWidth.value}px`));
   dock.style.position = 'relative';
@@ -575,13 +586,14 @@ function Desktop(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
  */
 function Region(props: { shell: ShellModel; bodies: ViewBodies; content: HTMLElement; mark: boolean }) {
   const { shell, bodies } = props;
-  // The region's node shown alone: the maximized one, when it is the region's (a window's comes out over it instead).
-  const alone = (l: ShellLayout): string | undefined => {
+  // The region's node shown alone: the maximized pane's, when it is the region's (a window's comes out over it
+  // instead).
+  const alone = (): string | undefined => {
     const m = shell.maximized.value;
-    return m && (m === 'content' || inRegion(l, m)) ? m : undefined;
+    return m && shell.paneNode(m);
   };
-  // Several panes shown (a maximized one shows alone: no mark of being the active one).
-  const several = derive([shell.layout, shell.maximized], (l, m) => !!mainNode(l).root && !m);
+  // Several panes shown (the model's: of the panes that show; a maximized one shows alone, no mark of being active).
+  const several = derive(shell.paneStatus('content'), (s) => s.several);
   const marked = derive([shell.activePane, shell.layout], (p) => shell.paneNode(p));
   // The shell's own mark of the active pane (several panes); what a pane shows on its status is the pane's (`ctx.pane`).
   // Written as either changes and after each rebuild (the panes' wrappers are new then).
@@ -598,7 +610,7 @@ function Region(props: { shell: ShellModel; bodies: ViewBodies; content: HTMLEle
     rootOf: (l) => mainNode(l).root ?? { kind: 'content', id: 'content' },
     // Maximized (shell §2.1): only that pane and what holds it.
     away: (l, n) => {
-      const m = alone(l);
+      const m = alone();
       return !!m && !!mainNode(l).root && !holds(layoutIndex(l), n, m);
     },
     sources: [shell.maximized],
@@ -1101,7 +1113,7 @@ function GroupView(props: { shell: ShellModel; id: string; bodies: ViewBodies })
 }
 
 /**
- * A group in the main area's region (shell §2.1): a pane. A stage alone has no header (a canvas has no chrome above it;
+ * A group in the main area's region (shell §2.1): a pane. A canvas view alone has no header (no chrome above a canvas;
  * its pane's menu is the canvas's right-click, the app's); several views show their tabs; a panel shows its header. Its
  * ✕ closes its views (they leave the region; shown again they go home).
  */
@@ -1132,7 +1144,7 @@ function PaneGroupView(props: { shell: ShellModel; id: string; bodies: ViewBodie
               bodies={bodies}
               ref={ref}
               placement="stage"
-              head={def?.stage && !tabs ? 'none' : 'header'}
+              head={def?.canvas && !tabs ? 'none' : 'header'}
               tabs={tabs}
               headerRef={(el) => (header = el)}
               onClose={() => {
@@ -1288,10 +1300,18 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
       const tools = items.filter((i) => !absent.has(`item:${i.id}`));
       return railEntries(views, tools);
     },
-    (a, b) =>
-      a.length === b.length &&
-      a.every((e, i) => e.id === b[i].id && e.view?.def === b[i].view?.def && e.item === b[i].item),
+    sameEntries,
   );
+  // A button is its entry's id and what it shows (a view's def, an item): a view registered anew under its id (another
+  // title or icon) is a new button.
+  const versions = new WeakMap<object, number>();
+  let version = 0;
+  const entryKey = (e: RailEntry) => {
+    const o = e.view?.def ?? e.item!;
+    let v = versions.get(o);
+    if (v === undefined) versions.set(o, (v = ++version));
+    return `${e.id}|${v}`;
+  };
   const fit = derive(
     [entries, height],
     (e, h) => fitRail(e, h),
@@ -1370,7 +1390,7 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
     return el;
   };
   const run = (name: string, tablist = false) => {
-    const list = derive(entries, section(name), (a, b) => a.length === b.length && a.every((x, i) => x.id === b[i].id));
+    const list = derive(entries, section(name), sameEntries);
     // A section whose buttons are all under More draws nothing (no hairline of its own).
     const any = derive([list, fit], (l, f) => l.some((e) => !f.hidden.has(e.id)));
     return (
@@ -1384,7 +1404,7 @@ function Rail(props: { shell: ShellModel; hideable: boolean }) {
             // Named for people (its views, or tools), not by its internal section (`head`, `group:app`).
             aria-label={tablist ? shell.labels.railViews : shell.labels.railTools}
           >
-            <For each={list} by={(e) => e.id}>
+            <For each={list} by={entryKey}>
               {(e) => button(e)}
             </For>
           </div>
@@ -1699,7 +1719,7 @@ function WindowView(props: { shell: ShellModel; bodies: ViewBodies; id: string; 
                     resetPosition: () => {
                       const def = shell.view(ref);
                       const area = shell.area.value;
-                      const size = def?.size ?? { width: 360, height: 320 };
+                      const size = def?.size ?? DefaultWindowSize;
                       shell.setWindowRect(id, {
                         x: Math.max(0, (area.width - size.width) / 2),
                         y: Math.max(0, (area.height - size.height) / 2),
@@ -1773,7 +1793,7 @@ function MaximizedHost(props: { shell: ShellModel; bodies: ViewBodies }) {
             bodies={bodies}
             ref={ref}
             placement="stage"
-            head={shell.view(ref)?.stage ? 'none' : 'header'}
+            head={shell.view(ref)?.canvas ? 'none' : 'header'}
             onClose={() => shell.maximize(undefined)}
           />
         </div>
@@ -1802,7 +1822,7 @@ function CardHost(props: { shell: ShellModel; bodies: ViewBodies; into: HTMLElem
           dismissable({
             layer: () => el,
             anchor: open.anchor,
-            close: () => shell.closeCard(),
+            close: () => shell.close(open.ref),
             outside: !open.def.persistent,
             // Escape anywhere is the card's, but not with the focus in a window or a dialog: that one's (shell §3.6).
             ownsKey: (e) => !(eventTarget(e) as Element | null)?.closest?.('[data-window], [role="dialog"]'),
@@ -1815,7 +1835,7 @@ function CardHost(props: { shell: ShellModel; bodies: ViewBodies; into: HTMLElem
                 bodies={props.bodies}
                 ref={open.ref}
                 placement="card"
-                onClose={() => shell.closeCard()}
+                onClose={() => shell.close(open.ref)}
               />
             </div>
           ) as HTMLElement;
@@ -1841,7 +1861,7 @@ function PageHost(props: { shell: ShellModel; bodies: ViewBodies }) {
         let el!: HTMLElement;
         const restore = rememberFocus(() => open.anchor as HTMLElement | undefined);
         onCleanup(() => restore(el));
-        dismissable({ layer: () => el, close: () => shell.closePage(), outside: false, ownsKey: () => true });
+        dismissable({ layer: () => el, close: () => shell.close(open.ref), outside: false, ownsKey: () => true });
         el = (
           <div class={classes.page} role="region" aria-label={open.def.title} tabIndex={-1}>
             <KeptFrame
@@ -1849,7 +1869,7 @@ function PageHost(props: { shell: ShellModel; bodies: ViewBodies }) {
               bodies={props.bodies}
               ref={open.ref}
               placement="page"
-              onClose={() => shell.closePage()}
+              onClose={() => shell.close(open.ref)}
             />
           </div>
         ) as HTMLElement;
@@ -1869,7 +1889,7 @@ function ModalHost(props: { shell: ShellModel; bodies: ViewBodies }) {
         let el!: HTMLElement;
         const restore = rememberFocus(() => open.anchor as HTMLElement | undefined);
         onCleanup(() => restore(el));
-        dismissable({ layer: () => el, close: () => shell.closeModal(), outside: false, ownsKey: () => true });
+        dismissable({ layer: () => el, close: () => shell.close(open.ref), outside: false, ownsKey: () => true });
         const scrim = (
           <div class={classes.scrim}>
             <div
@@ -1885,7 +1905,7 @@ function ModalHost(props: { shell: ShellModel; bodies: ViewBodies }) {
                 bodies={props.bodies}
                 ref={open.ref}
                 placement="modal"
-                onClose={() => shell.closeModal()}
+                onClose={() => shell.close(open.ref)}
               />
             </div>
           </div>
@@ -1903,15 +1923,16 @@ function ModalHost(props: { shell: ShellModel; bodies: ViewBodies }) {
 
 /**
  * What holds the app (shell §3.6, busy): a scrim and one card, the rest inert (the shell's layout wrapper). A dialog:
- * the focus goes to it (its Cancel, else the card) and stays in it, and goes back when it ends.
+ * the focus goes to it (its Cancel, else the card) and stays in it, and goes back when it ends. It follows the current
+ * task: its label, its progress, and its Cancel (shown while the current one has `cancel`, and cancelling that one).
  */
 function BusyOverlay(props: { busy: ReadonlyState<ShellBusy | undefined>; cancel: string }) {
   // A new task replacing one (another label) keeps the overlay: shown while there is one.
   const some = derive(props.busy, (b) => !!b);
+  const cancellable = derive(props.busy, (b) => !!b?.cancel);
   return (
     <Show when={some} reveal="fade">
       {() => {
-        const b = props.busy.value!;
         let card!: HTMLElement;
         const restore = rememberFocus();
         onCleanup(() => restore(card));
@@ -1943,11 +1964,13 @@ function BusyOverlay(props: { busy: ReadonlyState<ShellBusy | undefined>; cancel
             <div class={classes.busyCard} tabIndex={-1} ref={(el: HTMLElement) => (card = el)}>
               <div class={classes.busyRow}>
                 <span style="flex: 1">{derive(props.busy, (x) => x?.label ?? '')}</span>
-                {b?.cancel ? (
-                  <Button size="sm" onClick={() => props.busy.value?.cancel?.()}>
-                    {props.cancel}
-                  </Button>
-                ) : null}
+                <Show when={cancellable}>
+                  {() => (
+                    <Button size="sm" onClick={() => props.busy.value?.cancel?.()}>
+                      {props.cancel}
+                    </Button>
+                  )}
+                </Show>
               </div>
               {progress}
             </div>
@@ -2025,13 +2048,20 @@ function FileDrop(props: { onDrop: (files: File[]) => void; label: string; forma
 // Compact
 
 /**
- * Compact (shell §3.7): the main area over a bottom sheet; the sheet shows the card, else the top window's view (a window
- * opens as a card here), else the open docked view; its bar holds the views marked `compactBar` and More (the rest).
+ * Compact (shell §3.7): the main area (its region's panes and top kept where they are) over a bottom sheet; the sheet
+ * shows the card, else the view picked last: a window's (a window is a card here) or one docked beside the main area;
+ * its bar holds those docked views marked `compactBar` and More (the rest).
  */
 function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLElement }) {
   const { shell } = props;
+  // The groups docked beside the main area: the region's and its top's views stay in the main area (their bodies are
+  // the panes').
+  const sideGroups = (l: ShellLayout) => {
+    const ix = layoutIndex(l);
+    return ix.docked.filter((g) => !ix.regionGroups.has(g.id));
+  };
   const all = derive([shell.layout, shell.absent, shell.views], (l) =>
-    dockedGroups(l).flatMap((g) => shownViews(shell, g)),
+    sideGroups(l).flatMap((g) => shownViews(shell, g)),
   );
   // What the sheet shows (besides a card): the view picked last, from the bar, More, a `show`, a window opened or
   // raised. Not an order of kinds: with a window open, a docked view picked from the bar still shows.
@@ -2040,7 +2070,7 @@ function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
     return top ? activeOf(shell, top.group) : undefined;
   });
   const openDocked = derive(shell.layout, (l) =>
-    dockedGroups(l)
+    sideGroups(l)
       .map((g) => (g.collapsed ? '' : (activeOf(shell, g) ?? '')))
       .join('|'),
   );
@@ -2060,7 +2090,8 @@ function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
     if (card) return { ref: card.ref, kind: 'card' as const };
     if (!ref || !shell.shows(ref)) return undefined;
     const place = findView(l, ref);
-    if (!place) return undefined;
+    // A pane (in the main area's region or on its top) shows there, not in the sheet.
+    if (!place || (!place.window && inRegion(l, place.group.id))) return undefined;
     return { ref, kind: place.window ? ('window' as const) : ('docked' as const) };
   });
   const key = derive(shown, (s) => (s ? `${s.kind}:${s.ref}` : ''));
@@ -2086,7 +2117,7 @@ function Compact(props: { shell: ShellModel; bodies: ViewBodies; main: HTMLEleme
                   placement="sheet"
                   onClose={
                     s.kind === 'card'
-                      ? () => shell.closeCard()
+                      ? () => shell.close(s.ref)
                       : s.kind === 'window'
                         ? () => {
                             picked.set(undefined);

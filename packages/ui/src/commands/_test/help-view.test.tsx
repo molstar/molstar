@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { flush, render } from '../../dom/index.js';
 import { axeViolations } from '../../testing/axe.js';
 import { HelpView } from '../help-view.js';
+import { KeysModel } from '../keys-model.js';
 import { KeyPlatform } from '../keys.js';
 import { CommandManager } from '../manager.js';
 import type { CommandDefinition, KeyBindings } from '../types.js';
@@ -60,7 +61,7 @@ function setup() {
   dispose = render(
     () => (
       <HelpView
-        commands={manager}
+        keys={new KeysModel(manager)}
         bindings={[{ title: 'Camera', bindings: [{ action: 'Rotate', input: ['Drag'], or: ['One finger'] }] }]}
       />
     ),
@@ -179,12 +180,30 @@ describe('the help view', () => {
     document.body.append(container);
     dispose = render(
       () => (
-        <HelpView commands={manager} labels={{ everywhere: 'Partout', closeAction: 'Fermer', commands: 'Commandes' }} />
+        <HelpView
+          keys={new KeysModel(manager)}
+          labels={{ everywhere: 'Partout', closeAction: 'Fermer', commands: 'Commandes' }}
+        />
       ),
       container,
     );
     expect(container.querySelector('[aria-label="Partout"]')?.textContent).toContain('Fermer');
     expect(container.querySelector('[aria-label="Commandes"]')).not.toBeNull();
+  });
+
+  it('says a key change in the words of the keys model it is given', () => {
+    const manager = new CommandManager<object>({
+      context: new State<object>({}).asReadonly,
+      formats: { get: () => undefined },
+    });
+    manager.register([{ id: 'next', title: 'Suivant', category: 'Test', shortcut: { key: 'n' }, run: () => ({}) }]);
+    const keys = new KeysModel(manager, { labels: { cleared: (c) => `${c} : aucune touche.` } });
+    const container = document.createElement('div');
+    document.body.append(container);
+    dispose = render(() => <HelpView keys={keys} />, container);
+    keys.clear('next');
+    flush();
+    expect(container.querySelector('[role="status"]')?.textContent).toBe('Suivant : aucune touche.');
   });
 
   it('is accessible (axe), changing keys too', async () => {

@@ -148,7 +148,7 @@ describe('shell review regressions', () => {
     flush();
     expect(m.groupNode('right')?.hasAttribute('inert')).toBe(true);
     expect(m.probes.layers.scope?.active).toBe(false);
-    m.shell.closeCard();
+    m.shell.close('export');
     flush();
     expect(m.groupNode('right')?.hasAttribute('inert')).toBe(false);
     m.shell.float('inspect');
@@ -164,7 +164,7 @@ describe('shell review regressions', () => {
     m.shell.splitBelow('inspect');
     const lower = findView(m.shell.layout.value, 'inspect')!.group.id;
     m.shell.move('settings', { kind: 'group', id: lower });
-    m.shell.hide('settings');
+    m.shell.close('settings');
     m.shell.closeGroup(lower);
     expect(m.shell.layout.value.hidden).toEqual(['settings']);
     expect(railGroup(m.shell.layout.value)?.views).toContain('settings');
@@ -200,23 +200,25 @@ describe('shell review regressions', () => {
     m.dispose();
   });
 
-  it('a stored layout with a broken stacking order is read with a sane one', () => {
-    const l = validateLayout({
+  it('a stored layout with a stacking order out of sequence is read renumbered; one with no number is refused', () => {
+    const rect = { x: 0, y: 0, width: 300, height: 200 };
+    const stored = (za: number, zb: number) => ({
       version: 1,
       root: { kind: 'main', id: 'main' },
       windows: [
-        {
-          group: { kind: 'group', id: 'a', views: ['x'] },
-          rect: { x: 0, y: 0, width: 300, height: 200 },
-          z: Number.NaN,
-        },
-        { group: { kind: 'group', id: 'b', views: ['y'] }, rect: { x: 0, y: 0, width: 300, height: 200 }, z: 1 },
+        { group: { kind: 'group', id: 'a', views: ['x'] }, rect, z: za },
+        { group: { kind: 'group', id: 'b', views: ['y'] }, rect, z: zb },
       ],
       hidden: [],
       rail: true,
       seq: 1,
-    })!;
-    expect(l.windows.map((w) => w.z).every(Number.isFinite)).toBe(true);
+    });
+    const l = validateLayout(stored(7, 3))!;
+    expect(l.windows.map((w) => [w.group.id, w.z])).toEqual([
+      ['b', 1],
+      ['a', 2],
+    ]);
+    expect(validateLayout(stored(Number.NaN, 1))).toBeUndefined();
   });
 
   it('a section shows while its `when` holds, asked again as its `whenChanged` changes', async () => {

@@ -83,7 +83,8 @@ export function passesLog(e: LogEntry, filter: LogFilter, query: string): boolea
 /**
  * The list within `size`, oldest first (log §2): past it, the oldest entries go, warnings and errors last, so a burst
  * (a load's hundreds of entries) never pushes a problem out while anything else is left to drop. Only when the
- * problems alone fill the bound do the oldest problems go. One pass, one array.
+ * problems alone fill the bound do the oldest problems go, and then the newest entry still stays: what was just
+ * written always shows. One pass, one array.
  */
 export function boundLog(list: readonly LogEntry[], size: number): readonly LogEntry[] {
   if (list.length <= size) return list;
@@ -91,8 +92,11 @@ export function boundLog(list: readonly LogEntry[], size: number): readonly LogE
   for (const e of list) if (isProblem(e)) problems++;
   const out: LogEntry[] = [];
   if (problems >= size) {
-    let skip = problems - size;
+    const last = list[list.length - 1];
+    const keepLast = !isProblem(last);
+    let skip = problems - (keepLast ? size - 1 : size);
     for (const e of list) if (isProblem(e) && skip-- <= 0) out.push(e);
+    if (keepLast) out.push(last);
     return out;
   }
   let skip = list.length - size;

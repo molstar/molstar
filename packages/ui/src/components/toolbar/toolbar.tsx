@@ -128,6 +128,32 @@ export interface ToolbarProps {
   class?: string;
 }
 
+/**
+ * A button's menu led by its own action (a tap's menu on touch; a folded toolbar's submenu, stage §3.2): a row running
+ * `run` under the button's face as it is now (id `${item.id}:run`), unless the item has no action or a row of the menu
+ * already is it (by id: the item's, or its own row's). A row that only shares its label stays (a label is not an
+ * identity: two actions may read the same).
+ */
+export function withOwnAction(
+  item: ToolbarItem,
+  rows: readonly ToolbarMenuRow[],
+  anchor: () => HTMLElement,
+): readonly ToolbarMenuRow[] {
+  if (!item.run) return rows;
+  const id = `${item.id}:run`;
+  for (const r of rows) if (r.id === id || r.id === item.id) return rows;
+  const face = item.face?.value;
+  const own: ToolbarMenuRow = {
+    id,
+    label: face?.title ?? item.title,
+    icon: face?.icon ?? item.icon,
+    group: '\u0000own',
+    ...(item.pressed ? { pressed: item.pressed } : {}),
+    run: () => item.run?.(anchor()),
+  };
+  return [own, ...rows];
+}
+
 /** How long a menu stays after the pointer leaves its button or itself: time to travel between them. */
 export const MenuCloseDelayMs = 160;
 /** A menu's distance from its button (px): a block's padding (`--msui-surface-pad`) and a unit clear of the block. */
@@ -393,17 +419,7 @@ function ToolbarMenu(props: { open: OpenMenu; menus: ToolbarMenus; side: Toolbar
   const { item, button } = open;
   const rows = held(item.menu, [] as readonly ToolbarMenuRow[]);
   // Opened by a tap on a button with its own action: that action first (the tap did not run it).
-  const own: ToolbarMenuRow | undefined =
-    open.touch && item.run
-      ? {
-          id: `${item.id}:run`,
-          label: item.face?.value.title ?? item.title,
-          icon: item.face?.value.icon ?? item.icon,
-          group: '\u0000own',
-          ...(item.pressed ? { pressed: item.pressed } : {}),
-          run: () => item.run?.(button),
-        }
-      : undefined;
+  const anchor = () => button;
   // Closed while it had the focus (Esc, a choice): the focus goes back to its button, not to the page.
   let hadFocus = false;
   const vertical = props.side === 'left' || props.side === 'right';
@@ -423,7 +439,7 @@ function ToolbarMenu(props: { open: OpenMenu; menus: ToolbarMenus; side: Toolbar
       <Show when={rows}>
         {(list) => (
           <MenuLevel
-            rows={own ? [own, ...list] : list}
+            rows={open.touch ? withOwnAction(item, list, anchor) : list}
             label={item.face?.value.title ?? item.title}
             menus={menus}
             back={vertical ? () => menus.hide() : undefined}

@@ -9,7 +9,8 @@
 import { frames, observeIntersection, on, onActive, onCleanup } from '../../dom/index.js';
 import { classes } from './_generated/glass-mark.module.css.js';
 import { Glass, type GlassColors, type GlassTiming } from './glass.js';
-import { WordmarkGeometry } from './wordmark.js';
+import { onThemeChange } from './theme-change.js';
+import { DefaultWordmarkLabels, WordmarkGeometry, type WordmarkLabels } from './wordmark.js';
 
 /** The reduced-motion query, where there is one (followed: a change while the mark shows takes effect at once). */
 function reducedMotionQuery(): MediaQueryList | undefined {
@@ -30,17 +31,18 @@ export interface GlassMarkProps {
   /** Whether it assembles as it shows (asked each time it shows); otherwise it shows whole. Default: always. */
   assemble?: () => boolean;
   class?: string;
-  /** Marks the root (`data-msui-splash`, …). */
-  data?: string;
+  /** Its accessible name (`mark`: the word it draws). */
+  labels?: Partial<WordmarkLabels>;
 }
 
 /**
- * The Mol* wordmark as glass (`glass.ts`), the one frame loop under `GlassWordmark` (a heading) and `Splash` (a stage).
+ * The Mol* wordmark as glass (`glass.ts`), the one frame loop under `GlassWordmark` (a heading) and `GlassSplash` (a stage).
  * Each time it shows (its scope becomes active) it assembles from its pieces; they lean under the pointer, and a press
  * shatters it for a moment before it gathers again. It draws only while something moves, in the page's one frame tick
  * (`frames`): at rest, with a pointer resting over it, hidden (its scope paused) or off screen (`IntersectionObserver`)
  * it asks for no frames. Under reduced motion (followed as it changes), or with nothing to draw with, one still frame of
- * the word whole.
+ * the word whole. Its colors (CSS) and its pixel ratio are read as it shows and again when the theme or the ratio
+ * changes, never a frame.
  */
 export function GlassMark(props: GlassMarkProps): Node {
   const scale = Math.max(1, Math.round(props.scale));
@@ -67,13 +69,12 @@ export function GlassMark(props: GlassMarkProps): Node {
       class={props.class ? `${classes.mark} ${props.class}` : classes.mark}
       style={{ width: `${width}px`, height: `${height}px` }}
       role="img"
-      aria-label="Mol*"
+      aria-label={props.labels?.mark ?? DefaultWordmarkLabels.mark}
     >
       {canvas}
       {probes}
     </span>
   ) as HTMLElement;
-  if (props.data) root.setAttribute(props.data, '');
 
   const ctx = canvas.getContext('2d');
   const noDrawing = typeof Path2D !== 'function' || !ctx;
@@ -114,6 +115,8 @@ export function GlassMark(props: GlassMarkProps): Node {
   let wanted = false;
   /** Shown again: prepared and assembled at the next frame (once it is in the page). */
   let fresh = false;
+  /** The theme or the pixel ratio changed: prepared again (colors, size) and drawn at the next frame. */
+  let stale = false;
   const tick = (now: number) => {
     if (!active) return;
     if (!onScreen) {
@@ -126,6 +129,9 @@ export function GlassMark(props: GlassMarkProps): Node {
       prepare();
       if (!still && (props.assemble?.() ?? true)) glass.scatter(props.timing);
       last = 0;
+    } else if (stale) {
+      stale = false;
+      prepare();
     }
     if (!still) {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
@@ -165,25 +171,60 @@ export function GlassMark(props: GlassMarkProps): Node {
     });
   }
 
+  // The theme or the pixel ratio changed (a theme switch, the window moved to another screen): read again as the next
+  // frame draws (a resting glass is drawn once more, in its new colors).
+  const restyle = () => {
+    stale = true;
+    loop.request();
+  };
   if (!noDrawing) {
-    // The pointer, in drawing units: the box is read when it comes in (not per move: no layout reads at pointer rate).
-    // Its listeners do nothing while still (reduced motion may turn off while it shows).
-    let box: DOMRect | undefined;
-    const at = (e: PointerEvent) => {
-      box ??= root.getBoundingClientRect();
-      return { u: (e.clientX - box.left) / scale - 1, v: (e.clientY - box.top) / scale - 1 };
+    onThemeChange(root, restyle);
+    // The ratio's query is for the ratio now: made again at each change (no listener while it holds).
+    let ratioQuery: MediaQueryList | undefined;
+    const followRatio = () => {
+      ratioQuery?.removeEventListener('change', onRatio);
+      ratioQuery =
+        typeof matchMedia === 'function'
+          ? matchMedia(`(resolution: ${globalThis.devicePixelRatio || 1}dppx)`)
+          : undefined;
+      if (typeof ratioQuery?.addEventListener === 'function') ratioQuery.addEventListener('change', onRatio);
+      else ratioQuery = undefined;
     };
-    on(root, 'pointerenter', () => {
-      box = root.getBoundingClientRect();
-    });
+    const onRatio = () => {
+      followRatio();
+      restyle();
+    };
+    followRatio();
+    onCleanup(() => ratioQuery?.removeEventListener('change', onRatio));
+  }
+
+  if (!noDrawing) {
+    // The pointer, in drawing units, from the box's corner as numbers: read when the pointer comes in and again after
+    // anything scrolls or the window resizes (the box moved under a resting pointer), never per move; nothing is made
+    // per move (no object, no rect). Its listeners do nothing while still (reduced motion may turn off).
+    let boxLeft = 0;
+    let boxTop = 0;
+    let boxRead = false;
+    const readBox = () => {
+      const r = root.getBoundingClientRect();
+      boxLeft = r.left;
+      boxTop = r.top;
+      boxRead = true;
+    };
+    const moved = () => {
+      boxRead = false;
+    };
+    on(root, 'pointerenter', readBox);
+    on(root.ownerDocument, 'scroll', moved, { capture: true, passive: true });
+    if (root.ownerDocument.defaultView) on(root.ownerDocument.defaultView, 'resize', moved, { passive: true });
     on<PointerEvent>(root, 'pointermove', (e) => {
       if (still) return;
-      const p = at(e);
-      glass.setPointer(p.u, p.v);
+      if (!boxRead) readBox();
+      glass.setPointer((e.clientX - boxLeft) / scale - 1, (e.clientY - boxTop) / scale - 1);
       loop.request();
     });
     on(root, 'pointerleave', () => {
-      box = undefined;
+      boxRead = false;
       if (still) return;
       glass.clearPointer();
       loop.request();
@@ -193,8 +234,8 @@ export function GlassMark(props: GlassMarkProps): Node {
       // A press is the glass's: no text selection starts there (a double press selected the words around it). Not
       // stopped: what listens around it (a layer closing on a press outside) still hears it.
       e.preventDefault();
-      const p = at(e);
-      glass.shatter(p.u, p.v);
+      if (!boxRead) readBox();
+      glass.shatter((e.clientX - boxLeft) / scale - 1, (e.clientY - boxTop) / scale - 1);
       loop.request();
     });
   }

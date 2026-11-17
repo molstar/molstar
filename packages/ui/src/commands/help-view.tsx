@@ -14,8 +14,7 @@ import { type Child, For, Show, timeout } from '../dom/index.js';
 import { ViewHeading, ViewStack } from '../shell/view-frame.js';
 import { classes } from './_generated/help-view.module.css.js';
 import { chordFromEvent, chordKeys } from './keys.js';
-import { type InputBinding, type InputBindingGroup, KeysModel } from './keys-model.js';
-import type { CommandManager } from './manager.js';
+import type { InputBinding, InputBindingGroup, KeysModel } from './keys-model.js';
 import type { CommandDefinition } from './types.js';
 
 export type { InputBinding, InputBindingGroup } from './keys-model.js';
@@ -83,20 +82,20 @@ const defaultGlobalKeys = (l: HelpLabels): readonly InputBinding[] => [
  * Help (commands §6.6): an app's prose (`intro`), shortcut conflicts first, the app's input bindings (mouse, touch), the
  * keys that work everywhere, then every command with a key after the keymap. "Change keys" records, clears or resets a
  * command's key, or gives one to a command without; a polite live region says what each did. The state and every
- * change are a `KeysModel`'s (DOM-free); this renders it, in a view's body (no scroll of its own, styles §8.4).
+ * change, and what a change says (`KeysLabels`), are the `keys` model's (DOM-free); this renders it, in a view's body
+ * (no scroll of its own, styles §8.4).
  */
 export function HelpView(props: {
-  commands: CommandManager<any>;
+  /** The keys over the app's command manager (`new KeysModel(commands, { labels })`): an agent or a test drives it. */
+  keys: KeysModel<any>;
   bindings?: readonly InputBindingGroup[];
   /** The keys that work everywhere (the app's command menu key, Help's own); default Esc and Tab. */
   global?: readonly InputBinding[];
   intro?: () => Child;
-  /** The model, when the host keeps it (an agent or a test drives it); else the view's own. */
-  keys?: KeysModel<any>;
   labels?: Partial<HelpLabels>;
 }) {
   const l = { ...DefaultHelpLabels, ...props.labels };
-  const model = props.keys ?? new KeysModel(props.commands);
+  const model = props.keys;
   const conflicts = derive(model.conflicts, (c) => (c.length ? c : undefined));
   const recording = new KeyedSelector(model.recording);
   // Controlled: the command being recorded while it is keyless, else the placeholder again (after a key is taken or

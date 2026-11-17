@@ -13,11 +13,16 @@ import {
   allGroups,
   arrangeGrid,
   clampRect,
+  DefaultColumnSize,
   defaultLayout,
+  DefaultSplitSize,
+  DefaultTopSize,
+  DefaultWindowSize,
   findGroup,
   findView,
   type GroupNode,
   gridPeers,
+  type LayoutIndex,
   type LayoutNode,
   inRegion,
   inRightColumn,
@@ -54,8 +59,10 @@ import {
   type ViewRef,
 } from './layout.js';
 
-/** Where a view is shown (shell §3): it may look different in each. */
-/** Where a view shows (`stage`: a pane of the main area's region; `top`: overlaid on the content's top; shell §2.1). */
+/**
+ * Where a view shows (shell §3; it may look different in each): `stage`, a pane of the main area's region; `top`,
+ * overlaid on the content's top (shell §2.1).
+ */
 export type ViewPlacement = 'docked' | 'window' | 'card' | 'page' | 'modal' | 'sheet' | 'stage' | 'top';
 
 /** What a view is rendered with. */
@@ -70,7 +77,7 @@ export interface ShellViewContext {
   /** The section to bring into view (`show(id, { section })`), anew at each such `show`. */
   readonly focus: ReadonlyState<string | undefined>;
   readonly placement: ViewPlacement;
-  /** Closes it where it is (a card, a window, an instance; a docked view is hidden). */
+  /** Closes it where it is (`ShellModel.close`: a layer's view leaves it; a docked single view is hidden). */
   close(): void;
   /** Its pane's port (shell §2.1): what the layout tells the pane, and the little the pane tells the layout. */
   readonly pane: PanePort;
@@ -116,11 +123,11 @@ const NoInsets: PaneInsets = { bottomLeft: 0, bottomRight: 0 };
 
 /**
  * A pane's port (shell §2.1): the layout's side of a pane. The layout tells the pane where it stands (`status`, `insets`)
- * and does to it what a person does (expand, maximize, float, close); the pane tells the layout only its title. What a
- * pane holds (a stage, a plugin) is the app's: the layout never stores it (`PaneMap` keeps it, app side).
+ * and does to it what a person does (maximize, float, close); the pane tells the layout only its title. What a pane
+ * holds (a stage, a plugin) is the app's: the layout never stores it (`PaneMap` keeps it, app side).
  */
 export interface PanePort {
-  /** `content` (the app's main view) or a view's ref. */
+  /** The pane's id: `content` (the app's main view) or a view's ref (one kind of id in every pane API, shell §2.1). */
   readonly id: string;
   readonly status: ReadonlyState<PaneStatus>;
   readonly insets: ReadonlyState<PaneInsets>;
@@ -128,7 +135,8 @@ export interface PanePort {
   setTitle(title: string): () => void;
   /**
    * Shows it alone in the main area, or every pane again (shell §2.1): a pane of the region alone, a window's out of its
-   * window over the main area. The shell's chrome stays (that is `expand`, the shell's).
+   * window over the main area; nothing for a view that is no pane (docked beside the main area). The shell's chrome
+   * stays (that is `toggleExpanded`, the shell's).
    */
   toggleMaximized(): void;
   float(): void;
@@ -162,11 +170,17 @@ export interface ShellViewDef {
   readonly priority?: number;
   /** In the compact layout's bar (the rest go under More there). */
   readonly compactBar?: boolean;
-  /** Its size as a window (default 360 × 320) and the least it takes. */
+  /** Its size as a window (default `DefaultWindowSize`, 360 × 320). */
   readonly size?: { readonly width: number; readonly height: number };
+  /** The least size of a window holding it (every window rectangle the shell sets, `MinWindow` at least). */
   readonly minSize?: { readonly width: number; readonly height: number };
   /** Where it goes when first shown (default the right group). */
   readonly home?: ViewHome;
+  /**
+   * Its place in the main area's region, for `home: 'stage'` (`side` of the app's content, default right; `size` px,
+   * default `DefaultGroupSize`) and `home: 'top'` in a split (`size`, default `DefaultTopSize`; shell §2.1).
+   */
+  readonly region?: { readonly side?: StageSide; readonly size?: number };
   /** `many`: the app opens instances by a key, each its own place and state (two plots side by side). */
   readonly instances?: 'single' | 'many';
   /** False: its geometry is not part of a saved layout (it opens at its default place and size each time). */
@@ -176,13 +190,10 @@ export interface ShellViewDef {
   /** Its content takes the body's whole height and scrolls its own parts (the body does not scroll). */
   readonly fill?: boolean;
   /**
-   * A stage (shell §2.1): a canvas, not a panel. It fills its frame, and alone in its group in the main area's region it
+   * A canvas, not a panel (shell §2.1): alone in its pane (in the main area's region, or maximized out of a window) it
    * has no header (a lone canvas has no chrome above it; its menu is a right-click on its tab when it has one).
    */
-  readonly stage?: boolean;
-  /** With `home: 'stage'`: the side of the app's content it opens on (default right), and its size there (px). */
-  readonly stageSide?: StageSide;
-  readonly stageSize?: number;
+  readonly canvas?: boolean;
 }
 
 /** A section contributed to a slot of a view (an Export view's `export` slot): extensions add sections, not views. */
@@ -192,9 +203,6 @@ export interface ShellSection {
   readonly title: string;
   /** Its header's words when they follow what it offers. */
   readonly heading?: ReadonlyState<string>;
-  readonly icon?: IconName;
-  /** Words it is also found by. */
-  readonly keywords?: readonly string[];
   readonly order?: number;
   /** Shown only while this holds: asked again when the view's subject changes, and when `whenChanged` changes. */
   readonly when?: (ctx: ShellViewContext) => boolean;
@@ -248,7 +256,7 @@ export interface ShellOptions {
   readonly compactWidth?: number;
   /** The layout to start from (a stored one: `validateLayout` is applied); default: the right group. */
   readonly layout?: unknown;
-  /** The right group's width (default 340). */
+  /** The right group's width when it is made (default `DefaultColumnSize`, 340). */
   readonly size?: number;
   /** Where a `top` view goes (shell §2.1): `split` (default; above the content), `overlay` (on its top), or `both`. */
   readonly top?: TopMode;
@@ -286,7 +294,7 @@ export interface ShellLabels {
   readonly cancel: string;
   /** The compact layout's bar. */
   readonly compactBar: string;
-  /** The file drop's overlay (`ShellView`'s `dropLabel` replaces it). */
+  /** The file drop's overlay (`ShellView`'s `dropFormats` goes under it). */
   readonly dropFiles: string;
   /** A frame's ✕ and its ⋯ button. */
   readonly close: (title: string) => string;
@@ -424,9 +432,8 @@ export interface ShowOptions {
   readonly target?: LayoutTarget;
 }
 
-const DefaultWindow = { width: 360, height: 320 } as const;
-/** A `top` view's height in a split above the content (px: its header and a few rows). */
-const TopSize = 96;
+/** The main area's size while it is not measured (headless, before the first layout): where new windows are placed. */
+export const UnmeasuredArea = { width: 1200, height: 800 } as const;
 
 /** A view's ref: its id, or `id#key`. */
 export function viewRef(id: string, key?: string): ViewRef {
@@ -455,7 +462,7 @@ const isShownHome = (home: ViewHome | undefined) => home === 'float' || home ===
 /**
  * The shell's state (shell §2), DOM-free: what is registered (views, sections, rail items), the layout (a `State` of
  * a `ShellLayout`, the value an app saves and restores), what is open in the layers over it (a card, a page, a modal),
- * the mode. Operations are named for what a person does (show, select, move, float, dock, close, hide); each is one
+ * the mode. Operations are named for what a person does (show, select, move, float, dock, close); each is one
  * change of the layout.
  */
 export class ShellModel {
@@ -464,6 +471,8 @@ export class ShellModel {
   readonly #railItems = new State<readonly RailItem[]>([]);
   /** Views whose `visible` is false now: out of their strips, their places kept. */
   readonly #absent = new State<ReadonlySet<string>>(new Set());
+  /** The listener of each registered view's `visible` flag (one a view id: registering anew replaces it). */
+  readonly #visibleStops = new Map<string, () => void>();
   readonly #layout: State<ShellLayout>;
   readonly #defaultLayout: ShellLayout;
   readonly #card = new State<OpenLayer | undefined>(undefined);
@@ -480,8 +489,9 @@ export class ShellModel {
   readonly #focus = new Map<ViewRef, State<string | undefined>>();
   readonly #sectionOpen = new Map<string, boolean>();
   readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
-  /** Expanded (shell §3.9): the main area alone (`{}`), or one pane alone over the whole shell (`{ pane }`). */
+  /** Expanded (shell §3.9): the shell's chrome away, the main area takes the shell. */
   readonly #expanded = new State(false);
+  /** The pane shown alone (its id: `content` or a view's ref, shell §2.1). */
   readonly #maximized = new State<string | undefined>(undefined);
   /** A grid asked for before the main area had a size (`arrangeGrid`). */
   #gridPending: { columns?: number } | undefined;
@@ -503,7 +513,7 @@ export class ShellModel {
   readonly #railShown: ReadonlyState<boolean>;
   /** Each view's last window rectangle this session (a window closed and opened again comes back there). */
   readonly #lastRects = new Map<ViewRef, Rect>();
-  /** Several panes show (a region with a tree, none maximized): every pane's `several`. */
+  /** Several panes show (in the main area's region, none maximized): every pane's `several`. */
   readonly #several: ReadonlyState<boolean>;
   /** The panes in the main area's bottom corners (or the one shown alone): every pane's insets read it. */
   readonly #corners: ReadonlyState<{ readonly left?: string; readonly right?: string }>;
@@ -517,9 +527,9 @@ export class ShellModel {
     this.#fullscreenAvailable = new State<true | string>(this.labels.fullscreenUnavailable);
     this.#modeOption = options.mode ?? 'auto';
     this.#compactWidth = options.compactWidth ?? 720;
-    this.#size = options.size ?? 340;
+    this.#size = options.size ?? DefaultColumnSize;
     this.#top = options.top ?? 'split';
-    this.#defaultLayout = defaultLayout([], { size: options.size });
+    this.#defaultLayout = defaultLayout();
     this.#layout = new State(validateLayout(options.layout) ?? this.#defaultLayout);
     this.#mode = derive(this.#width, (w) =>
       this.#modeOption !== 'auto' ? this.#modeOption : w > 0 && w < this.#compactWidth ? 'compact' : 'desktop',
@@ -532,14 +542,15 @@ export class ShellModel {
       (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
     );
     this.#railShown = derive(this.#layout, (l) => l.rail);
-    this.#several = derive([this.#layout, this.#maximized], (l, m) => !!mainNode(l).root && !m);
+    // Of the panes that show (a group whose views are all flagged off or hidden is none), from the region's tree: a
+    // layout write that keeps it (a window's move, the right column's drag) asks nothing again (`normalize` keeps it).
+    const region = derive(this.#layout, (l) => mainNode(l).root);
+    const sources = [region, this.#maximized, this.#absent, this.#views, this.#hiddenViews] as const;
+    this.#several = derive(sources, (root, m) => !m && this.#regionPanes(root, 2) >= 2);
     this.#corners = derive(
-      [this.#layout, this.#maximized],
-      (l, maximized) => {
-        // Alone (maximized, in the region or out of its window): every corner is its.
-        const alone = maximized ? this.#paneOfNode(l, maximized) : undefined;
-        return alone !== undefined ? { left: alone, right: alone } : this.#cornerPanes(l);
-      },
+      sources,
+      // Alone (maximized, in the region or out of its window): every corner is its.
+      (root, maximized) => (maximized ? { left: maximized, right: maximized } : this.#cornerPanes(root)),
       (a, b) => a.left === b.left && a.right === b.right,
     );
   }
@@ -581,34 +592,47 @@ export class ShellModel {
   /**
    * Adds views; returns their undo (an extension unloads). A view with a docked home is placed there now, by its order
    * (unless the layout has it already: a stored layout keeps where the person put it); a view with another home waits
-   * for `show`.
+   * for `show`. A view registered again under its id replaces the one before (its `visible` flag followed instead);
+   * the undo of the one before then leaves it.
    */
   registerViews(defs: readonly ShellViewDef[]): () => void {
-    const stops: (() => void)[] = [];
     batch(() => {
-      for (const d of defs) {
-        if (!d.visible) continue;
-        const flag = d.visible;
-        const write = () => this.#setAbsent(d.id, !flag.value);
-        write();
-        stops.push(listen(flag, write));
-      }
       const next = new Map(this.#views.value);
-      for (const d of defs) next.set(d.id, d);
+      for (const d of defs) {
+        next.set(d.id, d);
+        this.#followVisible(d.id, d.visible);
+      }
       this.#views.set(next);
       this.#setLayout(this.#placeMissing(this.#layout.value, defs));
     });
-    return () => {
-      for (const stop of stops) stop();
-      const next = new Map(this.#views.value);
-      for (const d of defs) if (next.get(d.id) === d) next.delete(d.id);
-      for (const d of defs) if (d.visible) this.#setAbsent(d.id, false);
-      this.#views.set(next);
-      // Its place stays in the layout (a view that registers again lands there); what showed it in a layer goes.
-      for (const layer of [this.#card, this.#page, this.#modal]) {
-        if (layer.value && defs.includes(layer.value.def)) layer.set(undefined);
-      }
-    };
+    return () =>
+      batch(() => {
+        const next = new Map(this.#views.value);
+        const removed = new Set<string>();
+        for (const d of defs) {
+          // Registered anew since: that one stays.
+          if (next.get(d.id) !== d) continue;
+          next.delete(d.id);
+          removed.add(d.id);
+          this.#followVisible(d.id, undefined);
+        }
+        if (!removed.size) return;
+        this.#views.set(next);
+        // Its place stays in the layout (a view that registers again lands there); what showed it in a layer goes.
+        for (const layer of [this.#card, this.#page, this.#modal]) {
+          if (layer.value && removed.has(viewIdOf(layer.value.ref))) layer.set(undefined);
+        }
+      });
+  }
+
+  /** Follows a view's `visible` flag (none: present), the listener of the view registered before under its id stopped. */
+  #followVisible(id: string, flag: ReadonlyState<boolean> | undefined): void {
+    this.#visibleStops.get(id)?.();
+    this.#visibleStops.delete(id);
+    if (!flag) return this.#setAbsent(id, false);
+    const write = () => this.#setAbsent(id, !flag.value);
+    write();
+    this.#visibleStops.set(id, listen(flag, write));
   }
 
   /** Every single view with a docked home that the layout does not have, placed at its home by its order. */
@@ -622,10 +646,13 @@ export class ShellModel {
     return l;
   }
 
-  /** `ref` into its def's docked home group (made beside the main area when it is not there), at its order. */
-  #placeAtHome(layout: ShellLayout, ref: ViewRef, def: ShellViewDef, activate: boolean): ShellLayout {
-    if (def.home === 'stage' || def.home === 'top') return this.#placeInStage(layout, ref, def);
-    const home = typeof def.home === 'string' && !isLayerHome(def.home) && def.home !== 'float' ? def.home : RightGroup;
+  /**
+   * `ref` into a docked group (`into`, default its def's home: a group, else the right group; a `stage` or `top` home is
+   * the main area's region), at its order; a group that is not there is made beside the main area, on its right.
+   */
+  #placeAtHome(layout: ShellLayout, ref: ViewRef, def: ShellViewDef, activate: boolean, into?: string): ShellLayout {
+    if (into === undefined && (def.home === 'stage' || def.home === 'top')) return this.#placeInStage(layout, ref, def);
+    const home = into ?? (def.home && !isLayerHome(def.home) && !isShownHome(def.home) ? def.home : RightGroup);
     const place = findGroup(layout, home);
     let l: ShellLayout;
     if (place) {
@@ -643,7 +670,7 @@ export class ShellModel {
       // Placing is not opening: the group keeps showing what it showed, folded or not.
       if (!activate) l = setGroupState(l, home, place.group.active ?? ref, place.group.collapsed === true);
     } else {
-      // The default layout's empty right group is not kept (normalized away): it is made here, at the option's width.
+      // Made here (the default layout has no right group), at the option's width.
       l = moveView(layout, ref, { kind: 'edge', of: 'main', side: 'right', id: home, size: this.#size });
       if (!activate) l = setCollapsed(l, home, true);
     }
@@ -652,16 +679,13 @@ export class ShellModel {
 
   /** A view with a home in the main area's region, placed there (shell §2.1): beside the content, or on its top. */
   #placeInStage(layout: ShellLayout, ref: ViewRef, def: ShellViewDef): ShellLayout {
+    const size = def.region?.size;
     if (def.home === 'top') {
       return this.#top === 'split'
-        ? moveView(layout, ref, { kind: 'edge', of: 'content', side: 'top', size: def.stageSize ?? TopSize })
+        ? moveView(layout, ref, { kind: 'edge', of: 'content', side: 'top', size: size ?? DefaultTopSize })
         : moveView(layout, ref, { kind: 'top' });
     }
-    return moveView(layout, ref, { kind: 'edge', of: 'content', side: def.stageSide ?? 'right', size: def.stageSize });
-  }
-
-  get sectionsAll(): ReadonlyState<readonly ShellSection[]> {
-    return this.#sections.asReadonly;
+    return moveView(layout, ref, { kind: 'edge', of: 'content', side: def.region?.side ?? 'right', size });
   }
 
   /** The sections of a slot, by order. */
@@ -721,36 +745,86 @@ export class ShellModel {
   }
 
   /**
-   * Every layout write (shell §2.1): what refers to the layout follows it in the same batch. A maximize ends when its
-   * pane is no longer a region node nor a windowed view, and when `reveal` (a view shown or moved) lands in the region
-   * outside it (it would stay hidden behind the maximize); the active pane falls back to `content` when its ref is no
-   * longer a pane (closed, docked out of the main area); what was kept for a ref that left the layout and every layer
-   * goes (its port's states, its title; a port an app holds keeps working, and a new one is made on demand).
+   * Every layout write (shell §2, §2.1): the windows fitted (their views' least sizes, inside the main area), and what
+   * refers to the layout follows it in the same batch. The maximized and the active pane follow what their region
+   * group shows (a tab switch); a maximize ends when its pane is no longer one (closed, docked out of the main area)
+   * and when `reveal` (a view shown or moved) lands in the region outside it (it would stay hidden behind the
+   * maximize); the active pane falls back to `content` when its ref is no longer a pane. What was kept for a ref that
+   * left the layout and every layer goes (its port's states, its title, its subject and section focus; a port an app
+   * holds keeps working, and a new one is made on demand).
    */
-  #setLayout(next: ShellLayout, reveal?: ViewRef): void {
+  #setLayout(layout: ShellLayout, reveal?: ViewRef): void {
     const prev = this.#layout.value;
+    const next = this.#fitWindows(layout);
     if (next === prev) return;
     batch(() => {
       this.#layout.set(next);
       const ix = layoutIndex(next);
       const m = this.#maximized.value;
       if (m !== undefined) {
-        let valid = ix.views.get(m)?.window ? true : !!ix.main.root && (m === 'content' || ix.regionGroups.has(m));
-        const shown = reveal === undefined ? undefined : ix.views.get(reveal);
-        if (valid && shown && !shown.window && ix.regionGroups.has(shown.group.id)) {
-          // The top overlay shows on the content: a maximized content keeps it.
-          valid = m === shown.group.id || (m === 'content' && ix.main.top?.id === shown.group.id);
-        }
-        if (!valid) this.#maximized.set(undefined);
+        // Out of its window into the region, or out of the region into a window: no longer the pane maximized.
+        const moved = m !== 'content' && !!layoutIndex(prev).views.get(m)?.window !== !!ix.views.get(m)?.window;
+        this.#maximized.set(moved ? undefined : this.#followPane(ix, m, true, reveal));
       }
       const active = this.#activePane.value;
-      if (active !== 'content') {
-        const place = ix.views.get(active);
-        if (!place || (!place.window && !ix.regionGroups.has(place.group.id))) this.#activePane.set('content');
-      }
+      if (active !== 'content') this.#activePane.set(this.#followPane(ix, active, false) ?? 'content');
       const before = layoutIndex(prev).views;
-      for (const ref of before.keys()) if (!ix.views.has(ref) && !this.#layered(ref)) this.#forgetPane(ref);
+      for (const ref of before.keys()) {
+        if (ix.views.has(ref) || this.#layered(ref)) continue;
+        this.#forgetPane(ref);
+        this.#forgetState(ref);
+      }
     });
+  }
+
+  /**
+   * A pane id after a layout write (shell §2.1): itself, the view its region group shows now (a tab switch), or
+   * undefined when it is no pane (a pane: a view in a window or in the region, its top included; the content). The
+   * maximized one (`maximized`) is a pane that can show alone: not the top group's, not the content without a region;
+   * a view shown in the region outside it (`reveal`) ends it.
+   */
+  #followPane(ix: LayoutIndex, pane: string, maximized: boolean, reveal?: ViewRef): string | undefined {
+    let group: string | undefined;
+    let next = pane;
+    if (pane === 'content') {
+      if (maximized && !ix.main.root) return undefined;
+    } else {
+      const place = ix.views.get(pane);
+      if (!place) return undefined;
+      // A window's maximized view is held by its ref (out of its window); its active pane follows its tabs.
+      if (place.window) return maximized ? pane : (place.group.active ?? pane);
+      if (!(maximized ? ix.regionNodes : ix.regionGroups).has(place.group.id)) return undefined;
+      group = place.group.id;
+      next = place.group.active ?? pane;
+    }
+    if (reveal === undefined) return next;
+    const shown = ix.views.get(reveal);
+    if (!shown || shown.window || !ix.regionGroups.has(shown.group.id)) return next;
+    return shown.group.id === group || (pane === 'content' && ix.main.top?.id === shown.group.id) ? next : undefined;
+  }
+
+  /**
+   * The windows as a layout write leaves them (shell §2): each at least its views' least size (`minSize`), inside the
+   * main area when it is measured. The same layout when every window is.
+   */
+  #fitWindows(l: ShellLayout): ShellLayout {
+    const area = this.#area.value;
+    let next = l;
+    for (const w of l.windows) {
+      let { width, height } = w.rect;
+      for (const v of w.group.views) {
+        const min = this.view(v)?.minSize;
+        if (min) {
+          width = Math.max(width, min.width);
+          height = Math.max(height, min.height);
+        }
+      }
+      let r: Rect = width === w.rect.width && height === w.rect.height ? w.rect : { ...w.rect, width, height };
+      if (area.width && area.height) r = clampRect(r, area);
+      const same = r.x === w.rect.x && r.y === w.rect.y && r.width === w.rect.width && r.height === w.rect.height;
+      if (!same) next = setWindowRect(next, w.group.id, r);
+    }
+    return next;
   }
 
   /** Whether a ref is open in a layer (a card, a page, a modal). */
@@ -790,7 +864,9 @@ export class ShellModel {
   restore(value: unknown): boolean {
     const l = validateLayout(value);
     if (!l) return false;
-    this.#setLayout(this.#clampSizes(this.#placeMissing(this.#clampWindows(l), [...this.#views.value.values()])));
+    // A grid asked for before the main area was measured was the layout's being replaced.
+    this.#gridPending = undefined;
+    this.#setLayout(this.#clampSizes(this.#placeMissing(l, [...this.#views.value.values()])));
     return true;
   }
 
@@ -798,6 +874,7 @@ export class ShellModel {
   resetLayout(): void {
     batch(() => {
       this.#lastRects.clear();
+      this.#gridPending = undefined;
       this.#maximized.set(undefined);
       const l = this.#placeMissing(this.#defaultLayout, [...this.#views.value.values()]);
       // Embedded keeps its rail hidden (the host page drives it).
@@ -854,14 +931,16 @@ export class ShellModel {
   }
 
   /**
-   * A press on a view's button in its strip: shows it, or, when it is already the open one of an open group, folds the
-   * group (a rail's panel closes to the rail).
+   * A press on a view's button in its strip: shows it, or, when it is already the open one of an open group docked
+   * beside the main area, folds the group (a rail's panel closes to the rail). A pane's tab (in the main area's region,
+   * on its top) and a window's never fold: a pane has no strip to fold to.
    */
   select(ref: ViewRef): void {
-    const place = findView(this.#layout.value, ref);
+    const l = this.#layout.value;
+    const place = findView(l, ref);
     // Not placed: shown as what it is (an instance keeps its key).
     if (!place) return this.show(viewIdOf(ref), { key: keyOf(ref) });
-    if (place.group.active === ref && !place.group.collapsed && !place.window) {
+    if (place.group.active === ref && !place.group.collapsed && !place.window && !inRegion(l, place.group.id)) {
       this.#setLayout(setCollapsed(this.#layout.value, place.group.id, true));
       return;
     }
@@ -873,7 +952,12 @@ export class ShellModel {
     this.#setLayout(setCollapsed(this.#layout.value, groupId, collapsed));
   }
 
-  /** Closes a view where it is: a card, page or modal leaves; a window's view and an instance leave the layout; a docked single view is hidden. */
+  /**
+   * Closes a view where it is (shell §2, close): a card, page or modal leaves its layer; a single view docked beside the
+   * main area is hidden (its place kept); one with a docked home closed from a window goes back home, hidden. Any other
+   * leaves the layout: a view in the main area's region or on its top, an instance, and a view whose home places it at
+   * `show` (`float`, `stage`, `top`); shown again, it goes to its home.
+   */
   close(ref: ViewRef): void {
     batch(() => {
       for (const layer of [this.#card, this.#page, this.#modal]) {
@@ -887,28 +971,16 @@ export class ShellModel {
       if (!place) return;
       const def = this.view(ref);
       if (place.window) this.#lastRects.set(ref, place.window.rect);
-      // In the main area's region: it leaves (shown again, it goes to its home); a maximize of its pane ends with the
-      // pane (`#setLayout`), and its subject and focus go.
-      if (!place.window && inRegion(l, place.group.id)) {
-        this.#setLayout(removeView(l, ref));
-        this.#forgetState(ref);
-        return;
-      }
-      if (!place.window && (def?.instances ?? 'single') === 'single' && def?.home !== 'float') {
-        this.#setLayout(setHidden(l, ref, true));
-        return;
-      }
-      if (place.window && def && (def.instances ?? 'single') === 'single' && def.home !== 'float') {
-        // A docked view popped out goes back to its home, hidden (it was closed, not docked).
-        this.#setLayout(setHidden(this.#placeAtHome(removeView(l, ref), ref, def, false), ref, true));
-        return;
-      }
-      this.#setLayout(removeView(l, ref));
-      this.#forgetState(ref);
+      // Its subject and focus go with it (`#setLayout`), and so does a maximize of its pane.
+      const docked = !!def && (def.instances ?? 'single') === 'single' && !isShownHome(def.home);
+      if (!docked || (!place.window && inRegion(l, place.group.id))) return this.#setLayout(removeView(l, ref));
+      if (!place.window) return this.#setLayout(setHidden(l, ref, true));
+      // A docked view popped out goes back to its home, hidden (it was closed, not docked).
+      this.#setLayout(setHidden(this.#placeAtHome(removeView(l, ref), ref, def, false), ref, true));
     });
   }
 
-  /** A view that left the layout for good (closed): its subject and section focus go (shell §2, close). */
+  /** What was kept of a view that left the layout and every layer: its subject and section focus (shell §2, close). */
   #forgetState(ref: ViewRef): void {
     this.#subjects.delete(ref);
     this.#focus.delete(ref);
@@ -919,20 +991,23 @@ export class ShellModel {
     this.#setLayout(moveView(this.#layout.value, ref, target), ref);
   }
 
-  /** Pops a view out into a window of its own (beside `anchorRect`, at its last place, or cascaded). */
+  /** Pops a view out into a window of its own (at its last place this session, beside `anchorRect`, or cascaded). */
   float(ref: ViewRef, anchorRect?: Rect): void {
     const def = this.view(ref);
     if (!def) return;
     this.move(ref, { kind: 'float', rect: this.#newWindowRect(ref, def, anchorRect) });
   }
 
-  /** A view back to its home group (from a window, from another group). */
-  dock(ref: ViewRef): void {
+  /**
+   * A view docked (from a window, the main area's region, another group): into `into` (a docked group's id, made beside
+   * the main area on its right when it is not there; Dock right is `RightGroup`), default its home.
+   */
+  dock(ref: ViewRef, into?: string): void {
     const def = this.view(ref);
     if (!def) return;
     const place = findView(this.#layout.value, ref);
     if (place?.window) this.#lastRects.set(ref, place.window.rect);
-    this.#setLayout(this.#placeAtHome(removeView(this.#layout.value, ref), ref, def, true), ref);
+    this.#setLayout(this.#placeAtHome(removeView(this.#layout.value, ref), ref, def, true, into), ref);
   }
 
   /** A window's views into another group (a window docked whole). */
@@ -961,8 +1036,8 @@ export class ShellModel {
 
   /**
    * `ref` beside a node of the main area's region (`of`: the app's content, a region group's id, or a view's ref: its
-   * group), on `side`, `size` px (default half the node, at least `MinGroupSize`; the caller passes it when it knows).
-   * A view opened anew comes in; a placed one moves (from the right column, a window, another pane).
+   * group), on `side`, `size` px (default `DefaultGroupSize`, at least `MinPaneSize`). A view opened anew comes in; a
+   * placed one moves (from the right column, a window, another pane). Ends Expand and a maximize.
    */
   split(ref: ViewRef, side: StageSide, of = 'content', size?: number): void {
     const l = this.#layout.value;
@@ -982,7 +1057,7 @@ export class ShellModel {
   arrangeGrid(columns?: number): void {
     batch(() => {
       this.#maximized.set(undefined);
-      this.#setLayout(arrangeGrid(this.#layout.value, this.#area.value, columns));
+      this.#setLayout(arrangeGrid(this.#layout.value, this.#area.value, columns, this.#groupShows));
       // Asked before the main area was measured (an app arranging as it starts): arranged again at its first size.
       this.#gridPending = this.#area.value.width > 0 ? undefined : { columns };
     });
@@ -999,21 +1074,31 @@ export class ShellModel {
   }
 
   /**
-   * The pane shown alone in the main area (shell §2.1): a region node (`content` or a group's id: the rest away and
-   * paused) or a window's view (its ref: out of its window over the main area, back after); Escape back; undefined:
-   * every pane.
+   * The pane shown alone in the main area (shell §2.1; its id, `content` or a view's ref): a pane of the region (the
+   * rest away and paused; a tab switch in it follows) or a window's view (out of its window over the main area, back
+   * after); Escape back; undefined: every pane.
    */
   get maximized(): ReadonlyState<string | undefined> {
     return this.#maximized.asReadonly;
   }
 
+  /**
+   * Shows a pane alone (`content` or a view's ref), or every pane (undefined). A view in a region group that shows
+   * another becomes the shown one; nothing for what can not show alone (a view docked beside the main area, on the
+   * content's top, the content without a region).
+   */
   maximize(pane: string | undefined): void {
-    const l = this.#layout.value;
     if (pane === undefined) return this.#maximized.set(undefined);
-    // A view in a window: out over the main area, held by its ref.
-    if (findView(l, pane)?.window) return this.#maximized.set(pane);
-    if (pane !== 'content' && !inRegion(l, pane)) return;
-    this.#maximized.set(mainNode(l).root ? pane : undefined);
+    const l = this.#layout.value;
+    if (pane === 'content') return this.#maximized.set(mainNode(l).root ? pane : undefined);
+    const place = findView(l, pane);
+    if (!place) return;
+    if (place.window) return this.#maximized.set(pane);
+    if (!layoutIndex(l).regionNodes.has(place.group.id)) return;
+    batch(() => {
+      if (place.group.active !== pane) this.#setLayout(selectView(l, pane));
+      this.#maximized.set(pane);
+    });
   }
 
   toggleMaximize(pane: string): void {
@@ -1040,19 +1125,16 @@ export class ShellModel {
   paneStatus(pane: string): ReadonlyState<PaneStatus> {
     let st = this.#paneStatus.get(pane);
     if (!st) {
-      // Where it is (a region node, its ref in a window, or no pane): a layout write that moves no pane (a drag's
-      // sizes, a window's move) changes no status.
-      const node = derive(
-        this.#layout,
-        (l) => this.#paneNodeIn(l, pane) ?? (findView(l, pane)?.window ? pane : undefined),
-      );
+      // Whether it is a pane (in the region, in a window): a layout write that moves no pane (a drag's sizes, a
+      // window's move) changes no status.
+      const isPane = derive(this.#layout, (l) => !!this.#paneNodeIn(l, pane) || !!findView(l, pane)?.window);
       st = derive(
-        [this.#activePane, this.#hoveredPane, this.#focusedPane, this.#maximized, node, this.#several],
-        (active, hovered, focused, maximized, n, several): PaneStatus => ({
-          active: !!n && active === pane,
-          hovered: !!n && hovered === pane,
-          focused: !!n && focused === pane,
-          maximized: !!n && (maximized === n || maximized === pane),
+        [this.#activePane, this.#hoveredPane, this.#focusedPane, this.#maximized, isPane, this.#several],
+        (active, hovered, focused, maximized, is, several): PaneStatus => ({
+          active: is && active === pane,
+          hovered: is && hovered === pane,
+          focused: is && focused === pane,
+          maximized: is && maximized === pane,
           several,
         }),
         (a, b) =>
@@ -1079,7 +1161,7 @@ export class ShellModel {
         status: this.paneStatus(pane),
         insets: this.paneInsets(pane),
         setTitle: (title) => this.setPaneTitle(pane, title),
-        toggleMaximized: () => this.toggleMaximize(this.maximizeTarget(pane)),
+        toggleMaximized: () => this.toggleMaximize(pane),
         float: () => {
           if (pane !== 'content') this.float(pane);
         },
@@ -1145,26 +1227,44 @@ export class ShellModel {
     if (c.bottomLeft !== chrome.bottomLeft || c.bottomRight !== chrome.bottomRight) this.#overChrome.set(chrome);
   }
 
-  /** The panes in the main area's bottom corners: down the last child of each column, the first or last of each row. */
-  #cornerPanes(l: ShellLayout): { left?: string; right?: string } {
-    const root = mainNode(l).root;
+  /** Whether a group has a view that shows (registered, not flagged off, not hidden): a pane that shows. */
+  readonly #groupShows = (g: GroupNode): boolean => {
+    for (const v of g.views) if (this.shows(v)) return true;
+    return false;
+  };
+
+  /** How many panes of the main area's region show (the content and the groups with a view that shows), up to `max`. */
+  #regionPanes(root: LayoutNode | undefined, max: number): number {
+    if (!root) return 1;
+    let count = 0;
+    const walk = (n: LayoutNode) => {
+      if (count >= max) return;
+      if (n.kind === 'content' || (n.kind === 'group' && this.#groupShows(n))) count++;
+      else if (n.kind === 'split') for (const c of n.children) walk(c);
+    };
+    walk(root);
+    return count;
+  }
+
+  /**
+   * The panes in the main area's bottom corners, of those that show: down the last child of each column, the first or
+   * last of each row.
+   */
+  #cornerPanes(root: LayoutNode | undefined): { left?: string; right?: string } {
     if (!root) return { left: 'content', right: 'content' };
+    const shows = (n: LayoutNode): boolean =>
+      n.kind === 'content' || (n.kind === 'group' ? this.#groupShows(n) : n.kind === 'split' && n.children.some(shows));
     const walk = (n: LayoutNode, side: 'left' | 'right'): string | undefined => {
       if (n.kind === 'content') return 'content';
       if (n.kind === 'group') return n.active ?? n.views[0];
       if (n.kind !== 'split') return undefined;
-      const c = n.dir === 'column' || side === 'right' ? n.children[n.children.length - 1] : n.children[0];
+      const fromEnd = n.dir === 'column' || side === 'right';
+      let c: LayoutNode | undefined;
+      if (!fromEnd) c = n.children.find(shows);
+      else for (let i = n.children.length - 1; i >= 0 && !c; i--) if (shows(n.children[i])) c = n.children[i];
       return c && walk(c, side);
     };
     return { left: walk(root, 'left'), right: walk(root, 'right') };
-  }
-
-  /** The pane a region node shows (`content`, or its group's view). */
-  #paneOfNode(l: ShellLayout, node: string): string | undefined {
-    if (node === 'content') return node;
-    const g = findGroup(l, node)?.group;
-    // A window's maximized pane is held by its view's ref.
-    return g ? (g.active ?? g.views[0]) : findView(l, node)?.window ? node : undefined;
   }
 
   /** The pane the pointer is over (`content`, a view's ref), or none: the view's input. */
@@ -1188,19 +1288,11 @@ export class ShellModel {
     return place && !place.window && inRegion(l, place.group.id) ? place.group.id : undefined;
   }
 
-  /**
-   * What maximizing a pane maximizes (shell §2.1): its region node, its ref in a window, else the app's content (a ref
-   * that is no pane).
-   */
-  maximizeTarget(pane: string): string {
-    return this.paneNode(pane) ?? (findView(this.#layout.value, pane)?.window ? pane : 'content');
-  }
-
   /** A docked view into a new group under its own (Split below). */
   splitBelow(ref: ViewRef): void {
     const place = findView(this.#layout.value, ref);
     if (!place || place.window || place.group.views.length < 2) return;
-    this.move(ref, { kind: 'edge', of: place.group.id, side: 'bottom', size: 240 });
+    this.move(ref, { kind: 'edge', of: place.group.id, side: 'bottom', size: DefaultSplitSize });
   }
 
   /** A docked view into the group above or below its own in its column. */
@@ -1300,29 +1392,16 @@ export class ShellModel {
     return next;
   }
 
+  /** A window's rectangle: at least its views' least size, inside the main area (`#fitWindows`). */
   setWindowRect(groupId: string, rect: Rect): void {
-    const area = this.#area.value;
-    // At least its views' least size (`minSize`).
-    for (const v of findGroup(this.#layout.value, groupId)?.group.views ?? []) {
-      const min = this.view(v)?.minSize;
-      if (min) rect = { ...rect, width: Math.max(rect.width, min.width), height: Math.max(rect.height, min.height) };
-    }
-    this.#setLayout(setWindowRect(this.#layout.value, groupId, area.width ? clampRect(rect, area) : rect));
+    this.#setLayout(setWindowRect(this.#layout.value, groupId, rect));
   }
 
   raise(groupId: string): void {
     this.#setLayout(raiseWindow(this.#layout.value, groupId));
   }
 
-  /** Out of view, its place kept (a view a person never uses). */
-  hide(ref: ViewRef): void {
-    this.#setLayout(setHidden(this.#layout.value, ref, true));
-  }
-
-  unhide(ref: ViewRef): void {
-    this.#setLayout(setHidden(this.#layout.value, ref, false));
-  }
-
+  /** The views out of view by the person's choice (`close` of a docked single view; `show` brings one back). */
   get hiddenViews(): ReadonlyState<readonly ViewRef[]> {
     return this.#hiddenViews;
   }
@@ -1351,18 +1430,6 @@ export class ShellModel {
     return this.#modal.asReadonly;
   }
 
-  closeCard(): void {
-    this.#card.set(undefined);
-  }
-
-  closePage(): void {
-    this.#page.set(undefined);
-  }
-
-  closeModal(): void {
-    this.#modal.set(undefined);
-  }
-
   // ---------------------------------------------------------------------------------------------------------------
   // Expand and Fullscreen (shell §3.9)
 
@@ -1376,16 +1443,9 @@ export class ShellModel {
     return this.#expanded.asReadonly;
   }
 
-  expand(): void {
-    this.#expanded.set(true);
-  }
-
-  collapseExpanded(): void {
-    this.#expanded.set(false);
-  }
-
-  toggleExpanded(): void {
-    this.#expanded.set(!this.#expanded.value);
+  /** Expands (`true`), steps back (`false`), or toggles (no argument). */
+  toggleExpanded(on = !this.#expanded.value): void {
+    this.#expanded.set(on);
   }
 
   /** Whether the shell is fullscreen now (the view writes back what the browser did, its own Esc included). */
@@ -1463,15 +1523,15 @@ export class ShellModel {
     });
   }
 
-  /** The main area's size: windows open and stay inside it. */
+  /** The main area's size: windows open and stay inside it (`#fitWindows`), the region's panes give way. */
   setArea(width: number, height: number): void {
     const a = this.#area.value;
     if (a.width === width && a.height === height) return;
     batch(() => {
       this.#area.set({ width, height });
-      let l = this.#clampWindows(this.#layout.value);
+      let l = this.#layout.value;
       if (this.#gridPending && width > 0) {
-        l = arrangeGrid(l, { width, height }, this.#gridPending.columns);
+        l = arrangeGrid(l, { width, height }, this.#gridPending.columns, this.#groupShows);
         this.#gridPending = undefined;
       }
       // The region's panes give way so the content keeps its least size (shell §2.1).
@@ -1487,26 +1547,21 @@ export class ShellModel {
     return this.#mode;
   }
 
-  #clampWindows(l: ShellLayout): ShellLayout {
-    const area = this.#area.value;
-    if (!area.width || !area.height) return l;
-    let next = l;
-    for (const w of l.windows) {
-      const r = clampRect(w.rect, area);
-      if (r.x !== w.rect.x || r.y !== w.rect.y || r.width !== w.rect.width || r.height !== w.rect.height) {
-        next = setWindowRect(next, w.group.id, r);
-      }
-    }
-    return next;
-  }
-
+  /**
+   * A new window's rectangle (shell §2, window geometry): its last this session, else beside `anchorRect`, else
+   * cascaded; embedded at 0.8 of its size; at least its `minSize` (`#fitWindows` keeps it so).
+   */
   #newWindowRect(ref: ViewRef, def: ShellViewDef, anchorRect?: Rect): Rect {
-    const area = this.#area.value.width ? this.#area.value : { width: 1200, height: 800 };
+    const area = this.#area.value.width ? this.#area.value : UnmeasuredArea;
     const last = def.remember === false ? undefined : this.#lastRects.get(ref);
     if (last) return clampRect(last, area);
-    const embedded = this.#mode.value === 'embedded';
-    const size = def.size ?? DefaultWindow;
-    const scaled = embedded ? { width: Math.round(size.width * 0.8), height: Math.round(size.height * 0.8) } : size;
+    const size = def.size ?? DefaultWindowSize;
+    const k = this.#mode.value === 'embedded' ? 0.8 : 1;
+    const min = def.minSize;
+    const scaled = {
+      width: Math.max(Math.round(size.width * k), min?.width ?? 0),
+      height: Math.max(Math.round(size.height * k), min?.height ?? 0),
+    };
     return placeWindow(
       scaled,
       area,

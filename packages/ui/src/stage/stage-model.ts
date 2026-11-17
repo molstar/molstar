@@ -24,13 +24,13 @@ export interface HoverRun {
   readonly link?: boolean;
 }
 
-/** A formatted line: its runs and its role (a title, text, a list item). */
+/** A formatted line: its runs; `item`, a list item (indented). */
 export interface HoverRichLine {
   readonly runs: readonly HoverRun[];
-  readonly role: 'title' | 'text' | 'item';
+  readonly item?: boolean;
 }
 
-/** A hover label's line: plain text (the first is the title), or formatted runs. */
+/** A hover label's line: plain text or formatted runs. The first line, whichever, is the title (stage §3.1). */
 export type HoverLine = string | HoverRichLine;
 
 /** What a hover label shows: its lines, empty when nothing is hovered. */
@@ -78,9 +78,15 @@ const GlobalTimers: StageTimers = {
 export const StageEmptyDelayMs = 700;
 /** How long the mark takes to fade out when something comes (faster than it came). */
 export const StageMarkFadeOutMs = 250;
-/** Below this width (px) the stage is compact: its toolbar folds into one button (`collapsed: 'auto'`). */
+/**
+ * Below this width (px) the stage is compact (`StageModelOptions.compactWidth`'s default): its toolbar folds into one
+ * button (`collapsed: 'auto'`), its status takes a row of its own.
+ */
 export const StageCompactWidth = 480;
-/** Below this height (px) the stage is short: an `auto` hover label follows the pointer. */
+/**
+ * Below this height (px) the stage is short (`StageModelOptions.shortHeight`'s default): an `auto` hover label follows
+ * the pointer.
+ */
 export const StageShortHeight = 360;
 
 export interface StageModelOptions {
@@ -91,6 +97,10 @@ export interface StageModelOptions {
   /** The mark on an empty, idle stage (default true); off, the stage never goes quiet. */
   mark?: boolean;
   hoverPlacement?: HoverPlacement;
+  /** Below this width (px) the stage is compact (default `StageCompactWidth`, 480). */
+  compactWidth?: number;
+  /** Below this height (px) the stage is short (default `StageShortHeight`, 360). */
+  shortHeight?: number;
   emptyDelayMs?: number;
   markFadeOutMs?: number;
   timers?: StageTimers;
@@ -136,8 +146,8 @@ export class StageModel {
   readonly hoverPlacement: ReadonlyState<HoverPlacement>;
   /**
    * Where the hover label is (stage §3.1): `hoverPlacement`, with `auto` decided by the size: beside the pointer while
-   * the stage is narrower than `StageCompactWidth` or shorter than `StageShortHeight`, else the corner (the corner too
-   * while the size is unknown: headless).
+   * the stage is narrower than `compactWidth` or shorter than `shortHeight`, else the corner (the corner too while the
+   * size is unknown: headless).
    */
   readonly hoverAt: ReadonlyState<HoverAt>;
   /** The band's height (px) over the canvas, its fade not counted; 0 without one or headless. */
@@ -145,8 +155,12 @@ export class StageModel {
   /** Whether the band (the `top` slot) shows. */
   readonly band: ReadonlyState<boolean>;
   readonly size: ReadonlyState<StageSize>;
-  /** Narrower than `StageCompactWidth` (false while the width is unknown). */
+  /** Narrower than `compactWidth` (false while the width is unknown). */
   readonly compact: ReadonlyState<boolean>;
+  /** Below this width (px) the stage is compact (`StageModelOptions.compactWidth`). */
+  readonly compactWidth: number;
+  /** Below this height (px) the stage is short (`StageModelOptions.shortHeight`). */
+  readonly shortHeight: number;
   readonly mark: ReadonlyState<StageMarkPhase>;
   /** The canvas is faded out: empty, under the mark (or never drawn yet). */
   readonly quiet: ReadonlyState<boolean>;
@@ -172,6 +186,8 @@ export class StageModel {
     this.#delay = options.emptyDelayMs ?? StageEmptyDelayMs;
     this.#fadeOut = options.markFadeOutMs ?? StageMarkFadeOutMs;
     this.markFadeOutMs = this.#fadeOut;
+    const compactWidth = (this.compactWidth = options.compactWidth ?? StageCompactWidth);
+    const shortHeight = (this.shortHeight = options.shortHeight ?? StageShortHeight);
     this.#timers = options.timers ?? GlobalTimers;
 
     this.background = this.#background;
@@ -186,13 +202,13 @@ export class StageModel {
     this.hoverPlacement = this.#placement;
     this.hoverAt = derive([this.#placement, this.#size], (p, s): HoverAt => {
       if (p !== 'auto') return p;
-      const small = (s.width > 0 && s.width < StageCompactWidth) || (s.height > 0 && s.height < StageShortHeight);
+      const small = (s.width > 0 && s.width < compactWidth) || (s.height > 0 && s.height < shortHeight);
       return small ? 'cursor' : 'corner';
     });
     this.topInset = this.#topInset;
     this.band = this.#band;
     this.size = this.#size;
-    this.compact = derive(this.#size, (s) => s.width > 0 && s.width < StageCompactWidth);
+    this.compact = derive(this.#size, (s) => s.width > 0 && s.width < compactWidth);
     this.mark = this.#mark;
     this.quiet = derive(this.#shown, (s) => !s);
     this.#decide();
@@ -220,13 +236,9 @@ export class StageModel {
     this.#decide();
   }
 
-  /** The hover label's lines (empty: nothing hovered). */
+  /** The hover label's lines (empty, `[]`: nothing hovered; an equal list set anew changes nothing). */
   setHover(lines: readonly HoverLine[]): void {
     this.#lines.set(lines);
-  }
-
-  clearHover(): void {
-    if (this.#lines.value.length) this.#lines.set([]);
   }
 
   setHoverPlacement(placement: HoverPlacement): void {

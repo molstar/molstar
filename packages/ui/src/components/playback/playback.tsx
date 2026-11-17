@@ -10,8 +10,8 @@
 // models' state; the ticking is the models' (or the app's).
 
 import { derive, KeyedSelector, type ReadonlyState, State } from '@molstar/core/reactive';
-import { type Child, effect, For, frameState, type MaybeReactive, Show } from '../../dom/index.js';
-import { state } from '../../state.js';
+import { type Child, effect, For, frameState, Show } from '../../dom/index.js';
+import { held, state } from '../../state.js';
 import { Button } from '../button/button.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { Markdown } from '../markdown/markdown.js';
@@ -19,9 +19,9 @@ import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { Select } from '../select/select.js';
 import { TextInput } from '../text-input/text-input.js';
 import { classes } from './_generated/playback.module.css.js';
+import { DefaultPlaybackLabels, type PlaybackLabels } from './labels.js';
 import { type StepperModel, withoutTitle } from './stepper-model.js';
 import {
-  formatSpeed,
   type TimelineModel,
   timelineKind,
   timelinePosition,
@@ -36,15 +36,19 @@ const FilterFrom = 12;
 
 const None: ReadonlyState<undefined> = new State(undefined);
 
+/** The labels given over the defaults. */
+const labelsOf = (labels: Partial<PlaybackLabels> | undefined): PlaybackLabels =>
+  labels ? { ...DefaultPlaybackLabels, ...labels } : DefaultPlaybackLabels;
+
 /**
  * The playback controls in one surface, a row each (`StepperRow`, `TimelineRow`, rows of the app's own with
- * `data-row`), a hairline between them. With no row to show, it is not there.
+ * `data-row`), a hairline between them; named `labels.deck`. With no row to show, it is not there.
  */
-export function PlaybackDeck(props: { children?: Child; label?: string; class?: string }) {
+export function PlaybackDeck(props: { children?: Child; labels?: Partial<PlaybackLabels>; class?: string }) {
   return (
     <section
       class={props.class ? `${classes.deck} ${props.class}` : classes.deck}
-      aria-label={props.label ?? 'Playback'}
+      aria-label={labelsOf(props.labels).deck}
     >
       {props.children}
     </section>
@@ -57,11 +61,12 @@ export function PlaybackDeck(props: { children?: Child; label?: string; class?: 
  */
 export function StepperRow(props: {
   model: StepperModel;
-  /** What the steps are ("Steps", "Scenes"): the row's name. */
-  label?: string;
+  /** What the steps are ("Scenes"): the row's name (default `labels.steps`). */
+  label?: string | ReadonlyState<string>;
   icon?: IconName;
   /** At the row's end, after next. */
   actions?: () => Child;
+  labels?: Partial<PlaybackLabels>;
 }) {
   return (
     <Show when={derive(props.model.count, (c) => c > 1)}>
@@ -77,12 +82,15 @@ export function StepperRow(props: {
 /** A step's card: its title, where it is and the controls (from two steps on), then its description. */
 export function StepCard(props: {
   model: StepperModel;
-  label?: string;
+  /** What the steps are ("Tour"): the card's name (default `labels.steps`). */
+  label?: string | ReadonlyState<string>;
+  labels?: Partial<PlaybackLabels>;
   /** In a surface already (a card's): no surface of its own. */
   bare?: boolean;
   class?: string;
 }) {
   const { model } = props;
+  const label = held(props.label, labelsOf(props.labels).steps);
   // The description without a heading that only repeats the title (shown above it).
   const description = derive([model.description ?? None, model.title], (d, t) => (d ? withoutTitle(d, t ?? '') : d));
   return (
@@ -90,9 +98,9 @@ export function StepCard(props: {
       {() => (
         <section
           class={[props.bare ? classes.bare : classes.card, props.class ?? ''].join(' ').trim()}
-          aria-label={props.label ?? 'Steps'}
+          aria-label={label}
         >
-          <StepperBar model={model} label={props.label} title />
+          <StepperBar model={model} label={label} labels={props.labels} title />
           <Show when={description}>
             {(source) => (
               <ScrollArea class={classes.description} contentClass={classes.descriptionContent}>
@@ -116,15 +124,17 @@ export function StepCard(props: {
 /** The stepper's bar: a lead icon or the title, the position, the buttons; the list under it when open. */
 function StepperBar(props: {
   model: StepperModel;
-  label?: string;
+  label?: string | ReadonlyState<string>;
   icon?: IconName;
   actions?: () => Child;
+  labels?: Partial<PlaybackLabels>;
   /** The current title at its start (a card), else a lead icon (a row). */
   title?: boolean;
   lead?: boolean;
 }) {
   const { model } = props;
-  const label = props.label ?? 'Steps';
+  const labels = labelsOf(props.labels);
+  const label = held(props.label, labels.steps);
   const listOpen = state(false);
   let position: HTMLElement | undefined;
   const close = () => {
@@ -149,8 +159,8 @@ function StepperBar(props: {
                     type="button"
                     class={classes.position}
                     aria-expanded={listOpen}
-                    aria-label={derive(model.title, (t) => (t ? `${label}: ${t}` : label))}
-                    data-tip={derive(model.title, (t) => t ?? `No ${label.toLowerCase()}`)}
+                    aria-label={derive([label, model.title], labels.stepPosition)}
+                    data-tip={derive([label, model.title], (l, t) => t ?? labels.noStep(l))}
                     ref={(el: HTMLElement) => {
                       position = el;
                     }}
@@ -164,15 +174,15 @@ function StepperBar(props: {
                 variant="ghost"
                 size="sm"
                 icon={<Icon name="chevron-left" />}
-                title="Previous"
+                title={labels.previous}
                 onClick={() => model.previous()}
               />
-              <PlayButton playing={model.playing} title="Play" onClick={() => model.togglePlay()} />
+              <PlayButton playing={model.playing} labels={labels} onClick={() => model.togglePlay()} />
               <Button
                 variant="ghost"
                 size="sm"
                 icon={<Icon name="chevron-right" />}
-                title="Next"
+                title={labels.next}
                 onClick={() => model.next()}
               />
               {props.actions?.()}
@@ -180,13 +190,13 @@ function StepperBar(props: {
           )}
         </Show>
       </div>
-      <Show when={listOpen}>{() => <StepList model={model} label={label} onClose={close} />}</Show>
+      <Show when={listOpen}>{() => <StepList model={model} label={label} labels={labels} onClose={close} />}</Show>
     </>
   );
 }
 
 /** One dot a step, the current one filled (`aria-current`); each goes to its step, its title its name. */
-function Dots(props: { model: StepperModel; label: string }) {
+function Dots(props: { model: StepperModel; label: ReadonlyState<string> }) {
   const { model } = props;
   const current = new KeyedSelector(model.index);
   const dots = derive(model.titles, (titles) => titles.map((title, index) => ({ title, index })));
@@ -209,8 +219,13 @@ function Dots(props: { model: StepperModel; label: string }) {
 }
 
 /** Many steps: their titles under the bar, filterable when long, the current one marked; a pick or Esc closes it. */
-function StepList(props: { model: StepperModel; label: string; onClose(): void }) {
-  const { model } = props;
+function StepList(props: {
+  model: StepperModel;
+  label: ReadonlyState<string>;
+  labels: PlaybackLabels;
+  onClose(): void;
+}) {
+  const { model, labels } = props;
   const filter = state('');
   const rows = derive([model.titles, filter], (titles, f) => {
     const q = f.trim().toLowerCase();
@@ -242,8 +257,8 @@ function StepList(props: { model: StepperModel; label: string; onClose(): void }
             <TextInput
               search
               size="sm"
-              aria-label={`Filter ${props.label.toLowerCase()}`}
-              placeholder="Filter"
+              aria-label={labels.filterSteps(props.label.value)}
+              placeholder={labels.filter}
               value={filter}
               onInput={(v) => filter.set(v)}
             />
@@ -279,6 +294,18 @@ function StepList(props: { model: StepperModel; label: string; onClose(): void }
   );
 }
 
+/** A timeline row's props. */
+export interface TimelineRowProps {
+  model: TimelineModel;
+  /**
+   * What it plays ("Spin", "Simulation"): the row's name, also shown at its start. Without one the row is named by
+   * its kind (`labels.timeline`, `frames`, `durationless`) and shows no name.
+   */
+  label?: string | ReadonlyState<string>;
+  icon?: IconName;
+  labels?: Partial<PlaybackLabels>;
+}
+
 /**
  * A timed, counted or durationless model's row (`timelineKind`). Timed and counted: where it is, a scrubber (said as
  * "1.2 s of 4.0 s", "frame 3 of 10"), previous and next frame (counted), play; shown while it has a length (timed) or
@@ -286,7 +313,7 @@ function StepList(props: { model: StepperModel; label: string; onClose(): void }
  * (said as "running, 12 s", "paused at step 340"), one step while paused, restart. Any kind: a speed when it has
  * choices.
  */
-export function TimelineRow(props: { model: TimelineModel; icon?: IconName }) {
+export function TimelineRow(props: TimelineRowProps) {
   const { model } = props;
   const kind = timelineKind(model);
   const shown =
@@ -298,16 +325,15 @@ export function TimelineRow(props: { model: TimelineModel; icon?: IconName }) {
   );
 }
 
-function Scrubbed(props: { model: TimelineModel; icon?: IconName }) {
+function Scrubbed(props: TimelineRowProps) {
   const { model } = props;
+  const labels = labelsOf(props.labels);
   const timed = timelineKind(model) === 'timed';
   const at = (timed ? model.time : model.index) ?? new State(0);
   const length = (timed ? model.duration : model.count)!;
-  const unit = model.unit ?? 'frame';
-  const Unit = unit.charAt(0).toUpperCase() + unit.slice(1);
-  const label = model.label ?? (timed ? 'Timeline' : `${Unit}s`);
-  const position = derive([at, length], () => timelinePosition(model));
-  const valueText = derive([at, length], () => timelineValueText(model));
+  const label = held(props.label, timed ? labels.timeline : labels.frames);
+  const position = derive([at, length], () => timelinePosition(model, labels));
+  const valueText = derive([at, length], () => timelineValueText(model, labels));
   const max = derive(length, (n) => String(timed ? n : Math.max(0, n - 1)));
   const progress = derive([at, length], (a, n) => {
     const end = timed ? n : n - 1;
@@ -329,7 +355,7 @@ function Scrubbed(props: { model: TimelineModel; icon?: IconName }) {
   return (
     <div class={classes.bar} role="group" aria-label={label} data-row="">
       <Lead icon={props.icon ?? 'film'} />
-      {model.label ? <span class={classes.label}>{model.label}</span> : null}
+      {props.label === undefined ? null : <span class={classes.label}>{label}</span>}
       <span class={classes.counter}>{position}</span>
       <input
         class={classes.scrubber}
@@ -339,7 +365,7 @@ function Scrubbed(props: { model: TimelineModel; icon?: IconName }) {
         step={timed ? derive(model.step ?? None, (s) => (s && s > 0 ? String(s) : 'any')) : '1'}
         value={derive(at, String)}
         style={{ '--msui-progress': progress }}
-        aria-label={timed ? 'Time' : Unit}
+        aria-label={timed ? labels.time : labels.frame}
         aria-valuetext={valueText}
         disabled={!model.seek}
         onInput={(e: Event) => seeking.offer(Number((e.currentTarget as HTMLInputElement).value))}
@@ -349,52 +375,53 @@ function Scrubbed(props: { model: TimelineModel; icon?: IconName }) {
           variant="ghost"
           size="sm"
           icon={<Icon name="chevron-left" />}
-          title={`Previous ${unit}`}
+          title={labels.previousFrame}
           onClick={() => step(-1)}
         />
       )}
-      <PlayButton playing={model.playing} title="Play" onClick={() => model.togglePlay()} />
+      <PlayButton playing={model.playing} labels={labels} onClick={() => model.togglePlay()} />
       {timed ? null : (
         <Button
           variant="ghost"
           size="sm"
           icon={<Icon name="chevron-right" />}
-          title={`Next ${unit}`}
+          title={labels.nextFrame}
           onClick={() => step(1)}
         />
       )}
-      <Speed model={model} />
+      <Speed model={model} labels={labels} />
     </div>
   );
 }
 
-function Durationless(props: { model: TimelineModel; icon?: IconName }) {
+function Durationless(props: TimelineRowProps) {
   const { model } = props;
-  const label = model.label ?? 'Playback';
+  const labels = labelsOf(props.labels);
+  const label = held(props.label, labels.durationless);
   const sources = [model.playing, model.elapsed ?? None, model.steps ?? None] as const;
-  const position = derive(sources, () => timelinePosition(model));
-  const valueText = derive(sources, () => timelineValueText(model));
+  const position = derive(sources, () => timelinePosition(model, labels));
+  const valueText = derive(sources, () => timelineValueText(model, labels));
   return (
     <div class={classes.bar} role="group" aria-label={label} data-row="">
       <Lead icon={props.icon ?? 'film'} />
-      {model.label ? <span class={classes.label}>{model.label}</span> : null}
+      {props.label === undefined ? null : <span class={classes.label}>{label}</span>}
       {/* Indeterminate progress (no end): its value said as text, not live (it changes every step). */}
       <span
         class={classes.status}
         role="progressbar"
-        aria-label={`${label} status`}
+        aria-label={derive(label, labels.status)}
         aria-valuetext={valueText}
         data-playing={model.playing}
       >
         {position}
       </span>
-      <PlayButton playing={model.playing} title="Play" onClick={() => model.togglePlay()} />
+      <PlayButton playing={model.playing} labels={labels} onClick={() => model.togglePlay()} />
       {model.stepOnce ? (
         <Button
           variant="ghost"
           size="sm"
           icon={<Icon name="step-forward" />}
-          title={derive(model.playing, (p) => (p ? 'One step (pause first)' : 'One step'))}
+          title={derive(model.playing, (p) => (p ? labels.stepOncePlaying : labels.stepOnce))}
           disabled={model.playing}
           onClick={() => model.stepOnce?.()}
         />
@@ -404,26 +431,26 @@ function Durationless(props: { model: TimelineModel; icon?: IconName }) {
           variant="ghost"
           size="sm"
           icon={<Icon name="rotate-ccw" />}
-          title="Restart"
+          title={labels.restart}
           onClick={() => model.restart?.()}
         />
       ) : null}
-      <Speed model={model} />
+      <Speed model={model} labels={labels} />
     </div>
   );
 }
 
 /** A speed choice, when the model has choices. */
-function Speed(props: { model: TimelineModel }) {
-  const { model } = props;
+function Speed(props: { model: TimelineModel; labels: PlaybackLabels }) {
+  const { model, labels } = props;
   if (!model.speed || !model.speeds?.length || !model.setSpeed) return null;
   return (
     <span class={classes.speed}>
       <Select
         size="sm"
-        aria-label="Speed"
-        title="Speed"
-        options={model.speeds.map((s) => [String(s), formatSpeed(s)] as const)}
+        aria-label={labels.speed}
+        title={labels.speed}
+        options={model.speeds.map((s) => [String(s), labels.speedValue(s)] as const)}
         value={derive(model.speed, String)}
         onChange={(v) => model.setSpeed?.(Number(v))}
       />
@@ -432,7 +459,11 @@ function Speed(props: { model: TimelineModel }) {
 }
 
 /** A mute button: the speaker, struck through while muted (pressed). */
-export function MuteButton(props: { muted: ReadonlyState<boolean>; onClick(): void }) {
+export function MuteButton(props: {
+  muted: ReadonlyState<boolean>;
+  onClick(): void;
+  labels?: Partial<PlaybackLabels>;
+}) {
   return (
     <Button
       variant="ghost"
@@ -442,7 +473,7 @@ export function MuteButton(props: { muted: ReadonlyState<boolean>; onClick(): vo
           {() => <Icon name="volume-x" />}
         </Show>
       }
-      title="Mute"
+      title={labelsOf(props.labels).mute}
       pressed={props.muted}
       onClick={() => props.onClick()}
     />
@@ -450,8 +481,8 @@ export function MuteButton(props: { muted: ReadonlyState<boolean>; onClick(): vo
 }
 
 /** Play and pause in one button: its name says what a press does. */
-function PlayButton(props: { playing: ReadonlyState<boolean>; title: MaybeReactive<string>; onClick(): void }) {
-  const title = typeof props.title === 'string' ? new State(props.title) : (props.title as ReadonlyState<string>);
+function PlayButton(props: { playing: ReadonlyState<boolean>; labels: PlaybackLabels; onClick(): void }) {
+  const { labels } = props;
   return (
     <Button
       variant="ghost"
@@ -461,7 +492,7 @@ function PlayButton(props: { playing: ReadonlyState<boolean>; title: MaybeReacti
           {() => <Icon name="pause" />}
         </Show>
       }
-      title={derive([props.playing, title], (p, t) => (p ? 'Pause' : t))}
+      title={derive(props.playing, (p) => (p ? labels.pause : labels.play))}
       onClick={() => props.onClick()}
     />
   );

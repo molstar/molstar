@@ -35,6 +35,7 @@ import { Floating } from '../select/select.js';
 import { classes } from './_generated/extra-controls.module.css.js';
 import { classes as form } from './_generated/params-form.module.css.js';
 import type { FieldBinding } from './field-binding.js';
+import type { ParamsFormLabels } from './labels.js';
 import { formatNumber, frameInput, holdNumber, NumberInput, setValue } from './number-input.js';
 import { PresetsButton, presetIndex } from './presets.js';
 
@@ -184,6 +185,7 @@ export function MultiSelectRow(props: {
   labelId?: string;
   param: PD.MultiSelect<any>;
   binding: FieldBinding;
+  labels: ParamsFormLabels;
 }) {
   const { param, binding } = props;
   const open = state(false);
@@ -192,7 +194,7 @@ export function MultiSelectRow(props: {
   watch([binding.value], () => {
     const v = binding.value.value as readonly unknown[] | undefined;
     const chosen = param.options.filter(([o]) => v?.includes(o)).map(([, l]) => l);
-    setText(names, chosen.length ? chosen.join(', ') : (param.emptyValue ?? 'None'));
+    setText(names, chosen.length ? chosen.join(', ') : (param.emptyValue ?? props.labels.none));
   });
   return (
     <>
@@ -245,13 +247,18 @@ export function MultiSelectRow(props: {
 }
 
 /** Three numbers in a row (x, y, z), each its own small field, sharing the value column; each keeps to the range. */
-export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding; label?: string }) {
+export function Vec3Control(props: {
+  param: PD.Vec3;
+  binding: FieldBinding;
+  label?: string;
+  labels: ParamsFormLabels;
+}) {
   const { param, binding } = props;
   const inputs = (['x', 'y', 'z'] as const).map((axis, i) => (
     <NumberInput
       class={form.number}
-      aria-label={props.label ? `${props.label} ${axis}` : axis}
-      data-tip={axis}
+      aria-label={props.labels.axis(props.label, axis)}
+      data-tip={props.labels.axis(undefined, axis)}
       range={param}
       current={() => binding.value.value?.[i]}
       commit={(n) => {
@@ -281,12 +288,13 @@ export function Mat4Row(props: {
   labelId?: string;
   param: PD.Mat4;
   binding: FieldBinding;
+  labels: ParamsFormLabels;
 }) {
   const { binding, labelId } = props;
   const summary = document.createTextNode('');
   watch([binding.value], () => {
     const m = binding.value.value as ArrayLike<number> | undefined;
-    setText(summary, m && isIdentity(m) ? 'Identity' : '4 × 4 matrix');
+    setText(summary, m && isIdentity(m) ? props.labels.identity : props.labels.matrix);
   });
   return (
     <PanelRow
@@ -305,7 +313,7 @@ export function Mat4Row(props: {
           return (
             <NumberInput
               class={form.number}
-              aria-label={`${props.label}, row ${Math.floor(k / 4) + 1}, column ${(k % 4) + 1}`}
+              aria-label={props.labels.matrixCell(props.label, Math.floor(k / 4) + 1, (k % 4) + 1)}
               current={() => (binding.value.value as ArrayLike<number> | undefined)?.[index]}
               commit={(n) => {
                 const m = Array.from(binding.value.value as ArrayLike<number>);
@@ -332,9 +340,14 @@ export function Mat4Row(props: {
  * bounds there is no track to place the knobs on: two number fields (from, to), each keeping to the bound it has and to
  * the other end.
  */
-export function IntervalControl(props: { param: PD.Interval; binding: FieldBinding; label?: string }) {
+export function IntervalControl(props: {
+  param: PD.Interval;
+  binding: FieldBinding;
+  label?: string;
+  labels: ParamsFormLabels;
+}) {
   const { param, binding } = props;
-  const name = (i: 0 | 1) => `${props.label ? `${props.label} ` : ''}${i === 0 ? 'from' : 'to'}`;
+  const name = (i: 0 | 1) => props.labels.intervalEnd(props.label, i === 0 ? 'from' : 'to');
   const value = () => binding.value.value as [number, number] | undefined;
   if (param.min === undefined || param.max === undefined) {
     // The ends cannot cross: each is bounded by the other.
@@ -450,6 +463,7 @@ export function ColorListRow(props: {
   labelId?: string;
   param: PD.ColorList;
   binding: FieldBinding;
+  labels: ParamsFormLabels;
 }) {
   const { param, binding } = props;
   const kind = param.presetKind ?? 'all';
@@ -457,7 +471,7 @@ export function ColorListRow(props: {
     kind === 'all' ? true : kind === 'set' ? l.type === 'qualitative' : l.type !== 'qualitative',
   );
   const nameOf = (v: { colors: readonly unknown[] } | undefined) =>
-    presets.find(([, l]) => JSON.stringify(l.list) === JSON.stringify(v?.colors))?.[1].label ?? 'Custom';
+    presets.find(([, l]) => JSON.stringify(l.list) === JSON.stringify(v?.colors))?.[1].label ?? props.labels.custom;
   const open = state(false);
   let strip!: HTMLElement;
   let anchor!: HTMLElement;
@@ -557,6 +571,7 @@ export function LineGraphRow(props: {
   labelId?: string;
   param: PD.LineGraph;
   binding: FieldBinding;
+  labels: ParamsFormLabels;
 }) {
   const { binding } = props;
   let spark!: SVGPathElement;
@@ -576,18 +591,23 @@ export function LineGraphRow(props: {
           </span>
         </>
       }
-      panel={() => <LineGraphEditor param={props.param} binding={binding} label={props.label} />}
+      panel={() => <LineGraphEditor param={props.param} binding={binding} label={props.label} labels={props.labels} />}
     />
   );
   watch([binding.value], () => {
     const p = binding.value.value as [number, number][] | undefined;
     setAttr(spark, 'd', pathOf(p, 48, 12));
-    setText(count, `${p?.length ?? 0} points`);
+    setText(count, props.labels.points(p?.length ?? 0));
   });
   return content;
 }
 
-function LineGraphEditor(props: { param: PD.LineGraph; binding: FieldBinding; label: string }) {
+function LineGraphEditor(props: {
+  param: PD.LineGraph;
+  binding: FieldBinding;
+  label: string;
+  labels: ParamsFormLabels;
+}) {
   const { binding } = props;
   const W = 240;
   const H = 96;
@@ -677,10 +697,11 @@ function LineGraphEditor(props: { param: PD.LineGraph; binding: FieldBinding; la
         <span class={classes.graphAt}>{hoverText}</span>
       </div>
       <div class={classes.graphFoot}>
-        <p class={classes.graphHint}>Drag a point · click to add · double-click to remove</p>
+        <p class={classes.graphHint}>{props.labels.graphHint}</p>
         {getPresets ? (
           <PresetsButton
             label={props.label}
+            labels={props.labels}
             presets={getPresets}
             current={derive(points, (v) => presetIndex(getPresets(), v))}
             onPick={(v) => binding.set(v)}

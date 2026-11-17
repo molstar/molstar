@@ -146,6 +146,66 @@ describe('Stage', () => {
     computed.mockRestore();
   });
 
+  it('composites a color that is not opaque over what is behind it', () => {
+    const stage = new StageModel({ empty: false });
+    const { root, ink } = mount(stage);
+    // A nearly transparent black over a white page is light; over a black one, dark; a half black over white is grey
+    // (0x80: light, its luminance 0.216).
+    const behind = { color: 'rgb(255, 255, 255)' };
+    const computed = vi.spyOn(window, 'getComputedStyle').mockImplementation(
+      (el) =>
+        ({
+          backgroundColor:
+            el === root ? 'rgba(0, 0, 0, 0.05)' : el === document.body ? behind.color : 'rgba(0, 0, 0, 0)',
+        }) as CSSStyleDeclaration,
+    );
+    stage.setBackground('rgba(0,0,0,0.05)');
+    flush();
+    expect(ink.getAttribute('data-msui-theme')).toBe('light');
+    behind.color = 'rgb(0, 0, 0)';
+    stage.setBackground('rgba(0,0,0,0.06)');
+    flush();
+    expect(ink.getAttribute('data-msui-theme')).toBe('dark');
+    // Nothing opaque behind it: the page's white.
+    computed.mockImplementation(
+      (el) => ({ backgroundColor: el === root ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0)' }) as CSSStyleDeclaration,
+    );
+    stage.setBackground('rgba(0,0,0,0.5)');
+    flush();
+    expect(ink.getAttribute('data-msui-theme')).toBe('light');
+    computed.mockRestore();
+  });
+
+  it('resolves a color it could not read again when the theme around it switches (and not for its own ink)', async () => {
+    const stage = new StageModel({ empty: false, background: 'var(--app-bg)' });
+    const css = { bg: 'rgb(250, 250, 250)' };
+    let reads = 0;
+    const computed = vi.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
+      if (el === document.body) reads++;
+      return { backgroundColor: el === document.body ? css.bg : 'rgba(0, 0, 0, 0)' } as CSSStyleDeclaration;
+    });
+    const { ink } = mount(stage);
+    expect(ink.getAttribute('data-msui-theme')).toBe('light');
+    const before = reads;
+    css.bg = 'rgb(10, 10, 12)';
+    document.documentElement.setAttribute('data-msui-theme', 'dark');
+    await Promise.resolve();
+    expect(ink.getAttribute('data-msui-theme')).toBe('dark');
+    expect(reads).toBe(before + 1);
+    // Its own ink's theme is no switch around it: nothing read again.
+    ink.setAttribute('data-msui-theme', 'light');
+    await Promise.resolve();
+    expect(reads).toBe(before + 1);
+    // A color it reads itself: no reads on a switch.
+    stage.setBackground('#ffffff');
+    flush();
+    document.documentElement.setAttribute('data-msui-theme', 'light');
+    await Promise.resolve();
+    expect(reads).toBe(before + 1);
+    document.documentElement.removeAttribute('data-msui-theme');
+    computed.mockRestore();
+  });
+
   it('layers the canvas, then the chrome; the slots hold the app’s content', () => {
     const stage = new StageModel({ empty: false });
     const { root, canvas, ink } = mount(stage, () => ({
@@ -218,6 +278,15 @@ describe('Stage', () => {
     expect(root.hasAttribute('data-compact')).toBe(true);
   });
 
+  it('is compact below the model’s `compactWidth` (an option)', () => {
+    const stage = new StageModel({ empty: false, compactWidth: 800 });
+    const { root } = mount(stage);
+    resize(root, 600, 700);
+    expect(root.hasAttribute('data-compact')).toBe(true);
+    resize(root, 600, 900);
+    expect(root.hasAttribute('data-compact')).toBe(false);
+  });
+
   it('shows the mark after the wait, quiets the canvas, and takes it out when something comes', () => {
     vi.useFakeTimers();
     const stage = new StageModel();
@@ -280,14 +349,14 @@ describe('Stage', () => {
     expect(stage.hover.lines.value).toEqual(structureLines(3));
     bead.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 5, clientY: 5 }));
     flush();
-    const label = root.querySelector<HTMLElement>(`.${classes.corner} [role=tooltip]`)!;
+    const label = root.querySelector<HTMLElement>(`.${classes.corner} [data-placement]`)!;
     const title = structureLines(3)[0];
     expect(label.textContent).toContain(typeof title === 'string' ? title : title.runs[0].text);
     expect(label.hasAttribute('aria-hidden')).toBe(false);
     stage.setHoverPlacement('cursor');
     flush();
-    expect(root.querySelector(`.${classes.corner} [role=tooltip]`)).toBeNull();
-    expect(root.querySelector('[role=tooltip][data-placement="cursor"]')).not.toBeNull();
+    expect(root.querySelector(`.${classes.corner} [data-placement]`)).toBeNull();
+    expect(root.querySelector('[data-placement="cursor"]')).not.toBeNull();
   });
 });
 

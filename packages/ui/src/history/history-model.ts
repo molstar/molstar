@@ -18,9 +18,9 @@ import { batch, type ReadonlyState, State } from '@molstar/core/reactive';
 // - A failed run restores its checkpoint. A group fails as a whole when its work throws, returns a failure, or any run
 //   inside it failed (unless it says `continue`, and then each run inside has its own checkpoint).
 // - A change outside the history (`invalidate`) makes every earlier step unsafe.
-// - A run that changes nothing undoable (`undoable: false`) is no step; one that changed nothing (`record` false)
-//   neither. One that is not recorded (`recording` off, `recordIf` false) is a change outside the history: no
-//   checkpoint, no step, and every earlier step unsafe (history §1).
+// - A run that changes nothing undoable (`changed: false`, or false for its value) is no step. One the history does not
+//   record (`recording`: off, or false for its origin and label) is a change outside it: no checkpoint, no step, and
+//   every earlier step unsafe, whether it succeeded or failed (history §1).
 // - Redo: Undo checkpoints the state it leaves, and Redo restores it, until a new step clears the list.
 // - Limits (history §5): steps kept, checkpoints kept, redo steps kept, runs listed in a step; past one, the oldest go
 //   and their checkpoints are released.
@@ -92,9 +92,22 @@ export type HistoryRefusalCode =
   | 'unsafe'
   | 'no-checkpoint';
 
-export type UndoResult =
-  | { ok: true; step: HistoryStep }
-  | { ok: false; code: HistoryRefusalCode; reason: string; laterSteps?: number };
+/** Why Undo (or another move) cannot run: a code, and its text from the labels (or the unsafe step's). */
+export interface HistoryRefusal {
+  readonly code: HistoryRefusalCode;
+  readonly reason: string;
+  /** `later-steps`: how many. */
+  readonly laterSteps?: number;
+}
+
+export type UndoResult = { readonly ok: true; readonly step: HistoryStep } | ({ readonly ok: false } & HistoryRefusal);
+
+/**
+ * What the history records (history §1): every top-level run and group (true), none (false), or those a rule takes by
+ * origin and label (undefined for a label made from the value), asked before each runs. One not recorded is a change
+ * outside the history.
+ */
+export type HistoryRecording = boolean | ((origin: HistoryOrigin, label: string | undefined) => boolean);
 
 /** The history's words (history §6): the refusals' and the unsafe steps' text. Domain-neutral by default. */
 export interface HistoryLabels {
@@ -161,13 +174,8 @@ export interface HistoryOptions extends Partial<HistoryLimits> {
   readonly now?: () => number;
   /** The clock that times a checkpoint (ms; `performance.now`). */
   readonly measure?: () => number;
-  /** Whether runs become steps (true; `setRecording`). Off, they run in order as changes outside the history (§1). */
-  readonly recording?: boolean;
-  /**
-   * Whether a top-level run or group is recorded, by its origin and label (undefined for a label made from the value):
-   * false is as if recording were off for it. Asked before it runs.
-   */
-  readonly recordIf?: (origin: HistoryOrigin, label: string | undefined) => boolean;
+  /** What becomes a step (true; `setRecording`); the rest runs in order as changes outside the history (§1). */
+  readonly recording?: HistoryRecording;
   /** The refusals' and unsafe steps' words (`DefaultHistoryLabels`). */
   readonly labels?: Partial<HistoryLabels>;
 }
@@ -193,10 +201,12 @@ export interface GroupOutcome<T> extends StepOutcome<T> {
 export interface RunOptions<T> {
   /** Whether the value is a failure (restore the checkpoint, record nothing). Thrown errors are failures too. */
   readonly failed?: (value: T) => boolean;
-  /** Whether it changed anything worth a step; false: "it is already so", no step. Default: it did. */
-  readonly record?: (value: T) => boolean;
-  /** Changes nothing the history could restore (an upload): runs in order, no checkpoint, no step. */
-  readonly undoable?: boolean;
+  /**
+   * Whether it changes anything the history restores (default: it does). `false`, known before (an upload): no
+   * checkpoint, no step; a function asks the value ("it is already so": no step). Either way the steps before stay safe:
+   * to leave a change out of the history, it is not recorded (`recording`).
+   */
+  readonly changed?: boolean | ((value: T) => boolean);
   /** Part of this run or group in progress: no lock, no step of its own. */
   readonly within?: HistoryContext;
 }
@@ -307,9 +317,9 @@ function limitsOf(l: Partial<HistoryLimits>, base: HistoryLimits): HistoryLimits
 }
 
 /**
- * Undo and redo over an app's checkpoints (history §1). States: `steps` (newest first), `redoable`, `canUndo`,
- * `undoBlocked` (and its code), `canRedo`, `running`, `checkpointing`, `recording`, `lastMove`, `checkpointsOff`.
- * Methods: `run`, `group`, `beginGroup`/`endGroup`, `undo`, `redo`, `undoTo`, `redoTo`, `moveTo`, `undoTurn`,
+ * Undo and redo over an app's checkpoints (history §1). States: `steps` (newest first), `redoable`, `undoBlocked` (why
+ * not, undefined: Undo can run), `canRedo`, `running`, `checkpointing`, `recording`, `lastMove`, `checkpointsOff`.
+ * Methods: `run`, `group`, `beginGroup` (returns its end), `undo`, `redo`, `undoTo`, `redoTo`, `moveTo`, `undoTurn`,
  * `invalidate`, `clear`, `setCheckpointing`, `setRecording`, `setLimits`.
  */
 export class HistoryModel<C = unknown> {
@@ -319,7 +329,6 @@ export class HistoryModel<C = unknown> {
     hardLimit: { readonly ms: number; readonly bytes: number };
     now: () => number;
     measure: () => number;
-    recordIf?: (origin: HistoryOrigin, label: string | undefined) => boolean;
   };
   #limits: HistoryLimits;
   readonly #labels: HistoryLabels;
@@ -328,14 +337,12 @@ export class HistoryModel<C = unknown> {
   readonly #running = new State(0);
   readonly #restoring = new State(false);
   readonly #checkpointing = new State(true);
-  readonly #recording: State<boolean>;
+  readonly #recording: State<HistoryRecording>;
   /** Checkpoints in a row over the time budget. */
   #slow = 0;
   /** When the last checkpoint over the hard limit was taken; none since a clear. */
   #overHardLimitAt: number | undefined;
-  readonly #undoBlocked = new State<string | undefined>(undefined);
-  readonly #undoBlockedCode = new State<HistoryRefusalCode | undefined>(undefined);
-  readonly #canUndo = new State(false);
+  readonly #undoBlocked = new State<HistoryRefusal | undefined>(undefined);
   readonly #lastMove = new State<HistoryMove | undefined>(undefined);
   /** What Undo took back, newest first, each with the state it left: Redo puts it back. */
   #redo: { entry: Entry<C>; after: C }[] = [];
@@ -361,7 +368,6 @@ export class HistoryModel<C = unknown> {
       hardLimit: options.hardLimit ?? { ms: 500, bytes: 50_000_000 },
       now: options.now ?? Date.now,
       measure: options.measure ?? (() => performance.now()),
-      recordIf: options.recordIf,
     };
     this.#limits = limitsOf(options, DefaultHistoryLimits);
     this.#labels = { ...DefaultHistoryLabels, ...options.labels };
@@ -374,18 +380,12 @@ export class HistoryModel<C = unknown> {
     return this.#steps.asReadonly;
   }
 
-  /** Why Undo cannot run now (a run in flight, nothing to undo, an unsafe step); undefined: it can. */
-  get undoBlocked(): ReadonlyState<string | undefined> {
+  /**
+   * Why Undo cannot run now (a run in flight, nothing to undo, an unsafe step), with its code; undefined: it can. The
+   * code `running` is transient (a view greys its buttons and says nothing more).
+   */
+  get undoBlocked(): ReadonlyState<HistoryRefusal | undefined> {
     return this.#undoBlocked.asReadonly;
-  }
-
-  /** `undoBlocked` as a code: `running` is transient (a view greys its buttons and says nothing more). */
-  get undoBlockedCode(): ReadonlyState<HistoryRefusalCode | undefined> {
-    return this.#undoBlockedCode.asReadonly;
-  }
-
-  get canUndo(): ReadonlyState<boolean> {
-    return this.#canUndo.asReadonly;
   }
 
   /** Runs and groups in flight, queued ones included. */
@@ -398,8 +398,8 @@ export class HistoryModel<C = unknown> {
     return this.#checkpointing.asReadonly;
   }
 
-  /** Runs become steps; off, they are changes outside the history (history §1). */
-  get recording(): ReadonlyState<boolean> {
+  /** What becomes a step; the rest are changes outside the history (history §1). */
+  get recording(): ReadonlyState<HistoryRecording> {
     return this.#recording.asReadonly;
   }
 
@@ -450,12 +450,12 @@ export class HistoryModel<C = unknown> {
   }
 
   /**
-   * Starts or stops recording (history §1). Off, a run or group still runs in order, but takes no checkpoint and
-   * records no step: a change outside the history, so the steps before it turn unsafe once it changes something.
-   * Unlike `undoable: false` (a run that changes nothing the history restores), which leaves them as they are.
+   * What the history records (history §1): a run or group it does not still runs in order, but takes no checkpoint and
+   * records no step: a change outside the history, so the steps before it turn unsafe once it changes something (or
+   * fails). Unlike `changed: false` (a run that changes nothing the history restores), which leaves them as they are.
    */
-  setRecording(on: boolean): void {
-    this.#recording.set(on);
+  setRecording(recording: HistoryRecording): void {
+    this.#recording.set(recording);
   }
 
   /**
@@ -485,11 +485,7 @@ export class HistoryModel<C = unknown> {
     options: RunOptions<T> = {},
   ): Promise<StepOutcome<T>> {
     const parent = options.within && this.#active.get(options.within.id);
-    if (parent) {
-      // Inside a step, work that changes nothing undoable is no run of it either.
-      const record = options.undoable === false ? () => false : options.record;
-      return this.#nested(parent, 'run', label, work, options.failed, record, 'rollback');
-    }
+    if (parent) return this.#nested(parent, 'run', label, work, options.failed, options.changed, 'rollback');
 
     this.#running.set(this.#running.value + 1);
     this.#updateBlocked();
@@ -498,22 +494,31 @@ export class HistoryModel<C = unknown> {
     try {
       const key = historyGroupKey(origin);
       const group = key ? this.#open.get(key) : undefined;
+      // Joining its turn's open entry: that entry has its checkpoint, this run's own only restores its failure, so it is
+      // a per-step checkpoint (none while they are off); a turn's new entry takes the group's one (history §3).
+      const joins = !!group && this.#entries[0]?.openKey === key;
       this.#closeOthers(key);
-      const undoable = options.undoable !== false;
+      const undoable = options.changed !== false;
       const recorded = undoable && this.#records(origin, label);
-      const checkpoint = recorded ? this.#take(!!group) : this.#none();
+      const checkpoint = recorded ? this.#take(!!group && !joins) : this.#none();
+      // Not recorded, it is a change outside the history even when it fails: nothing restores what it did (§1).
+      const outside = undoable && !recorded;
       let value: T;
       try {
         value = await work(active);
       } catch (error) {
-        await this.#restore(checkpoint);
+        if (outside) this.#notRecorded();
+        else await this.#restore(checkpoint);
         throw error;
       }
       if (options.failed?.(value)) {
+        if (outside) this.#notRecorded();
         const restored = await this.#restore(checkpoint);
         return { value, failed: true, restored };
       }
-      if (!undoable || options.record?.(value) === false) return { value, failed: false, restored: false };
+      if (!undoable || (typeof options.changed === 'function' && !options.changed(value))) {
+        return { value, failed: false, restored: false };
+      }
       if (!recorded) {
         this.#notRecorded();
         return { value, failed: false, restored: false };
@@ -558,11 +563,14 @@ export class HistoryModel<C = unknown> {
       try {
         value = await work(active);
       } catch (error) {
-        await this.#restore(checkpoint);
+        if (!recorded) this.#notRecorded();
+        else await this.#restore(checkpoint);
         throw error;
       }
       const failed = !!options.failed?.(value) || (onFailure === 'rollback' && active.failures > 0);
       if (failed) {
+        // Not recorded: what it did stays, outside the history (§1).
+        if (!recorded) this.#notRecorded();
         const restored = await this.#restore(checkpoint);
         return { value, failed: true, restored, runs: active.runs, failures: active.failures };
       }
@@ -584,20 +592,19 @@ export class HistoryModel<C = unknown> {
 
   /**
    * Opens a group for an origin's calls (an agent's turn): they join one entry while it is the latest; a call of
-   * another origin closes the entry, and the group's next call opens a new one under the same label. Returns `end`.
+   * another origin closes the entry, and the group's next call opens a new one under the same label. Returns its end
+   * (once; a later group of the same origin is not ended by it).
    */
   beginGroup(label: string, origin: HistoryOrigin): () => void {
     const key = historyGroupKey(origin);
     if (!key) throw new Error('beginGroup needs an origin with a turn');
-    this.#open.set(key, { key, label, origin });
-    return () => this.endGroup(origin);
-  }
-
-  endGroup(origin: HistoryOrigin): void {
-    const key = historyGroupKey(origin);
-    if (!key) return;
-    this.#open.delete(key);
-    for (const e of this.#entries) if (e.openKey === key) e.openKey = undefined;
+    const group: OpenGroup = { key, label, origin };
+    this.#open.set(key, group);
+    return () => {
+      if (this.#open.get(key) !== group) return;
+      this.#open.delete(key);
+      for (const e of this.#entries) if (e.openKey === key) e.openKey = undefined;
+    };
   }
 
   /** Restores the latest step; blocked while a run is in flight, or when the step is unsafe. */
@@ -628,8 +635,9 @@ export class HistoryModel<C = unknown> {
   }
 
   /**
-   * Undoes the step `id` and every later one, newest first ("Undo to here"), each as an Undo (so Redo puts them back);
-   * stops at the first that cannot be undone and says why. Returns the last step undone.
+   * Undoes the step `id` and every later one, newest first ("Undo to here"), each as an Undo (so Redo puts them back).
+   * All or none: when one of them cannot be undone it refuses up front with that one's reason (history §2). Returns the
+   * last step undone.
    */
   async undoTo(id: number): Promise<UndoResult> {
     if (!this.#entries.some((e) => e.step.id === id)) return this.#refuse('not-in-history');
@@ -637,6 +645,10 @@ export class HistoryModel<C = unknown> {
     if (early) return early;
     const release = await this.#acquire();
     try {
+      const index = this.#entries.findIndex((e) => e.step.id === id);
+      if (index < 0) return this.#refuse('not-in-history');
+      const stop = this.#unreachable(index);
+      if (stop) return stop;
       let last: UndoResult = this.#refuse('nothing-to-undo');
       while (this.#entries.some((e) => e.step.id === id)) {
         const blocked = this.#blocked();
@@ -654,7 +666,9 @@ export class HistoryModel<C = unknown> {
   /** Redoes up to and including the undone step `id` ("Redo to here"), each as a Redo. Returns the last step redone. */
   async redoTo(id: number): Promise<UndoResult> {
     if (this.#busy()) return this.#refuse('running');
-    if (!this.#redo.some((r) => r.entry.step.id === id)) return this.#refuse('nothing-to-redo');
+    if (!this.#redo.some((r) => r.entry.step.id === id)) {
+      return this.#refuse(this.#entries.some((e) => e.step.id === id) ? 'nothing-to-redo' : 'not-in-history');
+    }
     const release = await this.#acquire();
     try {
       let last: UndoResult = this.#refuse('nothing-to-redo');
@@ -671,7 +685,7 @@ export class HistoryModel<C = unknown> {
 
   /**
    * Moves the position to just after the step `id` (undefined: before every step), undoing the later steps or redoing
-   * the undone ones up to it: History's "Undo to here" and "Redo to here".
+   * the undone ones up to it: History's "Undo to here" and "Redo to here". An unknown step: `not-in-history`.
    */
   async moveTo(id: number | undefined): Promise<UndoResult> {
     const steps = this.#steps.value;
@@ -686,12 +700,12 @@ export class HistoryModel<C = unknown> {
   }
 
   /**
-   * Undoes a turn's entries: the origin's (kind and turn, as they group: `historyGroupKey`), or a turn id alone for an
-   * `agent`'s. While they are the latest, it restores the checkpoint before the turn's first one; with later steps
-   * above them it asks first (`laterSteps`), and with `discardLater` restores past those too.
+   * Undoes a turn's entries: the origin's (kind and turn, as they group: `historyGroupKey`). While they are the latest,
+   * it restores the checkpoint before the turn's first one; with later steps above them it asks first (`laterSteps`),
+   * and with `discardLater` restores past those too.
    */
-  async undoTurn(turn: HistoryOrigin | string, options: { discardLater?: boolean } = {}): Promise<UndoResult> {
-    const key = historyGroupKey(typeof turn === 'string' ? { kind: 'agent', turn } : turn);
+  async undoTurn(origin: HistoryOrigin, options: { discardLater?: boolean } = {}): Promise<UndoResult> {
+    const key = historyGroupKey(origin);
     if (!key) return this.#refuse('turn-empty');
     if (this.#busy()) return this.#refuse('running');
     const release = await this.#acquire();
@@ -705,9 +719,8 @@ export class HistoryModel<C = unknown> {
       if (later > 0 && !options.discardLater) {
         return { ok: false, code: 'later-steps', reason: this.#labels.laterSteps(later), laterSteps: later };
       }
-      const unsafe = this.#entries.slice(0, last + 1).find((e) => e.step.unsafe || e.checkpoint === undefined);
-      if (unsafe)
-        return unsafe.step.unsafe ? this.#refuse('unsafe', unsafe.step.unsafe) : this.#refuse('no-checkpoint');
+      const stop = this.#unreachable(last);
+      if (stop) return stop;
       const target = this.#entries[last];
       const epoch = this.#epoch;
       await this.#restore({ value: target.checkpoint, epoch });
@@ -785,9 +798,20 @@ export class HistoryModel<C = unknown> {
   }
 
   #records(origin: HistoryOrigin, label: string | ((value: never) => string)): boolean {
-    if (!this.#recording.value) return false;
-    const recordIf = this.#options.recordIf;
-    return !recordIf || recordIf(origin, typeof label === 'string' ? label : undefined);
+    const recording = this.#recording.value;
+    return typeof recording === 'function'
+      ? recording(origin, typeof label === 'string' ? label : undefined)
+      : recording;
+  }
+
+  /** Why the entries up to `index` (newest first) cannot all be undone: the newest that cannot (history §2). */
+  #unreachable(index: number): UndoResult | undefined {
+    for (let i = 0; i <= index; i++) {
+      const e = this.#entries[i];
+      if (e.step.unsafe) return this.#refuse('unsafe', e.step.unsafe);
+      if (e.checkpoint === undefined) return this.#refuse('no-checkpoint');
+    }
+    return undefined;
   }
 
   /** The latest step undone (the lock held). */
@@ -795,8 +819,9 @@ export class HistoryModel<C = unknown> {
     const blocked = this.#blocked();
     if (blocked) return blocked;
     const top = this.#entries[0];
-    // The state Undo leaves, for Redo (a checkpoint like any other; none when they are off or Redo keeps none).
-    const after = this.#checkpointing.value && this.#limits.maxRedo > 0 ? this.#port.checkpoint() : undefined;
+    // The state Undo leaves, for Redo: a checkpoint like any other, timed and sized against the budget and the limits
+    // (history §3); none when they are off or Redo keeps none.
+    const after = this.#limits.maxRedo > 0 ? this.#take(false).value : undefined;
     const epoch = this.#epoch;
     await this.#restore({ value: top.checkpoint, epoch });
     if (epoch !== this.#epoch) return { ok: true, step: top.step };
@@ -844,7 +869,7 @@ export class HistoryModel<C = unknown> {
     label: string | ((value: T) => string),
     work: (context: HistoryContext) => Promise<T>,
     failed: ((value: T) => boolean) | undefined,
-    record: ((value: T) => boolean) | undefined,
+    changed: boolean | ((value: T) => boolean) | undefined,
     onFailure: 'rollback' | 'continue',
   ): Promise<GroupOutcome<T>> {
     const active = this.#begin(kind, parent, onFailure);
@@ -865,12 +890,9 @@ export class HistoryModel<C = unknown> {
         const restored = await this.#restore(own);
         return { value, failed: true, restored, runs: active.runs, failures: active.failures };
       }
-      const runs =
-        kind === 'run'
-          ? record?.(value) === false
-            ? active.runs
-            : [labelOf(label, value), ...active.runs]
-          : active.runs;
+      // Inside a step, work that changes nothing undoable is no run of it either.
+      const changes = changed === undefined || (typeof changed === 'function' ? changed(value) : changed);
+      const runs = kind === 'run' && changes ? [labelOf(label, value), ...active.runs] : active.runs;
       for (const r of runs) parent.runs.push(r);
       return { value, failed: false, restored: false, runs, failures: active.failures };
     } finally {
@@ -1042,7 +1064,7 @@ export class HistoryModel<C = unknown> {
     this.#updateBlocked();
   }
 
-  #refuse(code: Exclude<HistoryRefusalCode, 'later-steps'>, reason?: string): UndoResult {
+  #refuse(code: Exclude<HistoryRefusalCode, 'later-steps'>, reason?: string): Extract<UndoResult, { ok: false }> {
     const l = this.#labels;
     const text =
       reason ??
@@ -1059,7 +1081,7 @@ export class HistoryModel<C = unknown> {
     return { ok: false, code, reason: text };
   }
 
-  #blocked(): UndoResult | undefined {
+  #blocked(): Extract<UndoResult, { ok: false }> | undefined {
     const top = this.#entries[0];
     if (this.#busy()) return this.#refuse('running');
     if (!top) return this.#refuse('nothing-to-undo');
@@ -1069,12 +1091,11 @@ export class HistoryModel<C = unknown> {
   }
 
   #updateBlocked() {
-    const blocked = this.#blocked() as Extract<UndoResult, { ok: false }> | undefined;
-    batch(() => {
-      this.#undoBlocked.set(blocked?.reason);
-      this.#undoBlockedCode.set(blocked?.code);
-      this.#canUndo.set(blocked === undefined);
-    });
+    const blocked = this.#blocked();
+    const now = this.#undoBlocked.value;
+    // Told only when it changes: this runs twice per run.
+    if (now?.code === blocked?.code && now?.reason === blocked?.reason) return;
+    this.#undoBlocked.set(blocked && { code: blocked.code, reason: blocked.reason });
   }
 
   #acquire(): Promise<() => void> {

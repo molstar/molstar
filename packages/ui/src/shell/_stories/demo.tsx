@@ -437,7 +437,7 @@ function stageViews(
       id: 'stage',
       title: 'Stage',
       icon: 'box',
-      stage: true,
+      canvas: true,
       home: 'stage',
       instances: 'many',
       fill: true,
@@ -475,8 +475,7 @@ function stageViews(
       title: 'Panel',
       icon: 'panel-right',
       home: 'stage',
-      stageSide: 'right',
-      stageSize: 280,
+      region: { side: 'right', size: 280 },
       render: domView(() => (
         <ViewStack>
           <ViewEmpty>A view docked beside the stage.</ViewEmpty>
@@ -500,9 +499,7 @@ export interface DemoOptions extends ShellOptions {
   activeOnly?: boolean;
   /** The Mol* star that shows a hidden rail (default on). */
   railToggle?: boolean;
-  /** What the drop overlay says. */
-  dropLabel?: string;
-  /** What can be dropped (a hint under the label). */
+  /** What can be dropped (a hint under the drop overlay's words, `labels.dropFiles`). */
   dropFormats?: string;
   /** How far Expand reaches. */
   fill?: 'shell' | 'page';
@@ -641,7 +638,6 @@ export function DemoShell(props: { options?: DemoOptions; children?: Child }) {
         }
         busy={o.busy}
         onDropFiles={onDropFiles}
-        dropLabel={o.dropLabel}
         dropFormats={o.dropFormats}
         fill={o.fill}
         railToggle={o.railToggle}

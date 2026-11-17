@@ -172,6 +172,14 @@ describe('StatusLine labels', () => {
     status.retire();
   });
 
+  it('a pill on its own takes its ✕’s name from `labels`', () => {
+    const host = mount(() => (
+      <StatusPill icon={null} text="Fertig" onDismiss={() => {}} labels={{ dismiss: 'Ausblenden' }} />
+    ));
+    const x = host.querySelector('button')!;
+    expect([x.getAttribute('aria-label'), x.getAttribute('data-tip')]).toEqual(['Ausblenden', 'Ausblenden']);
+  });
+
   it('names each task’s Cancel after its task by default', () => {
     const status = new StatusModel();
     const host = mount(() => <StatusLine status={status} onOpenLog={() => {}} />);

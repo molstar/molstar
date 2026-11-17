@@ -181,8 +181,14 @@ describe('the timeline row', () => {
   });
 
   it('counted: frames as people count, previous and next wrap when periodic', () => {
-    const t = new Timeline({ count: 10, unit: 'model' });
-    const m = mount(() => <TimelineRow model={t} />);
+    const t = new Timeline({ count: 10 });
+    const labels = {
+      frame: 'Model',
+      previousFrame: 'Previous model',
+      nextFrame: 'Next model',
+      countedValue: (i: number, n: number) => `model ${i} of ${n}`,
+    };
+    const m = mount(() => <TimelineRow model={t} labels={labels} />);
     const scrubber = m.container.querySelector<HTMLInputElement>('input[type=range]')!;
     expect(scrubber.getAttribute('aria-label')).toBe('Model');
     expect(scrubber.max).toBe('9');
@@ -222,12 +228,73 @@ describe('the timeline row', () => {
 
   it('shows only what the model has', () => {
     const playing = new State(true);
-    const m: TimelineModel = { label: 'Spin', playing, togglePlay: () => playing.set(!playing.value) };
-    const v = mount(() => <TimelineRow model={m} />);
+    const m: TimelineModel = { playing, togglePlay: () => playing.set(!playing.value) };
+    const v = mount(() => <TimelineRow model={m} label="Spin" />);
     expect(v.container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Spin');
     expect(v.container.querySelector('[role=progressbar]')?.getAttribute('aria-valuetext')).toBe('running');
     expect(v.button('Restart')).toBeNull();
     expect(v.container.querySelector('[aria-label="Speed"]')).toBeNull();
+  });
+});
+
+describe('the rows’ names and words', () => {
+  it('names a row by its label, a state or a string, its status after it (never an object’s name)', () => {
+    const name = new State('Spin');
+    const v = mount(() => <TimelineRow model={new Durationless()} label={name} />);
+    const status = v.container.querySelector('[role=progressbar]')!;
+    expect(status.getAttribute('aria-label')).toBe('Spin status');
+    name.set('Rock');
+    flush();
+    expect(status.getAttribute('aria-label')).toBe('Rock status');
+    expect(v.container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Rock');
+    const s = mount(() => <StepperRow model={new Stepper({ steps: steps(3) })} label="Scenes" />);
+    expect(s.container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Scenes');
+  });
+
+  it('says every word through its labels, the screen reader’s value text too', () => {
+    const labels = {
+      deck: 'Wiedergabe',
+      previous: 'Zurück',
+      next: 'Weiter',
+      play: 'Abspielen',
+      pause: 'Anhalten',
+      mute: 'Stumm',
+      time: 'Zeit',
+      timedValue: (t: string, d: string) => `${t} s von ${d} s`,
+      durationless: 'Lauf',
+      status: (n: string) => `${n}: Zustand`,
+      paused: (ran: string) => `angehalten bei ${ran}`,
+      stepCount: (n: number) => `Schritt ${n}`,
+      stepOnce: 'Ein Schritt',
+      restart: 'Neu',
+      speed: 'Tempo',
+    };
+    const muted = new State(false);
+    const m = mount(() => (
+      <PlaybackDeck labels={labels}>
+        <StepperRow
+          model={new Stepper({ steps: steps(3) })}
+          labels={labels}
+          actions={() => <MuteButton muted={muted} onClick={() => {}} labels={labels} />}
+        />
+        <TimelineRow model={new Timeline({ duration: 4 })} labels={labels} />
+        <TimelineRow model={new Durationless({ elapsed: false, speeds: [1, 2] })} labels={labels} />
+      </PlaybackDeck>
+    ));
+    expect(m.container.querySelector('section')?.getAttribute('aria-label')).toBe('Wiedergabe');
+    for (const name of ['Zurück', 'Weiter', 'Abspielen', 'Stumm', 'Ein Schritt', 'Neu'])
+      expect(m.button(name), name).not.toBeNull();
+    const scrubber = m.container.querySelector<HTMLInputElement>('input[type=range]')!;
+    expect([scrubber.getAttribute('aria-label'), scrubber.getAttribute('aria-valuetext')]).toEqual([
+      'Zeit',
+      '0.0 s von 4.0 s',
+    ]);
+    const status = m.container.querySelector('[role=progressbar]')!;
+    expect([status.getAttribute('aria-label'), status.getAttribute('aria-valuetext')]).toEqual([
+      'Lauf: Zustand',
+      'angehalten bei Schritt 0',
+    ]);
+    expect(m.container.querySelector('[aria-label="Tempo"]')).not.toBeNull();
   });
 });
 
@@ -241,7 +308,7 @@ describe('playback is accessible (axe)', () => {
           <StepperRow model={many} label="Scenes" />
           <TimelineRow model={new Timeline({ duration: 3, speeds: [1, 2] })} />
           <TimelineRow model={new Timeline({ count: 12 })} />
-          <TimelineRow model={new Durationless({ label: 'Simulation', speeds: [1, 2] })} />
+          <TimelineRow model={new Durationless({ speeds: [1, 2] })} label="Simulation" />
         </PlaybackDeck>
         <StepCard model={new Stepper({ steps: steps(4) })} />
       </div>

@@ -326,7 +326,8 @@ one being recorded), `conflicts`, `keyless`; `setEditing`, `record(id)`, `record
 `resetAll`, each through the keymap (§6.3), and `said`: what the last change did (with what a new key now shares), in
 `KeysLabels`' words. The same text again toggles a trailing no-break space (as `StatusModel.spoken`), so a live region
 is told and says it again (Reset all twice). Why a model: an agent or a test changes keys as the view does.
-`HelpView({ commands, bindings?, global?, intro?, keys?, labels? })` renders it with the app's input bindings
+`HelpView({ keys, bindings?, global?, intro?, labels? })` renders it (one source: the model, built over the app's
+manager with its `KeysLabels`, so what a change says is relabelled where it is made) with the app's input bindings
 (`InputBindingGroup`: mouse, touch) and the keys that work everywhere: the conflicts first, a recorder that takes every
 key but Tab (no chord: it leaves, and leaving cancels, so a keyboard user is never trapped; Esc cancels too), `said` in
 a polite live region. "Give a key to…" is controlled: it names the keyless command while it is recorded, its placeholder

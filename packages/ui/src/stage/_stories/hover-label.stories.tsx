@@ -22,9 +22,8 @@ function lines(i: number): readonly HoverLine[] {
   if (i % 5) return structureLines(i);
   return [
     ...structureLines(i),
-    { role: 'item', runs: [{ text: '• Ligand ' }, { text: 'NAG', code: true }, { text: ' bound at 2.8 Å' }] },
+    { item: true, runs: [{ text: '• Ligand ' }, { text: 'NAG', code: true }, { text: ' bound at 2.8 Å' }] },
     {
-      role: 'text',
       runs: [
         { text: 'C', bold: true },
         { text: '6', sub: true },
@@ -35,7 +34,6 @@ function lines(i: number): readonly HoverLine[] {
       ],
     },
     {
-      role: 'text',
       runs: [
         { text: 'See the entry', link: true },
         { text: ' (a link is shown, not followed)', small: true },

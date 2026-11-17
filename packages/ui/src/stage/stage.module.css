@@ -19,7 +19,6 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  container: msui-stage / inline-size;
   background: var(--msui-stage-color, #ffffff);
   isolation: isolate;
 }
@@ -159,8 +158,8 @@
   }
 }
 
-/* Narrow (`StageCompactWidth`, 480): the status on a row of its own above the chips and the corner. */
-@container msui-stage (width < 480px) {
+/* Compact (`StageModel.compact`, its `compactWidth`): the status on a row of its own above the chips and the corner. */
+.stage[data-compact] {
   .bottom {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:

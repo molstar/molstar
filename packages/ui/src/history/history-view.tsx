@@ -12,26 +12,31 @@ import type { CommandManager } from '../commands/manager.js';
 import type { KeyChord } from '../commands/types.js';
 import { Button } from '../components/button/button.js';
 import { Icon, type IconName } from '../components/icon/icon.js';
-import { keepRows, VirtualList } from '../components/virtual-list/virtual-list.js';
+import { VirtualList } from '../components/virtual-list/virtual-list.js';
 import { Show } from '../dom/index.js';
 import { ViewEmpty, ViewRow, ViewToolbar } from '../shell/view-frame.js';
 import { classes } from './_generated/history-view.module.css.js';
 import { HistoryCommandIds, HistoryShortcuts } from './history-commands.js';
 import type { HistoryModel, HistoryStep, UndoResult } from './history-model.js';
 
-/** An origin's icon and name in History ("You", "The assistant"); an unknown kind is shown by its name. */
-export interface HistoryOriginLook {
-  readonly icon: IconName;
-  readonly title: string;
-}
-
-export const DefaultHistoryOrigins: Readonly<Record<string, HistoryOriginLook>> = {
-  person: { icon: 'user', title: 'You' },
-  agent: { icon: 'bot', title: 'The assistant' },
-  script: { icon: 'file-code', title: 'A script' },
-  url: { icon: 'download', title: 'A link' },
-  link: { icon: 'link', title: 'A linked view' },
+/** An origin's icon in History, by its kind (an unknown kind: a history icon). Its name is the labels' (`origin`). */
+export const DefaultHistoryOriginIcons: Readonly<Record<string, IconName>> = {
+  person: 'user',
+  agent: 'bot',
+  script: 'file-code',
+  url: 'download',
+  link: 'link',
 };
+
+const DefaultOriginNames: Readonly<Record<string, string>> = {
+  person: 'You',
+  agent: 'The assistant',
+  script: 'A script',
+  url: 'A link',
+  link: 'A linked view',
+};
+
+const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /** History's words (history §6); the refusals are the model's (`HistoryModel.labels`). */
 export interface HistoryViewLabels {
@@ -58,8 +63,14 @@ export interface HistoryViewLabels {
   readonly earlierRuns: (count: number) => string;
   /** A group's every kept run shown. */
   readonly allRuns: (count: number) => string;
-  /** The toggle (pressed: every kept run listed). */
+  /** The toggle's text (pressed: every kept run listed). */
   readonly showRuns: string;
+  /** The toggle's accessible name, by its step (one per group: "Show all" alone told them apart by nothing). */
+  readonly showRunsName: (step: string) => string;
+  /** An origin's name by its kind ("You", "The assistant"; an unknown kind: itself). */
+  readonly origin: (kind: string) => string;
+  /** A step's description: its origin's name and its time (ms, the model's `now`). */
+  readonly description: (origin: string, time: number) => string;
 }
 
 export const DefaultHistoryViewLabels: HistoryViewLabels = {
@@ -79,13 +90,20 @@ export const DefaultHistoryViewLabels: HistoryViewLabels = {
   earlierRuns: (n) => `${n} earlier run${n === 1 ? '' : 's'}`,
   allRuns: (n) => `All ${n} runs`,
   showRuns: 'Show all',
+  showRunsName: (step) => `Show all runs of ${step}`,
+  origin: (kind) => DefaultOriginNames[kind] ?? kind,
+  description: (origin, at) => `${origin} · ${time.format(at)}`,
 };
-
-const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /** A row of History (oldest first): the start, a step done or undone, a group's earlier runs, or one of its runs. */
 export type HistoryRow =
-  | { readonly kind: 'start'; readonly key: string; readonly current: boolean }
+  | {
+      readonly kind: 'start';
+      readonly key: string;
+      readonly current: boolean;
+      /** "Undo every step" can run: no step is unsafe. */
+      readonly reachable: boolean;
+    }
   | {
       readonly kind: 'step';
       readonly key: string;
@@ -94,6 +112,8 @@ export type HistoryRow =
       readonly undone: boolean;
       /** The position: the latest step done. */
       readonly current: boolean;
+      /** Its move can run: no later step on the way is unsafe (`undoTo` is all or none, history §2). */
+      readonly reachable: boolean;
     }
   | {
       readonly kind: 'more';
@@ -109,49 +129,118 @@ export type HistoryRow =
     }
   | { readonly kind: 'run'; readonly key: string; readonly label: string; readonly undone: boolean };
 
-export interface HistoryRowsOptions {
-  /** Runs listed under a folded step (10): its latest; a row says how many are above. */
-  readonly runs?: number;
-  /** The steps whose every kept run is listed (at most the model's `maxRuns`). */
-  readonly expanded?: ReadonlySet<number>;
+/** History's rows now: the steps (newest first), the redoable ones (the next first), the steps whose runs all show. */
+export type HistoryRows = (
+  steps: readonly HistoryStep[],
+  redoable: readonly HistoryStep[],
+  expanded?: ReadonlySet<number>,
+) => readonly HistoryRow[];
+
+const NoneExpanded: ReadonlySet<number> = new Set();
+
+interface CachedStep {
+  readonly step: HistoryStep;
+  readonly undone: boolean;
+  readonly current: boolean;
+  readonly reachable: boolean;
+  readonly expanded: boolean;
+  readonly rows: readonly HistoryRow[];
 }
 
 /**
- * History's rows (history §4): the start, the steps done oldest first (a group's latest runs under it, a row for the
- * earlier ones), the position at the latest, then the undone steps Redo would put back, the next first. Each step costs
- * at most `runs` rows unless expanded, and reads only those runs (`lastRuns`): a long turn published per run stays
- * linear while History is open. Pure: a headless host lists the same.
+ * History's rows (history §4), kept between calls: the start, the steps done oldest first (a group's latest `runs` (10)
+ * runs under it, a row for the earlier ones), the position at the latest, then the undone steps Redo would put back, the
+ * next first. A step whose object and place are unchanged keeps its rows as they were, and a changed one keeps those of
+ * its rows that are the same: a long turn published per run rebuilds its own step's rows and the list's order, not
+ * every row (a row is `lastRuns`' at most `runs`, never the whole list). DOM-free: a headless host lists the same.
  */
-export function historyRows(
-  steps: readonly HistoryStep[],
-  redoable: readonly HistoryStep[],
-  options: HistoryRowsOptions = {},
-): HistoryRow[] {
+export function createHistoryRows(options: { readonly runs?: number } = {}): HistoryRows {
   const cap = Math.max(1, options.runs ?? 10);
-  const rows: HistoryRow[] = [{ kind: 'start', key: 'start', current: steps.length === 0 }];
-  const add = (step: HistoryStep, undone: boolean, current: boolean) => {
-    rows.push({ kind: 'step', key: `s${step.id}`, step, undone, current });
-    const count = step.runCount;
-    if (count <= 1) return;
+  let cache = new Map<number, CachedStep>();
+  let start: Extract<HistoryRow, { kind: 'start' }> | undefined;
+  return (steps, redoable, expanded = NoneExpanded) => {
+    // A move to a step undoes every later one, all or none: reachable while none of those is unsafe (history §2).
+    let firstUnsafe = steps.length;
+    for (let i = 0; i < steps.length; i++) {
+      if (steps[i].unsafe) {
+        firstUnsafe = i;
+        break;
+      }
+    }
+    const current = steps.length === 0;
+    const all = firstUnsafe === steps.length;
+    if (!start || start.current !== current || start.reachable !== all) {
+      start = { kind: 'start', key: 'start', current, reachable: all };
+    }
+    const rows: HistoryRow[] = [start];
+    const next = new Map<number, CachedStep>();
+    const add = (step: HistoryStep, undone: boolean, current: boolean, reachable: boolean) => {
+      const open = expanded.has(step.id);
+      let c = cache.get(step.id);
+      if (
+        !c ||
+        c.step !== step ||
+        c.undone !== undone ||
+        c.current !== current ||
+        c.reachable !== reachable ||
+        c.expanded !== open
+      ) {
+        c = {
+          step,
+          undone,
+          current,
+          reachable,
+          expanded: open,
+          rows: stepRows(step, undone, current, reachable, open, cap, c?.rows),
+        };
+      }
+      next.set(step.id, c);
+      for (const r of c.rows) rows.push(r);
+    };
+    for (let i = steps.length - 1; i >= 0; i--) add(steps[i], false, i === 0, i <= firstUnsafe);
+    for (const step of redoable) add(step, true, false, true);
+    cache = next;
+    return rows;
+  };
+}
+
+/** A step's rows, those the same as before (`previous`, by key) kept as they were. */
+function stepRows(
+  step: HistoryStep,
+  undone: boolean,
+  current: boolean,
+  reachable: boolean,
+  open: boolean,
+  cap: number,
+  previous: readonly HistoryRow[] | undefined,
+): HistoryRow[] {
+  const made: HistoryRow[] = [{ kind: 'step', key: `s${step.id}`, step, undone, current, reachable }];
+  const count = step.runCount;
+  if (count > 1) {
     const kept = count - step.droppedRuns;
-    const expanded = kept > cap && !!options.expanded?.has(step.id);
+    const expanded = kept > cap && open;
     const shown = step.lastRuns(expanded ? kept : cap);
     const first = count - shown.length;
     if (first > 0 || expanded) {
-      rows.push({ kind: 'more', key: `m${step.id}`, step, earlier: first, expanded, expandable: kept > cap, undone });
+      made.push({ kind: 'more', key: `m${step.id}`, step, earlier: first, expanded, expandable: kept > cap, undone });
     }
     for (let i = 0; i < shown.length; i++) {
-      rows.push({ kind: 'run', key: `r${step.id}:${first + i}`, label: shown[i], undone });
+      made.push({ kind: 'run', key: `r${step.id}:${first + i}`, label: shown[i], undone });
     }
-  };
-  for (let i = steps.length - 1; i >= 0; i--) add(steps[i], false, i === 0);
-  for (const step of redoable) add(step, true, false);
-  return rows;
+  }
+  if (!previous?.length) return made;
+  const old = new Map<string, HistoryRow>();
+  for (const r of previous) old.set(r.key, r);
+  for (let i = 0; i < made.length; i++) {
+    const was = old.get(made[i].key);
+    if (was && sameRow(was, made[i])) made[i] = was;
+  }
+  return made;
 }
 
-const sameRow = (a: HistoryRow, b: HistoryRow) => {
+function sameRow(a: HistoryRow, b: HistoryRow): boolean {
   if (a.kind !== b.kind) return false;
-  if (a.kind === 'start') return a.current === (b as typeof a).current;
+  if (a.kind === 'start') return false;
   if (a.kind === 'run') return a.label === (b as typeof a).label && a.undone === (b as typeof a).undone;
   if (a.kind === 'more') {
     const c = b as typeof a;
@@ -164,8 +253,8 @@ const sameRow = (a: HistoryRow, b: HistoryRow) => {
     );
   }
   const c = b as typeof a;
-  return a.step === c.step && a.undone === c.undone && a.current === c.current;
-};
+  return a.step === c.step && a.undone === c.undone && a.current === c.current && a.reachable === c.reachable;
+}
 
 /** ARIA's key syntax as a hint ("Control+Shift+Z" → "Ctrl+Shift+Z"). */
 const keyHint = (keys: string) => keys.replace('Control', 'Ctrl');
@@ -199,8 +288,8 @@ function keyOf(
 
 export interface HistoryViewProps {
   history: HistoryModel<any>;
-  /** The origins' icons and names (`DefaultHistoryOrigins`). */
-  origins?: Readonly<Record<string, HistoryOriginLook>>;
+  /** The origins' icons by kind (`DefaultHistoryOriginIcons`); their names are the labels' (`origin`). */
+  originIcons?: Readonly<Record<string, IconName>>;
   /** The command manager `historyCommands` are registered with: Undo's and Redo's keys are read from it. */
   commands?: CommandManager<any>;
   /** Undo's and Redo's keys, in ARIA's syntax (`Meta+Z`), over the commands'; else ⌘Z / Ctrl+Z by platform. */
@@ -217,13 +306,14 @@ export interface HistoryViewProps {
  * History (history §4): Undo and Redo in a toolbar (their tooltips say the step and the key, or why not), the reason
  * when Undo is blocked (not while a change runs: the buttons are greyed), then the steps as a list of rows: oldest
  * first, a group's latest runs under it, its origin and time as the description, the position marked, "Undo to <step>"
- * on a step before it and "Redo to <step>" on one undone (muted after it), an unsafe step's warning. Every action is a
+ * on a step before it and "Redo to <step>" on one undone (muted after it), greyed when it cannot be reached (past an
+ * unsafe step), an unsafe step's warning. Every action is a
  * model method (`undo`, `redo`, `moveTo`), so the same works headless. It fills its parent (a flex column).
  */
 export function HistoryView(props: HistoryViewProps) {
   const { history } = props;
   const l = { ...DefaultHistoryViewLabels, ...props.labels };
-  const origins = props.origins ?? DefaultHistoryOrigins;
+  const icons = props.originIcons ?? DefaultHistoryOriginIcons;
   const undoKey = keyOf('undo', props.keys?.undo, props.commands);
   const redoKey = keyOf('redo', props.keys?.redo, props.commands);
   const expanded = new State<ReadonlySet<number>>(new Set());
@@ -232,22 +322,20 @@ export function HistoryView(props: HistoryViewProps) {
     if (!next.delete(id)) next.add(id);
     expanded.set(next);
   };
-  const keep = keepRows<HistoryRow>((r) => r.key, sameRow);
-  const rows = derive([history.steps, history.redoable, expanded], (steps, redoable, open) =>
-    keep(historyRows(steps, redoable, { runs: props.runs, expanded: open })),
-  );
+  const list = createHistoryRows({ runs: props.runs });
+  const rows = derive([history.steps, history.redoable, expanded], list);
   const busy = derive(history.running, (n) => n > 0);
   const undoTip = derive(
     [history.undoBlocked, history.steps, undoKey],
-    (reason, steps, key) => reason ?? l.undoTip(steps[0]?.label ?? '', key.hint),
+    (blocked, steps, key) => blocked?.reason ?? l.undoTip(steps[0]?.label ?? '', key.hint),
   );
   const redoTip = derive([history.redoable, busy, redoKey], (r, b, key) =>
     b ? history.labels.running : r.length ? l.redoTip(r[0].label, key.hint) : history.labels.nothingToRedo,
   );
   // The reason Undo cannot run, when there is something it would undo (an unsafe step), but not a run in flight: that
   // is transient (the buttons are greyed meanwhile), and a note on every run would flash.
-  const blocked = derive([history.undoBlocked, history.undoBlockedCode, history.steps], (reason, code, steps) =>
-    steps.length && reason && code !== 'running' ? reason : undefined,
+  const blocked = derive([history.undoBlocked, history.steps], (b, steps) =>
+    steps.length && b && b.code !== 'running' ? b.reason : undefined,
   );
   const count = derive(history.steps, (steps) => l.count(steps.length));
   const act = (p: Promise<UndoResult>) => void p.then((r) => props.onResult?.(r));
@@ -271,7 +359,7 @@ export function HistoryView(props: HistoryViewProps) {
                 size="xs"
                 icon={<Icon name="undo-2" />}
                 title={l.undoAll}
-                disabled={busy}
+                disabled={r.reachable ? busy : true}
                 onClick={() => act(history.moveTo(undefined))}
               />
             )
@@ -301,7 +389,13 @@ export function HistoryView(props: HistoryViewProps) {
           data-more=""
           trailing={
             r.expandable ? (
-              <Button variant="ghost" size="xs" pressed={r.expanded} onClick={() => toggle(r.step.id)}>
+              <Button
+                variant="ghost"
+                size="xs"
+                pressed={r.expanded}
+                aria-label={l.showRunsName(r.step.label)}
+                onClick={() => toggle(r.step.id)}
+              >
                 {l.showRuns}
               </Button>
             ) : undefined
@@ -310,7 +404,7 @@ export function HistoryView(props: HistoryViewProps) {
       );
     }
     const { step } = r;
-    const origin = origins[step.origin.kind];
+
     const trailing = (
       <>
         {step.unsafe ? (
@@ -325,7 +419,7 @@ export function HistoryView(props: HistoryViewProps) {
             size="xs"
             icon={<Icon name={r.undone ? 'redo-2' : 'undo-2'} />}
             title={r.undone ? l.redoTo(step.label) : l.undoTo(step.label)}
-            disabled={busy}
+            disabled={r.reachable ? busy : true}
             onClick={() => act(history.moveTo(step.id))}
           />
         )}
@@ -335,9 +429,9 @@ export function HistoryView(props: HistoryViewProps) {
       <ViewRow
         class={classes.row}
         role="listitem"
-        icon={origin?.icon ?? 'history'}
+        icon={icons[step.origin.kind] ?? 'history'}
         label={step.label}
-        description={`${origin?.title ?? step.origin.kind} · ${time.format(step.time)}`}
+        description={l.description(l.origin(step.origin.kind), step.time)}
         data-state={r.undone ? 'undone' : r.current ? 'current' : 'done'}
         data-unsafe={step.unsafe ? '' : undefined}
         aria-current={r.current ? 'step' : undefined}
@@ -355,9 +449,9 @@ export function HistoryView(props: HistoryViewProps) {
           icon={<Icon name="undo-2" />}
           title={undoTip}
           aria-label={l.undo}
-          aria-description={history.undoBlocked}
+          aria-description={derive(history.undoBlocked, (b) => b?.reason)}
           aria-keyshortcuts={derive(undoKey, (k) => k.aria)}
-          disabled={derive(history.canUndo, (can) => !can)}
+          disabled={derive(history.undoBlocked, (b) => !!b)}
           onClick={() => act(history.undo())}
         >
           {l.undo}

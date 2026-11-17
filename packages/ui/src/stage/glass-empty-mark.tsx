@@ -7,11 +7,11 @@
  */
 
 import type { Child } from '../dom/index.js';
-import { Splash } from '../components/splash/splash.js';
+import { GlassSplash } from '../components/splash/splash.js';
 import type { EmptyMarkContext } from './empty-stage.js';
 
 // The Mol* glass as an empty stage's mark (stage §4), opt in: `Stage`'s `emptyMark={GlassEmptyMark}`. A module of its
 // own, which the stage does not import: an app without it does not bundle the glass.
 
-/** The Mol* wordmark as glass (`Splash`), smaller on a compact stage. */
-export const GlassEmptyMark = (ctx: EmptyMarkContext): Child => <Splash scale={ctx.compact ? 2 : 3} />;
+/** The Mol* wordmark as glass (`GlassSplash`), smaller on a compact stage. */
+export const GlassEmptyMark = (ctx: EmptyMarkContext): Child => <GlassSplash scale={ctx.compact ? 2 : 3} />;

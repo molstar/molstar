@@ -50,12 +50,13 @@ export function helpOf(param: PD.Any, value: ReadonlyState<any>): ReadonlyState<
  * A row's label with its help: the label's text (the UI's own: it wraps, never cut, styles §2), and when there is help a
  * small ? after it (shown on the row's hover, or while open); the text opens the help too. The help itself goes under
  * the row (`block`), its text on the label column. `id` goes on the label's text (not the ?): the row's control is
- * labelled by it (`aria-labelledby`).
+ * labelled by it (`aria-labelledby`). `about` names the ? toggle by the label (the form's labels).
  */
 export function withHelp(
   label: string,
   help: ReadonlyState<ParamHelp | undefined> | undefined,
   id: string,
+  about: (label: string) => string,
 ): { head: Child; block: Child } {
   if (!help) {
     const head = (
@@ -90,8 +91,8 @@ export function withHelp(
             <button
               type="button"
               class={classes.toggle}
-              aria-label={`About ${label}`}
-              data-tip={`About ${label}`}
+              aria-label={about(label)}
+              data-tip={about(label)}
               onClick={(e) => {
                 e.stopPropagation();
                 open.set(!open.value);

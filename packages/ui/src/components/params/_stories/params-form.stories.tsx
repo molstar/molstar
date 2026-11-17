@@ -19,7 +19,7 @@ import { ParamsFormModel } from '../../../forms/params-form.js';
 import { state } from '../../../state.js';
 import { TextInput } from '../../text-input/text-input.js';
 import { installTooltips } from '../../tooltip/tooltip.js';
-import { ParamsForm } from '../params-form.js';
+import { ParamsForm, searchParams } from '../params-form.js';
 
 /**
  * Every PD control, alone, in each state: on a surface and in a well, at a panel's width, with the values it produces
@@ -64,7 +64,14 @@ function Surfaces(props: { params: PD.Params; width?: number; filter?: boolean }
               <TextInput search placeholder="Search" value={query} onInput={(v) => query.set(v)} />
             </div>
           ) : null}
-          <ParamsForm form={form} filter={props.filter ? query : undefined} />
+          <ParamsForm
+            form={form}
+            search={
+              props.filter
+                ? derive([query, form.values], (t, values) => searchParams(form.params, t, { values }))
+                : undefined
+            }
+          />
         </div>
         <pre style={values}>{derive(form.values, show)}</pre>
       </div>

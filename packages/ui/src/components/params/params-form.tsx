@@ -42,10 +42,13 @@ import {
 } from './extra-controls.js';
 import { type FieldBinding, keyBinding } from './field-binding.js';
 import { helpOf, withHelp } from './help.js';
+import { DefaultParamsFormLabels, type ParamsFormLabels } from './labels.js';
 import { formatNumber, frameInput, holdNumber, NumberInput, setValue } from './number-input.js';
 import { PresetsButton, PresetsList, presetIndex } from './presets.js';
 
 export type { FieldBinding };
+export type { ParamsFormLabels } from './labels.js';
+export { DefaultParamsFormLabels } from './labels.js';
 export { parseNumber } from './number-input.js';
 
 /**
@@ -66,24 +69,20 @@ export { parseNumber } from './number-input.js';
 export function ParamsForm(props: {
   form: ParamsFormModel<any>;
   /**
-   * Shows only the rows whose label or description contains this text (or that hold such rows); groups open while it
-   * is set. A search over settings.
-   */
-  filter?: ReadonlyState<string>;
-  /**
-   * The search's result for this form, when the host computes it already (settings: one walk per query decides both
-   * whether a group shows and which rows do). Else the form walks its params once per filter text and values.
+   * A search over the form (`searchParams` over its params and values, `undefined`: none): only the rows it shows show,
+   * and folds open while its words are left to match. One walk per text and values, shared with a host that reads it
+   * too (settings: whether a group shows).
    */
   search?: ReadonlyState<ParamsSearch | undefined>;
+  labels?: Partial<ParamsFormLabels>;
 }) {
-  const filter = normalized(props.filter);
-  const { form } = props;
-  const search =
-    props.search ??
-    (filter && derive([filter, form.values], (q, v) => (q ? searchParams(form.params, q, v) : undefined)));
+  const labels = props.labels ? { ...DefaultParamsFormLabels, ...props.labels } : DefaultParamsFormLabels;
+  const search = props.search;
+  // The words the search leaves to the form's rows: folds open while any are left (a scope that took them all: none).
+  const filter = search && derive(search, (s) => s?.query ?? '');
   return (
     <div class={classes.form}>
-      <FormRows form={form} filter={filter} search={search} level={0} />
+      <FormRows form={props.form} filter={filter} search={search} level={0} labels={labels} />
     </div>
   );
 }
@@ -94,6 +93,7 @@ function FormRows(props: {
   filter?: ReadonlyState<string>;
   search?: ReadonlyState<ParamsSearch | undefined>;
   level: number;
+  labels: ParamsFormLabels;
 }) {
   const { form } = props;
   return (
@@ -102,7 +102,7 @@ function FormRows(props: {
       field={(name) => ({ value: form.field(name), set: (v) => form.set(name, v) })}
       visible={(name) => (form.params[name].hideIf ? form.visible(name) : undefined)}
       filter={props.filter}
-      place={{ form, path: '', level: props.level, search: props.search }}
+      place={{ form, path: '', level: props.level, search: props.search, labels: props.labels }}
     />
   );
 }
@@ -115,6 +115,8 @@ interface Place {
   level: number;
   /** The search's rows by path (undefined while there is no search): what a row, a section and a fold read. */
   search?: ReadonlyState<ParamsSearch | undefined>;
+  /** The form's words. */
+  labels: ParamsFormLabels;
 }
 
 const at = (place: Place, path: string, deeper = false): Place => ({
@@ -122,6 +124,7 @@ const at = (place: Place, path: string, deeper = false): Place => ({
   path,
   level: deeper ? place.level + 1 : place.level,
   search: place.search,
+  labels: place.labels,
 });
 
 /** A block of rows one level deeper: its labels step in, the label column shrinks as much (styles §5). */
@@ -224,7 +227,7 @@ function ParamControls(props: {
         (
           <div class={classes.fields}>
             <Collapsible
-              title="Advanced"
+              title={place.labels.advanced}
               state={place.form.fold(`${place.path}#advanced`)}
               force={force}
               level={place.level}
@@ -237,11 +240,6 @@ function ParamControls(props: {
       )}
     </>
   );
-}
-
-/** The filter text, trimmed and lower-cased; undefined when there is no filter. */
-function normalized(filter?: ReadonlyState<string>): ReadonlyState<string> | undefined {
-  return filter && derive(filter, (q) => q.trim().toLowerCase().replace(/\s+/g, ' '));
 }
 
 function searching(filter?: ReadonlyState<string>): ReadonlyState<boolean> | undefined {
@@ -257,7 +255,7 @@ function labelOf(name: string, param: PD.Any): string {
  * path (a settings group, a nested group, the row's own label or description), so "perf qua" finds Performance ›
  * Quality. Each level takes the words its text contains and passes the rest down; nothing left: the level shows whole.
  */
-export function searchRest(text: string, q: string): string {
+function searchRest(text: string, q: string): string {
   if (!q) return q;
   const t = text.toLowerCase();
   if (!q.includes(' ')) return t.includes(q) ? '' : q;
@@ -273,27 +271,39 @@ export function searchRest(text: string, q: string): string {
  * sections, folds and settings groups read it instead of walking again each.
  */
 export interface ParamsSearch {
+  /** The words left for the rows (normalized; '' when the scope took them all: every row shows). */
+  readonly query: string;
   readonly rows: ReadonlyMap<string, boolean>;
   /** Some row shows. */
   readonly any: boolean;
 }
 
-/** Whether any of the params (or anything inside them) shows for a search text: a settings group with no match hides. */
-export function paramsMatch(params: PD.Params, text: string, values?: Record<string, unknown>): boolean {
-  return searchParams(params, text.trim().toLowerCase().replace(/\s+/g, ' '), values).any;
+export interface ParamsSearchOptions {
+  /** The current values (the form's): a `hideIf` that holds hides its row, a choice is searched in its chosen case. */
+  readonly values?: Record<string, unknown>;
+  /** A title above the params (a settings group's): it takes the words it contains first. */
+  readonly scope?: string;
 }
 
 /**
- * The rows a (normalized) search text shows, as `ParamsForm` lays them out: a row shows when its label and description
- * take every word, or a row inside it shows (its words passed down: `searchRest`). Rows that are never shown are never
- * counted: hidden params, plain values, a `hideIf` that holds on the `values` (the form's, a group's own), a choice's
- * other cases. A choice also shows when one of its options' labels (or ids) takes the words. Without `values`, hideIfs
- * are not asked and every case of a choice is searched.
+ * The one search over params (styles §8), for `ParamsForm` and settings alike; none (undefined) for blank text. The text
+ * is normalized (trimmed, lower case, single spaces); `scope` takes the words it contains, the rest go to the rows: a
+ * row shows when its label and description take every word left, or a row inside it shows (its words passed down).
+ * Rows that are never shown are never counted: hidden params, plain values, a `hideIf` that holds on the `values` (the
+ * form's, a group's own), a choice's other cases. A choice also shows when one of its options' labels (or ids) takes
+ * the words. Without `values`, hideIfs are not asked and every case of a choice is searched.
  */
-export function searchParams(params: PD.Params, q: string, values?: Record<string, unknown>): ParamsSearch {
+export function searchParams(
+  params: PD.Params,
+  text: string,
+  options: ParamsSearchOptions = {},
+): ParamsSearch | undefined {
+  const normalized = text.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!normalized) return undefined;
+  const query = options.scope === undefined ? normalized : searchRest(options.scope, normalized);
   const rows = new Map<string, boolean>();
-  const any = searchLevel(params, q, values, '', rows);
-  return { rows, any };
+  const any = searchLevel(params, query, options.values, '', rows);
+  return { query, rows, any };
 }
 
 /** The cases a choice maps to, by option: `map` may build its params each call, so it runs once per option. */
@@ -416,7 +426,7 @@ function ParamRow(props: {
   // Its help (a description, a legend; for a theme choice, the chosen theme's): a ? after the label, opening under the
   // row. The label's text has an id: the row's control is labelled by it (every field has a name).
   const labelId = uniqueId('msui-field');
-  const { head, block } = withHelp(label, helpOf(param, binding.value), labelId);
+  const { head, block } = withHelp(label, helpOf(param, binding.value), labelId, place.labels.about);
   const wrap = (row: Child) => wrapper(row, block);
   switch (param.type) {
     case 'mapped':
@@ -441,13 +451,42 @@ function ParamRow(props: {
     case 'color':
       return wrap(<ColorRow label={label} labelId={labelId} head={head} binding={binding} />);
     case 'multi-select':
-      return wrap(<MultiSelectRow head={head} label={label} labelId={labelId} param={param} binding={binding} />);
+      return wrap(
+        <MultiSelectRow
+          head={head}
+          label={label}
+          labelId={labelId}
+          param={param}
+          binding={binding}
+          labels={place.labels}
+        />,
+      );
     case 'mat4':
-      return wrap(<Mat4Row head={head} label={label} labelId={labelId} param={param} binding={binding} />);
+      return wrap(
+        <Mat4Row head={head} label={label} labelId={labelId} param={param} binding={binding} labels={place.labels} />,
+      );
     case 'line-graph':
-      return wrap(<LineGraphRow head={head} label={label} labelId={labelId} param={param} binding={binding} />);
+      return wrap(
+        <LineGraphRow
+          head={head}
+          label={label}
+          labelId={labelId}
+          param={param}
+          binding={binding}
+          labels={place.labels}
+        />,
+      );
     case 'color-list':
-      return wrap(<ColorListRow head={head} label={label} labelId={labelId} param={param} binding={binding} />);
+      return wrap(
+        <ColorListRow
+          head={head}
+          label={label}
+          labelId={labelId}
+          param={param}
+          binding={binding}
+          labels={place.labels}
+        />,
+      );
     case 'object-list':
       return wrap(<ObjectListRow head={head} label={label} param={param} binding={binding} place={place} />);
     case 'conditioned':
@@ -464,7 +503,7 @@ function ParamRow(props: {
     case 'script':
       return wrap(<ScriptControl head={head} label={label} labelId={labelId} binding={binding} place={place} />);
     default:
-      return wrap(<Row head={head}>{control(param, binding, labelId, label)}</Row>);
+      return wrap(<Row head={head}>{control(param, binding, labelId, label, place.labels)}</Row>);
   }
 }
 
@@ -500,7 +539,13 @@ function ColorRow(props: { label: string; labelId: string; head: Child; binding:
  * Files (PD.File, PD.FileList): a field like a select's, "Select files…" until some are chosen, then their names; a
  * click picks, files dropped on it are taken too, ✕ clears.
  */
-function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: FieldBinding; labelId?: string }) {
+function FileControl(props: {
+  param: PD.FileParam | PD.FileListParam;
+  binding: FieldBinding;
+  labelId?: string;
+  labels: ParamsFormLabels;
+}) {
+  const l = props.labels;
   const { param, binding, labelId } = props;
   const multiple = param.type === 'file-list';
   const dragging = state(false);
@@ -555,8 +600,8 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
           <button
             type="button"
             class={classes.fileClear}
-            aria-label="Clear"
-            data-tip="Clear"
+            aria-label={l.clearFile}
+            data-tip={l.clearFile}
             onClick={() => binding.set(null)}
           >
             <Icon name="x" />
@@ -570,22 +615,19 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
     const n = names.value;
     setAttr(root, 'data-dragging', dragging.value);
     setAttr(nameField, 'data-empty', n.length === 0);
-    setText(
-      namesText,
-      n.length === 0
-        ? multiple
-          ? 'Select files…'
-          : 'Select a file…'
-        : n.length === 1
-          ? n[0]
-          : `${n.length} files · ${n.join(', ')}`,
-    );
+    setText(namesText, n.length === 0 ? (multiple ? l.selectFiles : l.selectFile) : l.files(n));
   });
   return root;
 }
 
 /** A plain row's control, labelled by the row's label (`labelId`; `label` its text, for the parts of a compound one). */
-function control(param: PD.Any, binding: FieldBinding, labelId: string, label: string): Child {
+function control(
+  param: PD.Any,
+  binding: FieldBinding,
+  labelId: string,
+  label: string,
+  labels: ParamsFormLabels,
+): Child {
   switch (param.type) {
     case 'boolean':
       return <Toggle binding={binding} labelId={labelId} />;
@@ -597,11 +639,11 @@ function control(param: PD.Any, binding: FieldBinding, labelId: string, label: s
       );
     case 'file':
     case 'file-list':
-      return <FileControl param={param} binding={binding} labelId={labelId} />;
+      return <FileControl param={param} binding={binding} labelId={labelId} labels={labels} />;
     case 'vec3':
-      return <Vec3Control param={param} binding={binding} label={label} />;
+      return <Vec3Control param={param} binding={binding} label={label} labels={labels} />;
     case 'interval':
-      return <IntervalControl param={param} binding={binding} label={label} />;
+      return <IntervalControl param={param} binding={binding} label={label} labels={labels} />;
     case 'url':
       return <UrlControl binding={binding} labelId={labelId} />;
     default:
@@ -793,7 +835,7 @@ function GroupControl(props: {
     return (
       <>
         {presets && current ? (
-          <PresetsRow label={props.label} presets={presets} current={current} onPick={apply} />
+          <PresetsRow label={props.label} presets={presets} current={current} onPick={apply} labels={place.labels} />
         ) : null}
         {fields(param.params, false)}
       </>
@@ -827,10 +869,11 @@ function GroupControl(props: {
       state={folded}
       force={props.force}
       level={place.level}
-      meta={derive(current, (i) => (i === undefined ? 'Custom' : presets[i][1]))}
+      meta={derive(current, (i) => (i === undefined ? place.labels.custom : presets[i][1]))}
       action={
         <PresetsButton
           label={props.label}
+          labels={place.labels}
           presets={() => presets}
           current={current}
           onPick={(v) => {
@@ -851,22 +894,24 @@ function PresetsRow(props: {
   presets: readonly PD.SelectOption<unknown>[];
   current: ReadonlyState<number | undefined>;
   onPick(value: unknown): void;
+  labels: ParamsFormLabels;
 }) {
+  const l = props.labels;
   const open = state(false);
   const labelText = document.createTextNode('');
   const button = (
-    <SelectButton size="sm" open={open} aria-label={`${props.label} presets`} label={labelText} />
+    <SelectButton size="sm" open={open} aria-label={l.presetsOf(props.label)} label={labelText} />
   ) as HTMLElement;
   watch([props.current], () => {
     const i = props.current.value;
-    setText(labelText, i === undefined ? 'Custom' : props.presets[i][1]);
+    setText(labelText, i === undefined ? l.custom : props.presets[i][1]);
   });
   return (
     <>
       <Row
         head={
           <span class={classes.labelText} data-tip-overflow="">
-            Presets
+            {l.presets}
           </span>
         }
       >
@@ -875,7 +920,7 @@ function PresetsRow(props: {
       <PresetsList
         open={open}
         anchor={button}
-        label={`${props.label} presets`}
+        label={l.presetsOf(props.label)}
         presets={() => props.presets}
         current={props.current}
         onPick={props.onPick}
@@ -925,7 +970,13 @@ function OnOffControl(props: {
         <Toggle binding={toggle} labelId={props.labelId} />
         {hasSettings ? (
           <Show when={on}>
-            {() => <ExpandButton open={open} label={`${props.label} settings`} onClick={() => open.set(!open.value)} />}
+            {() => (
+              <ExpandButton
+                open={open}
+                label={place.labels.settingsOf(props.label)}
+                onClick={() => open.set(!open.value)}
+              />
+            )}
           </Show>
         ) : null}
       </Row>
@@ -979,7 +1030,9 @@ function MappedControl(props: {
   const shown = props.force ? derive([open, props.force], (o, f) => o || f) : open;
   const toggle = (
     <Show when={hasToggle}>
-      {() => <ExpandButton open={shown} label={`${props.label} settings`} onClick={() => open.set(!open.value)} />}
+      {() => (
+        <ExpandButton open={shown} label={place.labels.settingsOf(props.label)} onClick={() => open.set(!open.value)} />
+      )}
     </Show>
   );
   return (
@@ -1181,7 +1234,7 @@ function ObjectListRow(props: {
   const count = document.createTextNode('');
   watch([items], () => {
     const n = items.value.length;
-    setText(count, n === 1 ? '1 item' : `${n} items`);
+    setText(count, place.labels.items(n));
   });
   return (
     <>
@@ -1190,13 +1243,14 @@ function ObjectListRow(props: {
         <Button
           variant="ghost"
           size="sm"
-          title={`Add to ${props.label}`}
+          title={place.labels.addTo(props.label)}
           icon={<Icon name="plus" />}
           onClick={() => binding.set([...(binding.value.value ?? []), param.ctor()])}
         />
         {presets ? (
           <PresetsButton
             label={props.label}
+            labels={place.labels}
             presets={() => presets}
             current={derive(binding.value, (v) => presetIndex(presets, v))}
             onPick={(v) => binding.set(v)}
@@ -1206,7 +1260,14 @@ function ObjectListRow(props: {
       <Nested level={place.level + 1}>
         <For each={derive(items, (l) => l.map((_, i) => i))}>
           {(i) => (
-            <ObjectListItem param={param} binding={binding} index={i} replace={replace} level={place.level + 1} />
+            <ObjectListItem
+              param={param}
+              binding={binding}
+              index={i}
+              replace={replace}
+              level={place.level + 1}
+              labels={place.labels}
+            />
           )}
         </For>
       </Nested>
@@ -1220,6 +1281,7 @@ function ObjectListItem(props: {
   index: number;
   replace: (i: number, item: unknown) => void;
   level: number;
+  labels: ParamsFormLabels;
 }) {
   const { param, binding, index } = props;
   const open = state(false);
@@ -1231,7 +1293,7 @@ function ObjectListItem(props: {
       variant="ghost"
       size="sm"
       class={classes.itemAction}
-      title="Edit"
+      title={props.labels.edit}
       icon={<Icon name="sliders-horizontal" />}
       onClick={(e) => {
         e.stopPropagation();
@@ -1249,7 +1311,7 @@ function ObjectListItem(props: {
           variant="ghost"
           size="sm"
           class={classes.itemAction}
-          title="Remove"
+          title={props.labels.remove}
           icon={<Icon name="x" />}
           onClick={(e) => {
             e.stopPropagation();
@@ -1277,7 +1339,7 @@ function ObjectListItem(props: {
           });
           return (
             <Nested level={props.level + 1}>
-              <FormRows form={form} level={props.level + 1} />
+              <FormRows form={form} level={props.level + 1} labels={props.labels} />
             </Nested>
           );
         }}

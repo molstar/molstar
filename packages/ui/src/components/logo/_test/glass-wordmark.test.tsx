@@ -86,6 +86,58 @@ describe('GlassWordmark', () => {
     dispose();
   });
 
+  it('takes its accessible name from its labels', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(() => <GlassWordmark labels={{ mark: 'Acme' }} />, container, new ViewScope());
+    expect(container.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('Acme');
+    dispose();
+  });
+
+  it('at rest, draws once more in the new colors when the theme or the pixel ratio changes', async () => {
+    const ratio = Object.assign(new EventTarget(), { matches: true });
+    vi.stubGlobal('matchMedia', (q: string) => (q.startsWith('(resolution') ? ratio : { matches: false }));
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(() => <GlassWordmark />, container, new ViewScope());
+    frames(2000);
+    expect(pendingFrameCallbacks()).toBe(0);
+    const read = vi.spyOn(window, 'getComputedStyle');
+    const strokes = counts.stroke;
+    document.documentElement.setAttribute('data-msui-theme', 'dark');
+    await Promise.resolve();
+    expect(pendingFrameCallbacks()).toBeGreaterThan(0);
+    frames(48);
+    // The probes read again (four logo colors and the edge), the word drawn whole once, then nothing.
+    expect(read).toHaveBeenCalledTimes(5);
+    expect(counts.stroke).toBeGreaterThan(strokes);
+    expect(pendingFrameCallbacks()).toBe(0);
+    ratio.dispatchEvent(new Event('change'));
+    expect(pendingFrameCallbacks()).toBeGreaterThan(0);
+    frames(48);
+    expect(read).toHaveBeenCalledTimes(10);
+    expect(pendingFrameCallbacks()).toBe(0);
+    document.documentElement.removeAttribute('data-msui-theme');
+    dispose();
+  });
+
+  it('reads its box when the pointer comes in and after a scroll, never per move', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(() => <GlassWordmark />, container, new ViewScope());
+    frames(2000);
+    const word = container.querySelector<HTMLElement>('[role="img"]')!;
+    const box = vi.spyOn(word, 'getBoundingClientRect');
+    word.dispatchEvent(new PointerEvent('pointerenter'));
+    for (let i = 0; i < 5; i++) word.dispatchEvent(new PointerEvent('pointermove', { clientX: 20 + i, clientY: 10 }));
+    expect(box).toHaveBeenCalledTimes(1);
+    // Scrolled under a resting pointer: the next move reads it again, once.
+    document.dispatchEvent(new Event('scroll'));
+    for (let i = 0; i < 5; i++) word.dispatchEvent(new PointerEvent('pointermove', { clientX: 20 + i, clientY: 10 }));
+    expect(box).toHaveBeenCalledTimes(2);
+    dispose();
+  });
+
   it('a press on it starts no text selection (default prevented) and still reaches what listens around it', () => {
     const container = document.createElement('div');
     document.body.append(container);

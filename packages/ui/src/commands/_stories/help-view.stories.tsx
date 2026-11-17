@@ -12,6 +12,7 @@ import { story } from '../../_stories/support.js';
 import { installTooltips } from '../../components/tooltip/tooltip.js';
 import { onCleanup } from '../../dom/index.js';
 import { HelpView, type InputBindingGroup } from '../help-view.js';
+import { KeysModel } from '../keys-model.js';
 import { CommandManager } from '../manager.js';
 import type { CommandDefinition } from '../types.js';
 
@@ -78,7 +79,7 @@ export const Help: StoryObj = {
         style="width: 340px; margin: var(--msui-space-4); padding: var(--msui-space-1) 6px 6px;"
       >
         <HelpView
-          commands={manager()}
+          keys={new KeysModel(manager())}
           bindings={bindings}
           global={[
             { action: 'Command menu', input: ['⌘', 'K'] },

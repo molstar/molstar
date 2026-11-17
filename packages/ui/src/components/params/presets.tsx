@@ -14,6 +14,7 @@ import { Button } from '../button/button.js';
 import { Icon } from '../icon/icon.js';
 import { Floating, OptionList } from '../select/select.js';
 import { classes } from './_generated/params-form.module.css.js';
+import { DefaultParamsFormLabels, type ParamsFormLabels } from './labels.js';
 
 /**
  * PD's presets (a group's `presets`, an object list's `presets`, a line graph's `getPresets`): named values to start
@@ -21,14 +22,17 @@ import { classes } from './_generated/params-form.module.css.js';
  * (a select's options: nothing in a form moves), the one the value matches marked.
  */
 export function PresetsButton<T>(props: {
-  /** What the presets are for: the button is named "<label> presets". */
+  /** What the presets are for: the button is named by it (`presetsOf`). */
   label: string;
+  /** The button's words (`DefaultParamsFormLabels`'). */
+  labels?: Pick<ParamsFormLabels, 'presets' | 'presetsOf'>;
   /** Read when opened: a line graph's presets come from the data at hand (a volume's statistics). */
   presets: () => readonly PD.SelectOption<T>[];
   /** The preset the value matches, by index (undefined when none: the values are custom). */
   current: ReadonlyState<number | undefined>;
   onPick(value: T): void;
 }): Child {
+  const l = props.labels ?? DefaultParamsFormLabels;
   const open = state(false);
   const button = (
     <Button
@@ -42,10 +46,10 @@ export function PresetsButton<T>(props: {
         open.set(!open.value);
       }}
     >
-      Presets
+      {l.presets}
     </Button>
   ) as HTMLButtonElement;
-  button.setAttribute('aria-label', `${props.label} presets`);
+  button.setAttribute('aria-label', l.presetsOf(props.label));
   // The list's opener: a press on it toggles the list (it is not a press outside that closes it first).
   button.setAttribute('aria-haspopup', 'listbox');
   watch([open], () => setAttr(button, 'aria-expanded', String(open.value)));
@@ -55,7 +59,7 @@ export function PresetsButton<T>(props: {
       <PresetsList
         open={open}
         anchor={button}
-        label={`${props.label} presets`}
+        label={l.presetsOf(props.label)}
         presets={props.presets}
         current={props.current}
         onPick={props.onPick}

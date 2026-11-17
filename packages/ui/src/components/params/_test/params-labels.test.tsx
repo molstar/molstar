@@ -102,4 +102,40 @@ describe('ParamsForm labels (WCAG 4.1.2)', () => {
     ]);
     container.remove();
   });
+
+  it('says the form’s own words in the app’s language: Advanced, a matrix, points, a help toggle', async () => {
+    const form = new ParamsFormModel({
+      size: PD.Numeric(1, {}, { isEssential: true, description: 'How big' }),
+      transform: PD.Mat4([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] as any),
+      curve: PD.LineGraph([
+        [0, 0],
+        [1, 1],
+      ] as any),
+    });
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(
+      () => (
+        <ParamsForm
+          form={form}
+          labels={{
+            advanced: 'Avancé',
+            identity: 'Identité',
+            points: (n) => `${n} points (fr)`,
+            about: (l) => `À propos de ${l}`,
+          }}
+        />
+      ),
+      container,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.textContent).toContain('Avancé');
+    expect(container.textContent).not.toContain('Advanced');
+    expect(container.querySelector('button[aria-label="À propos de Size"]')).not.toBeNull();
+    form.fold('#advanced').set(true);
+    await new Promise((r) => setTimeout(r, 0));
+    const names = [...container.querySelectorAll('button[aria-haspopup]')].map(nameOf);
+    expect(names).toEqual(['Transform Identité', 'Curve 2 points (fr)']);
+    container.remove();
+  });
 });

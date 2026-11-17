@@ -6,7 +6,7 @@ actions), and its view. Code comments cite its sections (`log §2`).
 | File           | What                                                                               |
 | -------------- | ---------------------------------------------------------------------------------- |
 | `log-model.ts` | `LogModel`, `LogEntry`, `LogFilter`, `boundLog`, `passesLog`, `isProblem` (§1, §2) |
-| `log-view.tsx` | `LogView`, `LogKindIcons`, `logDescription` (§3)                                   |
+| `log-view.tsx` | `LogView`, `LogKindIcons` (§3)                                                     |
 
 ## 1. The model
 
@@ -35,14 +35,16 @@ actions), and its view. Code comments cite its sections (`log §2`).
   writes hundreds of entries in a task; one change a burst keeps the view and every reader at one pass.
 - **One bound** (`size`, 300) for every source together: past it, the oldest entries go, warnings and errors last, so a
   burst never pushes a problem out while anything else is left to drop; only when the problems alone fill it do the
-  oldest problems go (`boundLog`, one pass).
+  oldest problems go, and the newest entry still stays (`boundLog`, one pass). Why: a log full of problems hid every new
+  message, the one just written included.
 - Guarded: a burst of n and 4n entries, and n entries into a bounded log ten a flush, grow about linearly
   (`_test/log.scaling.test.ts`, the heavy lane; the quadratic control is caught).
 
 ## 3. The view
 
-- Words: `labels?: Partial<LogViewLabels>` over `DefaultLogViewLabels` (the filters' names and tooltips, the empty
-  lines); the model writes no text of its own.
+- Words: `labels?: Partial<LogViewLabels>` over `DefaultLogViewLabels` (the filters' names and tooltips, the list's
+  name, the empty lines, an entry's description: its time format and separators); the model writes no text of its own.
+  No `label` prop: one way to name the list (`labels.list`).
 - `LogView` fills its parent (a flex column; styles §8.4: a view that virtualizes fills the body). A `ViewToolbar`: the
   filters as icon toggles, each named by its `aria-label`, said in its tooltip, `aria-pressed`: All, then a kind each
   (Info, Success, Warnings, Errors; debug shows under All), then, once something wrote with a source, Messages and a

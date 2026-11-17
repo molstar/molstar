@@ -251,20 +251,30 @@ describe('collapsedRows', () => {
     expect(rows[4].disabled).toBe('Not here');
   });
 
-  it('follows a face and a menu given as states; no own action where a row is it already', () => {
+  it('follows a face and a menu given as states; no own action where a row is it already (by id, not label)', () => {
     const face = new State({ icon: 'sun' as const, title: 'Light' });
-    const menu = new State<readonly ToolbarMenuRow[]>([{ id: 'l', label: 'Light', run: () => {} }]);
-    const rows = collapsedRows(
-      [
-        {
-          id: 'g',
-          items: [{ id: 'theme', icon: 'moon', title: 'Theme', face: derive(face, (f) => f), menu, run: () => {} }],
-        },
-      ],
-      [],
-      () => document.body,
-    );
+    const own = vi.fn();
+    const other = vi.fn();
+    // A row that only reads like the item's action is another action: both stay.
+    const menu = new State<readonly ToolbarMenuRow[]>([{ id: 'l', label: 'Light', run: other }]);
+    const blocks: ToolbarGroup[] = [
+      {
+        id: 'g',
+        items: [{ id: 'theme', icon: 'moon', title: 'Theme', face: derive(face, (f) => f), menu, run: own }],
+      },
+    ];
+    const rows = collapsedRows(blocks, [], () => document.body);
     expect(rows[0].label).toBe('Light');
-    expect(rows[0].items!.map((r) => r.label)).toEqual(['Light']);
+    const items = rows[0].items!;
+    expect(items.map((r) => [r.id, r.label])).toEqual([
+      ['theme:run', 'Light'],
+      ['l', 'Light'],
+    ]);
+    items[0].run!();
+    items[1].run!();
+    expect([own.mock.calls.length, other.mock.calls.length]).toEqual([1, 1]);
+    // A row with the item's own action's id is it.
+    menu.set([{ id: 'theme:run', label: 'Light', run: own }]);
+    expect(collapsedRows(blocks, [], () => document.body)[0].items!.map((r) => r.id)).toEqual(['theme:run']);
   });
 });

@@ -148,7 +148,7 @@ describe('ShellModel', () => {
 
   it('resets the layout: every view home, nothing hidden, no windows', () => {
     const s = shell();
-    s.hide('home');
+    s.close('home');
     s.show('plot', { key: 'a' });
     s.splitBelow('settings');
     s.resetLayout();
@@ -195,13 +195,13 @@ describe('ShellModel', () => {
 describe('ShellModel: Expand and Fullscreen, headless', () => {
   it('expands and comes back; showing a docked view leaves it; fullscreen is unavailable without a view', () => {
     const s = shell();
-    s.expand();
+    s.toggleExpanded(true);
     expect(s.expanded.value).toBe(true);
     s.show('layers');
     expect(s.expanded.value).toBe(false);
     s.toggleExpanded();
     expect(s.expanded.value).toBe(true);
-    s.collapseExpanded();
+    s.toggleExpanded(false);
     expect(s.expanded.value).toBe(false);
     expect(typeof s.fullscreenAvailable.value).toBe('string');
     s.requestFullscreen(true);

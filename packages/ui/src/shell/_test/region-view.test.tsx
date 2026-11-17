@@ -23,8 +23,8 @@ afterEach(() => {
 
 const views = () => [
   probeView('home', { place: 'head', order: 0 }),
-  probeView('stage', { title: 'Stage B', stage: true, home: 'stage', instances: 'many' }),
-  probeView('plot', { home: 'stage', stageSide: 'bottom' }),
+  probeView('stage', { title: 'Stage B', canvas: true, home: 'stage', instances: 'many' }),
+  probeView('plot', { home: 'stage', region: { side: 'bottom' } }),
   probeView('seq', { title: 'Sequence', home: 'top' }),
 ];
 const content = (m: ReturnType<typeof mountShell>) => m.q('[data-pane="content"]')!;
@@ -99,7 +99,7 @@ describe('the main area’s region', () => {
       m.shell.show('stage', { key: 'b' });
       m.shell.show('plot');
       flush();
-      m.shell.maximize(findView(m.shell.layout.value, 'stage#b')!.group.id);
+      m.shell.maximize('stage#b');
       flush();
       m.shell.maximize(undefined);
       flush();
@@ -129,8 +129,7 @@ describe('the main area’s region', () => {
     m.shell.show('stage', { key: 'b' });
     m.shell.show('plot');
     flush();
-    const node = findView(m.shell.layout.value, 'stage#b')!.group.id;
-    m.shell.maximize(node);
+    m.shell.maximize('stage#b');
     flush();
     expect(content(m).getAttribute('data-shown')).toBe('false');
     expect(pane(m, 'plot')!.getAttribute('data-shown')).toBe('false');
@@ -160,7 +159,7 @@ describe('the main area’s region', () => {
     key(m.q('[data-input="stage"]')!, 'Escape');
     expect(m.shell.maximized.value).toBeUndefined();
     // Global: the shell's chrome away, the main area with all its panes.
-    m.shell.expand();
+    m.shell.toggleExpanded(true);
     flush();
     expect(m.rail()).toBeNull();
     expect(content(m).getAttribute('data-shown')).toBeNull();

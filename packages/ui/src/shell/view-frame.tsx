@@ -89,7 +89,7 @@ export interface ViewFrameProps {
   readonly placement: ViewPlacement;
   /**
    * `rail`: the header is a rail button tall (a docked group beside the rail, styles §8); default 32. `none`: no header
-   * (a stage alone in its pane, shell §2.1: a canvas has no chrome above it; the frame is named by the view's title).
+   * (a `canvas` view alone in its pane, shell §2.1: a canvas has no chrome above it; the frame is named by the view's title).
    */
   readonly head?: 'rail' | 'header' | 'none';
   /** In place of the title: a strip of tabs (a group of several views not at the rail). */
@@ -100,7 +100,7 @@ export interface ViewFrameProps {
    */
   readonly menu?: () => readonly ContextMenuItem[];
   readonly menuButton?: boolean;
-  /** Its ✕: closes it (a card, a window, a page) or folds it (a docked view). */
+  /** Its ✕: what the host does (a layer, a window, a pane close it; a docked group folds or closes its split). */
   readonly onClose?: () => void;
   /** The header's element, for a window to drag by. */
   readonly headerRef?: (el: HTMLElement) => void;

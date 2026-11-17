@@ -11,9 +11,9 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { DomProbe, flush, render } from '../../../dom/index.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';
-import type { State } from '@molstar/core/reactive';
+import { derive, type State } from '@molstar/core/reactive';
 import { state } from '../../../state.js';
-import { ParamsForm } from '../params-form.js';
+import { ParamsForm, searchParams } from '../params-form.js';
 import { fieldNamed } from './named.js';
 
 // The form's rows are views of their field (dom §2.2): the DOM made once, one `watch` a row writing what
@@ -34,7 +34,8 @@ afterEach(() => {
 function mount(form: ParamsFormModel<any>, filter?: State<string>) {
   const container = document.createElement('div');
   document.body.append(container);
-  render(() => <ParamsForm form={form} {...(filter ? { filter: filter } : {})} />, container);
+  const search = filter && derive([filter, form.values], (t, values) => searchParams(form.params, t, { values }));
+  render(() => <ParamsForm form={form} search={search} />, container);
   return container;
 }
 

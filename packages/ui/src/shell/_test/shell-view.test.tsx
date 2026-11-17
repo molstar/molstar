@@ -80,7 +80,7 @@ describe('ShellView: the rail', () => {
     flush();
     expect(m.railButton('Layers')).not.toBeNull();
     expect(m.frame('layers')).not.toBeNull();
-    m.shell.hide('inspect');
+    m.shell.close('inspect');
     flush();
     key(m.railButton('Home')!, 'ContextMenu');
     menuItem('Reset layout')!.click();

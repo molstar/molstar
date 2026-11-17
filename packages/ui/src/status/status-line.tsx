@@ -115,7 +115,7 @@ export function StatusLine(props: StatusLineProps) {
             onClick={openLog ? () => openLog(m.kind) : undefined}
             // An error stays until its ✕ (the others fade, the model's timer).
             onDismiss={m.kind === 'error' ? () => status.dismiss(m.id) : undefined}
-            dismissLabel={labels.dismiss}
+            labels={labels}
           />
         )}
       </Show>
@@ -138,8 +138,8 @@ export interface StatusPillProps {
   label?: string;
   onClick?(): void;
   onDismiss?(): void;
-  /** The ✕'s name and tooltip (default `DefaultStatusLabels.dismiss`). */
-  dismissLabel?: string;
+  /** Its text (`dismiss`: the ✕'s name and tooltip). */
+  labels?: Partial<StatusLabels>;
   /**
    * Dismissed on its own after this many ms (a finished turn), a ring around the ✕ drawing the time left; the pointer
    * over the line or the focus in it holds the time. Undefined: it stays.
@@ -152,6 +152,7 @@ export interface StatusPillProps {
  * `onClick` is given. With `autoDismiss`, it goes on its own (its countdown ring), held while hovered or focused.
  */
 export function StatusPill(props: StatusPillProps) {
+  const dismiss = props.labels?.dismiss ?? DefaultStatusLabels.dismiss;
   // The time left, held while the pointer is over the line or the focus is in it. The timer is the scope's (dom §6):
   // paused with hidden UI, gone with the line.
   let left = 0;
@@ -223,8 +224,8 @@ export function StatusPill(props: StatusPillProps) {
         <button
           type="button"
           class={classes.button}
-          aria-label={props.dismissLabel ?? DefaultStatusLabels.dismiss}
-          data-tip={props.dismissLabel ?? DefaultStatusLabels.dismiss}
+          aria-label={dismiss}
+          data-tip={dismiss}
           onClick={() => props.onDismiss?.()}
         >
           <Icon name="x" />
