@@ -19,7 +19,7 @@ import {
   resolveView,
   resolveViews,
 } from '@molstar/seqx-core/view';
-import { DefaultViewerConfig, type ViewerConfig } from '../config.js';
+import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { axesEqual, axisKey, axisTotal, nearestOffsetOf, offsetOf, positionAt } from './axis.js';
 import type { SpecModel } from './spec.js';
 

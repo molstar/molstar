@@ -23,7 +23,7 @@ import {
 } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import { DomHost } from '@molstar/ui/dom';
-import { DefaultViewerConfig, type ViewerConfig } from '../config.js';
+import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 
 /** The store's time through `DomHost`, read at each call. */
 export const DomHostClock: StoreClock = {

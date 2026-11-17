@@ -11,10 +11,9 @@
 
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { DomHost } from '@molstar/ui/dom';
-import type { BindingTable, ModifierState } from '../bindings.js';
-import { DefaultViewerConfig, type ViewerConfig } from '../config.js';
-import type { HitTarget } from '../models/hover.js';
-import type { ViewModel } from '../models/view.js';
+import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
+import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
 
 /** Which section a command acts on (the one under the pointer or with focus), and what to focus (offsets). */
 export interface NavigateContext {

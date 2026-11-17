@@ -8,8 +8,8 @@
 // policy: what the hover gesture is bound to on the hit's target decides; a move over nothing, or a leave, clears
 // what this pointer owns and nothing else (EC-141). Per move it allocates nothing.
 
-import type { BindingTable, ModifierState } from '../bindings.js';
-import { type Hit, type HoverModel, hitTarget } from '../models/hover.js';
+import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
+import { type Hit, type HoverModel, hitTarget } from '@molstar/seqx-viewer/models';
 
 export interface HoverBehavior {
   /** This pointer's owner token: a host's other hover sources (a 3D view) use their own. */

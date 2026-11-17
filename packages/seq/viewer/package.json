@@ -14,6 +14,16 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
+    "./models": {
+      "molstar-src": "./src/models/index.ts",
+      "types": "./lib/models/index.d.ts",
+      "import": "./lib/models/index.js"
+    },
+    "./behaviors": {
+      "molstar-src": "./src/behaviors/index.ts",
+      "types": "./lib/behaviors/index.d.ts",
+      "import": "./lib/behaviors/index.js"
+    },
     "./*": {
       "molstar-src": "./src/*.ts",
       "types": "./lib/*.d.ts",

@@ -12,7 +12,7 @@
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { type ChangeKind, changeKindOf, isMethodAction } from './commands.js';
 import { ViewerIssues } from './issues.js';
-import type { HitTarget } from './models/hover.js';
+import type { HitTarget } from '@molstar/seqx-viewer/models';
 
 export type PointerGesture = 'hover' | 'click' | 'double-click' | 'drag' | 'wheel' | 'pinch';
 export type Gesture = PointerGesture | 'key';

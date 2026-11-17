@@ -13,7 +13,7 @@
 import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type ElementKey, EmptyLocation, type Location, location, rangesLocation } from '@molstar/seqx-core/query';
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
-import { DefaultViewerConfig, type ViewerConfig } from '../config.js';
+import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
