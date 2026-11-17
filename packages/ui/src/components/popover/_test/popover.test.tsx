@@ -7,10 +7,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, Show } from '../../../dom/index.js';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { flush as flushDom, render, Show } from '../../../dom/index.js';
 import { state } from '../../../state.js';
+import { Select } from '../../select/select.js';
 import { Popover } from '../popover.js';
+
+beforeAll(() => {
+  // jsdom has no popover API: a manual popover (`Floating`) stays `display: none`, and nothing in it takes the focus.
+  const style = document.createElement('style');
+  style.textContent = '[popover] { display: block !important; }';
+  document.head.append(style);
+});
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const press = (el: Element) => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
@@ -75,5 +83,74 @@ describe('Popover', () => {
     await flush();
     option.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }));
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('a Select nested in its panel takes Escape and Tab first: only the innermost layer closes', async () => {
+    const open = state(true);
+    const onClose = vi.fn(() => open.set(false));
+    const anchor = document.createElement('button');
+    const container = document.createElement('div');
+    document.body.append(anchor, container);
+    render(
+      () => (
+        <Show when={open}>
+          {() => (
+            <Popover anchor={anchor} onClose={onClose} title="Scene defaults">
+              <Select
+                aria-label="Letter"
+                options={[
+                  ['a', 'Alpha'],
+                  ['b', 'Beta'],
+                ]}
+                value="a"
+              />
+            </Popover>
+          )}
+        </Show>
+      ),
+      container,
+    );
+    await flush();
+    const button = container.querySelector<HTMLButtonElement>('[aria-haspopup=listbox]')!;
+    const listbox = () => container.querySelector('[role=listbox]');
+    // The panel puts the focus on its first control in the next frame: on the select's button.
+    await vi.waitFor(() => expect(document.activeElement).toBe(button));
+    button.click();
+    await flush();
+    const option = container.querySelector<HTMLElement>('[role=option]')!;
+    expect(document.activeElement).toBe(option);
+    option.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true, cancelable: true }),
+    );
+    flushDom();
+    expect(listbox()).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(button);
+
+    // Tab in the list: the list closes (the focus on its button, Tab goes on from there); the panel stays.
+    button.click();
+    await flush();
+    const first = container.querySelector<HTMLElement>('[role=option]')!;
+    first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, composed: true, cancelable: true }));
+    flushDom();
+    expect(listbox()).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(button);
+
+    // A press in the panel closes the list, not the panel.
+    button.click();
+    await flush();
+    container
+      .querySelector('[role=dialog]')!
+      .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+    flushDom();
+    expect(listbox()).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Escape with the focus in the panel itself closes the panel.
+    button.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true, cancelable: true }),
+    );
+    expect(onClose).toHaveBeenCalledWith(true);
   });
 });

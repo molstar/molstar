@@ -32,7 +32,8 @@ export interface TextInputProps {
 
 /**
  * A one-line text field in the theme's control style (no border: the control color sets it apart), like `Select`; its
- * text starts at the control inset (styles §5). The reactive properties are written by one watch.
+ * text starts at the control inset (styles §5). The value is written by a watch of its own (only when it changes), the
+ * placeholder and `disabled` by another.
  */
 export function TextInput(props: TextInputProps) {
   const value = held(props.value, '');
@@ -49,6 +50,8 @@ export function TextInput(props: TextInputProps) {
       onInput={(e) => props.onInput?.((e.currentTarget as HTMLInputElement).value)}
       onKeyDown={(e) => {
         const el = e.currentTarget as HTMLInputElement;
+        // A key that ends an IME composition (Enter, Escape) is the composition's, not the field's.
+        if (e.isComposing) return;
         if (e.key === 'Enter') props.onSubmit?.(el.value);
         else if (e.key === 'Escape' && props.search && el.value) {
           el.value = '';
@@ -59,10 +62,13 @@ export function TextInput(props: TextInputProps) {
       }}
     />
   ) as HTMLInputElement;
-  watch([value, placeholder, disabled], () => {
-    // Written only when it differs: an echo of what was typed leaves the caret where it is.
+  // The value by itself: written only when it changes, so a change of the placeholder or `disabled` leaves what was
+  // typed in a field the host does not echo; and only when it differs, so an echo leaves the caret where it is.
+  watch([value], () => {
     const v = value.value ?? '';
     if (input.value !== v) input.value = v;
+  });
+  watch([placeholder, disabled], () => {
     setAttr(input, 'placeholder', placeholder.value || undefined);
     input.disabled = !!disabled.value;
   });

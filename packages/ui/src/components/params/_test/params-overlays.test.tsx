@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { render } from '../../../dom/index.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';
 import { ParamsForm } from '../params-form.js';
+import { fieldNamed } from './named.js';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -40,7 +41,7 @@ describe('ParamsForm overlays: nothing opens inline', () => {
     const container = mount(form);
     const rows = rowCount(container);
     for (const label of ['Mode', 'Chains', 'Colors']) {
-      const field = container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+      const field = fieldNamed(container, label)!;
       field.click();
       await flush();
       const list = container.querySelector('[role=listbox]')!;
@@ -55,7 +56,7 @@ describe('ParamsForm overlays: nothing opens inline', () => {
   it('keeps a multi-select open while its options toggle', async () => {
     const form = new ParamsFormModel({ chains: PD.MultiSelect(['A'], PD.arrayToOptions(['A', 'B', 'C'])) });
     const container = mount(form);
-    container.querySelector<HTMLButtonElement>('button[aria-label="Chains"]')!.click();
+    fieldNamed(container, 'Chains')!.click();
     await flush();
     const options = () => [...container.querySelectorAll<HTMLButtonElement>('[role=option]')];
     expect(options().map((o) => o.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false']);
@@ -63,7 +64,7 @@ describe('ParamsForm overlays: nothing opens inline', () => {
     await flush();
     expect((form.values.value as any).chains).toEqual(['A', 'C']);
     expect(options().map((o) => o.getAttribute('aria-selected'))).toEqual(['true', 'false', 'true']);
-    expect(container.querySelector<HTMLButtonElement>('button[aria-label="Chains"]')!.textContent).toContain('A, C');
+    expect(fieldNamed(container, 'Chains')!.textContent).toContain('A, C');
   });
 
   it('opens a color picker and a matrix in a panel under their field', async () => {
@@ -142,5 +143,39 @@ describe('ParamsForm object list', () => {
     container.querySelectorAll<HTMLButtonElement>('button[aria-label=Remove]')[0].click();
     await flush();
     expect((form.values.value as any).channels).toEqual([{ name: 'renamed', level: 5 }]);
+  });
+
+  it("an open item's form follows the item at its place: a remove, a load elsewhere; its edits replace that item", async () => {
+    const form = new ParamsFormModel({
+      channels: PD.ObjectList({ name: PD.Text('c'), level: PD.Numeric(1) }, (e) => `${e.name} at ${e.level}`, {
+        defaultValue: [
+          { name: 'a', level: 1 },
+          { name: 'b', level: 2 },
+        ],
+        ctor: () => ({ name: 'new', level: 5 }),
+      }),
+    });
+    const container = mount(form);
+    container.querySelectorAll<HTMLButtonElement>('button[aria-label=Edit]')[0].click();
+    await flush();
+    const nameField = () => container.querySelector<HTMLInputElement>('[data-open] input:not([inputmode])')!;
+    expect(nameField().value).toBe('a');
+    // Removed: the open form is now the item that took its place.
+    container.querySelectorAll<HTMLButtonElement>('button[aria-label=Remove]')[0].click();
+    await flush();
+    expect(nameField().value).toBe('b');
+    nameField().value = 'b2';
+    nameField().dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+    expect((form.values.value as any).channels).toEqual([{ name: 'b2', level: 2 }]);
+    // Loaded elsewhere (a preset, an update): the form shows the new item, and edits it.
+    form.load({ channels: [{ name: 'x', level: 9 }] } as any);
+    await flush();
+    expect(nameField().value).toBe('x');
+    nameField().value = 'x2';
+    nameField().dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+    expect((form.values.value as any).channels).toEqual([{ name: 'x2', level: 9 }]);
+    expect(container.textContent).toContain('x2 at 9');
   });
 });

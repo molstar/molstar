@@ -9,7 +9,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { BehaviorSubject, State } from '@molstar/core/reactive';
-import { flush, render, ViewScope } from '../index.js';
+import { For, flush, render, Show, ViewScope } from '../index.js';
 
 // JSX, props, regions and event delegation (dom §4).
 
@@ -162,5 +162,78 @@ describe('render', () => {
     dispose();
     flush();
     expect(host.textContent).toBe('before');
+  });
+});
+
+describe('SVG namespace', () => {
+  const SVG = 'http://www.w3.org/2000/svg';
+
+  it('a, title, style and script are SVG under an SVG element, HTML elsewhere', () => {
+    const { host, dispose } = mount(() => (
+      <div>
+        <a href="#h">html</a>
+        <svg>
+          <title>icon</title>
+          <style>{'circle { fill: red }'}</style>
+          <a href="#s">
+            <text>t</text>
+          </a>
+          <g>
+            <circle>
+              <title>dot</title>
+            </circle>
+          </g>
+        </svg>
+      </div>
+    ));
+    const [htmlA, svgA] = host.querySelectorAll('a');
+    expect(htmlA.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
+    expect(svgA.namespaceURI).toBe(SVG);
+    expect(svgA.getAttribute('href')).toBe('#s');
+    for (const t of host.querySelectorAll('title, style')) expect(t.namespaceURI).toBe(SVG);
+    expect(host.querySelector('circle title')!.textContent).toBe('dot');
+    dispose();
+  });
+
+  it('what a function child, a region or a list renders under an SVG element is SVG', () => {
+    const shown = new State(true);
+    const items = new State(['x']);
+    const { host, dispose } = mount(() => (
+      <svg>
+        <g>
+          {() => (
+            <Show when={shown}>
+              {() => (
+                <a>
+                  <title>first</title>
+                </a>
+              )}
+            </Show>
+          )}
+        </g>
+        {() => <For each={items}>{(i) => <title>{i}</title>}</For>}
+      </svg>
+    ));
+    const all = () => [...host.querySelectorAll('a, title')].map((el) => el.namespaceURI);
+    expect(all()).toEqual([SVG, SVG, SVG]);
+    shown.set(false);
+    shown.set(true);
+    items.set(['x', 'y']);
+    expect(all()).toEqual([SVG, SVG, SVG, SVG]);
+    dispose();
+  });
+
+  it('a shared tag made again under an SVG parent warns when it had a bound prop', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const label = new State('x');
+    const { host, dispose } = mount(() => (
+      <svg>
+        <title id={label}>t</title>
+      </svg>
+    ));
+    expect(host.querySelector('title')!.namespaceURI).toBe(SVG);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+    dispose();
   });
 });

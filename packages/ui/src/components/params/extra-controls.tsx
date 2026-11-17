@@ -17,7 +17,6 @@ import {
   eventTarget,
   For,
   frameState,
-  isInside,
   on,
   Show,
   setAttr,
@@ -28,6 +27,7 @@ import {
 import { state } from '../../state.js';
 import { colorToHex } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
+import { dismissable } from '../popover/dismiss.js';
 import { Popover } from '../popover/popover.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes as select } from '../select/_generated/select.module.css.js';
@@ -35,6 +35,7 @@ import { Floating } from '../select/select.js';
 import { classes } from './_generated/extra-controls.module.css.js';
 import { classes as form } from './_generated/params-form.module.css.js';
 import type { FieldBinding } from './field-binding.js';
+import { formatNumber, frameInput, holdNumber, NumberInput, setValue } from './number-input.js';
 import { PresetsButton, presetIndex } from './presets.js';
 
 /** A form row: the label (its text and help) on the label column, the control on the value column (styles §5). */
@@ -77,6 +78,11 @@ function Field(props: {
   watch([props.open], () => setAttr(el, 'aria-expanded', String(props.open.value)));
   return el;
 }
+
+/** A field named by its row's label and its value (`<labelId> <labelId>-value`, so the value is heard with the name). */
+const labelledBy = (labelId?: string) => (labelId ? `${labelId} ${labelId}-value` : undefined);
+/** The id of the field's value, the second part of its name. */
+const valueId = (labelId?: string) => (labelId ? `${labelId}-value` : undefined);
 
 /** A row whose field opens a panel under it (a matrix, a curve's editor, a color picker), over the form. */
 export function PanelRow(props: {
@@ -132,15 +138,14 @@ function FieldOptions(props: {
     const all = options();
     all[Math.max(0, Math.min(all.length - 1, i))]?.focus();
   };
-  on(
-    document,
-    'pointerdown',
-    (e: PointerEvent) => {
-      if (isInside(e, list) || isInside(e, props.anchor)) return;
-      props.onClose();
-    },
-    { capture: true },
-  );
+  // Closes as every overlay does (popover/dismiss.ts): a press outside, Escape, Tab; the focus back on the field.
+  dismissable({
+    layer: () => list,
+    anchor: props.anchor,
+    close: () => props.onClose(),
+    refocus: () => props.anchor,
+    tab: true,
+  });
   return (
     <Floating anchor={props.anchor} placement="over">
       <ScrollArea
@@ -157,10 +162,7 @@ function FieldOptions(props: {
           else if (e.key === 'ArrowUp') focus(i - 1);
           else if (e.key === 'Home') focus(0);
           else if (e.key === 'End') focus(all.length - 1);
-          else if (e.key === 'Escape') {
-            props.onClose();
-            props.anchor.focus();
-          } else return;
+          else return;
           e.preventDefault();
           e.stopPropagation();
         }}
@@ -178,6 +180,8 @@ function FieldOptions(props: {
 export function MultiSelectRow(props: {
   head: Child;
   label: string;
+  /** The row label's id: the field is named by it and its value. */
+  labelId?: string;
   param: PD.MultiSelect<any>;
   binding: FieldBinding;
 }) {
@@ -193,8 +197,16 @@ export function MultiSelectRow(props: {
   return (
     <>
       <Row head={props.head}>
-        <Field open={open} label={props.label} popup="listbox" ref={(el) => (anchor = el)}>
-          <span class={classes.value}>{names}</span>
+        <Field
+          open={open}
+          label={props.label}
+          labelledBy={labelledBy(props.labelId)}
+          popup="listbox"
+          ref={(el) => (anchor = el)}
+        >
+          <span class={classes.value} id={valueId(props.labelId)}>
+            {names}
+          </span>
         </Field>
       </Row>
       <Show when={open}>
@@ -232,47 +244,28 @@ export function MultiSelectRow(props: {
   );
 }
 
-/** An input's value, written only when it differs (a write moves the caret). */
-function setValue(el: HTMLInputElement, value: string) {
-  if (el.value !== value) el.value = value;
-}
-
-function trim(v: number | undefined) {
-  return v === undefined || !Number.isFinite(v) ? '' : String(Math.round(v * 1e4) / 1e4);
-}
-
-/** Three numbers in a row (x, y, z), each its own small field, sharing the value column. */
+/** Three numbers in a row (x, y, z), each its own small field, sharing the value column; each keeps to the range. */
 export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding; label?: string }) {
-  const { binding } = props;
-  const inputs: HTMLInputElement[] = [];
-  const content = (
-    <div class={classes.vec}>
-      {(['x', 'y', 'z'] as const).map((axis, i) => (
-        <input
-          class={form.number}
-          aria-label={props.label ? `${props.label} ${axis}` : axis}
-          data-tip={axis}
-          ref={(el: HTMLInputElement) => inputs.push(el)}
-          onChange={(e) => {
-            const input = e.currentTarget;
-            const n = Number(input.value);
-            const v = [...(binding.value.value ?? [0, 0, 0])];
-            if (Number.isFinite(n)) {
-              v[i] = n;
-              binding.set(v);
-            }
-            // The field says the value in its form, though it formats to the text that was shown ("1.50" → "1.5").
-            input.value = trim(v[i]);
-          }}
-        />
-      ))}
-    </div>
-  );
+  const { param, binding } = props;
+  const inputs = (['x', 'y', 'z'] as const).map((axis, i) => (
+    <NumberInput
+      class={form.number}
+      aria-label={props.label ? `${props.label} ${axis}` : axis}
+      data-tip={axis}
+      range={param}
+      current={() => binding.value.value?.[i]}
+      commit={(n) => {
+        const v = [...(binding.value.value ?? [0, 0, 0])];
+        v[i] = n;
+        binding.set(v);
+      }}
+    />
+  )) as HTMLInputElement[];
   watch([binding.value], () => {
     const v = binding.value.value as number[] | undefined;
-    for (let i = 0; i < inputs.length; i++) setValue(inputs[i], trim(v?.[i]));
+    for (let i = 0; i < inputs.length; i++) setValue(inputs[i], formatNumber(v?.[i], param.step));
   });
-  return content;
+  return <div class={classes.vec}>{inputs}</div>;
 }
 
 function isIdentity(m: ArrayLike<number>) {
@@ -281,8 +274,15 @@ function isIdentity(m: ArrayLike<number>) {
 }
 
 /** A 4 × 4 matrix: "Identity" or "4 × 4 matrix" in a field; opened, its 16 numbers as a grid in a panel (row-major). */
-export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; binding: FieldBinding }) {
-  const { binding } = props;
+export function Mat4Row(props: {
+  head: Child;
+  label: string;
+  /** The row label's id: the field is named by it and its value (`<labelId> <labelId>-value`). */
+  labelId?: string;
+  param: PD.Mat4;
+  binding: FieldBinding;
+}) {
+  const { binding, labelId } = props;
   const summary = document.createTextNode('');
   watch([binding.value], () => {
     const m = binding.value.value as ArrayLike<number> | undefined;
@@ -292,38 +292,34 @@ export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; bin
     <PanelRow
       head={props.head}
       label={props.label}
-      field={<span class={classes.value}>{summary}</span>}
+      labelledBy={labelledBy(labelId)}
+      field={
+        <span class={classes.value} id={valueId(labelId)}>
+          {summary}
+        </span>
+      }
       panel={() => {
-        const inputs: HTMLInputElement[] = [];
-        const grid = (
-          <div class={classes.matrix}>
-            {Array.from({ length: 16 }, (_, k) => {
-              // Shown by rows; stored by columns (Mol*'s Mat4).
-              const index = (k % 4) * 4 + Math.floor(k / 4);
-              return (
-                <input
-                  class={form.number}
-                  aria-label={`${props.label}, row ${Math.floor(k / 4) + 1}, column ${(k % 4) + 1}`}
-                  ref={(el: HTMLInputElement) => inputs.push(el)}
-                  onChange={(e) => {
-                    const input = e.currentTarget;
-                    const n = Number(input.value);
-                    const m = Array.from(binding.value.value as ArrayLike<number>);
-                    if (Number.isFinite(n)) {
-                      m[index] = n;
-                      binding.set(m);
-                    }
-                    input.value = trim(m[index]);
-                  }}
-                />
-              );
-            })}
-          </div>
-        );
+        // Shown by rows; stored by columns (Mol*'s Mat4).
+        const inputs = Array.from({ length: 16 }, (_, k) => {
+          const index = (k % 4) * 4 + Math.floor(k / 4);
+          return (
+            <NumberInput
+              class={form.number}
+              aria-label={`${props.label}, row ${Math.floor(k / 4) + 1}, column ${(k % 4) + 1}`}
+              current={() => (binding.value.value as ArrayLike<number> | undefined)?.[index]}
+              commit={(n) => {
+                const m = Array.from(binding.value.value as ArrayLike<number>);
+                m[index] = n;
+                binding.set(m);
+              }}
+            />
+          ) as HTMLInputElement;
+        });
+        const grid = <div class={classes.matrix}>{inputs}</div>;
         // One watch for the 16 numbers.
         watch([binding.value], () => {
           const m = binding.value.value as ArrayLike<number> | undefined;
-          for (let k = 0; k < 16; k++) setValue(inputs[k], trim(m?.[(k % 4) * 4 + Math.floor(k / 4)]));
+          for (let k = 0; k < 16; k++) setValue(inputs[k], formatNumber(m?.[(k % 4) * 4 + Math.floor(k / 4)]));
         });
         return grid;
       }}
@@ -331,17 +327,58 @@ export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; bin
   );
 }
 
-/** An interval: one track, two knobs (the low and the high end), the range after it (as a slider's number). */
+/**
+ * An interval: one track, two knobs (the low and the high end), the range after it (as a slider's number). Without both
+ * bounds there is no track to place the knobs on: two number fields (from, to), each keeping to the bound it has and to
+ * the other end.
+ */
 export function IntervalControl(props: { param: PD.Interval; binding: FieldBinding; label?: string }) {
   const { param, binding } = props;
-  const min = param.min ?? 0;
-  const max = param.max ?? 1;
+  const name = (i: 0 | 1) => `${props.label ? `${props.label} ` : ''}${i === 0 ? 'from' : 'to'}`;
+  const value = () => binding.value.value as [number, number] | undefined;
+  if (param.min === undefined || param.max === undefined) {
+    // The ends cannot cross: each is bounded by the other.
+    const ranges = [
+      () => ({ min: param.min, max: value()?.[1] ?? param.max, step: param.step }),
+      () => ({ min: value()?.[0] ?? param.min, max: param.max, step: param.step }),
+    ];
+    const fields = ([0, 1] as const).map(
+      (i) =>
+        (
+          <NumberInput
+            class={form.number}
+            aria-label={name(i)}
+            range={ranges[i]}
+            current={() => value()?.[i]}
+            commit={(n) => {
+              const v = [...(value() ?? param.defaultValue)] as [number, number];
+              v[i] = n;
+              binding.set(v);
+            }}
+          />
+        ) as HTMLInputElement,
+    );
+    watch([binding.value], () => {
+      const v = value();
+      for (const i of [0, 1] as const) setValue(fields[i], formatNumber(v?.[i], param.step));
+    });
+    return <div class={classes.pair}>{fields}</div>;
+  }
+  const min = param.min;
+  const max = param.max;
   const step = param.step ?? (max - min) / 100;
   const pct = (v: number) => `${(100 * (v - min)) / (max - min || 1)}%`;
-  const digits = step < 1 ? Math.min(4, Math.ceil(-Math.log10(step))) : 0;
   const ends: HTMLInputElement[] = [];
   let track!: HTMLElement;
   const range = document.createTextNode('');
+  // A drag in the frame lane (dom §3), as a slider's: the field is set once a frame.
+  const drag = frameInput<[number, number]>(
+    (v) => binding.set(v),
+    (v) => {
+      const c = value();
+      return !!c && c[0] === v[0] && c[1] === v[1];
+    },
+  );
   const end = (i: 0 | 1) => (
     <input
       class={classes.intervalRange}
@@ -349,14 +386,15 @@ export function IntervalControl(props: { param: PD.Interval; binding: FieldBindi
       min={String(min)}
       max={String(max)}
       step={String(step)}
-      aria-label={`${props.label ? `${props.label} ` : ''}${i === 0 ? 'from' : 'to'}`}
+      aria-label={name(i)}
       ref={(el: HTMLInputElement) => (ends[i] = el)}
       onInput={(e) => {
-        const n = Number(e.currentTarget.value);
-        const v: [number, number] = [...(binding.value.value ?? [min, max])] as [number, number];
+        const n = holdNumber(Number(e.currentTarget.value), param);
+        // The other end as it shows (the field may not have it yet: it is set in the frame).
+        const other = Number(ends[1 - i].value);
         // The ends cannot cross.
-        v[i] = i === 0 ? Math.min(n, v[1]) : Math.max(n, v[0]);
-        binding.set(v);
+        const v: [number, number] = i === 0 ? [Math.min(n, other), other] : [other, Math.max(n, other)];
+        drag(v);
         e.currentTarget.value = String(v[i]);
       }}
     />
@@ -371,14 +409,14 @@ export function IntervalControl(props: { param: PD.Interval; binding: FieldBindi
     </div>
   );
   watch([binding.value], () => {
-    const v = binding.value.value as [number, number] | undefined;
+    const v = value();
     const from = v?.[0] ?? min;
     const to = v?.[1] ?? max;
     setValue(ends[0], String(from));
     setValue(ends[1], String(to));
     setStyle(track, '--msui-params-from', pct(from));
     setStyle(track, '--msui-params-to', pct(to));
-    setText(range, `${from.toFixed(digits)}–${to.toFixed(digits)}`);
+    setText(range, `${formatNumber(from, step)}–${formatNumber(to, step)}`);
   });
   return content;
 }
@@ -405,7 +443,14 @@ const ColorListPresets = Object.entries(ColorLists) as [ColorListName, (typeof C
  * A color list: its colors as a strip in a select-like field, and the preset's name when it is one; opened, the presets
  * over the field (a select's options: each its strip and name, the current one checked).
  */
-export function ColorListRow(props: { head: Child; label: string; param: PD.ColorList; binding: FieldBinding }) {
+export function ColorListRow(props: {
+  head: Child;
+  label: string;
+  /** The row label's id: the field is named by it and its value (the preset's name). */
+  labelId?: string;
+  param: PD.ColorList;
+  binding: FieldBinding;
+}) {
   const { param, binding } = props;
   const kind = param.presetKind ?? 'all';
   const presets = ColorListPresets.filter(([, l]) =>
@@ -422,9 +467,17 @@ export function ColorListRow(props: { head: Child; label: string; param: PD.Colo
   const content = (
     <>
       <Row head={props.head}>
-        <Field open={open} label={props.label} popup="listbox" ref={(el) => (anchor = el)}>
+        <Field
+          open={open}
+          label={props.label}
+          labelledBy={labelledBy(props.labelId)}
+          popup="listbox"
+          ref={(el) => (anchor = el)}
+        >
           <span class={classes.strip} ref={(el: HTMLElement) => (strip = el)} />
-          <span class={classes.value}>{name}</span>
+          <span class={classes.value} id={valueId(props.labelId)}>
+            {name}
+          </span>
         </Field>
       </Row>
       <Show when={open}>
@@ -497,7 +550,14 @@ function pathOf(pts: Points | undefined, w: number, h: number) {
  * opened, an editor in a panel under it: drag a point (between its neighbours), click to add one, double-click one to
  * remove it (two stay).
  */
-export function LineGraphRow(props: { head: Child; label: string; param: PD.LineGraph; binding: FieldBinding }) {
+export function LineGraphRow(props: {
+  head: Child;
+  label: string;
+  /** The row label's id: the field is named by it and its value (the number of points). */
+  labelId?: string;
+  param: PD.LineGraph;
+  binding: FieldBinding;
+}) {
   const { binding } = props;
   let spark!: SVGPathElement;
   const count = document.createTextNode('');
@@ -505,12 +565,15 @@ export function LineGraphRow(props: { head: Child; label: string; param: PD.Line
     <PanelRow
       head={props.head}
       label={props.label}
+      labelledBy={labelledBy(props.labelId)}
       field={
         <>
           <svg class={classes.spark} viewBox="0 0 48 12" preserveAspectRatio="none" aria-hidden="true">
             <path ref={(el: SVGElement) => (spark = el as SVGPathElement)} />
           </svg>
-          <span class={classes.value}>{count}</span>
+          <span class={classes.value} id={valueId(props.labelId)}>
+            {count}
+          </span>
         </>
       }
       panel={() => <LineGraphEditor param={props.param} binding={binding} label={props.label} />}

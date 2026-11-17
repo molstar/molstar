@@ -17,6 +17,7 @@ import {
   onCleanup,
   type Restartable,
   restartable,
+  rovingFocus,
   Show,
   setAttr,
   type WatchSource,
@@ -24,6 +25,7 @@ import {
 } from '../../dom/index.js';
 import { held, state } from '../../state.js';
 import { Icon, type IconName } from '../icon/icon.js';
+import { dismissable } from '../popover/dismiss.js';
 import { Floating } from '../select/select.js';
 import { classes } from './_generated/toolbar.module.css.js';
 
@@ -58,7 +60,10 @@ export interface ToolbarMenuRow {
    */
   pressed?: ReadonlyState<boolean>;
   choice?: boolean;
-  /** Not usable now: greyed, skipped by the arrows, not run; a string is the reason, in its tooltip. */
+  /**
+   * Not usable now: greyed, not run, but reached by the arrows (APG menus); a string is the reason, in its tooltip and
+   * its accessible description.
+   */
   disabled?: boolean | string;
   run?(): void;
   /** A submenu: its rows open beside the menu (hover, a click, →; ← or Esc closes it). */
@@ -77,7 +82,10 @@ export interface ToolbarItem {
   caption?: string;
   /** A toggle: `aria-pressed`, shown pressed while true. */
   pressed?: ReadonlyState<boolean>;
-  /** Not usable now (it keeps its place in the arrows' order, `aria-disabled`); a string is the reason, in its tooltip. */
+  /**
+   * Not usable now (it keeps its place in the arrows' order, `aria-disabled`); a string is the reason, in its tooltip
+   * and its accessible description (`aria-description`).
+   */
   disabled?: boolean | string | ReadonlyState<boolean | string>;
   /** Whether it shows (default true); a block whose buttons are all hidden goes too. */
   visible?: boolean | ReadonlyState<boolean>;
@@ -231,7 +239,10 @@ export function Toolbar(props: ToolbarProps) {
       <Show when={menus.open}>{(open) => <ToolbarMenu open={open} menus={menus} side={side} />}</Show>
     </div>
   ) as HTMLElement;
-  rovingToolbar(root, orientation);
+  // One Tab stop (dom §7, `rovingFocus`): the focused button, else the last focused that still shows, else the first;
+  // the arrows along the bar move between buttons (wrapping; Home, End; ← → swapped right to left), across its blocks.
+  // A disabled button keeps its place (`aria-disabled`: its reason is read).
+  rovingFocus(root, { items: '[data-toolbar-button]', axis: orientation });
   // Hover: two listeners for the whole bar (pointer over and out bubble), not two per button.
   on(root, 'pointerover', (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
@@ -314,11 +325,7 @@ function ToolbarButton(props: { item: ToolbarItem; ctx: ButtonContext }) {
       onKeyDown={
         hasMenu
           ? (e: KeyboardEvent) => {
-              if (e.key === 'Escape' && expanded!.value) {
-                e.preventDefault();
-                menus.hide();
-                return;
-              }
+              // Escape on the button with its menu open is the menu's (dismiss.ts).
               const opens =
                 ctx.orientation === 'horizontal'
                   ? e.key === 'ArrowDown' || e.key === 'ArrowUp'
@@ -362,6 +369,8 @@ function ToolbarButton(props: { item: ToolbarItem; ctx: ButtonContext }) {
     // A button with a menu shows the menu instead of a tooltip (both would open in the same spot); disabled, its reason.
     setAttr(button, 'data-tip', reason ? `${title}: ${reason}` : hasMenu && !d ? undefined : title);
     setAttr(button, 'aria-disabled', d ? 'true' : undefined);
+    // The reason, for assistive technology too (the tooltip is only seen).
+    setAttr(button, 'aria-description', reason);
     if (pressed) setAttr(button, 'aria-pressed', String(pressed.value));
     if (expanded) setAttr(button, 'aria-expanded', String(expanded.value));
     if (visible) setAttr(button, 'hidden', !visible.value);
@@ -376,53 +385,6 @@ function ToolbarButton(props: { item: ToolbarItem; ctx: ButtonContext }) {
   if (sources.length) watch(sources, render);
   else render();
   return button;
-}
-
-/**
- * The toolbar as one Tab stop (roving `tabindex`): the focused button, else the last focused that still shows, else the
- * first; the arrows along the bar move between buttons (wrapping; Home, End), across its blocks. A button that is
- * disabled keeps its place (`aria-disabled`: its reason is read). Follows buttons added, removed and hidden.
- */
-function rovingToolbar(root: HTMLElement, orientation: 'horizontal' | 'vertical') {
-  const next = orientation === 'horizontal' ? 'ArrowRight' : 'ArrowDown';
-  const previous = orientation === 'horizontal' ? 'ArrowLeft' : 'ArrowUp';
-  const buttons = () =>
-    [...root.querySelectorAll<HTMLElement>('[data-toolbar-button]')].filter((b) => !b.closest('[hidden]'));
-  let current: HTMLElement | undefined;
-  const settle = () => {
-    const all = buttons();
-    const active = deepActiveElement(root.ownerDocument);
-    const stop = all.find((b) => b === active) ?? (current && all.includes(current) ? current : all[0]);
-    current = stop;
-    for (const b of all) {
-      const v = b === stop ? 0 : -1;
-      if (b.tabIndex !== v) b.tabIndex = v;
-    }
-  };
-  on(root, 'focusin', settle);
-  on(root, 'keydown', (e: KeyboardEvent) => {
-    if (e.defaultPrevented) return;
-    const all = buttons();
-    const at = all.indexOf(e.target as HTMLElement);
-    if (at < 0) return;
-    let to: HTMLElement | undefined;
-    if (e.key === next) to = all[(at + 1) % all.length];
-    else if (e.key === previous) to = all[(at - 1 + all.length) % all.length];
-    else if (e.key === 'Home') to = all[0];
-    else if (e.key === 'End') to = all[all.length - 1];
-    else return;
-    e.preventDefault();
-    to.focus();
-  });
-  // An observer is not a listener `on` can pause: connected while the scope is active.
-  const observer = new MutationObserver(settle);
-  onActive((active) => {
-    if (active) {
-      observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
-      settle();
-    } else observer.disconnect();
-  });
-  onCleanup(() => observer.disconnect());
 }
 
 /** The open menu of a toolbar: its first level by its button, its submenus beside it. */
@@ -444,6 +406,7 @@ function ToolbarMenu(props: { open: OpenMenu; menus: ToolbarMenus; side: Toolbar
       : undefined;
   // Closed while it had the focus (Esc, a choice): the focus goes back to its button, not to the page.
   let hadFocus = false;
+  const vertical = props.side === 'left' || props.side === 'right';
   let first: HTMLElement | undefined;
   const el = (
     <div
@@ -463,7 +426,7 @@ function ToolbarMenu(props: { open: OpenMenu; menus: ToolbarMenus; side: Toolbar
             rows={own ? [own, ...list] : list}
             label={item.face?.value.title ?? item.title}
             menus={menus}
-            back={props.side === 'right' ? () => menus.hide() : undefined}
+            back={vertical ? () => menus.hide() : undefined}
             ref={(m) => {
               first = m;
               menus.menu = m;
@@ -474,7 +437,6 @@ function ToolbarMenu(props: { open: OpenMenu; menus: ToolbarMenus; side: Toolbar
     </div>
   ) as HTMLElement;
   menus.el = el;
-  const vertical = props.side === 'left' || props.side === 'right';
   const floating = (
     <Floating anchor={button} placement={props.side} gap={MenuGap} shift={vertical ? 0 : MenuPad}>
       {el}
@@ -482,12 +444,9 @@ function ToolbarMenu(props: { open: OpenMenu; menus: ToolbarMenus; side: Toolbar
   );
   // After the floating shows (its own microtask, queued as it was made): the focus into the menu.
   if (open.focus) queueMicrotask(() => first && focusFirstItem(first));
-  const onDown = (e: PointerEvent) => {
-    const path = e.composedPath();
-    if (path.includes(el) || path.includes(button)) return;
-    menus.hide();
-  };
-  on(document, 'pointerdown', onDown, { capture: true });
+  // A press outside it and its button, Escape (in it, on its button) or Tab closes it, the focus back on the button
+  // (dismiss.ts); a submenu takes its own Escape first.
+  dismissable({ layer: () => el, anchor: button, tab: true, close: () => menus.hide(), refocus: () => button });
   onCleanup(() => {
     if (menus.el === el) menus.el = undefined;
     if (menus.menu === first) menus.menu = undefined;
@@ -501,16 +460,15 @@ function ToolbarMenu(props: { open: OpenMenu; menus: ToolbarMenus; side: Toolbar
 /**
  * One level of a menu: its rows (`role="menu"`), and the submenu open beside it, if any. ↓ ↑ Home End move (wrapping),
  * → or a click opens a row's submenu (at its first item from the keyboard), hover opens it, hovering another row closes
- * it; ← (`back`) and Esc in a submenu close it, Esc in the first level closes the menu.
+ * it; the arrow back toward what it opened from (`back`: ← for a level on the right, → for one flipped to the left)
+ * and Esc in a submenu close it, Esc in the first level closes the menu, Tab anywhere closes it all (dismiss.ts).
  */
 function MenuLevel(props: {
   rows: readonly ToolbarMenuRow[];
   label: string;
   menus: ToolbarMenus;
-  /** ← here: back to the row it opened from (a submenu), or to the button (a menu beside a vertical bar). */
+  /** The arrow back here: to the row it opened from (a submenu), or to the button (a menu beside a vertical bar). */
   back?: () => void;
-  /** Esc here: as `back` in a submenu; undefined in the first level (the whole menu closes). */
-  escape?: () => void;
   ref?: (menu: HTMLElement) => void;
 }) {
   const { menus } = props;
@@ -536,6 +494,11 @@ function MenuLevel(props: {
     menus.hide();
     row.run?.();
   };
+  // The arrow back: toward the side it opened from, as placed (`Floating` flips a level that would leave the window).
+  const backKey = () => {
+    const side = menu.closest<HTMLElement>('[popover]')?.dataset.side;
+    return side === 'right' ? 'ArrowLeft' : side === 'left' ? 'ArrowRight' : undefined;
+  };
   // A trailing column for the check or the chevron, only in a menu where some row has one.
   const ends = props.rows.some((r) => r.items || r.pressed);
   const menu = (
@@ -551,16 +514,9 @@ function MenuLevel(props: {
         if (e.key === 'ArrowRight' && row?.items && !row.disabled) {
           e.preventDefault();
           openSub(row, active!, true);
-        } else if (e.key === 'ArrowLeft' && props.back) {
+        } else if (props.back && e.key === backKey()) {
           e.preventDefault();
           props.back();
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          e.stopPropagation();
-          if (props.escape) props.escape();
-          else menus.hide();
-        } else if (e.key === 'Tab') {
-          menus.hide();
         } else menuKeys(e);
       }}
       onClick={(e: MouseEvent) => {
@@ -602,26 +558,33 @@ function MenuLevel(props: {
       {menu}
       <Show when={sub}>
         {(s) => {
+          const back = () => {
+            closeSub();
+            s.el.focus({ preventScroll: true });
+          };
           const floating = (
             <Floating anchor={s.el} placement="right" gap={MenuGap} shift={MenuPad}>
               <MenuLevel
                 rows={s.row.items ?? []}
                 label={s.row.label}
                 menus={menus}
-                back={() => {
-                  closeSub();
-                  s.el.focus({ preventScroll: true });
-                }}
-                escape={() => {
-                  closeSub();
-                  s.el.focus({ preventScroll: true });
-                }}
+                back={back}
                 ref={(m) => {
                   subMenu = m;
                 }}
               />
             </Floating>
-          );
+          ) as HTMLElement;
+          // A layer of its own, inside the menu's (dismiss.ts): Esc here closes this level back to its row, Tab the whole
+          // menu (the focus on the button); a press outside is the menu's.
+          dismissable({
+            layer: () => floating,
+            anchor: s.el,
+            outside: false,
+            tab: true,
+            close: (reason) => (reason === 'tab' ? menus.hide() : back()),
+            refocus: (reason) => (reason === 'tab' ? menus.open.value?.button : undefined),
+          });
           if (s.focus) queueMicrotask(() => subMenu && focusFirstItem(subMenu));
           return floating;
         }}
@@ -635,6 +598,8 @@ function MenuRow(props: { row: ToolbarMenuRow; open: ReadonlyState<boolean> | un
   const { row } = props;
   const toggle = row.pressed;
   const role = toggle ? (row.choice ? 'menuitemradio' : 'menuitemcheckbox') : 'menuitem';
+  // A disabled row's reason: its tooltip, and its description (it takes the focus, so it is read).
+  const reason = typeof row.disabled === 'string' && row.disabled ? row.disabled : undefined;
   const el = (
     <button
       type="button"
@@ -644,7 +609,8 @@ function MenuRow(props: { row: ToolbarMenuRow; open: ReadonlyState<boolean> | un
       data-menu-row=""
       aria-haspopup={row.items ? 'menu' : undefined}
       aria-disabled={row.disabled ? 'true' : undefined}
-      data-tip={typeof row.disabled === 'string' && row.disabled ? row.disabled : undefined}
+      aria-description={reason}
+      data-tip={reason}
     >
       <span class={classes.slot}>{row.icon ? <Icon name={row.icon} /> : null}</span>
       <span class={classes.label}>{row.label}</span>

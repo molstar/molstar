@@ -14,6 +14,7 @@ import { ParamsFormModel } from '../../../forms/params-form.js';
 import type { State } from '@molstar/core/reactive';
 import { state } from '../../../state.js';
 import { ParamsForm } from '../params-form.js';
+import { fieldNamed } from './named.js';
 
 // The form's rows are views of their field (dom §2.2): the DOM made once, one `watch` a row writing what
 // differs, a row listening to what decides its output.
@@ -58,7 +59,7 @@ describe('the params form rows as views of their field', () => {
   it('an edit of one field renders that field’s row only; a select’s label follows it', () => {
     const form = new ParamsFormModel(params);
     const container = mount(form);
-    const label = () => container.querySelector<HTMLElement>('button[aria-label="Mode"] span')!.textContent;
+    const label = () => fieldNamed(container, 'Mode')!.querySelector('span')!.textContent;
     expect(label()).toBe('A');
 
     // The slider's row renders; the others (and the hideIf row, whose condition did not change) do not.

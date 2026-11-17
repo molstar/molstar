@@ -28,4 +28,11 @@
 - `@molstar/ui/commands` and the command menu (`components/command-menu`): commands over PD params with keys, groups,
   presets and formats; in the menu, the command's sentence is its editor, the list under it always the active field's
   choices, and the rest of the params in an Options fold.
-
+- `@molstar/ui` review fixes: overlays close by one rule (`popover/dismiss.ts`: the innermost layer takes Escape, Tab
+  leaves menus and lists, the focus goes back to what opened them); a Select works uncontrolled; popovers follow their
+  column's size; disabled reasons are read by screen readers and arrows reach disabled menu rows; toolbars and tabs
+  follow `dir=rtl`. The params form keeps an open list item on the item it edits, gives intervals without bounds number
+  fields, clamps to a single bound and shows what it stores (the step's decimals). Typed colors apply on Enter or blur;
+  markdown loads only data: and same-origin images unless `remoteImages`. The runtime disposes and resumes every child
+  scope, writes bindings parents first, publishes frame states in one batch, and creates `a`, `title`, `style` and
+  `script` in SVG in the SVG namespace.

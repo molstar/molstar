@@ -7,9 +7,9 @@
  */
 
 import { derive } from '@molstar/core/reactive';
-import { formatChord } from '../../commands/keys.js';
+import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager } from '../../commands/manager.js';
-import type { CommandDefinition, CommandValues } from '../../commands/types.js';
+import type { CommandDefinition, CommandValues, KeyChord } from '../../commands/types.js';
 import { type Child, onCleanup, Show } from '../../dom/index.js';
 import { Icon } from '../icon/icon.js';
 import { Button, type ButtonProps } from './button.js';
@@ -46,10 +46,17 @@ export function CommandButton(
             const blocked = manager.blocked(c);
             const chord = manager.shortcut(c);
             const title = c.title.replace(/…$/, '');
-            return { blocked, tip: blocked ?? (chord ? `${title} (${formatChord(chord)})` : title) };
+            return {
+              blocked,
+              tip: blocked ?? (chord ? `${title} (${formatChord(chord)})` : title),
+              keys: chord ? ariaChord(chord, isMac()) : undefined,
+            };
           },
-          (a, b) => a.blocked === b.blocked && a.tip === b.tip,
+          (a, b) => a.blocked === b.blocked && a.tip === b.tip && a.keys === b.keys,
         );
+        // The tooltip is the reason or the title with its key; the accessible name is the title alone (when there is
+        // no label to name it), the reason its description, the key `aria-keyshortcuts`.
+        const name = props.label === undefined ? c.title.replace(/…$/, '') : undefined;
         return (
           <Button
             {...(props.variant ? { variant: props.variant } : {})}
@@ -58,6 +65,9 @@ export function CommandButton(
             {...(props.class ? { class: props.class } : {})}
             {...(c.icon ? { icon: <Icon name={c.icon} /> } : {})}
             title={derive(look, (s) => s.tip)}
+            {...(name ? { 'aria-label': name } : {})}
+            aria-description={derive(look, (s) => s.blocked)}
+            aria-keyshortcuts={derive(look, (s) => s.keys)}
             disabled={derive(look, (s) => !!s.blocked)}
             onClick={() => {
               const r = manager.open(c.id, undefined, props.values);
@@ -70,4 +80,17 @@ export function CommandButton(
       }}
     </Show>
   );
+}
+
+const AriaKeys: Readonly<Record<string, string>> = { ' ': 'Space', esc: 'Escape' };
+
+/** A chord in `aria-keyshortcuts`' syntax (modifiers first, DOM key names): `Control+Shift+K`, `Meta+K`. */
+function ariaChord(chord: KeyChord, mac: boolean): string {
+  const keys: string[] = [];
+  if (chord.mod) keys.push(mac ? 'Meta' : 'Control');
+  if (chord.alt) keys.push('Alt');
+  if (chord.shift) keys.push('Shift');
+  const key = chord.key;
+  keys.push(AriaKeys[key.toLowerCase()] ?? (key.length === 1 ? key.toUpperCase() : key));
+  return keys.join('+');
 }

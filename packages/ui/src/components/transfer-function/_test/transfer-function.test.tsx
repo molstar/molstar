@@ -169,6 +169,8 @@ describe('the transfer function', () => {
     const input = dialog.querySelector<HTMLInputElement>('input[aria-label="Color"]')!;
     input.value = '#00ff00';
     input.dispatchEvent(new Event('input', { bubbles: true }));
+    // Typed text applies on Enter (or blur), not per keystroke.
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(t.points.value.map((p) => p.color)).toEqual([0xff0000, 0x00ff00, 0x0000ff, 0x0000ff]);
     expect(t.commits()).toBe(0);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

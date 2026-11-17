@@ -52,7 +52,6 @@ export class ViewScope extends Scope {
   /** The parts that pause (bindings, watches), apart from what only ends, so a pause visits only them. */
   private _live: Live[] | undefined = undefined;
   private _hooks: ((active: boolean) => void)[] | undefined = undefined;
-  private _disposing = false;
 
   constructor(parent?: ViewScope) {
     super();
@@ -90,10 +89,14 @@ export class ViewScope extends Scope {
     if (active) this._lives(true);
     this._runHooks(active);
     if (!active) this._lives(false);
+    // The next child is read after each one syncs, never saved before (dom §1): a child's resume can flush a change that
+    // makes this scope's region dispose a sibling, or the child itself (then the walk starts over: those synced already
+    // return at once).
     for (let c = this._firstChild; c !== undefined; ) {
-      const next = c._next;
       c._sync();
-      c = next;
+      // A nested `setActive` flipped this scope meanwhile: that call synced the children.
+      if (this._active !== active) return;
+      c = c.closed ? this._firstChild : c._next;
     }
   }
 
@@ -183,24 +186,26 @@ export class ViewScope extends Scope {
   }
 
   protected override _dispose(): void {
-    this._disposing = true;
     this._hooks = undefined;
-    // Newest first.
-    for (let c = this._lastChild; c !== undefined; ) {
-      const prev = c._prev;
+    // Newest first, each child unlinked before it is disposed and the list read again after it (dom §1): this scope's
+    // bindings are still live while its children go, so a child's cleanup can make one of its regions dispose another
+    // child; a saved link would end the walk there.
+    for (let c = this._lastChild; c !== undefined; c = this._lastChild) {
+      this._unlink(c);
       c.dispose();
-      c = prev;
     }
-    this._firstChild = this._lastChild = undefined;
     this._live = undefined;
-    const parent = this._parent;
-    if (parent !== undefined && !parent._disposing) {
-      if (this._prev) this._prev._next = this._next;
-      else parent._firstChild = this._next;
-      if (this._next) this._next._prev = this._prev;
-      else parent._lastChild = this._prev;
-    }
-    this._prev = this._next = undefined;
+    this._parent?._unlink(this);
+  }
+
+  /** Takes `c` out of the children (nothing if it is not among them). */
+  private _unlink(c: ViewScope): void {
+    if (c._prev === undefined && this._firstChild !== c) return;
+    if (c._prev) c._prev._next = c._next;
+    else this._firstChild = c._next;
+    if (c._next) c._next._prev = c._prev;
+    else this._lastChild = c._prev;
+    c._prev = c._next = undefined;
   }
 
   protected override _failure(errors: any[]): any {

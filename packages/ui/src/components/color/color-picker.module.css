@@ -70,7 +70,7 @@
   }
 
   /* The current one ringed in the text color (picked, not the action), an outline clear of it: no fill ring. */
-  &[aria-selected="true"] {
+  &[aria-checked="true"] {
     outline: 2px solid var(--msui-text-muted);
     outline-offset: 1px;
   }

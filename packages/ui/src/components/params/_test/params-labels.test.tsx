@@ -71,4 +71,32 @@ describe('ParamsForm labels (WCAG 4.1.2)', () => {
     expect(controls.filter((c) => nameOf(c).startsWith('Range ')).map(nameOf)).toEqual(['Range from', 'Range to']);
     container.remove();
   });
+
+  it("names a field that shows a value by the row's label and the value (a select, a choice, lists, a matrix, a curve)", async () => {
+    const form = new ParamsFormModel({
+      mode: PD.Select('a', [['a', 'Alpha'], ['b', 'Beta']] as [string, string][]),
+      kind: PD.MappedStatic('x', { x: PD.Group({}), y: PD.Group({}) }),
+      chains: PD.MultiSelect(['A'], PD.arrayToOptions(['A', 'B'])),
+      colors: PD.ColorList('viridis' as any),
+      transform: PD.Mat4([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] as any),
+      curve: PD.LineGraph([
+        [0, 0],
+        [1, 1],
+      ] as any),
+    });
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <ParamsForm form={form} />, container);
+    await new Promise((r) => setTimeout(r, 0));
+    const names = [...container.querySelectorAll('button[aria-haspopup]')].map(nameOf);
+    expect(names).toEqual([
+      'Mode Alpha',
+      'Kind X',
+      'Chains A',
+      'Colors Viridis',
+      'Transform Identity',
+      'Curve 2 points',
+    ]);
+    container.remove();
+  });
 });

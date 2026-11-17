@@ -52,7 +52,7 @@ describe('openContextMenu', () => {
     expect(plain.querySelector('[role="menuitem"]')!.children).toHaveLength(2);
   });
 
-  it('greys a disabled item with its reason, skips it for the focus, and does not run it', () => {
+  it('greys a disabled item with its reason (its tooltip and description), opens past it, reaches it by the arrows, and does not run it', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const run = vi.fn();
@@ -63,7 +63,12 @@ describe('openContextMenu', () => {
     const [off, on] = root.querySelectorAll<HTMLElement>('[role="menuitem"]');
     expect(off.getAttribute('aria-disabled')).toBe('true');
     expect(off.dataset.tip).toBe('Nothing selected');
+    expect(off.getAttribute('aria-description')).toBe('Nothing selected');
+    expect(on.hasAttribute('aria-description')).toBe(false);
     expect(document.activeElement).toBe(on);
+    // APG menus: a disabled item takes the focus (its reason is read), it is not activated.
+    on.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(off);
     off.click();
     expect(run).not.toHaveBeenCalled();
     expect(menu(root)).not.toBeNull();
@@ -100,6 +105,20 @@ describe('openContextMenu', () => {
       ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }));
     expect(menu(rootA)).toBeNull();
     document.removeEventListener('keydown', seen);
+  });
+
+  it('its rows are no Tab stops; Tab closes it, the focus back where it was', () => {
+    const before = document.createElement('button');
+    document.body.append(before);
+    before.focus();
+    const { root, closed } = setup();
+    const row = root.querySelector<HTMLElement>('[role="menuitem"]')!;
+    expect(row.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(row);
+    row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    expect(menu(root)).toBeNull();
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(before);
   });
 
   it('closes by its own return, once, and takes its listeners with it', () => {

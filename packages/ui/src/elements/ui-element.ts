@@ -11,7 +11,7 @@ import { adoptStyles, releaseStyles } from '../styles/registry.js';
 /**
  * A `ViewElement` that brings the UI's styles (styles §8): on connect it adopts the registered styles into its
  * document or shadow root, and releases them once it has left that root for good; a top-level one (not inside another
- * UI root) is a root (`.msui-root`), which scopes the reset.
+ * UI root) is a root (`.msui-root`), which scopes the reset; whether it is one is decided at each connect.
  */
 export abstract class UiElement<M = unknown> extends ViewElement<M> {
   private _adopted: ElementRoot | undefined = undefined;
@@ -22,7 +22,8 @@ export abstract class UiElement<M = unknown> extends ViewElement<M> {
       adoptStyles(root);
       this._adopted = root;
     }
-    if (!this.parentElement?.closest('.msui-root')) this.classList.add('msui-root');
+    // Decided anew at each connect: an element moved into another UI root stops being one (and one moved out of it is).
+    this.classList.toggle('msui-root', !this.parentElement?.closest('.msui-root'));
   }
 
   protected override onReleased(root: ElementRoot): void {

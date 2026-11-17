@@ -5,7 +5,7 @@
  */
 
 import { reportUnhandledError } from '@molstar/core/reactive/config';
-import { State } from '@molstar/core/reactive/state';
+import { batch, State } from '@molstar/core/reactive/state';
 import { DomHost } from './host.js';
 
 // The frame lane (dom §3): input comes faster than frames (a trackpad's wheel and pointer events at 120 Hz or more), so
@@ -116,6 +116,21 @@ let offered: (FrameState<any> | undefined)[] = [];
 let offeredCount = 0;
 let spareOffered: (FrameState<any> | undefined)[] = [];
 
+/** The frame states being published, and how many (the batch's function reads them: no closure a tick). */
+let publishing: (FrameState<any> | undefined)[] = [];
+let publishingCount = 0;
+
+function publishAll(): void {
+  const list = publishing;
+  const n = publishingCount;
+  publishingCount = 0;
+  for (let i = 0; i < n; i++) {
+    const s = list[i]!;
+    list[i] = undefined;
+    s._publish();
+  }
+}
+
 function publishOffered(): void {
   // Offers made while publishing (a listener offering again) go to the next frame.
   const list = offered;
@@ -123,11 +138,11 @@ function publishOffered(): void {
   offered = spareOffered;
   offeredCount = 0;
   spareOffered = list;
-  for (let i = 0; i < n; i++) {
-    const s = list[i]!;
-    list[i] = undefined;
-    s._publish();
-  }
+  if (n === 0) return;
+  publishing = list;
+  publishingCount = n;
+  // In one batch (dom §3): a derived value or a binding over several frame states sees them all published, never some.
+  batch(publishAll);
 }
 
 function frameTick(time: number): void {

@@ -34,6 +34,7 @@ export {
   menuItems,
   menuKeys,
   rememberFocus,
+  rovingFocus,
   rovingTabs,
   trapTab,
   uniqueId,

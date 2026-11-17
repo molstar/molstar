@@ -107,6 +107,16 @@ describe('Markdown with a host', () => {
     expect(el.querySelector('hr')).not.toBeNull();
   });
 
+  it("needs a delimiter row with a pipe and the header's cells to start a table", () => {
+    const rule = Markdown({ source: 'a | b\n---\nafter' });
+    expect(rule.querySelector('table')).toBeNull();
+    expect(rule.querySelector('hr')).not.toBeNull();
+    const mismatched = Markdown({ source: '| a | b |\n|---|\n| 1 | 2 |' });
+    expect(mismatched.querySelector('table')).toBeNull();
+    const one = Markdown({ source: '| a |\n|---|\n| 1 |' });
+    expect([...one.querySelectorAll('td')].map((c) => c.textContent)).toEqual(['1']);
+  });
+
   it('sends the links the host claims to it, on click, pointer enter and leave; the rest as before', () => {
     const events: string[] = [];
     const links: string[] = [];
@@ -129,7 +139,7 @@ describe('Markdown with a host', () => {
     expect(web.target).toBe('_blank');
   });
 
-  it('resolves images through the host: a URL, a promise of one, an element, or the source as it is', async () => {
+  it('resolves images through the host: a URL, a promise of one, an element; another origin only on opt-in', async () => {
     const swatch = document.createElement('span');
     let resolve!: (url: string) => void;
     const host: MarkdownHost = {
@@ -155,7 +165,22 @@ describe('Markdown with a host', () => {
     expect(b.getAttribute('src')).toBe('data:image/png;base64,BB');
     expect(b.hidden).toBe(false);
     expect(el.contains(swatch)).toBe(true);
-    expect(c.getAttribute('src')).toBe('https://x.org/c.png');
+    // Another origin's image is not loaded unless the host opts in: a link to it under its alt text.
+    expect(c).toBeUndefined();
+    const linked = [...el.querySelectorAll('a')].find((x) => x.textContent === 'C');
+    expect(linked?.getAttribute('href')).toBe('https://x.org/c.png');
+    const remote = Markdown({ source: '![C](https://x.org/c.png)', host, remoteImages: true });
+    expect(remote.querySelector('img')?.getAttribute('src')).toBe('https://x.org/c.png');
+  });
+
+  it('loads data: and same-origin images on its own; not another origin, nor a script', () => {
+    const el = Markdown({
+      source: '![a](a.png) ![b](/img/b.png) ![d](data:image/png;base64,AA) ![e](//evil.org/e.png) ![f](javascript:x)',
+    });
+    expect([...el.querySelectorAll('img')].map((i) => i.alt)).toEqual(['a', 'b', 'd']);
+    expect(el.querySelector('a')).toBeNull();
+    expect(el.textContent).toContain('e');
+    expect(el.textContent).toContain('f');
   });
 
   it("shows the host's media above the text", () => {

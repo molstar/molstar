@@ -12,6 +12,8 @@ import { ReactiveConfig } from '@molstar/core/reactive/config';
 import { BehaviorSubject, batch, derive, KeyedSelector, State, Subject } from '@molstar/core/reactive';
 import {
   bind,
+  render,
+  Show,
   createRoot,
   DomCounts,
   DomProbe,
@@ -404,5 +406,88 @@ describe('a set back in a batch', () => {
     expect(s.observed).toBe(true);
     dispose();
     expect(s.observed).toBe(false);
+  });
+});
+
+describe('review regressions', () => {
+  it('disposing walks every child, also when a cleanup makes the scope dispose an older child', () => {
+    const root = new ViewScope();
+    const kill = new State(false);
+    const [c1, c2, c3] = [root.child(), root.child(), root.child()];
+    const gone: string[] = [];
+    runInScope(c1, () => onCleanup(() => gone.push('c1')));
+    runInScope(c2, () => onCleanup(() => gone.push('c2')));
+    // c3's cleanup sets what the root's (still live) binding answers by disposing c2, as a region would.
+    runInScope(c3, () => onCleanup(() => kill.set(true)));
+    runInScope(root, () => bind(kill, (k) => k && c2.dispose()));
+    root.dispose();
+    expect(gone).toEqual(['c2', 'c1']);
+    expect(c1.disposed).toBe(true);
+  });
+
+  it('resuming reaches every child, also when one resuming makes the scope dispose a sibling', () => {
+    const root = new ViewScope();
+    const kill = new State(false);
+    root.setActive(false);
+    const [c1, c2, c3] = [root.child(), root.child(), root.child()];
+    runInScope(root, () => bind(kill, (k) => k && c2.dispose()));
+    runInScope(c1, () => onActive((a) => a && kill.set(true)));
+    const seen: boolean[] = [];
+    runInScope(c3, () => onActive((a) => seen.push(a)));
+    root.setActive(true);
+    expect(c2.disposed).toBe(true);
+    expect(c3.active).toBe(true);
+    expect(seen).toEqual([false, true]);
+    root.dispose();
+  });
+
+  it('bindings write parents first: a child binding is not run after its parent removed it', () => {
+    const errors: unknown[] = [];
+    ReactiveConfig.onUnhandledError = (e) => errors.push(e);
+    const sel = new State<{ label: string } | undefined>({ label: 'a' });
+    const host = document.createElement('div');
+    // A binding followed first and dropped: core swap-removes it, so the content's derived value comes before the
+    // `Show`'s binding in `sel`'s dependents.
+    const other = new ViewScope();
+    runInScope(other, () => bind(sel, () => {}));
+    const dispose = render(() => <Show when={sel}>{() => <span>{derive(sel, (s) => s!.label)}</span>}</Show>, host);
+    other.dispose();
+    expect(host.textContent).toBe('a');
+    sel.set(undefined);
+    expect(errors).toEqual([]);
+    expect(host.textContent).toBe('');
+    dispose();
+  });
+
+  it("the probe's first is a binding's first write since it started: made, or resumed", () => {
+    const firsts: boolean[] = [];
+    DomProbe.run = (_kind, _site, first, fn) => {
+      firsts.push(first);
+      fn();
+    };
+    const s = new State(1);
+    const scope = new ViewScope();
+    runInScope(scope, () => bind(s, () => {}));
+    s.set(2);
+    scope.setActive(false);
+    s.set(3);
+    scope.setActive(true);
+    expect(firsts).toEqual([true, false, true]);
+    scope.dispose();
+  });
+
+  it('frame states offered together publish in one batch: no listener sees some published', () => {
+    const a = new FrameState(0);
+    const b = new FrameState(0);
+    const seen: number[][] = [];
+    const sub = a.subscribe((v) => seen.push([v, b.value]));
+    a.offer(1);
+    b.offer(1);
+    flushFrame();
+    expect(seen).toEqual([
+      [0, 0],
+      [1, 1],
+    ]);
+    sub.unsubscribe();
   });
 });

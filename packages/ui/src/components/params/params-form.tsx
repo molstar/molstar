@@ -14,7 +14,6 @@ import {
   type Child,
   effect,
   For,
-  frameState,
   Show,
   setAttr,
   setStyle,
@@ -43,9 +42,11 @@ import {
 } from './extra-controls.js';
 import { type FieldBinding, keyBinding } from './field-binding.js';
 import { helpOf, withHelp } from './help.js';
+import { formatNumber, frameInput, holdNumber, NumberInput, setValue } from './number-input.js';
 import { PresetsButton, PresetsList, presetIndex } from './presets.js';
 
 export type { FieldBinding };
+export { parseNumber } from './number-input.js';
 
 /**
  * The form for a `ParamsFormModel`, laid out as the classic UI's (v5 `ParameterControls`), at every level: essentials
@@ -310,6 +311,7 @@ function ParamRow(props: {
         ) : (
           <MappedControl
             label={label}
+            labelId={labelId}
             head={head}
             param={param}
             binding={binding}
@@ -320,23 +322,34 @@ function ParamRow(props: {
         ),
       );
     case 'select':
-      return wrap(<SelectRow label={label} head={head} options={param.options} binding={binding} />);
+      return wrap(
+        <SelectRow label={label} labelId={labelId} head={head} options={param.options} binding={binding} />,
+      );
     case 'color':
       return wrap(<ColorRow label={label} labelId={labelId} head={head} binding={binding} />);
     case 'multi-select':
-      return wrap(<MultiSelectRow head={head} label={label} param={param} binding={binding} />);
+      return wrap(<MultiSelectRow head={head} label={label} labelId={labelId} param={param} binding={binding} />);
     case 'mat4':
-      return wrap(<Mat4Row head={head} label={label} param={param} binding={binding} />);
+      return wrap(<Mat4Row head={head} label={label} labelId={labelId} param={param} binding={binding} />);
     case 'line-graph':
-      return wrap(<LineGraphRow head={head} label={label} param={param} binding={binding} />);
+      return wrap(<LineGraphRow head={head} label={label} labelId={labelId} param={param} binding={binding} />);
     case 'color-list':
-      return wrap(<ColorListRow head={head} label={label} param={param} binding={binding} />);
+      return wrap(<ColorListRow head={head} label={label} labelId={labelId} param={param} binding={binding} />);
     case 'object-list':
       return wrap(<ObjectListRow head={head} label={label} param={param} binding={binding} place={place} />);
     case 'conditioned':
-      return wrap(<ConditionedControl head={head} label={label} param={param} binding={binding} place={place} />);
+      return wrap(
+        <ConditionedControl
+          head={head}
+          label={label}
+          labelId={labelId}
+          param={param}
+          binding={binding}
+          place={place}
+        />,
+      );
     case 'script':
-      return wrap(<ScriptControl head={head} label={label} binding={binding} place={place} />);
+      return wrap(<ScriptControl head={head} label={label} labelId={labelId} binding={binding} place={place} />);
     default:
       return wrap(<Row head={head}>{control(param, binding, labelId, label)}</Row>);
   }
@@ -508,12 +521,6 @@ function TextControl(props: { binding: FieldBinding; labelId?: string; placehold
   return el;
 }
 
-/** An input's value ('' for none), written only when it differs (a write moves the caret). */
-function setValue(el: HTMLInputElement | HTMLTextAreaElement, value: unknown) {
-  const v = value === null || value === undefined ? '' : String(value);
-  if (el.value !== v) el.value = v;
-}
-
 function Toggle(props: { binding: FieldBinding<boolean>; labelId?: string }) {
   const { binding } = props;
   const el = (
@@ -533,33 +540,31 @@ function Toggle(props: { binding: FieldBinding<boolean>; labelId?: string }) {
 
 function NumberControl(props: { param: PD.Numeric; binding: FieldBinding<number>; labelId?: string }) {
   const { param, binding, labelId } = props;
+  // Typed numbers keep to whichever bounds exist and to the step's decimals (`holdNumber`).
+  const box = (cls: string) => (
+    <NumberInput
+      class={cls}
+      aria-labelledby={labelId}
+      range={param}
+      current={() => binding.value.value}
+      commit={(v) => binding.set(v)}
+    />
+  ) as HTMLInputElement;
+  // A slider needs both bounds; otherwise a number field.
   if (param.min === undefined || param.max === undefined) {
-    // Text, not a native number field: that one shows decimals in the browser's locale ("0,5") while every other
-    // number reads "0.5"; a comma typed is read as the decimal point.
-    const input = (
-      <input
-        class={`${classes.input} ${classes.numeric}`}
-        type="text"
-        inputMode="decimal"
-        aria-labelledby={labelId}
-        onChange={(e) => {
-          const v = parseNumber(e.currentTarget.value);
-          if (Number.isFinite(v)) binding.set(v);
-          e.currentTarget.value = format(Number.isFinite(v) ? v : binding.value.value, param.step);
-        }}
-      />
-    ) as HTMLInputElement;
-    watch([binding.value], () => setValue(input, format(binding.value.value, param.step)));
+    const input = box(`${classes.input} ${classes.numeric}`);
+    watch([binding.value], () => setValue(input, formatNumber(binding.value.value, param.step)));
     return input;
   }
   const min = param.min;
   const max = param.max;
+  const step = param.step ?? (max - min) / 100;
   // A drag in the frame lane (dom §3): input events come several a frame, the field is set once a frame (it may update
   // a structure's representation).
-  const dragged = frameState(Number.NaN, (a, b) => Object.is(a, b));
-  effect(dragged, (v) => {
-    if (!Number.isNaN(v)) binding.set(v);
-  });
+  const drag = frameInput<number>(
+    (v) => binding.set(v),
+    (v) => Object.is(v, binding.value.value),
+  );
   const range = (
     <input
       class={classes.range}
@@ -567,31 +572,17 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding<number>
       aria-labelledby={labelId}
       min={String(min)}
       max={String(max)}
-      step={String(param.step ?? (max - min) / 100)}
-      onInput={(e) => dragged.offer(Number(e.currentTarget.value))}
+      step={String(step)}
+      onInput={(e) => drag(holdNumber(Number(e.currentTarget.value), param))}
     />
   ) as HTMLInputElement;
-  const number = (
-    <input
-      class={classes.number}
-      type="text"
-      inputMode="decimal"
-      aria-labelledby={labelId}
-      onChange={(e) => {
-        const v = parseNumber(e.currentTarget.value);
-        const shown = Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : binding.value.value;
-        if (Number.isFinite(v)) binding.set(shown);
-        // The box says what holds, whether or not the value changed (a clamp to the same value, text that is no number).
-        e.currentTarget.value = format(shown, param.step);
-      }}
-    />
-  ) as HTMLInputElement;
+  const number = box(classes.number);
   watch([binding.value], () => {
     const v = binding.value.value;
     setValue(range, v);
     // The filled part of the track (no native accent fill: a setting is not the action).
     setStyle(range, '--msui-params-progress', `${(100 * (v - min)) / (max - min || 1)}%`);
-    setValue(number, format(v, param.step));
+    setValue(number, formatNumber(v, param.step));
   });
   return (
     <div class={classes.slider}>
@@ -601,26 +592,14 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding<number>
   );
 }
 
-function format(v: number, step?: number) {
-  if (!Number.isFinite(v)) return '';
-  // No step: the value as it is (at most 4 decimals), not rounded to a whole number.
-  if (step === undefined) return String(Number(v.toFixed(4)));
-  const digits = step < 1 ? Math.min(4, Math.ceil(-Math.log10(step))) : 0;
-  return v.toFixed(digits);
-}
-
-/** A typed number: "0.5", "0,5" (a comma as the decimal point), " -1 "; NaN when it is not one. */
-export function parseNumber(text: string): number {
-  const t = text.trim().replace(',', '.');
-  return t === '' ? Number.NaN : Number(t);
-}
-
 /**
  * A choice as a row: the label and the current option in a select's field; opened, the options over the field (the
  * current one on its text; grouped by Mol*'s categories). Values may be any type: the list works with indices.
  */
 function SelectRow(props: {
   label: string;
+  /** The row label's id: the field is named by it and its value (`<labelId> <labelId>-value`, as a color's). */
+  labelId?: string;
   head: Child;
   options: readonly PD.SelectOption<any>[];
   binding: FieldBinding;
@@ -634,7 +613,16 @@ function SelectRow(props: {
   const indexed = options.map(([, label, group], i) => [String(i), label, group] as const);
   // The button's text: a node of the row's own, written by the row's watch.
   const labelText = document.createTextNode('');
-  const button = (<SelectButton size="sm" open={open} aria-label={props.label} label={labelText} />) as HTMLElement;
+  const { labelId } = props;
+  const button = (
+    <SelectButton
+      size="sm"
+      open={open}
+      aria-label={labelId ? undefined : props.label}
+      label={labelId ? <span id={`${labelId}-value`}>{labelText}</span> : labelText}
+    />
+  ) as HTMLElement;
+  if (labelId) setAttr(button, 'aria-labelledby', `${labelId} ${labelId}-value`);
   watch([index], () => setText(labelText, indexed[Number(index.value)]?.[1] ?? ''));
   return (
     <>
@@ -806,7 +794,8 @@ function OnOffControl(props: {
   const toggle: FieldBinding<boolean> = {
     value: on,
     set: (v) => {
-      binding.set({ name: v ? 'on' : 'off', params: defaults(param.map(v ? 'on' : 'off')) });
+      // The case's own default (a group's `customDefault` when it has one).
+      binding.set({ name: v ? 'on' : 'off', params: param.map(v ? 'on' : 'off').defaultValue });
       if (!v) open.set(false);
     },
   };
@@ -849,6 +838,7 @@ function OnOffControl(props: {
  */
 function MappedControl(props: {
   label: string;
+  labelId?: string;
   head: Child;
   param: PD.Mapped<any>;
   binding: FieldBinding;
@@ -862,7 +852,7 @@ function MappedControl(props: {
   const name = derive(binding.value, (v) => v?.name as string | undefined);
   const nameBinding: FieldBinding = {
     value: name,
-    set: (n) => binding.set({ name: n, params: defaults(param.map(n)) }),
+    set: (n) => binding.set({ name: n, params: param.map(n).defaultValue }),
   };
   /** Does the case have params behind the button (a group that is not flat, with a row to show)? */
   const toggled = (n: string | undefined) => {
@@ -882,6 +872,7 @@ function MappedControl(props: {
     <>
       <SelectRow
         label={props.label}
+        labelId={props.labelId}
         head={props.head}
         options={param.select.options}
         binding={nameBinding}
@@ -970,6 +961,7 @@ function GroupFields(props: {
 function ConditionedControl(props: {
   head: Child;
   label: string;
+  labelId?: string;
   param: PD.Conditioned<any, any, any>;
   binding: FieldBinding;
   place: Place;
@@ -982,7 +974,13 @@ function ConditionedControl(props: {
   };
   return (
     <>
-      <SelectRow label={props.label} head={props.head} options={param.select.options} binding={conditionBinding} />
+      <SelectRow
+        label={props.label}
+        labelId={props.labelId}
+        head={props.head}
+        options={param.select.options}
+        binding={conditionBinding}
+      />
       <Show when={condition}>
         {(c) => (
           <Nested level={place.level + 1}>
@@ -1007,7 +1005,7 @@ const ScriptLanguages: PD.SelectOption<string>[] = [
 ];
 
 /** A script: its language as a choice, its expression under it (several lines), a level deeper. */
-function ScriptControl(props: { head: Child; label: string; binding: FieldBinding; place: Place }) {
+function ScriptControl(props: { head: Child; label: string; labelId?: string; binding: FieldBinding; place: Place }) {
   const { binding } = props;
   const language = keyBinding(binding, 'language');
   const expression = keyBinding(binding, 'expression');
@@ -1024,7 +1022,13 @@ function ScriptControl(props: { head: Child; label: string; binding: FieldBindin
   watch([expression.value], () => setValue(area, expression.value.value));
   return (
     <>
-      <SelectRow label={props.label} head={props.head} options={ScriptLanguages} binding={language} />
+      <SelectRow
+        label={props.label}
+        labelId={props.labelId}
+        head={props.head}
+        options={ScriptLanguages}
+        binding={language}
+      />
       <Nested level={props.place.level + 1}>
         <Row
           head={
@@ -1105,6 +1109,8 @@ function ObjectListItem(props: {
 }) {
   const { param, binding, index } = props;
   const open = state(false);
+  // The item at this index now (the entries are by index: a list changed elsewhere puts another item here).
+  const item = derive(binding.value, (v) => v?.[index]);
   const labelText = document.createTextNode('');
   const edit = (
     <Button
@@ -1139,9 +1145,21 @@ function ObjectListItem(props: {
       </div>
       <Show when={open} reveal>
         {() => {
-          // The item's own form: each change replaces the item in the list (a new list: the state stores it as is).
-          const form = new ParamsFormModel(param.element, binding.value.value?.[index] as any, {
-            onChange: (v) => props.replace(index, v),
+          // The item's own form: each change replaces the item in the list (a new list: the state stores it as is). It
+          // follows the item at its index: a list changed elsewhere (a remove, a preset, a load) loads the item now
+          // there, so the form shows it and its edits replace it, not another; its own edit (the item it just put
+          // there) loads nothing.
+          let shown = item.value;
+          const form = new ParamsFormModel(param.element, shown as any, {
+            onChange: (v) => {
+              shown = v;
+              props.replace(index, v);
+            },
+          });
+          effect(item, (v) => {
+            if (v === shown || v === undefined) return;
+            shown = v;
+            form.load(v as any);
           });
           return (
             <Nested level={props.level + 1}>
@@ -1153,7 +1171,7 @@ function ObjectListItem(props: {
     </div>
   ) as HTMLElement;
   // The item's label only: a change of another item in the list wakes this watch no further.
-  const label = derive(binding.value, (v) => (v?.[index] !== undefined ? param.getLabel(v[index]) : ''));
+  const label = derive(item, (v) => (v !== undefined ? param.getLabel(v) : ''));
   watch([label, open], () => {
     setText(labelText, label.value);
     setAttr(root, 'data-open', open.value);
@@ -1176,15 +1194,6 @@ function ExpandButton(props: { open: ReadonlyState<boolean>; label: string; onCl
   ) as HTMLElement;
   watch([props.open], () => setAttr(el, 'aria-expanded', String(props.open.value)));
   return el;
-}
-
-function defaults(param: PD.Any): any {
-  if (param.type === 'group') {
-    const out: Record<string, unknown> = {};
-    for (const k of Object.keys(param.params)) out[k] = param.params[k].defaultValue;
-    return out;
-  }
-  return param.defaultValue;
 }
 
 /**

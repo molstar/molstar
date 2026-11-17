@@ -41,13 +41,7 @@ describe('ParamsFormModel', () => {
     expect(seen).toEqual([false, true, false]);
   });
 
-  it('splits essentials from advanced, skipping hidden params', () => {
-    expect(new ParamsFormModel(params).layout()).toEqual({ essentials: ['alpha'], advanced: ['type', 'probe'] });
-    const plain = new ParamsFormModel({ a: PD.Boolean(true), b: PD.Text('') });
-    expect(plain.layout()).toEqual({ essentials: ['a', 'b'], advanced: [] });
-  });
-
-  it('sections params as v5: essentials and the rest, uncategorized first, then categories by name', () => {
+  it('sections params as v5: essentials and the rest, uncategorized first, then categories by name; no hidden ones', () => {
     const sections = paramSections({
       a: PD.Numeric(1, {}, { category: 'Shading' }),
       b: PD.Numeric(1, {}, PD.Essential),
@@ -55,6 +49,7 @@ describe('ParamsFormModel', () => {
       d: PD.Numeric(1),
       e: PD.Value(1),
       f: PD.Numeric(1, {}, { category: 'Shading' }),
+      g: PD.Numeric(1, {}, { isHidden: true }),
     });
     expect(sections).toEqual({
       essentials: [{ names: ['b'] }],

@@ -9,10 +9,20 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { flush as flushDom, render } from '../../../dom/index.js';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { flush as flushDom, render, Show } from '../../../dom/index.js';
 import { state } from '../../../state.js';
-import { Floating, OptionList, Select } from '../select.js';
+import { Floating, MenuPopover, OptionList, Select } from '../select.js';
+
+beforeAll(() => {
+  // jsdom has no popover API: a manual popover (`Floating`) stays `display: none`, and nothing in it takes the focus.
+  const style = document.createElement('style');
+  style.textContent = '[popover] { display: block !important; }';
+  document.head.append(style);
+});
+
+const key = (el: Element, k: string) =>
+  el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, composed: true, cancelable: true }));
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -104,6 +114,137 @@ describe('Select', () => {
     render(() => <Select options={[['x', 'Ex']]} value="x" />, container);
     expect(container.querySelector('button')?.textContent).toBe('Ex');
   });
+
+  it('uncontrolled (a plain value or none): a pick shows on the button', async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const onChange = vi.fn();
+    render(
+      () => (
+        <Select
+          options={[
+            ['x', 'Ex'],
+            ['y', 'Why'],
+          ]}
+          value="x"
+          onChange={onChange}
+        />
+      ),
+      container,
+    );
+    const button = container.querySelector('button')!;
+    button.click();
+    await flush();
+    container.querySelectorAll<HTMLButtonElement>('[role=option]')[1].click();
+    flushDom();
+    expect(onChange).toHaveBeenCalledWith('y');
+    expect(button.textContent).toBe('Why');
+  });
+
+  it('closed from the list (a pick, Escape, Tab), the focus goes back to its button; its rows are no Tab stops', async () => {
+    for (const over of [true, false]) {
+      const container = document.createElement('div');
+      document.body.append(container);
+      render(
+        () => (
+          <Select
+            over={over}
+            options={[
+              ['a', 'Alpha'],
+              ['b', 'Beta'],
+            ]}
+            value="a"
+          />
+        ),
+        container,
+      );
+      const button = container.querySelector<HTMLButtonElement>('[aria-haspopup=listbox]')!;
+      const options = () => [...container.querySelectorAll<HTMLButtonElement>('[role=option]')];
+      button.click();
+      await flush();
+      expect(options().map((o) => o.tabIndex)).toEqual([-1, -1]);
+      expect(document.activeElement).toBe(options()[0]);
+      options()[1].focus();
+      options()[1].click();
+      flushDom();
+      expect(container.querySelector('[role=listbox]')).toBeNull();
+      expect(document.activeElement).toBe(button);
+
+      for (const k of ['Escape', 'Tab']) {
+        button.click();
+        await flush();
+        key(options()[0], k);
+        flushDom();
+        expect(container.querySelector('[role=listbox]')).toBeNull();
+        expect(document.activeElement).toBe(button);
+      }
+      container.remove();
+    }
+  });
+
+  it("a press on another select's open button closes this one's list (no global query for open buttons)", async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const opts = [['a', 'A'] as const];
+    render(
+      () => (
+        <>
+          <Select over={false} options={opts} value="a" />
+          <Select over={false} options={opts} value="a" />
+        </>
+      ),
+      container,
+    );
+    const [one, two] = container.querySelectorAll<HTMLButtonElement>('[aria-haspopup=listbox]');
+    one.click();
+    await flush();
+    // The other's button, marked open (as a form row's own select would be).
+    two.setAttribute('aria-expanded', 'true');
+    two.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+    flushDom();
+    expect(container.querySelector('[role=listbox]')).toBeNull();
+  });
+});
+
+describe('MenuPopover', () => {
+  function mount() {
+    const open = state(true);
+    const onClose = vi.fn(() => open.set(false));
+    const anchor = document.createElement('button');
+    const elsewhere = document.createElement('input');
+    const container = document.createElement('div');
+    document.body.append(anchor, elsewhere, container);
+    render(
+      () => (
+        <Show when={open}>
+          {() => (
+            <MenuPopover anchor={anchor} onClose={onClose} aria-label="Row">
+              <button type="button" role="menuitem">
+                Rename
+              </button>
+            </MenuPopover>
+          )}
+        </Show>
+      ),
+      container,
+    );
+    return { onClose, elsewhere, container };
+  }
+
+  it('takes its own Escape (in it), not one pressed elsewhere on the page; Tab closes it', async () => {
+    const a = mount();
+    await flush();
+    key(a.elsewhere, 'Escape');
+    expect(a.onClose).not.toHaveBeenCalled();
+    key(a.container.querySelector('[role=menuitem]')!, 'Escape');
+    expect(a.onClose).toHaveBeenCalledWith(true);
+
+    document.body.innerHTML = '';
+    const b = mount();
+    await flush();
+    key(b.container.querySelector('[role=menuitem]')!, 'Tab');
+    expect(b.onClose).toHaveBeenCalledWith(true);
+  });
 });
 
 describe('OptionList', () => {
@@ -142,6 +283,46 @@ describe('OptionList', () => {
 });
 
 describe('Floating', () => {
+  it('places itself again when its anchor or its column resizes (never wider than its column)', async () => {
+    const observed: Element[] = [];
+    let callback: (() => void) | undefined;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(fn: () => void) {
+          callback = fn;
+        }
+        observe(el: Element) {
+          observed.push(el);
+        }
+        disconnect() {}
+      },
+    );
+    const anchor = document.createElement('button');
+    const column = document.createElement('div');
+    document.body.append(column, anchor);
+    let width = 200;
+    column.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 100, left: 5, right: 5 + width, width, height: 100, x: 5, y: 0 }) as DOMRect;
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(
+      () => (
+        <Floating anchor={anchor} column={column}>
+          <div />
+        </Floating>
+      ),
+      container,
+    );
+    const floating = container.firstElementChild as HTMLElement;
+    await flush();
+    expect(observed).toEqual([floating, anchor, column]);
+    expect(floating.style.width).toBe('200px');
+    width = 150;
+    callback!();
+    expect(floating.style.width).toBe('150px');
+  });
+
   it('over: centers the current option on its anchor, measured once', async () => {
     const anchor = document.createElement('button');
     document.body.append(anchor);

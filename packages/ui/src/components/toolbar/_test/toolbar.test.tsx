@@ -124,6 +124,19 @@ describe('Toolbar: the toolbar pattern', () => {
     expect(document.activeElement).toBe(focus);
   });
 
+  it('right to left (`dir="rtl"`): ← moves on, → back', () => {
+    const t = mount({ groups: groups() });
+    t.container.setAttribute('dir', 'rtl');
+    const [rotate, select, , expand] = t.buttons();
+    rotate.focus();
+    key(rotate, 'ArrowLeft');
+    expect(document.activeElement).toBe(select);
+    key(select, 'ArrowRight');
+    expect(document.activeElement).toBe(rotate);
+    key(rotate, 'ArrowRight');
+    expect(document.activeElement).toBe(expand);
+  });
+
   it('a vertical bar moves by ↓ and ↑, and skips a hidden button', async () => {
     const shown = state(true);
     const t = mount({ groups: groups({ select: { visible: shown } }), orientation: 'vertical' });
@@ -162,6 +175,25 @@ describe('Toolbar: the menu button pattern', () => {
     expect(t.menu()).toBeNull();
     expect(select.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(select);
+  });
+
+  it('Tab in the menu closes it, the focus on its button first (Tab goes on from the bar); Esc on the button closes it', async () => {
+    const t = mount({ groups: groups() });
+    const select = t.button('Select');
+    select.focus();
+    key(select, 'ArrowDown');
+    await settle();
+    expect(document.activeElement).toBe(t.rows()[0]);
+    key(t.rows()[0], 'Tab');
+    expect(document.activeElement).toBe(select);
+    flush();
+    expect(t.menu()).toBeNull();
+    over(select);
+    await settle();
+    expect(t.menu()).not.toBeNull();
+    key(select, 'Escape');
+    flush();
+    expect(t.menu()).toBeNull();
   });
 
   it('Enter or Space (a click from the keyboard) opens a button that only holds a menu; a button with its own action runs it', async () => {
@@ -328,6 +360,49 @@ describe('Toolbar: menu rows', () => {
     expect(t.menu()).toBeNull();
   });
 
+  it('Esc in a submenu closes only it; Tab there closes the whole menu; ← or → back follows the side it opened on', async () => {
+    const rows: ToolbarMenuRow[] = [
+      { id: 'more', label: 'More', items: [{ id: 'deep', label: 'Deep', run: () => {} }] },
+    ];
+    const t = mount({ groups: groups({ select: { menu: rows } }) });
+    const select = t.button('Select');
+    select.focus();
+    key(select, 'ArrowDown');
+    await settle();
+    const [more] = t.rows();
+    key(more, 'ArrowRight');
+    await settle();
+    expect(t.menus()).toHaveLength(2);
+    key(document.activeElement!, 'Escape');
+    flush();
+    expect(t.menus()).toHaveLength(1);
+    expect(document.activeElement).toBe(more);
+    key(more, 'ArrowRight');
+    await settle();
+    key(document.activeElement!, 'Tab');
+    expect(document.activeElement).toBe(select);
+    flush();
+    expect(t.menu()).toBeNull();
+
+    // At the window's right edge the submenu flips to the left: → is back, ← does nothing.
+    key(select, 'ArrowDown');
+    await settle();
+    const row = t.rows()[0] as HTMLElement;
+    row.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 20, left: 1000, right: 1020, width: 20, height: 20, x: 1000, y: 0 }) as DOMRect;
+    key(row, 'ArrowRight');
+    await settle();
+    const sub = t.menus()[1];
+    expect(sub.closest<HTMLElement>('[popover]')!.dataset.side).toBe('left');
+    key(document.activeElement!, 'ArrowLeft');
+    flush();
+    expect(t.menus()).toHaveLength(2);
+    key(document.activeElement!, 'ArrowRight');
+    flush();
+    expect(t.menus()).toHaveLength(1);
+    expect(document.activeElement).toBe(row);
+  });
+
   it('a disabled button and a disabled row do not run; their reasons are in their tooltips', async () => {
     const run = vi.fn();
     const rowRun = vi.fn();
@@ -354,11 +429,14 @@ describe('Toolbar: menu rows', () => {
     const focus = t.button('Focus');
     expect(focus.getAttribute('aria-disabled')).toBe('true');
     expect(focus.dataset.tip).toBe('Focus: Nothing to focus');
+    // The reason, for assistive technology too.
+    expect(focus.getAttribute('aria-description')).toBe('Nothing to focus');
     focus.click();
     expect(run).not.toHaveBeenCalled();
     off.set(false);
     flush();
     expect(focus.hasAttribute('aria-disabled')).toBe(false);
+    expect(focus.hasAttribute('aria-description')).toBe(false);
     expect(focus.dataset.tip).toBe('Focus');
     focus.click();
     expect(run).toHaveBeenCalledTimes(1);
@@ -369,8 +447,11 @@ describe('Toolbar: menu rows', () => {
     const [x, y] = t.rows();
     expect(x.getAttribute('aria-disabled')).toBe('true');
     expect((x as HTMLElement).dataset.tip).toBe('No structure');
-    // The arrows skip it: the first usable row has the focus.
+    expect(x.getAttribute('aria-description')).toBe('No structure');
+    // It opens on the first usable row; the arrows reach the disabled one (APG menus: its reason is read).
     expect(document.activeElement).toBe(y);
+    key(y, 'ArrowUp');
+    expect(document.activeElement).toBe(x);
     (x as HTMLElement).click();
     expect(rowRun).not.toHaveBeenCalled();
     expect(t.menu()).not.toBeNull();

@@ -26,6 +26,7 @@ export const classes = {
   'intervalValue': 'msui-params-extra-controls-intervalValue',
   'matrix': 'msui-params-extra-controls-matrix',
   'optionContent': 'msui-params-extra-controls-optionContent',
+  'pair': 'msui-params-extra-controls-pair',
   'panel': 'msui-params-extra-controls-panel',
   'point': 'msui-params-extra-controls-point',
   'spark': 'msui-params-extra-controls-spark',
@@ -295,6 +296,13 @@ defineStyles('components/params/extra-controls.module.css', `@layer msui.compone
   line-height: var(--msui-leading-xs);
   flex: 1;
   margin: 0;
+}
+
+.msui-params-extra-controls-pair {
+  gap: var(--msui-space-1);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  display: grid;
 }
 }
 `);

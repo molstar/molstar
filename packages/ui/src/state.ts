@@ -6,7 +6,7 @@
 
 import { isState, type ReadonlyState, RecordState, State, toState } from '@molstar/core/reactive';
 import { isPlainRecord, sameShallow } from '@molstar/core/util/object';
-import { type MaybeReactive, onCleanup, toStream } from './dom/index.js';
+import { type MaybeReactive, requireScope, toStream } from './dom/index.js';
 
 /**
  * A view's state (core's `State`) compared shallowly: a set of an equal copy (a record or an array built anew) tells
@@ -28,8 +28,10 @@ export function held<T>(value: MaybeReactive<T> | undefined, fallback: T): Reado
   if (isState(value)) return value as ReadonlyState<T>;
   const stream = toStream(value as MaybeReactive<T>);
   if (stream) {
+    // The scope first: outside one, it throws before the stream is subscribed.
+    const scope = requireScope('held');
     const s = toState(stream, fallback);
-    onCleanup(() => s.dispose());
+    scope.onCleanup(() => s.dispose());
     return s;
   }
   return new State(value === undefined ? fallback : (value as T));

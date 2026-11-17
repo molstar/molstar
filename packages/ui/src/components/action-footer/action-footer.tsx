@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { derive, isState, type ReadonlyState } from '@molstar/core/reactive';
-import { effect, type MaybeReactive, on, requireScope, runInScope, Show } from '../../dom/index.js';
-import { state } from '../../state.js';
+import { derive } from '@molstar/core/reactive';
+import { type MaybeReactive, on, requireScope, runInScope, Show } from '../../dom/index.js';
+import { held } from '../../state.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/action-footer.module.css.js';
 
@@ -37,8 +37,8 @@ export interface ActionFooterProps {
  * Enter in a one-line field of the block it ends applies it (a code typed, Enter: it loads).
  */
 export function ActionFooter(props: ActionFooterProps) {
-  const busy = held(props.busy);
-  const disabled = derive([busy, held(props.disabled)], (b, d) => b || d);
+  const busy = held(props.busy, false);
+  const disabled = derive([busy, held(props.disabled, false)], (b, d) => b || d);
   const scope = requireScope('ActionFooter');
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -91,12 +91,4 @@ function submitsOnEnter(el: HTMLElement): boolean {
   if (!(el instanceof HTMLInputElement)) return false;
   if (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-expanded') === 'true') return false;
   return ['text', 'number', 'search', 'url', 'email', 'tel', ''].includes(el.type);
-}
-
-/** A flag as a state: a state as it is; a stream (or a plain value) held in one, with the current scope. */
-function held(source: MaybeReactive<boolean> | undefined): ReadonlyState<boolean> {
-  if (isState(source)) return source as ReadonlyState<boolean>;
-  const flag = state(false);
-  effect(source ?? false, (v) => flag.set(v));
-  return flag.asReadonly;
 }

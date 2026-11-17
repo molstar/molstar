@@ -6,15 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Child, eventTarget, frame, isInside, type MaybeReactive, on } from '../../dom/index.js';
+import { type Child, frame, type MaybeReactive } from '../../dom/index.js';
 import { Floating } from '../select/select.js';
 import { classes } from './_generated/popover.module.css.js';
-
-/** Whether an event happened in a floating layer other than `own` (a select's options opened from inside it). */
-function inOtherLayer(e: Event, own: HTMLElement | undefined): boolean {
-  const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
-  return path.some((n) => n instanceof HTMLElement && n !== own && n.hasAttribute('popover') && !own?.contains(n));
-}
+import { dismissable } from './dismiss.js';
 
 /**
  * A panel of controls in a popover from its button (a header's settings): a raised surface placed as a menu is
@@ -39,30 +34,13 @@ export function Popover(props: {
   column?: HTMLElement | null;
 }) {
   let panel: HTMLElement | undefined;
-  const layer = () => panel?.closest<HTMLElement>('[popover]') ?? undefined;
-  // Escape closes it before the panel it is in (the document's handlers run in capture order); one meant for a layer
-  // opened from it (the focus there) is that layer's.
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented) return;
-    if (!isInside(e, panel) && inOtherLayer(e, layer())) return;
-    // Escape meant for another surface (a dialog: the focus there) is not this one's.
-    const target = eventTarget(e);
-    const elsewhere =
-      target instanceof Element &&
-      target !== document.body &&
-      target !== document.documentElement &&
-      !isInside(e, panel) &&
-      !isInside(e, props.anchor);
-    if (elsewhere) return;
-    e.preventDefault();
-    props.onClose(true);
-  };
-  const onDown = (e: PointerEvent) => {
-    if (isInside(e, panel) || isInside(e, props.anchor) || inOtherLayer(e, layer())) return;
-    props.onClose();
-  };
-  on(document, 'keydown', onKey, { capture: true });
-  on(document, 'pointerdown', onDown, { capture: true });
+  // One rule with the other overlays (dismiss.ts): a layer opened from it (a select's options) takes its own presses and
+  // keys first; Escape with the focus on another surface is that surface's. A dialog: Tab stays in it.
+  dismissable({
+    layer: () => panel,
+    anchor: props.anchor,
+    close: (reason) => (reason === 'outside' ? props.onClose() : props.onClose(true)),
+  });
   return (
     <Floating
       anchor={props.anchor}

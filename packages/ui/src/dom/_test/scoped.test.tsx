@@ -14,6 +14,8 @@ import {
   frame,
   frames,
   latest,
+  observeIntersection,
+  observeResize,
   on,
   pendingFrameCallbacks,
   restartable,
@@ -22,6 +24,8 @@ import {
   ViewScope,
   workQueue,
 } from '../index.js';
+import { Subject } from '@molstar/core/reactive';
+import { held } from '../../state.js';
 import { DomHost } from '../host.js';
 
 // Scoped attachments, gestures and work queues (dom §6, §8).
@@ -258,3 +262,67 @@ function flushFrameTick() {
   tick = undefined;
   t?.(0);
 }
+
+describe('review regressions', () => {
+  it('a queue disposed by its own work runs nothing more; paused by it, the rest waits for the resume', () => {
+    const q = createWorkQueue({ lane: 'task' });
+    const seen: string[] = [];
+    q.want('a', () => q.dispose(), { priority: 2 });
+    q.want('b', () => seen.push('b'));
+    flush();
+    expect(seen).toEqual([]);
+    expect(q.size).toBe(0);
+
+    const p = createWorkQueue({ lane: 'task' });
+    p.want('a', () => p.setActive(false), { priority: 2 });
+    p.want('b', () => seen.push('b'));
+    flush();
+    expect(seen).toEqual([]);
+    expect(p.size).toBe(1);
+    p.setActive(true);
+    flush();
+    expect(seen).toEqual(['b']);
+  });
+
+  it('restartable: a start after its scope ended arms nothing', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const scope = new ViewScope();
+    const r = runInScope(scope, () => restartable(fn));
+    scope.dispose();
+    r.start(10);
+    vi.advanceTimersByTime(20);
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('outside a scope, timeout, observers and held throw before they make anything', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    expect(() => timeout(fn, 10)).toThrow(/outside a render scope/);
+    vi.advanceTimersByTime(20);
+    expect(fn).not.toHaveBeenCalled();
+
+    let made = 0;
+    class Observer {
+      constructor() {
+        made++;
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', Observer);
+    vi.stubGlobal('IntersectionObserver', Observer);
+    try {
+      const el = document.createElement('div');
+      expect(() => observeResize(el, () => {})).toThrow(/outside a render scope/);
+      expect(() => observeIntersection(el, () => {})).toThrow(/outside a render scope/);
+      expect(made).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    const source = new Subject<number>();
+    expect(() => held(source, 0)).toThrow(/outside a render scope/);
+    expect(source.observed).toBe(false);
+  });
+});

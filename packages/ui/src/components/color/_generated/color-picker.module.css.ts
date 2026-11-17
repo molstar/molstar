@@ -75,7 +75,7 @@ defineStyles('components/color/color-picker.module.css', `@layer msui.components
     transform: scale(1.08);
   }
 
-  &[aria-selected="true"] {
+  &[aria-checked="true"] {
     outline: 2px solid var(--msui-text-muted);
     outline-offset: 1px;
   }

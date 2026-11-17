@@ -242,8 +242,11 @@ export class WorkQueue {
     if (active) this._enlist();
   }
 
+  /** Drops all the work; a run in progress stops after the entry running now (dom §8). */
   dispose(): void {
+    if (this._disposed) return;
     this._disposed = true;
+    this._entries.forEach(releaseEntry);
     this._entries.clear();
     this._wanted = 0;
   }
@@ -276,6 +279,8 @@ export class WorkQueue {
       this._entries.forEach(this._rank);
       const n = this._ranked;
       for (let i = 0; i < n; i++) {
+        // Disposed by an entry: the rest is gone. Paused by one (not for `flush`): the rest stays wanted, for the resume.
+        if (this._disposed || (!this._active && !all)) break;
         const e = order[i]!;
         // Cancelled while this run ran: skip. (Wanted again: it runs what was wanted last.)
         if (!e.wanted) continue;
@@ -316,12 +321,16 @@ export class WorkQueue {
   }
 
   private _release(e: Entry) {
-    e.wanted = false;
     this._wanted--;
-    e.run = noop;
-    e.priority = undefined;
-    e.stillWanted = undefined;
+    releaseEntry(e);
   }
+}
+
+function releaseEntry(e: Entry) {
+  e.wanted = false;
+  e.run = noop;
+  e.priority = undefined;
+  e.stillWanted = undefined;
 }
 
 /** A queue of work by key, in `lane` (`WorkQueue`). */

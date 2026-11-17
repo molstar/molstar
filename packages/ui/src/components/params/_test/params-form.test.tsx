@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { render } from '../../../dom/index.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';
+import { fieldNamed } from './named.js';
 import { state } from '../../../state.js';
 import { ParamsForm, paramsMatch } from '../params-form.js';
 import { presetIndex } from '../presets.js';
@@ -125,6 +126,29 @@ describe('ParamsForm', () => {
     settings.click();
     await flush();
     expect(container.querySelector('input[type=range]')).not.toBeNull();
+  });
+
+  it("a case's params start at the case's default (a group's customDefault), from the switch and from the choice", async () => {
+    const custom = { samples: 64, radius: 2 };
+    const form = new ParamsFormModel({
+      occlusion: PD.MappedStatic('off', {
+        on: PD.Group({ samples: PD.Numeric(32), radius: PD.Numeric(1) }, { customDefault: custom }),
+        off: PD.Group({}),
+      }),
+      kind: PD.MappedStatic('a', {
+        a: PD.Group({}),
+        b: PD.Group({ size: PD.Numeric(1) }, { customDefault: { size: 3 } }),
+      }),
+    });
+    const container = mount(form);
+    (container.querySelector('[role=switch]') as HTMLButtonElement).click();
+    await flush();
+    expect((form.values.value as any).occlusion).toEqual({ name: 'on', params: custom });
+    fieldNamed(container, 'Kind')!.click();
+    await flush();
+    [...container.querySelectorAll<HTMLButtonElement>('[role=listbox] button')].find((b) => b.textContent?.trim() === 'B')!.click();
+    await flush();
+    expect((form.values.value as any).kind).toEqual({ name: 'b', params: { size: 3 } });
   });
 
   it('filters rows by a search: matches show (groups open), a group whose name matches shows all its rows', async () => {

@@ -6,7 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRoot } from '../../../dom/index.js';
+import { createRoot, runInScope, ViewScope } from '../../../dom/index.js';
 import { installTooltips } from '../tooltip.js';
 
 // A tip whose anchor goes (a panel closed under a resting pointer) must not stay on screen.
@@ -107,5 +107,25 @@ describe('tooltips', () => {
     vi.advanceTimersByTime(400);
     expect(tip().hidden).toBe(false);
     expect(tip().style.paddingBlock).toBe('');
+  });
+
+  it('waits for its delay on the scope: none shows while the scope is paused, the wait resumes with it', () => {
+    const scoped = document.createElement('div');
+    document.body.append(scoped);
+    scoped.innerHTML = '<button id="b" data-tip="Center">x</button>';
+    const scope = new ViewScope();
+    const off = runInScope(scope, () => installTooltips(scoped));
+    const b = scoped.querySelector('#b')!;
+    const tipB = () => scoped.querySelector<HTMLElement>('[role="tooltip"]')!;
+    over(b);
+    scope.setActive(false);
+    vi.advanceTimersByTime(400);
+    expect(tipB().hidden).toBe(true);
+    scope.setActive(true);
+    vi.advanceTimersByTime(400);
+    expect(tipB().hidden).toBe(false);
+    off();
+    scope.dispose();
+    scoped.remove();
   });
 });

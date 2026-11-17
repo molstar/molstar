@@ -87,19 +87,6 @@ export class ParamsFormModel<P extends PD.Params = PD.Params> {
     }
   }
 
-  /** The params split as the classic UI does: essentials first; the rest under "Advanced" when there are essentials. */
-  layout(): { essentials: string[]; advanced: string[] } {
-    const essentials: string[] = [];
-    const rest: string[] = [];
-    for (const name of Object.keys(this.params)) {
-      const param = this.params[name];
-      if (param.isHidden) continue;
-      if (param.isEssential) essentials.push(name);
-      else rest.push(name);
-    }
-    return essentials.length ? { essentials, advanced: rest } : { essentials: rest, advanced: [] };
-  }
-
   /**
    * Whether a fold of the form is open (Advanced, a category, a choice's params), by its path in the form: kept for the
    * form's life, so a fold stays as the user left it when its rows render again (another choice and back, a reload).

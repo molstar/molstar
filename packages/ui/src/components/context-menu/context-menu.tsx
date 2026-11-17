@@ -8,6 +8,7 @@
 
 import { createRoot, isInside, menuKeys, on, rememberFocus } from '../../dom/index.js';
 import { Icon, type IconName } from '../icon/icon.js';
+import { dismissable } from '../popover/dismiss.js';
 import { classes } from './_generated/context-menu.module.css.js';
 
 /** One entry: what it is called, what it does; an icon is optional. */
@@ -15,7 +16,7 @@ export interface ContextMenuItem {
   id: string;
   label: string;
   icon?: IconName;
-  /** Why it cannot be used now: greyed, skipped by the arrows, the reason in its tooltip. */
+  /** Why it cannot be used now: greyed, not run, the reason in its tooltip and its description (still focusable). */
   disabled?: string;
   /** Its key, as text (`⌘K`), quiet at the row's end. */
   shortcut?: string;
@@ -25,9 +26,9 @@ export interface ContextMenuItem {
 /**
  * Opens a menu at a point of the viewport (client px), in `root` (a UI root, so its tokens apply): below and to the
  * right of the point, flipped to the other side where it would leave the window (so near the bottom edge it opens
- * upward). It measures once, on opening. Closes on a choice, on Escape, on a press elsewhere and when the window resizes
- * or scrolls; `close` ends it early. Returns that close. The arrows move between its items; closed, the focus goes back
- * to where it was. Its rows are list rows (styles §4, §5): an icon slot, kept empty in a menu where some item has an
+ * upward). It measures once, on opening. Closes on a choice, on Escape or Tab, on a press elsewhere (dismiss.ts) and when
+ * the window resizes or scrolls; `close` ends it early. Returns that close. The arrows move between its items (no Tab
+ * stops; a disabled one is reached, its reason read); closed, the focus goes back to where it was. Its rows are list rows (styles §4, §5): an icon slot, kept empty in a menu where some item has an
  * icon, the label, the shortcut.
  */
 export function openContextMenu(
@@ -48,17 +49,6 @@ export function openContextMenu(
     menu.remove();
     onClose?.();
   };
-  const outside = (e: PointerEvent) => {
-    if (!isInside(e, menu)) close();
-  };
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape') return;
-    // Escape in another UI root on the page is not this menu's.
-    if (!isInside(e, menu) && !ownsKey(root, e)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    close();
-  };
   const icons = items.some((i) => i.icon);
   let menu!: HTMLElement;
   createRoot((d) => {
@@ -75,8 +65,10 @@ export function openContextMenu(
           <button
             type="button"
             role="menuitem"
+            tabIndex={-1}
             class={classes.row}
             aria-disabled={item.disabled ? 'true' : undefined}
+            aria-description={item.disabled || undefined}
             data-tip={item.disabled}
             onClick={() => {
               if (item.disabled) return;
@@ -91,9 +83,14 @@ export function openContextMenu(
         ))}
       </div>
     ) as HTMLElement;
-    // In the menu's own scope (dom §6): removed when it closes.
-    on(document, 'pointerdown', outside, { capture: true });
-    on(document, 'keydown', onKey, { capture: true });
+    // In the menu's own scope (dom §6): removed when it closes. Escape in another UI root on the page is not its; Tab
+    // closes it, the focus back where it was (and on from there).
+    dismissable({
+      layer: () => menu,
+      tab: true,
+      close,
+      ownsKey: (e) => isInside(e, menu) || ownsKey(root, e),
+    });
     on(window, 'resize', close);
     on(window, 'scroll', close, { capture: true });
   });

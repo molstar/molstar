@@ -11,7 +11,7 @@ import { sameShallow } from '@molstar/core/util/object';
 import { DomHost } from './host.js';
 import type { Child, Component } from './jsx-types.js';
 import { playClose, swapIn } from './motion.js';
-import { insert, Passthrough, regionWriter, removeBetween } from './render.js';
+import { insert, Passthrough, regionWriter, removeBetween, renderIn } from './render.js';
 import { type MaybeReactive, onCleanup, requireScope, runInScope, toStream, type ViewScope } from './scope.js';
 import { bind, follow } from './watch.js';
 
@@ -107,6 +107,8 @@ export function Show<T>(props: {
       const kind = props.reveal === true ? 'grow' : props.reveal;
       const animations = closingNow && kind ? tops.map((el) => playClose(el, kind)) : [];
       if (animations.length === 0 || animations.some((a) => !a)) {
+        // Not all of them play: the content goes now, and those that started stop with it (dom §5).
+        for (const a of animations) a?.cancel();
         write(props.fallback ?? null);
         return;
       }
@@ -417,7 +419,10 @@ export function For<T>(props: {
     const scope = owner.child();
     const index = withIndex ? new State(i) : undefined;
     const content = document.createDocumentFragment();
-    runInScope(scope, () => insert(content, props.children(item, index?.asReadonly as ReadonlyState<number>), null));
+    // In the namespace of the list's place (dom §4).
+    renderIn(scope, end.parentNode, () =>
+      insert(content, props.children(item, index?.asReadonly as ReadonlyState<number>), null),
+    );
     let first: Node;
     let last: Node;
     if (content.childNodes.length === 1 && content.firstChild!.nodeType === Node.ELEMENT_NODE) {
@@ -544,7 +549,7 @@ export function For<T>(props: {
     if (order.length === 0 && props.fallback && !fallback) {
       fallback = owner.child();
       const content = document.createDocumentFragment();
-      runInScope(fallback, () => insert(content, props.fallback!(), null));
+      renderIn(fallback, parent, () => insert(content, props.fallback!(), null));
       parent.insertBefore(content, end);
     } else if (order.length > 0 && fallback) {
       fallback.dispose();

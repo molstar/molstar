@@ -6,10 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { derive } from '@molstar/core/reactive';
+import { Color } from '@molstar/core/util/color';
 import { ColorNames } from '@molstar/core/util/color/names';
-import { derive, KeyedSelector } from '@molstar/core/reactive';
 import { activeElement, bind, drag, type MaybeReactive, setAttr, setStyle, watch } from '../../dom/index.js';
 import { held, state } from '../../state.js';
+import { radioGroup } from '../choices/radio-group.js';
 import { classes } from './_generated/color-picker.module.css.js';
 
 /** The palette's hues (vivid; their lighter and darker weights are the row under them, `colorWeights`). */
@@ -37,7 +39,7 @@ export function colorWeights(c: number): number[] {
 
 /** For CSS: `#rrggbb`. */
 export function colorToHex(c: number): string {
-  return `#${((c >>> 0) & 0xffffff).toString(16).padStart(6, '0')}`;
+  return Color.toHexStyle(Color((c >>> 0) & 0xffffff));
 }
 
 /** For people: the channels in decimal, `51, 98, 178`. */
@@ -50,7 +52,7 @@ const byte = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
 
 /**
  * A color as people write it, to the number Mol* uses (`0xRRGGBB`); undefined when it is not one:
- * - hex: `#3362b2`, `3362b2`, `#36b`, `0x3362b2`;
+ * - hex: `#3362b2`, `3362b2`, `#36b` (short form: each digit doubled), `0x3362b2`, `0x123` (a number: `0x000123`);
  * - channels, 0–255 or percentages: `51, 98, 178`, `51 98 178`, `rgb(51 98 178)`, `rgba(51,98,178,1)`, `rgb(20%,…)`;
  * - normalized channels (all at most 1, one with a decimal point): `0.2, 0.38, 0.7`;
  * - `hsl(218, 55%, 45%)`;
@@ -60,7 +62,10 @@ export function parseColor(text: string): number | undefined {
   const t = text.trim().toLowerCase();
   if (!t) return undefined;
 
-  const hex = /^(?:#|0x)?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(t);
+  // `0x` is a number, as in code: never the short form (`0x123` is 0x000123).
+  const num = /^0x([0-9a-f]{1,6})$/.exec(t);
+  if (num) return Number.parseInt(num[1], 16);
+  const hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(t);
   // Three bare digits are channels' worth of hex only without separators ("123" is #112233, "1, 2, 3" is not).
   if (hex) {
     const h = hex[1].length === 3 ? hex[1].replace(/./g, (d) => d + d) : hex[1];
@@ -160,6 +165,8 @@ function placeOf(c: number): { greys: boolean; x: number; y: number } {
   return { greys: false, x: h / 6, y: Math.max(0, Math.min(1, y)) };
 }
 
+const WeightIndices: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7];
+
 export interface ColorPickerProps {
   value: MaybeReactive<number>;
   onChange(color: number): void;
@@ -169,18 +176,23 @@ export interface ColorPickerProps {
  * A color picker that looks and works the same everywhere (no system picker): the smooth palette (every hue, lighter
  * up, darker down; greys under it) to click or drag across, the palette's hues, the current color marked; then, in two
  * steps, the weights of the color picked (lighter to darker; picking one keeps the row, so it can be walked); a field
- * that takes a color in most ways people write one (`parseColor`) and shows it as decimal channels.
+ * that takes a color in most ways people write one (`parseColor`), applied on Enter or when left, and shows it as
+ * decimal channels. Each row of swatches is a radio group (`radioGroup`): one Tab stop, the arrows move and pick.
  */
 export function ColorPicker(props: ColorPickerProps) {
   const value = held(props.value, 0);
   const place = derive(value, placeOf);
   let input: HTMLInputElement | undefined;
-  // The color the weights are of: every pick but a weight's (and any change from outside) moves it.
+  // The color the weights are of: every pick but a weight's (and any change from outside) moves it. A weight picked is
+  // remembered, so the row stays while the value is that weight, whenever the host applies it (at once or later).
   const base = state(0);
-  let fromWeight = false;
+  let pickedWeight: number | undefined;
   const weights = derive(base, colorWeights);
   bind(value, (v) => {
-    if (!fromWeight) base.set(v);
+    if (v !== pickedWeight) {
+      pickedWeight = undefined;
+      base.set(v);
+    }
     // Not under the caret: what is being typed stays as typed until it is left (then it is written out again).
     if (input && activeElement(input) !== input) input.value = colorToRgb(v);
   });
@@ -222,52 +234,67 @@ export function ColorPicker(props: ColorPickerProps) {
     setAttr(preview, 'data-tone', toneOf(value.value));
   });
 
-  // The palette's current swatch: one selector over the value, so a change rewrites two swatches, not all.
-  const selected = new KeyedSelector(value);
-  const paletteSwatch = (c: number) => {
-    const el = (
-      <button
-        type="button"
-        role="option"
-        class={classes.swatch}
-        style={{ background: colorToHex(c) }}
-        data-tone={toneOf(c)}
-        aria-label={colorToRgb(c)}
-        onClick={() => props.onChange(c)}
-      />
-    ) as HTMLElement;
-    const on = selected.key(c);
-    watch([on], () => setAttr(el, 'aria-selected', String(on.value)));
-    return el;
-  };
-
-  // The weights all change together with the base: one watch writes the row.
-  const weightSwatches = [0, 1, 2, 3, 4, 5, 6, 7].map(
-    (i) =>
+  // The palette: a radio group over the value (`radioGroup`: one selector, so a change rewrites two swatches, not all).
+  const pickPalette = (i: number) => props.onChange(ColorPalette[i]);
+  const paletteSwatches = ColorPalette.map(
+    (c, i) =>
       (
         <button
           type="button"
-          role="option"
+          role="radio"
           class={classes.swatch}
-          onClick={() => {
-            fromWeight = true;
-            props.onChange(colorWeights(base.value)[i]);
-            fromWeight = false;
-          }}
+          style={{ background: colorToHex(c) }}
+          data-tone={toneOf(c)}
+          aria-label={colorToRgb(c)}
+          onClick={() => pickPalette(i)}
         />
       ) as HTMLElement,
   );
-  watch([weights, value], () => {
+  const paletteKeys = radioGroup({
+    keys: ColorPalette,
+    buttons: paletteSwatches,
+    disabled: () => false,
+    active: value,
+    pick: pickPalette,
+  });
+
+  // The weights all change together with the base: one watch writes the row; a radio group over the weight's index.
+  const pickWeight = (i: number) => {
+    pickedWeight = weights.value[i];
+    props.onChange(pickedWeight);
+  };
+  const weightSwatches = WeightIndices.map(
+    (i) => (<button type="button" role="radio" class={classes.swatch} onClick={() => pickWeight(i)} />) as HTMLElement,
+  );
+  watch([weights], () => {
     const w = weights.value;
-    const v = value.value;
     for (let i = 0; i < weightSwatches.length; i++) {
       const el = weightSwatches[i];
       setStyle(el, 'background', colorToHex(w[i]));
       setAttr(el, 'aria-label', colorToRgb(w[i]));
       setAttr(el, 'data-tone', toneOf(w[i]));
-      setAttr(el, 'aria-selected', String(w[i] === v));
     }
   });
+  const weightKeys = radioGroup({
+    keys: WeightIndices,
+    buttons: weightSwatches,
+    disabled: () => false,
+    active: derive([weights, value], (w, v) => {
+      const i = w.indexOf(v);
+      return i < 0 ? undefined : i;
+    }),
+    pick: pickWeight,
+  });
+
+  // The field's text, applied on Enter or when left (not per keystroke: `25` on its way to `255` is a color too).
+  let edited = false;
+  const commit = (el: HTMLInputElement) => {
+    const c = edited ? parseColor(el.value) : undefined;
+    edited = false;
+    if (c !== undefined && c !== value.value) props.onChange(c);
+    // Written out as channels: what was applied (the host may apply it later), or, not a color, the current one.
+    el.value = colorToRgb(c ?? value.value);
+  };
 
   return (
     <div class={classes.picker}>
@@ -277,10 +304,20 @@ export function ColorPicker(props: ColorPickerProps) {
       <div class={classes.greys} aria-hidden="true" ref={strip((x) => grey(x))}>
         {greysMarker}
       </div>
-      <div class={classes.palette} role="listbox" aria-label="Palette">
-        {ColorPalette.map(paletteSwatch)}
+      <div
+        class={classes.palette}
+        role="radiogroup"
+        aria-label="Palette"
+        onKeyDown={(e: KeyboardEvent) => paletteKeys(e)}
+      >
+        {paletteSwatches}
       </div>
-      <div class={classes.palette} role="listbox" aria-label="Weights">
+      <div
+        class={classes.palette}
+        role="radiogroup"
+        aria-label="Weights"
+        onKeyDown={(e: KeyboardEvent) => weightKeys(e)}
+      >
         {weightSwatches}
       </div>
       <div class={classes.custom}>
@@ -296,16 +333,13 @@ export function ColorPicker(props: ColorPickerProps) {
           placeholder="r, g, b · #hex · rgb() · name"
           data-tip="r, g, b; hex, rgb(), hsl() or a name"
           spellcheck={false}
-          onInput={(e) => {
-            const c = parseColor((e.currentTarget as HTMLInputElement).value);
-            if (c !== undefined) props.onChange(c);
+          onInput={() => {
+            edited = true;
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).value = colorToRgb(value.value);
+            if (e.key === 'Enter' && !e.isComposing) commit(e.currentTarget as HTMLInputElement);
           }}
-          onBlur={(e) => {
-            (e.currentTarget as HTMLInputElement).value = colorToRgb(value.value);
-          }}
+          onBlur={(e) => commit(e.currentTarget as HTMLInputElement)}
         />
       </div>
     </div>
@@ -317,10 +351,6 @@ export function ColorPicker(props: ColorPickerProps) {
  * light or a dark surface: it gets a faint edge; every other color shows without one.
  */
 function toneOf(c: number): 'edge' | undefined {
-  const lin = (v: number) => {
-    const s = v / 255;
-    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  };
-  const l = 0.2126 * lin((c >> 16) & 255) + 0.7152 * lin((c >> 8) & 255) + 0.0722 * lin(c & 255);
+  const l = Color.luminance(Color(c));
   return l > 0.85 || l < 0.02 ? 'edge' : undefined;
 }

@@ -75,6 +75,105 @@ const SvgTags = new Set([
   'view',
 ]); // prettier-ignore
 
+/**
+ * Tags that are both HTML and SVG (dom §4): SVG when made under an SVG parent (`svgContext`), when they hold SVG
+ * content, or when placed as a static child of an SVG element (made again there).
+ */
+const SharedTags = new Set(['a', 'title', 'style', 'script']);
+
+/**
+ * Whether what renders now goes under an SVG parent (dom §4): set while a region, a `For` entry or `render` renders
+ * into an element of the SVG namespace (not a `foreignObject`), kept while it renders into a fragment (its first
+ * render, before its place is in the document).
+ */
+let svgContext = false;
+
+/** Whether `host`'s children are SVG: an SVG element other than a `foreignObject`. */
+function svgHost(host: Element): boolean {
+  return host.namespaceURI === SVG_NS && host.localName !== 'foreignObject';
+}
+
+/**
+ * Runs `fn` in `scope` with the namespace of `host`, where it renders (dom §4): an element sets it, anything else (a
+ * fragment, nothing) keeps the current one.
+ */
+export function renderIn<T>(scope: ViewScope | undefined, host: Node | null | undefined, fn: () => T): T {
+  const previous = svgContext;
+  if (host instanceof Element) svgContext = svgHost(host);
+  try {
+    return runInScope(scope, fn);
+  } finally {
+    svgContext = previous;
+  }
+}
+
+/** Whether a child holds an SVG element other than an `<svg>` root (an `<a>` around a `<text>` is SVG's own). */
+function holdsSvg(child: unknown): boolean {
+  if (child instanceof Element) return child.namespaceURI === SVG_NS && child.localName !== 'svg';
+  if (child instanceof DocumentFragment) {
+    for (let c = child.firstElementChild; c; c = c.nextElementSibling) if (holdsSvg(c)) return true;
+    return false;
+  }
+  if (Array.isArray(child)) {
+    for (const c of child) if (holdsSvg(c)) return true;
+  }
+  return false;
+}
+
+/** Set on a shared-tag HTML element whose props follow it (bindings, listeners, `ref`): made again, they would not. */
+const Followed = Symbol('followed');
+/** A shared-tag HTML element's static children (its `props.children`): made again with it, if it is. */
+const StaticChildren = Symbol('staticChildren');
+
+/**
+ * A static child of an SVG element (its `props.children`: an element, or arrays of them) that is a shared-tag HTML
+ * element, made again in the SVG namespace (dom §4): its attributes, delegated handlers and children moved, its own
+ * static shared-tag children too. JSX makes children before their parent, so they could not know it. Only static
+ * children: what a component or a control flow returns (a fragment) is referenced by it, and stays.
+ */
+function adoptStatic(child: unknown): unknown {
+  if (Array.isArray(child)) {
+    for (let i = 0; i < child.length; i++) child[i] = adoptStatic(child[i]);
+    return child;
+  }
+  if (!(child instanceof Element) || child.namespaceURI === SVG_NS || !SharedTags.has(child.localName)) return child;
+  const svg = document.createElementNS(SVG_NS, child.localName);
+  for (const a of Array.from(child.attributes)) svg.setAttributeNS(a.namespaceURI, a.name, a.value);
+  if ((child as any)[Handlers]) (svg as any)[Handlers] = (child as any)[Handlers];
+  while (child.firstChild) svg.appendChild(child.firstChild);
+  const kids = (child as any)[StaticChildren];
+  if (kids !== undefined) adoptStaticIn(svg, kids);
+  if ((child as any)[Followed]) {
+    console.warn(
+      `<${child.localName}> was made outside an SVG parent and is made again in one: its bound props, listeners and ref stay with the first element. Make it in a function child of the SVG element ({() => ...}), or bind on a child.`,
+    );
+  }
+  return svg;
+}
+
+/** `adoptStatic` for the static children already in `parent` (an adopted element's). */
+function adoptStaticIn(parent: Element, child: unknown): void {
+  if (Array.isArray(child)) {
+    for (const c of child) adoptStaticIn(parent, c);
+    return;
+  }
+  const svg = adoptStatic(child);
+  if (svg !== child && (child as Node).parentNode === parent) parent.replaceChild(svg as Node, child as Node);
+}
+
+/** Whether props hold something that follows the element made: a stream, an `on:` listener, a `ref`. */
+function followsElement(props: Record<string, any>): boolean {
+  for (const key in props) {
+    if (key === 'children') continue;
+    const value = props[key];
+    if (key === 'ref' || key.startsWith('on:')) return true;
+    // A delegated handler moves with the element; any other object (a stream, a style or classList record) binds.
+    if (typeof value === 'function' && key.startsWith('on')) continue;
+    if (!isStatic(value)) return true;
+  }
+  return false;
+}
+
 /** Properties that are read-only (or misbehave) on elements: always set as attributes. */
 const AttributeOnly = new Set(['list', 'form', 'download', 'role', 'width', 'height']);
 
@@ -91,13 +190,20 @@ export function createElement(type: string | Component<any>, props: Record<strin
     if (result && typeof result === 'object' && Passthrough in result) return result as unknown as Node;
     return toNode(result);
   }
-  const isSvg = SvgTags.has(type);
+  const isSvg =
+    SvgTags.has(type) || (SharedTags.has(type) && (svgContext || (props !== null && holdsSvg(props.children))));
   const el = isSvg ? document.createElementNS(SVG_NS, type) : document.createElement(type);
   if (props) {
+    if (!isSvg && SharedTags.has(type)) {
+      if (followsElement(props)) (el as any)[Followed] = true;
+      if (props.children !== null && typeof props.children === 'object') (el as any)[StaticChildren] = props.children;
+    }
     // A select's value only sticks once its options exist: apply it after the children.
     const deferred = type === 'select' && 'value' in props;
     applyProps(el, props, isSvg, type.includes('-'), deferred);
-    const children = props.children;
+    let children = props.children;
+    // Shared tags made before this parent (JSX makes children first) are made again in its namespace.
+    if (isSvg && children !== null && typeof children === 'object' && svgHost(el)) children = adoptStatic(children);
     // Text alone: the element's text, without a node of our own to insert.
     if (typeof children === 'string' || typeof children === 'number') el.textContent = String(children);
     else if (children !== undefined) insert(el, children, null);
@@ -130,7 +236,16 @@ export function insert(parent: Node, child: Child, before: Node | null): void {
   } else if (Array.isArray(child)) {
     for (const c of child) insert(parent, c, before);
   } else if (typeof child === 'function') {
-    insert(parent, (child as () => Child)(), before);
+    // Called in the parent's namespace (dom §4): a function child of an SVG element makes SVG.
+    if (parent instanceof Element) {
+      const previous = svgContext;
+      svgContext = svgHost(parent);
+      try {
+        insert(parent, (child as () => Child)(), before);
+      } finally {
+        svgContext = previous;
+      }
+    } else insert(parent, (child as () => Child)(), before);
   } else if (typeof child === 'object') {
     const stream = toStream(child as Observable<Child>);
     if (stream) insertRegion(parent, stream, before);
@@ -200,7 +315,8 @@ export function regionWriter(parent: Node, before: Node | null, memo = false): (
     const next = owner.child();
     scope = next;
     const fragment = document.createDocumentFragment();
-    runInScope(next, () => insert(fragment, value, null));
+    // In the namespace of the region's place (dom §4): content under an SVG element is SVG.
+    renderIn(next, end!.parentNode, () => insert(fragment, value, null));
     end!.parentNode!.insertBefore(fragment, end!);
   };
 
@@ -487,7 +603,7 @@ export function render(fn: () => Child, container: Node, parent?: ViewScope): ()
   const end = document.createComment('');
   const fragment = document.createDocumentFragment();
   fragment.append(start);
-  runInScope(scope, () => insert(fragment, fn(), null));
+  renderIn(scope, container, () => insert(fragment, fn(), null));
   fragment.append(end);
   container.appendChild(fragment);
   return () => {

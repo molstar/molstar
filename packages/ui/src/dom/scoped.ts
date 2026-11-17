@@ -47,10 +47,12 @@ export function on<E extends Event = Event>(
  * ends; undefined where there is none (jsdom).
  */
 export function observeResize(el: Element | undefined, fn: ResizeObserverCallback): ResizeObserver | undefined {
+  // The scope first: outside one, it throws before anything is made (dom §6).
+  const scope = requireScope('observeResize');
   if (typeof ResizeObserver === 'undefined') return undefined;
   const observer = new ResizeObserver(fn);
   if (el) observer.observe(el);
-  requireScope('observeResize').onCleanup(() => observer.disconnect());
+  scope.onCleanup(() => observer.disconnect());
   return observer;
 }
 
@@ -60,10 +62,11 @@ export function observeIntersection(
   fn: IntersectionObserverCallback,
   options?: IntersectionObserverInit,
 ): IntersectionObserver | undefined {
+  const scope = requireScope('observeIntersection');
   if (typeof IntersectionObserver === 'undefined') return undefined;
   const observer = new IntersectionObserver(fn, options);
   observer.observe(el);
-  requireScope('observeIntersection').onCleanup(() => observer.disconnect());
+  scope.onCleanup(() => observer.disconnect());
   return observer;
 }
 
@@ -107,9 +110,10 @@ export function frame(fn: (time: number) => void): () => void {
 
 /** Runs `fn` after `ms`, unless the current scope ends first. Returns its cancel. */
 export function timeout(fn: () => void, ms: number): () => void {
+  const scope = requireScope('timeout');
   const id = DomHost.setTimeout(fn, ms);
   const cancel = () => DomHost.clearTimeout(id);
-  requireScope('timeout').onCleanup(cancel);
+  scope.onCleanup(cancel);
   return cancel;
 }
 
@@ -130,6 +134,8 @@ export function restartable(fn: () => void): Restartable {
   let id: unknown;
   let ms = 0;
   let waiting = false;
+  // Its scope ended (a disposed scope still reads as active): `start` does nothing (dom §6).
+  let gone = false;
   const arm = () => {
     DomHost.clearTimeout(id);
     id = DomHost.setTimeout(() => {
@@ -151,9 +157,13 @@ export function restartable(fn: () => void): Restartable {
       id = undefined;
     }
   });
-  scope.onCleanup(cancel);
+  scope.onCleanup(() => {
+    gone = true;
+    cancel();
+  });
   return {
     start(wait) {
+      if (gone) return;
       ms = wait;
       waiting = true;
       if (scope.active) arm();
@@ -167,8 +177,8 @@ export function restartable(fn: () => void): Restartable {
  * nothing; what waited runs on resume), dropped when it ends.
  */
 export function workQueue(options?: { lane?: WorkLane; budgetMs?: number }): WorkQueue {
-  const q = createWorkQueue(options);
   const scope = requireScope('workQueue');
+  const q = createWorkQueue(options);
   scope.onActive((a) => q.setActive(a));
   scope.onCleanup(() => q.dispose());
   return q;
@@ -176,8 +186,9 @@ export function workQueue(options?: { lane?: WorkLane; budgetMs?: number }): Wor
 
 /** The latest call only (work.ts, `Latest`), its call in flight aborted when the current scope ends. */
 export function latest<A extends unknown[], R>(fn: (signal: AbortSignal, ...args: A) => R | Promise<R>): Latest<A, R> {
+  const scope = requireScope('latest');
   const l = createLatest(fn);
-  requireScope('latest').onCleanup(() => l.abort());
+  scope.onCleanup(() => l.abort());
   return l;
 }
 

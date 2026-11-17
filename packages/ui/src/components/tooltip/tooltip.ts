@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { observeResize, on } from '../../dom/index.js';
+import { observeResize, on, restartable } from '../../dom/index.js';
 import { classes } from './_generated/tooltip.module.css.js';
 
 /** Shown after the pointer rests this long; moving to a neighbour while one is shown switches at once. */
@@ -31,7 +31,14 @@ export function installTooltips(root: HTMLElement): () => void {
   let target: HTMLElement | undefined;
   // Whether the pointer (not the keyboard focus) brought the tip: it then ends when the pointer is not over the anchor.
   let byPointer = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  // The anchor waiting for the show delay. Its timer is the scope's (dom §6): held while the scope is paused (hidden UI
+  // shows no tip), dropped with it.
+  let pending: HTMLElement | undefined;
+  const timer = restartable(() => {
+    const el = pending;
+    pending = undefined;
+    if (el) showNow(el);
+  });
   // While one is shown: the anchor's size. A view closing or hiding takes its anchor out without a pointerout, and the
   // tip would stay; an anchor that is gone or has no size ends it (no listener per event, one observer on one element).
   const watch = observeResize(undefined, () => !usable(target) && hide());
@@ -88,15 +95,25 @@ export function installTooltips(root: HTMLElement): () => void {
   };
 
   const hide = () => {
-    if (timer !== undefined) clearTimeout(timer);
-    timer = undefined;
+    timer.cancel();
+    pending = undefined;
     watch?.disconnect();
     target = undefined;
     tip.hidden = true;
   };
 
+  const showNow = (el: HTMLElement) => {
+    // The anchor may have gone while the pointer rested (a panel closed): no tip for what is not there.
+    if (target !== el || !usable(el)) return hide();
+    place(el);
+    if (tip.hidden) return;
+    watch?.disconnect();
+    watch?.observe(el);
+  };
+
   const show = (el: HTMLElement, immediate: boolean, pointer: boolean) => {
-    if (timer !== undefined) clearTimeout(timer);
+    timer.cancel();
+    pending = undefined;
     byPointer = pointer;
     // Its own text, only when cut off (by more than rounding: scrollWidth rounds a fractional width up, clientWidth
     // down, so text that fits can read 1 px over).
@@ -106,16 +123,9 @@ export function installTooltips(root: HTMLElement): () => void {
       return;
     }
     target = el;
-    const showNow = () => {
-      // The anchor may have gone while the pointer rested (a panel closed): no tip for what is not there.
-      if (target !== el || !usable(el)) return hide();
-      place(el);
-      if (tip.hidden) return;
-      watch?.disconnect();
-      watch?.observe(el);
-    };
-    if (immediate) showNow();
-    else timer = setTimeout(showNow, ShowDelayMs);
+    if (immediate) return showNow(el);
+    pending = el;
+    timer.start(ShowDelayMs);
   };
 
   const tipOf = (e: Event) => {

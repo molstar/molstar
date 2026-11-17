@@ -6,11 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { derive, KeyedSelector, type ReadonlyState, type State } from '@molstar/core/reactive';
+import { derive, isState, KeyedSelector, type ReadonlyState, type State } from '@molstar/core/reactive';
 import {
   activeElement,
   type Child,
-  eventTarget,
   frame,
   isInside,
   type MaybeReactive,
@@ -18,10 +17,12 @@ import {
   on,
   Show,
   setAttr,
+  toStream,
   watch,
 } from '../../dom/index.js';
 import { held, state } from '../../state.js';
 import { Icon } from '../icon/icon.js';
+import { dismissable, refocusFrom } from '../popover/dismiss.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/select.module.css.js';
 
@@ -54,9 +55,23 @@ export interface SelectProps {
 export function Select(props: SelectProps) {
   const open = state(false);
   const over = props.over ?? true;
-  const value = held<string | undefined>(props.value, undefined);
+  // Uncontrolled (a plain value, or none): its own state, written by a pick; a state or a stream is the caller's.
+  const local =
+    isState(props.value) || toStream(props.value as MaybeReactive<string>)
+      ? undefined
+      : state<string | undefined>(props.value as string | undefined);
+  const value = local ?? held<string | undefined>(props.value, undefined);
   const label = derive(value, (v) => props.options.find((o) => o[0] === v)?.[1] ?? '');
   let anchor!: HTMLElement;
+  const button = (
+    <SelectButton
+      label={label}
+      open={open}
+      size={props.size}
+      title={props.title}
+      aria-label={props['aria-label'] ?? props.title}
+    />
+  ) as HTMLElement;
   return (
     <span
       class={props.class ? `${classes.select} ${props.class}` : classes.select}
@@ -64,13 +79,7 @@ export function Select(props: SelectProps) {
         anchor = el;
       }}
     >
-      <SelectButton
-        label={label}
-        open={open}
-        size={props.size}
-        title={props.title}
-        aria-label={props['aria-label'] ?? props.title}
-      />
+      {button}
       <Show when={open}>
         {() => {
           const list = (
@@ -79,9 +88,11 @@ export function Select(props: SelectProps) {
               value={value}
               onPick={(v) => {
                 open.set(false);
+                local?.set(v);
                 props.onChange?.(v);
               }}
               onClose={() => open.set(false)}
+              anchor={button}
               floating={over}
               aria-label={props['aria-label'] ?? props.title}
             />
@@ -129,8 +140,9 @@ export function SelectButton(props: {
 }
 
 /**
- * The options, inline: the current one marked; focused on open (the current option), arrows move, Enter or a click
- * picks, Esc closes, and so does a press elsewhere. Options with a group are listed under it: each group a fold, the
+ * The options, inline: the current one marked; focused on open (the current option), arrows move (its rows are no Tab
+ * stops), Enter or a click picks, Esc or Tab closes, and so does a press elsewhere (dismiss.ts); closed from the list
+ * (a pick, a key), the focus goes back to its button. Options with a group are listed under it: each group a fold, the
  * current option's open, the others closed; options without one come first.
  */
 export function OptionList(props: {
@@ -142,6 +154,11 @@ export function OptionList(props: {
   floating?: boolean;
   /** The list's accessible name (a listbox has one): what the choice is, as its button's. */
   'aria-label'?: string;
+  /**
+   * Its button: a press on it is the button's (it toggles), the focus goes back to it on closing. Default: the anchor
+   * of the `Floating` it is in.
+   */
+  anchor?: HTMLElement;
 }) {
   // The current value when opened: its group starts open, its option takes the focus.
   const current = props.value.value;
@@ -149,6 +166,13 @@ export function OptionList(props: {
   const selected = new KeyedSelector(props.value);
   // Each option's button by its value (the render order is the loose options, then each group's).
   const buttons = new Map<string, HTMLButtonElement>();
+  const anchor = () => props.anchor ?? floatingAnchor(list);
+  // A pick from the list (the focus there): the focus goes back to the button, not to the page.
+  const pick = (value: string) => {
+    const at = anchor();
+    props.onPick(value);
+    refocusFrom(list, at);
+  };
   // What the arrows move over: the options and the group heads that show (not inside a closed group).
   const navigable = () =>
     [...list.querySelectorAll<HTMLElement>('[role="option"], [data-group-head]')].filter((b) => !b.closest('[hidden]'));
@@ -158,7 +182,7 @@ export function OptionList(props: {
   };
   const option = ([value, label]: SelectOption) => {
     const button = (
-      <button type="button" role="option" class={classes.option} onClick={() => props.onPick(value)}>
+      <button type="button" role="option" tabIndex={-1} class={classes.option} onClick={() => pick(value)}>
         <span class={classes.optionLabel}>{label}</span>
         <Icon name="check" class={classes.check} />
       </button>
@@ -178,7 +202,13 @@ export function OptionList(props: {
   const group = (name: string, options: readonly SelectOption[]) => {
     const open = state(options.some((o) => o[0] === current));
     const head = (
-      <button type="button" class={classes.groupHead} data-group-head="" onClick={() => open.set(!open.value)}>
+      <button
+        type="button"
+        tabIndex={-1}
+        class={classes.groupHead}
+        data-group-head=""
+        onClick={() => open.set(!open.value)}
+      >
         <span>{name}</span>
         <Icon name="chevron-down" class={classes.groupChevron} />
       </button>
@@ -209,7 +239,6 @@ export function OptionList(props: {
         else if (e.key === 'ArrowUp') focus(i - 1);
         else if (e.key === 'Home') focus(0);
         else if (e.key === 'End') focus(all.length - 1);
-        else if (e.key === 'Escape') props.onClose();
         else return;
         e.preventDefault();
         e.stopPropagation();
@@ -220,24 +249,26 @@ export function OptionList(props: {
     </ScrollArea>
   ) as HTMLElement;
   // Focus the current option once placed (else the first that shows); close on a press outside the list (its scrollbar
-  // too) and its button.
+  // too) and its button, on Escape and Tab.
   queueMicrotask(() => {
     const at = current === undefined ? undefined : buttons.get(current);
     if (at && !at.closest('[hidden]')) at.focus();
     else focus(0);
   });
-  const onDown = (e: PointerEvent) => {
-    const target = eventTarget(e) as Element;
-    if (isInside(e, list) || target.closest?.('[aria-haspopup="listbox"][aria-expanded="true"]')) return;
-    props.onClose();
-  };
-  on(document, 'pointerdown', onDown, { capture: true });
+  dismissable({
+    layer: () => list,
+    anchor: () => anchor(),
+    tab: true,
+    close: () => props.onClose(),
+    refocus: () => anchor(),
+  });
   return list;
 }
 
 /**
- * A menu in a popover from its button (a row's ⋯): raised, as a select's floating options; Escape (the focus back on
- * the button) or a press outside it and its button closes it; the focus goes to its first enabled entry once it shows.
+ * A menu in a popover from its button (a row's ⋯): raised, as a select's floating options; Escape or Tab in it (the
+ * focus back on the button) or a press outside it and its button closes it; the focus goes to its first enabled entry
+ * once it shows.
  */
 export function MenuPopover(props: {
   anchor: HTMLElement;
@@ -246,18 +277,13 @@ export function MenuPopover(props: {
   'aria-label'?: string;
 }) {
   let menu: HTMLElement | undefined;
-  // Escape closes the menu first, before the panel it is in (the document's handlers run in capture order).
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented) return;
-    e.preventDefault();
-    props.onClose(true);
-  };
-  const onDown = (e: PointerEvent) => {
-    if (isInside(e, menu) || isInside(e, props.anchor)) return;
-    props.onClose();
-  };
-  on(document, 'keydown', onKey, { capture: true });
-  on(document, 'pointerdown', onDown, { capture: true });
+  // Its Escape (in it, on its button, the focus lost), not any on the page; Tab leaves it closed (dismiss.ts).
+  dismissable({
+    layer: () => menu,
+    anchor: props.anchor,
+    tab: true,
+    close: (reason) => (reason === 'outside' ? props.onClose() : props.onClose(true)),
+  });
   return (
     <Floating anchor={props.anchor} align="end">
       <div
@@ -321,6 +347,7 @@ export function Floating(props: {
       {props.children}
     </div>
   ) as HTMLElement;
+  anchors.set(el, props.anchor);
   // At least as wide as the anchor, as wide as its options need: written only when the anchor's width changes, so a
   // scroll or resize reads the layout once and then writes (no layout forced after a write).
   let minWidth = -1;
@@ -384,11 +411,23 @@ export function Floating(props: {
   });
   on(window, 'scroll', onScroll, { capture: true });
   on(window, 'resize', place);
-  // Its content grew or shrank (a menu's entry opened its sub-entries): placed again, after that layout.
-  observeResize(el, () => {
+  // Its content grew or shrank (a menu's entry opened its sub-entries), or its anchor or column did (a panel resized: it
+  // is never wider than its column): placed again, after that layout.
+  const resized = observeResize(el, () => {
     if (el.isConnected) place();
   });
+  resized?.observe(props.anchor);
+  if (props.column) resized?.observe(props.column);
   return el;
+}
+
+/** Each floating layer's anchor. */
+const anchors = new WeakMap<Element, HTMLElement>();
+
+/** The anchor of the `Floating` that `el` is in, if any. */
+export function floatingAnchor(el: Element): HTMLElement | undefined {
+  const layer = el.closest('[popover]');
+  return layer ? anchors.get(layer) : undefined;
 }
 
 /**

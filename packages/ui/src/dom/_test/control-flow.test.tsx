@@ -235,3 +235,29 @@ describe('activity', () => {
     expect(host.querySelector('section')).toBe(section);
   });
 });
+
+describe('review regressions', () => {
+  it('a closing where only some elements play: the content goes now and the started animations stop', () => {
+    const cancel = vi.fn();
+    Motion.close = vi.fn((el: Element) =>
+      el.localName === 'i' ? ({ finished: new Promise(() => {}), cancel } as unknown as Animation) : undefined,
+    );
+    const when = new State(false);
+    const { host, dispose } = mount(() => (
+      <Show when={when} reveal>
+        {() => (
+          <>
+            <i>a</i>
+            <b>b</b>
+          </>
+        )}
+      </Show>
+    ));
+    when.set(true);
+    when.set(false);
+    expect(Motion.close).toHaveBeenCalledTimes(2);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(host.textContent).toBe('');
+    dispose();
+  });
+});

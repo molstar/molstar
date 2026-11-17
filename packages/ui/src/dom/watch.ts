@@ -35,7 +35,8 @@ import { deferTaskWork, hasWork, runWork, TaskLane } from './work.js';
 // Updates (dom §2): a `watch` and a binding are sinks of the state graph (reactive §4.1). A sink is a dependent of each
 // state it follows (a slot in the state's array, no object of its own) and is run in the state flush, after the change
 // has spread; only a source outside the graph (a subject, a foreign stream) costs a subscriber. A marked watch goes into
-// this file's dirty array and renders in a microtask (or in the frame); a binding writes at once.
+// this file's dirty array and renders in a microtask (or in the frame); a binding writes in the same state flush, parents
+// first (`queueBinding`).
 
 // --- The flush -----------------------------------------------------------------------------------
 
@@ -55,15 +56,20 @@ let flushing = false;
 /** Flushes in a row before a watch that keeps marking itself (a render that sets what it watches) is dropped. */
 const MaxPasses = 100;
 
-/** A counting sort's buffers (reused, grown as needed): the counts by depth, the sorted watches. */
+/** What is ordered by its scope's depth: a watch, a binding. */
+interface Deep {
+  readonly depth: number;
+}
+
+/** A counting sort's buffers (reused, grown as needed): the counts by depth, the sorted watches or bindings. */
 let depthCounts = new Int32Array(64);
-const sortedScratch: (Watch | undefined)[] = [];
+const sortedScratch: (Deep | undefined)[] = [];
 
 /**
- * Puts `n` marked watches in depth order, parents first, siblings in the order marked: nothing when they are already
- * (the common case), else a stable counting sort by depth, O(n + depths).
+ * Puts `n` marked watches (or queued bindings) in depth order, parents first, siblings in the order marked: nothing when
+ * they are already (the common case), else a stable counting sort by depth, O(n + depths).
  */
-function sortByDepth(list: (Watch | undefined)[], n: number): void {
+function sortByDepth<T extends Deep>(list: (T | undefined)[], n: number): void {
   let sorted = true;
   let max = 0;
   for (let i = 0; i < n; i++) {
@@ -77,7 +83,7 @@ function sortByDepth(list: (Watch | undefined)[], n: number): void {
   counts.fill(0, 0, max + 2);
   for (let i = 0; i < n; i++) counts[list[i]!.depth + 1]++;
   for (let d = 1; d <= max + 1; d++) counts[d] += counts[d - 1];
-  const out = sortedScratch;
+  const out = sortedScratch as (T | undefined)[];
   for (let i = 0; i < n; i++) {
     const w = list[i]!;
     out[counts[w.depth]++] = w;
@@ -406,6 +412,55 @@ export function watch(sources: readonly WatchSource[], render: () => void): Watc
 
 // --- Bindings ------------------------------------------------------------------------------------
 
+// The bindings' order (dom §2.1): core runs the sinks in the order they were marked, which is their sources' dependents
+// order, and a removal there swaps (reorders) it, so a binding under a `Show` could write before the `Show`'s own
+// binding removes it (and read a value its content no longer has: `derive(sel, s => s!.label)` with `sel` gone). A
+// binding's `_flush` only queues it; the first one queued in a flush marks `drain`, a sink of its own, which the flush
+// runs after the sinks marked so far, and which writes the queued bindings parents first (by depth), skipping those
+// stopped meanwhile. Two arrays swapped a drain, emptied by count: nothing allocated.
+let bindingQueue: (Binding<any> | undefined)[] = [];
+let bindingCount = 0;
+let bindingRunning: (Binding<any> | undefined)[] = [];
+let draining = false;
+
+class BindingDrain extends Sink {
+  _flush(): void {
+    drainBindings();
+  }
+}
+const drain = new BindingDrain();
+
+function queueBinding(b: Binding<any>): void {
+  bindingQueue[bindingCount++] = b;
+  if (draining || drain._pending) return;
+  drain._mark();
+  // Not queued (outside a flush, or marked at this version already): written now, as a sink would be.
+  if (!drain._pending) drainBindings();
+}
+
+function drainBindings(): void {
+  if (draining) return;
+  draining = true;
+  try {
+    // What the writes queue (a binding run by a nested flush) is drained in the same call.
+    while (bindingCount > 0) {
+      const list = bindingQueue;
+      const n = bindingCount;
+      bindingQueue = bindingRunning;
+      bindingCount = 0;
+      bindingRunning = list;
+      sortByDepth(list, n);
+      for (let i = 0; i < n; i++) {
+        const b = list[i]!;
+        list[i] = undefined;
+        b._drain();
+      }
+    }
+  } finally {
+    draining = false;
+  }
+}
+
 /** A foreign source's values, written by a binding. */
 class WriteSubscriber<T> extends Subscriber<T> {
   constructor(private readonly binding: Binding<T>) {
@@ -437,6 +492,8 @@ class Binding<T> extends Sink implements Live, Unsubscribable {
   private readonly _node: StateNode<T> | undefined;
 
   constructor(
+    /** Its scope's depth: queued bindings write parents first. */
+    readonly depth: number,
     private readonly _source: Observable<T>,
     private readonly _fn: (value: T) => void,
     /** Told when it stops after it ran (its scope paused or gone). */
@@ -456,8 +513,13 @@ class Binding<T> extends Sink implements Live, Unsubscribable {
     }
   }
 
-  /** @internal Run in the state flush: the node changed. */
+  /** @internal Run in the state flush: the node changed; written by the drain, parents first. */
   _flush(): void {
+    if (this._live && this._node !== undefined) queueBinding(this);
+  }
+
+  /** @internal The drain's write: skipped when stopped since, or when the version did not move. */
+  _drain(): void {
     const node = this._node;
     if (!this._live || node === undefined) return;
     // The version first (it brings the node up to date), then its cached value: one pull.
@@ -527,13 +589,19 @@ function makeBinding<T>(
   const probe = DomProbe.on;
   const run = sideEffect ? undefined : DomProbe.run;
   let write = fn;
+  let onStop = stopped;
   if (run) {
     const site = new Error().stack ?? '';
+    // A first write since the binding started: made, or resumed (dom §9).
     let first = true;
     write = (v: T) => {
       const was = first;
       first = false;
       run('write', site, was, () => fn(v));
+    };
+    onStop = () => {
+      first = true;
+      stopped?.();
     };
   }
   if (probe) {
@@ -543,7 +611,7 @@ function makeBinding<T>(
       inner(v);
     };
   }
-  scope._addLive(new Binding(stream, write, stopped));
+  scope._addLive(new Binding(scope.depth, stream, write, onStop));
 }
 
 /**

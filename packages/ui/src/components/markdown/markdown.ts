@@ -22,7 +22,8 @@ export interface MarkdownHost {
   link?(href: string): ((event: MarkdownLinkEvent) => void) | undefined;
   /**
    * An image: its URL (or a promise of one, for a file read from an archive), an element to show in its place (an
-   * inline command), or undefined to load `src` as it is.
+   * inline command), or undefined for the renderer's own handling of `src` (`MarkdownProps.remoteImages`). A URL the
+   * host gives is loaded as it is.
    */
   image?(src: string, alt: string): string | Promise<string | undefined> | Node | undefined;
   /** Shown above the text while set (one node, moved here from the last description that showed it). */
@@ -38,19 +39,26 @@ export interface MarkdownProps {
    * 14/20 (a help page, a long description).
    */
   size?: 'sm' | 'md';
+  /**
+   * Load images from any origin. Off by default: the text may come from anyone (a session, a file), and an image is a
+   * request the reader did not choose (a tracker, an address leaked), so only `data:` images and the page's own origin
+   * (relative URLs) load; another's is shown as a link to it, under its alt text.
+   */
+  remoteImages?: boolean;
 }
 
 /**
  * A small, safe markdown renderer for descriptions (no HTML is parsed; everything becomes DOM nodes): headings,
  * paragraphs, lists, tables, fenced code, rules, **bold**, *italic*, `code`, images and [links](href). Character
  * references (`&nbsp;`, `&#x2B05;`, `&amp;`) are the characters they name, as in CommonMark, except in code. A link the
- * host claims goes to it; `#key` and other non-web links go to `onLink`; web links open in a new tab.
+ * host claims goes to it; `#key` and other non-web links go to `onLink`; web links open in a new tab. Images load from
+ * `data:` and the page's origin only, unless the host resolves them or opts in (`remoteImages`).
  */
 export function Markdown(props: MarkdownProps): HTMLElement {
   const root = document.createElement('div');
   root.className = classes.markdown;
   root.dataset.size = props.size ?? 'sm';
-  const ctx: InlineContext = { onLink: props.onLink, host: props.host };
+  const ctx: InlineContext = { onLink: props.onLink, host: props.host, remoteImages: !!props.remoteImages };
   const media = props.host?.media;
   if (media) {
     const slot = document.createElement('div');
@@ -119,14 +127,23 @@ export function Markdown(props: MarkdownProps): HTMLElement {
 interface InlineContext {
   onLink?: (href: string) => void;
   host?: MarkdownHost;
+  remoteImages: boolean;
 }
 
-// GFM tables: a header row, a separator row (`|---|:-:|`), then rows until a line without a pipe.
+// GFM tables: a header row, a delimiter row (`|---|:-:|`: dashes per cell, at least one pipe, as many cells as the
+// header), then rows until a line without a pipe. Without a pipe a line of dashes is a rule under a paragraph.
 const TableSeparator = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+const Pipe = /(?<!\\)\|/;
 
 function isTableStart(lines: readonly string[], i: number): boolean {
+  if (i + 1 >= lines.length) return false;
+  const head = lines[i];
+  const delimiter = lines[i + 1];
   return (
-    lines[i].includes('|') && i + 1 < lines.length && TableSeparator.test(lines[i + 1]) && lines[i + 1].includes('-')
+    Pipe.test(head) &&
+    Pipe.test(delimiter) &&
+    TableSeparator.test(delimiter) &&
+    cells(head).length === cells(delimiter).length
   );
 }
 
@@ -229,6 +246,7 @@ function link(href: string, text: string, ctx: InlineContext): HTMLAnchorElement
 function image(src: string, alt: string, ctx: InlineContext): Node {
   const resolved = ctx.host?.image?.(src, alt);
   if (resolved instanceof Node) return resolved;
+  if (resolved === undefined && !ctx.remoteImages && !isLocalImage(src)) return imageLink(src, alt);
   const img = document.createElement('img');
   img.alt = alt;
   if (typeof resolved === 'string') img.src = resolved;
@@ -245,6 +263,29 @@ function image(src: string, alt: string, ctx: InlineContext): Node {
     );
   } else img.src = src;
   return img;
+}
+
+/** A `data:` image, or one from the page's own origin (a relative URL): loaded without the host's opt-in. */
+function isLocalImage(src: string): boolean {
+  if (/^data:image\//i.test(src)) return true;
+  try {
+    const url = new URL(src, document.baseURI);
+    return /^(https?|blob):$/.test(url.protocol) && url.origin === new URL(document.baseURI).origin;
+  } catch {
+    return false;
+  }
+}
+
+/** An image not loaded: its alt text (or its address), a link to it when it is on the web. */
+function imageLink(src: string, alt: string): Node {
+  const text = alt || src;
+  if (!/^https?:/i.test(src)) return document.createTextNode(text);
+  const a = document.createElement('a');
+  a.href = src;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.textContent = text;
+  return a;
 }
 
 function nested(tag: 'strong' | 'em', text: string, ctx: InlineContext) {
