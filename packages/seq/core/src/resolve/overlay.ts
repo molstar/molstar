@@ -16,7 +16,7 @@ import {
   type Value,
 } from '@molstar/core/repr/tree';
 import type { FormatRuntime, NodeEntry } from '@molstar/seqx-core/data';
-import { SeqLanguage, SeqLanguageVersion } from '@molstar/seqx-core/lang';
+import { checkDataNode, LangIssues, SeqLanguage, SeqLanguageVersion } from '@molstar/seqx-core/lang';
 import { ResolveIssues } from './issues.js';
 import {
   type AnnotationEntry,
@@ -229,9 +229,11 @@ class DynamicOverlay implements Overlay {
       this.byAddress.set(address, n);
       if (n.kind === 'ranges' && n.node.params?.map === 'codon') this.coding.set(address, n);
     }
-    // annotations in depth order: a nested node may be on an item of a shallower one
-    for (const n of [...this.byAddress.values()].sort((a, b) => a.depth - b.depth)) {
-      if ((n.kind === 'ranges' || n.kind === 'values') && !this.resolveAnnotation(n)) {
+    // in depth order, coding nodes first: a node may be on an item of a shallower one (or one of its own depth)
+    const order = (n: OverlayNode) => n.depth * 2 + (this.coding.has(n.address) ? 0 : 1);
+    for (const n of [...this.byAddress.values()].sort((a, b) => order(a) - order(b))) {
+      const fails = !this.rules(n) || ((n.kind === 'ranges' || n.kind === 'values') && !this.resolveAnnotation(n));
+      if (fails) {
         this.byAddress.delete(n.address);
         this.coding.delete(n.address);
         continue;
@@ -239,6 +241,39 @@ class DynamicOverlay implements Overlay {
       this.nodes.push(n);
     }
     this.nodes.sort((a, b) => a.depth - b.depth || cmp(a.source, b.source) || cmp(a.key, b.key));
+  }
+
+  /** What a ref of a node names, as the language's checks read it: a system (its alphabet, cyclic flag) or a source. */
+  private targetOf(n: OverlayNode, key: string): { node: Node; length?: number } | undefined {
+    const a = canonical(n.node.params?.[key]);
+    if (a === undefined) return undefined;
+    const sys = this.model.systems.get(a) ?? this.system(a);
+    if (sys)
+      return { node: { kind: 'sequence', params: { alphabet: sys.alphabet, cyclic: sys.cyclic } }, length: sys.length };
+    if (this.model.sources.has(a) || this.byAddress.get(a)?.kind === 'source') return { node: { kind: 'source' } };
+    return undefined;
+  }
+
+  /** The language's own rules of a data node (`checkDataNode`): an error leaves the node out, with its issue. */
+  private rules(n: OverlayNode): boolean {
+    let ok = true;
+    checkDataNode(
+      n.node,
+      { target: (key) => this.targetOf(n, key)?.node, length: (key) => this.targetOf(n, key)?.length },
+      (code, message, ...tail) => {
+        const issue = issueOf(LangIssues, code, message, { address: n.address, path: ['params', ...tail] });
+        if (issue.severity === 'error') ok = false;
+        this.push(issue);
+      },
+    );
+    return ok;
+  }
+
+  private push(issue: Issue): void {
+    const id = `${issue.code}|${issue.address}`;
+    if (this.reported.has(id)) return;
+    this.reported.add(id);
+    this.issues.push(issue);
   }
 
   private report(code: keyof typeof ResolveIssues.codes, message: string, address: string): void {
@@ -306,7 +341,14 @@ class DynamicOverlay implements Overlay {
     for (let i = 0; i < start.length; i++) {
       const key = id?.get(i) ?? i;
       let p = pieces.get(key);
-      if (!p) pieces.set(key, (p = { exons: [], strand: strand?.get(i) === '-' ? '-' : '+' }));
+      const here = strand?.get(i) === '-' ? '-' : '+';
+      if (!p) pieces.set(key, (p = { exons: [], strand: here }));
+      else if (p.strand !== here)
+        this.report(
+          'seq.resolve.item.strand',
+          'An item’s rows are on both strands: the first row’s is taken',
+          n.address,
+        );
       p.exons.push([start[i], end[i]]);
     }
     for (const [key, p] of pieces) {
@@ -322,7 +364,8 @@ class DynamicOverlay implements Overlay {
         cyclic: false,
         name: String(key),
         numberings: ['index', 'ordinal'],
-        access: { kind: 'source', source: '', system: String(key), shape: 'letters' },
+        // its letters would come from the source that brought it, under the item's name
+        access: { kind: 'source', source: n.source, system: String(key), shape: 'letters' },
       };
       const map: Node = {
         kind: 'map',

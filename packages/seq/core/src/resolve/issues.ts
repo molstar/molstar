@@ -72,6 +72,10 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description:
       'A dynamic node names what is neither a spec node nor a held dynamic node of a kind it takes; it is left out',
   },
+  'seq.resolve.item.strand': {
+    severity: 'warning',
+    description: 'The rows of an item with a codon map are on both strands; the first row’s strand is taken',
+  },
   'seq.resolve.node.depth': {
     severity: 'warning',
     description: 'A nested source is deeper than the nesting the configuration allows (EC-179); it is not requested',

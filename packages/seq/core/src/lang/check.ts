@@ -98,13 +98,6 @@ export function checkSeqLang(spec: Node): Issue[] {
     const a = exactAddress(p(n, key));
     return a ? byAddress.get(a) : undefined;
   };
-  /** The inline letters of a sequence a param names, when it has them. */
-  const lettersOf = (n: Node, key: string): string | undefined => {
-    const t = target(n, key);
-    const letters = t?.node.kind === 'sequence' ? p(t.node, 'letters') : undefined;
-    return typeof letters === 'string' ? letters : undefined;
-  };
-  const xor = (a: boolean, b: boolean) => a !== b;
   /** The sequence a param names, with what is known of its extent. */
   const systemOf = (n: Node, key: string) => {
     const t = target(n, key)?.node;
@@ -143,101 +136,14 @@ export function checkSeqLang(spec: Node): Issue[] {
         if (n.id !== n.kind) report('seq.lang.container.id', `The id of ${n.kind} is \`${n.kind}\``, at);
         break;
       case 'source':
-        if (!xor(p(n, 'uri') !== undefined, p(n, 'value') !== undefined))
-          report('seq.lang.source.content', 'A source has one of `uri` and `value`', at);
-        if (p(n, 'value') !== undefined && p(n, 'index') !== undefined)
-          report('seq.lang.source.index', 'An inline value has no index', at, 'index');
+      case 'sequence':
+      case 'ranges':
+      case 'values':
+      case 'map':
+        checkDataNode(n, { target: (key) => target(n, key)?.node }, (code, message, ...tail) =>
+          report(code, message, at, ...tail),
+        );
         break;
-      case 'sequence': {
-        if (!xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
-          report('seq.lang.sequence.content', 'A sequence has one of `letters` and `source`', at);
-        const letters = p(n, 'letters');
-        if (typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
-          report('seq.lang.sequence.letters', 'The letters are not of the alphabet', at, 'letters');
-        break;
-      }
-      case 'ranges': {
-        const rows = p(n, 'rows') as Record<string, Value> | undefined;
-        if (!xor(rows !== undefined, p(n, 'source') !== undefined))
-          report('seq.lang.ranges.content', 'A ranges node has one of `rows` and `source`', at);
-        if (rows) {
-          const { start, end, strand } = rows;
-          if (isColumn(start) && isColumn(end)) {
-            const s = start as ArrayLike<number>;
-            const e = end as ArrayLike<number>;
-            const sys = systemOf(n, 'target');
-            let bad = -1;
-            let past = -1;
-            for (let i = 0; i < Math.min(s.length, e.length); i++) {
-              if (bad < 0 && (s[i] < 0 || (e[i] < s[i] && !sys?.cyclic))) bad = i;
-              if (past < 0 && sys?.length !== undefined && (s[i] > sys.length || e[i] > sys.length)) past = i;
-            }
-            if (bad >= 0) report('seq.lang.ranges.interval', 'A range is not an interval', at, 'rows', 'start', bad);
-            if (past >= 0) report('seq.lang.ranges.bounds', 'A range is past the sequence', at, 'rows', 'end', past);
-          }
-          if (strand instanceof CategoryColumn) {
-            for (let i = 0; i < strand.length; i++) {
-              const v = strand.get(i);
-              if (v !== null && v !== '+' && v !== '-') {
-                report('seq.lang.ranges.strand', 'A strand is + or -', at, 'rows', 'strand', i);
-                break;
-              }
-            }
-          }
-        }
-        break;
-      }
-      case 'values': {
-        const values = p(n, 'values');
-        if (!xor(values !== undefined, p(n, 'source') !== undefined))
-          report('seq.lang.values.content', 'A values node has one of `values` and `source`', at);
-        const length = lettersOf(n, 'target')?.length;
-        if (isColumn(values) && length !== undefined && (values as ArrayLike<number>).length !== length)
-          report('seq.lang.values.length', 'There is not one value per position', at, 'values');
-        break;
-      }
-      case 'map': {
-        const method = p(n, 'method');
-        const has = (k: string) => p(n, k) !== undefined;
-        const fits =
-          method === 'offset'
-            ? has('by') && !has('exons') && !has('strand') && !has('table')
-            : has('exons') && has('strand') && !has('by');
-        if (!fits) report('seq.lang.map.params', 'The params do not fit the method', at);
-        const exons = p(n, 'exons') as Record<string, Value> | undefined;
-        if (exons && isColumn(exons.start) && isColumn(exons.end)) {
-          const s = exons.start as ArrayLike<number>;
-          const e = exons.end as ArrayLike<number>;
-          const count = Math.min(s.length, e.length);
-          const cyclic = systemOf(n, 'to')?.cyclic === true;
-          // on a cyclic gene the last exon may cross the origin, ending at or before the first one starts (EC-11)
-          const wraps = (i: number) => cyclic && i === count - 1 && e[i] <= s[0];
-          for (let i = 0; i < count; i++) {
-            if ((e[i] < s[i] && !wraps(i)) || (i > 0 && s[i] < e[i - 1])) {
-              report(
-                'seq.lang.map.exons',
-                'The exons are not in order, or one ends before it starts',
-                at,
-                'exons',
-                'start',
-                i,
-              );
-              break;
-            }
-          }
-        }
-        if (method === 'codon') {
-          const from = target(n, 'from')?.node;
-          const to = target(n, 'to')?.node;
-          if (from && to) {
-            const f = p(from, 'alphabet');
-            const t = p(to, 'alphabet');
-            if (f !== 'protein' || (t !== 'dna' && t !== 'rna'))
-              report('seq.lang.map.alphabet', 'A codon map goes from protein to dna or rna', at);
-          }
-        }
-        break;
-      }
       case 'layer': {
         const type = p(n, 'type');
         if (p(n, 'data') === undefined) {
@@ -299,4 +205,125 @@ export function checkSeqLang(spec: Node): Issue[] {
     }
   }
   return issues;
+}
+
+/** What a data node's checks read of a node it names: the node itself (a spec node, or what stands for a dynamic one). */
+export interface DataNodeTargets {
+  target(key: string): Node | undefined;
+  /** The length of the sequence a param names when its letters are not inline (a dynamic node's target). */
+  length?(key: string): number | undefined;
+}
+
+/**
+ * The language's own checks of one data node (`source`, `sequence`, `ranges`, `values`, `map`), on a valid,
+ * normalized node: one of two params, intervals, bounds, strands, a method's params, exons, a codon map's alphabets.
+ * `targets` gives what a reference names (the extent and cyclic flag of a sequence it names are read from it);
+ * `say` takes each issue with the step path under the node's params. Shared by the spec's checks and the overlay's,
+ * so a dynamic node passes the rules a spec node does.
+ */
+export function checkDataNode(
+  n: Node,
+  ctx: DataNodeTargets,
+  say: (code: Code, message: string, ...tail: (string | number)[]) => void,
+): void {
+  const p = (x: Node, key: string): Value | undefined => x.params?.[key];
+  const xor = (a: boolean, b: boolean) => a !== b;
+  const systemOf = (key: string) => {
+    const t = ctx.target(key);
+    if (t?.kind !== 'sequence') return undefined;
+    const letters = p(t, 'letters');
+    const length = typeof letters === 'string' ? letters.length : ctx.length?.(key);
+    return { cyclic: p(t, 'cyclic') === true, length };
+  };
+  switch (n.kind) {
+    case 'source':
+      if (!xor(p(n, 'uri') !== undefined, p(n, 'value') !== undefined))
+        say('seq.lang.source.content', 'A source has one of `uri` and `value`');
+      if (p(n, 'value') !== undefined && p(n, 'index') !== undefined)
+        say('seq.lang.source.index', 'An inline value has no index', 'index');
+      break;
+    case 'sequence': {
+      if (!xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
+        say('seq.lang.sequence.content', 'A sequence has one of `letters` and `source`');
+      const letters = p(n, 'letters');
+      if (typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
+        say('seq.lang.sequence.letters', 'The letters are not of the alphabet', 'letters');
+      break;
+    }
+    case 'ranges': {
+      const rows = p(n, 'rows') as Record<string, Value> | undefined;
+      if (!xor(rows !== undefined, p(n, 'source') !== undefined))
+        say('seq.lang.ranges.content', 'A ranges node has one of `rows` and `source`');
+      if (rows) {
+        const { start, end, strand } = rows;
+        if (isColumn(start) && isColumn(end)) {
+          const s = start as ArrayLike<number>;
+          const e = end as ArrayLike<number>;
+          const sys = systemOf('target');
+          let bad = -1;
+          let past = -1;
+          for (let i = 0; i < Math.min(s.length, e.length); i++) {
+            if (bad < 0 && (s[i] < 0 || (e[i] < s[i] && !sys?.cyclic))) bad = i;
+            if (past < 0 && sys?.length !== undefined && (s[i] > sys.length || e[i] > sys.length)) past = i;
+          }
+          if (bad >= 0) say('seq.lang.ranges.interval', 'A range is not an interval', 'rows', 'start', bad);
+          if (past >= 0) say('seq.lang.ranges.bounds', 'A range is past the sequence', 'rows', 'end', past);
+        }
+        if (strand instanceof CategoryColumn) {
+          for (let i = 0; i < strand.length; i++) {
+            const v = strand.get(i);
+            if (v !== null && v !== '+' && v !== '-') {
+              say('seq.lang.ranges.strand', 'A strand is + or -', 'rows', 'strand', i);
+              break;
+            }
+          }
+        }
+      }
+      break;
+    }
+    case 'values': {
+      const values = p(n, 'values');
+      if (!xor(values !== undefined, p(n, 'source') !== undefined))
+        say('seq.lang.values.content', 'A values node has one of `values` and `source`');
+      const length = systemOf('target')?.length;
+      if (isColumn(values) && length !== undefined && (values as ArrayLike<number>).length !== length)
+        say('seq.lang.values.length', 'There is not one value per position', 'values');
+      break;
+    }
+    case 'map': {
+      const method = p(n, 'method');
+      const has = (k: string) => p(n, k) !== undefined;
+      const fits =
+        method === 'offset'
+          ? has('by') && !has('exons') && !has('strand') && !has('table')
+          : has('exons') && has('strand') && !has('by');
+      if (!fits) say('seq.lang.map.params', 'The params do not fit the method');
+      const exons = p(n, 'exons') as Record<string, Value> | undefined;
+      if (exons && isColumn(exons.start) && isColumn(exons.end)) {
+        const s = exons.start as ArrayLike<number>;
+        const e = exons.end as ArrayLike<number>;
+        const count = Math.min(s.length, e.length);
+        const cyclic = systemOf('to')?.cyclic === true;
+        // on a cyclic gene the last exon may cross the origin, ending at or before the first one starts (EC-11)
+        const wraps = (i: number) => cyclic && i === count - 1 && e[i] <= s[0];
+        for (let i = 0; i < count; i++) {
+          if ((e[i] < s[i] && !wraps(i)) || (i > 0 && s[i] < e[i - 1])) {
+            say('seq.lang.map.exons', 'The exons are not in order, or one ends before it starts', 'exons', 'start', i);
+            break;
+          }
+        }
+      }
+      if (method === 'codon') {
+        const from = ctx.target('from');
+        const to = ctx.target('to');
+        if (from && to) {
+          const f = p(from, 'alphabet');
+          const t = p(to, 'alphabet');
+          if (f !== 'protein' || (t !== 'dna' && t !== 'rna'))
+            say('seq.lang.map.alphabet', 'A codon map goes from protein to dna or rna');
+        }
+      }
+      break;
+    }
+  }
 }

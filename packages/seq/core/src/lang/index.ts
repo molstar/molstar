@@ -21,6 +21,6 @@ export {
   type ViewBuilder,
   type ViewsBuilder,
 } from './builder.js';
-export { checkSeqLang, checkSeqSpec } from './check.js';
+export { checkDataNode, checkSeqLang, checkSeqSpec, type DataNodeTargets } from './check.js';
 export { LangIssues } from './issues.js';
 export { type SeqKinds, SeqLanguage, type SeqLanguageType, SeqLanguageVersion } from './language.js';

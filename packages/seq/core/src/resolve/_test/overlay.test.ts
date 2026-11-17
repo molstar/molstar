@@ -97,6 +97,35 @@ describe('the overlay', () => {
     expect(o2.path('/data/gene', '/data/other')).toBe(m.path('/data/gene', '/data/other'));
   });
 
+  it('checks each node by the language’s own rules too: a range ending before it starts is refused, no item made', () => {
+    const backwards: Node = {
+      kind: 'ranges',
+      params: { target: '/data/gene', map: 'codon', rows: { start: [400, 960], end: [100, 1422], id: ['T1', 'T1'] } },
+    };
+    const o = buildOverlay(model(), reader([[S, 'T1', backwards]]));
+    expect(o.nodes).toEqual([]);
+    expect(o.issues.map((i) => [i.code, i.address, i.path])).toEqual([
+      ['seq.lang.ranges.interval', nodeAddress(S, 'T1'), ['params', 'rows', 'start', 0]],
+    ]);
+    expect(o.system(itemAddress(nodeAddress(S, 'T1'), 'T1'))).toBeUndefined();
+    expect(o.path(itemAddress(nodeAddress(S, 'T1'), 'T1'), '/data/gene').path).toBeUndefined();
+    // past the end of its target (the bound read from the target's length)
+    const past: Node = { kind: 'ranges', params: { target: '/data/gene', rows: { start: [10], end: [1600] } } };
+    expect(buildOverlay(model(), reader([[S, 'X', past]])).issues.map((i) => i.code)).toEqual([
+      'seq.lang.ranges.bounds',
+    ]);
+  });
+
+  it('an item on both strands takes its first row’s, with an issue; its letters are its source’s', () => {
+    const mixed = transcript();
+    (mixed.params!.rows as Record<string, unknown>).strand = ['-', '+'];
+    const o = buildOverlay(model(), reader([[S, 'T1', mixed]]));
+    const sys = o.system(itemAddress(nodeAddress(S, 'T1'), 'T1'))!;
+    expect(sys.access).toEqual({ kind: 'source', source: S, system: 'T1', shape: 'letters' });
+    expect(o.issues.map((i) => i.code)).toEqual(['seq.resolve.item.strand']);
+    expect(o.path(sys.address, '/data/gene').path?.step).toBe(1);
+  });
+
   it('resolves a nested node on a shallower node’s item', () => {
     const item = itemAddress(nodeAddress(S, 'T1'), 'T1');
     const nested = nodeAddress(S, 'T1-domains');
