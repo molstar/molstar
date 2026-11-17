@@ -13,56 +13,345 @@
       "types": "./lib/*.d.ts",
       "import": "./lib/*.js"
     },
+    "./commands/help-view": {
+      "molstar-src": "./src/commands/help-view.tsx",
+      "types": "./lib/commands/help-view.d.ts",
+      "import": "./lib/commands/help-view.js"
+    },
+    "./components/action-footer/action-footer": {
+      "molstar-src": "./src/components/action-footer/action-footer.tsx",
+      "types": "./lib/components/action-footer/action-footer.d.ts",
+      "import": "./lib/components/action-footer/action-footer.js"
+    },
+    "./components/button/button": {
+      "molstar-src": "./src/components/button/button.tsx",
+      "types": "./lib/components/button/button.d.ts",
+      "import": "./lib/components/button/button.js"
+    },
+    "./components/button/command-button": {
+      "molstar-src": "./src/components/button/command-button.tsx",
+      "types": "./lib/components/button/command-button.d.ts",
+      "import": "./lib/components/button/command-button.js"
+    },
+    "./components/choices/choices": {
+      "molstar-src": "./src/components/choices/choices.tsx",
+      "types": "./lib/components/choices/choices.d.ts",
+      "import": "./lib/components/choices/choices.js"
+    },
+    "./components/color/color-picker": {
+      "molstar-src": "./src/components/color/color-picker.tsx",
+      "types": "./lib/components/color/color-picker.d.ts",
+      "import": "./lib/components/color/color-picker.js"
+    },
+    "./components/command-menu/choices": {
+      "molstar-src": "./src/components/command-menu/choices.tsx",
+      "types": "./lib/components/command-menu/choices.d.ts",
+      "import": "./lib/components/command-menu/choices.js"
+    },
+    "./components/command-menu/command-menu": {
+      "molstar-src": "./src/components/command-menu/command-menu.tsx",
+      "types": "./lib/components/command-menu/command-menu.d.ts",
+      "import": "./lib/components/command-menu/command-menu.js"
+    },
+    "./components/command-menu/footer": {
+      "molstar-src": "./src/components/command-menu/footer.tsx",
+      "types": "./lib/components/command-menu/footer.d.ts",
+      "import": "./lib/components/command-menu/footer.js"
+    },
+    "./components/command-menu/list": {
+      "molstar-src": "./src/components/command-menu/list.tsx",
+      "types": "./lib/components/command-menu/list.d.ts",
+      "import": "./lib/components/command-menu/list.js"
+    },
+    "./components/command-menu/options-fold": {
+      "molstar-src": "./src/components/command-menu/options-fold.tsx",
+      "types": "./lib/components/command-menu/options-fold.d.ts",
+      "import": "./lib/components/command-menu/options-fold.js"
+    },
+    "./components/command-menu/rows": {
+      "molstar-src": "./src/components/command-menu/rows.tsx",
+      "types": "./lib/components/command-menu/rows.d.ts",
+      "import": "./lib/components/command-menu/rows.js"
+    },
+    "./components/command-menu/sentence": {
+      "molstar-src": "./src/components/command-menu/sentence.tsx",
+      "types": "./lib/components/command-menu/sentence.d.ts",
+      "import": "./lib/components/command-menu/sentence.js"
+    },
+    "./components/command-menu/sentence-mode": {
+      "molstar-src": "./src/components/command-menu/sentence-mode.tsx",
+      "types": "./lib/components/command-menu/sentence-mode.d.ts",
+      "import": "./lib/components/command-menu/sentence-mode.js"
+    },
+    "./components/context-menu/context-menu": {
+      "molstar-src": "./src/components/context-menu/context-menu.tsx",
+      "types": "./lib/components/context-menu/context-menu.d.ts",
+      "import": "./lib/components/context-menu/context-menu.js"
+    },
+    "./components/expandable/expandable": {
+      "molstar-src": "./src/components/expandable/expandable.tsx",
+      "types": "./lib/components/expandable/expandable.d.ts",
+      "import": "./lib/components/expandable/expandable.js"
+    },
+    "./components/histogram/histogram": {
+      "molstar-src": "./src/components/histogram/histogram.tsx",
+      "types": "./lib/components/histogram/histogram.d.ts",
+      "import": "./lib/components/histogram/histogram.js"
+    },
+    "./components/iso-level/iso-level": {
+      "molstar-src": "./src/components/iso-level/iso-level.tsx",
+      "types": "./lib/components/iso-level/iso-level.d.ts",
+      "import": "./lib/components/iso-level/iso-level.js"
+    },
+    "./components/legend/legend": {
+      "molstar-src": "./src/components/legend/legend.tsx",
+      "types": "./lib/components/legend/legend.d.ts",
+      "import": "./lib/components/legend/legend.js"
+    },
+    "./components/logo/glass-mark": {
+      "molstar-src": "./src/components/logo/glass-mark.tsx",
+      "types": "./lib/components/logo/glass-mark.d.ts",
+      "import": "./lib/components/logo/glass-mark.js"
+    },
+    "./components/logo/glass-wordmark": {
+      "molstar-src": "./src/components/logo/glass-wordmark.tsx",
+      "types": "./lib/components/logo/glass-wordmark.d.ts",
+      "import": "./lib/components/logo/glass-wordmark.js"
+    },
+    "./components/logo/wordmark": {
+      "molstar-src": "./src/components/logo/wordmark.tsx",
+      "types": "./lib/components/logo/wordmark.d.ts",
+      "import": "./lib/components/logo/wordmark.js"
+    },
+    "./components/params/extra-controls": {
+      "molstar-src": "./src/components/params/extra-controls.tsx",
+      "types": "./lib/components/params/extra-controls.d.ts",
+      "import": "./lib/components/params/extra-controls.js"
+    },
+    "./components/params/help": {
+      "molstar-src": "./src/components/params/help.tsx",
+      "types": "./lib/components/params/help.d.ts",
+      "import": "./lib/components/params/help.js"
+    },
+    "./components/params/number-input": {
+      "molstar-src": "./src/components/params/number-input.tsx",
+      "types": "./lib/components/params/number-input.d.ts",
+      "import": "./lib/components/params/number-input.js"
+    },
+    "./components/params/params-form": {
+      "molstar-src": "./src/components/params/params-form.tsx",
+      "types": "./lib/components/params/params-form.d.ts",
+      "import": "./lib/components/params/params-form.js"
+    },
+    "./components/params/presets": {
+      "molstar-src": "./src/components/params/presets.tsx",
+      "types": "./lib/components/params/presets.d.ts",
+      "import": "./lib/components/params/presets.js"
+    },
+    "./components/playback/playback": {
+      "molstar-src": "./src/components/playback/playback.tsx",
+      "types": "./lib/components/playback/playback.d.ts",
+      "import": "./lib/components/playback/playback.js"
+    },
+    "./components/popover/popover": {
+      "molstar-src": "./src/components/popover/popover.tsx",
+      "types": "./lib/components/popover/popover.d.ts",
+      "import": "./lib/components/popover/popover.js"
+    },
+    "./components/scroll-area/scroll-area": {
+      "molstar-src": "./src/components/scroll-area/scroll-area.tsx",
+      "types": "./lib/components/scroll-area/scroll-area.d.ts",
+      "import": "./lib/components/scroll-area/scroll-area.js"
+    },
+    "./components/segmented/segmented": {
+      "molstar-src": "./src/components/segmented/segmented.tsx",
+      "types": "./lib/components/segmented/segmented.d.ts",
+      "import": "./lib/components/segmented/segmented.js"
+    },
+    "./components/select/select": {
+      "molstar-src": "./src/components/select/select.tsx",
+      "types": "./lib/components/select/select.d.ts",
+      "import": "./lib/components/select/select.js"
+    },
+    "./components/skeleton/skeleton": {
+      "molstar-src": "./src/components/skeleton/skeleton.tsx",
+      "types": "./lib/components/skeleton/skeleton.d.ts",
+      "import": "./lib/components/skeleton/skeleton.js"
+    },
+    "./components/splash/splash": {
+      "molstar-src": "./src/components/splash/splash.tsx",
+      "types": "./lib/components/splash/splash.d.ts",
+      "import": "./lib/components/splash/splash.js"
+    },
+    "./components/text-input/text-input": {
+      "molstar-src": "./src/components/text-input/text-input.tsx",
+      "types": "./lib/components/text-input/text-input.d.ts",
+      "import": "./lib/components/text-input/text-input.js"
+    },
+    "./components/toolbar/toolbar": {
+      "molstar-src": "./src/components/toolbar/toolbar.tsx",
+      "types": "./lib/components/toolbar/toolbar.d.ts",
+      "import": "./lib/components/toolbar/toolbar.js"
+    },
+    "./components/transfer-function/transfer-function": {
+      "molstar-src": "./src/components/transfer-function/transfer-function.tsx",
+      "types": "./lib/components/transfer-function/transfer-function.d.ts",
+      "import": "./lib/components/transfer-function/transfer-function.js"
+    },
+    "./components/virtual-list/recycled-list": {
+      "molstar-src": "./src/components/virtual-list/recycled-list.tsx",
+      "types": "./lib/components/virtual-list/recycled-list.d.ts",
+      "import": "./lib/components/virtual-list/recycled-list.js"
+    },
+    "./components/virtual-list/virtual-list": {
+      "molstar-src": "./src/components/virtual-list/virtual-list.tsx",
+      "types": "./lib/components/virtual-list/virtual-list.d.ts",
+      "import": "./lib/components/virtual-list/virtual-list.js"
+    },
     "./dom": {
       "molstar-src": "./src/dom/index.ts",
       "types": "./lib/dom/index.d.ts",
       "import": "./lib/dom/index.js"
+    },
+    "./forms/settings-view": {
+      "molstar-src": "./src/forms/settings-view.tsx",
+      "types": "./lib/forms/settings-view.d.ts",
+      "import": "./lib/forms/settings-view.js"
+    },
+    "./history/history-view": {
+      "molstar-src": "./src/history/history-view.tsx",
+      "types": "./lib/history/history-view.d.ts",
+      "import": "./lib/history/history-view.js"
+    },
+    "./log/log-view": {
+      "molstar-src": "./src/log/log-view.tsx",
+      "types": "./lib/log/log-view.d.ts",
+      "import": "./lib/log/log-view.js"
     },
     "./react": {
       "molstar-src": "./src/react/index.ts",
       "types": "./lib/react/index.d.ts",
       "import": "./lib/react/index.js"
     },
+    "./shell/section-list": {
+      "molstar-src": "./src/shell/section-list.tsx",
+      "types": "./lib/shell/section-list.d.ts",
+      "import": "./lib/shell/section-list.js"
+    },
+    "./shell/shell-view": {
+      "molstar-src": "./src/shell/shell-view.tsx",
+      "types": "./lib/shell/shell-view.d.ts",
+      "import": "./lib/shell/shell-view.js"
+    },
+    "./shell/view-frame": {
+      "molstar-src": "./src/shell/view-frame.tsx",
+      "types": "./lib/shell/view-frame.d.ts",
+      "import": "./lib/shell/view-frame.js"
+    },
+    "./stage/empty-stage": {
+      "molstar-src": "./src/stage/empty-stage.tsx",
+      "types": "./lib/stage/empty-stage.d.ts",
+      "import": "./lib/stage/empty-stage.js"
+    },
+    "./stage/glass-empty-mark": {
+      "molstar-src": "./src/stage/glass-empty-mark.tsx",
+      "types": "./lib/stage/glass-empty-mark.d.ts",
+      "import": "./lib/stage/glass-empty-mark.js"
+    },
+    "./stage/hover-label": {
+      "molstar-src": "./src/stage/hover-label.tsx",
+      "types": "./lib/stage/hover-label.d.ts",
+      "import": "./lib/stage/hover-label.js"
+    },
+    "./stage/stage": {
+      "molstar-src": "./src/stage/stage.tsx",
+      "types": "./lib/stage/stage.d.ts",
+      "import": "./lib/stage/stage.js"
+    },
+    "./stage/toolbar": {
+      "molstar-src": "./src/stage/toolbar.tsx",
+      "types": "./lib/stage/toolbar.d.ts",
+      "import": "./lib/stage/toolbar.js"
+    },
+    "./status/status-line": {
+      "molstar-src": "./src/status/status-line.tsx",
+      "types": "./lib/status/status-line.d.ts",
+      "import": "./lib/status/status-line.js"
+    },
     "./styles/foundations.css": "./src/styles/foundations.css",
     "./_stories/*": null,
     "./_test/*": null,
+    "./commands/_stories/*": null,
     "./commands/_test/*": null,
+    "./components/action-footer/_stories/*": null,
     "./components/action-footer/_test/*": null,
+    "./components/button/_stories/*": null,
     "./components/button/_test/*": null,
+    "./components/choices/_stories/*": null,
     "./components/choices/_test/*": null,
+    "./components/color/_stories/*": null,
     "./components/color/_test/*": null,
+    "./components/command-menu/_stories/*": null,
     "./components/command-menu/_test/*": null,
+    "./components/context-menu/_stories/*": null,
     "./components/context-menu/_test/*": null,
+    "./components/expandable/_stories/*": null,
     "./components/expandable/_test/*": null,
+    "./components/histogram/_stories/*": null,
     "./components/histogram/_test/*": null,
+    "./components/icon/_stories/*": null,
     "./components/icon/_test/*": null,
+    "./components/iso-level/_stories/*": null,
     "./components/iso-level/_test/*": null,
+    "./components/legend/_stories/*": null,
+    "./components/logo/_stories/*": null,
     "./components/logo/_test/*": null,
+    "./components/markdown/_stories/*": null,
     "./components/markdown/_test/*": null,
+    "./components/params/_stories/*": null,
     "./components/params/_test/*": null,
+    "./components/playback/_stories/*": null,
     "./components/playback/_test/*": null,
+    "./components/popover/_stories/*": null,
     "./components/popover/_test/*": null,
+    "./components/reorder/_stories/*": null,
     "./components/reorder/_test/*": null,
+    "./components/scroll-area/_stories/*": null,
     "./components/scroll-area/_test/*": null,
+    "./components/segmented/_stories/*": null,
     "./components/segmented/_test/*": null,
+    "./components/select/_stories/*": null,
     "./components/select/_test/*": null,
+    "./components/skeleton/_stories/*": null,
     "./components/skeleton/_test/*": null,
+    "./components/splash/_stories/*": null,
     "./components/splash/_test/*": null,
+    "./components/text-input/_stories/*": null,
     "./components/text-input/_test/*": null,
+    "./components/toolbar/_stories/*": null,
     "./components/toolbar/_test/*": null,
+    "./components/tooltip/_stories/*": null,
     "./components/tooltip/_test/*": null,
+    "./components/transfer-function/_stories/*": null,
     "./components/transfer-function/_test/*": null,
+    "./components/virtual-list/_stories/*": null,
     "./components/virtual-list/_test/*": null,
     "./dom/_test/*": null,
     "./elements/_test/*": null,
+    "./forms/_stories/*": null,
     "./forms/_test/*": null,
+    "./history/_stories/*": null,
     "./history/_test/*": null,
+    "./log/_stories/*": null,
     "./log/_test/*": null,
     "./react/_test/*": null,
+    "./shell/_stories/*": null,
     "./shell/_test/*": null,
+    "./stage/_generated/placeholders.module.css": null,
+    "./stage/_stories/*": null,
     "./stage/_test/*": null,
     "./stage/placeholders": null,
-    "./stage/_generated/placeholders.module.css": null,
+    "./status/_stories/*": null,
     "./status/_test/*": null,
     "./styles/_test/*": null,
     "./testing/*": null
