@@ -315,6 +315,18 @@ describe('the keyboard cursor', () => {
     expect(vp.end - vp.start).toBeCloseTo(4);
   });
 
+  it('a cursor on a follower moved out of view moves no section, though the follower leads a pan', async () => {
+    const v = await make();
+    v.view.setRange(ProteinSection, 0, 4);
+    const gene = v.view.get(GeneSection)!;
+    v.selection.setCursor({ section: GeneSection, system: G, position: Math.floor(gene.end) - 1 });
+    key(v, 'ArrowRight');
+    key(v, 'ArrowRight');
+    expect([v.view.get(ProteinSection)!.start, v.view.get(ProteinSection)!.end]).toEqual([0, 4]);
+    expect(v.view.pan(GeneSection, 3)).toBe(true);
+    expect(v.view.get(ProteinSection)!.start).toBeCloseTo(1, 9);
+  });
+
   it('Esc cancels a gesture’s preview first, then clears the selection', async () => {
     const v = await make();
     click(v, at(v, 0, 0, 2));

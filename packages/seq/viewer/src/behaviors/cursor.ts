@@ -57,9 +57,13 @@ export function cursorBehavior(
       : { section: section.address, system: section.axis.system, position: Math.floor(p) };
   };
 
-  /** A section's viewport pans to show its offset `o` when it is out of view. */
+  /**
+   * A section's viewport pans to show its offset `o` when it is out of view. A follower's does not (it would move its
+   * leader): the cursor on a follower keeps the rule it had before followers led, revealing only once detached.
+   */
   const reveal = (section: string, o: number) => {
     if (!config.cursor.reveal || !view.canMove(section)) return;
+    if (view.isFollowing(section) && config.follow.followerMoves !== 'detach') return;
     const v = view.get(section);
     if (!v || v.pending) return;
     if (o < v.start) view.pan(section, o - v.start);

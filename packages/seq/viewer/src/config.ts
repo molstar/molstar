@@ -70,10 +70,11 @@ export interface ViewerConfig {
   };
   readonly follow: {
     /**
-     * A move asked of a follower (followers never lead, EC-114): `ignore` it (the default) or `detach` the follower,
-     * which then has its own viewport until it is attached again (`attach`, or a fit).
+     * A move asked of a follower (a pan, a zoom, a pinch): `lead`, the default, moves its leader through the follow's
+     * inverse, so the follower moves as asked and every section in step; `ignore` it; or `detach` the follower, which
+     * then has its own viewport until it is attached again (`attach`, or a fit).
      */
-    readonly followerMoves: 'ignore' | 'detach';
+    readonly followerMoves: 'lead' | 'ignore' | 'detach';
     /**
      * A follower's range over a cyclic origin: kept as the wrap, two pieces (`wrap`, the default), or the hull of
      * the image (`hull`).
@@ -195,7 +196,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }, reveal: true },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
-  follow: { followerMoves: 'ignore', cyclicArc: 'wrap' },
+  follow: { followerMoves: 'lead', cyclicArc: 'wrap' },
   navigate: { wheelZoomStep: 1.25, keyPanFraction: 0.1, coalesceWheel: true },
   theme: { source: 'root' },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },

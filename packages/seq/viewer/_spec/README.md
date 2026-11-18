@@ -90,8 +90,18 @@ nothing and tells nothing.
   pass each other on a linear follower (a leader range over the coding sequence's origin) give the hull. On a cyclic
   follower a range over the origin wraps: `end` passes the total and `pieces` is `[start, total, 0, end − total]`
   (`follow.cyclicArc`: `wrap`; `hull` takes the image's hull). A follower is clamped by `maxPxPerPosition` as a leader
-  is. Follows chain. Followers never lead: a move asked of one is ignored, or detaches it (`follow.followerMoves`:
-  `ignore`; `detach` gives it its own range until a fit or `attach`); a move with invalid arguments detaches nothing.
+  is. Follows chain.
+- **A follower leads** (`follow.followerMoves`: `lead`): a pan, a zoom or a pinch asked of an attached follower moves
+  its leader through the inverse of the forward map (each end to the leader place whose `point` image it is), so the
+  follower shows what was asked and every section moves in step; on a minus strand the follower's ends are the images of
+  the leader's other ends, so its pan moves the leader the other way. Where an end is in no element's image (an intron,
+  a UTR, the nucleotides of a codon split by an intron that its image does not run over) it takes the nearest image the
+  way it moved, so a pan steps over a gap and never sticks; a pan whose other end lies past every image moves the leader
+  by the one end's step, a zoom keeps the leader's end. A chain leads up to its first leader. `canMove` is the leader's.
+  Why the inverse of the forward map, not of the path: what the follower shows is the forward map's, so only its inverse
+  brings back the range asked. `ignore` drops the move; `detach` gives the follower its own range until a fit or
+  `attach`; a move with invalid arguments moves and detaches nothing. Focus and reveal by address move the leading
+  sections as before, and the cursor on a follower reveals nothing unless it may detach (`cursor.reveal`).
 - **A source-backed system's length** is fed in when its source's coverage gives it (`setLengthSource`, `refreshLengths`
   on each store change): the resolved view's axes (and the follows' leader axes) get their pieces, so a section on a
   streamed sequence is placed and its kept intent applies.
@@ -447,22 +457,23 @@ navigates.
 `config.ts`: `DefaultViewerConfig`, one object of the shape the models read (`viewerConfig(over)` for one group's items
 over the defaults): `foundations.preset`, `density.letterMinPx`, `density.dotMinPx`, `bindings.preset`,
 `store.cacheBytes`, `store.inFlight`, `store.tileBins`, `hover.projectLinked`, `hover.closeCodons`,
-`viewport.maxPxPerPosition`, `viewport.groupEqualAxes`, `viewport.onResize`, `follow.followerMoves`, `follow.cyclicArc`,
-`navigate.wheelZoomStep`, `navigate.keyPanFraction`, `navigate.coalesceWheel`, `selection.holdNodes` (true: the
-selection's dynamic nodes are held while selected), `highlight.color` (`token:cat-5`, a channel's color when
-`highlight.colors` names none), `highlight.colors` (`{ 'link-hover': 'token:hover' }`), `cursor.keys` (`ArrowLeft`,
-`ArrowRight`, `ArrowUp`, `ArrowDown`: back, on, the section above, below), `cursor.reveal` (true: a cursor moved out of
-view pans its section), `canvas.height` (`content`), `theme.source` (`root`: a mounted viewer reads its root's CSS;
-`config`: the core's `theme` item; a headless viewer always uses the config), `canvas.maxHeight` (2048), `canvas.dpr`
-(`device`), `canvas.settleMs` (150), `pointer.rehit` (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed`
-(0.01), `pointer.pinchMaxDelta` (50), `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64),
-`address.refDepth` (8), `links.prefix` (`seq-`), `links.maxLength` (8,192), `links.maxActions` (16),
-`links.highlightChannel` (`link`), `links.hoverChannel` (`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale`
-(false: a stale patch is refused; true: rebased through `merge3`), `preview.dropped` (`issue`; `silent`),
-`bounds.maxBytes` (64 MB), `bounds.maxDepth` (256), `bounds.maxQueryDepth` (64), `bounds.maxColumnLength` (2^31 − 1),
-`bounds.maxNodeIssues` (100), `bounds.maxPlaces` (10), `bounds.maxBlockValues` (2^24: the spec's bounds held by the
-viewer's patches, previews, story steps and whole roots (`SpecModel.apply` refuses with `'out-of-bounds'` and
-`boundsIssues`; `viewer.load` rejects with the issues), the table and node bounds by its store), `copyLink.prefer`
-(`['ref', 'ids']`), `copyLink.numbering` (`ordinal`), `copyLink.action` (`focus`). Each a choice with its recommended
-default; `ParamDefinition`s come with the settings form. As items in a spec: `viewerItem('group.item')` (typed by key),
-read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the same pairs.
+`viewport.maxPxPerPosition`, `viewport.groupEqualAxes`, `viewport.onResize`, `follow.followerMoves` (`lead`: a move
+asked of a follower moves its leader; `ignore`; `detach`), `follow.cyclicArc`, `navigate.wheelZoomStep`,
+`navigate.keyPanFraction`, `navigate.coalesceWheel`, `selection.holdNodes` (true: the selection's dynamic nodes are held
+while selected), `highlight.color` (`token:cat-5`, a channel's color when `highlight.colors` names none),
+`highlight.colors` (`{ 'link-hover': 'token:hover' }`), `cursor.keys` (`ArrowLeft`, `ArrowRight`, `ArrowUp`,
+`ArrowDown`: back, on, the section above, below), `cursor.reveal` (true: a cursor moved out of view pans its section),
+`canvas.height` (`content`), `theme.source` (`root`: a mounted viewer reads its root's CSS; `config`: the core's `theme`
+item; a headless viewer always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`), `canvas.settleMs`
+(150), `pointer.rehit` (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta`
+(50), `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64), `address.refDepth` (8),
+`links.prefix` (`seq-`), `links.maxLength` (8,192), `links.maxActions` (16), `links.highlightChannel` (`link`),
+`links.hoverChannel` (`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale` (false: a stale patch is refused;
+true: rebased through `merge3`), `preview.dropped` (`issue`; `silent`), `bounds.maxBytes` (64 MB), `bounds.maxDepth`
+(256), `bounds.maxQueryDepth` (64), `bounds.maxColumnLength` (2^31 − 1), `bounds.maxNodeIssues` (100),
+`bounds.maxPlaces` (10), `bounds.maxBlockValues` (2^24: the spec's bounds held by the viewer's patches, previews, story
+steps and whole roots (`SpecModel.apply` refuses with `'out-of-bounds'` and `boundsIssues`; `viewer.load` rejects with
+the issues), the table and node bounds by its store), `copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering`
+(`ordinal`), `copyLink.action` (`focus`). Each a choice with its recommended default; `ParamDefinition`s come with the
+settings form. As items in a spec: `viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the
+core's items (`SeqCoreConfig`) are the same pairs.
