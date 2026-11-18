@@ -247,7 +247,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Finalize
 
-- [ ] FINALIZE: reconcile:
+- [x] FINALIZE: reconcile:
   - the designs where the code taught otherwise (drift notes resolved);
   - the `_spec`s with what is built;
   - `status.md`, the features rows, the edge cases' outcomes, `TODO.md`;

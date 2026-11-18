@@ -110,3 +110,8 @@ None yet.
 ## Verify
 
 As loop.md, Checks.
+- Finalized: reconciled (`f3e26a985`), the fold-back merged by the author ("Yes, all of it") and applied (`30c261aa8`),
+  the gate run once more (quick, medium, heavy, build, `check:workspace`, the `.seq` checks), the third slice's plan
+  rewritten (`e24b30dea`).
+
+Closed 2026-11-18: `.seq/records/second-slice/2026-11-18-second-slice.md`
