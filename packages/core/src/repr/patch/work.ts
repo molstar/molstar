@@ -154,7 +154,8 @@ export class Work {
   private refuse(code: PatchCode, message: string, ...at: (string | number)[]): never {
     throw new Refused(
       issueOf(PatchIssues, code, message, {
-        path: ['children', this.index, ...(at.length ? ['params', ...at] : [])],
+        // the patch tree's path, as patchToNode lays the op out: its kind, or its params by name
+        path: ['children', this.index, ...(at[0] === 'kind' ? ['kind'] : at.length ? ['params', ...at] : [])],
         hint: PatchIssues.codes[code].hint,
       }),
     );
@@ -230,7 +231,7 @@ export class Work {
       case 'replace':
         return this.replace(op.at, op.node);
       default:
-        this.refuse('repr.patch.op', 'Not an op: set, unset, insert, remove, move or replace', 'op');
+        this.refuse('repr.patch.op', 'Not an op: set, unset, insert, remove, move or replace', 'kind');
     }
   }
 
@@ -292,7 +293,7 @@ export class Work {
       n++;
       if (k.id === after) return n;
     }
-    this.refuse('repr.patch.place', 'The place names no sibling', 'place');
+    this.refuse('repr.patch.place', 'The place names no sibling', 'after');
   }
 
   private addressable(d: Draft, key: string) {
@@ -306,7 +307,7 @@ export class Work {
 
   private insert(parent: Address, place: Place, node: Node) {
     const p = this.target(parent, 'parent');
-    if (!isPlace(place)) this.refuse('repr.patch.op', 'A place is {after} or {last: true}', 'place');
+    if (!isPlace(place)) this.refuse('repr.patch.op', 'A place is {after} or {last: true}');
     this.checkNode(node, 'node');
     this.addressable(p, 'parent');
     if (node.id === undefined || !IdPattern.test(node.id))
@@ -346,7 +347,7 @@ export class Work {
   private move(at: Address, parent: Address, place: Place, rename: string | undefined) {
     if (!isAddress(at)) this.refuse('repr.patch.op', 'An address is a list of ids', 'at');
     if (!at.length) this.refuse('repr.patch.op', 'The root is never moved', 'at');
-    if (!isPlace(place)) this.refuse('repr.patch.op', 'A place is {after} or {last: true}', 'place');
+    if (!isPlace(place)) this.refuse('repr.patch.op', 'A place is {after} or {last: true}');
     if (rename !== undefined && (typeof rename !== 'string' || !IdPattern.test(rename)))
       this.refuse('repr.patch.id', `A new id is an id: ${IdHint}`, 'rename');
     const from = at.slice(0, -1);

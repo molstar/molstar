@@ -162,6 +162,15 @@ describe('repr/patch: issues', () => {
     expect(r.issues[0]).toMatchObject({ code: 'repr.patch.target', path: ['children', 1, 'params', 'at'] });
   });
 
+  it("names the patch tree's laid-out params: after, not place; kind, not op", () => {
+    const place = applyPatch(doc(box('a', undefined)), {
+      ops: [{ op: 'insert', parent: ['a'], place: { after: 'zz' }, node: leaf('n') }],
+    });
+    expect(place.issues.map((i) => i.path)).toEqual([['children', 0, 'params', 'after']]);
+    const kind = applyPatch(doc(), { ops: [{ op: 'swap' } as never] });
+    expect(kind.issues.map((i) => i.path)).toEqual([['children', 0, 'kind']]);
+  });
+
   it('result is checked before base', () => {
     const root = doc();
     expect(applyPatch(root, { ops: [], base: '0'.repeat(32), result: hashNode(root) }).ok).toBe(true);
