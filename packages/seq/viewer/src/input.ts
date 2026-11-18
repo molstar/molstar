@@ -325,7 +325,9 @@ export class ViewerInput {
   spaceUp(e: KeyState = {}): boolean {
     const tap = this._space && !this._spaceUsed;
     this.setSpace(false);
-    return tap ? this.key({ ...e, key: ' ' }) : false;
+    return tap
+      ? this.key({ key: ' ', shiftKey: !!e.shiftKey, altKey: !!e.altKey, metaKey: !!e.metaKey, ctrlKey: !!e.ctrlKey })
+      : false;
   }
 
   /**
@@ -335,6 +337,13 @@ export class ViewerInput {
    */
   key(e: KeyState & { key: string }): boolean {
     if (this.viewer.retired) return false;
+    // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
+    if (e.key === 'Escape' && this._drag?.select) {
+      this.selectBehavior?.cancelDrag();
+      this._drag = undefined;
+      this._suppressClick = true;
+      return true;
+    }
     const section =
       (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
     const ctx = { section };

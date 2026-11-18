@@ -26,7 +26,13 @@ import type { SeqTokens } from '@molstar/seqx-core/render';
 import { type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
-import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
+import {
+  bindingTable,
+  DefaultActions,
+  type BindingTable,
+  BindingPresets,
+  SelectActions,
+} from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import {
@@ -40,7 +46,7 @@ import {
   StoreModel,
   ViewModel,
 } from '@molstar/seqx-viewer/models';
-import { AddressingProvider, type LinkRun } from '@molstar/seqx-viewer/behaviors';
+import { AddressingProvider, type LinkRun, SelectProvider } from '@molstar/seqx-viewer/behaviors';
 import { ViewerInput } from './input.js';
 import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
@@ -193,8 +199,10 @@ export class SeqViewer extends ReactiveModel {
 
     const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
+    // the selection's actions only with the behavior that runs them: else its bindings are reported, never dead
+    const select = viewerSpec.behaviors.some((b) => b.provider === SelectProvider) ? SelectActions : [];
     this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
-      actions: [...DefaultActions, ...extraActions],
+      actions: [...DefaultActions, ...select, ...extraActions],
     });
 
     // behaviors, after the models; one of each name

@@ -120,9 +120,9 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       (e: KeyboardEvent) => {
         if (e.key === ' ') {
           if (!e.repeat) input.setSpace(true);
-          // Space is a modifier here (and a tap toggles the cursor's cell): the page does not scroll with it while
-          // the canvas has focus
-          e.preventDefault();
+          // Space is the viewer's while it is a modifier or a tap toggles the cursor's cell: the page does not scroll
+          // with it then; else it is the page's
+          if (input.spaceIsModifier || viewer.selection.cursor.value) e.preventDefault();
         } else if (input.key(e)) e.preventDefault();
       },
       undefined,

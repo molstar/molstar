@@ -166,6 +166,43 @@ describe('clicks (the interaction grammar)', () => {
   });
 });
 
+describe('the review’s smaller points', () => {
+  it('an item selected by a link clears on the first click on it (compared without its address)', async () => {
+    const v = await make();
+    expect(v.addresses.select('/data/domains/(item :id B)').done).toBe(true);
+    click(v, at(v, 0, 1, 6));
+    expect(ranges(v)).toEqual([]);
+  });
+
+  it('Esc during a drag-select gives back the selection before it', async () => {
+    const v = await make();
+    click(v, at(v, 0, 0, 7));
+    const [x0, y] = at(v, 0, 0, 1);
+    v.input.down(x0, y);
+    v.input.move(at(v, 0, 0, 4)[0], y);
+    expect(ranges(v)).toEqual([1, 5]);
+    expect(v.input.key({ key: 'Escape' })).toBe(true);
+    expect(ranges(v)).toEqual([7, 8]);
+    v.input.up();
+    expect(v.input.click(at(v, 0, 0, 4)[0], y)).toBe(false);
+    expect(ranges(v)).toEqual([7, 8]);
+  });
+
+  it('a viewer without the select behavior has no selection actions: its bindings to them are reported', async () => {
+    const { SelectProvider } = await import('../behaviors/providers.js');
+    const base = DefaultSeqViewerSpec();
+    const v = createSeqViewer({
+      ...base,
+      ui: undefined,
+      behaviors: base.behaviors.filter((b) => b.provider !== SelectProvider),
+    });
+    viewers.push(v);
+    expect(v.bindings.issues.map((i) => i.code)).toContain('seq.viewer.binding.action');
+    expect(v.bindings.resolve('click', {}, 'cell')).toBeUndefined();
+    expect((await make()).bindings.issues).toEqual([]);
+  });
+});
+
 describe('drag-select', () => {
   it('a drag on data selects the range it covers, read past the data too; the click after it is none', async () => {
     const v = await make();

@@ -39,6 +39,8 @@ export interface SelectBehavior {
    */
   dragTo(section: string, x: number, hit: Hit | undefined): boolean;
   endDrag(): void;
+  /** Cancels a drag-select: the selection before it comes back. */
+  cancelDrag(): void;
   readonly commands: readonly CommandDefinition<SelectContext>[];
 }
 
@@ -125,6 +127,10 @@ export function selectBehavior(selection: SelectionModel, view: ViewModel, bindi
     endDrag() {
       drag = undefined;
       selection.endDrag();
+    },
+    cancelDrag() {
+      drag = undefined;
+      selection.cancelDrag();
     },
   };
 }

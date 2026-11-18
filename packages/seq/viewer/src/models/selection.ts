@@ -158,7 +158,7 @@ export class SelectionModel extends ReactiveModel {
   /** The extents of elements selected by a hit, by key: what is drawn of them without resolving them again. */
   private readonly _extents = new Map<string, Location>();
   private _anchor: Anchor | undefined;
-  private _drag: { anchor: Anchor; snap: boolean } | undefined;
+  private _drag: { anchor: Anchor; snap: boolean; before: Emphasized; beforeAnchor: Anchor | undefined } | undefined;
   /** The selection: an equal value tells nothing. */
   readonly value: ReadonlyState<Emphasized> = this._value.asReadonly;
   /** The keyboard cursor; an equal one tells nothing. */
@@ -185,6 +185,7 @@ export class SelectionModel extends ReactiveModel {
   clear(): void {
     this._anchor = undefined;
     this._drag = undefined;
+    this._extents.clear();
     this._value.set(Nothing);
   }
 
@@ -202,7 +203,8 @@ export class SelectionModel extends ReactiveModel {
       return before !== this._value.value;
     }
     const next = this._ofHit(hit, range, axis);
-    if (same(next, before)) this.clear();
+    // what is selected, wherever it was set from (a link's DBD clears on the first click on it)
+    if (elementsEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
     else this.set(next, range);
     return before !== this._value.value;
   }
@@ -253,7 +255,7 @@ export class SelectionModel extends ReactiveModel {
   beginDrag(hit: Hit | undefined, axis?: Axis): boolean {
     const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!range) return false;
-    this._drag = { anchor: range, snap: !!hit?.element };
+    this._drag = { anchor: range, snap: !!hit?.element, before: this._value.value, beforeAnchor: this._anchor };
     return true;
   }
 
@@ -274,6 +276,15 @@ export class SelectionModel extends ReactiveModel {
     this._anchor = a;
     this._value.set({ elements: EmptyElements, location: loc, shown: loc });
     return before !== this._value.value;
+  }
+
+  /** Cancels a drag-select (Esc): the selection and the anchor it began with come back. */
+  cancelDrag(): void {
+    const d = this._drag;
+    if (!d) return;
+    this._drag = undefined;
+    this._anchor = d.beforeAnchor;
+    this._value.set(d.before);
   }
 
   /** Ends a drag-select (what it selected stays). */

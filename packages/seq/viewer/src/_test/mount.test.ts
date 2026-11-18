@@ -212,6 +212,39 @@ describe('the mounted canvas stack', () => {
     }
   });
 
+  it('Space is the page’s when it is no modifier and there is no cursor; a Shift+Space tap is no plain Space', async () => {
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    viewer = createSeqViewer(
+      {
+        ...DefaultSeqViewerSpec(),
+        bindings: { overrides: [[{ gesture: 'drag', modifiers: ['space'], target: 'any', action: null }]] },
+        config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+      },
+      target,
+    );
+    await viewer.load(proteinOnGene());
+    await viewer.settle();
+    const container = target.firstElementChild as HTMLElement;
+    expect(viewer.input.spaceIsModifier).toBe(false);
+    const space = () => new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    const free = space();
+    container.dispatchEvent(free);
+    expect(free.defaultPrevented).toBe(false);
+    container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
+    // a cursor: Space toggles its cell, so it is the viewer's
+    viewer.selection.setCursor({ section: '/views/main/protein', system: '/data/p', position: 1, keyboard: true });
+    const taken = space();
+    container.dispatchEvent(taken);
+    expect(taken.defaultPrevented).toBe(true);
+    // Shift held: no command has Shift+Space, so the tap toggles nothing (the event's modifiers are read, not spread)
+    container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', shiftKey: true, bubbles: true }));
+    expect(viewer.selection.value.value.shown.parts).toEqual([]);
+    container.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
+    expect(viewer.selection.value.value.shown.parts.length).toBe(1);
+  });
+
   it('Space does not scroll the page while it is the pan modifier and the canvas has focus', async () => {
     const { container, viewer } = await mount();
     expect(viewer.input.spaceIsModifier).toBe(true);

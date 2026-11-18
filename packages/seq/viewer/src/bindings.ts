@@ -116,22 +116,26 @@ export const BindingPresets = {
   'genome-browser': GenomeBrowserBindings,
 } as const satisfies Record<string, readonly GestureBinding[]>;
 
-/** The actions the default viewer has: the hover, navigation and drag-select methods, the `navigate` and `select` commands. */
+/** The actions every viewer has: the hover and navigation methods and the `navigate` commands. */
 export const DefaultActions: readonly string[] = [
   'hover',
   'pan',
   'zoom',
-  'drag-select',
-  'selection.set',
-  'selection.extend',
-  'selection.toggle',
-  'selection.clear',
   'view.fit',
   'view.focus',
   'view.zoom-in',
   'view.zoom-out',
   'view.pan-left',
   'view.pan-right',
+];
+
+/** The `select` behavior's actions: a viewer has them only when its spec lists the behavior. */
+export const SelectActions: readonly string[] = [
+  'drag-select',
+  'selection.set',
+  'selection.extend',
+  'selection.toggle',
+  'selection.clear',
 ];
 
 export interface BindingTable {
@@ -162,7 +166,10 @@ const stateMask = (s: ModifierState) => (s.shift ? 1 : 0) | (s.mod ? 2 : 0) | (s
 const keyOf = (gesture: string, mask: number, target: string) => `${gesture}|${mask}|${target}`;
 
 export interface BindingTableOptions {
-  /** The actions that exist: methods and command ids (`DefaultActions`). A binding to another is reported and left out. */
+  /**
+   * The actions that exist: methods and command ids (`DefaultActions` and `SelectActions` by default: a viewer passes
+   * what its behaviors give). A binding to another is reported and left out.
+   */
   readonly actions?: readonly string[];
   /** Change kinds of commands the kind table lacks (an extension's). */
   readonly kinds?: Readonly<Record<string, ChangeKind>>;
@@ -178,7 +185,7 @@ export function bindingTable(
   overrides: readonly (readonly GestureBinding[])[] = [],
   options: BindingTableOptions = {},
 ): BindingTable {
-  const actions = new Set(options.actions ?? DefaultActions);
+  const actions = new Set(options.actions ?? [...DefaultActions, ...SelectActions]);
   const issues: Issue[] = [];
   const table = new Map<string, GestureBinding>();
   for (const layer of [preset, ...overrides]) {
