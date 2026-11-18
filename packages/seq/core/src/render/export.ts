@@ -16,7 +16,7 @@ import {
   SourceOpenError,
   type Want,
 } from '@molstar/seqx-core/data';
-import { checkSeqSpec } from '@molstar/seqx-core/lang';
+import { checkSeqSpec, type SpecBounds } from '@molstar/seqx-core/lang';
 import {
   isEmptyLocation,
   type Location,
@@ -139,6 +139,8 @@ export interface RenderSvgOptions {
   readonly viewport?: Viewport;
   /** The format runtimes the application composed (inline data always reads through `seq`). */
   readonly runtimes?: readonly FormatRuntime[];
+  /** The bounds the spec's check holds (`DefaultSpecBounds` when absent). */
+  readonly bounds?: SpecBounds;
   /** The view's address; the spec's first view when absent. */
   readonly view?: string;
   /** The built-in token table of a theme (`light` by default), or a table. */
@@ -184,7 +186,7 @@ function wantsKey(wants: readonly Want[]): string {
 
 /** A spec drawn to an SVG string once the data its view needs has settled (or the timeout passed). */
 export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<RenderSvgResult> {
-  const issues: Issue[] = [...checkSeqSpec(spec)];
+  const issues: Issue[] = [...checkSeqSpec(spec, options.bounds)];
   const blank = (settled: boolean): RenderSvgResult => {
     const lists = new DrawLists();
     lists.width = options.size.width;

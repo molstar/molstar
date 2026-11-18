@@ -27,7 +27,7 @@ spec
 │               numberings, maps, annotations (the six shapes), computed annotations
 ├── views       views → sections → tracks → layers; themes; focus; highlights
 ├── refs        user-defined names for addresses (bookmarks, regions, sets)
-└── snapshots   named story steps: stored patches with no base, over the current revision
+└── snapshots   named story steps: full states, or patches with no base over the current revision
 ```
 
 - **One language, one version** (the author: "one"); the levels are container kinds with reserved ids, so addresses

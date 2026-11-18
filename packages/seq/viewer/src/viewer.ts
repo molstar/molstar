@@ -303,7 +303,11 @@ export class SeqViewer extends ReactiveModel {
    */
   async load(root: Node, options: { view?: string } = {}): Promise<void> {
     // a new root syncs the sources through the model's own listener: once
-    this.spec.apply(root);
+    const refused = this.spec.apply(root);
+    if (refused === 'out-of-bounds')
+      throw Object.assign(new Error('The spec is past the configured bounds'), {
+        issues: this.spec.boundsIssues.value,
+      });
     this.view.show(options.view);
     await this._syncing;
   }

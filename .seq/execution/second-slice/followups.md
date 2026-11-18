@@ -47,3 +47,9 @@
   coordinates (its own move relocates the node): refused unless `allowDangling`; watch for it in the editing UI.
 - (K3) A key typed as a ref with different types in different kinds is walked with each: a conformance case when a
   language has one.
+- (Q review) `@molstar/core`'s `util/data-source.ts:482` opens a `file:` URL's path without percent-decoding: a root or
+  file with a space or non-ASCII character is unreadable, and Windows paths open as `/C:/…` (fails safe today). When
+  it moves to `fileURLToPath`, `checkFile` is reviewed again for Windows segments ending in a dot or space, device names
+  and `:` streams.
+- (Q) Bounds for regular expressions in search and for archives land with those features; nested-source breadth
+  (fan-out W^depth) and joins allocating before `checkAnswer` (at most the file's size) recorded.

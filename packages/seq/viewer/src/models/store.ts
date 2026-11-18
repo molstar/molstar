@@ -64,6 +64,8 @@ export class StoreModel extends ReactiveModel {
         maxBytes: config.store.cacheBytes,
         maxInFlight: config.store.inFlight,
         tileBins: config.store.tileBins,
+        maxColumnLength: config.bounds.maxColumnLength,
+        maxBlockValues: config.bounds.maxBlockValues,
       },
       clock: options.clock ?? DomHostClock,
     });

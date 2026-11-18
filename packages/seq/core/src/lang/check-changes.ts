@@ -15,7 +15,9 @@
 
 import { HashMap, HashSet, type MutableHashMap } from '@molstar/core/data/immutable';
 import type { Changes, PatchValidator } from '@molstar/core/repr/patch';
+import type { ParamChange } from '@molstar/core/repr/schema';
 import { type Address, type Issue, type Node, printAddress, type TreePath, type Value } from '@molstar/core/repr/tree';
+import { checkSubtreeDepth, DefaultSpecBounds, IssueCaps, type SpecBounds } from './bounds.js';
 import {
   checkFollow,
   checkPlaced,
@@ -262,12 +264,51 @@ function keyed(issues: Issue[], keys: string[], rename: (address: string) => str
 }
 
 /**
+ * The bounds on what a change made, moved or set (`seq.lang.bound.*`), as the whole spec's check holds them: the
+ * nesting of the subtrees it made or moved and of the params and custom keys it set, and one total size bound for the
+ * patch (the bytes of what it makes and sets against `maxBytes`: a patch's, not the root's, so the cost stays the
+ * change's). A subtree too deep to walk is refused alone.
+ */
+function boundsOfChanges(look: SeqLookup, changes: Changes, bounds: SpecBounds): Issue[] {
+  const out: Issue[] = [];
+  const budget = { bytes: 0 };
+  const nest = (address: Address, children: boolean, counted: boolean, keys?: ParamChange) => {
+    const at = look.get(printAddress(address));
+    if (at)
+      out.push(
+        ...checkSubtreeDepth(at.node, at.path, address.length, bounds, children, {
+          ...(counted ? { budget } : {}),
+          ...(keys ? { keys: { where: keys.where, keys: keys.keys } } : {}),
+        }),
+      );
+  };
+  for (const m of changes.made) nest(m, true, true);
+  for (const m of changes.moved) nest(m.to, true, false);
+  for (const c of changes.params) nest(c.at, false, true, c);
+  return out;
+}
+
+/** The bounds of a change alone, as a patch validator: for a preview or a story step, which run no language checks. */
+export const seqBoundsValidator =
+  (bounds: SpecBounds): PatchValidator =>
+  (_before, after, changes) =>
+    boundsOfChanges(lookupOf(after), changes, bounds);
+
+/**
  * The `seq.lang.*` issues a change introduced (_spec/README.md, Language, Checks of a change): `checkSeqLang`'s, on the
  * nodes `changes` reaches in `after`, less those the same nodes had in `before`. For a valid, normalized `after`.
  */
-export function checkSeqChanges(before: Node, after: Node, changes: Changes): Issue[] {
+export function checkSeqChanges(
+  before: Node,
+  after: Node,
+  changes: Changes,
+  bounds: SpecBounds = DefaultSpecBounds,
+): Issue[] {
+  const look0 = lookupOf(after);
+  const deep = boundsOfChanges(look0, changes, bounds);
+  if (deep.length) return deep;
   const index = deriveIndex(before, after, changes);
-  const look = lookupOf(after);
+  const look = look0;
   const affected = new Set<string>();
   const queue: string[] = [];
   const touch = (address: string) => {
@@ -358,7 +399,10 @@ export function checkSeqChanges(before: Node, after: Node, changes: Changes): Is
     checkFollow(at, old, reportOld);
   }
   const known = new Set(wasKeys);
-  return issues.filter((_, i) => !known.has(keys[i]));
+  // what the change introduced, kept as the whole check keeps it: the first places of a code, the rest counted
+  const caps = new IssueCaps(bounds);
+  const introduced = issues.filter((issue, i) => !known.has(keys[i]) && caps.keep(issue.code, issue.address ?? '/'));
+  return [...introduced, ...caps.summary()];
 }
 
 function sectionFollow(look: SeqLookup, address: string): string | undefined {
@@ -374,4 +418,10 @@ function sectionFollow(look: SeqLookup, address: string): string | undefined {
  * The language's checks as `repr/patch`'s validator (`ApplyOptions.validators`): `checkSeqChanges`, so a patch is
  * refused for a `seq.lang.*` error it introduced and never for one already there.
  */
-export const SeqPatchValidator: PatchValidator = checkSeqChanges;
+export const SeqPatchValidator: PatchValidator = (before, after, changes) => checkSeqChanges(before, after, changes);
+
+/** `SeqPatchValidator` with other bounds than the defaults (a composition's `bounds` configuration). */
+export const seqPatchValidator =
+  (bounds: SpecBounds): PatchValidator =>
+  (before, after, changes) =>
+    checkSeqChanges(before, after, changes, bounds);

@@ -23,7 +23,14 @@ import {
   patchFromNode,
 } from '@molstar/core/repr/patch';
 import { hashNode, type Issue, issueOf, type Node, printAddress, resolveAddress } from '@molstar/core/repr/tree';
-import { SeqLanguage, SeqPatchValidator, SeqValidateOptions } from '@molstar/seqx-core/lang';
+import {
+  checkSpecBounds,
+  SeqLanguage,
+  SeqPatchValidator,
+  SeqValidateOptions,
+  seqBoundsValidator,
+  seqPatchValidator,
+} from '@molstar/seqx-core/lang';
 import { createResolver, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
@@ -40,7 +47,7 @@ import type {
 export type SpecChange = Node | ((root: Node) => Node);
 
 /** Why `apply` refused a whole root. */
-export type SpecRefusal = 'stale-revision';
+export type SpecRefusal = 'stale-revision' | 'out-of-bounds';
 
 export interface SpecApplyOptions {
   /** The revision the change was made against: refused when it is not the current one (EC-81). */
@@ -115,6 +122,7 @@ export const SpecPatchApply: ApplyOptions = {
 
 /** A preview at interactive rates: normalized and validated, not the language's own checks (they run at commit). */
 const PreviewApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidateOptions };
+// (the bounds on nesting and size run on a preview and a step too: `_previewOptions`, `_stepOptions`)
 
 /** A story step over what is shown: the language and its slots, refs followed, nothing else refused. */
 const StepApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidateOptions, allowDangling: true };
@@ -160,6 +168,7 @@ export interface ShownStep {
 
 export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private readonly _head: State<SpecCommit>;
+  private readonly _boundsIssues = new State<readonly Issue[]>([]);
   private readonly _preview = new State<Patch | undefined>(undefined);
   private readonly _stepId = new State<string | undefined>(undefined);
   private readonly _step = new State<ShownStep | undefined>(undefined);
@@ -197,6 +206,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   readonly model: ReadonlyState<StaticModel>;
   /** Why the preview was dropped, the step does not apply, an edit was masked: the last composition's, or edit's. */
   readonly issues: ReadonlyState<readonly Issue[]>;
+  /** The issues of the last whole root `apply` refused for its bounds (`seq.lang.bound.*`); empty after one it took. */
+  readonly boundsIssues: ReadonlyState<readonly Issue[]>;
   /** The last commit an edit made (the participant's face: a restore makes none). */
   readonly changed: ReadonlyState<SpecCommit>;
 
@@ -218,6 +229,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     this.shown = this._shown.asReadonly;
     this.issues = this._issues.asReadonly;
     this.changed = this._changed.asReadonly;
+    this.boundsIssues = this._boundsIssues.asReadonly;
     const resolver = createResolver(options);
     this.model = derive(this.shown, (s) => resolver.resolve(s));
   }
@@ -319,9 +331,21 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     return { ok: true, changed: true, commit, changes: r.changes, issues };
   }
 
+  /** A preview's options: no language checks at interactive rates, but the bounds of what it makes and sets. */
+  private _previewOptions(): ApplyOptions {
+    return { ...PreviewApply, validators: [seqBoundsValidator(this.config.bounds)] };
+  }
+
+  /** A story step's: the bounds too, so a stored step cannot build past them. */
+  private _stepOptions(): ApplyOptions {
+    return { ...StepApply, validators: [seqBoundsValidator(this.config.bounds)] };
+  }
+
   private _options(options: SpecPatchOptions): ApplyOptions {
     return {
       ...SpecPatchApply,
+      // the configuration's bounds on nesting, as the whole spec's check holds them
+      validators: [seqPatchValidator(this.config.bounds)],
       ...(options.requireBase ? { requireBase: true } : {}),
       ...(options.allowDangling ? { allowDangling: true } : {}),
       ...(options.allowRebind ? { allowRebind: true } : {}),
@@ -421,6 +445,11 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     if (options.against !== undefined && options.against !== head.revision) return 'stale-revision';
     const next = typeof change === 'function' ? change(head.root) : change;
     this._preview.set(undefined);
+    // the bounds first, before anything hashes or walks the root (a tree too deep for the stack): refused with the
+    // issues, the spec as it was
+    const bounded = next === head.root ? [] : checkSpecBounds(next, this.config.bounds);
+    this._boundsIssues.set(bounded);
+    if (bounded.length) return 'out-of-bounds';
     if (next === head.root || hashNode(next) === head.revision) {
       this._compose();
       return false;
@@ -542,7 +571,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   setPreview(patch: Patch): PatchResult {
     const p: Patch = { ops: patch.ops };
     const root = this._head.value.root;
-    const r = applyPatch(root, p, PreviewApply);
+    const r = applyPatch(root, p, this._previewOptions());
     if (!r.ok) return r;
     // composed from this result: one apply a move
     this._previewApplied = { root, patch: p, result: r.root };
@@ -632,7 +661,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
       const r =
         cached?.root === root && cached.patch === preview
           ? ({ ok: true, root: cached.result } as const)
-          : applyPatch(root, preview, PreviewApply);
+          : applyPatch(root, preview, this._previewOptions());
       if (r.ok) {
         edited = r.root;
         this._previewApplied = { root, patch: preview, result: r.root };
@@ -655,7 +684,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
       if (node?.kind !== 'snapshot') this._stepId.set(undefined);
       else {
         const patch = this._stepPatch(id);
-        const r = patch ? applyPatch(edited, patch, StepApply) : undefined;
+        const r = patch ? applyPatch(edited, patch, this._stepOptions()) : undefined;
         const label = typeof node.params?.label === 'string' ? node.params.label : id;
         if (r?.ok) shown = r.root;
         else

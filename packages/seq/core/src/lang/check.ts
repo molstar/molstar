@@ -22,6 +22,7 @@ import {
   type TreePath,
   type Value,
 } from '@molstar/core/repr/tree';
+import { checkSpecBounds, DefaultSpecBounds, IssueCaps, type SpecBounds } from './bounds.js';
 import { LangIssues } from './issues.js';
 import { SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
@@ -40,8 +41,12 @@ const MaxMajor = Number(SeqLanguageVersion.split('.')[0]);
  * The issues of a spec, in gates (_spec/README.md, Language): a newer major version is `seq.lang.version.unsupported`
  * alone (the description of this version says nothing of a newer spec); else the description's (`repr.*`, the tree
  * normalized, so a spec read from JSON has typed columns); and, when it has no error, the language's own (`seq.lang.*`).
+ * Before them all, the bounds on what the spec sizes (`checkSpecBounds`): a spec past one is refused with its issue
+ * alone, nothing else read (_spec/README.md, Language, Bounds).
  */
-export function checkSeqSpec(spec: Node): Issue[] {
+export function checkSeqSpec(spec: Node, bounds: SpecBounds = DefaultSpecBounds): Issue[] {
+  const bounded = checkSpecBounds(spec, bounds);
+  if (bounded.length) return bounded;
   const version = spec.kind === 'spec' ? spec.params?.version : undefined;
   const major = typeof version === 'string' ? /^(\d+)\./.exec(version) : null;
   if (major && Number(major[1]) > MaxMajor) {
@@ -54,15 +59,17 @@ export function checkSeqSpec(spec: Node): Issue[] {
   }
   const read = validateAndNormalize(SeqLanguage, spec, SeqValidateOptions);
   if (hasErrors(read.issues) || !read.node) return [...read.issues];
-  return [...read.issues, ...checkSeqLang(read.node)];
+  return [...read.issues, ...checkSeqLang(read.node, bounds)];
 }
 
 /**
  * The `seq.lang.*` checks alone, for a normalized tree that is valid against `SeqLanguage` and whose version is
- * readable.
+ * readable. The issues kept are bounded (`bounds.maxPlaces` a code, `maxNodeIssues` a node, the rest counted in one
+ * `seq.lang.bound.issues` a code).
  */
-export function checkSeqLang(spec: Node): Issue[] {
+export function checkSeqLang(spec: Node, bounds: SpecBounds = DefaultSpecBounds): Issue[] {
   const issues: Issue[] = [];
+  const caps = new IssueCaps(bounds);
   const all: Placed[] = [];
   const byAddress = new Map<string, Placed>();
   const visit = (node: Node, path: TreePath, address: readonly string[] | undefined, parent: Node) => {
@@ -76,9 +83,10 @@ export function checkSeqLang(spec: Node): Issue[] {
   all.push({ node: spec, path: [], address: '/' });
   spec.children?.forEach((c, i) => visit(c, ['children', i], [], spec));
   const look: SeqLookup = { spec, get: (a) => byAddress.get(a) };
-  const report = reporter(issues);
+  const report = reporter(issues, caps);
   for (const at of all) checkPlaced(at, look, report);
   for (const at of all) checkFollow(at, look, report);
+  issues.push(...caps.summary());
   return issues;
 }
 
@@ -100,8 +108,9 @@ export interface SeqLookup {
 export type Report = (code: Code, message: string, at: Placed, ...tail: (string | number)[]) => void;
 
 /** A `Report` that pushes each issue, with the node's step path and address, onto `issues`. */
-export function reporter(issues: Issue[]): Report {
+export function reporter(issues: Issue[], caps?: IssueCaps): Report {
   return (code, message, at, ...tail) => {
+    if (caps && !caps.keep(code, at.node)) return;
     const path = tail.length ? [...at.path, 'params', ...tail] : at.path;
     issues.push(
       issueOf(LangIssues, code, message, {

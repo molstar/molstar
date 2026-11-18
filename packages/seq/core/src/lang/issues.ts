@@ -125,3 +125,40 @@ export const LangIssues = defineIssues('seq.lang', {
     hint: 'Following is a chain that ends at a section that follows none',
   },
 });
+
+/** The bounds' codes (`bounds.ts`): what a spec sizes, refused before it is read (_spec/README.md, Language, Bounds). */
+export const BoundIssues = defineIssues('seq.lang.bound', {
+  'seq.lang.bound.size': {
+    severity: 'error',
+    description:
+      'A spec is larger decoded than the configuration allows (`bounds.maxBytes`, 64 MB); it is not read further',
+    hint: 'Put the data in sources the spec names, or raise the bound where the application composes it',
+  },
+  'seq.lang.bound.depth': {
+    severity: 'error',
+    description:
+      'The spec nests deeper than the configuration allows (`bounds.maxDepth`, 256 levels of nodes and values)',
+    hint: 'Flatten the tree',
+  },
+  'seq.lang.bound.shape': {
+    severity: 'error',
+    description: 'A node built in code is not a node: no record, no kind, or a children list that is no list',
+    hint: 'A node is a record with a `kind`; `children` is a list of nodes',
+  },
+  'seq.lang.bound.query_depth': {
+    severity: 'error',
+    description: 'A query form nests deeper than the configuration allows (`bounds.maxQueryDepth`, 64)',
+    hint: 'Name the nodes with refs instead of nested forms',
+  },
+  'seq.lang.bound.column': {
+    severity: 'error',
+    description: 'A column is longer than the configuration allows (`bounds.maxColumnLength`, 2^31 − 1)',
+    hint: 'Give the rows in a source, read by region',
+  },
+  'seq.lang.bound.issues': {
+    severity: 'warning',
+    description:
+      'A code was reported more often than the configuration keeps (`bounds.maxPlaces` places a code, `bounds.maxNodeIssues` a node); the rest are counted, not listed',
+    hint: 'Fix the first places; the rest are likely the same cause',
+  },
+});

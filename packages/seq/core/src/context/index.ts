@@ -13,7 +13,9 @@ export {
   BrowserAssetPolicy,
   checkLocation,
   HeadlessAssetPolicy,
+  headlessAssetPolicy,
   policyAssets,
+  rootUrl,
   utf8Length,
 } from './assets.js';
 export {
