@@ -244,7 +244,8 @@ export class AddressModel extends ReactiveModel {
    * the history runs it.
    */
   addRef(ref: RefInput, options: { readonly origin?: EditOrigin } = {}): AddRefResult | Promise<AddRefResult> {
-    const outcome = this.spec.patch('Add a bookmark', addRefPatch(this.spec.root.value, ref), options);
+    // made from the root the edit runs on: bookmarks added one after another each apply
+    const outcome = this.spec.patch('Add a bookmark', (root) => addRefPatch(root, ref), options);
     const result = (o: EditOutcome): AddRefResult => (o.ok ? true : o.issues);
     return outcome instanceof Promise ? outcome.then(result) : result(outcome);
   }

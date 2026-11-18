@@ -148,6 +148,23 @@ describe('every change has a kind', () => {
     }
   });
 
+  it('commands issued together, without waiting, each apply: one step each, in order', async () => {
+    const v = await make();
+    const runs = [
+      v.execute('layer.hide', { address: LettersLayer }),
+      v.execute('track.move', { address: DomainsTrack, after: null }),
+      v.execute('layer.color', { address: `${DomainsTrack}/d`, color: '#d62728' }),
+      v.execute('refs.add', { ref: { id: 'here', to: '/data/p/(range :from 1 :to 5)' } }),
+    ];
+    expect(await Promise.all(runs)).toEqual(['Hidden', 'Moved', 'Colored', 'Bookmarked']);
+    expect(stackOf(v).steps.value.map((s) => s.label)).toEqual([
+      'Add a bookmark',
+      'Color a layer',
+      'Move a track',
+      'Hide a layer',
+    ]);
+  });
+
   it('undo touches only spec patches: the session, the viewports and the step shown stay', async () => {
     const v = await make();
     const root = v.spec.root.value;

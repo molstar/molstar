@@ -72,9 +72,13 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       o.ok
         ? { message: o.changed ? done : 'Already so', undoable: o.changed }
         : { message: o.issues.find((i) => i.severity === 'error')?.message ?? 'Refused' };
-  /** One patch made against the root read now: a stale one is refused. */
-  const edit = (label: string, ops: Op[], ctx: EditingContext, done: string) => {
-    const o = spec.patch(label, { base: spec.revision.value, ops }, ctx.origin ? { origin: ctx.origin } : {});
+  /** One patch made when the edit runs, against the revision it runs on: commands issued together each apply. */
+  const edit = (label: string, ops: (root: Node) => Op[], ctx: EditingContext, done: string) => {
+    const o = spec.patch(
+      label,
+      (root, revision) => ({ base: revision, ops: ops(root) }),
+      ctx.origin ? { origin: ctx.origin } : {},
+    );
     return o instanceof Promise ? o.then(said(done)) : said(done)(o);
   };
   const needs =
@@ -82,8 +86,8 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
     (ctx: EditingContext): true | string =>
       disposed ? 'The viewer is retired' : nodeOf(spec.root.value, ctx.address, kind) ? true : `No ${what} there`;
 
-  const layersOf = (track: string) =>
-    (nodeOf(spec.root.value, track, 'track')?.children ?? []).flatMap((c) => (c.id === undefined ? [] : [c.id]));
+  const layersOf = (root: Node, track: string) =>
+    (nodeOf(root, track, 'track')?.children ?? []).flatMap((c) => (c.id === undefined ? [] : [c.id]));
 
   const commands: CommandDefinition<EditingContext>[] = [
     {
@@ -92,14 +96,15 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       category: 'Edit',
       when: needs('layer', 'layer'),
       run: (_, ctx) =>
-        edit('Hide a layer', [{ op: 'set', at: ids(ctx.address!), key: 'hidden', value: true }], ctx, 'Hidden'),
+        edit('Hide a layer', () => [{ op: 'set', at: ids(ctx.address!), key: 'hidden', value: true }], ctx, 'Hidden'),
     },
     {
       id: EditingCommandIds.showLayer,
       title: 'Show a layer',
       category: 'Edit',
       when: needs('layer', 'layer'),
-      run: (_, ctx) => edit('Show a layer', [{ op: 'unset', at: ids(ctx.address!), key: 'hidden' }], ctx, 'Shown'),
+      run: (_, ctx) =>
+        edit('Show a layer', () => [{ op: 'unset', at: ids(ctx.address!), key: 'hidden' }], ctx, 'Shown'),
     },
     {
       id: EditingCommandIds.colorLayer,
@@ -110,7 +115,12 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
         return can !== true ? can : ctx.color === undefined ? 'No color' : true;
       },
       run: (_, ctx) =>
-        edit('Color a layer', [{ op: 'set', at: ids(ctx.address!), key: 'color', value: ctx.color! }], ctx, 'Colored'),
+        edit(
+          'Color a layer',
+          () => [{ op: 'set', at: ids(ctx.address!), key: 'color', value: ctx.color! }],
+          ctx,
+          'Colored',
+        ),
     },
     {
       id: EditingCommandIds.hideTrack,
@@ -120,7 +130,13 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       run: (_, ctx) =>
         edit(
           'Hide a track',
-          layersOf(ctx.address!).map((l) => ({ op: 'set', at: [...ids(ctx.address!), l], key: 'hidden', value: true })),
+          (root) =>
+            layersOf(root, ctx.address!).map((l) => ({
+              op: 'set',
+              at: [...ids(ctx.address!), l],
+              key: 'hidden',
+              value: true,
+            })),
           ctx,
           'Hidden',
         ),
@@ -133,7 +149,8 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       run: (_, ctx) =>
         edit(
           'Show a track',
-          layersOf(ctx.address!).map((l) => ({ op: 'unset', at: [...ids(ctx.address!), l], key: 'hidden' })),
+          (root) =>
+            layersOf(root, ctx.address!).map((l) => ({ op: 'unset', at: [...ids(ctx.address!), l], key: 'hidden' })),
           ctx,
           'Shown',
         ),
@@ -150,7 +167,7 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
         const at = ids(ctx.address!);
         return edit(
           'Move a track',
-          [{ op: 'move', at, parent: at.slice(0, -1), place: { after: ctx.after ?? null } }],
+          () => [{ op: 'move', at, parent: at.slice(0, -1), place: { after: ctx.after ?? null } }],
           ctx,
           'Moved',
         );
@@ -161,7 +178,7 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       title: 'Remove a bookmark',
       category: 'Edit',
       when: needs('ref', 'ref'),
-      run: (_, ctx) => edit('Remove a bookmark', [{ op: 'remove', at: ids(ctx.address!) }], ctx, 'Removed'),
+      run: (_, ctx) => edit('Remove a bookmark', () => [{ op: 'remove', at: ids(ctx.address!) }], ctx, 'Removed'),
     },
     {
       id: EditingCommandIds.enterStep,

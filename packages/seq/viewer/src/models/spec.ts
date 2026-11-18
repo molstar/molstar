@@ -80,6 +80,9 @@ export type SpecPatchResult =
       readonly partial?: Node;
     };
 
+/** Patches made from the root and revision an edit runs on (`SpecModel.patch`). */
+export type PatchMaker = (root: Node, revision: string) => Patch | readonly Patch[];
+
 /** What an edit did: every patch it applied, whether any changed the spec, whether all applied. */
 export interface EditOutcome {
   readonly ok: boolean;
@@ -438,17 +441,22 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     });
   }
 
-  /** Applies patches as one edit (one step), in order; all or nothing. */
+  /**
+   * Applies patches as one edit (one step), in order; all or nothing. `patches` may be a function of the root and
+   * revision the edit runs on: a command's patch is made there, when the history runs it, so edits issued one after
+   * another without waiting each apply to the one before (made earlier, the second would be stale).
+   */
   patch(
     label: string,
-    patches: Patch | readonly Patch[],
+    patches: Patch | readonly Patch[] | PatchMaker,
     options: { readonly origin?: EditOrigin } & Omit<SpecPatchOptions, 'context'> = {},
   ): EditOutcome | Promise<EditOutcome> {
     const { origin, ...o } = options;
-    const list = Array.isArray(patches) ? patches : [patches as Patch];
     return this.edit(
       label,
       (e) => {
+        const made = typeof patches === 'function' ? patches(this.root.value, this.revision.value) : patches;
+        const list: readonly Patch[] = Array.isArray(made) ? made : [made as Patch];
         for (const p of list) if (!e.apply(p, o).ok) break;
       },
       origin ? { origin } : {},
