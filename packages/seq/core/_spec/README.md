@@ -52,9 +52,11 @@ checks it cannot express.
   `source` names a source, that `follow` chains end. Extents are checked where the letters are inline.
 - **Patches** are `@molstar/core/repr/patch`'s, applied with `SeqLanguage`: its conformance suite runs over the core's
   cases and Seq's own (a layer hidden, a track moved with a section's `follow` following a rename, a dangling ref
-  refused, a layer without an id refused), and a 10-op patch on the p53 spec, applied and diffed back, is held under 1
-  ms in the heavy lane (`_test/patches.test.ts`). The slots' languages are `SeqValidateOptions` (`seqLanguages`: the
-  stored patches' `seq.patch`), which validation, the builder and `applyPatch` take.
+  refused, a layer without an id refused; with the checks of a change and the slots, a `seq.lang` refusal, a story step
+  following a rename and counting in link integrity, a step with a base refused), and a 10-op patch on the p53 spec,
+  applied and diffed back, is held under 1 ms in the heavy lane (`_test/patches.test.ts`). The slots' languages are
+  `SeqValidateOptions` (`seqLanguages`: the stored patches' `seq.patch`), which validation, the builder and `applyPatch`
+  take.
 - **Checks of a change** (`check-changes.ts`, `checkSeqChanges`, `SeqPatchValidator`): the `seq.lang.*` checks as
   `repr/patch`'s validator, on what a patch's `Changes` reach: the nodes it made, set or moved; what names them, found
   through a reverse index of the spec's references kept per revision and derived from the last one along its changes; on
