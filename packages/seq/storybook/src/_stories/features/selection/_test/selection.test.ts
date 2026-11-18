@@ -162,11 +162,12 @@ describe('Selection, headless', () => {
     const gene = v.frame!.layout.sections[1];
     const y = gene.tracks[0].box.y + 2;
     const before = v.view.get('/views/main/protein')!;
-    // a wheel over the gene pans; the protein, whose gene is on the minus strand, the other way
+    // a wheel over the gene pans; the protein the same way on screen: the gene reads along it (`follow`), its minus
+    // strand laid out reversed
     v.input.wheel(gene.axis!.x0 + 100, y, { deltaX: 60, deltaY: 0 });
     await vi.advanceTimersByTimeAsync(20);
     const panned = v.view.get('/views/main/protein')!;
-    expect(panned.start).toBeLessThan(before.start);
+    expect(panned.start).toBeGreaterThan(before.start);
     expect(panned.end - panned.start).toBeCloseTo(before.end - before.start, 6);
     // a pinch over the gene zooms both
     v.input.wheel(gene.axis!.x0 + 100, y, { deltaX: 0, deltaY: -20, ctrlKey: true });

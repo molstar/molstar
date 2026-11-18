@@ -16,7 +16,7 @@ import { inversePath, type Path, projectEnd, projectPoint } from '@molstar/seqx-
 import {
   type Axis,
   type Follow,
-  followRange,
+  followWindow,
   type ResolvedSection,
   type ResolvedView,
   resolveView,
@@ -491,24 +491,32 @@ export class ViewModel extends ReactiveModel {
     const total = axisTotal(axis);
     if (!lead || !v || total === undefined) return false;
     const la = follow.leaderAxis;
-    const ps = positionAt(la, lead.start);
-    const pe = positionAt(la, lead.end);
-    if (ps === undefined || pe === undefined) return false;
+    const l0 = positionAt(la, lead.start, 'start');
+    const l1 = positionAt(la, lead.end, 'end');
+    if (l0 === undefined || l1 === undefined) return false;
+    // the leader's window in positions, lowest first (a reversed leader's start is its highest)
+    const ps = Math.min(l0, l1);
+    const pe = Math.max(l0, l1);
     if (delta !== undefined) {
       // the image of the leader's window before the follower's clamp, moved by the pan
-      const image = carried(s.section, follow, ps, pe, this.config);
-      const a = image && nearestOffsetOf(axis, image[0]);
-      const b = image && nearestOffsetOf(axis, image[1]);
-      if (a !== undefined && b !== undefined && a < b) [start, end] = [a + delta, b + delta];
+      const w = followWindow(s.section, la, axis, lead.start, lead.end, this._arc());
+      if (w && !w.wraps && w.start < w.end) [start, end] = [w.start + delta, w.end + delta];
     }
     // a cyclic follower's range over its origin runs past the total
-    const pos = (o: number) => positionAt(axis, axis.cyclic && o > total ? o - total : o);
-    const lo = pos(start);
-    const hi = pos(end);
+    const pos = (o: number, side: 'start' | 'end') => positionAt(axis, axis.cyclic && o > total ? o - total : o, side);
+    const f0 = pos(start, 'start');
+    const f1 = pos(end, 'end');
+    // the follower's ends in positions, lowest first, with the way each moved there (navigation is in display order:
+    // on a reversed follower an end moved right moved down)
+    const rev = axis.dir === -1;
+    const lo = rev ? f1 : f0;
+    const hi = rev ? f0 : f1;
+    const mLo = rev ? -me : ms;
+    const mHi = rev ? -ms : me;
     const inv = inverseOf(follow.path);
-    const xLo = lo === undefined ? undefined : backTo(follow, inv, axis, lo, ms);
-    const xHi = hi === undefined ? undefined : backTo(follow, inv, axis, hi, me);
-    // the follower's start is the image of the leader's start, or of its end on a minus strand
+    const xLo = lo === undefined ? undefined : backTo(follow, inv, axis, lo, mLo);
+    const xHi = hi === undefined ? undefined : backTo(follow, inv, axis, hi, mHi);
+    // the leader's lowest position is the preimage of the follower's lowest, or of its highest on a minus strand
     let a = follow.dir === 1 ? xLo : xHi;
     let b = follow.dir === 1 ? xHi : xLo;
     if (delta !== undefined) {
@@ -517,16 +525,25 @@ export class ViewModel extends ReactiveModel {
       if (b === undefined) b = pe + (a - ps);
     } else {
       // an end moved outward past every image: the leader's axis edge on that side (its clamp keeps it in)
-      const startOut = follow.dir === 1 ? ms < 0 : me > 0;
-      const endOut = follow.dir === 1 ? me > 0 : ms < 0;
+      const lowOut = follow.dir === 1 ? mLo < 0 : mHi > 0;
+      const highOut = follow.dir === 1 ? mHi > 0 : mLo < 0;
       const lt = axisTotal(la);
-      a ??= startOut && lt !== undefined ? (positionAt(la, 0) ?? ps) : ps;
-      b ??= endOut && lt !== undefined ? (positionAt(la, lt) ?? pe) : pe;
+      const e0 = lt === undefined ? undefined : positionAt(la, 0, 'start');
+      const e1 = lt === undefined ? undefined : positionAt(la, lt, 'end');
+      const lowEdge = e0 === undefined || e1 === undefined ? ps : Math.min(e0, e1);
+      const highEdge = e0 === undefined || e1 === undefined ? pe : Math.max(e0, e1);
+      a ??= lowOut ? lowEdge : ps;
+      b ??= highOut ? highEdge : pe;
     }
     const oa = nearestOffsetOf(la, a);
     const ob = nearestOffsetOf(la, b);
     if (oa === undefined || ob === undefined || oa === ob) return false;
     return this.setRange(follow.leader, Math.min(oa, ob), Math.max(oa, ob));
+  }
+
+  /** The arc a cyclic follower takes (`follow.cyclicArc`). */
+  private _arc(): 'shortest' | 'hull' {
+    return this.config.follow.cyclicArc === 'hull' ? 'hull' : 'shortest';
   }
 
   private _groupOf(s: SectionState): Group | undefined {
@@ -698,24 +715,21 @@ export class ViewModel extends ReactiveModel {
     let start = prev?.start ?? 0;
     let end = prev?.end ?? total ?? 0;
     let pieces: readonly number[] | undefined = prev?.pieces;
-    const ps = positionAt(follow.leaderAxis, lead.start);
-    const pe = positionAt(follow.leaderAxis, lead.end);
-    const range = ps === undefined || pe === undefined ? undefined : carried(s.section, follow, ps, pe, this.config);
-    if (range && total !== undefined) {
-      const [lo, hi] = range;
-      const a = nearestOffsetOf(axis, lo);
-      const b = nearestOffsetOf(axis, hi);
-      if (a !== undefined && b !== undefined) {
-        if (a > b && axis.cyclic) {
-          // over the origin: on to the total, then from 0
-          start = a;
-          end = total + b;
-          pieces = [a, total, 0, b];
-        } else {
-          [start, end] = [Math.min(a, b), Math.max(a, b)];
-          pieces = undefined;
-          if (s.width > 0) [start, end] = clampRange(start, end, total, s.width, this.config.viewport.maxPxPerPosition);
-        }
+    const w =
+      total === undefined
+        ? undefined
+        : followWindow(s.section, follow.leaderAxis, axis, lead.start, lead.end, this._arc());
+    if (w && total !== undefined) {
+      if (w.wraps) {
+        // over the origin: on to the total, then from 0
+        start = w.start;
+        end = total + w.end;
+        pieces = [w.start, total, 0, w.end];
+      } else {
+        start = w.start;
+        end = w.end;
+        pieces = undefined;
+        if (s.width > 0) [start, end] = clampRange(start, end, total, s.width, this.config.viewport.maxPxPerPosition);
       }
     }
     this._set(address, start, end, s, pending, follow.leader, pieces);
@@ -745,36 +759,6 @@ function carry(key: string, section: ResolvedSection, prev: Group | undefined): 
   if (c === undefined) return group;
   const half = (prev.end - prev.start) / 2;
   return { ...group, start: c - half, end: c + half, fitted: false };
-}
-
-/** A leader's `[ps, pe)` positions carried to the follower's positions, `[lo, hi]` in its display direction. */
-function carried(
-  section: ResolvedSection,
-  follow: Follow,
-  ps: number,
-  pe: number,
-  config: ViewerConfig,
-): [number, number] | undefined {
-  let a = follow.point(ps);
-  let b = projectEnd(follow.path, pe);
-  if (a === undefined || b === undefined) {
-    const arc = config.follow.cyclicArc === 'hull' ? 'hull' : 'shortest';
-    const hull = followRange(section, [Math.floor(ps), Math.ceil(pe)], { arc });
-    if (!hull || hull.length < 2) return undefined;
-    const lo = hull[0];
-    const hi = hull[hull.length - 1];
-    if (a === undefined) a = follow.dir === 1 ? lo : hi;
-    if (b === undefined) b = follow.dir === 1 ? hi : lo;
-  }
-  const [lo, hi] = follow.dir === 1 ? [a, b] : [b, a];
-  // ends past each other: over a cyclic follower's origin, the wrap (or its hull when asked); on a linear follower,
-  // the leader's range wraps the coding sequence's origin, so the hull of the image
-  if (lo > hi || (lo === hi && pe > ps)) {
-    if (section.axis.cyclic && config.follow.cyclicArc !== 'hull') return [lo, hi];
-    const hull = followRange(section, [Math.floor(ps), Math.ceil(pe)], { arc: 'hull' });
-    return hull && hull.length >= 2 ? [hull[0], hull[hull.length - 1]] : undefined;
-  }
-  return [lo, hi];
 }
 
 /** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */

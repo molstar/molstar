@@ -890,13 +890,20 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 ### Tracks layout
 
 - Sections stacked; each an `AxisTransform`: its pieces (`[start, end, …]` in display order) end to end as display
-  units, the viewport a window of them (`{ start, end }`, all by default) across the data box. A span that only touches
-  the view's edge is not in view (a boundary on the edge is).
+  units in its direction (a reversed piece `[s, e)` shows `e − 1 − k` at its offset `k`, EC-32), the viewport a window
+  of them (`{ start, end }`, all by default; `viewports` by section address before it) across the data box. Both ways:
+  a position's cell (`cell`, its x extents left to right), a span's x extents per piece (`spanIn`, `spans`) with the cut
+  flags on the screen's sides (on a reversed piece a range's start is on the right), the position under x
+  (`positionAt`), the positions in view (`visible`), the breaks in view (`breaks`). Lookups are binary searches over the
+  pieces, and a layer's loop over the pieces a range touches is `piecesIn`'s (the pieces in view it may touch): a pan
+  over a reversed axis of 150,000 pieces (EC-33) never scans them. A span that only touches the view's edge is not in
+  view (a boundary on the edge is). Marks mirror with the axis: an item's real ends are round wherever they land, a
+  piece's cut ends square (the frame rule).
 - **Leaders first**: axes are made in the order of `follow`, so a follower placed above its leader follows it; a leader
   not in the view is `seq.render.follow.leader`, a cycle `seq.render.follow.cycle`, and the section shows its own range.
-- **A follower follows continuously**: its window is the images of its leader's window edges (`point`), in genomic
-  order; where an edge maps nowhere, the leader's view has two pieces or the window wraps a cyclic origin, the hull (or
-  arc, `followArc`) of the leader's positions in view (`followRange`).
+- **A follower follows continuously**: its window is the images of its leader's window edges as offsets along its own
+  pieces in its direction (`followWindow`, the viewer's too: one implementation); a window over a cyclic follower's
+  origin is drawn over the arc's pieces (`followRange`, `followArc`).
 - A section whose length is unknown takes the length its source's coverage gives once attached, else waits
   (`seq.render.axis.pending`).
 - **Templates** are expanded here over the frame's overlay (`expandTemplate`), at most `maxTemplateTracks` instances

@@ -26,7 +26,9 @@ export function build(): Node {
     const protein = v.section('protein', { of: p53 });
     protein.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
     protein.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: domains });
-    const g = v.section('gene', { of: gene, follow: protein });
+    // the application drives the composition: the gene reads along its protein (`follow`, the default, written out)
+    // and shows its coding pieces, its introns collapsed to a hairline each
+    const g = v.section('gene', { of: gene, follow: protein, direction: 'follow', pieces: 'coding' });
     g.track('letters', { label: 'TP53' }).layer('letters', { type: 'letters' });
     g.track('domains', { label: 'Domains on the gene' }).layer('ranges', { type: 'ranges', data: domains });
   });

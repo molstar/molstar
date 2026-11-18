@@ -175,8 +175,9 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
         lay.code[j] = code;
         lay.fill[j] = fill;
         lay.ink[j] = inkOn(fill, tokens);
-        lay.x0[j] = axis.snap(axis.x(p));
-        lay.x1[j] = axis.snap(axis.x(p + 1));
+        axis.cell(p);
+        lay.x0[j] = axis.snap(axis.sx0);
+        lay.x1[j] = axis.snap(axis.sx1);
       }
     }
     placeholderSpans(src, axis, read.pending, lay.pending);

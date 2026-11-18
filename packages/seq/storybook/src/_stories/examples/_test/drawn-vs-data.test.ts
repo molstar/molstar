@@ -9,6 +9,7 @@ import { P53Views } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { Domains, GeneExons, GeneFile } from '@molstar/seqx-examples/p53/data';
 import { GeneOffset, Transcripts } from '@molstar/seqx-examples/p53/region';
+import { offsetOf } from '@molstar/seqx-core/view';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { checkMarks, openExample } from './draw-checks.js';
@@ -120,12 +121,28 @@ function drawnIn(v: SeqViewer, lay: RangesLay): [number, number][] {
 }
 
 /**
- * Every row with a piece in `[from, to)` has an item in the layer, drawn in as many marks as it has pieces in the
- * window, each inside the layer's box; no mark is drawn that no row accounts for. Returns what is wrong.
+ * Every row with a piece in the section's window has an item in the layer, drawn in as many marks as it has pieces in
+ * the window, each inside the layer's box; no mark is drawn that no row accounts for. A piece is placed by the
+ * section's axis (its direction and pieces: `offsetOf`, the view's own reading of positions), never by the layout's.
+ * Returns what is wrong.
  */
-function checkRows(v: SeqViewer, lay: RangesLay, rows: readonly Row[], from: number, to: number): string[] {
+function checkRows(v: SeqViewer, lay: RangesLay, rows: readonly Row[]): string[] {
   const wrong: string[] = [];
-  const inWindow = (r: Row) => r.pieces.filter(([a, b]) => b > from && a < to);
+  const owner = v.frame!.layout.sections.find((x) => x.tracks.some((t) => t.layers.some((l) => l.lay === lay)))!;
+  const vp = v.view.get(owner.section.address)!;
+  const axis = owner.section.axis;
+  // a piece's offsets along the axis, lowest first (a piece on a reversed axis runs down)
+  const offsets = ([a, b]: readonly [number, number]): [number, number] => {
+    const x = axis.ranges ? offsetOf(axis, a) : a;
+    const y = axis.ranges ? offsetOf(axis, b) : b;
+    if (x === undefined || y === undefined) return [Number.NaN, Number.NaN];
+    return [Math.min(x, y), Math.max(x, y)];
+  };
+  const inWindow = (r: Row) =>
+    r.pieces.filter((p) => {
+      const [a, b] = offsets(p);
+      return b > vp.start && a < vp.end;
+    });
   const expected = rows.filter((r) => inWindow(r).length);
   const draws = drawnIn(v, lay);
   for (const r of expected) {
@@ -140,16 +157,15 @@ function checkRows(v: SeqViewer, lay: RangesLay, rows: readonly Row[], from: num
       if (!(x1 > x0) || x1 < lay.box.x || x0 > lay.box.x + lay.box.width)
         wrong.push(`${lay.key}: ${r.id} mark ${x0}–${x1} is outside its box`);
     // and the canvas draws each piece: a rect (alone or in a merged run) over the middle of its visible part
-    const owner = v.frame!.layout.sections.find((x) => x.tracks.some((t) => t.layers.some((l) => l.lay === lay)))!;
-    const vp = v.view.get(owner.section.address)!;
-    const px = (position: number) => lay.box.x + ((position - vp.start) * lay.box.width) / (vp.end - vp.start);
-    for (const [a, b] of inWindow(r)) {
+    const px = (o: number) => lay.box.x + ((o - vp.start) * lay.box.width) / (vp.end - vp.start);
+    for (const piece of inWindow(r)) {
+      const [a, b] = offsets(piece);
       const mid =
         (Math.max(px(Math.max(a, vp.start)), lay.box.x) +
           Math.min(px(Math.min(b, vp.end)), lay.box.x + lay.box.width)) /
         2;
       if (!draws.some(([x0, x1]) => x0 - 1 <= mid && mid <= x1 + 1))
-        wrong.push(`${lay.key}: ${r.id} piece [${a}, ${b}) is not drawn (x ${mid.toFixed(1)})`);
+        wrong.push(`${lay.key}: ${r.id} piece [${piece[0]}, ${piece[1]}) is not drawn (x ${mid.toFixed(1)})`);
     }
   }
   const total = expected.reduce((n, r) => n + inWindow(r).length, 0);
@@ -171,7 +187,7 @@ describe('Tracks: drawing against the data', () => {
   it('at the fit view, every domain has its mark and every mark is hit', async () => {
     const v = await open('tracks');
     const lay = layerIn(v, 'protein', 'domains')!;
-    expect(checkRows(v, lay, rows, 0, 393)).toEqual([]);
+    expect(checkRows(v, lay, rows)).toEqual([]);
     expect(checkMarks(v).wrong).toEqual([]);
   });
 
@@ -180,7 +196,7 @@ describe('Tracks: drawing against the data', () => {
     v.view.setRange(`${ViewId}/protein`, 55, 100);
     v.draw();
     const lay = layerIn(v, 'protein', 'domains')!;
-    expect(checkRows(v, lay, rows, 55, 100)).toEqual([]);
+    expect(checkRows(v, lay, rows)).toEqual([]);
     expect(lay.hn).toBe(3);
     expect(checkMarks(v).wrong).toEqual([]);
   });
@@ -193,10 +209,9 @@ describe('Protein on its gene: drawing against the data', () => {
 
   it('at the fit view, every domain has its mark on the protein and each of its exon pieces on the gene', async () => {
     const v = await open('protein-on-gene');
-    expect(checkRows(v, layerIn(v, 'protein', 'domains')!, protein, 0, 393)).toEqual([]);
+    expect(checkRows(v, layerIn(v, 'protein', 'domains')!, protein)).toEqual([]);
     const gene = layerIn(v, 'gene', 'domains')!;
-    const w = v.view.get(`${ViewId}/gene`)!;
-    expect(checkRows(v, gene, onGene, Math.floor(w.start), Math.ceil(w.end))).toEqual([]);
+    expect(checkRows(v, gene, onGene)).toEqual([]);
     expect(checkMarks(v).wrong).toEqual([]);
   });
 
@@ -208,10 +223,15 @@ describe('Protein on its gene: drawing against the data', () => {
     v.draw();
     const w = v.view.get(`${ViewId}/gene`)!;
     const lay = layerIn(v, 'gene', 'domains')!;
-    expect(checkRows(v, lay, onGene, Math.floor(w.start), Math.ceil(w.end))).toEqual([]);
+    expect(checkRows(v, lay, onGene)).toEqual([]);
     // the DNA-binding domain (93 to 292) is in two pieces here, one each side of the intron: the check is not vacuous
     const dbd = onGene.find((r) => r.id === 'DBD')!;
-    expect(dbd.pieces.filter(([a, b]) => b > w.start && a < w.end).length).toBe(2);
+    const axis = v.view.resolved.value!.sections[1].axis;
+    const shown = dbd.pieces.filter(([a, b]) => {
+      const [x, y] = [offsetOf(axis, a)!, offsetOf(axis, b)!];
+      return Math.max(x, y) > w.start && Math.min(x, y) < w.end;
+    });
+    expect(shown.length).toBe(2);
     expect(marksOf(lay, dbd)?.length).toBe(2);
     expect(checkMarks(v).wrong).toEqual([]);
   });
@@ -247,11 +267,11 @@ describe('Gene by region: drawing against the data', () => {
     for (const id of ids) {
       const t = transcriptLayer(v, id);
       if (!t) wrong.push(`no track for ${id}`);
-      else wrong.push(...checkRows(v, t, transcriptRows(id), from, to));
+      else wrong.push(...checkRows(v, t, transcriptRows(id)));
       if (Transcripts[id].domains) {
         const d = domainsLayer(v, id);
         if (!d) wrong.push(`no domains track for ${id}`);
-        else wrong.push(...checkRows(v, d, domainsOn(id), from, to));
+        else wrong.push(...checkRows(v, d, domainsOn(id)));
       }
     }
     expect(wrong).toEqual([]);

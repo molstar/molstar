@@ -77,15 +77,22 @@ leaders before followers, so a listener of one section reads the others consiste
 nothing and tells nothing.
 
 - **A viewport** is `{ start, end, top, width, pending, leader?, pieces? }`: `[start, end)` in offsets along the axis in
-  display order (0 at the first position shown), fractional. Why offsets: a section's `range` and a cyclic range over
-  the origin read like a whole system; `positionAt` and `offsetOf` convert. A saved session (`session()`, to come)
-  stores positions, never offsets: offsets change meaning when the axis does.
-- **Scroll groups** (EC-113): sections on equal axes (system, length, pieces) share one range; each keeps its own `top`
+  display order (0 at the first position shown), fractional. Why offsets: a section's `range`, a cyclic range over
+  the origin, a reversed axis and collapsed pieces read like a whole system; the core's `positionAt`, `offsetOf`,
+  `cellOffset` and `elementAt` convert through the pieces and the direction (`models/axis.ts` re-exports them: one
+  implementation, the renderer's too). A saved session (`session()`, to come) stores positions, never offsets: offsets
+  change meaning when the axis does. Navigation is in display order (a drag, the wheel, the pan keys, the cursor's
+  arrows move what is on screen the way the hand or key goes, whatever the direction).
+- **Scroll groups** (EC-113): sections on equal axes (system, length, pieces, direction) share one range; each keeps its own `top`
   and width (`viewport.groupEqualAxes`, true). An axis whose length is pending has no pieces: its group key holds the
   section's own `range`, so only equal ranges group.
-- **Follow** (EC-113, EC-114): a follower's range is its leader's carried along the resolved follow path at its scale
-  (1, 3 or 1/3). Each end is the continuous image of the leader's (`point` at the start; at a whole end, the far edge of
-  the last element's last place), so it moves smoothly within a run and is exact at element edges, over an intron too;
+- **Follow** (EC-113, EC-114): a follower's window is the image of its leader's window edges in display order
+  (`followWindow`, the core's, the renderer's too): the leader's offsets read as positions (a break's sides as a
+  window's start and end), carried along the follow path, read as offsets along the follower's own pieces in its
+  direction. Each end is the continuous image of the leader's (`point` at the start; at a whole end, `projectEnd`, the
+  far edge of the last place), place by place (each nucleotide of a split codon its own edge), so it moves smoothly and
+  is exact at element edges; on a coding axis (`pieces: coding`, no `pad`, no `range` cutting the coding sequence) the
+  follower's offsets are exactly three times the leader's positions;
   where an end maps nowhere (a UTR) it is the end of the hull of the whole positions' image (`followRange`); ends that
   pass each other on a linear follower (a leader range over the coding sequence's origin) give the hull. On a cyclic
   follower a range over the origin wraps: `end` passes the total and `pieces` is `[start, total, 0, end − total]`
@@ -93,10 +100,10 @@ nothing and tells nothing.
   is. Follows chain.
 - **A follower leads** (`follow.followerMoves`: `lead`): a pan, a zoom or a pinch asked of an attached follower moves
   its leader through the inverse of the forward map (each end to the leader place whose `point` image it is), so the
-  follower shows what was asked and every section moves in step; on a minus strand the follower's ends are the images of
-  the leader's other ends, so its pan moves the leader the other way. Where an end is in no element's image (an intron,
-  a UTR, the nucleotides of a codon split by an intron that its image does not run over) it takes the nearest image the
-  way it moved, so a pan steps over a gap and never sticks. A pan moves the follower's image of the leader's window
+  follower shows what was asked and every section moves in step; the ends are read in positions (on a reversed axis an
+  end moved right moved down), so with `follow` a pan of the gene moves the protein the same way on screen, and with an
+  explicit `genomic` on a minus strand the other way. Where an end is in no place's image (an intron, a UTR) it takes
+  the nearest image the way it moved, so a pan steps over a gap and never sticks. A pan moves the follower's image of the leader's window
   before its own clamp, so the leader keeps its width (the window a clamp widened, carried back, would zoom it out); one
   whose other end lies past every image moves the leader by the one end's step. A zoom or a range with an end moved
   outward past every image takes the leader's axis edge on that side, so a zoom out never stalls; inward, the leader's
@@ -170,7 +177,9 @@ nothing and tells nothing.
   between the two ends, whole items at the ends when it began on one and the pointer is over one, by the drag's mode:
   `replace` (the selection becomes it), `add`, `subtract` (to or from the selection the drag began with), `extend` (the
   anchor's range reaches to it; with no anchor on its system, a replace); a cancel gives back the selection, the anchor
-  and what an extend keeps. Why methods: a binding, a key and a test act alike, and a drag step is a call, not a
+  and what an extend keeps. The range between two ends is taken in display offsets on the hit's axis, piece by piece in
+  its direction: across a collapsed break, the positions shown between the ends (`selection.acrossBreaks`: `shown`;
+  `span` adds the hidden stretches, the hull). Why methods: a binding, a key and a test act alike, and a drag step is a call, not a
   command.
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
@@ -211,7 +220,9 @@ over `overlayQueryModel` of the static model and `StoreModel.currentOverlay`, th
 syncing sources), with the `address.*` settings as bounds.
 
 - **Actions**: `focus` (each leading, movable section whose system the address has positions on, or reaches by a static
-  path, shows their hull; one move a scroll group; followers follow), `reveal` (nothing when shown; a pan to its center
+  path, shows their hull in display offsets, hidden stretches taking no width; one move a scroll group; followers
+  follow; what lies wholly in a hidden stretch moves the section to its break, centered, the zoom kept, and the outcome
+  says so and names `section.collapse`: `movedToBreak`), `reveal` (nothing when shown; a pan to its center
   when it fits; else a focus), `select`, `highlightAddress` (a channel, `links.highlightChannel` by default),
   `hoverAddress` (the links' own channel, `links.hoverChannel`, EC-182: the pointer's hover is left alone), `unhover`,
   `clearHighlight(channel?)` (one channel or all). Each answers an outcome: done, the resolution's status, a message,
@@ -458,8 +469,9 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   extents) or the `hit`'s positions, so the keyboard and a host reach what the drags do. `when` says why one cannot run
   (nothing hit, nothing selected, nothing given). A click with a position moves the cursor there.
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
-  places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a position in display order,
-  clamped to the axis), `cursor.up`, `cursor.down` (the section above or below, the position carried along the view's
+  places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a cell in display order,
+  whatever the direction, clamped to the axis, across breaks: a step over one says what it crossed, "crossed a break,
+  1,240 positions hidden", in its message), `cursor.up`, `cursor.down` (the section above or below, the position carried along the view's
   link, else its first shown), `cursor.extend-prev`, `cursor.extend-next` (Shift: extends the range the anchor is in,
   from the cursor's cell when there is no anchor on its system), `cursor.add-prev`, `cursor.add-next` (Cmd/Ctrl+Shift: a
   new range at the cursor's cell, the others kept, which Shift then extends), `cursor.toggle` (Space), `cursor.focus`
@@ -545,6 +557,7 @@ settings form.
 | `hover.closeCodons`               | true                                                                                                                                                                                                               | a nucleotide lights its whole codon and its residue (EC-30, EC-144); false: the position alone                                                                                                                                                                 |
 | `selection.holdNodes`             | true                                                                                                                                                                                                               | a selection's dynamic nodes stay while selected, so a selected transcript survives a scroll; false: only while shown                                                                                                                                           |
 | `selection.extendScope`           | `range`                                                                                                                                                                                                            | an extend changes the range the anchor is in, the others kept; `selection`: the whole selection becomes that range                                                                                                                                             |
+| `selection.acrossBreaks`          | `shown`                                                                                                                                                                                                            | what a drag or an extend across a collapsed break selects: the positions shown (what is seen); `span`: the hidden stretches too (a gene's whole span to export)                                                                                                |
 | `highlight.color`                 | `token:cat-5`                                                                                                                                                                                                      | a channel's color when `highlight.colors` names none: a hex literal or `token:<name>`                                                                                                                                                                          |
 | `highlight.colors`                | `{ 'link-hover': 'token:hover' }`                                                                                                                                                                                  | colors by channel: a link's hover in the hover's ink                                                                                                                                                                                                           |
 | `cursor.keys`                     | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`                                                                                                                                                                  | back, on, the section above, below; Shift with back or on extends from it                                                                                                                                                                                      |

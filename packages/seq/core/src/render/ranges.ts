@@ -404,7 +404,6 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // marks: each item's pieces on the section, square where cut, round where the item really ends (on its own
     // system an item is its one piece: no mapping and no array an item)
     const px = 1 / axis.dpr;
-    const nk = axis.offsets.length;
     for (let i = 0; i < n; i++) {
       const lane = lay.lanes[i];
       if (lane < 0) continue;
@@ -421,11 +420,17 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         hi = Math.max(hi, pieces[k + 1]);
       }
       for (let k = 0; k + 1 < pieces.length; k += 2) {
-        for (let a = 0; a < nk; a++) {
+        axis.piecesIn(pieces[k], pieces[k + 1]);
+        const ka = axis.ka;
+        const kb = axis.kb;
+        for (let a = ka; a <= kb; a++) {
           if (!axis.spanIn(a, pieces[k], pieces[k + 1])) continue;
+          // an end the item really has is round; on a reversed axis its start is on the right
+          const atLo = pieces[k] === lo;
+          const atHi = pieces[k + 1] === hi;
           let round = 0;
-          if (!(axis.scut & Cut.left) && pieces[k] === lo) round |= Round.left;
-          if (!(axis.scut & Cut.right) && pieces[k + 1] === hi) round |= Round.right;
+          if (!(axis.scut & Cut.left) && (axis.dir === -1 ? atHi : atLo)) round |= Round.left;
+          if (!(axis.scut & Cut.right) && (axis.dir === -1 ? atLo : atHi)) round |= Round.right;
           const x0 = axis.snap(axis.sx0);
           const j = nextMark(lay);
           lay.mx0[j] = x0;
@@ -659,11 +664,13 @@ function addToStrip(strip: RangesLay['strip'], src: LayerSource, axis: AxisTrans
   }
   const diff = strip.diff;
   const v = strip.v;
-  const nk = axis.offsets.length;
   const dpr = axis.dpr;
   const last = axis.columns - 1;
-  for (let k = 0; k + 1 < pieces.length; k += 2)
-    for (let a = 0; a < nk; a++) {
+  for (let k = 0; k + 1 < pieces.length; k += 2) {
+    axis.piecesIn(pieces[k], pieces[k + 1]);
+    const ka = axis.ka;
+    const kb = axis.kb;
+    for (let a = ka; a <= kb; a++) {
       if (!axis.spanIn(a, pieces[k], pieces[k + 1])) continue;
       const f0 = Math.floor((axis.sx0 - axis.x0) * dpr);
       const f1 = Math.floor((axis.sx1 - 1e-6 - axis.x0) * dpr);
@@ -672,6 +679,7 @@ function addToStrip(strip: RangesLay['strip'], src: LayerSource, axis: AxisTrans
       diff[c0] += v;
       diff[c1 + 1] -= v;
     }
+  }
 }
 
 /** An item's piece on its own system, and its pieces through a map: kept (a layout runs to its end). */

@@ -80,6 +80,9 @@ function sameRefs(a: readonly RefEntry[], b: readonly RefEntry[]): boolean {
   return true;
 }
 
+/** A focus's outcome when what it names is wholly in a hidden stretch: at its break, and how to show it. */
+export const HiddenMessage = 'At its break: hidden by collapsed introns (section.collapse shows them)';
+
 export class AddressModel extends ReactiveModel {
   readonly config: ViewerConfig;
   /** The refs of the spec shown, each with its status; moves with the spec and with the store's nodes. */
@@ -307,6 +310,14 @@ export class AddressModel extends ReactiveModel {
     return { done, status: resolution.status, message, issues: resolution.issues };
   }
 
+  /** Whether the last move found what it moved to wholly in a hidden stretch (and moved to its break). */
+  private _hidden = false;
+
+  /** Whether the last focus or reveal moved to a break: what it names is hidden by collapsed pieces. */
+  get movedToBreak(): boolean {
+    return this._hidden;
+  }
+
   /** Moves the view to what an address names: each leading section showing it (or a path to it), its whole extent. */
   focus(address: string, options: { section?: string } = {}): AddressOutcome {
     return this._move(address, false, options.section);
@@ -337,7 +348,7 @@ export class AddressModel extends ReactiveModel {
     return this._outcome(
       resolution,
       r === 'moved',
-      r === 'moved' ? (reveal ? 'Revealed' : 'Focused') : 'Not in this view',
+      r === 'moved' ? (this._hidden ? HiddenMessage : reveal ? 'Revealed' : 'Focused') : 'Not in this view',
     );
   }
 
@@ -404,7 +415,9 @@ export class AddressModel extends ReactiveModel {
   /** Each leading section on a system the location has positions on (or reaches by a static path) shows its hull. */
   private _moveEach(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
     const resolved = this.view.resolved.value;
+    this._hidden = false;
     if (!resolved || isEmptyLocation(loc)) return 'none';
+    let hidden = false;
     // a rect's sides are positions on its two systems
     let positions = location({ parts: loc.parts });
     for (const r of loc.rects) positions = unionLocations(positions, location({ parts: [r.a, r.b] }));
@@ -426,12 +439,27 @@ export class AddressModel extends ReactiveModel {
         part = projected;
       }
       if (!part?.ranges.length) continue;
-      const first = part.ranges[0];
-      const last = part.ranges[part.ranges.length - 1];
-      // an axis waiting for its length reads offsets as positions from 0 (the intent is kept, EC-112)
-      const a = axis.ranges ? (nearestOffsetOf(axis, first) ?? first) : first;
-      const b = axis.ranges ? (nearestOffsetOf(axis, last) ?? last) : last;
+      // the hull in display offsets (_spec/README.md "AddressModel", Focus): hidden stretches take no width, so what
+      // lies wholly in one is its break, zero wide; an axis waiting for its length reads offsets as positions from 0
+      // (the intent is kept, EC-112)
+      let a = Infinity;
+      let b = -Infinity;
+      let wide = false;
+      for (let i = 0; i + 1 < part.ranges.length; i += 2) {
+        const x = axis.ranges ? (nearestOffsetOf(axis, part.ranges[i]) ?? part.ranges[i]) : part.ranges[i];
+        const y = axis.ranges ? (nearestOffsetOf(axis, part.ranges[i + 1]) ?? part.ranges[i + 1]) : part.ranges[i + 1];
+        a = Math.min(a, x, y);
+        b = Math.max(b, x, y);
+        if (x !== y) wide = true;
+      }
       const v = this.view.get(s.address);
+      if (!wide && axis.ranges) {
+        // wholly hidden: to its break, centered, the zoom kept
+        hidden = true;
+        moved = (v && !v.pending ? this.view.pan(s.address, a - (v.start + v.end) / 2) : false) || moved;
+        done.add(s.address);
+        continue;
+      }
       if (reveal && v && !v.pending) {
         if (a >= v.start && b <= v.end) {
           moved = true;
@@ -448,6 +476,7 @@ export class AddressModel extends ReactiveModel {
       done.add(s.address);
     }
     this._moved = [...done];
+    this._hidden = hidden;
     if (!moved) return 'none';
     for (const a of done) if (this.view.get(a)?.pending) return 'pending';
     return 'moved';
@@ -595,11 +624,12 @@ export class AddressModel extends ReactiveModel {
       if (this.view.isFollowing(s.address)) continue;
       const v = this.view.get(s.address);
       if (!v || v.pending) return undefined;
-      const start = positionAt(s.axis, v.start);
-      const end = positionAt(s.axis, v.end);
-      if (start === undefined || end === undefined) return undefined;
-      const from = Math.floor(start);
-      const to = Math.max(from + 1, Math.ceil(end));
+      const a = positionAt(s.axis, v.start, 'start');
+      const b = positionAt(s.axis, v.end, 'end');
+      if (a === undefined || b === undefined) return undefined;
+      // positions, lowest first: a reversed axis's window starts at its highest
+      const from = Math.floor(Math.min(a, b));
+      const to = Math.max(from + 1, Math.ceil(Math.max(a, b)));
       // ids and forms only: a bookmark of the view never names another ref, so bookmarks never chain
       return addressFor(
         this.spec.shown.value,

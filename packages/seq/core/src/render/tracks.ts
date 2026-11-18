@@ -12,6 +12,7 @@ import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx
 import {
   expandTemplate,
   followRange,
+  followWindow,
   templateNodes,
   type ResolvedLayer,
   type ResolvedSection,
@@ -104,6 +105,8 @@ export interface LayoutInput {
   readonly size: { readonly width: number; readonly height: number };
   /** The window of display units of every section that does not follow another; all of each by default. */
   readonly viewport?: Viewport;
+  /** A section's own window (by its address), before `viewport`: a caller placing sections one by one. */
+  readonly viewports?: Readonly<Record<string, Viewport>>;
   readonly dpr?: number;
   readonly tokens: SeqTokens;
   readonly text: TextMetrics;
@@ -125,41 +128,47 @@ export function layerKey(track: ResolvedTrack, layer: ResolvedLayer): string {
   return layer.address ?? `${track.address}:${layer.index}`;
 }
 
-/** A section's own pieces: its axis's, or the length its source gave once open; undefined while unknown. */
-function ownPieces(section: ResolvedSection, model: StaticModel, data: StoreReader): number[] | undefined {
-  if (section.axis.ranges) return [...section.axis.ranges];
+/**
+ * A section's own pieces: its axis's (the array itself: lookups are kept per pieces array), or the whole system once its
+ * source gave the length; undefined while unknown.
+ */
+function ownPieces(section: ResolvedSection, model: StaticModel, data: StoreReader): readonly number[] | undefined {
+  if (section.axis.ranges) return section.axis.ranges;
   const system = model.systems.get(section.axis.system);
   if (!system?.source) return undefined;
   const info = data
     .coverage(system.source)
     ?.systems.find((s) => s.name === system.name || s.aliases?.includes(system.name));
-  return info?.length === undefined ? undefined : [0, info.length];
+  return info?.length === undefined ? undefined : placedPieces(info.length);
+}
+
+/** The whole system's one piece for a length, kept per length (lookups are kept per pieces array). */
+const placed = new Map<number, readonly number[]>();
+function placedPieces(length: number): readonly number[] {
+  let p = placed.get(length);
+  if (!p) {
+    if (placed.size > 64) placed.clear();
+    placed.set(length, (p = [0, length]));
+  }
+  return p;
 }
 
 /**
- * A follower's pieces and window from its leader's view, continuously: the images of the leader's window edges
- * (`point`) within a run, so a follower moves with its leader as the viewer's does; the hull (or arc) of the leader's
- * positions in view where an edge maps nowhere, the leader's view has two pieces, or the window wraps a cyclic origin.
+ * A follower's pieces and window from its leader's view (_spec/README.md "Render", Tracks layout): the images of the
+ * leader's window edges as offsets along the follower's own pieces (`followWindow`, as the viewer's follow), so a
+ * follower moves with its leader and keeps its direction and breaks. A window over a cyclic follower's origin is drawn
+ * over the arc's pieces (`followRange`).
  */
-function followAxis(section: ResolvedSection, leader: AxisTransform, config: RenderConfig) {
-  const follow = section.follow!;
-  if (leader.offsets.length === 1) {
-    const at = (u: number) => leader.pieces[0] + u;
-    const edge = (x: number) => follow.point(x) ?? follow.point(x - 1e-9);
-    const a = edge(at(leader.u0));
-    const b = edge(at(leader.u1));
-    const { cyclic, length } = section.axis;
-    if (
-      a !== undefined &&
-      b !== undefined &&
-      a !== b &&
-      !(cyclic && length !== undefined && Math.abs(b - a) > length / 2)
-    ) {
-      const lo = Math.min(a, b);
-      const hi = Math.max(a, b);
-      const s = Math.floor(lo);
-      return { pieces: [s, Math.ceil(hi)], viewport: { start: lo - s, end: hi - s } };
-    }
+function followAxis(
+  section: ResolvedSection,
+  own: readonly number[] | undefined,
+  leader: AxisTransform,
+  config: RenderConfig,
+) {
+  const axis = { ...section.axis, ...(own ? { ranges: own } : {}) };
+  if (own) {
+    const w = followWindow(section, leader, axis, leader.u0, leader.u1, config.followArc);
+    if (w && !w.wraps) return { pieces: own, viewport: { start: w.start, end: w.end } };
   }
   const pieces = followRange(section, leader.visible([]), { arc: config.followArc });
   return pieces ? { pieces } : undefined;
@@ -189,7 +198,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   const axisOf = (section: ResolvedSection): AxisTransform | undefined => {
     if (axes.has(section.address)) return axes.get(section.address);
     const at = section.address;
-    let made: { pieces: number[]; viewport?: Viewport } | undefined;
+    let made: { pieces: readonly number[]; viewport?: Viewport } | undefined;
     if (section.follow) {
       const leaderSection = bySection.get(section.follow.leader);
       if (visiting.has(at) || !leaderSection) {
@@ -210,15 +219,21 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
         visiting.add(at);
         const leader = axisOf(leaderSection);
         visiting.delete(at);
-        if (leader) made = followAxis(section, leader, config);
+        if (leader) made = followAxis(section, ownPieces(section, input.model, input.data), leader, config);
       }
     }
     if (!made) {
       const own = ownPieces(section, input.model, input.data);
-      if (own) made = { pieces: own, ...(input.viewport ? { viewport: input.viewport } : {}) };
+      const viewport = input.viewports?.[at] ?? input.viewport;
+      if (own) made = { pieces: own, ...(viewport ? { viewport } : {}) };
     }
+    const { dir, length, cyclic } = section.axis;
     const axis = made?.pieces.length
-      ? new AxisTransform(section.axis.system, made.pieces, dataX, dataW, dpr, made.viewport)
+      ? new AxisTransform(section.axis.system, made.pieces, dataX, dataW, dpr, made.viewport, {
+          dir,
+          ...(length !== undefined ? { length } : {}),
+          cyclic,
+        })
       : undefined;
     if (!axes.has(at)) axes.set(at, axis);
     return axes.get(at);
@@ -587,11 +602,13 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
   const rounded = Paint[3] !== 0;
   const outset = Paint[4];
   const dpr = axis.dpr;
-  const n = axis.offsets.length;
   const g = out.args;
   const h = box.height;
-  for (let i = 0; i + 1 < part.ranges.length; i += 2)
-    for (let k = 0; k < n; k++) {
+  for (let i = 0; i + 1 < part.ranges.length; i += 2) {
+    axis.piecesIn(part.ranges[i], part.ranges[i + 1]);
+    const ka = axis.ka;
+    const kb = axis.kb;
+    for (let k = ka; k <= kb; k++) {
       if (!axis.spanIn(k, part.ranges[i], part.ranges[i + 1])) continue;
       const x0 = Math.round(axis.sx0 * dpr) / dpr;
       const x1 = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + 1 / dpr);
@@ -630,6 +647,7 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
         out.rectArgs();
       }
     }
+  }
 }
 
 /** A Location's part on a system, found with an indexed loop (no iterator, no closure). */

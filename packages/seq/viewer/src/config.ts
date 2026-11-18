@@ -46,6 +46,11 @@ export interface ViewerConfig {
      * elements kept (`range`, the default), or the whole selection, which becomes that range (`selection`).
      */
     readonly extendScope: 'range' | 'selection';
+    /**
+     * What a drag or an extend across a collapsed break selects: the positions shown between its ends (`shown`, the
+     * default: what is selected is what is seen), or `span`, the hidden stretches too (a gene's whole span to export).
+     */
+    readonly acrossBreaks: 'shown' | 'span';
   };
   readonly highlight: {
     /** A highlight channel's color when `colors` names none: a hex literal or `token:<name>` (`token:cat-5`). */
@@ -218,7 +223,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   bindings: { preset: 'default' },
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
   hover: { projectLinked: true, closeCodons: true },
-  selection: { holdNodes: true, extendScope: 'range' },
+  selection: { holdNodes: true, extendScope: 'range', acrossBreaks: 'shown' },
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }, reveal: true },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },

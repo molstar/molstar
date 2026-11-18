@@ -32,7 +32,7 @@ function setup(options: FixtureOptions = {}, config = viewerConfig()) {
 describe('ViewModel: following both ways and over a cyclic origin', () => {
   it('the protein follows the gene at scale 1/3, continuously within a codon, on both strands', () => {
     for (const strand of ['+', '-'] as const) {
-      const { view, range } = setup({ strand, reverse: true });
+      const { view, range } = setup({ strand, reverse: true, direction: 'genomic' });
       view.setWidth(GeneSection, 20);
       view.setWidth(ProteinSection, 20);
       // the untranslated ends map nowhere: the hull of what does
@@ -126,7 +126,7 @@ describe('ViewModel: a follower leads (follow.followerMoves: lead)', () => {
   });
 
   it('on the minus strand the protein moves the other way, and the gene still as asked', () => {
-    const { view, range } = placed({ strand: '-' });
+    const { view, range } = placed({ strand: '-', direction: 'genomic' });
     view.setRange(ProteinSection, 1.5, 3);
     close(range(GeneSection), [5, 14.5]);
     // the gene's content to the left: the protein's to the right
@@ -137,7 +137,7 @@ describe('ViewModel: a follower leads (follow.followerMoves: lead)', () => {
 
   it('a zoom on the gene about a point keeps it in place, on both strands', () => {
     for (const strand of ['+', '-'] as const) {
-      const { view, range } = placed({ strand });
+      const { view, range } = placed({ strand, direction: 'genomic' });
       view.setRange(ProteinSection, 0, 4);
       close(range(GeneSection), [2, 19]);
       expect(view.zoom(GeneSection, 1.25, 17)).toBe(true);
@@ -148,7 +148,7 @@ describe('ViewModel: a follower leads (follow.followerMoves: lead)', () => {
 
   it('a codon split by the intron: each of its nucleotides is an edge the follower can show', () => {
     // minus strand: residue 2 is 12, 6 and 5, place by place, so a start moved onto 5 or 6 stays where it was asked
-    const { view, range } = placed({ strand: '-' });
+    const { view, range } = placed({ strand: '-', direction: 'genomic' });
     view.setRange(ProteinSection, 1.5, 3);
     view.pan(GeneSection, 0.5);
     expect(range(GeneSection)![0]).toBeCloseTo(5.5, 6);

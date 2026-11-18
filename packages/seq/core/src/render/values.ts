@@ -310,14 +310,20 @@ const pieces: number[] = [];
  */
 function place(pl: Placer, a: number, b: number) {
   const axis = pl.axis!;
-  const n = axis.offsets.length;
   if (pl.direct) {
-    for (let k = 0; k < n; k++) if (axis.spanIn(k, a, b)) mark(pl, axis);
+    axis.piecesIn(a, b);
+    const ka = axis.ka;
+    const kb = axis.kb;
+    for (let k = ka; k <= kb; k++) if (axis.spanIn(k, a, b)) mark(pl, axis);
     return;
   }
   toSection(pl.src!, a, b, pieces);
-  for (let i = 0; i + 1 < pieces.length; i += 2)
-    for (let k = 0; k < n; k++) if (axis.spanIn(k, pieces[i], pieces[i + 1])) mark(pl, axis);
+  for (let i = 0; i + 1 < pieces.length; i += 2) {
+    axis.piecesIn(pieces[i], pieces[i + 1]);
+    const ka = axis.ka;
+    const kb = axis.kb;
+    for (let k = ka; k <= kb; k++) if (axis.spanIn(k, pieces[i], pieces[i + 1])) mark(pl, axis);
+  }
 }
 
 /** The extent `spanIn` left in the axis (unsnapped): a bar a position, or its device columns' extents widened. */

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { offsetOf } from '@molstar/seqx-viewer/models';
+import { cellOffset } from '@molstar/seqx-viewer/models';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import { type AddressingBehavior, addressingBehavior } from './addressing.js';
 import { type CursorBehavior, cursorBehavior } from './cursor.js';
@@ -33,7 +33,7 @@ export const NavigateProvider: BehaviorProvider<undefined, NavigateBehavior> = {
       const c = selection.cursor.value;
       const axis = c && view.resolved.value?.sections.find((s) => s.address === section)?.axis;
       if (!c || !axis || axis.system !== c.system || !view.groupOf(section).includes(c.section)) return undefined;
-      const o = offsetOf(axis, c.position);
+      const o = cellOffset(axis, c.position);
       return o === undefined ? undefined : o + 0.5;
     }),
 };

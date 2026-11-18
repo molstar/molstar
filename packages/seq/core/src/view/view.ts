@@ -28,12 +28,13 @@ import {
   type Path,
   pathDir,
   pathDirection,
+  projectEnd,
   projectPoint,
   projectRanges,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import { followRef } from '@molstar/seqx-core/lang';
-import { wholePieces } from './axis.js';
+import { type AxisShape, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
 import { ViewIssues } from './issues.js';
 
 type Shape = 'letters' | 'ranges' | 'values';
@@ -565,6 +566,75 @@ function dataOf(model: StaticModel, value: Value | undefined, type: string, sect
     return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
   const a = model.annotations.get(prefix);
   return a ? { kind, address, system: a.target, shape: a.shape } : undefined;
+}
+
+/**
+ * A leader's continuous positions `[lo, hi]` (the edges of its window, lowest first) carried to the follower's
+ * positions, `[lo, hi]` lowest first: the low edge's continuous image (`point`) and the high one's (`projectEnd`, the
+ * far edge of the place before it), so a follower moves smoothly and is exact at element edges. Where an edge maps
+ * nowhere (an intron, a UTR), the hull of the whole positions' image there (`followRange`). Ends past each other: over a
+ * cyclic follower's origin the wrap (`lo > hi`), or its hull with `arc: 'hull'`; on a linear follower the hull (the
+ * leader's range wraps the coding sequence's origin). Undefined when nothing maps.
+ */
+export function followSpan(
+  section: ResolvedSection,
+  lo: number,
+  hi: number,
+  arc: 'shortest' | 'hull' = 'shortest',
+): [number, number] | undefined {
+  const follow = section.follow;
+  if (!follow) return undefined;
+  let a = follow.point(lo);
+  let b = projectEnd(follow.path, hi);
+  if (a === undefined || b === undefined) {
+    const hull = followRange(section, [Math.floor(lo), Math.ceil(hi)], { arc });
+    if (!hull || hull.length < 2) return undefined;
+    const first = hull[0];
+    const last = hull[hull.length - 1];
+    if (a === undefined) a = follow.dir === 1 ? first : last;
+    if (b === undefined) b = follow.dir === 1 ? last : first;
+  }
+  const [x, y] = follow.dir === 1 ? [a, b] : [b, a];
+  if (x > y || (x === y && hi > lo)) {
+    if (section.axis.cyclic && arc !== 'hull') return [x, y];
+    const hull = followRange(section, [Math.floor(lo), Math.ceil(hi)], { arc: 'hull' });
+    return hull && hull.length >= 2 ? [hull[0], hull[hull.length - 1]] : undefined;
+  }
+  return [x, y];
+}
+
+/** A follower's window in its own offsets: `start` below `end`, or over a cyclic origin `start > end` (`wraps`). */
+export interface FollowWindow {
+  readonly start: number;
+  readonly end: number;
+  readonly wraps: boolean;
+}
+
+/**
+ * A follower's window from its leader's (`start`, `end`: offsets along the leader's axis, display order): the images of
+ * the leader's window edges (`followSpan`) as offsets along the follower's axis, in its display order (a reversed
+ * follower's lowest position is its window's end). An offset on a leader's break is read as a window's edge
+ * (`positionAt`'s sides). `leader` and `axis` are the axes with their pieces (a pending one placed by the caller).
+ */
+export function followWindow(
+  section: ResolvedSection,
+  leader: AxisShape,
+  axis: AxisShape,
+  start: number,
+  end: number,
+  arc: 'shortest' | 'hull' = 'shortest',
+): FollowWindow | undefined {
+  const ps = positionAt(leader, start, 'start');
+  const pe = positionAt(leader, end, 'end');
+  if (ps === undefined || pe === undefined) return undefined;
+  const span = followSpan(section, Math.min(ps, pe), Math.max(ps, pe), arc);
+  if (!span) return undefined;
+  const a = nearestOffsetOf(axis, span[0]);
+  const b = nearestOffsetOf(axis, span[1]);
+  if (a === undefined || b === undefined) return undefined;
+  const [s, e] = axis.dir === -1 ? [b, a] : [a, b];
+  if (s > e && axis.cyclic) return { start: s, end: e, wraps: true };
+  return { start: Math.min(s, e), end: Math.max(s, e), wraps: false };
 }
 
 /**

@@ -30,7 +30,10 @@ export { ViewIssues } from './issues.js';
 export {
   type Axis,
   type Follow,
+  type FollowWindow,
   followRange,
+  followSpan,
+  followWindow,
   type LayerData,
   type LayerType,
   LayerTypes,

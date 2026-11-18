@@ -34,6 +34,9 @@ export interface FixtureOptions {
   readonly other?: boolean;
   /** The gene's length (24). */
   readonly geneLength?: number;
+  /** The follower's `direction` and `pieces`, as written (absent: the defaults, `follow` and `whole`). */
+  readonly direction?: 'genomic' | 'reversed' | 'follow';
+  readonly pieces?: 'whole' | 'coding';
 }
 
 export function proteinOnGene(options: FixtureOptions = {}): Node {
@@ -49,15 +52,19 @@ export function proteinOnGene(options: FixtureOptions = {}): Node {
   });
   b.views.view('main', (v) => {
     const range = options.range ? { range: [...options.range] } : {};
+    const axis = {
+      ...(options.direction ? { direction: options.direction } : {}),
+      ...(options.pieces ? { pieces: options.pieces } : {}),
+    };
     if (options.reverse) {
       const gene = v.section('gene', { of: g });
-      v.section('protein', { of: p, follow: gene, ...range });
+      v.section('protein', { of: p, follow: gene, ...range, ...axis });
       return;
     }
     const protein = v.section('protein', { of: p, ...range });
     protein.track('letters').layer('l', { type: 'letters' });
     if (options.twin) v.section('twin', { of: p, ...range });
-    const gene = v.section('gene', { of: g, follow: protein });
+    const gene = v.section('gene', { of: g, follow: protein, ...axis });
     gene.track('letters').layer('l', { type: 'letters' });
     if (options.chain) v.section('gene2', { of: g, follow: gene });
   });
