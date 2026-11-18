@@ -41,7 +41,7 @@ import {
   PatchIssues,
   type PatchResult,
 } from './patch.js';
-import { LiveRefs, type LiveSite, RefPass, rewriteRef, type Step } from './refs.js';
+import { LiveRefs, type LiveSite, peekIndex, RefPass, rewriteRef, type Step } from './refs.js';
 import { type Draft, type Normalizer, sameAddress, Work } from './work.js';
 
 const refuse = (...issues: Issue[]): PatchResult => ({ ok: false, issues });
@@ -124,6 +124,9 @@ export function applyPatch(root: Node, patch: Patch, options: ApplyOptions = {})
   if (patch.result !== undefined && patch.result !== next)
     return refuse(issue('repr.patch.result', 'The patch gave another revision than it says', ['params', 'result']));
   if (!changed) return { ok: true, changed: false, root, revision, changes, issues, ...refs };
+
+  // the new root's ref index from the old root's, when the old one exists: a chain of applies never builds from scratch
+  if (language) peekIndex(root, language, options.validate)?.derive(after, changes);
 
   const inverse: Patch = { ops: [...work.inverse].reverse().concat(fixups), base: next, result: revision };
   return {

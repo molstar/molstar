@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { type ApplyOptions, applyPatch, type Op, type Patch, patchLanguage } from '../../patch.js';
 import { type Address, hashNode, type Node, resolveAddress, type Value } from '../../tree/index.js';
 import { PatchConformanceLanguage as PC } from '../conformance.js';
+import { freshRefIndex, peekIndex, type RefIndex, refIndexOf, type Site } from '../refs.js';
 
 const languages = (id: string) => (id === 'pc.patch' ? patchLanguage(PC) : undefined);
 const lang: ApplyOptions = { language: PC, validate: { languages } };
@@ -58,7 +59,29 @@ function nodes(root: Node): Address[] {
 
 const text = (a: Address) => `/${a.join('/')}`;
 
-function fuzz(cases: number, seed: number) {
+/** A site without its node's identity (compared apart), steps by what they point at. */
+function view(s: Site) {
+  const { node: _node, step, ...rest } = s;
+  return { ...rest, ...(step ? { step: { ...step, slot: hashNode(step.slot) } } : {}) };
+}
+
+/** A derived index against one built from scratch on the same root: every site, `dangling`, and `under` by prefix. */
+function expectSameIndex(derived: RefIndex, root: Node) {
+  const fresh = freshRefIndex(root, PC, lang.validate);
+  const a = derived.under([]) as readonly Site[];
+  const b = fresh.under([]) as readonly Site[];
+  expect(a.map(view)).toEqual(b.map(view));
+  a.forEach((s, i) => expect(s.node).toBe(b[i].node));
+  expect((derived.dangling() as readonly Site[]).map(view)).toEqual((fresh.dangling() as readonly Site[]).map(view));
+  for (const at of nodes(root).slice(0, 12))
+    expect((derived.under(at) as readonly Site[]).map(view)).toEqual((fresh.under(at) as readonly Site[]).map(view));
+}
+
+/**
+ * `derived`: the old root has its index, so the apply derives the new root's, and the inverse is applied over it and
+ * over a copy of the root with none (the two consumers: link integrity and the index itself).
+ */
+function fuzz(cases: number, seed: number, derived = false) {
   const r = rng(seed);
   const pick = <T>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
   const refTo = (root: Node) => {
@@ -153,11 +176,27 @@ function fuzz(cases: number, seed: number) {
     const patch: Patch = { ops };
     const allow = { allowDangling: r() < 0.5 || undefined, allowRebind: r() < 0.5 || undefined };
     const before = hashNode(structuredClone(root));
+    if (derived) refIndexOf(root, PC, lang.validate);
     const res = applyPatch(root, patch, { ...lang, ...allow });
     expect(hashNode(structuredClone(root))).toBe(before);
     if (!res.ok || !res.inverse) continue;
     applied++;
     const back = applyPatch(res.root, res.inverse, { ...lang, ...res.inverseNeeds });
+    if (derived) {
+      const index = peekIndex(res.root, PC, lang.validate);
+      expect(index, `case ${c}: the new root has its index`).toBeDefined();
+      expectSameIndex(index!, res.root);
+      if (back.ok && back.changed) {
+        const next = peekIndex(back.root, PC, lang.validate);
+        expect(next, `case ${c}: the root after the inverse has its index`).toBeDefined();
+        expectSameIndex(next!, back.root);
+      }
+      // link integrity over the derived index and over none
+      const alone = applyPatch(structuredClone(res.root), res.inverse, { ...lang, ...res.inverseNeeds });
+      expect(alone.ok, `case ${c}`).toBe(back.ok);
+      if (alone.ok && back.ok) expect(hashNode(alone.root)).toBe(hashNode(back.root));
+      else if (!alone.ok && !back.ok) expect(alone.issues.map((i) => i.code)).toEqual(back.issues.map((i) => i.code));
+    }
     if (!back.ok || hashNode(back.root) !== hashNode(root)) {
       throw new Error(
         `case ${c}: ${back.ok ? 'not the root' : back.issues.map((i) => i.code).join()}\n${JSON.stringify({ root, patch, allow })}`,
@@ -174,5 +213,13 @@ describe('repr/patch: law 3 over seeded multi-op patches with refs and a languag
 
   it('the inverse with what it needs gives the root back (long)', { tags: ['heavy'] }, () => {
     expect(fuzz(10000, 2)).toBeGreaterThan(4000);
+  });
+
+  it('a derived ref index equals one built on the same root (short)', () => {
+    expect(fuzz(150, 3, true)).toBeGreaterThan(50);
+  });
+
+  it('a derived ref index equals one built on the same root (long)', { tags: ['heavy'] }, () => {
+    expect(fuzz(3000, 4, true)).toBeGreaterThan(1000);
   });
 });
