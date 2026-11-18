@@ -596,6 +596,22 @@ function checker(language: Language | undefined, options: ValidateOptions) {
   return { issues, report, node, value, run, at, parentRule, path };
 }
 
+/**
+ * The member of a union validation reads a value by: a node by the member that takes its kind; else the first member
+ * it fits quietly; else, for a string, the union's ref (its spelling is then what is wrong). Normalization and the
+ * passes over refs read a union the same way, so they never disagree with validation on which member a value is.
+ */
+export function unionMember(of: readonly ParamType[], v: Value, options: ValidateOptions = {}): ParamType | undefined {
+  if (isNode(v) && of.some((m) => m.type === 'node')) {
+    const m = unionNodeMember(of, v.kind, (id) => options.languages?.(id));
+    if (m) return m;
+  }
+  const quiet = { ...options, maxIssues: 1 };
+  const fit = of.find((m) => validateValue(m, v, quiet).length === 0);
+  if (fit) return fit;
+  return typeof v === 'string' ? of.find((m) => m.type === 'ref') : undefined;
+}
+
 /** The member of a union that holds a node of `kind`: the node member whose `kinds` name it, else whose language has it. */
 export function unionNodeMember(
   of: readonly ParamType[],

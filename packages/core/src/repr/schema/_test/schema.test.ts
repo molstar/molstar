@@ -22,6 +22,7 @@ import {
   validateChanges,
   withDefaults,
 } from '../index.js';
+import { unionMember } from '../validate.js';
 import { Mini } from './fixtures.js';
 
 const spec = (...data: Node[]): Node => ({
@@ -285,6 +286,23 @@ describe('repr/schema: what a change introduced', () => {
       validateChanges(Mini, moved, { ...none, moved: [{ from: ['inner'], to: ['data', 'inner'] }] }).map((i) => i.code),
     ).toEqual(['repr.schema.parent.invalid']);
     expect(validate(Mini, tree).map((i) => i.code)).toEqual(['repr.schema.param.enum']);
+  });
+});
+
+describe('repr/schema: the member a union is read by', () => {
+  it('is the one validation reads: a node by its kind, else the first quiet fit, else a string as the ref', () => {
+    const doc = '';
+    const of = [
+      { type: 'integer', doc },
+      { type: 'ref', doc },
+      { type: 'node', language: 'mini', kinds: ['field'], doc },
+    ] as const;
+    const options = { languages: (id: string) => (id === 'mini' ? Mini : undefined) };
+    expect(unionMember(of, 3, options)).toBe(of[0]);
+    expect(unionMember(of, '/data/p53', options)).toBe(of[1]);
+    expect(unionMember(of, 'not an address', options)).toBe(of[1]);
+    expect(unionMember(of, { kind: 'field', args: ['x'] }, options)).toBe(of[2]);
+    expect(unionMember(of, true, options)).toBeUndefined();
   });
 });
 

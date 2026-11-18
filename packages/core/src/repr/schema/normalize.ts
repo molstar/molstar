@@ -24,7 +24,7 @@ import {
   type Value,
 } from '../tree/index.js';
 import type { Fields, KindSpec, Language, ParamType } from './language.js';
-import { type ValidateOptions, validate, validateValue } from './validate.js';
+import { unionMember, type ValidateOptions, validate, validateValue } from './validate.js';
 
 export interface NormalizeOptions {
   /** The languages slots may name, resolved late, as validation's. */
@@ -136,8 +136,8 @@ function normalizer(resolve: (id: string) => Language | undefined) {
         return out ?? v;
       }
       case 'union': {
-        // the first member the value fits, as validation reads it
-        const m = t.of.find((x) => validateValue(x, v, { languages: resolve, maxIssues: 1 }).length === 0);
+        // the member validation reads it by
+        const m = unionMember(t.of, v, { languages: resolve });
         return m ? value(m, v) : v;
       }
       case 'node': {

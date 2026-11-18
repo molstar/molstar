@@ -18,9 +18,7 @@ import {
   type KindSpec,
   type Language,
   type ParamType,
-  unionNodeMember,
   type ValidateOptions,
-  validateValue,
 } from '../schema/index.js';
 import {
   type Address,
@@ -36,6 +34,7 @@ import {
   type TreePath,
   type Value,
 } from '../tree/index.js';
+import { unionMember } from '../schema/validate.js';
 import { patchFromNode, patchTarget } from './language.js';
 import { isUnder, Work } from './work.js';
 
@@ -257,11 +256,7 @@ export class RefPass {
         if (isRecord(v)) this.fields(t.columns, v, path, emit);
         return;
       case 'union': {
-        const m = isNode(v)
-          ? unionNodeMember(t.of, v.kind, this.resolve)
-          : t.of.find(
-              (x) => validateValue(x, v, { ...this.options, languages: this.resolve, maxIssues: 1 }).length === 0,
-            );
+        const m = unionMember(t.of, v, { ...this.options, languages: this.resolve });
         if (m) this.value(m, v, path, emit);
         return;
       }
