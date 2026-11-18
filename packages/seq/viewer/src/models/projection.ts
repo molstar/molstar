@@ -13,6 +13,9 @@ import { type ProjectOptions, projectOntoView } from '@molstar/seqx-core/view';
 import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
+/** The default options, one object: a call per frame makes none. */
+const NotOwn: Pick<ProjectOptions, 'own'> = Object.freeze({ own: false });
+
 /** The most Locations kept: past it, the cache starts again (a session holds a few). */
 const MaxKept = 64;
 
@@ -30,7 +33,7 @@ export class Projector {
    * `loc` on the view's sections' systems: with `own`, the parts it has there kept (a highlight's whole look), else only
    * what it adds where it has no part (a selection's projection). Undefined when no view is shown.
    */
-  of(loc: Location, options: Pick<ProjectOptions, 'own'> = {}): Location | undefined {
+  of(loc: Location, options: Pick<ProjectOptions, 'own'> = NotOwn): Location | undefined {
     const view = this.view.resolved.value;
     const model = this.spec.model.value;
     if (!view) return undefined;
