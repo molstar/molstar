@@ -6,7 +6,7 @@
 
 import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
 import { itemAddress, nodeAddress, OverlayBuilder, resolveSpec } from '@molstar/seqx-core/resolve';
-import { resolveViews } from '@molstar/seqx-core/view';
+import { resolveView, resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import {
   attachSources,
@@ -78,8 +78,22 @@ describe('dynamic nodes through templates', () => {
   });
 
   it('the overlay’s version is part of the key; the model and the resolved view stay', async () => {
-    const { model, view, store, overlays, renderer, frame } = await live(transcriptsSpec());
+    const spec = transcriptsSpec();
+    const { model, view, store, overlays, renderer, frame } = await live(spec);
+    // the static tiers before anything arrived
+    const hash = model.hash;
+    const tracks = view.sections[0].tracks;
+    const printed = JSON.stringify(view, (_, v) => (typeof v === 'function' ? undefined : v));
+    expect(store.nodes.size).toBe(0);
     await frame();
+    expect(store.nodes.size).toBe(4);
+    // after the arrivals: the same model and resolved view, unchanged, and a fresh resolve gives the same hash
+    expect(model.hash).toBe(hash);
+    expect(resolveSpec(spec, { runtimes: [SeqRuntime] }).hash).toBe(hash);
+    expect(resolveView(model, view.address)).toBe(view);
+    expect(view.sections[0].tracks).toBe(tracks);
+    expect(view.sections[0].tracks.map((t) => t.template !== undefined)).toEqual([false, true]);
+    expect(JSON.stringify(view, (_, v) => (typeof v === 'function' ? undefined : v))).toBe(printed);
     const o1 = overlays.of(model, store);
     const a = renderer.frame({ size, overlay: o1 });
     const same = renderer.frame({ size, overlay: o1 });
