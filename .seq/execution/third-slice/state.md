@@ -12,7 +12,7 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
 
 ## In progress
 
-None.
+- C0 (fast): `briefs/c0-carry-overs.md`, base `c5fe373cd`, branch `seq/c0-carry-overs`.
 
 ## Next
 
