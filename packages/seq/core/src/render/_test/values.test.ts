@@ -133,8 +133,8 @@ describe('values.coarser: the level a values layer reads', () => {
     expect(layerLevel(src, data, axisOver(200_000), true, 2)).toBe(1);
   });
 
-  it('the default is 2: a values layer over 100,000 positions wants the 64 level, at 1 it wants positions', async () => {
-    expect(DefaultRenderConfig.values.coarser).toBe(2);
+  it('the default is 1: a values layer over 100,000 positions wants positions, at 2 it wants the 64 level', async () => {
+    expect(DefaultRenderConfig.values.coarser).toBe(1);
     const input: FrameInput = {
       size: { width: 1440, height: 400 },
       dpr: 2,
@@ -146,7 +146,7 @@ describe('values.coarser: the level a values layer reads', () => {
       return new Set(f.wants.filter((w) => w.priority === 'view').map((w) => w.level));
     };
     // the ranges layer reads a pixel's level (positions) in both
-    expect([...(await levels())].sort((a, b) => a - b)).toEqual([1, 64]);
-    expect([...(await levels(1))]).toEqual([1]);
+    expect([...(await levels())]).toEqual([1]);
+    expect([...(await levels(2))].sort((a, b) => a - b)).toEqual([1, 64]);
   });
 });

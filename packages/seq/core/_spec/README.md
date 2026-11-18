@@ -480,7 +480,7 @@ and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), 
 a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a layout lists
 the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`:
 `extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer
-reads (`values.coarser`, 2), whether values on the section's own system are placed directly (`values.direct`, true), the
+reads (`values.coarser`, 1), whether values on the section's own system are placed directly (`values.direct`, true), the
 strings draw lists keep interned across frames (`internedStrings`, 4,096; past it a full redraw starts the table again).
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -488,7 +488,8 @@ strings draw lists keep interned across frames (`internedStrings`, 4,096; past i
   factor between the source's levels (the store's summaries' or the source's own), so a device column may read up to F/k
   bins or positions: k = 2 halves that worst case, it does not remove it, and a frame's cost still follows the gap
   between levels. What makes the finest level cheap is placing directly (below): 100,000 positions in view, read one by
-  one at k = 1, lay out in about 2 ms.
+  one at k = 1, lay out in about 2 ms: so 1 is the default, and it keeps the picture exact (a bin no wider than a device
+  pixel); the factor stays a setting.
 - **Placed directly** (`values.direct`): data on the section's own system (no path) goes from its positions to x with no
   mapping and no arrays a position; the lists are those of the general mapping (a test compares them), `false` forces
   the mapping.
