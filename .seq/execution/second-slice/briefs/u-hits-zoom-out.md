@@ -30,8 +30,8 @@ Not in scope: collapsed introns, the reversed follower (the third slice), anythi
 
 **Model**: strong (opus).
 
-**Base**: `packages-seq` at `34b0d1632`. Your worktree may be cut from master: with a clean tree, first
-`git checkout -B seq/u-hits 34b0d1632`, and check `git merge-base --is-ancestor 34b0d1632 HEAD`.
+**Base**: `packages-seq` at `fbdd8a105`. Your worktree may be cut from master: with a clean tree, first
+`git checkout -B seq/u-hits fbdd8a105`, and check `git merge-base --is-ancestor fbdd8a105 HEAD`.
 
 **Touches**: `packages/seq/viewer/src/**`, `packages/seq/core/src/{render,view}/**` for the hit index,
 `packages/seq/storybook/**` (the Features stories' hints name Back and the zoom keys; the gesture tables), the
