@@ -40,7 +40,7 @@ class EditingRoot extends UiElement<ExampleView> {
   protected render(view: ExampleView): HTMLElement {
     const root = document.createElement('div');
     root.style.cssText =
-      'display: grid; gap: var(--msui-space-4); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
+      'display: grid; align-content: start; gap: var(--msui-space-4); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
     const canvasHost = document.createElement('div');
     canvasHost.style.cssText = 'min-width: 0;';
     const status = document.createElement('p');
@@ -74,24 +74,31 @@ class EditingRoot extends UiElement<ExampleView> {
       Button({ size: 'sm', children: 'Bookmark the view', onClick: () => say(bookmarkView(s)) }) as HTMLElement,
     );
 
-    const host = document.createElement('div');
-    host.style.cssText = Row;
+    // the host's own state, beside the viewer: a stand-in for a structure viewer's color, a participant of the same
+    // stack, so one Undo walks the viewer's edits and the host's in the order they were made
+    const host = document.createElement('fieldset');
+    host.style.cssText = `${Row} margin: 0; padding: var(--msui-space-3); border: 1px solid var(--msui-line); border-radius: var(--msui-radius-md);`;
+    const legend = document.createElement('legend');
+    legend.textContent = 'The host app (a stand-in for a 3D structure viewer), on the same undo stack';
     const swatch = document.createElement('span');
-    swatch.style.cssText = 'display: inline-block; width: 12px; height: 12px; border-radius: 2px;';
+    swatch.style.cssText = 'display: inline-block; width: 40px; height: 24px; border-radius: 4px;';
     const structureLabel = document.createElement('span');
     host.append(
+      legend,
       swatch,
       structureLabel,
       Button({
         size: 'sm',
         children: 'Recolor the structure',
         onClick: () => {
-          void recolorStructure(s, s.structure.value === 'grey' ? 'teal' : 'grey');
+          const color = s.structure.value === 'grey' ? 'teal' : 'grey';
+          void recolorStructure(s, color).then(() => say(`Recolored the structure ${color}`));
         },
       }) as HTMLElement,
-      Button({ size: 'sm', variant: 'primary', children: 'Undo', onClick: () => void s.stack.undo() }) as HTMLElement,
-      Button({ size: 'sm', children: 'Redo', onClick: () => void s.stack.redo() }) as HTMLElement,
     );
+    const undo = Button({ size: 'sm', children: 'Undo', onClick: () => void s.stack.undo() }) as HTMLButtonElement;
+    const redo = Button({ size: 'sm', children: 'Redo', onClick: () => void s.stack.redo() }) as HTMLButtonElement;
+    tools.append(undo, redo);
 
     // a drag: the slider's moves preview, its release commits one step, Esc cancels
     const drag = document.createElement('label');
@@ -129,6 +136,8 @@ class EditingRoot extends UiElement<ExampleView> {
       printed.textContent = printedSpec(s.viewer.spec.shown.value);
       swatch.style.background = s.structure.value;
       structureLabel.textContent = `Structure: ${s.structure.value}`;
+      undo.disabled = rows.done.length === 0;
+      redo.disabled = rows.redo.length === 0;
     };
     for (const state of [s.stack.steps, s.stack.redoable, s.viewer.spec.shown, s.structure])
       onCleanup(state.listen(draw));
