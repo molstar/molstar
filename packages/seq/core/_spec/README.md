@@ -48,6 +48,11 @@ checks it cannot express.
   node of a kind its param takes, that a layer's data is what its type draws (reported once: a kind the param does not
   take is the reference's issue alone; a template's layer without data draws each instance's node), that a template's
   `source` names a source, that `follow` chains end. Extents are checked where the letters are inline.
+- **Patches** are `@molstar/core/repr/patch`'s, applied with `SeqLanguage`: its conformance suite runs over the core's
+  cases and Seq's own (a layer hidden, a track moved with a section's `follow` following a rename, a dangling ref
+  refused, a layer without an id refused), and a 10-op patch on the p53 spec, applied and diffed back, is held under 1
+  ms in the heavy lane (`_test/patches.test.ts`). The `seq.lang.*` checks are not a patch validator yet: an incremental
+  `checkSeqLang` is the viewer's.
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
 
 ## Language builder
