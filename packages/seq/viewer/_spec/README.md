@@ -53,6 +53,9 @@ nothing and tells nothing.
   (`follow.cyclicArc`: `wrap`; `hull` takes the image's hull). A follower is clamped by `maxPxPerPosition` as a leader
   is. Follows chain. Followers never lead: a move asked of one is ignored, or detaches it (`follow.followerMoves`:
   `ignore`; `detach` gives it its own range until a fit or `attach`); a move with invalid arguments detaches nothing.
+- **A source-backed system's length** is fed in when its source's coverage gives it (`setLengthSource`, `refreshLengths`
+  on each store change): the resolved view's axes (and the follows' leader axes) get their pieces, so a section on a
+  streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
   when it can be (EC-112). Placing clamps the range within the axis and at most `viewport.maxPxPerPosition` px a
   position. A viewport that shows the whole axis is fitted and stays so across resizes and updates.
@@ -87,8 +90,9 @@ an address sets; the gestures, the anchor, the cursor and drawing the highlights
 
 - **A value** (`Emphasized`): element keys, a Location, what is drawn (the Location and the elements' extents) and the
   address it was set from; an equal value tells nothing.
-- `SelectionModel.value`: the selection; the frame's selection pass draws its `shown`, and `renderSvg` passes it, so the
-  SVG shows the selection the canvas shows.
+- `SelectionModel.value`: the selection; the frame's selection pass draws its `shown`, and `renderSvg` passes it (its
+  address when it has one, which the export resolves itself; else its Location), so the SVG shows the selection the
+  canvas shows.
 - `HighlightModel`: named channels (`set`, `clear`, `channel(name)` a keyed state, `names` in the order first set). Not
   drawn yet.
 
@@ -103,16 +107,23 @@ syncing sources), with the `address.*` settings as bounds.
   when it fits; else a focus), `select`, `highlightAddress` (a channel, `links.highlightChannel` by default),
   `hoverAddress` (the links' own channel, `links.hoverChannel`, EC-182: the pointer's hover is left alone), `unhover`.
   Each answers an outcome: done, the resolution's status, a message, its issues.
-- **A focus that waits** (an address of a node not held) is kept and runs when the address resolves (the refs' state
-  moves with the store's node version); another focus replaces it.
+- **A focus that waits** (an address of a node not held, data not loaded) is kept and runs when the address resolves:
+  retried on the refs' state, the store's version and its node version; another focus replaces it. A focus whose section
+  is not placed yet (no width, no length) is kept as the view's intent and reported not done
+  (`Kept until the view is placed`), never `Focused`.
+- **The session follows the spec**: `followMoves(changes.moved)`, called before a patch's root is set, rewrites the
+  session's addresses (selection, highlights, the waiting and the last focus) through moves and renames as the spec's
+  refs are; on each new root they are resolved again, and one that names nothing is dropped with `seq.address.missing`
+  in `issues`.
 - **Refs**: `refs`, the spec's refs with what each names now (status, label, color, targets), a new list only when an
   entry changed; `addRef` adds one as one patch (`addRefPatch` with the language: a ref that would dangle is refused),
   applied against the revision just read.
 - **Links**: `link(action, address, channel?)`, `parseLink(text)` with the `links.*` settings; `copyLink()`, the link
   (`copyLink.action`) of the selection's address, else of what the pointer is over (its element, else its position).
 - **The session as addresses**: `selectionAddress()` (the address it was set from, else the shortest of what it holds),
-  `setSelection(address)`; `focusAddress()` (the address last focused while no viewport moved since, else the region the
-  first leading section shows), `setFocus(address)`.
+  `setSelection(address)`; `focusAddress()` (the address last focused while no viewport moved since, else
+  `shownAddress()`), `setFocus(address)`; `shownAddress()`, the region the first leading section shows as ids and forms
+  (what a bookmark of the view stores, so bookmarks never chain).
 
 ### StoreModel
 

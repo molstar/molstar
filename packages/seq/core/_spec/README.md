@@ -68,9 +68,9 @@ checks it cannot express.
 - **Following** (`followRef`): the address's leading `/refs/<id>` is replaced by the ref's target, again until no ref
   leads it, the segments after it kept; a set is followed member by member. Refused, never guessed: a cycle, a chain
   past `DefaultRefDepth` (8) refs, a set or a subtree followed by more segments (they would apply to each member).
-- **Checks** (`seq.lang.*`, warnings, so the rest of the spec opens): a ref whose address's leading ids name no node
-  (`ref.unresolved`; forms after them are a query's, and a node data makes waits for its data), a chain that comes back
-  or runs past the bound (`ref.cycle`).
+- **Checks** (`seq.lang.*`, warnings, so the rest of the spec opens): a ref whose address's leading ids, once the refs
+  it starts with are followed, name no node (`ref.unresolved`; forms after them are a query's, and a node data makes
+  waits for its data), a chain that comes back or runs past the bound (`ref.cycle`).
 - **Adding one is one patch** (`addRefPatch`): an insert at the end of `refs`, or of the container with the ref in it,
   made against the root's revision. Refs follow moves and renames (`repr/patch`); a removal that would leave one
   dangling is refused unless allowed.
@@ -223,9 +223,11 @@ links that carry addresses. Forms and addresses are one language, so this sits w
 ### Resolving
 
 - `resolveAddressIn(root, model, address, bounds)`: the leading ref followed (`followRef`), the refs nested in form
-  values followed (a set as `(or :of [...])`), then the query forms over `model`; a set's members give one type of
-  result, together (else `seq.address.type`). It answers a status, the result, the refs passed (`via`), the issues, and
-  what is pending.
+  operands followed (`:of`, `:a`, `:b`, `:overlapping`; a set as `(or :of [...])`), then the query forms over `model`; a
+  set's members give one type of result, together (else `seq.address.type`), gathered and normalized once (linear in the
+  members). Why operands only: a quoted string reads as the same value as an address, and elsewhere a string is a value
+  (an id, a label) that must never be rewritten. It answers a status, the result, the refs passed (`via`), the issues,
+  and what is pending.
 - **Status**: `resolved`; `waiting` when the result is empty and a node data makes is not held (`(node :key k)`), or the
   data is not loaded (`seq.address.waiting`, info: it resolves when they arrive); `missing` when it is empty otherwise
   (`seq.address.missing`, warning); `failed` on an error. An issue's `address` is the address asked, its `places` the
@@ -254,9 +256,10 @@ links that carry addresses. Forms and addresses are one language, so this sits w
 ### Links
 
 - **Mol\*'s link grammar** (`printLink`, `parseLink`): `!key=value&…`, each key and value percent-encoded as a whole
-  (`&`, `=`, spaces, brackets, quotes and `#` too), split before decoding, so an address is one link destination. Keys
-  of the prefix (`seq-` by default) are actions (`focus`, `reveal`, `select`, `highlight`, `hover`) and `channel`; other
-  keys are kept in order for the viewer that knows them. A link is data: never markup.
+  (`&`, `=`, `#`, spaces, brackets, parentheses, quotes, `!` and `*` too, so an address with `)` survives in a markdown
+  destination; `/` kept readable: `!seq-focus=/refs/dbd`), split before decoding. Keys of the prefix (`seq-` by default)
+  are actions (`focus`, `reveal`, `select`, `highlight`, `hover`) and `channel`; other keys are kept in order for the
+  viewer that knows them. A link is data: never markup.
 - **Refused**: an address that does not parse fails the link (nothing runs from a half-read link), a bad encoding
   (`seq.address.link.syntax`), a link past `maxLength` (8,192) or with more than `maxActions` (16) actions
   (`seq.address.link.limit`); an unknown action of the prefix is left out with a warning (`seq.address.link.action`).
@@ -282,8 +285,9 @@ links that carry addresses. Forms and addresses are one language, so this sits w
 
 ### Performance
 
-Resolving 1,000 addresses (ids, forms and refs mixed) on the p53 spec: 6 ms median, 5.6 to 12.9 over 20 runs; the heavy
-lane bounds one sample at 40 ms (`resolve/_test/addressing.test.ts`).
+A set of 16,000 addresses resolves in about 7.5 times the time of 2,000 (the heavy lane bounds the ratio at 16; a
+pairwise union was 62). Resolving 1,000 addresses (ids, forms and refs mixed) on the p53 spec: 6 ms median, 5.6 to 12.9
+over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressing.test.ts`).
 
 ## Data
 
@@ -774,6 +778,10 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   settle, and draws once more with the view settled. It waits for its view's wants alone, never their margins.
 - **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
   opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`.
+- **A selection as an address** (`selection`): resolved by the export itself once its data settled, over its own store's
+  nodes (`overlayQueryModel`), and drawn with `emphasis.selection`; what it named is `selection` in the result (absent
+  with its issues when it named nothing). Why: an export is a consumer of an address of its own, not a copy of a
+  viewer's Location.
 - It answers `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed, and
   its ids take a prefix (`idPrefix`, by default `s` and a hash of the spec). On a shared store it reports only the
   issues of the sources it attached.

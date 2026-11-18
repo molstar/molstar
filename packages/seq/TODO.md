@@ -74,8 +74,6 @@ dynamic nodes with templates, the examples package and the measurements. In this
   (`requested` stays true for the same host function), so a later file's viewer draws no frame; the addressing twins
   swap `DomHost.requestAnimationFrame` per test. Fix in the frame lane (forget a request across a timer reset) or in
   `vitest.setup.ts`.
-- A source-backed leader's length fed to the `ViewModel` as an axis update (its viewport stays pending until a length is
-  known).
 - Wrapping pans on a cyclic axis (only clamped now); scroll groups across viewers and views (EC-113); ring windows
   (EC-114).
 - Touch pinch (two pointers); the Mol\* structure port; the `@molstar/ui` keymap and command manager, replacing the
