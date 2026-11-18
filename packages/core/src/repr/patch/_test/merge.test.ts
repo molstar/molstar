@@ -618,9 +618,13 @@ describe('repr/patch merge3: what a merge costs', () => {
     const x = applyPatch(b, { ops: ops(10) }, lang);
     const y = applyPatch(b, { ops: ops(100) }, lang);
     if (!x.ok || !y.ok) throw new Error('edits');
-    merge3(b, x.root, y.root, lang); // warm
-    // About 0.5 ms warm (the diffs skip equal subtrees by hash); one sample, so 5 ms.
-    const r = within(5, () => merge3(b, x.root, y.root, lang));
+    for (let i = 0; i < 5; i++) merge3(b, x.root, y.root, lang); // warm
+    // About 0.5 ms a merge warm (the diffs skip equal subtrees by hash); five timed together under 5 ms each, so one
+    // collection or a loaded machine (a second call read 10 ms) does not fail it.
+    const r = within(25, () => {
+      for (let i = 0; i < 4; i++) merge3(b, x.root, y.root, lang);
+      return merge3(b, x.root, y.root, lang);
+    });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.changes.made).toEqual([['b102', 'n']]);

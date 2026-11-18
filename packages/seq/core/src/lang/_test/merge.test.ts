@@ -170,9 +170,12 @@ describe('merges over SeqViewSpec: the performance representative', () => {
   const theirs = edited(base, Theirs);
 
   itWithin('a merge of two 10-op edits of the p53 spec', (within) => {
-    merge3(base, ours, theirs, options); // warm
-    // About 0.2 ms (two diffs and one apply); one sample, so 3 ms leaves room for a collection, under the 16 ms edit.
-    const r = within(3, () => merge3(base, ours, theirs, options));
+    for (let i = 0; i < 5; i++) merge3(base, ours, theirs, options); // warm
+    // About 0.2 ms a merge (two diffs and one apply); five timed together under 3 ms each, well under the 16 ms edit.
+    const r = within(15, () => {
+      for (let i = 0; i < 4; i++) merge3(base, ours, theirs, options);
+      return merge3(base, ours, theirs, options);
+    });
     expect(r.ok).toBe(true);
   });
 });
