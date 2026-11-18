@@ -6,13 +6,14 @@
 
 // The `seq.lang.*` checks of a change (_spec/README.md, Language, Checks of a change): `checkSeqLang` run on what a
 // patch's `Changes` reach, as `repr/patch`'s validator, its cost in proportion to the changes. What a change reaches:
-// the nodes it made, set or moved, the nodes that name them (through a reverse index of the spec's references, kept per
-// revision and derived from the last one along its changes), on through the user refs that name those, a template's
+// the nodes it made, set or moved, the nodes that name them or named a node of a subtree it removed or moved (through a
+// reverse index of the spec's references, kept per revision and derived from the last one along its changes), on
+// through the user refs that name those and through refs with segments after them (`/refs/p/x`), a template's
 // layers under a track whose params changed, and the sections and refs of a chain a changed one closes. Only what the
 // change introduced is reported: the same checks on the same nodes before it are taken away, so an error already
 // present never refuses an edit.
 
-import { HashMap } from '@molstar/core/data/immutable';
+import { HashMap, HashSet, type MutableHashMap } from '@molstar/core/data/immutable';
 import type { Changes, PatchValidator } from '@molstar/core/repr/patch';
 import { type Address, type Issue, type Node, printAddress, type TreePath, type Value } from '@molstar/core/repr/tree';
 import {
@@ -25,18 +26,16 @@ import {
   reporter,
   type SeqLookup,
 } from './check.js';
-import { DefaultRefDepth, followRef } from './refs.js';
-
-type Strings = HashMap<string, readonly string[]>;
+import { DefaultRefDepth, followRef, RefsId } from './refs.js';
 
 /**
- * The spec's references by what they name: `exact` by the id run they name, `below` by each shorter prefix of it, and
- * `out`, each referring node's own (by its address) to take them back out when it changes.
+ * The spec's references by what they name: `exact`, the referring nodes' addresses by the id run they name (a
+ * persistent set each, so a derive costs what changed), and `out`, each referring node's own targets, to take them back
+ * out when it changes.
  */
 interface RefIndex {
-  readonly exact: Strings;
-  readonly below: Strings;
-  readonly out: Strings;
+  readonly exact: HashMap<string, HashSet<string>>;
+  readonly out: HashMap<string, readonly string[]>;
 }
 
 const Indexes = new WeakMap<Node, RefIndex>();
@@ -71,72 +70,59 @@ function collectRefs(type: Walkable | undefined, value: Value | undefined, out: 
   }
 }
 
-/** The id runs a node's references name, printed (`/data/p53`), once each. */
+/**
+ * The id runs a node's references name, printed (`/data/p53`), once each; one through a ref with segments after it
+ * (`/refs/p/x`) names that ref too, so a change of the ref reaches it.
+ */
 function targetsOf(node: Node): string[] {
   const fields = fieldsOf(node.kind) as Readonly<Record<string, Walkable>> | undefined;
   if (!fields || !node.params) return [];
   const raw: string[] = [];
   for (const key of Object.keys(node.params)) collectRefs(fields[key], node.params[key], raw);
   const out: string[] = [];
+  const push = (ids: readonly string[]) => {
+    const t = printAddress(ids);
+    if (!out.includes(t)) out.push(t);
+  };
   for (const a of raw) {
     const ids = idRunOf(a);
     if (!ids.length) continue;
-    const t = printAddress(ids);
-    if (!out.includes(t)) out.push(t);
+    push(ids);
+    if (ids.length > 2 && ids[0] === RefsId) push(ids.slice(0, 2));
   }
   return out;
 }
 
-const plus = (m: Strings, key: string, value: string): Strings => {
-  const now = m.get(key);
-  return now?.includes(value) ? m : m.set(key, now ? [...now, value] : [value]);
-};
-const minus = (m: Strings, key: string, value: string): Strings => {
-  const now = m.get(key);
-  if (!now?.includes(value)) return m;
-  return now.length === 1
-    ? m.delete(key)
-    : m.set(
-        key,
-        now.filter((v) => v !== value),
-      );
-};
+const NoReferrers: HashSet<string> = HashSet.empty();
 
-/** Each proper prefix of an id run (`/data`, for `/data/p53`). */
-function prefixes(target: string): string[] {
-  const ids = target.split('/').filter(Boolean);
-  const out: string[] = [];
-  for (let n = 1; n < ids.length; n++) out.push(printAddress(ids.slice(0, n)));
-  return out;
-}
-
+/** Edits an index in place (transients), each node's targets added or taken out. */
 class IndexEdit {
-  constructor(public index: RefIndex) {}
+  private readonly exact: MutableHashMap<string, HashSet<string>>;
+  private readonly out: MutableHashMap<string, readonly string[]>;
+  constructor(index: RefIndex) {
+    this.exact = index.exact.asMutable();
+    this.out = index.out.asMutable();
+  }
   add(address: string, node: Node): void {
     const targets = targetsOf(node);
     if (!targets.length) return;
-    let { exact, below, out } = this.index;
-    for (const t of targets) {
-      exact = plus(exact, t, address);
-      for (const p of prefixes(t)) below = plus(below, p, address);
-    }
-    out = out.set(address, targets);
-    this.index = { exact, below, out };
+    for (const t of targets) this.exact.update(t, (s) => (s ?? NoReferrers).add(address));
+    this.out.set(address, targets);
   }
   remove(address: string): void {
-    const targets = this.index.out.get(address);
+    const targets = this.out.get(address);
     if (!targets) return;
-    let { exact, below, out } = this.index;
     for (const t of targets) {
-      exact = minus(exact, t, address);
-      for (const p of prefixes(t)) below = minus(below, p, address);
+      const s = this.exact.get(t)?.delete(address);
+      if (!s?.size) this.exact.delete(t);
+      else this.exact.set(t, s);
     }
-    out = out.delete(address);
-    this.index = { exact, below, out };
+    this.out.delete(address);
+  }
+  done(): RefIndex {
+    return { exact: this.exact.asImmutable(), out: this.out.asImmutable() };
   }
 }
-
-const EmptyIndex: RefIndex = { exact: HashMap.empty(), below: HashMap.empty(), out: HashMap.empty() };
 
 /** Every addressed node of a subtree with its address (the subtree's root at `address`). */
 function walk(node: Node, address: readonly string[], f: (address: string, node: Node) => void): void {
@@ -147,12 +133,42 @@ function walk(node: Node, address: readonly string[], f: (address: string, node:
 function indexOf(root: Node): RefIndex {
   let index = Indexes.get(root);
   if (!index) {
-    const edit = new IndexEdit(EmptyIndex);
-    walk(root, [], (a, n) => edit.add(a, n));
-    index = edit.index;
+    // built once a spec, as plain maps of sets, then made persistent: what later revisions derive from
+    const exact = new Map<string, string[]>();
+    const out = HashMap.empty<string, readonly string[]>().asMutable();
+    walk(root, [], (a, n) => {
+      const targets = targetsOf(n);
+      if (!targets.length) return;
+      for (const t of targets) {
+        const s = exact.get(t);
+        if (s) s.push(a);
+        else exact.set(t, [a]);
+      }
+      out.set(a, targets);
+    });
+    const ex = HashMap.empty<string, HashSet<string>>().asMutable();
+    for (const [t, s] of exact) ex.set(t, HashSet.of(s));
+    index = { exact: ex.asImmutable(), out: out.asImmutable() };
     Indexes.set(root, index);
   }
   return index;
+}
+
+const ChildIndices = new WeakMap<readonly Node[], Map<string, number>>();
+
+/** A child's index by its id: a scan of a few children, else a map per children array, kept. */
+function childIndex(children: readonly Node[] | undefined, id: string): number {
+  if (!children) return -1;
+  if (children.length <= 8) return children.findIndex((c) => c.id === id);
+  let m = ChildIndices.get(children);
+  if (!m) {
+    m = new Map();
+    children.forEach((c, i) => {
+      if (c.id !== undefined && !m!.has(c.id)) m!.set(c.id, i);
+    });
+    ChildIndices.set(children, m);
+  }
+  return m.get(id) ?? -1;
 }
 
 /** A place in a tree by address (ids only): the node, its step path, its parent. */
@@ -161,7 +177,7 @@ function placeIn(root: Node, ids: readonly string[]): Placed | undefined {
   let parent: Node | undefined;
   const path: (string | number)[] = [];
   for (const id of ids) {
-    const i = node.children?.findIndex((c) => c.id === id) ?? -1;
+    const i = childIndex(node.children, id);
     if (i < 0) return undefined;
     parent = node;
     node = node.children![i];
@@ -185,6 +201,11 @@ function lookupOf(spec: Node): SeqLookup {
 }
 
 const split = (address: string) => address.split('/').filter(Boolean);
+/** A user ref's address (`/refs/<id>`). */
+const isRef = (address: string) => {
+  const ids = split(address);
+  return ids.length === 2 && ids[0] === RefsId;
+};
 const under = (a: Address, prefix: Address) => a.length >= prefix.length && prefix.every((s, i) => a[i] === s);
 
 /** An address through the moves, from the old root's to the new's (`forward`) or back. */
@@ -226,8 +247,9 @@ function deriveIndex(before: Node, after: Node, changes: Changes): RefIndex {
       edit.add(printAddress(c.at), at.node);
     }
   }
-  Indexes.set(after, edit.index);
-  return edit.index;
+  const index = edit.done();
+  Indexes.set(after, index);
+  return index;
 }
 
 /** An issue's key: its code, its node's address and where in the node (the path after the node's). */
@@ -253,9 +275,27 @@ export function checkSeqChanges(before: Node, after: Node, changes: Changes): Is
     affected.add(address);
     queue.push(address);
   };
-  const referrers = (target: string) => {
-    for (const r of index.exact.get(target) ?? []) touch(r);
-    for (const r of index.below.get(target) ?? []) touch(r);
+  /**
+   * What names `target`: the nodes whose refs name it, and through a ref with segments after it (`/refs/p/x`, where
+   * `/refs/p` names a prefix of `target`) what names that, at most the ref depth deep.
+   */
+  const referrers = (target: string, depth = 0) => {
+    index.exact.get(target)?.forEach((r) => touch(r));
+    if (depth >= DefaultRefDepth) return;
+    const ids = split(target);
+    for (let n = 1; n < ids.length; n++) {
+      const through = index.exact.get(printAddress(ids.slice(0, n)));
+      if (!through) continue;
+      const rest = ids.slice(n);
+      through.forEach((r) => {
+        if (isRef(r)) referrers(printAddress([...split(r), ...rest]), depth + 1);
+      });
+    }
+  };
+  /** What named any node of a subtree of `before` (gone, or moved away). */
+  const referrersOfOld = (address: Address) => {
+    const at = placeIn(before, address);
+    if (at) walk(at.node, address, (a) => referrers(a));
   };
 
   for (const m of changes.made) {
@@ -268,8 +308,8 @@ export function checkSeqChanges(before: Node, after: Node, changes: Changes): Is
   }
   for (const c of changes.params) touch(printAddress(c.at));
   // what names a node that is gone (a ref left dangling under `allowDangling`, or one a move took)
-  for (const r of changes.removed) referrers(printAddress(r));
-  for (const m of changes.moved) referrers(printAddress(m.from));
+  for (const r of changes.removed) referrersOfOld(r);
+  for (const m of changes.moved) referrersOfOld(m.from);
 
   // what the changed nodes reach: what names them, on through refs; a template's layers; a chain a change closes
   const direct = queue.length;

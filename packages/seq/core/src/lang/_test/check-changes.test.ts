@@ -159,6 +159,185 @@ const Cases: { name: string; root: () => Node; patch: Patch; introduces: readonl
   },
 ];
 
+/** A ref through a ref with segments after it: `/refs/q` names `/refs/p/domains`, `/refs/p` the protein's section. */
+function refThroughRef(): Node {
+  const b = createSeqSpec({ title: 't' });
+  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53_LETTERS });
+  b.views.view('main', (v) => v.section('protein', { of: p53 }).track('domains').layer('l', { type: 'letters' }));
+  b.refs.ref('p', { to: '/views/main/protein' });
+  b.refs.ref('q', { to: '/refs/p/domains' });
+  return b.build();
+}
+
+/** A layer drawing through two refs. */
+function twoRefs(): Node {
+  const b = createSeqSpec({ title: 't' });
+  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53_LETTERS });
+  const dom = b.data.ranges('domains', { target: p53, rows: { start: new Int32Array([0]), end: new Int32Array([4]) } });
+  const d = b.refs.ref('d', { to: dom });
+  const e = b.refs.ref('e', { to: String(d) });
+  b.views.view('main', (v) =>
+    v
+      .section('s', { of: p53 })
+      .track('t')
+      .layer('l', { type: 'ranges', data: String(e) }),
+  );
+  return b.build();
+}
+
+/** A chain of eight refs, one more than... and a ref beside it. */
+function longChain(): Node {
+  const b = createSeqSpec({ title: 't' });
+  let prev = String(b.data.sequence('p53', { alphabet: 'protein', letters: P53_LETTERS }));
+  for (let i = 0; i < 8; i++) prev = String(b.refs.ref(`r${i}`, { to: prev }));
+  b.refs.ref('x', { to: '/data/p53' });
+  return b.build();
+}
+
+const Through: { name: string; root: () => Node; patch: Patch }[] = [
+  {
+    name: 'the node a ref names through another ref removed',
+    root: refThroughRef,
+    patch: { ops: [{ op: 'remove', at: ['views', 'main', 'protein', 'domains'] }] },
+  },
+  {
+    name: 'the node a ref names through another ref renamed',
+    root: refThroughRef,
+    patch: {
+      ops: [
+        {
+          op: 'move',
+          at: ['views', 'main', 'protein', 'domains'],
+          parent: ['views', 'main', 'protein'],
+          place: { last: true },
+          rename: 'dd',
+        },
+      ],
+    },
+  },
+  {
+    name: 'the data a layer draws through two refs replaced by another kind',
+    root: twoRefs,
+    patch: {
+      ops: [
+        {
+          op: 'replace',
+          at: ['data', 'domains'],
+          node: { kind: 'sequence', id: 'domains', params: { alphabet: 'protein', letters: 'MEE' } },
+        },
+      ],
+    },
+  },
+  {
+    name: 'a chain of refs lengthened past the bound',
+    root: longChain,
+    patch: { ops: [{ op: 'set', at: ['refs', 'r0'], key: 'to', value: '/refs/x' }] },
+  },
+  {
+    name: 'a sequence renamed',
+    root: p53Spec,
+    patch: { ops: [{ op: 'move', at: ['data', 'p53'], parent: ['data'], place: { last: true }, rename: 'q' }] },
+  },
+];
+
+/** A spec with refs to nodes, refs through refs with segments, and layers drawing through refs. */
+function chains(): Node {
+  const b = createSeqSpec({ title: 'chains' });
+  const p = b.data.sequence('p', { alphabet: 'protein', letters: P53_LETTERS });
+  const r = (i: number) =>
+    b.data.ranges(`r${i}`, { target: p, rows: { start: new Int32Array([0]), end: new Int32Array([4 + i]) } });
+  const ranges = [r(0), r(1), r(2)];
+  b.views.view('main', (v) => {
+    const s = v.section('s', { of: p });
+    ranges.forEach((x, i) => s.track(`t${i}`).layer('l', { type: 'ranges', data: i === 2 ? '/refs/d2' : x }));
+    v.section('f', { of: p, follow: s });
+  });
+  b.refs.ref('sec', { to: '/views/main/s' });
+  b.refs.ref('t1', { to: '/refs/sec/t1' });
+  b.refs.ref('d2', { to: String(ranges[2]) });
+  b.refs.ref('dd', { to: '/refs/d2' });
+  b.refs.ref('set', { to: ['/refs/t1', '/data/p'] });
+  return b.build();
+}
+
+/** A seeded generator (a 32-bit LCG). */
+function seeded(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 0x100000000;
+  };
+}
+
+/** A random edit of the chains spec: removes, renames, retargets, letters, follows. */
+function randomPatch(root: Node, rand: () => number): Patch {
+  const pick = <T>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)];
+  const kids = (at: string[]) => {
+    let n: Node | undefined = root;
+    for (const id of at) n = n?.children?.find((c) => c.id === id);
+    return (n?.children ?? []).flatMap((c) => (c.id === undefined ? [] : [c.id]));
+  };
+  const node = () => {
+    const level = pick([['data'], ['refs'], ['views', 'main'], ['views', 'main', 's']]);
+    const id = pick(kids(level));
+    return id === undefined ? undefined : [...level, id];
+  };
+  const at = node();
+  if (!at) return { ops: [] };
+  const anyAddress = () => {
+    const a = node();
+    return a ? `/${a.join('/')}` : '/data/p';
+  };
+  switch (pick(['remove', 'rename', 'to', 'letters', 'follow', 'data'])) {
+    case 'remove':
+      return { ops: [{ op: 'remove', at }] };
+    case 'rename':
+      return { ops: [{ op: 'move', at, parent: at.slice(0, -1), place: { last: true }, rename: `${at.at(-1)}x` }] };
+    case 'to':
+      return pick(kids(['refs'])) === undefined
+        ? { ops: [] }
+        : { ops: [{ op: 'set', at: ['refs', pick(kids(['refs']))], key: 'to', value: anyAddress() }] };
+    case 'letters':
+      return { ops: [{ op: 'set', at: ['data', 'p'], key: 'letters', value: P53_LETTERS.slice(0, pick([2, 5, 30])) }] };
+    case 'follow':
+      return { ops: [{ op: 'set', at: ['views', 'main', 's'], key: 'follow', value: '/views/main/f' }] };
+    default: {
+      const t = pick(kids(['views', 'main', 's']));
+      return t === undefined
+        ? { ops: [] }
+        : { ops: [{ op: 'set', at: ['views', 'main', 's', t, 'l'], key: 'data', value: anyAddress() }] };
+    }
+  }
+}
+
+describe('checkSeqChanges through refs', () => {
+  for (const c of Through)
+    it(`reports what the whole check reports: ${c.name}`, () => {
+      const { whole, change } = both(c.root(), c.patch);
+      expect(change).toEqual(whole);
+    });
+
+  it('a ref through a removed ref prefix is reported unresolved', () => {
+    const { change } = both(refThroughRef(), Through[0].patch);
+    expect(change).toEqual(['seq.lang.ref.unresolved|/refs/q|to']);
+  });
+
+  it('holds over seeded random patches of refs in chains, along the revisions', () => {
+    const rand = seeded(7);
+    for (let run = 0; run < 40; run++) {
+      let root = chains();
+      for (let step = 0; step < 12; step++) {
+        const p = randomPatch(root, rand);
+        const r = applyPatch(root, p, options);
+        if (!r.ok) continue;
+        const { whole, change } = both(root, p);
+        expect(change, JSON.stringify(p.ops)).toEqual(whole);
+        root = r.root;
+      }
+    }
+  });
+});
+
 describe('checkSeqChanges', () => {
   for (const c of Cases)
     it(`reports what the change introduced: ${c.name}`, () => {
@@ -205,5 +384,73 @@ describe('checkSeqChanges', () => {
       expect(r.change).toEqual(r.whole);
       root = r.root;
     }
+  });
+});
+
+/** A spec of `n` ranges on one protein, each drawn by a layer of its own track. */
+function wide(n: number): Node {
+  const b = createSeqSpec({ title: 'wide' });
+  const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+  const rs = Array.from({ length: n }, (_, i) =>
+    b.data.ranges(`r${i}`, { target: p, rows: { start: new Int32Array([0]), end: new Int32Array([4]) } }),
+  );
+  b.views.view('main', (v) => {
+    const s = v.section('s', { of: p });
+    rs.forEach((r, i) => s.track(`t${i}`).layer('l', { type: 'ranges', data: r }));
+  });
+  return b.build();
+}
+
+/** The least of a few timings (ms), each what `f` returns. */
+function least(f: () => number, tries = 3): number {
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < tries; i++) best = Math.min(best, f());
+  return best;
+}
+const clock = (f: () => unknown) => () => {
+  const t0 = performance.now();
+  f();
+  return performance.now() - t0;
+};
+const hideOne = { ops: [{ op: 'set', at: ['views', 'main', 's', 't5', 'l'], key: 'hidden', value: true }] } as Patch;
+
+describe('checkSeqChanges: its cost follows the change', () => {
+  const measure = (n: number) => {
+    const root = wide(n);
+    const whole = least(clock(() => checkSeqLang(root)));
+    // the first check after a load builds the index: a fresh tree each try
+    const first = least(() => {
+      const fresh = wide(n);
+      const h = applyPatch(fresh, hideOne, options);
+      if (!h.ok) throw new Error('refused');
+      return clock(() => checkSeqChanges(fresh, h.root, h.changes))();
+    });
+    // the protein's letters: every ranges node names it (a fan-out)
+    const r = applyPatch(
+      root,
+      { ops: [{ op: 'set', at: ['data', 'p'], key: 'letters', value: 'MEEPQSDPSVA' }] },
+      options,
+    );
+    if (!r.ok) throw new Error('refused');
+    checkSeqChanges(root, r.root, r.changes);
+    const fanOut = least(clock(() => checkSeqChanges(root, r.root, r.changes)));
+    // one layer hidden, the index kept
+    const h = applyPatch(root, hideOne, options);
+    if (!h.ok) throw new Error('refused');
+    const one = least(clock(() => checkSeqChanges(root, h.root, h.changes)));
+    return { whole, first, fanOut, one };
+  };
+
+  it('scales with the spec at first, with the change after: 1k and 16k layers', {
+    tags: ['heavy'],
+    timeout: 120_000,
+  }, () => {
+    const small = measure(1000);
+    const large = measure(16000);
+    // no worse than the whole check, at first and on a fan-out; a one-node edit a small part of it
+    expect(large.first).toBeLessThan(2 * large.whole + 5);
+    expect(large.fanOut).toBeLessThan(2 * large.whole + 5);
+    expect(large.first / small.first).toBeLessThan(2 * Math.max(16, large.whole / small.whole));
+    expect(large.one).toBeLessThan(large.whole / 10);
   });
 });

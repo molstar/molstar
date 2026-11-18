@@ -58,13 +58,17 @@ checks it cannot express.
   `SeqValidateOptions` (`seqLanguages`: the stored patches' `seq.patch`), which validation, the builder and `applyPatch`
   take.
 - **Checks of a change** (`check-changes.ts`, `checkSeqChanges`, `SeqPatchValidator`): the `seq.lang.*` checks as
-  `repr/patch`'s validator, on what a patch's `Changes` reach: the nodes it made, set or moved; what names them, found
-  through a reverse index of the spec's references kept per revision and derived from the last one along its changes; on
-  through the user refs that name those; a template's layers under a track whose params changed; the sections and refs
-  of a chain a changed one closes. The same checks on the same nodes before the change are taken away, by code, node
-  (through moves) and place in the node. Why: a patch is refused only for what it introduced (an error already there
-  never blocks an edit beside it), and the cost follows the change, not the spec. Held by tests that compare it, patch
-  by patch and along a chain of revisions, with the whole check's difference.
+  `repr/patch`'s validator, on what a patch's `Changes` reach: the nodes it made, set or moved; what names them, or
+  named any node of a subtree it removed or moved away (walked in the old root); on through the user refs that name
+  those, and through a ref with segments after it (`/refs/p/x` where `/refs/p` names a prefix of the node, at most the
+  ref depth deep); a template's layers under a track whose params changed; the sections and refs of a chain a changed
+  one closes. What names what is a reverse index of the spec's references (a persistent set of referring nodes by the id
+  run they name), built once a spec and derived from the last revision's along its changes. The same checks on the same
+  nodes before the change are taken away, by code, node (through moves) and place in the node. Why: a patch is refused
+  only for what it introduced (an error already there never blocks an edit beside it), and the cost follows the change,
+  not the spec. Held by tests that compare it with the whole check's difference, patch by patch, along a chain of
+  revisions and over seeded random patches of ref chains; and in the heavy lane, at 16,000 layers, the first check after
+  a load and a fan-out to every node no worse than the whole check, a one-node edit a small part of it.
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
 
 ### Refs
