@@ -38,5 +38,7 @@
 - The stories library and the animation port (`stories.md`): placed at the next gate.
 - `render/_test/frame-time.test.ts`'s per-frame max bounds flake under a parallel heavy run (lanes O and N: 18 and
   50 ms against 16); best of three, or a percentile instead of the max.
-- (N) A track has no `hidden` param: hiding a track hides its layers and leaves an empty row. A `hidden` on `track`
-  (default false), collapsing the row, recommended.
+- (N) A track has no `hidden` param: in N's fix round (`track.hidden`, default false, the row collapsed; the
+  orchestrator's call as for `layer.hidden`, in gaps).
+- (N, for the stories lane) Its paused story steps against `stories.md`: a step that no longer applies shows the ops
+  that still apply, flagged (today: the root without the step); `from`, a step's view and timing need language fields.

@@ -22,6 +22,9 @@
 7. **Lane R**: `FlatThreshold` measured at 16 (the design said about 8); `Vector.indexOf` uses `Object.is` (finds NaN,
    tells −0 from 0, unlike `Array.indexOf`); collision nodes at the level two keys meet (documented).
 
+8. **Lane N**: `track.hidden` (default false; a hidden track's row collapses), as `layer.hidden` was decided; the
+   language stays 0.3.0 (unreleased). Recommendation: keep.
+
 ## Agreed but not built
 
 ## Built but not adopted
