@@ -30,3 +30,6 @@
 - (O) An item's coordinate system as a prefix of location forms (`(item :id k)` gives elements): a `(system :item k)`
   form recommended. Refs in data nodes' params and in a section's `of`/`follow` are refused for now.
 - (O) Declared numberings: the way back prints `ordinal` or `index` only until the language declares others.
+- The frame lane's dropped-tick leak is fixed in `@molstar/ui/dom` (`frame.ts`, the scheduler remembered); lane O's
+  twins can drop their per-test `DomHost.requestAnimationFrame` swap.
+- `packages/sequences`' `stream/tiles/server.test.ts` fails under `--sequence.shuffle` (seed 9), on the parent too.
