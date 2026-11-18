@@ -52,8 +52,8 @@ internal until an outside application needs one ([ux-foundations.md](ux-foundati
 - **Passes**, each its own list, drawn in order: `background`, `data`, `highlight`, `selection`, `hover`, `cursor`,
   `labels`. Item labels (a range's name inside its mark) are drawn in `labels`, not `data`, so a label is never under
   another layer's emphasis. Selection's tint is drawn over the data (ux-foundations.md, section 6, and its open
-  question). The Canvas2D backend draws `background` to `data` on one canvas and the emphasis passes on an overlay
-  canvas, so a hover redraws only the overlay (the 2 ms target, [performance.md](performance.md)). SVG writes them as
+  question). The Canvas2D backend draws `background` and `data` on a base canvas, the emphasis passes on an overlay
+  canvas above it and `labels` on a third above that (SVG writes the same order; a test compares the two), so a hover redraws only the overlay (the 2 ms target, [performance.md](performance.md)). SVG writes them as
   groups in order.
 - **Primitives**, each a struct of arrays in growable typed arrays reused frame to frame (nothing allocated once warm):
   - `rect`: x, y, w, h, fill, stroke, corner (`square`, or `squircle` with a radius and a mask of which ends are round:

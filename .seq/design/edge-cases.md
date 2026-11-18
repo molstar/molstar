@@ -37,3 +37,38 @@ the previous implementation good. Simplicity here is fewer mechanisms, not fewer
   kind (EC-9 to EC-32), one transient overlay for previews instead of four document layers (EC-163), one source protocol
   for streamed and inline data (EC-169 to EC-180).
 - The examples are chosen to exercise the catalog: few datasets, many views ([examples.md](examples.md)).
+
+## Outcomes of the first slice
+
+Recorded for the items the first slice built and tested. A test cites the behavior and the item's id; the places are in
+`packages/seq` (`core/src/{query,resolve,view,data,render}/_test`, `viewer/src/_test`). Every other item has no outcome
+yet: its area is not built.
+
+**Kept** (a test shows the behavior):
+
+| Items | Behavior | Tests |
+|---|---|---|
+| 1–8 | `index` 0-based, `ordinal` 1-based and the default; label order (integer, no suffix, letters, `.n`); a numbering that skips zero; labels outside int32 refused, a repeated label names its first position; insertion codes; a missing end snapped inward with an info; a backwards range an error in index order; a unit's numbering before its molecule's | `query/_test/{numbering,forms}` |
+| 9–12, 14 | a wrapped range is two runs, on every encoding; a wrapped offset image never runs past the end; a segment crossing the origin is split when built; a follower on a cyclic system takes the shortest arc; a cyclic label range is shorter than a lap | `resolve/_test/{encodings,model}`, `view/_test/view`, `query/_test/forms`, `lang/_test/lang` |
+| 15–18, 20, 21 | codon maps on both strands with junctions inside a codon; codon status (IUPAC sets, start as M, Sec, Pyl, stops pair with nothing); a coding sequence that is not whole codons reported; maps one-to-many backward; a map that pairs nothing reported, a partial one not | `resolve/_test/{encodings,model}` |
+| 19, 22–27 | at most one codon step; shortest path, equal compositions counted once; two maps joining the same systems differently are ambiguous; at most four counted steps and a bounded number of candidates; the copy rule is part of the search; a path ending at a ranged unit is clipped; a protein on a chromosome is as sparse as its coding sequence | `resolve/_test/paths` |
+| 28–30 | a boundary lands the same on every encoding; closure lifts a nucleotide to its whole codon | `resolve/_test/{encodings,geometry,model}`, `viewer/_test/hover` |
+| 81 | a change made against another revision is refused | `viewer/_test/spec` |
+| 111–114 | a viewport keeps its center and zoom across updates and widths; scroll groups share the range on equal axes; followers never lead | `viewer/_test/{view,follow,navigate}` |
+| 125 | an export has its own want set and never touches the live view's; a timeout says unsettled | `data/_test/store`, `render/_test/export` |
+| 141, 144 | one hover owner, a stale clear does nothing; a nucleotide lights its residue's whole codon, a split residue every piece | `viewer/_test/hover` |
+| 143 | a resting pointer is hit again once per frame in which the layout was rebuilt (`pointer.rehit`); the picture follows a pan under it | `viewer/_test/viewer` |
+| 169, 170, 172–174 | pending is never empty; the coarsest listed level no wider; requests ordered view, margin, prefetch; cancellation after a grace, at once when view work waits; failures retried with backoff then cooled down, malformed ones not retried | `data/_test/{store,keys}` |
+| 176, 177, 179 | nodes by (source, key), a conflict keeps the held node, eviction quiet; an item system made on demand; nested sources stop at the depth limit | `data/_test/{store,regions}`, `resolve/_test/overlay`, `render/_test/dynamic` |
+| 175 | streamed data never enters the spec: the store holds it and the overlay reads it, by construction | `render/_test/dynamic` |
+
+**Changed** (the design handles it differently):
+
+- EC-9, EC-10: in a spec a range with `start > end` wraps only on a cyclic system, and is an error elsewhere.
+- EC-143: the catalog says once per frame when the view moves; built as once per frame in which the layout was rebuilt,
+  which covers a pan, a zoom and a data arrival without a hit test per pointer event.
+
+**Not met yet** (open, in `packages/seq/TODO.md`):
+
+- EC-178: every template re-expands on each overlay version, not only the arrival's own (cheap at this size).
+- Projected hover (linked-section outlines, EC-141's family): the hover model projects onto linked sections, the draw lists do not yet draw it.

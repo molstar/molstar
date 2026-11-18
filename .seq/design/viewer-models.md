@@ -77,7 +77,7 @@ with its params as config items. Later: `hoverCard`, `contextMenu`, `snapshots`,
 ### Configuration items of the first slice
 
 `foundations.preset` (`comfortable`), `density.letterMinPx`, `density.dotMinPx`, `bindings.preset` (`default`),
-`store.cacheBytes` (64 MB), `store.inFlight` (6), `store.tileBins` (1,024), `hover.projectLinked` (true), `hover.closeCodons`, `viewport.maxPxPerPosition`, `viewport.groupEqualAxes` (true),
+`store.cacheBytes` (64 MB), `store.inFlight` (6), `store.tileBins` (1,024), `hover.projectLinked` (true), `hover.closeCodons`, `pointer.rehit` (true: a resting pointer is hit again once per frame in which the layout was rebuilt, so a hover follows a view moving under it, EC-143), `viewport.maxPxPerPosition`, `viewport.groupEqualAxes` (true),
 `viewport.onResize` (`keep-zoom`), `follow.followerMoves` (`ignore`), `follow.cyclicArc` (`wrap`), `navigate.*` (wheel
 zoom step, key pan fraction, wheel coalescing). Each a choice with a default; the slice reads them from a plain default
 object of this shape, and the `ParamDefinition`s come with the settings form.

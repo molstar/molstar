@@ -62,7 +62,8 @@ const SeqLanguage = defineLanguage({
   built-in kind or layer type a reader without this kind uses), and `data` for data forms (queries, themes) whose items
   are positional `args`, as meso\*'s.
 - **`column`**: `{ type: 'column', of: 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'float32' | 'float64' |
-  'category', missing?: boolean }`; integer columns have no missing value unless `missing` (then a validity list).
+  'category', missing?: boolean }`; integer columns have no missing value; `missing` on one is refused (`repr.schema.language.column`) until a column
+  needs a validity list, whose value shape (a `{ values, valid }` pair or a sentinel per type) is then decided.
 - **`table`**: `{ type: 'table', columns: Fields, key?: string }`: columns of equal length, checked; a column is required
   by its own `required: true`, as a record's fields are (lane A, drift resolved);
   extra columns allowed and kept (custom fields of a table, [extensibility.md](extensibility.md)).
@@ -112,6 +113,9 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 
 - **Namespaces**: `repr.*` (tree, schema, patch, codec), `seq.lang.*` (checks the description cannot express), `seq.query.*`,
   `seq.resolve.*`, `seq.source.*`, `seq.store.*`, `seq.view.*`, `seq.render.*`, `seq.address.*`.
+- **First-slice choices**: `sequence.letters` are checked against the alphabet (protein `A-Z`, `a-z`, `*`, `-`; DNA the
+  IUPAC codes and `-`; RNA the same with `U`); `layer.color` is an `any` param and `layer.data` a `ref` until the theme
+  and query sublanguages land, then a theme slot and a union of a ref and a query slot (the forms above are the target).
 - **A catalog**, as meso\*'s `IssueCodeInfo`: each code with its severity, doc and hint, generated into the docs; a test
   fails on a code used and not cataloged.
 - **Dedupe** (EC-86): issues of one code and cause are reported once with a count; the first ten places are kept.

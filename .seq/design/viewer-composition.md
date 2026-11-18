@@ -45,7 +45,7 @@ interface SeqViewerSpec {
 - **Registry entries are pure data**, as the plugin's: a record of providers grouped by kind, no behaviors, no config,
   no functions run at registration. Kinds in this version: node kinds, layer types, themes and palettes, residue
   schemes, numbering schemes and codon tables, format readers and writers, map runtimes, backends, query functions,
-  commands. Keys are names; extension names are namespaced ([extensibility.md](extensibility.md)). Layouts and chrome
+  commands. In the first slice the registry holds format runtimes only: `renderSvg` takes no `types`, and a layer type the canvas drew but the export could not would make the pictures differ. Keys are names; extension names are namespaced ([extensibility.md](extensibility.md)). Layouts and chrome
   parts are internal interfaces until an outside user needs them.
 - **Ports are factories with ownership**, as `PluginSpec.assetManager`:
 

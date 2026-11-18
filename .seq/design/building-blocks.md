@@ -13,7 +13,8 @@ is defined once; views refer to it; ids are local and every node, location, elem
 ([addressing.md](addressing.md)).
 
 **Coordinate system.** Where positions live. A system has a length (or is open, for a streamed genome), may be cyclic,
-and has an alphabet when it carries letters. Positions are indices, 0-based, ranges half-open; labels (residue
+and has an alphabet when it carries letters. In a spec a range with `start > end` on a cyclic system wraps the origin (two runs
+once resolved, EC-9, EC-10); on any other system it is an error. Positions are indices, 0-based, ranges half-open; labels (residue
 numbers, insertion codes, chromosome names) are converted at the edge and printed back at the edge. A **structure**
 system is a chain instance of a structure (an entry, a model, an assembly operator, a chain): its positions are the
 chain's residues in the structure's own order, each keyed by the structure's numbering (its sequence index where it
