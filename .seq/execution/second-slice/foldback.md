@@ -64,17 +64,24 @@ Where to: **P** principles (the instance's adaptations, and the oz package's hom
      add or remove (several ranges), a direction one way only (a reversed follower), a protein's data on its gene but
      not its letters (one axis). The sixth (collapsed introns) was planned but not built. The author: "some things are
      often under-designed. how can we better identify and surface these gaps?"
-   - *Proposal* (the author asked for ways; three, each cheap, the first two before building, the third before the
-     author's gate):
-     1. **Every action names its inverse and its symmetric case in the design** (P: §design-first; D). A design that
-        adds an action (a gesture, a command, a mapping, a view state) lists, beside it: its inverse (focus ↔ back,
-        add ↔ remove, zoom in ↔ out), its symmetric case (leader ↔ follower, plus ↔ minus strand, one system ↔
-        another), and its composition with itself (one range ↔ several). Each is built, planned with a slice, or
-        refused with a reason. A design's review reads that list; an empty cell is a gap surfaced before any code.
+   - *Proposal* (the author asked for ways, then: "the .seq/oz/_core/recurrence.md asks for a negation (.. which sort
+     of is inverse). should we apply the recurrence to the designs too? the "4 phase cycle" is generally quite good at
+     identifying residuals"):
+     1. **The self-check runs on every design when it is agreed, not only at a fold-back** (P: §design-first,
+        §self-check; the package's home: recurrence.md "Checking the loop against itself" and the
+        `principles-self-check` skill name the design gate). The claim is the design's own ("this design covers what a
+        user does with X"); step 2 negates what it rests on; step 4 builds what integrates or plans it with a slice,
+        and keeps the rest in the design as a standing tension (§surface-tensions), visible. Run on this slice's
+        designs it surfaces all five: focus rests on "the user wants to go to X" (negated: to leave it: zoom out,
+        back); follow on "the user moves the leader" (the follower leads); selection on "one range" (several); the
+        codon map on "genomic order is how a gene is read" (along its protein: reversed); protein on its gene on
+        "separate sections" (one axis). For an action the negation is usually its inverse or its symmetric case, so
+        no separate inverse list.
      2. **An interaction matrix in the UX design** (D: `ux-foundations.md`): rows the things a user acts on (a
         section, a follower, an item, a range, the selection, the view), columns the verbs (select, extend, add,
         remove, focus, back, zoom in and out, pan, hide, edit), each cell the gesture and command or "no, because".
-        Kept with the gesture table; the slice plan names the cells it fills, and the gate checks them.
+        Where the self-checks' results for interaction land; the slice plan names the cells it fills, the gate checks
+        them.
      3. **A precedent capability check and a novice pass before the author's gate** (P: §precedents, §used-before-done;
         L). §precedents is applied to interactions too: what a user can do in the precedents (the current Seq\*, IGV,
         Jalview, the genome browsers) that the slice's views cannot is listed, each built, planned or refused. Then a
