@@ -123,7 +123,8 @@ type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;
    - **What matches**: only the leading run of id segments of a ref's address can be a prefix of the moved address.
      Forms after it are kept (`/views/main/(section :of /data/p53)` follows `/data/p53`'s move inside the form value
      too). Refs inside the moved subtree to itself move with it.
-   - **Cost**: one index of the spec's refs, built once per apply, only when the patch has a `move`.
+   - **Cost**: the revision's ref index (`immutable.md`, In `repr`), built at the first move and derived by each later
+     revision from its parent's by the touched nodes: a move costs the refs it touches, never a walk of the spec.
    - **Rebinding** (B1): an `insert`, `move` or `rename` that makes a dangling ref resolve again is refused
      (`repr.patch.rebound`), unless `allowRebind` is set. Why: addressing.md says a ref is never silently re-bound.
      The principles' "an id is never reused among its siblings" is carried as a tension: Seq's ids are authors' names,

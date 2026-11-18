@@ -76,6 +76,11 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
       patches derived): the draft `drafts/patches.md` (draft 2, after an independent review), its API section the
       agreed surface for lane K, with its four decisions (git's model; `layer` ids required; dangling refs refused by
       default; no automatic rebase) and five questions answered. Recommendation: as drafted.
+    - **`@molstar/core/immutable`** (the author, 2026-11-18: "implement core/immutable and use it in repr"; moving
+      Mol\*'s state tree and model off immutable.js is a later, separate PR): the draft `drafts/immutable.md`, its API
+      section the agreed surface for lane R, with its four decisions (`repr` uses it for indexes beside an unchanged
+      node shape; CHAMP; our own API close to the immutable.js subset Mol\* uses; configurable per collection).
+      Recommendation: as drafted.
     - **The asset manager**: `credentials: 'omit'`, `redirect: 'error'`, the signal passed through, a streamed byte
       limit. Recommendation: yes, in this slice, with the policy then claiming all four.
     - **Range reads in the asset manager**: recommendation: wait for bigWig (milestone 3).
@@ -111,6 +116,15 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 1: the base (three lanes in parallel, after Gate 0)
 
+- [ ] R (strong) `@molstar/core/immutable`, as `drafts/immutable.md` agreed at Gate 0 (moved to
+      `design/immutable.md` before the lane starts):
+  - `HashMap`, `HashSet` (CHAMP, a flat array up to `smallMax`), `OrderedMap`, `OrderedSet`, `Vector` (32-way with a
+    tail), transients, cursors, per-collection hash and equality, `repr/tree`'s `ValueKeys`;
+  - in `repr`: the child index per node (`resolveAddress`) and the address index (`addressOf`), each derived across
+    revisions;
+  - model-based property tests against JS collections, persistence and transient tests, collisions, the canonical
+    shape; allocation cases (the opt-in tier); ratios against immutable.js and the bundle size (heavy lane);
+  - its `_spec`, base-library.md's row, a v6 changelog entry.
 - [ ] K (strong) `@molstar/core/repr/patch`, as `drafts/patches.md` agreed at Gate 0 (moved to
       `design/patches.md` before the lane starts):
   - the six ops with their inverses, `applyPatch` (result then base, all or nothing, refs following a move, no silent
@@ -211,7 +225,8 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ## Order and parallelism
 
-Gate 0 → stage 0 (beside Gate 0) → K, L, M in parallel → N and O in parallel (N needs K; O needs K for refs as patches)
+Gate 0 → stage 0 (beside Gate 0) → R, L, M in parallel → K (needs R: the ref index, `merge3`'s maps) → N and O in
+parallel (N needs K; O needs K for refs as patches)
 → P (needs O's addresses for the selection) beside Q → stories and use → measure → finalize.
 
 ## Hot files (the orchestrator's only)
@@ -222,10 +237,10 @@ The first slice's list:
 - `packages/seq/*/package.json` and `tsconfig*.json`;
 - `.seq/`.
 
-New in this slice: `packages/core/package.json` and `packages/io/package.json` (lanes K, L and M ask for export changes
-in their reports).
+New in this slice: `packages/core/package.json` and `packages/io/package.json` (lanes R, K, L and M ask for export
+changes in their reports).
 
 ## Out of scope
 
-The figures milestone (the text layout, alignments, rings, dot plots, PNG, the render CLI), structures, services,
+Moving Mol\*'s state tree and `@molstar/model` off immutable.js (a later, separate PR); the figures milestone (the text layout, alignments, rings, dot plots, PNG, the render CLI), structures, services,
 bigWig and range reads, the other datasets, concurrent writers (EC-93), agent tools.

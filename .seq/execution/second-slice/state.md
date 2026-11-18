@@ -15,7 +15,8 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## Next
 
-- The author reviews `drafts/patches.md`; then the loop starts: Gate 0 to the author (plan.md, with the first slice's
+- The author reviews `drafts/patches.md` (draft 2, after Fable 5.2's review; git's model) and `drafts/immutable.md`
+  (`@molstar/core/immutable`, used in `repr`; lane R); then the loop starts: Gate 0 to the author (plan.md, with the first slice's
   open decisions and evidence), stage 0 beside it.
 
 ## Decided
