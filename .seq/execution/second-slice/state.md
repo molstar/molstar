@@ -46,6 +46,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
   third slice's first stage; lane T merged after one review round: several ranges in one selection, followers that
   lead (`lead`, the author: "could we have following in both ways?"), the far-zoom hover; the Editing story's host
   stand-in explained; the fold-back made a step of every close (the author's rule, `_checks/closed-work.ts`).
+- Lane U merged after one review round: every drawn range mark is hit (runs merged at `bars` had none; not the
+  streaming, as the author asked: tested streamed and at once), zooming out (a history of jumps, back and forward,
+  the zoom keys), a double-click on an item focuses its whole extent (found in the look).
 
 ## Next
 

@@ -83,3 +83,5 @@
   letters while an intron is in the window: the hull spans the intron at full width (a 20-residue window: 60 coding
   nucleotides at about 10.7 px each, 140 with the intron at about 4.6, below `density.letterMinPx` 7). Collapsed introns
   keep three nucleotides a residue; the default for a section following through a codon map.
+- (U) The view history has no chrome yet (toolbar Back and Forward, their disabled state); `view.history` is reactive.
+- (U) `Hit.hull` is new in core's public `Hit` (the item's pieces on the section): kept, recorded in the core `_spec`.
