@@ -30,7 +30,9 @@ first slice exercises them.
   form (`(item :id T1)`, `(sequence :name …)`), never a spec path ([addressing.md](addressing.md)).
 - **Checked by the same description**: a dynamic node is validated as a spec node of its kind, by the one language
   description; its refs name spec nodes, held dynamic nodes or nodes of the same answer; anything else is an issue and
-  the node is left out. The same key with other params keeps the held node, with an issue.
+  the node is left out. The same key with other params keeps the held node, with an issue. Refs are absolute addresses
+  (the language's `ref` takes no relative form), so a runtime writes absolute ones; a relative form would be a core
+  repr change, not wanted.
 - **Where they live**: in the data store, as entries of their source ([data-store.md](data-store.md)); never in the spec,
   its history or its patches (EC-175).
 - **The overlay is a tier of its own** ([composition.md](composition.md)): the static model and the resolved view come
@@ -41,13 +43,25 @@ first slice exercises them.
 - **Naming before arrival**: a spec may name a dynamic node before it is held; what names it waits (a layer pending, its
   track not shown, noted once per source), never "unplaced".
 - **Item coordinate systems on demand**: an item whose rows carry a `map` (a transcript's CDS) gets its own coordinate
-  system when something names it or a template selects it, made when a region holding the item arrives (EC-177).
-- **Nested sources on need**: requested only when something needs their data, never past a depth limit (EC-179).
+  system when something names it or a template selects it, made when a region holding the item arrives (EC-177). The
+  system's length is `floor(coding / 3)` (a stop counts as a residue); it stays so until letters arrive.
+- **Nested sources on need**: requested only when something needs their data, never past a depth limit (EC-179); wanted
+  by region for the shown instances, not only the template's root source.
 - **Lifetime**: a node stays while something holds it (a region in the store that carried it, a placement shown, the
-  selection, a highlight, a ref, another held node naming it) and is evicted quietly with what it alone named.
+  selection, a highlight, a ref, another held node naming it) and is evicted quietly with what it alone named. A node
+  is also held while shown (a placed instance, a node whose item system a shown layer uses, a node a held node names):
+  `nodes.holdShown` (default true). Why: a shown track must not vanish when its region's tiles are evicted.
 - **Track templates are in version 1**: a template (`for_each` over a source's nodes, by kind, with order and filter) is
   one entry of the resolved view, expanded at layout into a track per matching held node, in key order; an arrival
   re-expands only its template (EC-178). The resolved view stays pure: it holds the template, not its expansion.
+  - `for_each.node_kind` (not `kind`, a reserved param key of the description language) is narrowed to `ranges` and
+    `values`.
+  - An instance's label is the template's label plus its top ancestor's key; nodes have no label param (open: add one
+    to the description).
+  - Expansion is capped by `maxTemplateTracks` (default 200), with an issue past it.
+  - open: today every template re-expands on each overlay version, cheap at this size; the design is that only the
+    arrival's own does (EC-178). Recommendation: per-template re-expansion as a followup, with the overlay keyed on
+    what it reads of the model.
 
 ## Consequences
 

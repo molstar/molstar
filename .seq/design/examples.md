@@ -11,7 +11,7 @@ one), showing one way of looking or one editing experience, and exercising named
 
 ## Decision
 
-- **Five datasets in version 1, a sixth later**, each a fixture in the storybook package (small files, read through the source protocol like any
+- **Five datasets in version 1, a sixth later**, each a fixture in `packages/seq/examples/fixtures` (small files, read through the source protocol like any
   other data; the large-scale variants generated in code, never stored):
 
   | Dataset | Holds |

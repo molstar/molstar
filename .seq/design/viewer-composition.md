@@ -51,7 +51,7 @@ interface SeqViewerSpec {
 
   ```ts
   interface Ports {
-    assets?: () => { manager: AssetManager; disposeWithViewer?: boolean };
+    assets?: () => ({ manager: AssetManager } | { reader: AssetReader }) & { disposeWithViewer?: boolean };
     textMetrics?: () => { measure: (font: string, text: string) => number; disposeWithViewer?: boolean };
     structure?: () => { runtime: StructureRuntime; disposeWithViewer?: boolean };
   }
@@ -59,8 +59,18 @@ interface SeqViewerSpec {
 
   Each is called once per viewer. Unset, the viewer makes the default adapter and disposes it with itself; a host that
   passes its own (a Mol\* plugin's asset manager) sets `disposeWithViewer: false` and keeps it ([ports.md](ports.md)).
-  Formats, map runtimes, backends and services are registry entries, since they are providers by name; the ports carry
+  The assets port takes a manager, or a bare reader (bytes by location) where a test or a CLI has no manager; the
+  policy wraps either. Formats, map runtimes, backends and services are registry entries, since they are providers by name; the ports carry
   what is one per viewer. Time and frames are `@molstar/ui/dom`'s `DomHost`, not a port.
+- **Keys are matched against the commands' shortcuts**, scoped to the viewer's container, until a command manager and
+  the `@molstar/ui` keymap are wired. Why: the viewer works headless of both, and the match moves into the manager
+  without changing the commands.
+- **`theme.source`** (`root`, default): a mounted viewer reads its root's CSS; `config` reads the core's `theme` item;
+  a headless viewer always uses the config. Why: a mounted viewer follows its page's theme without a second setting.
+- **`rested`** moves each time the picture comes to rest: `canvas.settleMs` (150) after the view's last move, or after
+  the last layout that changed what is drawn while the view was still (data arriving, the content's height). What
+  follows the picture (the SVG beside it) redraws on it. Why: a picture that changed while still would otherwise
+  never be redrawn.
 - **Behaviors** are as the plugin's: a provider and its params, initialized after the registry, able to register more
   entries at run time through `viewer.register(entry)` and to undo them.
 - **Config items** are typed settings described with `ParamDefinition`, as the plugin's `PluginConfigItem`s: one typed

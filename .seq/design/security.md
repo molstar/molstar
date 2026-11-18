@@ -13,6 +13,11 @@ bounded before it starts (§bounded-work).
   says which locations may be read (schemes, hosts; relative locations under the spec's own base), the largest size of
   one asset and of all in flight, whether credentials are sent (never by default), and how long a read may take. A read
   the policy refuses is an issue on its source, never an exception.
+- **What the policy enforces today**: locations (schemes, hosts, base), and the size of an asset once its body is read.
+  What waits for a core asset-manager change (proposed core change; the author's call): the manager's fetch sends
+  cookies on relative reads, follows redirects to disallowed hosts, ignores the signal and checks size only after the
+  whole body is read. The change is `credentials: 'omit'`, `redirect: 'error'`, the signal passed through and a streamed
+  byte limit. Until it lands the policy does not claim those four, and says so in its documentation.
 - **Defaults by host**:
   - in a browser viewer: `https:` and relative locations; no credentials; 256 MB an asset;
   - headless (the render CLI, a server): only files under a root the caller names and hosts it lists; no network by

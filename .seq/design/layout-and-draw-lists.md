@@ -33,6 +33,12 @@ interface LayerType<P, Prep, Lay> {
 - **Emphasis reaches `draw` as an argument**: selection and cursor per track (the layout knows the track's extents),
   hover per layer (the hit decides its granularity). Why: the emphasis passes redraw without a layout.
 
+- **open: one window per leading section.** The renderer's frame takes one viewport and the view model keeps one per
+  section, so the viewer draws every section with the first leader's window. Recommendation: a per-section viewport
+  map in the frame's input, before any view has two independent leaders.
+- **open: projected hover.** The emphasis carries one hover hit, so the hover model's projection onto linked sections
+  cannot reach the draw lists. Recommendation: `Emphasis.projected?: (section) => Location`, drawn in the `hover` pass.
+
 ### The layout interface (internal)
 
 A section layout (tracks, text, rings, dot plots) takes a section of the resolved view, the configuration and a size,

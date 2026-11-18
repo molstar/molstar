@@ -73,3 +73,10 @@ of EC-30; NCBI codes beyond 1, 2, 11; projecting rects; reverse paths carried ac
 - Mixed strands within an item checked (the first row's strand is taken).
 - Dynamic nodes in `not`'s universe.
 
+
+## From the stage 6 drift fold
+
+- EC-143 (re-hit a resting pointer once per frame in which the layout was rebuilt) is in no catalog: add it to
+  `sources/seqstar/edge-cases.md` (the author's records) or to the designs' own list.
+- Not yet in the designs: a source-backed leader's length fed to the `ViewModel`; the registry holding format runtimes
+  only in this slice; the canvas and SVG pass order (labels above emphasis, a third canvas).

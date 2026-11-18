@@ -66,7 +66,8 @@ type RegionAnswer =
     `mean`, `count` (float32) from `start` with the level's bin width.
   - `pairs`, `matrix`, `grid`, `rows`: with the Genomes milestone.
 - **Nodes** in an answer refer to each other by `(node :key K)`, resolved against the answering source, and to spec
-  nodes by address ([dynamic-nodes.md](dynamic-nodes.md)).
+  nodes by absolute address ([dynamic-nodes.md](dynamic-nodes.md)); the language's `ref` has no relative form, so a
+  runtime resolves `(node :key K)` against the answering source and writes the absolute address.
 - **Errors**: `failed` is retried with backoff then a cooldown, reported once (EC-174); `not-served` is never retried;
   `malformed` is a failure with its issue, never retried (failed with a cooldown); `too-large` asks for a coarser level. Cancellation rejects with an
   `AbortError`, never an error state.
@@ -103,7 +104,7 @@ type RegionAnswer =
 - **Node entries are held, not cached**: each counts its holders (data entries that carried it, placements shown, the
   selection, highlights, other held nodes naming it). A data entry's eviction releases its holds; a node with no holder
   is evicted, quietly, with what it alone named. A ref or bookmark in the spec does not hold a node: it waits for it.
-- Summaries belong to their data entry and go with it.
+- Summaries belong to their attached source, not a data entry, and go when the source is detached ([data-store.md](data-store.md)).
 
 ## Consequences
 

@@ -21,6 +21,11 @@ author, 2026-11-17).
 - **Requests**: from the resolved view and the viewport, each visible layer asks for (source, region, level); the store
   dedupes, orders (view, margin, prefetch; EC-172), bounds what is in flight, cancels what left the view after a grace
   (EC-173), and passes the rest to the source's runtime through the source protocol ([sources.md](sources.md)).
+- **Summaries are per attached source**, not per data entry: a coarse tile per entry would need unbounded level-1
+  tiles. Factor 16, bounded by `maxLength` (2^24); over it, binned per tile from a bounded level-1 read (or not
+  served). The pyramid counts in the byte budget.
+- **A detached source's tiles leave the request queue.** Sources opened for the overlay are shared by count on one
+  store: the last release closes them.
 - **Eviction**: data entries byte-bounded (64 MB by default, a setting), least recently used, never an entry in view;
   node entries held by their holders, not cached ([protocol.md](protocol.md), Lifetime).
 - **Answers carry nodes**: a region's answer holds tables and the data nodes it brings; the nodes are entries of their

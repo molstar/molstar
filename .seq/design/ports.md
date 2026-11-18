@@ -18,7 +18,7 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
 
   | Port | What | Default adapter |
   |---|---|---|
-  | assets | read bytes by location | `@molstar/core/util/assets`'s `AssetManager`, wrapped by a policy (allowed hosts, size limits, no credentials by default, [security.md](security.md)); a host passes its own manager (a Mol\* plugin's), so downloads and files are shared |
+  | assets | read bytes by location | `@molstar/core/util/assets`'s `AssetManager`, wrapped by a policy (allowed hosts, size limits, no credentials by default, [security.md](security.md)); a host passes its own manager (a Mol\* plugin's), so downloads and files are shared, or a bare `{ reader }` (a test or a CLI has a reader, not a manager) |
   | text metrics | measure text for layout | `@molstar/core/util/text-measure` with a canvas in the browser, a bundled metrics table in Node ([rendering.md](rendering.md)) |
   | structure | bind structure systems to a structure viewer (hover and selection both ways, colors) | none; the Mol\* adapter in the showcases |
 
