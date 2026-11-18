@@ -93,4 +93,37 @@ describe('Gene by region, on the canvas', () => {
     await vi.advanceTimersByTimeAsync(FrameMs);
     for (const d of domains(v.frame!, pending)) expect(d, d.track).toMatchObject({ pending: 0, drawnPending: 0 });
   });
+
+  it('draws the story’s SVG again once the picture rests after data arrives, at the canvas’s height', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
+    const view = P53Views.find((v) => v.id === 'gene-by-region')!;
+    const text = regionSeqText();
+    const base = DefaultSeqViewerSpec();
+    viewer = createSeqViewer({
+      ...base,
+      ui: undefined,
+      registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: DelayMs }) ?? [])],
+      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+    });
+    const v = viewer;
+    v.resize(720);
+    // the story's SVG: the last export drawn wins
+    let last: { svg: string; height: number } | undefined;
+    let latest = 0;
+    const svg = async () => {
+      const mine = ++latest;
+      const height = v.height;
+      const r = await v.renderSvg();
+      if (mine === latest) last = { svg: r.svg, height };
+    };
+    v.rested.listen(() => void svg());
+    // the first export before any frame has laid the view out (a page whose frames lag): nothing to draw yet
+    void v.load(view.build()).then(svg);
+
+    await vi.advanceTimersByTimeAsync(20 * DelayMs);
+    expect(v.height).toBeGreaterThan(32);
+    expect(last?.height).toBe(v.height);
+    expect(last?.svg).toContain(`height="${v.height}"`);
+    expect(last?.svg).toContain('T3-domains');
+  });
 });

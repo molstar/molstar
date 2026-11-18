@@ -61,7 +61,10 @@ export class SeqViewer extends ReactiveModel {
   readonly layoutIssues: ReadonlyState<readonly Issue[]>;
   /** The viewer's own: a gesture that needs a behavior the spec does not list, once each. */
   readonly behaviorIssues: ReadonlyState<readonly Issue[]>;
-  /** Moves each time the view comes to rest (`canvas.settleMs` after its last move): what follows the picture waits for it. */
+  /**
+   * Moves each time the picture comes to rest: `canvas.settleMs` after the view's last move, or after the last layout that
+   * changed what is drawn (data arriving, the content's height): what follows the picture waits for it.
+   */
   readonly rested: ReadonlyState<number>;
 
   /** Moves to the token table's version each time the tokens change (`setTokens`): what follows the picture redraws. */
@@ -97,6 +100,7 @@ export class SeqViewer extends ReactiveModel {
   private _frame: Frame | undefined;
   private _quiet = true;
   private _settleTimer: unknown;
+  private _restTimer: unknown;
   private _syncing: Promise<void> = Promise.resolve();
   private _contentHeight = 0;
   private _baseDirty = true;
@@ -183,6 +187,8 @@ export class SeqViewer extends ReactiveModel {
       this._frameId = undefined;
       DomHost.clearTimeout(this._settleTimer);
       this._settleTimer = undefined;
+      DomHost.clearTimeout(this._restTimer);
+      this._restTimer = undefined;
       this._wanter?.dispose();
       for (const u of this._viewportListeners) u();
       this._viewportListeners.length = 0;
@@ -334,6 +340,16 @@ export class SeqViewer extends ReactiveModel {
     }, this.config.canvas.settleMs);
   }
 
+  /** The picture changed while the view is quiet (data arrived, the height followed): it rests `canvas.settleMs` later. */
+  private _changed(): void {
+    if (this._retired || !this._quiet) return;
+    DomHost.clearTimeout(this._restTimer);
+    this._restTimer = DomHost.setTimeout(() => {
+      this._restTimer = undefined;
+      if (this._quiet && !this._retired) this._rested.set(this._rested.value + 1);
+    }, this.config.canvas.settleMs);
+  }
+
   /** Asks for a frame: one a frame (`@molstar/ui/dom`'s frame callbacks, on `DomHost`), whatever asked; `retire` cancels it. */
   schedule(): void {
     // a re-hit's own hover change is drawn by the frame that made it
@@ -426,6 +442,7 @@ export class SeqViewer extends ReactiveModel {
     this.height = size.height;
     if (rebuilt) {
       this.counts.layouts++;
+      this._changed();
       this._wanter?.want(frame.wants);
       this._issues.set(frame.layout.issues);
       this.store.holdShown(frame.layout.shown);

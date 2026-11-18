@@ -132,8 +132,9 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - **Behaviors by provider**: the input finds a behavior by its provider (`viewer.behavior(HoverProvider)`), whatever the
   spec calls it; one the spec does not list is a `seq.viewer.behavior.missing` issue (`behaviorIssues`), once, and the
   gesture does nothing.
-- `rested` moves each time the view comes to rest (`canvas.settleMs` after its last move): what follows the picture (the
-  SVG beside it) redraws on it. `load` opens the sources once.
+- `rested` moves each time the picture comes to rest (`canvas.settleMs` after the view's last move, or after the last
+  layout that changed what is drawn while the view was still: data arriving, the content's height): what follows the
+  picture (the SVG beside it) redraws on it. `load` opens the sources once.
 
 ## Ports
 
