@@ -141,7 +141,7 @@ and dark before the merge.
 
 ### Stage 0: carried from the second slice (orchestrator and one fast lane, beside Gate 0)
 
-- [ ] C0 (fast) the carry-overs in `packages/seq/TODO.md`: export `projectPoint` from `resolve` and drop the viewer's
+- [x] C0 (fast) the carry-overs in `packages/seq/TODO.md`: export `projectPoint` from `resolve` and drop the viewer's
       copy; a link followed before the spec is loaded kept waiting (the address model treats "no spec yet" as waiting)
       and the focus recorded when a kept move lands; the Features links story's single message; `track.add` as a
       command; `view.back` and `view.forward` in the default toolbar with their disabled state; drawing checked against

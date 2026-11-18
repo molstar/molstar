@@ -9,14 +9,17 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
 - The designs drafted, reviewed for their decisions, self-checked as a set (the four steps), decided by the author and
   agreed into `.seq/design/` (axis, themes, layouts, grids-and-rows, navigators, the datasets in examples) with their
   Storybook Design pages.
+- C0 merged (`6d4b96898`): review's six findings fixed, the look's disabled buttons fixed. Stage 0's gate passed:
+  quick 822, heavy 44, typechecks, lint, format, sizes (150.6 / 267.9 / 507.8 kB, all under target); no medium tests
+  in `packages/seq` yet.
 
 ## In progress
 
-- C0 (fast): `briefs/c0-carry-overs.md`, base `c5fe373cd`, branch `seq/c0-carry-overs`.
+- AX (strong): `briefs/ax-axis.md`, branch `seq/ax-axis`.
 
 ## Next
 
-Stage 0: C0 (fast), beside it nothing else; then stage 1's AX.
+Stage 1: after AX, TH and SL in parallel.
 
 ## Decided
 
@@ -32,6 +35,7 @@ Stage 0: C0 (fast), beside it nothing else; then stage 1's AX.
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stage 0 (C0's review and look) | 3 (a test not checking the drawing; a kept focus outliving a load; untested parts) | 0 | 1 (disabled buttons not dimmed) |
 
 ## Running
 
