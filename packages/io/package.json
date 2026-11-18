@@ -16,6 +16,7 @@
     "./common/_test/*": null,
     "./common/binary-cif/_test/*": null,
     "./common/msgpack/_test/*": null,
+    "./repr/_test/*": null,
     "./reader/_test/*": null,
     "./reader/cif/binary/_test/*": null,
     "./reader/cif/text/_test/*": null,
@@ -37,6 +38,7 @@
     "@molstar/core": "workspace:*"
   },
   "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
     "typescript": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:"
