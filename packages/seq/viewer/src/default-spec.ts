@@ -14,7 +14,6 @@ import {
   SelectProvider,
 } from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
-import { DefaultToolbar } from './toolbar.js';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
 // The default spec (_spec/README.md "Composition"): the built-in entries, behaviors, ports and UI, as data. An
@@ -37,6 +36,6 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
     bindings: {},
     config: [],
     ports: defaultPorts(),
-    ui: { canvas: true, history: true, toolbar: DefaultToolbar },
+    ui: { canvas: true, history: true },
   };
 }

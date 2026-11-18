@@ -113,7 +113,9 @@ function drawnIn(v: SeqViewer, lay: RangesLay): [number, number][] {
     .split('\n')
     .filter((l) => l.startsWith('rect '))
     .map((l) => l.split(' '))
-    .filter((r) => r[5] !== pending && Number(r[2]) >= y - 1e-3 && Number(r[2]) < y + height && Number(r[1]) < x + width)
+    .filter(
+      (r) => r[5] !== pending && Number(r[2]) >= y - 1e-3 && Number(r[2]) < y + height && Number(r[1]) < x + width,
+    )
     .map((r): [number, number] => [Number(r[1]), Number(r[1]) + Number(r[3])]);
 }
 
@@ -142,7 +144,10 @@ function checkRows(v: SeqViewer, lay: RangesLay, rows: readonly Row[], from: num
     const vp = v.view.get(owner.section.address)!;
     const px = (position: number) => lay.box.x + ((position - vp.start) * lay.box.width) / (vp.end - vp.start);
     for (const [a, b] of inWindow(r)) {
-      const mid = (Math.max(px(Math.max(a, vp.start)), lay.box.x) + Math.min(px(Math.min(b, vp.end)), lay.box.x + lay.box.width)) / 2;
+      const mid =
+        (Math.max(px(Math.max(a, vp.start)), lay.box.x) +
+          Math.min(px(Math.min(b, vp.end)), lay.box.x + lay.box.width)) /
+        2;
       if (!draws.some(([x0, x1]) => x0 - 1 <= mid && mid <= x1 + 1))
         wrong.push(`${lay.key}: ${r.id} piece [${a}, ${b}) is not drawn (x ${mid.toFixed(1)})`);
     }

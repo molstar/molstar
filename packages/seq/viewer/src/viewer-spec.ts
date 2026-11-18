@@ -8,6 +8,7 @@ import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-co
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SeqHistoryPort } from '@molstar/seqx-viewer/ports';
+import type { SeqViewer } from './viewer.js';
 import type {
   AddressModel,
   HighlightModel,
@@ -57,13 +58,17 @@ export interface SeqViewerBindings {
 }
 
 /** The mounted UI's parts: the toolbar and the canvas stack (the section labels are drawn by the layout). */
+/** Mounts a toolbar for a viewer into a target (before the canvas); the function it returns takes it away. */
+export type ToolbarMount = (viewer: SeqViewer, target: HTMLElement) => () => void;
+
 export interface SeqViewerUI {
   readonly canvas?: true;
   /**
-   * The toolbar above the canvas: the ids of the commands it has buttons for, in order (`toolbarButtons` knows
-   * `view.back` and `view.forward`). None: no toolbar.
+   * The toolbar, a part the host places (like the legends): `mountToolbar` of `@molstar/seqx-viewer/mount-toolbar`, or
+   * its own, mounted into the target above the canvas. Not listed, not in the bundle: the toolbar is `@molstar/ui`'s
+   * and weighs far more than the two buttons it holds.
    */
-  readonly toolbar?: readonly string[];
+  readonly toolbar?: ToolbarMount;
   /**
    * A mounted viewer with no `history` given gets a `@molstar/ui/history` stack of its own (`uiHistory()`): the
    * standalone viewer's Undo. A headless viewer never does.

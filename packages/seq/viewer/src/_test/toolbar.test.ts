@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { mountToolbar } from '../mount-toolbar.js';
 import { DefaultToolbar, toolbarButtons } from '../toolbar.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { ProteinSection as Protein, proteinOnGene } from './fixture.js';
@@ -61,7 +62,11 @@ async function make(mounted = false) {
   const target = document.createElement('div');
   document.body.appendChild(target);
   viewer = createSeqViewer(
-    { ...DefaultSeqViewerSpec(), config: [[viewerItem('viewport.maxPxPerPosition'), 1000]] },
+    {
+      ...DefaultSeqViewerSpec(),
+      ui: { canvas: true, history: true, toolbar: mountToolbar },
+      config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+    },
     mounted ? target : undefined,
   );
   await viewer.load(proteinOnGene());
@@ -148,7 +153,8 @@ describe('the mounted toolbar', () => {
   it('is left out with no `ui.toolbar`, and retire takes it away with the canvas', async () => {
     const target = document.createElement('div');
     document.body.appendChild(target);
-    const bare = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: { canvas: true } }, target);
+    // the default spec lists no toolbar: the host places it
+    const bare = createSeqViewer(DefaultSeqViewerSpec(), target);
     expect(target.querySelector('[role="toolbar"]')).toBeNull();
     bare.retire();
     const { target: t2, viewer: v } = await make(true);

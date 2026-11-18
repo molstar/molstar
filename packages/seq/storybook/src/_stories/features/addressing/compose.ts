@@ -9,6 +9,7 @@ import type { ExampleView } from '@molstar/seqx-examples';
 import type { LinkRun } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import type { RefEntry } from '@molstar/seqx-viewer/models';
+import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The addressing stories' composition, DOM-free: the story and its headless twin call these, so the twin composes the
@@ -31,7 +32,7 @@ export function composeViewer(view: ExampleView, options: ComposeOptions = {}): 
   return createSeqViewer(
     {
       ...base,
-      ...(options.target ? {} : { ui: undefined }),
+      ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
     },

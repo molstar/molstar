@@ -222,8 +222,8 @@ syncing sources), with the `address.*` settings as bounds.
   (`Kept until the view is placed`), never `Focused`; the address is the focus (`focusAddress()`) once the kept move
   lands. Before any spec is set (`SpecModel.loaded` false: the empty spec a viewer starts with) every address waits, so
   a link followed before the document arrives is kept and runs when it is set (retried with the refs' state). The record
-  waits on the sections the move moved alone, and ends at another jump (a focus, back, forward) or when a new spec leaves
-  the address naming nothing (`seq.address.missing`).
+  waits on the sections the move moved alone, and ends at another jump (a focus, back, forward) or when a new spec
+  leaves the address naming nothing (`seq.address.missing`).
 - **The session follows the spec**: `followMoves(changes.moved)`, called before a patch's root is set (the spec model's
   `beforeCommit`, so every commit's moves reach it), rewrites the session's addresses (selection, highlights, the
   waiting and the last focus) through moves and renames as the spec's refs are; on each new root they are resolved
@@ -267,17 +267,17 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
   (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate`, `select`, `cursor`,
-  `addressing` and `editing` behaviors, the default ports and the UI (`canvas`, `toolbar`: the commands the bar above
-  the canvas has buttons for, `view.back` and `view.forward` by default, none without it; and `history`: a mounted
-  viewer with no `history` given gets a `uiHistory()` stack of its own); an application spreads it. A headless spread
-  (`ui: undefined`) has no history, so its edits apply at once (`refs.add` and the editing commands answer at once); a
-  mounted one runs them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
+  `addressing` and `editing` behaviors, the default ports and the UI (`canvas`, and `history`: a mounted viewer with no
+  `history` given gets a `uiHistory()` stack of its own); an application spreads it. A headless spread (`ui: undefined`)
+  has no history, so its edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs
+  them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `uiHistory()` when
   mounted with `ui.history`; bound to the spec), the binding table, the behaviors (one of each name; a behavior's
-  `commands` join the viewer's), then the UI into `target` when there is one and the spec has `ui.toolbar` and
-  `ui.canvas` (the bar above the canvas). Without a target it is headless: models, commands, frames, `hit`, SVG. Why the
-  order: behaviors read the models and the bindings, the UI the behaviors.
+  `commands` join the viewer's), then the UI into `target` when there is one: the toolbar the spec lists (`ui.toolbar`,
+  a function the host gives: `mountToolbar` of `@molstar/seqx-viewer/mount-toolbar`), then the canvas when the spec has
+  `ui.canvas`. Without a target it is headless: models, commands, frames, `hit`, SVG. Why the order: behaviors read the
+  models and the bindings, the UI the behaviors.
 - The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits
   for the picture (sources open, wanted data arrived, the view at rest).
 - **The frame** (`draw`): the renderer lays the view out when anything it reads changed, else redraws the emphasis
@@ -426,12 +426,13 @@ binding table; per move one hit record and one modifiers record are reused.
   ratio now (made again after each change, a frame asked for), a web font arriving measures text again; the function
   `mountCanvas` returns takes away every listener, the observer and the nodes.
 - **Toolbar** (`toolbar.ts`, `toolbarButtons(viewer, commands)`, DOM-free; `mount-toolbar.ts` mounts `@molstar/ui`'s
-  toolbar over it, above the canvas): one button a command of `ui.toolbar`, `view.back` and `view.forward` known. Its
-  title is the label and the first chord of the command's `view.keys` as the platform writes it (`Back (Alt+←)`; no key
-  when the application removed them), also its accessible name; it is disabled, with the reason as its tooltip, while
-  its side of `view.history` is empty (the state is reactive: the bar follows jumps, back and forward, and edits that
-  clear the history). A click runs the command on the first leading section. Why a model apart: the twin of the mounted
-  bar reads the same states in Node.
+  toolbar over it, above the canvas): a part the host places (`ui.toolbar: mountToolbar`; the default spec lists none:
+  `@molstar/ui`'s toolbar with its icons and menus is about 85 kB, the default viewer 508 kB without it), one button a
+  command, `view.back` and `view.forward` known (`DefaultToolbar`). Its title is the label and the first chord of the
+  command's `view.keys` as the platform writes it (`Back (Alt+←)`; no key when the application removed them), also its
+  accessible name; it is disabled, with the reason as its tooltip, while its side of `view.history` is empty (the state
+  is reactive: the bar follows jumps, back and forward, and edits that clear the history). A click runs the command on
+  the first leading section. Why a model apart: the twin of the mounted bar reads the same states in Node.
 
 ## Behaviors
 
@@ -558,7 +559,7 @@ settings form.
 | `view.jumpMs`                     | 240                                                                                                                                                                                                                | a jump's animation (focus, fit, reveal, back, forward, a step zoom; the length: no reason recorded); 0: a cut                                                                                                                                                  |
 | `view.motion`                     | `auto`                                                                                                                                                                                                             | animated unless the platform asks for reduced motion; `cut`: always a cut                                                                                                                                                                                      |
 | `view.keys`                       | `view.back`: Alt+ArrowLeft, Backspace; `view.forward`: Alt+ArrowRight; `view.fit`: 0; `view.zoom-in`: = and +; `view.zoom-out`: -; `view.pan-left`, `view.pan-right`: Shift+Alt+Arrow; `selection.bookmark`: Mod+d | the view's commands' keys by command id, the first the shortcut, and the one shown in the toolbar's tooltip (Cmd/Ctrl+D bookmarks the selection: the browser's own bookmark key, taken only while the canvas has focus); an override merges by id (`[]`: none) |
-| `ui.toolbar` (in `SeqViewerSpec`) | `view.back`, `view.forward`                                                                                                                                                                                        | the commands the bar above the canvas has buttons for: the history's two, with their keys and disabled state; none: no bar                                                                                                                                     |
+| `ui.toolbar` (in `SeqViewerSpec`) | none                                                                                                                                                                                                               | a function mounting the bar above the canvas (`mountToolbar`: Back and Forward, their keys and disabled state); the host places it, as it would a legend: the bar is `@molstar/ui`'s and heavy                                                                 |
 | `navigate.wheelZoomStep`          | 1.25                                                                                                                                                                                                               | the zoom of one wheel notch (100 px of delta) with the zoom modifier, and of a key zoom (no reason recorded)                                                                                                                                                   |
 | `navigate.doubleClickZoomStep`    | 2                                                                                                                                                                                                                  | Shift+double-click's zoom out about the pointer                                                                                                                                                                                                                |
 | `navigate.keyPanFraction`         | 0.1                                                                                                                                                                                                                | the part of the viewport a key pans (no reason recorded)                                                                                                                                                                                                       |

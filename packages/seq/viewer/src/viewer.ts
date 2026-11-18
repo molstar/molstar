@@ -52,7 +52,6 @@ import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
-import { mountToolbar } from './mount-toolbar.js';
 
 // The viewer (_spec/README.md "Composition"): composed from a spec by `createSeqViewer`, as a Mol* plugin is: the
 // context (registry, configuration, ports) first, then the models, the bindings and the behaviors, then the UI. Frames
@@ -273,8 +272,7 @@ export class SeqViewer extends ReactiveModel {
       this.schedule();
     });
     this._followViewports();
-    if (target && viewerSpec.ui?.toolbar?.length)
-      this.registerPermanentDispose(mountToolbar(this, target, viewerSpec.ui.toolbar));
+    if (target && viewerSpec.ui?.toolbar) this.registerPermanentDispose(viewerSpec.ui.toolbar(this, target));
     if (target && viewerSpec.ui?.canvas) this.registerPermanentDispose(mountCanvas(this, target));
     // registered last, so it runs first: everything after it (the UI's teardown, the behaviors, the models) is disposed
     // while the viewer is retired, and none of it asks for a frame

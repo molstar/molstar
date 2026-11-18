@@ -13,6 +13,7 @@ import type { ExampleView } from '@molstar/seqx-examples';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ui-history';
+import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { HistoryModel } from '@molstar/ui/history/history-model';
 
@@ -55,7 +56,7 @@ export function composeEditing(view: ExampleView, options: ComposeOptions = {}):
   const viewer = createSeqViewer(
     {
       ...base,
-      ...(options.target ? {} : { ui: undefined }),
+      ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
       registry: [
         ...(base.registry ?? []),
         ...(view.registry?.(options.delayMs !== undefined ? { delayMs: options.delayMs } : {}) ?? []),
