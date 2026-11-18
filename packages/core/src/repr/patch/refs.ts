@@ -629,6 +629,8 @@ export class LiveRefs implements WorkListener {
   private readonly superseded = new WeakMap<Node, Set<string>>();
   private readonly overlay = new Map<Draft, Map<string, LiveSite[]>>();
   private readonly byFirst = new Map<string, Set<LiveSite>>();
+  /** Keys holding a stored patch: its typed values read the spec, so they are walked again before a move. */
+  private readonly stored = new Map<Draft, Set<string>>();
   private overlayPass?: RefPass;
 
   constructor(
@@ -679,6 +681,11 @@ export class LiveRefs implements WorkListener {
   }
 
   private add(holder: Draft, rel: TreePath, value: string, step?: Step) {
+    if (step) {
+      const keys = this.stored.get(holder);
+      if (keys) keys.add(String(rel[1]));
+      else this.stored.set(holder, new Set([String(rel[1])]));
+    }
     const runs = parsedRuns(value);
     if (!runs) return;
     const site: LiveSite = { holder, rel, value, run: runs[0], runs, ...(step ? { step } : {}) };
@@ -754,6 +761,14 @@ export class LiveRefs implements WorkListener {
   }
 
   /** `from` moved to `to`: every live ref under it rewritten, its key's sites derived again. */
+  /**
+   * Before a move: a stored patch made or written earlier is typed again over the draft as it is now. A `set` whose
+   * target node a later op inserted holds a ref only from then on, and the move must take that ref along.
+   */
+  retype() {
+    for (const [d, set] of this.stored) for (const k of [...set]) this.key(d, k);
+  }
+
   move(from: Address, to: Address) {
     const keys = new Map<Draft, Set<string>>();
     for (const s of this.under(from)) {

@@ -82,6 +82,7 @@ export function applyPatch(root: Node, patch: Patch, options: ApplyOptions = {})
   work.listener = live;
   let moves = 0;
   for (let i = 0; i < patch.ops.length; i++) {
+    if (live && patch.ops[i]?.op === 'move') live.retype();
     const failed = work.apply(patch.ops[i], i);
     if (failed) return refuse(failed);
     // refs follow a move or a rename, op by op: a ref an earlier op wrote follows a later move

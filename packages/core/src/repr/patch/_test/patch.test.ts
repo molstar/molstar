@@ -129,6 +129,33 @@ describe('repr/patch: the inverse, with what it needs only', () => {
     return r;
   };
 
+  it('a stored set made before the node it targets is typed again, so a later move takes its ref along', () => {
+    // the inverse makes `b` (its step setting /a/a's link to /a) before it makes `/a`, then moves `/a` to `/b/d`
+    const root: Node = {
+      kind: 'doc',
+      children: [
+        {
+          kind: 'box',
+          id: 'b',
+          params: {
+            link: '/b/b',
+            step: patchToNode({ ops: [{ op: 'set', at: ['b', 'd', 'a'], key: 'link', value: '/b/d' }] }),
+          },
+          children: [leaf('b', { link: '/b/d' }), { kind: 'box', id: 'd', children: [leaf('a')] }],
+        },
+      ],
+    };
+    const patch: Patch = {
+      ops: [
+        { op: 'set', at: ['b', 'b'], key: 'link', value: '/b/b' },
+        { op: 'move', at: ['b', 'd'], parent: [], place: { last: true }, rename: 'a' },
+        { op: 'remove', at: ['a'] },
+        { op: 'remove', at: ['b'] },
+      ],
+    };
+    back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
+  });
+
   it('undoes a remove whose content held a ref already dangling', () => {
     back(doc(box('a', { link: '/zz' })), { ops: [{ op: 'remove', at: ['a'] }] }, lang);
     back(
