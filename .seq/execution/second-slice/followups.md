@@ -64,3 +64,7 @@
 - (S) The Features links story's `describeRun` prints a wait's message twice (the example uses `describeLinkRun`);
   `example-root.ts` keeps its own copy of the SVG-follow block (`_stories/follow-svg.ts`).
 - (S) A `track.add` command in the viewer (the example inserts a track with a plain patch).
+- (Stage 4 gate, the author 2026-11-18: third slice) A minus-strand gene following its protein moves opposite to it
+  (maps.md: the hull in genomic order). A section's direction as a setting, `genomic`, `reversed` or `follow` (the
+  leader's): a follower defaults to `follow`, a leader to `genomic`; a reversed axis counts down and says it is
+  reversed; reversed DNA letters drawn as their complement (on by default). Built on reversed pieces of an axis.
