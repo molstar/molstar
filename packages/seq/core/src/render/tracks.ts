@@ -7,7 +7,7 @@
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { fitLevel, type Want } from '@molstar/seqx-core/data';
-import type { LocationPart } from '@molstar/seqx-core/query';
+import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
   expandTemplate,
@@ -33,7 +33,7 @@ import {
 } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
-import { EmptyOverlay } from './layer-type.js';
+import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
@@ -71,6 +71,8 @@ export interface TrackLayout {
 
 export interface SectionLayout {
   readonly section: ResolvedSection;
+  /** The section's id (its address's last step): what a hit names it by. */
+  readonly id: string;
   /** Undefined while the section's length is unknown (pending). */
   readonly axis?: AxisTransform;
   readonly y: number;
@@ -313,7 +315,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       });
       y += h;
     }
-    sections.push({ section, ...(axis ? { axis } : {}), y: top, height: y - top, tracks });
+    sections.push({ section, id: sectionId(section), ...(axis ? { axis } : {}), y: top, height: y - top, tracks });
   }
   // a layer gone from the view lets its last layout go
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
@@ -409,21 +411,24 @@ const ViewDraws = passDraws<ViewLayout, Emphasis | undefined>({
   labels: drawTracks,
 });
 
-/** The background pass: the page, and each track's box. */
-function drawBackground(layout: ViewLayout, out: PassWriter, _emphasis: Emphasis | undefined) {
-  const { tokens } = layout;
+/** The background pass: the page, each track's box, and the selection's tint when it is drawn under the data. */
+function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
+  const { tokens, config } = layout;
   out.fill(0, 0, layout.width, layout.height, tokens.colors['msui-bg']);
+  const under = config.emphasis.selectionPlace === 'under';
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
     for (let ti = 0; ti < s.tracks.length; ti++) {
-      const { box } = s.tracks[ti];
+      const t = s.tracks[ti];
+      const { box } = t;
       if (box.y >= layout.height) continue;
       out.fill(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
+      if (under && s.axis && emphasis) drawSelectionTint(out, s.axis, box, emphasis, tokens, config);
     }
   }
 }
 
-/** Any other pass (the writer's): each track's own marks of it (labels, selection, cursor), then its layers'. */
+/** Any other pass (the writer's): each track's own marks of it (labels, emphasis), then its layers'. */
 function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
   const { tokens, config } = layout;
   const pass = out.pass.name;
@@ -437,8 +442,20 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
         case 'labels':
           drawLabel(out, t, tokens, config);
           break;
+        case 'highlight':
+          if (s.axis && emphasis?.highlights) drawHighlights(out, s.axis, box, emphasis, config);
+          break;
         case 'selection':
-          if (s.axis && emphasis?.selection) drawSelection(out, s.axis, box, emphasis, tokens, config);
+          if (s.axis && emphasis) {
+            if (config.emphasis.selectionPlace === 'over')
+              drawSelectionTint(out, s.axis, box, emphasis, tokens, config);
+            drawSelectionOutline(out, s.axis, box, emphasis, tokens, config);
+          }
+          break;
+        case 'hover':
+          // the hover carried here from a linked section; its own section's layer outlines it
+          if (s.axis && emphasis?.projected?.hover && emphasis.hover?.section !== s.id)
+            drawProjectedHover(out, s.axis, box, emphasis.projected.hover, tokens, config);
           break;
         case 'cursor':
           if (s.axis && emphasis?.cursor?.system === s.axis.system)
@@ -457,8 +474,10 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
   }
 }
 
-// The label and the cursor take the layout, not its numbers: a number passed to a call that is not inlined is boxed
-// (nothing allocated once warm).
+// The label, the cursor and the emphasis marks take the layout, not its numbers: a number passed to a call that is not
+// inlined is boxed (nothing allocated once warm). What a shared mark function needs besides its objects (a fill, a
+// stroke, a width) goes through `Paint`, a typed array: its numbers are never boxed; colors at an opacity are made
+// inline (`withAlpha` would box its result).
 
 /** A track's label in the label column, faded past it. */
 function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig) {
@@ -498,27 +517,17 @@ function drawCursor(
   out.rectArgs();
 }
 
+/** The fill, the stroke and the stroke's width `paintRanges` draws with: a typed array, so no number is boxed. */
+const Paint = new Float64Array(3);
+
 /**
- * The selection on a section's system: an accent tint over the track and an accent outline around each range. Its part
- * is found with an indexed loop, its ranges placed with `spanIn`, snapped and tinted inline (`snap`, `withAlpha`), its
- * rects drawn through `args`: an emphasis redraw allocates nothing once warm.
+ * A part's ranges on a track: per range and piece of the axis in view, a rect over the track's height snapped to the
+ * device grid, filled with `Paint[0]` (none: `NoColor`), then outlined inside it with `Paint[1]` at `Paint[2]` px.
  */
-function drawSelection(
-  out: PassWriter,
-  axis: AxisTransform,
-  box: Box,
-  emphasis: Emphasis,
-  tokens: SeqTokens,
-  config: RenderConfig,
-) {
-  const sel = emphasis.selection;
-  if (!sel) return;
-  let part: LocationPart | undefined;
-  for (let i = 0; i < sel.parts.length && !part; i++) if (sel.parts[i].system === axis.system) part = sel.parts[i];
-  if (!part) return;
-  const accent = tokens.colors['msui-accent'];
-  const tint = ((accent & 0xffffff00) | Math.round(0.18 * 255)) >>> 0;
-  const w = config.outline.selection;
+function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: LocationPart) {
+  const fill = Paint[0];
+  const stroke = Paint[1];
+  const w = Paint[2];
   const dpr = axis.dpr;
   const n = axis.offsets.length;
   const g = out.args;
@@ -527,25 +536,116 @@ function drawSelection(
       if (!axis.spanIn(k, part.ranges[i], part.ranges[i + 1])) continue;
       const x0 = Math.round(axis.sx0 * dpr) / dpr;
       const x1 = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + 1 / dpr);
-      g[0] = x0;
-      g[1] = box.y;
-      g[2] = x1 - x0;
-      g[3] = box.height;
-      g[4] = tint;
-      g[5] = NoColor;
-      g[6] = 0;
-      g[7] = 0;
-      g[8] = 0;
-      out.rectArgs();
-      g[0] = x0 + w / 2;
-      g[1] = box.y + w / 2;
-      g[2] = Math.max(x1 - x0 - w, 0.5);
-      g[3] = box.height - w;
-      g[4] = NoColor;
-      g[5] = accent;
-      g[6] = w;
-      out.rectArgs();
+      if (fill !== NoColor) {
+        g[0] = x0;
+        g[1] = box.y;
+        g[2] = x1 - x0;
+        g[3] = box.height;
+        g[4] = fill;
+        g[5] = NoColor;
+        g[6] = 0;
+        g[7] = 0;
+        g[8] = 0;
+        out.rectArgs();
+      }
+      if (stroke !== NoColor) {
+        g[0] = x0 + w / 2;
+        g[1] = box.y + w / 2;
+        g[2] = Math.max(x1 - x0 - w, 0.5);
+        g[3] = box.height - w;
+        g[4] = NoColor;
+        g[5] = stroke;
+        g[6] = w;
+        g[7] = 0;
+        g[8] = 0;
+        out.rectArgs();
+      }
     }
+}
+
+/** A Location's part on a system, found with an indexed loop (no iterator, no closure). */
+function partOn(loc: Location | undefined, system: string): LocationPart | undefined {
+  if (!loc) return undefined;
+  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
+  return undefined;
+}
+
+/**
+ * The selection's accent tint over a track's positions: its own part at `emphasis.selectionTint`, else the part
+ * projected here at that times `emphasis.projected` (the same look, lighter).
+ */
+function drawSelectionTint(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  emphasis: Emphasis,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  const own = partOn(emphasis.selection, axis.system);
+  const part = own ?? partOn(emphasis.projected?.selection, axis.system);
+  if (!part) return;
+  const accent = tokens.colors['msui-accent'];
+  const a = config.emphasis.selectionTint * (own ? 1 : config.emphasis.projected);
+  Paint[0] = ((accent & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
+  Paint[1] = NoColor;
+  Paint[2] = 0;
+  paintRanges(out, axis, box, part);
+}
+
+/** The selection's accent outline around each range on a track: its own part, else the projected one, lighter. */
+function drawSelectionOutline(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  emphasis: Emphasis,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  const own = partOn(emphasis.selection, axis.system);
+  const part = own ?? partOn(emphasis.projected?.selection, axis.system);
+  if (!part) return;
+  const accent = tokens.colors['msui-accent'];
+  const a = ((accent & 0xff) / 255) * (own ? 1 : config.emphasis.projected);
+  Paint[0] = NoColor;
+  Paint[1] = ((accent & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
+  Paint[2] = config.outline.selection;
+  paintRanges(out, axis, box, part);
+}
+
+/** The hover carried onto a track from a linked section: the hover's outline around each range, lighter. */
+function drawProjectedHover(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  projected: Location,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  const part = partOn(projected, axis.system);
+  if (!part) return;
+  const hover = tokens.colors['seq-hover'];
+  const a = ((hover & 0xff) / 255) * config.emphasis.projected;
+  Paint[0] = NoColor;
+  Paint[1] = ((hover & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
+  Paint[2] = config.outline.hover;
+  paintRanges(out, axis, box, part);
+}
+
+/** The highlight channels on a track, in order: each a tint of its color at `emphasis.highlightTint`. */
+function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis: Emphasis, config: RenderConfig) {
+  const hs = emphasis.highlights;
+  if (!hs) return;
+  for (let i = 0; i < hs.length; i++) {
+    const part = partOn(hs[i].location, axis.system);
+    if (!part) continue;
+    const c = hs[i].color;
+    const a = ((c & 0xff) / 255) * config.emphasis.highlightTint;
+    Paint[0] = ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
+    Paint[1] = NoColor;
+    Paint[2] = 0;
+    paintRanges(out, axis, box, part);
+  }
 }
 
 /** What is under a point: the topmost layer's hit in the track there. */

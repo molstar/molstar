@@ -76,11 +76,29 @@ export function sectionId(section: { readonly address: string }): string {
   return a.slice(a.lastIndexOf('/') + 1);
 }
 
-/** What the emphasis passes draw: the hover, the selection (a Location), the keyboard cursor. */
+/** A highlight channel as drawn: its Location (on every system it shows on) and its color, tinted. */
+export interface EmphasisHighlight {
+  readonly location: Location;
+  /** `0xRRGGBBAA`: drawn at `emphasis.highlightTint` opacity. */
+  readonly color: number;
+}
+
+/**
+ * What the emphasis passes draw (_spec/README.md "Render", Emphasis): the hover, the selection (a Location), the
+ * keyboard cursor, the highlight channels, and the hover and the selection carried onto linked sections.
+ */
 export interface Emphasis {
   readonly hover?: Hit;
   readonly selection?: Location;
   readonly cursor?: { readonly system: string; readonly position: number };
+  /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
+  readonly highlights?: readonly EmphasisHighlight[];
+  /**
+   * The hover and the selection carried onto the linked sections' systems (`projectOntoView`), one Location each, keyed
+   * by system: drawn in the same look, lighter (`emphasis.projected`). The projected hover is drawn on every section
+   * but the hover's own (its layer outlines it); the projected selection where the selection has no part.
+   */
+  readonly projected?: { readonly hover?: Location; readonly selection?: Location };
 }
 
 /** A layer's legend: a ramp over a domain, or categories with their colors. */

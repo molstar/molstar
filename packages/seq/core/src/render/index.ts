@@ -66,6 +66,7 @@ export { type LayerSource, layerSource } from './layer-data.js';
 export {
   type Box,
   type Emphasis,
+  type EmphasisHighlight,
   EmptyOverlay,
   type Hit,
   type LayerType,

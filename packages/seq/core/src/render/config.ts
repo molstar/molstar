@@ -60,6 +60,18 @@ export interface RenderConfig {
   readonly squircleMin: number;
   /** Outline widths: hover, selection, cursor (thicker). */
   readonly outline: { readonly hover: number; readonly selection: number; readonly cursor: number };
+  /**
+   * The emphasis's look: where the selection's tint is drawn (`over` the data, translucent, the default; `under` it, in
+   * the background pass: hidden by opaque cells, and a selection change redraws the base), its opacity, a highlight
+   * channel's tint opacity, and how strong what is projected onto a linked section is against its own look (a factor
+   * of the opacity: 0.5).
+   */
+  readonly emphasis: {
+    readonly selectionPlace: 'over' | 'under';
+    readonly selectionTint: number;
+    readonly highlightTint: number;
+    readonly projected: number;
+  };
   /** What a want adds on each side of the view, as a fraction of it (the store's `margin` priority). */
   readonly margin: number;
   /** A follower's leader pieces carried as their image's hull, or the shortest arc on a cyclic follower. */
@@ -107,6 +119,7 @@ export const DefaultRenderConfig: RenderConfig = {
   squircleMax: 8,
   squircleMin: 6,
   outline: { hover: 1.5, selection: 1.5, cursor: 2.5 },
+  emphasis: { selectionPlace: 'over', selectionTint: 0.18, highlightTint: 0.3, projected: 0.5 },
   margin: 0.5,
   followArc: 'shortest',
   maxTemplateTracks: 200,
@@ -137,6 +150,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     ranges: { ...DefaultRenderConfig.ranges, ...over.ranges },
     values: { ...DefaultRenderConfig.values, ...over.values },
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
+    emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },
   };
 }
 

@@ -162,11 +162,12 @@ describe('draw lists: emphasis', () => {
       },
     });
     expect(f.rebuilt).toBe(false);
-    // three tracks, two ranges each: a tint and an outline; positions 3 to 6 start at 128 + 3 · 20 (the cursor's
-    // cell, 20, at 128 + 20 · 20)
+    // three tracks, two ranges each: a tint and an outline, the tints first so no tint covers an outline; positions 3
+    // to 6 start at 128 + 3 · 20 (the cursor's cell, 20, at 128 + 20 · 20)
     expect(f.lists.passes.selection.rects.n).toBe(12);
-    expect(recordDrawLists(f.lists, ['selection']).split('\n').slice(2, 4)).toEqual([
+    expect(recordDrawLists(f.lists, ['selection']).split('\n').slice(2, 5)).toEqual([
       'rect 188 8 60 20 #8f4c062e',
+      'rect 328 8 40 20 #8f4c062e',
       'rect 188.75 8.75 58.5 18.5 none stroke #8f4c06ff 1.5',
     ]);
     expect(f.lists.passes.cursor.rects.n).toBe(3);
