@@ -18,9 +18,10 @@ import {
 } from '@molstar/seqx-core/render';
 import { FontCache } from './font.js';
 
-// The Canvas2D backend (_spec/README.md "Canvas2D backend"): draw lists on a canvas, DPR-aware. The background, data and
-// label passes are drawn on a base canvas; the emphasis passes (highlight, selection, hover, cursor) on an overlay
-// canvas above it, so a hover redraws the overlay only. Squircles are the core's curve (`squirclePath`), so this and
+// The Canvas2D backend (_spec/README.md "Canvas2D backend"): draw lists on three stacked canvases, DPR-aware. The
+// background and data passes are drawn on a base canvas; the emphasis passes (highlight, selection, hover, cursor) on an
+// overlay canvas above it, so a hover redraws the overlay only; the label pass on a labels canvas above both, so the
+// labels stay over the emphasis. Squircles are the core's curve (`squirclePath`), so this and
 // the SVG backend draw the same corner. Buffers are reused: colors and fonts are strings kept per value, glyphs are
 // strings kept per code, a path is replayed from the lists, an image goes through one reusable pixel buffer; once warm,
 // a frame allocates nothing (a text faded past its width makes a gradient: rare).

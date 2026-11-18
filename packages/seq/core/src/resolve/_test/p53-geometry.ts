@@ -5,7 +5,8 @@
  */
 
 // The geometry of human TP53 (P04637, 393 residues) on chr17, GRCh38, minus strand: its ten coding exons (exons 2 to
-// 11 of NM_000546, the stop codon included), 0-based and half-open, in genomic order. Positions only: no letters are
+// 11 of NM_000546, the stop codon included), 0-based and half-open, in genomic order. Checked against RefSeq NM_000546.6
+// (MANE Select; CDS 143..1324) aligned to NC_000017.11 (GRCh38), by NCBI's feature table. Positions only: no letters are
 // needed to place a protein on its gene. The lengths add up to 1,182 nucleotides, 3 × 393 + a stop.
 
 import type { Node } from '@molstar/core/repr/tree';
