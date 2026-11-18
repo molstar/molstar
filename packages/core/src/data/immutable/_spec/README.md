@@ -7,7 +7,7 @@ The rules the code relies on and why; code comments cite the sections (`README �
 | File                  | What                                                                              |
 | --------------------- | --------------------------------------------------------------------------------- |
 | `config.ts`           | `CollectionConfig`, `MapCursor`, `Cursor`, `sameValueZero`, resolved configs (§4) |
-| `hash.ts`             | `defaultHash` and its lookup form, `fmix32` (§4)                                  |
+| `hash.ts`             | `defaultHash` and its lookup form, `memoHash`, `fmix32` (§4)                      |
 | `champ.ts`            | the flat array and the CHAMP trie behind maps and sets (§2)                       |
 | `hash-map.ts`         | `HashMap`, `MutableHashMap`                                                       |
 | `hash-set.ts`         | `HashSet`, `MutableHashSet`                                                       |
@@ -68,12 +68,21 @@ change: no lazy sequences, no `map`, no records. `Vector` has no iterator (its `
 - **Two configs are the same** when the four resolved functions are; an empty config resolves to the default one, so
   `empty()` and `empty({})` are the same collection. Different configs are unequal.
 - **`defaultHash`**: strings by core's `hashString` then MurmurHash3's `fmix32` (its low bits, which the trie reads
-  first, are weak alone); numbers by their float64 bits, both words through `fmix32`, −0 as 0 and every NaN alike;
-  bigints by their decimal string; constants for booleans, `null`, `undefined`; an identity id for objects, functions
-  and symbols, from a `WeakMap` (a registered symbol, which cannot be a `WeakMap` key, from a `Map`).
+  first, are weak alone); an int32 by its value through `fmix32` (as immutable.js hashes small integers by value: no
+  collisions, 7 to 10 ns faster than the bits), any other number by its float64 bits, both words through `fmix32`; −0 as
+  0 and every NaN alike; bigints by their decimal string; constants for booleans, `null`, `undefined`; an identity id
+  for objects, functions and symbols, from a `WeakMap` (a registered symbol, which cannot be a `WeakMap` key, from a
+  `Map`).
 - **A lookup assigns no id**: reads use the lookup form, which answers NaN for an object without an id, and the map
   answers absent. The hash and equality functions of an edit must not edit collections (an edit reports what it did
   through one module-level record).
+- **A custom hash is coerced to int32** (`| 0`) wherever it places or finds a key: a fraction would recurse past the
+  trie's 32 bits, NaN would file a key no lookup reaches.
+- **`memoHash(capacity = 4096)`**, opt-in, never the default: `defaultHash`'s values with a bounded string memo of its
+  own, at most `capacity` strings in two generations of half (the older dropped when the newer fills, an older hit moved
+  up). One memo shared by the collections that must compare equal (§4: a config is its functions). A miss allocates; a
+  lookup assigns no object id (the memo carries a lookup form, `LookupHash`). Why opt-in: a global cache is shared state
+  with no owner; the memo pays only for strings hashed again and again.
 - **`equals`** is structural and short-circuits on identity, on a cached `hashCode` mismatch, on size and config. Two
   tries compare by a walk of both (§2's canonical shape); flat and collision parts by lookup. Ordered kinds and vectors
   compare in order.
@@ -87,7 +96,7 @@ change: no lazy sequences, no `map`, no records. `Vector` has no iterator (its `
   `[Symbol.iterator]`, `keys()`, `values()` and `toArray()` allocate. A bigint key's hash makes a string.
 - A persistent edit copies its path: a node object and its array a level (about 840 bytes for a set in a 1,000-entry
   map, §8). No `splice` on a copied array (its result is an allocation of its own).
-- No global cache: a collection's hash is its config's.
+- No global cache: a collection's hash is its config's; a memo is opt-in (§4).
 
 ## 6. Configuration
 

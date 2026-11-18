@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { DefaultConfig, resolveConfig, sameConfig, sameValueZero } from '../config.js';
-import { defaultHash, fmix32, lookupDefaultHash } from '../hash.js';
+import { defaultHash, fmix32, hashNumber, lookupDefaultHash, memoHash } from '../hash.js';
 import { HashMap } from '../hash-map.js';
 import { HashSet } from '../hash-set.js';
 
@@ -60,6 +60,35 @@ describe('defaultHash', () => {
     expect(m.delete(unseen)).toBe(m);
     expect(Number.isNaN(lookupDefaultHash(unseen))).toBe(true);
     expect(HashSet.of([o, s, g, f]).has(g)).toBe(true);
+  });
+});
+
+describe('int32 keys and the string memo', () => {
+  it('an int32 hashes by its value through fmix32; other numbers by their bits', () => {
+    for (const n of [1, -1, 7, 2 ** 31 - 1, -(2 ** 31)]) expect(hashNumber(n)).toBe(fmix32(n));
+    expect(hashNumber(-0)).toBe(0);
+    expect(hashNumber(2 ** 31)).not.toBe(fmix32(2 ** 31));
+    expect(hashNumber(0.5)).toBe(defaultHash(0.5));
+  });
+
+  it('memoHash gives defaultHash’s values, bounded, and assigns no id on a lookup', () => {
+    const memo = memoHash(4);
+    const keys = Array.from({ length: 50 }, (_, i) => `key-${i}-0123456789abcdef`);
+    for (let r = 0; r < 3; r++) for (const k of keys) expect(memo(k)).toBe(defaultHash(k));
+    for (const k of [1, 0.5, true, null, 10n]) expect(memo(k)).toBe(defaultHash(k));
+    const a = HashMap.of(
+      keys.map((k, i) => [k, i] as const),
+      { hash: memo },
+    );
+    const b = HashMap.of(keys.map((k, i) => [k, i] as const).reverse(), { hash: memo });
+    expect(a.equals(b)).toBe(true);
+    expect(a.hashCode()).toBe(b.hashCode());
+    for (const [k, i] of keys.map((k, i) => [k, i] as const)) expect(a.get(k)).toBe(i);
+    // another memo is another config
+    expect(a.equals(HashMap.of(a.toArray(), { hash: memoHash() }))).toBe(false);
+    const unseen = {};
+    expect(HashMap.of([[{}, 1]], { hash: memoHash() }).has(unseen)).toBe(false);
+    expect(Number.isNaN(lookupDefaultHash(unseen))).toBe(true);
   });
 });
 

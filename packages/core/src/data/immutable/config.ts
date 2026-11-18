@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { defaultHash, lookupDefaultHash } from './hash.js';
+import { defaultHash, LookupHash, lookupDefaultHash } from './hash.js';
 
 /** A collection's hash and equality, given at creation (README §4). */
 export interface CollectionConfig<K, V = unknown> {
@@ -67,8 +67,9 @@ export function resolveConfig(config: CollectionConfig<any, any> | undefined): R
   const veq = valueEquals ?? Object.is;
   const r: Resolved = {
     hash: h,
-    // a custom hash coerced as edits coerce it (champ.ts): NaN is absent only for the default's unseen objects
-    lookupHash: h === defaultHash ? lookupDefaultHash : (key: any) => h(key) | 0,
+    // a custom hash coerced as edits coerce it (champ.ts): NaN is absent only for the default's (or a memo's) unseen
+    // objects
+    lookupHash: h === defaultHash ? lookupDefaultHash : ((h as any)[LookupHash] ?? ((key: any) => h(key) | 0)),
     equals: eq,
     defaultEquals: eq === sameValueZero,
     valueEquals: veq,

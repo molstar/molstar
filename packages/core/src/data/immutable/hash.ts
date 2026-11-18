@@ -25,10 +25,13 @@ const HashNaN = 0x6b43a9b5;
 const f64 = new Float64Array(1);
 const i32 = new Int32Array(f64.buffer);
 
-/** The float64's bits, both words through `fmix32`; −0 hashes as 0, every NaN alike (README §4). */
+/**
+ * An int32 by its value through `fmix32` (−0 as 0); any other number by its float64 bits, both words through `fmix32`;
+ * every NaN alike (README §4).
+ */
 export function hashNumber(n: number): number {
+  if ((n | 0) === n) return fmix32(n);
   if (Number.isNaN(n)) return HashNaN;
-  if (n === 0) return 0;
   f64[0] = n;
   return fmix32(i32[0] ^ fmix32(i32[1]));
 }
@@ -90,4 +93,41 @@ export function lookupDefaultHash(key: unknown): number {
     return identityHash(key as object | symbol, false);
   }
   return defaultHash(key);
+}
+
+/** A hash's own lookup form (README §4): `resolveConfig` uses it as the config's `lookupHash`. */
+export const LookupHash: unique symbol = Symbol('LookupHash') as any;
+
+export interface MemoHash {
+  (key: unknown): number;
+  readonly [LookupHash]: (key: unknown) => number;
+}
+
+/**
+ * An opt-in string-hash memo (README §4): `defaultHash`'s values, a string's hash kept in a bounded memo of its own.
+ * Never the default: pass it as a config's `hash`, one memo shared by the collections that should compare equal (a
+ * config is the same only with the same function). Holds at most `capacity` strings (default 4,096): two generations
+ * of `capacity / 2`, the older dropped when the newer fills, a hit in the older moved up. A miss allocates (the memo's
+ * entry); a hit allocates nothing. Pays off for strings hashed again and again (ids of a long-lived index); a string
+ * hashed once only costs more.
+ */
+export function memoHash(capacity = 4096): MemoHash {
+  const half = Math.max(1, capacity >> 1);
+  let current = new Map<string, number>();
+  let previous = new Map<string, number>();
+  const stringHash = (s: string): number => {
+    let h = current.get(s);
+    if (h !== undefined) return h;
+    h = previous.get(s);
+    if (h === undefined) h = fmix32(hashString(s));
+    if (current.size >= half) {
+      previous = current;
+      current = new Map();
+    }
+    current.set(s, h);
+    return h;
+  };
+  const hash = ((key: unknown) => (typeof key === 'string' ? stringHash(key) : defaultHash(key))) as MemoHash;
+  (hash as any)[LookupHash] = (key: unknown) => (typeof key === 'string' ? stringHash(key) : lookupDefaultHash(key));
+  return hash;
 }
