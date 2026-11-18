@@ -45,16 +45,15 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Waiting for the author
 
-- **Integer keys against immutable.js** (lane R, after the int32 change): at 1,000 entries lookups are 1.3–1.5× and
-  builds up to 1.9× immutable.js, each with its own heavy bound. Meeting "no slower at 1,000+" needs an identity hash
-  for int32 keys (immutable.js's way: 10 ns against 24–29 ns a lookup), which packs sequential keys densely but lets
-  strided keys (multiples of 32) collide on the low bits and deepen the trie. Recommendation: keep `fmix32` and accept
-  the miss: Mol\*'s and Seq\*'s keys are string refs, and a config can pass an identity `hash`.
-- **Lane K's drift** (patches.md, "The inverse and the allowances", recorded by the orchestrator): undoing a removal of
-  already-dangling refs needs `allowDangling` (a patch carries nothing to tell restored content from new);
-  `inverseNeeds` conservative; a replace an edit in place, keeping identity. Recommendation: confirm all three.
+None.
 
 ## Decided
+
+- **Integer keys and lane K's drift, as recommended** (the author, 2026-11-18: "ok as recommended"):
+  - integer keys keep `fmix32`; their miss against immutable.js at 1,000 entries (up to 1.9×) is accepted, each case
+    with its own heavy bound; an identity `hash` is a config's choice (immutable.md);
+  - patches.md's "The inverse and the allowances" confirmed: undoing a removal of already-dangling refs needs
+    `allowDangling`, `inverseNeeds` is conservative, a replace is an edit in place.
 
 - **Three decisions, as recommended** (the author, 2026-11-18: "Ok go as recommended"):
   - **Persistent collections against immutable.js** (lane R): an int32 key is hashed by its value; a string-hash memo

@@ -15,5 +15,4 @@
 - (K) `render/export.ts` still requests data for hidden layers.
 - (K) `repr/tree/address.ts` (the child index) is reachable through core's `./*`; io imports `repr/tree/index` by
   path, so closing `./repr/tree/*` needs io moved to `./repr/tree` first.
-- (R) Integer keys: an identity int32 hash, if the author wants the target met (state.md).
 - (R) Core's other `_test` folders have 73 type errors; `tsconfig.test.json` covers `data/immutable` only.

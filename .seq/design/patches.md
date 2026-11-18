@@ -243,7 +243,7 @@ type PatchResult =
   - A patch that removes content holding refs already dangling has an inverse that needs `allowDangling`
     (`inverseNeeds` says so): the inverse's insert makes that content again, and a patch carries nothing to tell it
     from new content. The allowance only ever lets through refs that dangled in the forward patch's old root, so law 3
-    holds (lane K; the orchestrator's call, for the author to confirm). A replace that keeps such a ref at the same
+    holds (lane K; confirmed by the author, 2026-11-18). A replace that keeps such a ref at the same
     place needs nothing: the ref is not "written" (above).
   - `inverseNeeds` is conservative: an inverse of a patch that rebound refs needs both allowances, and one that makes
     again content some ref of the old root named needs `allowRebind`. Precise needs would mean link integrity run on

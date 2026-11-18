@@ -255,7 +255,7 @@ namespace HashMap {
 - **Against immutable.js** (already a dev dependency here): get, set, delete, iterate and build at 10, 1,000 and
   100,000 entries, as heavy-lane ratios. The key sets include 22-character string ids, Mol\*'s refs. The target is no
   slower than immutable.js on collections of 1,000 or more, and within 2× below (the author, 2026-11-18: small maps pay
-  for CHAMP's bitmaps, and Seq\*'s indexes are large); a miss is reported with its case.
+  for CHAMP's bitmaps, and Seq\*'s indexes are large); a miss is reported with its case. Integer keys at 1,000 miss (up to 1.9×: `fmix32` against immutable.js's identity hash) and are accepted, each case with its own bound (the author, 2026-11-18); a config wanting dense integer keys passes an identity `hash`.
 - **In `repr`** (lane K): `resolveAddress` on a 1,000-child container, before and after the child index.
 - **Bundle**: the entry's minified size, recorded.
 
