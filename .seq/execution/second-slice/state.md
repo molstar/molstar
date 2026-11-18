@@ -39,6 +39,7 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
   review round and the author's look feedback (one band per section, a soft tint, the hover outside its mark, the
   cursor after a key); the selection looked at on both p53 views, light and dark; the gate's checks green (seq's
   quick lane 1.34 s, medium, heavy, the allocation tier, the `.seq` checks after one path fixed in a test).
+
 ## Next
 
 - On each lane's report: checks, the look where something is drawn, an independent review, one fix round, merge.
