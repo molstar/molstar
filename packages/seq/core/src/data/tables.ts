@@ -18,6 +18,7 @@ import {
   type NumericColumnType,
   type Value,
 } from '@molstar/core/repr/tree';
+import { measureNode, specBounds } from '@molstar/seqx-core/lang';
 import {
   type DynamicNode,
   FailureKinds,
@@ -75,7 +76,8 @@ export const NodeBytes = 256;
 
 /** What an answer costs the store's byte bound: its columns' bytes, a string's two bytes a letter, nodes flat. */
 export function answerBytes(tables: Tables, nodes: readonly DynamicNode[] | undefined): number {
-  let n = (nodes?.length ?? 0) * NodeBytes;
+  let n = 0;
+  for (const d of nodes ?? []) n += Math.max(NodeBytes, measureNode(d.node).bytes);
   const { letters: l, ranges: r, values: v } = tables;
   if (l) n += typeof l.letters === 'string' ? 2 * l.letters.length : l.letters.byteLength;
   if (r?.form === 'list') {
@@ -164,13 +166,63 @@ function checkTable(t: Table): string | undefined {
 /** Rows a list or density table may hold in one answer, by default. */
 export const DefaultMaxRows = 1_000_000;
 
+/** The longest column an answer or a coverage may declare: int32's max (positions are int32). */
+export const DefaultMaxColumnLength = 0x7fffffff;
+/** The most values (rows times columns) one table of an answer may hold: 2^24 (a grid or matrix block's bound). */
+export const DefaultMaxBlockValues = 2 ** 24;
+
+/** The bounds on what an answer sizes, checked before its tables are cut, joined or kept (`checkAnswer`). */
+export interface AnswerBounds {
+  readonly maxColumnLength: number;
+  readonly maxBlockValues: number;
+  /** Dynamic nodes in one answer: 10,000. */
+  readonly maxNodes: number;
+  /** What the nodes of one answer weigh together by the spec's size estimate: 16 MB. */
+  readonly maxNodeBytes: number;
+}
+
+export const DefaultAnswerBounds: AnswerBounds = {
+  maxColumnLength: DefaultMaxColumnLength,
+  maxBlockValues: DefaultMaxBlockValues,
+  maxNodes: 10_000,
+  maxNodeBytes: 16 * 1024 * 1024,
+};
+
+/** The columns a table holds besides its rows' extent: what a block's values are counted by. */
+function columnCount(t: Table): number {
+  switch (t.form) {
+    case 'letters':
+    case 'positions':
+      return 1;
+    case 'list':
+      return 2 + (t.strand ? 1 : 0) + (t.id ? 1 : 0) + (t.row ? 1 : 0) + (t.fields?.length ?? 0);
+    case 'density':
+      return 2 + (t.category ? 1 : 0);
+    case 'bins':
+      return 4;
+  }
+}
+
+/** What a table's size breaks of the bounds (a column's length, a block's values), as a message, or `undefined`. */
+export function checkTableBounds(t: Table, bounds: AnswerBounds = DefaultAnswerBounds): string | undefined {
+  const rows = tableRows(t);
+  if (rows > bounds.maxColumnLength) return `a column of more than ${bounds.maxColumnLength} values`;
+  if (rows * columnCount(t) > bounds.maxBlockValues) return `a block of more than ${bounds.maxBlockValues} values`;
+  return undefined;
+}
+
 /**
  * What is wrong with an answer to `request`, as a message, or `undefined`. Beyond the tables' shapes: a record, a
  * failure of a known kind with an issue, nodes with string keys, only the shapes asked, each table within the region
  * (bins aligned to the level, positions at level 1 only, bins above it), ranges with `start ≤ end`, strands −1, 0, 1,
- * codes within their alphabet, at most `maxRows` rows.
+ * codes within their alphabet, at most `maxRows` rows, within `bounds` (a column's length, a block's values).
  */
-export function checkAnswer(answer: unknown, request: RegionRequest, maxRows = DefaultMaxRows): string | undefined {
+export function checkAnswer(
+  answer: unknown,
+  request: RegionRequest,
+  maxRows = DefaultMaxRows,
+  bounds: AnswerBounds = DefaultAnswerBounds,
+): string | undefined {
   if (!isObject(answer)) return 'the answer is not a record';
   if (answer.ok === false) {
     if (!FailureKinds.includes(answer.kind as never)) return 'a failure of an unknown kind';
@@ -185,6 +237,14 @@ export function checkAnswer(answer: unknown, request: RegionRequest, maxRows = D
     for (const n of answer.nodes)
       if (!isObject(n) || typeof n.key !== 'string' || !isNode(n.node as Value))
         return 'a node is not a key and a node';
+    if (answer.nodes.length > bounds.maxNodes) return `more than ${bounds.maxNodes} nodes`;
+    // each node held to the spec's bounds (depth, size, shape) and all together to the nodes' bound, before they are kept
+    let left = bounds.maxNodeBytes;
+    for (const n of answer.nodes as DynamicNode[]) {
+      const m = measureNode(n.node, specBounds({ maxBytes: left }));
+      if (m.issues.length) return `a node past the bounds (${m.issues[0].code})`;
+      left -= m.bytes;
+    }
   }
   const tables = answer.tables as Tables;
   const bad = checkTables(tables);
@@ -193,6 +253,8 @@ export function checkAnswer(answer: unknown, request: RegionRequest, maxRows = D
     if ((tables as Record<string, unknown>)[shape] === undefined) continue;
     if (!request.shapes.includes(shape as Shape)) return `a ${shape} table, not asked for`;
     const t = tables[shape as Shape]!;
+    const big = checkTableBounds(t, bounds);
+    if (big) return `the ${shape} table: ${big}`;
     const out = checkExtent(t, request, maxRows);
     if (out) return `the ${shape} table: ${out}`;
   }

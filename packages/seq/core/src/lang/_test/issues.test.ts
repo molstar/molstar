@@ -8,11 +8,11 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { LangIssues } from '../issues.js';
+import { BoundIssues, LangIssues } from '../issues.js';
 
 describe('seq.lang: issue codes', () => {
   it('every code a source uses is cataloged, and every cataloged code is used', () => {
-    const known = new Set(Object.keys(LangIssues.codes));
+    const known = new Set([...Object.keys(LangIssues.codes), ...Object.keys(BoundIssues.codes)]);
     for (const info of Object.values(LangIssues.codes)) expect(info.severity).toMatch(/^(error|warning|info)$/);
     const dir = fileURLToPath(new URL('../', import.meta.url));
     const used = new Set<string>();

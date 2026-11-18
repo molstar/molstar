@@ -162,6 +162,18 @@ describe('the overlay', () => {
     expect(o.issues.map((i) => [i.code, i.address])).toEqual([['seq.resolve.node.depth', nodeAddress(b, 'c')]]);
   });
 
+  it('lists four levels of nested sources by default, and refuses the fifth (EC-179)', () => {
+    const addresses = [nodeAddress(S, 'l1')];
+    for (let i = 2; i <= 5; i++) addresses.push(nodeAddress(addresses[i - 2], `l${i}`));
+    const nodes = reader([
+      [S, 'l1', source()],
+      ...addresses.slice(0, 4).map((a, i): [string, string, Node] => [a, `l${i + 2}`, source()]),
+    ]);
+    const o = buildOverlay(model(), nodes, { runtimes: [SeqRuntime] });
+    expect(o.nested(new Map([[S, 99]])).map((n) => n.depth)).toEqual([1, 2, 3, 4]);
+    expect(o.issues.map((i) => [i.code, i.address])).toEqual([['seq.resolve.node.depth', addresses[4]]]);
+  });
+
   it('is one overlay a node version: the builder keeps it while the version and the model hold', () => {
     const m = model();
     const builder = new OverlayBuilder();

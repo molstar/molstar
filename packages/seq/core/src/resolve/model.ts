@@ -77,7 +77,7 @@ export interface ResolveConfig {
    * opened: int32's max. Layout never reads it: an axis of unknown length is pending.
    */
   readonly openQueryLength: number;
-  /** Levels of sources nested in dynamic nodes the overlay requests at most (EC-179): 2. */
+  /** Levels of sources nested in dynamic nodes the overlay requests at most (EC-179): 4. */
   readonly maxNestedDepth: number;
 }
 
@@ -86,7 +86,7 @@ export const DefaultResolveConfig: ResolveConfig = {
   maxPathCandidates: 16,
   encoding: 'cheapest',
   openQueryLength: OpenLength,
-  maxNestedDepth: 2,
+  maxNestedDepth: 4,
 };
 
 /** A coordinate system the spec declares: a sequence, its length when its letters are inline. */

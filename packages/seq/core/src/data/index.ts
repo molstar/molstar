@@ -78,8 +78,13 @@ export {
 export {
   answerBytes,
   type Cut,
+  type AnswerBounds,
   checkAnswer,
+  checkTableBounds,
   checkTables,
+  DefaultAnswerBounds,
+  DefaultMaxBlockValues,
+  DefaultMaxColumnLength,
   DefaultMaxRows,
   isEmptyAnswer,
   joinTables,
