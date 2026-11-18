@@ -129,7 +129,7 @@ describe('repr/patch: the inverse, with what it needs only', () => {
     return r;
   };
 
-  it('a stored set made before the node it targets is typed again, so a later move takes its ref along', () => {
+  it('a stored set made before the node it targets: a later move takes its ref along', () => {
     // the inverse makes `b` (its step setting /a/a's link to /a) before it makes `/a`, then moves `/a` to `/b/d`
     const root: Node = {
       kind: 'doc',
@@ -154,6 +154,152 @@ describe('repr/patch: the inverse, with what it needs only', () => {
       ],
     };
     back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
+  });
+
+  it('a stored set whose target an op removes is still a ref: the move back takes it along', () => {
+    // the step sets /x/e's link to /s. The patch moves /s to /t (the ref follows), then removes /x/e; the value is a
+    // ref by its key either way, so the inverse's move back takes it along
+    const step = patchToNode({ ops: [{ op: 'set', at: ['x', 'e'], key: 'link', value: '/s' }] });
+    const root = doc(box('x', undefined, leaf('e')), box('s', { step }));
+    const patch: Patch = {
+      ops: [
+        { op: 'move', at: ['s'], parent: [], place: { last: true }, rename: 't' },
+        { op: 'remove', at: ['x', 'e'] },
+      ],
+    };
+    back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
+  });
+
+  it('a stored set restored by the inverse is set back when its move back would take its ref along', () => {
+    // the step sets /a/b's link to /b/c. The patch moves /a/b to /b (the step's `at` follows, its value is not under
+    // /a/b), then replaces /a. The inverse restores the step with `at` /b, so its move back from /b takes the value
+    // along: the inverse sets the step back
+    const step = patchToNode({ ops: [{ op: 'set', at: ['a', 'b'], key: 'link', value: '/b/c' }] });
+    const root = doc(box('a', { step }, box('b', undefined)));
+    const patch: Patch = {
+      ops: [
+        { op: 'move', at: ['a', 'b'], parent: [], place: { last: true } },
+        { op: 'replace', at: ['a'], node: box('a', undefined) },
+      ],
+    };
+    back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
+  });
+
+  it('a stored set restored by the inverse whose ref dangled in the old root needs allowDangling', () => {
+    // the step's value /x dangles. The patch renames /c to /a (the step's `at` follows), then replaces /a: the inverse
+    // restores the step with `at` /a/c, and its move back makes the ref the old root had, dangling there
+    const step = patchToNode({ ops: [{ op: 'set', at: ['c', 'c'], key: 'link', value: '/x' }] });
+    const root = doc(box('c', { step }, box('c', undefined)));
+    const patch: Patch = {
+      ops: [
+        { op: 'move', at: ['c'], parent: [], place: { last: true }, rename: 'a' },
+        { op: 'replace', at: ['a'], node: box('a', undefined) },
+      ],
+    };
+    const r = back(root, patch, lang);
+    expect(r.inverseNeeds?.allowDangling).toBe(true);
+  });
+
+  it("a stored set whose target the step's own earlier op takes away is still a ref", () => {
+    // the step removes /q, then sets /a/d's link to /a. The patch moves /a to /q/a: the value follows to /q/a, and
+    // though the step's remove now takes /q/a away first, the move back takes it along again
+    const step = patchToNode({
+      ops: [
+        { op: 'remove', at: ['q'] },
+        { op: 'set', at: ['a', 'd'], key: 'link', value: '/a' },
+      ],
+    });
+    const root = doc(box('a', undefined, leaf('d')), box('q', undefined), box('s', { step }));
+    const patch: Patch = { ops: [{ op: 'move', at: ['a'], parent: ['q'], place: { last: true } }] };
+    back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
+  });
+
+  it("a stored set's ref left dangling is refused, whatever moves come between", () => {
+    const codes = (root: Node, patch: Patch) => {
+      const r = applyPatch(root, patch, lang);
+      return r.ok ? [] : r.issues.map((i) => i.code);
+    };
+    // the step sets /d's link to /b: removing /b leaves it dangling, a rename of the step's own node notwithstanding
+    const step = patchToNode({ ops: [{ op: 'set', at: ['d'], key: 'link', value: '/b' }] });
+    expect(
+      codes(doc(box('b', undefined), box('c', { step }), box('d', undefined)), {
+        ops: [
+          { op: 'remove', at: ['d'] },
+          { op: 'move', at: ['c'], parent: [], place: { last: true }, rename: 'd' },
+          { op: 'remove', at: ['b'] },
+        ],
+      }),
+    ).toEqual(['repr.patch.dangling']);
+    // and with its target removed and made again around an unrelated rename
+    const onT = patchToNode({ ops: [{ op: 'set', at: ['t'], key: 'link', value: '/b' }] });
+    expect(
+      codes(doc(box('b', undefined), box('m', undefined), box('s', { step: onT }), box('t', undefined)), {
+        ops: [
+          { op: 'remove', at: ['t'] },
+          { op: 'move', at: ['m'], parent: [], place: { last: true }, rename: 'n' },
+          { op: 'insert', parent: [], place: { last: true }, node: box('t', undefined) },
+          { op: 'remove', at: ['b'] },
+        ],
+      }),
+    ).toEqual(['repr.patch.dangling']);
+  });
+
+  it("an edit that makes a step's own op no longer apply is not refused; the step no longer applies", () => {
+    // the step moves /p/b to /b, then removes /p/b. Inserting /b elsewhere refuses the step's move in its dry run: the
+    // host's edit passes, and the step, applied over the new root, reports its op
+    const ops = [
+      { op: 'move', at: ['p', 'b'], parent: [], place: { last: true } },
+      { op: 'remove', at: ['p', 'b'] },
+    ] as const;
+    const root = doc(box('p', undefined, box('b', undefined)), box('s', { step: patchToNode({ ops: [...ops] }) }));
+    const patch: Patch = { ops: [{ op: 'insert', parent: [], place: { last: true }, node: box('b', undefined) }] };
+    const r = back(root, patch, lang);
+    const stepped = applyPatch(r.root, { ops: [...ops] }, lang);
+    expect(stepped.ok).toBe(false);
+    expect(!stepped.ok && stepped.issues.map((i) => i.code)).toEqual(['repr.patch.id']);
+  });
+
+  it('a stored patch inside a stored patch resolves over its own dry run, from the outer op', () => {
+    // the outer step inserts /b holding a step that moves /a to the root and sets /a/b's link to /a. The patch moves
+    // /a under /c: the inner refs follow, so the inner step's own move takes /c/a back to /a and its set's /c/a/b names
+    // nothing in its dry run: dangling, as for any ref. Allowed, the inverse gives the root back
+    const inner = patchToNode({
+      ops: [
+        { op: 'move', at: ['a'], parent: [], place: { last: true } },
+        { op: 'set', at: ['a', 'b'], key: 'link', value: '/a' },
+      ],
+    });
+    const outer = patchToNode({
+      ops: [{ op: 'insert', parent: [], place: { last: true }, node: box('b', { step: inner }) }],
+    });
+    const root = doc(box('a', undefined, leaf('b')), box('c', { step: outer }));
+    const move: Patch = { ops: [{ op: 'move', at: ['a'], parent: ['c'], place: { last: true } }] };
+    const refused = applyPatch(root, move, lang);
+    expect(!refused.ok && refused.issues.map((i) => [i.code, i.path.at(-1)])).toEqual([
+      ['repr.patch.dangling', 'at'],
+      ['repr.patch.dangling', 'value'],
+    ]);
+    back(root, move, { ...lang, allowDangling: true, allowRebind: true });
+    // a nested step whose own move renames what the outer step's target names
+    const inner2 = patchToNode({
+      ops: [
+        { op: 'move', at: ['b'], parent: [], place: { last: true }, rename: 'c' },
+        { op: 'set', at: ['d', 'b'], key: 'link', value: '/d' },
+      ],
+    });
+    const outer2 = patchToNode({
+      ops: [{ op: 'insert', parent: ['b'], place: { last: true }, node: box('a', { step: inner2 }) }],
+    });
+    const root2 = doc(box('b', undefined), box('d', { step: outer2 }, leaf('b')));
+    back(
+      root2,
+      { ops: [{ op: 'move', at: ['d'], parent: ['b'], place: { last: true } }] },
+      {
+        ...lang,
+        allowDangling: true,
+        allowRebind: true,
+      },
+    );
   });
 
   it('undoes a remove whose content held a ref already dangling', () => {

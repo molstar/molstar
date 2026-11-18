@@ -8,9 +8,10 @@
 // leading ids of its address. Walked are the values a language types `ref` (not those with `in`), in params only,
 // inside lists, records, maps, unions (by the member validation would choose), tables, data forms' args and slots.
 // A stored patch's slot is walked by its own rule: its `at` and `parent`, the refs in the nodes it embeds by the target
-// language, and a `set` value typed through its target's kind and key, each resolved over a dry run of the step's
-// earlier ops. The ref index answers by address prefix behind `RefIndex`; this one is built on plain maps, kept in
-// chunks by node, and `derive` walks only what changed.
+// language, and a `set` value whose key the target language types as a ref in any kind that has it (by the language
+// alone, never by reading the spec), each resolved over a dry run of the step's earlier ops. The ref index answers by
+// address prefix behind `RefIndex`; this one is built on plain maps, kept in chunks by node, and `derive` walks only
+// what changed.
 
 import { type Fields, type KindSpec, type Language, type ParamType, type ValidateOptions } from '../schema/index.js';
 import {
@@ -55,6 +56,8 @@ export interface Step {
   readonly rel: TreePath;
   readonly op: number;
   readonly after: boolean;
+  /** A stored patch inside another's embedded node or `set` value: that op's step, its dry run's starting state. */
+  readonly outer?: Step;
 }
 
 /** A ref site with what the pass needs: its parsed runs and, in a stored patch, its step. */
@@ -170,6 +173,31 @@ function holds(t: ParamType): boolean {
 
 type Emit = (rel: TreePath, value: string, step?: Step) => void;
 
+/**
+ * The types a language gives a params key across its kinds, those that may hold a ref or a slot (memoized per language
+ * object): a stored `set` value is typed by them, without reading the spec (_spec/README.md "Patches", a stored patch).
+ */
+const KeyTypes = new WeakMap<Language, Map<string, readonly ParamType[]>>();
+function keyTypes(language: Language, key: string): readonly ParamType[] {
+  let byKey = KeyTypes.get(language);
+  if (!byKey) {
+    byKey = new Map();
+    for (const kind of Object.keys(language.kinds)) {
+      const params = own(language.kinds, kind)?.params;
+      if (!params) continue;
+      for (const k of Object.keys(params)) {
+        const t = own(params, k);
+        if (!t || !holds(t)) continue;
+        const list = byKey.get(k) as ParamType[] | undefined;
+        if (!list) byKey.set(k, [t]);
+        else if (!list.includes(t)) list.push(t);
+      }
+    }
+    KeyTypes.set(language, byKey);
+  }
+  return byKey.get(key) ?? [];
+}
+
 /** A ref's runs, parsed once per text (most refs of a spec repeat a few texts); undefined when it is no address. */
 const Parsed = new Map<string, readonly Address[] | null>();
 export function parsedRuns(value: string): readonly Address[] | undefined {
@@ -186,8 +214,11 @@ export function parsedRuns(value: string): readonly Address[] | undefined {
 /** The pass over one root: its sites, and the dry runs of its stored patches. */
 export class RefPass {
   private readonly resolve: (id: string) => Language | undefined;
-  private readonly dry = new Map<Node, Node[]>();
+  /** The dry runs, by stored patch node and the root it starts from. */
+  private readonly dry = new Map<Node, Map<Node, Node[]>>();
   private rootNode?: Node;
+  /** While walking an op's embedded node or `set` value: that op's step, the outer step of a stored patch inside. */
+  private outer?: Step;
 
   constructor(
     root: Node | (() => Node),
@@ -200,8 +231,6 @@ export class RefPass {
   }
 
   private rootOf?: () => Node;
-  /** Set when a walk read the root to type what it emitted (a stored patch's `set` value): those sites depend on it. */
-  dependent = false;
   get root(): Node {
     return (this.rootNode ??= this.rootOf!());
   }
@@ -229,27 +258,32 @@ export class RefPass {
 
   /** Whether a ref's run names a node: in the root, or over its stored patch's dry run. */
   names(run: Address, step?: Step): boolean {
-    let root: Node | undefined = this.root;
-    if (step) {
-      const states = this.states(step.slot);
-      root = states && states[Math.min(step.op + (step.after ? 1 : 0), states.length - 1)];
-    }
+    const root = step ? this.stateOf(step) : this.root;
     return !!root && resolveAddress(root, run) !== undefined;
   }
 
-  /** The dry run of a stored patch over the root: the root after each op (a refused op changes nothing). */
-  private states(slot: Node): Node[] | undefined {
-    let states = this.dry.get(slot);
+  /** The spec a stored patch's ref resolves over: its dry run at the op, started from its outer step's state. */
+  private stateOf(step: Step): Node | undefined {
+    const from = step.outer ? this.stateOf(step.outer) : this.root;
+    const states = from && this.states(step.slot, from);
+    return states && states[Math.min(step.op + (step.after ? 1 : 0), states.length - 1)];
+  }
+
+  /** The dry run of a stored patch over a root: the root after each op (a refused op changes nothing). */
+  private states(slot: Node, root: Node): Node[] | undefined {
+    let byRoot = this.dry.get(slot);
+    let states = byRoot?.get(root);
     if (states) return states;
     const { patch } = patchFromNode(slot);
     if (!patch) return undefined;
-    states = [this.root];
-    const work = new Work(this.root);
+    states = [root];
+    const work = new Work(root);
     for (let i = 0; i < patch.ops.length; i++) {
       const failed = work.apply(patch.ops[i], i);
       states.push(failed ? states[states.length - 1] : work.finalize());
     }
-    this.dry.set(slot, states);
+    if (!byRoot) this.dry.set(slot, (byRoot = new Map()));
+    byRoot.set(root, states);
     return states;
   }
 
@@ -315,25 +349,44 @@ export class RefPass {
 
   /**
    * A stored patch, by the stored-patch rule: `at` and `parent` resolved over the spec with the earlier ops applied;
-   * an embedded node's refs and a `set` value's (typed through the target's kind and key) through the op.
+   * an embedded node's refs and a `set` value's through the op. A `set` value is typed by its key across the target's
+   * kinds, never by the node the dry run finds, so whether it is a ref never changes under a patch. A stored patch
+   * inside an op's node or value carries its own step, its dry run started from the op's state.
    */
   private storedPatch(target: Language | undefined, n: Node, path: TreePath, emit: Emit) {
     const { patch } = patchFromNode(n);
     if (!patch) return;
+    const outer = this.outer;
+    const stepOf = (op: number, after: boolean): Step => ({
+      slot: n,
+      rel: path,
+      op,
+      after,
+      ...(outer ? { outer } : {}),
+    });
     patch.ops.forEach((op, i) => {
       const at = [...path, 'children', i, 'params'];
-      if ('at' in op) emit([...at, 'at'], printAddress(op.at), { slot: n, rel: path, op: i, after: false });
-      if ('parent' in op) emit([...at, 'parent'], printAddress(op.parent), { slot: n, rel: path, op: i, after: false });
+      if ('at' in op) emit([...at, 'at'], printAddress(op.at), stepOf(i, false));
+      if ('parent' in op) emit([...at, 'parent'], printAddress(op.parent), stepOf(i, false));
       if (!target) return;
-      const inner: Emit = (p, v) => emit(p, v, { slot: n, rel: path, op: i, after: true });
-      if (op.op === 'insert' || op.op === 'replace') this.slot(target, op.node, [...at, 'node'], inner);
-      if (op.op === 'set' && (op.where ?? 'params') === 'params') {
-        this.dependent = true;
-        const states = this.states(n);
-        const node = states && resolveAddress(states[i], op.at);
-        const spec = node ? own(target.kinds, node.kind) : undefined;
-        const t = spec?.params ? own(spec.params, op.key) : undefined;
-        if (t) this.value(t, op.value, [...at, 'value'], inner);
+      const through = stepOf(i, true);
+      // a ref of the op's own content resolves through the op; a stored patch inside carries its own step
+      const inner: Emit = (p, v, step) => emit(p, v, step ?? through);
+      this.outer = through;
+      try {
+        if (op.op === 'insert' || op.op === 'replace') this.slot(target, op.node, [...at, 'node'], inner);
+        if (op.op === 'set' && (op.where ?? 'params') === 'params') {
+          const seen = new Set<string>();
+          const once: Emit = (p, v, step) => {
+            const k = p.join('\u0000');
+            if (seen.has(k)) return;
+            seen.add(k);
+            inner(p, v, step);
+          };
+          for (const t of keyTypes(target, op.key)) this.value(t, op.value, [...at, 'value'], once);
+        }
+      } finally {
+        this.outer = outer;
       }
     });
   }
@@ -343,7 +396,7 @@ export class RefPass {
  * The sites of a subtree, kept by the node object that holds them: its own, then a chunk for each child that has any.
  * An unchanged node at an unchanged position is the same chunk in the next revision, so a derived index shares what
  * the ops left alone and builds the nodes on the paths they changed. A chunk is absent for a subtree without sites
- * (valid at any position) and always rebuilt when its sites read the root (`dep`).
+ * (valid at any position).
  */
 interface Chunk {
   readonly node: Node;
@@ -353,7 +406,6 @@ interface Chunk {
   readonly tail: readonly number[];
   readonly own: readonly Site[];
   readonly kids: readonly (Chunk | undefined)[] | undefined;
-  readonly dep: boolean;
 }
 
 /** The chunks a language and options have built, by node object, across revisions. */
@@ -392,10 +444,9 @@ function buildChunks(pass: RefPass, family: Family, prev?: Chunk): Chunk | undef
     old: Chunk | undefined,
   ): Chunk | undefined => {
     const known = family.chunks.get(n);
-    if (known && !known.dep && samePos(known, path, at, anchor, tail)) return known;
+    if (known && samePos(known, path, at, anchor, tail)) return known;
     if (family.empty.has(n)) return undefined;
     const own: Site[] = [];
-    pass.dependent = false;
     pass.walkNode(n, (rel, value, step) => {
       const runs = parsedRuns(value);
       if (!runs) return;
@@ -413,11 +464,9 @@ function buildChunks(pass: RefPass, family: Family, prev?: Chunk): Chunk | undef
       if (step) site.step = step;
       own.push(site);
     });
-    const dep = pass.dependent;
     const children = n.children;
     let kids: (Chunk | undefined)[] | undefined;
     let any = false;
-    let depAll = dep;
     if (children) {
       kids = new Array(children.length);
       // at the old node's position, its unchanged children are its old chunks, with no position to compare
@@ -426,7 +475,7 @@ function buildChunks(pass: RefPass, family: Family, prev?: Chunk): Chunk | undef
       for (let i = 0; i < children.length; i++) {
         const c = children[i];
         let oc = old?.kids?.[i];
-        if (samePlace && oldKids?.[i] === c && !oc?.dep) {
+        if (samePlace && oldKids?.[i] === c) {
           kids[i] = oc;
         } else {
           const cAt = at && c.id !== undefined ? [...at, c.id] : undefined;
@@ -434,14 +483,13 @@ function buildChunks(pass: RefPass, family: Family, prev?: Chunk): Chunk | undef
           kids[i] = go(c, [...path, 'children', i], cAt, cAt ?? anchor, cAt ? [] : [...tail, i], oc);
         }
         if (kids[i]) any = true;
-        if (kids[i]?.dep) depAll = true;
       }
     }
-    if (!own.length && !any && !dep) {
+    if (!own.length && !any) {
       family.empty.add(n);
       return undefined;
     }
-    const chunk: Chunk = { node: n, path, at, anchor, tail, own, kids: any ? kids : undefined, dep: depAll };
+    const chunk: Chunk = { node: n, path, at, anchor, tail, own, kids: any ? kids : undefined };
     family.chunks.set(n, chunk);
     return chunk;
   };
@@ -629,8 +677,6 @@ export class LiveRefs implements WorkListener {
   private readonly superseded = new WeakMap<Node, Set<string>>();
   private readonly overlay = new Map<Draft, Map<string, LiveSite[]>>();
   private readonly byFirst = new Map<string, Set<LiveSite>>();
-  /** Keys holding a stored patch: its typed values read the spec, so they are walked again before a move. */
-  private readonly stored = new Map<Draft, Set<string>>();
   private overlayPass?: RefPass;
 
   constructor(
@@ -656,7 +702,7 @@ export class LiveRefs implements WorkListener {
     return (this.baseIndex ??= mapIndexOf(this.work.old, this.language, this.options));
   }
 
-  /** A pass over the draft as it is now, for walking new values (a stored patch's dry run reads the spec). */
+  /** A pass for walking new values: typing reads the language alone, never the spec. */
   private get pass(): RefPass {
     return (this.overlayPass ??= new RefPass(() => this.work.finalize(), this.language, this.options));
   }
@@ -667,13 +713,10 @@ export class LiveRefs implements WorkListener {
     this.drop(d, key);
     const v = d.params ? own(d.params, key) : undefined;
     if (v === undefined) return;
-    // a stored patch in the value is typed over the spec as it is now
-    this.overlayPass = undefined;
     this.pass.walkKey(d.kind, key, v, (rel, value, step) => this.add(d, rel, value, step));
   }
 
   made(d: Draft) {
-    this.overlayPass = undefined;
     this.pass.walkSubtree(d.base, (tail, rel, value, step) => {
       const holder = this.work.below(d, tail);
       if (holder) this.add(holder, rel, value, step);
@@ -681,11 +724,6 @@ export class LiveRefs implements WorkListener {
   }
 
   private add(holder: Draft, rel: TreePath, value: string, step?: Step) {
-    if (step) {
-      const keys = this.stored.get(holder);
-      if (keys) keys.add(String(rel[1]));
-      else this.stored.set(holder, new Set([String(rel[1])]));
-    }
     const runs = parsedRuns(value);
     if (!runs) return;
     const site: LiveSite = { holder, rel, value, run: runs[0], runs, ...(step ? { step } : {}) };
@@ -761,14 +799,6 @@ export class LiveRefs implements WorkListener {
   }
 
   /** `from` moved to `to`: every live ref under it rewritten, its key's sites derived again. */
-  /**
-   * Before a move: a stored patch made or written earlier is typed again over the draft as it is now. A `set` whose
-   * target node a later op inserted holds a ref only from then on, and the move must take that ref along.
-   */
-  retype() {
-    for (const [d, set] of this.stored) for (const k of [...set]) this.key(d, k);
-  }
-
   move(from: Address, to: Address) {
     const keys = new Map<Draft, Set<string>>();
     for (const s of this.under(from)) {

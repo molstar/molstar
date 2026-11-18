@@ -311,7 +311,7 @@ describe('repr/patch: the ref index across revisions', () => {
     });
   });
 
-  it('a stored patch whose set value is typed by a node another op replaces: the derived index follows', () => {
+  it("a stored patch's set value stays a ref when its target changes kind: typed by key, not by the spec", () => {
     const step = patchToNode({ ops: [{ op: 'set', at: ['b'], key: 'link', value: '/a' }] });
     const root: Node = {
       kind: 'doc',
@@ -323,7 +323,7 @@ describe('repr/patch: the ref index across revisions', () => {
     hashNode(root);
     const first = refIndexOf(root, PC, validate);
     const before = first.under([]).length;
-    // `b` becomes a crate: a `set` of `link` on it is typed by no param, so its ref is no longer one
+    // `b` becomes a crate, which has no `link`: the step's value is still a ref, typed by the language's `link`
     const r = applyPatch(
       root,
       { ops: [{ op: 'replace', at: ['b'], node: { kind: 'crate', id: 'b' } }] },
@@ -335,6 +335,6 @@ describe('repr/patch: the ref index across revisions', () => {
     expect(derived).toBeDefined();
     const fresh = freshRefIndex(r.root, PC, validate);
     expect(derived.under([]).length).toBe(fresh.under([]).length);
-    expect(derived.under([]).length).toBeLessThan(before);
+    expect(derived.under([]).length).toBe(before);
   });
 });

@@ -82,7 +82,6 @@ export function applyPatch(root: Node, patch: Patch, options: ApplyOptions = {})
   work.listener = live;
   let moves = 0;
   for (let i = 0; i < patch.ops.length; i++) {
-    if (live && patch.ops[i]?.op === 'move') live.retype();
     const failed = work.apply(patch.ops[i], i);
     if (failed) return refuse(failed);
     // refs follow a move or a rename, op by op: a ref an earlier op wrote follows a later move
@@ -158,7 +157,8 @@ function valueAt(n: Node | undefined, rel: TreePath): Value | undefined {
 function oldStep(h: Draft, step: Step | undefined): Step | undefined {
   if (!step) return undefined;
   const slot = valueAt(h.origin, step.rel);
-  return isNode(slot) ? { ...step, slot } : step;
+  const outer = oldStep(h, step.outer);
+  return { ...step, ...(isNode(slot) ? { slot } : {}), ...(outer ? { outer } : {}) };
 }
 
 /** A draft's step path in the new root. */
@@ -374,16 +374,15 @@ function restoringSets(
       let v = s.value;
       for (const m of moves) if (m.pos > entry.pos) v = rewriteRef(v, m.from, m.to);
       if (v !== s.expected) off = true;
-      // a restored ref that dangled in the old root is written by the inverse
-      const was = typeof s.expected === 'string' ? live.runOf(s.expected) : undefined;
-      if (entry.pos >= 0 && was && !oldPass.names(was, s.step)) dangling = true;
     }
-    if (!off) continue;
+    // the inverse writes the key when an op of it restores the key or its node, or a set at its end does
+    if (!off && entry.pos < 0) continue;
     const node = resolveAddress(before, at);
     const value = node?.params ? own(node.params, key) : undefined;
     if (value === undefined || !isNode(node)) continue;
-    fixups.push({ op: 'set', at, key, value });
-    // the set writes the key whole: every ref in it is the inverse's
+    if (off) fixups.push({ op: 'set', at, key, value });
+    // a ref it writes that dangled in the old root, as the old root holds it: a stored patch's ref by the old root's
+    // dry run of the step as it was there (a restored step may hold an `at` a move rewrote)
     oldPass.walkKey(node.kind, key, value, (_rel, v, step) => {
       const run = live.runOf(v);
       if (run && !oldPass.names(run, step)) dangling = true;

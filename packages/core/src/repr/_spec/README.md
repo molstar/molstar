@@ -237,36 +237,43 @@ quantities need no quotes, and no units table is needed to read them (locations-
     run, forms after it kept; addresses nested in its forms follow too. A rewritten ref prints canonically; an untouched
     one keeps its spelling. Without a language nothing is rewritten, and the result says `refs: 'not-rewritten'`.
   - **A stored patch** (a slot of a patch language) is walked by its own rule, not by its params' types: `at` and
-    `parent` resolve over the spec with the step's earlier ops applied (a dry run), the refs of an embedded node by the
-    target language and a `set` value typed through its target's kind and key resolve through the op. So a step that
-    inserts a node and sets a key on it is not dangling, and a stored patch follows renames and counts in link
-    integrity. `place.after` (a bare sibling id) is not rewritten.
+    `parent`; the refs of an embedded node, by the target language; a `set` value when the target language types its key
+    as a ref in any kind that has it. Typing reads the language alone, never the spec: whether a value is a ref never
+    changes under a patch, so a move takes along the same refs forward and back, and no edit walks the steps again. The
+    dry run (the spec with the step's earlier ops applied) decides only what a ref names: `at` and `parent` before their
+    op, an embedded node's and a `set` value's refs through it. A stored patch inside an op's node or value has its own
+    dry run, started from that op's state. So a step that inserts a node and sets a key on it is not dangling, and a
+    stored patch follows renames and counts in link integrity as any ref: left dangling or rebound, it refuses. An op of
+    a step that no longer applies (its target gone, its sibling renamed, its own move refused) is the step's to report,
+    never a refusal of the edit that caused it. `place.after` (a bare sibling id) is not rewritten.
   - **The ref index** (`patch/refs.ts`, internal): `RefIndex` answers `under(prefix)` and `dangling()`; this one is on
     plain `Map`s, cached per root, language and options. Its sites are kept in chunks by node object (a node's own
     sites, a chunk per child that has any): `derive` walks only the paths the ops changed and shares every chunk of a
-    node that is the same object at the same position (a subtree without sites is skipped at any position; a node whose
-    sites read the root, a stored patch's typed `set`, is always walked again; `derive` is by identity and position and
-    reads no `Changes`). `applyPatch` leaves the new root's index pending when the old root has one: the nearest index
-    that exists, never another pending one, derived when the next apply (or a read) needs it, so a chain of applies
-    builds once and a run of sets that read no index walks nothing (always walking a typed-set step cost a one-key set 3
-    to 30 ms on a 10,000-ref spec with 30 steps). A pending entry keeps that index alive (its root, chunks and caches):
-    one revision, however long the run. `under` groups the sites by first id on the first query with a prefix. The
-    caches hit only for the same `validate` object a caller passes (held weakly). Measured on 10,000 refs: building the
-    old root's index was 4.5 ms of an 8.4 ms apply, deriving it is about 0.3 ms; the persistent `HashMap` of
-    `data/immutable` is not needed at that size. A site's `path` holds child indices, so an insert or remove in a wide
-    parent rebuilds the sites of its later siblings (nothing reads `path`). An apply has one, derived across its ops
-    (`LiveRefs`): the old root's index for what the ops left alone (a site counts while its node is where the moves so
-    far put it, still the old root's, and its key untouched), and an overlay, by the draft that holds it, for each key
-    an op set or a rewrite changed and each node an op made. The old root's index is built only when an op changes an
-    address (a move to another parent, a rename, an insert, a remove, a replace); a patch of sets and reorders builds
-    none.
+    node that is the same object at the same position (a subtree without sites is skipped at any position; no site reads
+    the root, a stored patch's included; `derive` is by identity and position and reads no `Changes`). `applyPatch`
+    leaves the new root's index pending when the old root has one: the nearest index that exists, never another pending
+    one, derived when the next apply (or a read) needs it, so a chain of applies builds once and a run of sets that read
+    no index walks nothing (always walking a typed-set step cost a one-key set 3 to 30 ms on a 10,000-ref spec with 30
+    steps). A pending entry keeps that index alive (its root, chunks and caches): one revision, however long the run.
+    `under` groups the sites by first id on the first query with a prefix. The caches hit only for the same `validate`
+    object a caller passes (held weakly). Measured on 10,000 refs: building the old root's index was 4.5 ms of an 8.4 ms
+    apply, deriving it is about 0.3 ms; the persistent `HashMap` of `data/immutable` is not needed at that size. On a
+    p53-size spec with 30 stored patches of 4 ops: a rename about 0.6 ms, 10 reorders 0.08 ms, 10 renames 0.6 ms
+    (`scale.test.ts`). A site's `path` holds child indices, so an insert or remove in a wide parent rebuilds the sites
+    of its later siblings (nothing reads `path`). An apply has one, derived across its ops (`LiveRefs`): the old root's
+    index for what the ops left alone (a site counts while its node is where the moves so far put it, still the old
+    root's, and its key untouched), and an overlay, by the draft that holds it, for each key an op set or a rewrite
+    changed and each node an op made. The old root's index is built only when an op changes an address (a move to
+    another parent, a rename, an insert, a remove, a replace); a patch of sets and reorders builds none.
   - **Validation** (`validateChanges` in `repr/schema`, on the net `Changes`): a made node whole (its subtree, kept
     children under a changed kind included, its parent rule, a root's kind); a node whose params changed, for the
     changed keys and that no unset key is required; a moved node, for its parent rule; a changed child list, for the
     uniqueness of the ids the change brought. A path copy is checked for nothing, so an error present before is never
     reported again and only what the patch introduced refuses it.
   - **Link integrity**, the old root against the new, never op by op. Read through the apply's index: the refs the ops
-    wrote, made or rewrote, and the old root's under an address the patch changed (removed, made, moved from or to).
+    wrote, made or rewrote, and the old root's under an address the patch changed (removed, made, moved from or to). A
+    stored patch's ref under none of them is not judged, though an edit may change its dry run: that is an op of the
+    step no longer applying, the step's to report.
     - Dangling: a ref naming no node that named one in the old root or was written by the patch (made, or a key an op
       set), `repr.patch.dangling`, a warning with `allowDangling`. A ref in made content that was in the old root with
       the same value at the same address and dangled there is not written: a replace that keeps it is not refused.
@@ -290,9 +297,10 @@ quantities need no quotes, and no units table is needed to read them (locations-
 - **The allowances turned around** (`inverseNeeds`): a patch that left refs dangling has an inverse that rebinds them
   (`allowRebind`); one that rebound refs, an inverse that needs both. The inverse also needs `allowDangling` when it
   writes a ref that dangled in the old root (a restoring set, or content it restores: an inverse's restored content is
-  made, and the old root of the inverse does not hold it, so the "same place" exception cannot see it), and
-  `allowRebind` when it makes again content an old root's ref named (from the inverse's side, a node it made). Law 3
-  holds with these only: the patch's own allowances are not the inverse's.
+  made, and the old root of the inverse does not hold it, so the "same place" exception cannot see it), each key it
+  writes judged as the old root holds it (a restored step may hold an `at` a move rewrote, so its own dry run is not the
+  old root's), and `allowRebind` when it makes again content an old root's ref named (from the inverse's side, a node it
+  made). Law 3 holds with these only: the patch's own allowances are not the inverse's.
 - **Issue paths**: an issue about the spec has the new root's path and address; one about an op the patch tree's
   (`['children', i, 'params', key]`, as `patchToNode` lays it out). Codes: `repr.patch.*` (`PatchIssues`).
 - **`diff(a, b)`** (`patch/diff.ts`): `base` and `result` the two revisions. Merkle descent (equal hashes skipped);
