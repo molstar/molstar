@@ -105,8 +105,14 @@ class FakeFetch {
   };
 }
 
+/** How long a read may take before it counts as not ending (`checkAssetManager`'s `timeoutMs`, for the run). */
+let timeoutMs = 2000;
+
 /** The reason a read failed, or `undefined` when it gave data (released). A read that does not end in time fails. */
-async function failure(read: Promise<Asset.Wrapper<any>>, ms = 2000): Promise<{ error?: unknown; data?: unknown }> {
+async function failure(
+  read: Promise<Asset.Wrapper<any>>,
+  ms = timeoutMs,
+): Promise<{ error?: unknown; data?: unknown }> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<'timeout'>((resolve) => {
     timer = setTimeout(() => resolve('timeout'), ms);
@@ -309,27 +315,97 @@ const cases: Record<string, Case> = {
     if (whole.error) fail(`a read without maxBytes failed after one that was bound: ${whole.error}`);
     m.dispose();
   },
+
+  'held data is not served to a read with other credentials': async (create, fake, fail) => {
+    fake.serve('https://x.org/a', 'abc');
+    const m = create();
+    const url = 'https://x.org/a';
+    const first = await m.resolve(Asset.Url(url), 'string', { credentials: 'include' }).run();
+    // the asset is found as an app finds it, and read again without credentials, the first read still held
+    const again = Asset.getUrlAsset(m, url);
+    const r = await failure(m.resolve(again, 'string', { credentials: 'omit' }).run());
+    const sent = fake.seen.filter((s) => s.url === url);
+    if (!r.error && !(sent.length > 1 && sent[sent.length - 1].init.credentials === 'omit'))
+      fail('a read with credentials omitted was served what a read with credentials included got');
+    first.dispose();
+    m.dispose();
+  },
+
+  'held data over maxBytes is refused': async (create, fake, fail) => {
+    const big = new Uint8Array(100).fill(97);
+    fake.serve('https://x.org/a', { body: big });
+    const m = create();
+    const asset = Asset.Url('https://x.org/a');
+    const held = await m.resolve(asset, 'binary').run();
+    const hit = await failure(m.resolve(asset, 'binary', { maxBytes: 50 }).run());
+    if (!hit.error) fail('held data over maxBytes was read by the asset it is held for');
+    // not held in memory any more (a manager that lets go keeps what it reads again from): the bound still holds
+    m.letGoOfBytes?.(asset);
+    const letGo = await failure(m.resolve(asset, 'binary', { maxBytes: 50 }).run());
+    if (!letGo.error) fail('data a manager let go of was read over maxBytes');
+    held.dispose();
+
+    const file = Asset.File(new File([big], 'big.bin'));
+    const fileRead = await m.resolve(file, 'binary').run();
+    const fileHit = await failure(m.resolve(file, 'binary', { maxBytes: 50 }).run());
+    if (!fileHit.error) fail('a held file over maxBytes was read');
+    fileRead.dispose();
+    m.dispose();
+  },
+
+  'maxBytes that is not a size refuses the read': async (create, fake, fail) => {
+    fake.serve('https://x.org/a', 'abc');
+    const m = create();
+    for (const maxBytes of [Number.NaN, -1]) {
+      const r = await failure(m.resolve(Asset.Url('https://x.org/a'), 'string', { maxBytes }).run());
+      if (!r.error) fail(`a read with maxBytes ${maxBytes} gave data`);
+    }
+    m.dispose();
+  },
 };
 
 /**
  * How a manager breaks the guarantees of `AssetManager` (none: it conforms): each failure names the case and what
- * went wrong. `create` makes a fresh manager for every case. Runs on a fake `fetch`, installed on `globalThis` for the
+ * went wrong. `create` makes a fresh manager for every case; `timeoutMs` is how long a read may take before it counts
+ * as not ending (2000 by default). Runs on a fake `fetch`, installed on `globalThis` for the
  * run (do not run two at once, or other downloads in the same process meanwhile).
  */
-export async function checkAssetManager(create: () => AssetManager): Promise<string[]> {
+export async function checkAssetManager(
+  create: () => AssetManager,
+  options: { timeoutMs?: number } = {},
+): Promise<string[]> {
   const failures: string[] = [];
   const original = globalThis.fetch;
+  timeoutMs = options.timeoutMs ?? 2000;
   for (const [name, run] of Object.entries(cases)) {
     const fake = new FakeFetch();
     globalThis.fetch = fake.fetch as typeof fetch;
+    // every manager a case made is disposed after it, with what a read that did not end still holds
+    const made: AssetManager[] = [];
     try {
-      await run(create, fake, (message) => failures.push(`${name}: ${message}`));
+      await run(
+        () => {
+          const m = create();
+          made.push(m);
+          return m;
+        },
+        fake,
+        (message) => failures.push(`${name}: ${message}`),
+      );
     } catch (e) {
       failures.push(`${name}: threw (${String(e)})`);
     } finally {
       globalThis.fetch = original;
+      for (const m of made) {
+        try {
+          m.dispose();
+        } catch {
+          // a manager that fails to dispose is not what the case tests
+        }
+      }
     }
   }
+  timeoutMs = 2000;
   return failures;
 }
 

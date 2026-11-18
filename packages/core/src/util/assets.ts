@@ -7,6 +7,7 @@
 
 import { UUID } from './uuid.js';
 import {
+  checkMaxBytes,
   fetchData,
   SizeLimitExceeded,
   type FetchDataParams,
@@ -20,7 +21,7 @@ import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
 import { gzipDeclaredSize, isGzip, ungzip } from './zip/zip.js';
 
-export { AssetManager, DefaultAssetManager, Asset };
+export { AssetManager, DefaultAssetManager, Asset, SizeLimitExceeded };
 
 type _File = File;
 type Asset = Asset.Url | Asset.File;
@@ -113,18 +114,16 @@ function urlCacheKey(asset: Asset.Url, net: NetOptions): string | undefined {
     : [];
   // what changes the response or the refusal is part of the key: reads with other credentials, redirect rule or bound
   // do not share a download (`util/_spec/assets.md` §8)
-  return JSON.stringify([
-    'GET',
-    asset.url,
-    headers,
-    net.credentials ?? null,
-    net.redirect ?? null,
-    net.maxBytes ?? null,
-  ]);
+  return JSON.stringify(['GET', asset.url, headers, netKey(net), net.maxBytes ?? null]);
 }
 
 /** The options of a read that go to the download (`AssetManager.ResolveOptions`, `util/_spec/assets.md` §8). */
 type NetOptions = Pick<FetchDataParams, 'credentials' | 'redirect' | 'maxBytes' | 'signal'>;
+
+/** What of a read's options changes the response, as held with an asset: another read does not take it as its own. */
+function netKey(net: NetOptions) {
+  return `${net.credentials ?? ''}|${net.redirect ?? ''}`;
+}
 
 function netOptions(options: boolean | AssetManager.ResolveOptions): NetOptions {
   if (typeof options === 'boolean') return {};
@@ -210,11 +209,18 @@ async function isAborted(ctx: RuntimeContext) {
  */
 class HeldAsset implements AssetManager.Entry {
   refCount = 0;
+  /** The credentials and redirect rule the download was made with (`netKey`); unset for a file or a static asset. */
+  net: string | undefined;
   /** The decompressed bytes every read but `'zip'` decodes; `undefined` until a file's first shared read. */
   bytes: Uint8Array<ArrayBuffer> | undefined;
 
   get file(): File {
     return this.source ?? new File([this.bytes!], 'raw-data');
+  }
+
+  /** The size of what is held, for the bound of a read (the source file's, else the bytes'). */
+  get size() {
+    return this.source ? this.source.size : this.bytes!.length;
   }
 
   get name() {
@@ -492,10 +498,14 @@ class DefaultAssetManager implements AssetManager {
     const net = netOptions(options);
     if (Asset.isUrl(asset)) {
       return Task.create(`Download ${asset.title || asset.url}`, async (ctx) => {
+        checkMaxBytes(net.maxBytes);
         if (net.signal?.aborted) throw abortedBy(net.signal);
         if (this._assets.has(asset.id)) {
           const entry = this._assets.get(asset.id)!;
-          if (entry.bytes) checkSize(entry.bytes.length, net, asset.url);
+          // held bytes are what the credentials of their own read got: another read is refused, not served them
+          if (entry.net !== undefined && entry.net !== netKey(net))
+            throw new Error(`${asset.url} is held from a read with other credentials or redirect rule`);
+          checkSize(entry.size, net, asset.url);
           entry.refCount++;
           return this._readHeld(ctx, entry, type, shared, decompress);
         }
@@ -515,6 +525,7 @@ class DefaultAssetManager implements AssetManager {
         if (key === undefined) {
           const data = await fetchData({ ...asset, ...net, type: 'binary' }).runInContext(ctx);
           const entry = new HeldAsset(asset, undefined, data);
+          entry.net = netKey(net);
           this._assets.set(asset.id, entry);
           entry.refCount = 1;
           return this._readHeld(ctx, entry, type, shared, decompress);
@@ -526,8 +537,11 @@ class DefaultAssetManager implements AssetManager {
         if (entry) {
           // the same asset was resolved concurrently and registered first
           this._releaseUrl(key);
+          if (entry.net !== undefined && entry.net !== netKey(net))
+            throw new Error(`${asset.url} is held from a read with other credentials or redirect rule`);
         } else {
           entry = new HeldAsset(asset, undefined, held.bytes!, key, undefined, undefined, held);
+          entry.net = netKey(net);
           this._assets.set(asset.id, entry);
         }
         entry.refCount++;
@@ -535,8 +549,10 @@ class DefaultAssetManager implements AssetManager {
       });
     } else {
       return Task.create(`Read ${asset.name}`, async (ctx) => {
+        checkMaxBytes(net.maxBytes);
         if (this._assets.has(asset.id)) {
           const entry = this._assets.get(asset.id)!;
+          checkSize(entry.size, net, asset.name);
           entry.refCount++;
           return this._readHeld(ctx, entry, type, shared, decompress);
         }

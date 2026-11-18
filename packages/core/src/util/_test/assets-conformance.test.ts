@@ -49,8 +49,14 @@ describe('checkAssetManager', () => {
   });
 
   it('a manager that ignores the four options is caught on each', async () => {
-    const failures = await checkAssetManager(() => new IgnoringManager());
-    for (const name of ['credentials are honored', 'redirects are honored', 'a signal cancels', 'maxBytes bounds']) {
+    const failures = await checkAssetManager(() => new IgnoringManager(), { timeoutMs: 150 });
+    for (const name of [
+      'credentials are honored',
+      'redirects are honored',
+      'a signal cancels',
+      'maxBytes bounds',
+      'held data over maxBytes',
+    ]) {
       expect(
         failures.some((f) => f.startsWith(name)),
         name,

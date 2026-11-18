@@ -57,13 +57,14 @@ export interface FetchDataParams<T extends DataType = 'string'> {
   maxBytes?: number;
 }
 
-/** A download's body is larger than `maxBytes` (`FetchDataParams`). */
+/** A body or file is larger than `maxBytes` (`FetchDataParams`). */
 export class SizeLimitExceeded extends Error {
   constructor(
     readonly limit: number,
-    readonly url?: string,
+    /** The URL of the download, or the name of the file. */
+    readonly source?: string,
   ) {
-    super(`The download is larger than the limit of ${limit} bytes`);
+    super(`${source ?? 'The data'} is larger than the limit of ${limit} bytes`);
     this.name = 'SizeLimitExceeded';
   }
 }
@@ -279,9 +280,11 @@ function fetchDataInternal<T extends DataType>(
   limits?: Pick<FetchDataParams, 'credentials' | 'redirect' | 'maxBytes'>,
 ): Task<DataResponse<T>> {
   // Node.js's `fetch` has no `file:` scheme
-  if (RUNNING_IN_NODEJS && url.startsWith('file://')) return fetchDataInternal_file_NodeJS(title, url, type);
+  if (RUNNING_IN_NODEJS && url.startsWith('file://'))
+    return fetchDataInternal_file_NodeJS(title, url, type, signal, limits?.maxBytes);
 
   return Task.create(title ? title : 'Download', async (ctx) => {
+    checkMaxBytes(limits?.maxBytes);
     // the task runtime sees an abort only in `ctx.update` and `ctx.shouldUpdate`, between chunks as with XHR; the
     // abort error leaves through the `finally` below, which cancels the request (no `onAbort`: it runs after `f` throws)
     const aborter = new AbortController();
@@ -328,6 +331,12 @@ function fetchDataInternal<T extends DataType>(
       aborter.abort();
     }
   });
+}
+
+/** A bound that is not a number of bytes (`NaN`, negative) refuses the read: it cannot be honored. */
+export function checkMaxBytes(maxBytes: number | undefined) {
+  if (maxBytes !== undefined && !(maxBytes >= 0))
+    throw new Error(`maxBytes must be a number of bytes, not ${maxBytes}`);
 }
 
 /**
@@ -440,6 +449,15 @@ export function setFSModule(fs: typeof import('fs')) {
   _fs = fs;
 }
 
+function statAsync(filename: string): Promise<{ size: number }> {
+  return new Promise((resolve, reject) => {
+    getFS().stat(filename, (err, stats) => {
+      if (err) reject(err);
+      else resolve(stats);
+    });
+  });
+}
+
 function readFileAsync(filename: string): Promise<NonSharedBuffer> {
   return new Promise((resolve, reject) => {
     getFS().readFile(filename, (err, data) => {
@@ -454,14 +472,25 @@ function fetchDataInternal_file_NodeJS<T extends DataType>(
   title: string | undefined,
   url: string,
   type: T,
+  signal?: AbortSignal,
+  maxBytes?: number,
 ): Task<DataResponse<T>> {
   if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
   if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
 
   return Task.create(title ?? 'Download', async (ctx) => {
     const filename = url.substring('file://'.length);
+    checkMaxBytes(maxBytes);
+    if (signal?.aborted) throw signalAborted(signal);
+    // `credentials` and `redirect` mean nothing for a file; the bound is checked before it is read
+    if (maxBytes !== undefined) {
+      const { size } = await statAsync(filename);
+      if (size > maxBytes) throw new SizeLimitExceeded(maxBytes, filename);
+    }
     await ctx.update({ message: 'Loading file...', canAbort: false });
     const data = await readFileAsync(filename);
+    if (signal?.aborted) throw signalAborted(signal);
+    if (maxBytes !== undefined && data.length > maxBytes) throw new SizeLimitExceeded(maxBytes, filename);
 
     await ctx.update({ message: 'Parsing response...', canAbort: false });
     const result = await processFile(ctx, data.buffer, type, DataCompressionMethod.None);
