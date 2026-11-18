@@ -184,6 +184,33 @@ describe('io/repr/msgpack', () => {
     expect(issue(encodeMsgPack({ kind: 'x', other: 1 }))).toEqual(['repr.tree.node.shape']);
   });
 
+  it('reports a key given twice and a key that is not a string, with offset and path', () => {
+    const str = (t: string) => [0xa0 | t.length, ...Buffer.from(t)];
+    const doc = (...body: number[]) => Uint8Array.from(body);
+    const seen = (bytes: Uint8Array) =>
+      MsgPackCodec.decode(bytes).issues.map((i) => [i.code, i.offset, pathToPointer(i.path ?? [])]);
+    // {kind:'x', kind:'y'}
+    expect(seen(doc(0x82, ...str('kind'), ...str('x'), ...str('kind'), ...str('y')))).toEqual([
+      ['repr.codec.msgpack.duplicate_key', 8, ''],
+    ]);
+    // {kind:'x', params:{a:1, b:[{c:1, c:2}], a:3}}: both, each with its path
+    const inner = [0x82, ...str('c'), 1, ...str('c'), 2];
+    const params = [0x83, ...str('a'), 1, ...str('b'), 0x91, ...inner, ...str('a'), 3];
+    const nested = seen(doc(0x82, ...str('kind'), ...str('x'), ...str('params'), ...params));
+    expect(nested.map((n) => [n[0], n[2]])).toEqual([
+      ['repr.codec.msgpack.duplicate_key', '/params/b/0'],
+      ['repr.codec.msgpack.duplicate_key', '/params'],
+    ]);
+    // {kind:'x', params:{1: 2}}: an integer key
+    expect(seen(doc(0x82, ...str('kind'), ...str('x'), ...str('params'), 0x81, 1, 2))).toEqual([
+      ['repr.codec.msgpack.key_type', 16, '/params'],
+    ]);
+    // keys of the same text in different maps are fine
+    expect(
+      MsgPackCodec.decode(MsgPackCodec.encode({ kind: 'x', params: { kind2: { a: 1 }, b: { a: 1 } } })).issues,
+    ).toEqual([]);
+  });
+
   it('reports a malformed extension with its path', () => {
     const where = [['repr.tree.value.tag', '/params/a']];
     const bad = (type: number, data: number[]) =>

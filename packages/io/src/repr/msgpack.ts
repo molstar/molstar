@@ -41,7 +41,14 @@ import {
   type ValueRecord,
 } from '@molstar/core/repr/tree/index';
 import { utf8ByteCount, utf8Write } from '@molstar/core/util/utf8';
-import { createMsgPackState, parseMsgPackValue } from '../common/msgpack/decode.js';
+import {
+  createMsgPackState,
+  type MsgPackState,
+  parseMsgPackValue,
+  readMsgPackArrayLength,
+  readMsgPackMapLength,
+  skipMsgPackValue,
+} from '../common/msgpack/decode.js';
 import { encodeMsgPack, type MsgPackExtData } from '../common/msgpack/encode.js';
 
 const HostLittleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
@@ -77,6 +84,14 @@ export const MsgPackIssues = defineIssues('repr.codec.msgpack', {
   'repr.codec.msgpack.syntax': {
     severity: 'error',
     description: 'The bytes are not one MessagePack value: truncated, malformed, or followed by more bytes',
+  },
+  'repr.codec.msgpack.duplicate_key': {
+    severity: 'error',
+    description: 'A map names the same key twice (the MessagePack decoder would keep the last silently)',
+  },
+  'repr.codec.msgpack.key_type': {
+    severity: 'error',
+    description: 'A map has a key that is not a string (the decoder would make it one)',
   },
 });
 
@@ -308,9 +323,71 @@ export function decodeMsgPackTree(bytes: Uint8Array, _options?: DecodeOptions): 
       ],
     };
   }
+  const keyIssues = checkKeys(bytes);
+  if (keyIssues.length) return { issues: keyIssues };
   const issues: Issue[] = [];
   const node = decodeNode(value, [], issues, 1, made);
   return issues.length ? { issues } : { node, issues };
+}
+
+/**
+ * A second pass over a document that read: every map's keys are strings and given once. The decoder keeps the last of
+ * a key and stringifies the others, so it cannot say; extension payloads are skipped as they are. Each issue has the
+ * offset of the key and the path of its map.
+ */
+function checkKeys(bytes: Uint8Array): Issue[] {
+  const issues: Issue[] = [];
+  const state: MsgPackState = createMsgPackState(bytes);
+  const path: TreePath = [];
+  const scan = () => {
+    const type = state.buffer[state.offset];
+    if ((type & 0xf0) === 0x90 || type === 0xdc || type === 0xdd) {
+      const length = readMsgPackArrayLength(state);
+      for (let i = 0; i < length; i++) {
+        path.push(i);
+        scan();
+        path.pop();
+      }
+    } else if ((type & 0xf0) === 0x80 || type === 0xde || type === 0xdf) {
+      const length = readMsgPackMapLength(state);
+      const keys = new Set<string>();
+      for (let i = 0; i < length; i++) {
+        const at = state.offset;
+        const t = state.buffer[at];
+        if (!((t & 0xe0) === 0xa0 || t === 0xd9 || t === 0xda || t === 0xdb)) {
+          issues.push(
+            issueOf(MsgPackIssues, 'repr.codec.msgpack.key_type', 'A key that is not a string', {
+              offset: at,
+              path: [...path],
+            }),
+          );
+          skipMsgPackValue(state);
+          path.push(String(i));
+          scan();
+          path.pop();
+          continue;
+        }
+        const key = parseMsgPackValue(state) as string;
+        if (keys.has(key))
+          issues.push(
+            issueOf(MsgPackIssues, 'repr.codec.msgpack.duplicate_key', 'A key given twice', {
+              offset: at,
+              path: [...path],
+            }),
+          );
+        keys.add(key);
+        path.push(key);
+        scan();
+        path.pop();
+      }
+    } else skipMsgPackValue(state);
+  };
+  try {
+    scan();
+  } catch {
+    // the document read once: a stack too shallow for a second walk reports nothing here
+  }
+  return issues;
 }
 
 type Code = keyof typeof TreeIssues.codes;
