@@ -237,6 +237,29 @@ describe('Protein on its gene: drawing against the data', () => {
   });
 });
 
+describe('The axis’s views: drawing against the data', () => {
+  const exons = GeneExons.start.map((s, i) => [s, GeneExons.end[i]] as const);
+  const onGene = domainRows((a, b) => cut(exons, '-', a, b));
+
+  it('one axis (along the protein, coding pieces): every domain piece in view has its mark, every mark is hit', async () => {
+    const v = await open('one-axis');
+    expect(checkRows(v, layerIn(v, 'gene', 'domains')!, onGene)).toEqual([]);
+    v.view.setRange(`${ViewId}/gene`, 440, 500);
+    v.draw();
+    expect(checkRows(v, layerIn(v, 'gene', 'domains')!, onGene)).toEqual([]);
+    expect(checkMarks(v).wrong).toEqual([]);
+  });
+
+  it('the reversed gene (whole): every domain piece in view has its mark, across a tile edge too', async () => {
+    const v = await open('reversed-gene');
+    expect(checkRows(v, layerIn(v, 'gene', 'domains')!, onGene)).toEqual([]);
+    v.view.setRange(`${ViewId}/gene`, 560, 640);
+    v.draw();
+    expect(checkRows(v, layerIn(v, 'gene', 'domains')!, onGene)).toEqual([]);
+    expect(checkMarks(v).wrong).toEqual([]);
+  });
+});
+
 describe('Gene by region: drawing against the data', () => {
   const exonsOf = (id: string) => Transcripts[id].exons;
   const transcriptRows = (id: string): Row[] =>

@@ -11,6 +11,9 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 const Stories: Readonly<Record<string, readonly [title: string, name: string]>> = {
   tracks: ['Tracks', 'tracks'],
   'protein-on-gene': ['Protein on its gene', 'protein-on-its-gene'],
+  'one-axis': ['Protein and gene on one axis', 'protein-and-gene-on-one-axis'],
+  'genomic-follower': ['Genomic follower', 'genomic-follower'],
+  'reversed-gene': ['Reversed gene', 'reversed-gene'],
   'gene-by-region': ['Gene by region', 'gene-by-region'],
   'edit-and-undo': ['Edit and undo', 'edit-and-undo'],
   'bookmarks-and-links': ['Bookmarks and links', 'bookmarks-and-links'],
