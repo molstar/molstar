@@ -100,8 +100,8 @@ can hold its tests.
 
 - **A test slow by nature moves, and keeps a quick representative**: one layer of a sweep, the smaller fixtures, a short
   fuzz, a smaller scale. A wall-clock bound goes in `itWithin` (`test-harness/src/timing.ts`): the test runs quick
-  without the bound and heavy with it, the best of three runs (`tries: 1` for a test about one run's time). Coverage is never dropped: medium runs on every PR. Why: the PR checks finish in
-  minutes, and the edit loop in seconds.
+  without the bound and heavy with it, the best of three runs (`tries: 1` for a test about one run's time). Coverage is
+  never dropped: medium runs on every PR. Why: the PR checks finish in minutes, and the edit loop in seconds.
 - **A test slow by waste is fixed, not moved**: a fixture computed once per file, not per `describe`; fake timers where
   real ones only wait; no rebuild per test.
 - **Tag in the test's own file**, inline or by `@module-tag` on a line of its own: the config reads the files to decide
