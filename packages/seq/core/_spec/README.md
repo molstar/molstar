@@ -366,8 +366,8 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   `bins` above it (`min`, `max`, `mean`, `count` float32 from `start`, aligned to the level). Why a `form`: one shape
   has two encodings by level. Why fields as a list: any name, `kind` and `$x` too, in memory and in a file.
 - **A row's identity** is its `id`, else its `row`: a range over a tile's edge is in each tile it touches, with its own
-  start, and readers dedupe by identity and start; rows of one id with other starts are pieces of one item (the exons
-  of a transcript, read in different tiles).
+  start, and readers dedupe by identity and start; rows of one id with other starts are pieces of one item (the exons of
+  a transcript, read in different tiles).
 - `checkTables` checks forms, column types and equal lengths. `checkAnswer(answer, request)` checks an answer against
   its request: a record, a known failure with an issue, nodes with string keys, only the shapes asked, each table within
   the region, ranges with `start ≤ end` and strands −1, 0, 1, codes within their alphabet, at most `maxRows` rows.
