@@ -400,7 +400,9 @@ always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`), `ca
 (`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale` (false: a stale patch is refused; true: rebased through
 `merge3`), `preview.dropped` (`issue`; `silent`), `bounds.maxBytes` (64 MB), `bounds.maxDepth` (256),
 `bounds.maxQueryDepth` (64), `bounds.maxColumnLength` (2^31 − 1), `bounds.maxNodeIssues` (100), `bounds.maxPlaces` (10),
-`bounds.maxBlockValues` (2^24: the spec's bounds held by the viewer's patches, the table bounds by its store),
-`copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering` (`ordinal`), `copyLink.action` (`focus`). Each a choice with
-its recommended default; `ParamDefinition`s come with the settings form. As items in a spec: `viewerItem('group.item')`
-(typed by key), read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the same pairs.
+`bounds.maxBlockValues` (2^24: the spec's bounds held by the viewer's patches, previews, story steps and whole roots
+(`SpecModel.apply` refuses with `'out-of-bounds'` and `boundsIssues`; `viewer.load` rejects with the issues), the table
+and node bounds by its store), `copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering` (`ordinal`), `copyLink.action`
+(`focus`). Each a choice with its recommended default; `ParamDefinition`s come with the settings form. As items in a
+spec: `viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are
+the same pairs.

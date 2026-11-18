@@ -31,7 +31,9 @@ export interface AssetPolicy {
   readonly base?: string;
   /**
    * The folder `file:` locations may be read under (a `file:` URL, ending in `/`: `headlessAssetPolicy` makes it): a
-   * `file:` location outside it, with a host, or when there is no root is refused, whatever `schemes` says.
+   * `file:` location outside it, with a host, or when there is no root is refused, whatever `schemes` says. A policy
+   * with no root whose `base` is a `file:` folder still reads relative locations under that folder (the Node fixtures'
+   * adapter, a test's); the headless host's policy always has a root, as the security rule is files under a root only.
    */
   readonly root?: string;
   /** A relative location may not leave the folder of `base` (`../`, an absolute path): true by default. */
@@ -65,6 +67,16 @@ export const BrowserAssetPolicy: AssetPolicy = {
 /** The headless default: nothing may be read (a caller names what may: `headlessAssetPolicy`). */
 export const HeadlessAssetPolicy: AssetPolicy = { schemes: [], relative: false };
 
+/** A host as the URL parser reads it (lower case, punycode, default port dropped), or undefined when it is none. */
+function normalHost(h: string): string | undefined {
+  try {
+    const u = new URL(`https://${h}`);
+    return u.username || u.password || u.pathname !== '/' || u.search || u.hash ? undefined : u.host;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The `file:` URL of a root folder, with its trailing `/`: an absolute path, a Windows drive path or a `file:` URL. */
 export function rootUrl(root: string): string {
   let url: URL;
@@ -89,8 +101,19 @@ export function headlessAssetPolicy(
   options: { readonly root?: string; readonly hosts?: readonly string[] },
   over: Partial<AssetPolicy> = {},
 ): AssetPolicy {
-  const root = options.root !== undefined ? rootUrl(options.root) : undefined;
-  const hosts = options.hosts ?? [];
+  // a root that is no location refuses every file (the policy never throws at composition: a CLI's flag may be wrong)
+  let root: string | undefined;
+  if (options.root !== undefined) {
+    try {
+      root = rootUrl(options.root);
+    } catch {
+      root = undefined;
+    }
+  }
+  const hosts = (options.hosts ?? []).flatMap((h) => {
+    const host = normalHost(h);
+    return host === undefined ? [] : [host];
+  });
   return {
     schemes: [...(root ? ['file:'] : []), ...(hosts.length ? ['https:'] : [])],
     hosts,
@@ -135,6 +158,7 @@ export function checkLocation(uri: string, policy: AssetPolicy): { url: string }
     return { refused: relative && policy.base === undefined ? 'relative locations are not read' : 'not a location' };
   }
   if (relative) {
+    if (url.username !== '' || url.password !== '') return { refused: 'credentials in the location' };
     if (policy.relative === false || policy.base === undefined) return { refused: 'relative locations are not read' };
     const base = new URL(policy.base);
     if (url.protocol !== base.protocol || url.host !== base.host) return { refused: 'another host than the base' };
@@ -146,7 +170,9 @@ export function checkLocation(uri: string, policy: AssetPolicy): { url: string }
   }
   if (!(policy.schemes ?? []).includes(url.protocol)) return { refused: `the scheme ${url.protocol} is not allowed` };
   if (url.protocol === 'file:') return checkFile(url, policy);
-  if (policy.hosts && !policy.hosts.includes(url.host)) return { refused: `the host ${url.host} is not allowed` };
+  if (url.username !== '' || url.password !== '') return { refused: 'credentials in the location' };
+  if (policy.hosts && !policy.hosts.some((h) => normalHost(h) === url.host))
+    return { refused: `the host ${url.host} is not allowed` };
   return { url: url.href };
 }
 

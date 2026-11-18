@@ -89,6 +89,31 @@ describe('the headless policy', () => {
     expect(headlessAssetPolicy({ root: '/x' }, { maxBytes: 10 }).maxBytes).toBe(10);
   });
 
+  it('normalizes the listed hosts as the URL parser does, and refuses userinfo', () => {
+    const p = headlessAssetPolicy({ hosts: ['DATA.Example.ORG', 'other.example.org:443', 'bad host', 'x.org/path'] });
+    expect(p.hosts).toEqual(['data.example.org', 'other.example.org']);
+    expect(refused(checkLocation('https://data.example.org/a', p))).toBe(false);
+    expect(refused(checkLocation('https://DATA.example.org:443/a', p))).toBe(false);
+    expect(refused(checkLocation('https://other.example.org/a', p))).toBe(false);
+    expect(refused(checkLocation('https://u:pw@data.example.org/a', p))).toBe(true);
+    expect(refused(checkLocation('https://u@data.example.org/a', p))).toBe(true);
+    expect(refused(checkLocation('https://x.org/a', p))).toBe(true);
+    // a policy built by hand with an unnormalized host reads the same
+    expect(
+      refused(checkLocation('https://data.example.org/a', { schemes: ['https:'], hosts: ['Data.Example.org'] })),
+    ).toBe(false);
+    const f = headlessAssetPolicy({ root: '/srv/specs' });
+    expect(refused(checkLocation('file://u@/srv/specs/a', f))).toBe(true);
+  });
+
+  it('refuses everything file, instead of throwing, for a root that is no location', () => {
+    const p = headlessAssetPolicy({ root: 'specs', hosts: ['data.example.org'] });
+    expect(p.root).toBeUndefined();
+    expect(refused(checkLocation('file:///srv/specs/a', p))).toBe(true);
+    expect(refused(checkLocation('a.seq', p))).toBe(true);
+    expect(refused(checkLocation('https://data.example.org/a', p))).toBe(false);
+  });
+
   it('takes a root as a path, a Windows path or a file URL, and nothing else', () => {
     expect(rootUrl('/srv/a b/')).toBe('file:///srv/a%20b/');
     expect(rootUrl('/srv/#1/')).toBe('file:///srv/%231/');

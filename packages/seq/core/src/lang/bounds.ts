@@ -131,6 +131,7 @@ function walk(root: unknown, o: WalkOptions): { issues: Issue[]; bytes: number }
   const say = (code: keyof typeof BoundIssues.codes, message: string, f: Frame) =>
     issues.push(issueOf(BoundIssues, code, message, { hint: BoundIssues.codes[code].hint, path: pathOf(f, o.path) }));
   const sizeIssue = (f: Frame) => {
+    issues.length = 0; // size, depth and shape are refused alone
     say('seq.lang.bound.size', `The spec is larger than ${bounds.maxBytes} bytes decoded`, f);
     return { issues, bytes: budget.bytes };
   };
@@ -156,6 +157,7 @@ function walk(root: unknown, o: WalkOptions): { issues: Issue[]; bytes: number }
     return true;
   };
   const fatal = (code: keyof typeof BoundIssues.codes, message: string, f: Frame) => {
+    issues.length = 0;
     say(code, message, f);
     return { issues, bytes: budget.bytes };
   };

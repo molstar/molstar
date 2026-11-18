@@ -174,6 +174,22 @@ describe('the spec size', () => {
   });
 });
 
+describe('the fatal bounds are refused alone', () => {
+  it('a column and a query issue before the size are not kept beside it', () => {
+    const q = `/data/${'(a :b '.repeat(70)}x${')'.repeat(70)}`;
+    const spec = specOf(
+      { kind: 'ext:note', id: 'a', params: { c: new Uint8Array(11), q } as never },
+      { kind: 'ext:note', id: 'b', params: { s: 'x'.repeat(5000) } as never },
+    );
+    const bounds = specBounds({ maxColumnLength: 10, maxBytes: 2000 });
+    expect(codes(spec, bounds)).toEqual(['seq.lang.bound.size']);
+    expect(codes(spec, specBounds({ maxColumnLength: 10 })).sort()).toEqual([
+      'seq.lang.bound.column',
+      'seq.lang.bound.query_depth',
+    ]);
+  });
+});
+
 describe('a column’s length', () => {
   it('passes the bound and refuses one past it', () => {
     const bounds = specBounds({ maxColumnLength: 10 });

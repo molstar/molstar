@@ -79,13 +79,20 @@ checks it cannot express.
   address string: `seq.lang.bound.query_depth`) and `maxColumnLength` (2^31 − 1: `seq.lang.bound.column`); a spec past
   size or depth gets that issue alone, one past the others the first place of each. The issues kept are bounded as they
   are reported (`IssueCaps`): the first `maxPlaces` (10) of a code, at most `maxNodeIssues` (100) a node, the rest
-  counted in one `seq.lang.bound.issues` warning a code (`BoundIssues`). A patch's check refuses the same nesting:
-  `checkSeqChanges` walks the subtrees a change made or moved (to the depth the address already has) and the params it
-  set, with `checkSubtreeDepth`, before it reads anything else (a subtree too deep to walk is refused alone);
-  `seqPatchValidator(bounds)` is the validator with a composition's bounds. Why: one rule for the two consumers, and the
-  cost of the incremental check stays the change's. The table's other rows: nested sources are `maxNestedDepth`
-  (Resolve), a column's length and a block's values the data's (Data, Tables), regular expressions in search and
-  archives wait for the features that read them (TODO).
+  counted in one `seq.lang.bound.issues` warning a code (`BoundIssues`; a patch's check keeps what it introduced the
+  same way, after taking away what was there). The walk reads a node's children, params, `custom` data and `args` alike
+  as values (no query depth in `custom`, the extension's) and charges a fixed overhead (8 bytes) for each node, record,
+  array, key and element before it pushes or visits them, so a million empty records cost what they say; a node that is
+  no record with a kind, or a `children` that is no list, is `seq.lang.bound.shape` (refused, never thrown on). A
+  patch's check refuses the same nesting: `checkSeqChanges` walks the subtrees a change made or moved (to the depth the
+  address already has) and the params it set, with `checkSubtreeDepth`, before it reads anything else (a subtree too
+  deep to walk is refused alone); `seqPatchValidator(bounds)` is the validator with a composition's bounds, and
+  `seqBoundsValidator(bounds)` the bounds alone (a preview, a story step). Its size bound is per patch: the bytes of
+  what it makes and of the keys of `params` or `custom` it sets (only those keys are walked) against `maxBytes`; a moved
+  subtree is walked for depth, not counted. Why: one rule for the two consumers, and the cost of the incremental check
+  stays the change's. The table's other rows: nested sources are `maxNestedDepth` (Resolve), a column's length and a
+  block's values the data's (Data, Tables), regular expressions in search and archives wait for the features that read
+  them (TODO).
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
 
 ### Refs
@@ -366,7 +373,10 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - **Bounds**: `checkAnswer` refuses a table whose column is longer than `maxColumnLength` (2^31 − 1) or whose values
   (rows times columns) pass `maxBlockValues` (2^24, a grid or matrix block's bound), before it walks the extent, and the
   store settings carry both; a file's `seq` reader refuses the same (`checkTableBounds`) and a system declared longer
-  than a column can be. Why: an answer's size is a claim of its source, refused before it is cut, joined or kept.
+  than a column can be. The dynamic nodes of an answer are at most `maxNodes` (10,000) and weigh at most `maxNodeBytes`
+  (16 MB) together by the spec's size estimate, each within the spec's depth and shape (`measureNode`); `answerBytes`
+  charges them by that estimate, a flat floor under it. Why: an answer's size is a claim of its source, refused before
+  it is cut, joined or kept.
 - Cutting (`sliceTable`) keeps letters, positions and bins by offset, and a range or a density bin by its anchor (its
   first position in the region) within the part cut; `joinTables` joins consecutive parts, so each row is held once.
 
@@ -885,11 +895,13 @@ same pieces. Nothing registers on import and there is no global registry.
 - **The headless policy** (`headlessAssetPolicy({ root, hosts })`): files under `root` (an absolute path, a Windows
   drive path or a `file:` URL; relative locations resolve against it and stay under it) and `https:` locations of the
   listed `hosts`, nothing else: no network when no host is listed, no `file:` location without a root, with a host, with
-  an encoded separator or outside it (`..` and `%2e%2e` are resolved by the URL parser first). Credentials are never
-  sent, redirects are refused, and the size and time bounds are the browser's. `AssetPolicy.root` is the same rule for
-  any policy; the root is a decision on the location, a link in the folder that leads out of it is the reader's to
-  refuse. Why: a headless render or a server reads whatever `uri` a spec names (server-side request forgery).
+  an encoded separator, userinfo or outside it (`..` and `%2e%2e` are resolved by the URL parser first). Credentials are
+  never sent, redirects are refused, and the size and time bounds are the browser's. `AssetPolicy.root` is the same rule
+  for any policy; the root is a decision on the location, a link in the folder that leads out of it is the reader's to
+  refuse. Listed hosts are normalized as the URL parser reads them (case, default port); a root that is no location
+  leaves the policy with no file access and no throw. Why: a headless render or a server reads whatever `uri` a spec
+  names (server-side request forgery).
 - **Bounds**: `SeqCoreConfig.bounds` (`Partial<SpecBounds>` over `DefaultSpecBounds`, Language, Bounds) is the context's
-  `bounds`, which its `check` holds.
+  `bounds`, which its `check` and its `renderSvg` hold (`RenderSvgOptions.bounds`).
 - A port factory that throws leaves nothing made: the ports already made are disposed, last first; a structure port made
   is disposed with the context.

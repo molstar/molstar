@@ -45,7 +45,7 @@ describe('the data bounds', () => {
   });
 
   it('pass a column of the bound’s length and refuse one more, with the block bound raised past it', () => {
-    const bounds = { maxColumnLength: 100, maxBlockValues: 1e9 };
+    const bounds = { ...DefaultAnswerBounds, maxColumnLength: 100, maxBlockValues: 1e9 };
     expect(checkTableBounds(claims('positions', 100), bounds)).toBeUndefined();
     expect(checkTableBounds(claims('positions', 101), bounds)).toMatch(/column of more than 100/);
   });
@@ -60,11 +60,19 @@ describe('the data bounds', () => {
     // a column that claims 2^31 rows: the extent loop would never end, the bound answers first
     const answer = { ok: true, tables: { ranges: { form: 'list', start: column(2 ** 31), end: column(2 ** 31) } } };
     expect(checkAnswer(answer, request, Number.MAX_SAFE_INTEGER)).toMatch(/column of more than 2147483647/);
-    const small = checkAnswer(rangesAnswer(request), request, 1_000_000, { maxColumnLength: 5, maxBlockValues: 1e9 });
+    const small = checkAnswer(rangesAnswer(request), request, 1_000_000, {
+      ...DefaultAnswerBounds,
+      maxColumnLength: 5,
+      maxBlockValues: 1e9,
+    });
     expect(small).toMatch(/ranges table: a column of more than 5/);
-    expect(checkAnswer(rangesAnswer(request), request, 1_000_000, { maxColumnLength: 10, maxBlockValues: 1e9 })).toBe(
-      undefined,
-    );
+    expect(
+      checkAnswer(rangesAnswer(request), request, 1_000_000, {
+        ...DefaultAnswerBounds,
+        maxColumnLength: 10,
+        maxBlockValues: 1e9,
+      }),
+    ).toBe(undefined);
   });
 
   it('refuse a file that declares a longer system than a column can be', () => {
