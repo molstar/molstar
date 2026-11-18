@@ -58,7 +58,10 @@ From the principles ("Folded back from the second slice"), written into this pla
   introns: built on the axis's pieces, hit-testing, selection and export following.
 - **Stories**: `stateOf`, `plan` and `sample` in `seqx-core`, the `AnimationPort` with its default and headless
   adapters, the p53 story played, scrubbed and exported ([stories](../../design/stories.md)).
-- **Navigators**: designed (`navigators.md`, with its self-check) and built: a strip and a miniature that move the view.
+- **Navigators**: designed (`navigators.md`, with its self-check) as one part over an axis or two, and built in all four
+  forms of EC-110: the strip (a navigation track with window handles), the miniature, the ideogram, and the vertical
+  overview of an alignment's rows (the author, 2026-11-18: "we forgot to even mention the "vertical maps"? ... it
+  should prolly be built with the "navigation tracks""); each moves the view, idle when there is nowhere to go.
 - Themes: field palettes (binned, continuous, log), rules, the residue schemes, legends, shared domains.
 - PNG renders headless with the same picture as SVG; the render CLI turns a spec file into SVG or PNG under the headless
   asset policy (EC-126).
@@ -151,13 +154,18 @@ and dark before the merge.
       (the store's want sets, bounded layout); the logo.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (rows and clades, the rectangle).
 
-### Stage 4: stories and navigators (after stage 2; beside stage 3)
+### Stage 4: stories and navigators (SY after stage 2, beside stage 3; NV after RW)
 
 - [ ] SY (strong) the stories library, as `stories.md`: `stateOf`, `plan`, `sample` and the channel kinds in
       `seqx-core` (property tests: `sample(plan, 0)` is `from`, `sample(plan, 1)` is `to`, monotone, deterministic,
       allocation-free warm); the frame slot over the shown state; the `AnimationPort` with its default and headless
       adapters; the view history's jumps and focus through it; the p53 story played, scrubbed and exported.
-- [ ] NV (fast, after `navigators.md`) navigators: a strip and a miniature that move the view, as parts a host places.
+- [ ] NV (strong, after `navigators.md` and RW) navigators, one part by the axes it covers (positions, rows, or
+      both), drawn from the coarse summaries the views already read, the window dragged and resized to move the view,
+      idle when there is nowhere to go, a floored window drawn wider (EC-110), a part a host places:
+  - the strip: a navigation track with window handles over a section's positions;
+  - the vertical overview: an alignment's rows (columns compressed across), the Globins 10,000-row view's;
+  - the miniature: both axes; the ideogram: a strip with a chromosome's bands.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
 
 ### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
@@ -189,7 +197,8 @@ and dark before the merge.
 ## Order and parallelism
 
 Gate 0 (with C0 beside it) → AX → TH and SL in parallel → early use gate → TX and RB in parallel → PG, RW and SY in
-parallel (two heavy, one light at once), NV after `navigators.md` → the datasets' lanes (two or three at once, fast)
+parallel (two heavy, one light at once), NV after `navigators.md` and RW (the vertical overview reads RW's
+rows) → the datasets' lanes (two or three at once, fast)
 → OP and AY → novice pass → the author's use gate → measure → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)

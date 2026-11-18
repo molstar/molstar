@@ -194,6 +194,7 @@ slice:
 | **a follower section** | as a leading one | as a leading one | as a leading one | as a leading one | as a leading one | moves its leader (`lead`) | moves its leader (`lead`) | as a leading one | as a leading one |
 | **the view** | — | — | — | 0 fits; double-click on empty space | Alt+Left / Alt+Right, the mouse's buttons; `view.back`, `view.forward` | — | — | — | undo and redo through the host's stack |
 | **a track or layer** | planned (a row selection, third slice) | — | — | planned | — | — | — | `track.hide`, `layer.hidden` | height, color, order by patch; previews while dragged |
+| **a navigator** (strip, miniature, ideogram, vertical overview: planned, third slice) | — | — | — | a click centers the view there | Alt+Left | drag the window's handles | drag the window | the host hides the part | — |
 | **a bookmark or link** | — | — | `refs.add`; removing one: planned | runs its action | Alt+Left | — | — | — | its label: planned |
 
 Planned beyond this slice, from the second slice's use gate: a section's direction (reversed, following its leader),
