@@ -181,7 +181,7 @@ export class ViewModel extends ReactiveModel {
     if (lead) {
       const v = this.get(section);
       const [s, e] = [Math.min(start, end), Math.max(start, end)];
-      return !!v && this._lead(lead, s, e, Math.sign(s - v.start), Math.sign(e - v.end), false);
+      return !!v && this._lead(lead, s, e, Math.sign(s - v.start), Math.sign(e - v.end));
     }
     const g = this._movable(section);
     if (!g) return false;
@@ -200,7 +200,7 @@ export class ViewModel extends ReactiveModel {
     if (lead) {
       const v = this.get(section);
       const m = Math.sign(delta);
-      return !!v && this._lead(lead, v.start + delta, v.end + delta, m, m, true);
+      return !!v && this._lead(lead, v.start + delta, v.end + delta, m, m, delta);
     }
     const g = this._movable(section);
     if (!g) return false;
@@ -228,7 +228,7 @@ export class ViewModel extends ReactiveModel {
       const a = anchor ?? (v.start + v.end) / 2;
       const s = a - (a - v.start) / factor;
       const e = a + (v.end - a) / factor;
-      return this._lead(lead, s, e, Math.sign(s - v.start), Math.sign(e - v.end), false);
+      return this._lead(lead, s, e, Math.sign(s - v.start), Math.sign(e - v.end));
     }
     const g = this._movable(section);
     if (!g) return false;
@@ -291,10 +291,14 @@ export class ViewModel extends ReactiveModel {
     return !!this._groupOf(s);
   }
 
-  /** An attached follower whose moves lead (`follow.followerMoves`: `lead`), else undefined. */
+  /**
+   * An attached follower whose moves lead (`follow.followerMoves`: `lead`) to a leader that can move, else undefined.
+   * `_canMove` bounds the chain (`MaxFollowDepth`), so the move `_lead` passes up it ends.
+   */
   private _leading(section: string): SectionState | undefined {
     const s = this._sections.get(section);
-    return s?.section.follow && s.group === undefined && this.config.follow.followerMoves === 'lead' ? s : undefined;
+    if (!s?.section.follow || s.group !== undefined || this.config.follow.followerMoves !== 'lead') return undefined;
+    return this._canMove(section) ? s : undefined;
   }
 
   /**
@@ -302,11 +306,14 @@ export class ViewModel extends ReactiveModel {
    * end)` (offsets) is carried back through the follow, each end to the leader place whose image it is, so the
    * follower shows what was asked and every section moves in step; on a minus strand the follower's ends are the
    * images of the leader's other ends, so its pan moves the leader the other way. `ms`, `me`: which way each end
-   * moved. An end that maps nowhere (an intron, a UTR) takes the nearest place that maps the way it moved (`backTo`);
-   * a pan (`translate`) whose one end maps nowhere moves the leader by the other's step, a zoom keeps the leader's end.
-   * A leader that follows passes the move on up the chain.
+   * moved. An end that maps nowhere (an intron, a UTR) takes the nearest place that maps the way it moved (`backTo`).
+   * A pan (`delta`) moves the follower's unclamped image of the leader, not the window its own `maxPxPerPosition`
+   * widened (which would zoom the leader out), and when one end maps nowhere the leader moves by the other's step: the
+   * leader keeps its width. A zoom or a range whose end lies past every image outward reaches the leader's axis edge
+   * there (a zoom out never stalls); inward, it keeps the leader's end. A leader that follows passes the move on up the
+   * chain, bounded by `_leading`.
    */
-  private _lead(s: SectionState, start: number, end: number, ms: number, me: number, translate: boolean): boolean {
+  private _lead(s: SectionState, start: number, end: number, ms: number, me: number, delta?: number): boolean {
     const follow = s.section.follow!;
     const lead = this.get(follow.leader);
     const v = this.get(s.section.address);
@@ -317,6 +324,13 @@ export class ViewModel extends ReactiveModel {
     const ps = positionAt(la, lead.start);
     const pe = positionAt(la, lead.end);
     if (ps === undefined || pe === undefined) return false;
+    if (delta !== undefined) {
+      // the image of the leader's window before the follower's clamp, moved by the pan
+      const image = carried(s.section, follow, ps, pe, this.config);
+      const a = image && nearestOffsetOf(axis, image[0]);
+      const b = image && nearestOffsetOf(axis, image[1]);
+      if (a !== undefined && b !== undefined && a < b) [start, end] = [a + delta, b + delta];
+    }
     // a cyclic follower's range over its origin runs past the total
     const pos = (o: number) => positionAt(axis, axis.cyclic && o > total ? o - total : o);
     const lo = pos(start);
@@ -327,13 +341,17 @@ export class ViewModel extends ReactiveModel {
     // the follower's start is the image of the leader's start, or of its end on a minus strand
     let a = follow.dir === 1 ? xLo : xHi;
     let b = follow.dir === 1 ? xHi : xLo;
-    if (translate) {
+    if (delta !== undefined) {
       if (a === undefined && b === undefined) return false;
       if (a === undefined) a = ps + (b! - pe);
       if (b === undefined) b = pe + (a - ps);
     } else {
-      a ??= ps;
-      b ??= pe;
+      // an end moved outward past every image: the leader's axis edge on that side (its clamp keeps it in)
+      const startOut = follow.dir === 1 ? ms < 0 : me > 0;
+      const endOut = follow.dir === 1 ? me > 0 : ms < 0;
+      const lt = axisTotal(la);
+      a ??= startOut && lt !== undefined ? (positionAt(la, 0) ?? ps) : ps;
+      b ??= endOut && lt !== undefined ? (positionAt(la, lt) ?? pe) : pe;
     }
     const oa = nearestOffsetOf(la, a);
     const ob = nearestOffsetOf(la, b);

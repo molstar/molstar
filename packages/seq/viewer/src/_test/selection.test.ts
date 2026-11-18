@@ -283,6 +283,29 @@ describe('several ranges in one selection (the interaction grammar)', () => {
     click(v, at(v, 0, 0, 9), { shiftKey: true });
     expect(ranges(v)).toEqual([6, 10]);
   });
+
+  it('after a subtraction, an extend changes the run the anchor is in and keeps the part split off', async () => {
+    const v = await make();
+    dragged(v, 0, 8);
+    dragged(v, 3, 4, { altKey: true });
+    expect(ranges(v)).toEqual([0, 3, 5, 9]);
+    click(v, at(v, 0, 0, 1), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 2, 5, 9]);
+    // the same through the command
+    dragged(v, 0, 8);
+    await v.execute('selection.subtract', { range: { system: P, start: 3, end: 5 } });
+    click(v, at(v, 0, 0, 1), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 2, 5, 9]);
+  });
+
+  it('selection.add by an address keeps the anchor: a later extend keeps what was added', async () => {
+    const v = await make();
+    dragged(v, 0, 2);
+    await v.execute('selection.add', { address: '/data/domains/(item :id B)' });
+    expect(ranges(v)).toEqual([0, 3, 5, 9]);
+    click(v, at(v, 0, 0, 3), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 4, 5, 9]);
+  });
 });
 
 describe('the review’s smaller points', () => {

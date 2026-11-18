@@ -305,25 +305,32 @@ export class SelectionModel extends ReactiveModel {
   }
 
   /**
-   * Adds positions to the selection, the rest kept (the `selection.add` command); `anchor`, where a later extend starts
-   * (the added range's), keeping what was there before. True when the selection changed.
+   * Adds positions to the selection, the rest kept (the `selection.add` command). With `anchor` (the added range's), a
+   * later extend starts there, keeping what was there before; without one (an address's positions) the anchor stays
+   * and what an extend keeps gains what was added. True when the selection changed.
    */
   add(loc: Location, anchor?: Anchor): boolean {
     const before = this._value.value;
-    this._anchor = anchor;
-    this._rest = anchor ? { elements: before.elements, location: before.location } : NoRest;
+    if (anchor) {
+      this._anchor = anchor;
+      this._rest = { elements: before.elements, location: before.location };
+    } else if (this._anchor) {
+      this._rest = { elements: this._rest.elements, location: unionLocations(this._rest.location, loc) };
+    }
     this._value.set(this._compose(before.elements, unionLocations(before.location, loc)));
     return before !== this._value.value;
   }
 
   /**
    * Takes positions out of the selection (the `selection.subtract` command): an element they cut becomes the positions
-   * of its extent left; one they miss stays an element. The anchor stays; what an extend keeps loses them too.
+   * of its extent left; one they miss stays an element. The anchor stays; what an extend keeps is what is left but the
+   * run the anchor is in, so a part split off stays.
    */
   subtract(loc: Location): boolean {
     const before = this._value.value;
-    this._rest = { elements: this._rest.elements, location: subtractLocations(this._rest.location, loc) };
-    this._value.set(this._without(before, loc));
+    const next = this._without(before, loc);
+    this._rest = this._restAround(next);
+    this._value.set(next);
     return before !== this._value.value;
   }
 
@@ -375,13 +382,12 @@ export class SelectionModel extends ReactiveModel {
         this._rest = { elements: d.before.elements, location: d.before.location };
         this._value.set(this._compose(d.before.elements, unionLocations(d.before.location, loc)));
         break;
-      case 'subtract':
-        this._rest = {
-          elements: d.beforeRest.elements,
-          location: subtractLocations(d.beforeRest.location, loc),
-        };
-        this._value.set(this._without(d.before, loc));
+      case 'subtract': {
+        const next = this._without(d.before, loc);
+        this._rest = this._restAround(next);
+        this._value.set(next);
         break;
+      }
       case 'extend':
         this._value.set(this._extended(loc));
         break;
@@ -415,6 +421,24 @@ export class SelectionModel extends ReactiveModel {
   }
 
   // ---- internals ----
+
+  /**
+   * What an extend keeps after a subtraction: the value less the run of positions the anchor is in on its system (all
+   * of it when the anchor is in none; nothing without an anchor).
+   */
+  private _restAround(value: Emphasized): Rest {
+    const a = this._anchor;
+    if (!a) return NoRest;
+    const r = partOf(value.location, a.system)?.ranges;
+    if (r)
+      for (let i = 0; i + 1 < r.length; i += 2)
+        if (a.start >= r[i] && a.start < r[i + 1])
+          return {
+            elements: value.elements,
+            location: subtractLocations(value.location, rangesLocation(a.system, [r[i], r[i + 1]])),
+          };
+    return { elements: value.elements, location: value.location };
+  }
 
   /** An extend's value: the anchor's range `loc` with what the extend keeps (`selection.extendScope`). */
   private _extended(loc: Location): Emphasized {

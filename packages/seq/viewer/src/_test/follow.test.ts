@@ -223,6 +223,34 @@ describe('ViewModel: a follower leads (follow.followerMoves: lead)', () => {
     expect(view.pan(GeneSection, 0)).toBe(true);
     expect(range(ProteinSection)).toEqual([1, 3]);
   });
+
+  it('a pan on a follower its own clamp widened moves the leader, which keeps its width (protein follows gene)', () => {
+    const { view, range } = placed({ reverse: true });
+    view.setRange(GeneSection, 6, 6.1);
+    // 20 px at most 32 px a position: the gene shows 0.625 nucleotides, the protein a third of that, widened
+    const [g0, g1] = range(GeneSection)!;
+    expect(g1 - g0).toBeCloseTo(0.625, 9);
+    view.pan(ProteinSection, 0.01);
+    close(range(GeneSection), [g0 + 0.03, g1 + 0.03]);
+  });
+
+  it('a pan on a follower its own clamp widened moves the leader, which keeps its width (gene follows protein)', () => {
+    const { view, range } = setup();
+    view.setWidth(ProteinSection, 20);
+    view.setWidth(GeneSection, 400);
+    view.setRange(ProteinSection, 1, 2);
+    // [5, 13) widened to 12.5 nucleotides by the gene's own clamp
+    expect(range(GeneSection)).toEqual([2.75, 15.25]);
+    view.pan(GeneSection, 0.3);
+    close(range(ProteinSection), [1.1, 2.1]);
+  });
+
+  it('a zoom out on a follower past its axis reaches the leader’s whole range, never stalls', () => {
+    const { view, range } = placed();
+    view.setRange(ProteinSection, 1, 3);
+    for (let i = 0; i < 6; i++) view.zoom(GeneSection, 0.5);
+    expect(range(ProteinSection)).toEqual([0, 4]);
+  });
 });
 
 describe('ViewModel: updates, intents and views', () => {

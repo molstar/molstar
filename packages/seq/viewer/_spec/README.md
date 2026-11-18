@@ -96,12 +96,17 @@ nothing and tells nothing.
   follower shows what was asked and every section moves in step; on a minus strand the follower's ends are the images of
   the leader's other ends, so its pan moves the leader the other way. Where an end is in no element's image (an intron,
   a UTR, the nucleotides of a codon split by an intron that its image does not run over) it takes the nearest image the
-  way it moved, so a pan steps over a gap and never sticks; a pan whose other end lies past every image moves the leader
-  by the one end's step, a zoom keeps the leader's end. A chain leads up to its first leader. `canMove` is the leader's.
-  Why the inverse of the forward map, not of the path: what the follower shows is the forward map's, so only its inverse
-  brings back the range asked. `ignore` drops the move; `detach` gives the follower its own range until a fit or
-  `attach`; a move with invalid arguments moves and detaches nothing. Focus and reveal by address move the leading
-  sections as before, and the cursor on a follower reveals nothing unless it may detach (`cursor.reveal`).
+  way it moved, so a pan steps over a gap and never sticks. A pan moves the follower's image of the leader's window
+  before its own clamp, so the leader keeps its width (the window a clamp widened, carried back, would zoom it out); one
+  whose other end lies past every image moves the leader by the one end's step. A zoom or a range with an end moved
+  outward past every image takes the leader's axis edge on that side, so a zoom out never stalls; inward, the leader's
+  end stays. A zoom or a pinch acts on the window shown: past the follower's clamp, the leader re-centers on what the
+  follower shows, as a leader's own zoom does. A chain leads up to its first leader, bounded as `canMove` is (16
+  follows: a cycle moves nothing). `canMove` is the leader's. Why the inverse of the forward map, not of the path: what
+  the follower shows is the forward map's, so only its inverse brings back the range asked. `ignore` drops the move;
+  `detach` gives the follower its own range until a fit or `attach`; a move with invalid arguments moves and detaches
+  nothing. Focus and reveal by address move the leading sections as before, and the cursor on a follower reveals nothing
+  unless it may detach (`cursor.reveal`).
 - **A source-backed system's length** is fed in when its source's coverage gives it (`setLengthSource`, `refreshLengths`
   on each store change): the resolved view's axes (and the follows' leader axes) get their pieces, so a section on a
   streamed sequence is placed and its kept intent applies.
@@ -148,12 +153,15 @@ nothing and tells nothing.
   other ranges and elements kept (extends from one anchor replace one another; with no anchor there, a select;
   `selection.extendScope`: `selection` makes the whole selection that range). `toggle(hit)` adds or removes the element
   or the cell, keeping the rest. `add(location, anchor?)` and `subtract(location)` add positions or take them out (an
-  element they cut becomes the positions left of its extent; one they miss stays an element).
-  `beginDrag(hit, axis, mode)`, `dragTo(position, hit?)`, `endDrag()`, `cancelDrag()`: the range between the two ends,
-  whole items at the ends when it began on one and the pointer is over one, by the drag's mode: `replace` (the selection
-  becomes it), `add`, `subtract` (to or from the selection the drag began with), `extend` (the anchor's range reaches to
-  it; with no anchor on its system, a replace); a cancel gives back the selection, the anchor and what an extend keeps.
-  Why methods: a binding, a key and a test act alike, and a drag step is a call, not a command.
+  element they cut becomes the positions left of its extent; one they miss stays an element). An add with an anchor
+  moves it there; one without (an address's positions) keeps the anchor, and what an extend keeps gains what was added.
+  A subtraction keeps the anchor; what an extend keeps becomes what is left less the run the anchor is in, so a part
+  split off stays. `beginDrag(hit, axis, mode)`, `dragTo(position, hit?)`, `endDrag()`, `cancelDrag()`: the range
+  between the two ends, whole items at the ends when it began on one and the pointer is over one, by the drag's mode:
+  `replace` (the selection becomes it), `add`, `subtract` (to or from the selection the drag began with), `extend` (the
+  anchor's range reaches to it; with no anchor on its system, a replace); a cancel gives back the selection, the anchor
+  and what an extend keeps. Why methods: a binding, a key and a test act alike, and a drag step is a call, not a
+  command.
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all
