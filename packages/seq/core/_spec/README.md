@@ -795,9 +795,13 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
   an allocation, and which calls are inlined depends on the order code ran in. So each pass of a layer type and of the
   view is its own function, called through one table site (`passDraws`, `drawPass`: no call target known there, so each
   is compiled on its own with the writer's calls inlined into it); a loop calls the writer at one site a primitive kind;
-  the emphasis passes' rects go through the writer's `args` (an array's numbers are never boxed) and snap inline;
-  nothing in a draw makes a closure, an iterator, a destructured array or a number for a call; the hit's numbers are
-  read where they are used.
+  the emphasis passes' rects go through the writer's `args` (an array's numbers are never boxed) and snap inline, and so
+  do texts and letters with their colors (`textArgs`, `letterArgs`: a color past a small integer is a number boxed too);
+  a mark drawn only on some views (breaks, hidden items' ticks, gap marks, carets, three-letter codes) is a function of
+  its own, called only when it has something to draw, so the pass it belongs to stays small enough to have its writer
+  calls inlined; nothing in a draw makes a closure, an iterator, a destructured array or a number for a call; the hit's
+  numbers are read where they are used. A layout sets a buffer it reuses in place, never to a length of 0 (that lets the
+  array's storage go).
 - **A layout allocates a bounded amount a frame**, not nothing: what it makes once (the wants, the regions, the key's
   text, the tiles' keys) and a little an item in view (ranges: an item's key, the lane maps). On the section's own
   system nothing a position or a bin (a values layer places through a kept placer, `AxisTransform.spanIn` and inline
@@ -896,7 +900,8 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   `margin`.
 - A tile not asked for, pending or evicted draws as a pending placeholder (EC-169), a failed one as a conflict tint; an
   unknown source (not attached) is pending. Two regions sharing a tile (a cyclic view wrapping a short system) read its
-  entry once.
+  entry once. The regions a layer reads (the view's, or their image through its path) are merged across gaps of up to 16
+  positions (`mergeNear`): one read over a run of short pieces, not one a piece.
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).

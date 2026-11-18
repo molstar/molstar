@@ -294,12 +294,13 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits
   for the picture (sources open, wanted data arrived, the view at rest).
 - **The frame** (`draw`): the renderer lays the view out when anything it reads changed, else redraws the emphasis
-  passes alone (a hover); the layout's wants go to the store through the viewer's want set; the backend draws. A frame
-  is asked for by `schedule`, one frame callback (`@molstar/ui/dom`, on `DomHost`) however many changes asked; the
-  wheel's own frame is asked for first, so its deltas apply in the frame that draws them. Changes that ask: the model,
-  the resolved view, a viewport, the hover, the selection, the cursor, a highlight channel, the store's version and
-  settledness, a resize. A frame whose base passes were drawn again (`Frame.base`: the selection's tint under the data)
-  redraws the base canvas.
+  passes alone (a hover); the layout's wants go to the store through the viewer's want set; the backend draws. Each
+  leading section's window goes in the frame (and `renderSvg`) as its own viewport (`viewports` by address, the first as
+  `viewport`): sections of different axes share no offsets. A frame is asked for by `schedule`, one frame callback
+  (`@molstar/ui/dom`, on `DomHost`) however many changes asked; the wheel's own frame is asked for first, so its deltas
+  apply in the frame that draws them. Changes that ask: the model, the resolved view, a viewport, the hover, the
+  selection, the cursor, a highlight channel, the store's version and settledness, a resize. A frame whose base passes
+  were drawn again (`Frame.base`: the selection's tint under the data) redraws the base canvas.
 - **Settled**: the view counts as settled `canvas.settleMs` after its last move and while the store has nothing pending
   (open domains computed, lanes packed).
 - **Size**: the width is the target's; the data box is the width less the layout's inset, label column and gap
