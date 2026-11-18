@@ -10,6 +10,7 @@ import { changeKindOf } from './commands.js';
 import {
   type HoverBehavior,
   HoverProvider,
+  isDragSelect,
   type NavigateBehavior,
   NavigateProvider,
   type SelectBehavior,
@@ -172,9 +173,11 @@ export class ViewerInput {
     const target = hitTarget(hit);
     const action = this.viewer.bindings.resolve('drag', mods, target);
     if (action === undefined) return false;
-    // a drag-select begins on what was hit; it selects once the pointer moves past the slop (else it is a click)
-    const select = action === 'drag-select' && !!this.selectBehavior?.beginDrag(section, hit, mods, target);
-    if (action === 'drag-select' && !select) return false;
+    // a drag-select (of any mode) begins on what was hit; it selects once the pointer moves past the slop (else it is
+    // a click)
+    const selecting = isDragSelect(action);
+    const select = selecting && !!this.selectBehavior?.beginDrag(section, hit, mods, target);
+    if (selecting && !select) return false;
     if (this._space) this._spaceUsed = true;
     this._drag = { x, x0: x, section, target, select, moved: false };
     return true;

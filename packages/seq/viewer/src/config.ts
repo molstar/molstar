@@ -41,6 +41,11 @@ export interface ViewerConfig {
      * (true): a selected transcript stays when its region scrolls away; false: only while shown.
      */
     readonly holdNodes: boolean;
+    /**
+     * What an extend (Shift+click, Shift+drag, Shift+arrows) changes: the range the anchor is in, the other ranges and
+     * elements kept (`range`, the default), or the whole selection, which becomes that range (`selection`).
+     */
+    readonly extendScope: 'range' | 'selection';
   };
   readonly highlight: {
     /** A highlight channel's color when `colors` names none: a hex literal or `token:<name>` (`token:cat-5`). */
@@ -192,7 +197,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   bindings: { preset: 'default' },
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
   hover: { projectLinked: true, closeCodons: true },
-  selection: { holdNodes: true },
+  selection: { holdNodes: true, extendScope: 'range' },
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }, reveal: true },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },

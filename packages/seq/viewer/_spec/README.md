@@ -144,13 +144,21 @@ nothing and tells nothing.
   canvas shows.
 - **The grammar's gestures are methods** (the interaction grammar), by the hit: an item is an element (its key, drawn by
   its extent), a cell a position. `select(hit)` sets it, and clears it when it was exactly that element; nothing hit
-  clears it. `extend(hit)` is the positions from the anchor to the hit on the anchor's system (a range in one system;
-  extends from one anchor replace one another; with no anchor there, a select). `toggle(hit)` adds or removes the
-  element or the cell, keeping the rest. `beginDrag(hit)`, `dragTo(position, hit?)`, `endDrag()`: the range between the
-  two ends, whole items at the ends when it began on one and the pointer is over one. Why methods: a binding, a key and
-  a test act alike, and a drag step is a call, not a command.
-- **The anchor** is the range of the last element or cell set, toggled or dragged from, on its system (an item's extent
-  there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it.
+  clears it. `extend(hit)` makes the range the anchor is in reach from the anchor to the hit on the anchor's system, the
+  other ranges and elements kept (extends from one anchor replace one another; with no anchor there, a select;
+  `selection.extendScope`: `selection` makes the whole selection that range). `toggle(hit)` adds or removes the element
+  or the cell, keeping the rest. `add(location, anchor?)` and `subtract(location)` add positions or take them out (an
+  element they cut becomes the positions left of its extent; one they miss stays an element).
+  `beginDrag(hit, axis, mode)`, `dragTo(position, hit?)`, `endDrag()`, `cancelDrag()`: the range between the two ends,
+  whole items at the ends when it began on one and the pointer is over one, by the drag's mode: `replace` (the selection
+  becomes it), `add`, `subtract` (to or from the selection the drag began with), `extend` (the anchor's range reaches to
+  it; with no anchor on its system, a replace); a cancel gives back the selection, the anchor and what an extend keeps.
+  Why methods: a binding, a key and a test act alike, and a drag step is a call, not a command.
+- **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
+  extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
+  extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all
+  before it after an add; all but what was hit after a toggle). Why kept, not found at the extend: an extend that grew
+  over another range and then shrank must give that range back.
 - **An element's extent** is the hit's, kept while it is selected; one selected without a hit (by an address, then
   toggled) is resolved by `extentOf`, which the viewer gives (`locationOfResult` over what is shown).
 - **The cursor** (`cursor`): a position on a section's system, `{ section, system, position }`, drawn on every section
@@ -348,9 +356,9 @@ mounted UI (`mount.ts`) translates events into them and a test makes the same ca
 binding table; per move one hit record and one modifiers record are reused.
 
 - **Pointer**: a move drags when a drag is begun (`down` on a target whose `drag` binding exists) and always hovers
-  through the hover behavior. `leave` clears what this pointer owns. A drag bound to `drag-select` begins on what was
-  hit (nothing selectable: no drag) and selects once the pointer moved 3 px; its range is read from the section's
-  viewport at the pointer's x, past the data too.
+  through the hover behavior. `leave` clears what this pointer owns. A drag bound to a drag-select (`drag-select`,
+  `drag-add`, `drag-subtract`, `drag-extend`) begins on what was hit (nothing selectable: no drag) and selects once the
+  pointer moved 3 px; its range is read from the section's viewport at the pointer's x, past the data too.
 - **Click**: `click(x, y, e)` through the bindings (the `select` behavior); the click the platform sends after a drag
   that moved, and the second of a double-click (`detail` 2), are none.
 - **A resting pointer is hit again** once a frame in which the layout was rebuilt (EC-143, `pointer.rehit`): the hover
@@ -366,10 +374,10 @@ binding table; per move one hit record and one modifiers record are reused.
 - **Double click**: the bound command with the section and what to focus (the element's extent, else the position's
   cell, in offsets).
 - **Keys**: the commands' shortcuts, run on the section under the pointer (else the first): the first whose shortcut it
-  is and whose `when` allows it, a preview's command before the rest (Esc cancels a gesture first, then clears the
-  selection); none: the key is the page's. A Space tap (`spaceUp` with no drag begun while it was held) is the Space
-  key's command (the cursor's toggle); a Space that panned is no tap. The `@molstar/ui` keymap replaces this when the
-  commands join a command manager.
+  is and whose `when` allows it, a preview's command before the rest (Esc cancels a gesture first, a drag-select of any
+  mode giving back the selection it began with, then clears the selection); none: the key is the page's. A Space tap
+  (`spaceUp` with no drag begun while it was held) is the Space key's command (the cursor's toggle); a Space that panned
+  is no tap. The `@molstar/ui` keymap replaces this when the commands join a command manager.
 - **Mounted**: a focusable container with the three canvases, listeners on the container only (`click` among them; a
   drag ends on `pointerup`, `pointercancel` and `lostpointercapture`; Space, held for a drag that pans on data, does not
   scroll the page while the canvas has focus), a `ResizeObserver` for the width, a media query for the device pixel
@@ -391,16 +399,20 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   not move, nothing to focus) instead of a throw.
 
 - `select`: clicks and drags to the selection through the bindings (`selection.set`, `selection.extend`,
-  `selection.toggle` with the context's `hit`, `selection.clear` with Esc), so a key, a menu and a test select alike;
-  `when` says why one cannot run (nothing hit, nothing selected). A click with a position moves the cursor there.
+  `selection.toggle` with the context's `hit`, `selection.clear` with Esc; a drag bound to `drag-select`, `drag-add`,
+  `drag-subtract` or `drag-extend` drags in that mode), so a key, a menu and a test select alike; `selection.add` and
+  `selection.subtract` take a `range` (`{ system, start, end }`), an `address` (its positions, elements by their
+  extents) or the `hit`'s positions, so the keyboard and a host reach what the drags do. `when` says why one cannot run
+  (nothing hit, nothing selected, nothing given). A click with a position moves the cursor there.
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a position in display order,
   clamped to the axis), `cursor.up`, `cursor.down` (the section above or below, the position carried along the view's
-  link, else its first shown), `cursor.extend-prev`, `cursor.extend-next` (Shift: extends the selection from the anchor,
-  the cursor's cell when there is none on its system), `cursor.toggle` (Space), `cursor.focus` (Enter: the selection,
-  else the cursor's cell, focused as an address is, `AddressModel.focusLocation`: the leading sections move, so a cursor
-  on a follower focuses its leader). The keys are `cursor.keys`; a cursor moved out of view pans its section
-  (`cursor.reveal`).
+  link, else its first shown), `cursor.extend-prev`, `cursor.extend-next` (Shift: extends the range the anchor is in,
+  from the cursor's cell when there is no anchor on its system), `cursor.add-prev`, `cursor.add-next` (Cmd/Ctrl+Shift: a
+  new range at the cursor's cell, the others kept, which Shift then extends), `cursor.toggle` (Space), `cursor.focus`
+  (Enter: the selection, else the cursor's cell, focused as an address is, `AddressModel.focusLocation`: the leading
+  sections move, so a cursor on a follower focuses its leader). The keys are `cursor.keys`; a cursor moved out of view
+  pans its section (`cursor.reveal`).
 - `addressing`: the actions on addresses as commands (`address.focus`, `address.reveal`, `address.select`,
   `address.highlight` with a `channel`, `address.hover`, `address.unhover`, `address.copy-link` whose message is the
   link, `refs.add` with a `ref`), so a link, a key, a menu, an agent and a test drive the view the same way; `when` says
@@ -422,14 +434,15 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   `modifiersOf`, which fills a reused record), `alt`, `space`; exact, or `'*'` for whatever is held, tried after the
   exact ones. Why: a modifier held for something else must not kill the hover.
 - **Targets** are a hit's kind or `any`; a binding for the kind beats `any`'s.
-- **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`) or a command the viewer defines
-  (`DefaultActions`, or the `actions` given). A binding to another is reported (`seq.viewer.binding.action`) and left
-  out, so the gesture does nothing.
+- **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`, `drag-add`, `drag-subtract`,
+  `drag-extend`) or a command the viewer defines (`DefaultActions`, or the `actions` given). A binding to another is
+  reported (`seq.viewer.binding.action`) and left out, so the gesture does nothing.
 - **Presets**: `default` (hover with any modifiers; drag on an axis, empty space or with Space pans; wheel and
   Shift+wheel pan, Cmd/Ctrl+wheel and pinch zoom; double-click focuses an element, fits on empty space; the selection's
-  part, `SelectionBindings`: click sets, Shift+click extends, Cmd/Ctrl+click toggles, a click on empty space clears, a
-  drag on data selects; Alt is unbound on purpose, left to the platform and the host) and `genome-browser` (a drag on
-  data pans instead; the selection's clicks kept).
+  part, `SelectionBindings`: click sets, Shift+click extends the anchor's range, Cmd/Ctrl+click toggles, a click on
+  empty space clears; `SelectionDrags` on data: a drag selects a range, Cmd/Ctrl+drag adds it, Alt/Option+drag removes
+  it, Shift+drag extends the anchor's range; Alt+wheel is unbound on purpose, left to the platform and the host) and
+  `genome-browser` (a drag on data pans instead; the selection's clicks kept, its drags dropped).
 - `bindingTable(preset, overrides, { actions, kinds })`: each override layer replaces bindings of the same gesture,
   modifiers and target (`action: null` removes one); two of one key within a layer conflict. Resolving is map lookups,
   no allocation.
@@ -459,21 +472,22 @@ over the defaults): `foundations.preset`, `density.letterMinPx`, `density.dotMin
 `store.cacheBytes`, `store.inFlight`, `store.tileBins`, `hover.projectLinked`, `hover.closeCodons`,
 `viewport.maxPxPerPosition`, `viewport.groupEqualAxes`, `viewport.onResize`, `follow.followerMoves` (`lead`: a move
 asked of a follower moves its leader; `ignore`; `detach`), `follow.cyclicArc`, `navigate.wheelZoomStep`,
-`navigate.keyPanFraction`, `navigate.coalesceWheel`, `selection.holdNodes` (true: the selection's dynamic nodes are held
-while selected), `highlight.color` (`token:cat-5`, a channel's color when `highlight.colors` names none),
-`highlight.colors` (`{ 'link-hover': 'token:hover' }`), `cursor.keys` (`ArrowLeft`, `ArrowRight`, `ArrowUp`,
-`ArrowDown`: back, on, the section above, below), `cursor.reveal` (true: a cursor moved out of view pans its section),
-`canvas.height` (`content`), `theme.source` (`root`: a mounted viewer reads its root's CSS; `config`: the core's `theme`
-item; a headless viewer always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`), `canvas.settleMs`
-(150), `pointer.rehit` (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta`
-(50), `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64), `address.refDepth` (8),
-`links.prefix` (`seq-`), `links.maxLength` (8,192), `links.maxActions` (16), `links.highlightChannel` (`link`),
-`links.hoverChannel` (`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale` (false: a stale patch is refused;
-true: rebased through `merge3`), `preview.dropped` (`issue`; `silent`), `bounds.maxBytes` (64 MB), `bounds.maxDepth`
-(256), `bounds.maxQueryDepth` (64), `bounds.maxColumnLength` (2^31 − 1), `bounds.maxNodeIssues` (100),
-`bounds.maxPlaces` (10), `bounds.maxBlockValues` (2^24: the spec's bounds held by the viewer's patches, previews, story
-steps and whole roots (`SpecModel.apply` refuses with `'out-of-bounds'` and `boundsIssues`; `viewer.load` rejects with
-the issues), the table and node bounds by its store), `copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering`
-(`ordinal`), `copyLink.action` (`focus`). Each a choice with its recommended default; `ParamDefinition`s come with the
-settings form. As items in a spec: `viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the
-core's items (`SeqCoreConfig`) are the same pairs.
+`navigate.keyPanFraction`, `navigate.coalesceWheel`, `selection.extendScope` (`range`: an extend changes the range the
+anchor is in, the others kept; `selection`: the whole selection becomes that range), `selection.holdNodes` (true: the
+selection's dynamic nodes are held while selected), `highlight.color` (`token:cat-5`, a channel's color when
+`highlight.colors` names none), `highlight.colors` (`{ 'link-hover': 'token:hover' }`), `cursor.keys` (`ArrowLeft`,
+`ArrowRight`, `ArrowUp`, `ArrowDown`: back, on, the section above, below), `cursor.reveal` (true: a cursor moved out of
+view pans its section), `canvas.height` (`content`), `theme.source` (`root`: a mounted viewer reads its root's CSS;
+`config`: the core's `theme` item; a headless viewer always uses the config), `canvas.maxHeight` (2048), `canvas.dpr`
+(`device`), `canvas.settleMs` (150), `pointer.rehit` (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed`
+(0.01), `pointer.pinchMaxDelta` (50), `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64),
+`address.refDepth` (8), `links.prefix` (`seq-`), `links.maxLength` (8,192), `links.maxActions` (16),
+`links.highlightChannel` (`link`), `links.hoverChannel` (`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale`
+(false: a stale patch is refused; true: rebased through `merge3`), `preview.dropped` (`issue`; `silent`),
+`bounds.maxBytes` (64 MB), `bounds.maxDepth` (256), `bounds.maxQueryDepth` (64), `bounds.maxColumnLength` (2^31 − 1),
+`bounds.maxNodeIssues` (100), `bounds.maxPlaces` (10), `bounds.maxBlockValues` (2^24: the spec's bounds held by the
+viewer's patches, previews, story steps and whole roots (`SpecModel.apply` refuses with `'out-of-bounds'` and
+`boundsIssues`; `viewer.load` rejects with the issues), the table and node bounds by its store), `copyLink.prefer`
+(`['ref', 'ids']`), `copyLink.numbering` (`ordinal`), `copyLink.action` (`focus`). Each a choice with its recommended
+default; `ParamDefinition`s come with the settings form. As items in a spec: `viewerItem('group.item')` (typed by key),
+read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the same pairs.

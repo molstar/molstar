@@ -68,8 +68,8 @@ const each = (
 ): GestureBinding[] => targets.map((target) => ({ gesture, target, action, ...(modifiers ? { modifiers } : {}) }));
 
 /**
- * The selection's clicks (the interaction grammar): click sets, Shift+click extends from the anchor, Cmd/Ctrl+click
- * toggles, a click on empty space clears; the `select` behavior's commands.
+ * The selection's clicks (the interaction grammar): click sets, Shift+click extends the range the anchor is in,
+ * Cmd/Ctrl+click toggles, a click on empty space clears; the `select` behavior's commands.
  */
 export const SelectionClicks: readonly GestureBinding[] = [
   ...each(ElementTargets, 'click', 'selection.set'),
@@ -78,15 +78,23 @@ export const SelectionClicks: readonly GestureBinding[] = [
   { gesture: 'click', target: 'empty', action: 'selection.clear' },
 ];
 
-/** The selection's part of the grammar: its clicks, and a drag on data that selects a range. */
-export const SelectionBindings: readonly GestureBinding[] = [
-  ...SelectionClicks,
+/**
+ * The selection's drags on data (the interaction grammar): a drag selects a range, Cmd/Ctrl+drag adds it, Alt/Option+drag
+ * removes it, Shift+drag extends the range the anchor is in to it.
+ */
+export const SelectionDrags: readonly GestureBinding[] = [
   ...each(DataTargets, 'drag', 'drag-select'),
+  ...each(DataTargets, 'drag', 'drag-add', ['mod']),
+  ...each(DataTargets, 'drag', 'drag-subtract', ['alt']),
+  ...each(DataTargets, 'drag', 'drag-extend', ['shift']),
 ];
+
+/** The selection's part of the grammar: its clicks and its drags on data. */
+export const SelectionBindings: readonly GestureBinding[] = [...SelectionClicks, ...SelectionDrags];
 
 /**
  * The grammar's hover and navigation. The hover holds with any modifier. Shift+wheel pans (sideways on a vertical
- * wheel); Alt is left unbound on purpose: the platform's and the host's (a context gesture, a copy-drag).
+ * wheel); Alt+wheel is left unbound on purpose: the platform's and the host's (a context gesture).
  */
 export const NavigationBindings: readonly GestureBinding[] = [
   { gesture: 'hover', modifiers: '*', target: 'any', action: 'hover' },
@@ -104,7 +112,7 @@ export const NavigationBindings: readonly GestureBinding[] = [
 /** The default grammar: the hover, navigation and the selection (a drag on data selects). */
 export const DefaultBindings: readonly GestureBinding[] = [...NavigationBindings, ...SelectionBindings];
 
-/** As genome browsers do: a drag on data pans; the selection's clicks are kept. */
+/** As genome browsers do: a drag on data pans; the selection's clicks are kept, its drags dropped. */
 export const GenomeBrowserBindings: readonly GestureBinding[] = [
   ...NavigationBindings,
   ...SelectionClicks,
@@ -132,9 +140,14 @@ export const DefaultActions: readonly string[] = [
 /** The `select` behavior's actions: a viewer has them only when its spec lists the behavior. */
 export const SelectActions: readonly string[] = [
   'drag-select',
+  'drag-add',
+  'drag-subtract',
+  'drag-extend',
   'selection.set',
   'selection.extend',
   'selection.toggle',
+  'selection.add',
+  'selection.subtract',
   'selection.clear',
 ];
 

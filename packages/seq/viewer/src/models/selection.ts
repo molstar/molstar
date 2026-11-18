@@ -152,13 +152,50 @@ function spanLocation(a: Anchor, axis: Axis | undefined): Location {
   return between(a.system, a, a, axis);
 }
 
+/**
+ * How a drag on data changes the selection (the interaction grammar): it becomes the range (`replace`), the range is
+ * added to it (`add`) or taken out of it (`subtract`), or the range the anchor is in reaches to the pointer (`extend`).
+ */
+export type DragMode = 'replace' | 'add' | 'subtract' | 'extend';
+
+/**
+ * What an extend (Shift+click, Shift+drag, Shift+arrows) changes: the range the anchor is in, the others kept (`range`),
+ * or the whole selection, which becomes that range (`selection`).
+ */
+export type ExtendScope = 'range' | 'selection';
+
+export interface SelectionOptions {
+  /** `range` by default (`selection.extendScope`). */
+  readonly extendScope?: ExtendScope;
+}
+
+/** What an extend keeps: the selection less the range the anchor is in, set when the anchor is. */
+interface Rest {
+  readonly elements: Elements;
+  readonly location: Location;
+}
+
+const NoRest: Rest = Object.freeze({ elements: EmptyElements, location: EmptyLocation });
+
 export class SelectionModel extends ReactiveModel {
   private readonly _value = new State<Emphasized>(Nothing, same);
   private readonly _cursor = new State<Cursor | undefined>(undefined, sameCursor);
   /** The extents of elements selected by a hit, by key: what is drawn of them without resolving them again. */
   private readonly _extents = new Map<string, Location>();
   private _anchor: Anchor | undefined;
-  private _drag: { anchor: Anchor; snap: boolean; before: Emphasized; beforeAnchor: Anchor | undefined } | undefined;
+  /** What an extend from the anchor keeps (the other ranges and elements); none after a click sets the selection. */
+  private _rest: Rest = NoRest;
+  private _drag:
+    | {
+        anchor: Anchor;
+        snap: boolean;
+        mode: DragMode;
+        before: Emphasized;
+        beforeAnchor: Anchor | undefined;
+        beforeRest: Rest;
+      }
+    | undefined;
+  private readonly _scope: ExtendScope;
   /** The selection: an equal value tells nothing. */
   readonly value: ReadonlyState<Emphasized> = this._value.asReadonly;
   /** The keyboard cursor; an equal one tells nothing. */
@@ -168,8 +205,12 @@ export class SelectionModel extends ReactiveModel {
    * `extentOf`: an element's extent when no hit gave it (one selected by an address, then toggled): the viewer's
    * addresses resolve it. Without one, an element with no known extent is held and not drawn.
    */
-  constructor(private readonly extentOf?: (elements: Elements) => Location) {
+  constructor(
+    private readonly extentOf?: (elements: Elements) => Location,
+    options: SelectionOptions = {},
+  ) {
     super();
+    this._scope = options.extendScope ?? 'range';
   }
 
   /** Where an extend starts: the last element or cell set, toggled or begun from (none after a clear). */
@@ -177,13 +218,18 @@ export class SelectionModel extends ReactiveModel {
     return this._anchor;
   }
 
+  /** Sets the selection; with an anchor, an extend from it keeps the rest of the value (less the anchor's span). */
   set(value: Emphasized, anchor?: Anchor): void {
     this._anchor = anchor;
+    this._rest = anchor
+      ? { elements: value.elements, location: subtractLocations(value.location, spanLocation(anchor, undefined)) }
+      : NoRest;
     this._value.set(value);
   }
 
   clear(): void {
     this._anchor = undefined;
+    this._rest = NoRest;
     this._drag = undefined;
     this._extents.clear();
     this._value.set(Nothing);
@@ -205,21 +251,25 @@ export class SelectionModel extends ReactiveModel {
     const next = this._ofHit(hit, range, axis);
     // what is selected, wherever it was set from (a link's DBD clears on the first click on it)
     if (elementsEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
-    else this.set(next, range);
+    else {
+      this._anchor = range;
+      this._rest = NoRest;
+      this._value.set(next);
+    }
     return before !== this._value.value;
   }
 
   /**
-   * Shift+click: the positions from the anchor to what was hit, on the anchor's system (a range in one system); with
-   * no anchor there, a click. The anchor stays, so extends from it replace one another.
+   * Shift+click: the range the anchor is in reaches from the anchor to what was hit, on the anchor's system, the other
+   * ranges and elements kept (`selection.extendScope`: `selection` makes it the whole selection); with no anchor
+   * there, a click. The anchor stays, so extends from it replace one another.
    */
   extend(hit: Hit | undefined, axis?: Axis): boolean {
     const a = this._anchor;
     const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!a || !range || range.system !== a.system) return hit ? this.select(hit, axis) : false;
     const before = this._value.value;
-    const loc = between(a.system, a, range, axis);
-    this._value.set({ elements: EmptyElements, location: loc, shown: loc });
+    this._value.set(this._extended(between(a.system, a, range, axis)));
     return before !== this._value.value;
   }
 
@@ -228,9 +278,9 @@ export class SelectionModel extends ReactiveModel {
     const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!hit || (!hit.element && !range)) return false;
     const before = this._value.value;
-    const cur = before.address === undefined ? before : { ...before, address: undefined };
-    let els = cur.elements;
-    let loc = cur.location;
+    let els = before.elements;
+    let loc = before.location;
+    let cell = EmptyLocation;
     if (hit.element) {
       const has = els.keys.some((k) => k.owner === hit.element!.owner && k.key === hit.element!.key);
       els = elements(
@@ -239,30 +289,71 @@ export class SelectionModel extends ReactiveModel {
           : [...els.keys, hit.element],
       );
     } else if (range) {
-      const cell = spanLocation(range, axis);
+      cell = spanLocation(range, axis);
       const inside = locationsEqual(subtractLocations(cell, loc), EmptyLocation);
       loc = inside ? subtractLocations(loc, cell) : unionLocations(loc, cell);
     }
     this._anchor = range;
+    // an extend from here keeps the rest: all but what was hit
+    const el = hit.element;
+    this._rest = {
+      elements: el ? elements(els.keys.filter((k) => k.owner !== el.owner || k.key !== el.key)) : els,
+      location: subtractLocations(loc, cell),
+    };
     this._value.set(this._compose(els, loc));
     return before !== this._value.value;
   }
 
   /**
-   * A drag-select begins on what was hit: the range grows from it as the pointer moves (`dragTo`), snapped to whole
-   * items when it began on one (the interaction grammar). False when nothing selectable was hit.
+   * Adds positions to the selection, the rest kept (the `selection.add` command); `anchor`, where a later extend starts
+   * (the added range's), keeping what was there before. True when the selection changed.
    */
-  beginDrag(hit: Hit | undefined, axis?: Axis): boolean {
+  add(loc: Location, anchor?: Anchor): boolean {
+    const before = this._value.value;
+    this._anchor = anchor;
+    this._rest = anchor ? { elements: before.elements, location: before.location } : NoRest;
+    this._value.set(this._compose(before.elements, unionLocations(before.location, loc)));
+    return before !== this._value.value;
+  }
+
+  /**
+   * Takes positions out of the selection (the `selection.subtract` command): an element they cut becomes the positions
+   * of its extent left; one they miss stays an element. The anchor stays; what an extend keeps loses them too.
+   */
+  subtract(loc: Location): boolean {
+    const before = this._value.value;
+    this._rest = { elements: this._rest.elements, location: subtractLocations(this._rest.location, loc) };
+    this._value.set(this._without(before, loc));
+    return before !== this._value.value;
+  }
+
+  /**
+   * A drag-select begins on what was hit: the range grows from it as the pointer moves (`dragTo`), snapped to whole
+   * items when it began on one (the interaction grammar); `mode` says what the range does to the selection, and an
+   * extend grows from the anchor (from what was hit when there is no anchor on its system: a replace). False when
+   * nothing selectable was hit.
+   */
+  beginDrag(hit: Hit | undefined, axis?: Axis, mode: DragMode = 'replace'): boolean {
     const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!range) return false;
-    this._drag = { anchor: range, snap: !!hit?.element, before: this._value.value, beforeAnchor: this._anchor };
+    const a = this._anchor;
+    const extend = mode === 'extend' && !!a && a.system === range.system;
+    this._drag = {
+      anchor: extend ? a! : range,
+      snap: !!hit?.element,
+      mode: mode === 'extend' && !extend ? 'replace' : mode,
+      before: this._value.value,
+      beforeAnchor: this._anchor,
+      beforeRest: this._rest,
+    };
     return true;
   }
 
   /**
    * The drag's other end: a position on the drag's system (the pointer's, read from the view even past the data), or
-   * an item's extent when the drag began on items and the pointer is over one. The selection becomes the range between
-   * the two ends; it is the anchor's for a later extend. True when the selection changed.
+   * an item's extent when the drag began on items and the pointer is over one. The range between the two ends replaces
+   * the selection, is added to or taken out of what it was when the drag began, or is the anchor's range (its mode).
+   * The range's start is the anchor for a later extend (a subtraction keeps the anchor). True when the selection changed.
    */
   dragTo(position: number, hit?: Hit, axis?: Axis): boolean {
     const d = this._drag;
@@ -273,17 +364,38 @@ export class SelectionModel extends ReactiveModel {
     if (d.snap && hit?.element && hit.system === a.system) cur = hitRange(hit, axis, this._extentOfHit(hit)) ?? cur;
     const before = this._value.value;
     const loc = between(a.system, a, cur, axis);
-    this._anchor = a;
-    this._value.set({ elements: EmptyElements, location: loc, shown: loc });
+    switch (d.mode) {
+      case 'replace':
+        this._anchor = a;
+        this._rest = NoRest;
+        this._value.set({ elements: EmptyElements, location: loc, shown: loc });
+        break;
+      case 'add':
+        this._anchor = a;
+        this._rest = { elements: d.before.elements, location: d.before.location };
+        this._value.set(this._compose(d.before.elements, unionLocations(d.before.location, loc)));
+        break;
+      case 'subtract':
+        this._rest = {
+          elements: d.beforeRest.elements,
+          location: subtractLocations(d.beforeRest.location, loc),
+        };
+        this._value.set(this._without(d.before, loc));
+        break;
+      case 'extend':
+        this._value.set(this._extended(loc));
+        break;
+    }
     return before !== this._value.value;
   }
 
-  /** Cancels a drag-select (Esc): the selection and the anchor it began with come back. */
+  /** Cancels a drag-select (Esc): the selection, the anchor and what an extend keeps, as the drag began. */
   cancelDrag(): void {
     const d = this._drag;
     if (!d) return;
     this._drag = undefined;
     this._anchor = d.beforeAnchor;
+    this._rest = d.beforeRest;
     this._value.set(d.before);
   }
 
@@ -303,6 +415,27 @@ export class SelectionModel extends ReactiveModel {
   }
 
   // ---- internals ----
+
+  /** An extend's value: the anchor's range `loc` with what the extend keeps (`selection.extendScope`). */
+  private _extended(loc: Location): Emphasized {
+    const r = this._rest;
+    if (this._scope === 'selection' || (!r.elements.keys.length && isEmptyLocation(r.location)))
+      return { elements: EmptyElements, location: loc, shown: loc };
+    return this._compose(r.elements, unionLocations(r.location, loc));
+  }
+
+  /** A value less some positions: an element they cut becomes what is left of its extent; one they miss stays. */
+  private _without(value: Emphasized, loc: Location): Emphasized {
+    let positions = subtractLocations(value.location, loc);
+    const keep: ElementKey[] = [];
+    for (const k of value.elements.keys) {
+      const e = this._extents.get(keyId(k)) ?? this.extentOf?.(elements([k]));
+      const left = e ? subtractLocations(e, loc) : undefined;
+      if (!e || !left || locationsEqual(left, e)) keep.push(k);
+      else positions = unionLocations(positions, left);
+    }
+    return this._compose(keep.length === value.elements.keys.length ? value.elements : elements(keep), positions);
+  }
 
   private _ofHit(hit: Hit, range: Anchor | undefined, axis: Axis | undefined): Emphasized {
     if (hit.element) return this._compose(elements([hit.element]), EmptyLocation);

@@ -135,6 +135,11 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'selection.set': { ctx: cell(3) },
   'selection.extend': { ctx: cell(6), before: (v) => run(v, 'selection.set', cell(3)) },
   'selection.toggle': { ctx: cell(3) },
+  'selection.add': { ctx: { range: { system: '/data/p', start: 8, end: 12 } } },
+  'selection.subtract': {
+    ctx: { address: '/data/p/(range :from 4 :to 6)' },
+    before: (v) => run(v, 'selection.add', { range: { system: '/data/p', start: 0, end: 10 } }),
+  },
   'selection.clear': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
   'cursor.prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.next': { ctx: { section: Protein }, before: cursorAt(Protein) },
@@ -142,6 +147,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'cursor.down': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.extend-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.extend-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.add-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.add-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.toggle': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.focus': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'preview.cancel': {

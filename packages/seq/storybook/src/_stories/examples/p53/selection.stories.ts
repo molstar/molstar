@@ -16,7 +16,7 @@ const meta: Meta = { title: 'Examples/p53/Selection' };
 export default meta;
 
 const Hint =
-  'Drag across the gene’s letters (the lower section) to select nucleotides: the protein above shows the codons they fall in, lighter, and the SVG beside the canvas draws the same selection. Esc clears.';
+  'Drag across the gene’s letters (the lower section) to select nucleotides, Cmd/Ctrl+drag to add another stretch, Alt/Option+drag to cut one out: the protein above shows the codons they fall in, lighter, and the SVG beside the canvas draws the same selection. Pan or zoom on either section (its ruler, the wheel, a pinch): both move. Esc clears.';
 
 /** A drag-select on the gene, projected onto the protein, in the canvas and the SVG. */
 export const Selection: StoryObj = {
