@@ -42,3 +42,8 @@
   orchestrator's call as for `layer.hidden`, in gaps).
 - (N, for the stories lane) Its paused story steps against `stories.md`: a step that no longer applies shows the ops
   that still apply, flagged (today: the root without the step); `from`, a step's view and timing need language fields.
+- (K3, for the stories lane) An op of a story step that no longer applies has no issue in `repr/patch`: the Seq side
+  reports it on the step (stories.md). A host move can leave a step's later refs dangling in the step's own
+  coordinates (its own move relocates the node): refused unless `allowDangling`; watch for it in the editing UI.
+- (K3) A key typed as a ref with different types in different kinds is walked with each: a conformance case when a
+  language has one.
