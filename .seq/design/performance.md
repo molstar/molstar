@@ -53,7 +53,8 @@ The numbers below are targets to confirm, not promises: each is measured on the 
 ([version-1.md](version-1.md)) and then confirmed or moved by the author's decision. Two clarifications from the
 review:
 
-- **Draw lists are built into reused buffers**: a frame allocates nothing once warm, and the draw lists are pure by
+- **Draw lists are built into reused buffers**: drawing and hovering allocate nothing once warm (a layout's allocation
+  is bounded by the screen, not zero: the author, 2026-11-18), and the draw lists are pure by
   contract (same inputs, same lists), not by being new objects each frame.
 - **Ratios are checked where they cannot flake**: the scaling tests run in the heavy lane, each case repeated and its
   median taken, with the ratio's tolerance stated per test.
@@ -93,6 +94,7 @@ review:
 | What | Target |
 |---|---|
 | Draw and hover loops, warm | 0 bytes allocated a frame (guarded) |
+| Layout, warm, at a fixed screen | bounded a frame, independent of the data's size (guarded); not zero |
 | Resolved model of inline data | at most 2× the data's MessagePack size, multi-resolution summaries included (a third of their base at most) |
 | Draw lists | bounded by the screen (device columns × lanes), never by the data |
 | Maps | never expanded past the region asked; a protein's path through a chromosome costs O(its coding sequence) |

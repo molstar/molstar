@@ -1,4 +1,4 @@
-# State: first-slice   (updated 2026-11-17, by the orchestrator)
+# State: first-slice   (updated 2026-11-18, by the orchestrator)
 
 Branch: `packages-seq`.
 
@@ -33,13 +33,13 @@ config item (or a param) with the recommendation as its default, and listed in g
 
 ## In progress
 
-- Stage 7 gate: waits for the author (`measurements.md`: confirm or move the targets; the 3M-bars level choice and what
-  "allocation-free" covers).
-- Drift of stages 5 and 6 being folded into the designs (docs agent).
+- Stage 7 gate, decided by the author (2026-11-18, "as recommended"): the targets stand; 3M bars gets a values fast
+  path and a config item letting a layer read a level up to 2× coarser (default 2); draw and hover allocate nothing
+  warm, the layout's allocation is bounded per frame (not zero). Lane J (`briefs/j-perf.md`) implements it.
 
 ## Next
 
-- On the author's answer: the two performance fixes as decided; then FINALIZE (reconcile, `status.md`, features rows,
+- Lane J merged and remeasured; then FINALIZE (reconcile, `status.md`, features rows,
   edge cases' outcomes, `TODO.md`, the record in `.seq/records/first-slice/`).
 - A visible browser pane to recheck the Gene by region story after the last fixes (frames do not run while it is
   hidden).
