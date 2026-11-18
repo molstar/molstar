@@ -4,6 +4,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Done
 
+- Lane L merged: the MessagePack codec of the repr tree; reviewed, nine findings fixed in one round (a one-line
+  BOM fix in io's `common/msgpack`, allowed); the merged tree 1108 tests green.
+
 - Lane M merged (`4410e7738`): the asset manager's options and `checkAssetManager`; reviewed, a credential leak and
   nine more fixed in one round; the merged tree 863 tests green.
 
@@ -30,6 +33,14 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 ## Next
 
 - On each lane's report: checks, the look where something is drawn, an independent review, one fix round, merge.
+
+## Waiting for the author
+
+- **MessagePack throughput** (lane L, performance.md: "Decode MessagePack: at least 200 MB/s"): columns decode at
+  6,300–11,000 MB/s; a node-heavy document (20,000 small nodes) at about 44 MB/s with validation, the bare parse of the
+  same bytes about 130 MB/s, so 200 MB/s is out of reach there without dropping validation. A 20 MB/s regression guard
+  holds it meanwhile. Options: (a) the target applies to documents of columns, the guard for node-heavy ones
+  (recommended); (b) a trusted decode that skips the validation passes, configurable.
 
 ## Decided
 

@@ -149,7 +149,8 @@ slice's letters from K; stage 0's carry-over lane is S0.
 - [ ] R+K (fast, after R and K; gated): `repr`'s ref index on `data/immutable`'s persistent trie, behind `RefIndex`,
       only if the measured case (a spec of 10,000 bookmark refs, edited by moves) shows the per-apply rebuild matters;
       else recorded as not needed, with the numbers.
-- [ ] L (fast) the MessagePack codec:
+- [x] L (fast) the MessagePack codec (merged after one review round; the node-heavy throughput target waits for the
+      author, state.md):
   - `codecs/msgpack` in io on `common/msgpack`, passing `checkCodec`;
   - typed columns decoded without a copy where aligned;
   - the p53 specs round-tripping JSON ↔ MessagePack;
