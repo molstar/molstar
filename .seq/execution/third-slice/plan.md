@@ -31,7 +31,10 @@ From the principles ("Folded back from the second slice"), written into this pla
 - **Precedents cover interactions** at Gate 0: what Jalview, ESPript, IGV, SnapGene-style plasmid viewers, R2DT/forna
   and the current Seq\* let a user do with these figures, each listed as built, planned or refused.
 - **Use gates**: a short one after stage 1 (the axis and the first themes, on the p53 views), and a novice pass by a
-  light agent before the author's use gate at stage 6. Each gate's findings are counted by kind (bug, missing design,
+  light agent before the author's use gate at stage 6. **Deferred** (the author, 2026-11-18, before the overnight run:
+  "yes, update the plan to defer the use gates"): the loop does not wait at a use gate; it runs on, and the author's
+  use comes when they are back, on the views as they then stand; its findings are fixed after, in the lanes they
+  touch. The novice pass still runs in its place (stage 6). Each gate's findings are counted by kind (bug, missing design,
   look); the fold-back reads the count (the carried question: does an early use gate pay for figures?).
 - **At every gate**: the size check (`pnpm -C packages/seq/core size`) beside the tests; the gaps raised since the last
   gate asked as yes or no; drawing checked against the data in the example views; heavy runs never two at once.
@@ -166,7 +169,8 @@ and dark before the merge.
       secondary structure, variants, values' line and area, ranges' line styles and arrowheads; each with its fallback.
 - [ ] GATE: merged, reviewed, the checks green, sizes measured (headless rendering's room, Gate 0's question), gaps
       asked, the matrix cells this stage fills checked.
-- [ ] USE GATE (early): the author tries the p53 views for about ten minutes; findings fixed or placed, counted by kind.
+- [ ] USE GATE (early, deferred: the loop does not wait): the author tries the p53 views for about ten minutes when
+      back; findings fixed or placed, counted by kind (counted as "after stage N", the stage the loop had reached).
 
 ### Stage 2: layouts (two strong lanes, after stage 1)
 
@@ -218,7 +222,8 @@ and dark before the merge.
       the headless asset policy (EC-126), with its cold-start target.
 - [ ] AY (fast) titles in exported SVG, the cursor and hover announced, forced colors.
 - [ ] NOVICE PASS: a light agent plays a user in a visible browser with a task script per view; friction reported.
-- [ ] USE GATE: the author uses the views; findings fixed or placed, counted by kind.
+- [ ] USE GATE (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
+      counted by kind.
 
 ### Stage 7: measure (orchestrator, light)
 
@@ -234,10 +239,10 @@ and dark before the merge.
 
 ## Order and parallelism
 
-Gate 0 (with C0 beside it) → AX → TH and SL in parallel → early use gate → TX, then RB on TX's interface change → RW
+Gate 0 (with C0 beside it) → AX → TH and SL in parallel → (early use gate, deferred) → TX, then RB on TX's interface change → RW
 and SY in parallel, then PG on RW's shared pieces and NV after RW (the vertical overview reads RW's rows; at most two
 strong lanes at once) → the datasets' lanes (two or three at once, fast)
-→ OP and AY → novice pass → the author's use gate → measure → finalize. Never two heavy test runs at once.
+→ OP and AY → novice pass → measure → the author's use gates (deferred to here at the latest) → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)
 

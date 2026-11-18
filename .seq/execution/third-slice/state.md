@@ -33,6 +33,11 @@ Stage 0: C0 (fast), beside it nothing else; then stage 1's AX.
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
 
+## Running
+
+- 2026-11-18: overnight, without the author (loop, "Running while the author is away"): gaps decided as recommended
+  into `gaps.md`; the use gates deferred.
+
 ## Blockers
 
 None.

@@ -86,9 +86,10 @@ When the author says to continue without them, the loop runs through the gates w
 - a decision a gate would ask for is made as recommended and listed in `gaps.md` for the author's review;
 - the stop conditions (below) still stop it;
 - a public API change beyond what a design agreed is never decided this way;
-- the use gates are never passed this way (§used-before-done): the early use gate after stage 1 and the author's use
-  gate in stage 6 wait for the author's use. While one waits, the loop continues with the stages that do not build on
-  what the use may change, and says so.
+- the use gates are deferred, not passed (plan, "Use gates"; the author: "yes, update the plan to defer the use
+  gates"): the loop runs on past them and leaves them unticked; the author's use comes when they are back, on the views
+  as they then stand. Finalize waits for both (§used-before-done): nothing is called done before the author has used
+  it. The novice pass runs in its place in stage 6 (a visible pane).
 
 ## Gates
 
@@ -109,7 +110,7 @@ At every `GATE` in `plan.md`:
   the performance representatives' numbers, the sizes, open drift and decisions needed. The loop continues to the next
   stage unless a decision is needed; it waits then.
 
-At a **use gate** and the **novice pass**: each finding is fixed or placed (a lane, `TODO.md`, a drift note) and
+At a **use gate** (deferred: plan) and the **novice pass**: each finding is fixed or placed (a lane, `TODO.md`, a drift note) and
 counted by kind (bug, missing design, look) in `state.md`; the fold-back reads the count (the carried question: does an
 early use gate pay for figures?). The novice pass is a fast agent playing a user in a visible browser with a task
 script per view, before the author's use gate.
