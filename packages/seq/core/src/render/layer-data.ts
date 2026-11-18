@@ -78,10 +78,19 @@ export function toSection(src: LayerSource, s: number, e: number, out: number[])
   return projectRanges(src.path, [s, e], out);
 }
 
-/** The level that fits the view on the data's system: the coarsest bin no wider than a device pixel's positions. */
-export function layerLevel(src: LayerSource, data: StoreReader, axis: AxisTransform, finest = false): number {
+/**
+ * The level that fits the view on the data's system: the coarsest bin no wider than `coarser` device pixels' positions
+ * (a values layer's `values.coarser`, else 1); with `finest`, the finest level.
+ */
+export function layerLevel(
+  src: LayerSource,
+  data: StoreReader,
+  axis: AxisTransform,
+  finest = false,
+  coarser = 1,
+): number {
   const levels = data.coverage(src.source)?.levels ?? [1];
-  return finest ? levels[0] : fitLevel(levels, src.ratio / axis.devicePx);
+  return finest ? levels[0] : fitLevel(levels, (coarser * src.ratio) / axis.devicePx);
 }
 
 /** The tiles' state over the regions read: loaded entries, and the data positions still pending or failed. */

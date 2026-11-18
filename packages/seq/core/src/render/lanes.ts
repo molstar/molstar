@@ -25,11 +25,18 @@ function overlaps(starts: number[], ends: number[], s: number, e: number): boole
   return lo > 0 && ends[lo - 1] > s;
 }
 
+/** Inserts `[s, e)` in order of start, shifting the later ones up in place (`splice` makes an array a call). */
 function insert(starts: number[], ends: number[], s: number, e: number) {
   let i = starts.length;
-  while (i > 0 && starts[i - 1] > s) i--;
-  starts.splice(i, 0, s);
-  ends.splice(i, 0, e);
+  starts.push(s);
+  ends.push(e);
+  while (i > 0 && starts[i - 1] > s) {
+    starts[i] = starts[i - 1];
+    ends[i] = ends[i - 1];
+    i--;
+  }
+  starts[i] = s;
+  ends[i] = e;
 }
 
 export class StickyLanes {
@@ -98,7 +105,6 @@ export class StickyLanes {
       this.starts[l].length = 0;
       this.ends[l].length = 0;
     }
-    const extent = (i: number): [number, number] => [starts[i], Math.max(ends[i], starts[i] + 1)];
     let used = 0;
     out.fill(-1);
     if (sticky)
@@ -106,7 +112,8 @@ export class StickyLanes {
         const i = order[k];
         const l = this.kept.get(keys[i]);
         if (l === undefined || l >= maxLanes) continue;
-        const [s, e] = extent(i);
+        const s = starts[i];
+        const e = Math.max(ends[i], s + 1);
         if (overlaps(this.starts[l], this.ends[l], s, e)) continue;
         insert(this.starts[l], this.ends[l], s, e);
         out[i] = l;
@@ -116,7 +123,8 @@ export class StickyLanes {
     for (let k = 0; k < order.length; k++) {
       const i = order[k];
       if (out[i] >= 0) continue;
-      const [s, e] = extent(i);
+      const s = starts[i];
+      const e = Math.max(ends[i], s + 1);
       let lane = -1;
       for (let l = 0; l < maxLanes && lane < 0; l++) if (!overlaps(this.starts[l], this.ends[l], s, e)) lane = l;
       if (lane < 0) {

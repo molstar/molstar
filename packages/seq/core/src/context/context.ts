@@ -10,6 +10,7 @@ import type { AssetReader, FormatRuntime } from '@molstar/seqx-core/data';
 import { checkSeqSpec } from '@molstar/seqx-core/lang';
 import {
   type RenderConfig,
+  type RenderConfigOverrides,
   type RenderSvgOptions,
   type RenderSvgResult,
   renderConfig,
@@ -48,7 +49,7 @@ export const SeqCoreConfig = {
   /** The built-in token table: `light` by default. */
   theme: configItem<'light' | 'dark'>('theme'),
   /** The layout's numbers over `DefaultRenderConfig`. */
-  render: configItem<Partial<RenderConfig>>('render'),
+  render: configItem<RenderConfigOverrides>('render'),
   /** The resolve passes' bounds over `DefaultResolveConfig`. */
   resolve: configItem<Partial<ResolveConfig>>('resolve'),
 } as const;

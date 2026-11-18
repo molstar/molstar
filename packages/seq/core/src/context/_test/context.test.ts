@@ -8,6 +8,7 @@ import { Task } from '@molstar/core/task';
 import type { AssetManager } from '@molstar/core/util/assets';
 import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { DefaultRenderConfig } from '@molstar/seqx-core/render';
 import { describe, expect, it, vi } from 'vitest';
 import {
   AssetRefused,
@@ -187,6 +188,15 @@ describe('createSeqContext', () => {
     expect(ctx.renderConfig.inset).toBe(20);
     expect(ctx.tokens).not.toBe(createSeqContext().tokens);
     expect(configItem<number>('x').key).toBe('x');
+  });
+
+  it('the render item takes nested settings field by field (`RenderConfigOverrides`)', () => {
+    // a type test too (`typecheck:test`): a nested partial (`values` without `aggregate`) is the item's value type
+    const over: NonNullable<(typeof SeqCoreConfig.render)['type']> = { values: { coarser: 1 }, outline: { hover: 3 } };
+    const ctx = createSeqContext({ config: [[SeqCoreConfig.render, over]] });
+    expect(ctx.renderConfig.values).toEqual({ ...DefaultRenderConfig.values, coarser: 1 });
+    expect(ctx.renderConfig.outline.hover).toBe(3);
+    expect(ctx.renderConfig.outline.cursor).toBe(DefaultRenderConfig.outline.cursor);
   });
 
   it('retire disposes the ports it was told to, and leaves a host’s', () => {

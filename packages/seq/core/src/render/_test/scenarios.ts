@@ -10,7 +10,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
-import { type Emphasis, type FrameInput, type Hit, hitView } from '../index.js';
+import { type Emphasis, type FrameInput, type Hit, hitView, type RenderConfigOverrides } from '../index.js';
 import { BIG, BigRuntime, bigSpec, p53GeneSpec, p53TracksSpec } from './fixtures.js';
 import { type Settled, settle } from './helpers.js';
 
@@ -28,6 +28,8 @@ export interface Scenario {
   readonly center: number;
   /** A pan step, in display units. */
   readonly panStep: number;
+  /** The render config's overrides (the defaults otherwise). */
+  readonly config?: RenderConfigOverrides;
 }
 
 // the data box is 1304 CSS px: letters need 10 px a position (130 positions), cells 1.5 px, bars down to 1/128 px
@@ -59,6 +61,17 @@ export const Scenarios: readonly Scenario[] = [
     width: 100_000,
     center: BIG / 2,
     panStep: 100,
+  },
+  // a level no coarser than a device pixel's positions (`values.coarser` 1): the values layer places the 100,000
+  // positions in view one by one, directly (the data is on the section's own system)
+  {
+    name: '3M bars (100,000 positions), level per pixel',
+    spec: bigSpec,
+    runtimes: [BigRuntime],
+    width: 100_000,
+    center: BIG / 2,
+    panStep: 100,
+    config: { values: { coarser: 1 } },
   },
   // above the source's second level (64 positions) a device pixel spans more than a level: the frame reads bins
   {
@@ -100,7 +113,7 @@ export function walk(s: Scenario, kind: WalkKind): FrameInput[] {
 
 /** A scenario's renderer with the data of every window of its walks in the store. */
 export async function prepare(s: Scenario): Promise<Settled> {
-  const settled = await settle(s.spec(), s.runtimes);
+  const settled = await settle(s.spec(), s.runtimes, s.config);
   for (const kind of ['pan', 'zoom'] as const) {
     const inputs = walk(s, kind);
     for (let i = 0; i < STEPS; i += 16) await settled.frame(inputs[i]);
@@ -135,6 +148,29 @@ export function hovers(
   const emphasis: Emphasis[] = [];
   for (let i = 0; i < STEPS; i++) emphasis.push({ hover: hits[i % hits.length] });
   return { hits, points, emphasis };
+}
+
+/**
+ * The hover as the viewer draws it (viewer.ts, `_updateEmphasis`): one emphasis record holding one hit record, the
+ * hit's fields set to each hit in turn (`set(i)`), so a hover step is the viewer's: a field write and a frame.
+ */
+export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: number): void } {
+  const hit = { layer: '', section: '', system: '' } as { -readonly [K in keyof Hit]: Hit[K] };
+  hit.position = undefined;
+  hit.element = undefined;
+  hit.extent = undefined;
+  return {
+    emphasis: { hover: hit },
+    set(i) {
+      const h = hits[i % hits.length];
+      hit.layer = h.layer;
+      hit.section = h.section;
+      hit.system = h.system;
+      hit.position = h.position;
+      hit.element = h.element;
+      hit.extent = h.extent;
+    },
+  };
 }
 
 /** Median, 95th percentile and maximum, ms. */

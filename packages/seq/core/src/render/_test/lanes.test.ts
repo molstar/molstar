@@ -60,7 +60,7 @@ function spec() {
 
 function lanesOf(lay: RangesLay): Record<string, number> {
   const out: Record<string, number> = {};
-  for (let i = 0; i < lay.keys.length; i++) out[String(lay.keys[i])] = lay.lanes[i];
+  for (let i = 0; i < lay.items; i++) out[String(lay.keys[i])] = lay.lanes[i];
   return out;
 }
 

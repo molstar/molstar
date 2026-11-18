@@ -4,15 +4,35 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The committed draw-list records (the recording backend's format), compared as text: p53 as tracks, and p53's protein
-// on its gene with the gene's section following. A change to one is a change to look at: `SEQ_RECORDS=update` writes
+// The committed draw-list records (the recording backend's format), compared as text: p53 as tracks, p53's protein on
+// its gene with the gene's section following, and values below a pixel a position (a bar a device column, from a
+// coarse level). A change to one is a change to look at: `SEQ_RECORDS=update` writes
 // them again.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { recordDrawLists, renderSvg } from '../index.js';
-import { p53GeneSpec, p53TracksSpec } from './fixtures.js';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { p53GeneSpec, p53TracksSpec, seeded } from './fixtures.js';
+
+/** 50,000 values (a walk, some missing, negative and positive) on a system of their own: the store adds levels. */
+function columnsSpec() {
+  const b = createSeqSpec({ title: 'values in columns' });
+  const n = 50_000;
+  const r = seeded(11);
+  const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(n / 4) });
+  let x = 0;
+  const values = Float32Array.from({ length: n }, (_, i) => {
+    x += r() - 0.5;
+    return i % 5_000 < 40 ? Number.NaN : x;
+  });
+  const v = b.data.values('v', { target: s, values });
+  b.views.view('main', (view) =>
+    view.section('s', { of: s }).track('v', { height: 24 }).layer({ type: 'values', data: v }),
+  );
+  return b.build();
+}
 
 function compare(name: string, record: string) {
   const file = fileURLToPath(new URL(`./records/${name}.txt`, import.meta.url));
@@ -41,5 +61,24 @@ describe('draw-list records', () => {
     expect(r.settled).toBe(true);
     expect(r.issues).toEqual([]);
     compare('p53-gene', recordDrawLists(r.lists));
+  });
+
+  it('values in columns: a bar a device column, its extent from a coarse level, missing bins left out', async () => {
+    // 164 device columns over 30,000 positions: 183 a column, so a level of 256 (up to two columns' positions) is read
+    const r = await renderSvg(columnsSpec(), {
+      size: { width: 300, height: 40 },
+      viewport: { start: 10_000, end: 40_000 },
+    });
+    expect(r.settled).toBe(true);
+    expect(r.issues).toEqual([]);
+    const record = recordDrawLists(r.lists, ['data']);
+    // a level coarser than a column's positions: not what a pixel's level (coarser 1) gives
+    const fine = await renderSvg(columnsSpec(), {
+      size: { width: 300, height: 40 },
+      viewport: { start: 10_000, end: 40_000 },
+      config: { values: { coarser: 1 } },
+    });
+    expect(recordDrawLists(fine.lists, ['data'])).not.toBe(record);
+    compare('values-columns', record);
   });
 });

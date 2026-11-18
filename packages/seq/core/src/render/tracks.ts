@@ -7,7 +7,7 @@
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { fitLevel, type Want } from '@molstar/seqx-core/data';
-import { partOf } from '@molstar/seqx-core/query';
+import type { LocationPart } from '@molstar/seqx-core/query';
 import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
   expandTemplate,
@@ -21,14 +21,23 @@ import {
 } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
 import { DefaultRenderConfig, fontSize, type RenderConfig } from './config.js';
-import { Anchor, type DrawLists, NoColor, type PassName, Passes, type PassWriter } from './draw-lists.js';
+import {
+  Anchor,
+  type DrawLists,
+  drawPass,
+  NoColor,
+  type PassName,
+  Passes,
+  type PassWriter,
+  passDraws,
+} from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { EmptyOverlay } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
-import { type SeqTokens, withAlpha } from './tokens.js';
+import type { SeqTokens } from './tokens.js';
 import { ValuesType } from './values.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
@@ -382,66 +391,118 @@ export function drawView(
   lists.reset(passes);
   lists.width = layout.width;
   lists.height = layout.height;
-  const { tokens, config } = layout;
-  for (const pass of passes) {
-    const out = lists.writer(pass);
-    if (pass === 'background') out.rect(0, 0, layout.width, layout.height, tokens.colors['msui-bg']);
-    for (const s of layout.sections) {
-      for (const t of s.tracks) {
-        if (t.box.y >= layout.height) continue;
-        const { box } = t;
-        switch (pass) {
-          case 'background':
-            out.rect(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
-            break;
-          case 'labels': {
-            out.text(
-              t.track.label,
-              config.inset,
-              t.labelY,
-              Anchor.start,
-              config.labelFont,
-              tokens.colors['msui-text-muted'],
-              t.labelWidth,
-              config.labelWidth,
-            );
-            break;
-          }
-          case 'selection':
-            if (s.axis && emphasis?.selection) drawSelection(out, s.axis, box, emphasis, tokens, config);
-            break;
-          case 'cursor':
-            if (s.axis && emphasis?.cursor?.system === s.axis.system) {
-              const x0 = s.axis.x(emphasis.cursor.position);
-              const x1 = s.axis.x(emphasis.cursor.position + 1);
-              const w = config.outline.cursor;
-              if (Number.isFinite(x0) && Number.isFinite(x1))
-                out.rect(
-                  s.axis.snap(x0) + w / 2,
-                  box.y + w / 2,
-                  Math.max(s.axis.snap(x1) - s.axis.snap(x0) - w, 0.5),
-                  box.height - w,
-                  NoColor,
-                  tokens.colors['msui-accent'],
-                  w,
-                );
-            }
-            break;
-        }
-        if (pass === 'background' || !t.layers.length) continue;
-        const clip = pass === 'data';
-        if (clip) out.clip(box.x, box.y, box.width, box.height);
-        for (const l of t.layers) l.type.draw(l.lay, pass, out, emphasis);
-        if (clip) out.unclip();
-      }
+  // indexed loops: an iterator a loop is an allocation where the compiler keeps it (nothing allocated once warm)
+  for (let pi = 0; pi < passes.length; pi++) {
+    const pass = passes[pi];
+    drawPass(ViewDraws, layout, lists.writer(pass), emphasis);
+  }
+}
+
+/** The view's own draw of each pass, through `drawPass` like a layer type's. */
+const ViewDraws = passDraws<ViewLayout, Emphasis | undefined>({
+  background: drawBackground,
+  data: drawTracks,
+  highlight: drawTracks,
+  selection: drawTracks,
+  hover: drawTracks,
+  cursor: drawTracks,
+  labels: drawTracks,
+});
+
+/** The background pass: the page, and each track's box. */
+function drawBackground(layout: ViewLayout, out: PassWriter, _emphasis: Emphasis | undefined) {
+  const { tokens } = layout;
+  out.fill(0, 0, layout.width, layout.height, tokens.colors['msui-bg']);
+  for (let si = 0; si < layout.sections.length; si++) {
+    const s = layout.sections[si];
+    for (let ti = 0; ti < s.tracks.length; ti++) {
+      const { box } = s.tracks[ti];
+      if (box.y >= layout.height) continue;
+      out.fill(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
     }
   }
 }
 
-/** The selection's spans, kept between draws (the emphasis loop allocates nothing once warm). */
-const selectionSpans: number[] = [];
+/** Any other pass (the writer's): each track's own marks of it (labels, selection, cursor), then its layers'. */
+function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
+  const { tokens, config } = layout;
+  const pass = out.pass.name;
+  for (let si = 0; si < layout.sections.length; si++) {
+    const s = layout.sections[si];
+    for (let ti = 0; ti < s.tracks.length; ti++) {
+      const t = s.tracks[ti];
+      if (t.box.y >= layout.height) continue;
+      const { box } = t;
+      switch (pass) {
+        case 'labels':
+          drawLabel(out, t, tokens, config);
+          break;
+        case 'selection':
+          if (s.axis && emphasis?.selection) drawSelection(out, s.axis, box, emphasis, tokens, config);
+          break;
+        case 'cursor':
+          if (s.axis && emphasis?.cursor?.system === s.axis.system)
+            drawCursor(out, s.axis, box, emphasis.cursor, tokens, config);
+          break;
+      }
+      if (!t.layers.length) continue;
+      const clip = pass === 'data';
+      if (clip) out.clip(box.x, box.y, box.width, box.height);
+      for (let li = 0; li < t.layers.length; li++) {
+        const l = t.layers[li];
+        l.type.draw(l.lay, pass, out, emphasis);
+      }
+      if (clip) out.unclip();
+    }
+  }
+}
 
-/** The selection on a section's system: an accent tint over the track and an accent outline around each range. */
+// The label and the cursor take the layout, not its numbers: a number passed to a call that is not inlined is boxed
+// (nothing allocated once warm).
+
+/** A track's label in the label column, faded past it. */
+function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig) {
+  const g = out.args;
+  g[0] = config.inset;
+  g[1] = t.labelY;
+  g[2] = t.labelWidth;
+  g[3] = config.labelWidth;
+  out.textArgs(t.track.label, Anchor.start, config.labelFont, tokens.colors['msui-text-muted']);
+}
+
+/** The cursor's outline around its cell, thicker than the hover's. */
+function drawCursor(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  cursor: { readonly position: number },
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  if (!axis.cell(cursor.position)) return;
+  const w = config.outline.cursor;
+  // `snap` inline, the rect through `args`: an emphasis redraw allocates nothing once warm
+  const dpr = axis.dpr;
+  const x0 = Math.round(axis.sx0 * dpr) / dpr;
+  const x1 = Math.round(axis.sx1 * dpr) / dpr;
+  const g = out.args;
+  g[0] = x0 + w / 2;
+  g[1] = box.y + w / 2;
+  g[2] = Math.max(x1 - x0 - w, 0.5);
+  g[3] = box.height - w;
+  g[4] = NoColor;
+  g[5] = tokens.colors['msui-accent'];
+  g[6] = w;
+  g[7] = 0;
+  g[8] = 0;
+  out.rectArgs();
+}
+
+/**
+ * The selection on a section's system: an accent tint over the track and an accent outline around each range. Its part
+ * is found with an indexed loop, its ranges placed with `spanIn`, snapped and tinted inline (`snap`, `withAlpha`), its
+ * rects drawn through `args`: an emphasis redraw allocates nothing once warm.
+ */
 function drawSelection(
   out: PassWriter,
   axis: AxisTransform,
@@ -450,19 +511,41 @@ function drawSelection(
   tokens: SeqTokens,
   config: RenderConfig,
 ) {
-  const part = emphasis.selection ? partOf(emphasis.selection, axis.system) : undefined;
+  const sel = emphasis.selection;
+  if (!sel) return;
+  let part: LocationPart | undefined;
+  for (let i = 0; i < sel.parts.length && !part; i++) if (sel.parts[i].system === axis.system) part = sel.parts[i];
   if (!part) return;
-  const spans = selectionSpans;
-  spans.length = 0;
-  for (let i = 0; i + 1 < part.ranges.length; i += 2) axis.spans(part.ranges[i], part.ranges[i + 1], spans);
   const accent = tokens.colors['msui-accent'];
+  const tint = ((accent & 0xffffff00) | Math.round(0.18 * 255)) >>> 0;
   const w = config.outline.selection;
-  for (let i = 0; i + 2 < spans.length; i += 3) {
-    const x0 = axis.snap(spans[i]);
-    const x1 = Math.max(axis.snap(spans[i + 1]), x0 + 1 / axis.dpr);
-    out.rect(x0, box.y, x1 - x0, box.height, withAlpha(accent, 0.18));
-    out.rect(x0 + w / 2, box.y + w / 2, Math.max(x1 - x0 - w, 0.5), box.height - w, NoColor, accent, w);
-  }
+  const dpr = axis.dpr;
+  const n = axis.offsets.length;
+  const g = out.args;
+  for (let i = 0; i + 1 < part.ranges.length; i += 2)
+    for (let k = 0; k < n; k++) {
+      if (!axis.spanIn(k, part.ranges[i], part.ranges[i + 1])) continue;
+      const x0 = Math.round(axis.sx0 * dpr) / dpr;
+      const x1 = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + 1 / dpr);
+      g[0] = x0;
+      g[1] = box.y;
+      g[2] = x1 - x0;
+      g[3] = box.height;
+      g[4] = tint;
+      g[5] = NoColor;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+      g[0] = x0 + w / 2;
+      g[1] = box.y + w / 2;
+      g[2] = Math.max(x1 - x0 - w, 0.5);
+      g[3] = box.height - w;
+      g[4] = NoColor;
+      g[5] = accent;
+      g[6] = w;
+      out.rectArgs();
+    }
 }
 
 /** What is under a point: the topmost layer's hit in the track there. */

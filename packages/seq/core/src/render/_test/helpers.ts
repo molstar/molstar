@@ -20,6 +20,7 @@ import {
   LightTokens,
   type PassName,
   Renderer,
+  type RenderConfigOverrides,
   renderConfig,
   walkPass,
 } from '../index.js';
@@ -33,7 +34,11 @@ export interface Settled {
   frame(input: FrameInput): Promise<Frame>;
 }
 
-export async function settle(spec: Node, runtimes: readonly FormatRuntime[] = []): Promise<Settled> {
+export async function settle(
+  spec: Node,
+  runtimes: readonly FormatRuntime[] = [],
+  config: RenderConfigOverrides = {},
+): Promise<Settled> {
   const model = resolveSpec(spec, { runtimes });
   const view = resolveViews(model)[0];
   const store = new DataStore();
@@ -44,7 +49,7 @@ export async function settle(spec: Node, runtimes: readonly FormatRuntime[] = []
     data: store,
     tokens: LightTokens,
     text: bundledTextMetrics(),
-    config: renderConfig(),
+    config: renderConfig(config),
   });
   return {
     model,

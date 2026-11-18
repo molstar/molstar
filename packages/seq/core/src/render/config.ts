@@ -7,6 +7,8 @@
 // The layout's settings (_spec/README.md "Render", Configuration): every number is a setting with its recommended
 // default; the density steps and their thresholds, shared by every layer type.
 
+import { DefaultMaxStrings } from './draw-lists.js';
+
 /** What a cell shows as it narrows, at fixed thresholds per position, without moving anything. */
 export type DensityStep = 'letters' | 'cells' | 'dots' | 'bars' | 'density';
 
@@ -71,8 +73,18 @@ export interface RenderConfig {
   readonly nodes: { readonly holdShown: boolean };
   /** Ranges: items past the lanes collapse into a density row at the bottom (`extra-lanes`), or the whole layer does. */
   readonly ranges: { readonly overflow: 'extra-lanes' | 'layer' };
-  /** Values below a device pixel a position: each column's extent (`minmax`, negative extremes show) or its maximum. */
-  readonly values: { readonly aggregate: 'minmax' | 'max' };
+  /**
+   * Values: below a device pixel a position, each column's extent (`minmax`, negative extremes show) or its maximum;
+   * how many times a device pixel's positions a level's bin may be (`coarser`: 1, the coarsest bin no wider than a
+   * pixel's positions; 2, up to two pixels'); whether data on the section's own system is placed directly (`direct`;
+   * false: through the general mapping, the same lists, slower).
+   */
+  readonly values: { readonly aggregate: 'minmax' | 'max'; readonly coarser: number; readonly direct: boolean };
+  /**
+   * The strings (texts and fonts) a renderer's draw lists keep interned across frames: a frame drawn again interns
+   * nothing new; past this many, a full redraw starts the table again.
+   */
+  readonly internedStrings: number;
 }
 
 export const DefaultRenderConfig: RenderConfig = {
@@ -100,14 +112,25 @@ export const DefaultRenderConfig: RenderConfig = {
   maxTemplateTracks: 200,
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes' },
-  values: { aggregate: 'minmax' },
+  values: { aggregate: 'minmax', coarser: 2, direct: true },
+  internedStrings: DefaultMaxStrings,
+};
+
+/** Fields of a config to override: the nested ones whole or field by field. */
+export type RenderConfigOverrides = {
+  readonly [K in keyof RenderConfig]?: RenderConfig[K] extends readonly unknown[]
+    ? RenderConfig[K]
+    : RenderConfig[K] extends object
+      ? Partial<RenderConfig[K]>
+      : RenderConfig[K];
 };
 
 /** A config with some fields overridden (the nested ones whole or field by field). */
-export function renderConfig(over: Partial<RenderConfig> = {}): RenderConfig {
+export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
   return {
     ...DefaultRenderConfig,
-    ...over,
+    ...(over as Partial<RenderConfig>),
+    nodes: { ...DefaultRenderConfig.nodes, ...over.nodes },
     heights: { ...DefaultRenderConfig.heights, ...over.heights },
     density: { ...DefaultRenderConfig.density, ...over.density },
     densityUnits: { ...DefaultRenderConfig.densityUnits, ...over.densityUnits },
