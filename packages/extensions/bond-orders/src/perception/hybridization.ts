@@ -141,7 +141,7 @@ function assignGeometry(state: State) {
  */
 function markPyramidalNitrogen(state: State, i: number) {
   const { geometry, degree, el, inRing, unitIndices } = state;
-  if (geometry[i] !== AtomGeometry.Tetrahedral && degree[i] < 3 && el[i] !== Elements.N) return;
+  if (geometry[i] !== AtomGeometry.Tetrahedral || degree[i] < 3 || el[i] !== Elements.N) return;
   if (inRing[i]) {
     const u = unitIndices[i];
     const ringsCount = state.rings.elementRingIndices.get(u)?.length ?? 0;
