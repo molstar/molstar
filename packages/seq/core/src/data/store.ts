@@ -21,7 +21,14 @@ import {
 } from './protocol.js';
 import { checkCoverage } from './seq-format.js';
 import { DefaultSummarySettings, type SummarySettings, summaryBytes, withSummaries } from './summaries.js';
-import { answerBytes, checkAnswer, DefaultMaxRows, isEmptyAnswer } from './tables.js';
+import {
+  answerBytes,
+  checkAnswer,
+  DefaultMaxBlockValues,
+  DefaultMaxColumnLength,
+  DefaultMaxRows,
+  isEmptyAnswer,
+} from './tables.js';
 
 // The data store (_spec/README.md "Data", Store): entries by key in keyed states, versioned; the want sets of its
 // consumers merged; requests deduped by tile, ordered and bounded in flight, cancelled after a grace (at once when the
@@ -116,6 +123,10 @@ export interface StoreSettings {
   readonly maxTilesPerWant: number;
   /** Rows a list or density table may hold in one answer. */
   readonly maxRows: number;
+  /** The longest column an answer may hold: 2^31 − 1. */
+  readonly maxColumnLength: number;
+  /** The most values (rows times columns) one table of an answer may hold: 2^24. */
+  readonly maxBlockValues: number;
   /** Issues kept; then one `seq.store.limit_exceeded`. */
   readonly maxIssues: number;
   /** How long a request that left the wanted set stays in flight before it is cancelled (EC-173). */
@@ -140,6 +151,8 @@ export const DefaultStoreSettings: StoreSettings = {
   maxInFlight: 6,
   maxTilesPerWant: 256,
   maxRows: DefaultMaxRows,
+  maxColumnLength: DefaultMaxColumnLength,
+  maxBlockValues: DefaultMaxBlockValues,
   maxIssues: 100,
   graceMs: 300,
   retry: { attempts: 3, baseMs: 500, factor: 2, cooldownMs: 30_000 },
@@ -736,7 +749,7 @@ export class DataStore extends ReactiveModel {
   }
 
   private _onAnswer(slot: Slot, answer: RegionAnswer): void {
-    const bad = checkAnswer(answer, slot.request!, this.settings.maxRows);
+    const bad = checkAnswer(answer, slot.request!, this.settings.maxRows, this.settings);
     if (bad) this._malformed(slot, bad);
     else if (!answer.ok) this._failure(slot, answer.kind, answer.issue);
     else this._loaded(slot, answer.tables, answer.nodes);

@@ -30,7 +30,7 @@ import type {
   Tables,
 } from './protocol.js';
 import { FailureKinds, Shapes } from './protocol.js';
-import { checkTables } from './tables.js';
+import { checkTableBounds, checkTables, DefaultMaxColumnLength } from './tables.js';
 
 // The `seq` format (_spec/README.md "Data", The seq format): the protocol written down, a coverage and the
 // request/answer pairs of a source. Written as a tree value (`(seq :coverage … :pairs […])`), so the JSON codec
@@ -125,7 +125,11 @@ function oneOf<T extends string>(v: unknown, of: readonly T[], path: TreePath): 
 function readSystem(v: unknown, path: TreePath): SystemInfo {
   const r = rec(v, path);
   str(r.name, [...path, 'name']);
-  opt(r, 'length', path, (x, p) => int(x, p, 0));
+  opt(r, 'length', path, (x, p) => {
+    const n = int(x, p, 0);
+    if (n > DefaultMaxColumnLength) fail(p, `a length of more than ${DefaultMaxColumnLength}`);
+    return n;
+  });
   opt(r, 'alphabet', path, str);
   opt(r, 'cyclic', path, (x, p) => (typeof x === 'boolean' ? x : fail(p, 'expected a boolean')));
   opt(r, 'aliases', path, (x, p) => list(x, p).map((a, i) => str(a, [...p, i])));
@@ -192,6 +196,10 @@ function readAnswer(v: unknown, path: TreePath): RegionAnswer {
     const tables = rec(r.tables, [...path, 'tables']) as unknown as Tables;
     const bad = checkTables(tables);
     if (bad) fail([...path, 'tables'], bad);
+    for (const [shape, t] of Object.entries(tables)) {
+      const big = t && checkTableBounds(t);
+      if (big) fail([...path, 'tables', shape], big);
+    }
     const nodes = readNodes(r, path);
     return nodes ? { ok: true, tables, nodes } : { ok: true, tables };
   }

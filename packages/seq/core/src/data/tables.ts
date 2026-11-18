@@ -164,13 +164,57 @@ function checkTable(t: Table): string | undefined {
 /** Rows a list or density table may hold in one answer, by default. */
 export const DefaultMaxRows = 1_000_000;
 
+/** The longest column an answer or a coverage may declare: int32's max (positions are int32). */
+export const DefaultMaxColumnLength = 0x7fffffff;
+/** The most values (rows times columns) one table of an answer may hold: 2^24 (a grid or matrix block's bound). */
+export const DefaultMaxBlockValues = 2 ** 24;
+
+/** The bounds on what an answer sizes, checked before its tables are cut, joined or kept (`checkAnswer`). */
+export interface AnswerBounds {
+  readonly maxColumnLength: number;
+  readonly maxBlockValues: number;
+}
+
+export const DefaultAnswerBounds: AnswerBounds = {
+  maxColumnLength: DefaultMaxColumnLength,
+  maxBlockValues: DefaultMaxBlockValues,
+};
+
+/** The columns a table holds besides its rows' extent: what a block's values are counted by. */
+function columnCount(t: Table): number {
+  switch (t.form) {
+    case 'letters':
+    case 'positions':
+      return 1;
+    case 'list':
+      return 2 + (t.strand ? 1 : 0) + (t.id ? 1 : 0) + (t.row ? 1 : 0) + (t.fields?.length ?? 0);
+    case 'density':
+      return 2 + (t.category ? 1 : 0);
+    case 'bins':
+      return 4;
+  }
+}
+
+/** What a table's size breaks of the bounds (a column's length, a block's values), as a message, or `undefined`. */
+export function checkTableBounds(t: Table, bounds: AnswerBounds = DefaultAnswerBounds): string | undefined {
+  const rows = tableRows(t);
+  if (rows > bounds.maxColumnLength) return `a column of more than ${bounds.maxColumnLength} values`;
+  if (rows * columnCount(t) > bounds.maxBlockValues) return `a block of more than ${bounds.maxBlockValues} values`;
+  return undefined;
+}
+
 /**
  * What is wrong with an answer to `request`, as a message, or `undefined`. Beyond the tables' shapes: a record, a
  * failure of a known kind with an issue, nodes with string keys, only the shapes asked, each table within the region
  * (bins aligned to the level, positions at level 1 only, bins above it), ranges with `start ≤ end`, strands −1, 0, 1,
- * codes within their alphabet, at most `maxRows` rows.
+ * codes within their alphabet, at most `maxRows` rows, within `bounds` (a column's length, a block's values).
  */
-export function checkAnswer(answer: unknown, request: RegionRequest, maxRows = DefaultMaxRows): string | undefined {
+export function checkAnswer(
+  answer: unknown,
+  request: RegionRequest,
+  maxRows = DefaultMaxRows,
+  bounds: AnswerBounds = DefaultAnswerBounds,
+): string | undefined {
   if (!isObject(answer)) return 'the answer is not a record';
   if (answer.ok === false) {
     if (!FailureKinds.includes(answer.kind as never)) return 'a failure of an unknown kind';
@@ -193,6 +237,8 @@ export function checkAnswer(answer: unknown, request: RegionRequest, maxRows = D
     if ((tables as Record<string, unknown>)[shape] === undefined) continue;
     if (!request.shapes.includes(shape as Shape)) return `a ${shape} table, not asked for`;
     const t = tables[shape as Shape]!;
+    const big = checkTableBounds(t, bounds);
+    if (big) return `the ${shape} table: ${big}`;
     const out = checkExtent(t, request, maxRows);
     if (out) return `the ${shape} table: ${out}`;
   }
