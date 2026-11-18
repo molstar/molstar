@@ -15,6 +15,7 @@ import { projectOntoView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import {
+  type AddressModel,
   axisTotal,
   type Cursor,
   offsetOf,
@@ -34,6 +35,7 @@ export interface CursorBehavior {
 }
 
 export function cursorBehavior(
+  addresses: AddressModel,
   selection: SelectionModel,
   view: ViewModel,
   spec: SpecModel,
@@ -165,28 +167,16 @@ export function cursorBehavior(
       category: 'Cursor',
       shortcut: { key: 'Enter' },
       scope: 'canvas',
-      when: (ctx) => {
+      when: () => (selection.cursor.value || selection.value.value.shown.parts.length ? true : 'Nothing to focus'),
+      run: (): CommandResult => {
+        // the selection, else the cursor's cell, focused as an address is: the leading sections move (a cursor on a
+        // follower focuses its leader), each to the hull of what it shows of it
         const c = selection.cursor.value;
-        if (!c && !selection.value.value.shown.parts.length) return 'Nothing to focus';
-        const section = c?.section ?? ctx.section ?? view.resolved.value?.sections[0]?.address;
-        return section !== undefined && view.canMove(section) ? true : 'The section does not move on its own';
-      },
-      run: (_, ctx): CommandResult => {
-        const c = selection.cursor.value;
-        const s = sectionOf(c?.section ?? ctx.section) ?? view.resolved.value?.sections[0];
-        if (!s) return { message: '' };
         const shown = selection.value.value.shown;
-        let part = shown.parts.find((p) => p.system === s.axis.system);
-        if (!part && shown.parts.length) {
-          const carried = projectOntoView(spec.model.value, view.resolved.value!, shown);
-          part = carried.parts.find((p) => p.system === s.axis.system);
-        }
-        const ranges = part?.ranges ?? (c ? [c.position, c.position + 1] : undefined);
-        if (!ranges?.length) return { message: '' };
-        const a = offsetOf(s.axis, ranges[0]);
-        const b = offsetOf(s.axis, ranges[ranges.length - 1]);
-        if (a === undefined || b === undefined) return { message: '' };
-        return { message: view.setRange(s.address, Math.min(a, b), Math.max(a, b)) ? 'Focused' : '' };
+        const loc = shown.parts.length ? shown : c ? rangesLocation(c.system, [c.position, c.position + 1]) : undefined;
+        if (!loc) return { message: '' };
+        const r = addresses.focusLocation(loc);
+        return { message: r === 'moved' ? 'Focused' : r === 'pending' ? 'Kept until the view is placed' : '' };
       },
     },
   ];

@@ -247,6 +247,15 @@ describe('the keyboard cursor', () => {
     expect(v.selection.cursor.value).toEqual({ section: ProteinSection, system: P, position: 3 });
   });
 
+  it('Enter on a follower’s cursor focuses its leader, as a focus on an address does', async () => {
+    const v = await make();
+    // nucleotide 15 is in residue 3's codon (14 to 17)
+    v.selection.setCursor({ section: GeneSection, system: G, position: 15 });
+    expect(key(v, 'Enter')).toBe(true);
+    const vp = v.view.get(ProteinSection)!;
+    expect([vp.start, vp.end]).toEqual([3, 4]);
+  });
+
   it('a cursor moved out of view pans its section to show it', async () => {
     const v = await make();
     v.view.setRange(ProteinSection, 0, 4);

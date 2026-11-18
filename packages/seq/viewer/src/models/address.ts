@@ -306,6 +306,14 @@ export class AddressModel extends ReactiveModel {
     this._move(p.address, p.reveal, p.section);
   }
 
+  /**
+   * Moves the view to a Location as `focus` moves it to an address's: each leading, movable section showing it (or a
+   * static path to it) shows its hull; followers follow. What the cursor's Enter runs.
+   */
+  focusLocation(loc: Location): 'moved' | 'pending' | 'none' {
+    return this._moveTo(loc, false);
+  }
+
   /** Each leading section on a system the location has positions on (or reaches by a static path) shows its hull. */
   private _moveTo(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
     const resolved = this.view.resolved.value;

@@ -383,9 +383,10 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a position in display order,
   clamped to the axis), `cursor.up`, `cursor.down` (the section above or below, the position carried along the view's
   link, else its first shown), `cursor.extend-prev`, `cursor.extend-next` (Shift: extends the selection from the anchor,
-  the cursor's cell when there is none on its system), `cursor.toggle` (Space), `cursor.focus` (Enter: the selection's
-  part on the section, else carried there, else the cursor's cell). The keys are `cursor.keys`; a cursor moved out of
-  view pans its section (`cursor.reveal`).
+  the cursor's cell when there is none on its system), `cursor.toggle` (Space), `cursor.focus` (Enter: the selection,
+  else the cursor's cell, focused as an address is, `AddressModel.focusLocation`: the leading sections move, so a cursor
+  on a follower focuses its leader). The keys are `cursor.keys`; a cursor moved out of view pans its section
+  (`cursor.reveal`).
 - `addressing`: the actions on addresses as commands (`address.focus`, `address.reveal`, `address.select`,
   `address.highlight` with a `channel`, `address.hover`, `address.unhover`, `address.copy-link` whose message is the
   link, `refs.add` with a `ref`), so a link, a key, a menu, an agent and a test drive the view the same way; `when` says
