@@ -10,6 +10,7 @@
 // position. Every gesture is a command too, so a key, a menu and a test select alike. A click with a position moves the
 // keyboard cursor there.
 
+import type { Axis } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
 import {
@@ -42,6 +43,10 @@ export interface SelectBehavior {
 }
 
 export function selectBehavior(selection: SelectionModel, view: ViewModel, bindings: BindingTable): SelectBehavior {
+  /** A section's axis: spans are built in its display order (a range over a cyclic origin is two). */
+  const axisOf = (section: string | undefined): Axis | undefined =>
+    section === undefined ? undefined : view.resolved.value?.sections.find((s) => s.address === section)?.axis;
+
   /** A click with a position moves the cursor to it, on the section clicked. */
   const follow = (ctx: SelectContext) => {
     const h = ctx.hit;
@@ -52,7 +57,7 @@ export function selectBehavior(selection: SelectionModel, view: ViewModel, bindi
   const gesture = (
     id: string,
     title: string,
-    act: (hit: Hit | undefined) => boolean,
+    act: (hit: Hit | undefined, axis: Axis | undefined) => boolean,
     done: string,
   ): CommandDefinition<SelectContext> => ({
     id,
@@ -60,16 +65,16 @@ export function selectBehavior(selection: SelectionModel, view: ViewModel, bindi
     category: 'Selection',
     when: (ctx) => (ctx.hit ? true : 'Nothing to select here'),
     run: (_, ctx): CommandResult => {
-      const changed = act(ctx.hit);
+      const changed = act(ctx.hit, axisOf(ctx.section));
       follow(ctx);
       return { message: changed ? done : '' };
     },
   });
 
   const commands: CommandDefinition<SelectContext>[] = [
-    gesture('selection.set', 'Select', (h) => selection.select(h), 'Selected'),
-    gesture('selection.extend', 'Extend the selection', (h) => selection.extend(h), 'Extended'),
-    gesture('selection.toggle', 'Toggle in the selection', (h) => selection.toggle(h), 'Toggled'),
+    gesture('selection.set', 'Select', (h, a) => selection.select(h, a), 'Selected'),
+    gesture('selection.extend', 'Extend the selection', (h, a) => selection.extend(h, a), 'Extended'),
+    gesture('selection.toggle', 'Toggle in the selection', (h, a) => selection.toggle(h, a), 'Toggled'),
     {
       id: 'selection.clear',
       title: 'Clear the selection',
@@ -101,7 +106,7 @@ export function selectBehavior(selection: SelectionModel, view: ViewModel, bindi
     },
     beginDrag(section, hit, modifiers, target) {
       if (bindings.resolve('drag', modifiers, target) !== 'drag-select' || !hit) return false;
-      if (!selection.beginDrag(hit)) return false;
+      if (!selection.beginDrag(hit, axisOf(section))) return false;
       drag = { section, system: hit.system };
       return true;
     },
@@ -112,9 +117,10 @@ export function selectBehavior(selection: SelectionModel, view: ViewModel, bindi
       const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
       if (!v || v.pending || !axis || v.width <= 0) return false;
       const offset = v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width;
-      const position = positionAt(axis, offset);
+      // the middle of the cell at the offset: an offset on a piece's end names no position past it
+      const position = positionAt(axis, Math.floor(offset) + 0.5);
       if (position === undefined) return false;
-      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined);
+      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined, axis);
     },
     endDrag() {
       drag = undefined;

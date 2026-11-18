@@ -132,7 +132,7 @@ export function cursorBehavior(
             { system: c.system, start: c.position, end: c.position + 1 },
           );
         }
-        selection.extend({ system: next.system, position: next.position });
+        selection.extend({ system: next.system, position: next.position }, sectionOf(next.section)?.axis);
       }
       moveTo(next);
       return { message: shift ? 'Extended' : 'Moved' };
@@ -155,7 +155,7 @@ export function cursorBehavior(
       when: (ctx) => (selection.cursor.value && current(ctx) ? true : 'No cursor'),
       run: (_, ctx): CommandResult => {
         const c = current(ctx)!;
-        selection.toggle({ system: c.system, position: c.position });
+        selection.toggle({ system: c.system, position: c.position }, sectionOf(c.section)?.axis);
         return { message: 'Toggled' };
       },
     },

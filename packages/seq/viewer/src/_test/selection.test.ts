@@ -349,6 +349,59 @@ describe('on the Canvas2D backend', () => {
   });
 });
 
+describe('across a cyclic origin', () => {
+  /** A cyclic system of 10, its section showing [7, 10) then [0, 3); an item W wrapping the origin, 9 to 1. */
+  function cyclic(): Node {
+    const b = createSeqSpec({ title: 'cyclic' });
+    const c = b.data.sequence('c', { alphabet: 'dna', letters: 'ACGTACGTAC', cyclic: true });
+    const items = b.data.ranges('items', {
+      target: c,
+      rows: { start: new Int32Array([9]), end: new Int32Array([1]), id: ['W'] },
+    });
+    b.views.view('main', (v) => {
+      const s = v.section('c', { of: c, range: [7, 3] });
+      s.track('letters').layer('l', { type: 'letters' });
+      s.track('items').layer('d', { type: 'ranges', data: items });
+    });
+    return b.build();
+  }
+  const C = '/data/c';
+
+  it('the axis wraps: [7, 10) then [0, 3)', async () => {
+    const v = await make(cyclic());
+    expect([...v.view.resolved.value!.sections[0].axis.ranges!]).toEqual([7, 10, 0, 3]);
+  });
+
+  it('a drag from 9 to 1 selects [9, 10) and [0, 2)', async () => {
+    const v = await make(cyclic());
+    const [x0, y] = at(v, 0, 0, 9);
+    v.input.down(x0, y);
+    v.input.move(at(v, 0, 0, 1)[0], y);
+    v.input.up();
+    expect(ranges(v, C)).toEqual([0, 2, 9, 10]);
+  });
+
+  it('Shift+arrows extend over the origin', async () => {
+    const v = await make(cyclic());
+    v.selection.setCursor({ section: '/views/main/c', system: C, position: 9 });
+    v.input.key({ key: 'ArrowRight', shiftKey: true });
+    v.input.key({ key: 'ArrowRight', shiftKey: true });
+    expect(v.selection.cursor.value?.position).toBe(1);
+    expect(ranges(v, C)).toEqual([0, 2, 9, 10]);
+  });
+
+  it('an item over the origin is selected whole, and an extend from it goes on in display order', async () => {
+    const v = await make(cyclic());
+    const [x, y0] = at(v, 0, 1, 9);
+    const y = [0, 1, 2].map((l) => y0 + l * 12).find((ly) => v.hit(x, ly)?.element?.key === 'W')!;
+    click(v, [x, y]);
+    expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['W']);
+    expect(ranges(v, C)).toEqual([0, 1, 9, 10]);
+    click(v, at(v, 0, 0, 2), { shiftKey: true });
+    expect(ranges(v, C)).toEqual([0, 3, 9, 10]);
+  });
+});
+
 describe('a gesture’s selection follows the spec', () => {
   const rename = (at: string[], id: string) => ({
     ops: [{ op: 'move' as const, at, parent: at.slice(0, -1), place: { last: true }, rename: id }],

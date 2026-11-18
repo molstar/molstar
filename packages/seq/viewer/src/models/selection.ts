@@ -26,6 +26,8 @@ import {
   subtractLocations,
   unionLocations,
 } from '@molstar/seqx-core/query';
+import type { Axis } from '@molstar/seqx-core/view';
+import { offsetOf } from './axis.js';
 import type { Hit } from './hover.js';
 
 /** What is selected or highlighted: element keys, positions, and the positions drawn (theirs and the elements' extents). */
@@ -74,14 +76,72 @@ const sameCursor = (a: Cursor | undefined, b: Cursor | undefined) =>
 
 const keyId = (k: ElementKey) => `${typeof k.key === 'number' ? 'n' : 's'}${k.key}\u0000${k.owner}`;
 
-/** The positions a hit covers on its own system: an item's extent there, else its cell; undefined for neither. */
-export function hitRange(hit: Hit): Anchor | undefined {
-  const part = hit.extent ? partOf(hit.extent, hit.system) : undefined;
-  if (part?.ranges.length)
-    return { system: hit.system, start: part.ranges[0], end: part.ranges[part.ranges.length - 1] };
+/**
+ * The positions a hit covers on its own system, in display order on `axis` (an item over a cyclic origin starts at its
+ * first piece shown): an item's extent there (`extent`, else the hit's), else its cell; undefined for neither. `start`
+ * is the first position, `end` one past the last, so `end` is below `start` for a span over the origin.
+ */
+export function hitRange(hit: Hit, axis?: Axis, extent: Location | undefined = hit.extent): Anchor | undefined {
+  const part = extent ? partOf(extent, hit.system) : undefined;
+  if (part?.ranges.length) return { system: hit.system, ...spanOf(part.ranges, axis) };
   if (hit.position === undefined || Number.isNaN(hit.position)) return undefined;
   const p = Math.floor(hit.position);
   return { system: hit.system, start: p, end: p + 1 };
+}
+
+/** A part's ranges as one span in display order on `axis`: its first position shown and one past its last. */
+function spanOf(ranges: ArrayLike<number>, axis: Axis | undefined): { start: number; end: number } {
+  const linear = { start: ranges[0], end: ranges[ranges.length - 1] };
+  if (!axis?.ranges) return linear;
+  let lo = Infinity;
+  let hi = -Infinity;
+  let start = linear.start;
+  let end = linear.end;
+  for (let i = 0; i + 1 < ranges.length; i += 2) {
+    const a = offsetOf(axis, ranges[i]);
+    const b = offsetOf(axis, ranges[i + 1] - 1);
+    if (a !== undefined && a < lo) [lo, start] = [a, ranges[i]];
+    if (b !== undefined && b > hi) [hi, end] = [b, ranges[i + 1]];
+  }
+  return lo === Infinity || hi === -Infinity ? linear : { start, end };
+}
+
+/**
+ * The positions from one span to another, both included, on their system: in display offsets on `axis` and split into
+ * its pieces (a range over a cyclic origin is two ranges); without an axis, or a span it does not show, the hull.
+ */
+function between(system: string, a: Anchor, b: Anchor, axis: Axis | undefined): Location {
+  const r = axis?.ranges;
+  if (r) {
+    const a0 = offsetOf(axis!, a.start);
+    const a1 = offsetOf(axis!, a.end - 1);
+    const b0 = offsetOf(axis!, b.start);
+    const b1 = offsetOf(axis!, b.end - 1);
+    if (a0 !== undefined && a1 !== undefined && b0 !== undefined && b1 !== undefined) {
+      const lo = Math.min(a0, b0);
+      const hi = Math.max(a1, b1) + 1;
+      const out: number[] = [];
+      let acc = 0;
+      for (let i = 0; i + 1 < r.length; i += 2) {
+        const w = r[i + 1] - r[i];
+        const s = Math.max(lo, acc);
+        const e = Math.min(hi, acc + w);
+        if (e > s) out.push(r[i] + s - acc, r[i] + e - acc);
+        acc += w;
+      }
+      if (out.length) return rangesLocation(system, out);
+    }
+  }
+  const lin = (x: Anchor) =>
+    x.end > x.start ? [x.start, x.end] : [Math.min(x.start, x.end - 1), Math.max(x.start + 1, x.end)];
+  const [as, ae] = lin(a);
+  const [bs, be] = lin(b);
+  return rangesLocation(system, [Math.min(as, bs), Math.max(ae, be)]);
+}
+
+/** A span as a Location: two ranges when it runs over a cyclic origin (`end` below `start`, `length` known). */
+function spanLocation(a: Anchor, axis: Axis | undefined): Location {
+  return between(a.system, a, a, axis);
 }
 
 export class SelectionModel extends ReactiveModel {
@@ -126,14 +186,14 @@ export class SelectionModel extends ReactiveModel {
    * A click: the selection becomes what was hit (an item: its key; a cell: its position); clicking the only selected
    * element clears it. Nothing hit clears it. True when the selection changed.
    */
-  select(hit: Hit | undefined): boolean {
+  select(hit: Hit | undefined, axis?: Axis): boolean {
     const before = this._value.value;
-    const range = hit ? hitRange(hit) : undefined;
+    const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!hit || (!hit.element && !range)) {
       this.clear();
       return before !== this._value.value;
     }
-    const next = this._ofHit(hit, range);
+    const next = this._ofHit(hit, range, axis);
     if (same(next, before)) this.clear();
     else this.set(next, range);
     return before !== this._value.value;
@@ -143,19 +203,19 @@ export class SelectionModel extends ReactiveModel {
    * Shift+click: the positions from the anchor to what was hit, on the anchor's system (a range in one system); with
    * no anchor there, a click. The anchor stays, so extends from it replace one another.
    */
-  extend(hit: Hit | undefined): boolean {
+  extend(hit: Hit | undefined, axis?: Axis): boolean {
     const a = this._anchor;
-    const range = hit ? hitRange(hit) : undefined;
-    if (!a || !range || range.system !== a.system) return hit ? this.select(hit) : false;
+    const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
+    if (!a || !range || range.system !== a.system) return hit ? this.select(hit, axis) : false;
     const before = this._value.value;
-    const loc = rangesLocation(a.system, [Math.min(a.start, range.start), Math.max(a.end, range.end)]);
+    const loc = between(a.system, a, range, axis);
     this._value.set({ elements: EmptyElements, location: loc, shown: loc });
     return before !== this._value.value;
   }
 
   /** Cmd/Ctrl+click: what was hit in or out of the selection, the rest kept; it becomes the anchor. */
-  toggle(hit: Hit | undefined): boolean {
-    const range = hit ? hitRange(hit) : undefined;
+  toggle(hit: Hit | undefined, axis?: Axis): boolean {
+    const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!hit || (!hit.element && !range)) return false;
     const before = this._value.value;
     const cur = before.address === undefined ? before : { ...before, address: undefined };
@@ -163,14 +223,13 @@ export class SelectionModel extends ReactiveModel {
     let loc = cur.location;
     if (hit.element) {
       const has = els.keys.some((k) => k.owner === hit.element!.owner && k.key === hit.element!.key);
-      if (hit.extent) this._extents.set(keyId(hit.element), hit.extent);
       els = elements(
         has
           ? els.keys.filter((k) => k.owner !== hit.element!.owner || k.key !== hit.element!.key)
           : [...els.keys, hit.element],
       );
     } else if (range) {
-      const cell = rangesLocation(range.system, [range.start, range.end]);
+      const cell = spanLocation(range, axis);
       const inside = locationsEqual(subtractLocations(cell, loc), EmptyLocation);
       loc = inside ? subtractLocations(loc, cell) : unionLocations(loc, cell);
     }
@@ -183,8 +242,8 @@ export class SelectionModel extends ReactiveModel {
    * A drag-select begins on what was hit: the range grows from it as the pointer moves (`dragTo`), snapped to whole
    * items when it began on one (the interaction grammar). False when nothing selectable was hit.
    */
-  beginDrag(hit: Hit | undefined): boolean {
-    const range = hit ? hitRange(hit) : undefined;
+  beginDrag(hit: Hit | undefined, axis?: Axis): boolean {
+    const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!range) return false;
     this._drag = { anchor: range, snap: !!hit?.element };
     return true;
@@ -195,23 +254,15 @@ export class SelectionModel extends ReactiveModel {
    * an item's extent when the drag began on items and the pointer is over one. The selection becomes the range between
    * the two ends; it is the anchor's for a later extend. True when the selection changed.
    */
-  dragTo(position: number, hit?: Hit): boolean {
+  dragTo(position: number, hit?: Hit, axis?: Axis): boolean {
     const d = this._drag;
     if (!d || Number.isNaN(position)) return false;
     const a = d.anchor;
-    let start = Math.floor(position);
-    let end = start + 1;
-    if (d.snap && hit?.element && hit.system === a.system) {
-      const r = hitRange(hit);
-      if (r) {
-        start = r.start;
-        end = r.end;
-      }
-    }
+    const p = Math.floor(position);
+    let cur: Anchor = { system: a.system, start: p, end: p + 1 };
+    if (d.snap && hit?.element && hit.system === a.system) cur = hitRange(hit, axis, this._extentOfHit(hit)) ?? cur;
     const before = this._value.value;
-    const s = Math.min(a.start, start);
-    const e = Math.max(a.end, end);
-    const loc = rangesLocation(a.system, [s, e]);
+    const loc = between(a.system, a, cur, axis);
     this._anchor = a;
     this._value.set({ elements: EmptyElements, location: loc, shown: loc });
     return before !== this._value.value;
@@ -234,13 +285,31 @@ export class SelectionModel extends ReactiveModel {
 
   // ---- internals ----
 
-  private _ofHit(hit: Hit, range: Anchor | undefined): Emphasized {
-    if (hit.element) {
-      if (hit.extent) this._extents.set(keyId(hit.element), hit.extent);
-      return this._compose(elements([hit.element]), EmptyLocation);
-    }
-    const loc = rangesLocation(range!.system, [range!.start, range!.end]);
+  private _ofHit(hit: Hit, range: Anchor | undefined, axis: Axis | undefined): Emphasized {
+    if (hit.element) return this._compose(elements([hit.element]), EmptyLocation);
+    const loc = spanLocation(range!, axis);
     return { elements: EmptyElements, location: loc, shown: loc };
+  }
+
+  /**
+   * An item's whole extent, kept while it is selected: the hit's (a layer gives the piece hit, one of a row wrapped over
+   * a cyclic origin) with what `extentOf` resolves of its key. Undefined for a cell.
+   */
+  private _extentOfHit(hit: Hit): Location | undefined {
+    const el = hit.element;
+    if (!el) return undefined;
+    const id = keyId(el);
+    const kept = this._extents.get(id);
+    if (
+      kept &&
+      (!hit.extent || kept === hit.extent || locationsEqual(subtractLocations(hit.extent, kept), EmptyLocation))
+    )
+      return kept;
+    let e = hit.extent ?? EmptyLocation;
+    if (this.extentOf) e = unionLocations(e, this.extentOf(elements([el])));
+    if (isEmptyLocation(e)) return hit.extent;
+    this._extents.set(id, e);
+    return e;
   }
 
   /** A value of elements and positions: what is drawn is the positions and each element's extent. */
