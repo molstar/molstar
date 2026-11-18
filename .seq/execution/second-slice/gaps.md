@@ -18,6 +18,9 @@
 6. **Lane K**: `ChildIndexThreshold` 8 (unmeasured, from immutable.md's "about 8"); `AnyPatchLanguage` id `patch`,
    version `1.0.0`; a place laid out as `:after id`, `:first true` or `:last true` (patches.md to say so).
 
+7. **Lane R**: `FlatThreshold` measured at 16 (the design said about 8); `Vector.indexOf` uses `Object.is` (finds NaN,
+   tells −0 from 0, unlike `Array.indexOf`); collision nodes at the level two keys meet (documented).
+
 ## Agreed but not built
 
 ## Built but not adopted

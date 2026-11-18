@@ -32,6 +32,8 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 - Lane K reported: checks green on the orchestrator's run (589 quick, 35 heavy; lint green once core's
   `./repr/patch/_test/*` null is added); under independent review (opus). Its layer keys are now addresses, so the p53
   stories need the look in a visible pane before the merge (the pane is hidden).
+- Lane R reported: checks green on the orchestrator's run (320 quick in 0.7 s, 10 heavy, 12 allocation; lint green once
+  core's `./data/immutable/_test/*` null is added); under independent review (opus).
 - Stage 1, started from `f629c1374` (the briefs): R (`seq/r-immutable`, opus), K (`seq/k-patches`, opus), L
   (`seq/l-msgpack`, sonnet), M (`seq/m-assets`, sonnet). S0b waits for a light slot.
 
@@ -40,6 +42,14 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 - On each lane's report: checks, the look where something is drawn, an independent review, one fix round, merge.
 
 ## Waiting for the author
+
+- **Persistent collections against immutable.js** (lane R; immutable.md: "no slower than immutable.js on any of
+  them"): wins on vectors and on maps and sets of 1,000+ string ids (0.4–0.9 of its time), bundle 27.4 kB against
+  68.5 kB; misses on small maps of 10 (lookups 1.3–1.8×, inserts across the flat threshold up to 3.4×) and on integer
+  keys (lookups 1.5–1.7×, builds about 2×). Two design options: (a) hash an int32 key by its value, as immutable.js does
+  (7–10 ns saved, no collisions; a change to immutable.md's default hash; recommended); (b) a string-hash memo,
+  default or opt-in in a config's `hash` (the design says no global caches; recommended: opt-in, documented). The
+  target then reads "no slower on collections of 1,000 or more, and within 2× below".
 
 - **MessagePack throughput** (lane L, performance.md: "Decode MessagePack: at least 200 MB/s"): columns decode at
   6,300–11,000 MB/s; a node-heavy document (20,000 small nodes) at about 44 MB/s with validation, the bare parse of the
