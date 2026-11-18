@@ -42,6 +42,21 @@ describe('the layout’s edges', () => {
       expect(hitView(f.layout, x, box.y + 2)?.element).toBeUndefined();
   });
 
+  it('pieces of one id in different tiles are all drawn; a range over a tile edge is drawn once', async () => {
+    // a transcript's two exons share its id, read in two tiles; `edge` crosses a tile's edge and is in both
+    const letters = 'M'.repeat(8_000);
+    const rows = { start: [100, 6_000, 1_000], end: [200, 6_200, 1_100], id: ['exons', 'exons', 'edge'] };
+    const s = await settle(rangesSpec(rows, letters));
+    const f = await s.frame({ size: Size, viewport: { start: 0, end: 8_000 } });
+    const lay = f.layout.sections[0].tracks[0].layers[0].lay as RangesLay;
+    const items = Array.from({ length: lay.items }, (_, j) => [lay.keys[j], lay.starts[j]]);
+    expect(items.sort((a, b) => (a[1] as number) - (b[1] as number))).toEqual([
+      ['exons', 100],
+      ['edge', 1_000],
+      ['exons', 6_000],
+    ]);
+  });
+
   it('a hidden layer is kept in the spec and not drawn', async () => {
     const spec = (hidden: boolean) => {
       const b = createSeqSpec({ title: 'ranges' });

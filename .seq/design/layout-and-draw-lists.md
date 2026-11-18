@@ -83,8 +83,9 @@ internal until an outside application needs one ([ux-foundations.md](ux-foundati
   with a `target` (the kind of thing hit) and turns it into hover and selection
   ([viewer-models.md](viewer-models.md)).
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
-  extent. A key seen in an earlier tile is that item again and is not drawn twice; within one tile a repeated key is
-  another piece of one item (an inline wrapped row shares `id` or `row`), so readers dedupe by key across tiles only.
+  extent. A key and start seen in an earlier tile is that range again and is not drawn twice; a key repeated with
+  another start, in the same tile or a later one, is another piece of one item (an inline wrapped row, the exons of a
+  transcript), so readers dedupe by key and start across tiles only.
 
 ### Layer behavior past the lanes and below a pixel
 

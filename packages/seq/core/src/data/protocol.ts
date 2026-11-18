@@ -83,7 +83,8 @@ export interface RangesField {
 
 /**
  * `ranges` as a list: `strand` −1, 0, 1 (absent: 0); `fields` the columns the coverage lists. A row's identity is its
- * `id`, else `row` (stable across the tiles it is cut into): readers dedupe a range over a tile's edge by it.
+ * `id`, else `row` (stable across the tiles it is cut into): readers dedupe a range over a tile's edge by it and its
+ * start; rows of one id with other starts are pieces of one item.
  */
 export interface RangesList {
   readonly form: 'list';

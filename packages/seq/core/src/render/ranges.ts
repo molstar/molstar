@@ -55,8 +55,8 @@ import { categoryToken, inkOn, mixColors, resolveColor, type SeqTokens } from '.
 // pixel a position, the marks of a lane merge into one bar a run; at the density step the layer is one heat strip, a
 // device column a pixel. Items past the lanes collapse into a density row at the bottom (`ranges.overflow`:
 // `extra-lanes`), or the whole layer does (`layer`). An item's key is its `id`, else its `row`, else its tile and
-// index; a key seen in an earlier tile is not drawn again (a range repeated in the tiles it touches), and within one
-// tile a repeated key is another piece of one item (a wrapped row).
+// index; a key and start seen in an earlier tile is not drawn again (a range repeated in the tiles it touches), and a
+// key repeated with another start is another piece of one item (a wrapped row, the exons of a transcript).
 
 export interface RangesPrep {
   readonly src?: LayerSource;
@@ -292,8 +292,9 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     placeholderSpans(src, axis, read.pending, lay.pending);
     placeholderSpans(src, axis, read.failed, lay.failed);
 
-    // the items: a key seen in an earlier tile is that range again; repeated within a tile, another piece of it
-    const earlier = new Set<string | number>();
+    // the items: a key and start seen in an earlier tile is that range again (over the tile's edge); a key repeated
+    // with another start, in this tile or a later one, is another piece of it (an exon of one transcript)
+    const earlier = new Map<string | number, number[]>();
     const occurrences = new Map<string | number, number>();
     const densities: { table: RangesDensity; level: number }[] = [];
     for (const e of read.entries) {
@@ -311,7 +312,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         const id = t.id?.get(i);
         const key: string | number =
           id !== null && id !== undefined ? id : t.row ? t.row[i] : `${e.region.level}/${e.region.tile}:${i}`;
-        if (earlier.has(key)) continue;
+        if (earlier.get(key)?.includes(t.start[i])) continue;
         const k = occurrences.get(key) ?? 0;
         occurrences.set(key, k + 1);
         const label = valueAt(labels, i) ?? id ?? undefined;
@@ -326,7 +327,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         if (category !== undefined) lay.categories.set(category, fill);
         lay.fills[j] = fill;
       }
-      for (let j = from; j < lay.items; j++) earlier.add(lay.keys[j]);
+      for (let j = from; j < lay.items; j++) {
+        const starts = earlier.get(lay.keys[j]);
+        if (starts) starts.push(lay.starts[j]);
+        else earlier.set(lay.keys[j], [lay.starts[j]]);
+      }
     }
     const n = lay.items;
     if (lay.idCache.size > 4 * n + 4096) lay.idCache.clear();
