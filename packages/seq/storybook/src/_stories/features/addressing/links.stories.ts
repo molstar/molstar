@@ -14,9 +14,9 @@ import { composeViewer, describeRun, followLink, hoverLink, leaveLink } from './
 
 // Links (addressing): a short text beside the p53 view whose links act on addresses in Mol*'s link grammar
 // (`!seq-focus=/refs/dbd`): focus, highlight on a channel, select; one residue linked in two numberings. Hovering a link
-// highlights what it names on the links' own channel. The highlight channels are listed below the view, not drawn on
-// it: drawing them is the selection's own work, a later lane. "Copy link" gives the link of the selection (else of what the
-// pointer is over) as the shortest stable address. A link's text and href are put in as text and attributes, never
+// highlights what it names on the links' own channel. The highlight channels are drawn on the view, each a tint of its
+// color, and listed below it with the selection and the focus. "Copy link" gives the link of the selection (else of what
+// the pointer is over) as the shortest stable address. A link's text and href are put in as text and attributes, never
 // markup; a click runs the link's actions instead of navigating.
 
 const Link = 'color: var(--msui-accent); cursor: pointer; text-decoration: underline;';
@@ -51,7 +51,7 @@ class LinksRoot extends UiElement<ExampleView> {
     const note = document.createElement('p');
     note.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
     note.textContent =
-      'Highlights (a link’s channel, and hovering a link) are listed here, not drawn on the view yet: drawing them comes with the selection’s own work.';
+      'Highlights (a link’s channel, and hovering a link) are drawn on the view as tints of their channel’s color, and listed here.';
     const status = document.createElement('p');
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
     root.append(text, canvasHost, tools, session, note, status);

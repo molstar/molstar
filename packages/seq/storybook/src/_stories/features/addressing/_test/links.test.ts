@@ -68,6 +68,10 @@ describe('Links, headless', () => {
     expect([v.view.get(protein)!.start, v.view.get(protein)!.end]).toEqual([93, 292]);
     followLink(v, href('transactivation domain'));
     expect(v.highlight.get('link')?.address).toBe('/refs/tad');
+    // drawn on the view, a tint of the channel's color
+    v.view.fit(protein);
+    v.draw();
+    expect(v.frame!.lists.passes.highlight.rects.n).toBeGreaterThan(0);
     followLink(v, href('hotspot residues'));
     expect(v.addresses.selectionAddress()).toBe('/refs/hotspots');
     expect(v.selection.value.value.shown.parts[0].ranges).toEqual(new Int32Array([174, 175, 247, 248, 272, 273]));
