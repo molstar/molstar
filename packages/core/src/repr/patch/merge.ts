@@ -8,8 +8,9 @@
 // by the node it touches, an address in the base (diff infers no move across parents and no rename, so every address it
 // writes is one). Changes to different nodes, to different keys of one node, or equal on both sides apply; the rest
 // conflict by the table of six ops. Theirs is then applied on ours as one patch under the options, so link integrity
-// and the validators judge the merged root against ours. Orders are compared as orders over the children kept on both
-// sides, and a child only one side inserted goes after its nearest predecessor on that side that still stands.
+// and the validators judge the merged root against ours. Orders are compared as orders over the children on both
+// sides (kept, or inserted alike on both), and a child only one side inserted goes after its nearest predecessor on
+// that side that still stands.
 
 import { NoChanges } from '../schema/changes.js';
 import type { Changes, Language, ValidateOptions } from '../schema/index.js';
@@ -26,7 +27,7 @@ import {
 import { applyPatch } from './apply.js';
 import { diff, longestIncreasing } from './diff.js';
 import { type InsertOp, type MoveOp, type Op, PatchIssues, type PatchValidator } from './patch.js';
-import { RefPass } from './refs.js';
+import { parsedRuns, RefPass } from './refs.js';
 
 export interface MergeOptions {
   /** With a language, the merge is normalized, its refs checked for links and validated; without one, it says so. */
@@ -62,7 +63,10 @@ export type ConflictKind = 'set' | 'remove' | 'insert' | 'move' | 'replace' | 'o
 
 export interface Conflict {
   readonly kind: ConflictKind;
-  /** In the base: the node removed or replaced, the node set, the inserted node, the reordered parent. */
+  /**
+   * In the base: the node removed or replaced, the node set, the inserted node, the reordered parent. For `invalid`, in
+   * the merged root: where its first error is (`[]` when it says nowhere).
+   */
   readonly at: Address;
   readonly ours: readonly Op[];
   /** Theirs in conflict, then the changes of theirs that depend on them. */
@@ -146,7 +150,11 @@ interface Open {
 export function merge3(base: Node, ours: Node, theirs: Node, options: MergeOptions = {}): MergeResult {
   const info: Issue[] = options.language
     ? []
-    : [issueOf(PatchIssues, 'repr.patch.unvalidated', 'The merge was not validated: no language was given')];
+    : [
+        issueOf(PatchIssues, 'repr.patch.unvalidated', 'The merge was not validated: no language was given', {
+          hint: PatchIssues.codes['repr.patch.unvalidated'].hint,
+        }),
+      ];
   const o = new Side(ours, base);
   const t = new Side(theirs, base);
   const conflicts = new Map<string, Open>();
@@ -209,7 +217,7 @@ export function merge3(base: Node, ours: Node, theirs: Node, options: MergeOptio
     }
   }
 
-  // orders, compared as orders over the children kept on both sides, per parent theirs changed the children of
+  // orders, compared as orders over the children on both sides, per parent theirs changed the children of
   const plans: Plan[] = [];
   const parents = new Set([...t.moves.keys(), ...t.insertsUnder.keys()]);
   for (const pk of parents) {
@@ -226,16 +234,22 @@ export function merge3(base: Node, ours: Node, theirs: Node, options: MergeOptio
     const ids = (n: Node) => (n.children ?? []).map((c) => c.id!);
     const inX = new Set(ids(x));
     const inY = new Set(ids(y));
+    // present on both sides: kept from the base, or inserted on both with equal content (its theirs' insert dropped)
+    const both = inserts.filter((op) => dropped.has(op));
     const kept = new Set(ids(b).filter((id) => inX.has(id) && inY.has(id)));
+    for (const op of both) kept.add(op.node.id!);
     const kb = ids(b).filter((id) => kept.has(id));
     const kx = ids(x).filter((id) => kept.has(id));
     const ky = ids(y).filter((id) => kept.has(id));
-    const oursChanged = !sameList(kx, kb);
-    const theirsChanged = !sameList(ky, kb);
+    const inBase = (id: string) => resolveAddress(b, [id]) !== undefined;
+    const oursChanged = !sameList(kx.filter(inBase), kb);
+    const theirsChanged = !sameList(ky.filter(inBase), kb);
     let takeTheirs = false;
-    if (oursChanged && theirsChanged && !sameList(kx, ky)) {
+    if (!sameList(kx, ky) && (both.length || (oursChanged && theirsChanged))) {
+      // two different orders, or one node both inserted placed two ways: one conflict, ours kept
       for (const m of moves) conflict('order', at, undefined, m);
       for (const m of o.moves.get(pk) ?? []) conflict('order', at, m, undefined);
+      for (const op of both) conflict('order', at, o.inserts.get(key(touched(op))), op);
     } else if (theirsChanged && !oursChanged) takeTheirs = true;
     else for (const m of moves) dropped.add(m);
     plans.push({ at, x, y, order: takeTheirs ? ky : kx, takeTheirs, moves, inserts });
@@ -295,7 +309,7 @@ interface Plan {
   /** The parent in ours and in theirs. */
   readonly x: Node;
   readonly y: Node;
-  /** The children kept on both sides, in the order taken. */
+  /** The children on both sides, in the order taken. */
   readonly order: readonly string[];
   readonly takeTheirs: boolean;
   readonly moves: readonly MoveOp[];
@@ -304,7 +318,9 @@ interface Plan {
 
 /**
  * Leaves out with a conflict every change of theirs that depends on one in it, transitively: an insert placed after a
- * sibling theirs inserted, and a change writing a ref to what theirs inserted or replaced (with a language).
+ * sibling theirs inserted, and a change writing a ref to what theirs inserted or replaced (with a language), by every id
+ * run of the ref, those of the addresses nested in its forms included. A stored patch's refs name nodes of its own dry
+ * run, not of theirs: they make no dependency (link integrity still judges them).
  */
 function leaveOutDependents(t: Side, base: Node, theirs: Node, options: MergeOptions, outOf: Map<Op, Open>) {
   if (!outOf.size) return;
@@ -320,16 +336,6 @@ function leaveOutDependents(t: Side, base: Node, theirs: Node, options: MergeOpt
     depend(op, makers.get(''));
   };
   const pass = options.language ? new RefPass(theirs, options.language, options.validate) : undefined;
-  const runOf = (value: string): Address | undefined => {
-    const p = parseAddress(value).pattern;
-    if (!p) return undefined;
-    const run: string[] = [];
-    for (const s of p.segments) {
-      if (typeof s !== 'string') break;
-      run.push(s);
-    }
-    return run;
-  };
   for (const op of t.ops) {
     if (op.op === 'insert') {
       const after = 'after' in op.place ? op.place.after : null;
@@ -340,16 +346,14 @@ function leaveOutDependents(t: Side, base: Node, theirs: Node, options: MergeOpt
     }
     if (!pass) continue;
     if (op.op === 'insert' || op.op === 'replace')
-      pass.walkSubtree(op.node, (_tail, _rel, value) => {
-        const run = runOf(value);
-        if (run) named(run, op);
+      pass.walkSubtree(op.node, (_tail, _rel, value, step) => {
+        if (!step) for (const run of parsedRuns(value) ?? []) named(run, op);
       });
     else if (op.op === 'set' && (op.where ?? 'params') === 'params') {
       const node = resolveAddress(theirs, op.at);
       if (node)
-        pass.walkKey(node.kind, op.key, op.value, (_rel, value) => {
-          const run = runOf(value);
-          if (run) named(run, op);
+        pass.walkKey(node.kind, op.key, op.value, (_rel, value, step) => {
+          if (!step) for (const run of parsedRuns(value) ?? []) named(run, op);
         });
     }
   }

@@ -316,26 +316,29 @@ quantities need no quotes, and no units table is needed to read them (locations-
 - **Conflicts**, each row both ways round, one a key, node or parent: `set` (a key set to two values, or set and unset);
   `remove` (any change at or under what the other removed, but a remove: a set, an unset, an insert under it, a reorder
   of its children, a replace of it or under it); `insert` (one id under one parent, other content); `replace` (any
-  change under it, or another replace of it); `order` (two different new orders of the same kept children). `move` is
-  reserved for a merge of written patches: `diff` gives no move across parents and no rename, so `merge3` never gives
-  one. `at` is in the base; `ours` and `theirs` the ops of the two diffs, in their order.
+  change under it, or another replace of it); `order` (two different new orders of the children on both sides). `move`
+  is reserved for a merge of written patches: `diff` gives no move across parents and no rename, so `merge3` never gives
+  one. `at` is in the base, but for `invalid`; `ours` and `theirs` the ops of the two diffs, in their order.
 - **Orders are compared as orders**, so the result never depends on which child `diff` chose to move: per parent, the
-  children kept on both sides; one side's new order is taken, the same one once, two different ones conflict and ours is
-  kept.
+  children on both sides: kept from the base, or inserted on both with equal content. One side's new order of the kept
+  children is taken, the same one once; two different ones, or a node both inserted placed two ways, conflict and ours
+  is kept. Why: the merge is then symmetric up to the order of siblings one side alone inserted.
 - **Placement**: a child only one side inserted (or kept while the other's remove of it conflicts) goes after its
   nearest predecessor on that side that still stands, else first; ours' before theirs' after one sibling. It never fails
   the merge.
 - **Independence by node**: a change of theirs depends on theirs' changes that made what it names: the sibling its place
   names when theirs inserted it, and, with a language, the targets of the refs it writes (by their id runs, under an
-  insert or a replace of theirs). A change whose dependency is in a conflict is left out with it, listed in that
-  conflict's `theirs`. Other changes to one node do not make a dependency (two keys of one node both apply).
+  insert or a replace of theirs; every run of a ref, those of the addresses nested in its forms too). A stored patch's
+  refs make none: they name nodes of its own dry run, and link integrity judges them. A change whose dependency is in a
+  conflict is left out with it, listed in that conflict's `theirs`. Other changes to one node do not make a dependency
+  (two keys of one node both apply).
 - **Theirs as one patch on ours**, under the options (`applyPatch` with `maxOps` unbounded): removes, replaces, sets and
   unsets as they are, then per parent the merged child order by the fewest moves that keep the longest run, as `diff`
   emits them. So normalization, link integrity and the validators judge the merged root against ours: a ref of ours to
   what theirs removed, or two links making a cycle, are refused there. Nothing to apply gives ours, the same object.
 - **`partial`** is ours with every change of theirs independent of every conflict, applied the same way; when that is
-  refused, ours. **`invalid`**: the merged root refused, `at` the address of the first error (or `[]`), `ours` empty,
-  `theirs` every change left out, `issues` the refusal's; `partial` ours.
+  refused, ours. **`invalid`**: the merged root refused, `at` the address of the first error in the merged root (or
+  `[]`), `ours` empty, `theirs` every change left out, `issues` the refusal's; `partial` ours.
 - **Issues**: the apply's warnings (dangling refs kept under `allowDangling`), and without a language
   `repr.patch.unvalidated` (an info): nothing was normalized, rewritten or validated.
 - **Rebase**: a stale patch `p` made on `base` is `merge3(base, current, applyPatch(base, p, options).root, options)`,

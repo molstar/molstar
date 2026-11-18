@@ -95,7 +95,9 @@ describe('repr/patch merge3: what both sides changed', () => {
     const x = setP(b, ['a'], { label: 'X' });
     const y = remove(b, ['c']);
     const r = merge3(b, x, y);
-    expect(r.ok && r.issues.map((i) => [i.code, i.severity])).toEqual([['repr.patch.unvalidated', 'info']]);
+    expect(r.ok && r.issues.map((i) => [i.code, i.severity, i.hint])).toEqual([
+      ['repr.patch.unvalidated', 'info', 'Give the language to merge with'],
+    ]);
     expect(r.ok && r.changes.removed).toEqual([['c']]);
     expect(r.ok && r.changes.params).toEqual([]);
     const typed = merge3(b, x, y, lang);
@@ -233,12 +235,27 @@ describe('repr/patch merge3: conflicts, both ways round', () => {
     expect(resolveAddress(t.partial, ['c'])!.params).toEqual({ size: 3 });
   });
 
-  it('reserves `move`: a merge from diff never gives it', () => {
-    const b = base();
-    const x = kids(remove(b, ['a', 'x']), ['b'], (c) => [...c, leaf('w')]);
-    const y = kids(remove(b, ['a', 'x']), ['c'], () => [leaf('w')]);
-    const r = merge3(b, x, y);
-    expect(r.ok).toBe(true);
+  it('order: one node both inserted, placed two ways, is one order conflict', () => {
+    const b = doc(box('b', undefined), box('d', undefined));
+    const c = box('c', { label: 'C' });
+    const x = kids(b, [], (k) => [k[0], c, k[1]]); // b c d
+    const y = kids(b, [], (k) => [k[0], k[1], c]); // b d c
+    const r = failed(merge3(b, x, y));
+    const s = failed(merge3(b, y, x));
+    expect(r.conflicts.map(shape)).toEqual([{ kind: 'order', at: [], ours: ['insert'], theirs: ['insert'] }]);
+    expect(s.conflicts.map(shape)).toEqual([{ kind: 'order', at: [], ours: ['insert'], theirs: ['insert'] }]);
+    expect(r.partial).toBe(x);
+    expect(s.partial).toBe(y);
+    // placed alike: once, whichever side reordered the rest
+    expect(
+      merged(
+        merge3(
+          b,
+          x,
+          kids(b, [], (k) => [k[0], c, k[1]]),
+        ),
+      ),
+    ).toBe(x);
   });
 });
 
@@ -276,6 +293,40 @@ describe('repr/patch merge3: dependents and the merged root', () => {
       { op: 'insert', parent: ['c'], place: { after: 'n' }, node: leaf('m') },
     ]);
     expect(hashNode(r.partial)).toBe(hashNode(setP(setP(x, ['a'], { label: 'Y' }), ['b'], { size: 2 })));
+  });
+
+  it('leaves out a ref naming what theirs inserted through an address nested in its form', () => {
+    const b = doc(box('a', undefined), box('b', undefined, leaf('x')), box('c', undefined));
+    const x = kids(b, ['c'], () => [leaf('n', { label: 'ours' })]);
+    const y = setP(
+      kids(b, ['c'], () => [leaf('n', { label: 'theirs' })]),
+      ['a'],
+      { link: '/b/(leaf :near /c/n)' },
+    );
+    const r = failed(merge3(b, x, y, lang));
+    expect(r.conflicts.map(shape)).toEqual([
+      { kind: 'insert', at: ['c', 'n'], ours: ['insert'], theirs: ['set', 'insert'] },
+    ]);
+    expect(r.partial).toBe(x);
+  });
+
+  it("makes no dependency of a stored patch's refs: they name nodes of its own dry run", () => {
+    const b = base();
+    const x = kids(b, ['c'], () => [leaf('n', { label: 'ours' })]);
+    const step = patchToNode({
+      ops: [
+        { op: 'remove', at: ['c', 'n'] },
+        { op: 'insert', parent: ['c'], place: { last: true }, node: box('n', { label: 'step' }) },
+      ],
+    });
+    const y = setP(
+      kids(b, ['c'], () => [leaf('n', { label: 'theirs' })]),
+      ['a'],
+      { step },
+    );
+    const r = failed(merge3(b, x, y, lang));
+    expect(r.conflicts.map(shape)).toEqual([{ kind: 'insert', at: ['c', 'n'], ours: ['insert'], theirs: ['insert'] }]);
+    expect(hashNode(r.partial)).toBe(hashNode(setP(x, ['a'], { step })));
   });
 
   it('refuses a merged root its validators refuse: two links making a cycle', () => {
@@ -450,10 +501,34 @@ function edits(next: () => number, root: Node, n: number) {
   return r;
 }
 
-/** Siblings sorted by id, recursively: equality up to the order of siblings. */
-function sorted(n: Node): Node {
+/**
+ * `n` (at `at`) with the children only one side inserted moved last, sorted by id, and the rest kept in order:
+ * equality up to the order of siblings one side alone inserted.
+ */
+function oneSideLast(n: Node, b: Node, x: Node, y: Node, at: Address = []): Node {
   if (!n.children) return n;
-  return { ...n, children: n.children.map(sorted).sort((a, b) => (a.id! < b.id! ? -1 : a.id! > b.id! ? 1 : 0)) };
+  const has = (root: Node, id: string) => !!resolveAddress(root, [...at, id]);
+  const alone = (c: Node) => !has(b, c.id!) && !(has(x, c.id!) && has(y, c.id!));
+  const go = (c: Node) => oneSideLast(c, b, x, y, [...at, c.id!]);
+  const last = n.children.filter(alone).sort((p, q) => (p.id! < q.id! ? -1 : 1));
+  return { ...n, children: [...n.children.filter((c) => !alone(c)), ...last].map(go) };
+}
+
+/** `x` and `y` with one node inserted on both, the same content, each at a place of its own, under a box both have. */
+function insertBoth(next: () => number, x: Node, y: Node): [Node, Node] {
+  const boxes = addresses(x).filter(
+    (a) => resolveAddress(x, a)?.kind !== 'leaf' && resolveAddress(y, a)?.kind !== 'leaf',
+  );
+  const at = boxes[Math.floor(next() * boxes.length)];
+  const node = at.length ? leaf('q', { label: 'both' }) : box('q', { label: 'both' });
+  const put = (root: Node) =>
+    resolveAddress(root, [...at, 'q'])
+      ? root
+      : kids(root, at, (c) => {
+          const i = Math.floor(next() * (c.length + 1));
+          return [...c.slice(0, i), node, ...c.slice(i)];
+        });
+  return [put(x), put(y)];
 }
 
 const Seeds = 150;
@@ -477,8 +552,9 @@ describe('repr/patch merge3: the laws, seeded', () => {
     for (let seed = 1; seed <= Seeds; seed++) {
       const next = rng(seed);
       const b = start(next);
-      const x = edits(next, b, 1 + Math.floor(next() * 4));
-      const y = edits(next, b, 1 + Math.floor(next() * 4));
+      let x = edits(next, b, 1 + Math.floor(next() * 4));
+      let y = edits(next, b, 1 + Math.floor(next() * 4));
+      if (seed % 2 === 0) [x, y] = insertBoth(next, x, y);
       const r = merge3(b, x, y);
       const s = merge3(b, y, x);
       expect(r.ok, `seed ${seed}`).toBe(s.ok);
@@ -488,9 +564,9 @@ describe('repr/patch merge3: the laws, seeded', () => {
         continue;
       }
       clean++;
-      expect(hashNode(sorted(r.root)), `seed ${seed}`).toBe(hashNode(sorted(s.root)));
+      expect(hashNode(oneSideLast(r.root, b, x, y)), `seed ${seed}`).toBe(hashNode(oneSideLast(s.root, b, x, y)));
     }
-    expect(clean).toBeGreaterThan(Seeds / 4);
+    expect(clean).toBeGreaterThan(Seeds / 5);
   });
 
   it('gives a partial (and a root) valid under the options, with a language', () => {
