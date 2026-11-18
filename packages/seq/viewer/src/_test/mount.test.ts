@@ -176,6 +176,32 @@ describe('the mounted canvas stack', () => {
     expect(viewer.selection.value.value.shown.parts).toEqual([]);
   });
 
+  it('a drag-select survives the platform’s real sequence: up, capture lost, then a click', async () => {
+    const { container, viewer } = await mount();
+    for (const [type, x] of [
+      ['pointerdown', 300],
+      ['gotpointercapture', 300],
+      ['pointermove', 340],
+      ['pointermove', 420],
+      ['pointerup', 420],
+      ['lostpointercapture', 420],
+    ] as const)
+      container.dispatchEvent(at(type, x, 18, { button: 0 }));
+    const dragged = [...viewer.selection.value.value.shown.parts[0].ranges];
+    expect(dragged[1] - dragged[0]).toBeGreaterThan(1);
+    container.dispatchEvent(at('click', 420, 18, { button: 0, detail: 1 }));
+    expect([...viewer.selection.value.value.shown.parts[0].ranges]).toEqual(dragged);
+    // the next press without a move is a click again
+    container.dispatchEvent(at('pointerdown', 300, 18, { button: 0 }));
+    container.dispatchEvent(at('pointerup', 300, 18, { button: 0 }));
+    container.dispatchEvent(at('lostpointercapture', 300, 18));
+    container.dispatchEvent(at('click', 300, 18, { button: 0, detail: 1 }));
+    expect(viewer.selection.value.value.shown.parts[0].ranges.length).toBe(2);
+    expect(
+      viewer.selection.value.value.shown.parts[0].ranges[1] - viewer.selection.value.value.shown.parts[0].ranges[0],
+    ).toBe(1);
+  });
+
   it('a drag ends when the pointer is cancelled or its capture is lost', async () => {
     const { container, viewer } = await mount();
     for (const end of ['pointercancel', 'lostpointercapture']) {

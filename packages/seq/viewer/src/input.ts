@@ -155,6 +155,8 @@ export class ViewerInput {
   /** The primary button went down at (x, y): a drag begins when the bindings give one here. */
   down(x: number, y: number, e: KeyState = {}): boolean {
     if (this.viewer.retired) return false;
+    // a new press: a click after it is its own
+    this._suppressClick = false;
     const section = this.sectionAt(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
@@ -170,11 +172,15 @@ export class ViewerInput {
     return true;
   }
 
-  /** The button went up (or the gesture was cancelled). */
+  /**
+   * The button went up (or the gesture was cancelled). The platform calls it more than once for one press (`pointerup`,
+   * then `lostpointercapture`): only the call that ends a drag touches what follows it.
+   */
   up(): void {
     const d = this._drag;
-    if (d?.select) this.selectBehavior?.endDrag();
-    this._suppressClick = !!d?.moved;
+    if (!d) return;
+    if (d.select) this.selectBehavior?.endDrag();
+    this._suppressClick = d.moved;
     this._drag = undefined;
   }
 
