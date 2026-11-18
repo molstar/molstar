@@ -704,13 +704,15 @@ same pieces. Nothing registers on import and there is no global registry.
   A location with a scheme is absolute: its scheme must be allowed (none by default) and, when hosts are listed, its
   host. One without is relative: it must resolve to the base's own scheme and host and, with `confine`, stay under the
   base's folder (`..`, `%2e%2e` and a rooted path resolve out of it; an encoded separator is refused). `maxBytes` counts
-  bytes (a text's UTF-8 length) and `timeoutMs` bounds the wait. `BrowserAssetPolicy` is `https:`, relative under the
+  bytes (a text's UTF-8 length) and `timeoutMs` bounds the read. `BrowserAssetPolicy` is `https:`, relative under the
   page, 256 MB, 30 s; `HeadlessAssetPolicy` reads nothing. A refusal rejects with `AssetRefused`, which a source's
   opening turns into an issue on the source (`seq.source.unreadable`). Why: a spec's `uri` is untrusted input.
-  - **Not yet enforced** (the manager has no such option): credentials (`fetch`'s default: cookies go to the page's own
-    origin), redirects (followed), abort (the result is dropped, the download goes on), a size limit before the body is
-    read (checked after), and a timeout that cancels. They need `@molstar/core`'s `fetchData` and `AssetManager.resolve`
-    to take `credentials: 'omit'`, `redirect: 'error'`, a signal passed to `fetch` and a byte limit counted while the
-    body streams (refused before allocating); then this policy passes them.
+  - **What a read passes to the manager** (`AssetManager.ResolveOptions`, core's `util/_spec/assets.md` §8; a manager
+    honors each or refuses the read): `credentials` (`'omit'` unless the policy's `credentials` says otherwise: a
+    composition that needs a login says so), `redirect: 'error'` (the location checked is the location read), a signal
+    (the caller's and the timeout's: `timeoutMs` cancels the download), and `maxBytes` counted while the body streams (a
+    body over it is a refused read, `AssetRefused`). The policy also checks the size once the body is read and abandons
+    a read the manager did not end in time, for a manager that falls short; core's `checkAssetManager` is the suite an
+    app's manager passes. Why: the policy's claims hold for any manager the application composes.
 - A port factory that throws leaves nothing made: the ports already made are disposed, last first; a structure port made
   is disposed with the context.

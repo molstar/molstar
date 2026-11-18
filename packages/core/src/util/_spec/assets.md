@@ -86,16 +86,16 @@ The code is the truth for how; this file records the rules the code relies on, e
   in the core, and an option a manager silently drops is a hole the policy believed closed.
 - `DefaultAssetManager` passes an option to `fetch` only when it is given: **no option, the same fetch as before** for
   every app (`fetch`'s defaults: `'same-origin'`, `'follow'`, no bound).
-- `maxBytes` counts bytes as received (after the transport's content decoding) and is enforced while the body streams:
-  a declared `Content-Length` over it is refused before the body is read, an undeclared body is cancelled at the chunk
-  that passes it. Both fail with `SizeLimitExceeded`. Held bytes (a cache hit, a file's size) over the bound are
-  refused too. Why: a check after the read has already spent the memory it guards.
+- `maxBytes` counts bytes as received (after the transport's content decoding) and is enforced while the body streams: a
+  declared `Content-Length` over it is refused before the body is read, an undeclared body is cancelled at the chunk
+  that passes it. Both fail with `SizeLimitExceeded`. Held bytes (a cache hit, a file's size) over the bound are refused
+  too. Why: a check after the read has already spent the memory it guards.
 - `signal` rejects the read as aborted and stops the download. A waiter on a shared download leaves alone on its own
   signal (the download goes on for the others); a downloader aborted by its own signal hands the download to a waiter
   (§2).
 - The URL cache key includes the credentials, redirect rule and bound of the read: reads with others do not share a
-  download. Why: another credential can answer differently, and a bound is a refusal that must not become another
-  read's failure. Reads with the same options share as before. Range reads and cache behaviour are unchanged.
+  download. Why: another credential can answer differently, and a bound is a refusal that must not become another read's
+  failure. Reads with the same options share as before. Range reads and cache behaviour are unchanged.
 
 ## 9. The conformance suite
 
