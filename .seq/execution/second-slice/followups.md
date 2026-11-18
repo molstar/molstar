@@ -17,4 +17,3 @@
   path, so closing `./repr/tree/*` needs io moved to `./repr/tree` first.
 - (R) Integer keys: an identity int32 hash, if the author wants the target met (state.md).
 - (R) Core's other `_test` folders have 73 type errors; `tsconfig.test.json` covers `data/immutable` only.
-- `@molstar/ui`'s `glass-wordmark.module.css` export resolves to nothing (`pnpm check:workspace`).

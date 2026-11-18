@@ -33,10 +33,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 - Stage 0: S0 merged (`360043baf`); S0b merged. The Gene by region recheck waits for a visible
   pane (the author asked to show it).
-- Stage 1: R, K, L, M merged. Its gate waits for `pnpm build` then `pnpm check:workspace`, and for the look (the p53
-  stories after K, the Gene by region recheck) in a visible pane.
-- `pnpm check:workspace` fails before any build on `@molstar/ui`'s export
-  `./components/logo/_generated/glass-wordmark.module.css` (no such file; not touched by this slice).
+- Stage 1: R, K, L, M merged; `pnpm build` and `pnpm check:workspace` green on `4eb20f091` (the check had failed on
+  stale ignored outputs in `packages/ui/lib`, removed). Its gate waits only for the look (the p53 stories after K, the
+  Gene by region recheck) in a visible pane.
 
 ## Next
 
