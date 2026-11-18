@@ -306,6 +306,9 @@ function restoringSets(
   });
   moves.sort((a, b) => a.pos - b.pos);
   const oldPass = live.oldPass;
+  // the addresses in stored patches' `set` values, untyped: the inverse may type them over another state
+  const loosePass = new RefPass(work.old, live.language, live.options);
+  loosePass.loose = true;
   type Entry = { pos: number; sites: { value: string; run: Address; step?: Step; expected: Value | undefined }[] };
   /** By the old address of a node and a key: where the inverse last gives that key its value. */
   const entries = new Map<string, { at: Address; key: string; entry: Entry }>();
@@ -330,19 +333,24 @@ function restoringSets(
       firstKey.add(k);
       if (op.op !== 'set' || (op.where ?? 'params') !== 'params') return;
       const sites: Entry['sites'] = [];
-      oldPass.walkKey(d.origin.kind, m.key, op.value, (rel, value, step) => {
+      const origin = d.origin;
+      const site = (rel: TreePath, value: string, step?: Step) => {
         const run = live.runOf(value);
-        if (run) sites.push({ value, run, step, expected: valueAt(d.origin, rel) });
-      });
+        if (run) sites.push({ value, run, step, expected: valueAt(origin, rel) });
+      };
+      oldPass.walkKey(origin.kind, m.key, op.value, site);
+      loosePass.walkKey(origin.kind, m.key, op.value, (rel, value, step) => step?.loose && site(rel, value, step));
       put(d.oldAddress, m.key, { pos, sites });
     } else if (m?.kind === 'node') {
       if (op.op !== 'insert' && op.op !== 'replace') return;
       // the content the inverse restores, by lineage: each node of it the old root had, at its old address
       restored(work, m.draft, (node, origin, at) => {
-        oldPass.walkNode(node, (rel, value, step) => {
+        const site = (rel: TreePath, value: string, step?: Step) => {
           const run = live.runOf(value);
           if (run) put(at, String(rel[1]), { pos, sites: [{ value, run, step, expected: valueAt(origin, rel) }] });
-        });
+        };
+        oldPass.walkNode(node, site);
+        loosePass.walkNode(node, (rel, value, step) => step?.loose && site(rel, value, step));
       });
     }
   });
@@ -365,6 +373,19 @@ function restoringSets(
         });
       }
     }
+    // a stored patch's `set` value is typed by the state the inverse's move finds, which the new root's typing does
+    // not tell: every address in it is taken as one the inverse's moves may take along
+    for (const { holder: h, key } of live.storedKeys()) {
+      if (h.made || !h.origin || !h.oldAddress || h.byOp?.has(key)) continue;
+      const value = h.params ? own(h.params, key) : undefined;
+      if (value === undefined) continue;
+      const origin = h.origin;
+      const oldAddress = h.oldAddress;
+      loosePass.walkKey(h.kind, key, value, (rel, v, step) => {
+        const run = step?.loose && live.runOf(v);
+        if (run) put(oldAddress, key, { pos: -1, sites: [{ value: v, run, step, expected: valueAt(origin, rel) }] });
+      });
+    }
   }
 
   const fixups: Op[] = [];
@@ -374,9 +395,9 @@ function restoringSets(
       let v = s.value;
       for (const m of moves) if (m.pos > entry.pos) v = rewriteRef(v, m.from, m.to);
       if (v !== s.expected) off = true;
-      // a restored ref that dangled in the old root is written by the inverse
+      // a restored ref that dangled in the old root is written by the inverse (a loose site is no typed ref)
       const was = typeof s.expected === 'string' ? live.runOf(s.expected) : undefined;
-      if (entry.pos >= 0 && was && !oldPass.names(was, s.step)) dangling = true;
+      if (entry.pos >= 0 && was && !s.step?.loose && !oldPass.names(was, s.step)) dangling = true;
     }
     if (!off) continue;
     const node = resolveAddress(before, at);

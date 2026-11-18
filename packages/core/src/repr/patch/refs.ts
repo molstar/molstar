@@ -55,6 +55,8 @@ export interface Step {
   readonly rel: TreePath;
   readonly op: number;
   readonly after: boolean;
+  /** A `set` value's address, untyped: emitted by a loose pass only (`RefPass.loose`). */
+  readonly loose?: true;
 }
 
 /** A ref site with what the pass needs: its parsed runs and, in a stored patch, its step. */
@@ -136,6 +138,14 @@ export function rewriteRef(value: string, from: Address, to: Address): string {
   return changed ? printAddress(segments, pattern.subtree) : value;
 }
 
+/** Every string in a value that reads as an address, with its path: a loose pass's untyped refs. */
+function addresses(v: Value, path: TreePath, emit: (path: TreePath, value: string) => void) {
+  if (typeof v === 'string') {
+    if (v.startsWith('/')) emit(path, v);
+  } else if (Array.isArray(v)) v.forEach((x, i) => addresses(x, [...path, i], emit));
+  else if (isRecord(v) && !isNode(v)) for (const k of Object.keys(v)) addresses(v[k], [...path, k], emit);
+}
+
 /** Whether values of a type may hold a ref or a slot (memoized per type object). */
 const Holds = new WeakMap<object, boolean>();
 function holds(t: ParamType): boolean {
@@ -202,6 +212,12 @@ export class RefPass {
   private rootOf?: () => Node;
   /** Set when a walk read the root to type what it emitted (a stored patch's `set` value): those sites depend on it. */
   dependent = false;
+  /**
+   * A loose pass emits every address in a stored patch's `set` value, untyped, with `step.loose`: what some state of
+   * the spec may type as a ref. The inverse's restoring sets read it, since the inverse types a step over states the
+   * old root is not.
+   */
+  loose = false;
   get root(): Node {
     return (this.rootNode ??= this.rootOf!());
   }
@@ -328,6 +344,11 @@ export class RefPass {
       const inner: Emit = (p, v) => emit(p, v, { slot: n, rel: path, op: i, after: true });
       if (op.op === 'insert' || op.op === 'replace') this.slot(target, op.node, [...at, 'node'], inner);
       if (op.op === 'set' && (op.where ?? 'params') === 'params') {
+        if (this.loose) {
+          const step: Step = { slot: n, rel: path, op: i, after: true, loose: true };
+          addresses(op.value, [...at, 'value'], (p, v) => emit(p, v, step));
+          return;
+        }
         this.dependent = true;
         const states = this.states(n);
         const node = states && resolveAddress(states[i], op.at);
@@ -743,6 +764,20 @@ export class LiveRefs implements WorkListener {
       : new Set([...this.byFirst.values()].flatMap((x) => [...x]));
     for (const s of candidates ?? []) {
       if (s.runs.some((r) => isUnder(r, prefix)) && this.work.attached(s.holder)) out.push(s);
+    }
+    return out;
+  }
+
+  /** The keys holding a stored patch, attached now: the overlay's and the old root's left in place. */
+  storedKeys(): { holder: Draft; key: string }[] {
+    const out: { holder: Draft; key: string }[] = [];
+    for (const [holder, set] of this.stored)
+      if (this.work.attached(holder)) for (const key of set) out.push({ holder, key });
+    for (const byKey of this.baseStored.values()) {
+      for (const [key, sites] of byKey) {
+        const holder = this.locate(sites[0]);
+        if (holder) out.push({ holder, key });
+      }
     }
     return out;
   }
