@@ -105,31 +105,45 @@ export class AxisTransform {
     return -1;
   }
 
+  /** The last `spanIn`'s x extents (unsnapped, clipped to the data box) and which ends were cut: read right after it. */
+  sx0 = 0.5;
+  sx1 = 0.5;
+  scut = 0;
+
+  /**
+   * Positions `[s, e)` in piece `k`: whether any of it is in view there, its x extents and cut in `sx0`, `sx1`, `scut`.
+   * What `spans` makes a triple of, with no array: the layout's per-position loops call it directly.
+   */
+  spanIn(k: number, s: number, e: number): boolean {
+    const ps = this.pieces[2 * k];
+    const pe = this.pieces[2 * k + 1];
+    const a = Math.max(s, ps);
+    const b = Math.min(e, pe);
+    // a boundary (zero length) inside a piece is a hairline at its place
+    if (b < a || (b === a && (a === pe || s !== e))) return false;
+    const left = this.x0;
+    const right = this.x0 + this.width;
+    let xa = this.xOfUnit(this.offsets[k] + a - ps);
+    let xb = this.xOfUnit(this.offsets[k] + b - ps);
+    // a span that only touches the view's edge is not in view; a boundary on the edge is
+    if (s === e ? xb < left || xa > right : xb <= left || xa >= right) return false;
+    let cut = 0;
+    if (a > s || xa < left) cut |= Cut.left;
+    if (b < e || xb > right) cut |= Cut.right;
+    if (xa < left) xa = left;
+    if (xb > right) xb = right;
+    this.sx0 = xa;
+    this.sx1 = xb;
+    this.scut = cut;
+    return true;
+  }
+
   /**
    * The x extents of positions `[s, e)` as triples `x0, x1, cut` (unsnapped, clipped to the data box), a triple per
    * piece it touches in view; `cut` says which ends the view or a piece's edge cut. Appended to `out`.
    */
   spans(s: number, e: number, out: number[]): number[] {
-    const left = this.x0;
-    const right = this.x0 + this.width;
-    for (let k = 0; k < this.offsets.length; k++) {
-      const ps = this.pieces[2 * k];
-      const pe = this.pieces[2 * k + 1];
-      const a = Math.max(s, ps);
-      const b = Math.min(e, pe);
-      // a boundary (zero length) inside a piece is a hairline at its place
-      if (b < a || (b === a && (a === pe || s !== e))) continue;
-      let xa = this.xOfUnit(this.offsets[k] + a - ps);
-      let xb = this.xOfUnit(this.offsets[k] + b - ps);
-      // a span that only touches the view's edge is not in view; a boundary on the edge is
-      if (s === e ? xb < left || xa > right : xb <= left || xa >= right) continue;
-      let cut = 0;
-      if (a > s || xa < left) cut |= Cut.left;
-      if (b < e || xb > right) cut |= Cut.right;
-      if (xa < left) xa = left;
-      if (xb > right) xb = right;
-      out.push(xa, xb, cut);
-    }
+    for (let k = 0; k < this.offsets.length; k++) if (this.spanIn(k, s, e)) out.push(this.sx0, this.sx1, this.scut);
     return out;
   }
 

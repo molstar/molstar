@@ -475,7 +475,16 @@ the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), 
 and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the want margin (half the view a side),
 a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a layout lists
 the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`:
-`extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`).
+`extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer
+reads (`values.coarser`, 2), whether values on the section's own system are placed directly (`values.direct`, true).
+
+- **A values layer's level** (`values.coarser`, k): the coarsest bin no wider than k device pixels' positions; 1 is a
+  pixel's (what other layers read). Why 2: a source's levels are far apart (16 or 64 times), so just past a level a
+  pixel's would read up to 64 positions a pixel one by one; at 2 a bar a column spans at most two bins, and a frame's
+  cost follows the pixels, not the gap between levels.
+- **Placed directly** (`values.direct`): data on the section's own system (no path) goes from its positions to x with no
+  mapping and no arrays a position; the lists are those of the general mapping (a test compares them), `false` forces
+  the mapping.
 
 - **Density steps** (`densityStep(cssPx, dpr, config)`), shared by every layer type, each threshold in its unit
   (`densityUnits`): `letters` from 10 CSS px, `cells` from 3 device px, `dots` from 1, `bars` from 1/64, else `density`.
@@ -551,7 +560,8 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 
 - A layer's data is its node's access plan (an inline node's own address as the store's source, else its source node),
   the region in view carried back along the layer's path, at the level that fits a device pixel's positions there
-  (`fitLevel`); the view at `view` priority and a margin each side at `margin`.
+  (`fitLevel`; a values layer's, `values.coarser` pixels'); the view at `view` priority and a margin each side at
+  `margin`.
 - A tile not asked for, pending or evicted draws as a pending placeholder (EC-169), a failed one as a conflict tint; an
   unknown source (not attached) is pending. Two regions sharing a tile (a cyclic view wrapping a short system) read its
   entry once.

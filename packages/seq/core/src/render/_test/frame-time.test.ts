@@ -7,7 +7,7 @@
 // @module-tag heavy
 
 // The frame-time targets (performance.md, Time), measured through `Renderer.frame` at 1440 CSS px and dpr 2, warm, over
-// 200 steps: a pan or zoom frame under 8 ms (median; its 95th percentile under 16 ms), a hover under 2 ms (the
+// 200 steps: a pan or zoom frame under 8 ms (median), never over 16 ms (its maximum), a hover under 2 ms (the
 // hit-test and the emphasis redraw), the SVG export of p53 as tracks under 200 ms. Each case prints its median, 95th
 // percentile and maximum. Run: `pnpm test:heavy packages/seq/core/src/render`.
 
@@ -27,16 +27,6 @@ const report = (what: string, t: number[]) => {
   return s;
 };
 
-/** Cases whose bound does not hold today: the measured number is in the comment, and the case is `it.fails`. */
-// 3M bars (100,000 positions) pan: median 9.0 ms, p95 9.2 ms (zoom: median 6.5 ms, p95 9.0 ms, passes). A device pixel
-// spans 38 positions there and the synthetic source's next level is 64, so the values layer reads positions and places
-// each of the 100,000 in view one at a time (`place`, `toSection`, `axis.spans`: 6 of the 8.4 ms).
-//
-// 3M bars (200,000 positions) zoom: median 11.2 ms, p95 14.8 ms (its pan: median 0.66 ms). The zoom runs 200,000 down to
-// 100,000 positions: below about 167,000 a device pixel spans fewer than 64 positions and the same per-position path
-// runs, so half of the steps cost 9 to 15 ms.
-const failing = new Set<string>(['3M bars (100,000 positions) pan', '3M bars (200,000 positions) zoom']);
-
 for (const s of Scenarios) {
   describe(s.name, () => {
     let settled: Settled;
@@ -45,18 +35,17 @@ for (const s of Scenarios) {
     }, 60_000);
 
     for (const kind of ['pan', 'zoom'] as const) {
-      const run = failing.has(`${s.name} ${kind}`) ? it.fails : it;
-      run(`${kind} frame: median under ${PAN_MS} ms, p95 under ${FRAME_MAX_MS} ms`, { tags: ['heavy'] }, () => {
+      it(`${kind} frame: median under ${PAN_MS} ms, never over ${FRAME_MAX_MS} ms`, { tags: ['heavy'] }, () => {
         const inputs = walk(s, kind);
         const t = time((i) => void settled.renderer.frame(inputs[i % STEPS]));
         const r = report(`${s.name} ${kind}`, t);
         expect(r.median).toBeLessThan(PAN_MS);
         expect(r.p95).toBeLessThan(FRAME_MAX_MS);
+        expect(r.max).toBeLessThan(FRAME_MAX_MS);
       });
     }
 
-    const hover = failing.has(`${s.name} hover`) ? it.fails : it;
-    hover(`hover: hit-test and emphasis redraw under ${HOVER_MS} ms (median)`, { tags: ['heavy'] }, () => {
+    it(`hover: hit-test and emphasis redraw under ${HOVER_MS} ms (median)`, { tags: ['heavy'] }, () => {
       const input = hoverInput(s);
       const { points, emphasis } = hovers(settled, input);
       expect(points.length).toBeGreaterThan(0);

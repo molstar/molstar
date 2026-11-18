@@ -19,6 +19,7 @@ export {
   fontSize,
   perPosition,
   type RenderConfig,
+  type RenderConfigOverrides,
   renderConfig,
 } from './config.js';
 export {

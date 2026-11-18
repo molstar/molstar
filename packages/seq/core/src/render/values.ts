@@ -147,37 +147,12 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     const step = densityStep(axis.scale, axis.dpr, config);
     lay.step = step;
     const regions = dataRegions(src, axis);
-    const level = perPosition(step) ? layerLevel(src, data, axis, true) : layerLevel(src, data, axis);
+    const level = perPosition(step)
+      ? layerLevel(src, data, axis, true)
+      : layerLevel(src, data, axis, false, config.values.coarser);
     const read = readTiles(ctx, data, src, regions, level);
     placeholderSpans(src, axis, read.pending, lay.pending);
     placeholderSpans(src, axis, read.failed, lay.failed);
-    const pieces: number[] = [];
-    const spans: number[] = [];
-    const px = 1 / axis.dpr;
-    const minmax = config.values.aggregate === 'minmax';
-    // the values of data positions [a, b) (low and high): every piece it lands on in view
-    const place = (a: number, b: number, low: number, hi: number, cols: boolean) => {
-      const lo = minmax ? low : hi;
-      toSection(src, a, b, pieces);
-      for (let k = 0; k + 1 < pieces.length; k += 2) {
-        spans.length = 0;
-        axis.spans(pieces[k], pieces[k + 1], spans);
-        for (let s = 0; s + 2 < spans.length; s += 3) {
-          if (!cols) {
-            const x0 = axis.snap(spans[s]);
-            push(lay, x0, Math.max(axis.snap(spans[s + 1]), x0 + px), lo, hi);
-            continue;
-          }
-          if (Number.isNaN(hi)) continue;
-          const c0 = axis.column(spans[s]);
-          const c1 = Math.max(c0, axis.column(spans[s + 1] - 1e-6));
-          for (let c = c0; c <= c1; c++) {
-            if (Number.isNaN(colHi[c]) || hi > colHi[c]) colHi[c] = hi;
-            if (Number.isNaN(colLo[c]) || lo < colLo[c]) colLo[c] = lo;
-          }
-        }
-      }
-    };
     const columns = !perPosition(step);
     if (lay.colHi.length !== axis.columns) {
       lay.colHi = new Float32Array(axis.columns);
@@ -185,14 +160,29 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     }
     const colHi = lay.colHi.fill(Number.NaN);
     const colLo = lay.colLo.fill(Number.NaN);
+    const px = 1 / axis.dpr;
+    const minmax = config.values.aggregate === 'minmax';
+    const pl = placer;
+    pl.lay = lay;
+    pl.axis = axis;
+    pl.src = src;
+    pl.direct = config.values.direct && !src.path;
+    pl.cols = columns;
+    pl.minmax = minmax;
+    pl.px = px;
     for (const e of read.entries) {
       const t: ValuesTable | undefined = e.tables.values;
       if (!t) continue;
       if (t.form === 'positions') {
-        for (let i = 0; i < t.value.length; i++) {
-          const p = t.start + i;
-          if (!inRegions(regions, p)) continue;
-          place(p, p + 1, t.value[i], t.value[i], columns);
+        // the table's positions in each region, in order (the regions are sorted and disjoint)
+        const end = t.start + t.value.length;
+        for (let r = 0; r + 1 < regions.length; r += 2) {
+          const a = Math.max(t.start, regions[r]);
+          const b = Math.min(end, regions[r + 1]);
+          for (let p = a; p < b; p++) {
+            const v = t.value[p - t.start];
+            place(pl, p, p + 1, v, v);
+          }
         }
       } else {
         const w = e.region.level;
@@ -200,10 +190,13 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
           const a = t.start + i * w;
           if (!overlapsRegions(regions, a, a + w)) continue;
           const none = !(t.count[i] > 0);
-          place(a, a + w, none ? Number.NaN : t.min[i], none ? Number.NaN : t.max[i], columns);
+          place(pl, a, a + w, none ? Number.NaN : t.min[i], none ? Number.NaN : t.max[i]);
         }
       }
     }
+    pl.lay = undefined;
+    pl.axis = undefined;
+    pl.src = undefined;
     if (columns)
       for (let c = 0; c < colHi.length; c++)
         push(lay, box.x + c * px, box.x + (c + 1) * px, minmax ? colLo[c] : colHi[c], colHi[c]);
@@ -257,9 +250,67 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
   },
 };
 
-function inRegions(regions: readonly number[], p: number): boolean {
-  for (let i = 0; i + 1 < regions.length; i += 2) if (p >= regions[i] && p < regions[i + 1]) return true;
-  return false;
+/** A layout's placement state: one, reused (a layout runs to its end), so placing a value allocates nothing. */
+interface Placer {
+  lay: ValuesLay | undefined;
+  axis: AxisTransform | undefined;
+  src: LayerSource | undefined;
+  /** The data is on the section's own system: placed without the mapping. */
+  direct: boolean;
+  /** A bar a device column (else a bar a position). */
+  cols: boolean;
+  minmax: boolean;
+  px: number;
+}
+
+const placer: Placer = {
+  lay: undefined,
+  axis: undefined,
+  src: undefined,
+  direct: true,
+  cols: false,
+  minmax: true,
+  px: 0.5,
+};
+
+/** A placement's pieces on the section, through the map (kept). */
+const pieces: number[] = [];
+
+/**
+ * The values of data positions `[a, b)` (low and high): every piece of the axis it lands on in view. On the section's
+ * own system the positions are the section's (no mapping, no arrays): the same marks as through `toSection`.
+ */
+function place(pl: Placer, a: number, b: number, low: number, hi: number) {
+  const axis = pl.axis!;
+  const lo = pl.minmax ? low : hi;
+  const n = axis.offsets.length;
+  if (pl.direct) {
+    for (let k = 0; k < n; k++) if (axis.spanIn(k, a, b)) mark(pl, axis.sx0, axis.sx1, lo, hi);
+    return;
+  }
+  toSection(pl.src!, a, b, pieces);
+  for (let i = 0; i + 1 < pieces.length; i += 2)
+    for (let k = 0; k < n; k++) if (axis.spanIn(k, pieces[i], pieces[i + 1])) mark(pl, axis.sx0, axis.sx1, lo, hi);
+}
+
+/** A placed extent `[xa, xb)` (unsnapped): a bar a position, or its device columns' extents widened. */
+function mark(pl: Placer, xa: number, xb: number, lo: number, hi: number) {
+  const lay = pl.lay!;
+  const axis = pl.axis!;
+  if (!pl.cols) {
+    const x0 = axis.snap(xa);
+    push(lay, x0, Math.max(axis.snap(xb), x0 + pl.px), lo, hi);
+    return;
+  }
+  if (Number.isNaN(hi)) return;
+  const colHi = lay.colHi;
+  const colLo = lay.colLo;
+  const c0 = axis.column(xa);
+  const c1 = Math.max(c0, axis.column(xb - 1e-6));
+  for (let c = c0; c <= c1; c++) {
+    if (Number.isNaN(colHi[c]) || hi > colHi[c]) colHi[c] = hi;
+    if (Number.isNaN(colLo[c]) || lo < colLo[c]) colLo[c] = lo;
+  }
 }
 
 function overlapsRegions(regions: readonly number[], a: number, b: number): boolean {

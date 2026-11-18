@@ -20,7 +20,7 @@ import { checkSeqSpec } from '@molstar/seqx-core/lang';
 import { OverlayBuilder, type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
 import { type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
-import { type RenderConfig, renderConfig } from './config.js';
+import { type RenderConfigOverrides, renderConfig } from './config.js';
 import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
@@ -133,7 +133,7 @@ export interface RenderSvgOptions {
   readonly tokens?: SeqTokens;
   /** The text metrics port: the bundled table by default. */
   readonly text?: TextMetrics;
-  readonly config?: Partial<RenderConfig>;
+  readonly config?: RenderConfigOverrides;
   readonly resolve?: Partial<ResolveConfig>;
   /** What sources may read: nothing by default. */
   readonly assets?: AssetReader;
