@@ -236,6 +236,7 @@ export const DefaultViewerConfig: ViewerConfig = {
       'view.zoom-out': ['-'],
       'view.pan-left': ['Shift+Alt+ArrowLeft'],
       'view.pan-right': ['Shift+Alt+ArrowRight'],
+      'selection.bookmark': ['Mod+d'],
     },
   },
   navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },

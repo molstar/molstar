@@ -274,6 +274,31 @@ export class AddressModel extends ReactiveModel {
     return outcome instanceof Promise ? outcome.then(result) : result(outcome);
   }
 
+  /**
+   * Bookmarks the selection as one patch (_spec/README.md "AddressModel"): a ref to the selection's address, labeled by
+   * it (what a link would say) unless a label is given, under the id given or the next free `bookmark-<n>` of the root
+   * the edit runs on. Undefined when nothing is selected, else as `addRef`.
+   */
+  bookmarkSelection(
+    options: EditOptions & { readonly id?: string; readonly label?: string } = {},
+  ): AddRefResult | Promise<AddRefResult> | undefined {
+    const to = this.selectionAddress();
+    if (to === undefined) return undefined;
+    const { id, label, ...edit } = options;
+    const outcome = this.spec.patch(
+      'Add a bookmark',
+      (root) => {
+        const taken = new Set(root.children?.find((c) => c.id === RefsId)?.children?.map((c) => c.id));
+        let n = 1;
+        while (id === undefined && taken.has(`bookmark-${n}`)) n++;
+        return addRefPatch(root, { id: id ?? `bookmark-${n}`, to, label: label ?? to });
+      },
+      edit,
+    );
+    const result = (o: EditOutcome): AddRefResult => (o.ok ? true : o.issues);
+    return outcome instanceof Promise ? outcome.then(result) : result(outcome);
+  }
+
   // ---- actions ----
 
   private _outcome(resolution: AddressResolution, done: boolean, message: string): AddressOutcome {
@@ -442,6 +467,13 @@ export class AddressModel extends ReactiveModel {
     if (!value) return this._outcome(resolution, false, 'Nothing to highlight');
     this.highlight.set(channel, value);
     return this._outcome(resolution, true, 'Highlighted');
+  }
+
+  /** Clears a highlight channel, or every one: `highlightAddress`'s inverse. The channels cleared. */
+  clearHighlight(channel?: string): number {
+    const names = channel === undefined ? [...this.highlight.names.value] : this.highlight.get(channel) ? [channel] : [];
+    for (const n of names) this.highlight.clear(n);
+    return names.length;
   }
 
   /** A hover over a link: its own channel (EC-182), so the pointer's hover is left alone. */

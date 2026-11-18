@@ -135,12 +135,25 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'address.copy-link': { ctx: {}, before: (v) => run(v, 'address.select', { address: '/refs/b' }) },
   'refs.add': { ctx: { ref: { id: 'here', to: '/data/p/(range :from 1 :to 5)' } } },
   'refs.remove': { ctx: { address: '/refs/b' } },
+  'refs.label': { ctx: { address: '/refs/b', label: 'Second domain' } },
+  'selection.bookmark': { ctx: {}, before: (v) => run(v, 'address.select', { address: '/refs/b' }) },
+  'highlight.clear': {
+    ctx: {},
+    before: (v) => run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' }),
+  },
   'layer.hide': { ctx: { address: LettersLayer } },
   'layer.show': { ctx: { address: LettersLayer }, before: (v) => run(v, 'layer.hide', { address: LettersLayer }) },
   'layer.color': { ctx: { address: `${DomainsTrack}/d`, color: '#d62728' } },
   'track.hide': { ctx: { address: DomainsTrack } },
   'track.show': { ctx: { address: DomainsTrack }, before: (v) => run(v, 'track.hide', { address: DomainsTrack }) },
   'track.move': { ctx: { address: DomainsTrack, after: null } },
+  'track.add': {
+    ctx: {
+      address: Protein,
+      after: 'domains',
+      node: { kind: 'track', id: 'domains-2', children: [{ kind: 'layer', id: 'd', params: { type: 'letters' } }] },
+    },
+  },
   'step.enter': { ctx: { step: 'first' } },
   'step.leave': { ctx: {}, before: (v) => run(v, 'step.enter', { step: 'first' }) },
   'selection.set': { ctx: cell(3) },
@@ -235,5 +248,91 @@ describe('every change has a kind', () => {
     expect(after.session).toEqual(kept.session);
     expect(after.navigate).toBe(kept.navigate);
     expect(stackOf(v).steps.value).toEqual([]);
+  });
+
+  it('the selection bookmarked is one patch and one undo step: labeled by its address, undone and redone whole', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    expect(await run(v, 'selection.bookmark', {})).toBe('Nothing selected');
+    await run(v, 'address.select', { address: '/data/p/(range :from 3 :to 8)' });
+    expect(await run(v, 'selection.bookmark', {})).toBe('Bookmarked');
+    const row = v.addresses.refs.value.find((r) => r.id === 'bookmark-1')!;
+    expect(row).toMatchObject({ label: '/data/p/(range :from 3 :to 8)', to: ['/data/p/(range :from 3 :to 8)'] });
+    // a second one takes the next id, a given label replaces the printed address
+    expect(await run(v, 'selection.bookmark', { label: 'Loop' })).toBe('Bookmarked');
+    expect(v.addresses.refs.value.find((r) => r.id === 'bookmark-2')?.label).toBe('Loop');
+    expect(stackOf(v).steps.value.length).toBe(2);
+    await stackOf(v).undo();
+    await stackOf(v).undo();
+    expect(v.spec.root.value).toBe(root);
+    await stackOf(v).redo();
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b', 'bookmark-1']);
+    // followed as a link in the same viewer: the ref resolves to what was selected
+    expect(v.addresses.resolve('/refs/bookmark-1').status).toBe('resolved');
+  });
+
+  it('a bookmark is labeled by a patch and removed by one, each undone whole', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    expect(await run(v, 'refs.label', { address: '/refs/b', label: 'Second domain' })).toBe('Labeled');
+    expect(v.addresses.refs.value[0].label).toBe('Second domain');
+    expect(await run(v, 'refs.label', { address: '/refs/b', label: '' })).toBe('Labeled');
+    expect(v.addresses.refs.value[0].label).toBe('b');
+    expect(await run(v, 'refs.remove', { address: '/refs/b' })).toBe('Removed');
+    expect(v.addresses.refs.value).toEqual([]);
+    await stackOf(v).undo();
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b']);
+    await stackOf(v).undo();
+    await stackOf(v).undo();
+    expect(v.spec.root.value).toBe(root);
+    await stackOf(v).redo();
+    await stackOf(v).redo();
+    await stackOf(v).redo();
+    expect(v.addresses.refs.value).toEqual([]);
+    expect(await run(v, 'refs.remove', { address: '/refs/b' })).toBe('No ref there');
+  });
+
+  it('highlight.clear clears one channel, or all of them', async () => {
+    const v = await make();
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' });
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'notes' });
+    expect(await run(v, 'highlight.clear', { channel: 'paper' })).toBe('Cleared');
+    expect(v.highlight.names.value).toEqual(['notes']);
+    expect(await run(v, 'highlight.clear', { channel: 'paper' })).toBe('Nothing highlighted');
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' });
+    expect(await run(v, 'highlight.clear', {})).toBe('Cleared');
+    expect(v.highlight.names.value).toEqual([]);
+    expect(await run(v, 'highlight.clear', {})).toBe('Nothing highlighted');
+  });
+
+  it('track.add inserts a track after another in one patch and one undo step; a taken id is refused', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    const node = Cases['track.add'].ctx as { node: Node };
+    expect(await run(v, 'track.add', Cases['track.add'].ctx)).toBe('Added');
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([
+      `${Protein}/letters`,
+      DomainsTrack,
+      `${Protein}/domains-2`,
+    ]);
+    expect(stackOf(v).steps.value.map((x) => x.label)).toEqual(['Add a track']);
+    expect(await run(v, 'track.add', { address: Protein, node: node.node })).not.toBe('Added');
+    expect(stackOf(v).steps.value.length).toBe(1);
+    await stackOf(v).undo();
+    expect(v.spec.root.value).toBe(root);
+    expect(await run(v, 'track.add', { address: DomainsTrack, node: node.node })).toBe('No section there');
+  });
+
+  it('the bookmark key is the viewer’s with or without a selection, a plain d is nobody’s', async () => {
+    const v = await make();
+    const mod = { ctrlKey: true, metaKey: true };
+    expect(v.config.view.keys['selection.bookmark']).toEqual(['Mod+d']);
+    expect(v.input.key({ key: 'd', ...mod })).toBe(true);
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b']);
+    await run(v, 'address.select', { address: '/refs/b' });
+    expect(v.input.key({ key: 'd', ...mod })).toBe(true);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b', 'bookmark-1']);
+    expect(v.input.key({ key: 'd' })).toBe(false);
   });
 });
