@@ -65,18 +65,20 @@ genome browser), and a user's settings layer over that. One configuration applie
 gesture still means the same thing everywhere. Conflicting bindings are reported, and every action stays reachable by a
 command and from the keyboard.
 
-| Gesture          | Effect                                                           |
-| ---------------- | ---------------------------------------------------------------- |
-| hover            | hovered here and on every linked section; nothing else changes   |
-| click            | select it; clicking the only selected element clears             |
-| Shift+click      | extend from the anchor                                           |
-| Cmd/Ctrl+click   | toggle it in or out                                              |
-| empty click, Esc | clear (Esc first cancels a gesture)                              |
-| drag on data     | select a range, snapped (whole codons, whole items)              |
-| drag on an axis  | pan                                                              |
-| wheel            | pan; with Cmd/Ctrl, or pinch, zoom about the pointer             |
-| double-click     | focus; on empty space, fit                                       |
-| arrows           | move the cursor; with Shift extend; Enter focuses; Space toggles |
+| Gesture                          | Effect                                                                                          |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| hover                            | hovered here and on every linked section; nothing else changes                                  |
+| click                            | select it; clicking the only selected element clears                                            |
+| Shift+click, Shift+drag          | extend the range the anchor is in, keeping the others                                           |
+| Cmd/Ctrl+click                   | toggle it in or out; the anchor moves there                                                     |
+| Cmd/Ctrl+drag, Alt/Option+drag   | add a range; remove a range                                                                     |
+| empty click, Esc                 | clear (Esc first cancels a gesture, giving back what it began with)                             |
+| drag on data                     | select a range, snapped (whole codons, whole items)                                             |
+| drag on an axis                  | pan                                                                                             |
+| wheel                            | pan; with Cmd/Ctrl, or pinch, zoom about the pointer                                            |
+| drag, wheel, pinch on a follower | move its leader through the follow, so both move                                                |
+| double-click                     | focus; on empty space, fit                                                                      |
+| arrows                           | move the cursor; Shift extends; Cmd/Ctrl+Shift starts a new range; Enter focuses; Space toggles |
 
 - Selection is a location, shown on every system it maps to.
 - Toggles (hide a track, collapse a group) are one gesture, one visible state and one undo step.

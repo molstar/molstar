@@ -66,8 +66,13 @@ describe('the navigate behavior', () => {
     expect(nav.drag(ProteinSection, 20, {}, 'cell')).toBe(false);
     expect(nav.drag(ProteinSection, 20, {}, 'axis')).toBe(true);
     expect(range(ProteinSection)).toEqual([0, 2]);
-    // a follower does not lead (EC-114)
-    expect(nav.drag(GeneSection, 20, {}, 'axis')).toBe(false);
+    // a follower leads: dragging the gene's content right moves the protein left, to where it starts
+    view.setRange(ProteinSection, 1, 3);
+    expect(nav.drag(GeneSection, 20, {}, 'axis')).toBe(true);
+    expect(range(ProteinSection)[0]).toBeLessThan(1);
+    // ignored, it does not
+    const ignore = setup(viewerConfig({ follow: { followerMoves: 'ignore' } }));
+    expect(ignore.nav.drag(GeneSection, 20, {}, 'axis')).toBe(false);
 
     const gb = setup(viewerConfig(), bindingTable(GenomeBrowserBindings));
     gb.view.setRange(ProteinSection, 1, 3);
@@ -90,7 +95,10 @@ describe('the navigate behavior', () => {
     expect(range(ProteinSection)).toEqual([1, 3]);
     // greyed with a reason, never a throw
     const zoomIn = byId.get('view.zoom-in')!;
-    expect(zoomIn.when!({ section: GeneSection })).toBe('The section follows another and does not move on its own');
+    expect(zoomIn.when!({ section: GeneSection })).toBe(true);
+    const ignore = setup(viewerConfig({ follow: { followerMoves: 'ignore' } }));
+    const ignored = ignore.nav.commands.find((c) => c.id === 'view.zoom-in')!;
+    expect(ignored.when!({ section: GeneSection })).toBe('The section follows another and does not move');
     expect(zoomIn.when!({ section: undefined })).toBe('No section to move');
     expect(zoomIn.when!({ section: ProteinSection })).toBe(true);
     expect(byId.get('view.focus')!.when!({ section: ProteinSection })).toBe('Nothing to focus');

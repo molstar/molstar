@@ -41,6 +41,11 @@ export interface ViewerConfig {
      * (true): a selected transcript stays when its region scrolls away; false: only while shown.
      */
     readonly holdNodes: boolean;
+    /**
+     * What an extend (Shift+click, Shift+drag, Shift+arrows) changes: the range the anchor is in, the other ranges and
+     * elements kept (`range`, the default), or the whole selection, which becomes that range (`selection`).
+     */
+    readonly extendScope: 'range' | 'selection';
   };
   readonly highlight: {
     /** A highlight channel's color when `colors` names none: a hex literal or `token:<name>` (`token:cat-5`). */
@@ -70,10 +75,11 @@ export interface ViewerConfig {
   };
   readonly follow: {
     /**
-     * A move asked of a follower (followers never lead, EC-114): `ignore` it (the default) or `detach` the follower,
-     * which then has its own viewport until it is attached again (`attach`, or a fit).
+     * A move asked of a follower (a pan, a zoom, a pinch): `lead`, the default, moves its leader through the follow's
+     * inverse, so the follower moves as asked and every section in step; `ignore` it; or `detach` the follower, which
+     * then has its own viewport until it is attached again (`attach`, or a fit).
      */
-    readonly followerMoves: 'ignore' | 'detach';
+    readonly followerMoves: 'lead' | 'ignore' | 'detach';
     /**
      * A follower's range over a cyclic origin: kept as the wrap, two pieces (`wrap`, the default), or the hull of
      * the image (`hull`).
@@ -191,11 +197,11 @@ export const DefaultViewerConfig: ViewerConfig = {
   bindings: { preset: 'default' },
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
   hover: { projectLinked: true, closeCodons: true },
-  selection: { holdNodes: true },
+  selection: { holdNodes: true, extendScope: 'range' },
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }, reveal: true },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
-  follow: { followerMoves: 'ignore', cyclicArc: 'wrap' },
+  follow: { followerMoves: 'lead', cyclicArc: 'wrap' },
   navigate: { wheelZoomStep: 1.25, keyPanFraction: 0.1, coalesceWheel: true },
   theme: { source: 'root' },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },

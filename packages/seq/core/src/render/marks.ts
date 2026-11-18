@@ -40,8 +40,16 @@ export function hoverCell(lay: CellLay & { readonly key: string }, out: PassWrit
   // `snap` inline, the rect through `args`: a hover allocates nothing once warm (this function is compiled while it
   // returns early, in the full draws, and a call left out of it then would box its numbers)
   const dpr = axis.dpr;
-  const a = Math.max(Math.round(axis.sx0 * dpr) / dpr, box.x);
-  const b = Math.min(Math.round(axis.sx1 * dpr) / dpr, box.x + box.width);
+  let a = Math.round(axis.sx0 * dpr) / dpr;
+  let b = Math.round(axis.sx1 * dpr) / dpr;
+  // a cell narrower than a device pixel (a far zoom) snaps to nothing: it takes the pixel it is in, so the hover never
+  // blinks off as the pointer moves over cells that round to an empty span (_spec/README.md "Render", Emphasis)
+  if (b - a < 1 / dpr) {
+    a = Math.floor(((axis.sx0 + axis.sx1) / 2) * dpr) / dpr;
+    b = a + 1 / dpr;
+  }
+  a = Math.max(a, box.x);
+  b = Math.min(b, box.x + box.width);
   if (b <= a) return;
   // outside the cell by the offset, concentric: it never touches the selection's outline drawn on the cell
   const d = width / 2 + lay.hoverOffset;

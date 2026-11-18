@@ -19,7 +19,15 @@ export type ChangeKind = 'patch' | 'preview' | 'session' | 'navigate' | 'none';
 export const ChangeKinds: readonly ChangeKind[] = ['patch', 'preview', 'session', 'navigate', 'none'];
 
 /** The model methods a binding may name: continuous, allocation-free, never commands (no history, no outcome). */
-export const MethodActions = ['hover', 'pan', 'zoom', 'drag-select'] as const;
+export const MethodActions = [
+  'hover',
+  'pan',
+  'zoom',
+  'drag-select',
+  'drag-add',
+  'drag-subtract',
+  'drag-extend',
+] as const;
 export type MethodAction = (typeof MethodActions)[number];
 
 /**
@@ -30,6 +38,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'selection.set': 'session',
   'selection.extend': 'session',
   'selection.toggle': 'session',
+  'selection.add': 'session',
+  'selection.subtract': 'session',
   'selection.clear': 'session',
   // the keyboard cursor and what it selects are session state; Enter's focus moves the view
   'cursor.prev': 'session',
@@ -38,6 +48,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'cursor.down': 'session',
   'cursor.extend-prev': 'session',
   'cursor.extend-next': 'session',
+  'cursor.add-prev': 'session',
+  'cursor.add-next': 'session',
   'cursor.toggle': 'session',
   'cursor.focus': 'navigate',
   'view.focus': 'navigate',

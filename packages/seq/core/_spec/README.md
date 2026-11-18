@@ -749,11 +749,11 @@ of a track, and one band reads as one selection.
   pass). Where it has no part, `projected.selection` is drawn in the same look at `emphasis.projected` times the
   opacity. `elements`: a selected item of zero length, which no Location holds, is a 2 px accent hairline over its lane
   (the ranges layer, EC-127).
-- `hover`: each layer's own (its cell, its item's marks), an outline `emphasis.hoverOffset` (1 px) outside the mark,
-  concentric, so it never touches the selection's outline under it, in the hover ink (`seq-hover`: dark on light, light
-  on dark); `projected.hover` is drawn the same way at `emphasis.projected` on every section but
-  `projected.hoverSection` (the hover's own section's address), so a hover from elsewhere (a structure, no layer) is
-  drawn on every section (the `hover` pass).
+- `hover`: each layer's own (its cell, at least the device pixel it is in so a far zoom never drops it; its item's
+  marks), an outline `emphasis.hoverOffset` (1 px) outside the mark, concentric, so it never touches the selection's
+  outline under it, in the hover ink (`seq-hover`: dark on light, light on dark); `projected.hover` is drawn the same
+  way at `emphasis.projected` on every section but `projected.hoverSection` (the hover's own section's address), so a
+  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass).
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
   `msui-text`), never the accent (the `cursor` pass). Whether it is shown is the caller's (a viewer shows it once the
   keyboard moved it).

@@ -12,10 +12,13 @@ import { followSvg } from '../../follow-svg.js';
 import { composeViewer, describeSelection } from './compose.js';
 
 // The selection story's root, shared by the Features story and the p53 example (each gives its own hint): the default
-// grammar on a view (the interaction grammar). Click a residue or a domain to select it (again to clear), Shift+click to
-// extend from it, Cmd/Ctrl+click to toggle, drag on the letters to select a range, click empty space or press Esc to
-// clear. The arrow keys move the keyboard cursor (Shift extends; Space toggles its cell; Enter focuses). On the protein
-// on its gene, what is selected or hovered on one section shows on the other in the same look, lighter. The SVG beside
+// grammar on a view (the interaction grammar). Click a residue or a domain to select it (again to clear), Shift+click or
+// Shift+drag to extend the range the anchor is in (the others kept), Cmd/Ctrl+click to toggle, drag on the letters to
+// select a range, Cmd/Ctrl+drag to add one, Alt/Option+drag to remove one, click empty space or press Esc to clear (Esc
+// during a drag gives back the selection it began with). The arrow keys move the keyboard cursor (Shift extends the
+// anchor's range; Cmd/Ctrl+Shift starts a new one; Space toggles its cell; Enter focuses). On the protein on its gene,
+// what is selected or hovered on one section shows on the other in the same look, lighter, and a pan or a zoom on
+// either section moves both. The SVG beside
 // the canvas is an export of the same spec with the same selection and highlights; the hover and the cursor are
 // transient and never in an export. The toggle draws the selection as one band a section (`column`, spanning the
 // tracks and the gaps between them) or a box a track (`tracks`).
@@ -28,7 +31,7 @@ const Mono =
 
 /** The default hint: every gesture. */
 export const GestureHint =
-  'Click selects (again: clears), Shift+click extends, Cmd/Ctrl+click toggles, a drag on the data selects a range, Esc or a click on empty space clears. Arrows move the cursor (Shift extends, Space toggles, Enter focuses). The hover and the cursor are transient: the SVG export shows the selection and the highlights alone.';
+  'Click selects (again: clears), Cmd/Ctrl+click toggles. A drag on the data selects a range, Cmd/Ctrl+drag adds one, Alt/Option+drag removes one; Shift+click or Shift+drag extends the range the anchor is in, keeping the others. Esc or a click on empty space clears (Esc during a drag undoes it). Arrows move the cursor (Shift extends, Cmd/Ctrl+Shift starts a new range, Space toggles, Enter focuses). The hover and the cursor are transient: the SVG export shows the selection and the highlights alone.';
 
 function section(title: string, body: HTMLElement): HTMLElement {
   const el = document.createElement('div');

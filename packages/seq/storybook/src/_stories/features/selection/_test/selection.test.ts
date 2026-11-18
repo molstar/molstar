@@ -4,13 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { rangesLocation } from '@molstar/seqx-core/query';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { GeneFile } from '@molstar/seqx-examples/p53/data';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
-import { itWithin } from '@molstar/test-harness/timing';
+import { bestOf, itWithin } from '@molstar/test-harness/timing';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cellPoint,
@@ -24,8 +25,9 @@ import {
 
 // The Selection story, headless on a fake clock, composed as the story composes it: on both p53 views a click, a drag
 // and the cursor through the viewer's input; the selection drawn in the canvas's lists and in the SVG export beside it
-// alike, and projected onto the gene's section in both. The performance representative: a drag-select step and a cursor
-// step (input, then the frame) under 4 ms.
+// alike, and projected onto the gene's section in both; several ranges added and cut; a pan and a zoom on the gene
+// moving the protein. The performance representative: a drag-select step, a cursor step, an additive drag step and a
+// pan step on the following gene (input, then the frame) under 4 ms.
 
 const tracks = P53Views.find((v) => v.id === 'tracks')!;
 const onGene = P53Views.find((v) => v.id === 'protein-on-gene')!;
@@ -126,6 +128,54 @@ describe('Selection, headless', () => {
     expect(band(v, 1).some((l) => l.includes('#8f4c062e'))).toBe(true);
   });
 
+  it('protein on its gene: two ranges, one added with Cmd/Ctrl+drag and cut with Alt+drag, in the canvas and the SVG', async () => {
+    const v = await make(onGene);
+    v.view.setRange('/views/main/protein', 170, 190);
+    await vi.advanceTimersByTimeAsync(400);
+    v.draw();
+    const at = (p: number) => cellPoint(v, 0, 0, p);
+    const drag = (a: number, b: number, keys: { ctrlKey?: boolean; altKey?: boolean } = {}) => {
+      const [x0, y] = at(a);
+      v.input.move(x0, y, keys);
+      v.input.down(x0, y, keys);
+      for (let i = 1; i <= 4; i++) v.input.move(x0 + ((at(b)[0] - x0) * i) / 4, y, keys);
+      v.input.up();
+    };
+    drag(172, 174);
+    drag(180, 186, { ctrlKey: true });
+    drag(183, 184, { altKey: true });
+    const part = v.selection.value.value.shown.parts.find((p) => p.system === '/data/p53')!;
+    expect([...part.ranges]).toEqual([172, 175, 180, 183, 185, 187]);
+    v.draw();
+    // each range a band on the protein and, projected through the codon map, on the gene
+    expect(band(v, 0).filter((l) => l.includes('#8f4c062e')).length).toBeGreaterThanOrEqual(3);
+    expect(band(v, 1).filter((l) => l.includes('#8f4c0617')).length).toBeGreaterThanOrEqual(3);
+    const svg = await selectionSvg(v, 'm-');
+    expect(recordDrawLists(svg.lists, ['selection'])).toBe(recordDrawLists(v.frame!.lists, ['selection']));
+  });
+
+  it('protein on its gene: a pan and a zoom on the gene move the protein with it', async () => {
+    const v = await make(onGene);
+    v.view.setRange('/views/main/protein', 170, 190);
+    await vi.advanceTimersByTimeAsync(400);
+    v.draw();
+    const gene = v.frame!.layout.sections[1];
+    const y = gene.tracks[0].box.y + 2;
+    const before = v.view.get('/views/main/protein')!;
+    // a wheel over the gene pans; the protein, whose gene is on the minus strand, the other way
+    v.input.wheel(gene.axis!.x0 + 100, y, { deltaX: 60, deltaY: 0 });
+    await vi.advanceTimersByTimeAsync(20);
+    const panned = v.view.get('/views/main/protein')!;
+    expect(panned.start).toBeLessThan(before.start);
+    expect(panned.end - panned.start).toBeCloseTo(before.end - before.start, 6);
+    // a pinch over the gene zooms both
+    v.input.wheel(gene.axis!.x0 + 100, y, { deltaX: 0, deltaY: -20, ctrlKey: true });
+    await vi.advanceTimersByTimeAsync(20);
+    const zoomed = v.view.get('/views/main/protein')!;
+    expect(zoomed.end - zoomed.start).toBeLessThan(panned.end - panned.start);
+    expect(v.view.isFollowing('/views/main/gene')).toBe(true);
+  });
+
   it('the cursor walks the protein with the arrow keys, and Shift extends the selection from it', async () => {
     const v = await make();
     v.input.key({ key: 'ArrowRight' });
@@ -178,6 +228,62 @@ describe('Selection: the performance representative', () => {
         expect(v.selection.value.value.shown.parts.length).toBeGreaterThan(0);
       },
     );
+
+  itWithin(
+    'an additive drag step and a pan step on the following gene (the input, then the frame) under 4 ms each',
+    async (within) => {
+      const v = await make(onGene, false);
+      v.view.setRange('/views/main/protein', 150, 250);
+      await vi.advanceTimersByTimeAsync(400);
+      v.draw();
+      // three ranges selected before the additive drag: what it adds to is a union each step
+      for (const [a, b] of [
+        [152, 156],
+        [170, 175],
+        [200, 204],
+      ])
+        v.selection.add(rangesLocation('/data/p53', [a, b]));
+      const [x0, y] = cellPoint(v, 0, 0, 160);
+      const [x1] = cellPoint(v, 0, 0, 240);
+      const mod = { ctrlKey: true };
+      v.input.move(x0, y, mod);
+      v.input.down(x0, y, mod);
+      let i = 0;
+      const dragStep = () => {
+        i++;
+        v.input.move(x0 + ((x1 - x0) * (i % 40)) / 40 + 4, y, mod);
+        v.draw();
+      };
+      for (let k = 0; k < 40; k++) dragStep();
+      const n = 10;
+      const t0 = performance.now();
+      for (let k = 0; k < n; k++) bestOf(within, 4, dragStep);
+      console.info(`additive drag step: ${((performance.now() - t0) / n).toFixed(2)} ms`);
+      v.input.up();
+      expect(v.selection.value.value.shown.parts[0].ranges.length).toBeGreaterThan(2);
+      // a pan on the gene, which follows: each step carried back to the protein
+      const gene = v.frame!.layout.sections[1];
+      const gy = gene.tracks[0].box.y + 2;
+      const gx = gene.axis!.x0 + 50;
+      const panStep = () => {
+        i++;
+        v.input.down(gx, gy, { shiftKey: false });
+        v.input.move(gx + (i % 20 < 10 ? 6 : -6), gy);
+        v.input.up();
+        v.draw();
+      };
+      v.input.setSpace(true);
+      const p0 = v.view.get('/views/main/protein')!.start;
+      panStep();
+      expect(v.view.get('/views/main/protein')!.start).not.toBe(p0);
+      for (let k = 0; k < 40; k++) panStep();
+      const t1 = performance.now();
+      for (let k = 0; k < n; k++) bestOf(within, 4, panStep);
+      console.info(`follower pan step: ${((performance.now() - t1) / n).toFixed(2)} ms`);
+      v.input.setSpace(false);
+      expect(v.view.isFollowing('/views/main/gene')).toBe(true);
+    },
+  );
 });
 
 it('the status line names nothing before a selection', async () => {

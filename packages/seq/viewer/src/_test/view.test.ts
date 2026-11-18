@@ -62,8 +62,8 @@ describe('ViewModel: scroll groups and follow (EC-113, EC-114)', () => {
     }
   });
 
-  it('followers never lead: a move on one is ignored, or detaches it when configured', () => {
-    const { view, range } = setup();
+  it('a move on a follower is ignored, or detaches it, when configured so', () => {
+    const { view, range } = setup({}, viewerConfig({ follow: { followerMoves: 'ignore' } }));
     view.setWidth(ProteinSection, 20);
     view.setWidth(GeneSection, 20);
     view.setRange(ProteinSection, 1, 3);

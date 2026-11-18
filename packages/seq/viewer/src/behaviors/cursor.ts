@@ -6,9 +6,10 @@
 
 // The `cursor` behavior (_spec/README.md "Behaviors"): the keyboard cursor (the interaction grammar): the step keys
 // (`cursor.keys`) move it a position along its section's axis in display order, or to the section above or below (its
-// position carried along the view's link); Shift with a step extends the selection from the anchor (the cursor's cell
-// when there is none); Space toggles the cursor's cell; Enter focuses the selection, else the cursor's cell. A cursor
-// moved out of view pans its section (`cursor.reveal`). Every move is a command.
+// position carried along the view's link); Shift with a step extends the range the anchor is in (from the cursor's cell
+// when there is no anchor); Cmd/Ctrl+Shift with a step starts a new range at the cursor, the others kept; Space toggles
+// the cursor's cell; Enter focuses the selection, else the cursor's cell. A cursor moved out of view pans its section
+// (`cursor.reveal`). Every move is a command.
 
 import { EmptyElements, rangesLocation } from '@molstar/seqx-core/query';
 import { projectOntoView } from '@molstar/seqx-core/view';
@@ -57,9 +58,13 @@ export function cursorBehavior(
       : { section: section.address, system: section.axis.system, position: Math.floor(p) };
   };
 
-  /** A section's viewport pans to show its offset `o` when it is out of view. */
+  /**
+   * A section's viewport pans to show its offset `o` when it is out of view. A follower's does not (it would move its
+   * leader): the cursor on a follower keeps the rule it had before followers led, revealing only once detached.
+   */
   const reveal = (section: string, o: number) => {
     if (!config.cursor.reveal || !view.canMove(section)) return;
+    if (view.isFollowing(section) && config.follow.followerMoves !== 'detach') return;
     const v = view.get(section);
     if (!v || v.pending) return;
     if (o < v.start) view.pan(section, o - v.start);
@@ -111,33 +116,35 @@ export function cursorBehavior(
     title: string,
     key: string,
     to: (c: Cursor) => Cursor | undefined,
-    shift = false,
+    select: 'move' | 'extend' | 'add' = 'move',
   ): CommandDefinition<CursorContext> => ({
     id,
     title,
     category: 'Cursor',
-    shortcut: { key, ...(shift ? { shift: true } : {}) },
-    ...(shift ? {} : { scope: 'canvas' }),
+    shortcut: {
+      key,
+      ...(select !== 'move' ? { shift: true } : {}),
+      ...(select === 'add' ? { mod: true } : {}),
+    },
+    ...(select === 'move' ? { scope: 'canvas' } : {}),
     when: placed,
     run: (_, ctx): CommandResult => {
       const c = current(ctx)!;
       // a cursor not yet shown is placed first: its first key shows it where it is
       const next = selection.cursor.value ? to(c) : c;
       if (!next) return { message: '' };
-      if (shift) {
-        // from the anchor; with none on this system, the cursor's cell is the anchor
+      if (select !== 'move') {
+        const cell = rangesLocation(c.system, [c.position, c.position + 1]);
+        const anchor = { system: c.system, start: c.position, end: c.position + 1 };
         const a = selection.anchor;
-        if (!a || a.system !== c.system) {
-          const cell = rangesLocation(c.system, [c.position, c.position + 1]);
-          selection.set(
-            { elements: EmptyElements, location: cell, shown: cell },
-            { system: c.system, start: c.position, end: c.position + 1 },
-          );
-        }
+        // a new range at the cursor, the others kept; else from the anchor (none on this system: the cursor's cell)
+        if (select === 'add') selection.add(cell, anchor);
+        else if (!a || a.system !== c.system)
+          selection.set({ elements: EmptyElements, location: cell, shown: cell }, anchor);
         selection.extend({ system: next.system, position: next.position }, sectionOf(next.section)?.axis);
       }
       moveTo(next);
-      return { message: shift ? 'Extended' : 'Moved' };
+      return { message: select === 'move' ? 'Moved' : select === 'add' ? 'Added' : 'Extended' };
     },
   });
 
@@ -146,8 +153,10 @@ export function cursorBehavior(
     move('cursor.next', 'Cursor on', keys.next, (c) => stepped(c, 1)),
     move('cursor.up', 'Cursor to the section above', keys.up, (c) => across(c, -1)),
     move('cursor.down', 'Cursor to the section below', keys.down, (c) => across(c, 1)),
-    move('cursor.extend-prev', 'Extend the selection back', keys.prev, (c) => stepped(c, -1), true),
-    move('cursor.extend-next', 'Extend the selection on', keys.next, (c) => stepped(c, 1), true),
+    move('cursor.extend-prev', 'Extend the selection back', keys.prev, (c) => stepped(c, -1), 'extend'),
+    move('cursor.extend-next', 'Extend the selection on', keys.next, (c) => stepped(c, 1), 'extend'),
+    move('cursor.add-prev', 'Start a new range back from the cursor', keys.prev, (c) => stepped(c, -1), 'add'),
+    move('cursor.add-next', 'Start a new range on from the cursor', keys.next, (c) => stepped(c, 1), 'add'),
     {
       id: 'cursor.toggle',
       title: 'Toggle the cursor’s cell in the selection',

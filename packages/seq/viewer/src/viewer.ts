@@ -179,6 +179,7 @@ export class SeqViewer extends ReactiveModel {
       (els) =>
         locationOfResult(this.spec.shown.value, this.addresses.queryModel(), { type: 'elements', elements: els })
           .location,
+      { extendScope: this.config.selection.extendScope },
     );
     this._projector = new Projector(this.spec, this.view);
     this.highlight = new HighlightModel();

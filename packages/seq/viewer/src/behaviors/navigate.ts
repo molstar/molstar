@@ -6,8 +6,8 @@
 
 // The `navigate` behavior (_spec/README.md "Behaviors"): drags, wheels and pinches to viewports through the bindings
 // (`pan`, `zoom`), and the view's moves as commands for the keymap and the menu. Wheel deltas within a frame are
-// applied once, at the frame (`DomHost`), when `navigate.coalesceWheel`. Followers never lead: a move asked of one is
-// the view model's to ignore or detach (EC-114).
+// applied once, at the frame (`DomHost`), when `navigate.coalesceWheel`. A move asked of a follower is the view model's
+// to carry to its leader, ignore or detach (`follow.followerMoves`).
 
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom';
@@ -76,7 +76,7 @@ export function navigateBehavior(
       ? 'No section to move'
       : view.canMove(ctx.section)
         ? true
-        : 'The section follows another and does not move on its own';
+        : 'The section follows another and does not move';
 
   const command = (
     id: string,

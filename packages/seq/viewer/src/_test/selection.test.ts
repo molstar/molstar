@@ -166,6 +166,148 @@ describe('clicks (the interaction grammar)', () => {
   });
 });
 
+type Keys = { shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean };
+
+/** A drag on the protein's letters from one position to another, as the canvas gets it (the button left down). */
+function dragOver(v: SeqViewer, from: number, to: number, e: Keys = {}) {
+  const [x0, y] = at(v, 0, 0, from);
+  v.input.move(x0, y, e);
+  v.input.down(x0, y, e);
+  for (let i = 1; i <= 4; i++) v.input.move(x0 + ((at(v, 0, 0, to)[0] - x0) * i) / 4, y, e);
+}
+
+function dragged(v: SeqViewer, from: number, to: number, e: Keys = {}) {
+  dragOver(v, from, to, e);
+  v.input.up();
+}
+
+describe('several ranges in one selection (the interaction grammar)', () => {
+  it('Cmd/Ctrl+drag adds a range, keeping the rest; a plain drag replaces them all', async () => {
+    const v = await make();
+    click(v, at(v, 0, 0, 1));
+    dragged(v, 4, 6, { ctrlKey: true });
+    expect(ranges(v)).toEqual([1, 2, 4, 7]);
+    // and an item stays an item
+    click(v, at(v, 0, 1, 0), { ctrlKey: true });
+    dragged(v, 8, 9, { ctrlKey: true });
+    expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['A']);
+    expect(ranges(v)).toEqual([0, 3, 4, 7, 8, 10]);
+    dragged(v, 2, 3);
+    expect(ranges(v)).toEqual([2, 4]);
+    expect(v.selection.value.value.elements.keys).toEqual([]);
+  });
+
+  it('Alt/Option+drag removes a range; an item it cuts becomes the positions left of it', async () => {
+    const v = await make();
+    dragged(v, 0, 8);
+    dragged(v, 3, 4, { altKey: true });
+    expect(ranges(v)).toEqual([0, 3, 5, 9]);
+    // domain B (5 to 9) selected by its key, cut in its middle: its positions left; domain A, missed, stays a key
+    click(v, at(v, 0, 1, 6));
+    click(v, at(v, 0, 1, 0), { ctrlKey: true });
+    dragged(v, 6, 7, { altKey: true });
+    expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['A']);
+    expect(ranges(v)).toEqual([0, 3, 5, 6, 8, 9]);
+  });
+
+  it('Shift+click and Shift+drag extend only the range the anchor is in, keeping the others', async () => {
+    const v = await make();
+    dragged(v, 0, 2);
+    dragged(v, 6, 7, { ctrlKey: true });
+    expect(ranges(v)).toEqual([0, 3, 6, 8]);
+    // the anchor is 6, where the added range began
+    click(v, at(v, 0, 0, 9), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 3, 6, 10]);
+    // extends from it replace one another, the first range kept
+    click(v, at(v, 0, 0, 5), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 3, 5, 7]);
+    // a Shift+drag grows the anchor's range wherever it starts
+    dragged(v, 9, 8, { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 3, 6, 9]);
+    // Cmd/Ctrl+click toggles, and the anchor moves there
+    click(v, at(v, 0, 0, 1), { ctrlKey: true });
+    expect(ranges(v)).toEqual([0, 1, 2, 3, 6, 9]);
+    click(v, at(v, 0, 0, 0), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 3, 6, 9]);
+    click(v, at(v, 0, 0, 4), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 5, 6, 9]);
+  });
+
+  it('Esc during an additive or a subtractive drag gives back the selection it began with', async () => {
+    const v = await make();
+    dragged(v, 0, 2);
+    dragged(v, 6, 7, { ctrlKey: true });
+    for (const e of [{ ctrlKey: true }, { altKey: true }, { shiftKey: true }]) {
+      dragOver(v, 1, 8, e);
+      expect(ranges(v)).not.toEqual([0, 3, 6, 8]);
+      expect(v.input.key({ key: 'Escape' })).toBe(true);
+      v.input.up();
+      expect(ranges(v)).toEqual([0, 3, 6, 8]);
+    }
+    // the anchor came back too: an extend still grows the range at 6
+    click(v, at(v, 0, 0, 9), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 3, 6, 10]);
+  });
+
+  it('Shift+arrows extend the anchor’s range; Cmd/Ctrl+Shift+arrows start a new range at the cursor', async () => {
+    const v = await make();
+    click(v, at(v, 0, 0, 1));
+    v.input.key({ key: 'ArrowRight', shiftKey: true });
+    expect(ranges(v)).toEqual([1, 3]);
+    v.selection.setCursor({ section: ProteinSection, system: P, position: 6 });
+    v.input.key({ key: 'ArrowRight', shiftKey: true, ctrlKey: true });
+    expect(ranges(v)).toEqual([1, 3, 6, 8]);
+    v.input.key({ key: 'ArrowRight', shiftKey: true });
+    expect(ranges(v)).toEqual([1, 3, 6, 9]);
+    v.input.key({ key: 'ArrowLeft', shiftKey: true });
+    v.input.key({ key: 'ArrowLeft', shiftKey: true });
+    v.input.key({ key: 'ArrowLeft', shiftKey: true });
+    expect(ranges(v)).toEqual([1, 3, 5, 7]);
+  });
+
+  it('selection.add and selection.subtract over a range or an address, for the keyboard and a host', async () => {
+    const v = await make();
+    expect(await v.execute('selection.add', { range: { system: P, start: 2, end: 4 } })).toBe('Added');
+    expect(await v.execute('selection.add', { address: '/data/domains/(item :id B)' })).toBe('Added');
+    expect(ranges(v)).toEqual([2, 4, 5, 9]);
+    expect(await v.execute('selection.subtract', { address: '/data/p/(range :from 7 :to 7)' })).toBe('Removed');
+    expect(ranges(v)).toEqual([2, 4, 5, 6, 7, 9]);
+    const add = v.commands.find((c) => c.id === 'selection.add')!;
+    expect(add.when!({} as never)).toBe('No range, address or position given');
+  });
+
+  it('with selection.extendScope: selection, an extend makes the whole selection the anchor’s range', async () => {
+    const v = await make(spec(), [[viewerItem('selection.extendScope'), 'selection']]);
+    dragged(v, 0, 2);
+    dragged(v, 6, 7, { ctrlKey: true });
+    click(v, at(v, 0, 0, 9), { shiftKey: true });
+    expect(ranges(v)).toEqual([6, 10]);
+  });
+
+  it('after a subtraction, an extend changes the run the anchor is in and keeps the part split off', async () => {
+    const v = await make();
+    dragged(v, 0, 8);
+    dragged(v, 3, 4, { altKey: true });
+    expect(ranges(v)).toEqual([0, 3, 5, 9]);
+    click(v, at(v, 0, 0, 1), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 2, 5, 9]);
+    // the same through the command
+    dragged(v, 0, 8);
+    await v.execute('selection.subtract', { range: { system: P, start: 3, end: 5 } });
+    click(v, at(v, 0, 0, 1), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 2, 5, 9]);
+  });
+
+  it('selection.add by an address keeps the anchor: a later extend keeps what was added', async () => {
+    const v = await make();
+    dragged(v, 0, 2);
+    await v.execute('selection.add', { address: '/data/domains/(item :id B)' });
+    expect(ranges(v)).toEqual([0, 3, 5, 9]);
+    click(v, at(v, 0, 0, 3), { shiftKey: true });
+    expect(ranges(v)).toEqual([0, 4, 5, 9]);
+  });
+});
+
 describe('the review’s smaller points', () => {
   it('an item selected by a link clears on the first click on it (compared without its address)', async () => {
     const v = await make();
@@ -313,6 +455,18 @@ describe('the keyboard cursor', () => {
     const vp = v.view.get(ProteinSection)!;
     expect(vp.end).toBe(5);
     expect(vp.end - vp.start).toBeCloseTo(4);
+  });
+
+  it('a cursor on a follower moved out of view moves no section, though the follower leads a pan', async () => {
+    const v = await make();
+    v.view.setRange(ProteinSection, 0, 4);
+    const gene = v.view.get(GeneSection)!;
+    v.selection.setCursor({ section: GeneSection, system: G, position: Math.floor(gene.end) - 1 });
+    key(v, 'ArrowRight');
+    key(v, 'ArrowRight');
+    expect([v.view.get(ProteinSection)!.start, v.view.get(ProteinSection)!.end]).toEqual([0, 4]);
+    expect(v.view.pan(GeneSection, 3)).toBe(true);
+    expect(v.view.get(ProteinSection)!.start).toBeCloseTo(1, 9);
   });
 
   it('Esc cancels a gesture’s preview first, then clears the selection', async () => {

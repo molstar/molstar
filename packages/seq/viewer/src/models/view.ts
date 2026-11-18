@@ -5,11 +5,13 @@
  */
 
 // The view's model (_spec/README.md "ViewModel"): the view shown, a viewport per section, scroll groups on equal axes
-// (EC-113), follows through the resolved view's follow path (EC-113, EC-114), viewports kept across updates (EC-111)
-// and moves before a width kept as intents (EC-112). Session state: never in the spec or its history.
+// (EC-113), follows through the resolved view's follow path (EC-113, EC-114), a move asked of a follower carried back
+// to its leader (`follow.followerMoves`: `lead`), viewports kept across updates (EC-111) and moves before a width kept
+// as intents (EC-112). Session state: never in the spec or its history.
 
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
+import { inversePath, type Path } from '@molstar/seqx-core/resolve';
 import {
   type Axis,
   type Follow,
@@ -35,7 +37,7 @@ export interface Viewport {
   readonly top: number;
   readonly width: number;
   readonly pending: boolean;
-  /** The section it follows, when it does (followers never lead, EC-114). */
+  /** The section it follows, when it does (a move asked of it moves the leader, `follow.followerMoves`). */
   readonly leader?: string;
   /** A follower's range over a cyclic origin, as two offset pieces in display order: `[start, total, 0, end − total]`. */
   readonly pieces?: readonly number[];
@@ -175,6 +177,12 @@ export class ViewModel extends ReactiveModel {
   /** Shows `[start, end)` (offsets); before a width, the intent (EC-112). False when the section cannot move. */
   setRange(section: string, start: number, end: number): boolean {
     if (!Number.isFinite(start) || !Number.isFinite(end)) return false;
+    const lead = this._leading(section);
+    if (lead) {
+      const v = this.get(section);
+      const [s, e] = [Math.min(start, end), Math.max(start, end)];
+      return !!v && this._lead(lead, s, e, Math.sign(s - v.start), Math.sign(e - v.end));
+    }
     const g = this._movable(section);
     if (!g) return false;
     g.start = Math.min(start, end);
@@ -188,6 +196,12 @@ export class ViewModel extends ReactiveModel {
   pan(section: string, delta: number): boolean {
     if (!Number.isFinite(delta)) return false;
     if (delta === 0) return this._canMove(section);
+    const lead = this._leading(section);
+    if (lead) {
+      const v = this.get(section);
+      const m = Math.sign(delta);
+      return !!v && this._lead(lead, v.start + delta, v.end + delta, m, m, delta);
+    }
     const g = this._movable(section);
     if (!g) return false;
     g.start += delta;
@@ -207,6 +221,15 @@ export class ViewModel extends ReactiveModel {
   /** Zooms by `factor` (above 1: in) about `anchor` (an offset; the center when absent), which stays in place. */
   zoom(section: string, factor: number, anchor?: number): boolean {
     if (!(factor > 0) || !Number.isFinite(factor) || (anchor !== undefined && !Number.isFinite(anchor))) return false;
+    const lead = this._leading(section);
+    if (lead) {
+      const v = this.get(section);
+      if (!v) return false;
+      const a = anchor ?? (v.start + v.end) / 2;
+      const s = a - (a - v.start) / factor;
+      const e = a + (v.end - a) / factor;
+      return this._lead(lead, s, e, Math.sign(s - v.start), Math.sign(e - v.end));
+    }
     const g = this._movable(section);
     if (!g) return false;
     const a = anchor ?? (g.start + g.end) / 2;
@@ -247,18 +270,93 @@ export class ViewModel extends ReactiveModel {
     return !!s?.section.follow && s.group === undefined;
   }
 
-  /** Whether a move asked of the section would move something (a follower: only when it may detach). */
+  /**
+   * Whether a move asked of the section would move something: a follower's when it leads (its leader can move), or when
+   * it may detach.
+   */
   canMove(section: string): boolean {
     return this._canMove(section);
   }
 
   // ---- internals ----
 
-  private _canMove(section: string): boolean {
+  private _canMove(section: string, depth = 0): boolean {
     const s = this._sections.get(section);
     if (!s) return false;
-    if (s.section.follow && s.group === undefined) return this.config.follow.followerMoves === 'detach';
+    if (s.section.follow && s.group === undefined) {
+      const moves = this.config.follow.followerMoves;
+      if (moves === 'lead') return depth < MaxFollowDepth && this._canMove(s.section.follow.leader, depth + 1);
+      return moves === 'detach';
+    }
     return !!this._groupOf(s);
+  }
+
+  /**
+   * An attached follower whose moves lead (`follow.followerMoves`: `lead`) to a leader that can move, else undefined.
+   * `_canMove` bounds the chain (`MaxFollowDepth`), so the move `_lead` passes up it ends.
+   */
+  private _leading(section: string): SectionState | undefined {
+    const s = this._sections.get(section);
+    if (!s?.section.follow || s.group !== undefined || this.config.follow.followerMoves !== 'lead') return undefined;
+    return this._canMove(section) ? s : undefined;
+  }
+
+  /**
+   * A move asked of a follower moves its leader (_spec/README.md "ViewModel", Follow): the follower's asked `[start,
+   * end)` (offsets) is carried back through the follow, each end to the leader place whose image it is, so the
+   * follower shows what was asked and every section moves in step; on a minus strand the follower's ends are the
+   * images of the leader's other ends, so its pan moves the leader the other way. `ms`, `me`: which way each end
+   * moved. An end that maps nowhere (an intron, a UTR) takes the nearest place that maps the way it moved (`backTo`).
+   * A pan (`delta`) moves the follower's unclamped image of the leader, not the window its own `maxPxPerPosition`
+   * widened (which would zoom the leader out), and when one end maps nowhere the leader moves by the other's step: the
+   * leader keeps its width. A zoom or a range whose end lies past every image outward reaches the leader's axis edge
+   * there (a zoom out never stalls); inward, it keeps the leader's end. A leader that follows passes the move on up the
+   * chain, bounded by `_leading`.
+   */
+  private _lead(s: SectionState, start: number, end: number, ms: number, me: number, delta?: number): boolean {
+    const follow = s.section.follow!;
+    const lead = this.get(follow.leader);
+    const v = this.get(s.section.address);
+    const axis = s.section.axis;
+    const total = axisTotal(axis);
+    if (!lead || !v || total === undefined) return false;
+    const la = follow.leaderAxis;
+    const ps = positionAt(la, lead.start);
+    const pe = positionAt(la, lead.end);
+    if (ps === undefined || pe === undefined) return false;
+    if (delta !== undefined) {
+      // the image of the leader's window before the follower's clamp, moved by the pan
+      const image = carried(s.section, follow, ps, pe, this.config);
+      const a = image && nearestOffsetOf(axis, image[0]);
+      const b = image && nearestOffsetOf(axis, image[1]);
+      if (a !== undefined && b !== undefined && a < b) [start, end] = [a + delta, b + delta];
+    }
+    // a cyclic follower's range over its origin runs past the total
+    const pos = (o: number) => positionAt(axis, axis.cyclic && o > total ? o - total : o);
+    const lo = pos(start);
+    const hi = pos(end);
+    const inv = inverseOf(follow.path);
+    const xLo = lo === undefined ? undefined : backTo(follow, inv, axis, lo, ms);
+    const xHi = hi === undefined ? undefined : backTo(follow, inv, axis, hi, me);
+    // the follower's start is the image of the leader's start, or of its end on a minus strand
+    let a = follow.dir === 1 ? xLo : xHi;
+    let b = follow.dir === 1 ? xHi : xLo;
+    if (delta !== undefined) {
+      if (a === undefined && b === undefined) return false;
+      if (a === undefined) a = ps + (b! - pe);
+      if (b === undefined) b = pe + (a - ps);
+    } else {
+      // an end moved outward past every image: the leader's axis edge on that side (its clamp keeps it in)
+      const startOut = follow.dir === 1 ? ms < 0 : me > 0;
+      const endOut = follow.dir === 1 ? me > 0 : ms < 0;
+      const lt = axisTotal(la);
+      a ??= startOut && lt !== undefined ? (positionAt(la, 0) ?? ps) : ps;
+      b ??= endOut && lt !== undefined ? (positionAt(la, lt) ?? pe) : pe;
+    }
+    const oa = nearestOffsetOf(la, a);
+    const ob = nearestOffsetOf(la, b);
+    if (oa === undefined || ob === undefined || oa === ob) return false;
+    return this.setRange(follow.leader, Math.min(oa, ob), Math.max(oa, ob));
   }
 
   private _groupOf(s: SectionState): Group | undefined {
@@ -488,7 +586,7 @@ function carried(
   config: ViewerConfig,
 ): [number, number] | undefined {
   let a = follow.point(ps);
-  let b = endPoint(follow, pe);
+  let b = pathEnd(follow.path, pe);
   if (a === undefined || b === undefined) {
     const arc = config.follow.cyclicArc === 'hull' ? 'hull' : 'shortest';
     const hull = followRange(section, [Math.floor(ps), Math.ceil(pe)], { arc });
@@ -509,16 +607,119 @@ function carried(
   return [lo, hi];
 }
 
-/** The image of a range's end: the far edge of its last element's last place, or `point` within an element. */
-function endPoint(follow: Follow, x: number): number | undefined {
-  if (!Number.isInteger(x)) return follow.point(x);
-  const p = follow.path;
+/** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */
+const MaxFollowDepth = 16;
+
+/**
+ * The continuous image of a position along a path: where element `floor(x)` starts plus the fraction in its run's
+ * direction (times a codon step's scale); undefined where the element maps nowhere. `Follow.point` for any path, the
+ * follow's inverse too.
+ */
+function pathPoint(p: Path, x: number): number | undefined {
+  const k = Math.floor(x);
+  const frac = x - k;
+  const fine = p.step === 1 ? 3 * k : k;
+  const r = p.linear.forward(fine, fine + 1)[0];
+  if (!r) return undefined;
+  const edge = r.dir === 1 ? r.to : r.to + 1;
+  if (p.step === 1) return edge + frac * 3 * r.dir;
+  if (p.step === -1) return (edge + frac * r.dir) / 3;
+  return edge + frac * r.dir;
+}
+
+/** The image of a range's end: the far edge of its last element's last place, or `pathPoint` within an element. */
+function pathEnd(p: Path, x: number): number | undefined {
+  if (!Number.isInteger(x)) return pathPoint(p, x);
   const k = x - 1;
   const fine = p.step === 1 ? 3 * k + 2 : k;
   const r = p.linear.forward(fine, fine + 1)[0];
   if (!r) return undefined;
   const edge = r.dir === 1 ? r.to + 1 : r.to;
   return p.step === -1 ? edge / 3 : edge;
+}
+
+/** A follow's path read back, made once per path. */
+const inverses = new WeakMap<Path, Path>();
+function inverseOf(p: Path): Path {
+  let inv = inverses.get(p);
+  if (!inv) inverses.set(p, (inv = inversePath(p)));
+  return inv;
+}
+
+/** Just short of an element's far edge: the limit of its continuous image there, not the next element's start. */
+const BeforeEdge = 1 - 1e-9;
+
+/**
+ * The leader position whose image (`Follow.point`, what the follower's ends are made of) is the follower's position
+ * `y`: the inverse of the forward map itself, so a follower moved through it shows what was asked. Each leader
+ * element's image is a run of `point(k) + f · slope`, `f` in [0, 1) (a codon split by an intron runs on from its first
+ * nucleotide: its image is not its nucleotides); the elements tried are those near `y`'s preimage through `inv` (the
+ * follow read back) and near the nearest mapped positions on either side. Where `y` is in no element's image (an
+ * intron, a UTR), the nearest image the way the end moved (`m`), so a pan steps over a gap and never sticks. Undefined
+ * when nothing lies that way.
+ */
+function backTo(follow: Follow, inv: Path, axis: Axis, y: number, m: number): number | undefined {
+  const tried = new Set<number>();
+  let best: number | undefined;
+  let distance = Infinity;
+  const near = (x: number | undefined) => {
+    if (x === undefined) return undefined;
+    const k0 = Math.floor(x);
+    for (let k = k0 - 1; k <= k0 + 1; k++) {
+      if (tried.has(k)) continue;
+      tried.add(k);
+      const a = follow.point(k);
+      const half = follow.point(k + 0.5);
+      if (a === undefined || half === undefined || half === a) continue;
+      const slope = 2 * (half - a);
+      const f = (y - a) / slope;
+      if (f >= 0 && f < 1) return k + f;
+      if (m === 0) continue;
+      // the end of this element's image nearer `y`, when it lies the way the end moved
+      const b = a + slope;
+      const v = m > 0 ? Math.min(a, b) : Math.max(a, b);
+      const d = (v - y) * m;
+      if (d > 0 && d < distance) {
+        distance = d;
+        best = k + (v === a ? 0 : BeforeEdge);
+      }
+    }
+    return undefined;
+  };
+  return (
+    near(pathPoint(inv, y)) ??
+    near(nearestMapped(inv, axis, y, 1)) ??
+    near(nearestMapped(inv, axis, y, -1)) ??
+    (m === 0 ? undefined : best)
+  );
+}
+
+/**
+ * The leader place of the follower's nearest mapped position past `y` the way `m` says, within the follower's axis:
+ * where the next one starts (`m` > 0), or the far edge of the last one before (`m` < 0).
+ */
+function nearestMapped(inv: Path, axis: Axis, y: number, m: number): number | undefined {
+  const r = axis.ranges;
+  if (!r || r.length < 2) return undefined;
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i + 1 < r.length; i += 2) {
+    lo = Math.min(lo, r[i]);
+    hi = Math.max(hi, r[i + 1]);
+  }
+  // the inverse's source is in thirds of a residue when it steps up to nucleotides
+  const scale = inv.step === 1 ? 3 : 1;
+  if (m > 0) {
+    const from = Math.ceil(y);
+    if (from >= hi) return undefined;
+    const run = inv.linear.forward(from * scale, hi * scale)[0];
+    return run ? pathPoint(inv, Math.ceil(run.from / scale)) : undefined;
+  }
+  const to = Math.floor(y);
+  if (to <= lo) return undefined;
+  const runs = inv.linear.forward(lo * scale, to * scale);
+  const last = runs[runs.length - 1];
+  return last ? pathEnd(inv, Math.floor((last.from + last.length - 1) / scale) + 1) : undefined;
 }
 
 /** At least `width / maxPx` wide (within the total), centered, within the axis. */
