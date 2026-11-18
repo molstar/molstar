@@ -37,7 +37,8 @@ export interface LayerSource {
 export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSource | undefined {
   const data = layer.data;
   if (!data || !layer.placed) return undefined;
-  let access = model.systems.get(data.address)?.access;
+  // a template instance's data is the overlay's: its plan and length travel with it
+  let access = data.access ?? model.systems.get(data.address)?.access;
   if (!access) {
     let a = model.annotations.get(data.address);
     // a query reads the annotation it starts at (its filter is a later slice's)
@@ -50,7 +51,7 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
       ? { source: access.source.address, system: access.system, shape: access.shape }
       : { source: access.source, system: access.system, shape: access.shape };
   const path = layer.path;
-  const length = model.systems.get(data.system)?.length;
+  const length = data.length ?? model.systems.get(data.system)?.length;
   return {
     ...plan,
     dataSystem: data.system,

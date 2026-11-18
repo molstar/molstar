@@ -148,6 +148,8 @@ export interface SourceEntry {
   readonly address: string;
   readonly format: string;
   readonly uri?: string;
+  /** Where the source's index is, for a format read with one (FASTA's `.fai`). */
+  readonly index?: string;
   readonly value?: Value;
 }
 

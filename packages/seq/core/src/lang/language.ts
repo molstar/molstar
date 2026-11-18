@@ -103,6 +103,11 @@ export const SeqLanguage = defineLanguage({
           doc: 'The ranges inline, a column for each field (instead of `source`).',
         },
         source: { type: 'ref', kinds: ['source'], doc: 'The source that holds the ranges (instead of `rows`).' },
+        map: {
+          type: 'string',
+          enum: ['codon'],
+          doc: '`codon`: each item (its rows, grouped by `id`) is a coding sequence on the target, in genomic order with its `strand`: the item gets a coordinate system of its residues and a codon map onto the target, made when something names it.',
+        },
       },
     },
     values: {
@@ -188,6 +193,39 @@ export const SeqLanguage = defineLanguage({
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
         height: { type: 'number', min: 0, doc: 'The height of the track in px.' },
+        for_each: {
+          type: 'record',
+          fields: {
+            source: {
+              type: 'ref',
+              kinds: ['source'],
+              required: true,
+              doc: 'The source whose dynamic nodes the template shows.',
+            },
+            node_kind: {
+              type: 'string',
+              enum: ['ranges', 'values'],
+              required: true,
+              doc: 'The kind of node a track is made for: an annotation, which its layers draw.',
+            },
+            depth: {
+              type: 'integer',
+              min: 0,
+              doc: 'The nodes of the sources nested this many levels below `source` (0, its own, when absent).',
+            },
+            order: {
+              type: 'string',
+              pattern: '^-?[a-z_$][a-z0-9_]*$',
+              doc: 'The order of the tracks: `key` (when absent) or a param of the nodes, descending with a leading `-`.',
+            },
+            filter: {
+              type: 'map',
+              of: { type: 'string', doc: 'The value the param must have, as written.' },
+              doc: 'The params a node must have to get a track, each the value given.',
+            },
+          },
+          doc: 'A template: a track for each dynamic node of a kind a source holds, in order, its layers drawing that node (a layer without `data` draws the node).',
+        },
       },
     },
     layer: {

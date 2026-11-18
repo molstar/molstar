@@ -63,7 +63,9 @@ class ExampleRoot extends UiElement<ExampleView> {
     root.append(summary, pair, status, section('Spec', printed));
 
     // the same spec the view builds, composed from the default spec: the fixtures are read relative to the page
-    const viewer = createSeqViewer(DefaultSeqViewerSpec(), canvasHost);
+    const base = DefaultSeqViewerSpec();
+    const extra = view.registry?.() ?? [];
+    const viewer = createSeqViewer({ ...base, registry: [...(base.registry ?? []), ...extra] }, canvasHost);
     onCleanup(() => viewer.retire());
     const spec = view.build();
     printed.textContent = printSexpr(spec, { language: SeqLanguage });

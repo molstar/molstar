@@ -76,9 +76,8 @@ describe('seqExampleFixtures', () => {
   it('emits the files as assets of a build, under fixtures/', () => {
     const emitted: { fileName: string; source: Uint8Array }[] = [];
     seqExampleFixtures().generateBundle.call({ emitFile: (f) => emitted.push(f) });
-    expect(emitted.map((e) => e.fileName)).toEqual(['fixtures/p53/tp53-gene.seq']);
-    expect(Buffer.from(emitted[0].source).toString()).toBe(
-      readFileSync(fixtureFile('/fixtures/p53/tp53-gene.seq')!, 'utf8'),
-    );
+    expect(emitted.map((e) => e.fileName)).toEqual(['fixtures/p53/gene-region.seq', 'fixtures/p53/tp53-gene.seq']);
+    const gene = emitted.find((e) => e.fileName === 'fixtures/p53/tp53-gene.seq')!;
+    expect(Buffer.from(gene.source).toString()).toBe(readFileSync(fixtureFile('/fixtures/p53/tp53-gene.seq')!, 'utf8'));
   });
 });

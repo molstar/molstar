@@ -49,6 +49,11 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A source could not be opened for the render: its layers stay pending',
     hint: 'Check the source’s location and the assets the render may read',
   },
+  'seq.render.template.limit': {
+    severity: 'warning',
+    description: 'A template selects more nodes than it may make tracks for; the first ones in its order are shown',
+    hint: 'Filter the template, or raise maxTemplateTracks in the configuration',
+  },
   'seq.render.unsettled': {
     severity: 'warning',
     description: 'The export did not settle before its timeout: what was pending is drawn as pending',

@@ -59,6 +59,7 @@ export {
   viewSources,
 } from './export.js';
 export { RenderIssues } from './issues.js';
+export { OverlaySources } from './overlay-sources.js';
 export { LaneIndex, StickyLanes } from './lanes.js';
 export { type LayerSource, layerSource } from './layer-data.js';
 export {

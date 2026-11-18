@@ -21,7 +21,9 @@ import {
   SourceOpenError,
   type StoreClock,
 } from '@molstar/seqx-core/data';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { OverlaySources } from '@molstar/seqx-core/render';
+import { type Overlay, OverlayBuilder, type OverlayNode, type StaticModel } from '@molstar/seqx-core/resolve';
+import type { ResolvedView } from '@molstar/seqx-core/view';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 
@@ -40,6 +42,11 @@ interface Opening {
 export class StoreModel extends ReactiveModel {
   readonly store: DataStore;
   private readonly _open = new Map<string, Opening>();
+  private _overlays: OverlayBuilder | undefined;
+  private _overlaySources: OverlaySources | undefined;
+  private _synced: { overlay: Overlay; view: ResolvedView } | undefined;
+  /** The addresses of the overlay's sources reported as unopened: cleared when they open or their node goes. */
+  private _overlayFailed = new Set<string>();
   private readonly _issues = new State<readonly Issue[]>([]);
   /** Sources that could not be opened, one issue each (the store's own reports are `store.issues`). */
   readonly issues: ReadonlyState<readonly Issue[]> = this._issues.asReadonly;
@@ -55,6 +62,8 @@ export class StoreModel extends ReactiveModel {
       clock: options.clock ?? DomHostClock,
     });
     this.registerPermanentDispose(() => {
+      // the overlay's openings first: one that settles later is disposed, never attached
+      this._overlaySources?.dispose();
       for (const o of this._open.values()) o.abort.abort();
       this._open.clear();
       this.store.retire();
@@ -94,6 +103,38 @@ export class StoreModel extends ReactiveModel {
       started.push(this._attach(address, opening, runtime, assets));
     }
     await Promise.all(started);
+  }
+
+  /**
+   * Tier 2 for a frame: the overlay of the store's dynamic nodes now (one a node version), its sources (a dynamic
+   * annotation's rows, the nested sources the view's templates reach) opened when it or the view changes, and let go
+   * with their nodes. What cannot be opened is an issue here, as a source of the model's.
+   */
+  overlay(model: StaticModel, view: ResolvedView, ctx: { runtimes: readonly FormatRuntime[]; assets: AssetReader }) {
+    // the model's configuration is read through the model; other runtimes make another builder
+    if (this._overlays?.options.runtimes !== ctx.runtimes)
+      this._overlays = new OverlayBuilder({ runtimes: ctx.runtimes });
+    const overlay = this._overlays.of(model, this.store);
+    if (this._synced?.overlay !== overlay || this._synced.view !== view) {
+      this._synced = { overlay, view };
+      this._overlaySources ??= new OverlaySources(this.store, ctx.assets);
+      void this._overlaySources.sync(overlay, view).then((issues) => {
+        if (this.isRetired) return;
+        const now = new Set<string>();
+        for (const i of issues) {
+          now.add(i.address ?? '');
+          this._report(i.address ?? '', i);
+        }
+        for (const a of this._overlayFailed) if (!now.has(a)) this._report(a, undefined);
+        this._overlayFailed = now;
+      });
+    }
+    return overlay;
+  }
+
+  /** Holds the nodes a frame's layout shows (`ViewLayout.shown`), and lets go of those it no longer shows. */
+  holdShown(nodes: readonly OverlayNode[]): void {
+    this._overlaySources?.hold(nodes);
   }
 
   private async _attach(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {

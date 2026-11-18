@@ -4,16 +4,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import type { Want } from '@molstar/seqx-core/data';
+import { fitLevel, type Want } from '@molstar/seqx-core/data';
 import { partOf } from '@molstar/seqx-core/query';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
+  expandTemplate,
   followRange,
+  templateNodes,
   type ResolvedLayer,
   type ResolvedSection,
   type ResolvedTrack,
   type ResolvedView,
+  type TrackTemplate,
 } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
 import { DefaultRenderConfig, fontSize, type RenderConfig } from './config.js';
@@ -76,6 +80,8 @@ export interface ViewLayout {
   readonly wants: readonly Want[];
   /** The issues of this layout (a color it cannot read, a layer it cannot draw), each once. */
   readonly issues: readonly Issue[];
+  /** The dynamic nodes this layout shows, with what they name (with `nodes.holdShown`): its owner holds them. */
+  readonly shown: readonly OverlayNode[];
 }
 
 export interface LayoutInput {
@@ -207,6 +213,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   const labelSize = fontSize(config.labelFont);
   const sections: SectionLayout[] = [];
   const used = new Set<string>();
+  const showing = new Set<string>();
   let y = config.inset;
   for (const section of input.view.sections) {
     if (sections.length) y += config.sectionGap;
@@ -220,7 +227,31 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       );
     const top = y;
     const tracks: TrackLayout[] = [];
+    // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
+    // wanted, so the nodes it brings arrive
+    const shown: ResolvedTrack[] = [];
     for (const track of section.tracks) {
+      if (!track.template) {
+        shown.push(track);
+        continue;
+      }
+      if (axis) wantTemplate(input, section, track.template, axis, overlay, wants);
+      const instances = expandTemplate(input.model, overlay, section, track, config.maxTemplateTracks);
+      if (instances.length >= config.maxTemplateTracks && templateNodes(track, overlay).length > instances.length)
+        report(
+          issueOf(
+            RenderIssues,
+            'seq.render.template.limit',
+            `The template selects more than ${instances.length} nodes`,
+            {
+              address: track.address,
+              hint: RenderIssues.codes['seq.render.template.limit'].hint,
+            },
+          ),
+        );
+      shown.push(...instances);
+    }
+    for (const track of shown) {
       if (tracks.length) y += config.trackGap;
       const h = trackHeight(track, config);
       const box: Box = { x: dataX, y, width: dataW, height: h };
@@ -259,6 +290,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
           const lay = type.layout(prep, ctx, input.data, overlay, kept?.type === type ? kept.lay : undefined);
           state.lays.set(key, { type, lay });
           used.add(key);
+          // what a shown layer draws and goes through (a node, an item system)
+          if (layer.data) showing.add(layer.data.address).add(layer.data.system);
+          for (const e of layer.path?.edges ?? []) showing.add(e.from).add(e.to);
           layers.push({ key, layer, type, lay });
         }
       tracks.push({
@@ -274,7 +308,61 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   }
   // a layer gone from the view lets its last layout go
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
-  return { width, height, dpr, tokens: input.tokens, config, sections, wants, issues };
+  for (const i of overlay.issues) report(i);
+  const shownNodes = config.nodes.holdShown && overlay.nodes.length ? overlay.holds(showing) : [];
+  return { width, height, dpr, tokens: input.tokens, config, sections, wants, issues, shown: shownNodes };
+}
+
+/**
+ * A template source's region in view, on the section's system as the source names it, at the level that fits; and for
+ * a template below its source, each nested source's systems' regions in view (through the overlay's path from the
+ * section), so a nested source that sends its nodes by region is asked for them.
+ */
+function wantTemplate(
+  input: LayoutInput,
+  section: ResolvedSection,
+  template: TrackTemplate,
+  axis: AxisTransform,
+  overlay: Overlay,
+  out: Want[],
+) {
+  const pieces = axis.visible([]);
+  const coverage = input.data.coverage(template.source);
+  const name = input.model.systems.get(section.axis.system)?.name;
+  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
+  if (coverage && info) {
+    const level = fitLevel(coverage.levels, 1 / axis.devicePx);
+    for (let i = 0; i + 1 < pieces.length; i += 2)
+      out.push({
+        source: template.source,
+        system: info.name,
+        start: Math.floor(pieces[i]),
+        end: Math.ceil(pieces[i + 1]),
+        level,
+      });
+  }
+  if (template.depth < 1) return;
+  for (const nested of overlay.nested(new Map([[template.source, template.depth]]))) {
+    const cov = input.data.coverage(nested.address);
+    for (const s of cov?.systems ?? []) {
+      const target = overlay.systemNamed(s.name, nested.parent);
+      if (!target) continue;
+      const path =
+        target.address === section.axis.system ? undefined : overlay.path(section.axis.system, target.address).path;
+      if (!path && target.address !== section.axis.system) continue;
+      const ranges = HalfOpenRanges.normalize(path ? projectRanges(path, pieces) : pieces);
+      const ratio = path?.step === 1 ? 3 : path?.step === -1 ? 1 / 3 : 1;
+      const level = fitLevel(cov!.levels, ratio / axis.devicePx);
+      for (let i = 0; i + 1 < ranges.length; i += 2)
+        out.push({
+          source: nested.address,
+          system: s.name,
+          start: Math.floor(ranges[i]),
+          end: Math.ceil(ranges[i + 1]),
+          level,
+        });
+    }
+  }
 }
 
 function trackHeight(track: ResolvedTrack, config: RenderConfig): number {

@@ -63,4 +63,22 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'More shortest paths join two systems than the search compares; none is taken',
     hint: 'Map through fewer systems, or raise the candidate bound in the configuration',
   },
+  'seq.resolve.node.invalid': {
+    severity: 'warning',
+    description: 'A dynamic node a source sent is not a valid node of its kind; it is left out',
+  },
+  'seq.resolve.node.ref': {
+    severity: 'warning',
+    description:
+      'A dynamic node names what is neither a spec node nor a held dynamic node of a kind it takes; it is left out',
+  },
+  'seq.resolve.item.strand': {
+    severity: 'warning',
+    description: 'The rows of an item with a codon map are on both strands; the first row’s strand is taken',
+  },
+  'seq.resolve.node.depth': {
+    severity: 'warning',
+    description: 'A nested source is deeper than the nesting the configuration allows (EC-179); it is not requested',
+    hint: 'Raise the nesting depth in the configuration, or show the nodes of a shallower source',
+  },
 });

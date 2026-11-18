@@ -14,16 +14,18 @@ import { recordDrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { GeneFile, geneSeqText } from '../p53/data.js';
-import { ExampleViews } from '../views.js';
+import { RegionFile, regionSeqText, Transcripts } from '../p53/region.js';
+import { type ExampleView, ExampleViews } from '../views.js';
 
 // Every view: built, validated, resolved, laid out with no unexpected issue, rendered to SVG; two keep a draw-list
 // record. A fixture file is compared with what generates it: `SEQ_RECORDS=update` writes records and fixtures again.
 
 const update = process.env.SEQ_RECORDS === 'update';
 
-function context() {
+/** The context a view needs: the default runtime and the view's own, answering at once (no timer in tests). */
+function context(view?: ExampleView) {
   return createSeqContext({
-    registry: [{ kind: 'format-runtime', runtime: SeqRuntime }],
+    registry: [{ kind: 'format-runtime', runtime: SeqRuntime }, ...(view?.registry?.({ delayMs: 0 }) ?? [])],
     ports: { assets: () => nodeFixtureAssets() },
   });
 }
@@ -42,11 +44,15 @@ describe('the fixtures', () => {
   it('the committed gene file is what its generator writes', () => {
     compare(`${PackageFolder}${GeneFile}`, geneSeqText());
   });
+
+  it('the committed region file is what its generator writes', () => {
+    compare(`${PackageFolder}${RegionFile}`, regionSeqText());
+  });
 });
 
 describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s', (_, view) => {
   it('builds a spec the language accepts, which resolves and lays out with no issue', async () => {
-    const ctx = context();
+    const ctx = context(view);
     const spec = view.build();
     expect(ctx.check(spec)).toEqual([]);
     const model = ctx.resolve(spec);
@@ -58,7 +64,7 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
   });
 
   it('renders to SVG settled, with no issue', async () => {
-    const ctx = context();
+    const ctx = context(view);
     const r = await ctx.renderSvg(view.build(), { size: { width: 720, height: 320 } });
     expect(r.issues).toEqual([]);
     expect(r.settled).toBe(true);
@@ -94,6 +100,33 @@ describe('draw-list records', () => {
     expect(r.issues).toEqual([]);
     expect(r.settled).toBe(true);
     record('p53-gene', recordDrawLists(r.lists));
+    ctx.retire();
+  });
+});
+
+describe('p53 gene by region', () => {
+  const view = ExampleViews.find((v) => v.id === 'gene-by-region')!;
+
+  it('shows a track for each transcript the regions brought, and TP53’s domains through their codon maps', async () => {
+    const ctx = context(view);
+    const r = await ctx.renderSvg(view.build(), { size: { width: 720, height: 320 } });
+    expect(r.issues).toEqual([]);
+    expect(r.settled).toBe(true);
+    for (const id of Object.keys(Transcripts)) expect(r.svg).toContain(`Transcript ${id}<`);
+    for (const id of ['T1', 'T2', 'T3']) expect(r.svg).toContain(`Domains ${id}-domains<`);
+    expect(r.svg).not.toContain('Domains W1');
+    ctx.retire();
+  });
+
+  it('zoomed in on a stretch, only the transcripts its regions bring', async () => {
+    const ctx = context(view);
+    const r = await ctx.renderSvg(view.build(), {
+      size: { width: 720, height: 320 },
+      viewport: { start: 4200, end: 4800 },
+    });
+    expect(r.issues).toEqual([]);
+    expect(r.svg).toContain('Transcript W1<');
+    expect(r.svg).not.toContain('Transcript T1<');
     ctx.retire();
   });
 });

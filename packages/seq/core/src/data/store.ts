@@ -20,6 +20,7 @@ import {
   type Tables,
 } from './protocol.js';
 import { checkCoverage } from './seq-format.js';
+import { DefaultSummarySettings, type SummarySettings, summaryBytes, withSummaries } from './summaries.js';
 import { answerBytes, checkAnswer, DefaultMaxRows, isEmptyAnswer } from './tables.js';
 
 // The data store (_spec/README.md "Data", Store): entries by key in keyed states, versioned; the want sets of its
@@ -129,6 +130,8 @@ export interface StoreSettings {
     readonly factor: number;
     readonly cooldownMs: number;
   };
+  /** The value pyramid given a source that serves level 1 only (`withSummaries`); `false`: none. */
+  readonly summaries: SummarySettings | false;
 }
 
 export const DefaultStoreSettings: StoreSettings = {
@@ -140,6 +143,7 @@ export const DefaultStoreSettings: StoreSettings = {
   maxIssues: 100,
   graceMs: 300,
   retry: { attempts: 3, baseMs: 500, factor: 2, cooldownMs: 30_000 },
+  summaries: DefaultSummarySettings,
 };
 
 /** A consumer's want set (the live view, an export): merged with the others by best priority. */
@@ -231,6 +235,7 @@ export class DataStore extends ReactiveModel {
   private readonly _reported: Reported[] = [];
   private _capped = false;
   private readonly _version = new State(0);
+  private readonly _nodeVersion = new State(0);
   private readonly _settled = new State(true);
   private readonly _overBudget = new State(false);
   private readonly _issues = new State<readonly Issue[]>([]);
@@ -250,6 +255,11 @@ export class DataStore extends ReactiveModel {
   /** Moves when any entry does. */
   get version(): ReadonlyState<number> {
     return this._version;
+  }
+
+  /** Moves when a node entry comes or goes (the overlay's version, composition.md's tier 2). */
+  get nodeVersion(): ReadonlyState<number> {
+    return this._nodeVersion;
   }
 
   /** No wanted entry pending (a failed one waiting to be asked again is settled). */
@@ -272,6 +282,13 @@ export class DataStore extends ReactiveModel {
     return this._bytes;
   }
 
+  /** The bytes the attached sources' value pyramids hold: counted against `maxBytes` with the entries'. */
+  get summaryBytes(): number {
+    let n = 0;
+    for (const s of this._sources.values()) n += summaryBytes(s.opened);
+    return n;
+  }
+
   /** Requests in flight now. */
   get inFlight(): number {
     return this._inFlight;
@@ -281,15 +298,20 @@ export class DataStore extends ReactiveModel {
 
   /**
    * Attaches an opened source under its address. Its coverage is checked first: a malformed one is an issue and the
-   * source stays unavailable (`false`).
+   * source stays unavailable (`false`); a retired store attaches nothing (`false`).
    */
-  attach(address: string, opened: OpenedSource): boolean {
+  attach(address: string, source: OpenedSource): boolean {
+    // a late opening after the store is retired is the caller's to dispose
+    if (this.isRetired) return false;
     if (this._sources.has(address)) this.detach(address);
-    const bad = checkCoverage(opened.coverage);
+    const bad = checkCoverage(source.coverage);
     if (bad) {
       this._run(() => this._report(address, { ...bad, address }));
       return false;
     }
+    // a level-1 source's values get a pyramid, so a values layer zoomed out reads a coarse level
+    const summaries = this.settings.summaries;
+    const opened = summaries ? withSummaries(source, summaries, this.settings.maxRows) : source;
     const names = new Map<string, string>();
     for (const s of opened.coverage.systems) {
       names.set(s.name, s.name);
@@ -338,6 +360,11 @@ export class DataStore extends ReactiveModel {
 
   getNode(source: string, key: string): NodeEntry | undefined {
     return this._nodes.get(nodeKey(source, key));
+  }
+
+  /** Every node entry held now, by `<source>#<key>` (live: read it, never keep it). */
+  get nodes(): ReadonlyMap<string, NodeEntry> {
+    return this._nodes.values;
   }
 
   /** Holds a node (a placement shown, the selection, a highlight) until the returned release is called. */
@@ -817,7 +844,8 @@ export class DataStore extends ReactiveModel {
    * `evicted`. Never the view, never a request on its way. Still over: over budget, reported once each time.
    */
   private _evict(): void {
-    const max = this.settings.maxBytes;
+    // a pyramid is not evicted (it goes with its source), but it leaves the entries less room
+    const max = this.settings.maxBytes - this.summaryBytes;
     for (const rank of [Unwanted, Rank.prefetch, Rank.margin]) {
       if (this._bytes <= max) break;
       for (const slot of [...this._slots.values()]) {
@@ -857,6 +885,7 @@ export class DataStore extends ReactiveModel {
         const version = this._next();
         this._nodes.set(k, { source, key: n.key, node: n.node, version });
         this._version.set(version);
+        this._nodeVersion.set(version);
       } else if (!nodesEqual(held.node, n.node)) {
         const message = 'A node came again with other content: kept';
         this._report(source, issueOf(StoreIssues, 'seq.store.node_conflict', message, { address: source }));
@@ -875,7 +904,9 @@ export class DataStore extends ReactiveModel {
     this._holders.delete(k);
     if (this._nodes.has(k)) {
       this._nodes.delete(k);
-      this._version.set(this._next());
+      const version = this._next();
+      this._version.set(version);
+      this._nodeVersion.set(version);
     }
   }
 }

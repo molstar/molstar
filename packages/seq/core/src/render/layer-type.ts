@@ -7,7 +7,7 @@
 import type { Issue } from '@molstar/core/repr/tree';
 import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
 import type { ElementKey, Location } from '@molstar/seqx-core/query';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import type { RenderConfig } from './config.js';
@@ -25,12 +25,9 @@ export interface StoreReader {
   get(key: string): DataEntry | undefined;
 }
 
-/** The dynamic nodes of tier 2 (none are drawn in the first slice): its version is part of the draw lists' key. */
-export interface Overlay {
-  readonly version: number;
-}
-
-export const EmptyOverlay: Overlay = { version: 0 };
+/** The dynamic nodes of tier 2 (the resolve pass's overlay): its version is part of the draw lists' key. */
+export type { Overlay } from '@molstar/seqx-core/resolve';
+export { EmptyOverlay } from '@molstar/seqx-core/resolve';
 
 export interface Box {
   readonly x: number;

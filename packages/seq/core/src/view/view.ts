@@ -21,6 +21,7 @@ import {
   type Value,
 } from '@molstar/core/repr/tree';
 import {
+  type AccessPlan,
   identityPath,
   type Path,
   pathDir,
@@ -81,6 +82,9 @@ export interface LayerData {
   readonly system: string;
   /** The shape of the node it names (a query on a sequence: undefined, a location of any shape). */
   readonly shape?: Shape;
+  /** A dynamic node's access plan and its system's length (a template's instance: the overlay's, not the model's). */
+  readonly access?: AccessPlan;
+  readonly length?: number;
 }
 
 export interface ResolvedLayer {
@@ -101,11 +105,27 @@ export interface ResolvedLayer {
   readonly placed: boolean;
 }
 
+/**
+ * A track template (`for_each`): a track for each dynamic node of `kind` that `source` (or a source nested `depth`
+ * levels below it) holds, in `order`, filtered; expanded at layout, never here (the resolved view stays pure).
+ */
+export interface TrackTemplate {
+  readonly source: string;
+  readonly kind: string;
+  readonly depth: number;
+  /** `key`, or a param of the nodes; descending with a leading `-`. */
+  readonly order: string;
+  /** Params a node must have, each the value given (compared as written). */
+  readonly filter: Readonly<Record<string, string>>;
+}
+
 export interface ResolvedTrack {
   readonly address: string;
   readonly label: string;
   readonly height?: number;
+  /** Its layers; a template's layers without data are not placed here: each instance places them on its node. */
   readonly layers: readonly ResolvedLayer[];
+  readonly template?: TrackTemplate;
 }
 
 export interface ResolvedSection {
@@ -208,8 +228,11 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       if (t.kind !== 'track' || t.id === undefined) continue;
       const ta = `${at}/${t.id}`;
       const layers: ResolvedLayer[] = [];
+      const template = templateOf(param(t, 'for_each'));
       (t.children ?? []).forEach((l, index) => {
-        if (l.kind === 'layer') layers.push(layerOf(model, l, index, ta, known ? axis.system : undefined, report));
+        if (l.kind !== 'layer') return;
+        const system = known ? axis.system : undefined;
+        layers.push(layerOf(model, l, index, ta, system, report, template !== undefined));
       });
       const label = param(t, 'label');
       const height = param(t, 'height');
@@ -218,6 +241,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
         label: typeof label === 'string' ? label : t.id,
         ...(typeof height === 'number' ? { height } : {}),
         layers,
+        ...(template ? { template } : {}),
       });
     }
     sections.push({ address: at, axis, ...(follow ? { follow } : {}), tracks });
@@ -261,6 +285,23 @@ function axisOf(model: StaticModel, system: string, range: Value | undefined): A
   return length === undefined ? base : { ...base, ranges: [0, length] };
 }
 
+function templateOf(v: Value | undefined): TrackTemplate | undefined {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return undefined;
+  const r = v as Record<string, Value>;
+  const source = exactAddress(r.source);
+  if (source === undefined || typeof r.node_kind !== 'string') return undefined;
+  const filter: Record<string, string> = {};
+  if (r.filter && typeof r.filter === 'object' && !Array.isArray(r.filter))
+    for (const [k, x] of Object.entries(r.filter as Record<string, Value>)) if (typeof x === 'string') filter[k] = x;
+  return {
+    source,
+    kind: r.node_kind,
+    depth: typeof r.depth === 'number' ? r.depth : 0,
+    order: typeof r.order === 'string' ? r.order : 'key',
+    filter,
+  };
+}
+
 function layerOf(
   model: StaticModel,
   l: Node,
@@ -268,6 +309,7 @@ function layerOf(
   track: string,
   system: string | undefined,
   report: Report,
+  template = false,
 ): ResolvedLayer {
   const type = String(param(l, 'type'));
   const address = l.id === undefined ? undefined : `${track}/${l.id}`;
@@ -293,6 +335,8 @@ function layerOf(
   }
   // a section with no system was reported; its layers are not placed
   if (system === undefined) return { ...base, placed: false };
+  // a template's layer without data is placed by each instance on its node
+  if (template && param(l, 'data') === undefined && type !== 'letters') return { ...base, placed: false };
 
   const data = dataOf(model, param(l, 'data'), type, system);
   if (!data) {

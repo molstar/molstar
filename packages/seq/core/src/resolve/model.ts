@@ -77,6 +77,8 @@ export interface ResolveConfig {
    * opened: int32's max. Layout never reads it: an axis of unknown length is pending.
    */
   readonly openQueryLength: number;
+  /** Levels of sources nested in dynamic nodes the overlay requests at most (EC-179): 2. */
+  readonly maxNestedDepth: number;
 }
 
 export const DefaultResolveConfig: ResolveConfig = {
@@ -84,6 +86,7 @@ export const DefaultResolveConfig: ResolveConfig = {
   maxPathCandidates: 16,
   encoding: 'cheapest',
   openQueryLength: OpenLength,
+  maxNestedDepth: 2,
 };
 
 /** A coordinate system the spec declares: a sequence, its length when its letters are inline. */
@@ -179,6 +182,8 @@ export interface StaticModel extends QueryModel {
   readonly issues: readonly Issue[];
   /** The shortest unambiguous path, composed once and kept (across resolves while the maps its search read hold). */
   path(from: string, to: string): PathResult;
+  /** The steps from a system along the spec's maps, both ways: what a path search reads (the overlay adds its own). */
+  edgesFrom(system: string): readonly Edge[];
   /**
    * A Location carried onto a system: each part along its path (rects are not carried yet); a part with no path is
    * left out with the path's issue. With `close`, the location is first closed (`close`).
@@ -457,6 +462,27 @@ function mapEntry(
   return { map, issues };
 }
 
+/** A `map` node resolved (the overlay's item maps are built as one): its entry and its issues. */
+export function resolveMapNode(
+  address: string,
+  node: Node,
+  from: SystemEntry,
+  to: SystemEntry,
+  config: ResolveConfig,
+): { map: MapEntry; issues: Issue[] } {
+  return mapEntry({ node, address }, from, to, config);
+}
+
+/** A `ranges` or `values` node resolved on its target (the overlay's dynamic annotations are resolved so). */
+export function resolveAnnotationNode(
+  address: string,
+  node: Node,
+  target: SystemEntry,
+  source: string | undefined,
+): { annotation: AnnotationEntry; issues: Issue[] } {
+  return annotationEntry({ node, address }, target, source);
+}
+
 const Strands: Readonly<Record<string, number>> = { '+': 1, '-': -1 };
 
 function annotationEntry(
@@ -608,6 +634,10 @@ class Model implements StaticModel {
     }
   }
 
+  edgesFrom(system: string): readonly Edge[] {
+    return this.edges.get(system) ?? [];
+  }
+
   /** A carried search is valid while every system it read has the same map entries. */
   private valid(entry: PathEntry): boolean {
     for (const [system, maps] of entry.deps) {
@@ -731,7 +761,7 @@ class Model implements StaticModel {
 }
 
 /** A path's issue, at the system it starts from, with both systems as its places. */
-function pathIssue(why: 'none' | 'ambiguous' | 'limit', from: string, to: string): Issue {
+export function pathIssue(why: 'none' | 'ambiguous' | 'limit', from: string, to: string): Issue {
   const code =
     why === 'none'
       ? 'seq.resolve.path.none'

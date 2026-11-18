@@ -89,6 +89,14 @@ from is kept (the resolver keeps entries by hash), a changed one is opened again
 cleared. A source that cannot be opened is an issue at its address (`issues`); a failed opening, or a coverage the store
 refuses (its own report), is forgotten so the next sync tries again. Retired with its owner, the store with it.
 
+- **The overlay** (tier 2): `overlay(model, view, { runtimes, assets })` gives a frame the overlay of the store's
+  dynamic nodes (`OverlayBuilder`: one a node version and model, the model's configuration read through it, another
+  builder when the runtimes change; its version is part of the frame's key) and, when it or the view changed, syncs its
+  sources (`OverlaySources`: a dynamic annotation's rows, the nested sources the view's templates reach), whose failures
+  are issues here while their node is held (cleared when it opens or goes). A rebuilt frame's shown nodes are held
+  (`holdShown`, the layout's `shown`) until a later frame no longer shows them. Why here: the store and what is attached
+  to it have one owner.
+
 ## Composition
 
 `viewer-spec.ts`, `viewer.ts`, `default-spec.ts`: a viewer is composed from an explicit spec, as a Mol* plugin is.
