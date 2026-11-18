@@ -28,13 +28,7 @@ import {
   setDomainsColor,
   toggleTrack,
 } from '../../features/editing/compose.js';
-import {
-  addTrack,
-  AddedTrack,
-  RegionText,
-  trackHeight,
-  trackOrder,
-} from '../p53/compose.js';
+import { addTrack, AddedTrack, RegionText, trackHeight, trackOrder } from '../p53/compose.js';
 
 // The p53 example stories, headless on a fake clock, each composed as its story composes it: the editing story's host
 // stack, viewer and SVG export; the bookmarks story's delayed region and its text's links. The selection example is the

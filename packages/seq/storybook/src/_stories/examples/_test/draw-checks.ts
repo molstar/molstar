@@ -30,7 +30,9 @@ export interface OpenOptions {
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
 export async function openExample(view: ExampleView, options: OpenOptions): Promise<SeqViewer> {
   const { gene, delayMs = 300, wait = 6000, realClock = false } = options;
-  vi.useFakeTimers({ toFake: realClock ? ['setTimeout', 'clearTimeout'] : ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
+  vi.useFakeTimers({
+    toFake: realClock ? ['setTimeout', 'clearTimeout'] : ['setTimeout', 'clearTimeout', 'Date', 'performance'],
+  });
   const text = view.id === 'gene-by-region' ? regionSeqText() : gene;
   const base = DefaultSeqViewerSpec();
   const v = createSeqViewer({

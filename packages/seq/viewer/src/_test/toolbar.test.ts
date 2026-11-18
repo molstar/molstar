@@ -77,7 +77,10 @@ describe('the toolbar’s buttons, headless', () => {
     const [back, forward] = toolbarButtons(v);
     expect(DefaultToolbar).toEqual(['view.back', 'view.forward']);
     expect([back.command, forward.command]).toEqual(['view.back', 'view.forward']);
-    expect([back.disabled.value, forward.disabled.value]).toEqual(['No view to go back to', 'No view to go forward to']);
+    expect([back.disabled.value, forward.disabled.value]).toEqual([
+      'No view to go back to',
+      'No view to go forward to',
+    ]);
     const told: unknown[] = [];
     back.disabled.listen((d) => told.push(d));
     v.execute('view.focus', { section: Protein, focus: { start: 1, end: 3 } });

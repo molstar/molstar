@@ -91,10 +91,7 @@ afterEach(() => {
 async function mount() {
   const target = document.createElement('div');
   document.body.appendChild(target);
-  viewer = createSeqViewer(
-    { ...canvasOnly(), config: [[viewerItem('viewport.maxPxPerPosition'), 1000]] },
-    target,
-  );
+  viewer = createSeqViewer({ ...canvasOnly(), config: [[viewerItem('viewport.maxPxPerPosition'), 1000]] }, target);
   await viewer.load(proteinOnGene());
   await viewer.settle();
   frames.flush();

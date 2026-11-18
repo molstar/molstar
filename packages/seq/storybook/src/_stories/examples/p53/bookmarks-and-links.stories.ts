@@ -9,7 +9,13 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { bookmarkRows, bookmarkView, composeViewer, focusBookmark, LinkStatus } from '../../features/addressing/compose.js';
+import {
+  bookmarkRows,
+  bookmarkView,
+  composeViewer,
+  focusBookmark,
+  LinkStatus,
+} from '../../features/addressing/compose.js';
 import { RegionText } from './compose.js';
 
 // Bookmarks and links on the gene's region, read region by region: each bookmark is a ref; the transcripts' arrive with

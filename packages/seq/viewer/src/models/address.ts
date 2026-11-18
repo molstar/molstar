@@ -471,7 +471,8 @@ export class AddressModel extends ReactiveModel {
 
   /** Clears a highlight channel, or every one: `highlightAddress`'s inverse. The channels cleared. */
   clearHighlight(channel?: string): number {
-    const names = channel === undefined ? [...this.highlight.names.value] : this.highlight.get(channel) ? [channel] : [];
+    const names =
+      channel === undefined ? [...this.highlight.names.value] : this.highlight.get(channel) ? [channel] : [];
     for (const n of names) this.highlight.clear(n);
     return names.length;
   }

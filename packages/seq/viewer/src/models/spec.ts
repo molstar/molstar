@@ -213,12 +213,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    */
   readonly loaded: ReadonlyState<boolean>;
 
-  constructor(
-    root: Node,
-    options: ResolveOptions = {},
-    config: ViewerConfig = DefaultViewerConfig,
-    loaded = true,
-  ) {
+  constructor(root: Node, options: ResolveOptions = {}, config: ViewerConfig = DefaultViewerConfig, loaded = true) {
     super();
     this.config = config;
     this._loaded = new State(loaded);

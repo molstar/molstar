@@ -129,8 +129,8 @@ function checkRows(lay: RangesLay, rows: readonly Row[], from: number, to: numbe
 
 const layers = (v: SeqViewer) => v.frame!.layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers));
 const layerIn = (v: SeqViewer, section: string, track: string) => {
-  const t = v.frame!.layout.sections
-    .find((s) => s.section.address === `${ViewId}/${section}`)
+  const t = v
+    .frame!.layout.sections.find((s) => s.section.address === `${ViewId}/${section}`)
     ?.tracks.find((x) => x.track.address.endsWith(`/${track}`));
   return t?.layers.find((l) => l.type.name === 'ranges')?.lay as RangesLay | undefined;
 };

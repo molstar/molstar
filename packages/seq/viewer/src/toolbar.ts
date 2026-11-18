@@ -51,7 +51,13 @@ export function toolbarButtons(viewer: SeqViewer, commands: readonly string[] = 
     const key = chord ? formatChord(chord) : undefined;
     const history = viewer.view.history;
     const disabled: ReadonlyState<string | false> = derive(history, (h) =>
-      command === 'view.back' ? (h.back > 0 ? false : 'No view to go back to') : h.forward > 0 ? false : 'No view to go forward to',
+      command === 'view.back'
+        ? h.back > 0
+          ? false
+          : 'No view to go back to'
+        : h.forward > 0
+          ? false
+          : 'No view to go forward to',
     );
     out.push({
       command,

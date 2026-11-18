@@ -557,8 +557,9 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 - **Projection** (`projectRanges(path, ranges, out?)`, `StaticModel.project`): ranges along the path, into the caller's
   buffer when given; from nucleotides to residues, the residues they touch (EC-18). A part with no path is left out with
   its issue; rects are not projected yet.
-- **A point** (`projectPoint`): the continuous image of a fractional position: where element `floor(x)` starts on the
-  target plus the fraction times the scale in its run's direction. `pathDir` is the path's direction (its first run's).
+- **A point** (`projectPoint`, exported from `resolve`: the viewer's follows read it too): the continuous image of a
+  fractional position: where element `floor(x)` starts on the target plus the fraction times the scale in its run's
+  direction. `pathDir` is the path's direction (its first run's).
 - **Boundaries** (`projectBoundary`, EC-28, EC-29): the boundary before element `k` lands before its first image, else
   after element `k − 1`'s, else nowhere; onto residues, one inside a codon lands after its residue.
 - **Status** (`pathStatus`): paired when the element's whole image exists (a residue's three nucleotides), else

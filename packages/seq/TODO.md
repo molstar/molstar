@@ -107,8 +107,6 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **Emphasis**: projected selection bands are rounded at intron edges, where the frame rule wants a piece's cut ends
   square (a projection-aware cut flag); the keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum
   width or a caret).
-- **Exports**: `projectPoint` from `@molstar/seqx-core/resolve`, so the viewer drops its copy (`pathPoint` in
-  `models/view.ts`).
 - **Tests**: `render/_test/frame-time.test.ts`'s per-frame max bounds flake under a parallel heavy run (18 and 50 ms
   against 16): best of three, or a percentile instead of the max. The p53 fixtures round-tripped JSON ↔ MessagePack in a
   test here (io cannot import them).
@@ -116,16 +114,12 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 ## `@molstar/seqx-viewer`
 
 - Addressing: copy link from a context menu (and its key).
-- Links: one followed before the viewer's spec is loaded is refused ("names nothing"), not kept, and a focus kept until
-  the view is placed does not record its address (`focusAddress()` reads the shown range): treat "no spec yet" as
-  waiting and record the focus when the kept move lands (the example story holds the link itself today).
 - Selection: drag snapping to whole codons over nucleotides (EC-149); rects (dot plots) projected and drag-selected;
   context-menu entries for `selection.add` and `selection.subtract`; the `genome-browser` preset without the add,
   subtract and extend drags (a drag pans there): decided with the presets; a cursor moved off-screen on a follower
   revealing itself by moving the leader.
-- Editing: a `track.add` command (the example inserts a track with a plain patch); a rebase's `invalid` discards every
-  change of theirs from `partial`, an unrelated one included (by design): the editing UI says so.
-- The view's history has no chrome yet: toolbar Back and Forward with their disabled state (`view.history` is reactive).
+- Editing: a rebase's `invalid` discards every change of theirs from `partial`, an unrelated one included (by design):
+  the editing UI says so.
 - Tests: the frame lane's dropped-tick leak is fixed in `@molstar/ui/dom`, so the stories' twins can drop their per-test
   `DomHost.requestAnimationFrame` swap.
 - Wrapping pans on a cyclic axis (only clamped now); scroll groups across viewers and views (EC-113); ring windows
@@ -140,15 +134,12 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-examples`, `@molstar/seqx-storybook`
 
-- **Drawing against the data**: for each example view's ranges layers at the fit view and at a zoom across a tile edge,
-  every item of the data in view has its marks drawn (a transcript's every exon) and every drawn mark is hit (the hit
-  half is `hits.test.ts`). Why: canvas, SVG and hits can agree and all be wrong. Done when each example view carries it.
-- The other datasets and their views (Antibody, Plasmid, tRNA, Globins); the Complex dataset (CDK2 with cyclin A, its
-  interface, PAE, ligands with AlphaFill's transplants) with pairs across chains, dot plots and ligands, its entries
-  chosen and checked against their sources then.
+- The other datasets and their views (Antibody, Plasmid, tRNA, Globins), each carrying a drawing-against-the-data test
+  as the p53 views do (`drawn-vs-data.test.ts`); the Complex dataset (CDK2 with cyclin A, its interface, PAE, ligands
+  with AlphaFill's transplants) with pairs across chains, dot plots and ligands, its entries chosen and checked against
+  their sources then.
 - `vitest` in the Storybook package's dev dependencies; the Vite plugin's test moves under `src`.
-- The Features links story's `describeRun` prints a wait's message twice (the example uses `describeLinkRun`); the
-  examples' root keeps its own copy of the SVG-follow block (`_stories/follow-svg.ts`).
+- The examples' root keeps its own copy of the SVG-follow block (`_stories/follow-svg.ts`).
 
 ## Deferred
 
