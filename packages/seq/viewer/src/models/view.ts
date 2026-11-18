@@ -12,7 +12,7 @@
 
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
-import { inversePath, type Path, projectPoint } from '@molstar/seqx-core/resolve';
+import { inversePath, type Path, projectEnd, projectPoint } from '@molstar/seqx-core/resolve';
 import {
   type Axis,
   type Follow,
@@ -756,7 +756,7 @@ function carried(
   config: ViewerConfig,
 ): [number, number] | undefined {
   let a = follow.point(ps);
-  let b = pathEnd(follow.path, pe);
+  let b = projectEnd(follow.path, pe);
   if (a === undefined || b === undefined) {
     const arc = config.follow.cyclicArc === 'hull' ? 'hull' : 'shortest';
     const hull = followRange(section, [Math.floor(ps), Math.ceil(pe)], { arc });
@@ -780,17 +780,6 @@ function carried(
 /** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */
 const MaxFollowDepth = 16;
 
-/** The image of a range's end: the far edge of its last element's last place, or `projectPoint` within an element. */
-function pathEnd(p: Path, x: number): number | undefined {
-  if (!Number.isInteger(x)) return projectPoint(p, x);
-  const k = x - 1;
-  const fine = p.step === 1 ? 3 * k + 2 : k;
-  const r = p.linear.forward(fine, fine + 1)[0];
-  if (!r) return undefined;
-  const edge = r.dir === 1 ? r.to + 1 : r.to;
-  return p.step === -1 ? edge / 3 : edge;
-}
-
 /** A follow's path read back, made once per path. */
 const inverses = new WeakMap<Path, Path>();
 function inverseOf(p: Path): Path {
@@ -804,37 +793,39 @@ const BeforeEdge = 1 - 1e-9;
 
 /**
  * The leader position whose image (`Follow.point`, what the follower's ends are made of) is the follower's position
- * `y`: the inverse of the forward map itself, so a follower moved through it shows what was asked. Each leader
- * element's image is a run of `point(k) + f · slope`, `f` in [0, 1) (a codon split by an intron runs on from its first
- * nucleotide: its image is not its nucleotides); the elements tried are those near `y`'s preimage through `inv` (the
- * follow read back) and near the nearest mapped positions on either side. Where `y` is in no element's image (an
- * intron, a UTR), the nearest image the way the end moved (`m`), so a pan steps over a gap and never sticks. Undefined
- * when nothing lies that way.
+ * `y`: the inverse of the forward map itself, so a follower moved through it shows what was asked. The forward map is
+ * place by place (a residue's three fine places across a codon step: a codon split by an intron is its nucleotides),
+ * each place's image a run of `point(k) + f · slope`, `f` in [0, 1); the places tried are those near `y`'s preimage
+ * through `inv` (the follow read back) and near the nearest mapped positions on either side. Where `y` is in no place's
+ * image (an intron, a UTR), the nearest image the way the end moved (`m`), so a pan steps over a gap and never sticks.
+ * Undefined when nothing lies that way.
  */
 function backTo(follow: Follow, inv: Path, axis: Axis, y: number, m: number): number | undefined {
+  // a place's width in leader positions: a third of a residue across a codon step
+  const u = follow.path.step === 1 ? 1 / 3 : 1;
   const tried = new Set<number>();
   let best: number | undefined;
   let distance = Infinity;
   const near = (x: number | undefined) => {
     if (x === undefined) return undefined;
-    const k0 = Math.floor(x);
+    const k0 = Math.floor(x / u + 1e-9);
     for (let k = k0 - 1; k <= k0 + 1; k++) {
       if (tried.has(k)) continue;
       tried.add(k);
-      const a = follow.point(k);
-      const half = follow.point(k + 0.5);
+      const a = follow.point(k * u);
+      const half = follow.point((k + 0.5) * u);
       if (a === undefined || half === undefined || half === a) continue;
       const slope = 2 * (half - a);
       const f = (y - a) / slope;
-      if (f >= 0 && f < 1) return k + f;
+      if (f >= 0 && f < 1) return (k + f) * u;
       if (m === 0) continue;
-      // the end of this element's image nearer `y`, when it lies the way the end moved
+      // the end of this place's image nearer `y`, when it lies the way the end moved
       const b = a + slope;
       const v = m > 0 ? Math.min(a, b) : Math.max(a, b);
       const d = (v - y) * m;
       if (d > 0 && d < distance) {
         distance = d;
-        best = k + (v === a ? 0 : BeforeEdge);
+        best = (k + (v === a ? 0 : BeforeEdge)) * u;
       }
     }
     return undefined;
@@ -872,7 +863,7 @@ function nearestMapped(inv: Path, axis: Axis, y: number, m: number): number | un
   if (to <= lo) return undefined;
   const runs = inv.linear.forward(lo * scale, to * scale);
   const last = runs[runs.length - 1];
-  return last ? pathEnd(inv, Math.floor((last.from + last.length - 1) / scale) + 1) : undefined;
+  return last ? projectEnd(inv, Math.floor((last.from + last.length - 1) / scale) + 1) : undefined;
 }
 
 /** At least `width / maxPx` wide (within the total), centered, within the axis. */

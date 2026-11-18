@@ -567,8 +567,16 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   buffer when given; from nucleotides to residues, the residues they touch (EC-18). A part with no path is left out with
   its issue; rects are not projected yet.
 - **A point** (`projectPoint`, exported from `resolve`: the viewer's follows read it too): the continuous image of a
-  fractional position: where element `floor(x)` starts on the target plus the fraction times the scale in its run's
-  direction. `pathDir` is the path's direction (its first run's).
+  fractional position, place by place: across a codon step residue `x` is fine place `3x`, so each nucleotide of a codon
+  is an edge of its own and a codon split by an intron follows its nucleotides, never the intron; where place
+  `floor(x)` starts on the target plus the fraction in its run's direction. A fine place within 1e-9 of a whole one is
+  that one (a third is not exact in floating point). `projectEnd` is a window end's image: at a whole position the far
+  edge of the place before it.
+- **A direction** (`pathDirection`, `pathDir`): the direction of the runs covering most of the path's length, `mixed`
+  when it has runs both ways (an inversion). Why the majority: a direction that changed while panning would turn an
+  axis over under the hand.
+- **Coding ranges** (`codingRanges`): the nucleotide side of a path with a codon step, sorted and merged, either way
+  along it: what a section's `pieces: coding` shows.
 - **Boundaries** (`projectBoundary`, EC-28, EC-29): the boundary before element `k` lands before its first image, else
   after element `k − 1`'s, else nowhere; onto residues, one inside a codon lands after its residue.
 - **Status** (`pathStatus`): paired when the element's whole image exists (a residue's three nucleotides), else

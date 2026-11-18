@@ -146,13 +146,13 @@ describe('ViewModel: a follower leads (follow.followerMoves: lead)', () => {
     }
   });
 
-  it('a codon split by the intron: an end over it steps to where the leader can put it, the way it moved', () => {
-    // minus strand: residue 2 is 12, 6 and 5, its image runs on from 12 down to 10; nucleotides 5 to 10 are no
-    // follower's start, so a start moved into them goes on to 10, and back to 5
+  it('a codon split by the intron: each of its nucleotides is an edge the follower can show', () => {
+    // minus strand: residue 2 is 12, 6 and 5, place by place, so a start moved onto 5 or 6 stays where it was asked
     const { view, range } = placed({ strand: '-' });
     view.setRange(ProteinSection, 1.5, 3);
     view.pan(GeneSection, 0.5);
-    expect(range(GeneSection)![0]).toBeCloseTo(10, 6);
+    expect(range(GeneSection)![0]).toBeCloseTo(5.5, 6);
+    expect(range(ProteinSection)![1]).toBeCloseTo(8.5 / 3, 6);
     view.pan(GeneSection, -0.5);
     expect(range(GeneSection)![0]).toBeCloseTo(5, 6);
   });
@@ -160,9 +160,10 @@ describe('ViewModel: a follower leads (follow.followerMoves: lead)', () => {
   it('a pan over an intron moves into it as far as the leader can show, then steps over it, both ways', () => {
     const { view, range } = placed();
     view.setRange(ProteinSection, 1, 3);
-    // [5, 16] by 2: the start in the intron [7, 12), where residue 1's continuous image still reaches
+    // [5, 16] by 2: the start in the intron [7, 12), no place's image: it steps over to the next place, 12 (residue
+    // 1's third nucleotide), the end where it was asked
     view.pan(GeneSection, 2);
-    close(range(GeneSection), [7, 18]);
+    close(range(GeneSection), [12, 18]);
     // on by 2: the start would be in the intron past that image, so it steps over to residue 2's first nucleotide
     view.pan(GeneSection, 2);
     const [s, e] = range(GeneSection)!;
@@ -183,7 +184,11 @@ describe('ViewModel: a follower leads (follow.followerMoves: lead)', () => {
     for (let i = 0; i < 30; i++) {
       view.pan(GeneSection, 0.4);
       const now = range(GeneSection)![0];
-      if (range(ProteinSection)![1] >= 4) break;
+      // at the protein's end the pan stops: the last step taken is where the way back starts
+      if (range(ProteinSection)![1] >= 4) {
+        last = Math.max(last, now);
+        break;
+      }
       expect(now).toBeGreaterThan(last);
       last = now;
     }
