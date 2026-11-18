@@ -7,7 +7,7 @@
 import { State } from '@molstar/core/reactive';
 import { printSexpr } from '@molstar/core/repr/codecs/sexpr';
 import type { Patch } from '@molstar/core/repr/patch';
-import type { Node } from '@molstar/core/repr/tree';
+import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import type { SeqPorts } from '@molstar/seqx-core/context';
 import type { ExampleView } from '@molstar/seqx-examples';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors';
@@ -24,6 +24,8 @@ import { HistoryModel } from '@molstar/ui/history/history-model';
 export const Section = '/views/main/protein';
 export const Tracks = ['letters', 'domains', 'conservation'] as const;
 export const track = (id: string) => `${Section}/${id}`;
+/** The section's address as the patches' path of ids. */
+export const SectionPath: readonly string[] = Section.split('/').filter(Boolean);
 
 export interface EditingSession {
   readonly viewer: SeqViewer;
@@ -77,13 +79,14 @@ export function composeEditing(view: ExampleView, options: ComposeOptions = {}):
 
 const editing = (s: EditingSession) => s.viewer.behaviors.get('editing') as EditingBehavior;
 
+/** The protein section's node (`Section`) in the spec's root, or the spec shown (a preview included). */
+export function proteinSection(s: EditingSession, shown = false): Node | undefined {
+  return resolveAddress(shown ? s.viewer.spec.shown.value : s.viewer.spec.root.value, SectionPath);
+}
+
 /** Whether a track is hidden (its own `hidden`). */
 export function trackHidden(s: EditingSession, id: string): boolean {
-  const t = s.viewer.spec.root.value.children
-    ?.find((c) => c.id === 'views')
-    ?.children?.[0]?.children?.find((c) => c.id === 'protein')
-    ?.children?.find((c) => c.id === id);
-  return t?.params?.hidden === true;
+  return proteinSection(s)?.children?.find((c) => c.id === id)?.params?.hidden === true;
 }
 
 /** Hides or shows a whole track: one patch, one step. */
@@ -118,7 +121,7 @@ export async function recolorStructure(s: EditingSession, color: string): Promis
 }
 
 const heightPatch = (id: string, height: number): Patch => ({
-  ops: [{ op: 'set', at: ['views', 'main', 'protein', id], key: 'height', value: height }],
+  ops: [{ op: 'set', at: [...SectionPath, id], key: 'height', value: height }],
 });
 
 /** A drag resizing a track: a preview each move, replacing the last. */

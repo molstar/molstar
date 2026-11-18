@@ -4,7 +4,39 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Features
 
-What this version will contain. Nothing is built yet; each feature will link its view here once it runs.
+What this version contains and will contain. Each feature links its story here once it runs.
+
+## Built
+
+- **Editing**: every edit is a patch, and patches are the only undoable changes.
+  - patches through the viewer's commands (hide, show, move a track, color a layer, add a bookmark), each one step of a
+    host's undo stack that also holds the host's own state:
+    [Features › Editing](?path=/story/seq-next-features-editing--editing);
+  - undo and redo through the host, in order, the host's steps between the viewer's: the same story, and on p53
+    [Edit and undo](?path=/story/seq-next-examples-p53-edit-and-undo--edit-and-undo);
+  - previews: a drag's transient change, each move replacing the last, ending in one patch on release or nothing on Esc:
+    the same two stories;
+  - rebase: a patch that lands mid-gesture leaves the preview over the new spec, and drops it when what it resizes is
+    gone: tested, not shown in a story.
+- **Addressing**: addresses as `path/(query :key value)`, resolved and printed back.
+  - refs and bookmarks, on dynamic nodes too (they wait until the node arrives, then resolve):
+    [Features › Addressing › Bookmarks](?path=/story/seq-next-features-addressing-bookmarks--bookmarks), and on p53
+    [Bookmarks and links](?path=/story/seq-next-examples-p53-bookmarks-and-links--bookmarks-and-links);
+  - links in a text that focus, highlight and select; one residue in two numberings; copy link:
+    [Features › Addressing › Links](?path=/story/seq-next-features-addressing-links--links);
+  - the selection and the focus as addresses: the status lines of the Links and Selection stories.
+- **Selection**: the default gesture grammar.
+  - click, shift and toggle clicks, drag-select, Esc; the keyboard cursor with its arrows, Space and Enter:
+    [Features › Selection](?path=/story/seq-next-features-selection--tracks);
+  - projection: a selection on one section shown on another through the maps, lighter:
+    [Features › Selection › Protein on its gene](?path=/story/seq-next-features-selection--protein-on-its-gene), and on
+    p53 [Selection](?path=/story/seq-next-examples-p53-selection--selection);
+  - the selection drawn as one band a section (column) or a box a track (tracks): the shape toggle of those stories.
+- **Security bounds**: a spec comes from a URL, a link or an agent, so what it sizes is refused with a coded issue
+  before the work starts: its size (64 MB), depth (256), query depth (64), column length and block values (2^24); the
+  issues kept are bounded too (the first 10 of a code, at most 100 a node). The viewer holds them on its patches,
+  previews, story steps and whole roots (a load rejects with the issues), and its store on tables and nodes: tested, not
+  shown in a story.
 
 ## Planned
 
