@@ -8,6 +8,8 @@
 // shape the models read. Where a behavior could go more than one way, it is an item here with the recommended default.
 
 import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
+import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
+import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
 
 /** What the models and behaviors read; read-only after composition. */
 export interface ViewerConfig {
@@ -144,6 +146,13 @@ export interface ViewerConfig {
      */
     readonly dropped: 'issue' | 'silent';
   };
+  /**
+   * The bounds on what a spec or an answer sizes, each refused with a coded issue before the work starts: the spec's
+   * (`SpecBounds`: size 64 MB, nesting 256 and queries 64, a column 2^31 − 1, issues kept 100 a node and 10 places a
+   * code, held by the viewer's patches) and `maxBlockValues`, the most values (rows times columns) a table of an
+   * answer may hold (2^24). The nested sources' depth is the resolve config's (`maxNestedDepth`, 4).
+   */
+  readonly bounds: SpecBounds & { readonly maxBlockValues: number };
   readonly copyLink: {
     /** The forms an address is copied in, in order: a ref naming exactly it, then ids and forms (`['ref', 'ids']`). */
     readonly prefer: readonly ('ref' | 'ids')[];
@@ -171,6 +180,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   revisions: { keepRecent: 64 },
   edit: { rebaseStale: false },
   preview: { dropped: 'issue' },
+  bounds: { ...DefaultSpecBounds, maxBlockValues: DefaultMaxBlockValues },
   copyLink: { prefer: ['ref', 'ids'], numbering: 'ordinal', action: 'focus' },
 };
 

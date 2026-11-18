@@ -132,7 +132,10 @@ describe('the context’s bounds', () => {
     expect(plain.bounds.maxDepth).toBe(256);
     // the chain is no valid spec: the description's issues are there, the bound's only past it
     const bound = (c: ReturnType<typeof createSeqContext>, n: number) =>
-      c.check(nest(n)).map((i) => i.code).filter((code) => code.startsWith('seq.lang.bound'));
+      c
+        .check(nest(n))
+        .map((i) => i.code)
+        .filter((code) => code.startsWith('seq.lang.bound'));
     expect(bound(plain, 256)).toEqual([]);
     expect(bound(plain, 257)).toEqual(['seq.lang.bound.depth']);
     const tight = createSeqContext({ config: [[SeqCoreConfig.bounds, { maxDepth: 3 }]] });

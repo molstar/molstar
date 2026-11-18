@@ -75,7 +75,10 @@ describe('escapeXml', () => {
       expect(out).not.toMatch(/&(?!amp;|lt;|gt;|quot;|#39;)/);
       expect(out.length).toBeGreaterThanOrEqual(s.length);
       expect(out).toBe(
-        cleaned(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!),
+        cleaned(s).replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+        ),
       );
     }
   });

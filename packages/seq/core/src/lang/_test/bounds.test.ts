@@ -72,7 +72,7 @@ describe('the nesting depth', () => {
 });
 
 describe('the same depth in a patch’s incremental check', () => {
-  const noChanges: Changes = { made: [], moved: [], removed: [], params: [] };
+  const noChanges: Changes = { made: [], moved: [], removed: [], params: [], children: [] };
   const before = specOf({ kind: 'data', id: 'data' });
   const after = (n: number) => specOf({ kind: 'data', id: 'data', children: [chain(n)] });
 
@@ -109,9 +109,7 @@ describe('the same depth in a patch’s incremental check', () => {
     const bounds = specBounds({ maxQueryDepth: 3 });
     const changes: Changes = { ...noChanges, params: [{ at: ['data', 'c'], keys: ['to'] } as never] };
     expect(checkSeqChanges(before, doc(3), changes, bounds)).toEqual([]);
-    expect(checkSeqChanges(before, doc(4), changes, bounds).map((i) => i.code)).toEqual([
-      'seq.lang.bound.query_depth',
-    ]);
+    expect(checkSeqChanges(before, doc(4), changes, bounds).map((i) => i.code)).toEqual(['seq.lang.bound.query_depth']);
   });
 });
 
@@ -169,7 +167,10 @@ describe('the spec size', () => {
   });
 
   it('is refused alone by the whole check: the description never reads it', () => {
-    const issues = checkSeqSpec(specOf({ kind: 'ext:note', id: 'n', params: { s: 'x'.repeat(2000) } as never }), specBounds({ maxBytes: 1000 }));
+    const issues = checkSeqSpec(
+      specOf({ kind: 'ext:note', id: 'n', params: { s: 'x'.repeat(2000) } as never }),
+      specBounds({ maxBytes: 1000 }),
+    );
     expect(issues.map((i) => i.code)).toEqual(['seq.lang.bound.size']);
   });
 });

@@ -181,7 +181,13 @@ export function checkSubtreeDepth(
   let query = false;
   const leaf = (v: unknown, parent: Frame, ...steps: (string | number)[]): boolean => {
     if (typeof v === 'object' && v !== null) return false;
-    if (typeof v === 'string' && !query && v.charCodeAt(0) === 0x2f && v.includes('(') && queryDepth(v) > bounds.maxQueryDepth) {
+    if (
+      typeof v === 'string' &&
+      !query &&
+      v.charCodeAt(0) === 0x2f &&
+      v.includes('(') &&
+      queryDepth(v) > bounds.maxQueryDepth
+    ) {
       query = true;
       const at: Frame = { value: v, node: false, depth: parent.depth + 1, parent, steps: steps as TreePath };
       issues.push(bound('seq.lang.bound.query_depth', `A query nests deeper than ${bounds.maxQueryDepth} forms`, at));

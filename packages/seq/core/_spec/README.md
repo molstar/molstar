@@ -70,6 +70,22 @@ checks it cannot express.
   not the spec. Held by tests that compare it with the whole check's difference, patch by patch, along a chain of
   revisions and over seeded random patches of ref chains; and in the heavy lane, at 16,000 layers, the first check after
   a load and a fan-out to every node no worse than the whole check, a one-node edit a small part of it.
+- **Bounds** (`bounds.ts`, `SpecBounds`, `DefaultSpecBounds`; the core's `bounds` item, `SeqCoreConfig.bounds`): a spec
+  comes from a URL, a link or an agent, so what it sizes is refused with a coded issue before the work starts.
+  `checkSpecBounds` is the first gate of `checkSeqSpec`, before the version and the description: one iterative walk (a
+  20,000-deep spec costs no stack) that allocates no tree and stops at the first bound the whole spec cannot pass.
+  `maxBytes` (64 MB: strings by length, numbers 8 bytes, columns by their bytes: `seq.lang.bound.size`), `maxDepth` (256
+  levels of nodes and of the values nested in params: `seq.lang.bound.depth`), `maxQueryDepth` (64 nested forms in an
+  address string: `seq.lang.bound.query_depth`) and `maxColumnLength` (2^31 − 1: `seq.lang.bound.column`); a spec past
+  size or depth gets that issue alone, one past the others the first place of each. The issues kept are bounded as they
+  are reported (`IssueCaps`): the first `maxPlaces` (10) of a code, at most `maxNodeIssues` (100) a node, the rest
+  counted in one `seq.lang.bound.issues` warning a code (`BoundIssues`). A patch's check refuses the same nesting:
+  `checkSeqChanges` walks the subtrees a change made or moved (to the depth the address already has) and the params it
+  set, with `checkSubtreeDepth`, before it reads anything else (a subtree too deep to walk is refused alone);
+  `seqPatchValidator(bounds)` is the validator with a composition's bounds. Why: one rule for the two consumers, and the
+  cost of the incremental check stays the change's. The table's other rows: nested sources are `maxNestedDepth`
+  (Resolve), a column's length and a block's values the data's (Data, Tables), regular expressions in search and
+  archives wait for the features that read them (TODO).
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
 
 ### Refs
@@ -125,11 +141,11 @@ of it.
 
 ## Issues
 
-`seq.lang.*` codes (`LangIssues`), each with a severity, a description and a hint; a test fails on a code a source uses
-and the catalog lacks, and on one cataloged and never used, and a misuse for each code is in `_test/lang.test.ts`. The
-namespaces are `repr.*` (the tree core's), `seq.lang.*`, `seq.query.*`, and the later `seq.resolve.*`, `seq.source.*`,
-`seq.store.*`, `seq.view.*`, `seq.render.*`, `seq.address.*`. An issue's `path` is the step path and its `address` the
-node's, where it has one.
+`seq.lang.*` codes (`LangIssues`, and `BoundIssues`, `seq.lang.bound.*`, the bounds'), each with a severity, a
+description and a hint; a test fails on a code a source uses and the catalog lacks, and on one cataloged and never used,
+and a misuse for each code is in `_test/lang.test.ts`. The namespaces are `repr.*` (the tree core's), `seq.lang.*`,
+`seq.query.*`, and the later `seq.resolve.*`, `seq.source.*`, `seq.store.*`, `seq.view.*`, `seq.render.*`,
+`seq.address.*`. An issue's `path` is the step path and its `address` the node's, where it has one.
 
 ## Queries
 
@@ -347,6 +363,10 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - `checkTables` checks forms, column types and equal lengths. `checkAnswer(answer, request)` checks an answer against
   its request: a record, a known failure with an issue, nodes with string keys, only the shapes asked, each table within
   the region, ranges with `start ≤ end` and strands −1, 0, 1, codes within their alphabet, at most `maxRows` rows.
+- **Bounds**: `checkAnswer` refuses a table whose column is longer than `maxColumnLength` (2^31 − 1) or whose values
+  (rows times columns) pass `maxBlockValues` (2^24, a grid or matrix block's bound), before it walks the extent, and the
+  store settings carry both; a file's `seq` reader refuses the same (`checkTableBounds`) and a system declared longer
+  than a column can be. Why: an answer's size is a claim of its source, refused before it is cut, joined or kept.
 - Cutting (`sliceTable`) keeps letters, positions and bins by offset, and a range or a density bin by its anchor (its
   first position in the region) within the part cut; `joinTables` joins consecutive parts, so each row is held once.
 
@@ -442,7 +462,7 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 `ResolveConfig`, each choice with its recommended default (`DefaultResolveConfig`): `maxPathSteps` (4),
 `maxPathCandidates` (16), `encoding` (`cheapest`; `runs` or `expanded` hold every bounded map so, for tests and
 comparisons), `openQueryLength` (int32's max: what the query forms read on a system of unknown length, so labels resolve
-there; layout never reads it), `maxNestedDepth` (2: the levels of nested sources the overlay requests, EC-179).
+there; layout never reads it), `maxNestedDepth` (4: the levels of nested sources the overlay requests, EC-179).
 
 ### Systems, sources, annotations
 
@@ -796,8 +816,10 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   (`none` for no color): the committed records' format.
 - **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
   images as runs of rects, fades as gradient masks, metadata as `data-*` attributes. Every text and attribute from a
-  spec or data is escaped; a character XML forbids becomes U+FFFD, one for one, so a glyph run stays aligned with its x
-  list. Ids take a prefix (`idPrefix`).
+  spec or data is escaped; a character XML forbids (a control but tab, newline and return, U+FFFE and U+FFFF, a lone
+  surrogate) becomes U+FFFD, one for one, so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`,
+  name characters only), a metadata key is written only as a plain name. Held by hostile labels, ids, titles, fonts and
+  metadata parsed back as XML (`_test/svg-escaping.test.ts`).
 
 ### Export
 
@@ -860,5 +882,14 @@ same pieces. Nothing registers on import and there is no global registry.
     over it is a refused read, `AssetRefused`). The policy also checks the size once the body is read and abandons a
     read the manager did not end in time, for a manager that falls short; core's `checkAssetManager` is the suite an
     app's manager passes. Why: the policy's claims hold for any manager the application composes.
+- **The headless policy** (`headlessAssetPolicy({ root, hosts })`): files under `root` (an absolute path, a Windows
+  drive path or a `file:` URL; relative locations resolve against it and stay under it) and `https:` locations of the
+  listed `hosts`, nothing else: no network when no host is listed, no `file:` location without a root, with a host, with
+  an encoded separator or outside it (`..` and `%2e%2e` are resolved by the URL parser first). Credentials are never
+  sent, redirects are refused, and the size and time bounds are the browser's. `AssetPolicy.root` is the same rule for
+  any policy; the root is a decision on the location, a link in the folder that leads out of it is the reader's to
+  refuse. Why: a headless render or a server reads whatever `uri` a spec names (server-side request forgery).
+- **Bounds**: `SeqCoreConfig.bounds` (`Partial<SpecBounds>` over `DefaultSpecBounds`, Language, Bounds) is the context's
+  `bounds`, which its `check` holds.
 - A port factory that throws leaves nothing made: the ports already made are disposed, last first; a structure port made
   is disposed with the context.

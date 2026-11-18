@@ -395,5 +395,7 @@ function sectionFollow(look: SeqLookup, address: string): string | undefined {
 export const SeqPatchValidator: PatchValidator = (before, after, changes) => checkSeqChanges(before, after, changes);
 
 /** `SeqPatchValidator` with other bounds than the defaults (a composition's `bounds` configuration). */
-export const seqPatchValidator = (bounds: SpecBounds): PatchValidator => (before, after, changes) =>
-  checkSeqChanges(before, after, changes, bounds);
+export const seqPatchValidator =
+  (bounds: SpecBounds): PatchValidator =>
+  (before, after, changes) =>
+    checkSeqChanges(before, after, changes, bounds);

@@ -90,6 +90,10 @@ describe('the store holds the bounds a composition sets', () => {
     store.attach(S, source);
     store.want([{ source: S, system: 'chr1', start: 0, end: 1024, level: 1 }]);
     await clock.advance(10);
-    expect(store.get(dataKey(S, 'chr1', 1, 0))).toMatchObject({ status: 'failed', kind: 'malformed', issue: { code: 'seq.source.malformed' } });
+    expect(store.get(dataKey(S, 'chr1', 1, 0))).toMatchObject({
+      status: 'failed',
+      kind: 'malformed',
+      issue: { code: 'seq.source.malformed' },
+    });
   });
 });

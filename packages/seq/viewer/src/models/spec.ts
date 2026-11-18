@@ -23,7 +23,7 @@ import {
   patchFromNode,
 } from '@molstar/core/repr/patch';
 import { hashNode, type Issue, issueOf, type Node, printAddress, resolveAddress } from '@molstar/core/repr/tree';
-import { SeqLanguage, SeqPatchValidator, SeqValidateOptions } from '@molstar/seqx-core/lang';
+import { SeqLanguage, SeqPatchValidator, SeqValidateOptions, seqPatchValidator } from '@molstar/seqx-core/lang';
 import { createResolver, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
@@ -322,6 +322,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private _options(options: SpecPatchOptions): ApplyOptions {
     return {
       ...SpecPatchApply,
+      // the configuration's bounds on nesting, as the whole spec's check holds them
+      validators: [seqPatchValidator(this.config.bounds)],
       ...(options.requireBase ? { requireBase: true } : {}),
       ...(options.allowDangling ? { allowDangling: true } : {}),
       ...(options.allowRebind ? { allowRebind: true } : {}),
