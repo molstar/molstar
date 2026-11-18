@@ -120,11 +120,31 @@ files are frozen with its work folder; these rules govern the next loops, which 
   views), on a fake clock. Why: one such test found three bugs that the views' own tests could not see
   ([design/testing.md](../design/testing.md)).
 
+## From the author during the second slice (2026-11-18)
+
+- **The fold-back is a step of every close** (extends §reconcile-before-merge, §self-check, §permanent-record). The
+  author, 2026-11-18: "we do the measure step and finalization (again we should include and reconcile the foldback.md
+  as part of that step; make the fact that foldback is the step part of the principles themselves)". Finalizing a work
+  folder writes `foldback.md` in it, always, with:
+  - what the work taught, each proposal with its evidence (a commit, a record, a measurement) and where it goes
+    (principles, a design, a `_spec`, a check);
+  - every rule the earlier fold-backs added, checked against this work's evidence: held, amended or dropped;
+  - the self-check on the proposals (the `principles-self-check` skill);
+  - a work that taught nothing says so, with its self-check.
+  Nothing in it is applied or committed outside the folder before the author approves it; the approval is a line of
+  its own, `Approved by the author, <date>: "<their words>"`, and what was approved is applied before the record and
+  the closing line of `state.md`. Checked: `_checks/closed-work.ts` (a closed folder has `foldback.md` with that line).
+  Why: the fold-back is how the principles learn from the work, and a step that is only one category of
+  reconciliation can be skipped or merged into the record, where it is never approved as a change.
+
 ## For the package's home
 
 Fold-back proposals for the oz package, from this instance (2026-11-18); until merged there they stand as the
 adaptations above.
 
+- §reconcile-before-merge: the fold-back is a step of every close, not a category of reconciliation: a `foldback.md`
+  always, the earlier fold-backs' rules checked against the new evidence, applied only once the author approves it, its
+  approval line checked before the folder closes.
 - §stories-are-tests, §used-before-done: the look is part of a lane's review, before the merge, in light and dark.
 - §whole-composition-tested (the mutation check): a fix's report names the command that shows its test failing on
   the fix's parent, rerun by the reviewer. Optional at gates: a script that reverts the fix's non-test files on a

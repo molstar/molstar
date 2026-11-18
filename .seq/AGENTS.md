@@ -57,10 +57,13 @@ node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow
 node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
 node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
 node .seq/_checks/ec-ids.ts
+node .seq/_checks/closed-work.ts
 ```
 
-The last is this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
-([sources/seqstar/edge-cases.md](sources/seqstar/edge-cases.md); [design/edge-cases.md](design/edge-cases.md)).
+The last two are this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
+([sources/seqstar/edge-cases.md](sources/seqstar/edge-cases.md); [design/edge-cases.md](design/edge-cases.md)); and a
+closed work folder has a `foldback.md` the author approved ([principles](principles/README.md), "The fold-back is a step
+of every close").
 
 The `--allow` patterns limit the id and path checks to what this scaffold governs: the rest of the repository uses
 the section sign for its own spec sections (`harness.md`, section 6).

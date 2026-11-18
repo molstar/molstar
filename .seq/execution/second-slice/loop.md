@@ -115,6 +115,7 @@ node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow
 node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
 node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
 node .seq/_checks/ec-ids.ts
+node .seq/_checks/closed-work.ts
 ```
 
 When each also runs:
@@ -145,8 +146,13 @@ When every item is ticked:
      (§mechanical-drift-checks);
    - the `_spec`s with what is built, their Configuration tables complete;
    - `status.md`, the features rows, the edge cases' outcomes for what was built.
-2. **Fold back**: write `foldback.md` (what the slice taught, each proposal with its evidence and where it goes, and
-   the self-check). It is applied and committed only on the author's approval.
+2. **Fold back** (principles, "The fold-back is a step of every close"): write `foldback.md`:
+   - what the slice taught, each proposal with its evidence and where it goes;
+   - the first slice's fold-back rules (principles, "Folded back from the first slice") each checked against this
+     slice's evidence: held, amended or dropped;
+   - the self-check.
+   The author approves it; their words go on its `Approved by the author` line; then what was approved is applied
+   (principles, designs, `_spec`s, checks) and committed, before the record.
 3. Run the gate once more.
 4. Write the record in `.seq/records/second-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
    nothing in this folder after that.
