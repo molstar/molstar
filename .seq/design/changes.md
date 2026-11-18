@@ -36,9 +36,10 @@ whether it is undoable, keeps that clear.
 - **Seq\* owns no undo stack; the host does** (the author, 2026-11-18: the viewer lives inside a bigger app, a
   structure viewer, Prism, a Mol\* plugin, which keeps one undo stack for everything). Seq\* exposes a **history port**
   (`seqx-viewer/ports`) in its own terms, with two faces:
-  - *the host drives Seq\** (a participant): `checkpoint()` is the spec's immutable root (structural sharing makes it
-    cheap), a revision is the root's hash, `restore(c)` sets the root back and drops a preview, `changed` tells of
-    edits;
+  - *the host drives Seq\** (a participant): `checkpoint()` is a commit, Seq\*'s own type (`SpecCommit`: the spec's
+    immutable root, its revision, its parents), cheap by structural sharing; `restore(c)` sets the root back (a move of
+    the pointer) and drops a preview; `changed` tells of edits; an optional `root(revision)` lets a host resolve a
+    revision older than Seq\*'s recent roots (N-14);
   - *Seq\* asks the host* (a run): an edit runs as a step with its label and change kind, so the host's stack
     interleaves Seq\* edits with its own. One step a batch, a gesture's preview ending in one step.
 
@@ -58,17 +59,25 @@ whether it is undoable, keeps that clear.
   them). Concurrent writers (EC-93) have their primitive in `merge3`; who merges and when is the host's policy, not yet
   designed.
 - **Revisions are the truth, patches derived** (git's model, the author 2026-11-18; [patches.md](patches.md)): what a
-  history records is a commit, a revision's root with its parents, made by `SpecModel` per applied change; an undo
+  history records is a commit, a revision's root with its parents, made by `SpecModel` per applied change and handed to
+  the host as the port's checkpoint (N-14); an undo
   restores an earlier root (a move of the pointer, no new commit); the patch from a parent is `diff(parent, root)`
   whenever one is wanted. Why: a recorded root is exact by construction (ref rewrites and normalization included), and
   checkpoints by root cost only the paths that changed. *Snapshot* means a story step only, never a revision.
-- **Story steps are stored patches** with no base, typed by `patchLanguage(SeqLanguage)`: their targets and the refs in
-  the nodes they insert are refs of the spec, so a rename or a move rewrites them and link integrity counts them. An
-  edit made while a step is shown patches the base revision, and the step is applied again over it; a step that no
-  longer applies is reported on its node and shown as not applying. Recommendation: this default; editing a step's own
-  patch is a later mode ("edit this step"), its own command.
-- **Rebase needs the base root**: `SpecModel` keeps the recent roots by revision (`history.keepRoots`, default 64), and a
-  host may resolve older ones through the history port.
+- **Story steps are stored patches** with no base, in `patchLanguage(SeqLanguage)`: their targets, the refs in the
+  nodes they insert and the ref values they set are refs of the spec, resolved over a dry run of the step's earlier ops
+  ([patches.md](patches.md), A patch), so a rename or a move rewrites them and link integrity counts them. An edit made
+  while a step is shown patches the base revision, and the step is applied again over it; a step that no longer applies
+  is reported on its node and shown as not applying. Recommendation: this default; editing a step's own patch is a later
+  mode ("edit this step"), its own command.
+- **What is shown with a step and a preview** (N-13): `shown = step(applyPatch(base, preview))`. The preview is an edit
+  to the base, and the step is applied over it.
+  - An edit or a preview whose target only the step made is refused (`repr.patch.target`, its hint naming the step).
+  - One that sets a key the step also sets lands in the base and changes nothing visible: `SpecModel` reports it as
+    masked (an info naming the step), never silently.
+  - An agent reads the base revision, with the step shown named beside it.
+- **Rebase needs the base root**: `SpecModel` keeps the recent roots by revision (`revisions.keepRecent`, default 64),
+  and a host may resolve older ones through the port's `root(revision)`.
 - **Every command says its change kind**: a command's description declares whether it writes a patch, changes session
   state or only navigates, so menus can show what undo will undo and agents can tell an edit from a look.
 

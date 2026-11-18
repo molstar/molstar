@@ -124,7 +124,6 @@ slice's letters from K; stage 0's carry-over lane is S0.
     (32-way with a tail), transients that read like the persistent collections, cursors, per-collection hash and
     equality (SameValueZero keys by default), `defaultHash` with a finalizer;
   - a type-check-only spike of `StateTree` on the API, before it is frozen;
-  - in `repr`, only the child index (a native `Map` per node, no dependency on R);
   - model-based property tests against JS collections, persistence and transient tests (the colliding-keys
     regression), collisions, equality; allocation cases (the opt-in tier); ratios against immutable.js with 22-char
     keys, and the bundle size (heavy lane);
@@ -135,7 +134,9 @@ slice's letters from K; stage 0's carry-over lane is S0.
     of what it made, refs following a move, validation by how each object came to be, link integrity old root against
     new, the language's validators, the result check), `diff` with its fallbacks and emission order, `patchLanguage`
     and `PatchLanguage`, `Commit` as a type;
-  - the core's pass over refs (what a ref names), and `RefIndex` on plain `Map`s;
+  - the core's pass over refs (what a ref names), and `RefIndex` (its signature as written) on plain `Map`s;
+  - `repr/schema`'s `normalizeValue` and `Changes`; the child index (a native `Map` per children array) in
+    `resolveAddress`;
   - `repr/schema`'s `validateChanges`;
   - the conformance cases as data with their options (§suites-are-data), the laws of diff as property tests;
   - the companion change in `seqx-core/lang`: `layer` ids required, `seq.lang.id.required` for every child, the
@@ -158,15 +159,23 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 2: editing and addressing (two strong lanes, after stage 1)
 
-- [ ] N (strong) editing in `seqx-viewer` (and `seqx-core` where the model compiles increments):
-  - `SpecModel.applyPatch` validated, then resolve and the view recompiling only what the changed addresses reach
-    (composition.md);
-  - history through Seq\*'s history port (Gate 0): the port in `seqx-viewer/ports`, `SpecModel` free of
-    `@molstar/ui/history`, and the `@molstar/ui/history` adapter in the default composition. One step a batch, an
-    agent's turn as one step, an outside change reported to the host. Tested with two participants on one host stack
-    (a Seq\* spec and a stand-in structure state, undone in order), and with no history at all;
-  - previews as a transient overlay, ending in one patch or nothing (Esc cancels);
-  - snapshots entered and left (navigation, not history);
+- [ ] N (strong) editing in `seqx-viewer` (and `seqx-core` where the model compiles increments), after K2:
+  - `SpecModel.applyPatch` with `SeqLanguage`, its validate options and an **incremental `checkSeqLang`** as the patch
+    validator (cost in proportion to `Changes`); then resolve and the view recompiling only what `Changes` reaches
+    (composition.md); Seq's own conformance cases through `checkPatches(apply, cases)`;
+  - **commits and recent roots**: `SpecCommit` as the port's checkpoint, `revisions.keepRecent` (64), the port's
+    optional `root(revision)`;
+  - history through Seq\*'s history port: the port in `seqx-viewer/ports`, `SpecModel` free of `@molstar/ui/history`,
+    and the `@molstar/ui/history` adapter in the default composition. One step a batch, an agent's turn as one step,
+    an outside change reported to the host. Tested with two participants on one host stack (a Seq\* spec and a
+    stand-in structure state, undone in order), and with no history at all;
+  - **the rebase test** (why N waits for K2): a stale agent patch refused, then rebased by the host's opt-in through
+    `merge3` with the base root from the recent roots;
+  - **previews as patches** re-applied when the root changes, dropped with an issue when they no longer apply (a
+    preview surviving an agent's patch mid-drag), ending in one patch or nothing (Esc cancels);
+  - **story steps as stored patches** (`patchLanguage(SeqLanguage)`): entered and left (navigation, not history),
+    shown over the base and the preview, edits while shown patching the base, masked edits reported, a step that no
+    longer applies shown as such;
   - every command declaring its change kind, with the test changes.md asks for: every command's kind matches what it
     changes, undo touches only spec patches, an arrival never changes the spec's hash.
 
