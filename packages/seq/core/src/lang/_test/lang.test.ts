@@ -179,6 +179,17 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.ranges('r', { target: '/data/missing', rows: { start: [0], end: [1] } });
     return b.build();
   },
+  'seq.lang.ref.unresolved': () => {
+    const b = createSeqSpec();
+    b.refs.ref('gone', { to: '/data/missing/(range :from 1 :to 9)' });
+    return b.build();
+  },
+  'seq.lang.ref.cycle': () => {
+    const b = createSeqSpec();
+    b.refs.ref('a', { to: '/refs/b' });
+    b.refs.ref('b', { to: '/refs/a' });
+    return b.build();
+  },
   'seq.lang.layer.data': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });

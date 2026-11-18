@@ -5,8 +5,35 @@
  */
 
 // @molstar/seqx-core/query: locations, element keys, the three result types and the first query forms as `repr` form
-// resolvers over a model of systems, numberings and annotations (_spec/README.md "Queries").
+// resolvers over a model of systems, numberings and annotations (_spec/README.md "Queries"); addresses resolved and printed back
+// ("Addressing").
 
+export {
+  type AddressBounds,
+  type AddressForm,
+  type AddressForOptions,
+  type AddressResolution,
+  type AddressStatus,
+  addressFor,
+  DefaultAddressBounds,
+  DefaultAddressPreference,
+  type Located,
+  locationOfResult,
+  type ResolveAddressOptions,
+  refResults,
+  resolveAddressIn,
+} from './address.js';
+export { AddressIssues } from './address-issues.js';
+export {
+  DefaultLinkOptions,
+  type Link,
+  type LinkAction,
+  type LinkActionName,
+  LinkActions,
+  type LinkOptions,
+  parseLink,
+  printLink,
+} from './links.js';
 export {
   type ElementKey,
   type Elements,

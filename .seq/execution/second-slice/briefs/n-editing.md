@@ -37,7 +37,7 @@ and core `_spec`s; `packages/seq/viewer/src/{models,ports,commands.ts,viewer.ts}
 
 **Model**: strong (opus).
 
-**Base**: `packages-seq` after lane O's merge (the orchestrator gives the commit when starting you). Branch
+**Base**: `packages-seq` at `61b7d3549` (lane O merged). Branch
 `seq/n-editing`; commit on it only, at each small green step.
 
 **Touches**: `packages/seq/viewer/src/**`, `packages/seq/core/src/{lang,view,resolve}/**` where increments need it,

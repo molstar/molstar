@@ -781,7 +781,11 @@ export function pathIssue(why: 'none' | 'ambiguous' | 'limit', from: string, to:
 }
 
 /** Inline items answer at once; a source's are pending over what was asked (no data in tier 1). */
-function queryAnnotation(e: AnnotationEntry, target: SystemEntry | undefined, config: ResolveConfig): QueryAnnotation {
+export function queryAnnotation(
+  e: AnnotationEntry,
+  target: SystemEntry | undefined,
+  config: ResolveConfig,
+): QueryAnnotation {
   const length = target?.length ?? config.openQueryLength;
   return {
     address: e.address,

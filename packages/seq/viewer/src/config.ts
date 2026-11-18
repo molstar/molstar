@@ -106,6 +106,34 @@ export interface ViewerConfig {
     /** Pixels a line of a wheel in line mode (`deltaMode` 1) scrolls: 16. A page (mode 2) is the viewport's own axis. */
     readonly lineHeight: number;
   };
+  readonly address: {
+    /** The most nodes or elements an address may name (10,000): more is an issue, never a truncation. */
+    readonly limit: number;
+    /** How deep below the root resolving an address may walk (64). */
+    readonly maxDepth: number;
+    /** How many refs a chain may pass through (8). */
+    readonly refDepth: number;
+  };
+  readonly links: {
+    /** The prefix of this viewer's keys in a link (`seq-`: `!seq-focus=/refs/dbd`); other keys are another viewer's. */
+    readonly prefix: string;
+    /** The longest link read, in characters (8,192). */
+    readonly maxLength: number;
+    /** The most actions one link runs (16). */
+    readonly maxActions: number;
+    /** The highlight channel a link without `channel` highlights on (`link`). */
+    readonly highlightChannel: string;
+    /** The channel a hover over a link (and the `address.hover` command) uses, its own (EC-182): `link-hover`. */
+    readonly hoverChannel: string;
+  };
+  readonly copyLink: {
+    /** The forms an address is copied in, in order: a ref naming exactly it, then ids and forms (`['ref', 'ids']`). */
+    readonly prefer: readonly ('ref' | 'ids')[];
+    /** The numbering labels are copied in (`ordinal`); one that does not read back falls back to it. */
+    readonly numbering: string;
+    /** The action a copied link carries (`focus`). */
+    readonly action: 'focus' | 'reveal' | 'select' | 'highlight';
+  };
 }
 
 export const DefaultViewerConfig: ViewerConfig = {
@@ -120,9 +148,14 @@ export const DefaultViewerConfig: ViewerConfig = {
   theme: { source: 'root' },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },
   pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50, lineHeight: 16 },
+  address: { limit: 10_000, maxDepth: 64, refDepth: 8 },
+  links: { prefix: 'seq-', maxLength: 8192, maxActions: 16, highlightChannel: 'link', hoverChannel: 'link-hover' },
+  copyLink: { prefer: ['ref', 'ids'], numbering: 'ordinal', action: 'focus' },
 };
 
-type DeepPartial<T> = { readonly [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+type DeepPartial<T> = {
+  readonly [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
 
 /** The defaults with the given items over them, one level of groups deep. */
 export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig {

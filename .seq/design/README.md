@@ -31,6 +31,7 @@ is the agreed direction with its details still open; it says what would settle t
 | [rendering.md](rendering.md) | the render port and backends (Canvas2D, SVG, PNG), headless rendering, and the forms other viewers read (the spec, the resolved view, draw lists) |
 | [sources.md](sources.md) | where data comes from: one protocol, formats converted onto it by runtimes the application provides |
 | [packages.md](packages.md) | the packages, their layers and names, and what each may import |
+| [stories.md](stories.md) | a story as a sequence of full states stored as patches; transitions planned from diffs, sampled purely; the animation port by which the application owns the clock |
 | [ux-foundations.md](ux-foundations.md) | the data's visual foundations on top of `@molstar/ui`'s (color, type, grid, density, when to squircle, emphasis, motion) and one interaction grammar for selection, toggling and navigation |
 | [viewer-composition.md](viewer-composition.md) | the viewer composed from an explicit spec, as Mol\*'s plugins are: registry entries, behaviors, bindings, config, port factories with ownership; defaults as a spec; inside a Mol\* plugin |
 | [ports.md](ports.md) | one per viewer is a port (assets, text metrics, structure), named providers are registry entries; defaults out of the box |

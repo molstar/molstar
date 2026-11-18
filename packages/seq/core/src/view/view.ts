@@ -29,6 +29,7 @@ import {
   projectRanges,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
+import { followRef } from '@molstar/seqx-core/lang';
 import { ViewIssues } from './issues.js';
 
 type Shape = 'letters' | 'ranges' | 'values';
@@ -341,7 +342,7 @@ function layerOf(
   // a template's layer without data is placed by each instance on its node
   if (template && param(l, 'data') === undefined && type !== 'letters') return { ...base, placed: false };
 
-  const data = dataOf(model, param(l, 'data'), type, system);
+  const data = dataOf(model, layerData(model.spec, param(l, 'data')), type, system);
   if (!data) {
     report('seq.view.layer.data', 'The layer’s data names nothing the static model holds', at);
     return { ...base, placed: false };
@@ -357,6 +358,16 @@ function layerOf(
     return { ...base, data, placed: false };
   }
   return { ...base, data, path: r.path, placed: true };
+}
+
+/**
+ * A layer's data with a user-defined ref followed: a ref (a chain of them) naming one address stands for it
+ * (_spec/README.md, Language, Refs); a set, or a ref that cannot be followed, is left as written (and names nothing).
+ */
+function layerData(spec: Node, value: Value | undefined): Value | undefined {
+  if (typeof value !== 'string') return value;
+  const f = followRef(spec, value);
+  return 'addresses' in f && f.addresses.length === 1 ? f.addresses[0] : value;
 }
 
 /** A layer's data: the section's letters when it names none; an address's node; a query's first node. */

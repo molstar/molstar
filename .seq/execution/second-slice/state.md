@@ -32,17 +32,12 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 ## In progress
 
 - Stage 2 started (2026-11-18, from `57b1d7c4e`; the lane worktrees were cut from master, each lane reset onto it):
-  - K2 merged (`5927c9e4b`) after one review round (5 tests failing on the parent, checked).
-  - R+K in its fix round: the derive correct, but eager (story steps' typed sets re-walked every apply, a one-key
-    set 3 → 30 ms) and `under()` linear; lazily derived next.
-  - O building (stories and tests in).
-  - N's brief written (`briefs/n-editing.md`); it starts from the merged tree once O lands, since both edit the
-    viewer's commands, models and `viewer.ts`. Stage 1's gate also passed the `.seq` checks and
-  `pnpm test:medium` for core, io and seq.
-- Stage 1: R, K, L, M merged; `pnpm build` and `pnpm check:workspace` green on `4eb20f091` (the check had failed on
-  stale ignored outputs in `packages/ui/lib`, removed). The look done in a visible pane (2026-11-18), light and
-  dark (the `theme:dark` global): Tracks, Protein on its gene and Gene by region; canvas and SVG agree, each settled
-  with 0 issues, no console errors; the served `render/tracks.ts` is the merged one. Stages 0 and 1 closed.
+  - K2 merged (`5927c9e4b`), R+K merged (`989292665`), each after one review round.
+  - O merged (`61b7d3549`) after one review round; its stories looked at before and after (light and dark).
+  - Law 3 with stored patches: case 572 fixed by the orchestrator (`ff2ca5476`); seed 4 case 43 (pre-existing) is
+    lane K3's (`seq/k3-stored-law3`, opus).
+  - N started from `61b7d3549` (`seq/n-editing`, opus). It calls the address model's `followMoves(changes.moved)`
+    before setting a new root.
 
 ## Next
 
@@ -53,6 +48,11 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 None.
 
 ## Decided
+
+- **Stories** (the author, 2026-11-18): a story is a sequence of full states stored as patches; transitions planned
+  from diffs and sampled purely; the application owns the animation loop through an animation port ("we just need to
+  provide a consistent library"; "yes"). `stories.md` written; a stored patch's `set` refs typed by kind and key, not
+  by the dry run (drift `stored-refs.md`, option 1 with (a)); K3 rebuilds on it; lane N holds its story-steps part.
 
 - **Integer keys and lane K's drift, as recommended** (the author, 2026-11-18: "ok as recommended"):
   - integer keys keep `fmix32`; their miss against immutable.js at 1,000 entries (up to 1.9×) is accepted, each case

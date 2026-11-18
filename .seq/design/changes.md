@@ -32,6 +32,7 @@ whether it is undoable, keeps that clear.
 | data arrival | a region loaded, a dynamic node arriving, an entry evicted | the data store | no | no | no (sources are, not their data) | by (source, region) and (source, key) |
 | configuration | a binding, a preset, a config item | the viewer's configuration | no (settings history is the host's) | no | no | — |
 | registration | an extension registered by a behavior | the viewer's registries | its undo function | no | no | — |
+| none | copy a link, read the selection as an address | nothing (a command that only reads; lane O's review, so a menu or an agent never takes it for a move) | — | no | no | — |
 
 - **Seq\* owns no undo stack; the host does** (the author, 2026-11-18: the viewer lives inside a bigger app, a
   structure viewer, Prism, a Mol\* plugin, which keeps one undo stack for everything). Seq\* exposes a **history port**
@@ -64,12 +65,11 @@ whether it is undoable, keeps that clear.
   restores an earlier root (a move of the pointer, no new commit); the patch from a parent is `diff(parent, root)`
   whenever one is wanted. Why: a recorded root is exact by construction (ref rewrites and normalization included), and
   checkpoints by root cost only the paths that changed. *Snapshot* means a story step only, never a revision.
-- **Story steps are stored patches** with no base, in `patchLanguage(SeqLanguage)`: their targets, the refs in the
-  nodes they insert and the ref values they set are refs of the spec, resolved over a dry run of the step's earlier ops
-  ([patches.md](patches.md), A patch), so a rename or a move rewrites them and link integrity counts them. An edit made
-  while a step is shown patches the base revision, and the step is applied again over it; a step that no longer applies
-  is reported on its node and shown as not applying. Recommendation: this default; editing a step's own patch is a later
-  mode ("edit this step"), its own command.
+- **Story steps are stored patches** with no base, in `patchLanguage(SeqLanguage)`, each a full state of the view
+  stored as a patch; their refs are typed by kind and key and resolved over the step's dry run ([patches.md](patches.md));
+  a step that no longer applies is reported on its node and shown as not applying; edits while a step is shown patch
+  the base. How a story's steps are reached, transitioned and animated, with the application owning the clock, is
+  [stories.md](stories.md).
 - **What is shown with a step and a preview** (N-13): `shown = step(applyPatch(base, preview))`. The preview is an edit
   to the base, and the step is applied over it.
   - An edit or a preview whose target only the step made is refused (`repr.patch.target`, its hint naming the step).

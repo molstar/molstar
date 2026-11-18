@@ -74,6 +74,7 @@ export {
   type OverlayNode,
   type OverlayOptions,
 } from './overlay.js';
+export { overlayQueryModel } from './query-model.js';
 export {
   composeEdges,
   DefaultPathBounds,

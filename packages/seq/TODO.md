@@ -14,7 +14,7 @@ dynamic nodes with templates, the examples package and the measurements. In this
 - **bigWig** as a format runtime, with range reads of assets (a base-library change, below).
 - **Structures**: the structure port and runtime, structure maps, the Mol\* showcase.
 - **The remaining layers and layouts**, the other datasets, the UX foundation stories, the typed configuration.
-- **MessagePack** (from io), addressing and links.
+- **MessagePack** (from io).
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
@@ -31,11 +31,16 @@ dynamic nodes with templates, the examples package and the measurements. In this
 
 ## `@molstar/seqx-core`
 
+- **Addressing**: an item's coordinate system (`<node>/(item :id k)`) as a prefix of location forms (the `item` form
+  gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); declared numberings (built-ins only, so the way
+  back prints `ordinal` or `index`); rects projected for a focus; a whole Location's size bound.
+
 - **Language**: the theme sublanguage slot for `layer.color` and a union of a ref and a query slot for `layer.data`
-  (both loose today); the `refs` and `snapshots` levels; a strand column check; codon exons checked against the
-  protein's length (stop codons); a section's `range` as a Location; a `label` param on nodes (an instance's label is
-  the template's plus its top ancestor's key); `seq.lang.ref.target` overlaps what resolve reports: keep one; the
-  package index re-exports `SeqLanguageVersion` as `LanguageVersion`: one definition.
+  (both loose today); the `snapshots` level; a strand column check; codon exons checked against the protein's length
+  (stop codons); a section's `range` as a Location; refs followed in data nodes' params and a section's `of` and
+  `follow` (a layer's `data` follows them); a `label` param on nodes (an instance's label is the template's plus its top
+  ancestor's key); `seq.lang.ref.target` overlaps what resolve reports: keep one; the package index re-exports
+  `SeqLanguageVersion` as `LanguageVersion`: one definition.
 - **Queries**: dynamic nodes in `not`'s universe; open or streamed systems in `(all)` and `not` (a pending length on
   `QuerySystem` instead of `openQueryLength`); a Location limit (what it counts); a label lookup across a codon step (a
   unit's numbering does not cross one).
@@ -63,8 +68,12 @@ dynamic nodes with templates, the examples package and the measurements. In this
 
 ## `@molstar/seqx-viewer`
 
-- A source-backed leader's length fed to the `ViewModel` as an axis update (its viewport stays pending until a length is
-  known).
+- Addressing: the highlight channels drawn (the `highlight` pass is empty); the selection's gestures, anchor and cursor
+  over `SelectionModel`; copy link from a context menu and a key; a link's hover projected onto linked sections.
+- Tests: a frame tick asked for on fake timers a test then drops leaves `@molstar/ui/dom`'s frame lane waiting for it
+  (`requested` stays true for the same host function), so a later file's viewer draws no frame; the addressing twins
+  swap `DomHost.requestAnimationFrame` per test. Fix in the frame lane (forget a request across a timer reset) or in
+  `vitest.setup.ts`.
 - Wrapping pans on a cyclic axis (only clamped now); scroll groups across viewers and views (EC-113); ring windows
   (EC-114).
 - Touch pinch (two pointers); the Mol\* structure port; the `@molstar/ui` keymap and command manager, replacing the
