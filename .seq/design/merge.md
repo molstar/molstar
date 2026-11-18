@@ -74,7 +74,13 @@ type ConflictKind = 'set' | 'remove' | 'insert' | 'move' | 'replace' | 'order' |
   - if both changed it to the same order, it is taken once;
   - if both changed it differently, one `order` conflict at the parent, and `partial` keeps ours.
   
-  Children only one side inserted are placed by the placement rule above.
+  Children only one side inserted are placed by the placement rule above. A child both sides inserted with equal
+  content counts as kept on both sides: placed the same way it is applied once, placed two ways it is in the `order`
+  conflict (lane K2's review, so the symmetry law holds as written).
+- **What a change depends on** (lane K2): the changes of theirs that made what it names: the sibling its `place` names
+  when theirs inserted it, and the targets of every address its refs hold (nested forms included) when theirs inserted
+  or replaced them. Another key's `set` on the same node is not a dependency. Refs inside a stored patch name its own
+  dry run's nodes and make none; link integrity still judges them.
 - **`invalid`** (N-8): `at` is the address of the first refusing issue, or `[]` when it has none; `theirs` lists every
   change left out; `partial` is `ours`.
 

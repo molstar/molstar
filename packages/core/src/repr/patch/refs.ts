@@ -179,7 +179,7 @@ type Emit = (rel: TreePath, value: string, step?: Step) => void;
 
 /** A ref's runs, parsed once per text (most refs of a spec repeat a few texts); undefined when it is no address. */
 const Parsed = new Map<string, readonly Address[] | null>();
-function parsedRuns(value: string): readonly Address[] | undefined {
+export function parsedRuns(value: string): readonly Address[] | undefined {
   let runs = Parsed.get(value);
   if (runs === undefined) {
     const pattern = parseAddress(value).pattern;

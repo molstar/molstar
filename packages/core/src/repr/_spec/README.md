@@ -15,7 +15,7 @@ Written from meso\*'s tree core (`@molstar/meso-core` in the molstar-ludo reposi
 | `codec/`       | the codec interface and its conformance suite; no codec                              |
 | `codecs/json`  | the JSON codec, the default interchange                                              |
 | `codecs/sexpr` | the S-expression printing and its reader                                             |
-| `patch/`       | revisions, patches and diff; the patch language; the patches' conformance suite      |
+| `patch/`       | revisions, patches, diff and merge; the patch language; the conformance suite        |
 
 **Imports go one way**: `tree` ← `schema` ← `builder`; `tree` ← `schema` ← `patch`; `codec` imports `tree` and `schema`
 (the conformance trees are normalized); `codecs/*` import `tree`, `schema` (where a language's declared columns sit) and
@@ -300,6 +300,50 @@ quantities need no quotes, and no units table is needed to read them (locations-
   and `inverseNeeds` where a case gives them, the caller's root unchanged, and every inverse giving the root back
   applied with its `inverseNeeds` only (the case's allowances stripped). A language runs it with its own cases.
 
+## Merge
+
+`merge3(base, ours, theirs, options)` in `repr/patch` (`patch/merge.ts`): three-way, by node identity.
+
+- **Only `ok: true` has a `root`**, with `changes` the net change from ours to it (`Changes`, so a holder recompiles
+  only what the merge changed). `ok: false` has the `conflicts` and a `partial`. Why: a caller cannot commit a merge and
+  ignore its conflicts by accident.
+- **Keyed by node**: `diff(base, ours)` and `diff(base, theirs)`, each change keyed by the address in the base it
+  touches: a set's key on its node, a remove's or replace's node, an insert's new node, a reorder's parent. `diff`
+  infers no move across parents and no rename, so every address it writes stands in the base, and in the other side
+  unless that side removed or replaced it or above it.
+- **Changes that both apply**: to different nodes, to different keys of one node; equal changes (the same value, the
+  same node by hash, both removed, the same new order) once. A remove under what the other side removed is in it.
+- **Conflicts**, each row both ways round, one a key, node or parent: `set` (a key set to two values, or set and unset);
+  `remove` (any change at or under what the other removed, but a remove: a set, an unset, an insert under it, a reorder
+  of its children, a replace of it or under it); `insert` (one id under one parent, other content); `replace` (any
+  change under it, or another replace of it); `order` (two different new orders of the children on both sides). `move`
+  is reserved for a merge of written patches: `diff` gives no move across parents and no rename, so `merge3` never gives
+  one. `at` is in the base, but for `invalid`; `ours` and `theirs` the ops of the two diffs, in their order.
+- **Orders are compared as orders**, so the result never depends on which child `diff` chose to move: per parent, the
+  children on both sides: kept from the base, or inserted on both with equal content. One side's new order of the kept
+  children is taken, the same one once; two different ones, or a node both inserted placed two ways, conflict and ours
+  is kept. Why: the merge is then symmetric up to the order of siblings one side alone inserted.
+- **Placement**: a child only one side inserted (or kept while the other's remove of it conflicts) goes after its
+  nearest predecessor on that side that still stands, else first; ours' before theirs' after one sibling. It never fails
+  the merge.
+- **Independence by node**: a change of theirs depends on theirs' changes that made what it names: the sibling its place
+  names when theirs inserted it, and, with a language, the targets of the refs it writes (by their id runs, under an
+  insert or a replace of theirs; every run of a ref, those of the addresses nested in its forms too). A stored patch's
+  refs make none: they name nodes of its own dry run, and link integrity judges them. A change whose dependency is in a
+  conflict is left out with it, listed in that conflict's `theirs`. Other changes to one node do not make a dependency
+  (two keys of one node both apply).
+- **Theirs as one patch on ours**, under the options (`applyPatch` with `maxOps` unbounded): removes, replaces, sets and
+  unsets as they are, then per parent the merged child order by the fewest moves that keep the longest run, as `diff`
+  emits them. So normalization, link integrity and the validators judge the merged root against ours: a ref of ours to
+  what theirs removed, or two links making a cycle, are refused there. Nothing to apply gives ours, the same object.
+- **`partial`** is ours with every change of theirs independent of every conflict, applied the same way; when that is
+  refused, ours. **`invalid`**: the merged root refused, `at` the address of the first error in the merged root (or
+  `[]`), `ours` empty, `theirs` every change left out, `issues` the refusal's; `partial` ours.
+- **Issues**: the apply's warnings (dangling refs kept under `allowDangling`), and without a language
+  `repr.patch.unvalidated` (an info): nothing was normalized, rewritten or validated.
+- **Rebase**: a stale patch `p` made on `base` is `merge3(base, current, applyPatch(base, p, options).root, options)`,
+  the same options on both, so `p`'s moves rewrite refs as they would have. The host's opt-in; `repr` has no helper.
+
 ## Tests
 
 `_test/` per folder, quick lane: the tree (hash pinned to meso\*'s, columns, atoms), addresses (grammar round trip,
@@ -308,4 +352,7 @@ normalization; units hook; docs), both codecs through the conformance suite and 
 output, handles, ownership, runtime errors, `@ts-expect-error` misuse), the issue catalog against the sources, and a
 short seeded fuzz of the three readers (never a throw, always a tree or issues). Patches: the conformance suite, net
 `Changes`, structural sharing, issue paths, the patch tree's round trip, and diff's three laws as seeded property tests
-(without a language, and with one on valid trees with dangling and rebinding allowed); the child index.
+(without a language, and with one on valid trees with dangling and rebinding allowed); the child index. Merge: its laws
+as seeded property tests (`merge3(b, x, b)` and `merge3(b, x, x)` are `x`, `merge3(b, b, y)` is `y`, symmetry without
+conflicts up to one-side siblings' order, every `partial` valid), every conflict kind both ways round, dependents,
+placement, orders, `invalid`, a rebase, and its result consumed by `applyPatch` and `diff`.
