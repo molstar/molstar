@@ -36,8 +36,16 @@ is that you can store it as a patch when it makes sense."
   - **a full state**: a spec tree of its own, for a step that differs much from the spec or must not move when the spec
     is edited (a figure frozen as published). It does not follow edits of the spec; its refs resolve inside its own
     tree.
-  A writer converts one form to the other at any time (`diff` and `applyPatch`); a helper that stores each step in the
-  smaller form is offered, not the default. Recommendation: a patch over the spec by default.
+  A writer converts one form to the other at any time (`diff` and `applyPatch`). Recommendation: a patch over the spec
+  by default.
+- **Keyframes and deltas** (the author, 2026-11-18, after Braid's rewind and video codecs): a full state and a patch
+  over the spec are keyframes, reached in one step; a patch `from` another step is a delta. A step is at most
+  `story.maxChain` deltas (8) from a keyframe, so reaching any step costs at most that many applies (walk back to the
+  keyframe, apply forward). The storing helper is the encoder: `story.store: smaller` picks per step, within the bound,
+  a delta from the previous step, a patch over the spec when the chain reaches the bound, or a full state when that is
+  smaller; a step the writer marked frozen stays a full state, one marked to follow the spec stays a patch over it.
+- **States in memory are already shared**: revisions share every unchanged subtree, so many states cost what differs.
+  The stored form matters for the saved file; sampled animation frames are never stored.
 - **A step's state** is `stateOf(spec, step)`: the step's full state, or the spec with the step's patch applied. It is
   computed on demand and cached by the spec's revision and the step. A patch applies over the spec itself by default,
   so any step is reached directly and editing one step never changes another. A step may name another step as its
@@ -54,7 +62,7 @@ is that you can store it as a patch when it makes sense."
   because of what it does to a step's dry run; a step's ref left dangling is refused as for any ref (`allowDangling`).
 - **Entering a step is navigation**: no history step, no change to the spec. Edits while a patch step is shown patch
   the spec (the base), and the step is applied again over it; while a full-state step is shown, edits are refused with
-  a hint to edit the step. Editing a step's own content is its own mode and command ("edit this step"), each change one
+  a hint to edit the step (the author, 2026-11-18). Editing a step's own content is its own mode and command ("edit this step"), each change one
   history step.
 
 ### A transition is planned from the diff of two states
@@ -111,7 +119,7 @@ is that you can store it as a patch when it makes sense."
 `story.transition.duration` (the base duration of ux-foundations section 7), `story.transition.easing` (ease in and out), `story.linger`,
 `story.view.path` (`auto`: pan when the ranges overlap, else out-across-in), `story.color.space` (`oklab`),
 `story.cut.at` (0.5), `story.reducedMotion` (follows the platform), `story.stepStart` (`spec`; `from` per step),
-`story.store` (`patch`; `full`, or `smaller` for the helper).
+`story.store` (`patch`; `full`, or `smaller` for the encoder), `story.maxChain` (8).
 
 ## Tensions
 
