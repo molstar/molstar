@@ -479,10 +479,12 @@ the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the la
 reads (`values.coarser`, 2), whether values on the section's own system are placed directly (`values.direct`, true), the
 strings draw lists keep interned across frames (`internedStrings`, 4,096; past it a full redraw starts the table again).
 
-- **A values layer's level** (`values.coarser`, k): the coarsest bin no wider than k device pixels' positions; 1 is a
-  pixel's (what other layers read). Why 2: a source's levels are far apart (16 or 64 times), so just past a level a
-  pixel's would read up to 64 positions a pixel one by one; at 2 a bar a column spans at most two bins, and a frame's
-  cost follows the pixels, not the gap between levels.
+- **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
+  device pixels' positions; 1 is a pixel's (what other layers read). A bin can still be as narrow as k/F pixels, F the
+  factor between the source's levels (the store's summaries' or the source's own), so a device column may read up to F/k
+  bins or positions: k = 2 halves that worst case, it does not remove it, and a frame's cost still follows the gap
+  between levels. What makes the finest level cheap is placing directly (below): 100,000 positions in view, read one by
+  one at k = 1, lay out in about 2 ms.
 - **Placed directly** (`values.direct`): data on the section's own system (no path) goes from its positions to x with no
   mapping and no arrays a position; the lists are those of the general mapping (a test compares them), `false` forces
   the mapping.
@@ -536,9 +538,11 @@ strings draw lists keep interned across frames (`internedStrings`, 4,096; past i
   nothing in a draw makes a closure, an iterator, a destructured array or a number for a call; the hit's numbers are
   read where they are used.
 - **A layout allocates a bounded amount a frame**, not nothing: what it makes once (the wants, the regions, the key's
-  text, the tiles' keys) and a little an item in view (ranges: an item's key, the lane maps); never anything a position
-  or a bin (a values layer places through a kept placer, `AxisTransform.spanIn` and inline stores; marks, merges and
-  sorts in kept typed scratch). The bounds a scenario are the allocation tier's.
+  text, the tiles' keys) and a little an item in view (ranges: an item's key, the lane maps). On the section's own
+  system nothing a position or a bin (a values layer places through a kept placer, `AxisTransform.spanIn` and inline
+  stores; marks, merges and sorts in kept typed scratch); through a path, each position or bin placed carries its range
+  along it (`toSection`: an array a placement), bounded by the screen and the gap between levels. The bounds a scenario
+  are the allocation tier's.
 
 ### Shapes
 
@@ -624,7 +628,8 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   redraws the emphasis passes alone; anything else lays out again into the same buffers. Same inputs, same lists.
 - The check compares the parts as they are (and the reads as arrays), building nothing: a hover allocates nothing. The
   key's text (`Frame.key`, `DrawLists.key`) is made when the lists are rebuilt; an emphasis redraw returns one kept
-  `Frame` record.
+  `Frame` record, its fields set again. So a frame is valid until the next `frame` call (the lists are reused too): a
+  caller copies what it keeps.
 
 ### The overlay's sources
 

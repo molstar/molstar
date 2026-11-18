@@ -42,6 +42,10 @@ export interface FrameInput {
   readonly emphasis?: Emphasis;
 }
 
+/**
+ * A frame's lists, layout and key. Valid until the next `frame` call: the lists are the renderer's, reused, and an
+ * emphasis redraw returns one kept record, its fields set again (a hover makes no object). Copy what you keep.
+ */
 export interface Frame {
   readonly lists: DrawLists;
   readonly layout: ViewLayout;
@@ -180,6 +184,10 @@ export class Renderer {
     return true;
   }
 
+  /**
+   * Lays the view out for the input (or, with an equal key, redraws the emphasis passes alone) into the renderer's
+   * lists. The returned frame is valid until the next call: copy what you keep.
+   */
   frame(input: FrameInput): Frame {
     const { model, view } = this.options;
     const dpr = input.dpr ?? 1;
