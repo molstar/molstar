@@ -86,3 +86,25 @@ command and from the keyboard.
 - Toggles (hide a track, collapse a group) are one gesture, one visible state and one undo step.
 - Hover, selection and the viewport are not history. Edits to the spec are, one undo step each.
 - Every gesture also has a keyboard way and a command.
+
+## The interaction matrix
+
+What a user acts on, against the verbs. Each cell is a gesture or key and its command, **planned** with the slice that
+builds it, or **no** with the reason. A design that adds an action fills its row and its column, and its premise is
+negated when the design is agreed: the negation usually names a missing inverse (focus and back), a symmetric case
+(leader and follower) or a plural (one range and several). Empty cells are the gaps to look at first.
+
+|                    | select       | extend       | add / remove            | focus               | back                | zoom                        | pan                  | hide               | edit                        |
+| ------------------ | ------------ | ------------ | ----------------------- | ------------------- | ------------------- | --------------------------- | -------------------- | ------------------ | --------------------------- |
+| an element         | click        | Shift+click  | Cmd/Ctrl+click toggles  | double-click        | double-click again  | —                           | —                    | no: hide its track | no: data is not edited here |
+| a range            | drag         | Shift+drag   | Cmd/Ctrl+drag, Alt+drag | Enter               | Alt+Left            | —                           | —                    | —                  | —                           |
+| the selection      | —            | Shift+arrows | Cmd/Ctrl+Shift+arrows   | Enter               | Alt+Left            | —                           | —                    | —                  | a bookmark from it: planned |
+| a section          | —            | —            | —                       | —                   | —                   | Cmd/Ctrl+wheel, pinch, -, = | wheel, drag the axis | its tracks         | its params, as edits        |
+| a follower         | as a section | as a section | as a section            | as a section        | as a section        | moves its leader            | moves its leader     | as a section       | as a section                |
+| the view           | —            | —            | —                       | 0 fits              | Alt+Left, Alt+Right | —                           | —                    | —                  | undo and redo               |
+| a track or layer   | planned      | —            | —                       | planned             | —                   | —                           | —                    | hide               | height, color, order        |
+| a bookmark or link | —            | —            | add; remove: planned    | runs it             | Alt+Left            | —                           | —                    | —                  | its label: planned          |
+| a navigator        | —            | —            | —                       | click centers there | Alt+Left            | the window's handles        | drag the window      | the host hides it  | —                           |
+
+Planned next: a section's direction (a gene reading along its protein), another system's letters on a section (a protein
+and its gene on one axis), collapsed introns, navigators (strip, miniature, ideogram, vertical overview).

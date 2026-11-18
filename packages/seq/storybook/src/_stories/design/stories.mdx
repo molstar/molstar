@@ -1,0 +1,50 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Stories" />
+
+# Stories
+
+A story is a sequence of view states over one spec, like slides. Seq\* computes each state, plans the transition between
+two states from their difference, and samples it at any time. The application's clock decides what is shown and when:
+Seq\* runs no animation loop of its own.
+
+## A step is a full state
+
+- A story's steps are kept in order, each with an id, a label, its content, its view and its timing.
+- A step's content is a **patch** over the spec (small, and it follows edits of the spec) or a **full state** (a figure
+  that must not move when the spec is edited). The writer picks per step, and can convert one into the other.
+- **Keyframes and deltas**, as a video codec or a rewinding game stores them: a full state and a patch over the spec are
+  keyframes; a patch from another step is a delta. A step is at most `story.maxChain` deltas (8) from a keyframe, so
+  reaching any step costs a bounded number of applies. `story.store: smaller` picks the smallest form per step.
+- States in memory share every unchanged subtree, so many states cost what differs. Sampled frames are never stored.
+- Entering a step is navigation: no undo step, no change to the spec. Edits while a patch step is shown edit the spec;
+  while a full-state step is shown they are refused, with a hint to edit the step.
+
+## Transitions are planned from the difference
+
+`plan(from, to)` returns plain data: a list of channels, each one property that changes, with its kind, its start and
+end values and its time window. An application may inspect, retime, drop or add channels.
+
+| Channel | What changes                            | Default                                                  |
+| ------- | --------------------------------------- | -------------------------------------------------------- |
+| view    | a section's range, the view shown       | pan when the ranges overlap, else out, across and in     |
+| number  | a height, a domain, an opacity          | tweened                                                  |
+| color   | a color or a theme's resolved colors    | blended in a perceptual space                            |
+| enter   | a track, layer or section appears, goes | fades and grows or shrinks; the layout moves the rest    |
+| order   | children reordered                      | each moves to its new place                              |
+| cut     | anything else                           | switched at the channel's time (the midpoint by default) |
+
+Data does not animate: data arriving during a transition draws in place. Reduced motion makes every channel a cut.
+
+## Sampling is pure; a frame is shown, never committed
+
+`sample(plan, t)` is deterministic and allocation-free once warm: the same function for preview, scrubbing and export. A
+frame is drawn as a transient layer over the shown state. It makes no patch, no revision and no undo step.
+
+## The application owns the clock
+
+The animation port has two faces, like the history port: the application drives Seq\* (`show(frame)` or
+`progress(plan, t)`, then `clear()`), and Seq\*'s own motions (focus, reveal, a step's view) are plans handed to the
+application, so a host that animates a structure's camera runs both on one clock. The default composition runs requested
+plans on the page's animation frames; the headless one runs a fake clock frame by frame, which is how a story is
+exported.
