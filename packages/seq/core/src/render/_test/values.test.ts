@@ -16,7 +16,7 @@ import { AxisTransform, DefaultRenderConfig, type FrameInput, recordDrawLists } 
 import { layerLevel, type LayerSource } from '../layer-data.js';
 import type { StoreReader } from '../layer-type.js';
 import { BIG, BigLevels, BigRuntime, bigSpec, conservation, GENE_EXONS, geneLetters, P53, seeded } from './fixtures.js';
-import { settle } from './helpers.js';
+import { blocks, settle } from './helpers.js';
 
 const CYCLIC = 6000;
 
@@ -68,18 +68,21 @@ describe('values: placed directly or through the mapping, the same lists', () =>
       const s = spec();
       const direct = await settle(s, [], { values: { coarser, direct: true } });
       const general = await settle(s, [], { values: { coarser, direct: false } });
-      let marks = 0;
-      let wrapped = 0;
+      let bars = 0;
+      let crossing = 0;
       for (const input of views(coarser, 16)) {
         const f = await direct.frame(input);
         const a = recordDrawLists(f.lists, ['data']);
         const b = recordDrawLists((await general.frame(input)).lists, ['data']);
         expect(a).toBe(b);
-        marks += a.split('\n').length;
-        if (f.layout.sections[0].axis?.offsets.length === 2) wrapped++;
+        // the values' rects (a block a track: each track holds one values layer)
+        for (const block of blocks(f.lists)) bars += block.rects;
+        // a view across the wrap: the section's two pieces (its origin at display unit 1,000) both in view
+        const axis = f.layout.sections[0].axis!;
+        if (axis.u0 < axis.offsets[1] && axis.u1 > axis.offsets[1]) crossing++;
       }
-      expect(marks).toBeGreaterThan(16 * 8);
-      expect(wrapped).toBe(16);
+      expect(bars).toBeGreaterThan(16 * 8);
+      expect(crossing).toBeGreaterThanOrEqual(4);
     });
   }
 
