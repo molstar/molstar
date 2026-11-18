@@ -160,5 +160,10 @@ describe('msgpack', () => {
       expect(Object.getPrototypeOf(v)).toBe(Object.prototype);
       expect('hidden' in v).toBe(false);
     });
+
+    it('keeps a leading U+FEFF of a string and of a key (a value, not a byte order mark)', () => {
+      const v = { '\uFEFFkey': '\uFEFFvalue', plain: 'a\uFEFFb' };
+      expect(decodeMsgPack(encodeMsgPack(v))).toEqual(v);
+    });
   });
 });

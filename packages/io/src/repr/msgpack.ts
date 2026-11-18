@@ -40,7 +40,7 @@ import {
   type Value,
   type ValueRecord,
 } from '@molstar/core/repr/tree/index';
-import { utf8ByteCount, utf8Read, utf8Write } from '@molstar/core/util/utf8';
+import { utf8ByteCount, utf8Write } from '@molstar/core/util/utf8';
 import { createMsgPackState, parseMsgPackValue } from '../common/msgpack/decode.js';
 import { encodeMsgPack, type MsgPackExtData } from '../common/msgpack/encode.js';
 
@@ -171,6 +171,18 @@ export function encodeMsgPackTree(node: Node): Uint8Array {
 // ---------------------------------------------------------------------------------------------------------------
 // Decoding
 
+/** Strict UTF-8 that keeps a leading U+FEFF (a value, not a byte order mark): invalid bytes throw, not U+FFFD. */
+const strictUtf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+
+/** The text of an extension's bytes; undefined when they are not UTF-8. */
+function utf8Strict(data: Uint8Array, offset: number, length: number): string | undefined {
+  try {
+    return strictUtf8.decode(data.subarray(offset, offset + length));
+  } catch {
+    return undefined;
+  }
+}
+
 /** What an extension decoder gives for a payload that does not read; the walk reports it with its path. */
 class Malformed {
   constructor(readonly why: string) {}
@@ -183,8 +195,8 @@ function extensionDecoder(made: WeakSet<object>) {
       return data.length === 1 && data[0] < Specials.length ? Specials[data[0]] : new Malformed('a special number');
     }
     if (type === MsgPackExt.bigint) {
-      const digits = utf8Read(data, 0, data.length);
-      return /^-?(0|[1-9][0-9]*)$/.test(digits) ? BigInt(digits) : new Malformed('a bigint');
+      const digits = utf8Strict(data, 0, data.length);
+      return digits !== undefined && /^-?(0|[1-9][0-9]*)$/.test(digits) ? BigInt(digits) : new Malformed('a bigint');
     }
     const numeric = ColumnOfExt.get(type);
     if (numeric !== undefined) {
@@ -224,7 +236,9 @@ function categoryColumnOf(data: Uint8Array): CategoryColumn | undefined {
     const length = view.getUint32(at, true);
     at += 4;
     if (length > data.length - at) return undefined;
-    dict[i] = utf8Read(data, at, length);
+    const entry = utf8Strict(data, at, length);
+    if (entry === undefined) return undefined;
+    dict[i] = entry;
     at += length;
   }
   const rest = data.length - at;

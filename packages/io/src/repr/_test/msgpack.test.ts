@@ -155,6 +155,28 @@ describe('io/repr/msgpack', () => {
     expect(MsgPackCodec.decode(withExtension(MsgPackExt.number, [3])).node?.params?.a).toBe(-0);
   });
 
+  it('keeps a leading U+FEFF of a string, a key and a category entry', () => {
+    const node: Node = {
+      kind: 'x',
+      params: { '\uFEFFkey': '\uFEFFvalue', c: categoryColumn(['\uFEFFa', null, 'b']) },
+      custom: { list: ['\uFEFF', '\uFEFFx'] },
+    };
+    const back = MsgPackCodec.decode(MsgPackCodec.encode(node)).node!;
+    expect(back.params?.['\uFEFFkey']).toBe('\uFEFFvalue');
+    expect(hashNode(back)).toBe(hashNode(node));
+  });
+
+  it('refuses invalid UTF-8 in a category entry and in bigint digits, as a malformed extension', () => {
+    const where = [['repr.tree.value.tag', '/params/a']];
+    const bad = (type: number, data: number[]) =>
+      MsgPackCodec.decode(withExtension(type, data)).issues.map((i) => [i.code, pathToPointer(i.path ?? [])]);
+    // one entry of one byte, 0xff, and no codes
+    expect(bad(MsgPackExt.category, [1, 0, 0, 0, 1, 0, 0, 0, 0xff])).toEqual(where);
+    expect(bad(MsgPackExt.bigint, [0xff])).toEqual(where);
+    // the same entry as a valid byte reads
+    expect(MsgPackCodec.decode(withExtension(MsgPackExt.category, [1, 0, 0, 0, 1, 0, 0, 0, 0x61])).issues).toEqual([]);
+  });
+
   it('bounds the depth', () => {
     let node: Node = { kind: 'x' };
     for (let i = 0; i < 600; i++) node = { kind: 'x', children: [node] };
