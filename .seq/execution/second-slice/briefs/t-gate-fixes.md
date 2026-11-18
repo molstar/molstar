@@ -32,8 +32,8 @@ Not in scope: a reversed follower (third slice), protein letters on the gene's a
 
 **Model**: strong (opus).
 
-**Base**: `packages-seq` at `BASE`. Your worktree may be cut from master: with a clean tree, first
-`git checkout -B seq/t-gate BASE`, and check `git merge-base --is-ancestor BASE HEAD`.
+**Base**: `packages-seq` at `b7e609739`. Your worktree may be cut from master: with a clean tree, first
+`git checkout -B seq/t-gate b7e609739`, and check `git merge-base --is-ancestor b7e609739 HEAD`.
 
 **Touches**: `packages/seq/viewer/src/**`, `packages/seq/core/src/{render,query,view}/**` where hover or hit-testing
 needs it, `packages/seq/storybook/**` (the Features/Selection story's hint names the new gestures; the protein-on-gene
