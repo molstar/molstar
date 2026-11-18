@@ -607,8 +607,10 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   each kept while its node is the same store entry, detached when it goes (or changes), so a node's data lives as long
   as the node. One that cannot be opened is an issue (`issues`) while its node is held, opened again at the next sync,
   cleared when it opens or its node goes; `renderSvg` reports those left at its end. `hold(nodes)` holds in the store
-  the nodes a layout shows and lets go of those it no longer shows (`dispose` lets go of all). One attached by another
-  consumer of a shared store is left alone. `dispose` detaches what it attached.
+  the nodes a layout shows and lets go of those it no longer shows (`dispose` lets go of all). On a shared store the
+  overlay sources (a viewer's, an export's reading through it) share what one of them attached, never replace it: each
+  claims what it needs, and the last claim let go detaches it, so an export ending never takes away a source the live
+  view reads (and cancels its reads). One attached by another consumer (not an overlay's) is left alone.
 
 ### Backends
 
