@@ -10,3 +10,11 @@
   (`syntax`, `duplicate_key`, `key_type`) move into core's `CodecIssues`; the Codec's documentation says `encode` throws on
   a tree no reader would give back (a lone surrogate).
 - (L) Encoder padding for dependable zero-copy; a canonical-category fast path; key-order determinism (with JSON).
+- (K) Derive the next revision's ref index at the end of each apply: a structural edit on a 20,000-ref spec costs
+  about 10 ms, mostly rebuilding the old root's index (0.7 ms with it cached); the 16 ms edit target.
+- (K) `render/export.ts` still requests data for hidden layers.
+- (K) `repr/tree/address.ts` (the child index) is reachable through core's `./*`; io imports `repr/tree/index` by
+  path, so closing `./repr/tree/*` needs io moved to `./repr/tree` first.
+- (R) Integer keys: an identity int32 hash, if the author wants the target met (state.md).
+- (R) Core's other `_test` folders have 73 type errors; `tsconfig.test.json` covers `data/immutable` only.
+- `@molstar/ui`'s `glass-wordmark.module.css` export resolves to nothing (`pnpm check:workspace`).

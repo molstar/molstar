@@ -121,7 +121,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 1: the base (three lanes in parallel, after Gate 0)
 
-- [ ] R (strong) `@molstar/core/data/immutable`, as `design/immutable.md` (agreed at Gate 0):
+- [x] R (strong) `@molstar/core/data/immutable` (merged `47b754e25` after one review round), as `design/immutable.md` (agreed at Gate 0):
   - `HashMap`, `HashSet` (CHAMP, flat below a measured threshold), `OrderedHashMap`, `OrderedHashSet`, `Vector`
     (32-way with a tail), transients that read like the persistent collections, cursors, per-collection hash and
     equality (SameValueZero keys by default), `defaultHash` with a finalizer;
@@ -130,7 +130,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
     regression), collisions, equality; allocation cases (the opt-in tier); ratios against immutable.js with 22-char
     keys, and the bundle size (heavy lane);
   - its `_spec`, base-library.md's row, a v6 changelog entry.
-- [ ] K (strong) `@molstar/core/repr/patch`, as `design/patches.md` (agreed 2026-11-18, revised after the second
+- [x] K (strong) `@molstar/core/repr/patch` (merged `b3ea63511` after one review round; the look owed), as `design/patches.md` (agreed 2026-11-18, revised after the second
       review), beside R:
   - the six ops with their inverses and `inverseNeeds`, `applyPatch` (result then base, all or nothing, normalization
     of what it made, refs following a move, validation by how each object came to be, link integrity old root against

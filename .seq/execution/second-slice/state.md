@@ -4,6 +4,14 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Done
 
+- Lane K merged (`b3ea63511`): `@molstar/core/repr/patch` and `layer.hidden`; reviewed (opus), both law-3 failures and
+  the rest fixed in one round (the fix's 4 tests fail on its parent, checked); the merged tree 14,380 quick tests
+  green, the heavy lane 3 runs of 3 after doubling the single-sample bounds. Its drift is in patches.md, for the
+  author to confirm. The look at the p53 stories is still owed (the pane is hidden).
+
+- Lane R merged (`47b754e25`): `@molstar/core/data/immutable`; reviewed (opus), a lost-collision-bucket delete and the
+  rest fixed in one round (the fix fails on its parent, checked); 14,333 quick, 30 allocation, 10 heavy green.
+
 - Lane S0b merged: `values.coarser` defaults to 1; 3M bars within the heavy bounds (pan 3.0 / 5.8 ms median / max).
 
 - Lane L merged: the MessagePack codec of the repr tree; reviewed, nine findings fixed in one round (a one-line
@@ -25,17 +33,10 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 - Stage 0: S0 merged (`360043baf`); S0b merged. The Gene by region recheck waits for a visible
   pane (the author asked to show it).
-- Lanes M and L reported; checks green on the orchestrator's run (M: 789 tests; L: 305 and the heavy bound, lint green
-  once io's `./repr/_test/*` export null is added); both reviewed (opus): M, no regression for existing callers but a credential leak through the asset-id path, among
-  ten findings; L, round-trip breaks for a leading U+FEFF and lone surrogates, and decode writing into the caller's
-  buffer, among nine. Both in their fix round.
-- Lane K reported: checks green on the orchestrator's run (589 quick, 35 heavy; lint green once core's
-  `./repr/patch/_test/*` null is added); under independent review (opus). Its layer keys are now addresses, so the p53
-  stories need the look in a visible pane before the merge (the pane is hidden).
-- Lane R reported: checks green on the orchestrator's run (320 quick in 0.7 s, 10 heavy, 12 allocation; lint green once
-  core's `./data/immutable/_test/*` null is added); under independent review (opus).
-- Stage 1, started from `f629c1374` (the briefs): R (`seq/r-immutable`, opus), K (`seq/k-patches`, opus), L
-  (`seq/l-msgpack`, sonnet), M (`seq/m-assets`, sonnet). S0b waits for a light slot.
+- Stage 1: R, K, L, M merged. Its gate waits for `pnpm build` then `pnpm check:workspace`, and for the look (the p53
+  stories after K, the Gene by region recheck) in a visible pane.
+- `pnpm check:workspace` fails before any build on `@molstar/ui`'s export
+  `./components/logo/_generated/glass-wordmark.module.css` (no such file; not touched by this slice).
 
 ## Next
 
@@ -43,7 +44,14 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Waiting for the author
 
-None.
+- **Integer keys against immutable.js** (lane R, after the int32 change): at 1,000 entries lookups are 1.3–1.5× and
+  builds up to 1.9× immutable.js, each with its own heavy bound. Meeting "no slower at 1,000+" needs an identity hash
+  for int32 keys (immutable.js's way: 10 ns against 24–29 ns a lookup), which packs sequential keys densely but lets
+  strided keys (multiples of 32) collide on the low bits and deepen the trie. Recommendation: keep `fmix32` and accept
+  the miss: Mol\*'s and Seq\*'s keys are string refs, and a config can pass an identity `hash`.
+- **Lane K's drift** (patches.md, "The inverse and the allowances", recorded by the orchestrator): undoing a removal of
+  already-dangling refs needs `allowDangling` (a patch carries nothing to tell restored content from new);
+  `inverseNeeds` conservative; a replace an edit in place, keeping identity. Recommendation: confirm all three.
 
 ## Decided
 
