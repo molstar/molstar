@@ -34,19 +34,24 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function open(view: ExampleView): Promise<SeqViewer> {
+/** `delayMs`: each answer's delay, or `staggered` (the story's own: later regions later). */
+async function open(
+  view: ExampleView,
+  delayMs: number | 'staggered' = DelayMs,
+  wait = 20 * DelayMs,
+): Promise<SeqViewer> {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   const text = view.id === 'gene-by-region' ? regionSeqText() : gene;
   const base = DefaultSeqViewerSpec();
   viewer = createSeqViewer({
     ...base,
     ui: undefined,
-    registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: DelayMs }) ?? [])],
+    registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: { assets: () => ({ reader: { readText: async () => text } }) },
   });
   viewer.resize(720);
   void viewer.load(view.build());
-  await vi.advanceTimersByTimeAsync(20 * DelayMs);
+  await vi.advanceTimersByTimeAsync(wait);
   viewer.draw();
   return viewer;
 }
@@ -110,5 +115,40 @@ describe('every drawn range mark has a hit box', () => {
     const r = checkMarks(v);
     expect(r.marks).toBeGreaterThan(5);
     expect(r.wrong).toEqual([]);
+  });
+
+  it('Gene by region while it streams: after each arrival, every mark drawn is hit (the hit index is the frame’s)', async () => {
+    const view = P53Views.find((x) => x.id === 'gene-by-region')!;
+    // the regions answer one by one (300 ms, then 250 more each 1,024 positions), their domains a delay later
+    const v = await open(view, 'staggered', 0);
+    let checked = 0;
+    for (let t = 0; t < 40; t++) {
+      await vi.advanceTimersByTimeAsync(DelayMs / 2);
+      v.draw();
+      const r = checkMarks(v);
+      checked += r.marks;
+      expect(r.wrong, `at ${(t + 1) * (DelayMs / 2)} ms`).toEqual([]);
+    }
+    expect(checked).toBeGreaterThan(100);
+  });
+
+  it('Gene by region with no delay (all at once) hits the same marks as streamed', async () => {
+    const view = P53Views.find((x) => x.id === 'gene-by-region')!;
+    const at = (v: SeqViewer) =>
+      v
+        .frame!.layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))
+        .filter((l) => l.type.name === 'ranges')
+        .map((l) => {
+          const lay = l.lay as RangesLay;
+          return `${l.key} ${Array.from({ length: lay.m }, (_, j) => `${lay.mlane[j]}:${lay.mx0[j]}-${lay.mx1[j]}`).join(' ')}`;
+        });
+    const streamed = await open(view);
+    const marks = at(streamed);
+    expect(checkMarks(streamed).wrong).toEqual([]);
+    streamed.retire();
+    vi.useRealTimers();
+    const once = await open(view, 0, 100);
+    expect(at(once)).toEqual(marks);
+    expect(checkMarks(once).wrong).toEqual([]);
   });
 });
