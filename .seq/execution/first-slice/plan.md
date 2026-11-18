@@ -107,7 +107,11 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
       a dynamic map; node lifetime against eviction
 - [x] I3 (4c) the transcript's domains as a nested source, shown by a track template
 - [x] I4 a story: p53's gene region by region, transcripts arriving
-- [ ] GATE: review (strong)
+- [x] GATE (2026-11-18): lane I merged after one review round; the story found three bugs between the viewer and
+      the story's exports (exports detached the viewer's nested sources; a detached source's tiles stuck pending;
+      `layoutIssues` churn), fixed with tests, and `rested` follows picture changes (an SVG drawn before the first frame
+      is drawn again); 734 quick tests, heavy lane, typechecks, lint, format green; screenshots light and dark earlier in
+      the stage (the browser pane was hidden for the last check: frames do not run there)
 
 ### Stage 7: measure (orchestrator, light)
 

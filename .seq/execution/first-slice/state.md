@@ -20,7 +20,8 @@ config item (or a param) with the recommendation as its default, and listed in g
   format, scaffold checks). Designs updated: format (tagged columns), language-description (column `required`,
   `seq.query.*`), locations-and-queries (`chain` as Nodes, `:of`, quoted `.n` labels, the boundary rule), protocol
   (`AssetReader`, `form`, `list`, row identity, malformed not retried, `over_budget`), data-store (want sets, `evicted`).
-- Stage 6 (lane I, by region): merged after one review round; tables by region, summaries, FASTA with `.fai`,
+- Stage 7 (measure): merged (heavy-lane bounds, allocation cases, `test:perf`, `size`); `measurements.md`.
+- Stage 6 (lane I, by region): merged after one review round; gate passed with four follow-up fixes; tables by region, summaries, FASTA with `.fai`,
   dynamic nodes, the overlay, templates, nested sources, the Gene by region story.
 - Stage 5 (lane H, viewer and views): merged after one review round; the visual pass found two bugs, fixed
   (`c960f158a` buffers kept when they grow; the theme fix: tokens read from the UI root, `theme.source`); gate passed
@@ -32,20 +33,16 @@ config item (or a param) with the recommendation as its default, and listed in g
 
 ## In progress
 
-- Stage 6: lane I merged after one review round (`efb8f9a94`); 730 quick tests, typechecks, lint, format, scaffold
-  checks green. The story "Gene by region" renders in light and dark, but the canvas draws the nested domains 10 to 20 s
-  late (the SVG sooner). Fixed so far: exports detached the viewer's nested sources (shared counts per store), a
-  detached source's tiles stuck pending, `layoutIssues` churn (all merged, 733 tests). Still late in the browser: the
-  viewer's layout drops its placeholders in place after the last rebuilt frame, the canvas not redrawn; the same fixer
-  on `seq/fix-nested-redraw-2`. The stage 6 gate waits for it.
-- Stage 7: measured (`measurements.md`; merged with heavy-lane bounds, allocation cases, `test:perf` and `size`).
-  All targets met except 3M bars frames (9–15 ms: the source's level gap) and allocation (layout allocates; hover
-  1 KB): the stage 7 gate waits for the author.
+- Stage 7 gate: waits for the author (`measurements.md`: confirm or move the targets; the 3M-bars level choice and what
+  "allocation-free" covers).
+- Drift of stages 5 and 6 being folded into the designs (docs agent).
 
 ## Next
 
-- Merge the fix; screenshot the story again; pass the stage 6 gate.
-- Merge the measurement; the stage 7 report (the targets for the author to confirm); then finalize.
+- On the author's answer: the two performance fixes as decided; then FINALIZE (reconcile, `status.md`, features rows,
+  edge cases' outcomes, `TODO.md`, the record in `.seq/records/first-slice/`).
+- A visible browser pane to recheck the Gene by region story after the last fixes (frames do not run while it is
+  hidden).
 
 ## Decisions taken (awaiting the author)
 
