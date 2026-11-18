@@ -112,6 +112,8 @@ const PreviewApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidat
 /** A story step over what is shown: the language and its slots, refs followed, nothing else refused. */
 const StepApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidateOptions, allowDangling: true };
 
+type Move = Changes['moved'][number];
+
 const NoChanges: Changes = { made: [], params: [], children: [], removed: [], moved: [] };
 const WholeRoot: Changes = { made: [[]], params: [], children: [], removed: [], moved: [] };
 
@@ -156,6 +158,10 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private readonly _issues = new State<readonly Issue[]>([], sameIssues);
   private readonly _changed: State<SpecCommit>;
   private readonly _recent = new Map<string, Node>();
+  /** Each recent commit's parent and moves, by revision: what the session is told when the head moves between them. */
+  private readonly _lineage = new Map<string, { readonly parent: string; readonly moved: readonly Move[] }>();
+  /** Edits running: their commits are told to `changed` when the edit ends well, never one it took back. */
+  private _editing = 0;
   private readonly _beforeCommit: ((changes: Changes) => void)[] = [];
   private _history: SeqHistory | undefined;
   private _contexts = 0;
@@ -215,12 +221,40 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     this._recent.delete(commit.revision);
     this._recent.set(commit.revision, commit.root);
     const keep = Math.max(1, this.config.revisions.keepRecent);
-    while (this._recent.size > keep) this._recent.delete(this._recent.keys().next().value!);
+    while (this._recent.size > keep) {
+      const old = this._recent.keys().next().value!;
+      this._recent.delete(old);
+      this._lineage.delete(old);
+    }
   }
 
   /**
-   * Tells `f` of each commit's changes before the new root is set (the session's addresses follow a move, as the
-   * spec's refs do: `AddressModel.followMoves`); returns the detach.
+   * The moves from one commit to another along the recent lineage: a commit's own going forward (a redo), their
+   * inverses going back (an undo, a rollback); none when the two are not on one line of recent commits.
+   */
+  private _movesBetween(from: SpecCommit, to: SpecCommit): readonly Move[] {
+    if (from.revision === to.revision) return [];
+    const up = (start: string, stop: string) => {
+      const path: (readonly Move[])[] = [];
+      for (let r = start, n = 0; n <= this._lineage.size; n++) {
+        if (r === stop) return path;
+        const l = this._lineage.get(r);
+        if (!l) return undefined;
+        path.push(l.moved);
+        r = l.parent;
+      }
+      return undefined;
+    };
+    const back = up(from.revision, to.revision);
+    if (back) return back.flatMap((m) => [...m].reverse().map((x) => ({ from: x.to, to: x.from })));
+    const forward = up(to.revision, from.revision);
+    return forward ? forward.reverse().flat() : [];
+  }
+
+  /**
+   * Tells `f` of each new head's changes before its root is set (the session's addresses follow a move, as the spec's
+   * refs do: `AddressModel.followMoves`): a commit's own; on an undo, a redo or a rollback the moves between the two
+   * commits (only `moved` is set). Returns the detach.
    */
   beforeCommit(f: (changes: Changes) => void): () => void {
     this._beforeCommit.push(f);
@@ -241,10 +275,11 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     const commit = commitOf(root, [before.revision]);
     for (const f of this._beforeCommit) f(changes);
     this._remember(commit);
+    this._lineage.set(commit.revision, { parent: before.revision, moved: changes.moved });
     batch(() => {
       this._head.set(commit);
       this._compose(extra);
-      this._changed.set(commit);
+      if (!this._editing) this._changed.set(commit);
     });
     if (this._history && !this._history.isActive(context))
       this._history.outside('The spec was changed outside the history');
@@ -316,9 +351,14 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
       };
     if (m.root === head.root || hashNode(m.root) === head.revision)
       return { ok: true, changed: false, commit: head, changes: NoChanges, issues: m.issues, rebased: true };
-    const issues = [...m.issues, ...this._masked(m.changes)];
-    const commit = this._commit(m.root, m.changes, options.context, issues);
-    return { ok: true, changed: true, commit, changes: m.changes, issues, rebased: true };
+    // `merge3` infers no move: theirs' own, where they still stand (the session follows them as the refs did)
+    const moved = theirs.changes.moved.filter(
+      (x) => resolveAddress(head.root, x.from) !== undefined && resolveAddress(m.root, x.to) !== undefined,
+    );
+    const changes: Changes = { ...m.changes, moved };
+    const issues = [...m.issues, ...this._masked(changes)];
+    const commit = this._commit(m.root, changes, options.context, issues);
+    return { ok: true, changed: true, commit, changes, issues, rebased: true };
   }
 
   /** A target refused while a step is shown, that the step makes: the hint names the step. */
@@ -419,13 +459,21 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
           return r;
         },
       };
-      work(edit);
-      return {
+      this._editing++;
+      try {
+        work(edit);
+      } finally {
+        this._editing--;
+      }
+      const outcome = {
         ok: results.every((r) => r.ok),
         changed: results.some((r) => r.ok && r.changed),
         results,
         issues: results.flatMap((r) => r.issues),
       };
+      // the edit's commits are told once it ended well; a refused one is taken back, never told
+      if (outcome.ok && outcome.changed && !this._editing) this._changed.set(this._head.value);
+      return outcome;
     };
     const history = this._history;
     if (!history) {
@@ -615,6 +663,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   }
 
   private _move(commit: SpecCommit): void {
+    const moved = this._movesBetween(this._head.value, commit);
+    for (const f of this._beforeCommit) f({ ...NoChanges, moved });
     this._remember(commit);
     batch(() => {
       this._head.set(commit);

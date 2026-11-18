@@ -135,6 +135,51 @@ describe('SpecModel: revisions and patches', () => {
   });
 });
 
+const rename = (at: readonly string[], id: string): Patch => ({
+  ops: [{ op: 'move', at: [...at], parent: at.slice(0, -1), place: { last: true }, rename: id }],
+});
+const ProteinSection = ['views', 'main', 'protein'];
+const renamed = [{ from: ProteinSection, to: ['views', 'main', 'prot'] }];
+const back = [{ from: ['views', 'main', 'prot'], to: ProteinSection }];
+
+describe('SpecModel: the session follows every move of the head', () => {
+  it('a refused edit rolled back: told the move, then its undoing; `changed` never told the commit', () => {
+    const spec = new SpecModel(proteinOnGene());
+    const head = spec.head.value;
+    const seen: unknown[] = [];
+    spec.beforeCommit((c) => seen.push(c.moved));
+    const o = sync(spec.patch('Two', [rename(ProteinSection, 'prot'), set(['views', 'main', 'nothing'], 'height', 1)]));
+    expect(o.ok).toBe(false);
+    expect(spec.head.value).toBe(head);
+    expect(seen).toEqual([renamed, back]);
+    expect(spec.changed.value).toBe(head);
+  });
+
+  it('undo and redo of a rename tell the session the moves back and forth', async () => {
+    const spec = new SpecModel(proteinOnGene());
+    const history = spec.attachHistory(uiHistory()) as UiHistory;
+    const seen: unknown[] = [];
+    spec.beforeCommit((c) => seen.push(c.moved));
+    await spec.patch('Rename', [rename(ProteinSection, 'prot'), set([], 'title', 'x')]);
+    await history.stack.undo();
+    await history.stack.redo();
+    expect(seen).toEqual([renamed, [], back, renamed]);
+    spec.retire();
+  });
+
+  it('a stale rename rebased tells the session its move', () => {
+    const spec = new SpecModel(proteinOnGene(), {}, viewerConfig({ edit: { rebaseStale: true } }));
+    const seen: unknown[] = [];
+    spec.beforeCommit((c) => seen.push(c.moved));
+    const base = spec.revision.value;
+    spec.applyPatch(set([], 'title', 'meanwhile'));
+    const r = spec.applyPatch({ base, ops: rename(ProteinSection, 'prot').ops });
+    expect(r.ok && r.rebased).toBe(true);
+    expect(r.ok && r.changes.moved).toEqual(renamed);
+    expect(seen).toEqual([[], renamed]);
+  });
+});
+
 describe('SpecModel: previews', () => {
   it('shows a patch over the root, which cancels to nothing or commits as one patch', () => {
     const spec = new SpecModel(proteinOnGene());
