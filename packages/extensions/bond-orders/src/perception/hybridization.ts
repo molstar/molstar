@@ -25,7 +25,7 @@ import { isDebugMode } from '@molstar/core/util/debug';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
-import { AtomGeometry, geometryLabel } from '@molstar/model/props/computed/chemistry/geometry';
+import { AtomGeometry } from '@molstar/model/props/computed/chemistry/geometry';
 import { atomId } from '@molstar/model/props/computed/chemistry/util';
 import {
   Ambiguity,
@@ -175,15 +175,6 @@ function applyRingPlanarity(state: State) {
         continue;
       }
       if (geom === AtomGeometry.Tetrahedral && degree[i] === 2) continue;
-      isDebugMode &&
-        console.log(
-          'Ring has non-trigonal atom ',
-          atomId(unit, unitIndices[i]),
-          ' geometry ',
-          geometryLabel(geom),
-          ' degree ',
-          degree[i],
-        );
       foundNonTrigonal = true;
       break;
     }
@@ -208,14 +199,7 @@ function applyRingPlanarity(state: State) {
     const avg = sum / len;
     // Note: Sayle's 6-ring threshold is 12° which allows 2TRM disputed benzamidine to be perceived as planar, when it has an actual cyclo-hexene chair like conformation.
     // Here we use the more conservative 5-ring threshold for both 5-and 6-rings.
-    isDebugMode && console.log('Ring average torsion ', avg.toFixed(2), '°');
     if (avg < Torsion5MaxDeg) {
-      isDebugMode &&
-        console.log(
-          'Ring ',
-          seq.map((i) => atomId(unit, unitIndices[i])).join('-'),
-          ' is planar, setting trigonal geometry',
-        );
       for (const i of seq) geometry[i] = AtomGeometry.Trigonal;
     }
   }

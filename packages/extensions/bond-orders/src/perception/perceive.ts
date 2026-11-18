@@ -17,7 +17,7 @@
  * @link https://doi.org/10.1021/ci049915d
  * Paul Labute (2005) "On the Perception of Molecules from 3D Atomic Coordinates"
  * In this work, no pattern recognition is performed, no preference towards aromaticity
- * and no assignment of sp2/sp3 hybridization done based on geometry.
+ * and no assignment of sp2/sp hybridization done based on geometry.
  * This agnostic method proceeds by elimination (unambiguous 3-dimensional neighbours,
  * bonds too long or unambiguously non-planar) to find a set of candidate sp2/sp atoms.
  * Then a maximum weighted matching algorithm is used to assign double bonds to the candidate atoms.
@@ -107,14 +107,14 @@ export function perceiveBondOrders(
     ...builtIn.props,
     cacheable: true,
   };
-  const bonds = IntAdjacencyGraph.create(
+  const bonds: IntraUnitBonds = IntAdjacencyGraph.create(
     builtIn.offset,
     builtIn.a,
     builtIn.b,
     builtIn.edgeCount,
     { ...builtIn.edgeProps, order: newOrder, flags: newFlags },
     props,
-  ) as IntraUnitBonds;
+  );
   if (unit.elements.length <= 1) return bonds;
 
   // rings over the graph being perceived, never `unit.rings` (`unit.bonds` is not set yet) and without aromaticity

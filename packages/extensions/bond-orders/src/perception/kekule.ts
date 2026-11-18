@@ -136,7 +136,7 @@ function matchDemand(
 }
 
 /**
- * Exact matching of one component that maximises the number of **demand** atoms matched, by constraint
+ * Exact matching of one component that maximizes the number of **demand** atoms matched, by constraint
  * propagation + backtracking. `comp` holds the demand vertices; `adj` may point a demand atom at a
  * partner outside `comp` (a terminal — see `matchDoubleBondsBy`). The objective counts covered demand
  * atoms, not pairs, so a demand–demand double (covers 2) is preferred over a demand–terminal one

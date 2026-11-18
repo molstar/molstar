@@ -18,7 +18,7 @@ const BondOrdersParams = {
     ],
     {
       description:
-        'Auto: perceive the orders the file does not give, in non-canonical residues. Force compute: perceive every bond.',
+        'Auto: perceive the bond orders missing from the file and Mol* dictionary for canonical residue. Force compute: perceive every bond.',
     },
   ),
 };
@@ -31,7 +31,7 @@ export type BondOrdersParams = typeof BondOrdersParams;
 export const BondOrderPerceptionProvider: BondProvider<BondOrdersParams> = {
   name: 'bond-order-perception',
   label: 'Bond order perception',
-  description: 'The built-in bonds, with the bond orders perceived from the 3D coordinates',
+  description: 'The built-in bond graph, with the bond orders perceived from the 3D coordinates',
   getParams: () => BondOrdersParams,
   create: ({ mode }) => instance(mode),
 };

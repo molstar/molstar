@@ -142,7 +142,7 @@ export function State(
     // intra-unit neighbours, from the graph being perceived
     for (let t = offset[u]; t < offset[u + 1]; t++) {
       if (!BondType.isCovalent(flags[t])) continue;
-      const v = b[t] as UnitIndex;
+      const v = b[t];
       const vAlt = altLoc(unit, v);
       if (vAlt && vAlt !== referenceAltLoc) continue; // skip bonds to atoms in other altlocs
       degree[i]++;
