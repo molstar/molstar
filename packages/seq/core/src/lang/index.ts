@@ -34,7 +34,7 @@ export {
   specBounds,
 } from './bounds.js';
 export { checkDataNode, checkSeqLang, checkSeqSpec, type DataNodeTargets } from './check.js';
-export { checkSeqChanges, SeqPatchValidator, seqPatchValidator } from './check-changes.js';
+export { checkSeqChanges, SeqPatchValidator, seqBoundsValidator, seqPatchValidator } from './check-changes.js';
 export { BoundIssues, LangIssues } from './issues.js';
 export {
   type SeqKinds,

@@ -264,25 +264,18 @@ function keyed(issues: Issue[], keys: string[], rename: (address: string) => str
 }
 
 /**
- * The `seq.lang.*` issues a change introduced (_spec/README.md, Language, Checks of a change): `checkSeqLang`'s, on the
- * nodes `changes` reaches in `after`, less those the same nodes had in `before`. For a valid, normalized `after`.
+ * The bounds on what a change made, moved or set (`seq.lang.bound.*`), as the whole spec's check holds them: the
+ * nesting of the subtrees it made or moved and of the params and custom keys it set, and one total size bound for the
+ * patch (the bytes of what it makes and sets against `maxBytes`: a patch's, not the root's, so the cost stays the
+ * change's). A subtree too deep to walk is refused alone.
  */
-export function checkSeqChanges(
-  before: Node,
-  after: Node,
-  changes: Changes,
-  bounds: SpecBounds = DefaultSpecBounds,
-): Issue[] {
-  // the nesting bounds, as the whole spec's check holds them, before anything walks the changes (a subtree too deep to
-  // walk is refused alone): the subtrees a change made or moved, the params it set
-  const look0 = lookupOf(after);
-  const deep: Issue[] = [];
-  // one patch's size bound: the bytes of what it makes and the params it sets, together, against `maxBytes`
+function boundsOfChanges(look: SeqLookup, changes: Changes, bounds: SpecBounds): Issue[] {
+  const out: Issue[] = [];
   const budget = { bytes: 0 };
   const nest = (address: Address, children: boolean, counted: boolean, keys?: ParamChange) => {
-    const at = look0.get(printAddress(address));
+    const at = look.get(printAddress(address));
     if (at)
-      deep.push(
+      out.push(
         ...checkSubtreeDepth(at.node, at.path, address.length, bounds, children, {
           ...(counted ? { budget } : {}),
           ...(keys ? { keys: { where: keys.where, keys: keys.keys } } : {}),
@@ -292,6 +285,27 @@ export function checkSeqChanges(
   for (const m of changes.made) nest(m, true, true);
   for (const m of changes.moved) nest(m.to, true, false);
   for (const c of changes.params) nest(c.at, false, true, c);
+  return out;
+}
+
+/** The bounds of a change alone, as a patch validator: for a preview or a story step, which run no language checks. */
+export const seqBoundsValidator =
+  (bounds: SpecBounds): PatchValidator =>
+  (_before, after, changes) =>
+    boundsOfChanges(lookupOf(after), changes, bounds);
+
+/**
+ * The `seq.lang.*` issues a change introduced (_spec/README.md, Language, Checks of a change): `checkSeqLang`'s, on the
+ * nodes `changes` reaches in `after`, less those the same nodes had in `before`. For a valid, normalized `after`.
+ */
+export function checkSeqChanges(
+  before: Node,
+  after: Node,
+  changes: Changes,
+  bounds: SpecBounds = DefaultSpecBounds,
+): Issue[] {
+  const look0 = lookupOf(after);
+  const deep = boundsOfChanges(look0, changes, bounds);
   if (deep.length) return deep;
   const index = deriveIndex(before, after, changes);
   const look = look0;
