@@ -476,7 +476,8 @@ and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), 
 a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a layout lists
 the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`:
 `extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer
-reads (`values.coarser`, 2), whether values on the section's own system are placed directly (`values.direct`, true).
+reads (`values.coarser`, 2), whether values on the section's own system are placed directly (`values.direct`, true), the
+strings draw lists keep interned across frames (`internedStrings`, 4,096; past it a full redraw starts the table again).
 
 - **A values layer's level** (`values.coarser`, k): the coarsest bin no wider than k device pixels' positions; 1 is a
   pixel's (what other layers read). Why 2: a source's levels are far apart (16 or 64 times), so just past a level a
@@ -524,8 +525,20 @@ reads (`values.coarser`, 2), whether values on the section's own system are plac
   keep the order its primitives were added in. Colors are `0xRRGGBBAA`; `NoColor` (0) is none.
 - **Bounded by the screen**: at most one primitive a device column a lane, or one a cell when cells are a device pixel
   or wider; tracks below the page are not laid out.
-- **Nothing allocated once warm on the draw and emphasis paths**: one `PassWriter` a pass, kept by the lists (`writer`);
-  the selection's spans and the density strip's bytes are kept and reused while the size holds.
+- **Nothing allocated once warm on the draw and emphasis paths** (a full draw of a laid-out view, a hover, a selection
+  or cursor redraw; held by the allocation tier, `frame.quick.ts`): one `PassWriter` a pass, kept by the lists
+  (`writer`); the interned strings kept across frames (`internedStrings`); the density strip's bytes kept while the size
+  holds. Why the rest: in compiled JavaScript a number passed to (or returned from) a call that is not inlined is boxed,
+  an allocation, and which calls are inlined depends on the order code ran in. So each pass of a layer type and of the
+  view is its own function, called through one table site (`passDraws`, `drawPass`: no call target known there, so each
+  is compiled on its own with the writer's calls inlined into it); a loop calls the writer at one site a primitive kind;
+  the emphasis passes' rects go through the writer's `args` (an array's numbers are never boxed) and snap inline;
+  nothing in a draw makes a closure, an iterator, a destructured array or a number for a call; the hit's numbers are
+  read where they are used.
+- **A layout allocates a bounded amount a frame**, not nothing: what it makes once (the wants, the regions, the key's
+  text, the tiles' keys) and a little an item in view (ranges: an item's key, the lane maps); never anything a position
+  or a bin (a values layer places through a kept placer, `AxisTransform.spanIn` and inline stores; marks, merges and
+  sorts in kept typed scratch). The bounds a scenario are the allocation tier's.
 
 ### Shapes
 
@@ -609,6 +622,9 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   table's version, the text metrics' version, the overlay's version, whether the view settled, the config, and the
   versions of the entries (and the coverages) the last layout read. An equal key keeps the layout and the lists and
   redraws the emphasis passes alone; anything else lays out again into the same buffers. Same inputs, same lists.
+- The check compares the parts as they are (and the reads as arrays), building nothing: a hover allocates nothing. The
+  key's text (`Frame.key`, `DrawLists.key`) is made when the lists are rebuilt; an emphasis redraw returns one kept
+  `Frame` record.
 
 ### The overlay's sources
 

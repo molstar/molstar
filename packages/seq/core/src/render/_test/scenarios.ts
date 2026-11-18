@@ -150,6 +150,29 @@ export function hovers(
   return { hits, points, emphasis };
 }
 
+/**
+ * The hover as the viewer draws it (viewer.ts, `_updateEmphasis`): one emphasis record holding one hit record, the
+ * hit's fields set to each hit in turn (`set(i)`), so a hover step is the viewer's: a field write and a frame.
+ */
+export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: number): void } {
+  const hit = { layer: '', section: '', system: '' } as { -readonly [K in keyof Hit]: Hit[K] };
+  hit.position = undefined;
+  hit.element = undefined;
+  hit.extent = undefined;
+  return {
+    emphasis: { hover: hit },
+    set(i) {
+      const h = hits[i % hits.length];
+      hit.layer = h.layer;
+      hit.section = h.section;
+      hit.system = h.system;
+      hit.position = h.position;
+      hit.element = h.element;
+      hit.extent = h.extent;
+    },
+  };
+}
+
 /** Median, 95th percentile and maximum, ms. */
 export function stats(times: number[]): { median: number; p95: number; max: number } {
   const t = [...times].sort((a, b) => a - b);

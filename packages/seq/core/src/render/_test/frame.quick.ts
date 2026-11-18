@@ -4,44 +4,116 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The allocation target (performance.md, Memory): a warm pan, zoom and hover frame allocates 0 bytes. `quickCase`
-// (test-harness) reads the bytes allocated a step exactly; the inputs of a walk are made before it starts, so a step's
-// bytes are the renderer's. By hand, never in CI: `npx vitest run -c packages/seq/core/vitest.perf.config.ts`. The
-// bytes a step are printed (`--reporter=verbose`) and left on the report; there is no baseline until the numbers are
-// accepted, so a case fails only on its positive control.
+// The allocation targets (performance.md, Memory; _spec/README.md "Render", Draw lists): a warm draw (every pass of a
+// laid-out view into its lists) and a warm hover (the renderer's frame with an equal key: the check and the emphasis
+// redraw) allocate nothing; a pan or zoom frame (a layout and a draw) allocates at most a bound per scenario, a size
+// that follows the screen and the view, not the data's size. `quickCase` (test-harness) reads the bytes allocated a
+// step exactly; the inputs of a walk are made before it starts, so a step's bytes are the renderer's. By hand, never in
+// CI: `pnpm -C packages/seq/core test:perf` (`--reporter=verbose` prints the bytes a step).
 
 import { quickCase } from '@molstar/test-harness/quick';
-import { describe, it } from 'vitest';
-import { hoverInput, hovers, prepare, Scenarios, STEPS, walk } from './scenarios.js';
+import { describe, expect, inject, it } from 'vitest';
+import { type Location, rangesLocation } from '@molstar/seqx-core/query';
+import { drawView } from '../index.js';
+import { hoverInput, hovers, prepare, reusedHover, Scenarios, STEPS, walk } from './scenarios.js';
 
-// a frame of the 3M bars costs 9 ms: the warm-up is capped by steps, so a case takes under a minute
-const Options = { warmSteps: 500, steps: 200, windows: 3, maxWarmSteps: 4000 };
-// a pan or zoom frame allocates kilobytes to megabytes today (the numbers above): the control's 88 bytes are lost in
-// that, so it only runs on the hover, which is within a control's reach
-const NoControl = { ...Options, control: false, why: 'a frame allocating kilobytes hides the control' } as const;
+// a draw or a hover costs microseconds: the harness's own warm-up, to the code it settles in
+const Options = {};
+// a frame of the 3M bars costs a millisecond: its warm-up is capped by steps, so a case takes under a minute; a layout
+// allocates kilobytes by design, and the control's 88 bytes are lost in that
+const LayoutOptions = {
+  warmSteps: 500,
+  steps: 200,
+  windows: 3,
+  maxWarmSteps: 4000,
+  control: false,
+  why: 'a layout allocates kilobytes: they hide the control',
+} as const;
 
-describe('warm frames allocate nothing', () => {
+/**
+ * Bytes a pan or zoom frame may allocate, per scenario: the larger of its two walks' measurements (2026-11-18, M-series,
+ * Node 26; the windows of a walk read up to a third apart) with half again as headroom. What a layout makes once (the
+ * wants, the regions, the tiles' keys, the key's text) and a little an item in view (the 3M bars show 2,000 ranges
+ * items at 100,000 positions: their keys and lane maps); never a buffer a position or a bin (44 MB a frame before).
+ */
+const LayoutBound: Record<string, number> = {
+  // measured 25.7 KB
+  'p53 tracks, letters': 40_000,
+  'p53 tracks, whole protein': 40_000,
+  // 40.5 KB
+  'p53 on its gene, letters': 64_000,
+  'p53 on its gene, whole protein': 64_000,
+  // 27.9 KB
+  '3M letters (120 positions)': 48_000,
+  // 37.3 KB
+  '3M cells (800 positions)': 64_000,
+  // 730 KB (pan), 765 KB at a pixel's level
+  '3M bars (100,000 positions)': 1_200_000,
+  '3M bars (100,000 positions), level per pixel': 1_200_000,
+  // 21 KB (pan: level 64 throughout), 740 KB (zoom, a window 1.0 MB: below 160,000 positions the ranges are items)
+  '3M bars (200,000 positions)': 1_500_000,
+};
+
+describe('warm draws and hovers allocate nothing; a layout a bounded size', () => {
   for (const s of Scenarios) {
     for (const kind of ['pan', 'zoom'] as const)
-      it(`${s.name}: ${kind}`, async ({ task }) => {
+      it(`${s.name}: ${kind} (layout and draw)`, async ({ task }) => {
         const settled = await prepare(s);
         const inputs = walk(s, kind);
         const { r } = quickCase(
           task,
           `${s.name} ${kind}`,
           (i) => void settled.renderer.frame(inputs[i % STEPS]),
-          NoControl,
+          LayoutOptions,
         );
         console.info(`${s.name} ${kind}: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+        expect(r.bytesPerStep, `${s.name} ${kind}: ${r.note}`).toBeLessThan(LayoutBound[s.name]);
       });
+
+    it(`${s.name}: draw`, async ({ task }) => {
+      const settled = await prepare(s);
+      const frame = settled.renderer.frame(hoverInput(s));
+      const { layout, lists } = frame;
+      const { r } = quickCase(task, `${s.name} draw`, () => drawView(layout, lists), Options);
+      console.info(`${s.name} draw: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+      expect(r.bytesPerStep, `${s.name} draw: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
+    });
 
     it(`${s.name}: hover`, async ({ task }) => {
       const settled = await prepare(s);
       const input = hoverInput(s);
-      const { emphasis } = hovers(settled, input);
-      const inputs = emphasis.map((e) => ({ ...input, emphasis: e }));
-      const { r } = quickCase(task, `${s.name} hover`, (i) => void settled.renderer.frame(inputs[i % STEPS]), Options);
+      const { hits } = hovers(settled, input);
+      const hover = reusedHover(hits);
+      const at = { ...input, emphasis: hover.emphasis };
+      const step = (i: number) => {
+        hover.set(i);
+        settled.renderer.frame(at);
+      };
+      const { r } = quickCase(task, `${s.name} hover`, step, Options);
       console.info(`${s.name} hover: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+      expect(r.bytesPerStep, `${s.name} hover: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
+    });
+
+    it(`${s.name}: selection and cursor`, async ({ task }) => {
+      const settled = await prepare(s);
+      const input = hoverInput(s);
+      const axis = settled.renderer.frame(input).layout.sections[0].axis!;
+      const vis = axis.visible([]);
+      const a = vis[0];
+      const w = Math.max(1, Math.floor((vis[1] - vis[0]) / 8));
+      // the viewer's records: a selection of a few ranges in view, the cursor walking across it
+      const selections = [0, 1, 2, 3].map((k) => rangesLocation(axis.system, [a + k * w, a + (k + 1) * w]));
+      const cursor = { system: axis.system, position: a };
+      const emphasis: { selection?: Location; cursor?: typeof cursor } = { selection: selections[0], cursor };
+      const at = { ...input, emphasis };
+      const step = (i: number) => {
+        emphasis.selection = selections[i & 3];
+        cursor.position = a + (i % (4 * w));
+        settled.renderer.frame(at);
+      };
+      const { r } = quickCase(task, `${s.name} selection and cursor`, step, Options);
+      console.info(`${s.name} selection and cursor: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+      expect(r.bytesPerStep, `${s.name} selection and cursor: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
     });
   }
 });

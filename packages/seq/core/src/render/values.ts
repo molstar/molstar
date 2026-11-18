@@ -9,7 +9,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, perPosition } from './config.js';
-import { grown, type PassName, type PassWriter } from './draw-lists.js';
+import { drawPass, grown, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import {
   dataRegions,
   type LayerSource,
@@ -31,8 +31,8 @@ import {
   sectionId,
 } from './layer-type.js';
 import { reportColor } from './letters.js';
-import { drawSpans, outlineCell } from './marks.js';
-import { resolveColor, type SeqTokens, withAlpha } from './tokens.js';
+import { drawFailed, drawSpans, hoverCell } from './marks.js';
+import { resolveColor, type SeqTokens } from './tokens.js';
 
 // The `values` layer type (_spec/README.md "Render", Layer types): a bar a value, square (continuous data). Where a
 // position is a device pixel or more, a bar a position; below, a bar a device column over the column's extent from
@@ -71,7 +71,8 @@ export interface ValuesLay {
   hoverWidth: number;
 }
 
-function push(lay: ValuesLay, x0: number, x1: number, lo: number, hi: number) {
+/** The next bar's index, the bars' arrays grown to hold it (the caller writes its numbers: nothing passed is boxed). */
+function nextBar(lay: ValuesLay): number {
   const j = lay.n++;
   if (j >= lay.x0.length) {
     lay.x0 = grown(lay.x0, j + 1);
@@ -79,10 +80,7 @@ function push(lay: ValuesLay, x0: number, x1: number, lo: number, hi: number) {
     lay.lo = grown(lay.lo, j + 1);
     lay.v = grown(lay.v, j + 1);
   }
-  lay.x0[j] = x0;
-  lay.x1[j] = x1;
-  lay.lo[j] = lo;
-  lay.v[j] = hi;
+  return j;
 }
 
 export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
@@ -181,7 +179,9 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
           const b = Math.min(end, regions[r + 1]);
           for (let p = a; p < b; p++) {
             const v = t.value[p - t.start];
-            place(pl, p, p + 1, v, v);
+            pl.lo = v;
+            pl.hi = v;
+            place(pl, p, p + 1);
           }
         }
       } else {
@@ -190,7 +190,9 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
           const a = t.start + i * w;
           if (!overlapsRegions(regions, a, a + w)) continue;
           const none = !(t.count[i] > 0);
-          place(pl, a, a + w, none ? Number.NaN : t.min[i], none ? Number.NaN : t.max[i]);
+          pl.hi = none ? Number.NaN : t.max[i];
+          pl.lo = minmax ? (none ? Number.NaN : t.min[i]) : pl.hi;
+          place(pl, a, a + w);
         }
       }
     }
@@ -198,43 +200,20 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     pl.axis = undefined;
     pl.src = undefined;
     if (columns)
-      for (let c = 0; c < colHi.length; c++)
-        push(lay, box.x + c * px, box.x + (c + 1) * px, minmax ? colLo[c] : colHi[c], colHi[c]);
+      for (let c = 0; c < colHi.length; c++) {
+        const j = nextBar(lay);
+        lay.x0[j] = box.x + c * px;
+        lay.x1[j] = box.x + (c + 1) * px;
+        lay.lo[j] = minmax ? colLo[c] : colHi[c];
+        lay.v[j] = colHi[c];
+      }
     if (prep.domain) lay.domain = [prep.domain[0], prep.domain[1]];
     else if (ctx.settled || !lay.domain) lay.domain = openDomain(lay);
     return lay;
   },
 
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
-    const { box, tokens } = lay;
-    if (pass === 'data') {
-      drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
-      drawSpans(out, lay.failed, box.y, box.height, withAlpha(tokens.colors['seq-conflict'], 0.25));
-      const [lo, hi] = lay.domain ?? [0, 1];
-      const base = lo <= 0 && hi >= 0 ? 0 : lo;
-      const span = hi - lo || 1;
-      const yOf = (v: number) => box.y + box.height - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * box.height;
-      const yBase = yOf(base);
-      const missing = tokens.colors['seq-missing'];
-      for (let j = 0; j < lay.n; j++) {
-        const v = lay.v[j];
-        const w = lay.x1[j] - lay.x0[j];
-        if (Number.isNaN(v)) {
-          if (perPosition(lay.step)) out.rect(lay.x0[j], yBase - 2, w, 2, missing);
-          continue;
-        }
-        // the extent from the baseline: a column's low below it shows (negative extremes)
-        const top = yOf(Math.max(v, base));
-        const bottom = yOf(Math.min(lay.lo[j], base));
-        out.rect(lay.x0[j], top, w, bottom - top, lay.fill);
-      }
-      return;
-    }
-    if (pass === 'hover') {
-      const h = emphasis?.hover;
-      if (!h || h.layer !== lay.key || h.position === undefined) return;
-      outlineCell(out, lay.axis, h.position, box, tokens.colors['seq-hover'], lay.hoverWidth);
-    }
+    drawPass(ValuesDraws, lay, out, emphasis);
   },
 
   hit(lay, x, y): Hit | undefined {
@@ -250,6 +229,43 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
   },
 };
 
+// Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
+
+/** The data pass: placeholders, and a bar a value from the baseline (missing: a mark at it). */
+function drawBars(lay: ValuesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
+  const { box, tokens } = lay;
+  drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
+  drawFailed(out, lay.failed, box.y, box.height, tokens);
+  // no closure, no destructuring, no call with a number made here (`yOf` inlined on purpose) and one call site a
+  // primitive (a site first run after its function was compiled stays a call): nothing allocated once warm
+  const lo = lay.domain ? lay.domain[0] : 0;
+  const hi = lay.domain ? lay.domain[1] : 1;
+  const base = lo <= 0 && hi >= 0 ? 0 : lo;
+  const span = hi - lo || 1;
+  const y1 = box.y + box.height;
+  const bh = box.height;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
+  const missing = tokens.colors['seq-missing'];
+  const each = perPosition(lay.step);
+  for (let j = 0; j < lay.n; j++) {
+    const v = lay.v[j];
+    let top = yBase - 2;
+    let h = 2;
+    let fill = missing;
+    if (Number.isNaN(v)) {
+      if (!each) continue;
+    } else {
+      // the extent from the baseline: a column's low below it shows (negative extremes)
+      top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
+      h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
+      fill = lay.fill;
+    }
+    out.fill(lay.x0[j], top, lay.x1[j] - lay.x0[j], h, fill);
+  }
+}
+
+const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({ data: drawBars, hover: hoverCell });
+
 /** A layout's placement state: one, reused (a layout runs to its end), so placing a value allocates nothing. */
 interface Placer {
   lay: ValuesLay | undefined;
@@ -261,6 +277,9 @@ interface Placer {
   cols: boolean;
   minmax: boolean;
   px: number;
+  /** The value being placed, its low (its high with `max`) and high: set by the layout, read by `mark`. */
+  lo: number;
+  hi: number;
 }
 
 const placer: Placer = {
@@ -271,42 +290,56 @@ const placer: Placer = {
   cols: false,
   minmax: true,
   px: 0.5,
+  lo: 0.5,
+  hi: 0.5,
 };
 
 /** A placement's pieces on the section, through the map (kept). */
 const pieces: number[] = [];
 
+// Placing passes no number made per value to a call (a call that is not inlined boxes each: an allocation a value):
+// positions are integers, the value is in the placer, the extent in the axis's `sx0`, `sx1`, and `snap`, `column` and
+// the bar's store are inlined on purpose.
+
 /**
- * The values of data positions `[a, b)` (low and high): every piece of the axis it lands on in view. On the section's
- * own system the positions are the section's (no mapping, no arrays): the same marks as through `toSection`.
+ * The value in the placer at data positions `[a, b)`: every piece of the axis it lands on in view. On the section's own
+ * system the positions are the section's (no mapping, no arrays): the same marks as through `toSection`.
  */
-function place(pl: Placer, a: number, b: number, low: number, hi: number) {
+function place(pl: Placer, a: number, b: number) {
   const axis = pl.axis!;
-  const lo = pl.minmax ? low : hi;
   const n = axis.offsets.length;
   if (pl.direct) {
-    for (let k = 0; k < n; k++) if (axis.spanIn(k, a, b)) mark(pl, axis.sx0, axis.sx1, lo, hi);
+    for (let k = 0; k < n; k++) if (axis.spanIn(k, a, b)) mark(pl, axis);
     return;
   }
   toSection(pl.src!, a, b, pieces);
   for (let i = 0; i + 1 < pieces.length; i += 2)
-    for (let k = 0; k < n; k++) if (axis.spanIn(k, pieces[i], pieces[i + 1])) mark(pl, axis.sx0, axis.sx1, lo, hi);
+    for (let k = 0; k < n; k++) if (axis.spanIn(k, pieces[i], pieces[i + 1])) mark(pl, axis);
 }
 
-/** A placed extent `[xa, xb)` (unsnapped): a bar a position, or its device columns' extents widened. */
-function mark(pl: Placer, xa: number, xb: number, lo: number, hi: number) {
+/** The extent `spanIn` left in the axis (unsnapped): a bar a position, or its device columns' extents widened. */
+function mark(pl: Placer, axis: AxisTransform) {
   const lay = pl.lay!;
-  const axis = pl.axis!;
+  const lo = pl.lo;
+  const hi = pl.hi;
+  const dpr = axis.dpr;
   if (!pl.cols) {
-    const x0 = axis.snap(xa);
-    push(lay, x0, Math.max(axis.snap(xb), x0 + pl.px), lo, hi);
+    const x0 = Math.round(axis.sx0 * dpr) / dpr;
+    const j = nextBar(lay);
+    lay.x0[j] = x0;
+    lay.x1[j] = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + pl.px);
+    lay.lo[j] = lo;
+    lay.v[j] = hi;
     return;
   }
   if (Number.isNaN(hi)) return;
   const colHi = lay.colHi;
   const colLo = lay.colLo;
-  const c0 = axis.column(xa);
-  const c1 = Math.max(c0, axis.column(xb - 1e-6));
+  const last = axis.columns - 1;
+  const f0 = Math.floor((axis.sx0 - axis.x0) * dpr);
+  const f1 = Math.floor((axis.sx1 - 1e-6 - axis.x0) * dpr);
+  const c0 = f0 < 0 ? 0 : f0 >= last ? last : f0;
+  const c1 = Math.max(c0, f1 < 0 ? 0 : f1 >= last ? last : f1);
   for (let c = c0; c <= c1; c++) {
     if (Number.isNaN(colHi[c]) || hi > colHi[c]) colHi[c] = hi;
     if (Number.isNaN(colLo[c]) || lo < colLo[c]) colLo[c] = lo;

@@ -10,7 +10,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep } from './config.js';
-import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, layerSource, placeholderSpans, readTiles } from './layer-data.js';
 import {
@@ -23,8 +23,8 @@ import {
   sectionId,
   type StoreReader,
 } from './layer-type.js';
-import { drawSpans, outlineCell } from './marks.js';
-import { inkOn, letterToken, resolveColor, type SeqTokens, withAlpha } from './tokens.js';
+import { drawFailed, drawSpans, hoverCell } from './marks.js';
+import { inkOn, letterToken, resolveColor, type SeqTokens } from './tokens.js';
 
 // The `letters` layer type (_spec/README.md "Render", Layer types): a section's letters, a cell a position. By density
 // step: letters on their colored cells, cells only, a tick a position, then one bar a piece in view (presence needs no
@@ -55,6 +55,8 @@ export interface LettersLay {
   x1: Float32Array;
   font: string;
   fontSize: number;
+  /** The letters' baseline, made at layout (the draw passes it through the writer's `args`). */
+  glyphY: number;
   /** `x0, x1, cut` triples: the bars of the coarse steps, the pending and failed placeholders. */
   bars: number[];
   pending: number[];
@@ -102,6 +104,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       x1: new Float32Array(64),
       font: '',
       fontSize: 0,
+      glyphY: 0.5,
       bars: [],
       pending: [],
       failed: [],
@@ -185,36 +188,13 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       // the step starts where the smallest size fits the cell: a short row still shows its letters
       if (!lay.fontSize) lay.fontSize = config.letterSizes[0] ?? 9;
       lay.font = `${lay.fontSize}px mono`;
+      lay.glyphY = box.y + box.height / 2 + lay.fontSize * 0.35;
     }
     return lay;
   },
 
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
-    const { box, tokens } = lay;
-    if (pass === 'data') {
-      drawSpans(out, lay.bars, box.y, box.height, tokens.colors['seq-sequence']);
-      drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
-      drawSpans(out, lay.failed, box.y, box.height, withAlpha(tokens.colors['seq-conflict'], 0.25));
-      const dots = lay.step === 'dots';
-      const tick = Math.max(2, Math.round(box.height * 0.3));
-      for (let j = 0; j < lay.n; j++) {
-        const w = Math.max(lay.x1[j] - lay.x0[j], 1 / lay.axis.dpr);
-        if (dots) out.rect(lay.x0[j], box.y + (box.height - tick) / 2, w, tick, lay.fill[j]);
-        else out.rect(lay.x0[j], box.y, w, box.height, lay.fill[j]);
-      }
-      if (lay.step === 'letters' && lay.fontSize > 0 && lay.n > 0) {
-        const y = box.y + box.height / 2 + lay.fontSize * 0.35;
-        out.beginGlyphs(lay.font, y, NoColor);
-        for (let j = 0; j < lay.n; j++) out.letter(lay.code[j], (lay.x0[j] + lay.x1[j]) / 2, lay.ink[j]);
-        out.endGlyphs();
-      }
-      return;
-    }
-    if (pass === 'hover') {
-      const h = emphasis?.hover;
-      if (!h || h.layer !== lay.key || h.position === undefined) return;
-      outlineCell(out, lay.axis, h.position, box, tokens.colors['seq-hover'], lay.hoverWidth);
-    }
+    drawPass(LettersDraws, lay, out, emphasis);
   },
 
   hit(lay, x, y): Hit | undefined {
@@ -225,6 +205,32 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     return { layer: lay.key, section: lay.section, position, system: lay.system };
   },
 };
+
+// Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
+
+/** The data pass: bars, placeholders, cells or ticks, and the letters on them. */
+function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undefined) {
+  const { box, tokens } = lay;
+  drawSpans(out, lay.bars, box.y, box.height, tokens.colors['seq-sequence']);
+  drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
+  drawFailed(out, lay.failed, box.y, box.height, tokens);
+  // a tick a position at `dots`, else the cell: one call site (a site first run after its function was compiled
+  // stays a call, and a call boxes the numbers it is passed)
+  const tick = Math.max(2, Math.round(box.height * 0.3));
+  const dots = lay.step === 'dots';
+  const y = dots ? box.y + (box.height - tick) / 2 : box.y;
+  const h = dots ? tick : box.height;
+  const px = 1 / lay.axis.dpr;
+  for (let j = 0; j < lay.n; j++) out.fill(lay.x0[j], y, Math.max(lay.x1[j] - lay.x0[j], px), h, lay.fill[j]);
+  if (lay.step === 'letters' && lay.fontSize > 0 && lay.n > 0) {
+    out.args[1] = lay.glyphY;
+    out.beginGlyphsArgs(lay.font, NoColor);
+    for (let j = 0; j < lay.n; j++) out.letter(lay.code[j], (lay.x0[j] + lay.x1[j]) / 2, lay.ink[j]);
+    out.endGlyphs();
+  }
+}
+
+const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawCells, hover: hoverCell });
 
 export function reportColor(ctx: LayoutContext): void {
   ctx.report(

@@ -35,7 +35,7 @@ export const Anchor = { start: 0, middle: 1, end: 2 } as const;
 export const NoColor = 0;
 
 /** `a`, or a larger copy of it with its contents kept (buffers grow while they fill). */
-export function grown<T extends Float32Array | Int32Array | Uint32Array | Uint16Array | Uint8Array>(
+export function grown<T extends Float64Array | Float32Array | Int32Array | Uint32Array | Uint16Array | Uint8Array>(
   a: T,
   need: number,
 ): T {
@@ -80,6 +80,13 @@ export class RectList {
     this.strokeWidth[i] = strokeWidth;
     this.radius[i] = radius;
     this.round[i] = radius > 0 ? round : 0;
+    return i;
+  }
+
+  /** The next rect's index, its arrays grown to hold it (the writer fills them in). */
+  next(): number {
+    const i = this.n++;
+    if (i >= this.x.length) this.grow(i + 1);
     return i;
   }
 
@@ -168,14 +175,7 @@ export class GlyphList {
 
   begin(font: number, y: number, color: number) {
     const i = this.n;
-    if (i >= this.font.length) {
-      const need = i + 1;
-      this.font = grown(this.font, need);
-      this.y = grown(this.y, need);
-      this.color = grown(this.color, need);
-      this.start = grown(this.start, need);
-      this.count = grown(this.count, need);
-    }
+    if (i >= this.font.length) this.growRuns(i + 1);
     this.font[i] = font;
     this.y[i] = y;
     this.color[i] = color;
@@ -185,11 +185,7 @@ export class GlyphList {
 
   letter(code: number, x: number, color = NoColor) {
     const j = this.letters++;
-    if (j >= this.codes.length) {
-      this.codes = grown(this.codes, j + 1);
-      this.x = grown(this.x, j + 1);
-      this.colors = grown(this.colors, j + 1);
-    }
+    if (j >= this.codes.length) this.growLetters(j + 1);
     this.codes[j] = code;
     this.x[j] = x;
     this.colors[j] = color;
@@ -198,6 +194,37 @@ export class GlyphList {
 
   end() {
     return this.n++;
+  }
+
+  /** The next run's index (begun by the writer), its arrays grown to hold it. */
+  nextRun(): number {
+    const i = this.n;
+    if (i >= this.font.length) this.growRuns(i + 1);
+    this.start[i] = this.letters;
+    this.count[i] = 0;
+    return i;
+  }
+
+  /** The next letter's index in the open run, its arrays grown to hold it. */
+  nextLetter(): number {
+    const j = this.letters++;
+    if (j >= this.codes.length) this.growLetters(j + 1);
+    this.count[this.n]++;
+    return j;
+  }
+
+  private growRuns(need: number) {
+    this.font = grown(this.font, need);
+    this.y = grown(this.y, need);
+    this.color = grown(this.color, need);
+    this.start = grown(this.start, need);
+    this.count = grown(this.count, need);
+  }
+
+  private growLetters(need: number) {
+    this.codes = grown(this.codes, need);
+    this.x = grown(this.x, need);
+    this.colors = grown(this.colors, need);
   }
 }
 
@@ -226,17 +253,7 @@ export class TextList {
     maxWidth: number,
   ) {
     const i = this.n++;
-    if (i >= this.str.length) {
-      const need = i + 1;
-      this.str = grown(this.str, need);
-      this.x = grown(this.x, need);
-      this.y = grown(this.y, need);
-      this.anchor = grown(this.anchor, need);
-      this.font = grown(this.font, need);
-      this.color = grown(this.color, need);
-      this.width = grown(this.width, need);
-      this.maxWidth = grown(this.maxWidth, need);
-    }
+    if (i >= this.str.length) this.grow(i + 1);
     this.str[i] = str;
     this.x[i] = x;
     this.y[i] = y;
@@ -246,6 +263,24 @@ export class TextList {
     this.width[i] = width;
     this.maxWidth[i] = maxWidth;
     return i;
+  }
+
+  /** The next text's index, its arrays grown to hold it. */
+  next(): number {
+    const i = this.n++;
+    if (i >= this.str.length) this.grow(i + 1);
+    return i;
+  }
+
+  private grow(need: number) {
+    this.str = grown(this.str, need);
+    this.x = grown(this.x, need);
+    this.y = grown(this.y, need);
+    this.anchor = grown(this.anchor, need);
+    this.font = grown(this.font, need);
+    this.color = grown(this.color, need);
+    this.width = grown(this.width, need);
+    this.maxWidth = grown(this.maxWidth, need);
   }
 }
 
@@ -264,6 +299,18 @@ export class ImageList {
   w = new Float32Array(8);
   h = new Float32Array(8);
   images: ImageData[] = [];
+
+  /** The next image's index, its arrays grown to hold it. */
+  next(): number {
+    const i = this.n++;
+    if (i >= this.x.length) {
+      this.x = grown(this.x, i + 1);
+      this.y = grown(this.y, i + 1);
+      this.w = grown(this.w, i + 1);
+      this.h = grown(this.h, i + 1);
+    }
+    return i;
+  }
 
   push(x: number, y: number, w: number, h: number, image: ImageData) {
     const i = this.n++;
@@ -319,10 +366,15 @@ export class PassList {
   /** Clips pushed and not popped. */
   depth = 0;
 
-  constructor(readonly name: PassName) {}
+  /** The pass's index in `Passes`. */
+  readonly index: number;
+
+  constructor(readonly name: PassName) {
+    this.index = Passes.indexOf(name);
+  }
 
   op(kind: number) {
-    this.ops = grown(this.ops, this.opCount + 1);
+    if (this.opCount >= this.ops.length) this.ops = grown(this.ops, this.opCount + 1);
     this.ops[this.opCount++] = kind;
   }
 
@@ -342,7 +394,7 @@ export class PassList {
     this.glyphs.letters = 0;
     this.texts.n = 0;
     this.images.n = 0;
-    this.images.images.length = 0;
+    // the images array keeps its slots (a length of 0 would let its storage go, to be made again next frame)
     this.clips.n = 0;
   }
 }
@@ -392,6 +444,9 @@ export function walkPass(p: PassList, v: PassVisitor): void {
   }
 }
 
+/** The interned strings draw lists keep across frames by default (`RenderConfig.internedStrings`). */
+export const DefaultMaxStrings = 4096;
+
 /**
  * The draw lists of a frame: a list per pass, the interned strings (texts and fonts) and the size they were laid out
  * for. Reused frame to frame: `reset` keeps every buffer. `key` is what they were built from (the renderer's).
@@ -404,16 +459,20 @@ export class DrawLists {
   private readonly _strings: string[] = [];
   private readonly _ids = new Map<string, number>();
 
-  constructor() {
+  /** @param maxStrings the interned strings kept across frames (`RenderConfig.internedStrings`). */
+  constructor(readonly maxStrings = DefaultMaxStrings) {
     const passes = {} as Record<PassName, PassList>;
     for (const name of Passes) passes[name] = new PassList(name);
     this.passes = passes;
   }
 
-  /** Clears every pass (or the ones named) for a new frame; the interned strings with a full reset only. */
+  /**
+   * Clears every pass (or the ones named) for a new frame. The interned strings stay (a frame drawn again interns
+   * nothing new, so it allocates nothing); a full reset clears them once they are more than `maxStrings`.
+   */
   reset(passes: readonly PassName[] = Passes): void {
-    for (const p of passes) this.passes[p].reset();
-    if (passes.length === Passes.length) {
+    for (let i = 0; i < passes.length; i++) this.passes[passes[i]].reset();
+    if (passes.length === Passes.length && this._strings.length > this.maxStrings) {
       this._strings.length = 0;
       this._ids.clear();
     }
@@ -421,12 +480,14 @@ export class DrawLists {
 
   /** The id of an interned string (a text, a font). */
   intern(s: string): number {
-    let id = this._ids.get(s);
-    if (id === undefined) {
-      id = this._strings.length;
-      this._strings.push(s);
-      this._ids.set(s, id);
-    }
+    const id = this._ids.get(s);
+    return id === undefined ? this.add(s) : id;
+  }
+
+  private add(s: string): number {
+    const id = this._strings.length;
+    this._strings.push(s);
+    this._ids.set(s, id);
     return id;
   }
 
@@ -453,10 +514,75 @@ export class DrawLists {
 
 /** Adds primitives to one pass of draw lists: what layer types draw through. */
 export class PassWriter {
+  /**
+   * A rect's, an image's or a text's numbers, set by the caller before `rectArgs`, `imageArgs` or `textArgs`: x, y, w,
+   * h, fill, stroke, stroke width, radius, round ends (a text's: x, y, width, max width). A call boxes each number it is passed where the compiler did not inline it (an
+   * allocation); an array's numbers are never boxed, so the emphasis passes, drawn rarely next to the data passes and
+   * so never sure to be inlined, draw through it (nothing allocated once warm).
+   */
+  readonly args = new Float64Array(9);
+
   constructor(
     readonly lists: DrawLists,
     readonly pass: PassList,
   ) {}
+
+  /** The rect `args` holds (all nine numbers). */
+  rectArgs() {
+    const a = this.args;
+    if (a[2] <= 0 || a[3] <= 0) return;
+    this.pass.op(Op.rect);
+    const l = this.pass.rects;
+    const i = l.next();
+    l.x[i] = a[0];
+    l.y[i] = a[1];
+    l.w[i] = a[2];
+    l.h[i] = a[3];
+    l.fill[i] = a[4];
+    l.stroke[i] = a[5];
+    l.strokeWidth[i] = a[6];
+    l.radius[i] = a[7];
+    l.round[i] = a[7] > 0 ? a[8] : 0;
+  }
+
+  /** Begins a glyph run at the baseline `args[1]` holds (`beginGlyphs`, its number through `args`). */
+  beginGlyphsArgs(font: string, color = NoColor) {
+    this.pass.op(Op.glyphs);
+    const l = this.pass.glyphs;
+    const i = l.nextRun();
+    l.font[i] = this.lists.intern(font);
+    l.y[i] = this.args[1];
+    l.color[i] = color;
+  }
+
+  /** A text at the numbers `args` holds: x, y (baseline), its measured width, its max width (faded past it). */
+  textArgs(s: string, anchor: number, font: string, color: number) {
+    const a = this.args;
+    this.pass.op(Op.text);
+    const l = this.pass.texts;
+    const i = l.next();
+    l.str[i] = this.lists.intern(s);
+    l.x[i] = a[0];
+    l.y[i] = a[1];
+    l.anchor[i] = anchor;
+    l.font[i] = this.lists.intern(font);
+    l.color[i] = color;
+    l.width[i] = a[2];
+    l.maxWidth[i] = a[3];
+  }
+
+  /** The image at the box `args` holds (its first four numbers). */
+  imageArgs(image: ImageData) {
+    const a = this.args;
+    this.pass.op(Op.image);
+    const l = this.pass.images;
+    const i = l.next();
+    l.x[i] = a[0];
+    l.y[i] = a[1];
+    l.w[i] = a[2];
+    l.h[i] = a[3];
+    l.images[i] = image;
+  }
 
   rect(
     x: number,
@@ -471,7 +597,38 @@ export class PassWriter {
   ) {
     if (w <= 0 || h <= 0) return;
     this.pass.op(Op.rect);
-    this.pass.rects.push(x, y, w, h, fill, stroke, strokeWidth, radius, round);
+    // stored here, not passed on: a number passed to a call that is not inlined is boxed (nothing allocated once warm)
+    const l = this.pass.rects;
+    const i = l.next();
+    l.x[i] = x;
+    l.y[i] = y;
+    l.w[i] = w;
+    l.h[i] = h;
+    l.fill[i] = fill;
+    l.stroke[i] = stroke;
+    l.strokeWidth[i] = strokeWidth;
+    l.radius[i] = radius;
+    l.round[i] = radius > 0 ? round : 0;
+  }
+
+  /**
+   * A filled square rect, no stroke: `rect` with its defaults, small, so the compiler inlines it into the loops that
+   * call it (a call that is not inlined boxes the numbers it is passed).
+   */
+  fill(x: number, y: number, w: number, h: number, fill: number) {
+    if (w <= 0 || h <= 0) return;
+    this.pass.op(Op.rect);
+    const l = this.pass.rects;
+    const i = l.next();
+    l.x[i] = x;
+    l.y[i] = y;
+    l.w[i] = w;
+    l.h[i] = h;
+    l.fill[i] = fill;
+    l.stroke[i] = NoColor;
+    l.strokeWidth[i] = 0;
+    l.radius[i] = 0;
+    l.round[i] = 0;
   }
 
   /** A path: `build` adds its commands through `move`, `line`, `cubic`, `close`. */
@@ -486,11 +643,19 @@ export class PassWriter {
   /** Begins a glyph run; `letter` adds to it, `endGlyphs` closes it. */
   beginGlyphs(font: string, y: number, color = NoColor) {
     this.pass.op(Op.glyphs);
-    this.pass.glyphs.begin(this.lists.intern(font), y, color);
+    const l = this.pass.glyphs;
+    const i = l.nextRun();
+    l.font[i] = this.lists.intern(font);
+    l.y[i] = y;
+    l.color[i] = color;
   }
 
   letter(code: number, x: number, color = NoColor) {
-    this.pass.glyphs.letter(code, x, color);
+    const l = this.pass.glyphs;
+    const j = l.nextLetter();
+    l.codes[j] = code;
+    l.x[j] = x;
+    l.colors[j] = color;
   }
 
   endGlyphs() {
@@ -508,7 +673,16 @@ export class PassWriter {
     maxWidth = Infinity,
   ) {
     this.pass.op(Op.text);
-    this.pass.texts.push(this.lists.intern(s), x, y, anchor, this.lists.intern(font), color, width, maxWidth);
+    const l = this.pass.texts;
+    const i = l.next();
+    l.str[i] = this.lists.intern(s);
+    l.x[i] = x;
+    l.y[i] = y;
+    l.anchor[i] = anchor;
+    l.font[i] = this.lists.intern(font);
+    l.color[i] = color;
+    l.width[i] = width;
+    l.maxWidth[i] = maxWidth;
   }
 
   image(x: number, y: number, w: number, h: number, image: ImageData) {
@@ -527,6 +701,29 @@ export class PassWriter {
     this.pass.op(Op.unclip);
     this.pass.depth--;
   }
+}
+
+/** A pass's draw function of a layout (a layer type's, or the view's own). */
+export type PassDraw<L, E> = (lay: L, out: PassWriter, emphasis: E) => void;
+
+/** A layout's draw functions by pass, at each pass's index in `Passes` (`passDraws`); none for a pass it does not draw. */
+export type PassDraws<L, E> = readonly (PassDraw<L, E> | undefined)[];
+
+/** Draw functions by pass name, as a table by pass index (`drawPass` reads it). */
+export function passDraws<L, E>(byPass: Partial<Record<PassName, PassDraw<L, E>>>): PassDraws<L, E> {
+  return Passes.map((p) => byPass[p]);
+}
+
+/**
+ * Draws the writer's pass of a layout with its function in the table (_spec/README.md "Render", Draw lists: nothing
+ * allocated once warm). The function is read from an array and called at this one site, which every pass of the view
+ * and of every layer type goes through: no call target is known to the compiler here, so no pass function is inlined
+ * into its caller, and each is compiled on its own with the whole inlining budget for the writer's calls inside it. A
+ * writer call left out of its caller's inlining boxes each number it is passed: an allocation a primitive.
+ */
+export function drawPass<L, E>(draws: PassDraws<L, E>, lay: L, out: PassWriter, emphasis: E): void {
+  const draw = draws[out.pass.index];
+  if (draw !== undefined) draw(lay, out, emphasis);
 }
 
 /** Path command helpers (on a `PathList` being built). */

@@ -7,6 +7,8 @@
 // The layout's settings (_spec/README.md "Render", Configuration): every number is a setting with its recommended
 // default; the density steps and their thresholds, shared by every layer type.
 
+import { DefaultMaxStrings } from './draw-lists.js';
+
 /** What a cell shows as it narrows, at fixed thresholds per position, without moving anything. */
 export type DensityStep = 'letters' | 'cells' | 'dots' | 'bars' | 'density';
 
@@ -78,6 +80,11 @@ export interface RenderConfig {
    * false: through the general mapping, the same lists, slower).
    */
   readonly values: { readonly aggregate: 'minmax' | 'max'; readonly coarser: number; readonly direct: boolean };
+  /**
+   * The strings (texts and fonts) a renderer's draw lists keep interned across frames: a frame drawn again interns
+   * nothing new; past this many, a full redraw starts the table again.
+   */
+  readonly internedStrings: number;
 }
 
 export const DefaultRenderConfig: RenderConfig = {
@@ -106,6 +113,7 @@ export const DefaultRenderConfig: RenderConfig = {
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes' },
   values: { aggregate: 'minmax', coarser: 2, direct: true },
+  internedStrings: DefaultMaxStrings,
 };
 
 /** Fields of a config to override: the nested ones whole or field by field. */

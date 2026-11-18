@@ -93,6 +93,20 @@ export class AxisTransform {
     return this.xOfUnit(this.offsets[k] + p - this.pieces[2 * k]);
   }
 
+  /**
+   * The cell of position `p`: whether both its edges are shown, its left and right x (`x(p)`, `x(p + 1)`, unsnapped) in
+   * `sx0` and `sx1`. No number is returned: the hover's draw calls it.
+   */
+  cell(p: number): boolean {
+    const k0 = this.pieceOf(p, true);
+    if (k0 < 0) return false;
+    const k1 = this.pieceOf(p + 1, true);
+    if (k1 < 0) return false;
+    this.sx0 = this.xOfUnit(this.offsets[k0] + p - this.pieces[2 * k0]);
+    this.sx1 = this.xOfUnit(this.offsets[k1] + (p + 1) - this.pieces[2 * k1]);
+    return Number.isFinite(this.sx0) && Number.isFinite(this.sx1);
+  }
+
   /** The position under x (an integer), or −1 where there is none. */
   positionAt(x: number): number {
     if (x < this.x0 || x >= this.x0 + this.width) return -1;

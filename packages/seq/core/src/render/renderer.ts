@@ -17,9 +17,11 @@ import type { SeqTokens } from './tokens.js';
 import { BuiltInLayerTypes, drawView, LayoutState, layoutView, type ViewLayout } from './tracks.js';
 
 // Frames keyed by what they read (_spec/README.md "Render", The key): the model's hash, the view, the size, the
-// viewport, the device pixel ratio, the token table's version, the text metrics' version, the overlay's version, whether the view settled, and the
-// versions of the store entries the last layout read. An equal key reuses the layout and the lists and redraws only the
-// emphasis passes (a hover); anything else lays out again into the same buffers.
+// viewport, the device pixel ratio, the token table's version, the text metrics' version, the overlay's version, whether
+// the view settled, the config, and the versions of the store entries the last layout read. An equal key reuses the
+// layout and the lists and redraws only the emphasis passes (a hover); anything else lays out again into the same
+// buffers. The check compares the parts as they are, building nothing: a hover allocates nothing once warm
+// ("Nothing allocated once warm"); the key's string is made when the lists are rebuilt.
 
 export interface RendererOptions {
   readonly model: StaticModel;
@@ -51,54 +53,107 @@ export interface Frame {
   readonly wants: readonly Want[];
 }
 
+/** The parts of a frame's key that come from its input and the renderer (the store's reads apart). */
+class KeyParts {
+  model = '';
+  view = '';
+  width = Number.NaN;
+  height = Number.NaN;
+  dpr = Number.NaN;
+  viewport = false;
+  start = Number.NaN;
+  end = Number.NaN;
+  tokens = Number.NaN;
+  text = Number.NaN;
+  overlay = Number.NaN;
+  settled = false;
+
+  // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
+
+  /** Whether they equal a frame's. */
+  equals(r: Renderer, input: FrameInput) {
+    const vp = input.viewport;
+    return (
+      this.model === r.options.model.hash &&
+      this.view === r.options.view.address &&
+      this.width === input.size.width &&
+      this.height === input.size.height &&
+      this.dpr === (input.dpr ?? 1) &&
+      this.viewport === (vp !== undefined) &&
+      (vp === undefined || (this.start === vp.start && this.end === vp.end)) &&
+      this.tokens === r.tokens.version &&
+      this.text === r.options.text.version &&
+      this.overlay === (input.overlay ?? EmptyOverlay).version &&
+      this.settled === (input.settled ?? false)
+    );
+  }
+
+  set(r: Renderer, input: FrameInput) {
+    this.model = r.options.model.hash;
+    this.view = r.options.view.address;
+    this.width = input.size.width;
+    this.height = input.size.height;
+    this.dpr = input.dpr ?? 1;
+    this.viewport = input.viewport !== undefined;
+    this.start = input.viewport?.start ?? Number.NaN;
+    this.end = input.viewport?.end ?? Number.NaN;
+    this.tokens = r.tokens.version;
+    this.text = r.options.text.version;
+    this.overlay = (input.overlay ?? EmptyOverlay).version;
+    this.settled = input.settled ?? false;
+  }
+
+  /** The key's text (the store's reads appended by the caller). */
+  toString(configKey: string): string {
+    const vp = this.viewport ? `${this.start}:${this.end}` : 'all';
+    return [
+      this.model,
+      this.view,
+      `${this.width}x${this.height}@${this.dpr}`,
+      vp,
+      this.tokens,
+      this.text,
+      this.overlay,
+      this.settled ? 's' : 'm',
+      configKey,
+    ].join('|');
+  }
+}
+
+/** A frame the renderer returns again on each emphasis redraw (a hover makes no object). */
+interface ReusedFrame {
+  lists: DrawLists;
+  layout: ViewLayout;
+  key: string;
+  rebuilt: boolean;
+  wants: readonly Want[];
+}
+
 export class Renderer {
   tokens: SeqTokens;
-  readonly lists = new DrawLists();
+  readonly lists: DrawLists;
   private readonly state = new LayoutState();
   private readonly config: RenderConfig;
   private readonly configKey: string;
   private layout: ViewLayout | undefined;
-  private baseKey = '';
+  private readonly parts = new KeyParts();
   private readonly reads = new Map<string, number>();
   private readonly coverages = new Map<string, Coverage | undefined>();
+  /** The last layout's reads as arrays: the check walks them with no iterator. */
+  private readKeys: string[] = [];
+  private readVersions: number[] = [];
+  private coverageKeys: string[] = [];
+  private coverageValues: (Coverage | undefined)[] = [];
+  private emphasisFrame: ReusedFrame | undefined;
+  private readonly reader: StoreReader;
 
   constructor(readonly options: RendererOptions) {
     this.tokens = options.tokens;
     this.config = options.config ?? DefaultRenderConfig;
+    this.lists = new DrawLists(this.config.internedStrings);
     this.configKey = (hashString(JSON.stringify(this.config)) >>> 0).toString(16);
-  }
-
-  /** Whether the entries and coverages the last layout read are as they were. */
-  private readsHold(): boolean {
-    for (const [k, v] of this.reads) if ((this.options.data.get(k)?.version ?? -1) !== v) return false;
-    for (const [s, c] of this.coverages) if (this.options.data.coverage(s) !== c) return false;
-    return true;
-  }
-
-  frame(input: FrameInput): Frame {
-    const { model, view } = this.options;
-    const dpr = input.dpr ?? 1;
-    const vp = input.viewport ? `${input.viewport.start}:${input.viewport.end}` : 'all';
-    const overlay = input.overlay ?? EmptyOverlay;
-    const base = [
-      model.hash,
-      view.address,
-      `${input.size.width}x${input.size.height}@${dpr}`,
-      vp,
-      this.tokens.version,
-      this.options.text.version,
-      overlay.version,
-      input.settled ? 's' : 'm',
-      this.configKey,
-    ].join('|');
-    if (this.layout && base === this.baseKey && this.readsHold()) {
-      drawView(this.layout, this.lists, input.emphasis, EmphasisPasses);
-      return { lists: this.lists, layout: this.layout, key: this.lists.key, rebuilt: false, wants: this.layout.wants };
-    }
-    this.reads.clear();
-    this.coverages.clear();
-    const data = this.options.data;
-    const reader: StoreReader = {
+    const data = options.data;
+    this.reader = {
       coverage: (s) => {
         const c = data.coverage(s);
         this.coverages.set(s, c);
@@ -111,6 +166,36 @@ export class Renderer {
         return e;
       },
     };
+  }
+
+  /** Whether the entries and coverages the last layout read are as they were. */
+  private readsHold(): boolean {
+    const data = this.options.data;
+    const keys = this.readKeys;
+    const versions = this.readVersions;
+    for (let i = 0; i < keys.length; i++) if ((data.get(keys[i])?.version ?? -1) !== versions[i]) return false;
+    const sources = this.coverageKeys;
+    const coverages = this.coverageValues;
+    for (let i = 0; i < sources.length; i++) if (data.coverage(sources[i]) !== coverages[i]) return false;
+    return true;
+  }
+
+  frame(input: FrameInput): Frame {
+    const { model, view } = this.options;
+    const dpr = input.dpr ?? 1;
+    const overlay = input.overlay ?? EmptyOverlay;
+    const parts = this.parts;
+    if (this.layout && parts.equals(this, input) && this.readsHold()) {
+      drawView(this.layout, this.lists, input.emphasis, EmphasisPasses);
+      let f = this.emphasisFrame;
+      if (!f) f = this.emphasisFrame = { lists: this.lists, layout: this.layout, key: '', rebuilt: false, wants: [] };
+      f.layout = this.layout;
+      f.key = this.lists.key;
+      f.wants = this.layout.wants;
+      return f;
+    }
+    this.reads.clear();
+    this.coverages.clear();
     const layout = layoutView(
       {
         model,
@@ -121,7 +206,7 @@ export class Renderer {
         tokens: this.tokens,
         text: this.options.text,
         config: this.config,
-        data: reader,
+        data: this.reader,
         overlay,
         settled: input.settled ?? false,
         types: this.options.types ?? BuiltInLayerTypes,
@@ -129,11 +214,16 @@ export class Renderer {
       this.state,
     );
     this.layout = layout;
-    this.baseKey = base;
+    parts.set(this, input);
     drawView(layout, this.lists, input.emphasis);
+    const reads = [...this.reads].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     let sig = '';
-    for (const [k, v] of [...this.reads].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) sig += `${k}=${v};`;
-    this.lists.key = `${base}|${(hashString(sig) >>> 0).toString(16)}`;
+    for (const [k, v] of reads) sig += `${k}=${v};`;
+    this.readKeys = reads.map((r) => r[0]);
+    this.readVersions = reads.map((r) => r[1]);
+    this.coverageKeys = [...this.coverages.keys()];
+    this.coverageValues = [...this.coverages.values()];
+    this.lists.key = `${parts.toString(this.configKey)}|${(hashString(sig) >>> 0).toString(16)}`;
     return { lists: this.lists, layout, key: this.lists.key, rebuilt: true, wants: layout.wants };
   }
 }

@@ -90,6 +90,8 @@ export class SeqViewer extends ReactiveModel {
   private _rehitting = false;
   private readonly _emphasis: Mutable<Emphasis> = {};
   private readonly _emphasisHit = {} as Mutable<RenderHit>;
+  /** Section ids by address (the last step), kept: a hover makes no string. */
+  private readonly _sectionIds = new Map<string, string>();
   private readonly _size = { width: 0, height: 0 };
   private readonly _frameInput = { size: this._size } as Mutable<FrameInput>;
   private readonly _viewportOut = { start: 0, end: 0 };
@@ -490,12 +492,19 @@ export class SeqViewer extends ReactiveModel {
     }
     const h = this._emphasisHit;
     h.layer = r.layer;
-    h.section = r.section === undefined ? '' : r.section.slice(r.section.lastIndexOf('/') + 1);
+    h.section = r.section === undefined ? '' : this._sectionId(r.section);
     h.system = r.system;
     (h as { position: number | undefined }).position = Number.isNaN(r.position) ? undefined : r.position;
     (h as { element: unknown }).element = r.element;
     (h as { extent: unknown }).extent = r.extent;
     this._emphasis.hover = h;
+  }
+
+  /** A section's id, its address's last step (kept: a hover allocates nothing once warm). */
+  private _sectionId(address: string): string {
+    let id = this._sectionIds.get(address);
+    if (id === undefined) this._sectionIds.set(address, (id = address.slice(address.lastIndexOf('/') + 1)));
+    return id;
   }
 
   /** What is under a point of the last frame's layout. */

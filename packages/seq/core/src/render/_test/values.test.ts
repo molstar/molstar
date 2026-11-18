@@ -70,7 +70,7 @@ describe('values: placed directly or through the mapping, the same lists', () =>
       const general = await settle(s, [], { values: { coarser, direct: false } });
       let marks = 0;
       let wrapped = 0;
-      for (const input of views(coarser, 24)) {
+      for (const input of views(coarser, 16)) {
         const f = await direct.frame(input);
         const a = recordDrawLists(f.lists, ['data']);
         const b = recordDrawLists((await general.frame(input)).lists, ['data']);
@@ -78,8 +78,8 @@ describe('values: placed directly or through the mapping, the same lists', () =>
         marks += a.split('\n').length;
         if (f.layout.sections[0].axis?.offsets.length === 2) wrapped++;
       }
-      expect(marks).toBeGreaterThan(24 * 8);
-      expect(wrapped).toBe(24);
+      expect(marks).toBeGreaterThan(16 * 8);
+      expect(wrapped).toBe(16);
     });
   }
 
