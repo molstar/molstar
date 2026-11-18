@@ -68,7 +68,8 @@ with its params as config items. Later: `hoverCard`, `contextMenu`, `snapshots`,
 - **A gesture binding** is `{ gesture, modifiers, target, action }`: gestures are `click`, `double-click`, `drag`,
   `wheel`, `pinch`, `key`; targets are the hit's kind (cell, item, row, column, track, empty, axis); actions name either a
   model method (hover, drag-select, pan: continuous, allocation-free) or a command (discrete). Key gestures go through
-  `@molstar/ui`'s `Keymap`; pointer gestures (including `hover`) through this table, a `key` binding in it being reported; a `'*'` modifier matches whatever is held and is tried after exact matches (hover is bound with it, Shift+wheel pans, Alt is unbound for the platform); selection bindings wait for the selection lane. The table is filled by the grammar's presets
+  `@molstar/ui`'s `Keymap`; pointer gestures (including `hover`) through this table, a `key` binding in it being reported; a `'*'` modifier matches whatever is held and is tried after exact matches (hover is bound with it, Shift+wheel pans, Alt is unbound for the platform); the selection's clicks and drags are in the default preset (the second slice, lane
+P; the `genome-browser` preset keeps the clicks and pans on a drag). The table is filled by the grammar's presets
   ([ux-foundations.md](ux-foundations.md), section 8).
 - **Commands** are `@molstar/ui/commands` definitions with Seq\*'s metadata: `changeKind: 'patch' | 'session' |
   'navigate'`, kept beside the definition (`@molstar/ui`'s `CommandDefinition` has no such field; Seq\* keeps a table by
@@ -82,9 +83,15 @@ with its params as config items. Later: `hoverCard`, `contextMenu`, `snapshots`,
 zoom step, key pan fraction, wheel coalescing). Each a choice with a default; the slice reads them from a plain default
 object of this shape, and the `ParamDefinition`s come with the settings form.
 
+The second slice added the groups `selection`, `highlight`, `cursor`, `view` (the history of jumps, its motion and
+keys), `address`, `links`, `copyLink`, `revisions`, `edit`, `preview` and `bounds`, and `navigate.doubleClickZoomStep`;
+the viewer's `_spec` (Configuration) lists every item with its default.
+
 ## Consequences
 
 - The first slice builds `SpecModel`, `ViewModel` with scroll groups and one follow, `HoverModel` with projection,
-  `StoreModel`, and the `hover` and `navigate` behaviors; selection and the rest follow it.
+  `StoreModel`, and the `hover` and `navigate` behaviors; the second slice `SelectionModel` (several ranges, the
+  anchor, the keyboard cursor), `HighlightModel`, the `AddressModel` (links, copy link), the history port and
+  previews, story steps, followers that lead and the view's history of jumps.
 - Tests in Node: viewport rules EC-111 to EC-114, hover ownership EC-141, projection through the codon map, the
   bindings' table resolving gestures by target.

@@ -21,14 +21,14 @@ is added in the change that builds what it describes.
 `lang/`: `SeqLanguage`, the description of SeqViewSpec on `@molstar/core/repr` (kinds, parents, params, docs), and the
 checks it cannot express.
 
-- **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data`, `views`, `refs` and `snapshots`
-  (reserved ids of the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`,
-  then `section`, `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own),
-  `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's
-  `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes
-  it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or
-  `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref`
-  params naming the kinds they take; a reference is an address.
+- **Kinds**: `spec` (root: `version`, `title`); the containers `data`, `views`, `refs` and `snapshots` (reserved ids of
+  the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
+  `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`,
+  default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes
+  each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes it a template
+  (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
+  a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
+  the kinds they take; a reference is an address.
 - **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
   language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
   are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a
@@ -320,15 +320,17 @@ links that carry addresses. Forms and addresses are one language, so this sits w
 
 ### Configuration
 
-| Item                           | Default          | What                                        |
-| ------------------------------ | ---------------- | ------------------------------------------- |
-| `limit`                        | 10,000           | the most nodes or elements an address names |
-| `maxDepth`                     | 64               | how deep a walk goes                        |
-| `refDepth`                     | 8                | how many refs a chain passes                |
-| `prefer`                       | `['ref', 'ids']` | the forms the way back tries, in order      |
-| `numbering`                    | `ordinal`        | the labels the way back prints              |
-| link `prefix`                  | `seq-`           | this viewer's keys in a link                |
-| link `maxLength`, `maxActions` | 8,192, 16        | a link's bounds                             |
+The viewer's `address.*`, `copyLink.*` and `links.*` items; `DefaultAddressBounds`, `DefaultLinkOptions`.
+
+| Item                           | Default          | Why the default; the alternatives                                                                       |
+| ------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------- |
+| `limit`                        | 10,000           | the most nodes or elements an address names: past it an issue, never a truncation                       |
+| `maxDepth`                     | 64               | how deep a walk goes: an address comes from a link or an agent                                          |
+| `refDepth`                     | 8                | how many refs a chain passes (`DefaultRefDepth`): a cycle or a runaway chain is refused, never followed |
+| `prefer`                       | `['ref', 'ids']` | the forms the way back tries, in order: a ref naming exactly it survives edits; `['ids']`               |
+| `numbering`                    | `ordinal`        | the labels the way back prints (1-based, every system has it); a declared numbering that reads back     |
+| link `prefix`                  | `seq-`           | this viewer's keys in a link, so one href carries Mol\*'s and Seq\*'s                                   |
+| link `maxLength`, `maxActions` | 8,192, 16        | a link's bounds: a link is untrusted input                                                              |
 
 ### Issues
 
@@ -471,10 +473,15 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 
 ### Configuration
 
-`ResolveConfig`, each choice with its recommended default (`DefaultResolveConfig`): `maxPathSteps` (4),
-`maxPathCandidates` (16), `encoding` (`cheapest`; `runs` or `expanded` hold every bounded map so, for tests and
-comparisons), `openQueryLength` (int32's max: what the query forms read on a system of unknown length, so labels resolve
-there; layout never reads it), `maxNestedDepth` (4: the levels of nested sources the overlay requests, EC-179).
+`ResolveConfig`, each choice with its recommended default (`DefaultResolveConfig`):
+
+| Item                | Default     | Why the default; the alternatives                                                                                                                                |
+| ------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxPathSteps`      | 4           | counted steps a path may take (EC-22): bounded search                                                                                                            |
+| `maxPathCandidates` | 16          | candidate paths kept (EC-22): bounded search                                                                                                                     |
+| `encoding`          | `cheapest`  | each map in its cheapest form; `runs` or `expanded` hold every bounded map so, for tests and comparisons                                                         |
+| `openQueryLength`   | int32's max | what the query forms read on a system of unknown length, so labels resolve before its source opens; layout never reads it (an axis of unknown length is pending) |
+| `maxNestedDepth`    | 4           | the levels of nested sources the overlay requests (EC-179): a spec's sources are untrusted                                                                       |
 
 ### Systems, sources, annotations
 
@@ -650,19 +657,40 @@ store's entries, as draw lists; hit-testing on the same layout; the recording an
 
 ### Configuration
 
-`RenderConfig`, each choice with its recommended default (`DefaultRenderConfig`, `renderConfig(over)`): the inset (8),
-one label column (112, gap 8), track and section gaps (4, 8), a track's height by its layers' types when the spec gives
-none (letters 20, ranges 36, values 32), the lane (12, gap 2), the density thresholds, the letter sizes (9 to 14) and
-the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), the fade (12), the squircle's ratio, cap
-and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1, cursor 1), the emphasis's look (`emphasis`: the
-selection's tint `over` the data, or `under` it; its shape, a `column` band a section or a box a `tracks`; its opacity,
-0.18; its outline's, 0.6; a highlight channel's tint opacity, 0.3; what is projected onto a linked section against its
-own look, `projected`, 0.5; the hover's outline offset, 1 px; the cursor's ink, `msui-text`), the want margin (half the
-view a side), a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a
-layout lists the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`:
-`extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer
-reads (`values.coarser`, 1), whether values on the section's own system are placed directly (`values.direct`, true), the
-strings draw lists keep interned across frames (`internedStrings`, 4,096; past it a full redraw starts the table again).
+`RenderConfig`, each choice with its recommended default (`DefaultRenderConfig`, `renderConfig(over)`). The sizes are
+the UX foundations' numbers, CSS px, settled by the foundation stories; where no reason is given, none is recorded.
+
+| Item                                                  | Default                                | Why the default; the alternatives                                                                                                    |
+| ----------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `inset`                                               | 8                                      | the page's inset around everything                                                                                                   |
+| `labelWidth`, `labelGap`                              | 112, 8                                 | one label column a view, so the data columns align                                                                                   |
+| `trackGap`, `sectionGap`                              | 4, 8                                   | gaps between a section's tracks and between sections                                                                                 |
+| `heights`                                             | letters 20, ranges 36, values 32       | a track's height when the spec gives none: the largest of its layers' types'                                                         |
+| `laneHeight`, `laneGap`                               | 12, 2                                  | a lane of ranges and the gap within it                                                                                               |
+| `density`                                             | letters 10, cells 3, dots 1, bars 1/64 | each density step's lowest pixels a position (below)                                                                                 |
+| `densityUnits`                                        | letters `css`, the rest `device`       | legibility is in CSS px; what bounds the lists is a mark a device pixel                                                              |
+| `letterSizes`                                         | 9 to 14                                | a short scale; the largest that fits the cell is used                                                                                |
+| `monoAdvance`                                         | 0.6 em                                 | a letter's size known from its cell with no measuring                                                                                |
+| `labelFont`, `itemFont`                               | `12px sans`, `10px sans`               | a family role a backend maps to its stack                                                                                            |
+| `fade`                                                | 12                                     | how far past its max width a text fades out                                                                                          |
+| `squircleRatio`, `squircleMax`, `squircleMin`         | 1/3, 8, 6                              | a radius a third of the height, capped; none below the minimum                                                                       |
+| `outline`                                             | hover 1.5, selection 1, cursor 1       | outline widths                                                                                                                       |
+| `emphasis.selectionPlace`                             | `over`                                 | a tint under the data is hidden by opaque cells and a selection then redraws the data; `under` (to confirm with the author)          |
+| `emphasis.selectionShape`                             | `column`                               | a selection is of positions: one band a section across its tracks and gaps reads as one (the author's look); `tracks`, a box a track |
+| `emphasis.selectionTint`, `emphasis.selectionOutline` | 0.18, 0.6                              | a soft tint and one thin outline (the author's look)                                                                                 |
+| `emphasis.highlightTint`                              | 0.3                                    | a highlight channel's tint                                                                                                           |
+| `emphasis.projected`                                  | 0.5                                    | what is projected onto a linked section, a factor of its own look's opacity: the same look, lighter                                  |
+| `emphasis.hoverOffset`                                | 1                                      | the hover's outline outside its mark, concentric, never touching the selection's                                                     |
+| `emphasis.cursorInk`                                  | `msui-text`                            | the cursor neutral, never the selection's accent (the author's look)                                                                 |
+| `margin`                                              | 0.5                                    | what a want adds on each side, a fraction of the view (the store's `margin` priority)                                                |
+| `followArc`                                           | `shortest`                             | a cyclic follower takes the shortest arc holding the image (EC-12); `hull`                                                           |
+| `maxTemplateTracks`                                   | 200                                    | the tracks one template makes; past it `seq.render.template.limit`: a source's nodes are untrusted                                   |
+| `nodes.holdShown`                                     | true                                   | a layout lists the nodes it shows, for its owner to hold in the store; false: nothing held by showing                                |
+| `ranges.overflow`                                     | `extra-lanes`                          | only the items past the lanes collapse into a density row; `layer`, the whole layer                                                  |
+| `values.aggregate`                                    | `minmax`                               | below a device pixel a position, each column's extent, so negative extremes show; `max`                                              |
+| `values.coarser`                                      | 1                                      | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                     |
+| `values.direct`                                       | true                                   | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                          |
+| `internedStrings`                                     | 4,096                                  | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again |
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
   device pixels' positions; 1 is a pixel's (what other layers read). A bin can still be as narrow as k/F pixels, F the

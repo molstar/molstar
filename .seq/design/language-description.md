@@ -74,7 +74,7 @@ const SeqLanguage = defineLanguage({
   composed language when the composition is written statically (`composeLanguage(SeqLanguage, [MyExt] as const)`);
   kinds registered at run time are checked at run time only.
 
-### The first slice's kinds
+### The kinds built (first and second slices)
 
 | Kind | Under | Params (required in bold) |
 |---|---|---|
@@ -87,8 +87,14 @@ const SeqLanguage = defineLanguage({
 | `map` | `data` | **`from`**, **`to`**, **`method`** (`offset` with `by`; `codon` with `exons` table and `strand`) |
 | `view` | `views` | `layout` (`tracks`) |
 | `section` | `view` | **`of`** (a system's address), `range`, `follow` (a section's address) |
-| `track` | `section` | `label`, `height` (px) |
+| `track` | `section` | `label`, `height` (px), `hidden` (boolean, default false: kept in the spec, its row collapsed; the second slice, as `layer.hidden` was decided) |
 | `layer` | `track` | **`type`** (`letters`, `ranges`, `values`), `data` (an address or a query), `color` (a theme form), `hidden` (boolean, default false; the author, 2026-11-18); its id required (the author, 2026-11-18: every child in a spec is addressable, so hiding a layer is a one-key `set`) |
+| `refs`, `snapshots` | `spec` | containers with reserved ids (the second slice) |
+| `ref` | `refs` | **`to`** (an address, or a non-empty list of them: a set), `label`, `color` ([addressing](addressing.md)) |
+| `snapshot` | `snapshots` | `label`, `patch` (a stored patch in `seq.patch`, no `base`: a story step, [stories](stories.md)) |
+
+The language's version moved with each kind added under `0.x`, with no migration: `0.1.0` every child has an id,
+`0.2.0` `refs` and `ref`, `0.3.0` `snapshots` and `snapshot` (the code's `SeqLanguageVersion`).
 
 ### The builder, by example
 

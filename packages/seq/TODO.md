@@ -4,30 +4,56 @@ What is not built. An item leaves in the commit that builds it; a deferral says 
 
 ## Next
 
-The first slice runs: the tree core, the language's first kinds with the query language's first forms, resolve, draw
-lists, the SVG and Canvas2D backends, the viewer's models, a source read by region (synthetic, FASTA with its index),
-dynamic nodes with templates, the examples package and the measurements. In this order:
+The first slice built the tree core, the language's first kinds, resolve, draw lists, the SVG and Canvas2D backends, the
+viewer's models and data by region; the second, editing and addressing (patches, history, previews, story steps, refs,
+links, selection, the security bounds, MessagePack). Next, version 1's second milestone, figures, in this order:
 
-- **Selection, highlights, cursor**: the models, the click and drag-select bindings in the default preset, projected
-  selection, and the selection tint's place against the data.
-- **Patches and `diff`** in the tree core, then `SpecModel.applyPatch`, history, previews, undo.
-- **bigWig** as a format runtime, with range reads of assets (a base-library change, below).
-- **Structures**: the structure port and runtime, structure maps, the Mol\* showcase.
-- **The remaining layers and layouts**, the other datasets, the UX foundation stories, the typed configuration.
-- **MessagePack** (from io).
+- **The axis**: a section's direction, letters through a map, collapsed introns (Render, the axis, below).
+- **Themes and the small layers**: the theme sublanguage, residue schemes, legends, shared domains; the ruler, secondary
+  structure, variants, values' line and area.
+- **Layouts**: text and alignment figures, blocks and rings, navigators; then pairs, grids and dot plots, the logo, the
+  rows layer.
+- **The other datasets** and their views, each with an editing view; PNG and the render CLI.
+- Later: **bigWig** with range reads of assets (a base-library change, below); **structures** (the structure port and
+  runtime, structure maps, the Mol\* showcase).
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
-- **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `patch` and `diff`, `descriptors`, issue dedupe, the
-  catalog docs generation, a version-migration hook, `fallback` handling, a read-side `ParamValue` with typed columns
-  only; a version-aware validate (an unknown kind in a newer minor version is a warning); staged `pending` unioned
-  across a chain of resolved segments (only the last resolver's survives); union normalization re-validates slot
-  subtrees (O(depth × size)); spelling checks of kinds and ids on trees built in code; integer columns with missing
-  values (a `{ values, valid }` shape or a sentinel per type; refused until a column needs one).
+- **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `descriptors`, issue dedupe, the catalog docs
+  generation, a version-migration hook, `fallback` handling, a read-side `ParamValue` with typed columns only; a
+  version-aware validate (an unknown kind in a newer minor version is a warning); staged `pending` unioned across a
+  chain of resolved segments (only the last resolver's survives); union normalization re-validates slot subtrees
+  (O(depth × size)); spelling checks of kinds and ids on trees built in code; integer columns with missing values (a
+  `{ values, valid }` shape or a sentinel per type; refused until a column needs one).
 - **`data/int` half-open ranges**: `combine` as a linear two-pointer merge into a presized array (it sorts the cuts and
   builds number arrays today); tests for `Empty`, non-integers and `overlaps` without a length.
-- **The asset manager**: range reads (a page cache by asset and page, `Blob.slice` for files).
-- **MessagePack** codec in io runs the codec suite (`checkCodec`).
+- **`repr/patch`**:
+  - derive the next revision's ref index at the end of each apply: a structural edit on a 20,000-ref spec costs about 10
+    ms, mostly rebuilding the old root's index (0.7 ms cached), against the 16 ms edit target;
+  - many moves under one parent are quadratic in `applyPatch` (reversing 16k children: 105 ms, 229 ms in a merge;
+    inserts and diffs are linear): done when such a batch is linear, held by a scaling test;
+  - `RefSite.path` holds child indices, so an insert in a wide parent re-creates its later siblings' sites, and nothing
+    reads it: drop it or make it lazy;
+  - a key typed as a ref with different types in different kinds is walked with each: a conformance case once a language
+    has one.
+- **`repr/tree`**: `tree/address.ts` (the child index) is reachable through core's `./*`; io imports `repr/tree/index`
+  by path, so closing `./repr/tree/*` needs io moved to `./repr/tree` first. `ChildIndexThreshold` (8) is not measured.
+- **Codecs**: `checkCodec`'s trees gain a leading-U+FEFF string, key and category entry; the MessagePack codec's issue
+  codes (`syntax`, `duplicate_key`, `key_type`) move into `CodecIssues` beside JSON's and the S-expression's; the
+  `Codec` documentation says `encode` throws on a tree no reader would give back (a lone surrogate).
+- **MessagePack** (`common/msgpack`): a duplicate map key keeps the last silently (JSON reports it): an option; payload
+  alignment is by position: encoder padding when zero-copy decoding matters more; a canonical-category fast path;
+  key-order determinism shared with JSON. Each when a measured use asks.
+- **The asset manager**: range reads (a page cache by asset and page, `Blob.slice` for files), with bigWig. `maxBytes`
+  is ignored on `file://` reads in Node (`fetchData`'s file path ignores the four options): done when the file path
+  honors them and the conformance suite covers it. The suite sees a manager through `fetch` only; a manager that
+  downloads by other means is outside it.
+- **`util/data-source`**: a `file:` URL's path is opened without percent-decoding, so a root or file with a space or a
+  non-ASCII character is unreadable and Windows paths open as `/C:/…` (fails safe). When it moves to `fileURLToPath`,
+  the headless policy's file check is reviewed again for Windows segments ending in a dot or space, device names and `:`
+  streams.
+- **Type checks of core's tests**: core's other `_test` folders have 73 type errors; `tsconfig.test.json` covers
+  `data/immutable` only. Done when every `_test` folder is in it and clean.
 
 ## `@molstar/seqx-core`
 
@@ -36,49 +62,75 @@ dynamic nodes with templates, the examples package and the measurements. In this
   back prints `ordinal` or `index`); rects projected for a focus; a whole Location's size bound.
 
 - **Language**: the theme sublanguage slot for `layer.color` and a union of a ref and a query slot for `layer.data`
-  (both loose today); the `snapshots` level; a strand column check; codon exons checked against the protein's length
-  (stop codons); a section's `range` as a Location; refs followed in data nodes' params and a section's `of` and
-  `follow` (a layer's `data` follows them); a `label` param on nodes (an instance's label is the template's plus its top
-  ancestor's key); `seq.lang.ref.target` overlaps what resolve reports: keep one; the package index re-exports
-  `SeqLanguageVersion` as `LanguageVersion`: one definition.
+  (both loose today); a strand column check; codon exons checked against the protein's length (stop codons); a section's
+  `range` as a Location; refs followed in data nodes' params and a section's `of` and `follow` (a layer's `data` follows
+  them); a `label` param on nodes (an instance's label is the template's plus its top ancestor's key);
+  `seq.lang.ref.target` overlaps what resolve reports: keep one; the package index re-exports `SeqLanguageVersion` as
+  `LanguageVersion`: one definition.
 - **Queries**: dynamic nodes in `not`'s universe; open or streamed systems in `(all)` and `not` (a pending length on
   `QuerySystem` instead of `openQueryLength`); a Location limit (what it counts); a label lookup across a codon step (a
   unit's numbering does not cross one).
 - **Resolve**: the isoform half of the closure rule; NCBI codes beyond 1, 2 and 11; projecting rects; reverse paths
   carried across models; an item system's length when letters show a stop (it counts as a residue now); mixed strands
-  within one item (the first row's is taken); an allocation check of `projectRanges`. The TP53 exon coordinates in
-  `resolve/_test/p53-geometry.ts` were written from memory: check them against RefSeq NM_000546.
+  within one item (the first row's is taken); an allocation check of `projectRanges`.
+- **Story steps** (the Features page's Snapshots row): the stories library and the animation port, placed with the
+  player; a step that no longer applies shows the ops that still apply, flagged (today: the root without the step); a
+  step's `from`, view (EC-85) and timing need language fields; an op that no longer applies has no issue in
+  `repr/patch`, so Seq reports it on the step; a host's move can leave a step's later refs dangling in the step's own
+  coordinates (refused unless `allowDangling`): watched for in the editing UI.
+- **Bounds**: regular expressions in search and archives get theirs with those features; nested-source breadth (a
+  fan-out of W^depth) and joins allocating before `checkAnswer` (at most the file's size) are recorded, not bounded.
 - **Overlay and templates**: re-expand only the template an arrival touches, keep instance layers across overlay
   versions, key the overlay on what it reads of the model (a view-only edit rebuilds it); a static layer whose `data`
-  names a dynamic node waits for it instead of reporting `seq.view.layer.data`; the selection and highlights hold their
-  nodes (shown placements and `hold` already do); the overlay's sync issues in the viewer's `layoutIssues`.
+  names a dynamic node waits for it instead of reporting `seq.view.layer.data`; highlights hold their nodes (the
+  selection does, `selection.holdNodes`); the overlay's sync issues in the viewer's `layoutIssues`.
 - **Data**: `summaries` in `ViewerConfig`; summaries for systems of unknown length or past `maxLength`; byte dedupe
   across tiles; `SourceEntry` carries only `address`, `format`, `uri`, `value`.
-- **Render, the axis** (the third slice, stage 1): letters through a one-to-one or codon path (a protein's letters on
-  its gene, a residue a codon wide); a section's direction (`genomic`, `reversed`, `follow`) on reversed pieces, the
-  reversed axis counting down, reversed DNA letters as their complement; collapsed introns.
-- **Render**: a per-section viewport map in the frame input (one window serves every leading section now); an
-  `Emphasis.projected` so the hover model's projection onto linked sections is drawn in the `hover` pass; highlight
-  channels (the pass exists, empty); a summary pyramid for inline values zoomed out (inline data is level 1 only, so a
-  large one zoomed out hits the tile cap); a legend's place in the chrome; the Nightingale reference adapter; a `types`
-  option on `renderSvg`, then layer-type, theme and palette registry entries, atomic, counted and undoable at run time;
-  minus-strand followers show the leader's hull in genomic order (reversed pieces and a config item later); `query`
-  layers read the whole annotation (filtering comes with the query sublanguage); `values` line and area, points and
-  split; the ranges layout's allocation an item in view (the `earlier` and `occurrences` sets, `StickyLanes.keep`'s map,
-  keys of tiles without ids, `placeholderSpans` and `dataRegions` arrays: about 300 B an item); the values direct path
-  for linear maps (offset paths) too; the renderer's rebuild sorts the reads and builds the key's text each layout
-  (bounded by tiles in view).
+- **Render, the axis** (next; the Features page's rows Letters through a map, A section's direction, Pieces and layout
+  maps): letters through a one-to-one or codon path (a protein's letters on its gene, a residue a codon wide; refused
+  today, `seq.render.layer.letters`); a section's direction (`genomic`, `reversed`, `follow`) on reversed pieces, the
+  reversed axis counting down, reversed DNA letters as their complement (a minus-strand gene following its protein moves
+  opposite to it today); collapsed introns, three nucleotides a residue, the default for a section following through a
+  codon map (a gene following its protein drops its letters while an intron is in the window). `Follow.point` runs a
+  codon split by an intron straight from its first nucleotide, so some gene positions are never a follower's edge:
+  follow each nucleotide of the codon.
+- **Render**: a per-section viewport map in the frame input (one window serves every leading section now); a summary
+  pyramid for inline values zoomed out (inline data is level 1 only, so a large one zoomed out hits the tile cap); a
+  legend's place in the chrome; the Nightingale reference adapter; a `types` option on `renderSvg`, then layer-type,
+  theme and palette registry entries, atomic, counted and undoable at run time; `query` layers read the whole annotation
+  (filtering comes with the query sublanguage); `values` line and area, points and split; the ranges layout's allocation
+  an item in view (the `earlier` and `occurrences` sets, `StickyLanes.keep`'s map, keys of tiles without ids,
+  `placeholderSpans` and `dataRegions` arrays: about 300 B an item); the values direct path for linear maps (offset
+  paths) too; the renderer's rebuild sorts the reads and builds the key's text each layout (bounded by tiles in view);
+  `render/export.ts` still requests data for hidden layers (done when an export of a spec with a hidden layer reads
+  nothing for it).
+- **Emphasis**: projected selection bands are rounded at intron edges, where the frame rule wants a piece's cut ends
+  square (a projection-aware cut flag); the keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum
+  width or a caret).
+- **Exports**: `projectPoint` from `@molstar/seqx-core/resolve`, so the viewer drops its copy (`pathPoint` in
+  `models/view.ts`).
+- **Tests**: `render/_test/frame-time.test.ts`'s per-frame max bounds flake under a parallel heavy run (18 and 50 ms
+  against 16): best of three, or a percentile instead of the max. The p53 fixtures round-tripped JSON ↔ MessagePack in a
+  test here (io cannot import them).
 
 ## `@molstar/seqx-viewer`
 
-- Addressing: the highlight channels drawn (the `highlight` pass is empty); the selection's gestures, anchor and cursor
-  over `SelectionModel`; copy link from a context menu and a key; a link's hover projected onto linked sections.
-- Tests: a frame tick asked for on fake timers a test then drops leaves `@molstar/ui/dom`'s frame lane waiting for it
-  (`requested` stays true for the same host function), so a later file's viewer draws no frame; the addressing twins
-  swap `DomHost.requestAnimationFrame` per test. Fix in the frame lane (forget a request across a timer reset) or in
-  `vitest.setup.ts`.
+- Addressing: copy link from a context menu (and its key).
+- Links: one followed before the viewer's spec is loaded is refused ("names nothing"), not kept, and a focus kept until
+  the view is placed does not record its address (`focusAddress()` reads the shown range): treat "no spec yet" as
+  waiting and record the focus when the kept move lands (the example story holds the link itself today).
+- Selection: drag snapping to whole codons over nucleotides (EC-149); rects (dot plots) projected and drag-selected;
+  context-menu entries for `selection.add` and `selection.subtract`; the `genome-browser` preset without the add,
+  subtract and extend drags (a drag pans there): decided with the presets; a cursor moved off-screen on a follower
+  revealing itself by moving the leader.
+- Editing: a `track.add` command (the example inserts a track with a plain patch); a rebase's `invalid` discards every
+  change of theirs from `partial`, an unrelated one included (by design): the editing UI says so.
+- The view's history has no chrome yet: toolbar Back and Forward with their disabled state (`view.history` is reactive).
+- Tests: the frame lane's dropped-tick leak is fixed in `@molstar/ui/dom`, so the stories' twins can drop their per-test
+  `DomHost.requestAnimationFrame` swap.
 - Wrapping pans on a cyclic axis (only clamped now); scroll groups across viewers and views (EC-113); ring windows
-  (EC-114).
+  (EC-114); navigators (strip, miniature, ideogram, vertical overview; EC-110: the Features page's Navigators row, a
+  design first).
 - Touch pinch (two pointers); the Mol\* structure port; the `@molstar/ui` keymap and command manager, replacing the
   shortcut match scoped to the container; `ParamDefinition`s for the config items.
 - An allocation tier for the viewer (`test:perf`: the Canvas2D draw, `store.overlay`, `_viewport`, `hover.set`, the
@@ -88,9 +140,12 @@ dynamic nodes with templates, the examples package and the measurements. In this
 
 ## `@molstar/seqx-examples`, `@molstar/seqx-storybook`
 
-- The other datasets and their views (Antibody, Plasmid, tRNA, Globins).
+- The other datasets and their views (Antibody, Plasmid, tRNA, Globins); the Complex dataset (CDK2 with cyclin A, its
+  interface, PAE, ligands with AlphaFill's transplants) with pairs across chains, dot plots and ligands, its entries
+  chosen and checked against their sources then.
 - `vitest` in the Storybook package's dev dependencies; the Vite plugin's test moves under `src`.
-- The Features and Examples pages.
+- The Features links story's `describeRun` prints a wait's message twice (the example uses `describeLinkRun`); the
+  examples' root keeps its own copy of the SVG-follow block (`_stories/follow-svg.ts`).
 
 ## Deferred
 

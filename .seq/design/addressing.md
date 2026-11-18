@@ -83,6 +83,9 @@ have the view act on it. One grammar serves all of them, the same as meso\*'s.
 - **Authors name things**: a `refs` container at the root holds named refs, each an id and an address
   (`{ kind: "ref", id: "dbd", params: { to: "/data/p53/(range :from 94 :to 292 :numbering uniprot)", color, label } }`).
   A ref's address is `/refs/dbd`, usable wherever an address is: in layers, focus, commands, links and other refs.
+  Built in the second slice (lane O): in a layer's `data`, commands, links, other refs and as an address's prefix; a ref
+  in a data node's params (`target`, `from`, `to`, `source`) or a section's `of` and `follow` is refused for now
+  (`seq.lang.ref.target`) until resolve follows it there (TODO).
 - **Bookmarks and location sets are refs**: adding a bookmark adds a ref (one patch, one undo step, EC-162); a set of
   them is a ref to several addresses.
 - **Refs follow edits**: a move or a rename rewrites what names it ([patches.md](patches.md), Applying). A patch that

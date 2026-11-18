@@ -108,6 +108,12 @@ smallest letter size needs, so cells never show without letters.
   hides a lower one entirely. **Current pass order** (`selection` after `data`): the selection's tint is drawn
   translucent over the data, with its outline, not under it (default; to confirm with the author: the alternative is a
   separate under-data pass). Why over: a pass under the data is hidden by opaque cells.
+- **The look as built** (the author's look at the selection, 2026-11-18, lane P): the selection is a soft tint (0.18)
+  with one thin outline (1 px, 0.6), one band a section across its tracks and gaps (`emphasis.selectionShape`:
+  `column`, or a box a track, `tracks`); the hover's outline is concentric, offset outward (1 px) and drawn above the
+  selection; the keyboard cursor is a 1 px neutral line (`msui-text`), shown only after a key, not the thicker accent
+  outline the list above names. A highlight channel is a tint (0.3) of its color; what is projected onto a linked
+  section takes its own look at half strength (0.5).
 - **Hover is the same everywhere**: one outline style for a cell, a range, a row, a pair; projected hovers on linked
   sections take the same style, lighter.
 - **Selection is one look** in tracks, text, rings and dot plots.

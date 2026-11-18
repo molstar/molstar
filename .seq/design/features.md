@@ -10,7 +10,7 @@ what the version contains, so scope never grows or shrinks silently (the author,
 
 - **Status**: `planned` (in this version, not built), `building`, `done`, `deferred` (not in this version, with its
   trigger). A feature is `done` when its example view runs ([examples.md](examples.md)) and every edge case it covers
-  has an outcome. A `building` row says after a colon what the first slice built; the rest of its What is not.
+  has an outcome. A `building` row says after a colon what is built so far (the first and second slices); the rest of its What is not.
 - **Changes are decisions**: moving a row to or from `deferred` is the author's call, with the reason in its row.
 - **Sources**: the previous implementation's features page, the designs here, the JBrowse reply. A feature the
   previous implementation had that is not listed is an omission to fix, not a decision.
@@ -34,7 +34,7 @@ that shows it (dataset: view).
 | S-expression printing and reading | inspection, docs, tests, agent input; never stored | done | [format](format.md) | — | every view (printed beside it) |
 | Validation, every issue | stable codes, hints, counts, severity with one meaning | building: codes, hints, severity; the Antibody view not | [format](format.md) | 6, 76–78, 86–89 | Antibody: invalid labels |
 | Versions and migrations | one semver, explicit migrations, lenient minors | building: the version gate only | [format](format.md) | 72–74, 235 | — |
-| Encodings | JSON by default; MessagePack for large inline data (typed columns as extension types); columns declared, hashed by bytes | building: JSON and S-expression; MessagePack not | [format](format.md) | 53, 90 | every view (both encodings in its test) |
+| Encodings | JSON by default; MessagePack for large inline data (typed columns as extension types); columns declared, hashed by bytes | building: JSON, S-expression and MessagePack (io's codec, typed columns as extensions); the views' fixtures round-tripped through MessagePack not | [format](format.md) | 53, 90 | every view (both encodings in its test) |
 | Archives, over the assets port | a spec with its data files and an index, read and written as zip, entries resolved as assets | planned | [ports](ports.md) | 91 | every dataset, saved and opened as an archive |
 | Published JSON Schema | derived from the description | deferred | [format](format.md) | — | trigger: an outside reader or agent tool needs it |
 
@@ -84,16 +84,16 @@ what undo does to each.
 
 | Feature | What | Undo | Status | Design | Cases | View |
 |---|---|---|---|---|---|---|
-| Patches, inverses, diff | five ops by address, all or nothing, `diff` correct | yes, one step a batch | planned | [format](format.md) | 78–83, 236 | every editing view |
-| Undo and redo | every spec edit; previews end in a patch or a cancel | — | planned | [ux-foundations](ux-foundations.md) | 163, 164 | every editing view |
-| Previews | a gesture shows its change as a transient overlay over the spec, ending in one patch or a cancel | its final patch | planned | [changes](changes.md) | 163 | every editing view |
-| Snapshots | named patches over the base, a player | no: leaving a step is navigation | planned | [format](format.md) | 84, 85 | p53: a story |
+| Patches, inverses, diff | five ops by address, all or nothing, `diff` correct | yes, one step a batch | building: five ops by address, all or nothing, inverses, `diff` and `merge3` (`@molstar/core/repr/patch`), shown in p53: Edit and undo; EC-79, 83 and 236's outcomes not recorded | [format](format.md) | 78–83, 236 | every editing view |
+| Undo and redo | every spec edit; previews end in a patch or a cancel | — | done: Seq\*'s history port, the host's stack (`@molstar/ui/history` adapters), one step a batch | [ux-foundations](ux-foundations.md) | 163, 164 | every editing view |
+| Previews | a gesture shows its change as a transient overlay over the spec, ending in one patch or a cancel | its final patch | done: a patch over the root, applied again when the root changes, dropped when it no longer applies | [changes](changes.md) | 163 | every editing view |
+| Snapshots | named patches over the base, a player | no: leaving a step is navigation | building: story steps (`snapshot` nodes, a stored patch with no base, entered and left as navigation, shown as not applying when broken); the player, a step's view and the p53 story not (stories.md) | [format](format.md) | 84, 85 | p53: a story |
 | Patches on streamed things | a bookmark or a ref naming a dynamic node; waits while the node is not held | yes | planned | [changes](changes.md), [addressing](addressing.md) | — | p53: transcripts by region |
 | Keep this region | a command that turns streamed data into spec content on purpose (an inline copy, a ref) | yes | planned | [changes](changes.md) | 175 | p53: the gene's region by region |
-| Patch streams | an agent's or a host's patches applied in order through the history, each a step, refused when made against another revision | yes, each a step | building: the revision check; ordered application not | [changes](changes.md) | 81 | an editing story with an agent's patches |
+| Patch streams | an agent's or a host's patches applied in order through the history, each a step, refused when made against another revision | yes, each a step | building: the revision check, a stale patch rebased through `merge3` on the host's opt-in, patches in order as one edit, an agent's turn as one step; the agent's editing story not | [changes](changes.md) | 81 | an editing story with an agent's patches |
 | Concurrent writers | collaborators' patches rebased over local ones | — | deferred | [changes](changes.md) | 93 | trigger: a collaborative host |
-| Session state | the viewport, the selection, the hover, the cursor, open panels: transient, held by the viewer's models | no | building: viewport, hover, follow; selection, highlights, cursor not | [changes](changes.md) | — | every view |
-| Change kinds of commands | every command declares whether it patches the spec, changes session state or navigates; menus show what undo will undo | — | building: the table of change kinds; few commands | [changes](changes.md) | — | the command palette |
+| Session state | the viewport, the selection, the hover, the cursor, open panels: transient, held by the viewer's models | no | building: viewport, hover, follow, selection, highlights, cursor, the view's history of jumps; open panels not | [changes](changes.md) | — | every view |
+| Change kinds of commands | every command declares whether it patches the spec, changes session state or navigates; menus show what undo will undo | — | building: the table of change kinds, each command of the default viewer tested against it; the command palette not | [changes](changes.md) | — | the command palette |
 
 ### Streaming: the source protocol and the data store
 
@@ -155,7 +155,7 @@ what undo does to each.
 | Two assemblies on one axis | blocks of two genomes on one axis or ring | deferred | — | 210 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Rings | tracks as rings, labels with leaders, a window | planned | — | 108, 114 | Plasmid: ring with linear detail |
 | Navigators | strip, miniature, ideogram, vertical overview | planned | — | 110 | p53: the gene's region; Globins: 10,000 rows |
-| Follow and scroll groups | sections follow through maps (scale 1, 3, 1/3) | done | — | 113, 114, 211 | p53: protein on its gene |
+| Follow and scroll groups | sections follow through maps (scale 1, 3, 1/3); a move asked of a follower moves its leader (`follow.followerMoves`, the second slice) | done | — | 113, 114, 211 | p53: protein on its gene |
 | Viewport persistence | keep center and zoom across updates; pending intents | done | — | 111, 112 | every view |
 | Copies merged or split | `×N` blocks, hover for every member | planned | — | 65 | Globins: hemoglobin |
 
@@ -163,16 +163,16 @@ what undo does to each.
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
-| Configurable grammar | gestures bound to commands; presets; one per viewer | building: the binding table, the default preset; one preset | [ux-foundations](ux-foundations.md) | 148–155 | every view; a preset story |
-| Hover across linked sections | one owner, projected, emphasis outline | building: owner, projection, codon closure; the projected outline is not drawn yet | [ux-foundations](ux-foundations.md) | 138, 141–147 | p53: orthologs |
-| Selection | click, extend, toggle, snapped drag, projected | planned | [ux-foundations](ux-foundations.md) | 148–151 | every view |
-| Keyboard cursor | crosses gaps, pieces, lazy rows | planned | [ux-foundations](ux-foundations.md) | 154, 155 | Globins: 10,000 rows |
-| Focus and reveal | zoom to, or pan only when hidden | planned | [ux-foundations](ux-foundations.md) | 12, 158, 159, 168 | p53: search |
-| Highlight channels | named, cleared independently | planned | [ux-foundations](ux-foundations.md) | 157 | p53: search |
+| Configurable grammar | gestures bound to commands; presets; one per viewer | building: the binding table, the `default` and `genome-browser` presets, the view's keys as config | [ux-foundations](ux-foundations.md) | 148–155 | every view; a preset story |
+| Hover across linked sections | one owner, projected, emphasis outline | building: owner, projection, codon closure, the projected outline drawn; the orthologs view not | [ux-foundations](ux-foundations.md) | 138, 141–147 | p53: orthologs |
+| Selection | click, extend, toggle, snapped drag, projected | building: click, extend, toggle, several ranges (add, subtract), drag snapped to items, projected, drawn as one band a section (p53: Selection); snapping to codons over nucleotides and the text layout's cases not | [ux-foundations](ux-foundations.md) | 148–151 | every view |
+| Keyboard cursor | crosses gaps, pieces, lazy rows | building: across sections and through the codon map, extending and adding ranges; block gaps, pieces and lazy rows not | [ux-foundations](ux-foundations.md) | 154, 155 | Globins: 10,000 rows |
+| Focus and reveal | zoom to, or pan only when hidden | building: focus, reveal, a double-click's focus of an item's whole extent, the view's history of jumps (back, forward), the zoom keys; the search view not | [ux-foundations](ux-foundations.md) | 12, 158, 159, 168 | p53: search |
+| Highlight channels | named, cleared independently | building: named channels, drawn and projected, a link's hover on its own; the search view not | [ux-foundations](ux-foundations.md) | 157 | p53: search |
 | Search and results | matchers (exact, degenerate, regex, approximate); stepping; saved as sets | planned | — | 161 | p53: search |
 | Query language | composable queries, printed and read as S-expressions | building: range, at, all, item, node, extent, items, rect, row, chain | [building-blocks](building-blocks.md) | 89, 229 | p53: queries |
-| User-defined refs | named addresses in a `refs` container; bookmarks and location sets are refs; rewritten on move | planned | [addressing](addressing.md) | 162 | Antibody: CDR bookmarks |
-| Track and group editing | hide, reorder, collapse, theme changes | planned | [ux-foundations](ux-foundations.md) | — | every dataset's editing view |
+| User-defined refs | named addresses in a `refs` container; bookmarks and location sets are refs; rewritten on move | building: refs, bookmarks and sets, rewritten on move, dangling refused (p53: Bookmarks and links); refs in data params and a section's `of` and `follow`, the Antibody view not | [addressing](addressing.md) | 162 | Antibody: CDR bookmarks |
+| Track and group editing | hide, reorder, collapse, theme changes | building: hide (tracks, layers), reorder, theme changes as patches (p53: Edit and undo); collapse and groups not | [ux-foundations](ux-foundations.md) | — | every dataset's editing view |
 | Hover card and context menu | actions on the element; keyboard menu | planned | [ux-foundations](ux-foundations.md) | 156, 166 | p53: tracks |
 
 ## Rendering and output
@@ -191,8 +191,8 @@ what undo does to each.
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
-| Ports with default adapters | assets (`AssetManager`), text metrics, structure; formats, maps, backends as registry entries | building: assets (with the policy), text metrics; structure unset | [ports](ports.md) | — | Extensibility page |
-| Security bounds | an asset policy by host, bounds on everything a spec sizes, escaped output | building: the asset policy (not yet every bound), tile, template and nesting limits | [security](security.md) | 76, 86, 91, 126 | tests |
+| Ports with default adapters | assets (`AssetManager`), text metrics, structure; formats, maps, backends as registry entries | building: assets (with the policy and the manager's conformance suite), text metrics, history (a host's stack); structure unset | [ports](ports.md) | — | Extensibility page |
+| Security bounds | an asset policy by host, bounds on everything a spec sizes, escaped output | building: the asset policy passing credentials, redirect, signal and a streamed size to the manager (`checkAssetManager`), the spec's and answers' bounds, tile, template and nesting limits; search and archive bounds not | [security](security.md) | 76, 86, 91, 126 | tests |
 | Configurable layout and spacing | every foundation number a setting, in presets; layouts behind one internal interface | building: render and viewer config items; presets not | [ux-foundations](ux-foundations.md) | — | foundation stories, a preset switcher |
 | Typed configuration | one set of config items at composition (`ParamDefinition`) | building: plain default objects; `ParamDefinition`s not | [extensibility](extensibility.md) | — | Extensibility page |
 | Settings in layers | user settings over the configuration; effective values with origin | deferred | [extensibility](extensibility.md) | — | trigger: the typed configuration has users |
@@ -207,7 +207,7 @@ what undo does to each.
 |---|---|---|---|---|---|
 | Nightingale reference | a subset drawn by Nightingale from the resolved view | planned | [rendering](rendering.md) | 183 | Nightingale reference |
 | Mol\* structure link, as a showcase | translations between a sequence's own system (often position-indexed: a lab's predictions per letter) and mmCIF `label` and `auth` numbering, insertion codes and unobserved residues; hover and selection both ways; per-position values colored in 3D. The structure runtime is application-layer code (the storybook package first; a package of its own when another host needs it) | planned | [maps](maps.md) | 3–5, 25, 118, 167, 181 | Storybook: predictions onto a structure |
-| Addressing | local, hierarchical ids; addresses as `path/(query :key value)` (meso\*'s grammar) for nodes, locations in labels, elements and rects; commands take addresses; copy link | building: addresses and queries; links, copy link not | [addressing](addressing.md) | 1–8, 182 | Storybook: addressing |
-| Markdown links | links in Mol\*'s grammar driving the view; one href for Mol\* and Seq\* | planned | [addressing](addressing.md) | 182 | Storybook: addressing |
+| Addressing | local, hierarchical ids; addresses as `path/(query :key value)` (meso\*'s grammar) for nodes, locations in labels, elements and rects; commands take addresses; copy link | building: addresses and queries, refs, links, copy link (p53: Bookmarks and links); rects not | [addressing](addressing.md) | 1–8, 182 | Storybook: addressing |
+| Markdown links | links in Mol\*'s grammar driving the view; one href for Mol\* and Seq\* | building: links in Mol\*'s grammar driving focus, reveal, select, highlight and hover (Storybook: links); one href driving Mol\* too not | [addressing](addressing.md) | 182 | Storybook: addressing |
 | Agent tools | read and write a spec through addresses and expressions; the skill | deferred (the author, 2026-11-17) | [addressing](addressing.md) | — | trigger: the language description and addressing done |
 | React adapter | the default UI in React | deferred | [packages](packages.md) | — | trigger: a React host |

@@ -48,8 +48,8 @@ Read for the design; the lane reads the code where it needs to:
 ### The collections
 
 - **`HashMap<K, V>` and `HashSet<K>`**: CHAMP tries with 5 bits a level.
-  - Up to a measured constant (about 8) entries, a collection is one flat array in insertion order, scanned linearly,
-    as immutable.js's `ArrayMapNode` is.
+  - Up to a measured constant (`FlatThreshold`, 16: measured by lane R, the design's first guess about 8) entries, a
+    collection is one flat array in insertion order, scanned linearly, as immutable.js's `ArrayMapNode` is.
   - A deletion demotes a trie back to flat at the threshold, so equal contents reach one of two shapes, not many.
   - A hash collision at the bottom is a collision node (an unordered bucket).
 - **`OrderedHashMap<K, V>` and `OrderedHashSet<K>`**: insertion order, as Mol\*'s state tree and custom properties need
@@ -62,6 +62,8 @@ Read for the design; the lane reads the code where it needs to:
   ordered collections, and is public with what Mol\*'s uses need (R2-C7): `get`, `set`, `push`, `pop`, `shift`, `size`,
   `first`, `last`, `indexOf`, `find`, `remove(index)`, `forEach`, `toArray`. `shift` and `remove(index)` copy (O(n)) until the
   RRB vector, its trigger a measured use. `shift` is in the list too (N-11).
+  `indexOf` compares with `Object.is` (it finds `NaN` and tells −0 from 0, unlike `Array.prototype.indexOf`; lane R,
+  documented).
 
 ### Transients (R2-S12)
 
@@ -136,7 +138,8 @@ The contract `StateTree`'s `TransientTree` relies on:
 
 Fixed, not configurable:
 - the trie's 5 bits a level;
-- the flat threshold, a measured constant: about 8, re-measured in the lane against immutable.js.
+- the flat threshold, a measured constant: about 8 first, re-measured in the lane against immutable.js: 16
+  (`FlatThreshold`).
 
 Why: a configurable value costs a branch or a lookup on every access, for nothing measured.
 
@@ -154,7 +157,8 @@ read. What the review found (R2-S15), and what follows:
 - **The child index** (id to position) is a lazily built native `Map`, cached per children array in a `WeakMap`. It
   needs no persistent collection, since an insert shifts every later position. A path copy makes a new children array,
   so its index is rebuilt on its first lookup: O(fanout), what the edit's array copy already cost, and accepted (N-11).
-  `resolveAddress` uses it above the flat threshold. It is built in `repr` by lane K, which already edits
+  `resolveAddress` uses it above `ChildIndexThreshold` (8 children, a constant of its own in `tree/address.ts`, not
+  measured yet), not the collections' flat threshold. It is built in `repr` by lane K, which already edits
   `tree/address.ts`, not by lane R (N-11).
 - **The address index** (node to address) is dropped. One node object can sit at two addresses, a move changes every
   descendant's address, and `addressOf` has no caller outside tests.

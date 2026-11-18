@@ -12,20 +12,26 @@ bounded before it starts (§bounded-work).
 - **A policy wraps the asset manager**: `policyAssets(manager, policy)` is the assets port's default adapter. The policy
   says which locations may be read (schemes, hosts; relative locations under the spec's own base), the largest size of
   one asset and of all in flight, whether credentials are sent (never by default), and how long a read may take. A read
-  the policy refuses is an issue on its source, never an exception.
-- **What the policy enforces today**: locations (schemes, hosts, base), and the size of an asset once its body is read.
-  The rest waits for the asset manager's interface to carry it (the author, 2026-11-18, Gate 0 of the second slice):
+  the policy refuses is an issue on its source, never an exception. Built: locations, an asset's size and a read's
+  time; the bound on all in flight is not (TODO).
+- **What the policy enforces**: locations (schemes, hosts, base, a headless root), and the size of an asset while its
+  body streams and once it is read. Before the second slice only the first and the last; the asset manager's interface
+  now carries the rest (the author, 2026-11-18, Gate 0 of the second slice; built by lane M):
   - **The interface carries what any app needs**: `AssetManager.ResolveOptions` gains `credentials`
     (`'omit' | 'same-origin' | 'include'`), `redirect` (`'follow' | 'error'`), `signal` and `maxBytes` (enforced while
     the body streams). A manager honors them or refuses the read. Why: Seq\* is composed into apps that need
     credentials (a lab's server behind a login), so the core must not fix `'omit'`.
   - **Each app composes its own manager**: a derived implementation, or `DefaultAssetManager`, whose defaults stay what
     they are today for every Mol\* app. The policy passes its choice on every read: in the browser viewer
-    `credentials: 'omit'` unless the composition says otherwise, `redirect: 'error'`, the read's signal, the size bound.
+    `credentials: 'omit'` unless the composition says otherwise, `redirect: 'error'` unless the policy says `'follow'`
+    (an option of the policy for a server the composition trusts), the read's signal, the size bound. A size refusal
+    is a typed error, `SizeLimitExceeded` (core's `util/data-source`), so the policy tells it from other failures.
   - **A conformance suite** every implementation satisfies (`checkAssetManager`, data and a function as the codec
     suite is, on a fake fetch): the four options honored or the read refused, references and release, the shared
     download, decompression, errors not cached. `DefaultAssetManager` runs it in core, and an app runs it on its own.
-  - Until it lands the policy does not claim those four, and says so in its documentation.
+  - Landed in the second slice: the policy passes the four on every read, and also checks the size once the body is
+    read and abandons a read the manager did not end in time, for a manager that falls short. Not covered by the
+    suite: a manager that downloads by other means than `fetch` (TODO); `maxBytes` on `file://` reads in Node.
 - **Defaults by host**:
   - in a browser viewer: `https:` and relative locations; no credentials; 256 MB an asset;
   - headless (the render CLI, a server): only files under a root the caller names and hosts it lists; no network by
@@ -45,6 +51,11 @@ bounded before it starts (§bounded-work).
   | regular expressions in search | linear-time matching only (no backreferences), a step budget |
   | `custom` payloads | counted in the spec size; never interpreted by a reader that does not own them |
   | an archive | entries, total size, no path above its root (EC-91) |
+
+  Built in the second slice (lane Q): the spec's size, nesting, query depth, a column's length and the issues kept
+  (`SpecBounds`, held by the check, the viewer's patches, previews and story steps), a block's values and an answer's
+  dynamic nodes (at most 10,000 and 16 MB together, `AnswerBounds`), nested sources. The regular expressions' and the
+  archive's bounds land with search and archives.
 
 - **Output is escaped**: SVG text and attributes are escaped by the SVG backend; labels from data never become markup;
   links act only through commands on addresses ([addressing.md](addressing.md)).

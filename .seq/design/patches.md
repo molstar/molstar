@@ -72,13 +72,14 @@ interface Patch {
   The hash is MurmurHash3, which is not collision-resistant. It names revisions and is not a security boundary
   (R2-C1).
 - **A patch is also a tree**. `patchLanguage(language)` gives the patch language for a language (R2-S6, N-4):
-  - kind `patch`, one child per op, laid out by `patchToNode` the same way for every language;
+  - kind `patch`, one child per op, laid out by `patchToNode` the same way for every language; a place as `:after id`,
+    `:first true` or `:last true` (lane K);
   - `at` and `parent` as plain address strings (not `ref`: the stored-patch rule below walks them, F-2), embedded nodes
     as slots of that language;
   - one object per language (memoized), its `id` the language's id with `.patch` after it (`seq.patch`), a valid
     language id, so slots can name it (F-1).
 
-  Over no particular language, `AnyPatchLanguage` has `any` nodes and string addresses. Both print, encode and decode
+  Over no particular language, `AnyPatchLanguage` (id `patch`, version `1.0.0`) has `any` nodes and string addresses. Both print, encode and decode
   through the existing codecs: `(patch :base 3f… (set :at /views/main/t1 :key height :value 40))`.
 - **A stored patch** (a Seq story step) has no `base`: it applies to whatever its spec's revision is. Its refs are
   walked by `repr/patch`'s own rule, not by the patch language's param types (N-12):

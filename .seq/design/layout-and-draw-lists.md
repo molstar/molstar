@@ -30,14 +30,15 @@ interface LayerType<P, Prep, Lay> {
 - **`prev` is the layer's last layout**, passed as an argument: the layer reuses its buffers and keeps its lanes. Why:
   an argument keeps the layer type stateless and the call pure; a state object in the context would hide what a layout
   reads.
-- **Emphasis reaches `draw` as an argument**: selection and cursor per track (the layout knows the track's extents),
-  hover per layer (the hit decides its granularity). Why: the emphasis passes redraw without a layout.
+- **Emphasis reaches `draw` as an argument**: selection and cursor over a section's band (its tracks and the gaps
+  between them; or per track, `emphasis.selectionShape: 'tracks'`; the author's look, second slice), hover per layer (the hit decides its granularity). Why: the emphasis passes redraw without a layout.
 
 - **open: one window per leading section.** The renderer's frame takes one viewport and the view model keeps one per
   section, so the viewer draws every section with the first leader's window. Recommendation: a per-section viewport
   map in the frame's input, before any view has two independent leaders.
-- **open: projected hover.** The emphasis carries one hover hit, so the hover model's projection onto linked sections
-  cannot reach the draw lists. Recommendation: `Emphasis.projected?: (section) => Location`, drawn in the `hover` pass.
+- **Projected hover** (open in the first slice, built in the second): the emphasis carries `projected` (the hover's and
+  the selection's projections, and the hover's own section), drawn in the `hover` and `selection` passes in their own
+  look at `emphasis.projected` (0.5), on every section but the hover's own.
 
 ### The layout interface (internal)
 
@@ -78,8 +79,11 @@ internal until an outside application needs one ([ux-foundations.md](ux-foundati
 
 - Each layer's layout keeps a hit index: cells by arithmetic on the axis transform; items by an interval index of their
   drawn extents per lane, with lanes' y bands; marks larger than their cell by their drawn box (EC-123).
-- A hit is `{ layer, section, element?, extent?, position?, system }`: an element key (`{ owner, key }`) with its
-  `extent` (a Location on the data's system), or a position on the section's system; the viewer's hit type extends it
+- **Every drawn mark has a hit box** (the second slice, lane U): a `ranges` layer indexes each item's own marks (every
+  lane, every piece), so a run merged at `bars` from several items is hit by the item under the point.
+- A hit is `{ layer, section, element?, extent?, hull?, position?, system }`: an element key (`{ owner, key }`) with its
+  `extent` (a Location on the data's system) and its `hull` (its pieces on the section's system: what a focus on it
+  shows), or a position on the section's system; the viewer's hit type extends it
   with a `target` (the kind of thing hit) and turns it into hover and selection
   ([viewer-models.md](viewer-models.md)).
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its

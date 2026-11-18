@@ -58,7 +58,7 @@ yet: its area is not built.
 | 19, 22–27 | at most one codon step; shortest path, equal compositions counted once; two maps joining the same systems differently are ambiguous; at most four counted steps and a bounded number of candidates; the copy rule is part of the search; a path ending at a ranged unit is clipped; a protein on a chromosome is as sparse as its coding sequence | `resolve/_test/paths` |
 | 28–30 | a boundary lands the same on every encoding; closure lifts a nucleotide to its whole codon | `resolve/_test/{encodings,geometry,model}`, `viewer/_test/hover` |
 | 81 | a change made against another revision is refused | `viewer/_test/spec` |
-| 111–114 | a viewport keeps its center and zoom across updates and widths; scroll groups share the range on equal axes; followers never lead | `viewer/_test/{view,follow,navigate}` |
+| 111–114 | a viewport keeps its center and zoom across updates and widths; scroll groups share the range on equal axes; followers never lead (changed in the second slice: below) | `viewer/_test/{view,follow,navigate}` |
 | 125 | an export has its own want set and never touches the live view's; a timeout says unsettled | `data/_test/store`, `render/_test/export` |
 | 141, 144 | one hover owner, a stale clear does nothing; a nucleotide lights its residue's whole codon, a split residue every piece | `viewer/_test/hover` |
 | 143 | a resting pointer is hit again once per frame in which the layout was rebuilt (`pointer.rehit`); the picture follows a pan under it | `viewer/_test/viewer` |
@@ -75,4 +75,49 @@ yet: its area is not built.
 **Not met yet** (open, in `packages/seq/TODO.md`):
 
 - EC-178: every template re-expands on each overlay version, not only the arrival's own (cheap at this size).
-- Projected hover (linked-section outlines, EC-141's family): the hover model projects onto linked sections, the draw lists do not yet draw it.
+- Projected hover (linked-section outlines, EC-141's family): the hover model projects onto linked sections, the draw lists do not yet draw it. (Met in the second slice: below.)
+
+## Outcomes of the second slice
+
+Recorded for what the second slice built: editing (patches, history, previews, story steps), addressing (refs, links),
+selection, highlights and the cursor, the security bounds, MessagePack, followers that lead, the view's history. Places
+in `packages/seq` as above, plus `storybook/src/_stories/{features,examples}/**/_test`; the tree core's in
+`@molstar/core` (`packages/core/src/repr/patch/_test`) and the codec's in `@molstar/io` (`packages/io/src/repr/_test`).
+
+**Kept**:
+
+| Items | Behavior | Tests |
+|---|---|---|
+| 76, 86 | nesting capped (256, queries 64), a 20,000-deep spec refused with its issue alone and no stack spent, in the whole check and a patch's; the first 10 places of a code, 100 issues a node, the rest counted | `lang/_test/bounds`, `viewer/_test/bounds` |
+| 77 | a node built in code that is no record with a kind, or whose children are no list, is refused, never thrown on; a malformed op tree likewise | `lang/_test/bounds`; core `repr/patch/_test/patch` |
+| 78, 80 | a patch's ops checked, applied all or nothing, the result validated, issues at the op's path; a removal leaving a ref dangling refused | core `repr/patch/_test/{patch,conformance}`, `lang/_test/patches` |
+| 81 | a stale patch refused; rebased through `merge3` only when the host opts in | `viewer/_test/spec` |
+| 82 | untouched subtrees shared; exact inverses; `diff` then apply, both ways, on seeded random trees | core `repr/patch/_test/{patch,fuzz}` |
+| 141 (projected) | a hover and a selection on the protein drawn on the gene, lighter, in the canvas and the export | `viewer/_test/selection` |
+| 148 | click sets, Shift extends the anchor's range, Cmd/Ctrl toggles; a double-click's second click selects nothing | `viewer/_test/selection` |
+| 155 | key chords match their modifiers exactly | `viewer/_test/{bindings,history}` |
+| 157 | highlight channels set and cleared independently; a link's hover on its own channel | `viewer/_test/addressing` |
+| 159 | focus zooms to the address; reveal pans only what is not shown | `viewer/_test/addressing` |
+| 162 | a bookmark is one patch, one undo step | `viewer/_test/addressing`, `features/addressing/_test/bookmarks` |
+| 182 | a link hovers on its own channel, leaving the pointer's hover alone | `features/addressing/_test/links`, `viewer/_test/addressing` |
+| 126 (in part) | the headless policy reads files under its root only and no network unless hosts are listed (the CLI and its exit codes wait for the render CLI) | `context/_test/headless-policy` |
+| 127 (in part) | a selected item of zero length is a hairline at its place (the pinned caret waits for boundary layers) | `render/_test/emphasis` |
+
+**Changed**:
+
+- EC-84: a story step has no base: it applies over whatever the spec is; one that no longer applies is shown as not
+  applying, never refused (stories.md); `viewer/_test/spec`, `lang/_test/snapshots`. The player is not built.
+- EC-90: non-finite numbers and −0 are an extension (`0x10`), not nil, so they round-trip exactly; `io` `repr/_test/msgpack`.
+- EC-114: a follower leads: a move asked of it moves its leader through the follow (the author, 2026-11-18;
+  `follow.followerMoves`, `ignore` the catalog's rule); `viewer/_test/follow`.
+- EC-163: one transient preview (a patch over the root) and a story step over it replace the four document layers; a
+  preview that no longer applies is dropped; `viewer/_test/spec`.
+- EC-164: undo restores a recorded root (exact by construction), so no inverse can fail to apply; undo and redo
+  through the host's history in `viewer/_test/{spec,history}`, the inverse laws in core `repr/patch/_test/fuzz`.
+
+**Not met yet** (open, in `packages/seq/TODO.md`):
+
+- EC-85 (a step's view): steps carry no view yet (stories.md: language fields).
+- EC-149: drag snapping to whole codons over nucleotides (items snap).
+- EC-154: the cursor through the codon map only; block gaps and lazy rows wait for those layouts.
+- EC-178 as above.
