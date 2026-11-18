@@ -55,6 +55,8 @@ export const Scenarios: readonly Scenario[] = [
     panStep: 0.5,
   },
   {
+    // the default level (`values.coarser` 1): the values layer places the 100,000 positions in view one by one,
+    // directly (the data is on the section's own system)
     name: '3M bars (100,000 positions)',
     spec: bigSpec,
     runtimes: [BigRuntime],
@@ -62,16 +64,15 @@ export const Scenarios: readonly Scenario[] = [
     center: BIG / 2,
     panStep: 100,
   },
-  // a level no coarser than a device pixel's positions (`values.coarser` 1): the values layer places the 100,000
-  // positions in view one by one, directly (the data is on the section's own system)
+  // a level up to two device pixels' positions (`values.coarser` 2): the values layer reads the 64 level's bins
   {
-    name: '3M bars (100,000 positions), level per pixel',
+    name: '3M bars (100,000 positions), level of two pixels',
     spec: bigSpec,
     runtimes: [BigRuntime],
     width: 100_000,
     center: BIG / 2,
     panStep: 100,
-    config: { values: { coarser: 1 } },
+    config: { values: { coarser: 2 } },
   },
   // above the source's second level (64 positions) a device pixel spans more than a level: the frame reads bins
   {

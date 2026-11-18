@@ -75,8 +75,8 @@ export interface RenderConfig {
   readonly ranges: { readonly overflow: 'extra-lanes' | 'layer' };
   /**
    * Values: below a device pixel a position, each column's extent (`minmax`, negative extremes show) or its maximum;
-   * how many times a device pixel's positions a level's bin may be (`coarser`: 1, the coarsest bin no wider than a
-   * pixel's positions; 2, up to two pixels'); whether data on the section's own system is placed directly (`direct`;
+   * how many times a device pixel's positions a level's bin may be (`coarser`, 1 by default: the coarsest bin no wider than a
+   * pixel's positions, exact to a device pixel; 2, up to two pixels'); whether data on the section's own system is placed directly (`direct`;
    * false: through the general mapping, the same lists, slower).
    */
   readonly values: { readonly aggregate: 'minmax' | 'max'; readonly coarser: number; readonly direct: boolean };
@@ -112,7 +112,7 @@ export const DefaultRenderConfig: RenderConfig = {
   maxTemplateTracks: 200,
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes' },
-  values: { aggregate: 'minmax', coarser: 2, direct: true },
+  values: { aggregate: 'minmax', coarser: 1, direct: true },
   internedStrings: DefaultMaxStrings,
 };
 

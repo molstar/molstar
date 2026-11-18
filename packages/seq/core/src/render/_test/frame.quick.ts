@@ -47,9 +47,9 @@ const LayoutBound: Record<string, number> = {
   '3M letters (120 positions)': 48_000,
   // 37.3 KB
   '3M cells (800 positions)': 64_000,
-  // 730 KB (pan), 765 KB at a pixel's level
+  // 765 KB (pan) at the default, a pixel's level; 730 KB at two pixels'
   '3M bars (100,000 positions)': 1_200_000,
-  '3M bars (100,000 positions), level per pixel': 1_200_000,
+  '3M bars (100,000 positions), level of two pixels': 1_200_000,
   // 21 KB (pan: level 64 throughout), 740 KB (zoom, a window 1.0 MB: below 160,000 positions the ranges are items)
   '3M bars (200,000 positions)': 1_500_000,
 };

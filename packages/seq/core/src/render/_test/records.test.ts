@@ -64,19 +64,19 @@ describe('draw-list records', () => {
   });
 
   it('values in columns: a bar a device column, its extent from a coarse level, missing bins left out', async () => {
-    // 164 device columns over 30,000 positions: 183 a column, so a level of 256 (up to two columns' positions) is read
+    // 164 device columns over 30,000 positions: 183 a column, so, at coarser 2, a level of 256 (up to two columns' positions) is read
     const r = await renderSvg(columnsSpec(), {
       size: { width: 300, height: 40 },
       viewport: { start: 10_000, end: 40_000 },
+      config: { values: { coarser: 2 } },
     });
     expect(r.settled).toBe(true);
     expect(r.issues).toEqual([]);
     const record = recordDrawLists(r.lists, ['data']);
-    // a level coarser than a column's positions: not what a pixel's level (coarser 1) gives
+    // a level coarser than a column's positions: not what the default (coarser 1, a pixel's level) gives
     const fine = await renderSvg(columnsSpec(), {
       size: { width: 300, height: 40 },
       viewport: { start: 10_000, end: 40_000 },
-      config: { values: { coarser: 1 } },
     });
     expect(recordDrawLists(fine.lists, ['data'])).not.toBe(record);
     compare('values-columns', record);
