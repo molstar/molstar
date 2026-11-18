@@ -709,10 +709,12 @@ same pieces. Nothing registers on import and there is no global registry.
   opening turns into an issue on the source (`seq.source.unreadable`). Why: a spec's `uri` is untrusted input.
   - **What a read passes to the manager** (`AssetManager.ResolveOptions`, core's `util/_spec/assets.md` §8; a manager
     honors each or refuses the read): `credentials` (`'omit'` unless the policy's `credentials` says otherwise: a
-    composition that needs a login says so), `redirect: 'error'` (the location checked is the location read), a signal
-    (the caller's and the timeout's: `timeoutMs` cancels the download), and `maxBytes` counted while the body streams (a
-    body over it is a refused read, `AssetRefused`). The policy also checks the size once the body is read and abandons
-    a read the manager did not end in time, for a manager that falls short; core's `checkAssetManager` is the suite an
+    composition that needs a login says so), `redirect: 'error'` (the location checked is the location read; the
+    policy's `redirect` says `'follow'` for a server that redirects. A browser does not say why `fetch` failed, so a
+    refused redirect there is the generic download failure; Node.js says, and the read is `AssetRefused`), a signal (the
+    caller's and the timeout's: `timeoutMs` cancels the download), and `maxBytes` counted while the body streams (a body
+    over it is a refused read, `AssetRefused`). The policy also checks the size once the body is read and abandons a
+    read the manager did not end in time, for a manager that falls short; core's `checkAssetManager` is the suite an
     app's manager passes. Why: the policy's claims hold for any manager the application composes.
 - A port factory that throws leaves nothing made: the ports already made are disposed, last first; a structure port made
   is disposed with the context.

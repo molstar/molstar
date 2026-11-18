@@ -6,7 +6,7 @@
 
 import { Task } from '@molstar/core/task';
 import type { AssetManager } from '@molstar/core/util/assets';
-import { SizeLimitExceeded } from '@molstar/core/util/data-source';
+import { SizeLimitExceeded } from '@molstar/core/util/assets';
 import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { DefaultRenderConfig } from '@molstar/seqx-core/render';
@@ -205,6 +205,41 @@ describe('asset policy', () => {
     await expect(
       policyAssets(full, { ...BrowserAssetPolicy, base, maxBytes: 10 }).readText('d.seq', noSignal),
     ).rejects.toBeInstanceOf(AssetRefused);
+  });
+
+  it('a refused redirect is told from a failed download where the platform says, and follow is a policy option', async () => {
+    const failing = (message: string) =>
+      ({
+        resolve: () =>
+          Task.create('read', async () => {
+            throw new TypeError('fetch failed', { cause: new Error(message) });
+          }),
+      }) as unknown as AssetManager;
+    const refused = policyAssets(failing('unexpected redirect'), { ...BrowserAssetPolicy, base });
+    await expect(refused.readText('d.seq', noSignal)).rejects.toBeInstanceOf(AssetRefused);
+    await expect(refused.readText('d.seq', noSignal)).rejects.toThrow('a redirect is not followed');
+    // a network failure is not a redirect
+    const down = policyAssets(failing('ECONNREFUSED'), { ...BrowserAssetPolicy, base });
+    await expect(down.readText('d.seq', noSignal)).rejects.toBeInstanceOf(TypeError);
+    // a size error of another copy of the class is the same refusal
+    const copy = {
+      resolve: () =>
+        Task.create('read', async () => {
+          throw Object.assign(new Error('big'), { name: 'SizeLimitExceeded' });
+        }),
+    } as unknown as AssetManager;
+    await expect(
+      policyAssets(copy, { ...BrowserAssetPolicy, base }).readText('d.seq', noSignal),
+    ).rejects.toBeInstanceOf(AssetRefused);
+    const seen: any[] = [];
+    const recording = {
+      resolve: (_: unknown, __: unknown, options: unknown) => {
+        seen.push(options);
+        return Task.create('read', async () => ({ data: 'x', dispose: () => {} }));
+      },
+    } as unknown as AssetManager;
+    await policyAssets(recording, { ...BrowserAssetPolicy, base, redirect: 'follow' }).readText('d.seq', noSignal);
+    expect(seen[0].redirect).toBe('follow');
   });
 
   it('on the default manager: no redirect is followed, no credentials are sent, a long body is cut off', async () => {

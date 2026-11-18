@@ -5,7 +5,7 @@
  */
 
 import { Asset, type AssetManager } from '@molstar/core/util/assets';
-import { SizeLimitExceeded } from '@molstar/core/util/data-source';
+import { SizeLimitExceeded } from '@molstar/core/util/assets';
 import type { AssetReader } from '@molstar/seqx-core/data';
 
 // The assets port's policy wrapper (_spec/README.md "Context", Ports): the application's `AssetManager` behind the
@@ -16,7 +16,7 @@ import type { AssetReader } from '@molstar/seqx-core/data';
 // What the policy enforces is a decision on the location, made on the URL it resolves to (never on the string it came
 // in as), and four choices it passes to the manager on every read (`AssetManager.ResolveOptions`, core's
 // `util/_spec/assets.md` §8; a manager honors each or refuses the read): `credentials` (`'omit'` unless the policy says
-// otherwise), `redirect: 'error'` (a redirect is not followed: the location checked is the location read), the read's
+// otherwise), `redirect` (`'error'` unless the policy says `'follow'`: the location checked is the location read), the read's
 // signal (the caller's, and the timeout's) and `maxBytes`, enforced while the body streams. The policy also checks the
 // size once the body is read, and abandons a read the manager did not end in time, for a manager that falls short.
 
@@ -40,6 +40,12 @@ export interface AssetPolicy {
    * composition that needs a login (a lab's server) says `'include'` or `'same-origin'`.
    */
   readonly credentials?: 'omit' | 'same-origin' | 'include';
+  /**
+   * What a redirect does: `'error'` by default (the location checked is the location read); `'follow'` for a
+   * composition whose server redirects (a host it trusts). A browser does not say why `fetch` failed, so a refused
+   * redirect there is the generic download failure; Node.js says, and the read is then `AssetRefused`.
+   */
+  readonly redirect?: 'follow' | 'error';
 }
 
 /** The browser's: `https:` and relative locations under the page, 256 MB an asset, 30 s a read. */
@@ -115,6 +121,17 @@ export function utf8Length(s: string): number {
   return n;
 }
 
+/** By name as well as class: a second copy of the core (a bundle, a duplicate install) has another class. */
+function isSizeLimit(e: unknown) {
+  return e instanceof SizeLimitExceeded || (e as { name?: string } | undefined)?.name === 'SizeLimitExceeded';
+}
+
+/** Whether `fetch` failed on a redirect it was told to refuse: Node.js says so (in the error or its cause), a browser does not. */
+function isRefusedRedirect(e: unknown) {
+  for (let x: any = e, i = 0; x && i < 3; x = x.cause, i++) if (/redirect/i.test(String(x.message ?? ''))) return true;
+  return false;
+}
+
 /** The manager's text reads under the policy, as the source protocol's reader. It sets no header of its own. */
 export function policyAssets(manager: AssetManager, policy: AssetPolicy): AssetReader {
   return {
@@ -128,7 +145,7 @@ export function policyAssets(manager: AssetManager, policy: AssetPolicy): AssetR
         .resolve(Asset.Url(checked.url), 'string', {
           store: false,
           credentials: policy.credentials ?? 'omit',
-          redirect: 'error',
+          redirect: policy.redirect ?? 'error',
           signal: stop.signal,
           ...(policy.maxBytes !== undefined ? { maxBytes: policy.maxBytes } : {}),
         })
@@ -157,7 +174,9 @@ export function policyAssets(manager: AssetManager, policy: AssetPolicy): AssetR
           (w) => w.dispose(),
           () => {},
         );
-        if (e instanceof SizeLimitExceeded) throw new AssetRefused(uri, 'larger than the limit');
+        if (isSizeLimit(e)) throw new AssetRefused(uri, 'larger than the limit');
+        if ((policy.redirect ?? 'error') === 'error' && isRefusedRedirect(e))
+          throw new AssetRefused(uri, 'a redirect is not followed');
         throw e;
       } finally {
         if (timer !== undefined) clearTimeout(timer);

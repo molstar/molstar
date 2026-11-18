@@ -91,11 +91,22 @@ The code is the truth for how; this file records the rules the code relies on, e
   that passes it. Both fail with `SizeLimitExceeded`. Held bytes (a cache hit, a file's size) over the bound are refused
   too. Why: a check after the read has already spent the memory it guards.
 - `signal` rejects the read as aborted and stops the download. A waiter on a shared download leaves alone on its own
-  signal (the download goes on for the others); a downloader aborted by its own signal hands the download to a waiter
-  (§2).
+  signal (the download goes on for the others); when a downloader is aborted by its own signal, a waiter starts the
+  download again (§2).
+- Held data is served to the reads it was read for: an asset held from a read with credentials `'include'` is not served
+  to a read of the same asset with `'omit'` (found through `tryFindUrl`, say): that read **is refused**, not fetched
+  again, since the holder's reference would otherwise be shared across two answers. A read with the same options (none,
+  both) is served as before. Held bytes, a cache hit, and a file are also refused over the bound of the read (by their
+  size, the source file's when the bytes were let go of, §6).
+- `maxBytes` that is not a size (`NaN`, negative) refuses the read: a bound cannot be honored when it is not one.
+- `file://` reads in Node.js: `credentials` and `redirect` mean nothing, the signal is checked before and after the
+  read, and the file is `stat`ed against `maxBytes` before it is read.
 - The URL cache key includes the credentials, redirect rule and bound of the read: reads with others do not share a
   download. Why: another credential can answer differently, and a bound is a refusal that must not become another read's
-  failure. Reads with the same options share as before. Range reads and cache behaviour are unchanged.
+  failure. So a bounded and an unbounded read of one URL download separately (accepted: bounded reads are the policy's,
+  unbounded ones are the app's). Reads with the same options share as before. Range reads and the cache behavior are
+  otherwise unchanged.
+- `SizeLimitExceeded` (`util/data-source`, re-exported from `util/assets`) names its `source`, a URL or a file name.
 
 ## 9. The conformance suite
 
