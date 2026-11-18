@@ -9,19 +9,19 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.1.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.2.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
-  spec has an id, `layer` included). A spec in an earlier `0.x` reads as one in this one, and is reported where it no
-  longer fits.
+  spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind). A spec in an earlier `0.x` reads
+  as one in this one, and is reported where it no longer fits.
 
 ## Language
 
 `lang/`: `SeqLanguage`, the description of SeqViewSpec on `@molstar/core/repr` (kinds, parents, params, docs), and the
 checks it cannot express.
 
-- **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data` and `views` (reserved ids of the
-  same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
+- **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data`, `views` and `refs` (reserved ids of
+  the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
   `track`, `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges`
   node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each`
   makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is
@@ -55,6 +55,27 @@ checks it cannot express.
   ms in the heavy lane (`_test/patches.test.ts`). The `seq.lang.*` checks are not a patch validator yet: an incremental
   `checkSeqLang` is the viewer's.
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
+
+### Refs
+
+`lang/refs.ts`: user-defined names for addresses (bookmarks, regions, sets).
+
+- **A `ref`** sits in the `refs` container: `to` (an address, or a non-empty list of them: a set), `label`, `color` (a
+  hex literal or `token:<name>`). Its address is `/refs/<id>`, and it stands wherever an address does: in commands and
+  links, in other refs, as a prefix (`/refs/p53/(range :from 1 :to 9)` when the ref names `/data/p53`), as an operand of
+  a form, and as a layer's `data` (one address; the resolved view and the checks follow it). Why one kind for a bookmark
+  and a set: a bookmark is a ref, so adding one is a patch like any other.
+- **Following** (`followRef`): the address's leading `/refs/<id>` is replaced by the ref's target, again until no ref
+  leads it, the segments after it kept; a set is followed member by member. Refused, never guessed: a cycle, a chain
+  past `DefaultRefDepth` (8) refs, a set or a subtree followed by more segments (they would apply to each member).
+- **Checks** (`seq.lang.*`, warnings, so the rest of the spec opens): a ref whose address's leading ids name no node
+  (`ref.unresolved`; forms after them are a query's, and a node data makes waits for its data), a chain that comes back
+  or runs past the bound (`ref.cycle`).
+- **Adding one is one patch** (`addRefPatch`): an insert at the end of `refs`, or of the container with the ref in it,
+  made against the root's revision. Refs follow moves and renames (`repr/patch`); a removal that would leave one
+  dangling is refused unless allowed.
+- **Not followed yet**: refs in data nodes' params (`target`, `from`, `to`, `source`) and a section's `of` and `follow`:
+  a ref there names a node of kind `ref`, which the checks refuse (`seq.lang.ref.target`).
 
 ## Language builder
 
@@ -165,7 +186,8 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 - **Operands**: a nested form is evaluated against the same prefix (its resolver, else `repr`'s child selection); an
   address from the root. The location of `items :overlapping` is evaluated against the annotations' targets; a part on a
   system no target is reports `seq.query.location.unreachable` (projection is not built), a rect is refused. An operand
-  naming a ref is refused (`seq.query.ref.unresolved`): refs are resolved by a later pass.
+  naming a ref is refused (`seq.query.ref.unresolved`): addressing follows refs before the forms read an address
+  (Addressing), so only a caller of `evaluateQuery` itself meets it.
 - **The table**: `queryResolvers(model, extra?)`; an extra kind named as a query form throws (a form's meaning is never
   replaced silently). `evaluateQuery` is `selectAddress` with the table, typed.
 
@@ -192,6 +214,76 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   `range.backwards`, `range.lap`, `range.wrap`, `range.empty` (warning), `position.invalid`, `location.unreachable`
   (warning), `ref.unresolved`, `node.missing` (warning). A resolver's errors fail the selection; its warnings and infos
   are carried. A test checks the catalog against the codes the sources use.
+
+## Addressing
+
+`query/address.ts`, `query/links.ts` (`@molstar/seqx-core/query`): an address resolved to what it names and back, and
+links that carry addresses. Forms and addresses are one language, so this sits with the queries.
+
+### Resolving
+
+- `resolveAddressIn(root, model, address, bounds)`: the leading ref followed (`followRef`), the refs nested in form
+  values followed (a set as `(or :of [...])`), then the query forms over `model`; a set's members give one type of
+  result, together (else `seq.address.type`). It answers a status, the result, the refs passed (`via`), the issues, and
+  what is pending.
+- **Status**: `resolved`; `waiting` when the result is empty and a node data makes is not held (`(node :key k)`), or the
+  data is not loaded (`seq.address.waiting`, info: it resolves when they arrive); `missing` when it is empty otherwise
+  (`seq.address.missing`, warning); `failed` on an error. An issue's `address` is the address asked, its `places` the
+  refs passed and what they led to: an address that no longer resolves is reported with what it named, never re-bound.
+- **Bounded**: `limit` (10,000 nodes or elements; more is `repr.tree.address.limit_exceeded`, never a truncation),
+  `maxDepth` (64), `refDepth` (8); a signal and a deadline as a selection takes them.
+- **As positions** (`locationOfResult`): a Location itself; elements by their items' extents; a system's node whole; an
+  annotation's by all its items; a section (and what is under it) by the region it shows. What focus and reveal read.
+- **The overlay's query model** (`overlayQueryModel(model, overlay)`, `resolve/query-model.ts`): the static model's
+  systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a node the
+  store holds (a string key: `1` is not `"1"`); one per model and overlay. Why: a ref to a dynamic node resolves when
+  its node arrives, through the same forms.
+
+### Back
+
+- `addressFor(root, model, result, { prefer, numbering })`: the shortest stable address, by `prefer` (`['ref', 'ids']`):
+  a ref of the spec that names exactly it (equal Location, Elements, or set of node addresses; each ref resolved once
+  per root and model, `refResults`), else ids and forms. Positions as `(range :from :to)`, one as `(at :label)`, a whole
+  system `(all)`, a cyclic range over the origin one wrapping range, several under `(or :of [...])` (from the root when
+  they span systems); a rect `(rect :a … :b …)`; elements `(item :id k)` or `(item :id [k …])`; nodes by their
+  addresses.
+- **Labels** in the numbering asked (`ordinal` by default; an integer label a number, others strings). The address is
+  resolved again and kept only when it reads back to the same result; else `ordinal`, which always does (a repeated
+  label, a hole). Why: an address that names something else is worse than a longer one.
+
+### Links
+
+- **Mol\*'s link grammar** (`printLink`, `parseLink`): `!key=value&…`, each key and value percent-encoded as a whole
+  (`&`, `=`, spaces, brackets, quotes and `#` too), split before decoding, so an address is one link destination. Keys
+  of the prefix (`seq-` by default) are actions (`focus`, `reveal`, `select`, `highlight`, `hover`) and `channel`; other
+  keys are kept in order for the viewer that knows them. A link is data: never markup.
+- **Refused**: an address that does not parse fails the link (nothing runs from a half-read link), a bad encoding
+  (`seq.address.link.syntax`), a link past `maxLength` (8,192) or with more than `maxActions` (16) actions
+  (`seq.address.link.limit`); an unknown action of the prefix is left out with a warning (`seq.address.link.action`).
+- **Tension**: Mol\*'s own reader decodes the whole link before splitting, so an address holding `&` or `=` (only inside
+  a quoted string) reads wrong there; this reader is exact.
+
+### Configuration
+
+| Item                           | Default          | What                                        |
+| ------------------------------ | ---------------- | ------------------------------------------- |
+| `limit`                        | 10,000           | the most nodes or elements an address names |
+| `maxDepth`                     | 64               | how deep a walk goes                        |
+| `refDepth`                     | 8                | how many refs a chain passes                |
+| `prefer`                       | `['ref', 'ids']` | the forms the way back tries, in order      |
+| `numbering`                    | `ordinal`        | the labels the way back prints              |
+| link `prefix`                  | `seq-`           | this viewer's keys in a link                |
+| link `maxLength`, `maxActions` | 8,192, 16        | a link's bounds                             |
+
+### Issues
+
+`seq.address.*` (`AddressIssues`): `missing`, `waiting` (info), `ref.cycle`, `ref.depth`, `ref.set`, `ref.empty`,
+`type`, `link.syntax`, `link.action` (warning), `link.limit`; a test checks the catalog against the sources.
+
+### Performance
+
+Resolving 1,000 addresses (ids, forms and refs mixed) on the p53 spec: 6 ms median, 5.6 to 12.9 over 20 runs; the heavy
+lane bounds one sample at 40 ms (`resolve/_test/addressing.test.ts`).
 
 ## Data
 
@@ -472,6 +564,7 @@ no target.
   by the template's label and its top ancestor's key, its data-less layers drawing the node's annotation with its access
   plan and length, carried to the section along `overlay.path` (not placed without one); kept per overlay. Why at
   layout: the resolved view stays pure, and an arrival only makes a new overlay.
+- A layer's `data` naming a ref (a chain of them) to one address is read as that address (Language, Refs).
 - A layer's `data` may carry `access` and `length` (an instance's, from the overlay): what reads it takes them before
   the model's.
 - `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
