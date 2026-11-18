@@ -28,8 +28,12 @@ the previous implementation good. Simplicity here is fewer mechanisms, not fewer
   must get predictably.
 - **An area is not done** until each of its items has an outcome. The area's plan lists them; its record says the
   outcome of each.
+- **The catalog lives in the source's file, and only there**: this design refers to it, and every `EC-<n>` cited in
+  `packages/seq` (a test, a comment, a `_spec`) resolves against it, checked by `.seq/_checks/ec-ids.ts` at the gate.
+  Why: the ids are numbers only, so code cites them without a `.seq/` path, and an id looked up in the wrong file was
+  once recorded as missing when it was not.
 - **Before `.seq/` is deleted**, the kept items live on as the packages' tests and their `_spec` statements; the catalog
-  goes with the scaffold.
+  goes with the scaffold, so the kept items it numbers need a home in a `_spec` first, or the citations go.
 
 ## Consequences
 

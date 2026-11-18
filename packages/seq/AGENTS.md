@@ -21,12 +21,16 @@ new implementation, built on `@molstar/core/reactive` and `@molstar/ui`.
   path into another folder.
 - **State** lives in DOM-free models (`ReactiveModel`, `State`, `derive`), tested in Node; views are thin. No rxjs.
 - **Performance**: targets for time, memory and size are the Storybook's Performance page, measured on the first slice
-  and then held by tests; the draw and hover loops are allocation-free, checked by hand at checkpoints; the rest is
-  plain code.
+  and then held by tests; drawing and the emphasis redraws (hover, selection, cursor) allocate nothing once warm, and a
+  layout a bounded amount a frame, held by the opt-in allocation tier (`pnpm -C packages/seq/core test:perf`) at
+  checkpoints; the rest is plain code.
 - **Tests**: the repository's lanes (root `AGENTS.md`); `pnpm test:unit packages/seq/` in the edit loop; the quick lane
   under 30 s, each folder under 2 s. Properties for codecs, patches and addresses; suites only where a second
   implementation exists; every example validated, laid out and rendered to SVG, a few with a committed record; models
-  tested in Node; scaling ratios in the heavy lane; allocation checked by hand for the draw and hover loops.
+  tested in Node; scaling ratios in the heavy lane; allocation checked by hand for the draw and hover loops. A story
+  that composes more than one consumer (a canvas and an SVG export, two views) has a headless test composing it as the
+  story does, on a fake clock; every asynchronous source has a synthetic twin with a delay and an injectable clock, used
+  by its stories and tests. A bug fix lands with a test shown failing on the fix's parent.
 - **Headers**: the Mol\* header with the year and `@author` lines.
 
 **Development scaffold**: while this is being built, its principles, sources, designs and work records are in `.seq/` at

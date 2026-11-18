@@ -55,3 +55,5 @@ format, the store's keys and request planning across maps.
 - The model's annotation shapes are the protocol's answer shapes: one set of tables, no conversion in between.
 - Conformance: every runtime passes one suite (coverage, region answers, empty and edge regions, cancellation), run
   against fixtures without the network.
+- A runtime lands with its synthetic twin: a source of the same protocol whose answers are delayed on an injectable
+  clock, which its stories and tests use ([testing.md](testing.md), How tests are written).

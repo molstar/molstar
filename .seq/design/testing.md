@@ -73,6 +73,14 @@ slowed the edit loop; here speed is a requirement with numbers:
   the code, and the test states the expected answer itself, small and local. No recorded oracle runs.
 - **Proportionate** (§proportionate-tests): a test costs about what its subject does; a slow test by nature moves lane
   and keeps a quick representative; a slow test by waste is fixed.
+- **A story that composes more than one consumer has a headless twin** (§stories-are-tests, §whole-composition-tested):
+  a test next to the story composes it as the story does (the viewer, its sources, a canvas and an export, two views),
+  in Node on a fake clock. Why: what breaks between consumers (one releasing what the other reads, a signal one waits
+  on that the other's change never fires) cannot be seen by each view's own tests; one such twin found three bugs.
+- **Every asynchronous source has a synthetic twin with an injectable clock**: a source runtime lands with a synthetic
+  source of the same protocol whose delays run on an injected clock, used by its stories and its tests
+  ([sources.md](sources.md)). Why: with it every asynchronous bug reproduces in milliseconds with no real waiting, and a
+  story and its test see the same delays.
 
 ## Consequences
 

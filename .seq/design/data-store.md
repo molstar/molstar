@@ -26,6 +26,10 @@ author, 2026-11-17).
   served). The pyramid counts in the byte budget.
 - **A detached source's tiles leave the request queue.** Sources opened for the overlay are shared by count on one
   store: the last release closes them.
+- **What two consumers share is held per holder**: anything the store or a registry shares between consumers (the live
+  view and an export, two views) is counted by holder, so one consumer ending releases only its own hold. Its tests
+  include two consumers interleaved, one ending while the other reads. Why: an export ending once detached the live
+  view's nested sources, and a detached source left tiles pending; tests with one consumer cannot see either.
 - **Eviction**: data entries byte-bounded (64 MB by default, a setting), least recently used, never an entry in view;
   node entries held by their holders, not cached ([protocol.md](protocol.md), Lifetime).
 - **Answers carry nodes**: a region's answer holds tables and the data nodes it brings; the nodes are entries of their

@@ -132,9 +132,16 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - **Behaviors by provider**: the input finds a behavior by its provider (`viewer.behavior(HoverProvider)`), whatever the
   spec calls it; one the spec does not list is a `seq.viewer.behavior.missing` issue (`behaviorIssues`), once, and the
   gesture does nothing.
-- `rested` moves each time the picture comes to rest (`canvas.settleMs` after the view's last move, or after the last
-  layout that changed what is drawn while the view was still: data arriving, the content's height): what follows the
-  picture (the SVG beside it) redraws on it. `load` opens the sources once.
+- `rested` moves once each time the picture comes to rest: when the frame laid out settled is drawn, `canvas.settleMs`
+  after the view's last move; or `canvas.settleMs` after the last layout that changed what is drawn while the view was
+  still (data arriving, the content's height). A move before the settled frame is drawn cancels that rest. What follows
+  the picture (the SVG beside it) redraws on it. `load` opens the sources once.
+- **Signals publish on change only**: a state derived each frame (`layoutIssues`, `behaviorIssues`, the frame's issues)
+  is set only when it differs (lists compared item by item). Why: a listener that redraws on each set (an SVG beside the
+  canvas) otherwise redraws every frame, and the churn hides bugs.
+- **A signal named for the picture fires on every cause** that changes the picture: `rested` after a move, after data
+  arriving and after a resize, each driven in its test. Why: a signal tied to one cause misses the picture that changed
+  for another.
 
 ## Ports
 

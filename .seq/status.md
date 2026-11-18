@@ -42,7 +42,10 @@ outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
 4. **Known gaps**: [packages/seq/TODO.md](../packages/seq/TODO.md): projected hover not drawn, one window for all
    leading sections, a source-backed leader's length not fed to the view model, every template re-expands on each
    arrival, the TP53 test geometry unchecked against RefSeq, and what is deferred to the Genomes milestone.
-5. **To decide as the work reaches them**: worker boundaries, structure and map runtimes, accessibility, versioning
+5. **Tooling, optional at gates**: a script that reverts a fix's non-test files on a scratch worktree and expects
+   its new test to fail (the fold-back's "a fix's test is shown failing without the fix",
+   [principles/README.md](principles/README.md)); until then the report names the command and the reviewer reruns it.
+6. **To decide as the work reaches them**: worker boundaries, structure and map runtimes, accessibility, versioning
    under 0.x ([design/version-1.md](design/version-1.md), Open).
 
 ## Next

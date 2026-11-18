@@ -64,6 +64,10 @@ internal until an outside application needs one ([ux-foundations.md](ux-foundati
     ellipsized, as `@molstar/ui`'s rule);
   - `image`: RGBA bytes with a width and height, for dense matrices and grids;
   - `clip` push and pop, by rect.
+- **Reused buffers are compared against fresh ones**: every buffer reused across frames has a test that lays the same
+  input out twice and compares the lists, once into fresh buffers and once into buffers warmed by a different, smaller
+  input. Why: reuse is what lets a pure layout allocate nothing, and its bugs (a buffer that grows mid-layout without
+  copying what it held) never show on small inputs into fresh buffers; purity by contract is then a test.
 - **One squircle curve**: defined once as a path (`squirclePath`, each corner a cubic on the quartic superellipse
   |x|⁴ + |y|⁴ = 1) that every backend draws, so Canvas2D and SVG agree.
 - **Colors** are 32-bit RGBA in the lists; a theme resolves to them through the token table.

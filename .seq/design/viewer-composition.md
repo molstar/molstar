@@ -90,6 +90,11 @@ interface SeqViewerSpec {
 - **Headless without a viewer**: `createSeqContext(spec)` in the core takes the registry, the config and the ports a
   render needs (assets, text metrics, backends) and gives the resolve passes and `renderSvg`, for the CLI, servers and
   tests.
+- **A signal named for the picture follows every cause of the picture**: one named for a state of what is drawn
+  (rested, drawn, ready) fires on every cause that changes the picture (a move, data arriving, a resize), not only on
+  the input that usually causes it; its test drives each cause. Why: a `rested` that followed only the view's moves
+  never fired again for a picture changed by data arriving while the view was still, so what follows it (a story's
+  SVG drawn again) missed the change.
 - **Disposal**: `viewer.retire()` disposes what the viewer made, its owned ports included, and undoes its
   registrations; a host's ports are left to the host.
 

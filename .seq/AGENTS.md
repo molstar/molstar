@@ -29,6 +29,7 @@ same thing (package rules, tests, headers, changelog) the root wins.
 | [records/](records/README.md) | one permanent record per execution session |
 | `execution/<work-id>/` | plan, loop, state and drafts of work in flight; committed and kept, never cited from outside |
 | `_skills/seq/` | the instance skill |
+| `_checks/` | this scaffold's own checks, beside the package's (Checks, below) |
 
 ## How work happens here
 
@@ -55,7 +56,11 @@ They read the git index: stage first (`git add .seq packages/seq`).
 node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow '^(?!\.seq/)'
 node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
 node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
+node .seq/_checks/ec-ids.ts
 ```
+
+The last is this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
+([sources/seqstar/edge-cases.md](sources/seqstar/edge-cases.md); [design/edge-cases.md](design/edge-cases.md)).
 
 The `--allow` patterns limit the id and path checks to what this scaffold governs: the rest of the repository uses
 the section sign for its own spec sections (`harness.md`, section 6).

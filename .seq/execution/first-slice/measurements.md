@@ -45,3 +45,23 @@ alignment (not in this slice).
 
 Confirm or move the targets in performance.md. The two misses above each need a call: the level choice (k) and what
 "allocation-free" covers.
+
+## After lane J (2026-11-18, merged `47a27cca7`)
+
+The author's decision ("as recommended"): the targets stand; a values direct path and `values.coarser` (default 2);
+draw and hover allocate nothing, a layout a bounded amount. Remeasured on the merged tree, same machine and settings:
+
+| Target | Before | After |
+| --- | --- | --- |
+| Pan frame under 8 ms (3M bars, 100k) | 9.0 / 9.2 ms | 0.78 / 0.90 ms, max 1.7 |
+| Zoom frame under 8 ms (3M bars, 200k) | 11.2 / 14.8 ms, max 15.5 | 1.01 / 1.61 ms, max 1.98 |
+| Frame time flat across scale fixtures | bars not | every scenario under 2.3 ms max; the heavy bounds now hold all of them |
+| 3M bars at 100k, `coarser: 1` (the direct path alone) | — | pan 2.05 / 2.19 ms, zoom 1.49 / 1.98 ms |
+| Draw, hover, selection and cursor, warm | 12 KB (letters draw), 0.9–7.1 KB (hover) | 0 bytes, every scenario (a +88 B control is caught) |
+| Layout and draw a pan or zoom frame | 47 KB–44 MB | 25–40 KB (p53, 3M letters and cells), 0.73 MB (3M bars 100k: about 300 B a ranges item in view), each under a stated bound |
+
+Checks: 32 heavy tests, 45 allocation cases, 552 quick tests. The review compared the old and new renderers over 520
+seeded frames a spec: no difference in any draw list.
+
+Open: `values.coarser`'s default (gaps 15: with the direct path, 1 costs about 2 ms; recommendation 1). Browser frame
+times and first paint are not measured (the second slice, in a visible pane).

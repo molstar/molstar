@@ -67,7 +67,31 @@ review:
 - **How each is held**: time bounds in the heavy lane (`itWithin`, `test-harness`), scaling as ratios (4× the data
   costs at most 4×, or the stated order), allocation for the hot loops only, by hand at checkpoints (the opt-in tier, [testing.md](testing.md)), heap growth by
   the heap guards at checkpoints, bundle sizes by a size check on the built entries. A target without a test is a wish.
+- **A target names its path and its test when it is written**: the code path it covers (the draw loop, the layout, the
+  hover, a format's decode) and the test that holds it. Why: a target without a path is read more than one way ("a
+  frame allocates nothing" was read as the draw loop and as the layout too), and one without a test is not measured
+  until late.
+- **A quick representative when the path is built**: the stage that builds a path runs one scenario of its target
+  with one bound, before later stages build on it; the full target (every scale fixture, the medians, the ratios)
+  stays in the heavy lane. Why: measured only at the end, a miss is found under everything built on it.
 - **Limits are configurable** ([extensibility.md](extensibility.md)): every cap below is a setting with this default.
+
+## Levels and a frame's cost
+
+A frame costs what is on screen only if the level a layer reads fits the screen. A source's levels are a factor `f`
+apart (the store's summaries 16; a format's own, such as bigWig's zoom levels, whatever it has). Reading the finest
+level no coarser than a device pixel, a layer can read up to `f` items a device column, so between levels the frame
+costs up to `f` times the pixels.
+
+- **The level choice is a config item**: a layer may read a level up to `k` times coarser than a device pixel per bin,
+  so it reads at most about `f / k` items a column and its resolution drops by at most `k`. `k` defaults to 2; 1 keeps
+  the finest level no coarser than a pixel (the author, 2026-11-18).
+- **Placing the items of a fine level is itself a fast path**: on an identity or linear map a values layer places
+  positions and aggregates per device column without mapping each position, and gives the same draw lists as the
+  general path (a test compares both).
+- **What is tested**: frame time at a density between two levels, not only at a level's own density (the 3M bars
+  case: a synthetic source with levels 64× apart, about 38 positions a device pixel). Why: the miss came from the gap
+  between levels, which a density at a level's own never shows.
 
 ## Time
 

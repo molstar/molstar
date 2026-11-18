@@ -41,6 +41,10 @@
     `ViewerConfig`), `ResolveConfig.maxNestedDepth` 2 (EC-179), `for_each` (`depth` 0, `order` `key`, `-` descending,
     `filter` none, string equality), `delayedSource`/`delayedRuntime` (`delayMs` 0, real clock), node retention (the
     entries that carried a node, its source's coverage, an explicit `hold`) (`drift/regions.md`).
+15. Lane J's defaults: `values.coarser` 2 (the author's decision, from the stage 7 measurement), `values.direct` true,
+    `internedStrings` 4096. **To reconsider**: with the direct path, level 1 at 100k positions costs about 2 ms with
+    `coarser` 1, so the reason for 2 is gone, and 2 coarsens the picture (a bin up to 2 device px; a view-edge column
+    aggregates up to 2 px out of view). Recommendation: default 1, keep the item. Kept at 2 until the author says.
 
 ## Agreed but not built
 

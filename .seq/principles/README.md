@@ -73,6 +73,84 @@ it: read the package's first.
   2026-11-17); otherwise the root `AGENTS.md` header rule.
 - **Bootstrap patterns**: none taken in yet. The reactive-models pattern is replaced by `@molstar/core/reactive`
   (`ReactiveModel`, `State`, `derive`), which the host already provides.
+- **The drift check, edge-case ids**: `.seq/_checks/ec-ids.ts` (the instance's own check, beside the package's three;
+  [.seq/AGENTS.md](../AGENTS.md), Checks) resolves every `EC-<n>` cited in `packages/seq` against the catalog,
+  [sources/seqstar/edge-cases.md](../sources/seqstar/edge-cases.md) (§mechanical-drift-checks: a registry reference
+  that must resolve). Why: the ids are numbers only, so code cites them without a `.seq/` path, and a wrong reading of
+  where the catalog lives (the design only refers to it) once recorded an item as missing that was not.
+
+## Folded back from the first slice (the author, 2026-11-18)
+
+Rules for how work runs, learned in the first slice (eleven lanes, the
+[record](../records/first-slice/2026-11-18-first-slice.md)) and approved as proposed. Each extends the package rule it
+cites, and stands here until the package's home takes it ("For the package's home", below). The first slice's loop
+files are frozen with its work folder; these rules govern the next loops, which write them in.
+
+- **The look is part of the lane's review, before the merge** (extends §stories-are-tests, §used-before-done). The
+  reviewer, or the orchestrator before the review, opens the lane's stories in light and dark and reports what it saw;
+  the gate's screenshots stay as the record, and a loop file puts the look before the merge, not after it. Why: every
+  lane passed its tests and an independent review, yet five bugs of what is drawn (values on a third of the width, the
+  dark theme ignored, a base canvas not redrawn, nested domains drawn late, an SVG of height 0) were found only by
+  opening a story after the merge, each with a one-line cause.
+- **A fix's test is shown failing without the fix** (extends the mutation check of §whole-composition-tested). A bug
+  fix lands with a test, and its report names the command that shows that test failing on the fix's parent; the
+  reviewer reruns it. Why: a fix's first test passed with and without the fix (its settle step waited out the frames
+  that hid the bug), and was caught only because the run was repeated on the parent.
+- **An observation a fix rests on states its conditions** (extends §used-before-done). It names where it was made (a
+  visible or hidden page, the browser, the device pixel ratio) and is reproduced headless on a fake clock before the
+  fix starts; a hidden pane is inconclusive for anything that moves. Why: a hidden page runs no animation frames, and
+  time went into chasing that artifact before a fake-clock test separated it from the real bug.
+- **Defaults are confirmed from tables, the unsure ones first** (extends §gaps-queue). Each package's `_spec` keeps one
+  Configuration table (item, default, why, alternatives); the gaps list points at the tables and lists only the
+  defaults a lane was unsure of; a gate asks the author for those, not for all. Why: "configurable over fixed" grew
+  about sixty documented, tested defaults in one slice, none confirmed, and listed in prose they could not be decided
+  in one pass (the tension stays, below).
+- **A merge names the review findings refuted or left unfixed, and why** (adopts the proposal of the package's
+  standing tension "proportional review"; §merge-one-at-a-time). The loop file says so. Why: the first slice did not
+  record them either, so it could not settle that tension; recorded, a later fold-back can.
+- **A performance target names its path and its test when it is written, and is measured early** (extends
+  §ui-performance, §performance-tested). The stage that builds a path runs a quick representative of its target (one
+  scenario, one bound). Why: the targets were first measured four stages after the code they bound, and "a frame
+  allocates nothing" was read two ways until the author decided ([design/performance.md](../design/performance.md)).
+- **A state derived each frame publishes on change only** (extends §relevant-rerenders): it is set only when its value
+  differs (structural equality for lists), and the package's `_spec` says which signals compare how. Why: a list set
+  every frame with an equal value made a story re-export every frame, and the churn masked a bug.
+- **A story that composes more than one consumer has a headless twin** (extends §stories-are-tests,
+  §whole-composition-tested): a test next to the story composes it as the story does (a canvas and an export, two
+  views), on a fake clock. Why: one such test found three bugs that the views' own tests could not see
+  ([design/testing.md](../design/testing.md)).
+
+## For the package's home
+
+Fold-back proposals for the oz package, from this instance (2026-11-18); until merged there they stand as the
+adaptations above.
+
+- §stories-are-tests, §used-before-done: the look is part of a lane's review, before the merge, in light and dark.
+- §whole-composition-tested (the mutation check): a fix's report names the command that shows its test failing on
+  the fix's parent, rerun by the reviewer. Optional at gates: a script that reverts the fix's non-test files on a
+  scratch worktree and expects the new test to fail.
+- §used-before-done: an observation a fix rests on states its conditions and is reproduced headless on a fake clock;
+  a hidden page is inconclusive for anything that moves.
+- §gaps-queue: one Configuration table per `_spec`; the gaps list names only the unsure defaults.
+- Standing tension "proportional review": its proposal adopted (merges name refuted and unfixed findings); this
+  instance's first slice adds no evidence, having not recorded them.
+- §ui-performance, §performance-tested: a target names its path and its test, and the stage that builds the path runs
+  a quick representative.
+- §relevant-rerenders: a state derived each frame is set only when it differs.
+- §stories-are-tests, §whole-composition-tested: a story composing more than one consumer has a headless twin on a fake
+  clock.
+- **Verdict, §orchestrator-owns-lockfile and the hot files of §commit-often** (no change): eleven lanes ran with no
+  conflict on the lockfile, the package inventory or the root tsconfig; every hot-file change came as a request in a
+  lane's report and was applied by the orchestrator after the merge.
+- **Standing tension: configurable over fixed, against a config surface the author can confirm.** Making a choice a
+  documented, tested, easy-to-change default instead of a fixed one keeps lanes moving; in one slice it grew about
+  sixty defaults, and §gaps-queue cannot be decided at that size. Tables and asking only for the unsure defaults ease
+  it but do not settle it: does a default need confirming at all once it is documented, tested and easy to change?
+  Carried, not decided (from an adopting project, 2026-11-18).
+- **Standing tension: look before merge, against the cost of a look per lane.** Five visual bugs passed tests and
+  review and were seen only in a story after the merge, all in the first stages of a new renderer and viewer; a look in
+  every lane's review costs every lane. If later slices find no visual bug before the merge, the look was a first-slice
+  cost. Carried, not decided (from an adopting project, 2026-11-18).
 
 ## Open items
 

@@ -290,6 +290,10 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   by `hold`; with no holder they go quietly. A re-answer takes in its nodes before releasing the old ones. The same key
   with other content keeps the held node (`seq.store.node_conflict`). `nodes` lists the entries held now and
   `nodeVersion` moves only when one comes or goes: the overlay's version.
+- **Shared per holder**: what consumers share on one store (a source, a nested source, a node, an overlay source) is
+  held per holder and goes only when the last lets go; each is tested with two consumers interleaved, one ending while
+  the other reads. Why: the viewer and an export share a store, and one consumer's end must not take what the other
+  still shows.
 - Time is a `StoreClock` (real timers by default): tests drive a fake one and never wait.
 
 ## Resolve
@@ -543,6 +547,9 @@ strings draw lists keep interned across frames (`internedStrings`, 4,096; past i
   stores; marks, merges and sorts in kept typed scratch); through a path, each position or bin placed carries its range
   along it (`toSection`: an array a placement), bounded by the screen and the gap between levels. The bounds a scenario
   are the allocation tier's.
+- **Reused buffers are tested against fresh ones**: a layer's layout of an input into buffers warmed by another, smaller
+  input gives the same lists as a layout into fresh buffers. Why: purity is by contract, not by new objects, and a
+  buffer that grows without keeping its contents passes every test whose input fits the first size.
 
 ### Shapes
 
