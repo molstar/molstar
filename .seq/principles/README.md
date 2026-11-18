@@ -142,6 +142,51 @@ files are frozen with its work folder; these rules govern the next loops, which 
   record, never decided; and lessons from work meant to be thrown away would bend the principles if merged by
   default.
 
+## Folded back from the second slice (the author, 2026-11-18)
+
+Rules learned in the second slice (sixteen lanes; the record in `records/second-slice/`), merged by the author ("Yes,
+all of it"). Each extends the package rule it cites, and stands here until the package's home takes it.
+
+- **The self-check runs on every design when it is agreed** (extends §design-first, §self-check). The claim is the
+  design's own ("this design covers what a user does with X"); step 2 negates what it rests on; step 4 builds what
+  integrates or plans it with a slice, and keeps the rest in the design as a standing tension (§surface-tensions). For
+  an action, the negation is usually its inverse or its symmetric case (focus and back, leader and follower, one range
+  and several). The author: "should we apply the recurrence to the designs too? the "4 phase cycle" is generally
+  quite good at identifying residuals". Why: five of the six things the author's use found missing were the negation
+  of a design's own premise, and none was in any design.
+- **Interaction is a matrix** (extends §design-first): the UX design keeps a matrix of what a user acts on against the
+  verbs, each cell a gesture and command or "no, because" ([design/ux-foundations.md](../design/ux-foundations.md)); a
+  slice plan names the cells it fills, its gate checks them. Why: the gaps were empty cells nobody had drawn.
+- **Precedents cover interactions, and a novice pass precedes the author's use** (extends §precedents,
+  §used-before-done). What a user can do in the precedents (the current Seq\*, IGV, Jalview, the genome browsers) that
+  the slice's views cannot is listed, each built, planned or refused; before the author's use gate a light agent plays
+  a user in a visible browser with a short task script per view and reports friction. A slice that builds interaction
+  has a short use gate after its first drawn stage, not only at its end; the finalize step counts what each gate found,
+  by kind (bug, missing design, look). Why: the author's one use gate, at the end, found six missing designs at once and
+  cost two extra lanes.
+- **What is drawn is checked against the data** (extends §whole-composition-tested): an example's tests check, for each
+  ranges layer at a few viewports (the fit view, a zoom across a tile edge), that every item of the data in view has
+  its marks and every drawn mark is hit; not only one consumer against another. Why: a transcript's second exon was
+  never drawn and merged runs had no hit box, while canvas, SVG and hits agreed with each other.
+- **A restriction in a `_spec` states its reason** (extends the repository's "question the specs"): a rule that refuses
+  or limits (an issue code, "only", "never") names why, and a review asks for it on the lines a lane adds. Why: "letters
+  on their own system only" stood a slice with no reason and blocked a figure the author wanted.
+- **Bounds are the best of three, and heavy runs never overlap** (extends §performance-tested): `itWithin`'s heavy
+  test runs up to three times, setup and all (`BoundedTries`, `tries: 1` for a test about one run's time); the loop
+  never starts a heavy run while another runs. Why: single-sample bounds failed four times under load and passed on
+  rerun.
+- **Gaps are asked at every gate; a default is confirmed by use** (amends "Defaults are confirmed from tables", above;
+  settles the standing tension "configurable over fixed"). Each gate's message to the author ends with the gaps raised
+  since the last gate, each a yes or no with the recommendation; finalize carries no unasked gap. A default is
+  confirmed when the author uses it at a use gate, or stands as documented and tested; the gaps list carries only the
+  defaults a lane was unsure of that change a picture or a gesture. Why: seven gaps went unasked from stage 1 to the
+  close, and the author confirmed defaults only by using them ("the gestures are configurable anyway").
+- **Sizes are measured at every gate** (amends "A performance target names its path and its test", above): the bundle
+  check runs with each gate's checks. Why: the read bundle grew 26 kB at stage 2 and was found at stage 5.
+- **A fix of an unreachable state says so** (amends "A fix's test is shown failing without the fix", above): a bound
+  on a state no input can reach lands without a failing test, and its report and commit say why. Why: one such bound
+  in lane T could have none.
+
 ## For the package's home
 
 Fold-back proposals for the oz package, from this instance (2026-11-18); until merged there they stand as the
@@ -171,11 +216,27 @@ adaptations above.
   documented, tested, easy-to-change default instead of a fixed one keeps lanes moving; in one slice it grew about
   sixty defaults, and §gaps-queue cannot be decided at that size. Tables and asking only for the unsure defaults ease
   it but do not settle it: does a default need confirming at all once it is documented, tested and easy to change?
-  Carried, not decided (from an adopting project, 2026-11-18).
+  Carried, not decided (from an adopting project, 2026-11-18). *Settled by the second slice's evidence (2026-11-18)*:
+  the author confirmed defaults only by using them, never from a table; a default is confirmed by use at a use gate, or
+  stands as documented and tested, and the gaps list carries only unsure defaults that change a picture or a gesture.
+  Still open: defaults no story shows (store sizes, bounds) are never confirmed by use.
 - **Standing tension: look before merge, against the cost of a look per lane.** Five visual bugs passed tests and
   review and were seen only in a story after the merge, all in the first stages of a new renderer and viewer; a look in
   every lane's review costs every lane. If later slices find no visual bug before the merge, the look was a first-slice
-  cost. Carried, not decided (from an adopting project, 2026-11-18).
+  cost. Carried, not decided (from an adopting project, 2026-11-18). *Released (2026-11-18)*: in the second slice the
+  look before the merge found bugs in four of the five lanes that draw, and a renderer bug from the first slice; the
+  look pays.
+- §design-first, §self-check: the self-check runs on every design when it is agreed (recurrence.md "Checking the loop
+  against itself" and the `principles-self-check` skill name the design gate); interaction is a matrix of objects and
+  verbs; §precedents covers interactions, and a novice pass precedes the author's use, with a use gate after a slice's
+  first drawn stage.
+- §whole-composition-tested: what is drawn is checked against the data, not only one consumer against another.
+- §performance-tested: a bound is the best of three runs of the whole test; heavy runs never overlap; sizes at every
+  gate.
+- §gaps-queue: gaps are asked at every gate; a default is confirmed by use.
+- Standing tension "proportional review", later evidence (an adopting project, 2026-11-18): three reviews with one
+  reviewer each (3, 5 and 8 findings), every finding citing a line and every fixed one confirmed by a test failing on
+  the parent; none refuted. One reviewer whose findings each come with a failing test needed no skeptic.
 
 ## Open items
 

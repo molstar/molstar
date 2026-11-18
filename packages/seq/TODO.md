@@ -140,6 +140,9 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-examples`, `@molstar/seqx-storybook`
 
+- **Drawing against the data**: for each example view's ranges layers at the fit view and at a zoom across a tile edge,
+  every item of the data in view has its marks drawn (a transcript's every exon) and every drawn mark is hit (the hit
+  half is `hits.test.ts`). Why: canvas, SVG and hits can agree and all be wrong. Done when each example view carries it.
 - The other datasets and their views (Antibody, Plasmid, tRNA, Globins); the Complex dataset (CDK2 with cyclin A, its
   interface, PAE, ligands with AlphaFill's transplants) with pairs across chains, dot plots and ligands, its entries
   chosen and checked against their sources then.

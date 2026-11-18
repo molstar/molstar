@@ -187,8 +187,9 @@ Where to: **P** principles (the instance's adaptations, and the oz package's hom
 - B1: "yeah, this is real .. some things are often under-designed. how can we better identify and surface these
   gaps?" — the three ways above, for the author's yes.
 - B2 to B6: "ok for other new lessons".
-- A1 to A8 and C: not yet answered.
+- A1 to A8, B1 as rewritten, and C: "Yes, all of it".
 
 ## Decision
 
-(the author's line goes here: `Decided by the author, <date>: <merged | merged in part | not merged>: "<their words>"`)
+Decided by the author, 2026-11-18: merged: "Yes, all of it" (the gaps: "Nine gaps: ok as recommended"; B2 to B6: "ok
+for other new lessons"; B1 as rewritten after the author's question on the self-check).

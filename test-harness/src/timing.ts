@@ -34,12 +34,26 @@ const bounded: Within = (ms, f) => {
 };
 
 /**
- * `it(name, body)` twice: in the quick lane with `within` running its function unbounded, and in the heavy lane with
- * the bounds checked (named `name` and its bounds). The body bounds only what it times: `within(1000, () => read(b))`.
+ * Runs of a bounded test: a bound held in any of them holds. One sample of a few milliseconds in a parallel heavy run
+ * can meet a collection or another worker's burst; the whole test runs again (its setup too, so a body that changes
+ * state is as repeatable as one that does not). A test whose point is one run's time passes `tries: 1`.
  */
-export function itWithin(name: string, body: (within: Within) => unknown, timeout?: number) {
+export const BoundedTries = 3;
+
+/**
+ * `it(name, body)` twice: in the quick lane with `within` running its function unbounded, and in the heavy lane with
+ * the bounds checked (named `name` and its bounds), the best of `tries` runs (`BoundedTries`). The body bounds only what
+ * it times: `within(1000, () => read(b))`.
+ */
+export function itWithin(
+  name: string,
+  body: (within: Within) => unknown,
+  timeout?: number,
+  options: { readonly tries?: number } = {},
+) {
   it(name, { timeout }, () => body(unbounded));
-  it(`${name}: within its time bounds`, { tags: ['heavy'], timeout }, () => body(bounded));
+  const retry = Math.max(0, (options.tries ?? BoundedTries) - 1);
+  it(`${name}: within its time bounds`, { tags: ['heavy'], timeout, retry }, () => body(bounded));
 }
 
 /**

@@ -177,6 +177,28 @@ settings layer over it. The rules that stay fixed whatever the bindings:
 - **Every gesture has a keyboard way and a command**, and the context menu lists what applies to the element under the
   pointer, in the same words as the commands.
 
+### The interaction matrix
+
+What a user acts on, against the verbs (the principles, "Interaction is a matrix", from the second slice's fold-back):
+each cell is the gesture or key and the command, **planned** with the slice that builds it, or **no** with why. A slice
+plan names the cells it fills; its gate checks them; a design that adds an action fills its row and column, and its
+self-check's negation (an inverse, a symmetric case, a plural) names the cells to look at. As built after the second
+slice:
+
+| | select | extend | add / remove | focus | back | zoom in / out | pan | hide | edit |
+|---|---|---|---|---|---|---|---|---|---|
+| **an element** (a cell, an item) | click; `selection.set` | Shift+click (the anchor's range) | Cmd/Ctrl+click toggles | double-click; `address.focus` | double-click on it when focused | — | — | no: hide a track or layer | no: data is not edited in the viewer |
+| **a range** (positions) | drag on data | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag removes; `selection.add`, `selection.subtract` | Enter at the cursor | Alt+Left | — | — | — | — |
+| **the selection** | — | Shift+arrows | Cmd/Ctrl+Shift+arrows start a range | Enter | Alt+Left | — | — | — | a bookmark from it: planned (a command, third slice) |
+| **a leading section** | — | — | — | — | — | Cmd/Ctrl+wheel, pinch, -, =, Shift+double-click | wheel, drag on the axis, Space+drag, Shift+Alt+arrows | no: hide its tracks | its params by patch (height) |
+| **a follower section** | as a leading one | as a leading one | as a leading one | as a leading one | as a leading one | moves its leader (`lead`) | moves its leader (`lead`) | as a leading one | as a leading one |
+| **the view** | — | — | — | 0 fits; double-click on empty space | Alt+Left / Alt+Right, the mouse's buttons; `view.back`, `view.forward` | — | — | — | undo and redo through the host's stack |
+| **a track or layer** | planned (a row selection, third slice) | — | — | planned | — | — | — | `track.hide`, `layer.hidden` | height, color, order by patch; previews while dragged |
+| **a bookmark or link** | — | — | `refs.add`; removing one: planned | runs its action | Alt+Left | — | — | — | its label: planned |
+
+Planned beyond this slice, from the second slice's use gate: a section's direction (reversed, following its leader),
+another system's letters on a section (one axis for protein and gene), collapsed introns; the history's toolbar.
+
 ## 9. Chrome
 
 - Built from `@molstar/ui` components and tokens only: track headers, legends, the hover card, menus, toolbars,

@@ -7,6 +7,12 @@ and recording backends. It imports `@molstar/core` and an allowlist of other Mol
 This spec holds the contracts of what is built, each a rule and its reason; code comments cite its sections. A section
 is added in the change that builds what it describes.
 
+- **Entries carry what their readers need, no more**: an entry a reader imports (`lang`, `resolve`, `query`) holds no
+  module only an editor or a viewer needs; editing's checks are `lang/changes`. Why: the packages declare no
+  `"sideEffects": false`, so a re-export keeps its module's top-level code, and reading a spec paid 26 kB for editing
+  (the size targets, checked at each gate, guard it).
+- **A restriction names its reason**: a rule here that refuses or limits (an issue code, "only", "never") says why.
+
 ## Versions
 
 - The language has one version, `LanguageVersion` (`0.3.0`). Why: one language, one description, one number for readers
