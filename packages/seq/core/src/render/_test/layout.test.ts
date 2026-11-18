@@ -58,6 +58,20 @@ describe('the layout’s edges', () => {
     expect(blocks(hidden.lists)).toEqual([]);
   });
 
+  it('ranges at bars are squircles with round ends where a run really ends, as their emphasis is', async () => {
+    const b = createSeqSpec({ title: 'bars' });
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'M'.repeat(4_000) });
+    // two touching ranges merge into one run; the third stands alone
+    const r = b.data.ranges('r', { target: s, rows: { start: [0, 1_000, 2_500], end: [1_000, 2_000, 3_500] } });
+    b.views.view('v', (v) => v.section('s', { of: s }).track('r').layer('ranges', { type: 'ranges', data: r }));
+    const f = await renderSvg(b.build(), { size: Size });
+    const rects = recordDrawLists(f.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect '));
+    expect(rects.length).toBe(2);
+    for (const l of rects) expect(l).toMatch(/ squircle [\d.]+$/);
+  });
+
   it('a follower placed above its leader follows it still', async () => {
     const reordered = p53GeneSpec();
     const view = reordered.children!.find((c) => c.kind === 'views')!.children![0];

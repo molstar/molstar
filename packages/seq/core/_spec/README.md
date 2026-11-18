@@ -566,10 +566,11 @@ strings draw lists keep interned across frames (`internedStrings`, 4,096; past i
 
 ### Shapes
 
-- Continuous data (cells, value bars) is square; discrete marks (ranges) are squircles, radius a third of the height,
-  capped, square below the minimum. An end cut by the view, a piece of the axis or a piece of the item's own image (an
-  exon) is square; a mark cut at both ends is square. The squircle is one curve, `squirclePath` (each corner a cubic on
-  |x|⁴ + |y|⁴ = 1), that every backend draws. Outlines are concentric.
+- Continuous data (cells, value bars) is square; discrete marks (ranges, at every step, a merged run at `bars` too) are
+  squircles, radius a third of the height, capped, square below the minimum, so a mark has the shape its emphasis
+  outlines. A merged run is round only where its first and last items really end. An end cut by the view, a piece of the
+  axis or a piece of the item's own image (an exon) is square; a mark cut at both ends is square. The squircle is one
+  curve, `squirclePath` (each corner a cubic on |x|⁴ + |y|⁴ = 1), that every backend draws. Outlines are concentric.
 
 ### Layer types
 

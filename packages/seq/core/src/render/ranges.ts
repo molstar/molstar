@@ -468,7 +468,8 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
     out.imageArgs(lay.density);
   }
   if (lay.mode === 'density') return;
-  const items = lay.mode === 'items';
+  // items and merged runs alike are discrete marks: squircles where big enough, round only where a run really ends,
+  // so the base mark has the shape its emphasis outlines (_spec/README.md "Render", Shapes)
   for (let j = 0; j < lay.m; j++) {
     const item = lay.mitem[j];
     a[0] = lay.mx0[j];
@@ -478,7 +479,7 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
     a[4] = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
     a[5] = NoColor;
     a[6] = 0;
-    a[7] = items ? lay.mradius[j] : 0;
+    a[7] = lay.mradius[j];
     a[8] = lay.mround[j];
     out.rectArgs();
   }
