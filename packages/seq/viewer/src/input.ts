@@ -309,6 +309,7 @@ export class ViewerInput {
     const section =
       (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
     const ctx = { section };
+    let matched = false;
     // a gesture in progress first (a preview's command), then the rest in the spec's order
     for (const previews of [true, false])
       for (const c of this.viewer.commands) {
@@ -316,11 +317,14 @@ export class ViewerInput {
         if (!k || k.key !== e.key || (changeKindOf(c.id) === 'preview') !== previews) continue;
         if (!!k.alt !== !!e.altKey || !!k.shift !== !!e.shiftKey) continue;
         if (!!k.mod !== (this.mac ? !!e.metaKey : !!e.ctrlKey)) continue;
+        matched = true;
         const can = c.when?.(ctx as never);
         if (can !== undefined && can !== true) continue;
         this.viewer.runCommand(c.id, ctx);
         return true;
       }
-    return false;
+    // a shortcut with modifiers is the viewer's even when nothing can run now (Alt+ArrowLeft is no browser Back); a
+    // plain key nothing takes (Esc with nothing to cancel) stays the host's
+    return matched && !!(e.altKey || e.shiftKey || e.metaKey || e.ctrlKey);
   }
 }

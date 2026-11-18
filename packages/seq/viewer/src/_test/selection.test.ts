@@ -252,6 +252,16 @@ describe('the keyboard cursor', () => {
     // nothing left to do: the key is the page's
     expect(key(v, 'Escape')).toBe(false);
   });
+
+  it('a shortcut with modifiers is consumed even when its commands refuse (Alt+ArrowLeft on a follower is no Back)', async () => {
+    const v = await make();
+    v.input.move(...at(v, 1, 0, 20));
+    const start = v.view.get(GeneSection)!.start;
+    expect(v.input.key({ key: 'ArrowLeft', altKey: true })).toBe(true);
+    expect(v.view.get(GeneSection)!.start).toBe(start);
+    // a key no command has stays the page's
+    expect(v.input.key({ key: 'q', altKey: true })).toBe(false);
+  });
 });
 
 /** The rects of a pass within a section's band, as recorded. */
