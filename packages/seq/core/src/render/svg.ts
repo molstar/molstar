@@ -30,12 +30,18 @@ const XmlEscapes: Readonly<Record<string, string>> = {
   "'": '&#39;',
 };
 
-/** The characters XML 1.0 forbids: controls but tab, newline and return; U+FFFE and U+FFFF. */
-const Forbidden = new RegExp('[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\ufffe\\uffff]', 'g');
+/**
+ * The characters XML 1.0 forbids: controls but tab, newline and return; U+FFFE and U+FFFF; a surrogate with no
+ * partner (a text is UTF-16 code units: a lone half is no character, and a serializer would break on it).
+ */
+const Forbidden = new RegExp(
+  '[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\ufffe\\uffff]|[\\ud800-\\udbff](?![\\udc00-\\udfff])|(?<![\\ud800-\\udbff])[\\udc00-\\udfff]',
+  'g',
+);
 
 /**
- * Text and attribute values escaped; a character XML forbids (a control but tab, newline, return) becomes U+FFFD, one
- * for one, so a glyph run stays aligned with its x list.
+ * Text and attribute values escaped; a character XML forbids (a control but tab, newline, return, a lone surrogate)
+ * becomes U+FFFD, one for one, so a glyph run stays aligned with its x list.
  */
 export function escapeXml(s: string): string {
   return s.replace(Forbidden, '\ufffd').replace(/[&<>"']/g, (c) => XmlEscapes[c]);
