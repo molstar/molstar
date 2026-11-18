@@ -26,8 +26,8 @@ whether it is undoable, keeps that clear.
 | Change | Example | Lives in | Undoable | In history | Saved with the spec | Addressable |
 |---|---|---|---|---|---|---|
 | spec patch | add a track, hide a layer, set a theme, add a bookmark (a ref), edit a numbering | the spec: a new revision (a commit: the root and its parents) | yes, one step a batch | yes (the commit; its patch is derived) | yes | the nodes it touched |
-| snapshot step | enter a story's step | the spec's snapshots, applied over the base | by leaving the step, not by undo | no (entering is navigation) | the snapshots are | `/snapshots/<id>` |
-| preview | a drag resizing a track, a theme picked while hovering a menu | a transient overlay over the spec | cancel (Esc); ends in one patch or nothing | its final patch only | no | as the spec's |
+| snapshot step | enter a story's step | the spec's snapshots: stored patches with no base, applied over the current revision | by leaving the step, not by undo | no (entering is navigation) | the snapshots are | `/snapshots/<id>` |
+| preview | a drag resizing a track, a theme picked while hovering a menu | a patch over the current revision, applied again when the revision changes ([patches.md](patches.md), Previews) | cancel (Esc); ends in one patch or nothing | its final patch only | no | as the spec's |
 | session | the viewport, the selection, the hover, the cursor, open panels, the view shown | the viewer's models | no (selection: a host may opt into a selection history) | no | no (a host may save it beside the spec) | selection and focus as addresses |
 | data arrival | a region loaded, a dynamic node arriving, an entry evicted | the data store | no | no | no (sources are, not their data) | by (source, region) and (source, key) |
 | configuration | a binding, a preset, a config item | the viewer's configuration | no (settings history is the host's) | no | no | — |
@@ -53,14 +53,22 @@ whether it is undoable, keeps that clear.
   through the same history, each a step (an agent's turn may group its calls into one, as `HistoryStep.turn` allows);
   a patch names the revision it was made against and is refused when that is not the current one (EC-81), never
   rebased automatically. A host may rebase it on purpose: `merge3(base, current, apply(base, p))`, conflicts shown or
-  rescued as data ([patches.md](patches.md), Merge). A change made outside a run is reported to the host through the
+  rescued as data (`merge3`, its own agreement before the editing lane). A change made outside a run is reported to the host through the
   port, and whether it invalidates the earlier steps is the host's rule (`@molstar/ui/history`'s adapter invalidates
   them). Concurrent writers (EC-93) have their primitive in `merge3`; who merges and when is the host's policy, not yet
   designed.
-- **Snapshots are the truth, patches derived** (git's model, the author 2026-11-18): what a history records is a
-  revision, a root with its parents; the patch from a parent is `diff(parent, root)` whenever one is wanted. Why: a
-  recorded root is exact by construction (ref rewrites and normalization included), and checkpoints by root cost only
-  the paths that changed.
+- **Revisions are the truth, patches derived** (git's model, the author 2026-11-18; [patches.md](patches.md)): what a
+  history records is a commit, a revision's root with its parents, made by `SpecModel` per applied change; an undo
+  restores an earlier root (a move of the pointer, no new commit); the patch from a parent is `diff(parent, root)`
+  whenever one is wanted. Why: a recorded root is exact by construction (ref rewrites and normalization included), and
+  checkpoints by root cost only the paths that changed. *Snapshot* means a story step only, never a revision.
+- **Story steps are stored patches** with no base, typed by `patchLanguage(SeqLanguage)`: their targets and the refs in
+  the nodes they insert are refs of the spec, so a rename or a move rewrites them and link integrity counts them. An
+  edit made while a step is shown patches the base revision, and the step is applied again over it; a step that no
+  longer applies is reported on its node and shown as not applying. Recommendation: this default; editing a step's own
+  patch is a later mode ("edit this step"), its own command.
+- **Rebase needs the base root**: `SpecModel` keeps the recent roots by revision (`history.keepRoots`, default 64), and a
+  host may resolve older ones through the history port.
 - **Every command says its change kind**: a command's description declares whether it writes a patch, changes session
   state or only navigates, so menus can show what undo will undo and agents can tell an edit from a look.
 

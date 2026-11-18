@@ -100,8 +100,8 @@ b.data.map('p53-on-gene', { from: p53, to: gene, method: 'codon', exons: EXONS, 
 const domains = b.data.ranges('domains', { target: p53, rows: { start, end, label } });
 b.views.view('main', (v) => {
   const protein = v.section('protein', { of: p53 });
-  protein.track('letters').layer({ type: 'letters' });
-  protein.track('domains').layer({ type: 'ranges', data: domains, color: theme.field('label') });
+  protein.track('letters').layer('letters', { type: 'letters' });
+  protein.track('domains').layer('domains', { type: 'ranges', data: domains, color: theme.field('label') });
   v.section('gene', { of: gene, follow: protein });
 });
 const spec = b.build(); // a normalized tree; print(spec) for the S-expression view

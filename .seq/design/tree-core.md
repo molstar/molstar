@@ -18,9 +18,9 @@ the edge, beside the libraries they need.
     the node), Merkle hashes, addresses with query segments, issues.
   - `repr/schema`: languages as data (kinds, params with types including column types, unions, refs), validation with
     every issue, defaults, docs.
-  - `repr/patch`: git's model ([patches.md](patches.md)): revisions are snapshots named by their hash, commits a root
-    and its parents; six operations by address of ids, applied all or nothing with inverses, refs following a move;
-    `diff` and `merge3`.
+  - `repr/patch`: git's model ([patches.md](patches.md)): revisions are immutable roots named by their hash, commits a
+    root and its parents; six operations by address of ids, applied all or nothing with inverses, normalized and
+    validated for what they change, refs following a move, link integrity; `diff`; `merge3` (its own agreement).
   - `repr/builder`: the typed builder's engine.
   - `repr/codec`: the codec interface (a tree to bytes or text and back, with the value model's guarantees) and its
     conformance suite; no codec in it.

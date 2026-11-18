@@ -1,288 +1,326 @@
-# Revisions, patches, diff and merge in `@molstar/core/repr`
+# Revisions, patches and diff in `@molstar/core/repr`
 
-Agreed by the author, 2026-11-18 ("yes as recommended": git's model, `layer` ids required, dangling refs refused by
-default, no automatic rebase; and draft 1's five questions). Draft 1 was reviewed independently (Fable 5.2); its
-findings B1–B6 and S1–S6 are resolved below, each cited where it lands. tree-core.md and format.md point here. Lane K of
-the second slice builds exactly the surface in [The API](#the-api); anything past it stops the lane.
+Agreed by the author, 2026-11-18: git's model, `layer` ids required, dangling refs refused by default, no automatic
+rebase, and draft 1's five questions ("yes as recommended"). Revised after a second independent review (Fable 5.2) of
+this design with the state semantics, as the author agreed ("let's go with 1-5"). Its findings are cited where they
+land: R2-B1 to R2-B4, R2-S1 to R2-S16, R2-C1 to R2-C10.
 
-## Decisions (the author, 2026-11-18: "yes as recommended", all four)
+- **Merge** has its own short agreement (lane K2, `merge.md`); this design keeps only its place in the model.
+- **tree-core.md and format.md** point here.
+- **Lane K** of the second slice builds exactly the surface in [The API](#the-api); anything past it stops the lane.
 
-1. **Git's model** ([The model](#the-model-snapshots-are-the-truth)): snapshots are the truth and patches are derived;
-   a change is a commit (a root with its parent revisions). Lane K builds the pure primitives `applyPatch`, `diff` and
-   `merge3`. Branches, a store of revisions and sync wait. **Decided: yes.**
-2. **Seq's `layer` gets required ids** (its one kind with optional ids). Then hiding a layer is a one-key `set`, not a
-   `replace` of its whole track, and every child in a Seq spec can be addressed. Recommendation: yes, in lane K's
-   companion change to `seqx-core/lang` (a language change, so its version moves). **Decided: yes.**
-3. **A patch that leaves a ref dangling is refused by default** (link integrity, the built-in validator). A caller may
-   allow it for one patch (`allowDangling`), and the result then lists what dangles. Recommendation: yes. Why: a delete
-   that silently breaks a view is worse than one that asks first, and an undo then never passes through a broken state.
-   **Decided: yes.**
+## Decisions
+
+1. **Git's model** ([The model](#the-model-revisions-are-the-truth)): revisions, immutable roots, are the truth, and
+   patches are derived. Lane K builds `applyPatch` and `diff`; lane K2 builds `merge3`. Branches, a store of revisions
+   and sync wait.
+2. **Seq's `layer` ids are required**, and a Seq check requires an id on every child, extension kinds included
+   (R2-S11). Hiding a layer is then a one-key `set`, and every child in a Seq spec can be addressed.
+3. **A patch that leaves a ref dangling is refused by default**, with `allowDangling` per patch. Why: a delete that
+   silently breaks a view is worse than one that asks first.
 4. **A stale patch is refused, never rebased automatically** (EC-81). A host may rebase through `merge3` on purpose.
-   **Decided: yes** (configurable over fixed: refusal is the default, rebase is a host's opt-in).
 
-## The model: snapshots are the truth
+## The model: revisions are the truth
 
-What git gets right, and what `repr` already is:
-
-- **A revision is a snapshot**: an immutable root, named by its `hashNode` (32 hex digits; what `SpecModel` uses
-  today). Structural sharing keeps every unchanged subtree, so a snapshot costs only the path to what changed.
-- **A commit** is `{ root, parents: revision[], origin, label, id? }`: data any holder keeps. A host's history keeps
-  commits; Seq\* keeps none (the history port: its checkpoint is a root, its restore sets one).
-- **A patch is derived**: what `diff(a, b)` says takes `a` to `b`. It is the wire and agent form of a change, and an
-  agent or a user writes one to make a change. Applying it gives a new snapshot; the snapshot, not the patch, is what
-  is recorded. Why: a recorded root is exact by construction. Ref rewrites, normalization and anything else applying
-  did are in it, and its patch from the parent is `diff(parent, root)` whenever one is wanted (B1, B5).
-- **Merge is three-way**: `merge3(base, ours, theirs)` by node identity, the path of ids, never position. Rebase is a
-  merge whose result has one parent. Conflicts are data, never a silent pick (§transaction-is-data, the rescue of
-  §visible-tx-status).
-- **Not git**: there are no content-addressed blobs of text lines; the unit is a node and its params. Ids are local to
-  a parent, so a node that changes parents is a remove and an insert, unless a patch said `move`.
-
-meso\* gets this when it moves onto `@molstar/core/repr` (agreed at the first slice's Gate 0, migration later).
+- **A revision** is an immutable root, named by its `hashNode` (32 hex digits; what `SpecModel` uses today).
+  Structural sharing keeps every unchanged subtree, so a revision costs only the path to what changed.
+  - The word used here is *revision*.
+  - *Snapshot* means a story step everywhere in these designs (composition.md's `snapshots`, changes.md), never a
+    revision (R2-S6).
+- **A commit** is `{ root, parents, origin?, label? }`. `parents` holds one revision, or two for a merge.
+  - `SpecModel` makes one per applied change, and the host's history keeps them.
+  - An undo restores an earlier root. It is a move of the pointer, not a new commit (R2-S5).
+- **A patch is derived**: what `diff(a, b)` says takes `a` to `b`.
+  - It is the form a change travels in, from an agent, the wire, or a stored story step.
+  - Applying one gives a new revision, and the revision is what is recorded. Why: a recorded root is exact by
+    construction, with ref rewrites and normalization in it. Its patch from the parent is `diff(parent, root)` whenever
+    one is wanted.
+- **Merge is three-way**, by node identity (`merge.md`). Rebase is a merge whose result has one parent. To rebase, a
+  holder needs the base revision's root: `SpecModel` keeps the recent roots by revision (a config item, default 64),
+  and a host may resolve older ones (R2-S5).
+- **Not git**:
+  - The unit is a node and its params, not lines of text.
+  - Ids are local to a parent, so a node that changes parents is a remove and an insert, unless a patch said `move`.
+  - The principles' "an operation made against an address a concurrent move changed is rebased through the move" is
+    not held: a stale edit under a renamed node becomes an edit-against-remove conflict in a merge. Carried as a
+    tension, beside the reuse of ids (addressing.md).
+- meso\* gets this when it moves onto `@molstar/core/repr`.
 
 ## A patch
 
 ```ts
 interface Patch {
   readonly ops: readonly Op[];
-  /** The revision it was made against: refused on any other (EC-81), unless it is `result` (already applied). */
+  /** The revision it was made against: refused on any other (EC-81), unless the root is already `result`. */
   readonly base?: string;
-  /** The revision it gives, when the writer knows it; a mismatch after applying refuses (`repr.patch.result`). */
+  /** The revision it gives, normalized, when the writer knows it: a mismatch after applying refuses. */
   readonly result?: string;
-  /** Who wrote it: 'user', 'agent', 'host', 'remote:<peer>'; the history port's origin kinds, one vocabulary. */
-  readonly origin?: string;
-  readonly label?: string;
-  /** The writer's id for this patch; deduplicating a resend by (origin, id) is the holder's, not `applyPatch`'s. */
-  readonly tag?: string;
 }
 ```
 
-- **Order of checks** (B3): if `result` is given and is the root's revision, the patch was already applied. It returns
-  `{ ok: true, changed: false }` with the root as it was and no inverse, and the host records no step. Otherwise, if
-  `base` is given and is not the root's revision, the patch is refused as `repr.patch.stale`. A patch with neither
-  `base` nor `result` applies to whatever is there. Option `requireBase` refuses that, for agent and remote origins
-  (default true when `origin` is `agent` or `remote:*`).
-- **A patch is also a tree** in `PatchLanguage`: kind `patch`, one child per op, embedded nodes as `any` (their
-  language varies), `tag` a param, not a node id (S6). It prints, encodes and decodes through the existing codecs:
-  `(patch :base 3f… (set :at /views/main/t1 :key height :value 40))`.
+- **Metadata** (origin, label, a writer's tag) is not in the core's patch (R2-C6, R2-S4). It belongs to whoever holds
+  the change: a history step, a commit, an agent's call.
+- **Order of checks**:
+  1. If `result` is given and is the root's revision, the patch was already applied. It returns `{ ok: true, changed:
+     false }`, with the caller's own root object and no inverse.
+  2. Otherwise, if `base` is given and is not the root's revision, it is refused: `repr.patch.stale`.
+  3. If `requireBase` is set and the patch has no `base`, it is refused: `repr.patch.base`. The core's default is
+     false; `SpecModel` sets it for agent and remote channels (R2-S4).
+
+  The hash is MurmurHash3, which is not collision-resistant. It names revisions and is not a security boundary
+  (R2-C1).
+- **A patch is also a tree**. `patchLanguage(language)` gives the patch language for a language (R2-S6):
+  - kind `patch`, one child per op;
+  - `at` and `parent` typed `ref` into that language's tree;
+  - embedded nodes as slots of that language.
+
+  So a stored patch (a Seq story step) is validated, follows renames and moves, and counts in link integrity like any
+  other ref. Over no particular language, `PatchLanguage` has `any` nodes and string addresses. Both print, encode and
+  decode through the existing codecs: `(patch :base 3f… (set :at /views/main/t1 :key height :value 40))`.
+- **A stored patch has no `base`**: a story step applies to whatever its spec's revision is.
 
 ## The operations
 
-Written out (B6). A target is an `Address`, the path of ids (`readonly string[]`; `[]` is the root). Printed, it is an
-address word of ids only. A form or `/*` is never a target or a parent: what data makes is not a spec node. A bookmark
-on a dynamic node is an `insert` of a ref whose `to` holds that form's address.
+A target is an `Address` (`readonly string[]`; `[]` is the root). Printed, it is an address word of ids only. A form or
+`/*` is never a target or a parent. A bookmark on a dynamic node is an `insert` of a ref whose `to` holds that form's
+address.
 
 ```ts
 type Where = 'params' | 'custom';
-type After = { readonly after: string | null } | { readonly last: true };  // a sibling's id, null for first, or last
+type Place = { readonly after: string | null } | { readonly last: true };  // a sibling's id, null for first, or last
 
 interface SetOp     { readonly op: 'set';     readonly at: Address; readonly key: string; readonly value: Value; readonly where?: Where }
 interface UnsetOp   { readonly op: 'unset';   readonly at: Address; readonly key: string; readonly where?: Where }
-interface InsertOp  { readonly op: 'insert';  readonly parent: Address; readonly place: After; readonly node: Node }
+interface InsertOp  { readonly op: 'insert';  readonly parent: Address; readonly place: Place; readonly node: Node }
 interface RemoveOp  { readonly op: 'remove';  readonly at: Address }
-interface MoveOp    { readonly op: 'move';    readonly at: Address; readonly parent: Address; readonly place: After; readonly rename?: string }
+interface MoveOp    { readonly op: 'move';    readonly at: Address; readonly parent: Address; readonly place: Place; readonly rename?: string }
 interface ReplaceOp { readonly op: 'replace'; readonly at: Address; readonly node: Node }
 type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;
 ```
 
 | Op | Rules |
 |---|---|
-| `set` | One key, `where` defaulting to `params`. A record param (`for_each`) is set whole. An equal value (`valuesEqual`) is a no-op that keeps the node object. `key` may not be reserved (`kind`, `__proto__`, `$…`): `repr.patch.key`. |
-| `unset` | One key; an absent key is a no-op. |
-| `insert` | The node has an id unique among its new siblings. `place` is after a sibling, first, or last (the common append). |
-| `remove` | The node and its subtree. |
-| `move` | To a parent and place; `rename` gives it a new id there. Not under itself (`repr.patch.cycle`), not the root. |
-| `replace` | A whole node at `at`, with the same id; its kind may change. On the root, the whole spec. |
+| `set` | One key, `where` defaulting to `params`. A record param (`for_each`) is set whole. A value equal to the old one (`valuesEqual`) is a no-op that keeps the node object. A reserved `key` (`kind`, `__proto__`, `$…`) is refused: `repr.patch.key`. |
+| `unset` | One key. An absent key is a no-op. |
+| `insert` | The node has an id unique among its new siblings. `place`: after a sibling, first, or last. |
+| `remove` | The node and its subtree. Never the root. |
+| `move` | To a parent and place; `rename` gives it a new id there. Never under itself (`repr.patch.cycle`), never the root. |
+| `replace` | A whole node at `at`, with the same id, its kind free to change; on the root, the whole spec. A node equal by hash to the old one is a no-op that keeps the old object (R2-C3). |
 
-- **On the root** (`[]`): `set`, `unset` and `replace`; never `remove` or `move`.
-- **Siblings without ids** (B2): under a parent that has any child without an id, `insert`, `remove` and `move` are
-  refused (`repr.patch.unaddressable`); that parent changes by `replace`. Why: a position after a sibling cannot be
-  restored among siblings that have no names. With decision 2, no Seq parent has such children.
+- **On the root** (`[]`): `set`, `unset` and `replace` only.
+- **Siblings without ids**: under a parent with any child that has no id, `insert`, `remove` and `move` are refused
+  (`repr.patch.unaddressable`), and that parent changes by `replace`. Why: a position after a sibling cannot be
+  restored among siblings that have no names. With decision 2, a Seq spec has no such parent.
 - **Ownership**: `applyPatch` owns the columns in the values and nodes it is given, as the tree does (their NaNs made
   canonical in place).
-- **The inverse** is each op's inverse, taken against the state just before that op, in reverse order (the review
-  checked that this composes).
+- **The inverse** is each op's inverse, taken against the state just before that op, in reverse order.
 
 ## Applying
 
-`applyPatch(root, patch, options)`:
+`applyPatch(root, patch, options)`. The steps, in order:
 
-1. **The checks above** (result, then base).
-2. **The ops in order**, by structural sharing: only the path from the root to each touched node is new. A missing
-   target, a taken id, a malformed id, a `place` naming no sibling, a cycle, a reserved key or an unaddressable parent
-   refuses the whole patch with its code at `['ops', i, …]` (S4). Nothing is applied, and the caller's root is
-   untouched.
-3. **Refs follow a move or a rename** (S1), when a language is given:
+1. **The checks** above: result, then base.
+2. **The ops**, in order, by structural sharing: only the path from the root to each changed node is new. Each op is
+   refused, with the whole patch, for:
+   - a missing target;
+   - a taken or malformed id;
+   - a `place` that names no sibling;
+   - a cycle;
+   - a reserved key;
+   - an unaddressable parent;
+   - a depth past the bound.
+
+   Nothing is applied, and the caller's root is untouched.
+3. **Normalization** (R2-B1), when a language is given. Each inserted or replaced subtree, and each `set` value, is
+   normalized against its kind's param spec, as on read: plain arrays in declared columns become typed columns. This
+   costs only what the patch made, never `normalize` of the whole tree. Without a language, nothing is normalized.
+4. **Refs follow a move or a rename**, when a language is given:
    - **What is walked**: every value the language types `ref`, inside lists, records, maps, unions (by the member the
-     validator would choose), tables and data forms' `args`, in params only.
-   - **Not rewritten**: `any` params, `custom`, and addresses inside strings (text, links). A ref with `in` (a bare id)
-     is rewritten on a rename within its scope.
+     validator would choose), tables, data forms' `args` and slots, in params only. Stored patches' `at` and `parent`
+     are refs, through `patchLanguage`.
+   - **Not rewritten**: `any` params, `custom`, and addresses inside strings (text, links). Those go stale, and a
+     language's validator may report them. A ref with `in` (a bare id) is rewritten on a rename within its scope.
    - **What matches**: only the leading run of id segments of a ref's address can be a prefix of the moved address.
-     Forms after it are kept (`/views/main/(section :of /data/p53)` follows `/data/p53`'s move inside the form value
-     too). Refs inside the moved subtree to itself move with it.
-   - **Cost**: the revision's ref index, built at the first move and derived by each later revision from its parent's
-     by the touched nodes, so a move costs the refs it touches, never a walk of the spec. Its persistent collections are
-     `@molstar/core/data/immutable`'s, proposed beside this design for the same Gate 0.
-   - **Rebinding** (B1): an `insert`, `move` or `rename` that makes a dangling ref resolve again is refused
-     (`repr.patch.rebound`), unless `allowRebind` is set. Why: addressing.md says a ref is never silently re-bound.
-     The principles' "an id is never reused among its siblings" is carried as a tension: Seq's ids are authors' names,
-     and an author may reuse one on purpose.
-   - Without a language, a move rewrites nothing, and the result says `refs: 'not-rewritten'` once, not an issue per
-     move.
-4. **Validation** (B4), when a language is given:
-   - Validate the new root, **skipping every subtree that is the same object as in the old root**: structural sharing
-     marks exactly what the patch made.
-   - Add the context rules of each op: a `set`/`unset` the param and its required-ness; an `insert`/`replace` the new
-     subtree, its parent rule and its siblings' ids; a `move` the parent rule and sibling ids; a `remove` nothing in the
-     schema (no kind requires children).
-   - **Link integrity** (decision 3): every ref whose target the patch removed or moved without rewriting is
-     `repr.patch.dangling`, an error unless `allowDangling`.
-   - **The language's own validators** (`options.validators`: functions of the old and new root and the touched
-     addresses, returning issues) run last. Seq's checks (`seq.lang.*`, follow cycles) join here.
-   - Any error refuses the patch. Errors in untouched subtrees cannot appear, since those are skipped. This is what
-     "introduced" means, with no issue identity needed.
-   - `repr/schema` gains the entry this needs: `validateWithin(language, root, { skip: (node) => boolean })` (in the
-     agreed surface, not a lane's surprise).
-5. **The result** (B5):
+     Forms after it are kept, and addresses nested in form values are followed too. Refs inside the moved subtree to
+     itself move with it.
+   - **How refs are found**: through the revision's ref index, an internal interface (`RefIndex`) that answers by
+     address prefix. Lane K builds it on plain `Map`s, built per apply. It moves onto `@molstar/core/data/immutable`'s
+     persistent trie, derived from the parent revision's index, once a measured case asks for it (immutable.md, In
+     `repr`).
+   - Without a language, nothing is rewritten, and the result says `refs: 'not-rewritten'` once.
+5. **Validation** (R2-B4), when a language is given. One rule, by how each new object came to be:
+
+   | A new object that is | Is checked for |
+   |---|---|
+   | made by an `insert` or a `replace` | its whole subtree, nothing skipped inside it; old children kept under a node whose kind changed included |
+   | a node whose own params or custom data changed | the changed keys, and the required params of its kind |
+   | a node whose child list changed | its changed children's parent rule, and the uniqueness of its children's ids |
+   | only a copy on the path to a change | nothing |
+
+   Errors already present elsewhere, or on a path copy's own params, are never re-reported, so only what the patch
+   introduced can refuse it. `repr/schema` gains the entry that checks exactly this: `validateChanges(language, root,
+   changes)`, where `changes` is the result's `Changes`.
+6. **Link integrity** (R2-S1), judged on the old root against the new, never op by op, when a language is given. The
+   core's own pass over refs (what a ref names: the node at its id run) is built by lane K.
+   - **Dangling**: a ref in the new root that names no node, and either named one in the old root or was written by
+     this patch. It is an error, `repr.patch.dangling`; with `allowDangling` it is a warning instead, kept in `issues`
+     with its path and address (R2-S8).
+   - **Rebound**: a ref the patch did not change that named no node in the old root and names one in the new. It is an
+     error, `repr.patch.rebound`, unless `allowRebind`. The hint offers both ways out: give the ref another target, or
+     allow the rebinding (R2-C5).
+   - `diff`'s remove-then-insert of a node that changed parents passes, since only the end state is judged.
+7. **The language's validators** (`options.validators`), last: `(before, after, changes) => issues`. Each costs in
+   proportion to `changes`, and reports only what the changes introduced (R2-S9). Seq's checks join here, so `SpecModel`
+   needs an incremental `checkSeqLang` (lane N).
+8. **The result check**: if `result` was given and is not the new root's revision (normalized), it is refused,
+   `repr.patch.result`. A writer that cannot normalize leaves `result` out.
+
+**The result** (R2-S8):
 
 ```ts
+interface Changes {
+  readonly made: readonly Address[];                                      // inserted or replaced, in the new root
+  readonly params: readonly { readonly at: Address; readonly keys: readonly string[]; readonly where: Where }[];
+  readonly children: readonly Address[];                                  // parents whose child list changed, in the new root
+  readonly removed: readonly Address[];                                   // in the old root
+  readonly moved: readonly { readonly from: Address; readonly to: Address }[];
+}
 type PatchResult =
   | { readonly ok: true; readonly changed: boolean; readonly root: Node; readonly revision: string;
-      readonly inverse?: Patch;              // absent when nothing changed
-      readonly touched: readonly Address[];  // every node made new (ops and ref rewrites), deepest first
-      readonly dangling?: readonly Address[]; readonly refs?: 'not-rewritten'; readonly issues: readonly Issue[] }
+      readonly inverse?: Patch;                    // absent when nothing changed
+      readonly inverseNeeds?: { readonly allowDangling?: true; readonly allowRebind?: true };
+      readonly changes: Changes;                   // ref rewrites included, as `params`
+      readonly refs?: 'not-rewritten';
+      readonly issues: readonly Issue[] }          // warnings and infos
   | { readonly ok: false; readonly issues: readonly Issue[] };
 ```
 
-**Bounds** (S3): at most `maxOps` ops a patch (default 10,000). Depth is checked per op: depth(parent) + height(node)
-is at most `MaxDepth` (512). security.md's tree depth of 256 is the Seq spec's tighter bound, its validator's, not the
-core's. The spec's size after edits is the host's and Seq's bound (lane Q), not the core's.
+- **The inverse and the allowances** (R2-S2):
+  - A patch applied with `allowDangling` has an inverse that makes those refs resolve again. `inverseNeeds` says that
+    inverse needs `allowRebind`, and the same holds the other way.
+  - Under `allowRebind`, a ref the move conflated with the rewritten ones gets an explicit `set` in the inverse, so the
+    move back restores it.
+  - Law 3 holds when the inverse is applied with `inverseNeeds`. A host's undo restores roots and needs none of this.
+- **Issue paths** (R2-S9): an issue about the spec has the spec's path and address. One about an op has the patch
+  tree's path (`['children', i, …]`, as `patchToNode` lays it out).
+
+**Bounds**:
+- at most `maxOps` ops a written patch (default 10,000). A patch from `diff` is applied with no op bound, so law 1
+  holds on any diff (R2-C2);
+- depth(parent) + height(node) at most `MaxDepth` (512), and a value's own nesting counted too;
+- security.md's tree depth of 256 is the Seq spec's tighter bound, its validator's;
+- the spec's size after edits is the host's and Seq's (lane Q).
 
 ## Diff
 
-`diff(a, b)` gives a patch with `base` = `a`'s revision and `result` = `b`'s (S2):
+`diff(a, b)` gives a patch with `base` = `a`'s revision and `result` = `b`'s:
 
 - **Merkle descent**: equal hashes are skipped.
-- **Children are matched by id within a parent.** A kept id with a changed subtree is descended into. A kind change
-  under the same id, duplicate ids among siblings, or any child without an id makes the owner a `replace` (S2, B2).
-- **Moves within a parent**: the fewest that keep the longest run in order, found by a longest increasing subsequence.
-  Cost: the changed parents' fanout, O(n log n) each.
+- **Children are matched by id within a parent.** A kept id with a changed subtree is descended into. The fallbacks
+  (R2-S3):
+  - a kind change under the same id: a `replace` of that node;
+  - duplicate ids among siblings, or any child without an id: a `replace` of the nearest ancestor that has an address,
+    up to the root;
+  - a root that differs in its own id or kind: a `replace` of the root.
+- **Moves within a parent**: the fewest that keep the longest run in order, by a longest increasing subsequence. Cost:
+  each changed parent's fanout, O(n log n).
 - **Emission order**, so every `place` is valid when applied in order:
   1. removes;
   2. `b`'s children left to right, each one not in the kept run placed after its `b` predecessor (inserted or moved);
-  3. then the descents into kept children.
-- **Not inferred**: changes of parent and renames (ids are local) come out as remove and insert, and the ref rewrites
-  a `move` would have made come out as `set`s. Law 1 still holds.
+  3. the descents into kept children.
+- **Not inferred**: changes of parent and renames come out as remove and insert, and the ref rewrites a `move` would
+  have made come out as `set`s.
 - **Params and custom data**: one `set` or `unset` a key.
-- **The laws**, held by property tests without a language (with one, they hold for valid, normalized trees):
+- **The laws**, held by seeded property tests without a language, and with one on valid, normalized trees:
   1. `applyPatch(a, diff(a, b)).root` is `b` by hash;
   2. `diff(a, a)` has no ops;
-  3. `applyPatch(applyPatch(a, p).root, inverse)` is `a` by hash.
+  3. applying `p`, then its inverse with `inverseNeeds`, gives `a` by hash.
 
-## Merge
+## Previews
 
-`merge3(base, ours, theirs)` gives `{ root, conflicts }`:
+A preview is a patch over the current root (R2-S7):
 
-- **By node identity** (the path of ids), from `diff(base, ours)` and `diff(base, theirs)`. Changes to different nodes,
-  or to different keys of one node, both apply. Equal changes apply once.
-- **Conflicts**, as data, each with its address and both sides:
-  - the same key set to different values;
-  - a node edited on one side and removed on the other;
-  - the same id inserted with different content;
-  - a node moved to different places;
-  - sibling orders that interleave differently;
-  - a merged tree its validators refuse.
-- **On a conflict**, `root` is ours with every change that does not conflict applied. The conflicts say what was left
-  out, so a host can show them or rescue them (keep the losing side as a patch to review).
-- **Rebase** of a stale patch `p` made on `base`: `merge3(base, current, apply(base, p))`. It is a host's opt-in
-  (decision 4), never automatic.
-- **Laws** (property tests):
-  - `merge3(b, x, b)` is `x`;
-  - `merge3(b, b, y)` is `y`;
-  - `merge3(b, x, x)` is `x`;
-  - with no conflicts, the merge is symmetric up to sibling order (ours first on ties).
+- **What is shown** is `applyPatch(root, preview)`. When the root changes (an agent's patch lands mid-drag), the
+  preview is applied again on the new root. If it no longer applies, it is dropped with an issue, and the gesture ends.
+- **At interactive rates** the preview applies with the language's normalization and validation but not the language's
+  own validators (`options.validators`). Committing it applies it once more, in full.
+- `viewer-models.md` holds the rest.
 
 ## The API
 
-The agreed surface for lane K: entries `@molstar/core/repr/patch`, with one addition to `@molstar/core/repr/schema`.
+The agreed surface for lane K: entry `@molstar/core/repr/patch`, with one addition to `@molstar/core/repr/schema`.
 
 ```ts
 // repr/patch
 type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;    // as written out above
-interface Patch { … }                                                      // as above
-type PatchResult = …;                                                      // as above
+interface Patch { … }  interface Changes { … }  type PatchResult = …;      // as above
 interface ApplyOptions {
   readonly language?: Language;
   readonly validators?: readonly PatchValidator[];
-  readonly maxOps?: number;            // 10,000
-  readonly requireBase?: boolean;      // default: origin is 'agent' or 'remote:*'
+  readonly maxOps?: number;            // 10,000; Infinity for a diff
+  readonly requireBase?: boolean;      // false
   readonly allowDangling?: boolean;    // false
   readonly allowRebind?: boolean;      // false
 }
-type PatchValidator = (before: Node, after: Node, touched: readonly Address[]) => readonly Issue[];
+type PatchValidator = (before: Node, after: Node, changes: Changes) => readonly Issue[];
 function applyPatch(root: Node, patch: Patch, options?: ApplyOptions): PatchResult;
 function diff(a: Node, b: Node): Patch;
-function merge3(base: Node, ours: Node, theirs: Node, options?: { language?: Language }): MergeResult;
-interface MergeResult { readonly root: Node; readonly conflicts: readonly Conflict[] }
-interface Conflict { readonly kind: ConflictKind; readonly at: Address; readonly ours?: Op; readonly theirs?: Op }
-interface Commit { readonly root: Node; readonly parents: readonly string[]; readonly origin?: string; readonly label?: string; readonly tag?: string }
-const PatchLanguage: Language;
+interface Commit { readonly root: Node; readonly parents: readonly string[]; readonly origin?: string; readonly label?: string }
+function patchLanguage(language: Language): Language;   // typed refs and slots into `language`
+const PatchLanguage: Language;                         // over no particular language
 function patchToNode(patch: Patch): Node;
 function patchFromNode(node: Node): { readonly patch?: Patch; readonly issues: readonly Issue[] };
 
 // repr/patch/conformance (as repr/codec's suite is)
+interface PatchCase {
+  readonly name: string; readonly root: Node; readonly patch: Patch; readonly options?: ApplyOptions;
+  readonly expect: { readonly ok: boolean; readonly root?: Node; readonly codes?: readonly string[] };
+}
 const PatchCases: readonly PatchCase[];
-function checkPatches(apply: (root: Node, patch: Patch) => { ok: boolean; root?: Node; issues: readonly Issue[] }): readonly string[];
+function checkPatches(apply: (root: Node, patch: Patch, options?: ApplyOptions) => PatchResult): readonly string[];
 
 // repr/schema
-function validateWithin(language: Language, root: Node, options: { skip: (node: Node) => boolean } & ValidateOptions): Issue[];
+function validateChanges(language: Language, root: Node, changes: Changes, options?: ValidateOptions): Issue[];
 ```
 
-- **Dropped from draft 1**:
-  - `revision()`: it was `hashNode` under a second name;
-  - `MoveOp.id`, now `rename`;
-  - `in`, now `where`;
-  - `Patch.id`, now `tag`;
-  - `diff`'s unused `language` option.
-- **`Commit` is a type only**: who keeps commits (a host's history, later a store) is outside the core.
+`Commit` is a type only: `SpecModel` makes commits, and the host's history keeps them.
 
-**Issue codes** (`repr.patch.*`, cataloged, each at `['ops', i, …]`; S4):
-- `stale`, `result`;
-- `target`, `id`, `place`, `cycle`, `key`, `unaddressable`, `op`, `limit`, `depth`;
-- `dangling`, `rebound`.
+**Issue codes** (`repr.patch.*`, cataloged):
+- the checks: `stale`, `base`, `result`;
+- the ops: `target`, `id`, `place`, `cycle`, `key`, `unaddressable`, `op`, `limit`, `depth`;
+- link integrity: `dangling`, `rebound`.
 
-A validator's own issue is carried as is, with the op that caused it in its `path` (one carrier, no duplicate).
+A validator's own issue is carried as is: one carrier, no duplicate.
 
 ## Tests
 
-- **The conformance cases as data**: every op and its inverse, at the root, in the middle and at the leaves; every
-  refusal by code; a ref rewritten by a move and back by its inverse; a rebinding refused; a dangling ref refused and
-  allowed.
-- **The laws** of diff and merge as seeded property tests.
-- **Structural sharing**: an untouched subtree is the same object after a patch.
-- **A refusal leaves the root's hash the same.** That no history step is recorded is lane N's test, over the
-  composition.
-- **Two consumers** (lane N): a Seq\* spec edited by the user and by an agent through one host history. A stale agent
-  patch is refused, then rebased by the host's opt-in through `merge3`.
+- **The conformance cases as data**, each with its options:
+  - every op and its inverse, at the root, in the middle and at the leaves;
+  - every refusal by code;
+  - normalization of a plain array set into a column;
+  - a ref rewritten by a move and back by its inverse;
+  - a rebinding refused and allowed;
+  - a dangling ref refused and allowed, with `inverseNeeds`;
+  - a remove-then-insert from `diff` passing link integrity.
+- **The laws** of diff as seeded property tests.
+- **Structural sharing**: an untouched subtree is the same object after a patch; an equal `set` or `replace` keeps the
+  node.
+- **A refusal leaves the root's hash the same.**
+- **Validation**: an error present before an edit is not re-reported by an edit below it; a kind-changing `replace`
+  validates its kept children.
+- **Lane N's** (over the composition): no history step for a refusal; two consumers (the user and an agent) on one
+  host history; a stale agent patch refused, then rebased by the host's opt-in through `merge3` with the base root from
+  `SpecModel`'s recent roots; a preview surviving an agent's patch mid-drag.
 - **Performance representative**: a 10-op patch on the p53 spec, applied and diffed back. A quick-lane case, with its
   wall-clock bound (under 1 ms) in `itWithin` (the heavy lane).
 
 ## What else changes with it
 
-- **format.md and tree-core.md**: six operations (meso\*'s five and `replace`), and the model above. A note for meso\*'s
-  readers comes with its migration.
-- **`seqx-core/lang`**: `layer` ids required (decision 2), the language version moved, and the examples given ids.
-- **changes.md**: a spec patch's row says the history records the root and its parents, and the patch is derived.
-  Concurrent writers (EC-93) are no longer "a design of their own": `merge3` is their primitive, and their policy
-  (who rebases, when) is the host's.
-- **Citations**: the lane's code and `_spec` cite their own sections, never `.seq/` or a principle's id. The `repr`
-  `_spec`'s existing citations of `.seq/design/*` are fixed when the scaffold is retired.
-
-## Also decided ("as recommended")
-
-From draft 1, with the review's agreement:
-1. One key a `set`.
-2. Refs rewritten only with a language.
-3. No cross-parent moves or renames inferred by `diff`.
-4. Validation by shared-subtree skip plus per-op context rules.
-5. `replace` for siblings without ids.
+- **format.md and tree-core.md**: six operations (meso\*'s five and `replace`), and the model above.
+- **`seqx-core/lang`**: `layer` ids required, a check that every child has an id (`seq.lang.id.required`), the examples
+  and the builder given ids. The language version moves with no migration: the language is pre-release, `0.x`
+  (R2-S11).
+- **changes.md**: revisions and commits, story steps as stored patches, edits while a step is shown, previews as
+  patches.
+- **viewer-models.md**: `SpecModel` makes commits, keeps the recent roots, applies previews as patches.
+- **Citations**: the lane's code and `_spec` cite their own sections, never `.seq/` or a principle's id.

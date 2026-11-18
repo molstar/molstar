@@ -15,10 +15,10 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## Next
 
-- Fable 5.2 reviews `design/patches.md` with the state semantics (agreed 2026-11-18: git's model and the three other
-  decisions) and `drafts/immutable.md`
-  (`@molstar/core/data/immutable`, used in `repr`; lane R); then the loop starts: Gate 0 to the author (plan.md, with the first slice's
-  open decisions and evidence), stage 0 beside it.
+- A focused Fable 5.2 re-review of the interfaces (`design/patches.md`, `drafts/merge.md`, `drafts/immutable.md`), after
+  the second review's points 1 to 5 were applied (the author, 2026-11-18: "let's go with 1-5").
+- The author reviews `drafts/merge.md` and `drafts/immutable.md`; then the loop starts: Gate 0 to the author (plan.md,
+  with the first slice's open decisions and evidence), stage 0 beside it.
 
 ## Decided
 

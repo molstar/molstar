@@ -54,7 +54,7 @@ description of the language that everything else derives from.
   builder's types, the docs and the agent skill derive from it.
 - **Unknown kinds** in a newer minor version, or in an extension namespace the reader lacks, are kept, reported and
   skipped (with the kind's declared fallback), never a failure of the whole spec.
-- **Revisions and patches** ([patches.md](patches.md)): a spec's revision is a snapshot, its root named by its hash; a
+- **Revisions and patches** ([patches.md](patches.md)): a spec's revision is an immutable root named by its hash; a
   change is a commit (a root and its parent revisions), and the patch between two revisions is derived (`diff`).
   Patches (`set`, `unset`, `insert`, `remove`, `move`, `replace`, by addresses of ids) are how a writer asks for a
   change; a batch is all or nothing and returns its inverse; `merge3` merges two lines of edits by node identity, with

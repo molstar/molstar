@@ -77,10 +77,12 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
       agreed surface for lane K, with its four decisions (git's model; `layer` ids required; dangling refs refused by
       default; no automatic rebase) and five questions answered. Recommendation: as drafted.
     - **`@molstar/core/data/immutable`** (the author, 2026-11-18: "implement core/immutable and use it in repr"; moving
-      Mol\*'s state tree and model off immutable.js is a later, separate PR): the draft `drafts/immutable.md`, its API
-      section the agreed surface for lane R, with its four decisions (`repr` uses it for indexes beside an unchanged
-      node shape; CHAMP; our own API close to the immutable.js subset Mol\* uses; configurable per collection).
-      Recommendation: as drafted.
+      Mol\*'s state tree and model off immutable.js is a later, separate PR): the draft `drafts/immutable.md` (draft 2,
+      after the second review), its API section the agreed surface for lane R, with its four decisions (`repr` uses it
+      behind `RefIndex` once measured; CHAMP; our own API close to the immutable.js subset Mol\* uses, checked by a
+      `StateTree` spike; configurable per collection for hash and equality). Recommendation: as drafted.
+    - **`merge3`** (lane K2's short agreement, split from the patch design): the draft `drafts/merge.md`, with its two
+      questions. Recommendation: as drafted.
     - **The asset manager**: `credentials: 'omit'`, `redirect: 'error'`, the signal passed through, a streamed byte
       limit. Recommendation: yes, in this slice, with the policy then claiming all four.
     - **Range reads in the asset manager**: recommendation: wait for bigWig (milestone 3).
@@ -116,23 +118,34 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 1: the base (three lanes in parallel, after Gate 0)
 
-- [ ] R (strong) `@molstar/core/data/immutable`, as `drafts/immutable.md` agreed at Gate 0 (moved to
+- [ ] R (strong) `@molstar/core/data/immutable`, as `drafts/immutable.md` (draft 2) agreed at Gate 0 (moved to
       `design/immutable.md` before the lane starts):
-  - `HashMap`, `HashSet` (CHAMP, a flat array up to `smallMax`), `OrderedMap`, `OrderedSet`, `Vector` (32-way with a
-    tail), transients, cursors, per-collection hash and equality, `repr/tree`'s `ValueKeys`;
-  - in `repr`: the child index per node (`resolveAddress`) and the address index (`addressOf`), each derived across
-    revisions;
-  - model-based property tests against JS collections, persistence and transient tests, collisions, the canonical
-    shape; allocation cases (the opt-in tier); ratios against immutable.js and the bundle size (heavy lane);
+  - `HashMap`, `HashSet` (CHAMP, flat below a measured threshold), `OrderedHashMap`, `OrderedHashSet`, `Vector`
+    (32-way with a tail), transients that read like the persistent collections, cursors, per-collection hash and
+    equality (SameValueZero keys by default), `defaultHash` with a finalizer;
+  - a type-check-only spike of `StateTree` on the API, before it is frozen;
+  - in `repr`, only the child index (a native `Map` per node, no dependency on R);
+  - model-based property tests against JS collections, persistence and transient tests (the colliding-keys
+    regression), collisions, equality; allocation cases (the opt-in tier); ratios against immutable.js with 22-char
+    keys, and the bundle size (heavy lane);
   - its `_spec`, base-library.md's row, a v6 changelog entry.
-- [ ] K (strong) `@molstar/core/repr/patch`, as `design/patches.md` (agreed 2026-11-18):
-  - the six ops with their inverses, `applyPatch` (result then base, all or nothing, refs following a move, no silent
-    rebinding, validation of what it made, link integrity, the language's validators), `diff` by Merkle descent with
-    its emission order, `merge3` with conflicts as data, `PatchLanguage`, `Commit` as a type;
-  - `repr/schema`'s `validateWithin`;
-  - the conformance cases as data (§suites-are-data), the laws of diff and merge as property tests;
-  - the companion change in `seqx-core/lang`: `layer` ids required, the language version moved, the examples given ids;
-  - format.md and tree-core.md updated (six ops, the model); the `repr` `_spec` and a v6 changelog entry.
+- [ ] K (strong) `@molstar/core/repr/patch`, as `design/patches.md` (agreed 2026-11-18, revised after the second
+      review), beside R:
+  - the six ops with their inverses and `inverseNeeds`, `applyPatch` (result then base, all or nothing, normalization
+    of what it made, refs following a move, validation by how each object came to be, link integrity old root against
+    new, the language's validators, the result check), `diff` with its fallbacks and emission order, `patchLanguage`
+    and `PatchLanguage`, `Commit` as a type;
+  - the core's pass over refs (what a ref names), and `RefIndex` on plain `Map`s;
+  - `repr/schema`'s `validateChanges`;
+  - the conformance cases as data with their options (§suites-are-data), the laws of diff as property tests;
+  - the companion change in `seqx-core/lang`: `layer` ids required, `seq.lang.id.required` for every child, the
+    builder and examples given ids, the language version moved (no migration: `0.x`);
+  - format.md and tree-core.md as they now read; the `repr` `_spec` and a v6 changelog entry.
+- [ ] K2 (strong) `merge3`, as `drafts/merge.md` agreed at Gate 0 (moved to `design/merge.md` before the lane starts),
+      after K: the result type, the conflict table, independence by node, the laws, rebase from a base root.
+- [ ] R+K (fast, after R and K; gated): `repr`'s ref index on `data/immutable`'s persistent trie, behind `RefIndex`,
+      only if the measured case (a spec of 10,000 bookmark refs, edited by moves) shows the per-apply rebuild matters;
+      else recorded as not needed, with the numbers.
 - [ ] L (fast) the MessagePack codec:
   - `codecs/msgpack` in io on `common/msgpack`, passing `checkCodec`;
   - typed columns decoded without a copy where aligned;
@@ -224,8 +237,9 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ## Order and parallelism
 
-Gate 0 → stage 0 (beside Gate 0) → R, L, M in parallel → K (needs R: the ref index, `merge3`'s maps) → N and O in
-parallel (N needs K; O needs K for refs as patches)
+Gate 0 → stage 0 (beside Gate 0) → R, K, L, M in parallel (two heavy, two light at once: R and K first, L and M
+light) → K2 (needs K) and O (needs K for refs as patches) → N (needs K2: the rebase test) → R+K (needs R and K, gated
+by its measurement)
 → P (needs O's addresses for the selection) beside Q → stories and use → measure → finalize.
 
 ## Hot files (the orchestrator's only)
