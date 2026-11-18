@@ -146,6 +146,25 @@ describe('HashMap', () => {
     }
   });
 
+  it('a custom hash is coerced to int32: fractions and NaN place keys where lookups find them', () => {
+    for (const hash of [
+      (k: number) => k / 3,
+      (k: number) => (k % 2 ? NaN : k + 0.5),
+      () => NaN,
+      () => 2 ** 40 + 0.25,
+    ]) {
+      const keys = Array.from({ length: 60 }, (_, i) => i);
+      let m = HashMap.of(
+        keys.map((k) => [k, k] as const),
+        { hash },
+      );
+      for (const k of keys) expect(m.get(k)).toBe(k);
+      for (const k of keys.slice(0, 50)) m = m.delete(k);
+      expect(m.size).toBe(10);
+      for (const k of keys) expect(m.get(k)).toBe(k < 50 ? undefined : k);
+    }
+  });
+
   it('a collision node moved up to the root is filed under its own hash, not the deleted key’s', () => {
     // keys 0..17 collide (hash 0); 100 sits inline beside them (hash 1); deleting 100 moves the collision node up
     const m = HashMap.of(

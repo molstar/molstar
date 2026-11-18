@@ -67,7 +67,8 @@ export function resolveConfig(config: CollectionConfig<any, any> | undefined): R
   const veq = valueEquals ?? Object.is;
   const r: Resolved = {
     hash: h,
-    lookupHash: h === defaultHash ? lookupDefaultHash : h,
+    // a custom hash coerced as edits coerce it (champ.ts): NaN is absent only for the default's unseen objects
+    lookupHash: h === defaultHash ? lookupDefaultHash : (key: any) => h(key) | 0,
     equals: eq,
     defaultEquals: eq === sameValueZero,
     valueEquals: veq,

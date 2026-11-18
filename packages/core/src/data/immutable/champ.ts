@@ -290,7 +290,7 @@ function champSet(
     }
     // push the inline entry down with the new one: the data entry goes, a sub-node comes
     Edit.added = true;
-    const sub = mergeTwo(k, content[i + 1], cfg.hash(k), key, value, hash, shift + 5, owner);
+    const sub = mergeTwo(k, content[i + 1], cfg.hash(k) | 0, key, value, hash, shift + 5, owner);
     const nodeMap = node.nodeMap | bit;
     // sub-nodes from the back: the j-th is at `length - 1 - j` of the result
     const c = pairToNode(content, i, content.length - 2 - indexOf(nodeMap, bit), sub);
@@ -338,9 +338,9 @@ function promote(entries: any[], key: any, value: any, cfg: Resolved, owner: Own
   const o = owner ?? { dead: false };
   let root = new ChampNode(o, 0, 0, []);
   for (let i = 0; i < entries.length; i += 2) {
-    root = champSet(root, 0, cfg.hash(entries[i]), entries[i], entries[i + 1], cfg, o);
+    root = champSet(root, 0, cfg.hash(entries[i]) | 0, entries[i], entries[i + 1], cfg, o);
   }
-  return champSet(root, 0, cfg.hash(key), key, value, cfg, o);
+  return champSet(root, 0, cfg.hash(key) | 0, key, value, cfg, o);
 }
 
 /** `root` with `key` set; `Edit` says whether it was added or changed. */
@@ -378,7 +378,8 @@ export function rootSet(root: Root, size: number, key: any, value: any, cfg: Res
     c[n + 1] = value;
     return new FlatNode(owner, c);
   }
-  return champSet(root, 0, cfg.hash(key), key, value, cfg, owner);
+  // a custom hash coerced to int32: a fraction or NaN would place a key where no lookup finds it (README §4)
+  return champSet(root, 0, cfg.hash(key) | 0, key, value, cfg, owner);
 }
 
 // --- delete ---
