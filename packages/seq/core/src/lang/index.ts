@@ -27,9 +27,11 @@ export { checkDataNode, checkSeqLang, checkSeqSpec, type DataNodeTargets } from 
 export { LangIssues } from './issues.js';
 export { type SeqKinds, SeqLanguage, type SeqLanguageType, SeqLanguageVersion } from './language.js';
 export {
+  addRefPatch,
   DefaultRefDepth,
   type FollowedRef,
   followRef,
+  type RefInput,
   type RefRefusal,
   RefsId,
   refAddresses,

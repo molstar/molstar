@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { createSeqSpec } from '../builder.js';
 import { checkSeqSpec } from '../check.js';
 import { SeqLanguage } from '../language.js';
-import { followRef, refAddresses } from '../refs.js';
+import { addRefPatch, followRef, refAddresses } from '../refs.js';
 import { P53_LETTERS } from './p53.js';
 
 // User-defined refs: the `refs` container and the `ref` kind (one address or a set), checked by the language (a ref
@@ -154,5 +154,44 @@ describe('refs under patches', () => {
     const refused = applyPatch(s, remove, { language: SeqLanguage });
     expect(refused.ok).toBe(false);
     expect(refused.issues.map((i) => i.code)).toContain('repr.patch.dangling');
+  });
+});
+
+describe('adding a ref', () => {
+  it('is one patch: an insert into the container, or of the container when there is none', () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
+    const s = b.build();
+    const first = addRefPatch(s, { id: 'start', to: '/data/s/(range :from 1 :to 4)', label: 'Start' });
+    expect(first.ops.length).toBe(1);
+    const r1 = applyPatch(s, first, { language: SeqLanguage });
+    expect(r1.ok).toBe(true);
+    if (!r1.ok) return;
+    const second = addRefPatch(r1.root, { id: 'both', to: ['/refs/start', '/data/s/(at :label 8)'] });
+    expect(second.ops).toMatchObject([{ op: 'insert', parent: ['refs'] }]);
+    const r2 = applyPatch(r1.root, second, { language: SeqLanguage });
+    expect(r2.ok).toBe(true);
+    if (!r2.ok) return;
+    expect(checkSeqSpec(r2.root)).toEqual([]);
+    expect(followRef(r2.root, '/refs/both')).toMatchObject({
+      addresses: ['/data/s/(range :from 1 :to 4)', '/data/s/(at :label 8)'],
+    });
+    // its inverse takes it away; the same patch again, made against the earlier revision, is refused
+    const undone = applyPatch(r2.root, r2.inverse!, { language: SeqLanguage });
+    expect(undone.ok && hashNode(undone.root)).toBe(hashNode(r1.root));
+    expect(applyPatch(r2.root, second, { language: SeqLanguage }).issues.map((i) => i.code)).toEqual([
+      'repr.patch.stale',
+    ]);
+  });
+
+  it('on a dynamic node is a patch like any other: the spec opens, and the ref waits for its node', () => {
+    const b = createSeqSpec();
+    b.data.source('genes', { format: 'seq', uri: 'genes.seq' });
+    const s = b.build();
+    const r = applyPatch(s, addRefPatch(s, { id: 't1', to: '/data/genes/(node :key T1)' }), {
+      language: SeqLanguage,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(checkSeqSpec(r.root)).toEqual([]);
   });
 });

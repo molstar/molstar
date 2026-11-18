@@ -9,7 +9,8 @@
 // 1 :to 9)` when the ref names `/data/p53`). Following a ref is a rewrite of the address's leading ids, bounded by a
 // chain depth; a cycle, a chain past the bound and a set followed by more segments are refusals, never a guess.
 
-import { type Node, parseAddress, printAddress, resolveAddress, type Segment } from '@molstar/core/repr/tree';
+import type { Patch } from '@molstar/core/repr/patch';
+import { hashNode, type Node, parseAddress, printAddress, resolveAddress, type Segment } from '@molstar/core/repr/tree';
 
 /** The reserved id of the refs container: a ref's address is `/refs/<id>`. */
 export const RefsId = 'refs';
@@ -110,4 +111,32 @@ export function followRef(spec: Node, address: string, maxDepth = DefaultRefDept
   };
   const why = go(address);
   return why ? { refused: why, via: passed } : { addresses: out, via: passed };
+}
+
+/** A user-defined ref as a bookmark is written: its id, what it names, and how it is shown. */
+export interface RefInput {
+  readonly id: string;
+  readonly to: string | readonly string[];
+  readonly label?: string;
+  readonly color?: string;
+}
+
+/**
+ * Adding a ref as one patch (_spec/README.md, Language, Refs): an insert at the end of the `refs` container, or of the
+ * container with the ref in it when the spec has none; made against the root's revision, so a stale one is refused.
+ */
+export function addRefPatch(root: Node, ref: RefInput): Patch {
+  const params: Record<string, string | string[]> = { to: typeof ref.to === 'string' ? ref.to : [...ref.to] };
+  if (ref.label !== undefined) params.label = ref.label;
+  if (ref.color !== undefined) params.color = ref.color;
+  const node: Node = { kind: 'ref', id: ref.id, params };
+  const has = root.children?.some((c) => c.id === RefsId);
+  return {
+    base: hashNode(root),
+    ops: [
+      has
+        ? { op: 'insert', parent: [RefsId], place: { last: true }, node }
+        : { op: 'insert', parent: [], place: { last: true }, node: { kind: 'refs', id: RefsId, children: [node] } },
+    ],
+  };
 }
