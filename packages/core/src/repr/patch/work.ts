@@ -13,7 +13,6 @@
 import type { Changes, ParamChange } from '../schema/index.js';
 import {
   type Address,
-  childIndex,
   hashNode,
   IdHint,
   IdPattern,
@@ -32,6 +31,7 @@ import {
   type Value,
   valuesEqual,
 } from '../tree/index.js';
+import { childIndex } from '../tree/address.js';
 import { type Op, type PatchCode, PatchIssues, type Place, type Where } from './patch.js';
 
 /** A node of the draft. Its unchanged parts are read from `base`; `kids` is materialized on first use. */

@@ -9,14 +9,8 @@
 // what changed, by how each object came to be; link integrity, the old root against the new; the language's
 // validators; the result check. The caller's root is never touched.
 
-import {
-  type Language,
-  NoChanges,
-  normalize,
-  normalizeValue,
-  validateChanges,
-  type ValidateOptions,
-} from '../schema/index.js';
+import { type Language, normalize, normalizeValue, validateChanges, type ValidateOptions } from '../schema/index.js';
+import { NoChanges } from '../schema/changes.js';
 import {
   type Address,
   hasErrors,

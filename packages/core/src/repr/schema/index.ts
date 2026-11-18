@@ -14,7 +14,7 @@ export {
   type LanguageCode,
   LanguageIssues,
 } from './check.js';
-export { type Changes, NoChanges, type ParamChange, type Where } from './changes.js';
+export type { Changes, ParamChange, Where } from './changes.js';
 export { languageToMarkdown, signature, withDefaults } from './docs.js';
 export {
   type ArgSpec,

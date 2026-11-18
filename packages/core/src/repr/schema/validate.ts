@@ -17,7 +17,6 @@ import {
   columnMisfit,
   columnType,
   columnValues,
-  childIndex,
   defineIssues,
   IdPattern,
   type Issue,
@@ -32,6 +31,7 @@ import {
   type TreePath,
   type Value,
 } from '../tree/index.js';
+import { childIndex } from '../tree/address.js';
 import type { Changes } from './changes.js';
 import type {
   ColumnSpec,

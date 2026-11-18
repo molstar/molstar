@@ -7,8 +7,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   type AddressPattern,
-  ChildIndexThreshold,
-  childIndex,
   exactAddress,
   type FormResolver,
   type FormResolverInput,
@@ -22,6 +20,7 @@ import {
   resolveAddress,
   selectAddress,
 } from '../index.js';
+import { ChildIndexThreshold, childIndex } from '../address.js';
 
 const print = (p: AddressPattern) => printAddress(p.segments, p.subtree);
 

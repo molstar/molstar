@@ -82,11 +82,11 @@ quantities need no quotes, and no units table is needed to read them (locations-
 - **A numeric-looking key is a number**: `(chain :id 1)` compares the number 1 and never matches a string id `"1"`;
   quote it to match one, `(chain :id "1")`. The atoms' rule decides, not the param's type (a form is read without a
   language).
-- **The child index**: a lookup by id (`childIndex`, `childById`, `resolveAddress`) scans up to `ChildIndexThreshold`
-  (8) children; past it, a native `Map` from id to position, built on the first lookup and cached per children array in
-  a `WeakMap`. The first of two siblings with one id wins, as a scan. Why: an edit's path copy makes a new array,
-  indexed again on its first lookup, O(fan-out) as the copy was; no persistent collection is needed, since an insert
-  shifts every later position.
+- **The child index**: a lookup by id (`resolveAddress`, and inside `repr` `childIndex` and `childById` of
+  `tree/address.ts`, not exported by `repr/tree`) scans up to `ChildIndexThreshold` (8) children; past it, a native
+  `Map` from id to position, built on the first lookup and cached per children array in a `WeakMap`. The first of two
+  siblings with one id wins, as a scan. Why: an edit's path copy makes a new array, indexed again on its first lookup,
+  O(fan-out) as the copy was; no persistent collection is needed, since an insert shifts every later position.
 - **Selection** (`selectAddress`) is bounded: a required `limit`, `maxDepth`, a `signal` and a `deadline`; more is an
   issue, never a truncation. Kinds and params of forms are checked against the caller's when given.
 - **The form-resolver table** (`SelectOptions.resolvers`, by form kind): a resolver receives what the prefix names
