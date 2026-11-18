@@ -193,9 +193,16 @@ type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;
    - **Dangling**: a ref in the new root that names no node, and either named one in the old root or was written by
      this patch. It is an error, `repr.patch.dangling`; with `allowDangling` it is a warning instead, kept in `issues`
      with its path and address (R2-S8).
-   - **Rebound**: a ref the patch did not change that named no node in the old root and names one in the new. It is an
+     - **"Written by this patch"** (K's review, 2026-11-18): a ref the patch's ops wrote, a `set` value or a ref in an
+       inserted or replaced subtree, **except** one that was already in the old root with the same value at the same
+       place and already named no node there. Such a ref was not introduced: a `replace` that keeps it, or an inverse
+       that restores removed content holding it, is not refused for it. So undoing a removal never fails on refs that
+       dangled before the removal.
+   - **Rebound**: a ref the patch did not change whose target changed identity. Either it named no node in the old root
+     and names one in the new, or the node it named was removed or moved away by this patch and its address now names
+     another node (remove `/b`, then rename `/a` to `b`: a ref to `/b/y` would now name old `a`'s `y`). It is an
      error, `repr.patch.rebound`, unless `allowRebind`. The hint offers both ways out: give the ref another target, or
-     allow the rebinding (R2-C5).
+     allow the rebinding (R2-C5; the identity case added after K's review, 2026-11-18: "never silently re-bound").
    - `diff`'s remove-then-insert of a node that changed parents passes, since only the end state is judged.
 7. **The language's validators** (`options.validators`), last: `(before, after, changes) => issues`. Each costs in
    proportion to `changes`, and reports only what the changes introduced (R2-S9). Seq's checks join here, so `SpecModel`
@@ -233,8 +240,12 @@ type PatchResult =
 - **The inverse and the allowances** (R2-S2):
   - A patch applied with `allowDangling` has an inverse that makes those refs resolve again. `inverseNeeds` says that
     inverse needs `allowRebind`, and the same holds the other way.
-  - Under `allowRebind`, a ref the move conflated with the rewritten ones gets an explicit `set` in the inverse, so the
-    move back restores it.
+  - A patch that removes or replaces content holding refs already dangling needs no allowance to be undone: those refs
+    are not "written" by the inverse (above).
+  - **Every ref the inverse's moves would take along without the forward patch having rewritten it** gets an explicit
+    restoring `set` in the inverse (K's review: not only refs that were rebound). So a move back never drags a ref the
+    move forward did not touch: a ref under the move's destination address that dangled before and after, or one that
+    named another node there.
   - Law 3 holds when the inverse is applied with `inverseNeeds`. A host's undo restores roots and needs none of this.
 - **Issue paths** (R2-S9): an issue about the spec has the spec's path and address. One about an op has the patch
   tree's path (`['children', i, …]`, as `patchToNode` lays it out).
