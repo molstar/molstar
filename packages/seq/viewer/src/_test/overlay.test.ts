@@ -65,7 +65,7 @@ function spec(depth: number, nestedFormat = 'seq', config: { maxNestedDepth?: nu
     v
       .section('gene', { of: gene })
       .track('t', { for_each: { source: src, node_kind: 'ranges', depth } })
-      .layer({ type: 'ranges' }),
+      .layer('ranges', { type: 'ranges' }),
   );
   const model = resolveSpec(b.build(), { runtimes: [SeqRuntime], config });
   return { model, view: resolveViews(model)[0] };

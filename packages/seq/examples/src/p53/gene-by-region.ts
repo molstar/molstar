@@ -24,15 +24,15 @@ export function build(): Node {
   const region = b.data.sequence('tp53-region', { alphabet: 'dna', source, name: RegionSystem });
   b.views.view('main', (v) => {
     const s = v.section('region', { of: region });
-    s.track('letters', { label: 'chr17' }).layer({ type: 'letters' });
+    s.track('letters', { label: 'chr17' }).layer('letters', { type: 'letters' });
     s.track('transcripts', {
       label: 'Transcript',
       for_each: { source, node_kind: 'ranges', filter: { map: 'codon' } },
-    }).layer({ type: 'ranges' });
+    }).layer('ranges', { type: 'ranges' });
     s.track('domains', {
       label: 'Domains',
       for_each: { source, node_kind: 'ranges', depth: 1 },
-    }).layer({ type: 'ranges' });
+    }).layer('ranges', { type: 'ranges' });
   });
   return b.build();
 }

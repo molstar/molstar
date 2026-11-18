@@ -36,11 +36,11 @@ function spec(): Node {
     view
       .section('wrap', { of: ring, range: [5000, 1000] })
       .track('v')
-      .layer({ type: 'values', data: v });
-    view.section('whole', { of: ring }).track('v').layer({ type: 'values', data: v });
+      .layer('values', { type: 'values', data: v });
+    view.section('whole', { of: ring }).track('v').layer('values', { type: 'values', data: v });
     const protein = view.section('protein', { of: p53 });
-    protein.track('c').layer({ type: 'values', data: c });
-    view.section('gene', { of: gene, follow: protein }).track('c').layer({ type: 'values', data: c });
+    protein.track('c').layer('values', { type: 'values', data: c });
+    view.section('gene', { of: gene, follow: protein }).track('c').layer('values', { type: 'values', data: c });
   });
   return b.build();
 }

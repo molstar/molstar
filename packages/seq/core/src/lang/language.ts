@@ -10,8 +10,11 @@
 
 import { defineLanguage } from '@molstar/core/repr/schema';
 
-/** The version of the language this description is (the package's `LanguageVersion` is the same). */
-export const SeqLanguageVersion = '0.0.0';
+/**
+ * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
+ * a change moves it with no migration (_spec/README.md, Versions).
+ */
+export const SeqLanguageVersion = '0.1.0';
 
 export const SeqLanguage = defineLanguage({
   id: 'seq',
@@ -231,6 +234,7 @@ export const SeqLanguage = defineLanguage({
     layer: {
       doc: 'A layer of a track: data drawn as one type of mark.',
       parents: ['track'],
+      ids: 'required',
       params: {
         type: {
           type: 'string',

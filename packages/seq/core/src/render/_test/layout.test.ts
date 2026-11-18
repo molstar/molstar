@@ -26,7 +26,7 @@ function rangesSpec(rows: { start: number[]; end: number[]; id: string[] }, lett
     target: s,
     rows: { start: Int32Array.from(rows.start), end: Int32Array.from(rows.end), id: categoryColumn(rows.id) },
   });
-  b.views.view('v', (v) => v.section('s', { of: s }).track('r').layer({ type: 'ranges', data: r }));
+  b.views.view('v', (v) => v.section('s', { of: s }).track('r').layer('ranges', { type: 'ranges', data: r }));
   return b.build();
 }
 
@@ -64,8 +64,8 @@ describe('the layout’s edges', () => {
     const s = b.data.sequence('s', { alphabet: 'protein', letters: 'M'.repeat(20) });
     b.views.view('v', (v) => {
       const one = v.section('one', { of: s, follow: '/views/v/two' });
-      one.track('l').layer({ type: 'letters' });
-      v.section('two', { of: s, follow: one }).track('l').layer({ type: 'letters' });
+      one.track('l').layer('letters', { type: 'letters' });
+      v.section('two', { of: s, follow: one }).track('l').layer('letters', { type: 'letters' });
     });
     const st = await settle(b.build());
     const f = await st.frame({ size: Size });
@@ -81,7 +81,7 @@ describe('the layout’s edges', () => {
       view
         .section('s', { of: s, range: [15, 5] })
         .track('v')
-        .layer({ type: 'values', data: v }),
+        .layer('values', { type: 'values', data: v }),
     );
     const r = await renderSvg(b.build(), { size: Size });
     expect(r.issues).toEqual([]);
@@ -107,15 +107,17 @@ describe('the layout’s edges', () => {
       target: s,
       values: Float32Array.from({ length: 2000 }, (_, i) => (i % 2 ? 2 : -1)),
     });
-    b.views.view('main', (view) => view.section('s', { of: s }).track('v').layer({ type: 'values', data: v }));
+    b.views.view('main', (view) =>
+      view.section('s', { of: s }).track('v').layer('values', { type: 'values', data: v }),
+    );
     const spec = b.build();
     const minmax = await renderSvg(spec, { size: Size });
     // the track is 32 px from y 8: every column spans the domain [-1, 2], the negative extreme below the baseline
-    expect(minmax.svg).toContain('data-seq-domains="/views/main/s/v:0=-1,2"');
+    expect(minmax.svg).toContain('data-seq-domains="/views/main/s/v/values=-1,2"');
     expect(recordDrawLists(minmax.lists, ['data']).split('\n')[3]).toBe('rect 128 8 1 32 #5b7c99ff');
     // the maximum alone hides it: the domain starts at 0
     const max = await renderSvg(spec, { size: Size, config: { values: { aggregate: 'max' } } });
-    expect(max.svg).toContain('data-seq-domains="/views/main/s/v:0=0,2"');
+    expect(max.svg).toContain('data-seq-domains="/views/main/s/v/values=0,2"');
   });
 });
 

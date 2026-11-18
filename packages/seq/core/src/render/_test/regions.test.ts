@@ -26,7 +26,9 @@ describe('planning by region', () => {
     const src = b.data.source('chrom', { format: 'seq', value: seqToValue(coverageOnly('s', length, ['letters'])) });
     const s = b.data.sequence('s', { alphabet: 'dna', source: src });
     const v = b.data.values('signal', { target: s, values: Float32Array.from({ length }, (_, i) => (i % 100) / 100) });
-    b.views.view('main', (view) => view.section('all', { of: s }).track('signal').layer({ type: 'values', data: v }));
+    b.views.view('main', (view) =>
+      view.section('all', { of: s }).track('signal').layer('values', { type: 'values', data: v }),
+    );
     const { store, frame } = await settle(b.build(), [SeqRuntime]);
     const f = await frame({ size: { width: 640, height: 60 } });
     const levels = new Set(f.wants.map((w) => w.level));
@@ -53,7 +55,7 @@ describe('planning by region', () => {
       v
         .section('protein', { of: p53, range: [94, 292] })
         .track('gc')
-        .layer({ type: 'values', data: signal }),
+        .layer('values', { type: 'values', data: signal }),
     );
     const { frame } = await settle(b.build(), [SeqRuntime]);
     const f = await frame({ size: { width: 640, height: 60 } });

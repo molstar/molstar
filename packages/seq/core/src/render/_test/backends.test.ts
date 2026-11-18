@@ -126,7 +126,7 @@ describe('the SVG backend', () => {
     });
     b.views.view('v', (v) => {
       const sec = v.section('s', { of: s });
-      sec.track('t', { label: '<b onclick="x">&</b>' }).layer({ type: 'ranges', data: r });
+      sec.track('t', { label: '<b onclick="x">&</b>' }).layer('ranges', { type: 'ranges', data: r });
     });
     const out = await renderSvg(b.build(), { size: { width: 600, height: 60 } });
     expect(out.svg).not.toMatch(/<script|<img|<b |onclick="/);

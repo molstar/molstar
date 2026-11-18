@@ -44,6 +44,7 @@ describe('resolved view: the p53 example', () => {
     expect(letters.layers).toEqual([
       {
         index: 0,
+        address: '/views/main/protein/letters/letters',
         type: 'letters',
         fallbacks: ['letters'],
         params: {},
@@ -109,12 +110,12 @@ describe('resolved view: layers on other systems, queries, themes', () => {
     b.views.view('v', (v) => {
       const g = v.section('gene', { of: gene, range: [90, 200] });
       g.track('t').layer('d', { type: 'ranges', data: domains, color: { kind: 'uniform', value: 'red' } });
-      g.track('q').layer({
+      g.track('q').layer('ranges', {
         type: 'ranges',
         data: '/data/domains/(items :overlapping /data/p53/(range :from 1 :to 5))',
       });
       const l = v.section('lone', { of: lone });
-      l.track('t').layer({ type: 'ranges', data: domains });
+      l.track('t').layer('ranges', { type: 'ranges', data: domains });
       v.section('follower', { of: lone, follow: g });
     });
     return b.build();
@@ -145,7 +146,7 @@ describe('resolved view: layers on other systems, queries, themes', () => {
     expect([lone.placed, lone.path]).toEqual([false, undefined]);
     expect(v.sections[2].follow).toBeUndefined();
     expect(codes(v.issues)).toEqual(['seq.view.layer.unplaced', 'seq.view.follow.unplaced']);
-    expect(v.issues.map((i) => i.address)).toEqual(['/views/v/lone/t', '/views/v/follower']);
+    expect(v.issues.map((i) => i.address)).toEqual(['/views/v/lone/t/ranges', '/views/v/follower']);
     expect(v.issues[0].hint).toContain('No path of maps joins the systems');
   });
 
@@ -156,7 +157,9 @@ describe('resolved view: layers on other systems, queries, themes', () => {
   it('reports a layer whose data names nothing (an unchecked spec)', () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MK' });
-    b.views.view('v', (view) => view.section('s', { of: s }).track('t').layer({ type: 'ranges', data: '/data/none' }));
+    b.views.view('v', (view) =>
+      view.section('s', { of: s }).track('t').layer('ranges', { type: 'ranges', data: '/data/none' }),
+    );
     const r = resolveView(resolveSpec(b.build()), '/views/v')!;
     expect(codes(r.issues)).toEqual(['seq.view.layer.data']);
     expect(r.sections[0].tracks[0].layers[0].placed).toBe(false);
@@ -246,10 +249,10 @@ describe('resolved view: what does not resolve', () => {
       const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MK' });
       const vals = b.data.values('vals', { target: s, values: new Float32Array([1, 2]) });
       b.views.view('v', (vb) => {
-        vb.section('none', { of: '/data/missing' }).track('t').layer({ type: 'ranges', data: vals });
+        vb.section('none', { of: '/data/missing' }).track('t').layer('ranges', { type: 'ranges', data: vals });
         const t = vb.section('s', { of: s }).track('t');
-        t.layer({ type: 'ranges', data: vals });
-        t.layer({ type: 'arcs' as 'ranges', data: vals });
+        t.layer('ranges', { type: 'ranges', data: vals });
+        t.layer('arcs', { type: 'arcs' as 'ranges', data: vals });
       });
     });
     expect(codes(v.issues)).toEqual(['seq.view.section.system', 'seq.view.layer.shape', 'seq.view.layer.type']);

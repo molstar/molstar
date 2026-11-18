@@ -24,11 +24,11 @@ export function build(): Node {
   const domains = addDomains(b, p53);
   b.views.view('main', (v) => {
     const protein = v.section('protein', { of: p53 });
-    protein.track('letters', { label: 'p53' }).layer({ type: 'letters' });
-    protein.track('domains', { label: 'Domains' }).layer({ type: 'ranges', data: domains });
+    protein.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
+    protein.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: domains });
     const g = v.section('gene', { of: gene, follow: protein });
-    g.track('letters', { label: 'TP53' }).layer({ type: 'letters' });
-    g.track('domains', { label: 'Domains on the gene' }).layer({ type: 'ranges', data: domains });
+    g.track('letters', { label: 'TP53' }).layer('letters', { type: 'letters' });
+    g.track('domains', { label: 'Domains on the gene' }).layer('ranges', { type: 'ranges', data: domains });
   });
   return b.build();
 }

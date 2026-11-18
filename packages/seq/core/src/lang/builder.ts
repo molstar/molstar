@@ -63,9 +63,8 @@ export interface SectionBuilder extends Addressed<'section'> {
 }
 
 export interface TrackBuilder extends Addressed<'track'> {
-  /** A layer with an id, and its address; a layer without one has none to return. */
+  /** A layer and its address: its id is required, so hiding it is a one-key patch. */
   layer(id: string, params: Params<'layer'>): Address<'layer'>;
-  layer(params: Params<'layer'>): undefined;
 }
 
 export interface SeqSpecBuilder {
@@ -143,10 +142,9 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
   function trackBuilder(rec: Rec): TrackBuilder {
     return {
       address: rec.address as Address<'track'>,
-      layer(...argv: unknown[]) {
-        const [id, params] = typeof argv[0] === 'string' ? [argv[0], argv[1]] : [undefined, argv[0]];
-        const layer = add(rec, 'layer', id as string | undefined, params);
-        return id === undefined ? undefined : layer.address;
+      layer(id: string, params: unknown) {
+        if (typeof id !== 'string') throw new Error('A layer needs an id');
+        return add(rec, 'layer', id, params).address;
       },
       toString: () => rec.address,
     } as TrackBuilder;
