@@ -22,14 +22,18 @@ import {
 } from '@molstar/core/repr/tree';
 import {
   type AccessPlan,
+  codingRanges,
   identityPath,
+  inversePath,
   type Path,
   pathDir,
+  pathDirection,
   projectPoint,
   projectRanges,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import { followRef } from '@molstar/seqx-core/lang';
+import { wholePieces } from './axis.js';
 import { ViewIssues } from './issues.js';
 
 type Shape = 'letters' | 'ranges' | 'values';
@@ -48,15 +52,22 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
 };
 
 /**
- * An axis: a system and the positions shown, `[start, end, …]` pairs in display order: one piece, or two when a cyclic
- * range wraps the origin (`[8, 10, 0, 2]`). `ranges` is undefined while the system's length is unknown and the
- * section shows all of it, or wraps: the layout waits for the length (pending, never a guess).
+ * An axis: a system, its direction and the positions shown, `[start, end, …]` pieces (start below end) in display
+ * order: the whole system or its range (two pieces when a cyclic range wraps the origin, `[8, 10, 0, 2]`), or the
+ * section's `pieces` (with `pad`, within `range`), the positions between two pieces hidden as a break (`axisBreaks`).
+ * On a reversed axis the last piece is first, each shown from its end down (EC-32). `ranges` is undefined while the
+ * system's length is unknown and the section shows all of it, or wraps: the layout waits for the length (pending,
+ * never a guess).
  */
 export interface Axis {
   readonly system: string;
   readonly length?: number;
   readonly cyclic: boolean;
   readonly ranges?: readonly number[];
+  /** 1: positions count up left to right; −1: down (the section's `direction`, resolved). */
+  readonly dir: 1 | -1;
+  /** The form of the pieces shown: `whole`, `coding`, or the refs (comma-joined) as written; what an export says. */
+  readonly pieces: string;
 }
 
 /** How a section follows another: the path from the leader's system to its own, its direction and scale. */
@@ -205,13 +216,42 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       }),
     );
   const sectionNodes = (view.children ?? []).filter((c) => c.kind === 'section' && c.id !== undefined);
-  const axes = new Map<string, Axis>();
+  const byAddress = new Map<string, Node>();
+  const systemOf = new Map<string, string>();
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
+    byAddress.set(at, s);
     const system = exactAddress(param(s, 'of'));
     if (system === undefined || !model.systems.has(system))
       report('seq.view.section.system', 'The section shows no system of the spec', at);
-    axes.set(at, axisOf(model, system ?? '', param(s, 'range')));
+    systemOf.set(at, system ?? '');
+  }
+  // each follow's path, before the axes: a follower's direction and coding pieces read it
+  const follows = new Map<string, { leader: string; path: Path }>();
+  for (const [at, s] of byAddress) {
+    const leader = exactAddress(param(s, 'follow'));
+    const system = systemOf.get(at)!;
+    const ls = leader === undefined ? undefined : systemOf.get(leader);
+    if (leader === undefined || ls === undefined || !model.systems.has(system) || !model.systems.has(ls)) continue;
+    const r = model.path(ls, system);
+    if (r.path) follows.set(at, { leader, path: r.path });
+    else report('seq.view.follow.unplaced', 'The section cannot follow its leader', at, r.issue);
+  }
+  const axes = new Map<string, Axis>();
+  const dirs = new Map<string, 1 | -1>();
+  const along = new Map<string, Path>();
+  const dirOf = (at: string, depth = 0): 1 | -1 => {
+    const known = dirs.get(at);
+    if (known !== undefined) return known;
+    const d = resolveDirection(model, at, byAddress.get(at)!, systemOf.get(at)!, follows.get(at), along, report, (l) =>
+      depth < byAddress.size ? dirOf(l, depth + 1) : 1,
+    );
+    dirs.set(at, d);
+    return d;
+  };
+  for (const [at, s] of byAddress) {
+    const dir = dirOf(at);
+    axes.set(at, axisOf(model, s, at, systemOf.get(at)!, dir, follows.get(at)?.path, along.get(at), report));
   }
 
   const sections: ResolvedSection[] = [];
@@ -220,13 +260,9 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     const axis = axes.get(at)!;
     const known = model.systems.has(axis.system);
     let follow: Follow | undefined;
-    const leader = exactAddress(param(s, 'follow'));
-    const leaderAxis = leader === undefined ? undefined : axes.get(leader);
-    if (leader !== undefined && leaderAxis && known && model.systems.has(leaderAxis.system)) {
-      const r = model.path(leaderAxis.system, axis.system);
-      if (r.path) follow = followOf(leader, leaderAxis, r.path);
-      else report('seq.view.follow.unplaced', 'The section cannot follow its leader', at, r.issue);
-    }
+    const f = follows.get(at);
+    const leaderAxis = f && axes.get(f.leader);
+    if (f && leaderAxis) follow = followOf(f.leader, leaderAxis, f.path);
     const tracks: ResolvedTrack[] = [];
     for (const t of s.children ?? []) {
       if (t.kind !== 'track' || t.id === undefined) continue;
@@ -277,18 +313,154 @@ function followOf(leader: string, leaderAxis: Axis, path: Path): Follow {
   };
 }
 
-function axisOf(model: StaticModel, system: string, range: Value | undefined): Axis {
+/**
+ * A section's direction (_spec/README.md "Resolved view", Axis): its `direction` as written, `follow` for a follower
+ * and `genomic` otherwise when absent, never read off its layers. `follow` is the leader's direction times the follow
+ * path's; `along` the direction of the path from that system (or a map's own) to the section's. A path both ways takes
+ * the direction of most of its length (`seq.view.direction.mixed`); one that cannot be resolved is `genomic`
+ * (`seq.view.direction.unresolved`). An `along` path is left in `along` for the coding pieces.
+ */
+function resolveDirection(
+  model: StaticModel,
+  at: string,
+  node: Node,
+  system: string,
+  follow: { leader: string; path: Path } | undefined,
+  along: Map<string, Path>,
+  report: Report,
+  leaderDir: (leader: string) => 1 | -1,
+): 1 | -1 {
+  const written = param(node, 'direction');
+  const value = written ?? (param(node, 'follow') !== undefined ? 'follow' : 'genomic');
+  const of = (p: Path) => {
+    const d = pathDirection(p);
+    if (d.mixed) report('seq.view.direction.mixed', 'The path the direction is read along runs both ways', `${at}`);
+    return d.dir;
+  };
+  if (value === 'genomic') return 1;
+  if (value === 'reversed') return -1;
+  if (value === 'follow') {
+    if (follow) return (leaderDir(follow.leader) * of(follow.path)) as 1 | -1;
+    // a follow that is unplaced says so itself; a `follow` written with no leader is unresolved
+    if (written !== undefined || param(node, 'follow') === undefined)
+      report('seq.view.direction.unresolved', 'The section follows no placed leader', at);
+    return 1;
+  }
+  const ref =
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? exactAddress((value as Record<string, Value>).along)
+      : '';
+  const path = ref ? pathAlong(model, ref, system) : undefined;
+  if (!path) {
+    report('seq.view.direction.unresolved', 'No path reaches the section from what it reads along', at);
+    return 1;
+  }
+  along.set(at, path);
+  return path.edges.length || path.step !== 0 ? of(path) : 1;
+}
+
+/** The path from what a section reads along (a system, or a map: its own linear part) to the section's system. */
+function pathAlong(model: StaticModel, ref: string, system: string): Path | undefined {
+  const map = model.maps.get(ref);
+  if (map) {
+    const forward: Path = { from: map.from, to: map.to, step: map.step, linear: map.linear, edges: [] };
+    if (map.to === system) return forward;
+    if (map.from === system) return inversePath(forward);
+    return model.path(map.from, system).path;
+  }
+  if (!model.systems.has(ref) || !model.systems.has(system)) return undefined;
+  return ref === system ? identityPath(system) : model.path(ref, system).path;
+}
+
+function axisOf(
+  model: StaticModel,
+  node: Node,
+  at: string,
+  system: string,
+  dir: 1 | -1,
+  followPath: Path | undefined,
+  alongPath: Path | undefined,
+  report: Report,
+): Axis {
   const s = model.systems.get(system);
   const cyclic = s?.cyclic ?? false;
   const length = s?.length;
-  const base = { system, ...(length !== undefined ? { length } : {}), cyclic };
-  if (Array.isArray(range) && range.length === 2) {
-    const [a, b] = range as number[];
-    if (a <= b || !cyclic) return { ...base, ranges: [a, b] };
-    // display order: from the start to the origin, then on
-    return length === undefined ? base : { ...base, ranges: [a, length, 0, b] };
+  const written = param(node, 'pieces');
+  const range = param(node, 'range');
+  const r = Array.isArray(range) && range.length === 2 ? (range as number[]) : undefined;
+  const pieces = sectionPieces(model, written, system, followPath, alongPath);
+  const form = written === undefined ? 'whole' : Array.isArray(written) ? written.join(',') : String(written);
+  if (pieces === 'none') report('seq.view.section.pieces', 'The section’s pieces reach no piece of its system', at);
+  const base = { system, ...(length !== undefined ? { length } : {}), cyclic, dir };
+  if (!Array.isArray(pieces)) {
+    const whole = { ...base, pieces: 'whole' };
+    // a range that wraps the origin waits for the length, as the whole system does
+    if (r && (r[0] <= r[1] || !cyclic)) return { ...whole, ranges: wholePieces(0, r, dir, cyclic) };
+    return length === undefined ? whole : { ...whole, ranges: wholePieces(length, r, dir, cyclic) };
   }
-  return length === undefined ? base : { ...base, ranges: [0, length] };
+  const pad = param(node, 'pad');
+  const padded = typeof pad === 'number' && pad > 0 ? padPieces(pieces, pad, length) : pieces;
+  // within the range, in its display order (forward), then turned for a reversed axis
+  const within: number[] = [];
+  const frame = r ? (r[0] <= r[1] || !cyclic ? r : [r[0], length ?? Infinity, 0, r[1]]) : [0, length ?? Infinity];
+  for (let i = 0; i + 1 < frame.length; i += 2)
+    for (let j = 0; j + 1 < padded.length; j += 2) {
+      const a = Math.max(frame[i], padded[j]);
+      const b = Math.min(frame[i + 1], padded[j + 1]);
+      if (b > a) within.push(a, b);
+    }
+  return { ...base, pieces: form, ranges: dir === -1 ? reversePieces(within) : within };
+}
+
+/**
+ * A section's `pieces` as genomic pieces (sorted, merged): `whole` (none here: the system or its range), `coding` (the
+ * follow path's coding runs, else those of the path it reads along), a ranges node's items on its system or a codon
+ * map's coding runs on it, or a list of them (their union). `none` when what is named reaches no piece.
+ */
+function sectionPieces(
+  model: StaticModel,
+  written: Value | undefined,
+  system: string,
+  followPath: Path | undefined,
+  alongPath: Path | undefined,
+): number[] | 'whole' | 'none' {
+  if (written === undefined || written === 'whole') return 'whole';
+  const out: number[] = [];
+  if (written === 'coding') {
+    const p = followPath?.step ? followPath : alongPath?.step ? alongPath : undefined;
+    const c = p && codingRanges(p);
+    return c?.length ? c : 'none';
+  }
+  for (const ref of Array.isArray(written) ? written : [written]) {
+    const a = exactAddress(ref);
+    if (a === undefined) return 'none';
+    const map = model.maps.get(a);
+    const ann = model.annotations.get(a);
+    if (map?.kind === 'codon' && map.to === system) {
+      const c = codingRanges({ from: map.from, to: map.to, step: map.step, linear: map.linear, edges: [] });
+      if (!c) return 'none';
+      out.push(...c);
+    } else if (ann?.shape === 'ranges' && ann.target === system && ann.items) {
+      for (const item of ann.items) if (item.end > item.start) out.push(item.start, item.end);
+    } else return 'none';
+  }
+  const merged = Array.from(HalfOpenRanges.normalize(out));
+  return merged.length ? merged : 'none';
+}
+
+/** Pieces widened by `pad` each side within the system, merged where they overlap. */
+function padPieces(pieces: readonly number[], pad: number, length: number | undefined): number[] {
+  const out: number[] = [];
+  for (let i = 0; i + 1 < pieces.length; i += 2)
+    out.push(Math.max(0, pieces[i] - pad), Math.min(length ?? Infinity, pieces[i + 1] + pad));
+  return Array.from(HalfOpenRanges.normalize(out));
+}
+
+/** Pieces in the other display order: the last first, each still start below end. */
+function reversePieces(pieces: readonly number[]): number[] {
+  const out: number[] = [];
+  for (let i = pieces.length - 2; i >= 0; i -= 2) out.push(pieces[i], pieces[i + 1]);
+  return out;
 }
 
 function templateOf(v: Value | undefined): TrackTemplate | undefined {

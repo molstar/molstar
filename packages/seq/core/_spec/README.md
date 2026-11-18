@@ -634,6 +634,27 @@ no target.
   display order: the whole system, its `range`, or for a cyclic range that wraps the origin two pieces, from its start
   to the origin then on (`[8, 10, 0, 2]`). Without a known length, showing all of the system or wrapping, `ranges` is
   absent: the layout waits for the length. Why: one shape for a wrapped range everywhere, the order it is drawn in.
+- **Its direction** (`dir`): the section's `direction` resolved, never read off its layers (a layer added never turns
+  a section over): `genomic` 1, `reversed` −1, `follow` the leader's direction times the follow path's (`pathDirection`,
+  the majority of a path both ways, `seq.view.direction.mixed`), `{ along }` the direction of the path from that system
+  (a map: its own linear part) to the section's. One that cannot be resolved (`follow` written with no placed leader,
+  `along` a system no path reaches) is `seq.view.direction.unresolved` and `genomic`. One direction an axis (a direction
+  a piece is a tension until Genomes).
+- **Its pieces** (`pieces`, the form as written for an export, and `ranges`): `whole`; `coding`, the coding ranges of
+  the follow path, else of the path it reads along; a ranges node's inline items on its system, a codon map's coding
+  ranges onto it, or their union; widened by `pad` each side (merged), within `range`. Start below end, in display
+  order: on a reversed axis the last piece first, a piece `[s, e)` showing `e − 1 − k` at its offset `k` (EC-32). What
+  reaches nothing is `seq.view.section.pieces`, and the section shows `whole`.
+- **Offsets and positions** (`axis.ts`, exported for the viewer): a fractional offset `u` in a piece `[s, e)` at offset
+  `o` is the continuous position `s + (u − o)` forward, `e − (u − o)` reversed (`positionAt`, `offsetOf`); a cell's
+  left edge (`cellOffset`) and the element at an offset (`elementAt`). An offset on a break is the next piece's first
+  edge as a window's `start` and the previous one's last as its `end`, so a window ending on a break shows nothing
+  hidden. Binary searches over the pieces' first offsets, kept per pieces array (no allocation once made).
+- **Breaks** (`axisBreaks`: `[offset, hiddenStart, hiddenEnd, …]` in display order): where two pieces leave positions
+  hidden between them (genomic order; `start > end` across a cyclic origin); two contiguous pieces, or contiguous across
+  a cyclic origin, have none. Zero units wide, so the cells either side touch and a codon follow on a coding axis is
+  exact. `breakHolding` finds the break hiding a position.
+- **Scroll groups' key** (`axisKey`, `axesEqual`): system, length, pieces and direction.
 - **A follow**: the leader's address and axis, the path from the leader's system to the follower's, the scale of a
   position (3 across a codon step from residues, 1/3 back, else 1), its direction (−1 on a minus-strand gene), and
   `point(x)`, the continuous image of a leader position (`projectPoint`), so a follower moves smoothly. No path is
@@ -672,7 +693,7 @@ no target.
 - A layer's `data` may carry `access` and `length` (an instance's, from the overlay): what reads it takes them before
   the model's.
 - `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
-  `follow.unplaced`; a test checks the catalog.
+  `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed` (info); a test checks the catalog.
 
 ## Render
 
