@@ -84,6 +84,7 @@
         "vitest.config.ts",
         "vitest.live.config.ts",
         "packages/sequences/**/vitest*.config.ts",
+        "packages/seq/**/vitest*.config.ts",
         "packages/prism/viewer/vitest*.config.ts",
         "packages/prism/ui/vitest*.config.ts",
         "packages/prism/assistant/vitest*.config.ts",
