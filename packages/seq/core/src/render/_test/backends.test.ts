@@ -73,6 +73,17 @@ describe('the recording backend', () => {
   });
 });
 
+describe('draw lists', () => {
+  it('a reset lets the images go and keeps the array', () => {
+    const lists = sample();
+    const images = lists.passes.data.images.images;
+    expect(images[0]).toBeDefined();
+    lists.reset();
+    expect(lists.passes.data.images.images).toBe(images);
+    expect(images[0]).toBeUndefined();
+  });
+});
+
 describe('the SVG backend', () => {
   it('writes passes as groups, clips, squircles as the core’s path, images as runs, fades past a max width', () => {
     const svg = drawListsToSvg(sample(), { metadata: { 'seq-settled': 'true', 'Bad Key': 'x' } });

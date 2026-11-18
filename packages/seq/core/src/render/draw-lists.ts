@@ -298,6 +298,7 @@ export class ImageList {
   y = new Float32Array(8);
   w = new Float32Array(8);
   h = new Float32Array(8);
+  /** The images, `n` of them (a slot past `n` is emptied at a reset: the list holds no image it no longer draws). */
   images: ImageData[] = [];
 
   /** The next image's index, its arrays grown to hold it. */
@@ -393,8 +394,10 @@ export class PassList {
     this.glyphs.n = 0;
     this.glyphs.letters = 0;
     this.texts.n = 0;
+    // the images let go, their slots kept (a length of 0 would let the array's storage go, made again next frame)
+    const images = this.images.images as (ImageData | undefined)[];
+    for (let i = 0; i < this.images.n; i++) images[i] = undefined;
     this.images.n = 0;
-    // the images array keeps its slots (a length of 0 would let its storage go, to be made again next frame)
     this.clips.n = 0;
   }
 }
