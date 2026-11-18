@@ -15,12 +15,15 @@ Written from meso\*'s tree core (`@molstar/meso-core` in the molstar-ludo reposi
 | `codec/`       | the codec interface and its conformance suite; no codec                              |
 | `codecs/json`  | the JSON codec, the default interchange                                              |
 | `codecs/sexpr` | the S-expression printing and its reader                                             |
+| `patch/`       | revisions, patches and diff; the patch language; the patches' conformance suite      |
 
-**Imports go one way**: `tree` ← `schema` ← `builder`; `codec` imports `tree` and `schema` (the conformance trees are
-normalized); `codecs/*` import `tree`, `schema` (where a language's declared columns sit) and `codec`. Nothing here
-imports outside `@molstar/core` (`hash-functions` and `util/array` are its dependencies). Each folder is an entry of the
-package (`@molstar/core/repr/tree`, …, `@molstar/core/repr/codecs/sexpr`), exported as `./state` is. Why: a codec needs
-no language, the tree needs no codec, and MessagePack lives in `@molstar/io` beside its library.
+**Imports go one way**: `tree` ← `schema` ← `builder`; `tree` ← `schema` ← `patch`; `codec` imports `tree` and `schema`
+(the conformance trees are normalized); `codecs/*` import `tree`, `schema` (where a language's declared columns sit) and
+`codec`. Nothing here imports outside `@molstar/core` (`hash-functions` and `util/array` are its dependencies). Each
+folder is an entry of the package (`@molstar/core/repr/tree`, …, `@molstar/core/repr/codecs/sexpr`), exported as
+`./state` is; `patch/`'s entry is `repr/patch.ts` (as `data/int.ts` is `data/int/`'s), reached through the wildcard
+export, its suite `@molstar/core/repr/patch/conformance`. Why: a codec needs no language, the tree needs no codec, and
+MessagePack lives in `@molstar/io` beside its library.
 
 ## The tree
 
@@ -79,6 +82,11 @@ quantities need no quotes, and no units table is needed to read them (locations-
 - **A numeric-looking key is a number**: `(chain :id 1)` compares the number 1 and never matches a string id `"1"`;
   quote it to match one, `(chain :id "1")`. The atoms' rule decides, not the param's type (a form is read without a
   language).
+- **The child index**: a lookup by id (`childIndex`, `childById`, `resolveAddress`) scans up to `ChildIndexThreshold`
+  (8) children; past it, a native `Map` from id to position, built on the first lookup and cached per children array in
+  a `WeakMap`. The first of two siblings with one id wins, as a scan. Why: an edit's path copy makes a new array,
+  indexed again on its first lookup, O(fan-out) as the copy was; no persistent collection is needed, since an insert
+  shifts every later position.
 - **Selection** (`selectAddress`) is bounded: a required `limit`, `maxDepth`, a `signal` and a `deadline`; more is an
   issue, never a truncation. Kinds and params of forms are checked against the caller's when given.
 - **The form-resolver table** (`SelectOptions.resolvers`, by form kind): a resolver receives what the prefix names
@@ -147,6 +155,8 @@ quantities need no quotes, and no units table is needed to read them (locations-
   pipeline's last step (decode → migrate → validate and normalize). Why: every tree the passes see has typed columns,
   and equality, hashing and printing are defined on normalized trees.
 - **Structural sharing**: an unchanged subtree is the same object; a normalized tree normalizes to itself.
+- **`normalizeValue(type, value)`** normalizes one value as `normalize` reads a param of that type: what a patch's `set`
+  writes. `validateChanges(language, root, changes)` is validation of what a change introduced (Patches).
 
 ## Codecs
 
@@ -189,10 +199,92 @@ quantities need no quotes, and no units table is needed to read them (locations-
   node without an id, builds no addresses). A language's builder wraps them.
 - **It imports `tree` and `schema` only** (a test): a script that writes specs loads no codec and no language.
 
+## Patches
+
+`repr/patch` (`patch/`; entry `repr/patch.ts`). Git's model: revisions are the truth, patches derived.
+
+- **A revision** is an immutable root named by its `hashNode`. A patch is what `diff(a, b)` says takes `a` to `b`, or
+  what a writer asks for; applying one gives a revision, and the revision is what a history records (its patch from a
+  parent is `diff(parent, root)` when wanted). The core has no commit type and no undo stack: a holder's history is its
+  own. The hash (MurmurHash3) names revisions and is no security boundary.
+- **A patch**: `{ ops, base?, result? }`, no metadata (that is its holder's). Checks in order: `result` equal to the
+  root's revision is already applied (`changed: false`, the caller's root, no inverse); else a `base` that is not the
+  root's revision is `repr.patch.stale` (never rebased automatically); else, with `requireBase`, no `base` is
+  `repr.patch.base`.
+- **Six ops** by address of ids (`[]` the root; a form or `/*` is never a target): `set` and `unset` one key (`where`
+  params by default, or custom; a record param set whole; an equal value or an absent key is a no-op keeping the node; a
+  reserved key `repr.patch.key`); `insert` a node with an id unique among its new siblings at a `place` (after a
+  sibling, first with `after: null`, or last); `remove` a subtree; `move` to a parent and place, `rename` giving a new
+  id (never under itself: `repr.patch.cycle`); `replace` a whole node keeping its id, its kind free (equal by hash: a
+  no-op keeping the old object). On the root: `set`, `unset` and `replace` only (`repr.patch.op`). Under a parent with
+  any child without an id, `insert`, `remove` and `move` are `repr.patch.unaddressable`: a position after a sibling
+  cannot be restored among siblings with no names, so that parent changes by `replace`.
+- **All or nothing** (`patch/work.ts`): a draft over the root holds the nodes along the touched paths, each knowing its
+  origin (the old root's node and address, or made). Every op is checked whole before it changes anything, and the first
+  refused op refuses the patch: the caller's root is never touched. `finalize` shares every untouched subtree. Bounds:
+  `maxOps` (10,000; `Infinity` for a diff, so law 1 holds on any diff, `repr.patch.limit`), and depth(parent) +
+  height(node), a value's nesting counted, at most `MaxDepth` (`repr.patch.depth`).
+- **The inverse** is each op's inverse against the state just before it, in reverse order, with `base` the new revision
+  and `result` the old.
+- **With a language** (`ApplyOptions.language`, slots through `validate.languages`), in order after the ops:
+  - **Normalization** of what the patch made: an inserted or replaced node by `normalize`, a `set` value against its
+    kind's param by `normalizeValue`. It costs what the patch made. Without a language nothing is normalized.
+  - **Refs follow a move or a rename**, op by op, so a ref an earlier op wrote follows a later move. Walked: values
+    typed `ref` (not with `in`) in params, inside lists, records, maps, unions (the member validation would choose),
+    tables, data forms' args and slots; not `any`, `custom`, or addresses in strings. A ref matches by its leading id
+    run, forms after it kept; addresses nested in its forms follow too. A rewritten ref prints canonically; an untouched
+    one keeps its spelling. Without a language nothing is rewritten, and the result says `refs: 'not-rewritten'`.
+  - **A stored patch** (a slot of a patch language) is walked by its own rule, not by its params' types: `at` and
+    `parent` resolve over the spec with the step's earlier ops applied (a dry run), the refs of an embedded node by the
+    target language and a `set` value typed through its target's kind and key resolve through the op. So a step that
+    inserts a node and sets a key on it is not dangling, and a stored patch follows renames and counts in link
+    integrity. `place.after` (a bare sibling id) is not rewritten.
+  - **The ref index** (`patch/refs.ts`, internal): `RefIndex` answers `under(prefix)` and `dangling()`; this one is on
+    plain `Map`s, cached per root, language and options, and `derive` rebuilds. It is built only for an op that changes
+    an address (a move to another parent, a rename): a reorder within a parent does not.
+  - **Validation** (`validateChanges` in `repr/schema`, on the net `Changes`): a made node whole (its subtree, kept
+    children under a changed kind included, its parent rule, a root's kind); a node whose params changed, for the
+    changed keys and that no unset key is required; a moved node, for its parent rule; a changed child list, for the
+    uniqueness of the ids the change brought. A path copy is checked for nothing, so an error present before is never
+    reported again and only what the patch introduced refuses it.
+  - **Link integrity**, the old root against the new, never op by op, so a remove-then-insert passes. Dangling: a ref of
+    the new root naming no node that named one in the old root or was written by the patch (made, or a key an op set),
+    `repr.patch.dangling`, a warning with `allowDangling`. Rebound: a ref the patch did not change that named no node
+    and names one now, `repr.patch.rebound`, unless `allowRebind`. Without an op that changes an address, only the refs
+    the patch wrote are read.
+  - **The language's validators** (`validators`), last: `(before, after, changes) => issues`, an error refusing.
+- **The result check**: a `result` other than the new revision is `repr.patch.result`.
+- **`Changes`** (declared in `repr/schema`, re-exported here) is net: one entry a node whatever ops reached it; `made`
+  and `children` in the new root, `removed` in the old (the top of each removed subtree, and a node moved into it from
+  elsewhere at its own old address), `moved` from old to new; a made node is not also in `params` or `children`; a node
+  removed after other ops changed it is only in `removed`; a reorder is in `children` only; ref rewrites are `params`.
+- **The allowances turned around** (`inverseNeeds`): a patch that left refs dangling has an inverse that rebinds them
+  (`allowRebind`), and the other way. Under `allowRebind`, a rebound ref gets an explicit `set` at the end of the
+  inverse, so a move back that takes it along with the rewritten refs restores it.
+- **Issue paths**: an issue about the spec has the new root's path and address; one about an op the patch tree's
+  (`['children', i, 'params', key]`, as `patchToNode` lays it out). Codes: `repr.patch.*` (`PatchIssues`).
+- **`diff(a, b)`** (`patch/diff.ts`): `base` and `result` the two revisions. Merkle descent (equal hashes skipped);
+  children matched by id within a parent; a kept id with a changed subtree descended into. Fallbacks: a kind change, a
+  `replace` of that node; duplicate ids or a child without an id among either side's children, a `replace` of the parent
+  (the nearest node with an address); a root of another kind or id, a `replace` of the root. Moves within a parent are
+  the fewest that keep the longest run in order (a longest increasing subsequence, O(n log n)). Emission, so every
+  `place` is valid in order: removes, then `b`'s children left to right (each not in the kept run placed after its
+  predecessor in `b`), then the descents. Changes of parent and renames come out as a remove and an insert.
+- **The patch as a tree** (`patch/language.ts`): `patchToNode` lays a patch out as `(patch :base … op …)`, one child per
+  op, `at` and `parent` plain address strings, a place as `:after id`, `:first true` or `:last true`, an embedded node a
+  slot. `patchLanguage(language)` describes it for a language (memoized; id `<id>.patch`, embedded nodes slots of the
+  language); `AnyPatchLanguage` over none (embedded nodes `any`). `patchFromNode` reads it back, a malformed op
+  `repr.patch.op` at its path.
+- **The conformance suite** (`patch/conformance.ts`, `@molstar/core/repr/patch/conformance`): `PatchCases`, each with
+  its options, and `checkPatches(apply, cases?)`: the result and its codes as expected, the root by hash, the caller's
+  root unchanged, and every inverse giving the root back. A language runs it with its own cases.
+
 ## Tests
 
 `_test/` per folder, quick lane: the tree (hash pinned to meso\*'s, columns, atoms), addresses (grammar round trip,
 issues, selection, resolvers), the schema (every misuse by code, severity and address; columns and tables;
 normalization; units hook; docs), both codecs through the conformance suite and their own cases, the builder (normalized
 output, handles, ownership, runtime errors, `@ts-expect-error` misuse), the issue catalog against the sources, and a
-short seeded fuzz of the three readers (never a throw, always a tree or issues).
+short seeded fuzz of the three readers (never a throw, always a tree or issues). Patches: the conformance suite, net
+`Changes`, structural sharing, issue paths, the patch tree's round trip, and diff's three laws as seeded property tests
+(without a language, and with one on valid trees with dangling and rebinding allowed); the child index.

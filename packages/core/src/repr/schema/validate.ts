@@ -17,6 +17,7 @@ import {
   columnMisfit,
   columnType,
   columnValues,
+  childIndex,
   defineIssues,
   IdPattern,
   type Issue,
@@ -28,9 +29,21 @@ import {
   own,
   parseAddress,
   printAddress,
+  type TreePath,
   type Value,
 } from '../tree/index.js';
-import type { ColumnSpec, DataSpec, Fields, Language, ParamType, RefType, TableSpec, UnitsHook } from './language.js';
+import type { Changes } from './changes.js';
+import type {
+  ColumnSpec,
+  DataSpec,
+  Fields,
+  KindSpec,
+  Language,
+  ParamType,
+  RefType,
+  TableSpec,
+  UnitsHook,
+} from './language.js';
 
 export const SchemaIssues = defineIssues('repr.schema', {
   'repr.schema.root.kind': { severity: 'error', description: "The root is not the language's root kind" },
@@ -118,6 +131,107 @@ export function validateValue(type: ParamType, value: Value, options: ValidateOp
   return c.issues;
 }
 
+/** A node found by address: its step path from the root, and its parent (none for the root). */
+interface Located {
+  readonly node: Node;
+  readonly parent: Node | undefined;
+  readonly path: TreePath;
+}
+
+function locate(root: Node, address: readonly string[]): Located | undefined {
+  let node = root;
+  let parent: Node | undefined;
+  const path: (string | number)[] = [];
+  for (const id of address) {
+    const i = childIndex(node.children, id);
+    if (i < 0) return undefined;
+    parent = node;
+    node = node.children![i];
+    path.push('children', i);
+  }
+  return { node, parent, path };
+}
+
+const addressKey = (a: readonly string[]) => a.join('/');
+const isUnder = (a: readonly string[], prefix: readonly string[]) =>
+  a.length >= prefix.length && prefix.every((s, i) => a[i] === s);
+
+/**
+ * The issues a change introduced, and only those (_spec/README.md "Patches", Validation). `root` is the new root,
+ * `changes` the net difference that made it. A made node is checked whole (its subtree, its parent rule, a root's
+ * kind); a node whose params changed, for the changed keys and that no unset key is required; a moved node, for its
+ * parent rule; a parent whose child list changed, for the uniqueness of the ids the change brought into it. Nothing
+ * else is read, so an error present before the change is not reported again.
+ */
+export function validateChanges(
+  language: Language,
+  root: Node,
+  changes: Changes,
+  options: ValidateOptions = {},
+): Issue[] {
+  const c = checker(language, options);
+  // under a kind the language lacks there is no parent rule, as `validate` reads it
+  const kindOf = (n: Node | undefined) => (n && own(language.kinds, n.kind) ? n.kind : undefined);
+  const made = changes.made;
+  const inMade = (a: readonly string[]) => made.some((m) => isUnder(a, m));
+  c.run(() => {
+    for (const a of made) {
+      const at = locate(root, a);
+      if (!at) continue;
+      c.at(at.path, a, () => {
+        if (!at.parent && at.node.kind !== language.root)
+          c.report('repr.schema.root.kind', `The root must be a ${language.root}`, undefined, 'kind');
+        c.node(language, at.node, kindOf(at.parent), [...a]);
+      });
+    }
+    for (const change of changes.params) {
+      if (change.where !== 'params' || inMade(change.at)) continue;
+      const at = locate(root, change.at);
+      const spec = at && own(language.kinds, at.node.kind);
+      if (!at || !spec) continue; // an extension's kind: its params are not checked
+      c.at([...at.path, 'params'], change.at, () => {
+        for (const k of change.keys) {
+          const v = at.node.params ? own(at.node.params, k) : undefined;
+          const p = spec.params ? own(spec.params, k) : undefined;
+          if (v === undefined) {
+            if (p?.required) c.report('repr.schema.param.missing', `The param "${k}" is required`, p.doc, k);
+          } else if (!p) {
+            const names = Object.keys(spec.params ?? {});
+            c.report('repr.schema.param.unknown', 'Not a param it has', names.slice(0, 20).join(', ') || 'none', k);
+          } else {
+            c.path.push(k);
+            c.value(p, v);
+            c.path.pop();
+          }
+        }
+      });
+    }
+    for (const { to } of changes.moved) {
+      if (inMade(to)) continue;
+      const at = locate(root, to);
+      const spec = at && own(language.kinds, at.node.kind);
+      if (!at || !spec) continue;
+      c.at(at.path, to, () => c.parentRule(at.node.kind, spec, kindOf(at.parent)));
+    }
+    // the ids the change brought into a child list are unique among their siblings
+    const fresh = new Set<string>([...made.map(addressKey), ...changes.moved.map((m) => addressKey(m.to))]);
+    for (const p of changes.children) {
+      const at = locate(root, p);
+      if (!at?.node.children) continue;
+      const seen = new Set<string>();
+      at.node.children.forEach((child, i) => {
+        if (child.id === undefined) return;
+        if (!seen.has(child.id)) seen.add(child.id);
+        else if (fresh.has(addressKey([...p, child.id])))
+          c.at([...at.path, 'children', i], undefined, () =>
+            c.report('repr.schema.id.duplicate', 'An earlier sibling has the same id', undefined, 'id'),
+          );
+      });
+    }
+  });
+  return c.issues;
+}
+
 const infinite = (x: number) => x === Number.POSITIVE_INFINITY || x === Number.NEGATIVE_INFINITY;
 
 /** The length of a table's column: a column's or a list's; undefined for anything else. */
@@ -177,10 +291,7 @@ function checker(language: Language | undefined, options: ValidateOptions) {
       children(lang, n, undefined);
       return;
     }
-    if (parent !== undefined && !spec.parents.includes(parent)) {
-      const where = spec.parents.length ? `under ${list(spec.parents)}` : 'only at the root';
-      report('repr.schema.parent.invalid', `${n.kind} may not sit under ${parent}`, `${n.kind} sits ${where}`, 'kind');
-    }
+    parentRule(n.kind, spec, parent);
     if (spec.data) {
       if (n.id !== undefined || n.children)
         report('repr.schema.args.shape', `${n.kind} is a data form: values, no id or children`, undefined);
@@ -194,6 +305,27 @@ function checker(language: Language | undefined, options: ValidateOptions) {
     path.pop();
     if (spec.data) args(spec.data, n.args ?? []);
     children(lang, n, n.kind);
+  }
+
+  function parentRule(kind: string, spec: KindSpec, parent: string | undefined) {
+    if (parent !== undefined && !spec.parents.includes(parent)) {
+      const where = spec.parents.length ? `under ${list(spec.parents)}` : 'only at the root';
+      report('repr.schema.parent.invalid', `${kind} may not sit under ${parent}`, `${kind} sits ${where}`, 'kind');
+    }
+  }
+
+  /** Runs `f` at a place in the tree, its step path and address (where `validateChanges` starts each check). */
+  function at(prefix: readonly (string | number)[], where: readonly string[] | undefined, f: () => void) {
+    const outer = address;
+    const saved = path.length;
+    path.push(...prefix);
+    address = where ? [...where] : undefined;
+    try {
+      f();
+    } finally {
+      address = outer;
+      path.length = saved;
+    }
   }
 
   function children(lang: Language, n: Node, parent: string | undefined) {
@@ -461,7 +593,7 @@ function checker(language: Language | undefined, options: ValidateOptions) {
       if (!(e instanceof Limit)) throw e;
     }
   };
-  return { issues, report, node, value, run };
+  return { issues, report, node, value, run, at, parentRule, path };
 }
 
 /** The member of a union that holds a node of `kind`: the node member whose `kinds` name it, else whose language has it. */

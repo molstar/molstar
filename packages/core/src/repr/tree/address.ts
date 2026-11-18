@@ -381,11 +381,46 @@ export function exactAddress(text: unknown): string | undefined {
   return printAddress(p.pattern.segments as Address);
 }
 
+/** Up to this many children, a lookup by id scans them; past it, it reads the children array's index. */
+export const ChildIndexThreshold = 8;
+
+const ChildIndices = new WeakMap<readonly Node[], Map<string, number>>();
+
+/**
+ * The position of the first child with `id`, or -1 (_spec/README.md "Addresses", the child index). Above
+ * `ChildIndexThreshold` children, a native `Map` from id to position, built on the first lookup and cached per children
+ * array: a path copy makes a new array, whose index is built again on its first lookup, O(fan-out) as the copy was.
+ */
+export function childIndex(children: readonly Node[] | undefined, id: string): number {
+  if (!children) return -1;
+  if (children.length <= ChildIndexThreshold) {
+    for (let i = 0; i < children.length; i++) if (children[i].id === id) return i;
+    return -1;
+  }
+  let index = ChildIndices.get(children);
+  if (!index) {
+    index = new Map();
+    // the first of two siblings with one id, as a scan finds it
+    for (let i = children.length - 1; i >= 0; i--) {
+      const c = children[i].id;
+      if (c !== undefined) index.set(c, i);
+    }
+    ChildIndices.set(children, index);
+  }
+  return index.get(id) ?? -1;
+}
+
+/** The child with `id` (the first, when two siblings share it), or undefined. */
+export function childById(node: Node | undefined, id: string): Node | undefined {
+  const i = childIndex(node?.children, id);
+  return i < 0 ? undefined : node!.children![i];
+}
+
 /** The node at an address, or undefined. */
 export function resolveAddress(root: Node, address: Address): Node | undefined {
   let node: Node | undefined = root;
   for (const id of address) {
-    node = node.children?.find((c) => c.id === id);
+    node = childById(node, id);
     if (!node) return undefined;
   }
   return node;
@@ -453,9 +488,9 @@ export function matchesAddress(pattern: AddressPattern, address: Address, root?:
     const s = p[i];
     if (typeof s === 'string') {
       if (s !== address[i]) return false;
-      if (node) node = node.children?.find((c) => c.id === s);
+      if (node) node = childById(node, s);
     } else {
-      node = node?.children?.find((c) => c.id === address[i]);
+      node = childById(node, address[i]);
       if (!node || !matchesForm(s, node)) return false;
     }
   }

@@ -13,11 +13,13 @@ import {
   LanguageIssues,
   languageToMarkdown,
   normalize,
+  normalizeValue,
   SchemaIssues,
   signature,
   type UnitsHook,
   validate,
   validateAndNormalize,
+  validateChanges,
   withDefaults,
 } from '../index.js';
 import { Mini } from './fixtures.js';
@@ -246,6 +248,54 @@ describe('repr/schema: normalization on read', () => {
     const bad = validateAndNormalize(Mini, spec(p53, domains({ start: [0] })));
     expect(bad.node).toBeUndefined();
     expect(bad.issues.map((i) => i.code)).toEqual(['repr.schema.param.missing']);
+  });
+});
+
+describe('repr/schema: what a change introduced', () => {
+  const tree = spec(
+    { ...p53, params: { alphabet: 'klingon' } },
+    { kind: 'values', id: 'v', params: { target: '/data/p53', values: [1] } },
+  );
+  const none = { made: [], params: [], children: [], removed: [], moved: [] };
+
+  it('checks the changed keys only, and that an unset key is not required', () => {
+    expect(
+      validateChanges(Mini, tree, { ...none, params: [{ at: ['data', 'v'], keys: ['scale'], where: 'params' }] }),
+    ).toEqual([]);
+    const unset = validateChanges(Mini, tree, {
+      ...none,
+      params: [{ at: ['data', 'v'], keys: ['target', 'nope'], where: 'custom' }],
+    });
+    expect(unset).toEqual([]);
+    const issues = validateChanges(Mini, spec({ kind: 'values', id: 'v', params: { values: 'x' } }), {
+      ...none,
+      params: [{ at: ['data', 'v'], keys: ['target', 'values'], where: 'params' }],
+    });
+    expect(issues.map((i) => [i.code, i.path, i.address])).toEqual([
+      ['repr.schema.param.missing', ['children', 0, 'children', 0, 'params', 'target'], '/data/v'],
+      ['repr.schema.param.type', ['children', 0, 'children', 0, 'params', 'values'], '/data/v'],
+    ]);
+  });
+
+  it('checks a made node whole, with its parent rule; a moved one for its parent rule', () => {
+    const made = validateChanges(Mini, tree, { ...none, made: [['data', 'p53']] });
+    expect(made.map((i) => i.code)).toEqual(['repr.schema.param.enum']);
+    const moved = spec({ kind: 'data', id: 'inner' });
+    expect(
+      validateChanges(Mini, moved, { ...none, moved: [{ from: ['inner'], to: ['data', 'inner'] }] }).map((i) => i.code),
+    ).toEqual(['repr.schema.parent.invalid']);
+    expect(validate(Mini, tree).map((i) => i.code)).toEqual(['repr.schema.param.enum']);
+  });
+});
+
+describe('repr/schema: a value normalized against its type', () => {
+  it('types a plain array in a column, inside a list, and leaves what does not fit', () => {
+    expect(normalizeValue({ type: 'column', of: 'int32' }, [1, 2])).toEqual(new Int32Array([1, 2]));
+    const list = normalizeValue({ type: 'list', of: { type: 'column', of: 'float32', doc: '' } }, [[1], [2]]);
+    expect(list).toEqual([new Float32Array([1]), new Float32Array([2])]);
+    expect(normalizeValue({ type: 'column', of: 'int32' }, 'x')).toBe('x');
+    const same = [1, 'a'];
+    expect(normalizeValue({ type: 'any' }, same)).toBe(same);
   });
 });
 

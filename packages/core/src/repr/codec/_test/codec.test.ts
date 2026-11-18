@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { JsonCodec, parseJson, printJson } from '../../codecs/json/index.js';
 import { parseSexpr, printSexpr } from '../../codecs/sexpr/index.js';
+import { PatchIssues } from '../../patch.js';
 import { LanguageIssues, normalize, SchemaIssues } from '../../schema/index.js';
 import { hashNode, type Node, TreeIssues } from '../../tree/index.js';
 import { type Codec, CodecIssues, ConformanceLanguage, checkCodec, conformanceTrees } from '../index.js';
@@ -51,7 +52,7 @@ function strip(node: Node): Node {
 
 describe('repr: issue codes', () => {
   it('every code a source uses is cataloged, with its severity', () => {
-    const catalogs = [TreeIssues, SchemaIssues, LanguageIssues, CodecIssues];
+    const catalogs = [TreeIssues, SchemaIssues, LanguageIssues, CodecIssues, PatchIssues];
     const known = new Set(catalogs.flatMap((c) => Object.keys(c.codes)));
     for (const c of catalogs)
       for (const info of Object.values(c.codes)) expect(info.severity).toMatch(/^(error|warning|info)$/);

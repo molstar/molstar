@@ -65,7 +65,18 @@ function needs(t: ParamType): boolean {
  */
 export function normalize(language: Language, root: Node, options: NormalizeOptions = {}): Node {
   const resolve = (id: string) => (id === language.id ? language : options.languages?.(id));
+  return normalizer(resolve).node(language, root);
+}
 
+/**
+ * A value normalized against its param type, as `normalize` reads a param of that type (what a patch's `set` writes);
+ * slots resolve through `options.languages`. Best effort: a value that does not fit is left as it is.
+ */
+export function normalizeValue(type: ParamType, value: Value, options: NormalizeOptions = {}): Value {
+  return normalizer((id) => options.languages?.(id)).value(type, value);
+}
+
+function normalizer(resolve: (id: string) => Language | undefined) {
   function node(lang: Language, n: Node): Node {
     // an unknown (extension) kind is kept as it is; its children are still the language's
     const spec: KindSpec | undefined = own(lang.kinds, n.kind);
@@ -138,7 +149,7 @@ export function normalize(language: Language, root: Node, options: NormalizeOpti
     }
   }
 
-  return node(language, root);
+  return { node, value };
 }
 
 /**
