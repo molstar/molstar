@@ -35,6 +35,7 @@ function count(this: { n: number }) {
 }
 
 describe('reads allocate nothing', () => {
+  // each read its own case, measured every step: a walk sampled now and then would hide its bytes in the average
   for (const [name, keys] of [
     ['flat (16)', small],
     ['trie (1,000)', ids],
@@ -44,70 +45,103 @@ describe('reads allocate nothing', () => {
     const om = OrderedHashMap.of(keys.map((k, i) => [k, i] as const));
     const os = OrderedHashSet.of(keys);
     const ctx = { n: 0 };
-
-    it(`HashMap ${name}: get, has`, ({ task }) => {
-      const { r } = quickCase(task, `HashMap ${name} get`, (i) => {
-        const k = keys[i % keys.length];
-        if (m.get(k) === undefined || !m.has(k)) throw new Error('absent');
+    const mc = m.cursor();
+    const sc = s.cursor();
+    const omc = om.cursor();
+    const osc = os.cursor();
+    const n = keys.length;
+    const cases: [string, (i: number) => void][] = [
+      [
+        'HashMap get, has',
+        (i) => {
+          if (m.get(keys[i % n]) === undefined || !m.has(keys[i % n])) throw new Error('absent');
+        },
+      ],
+      ['HashMap forEach', () => m.forEach(count, ctx)],
+      [
+        'HashMap cursor',
+        () => {
+          m.cursor(mc);
+          while (mc.next()) ctx.n += mc.value;
+        },
+      ],
+      [
+        'HashSet has',
+        (i) => {
+          if (!s.has(keys[i % n])) throw new Error('absent');
+        },
+      ],
+      ['HashSet forEach', () => s.forEach(count, ctx)],
+      [
+        'HashSet cursor',
+        () => {
+          s.cursor(sc);
+          while (sc.next()) ctx.n++;
+        },
+      ],
+      [
+        'OrderedHashMap get, has, first, last',
+        (i) => {
+          if (om.get(keys[i % n]) === undefined || !om.has(keys[i % n])) throw new Error('absent');
+          ctx.n += om.first()! + om.last()!;
+        },
+      ],
+      ['OrderedHashMap forEach', () => om.forEach(count, ctx)],
+      [
+        'OrderedHashMap cursor',
+        () => {
+          om.cursor(omc);
+          while (omc.next()) ctx.n += omc.value;
+        },
+      ],
+      [
+        'OrderedHashSet has, first, last',
+        (i) => {
+          if (!os.has(keys[i % n]) || os.first() === undefined || os.last() === undefined) throw new Error('absent');
+        },
+      ],
+      ['OrderedHashSet forEach', () => os.forEach(count, ctx)],
+      [
+        'OrderedHashSet cursor',
+        () => {
+          os.cursor(osc);
+          while (osc.next()) ctx.n++;
+        },
+      ],
+    ];
+    for (const [what, step] of cases) {
+      it(`${what}, ${name}`, ({ task }) => {
+        const { r } = quickCase(task, `${what} ${name}`, step);
+        expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(zero());
       });
-      expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(zero());
-    });
+    }
+  }
 
-    it(`HashMap ${name}: forEach with a context, a reused cursor`, ({ task }) => {
-      const c = m.cursor();
-      const { r } = quickCase(task, `HashMap ${name} walk`, () => {
-        m.forEach(count, ctx);
-        m.cursor(c);
-        while (c.next()) ctx.n += c.value;
-      });
-      expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(zero());
-    });
-
-    it(`HashSet ${name}: has, cursor`, ({ task }) => {
-      const c = s.cursor();
-      const { r } = quickCase(task, `HashSet ${name} has`, (i) => {
-        if (!s.has(keys[i % keys.length])) throw new Error('absent');
-        if (i % 64 === 0) {
-          s.cursor(c);
-          while (c.next()) ctx.n++;
-        }
-      });
-      expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(zero());
-    });
-
-    it(`OrderedHashMap and OrderedHashSet ${name}: get, has, forEach, cursor`, ({ task }) => {
-      const c = om.cursor();
-      const d = os.cursor();
-      const { r } = quickCase(task, `Ordered ${name} reads`, (i) => {
-        const k = keys[i % keys.length];
-        if (om.get(k) === undefined || !os.has(k)) throw new Error('absent');
-        if (i % 64 === 0) {
-          om.forEach(count, ctx);
-          os.forEach(count, ctx);
-          om.cursor(c);
-          while (c.next()) ctx.n++;
-          os.cursor(d);
-          while (d.next()) ctx.n++;
-        }
-      });
+  const v = Vector.of(Array.from({ length: 1000 }, (_, i) => i));
+  const vc = v.cursor();
+  const vctx = { n: 0 };
+  const vectorCases: [string, (i: number) => void][] = [
+    [
+      'Vector get, first, last',
+      (i) => {
+        vctx.n += v.get(i % 1000)! + v.first()! + v.last()!;
+      },
+    ],
+    ['Vector forEach', () => v.forEach(count, vctx)],
+    [
+      'Vector cursor',
+      () => {
+        v.cursor(vc);
+        while (vc.next()) vctx.n += vc.value;
+      },
+    ],
+  ];
+  for (const [what, step] of vectorCases) {
+    it(`${what} (1,000)`, ({ task }) => {
+      const { r } = quickCase(task, what, step);
       expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(zero());
     });
   }
-
-  it('Vector: get, forEach with a context, cursor', ({ task }) => {
-    const v = Vector.of(Array.from({ length: 1000 }, (_, i) => i));
-    const c = v.cursor();
-    const ctx = { n: 0 };
-    const { r } = quickCase(task, 'Vector reads', (i) => {
-      ctx.n += v.get(i % 1000)!;
-      if (i % 64 === 0) {
-        v.forEach(count, ctx);
-        v.cursor(c);
-        while (c.next()) ctx.n += c.value;
-      }
-    });
-    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(zero());
-  });
 
   it('a lookup of an unseen object assigns no id', ({ task }) => {
     const objects = Array.from({ length: 100 }, (_, i) => ({ i }));

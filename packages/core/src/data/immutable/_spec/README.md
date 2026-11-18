@@ -113,7 +113,8 @@ removes.
 - Model-based runs against JS `Map`, `Set` and `Array` (−0 and NaN keys among strings, numbers, objects, symbols and
   22-character ids), every earlier version checked at the end; seeded and short in the quick lane, long in the heavy
   lane. Shapes across edit orders, demotion at the threshold, all-zero and four-valued hashes, configs, transients.
-- The allocation cases: `*.quick.ts`, `npx vitest run -c packages/core/vitest.perf.config.ts`, by hand.
+- The allocation cases: `*.quick.ts`, `npx vitest run -c packages/core/vitest.perf.config.ts`, by hand; each read and
+  walk of each kind its own case, measured every step (0 bytes, 30 cases).
 - Against immutable.js (`_test/immutable-js.test.ts`, heavy): ratios for get, set, delete, iterate and build at 10,
   1,000 and 100,000 entries; it fails only past 4×, and prints every case over 1 as a miss. Measured (2026-11-18):
   `Vector` faster on every case; maps and sets of 22-character ids faster at 1,000 and 100,000 entries (0.4 to 0.9); the
