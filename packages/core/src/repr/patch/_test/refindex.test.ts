@@ -13,6 +13,8 @@
 import { itWithin, type Within } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { applyPatch, type Op, patchLanguage, patchToNode } from '../../patch.js';
+import { defineLanguage } from '../../schema/check.js';
+import type { Language } from '../../schema/language.js';
 import { hashNode, type Node } from '../../tree/index.js';
 import { PatchConformanceLanguage as PC } from '../conformance.js';
 import { freshRefIndex, peekIndex, refIndexOf, type Site } from '../refs.js';
@@ -118,7 +120,15 @@ const same = (a: readonly Site[], b: readonly Site[]) => {
   expect(a.length).toBe(b.length);
   a.forEach((s, i) => {
     expect(s.node).toBe(b[i].node);
-    expect([s.value, s.path, s.at, s.anchor, s.tail]).toEqual([b[i].value, b[i].path, b[i].at, b[i].anchor, b[i].tail]);
+    expect([s.value, s.path, s.at, s.anchor, s.tail, s.rel, s.runs]).toEqual([
+      b[i].value,
+      b[i].path,
+      b[i].at,
+      b[i].anchor,
+      b[i].tail,
+      b[i].rel,
+      b[i].runs,
+    ]);
   });
 };
 
@@ -233,6 +243,85 @@ describe('repr/patch: the ref index across revisions', () => {
     }
     const renamed = best(within, 12, () => applyPatch(root, { ops: renames(50) }, allow));
     expect(renamed.ok && renamed.root.children![50].children!.at(-1)!.id).toBe('m49');
+  });
+
+  describe('the chunks reused only at the position they were built', () => {
+    const rename = (at: string, to: string) =>
+      ({ op: 'move', at: [at], parent: [], place: { after: null }, rename: to }) as const;
+    /** The root's index (built), the patch applied, and the next root's index against one built on it. */
+    const derives = (root: Node, op: Op, language: Language = PC) => {
+      hashNode(root);
+      refIndexOf(root, language);
+      const r = applyPatch(root, { ops: [op] }, { language, allowDangling: true, allowRebind: true });
+      expect(r.ok).toBe(true);
+      if (!r.ok) throw new Error('refused');
+      const derived = peekIndex(r.root, language);
+      expect(derived).toBeDefined();
+      const a = derived!.under([]) as Site[];
+      same(a, freshRefIndex(r.root, language).under([]) as Site[]);
+      return a;
+    };
+
+    it('a renamed parent in place: the same path, another address', () => {
+      const sites = derives(
+        {
+          kind: 'doc',
+          children: [
+            { kind: 'box', id: 'a', children: [{ kind: 'leaf', id: 'x', params: { link: '/b' } }] },
+            { kind: 'box', id: 'b' },
+          ],
+        },
+        rename('a', 'c'),
+      );
+      expect(sites).toHaveLength(1);
+      expect(sites[0].at).toEqual(['c', 'x']);
+    });
+
+    it('an id-less node under a renamed parent: the same child position, another anchor', () => {
+      const L = defineLanguage({
+        id: 'ids',
+        version: '1.0.0',
+        root: 'doc',
+        doc: 'Optional ids.',
+        kinds: {
+          doc: { doc: 'The root.', parents: [] },
+          box: { doc: 'A box.', parents: ['doc'], ids: 'required', params: { link: { type: 'ref', doc: 'A ref.' } } },
+          note: { doc: 'A note.', parents: ['box'], ids: 'optional', params: { link: { type: 'ref', doc: 'A ref.' } } },
+        },
+      });
+      const sites = derives(
+        {
+          kind: 'doc',
+          children: [
+            { kind: 'box', id: 'a', children: [{ kind: 'note', params: { link: '/b' } }] },
+            { kind: 'box', id: 'b' },
+          ],
+        },
+        rename('a', 'c'),
+        L,
+      );
+      expect(sites).toHaveLength(1);
+      expect(sites[0].anchor).toEqual(['c']);
+      expect(sites[0].tail).toEqual([0]);
+    });
+
+    it('a node object shared at two positions', () => {
+      const shared: Node = { kind: 'leaf', id: 'x', params: { link: '/a' } };
+      const sites = derives(
+        {
+          kind: 'doc',
+          children: [
+            { kind: 'box', id: 'a', children: [shared] },
+            { kind: 'box', id: 'b', children: [shared] },
+          ],
+        },
+        { op: 'set', at: ['a'], key: 'label', value: 'L' },
+      );
+      expect(sites.map((s) => s.at)).toEqual([
+        ['a', 'x'],
+        ['b', 'x'],
+      ]);
+    });
   });
 
   it('a stored patch whose set value is typed by a node another op replaces: the derived index follows', () => {
