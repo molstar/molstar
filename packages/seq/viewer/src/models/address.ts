@@ -88,6 +88,8 @@ export class AddressModel extends ReactiveModel {
   private _pendingFocus: { address: string; reveal: boolean; section?: string } | undefined;
   /** The address last focused and the viewports it left, so the focus reads as that address until the view moves. */
   private _focused: { address: string; viewports: string } | undefined;
+  /** A focus kept until its sections are placed: records `_focused` when the kept move lands. */
+  private _landing: (() => void) | undefined;
 
   constructor(
     private readonly spec: SpecModel,
@@ -114,6 +116,9 @@ export class AddressModel extends ReactiveModel {
     // one, and dropped with an issue when it names nothing
     this.registerPermanentDispose(spec.beforeCommit((changes) => this.followMoves(changes.moved)));
     this.listenPermanently(spec.root, () => this._respec());
+    // a focus kept for the first spec (no address names anything before it) runs once the view has its sections
+    this.listenPermanently(view.resolved, () => this._retryFocus());
+    this.registerPermanentDispose(() => this._landing?.());
   }
 
   private readonly _issues = new State<readonly Issue[]>([]);
@@ -207,6 +212,11 @@ export class AddressModel extends ReactiveModel {
 
   /** What an address names in the spec shown (_spec/README.md "AddressModel"; the core's `resolveAddressIn`). */
   resolve(address: string): AddressResolution {
+    // no spec set yet: no address names anything, but one will (a link followed before the document arrives waits)
+    if (!this.spec.loaded.value && parseAddress(address).pattern) {
+      const waiting = issueOf(AddressIssues, 'seq.address.waiting', 'The address waits for its data', { address });
+      return { address, status: 'waiting', via: [], issues: [waiting], complete: false, pending: EmptyLocation };
+    }
     const { limit, maxDepth, refDepth } = this.config.address;
     return resolveAddressIn(this.spec.shown.value, this.queryModel(), address, { limit, maxDepth, refDepth });
   }
@@ -287,17 +297,40 @@ export class AddressModel extends ReactiveModel {
       return this._outcome(resolution, false, 'Waiting for its data');
     }
     if (this._pendingFocus?.address !== address) this._pendingFocus = undefined;
+    this._landing?.();
     if (resolution.status !== 'resolved') return this._outcome(resolution, false, 'Nothing to focus');
     this._pendingFocus = undefined;
     const r = this._moveTo(loc, reveal, section);
     // a section not placed yet (no width, an axis waiting for its length) keeps the move as its intent: not done yet
-    if (r === 'pending') return this._outcome(resolution, false, 'Kept until the view is placed');
+    if (r === 'pending') {
+      this._keepUntilPlaced(address);
+      return this._outcome(resolution, false, 'Kept until the view is placed');
+    }
     if (r === 'moved') this._focused = { address, viewports: this._viewportsKey() };
     return this._outcome(
       resolution,
       r === 'moved',
       r === 'moved' ? (reveal ? 'Revealed' : 'Focused') : 'Not in this view',
     );
+  }
+
+  /** Records the focus as the address once the sections its kept move waits on are placed (a width, a length). */
+  private _keepUntilPlaced(address: string): void {
+    const waiting = (this.view.resolved.value?.sections ?? [])
+      .map((s) => s.address)
+      .filter((a) => this.view.get(a)?.pending);
+    const offs: (() => void)[] = [];
+    const stop = () => {
+      for (const off of offs.splice(0)) off();
+      if (this._landing === stop) this._landing = undefined;
+    };
+    const land = () => {
+      if (waiting.some((a) => this.view.get(a)?.pending)) return;
+      stop();
+      this._focused = { address, viewports: this._viewportsKey() };
+    };
+    this._landing = stop;
+    for (const a of waiting) offs.push(this.view.viewport(a).listen(land));
   }
 
   private _retryFocus(): void {

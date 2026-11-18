@@ -171,6 +171,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private readonly _shown: State<Node>;
   private readonly _issues = new State<readonly Issue[]>([], sameIssues);
   private readonly _changed: State<SpecCommit>;
+  private readonly _loaded: State<boolean>;
   private readonly _recent = new Map<string, Node>();
   /** Each recent commit's parent and moves, by revision: what the session is told when the head moves between them. */
   private readonly _lineage = new Map<string, { readonly parent: string; readonly moved: readonly Move[] }>();
@@ -205,10 +206,23 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   readonly boundsIssues: ReadonlyState<readonly Issue[]>;
   /** The last commit an edit made (the participant's face: a restore makes none). */
   readonly changed: ReadonlyState<SpecCommit>;
+  /**
+   * Whether a spec was ever set: false for the empty spec a viewer starts with, true after the first `apply` (a
+   * document loaded, even an equal one). Until then no address names anything, so an address waits (_spec/README.md
+   * "AddressModel").
+   */
+  readonly loaded: ReadonlyState<boolean>;
 
-  constructor(root: Node, options: ResolveOptions = {}, config: ViewerConfig = DefaultViewerConfig) {
+  constructor(
+    root: Node,
+    options: ResolveOptions = {},
+    config: ViewerConfig = DefaultViewerConfig,
+    loaded = true,
+  ) {
     super();
     this.config = config;
+    this._loaded = new State(loaded);
+    this.loaded = this._loaded.asReadonly;
     const head = commitOf(root, []);
     this._remember(head);
     this._head = new State(head);
@@ -445,6 +459,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     const bounded = next === head.root ? [] : checkSpecBounds(next, this.config.bounds);
     this._boundsIssues.set(bounded);
     if (bounded.length) return 'out-of-bounds';
+    // before the commit, so what listens to the new root already sees a loaded spec
+    this._loaded.set(true);
     if (next === head.root || hashNode(next) === head.revision) {
       this._compose();
       return false;

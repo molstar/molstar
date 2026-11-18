@@ -176,6 +176,7 @@ export class SeqViewer extends ReactiveModel {
       createSeqSpec().build(),
       { runtimes: this.context.runtimes, config: this.context.resolveConfig },
       this.config,
+      false,
     );
     this.view = new ViewModel(this.spec, this.config);
     this.hover = new HoverModel(this.spec, this.view, this.config);
