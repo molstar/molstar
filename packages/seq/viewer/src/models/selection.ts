@@ -92,6 +92,11 @@ const keyId = (k: ElementKey) => `${typeof k.key === 'number' ? 'n' : 's'}${k.ke
 export function hitRange(hit: Hit, axis?: Axis, extent: Location | undefined = hit.extent): Anchor | undefined {
   const part = extent ? partOf(extent, hit.system) : undefined;
   if (part?.ranges.length) return { system: hit.system, ...spanOf(part.ranges, axis) };
+  // a letter through a path (a residue a codon wide): its element on its own system, which the selection projects
+  // onto the section (its codon, by closure); extends by elements there
+  const other = !hit.element && extent?.parts.length === 1 ? extent.parts[0] : undefined;
+  if (other?.ranges.length)
+    return { system: other.system, start: other.ranges[0], end: other.ranges[other.ranges.length - 1] };
   if (hit.position === undefined || Number.isNaN(hit.position)) return undefined;
   const p = Math.floor(hit.position);
   return { system: hit.system, start: p, end: p + 1 };
@@ -127,7 +132,8 @@ function between(
   axis: Axis | undefined,
   across: 'shown' | 'span' = 'shown',
 ): Location {
-  const r = axis?.ranges;
+  // an axis of another system (a residue's range on its gene's section) reads as no axis: the hull on the system
+  const r = axis?.system === system ? axis.ranges : undefined;
   if (r) {
     const ends = [
       cellOffset(axis!, a.start),
@@ -392,6 +398,12 @@ export class SelectionModel extends ReactiveModel {
     const p = Math.floor(position);
     let cur: Anchor = { system: a.system, start: p, end: p + 1 };
     if (d.snap && hit?.element && hit.system === a.system) cur = hitRange(hit, axis, this._extentOfHit(hit)) ?? cur;
+    if (axis && axis.system !== a.system) {
+      // a drag begun on a residue of another system (a residue row): whole residues, from the one under the pointer
+      const r = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
+      if (!r || r.system !== a.system) return false;
+      cur = r;
+    }
     const before = this._value.value;
     const loc = between(a.system, a, cur, axis, this._across);
     switch (d.mode) {

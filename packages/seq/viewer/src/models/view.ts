@@ -23,7 +23,7 @@ import {
   resolveViews,
 } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
-import { axesEqual, axisKey, axisTotal, nearestOffsetOf, offsetOf, positionAt } from './axis.js';
+import { axesEqual, axisKey, axisTotal, breakHolding, nearestOffsetOf, offsetOf, positionAt } from './axis.js';
 import type { SpecModel } from './spec.js';
 
 /**
@@ -66,8 +66,22 @@ interface SectionState {
 
 const DetachedPrefix = '#';
 
+/**
+ * A group's range in a step of the history (_spec/README.md "ViewModel", History): its offsets with its axis's
+ * signature (system, pieces, direction), its centre as a position and its members, so a step over a changed axis is
+ * restored by position (the centre and the zoom), never dropped.
+ */
+interface Kept {
+  readonly start: number;
+  readonly end: number;
+  readonly fitted: boolean;
+  readonly sig?: string;
+  readonly center?: number;
+  readonly members?: readonly string[];
+}
+
 /** The leading viewports at one time: each group's range by key (a detached follower's among them). */
-type Snapshot = ReadonlyMap<string, { readonly start: number; readonly end: number; readonly fitted: boolean }>;
+type Snapshot = ReadonlyMap<string, Kept>;
 
 /** What a jump did: moved the view, found it already there, or could not move. */
 export type JumpOutcome = 'moved' | 'same' | 'none';
@@ -78,11 +92,12 @@ export interface ViewHistory {
   readonly forward: number;
 }
 
+/** Two steps are the same view: the same groups at the same offsets, compared only on equal axes. */
 function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
   if (a.size !== b.size) return false;
   for (const [k, v] of a) {
     const w = b.get(k);
-    if (!w || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted) return false;
+    if (!w || w.sig !== v.sig || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted) return false;
   }
   return true;
 }
@@ -388,23 +403,57 @@ export class ViewModel extends ReactiveModel {
     this._history.set({ back: this._back.length, forward: this._forward.length });
   }
 
-  /** Each group's range now. */
+  /** Each group's range now, with its axis's signature, its centre as a position and its members. */
   private _snapshot(): Snapshot {
-    const out = new Map<string, { start: number; end: number; fitted: boolean }>();
-    for (const g of this._groups.values()) out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted });
+    const out = new Map<string, Kept>();
+    for (const g of this._groups.values()) {
+      const center = g.axis.ranges ? positionAt(g.axis, (g.start + g.end) / 2) : undefined;
+      out.set(g.key, {
+        start: g.start,
+        end: g.end,
+        fitted: g.fitted,
+        sig: axisKey(g.axis),
+        ...(center !== undefined ? { center } : {}),
+        members: g.members,
+      });
+    }
     return out;
   }
 
   /**
-   * What restoring a snapshot would give: the groups there now, at its ranges; a follower detached since, attached; one
-   * detached then and attached since, detached again (a section gone since is left out).
+   * A group's kept range in a step: by its key, else (its axis changed since: a reverse, a collapse) by a member; on an
+   * axis of another signature, restored by position: the centre and the zoom, the centre clamped to what is drawn (a
+   * centre now hidden goes to its break). Undefined when the step has none of it.
+   */
+  private _keptOf(snap: Snapshot, g: Group): Kept | undefined {
+    let v = snap.get(g.key);
+    if (!v)
+      for (const w of snap.values())
+        if (w.members?.some((m) => g.members.includes(m))) {
+          v = w;
+          break;
+        }
+    if (!v || v.sig === undefined || v.sig === axisKey(g.axis)) return v;
+    const total = axisTotal(g.axis);
+    if (v.fitted || total === undefined) return { start: 0, end: total ?? v.end, fitted: true, sig: axisKey(g.axis) };
+    const c = v.center === undefined ? undefined : centerOffset(g.axis, v.center);
+    if (c === undefined) return { start: 0, end: total, fitted: true, sig: axisKey(g.axis) };
+    const half = (v.end - v.start) / 2;
+    return { start: c - half, end: c + half, fitted: false, sig: axisKey(g.axis) };
+  }
+
+  /**
+   * What restoring a snapshot would give: the groups there now, at its ranges (by position onto a changed axis); a
+   * follower detached since, attached; one detached then and attached since, detached again (a section gone since is
+   * left out).
    */
   private _restored(snap: Snapshot): Snapshot {
-    const out = new Map<string, { start: number; end: number; fitted: boolean }>();
+    const out = new Map<string, Kept>();
     for (const g of this._groups.values()) {
-      const v = snap.get(g.key);
-      if (v) out.set(g.key, v);
-      else if (!g.key.startsWith(DetachedPrefix)) out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted });
+      const v = this._keptOf(snap, g);
+      if (v) out.set(g.key, { ...v, sig: axisKey(g.axis) });
+      else if (!g.key.startsWith(DetachedPrefix))
+        out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted, sig: axisKey(g.axis) });
     }
     for (const [key, v] of snap)
       if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
@@ -420,7 +469,7 @@ export class ViewModel extends ReactiveModel {
   /** The groups take the snapshot's ranges in one publish; a follower detached since it was taken is attached again. */
   private _restore(snap: Snapshot): void {
     for (const [key, g] of [...this._groups]) {
-      const v = snap.get(key);
+      const v = this._keptOf(snap, g);
       if (v) {
         g.start = v.start;
         g.end = v.end;
@@ -755,10 +804,20 @@ function carry(key: string, section: ResolvedSection, prev: Group | undefined): 
     return axis.ranges?.[0] === 0 ? { ...group, start: prev.start, end: prev.end, fitted: false } : group;
   }
   const center = positionAt(prev.axis, (prev.start + prev.end) / 2);
-  const c = center === undefined ? undefined : offsetOf(axis, center);
+  const c = center === undefined ? undefined : centerOffset(axis, center);
   if (c === undefined) return group;
   const half = (prev.end - prev.start) / 2;
   return { ...group, start: c - half, end: c + half, fitted: false };
+}
+
+/**
+ * A centre position's offset on an axis: where it is shown; in a stretch a break hides (a collapse), the break's (the
+ * nearest piece edge, zero wide); outside the axis, none.
+ */
+function centerOffset(axis: Axis, center: number): number | undefined {
+  const o = offsetOf(axis, center);
+  if (o !== undefined) return o;
+  return breakHolding(axis, Math.floor(center)) >= 0 ? nearestOffsetOf(axis, center) : undefined;
 }
 
 /** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */

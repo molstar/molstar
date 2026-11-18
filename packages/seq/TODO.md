@@ -8,7 +8,6 @@ The first slice built the tree core, the language's first kinds, resolve, draw l
 viewer's models and data by region; the second, editing and addressing (patches, history, previews, story steps, refs,
 links, selection, the security bounds, MessagePack). Next, version 1's second milestone, figures, in this order:
 
-- **The axis**: a section's direction, letters through a map, collapsed introns (Render, the axis, below).
 - **Themes and the small layers**: the theme sublanguage, residue schemes, legends, shared domains; the ruler, secondary
   structure, variants, values' line and area.
 - **Layouts**: text and alignment figures, blocks and rings, navigators; then pairs, grids and dot plots, the logo, the
@@ -86,27 +85,18 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   selection does, `selection.holdNodes`); the overlay's sync issues in the viewer's `layoutIssues`.
 - **Data**: `summaries` in `ViewerConfig`; summaries for systems of unknown length or past `maxLength`; byte dedupe
   across tiles; `SourceEntry` carries only `address`, `format`, `uri`, `value`.
-- **Render, the axis** (next; the Features page's rows Letters through a map, A section's direction, Pieces and layout
-  maps): letters through a one-to-one or codon path (a protein's letters on its gene, a residue a codon wide; refused
-  today, `seq.render.layer.letters`); a section's direction (`genomic`, `reversed`, `follow`) on reversed pieces, the
-  reversed axis counting down, reversed DNA letters as their complement (a minus-strand gene following its protein moves
-  opposite to it today); collapsed introns, three nucleotides a residue, the default for a section following through a
-  codon map (a gene following its protein drops its letters while an intron is in the window). `Follow.point` runs a
-  codon split by an intron straight from its first nucleotide, so some gene positions are never a follower's edge:
-  follow each nucleotide of the codon.
-- **Render**: a per-section viewport map in the frame input (one window serves every leading section now); a summary
-  pyramid for inline values zoomed out (inline data is level 1 only, so a large one zoomed out hits the tile cap); a
-  legend's place in the chrome; the Nightingale reference adapter; a `types` option on `renderSvg`, then layer-type,
-  theme and palette registry entries, atomic, counted and undoable at run time; `query` layers read the whole annotation
-  (filtering comes with the query sublanguage); `values` line and area, points and split; the ranges layout's allocation
-  an item in view (the `earlier` and `occurrences` sets, `StickyLanes.keep`'s map, keys of tiles without ids,
-  `placeholderSpans` and `dataRegions` arrays: about 300 B an item); the values direct path for linear maps (offset
-  paths) too; the renderer's rebuild sorts the reads and builds the key's text each layout (bounded by tiles in view);
-  `render/export.ts` still requests data for hidden layers (done when an export of a spec with a hidden layer reads
-  nothing for it).
-- **Emphasis**: projected selection bands are rounded at intron edges, where the frame rule wants a piece's cut ends
-  square (a projection-aware cut flag); the keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum
-  width or a caret).
+- **Render**: a summary pyramid for inline values zoomed out (inline data is level 1 only, so a large one zoomed out
+  hits the tile cap); a legend's place in the chrome; the Nightingale reference adapter; a `types` option on
+  `renderSvg`, then layer-type, theme and palette registry entries, atomic, counted and undoable at run time; `query`
+  layers read the whole annotation (filtering comes with the query sublanguage); `values` line and area, points and
+  split; the ranges layout's allocation an item in view (the `earlier` and `occurrences` sets, `StickyLanes.keep`'s map,
+  keys of tiles without ids, `placeholderSpans` and `dataRegions` arrays: about 300 B an item); the values direct path
+  for linear maps (offset paths) too; the renderer's rebuild sorts the reads and builds the key's text each layout
+  (bounded by tiles in view); `render/export.ts` still requests data for hidden layers (done when an export of a spec
+  with a hidden layer reads nothing for it).
+- **Emphasis**: projected selection bands on a whole axis are rounded at intron edges, where the frame rule wants the
+  ends a projection cut square (a projection-aware cut flag; on a collapsed axis an end at a break is square); the
+  keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum width or a caret).
 - **Tests**: `render/_test/frame-time.test.ts`'s per-frame max bounds flake under a parallel heavy run (18 and 50 ms
   against 16): best of three, or a percentile instead of the max. The p53 fixtures round-tripped JSON ↔ MessagePack in a
   test here (io cannot import them).

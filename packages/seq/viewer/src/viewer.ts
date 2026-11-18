@@ -534,6 +534,45 @@ export class SeqViewer extends ReactiveModel {
     return undefined;
   }
 
+  /**
+   * The windows of the leading sections after the first (`viewports` of the frame: each its own), kept while they are
+   * equal so the frame's key holds; undefined when one section leads.
+   */
+  private _windows(resolved: ResolvedView): Readonly<Record<string, RenderViewport>> | undefined {
+    let first = true;
+    let n = 0;
+    let same = this._windowsKept !== undefined;
+    for (const s of resolved.sections) {
+      if (this.view.isFollowing(s.address)) continue;
+      if (first) {
+        first = false;
+        continue;
+      }
+      const v = this.view.get(s.address);
+      if (!v || v.pending) continue;
+      const k = this._windowsKept?.[s.address];
+      if (!k || k.start !== v.start || k.end !== v.end) same = false;
+      n++;
+    }
+    if (!n) return (this._windowsKept = undefined);
+    if (same && Object.keys(this._windowsKept!).length === n) return this._windowsKept;
+    const out: Record<string, RenderViewport> = {};
+    first = true;
+    for (const s of resolved.sections) {
+      if (this.view.isFollowing(s.address)) continue;
+      if (first) {
+        first = false;
+        continue;
+      }
+      const v = this.view.get(s.address);
+      if (v && !v.pending) out[s.address] = { start: v.start, end: v.end };
+    }
+    this._windowsKept = out;
+    return out;
+  }
+
+  private _windowsKept: Readonly<Record<string, RenderViewport>> | undefined;
+
   /** The viewport the last frame was drawn with, a copy (for the SVG and tests). */
   get viewport(): RenderViewport | undefined {
     const resolved = this.view.resolved.value;
@@ -582,6 +621,9 @@ export class SeqViewer extends ReactiveModel {
     const vp = this._viewport(resolved, DomHost.now());
     if (vp) input.viewport = vp;
     else delete input.viewport;
+    const windows = this._windows(resolved);
+    if (windows) input.viewports = windows;
+    else delete input.viewports;
     if (vp) {
       this._drawn.start = vp.start;
       this._drawn.end = vp.end;
@@ -809,6 +851,7 @@ export class SeqViewer extends ReactiveModel {
       size: { width: this.width, height: this.height },
       ...(resolved ? { view: resolved.address } : {}),
       ...(vp ? { viewport: { start: vp.start, end: vp.end } } : {}),
+      ...(resolved && this._windows(resolved) ? { viewports: this._windows(resolved) } : {}),
       store: this.store.store,
       dpr: this.dpr,
       tokens: this.tokens,

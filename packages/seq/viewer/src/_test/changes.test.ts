@@ -141,6 +141,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
     ctx: {},
     before: (v) => run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' }),
   },
+  'section.reverse': { ctx: { address: Protein } },
+  'section.collapse': { ctx: { address: Protein } },
   'layer.hide': { ctx: { address: LettersLayer } },
   'layer.show': { ctx: { address: LettersLayer }, before: (v) => run(v, 'layer.hide', { address: LettersLayer }) },
   'layer.color': { ctx: { address: `${DomainsTrack}/d`, color: '#d62728' } },

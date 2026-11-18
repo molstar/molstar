@@ -226,9 +226,10 @@ export class AxisTransform {
     // a span that only touches the view's edge is not in view; a boundary on the edge is
     if (s === e ? xb < left || xa > right : xb <= left || xa >= right) return false;
     let cut = 0;
-    // the range cut at its start and its end by the piece's edges, on the screen's sides
-    const cutStart = a > s;
-    const cutEnd = b < e;
+    // the range cut at its start and its end by the piece's edges, on the screen's sides; an end on a piece's edge at
+    // a break is cut there too (a band projected across an intron is two ranges, square where the break cuts them)
+    const cutStart = a > s || (a === ps && this.breakBelow(k));
+    const cutEnd = b < e || (b === pe && this.breakAbove(k));
     if (this.dir === -1 ? cutEnd : cutStart) cut |= Cut.left;
     if (this.dir === -1 ? cutStart : cutEnd) cut |= Cut.right;
     if (xa < left) cut |= Cut.left;
@@ -239,6 +240,22 @@ export class AxisTransform {
     this.sx1 = xb;
     this.scut = cut;
     return true;
+  }
+
+  /** Whether a break borders piece `k`'s lowest position (the piece below it in genomic order ends short of it). */
+  private breakBelow(k: number): boolean {
+    if (!this.sorted) return false;
+    const r = this.pieces;
+    const j = this.dir === -1 ? k + 1 : k - 1;
+    return j >= 0 && 2 * j + 1 < r.length && r[2 * j + 1] !== r[2 * k];
+  }
+
+  /** Whether a break borders piece `k`'s highest edge (the piece above it in genomic order starts past it). */
+  private breakAbove(k: number): boolean {
+    if (!this.sorted) return false;
+    const r = this.pieces;
+    const j = this.dir === -1 ? k - 1 : k + 1;
+    return j >= 0 && 2 * j < r.length && r[2 * j] !== r[2 * k + 1];
   }
 
   /**

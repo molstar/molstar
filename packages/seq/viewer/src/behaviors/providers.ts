@@ -50,5 +50,5 @@ export const CursorProvider: BehaviorProvider<undefined, CursorBehavior> = {
 
 export const EditingProvider: BehaviorProvider<undefined, EditingBehavior> = {
   name: 'editing',
-  create: ({ spec }) => editingBehavior(spec),
+  create: ({ spec, view, selection }) => editingBehavior(spec, { view, selection }),
 };

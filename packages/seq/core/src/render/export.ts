@@ -152,6 +152,8 @@ export interface RenderSvgOptions {
   readonly size: { readonly width: number; readonly height: number };
   /** The window of display units of every leading section, or positions per section. */
   readonly viewport?: Viewport | PositionsViewport;
+  /** A leading section's own window of display units by its address, before `viewport` (a viewer's sections). */
+  readonly viewports?: Readonly<Record<string, Viewport>>;
   /** The format runtimes the application composed (inline data always reads through `seq`). */
   readonly runtimes?: readonly FormatRuntime[];
   /** The bounds the spec's check holds (`DefaultSpecBounds` when absent). */
@@ -288,7 +290,12 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const given = options.viewport;
     const frameInput = {
       size: options.size,
-      ...(given && 'positions' in given ? { viewports: offsetsOf(view, given) } : given ? { viewport: given } : {}),
+      ...(given && 'positions' in given
+        ? { viewports: { ...offsetsOf(view, given), ...options.viewports } }
+        : {
+            ...(given ? { viewport: given } : {}),
+            ...(options.viewports ? { viewports: options.viewports } : {}),
+          }),
       dpr: options.dpr ?? 1,
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
     };

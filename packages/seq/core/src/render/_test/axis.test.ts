@@ -45,6 +45,9 @@ describe('the axis transform', () => {
     // a range over the intron: a piece each side, its start (5) on the right, cut on the left by the break
     expect(a.spans(5, 14, [])).toEqual([50, 70, Cut.right, 70, 90, Cut.left]);
     expect(a.breaks([])).toEqual([70, 7, 12]);
+    // a range ending on a piece's edge at a break is cut there (a projected band, two ranges across the intron)
+    expect(a.spans(12, 14, [])).toEqual([50, 70, Cut.right]);
+    expect(a.spans(14, 16, [])).toEqual([30, 50, 0]);
   });
 
   it('hit-testing is the inverse of placement over random sections, both directions', () => {
