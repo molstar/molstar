@@ -7,9 +7,10 @@
 // A patch costs the paths it touches, not the tree: a one-key set on a large tree, with and without a language, and a
 // diff of a wide parent reordered (a longest increasing subsequence, O(n log n)). Quick without the clock, heavy with
 // it (itWithin).
-// Each bound is one sample, about 4-8x what the case takes alone: a parallel heavy run read 26 ms against 20.
+// Each bound is about 4-8x what the case takes alone, the best of three runs (a parallel heavy run read one sample
+// at 26 ms against 20, and 111 against 80).
 
-import { itWithin } from '@molstar/test-harness/timing';
+import { bestOf, itWithin } from '@molstar/test-harness/timing';
 import { describe, expect } from 'vitest';
 import { applyPatch, diff } from '../../patch.js';
 import { hashNode, type Node } from '../../tree/index.js';
@@ -58,9 +59,9 @@ describe('repr/patch: what a patch costs', () => {
     const b: Node = { kind: 'doc', children: kids };
     hashNode(a);
     hashNode(b);
-    const p = within(40, () => diff(a, b));
+    const p = bestOf(within, 40, () => diff(a, b));
     expect(p.ops).toHaveLength(3);
-    const r = within(80, () => applyPatch(a, p, { maxOps: Number.POSITIVE_INFINITY }));
+    const r = bestOf(within, 80, () => applyPatch(a, p, { maxOps: Number.POSITIVE_INFINITY }));
     expect(r.ok && hashNode(r.root)).toBe(hashNode(b));
   });
 
@@ -78,11 +79,11 @@ describe('repr/patch: what a patch costs', () => {
       node: { kind: 'box', id: 'n', params: { link: '/b5/l5' } },
     } as const;
     applyPatch(fresh(), { ops: [move] }, { language: PC }); // warm
-    const moved = within(80, () => applyPatch(big, { ops: [move] }, { language: PC }));
+    const moved = bestOf(within, 80, () => applyPatch(big, { ops: [move] }, { language: PC }));
     expect(moved.ok && moved.root.children![100].children![100].children![0].params?.link).toBe('/b101/m/l0');
     expect(moved.ok && moved.inverse?.ops).toHaveLength(1);
     const root = fresh();
-    const inserted = within(80, () => applyPatch(root, { ops: [insert] }, { language: PC }));
+    const inserted = bestOf(within, 80, () => applyPatch(root, { ops: [insert] }, { language: PC }));
     expect(inserted.ok).toBe(true);
   });
 
@@ -96,9 +97,9 @@ describe('repr/patch: what a patch costs', () => {
     const b: Node = { ...a, children: kids };
     hashNode(a);
     hashNode(b);
-    const p = within(30, () => diff(a, b));
+    const p = bestOf(within, 30, () => diff(a, b));
     expect(p.ops.length).toBeGreaterThan(250);
-    const r = within(40, () => applyPatch(a, p, { maxOps: Number.POSITIVE_INFINITY }));
+    const r = bestOf(within, 40, () => applyPatch(a, p, { maxOps: Number.POSITIVE_INFINITY }));
     expect(r.ok && hashNode(r.root)).toBe(hashNode(b));
   });
 });

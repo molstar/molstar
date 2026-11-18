@@ -41,3 +41,20 @@ export function itWithin(name: string, body: (within: Within) => unknown, timeou
   it(name, { timeout }, () => body(unbounded));
   it(`${name}: within its time bounds`, { tags: ['heavy'], timeout }, () => body(bounded));
 }
+
+/**
+ * A bound on a repeatable `f`, held when any of `tries` runs is under `ms`: one sample of a few milliseconds in a
+ * parallel heavy run can meet a collection or another worker's burst. Unbounded (the quick lane), `f` runs once.
+ */
+export function bestOf<T>(within: Within, ms: number, f: () => T, tries = 3): T {
+  if (within === unbounded) return f();
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return within(ms, f);
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
+}

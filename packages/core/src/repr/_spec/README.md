@@ -242,7 +242,19 @@ quantities need no quotes, and no units table is needed to read them (locations-
     inserts a node and sets a key on it is not dangling, and a stored patch follows renames and counts in link
     integrity. `place.after` (a bare sibling id) is not rewritten.
   - **The ref index** (`patch/refs.ts`, internal): `RefIndex` answers `under(prefix)` and `dangling()`; this one is on
-    plain `Map`s, cached per root, language and options, and `derive` rebuilds. An apply has one, derived across its ops
+    plain `Map`s, cached per root, language and options. Its sites are kept in chunks by node object (a node's own
+    sites, a chunk per child that has any): `derive` walks only the paths the ops changed and shares every chunk of a
+    node that is the same object at the same position (a subtree without sites is skipped at any position; a node whose
+    sites read the root, a stored patch's typed `set`, is always walked again; `derive` is by identity and position and
+    reads no `Changes`). `applyPatch` leaves the new root's index pending when the old root has one: the nearest index
+    that exists, never another pending one, derived when the next apply (or a read) needs it, so a chain of applies
+    builds once and a run of sets that read no index walks nothing (always walking a typed-set step cost a one-key set 3
+    to 30 ms on a 10,000-ref spec with 30 steps). A pending entry keeps that index alive (its root, chunks and caches):
+    one revision, however long the run. `under` groups the sites by first id on the first query with a prefix. The
+    caches hit only for the same `validate` object a caller passes (held weakly). Measured on 10,000 refs: building the
+    old root's index was 4.5 ms of an 8.4 ms apply, deriving it is about 0.3 ms; the persistent `HashMap` of
+    `data/immutable` is not needed at that size. A site's `path` holds child indices, so an insert or remove in a wide
+    parent rebuilds the sites of its later siblings (nothing reads `path`). An apply has one, derived across its ops
     (`LiveRefs`): the old root's index for what the ops left alone (a site counts while its node is where the moves so
     far put it, still the old root's, and its key untouched), and an overlay, by the draft that holds it, for each key
     an op set or a rewrite changed and each node an op made. The old root's index is built only when an op changes an

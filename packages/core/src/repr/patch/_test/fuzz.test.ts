@@ -9,9 +9,10 @@
 // Short in the quick lane, long in the heavy one.
 
 import { describe, expect, it } from 'vitest';
-import { type ApplyOptions, applyPatch, type Op, type Patch, patchLanguage } from '../../patch.js';
+import { type ApplyOptions, applyPatch, type Op, type Patch, patchLanguage, patchToNode } from '../../patch.js';
 import { type Address, hashNode, type Node, resolveAddress, type Value } from '../../tree/index.js';
 import { PatchConformanceLanguage as PC } from '../conformance.js';
+import { freshRefIndex, peekIndex, type RefIndex, refIndexOf, type Site } from '../refs.js';
 
 const languages = (id: string) => (id === 'pc.patch' ? patchLanguage(PC) : undefined);
 const lang: ApplyOptions = { language: PC, validate: { languages } };
@@ -58,7 +59,29 @@ function nodes(root: Node): Address[] {
 
 const text = (a: Address) => `/${a.join('/')}`;
 
-function fuzz(cases: number, seed: number) {
+/** A site without its node's identity (compared apart), steps by what they point at. */
+function view(s: Site) {
+  const { node: _node, step, ...rest } = s;
+  return { ...rest, ...(step ? { step: { ...step, slot: hashNode(step.slot) } } : {}) };
+}
+
+/** A derived index against one built from scratch on the same root: every site, `dangling`, and `under` by prefix. */
+function expectSameIndex(derived: RefIndex, root: Node) {
+  const fresh = freshRefIndex(root, PC, lang.validate);
+  const a = derived.under([]) as readonly Site[];
+  const b = fresh.under([]) as readonly Site[];
+  expect(a.map(view)).toEqual(b.map(view));
+  a.forEach((s, i) => expect(s.node).toBe(b[i].node));
+  expect((derived.dangling() as readonly Site[]).map(view)).toEqual((fresh.dangling() as readonly Site[]).map(view));
+  for (const at of nodes(root).slice(0, 12))
+    expect((derived.under(at) as readonly Site[]).map(view)).toEqual((fresh.under(at) as readonly Site[]).map(view));
+}
+
+/**
+ * `derived`: the old root has its index, so the apply derives the new root's, and the inverse is applied over it and
+ * over a copy of the root with none (the two consumers: link integrity and the index itself).
+ */
+function fuzz(cases: number, seed: number, derived = false) {
   const r = rng(seed);
   const pick = <T>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
   const refTo = (root: Node) => {
@@ -74,7 +97,20 @@ function fuzz(cases: number, seed: number) {
     if (r() < 0.5) p.link = refTo(root);
     if (kind === 'box' && r() < 0.3) p.links = [refTo(root), refTo(root)];
     if (r() < 0.3) p.label = pick(['x', 'y']);
+    // a stored patch (derived mode): its typed `set` reads the root, so its sites depend on it
+    if (derived && kind === 'box' && r() < 0.25) p.step = stepOf(root);
     return Object.keys(p).length ? p : undefined;
+  };
+  const stepOf = (root: Node): Node => {
+    const all = nodes(root);
+    const ops: Op[] = [];
+    for (let i = 0, n = 1 + Math.floor(r() * 2); i < n && all.length; i++) {
+      const roll = r();
+      if (roll < 0.5) ops.push({ op: 'set', at: pick(all), key: 'link', value: refTo(root) });
+      else if (roll < 0.75) ops.push({ op: 'move', at: pick(all), parent: [], place: { last: true } });
+      else ops.push({ op: 'insert', parent: [], place: { last: true }, node: { kind: 'box', id: pick(Ids) } });
+    }
+    return patchToNode({ ops });
   };
   const tree = (): Node => {
     const root: { kind: string; children: Node[] } = { kind: 'doc', children: [] };
@@ -153,12 +189,34 @@ function fuzz(cases: number, seed: number) {
     const patch: Patch = { ops };
     const allow = { allowDangling: r() < 0.5 || undefined, allowRebind: r() < 0.5 || undefined };
     const before = hashNode(structuredClone(root));
+    if (derived) refIndexOf(root, PC, lang.validate);
     const res = applyPatch(root, patch, { ...lang, ...allow });
     expect(hashNode(structuredClone(root))).toBe(before);
     if (!res.ok || !res.inverse) continue;
     applied++;
     const back = applyPatch(res.root, res.inverse, { ...lang, ...res.inverseNeeds });
-    if (!back.ok || hashNode(back.root) !== hashNode(root)) {
+    if (derived) {
+      const index = peekIndex(res.root, PC, lang.validate);
+      expect(index, `case ${c}: the new root has its index`).toBeDefined();
+      expectSameIndex(index!, res.root);
+      if (back.ok && back.changed) {
+        const next = peekIndex(back.root, PC, lang.validate);
+        expect(next, `case ${c}: the root after the inverse has its index`).toBeDefined();
+        expectSameIndex(next!, back.root);
+      }
+      // link integrity over the derived index and over none
+      const alone = applyPatch(structuredClone(res.root), res.inverse, { ...lang, ...res.inverseNeeds });
+      expect(alone.ok, `case ${c}`).toBe(back.ok);
+      if (alone.ok && back.ok) {
+        expect(hashNode(alone.root)).toBe(hashNode(back.root));
+        expect(alone.issues, `case ${c}: issues`).toEqual(back.issues);
+        expect(alone.inverseNeeds, `case ${c}: inverseNeeds`).toEqual(back.inverseNeeds);
+        expect(alone.inverse, `case ${c}: inverse`).toEqual(back.inverse);
+      } else if (!alone.ok && !back.ok) expect(alone.issues.map((i) => i.code)).toEqual(back.issues.map((i) => i.code));
+    }
+    // derived mode has stored patches in its trees, where the inverse can refuse with what `inverseNeeds` gives (a
+    // dangling ref in a step, seed 3, case 572): not the index's, so the two applies are compared above instead
+    if (!derived && (!back.ok || hashNode(back.root) !== hashNode(root))) {
       throw new Error(
         `case ${c}: ${back.ok ? 'not the root' : back.issues.map((i) => i.code).join()}\n${JSON.stringify({ root, patch, allow })}`,
       );
@@ -174,5 +232,13 @@ describe('repr/patch: law 3 over seeded multi-op patches with refs and a languag
 
   it('the inverse with what it needs gives the root back (long)', { tags: ['heavy'] }, () => {
     expect(fuzz(10000, 2)).toBeGreaterThan(4000);
+  });
+
+  it('a derived ref index equals one built on the same root (short)', () => {
+    expect(fuzz(600, 3, true)).toBeGreaterThan(200);
+  });
+
+  it('a derived ref index equals one built on the same root (long)', { tags: ['heavy'] }, () => {
+    expect(fuzz(3000, 4, true)).toBeGreaterThan(1000);
   });
 });
