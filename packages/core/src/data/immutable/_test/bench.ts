@@ -5,13 +5,15 @@
  */
 
 // A small timing loop for the heavy lane's ratios (README §8): runs a case until it has taken `minMs`, then takes the
-// median of `rounds` such runs, in nanoseconds an operation.
+// fastest of `rounds` such runs, in nanoseconds an operation. The fastest, not the median: a major collection landing in
+// a round of an allocating case (100,000 persistent inserts, after the lane's model runs filled the heap) doubled
+// a median once (2026-11-18); both sides are timed alike.
 
 export interface Timed {
   nsPerOp: number;
 }
 
-/** `run()` does `ops` operations; returns the median ns an operation. */
+/** `run()` does `ops` operations; returns the fastest round's ns an operation. */
 export function time(run: () => unknown, ops: number, minMs = 25, rounds = 7): number {
   let reps = 1;
   // warm and size the repetitions
@@ -28,8 +30,7 @@ export function time(run: () => unknown, ops: number, minMs = 25, rounds = 7): n
     for (let r = 0; r < reps; r++) sink(run());
     samples.push(((performance.now() - t0) * 1e6) / (reps * ops));
   }
-  samples.sort((a, b) => a - b);
-  return samples[rounds >> 1];
+  return Math.min(...samples);
 }
 
 let sunk: unknown;

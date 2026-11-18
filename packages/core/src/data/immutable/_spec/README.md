@@ -116,15 +116,20 @@ removes.
 - The allocation cases: `*.quick.ts`, `npx vitest run -c packages/core/vitest.perf.config.ts`, by hand; each read and
   walk of each kind its own case, measured every step (0 bytes, 30 cases).
 - Against immutable.js (`_test/immutable-js.test.ts`, heavy): ratios for get, set, delete, iterate and build at 10,
-  1,000 and 100,000 entries; it fails only past 4×, and prints every case over 1 as a miss. Measured (2026-11-18):
-  `Vector` faster on every case; maps and sets of 22-character ids faster at 1,000 and 100,000 entries (0.4 to 0.9); the
-  misses are small maps (a lookup at 10 entries 1.3 to 1.8: immutable.js caches string hashes and hashes integers by
-  value), inserts that cross the flat threshold (up to 3.4: every key hashed once then), and integer keys (a lookup at
-  1,000 entries 1.5 to 1.7, a build 2.0: the float64-bits hash). The open choices are a string-hash memo and an int32
-  hash path (each a change to §4).
+  1,000 and 100,000 entries. The target (the author, 2026-11-18): no slower than immutable.js at 1,000 entries or more,
+  within 2× below (small maps pay for CHAMP's bitmaps; Seq\*'s indexes are large). A case over the target prints as a
+  miss; it fails past 1.3 (1,000 or more) or 2.5 (below), the target with a noisy nightly's headroom, or a known miss's
+  own bound (its worst of three runs and a quarter). Three runs (2026-11-18): `Vector` 0.1 to 0.9 on every case; maps
+  and sets of string ids 0.35 to 0.93 at 1,000 and more. The misses: integer keys at 1,000 (a lookup 1.5, a build 1.9,
+  the ordered map 1.1 to 1.3: `fmix32` scatters what immutable.js's identity hash packs densely; an identity hash reads
+  as fast as immutable.js), and inserts across the flat threshold (3.4 for string ids, 2.2 ordered: every key hashed
+  then; `memoHash` is the opt-in remedy).
 - The flat threshold (same file): a lookup and a persistent set on a flat array and on a trie of 1 to 32 entries. The
   flat array won both at every size to 16 (string ids: a lookup 14 to 20 ns flat, 52 to 60 ns as a trie; integers: 17 to
   24 against 33 to 38), integers crossing at about 25 and string ids past 32; so 16.
+- The bundle: the entry minified, 28.2 kB (7.9 kB gzip; immutable.js 5.1.9's `immutable.min.js` 68.5 kB, 19.1 kB gzip),
+  2026-11-18:
+  `npx esbuild packages/core/src/data/immutable.ts --bundle --minify --format=esm --outfile=/tmp/immutable.min.js`.
 
 ## 9. The `StateTree` spike
 

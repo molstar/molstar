@@ -6,8 +6,9 @@
 // @module-tag heavy
 
 // Against immutable.js (README §8): get, set, delete, iterate and build at 10, 1,000 and 100,000 entries, keys
-// including 22-character string ids, as ratios (ours over immutable.js; the target is at most 1). A miss is printed
-// with its case; the test fails only past `Catastrophic`, a regression no machine's noise explains. And the flat
+// including 22-character string ids, as ratios (ours over immutable.js). The target (README §8): at most 1 at 1,000
+// entries or more, at most 2 below; a case over it prints as a miss. A case fails past its bound: the target with a
+// noisy nightly's headroom, or a known miss's own bound (`KnownMisses`). And the flat
 // threshold's measurement (README §2): a lookup and a persistent set on a flat array and on a trie of 1 to 32 entries.
 
 import { List, Map as IMap, OrderedMap, Set as ISet } from 'immutable';
@@ -21,11 +22,43 @@ import { Vector } from '../vector.js';
 import { time } from './bench.js';
 import { id22, Rng } from './model.js';
 
+/** The target: at most this ratio at 1,000 entries or more, and `TargetSmall` below (README §8). */
+const Target = 1;
+const TargetSmall = 2;
+/** The bounds a case fails past: the target with headroom (three runs read a case at most 0.35 apart, 2026-11-18). */
+const Bound = 1.3;
+const BoundSmall = 2.5;
+
 /**
- * The worst ratio measured (2026-11-18, M-series, Node): 3.4, ten inserts into a 10-entry map of string ids, which cross
- * the flat threshold once and hash every key then (no string-hash memo, README §4); the rest under 2.
+ * The known misses, each bounded at its worst of three runs (2026-11-18, M-series, Node 25) with a quarter as headroom.
+ * Integer keys at 1,000: `fmix32` scatters `i * 7 + 1` where immutable.js's identity hash fills its nodes densely (a
+ * lookup 24 to 29 ns against 10 to 11, with an identity hash ours reads 10). Inserts across the flat threshold hash
+ * every key then (no string-hash memo by default, README §4).
  */
-const Catastrophic = 4;
+const KnownMisses: Record<string, number> = {
+  // measured 2.95 / 3.32 / 3.37
+  'HashMap set (insert) id22 n=10': 4.2,
+  // 2.19 / 2.23 / 2.05
+  'OrderedHashMap set (insert) id22 n=10': 2.8,
+  // 1.47 / 1.46 / 1.43
+  'HashMap get int n=1000': 1.9,
+  // 1.09 / 1.19 / 1.18
+  'HashMap iterate int n=1000': 1.5,
+  // 1.87 / 1.85 / 1.82
+  'HashMap build int n=1000': 2.4,
+  // 0.90 / 0.91 / 1.06
+  'HashMap build int n=100000': 1.4,
+  // 1.28 / 1.29 / 1.28
+  'OrderedHashMap get int n=1000': 1.7,
+  // 1.11 / 1.03 / 1.10
+  'OrderedHashMap set (update) int n=1000': 1.45,
+  // 1.18 / 1.19 / 1.21
+  'OrderedHashMap build int n=1000': 1.6,
+};
+
+function sizeOf(name: string) {
+  return Number(/n=(\d+)/.exec(name)![1]);
+}
 const Sizes = [10, 1_000, 100_000];
 
 interface Row {
@@ -37,12 +70,15 @@ interface Row {
 function report(title: string, rows: Row[]) {
   const lines = rows.map(
     (r) =>
-      `${r.name.padEnd(44)} ${r.ours.toFixed(1).padStart(9)} ns ${r.theirs.toFixed(1).padStart(9)} ns  ${(r.ours / r.theirs).toFixed(2)}${r.ours > r.theirs ? '  MISS' : ''}`,
+      `${r.name.padEnd(44)} ${r.ours.toFixed(1).padStart(9)} ns ${r.theirs.toFixed(1).padStart(9)} ns  ${(r.ours / r.theirs).toFixed(2)}${r.ours / r.theirs > (sizeOf(r.name) >= 1000 ? Target : TargetSmall) ? '  MISS' : ''}`,
   );
   console.info(
     `${title}\n${'case'.padEnd(44)} ${'ours'.padStart(12)} ${'immutable'.padStart(12)}  ratio\n${lines.join('\n')}`,
   );
-  for (const r of rows) expect(r.ours / r.theirs, r.name).toBeLessThan(Catastrophic);
+  for (const r of rows) {
+    const bound = KnownMisses[r.name] ?? (sizeOf(r.name) >= 1000 ? Bound : BoundSmall);
+    expect(r.ours / r.theirs, r.name).toBeLessThan(bound);
+  }
 }
 
 function keysOf(kind: 'id22' | 'int', n: number, seed: number): unknown[] {
