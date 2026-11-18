@@ -743,10 +743,16 @@ strings draw lists keep interned across frames (`internedStrings`, 4,096; past i
   `emphasis.projected` on every section but the hover's own (`SectionLayout.id`, the section's id a hit names), so a
   hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass).
 - `cursor`: the outline of its cell on every section of its system (the `cursor` pass).
-- **The tint's place** (`emphasis.selectionPlace`): `over` (the default: translucent over the data, with its outline; a
-  selection redraws the emphasis alone) or `under` (in the `background` pass: hidden by opaque cells; an emphasis redraw
-  whose selection or projected selection changed by identity draws `background` and `data` again, `Frame.base`, and a
-  backend redraws its base). Why `over` by default: a pass under the data is hidden by opaque cells.
+- **The order of emphasis** is fixed, below to above: data, highlight channels, selection, hover, cursor; a higher one
+  never hides a lower one entirely (tints are translucent, outlines are lines).
+- **The tints' place** (`emphasis.selectionPlace`): `over` (the default: the highlights' tints over the data in the
+  `highlight` pass, the selection's above them in the `selection` pass with its outline; a selection or a highlight
+  redraws the emphasis alone) or `under` (the highlights' tints and then the selection's in the `background` pass, under
+  the data and hidden by opaque cells, the outline still in the `selection` pass; an emphasis redraw whose selection,
+  projected selection or highlights changed by identity draws `background` and `data` again, `Frame.base`, and a backend
+  redraws its base: about a full draw of the data, a millisecond or two on the p53 views, against the emphasis alone).
+  Either way the highlights are below the selection. Why `over` by default: a tint under the data is hidden by opaque
+  cells, and a selection then costs a data redraw.
 - What a shared mark function needs besides its objects (a fill, a stroke, a width) goes through a typed array, and a
   color at an opacity is made inline: the emphasis passes allocate nothing once warm (`frame.quick.ts`: selection and
   cursor; projected hover, selection and highlights).

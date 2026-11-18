@@ -163,6 +163,39 @@ describe('the selection’s tint: over the data (default) or under it', () => {
   });
 });
 
+describe('the order of the tints: highlights below the selection', () => {
+  const sel = rangesLocation(Protein, [3, 6]);
+  const highlights = [{ location: rangesLocation(Protein, [4, 8]), color: 0x00ff00ff }];
+
+  it('under: the highlights’ tints in the background pass, before the selection’s; a changed channel redraws the base', async () => {
+    const s = await settle(p53TracksSpec(), [], { emphasis: { selectionPlace: 'under' } });
+    const input = { size: Size, viewport: { start: 0, end: 30 } };
+    await s.frame(input);
+    const f = s.renderer.frame({ ...input, emphasis: { selection: sel, highlights } });
+    const bg = rects(f.lists, 'background').map((r) => r.line);
+    const h = bg.findIndex((l) => l.includes('#00ff004d'));
+    const t = bg.findIndex((l) => l.includes('#8f4c062e'));
+    expect(h).toBeGreaterThan(0);
+    expect(t).toBeGreaterThan(h);
+    expect(rects(f.lists, 'highlight')).toEqual([]);
+    const again = s.renderer.frame({
+      ...input,
+      emphasis: { selection: sel, highlights: [{ ...highlights[0], color: 0xff0000ff }] },
+    });
+    expect(again.base).toBe(true);
+  });
+
+  it('over: the highlights over the data, the selection’s pass above them', async () => {
+    const s = await settle(p53TracksSpec());
+    const input = { size: Size, viewport: { start: 0, end: 30 } };
+    await s.frame(input);
+    const f = s.renderer.frame({ ...input, emphasis: { selection: sel, highlights } });
+    expect(rects(f.lists, 'highlight').length).toBeGreaterThan(0);
+    expect(rects(f.lists, 'background').some((r) => r.line.includes('#00ff004d'))).toBe(false);
+    expect(f.base).toBe(false);
+  });
+});
+
 describe('an export draws the selection projected, as the viewer does', () => {
   it('a selection on the protein, given as an address, shows on the gene’s section too', async () => {
     const r = await renderSvg(p53GeneSpec(), {

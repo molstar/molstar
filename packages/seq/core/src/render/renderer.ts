@@ -161,6 +161,7 @@ export class Renderer {
   /** The selection the base passes were last drawn with (its tint under the data). */
   private baseSelection: unknown;
   private baseProjected: unknown;
+  private baseHighlights: unknown;
   private readonly reader: StoreReader;
 
   constructor(readonly options: RendererOptions) {
@@ -206,14 +207,17 @@ export class Renderer {
     const overlay = input.overlay ?? EmptyOverlay;
     const parts = this.parts;
     if (this.layout && parts.equals(this, input) && this.readsHold()) {
-      // a selection's tint under the data is in the background pass: a changed selection draws the base again
+      // the tints under the data are in the background pass: a changed selection or highlight draws the base again
       const e = input.emphasis;
       const base =
         this.config.emphasis.selectionPlace === 'under' &&
-        (e?.selection !== this.baseSelection || e?.projected?.selection !== this.baseProjected);
+        (e?.selection !== this.baseSelection ||
+          e?.projected?.selection !== this.baseProjected ||
+          e?.highlights !== this.baseHighlights);
       if (base) {
         this.baseSelection = e?.selection;
         this.baseProjected = e?.projected?.selection;
+        this.baseHighlights = e?.highlights;
       }
       drawView(this.layout, this.lists, e, base ? BaseAndEmphasisPasses : EmphasisPasses);
       let f = this.emphasisFrame;
@@ -256,6 +260,7 @@ export class Renderer {
     drawView(layout, this.lists, input.emphasis);
     this.baseSelection = input.emphasis?.selection;
     this.baseProjected = input.emphasis?.projected?.selection;
+    this.baseHighlights = input.emphasis?.highlights;
     const reads = [...this.reads].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     let sig = '';
     for (const [k, v] of reads) sig += `${k}=${v};`;

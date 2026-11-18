@@ -411,7 +411,10 @@ const ViewDraws = passDraws<ViewLayout, Emphasis | undefined>({
   labels: drawTracks,
 });
 
-/** The background pass: the page, each track's box, and the selection's tint when it is drawn under the data. */
+/**
+ * The background pass: the page, each track's box, and with the tints under the data (`emphasis.selectionPlace:
+ * 'under'`) the highlight channels' tints and then the selection's above them.
+ */
 function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
   const { tokens, config } = layout;
   out.fill(0, 0, layout.width, layout.height, tokens.colors['msui-bg']);
@@ -423,7 +426,10 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
       const { box } = t;
       if (box.y >= layout.height) continue;
       out.fill(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
-      if (under && s.axis && emphasis) drawSelectionTint(out, s.axis, box, emphasis, tokens, config);
+      if (under && s.axis && emphasis) {
+        if (emphasis.highlights) drawHighlights(out, s.axis, box, emphasis, config);
+        drawSelectionTint(out, s.axis, box, emphasis, tokens, config);
+      }
     }
   }
 }
@@ -443,7 +449,9 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
           drawLabel(out, t, tokens, config);
           break;
         case 'highlight':
-          if (s.axis && emphasis?.highlights) drawHighlights(out, s.axis, box, emphasis, config);
+          // over the data, below the selection's pass; under it, in the background pass
+          if (s.axis && emphasis?.highlights && config.emphasis.selectionPlace === 'over')
+            drawHighlights(out, s.axis, box, emphasis, config);
           break;
         case 'selection':
           if (s.axis && emphasis) {
