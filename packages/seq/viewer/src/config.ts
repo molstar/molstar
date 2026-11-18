@@ -35,6 +35,28 @@ export interface ViewerConfig {
     /** Close the hover before projecting: a nucleotide lights its whole codon and its residue (true, EC-30, EC-144). */
     readonly closeCodons: boolean;
   };
+  readonly selection: {
+    /**
+     * The dynamic nodes the selection names (its elements' owners, its systems) are held in the store while selected
+     * (true): a selected transcript stays when its region scrolls away; false: only while shown.
+     */
+    readonly holdNodes: boolean;
+  };
+  readonly highlight: {
+    /** A highlight channel's color when `colors` names none: a hex literal or `token:<name>` (`token:cat-5`). */
+    readonly color: string;
+    /** Colors by channel (`link-hover`: `token:hover`, the hover's ink, tinted). */
+    readonly colors: Readonly<Record<string, string>>;
+  };
+  readonly cursor: {
+    /**
+     * The keys that move the keyboard cursor: a position back and on, and to the section above and below; Shift with
+     * `prev` or `next` extends the selection from it (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`).
+     */
+    readonly keys: { readonly prev: string; readonly next: string; readonly up: string; readonly down: string };
+    /** A cursor moved out of view pans its section to show it (true); false: it moves unseen. */
+    readonly reveal: boolean;
+  };
   readonly viewport: {
     /** The most pixels a position may take when zoomed in: the zoom's upper bound. */
     readonly maxPxPerPosition: number;
@@ -169,6 +191,9 @@ export const DefaultViewerConfig: ViewerConfig = {
   bindings: { preset: 'default' },
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
   hover: { projectLinked: true, closeCodons: true },
+  selection: { holdNodes: true },
+  highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
+  cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }, reveal: true },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
   follow: { followerMoves: 'ignore', cyclicArc: 'wrap' },
   navigate: { wheelZoomStep: 1.25, keyPanFraction: 0.1, coalesceWheel: true },

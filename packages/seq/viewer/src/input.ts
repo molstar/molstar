@@ -6,13 +6,24 @@
 
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
 import { type ModifierState, modifiersOf } from '@molstar/seqx-viewer/bindings';
+import { changeKindOf } from './commands.js';
 import {
   type HoverBehavior,
   HoverProvider,
   type NavigateBehavior,
   NavigateProvider,
+  type SelectBehavior,
+  SelectProvider,
 } from '@molstar/seqx-viewer/behaviors';
-import { type Hit, type HitTarget, hitTarget, offsetOf } from '@molstar/seqx-viewer/models';
+import {
+  type Anchor,
+  type Emphasized,
+  type Hit,
+  type HitTarget,
+  hitTarget,
+  isNothing,
+  offsetOf,
+} from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
 
 // The viewer's input (_spec/README.md "Input"): pointer, wheel and key events in canvas coordinates (CSS px from the
@@ -27,6 +38,14 @@ export interface KeyState {
   readonly ctrlKey?: boolean;
   readonly altKey?: boolean;
 }
+
+/** A click's state: its count (`detail`: 2 for the second click of a double-click). */
+export interface ClickState extends KeyState {
+  readonly detail?: number;
+}
+
+/** How far a pointer moves before a press is a drag, not a click (CSS px). */
+const DragSlop = 3;
 
 export interface WheelState extends KeyState {
   readonly deltaX: number;
@@ -50,7 +69,13 @@ export class ViewerInput {
   /** The pointer's last place while it rests over the canvas (EC-143's re-hit reads it). */
   private _x = Number.NaN;
   private _y = Number.NaN;
-  private _drag: { x: number; section: string; target: HitTarget } | undefined;
+  private _drag:
+    | { x: number; x0: number; section: string; target: HitTarget; select: boolean; moved: boolean }
+    | undefined;
+  /** A drag moved before the button went up: the click the platform sends after it is not one. */
+  private _suppressClick = false;
+  /** Space was held while a drag began: its release is no tap (no toggle). */
+  private _spaceUsed = false;
 
   constructor(private readonly viewer: SeqViewer) {}
 
@@ -60,6 +85,10 @@ export class ViewerInput {
 
   private get navigateBehavior(): NavigateBehavior | undefined {
     return this.viewer.behavior(NavigateProvider);
+  }
+
+  private get selectBehavior(): SelectBehavior | undefined {
+    return this.viewer.behavior(SelectProvider);
   }
 
   /** Whether the pointer is over the canvas. */
@@ -99,12 +128,19 @@ export class ViewerInput {
     this._y = y;
     const mods = this._modifiers(e);
     const d = this._drag;
+    const hit = this._hitAt(x, y);
     if (d) {
-      const dx = x - d.x;
-      d.x = x;
-      this.navigateBehavior?.drag(d.section, dx, mods, d.target);
+      if (!d.moved && Math.abs(x - d.x0) >= DragSlop) d.moved = true;
+      if (d.select) {
+        // the range from where it began to the pointer, read from the view even past the data
+        if (d.moved) this.selectBehavior?.dragTo(d.section, x - this.viewer.dataX, hit);
+      } else {
+        const dx = x - d.x;
+        d.x = x;
+        this.navigateBehavior?.drag(d.section, dx, mods, d.target);
+      }
     }
-    this.hoverBehavior?.move(this._hitAt(x, y), mods);
+    this.hoverBehavior?.move(hit, mods);
   }
 
   /** The pointer left the canvas: the hover it owned goes, and no re-hit follows. */
@@ -127,18 +163,76 @@ export class ViewerInput {
   /** The primary button went down at (x, y): a drag begins when the bindings give one here. */
   down(x: number, y: number, e: KeyState = {}): boolean {
     if (this.viewer.retired) return false;
+    // a new press: a click after it is its own
+    this._suppressClick = false;
     const section = this.sectionAt(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
-    const target = hitTarget(this._hitAt(x, y));
-    if (this.viewer.bindings.resolve('drag', mods, target) === undefined) return false;
-    this._drag = { x, section, target };
+    const hit = this._hitAt(x, y);
+    const target = hitTarget(hit);
+    const action = this.viewer.bindings.resolve('drag', mods, target);
+    if (action === undefined) return false;
+    // a drag-select begins on what was hit; it selects once the pointer moves past the slop (else it is a click)
+    const select = action === 'drag-select' && !!this.selectBehavior?.beginDrag(section, hit, mods, target);
+    if (action === 'drag-select' && !select) return false;
+    if (this._space) this._spaceUsed = true;
+    this._drag = { x, x0: x, section, target, select, moved: false };
     return true;
   }
 
-  /** The button went up (or the gesture was cancelled). */
+  /**
+   * The button went up (or the gesture was cancelled). The platform calls it more than once for one press (`pointerup`,
+   * then `lostpointercapture`): only the call that ends a drag touches what follows it.
+   */
   up(): void {
+    const d = this._drag;
+    if (!d) return;
+    if (d.select) this.selectBehavior?.endDrag();
+    this._suppressClick = d.moved;
     this._drag = undefined;
+  }
+
+  /**
+   * A click at (x, y) through the bindings (select, extend, toggle, clear): what was hit is the granularity. The click
+   * that ends a drag, and the second click of a double-click, are not clicks. True when a binding took it.
+   */
+  click(x: number, y: number, e: ClickState = {}): boolean {
+    if (this.viewer.retired) return false;
+    if (this._suppressClick) {
+      this._suppressClick = false;
+      return false;
+    }
+    if ((e.detail ?? 1) > 1) {
+      this._restoreCleared();
+      return false;
+    }
+    this._cleared = undefined;
+    const select = this.selectBehavior;
+    if (!select) return false;
+    const section = this.sectionAt(y);
+    const hit = this._hitAt(x, y);
+    const sel = this.viewer.selection;
+    const before = sel.value.value;
+    const anchor = sel.anchor;
+    // the behavior keeps nothing of the reused record but what it copies
+    const taken = select.click(
+      section,
+      hit ? { ...hit, ...(section !== undefined ? { section } : {}) } : undefined,
+      this._modifiers(e),
+    );
+    // a click that cleared the selection may be a double-click's first: kept until the next click says
+    if (!isNothing(before) && isNothing(sel.value.value)) this._cleared = { value: before, anchor };
+    return taken;
+  }
+
+  /** What the first click of a double-click cleared (clicking the only selected element), until the next click. */
+  private _cleared: { value: Emphasized; anchor: Anchor | undefined } | undefined;
+
+  /** A double-click's second click (or its `dblclick`) gives back what its first click cleared. */
+  private _restoreCleared(): void {
+    const c = this._cleared;
+    this._cleared = undefined;
+    if (c && isNothing(this.viewer.selection.value.value)) this.viewer.selection.set(c.value, c.anchor);
   }
 
   get dragging(): boolean {
@@ -186,6 +280,7 @@ export class ViewerInput {
   /** A double-click: the bound command, with the element or position under the pointer as what to focus. */
   doubleClick(x: number, y: number, e: KeyState = {}): boolean {
     if (this.viewer.retired) return false;
+    this._restoreCleared();
     const section = this.sectionAt(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
@@ -219,25 +314,55 @@ export class ViewerInput {
 
   /** The Space key, held for a drag that pans on any target. */
   setSpace(held: boolean): void {
+    if (held && !this._space) this._spaceUsed = false;
     this._space = held;
   }
 
   /**
-   * A key: the command whose shortcut it is, run on the section under the pointer (else the first). True when one ran.
-   * Keys go to the commands' shortcuts; the keymap of `@molstar/ui` replaces this when the commands join a manager.
+   * Space released: a tap (no drag began while it was held) is the Space key's command (the cursor's toggle); a hold
+   * that panned is not. True when a command ran.
+   */
+  spaceUp(e: KeyState = {}): boolean {
+    const tap = this._space && !this._spaceUsed;
+    this.setSpace(false);
+    return tap
+      ? this.key({ key: ' ', shiftKey: !!e.shiftKey, altKey: !!e.altKey, metaKey: !!e.metaKey, ctrlKey: !!e.ctrlKey })
+      : false;
+  }
+
+  /**
+   * A key: the first command whose shortcut it is and that can run now (Esc cancels a gesture's preview first, then
+   * clears the selection), on the section under the pointer (else the first). True when one ran. Keys go to the
+   * commands' shortcuts; the keymap of `@molstar/ui` replaces this when the commands join a manager.
    */
   key(e: KeyState & { key: string }): boolean {
     if (this.viewer.retired) return false;
-    for (const c of this.viewer.commands) {
-      const k = c.shortcut;
-      if (!k || k.key !== e.key) continue;
-      if (!!k.alt !== !!e.altKey || !!k.shift !== !!e.shiftKey) continue;
-      if (!!k.mod !== (this.mac ? !!e.metaKey : !!e.ctrlKey)) continue;
-      const section =
-        (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
-      this.viewer.runCommand(c.id, { section });
+    // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
+    if (e.key === 'Escape' && this._drag?.select) {
+      this.selectBehavior?.cancelDrag();
+      this._drag = undefined;
+      this._suppressClick = true;
       return true;
     }
-    return false;
+    const section =
+      (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
+    const ctx = { section };
+    let matched = false;
+    // a gesture in progress first (a preview's command), then the rest in the spec's order
+    for (const previews of [true, false])
+      for (const c of this.viewer.commands) {
+        const k = c.shortcut;
+        if (!k || k.key !== e.key || (changeKindOf(c.id) === 'preview') !== previews) continue;
+        if (!!k.alt !== !!e.altKey || !!k.shift !== !!e.shiftKey) continue;
+        if (!!k.mod !== (this.mac ? !!e.metaKey : !!e.ctrlKey)) continue;
+        matched = true;
+        const can = c.when?.(ctx as never);
+        if (can !== undefined && can !== true) continue;
+        this.viewer.runCommand(c.id, ctx);
+        return true;
+      }
+    // a shortcut with modifiers is the viewer's even when nothing can run now (Alt+ArrowLeft is no browser Back); a
+    // plain key nothing takes (Esc with nothing to cancel) stays the host's
+    return matched && !!(e.altKey || e.shiftKey || e.metaKey || e.ctrlKey);
   }
 }

@@ -1,0 +1,78 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// A Location carried onto a view's sections (_spec/README.md "Resolved view", Projection): what is hovered, selected
+// or highlighted on one section's system shows on every section it links to. Each part is carried along the view's
+// link from a section on its system (the paths composed when the view was resolved, so nothing composes here), else,
+// for a system no section shows (a structure's chain, an item system), along the model's static path. One Location keyed
+// by system: two sections on one system show the same.
+
+import { EmptyLocation, type Location, type LocationPart, location } from '@molstar/seqx-core/query';
+import { type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
+import type { ResolvedView } from './view.js';
+
+export interface ProjectOptions {
+  /**
+   * Close the Location first among the view's systems (a nucleotide gains its residue and lifts to its codon, EC-30,
+   * EC-144): what a hover lights. False by default.
+   */
+  readonly close?: boolean;
+  /**
+   * Keep the parts already on a section's system (`true`: the closed Location as each section shows it, a hover's), or
+   * only those carried from other systems onto systems the Location has no part on (`false`, the default: what a
+   * selection adds to the sections it is not on).
+   */
+  readonly own?: boolean;
+  /** Carry parts along links at all (true by default); false keeps the own parts alone. */
+  readonly linked?: boolean;
+}
+
+/**
+ * `loc` on the view's sections' systems: per system a section shows, the parts carried to it (rects are not carried).
+ * Empty when nothing reaches a section.
+ */
+export function projectOntoView(
+  model: StaticModel,
+  view: ResolvedView,
+  loc: Location,
+  options: ProjectOptions = {},
+): Location {
+  if (!loc.parts.length) return EmptyLocation;
+  const systems: string[] = [];
+  for (const s of view.sections) if (!systems.includes(s.axis.system)) systems.push(s.axis.system);
+  const src = options.close ? model.close(loc, systems) : loc;
+  const own = new Set(loc.parts.map((p) => p.system));
+  const parts: { system: string; ranges: ArrayLike<number> }[] = [];
+  const buffer: number[] = [];
+  for (const system of systems) {
+    if (!options.own && own.has(system)) continue;
+    for (const part of src.parts) {
+      if (part.system === system) {
+        if (options.own) parts.push(part);
+        continue;
+      }
+      if (options.linked === false) continue;
+      const path = pathOf(model, view, part, system);
+      if (path) parts.push({ system, ranges: projectRanges(path, part.ranges, buffer).slice() });
+    }
+  }
+  return parts.length ? location({ parts }) : EmptyLocation;
+}
+
+/** The view's link from a section on the part's system to one on `system`; else the model's static path (a system no section shows). */
+function pathOf(model: StaticModel, view: ResolvedView, part: LocationPart, system: string): Path | undefined {
+  let shown = false;
+  for (const l of view.links) {
+    const from = view.sections.find((s) => s.address === l.from);
+    if (from?.axis.system !== part.system) continue;
+    shown = true;
+    const to = view.sections.find((s) => s.address === l.to);
+    if (to?.axis.system === system) return l.path;
+  }
+  if (shown || view.sections.some((s) => s.axis.system === part.system)) return undefined;
+  if (!model.systems.has(part.system) || !model.systems.has(system)) return undefined;
+  return model.path(part.system, system).path;
+}

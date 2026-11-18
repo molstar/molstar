@@ -9,6 +9,7 @@
 export * from './address.js';
 export * from './axis.js';
 export * from './hover.js';
+export * from './projection.js';
 export * from './selection.js';
 export * from './spec.js';
 export * from './store.js';

@@ -13,7 +13,8 @@
   },
   "files": [],
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "test:perf": "vitest run -c vitest.perf.config.ts"
   },
   "dependencies": {
     "@molstar/core": "workspace:*",

@@ -6,7 +6,7 @@
 
 import type { Issue } from '@molstar/core/repr/tree';
 import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
-import type { ElementKey, Location } from '@molstar/seqx-core/query';
+import type { ElementKey, Elements, Location } from '@molstar/seqx-core/query';
 import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
@@ -76,11 +76,39 @@ export function sectionId(section: { readonly address: string }): string {
   return a.slice(a.lastIndexOf('/') + 1);
 }
 
-/** What the emphasis passes draw: the hover, the selection (a Location), the keyboard cursor. */
+/** A highlight channel as drawn: its Location (on every system it shows on) and its color, tinted. */
+export interface EmphasisHighlight {
+  readonly location: Location;
+  /** `0xRRGGBBAA`: drawn at `emphasis.highlightTint` opacity. */
+  readonly color: number;
+}
+
+/**
+ * What the emphasis passes draw (_spec/README.md "Render", Emphasis): the hover, the selection (a Location), the
+ * keyboard cursor, the highlight channels, and the hover and the selection carried onto linked sections.
+ */
 export interface Emphasis {
   readonly hover?: Hit;
   readonly selection?: Location;
+  /**
+   * The selection's element keys: a layer draws those its Location cannot hold (a boundary, an item of zero length, as a
+   * hairline, EC-127).
+   */
+  readonly elements?: Elements;
   readonly cursor?: { readonly system: string; readonly position: number };
+  /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
+  readonly highlights?: readonly EmphasisHighlight[];
+  /**
+   * The hover and the selection carried onto the linked sections' systems (`projectOntoView`), one Location each, keyed
+   * by system: drawn in the same look, lighter (`emphasis.projected`). The projected hover is drawn on every section
+   * but `hoverSection` (its layer outlines it there); the projected selection where the selection has no part.
+   */
+  readonly projected?: {
+    readonly hover?: Location;
+    readonly selection?: Location;
+    /** The hover's own section's address: the projected hover is drawn on every other section. */
+    readonly hoverSection?: string;
+  };
 }
 
 /** A layer's legend: a ramp over a domain, or categories with their colors. */

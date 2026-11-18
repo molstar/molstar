@@ -10,6 +10,7 @@ import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import { createSeqContext, type SeqContext } from '@molstar/seqx-core/context';
 import {
   type Emphasis,
+  type EmphasisHighlight,
   type Frame,
   type FrameInput,
   type Hit as RenderHit,
@@ -18,12 +19,20 @@ import {
   type RenderSvgResult,
   type Viewport as RenderViewport,
   hitView,
+  resolveColor,
 } from '@molstar/seqx-core/render';
+import { type Location, locationOfResult } from '@molstar/seqx-core/query';
 import type { SeqTokens } from '@molstar/seqx-core/render';
 import { type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
-import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
+import {
+  bindingTable,
+  DefaultActions,
+  type BindingTable,
+  BindingPresets,
+  SelectActions,
+} from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import {
@@ -31,12 +40,13 @@ import {
   HighlightModel,
   HoverModel,
   isNothing,
+  Projector,
   SelectionModel,
   SpecModel,
   StoreModel,
   ViewModel,
 } from '@molstar/seqx-viewer/models';
-import { AddressingProvider, type LinkRun } from '@molstar/seqx-viewer/behaviors';
+import { AddressingProvider, type LinkRun, SelectProvider } from '@molstar/seqx-viewer/behaviors';
 import { ViewerInput } from './input.js';
 import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
@@ -107,6 +117,13 @@ export class SeqViewer extends ReactiveModel {
   private _frameId: number | undefined;
   private _rehitting = false;
   private readonly _emphasis: Mutable<Emphasis> = {};
+  private readonly _projector: Projector;
+  /** The emphasis's projected record, reused: its fields are the cached projections. */
+  private readonly _projected: { hover?: Location; selection?: Location; hoverSection?: string } = {};
+  private readonly _cursor = { system: '', position: 0 };
+  /** The highlights as drawn, made again only when a channel, the tokens, the view or the model changed. */
+  private _highlights: readonly EmphasisHighlight[] = [];
+  private readonly _highlightsFor: unknown[] = [];
   private readonly _emphasisHit = {} as Mutable<RenderHit>;
   /** Section ids by address (the last step), kept: a hover makes no string. */
   private readonly _sectionIds = new Map<string, string>();
@@ -157,7 +174,13 @@ export class SeqViewer extends ReactiveModel {
     this.view = new ViewModel(this.spec, this.config);
     this.hover = new HoverModel(this.spec, this.view, this.config);
     this.store = new StoreModel(this.config);
-    this.selection = new SelectionModel();
+    // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
+    this.selection = new SelectionModel(
+      (els) =>
+        locationOfResult(this.spec.shown.value, this.addresses.queryModel(), { type: 'elements', elements: els })
+          .location,
+    );
+    this._projector = new Projector(this.spec, this.view);
     this.highlight = new HighlightModel();
     this.addresses = new AddressModel(
       this.spec,
@@ -176,8 +199,10 @@ export class SeqViewer extends ReactiveModel {
 
     const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
+    // the selection's actions only with the behavior that runs them: else its bindings are reported, never dead
+    const select = viewerSpec.behaviors.some((b) => b.provider === SelectProvider) ? SelectActions : [];
     this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
-      actions: [...DefaultActions, ...extraActions],
+      actions: [...DefaultActions, ...select, ...extraActions],
     });
 
     // behaviors, after the models; one of each name
@@ -211,7 +236,12 @@ export class SeqViewer extends ReactiveModel {
     // what moves the picture asks for a frame
     this.listenPermanently(this.spec.model, () => this._sync());
     this.listenPermanently(this.hover.version, () => this.schedule());
-    this.listenPermanently(this.selection.value, () => this.schedule());
+    this.listenPermanently(this.selection.value, () => {
+      this._holdSelection();
+      this.schedule();
+    });
+    this.listenPermanently(this.selection.cursor, () => this.schedule());
+    this.listenPermanently(this.highlight.version, () => this.schedule());
     // a source-backed system's length arrives with its source's coverage: the view's axes are placed then
     this.view.setLengthSource((system) => {
       const s = this.spec.model.value.systems.get(system);
@@ -525,7 +555,7 @@ export class SeqViewer extends ReactiveModel {
     if (backend) {
       backend.fonts.setStacks(renderer.tokens.fonts);
       this._baseDirty = backend.resize(size.width, size.height, dpr) || this._baseDirty;
-      backend.draw(frame.lists, rebuilt || this._baseDirty);
+      backend.draw(frame.lists, rebuilt || frame.base || this._baseDirty);
       this._baseDirty = false;
     }
     this.counts.frames++;
@@ -544,16 +574,38 @@ export class SeqViewer extends ReactiveModel {
     return this._frame;
   }
 
-  /** The hover as the emphasis passes draw it: one reused record, mutated when the hover changes; the selection's Location. */
+  /**
+   * The emphasis the passes draw: the selection's Location and its projection onto the linked sections, the cursor, the
+   * highlight channels (each with its projection), and the hover with its projection. Reused records, mutated when what
+   * they show changes; the projections are cached (`Projector`, `HoverModel.projectedAll`), so a redraw makes none.
+   */
   private _updateEmphasis(): void {
+    const e = this._emphasis;
+    const p = this._projected;
     const sel = this.selection.value.value;
-    this._emphasis.selection = isNothing(sel) ? undefined : sel.shown;
+    e.elements = sel.elements.keys.length ? sel.elements : undefined;
+    if (isNothing(sel)) e.selection = p.selection = undefined;
+    else {
+      e.selection = sel.shown;
+      p.selection = this._projector.of(sel.shown);
+    }
+    // the cursor shows once the keyboard moved it (focus-visible: a click places it unseen)
+    const c = this.selection.cursor.value;
+    if (c?.keyboard) {
+      this._cursor.system = c.system;
+      this._cursor.position = c.position;
+      e.cursor = this._cursor;
+    } else e.cursor = undefined;
+    this._updateHighlights();
+    e.projected = p;
+    p.hover = this.hover.projectedAll();
+    p.hoverSection = this.hover.current.section;
     const v = this.hover.version.value;
     if (v === this._hoverVersion) return;
     this._hoverVersion = v;
     const r = this.hover.current;
     if (r.owner === undefined || r.layer === undefined || r.system === undefined) {
-      this._emphasis.hover = undefined;
+      e.hover = undefined;
       return;
     }
     const h = this._emphasisHit;
@@ -563,7 +615,47 @@ export class SeqViewer extends ReactiveModel {
     (h as { position: number | undefined }).position = Number.isNaN(r.position) ? undefined : r.position;
     (h as { element: unknown }).element = r.element;
     (h as { extent: unknown }).extent = r.extent;
-    this._emphasis.hover = h;
+    e.hover = h;
+  }
+
+  /** The highlight channels as drawn: each its Location on every section it shows on, in its channel's color. */
+  private _updateHighlights(): void {
+    const k = this._highlightsFor;
+    const version = this.highlight.version.value;
+    const view = this.view.resolved.value;
+    const model = this.spec.model.value;
+    if (k[0] === version && k[1] === this.tokens.version && k[2] === view && k[3] === model) {
+      this._emphasis.highlights = this._highlights.length ? this._highlights : undefined;
+      return;
+    }
+    k[0] = version;
+    k[1] = this.tokens.version;
+    k[2] = view;
+    k[3] = model;
+    const out: EmphasisHighlight[] = [];
+    const { color, colors } = this.config.highlight;
+    for (const name of this.highlight.names.value) {
+      const h = this.highlight.get(name);
+      if (!h || isNothing(h)) continue;
+      const location = this._projector.of(h.shown, { own: true }) ?? h.shown;
+      const c =
+        resolveColor(Object.hasOwn(colors, name) ? colors[name] : color, this.tokens) ??
+        resolveColor(color, this.tokens) ??
+        this.tokens.colors['seq-cat-5'];
+      out.push({ location, color: c });
+    }
+    this._highlights = out;
+    this._emphasis.highlights = out.length ? out : undefined;
+  }
+
+  /** The selection's dynamic nodes held while it is selected (`selection.holdNodes`). */
+  private _holdSelection(): void {
+    if (!this.config.selection.holdNodes || this._retired) return;
+    const sel = this.selection.value.value;
+    const addresses: string[] = [];
+    for (const k of sel.elements.keys) addresses.push(k.owner);
+    for (const part of sel.shown.parts) addresses.push(part.system);
+    this.store.holdSession('selection', this.spec.model.value, addresses);
   }
 
   /** A section's id, its address's last step (kept: a hover allocates nothing once warm). */
@@ -610,6 +702,20 @@ export class SeqViewer extends ReactiveModel {
 
   // ---- export ----
 
+  /** The session as an export draws it: the selection (its address, else its Location) and the highlight channels. */
+  private _svgEmphasis(): Pick<RenderSvgOptions, 'selection' | 'emphasis'> {
+    this._updateHighlights();
+    const sel = this.selection.value.value;
+    const highlights = this._emphasis.highlights;
+    const location = sel.address === undefined && !isNothing(sel) ? sel.shown : undefined;
+    return {
+      ...(sel.address !== undefined ? { selection: sel.address } : {}),
+      ...(location || highlights
+        ? { emphasis: { ...(location ? { selection: location } : {}), ...(highlights ? { highlights } : {}) } }
+        : {}),
+    };
+  }
+
   /**
    * The picture as an SVG string: the same view, size and window through the context's ports and this viewer's store
    * (data already loaded is shared), at the device pixel ratio of the last frame: the density steps are in device
@@ -626,12 +732,8 @@ export class SeqViewer extends ReactiveModel {
       dpr: this.dpr,
       tokens: this.tokens,
       // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it
-      // over what it holds), else as its Location
-      ...(this.selection.value.value.address !== undefined
-        ? { selection: this.selection.value.value.address }
-        : this._emphasis.selection
-          ? { emphasis: { selection: this._emphasis.selection } }
-          : {}),
+      // over what it holds, and projects it onto the linked sections), else as its Location; the highlight channels
+      ...this._svgEmphasis(),
       ...options,
     });
   }

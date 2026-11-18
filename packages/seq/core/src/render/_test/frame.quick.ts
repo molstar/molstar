@@ -14,6 +14,7 @@
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
 import { type Location, rangesLocation } from '@molstar/seqx-core/query';
+import { projectOntoView } from '@molstar/seqx-core/view';
 import { drawView } from '../index.js';
 import { hoverInput, hovers, prepare, reusedHover, Scenarios, STEPS, walk } from './scenarios.js';
 
@@ -114,6 +115,36 @@ describe('warm draws and hovers allocate nothing; a layout a bounded size', () =
       const { r } = quickCase(task, `${s.name} selection and cursor`, step, Options);
       console.info(`${s.name} selection and cursor: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
       expect(r.bytesPerStep, `${s.name} selection and cursor: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
+    });
+
+    it(`${s.name}: projected hover and selection, highlights`, async ({ task }) => {
+      const settled = await prepare(s);
+      const input = hoverInput(s);
+      const axis = settled.renderer.frame(input).layout.sections[0].axis!;
+      const vis = axis.visible([]);
+      const a = vis[0];
+      const w = Math.max(1, Math.floor((vis[1] - vis[0]) / 8));
+      // the viewer's records (viewer.ts, `_updateEmphasis`): projections made when what they carry changes, cached;
+      // a redraw only sets the fields to them
+      const own = [0, 1, 2, 3].map((k) => rangesLocation(axis.system, [a + k * w, a + (k + 1) * w]));
+      const projected = own.map((l) => projectOntoView(settled.model, settled.view, l));
+      const hovered = own.map((l) => projectOntoView(settled.model, settled.view, l, { own: true, close: true }));
+      const highlights = [{ location: hovered[2], color: 0x7aa3a6ff }];
+      const p: { hover?: Location; selection?: Location } = {};
+      const emphasis: { selection?: Location; projected: typeof p; highlights: typeof highlights } = {
+        projected: p,
+        highlights,
+      };
+      const at = { ...input, emphasis };
+      const step = (i: number) => {
+        emphasis.selection = own[i & 3];
+        p.selection = projected[i & 3];
+        p.hover = hovered[(i + 1) & 3];
+        settled.renderer.frame(at);
+      };
+      const { r } = quickCase(task, `${s.name} projected`, step, Options);
+      console.info(`${s.name} projected: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+      expect(r.bytesPerStep, `${s.name} projected: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
     });
   }
 });

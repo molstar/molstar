@@ -35,6 +35,8 @@ function spec(): Node {
     const s = v.section('protein', { of: p });
     s.track('letters').layer('l', { type: 'letters' });
     s.track('domains').layer('d', { type: 'ranges', data: domains });
+    // a second section, so the cursor has one to move to
+    v.section('below', { of: p }).track('letters').layer('l', { type: 'letters' });
   });
   b.snapshots.snapshot('first', {
     label: 'Domains taller',
@@ -78,7 +80,11 @@ function look(v: SeqViewer) {
   return {
     patch: `${v.spec.revision.value} ${stackOf(v).steps.value.length}`,
     preview: v.spec.preview.value,
-    session: [v.selection.value.value, ...v.highlight.names.value.map((n) => v.highlight.get(n))],
+    session: [
+      v.selection.value.value,
+      v.selection.cursor.value,
+      ...v.highlight.names.value.map((n) => v.highlight.get(n)),
+    ],
     navigate: `${vp?.start} ${vp?.end} ${v.spec.step.value?.id}`,
   };
 }
@@ -93,6 +99,10 @@ function changed(a: ReturnType<typeof look>, b: ReturnType<typeof look>): Change
 }
 
 const run = (v: SeqViewer, id: string, ctx: unknown) => Promise.resolve(v.execute(id, ctx));
+
+const cell = (position: number) => ({ section: Protein, hit: { layer: LettersLayer, system: '/data/p', position } });
+const cursorAt = (section: string) => (v: SeqViewer) =>
+  v.selection.setCursor({ section, system: '/data/p', position: 5 });
 
 /** Each command's context, and what makes it change something first (a show needs a hide). */
 const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }> = {
@@ -122,6 +132,18 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'track.move': { ctx: { address: DomainsTrack, after: null } },
   'step.enter': { ctx: { step: 'first' } },
   'step.leave': { ctx: {}, before: (v) => run(v, 'step.enter', { step: 'first' }) },
+  'selection.set': { ctx: cell(3) },
+  'selection.extend': { ctx: cell(6), before: (v) => run(v, 'selection.set', cell(3)) },
+  'selection.toggle': { ctx: cell(3) },
+  'selection.clear': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
+  'cursor.prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.up': { ctx: { section: Protein }, before: cursorAt('/views/main/below') },
+  'cursor.down': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.extend-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.extend-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.toggle': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.focus': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'preview.cancel': {
     ctx: {},
     before: (v) =>

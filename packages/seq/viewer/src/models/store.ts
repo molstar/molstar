@@ -72,6 +72,8 @@ export class StoreModel extends ReactiveModel {
     this.registerPermanentDispose(() => {
       // the overlay's openings first: one that settles later is disposed, never attached
       this._overlaySources?.dispose();
+      for (const held of this._sessionHolds.values()) for (const release of held.values()) release();
+      this._sessionHolds.clear();
       for (const o of this._open.values()) o.abort.abort();
       this._open.clear();
       this.store.retire();
@@ -151,6 +153,40 @@ export class StoreModel extends ReactiveModel {
   /** Holds the nodes a frame's layout shows (`ViewLayout.shown`), and lets go of those it no longer shows. */
   holdShown(nodes: readonly OverlayNode[]): void {
     this._overlaySources?.hold(nodes);
+  }
+
+  /** What each session state holds (`holdSession`), by its name: a release by `<source>#<key>`. */
+  private readonly _sessionHolds = new Map<string, Map<string, () => void>>();
+
+  /**
+   * Holds the dynamic nodes a session state names (the selection's elements' owners and its systems, a highlight's),
+   * with what they name (`Overlay.holds`), under `name`, and lets go of those it held before and names no more: a
+   * selected node stays while it is selected, shown or not. None: lets go of all of `name`'s.
+   */
+  holdSession(name: string, model: StaticModel, addresses: Iterable<string>): void {
+    if (this.isRetired) return;
+    const nodes = this.currentOverlay(model).holds(addresses);
+    let held = this._sessionHolds.get(name);
+    if (!held) {
+      if (!nodes.length) return;
+      this._sessionHolds.set(name, (held = new Map()));
+    }
+    const now = new Set<string>();
+    for (const n of nodes) {
+      const k = `${n.source}#${n.key}`;
+      now.add(k);
+      if (!held.has(k)) held.set(k, this.store.hold(n.source, n.key));
+    }
+    for (const [k, release] of [...held]) {
+      if (now.has(k)) continue;
+      release();
+      held.delete(k);
+    }
+  }
+
+  /** The nodes a session state holds now, as `<source>#<key>`. */
+  sessionHolds(name: string): readonly string[] {
+    return [...(this._sessionHolds.get(name)?.keys() ?? [])];
   }
 
   private async _attach(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {

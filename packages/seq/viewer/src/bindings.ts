@@ -68,22 +68,27 @@ const each = (
 ): GestureBinding[] => targets.map((target) => ({ gesture, target, action, ...(modifiers ? { modifiers } : {}) }));
 
 /**
- * The selection's part of the grammar: added by the `select` behavior with the selection model and its commands; not
- * in the presets until they exist (a binding to nothing is reported).
+ * The selection's clicks (the interaction grammar): click sets, Shift+click extends from the anchor, Cmd/Ctrl+click
+ * toggles, a click on empty space clears; the `select` behavior's commands.
  */
-export const SelectionBindings: readonly GestureBinding[] = [
+export const SelectionClicks: readonly GestureBinding[] = [
   ...each(ElementTargets, 'click', 'selection.set'),
   ...each(ElementTargets, 'click', 'selection.extend', ['shift']),
   ...each(ElementTargets, 'click', 'selection.toggle', ['mod']),
   { gesture: 'click', target: 'empty', action: 'selection.clear' },
+];
+
+/** The selection's part of the grammar: its clicks, and a drag on data that selects a range. */
+export const SelectionBindings: readonly GestureBinding[] = [
+  ...SelectionClicks,
   ...each(DataTargets, 'drag', 'drag-select'),
 ];
 
 /**
- * The default grammar's hover and navigation. The hover holds with any modifier. Shift+wheel pans (sideways on a
- * vertical wheel); Alt is left unbound on purpose: the platform's and the host's (a context gesture, a copy-drag).
+ * The grammar's hover and navigation. The hover holds with any modifier. Shift+wheel pans (sideways on a vertical
+ * wheel); Alt is left unbound on purpose: the platform's and the host's (a context gesture, a copy-drag).
  */
-export const DefaultBindings: readonly GestureBinding[] = [
+export const NavigationBindings: readonly GestureBinding[] = [
   { gesture: 'hover', modifiers: '*', target: 'any', action: 'hover' },
   { gesture: 'drag', target: 'axis', action: 'pan' },
   { gesture: 'drag', target: 'empty', action: 'pan' },
@@ -96,9 +101,13 @@ export const DefaultBindings: readonly GestureBinding[] = [
   { gesture: 'double-click', target: 'empty', action: 'view.fit' },
 ];
 
-/** As genome browsers do: a drag on data pans too. */
+/** The default grammar: the hover, navigation and the selection (a drag on data selects). */
+export const DefaultBindings: readonly GestureBinding[] = [...NavigationBindings, ...SelectionBindings];
+
+/** As genome browsers do: a drag on data pans; the selection's clicks are kept. */
 export const GenomeBrowserBindings: readonly GestureBinding[] = [
-  ...DefaultBindings,
+  ...NavigationBindings,
+  ...SelectionClicks,
   ...each(DataTargets, 'drag', 'pan'),
 ];
 
@@ -107,7 +116,7 @@ export const BindingPresets = {
   'genome-browser': GenomeBrowserBindings,
 } as const satisfies Record<string, readonly GestureBinding[]>;
 
-/** The actions the first slice's viewer has: the hover and navigation methods and the `navigate` commands. */
+/** The actions every viewer has: the hover and navigation methods and the `navigate` commands. */
 export const DefaultActions: readonly string[] = [
   'hover',
   'pan',
@@ -118,6 +127,15 @@ export const DefaultActions: readonly string[] = [
   'view.zoom-out',
   'view.pan-left',
   'view.pan-right',
+];
+
+/** The `select` behavior's actions: a viewer has them only when its spec lists the behavior. */
+export const SelectActions: readonly string[] = [
+  'drag-select',
+  'selection.set',
+  'selection.extend',
+  'selection.toggle',
+  'selection.clear',
 ];
 
 export interface BindingTable {
@@ -148,7 +166,10 @@ const stateMask = (s: ModifierState) => (s.shift ? 1 : 0) | (s.mod ? 2 : 0) | (s
 const keyOf = (gesture: string, mask: number, target: string) => `${gesture}|${mask}|${target}`;
 
 export interface BindingTableOptions {
-  /** The actions that exist: methods and command ids (`DefaultActions`). A binding to another is reported and left out. */
+  /**
+   * The actions that exist: methods and command ids (`DefaultActions` and `SelectActions` by default: a viewer passes
+   * what its behaviors give). A binding to another is reported and left out.
+   */
   readonly actions?: readonly string[];
   /** Change kinds of commands the kind table lacks (an extension's). */
   readonly kinds?: Readonly<Record<string, ChangeKind>>;
@@ -164,7 +185,7 @@ export function bindingTable(
   overrides: readonly (readonly GestureBinding[])[] = [],
   options: BindingTableOptions = {},
 ): BindingTable {
-  const actions = new Set(options.actions ?? DefaultActions);
+  const actions = new Set(options.actions ?? [...DefaultActions, ...SelectActions]);
   const issues: Issue[] = [];
   const table = new Map<string, GestureBinding>();
   for (const layer of [preset, ...overrides]) {

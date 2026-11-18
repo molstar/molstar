@@ -162,12 +162,44 @@ describe('the mounted canvas stack', () => {
     frames.flush();
     const v = viewer.view.get('/views/main/protein')!;
     expect(v.end - v.start).toBeLessThan(4);
-    expect(viewer.input.down(300, 18)).toBe(false);
+    // on data a drag selects; with Space held it pans
+    const mods = (space: boolean) => ({ shift: false, mod: false, alt: false, space });
+    expect(viewer.bindings.resolve('drag', mods(false), 'cell')).toBe('drag-select');
     container.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    const start = viewer.view.get('/views/main/protein')!.start;
     expect(viewer.input.down(300, 18)).toBe(true);
+    viewer.input.move(340, 18);
     viewer.input.up();
+    expect(viewer.view.get('/views/main/protein')!.start).not.toBe(start);
+    // a Space that panned is no tap: it toggles nothing
     container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
-    expect(viewer.input.down(300, 18)).toBe(false);
+    expect(viewer.selection.value.value.shown.parts).toEqual([]);
+  });
+
+  it('a drag-select survives the platform’s real sequence: up, capture lost, then a click', async () => {
+    const { container, viewer } = await mount();
+    for (const [type, x] of [
+      ['pointerdown', 300],
+      ['gotpointercapture', 300],
+      ['pointermove', 340],
+      ['pointermove', 420],
+      ['pointerup', 420],
+      ['lostpointercapture', 420],
+    ] as const)
+      container.dispatchEvent(at(type, x, 18, { button: 0 }));
+    const dragged = [...viewer.selection.value.value.shown.parts[0].ranges];
+    expect(dragged[1] - dragged[0]).toBeGreaterThan(1);
+    container.dispatchEvent(at('click', 420, 18, { button: 0, detail: 1 }));
+    expect([...viewer.selection.value.value.shown.parts[0].ranges]).toEqual(dragged);
+    // the next press without a move is a click again
+    container.dispatchEvent(at('pointerdown', 300, 18, { button: 0 }));
+    container.dispatchEvent(at('pointerup', 300, 18, { button: 0 }));
+    container.dispatchEvent(at('lostpointercapture', 300, 18));
+    container.dispatchEvent(at('click', 300, 18, { button: 0, detail: 1 }));
+    expect(viewer.selection.value.value.shown.parts[0].ranges.length).toBe(2);
+    expect(
+      viewer.selection.value.value.shown.parts[0].ranges[1] - viewer.selection.value.value.shown.parts[0].ranges[0],
+    ).toBe(1);
   });
 
   it('a drag ends when the pointer is cancelled or its capture is lost', async () => {
@@ -178,6 +210,39 @@ describe('the mounted canvas stack', () => {
       container.dispatchEvent(at(end, 40, 18));
       expect(viewer.input.dragging).toBe(false);
     }
+  });
+
+  it('Space is the page’s when it is no modifier and there is no cursor; a Shift+Space tap is no plain Space', async () => {
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    viewer = createSeqViewer(
+      {
+        ...DefaultSeqViewerSpec(),
+        bindings: { overrides: [[{ gesture: 'drag', modifiers: ['space'], target: 'any', action: null }]] },
+        config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+      },
+      target,
+    );
+    await viewer.load(proteinOnGene());
+    await viewer.settle();
+    const container = target.firstElementChild as HTMLElement;
+    expect(viewer.input.spaceIsModifier).toBe(false);
+    const space = () => new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    const free = space();
+    container.dispatchEvent(free);
+    expect(free.defaultPrevented).toBe(false);
+    container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
+    // a cursor: Space toggles its cell, so it is the viewer's
+    viewer.selection.setCursor({ section: '/views/main/protein', system: '/data/p', position: 1, keyboard: true });
+    const taken = space();
+    container.dispatchEvent(taken);
+    expect(taken.defaultPrevented).toBe(true);
+    // Shift held: no command has Shift+Space, so the tap toggles nothing (the event's modifiers are read, not spread)
+    container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', shiftKey: true, bubbles: true }));
+    expect(viewer.selection.value.value.shown.parts).toEqual([]);
+    container.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
+    expect(viewer.selection.value.value.shown.parts.length).toBe(1);
   });
 
   it('Space does not scroll the page while it is the pan modifier and the canvas has focus', async () => {

@@ -130,6 +130,7 @@ export interface RangesLay {
   font: string;
   fontSize: number;
   hoverWidth: number;
+  hoverOffset: number;
   radius: { ratio: number; max: number; min: number };
   categories: Map<string, number>;
   /** Lane ids by key and occurrence, kept across frames (a layout makes no string an item); cleared when large. */
@@ -210,6 +211,7 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     font: ctx.config.itemFont,
     fontSize: fontSize(ctx.config.itemFont),
     hoverWidth: ctx.config.outline.hover,
+    hoverOffset: ctx.config.emphasis.hoverOffset,
     radius: { ratio: ctx.config.squircleRatio, max: ctx.config.squircleMax, min: ctx.config.squircleMin },
     categories: new Map(),
     idCache: new Map(),
@@ -265,6 +267,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.font = config.itemFont;
     lay.fontSize = fontSize(config.itemFont);
     lay.hoverWidth = config.outline.hover;
+    lay.hoverOffset = config.emphasis.hoverOffset;
     lay.items = 0;
     lay.pending.length = 0;
     lay.failed.length = 0;
@@ -508,7 +511,8 @@ function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefin
   const gap = lay.gap;
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key || !h.element) return;
-  const half = lay.hoverWidth / 2;
+  // outside the mark by the offset, concentric: it never touches an outline drawn on the mark
+  const half = lay.hoverWidth / 2 + lay.hoverOffset;
   const a = out.args;
   for (let j = 0; j < lay.m; j++) {
     const item = lay.mitem[j];
@@ -528,9 +532,41 @@ function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefin
   }
 }
 
+/**
+ * The selection pass: a selected item of zero length (a boundary, an insertion point) is a hairline at its place over
+ * its lane in the accent (EC-127), which the selection's Location cannot hold; the rest is the view's.
+ */
+function drawSelected(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  const els = emphasis?.elements;
+  if (!els || !els.keys.length) return;
+  const { box, tokens } = lay;
+  const dpr = lay.axis.dpr;
+  const a = out.args;
+  for (let j = 0; j < lay.m; j++) {
+    const item = lay.mitem[j];
+    if (item < 0 || lay.starts[item] !== lay.ends[item]) continue;
+    let selected = false;
+    for (let k = 0; k < els.keys.length && !selected; k++)
+      selected = els.keys[k].owner === lay.owner && els.keys[k].key === lay.keys[item];
+    if (!selected) continue;
+    const x = Math.round(((lay.mx0[j] + lay.mx1[j]) / 2) * dpr) / dpr;
+    a[0] = x - 1;
+    a[1] = box.y + lay.mlane[j] * lay.laneHeight;
+    a[2] = 2;
+    a[3] = lay.laneHeight;
+    a[4] = tokens.colors['msui-accent'];
+    a[5] = NoColor;
+    a[6] = 0;
+    a[7] = 0;
+    a[8] = 0;
+    out.rectArgs();
+  }
+}
+
 const RangesDraws = passDraws<RangesLay, Emphasis | undefined>({
   data: drawMarks,
   labels: drawLabels,
+  selection: drawSelected,
   hover: drawHover,
 });
 

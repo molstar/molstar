@@ -99,6 +99,15 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       { passive: false },
     ],
     [
+      'click',
+      (e: MouseEvent) => {
+        if (e.button !== 0) return;
+        const [x, y] = local(e);
+        input.click(x, y, e);
+      },
+      undefined,
+    ],
+    [
       'dblclick',
       (e: MouseEvent) => {
         const [x, y] = local(e);
@@ -110,14 +119,15 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       'keydown',
       (e: KeyboardEvent) => {
         if (e.key === ' ') {
-          input.setSpace(true);
-          // Space is a modifier here: the page does not scroll with it while the canvas has focus
-          if (input.spaceIsModifier) e.preventDefault();
+          if (!e.repeat) input.setSpace(true);
+          // Space is the viewer's while it is a modifier or a tap toggles the cursor's cell: the page does not scroll
+          // with it then; else it is the page's
+          if (input.spaceIsModifier || viewer.selection.cursor.value) e.preventDefault();
         } else if (input.key(e)) e.preventDefault();
       },
       undefined,
     ],
-    ['keyup', (e: KeyboardEvent) => e.key === ' ' && input.setSpace(false), undefined],
+    ['keyup', (e: KeyboardEvent) => e.key === ' ' && input.spaceUp(e), undefined],
     ['blur', () => input.setSpace(false), undefined],
   ];
   for (const [type, fn, options] of listeners) container.addEventListener(type, fn, options);

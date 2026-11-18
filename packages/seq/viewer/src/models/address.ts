@@ -128,13 +128,28 @@ export class AddressModel extends ReactiveModel {
    * leading ids name a moved node, or a node below it, is rewritten to the new place, as the spec's refs are.
    */
   followMoves(moved: readonly { readonly from: readonly string[]; readonly to: readonly string[] }[]): void {
+    // a gesture's selection (no address) takes its shortest address on the spec it was made on, so the new spec
+    // resolves it again (or drops it with an issue) as it does an address's
+    let sel = this.selection.value.value;
+    if (sel.address === undefined && !isNothing(sel)) {
+      const a = this.selectionAddress();
+      if (a !== undefined) {
+        sel = { ...sel, address: a };
+        this.selection.set(sel, this.selection.anchor);
+      }
+    }
     if (!moved.length) return;
     const rewrite = (address: string) => rewriteMoved(address, moved);
-    const sel = this.selection.value.value;
+    // the anchor and the cursor name systems: rewritten as the addresses are
+    const an = this.selection.anchor;
+    const anchor = an ? { ...an, system: rewrite(an.system) } : undefined;
     if (sel.address !== undefined) {
       const a = rewrite(sel.address);
-      if (a !== sel.address) this.selection.set({ ...sel, address: a });
-    }
+      if (a !== sel.address) this.selection.set({ ...sel, address: a }, anchor);
+      else this.selection.set(sel, anchor);
+    } else this.selection.set(sel, anchor);
+    const c = this.selection.cursor.value;
+    if (c) this.selection.setCursor({ ...c, section: rewrite(c.section), system: rewrite(c.system) });
     for (const name of this.highlight.names.value) {
       const h = this.highlight.get(name);
       if (h?.address === undefined) continue;
@@ -165,7 +180,7 @@ export class AddressModel extends ReactiveModel {
       if (!check(sel.address)) this.selection.clear();
       else {
         const v = this._emphasized(sel.address).value;
-        if (v) this.selection.set(v);
+        if (v) this.selection.set(v, this.selection.anchor);
       }
     }
     for (const name of [...this.highlight.names.value]) {
@@ -289,6 +304,14 @@ export class AddressModel extends ReactiveModel {
     const p = this._pendingFocus;
     if (!p || this.resolve(p.address).status === 'waiting') return;
     this._move(p.address, p.reveal, p.section);
+  }
+
+  /**
+   * Moves the view to a Location as `focus` moves it to an address's: each leading, movable section showing it (or a
+   * static path to it) shows its hull; followers follow. What the cursor's Enter runs.
+   */
+  focusLocation(loc: Location): 'moved' | 'pending' | 'none' {
+    return this._moveTo(loc, false);
   }
 
   /** Each leading section on a system the location has positions on (or reaches by a static path) shows its hull. */

@@ -25,3 +25,4 @@ export {
   type ViewLink,
 } from './view.js';
 export { expandTemplate, templateNeeds, templateNodes } from './templates.js';
+export { type ProjectOptions, projectOntoView } from './project.js';

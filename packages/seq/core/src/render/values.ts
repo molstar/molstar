@@ -69,6 +69,7 @@ export interface ValuesLay {
   colLo: Float32Array;
   colHi: Float32Array;
   hoverWidth: number;
+  hoverOffset: number;
 }
 
 /** The next bar's index, the bars' arrays grown to hold it (the caller writes its numbers: nothing passed is boxed). */
@@ -122,6 +123,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       colLo: new Float32Array(0),
       colHi: new Float32Array(0),
       hoverWidth: config.outline.hover,
+      hoverOffset: config.emphasis.hoverOffset,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -130,6 +132,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     lay.axis = axis;
     lay.tokens = tokens;
     lay.hoverWidth = config.outline.hover;
+    lay.hoverOffset = config.emphasis.hoverOffset;
     lay.n = 0;
     lay.pending.length = 0;
     lay.failed.length = 0;

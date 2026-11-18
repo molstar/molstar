@@ -10,7 +10,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
-import { DrawLists, EmphasisPasses } from './draw-lists.js';
+import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
 import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreReader } from './layer-type.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -22,6 +22,9 @@ import { BuiltInLayerTypes, drawView, LayoutState, layoutView, type ViewLayout }
 // layout and the lists and redraws only the emphasis passes (a hover); anything else lays out again into the same
 // buffers. The check compares the parts as they are, building nothing: a hover allocates nothing once warm
 // ("Nothing allocated once warm"); the key's string is made when the lists are rebuilt.
+
+/** The passes an emphasis redraw draws when the selection's tint is under the data and the selection changed. */
+const BaseAndEmphasisPasses: readonly PassName[] = ['background', 'data', ...EmphasisPasses];
 
 export interface RendererOptions {
   readonly model: StaticModel;
@@ -53,6 +56,11 @@ export interface Frame {
   readonly key: string;
   /** Whether this frame laid out again (else only the emphasis passes were drawn). */
   readonly rebuilt: boolean;
+  /**
+   * Whether the base passes (`background`, `data`) were drawn again: on a rebuild, and on an emphasis redraw whose
+   * selection changed while its tint is drawn under the data (`emphasis.selectionPlace: 'under'`).
+   */
+  readonly base: boolean;
   /** What the layout needs from the store. */
   readonly wants: readonly Want[];
 }
@@ -130,6 +138,7 @@ interface ReusedFrame {
   layout: ViewLayout;
   key: string;
   rebuilt: boolean;
+  base: boolean;
   wants: readonly Want[];
 }
 
@@ -149,6 +158,10 @@ export class Renderer {
   private coverageKeys: string[] = [];
   private coverageValues: (Coverage | undefined)[] = [];
   private emphasisFrame: ReusedFrame | undefined;
+  /** The selection the base passes were last drawn with (its tint under the data). */
+  private baseSelection: unknown;
+  private baseProjected: unknown;
+  private baseHighlights: unknown;
   private readonly reader: StoreReader;
 
   constructor(readonly options: RendererOptions) {
@@ -194,9 +207,30 @@ export class Renderer {
     const overlay = input.overlay ?? EmptyOverlay;
     const parts = this.parts;
     if (this.layout && parts.equals(this, input) && this.readsHold()) {
-      drawView(this.layout, this.lists, input.emphasis, EmphasisPasses);
+      // the tints under the data are in the background pass: a changed selection or highlight draws the base again
+      const e = input.emphasis;
+      const base =
+        this.config.emphasis.selectionPlace === 'under' &&
+        (e?.selection !== this.baseSelection ||
+          e?.projected?.selection !== this.baseProjected ||
+          e?.highlights !== this.baseHighlights);
+      if (base) {
+        this.baseSelection = e?.selection;
+        this.baseProjected = e?.projected?.selection;
+        this.baseHighlights = e?.highlights;
+      }
+      drawView(this.layout, this.lists, e, base ? BaseAndEmphasisPasses : EmphasisPasses);
       let f = this.emphasisFrame;
-      if (!f) f = this.emphasisFrame = { lists: this.lists, layout: this.layout, key: '', rebuilt: false, wants: [] };
+      if (!f)
+        f = this.emphasisFrame = {
+          lists: this.lists,
+          layout: this.layout,
+          key: '',
+          rebuilt: false,
+          base: false,
+          wants: [],
+        };
+      f.base = base;
       f.layout = this.layout;
       f.key = this.lists.key;
       f.wants = this.layout.wants;
@@ -224,6 +258,9 @@ export class Renderer {
     this.layout = layout;
     parts.set(this, input);
     drawView(layout, this.lists, input.emphasis);
+    this.baseSelection = input.emphasis?.selection;
+    this.baseProjected = input.emphasis?.projected?.selection;
+    this.baseHighlights = input.emphasis?.highlights;
     const reads = [...this.reads].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     let sig = '';
     for (const [k, v] of reads) sig += `${k}=${v};`;
@@ -232,6 +269,6 @@ export class Renderer {
     this.coverageKeys = [...this.coverages.keys()];
     this.coverageValues = [...this.coverages.values()];
     this.lists.key = `${parts.toString(this.configKey)}|${(hashString(sig) >>> 0).toString(16)}`;
-    return { lists: this.lists, layout, key: this.lists.key, rebuilt: true, wants: layout.wants };
+    return { lists: this.lists, layout, key: this.lists.key, rebuilt: true, base: true, wants: layout.wants };
   }
 }

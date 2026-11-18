@@ -150,28 +150,43 @@ describe('draw lists: hits where the marks are', () => {
 });
 
 describe('draw lists: emphasis', () => {
-  it('the selection tints and outlines its ranges on every track of its system; the cursor outlines a cell', async () => {
+  const emphasis = {
+    selection: rangesLocation('/data/p53', [3, 6, 10, 12]),
+    cursor: { system: '/data/p53', position: 20 },
+  };
+
+  it('column (the default): a band a range over the section’s tracks and the gaps between them, one outline', async () => {
     const s = await settle(p53TracksSpec());
     const input = { size: Size, viewport: { start: 0, end: 30 } };
     await s.frame(input);
-    const f = s.renderer.frame({
-      ...input,
-      emphasis: {
-        selection: rangesLocation('/data/p53', [3, 6, 10, 12]),
-        cursor: { system: '/data/p53', position: 20 },
-      },
-    });
+    const f = s.renderer.frame({ ...input, emphasis });
     expect(f.rebuilt).toBe(false);
-    // three tracks, two ranges each: a tint and an outline; positions 3 to 6 start at 128 + 3 · 20 (the cursor's
-    // cell, 20, at 128 + 20 · 20)
-    expect(f.lists.passes.selection.rects.n).toBe(12);
-    expect(recordDrawLists(f.lists, ['selection']).split('\n').slice(2, 4)).toEqual([
-      'rect 188 8 60 20 #8f4c062e',
-      'rect 188.75 8.75 58.5 18.5 none stroke #8f4c06ff 1.5',
+    // the tracks run from 8 to 104 (20, 36 and 32 px with two gaps of 4): two ranges, a tint and an outline each, the
+    // tints first so no tint covers an outline; positions 3 to 6 start at 128 + 3 · 20; squircle ends, a thin outline
+    // inside the tint at 0.6 of the accent
+    expect(recordDrawLists(f.lists, ['selection']).split('\n').slice(2)).toEqual([
+      'rect 188 8 60 96 #8f4c062e squircle 8',
+      'rect 328 8 40 96 #8f4c062e squircle 8',
+      'rect 188.5 8.5 59 95 none stroke #8f4c0699 1 squircle 7.5',
+      'rect 328.5 8.5 39 95 none stroke #8f4c0699 1 squircle 7.5',
+      '',
     ]);
+    // the cursor: one thin outline of its cell over the band, in the neutral ink
+    expect(recordDrawLists(f.lists, ['cursor']).split('\n').slice(2)).toEqual([
+      'rect 528.5 8.5 19 95 none stroke #2d271eff 1',
+      '',
+    ]);
+  });
+
+  it('tracks: a box a track, as before', async () => {
+    const s = await settle(p53TracksSpec(), [], { emphasis: { selectionShape: 'tracks' } });
+    const input = { size: Size, viewport: { start: 0, end: 30 } };
+    await s.frame(input);
+    const f = s.renderer.frame({ ...input, emphasis });
+    // three tracks, two ranges each: a tint and an outline
+    expect(f.lists.passes.selection.rects.n).toBe(12);
     expect(f.lists.passes.cursor.rects.n).toBe(3);
-    const lines = recordDrawLists(f.lists, ['cursor']).split('\n');
-    expect(lines[2]).toBe('rect 529.25 9.25 17.5 17.5 none stroke #8f4c06ff 2.5');
+    expect(recordDrawLists(f.lists, ['selection']).split('\n')[2]).toBe('rect 188 8 60 20 #8f4c062e squircle 6.67');
   });
 });
 

@@ -63,6 +63,7 @@ export interface LettersLay {
   failed: number[];
   tokens: SeqTokens;
   hoverWidth: number;
+  hoverOffset: number;
 }
 
 /** The letter code at a position of a table, or 0. */
@@ -110,11 +111,13 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       failed: [],
       tokens,
       hoverWidth: config.outline.hover,
+      hoverOffset: config.emphasis.hoverOffset,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
     lay.section = sectionId(ctx.section);
     lay.hoverWidth = config.outline.hover;
+    lay.hoverOffset = config.emphasis.hoverOffset;
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;

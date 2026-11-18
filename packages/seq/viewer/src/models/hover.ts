@@ -14,6 +14,7 @@ import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
 import { type ElementKey, EmptyLocation, type Location, location, rangesLocation } from '@molstar/seqx-core/query';
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
+import { projectOntoView } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
@@ -71,6 +72,7 @@ export class HoverModel extends ReactiveModel {
   private _cacheKey: [number, unknown, unknown] = [-1, undefined, undefined];
   private _location: Location | undefined;
   private _closed: Location | undefined;
+  private _all: Location | undefined;
   private readonly _projected = new Map<string, Location>();
   private readonly _buffer: number[] = [];
   private readonly _view: ViewModel;
@@ -181,6 +183,25 @@ export class HoverModel extends ReactiveModel {
     return out;
   }
 
+  /**
+   * The hover as every section draws it (`Emphasis.projected.hover`): the closed Location carried onto the view's
+   * sections' systems, one Location keyed by system, computed when asked and kept for this version; undefined when
+   * nothing is hovered or no view is shown.
+   */
+  projectedAll(): Location | undefined {
+    const own = this.location();
+    if (!own) return undefined;
+    if (this._all) return this._all;
+    const view = this._view.resolved.value;
+    if (!view) return undefined;
+    this._all = projectOntoView(this._spec.model.value, view, own, {
+      own: true,
+      close: this.config.hover.closeCodons,
+      linked: this.config.hover.projectLinked,
+    });
+    return this._all;
+  }
+
   // ---- internals ----
 
   /** Drops what was computed for an older hover, view or model. */
@@ -195,6 +216,7 @@ export class HoverModel extends ReactiveModel {
     k[2] = model;
     this._location = undefined;
     this._closed = undefined;
+    this._all = undefined;
     this._projected.clear();
   }
 

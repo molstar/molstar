@@ -31,7 +31,7 @@ import {
   resolveSpec,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
-import { type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
+import { projectOntoView, type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
 import { DrawLists } from './draw-lists.js';
@@ -290,13 +290,19 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       if (r.result) selection = locationOfResult(spec, q, r.result).location;
       else issues.push(...r.issues);
     }
-    const emphasis =
+    const given =
       selection && !isEmptyLocation(selection)
         ? {
             ...options.emphasis,
             selection: options.emphasis?.selection ? unionLocations(options.emphasis.selection, selection) : selection,
           }
         : options.emphasis;
+    // the selection carried onto the linked sections, as a viewer draws it (unless the caller gave its own)
+    const drawn = given?.selection;
+    const emphasis =
+      given && drawn && !given.projected?.selection
+        ? { ...given, projected: { ...given.projected, selection: projectOntoView(model, view, drawn) } }
+        : given;
     const frame = renderer.frame({
       ...frameInput,
       ...(emphasis ? { emphasis } : {}),
