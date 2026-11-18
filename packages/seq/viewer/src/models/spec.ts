@@ -121,6 +121,9 @@ const StepApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidateOp
 
 type Move = Changes['moved'][number];
 
+/** A stored patch node's patch, read once. */
+const StepPatches = new WeakMap<Node, Patch | undefined>();
+
 const NoChanges: Changes = { made: [], params: [], children: [], removed: [], moved: [] };
 const WholeRoot: Changes = { made: [[]], params: [], children: [], removed: [], moved: [] };
 
@@ -172,6 +175,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private readonly _beforeCommit: ((changes: Changes) => void)[] = [];
   private _history: SeqHistory | undefined;
   private _contexts = 0;
+  /** The preview's last result over a root: `_compose` reuses it (one apply a move). */
+  private _previewApplied: { readonly root: Node; readonly patch: Patch; readonly result: Node } | undefined;
 
   readonly config: ViewerConfig;
   /** The head commit: the root, its revision, its parents. */
@@ -307,7 +312,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     const stale = patch.base !== undefined && patch.base !== head.revision && patch.result !== head.revision;
     if (stale && (options.rebase ?? this.config.edit.rebaseStale)) return this._rebase(patch, options);
     const r = applyPatch(head.root, patch, this._options(options));
-    if (!r.ok) return { ok: false, issues: this._stepHints(r.issues) };
+    if (!r.ok) return { ok: false, issues: this._stepHints(patch, r.issues) };
     if (!r.changed) return { ok: true, changed: false, commit: head, changes: r.changes, issues: r.issues };
     const issues = [...r.issues, ...this._masked(r.changes)];
     const commit = this._commit(r.root, r.changes, options.context, issues);
@@ -368,15 +373,20 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     return { ok: true, changed: true, commit, changes, issues, rebased: true };
   }
 
-  /** A target refused while a step is shown, that the step makes: the hint names the step. */
-  private _stepHints(issues: readonly Issue[]): readonly Issue[] {
+  /** A target refused while a step is shown, that only the step makes (it is in what is shown): the hint names it. */
+  private _stepHints(patch: Patch, issues: readonly Issue[]): readonly Issue[] {
     const step = this._step.value;
     if (!step) return issues;
-    return issues.map((i) =>
-      i.code === 'repr.patch.target'
-        ? { ...i, hint: `It may be only the story step ${step.address} that makes it: leave the step to edit it` }
-        : i,
-    );
+    const shown = this._shown.value;
+    return issues.map((i) => {
+      if (i.code !== 'repr.patch.target') return i;
+      // the op's index is the issue's path in the patch tree (`['children', i, …]`)
+      const index = i.path?.[0] === 'children' ? i.path[1] : undefined;
+      const op = typeof index === 'number' ? patch.ops[index] : undefined;
+      const at = op ? ('at' in op ? op.at : op.parent) : undefined;
+      if (!at || !resolveAddress(shown, at)) return i;
+      return { ...i, hint: `Only the story step ${step.address} makes it: leave the step to edit it` };
+    });
   }
 
   /** An edit under a shown step that sets a key the step sets too: it lands in the root and shows nothing (an info). */
@@ -423,6 +433,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
 
   /** Binds the host's history (the port's factory, given this participant); returns the history, `detach` to unbind. */
   attachHistory(port: SeqHistoryPort): SeqHistory {
+    if (this._history) this.detachHistory(this._history);
     const history = port(this);
     this._history = history;
     this.registerPermanentDispose(() => this.detachHistory(history));
@@ -530,8 +541,11 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    */
   setPreview(patch: Patch): PatchResult {
     const p: Patch = { ops: patch.ops };
-    const r = applyPatch(this._head.value.root, p, PreviewApply);
+    const root = this._head.value.root;
+    const r = applyPatch(root, p, PreviewApply);
     if (!r.ok) return r;
+    // composed from this result: one apply a move
+    this._previewApplied = { root, patch: p, result: r.root };
     batch(() => {
       this._preview.set(p);
       this._compose();
@@ -555,9 +569,13 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   commitPreview(options: { readonly context?: EditContext } = {}): SpecPatchResult | undefined {
     const p = this._preview.value;
     if (!p) return undefined;
-    this._preview.set(undefined);
-    const r = this.applyPatch(p, options);
-    if (!r.ok || !r.changed) this._compose();
+    // one batch: the preview gone and the new root shown are told together
+    let r: SpecPatchResult | undefined;
+    batch(() => {
+      this._preview.set(undefined);
+      r = this.applyPatch(p, options);
+      if (!r.ok || !r.changed) this._compose();
+    });
     return r;
   }
 
@@ -567,7 +585,10 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private _stepPatch(id: string): Patch | undefined {
     const node = resolveAddress(this._head.value.root, ['snapshots', id]);
     const p = node?.kind === 'snapshot' ? node.params?.patch : undefined;
-    return p && typeof p === 'object' && !Array.isArray(p) && 'kind' in p ? patchFromNode(p as Node).patch : undefined;
+    if (!p || typeof p !== 'object' || Array.isArray(p) || !('kind' in p)) return undefined;
+    // read once a stored patch node
+    if (!StepPatches.has(p as Node)) StepPatches.set(p as Node, patchFromNode(p as Node).patch);
+    return StepPatches.get(p as Node);
   }
 
   /**
@@ -607,9 +628,15 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     let edited = root;
     const preview = this._preview.value;
     if (preview) {
-      const r = applyPatch(root, preview, PreviewApply);
-      if (r.ok) edited = r.root;
-      else {
+      const cached = this._previewApplied;
+      const r =
+        cached?.root === root && cached.patch === preview
+          ? ({ ok: true, root: cached.result } as const)
+          : applyPatch(root, preview, PreviewApply);
+      if (r.ok) {
+        edited = r.root;
+        this._previewApplied = { root, patch: preview, result: r.root };
+      } else {
         this._preview.set(undefined);
         if (this.config.preview.dropped === 'issue')
           issues.push(

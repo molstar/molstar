@@ -18,6 +18,7 @@ import {
   type EditingSession,
   endDrag,
   historyRows,
+  lastMove,
   moveFirst,
   printedSpec,
   recolorStructure,
@@ -85,6 +86,7 @@ describe('Editing, headless', () => {
     expect(printedSpec(s.viewer.spec.shown.value)).toContain('#d62728');
 
     for (let i = 0; i < 3; i++) await s.stack.undo();
+    expect(lastMove(s)).toBe('Undid Move a track');
     expect(order(s)).toEqual(['letters', 'domains', 'conservation']);
     expect(s.structure.value).toBe('blue');
     await s.stack.undo();

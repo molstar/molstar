@@ -144,6 +144,12 @@ export function historyRows(s: EditingSession): { readonly done: string[]; reado
   };
 }
 
+/** What the last Undo or Redo did, as the status line says it (`Undid Hide a track`); empty before any. */
+export function lastMove(s: EditingSession): string {
+  const m = s.stack.lastMove.value;
+  return m ? `${m.kind === 'undo' ? 'Undid' : 'Redid'} ${m.steps.map((x) => x.label).join(', ')}` : '';
+}
+
 /** The spec shown (the preview included), without its data: the views and the refs, printed. */
 export function printedSpec(root: Node): string {
   const kept = (root.children ?? []).filter((c) => c.id !== 'data');

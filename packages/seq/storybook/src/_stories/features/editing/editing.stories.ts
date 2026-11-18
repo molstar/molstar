@@ -16,6 +16,7 @@ import {
   dragHeight,
   endDrag,
   historyRows,
+  lastMove,
   moveFirst,
   printedSpec,
   recolorStructure,
@@ -131,6 +132,12 @@ class EditingRoot extends UiElement<ExampleView> {
     };
     for (const state of [s.stack.steps, s.stack.redoable, s.viewer.spec.shown, s.structure])
       onCleanup(state.listen(draw));
+    // the status line follows Undo and Redo too
+    onCleanup(
+      s.stack.lastMove.listen(() => {
+        status.textContent = lastMove(s);
+      }),
+    );
     void s.viewer.load(view.build()).then(draw);
     return root;
   }

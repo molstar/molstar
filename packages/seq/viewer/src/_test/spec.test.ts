@@ -429,6 +429,63 @@ describe('SpecModel: an edit inside a host’s run', () => {
   });
 });
 
+describe('SpecModel: small contracts', () => {
+  it('applies a preview once a move: what is shown is the preview’s own result', () => {
+    const spec = new SpecModel(proteinOnGene());
+    const r = spec.setPreview(set(Letters, 'height', 50));
+    expect(r.ok && spec.edited.value).toBe(r.ok && r.root);
+  });
+
+  it('commits a preview in one batch: told the preview is gone, what is shown is the new root', () => {
+    const spec = new SpecModel(proteinOnGene());
+    spec.setPreview(set(Letters, 'height', 50));
+    const seen: boolean[] = [];
+    spec.preview.listen(() => seen.push(spec.shown.value === spec.root.value && heightOf(spec.root.value) === 50));
+    spec.commitPreview();
+    expect(seen).toEqual([true]);
+  });
+
+  it('a second history attached disposes the first', () => {
+    const spec = new SpecModel(proteinOnGene());
+    let disposed = 0;
+    const port = () => ({
+      run: async <T>(_: unknown, work: (c: { id: number }) => T) => work({ id: 1 }),
+      isActive: () => true,
+      outside: () => {},
+      dispose: () => disposed++,
+    });
+    spec.attachHistory(port);
+    spec.attachHistory(port);
+    expect(disposed).toBe(1);
+    spec.retire();
+    expect(disposed).toBe(2);
+  });
+
+  it('two viewers’ specs on one host stack: a participant each by default', async () => {
+    const participants = new HistoryParticipants();
+    const stack = new HistoryModel(participants);
+    const a = new SpecModel(proteinOnGene());
+    const b = new SpecModel(proteinOnGene());
+    a.attachHistory(hostHistory(stack, participants));
+    b.attachHistory(hostHistory(stack, participants));
+    await a.patch('A', set(Letters, 'height', 30));
+    await b.patch('B', set(Letters, 'height', 40));
+    await stack.undo();
+    expect([heightOf(a.root.value), heightOf(b.root.value)]).toEqual([30, undefined]);
+    a.retire();
+    b.retire();
+    stack.dispose();
+  });
+
+  it('names the step shown in a refusal’s hint only when the step makes the target', () => {
+    const spec = new SpecModel(withStep());
+    spec.enterStep('zoom');
+    const none = spec.applyPatch(set(['views', 'main', 'nothing'], 'height', 5));
+    expect(none.ok).toBe(false);
+    expect(none.issues[0].hint ?? '').not.toContain('/snapshots/zoom');
+  });
+});
+
 describe('SpecModel: a stale agent patch', () => {
   it('is refused, then rebased by the host’s opt-in through merge3 from the recent roots', async () => {
     const spec = new SpecModel(proteinOnGene());

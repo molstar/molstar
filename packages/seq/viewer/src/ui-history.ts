@@ -111,14 +111,17 @@ export class HistoryParticipants implements HistoryPort<Readonly<Record<string, 
   }
 }
 
+let Participants = 0;
+
 /**
- * Seq*'s history on a host's stack (`stack`, over `participants`): the spec joins as the participant `key` while the
- * viewer lives; the stack is the host's and stays when the viewer goes.
+ * Seq*'s history on a host's stack (`stack`, over `participants`): the spec joins as the participant `key` (one of its
+ * own a viewer when absent, so several viewers share a stack) while the viewer lives; the stack is the host's and
+ * stays when the viewer goes.
  */
-export function hostHistory(stack: HistoryModel<any>, participants: HistoryParticipants, key = 'seq'): SeqHistoryPort {
+export function hostHistory(stack: HistoryModel<any>, participants: HistoryParticipants, key?: string): SeqHistoryPort {
   return (participant) => {
     const roots = new CheckpointedRoots(heldBy(stack));
-    const remove = participants.add(key, recording(participant, roots));
+    const remove = participants.add(key ?? `seq-${++Participants}`, recording(participant, roots));
     return historyOver(stack, roots, remove);
   };
 }

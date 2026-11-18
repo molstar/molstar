@@ -43,26 +43,27 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
   not its own checks (interactive rates); a later call replaces it (made from the root). When the root changes it is
   applied again over the new one (a preview survives an agent's patch mid-drag), and dropped when it no longer applies
   (`seq.viewer.preview.dropped` in `issues`, or quietly: `preview.dropped`); the gesture then ends in nothing.
-  `cancelPreview` (Esc) drops it; `commitPreview` applies it in full: one commit or nothing. Never in the history but by
-  its commit.
+  `cancelPreview` (Esc) drops it; `commitPreview` applies it in full, in one batch with the preview's end: one commit or
+  nothing. A move applies the patch once: what is shown is reused from `setPreview`'s result until the root or the
+  preview changes. Never in the history but by its commit.
 - **Story steps** (`enterStep(id)`, `leaveStep()`): navigation, no commit and no history step. What is shown is
   `step(applyPatch(root, preview))`: the step's stored patch over the root and the preview (the language, refs
   followed). Edits patch the root under the step and the step is applied again over it; one naming a node only the step
-  makes is refused (`repr.patch.target`, its hint naming the step); one that sets a key the step sets too lands in the
-  root and is reported masked (`seq.viewer.edit.masked`, an info in the result and `issues`). A step that no longer
-  applies is shown as not applying (`step.applies` false, `seq.viewer.step.stale`), the root shown without it; an
-  unknown id is `seq.viewer.step.unknown`. An agent reads `root`, with `step` beside it.
-- **The history** (Ports, History): `attachHistory(port)` binds the host's history with the model as its participant
-  (`checkpoint()` the head, `restore(c)` a move of the head that drops a preview and keeps the step, `changed` the last
-  commit an edit made, told once the edit ends well: never one it took back). `edit(label, work, { origin, within })`
-  runs `work` as one host step: every patch it applies (`apply`, `commitPreview`) is part of it, a refusal fails it and
-  the host restores its checkpoint; without a history it runs at once and a refusal moves the head back. `within`, a
-  host's run in progress (its work runs a Seq* command), makes the edit part of that run: no step and no wait of its own
-  (else the two would wait on each other). `patch(label, patches)` is an edit of patches in order; `patches` may be a
-  function of the root and revision the edit runs on, so a command's patch is made when it runs and commands issued
-  together each apply. `beginTurn(label, origin)` opens an agent's turn: its edits join one step. A patch applied
-  outside an edit's context, with a history bound, is reported to the host (`outside`). Why the port: the host keeps one
-  stack for everything, and the spec knows nothing of it.
+  makes is refused (`repr.patch.target`, its hint naming the step only when the step makes the target); one that sets a
+  key the step sets too lands in the root and is reported masked (`seq.viewer.edit.masked`, an info in the result and
+  `issues`). A step that no longer applies is shown as not applying (`step.applies` false, `seq.viewer.step.stale`), the
+  root shown without it; an unknown id is `seq.viewer.step.unknown`. An agent reads `root`, with `step` beside it.
+- **The history** (Ports, History): `attachHistory(port)` binds the host's history with the model as its participant (a
+  history bound before is detached first) (`checkpoint()` the head, `restore(c)` a move of the head that drops a preview
+  and keeps the step, `changed` the last commit an edit made, told once the edit ends well: never one it took back).
+  `edit(label, work, { origin, within })` runs `work` as one host step: every patch it applies (`apply`,
+  `commitPreview`) is part of it, a refusal fails it and the host restores its checkpoint; without a history it runs at
+  once and a refusal moves the head back. `within`, a host's run in progress (its work runs a Seq* command), makes the
+  edit part of that run: no step and no wait of its own (else the two would wait on each other). `patch(label, patches)`
+  is an edit of patches in order; `patches` may be a function of the root and revision the edit runs on, so a command's
+  patch is made when it runs and commands issued together each apply. `beginTurn(label, origin)` opens an agent's turn:
+  its edits join one step. A patch applied outside an edit's context, with a history bound, is reported to the host
+  (`outside`). Why the port: the host keeps one stack for everything, and the spec knows nothing of it.
 - **The session follows every move of the head**: `beforeCommit(f)` is told a commit's changes, and on an undo, a redo,
   a restore or a rollback the moves between the two commits along the recent lineage (each recent commit's parent and
   moves: forward going to a child, inverted going back); a rebase tells theirs' moves, which `merge3` does not infer.
@@ -257,8 +258,8 @@ same CSS fonts the backend draws with), else the core's bundled table.
   composition roots only; the ports and the models never import it. `uiHistory(options)`: a stack of the spec alone
   (`UiHistory.stack`), a mounted viewer's; it invalidates on an outside change. `hostHistory(stack, participants, key)`:
   a host's stack over `HistoryParticipants`, one `HistoryPort` of several participants by key (Seq*'s spec beside a
-  structure's state), the spec joining while the viewer lives. Both resolve `root(revision)` from the commits their
-  stack checkpointed.
+  structure's state), the spec joining while the viewer lives, under a key of its own a viewer unless `key` is given.
+  Both resolve `root(revision)` from the commits their stack checkpointed.
 
 ## Canvas2D backend
 
