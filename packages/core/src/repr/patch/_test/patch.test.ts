@@ -156,6 +156,20 @@ describe('repr/patch: the inverse, with what it needs only', () => {
     back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
   });
 
+  it("a stored set of the old root's that a later op types is typed again, so a later move takes its ref along", () => {
+    // the step sets /x/e's link to /s: typed while /x/e is there. The patch moves /s to /t (the ref follows), then
+    // removes /x/e; the inverse makes /x/e again, and its move back must take the step's ref along
+    const step = patchToNode({ ops: [{ op: 'set', at: ['x', 'e'], key: 'link', value: '/s' }] });
+    const root = doc(box('x', undefined, leaf('e')), box('s', { step }));
+    const patch: Patch = {
+      ops: [
+        { op: 'move', at: ['s'], parent: [], place: { last: true }, rename: 't' },
+        { op: 'remove', at: ['x', 'e'] },
+      ],
+    };
+    back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
+  });
+
   it('undoes a remove whose content held a ref already dangling', () => {
     back(doc(box('a', { link: '/zz' })), { ops: [{ op: 'remove', at: ['a'] }] }, lang);
     back(

@@ -661,15 +661,15 @@ export class LiveRefs implements WorkListener {
     return (this.overlayPass ??= new RefPass(() => this.work.finalize(), this.language, this.options));
   }
 
-  key(d: Draft, key: string) {
+  key(d: Draft, key: string, pass?: RefPass) {
     if (d.origin && !d.made)
       (this.superseded.get(d.origin) ?? this.superseded.set(d.origin, new Set()).get(d.origin)!).add(key);
     this.drop(d, key);
     const v = d.params ? own(d.params, key) : undefined;
     if (v === undefined) return;
     // a stored patch in the value is typed over the spec as it is now
-    this.overlayPass = undefined;
-    this.pass.walkKey(d.kind, key, v, (rel, value, step) => this.add(d, rel, value, step));
+    if (!pass) this.overlayPass = undefined;
+    (pass ?? this.pass).walkKey(d.kind, key, v, (rel, value, step) => this.add(d, rel, value, step));
   }
 
   made(d: Draft) {
@@ -760,15 +760,49 @@ export class LiveRefs implements WorkListener {
     return out;
   }
 
-  /** `from` moved to `to`: every live ref under it rewritten, its key's sites derived again. */
   /**
-   * Before a move: a stored patch made or written earlier is typed again over the draft as it is now. A `set` whose
-   * target node a later op inserted holds a ref only from then on, and the move must take that ref along.
+   * Before a move: every stored patch of the draft is typed again over the draft as it is now, the overlay's (made or
+   * written by an op) and the old root's alike. A `set` whose target node an earlier op inserted, removed or replaced
+   * holds a ref only from then on (or no longer), and the move must take along exactly the refs the draft has now. An
+   * old root's key whose sites come out the same keeps its base sites.
    */
   retype() {
-    for (const [d, set] of this.stored) for (const k of [...set]) this.key(d, k);
+    this.overlayPass = undefined;
+    const pass = this.pass;
+    for (const [d, set] of this.stored) for (const k of [...set]) this.key(d, k, pass);
+    for (const byKey of this.baseStored.values()) {
+      for (const [key, sites] of byKey) {
+        const d = this.locate(sites[0]);
+        if (!d) continue; // removed, made over, or its key already in the overlay (then in `stored`)
+        const now: string[] = [];
+        pass.walkKey(d.kind, key, own(d.params!, key)!, (rel, value) =>
+          now.push(`${rel.join('\u0000')}\u0001${value}`),
+        );
+        const was = sites.map((s) => `${s.rel.join('\u0000')}\u0001${s.value}`);
+        if (now.length !== was.length || now.some((x, i) => x !== was[i])) this.key(d, key, pass);
+      }
+    }
   }
 
+  /** The old root's keys holding a stored patch, by node and key: their sites, in walk order. */
+  private get baseStored(): Map<Node, Map<string, Site[]>> {
+    if (this.baseStoredSites) return this.baseStoredSites;
+    const out = new Map<Node, Map<string, Site[]>>();
+    for (const s of this.base.all) {
+      if (!s.step) continue;
+      let byKey = out.get(s.node);
+      if (!byKey) out.set(s.node, (byKey = new Map()));
+      const key = String(s.rel[1]);
+      const list = byKey.get(key);
+      if (list) list.push(s);
+      else byKey.set(key, [s]);
+    }
+    return (this.baseStoredSites = out);
+  }
+
+  private baseStoredSites?: Map<Node, Map<string, Site[]>>;
+
+  /** `from` moved to `to`: every live ref under it rewritten, its key's sites derived again. */
   move(from: Address, to: Address) {
     const keys = new Map<Draft, Set<string>>();
     for (const s of this.under(from)) {
