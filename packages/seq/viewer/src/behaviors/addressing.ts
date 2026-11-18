@@ -14,6 +14,7 @@ import type { RefInput } from '@molstar/seqx-core/lang';
 import type { LinkActionName } from '@molstar/seqx-core/query';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { AddRefResult, AddressModel, AddressOutcome } from '@molstar/seqx-viewer/models';
+import type { EditContext } from '@molstar/seqx-viewer/ports';
 
 /** What a command on an address is given: the address, and for some a channel, a section or a ref to add. */
 export interface AddressContext {
@@ -24,6 +25,8 @@ export interface AddressContext {
   readonly section?: string;
   /** The ref `refs.add` adds. */
   readonly ref?: RefInput;
+  /** The host's run `refs.add` is part of (a host's step that runs it). */
+  readonly within?: EditContext;
 }
 
 /** The commands' ids by the link action they run. */
@@ -102,7 +105,7 @@ export function addressingBehavior(addresses: AddressModel): AddressingBehavior 
       run: (_, ctx): CommandResult | Promise<CommandResult> => {
         const said = (r: AddRefResult): CommandResult =>
           r === true ? { message: 'Bookmarked', undoable: true } : { message: r[0]?.message ?? 'Refused' };
-        const r = addresses.addRef(ctx.ref!);
+        const r = addresses.addRef(ctx.ref!, ctx.within ? { within: ctx.within } : {});
         // one step of the host's history when one is bound: it runs in turn
         return r instanceof Promise ? r.then(said) : said(r);
       },

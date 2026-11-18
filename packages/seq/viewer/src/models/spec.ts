@@ -80,6 +80,13 @@ export type SpecPatchResult =
       readonly partial?: Node;
     };
 
+/** Who edits, and the host's run an edit is part of (a host's step whose work runs a Seq* command). */
+export interface EditOptions {
+  readonly origin?: EditOrigin;
+  /** The host's run in progress: the edit joins it, no step (and no wait) of its own. */
+  readonly within?: EditContext;
+}
+
 /** Patches made from the root and revision an edit runs on (`SpecModel.patch`). */
 export type PatchMaker = (root: Node, revision: string) => Patch | readonly Patch[];
 
@@ -439,11 +446,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    * there when a patch of it is refused. Without a history it runs at once, and a refusal moves the root back. Returns
    * the outcome (a promise when a history runs it).
    */
-  edit(
-    label: string,
-    work: (edit: SpecEdit) => void,
-    options: { readonly origin?: EditOrigin } = {},
-  ): EditOutcome | Promise<EditOutcome> {
+  edit(label: string, work: (edit: SpecEdit) => void, options: EditOptions = {}): EditOutcome | Promise<EditOutcome> {
     const run = (context: EditContext | undefined): EditOutcome => {
       const results: SpecPatchResult[] = [];
       const edit: SpecEdit = {
@@ -486,6 +489,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     return history.run({ label, kind: 'patch', origin: options.origin ?? { kind: 'person' } }, run, {
       changed: (o) => o.ok && o.changed,
       failed: (o) => !o.ok,
+      ...(options.within ? { within: options.within } : {}),
     });
   }
 
@@ -497,9 +501,9 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   patch(
     label: string,
     patches: Patch | readonly Patch[] | PatchMaker,
-    options: { readonly origin?: EditOrigin } & Omit<SpecPatchOptions, 'context'> = {},
+    options: EditOptions & Omit<SpecPatchOptions, 'context'> = {},
   ): EditOutcome | Promise<EditOutcome> {
-    const { origin, ...o } = options;
+    const { origin, within, ...o } = options;
     return this.edit(
       label,
       (e) => {
@@ -507,7 +511,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
         const list: readonly Patch[] = Array.isArray(made) ? made : [made as Patch];
         for (const p of list) if (!e.apply(p, o).ok) break;
       },
-      origin ? { origin } : {},
+      { ...(origin ? { origin } : {}), ...(within ? { within } : {}) },
     );
   }
 

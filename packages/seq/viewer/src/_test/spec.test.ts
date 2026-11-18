@@ -15,6 +15,7 @@ import { applyPatch, type Patch, patchToNode } from '@molstar/core/repr/patch';
 import { hashNode, type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { HistoryModel, type HistoryPort } from '@molstar/ui/history/history-model';
 import { describe, expect, it } from 'vitest';
+import { editingBehavior } from '../behaviors/editing.js';
 import { viewerConfig } from '../config.js';
 import { type EditOutcome, SpecModel } from '../models/spec.js';
 import { HistoryParticipants, hostHistory, type UiHistory, uiHistory } from '../ports/ui-history.js';
@@ -397,6 +398,33 @@ describe('SpecModel: the history through Seq*’s port', () => {
     // the viewer goes: the host's stack stays, without Seq*'s participant
     spec.retire();
     expect(participants.checkpoint()).toEqual({ structure: 1 });
+    stack.dispose();
+  });
+});
+
+describe('SpecModel: an edit inside a host’s run', () => {
+  it('a host’s step whose work runs a Seq* command: one step, no deadlock', async () => {
+    const participants = new HistoryParticipants();
+    const stack = new HistoryModel(participants);
+    const structure = structureState();
+    participants.add('structure', structure.port);
+    const spec = new SpecModel(proteinOnGene());
+    spec.attachHistory(hostHistory(stack, participants));
+    const editing = editingBehavior(spec);
+    const hide = editing.commands.find((c) => c.id === 'layer.hide')!;
+    const outer = stack.run('Hide and recolor', person, async (within) => {
+      structure.state.set(5);
+      return hide.run({}, { address: '/views/main/protein/letters/l', within }, new AbortController().signal);
+    });
+    const done = await Promise.race([outer.then(() => 'done'), new Promise((r) => setTimeout(() => r('stuck'), 200))]);
+    expect(done).toBe('done');
+    expect(stack.steps.value.map((x) => x.label)).toEqual(['Hide and recolor']);
+    await stack.undo();
+    expect(structure.state.value).toBe(0);
+    expect(
+      resolveAddress(spec.root.value, ['views', 'main', 'protein', 'letters', 'l'])?.params?.hidden,
+    ).toBeUndefined();
+    spec.retire();
     stack.dispose();
   });
 });

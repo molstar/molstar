@@ -54,6 +54,7 @@ function historyOver(
         .run(step.label, step.origin, async (context) => work(context), {
           changed: options.changed,
           failed: options.failed,
+          ...(options.within ? { within: options.within } : {}),
         })
         .then((o) => o.value),
     beginTurn: (label, origin) => stack.beginGroup(label, origin),

@@ -54,12 +54,19 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
   unknown id is `seq.viewer.step.unknown`. An agent reads `root`, with `step` beside it.
 - **The history** (Ports, History): `attachHistory(port)` binds the host's history with the model as its participant
   (`checkpoint()` the head, `restore(c)` a move of the head that drops a preview and keeps the step, `changed` the last
-  commit an edit made). `edit(label, work, { origin })` runs `work` as one host step: every patch it applies (`apply`,
-  `commitPreview`) is part of it, a refusal fails it and the host restores its checkpoint; without a history it runs at
-  once and a refusal moves the head back. `patch(label, patches)` is an edit of patches in order.
-  `beginTurn(label, origin)` opens an agent's turn: its edits join one step. A patch applied outside an edit's context,
-  with a history bound, is reported to the host (`outside`). Why the port: the host keeps one stack for everything, and
-  the spec knows nothing of it.
+  commit an edit made, told once the edit ends well: never one it took back). `edit(label, work, { origin, within })`
+  runs `work` as one host step: every patch it applies (`apply`, `commitPreview`) is part of it, a refusal fails it and
+  the host restores its checkpoint; without a history it runs at once and a refusal moves the head back. `within`, a
+  host's run in progress (its work runs a Seq* command), makes the edit part of that run: no step and no wait of its own
+  (else the two would wait on each other). `patch(label, patches)` is an edit of patches in order; `patches` may be a
+  function of the root and revision the edit runs on, so a command's patch is made when it runs and commands issued
+  together each apply. `beginTurn(label, origin)` opens an agent's turn: its edits join one step. A patch applied
+  outside an edit's context, with a history bound, is reported to the host (`outside`). Why the port: the host keeps one
+  stack for everything, and the spec knows nothing of it.
+- **The session follows every move of the head**: `beforeCommit(f)` is told a commit's changes, and on an undo, a redo,
+  a restore or a rollback the moves between the two commits along the recent lineage (each recent commit's parent and
+  moves: forward going to a child, inverted going back); a rebase tells theirs' moves, which `merge3` does not infer.
+  Why: a session address renamed by an edit must come back with its undo.
 
 ### ViewModel
 
@@ -237,10 +244,11 @@ same CSS fonts the backend draws with), else the core's bundled table.
 (`SpecModel`), called once per viewer; none: edits apply at once and nothing undoes them.
 
 - **The participant** (the host drives Seq*): `checkpoint()` a `SpecCommit`, `restore(c)`, `changed`.
-- **The history** (Seq* asks the host): `run(step, work, { changed, failed })` an edit as one step (`EditStep`: its
-  label, its kind, always `patch`, its origin), `beginTurn(label, origin)` an agent's turn, `isActive(context)`,
-  `outside(reason)` a change outside a run (whether it invalidates the earlier steps is the host's rule),
-  `root(revision)` a root the host's stack holds, and its ownership (`disposeWithViewer`, `dispose`).
+- **The history** (Seq* asks the host): `run(step, work, { changed, failed, within })` an edit as one step, or part of
+  the host's run `within` (`EditStep`: its label, its kind, always `patch`, its origin), `beginTurn(label, origin)` an
+  agent's turn, `isActive(context)`, `outside(reason)` a change outside a run (whether it invalidates the earlier steps
+  is the host's rule), `root(revision)` a root the host's stack holds, and its ownership (`disposeWithViewer`,
+  `dispose`).
 - **Only spec patches enter it**: session, navigation and configuration never do (Commands).
 - **Adapters** (`ports/ui-history.ts`, `@molstar/ui/history`), in the composition roots only; the models never import
   it. `uiHistory(options)`: a stack of the spec alone (`UiHistory.stack`), the default spec's; it invalidates on an

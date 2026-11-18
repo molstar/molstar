@@ -39,8 +39,7 @@ import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/con
 import { nearestOffsetOf, positionAt } from './axis.js';
 import type { HoverModel } from './hover.js';
 import { type Emphasized, type HighlightModel, isNothing, type SelectionModel } from './selection.js';
-import type { EditOrigin } from '@molstar/seqx-viewer/ports';
-import type { EditOutcome, SpecModel } from './spec.js';
+import type { EditOptions, EditOutcome, SpecModel } from './spec.js';
 import type { StoreModel } from './store.js';
 import type { ViewModel } from './view.js';
 
@@ -243,7 +242,7 @@ export class AddressModel extends ReactiveModel {
    * dangle is refused), one step of the history when one is bound. True when applied, else the issues; a promise when
    * the history runs it.
    */
-  addRef(ref: RefInput, options: { readonly origin?: EditOrigin } = {}): AddRefResult | Promise<AddRefResult> {
+  addRef(ref: RefInput, options: EditOptions = {}): AddRefResult | Promise<AddRefResult> {
     // made from the root the edit runs on: bookmarks added one after another each apply
     const outcome = this.spec.patch('Add a bookmark', (root) => addRefPatch(root, ref), options);
     const result = (o: EditOutcome): AddRefResult => (o.ok ? true : o.issues);

@@ -52,6 +52,8 @@ export interface EditContext {
 export interface EditRunOptions<T> {
   readonly changed: (value: T) => boolean;
   readonly failed: (value: T) => boolean;
+  /** A run of the host's in progress this edit is part of (its work runs a Seq* command): no step of its own. */
+  readonly within?: EditContext;
 }
 
 /** The participant face: what the spec gives the host (`SpecModel` is one). */

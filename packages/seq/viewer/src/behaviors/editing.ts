@@ -14,7 +14,7 @@ import type { Op, Patch } from '@molstar/core/repr/patch';
 import { type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { EditOutcome, SpecModel } from '@molstar/seqx-viewer/models';
-import type { EditOrigin } from '@molstar/seqx-viewer/ports';
+import type { EditContext, EditOrigin } from '@molstar/seqx-viewer/ports';
 
 /** What an editing command is given: the node it edits, and what each needs. */
 export interface EditingContext {
@@ -28,6 +28,8 @@ export interface EditingContext {
   readonly step?: string;
   /** Who edits (`person` when absent; an agent's turn joins one step). */
   readonly origin?: EditOrigin;
+  /** The host's run the edit is part of (a host's step that runs this command). */
+  readonly within?: EditContext;
 }
 
 /** The editing commands' ids. */
@@ -74,11 +76,10 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
         : { message: o.issues.find((i) => i.severity === 'error')?.message ?? 'Refused' };
   /** One patch made when the edit runs, against the revision it runs on: commands issued together each apply. */
   const edit = (label: string, ops: (root: Node) => Op[], ctx: EditingContext, done: string) => {
-    const o = spec.patch(
-      label,
-      (root, revision) => ({ base: revision, ops: ops(root) }),
-      ctx.origin ? { origin: ctx.origin } : {},
-    );
+    const o = spec.patch(label, (root, revision) => ({ base: revision, ops: ops(root) }), {
+      ...(ctx.origin ? { origin: ctx.origin } : {}),
+      ...(ctx.within ? { within: ctx.within } : {}),
+    });
     return o instanceof Promise ? o.then(said(done)) : said(done)(o);
   };
   const needs =
