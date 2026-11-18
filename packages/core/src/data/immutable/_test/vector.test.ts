@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Vector } from '../vector.js';
+import { type ReadonlyVector, Vector } from '../vector.js';
 import { Rng } from './model.js';
 
 type V = Vector<number>;
@@ -15,7 +15,7 @@ function same(a: number[], b: number[]) {
   if (a.length !== b.length || a.some((x, i) => !Object.is(x, b[i]))) expect(a).toEqual(b);
 }
 
-function check(v: { size: number; toArray(): number[] } & Omit<V, 'set'>, model: number[]) {
+function check(v: ReadonlyVector<number>, model: number[]) {
   expect(v.size).toBe(model.length);
   same(v.toArray(), model);
   for (let i = -1; i <= model.length; i++) if (!Object.is(v.get(i), model[i])) expect(v.get(i)).toBe(model[i]);

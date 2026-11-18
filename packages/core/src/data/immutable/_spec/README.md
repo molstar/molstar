@@ -128,7 +128,13 @@ removes.
 ## 9. The `StateTree` spike
 
 `_test/state-tree-spike.ts` type-checks `StateTree`'s and `TransientTree`'s collection code against this API without
-changing the state tree. What does not fit, each a `@ts-expect-error` there: `ChildSet.map`; `forEach` returning
-immutable.js's count; `remove` (here `delete`); `_Map.get` returning `T` (here `T | undefined`); `asImmutable()` on a
-persistent map. Restated on this API, the rest fits; `renewOwner` is not needed (§3), and the tree reassigns from each
-`asImmutable()` as it already does.
+changing the state tree. What does not fit, each a `@ts-expect-error` or a note there:
+
+- the interfaces: `ChildSet.map`; `forEach` returning immutable.js's count; `remove` (here `delete`); `_Map.get`
+  returning `T` (here `T | undefined`); `asImmutable()` on a persistent map;
+- behaviour: immutable.js's `forEach` passes the collection third and stops on `false`, ours neither; a transient has no
+  `withMutations` (immutable.js keeps a mutable collection mutable through it; ours would freeze the handle);
+- code: `dump` reads `keySeq()`/`valueSeq()` (here `keys()`/`values()`); `transient.ts` casts to `OrderedSet`.
+
+Restated on this API, the rest fits; `renewOwner` is not needed (§3), and the tree reassigns from each `asImmutable()`
+as it already does. Type-checked with the tests (`tsc -b` leaves `_test/` out).

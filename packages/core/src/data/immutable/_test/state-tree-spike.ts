@@ -67,6 +67,26 @@ export const mutableReads: Pick<StateTree.MutableTransforms, 'has' | 'size'> = H
   StateTransform
 >().asMutable();
 
+// behaviour and code outside the interfaces
+export function behaviourMisfits(set: ReturnType<typeof OrderedHashSet.empty<Ref>>) {
+  // immutable.js passes the collection as a third argument; ours passes two
+  // @ts-expect-error the callback's third parameter
+  set.forEach((_v: Ref, _k: Ref, _iter: unknown) => {});
+  // immutable.js stops a `forEach` when its callback returns `false`; ours visits every entry (no type error: a
+  // `false`-returning visitor in `StateTree` would walk on silently; none does today, `doPreOrder` stops by itself)
+  set.forEach(() => false);
+  // `dump` (state/tree/immutable.ts) reads `keySeq()` and `valueSeq()`: `keys()` and `values()` here
+  // @ts-expect-error no lazy sequences
+  HashMap.empty<Ref, Transform>().keySeq();
+  // `transient.ts` casts `children.get(parent)` to immutable.js's `OrderedSet` (lines 128, 140): the casts move to
+  // `OrderedHashSet`, or go once `ChildSet` is this API's type
+  const t = OrderedHashSet.empty<Ref>().asMutable();
+  // immutable.js's `withMutations` on a mutable collection edits it and keeps it mutable; a transient here has none,
+  // and the implementation's (reached through a persistent type) would freeze the handle (README §3)
+  // @ts-expect-error no withMutations on a transient
+  t.withMutations(() => {});
+}
+
 // --- Part 2: the interfaces restated on this API ---
 
 namespace Spike {

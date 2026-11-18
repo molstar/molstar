@@ -190,7 +190,7 @@ describe('HashMap', () => {
 
   describe('transients', () => {
     it('read like the persistent map, edit in place, and die on asImmutable', () => {
-      const base = HashMap.of(Array.from({ length: 50 }, (_, i) => [`k${i}`, i] as const));
+      const base = HashMap.of<string, number>(Array.from({ length: 50 }, (_, i) => [`k${i}`, i]));
       const t = base.asMutable();
       expect(t.asMutable()).toBe(t);
       t.set('x', 1).delete('k0');
@@ -227,8 +227,8 @@ describe('HashMap', () => {
       // the regression StateTree's `renewOwner` works around in immutable.js (state/_spec/tree.md §2)
       for (const config of [zeroHash, fourHashes, undefined]) {
         const keys = Array.from({ length: 40 }, (_, i) => i * 4);
-        const source = HashMap.of(
-          keys.map((k) => [k, 'old'] as const),
+        const source = HashMap.of<number, string>(
+          keys.map((k) => [k, 'old']),
           config,
         );
         const t = source.asMutable();
@@ -265,11 +265,11 @@ describe('HashMap', () => {
         valueHash: (x: number[]) => x.reduce((h, v) => (h * 31 + v) | 0, 7),
       };
       const a = HashMap.of(
-        Array.from({ length: 30 }, (_, i) => [i, [i, i + 1]] as const),
+        Array.from({ length: 30 }, (_, i): [number, number[]] => [i, [i, i + 1]]),
         config,
       );
       const b = HashMap.of(
-        Array.from({ length: 30 }, (_, i) => [29 - i, [29 - i, 30 - i]] as const),
+        Array.from({ length: 30 }, (_, i): [number, number[]] => [29 - i, [29 - i, 30 - i]]),
         config,
       );
       expect(a.equals(b)).toBe(true);

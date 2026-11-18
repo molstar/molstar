@@ -54,7 +54,7 @@ describe('defaultHash', () => {
     expect(defaultHash({})).not.toBe(defaultHash({}));
     // a map read of an unseen object answers absent and assigns nothing
     const unseen = {};
-    const m = HashMap.of(Array.from({ length: 20 }, (_, i) => [{ i }, i] as const));
+    const m = HashMap.of<object, number>(Array.from({ length: 20 }, (_, i) => [{ i }, i]));
     expect(m.get(unseen)).toBe(undefined);
     expect(m.has(unseen)).toBe(false);
     expect(m.delete(unseen)).toBe(m);
