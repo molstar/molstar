@@ -131,11 +131,16 @@ files are frozen with its work folder; these rules govern the next loops, which 
   - every rule the earlier fold-backs added, checked against this work's evidence: held, amended or dropped;
   - the self-check on the proposals (the `principles-self-check` skill);
   - a work that taught nothing says so, with its self-check.
-  Nothing in it is applied or committed outside the folder before the author approves it; the approval is a line of
-  its own, `Approved by the author, <date>: "<their words>"`, and what was approved is applied before the record and
-  the closing line of `state.md`. Checked: `_checks/closed-work.ts` (a closed folder has `foldback.md` with that line).
-  Why: the fold-back is how the principles learn from the work, and a step that is only one category of
-  reconciliation can be skipped or merged into the record, where it is never approved as a change.
+  Writing it is required; merging it is not. The author decides, and the decision is a line of its own:
+  `Decided by the author, <date>: <merged | merged in part | not merged>: "<their words>"`. Work whose lessons should
+  not spread (an exploration, a prototype, a spike) is `not merged`: its fold-back stays in its archive as evidence for
+  a later one. Nothing in it is applied outside the folder before that line, and what was decided is applied before
+  the record and the closing line of `state.md`. Checked: `_checks/closed-work.ts` (a closed folder has `foldback.md`
+  with a decision line). The author, 2026-11-18: "all work should have the foldback file, not every foldback should be
+  "merged" .. some exploration work for example should not merge its lessons". Why: the fold-back is how the
+  principles learn from the work; as only one category of reconciliation it could be skipped or folded into the
+  record, never decided; and lessons from work meant to be thrown away would bend the principles if merged by
+  default.
 
 ## For the package's home
 
@@ -143,8 +148,8 @@ Fold-back proposals for the oz package, from this instance (2026-11-18); until m
 adaptations above.
 
 - §reconcile-before-merge: the fold-back is a step of every close, not a category of reconciliation: a `foldback.md`
-  always, the earlier fold-backs' rules checked against the new evidence, applied only once the author approves it, its
-  approval line checked before the folder closes.
+  always, the earlier fold-backs' rules checked against the new evidence; the author decides merged, in part or not
+  (an exploration's lessons stay in its archive), the decision line checked before the folder closes.
 - §stories-are-tests, §used-before-done: the look is part of a lane's review, before the merge, in light and dark.
 - §whole-composition-tested (the mutation check): a fix's report names the command that shows its test failing on
   the fix's parent, rerun by the reviewer. Optional at gates: a script that reverts the fix's non-test files on a

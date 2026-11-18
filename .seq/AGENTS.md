@@ -62,7 +62,7 @@ node .seq/_checks/closed-work.ts
 
 The last two are this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
 ([sources/seqstar/edge-cases.md](sources/seqstar/edge-cases.md); [design/edge-cases.md](design/edge-cases.md)); and a
-closed work folder has a `foldback.md` the author approved ([principles](principles/README.md), "The fold-back is a step
+closed work folder has a `foldback.md` with the author's decision on it (merged, in part, or not) ([principles](principles/README.md), "The fold-back is a step
 of every close").
 
 The `--allow` patterns limit the id and path checks to what this scaffold governs: the rest of the repository uses

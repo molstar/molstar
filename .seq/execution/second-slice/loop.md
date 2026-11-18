@@ -151,8 +151,8 @@ When every item is ticked:
    - the first slice's fold-back rules (principles, "Folded back from the first slice") each checked against this
      slice's evidence: held, amended or dropped;
    - the self-check.
-   The author approves it; their words go on its `Approved by the author` line; then what was approved is applied
-   (principles, designs, `_spec`s, checks) and committed, before the record.
+   The author decides (merged, merged in part, or not merged); their words go on its `Decided by the author` line;
+   then what was decided is applied (principles, designs, `_spec`s, checks) and committed, before the record.
 3. Run the gate once more.
 4. Write the record in `.seq/records/second-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
    nothing in this folder after that.
