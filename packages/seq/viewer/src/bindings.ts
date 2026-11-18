@@ -14,7 +14,16 @@ import { type ChangeKind, changeKindOf, isMethodAction } from './commands.js';
 import { ViewerIssues } from './issues.js';
 import type { HitTarget } from '@molstar/seqx-viewer/models';
 
-export type PointerGesture = 'hover' | 'click' | 'double-click' | 'drag' | 'wheel' | 'pinch';
+/** `back-button`, `forward-button`: a mouse's side buttons (its fourth and fifth). */
+export type PointerGesture =
+  | 'hover'
+  | 'click'
+  | 'double-click'
+  | 'drag'
+  | 'wheel'
+  | 'pinch'
+  | 'back-button'
+  | 'forward-button';
 export type Gesture = PointerGesture | 'key';
 
 /** `mod` is Cmd on macOS, Ctrl elsewhere (`modifiersOf`); `space` is the key held during a drag. */
@@ -55,6 +64,58 @@ export function modifiersOf(
   out.alt = !!e.altKey;
   out.space = space;
   return out;
+}
+
+/** A key and the modifiers it is pressed with (`@molstar/ui`'s `KeyChord`). */
+export interface KeyChord {
+  readonly key: string;
+  readonly shift?: boolean;
+  readonly alt?: boolean;
+  /** Cmd on macOS, Ctrl elsewhere. */
+  readonly mod?: boolean;
+}
+
+/**
+ * A chord as written in the configuration (`Alt+ArrowLeft`, `Shift+Alt+ArrowRight`, `Mod+0`, `+`): modifiers before
+ * the key, joined by `+`; a key that is `+` itself comes last (`Alt++`). Undefined for an empty one.
+ */
+export function parseChord(text: string): KeyChord | undefined {
+  if (!text) return undefined;
+  const plus = text === '+' || text.endsWith('++');
+  const parts = (plus ? text.slice(0, -1) : text).split('+');
+  const key = plus ? '+' : parts.pop();
+  if (plus) parts.pop();
+  if (!key) return undefined;
+  const chord: { key: string; shift?: boolean; alt?: boolean; mod?: boolean } = { key };
+  for (const p of parts) {
+    const m = p.toLowerCase();
+    if (m === 'shift') chord.shift = true;
+    else if (m === 'alt' || m === 'option') chord.alt = true;
+    else if (m === 'mod' || m === 'cmd' || m === 'ctrl') chord.mod = true;
+    else return undefined;
+  }
+  return chord;
+}
+
+/**
+ * Whether a key event is a chord: the key and every modifier; a printable key with no Shift in its chord matches
+ * whatever Shift the layout needs to type it (`+` is Shift+= on many layouts).
+ */
+export function matchesChord(
+  chord: KeyChord,
+  e: {
+    readonly key: string;
+    readonly shiftKey?: boolean;
+    readonly altKey?: boolean;
+    readonly metaKey?: boolean;
+    readonly ctrlKey?: boolean;
+  },
+  mac: boolean,
+): boolean {
+  if (chord.key !== e.key || !!chord.alt !== !!e.altKey) return false;
+  if (!!chord.mod !== (mac ? !!e.metaKey : !!e.ctrlKey)) return false;
+  const printable = chord.key.length === 1 && chord.key !== ' ';
+  return printable && !chord.shift ? true : !!chord.shift === !!e.shiftKey;
 }
 
 const DataTargets: readonly HitTarget[] = ['cell', 'item'];
@@ -107,6 +168,9 @@ export const NavigationBindings: readonly GestureBinding[] = [
   { gesture: 'pinch', target: 'any', action: 'zoom' },
   ...each(ElementTargets, 'double-click', 'view.focus'),
   { gesture: 'double-click', target: 'empty', action: 'view.fit' },
+  { gesture: 'double-click', modifiers: ['shift'], target: 'any', action: 'view.zoom-out' },
+  { gesture: 'back-button', modifiers: '*', target: 'any', action: 'view.back' },
+  { gesture: 'forward-button', modifiers: '*', target: 'any', action: 'view.forward' },
 ];
 
 /** The default grammar: the hover, navigation and the selection (a drag on data selects). */
@@ -131,6 +195,8 @@ export const DefaultActions: readonly string[] = [
   'zoom',
   'view.fit',
   'view.focus',
+  'view.back',
+  'view.forward',
   'view.zoom-in',
   'view.zoom-out',
   'view.pan-left',

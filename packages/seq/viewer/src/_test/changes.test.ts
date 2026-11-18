@@ -108,6 +108,17 @@ const cursorAt = (section: string) => (v: SeqViewer) =>
 const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }> = {
   'view.fit': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 5, 15) },
   'view.focus': { ctx: { section: Protein, focus: { start: 2, end: 8 } } },
+  'view.back': {
+    ctx: { section: Protein },
+    before: (v) => run(v, 'view.focus', { section: Protein, focus: { start: 2, end: 8 } }),
+  },
+  'view.forward': {
+    ctx: { section: Protein },
+    before: async (v) => {
+      await run(v, 'view.focus', { section: Protein, focus: { start: 2, end: 8 } });
+      await run(v, 'view.back', { section: Protein });
+    },
+  },
   'view.zoom-in': { ctx: { section: Protein } },
   'view.zoom-out': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 5, 15) },
   'view.pan-left': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },

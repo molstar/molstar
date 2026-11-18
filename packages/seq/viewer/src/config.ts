@@ -86,9 +86,30 @@ export interface ViewerConfig {
      */
     readonly cyclicArc: 'wrap' | 'hull';
   };
+  readonly view: {
+    /** The steps back the view's history of jumps keeps (50): the oldest goes first. */
+    readonly historyLimit: number;
+    /** A double-click focusing what the view already shows focused goes back (true); false: it does nothing. */
+    readonly backOnFocused: boolean;
+    /** How long a jump (focus, fit, reveal, back, forward, a step zoom) animates, ms (240); 0: a cut. */
+    readonly jumpMs: number;
+    /**
+     * Whether jumps animate: `auto` (the default) unless the platform asks for reduced motion (then a cut), `cut`
+     * always a cut.
+     */
+    readonly motion: 'auto' | 'cut';
+    /**
+     * The keys of the view's commands, by command id: a chord is a key with `Shift+`, `Alt+`, `Mod+` (Cmd on macOS, Ctrl
+     * elsewhere) before it; a printable key matches whatever Shift it needs (`+`). The first is the command's shortcut.
+     * An override merges by command id (`[]`: none). Read when the viewer is made.
+     */
+    readonly keys: Readonly<Record<string, readonly string[]>>;
+  };
   readonly navigate: {
     /** The zoom factor of one wheel notch (100 px of delta) with the zoom modifier, and of a key zoom. */
     readonly wheelZoomStep: number;
+    /** The zoom factor a double-click's zoom out (Shift+double-click) takes about the pointer (2). */
+    readonly doubleClickZoomStep: number;
     /** The part of the viewport an arrow key pans. */
     readonly keyPanFraction: number;
     /** Wheel deltas within one frame are applied once, at the frame (true); false: at each event. */
@@ -202,7 +223,22 @@ export const DefaultViewerConfig: ViewerConfig = {
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }, reveal: true },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
   follow: { followerMoves: 'lead', cyclicArc: 'wrap' },
-  navigate: { wheelZoomStep: 1.25, keyPanFraction: 0.1, coalesceWheel: true },
+  view: {
+    historyLimit: 50,
+    backOnFocused: true,
+    jumpMs: 240,
+    motion: 'auto',
+    keys: {
+      'view.back': ['Alt+ArrowLeft', 'Backspace'],
+      'view.forward': ['Alt+ArrowRight'],
+      'view.fit': ['0'],
+      'view.zoom-in': ['=', '+'],
+      'view.zoom-out': ['-'],
+      'view.pan-left': ['Shift+Alt+ArrowLeft'],
+      'view.pan-right': ['Shift+Alt+ArrowRight'],
+    },
+  },
+  navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },
   theme: { source: 'root' },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },
   pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50, lineHeight: 16 },
@@ -224,6 +260,9 @@ export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig
   const out: Record<string, unknown> = {};
   for (const [group, items] of Object.entries(DefaultViewerConfig))
     out[group] = { ...items, ...(over as Record<string, object | undefined>)[group] };
+  // the view's keys merge by command id: an override of one command's keys keeps the others' (`[]` removes them)
+  const keys = over.view?.keys;
+  if (keys) (out.view as { keys: unknown }).keys = { ...DefaultViewerConfig.view.keys, ...keys };
   return out as unknown as ViewerConfig;
 }
 

@@ -841,11 +841,17 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 - **Sticky lanes** (`StickyLanes`): an item keeps its lane while it is in view; a new item takes the first lane free
   over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
   when a neighboring region arrives.
-- **Hits** are `{ layer, section, element?, extent?, position?, system }`: `layer` the layer's key (its address, else
-  its track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a
+- **Hits** are `{ layer, section, element?, extent?, hull?, position?, system }`: `layer` the layer's key (its address,
+  else its track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
   `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
   element under the point wins, else the topmost with a position.
+- **Every drawn mark has a hit box.** A `ranges` layer indexes each item's own marks (every lane, every piece), not the
+  drawn ones: at `bars` a run merged from several items is hit by the item under the point, its gaps (under a device
+  pixel) by the nearest within a device pixel, and the hover outlines that item's own marks inside the run. An item's
+  hit carries its `hull` on the section's system (every piece carried along the layer's path): what a focus on it shows,
+  where its extent is on the data's system (a domain on its gene, a transcript's domains from a nested source). Why: a
+  run drawn as one mark but named by no item was a box with no hit and no hover.
 
 ### The key
 

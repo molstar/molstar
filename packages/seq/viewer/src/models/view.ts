@@ -7,7 +7,8 @@
 // The view's model (_spec/README.md "ViewModel"): the view shown, a viewport per section, scroll groups on equal axes
 // (EC-113), follows through the resolved view's follow path (EC-113, EC-114), a move asked of a follower carried back
 // to its leader (`follow.followerMoves`: `lead`), viewports kept across updates (EC-111) and moves before a width kept
-// as intents (EC-112). Session state: never in the spec or its history.
+// as intents (EC-112), and the view's history of jumps (back and forward). Session state: never in the spec or its
+// history.
 
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
@@ -65,6 +66,27 @@ interface SectionState {
 
 const DetachedPrefix = '#';
 
+/** The leading viewports at one time: each group's range by key (a detached follower's among them). */
+type Snapshot = ReadonlyMap<string, { readonly start: number; readonly end: number; readonly fitted: boolean }>;
+
+/** What a jump did: moved the view, found it already there, or could not move. */
+export type JumpOutcome = 'moved' | 'same' | 'none';
+
+/** The view's history of jumps: how many steps back and forward there are. */
+export interface ViewHistory {
+  readonly back: number;
+  readonly forward: number;
+}
+
+function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
+  if (a.size !== b.size) return false;
+  for (const [k, v] of a) {
+    const w = b.get(k);
+    if (!w || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted) return false;
+  }
+  return true;
+}
+
 export class ViewModel extends ReactiveModel {
   private readonly _view = new State<string | undefined>(undefined);
   private readonly _viewports = new KeyedState<string, Viewport>();
@@ -78,6 +100,19 @@ export class ViewModel extends ReactiveModel {
   readonly view: ReadonlyState<string | undefined> = this._view.asReadonly;
   /** The resolved view shown, undefined when the spec has none. */
   readonly resolved: ReadonlyState<ResolvedView | undefined>;
+
+  /** The jumps' history (_spec/README.md "ViewModel", History): the viewports each jump left, and those back left. */
+  private readonly _back: Snapshot[] = [];
+  private readonly _forward: Snapshot[] = [];
+  private readonly _history = new State<ViewHistory>(
+    { back: 0, forward: 0 },
+    (a, b) => a.back === b.back && a.forward === b.forward,
+  );
+  private readonly _jumps = new State(0);
+  /** How many steps back and forward the view's history holds. */
+  readonly history: ReadonlyState<ViewHistory> = this._history.asReadonly;
+  /** Moves on each jump, back and forward (and each step zoom): what a viewer animates; a move by hand does not. */
+  readonly jumps: ReadonlyState<number> = this._jumps.asReadonly;
 
   /** The lengths of source-backed systems the store's coverages give, by system address (`refreshLengths`). */
   private readonly _lengths = new State<ReadonlyMap<string, number>>(new Map(), sameLengths);
@@ -276,6 +311,141 @@ export class ViewModel extends ReactiveModel {
    */
   canMove(section: string): boolean {
     return this._canMove(section);
+  }
+
+  // ---- the history of jumps ----
+
+  /**
+   * Runs a jump (a focus, a fit, a reveal, a bookmark's or a link's move): when it moves the view, the viewports it left
+   * are pushed on the history (`record`, the default; a step zoom animates without one) and the steps forward dropped.
+   * `same` when the view already showed what was asked (a double-click on what is focused), `none` when nothing could
+   * move. A pan or a zoom by hand pushes nothing: a jump after it pushes where the hand left the view.
+   */
+  jump(move: () => boolean, record = true): JumpOutcome {
+    const before = this._snapshot();
+    if (!move()) return 'none';
+    if (snapshotsEqual(before, this._snapshot())) return 'same';
+    if (record) {
+      this._back.push(before);
+      const limit = Math.max(0, this.config.view.historyLimit);
+      if (this._back.length > limit) this._back.splice(0, this._back.length - limit);
+      this._forward.length = 0;
+      this._tellHistory();
+    }
+    this._jumps.set(this._jumps.value + 1);
+    return 'moved';
+  }
+
+  /** Whether there is a step back or forward. */
+  get canBack(): boolean {
+    return this._back.length > 0;
+  }
+
+  get canForward(): boolean {
+    return this._forward.length > 0;
+  }
+
+  /** Returns to the viewports the last jump left, every leading section's together; false when there is none. */
+  back(): boolean {
+    return this._step(this._back, this._forward);
+  }
+
+  /** Goes again where the last back left. */
+  forward(): boolean {
+    return this._step(this._forward, this._back);
+  }
+
+  /** Forgets the history (a new spec loaded). */
+  clearHistory(): void {
+    this._back.length = 0;
+    this._forward.length = 0;
+    this._tellHistory();
+  }
+
+  private _step(from: Snapshot[], to: Snapshot[]): boolean {
+    // a step to where the view is now (a group gone, a hand that returned) is skipped
+    const now = this._snapshot();
+    let target: Snapshot | undefined;
+    while (from.length) {
+      const t = from.pop()!;
+      if (!snapshotsEqual(this._restored(t), now)) {
+        target = t;
+        break;
+      }
+    }
+    if (!target) {
+      this._tellHistory();
+      return false;
+    }
+    to.push(now);
+    this._restore(target);
+    this._tellHistory();
+    this._jumps.set(this._jumps.value + 1);
+    return true;
+  }
+
+  private _tellHistory(): void {
+    this._history.set({ back: this._back.length, forward: this._forward.length });
+  }
+
+  /** Each group's range now. */
+  private _snapshot(): Snapshot {
+    const out = new Map<string, { start: number; end: number; fitted: boolean }>();
+    for (const g of this._groups.values()) out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted });
+    return out;
+  }
+
+  /**
+   * What restoring a snapshot would give: the groups there now, at its ranges; a follower detached since, attached; one
+   * detached then and attached since, detached again (a section gone since is left out).
+   */
+  private _restored(snap: Snapshot): Snapshot {
+    const out = new Map<string, { start: number; end: number; fitted: boolean }>();
+    for (const g of this._groups.values()) {
+      const v = snap.get(g.key);
+      if (v) out.set(g.key, v);
+      else if (!g.key.startsWith(DetachedPrefix)) out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted });
+    }
+    for (const [key, v] of snap)
+      if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
+    return out;
+  }
+
+  /** The follower a detached group's key names, when it is in the view and follows. */
+  private _detachable(key: string): SectionState | undefined {
+    const s = this._sections.get(key.slice(DetachedPrefix.length));
+    return s?.section.follow ? s : undefined;
+  }
+
+  /** The groups take the snapshot's ranges in one publish; a follower detached since it was taken is attached again. */
+  private _restore(snap: Snapshot): void {
+    for (const [key, g] of [...this._groups]) {
+      const v = snap.get(key);
+      if (v) {
+        g.start = v.start;
+        g.end = v.end;
+        g.fitted = v.fitted;
+      } else if (key.startsWith(DetachedPrefix)) {
+        this._groups.delete(key);
+        for (const s of this._sections.values()) if (s.group === key) s.group = undefined;
+      }
+    }
+    // a follower detached when the snapshot was taken is detached again, at its range then
+    for (const [key, v] of snap) {
+      const s = !this._groups.has(key) && key.startsWith(DetachedPrefix) ? this._detachable(key) : undefined;
+      if (!s) continue;
+      this._groups.set(key, {
+        key,
+        axis: s.section.axis,
+        start: v.start,
+        end: v.end,
+        fitted: v.fitted,
+        placedWidth: s.width,
+        members: [s.section.address],
+      });
+      s.group = key;
+    }
+    this._publish();
   }
 
   // ---- internals ----

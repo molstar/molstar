@@ -74,6 +74,8 @@ export interface RangesLay {
   owner: string;
   /** The data's system: an element's extent is on it. */
   dataSystem: string;
+  /** The layer's source: a hit carries its element onto the section along its path. */
+  src?: LayerSource;
   box: Box;
   axis: AxisTransform;
   step: DensityStep;
@@ -108,8 +110,22 @@ export interface RangesLay {
   mink: Uint32Array;
   /** The gap between lanes, px. */
   gap: number;
+  /**
+   * The hit marks (`hn` of them): each item's own marks, before `bars` merges a lane's runs (a run of several items is
+   * drawn as one mark, hit and outlined by the item under the pointer); the drawn marks at `items`. The arrays are the
+   * drawn marks' or the merge's scratch, set at each layout.
+   */
+  hn: number;
+  hx0: Float32Array;
+  hx1: Float32Array;
+  hlane: Int32Array;
+  hitem: Int32Array;
+  hround: Uint8Array;
+  hradius: Float64Array;
+  /** How far past a hit mark a point still hits it, px: a device pixel at `bars` (a run's gaps), else 0. */
+  hslack: number;
   index: LaneIndex;
-  /** `mergeRuns`'s scratch: the marks' order and their fields in it, kept while large enough. */
+  /** `mergeRuns`'s scratch: the marks' order and their fields in it (and the radii of the marks), kept while large enough. */
   merge: {
     order: Int32Array;
     x0: Float32Array;
@@ -117,6 +133,7 @@ export interface RangesLay {
     lane: Int32Array;
     item: Int32Array;
     round: Uint8Array;
+    radius: Float64Array;
   };
   /** The heat strip and its band: the whole box, or the bottom row past the lanes. */
   density?: ImageData;
@@ -193,6 +210,14 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     mradius: new Float64Array(64),
     mink: new Uint32Array(64),
     gap: 0,
+    hn: 0,
+    hx0: new Float32Array(0),
+    hx1: new Float32Array(0),
+    hlane: new Int32Array(0),
+    hitem: new Int32Array(0),
+    hround: new Uint8Array(0),
+    hradius: new Float64Array(0),
+    hslack: 0,
     index: new LaneIndex(),
     merge: {
       order: new Int32Array(0),
@@ -201,6 +226,7 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
       lane: new Int32Array(0),
       item: new Int32Array(0),
       round: new Uint8Array(0),
+      radius: new Float64Array(0),
     },
     densityY: 0,
     densityH: 0,
@@ -261,6 +287,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.section = sectionId(ctx.section);
     lay.owner = prep.owner;
     lay.dataSystem = prep.src?.dataSystem ?? '';
+    lay.src = prep.src;
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;
@@ -272,6 +299,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.pending.length = 0;
     lay.failed.length = 0;
     lay.m = 0;
+    lay.hn = 0;
     lay.overflow = 0;
     lay.laneCount = 0;
     lay.density = undefined;
@@ -424,7 +452,31 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     for (let j = 0; j < lay.m; j++)
       if (lay.mround[j])
         lay.mradius[j] = squircleRadius(lay.mx1[j] - lay.mx0[j], h, lay.radius.ratio, lay.radius.max, lay.radius.min);
-    lay.index.build(lay.m, lay.mlane, lay.mx0, lay.mx1, lay.laneCount);
+    // the hit marks: an item's own marks, also inside a run merged with others (_spec/README.md "Render", Lanes and Hits)
+    if (lay.mode === 'bars') {
+      const s = lay.merge;
+      for (let k = 0; k < lay.hn; k++)
+        s.radius[k] = s.round[k]
+          ? squircleRadius(s.x1[k] - s.x0[k], h, lay.radius.ratio, lay.radius.max, lay.radius.min)
+          : 0;
+      lay.hx0 = s.x0;
+      lay.hx1 = s.x1;
+      lay.hlane = s.lane;
+      lay.hitem = s.item;
+      lay.hround = s.round;
+      lay.hradius = s.radius;
+      lay.hslack = px;
+    } else {
+      lay.hn = lay.m;
+      lay.hx0 = lay.mx0;
+      lay.hx1 = lay.mx1;
+      lay.hlane = lay.mlane;
+      lay.hitem = lay.mitem;
+      lay.hround = lay.mround;
+      lay.hradius = lay.mradius;
+      lay.hslack = 0;
+    }
+    lay.index.build(lay.hn, lay.hlane, lay.hx0, lay.hx1, lay.laneCount);
     return lay;
   },
 
@@ -437,16 +489,31 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) return undefined;
     const position = lay.axis.positionAt(x);
     const base = { layer: lay.key, section: lay.section, system: lay.system, ...(position >= 0 ? { position } : {}) };
-    if (lay.mode === 'density') return base;
+    if (lay.mode === 'density' || !lay.hn) return base;
     const lane = Math.floor((y - box.y) / lay.laneHeight);
-    const j = lay.index.at(lane, x);
+    const j = lay.index.near(lane, x, lay.hslack);
     if (j < 0) return base;
-    const item = lay.mitem[j];
+    const item = lay.hitem[j];
     if (item < 0) return base;
+    const s = lay.starts[item];
+    const e = lay.ends[item];
+    // its hull on the section: every piece carried along the path (a domain over the exons of its gene)
+    let lo = s;
+    let hi = e;
+    if (lay.src?.path) {
+      const pieces = toSection(lay.src, s, e, []);
+      lo = Number.POSITIVE_INFINITY;
+      hi = Number.NEGATIVE_INFINITY;
+      for (let k = 0; k + 1 < pieces.length; k += 2) {
+        lo = Math.min(lo, pieces[k]);
+        hi = Math.max(hi, pieces[k + 1]);
+      }
+    }
     return {
       ...base,
       element: { owner: lay.owner, key: lay.keys[item] },
-      extent: rangesLocation(lay.dataSystem, [lay.starts[item], lay.ends[item]]),
+      extent: rangesLocation(lay.dataSystem, [s, e]),
+      ...(lo < hi ? { hull: [lo, hi] as const } : {}),
     };
   },
 
@@ -510,7 +577,10 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
   }
 }
 
-/** The hover pass: an outline around each mark of the hovered item, concentric. */
+/**
+ * The hover pass: an outline around each of the hovered item's own marks (its hit marks: inside a merged run too),
+ * concentric.
+ */
 function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const { box, tokens } = lay;
   const gap = lay.gap;
@@ -519,20 +589,20 @@ function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefin
   // outside the mark by the offset, concentric: it never touches an outline drawn on the mark
   const half = lay.hoverWidth / 2 + lay.hoverOffset;
   const a = out.args;
-  for (let j = 0; j < lay.m; j++) {
-    const item = lay.mitem[j];
+  for (let j = 0; j < lay.hn; j++) {
+    const item = lay.hitem[j];
     if (item < 0 || lay.keys[item] !== h.element.key) continue;
-    const r = lay.mradius[j];
+    const r = lay.hradius[j];
     // concentric: the outline's radius is the mark's plus its offset
-    a[0] = lay.mx0[j] - half;
-    a[1] = box.y + lay.mlane[j] * lay.laneHeight + gap / 2 - half;
-    a[2] = lay.mx1[j] - lay.mx0[j] + 2 * half;
+    a[0] = lay.hx0[j] - half;
+    a[1] = box.y + lay.hlane[j] * lay.laneHeight + gap / 2 - half;
+    a[2] = lay.hx1[j] - lay.hx0[j] + 2 * half;
     a[3] = lay.laneHeight - gap + 2 * half;
     a[4] = NoColor;
     a[5] = tokens.colors['seq-hover'];
     a[6] = lay.hoverWidth;
     a[7] = r > 0 ? r + half : 0;
-    a[8] = lay.mround[j];
+    a[8] = lay.hround[j];
     out.rectArgs();
   }
 }
@@ -623,6 +693,7 @@ function mergeRuns(lay: RangesLay, px: number) {
     s.lane = new Int32Array(n);
     s.item = new Int32Array(n);
     s.round = new Uint8Array(n);
+    s.radius = new Float64Array(n);
   }
   const order = s.order;
   for (let j = 0; j < m; j++) order[j] = j;
@@ -637,6 +708,8 @@ function mergeRuns(lay: RangesLay, px: number) {
     item[k] = lay.mitem[j];
     round[k] = lay.mround[j];
   }
+  // the item's own marks stay in the scratch: the hit marks (`hn`)
+  lay.hn = m;
   lay.m = 0;
   for (let k = 0; k < m; ) {
     let end = x1[k];

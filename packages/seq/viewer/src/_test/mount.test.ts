@@ -257,27 +257,63 @@ describe('the mounted canvas stack', () => {
     expect(other.defaultPrevented).toBe(false);
   });
 
+  it('the platform’s reduced motion makes every jump a cut, followed while mounted and let go on retire', async () => {
+    const { viewer } = await mount();
+    const reduced = queries.filter((q) => q.media === '(prefers-reduced-motion: reduce)');
+    expect(reduced.length).toBe(1);
+    // the fake media query matches
+    expect(viewer.reducedMotion).toBe(true);
+    expect(reduced[0].listeners.size).toBe(1);
+    viewer.reducedMotion = false;
+    for (const fn of [...reduced[0].listeners]) fn();
+    expect(viewer.reducedMotion).toBe(true);
+    viewer.runCommand('view.focus', { section: '/views/main/protein', focus: { start: 1, end: 3 } });
+    expect(viewer.moving).toBe(false);
+    viewer.retire();
+    expect(reduced[0].listeners.size).toBe(0);
+  });
+
+  it('the side buttons are the viewer’s only when it has a step to go: else the page keeps its Back', async () => {
+    const { viewer, container } = await mount();
+    const press = (button: number) => {
+      const down = at('pointerdown', 300, 18, { button });
+      container.dispatchEvent(down);
+      const up = at('mouseup', 300, 18, { button });
+      container.dispatchEvent(up);
+      return [down.defaultPrevented, up.defaultPrevented];
+    };
+    expect(press(3)).toEqual([false, false]);
+    viewer.runCommand('view.focus', { section: '/views/main/protein', focus: { start: 1, end: 3 } });
+    expect(press(3)).toEqual([true, true]);
+    expect(viewer.view.get('/views/main/protein')).toMatchObject({ start: 0, end: 4 });
+    expect(press(4)).toEqual([true, true]);
+    expect(viewer.view.get('/views/main/protein')).toMatchObject({ start: 1, end: 3 });
+    expect(press(4)).toEqual([false, false]);
+  });
+
   it('a change of the device pixel ratio asks for a frame and listens for the next ratio', async () => {
     const { viewer, container } = await mount();
-    expect(queries.length).toBe(1);
-    expect(queries[0].media).toBe('(resolution: 1dppx)');
-    expect(queries[0].listeners.size).toBe(1);
+    // the ratio's queries (the reduced motion's is another)
+    const ratios = () => queries.filter((q) => q.media.startsWith('(resolution'));
+    expect(ratios().length).toBe(1);
+    expect(ratios()[0].media).toBe('(resolution: 1dppx)');
+    expect(ratios()[0].listeners.size).toBe(1);
     frames.flush();
     const drawn = viewer.counts.frames;
     // the ratio changes: the listener of the old query goes, a query for the new ratio is made, a frame follows
     vi.stubGlobal('devicePixelRatio', 2);
     Object.defineProperty(document.defaultView!, 'devicePixelRatio', { configurable: true, value: 2 });
-    for (const fn of [...queries[0].listeners]) fn();
-    expect(queries[0].listeners.size).toBe(0);
-    expect(queries.length).toBe(2);
-    expect(queries[1].media).toBe('(resolution: 2dppx)');
-    expect(queries[1].listeners.size).toBe(1);
+    for (const fn of [...ratios()[0].listeners]) fn();
+    expect(ratios()[0].listeners.size).toBe(0);
+    expect(ratios().length).toBe(2);
+    expect(ratios()[1].media).toBe('(resolution: 2dppx)');
+    expect(ratios()[1].listeners.size).toBe(1);
     frames.flush();
     expect(viewer.counts.frames).toBe(drawn + 1);
     expect(viewer.dpr).toBe(2);
     expect(container.querySelector('canvas')!.width).toBe(viewer.width * 2);
     viewer.retire();
-    expect(queries[1].listeners.size).toBe(0);
+    expect(ratios()[1].listeners.size).toBe(0);
   });
 
   it('retire takes away every listener it added, the observer and the nodes, and no frame or timer is left', async () => {

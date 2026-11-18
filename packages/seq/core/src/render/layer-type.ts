@@ -66,6 +66,11 @@ export interface Hit {
   readonly element?: ElementKey;
   /** The element's extent, on its data's system. */
   readonly extent?: Location;
+  /**
+   * The element's hull on the section's system, positions `[start, end)`: its extent carried along the layer's path
+   * (all its pieces), what a focus on it shows.
+   */
+  readonly hull?: readonly [number, number];
   readonly position?: number;
   readonly system: string;
 }

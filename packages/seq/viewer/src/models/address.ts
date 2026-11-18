@@ -314,8 +314,21 @@ export class AddressModel extends ReactiveModel {
     return this._moveTo(loc, false);
   }
 
-  /** Each leading section on a system the location has positions on (or reaches by a static path) shows its hull. */
+  /**
+   * A focus or a reveal is a jump (_spec/README.md "ViewModel", History): the viewports it leaves are a step of the
+   * view's history.
+   */
   private _moveTo(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
+    let r: 'moved' | 'pending' | 'none' = 'none';
+    this.view.jump(() => {
+      r = this._moveEach(loc, reveal, only);
+      return r !== 'none';
+    });
+    return r;
+  }
+
+  /** Each leading section on a system the location has positions on (or reaches by a static path) shows its hull. */
+  private _moveEach(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
     const resolved = this.view.resolved.value;
     if (!resolved || isEmptyLocation(loc)) return 'none';
     // a rect's sides are positions on its two systems
