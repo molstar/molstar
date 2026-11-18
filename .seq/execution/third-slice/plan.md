@@ -83,25 +83,122 @@ From the principles ("Folded back from the second slice"), written into this pla
 - **Size targets with room**: headless rendering has 32 kB left under 300 kB, and this slice adds layouts, themes and
   layers to it. Recommendation: measure at stage 1's gate and bring a target change, if any, then.
 
-## Stages
+## Testing strategy
 
-0. **Carry-overs** (light): exporting `projectPoint`, the codon-split follow edges, a link followed before load kept
-   waiting, the Features links story's double message, `track.add`, the history's toolbar commands, drawing checked
-   against the data in the existing example views (`packages/seq/TODO.md`).
-1. **The axis, then themes and the small layers** (strong + fast): the axis lane first (layouts build on it); the theme
-   sublanguage, residue schemes, legends, shared domains, size channels; the ruler and numbering, secondary structure,
-   variants, values' line and area, ranges' line styles and arrowheads. **Use gate**: the author tries the p53 views for
-   ten minutes.
-2. **Layouts** (two strong lanes): the text layout and alignment figures (groups of ten, lanes, inline labels, numbers
-   per row, frames); blocks and rings (labels with leaders, a window a linear detail follows, EC-108 and EC-114).
-3. **Pairs, grids and rows** (strong): arcs and chords; the grid and dot plot as a section of its own (crosshair hover,
-   rectangle selection); the logo; the rows layer (tree or data order, collapsed clades, lazy rows for 10,000).
-4. **Stories and navigators** (strong + fast): the stories library and the `AnimationPort`; navigators.
-5. **Datasets and views** (fast lanes, one per dataset): fixtures, builders, views, stories and their headless twins,
-   an editing view per dataset.
-6. **Output and accessibility** (fast): PNG, the render CLI, SVG titles, announcements, forced colors. **Novice pass**
-   (a light agent with a task script per view), then **the author's use gate**.
-7. **Measure**, then finalize (reconcile, the fold-back as its own step, the record, the next plan).
+- **Every lane**: its quick-lane tests in `_test/` beside the code; a story that composes more than one consumer has a
+  headless twin on a fake clock; the example views' tests check drawing against the data (every item in view has its
+  marks, every drawn mark is hit) at the fit view and across a tile edge; a fix lands with a test shown failing on its
+  parent.
+- **A path's target, in the stage that builds it**: a quick representative under `itWithin` (the heavy lane, the best
+  of three): a text reflow, a ring's frame, a dot plot's frame, a story's `sample`, a PNG export; draw and hover warm at
+  0 bytes (the opt-in tier).
+- **New layouts and the axis**: property tests over random sections (every position placed once, hit-testing the
+  inverse of placement, selection and export agreeing) and a record per layout (`recordDrawLists`) committed for the
+  p53 and one other dataset.
+- **Lanes**: quick in the edit loop; medium for the GL-free story twins and whole sessions; heavy for the bounds and
+  the 10,000-row scaling. **At every gate**: quick, medium, heavy for the touched packages (never two heavy runs at
+  once), the allocation tier, `pnpm -C packages/seq/core size`, the Storybook typecheck, lint, format, the `.seq`
+  checks; `pnpm build` then `pnpm check:workspace` when `@molstar/core` or `@molstar/io` changed.
+
+## Stages and lanes
+
+Lane names are new to this slice. Each lane: a brief in `briefs/`, its `_spec` and Configuration table kept, a v6
+changelog entry (written in its report), an independent review and one fix round, the look in a visible pane in light
+and dark before the merge.
+
+### Stage 0: carried from the second slice (orchestrator and one fast lane, beside Gate 0)
+
+- [ ] C0 (fast) the carry-overs in `packages/seq/TODO.md`: export `projectPoint` from `resolve` and drop the viewer's
+      copy; a link followed before the spec is loaded kept waiting (the address model treats "no spec yet" as waiting)
+      and the focus recorded when a kept move lands; the Features links story's single message; `track.add` as a
+      command; `view.back` and `view.forward` in the default toolbar with their disabled state; drawing checked against
+      the data in the existing p53 example views.
+- [ ] GATE: merged, reviewed, the checks green, sizes measured.
+
+### Stage 1: the axis, then themes and the small layers (after Gate 0)
+
+- [ ] AX (strong) the axis, as the axis design agreed at Gate 0 (with its self-check), first in the stage:
+  - a section's direction `genomic`, `reversed`, `follow` on reversed pieces; a follower defaults to `follow`; a
+    reversed axis counts down and says so; reversed DNA letters as their complement (on by default);
+  - letters through a one-to-one or codon path (a residue a codon wide, a codon split by an intron in each piece),
+    any other path still `seq.render.layer.letters` with its reason;
+  - collapsed introns (the default for a section following through a codon map), and `Follow.point` following each
+    nucleotide of a split codon;
+  - hit-testing, selection, follow (both ways), focus and the SVG export through the new axis; the p53 views: the
+    protein and its gene on one axis, the gene reading along its protein.
+- [ ] TH (strong, after the theme sublanguage's design) themes: the `layer.color` slot's grammar (fields, palettes
+      binned, continuous and log, rules), the residue schemes, legends as parts a host places, shared domains, size
+      channels; the themes view.
+- [ ] SL (fast, beside TH) the small layers: the ruler and numbering, secondary structure, variants, values' line and
+      area, ranges' line styles and arrowheads; each with its fallback.
+- [ ] GATE: merged, reviewed, the checks green, sizes measured (headless rendering's room, Gate 0's question), gaps
+      asked, the matrix cells this stage fills checked.
+- [ ] USE GATE (early): the author tries the p53 views for about ten minutes; findings fixed or placed, counted by kind.
+
+### Stage 2: layouts (two strong lanes, after stage 1)
+
+- [ ] TX (strong) the text layout and alignment figures, on the layout interface's extension agreed at Gate 0: groups
+      of ten, lanes, inline labels, numbers per row, frames; reflow on resize within its target.
+- [ ] RB (strong) blocks and rings: labels with leaders, a window a linear detail follows (EC-108, EC-114), a feature
+      across the origin by its shortest arc.
+- [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (the ring's window).
+
+### Stage 3: pairs, grids and rows (strong, after stage 2)
+
+- [ ] PG (strong) arcs and chords; the grid and dot plot as a section of its own, crosshair hover and rectangle
+      selection.
+- [ ] RW (strong) the rows layer: tree or data order, collapsed clades with a summary, pinning, lazy rows for 10,000
+      (the store's want sets, bounded layout); the logo.
+- [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (rows and clades, the rectangle).
+
+### Stage 4: stories and navigators (after stage 2; beside stage 3)
+
+- [ ] SY (strong) the stories library, as `stories.md`: `stateOf`, `plan`, `sample` and the channel kinds in
+      `seqx-core` (property tests: `sample(plan, 0)` is `from`, `sample(plan, 1)` is `to`, monotone, deterministic,
+      allocation-free warm); the frame slot over the shown state; the `AnimationPort` with its default and headless
+      adapters; the view history's jumps and focus through it; the p53 story played, scrubbed and exported.
+- [ ] NV (fast, after `navigators.md`) navigators: a strip and a miniature that move the view, as parts a host places.
+- [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
+
+### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
+
+- [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
+      examples.md, their stories and headless twins, drawing against the data, an editing view each.
+- [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
+
+### Stage 6: output, accessibility and use
+
+- [ ] OP (fast) PNG headless (the picture SVG draws, rasterized as Gate 0 decides) and the render CLI (`cli/`) under
+      the headless asset policy (EC-126), with its cold-start target.
+- [ ] AY (fast) titles in exported SVG, the cursor and hover announced, forced colors.
+- [ ] NOVICE PASS: a light agent plays a user in a visible browser with a task script per view; friction reported.
+- [ ] USE GATE: the author uses the views; findings fixed or placed, counted by kind.
+
+### Stage 7: measure (orchestrator, light)
+
+- [ ] M3 the heavy lane and the opt-in tiers; the browser in a visible pane at dpr 2 (the alignment of 10,000 × 300,
+      a ring, the text reflow, a story's frame); PNG export; the bundles.
+- [ ] GATE: the author confirms or moves the targets the slice touched.
+
+### Finalize
+
+- [ ] FINALIZE: reconcile (designs, `_spec`s, status, features, edge cases, `TODO.md`, drift emptied); the fold-back
+      as its own step (this slice's lessons, the earlier fold-backs' rules against this slice's evidence, the count of
+      what each gate found by kind, the self-check), decided by the author; the record; the fourth slice's plan.
+
+## Order and parallelism
+
+Gate 0 (with C0 beside it) → AX → TH and SL in parallel → early use gate → TX and RB in parallel → PG, RW and SY in
+parallel (two heavy, one light at once), NV after `navigators.md` → the datasets' lanes (two or three at once, fast)
+→ OP and AY → novice pass → the author's use gate → measure → finalize. Never two heavy test runs at once.
+
+## Hot files (the orchestrator's only)
+
+- `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
+- `storybook/packages.ts`, `.v6/changelogs/`;
+- `packages/seq/*/package.json` and `tsconfig*.json`, `packages/core/package.json`, `packages/io/package.json`;
+- a new `cli/` package's inventory entry (OP asks in its report);
+- `.seq/`.
 
 ## Known risks
 
