@@ -16,6 +16,7 @@
 import { HashMap, HashSet, type MutableHashMap } from '@molstar/core/data/immutable';
 import type { Changes, PatchValidator } from '@molstar/core/repr/patch';
 import { type Address, type Issue, type Node, printAddress, type TreePath, type Value } from '@molstar/core/repr/tree';
+import { checkSubtreeDepth, DefaultSpecBounds, type SpecBounds } from './bounds.js';
 import {
   checkFollow,
   checkPlaced,
@@ -265,9 +266,26 @@ function keyed(issues: Issue[], keys: string[], rename: (address: string) => str
  * The `seq.lang.*` issues a change introduced (_spec/README.md, Language, Checks of a change): `checkSeqLang`'s, on the
  * nodes `changes` reaches in `after`, less those the same nodes had in `before`. For a valid, normalized `after`.
  */
-export function checkSeqChanges(before: Node, after: Node, changes: Changes): Issue[] {
+export function checkSeqChanges(
+  before: Node,
+  after: Node,
+  changes: Changes,
+  bounds: SpecBounds = DefaultSpecBounds,
+): Issue[] {
+  // the nesting bounds, as the whole spec's check holds them, before anything walks the changes (a subtree too deep to
+  // walk is refused alone): the subtrees a change made or moved, the params it set
+  const look0 = lookupOf(after);
+  const deep: Issue[] = [];
+  const nest = (address: Address, children: boolean) => {
+    const at = look0.get(printAddress(address));
+    if (at) deep.push(...checkSubtreeDepth(at.node, at.path, address.length, bounds, children));
+  };
+  for (const m of changes.made) nest(m, true);
+  for (const m of changes.moved) nest(m.to, true);
+  for (const c of changes.params) nest(c.at, false);
+  if (deep.length) return deep;
   const index = deriveIndex(before, after, changes);
-  const look = lookupOf(after);
+  const look = look0;
   const affected = new Set<string>();
   const queue: string[] = [];
   const touch = (address: string) => {
@@ -374,4 +392,8 @@ function sectionFollow(look: SeqLookup, address: string): string | undefined {
  * The language's checks as `repr/patch`'s validator (`ApplyOptions.validators`): `checkSeqChanges`, so a patch is
  * refused for a `seq.lang.*` error it introduced and never for one already there.
  */
-export const SeqPatchValidator: PatchValidator = checkSeqChanges;
+export const SeqPatchValidator: PatchValidator = (before, after, changes) => checkSeqChanges(before, after, changes);
+
+/** `SeqPatchValidator` with other bounds than the defaults (a composition's `bounds` configuration). */
+export const seqPatchValidator = (bounds: SpecBounds): PatchValidator => (before, after, changes) =>
+  checkSeqChanges(before, after, changes, bounds);
