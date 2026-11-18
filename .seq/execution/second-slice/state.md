@@ -17,7 +17,8 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 - Stage 0: S0 merged (`360043baf`); S0b (`values.coarser` = 1) next. The Gene by region recheck waits for a visible
   pane (the author asked to show it).
-- Stage 1: lanes R and K (heavy) start now; L and M (light) beside them.
+- Stage 1, started from `f629c1374` (the briefs): R (`seq/r-immutable`, opus), K (`seq/k-patches`, opus), L
+  (`seq/l-msgpack`, sonnet), M (`seq/m-assets`, sonnet). S0b waits for a light slot.
 
 ## Next
 
