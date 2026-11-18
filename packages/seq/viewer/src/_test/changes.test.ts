@@ -1,0 +1,199 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// Every change has a kind (_spec/README.md "Commands"): each command of the default viewer, run on a viewer with the
+// default spec's history, changes exactly what its declared kind says (the spec and one history step for a patch, the
+// preview, the session, what is shown without the spec, or nothing); and undo touches only spec patches.
+
+import { hashNode, type Node } from '@molstar/core/repr/tree';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { EditingBehavior } from '../behaviors/editing.js';
+import { type ChangeKind, changeKindOf } from '../commands.js';
+import { viewerItem } from '../config.js';
+import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { type UiHistory, uiHistory } from '../ui-history.js';
+import { createSeqViewer, type SeqViewer } from '../viewer.js';
+import { type Frames, installFrames } from './frames.js';
+
+const Protein = '/views/main/protein';
+const LettersLayer = `${Protein}/letters/l`;
+const DomainsTrack = `${Protein}/domains`;
+
+function spec(): Node {
+  const b = createSeqSpec({ title: 'changes' });
+  const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+  const domains = b.data.ranges('domains', {
+    target: p,
+    rows: { start: new Int32Array([0, 15]), end: new Int32Array([10, 25]), id: ['A', 'B'] },
+  });
+  b.refs.ref('b', { to: `${domains}/(item :id B)`, label: 'Domain B' });
+  b.views.view('main', (v) => {
+    const s = v.section('protein', { of: p });
+    s.track('letters').layer('l', { type: 'letters' });
+    s.track('domains').layer('d', { type: 'ranges', data: domains });
+  });
+  b.snapshots.snapshot('first', {
+    label: 'Domains taller',
+    patch: { ops: [{ op: 'set', at: ['views', 'main', 'protein', 'domains'], key: 'height', value: 40 }] },
+  });
+  return b.build();
+}
+
+let frames: Frames | undefined;
+const viewers: SeqViewer[] = [];
+
+afterEach(() => {
+  for (const v of viewers.splice(0)) v.retire();
+  frames?.restore();
+  frames = undefined;
+});
+
+/** The default viewer, headless but with the mounted viewer's history (`uiHistory`). */
+async function make() {
+  frames = installFrames();
+  const v = createSeqViewer({
+    ...DefaultSeqViewerSpec(),
+    ui: undefined,
+    history: uiHistory(),
+    config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+  });
+  viewers.push(v);
+  await v.load(spec());
+  v.resize(600);
+  await v.settle();
+  frames.flush();
+  return v;
+}
+
+const stackOf = (v: SeqViewer) => (v.spec.history as UiHistory).stack;
+const editing = (v: SeqViewer) => v.behaviors.get('editing') as EditingBehavior;
+
+/** What a change can touch, read so that two reads compare. */
+function look(v: SeqViewer) {
+  const vp = v.view.get(Protein);
+  return {
+    patch: `${v.spec.revision.value} ${stackOf(v).steps.value.length}`,
+    preview: v.spec.preview.value,
+    session: [v.selection.value.value, ...v.highlight.names.value.map((n) => v.highlight.get(n))],
+    navigate: `${vp?.start} ${vp?.end} ${v.spec.step.value?.id}`,
+  };
+}
+
+function changed(a: ReturnType<typeof look>, b: ReturnType<typeof look>): ChangeKind[] {
+  const out: ChangeKind[] = [];
+  if (a.patch !== b.patch) out.push('patch');
+  if (a.preview !== b.preview) out.push('preview');
+  if (a.session.length !== b.session.length || a.session.some((x, i) => x !== b.session[i])) out.push('session');
+  if (a.navigate !== b.navigate) out.push('navigate');
+  return out;
+}
+
+const run = (v: SeqViewer, id: string, ctx: unknown) => Promise.resolve(v.execute(id, ctx));
+
+/** Each command's context, and what makes it change something first (a show needs a hide). */
+const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }> = {
+  'view.fit': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 5, 15) },
+  'view.focus': { ctx: { section: Protein, focus: { start: 2, end: 8 } } },
+  'view.zoom-in': { ctx: { section: Protein } },
+  'view.zoom-out': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 5, 15) },
+  'view.pan-left': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'view.pan-right': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'address.focus': { ctx: { address: '/refs/b' } },
+  'address.reveal': {
+    ctx: { address: '/data/p/(range :from 1 :to 5)' },
+    before: (v) => v.view.setRange(Protein, 15, 25),
+  },
+  'address.select': { ctx: { address: '/refs/b' } },
+  'address.highlight': { ctx: { address: '/refs/b', channel: 'paper' } },
+  'address.hover': { ctx: { address: '/refs/b' } },
+  'address.unhover': { ctx: {}, before: (v) => run(v, 'address.hover', { address: '/refs/b' }) },
+  'address.copy-link': { ctx: {}, before: (v) => run(v, 'address.select', { address: '/refs/b' }) },
+  'refs.add': { ctx: { ref: { id: 'here', to: '/data/p/(range :from 1 :to 5)' } } },
+  'refs.remove': { ctx: { address: '/refs/b' } },
+  'layer.hide': { ctx: { address: LettersLayer } },
+  'layer.show': { ctx: { address: LettersLayer }, before: (v) => run(v, 'layer.hide', { address: LettersLayer }) },
+  'layer.color': { ctx: { address: `${DomainsTrack}/d`, color: '#d62728' } },
+  'track.hide': { ctx: { address: DomainsTrack } },
+  'track.show': { ctx: { address: DomainsTrack }, before: (v) => run(v, 'track.hide', { address: DomainsTrack }) },
+  'track.move': { ctx: { address: DomainsTrack, after: null } },
+  'step.enter': { ctx: { step: 'first' } },
+  'step.leave': { ctx: {}, before: (v) => run(v, 'step.enter', { step: 'first' }) },
+  'preview.cancel': {
+    ctx: {},
+    before: (v) =>
+      editing(v).preview({
+        ops: [{ op: 'set', at: ['views', 'main', 'protein', 'letters'], key: 'height', value: 30 }],
+      }),
+  },
+};
+
+describe('every change has a kind', () => {
+  it('each command of the default viewer changes exactly what its kind says', async () => {
+    const ids = (await make()).commands.map((c) => c.id);
+    expect(Object.keys(Cases).sort()).toEqual([...ids].sort());
+    for (const id of ids) {
+      const v = await make();
+      const c = Cases[id];
+      await c.before?.(v);
+      frames!.flush();
+      const before = look(v);
+      const message = await run(v, id, c.ctx);
+      frames!.flush();
+      const kind = changeKindOf(id);
+      expect(changed(before, look(v)), `${id}: ${message}`).toEqual(kind === 'none' ? [] : [kind]);
+      if (kind === 'patch') expect(stackOf(v).steps.value.length, id).toBe(Number(before.patch.split(' ')[1]) + 1);
+    }
+  });
+
+  it('commands issued together, without waiting, each apply: one step each, in order', async () => {
+    const v = await make();
+    const runs = [
+      v.execute('layer.hide', { address: LettersLayer }),
+      v.execute('track.move', { address: DomainsTrack, after: null }),
+      v.execute('layer.color', { address: `${DomainsTrack}/d`, color: '#d62728' }),
+      v.execute('refs.add', { ref: { id: 'here', to: '/data/p/(range :from 1 :to 5)' } }),
+    ];
+    expect(await Promise.all(runs)).toEqual(['Hidden', 'Moved', 'Colored', 'Bookmarked']);
+    expect(stackOf(v).steps.value.map((s) => s.label)).toEqual([
+      'Add a bookmark',
+      'Color a layer',
+      'Move a track',
+      'Hide a layer',
+    ]);
+  });
+
+  it('a track hidden and shown: its own `hidden`, its row gone from the view and back, its layers untouched', async () => {
+    const v = await make();
+    await run(v, 'layer.hide', { address: `${DomainsTrack}/d` });
+    const root = v.spec.root.value;
+    expect(await run(v, 'track.hide', { address: DomainsTrack })).toBe('Hidden');
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([`${Protein}/letters`]);
+    expect(await run(v, 'track.show', { address: DomainsTrack })).toBe('Shown');
+    expect(v.spec.revision.value).toBe(hashNode(root));
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([
+      `${Protein}/letters`,
+      DomainsTrack,
+    ]);
+  });
+
+  it('undo touches only spec patches: the session, the viewports and the step shown stay', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    await run(v, 'layer.hide', { address: LettersLayer });
+    await run(v, 'address.select', { address: '/refs/b' });
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' });
+    v.view.setRange(Protein, 4, 14);
+    await run(v, 'step.enter', { step: 'first' });
+    const kept = look(v);
+    expect((await stackOf(v).undo()).ok).toBe(true);
+    expect(v.spec.root.value).toBe(root);
+    const after = look(v);
+    expect(after.session).toEqual(kept.session);
+    expect(after.navigate).toBe(kept.navigate);
+    expect(stackOf(v).steps.value).toEqual([]);
+  });
+});

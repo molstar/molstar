@@ -13,6 +13,7 @@ import { locationOfResult, locationsEqual, rangesLocation, resolveAddressIn } fr
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { AddressingBehavior } from '../behaviors/addressing.js';
 import { AddressingProvider } from '../behaviors/providers.js';
 import { changeKindOf } from '../commands.js';
 import { viewerItem } from '../config.js';
@@ -145,7 +146,7 @@ describe('actions on addresses', () => {
 
   it('runs as commands of the addressing behavior, each with its change kind', async () => {
     const v = await make();
-    const ids = v.commands.filter((c) => c.id.startsWith('address.') || c.id.startsWith('refs.')).map((c) => c.id);
+    const ids = (v.behaviors.get('addressing') as AddressingBehavior).commands.map((c) => c.id);
     expect(ids).toEqual([
       'address.focus',
       'address.reveal',
@@ -192,12 +193,15 @@ describe('refs as bookmarks', () => {
       ['/refs/domains', 'domains', 'resolved'],
     ]);
     const revision = v.spec.revision.value;
-    expect(v.runCommand('refs.add', { ref: { id: 'here', to: '/data/p/(range :from 10 :to 20)' } })).toBe('Bookmarked');
+    // the default spec's history runs it as one step, in turn
+    expect(await v.execute('refs.add', { ref: { id: 'here', to: '/data/p/(range :from 10 :to 20)' } })).toBe(
+      'Bookmarked',
+    );
     expect(v.spec.revision.value).not.toBe(revision);
     expect(v.addresses.refs.value.map((r) => r.address)).toContain('/refs/here');
     // a ref that would dangle is refused, and nothing changes
     const now = v.spec.revision.value;
-    expect(v.addresses.addRef({ id: 'gone', to: '/data/nothing' })).not.toBe(true);
+    expect(await v.addresses.addRef({ id: 'gone', to: '/data/nothing' })).not.toBe(true);
     expect(v.spec.revision.value).toBe(now);
   });
 });
@@ -252,6 +256,19 @@ describe('the session follows the spec', () => {
     expect(v.highlight.get('paper')).toBeUndefined();
     expect(v.addresses.issues.value.map((i) => [i.code, i.address])).toEqual([['seq.address.missing', '/refs/b']]);
     expect(v.addresses.selectionAddress()).toBe('/data/q/(range :from 1 :to 5)');
+  });
+
+  it('follows a patch the spec model applies: its moves before the new root, one step of the history', async () => {
+    const v = await make();
+    v.addresses.select('/data/p/(range :from 1 :to 5)');
+    v.addresses.highlightAddress('/refs/b', 'paper');
+    const o = await v.spec.patch('Rename the protein', {
+      ops: [{ op: 'move', at: ['data', 'p'], parent: ['data'], place: { last: true }, rename: 'q' }],
+    });
+    expect(o.ok && o.changed).toBe(true);
+    expect(v.addresses.selectionAddress()).toBe('/data/q/(range :from 1 :to 5)');
+    expect(v.highlight.get('paper')?.address).toBe('/refs/b');
+    expect(v.addresses.issues.value).toEqual([]);
   });
 
   it('does not report a focus done while its section is not placed', async () => {

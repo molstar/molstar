@@ -18,17 +18,56 @@ lives in them, never in the spec or its history. Time and frames are `@molstar/u
 
 ### SpecModel
 
-`models/spec.ts`: the spec's immutable `root`, its `revision` (`hashNode(root)`), a transient `preview`, `shown` (the
-preview, else the root) and `model`, the static model of what is shown by a resolver kept between specs.
+`models/spec.ts`: revisions are the truth, patches derived. It holds the head commit (`SpecCommit`: the spec's immutable
+`root`, its `revision`, `hashNode(root)`, and its parents' revisions), a `preview` (a patch), the story `step` shown,
+`shown` and `model`, the static model of what is shown, by a resolver that keeps its entries by node hash, so a patch
+recompiles the entries whose nodes (or the nodes they read) it changed and a view edit keeps every data entry.
 
-- **It is the history's port**: a checkpoint is the root, `restore` sets it back and drops a preview. Why: structural
-  sharing makes a root a cheap checkpoint, and undo restores exactly the spec.
-- `apply(change, { against, context })` sets the root; an equal tree is no change; a change made against another
-  revision is refused (`stale-revision`, EC-81). Run it in `history.run(…, SpecRunOptions)` with the run's context: one
-  step a change, none for no change, a failure when refused.
-- **Changes outside the history**: with a history attached (`attachHistory`), a change without an active run's context
-  invalidates its earlier steps. Why: undo restores a whole root, and would silently drop the outside change.
-- A preview is never in the history: `cancelPreview` drops it, `commitPreview` ends it in one change.
+- **Patches** (`applyPatch(patch, options)`): `repr/patch`'s `applyPatch` with `SeqLanguage`, its slots
+  (`SeqValidateOptions`) and the checks of a change (`SeqPatchValidator`, the core's `seq.lang` checks of what the
+  patch's `Changes` reach): all or nothing, one commit when it changed something (its parent the old head), nothing for
+  no change. `requireBase`, `allowDangling` and `allowRebind` pass through; agents and remote channels set
+  `requireBase`. Why commits: a recorded root is exact by construction, and an undo restores it.
+- **A stale patch** (its `base` not the head's revision, and its `result` not the head's either) is refused
+  (`repr.patch.stale`, EC-81), or, when the host opts in (`rebase`, or `edit.rebaseStale`), rebased as
+  `merge3(base, current, applyPatch(base, p))` with the same options on both, the base root from `rootOf`. Conflicts
+  refuse it with the conflicts and the partial merge (`seq.viewer.rebase.conflict`); an unknown base is
+  `seq.viewer.rebase.base`. Why opt-in: a merge the writer did not see is a decision, not a default.
+- **Recent roots**: `rootOf(revision)` is the last `revisions.keepRecent` (64) roots made or restored, then the
+  history's `root(revision)`.
+- **The session follows**: `beforeCommit(f)` is told each commit's `Changes` before its root is set; `AddressModel`
+  rewrites the session's addresses through `changes.moved` there.
+- **Whole roots** (`apply(change, { against, context })`): a document loaded or a host's own setting, one commit whose
+  changes are the whole root; an equal tree is no change; another revision than `against` is `stale-revision`.
+- **Previews are patches**: `setPreview(p)` applies `p` over the root with the language's normalization and validation,
+  not its own checks (interactive rates); a later call replaces it (made from the root). When the root changes it is
+  applied again over the new one (a preview survives an agent's patch mid-drag), and dropped when it no longer applies
+  (`seq.viewer.preview.dropped` in `issues`, or quietly: `preview.dropped`); the gesture then ends in nothing.
+  `cancelPreview` (Esc) drops it; `commitPreview` applies it in full, in one batch with the preview's end: one commit or
+  nothing. A move applies the patch once: what is shown is reused from `setPreview`'s result until the root or the
+  preview changes. Never in the history but by its commit.
+- **Story steps** (`enterStep(id)`, `leaveStep()`): navigation, no commit and no history step. What is shown is
+  `step(applyPatch(root, preview))`: the step's stored patch over the root and the preview (the language, refs
+  followed). Edits patch the root under the step and the step is applied again over it; one naming a node only the step
+  makes is refused (`repr.patch.target`, its hint naming the step only when the step makes the target); one that sets a
+  key the step sets too lands in the root and is reported masked (`seq.viewer.edit.masked`, an info in the result and
+  `issues`). A step that no longer applies is shown as not applying (`step.applies` false, `seq.viewer.step.stale`), the
+  root shown without it; an unknown id is `seq.viewer.step.unknown`. An agent reads `root`, with `step` beside it.
+- **The history** (Ports, History): `attachHistory(port)` binds the host's history with the model as its participant (a
+  history bound before is detached first) (`checkpoint()` the head, `restore(c)` a move of the head that drops a preview
+  and keeps the step, `changed` the last commit an edit made, told once the edit ends well: never one it took back).
+  `edit(label, work, { origin, within })` runs `work` as one host step: every patch it applies (`apply`,
+  `commitPreview`) is part of it, a refusal fails it and the host restores its checkpoint; without a history it runs at
+  once and a refusal moves the head back. `within`, a host's run in progress (its work runs a Seq* command), makes the
+  edit part of that run: no step and no wait of its own (else the two would wait on each other). `patch(label, patches)`
+  is an edit of patches in order; `patches` may be a function of the root and revision the edit runs on, so a command's
+  patch is made when it runs and commands issued together each apply. `beginTurn(label, origin)` opens an agent's turn:
+  its edits join one step. A patch applied outside an edit's context, with a history bound, is reported to the host
+  (`outside`). Why the port: the host keeps one stack for everything, and the spec knows nothing of it.
+- **The session follows every move of the head**: `beforeCommit(f)` is told a commit's changes, and on an undo, a redo,
+  a restore or a rollback the moves between the two commits along the recent lineage (each recent commit's parent and
+  moves: forward going to a child, inverted going back); a rebase tells theirs' moves, which `merge3` does not infer.
+  Why: a session address renamed by an edit must come back with its undo.
 
 ### ViewModel
 
@@ -111,13 +150,13 @@ syncing sources), with the `address.*` settings as bounds.
   retried on the refs' state, the store's version and its node version; another focus replaces it. A focus whose section
   is not placed yet (no width, no length) is kept as the view's intent and reported not done
   (`Kept until the view is placed`), never `Focused`.
-- **The session follows the spec**: `followMoves(changes.moved)`, called before a patch's root is set, rewrites the
-  session's addresses (selection, highlights, the waiting and the last focus) through moves and renames as the spec's
-  refs are; on each new root they are resolved again, and one that names nothing is dropped with `seq.address.missing`
-  in `issues`.
+- **The session follows the spec**: `followMoves(changes.moved)`, called before a patch's root is set (the spec model's
+  `beforeCommit`, so every commit's moves reach it), rewrites the session's addresses (selection, highlights, the
+  waiting and the last focus) through moves and renames as the spec's refs are; on each new root they are resolved
+  again, and one that names nothing is dropped with `seq.address.missing` in `issues`.
 - **Refs**: `refs`, the spec's refs with what each names now (status, label, color, targets), a new list only when an
-  entry changed; `addRef` adds one as one patch (`addRefPatch` with the language: a ref that would dangle is refused),
-  applied against the revision just read.
+  entry changed; `addRef` adds one as one patch (`addRefPatch`, made against the revision just read) through
+  `SpecModel.patch`: one step of the history (a promise while the history runs it); a ref that would dangle is refused.
 - **Links**: `link(action, address, channel?)`, `parseLink(text)` with the `links.*` settings; `copyLink()`, the link
   (`copyLink.action`) of the selection's address, else of what the pointer is over (its element, else its position).
 - **The session as addresses**: `selectionAddress()` (the address it was set from, else the shortest of what it holds),
@@ -148,14 +187,18 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 
 - `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
-  parts; none for a headless viewer). `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the `seq`
-  runtime, the `hover`, `navigate` and `addressing` behaviors, the default ports and the canvas; an application spreads
-  it.
+  parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
+  (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate`, `addressing` and `editing`
+  behaviors, the default ports and the UI (`canvas`, and `history`: a mounted viewer with no `history` given gets a
+  `uiHistory()` stack of its own); an application spreads it. A headless spread (`ui: undefined`) has no history, so its
+  edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs them in turn through its
+  stack (`execute` waits for their message, `runCommand` gives `''`).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
-  (spec, view, hover, store, selection, highlight, addresses), the binding table, the behaviors (one of each name; a
-  behavior's `commands` join the viewer's), then the UI into `target` when there is one and the spec has `ui.canvas`.
-  Without a target it is headless: models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and
-  the bindings, the UI the behaviors.
+  (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `uiHistory()` when
+  mounted with `ui.history`; bound to the spec), the binding table, the behaviors (one of each name; a behavior's
+  `commands` join the viewer's), then the UI into `target` when there is one and the spec has `ui.canvas`. Without a
+  target it is headless: models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and the
+  bindings, the UI the behaviors.
 - The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits
   for the picture (sources open, wanted data arrived, the view at rest).
 - **The frame** (`draw`): the renderer lays the view out when anything it reads changed, else redraws the emphasis
@@ -198,6 +241,25 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 `browserAssetsPort(policy?)`, a `DefaultAssetManager` under the browser policy with the page as base (a host passes its
 own manager with `disposeWithViewer: false`). Text metrics: a canvas where there is a DOM (`browserTextMetrics`, the
 same CSS fonts the backend draws with), else the core's bundled table.
+
+### History
+
+`ports/history.ts`: Seq* owns no undo stack; the host does. `SeqViewerSpec.history` is a factory given the participant
+(`SpecModel`), called once per viewer; none: edits apply at once and nothing undoes them.
+
+- **The participant** (the host drives Seq*): `checkpoint()` a `SpecCommit`, `restore(c)`, `changed`.
+- **The history** (Seq* asks the host): `run(step, work, { changed, failed, within })` an edit as one step, or part of
+  the host's run `within` (`EditStep`: its label, its kind, always `patch`, its origin), `beginTurn(label, origin)` an
+  agent's turn, `isActive(context)`, `outside(reason)` a change outside a run (whether it invalidates the earlier steps
+  is the host's rule), `root(revision)` a root the host's stack holds, and its ownership (`disposeWithViewer`,
+  `dispose`).
+- **Only spec patches enter it**: session, navigation and configuration never do (Commands).
+- **Adapters** (`ui-history.ts`, the entry `@molstar/seqx-viewer/ui-history`, on `@molstar/ui/history`), in the
+  composition roots only; the ports and the models never import it. `uiHistory(options)`: a stack of the spec alone
+  (`UiHistory.stack`), a mounted viewer's; it invalidates on an outside change. `hostHistory(stack, participants, key)`:
+  a host's stack over `HistoryParticipants`, one `HistoryPort` of several participants by key (Seq*'s spec beside a
+  structure's state), the spec joining while the viewer lives, under a key of its own a viewer unless `key` is given.
+  Both resolve `root(revision)` from the commits their stack checkpointed.
 
 ## Canvas2D backend
 
@@ -278,6 +340,13 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   `address.highlight` with a `channel`, `address.hover`, `address.unhover`, `address.copy-link` whose message is the
   link, `refs.add` with a `ref`), so a link, a key, a menu, an agent and a test drive the view the same way; `when` says
   why one cannot run (no address, no ref, nothing to link). `runLink` runs a link.
+- `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
+  `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
+  `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
+  (among its siblings, `after`), `refs.remove`; `step.enter` and `step.leave` (navigation); `preview.cancel` (Esc). A
+  gesture's preview is a method, never a command (it runs per pointer move): `preview(patch)` replaces the last,
+  `endPreview(label)` ends it in one step, `cancelPreview()` in nothing. `when` says why one cannot run (no such node,
+  no step shown, nothing to cancel).
 
 ## Bindings
 
@@ -301,11 +370,20 @@ Small policies over the models (`behaviors/`), each reading the bindings.
 
 ## Commands
 
-`commands.ts`: `@molstar/ui`'s `CommandDefinition` has no change kind, so the viewer keeps a table by command id:
-`patch` (undoable, one step), `session`, `navigate` or `none` (it only reads) (`CommandChangeKinds`,
-`changeKindOf(id, extra)`). Every command the presets bind has a kind, and every `addressing` command (tested): a focus
-or a reveal navigates, a selection, a highlight or a link's hover is session state, `refs.add` a patch; copying a link
-changes nothing (`none`).
+`commands.ts`: `@molstar/ui`'s `CommandDefinition` has no change kind, so the viewer keeps a table by command id
+(`CommandChangeKinds`, `changeKindOf(id, extra)`): `patch` (the spec, one step of the history), `preview` (a gesture's
+patch: ends in one patch or nothing, never a step itself), `session`, `navigate` (what is shown without changing the
+spec: the viewports, a story step) or `none` (it only reads). Menus show what Undo will undo; an agent tells an edit
+from a look. A focus or a reveal navigates; a selection, a highlight or a link's hover is session state; `refs.add` and
+the editing commands are patches; entering and leaving a step navigates; `preview.cancel` is a preview's; copying a link
+changes nothing.
+
+- **Tested as the table says** (`_test/changes.test.ts`): every command of the default viewer, run with the default
+  spec's history, changes exactly what its kind names (a patch: the revision and one history step; a preview: the
+  preview; session; navigate; `none`: nothing), and undo restores the spec alone: the session, the viewports and the
+  step shown stay. Why a test of every command: a kind declared and not held misleads the menu and the agent alike.
+- **Running** (`viewer.runCommand(id, ctx)`, `viewer.execute(id, ctx)`): a command that edits through the host's history
+  runs in turn; `execute` gives its message when it has run, `runCommand` only a message given at once.
 
 ## Configuration
 
@@ -319,7 +397,8 @@ always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`), `ca
 (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta` (50),
 `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64), `address.refDepth` (8), `links.prefix`
 (`seq-`), `links.maxLength` (8,192), `links.maxActions` (16), `links.highlightChannel` (`link`), `links.hoverChannel`
-(`link-hover`), `copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering` (`ordinal`), `copyLink.action` (`focus`).
-Each a choice with its recommended default; `ParamDefinition`s come with the settings form. As items in a spec:
-`viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the
-same pairs.
+(`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale` (false: a stale patch is refused; true: rebased through
+`merge3`), `preview.dropped` (`issue`; `silent`), `copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering`
+(`ordinal`), `copyLink.action` (`focus`). Each a choice with its recommended default; `ParamDefinition`s come with the
+settings form. As items in a spec: `viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the
+core's items (`SeqCoreConfig`) are the same pairs.

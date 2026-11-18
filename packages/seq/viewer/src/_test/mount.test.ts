@@ -102,6 +102,14 @@ const at = (type: string, x: number, y: number, init: MouseEventInit = {}) =>
   new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true, ...init });
 
 describe('the mounted canvas stack', () => {
+  it('has the standalone viewer’s history when mounted from the default spec; none headless', async () => {
+    const { viewer: v } = await mount();
+    expect(v.spec.history).toBeDefined();
+    const headless = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    expect(headless.spec.history).toBeUndefined();
+    headless.retire();
+  });
+
   it('makes a focusable container with the base canvas and the overlay above it, sized to the layout', async () => {
     const { container, viewer } = await mount();
     const [base, overlay, labels] = Array.from(container.querySelectorAll('canvas'));

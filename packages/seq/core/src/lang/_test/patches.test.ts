@@ -6,15 +6,17 @@
 
 // Patches over SeqViewSpec: `repr/patch`'s conformance suite run with Seq's own cases over `SeqLanguage` (every child
 // has an id, so every parent takes inserts, removes and moves), and the performance representative, a 10-op patch on
-// the p53 spec applied and diffed back.
+// the p53 spec applied and diffed back. Then the cases with the checks of a change and the story steps' slots, as the
+// viewer's spec model applies them.
 
-import { applyPatch, diff, type Op, type Patch } from '@molstar/core/repr/patch';
+import { applyPatch, diff, type Op, type Patch, patchToNode } from '@molstar/core/repr/patch';
 import { checkPatches, type PatchCase, PatchCases } from '@molstar/core/repr/patch/conformance';
 import { hashNode, type Node } from '@molstar/core/repr/tree';
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { createSeqSpec } from '../builder.js';
-import { SeqLanguage } from '../language.js';
+import { SeqPatchValidator } from '../check-changes.js';
+import { SeqLanguage, SeqValidateOptions } from '../language.js';
 import { P53_LETTERS, p53Spec } from './p53.js';
 
 const options = { language: SeqLanguage };
@@ -128,10 +130,102 @@ const SeqCases: PatchCase[] = [
   },
 ];
 
+/** What the viewer's `SpecModel` applies with: the language, its slots, the checks of a change. */
+const checked = { language: SeqLanguage, validate: SeqValidateOptions, validators: [SeqPatchValidator] };
+
+/** p53 with a story step that sets the domains track's label and inserts a track after it. */
+function p53WithStep(): Node {
+  const step: Patch = {
+    ops: [
+      { op: 'set', at: ['views', 'main', 'protein', 'domains'], key: 'label', value: 'Domains (step)' },
+      {
+        op: 'insert',
+        parent: ['views', 'main', 'protein'],
+        place: { after: 'domains' },
+        node: { kind: 'track', id: 'note', children: [{ kind: 'layer', id: 'n', params: { type: 'letters' } }] },
+      },
+    ],
+  };
+  return edit(p53Spec(), [], (n) => ({
+    ...n,
+    children: [
+      ...n.children!,
+      {
+        kind: 'snapshots',
+        id: 'snapshots',
+        children: [{ kind: 'snapshot', id: 'one', params: { patch: patchToNode(step) } }],
+      },
+    ],
+  }));
+}
+
+/** Seq's cases with the checks of a change and the stored patches' slots: what the viewer's spec model applies. */
+const CheckedCases: PatchCase[] = [
+  {
+    name: 'a range past the protein refused by the checks of a change',
+    root: p53Spec(),
+    patch: { ops: [{ op: 'set', at: ['views', 'main', 'protein'], key: 'range', value: [0, 300] }] },
+    options: checked,
+    expect: { ok: false, codes: ['seq.lang.section.range'] },
+  },
+  {
+    name: 'the protein shortened under its domains and values refused',
+    root: p53Spec(),
+    patch: { ops: [{ op: 'set', at: ['data', 'p53'], key: 'letters', value: 'MEEP' }] },
+    options: checked,
+    expect: { ok: false, codes: ['seq.lang.ranges.bounds', 'seq.lang.values.length'] },
+  },
+  {
+    name: 'a step’s target renamed: the stored patch follows, and so does its inverse',
+    root: p53WithStep(),
+    patch: {
+      ops: [
+        {
+          op: 'move',
+          at: ['views', 'main', 'protein', 'domains'],
+          parent: ['views', 'main', 'protein'],
+          place: { last: true },
+          rename: 'dom',
+        },
+      ],
+    },
+    options: checked,
+    expect: { ok: true },
+  },
+  {
+    name: 'a removal of what a step names refused: its addresses are refs of the spec',
+    root: p53WithStep(),
+    patch: { ops: [{ op: 'remove', at: ['views', 'main', 'protein', 'domains'] }] },
+    options: checked,
+    expect: { ok: false, codes: ['repr.patch.dangling'] },
+  },
+  {
+    name: 'a step whose patch has a base refused by the slot',
+    root: p53Spec(),
+    patch: {
+      ops: [
+        {
+          op: 'insert',
+          parent: [],
+          place: { last: true },
+          node: {
+            kind: 'snapshots',
+            id: 'snapshots',
+            children: [{ kind: 'snapshot', id: 's', params: { patch: { kind: 'patch', params: { base: 'x' } } } }],
+          },
+        },
+      ],
+    },
+    options: checked,
+    expect: { ok: false, codes: ['repr.schema.param.pattern'] },
+  },
+];
+
 describe('patches over SeqViewSpec', () => {
   it("hold the core's cases and Seq's own", () => {
     expect(checkPatches(applyPatch, PatchCases)).toEqual([]);
     expect(checkPatches(applyPatch, SeqCases)).toEqual([]);
+    expect(checkPatches(applyPatch, CheckedCases)).toEqual([]);
   });
 });
 

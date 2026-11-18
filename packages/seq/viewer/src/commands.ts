@@ -9,18 +9,22 @@
 // state, or only navigates. Menus show what Undo will undo from it; agents tell an edit from a look.
 
 /**
- * What a command changes (_spec/README.md "Commands"): a spec patch, session state, the viewports only, or nothing
- * (`none`: it reads, as copying a link does).
+ * What a command changes (_spec/README.md "Commands"): a spec patch (undoable, one step), a gesture's preview (ends in
+ * one patch or nothing, never a step itself), session state, what is shown without changing the spec (the viewports, a
+ * story step), or nothing (`none`: it reads, as copying a link does).
  */
-export type ChangeKind = 'patch' | 'session' | 'navigate' | 'none';
+export type ChangeKind = 'patch' | 'preview' | 'session' | 'navigate' | 'none';
+
+/** Every change kind, in the order above. */
+export const ChangeKinds: readonly ChangeKind[] = ['patch', 'preview', 'session', 'navigate', 'none'];
 
 /** The model methods a binding may name: continuous, allocation-free, never commands (no history, no outcome). */
 export const MethodActions = ['hover', 'pan', 'zoom', 'drag-select'] as const;
 export type MethodAction = (typeof MethodActions)[number];
 
 /**
- * The first slice's commands by id and their change kinds: those the default bindings name and the view's moves. The
- * spec's commands (patches) join with the commands that write them.
+ * The commands by id and their change kinds: those the default bindings name, the view's moves, the actions on
+ * addresses and the edits of the spec.
  */
 export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'selection.set': 'session',
@@ -44,6 +48,19 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'address.copy-link': 'none',
   // a bookmark is a ref in the spec: one patch, one undo step
   'refs.add': 'patch',
+  // the editing behavior's: each one patch
+  'layer.hide': 'patch',
+  'layer.show': 'patch',
+  'layer.color': 'patch',
+  'track.hide': 'patch',
+  'track.show': 'patch',
+  'track.move': 'patch',
+  'refs.remove': 'patch',
+  // a story step is navigation: entered and left, never undone
+  'step.enter': 'navigate',
+  'step.leave': 'navigate',
+  // Esc ends a gesture's preview in nothing
+  'preview.cancel': 'preview',
 };
 
 /** A command's change kind: the table's, then `extra` (an extension's commands); undefined when unknown. */

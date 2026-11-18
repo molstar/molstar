@@ -8,13 +8,14 @@
 // the description cannot say (a sequence has letters or a source, a codon map links a protein to a gene) is the checks
 // of `check.ts`, in the `seq.lang.*` codes.
 
-import { defineLanguage } from '@molstar/core/repr/schema';
+import { patchLanguage } from '@molstar/core/repr/patch';
+import { defineLanguage, type Language, type ValidateOptions } from '@molstar/core/repr/schema';
 
 /**
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.2.0';
+export const SeqLanguageVersion = '0.3.0';
 
 export const SeqLanguage = defineLanguage({
   id: 'seq',
@@ -71,6 +72,25 @@ export const SeqLanguage = defineLanguage({
         },
         label: { type: 'string', doc: 'A label for people (its id when absent).' },
         color: { type: 'string', doc: 'A color it is shown with: a hex literal or `token:<name>`.' },
+      },
+    },
+    snapshots: {
+      doc: 'The container of the story steps of a spec; its id is `snapshots`.',
+      parents: ['spec'],
+      ids: 'required',
+    },
+    snapshot: {
+      doc: 'A story step: a stored patch with no base, shown over whatever the spec is (`/snapshots/<id>`); entering it is navigation, never an edit.',
+      parents: ['snapshots'],
+      ids: 'required',
+      params: {
+        label: { type: 'string', doc: 'A label for people (its id when absent).' },
+        patch: {
+          type: 'node',
+          language: 'seq.patch',
+          required: true,
+          doc: 'What the step changes: a patch of this language with no `base`, its addresses refs of the spec.',
+        },
       },
     },
     source: {
@@ -224,6 +244,11 @@ export const SeqLanguage = defineLanguage({
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
         height: { type: 'number', min: 0, doc: 'The height of the track in px.' },
+        hidden: {
+          type: 'boolean',
+          default: false,
+          doc: 'Whether the track is hidden: kept in the spec, its row collapsed; its layers keep their own `hidden`.',
+        },
         for_each: {
           type: 'record',
           fields: {
@@ -283,4 +308,15 @@ export const SeqLanguage = defineLanguage({
 });
 
 export type SeqLanguageType = typeof SeqLanguage;
+
+/** The language of the spec's stored patches (a story step's `patch`): `seq.patch`, `repr/patch`'s over this one. */
+export const SeqPatchLanguage: Language = patchLanguage(SeqLanguage);
+
+/** The languages the spec's slots name, by id: its stored patches' (_spec/README.md, Language, Story steps). */
+export function seqLanguages(id: string): Language | undefined {
+  return id === SeqPatchLanguage.id ? SeqPatchLanguage : undefined;
+}
+
+/** What validation, normalization and `applyPatch` take to read a spec's slots (`validate` in `ApplyOptions`). */
+export const SeqValidateOptions: ValidateOptions = { languages: seqLanguages };
 export type SeqKinds = SeqLanguageType['kinds'];

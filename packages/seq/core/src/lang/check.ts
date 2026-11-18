@@ -23,17 +23,10 @@ import {
   type Value,
 } from '@molstar/core/repr/tree';
 import { LangIssues } from './issues.js';
-import { SeqLanguage, SeqLanguageVersion } from './language.js';
+import { SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
 
-type Code = keyof typeof LangIssues.codes;
-
-/** A node with its place: its step path from the root, and its address when it has one. */
-interface Placed {
-  readonly node: Node;
-  readonly path: TreePath;
-  readonly address: string | undefined;
-}
+export type Code = keyof typeof LangIssues.codes;
 
 const Letters: Readonly<Record<string, RegExp>> = {
   protein: /^[A-Za-z*-]*$/,
@@ -59,7 +52,7 @@ export function checkSeqSpec(spec: Node): Issue[] {
       }),
     ];
   }
-  const read = validateAndNormalize(SeqLanguage, spec);
+  const read = validateAndNormalize(SeqLanguage, spec, SeqValidateOptions);
   if (hasErrors(read.issues) || !read.node) return [...read.issues];
   return [...read.issues, ...checkSeqLang(read.node)];
 }
@@ -72,19 +65,43 @@ export function checkSeqLang(spec: Node): Issue[] {
   const issues: Issue[] = [];
   const all: Placed[] = [];
   const byAddress = new Map<string, Placed>();
-  const visit = (node: Node, path: TreePath, address: readonly string[] | undefined) => {
+  const visit = (node: Node, path: TreePath, address: readonly string[] | undefined, parent: Node) => {
     const here = address && node.id !== undefined ? [...address, node.id] : undefined;
-    const placed: Placed = { node, path, address: here ? printAddress(here) : undefined };
+    const placed: Placed = { node, path, address: here ? printAddress(here) : undefined, parent };
     all.push(placed);
     if (placed.address) byAddress.set(placed.address, placed);
-    node.children?.forEach((c, i) => visit(c, [...path, 'children', i], here));
+    node.children?.forEach((c, i) => visit(c, [...path, 'children', i], here, node));
   };
   // the root is `/`: its children are addressed by their ids alone
   all.push({ node: spec, path: [], address: '/' });
-  spec.children?.forEach((c, i) => visit(c, ['children', i], []));
+  spec.children?.forEach((c, i) => visit(c, ['children', i], [], spec));
+  const look: SeqLookup = { spec, get: (a) => byAddress.get(a) };
+  const report = reporter(issues);
+  for (const at of all) checkPlaced(at, look, report);
+  for (const at of all) checkFollow(at, look, report);
+  return issues;
+}
 
-  /** `tail` is where in the node: a param, and below it a column and a row index. */
-  const report = (code: Code, message: string, at: Placed, ...tail: (string | number)[]) => {
+/** A node with its place: its step path from the root, its address when it has one, and its parent. */
+export interface Placed {
+  readonly node: Node;
+  readonly path: TreePath;
+  readonly address: string | undefined;
+  readonly parent?: Node;
+}
+
+/** What the checks read of the spec: the root (refs are followed over it) and a node by its exact address. */
+export interface SeqLookup {
+  readonly spec: Node;
+  get(address: string): Placed | undefined;
+}
+
+/** Takes one issue of a node: `tail` is where in the node, a param and below it a column and a row index. */
+export type Report = (code: Code, message: string, at: Placed, ...tail: (string | number)[]) => void;
+
+/** A `Report` that pushes each issue, with the node's step path and address, onto `issues`. */
+export function reporter(issues: Issue[]): Report {
+  return (code, message, at, ...tail) => {
     const path = tail.length ? [...at.path, 'params', ...tail] : at.path;
     issues.push(
       issueOf(LangIssues, code, message, {
@@ -94,160 +111,168 @@ export function checkSeqLang(spec: Node): Issue[] {
       }),
     );
   };
+}
 
-  const p = (n: Node, key: string): Value | undefined => n.params?.[key];
-  /**
-   * What an exact address names. A layer's data may name a user-defined ref: a ref naming one exact address stands
-   * for its node there (the resolved view follows it the same way); other params name nodes directly.
-   */
-  const target = (n: Node, key: string): Placed | undefined => {
-    const a = exactAddress(p(n, key));
-    if (a === undefined) return undefined;
-    if (n.kind !== 'layer' || key !== 'data') return byAddress.get(a);
-    const f = followRef(spec, a);
-    const to = 'addresses' in f && f.addresses.length === 1 ? exactAddress(f.addresses[0]) : undefined;
-    return byAddress.get(to ?? a);
-  };
+const param = (n: Node, key: string): Value | undefined => n.params?.[key];
+
+/**
+ * What an exact address in a param names. A layer's data may name a user-defined ref: a ref naming one exact address
+ * stands for its node there (the resolved view follows it the same way); other params name nodes directly.
+ */
+function targetOf(n: Node, key: string, look: SeqLookup): Placed | undefined {
+  const a = exactAddress(param(n, key));
+  if (a === undefined) return undefined;
+  if (n.kind !== 'layer' || key !== 'data') return look.get(a);
+  const f = followRef(look.spec, a);
+  const to = 'addresses' in f && f.addresses.length === 1 ? exactAddress(f.addresses[0]) : undefined;
+  return look.get(to ?? a);
+}
+
+type FieldTypes = Readonly<
+  Record<string, { readonly type: string; readonly kinds?: readonly string[]; readonly in?: string }>
+>;
+
+/** A kind's params as the description types them (undefined for an extension's kind). */
+export function fieldsOf(kind: string): FieldTypes | undefined {
+  return (SeqLanguage.kinds as Record<string, { params?: FieldTypes } | undefined>)[kind]?.params;
+}
+
+/** The leading ids of an address (its node part); none when it does not parse. */
+export function idRunOf(address: string): string[] {
+  const segments = parseAddress(address).pattern?.segments ?? [];
+  const ids: string[] = [];
+  for (const s of segments) {
+    if (typeof s !== 'string') break;
+    ids.push(s);
+  }
+  return ids;
+}
+
+/** The language's checks of one node, follow chains aside (`checkFollow`): what it alone, and what it names, decide. */
+export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
+  const n = at.node;
+  const p = param;
+  const target = (x: Node, key: string) => targetOf(x, key, look);
   /** The sequence a param names, with what is known of its extent. */
-  const systemOf = (n: Node, key: string) => {
-    const t = target(n, key)?.node;
+  const systemOf = (x: Node, key: string) => {
+    const t = target(x, key)?.node;
     if (t?.kind !== 'sequence') return undefined;
     const letters = p(t, 'letters');
     return { cyclic: p(t, 'cyclic') === true, length: typeof letters === 'string' ? letters.length : undefined };
   };
-  const kindsOf = (kind: string, key: string): readonly string[] | undefined => {
-    const f = (SeqLanguage.kinds as Record<string, { params?: Record<string, { kinds?: readonly string[] }> }>)[kind]
-      .params?.[key];
-    return f?.kinds;
-  };
-
-  /** The layers of template tracks: one without data draws each instance's node. */
-  const templateLayers = new Set<Node>();
-  for (const at of all) {
-    const n = at.node;
-    // every child of the spec is addressable: the description requires an id of each of its kinds, this check of an
-    // extension's kind (a slot's body is no child: not walked)
-    if (n.id === undefined && at.path.length && !Object.hasOwn(SeqLanguage.kinds, n.kind))
-      report('seq.lang.id.required', `${n.kind} needs an id`, at);
-    switch (n.kind) {
-      case 'track': {
-        const each = p(n, 'for_each') as Record<string, Value> | undefined;
-        if (!each) break;
-        for (const c of n.children ?? []) templateLayers.add(c);
-        const t = byAddress.get(exactAddress(each.source) ?? '');
-        if (t?.node.kind !== 'source')
-          report(
-            'seq.lang.ref.target',
-            'The reference names no node of a kind this param takes',
-            at,
-            'for_each',
-            'source',
-          );
-        break;
-      }
-      case 'data':
-      case 'views':
-      case 'refs':
-        if (n.id !== n.kind) report('seq.lang.container.id', `The id of ${n.kind} is \`${n.kind}\``, at);
-        break;
-      case 'ref': {
-        // what each address of a ref names is judged by its leading ids (forms after them are a query's, and a node
-        // data makes waits for its data); a chain of refs ends (_spec/README.md, Language, Refs)
-        const to = refAddresses(n);
-        const named = (a: string) => {
-          const segments = parseAddress(a).pattern?.segments ?? [];
-          const ids: string[] = [];
-          for (const s of segments) {
-            if (typeof s !== 'string') break;
-            ids.push(s);
-          }
-          return !ids.length || byAddress.has(printAddress(ids));
-        };
-        to.forEach((a, i) => {
-          // through the refs it starts with (`/refs/p/child`, where `p` names a node with that child); a chain that
-          // cannot be followed is the cycle check's
-          const f = followRef(spec, a);
-          const ok = 'refused' in f ? true : f.addresses.every(named);
-          const tail = Array.isArray(p(n, 'to')) ? ['to', i] : ['to'];
-          if (!ok) report('seq.lang.ref.unresolved', 'The ref names no node of the spec', at, ...tail);
-        });
-        if (at.address !== undefined) {
-          const f = followRef(spec, at.address);
-          if ('refused' in f && (f.refused === 'cycle' || f.refused === 'depth'))
-            report('seq.lang.ref.cycle', 'The ref leads back to itself, or through too many refs', at, 'to');
-        }
-        break;
-      }
-      case 'source':
-      case 'sequence':
-      case 'ranges':
-      case 'values':
-      case 'map':
-        checkDataNode(n, { target: (key) => target(n, key)?.node }, (code, message, ...tail) =>
-          report(code, message, at, ...tail),
+  // every child of the spec is addressable: the description requires an id of each of its kinds, this check of an
+  // extension's kind (a slot's body is no child: not walked)
+  if (n.id === undefined && at.path.length && !Object.hasOwn(SeqLanguage.kinds, n.kind))
+    report('seq.lang.id.required', `${n.kind} needs an id`, at);
+  switch (n.kind) {
+    case 'track': {
+      const each = p(n, 'for_each') as Record<string, Value> | undefined;
+      if (!each) break;
+      const t = look.get(exactAddress(each.source) ?? '');
+      if (t?.node.kind !== 'source')
+        report(
+          'seq.lang.ref.target',
+          'The reference names no node of a kind this param takes',
+          at,
+          'for_each',
+          'source',
         );
-        break;
-      case 'layer': {
-        const type = p(n, 'type');
-        if (p(n, 'data') === undefined) {
-          if (type !== 'letters' && !templateLayers.has(n)) report('seq.lang.layer.data', 'The layer has no data', at);
-        } else {
-          // a kind the param does not take is the reference's issue alone
-          const kind = target(n, 'data')?.node.kind;
-          const want = type === 'letters' ? 'sequence' : type;
-          if (kind !== undefined && kindsOf('layer', 'data')?.includes(kind) && kind !== want)
-            report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
-        }
-        break;
-      }
-      case 'section': {
-        const range = p(n, 'range');
-        const sys = systemOf(n, 'of');
-        if (Array.isArray(range) && range.length === 2) {
-          const [s, e] = range as number[];
-          if (e < s && !sys?.cyclic) report('seq.lang.section.range', 'The range ends before it starts', at, 'range');
-          else if (sys?.length !== undefined && (s > sys.length || e > sys.length))
-            report('seq.lang.section.range', 'The range is past the system', at, 'range');
-        }
-        break;
-      }
+      break;
     }
-    // a reference names a node, of a kind its param takes
-    const spec_ = SeqLanguage.kinds[n.kind as keyof typeof SeqLanguage.kinds];
-    const fields = (
-      spec_ as { params?: Record<string, { type: string; kinds?: readonly string[]; in?: string }> } | undefined
-    )?.params;
-    if (!fields) continue;
-    for (const key of Object.keys(n.params ?? {})) {
-      const f = fields[key];
-      if (f?.type !== 'ref' || f.in !== undefined) continue;
-      if (exactAddress(n.params?.[key]) === undefined) continue; // a query form: a resolve pass's
-      const t = target(n, key);
-      if (!t || (f.kinds && !f.kinds.includes(t.node.kind)))
-        report('seq.lang.ref.target', 'The reference names no node of a kind this param takes', at, key);
+    case 'data':
+    case 'views':
+    case 'refs':
+    case 'snapshots':
+      if (n.id !== n.kind) report('seq.lang.container.id', `The id of ${n.kind} is \`${n.kind}\``, at);
+      break;
+    case 'ref': {
+      // what each address of a ref names is judged by its leading ids (forms after them are a query's, and a node
+      // data makes waits for its data); a chain of refs ends (_spec/README.md, Language, Refs)
+      const to = refAddresses(n);
+      const named = (a: string) => {
+        const ids = idRunOf(a);
+        return !ids.length || look.get(printAddress(ids)) !== undefined;
+      };
+      to.forEach((a, i) => {
+        // through the refs it starts with (`/refs/p/child`, where `p` names a node with that child); a chain that
+        // cannot be followed is the cycle check's
+        const f = followRef(look.spec, a);
+        const ok = 'refused' in f ? true : f.addresses.every(named);
+        const tail = Array.isArray(p(n, 'to')) ? ['to', i] : ['to'];
+        if (!ok) report('seq.lang.ref.unresolved', 'The ref names no node of the spec', at, ...tail);
+      });
+      if (at.address !== undefined) {
+        const f = followRef(look.spec, at.address);
+        if ('refused' in f && (f.refused === 'cycle' || f.refused === 'depth'))
+          report('seq.lang.ref.cycle', 'The ref leads back to itself, or through too many refs', at, 'to');
+      }
+      break;
+    }
+    case 'source':
+    case 'sequence':
+    case 'ranges':
+    case 'values':
+    case 'map':
+      checkDataNode(n, { target: (key) => target(n, key)?.node }, (code, message, ...tail) =>
+        report(code, message, at, ...tail),
+      );
+      break;
+    case 'layer': {
+      const type = p(n, 'type');
+      if (p(n, 'data') === undefined) {
+        // a template's layer without data draws each instance's node
+        const template = at.parent?.kind === 'track' && p(at.parent, 'for_each') !== undefined;
+        if (type !== 'letters' && !template) report('seq.lang.layer.data', 'The layer has no data', at);
+      } else {
+        // a kind the param does not take is the reference's issue alone
+        const kind = target(n, 'data')?.node.kind;
+        const want = type === 'letters' ? 'sequence' : type;
+        if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && kind !== want)
+          report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
+      }
+      break;
+    }
+    case 'section': {
+      const range = p(n, 'range');
+      const sys = systemOf(n, 'of');
+      if (Array.isArray(range) && range.length === 2) {
+        const [s, e] = range as number[];
+        if (e < s && !sys?.cyclic) report('seq.lang.section.range', 'The range ends before it starts', at, 'range');
+        else if (sys?.length !== undefined && (s > sys.length || e > sys.length))
+          report('seq.lang.section.range', 'The range is past the system', at, 'range');
+      }
+      break;
     }
   }
+  // a reference names a node, of a kind its param takes
+  const fields = fieldsOf(n.kind);
+  if (!fields) return;
+  for (const key of Object.keys(n.params ?? {})) {
+    const f = fields[key];
+    if (f?.type !== 'ref' || f.in !== undefined) continue;
+    if (exactAddress(n.params?.[key]) === undefined) continue; // a query form: a resolve pass's
+    const t = target(n, key);
+    if (!t || (f.kinds && !f.kinds.includes(t.node.kind)))
+      report('seq.lang.ref.target', 'The reference names no node of a kind this param takes', at, key);
+  }
+}
 
-  // follow chains end
-  const follows = new Map<string, string>();
-  for (const at of all) {
-    if (at.node.kind !== 'section' || !at.address) continue;
-    const f = exactAddress(p(at.node, 'follow'));
-    if (f) follows.set(at.address, f);
-  }
-  for (const at of all) {
-    if (at.node.kind !== 'section' || !at.address || !follows.has(at.address)) continue;
-    const seen = new Set<string>([at.address]);
-    for (let a = follows.get(at.address); a !== undefined; a = follows.get(a)) {
-      if (a === at.address) {
-        report('seq.lang.section.follow', 'The section follows itself', at, 'follow');
-        break;
-      }
-      if (seen.has(a)) break; // a cycle elsewhere: reported at its own sections
-      seen.add(a);
+/** A section's `follow` chain ends: reported at a section that follows itself, through any chain. */
+export function checkFollow(at: Placed, look: SeqLookup, report: Report): void {
+  if (at.node.kind !== 'section' || !at.address) return;
+  const next = (a: string) => {
+    const s = look.get(a);
+    return s?.node.kind === 'section' ? exactAddress(param(s.node, 'follow')) : undefined;
+  };
+  const seen = new Set<string>([at.address]);
+  for (let a = next(at.address); a !== undefined; a = next(a)) {
+    if (a === at.address) {
+      report('seq.lang.section.follow', 'The section follows itself', at, 'follow');
+      break;
     }
+    if (seen.has(a)) break; // a cycle elsewhere: reported at its own sections
+    seen.add(a);
   }
-  return issues;
 }
 
 /** What a data node's checks read of a node it names: the node itself (a spec node, or what stands for a dynamic one). */

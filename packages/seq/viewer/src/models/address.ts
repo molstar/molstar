@@ -11,9 +11,8 @@
 // link, a key, a test and an agent reach these through the same commands (the `addressing` behavior).
 
 import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
-import { applyPatch } from '@molstar/core/repr/patch';
 import { type Issue, issueOf, parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
-import { addRefPatch, RefsId, type RefInput, refAddresses, SeqLanguage } from '@molstar/seqx-core/lang';
+import { addRefPatch, RefsId, type RefInput, refAddresses } from '@molstar/seqx-core/lang';
 import {
   type AddressResolution,
   AddressIssues,
@@ -40,7 +39,7 @@ import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/con
 import { nearestOffsetOf, positionAt } from './axis.js';
 import type { HoverModel } from './hover.js';
 import { type Emphasized, type HighlightModel, isNothing, type SelectionModel } from './selection.js';
-import type { SpecModel } from './spec.js';
+import type { EditOptions, EditOutcome, SpecModel } from './spec.js';
 import type { StoreModel } from './store.js';
 import type { ViewModel } from './view.js';
 
@@ -57,6 +56,9 @@ export interface RefEntry {
   readonly status: AddressStatus;
   readonly issues: readonly Issue[];
 }
+
+/** What adding a ref did: true when applied, else why not. */
+export type AddRefResult = true | readonly Issue[];
 
 /** What an action on an address did. */
 export interface AddressOutcome {
@@ -108,7 +110,9 @@ export class AddressModel extends ReactiveModel {
     this.listenPermanently(this.refs, () => this._retryFocus());
     this.listenPermanently(store.store.version, () => this._retryFocus());
     this.listenPermanently(store.store.nodeVersion, () => this._retryFocus());
-    // the session follows the spec: what it names is resolved again, and dropped with an issue when it names nothing
+    // the session follows the spec: through a patch's moves before its root is set, then resolved again on the new
+    // one, and dropped with an issue when it names nothing
+    this.registerPermanentDispose(spec.beforeCommit((changes) => this.followMoves(changes.moved)));
     this.listenPermanently(spec.root, () => this._respec());
   }
 
@@ -234,16 +238,15 @@ export class AddressModel extends ReactiveModel {
   // ---- refs as patches ----
 
   /**
-   * Adds a ref (a bookmark) as one patch over the root (`addRefPatch`, applied with the language: a ref that would
-   * dangle is refused). True when applied, else the issues; run it in a history run for one undo step.
+   * Adds a ref (a bookmark) as one patch over the root (`addRefPatch`, through `SpecModel.patch`: a ref that would
+   * dangle is refused), one step of the history when one is bound. True when applied, else the issues; a promise when
+   * the history runs it.
    */
-  addRef(ref: RefInput, options: Parameters<SpecModel['apply']>[1] = {}): true | readonly Issue[] {
-    const root = this.spec.root.value;
-    const r = applyPatch(root, addRefPatch(root, ref), { language: SeqLanguage });
-    if (!r.ok) return r.issues;
-    // made against the revision just read: the spec model applies it as one change
-    this.spec.apply(r.root, { against: this.spec.revision.value, ...options });
-    return true;
+  addRef(ref: RefInput, options: EditOptions = {}): AddRefResult | Promise<AddRefResult> {
+    // made from the root the edit runs on: bookmarks added one after another each apply
+    const outcome = this.spec.patch('Add a bookmark', (root) => addRefPatch(root, ref), options);
+    const result = (o: EditOutcome): AddRefResult => (o.ok ? true : o.issues);
+    return outcome instanceof Promise ? outcome.then(result) : result(outcome);
   }
 
   // ---- actions ----

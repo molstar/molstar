@@ -9,24 +9,26 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.2.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.3.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
-  spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind). A spec in an earlier `0.x` reads
-  as one in this one, and is reported where it no longer fits.
+  spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
+  and the `snapshot` kind). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer
+  fits.
 
 ## Language
 
 `lang/`: `SeqLanguage`, the description of SeqViewSpec on `@molstar/core/repr` (kinds, parents, params, docs), and the
 checks it cannot express.
 
-- **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data`, `views` and `refs` (reserved ids of
-  the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
-  `track`, `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges`
-  node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each`
-  makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is
-  `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`)
-  are `ref` params naming the kinds they take; a reference is an address.
+- **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data`, `views`, `refs` and `snapshots`
+  (reserved ids of the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`,
+  then `section`, `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own),
+  `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's
+  `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes
+  it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or
+  `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref`
+  params naming the kinds they take; a reference is an address.
 - **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
   language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
   are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a
@@ -51,9 +53,23 @@ checks it cannot express.
   `source` names a source, that `follow` chains end. Extents are checked where the letters are inline.
 - **Patches** are `@molstar/core/repr/patch`'s, applied with `SeqLanguage`: its conformance suite runs over the core's
   cases and Seq's own (a layer hidden, a track moved with a section's `follow` following a rename, a dangling ref
-  refused, a layer without an id refused), and a 10-op patch on the p53 spec, applied and diffed back, is held under 1
-  ms in the heavy lane (`_test/patches.test.ts`). The `seq.lang.*` checks are not a patch validator yet: an incremental
-  `checkSeqLang` is the viewer's.
+  refused, a layer without an id refused; with the checks of a change and the slots, a `seq.lang` refusal, a story step
+  following a rename and counting in link integrity, a step with a base refused), and a 10-op patch on the p53 spec,
+  applied and diffed back, is held under 1 ms in the heavy lane (`_test/patches.test.ts`). The slots' languages are
+  `SeqValidateOptions` (`seqLanguages`: the stored patches' `seq.patch`), which validation, the builder and `applyPatch`
+  take.
+- **Checks of a change** (`check-changes.ts`, `checkSeqChanges`, `SeqPatchValidator`): the `seq.lang.*` checks as
+  `repr/patch`'s validator, on what a patch's `Changes` reach: the nodes it made, set or moved; what names them, or
+  named any node of a subtree it removed or moved away (walked in the old root); on through the user refs that name
+  those, and through a ref with segments after it (`/refs/p/x` where `/refs/p` names a prefix of the node, at most the
+  ref depth deep); a template's layers under a track whose params changed; the sections and refs of a chain a changed
+  one closes. What names what is a reverse index of the spec's references (a persistent set of referring nodes by the id
+  run they name), built once a spec and derived from the last revision's along its changes. The same checks on the same
+  nodes before the change are taken away, by code, node (through moves) and place in the node. Why: a patch is refused
+  only for what it introduced (an error already there never blocks an edit beside it), and the cost follows the change,
+  not the spec. Held by tests that compare it with the whole check's difference, patch by patch, along a chain of
+  revisions and over seeded random patches of ref chains; and in the heavy lane, at 16,000 layers, the first check after
+  a load and a fan-out to every node no worse than the whole check, a one-node edit a small part of it.
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
 
 ### Refs
@@ -76,6 +92,18 @@ checks it cannot express.
   dangling is refused unless allowed.
 - **Not followed yet**: refs in data nodes' params (`target`, `from`, `to`, `source`) and a section's `of` and `follow`:
   a ref there names a node of kind `ref`, which the checks refuse (`seq.lang.ref.target`).
+
+### Story steps
+
+`snapshot` nodes in the `snapshots` container (`/snapshots/<id>`): `label`, and `patch`, a stored patch in `seq.patch`
+(`patchLanguage(SeqLanguage)`, `SeqPatchLanguage`) with no `base`.
+
+- **A step applies over whatever the spec is**: entering one is navigation, never an edit (the viewer's `SpecModel`).
+  Why no base: a story is written once and shown over every later revision.
+- **Its addresses are refs of the spec** (`repr/patch`'s stored-patch rule): a rename or a move rewrites them, and link
+  integrity counts them. A sibling named by a `place` is not rewritten: such a step no longer applies after the rename,
+  and is shown as not applying.
+- The builder writes one with `b.snapshots.snapshot(id, { patch, label })` (a `Patch` or its node; a base throws).
 
 ## Language builder
 
@@ -552,7 +580,8 @@ no target.
   axis's shape.
 - **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
   resolved so hover and selection never compose; the same system is the identity.
-- **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`.
+- **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
+  hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`; none has a fallback yet),
   its other params as written, its theme channels as values (`color`), its data and the static path from the data's
   system to the section's (none when the same). Data is the section's letters for a `letters` layer without data, an

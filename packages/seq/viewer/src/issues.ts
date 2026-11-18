@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The viewer's codes (_spec/README.md "Bindings").
+// The viewer's codes (_spec/README.md "Bindings", "SpecModel").
 
 import { defineIssues } from '@molstar/core/repr/tree';
 
@@ -29,5 +29,36 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     severity: 'warning',
     description: 'A key gesture in the pointer bindings: keys are bound through the keymap',
     hint: 'Give the command its key in the keymap',
+  },
+  'seq.viewer.preview.dropped': {
+    severity: 'warning',
+    description: 'A preview no longer applies over the new root (an edit landed during the gesture): it is dropped',
+    hint: 'Start the gesture again over what the spec is now',
+  },
+  'seq.viewer.step.stale': {
+    severity: 'warning',
+    description: 'The story step shown no longer applies over the spec: the spec is shown without it',
+    hint: 'Edit the step, or leave it',
+  },
+  'seq.viewer.step.unknown': {
+    severity: 'error',
+    description: 'No story step has that id: nothing was entered',
+    hint: 'Name a step of the spec (`/snapshots/<id>`)',
+  },
+  'seq.viewer.edit.masked': {
+    severity: 'info',
+    description:
+      'The edit sets a key the story step shown sets too: it lands in the spec and shows once the step is left',
+    hint: 'Leave the step to see it',
+  },
+  'seq.viewer.rebase.base': {
+    severity: 'error',
+    description: 'A stale patch cannot be rebased: the revision it was made against is no longer known',
+    hint: 'Make the patch again against the current revision',
+  },
+  'seq.viewer.rebase.conflict': {
+    severity: 'error',
+    description: 'A stale patch conflicts with what changed since it was made: nothing was applied',
+    hint: 'Review the conflicts, or make the patch again against the current revision',
   },
 });

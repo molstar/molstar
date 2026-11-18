@@ -126,6 +126,24 @@ export interface ViewerConfig {
     /** The channel a hover over a link (and the `address.hover` command) uses, its own (EC-182): `link-hover`. */
     readonly hoverChannel: string;
   };
+  readonly revisions: {
+    /** The recent roots the spec keeps by revision, for a host's rebase of a stale patch (64). */
+    readonly keepRecent: number;
+  };
+  readonly edit: {
+    /**
+     * A stale patch (made against an older revision) is refused (false, the default: EC-81), or rebased through
+     * `merge3` from its base root (true: the host opts in).
+     */
+    readonly rebaseStale: boolean;
+  };
+  readonly preview: {
+    /**
+     * A preview that no longer applies after the root changed is dropped, with a warning in the spec's issues
+     * (`issue`, the default) or quietly (`silent`).
+     */
+    readonly dropped: 'issue' | 'silent';
+  };
   readonly copyLink: {
     /** The forms an address is copied in, in order: a ref naming exactly it, then ids and forms (`['ref', 'ids']`). */
     readonly prefer: readonly ('ref' | 'ids')[];
@@ -150,6 +168,9 @@ export const DefaultViewerConfig: ViewerConfig = {
   pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50, lineHeight: 16 },
   address: { limit: 10_000, maxDepth: 64, refDepth: 8 },
   links: { prefix: 'seq-', maxLength: 8192, maxActions: 16, highlightChannel: 'link', hoverChannel: 'link-hover' },
+  revisions: { keepRecent: 64 },
+  edit: { rebaseStale: false },
+  preview: { dropped: 'issue' },
   copyLink: { prefer: ['ref', 'ids'], numbering: 'ordinal', action: 'focus' },
 };
 

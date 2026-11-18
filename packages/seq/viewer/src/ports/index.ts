@@ -15,6 +15,17 @@ import {
 import { bundledWidth } from '@molstar/seqx-core/render';
 import { browserTextMetrics } from '@molstar/seqx-viewer/canvas';
 
+export type {
+  EditContext,
+  EditOrigin,
+  EditRunOptions,
+  EditStep,
+  SeqHistory,
+  SeqHistoryParticipant,
+  SeqHistoryPort,
+  SpecCommit,
+} from './history.js';
+
 // The viewer's default ports (_spec/README.md "Ports"): each a factory with ownership, called once per viewer. Assets: a
 // new `DefaultAssetManager` under the browser policy (https and relative locations under the page, no credentials,
 // 256 MB an asset); text metrics: a canvas in the browser, the core's bundled table elsewhere. Both are disposed with

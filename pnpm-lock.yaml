@@ -3385,6 +3385,9 @@ importers:
         specifier: workspace:*
         version: link:../../ui
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
       '@storybook/addon-docs':
         specifier: 'catalog:'
         version: 10.6.5(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(storybook@10.6.5(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))
