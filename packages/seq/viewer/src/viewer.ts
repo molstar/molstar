@@ -404,6 +404,7 @@ export class SeqViewer extends ReactiveModel {
       this.counts.layouts++;
       this._wanter?.want(frame.wants);
       this._issues.set(frame.layout.issues);
+      this.store.holdShown(frame.layout.shown);
     }
     this._frame = frame;
 

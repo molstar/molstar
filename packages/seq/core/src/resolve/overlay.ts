@@ -74,6 +74,8 @@ export interface NestedSource {
   /** Its own depth: 1 for a source node of a spec source. */
   readonly depth: number;
   readonly root: string;
+  /** The source that brought its node: the item systems it serves are of that source's nodes. */
+  readonly parent: string;
 }
 
 export interface Overlay {
@@ -94,6 +96,16 @@ export interface Overlay {
    * `maxNestedDepth`; deeper ones are an issue and not listed.
    */
   nested(needs: ReadonlyMap<string, number>): readonly NestedSource[];
+  /**
+   * The system a source names `name` (a nested source's coverage, by name): an item system of a node its source's
+   * parent brought (`near`, that parent's address), else a spec system of that name.
+   */
+  systemNamed(name: string, near?: string): SystemEntry | undefined;
+  /**
+   * The nodes the given addresses (nodes, or item systems: their node) hold, with every node a held node names
+   * (its `target`, its `source`), transitively: what is shown holds what it is drawn through.
+   */
+  holds(addresses: Iterable<string>): readonly OverlayNode[];
 }
 
 /** No dynamic node: what a frame without a store's nodes reads. */
@@ -106,6 +118,8 @@ export const EmptyOverlay: Overlay = {
   annotation: () => undefined,
   path: () => ({}),
   nested: () => [],
+  systemNamed: () => undefined,
+  holds: () => [],
 };
 
 function segmentsOf(address: string): readonly Segment[] | undefined {
@@ -428,6 +442,43 @@ class DynamicOverlay implements Overlay {
     return r;
   }
 
+  systemNamed(name: string, near?: string): SystemEntry | undefined {
+    for (const n of this.coding.values()) {
+      if (near !== undefined && n.source !== near) continue;
+      for (const sys of this.itemsOf(n)?.systems.values() ?? []) if (sys.name === name) return sys;
+    }
+    for (const sys of this.model.systems.values()) if (sys.name === name) return sys;
+    return undefined;
+  }
+
+  /** The node an address is or is an item of. */
+  private ownerOf(address: string): OverlayNode | undefined {
+    const n = this.byAddress.get(address);
+    if (n) return n;
+    const segments = segmentsOf(address);
+    const last = segments?.[segments.length - 1];
+    if (!segments || typeof last === 'string' || last?.kind !== 'item') return undefined;
+    return this.byAddress.get(printAddress(segments.slice(0, -1)));
+  }
+
+  holds(addresses: Iterable<string>): readonly OverlayNode[] {
+    const out = new Set<OverlayNode>();
+    const todo: OverlayNode[] = [];
+    const add = (a: string | undefined) => {
+      const n = a === undefined ? undefined : this.ownerOf(a);
+      if (n && !out.has(n)) {
+        out.add(n);
+        todo.push(n);
+      }
+    };
+    for (const a of addresses) add(a);
+    while (todo.length) {
+      const n = todo.pop()!;
+      for (const key of ['target', 'source']) add(canonical(n.node.params?.[key]));
+    }
+    return [...out];
+  }
+
   nested(needs: ReadonlyMap<string, number>): readonly NestedSource[] {
     const out: NestedSource[] = [];
     for (const n of this.nodes) {
@@ -450,6 +501,7 @@ class DynamicOverlay implements Overlay {
         ...(runtime ? { runtime } : {}),
         depth,
         root: n.root,
+        parent: n.source,
       });
     }
     return out;

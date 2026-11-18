@@ -37,7 +37,8 @@ const Transcripts: Record<string, { exons: [number, number][]; domains: [number,
 };
 
 /** The nested source of a transcript's domains: on the transcript's own system, named by its id. */
-function domainsSource(id: string): SeqData {
+/** With `byRegion`, the domains node comes with the region's answer, not up front. */
+function domainsSource(id: string, byRegion = false): SeqData {
   const t = Transcripts[id];
   const length = Math.floor(t.exons.reduce((n, [a, b]) => n + b - a, 0) / 3);
   const nested = nodeAddress(Genes, `${id}-domains`);
@@ -47,7 +48,7 @@ function domainsSource(id: string): SeqData {
       systems: [{ name: id, length }],
       shapes: [{ system: id, shape: 'ranges' }],
       levels: [1],
-      nodes: [{ key: 'domains', node: domains }],
+      ...(byRegion ? {} : { nodes: [{ key: 'domains', node: domains }] }),
     },
     pairs: [
       {
@@ -62,13 +63,14 @@ function domainsSource(id: string): SeqData {
               row: Int32Array.from(t.domains, (_, i) => i),
             },
           },
+          ...(byRegion ? { nodes: [{ key: 'domains', node: domains }] } : {}),
         },
       },
     ],
   };
 }
 
-function transcriptNodes(id: string, format: string): DynamicNode[] {
+function transcriptNodes(id: string, format: string, byRegion: boolean): DynamicNode[] {
   const t = Transcripts[id];
   return [
     {
@@ -87,19 +89,22 @@ function transcriptNodes(id: string, format: string): DynamicNode[] {
         },
       },
     },
-    { key: `${id}-domains`, node: { kind: 'source', params: { format, value: seqToValue(domainsSource(id)) } } },
+    {
+      key: `${id}-domains`,
+      node: { kind: 'source', params: { format, value: seqToValue(domainsSource(id, byRegion)) } },
+    },
   ];
 }
 
 /** The gene source: its letters by region, each region's answer with the transcripts that start in it. */
-export function genesData(format = 'seq'): SeqData {
+export function genesData(format = 'seq', nestedByRegion = false): SeqData {
   const letters = 'ACGT'.repeat(GeneLength / 4);
   const pair = (start: number, end: number, ids: string[]) => ({
     request: { system: 'tp53', start, end, level: 1, shapes: ['letters' as const] },
     answer: {
       ok: true as const,
       tables: { letters: { form: 'letters' as const, start, letters: letters.slice(start, end) } },
-      nodes: ids.flatMap((id) => transcriptNodes(id, format)),
+      nodes: ids.flatMap((id) => transcriptNodes(id, format, nestedByRegion)),
     },
   });
   return {
@@ -113,13 +118,19 @@ export function genesData(format = 'seq'): SeqData {
 }
 
 /** The gene shown with a track a transcript and, with `domains`, a track for each transcript's domains. */
-export function transcriptsSpec(options: { domains?: boolean; format?: string } = {}): Node {
+export function transcriptsSpec(
+  options: { domains?: boolean; format?: string; nestedByRegion?: boolean; templates?: boolean } = {},
+): Node {
   const b = createSeqSpec({ title: 'transcripts' });
-  const genes = b.data.source('genes', { format: options.format ?? 'seq', value: seqToValue(genesData()) });
+  const genes = b.data.source('genes', {
+    format: options.format ?? 'seq',
+    value: seqToValue(genesData('seq', options.nestedByRegion)),
+  });
   const gene = b.data.sequence('gene', { alphabet: 'dna', source: genes, name: 'tp53' });
   b.views.view('main', (v) => {
     const s = v.section('gene', { of: gene });
     s.track('letters').layer({ type: 'letters' });
+    if (options.templates === false) return;
     s.track('transcripts', {
       label: 'Transcript',
       for_each: { source: genes, node_kind: 'ranges', filter: { map: 'codon' } },

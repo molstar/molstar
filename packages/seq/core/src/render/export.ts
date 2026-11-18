@@ -248,6 +248,8 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       const overlay = overlays.of(model, store);
       await nested.sync(overlay, view);
       const f = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: false });
+      // what the layout shows stays while the export waits
+      nested.hold(f.layout.shown);
       const wants = f.wants.filter((w) => w.priority !== 'margin');
       const key = `${wantsKey(wants)}#${store.nodeVersion.value}`;
       if (key === last) break;

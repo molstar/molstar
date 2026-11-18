@@ -22,7 +22,7 @@ import {
   type StoreClock,
 } from '@molstar/seqx-core/data';
 import { OverlaySources } from '@molstar/seqx-core/render';
-import { type Overlay, OverlayBuilder, type StaticModel } from '@molstar/seqx-core/resolve';
+import { type Overlay, OverlayBuilder, type OverlayNode, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -111,7 +111,9 @@ export class StoreModel extends ReactiveModel {
    * with their nodes. What cannot be opened is an issue here, as a source of the model's.
    */
   overlay(model: StaticModel, view: ResolvedView, ctx: { runtimes: readonly FormatRuntime[]; assets: AssetReader }) {
-    this._overlays ??= new OverlayBuilder({ runtimes: ctx.runtimes, config: model.config });
+    // the model's configuration is read through the model; other runtimes make another builder
+    if (this._overlays?.options.runtimes !== ctx.runtimes)
+      this._overlays = new OverlayBuilder({ runtimes: ctx.runtimes });
     const overlay = this._overlays.of(model, this.store);
     if (this._synced?.overlay !== overlay || this._synced.view !== view) {
       this._synced = { overlay, view };
@@ -128,6 +130,11 @@ export class StoreModel extends ReactiveModel {
       });
     }
     return overlay;
+  }
+
+  /** Holds the nodes a frame's layout shows (`ViewLayout.shown`), and lets go of those it no longer shows. */
+  holdShown(nodes: readonly OverlayNode[]): void {
+    this._overlaySources?.hold(nodes);
   }
 
   private async _attach(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {

@@ -413,6 +413,10 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
   bound to the first runtime that reads their format (`OverlayOptions.runtimes`; none: `seq.resolve.source.runtime`);
   one deeper than `maxNestedDepth` is `seq.resolve.node.depth` and not listed. Why on need: a nested source is a
   request, and a view that shows no domains asks for none.
+- **Named systems**: `systemNamed(name, near)` is the system a nested source's coverage names: an item system of a node
+  its parent source (`near`) brought, else a spec system of the name.
+- **Holds**: `holds(addresses)` is the nodes of the given addresses (a node, or an item system: its node) and,
+  transitively, the nodes their `target` and `source` name: what is shown holds what it is drawn through.
 
 ## Resolved view
 
@@ -469,8 +473,9 @@ one label column (112, gap 8), track and section gaps (4, 8), a track's height b
 none (letters 20, ranges 36, values 32), the lane (12, gap 2), the density thresholds, the letter sizes (9 to 14) and
 the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), the fade (12), the squircle's ratio, cap
 and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the want margin (half the view a side),
-a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), what ranges past the
-lanes do (`ranges.overflow`: `extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`).
+a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a layout lists
+the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`:
+`extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`).
 
 - **Density steps** (`densityStep(cssPx, dpr, config)`), shared by every layer type, each threshold in its unit
   (`densityUnits`): `letters` from 10 CSS px, `cells` from 3 device px, `dots` from 1, `bars` from 1/64, else `density`.
@@ -569,7 +574,12 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
 - **Templates** are expanded here over the frame's overlay (`expandTemplate`), at most `maxTemplateTracks` instances
   (the first in order; more is `seq.render.template.limit`, so the work is bounded before it starts); a template's
   source region in view, on the section's system as the source names it, is wanted at the level that fits, so the nodes
-  it brings arrive. The overlay's issues are the layout's.
+  it brings arrive. The overlay's issues are the layout's. A template below its source also wants each nested source's
+  systems (`systemNamed`) in view, carried along the overlay's path from the section, so a nested source that sends its
+  nodes by region is asked for them.
+- **Shown nodes** (`nodes.holdShown`, true): the layout lists the nodes it shows (`ViewLayout.shown`: the data and the
+  path systems of each laid-out layer, through `overlay.holds`), for its owner to hold in the store; with `false`, none.
+  Why: a node stays while it is shown, not only while the region that brought it is cached.
 - Cell edges snap to the device grid (`snap`). One label column for every track of a view.
 
 ### Lanes and Hits
@@ -596,8 +606,9 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   under the node's address, and the nested sources the view's templates need (`overlay.nested`) through their runtimes;
   each kept while its node is the same store entry, detached when it goes (or changes), so a node's data lives as long
   as the node. One that cannot be opened is an issue (`issues`) while its node is held, opened again at the next sync,
-  cleared when it opens or its node goes; `renderSvg` reports those left at its end. One attached by another consumer of
-  a shared store is left alone. `dispose` detaches what it attached.
+  cleared when it opens or its node goes; `renderSvg` reports those left at its end. `hold(nodes)` holds in the store
+  the nodes a layout shows and lets go of those it no longer shows (`dispose` lets go of all). One attached by another
+  consumer of a shared store is left alone. `dispose` detaches what it attached.
 
 ### Backends
 

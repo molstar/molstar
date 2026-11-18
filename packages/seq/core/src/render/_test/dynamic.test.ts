@@ -4,17 +4,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
+import { DataStore, SeqRuntime, type StoreSettings } from '@molstar/seqx-core/data';
 import { itemAddress, nodeAddress, OverlayBuilder, resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveView, resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import {
   attachSources,
   bundledTextMetrics,
+  type FrameInput,
   LightTokens,
   NoAssets,
   OverlaySources,
+  type RenderConfig,
   Renderer,
+  renderConfig,
   renderSvg,
 } from '../index.js';
 import { Genes, transcriptsSpec } from './transcripts.js';
@@ -25,25 +28,38 @@ import { Genes, transcriptsSpec } from './transcripts.js';
 
 const size = { width: 640, height: 240 };
 
-async function live(spec = transcriptsSpec({ domains: true })) {
+async function live(
+  spec = transcriptsSpec({ domains: true }),
+  settings: Partial<StoreSettings> = {},
+  config: Partial<RenderConfig> = {},
+) {
   const model = resolveSpec(spec, { runtimes: [SeqRuntime] });
   const view = resolveViews(model)[0];
-  const store = new DataStore();
+  const store = new DataStore({ settings });
   await attachSources(model, store);
   const overlays = new OverlayBuilder({ runtimes: [SeqRuntime] });
   const sources = new OverlaySources(store, NoAssets);
-  const renderer = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
-  const frame = async (rounds = 6) => {
-    let f = renderer.frame({ size, overlay: overlays.of(model, store) });
+  const renderer = new Renderer({
+    model,
+    view,
+    data: store,
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+    config: renderConfig(config),
+  });
+  const frame = async (input: Partial<FrameInput> = {}, rounds = 6) => {
+    let f = renderer.frame({ size, ...input, overlay: overlays.of(model, store) });
     for (let i = 0; i < rounds; i++) {
       await sources.sync(overlays.of(model, store), view);
+      sources.hold(f.layout.shown);
       store.want(f.wants);
       await store.whenSettled();
-      f = renderer.frame({ size, overlay: overlays.of(model, store) });
+      f = renderer.frame({ size, ...input, overlay: overlays.of(model, store) });
     }
+    sources.hold(f.layout.shown);
     return f;
   };
-  return { model, view, store, overlays, renderer, frame };
+  return { model, view, store, overlays, sources, renderer, frame };
 }
 
 describe('dynamic nodes through templates', () => {
@@ -105,6 +121,55 @@ describe('dynamic nodes through templates', () => {
     expect(b.key).not.toBe(a.key);
     expect(resolveViews(model)[0]).toBe(view);
     expect(renderer.options.model).toBe(model);
+  });
+
+  it('a nested source that sends its nodes by region is asked for its regions in view', async () => {
+    const { store, frame } = await live(transcriptsSpec({ domains: true, nestedByRegion: true }));
+    const f = await frame();
+    const nested = nodeAddress(Genes, 'T1-domains');
+    expect(store.getNode(nested, 'domains')).toBeDefined();
+    expect(f.wants.filter((w) => w.source === nested).map((w) => [w.system, w.start, w.end])).toContainEqual([
+      'T1',
+      0,
+      240,
+    ]);
+    expect(f.layout.sections[0].tracks.map((t) => t.track.label)).toContain('Domains T1-domains');
+  });
+
+  it('a node shown is held: its region evicted, a transcript keeps its item system while its domains show', async () => {
+    const T1 = nodeAddress(Genes, 'T1');
+    const item = itemAddress(T1, 'T1');
+    // a byte bound nothing unwanted fits under: a region out of view goes at once
+    const run = await live(transcriptsSpec({ domains: true }), { maxBytes: 1 });
+    await run.frame();
+    expect(run.store.getNode(Genes, 'T1')).toBeDefined();
+    // T1's region (the first) leaves the view and is evicted; its nodes stay while shown
+    const away = await run.frame({ viewport: { start: 1400, end: 1500 } });
+    expect(run.store.get('/data/genes|tp53|1|0')).toBeUndefined();
+    expect(away.layout.shown.map((n) => n.address)).toContain(T1);
+    expect(run.store.getNode(Genes, 'T1')).toBeDefined();
+    expect(run.overlays.of(run.model, run.store).system(item)?.length).toBe(240);
+    // the tracks go (a spec without templates over the same store): nothing shows it any more, and it goes
+    const bare = resolveSpec(transcriptsSpec({ templates: false }), { runtimes: [SeqRuntime] });
+    const plain = new Renderer({
+      model: bare,
+      view: resolveViews(bare)[0],
+      data: run.store,
+      tokens: LightTokens,
+      text: bundledTextMetrics(),
+    });
+    const after = plain.frame({ size, viewport: { start: 1400, end: 1500 } });
+    expect(after.layout.shown).toEqual([]);
+    run.sources.hold(after.layout.shown);
+    expect(run.store.getNode(Genes, 'T1')).toBeUndefined();
+    expect(run.overlays.of(run.model, run.store).system(item)).toBeUndefined();
+
+    // without holdShown, the node goes with its region
+    const off = await live(transcriptsSpec({ domains: true }), { maxBytes: 1 }, { nodes: { holdShown: false } });
+    await off.frame();
+    const f = await off.frame({ viewport: { start: 1400, end: 1500 } });
+    expect(f.layout.shown).toEqual([]);
+    expect(off.store.getNode(Genes, 'T1')).toBeUndefined();
   });
 
   it('a template makes at most maxTemplateTracks tracks, and says so past it', async () => {

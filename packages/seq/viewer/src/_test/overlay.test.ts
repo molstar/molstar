@@ -57,7 +57,7 @@ function genes(nestedFormat = 'seq'): SeqData {
   };
 }
 
-function spec(depth: number, nestedFormat = 'seq') {
+function spec(depth: number, nestedFormat = 'seq', config: { maxNestedDepth?: number } = {}) {
   const b = createSeqSpec();
   const src = b.data.source('genes', { format: 'seq', value: seqToValue(genes(nestedFormat)) });
   const gene = b.data.sequence('gene', { alphabet: 'dna', source: src, name: 'g' });
@@ -67,7 +67,7 @@ function spec(depth: number, nestedFormat = 'seq') {
       .track('t', { for_each: { source: src, node_kind: 'ranges', depth } })
       .layer({ type: 'ranges' }),
   );
-  const model = resolveSpec(b.build(), { runtimes: [SeqRuntime] });
+  const model = resolveSpec(b.build(), { runtimes: [SeqRuntime], config });
   return { model, view: resolveViews(model)[0] };
 }
 
@@ -166,6 +166,27 @@ describe('StoreModel: the overlay', () => {
     m.overlay(model, view, c);
     await flush();
     expect(m.issues.value).toEqual([]);
+    m.retire();
+  });
+
+  it('reads the model’s configuration and the context’s runtimes: either changed, another overlay', async () => {
+    const m = new StoreModel();
+    const { model, view } = spec(1, 'other');
+    await m.sync(model, assets);
+    m.store.want([{ source: Genes, system: 'g', start: 0, end: 100, level: 1 }]);
+    await m.store.whenSettled();
+    const needs = new Map([[Genes, 1]]);
+    const a = m.overlay(model, view, ctx);
+    expect(a.nested(needs).map((n) => n.runtime?.name)).toEqual([undefined]);
+    const other: FormatRuntime = { ...SeqRuntime, name: 'other', formats: ['other'] };
+    const b = m.overlay(model, view, { runtimes: [SeqRuntime, other], assets });
+    expect(b).not.toBe(a);
+    expect(b.nested(needs).map((n) => n.runtime?.name)).toEqual(['other']);
+    // a model resolved with another nesting limit: its overlay reads it
+    const shallow = spec(1, 'other', { maxNestedDepth: 0 });
+    const c = m.overlay(shallow.model, shallow.view, { runtimes: [SeqRuntime, other], assets });
+    expect(c.nested(needs)).toEqual([]);
+    expect(c.issues.map((i) => i.code)).toContain('seq.resolve.node.depth');
     m.retire();
   });
 });

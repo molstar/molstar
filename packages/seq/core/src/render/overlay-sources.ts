@@ -9,10 +9,11 @@ import {
   type AssetReader,
   type DataStore,
   isAbortError,
+  nodeKey,
   type OpenedSource,
   SourceOpenError,
 } from '@molstar/seqx-core/data';
-import type { Overlay } from '@molstar/seqx-core/resolve';
+import type { Overlay, OverlayNode } from '@molstar/seqx-core/resolve';
 import { type ResolvedView, templateNeeds } from '@molstar/seqx-core/view';
 import { RenderIssues } from './issues.js';
 
@@ -33,6 +34,8 @@ interface Held {
 
 export class OverlaySources {
   private readonly held = new Map<string, Held>();
+  /** The store's holds on the nodes a layout shows, by `<source>#<key>`. */
+  private readonly shown = new Map<string, () => void>();
 
   constructor(
     readonly store: DataStore,
@@ -112,8 +115,27 @@ export class OverlaySources {
     if (h.attached) this.store.detach(address);
   }
 
-  /** Detaches everything it attached. */
+  /**
+   * Holds in the store the nodes a layout shows (`ViewLayout.shown`), and lets go of those it no longer shows: a node
+   * shown stays when the region that brought it is evicted, and goes once nothing shows it.
+   */
+  hold(nodes: readonly OverlayNode[]): void {
+    const now = new Set<string>();
+    for (const n of nodes) {
+      const k = nodeKey(n.source, n.key);
+      now.add(k);
+      if (!this.shown.has(k)) this.shown.set(k, this.store.hold(n.source, n.key));
+    }
+    for (const [k, release] of [...this.shown])
+      if (!now.has(k)) {
+        this.shown.delete(k);
+        release();
+      }
+  }
+
+  /** Lets go of its holds and detaches everything it attached. */
   dispose(): void {
+    this.hold([]);
     for (const [address, h] of [...this.held]) this.release(address, h);
   }
 }
