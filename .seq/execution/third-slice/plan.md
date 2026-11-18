@@ -71,6 +71,13 @@ From the principles ("Folded back from the second slice"), written into this pla
 
 ## Gate 0 (the author, before any lane)
 
+**Decided** (the author, 2026-11-18: "your recommendations for gate 0 make sense generally"): the recommendations
+below stand (small public entries under 1 MB, the large variants generated; PNG by rasterizing the SVG; the CLI in
+`cli/` as `seqx-render`; the glyph atlas out unless the alignment's measurement asks; sizes measured at stage 1's gate).
+The designs are drafted and reviewed now, before the loop ("let's draft and review the designs now so that we can then
+run the slices autonomously"), in `drafts/`, each with its self-check, and agreed by the author before any lane; each
+agreed design is folded into the Storybook's Design pages.
+
 - **The datasets' exact data**: which globins, antibody, plasmid, tRNA and p53 structure; the Complex's entries.
   Recommendation: small public entries with permissive licenses, fixtures under 1 MB each, the large variants generated
   in code.

@@ -187,6 +187,14 @@ all of it"). Each extends the package rule it cites, and stands here until the p
   on a state no input can reach lands without a failing test, and its report and commit say why. Why: one such bound
   in lane T could have none.
 
+## From the author at the third slice's Gate 0 (2026-11-18)
+
+- **The Storybook's Design pages follow the designs** (extends §design-in-place): a change to a design in `design/`
+  that a reader of the package would need (a new design, a rule, a decision, a table) is folded into the matching page
+  under the Storybook's `Seq* (next)/Design` in the same change, or a new page is added; the pages never cite `.seq/`.
+  The author: "we should be folding the things we are adding to the designs section in the storybook too". Why: the
+  scaffold is deleted once the package stands on its own, and the pages are what readers see meanwhile.
+
 ## For the package's home
 
 Fold-back proposals for the oz package, from this instance (2026-11-18); until merged there they stand as the
