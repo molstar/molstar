@@ -170,7 +170,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 2: editing and addressing (two strong lanes, after stage 1)
 
-- [ ] N (strong) editing in `seqx-viewer` (and `seqx-core` where the model compiles increments), after K2:
+- [x] N (strong) editing in `seqx-viewer` (merged `194d1e343` after one review round; story steps paused for `stories.md`) (and `seqx-core` where the model compiles increments), after K2:
   - `SpecModel.applyPatch` with `SeqLanguage`, its validate options and an **incremental `checkSeqLang`** as the patch
     validator (cost in proportion to `Changes`); then resolve and the view recompiling only what `Changes` reaches
     (composition.md); Seq's own conformance cases through `checkPatches(apply, cases)`;
@@ -198,7 +198,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - addresses of the session state (selection and focus).
 
   The address's two consumers live in one test: the viewer and an export resolving the same address.
-- [ ] GATE: merged, reviewed with the look (an editing story, a bookmarks story), the checks green.
+- [x] GATE: merged, reviewed with the look (an editing story, a bookmarks story), the checks green (2026-11-18).
 
 ### Stage 3: selection and security (one strong lane, one fast; after stage 2)
 

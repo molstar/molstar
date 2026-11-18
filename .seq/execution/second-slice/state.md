@@ -31,16 +31,10 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## In progress
 
-- Stage 2 started (2026-11-18, from `57b1d7c4e`; the lane worktrees were cut from master, each lane reset onto it):
-  - K2 merged (`5927c9e4b`), R+K merged (`989292665`), each after one review round.
-  - O merged (`61b7d3549`) after one review round; its stories looked at before and after (light and dark).
-  - K3 merged (`8d829a0a2`): stored refs typed by the language (the author's decision), law 3 with story steps over
-    seeds 1-120 × 3,000, nested steps included; 30 steps cost under 1 ms an edit.
-  - The frame lane's dropped-tick leak fixed in `@molstar/ui/dom` (`618de8dd7`).
-  - N reported (`d050d4bb2`), checks green on the orchestrator's run (the heavy frame-time bounds flaked once);
-    the Editing story looked at in a visible pane, light and dark; reviewed (two blocking: refs through refs missed
-    by the incremental check, quick successive edits refused as stale), in its fix round. Its story-steps part was built
-    before the hold and is mixed into its commits: kept, reworked per `stories.md` later.
+- Stage 2 closed (2026-11-18): K2, R+K, O, K3, N merged, each after one review round; the editing and bookmarks
+  stories looked at in a visible pane, light and dark; the gate's checks green (quick 14,550, seq's quick lane 1.2 s;
+  medium, heavy, the `.seq` checks). Story steps paused for `stories.md`.
+- The frame lane's dropped-tick leak fixed in `@molstar/ui/dom` (`618de8dd7`).
 
 ## Next
 

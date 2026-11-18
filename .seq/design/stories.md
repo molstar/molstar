@@ -18,7 +18,7 @@ the application's clock decides what is shown and when. Seq\* runs no animation 
   plays them. Here a step is stored as a patch over the spec, and the player is the application.
 - [changes.md](changes.md): the history port, by which the host owns the undo stack. The animation port is its twin:
   the host owns the clock.
-- [ux-foundations.md](ux-foundations.md) §7: jumps animate, the hand is followed directly, data does not animate,
+- [ux-foundations.md](ux-foundations.md) section 7: jumps animate, the hand is followed directly, data does not animate,
   reduced motion cuts.
 
 ## Decision
@@ -78,7 +78,7 @@ the application's clock decides what is shown and when. Seq\* runs no animation 
   - *the application drives Seq\**: `show(frame)` or `progress(plan, t)` when it decides; `clear()` returns to the
     state. Seq\* reports per drawn frame (`drawn(frame)`), and a plan's natural duration (from the steps' timing), so
     the application keeps several views and a structure viewer in step on one clock.
-  - *Seq\* asks the application*: Seq\*'s own motions (focus and reveal jumps, a snapshot's view, a zoom step, §7) are
+  - *Seq\* asks the application*: Seq\*'s own motions (focus and reveal jumps, a snapshot's view, a zoom step, ux-foundations section 7) are
     plans handed to the port (`request(plan, { duration })`), so a host that animates a structure's camera runs both
     together, or cuts both.
 - **Adapters** in each composition root, as for history: the default composition's runs `request`ed plans on
@@ -95,7 +95,7 @@ the application's clock decides what is shown and when. Seq\* runs no animation 
 
 ## Configuration
 
-`story.transition.duration` (the base duration of §7), `story.transition.easing` (ease in and out), `story.linger`,
+`story.transition.duration` (the base duration of ux-foundations section 7), `story.transition.easing` (ease in and out), `story.linger`,
 `story.view.path` (`auto`: pan when the ranges overlap, else out-across-in), `story.color.space` (`oklab`),
 `story.cut.at` (0.5), `story.reducedMotion` (follows the platform), `story.stepStart` (`spec`; `from` per step).
 
@@ -112,7 +112,7 @@ the application's clock decides what is shown and when. Seq\* runs no animation 
 
 - `seqx-core`: `stateOf`, `plan`, `sample` and the channel kinds, DOM-free, tested in Node with property tests
   (`sample(plan, 0)` is `from`, `sample(plan, 1)` is `to`, monotone channels, determinism) and allocation checks.
-- `seqx-viewer`: the frame slot over the shown state; the `AnimationPort` with its default and headless adapters; §7's
+- `seqx-viewer`: the frame slot over the shown state; the `AnimationPort` with its default and headless adapters; ux-foundations section 7's
   motions through it.
 - Stories in Storybook: the p53 story played by the default adapter, scrubbed by a slider (the application's clock),
   and the same plan driving a stand-in structure camera, with headless twins on a fake clock.
