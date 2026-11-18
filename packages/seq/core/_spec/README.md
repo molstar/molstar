@@ -846,6 +846,10 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
   `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
   element under the point wins, else the topmost with a position.
+- **Every drawn mark has a hit box.** A `ranges` layer indexes each item's own marks (every lane, every piece), not the
+  drawn ones: at `bars` a run merged from several items is hit by the item under the point, its gaps (under a device
+  pixel) by the nearest within a device pixel, and the hover outlines that item's own marks inside the run. Why: a run
+  drawn as one mark but named by no item was a box with no hit and no hover.
 
 ### The key
 

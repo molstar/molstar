@@ -195,4 +195,33 @@ export class LaneIndex {
     }
     return -1;
   }
+
+  /**
+   * The mark under x in a lane, else the nearest within `slack` px of it (the earlier on a tie), or −1: a run merged
+   * from marks a device pixel apart is hit in its gaps too.
+   */
+  near(lane: number, x: number, slack: number): number {
+    const under = this.at(lane, x);
+    if (under >= 0 || !(slack > 0) || lane < 0 || lane + 1 >= this.laneStart.length) return under;
+    const from = this.laneStart[lane];
+    let lo = from;
+    let hi = this.laneStart[lane + 1];
+    // the marks starting at or before x + slack; of those, the ones reaching x − slack
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (this.x0[this.order[mid]] <= x + slack) lo = mid + 1;
+      else hi = mid;
+    }
+    let best = -1;
+    let dist = slack;
+    for (let k = lo - 1; k >= from && this.runMax[k] >= x - slack; k--) {
+      const i = this.order[k];
+      const d = this.x0[i] > x ? this.x0[i] - x : x - this.x1[i];
+      if (d <= dist) {
+        dist = d;
+        best = i;
+      }
+    }
+    return best;
+  }
 }

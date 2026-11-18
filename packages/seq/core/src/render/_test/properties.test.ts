@@ -7,6 +7,9 @@
 // The draw lists' properties: bounded by the screen at every density step (a 3M-position system and p53 alike), hits
 // where the marks are, pure (same inputs, same lists), keyed by what they read (the token table's version among it).
 
+import { PCG } from '@molstar/core/data/util/hash-functions';
+import { categoryColumn } from '@molstar/core/repr/tree';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import {
   colorHex,
@@ -16,6 +19,7 @@ import {
   densityStep,
   DefaultRenderConfig,
   hitView,
+  LaneIndex,
   LightTokens,
   type LettersLay,
   type RangesLay,
@@ -146,6 +150,107 @@ describe('draw lists: hits where the marks are', () => {
     // the label column and the page's margin hit nothing
     expect(hitView(f.layout, 4, letters.box.y + 1)).toBeUndefined();
     expect(hitView(f.layout, 200, 2)).toBeUndefined();
+  });
+
+  it('seeded random items in lanes: every drawn mark is hit at its centre by an item it draws, merged runs too', async () => {
+    const rng = new PCG(5);
+    let merged = 0;
+    for (let round = 0; round < 12; round++) {
+      const length = 200 + (rng.int() % 4000);
+      const n = 1 + (rng.int() % 40);
+      const start: number[] = [];
+      const end: number[] = [];
+      const id: string[] = [];
+      for (let i = 0; i < n; i++) {
+        const s = rng.int() % length;
+        start.push(s);
+        end.push(Math.min(length, s + 1 + (rng.int() % Math.max(1, length >> (2 + (rng.int() % 6))))));
+        // a few ids repeated: pieces of one item
+        id.push(`i${rng.int() % Math.max(1, n - (rng.int() % 4))}`);
+      }
+      const b = createSeqSpec({ title: 'random ranges' });
+      const s = b.data.sequence('s', { alphabet: 'protein', letters: 'M'.repeat(length) });
+      const r = b.data.ranges('r', {
+        target: s,
+        rows: { start: Int32Array.from(start), end: Int32Array.from(end), id: categoryColumn(id) },
+      });
+      b.views.view('v', (v) =>
+        v.section('s', { of: s }).track('r', { height: 96 }).layer('ranges', { type: 'ranges', data: r }),
+      );
+      const settled = await settle(b.build());
+      const a = rng.int() % length;
+      const viewports = [
+        { start: 0, end: length },
+        { start: a, end: Math.min(length, a + 20 + (rng.int() % 200)) },
+      ];
+      for (const viewport of viewports) {
+        const f = await settled.frame({ size: { width: 728, height: 140 }, viewport });
+        const lay = f.layout.sections[0].tracks[0].layers[0].lay as RangesLay;
+        if (lay.mode === 'density') continue;
+        for (let j = 0; j < lay.m; j++) {
+          const drawn = new Set<string | number>();
+          if (lay.mitem[j] >= 0) drawn.add(lay.keys[lay.mitem[j]]);
+          else {
+            merged++;
+            for (let k = 0; k < lay.hn; k++)
+              if (lay.hlane[k] === lay.mlane[j] && lay.hx1[k] >= lay.mx0[j] && lay.hx0[k] <= lay.mx1[j])
+                drawn.add(lay.keys[lay.hitem[k]]);
+          }
+          const x = (lay.mx0[j] + lay.mx1[j]) / 2;
+          const y = lay.box.y + (lay.mlane[j] + 0.5) * lay.laneHeight;
+          const key = hitView(f.layout, x, y)?.element?.key;
+          expect(key !== undefined && drawn.has(key), `round ${round} ${lay.mode} mark ${j}`).toBe(true);
+        }
+      }
+    }
+    // the seed reaches runs of several items
+    expect(merged).toBeGreaterThan(0);
+  });
+});
+
+describe('the lane index', () => {
+  it('finds the mark under x, else the nearest within the slack (a merged run’s gaps), never past it', () => {
+    const index = new LaneIndex();
+    // lane 0: [0, 10] and [10.5, 20]; lane 1: [5, 6]
+    index.build(3, [0, 0, 1], [0, 10.5, 5], [10, 20, 6], 2);
+    expect(index.at(0, 5)).toBe(0);
+    expect(index.at(0, 10.25)).toBe(-1);
+    expect(index.near(0, 10.25, 1)).toBe(0);
+    expect(index.near(0, 10.4, 1)).toBe(1);
+    expect(index.near(0, 21.5, 1)).toBe(-1);
+    expect(index.near(0, 20.5, 1)).toBe(1);
+    expect(index.near(1, 7, 0)).toBe(-1);
+    expect(index.near(1, 6.5, 1)).toBe(2);
+    expect(index.near(2, 5, 1)).toBe(-1);
+    expect(index.near(-1, 5, 1)).toBe(-1);
+  });
+
+  it('agrees with a scan over seeded random marks', () => {
+    const rng = new PCG(9);
+    for (let round = 0; round < 50; round++) {
+      const n = rng.int() % 60;
+      const lanes = 1 + (rng.int() % 4);
+      const lane = Array.from({ length: n }, () => rng.int() % lanes);
+      const x0 = Array.from({ length: n }, () => (rng.int() % 4000) / 10);
+      const x1 = x0.map((x) => x + (rng.int() % 200) / 10);
+      const index = new LaneIndex();
+      index.build(n, lane, x0, x1, lanes);
+      for (let q = 0; q < 40; q++) {
+        const l = rng.int() % lanes;
+        const x = (rng.int() % 4400) / 10;
+        const slack = (rng.int() % 3) / 2;
+        const j = index.near(l, x, slack);
+        const dist = (i: number) => (x < x0[i] ? x0[i] - x : x > x1[i] ? x - x1[i] : 0);
+        let best = Number.POSITIVE_INFINITY;
+        for (let i = 0; i < n; i++) if (lane[i] === l) best = Math.min(best, dist(i));
+        if (best > slack) expect(j).toBe(-1);
+        else {
+          expect(j).toBeGreaterThanOrEqual(0);
+          expect(lane[j]).toBe(l);
+          expect(dist(j)).toBe(best);
+        }
+      }
+    }
   });
 });
 
