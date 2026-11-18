@@ -125,7 +125,8 @@ and dark before the merge.
       copy; a link followed before the spec is loaded kept waiting (the address model treats "no spec yet" as waiting)
       and the focus recorded when a kept move lands; the Features links story's single message; `track.add` as a
       command; `view.back` and `view.forward` in the default toolbar with their disabled state; drawing checked against
-      the data in the existing p53 example views.
+      the data in the existing p53 example views; the selection's bookmark command (its name and key), beside
+      `refs.remove` and labels (decided at the design review).
 - [ ] GATE: merged, reviewed, the checks green, sizes measured.
 
 ### Stage 1: the axis, then themes and the small layers (after Gate 0)
@@ -135,7 +136,8 @@ and dark before the merge.
     reversed axis counts down and says so; reversed DNA letters as their complement (on by default);
   - letters through a one-to-one or codon path (a residue a codon wide, a codon split by an intron in each piece),
     any other path still `seq.render.layer.letters` with its reason;
-  - collapsed introns (the default for a section following through a codon map), and `Follow.point` following each
+  - collapsed introns (`pieces` defaults to `whole` for every section, followers included; the p53 views spell
+    `coding`: the application drives the composition, decided at the design review), and `Follow.point` following each
     nucleotide of a split codon;
   - hit-testing, selection, follow (both ways), focus and the SVG export through the new axis; the p53 views: the
     protein and its gene on one axis, the gene reading along its protein.
