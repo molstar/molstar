@@ -25,6 +25,10 @@
 8. **Lane N**: `track.hidden` (default false; a hidden track's row collapses), as `layer.hidden` was decided; the
    language stays 0.3.0 (unreleased). Recommendation: keep.
 
+9. **Lane P** (the author's look feedback, 2026-11-18): `selection.shape` `column` (default; one band per section across
+   tracks and gaps) or `tracks`; the selection a soft tint with one thin outline; the keyboard cursor shown only after a
+   key, a 1 px neutral line; the hover outline concentric and offset outward, above the selection. Recommendation: keep.
+
 ## Agreed but not built
 
 ## Built but not adopted
