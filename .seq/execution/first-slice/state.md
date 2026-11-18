@@ -38,8 +38,9 @@ config item (or a param) with the recommendation as its default, and listed in g
   detached source's tiles stuck pending, `layoutIssues` churn (all merged, 733 tests). Still late in the browser: the
   viewer's layout drops its placeholders in place after the last rebuilt frame, the canvas not redrawn; the same fixer
   on `seq/fix-nested-redraw-2`. The stage 6 gate waits for it.
-- Stage 7: measurement (fast) on `seq/measure` from `efb8f9a94`: frame time, allocation, bundle sizes, the quick lane;
-  heavy-lane bounds and a sizes script.
+- Stage 7: measured (`measurements.md`; merged with heavy-lane bounds, allocation cases, `test:perf` and `size`).
+  All targets met except 3M bars frames (9–15 ms: the source's level gap) and allocation (layout allocates; hover
+  1 KB): the stage 7 gate waits for the author.
 
 ## Next
 

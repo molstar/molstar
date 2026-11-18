@@ -111,7 +111,7 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 7: measure (orchestrator, light)
 
-- [ ] M1 frame time (pan, zoom, hover) at the scale fixtures the slice supports; allocation of draw and hover (opt-in
+- [x] M1 frame time (pan, zoom, hover) at the scale fixtures the slice supports; allocation of draw and hover (opt-in
       tier); the quick lane's time per folder and in total; bundle sizes (reading a spec; headless SVG; the viewer)
 - [ ] GATE: the author confirms or moves the performance targets ([performance](../../design/performance.md))
 
