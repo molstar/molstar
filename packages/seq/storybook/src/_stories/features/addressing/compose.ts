@@ -65,11 +65,11 @@ export function focusBookmark(viewer: SeqViewer, address: string): string {
 }
 
 /**
- * Bookmarks what the view shows now (its focus as an address) through `refs.add`: one patch. The id is the next free
- * `view-<n>`; the result is the command's message.
+ * Bookmarks what the view shows now (the region drawn, as an address: never another ref, so bookmarks never chain)
+ * through `refs.add`: one patch. The id is the next free `view-<n>`; the result is the command's message.
  */
 export function bookmarkView(viewer: SeqViewer): string {
-  const to = viewer.addresses.focusAddress();
+  const to = viewer.addresses.shownAddress();
   if (to === undefined) return 'Nothing shown';
   const taken = new Set(viewer.addresses.refs.value.map((r) => r.id));
   let n = 1;

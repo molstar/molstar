@@ -207,7 +207,19 @@ export class SeqViewer extends ReactiveModel {
     this.listenPermanently(this.spec.model, () => this._sync());
     this.listenPermanently(this.hover.version, () => this.schedule());
     this.listenPermanently(this.selection.value, () => this.schedule());
-    this.listenPermanently(this.store.store.version, () => this.schedule());
+    // a source-backed system's length arrives with its source's coverage: the view's axes are placed then
+    this.view.setLengthSource((system) => {
+      const s = this.spec.model.value.systems.get(system);
+      if (!s?.source) return undefined;
+      const info = this.store.store
+        .coverage(s.source)
+        ?.systems.find((x) => x.name === s.name || x.aliases?.includes(s.name));
+      return info?.length;
+    });
+    this.listenPermanently(this.store.store.version, () => {
+      this.view.refreshLengths();
+      this.schedule();
+    });
     this.listenPermanently(this.store.store.settled, () => this.schedule());
     this.listenPermanently(this.view.resolved, () => {
       this._followViewports();

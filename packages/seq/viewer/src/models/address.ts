@@ -10,12 +10,13 @@
 // as one patch, links in both directions, and the session (the selection, the focus) read and set as addresses. A
 // link, a key, a test and an agent reach these through the same commands (the `addressing` behavior).
 
-import { derive, type ReadonlyState, ReactiveModel } from '@molstar/core/reactive';
+import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { applyPatch } from '@molstar/core/repr/patch';
-import { type Issue, printAddress } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
 import { addRefPatch, RefsId, type RefInput, refAddresses, SeqLanguage } from '@molstar/seqx-core/lang';
 import {
   type AddressResolution,
+  AddressIssues,
   type AddressStatus,
   addressFor,
   EmptyElements,
@@ -103,7 +104,78 @@ export class AddressModel extends ReactiveModel {
       // a new list only when an entry changed: what lists the bookmarks redraws once a change
       sameRefs,
     );
+    // a waiting focus runs when its address resolves: a node arriving, or the data it reads (refs or not)
     this.listenPermanently(this.refs, () => this._retryFocus());
+    this.listenPermanently(store.store.version, () => this._retryFocus());
+    this.listenPermanently(store.store.nodeVersion, () => this._retryFocus());
+    // the session follows the spec: what it names is resolved again, and dropped with an issue when it names nothing
+    this.listenPermanently(spec.root, () => this._respec());
+  }
+
+  private readonly _issues = new State<readonly Issue[]>([]);
+  /**
+   * The session's issues: a selection, a highlight, a focus or a waiting focus dropped because a change of the spec
+   * left its address naming nothing (each `seq.address.missing`, naming the address).
+   */
+  readonly issues: ReadonlyState<readonly Issue[]> = this._issues.asReadonly;
+
+  /**
+   * Session addresses after a patch moved or renamed nodes (`Changes.moved` of `repr/patch`): each address whose
+   * leading ids name a moved node, or a node below it, is rewritten to the new place, as the spec's refs are.
+   */
+  followMoves(moved: readonly { readonly from: readonly string[]; readonly to: readonly string[] }[]): void {
+    if (!moved.length) return;
+    const rewrite = (address: string) => rewriteMoved(address, moved);
+    const sel = this.selection.value.value;
+    if (sel.address !== undefined) {
+      const a = rewrite(sel.address);
+      if (a !== sel.address) this.selection.set({ ...sel, address: a });
+    }
+    for (const name of this.highlight.names.value) {
+      const h = this.highlight.get(name);
+      if (h?.address === undefined) continue;
+      const a = rewrite(h.address);
+      if (a !== h.address) this.highlight.set(name, { ...h, address: a });
+    }
+    if (this._pendingFocus)
+      this._pendingFocus = { ...this._pendingFocus, address: rewrite(this._pendingFocus.address) };
+    if (this._focused) this._focused = { ...this._focused, address: rewrite(this._focused.address) };
+  }
+
+  /** The spec changed: each session address resolved again; one that names nothing now is dropped with an issue. */
+  private _respec(): void {
+    const dropped: Issue[] = [];
+    const check = (address: string): AddressResolution | undefined => {
+      const r = this.resolve(address);
+      if (r.status === 'resolved' || r.status === 'waiting') return r;
+      dropped.push(
+        issueOf(AddressIssues, 'seq.address.missing', 'A session address names nothing after the spec changed', {
+          address,
+          hint: AddressIssues.codes['seq.address.missing'].hint,
+        }),
+      );
+      return undefined;
+    };
+    const sel = this.selection.value.value;
+    if (sel.address !== undefined) {
+      if (!check(sel.address)) this.selection.clear();
+      else {
+        const v = this._emphasized(sel.address).value;
+        if (v) this.selection.set(v);
+      }
+    }
+    for (const name of [...this.highlight.names.value]) {
+      const h = this.highlight.get(name);
+      if (h?.address === undefined) continue;
+      if (!check(h.address)) this.highlight.clear(name);
+      else {
+        const v = this._emphasized(h.address).value;
+        if (v) this.highlight.set(name, v);
+      }
+    }
+    if (this._pendingFocus && !check(this._pendingFocus.address)) this._pendingFocus = undefined;
+    if (this._focused && !check(this._focused.address)) this._focused = undefined;
+    this._issues.set(dropped);
   }
 
   // ---- resolving ----
@@ -199,9 +271,15 @@ export class AddressModel extends ReactiveModel {
     if (this._pendingFocus?.address !== address) this._pendingFocus = undefined;
     if (resolution.status !== 'resolved') return this._outcome(resolution, false, 'Nothing to focus');
     this._pendingFocus = undefined;
-    const moved = this._moveTo(loc, reveal, section);
-    if (moved) this._focused = { address, viewports: this._viewportsKey() };
-    return this._outcome(resolution, moved, moved ? (reveal ? 'Revealed' : 'Focused') : 'Not in this view');
+    const r = this._moveTo(loc, reveal, section);
+    // a section not placed yet (no width, an axis waiting for its length) keeps the move as its intent: not done yet
+    if (r === 'pending') return this._outcome(resolution, false, 'Kept until the view is placed');
+    if (r === 'moved') this._focused = { address, viewports: this._viewportsKey() };
+    return this._outcome(
+      resolution,
+      r === 'moved',
+      r === 'moved' ? (reveal ? 'Revealed' : 'Focused') : 'Not in this view',
+    );
   }
 
   private _retryFocus(): void {
@@ -211,9 +289,9 @@ export class AddressModel extends ReactiveModel {
   }
 
   /** Each leading section on a system the location has positions on (or reaches by a static path) shows its hull. */
-  private _moveTo(loc: Location, reveal: boolean, only?: string): boolean {
+  private _moveTo(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
     const resolved = this.view.resolved.value;
-    if (!resolved || isEmptyLocation(loc)) return false;
+    if (!resolved || isEmptyLocation(loc)) return 'none';
     // a rect's sides are positions on its two systems
     let positions = location({ parts: loc.parts });
     for (const r of loc.rects) positions = unionLocations(positions, location({ parts: [r.a, r.b] }));
@@ -256,7 +334,9 @@ export class AddressModel extends ReactiveModel {
       moved = this.view.setRange(s.address, Math.min(a, b), Math.max(a, b)) || moved;
       done.add(s.address);
     }
-    return moved;
+    if (!moved) return 'none';
+    for (const a of done) if (this.view.get(a)?.pending) return 'pending';
+    return 'moved';
   }
 
   /** What an address names as an emphasis: its elements and positions, and what is drawn of them. */
@@ -380,6 +460,14 @@ export class AddressModel extends ReactiveModel {
    */
   focusAddress(): string | undefined {
     if (this._focused && this._focused.viewports === this._viewportsKey()) return this._focused.address;
+    return this.shownAddress();
+  }
+
+  /**
+   * The region the first leading section shows, as an address of ids and forms (positions in `copyLink.numbering`):
+   * what a bookmark of the view stores. Undefined while the view is not placed.
+   */
+  shownAddress(): string | undefined {
     const resolved = this.view.resolved.value;
     for (const s of resolved?.sections ?? []) {
       if (this.view.isFollowing(s.address)) continue;
@@ -390,7 +478,13 @@ export class AddressModel extends ReactiveModel {
       if (start === undefined || end === undefined) return undefined;
       const from = Math.floor(start);
       const to = Math.max(from + 1, Math.ceil(end));
-      return this.addressOf({ type: 'location', location: rangesLocation(s.axis.system, [from, to]) });
+      // ids and forms only: a bookmark of the view never names another ref, so bookmarks never chain
+      return addressFor(
+        this.spec.shown.value,
+        this.queryModel(),
+        { type: 'location', location: rangesLocation(s.axis.system, [from, to]) },
+        { ...this.config.address, prefer: ['ids'], numbering: this.config.copyLink.numbering },
+      );
     }
     return undefined;
   }
@@ -408,4 +502,22 @@ export class AddressModel extends ReactiveModel {
     }
     return key;
   }
+}
+
+/** An address with its leading ids rewritten through moves (a node moved, or one below it), forms after them kept. */
+function rewriteMoved(
+  address: string,
+  moved: readonly { readonly from: readonly string[]; readonly to: readonly string[] }[],
+): string {
+  const p = parseAddress(address).pattern;
+  if (!p) return address;
+  let segments: readonly Segment[] = p.segments;
+  for (const m of moved) {
+    const n = m.from.length;
+    if (!n || segments.length < n) continue;
+    let prefix = true;
+    for (let i = 0; i < n && prefix; i++) prefix = segments[i] === m.from[i];
+    if (prefix) segments = [...m.to, ...segments.slice(n)];
+  }
+  return segments === p.segments ? address : printAddress(segments, p.subtree);
 }
