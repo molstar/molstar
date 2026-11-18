@@ -291,10 +291,10 @@ Small policies over the models (`behaviors/`), each reading the bindings.
 ## Commands
 
 `commands.ts`: `@molstar/ui`'s `CommandDefinition` has no change kind, so the viewer keeps a table by command id:
-`patch` (undoable, one step), `session` or `navigate` (`CommandChangeKinds`, `changeKindOf(id, extra)`). Every command
-the presets bind has a kind, and every `addressing` command (tested): a focus or a reveal navigates, a selection, a
-highlight or a link's hover is session state, `refs.add` a patch; copying a link changes nothing (`navigate`, the least
-kind).
+`patch` (undoable, one step), `session`, `navigate` or `none` (it only reads) (`CommandChangeKinds`,
+`changeKindOf(id, extra)`). Every command the presets bind has a kind, and every `addressing` command (tested): a focus
+or a reveal navigates, a selection, a highlight or a link's hover is session state, `refs.add` a patch; copying a link
+changes nothing (`none`).
 
 ## Configuration
 

@@ -157,6 +157,26 @@ describe('actions on addresses', () => {
       'refs.add',
     ]);
     for (const id of ids) expect(changeKindOf(id), id).toBeDefined();
+    expect(ids.map((id) => changeKindOf(id))).toEqual([
+      'navigate',
+      'navigate',
+      'session',
+      'session',
+      'session',
+      'session',
+      'none',
+      'patch',
+    ]);
+    expect(ids.map((id) => changeKindOf(id))).toEqual([
+      'navigate',
+      'navigate',
+      'session',
+      'session',
+      'session',
+      'session',
+      'none',
+      'patch',
+    ]);
     expect(v.runCommand('address.focus', { address: '/refs/b' })).toBe('Focused');
     expect(v.runCommand('address.focus', {})).toBe('No address');
     expect(v.behavior(AddressingProvider)).toBeDefined();

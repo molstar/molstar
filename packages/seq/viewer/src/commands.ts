@@ -8,8 +8,11 @@
 // viewer keeps a table by command id: whether a command writes a spec patch (undoable, one step), changes session
 // state, or only navigates. Menus show what Undo will undo from it; agents tell an edit from a look.
 
-/** What a command changes (_spec/README.md "Commands"): a spec patch, session state, or the viewports only. */
-export type ChangeKind = 'patch' | 'session' | 'navigate';
+/**
+ * What a command changes (_spec/README.md "Commands"): a spec patch, session state, the viewports only, or nothing
+ * (`none`: it reads, as copying a link does).
+ */
+export type ChangeKind = 'patch' | 'session' | 'navigate' | 'none';
 
 /** The model methods a binding may name: continuous, allocation-free, never commands (no history, no outcome). */
 export const MethodActions = ['hover', 'pan', 'zoom', 'drag-select'] as const;
@@ -37,8 +40,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'address.highlight': 'session',
   'address.hover': 'session',
   'address.unhover': 'session',
-  // copying a link changes nothing: the least kind
-  'address.copy-link': 'navigate',
+  // copying a link reads the session and changes nothing
+  'address.copy-link': 'none',
   // a bookmark is a ref in the spec: one patch, one undo step
   'refs.add': 'patch',
 };
