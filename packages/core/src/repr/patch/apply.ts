@@ -395,16 +395,15 @@ function restoringSets(
       let v = s.value;
       for (const m of moves) if (m.pos > entry.pos) v = rewriteRef(v, m.from, m.to);
       if (v !== s.expected) off = true;
-      // a restored ref that dangled in the old root is written by the inverse (a loose site is no typed ref)
-      const was = typeof s.expected === 'string' ? live.runOf(s.expected) : undefined;
-      if (entry.pos >= 0 && was && !s.step?.loose && !oldPass.names(was, s.step)) dangling = true;
     }
-    if (!off) continue;
+    // the inverse writes the key when an op of it restores the key or its node, or a set at its end does
+    if (!off && entry.pos < 0) continue;
     const node = resolveAddress(before, at);
     const value = node?.params ? own(node.params, key) : undefined;
     if (value === undefined || !isNode(node)) continue;
-    fixups.push({ op: 'set', at, key, value });
-    // the set writes the key whole: every ref in it is the inverse's
+    if (off) fixups.push({ op: 'set', at, key, value });
+    // a ref it writes that dangled in the old root, typed as the old root types it (a stored patch's `set` value by
+    // the old root's dry run, which the inverse's link integrity reads once the key is back)
     oldPass.walkKey(node.kind, key, value, (_rel, v, step) => {
       const run = live.runOf(v);
       if (run && !oldPass.names(run, step)) dangling = true;

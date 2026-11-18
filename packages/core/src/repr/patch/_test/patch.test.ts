@@ -185,6 +185,22 @@ describe('repr/patch: the inverse, with what it needs only', () => {
     back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
   });
 
+  it('a stored set restored by the inverse whose ref dangled in the old root needs allowDangling', () => {
+    // the step's value /x dangles, typed while its `at` names /c/c. The patch renames /c to /a (the step's `at`
+    // follows), then replaces /a: the inverse restores the step with `at` /a/c, which the old root does not type, and
+    // its move back makes the ref the old root had, dangling
+    const step = patchToNode({ ops: [{ op: 'set', at: ['c', 'c'], key: 'link', value: '/x' }] });
+    const root = doc(box('c', { step }, box('c', undefined)));
+    const patch: Patch = {
+      ops: [
+        { op: 'move', at: ['c'], parent: [], place: { last: true }, rename: 'a' },
+        { op: 'replace', at: ['a'], node: box('a', undefined) },
+      ],
+    };
+    const r = back(root, patch, lang);
+    expect(r.inverseNeeds?.allowDangling).toBe(true);
+  });
+
   it('undoes a remove whose content held a ref already dangling', () => {
     back(doc(box('a', { link: '/zz' })), { ops: [{ op: 'remove', at: ['a'] }] }, lang);
     back(
