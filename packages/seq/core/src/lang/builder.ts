@@ -12,9 +12,10 @@
 // written.
 
 import { createBuilder, type ParamsFor } from '@molstar/core/repr/builder';
+import { type Patch, patchToNode } from '@molstar/core/repr/patch';
 import { IdHint, IdPattern, type Issue, type Node, printAddress } from '@molstar/core/repr/tree';
 import { checkSeqSpec } from './check.js';
-import { type SeqKinds, SeqLanguage, SeqLanguageVersion } from './language.js';
+import { type SeqKinds, SeqLanguage, SeqLanguageVersion, seqLanguages } from './language.js';
 
 declare const KindBrand: unique symbol;
 
@@ -75,10 +76,19 @@ export interface RefsBuilder {
   ref(id: string, params: { readonly to: RefTo; readonly label?: string; readonly color?: string }): Address<'ref'>;
 }
 
+export interface SnapshotsBuilder {
+  /**
+   * A story step (`/snapshots/<id>`): a stored patch with no base, shown over whatever the spec is. Its addresses are
+   * refs of the spec (a rename or a move rewrites them).
+   */
+  snapshot(id: string, params: { readonly patch: Patch | Node; readonly label?: string }): Address<'snapshot'>;
+}
+
 export interface SeqSpecBuilder {
   readonly data: DataBuilder;
   readonly views: ViewsBuilder;
   readonly refs: RefsBuilder;
+  readonly snapshots: SnapshotsBuilder;
   /** The spec as a normalized tree (print it with `printSexpr` from `@molstar/core/repr/codecs/sexpr`). */
   build(): Node;
   /** The issues of the spec so far: the description's, then the language's. */
@@ -136,10 +146,11 @@ function addresses(kind: string, params: unknown): Record<string, unknown> | und
 
 /** A spec being written: `build()` is its normalized tree. */
 export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
-  const engine = createBuilder(SeqLanguage);
+  const engine = createBuilder(SeqLanguage, { languages: seqLanguages });
   const data: Rec = { kind: 'data', id: 'data', children: [], ids: new Set(), address: '/data' };
   const views: Rec = { kind: 'views', id: 'views', children: [], ids: new Set(), address: '/views' };
   const refs: Rec = { kind: 'refs', id: 'refs', children: [], ids: new Set(), address: '/refs' };
+  const snapshots: Rec = { kind: 'snapshots', id: 'snapshots', children: [], ids: new Set(), address: '/snapshots' };
 
   /** A node added under `parent`: its id checked where it is written, its address the parent's and the id. */
   function add(parent: Rec, kind: string, id: string | undefined, params: unknown): Rec {
@@ -208,6 +219,15 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     ref: (id, params) => add(refs, 'ref', id, params).address as Address<'ref'>,
   };
 
+  const snapshotsBuilder: SnapshotsBuilder = {
+    snapshot: (id, { patch, label }) => {
+      if ('base' in patch && patch.base !== undefined) throw new Error('A story step is a patch with no base');
+      const node = 'kind' in patch ? patch : patchToNode(patch);
+      return add(snapshots, 'snapshot', id, { ...(label !== undefined ? { label } : {}), patch: node })
+        .address as Address<'snapshot'>;
+    },
+  };
+
   /** Replays a recorded node on the engine's body. */
   function emit(body: Engine, rec: Rec): void {
     const inner = (b: Engine) => {
@@ -220,7 +240,7 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
   function build(): Node {
     return engine.root({ version: options.version ?? SeqLanguageVersion, title: options.title }, (root) => {
       const r = root as unknown as Engine;
-      for (const container of [data, views, refs]) if (container.children.length) emit(r, container);
+      for (const container of [data, views, refs, snapshots]) if (container.children.length) emit(r, container);
     });
   }
 
@@ -228,6 +248,7 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     data: dataBuilder,
     views: viewsBuilder,
     refs: refsBuilder,
+    snapshots: snapshotsBuilder,
     build,
     check: () => checkSeqSpec(build()),
     toString: () => '/',

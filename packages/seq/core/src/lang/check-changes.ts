@@ -1,0 +1,337 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// The `seq.lang.*` checks of a change (_spec/README.md, Language, Checks of a change): `checkSeqLang` run on what a
+// patch's `Changes` reach, as `repr/patch`'s validator, its cost in proportion to the changes. What a change reaches:
+// the nodes it made, set or moved, the nodes that name them (through a reverse index of the spec's references, kept per
+// revision and derived from the last one along its changes), on through the user refs that name those, a template's
+// layers under a track whose params changed, and the sections and refs of a chain a changed one closes. Only what the
+// change introduced is reported: the same checks on the same nodes before it are taken away, so an error already
+// present never refuses an edit.
+
+import { HashMap } from '@molstar/core/data/immutable';
+import type { Changes, PatchValidator } from '@molstar/core/repr/patch';
+import { type Address, type Issue, type Node, printAddress, type TreePath, type Value } from '@molstar/core/repr/tree';
+import {
+  checkFollow,
+  checkPlaced,
+  fieldsOf,
+  idRunOf,
+  type Placed,
+  type Report,
+  reporter,
+  type SeqLookup,
+} from './check.js';
+import { DefaultRefDepth, followRef } from './refs.js';
+
+type Strings = HashMap<string, readonly string[]>;
+
+/**
+ * The spec's references by what they name: `exact` by the id run they name, `below` by each shorter prefix of it, and
+ * `out`, each referring node's own (by its address) to take them back out when it changes.
+ */
+interface RefIndex {
+  readonly exact: Strings;
+  readonly below: Strings;
+  readonly out: Strings;
+}
+
+const Indexes = new WeakMap<Node, RefIndex>();
+
+type Walkable = { readonly type: string; readonly of?: unknown; readonly fields?: unknown };
+
+/** The address strings a value holds where its param type is a ref: in lists, unions, records and maps too. */
+function collectRefs(type: Walkable | undefined, value: Value | undefined, out: string[]): void {
+  if (!type || value === undefined || value === null) return;
+  switch (type.type) {
+    case 'ref':
+      if (typeof value === 'string') out.push(value);
+      return;
+    case 'list':
+      if (Array.isArray(value)) for (const v of value) collectRefs(type.of as Walkable, v, out);
+      return;
+    case 'union':
+      for (const m of type.of as Walkable[]) {
+        if (m.type === 'ref' && typeof value === 'string') return void out.push(value);
+        if (m.type === 'list' && Array.isArray(value)) return collectRefs(m, value, out);
+      }
+      return;
+    case 'record':
+      if (typeof value === 'object' && !Array.isArray(value))
+        for (const [k, f] of Object.entries(type.fields as Record<string, Walkable>))
+          collectRefs(f, (value as Record<string, Value>)[k], out);
+      return;
+    case 'map':
+      if (typeof value === 'object' && !Array.isArray(value))
+        for (const v of Object.values(value as Record<string, Value>)) collectRefs(type.of as Walkable, v, out);
+      return;
+  }
+}
+
+/** The id runs a node's references name, printed (`/data/p53`), once each. */
+function targetsOf(node: Node): string[] {
+  const fields = fieldsOf(node.kind) as Readonly<Record<string, Walkable>> | undefined;
+  if (!fields || !node.params) return [];
+  const raw: string[] = [];
+  for (const key of Object.keys(node.params)) collectRefs(fields[key], node.params[key], raw);
+  const out: string[] = [];
+  for (const a of raw) {
+    const ids = idRunOf(a);
+    if (!ids.length) continue;
+    const t = printAddress(ids);
+    if (!out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+const plus = (m: Strings, key: string, value: string): Strings => {
+  const now = m.get(key);
+  return now?.includes(value) ? m : m.set(key, now ? [...now, value] : [value]);
+};
+const minus = (m: Strings, key: string, value: string): Strings => {
+  const now = m.get(key);
+  if (!now?.includes(value)) return m;
+  return now.length === 1
+    ? m.delete(key)
+    : m.set(
+        key,
+        now.filter((v) => v !== value),
+      );
+};
+
+/** Each proper prefix of an id run (`/data`, for `/data/p53`). */
+function prefixes(target: string): string[] {
+  const ids = target.split('/').filter(Boolean);
+  const out: string[] = [];
+  for (let n = 1; n < ids.length; n++) out.push(printAddress(ids.slice(0, n)));
+  return out;
+}
+
+class IndexEdit {
+  constructor(public index: RefIndex) {}
+  add(address: string, node: Node): void {
+    const targets = targetsOf(node);
+    if (!targets.length) return;
+    let { exact, below, out } = this.index;
+    for (const t of targets) {
+      exact = plus(exact, t, address);
+      for (const p of prefixes(t)) below = plus(below, p, address);
+    }
+    out = out.set(address, targets);
+    this.index = { exact, below, out };
+  }
+  remove(address: string): void {
+    const targets = this.index.out.get(address);
+    if (!targets) return;
+    let { exact, below, out } = this.index;
+    for (const t of targets) {
+      exact = minus(exact, t, address);
+      for (const p of prefixes(t)) below = minus(below, p, address);
+    }
+    out = out.delete(address);
+    this.index = { exact, below, out };
+  }
+}
+
+const EmptyIndex: RefIndex = { exact: HashMap.empty(), below: HashMap.empty(), out: HashMap.empty() };
+
+/** Every addressed node of a subtree with its address (the subtree's root at `address`). */
+function walk(node: Node, address: readonly string[], f: (address: string, node: Node) => void): void {
+  f(printAddress(address), node);
+  for (const c of node.children ?? []) if (c.id !== undefined) walk(c, [...address, c.id], f);
+}
+
+function indexOf(root: Node): RefIndex {
+  let index = Indexes.get(root);
+  if (!index) {
+    const edit = new IndexEdit(EmptyIndex);
+    walk(root, [], (a, n) => edit.add(a, n));
+    index = edit.index;
+    Indexes.set(root, index);
+  }
+  return index;
+}
+
+/** A place in a tree by address (ids only): the node, its step path, its parent. */
+function placeIn(root: Node, ids: readonly string[]): Placed | undefined {
+  let node = root;
+  let parent: Node | undefined;
+  const path: (string | number)[] = [];
+  for (const id of ids) {
+    const i = node.children?.findIndex((c) => c.id === id) ?? -1;
+    if (i < 0) return undefined;
+    parent = node;
+    node = node.children![i];
+    path.push('children', i);
+  }
+  return { node, path: path as TreePath, address: printAddress(ids), ...(parent ? { parent } : {}) };
+}
+
+/** A lookup over a tree by exact address, each place found once. */
+function lookupOf(spec: Node): SeqLookup {
+  const found = new Map<string, Placed | undefined>();
+  return {
+    spec,
+    get(address) {
+      if (found.has(address)) return found.get(address);
+      const p = address === '/' ? { node: spec, path: [] as TreePath, address: '/' } : placeIn(spec, split(address));
+      found.set(address, p);
+      return p;
+    },
+  };
+}
+
+const split = (address: string) => address.split('/').filter(Boolean);
+const under = (a: Address, prefix: Address) => a.length >= prefix.length && prefix.every((s, i) => a[i] === s);
+
+/** An address through the moves, from the old root's to the new's (`forward`) or back. */
+function throughMoves(address: string, changes: Changes, forward: boolean): string {
+  let ids = split(address);
+  const moves = forward ? changes.moved : [...changes.moved].reverse();
+  for (const m of moves) {
+    const [from, to] = forward ? [m.from, m.to] : [m.to, m.from];
+    if (under(ids, from)) ids = [...to, ...ids.slice(from.length)];
+  }
+  return printAddress(ids);
+}
+
+/** The reverse index of `after`, derived from `before`'s along the changes when it is kept. */
+function deriveIndex(before: Node, after: Node, changes: Changes): RefIndex {
+  const kept = Indexes.get(after);
+  if (kept) return kept;
+  const prior = Indexes.get(before);
+  if (!prior) return indexOf(after);
+  const edit = new IndexEdit(prior);
+  const old = (address: Address) => {
+    const at = placeIn(before, address);
+    if (at) walk(at.node, address, (a) => edit.remove(a));
+  };
+  const now = (address: Address) => {
+    const at = placeIn(after, address);
+    if (at) walk(at.node, address, (a, n) => edit.add(a, n));
+  };
+  for (const r of changes.removed) old(r);
+  for (const m of changes.moved) old(m.from);
+  for (const m of changes.made) old(split(throughMoves(printAddress(m), changes, false)));
+  for (const c of changes.params) edit.remove(throughMoves(printAddress(c.at), changes, false));
+  for (const m of changes.moved) now(m.to);
+  for (const m of changes.made) now(m);
+  for (const c of changes.params) {
+    const at = placeIn(after, c.at);
+    if (at) {
+      edit.remove(printAddress(c.at));
+      edit.add(printAddress(c.at), at.node);
+    }
+  }
+  Indexes.set(after, edit.index);
+  return edit.index;
+}
+
+/** An issue's key: its code, its node's address and where in the node (the path after the node's). */
+function keyed(issues: Issue[], keys: string[], rename: (address: string) => string = (a) => a): Report {
+  const push = reporter(issues);
+  return (code, message, at, ...tail) => {
+    push(code, message, at, ...tail);
+    keys.push(`${code}|${rename(at.address ?? '/')}|${tail.join('/')}`);
+  };
+}
+
+/**
+ * The `seq.lang.*` issues a change introduced (_spec/README.md, Language, Checks of a change): `checkSeqLang`'s, on the
+ * nodes `changes` reaches in `after`, less those the same nodes had in `before`. For a valid, normalized `after`.
+ */
+export function checkSeqChanges(before: Node, after: Node, changes: Changes): Issue[] {
+  const index = deriveIndex(before, after, changes);
+  const look = lookupOf(after);
+  const affected = new Set<string>();
+  const queue: string[] = [];
+  const touch = (address: string) => {
+    if (affected.has(address) || !look.get(address)) return;
+    affected.add(address);
+    queue.push(address);
+  };
+  const referrers = (target: string) => {
+    for (const r of index.exact.get(target) ?? []) touch(r);
+    for (const r of index.below.get(target) ?? []) touch(r);
+  };
+
+  for (const m of changes.made) {
+    const at = look.get(printAddress(m));
+    if (at) walk(at.node, m, (a) => touch(a));
+  }
+  for (const m of changes.moved) {
+    const at = look.get(printAddress(m.to));
+    if (at) walk(at.node, m.to, (a) => touch(a));
+  }
+  for (const c of changes.params) touch(printAddress(c.at));
+  // what names a node that is gone (a ref left dangling under `allowDangling`, or one a move took)
+  for (const r of changes.removed) referrers(printAddress(r));
+  for (const m of changes.moved) referrers(printAddress(m.from));
+
+  // what the changed nodes reach: what names them, on through refs; a template's layers; a chain a change closes
+  const direct = queue.length;
+  for (let i = 0; i < queue.length; i++) {
+    const address = queue[i];
+    const at = look.get(address)!;
+    if (i < direct || at.node.kind === 'ref') referrers(address);
+    if (at.node.kind === 'track') for (const c of at.node.children ?? []) touch(`${address}/${c.id}`);
+    if (at.node.kind === 'section') {
+      const chain: string[] = [address];
+      for (let a = sectionFollow(look, address); a !== undefined; ) {
+        const back = chain.indexOf(a);
+        if (back >= 0) {
+          for (const s of chain.slice(back)) touch(s);
+          break;
+        }
+        chain.push(a);
+        a = sectionFollow(look, a);
+      }
+    }
+    if (at.node.kind === 'ref') {
+      const f = followRef(after, address, DefaultRefDepth);
+      if ('refused' in f) for (const via of f.via) touch(via);
+    }
+  }
+
+  const issues: Issue[] = [];
+  const keys: string[] = [];
+  const report = keyed(issues, keys);
+  for (const a of affected) {
+    const at = look.get(a)!;
+    checkPlaced(at, look, report);
+    checkFollow(at, look, report);
+  }
+  if (!issues.length) return issues;
+
+  // what the same nodes had before: not introduced by this change
+  const was: Issue[] = [];
+  const wasKeys: string[] = [];
+  const old = lookupOf(before);
+  const reportOld = keyed(was, wasKeys, (a) => throughMoves(a, changes, true));
+  for (const a of affected) {
+    const at = old.get(throughMoves(a, changes, false));
+    if (!at) continue;
+    checkPlaced(at, old, reportOld);
+    checkFollow(at, old, reportOld);
+  }
+  const known = new Set(wasKeys);
+  return issues.filter((_, i) => !known.has(keys[i]));
+}
+
+function sectionFollow(look: SeqLookup, address: string): string | undefined {
+  const at = look.get(address);
+  if (at?.node.kind !== 'section') return undefined;
+  const f = at.node.params?.follow;
+  if (typeof f !== 'string') return undefined;
+  const ids = idRunOf(f);
+  return ids.length ? printAddress(ids) : undefined;
+}
+
+/**
+ * The language's checks as `repr/patch`'s validator (`ApplyOptions.validators`): `checkSeqChanges`, so a patch is
+ * refused for a `seq.lang.*` error it introduced and never for one already there.
+ */
+export const SeqPatchValidator: PatchValidator = checkSeqChanges;

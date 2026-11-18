@@ -19,13 +19,23 @@ export {
   type SectionBuilder,
   type SeqSpecBuilder,
   type SeqSpecOptions,
+  type SnapshotsBuilder,
   type TrackBuilder,
   type ViewBuilder,
   type ViewsBuilder,
 } from './builder.js';
 export { checkDataNode, checkSeqLang, checkSeqSpec, type DataNodeTargets } from './check.js';
+export { checkSeqChanges, SeqPatchValidator } from './check-changes.js';
 export { LangIssues } from './issues.js';
-export { type SeqKinds, SeqLanguage, type SeqLanguageType, SeqLanguageVersion } from './language.js';
+export {
+  type SeqKinds,
+  SeqLanguage,
+  type SeqLanguageType,
+  SeqLanguageVersion,
+  SeqPatchLanguage,
+  SeqValidateOptions,
+  seqLanguages,
+} from './language.js';
 export {
   addRefPatch,
   DefaultRefDepth,
