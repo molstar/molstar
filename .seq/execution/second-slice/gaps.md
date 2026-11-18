@@ -15,6 +15,7 @@
 
 5. **Lane K**: SeqLanguage has no visibility param, so "hide a layer" is `set :where custom :key hidden` in its cases.
    Recommendation: add `hidden: boolean` (default false) to `layer` (a language change: the author's call).
+   **Decided** (2026-11-18): added; lane K builds it.
 6. **Lane K**: `ChildIndexThreshold` 8 (unmeasured, from immutable.md's "about 8"); `AnyPatchLanguage` id `patch`,
    version `1.0.0`; a place laid out as `:after id`, `:first true` or `:last true` (patches.md to say so).
 

@@ -43,21 +43,18 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Waiting for the author
 
-- **Persistent collections against immutable.js** (lane R; immutable.md: "no slower than immutable.js on any of
-  them"): wins on vectors and on maps and sets of 1,000+ string ids (0.4–0.9 of its time), bundle 27.4 kB against
-  68.5 kB; misses on small maps of 10 (lookups 1.3–1.8×, inserts across the flat threshold up to 3.4×) and on integer
-  keys (lookups 1.5–1.7×, builds about 2×). Two design options: (a) hash an int32 key by its value, as immutable.js does
-  (7–10 ns saved, no collisions; a change to immutable.md's default hash; recommended); (b) a string-hash memo,
-  default or opt-in in a config's `hash` (the design says no global caches; recommended: opt-in, documented). The
-  target then reads "no slower on collections of 1,000 or more, and within 2× below".
-
-- **MessagePack throughput** (lane L, performance.md: "Decode MessagePack: at least 200 MB/s"): columns decode at
-  6,300–11,000 MB/s; a node-heavy document (20,000 small nodes) at about 44 MB/s with validation, the bare parse of the
-  same bytes about 130 MB/s, so 200 MB/s is out of reach there without dropping validation. A 20 MB/s regression guard
-  holds it meanwhile. Options: (a) the target applies to documents of columns, the guard for node-heavy ones
-  (recommended); (b) a trusted decode that skips the validation passes, configurable.
+None.
 
 ## Decided
+
+- **Three decisions, as recommended** (the author, 2026-11-18: "Ok go as recommended"):
+  - **Persistent collections against immutable.js** (lane R): an int32 key is hashed by its value; a string-hash memo
+    is opt-in, inside a config's `hash`, documented; the target reads "no slower than immutable.js on collections of
+    1,000 or more, and within 2× below". immutable.md says so. Lane R builds the first two in its fix round.
+  - **MessagePack throughput** (lane L): the 200 MB/s target applies to documents of columns; node-heavy documents
+    keep the 20 MB/s regression guard. performance.md says so. No trusted decode.
+  - **`layer` gains `hidden: boolean`**, default false (gaps 5): language-description.md says so; lane K adds it to
+    SeqLanguage in its fix round and its cases hide a layer with it.
 
 - **Gate 0** (the author, 2026-11-18): "rest as recommended", with one amendment.
   - The first slice's open decisions 1–9 confirmed as built; 10 `values.coarser` default 1 (lane S0b); 11 below; 12 the

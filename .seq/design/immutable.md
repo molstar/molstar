@@ -89,8 +89,8 @@ The contract `StateTree`'s `TransientTree` relies on:
 - **A persistent edit** copies the path: at most 7 small arrays for a map, far fewer in practice. An edit that changes
   nothing returns the same object: deleting an absent key, or setting a value equal to the stored one by the
   collection's `valueEquals`.
-- **No global caches.** A collection's hash function is its own. A bounded memo inside a config's `hash` is the caller's
-  choice.
+- **No global caches.** A collection's hash function is its own. A bounded string-hash memo is opt-in: a documented
+  `hash` a config may pass, never the default (the author, 2026-11-18).
 
 ### Hashing and equality (R2-S14)
 
@@ -103,7 +103,7 @@ The contract `StateTree`'s `TransientTree` relies on:
   | Key | Hash |
   |---|---|
   | string | core's `hashString`, then a 32-bit finalizer (MurmurHash3's `fmix32`), since `hashString`'s low bits are weak and CHAMP reads the low bits first |
-  | number | its float64 bits mixed, both words through `fmix32`; −0 hashed as 0 and every NaN as one |
+  | number | an int32 by its value through `fmix32` (as immutable.js hashes small integers by value: no collisions, measured 7–10 ns faster); any other number its float64 bits mixed, both words through `fmix32`; −0 hashed as 0 and every NaN as one |
   | bigint | its decimal string's hash |
   | boolean, `null`, `undefined` | fixed constants |
   | symbol, object, function | an identity id from a `WeakMap`, assigned when the key is first inserted |
@@ -254,7 +254,8 @@ namespace HashMap {
   and a lookup of an unseen object assigns no id. An edit stays within a stated bound.
 - **Against immutable.js** (already a dev dependency here): get, set, delete, iterate and build at 10, 1,000 and
   100,000 entries, as heavy-lane ratios. The key sets include 22-character string ids, Mol\*'s refs. The target is no
-  slower than immutable.js on any of them; a miss is reported with its case, and the string memo decided then.
+  slower than immutable.js on collections of 1,000 or more, and within 2× below (the author, 2026-11-18: small maps pay
+  for CHAMP's bitmaps, and Seq\*'s indexes are large); a miss is reported with its case.
 - **In `repr`** (lane K): `resolveAddress` on a 1,000-child container, before and after the child index.
 - **Bundle**: the entry's minified size, recorded.
 

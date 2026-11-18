@@ -111,7 +111,7 @@ costs up to `f` times the pixels.
 | bigWig: a region at the right zoom level, local file | under 50 ms to decoded |
 | Export a view to SVG (in the browser) | under 200 ms |
 | Render CLI: a dataset view to SVG, cold start | under 1 s |
-| Decode MessagePack | at least 200 MB/s; typed columns without a copy where aligned |
+| Decode MessagePack | documents of columns at least 200 MB/s, typed columns without a copy where aligned; node-heavy documents (20,000 small nodes) at least 20 MB/s with validation, a regression guard (validation is not skipped; the author, 2026-11-18) |
 
 ## Memory
 
