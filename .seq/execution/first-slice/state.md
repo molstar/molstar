@@ -34,7 +34,10 @@ config item (or a param) with the recommendation as its default, and listed in g
 
 - Stage 6: lane I merged after one review round (`efb8f9a94`); 730 quick tests, typechecks, lint, format, scaffold
   checks green. The story "Gene by region" renders in light and dark, but the canvas draws the nested domains 10 to 20 s
-  late (the SVG sooner): a fixer (strong) on `seq/fix-nested-redraw`. The stage 6 gate waits for it.
+  late (the SVG sooner). Fixed so far: exports detached the viewer's nested sources (shared counts per store), a
+  detached source's tiles stuck pending, `layoutIssues` churn (all merged, 733 tests). Still late in the browser: the
+  viewer's layout drops its placeholders in place after the last rebuilt frame, the canvas not redrawn; the same fixer
+  on `seq/fix-nested-redraw-2`. The stage 6 gate waits for it.
 - Stage 7: measurement (fast) on `seq/measure` from `efb8f9a94`: frame time, allocation, bundle sizes, the quick lane;
   heavy-lane bounds and a sizes script.
 
