@@ -62,4 +62,42 @@ describe('repr/patch: what a patch costs', () => {
     const r = within(40, () => applyPatch(a, p, { maxOps: Number.POSITIVE_INFINITY }));
     expect(r.ok && hashNode(r.root)).toBe(hashNode(b));
   });
+
+  itWithin('one move and one insert on a tree of 20,000 nodes and 20,000 refs, with a language', (within) => {
+    const fresh = () => {
+      const t = wide(200, 100);
+      hashNode(t);
+      return t;
+    };
+    const move = { op: 'move', at: ['b100'], parent: ['b101'], place: { last: true }, rename: 'm' } as const;
+    const insert = {
+      op: 'insert',
+      parent: [],
+      place: { last: true },
+      node: { kind: 'box', id: 'n', params: { link: '/b5/l5' } },
+    } as const;
+    applyPatch(fresh(), { ops: [move] }, { language: PC }); // warm
+    const moved = within(40, () => applyPatch(big, { ops: [move] }, { language: PC }));
+    expect(moved.ok && moved.root.children![100].children![100].children![0].params?.link).toBe('/b101/m/l0');
+    expect(moved.ok && moved.inverse?.ops).toHaveLength(1);
+    const root = fresh();
+    const inserted = within(40, () => applyPatch(root, { ops: [insert] }, { language: PC }));
+    expect(inserted.ok).toBe(true);
+  });
+
+  itWithin('a diff of a parent of 10,000 children (moves, inserts, removes) applied', (within) => {
+    const leaf = (id: string, label = id): Node => ({ kind: 'leaf', id, params: { label } });
+    const a: Node = { kind: 'box', id: 'p', children: Array.from({ length: 10_000 }, (_, i) => leaf(`c${i}`)) };
+    const kids = [...a.children!];
+    for (let i = 0; i < 100; i++) kids.splice((i * 7919) % kids.length, 1); // removes
+    for (let i = 0; i < 100; i++) kids.splice((i * 104729) % kids.length, 0, leaf(`n${i}`)); // inserts
+    for (let i = 0; i < 100; i++) kids.push(...kids.splice((i * 15485863) % kids.length, 1)); // moves to the end
+    const b: Node = { ...a, children: kids };
+    hashNode(a);
+    hashNode(b);
+    const p = within(15, () => diff(a, b));
+    expect(p.ops.length).toBeGreaterThan(250);
+    const r = within(20, () => applyPatch(a, p, { maxOps: Number.POSITIVE_INFINITY }));
+    expect(r.ok && hashNode(r.root)).toBe(hashNode(b));
+  });
 });
