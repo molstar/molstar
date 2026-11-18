@@ -26,10 +26,7 @@ dynamic nodes with templates, the examples package and the measurements. In this
   values (a `{ values, valid }` shape or a sentinel per type; refused until a column needs one).
 - **`data/int` half-open ranges**: `combine` as a linear two-pointer merge into a presized array (it sorts the cuts and
   builds number arrays today); tests for `Empty`, non-integers and `overlaps` without a length.
-- **The asset manager**: range reads (a page cache by asset and page, `Blob.slice` for files). Its fetch sends cookies
-  on relative reads, follows redirects to disallowed hosts, ignores the signal and checks size after the whole body: the
-  fix is `credentials: 'omit'`, `redirect: 'error'`, the signal passed through and a streamed byte limit. Public API
-  changes: the author's call; until then the asset policy says what it does not enforce.
+- **The asset manager**: range reads (a page cache by asset and page, `Blob.slice` for files).
 - **MessagePack** codec in io runs the codec suite (`checkCodec`).
 
 ## `@molstar/seqx-core`

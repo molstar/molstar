@@ -76,3 +76,46 @@ The code is the truth for how; this file records the rules the code relies on, e
   whole and deflated into a buffer of its size, one buffer for the archive, no zip64), and a session that opened without
   a file it needs would fail later, worse. A state (`.molj`) holds none.
 - A file that compresses little (a particle pack, compressed data, images, video: by its name) is stored as it is.
+
+## 8. Network options of a read
+
+- `ResolveOptions` carries what a read of a URL needs to be safe in an app that composes the manager: `credentials`
+  (`'omit' | 'same-origin' | 'include'`), `redirect` (`'follow' | 'error'`), `signal` and `maxBytes`; `fetchData`'s
+  params take the same. A manager **honors each or refuses the read**: it never reads as if the option were not given.
+  Why: an app's policy (a lab server behind a login needs `'include'`, a public viewer wants `'omit'`) cannot be fixed
+  in the core, and an option a manager silently drops is a hole the policy believed closed.
+- `DefaultAssetManager` passes an option to `fetch` only when it is given: **no option, the same fetch as before** for
+  every app (`fetch`'s defaults: `'same-origin'`, `'follow'`, no bound).
+- `maxBytes` counts bytes as received (after the transport's content decoding) and is enforced while the body streams: a
+  declared `Content-Length` over it is refused before the body is read, an undeclared body is cancelled at the chunk
+  that passes it. Both fail with `SizeLimitExceeded`. Held bytes (a cache hit, a file's size) over the bound are refused
+  too. Why: a check after the read has already spent the memory it guards.
+- `signal` rejects the read as aborted and stops the download. A waiter on a shared download leaves alone on its own
+  signal (the download goes on for the others); when a downloader is aborted by its own signal, a waiter starts the
+  download again (§2).
+- Held data is served to the reads it was read for: an asset held from a read with credentials `'include'` is not served
+  to a read of the same asset with `'omit'` (found through `tryFindUrl`, say): that read **is refused**, not fetched
+  again, since the holder's reference would otherwise be shared across two answers. A read with the same options (none,
+  both) is served as before. Held bytes, a cache hit, and a file are also refused over the bound of the read (by their
+  size, the source file's when the bytes were let go of, §6).
+- `maxBytes` that is not a size (`NaN`, negative) refuses the read: a bound cannot be honored when it is not one.
+- `file://` reads in Node.js: `credentials` and `redirect` mean nothing, the signal is checked before and after the
+  read, and the file is `stat`ed against `maxBytes` before it is read.
+- The URL cache key includes the credentials, redirect rule and bound of the read: reads with others do not share a
+  download. Why: another credential can answer differently, and a bound is a refusal that must not become another read's
+  failure. So a bounded and an unbounded read of one URL download separately (accepted: bounded reads are the policy's,
+  unbounded ones are the app's). Reads with the same options share as before. Range reads and the cache behavior are
+  otherwise unchanged.
+- `SizeLimitExceeded` (`util/data-source`, re-exported from `util/assets`) names its `source`, a URL or a file name.
+
+## 9. The conformance suite
+
+- `checkAssetManager(create)` (`assets-conformance.ts`, `@molstar/core/util/assets-conformance`) returns how a manager
+  breaks the interface: a read gives data; references are counted and released (also after a failed read); concurrent
+  reads of a URL share one download; a failed download is not cached; gzip is inflated on request; the four options of
+  §8 honored or the read refused. Data and a function, no test framework, as `checkCodec`: an app runs it on its own
+  manager in its tests, `DefaultAssetManager` runs it in core's (`_test/assets-conformance.test.ts`, with a derived
+  manager that adds credentials, and one that drops the options, which the suite must catch).
+- It runs on a fake `fetch` installed on `globalThis` for the run (restored after, one run at a time): nothing reaches
+  the network, and a manager is observed by the requests it makes. A manager that does not download through `fetch` is
+  outside its reach.

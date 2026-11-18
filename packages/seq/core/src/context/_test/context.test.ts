@@ -6,6 +6,7 @@
 
 import { Task } from '@molstar/core/task';
 import type { AssetManager } from '@molstar/core/util/assets';
+import { SizeLimitExceeded } from '@molstar/core/util/assets';
 import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { DefaultRenderConfig } from '@molstar/seqx-core/render';
@@ -138,6 +139,125 @@ describe('asset policy', () => {
       await read;
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it('passes its choices to the manager on every read (the four options)', async () => {
+    const seen: any[] = [];
+    const manager = {
+      resolve: (_: unknown, __: unknown, options: unknown) => {
+        seen.push(options);
+        return Task.create('read', async () => ({ data: 'hello', dispose: () => {} }));
+      },
+    } as unknown as AssetManager;
+    const c = new AbortController();
+    await policyAssets(manager, { ...BrowserAssetPolicy, base }).readText('d.seq', c.signal);
+    expect(seen[0]).toMatchObject({ credentials: 'omit', redirect: 'error', maxBytes: BrowserAssetPolicy.maxBytes });
+    expect(seen[0].signal).toBeInstanceOf(AbortSignal);
+    // the composition's credentials, and no bound when the policy has none
+    await policyAssets(manager, { ...HeadlessAssetPolicy, schemes: ['https:'], credentials: 'include' }).readText(
+      'https://x.org/a',
+      c.signal,
+    );
+    expect(seen[1].credentials).toBe('include');
+    expect(seen[1].redirect).toBe('error');
+    expect('maxBytes' in seen[1]).toBe(false);
+  });
+
+  it('the caller’s abort and the timeout reach the manager as its signal', async () => {
+    let managerSignal: AbortSignal | undefined;
+    const hang = {
+      resolve: (_: unknown, __: unknown, options: { signal: AbortSignal }) => {
+        managerSignal = options.signal;
+        return Task.create('slow', () => new Promise<never>(() => {}));
+      },
+    } as unknown as AssetManager;
+    const c = new AbortController();
+    const read = expect(
+      policyAssets(hang, { ...BrowserAssetPolicy, base }).readText('d.seq', c.signal),
+    ).rejects.toThrow('stop');
+    await Promise.resolve();
+    expect(managerSignal!.aborted).toBe(false);
+    c.abort(new Error('stop'));
+    await read;
+    expect(managerSignal!.aborted).toBe(true);
+
+    vi.useFakeTimers();
+    try {
+      const timed = expect(
+        policyAssets(hang, { ...BrowserAssetPolicy, base, timeoutMs: 50 }).readText('d.seq', noSignal),
+      ).rejects.toThrow('took too long');
+      await vi.advanceTimersByTimeAsync(60);
+      await timed;
+      expect(managerSignal!.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a body over the limit that the manager stopped is a refused read', async () => {
+    const full = {
+      resolve: () =>
+        Task.create('read', async () => {
+          throw new SizeLimitExceeded(10);
+        }),
+    } as unknown as AssetManager;
+    await expect(
+      policyAssets(full, { ...BrowserAssetPolicy, base, maxBytes: 10 }).readText('d.seq', noSignal),
+    ).rejects.toBeInstanceOf(AssetRefused);
+  });
+
+  it('a refused redirect is told from a failed download where the platform says, and follow is a policy option', async () => {
+    const failing = (message: string) =>
+      ({
+        resolve: () =>
+          Task.create('read', async () => {
+            throw new TypeError('fetch failed', { cause: new Error(message) });
+          }),
+      }) as unknown as AssetManager;
+    const refused = policyAssets(failing('unexpected redirect'), { ...BrowserAssetPolicy, base });
+    await expect(refused.readText('d.seq', noSignal)).rejects.toBeInstanceOf(AssetRefused);
+    await expect(refused.readText('d.seq', noSignal)).rejects.toThrow('a redirect is not followed');
+    // a network failure is not a redirect
+    const down = policyAssets(failing('ECONNREFUSED'), { ...BrowserAssetPolicy, base });
+    await expect(down.readText('d.seq', noSignal)).rejects.toBeInstanceOf(TypeError);
+    // a size error of another copy of the class is the same refusal
+    const copy = {
+      resolve: () =>
+        Task.create('read', async () => {
+          throw Object.assign(new Error('big'), { name: 'SizeLimitExceeded' });
+        }),
+    } as unknown as AssetManager;
+    await expect(
+      policyAssets(copy, { ...BrowserAssetPolicy, base }).readText('d.seq', noSignal),
+    ).rejects.toBeInstanceOf(AssetRefused);
+    const seen: any[] = [];
+    const recording = {
+      resolve: (_: unknown, __: unknown, options: unknown) => {
+        seen.push(options);
+        return Task.create('read', async () => ({ data: 'x', dispose: () => {} }));
+      },
+    } as unknown as AssetManager;
+    await policyAssets(recording, { ...BrowserAssetPolicy, base, redirect: 'follow' }).readText('d.seq', noSignal);
+    expect(seen[0].redirect).toBe('follow');
+  });
+
+  it('on the default manager: no redirect is followed, no credentials are sent, a long body is cut off', async () => {
+    const { DefaultAssetManager } = await import('@molstar/core/util/assets');
+    const requests: RequestInit[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      requests.push(init);
+      if (String(input).endsWith('/moved') && init.redirect === 'error') throw new TypeError('redirect');
+      return new Response('x'.repeat(100), { headers: { 'Content-Length': '100' } });
+    }) as typeof fetch;
+    try {
+      const reader = policyAssets(new DefaultAssetManager(), { ...BrowserAssetPolicy, base, maxBytes: 50 });
+      await expect(reader.readText('moved', noSignal)).rejects.toThrow('redirect');
+      await expect(reader.readText('d.seq', noSignal)).rejects.toThrow('larger than the limit');
+      expect(requests.every((r) => r.credentials === 'omit' && r.redirect === 'error')).toBe(true);
+    } finally {
+      globalThis.fetch = original;
     }
   });
 
