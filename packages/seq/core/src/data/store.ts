@@ -326,7 +326,8 @@ export class DataStore extends ReactiveModel {
 
   /**
    * Lets a source go: its requests cancelled, its entries and the holds they and its coverage had released, its
-   * reports cleared. Wants of it stay and wait for a source attached again under the address.
+   * reports cleared. Nothing of it stays pending: its tiles a want set still lists get no entry until it is wanted again
+   * with a source attached under the address.
    */
   detach(address: string): void {
     const s = this._sources.get(address);
@@ -452,6 +453,8 @@ export class DataStore extends ReactiveModel {
       const merged = new Map<string, PlannedTile>();
       for (const set of this._wanters)
         for (const [key, t] of set.tiles) {
+          // a tile of a source detached since it was planned: no entry pending that nothing can answer
+          if (!this._sources.has(t.region.source)) continue;
           const at = merged.get(key);
           if (!at) merged.set(key, { ...t });
           else at.rank = Math.min(at.rank, t.rank);
@@ -678,7 +681,8 @@ export class DataStore extends ReactiveModel {
 
   private _start(slot: Slot): void {
     const source = this._sources.get(slot.region.source);
-    if (!source) return;
+    // never left queued out of the queue: a slot whose source is gone goes with its pending entry
+    if (!source) return this._drop(slot);
     slot.phase = 'flight';
     this._inFlight++;
     const controller = new AbortController();

@@ -77,8 +77,9 @@ export class SeqViewer extends ReactiveModel {
   /** Frames drawn and layouts made: what a test or a profile reads. */
   readonly counts = { frames: 0, layouts: 0 };
 
-  private readonly _issues = new State<readonly Issue[]>([]);
-  private readonly _behaviorIssues = new State<readonly Issue[]>([]);
+  /** Moves when the issues do, not with each layout: what follows them (a story's SVG export) runs once a change. */
+  private readonly _issues = new State<readonly Issue[]>([], sameIssues);
+  private readonly _behaviorIssues = new State<readonly Issue[]>([], sameIssues);
   private readonly _rested = new State(0);
   private readonly _tokensVersion = new State(0);
   private readonly _handles = new Map<BehaviorProvider<any, any>, unknown>();
@@ -517,6 +518,15 @@ export class SeqViewer extends ReactiveModel {
       ...options,
     });
   }
+}
+
+/** The same issues in the same order, by code, address and message. */
+function sameIssues(a: readonly Issue[], b: readonly Issue[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++)
+    if (a[i].code !== b[i].code || a[i].address !== b[i].address || a[i].message !== b[i].message) return false;
+  return true;
 }
 
 function viewerConfig(spec: SeqViewerSpec): ViewerConfig {
