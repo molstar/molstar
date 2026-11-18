@@ -786,7 +786,8 @@ transform, the section, the layer's key, the device pixel ratio, the config, the
 settled, `want` and `report`. A layer draws the first type of its fallback chain the target has; none is
 `seq.render.layer.type`.
 
-- `letters`: a section's own letters (through a path: `seq.render.layer.letters`); a cell a position colored by class,
+- `letters`: a section's own letters; through a path, `seq.render.layer.letters`, because only a path pairing positions
+  one to one or a residue to a codon gives a cell a position (that form: TODO); a cell a position colored by class,
   letters on them, a tick a position at `dots`, one bar a piece in view at `bars` and `density` (presence needs no
   data).
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an

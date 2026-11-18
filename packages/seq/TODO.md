@@ -54,6 +54,9 @@ dynamic nodes with templates, the examples package and the measurements. In this
   nodes (shown placements and `hold` already do); the overlay's sync issues in the viewer's `layoutIssues`.
 - **Data**: `summaries` in `ViewerConfig`; summaries for systems of unknown length or past `maxLength`; byte dedupe
   across tiles; `SourceEntry` carries only `address`, `format`, `uri`, `value`.
+- **Render, the axis** (the third slice, stage 1): letters through a one-to-one or codon path (a protein's letters on
+  its gene, a residue a codon wide); a section's direction (`genomic`, `reversed`, `follow`) on reversed pieces, the
+  reversed axis counting down, reversed DNA letters as their complement; collapsed introns.
 - **Render**: a per-section viewport map in the frame input (one window serves every leading section now); an
   `Emphasis.projected` so the hover model's projection onto linked sections is drawn in the `hover` pass; highlight
   channels (the pass exists, empty); a summary pyramid for inline values zoomed out (inline data is level 1 only, so a

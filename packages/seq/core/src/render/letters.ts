@@ -126,7 +126,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.pending.length = 0;
     lay.failed.length = 0;
     const src = prep.src;
-    // letters are the section's own: through a path they would be another system's cells
+    // letters are the section's own (_spec "Layer types"): only a one-to-one or codon path gives a cell a position (TODO)
     if (!src || src.path) {
       if (src?.path)
         ctx.report(

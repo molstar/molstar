@@ -54,6 +54,8 @@ that shows it (dataset: view).
 | Structure systems and maps | chain instances, SIFTS in abstract form | planned | [maps](maps.md) | 65, 118 | p53: structure chains |
 | Codon tables | NCBI tables, Sec, Pyl, stops | building: NCBI 1, 2 and 11 | [maps](maps.md) | 16–18 | p53: protein on its gene |
 | Pieces and layout maps | ranges, reversed pieces, collapsed introns, letter maps | building: an axis of pieces; collapsed introns, letter maps and reversed pieces not | [building-blocks](building-blocks.md) | 31–33, 233 | p53: introns collapsed |
+| Letters through a map | another system's letters on a section's axis: a protein's on its gene, a residue a codon wide, a codon split by an intron drawn in each piece; a path that pairs positions one to one or a residue to a codon (others have no cell a position: an issue) | planned: the third slice, stage 1 | [maps](maps.md) | 15–18, 28–31 | p53: the protein and its gene on one axis |
+| A section's direction | `genomic`, `reversed`, or `follow` (the leader's): a follower defaults to `follow`, a leader to `genomic`; a reversed axis counts down and says so; reversed DNA letters as their complement | planned: the third slice, stage 1 | [maps](maps.md) | 15, 31, 206 | p53: the minus-strand gene moving with its protein |
 
 ## Data and sources
 

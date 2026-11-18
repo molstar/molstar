@@ -58,7 +58,9 @@ a view.
 
 ## Stages (a sketch)
 
-1. **Themes and the small layers** (strong + fast):
+1. **The axis, then themes and the small layers** (strong + fast):
+   - the axis first (strong; layouts build on it): a section's direction on reversed pieces (`follow` for a follower),
+     letters through a one-to-one or codon path (the protein and its gene on one axis), collapsed introns;
    - the theme sublanguage, residue schemes, legends, shared domains, size channels;
    - the ruler and numbering, secondary structure, variants, values' line and area, ranges' line styles and arrowheads.
 2. **Layouts** (two strong lanes):
