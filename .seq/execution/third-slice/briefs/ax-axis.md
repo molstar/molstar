@@ -33,8 +33,8 @@ EC-32, EC-33, EC-117, EC-144, EC-233); `packages/seq/AGENTS.md`; the core and vi
 
 **Model**: strong (opus).
 
-**Base**: `packages-seq` at `<set at start>`. Your worktree may be cut from master: with a clean tree, first
-`git checkout -B seq/ax-axis <base>`, and check `git merge-base --is-ancestor <base> HEAD`.
+**Base**: `packages-seq` at `162c745be`. Your worktree may be cut from master: with a clean tree, first
+`git checkout -B seq/ax-axis 162c745be`, and check `git merge-base --is-ancestor 162c745be HEAD`.
 
 **Touches**: `packages/seq/{core,viewer,examples}/src/**`, `packages/seq/storybook/src/_stories/**` (the stories; not
 the Design pages), the `_spec`s, `packages/seq/TODO.md`.
