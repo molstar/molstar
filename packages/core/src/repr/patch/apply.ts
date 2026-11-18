@@ -250,16 +250,18 @@ function linkIntegrity(
   if (work.structural) {
     const seen = new Map<Draft, Set<string>>();
     const prefixes = [...changes.removed, ...changes.made, ...changes.moved.flatMap((m) => [m.from, m.to])];
-    for (const p of prefixes) {
-      for (const s of live.under(p, true, false)) {
-        let set = seen.get(s.holder);
-        if (!set) seen.set(s.holder, (set = new Set()));
-        const k = s.rel.join('\u0000');
-        if (set.has(k)) continue;
-        set.add(k);
-        untouched(s, names(oldPass, s.run, s.step));
-      }
-    }
+    const judge = (s: LiveSite) => {
+      let set = seen.get(s.holder);
+      if (!set) seen.set(s.holder, (set = new Set()));
+      const k = s.rel.join('\u0000');
+      if (set.has(k)) return;
+      set.add(k);
+      untouched(s, names(oldPass, s.run, s.step));
+    };
+    for (const p of prefixes) for (const s of live.under(p, true, false)) judge(s);
+    // a stored patch's refs resolve over its dry run, which any change of an address may change: an insert elsewhere
+    // can refuse one of its ops, and a ref after it names another state
+    for (const s of live.storedSites()) judge(s);
   }
   return { issues, dangled, rebound };
 }

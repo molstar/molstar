@@ -782,6 +782,27 @@ export class LiveRefs implements WorkListener {
     return out;
   }
 
+  /** The old root's stored patches' sites still in place (their keys untouched), where they are now. */
+  storedSites(): LiveSite[] {
+    const out: LiveSite[] = [];
+    for (const byKey of this.baseStored.values()) {
+      for (const sites of byKey.values()) {
+        const holder = this.locate(sites[0]);
+        if (!holder) continue;
+        for (const s of sites)
+          out.push({
+            holder,
+            rel: s.rel,
+            value: s.value,
+            run: s.run,
+            runs: s.runs,
+            ...(s.step ? { step: s.step } : {}),
+          });
+      }
+    }
+    return out;
+  }
+
   /** Whether a ref of the old root names `prefix` or below (by its id run). */
   namedInOld(prefix: Address): boolean {
     return this.base.under(prefix).some((s) => isUnder(s.run, prefix));

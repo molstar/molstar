@@ -216,6 +216,24 @@ describe('repr/patch: the inverse, with what it needs only', () => {
     back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
   });
 
+  it("a stored patch's ref that an op elsewhere makes name a node is rebound", () => {
+    // the step moves /p/b to /b, then removes /p/b: in its dry run /p/b names nothing. Inserting /b refuses the step's
+    // move, so its remove's /p/b names a node now, though no op touched the step or an address it names
+    const step = patchToNode({
+      ops: [
+        { op: 'move', at: ['p', 'b'], parent: [], place: { last: true } },
+        { op: 'remove', at: ['p', 'b'] },
+      ],
+    });
+    const root = doc(box('p', undefined, box('b', undefined)), box('s', { step }));
+    const patch: Patch = { ops: [{ op: 'insert', parent: [], place: { last: true }, node: box('b', undefined) }] };
+    const refused = applyPatch(root, patch, lang);
+    expect(refused.ok && 'applied').toBe(false);
+    expect(refused.issues.map((i) => i.code)).toEqual(['repr.patch.rebound']);
+    const r = back(root, patch, { ...lang, allowRebind: true });
+    expect(r.inverseNeeds).toEqual({ allowDangling: true, allowRebind: true });
+  });
+
   it('undoes a remove whose content held a ref already dangling', () => {
     back(doc(box('a', { link: '/zz' })), { ops: [{ op: 'remove', at: ['a'] }] }, lang);
     back(
