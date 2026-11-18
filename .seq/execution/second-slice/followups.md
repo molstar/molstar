@@ -53,3 +53,5 @@
   and `:` streams.
 - (Q) Bounds for regular expressions in search and for archives land with those features; nested-source breadth
   (fan-out W^depth) and joins allocating before `checkAnswer` (at most the file's size) recorded.
+- (P) Drag snapping to whole codons over nucleotides (ux-foundations section 8); highlights holding their dynamic
+  nodes; rects (dot plots) projected and drag-selected.

@@ -35,7 +35,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
   stories looked at in a visible pane, light and dark; the gate's checks green (quick 14,550, seq's quick lane 1.2 s;
   medium, heavy, the `.seq` checks). Story steps paused for `stories.md`.
 - The frame lane's dropped-tick leak fixed in `@molstar/ui/dom` (`618de8dd7`).
-- Stage 3 started (2026-11-18, from `3e6f9267d`): P (`seq/p-selection`, opus), Q (`seq/q-security`, sonnet).
+- Stage 3 (2026-11-18, from `3e6f9267d`): Q merged (`29cc03c8c`) after one security review round; P reported,
+  looked at (both stories, light and dark), reviewed (blocking: a drag-select becomes a click in a real browser), in
+  its fix round on top of Q.
 
 ## Next
 

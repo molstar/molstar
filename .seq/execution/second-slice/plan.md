@@ -214,7 +214,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - selection as addresses (from O).
 
   Target: a drag or cursor step under 4 ms; hover and selection allocation-free warm (the opt-in tier).
-- [ ] Q (fast) the security bounds:
+- [x] Q (fast) the security bounds (merged `29cc03c8c` after one security review round):
   - every row of security.md's table enforced before allocating, each a config item with its coded issue (EC-58, 76,
     86, 91, 179);
   - SVG output escaping tested with hostile labels;
