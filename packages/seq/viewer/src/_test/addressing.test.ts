@@ -4,10 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { applyPatch } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqContext } from '@molstar/seqx-core/context';
 import { SeqRuntime } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, SeqLanguage } from '@molstar/seqx-core/lang';
 import { locationOfResult, locationsEqual, rangesLocation, resolveAddressIn } from '@molstar/seqx-core/query';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
@@ -200,6 +201,53 @@ describe('the session as addresses', () => {
     v.hover.set({ system: '/data/p', position: 3, layer: `${Protein}/letters/l` }, 'test');
     expect(v.addresses.copyLink()).toBe('!seq-focus=%2Fdata%2Fp%2F(at%20%3Alabel%204)');
     expect(v.runCommand('address.copy-link', {})).toBe('!seq-focus=%2Fdata%2Fp%2F(at%20%3Alabel%204)');
+  });
+});
+
+describe('the session follows the spec', () => {
+  it('rewrites its addresses through a move, and drops one that names nothing with an issue', async () => {
+    const v = await make();
+    v.addresses.select('/data/p/(range :from 1 :to 5)');
+    v.addresses.highlightAddress('/refs/b', 'paper');
+    const r = applyPatch(
+      v.spec.root.value,
+      { ops: [{ op: 'move', at: ['data', 'p'], parent: ['data'], place: { last: true }, rename: 'q' }] },
+      { language: SeqLanguage },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    v.addresses.followMoves(r.changes.moved);
+    v.spec.apply(r.root);
+    expect(v.addresses.selectionAddress()).toBe('/data/q/(range :from 1 :to 5)');
+    expect(v.addresses.issues.value).toEqual([]);
+    // a removal the session is not told of: what it named is gone, dropped with an issue naming it
+    const gone = applyPatch(
+      v.spec.root.value,
+      { ops: [{ op: 'remove', at: ['refs', 'b'] }] },
+      { language: SeqLanguage, allowDangling: true },
+    );
+    expect(gone.ok).toBe(true);
+    if (!gone.ok) return;
+    v.spec.apply(gone.root);
+    expect(v.highlight.get('paper')).toBeUndefined();
+    expect(v.addresses.issues.value.map((i) => [i.code, i.address])).toEqual([['seq.address.missing', '/refs/b']]);
+    expect(v.addresses.selectionAddress()).toBe('/data/q/(range :from 1 :to 5)');
+  });
+
+  it('does not report a focus done while its section is not placed', async () => {
+    frames = installFrames();
+    const v = createSeqViewer({
+      ...DefaultSeqViewerSpec(),
+      ui: undefined,
+      config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+    });
+    viewers.push(v);
+    await v.load(spec());
+    // no width yet: the move is kept as the intent
+    expect(v.addresses.focus('/refs/b')).toMatchObject({ done: false, message: 'Kept until the view is placed' });
+    v.resize(600);
+    await v.settle();
+    expect(range(v, Protein)).toEqual([15, 25]);
   });
 });
 
