@@ -71,7 +71,7 @@ first slice is closed. Stage 0 runs beside it. A lane waits only for the items i
 
 | Lane | Waits for |
 |---|---|
-| R (immutable) | `@molstar/core/immutable` |
+| R (immutable) | `@molstar/core/data/immutable` |
 | K (patches) | `repr`'s patches, `diff` and `merge3`; R merged |
 | L (MessagePack) | the codec in io |
 | M (asset manager) | the asset manager change; without it, M is dropped and security.md keeps "what waits" |

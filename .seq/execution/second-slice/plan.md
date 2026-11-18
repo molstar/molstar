@@ -76,7 +76,7 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
       patches derived): `design/patches.md` (agreed 2026-11-18 after an independent review; a second review of it with the state semantics follows), its API section the
       agreed surface for lane K, with its four decisions (git's model; `layer` ids required; dangling refs refused by
       default; no automatic rebase) and five questions answered. Recommendation: as drafted.
-    - **`@molstar/core/immutable`** (the author, 2026-11-18: "implement core/immutable and use it in repr"; moving
+    - **`@molstar/core/data/immutable`** (the author, 2026-11-18: "implement core/immutable and use it in repr"; moving
       Mol\*'s state tree and model off immutable.js is a later, separate PR): the draft `drafts/immutable.md`, its API
       section the agreed surface for lane R, with its four decisions (`repr` uses it for indexes beside an unchanged
       node shape; CHAMP; our own API close to the immutable.js subset Mol\* uses; configurable per collection).
@@ -116,7 +116,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 1: the base (three lanes in parallel, after Gate 0)
 
-- [ ] R (strong) `@molstar/core/immutable`, as `drafts/immutable.md` agreed at Gate 0 (moved to
+- [ ] R (strong) `@molstar/core/data/immutable`, as `drafts/immutable.md` agreed at Gate 0 (moved to
       `design/immutable.md` before the lane starts):
   - `HashMap`, `HashSet` (CHAMP, a flat array up to `smallMax`), `OrderedMap`, `OrderedSet`, `Vector` (32-way with a
     tail), transients, cursors, per-collection hash and equality, `repr/tree`'s `ValueKeys`;

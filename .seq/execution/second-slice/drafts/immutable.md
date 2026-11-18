@@ -1,4 +1,4 @@
-# Persistent collections in `@molstar/core/immutable` (draft, for the author's review)
+# Persistent collections in `@molstar/core/data/immutable` (draft, for the author's review)
 
 A draft for Gate 0 of the second slice, beside `patches.md`. Once approved, it is agreed into
 `.seq/design/immutable.md` and base-library.md lists the entry. Lane R builds exactly the surface in
@@ -10,6 +10,8 @@ The author, 2026-11-18:
   configurable and extend as we need (e.g. we could do clojure hashtries etc when we need)";
 - "we would move these to our immutable as well (in a later separate PR, here we would just implement core/immutable
   and use it in repr)".
+- "the collections should line in core/src/data/immutable, next to the other collections" (`repr` stays where it is: it
+  is a language framework, a peer of `state`, and builds on `data`).
 
 ## Decisions for the author first
 
@@ -109,7 +111,10 @@ children, such as a refs list of bookmarks. Then a change to the node shape, its
 
 ## The API
 
-The agreed surface for lane R. Entry `@molstar/core/immutable`, one module a collection, plus `config` and `hash`.
+The agreed surface for lane R. The folder `packages/core/src/data/immutable/`, next to `data/int`, `data/generic` and
+`data/db`; its entry `data/immutable.ts` (as `data/int.ts` is for `int/`), so `@molstar/core/data/immutable` through
+the package's wildcard export, and `Immutable` beside `Int` and `Generic` in `data/index.ts`. One module a collection,
+plus `config` and `hash`.
 
 ```ts
 interface CollectionConfig<K> {

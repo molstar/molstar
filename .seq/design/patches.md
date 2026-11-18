@@ -122,7 +122,7 @@ type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;
      too). Refs inside the moved subtree to itself move with it.
    - **Cost**: the revision's ref index, built at the first move and derived by each later revision from its parent's
      by the touched nodes, so a move costs the refs it touches, never a walk of the spec. Its persistent collections are
-     `@molstar/core/immutable`'s, proposed beside this design for the same Gate 0.
+     `@molstar/core/data/immutable`'s, proposed beside this design for the same Gate 0.
    - **Rebinding** (B1): an `insert`, `move` or `rename` that makes a dangling ref resolve again is refused
      (`repr.patch.rebound`), unless `allowRebind` is set. Why: addressing.md says a ref is never silently re-bound.
      The principles' "an id is never reused among its siblings" is carried as a tension: Seq's ids are authors' names,
