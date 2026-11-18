@@ -6,7 +6,15 @@
  */
 
 import { UUID } from './uuid.js';
-import { fetchData, type DataType, type DataResponse, decodeData, readFromFile } from './data-source.js';
+import {
+  fetchData,
+  SizeLimitExceeded,
+  type FetchDataParams,
+  type DataType,
+  type DataResponse,
+  decodeData,
+  readFromFile,
+} from './data-source.js';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
@@ -96,14 +104,67 @@ function urlHeadersEqual(a?: Record<string, string>, b?: Record<string, string>)
  * cache holds the raw bytes and every type (`string`, `json`, `binary`, ...) is decoded from them (`decodeData`), so
  * a text and a binary read of one URL share one download.
  */
-function urlCacheKey(asset: Asset.Url): string | undefined {
+function urlCacheKey(asset: Asset.Url, net: NetOptions): string | undefined {
   if (asset.body) return undefined;
   const headers = asset.headers
     ? Object.keys(asset.headers)
         .sort()
         .map((k) => [k, asset.headers![k]])
     : [];
-  return JSON.stringify(['GET', asset.url, headers]);
+  // what changes the response or the refusal is part of the key: reads with other credentials, redirect rule or bound
+  // do not share a download (`util/_spec/assets.md` §8)
+  return JSON.stringify([
+    'GET',
+    asset.url,
+    headers,
+    net.credentials ?? null,
+    net.redirect ?? null,
+    net.maxBytes ?? null,
+  ]);
+}
+
+/** The options of a read that go to the download (`AssetManager.ResolveOptions`, `util/_spec/assets.md` §8). */
+type NetOptions = Pick<FetchDataParams, 'credentials' | 'redirect' | 'maxBytes' | 'signal'>;
+
+function netOptions(options: boolean | AssetManager.ResolveOptions): NetOptions {
+  if (typeof options === 'boolean') return {};
+  const { credentials, redirect, signal, maxBytes } = options;
+  return {
+    ...(credentials !== undefined ? { credentials } : {}),
+    ...(redirect !== undefined ? { redirect } : {}),
+    ...(signal !== undefined ? { signal } : {}),
+    ...(maxBytes !== undefined ? { maxBytes } : {}),
+  };
+}
+
+function abortedBy(signal: AbortSignal) {
+  const { reason } = signal;
+  return Task.Aborted(typeof reason === 'string' ? reason : reason instanceof Error ? reason.message : '');
+}
+
+/** `promise`, or the abort of `signal` as soon as it comes (the promise is left to finish). */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return promise;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(abortedBy(signal));
+    if (signal.aborted) return onAbort();
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (v) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(v);
+      },
+      (e) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(e);
+      },
+    );
+  });
+}
+
+/** Refuses held bytes that are over the bound of this read (a hit of the cache, a file). */
+function checkSize(size: number, net: NetOptions, what: string) {
+  if (net.maxBytes !== undefined && size > net.maxBytes) throw new SizeLimitExceeded(net.maxBytes, what);
 }
 
 /** A cached download: in flight (`pending`) or done (`bytes`); `refCount` counts holders, in-flight waiters included. */
@@ -313,6 +374,20 @@ namespace AssetManager {
   }
 
   export interface ResolveOptions {
+    /**
+     * Whether cookies and HTTP authentication go with a download (`fetch`'s `credentials`). A manager honors it or
+     * refuses the read. `DefaultAssetManager`: `fetch`'s own default when absent (`util/_spec/assets.md` §8).
+     */
+    credentials?: 'omit' | 'same-origin' | 'include';
+    /** What a redirect does: followed, or the read fails. A manager honors it or refuses the read (default `'follow'`). */
+    redirect?: 'follow' | 'error';
+    /** Cancels the read: it rejects as aborted and the download stops. A manager honors it or refuses the read. */
+    signal?: AbortSignal;
+    /**
+     * The largest asset, in bytes as received, enforced while the body streams: a larger one fails with
+     * `SizeLimitExceeded`. A manager honors it or refuses the read (default: no bound).
+     */
+    maxBytes?: number;
     /** Hold the asset (default `true`). */
     store?: boolean;
     /** A `'binary'` read may return the held bytes, read-only, instead of a copy (default `false`). */
@@ -414,27 +489,31 @@ class DefaultAssetManager implements AssetManager {
     const store = typeof options === 'boolean' ? options : options.store !== false;
     const shared = typeof options === 'boolean' ? false : !!options.shared;
     const decompress = typeof options === 'boolean' ? false : !!options.decompress;
+    const net = netOptions(options);
     if (Asset.isUrl(asset)) {
       return Task.create(`Download ${asset.title || asset.url}`, async (ctx) => {
+        if (net.signal?.aborted) throw abortedBy(net.signal);
         if (this._assets.has(asset.id)) {
           const entry = this._assets.get(asset.id)!;
+          if (entry.bytes) checkSize(entry.bytes.length, net, asset.url);
           entry.refCount++;
           return this._readHeld(ctx, entry, type, shared, decompress);
         }
 
         if (!store) {
-          if (!decompress) return Asset.Wrapper(await fetchData({ ...asset, type }).runInContext(ctx), asset, this);
+          if (!decompress)
+            return Asset.Wrapper(await fetchData({ ...asset, ...net, type }).runInContext(ctx), asset, this);
           const entry = new HeldAsset(
             asset,
             undefined,
-            await fetchData({ ...asset, type: 'binary' }).runInContext(ctx),
+            await fetchData({ ...asset, ...net, type: 'binary' }).runInContext(ctx),
           );
           return Asset.Wrapper(await entry.read(ctx, type, true, true), asset, this);
         }
 
-        const key = urlCacheKey(asset);
+        const key = urlCacheKey(asset, net);
         if (key === undefined) {
-          const data = await fetchData({ ...asset, type: 'binary' }).runInContext(ctx);
+          const data = await fetchData({ ...asset, ...net, type: 'binary' }).runInContext(ctx);
           const entry = new HeldAsset(asset, undefined, data);
           this._assets.set(asset.id, entry);
           entry.refCount = 1;
@@ -442,7 +521,7 @@ class DefaultAssetManager implements AssetManager {
         }
 
         // read through the byte cache: the asset takes one hold of the entry, given back when it leaves the manager
-        const held = await this._acquireUrl(ctx, asset, key);
+        const held = await this._acquireUrl(ctx, asset, key, net);
         let entry = this._assets.get(asset.id);
         if (entry) {
           // the same asset was resolved concurrently and registered first
@@ -464,6 +543,8 @@ class DefaultAssetManager implements AssetManager {
         if (!(asset.file instanceof File)) {
           throw new Error(`Cannot resolve file asset '${asset.name}' (${asset.id})`);
         }
+        if (net.signal?.aborted) throw abortedBy(net.signal);
+        checkSize(asset.file.size, net, asset.name);
         if (!store && !decompress) {
           return Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
         }
@@ -552,32 +633,37 @@ class DefaultAssetManager implements AssetManager {
   }
 
   /** A hit, the download in flight, or a new download; returns an entry with `bytes` and one hold taken for the caller. */
-  private async _acquireUrl(ctx: RuntimeContext, asset: Asset.Url, key: string): Promise<UrlCacheEntry> {
+  private async _acquireUrl(
+    ctx: RuntimeContext,
+    asset: Asset.Url,
+    key: string,
+    net: NetOptions,
+  ): Promise<UrlCacheEntry> {
     for (;;) {
       const entry = this._urlCache.get(key);
-      if (!entry) return this._download(ctx, asset, key);
+      if (!entry) return this._download(ctx, asset, key, net);
 
       entry.refCount++;
       if (entry.bytes) return entry;
 
-      // wait for the download in flight (an abort of this task surfaces here)
+      // wait for the download in flight (an abort of this task, or of this read's signal, surfaces here)
       try {
         await ctx.update({ message: `Waiting for ${asset.title || asset.url}` });
-        await entry.pending;
+        await untilAborted(entry.pending!, net.signal);
         return entry;
       } catch (e) {
         this._releaseUrl(key, entry);
-        // the downloader was aborted, not this task: not a failure for us, take over
-        if (Task.isAbort(e) && !(await isAborted(ctx))) continue;
+        // the downloader was aborted, not this task nor this read's signal: not a failure for us, take over
+        if (Task.isAbort(e) && !net.signal?.aborted && !(await isAborted(ctx))) continue;
         throw e;
       }
     }
   }
 
-  private async _download(ctx: RuntimeContext, asset: Asset.Url, key: string): Promise<UrlCacheEntry> {
+  private async _download(ctx: RuntimeContext, asset: Asset.Url, key: string, net: NetOptions): Promise<UrlCacheEntry> {
     const entry: UrlCacheEntry = { refCount: 1 };
     this._urlCache.set(key, entry);
-    const pending = fetchData({ ...asset, type: 'binary' }).runInContext(ctx);
+    const pending = fetchData({ ...asset, ...net, type: 'binary' }).runInContext(ctx);
     entry.pending = pending;
     pending.then(
       (bytes) => {

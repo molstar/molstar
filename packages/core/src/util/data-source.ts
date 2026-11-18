@@ -46,6 +46,26 @@ export interface FetchDataParams<T extends DataType = 'string'> {
    * between chunks) cannot; the task then rejects as aborted, with the signal's reason
    */
   signal?: AbortSignal;
+  /** Whether cookies and HTTP authentication go with the request: `fetch`'s `credentials` (its default when absent). */
+  credentials?: RequestCredentials;
+  /** What a redirect does: `'follow'` it, or fail (`'error'`): `fetch`'s `redirect` (`'follow'` when absent). */
+  redirect?: 'follow' | 'error';
+  /**
+   * The largest body, in bytes as received (after the transfer's content decoding), enforced while the body streams:
+   * a larger one fails with `SizeLimitExceeded`, a declared `Content-Length` over it before the body is read.
+   */
+  maxBytes?: number;
+}
+
+/** A download's body is larger than `maxBytes` (`FetchDataParams`). */
+export class SizeLimitExceeded extends Error {
+  constructor(
+    readonly limit: number,
+    readonly url?: string,
+  ) {
+    super(`The download is larger than the limit of ${limit} bytes`);
+    this.name = 'SizeLimitExceeded';
+  }
 }
 
 export function readStringFromFile(file: File) {
@@ -75,6 +95,7 @@ export function fetchData<T extends DataType>(params: FetchDataParams<T> | strin
     params.body,
     params.headers,
     params.signal,
+    params,
   );
 }
 
@@ -255,6 +276,7 @@ function fetchDataInternal<T extends DataType>(
   body?: string,
   headers?: Record<string, string>,
   signal?: AbortSignal,
+  limits?: Pick<FetchDataParams, 'credentials' | 'redirect' | 'maxBytes'>,
 ): Task<DataResponse<T>> {
   // Node.js's `fetch` has no `file:` scheme
   if (RUNNING_IN_NODEJS && url.startsWith('file://')) return fetchDataInternal_file_NodeJS(title, url, type);
@@ -271,7 +293,15 @@ function fetchDataInternal<T extends DataType>(
       await ctx.update({ message: 'Waiting for server...', canAbort: true });
       let response: Response;
       try {
-        response = await fetch(url, { signal: aborter.signal, method: body ? 'POST' : 'GET', body, headers });
+        response = await fetch(url, {
+          signal: aborter.signal,
+          method: body ? 'POST' : 'GET',
+          body,
+          headers,
+          // only what is asked for: an option left out is `fetch`'s own default
+          ...(limits?.credentials !== undefined ? { credentials: limits.credentials } : {}),
+          ...(limits?.redirect !== undefined ? { redirect: limits.redirect } : {}),
+        });
       } catch (e) {
         throw downloadError(e, signal);
       }
@@ -279,7 +309,7 @@ function fetchDataInternal<T extends DataType>(
       if (!(response.status >= 200 && response.status < 400)) {
         throw new Error(`Download failed with status code ${response.status}`);
       }
-      const data = await readResponseBody(ctx, 'Downloading...', response, signal);
+      const data = await readResponseBody(ctx, 'Downloading...', response, signal, limits?.maxBytes, url);
 
       await ctx.update({ message: 'Parsing response...', canAbort: false });
       let result: DataResponse<T>;
@@ -324,9 +354,16 @@ async function readResponseBody(
   action: string,
   response: Response,
   signal: AbortSignal | undefined,
+  maxBytes?: number,
+  url?: string,
 ): Promise<ArrayBuffer> {
   const encoding = response.headers.get('Content-Encoding');
   const length = encoding && encoding !== 'identity' ? -1 : contentLength(response);
+  if (maxBytes !== undefined && length > maxBytes) {
+    // a declared length over the bound is refused before any of the body is read
+    await response.body?.cancel().catch(() => {});
+    throw new SizeLimitExceeded(maxBytes, url);
+  }
   // a known length reads into one buffer, without a copy at the end
   let buffer = length >= 0 ? tryAllocate(length) : void 0;
   const chunks: Uint8Array[] = [];
@@ -343,6 +380,10 @@ async function readResponseBody(
     if (next.done) break;
 
     const chunk = next.value;
+    if (maxBytes !== undefined && loaded + chunk.length > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new SizeLimitExceeded(maxBytes, url);
+    }
     if (buffer && loaded + chunk.length <= buffer.length) {
       buffer.set(chunk, loaded);
     } else {
