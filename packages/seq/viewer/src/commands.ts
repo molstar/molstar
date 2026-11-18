@@ -30,6 +30,17 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'view.zoom-out': 'navigate',
   'view.pan-left': 'navigate',
   'view.pan-right': 'navigate',
+  // the actions on addresses: a focus or a reveal moves the view; a selection or a highlight is session state
+  'address.focus': 'navigate',
+  'address.reveal': 'navigate',
+  'address.select': 'session',
+  'address.highlight': 'session',
+  'address.hover': 'session',
+  'address.unhover': 'session',
+  // copying a link changes nothing: the least kind
+  'address.copy-link': 'navigate',
+  // a bookmark is a ref in the spec: one patch, one undo step
+  'refs.add': 'patch',
 };
 
 /** A command's change kind: the table's, then `extra` (an extension's commands); undefined when unknown. */

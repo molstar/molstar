@@ -6,6 +6,7 @@
 
 // @molstar/seqx-viewer/behaviors: input behaviors over the models (_spec/README.md).
 
+export * from './addressing.js';
 export * from './hover.js';
 export * from './navigate.js';
 export * from './providers.js';

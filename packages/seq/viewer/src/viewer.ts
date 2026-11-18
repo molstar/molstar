@@ -26,7 +26,17 @@ import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/
 import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
-import { HoverModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
+import {
+  AddressModel,
+  HighlightModel,
+  HoverModel,
+  isNothing,
+  SelectionModel,
+  SpecModel,
+  StoreModel,
+  ViewModel,
+} from '@molstar/seqx-viewer/models';
+import { AddressingProvider, type LinkRun } from '@molstar/seqx-viewer/behaviors';
 import { ViewerInput } from './input.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
@@ -51,6 +61,12 @@ export class SeqViewer extends ReactiveModel {
   readonly view: ViewModel;
   readonly hover: HoverModel;
   readonly store: StoreModel;
+  /** The selection (session state): what the selection pass draws. */
+  readonly selection: SelectionModel;
+  /** Named highlight channels (session state). */
+  readonly highlight: HighlightModel;
+  /** Addresses in the spec shown: resolved, acted on, linked; the refs; the selection and the focus as addresses. */
+  readonly addresses: AddressModel;
   readonly bindings: BindingTable;
   readonly input: ViewerInput;
   /** The behaviors' handles by provider name. */
@@ -139,7 +155,19 @@ export class SeqViewer extends ReactiveModel {
     this.view = new ViewModel(this.spec, this.config);
     this.hover = new HoverModel(this.spec, this.view, this.config);
     this.store = new StoreModel(this.config);
-    for (const m of [this.store, this.hover, this.view, this.spec]) this.registerPermanentDispose(() => m.retire());
+    this.selection = new SelectionModel();
+    this.highlight = new HighlightModel();
+    this.addresses = new AddressModel(
+      this.spec,
+      this.view,
+      this.store,
+      this.hover,
+      this.selection,
+      this.highlight,
+      this.config,
+    );
+    for (const m of [this.addresses, this.highlight, this.selection, this.store, this.hover, this.view, this.spec])
+      this.registerPermanentDispose(() => m.retire());
 
     const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
@@ -153,6 +181,9 @@ export class SeqViewer extends ReactiveModel {
       view: this.view,
       hover: this.hover,
       store: this.store,
+      selection: this.selection,
+      highlight: this.highlight,
+      addresses: this.addresses,
       config: this.config,
       bindings: this.bindings,
     };
@@ -175,6 +206,7 @@ export class SeqViewer extends ReactiveModel {
     // what moves the picture asks for a frame
     this.listenPermanently(this.spec.model, () => this._sync());
     this.listenPermanently(this.hover.version, () => this.schedule());
+    this.listenPermanently(this.selection.value, () => this.schedule());
     this.listenPermanently(this.store.store.version, () => this.schedule());
     this.listenPermanently(this.store.store.settled, () => this.schedule());
     this.listenPermanently(this.view.resolved, () => {
@@ -491,8 +523,10 @@ export class SeqViewer extends ReactiveModel {
     return this._frame;
   }
 
-  /** The hover as the emphasis passes draw it: one reused record, mutated when the hover changes. */
+  /** The hover as the emphasis passes draw it: one reused record, mutated when the hover changes; the selection's Location. */
   private _updateEmphasis(): void {
+    const sel = this.selection.value.value;
+    this._emphasis.selection = isNothing(sel) ? undefined : sel.shown;
     const v = this.hover.version.value;
     if (v === this._hoverVersion) return;
     this._hoverVersion = v;
@@ -535,6 +569,15 @@ export class SeqViewer extends ReactiveModel {
     return r.message ?? '';
   }
 
+  /**
+   * Runs a link's actions (`!seq-focus=/refs/dbd`), each through the action its command runs, in order: undefined when
+   * the text is no link or the viewer has no `addressing` behavior (reported in `behaviorIssues`).
+   */
+  runLink(text: string): LinkRun | undefined {
+    if (this._retired) return undefined;
+    return this.behavior(AddressingProvider)?.runLink(text);
+  }
+
   // ---- export ----
 
   /**
@@ -552,6 +595,8 @@ export class SeqViewer extends ReactiveModel {
       store: this.store.store,
       dpr: this.dpr,
       tokens: this.tokens,
+      // what the canvas shows of the session: the selection
+      ...(this._emphasis.selection ? { emphasis: { selection: this._emphasis.selection } } : {}),
       ...options,
     });
   }
