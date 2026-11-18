@@ -6,6 +6,7 @@
 
 import { type ExampleView, FeatureViews } from '@molstar/seqx-examples';
 import { Passages } from '@molstar/seqx-examples/p53/addressing';
+import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
@@ -13,7 +14,8 @@ import { composeViewer, describeRun, followLink, hoverLink, leaveLink } from './
 
 // Links (addressing): a short text beside the p53 view whose links act on addresses in Mol*'s link grammar
 // (`!seq-focus=/refs/dbd`): focus, highlight on a channel, select; one residue linked in two numberings. Hovering a link
-// highlights what it names on the links' own channel. "Copy link" gives the link of the selection (else of what the
+// highlights what it names on the links' own channel. The highlight channels are listed below the view, not drawn on
+// it: drawing them is the selection's own work, a later lane. "Copy link" gives the link of the selection (else of what the
 // pointer is over) as the shortest stable address. A link's text and href are put in as text and attributes, never
 // markup; a click runs the link's actions instead of navigating.
 
@@ -33,16 +35,26 @@ class LinksRoot extends UiElement<ExampleView> {
     canvasHost.style.cssText = 'min-width: 0;';
     const tools = document.createElement('div');
     tools.style.cssText = 'display: flex; gap: var(--msui-space-2); align-items: baseline; flex-wrap: wrap;';
-    const copy = document.createElement('button');
-    copy.textContent = 'Copy link';
+    const copy = Button({
+      children: 'Copy link',
+      onClick: () => {
+        const link = viewer.addresses.copyLink();
+        copied.textContent = link ?? 'Nothing selected or under the pointer';
+        if (link) void navigator.clipboard?.writeText(link).catch(() => undefined);
+      },
+    }) as HTMLElement;
     const copied = document.createElement('code');
     copied.style.cssText = Mono;
     tools.append(copy, copied);
     const session = document.createElement('p');
     session.style.cssText = `margin: 0; ${Mono}`;
+    const note = document.createElement('p');
+    note.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
+    note.textContent =
+      'Highlights (a link’s channel, and hovering a link) are listed here, not drawn on the view yet: drawing them comes with the selection’s own work.';
     const status = document.createElement('p');
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
-    root.append(text, canvasHost, tools, session, status);
+    root.append(text, canvasHost, tools, session, note, status);
 
     const viewer = composeViewer(view, { target: canvasHost });
     onCleanup(() => viewer.retire());
@@ -70,12 +82,6 @@ class LinksRoot extends UiElement<ExampleView> {
       }
       text.append(p);
     }
-
-    copy.addEventListener('click', () => {
-      const link = viewer.addresses.copyLink();
-      copied.textContent = link ?? 'Nothing selected or under the pointer';
-      if (link) void navigator.clipboard?.writeText(link).catch(() => undefined);
-    });
 
     // the session as addresses: what is selected, the highlight channels, and the focus
     const showSession = () => {

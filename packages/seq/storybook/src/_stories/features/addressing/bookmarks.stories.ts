@@ -5,6 +5,7 @@
  */
 
 import { type ExampleView, FeatureViews } from '@molstar/seqx-examples';
+import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
@@ -33,11 +34,18 @@ class BookmarksRoot extends UiElement<ExampleView> {
     canvasHost.style.cssText = 'min-width: 0;';
     const list = document.createElement('ul');
     list.style.cssText = 'margin: 0; padding: 0; list-style: none; display: grid; gap: var(--msui-space-2);';
-    const add = document.createElement('button');
-    add.textContent = 'Bookmark this view';
+    const add = Button({
+      variant: 'primary',
+      children: 'Bookmark this view',
+      onClick: () => {
+        status.textContent = bookmarkView(viewer);
+      },
+    }) as HTMLElement;
+    const tools = document.createElement('div');
+    tools.append(add);
     const status = document.createElement('p');
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
-    root.append(summary, canvasHost, add, list, status);
+    root.append(summary, canvasHost, tools, list, status);
 
     const viewer = composeViewer(view, { target: canvasHost });
     onCleanup(() => viewer.retire());
@@ -47,12 +55,19 @@ class BookmarksRoot extends UiElement<ExampleView> {
         ...bookmarkRows(viewer).map((r) => {
           const li = document.createElement('li');
           li.style.cssText = Row;
-          const b = document.createElement('button');
-          b.textContent = r.label;
-          if (r.color) b.style.borderColor = r.color;
-          b.addEventListener('click', () => {
-            status.textContent = focusBookmark(viewer, r.address);
-          });
+          // a ref's color as a swatch on its button (the spec's color is a value set as a style, never markup)
+          const swatch = document.createElement('span');
+          swatch.style.cssText = `display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: ${
+            r.color && /^#[0-9a-fA-F]{3,8}$/.test(r.color) ? r.color : 'var(--msui-text-muted)'
+          };`;
+          const b = Button({
+            size: 'sm',
+            icon: swatch,
+            children: r.label,
+            onClick: () => {
+              status.textContent = focusBookmark(viewer, r.address);
+            },
+          }) as HTMLElement;
           const state = document.createElement('span');
           state.style.cssText = Muted;
           state.textContent = r.status === 'waiting' ? 'waiting for its data' : r.status;
@@ -64,9 +79,6 @@ class BookmarksRoot extends UiElement<ExampleView> {
         }),
       );
     };
-    add.addEventListener('click', () => {
-      status.textContent = bookmarkView(viewer);
-    });
     const off = viewer.addresses.refs.listen(draw);
     onCleanup(off);
     void viewer.load(view.build()).then(draw);
