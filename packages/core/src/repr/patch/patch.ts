@@ -168,6 +168,11 @@ export const PatchIssues = defineIssues('repr.patch', {
     description: 'A ref the patch did not change named no node before it and names one after it',
     hint: 'Give the ref another target, or allow the rebinding',
   },
+  'repr.patch.unvalidated': {
+    severity: 'info',
+    description: 'A merge was not validated: no language was given',
+    hint: 'Give the language to merge with',
+  },
 });
 
 export type PatchCode = keyof typeof PatchIssues.codes;
