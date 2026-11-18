@@ -13,6 +13,11 @@
    survives), against Gate 0's "no change to io's MessagePack itself": a bug fix with no API change, which BinaryCIF
    shares. Allowed by the orchestrator, for the author to see.
 
+5. **Lane K**: SeqLanguage has no visibility param, so "hide a layer" is `set :where custom :key hidden` in its cases.
+   Recommendation: add `hidden: boolean` (default false) to `layer` (a language change: the author's call).
+6. **Lane K**: `ChildIndexThreshold` 8 (unmeasured, from immutable.md's "about 8"); `AnyPatchLanguage` id `patch`,
+   version `1.0.0`; a place laid out as `:after id`, `:first true` or `:last true` (patches.md to say so).
+
 ## Agreed but not built
 
 ## Built but not adopted

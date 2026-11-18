@@ -29,6 +29,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
   once io's `./repr/_test/*` export null is added); both reviewed (opus): M, no regression for existing callers but a credential leak through the asset-id path, among
   ten findings; L, round-trip breaks for a leading U+FEFF and lone surrogates, and decode writing into the caller's
   buffer, among nine. Both in their fix round.
+- Lane K reported: checks green on the orchestrator's run (589 quick, 35 heavy; lint green once core's
+  `./repr/patch/_test/*` null is added); under independent review (opus). Its layer keys are now addresses, so the p53
+  stories need the look in a visible pane before the merge (the pane is hidden).
 - Stage 1, started from `f629c1374` (the briefs): R (`seq/r-immutable`, opus), K (`seq/k-patches`, opus), L
   (`seq/l-msgpack`, sonnet), M (`seq/m-assets`, sonnet). S0b waits for a light slot.
 
