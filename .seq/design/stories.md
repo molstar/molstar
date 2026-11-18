@@ -8,8 +8,8 @@ looks nice, smooth, and consistent"; then "ultimately it would be good if these 
 ports. basically the animation loop will be owned by the "application" and it will decide what to apply and when. we
 "just" need to provide a consistent library."
 
-A story is a sequence of view states over one spec, like slides. Patches are how its steps are stored, not what they
-are. Seq\* computes each state, plans the transition between two states from their diff, and samples it at any time;
+A story is a sequence of view states over one spec, like slides. A step is stored as a full state or, where that is
+smaller or should follow the spec, as a patch: the form is storage, not what a step is. Seq\* computes each state, plans the transition between two states from their diff, and samples it at any time;
 the application's clock decides what is shown and when. Seq\* runs no animation loop of its own.
 
 ## Precedents
@@ -23,26 +23,39 @@ the application's clock decides what is shown and when. Seq\* runs no animation 
 
 ## Decision
 
-### A step is a full state, stored as a patch
+### A step is a full state, stored as a patch where that makes sense
+
+The author, 2026-11-18: "not every step needs to be stored as a patch. some steps might be full states too. the point
+is that you can store it as a patch when it makes sense."
 
 - **The `snapshots` container** ([composition.md](composition.md)) holds the story's steps in order. A step has an id
-  (`/snapshots/<id>`), a label, its stored patch (`patchLanguage(SeqLanguage)`, no `base`), its view, and its timing.
-- **A step's state** is the spec with the step's patch applied: `stateOf(spec, step)`. It is computed on demand and
-  cached by the spec's revision and the step. By default every step is a patch over the spec itself, so any step is
-  reached directly and editing one step never changes another. A step may name another step as its start
-  (`from: /snapshots/<id>`), so a writer can store a chain of small diffs; a cycle or a missing start is an issue on the
-  step. Recommendation: over the spec by default, `from` as the option.
+  (`/snapshots/<id>`), a label, its content, its view, and its timing.
+- **A step's content is one of two forms**, the writer's choice per step:
+  - **a patch** (`patchLanguage(SeqLanguage)`, no `base`): small when a step changes little, and it follows the spec:
+    an edit of the spec reaches every step stored this way;
+  - **a full state**: a spec tree of its own, for a step that differs much from the spec or must not move when the spec
+    is edited (a figure frozen as published). It does not follow edits of the spec; its refs resolve inside its own
+    tree.
+  A writer converts one form to the other at any time (`diff` and `applyPatch`); a helper that stores each step in the
+  smaller form is offered, not the default. Recommendation: a patch over the spec by default.
+- **A step's state** is `stateOf(spec, step)`: the step's full state, or the spec with the step's patch applied. It is
+  computed on demand and cached by the spec's revision and the step. A patch applies over the spec itself by default,
+  so any step is reached directly and editing one step never changes another. A step may name another step as its
+  start (`from: /snapshots/<id>`, either form), so a writer can store a chain of small diffs; a cycle or a missing start
+  is an issue on the step.
 - **A step's view** is part of its state: what each section shows (a focus address, or a range per section) and the
   view shown. The viewport is session state elsewhere ([changes.md](changes.md)); a story names it on purpose, as data
   of the step, so a state is a whole picture.
-- **Refs in a step** are typed by kind and key and resolved over the step's dry run ([patches.md](patches.md), A
-  stored patch). They follow renames and moves like any other ref.
-- **A step that no longer applies** (an op whose target is gone, a sibling renamed, a move now refused) is reported on
-  the step, and its state is the ops that still apply, flagged. An edit of the spec is never refused because of what it
-  does to a step's dry run; a step's ref left dangling is refused as for any ref (`allowDangling`).
-- **Entering a step is navigation**: no history step, no change to the spec. Edits while a step is shown patch the spec
-  (the base), and the step is applied again over it. Editing a step's own patch is its own mode and command ("edit this
-  step"), each change one history step.
+- **Refs in a step stored as a patch** are typed by kind and key and resolved over the step's dry run
+  ([patches.md](patches.md), A stored patch). They follow renames and moves like any other ref. A full state's refs are
+  its own tree's, checked like a spec's.
+- **A patch step that no longer applies** (an op whose target is gone, a sibling renamed, a move now refused) is
+  reported on the step, and its state is the ops that still apply, flagged. An edit of the spec is never refused
+  because of what it does to a step's dry run; a step's ref left dangling is refused as for any ref (`allowDangling`).
+- **Entering a step is navigation**: no history step, no change to the spec. Edits while a patch step is shown patch
+  the spec (the base), and the step is applied again over it; while a full-state step is shown, edits are refused with
+  a hint to edit the step. Editing a step's own content is its own mode and command ("edit this step"), each change one
+  history step.
 
 ### A transition is planned from the diff of two states
 
@@ -97,12 +110,16 @@ the application's clock decides what is shown and when. Seq\* runs no animation 
 
 `story.transition.duration` (the base duration of ux-foundations section 7), `story.transition.easing` (ease in and out), `story.linger`,
 `story.view.path` (`auto`: pan when the ranges overlap, else out-across-in), `story.color.space` (`oklab`),
-`story.cut.at` (0.5), `story.reducedMotion` (follows the platform), `story.stepStart` (`spec`; `from` per step).
+`story.cut.at` (0.5), `story.reducedMotion` (follows the platform), `story.stepStart` (`spec`; `from` per step),
+`story.store` (`patch`; `full`, or `smaller` for the helper).
 
 ## Tensions
 
-- **Full states vs small storage**: a step over the spec repeats what an earlier step changed. Accepted; `from` chains
-  when a writer wants it, at the cost that a broken step breaks those after it.
+- **Full states vs small storage**: a patch over the spec repeats what an earlier step changed, and a full state
+  repeats the spec. Accepted; the writer picks the form per step, and `from` chains when wanted, at the cost that a
+  broken step breaks those after it.
+- **A full-state step does not follow the spec**: renaming a track leaves a full state's copy as it was. That is its
+  point (a frozen figure); a writer who wants a step to follow stores it as a patch.
 - **A step's view is data, the viewport is session**: a story pins views on purpose; editing outside a step never
   writes a view into the spec.
 - **Interpolation needs both values**: a channel between a value and a missing one is an `enter`/`leave`, or a cut;

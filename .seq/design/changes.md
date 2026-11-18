@@ -65,8 +65,8 @@ whether it is undoable, keeps that clear.
   restores an earlier root (a move of the pointer, no new commit); the patch from a parent is `diff(parent, root)`
   whenever one is wanted. Why: a recorded root is exact by construction (ref rewrites and normalization included), and
   checkpoints by root cost only the paths that changed. *Snapshot* means a story step only, never a revision.
-- **Story steps are stored patches** with no base, in `patchLanguage(SeqLanguage)`, each a full state of the view
-  stored as a patch; their refs are typed by kind and key and resolved over the step's dry run ([patches.md](patches.md));
+- **Story steps are full states of the view**, each stored as a full state or as a patch with no base in
+  `patchLanguage(SeqLanguage)`, the writer's choice per step; a patch step's refs are typed by kind and key and resolved over the step's dry run ([patches.md](patches.md));
   a step that no longer applies is reported on its node and shown as not applying; edits while a step is shown patch
   the base. How a story's steps are reached, transitioned and animated, with the application owning the clock, is
   [stories.md](stories.md).
