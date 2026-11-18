@@ -580,21 +580,32 @@ function tickOn(lay: RangesLay, axis: AxisTransform, p: number, lane: number) {
   lay.tn++;
 }
 
+/** The hidden items' ticks: one a break and lane, in the break ink. */
+function drawTicks(lay: RangesLay, out: PassWriter) {
+  const { box, tokens } = lay;
+  const gap = lay.gap;
+  const px = 1 / lay.axis.dpr;
+  const g = out.args;
+  for (let t = 0; t < lay.tn; t++) {
+    g[0] = Math.round(lay.ticks[5 * t] * lay.axis.dpr) / lay.axis.dpr - 1.5 * px;
+    g[1] = box.y + lay.ticks[5 * t + 1] * lay.laneHeight + gap / 2;
+    g[2] = 3 * px;
+    g[3] = lay.laneHeight - gap;
+    g[4] = tokens.colors['seq-break'];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
+}
+
 function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const { box, tokens } = lay;
   const gap = lay.gap;
-  // the hidden items' ticks: one a break and lane, in the break ink
-  const px = 1 / lay.axis.dpr;
-  for (let t = 0; t < lay.tn; t++) {
-    const x = Math.round(lay.ticks[5 * t] * lay.axis.dpr) / lay.axis.dpr;
-    out.fill(
-      x - 1.5 * px,
-      box.y + lay.ticks[5 * t + 1] * lay.laneHeight + gap / 2,
-      3 * px,
-      lay.laneHeight - gap,
-      tokens.colors['seq-break'],
-    );
-  }
+  // in a function of its own: this one stays small enough to have its calls inlined (a call that is not boxes the
+  // numbers it is passed)
+  if (lay.tn) drawTicks(lay, out);
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
   const a = out.args;
@@ -636,7 +647,8 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     g[1] = y + h / 2 + lay.fontSize * 0.35;
     g[2] = lay.mlabel[j];
     g[3] = lay.mx1[j] - lay.mx0[j] - 6;
-    out.textArgs(lay.labels[lay.mitem[j]] as string, Anchor.start, lay.font, lay.mink[j]);
+    g[4] = lay.mink[j];
+    out.textArgs(lay.labels[lay.mitem[j]] as string, Anchor.start, lay.font);
   }
 }
 

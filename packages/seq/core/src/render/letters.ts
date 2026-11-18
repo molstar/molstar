@@ -18,9 +18,9 @@ import {
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep } from './config.js';
-import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
+import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
-import { dataRegions, type LayerSource, layerSource, placeholderSpans, readTiles } from './layer-data.js';
+import { dataRegions, type LayerSource, layerSource, mergeNear, placeholderSpans, readTiles } from './layer-data.js';
 import {
   type Box,
   type Emphasis,
@@ -147,7 +147,8 @@ const ThreeLetter: Readonly<Record<string, string>> = {
   X: 'Xaa',
   '*': 'Ter',
 };
-const ThreeByCode: string[] = [];
+// dense (no holes: a read of one allocates nothing), `Xaa` for a code with none
+const ThreeByCode: string[] = Array.from({ length: 128 }, () => 'Xaa');
 for (const [k, v] of Object.entries(ThreeLetter)) {
   ThreeByCode[k.charCodeAt(0)] = v;
   ThreeByCode[k.toLowerCase().charCodeAt(0)] = v;
@@ -287,13 +288,13 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       fixed = resolveColor(prep.color, tokens);
       if (fixed === undefined) reportColor(ctx);
     }
-    const read = readTiles(ctx, data, src, regions, 1);
+    const read = readTiles(ctx, data, src, prep.through === 'own' ? mergeNear(regions) : regions, 1);
     const tables = read.entries.map((e) => e.tables.letters).filter((t): t is LettersTable => !!t);
     tables.sort((a, b) => a.start - b.start);
     // the section's own letters, for each codon's status: nothing said before they are held
     const own =
       prep.sectionSrc && step !== 'dots'
-        ? readTiles(ctx, data, prep.sectionSrc, vis, 1)
+        ? readTiles(ctx, data, prep.sectionSrc, mergeNear(vis), 1)
             .entries.map((e) => e.tables.letters)
             .filter((t): t is LettersTable => !!t)
         : undefined;
@@ -309,15 +310,18 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const nucleotides = prep.alphabet !== 'protein';
     const rna = prep.alphabet === 'rna';
     const conflict = tokens.colors['seq-conflict'];
-    const parts = Parts;
+    const onOwn = prep.through === 'own';
+    const parts = onOwn ? OwnCell : Parts;
+    const dpr = axis.dpr;
     for (let i = 0; i + 1 < regions.length; i += 2) {
       for (let p = regions[i]; p < regions[i + 1]; p++) {
         let code = letterIn(tables, p);
         if (!code) continue;
         // where the letter lands: its own cell, or its image's parts through the path
-        if (prep.through === 'own') {
-          parts.length = 0;
-          parts.push(p, p + 1);
+        // its own cell set in place (a length set to 0 lets an array's storage go: made again a letter)
+        if (onOwn) {
+          parts[0] = p;
+          parts[1] = p + 1;
         } else projectRanges(src.path!, OnePosition(p), parts);
         if (prep.through === 'one' && !parts.length) {
           // a letter with no position: a caret at its boundary (EC-29)
@@ -358,8 +362,9 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
             lay.code[j] = code;
             lay.fill[j] = fill;
             lay.ink[j] = ink;
-            lay.x0[j] = axis.snap(axis.sx0);
-            lay.x1[j] = axis.snap(axis.sx1);
+            // snapped here, not by a call: a number passed to a call that is not inlined is boxed
+            lay.x0[j] = Math.round(axis.sx0 * dpr) / dpr;
+            lay.x1[j] = Math.round(axis.sx1 * dpr) / dpr;
           }
         }
       }
@@ -432,6 +437,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
 
 /** The parts of one letter's image (kept: a layout runs to its end). */
 const Parts: number[] = [];
+/** A letter's own cell, `[p, p + 1]`. */
+const OwnCell = [0, 1];
 const One = [0, 1];
 function OnePosition(p: number): number[] {
   One[0] = p;
@@ -487,35 +494,79 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
   drawSpans(out, lay.bars, box.y, box.height, tokens.colors['seq-sequence']);
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
-  // a gap: a thin mark across the middle of an empty cell
-  drawSpans(out, lay.gaps, box.y + box.height / 2 - 0.5, 1, tokens.colors['seq-missing']);
-  // a tick a position at `dots`, else the cell: one call site (a site first run after its function was compiled
-  // stays a call, and a call boxes the numbers it is passed)
+  // a path's gap marks and carets, and three-letter codes, each in a function of its own: this one stays small enough to
+  // have its calls inlined (a call that is not boxes the numbers it is passed); every number through `args`
+  if (lay.gaps.length || lay.carets.length) drawPathMarks(lay, out);
+  // a tick a position at `dots`, else the cell
   const tick = Math.max(2, Math.round(box.height * 0.3));
   const dots = lay.step === 'dots';
   const y = dots ? box.y + (box.height - tick) / 2 : box.y;
   const h = dots ? tick : box.height;
   const px = 1 / lay.axis.dpr;
-  for (let j = 0; j < lay.n; j++) out.fill(lay.x0[j], y, Math.max(lay.x1[j] - lay.x0[j], px), h, lay.fill[j]);
-  for (let j = 0; j < lay.carets.length; j++)
-    out.fill(lay.carets[j] - px, box.y, 2 * px, box.height, tokens.colors['msui-text']);
-  if (lay.step === 'letters' && lay.fontSize > 0 && lay.n > 0) {
-    if (lay.three) {
-      const g = out.args;
-      for (let j = 0; j < lay.n; j++) {
-        if (!lay.show[j]) continue;
-        g[0] = (lay.x0[j] + lay.x1[j]) / 2;
-        g[1] = lay.glyphY;
-        g[2] = 0;
-        g[3] = lay.x1[j] - lay.x0[j];
-        out.textArgs(ThreeByCode[lay.code[j]] ?? 'Xaa', 1, lay.font, lay.ink[j]);
-      }
-      return;
+  const g = out.args;
+  for (let j = 0; j < lay.n; j++) {
+    g[0] = lay.x0[j];
+    g[1] = y;
+    g[2] = Math.max(lay.x1[j] - lay.x0[j], px);
+    g[3] = h;
+    g[4] = lay.fill[j];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
+  if (lay.step !== 'letters' || !(lay.fontSize > 0) || !lay.n) return;
+  if (lay.three) {
+    drawThree(lay, out);
+    return;
+  }
+  g[1] = lay.glyphY;
+  out.beginGlyphsArgs(lay.font, NoColor);
+  for (let j = 0; j < lay.n; j++) {
+    if (!lay.show[j]) continue;
+    g[0] = (lay.x0[j] + lay.x1[j]) / 2;
+    g[4] = lay.ink[j];
+    out.letterArgs(lay.code[j]);
+  }
+  out.endGlyphs();
+}
+
+/** A one-to-one path's gap marks (a thin mark across the middle of an empty cell) and carets (a letter with no position). */
+function drawPathMarks(lay: LettersLay, out: PassWriter) {
+  const { box, tokens } = lay;
+  const px = 1 / lay.axis.dpr;
+  const g = out.args;
+  for (let k = 0; k < 2; k++) {
+    const gaps = k === 0;
+    const list = gaps ? lay.gaps : lay.carets;
+    const step = gaps ? 3 : 1;
+    for (let i = 0; i + step - 1 < list.length; i += step) {
+      g[0] = gaps ? list[i] : list[i] - px;
+      g[1] = gaps ? box.y + box.height / 2 - 0.5 : box.y;
+      g[2] = gaps ? Math.max(list[i + 1] - list[i], 1) : 2 * px;
+      g[3] = gaps ? 1 : box.height;
+      g[4] = tokens.colors[gaps ? 'seq-missing' : 'msui-text'];
+      g[5] = NoColor;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
     }
-    out.args[1] = lay.glyphY;
-    out.beginGlyphsArgs(lay.font, NoColor);
-    for (let j = 0; j < lay.n; j++) if (lay.show[j]) out.letter(lay.code[j], (lay.x0[j] + lay.x1[j]) / 2, lay.ink[j]);
-    out.endGlyphs();
+  }
+}
+
+/** Three-letter codes, centred in their parts. */
+function drawThree(lay: LettersLay, out: PassWriter) {
+  const g = out.args;
+  for (let j = 0; j < lay.n; j++) {
+    if (!lay.show[j]) continue;
+    g[0] = (lay.x0[j] + lay.x1[j]) / 2;
+    g[1] = lay.glyphY;
+    g[2] = 0;
+    g[3] = lay.x1[j] - lay.x0[j];
+    g[4] = lay.ink[j];
+    out.textArgs(ThreeByCode[lay.code[j] & 127], Anchor.middle, lay.font);
   }
 }
 

@@ -11,7 +11,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { type Emphasis, type FrameInput, type Hit, hitView, type RenderConfigOverrides } from '../index.js';
-import { BIG, BigRuntime, bigSpec, p53GeneSpec, p53TracksSpec } from './fixtures.js';
+import { BIG, BigRuntime, bigSpec, p53GeneSpec, p53TracksSpec, PIECES, piecesSpec } from './fixtures.js';
 import { type Settled, settle } from './helpers.js';
 
 export const SIZE = { width: 1440, height: 400 } as const;
@@ -38,6 +38,15 @@ export const Scenarios: readonly Scenario[] = [
   { name: 'p53 tracks, whole protein', spec: p53TracksSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
   { name: 'p53 on its gene, letters', spec: p53GeneSpec, runtimes: [], width: 100, center: 196, panStep: 0.3 },
   { name: 'p53 on its gene, whole protein', spec: p53GeneSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
+  // the gene reversed and collapsed (its coding pieces), the protein's letters a codon wide on it
+  {
+    name: 'p53 on its gene, coding',
+    spec: () => p53GeneSpec({ coding: true }),
+    runtimes: [],
+    width: 60,
+    center: 196,
+    panStep: 0.3,
+  },
   {
     name: '3M letters (120 positions)',
     spec: bigSpec,
@@ -83,6 +92,9 @@ export const Scenarios: readonly Scenario[] = [
     center: BIG / 2,
     panStep: 200,
   },
+  // a reversed axis of 150,000 single-position pieces (EC-33): a pan over 1,000 of them, their breaks in view. Last:
+  // run before the others in one process, their warm draws recompile without end (a deopt loop, TODO)
+  { name: 'reversed, 150,000 pieces', spec: piecesSpec, runtimes: [], width: 1000, center: PIECES / 2, panStep: 2 },
 ];
 
 /** A triangle wave of `STEPS` samples: 0 up to 1 and back. */

@@ -550,14 +550,25 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
  * width of its own on the axis.
  */
 function drawBreaks(out: PassWriter, s: SectionLayout, axis: AxisTransform, band: Box, tokens: SeqTokens) {
-  const ink = tokens.colors['seq-break'];
+  // through `args` (a number passed to a call that is not inlined is boxed: nothing allocated once warm)
+  const g = out.args;
   const dpr = axis.dpr;
   const px = 1 / dpr;
   const b = s.breaks;
   for (let i = 0; i + 2 < b.length; i += 3) {
     const x = Math.round(b[i] * dpr) / dpr;
-    out.fill(x - px / 2, band.y, px, band.height, ink);
-    out.fill(x - Notch.width / 2, band.y - Notch.height, Notch.width, Notch.height, ink);
+    for (let k = 0; k < 2; k++) {
+      g[0] = k === 0 ? x - px / 2 : x - Notch.width / 2;
+      g[1] = k === 0 ? band.y : band.y - Notch.height;
+      g[2] = k === 0 ? px : Notch.width;
+      g[3] = k === 0 ? band.height : Notch.height;
+      g[4] = tokens.colors['seq-break'];
+      g[5] = NoColor;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+    }
   }
 }
 
@@ -569,7 +580,8 @@ function drawMark(out: PassWriter, s: SectionLayout, t: TrackLayout, tokens: Seq
   g[1] = t.labelY;
   g[2] = m.width;
   g[3] = Math.max(0, config.inset + config.labelWidth - m.x);
-  out.textArgs(m.text, Anchor.start, config.labelFont, tokens.colors['msui-text-muted']);
+  g[4] = tokens.colors['msui-text-muted'];
+  out.textArgs(m.text, Anchor.start, config.labelFont);
 }
 
 /**
@@ -613,7 +625,8 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   g[1] = t.labelY;
   g[2] = t.labelWidth;
   g[3] = config.labelWidth;
-  out.textArgs(t.track.label, Anchor.start, config.labelFont, tokens.colors['msui-text-muted']);
+  g[4] = tokens.colors['msui-text-muted'];
+  out.textArgs(t.track.label, Anchor.start, config.labelFont);
 }
 
 /** The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`). */
@@ -711,18 +724,30 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
       }
     }
     // a range wholly in a hidden stretch lights its break: what a break hides is not dropped
-    if (!drew) litBreak(out, axis, box, part.ranges[i], fill !== NoColor ? fill : stroke);
+    if (!drew) litBreak(out, axis, box, part.ranges[i]);
   }
 }
 
-/** The break hiding position `p`, when in view: a bar two device pixels wide across the box in `color`. */
-function litBreak(out: PassWriter, axis: AxisTransform, box: Box, p: number, color: number) {
+/**
+ * The break hiding position `p`, when in view: a bar two device pixels wide across the box in the paint's fill, else its
+ * stroke (read from `Paint`: a color passed to a call that is not inlined is boxed).
+ */
+function litBreak(out: PassWriter, axis: AxisTransform, box: Box, p: number) {
   const b = axisBreaks(axis);
   const i = b.length ? breakHolding(axis, p) : -1;
   if (i < 0 || b[i] < axis.u0 || b[i] > axis.u1) return;
   const px = 1 / axis.dpr;
-  const x = Math.round(axis.xOfUnit(b[i]) * axis.dpr) / axis.dpr;
-  out.fill(x - px, box.y, 2 * px, box.height, color);
+  const g = out.args;
+  g[0] = Math.round(axis.xOfUnit(b[i]) * axis.dpr) / axis.dpr - px;
+  g[1] = box.y;
+  g[2] = 2 * px;
+  g[3] = box.height;
+  g[4] = Paint[0] !== NoColor ? Paint[0] : Paint[1];
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = 0;
+  g[8] = 0;
+  out.rectArgs();
 }
 
 /** A Location's part on a system, found with an indexed loop (no iterator, no closure). */

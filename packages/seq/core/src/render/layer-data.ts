@@ -73,8 +73,25 @@ export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = fals
       if (b[i + 2] >= b[i + 1]) vis.push(b[i + 1], b[i + 2]);
       else vis.push(b[i + 1], axis.length ?? b[i + 1], 0, b[i + 2]);
   }
-  if (!src.back) return Array.from(HalfOpenRanges.normalize(vis));
-  return Array.from(HalfOpenRanges.normalize(projectRanges(src.back, vis)));
+  if (!src.back) return mergeNear(HalfOpenRanges.normalize(vis));
+  return mergeNear(HalfOpenRanges.normalize(projectRanges(src.back, vis)));
+}
+
+/** Gaps of at most this many positions between regions are read with them (small: an intron of an exon pair stays apart). */
+export const ReadGap = 16;
+
+/**
+ * Sorted, merged regions with the gaps of at most `ReadGap` positions between them closed: a collapsed axis's pieces
+ * in view (150,000 single positions, EC-33) are read as a few regions, not a want each.
+ */
+export function mergeNear(ranges: ArrayLike<number>, gap = ReadGap): number[] {
+  const out: number[] = [];
+  for (let i = 0; i + 1 < ranges.length; i += 2) {
+    const n = out.length;
+    if (n && ranges[i] - out[n - 1] <= gap) out[n - 1] = Math.max(out[n - 1], ranges[i + 1]);
+    else out.push(ranges[i], ranges[i + 1]);
+  }
+  return out;
 }
 
 /** A region on the data's system carried onto the section's as pieces (`[start, end, …]`), into `out`. */

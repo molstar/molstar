@@ -519,7 +519,7 @@ export class DrawLists {
 export class PassWriter {
   /**
    * A rect's, an image's or a text's numbers, set by the caller before `rectArgs`, `imageArgs` or `textArgs`: x, y, w,
-   * h, fill, stroke, stroke width, radius, round ends (a text's: x, y, width, max width). A call boxes each number it is passed where the compiler did not inline it (an
+   * h, fill, stroke, stroke width, radius, round ends (a text's: x, y, width, max width, color). A call boxes each number it is passed where the compiler did not inline it (an
    * allocation); an array's numbers are never boxed, so the emphasis passes, drawn rarely next to the data passes and
    * so never sure to be inlined, draw through it (nothing allocated once warm).
    */
@@ -558,8 +558,11 @@ export class PassWriter {
     l.color[i] = color;
   }
 
-  /** A text at the numbers `args` holds: x, y (baseline), its measured width, its max width (faded past it). */
-  textArgs(s: string, anchor: number, font: string, color: number) {
+  /**
+   * A text at the numbers `args` holds: x, y (baseline), its measured width, its max width (faded past it), its color
+   * (a color past a small integer passed to a call is boxed: it goes through `args` too).
+   */
+  textArgs(s: string, anchor: number, font: string) {
     const a = this.args;
     this.pass.op(Op.text);
     const l = this.pass.texts;
@@ -569,7 +572,7 @@ export class PassWriter {
     l.y[i] = a[1];
     l.anchor[i] = anchor;
     l.font[i] = this.lists.intern(font);
-    l.color[i] = color;
+    l.color[i] = a[4];
     l.width[i] = a[2];
     l.maxWidth[i] = a[3];
   }
@@ -651,6 +654,15 @@ export class PassWriter {
     l.font[i] = this.lists.intern(font);
     l.y[i] = y;
     l.color[i] = color;
+  }
+
+  /** A letter at the x `args[0]` holds, in the color `args[4]` holds (`letter`, its numbers through `args`). */
+  letterArgs(code: number) {
+    const l = this.pass.glyphs;
+    const j = l.nextLetter();
+    l.codes[j] = code;
+    l.x[j] = this.args[0];
+    l.colors[j] = this.args[4];
   }
 
   letter(code: number, x: number, color = NoColor) {
