@@ -15,7 +15,15 @@ import {
   type SelectBehavior,
   SelectProvider,
 } from '@molstar/seqx-viewer/behaviors';
-import { type Hit, type HitTarget, hitTarget, offsetOf } from '@molstar/seqx-viewer/models';
+import {
+  type Anchor,
+  type Emphasized,
+  type Hit,
+  type HitTarget,
+  hitTarget,
+  isNothing,
+  offsetOf,
+} from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
 
 // The viewer's input (_spec/README.md "Input"): pointer, wheel and key events in canvas coordinates (CSS px from the
@@ -194,17 +202,37 @@ export class ViewerInput {
       this._suppressClick = false;
       return false;
     }
-    if ((e.detail ?? 1) > 1) return false;
+    if ((e.detail ?? 1) > 1) {
+      this._restoreCleared();
+      return false;
+    }
+    this._cleared = undefined;
     const select = this.selectBehavior;
     if (!select) return false;
     const section = this.sectionAt(y);
     const hit = this._hitAt(x, y);
+    const sel = this.viewer.selection;
+    const before = sel.value.value;
+    const anchor = sel.anchor;
     // the behavior keeps nothing of the reused record but what it copies
-    return select.click(
+    const taken = select.click(
       section,
       hit ? { ...hit, ...(section !== undefined ? { section } : {}) } : undefined,
       this._modifiers(e),
     );
+    // a click that cleared the selection may be a double-click's first: kept until the next click says
+    if (!isNothing(before) && isNothing(sel.value.value)) this._cleared = { value: before, anchor };
+    return taken;
+  }
+
+  /** What the first click of a double-click cleared (clicking the only selected element), until the next click. */
+  private _cleared: { value: Emphasized; anchor: Anchor | undefined } | undefined;
+
+  /** A double-click's second click (or its `dblclick`) gives back what its first click cleared. */
+  private _restoreCleared(): void {
+    const c = this._cleared;
+    this._cleared = undefined;
+    if (c && isNothing(this.viewer.selection.value.value)) this.viewer.selection.set(c.value, c.anchor);
   }
 
   get dragging(): boolean {
@@ -252,6 +280,7 @@ export class ViewerInput {
   /** A double-click: the bound command, with the element or position under the pointer as what to focus. */
   doubleClick(x: number, y: number, e: KeyState = {}): boolean {
     if (this.viewer.retired) return false;
+    this._restoreCleared();
     const section = this.sectionAt(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);

@@ -145,6 +145,25 @@ describe('clicks (the interaction grammar)', () => {
     expect(click(v, at(v, 0, 0, 2), { detail: 2 })).toBe(false);
     expect(ranges(v)).toEqual([2, 3]);
   });
+
+  it('a double-click on the only selected item keeps it: its first click’s clear is undone', async () => {
+    const v = await make();
+    const item = at(v, 0, 1, 6);
+    click(v, item);
+    // the double-click's first click clears it, its second (detail 2) gives it back
+    click(v, item, { detail: 1 });
+    expect(ranges(v)).toEqual([]);
+    click(v, item, { detail: 2 });
+    expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['B']);
+    // the same through the platform's dblclick
+    click(v, item, { detail: 1 });
+    v.input.doubleClick(...item);
+    expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['B']);
+    // a single click still clears it
+    click(v, item, { detail: 1 });
+    click(v, at(v, 0, 0, 0), { detail: 1 });
+    expect(ranges(v)).toEqual([0, 1]);
+  });
 });
 
 describe('drag-select', () => {
