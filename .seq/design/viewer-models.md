@@ -16,7 +16,7 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 | Model | Holds | Change kind ([changes.md](changes.md)) |
 |---|---|---|
 | `SpecModel` | the spec's root (immutable), its revision (the root's hash), the preview (a patch over the root, applied again when the root changes; [patches.md](patches.md), Previews); makes a commit per applied change (`SpecCommit`, the port's checkpoint) and keeps the recent roots by revision (`revisions.keepRecent`, 64) for a host's rebase; shows a story step over the base and the preview (changes.md); applies `repr` patches (validated with the language and Seq\*'s checks, all or nothing; stale ones refused) and records each result as a revision; a participant of the host's history through Seq\*'s history port (a change outside a run is reported to the host) ([changes.md](changes.md), [patches.md](patches.md)) | spec patch, preview |
-| `ViewModel` | the view shown; per section its viewport; scroll groups and follows | session |
+| `ViewModel` | the view shown; per section its viewport (the one record of [layouts.md](layouts.md)); scroll groups and follows; the folded clades per rows layer ([grids-and-rows.md](grids-and-rows.md)) | session |
 | `HoverModel` | the hover: a Location, an element key, its owner, its system | session |
 | `SelectionModel` | the selection: element keys and a Location, the anchor, the cursor | session |
 | `HighlightModel` | named highlight channels, each a Location or element keys | session |
@@ -31,9 +31,17 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 ### Viewport, scroll groups and follow
 
 - **A viewport per section**: the visible range as offsets along its axis in display order (fractional; 0 at the first
-  position shown) and the vertical scroll; zoom is the range's width against the section's width. Why offsets, not
+  position shown) and the vertical scroll; zoom is the range's width against the section's width. The record is
+  `{ start, end, top, width, pending, scale?, bands?, y? }`, owned by [layouts.md](layouts.md): `bands` by band (`bandTop`,
+  a band's own scroll, and `rowScale`, px a row: an alignment's rows scrolling in their band), `y` a grid's second axis
+  with its own window; each layout reads it its way (text: `start` an anchor, `scale` the letter size; rings: the window),
+  and the `ViewModel` calls the section's `nav` for the arithmetic. Why offsets, not
   positions: a section's `range` and a cyclic range over the origin read like a whole system. A saved session stores
-  positions, never offsets, since offsets change meaning when the axis does.
+  positions (and a band's top row key and `rowScale`), never offsets, since offsets change meaning when the axis does.
+- **The view's history** keeps whole viewport records with their axis and layout signature. A step onto a changed axis,
+  layout or row order is restored by position (the centre and the zoom; text its anchor and size; a band its top row),
+  clamped to what is drawn (a centre now hidden goes to its break, a folded row to its summary row), never silently
+  dropped ([axis.md](axis.md), the one rule in every design that touches history).
 - **A scroll group** shares the range only among sections on equal axes (EC-113; `viewport.groupEqualAxes`, true); each
   section keeps its own vertical scroll and width.
 - **A follow** is a section whose viewport is derived from another's through a map: the leader's range projected along
@@ -44,7 +52,8 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
   on its gene", the gene section follows the protein section through the codon map.
 - **Viewports survive updates**: an equal axis keeps its viewport; a changed one keeps center and zoom when the center
   is still shown, else fits (EC-111); a move before the section has a width is kept as an intent (EC-112).
-- A viewport is clamped to `viewport.maxPxPerPosition`, and a resize keeps the zoom (`viewport.onResize`: `keep-zoom`, or `keep-range`). Collapsed introns (layout maps) come after the first slice; the slice's gene section shows the gene's full range.
+- A viewport is clamped to `viewport.maxPxPerPosition`, and a resize keeps the zoom (`viewport.onResize`: `keep-zoom`, or `keep-range`). Collapsed introns are a section's `pieces` ([axis.md](axis.md)): offsets go through the pieces and the direction, a
+  break takes no width.
 
 ### Hover and selection
 

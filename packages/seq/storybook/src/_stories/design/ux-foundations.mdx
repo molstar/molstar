@@ -74,17 +74,24 @@ command and from the keyboard.
 | Cmd/Ctrl+drag, Alt/Option+drag   | add a range; remove a range                                                                     |
 | empty click, Esc                 | clear (Esc first cancels a gesture, giving back what it began with)                             |
 | drag on data                     | select a range, snapped (whole codons, whole items)                                             |
-| drag on an axis                  | pan                                                                                             |
+| drag on the ruler                | pan (the ruler rail); on an alignment's ruler, a drag in its upper part selects columns         |
+| drag on a navigator              | the window pans, a grip zooms; from outside, sweep a region and zoom to it                      |
 | wheel                            | pan; with Cmd/Ctrl, or pinch, zoom about the pointer                                            |
 | drag, wheel, pinch on a follower | move its leader through the follow, so both move                                                |
 | double-click                     | focus; on what is focused, back; on empty space, fit                                            |
 | Shift+double-click, -, =, 0      | zoom out about the pointer; zoom out and in about the cursor or the centre; fit                 |
 | Alt+Left, Alt+Right, Backspace   | back and forward through the view's jumps (the mouse's side buttons too): not undo              |
 | arrows                           | move the cursor; Shift extends; Cmd/Ctrl+Shift starts a new range; Enter focuses; Space toggles |
+| Space+drag                       | pan; Space toggles on key-up only when no drag happened while it was held                       |
+| `]`, `[`                         | zoom an alignment's rows in and out                                                             |
+| click on a tree node             | fold or unfold its clade                                                                        |
+| Shift+R, Shift+C                 | reverse a section; collapse or show its introns (each an edit, one undo step)                   |
 
 - Selection is a location, shown on every system it maps to.
 - Toggles (hide a track, collapse a group) are one gesture, one visible state and one undo step.
-- Hover, selection and the viewport are not history. Edits to the spec are, one undo step each.
+- Hover, selection, the viewport and folded clades are not history. Edits to the spec are, one undo step each; the folds
+  shown become part of the spec only when kept (`clades.keep`).
+- Back and forward land on the same positions even when a section's axis or layout changed in between.
 - Every gesture also has a keyboard way and a command.
 
 ## The interaction matrix
@@ -94,17 +101,23 @@ builds it, or **no** with the reason. A design that adds an action fills its row
 negated when the design is agreed: the negation usually names a missing inverse (focus and back), a symmetric case
 (leader and follower) or a plural (one range and several). Empty cells are the gaps to look at first.
 
-|                    | select       | extend       | add / remove            | focus               | back                | zoom                        | pan                  | hide               | edit                        |
-| ------------------ | ------------ | ------------ | ----------------------- | ------------------- | ------------------- | --------------------------- | -------------------- | ------------------ | --------------------------- |
-| an element         | click        | Shift+click  | Cmd/Ctrl+click toggles  | double-click        | double-click again  | —                           | —                    | no: hide its track | no: data is not edited here |
-| a range            | drag         | Shift+drag   | Cmd/Ctrl+drag, Alt+drag | Enter               | Alt+Left            | —                           | —                    | —                  | —                           |
-| the selection      | —            | Shift+arrows | Cmd/Ctrl+Shift+arrows   | Enter               | Alt+Left            | —                           | —                    | —                  | a bookmark from it: planned |
-| a section          | —            | —            | —                       | —                   | —                   | Cmd/Ctrl+wheel, pinch, -, = | wheel, drag the axis | its tracks         | its params, as edits        |
-| a follower         | as a section | as a section | as a section            | as a section        | as a section        | moves its leader            | moves its leader     | as a section       | as a section                |
-| the view           | —            | —            | —                       | 0 fits              | Alt+Left, Alt+Right | —                           | —                    | —                  | undo and redo               |
-| a track or layer   | planned      | —            | —                       | planned             | —                   | —                           | —                    | hide               | height, color, order        |
-| a bookmark or link | —            | —            | add; remove: planned    | runs it             | Alt+Left            | —                           | —                    | —                  | its label: planned          |
-| a navigator        | —            | —            | —                       | click centers there | Alt+Left            | the window's handles        | drag the window      | the host hides it  | —                           |
+|                    | select                        | extend       | add / remove            | focus                       | back                | zoom                            | pan                   | hide                          | edit                                      |
+| ------------------ | ----------------------------- | ------------ | ----------------------- | --------------------------- | ------------------- | ------------------------------- | --------------------- | ----------------------------- | ----------------------------------------- |
+| an element         | click                         | Shift+click  | Cmd/Ctrl+click toggles  | double-click                | double-click again  | —                               | —                     | no: hide its track            | no: data is not edited here               |
+| a range            | drag                          | Shift+drag   | Cmd/Ctrl+drag, Alt+drag | Enter                       | Alt+Left            | —                               | —                     | —                             | —                                         |
+| the selection      | —                             | Shift+arrows | Cmd/Ctrl+Shift+arrows   | Enter                       | Alt+Left            | —                               | —                     | —                             | a bookmark from it: planned; copy letters |
+| a section          | —                             | —            | —                       | —                           | —                   | Cmd/Ctrl+wheel, pinch, -, =     | wheel, the ruler rail | its tracks                    | its params; reverse, collapse introns     |
+| a follower         | as a section                  | as a section | as a section            | as a section                | as a section        | moves its leader                | moves its leader      | as a section                  | as a section                              |
+| the view           | —                             | —            | —                       | 0 fits                      | Alt+Left, Alt+Right | —                               | —                     | —                             | undo and redo                             |
+| a track or layer   | —                             | —            | —                       | —                           | —                   | —                               | —                     | hide; filter its items        | height, color, order, its theme           |
+| a row              | click its header              | Shift+click  | Cmd/Ctrl+click          | double-click                | Alt+Left            | `]`, `[`                        | wheel over the rows   | hide (a chip shows it again)  | pin                                       |
+| a clade            | click its summary row         | Shift+click  | Cmd/Ctrl+click          | Enter opens its summary row | Alt+Left            | —                               | —                     | fold: click its node          | keep the folds shown                      |
+| a legend entry     | click: its items              | —            | Cmd/Ctrl+click          | —                           | Alt+Left            | —                               | —                     | filter its items              | its color, a ramp's domain, the scheme    |
+| a bookmark or link | —                             | —            | add; remove: planned    | runs it                     | Alt+Left            | —                               | —                     | —                             | its label: planned                        |
+| a navigator        | no: a pixel is many positions | —            | —                       | click outside centres there | Alt+Left            | drag a grip; sweep from outside | drag the window       | turned off, or hidden         | its form and size                         |
+| a window           | —                             | —            | —                       | —                           | Alt+Left            | drag an end                     | drag its body         | idle when the view can't move | —                                         |
 
-Planned next: a section's direction (a gene reading along its protein), another system's letters on a section (a protein
-and its gene on one axis), collapsed introns, navigators (strip, miniature, ideogram, vertical overview).
+A window is a navigator's or a ring's; both take the same gestures. The Axis, Layouts and Grids and rows pages say how
+these gestures apply to a text or ring section, a residue drawn a codon wide, a break, a pair and a block.
+
+Planned next: the history's toolbar.

@@ -1,0 +1,69 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/The axis" />
+
+# The axis
+
+A section lays out one coordinate system across the page: its axis. The axis has a direction, may carry another system's
+letters through a map, and may hide stretches such as introns. Hit-testing, selection, follow, focus, the view's history
+and the export all read positions through it, so what is drawn, what is hit and what is exported agree.
+
+## Direction
+
+A section's `direction` is the writer's choice, never read off its layers:
+
+| Value       | Reads                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| `genomic`   | positions count up left to right (the default for a section that follows nothing)               |
+| `reversed`  | positions count down                                                                            |
+| `follow`    | along its leader: a minus-strand gene following its protein reads N to C (a follower's default) |
+| `{ along }` | along a named system: a gene section reading along its protein                                  |
+
+- A reversed axis says so: the ruler counts down and the section's label carries a direction mark, in the export too
+  (`axis.directionMark`; a host whose own chrome says it sets `none`).
+- Letters read against their strand on screen show as their complement by default (`complement: auto`); `always` and
+  `never` are the writer's. A protein is never complemented, and the stored letters are what search and status read.
+- Navigation is in display order, whatever the direction: a drag, the wheel and the arrows move what is on screen the
+  way the hand goes.
+- A direction that cannot be resolved is reported and the section reads `genomic`; a path with runs both ways reads in
+  the direction of most of its length.
+
+## Pieces: collapsed introns
+
+- `pieces` says what part of the system a section shows: `whole` (the default, for every section), `coding` (the coding
+  runs of a codon map), a ranges node, or a list of them (two isoforms' exons). `pad` keeps a few positions each side of
+  every piece (splice sites).
+- Where pieces leave positions hidden, a **break** is drawn: a hairline across the section and a notch on the axis edge,
+  zero width on every layout, rings included. Its hover names the hidden length and how many items it hides.
+- What a break hides is not lost: items wholly inside it draw one tick on the break, and a selection or hover there
+  lights the break.
+- `section.collapse` (Shift+C) toggles a section between `whole` and its `collapsed` form; `section.reverse` (Shift+R)
+  flips its direction. Each is one edit of the spec, one undo step. Expanding a single intron is not offered: the export
+  would then differ from the screen.
+
+## Letters through a path
+
+A section can carry another system's letters when the path pairs positions one to one (an alignment row, an offset) or a
+residue to a codon. So a gene section can show its protein's letters, each residue three nucleotides wide, a codon split
+by an intron drawn in each part. Three-letter codes show where the narrowest part has room (`code: auto`), and a residue
+its codon does not translate to is drawn in the conflict color. Other paths (a nucleotide on a protein's axis) are
+refused with the reason.
+
+## What reads the axis
+
+- **Selection**: a click on a residue selects the residue, projected onto its codon. A drag across a break selects only
+  the positions shown (`selection.acrossBreaks: shown`; `span` adds the hidden stretch).
+- **The cursor** moves by a codon on a residue row, and announces a break it crosses.
+- **Follow**, both ways: a gene following its protein on `coding` pieces moves exactly three units a residue, so it
+  never crosses a hidden intron; moving the follower moves its leader.
+- **Focus** on something wholly hidden moves to its break and says why.
+- **History**: back and forward land on the same positions whether the axis changed or not: a step is restored by
+  position, clamped to what is drawn, never dropped. Changing the direction or the pieces is an edit, so undo returns
+  it.
+- **Export**: the SVG is the canvas's picture, and an export's viewport may be given in positions.
+
+## One axis for a protein and its gene
+
+The figure "the protein and its gene under each other" is one gene section with the protein's letters and tracks through
+the codon map, written `direction: { along: p53 }` and `pieces: coding`. The two-section view, the gene following the
+protein, stays beside it.

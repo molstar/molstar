@@ -64,33 +64,54 @@ of data".
 
 | In the precedents | Here |
 |---|---|
-| click a row's name to select it; Shift, Ctrl to extend, toggle (Jalview, every viewer) | built (RW) |
-| drag a block of rows × columns (Jalview, AliView) | built (RW): a rect |
-| click a column on the ruler or logo to select it across the rows | built (RW): a columns range; a drag in the ruler's upper part selects columns, its lower 40% is the ruler rail's and pans (decided, navigators.md) |
-| arrow keys over cells and rows, a page at a time (AliView) | built (RW), over lazy rows too |
-| sort by tree, by label, by a field (Jalview, MSAViewer) | built (RW): tree, data, a field of the rows' table; joined tables wait for keyed tables |
+| click a row's name to select it; Shift, Ctrl to extend, toggle (Jalview, every viewer) | built |
+| drag a block of rows × columns (Jalview, AliView) | built: a rect |
+| click a column on the ruler or logo to select it across the rows | built: a columns range; a drag in the ruler's upper part selects columns, its lower 40% is the ruler rail's and pans (decided, [navigators.md](navigators.md)) |
+| arrow keys over cells and rows, a page at a time (AliView) | built, over lazy rows too |
+| sort by tree, by label, by a field (Jalview, MSAViewer) | built: tree, data, a field of the rows' table; joined tables wait for keyed tables |
 | sort by pairwise identity, compute a tree (Jalview) | refused here: computed by a runtime the application binds ([maps.md](maps.md), computed sourcing); the order then reads its field |
-| collapse or expand a clade by its tree node (the previous implementation, Jalview, tree viewers) | built (RW) |
-| see a collapsed clade's summary (Jalview's group consensus) | built (RW): summary cells |
-| collapse all, expand all, collapse to a depth or a distance cut (tree viewers, Jalview's threshold) | built (RW): commands |
-| find a row inside a collapsed clade (search, a linked structure) | built (RW): reveal opens its clades |
-| save the collapsed set with a figure (tree viewers) | built (RW): `clades.keep` writes the folds shown into the spec's opening state; a story step's view |
-| hide a row, show hidden rows again (Jalview) | built (RW): `rows.hide`, a count chip that shows them |
+| collapse or expand a clade by its tree node (the previous implementation, Jalview, tree viewers) | built |
+| see a collapsed clade's summary (Jalview's group consensus) | built: summary cells |
+| collapse all, expand all, collapse to a depth or a distance cut (tree viewers, Jalview's threshold) | built: commands |
+| find a row inside a collapsed clade (search, a linked structure) | built: reveal opens its clades |
+| save the collapsed set with a figure (tree viewers) | built: `clades.keep` writes the folds shown into the spec's opening state; a story step's view |
+| hide a row, show hidden rows again (Jalview) | built: `rows.hide`, a count chip that shows them |
 | hide columns (Jalview) | waits (decided): no command this slice; the axis's pieces could carry it later |
-| pin an anchor row on top (NCBI) | built (RW) |
-| a control beside each row (the previous implementation's row slot) | planned (RW): the rows in view with their boxes, for a host to place controls; Seq\* draws none |
-| an overview of the whole alignment (Jalview, MSAViewer, NCBI) | planned (NV): the vertical overview, from what rows give |
+| pin an anchor row on top (NCBI) | built |
+| a control beside each row (the previous implementation's row slot) | planned: the rows in view with their boxes, for a host to place controls; Seq\* draws none |
+| an overview of the whole alignment (Jalview, MSAViewer, NCBI) | planned ([navigators.md](navigators.md)): the vertical overview, from what rows give |
 | edit residues, slide gaps, realign (Jalview, AliView) | refused: data is not edited in the viewer ([ux-foundations.md](ux-foundations.md), the matrix) |
-| hover a base, its partner lights (forna, VARNA) | built (PG) |
-| crossing pairs drawn below (R-chie) | built (PG), a config item |
+| hover a base, its partner lights (forna, VARNA) | built |
+| crossing pairs drawn below (R-chie) | built, a config item |
 | 2D secondary-structure drawing (R2DT, forna, VARNA) | refused: not an axis; a host links its own drawing through addresses |
-| crosshair hover, rectangle selection lighting both ranges (PAE viewers) | built (PG); in 3D with the structure port (fourth slice) |
-| upper and lower triangles of different data, mirroring (RNAfold's dot plot) | built (PG) |
+| crosshair hover, rectangle selection lighting both ranges (PAE viewers) | built; in 3D with the structure port (fourth slice) |
+| upper and lower triangles of different data, mirroring (RNAfold's dot plot) | built |
 | a zoom box (HiGlass) | refused as a drag (a drag selects, as everywhere); a selected rectangle is focused by Enter or double-click |
-| a color-scale slider (PAE viewers) | the theme's domain and legend (TH) |
-| a drag-select past the edge scrolls the view (Jalview, AliView, text editors) | planned (RW rows, TX text): clock-timed, faster further past |
+| a color-scale slider (PAE viewers) | the theme's domain and legend ([themes.md](themes.md)) |
+| a drag-select past the edge scrolls the view (Jalview, AliView, text editors) | planned (rows here, text in [layouts.md](layouts.md)): clock-timed, faster further past |
 
 ## Decision
+
+### The author's decisions
+
+The author, 2026-11-18: "grids-and-rows.md: ok as recommended"; in general: "a lot of this is "configurable behavior"
+and where appropriate, the code should allow the configuration via spec ports etc."; on sizes: "don't overdo it on the
+limits (they were sort of self-imposed and estimate), but obviously try to minimize the amount of code". On the review of the decisions: "ok" to its recommendations.
+
+1. Clade folds are session state (the `ViewModel`'s, no undo step), the spec's `collapsed` their opening set, and
+   `clades.keep` writes the set shown to the spec; pins, hidden rows and the order stay spec edits.
+2. A click on a tree node toggles its clade's fold by default (a preset can make it select); a clade's rows are
+   selected by its summary row or Cmd/Ctrl+click.
+3. A reveal (a focus, a link, a search) opens folded clades; back folds them again.
+4. Hiding alignment columns waits: no command this slice.
+5. The selection's bookmark command (its name and key) is planned beside `refs.remove` and labels.
+6. `mirror` is a plain `false`, set by the tRNA builder; a history step is restored by position, never dropped.
+7. A drag on a ruler, the author: "i think drag on a rule should pan. or rather .. the original solution solved this by
+   showing the rail as well ... maybe that's the way to go?" Adopted: on an alignment's ruler the lower 40% is the
+   ruler rail's (pans) and the upper part selects columns; a grid's axes pan.
+8. The author, on the remaining questions: "others as recommended": figure-meaning settings (the pairs layer's `side`,
+   `reach`, `crossing`, the logo's `scale`, `correction`, `gaps`, `rows`, the rows layer's `summary`, `numbers` and the
+   like) are spec params, not viewer config; `selection.copyLetters` copies a rows selection as FASTA lines.
 
 ### Through the layout interface: strips, a second axis, a band's scroll
 
@@ -209,7 +230,7 @@ vertical scale. This design builds on them and adds only:
   caller gives (square levels for a grid; independent row and column levels for the rows, so a row stays a row zoomed
   out on columns) and a reducer (`mean`, `max`, `min`, or majority with its share); reused buffers, built in place. The
   grid, the rows layer and the navigators' rows image use it; the 1D max pyramid of the logo's bars is its one-axis
-  case. Why one: three copies of the same level arithmetic were drafted.
+  case. Why one: three copies of the same level arithmetic would otherwise be written.
 - **One image LRU** for every `image` tile (grid, rows, navigators), on core's `LRUCache` (`@molstar/core/util/lru-cache`),
   keyed by (layer, level, tile, theme version), its capacity `RenderConfig.imageBytes` (64 MB) over a tile's bytes
   (tiles are one size). Why one budget: two caches of 32 MB each could not lend each other room.
@@ -228,7 +249,7 @@ twice is ambiguous (EC-42). Gaps `-` and `.`, insert columns from Stockholm's `#
 lowercase on no column (EC-38); readers' errors reported, never thrown (EC-40). A `tree` (Newick) matches leaves by
 label, else by the label before its last `/`; a tree that fails keeps the alignment (EC-43).
 
-**Column measures** registered for themes (lane TH reads them): `share` (the most frequent letter's share in a column,
+**Column measures** registered for themes ([themes.md](themes.md) reads them): `share` (the most frequent letter's share in a column,
 gaps counted by the logo's `gaps`), `identity` (the share equal to the reference row's letter), and per cell
 `matches-reference`. Computed once from held cells, kept by the entry's version; over a lazy alignment, served or
 unavailable (`seq.render.rows.measure`).
@@ -305,7 +326,7 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
     one row folds to that row; "+n" counts shown rows (hidden ones are in the chip);
   - *a pinned row inside a folded clade* stays in the pinned band and counts in the clade's "+n".
 - **Accessibility**: a tree node is announced with its state (`aria-expanded` on the node's accessible item, "clade,
-  collapsed, 12 rows"), through lane AY's accessible layer for the canvas.
+  collapsed, 12 rows"), through the canvas's accessible layer (planned, with accessibility).
 
 **Drawing by density** (ux-foundations section 4), per axis: columns step as any track's; rows step from letter rows
 (20 px) to cells to sub-pixel rows. Below a device pixel on either axis the rows draw from **the shared 2D reduction**
@@ -346,7 +367,7 @@ reorder keeps it and it projects like any part; a block is a rect (`Location.rec
   (a plain click on a node toggles the fold, decided);
 - a **column**: a click on the ruler or the logo selects the column range on the columns system; a drag in the
   ruler's upper part (above `navigator.rail.grabShare`, 0.4 of its height, from the bottom) selects a run of columns,
-  a drag in its lower part is the ruler rail's and pans (navigators.md); a grid's rulers are its axes and pan.
+  a drag in its lower part is the ruler rail's and pans ([navigators.md](navigators.md)); a grid's rulers are its axes and pan.
 
 **The keyboard cursor** (EC-154): `{ section, system, position, ySystem, yPosition, part }`, `part` `cell` or `header`.
 ← from the first column onto the header, → back; ← → step columns; ↑ ↓ step display rows (pinned band to scrolled
@@ -362,7 +383,7 @@ line block and, past its last row, cross to the first row of the next block (the
 **Drag past a scrolling box's edge** (the rows band, a text section): a drag-select whose pointer leaves the box
 scrolls it toward the pointer, faster the further past (px a second from the distance), timed by the clock (the
 `AnimationPort`'s frames carry their time), never by the frame count, so the speed is the same at 30 and 120 Hz; the
-selection extends as the content moves under the held pointer. Planned (RW for rows, TX for text).
+selection extends as the content moves under the held pointer. Planned (here for rows, [layouts.md](layouts.md) for text).
 
 **Row zoom keys** (in `view.keys`, as every new command's): `rows.zoom-in` `]` and `rows.zoom-out` `[`, about the
 cursor's row, else the band's centre; `view.fit` (`0`) fits the rows with the columns. Why these: a key's chord must
@@ -413,19 +434,19 @@ This slice takes the least of them:
 - **The 10,000 × 300 alignment**: first frame under 300 ms (`attach`, the measures and profile, the theme classes, the
   pyramid, the first layout: about 10 ms each pass over 3M cells, so well inside; heavy, `itWithin`); a pan or zoom
   frame under 8 ms at the fit, at letters and between two level pairs; a cursor step and a block drag step under
-  4 ms; a theme change's rebuild under 50 ms; folding every clade under 16 ms. Quick representative in RW: one fit
+  4 ms; a theme change's rebuild under 50 ms; folding every clade under 16 ms. Quick representative: one fit
   frame and one letters frame bounded.
 - **Scaling**: frame time at 10,000 and 100,000 held rows and 10M lazy (synthetic) within 1.2× (heavy, ratio); layout
   allocation equal at 10,000 and 100,000 rows (the opt-in tier); draw and hover 0 bytes warm.
-- **A dot plot's frame** (PG's representative): a 2,000 × 2,000 PAE's pan frame under 8 ms once its tiles are built, a
+- **A dot plot's frame** (its quick representative): a 2,000 × 2,000 PAE's pan frame under 8 ms once its tiles are built, a
   tile build within `grid.buildBudget` a frame. **Arcs**: 4,096 arcs a frame under 8 ms; a hover over nested arcs under
   2 ms.
 - **Size, minified, estimated** (the author: "don't overdo it on the limits ... but obviously try to minimize the
-  amount of code"; no size cuts a feature): PG about 12 kB in headless rendering (the grid layout 3, the grid layer 2,
-  the pairs layer with split and hit 6, emphasis along y 1); RW about 17 kB (`cells` and the rows table 2, the rows
+  amount of code"; no size cuts a feature): pairs and grids about 12 kB in headless rendering (the grid layout 3, the grid layer 2,
+  the pairs layer with split and hit 6, emphasis along y 1); rows about 17 kB (`cells` and the rows table 2, the rows
   layer and axis 8, the tree and folds 3, the logo 2, the column measures 2); the shared pyramid and image cache about
   2 kB once; the readers about 6 kB in their own entry (aligned FASTA, Stockholm, Newick), and about 6 kB in the viewer
-  (commands, cursor, bindings). Measured at stage 3's gate.
+  (commands, cursor, bindings). Measured when they land.
 
 ## The interaction matrix's cells
 
@@ -434,19 +455,19 @@ Cells this design fills (ux-foundations section 8); the sub-rows name the new th
 | | select | extend | add / remove | focus | back | zoom in / out | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
 | **an element: a row** (header) | click; `selection.set` | Shift+click: the run in display order | Cmd/Ctrl+click toggles | double-click: the row shown, x its residues; `address.focus` | Alt+Left | — | — | `rows.hide` (patch); shown again by the chip | pin: `rows.pin` (patch, the header's icon); no: residues are not edited |
-| **an element: a pair** (arc, chord, dot) | click: both ends | Shift+click: the range from the anchor end | Cmd/Ctrl+click | double-click: both ends' hull | Alt+Left | — | — | no: hide the layer or filter by kind (TH's rules) | no: data |
+| **an element: a pair** (arc, chord, dot) | click: both ends | Shift+click: the range from the anchor end | Cmd/Ctrl+click | double-click: both ends' hull | Alt+Left | — | — | no: hide the layer or filter by kind (a data filter, [themes.md](themes.md)) | no: data |
 | **an element: a cell** (grid or rows) | click: a one-cell rect | Shift+click: the rect from the anchor | Cmd/Ctrl+click | double-click: both positions | Alt+Left | — | — | no | no |
-| **a range: a block or rectangle** | drag on cells | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag subtracts (at most four rects) | Enter: x and y to the rect | Alt+Left | — | — | — | the selection's bookmark command (C0) |
+| **a range: a block or rectangle** | drag on cells | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag subtracts (at most four rects) | Enter: x and y to the rect | Alt+Left | — | — | — | the selection's bookmark command (planned) |
 | **a range: columns** | click or drag on the ruler or logo | Shift+click | Cmd/Ctrl+click, Alt+drag removes | Enter | Alt+Left | — | — | no: hiding columns waits (decided) | — |
-| **the selection** (rows, rects) | — | Shift+arrows: the block | Cmd/Ctrl+Shift+arrows start a block | Enter | Alt+Left | — | — | — | the selection's bookmark command (C0): a ref of its Location |
+| **the selection** (rows, rects) | — | Shift+arrows: the block | Cmd/Ctrl+Shift+arrows start a block | Enter | Alt+Left | — | — | — | the selection's bookmark command (planned): a ref of its Location |
 | **a leading section: rows** | — | — | — | — | — | rows: Cmd/Ctrl+wheel over the header, `]` and `[` (`rows.zoom-in`, `rows.zoom-out`), `0` fits rows and columns | the wheel's vertical delta over the band, drag on the header, Page keys | `rows.filter`, `rows.hide` | order, filter, pins by patch; `collapsed` by patch, `clades.keep` |
 | **a leading section: grid** | — | — | — | — | Alt+Left | Cmd/Ctrl+wheel, pinch: both axes about the pointer (y alone on y's ruler when y has its own window); -, = | wheel: dx x, dy y; drag on a ruler pans that axis (decided: a grid's axes pan); Space+drag both (Space's toggle acts on key-up only when no drag happened) | no: hide its layers | `aspect`, `triangle` by patch |
 | **a follower: a grid's y** | as a leading one | | | | | moves its leader (`lead`) | moves its leader | | |
 | **the view** | — | — | — | 0 fits, a grid on both axes | the history holds the rows' windows and the folds a jump changed | — | — | — | — |
 | **a track or layer: the rows layer** | click a header: a row | — | — | — | — | — | — | `layer.hidden` | `order`, `filter` by patch, previews while chosen |
 | **a clade** (a `tree-node`, a `summary-row`) | click a summary row: its rows | Shift+click: the run of display rows to it | Cmd/Ctrl+click a node or summary row toggles its rows | double-click or Enter on a summary row: opened and shown; `clades.reveal` opens the clades holding a row | double-click again, Alt+Left | — | — | fold (session state): click on its node, Space on key-up with no drag while held (`clades.toggle`), inverse the same; `clades.collapseAll` / `clades.expandAll`; `clades.collapseTo` (depth, cut), inverse `clades.expandAll` or Alt+Left | the opening set: `clades.keep` (one patch) |
-| **a bookmark or link** | — | — | a rect or a rows part as a ref | runs it: x and the rows (opening folded clades) | Alt+Left | — | — | — | its label (C0) |
-| **a navigator: the vertical overview** (NV) | — | — | — | a click centers the rows there | Alt+Left | drag the `window` target's `start` or `end` part: rows | drag its `body` | the host hides it | — |
+| **a bookmark or link** | — | — | a rect or a rows part as a ref | runs it: x and the rows (opening folded clades) | Alt+Left | — | — | — | its label (planned) |
+| **a navigator: the vertical overview** ([navigators.md](navigators.md)) | — | — | — | a click centers the rows there | Alt+Left | drag the `window` target's `start` or `end` part: rows | drag its `body` | the host hides it | — |
 
 No cell is the hover's: hover is a method, not a verb ([viewer-models.md](viewer-models.md)); on a grid it is the
 crosshair, on rows the row and column bands, on a pair both ends.
@@ -494,7 +515,7 @@ registry entry, an option of a call, or fixed with its reason).
 - **A pyramid of majorities is approximate**; counts per letter a sample would be exact at about twenty times the
   bytes. Majorities, tested within a tolerance; clade summaries exact.
 - **Images in SVG**: an `image` is runs of rects, so a zoomed-out 10,000-row export is large; a PNG inside SVG needs an
-  encoder in core. Rects in this slice; measured at OP's gate, which decides.
+  encoder in core. Rects in this slice; measured with the PNG export, which decides.
 - **Lazy order**: tree order only when a source serves leaf order; a field order on a lazy alignment is refused.
 - **No navigator for a grid's own y window**: a grid whose y has its own window (not following a section) has no
   navigator over y; open until a Hi-C view (the Genomes milestone) needs one.
@@ -539,16 +560,16 @@ The claim: **this design covers what a user does with pairs, grids and rows.**
 
 ## Consequences
 
-**Order of the lanes**: RW lands the shared changes first, PG builds on them.
+**Order of work**: the rows land the shared changes first, pairs and grids build on them.
 
-- **RW** (first): `Hit`'s and the hover record's `ySystem`, `yPosition` and the targets (`cell` with them, `row`,
+- **Rows** (first): `Hit`'s and the hover record's `ySystem`, `yPosition` and the targets (`cell` with them, `row`,
   `tree-node`, `summary-row`); the shared reduction (`render/pyramid.ts`) and image LRU on core's `LRUCache`, reused by
-  PG and NV; the rows layer reading the layouts design's `bandTop` and `rowScale`; the `cells` shape and the rows table on 1D row tiles; the column
+  the grid and the navigators; the rows layer reading the layouts design's `bandTop` and `rowScale`; the `cells` shape and the rows table on 1D row tiles; the column
   measures `share`, `identity`, `matches-reference` registered for themes; the aligned FASTA, Stockholm (`#=GC RF`,
   `SS_cons` as pairs) and Newick readers, with fuzz tests (malformed input reported, never thrown); then the
   `alignment` and `tree` kinds, the rows layer (order, folds, pins, header, reduction, lazy rows), the logo and the
   profile, the clade commands, the cursor's `part` and `y`, the selection's rows part.
-- **PG** (on RW): the `grid` section layout with `strip.y` and `ctx.axisY`; the `pairs` annotation and layer (section
+- **Pairs and grids** (on the rows): the `grid` section layout with `strip.y` and `ctx.axisY`; the `pairs` annotation and layer (section
   scope, arcs, chords, dots, split, kinds, hit); the `grid` annotation and layer (the shared reduction and images,
   triangles); the
   crosshair and the rectangle, rect subtraction in the Location.
@@ -584,29 +605,3 @@ The claim: **this design covers what a user does with pairs, grids and rows.**
   rects), Bindings, Commands, Configuration.
 - **Edge cases with an outcome here**: 10, 35, 38–44, 58, 59, 62, 63, 100, 103, 106, 107, 109, 129, 145, 146, 147,
   154, 155, 206 kept; EC-208, EC-209 and EC-223 still deferred.
-
-## Decided
-
-The author, 2026-11-18: "grids-and-rows.md: ok as recommended"; in general: "a lot of this is "configurable behavior"
-and where appropriate, the code should allow the configuration via spec ports etc."; on sizes: "don't overdo it on the
-limits (they were sort of self-imposed and estimate), but obviously try to minimize the amount of code". After the
-decisions review: "ok" to its recommendations.
-
-1. Clade folds are session state (the `ViewModel`'s, no undo step), the spec's `collapsed` their opening set, and
-   `clades.keep` writes the set shown to the spec; pins, hidden rows and the order stay spec edits.
-2. A click on a tree node toggles its clade's fold by default (a preset can make it select); a clade's rows are
-   selected by its summary row or Cmd/Ctrl+click.
-3. A reveal (a focus, a link, a search) opens folded clades; back folds them again.
-4. Hiding alignment columns waits: no command this slice.
-5. The selection's bookmark command (its name and key) lands in lane C0 beside `refs.remove` and labels.
-6. `mirror` is a plain `false`, set by the tRNA builder; a history step is restored by position, never dropped.
-7. A drag on a ruler, the author: "i think drag on a rule should pan. or rather .. the original solution solved this by
-   showing the rail as well ... maybe that's the way to go?" Adopted: on an alignment's ruler the lower 40% is the
-   ruler rail's (pans) and the upper part selects columns; a grid's axes pan.
-8. The author, on the check's other gaps: "others as recommended": figure-meaning settings (the pairs layer's `side`,
-   `reach`, `crossing`, the logo's `scale`, `correction`, `gaps`, `rows`, the rows layer's `summary`, `numbers` and the
-   like) are spec params, not viewer config; `selection.copyLetters` copies a rows selection as FASTA lines.
-
-## Gaps for the author
-
-None open.

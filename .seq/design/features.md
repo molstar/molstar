@@ -53,18 +53,19 @@ that shows it (dataset: view).
 | Closure | a nucleotide lifts to its residue, one step | done | [building-blocks](building-blocks.md) | 30, 144 | p53: protein on its gene |
 | Structure systems and maps | chain instances, SIFTS in abstract form | planned | [maps](maps.md) | 65, 118 | p53: structure chains |
 | Codon tables | NCBI tables, Sec, Pyl, stops | building: NCBI 1, 2 and 11 | [maps](maps.md) | 16–18 | p53: protein on its gene |
-| Pieces and layout maps | ranges, reversed pieces, collapsed introns, letter maps | building: an axis of pieces; collapsed introns, letter maps and reversed pieces not | [building-blocks](building-blocks.md) | 31–33, 233 | p53: introns collapsed |
-| Letters through a map | another system's letters on a section's axis: a protein's on its gene, a residue a codon wide, a codon split by an intron drawn in each piece; a path that pairs positions one to one or a residue to a codon (others have no cell a position: an issue) | planned: the third slice, stage 1 | [maps](maps.md) | 15–18, 28–31 | p53: the protein and its gene on one axis |
-| A section's direction | `genomic`, `reversed`, or `follow` (the leader's): a follower defaults to `follow`, a leader to `genomic`; a reversed axis counts down and says so; reversed DNA letters as their complement | planned: the third slice, stage 1 | [maps](maps.md) | 15, 31, 206 | p53: the minus-strand gene moving with its protein |
+| Pieces and layout maps | ranges, reversed pieces, collapsed introns, letter maps | building: an axis of pieces; collapsed introns (pieces, `pad`, breaks), reversed pieces planned: the third slice; letter maps not | [axis](axis.md) | 31–33, 233 | p53: introns collapsed |
+| Letters through a map | another system's letters on a section's axis: a protein's on its gene, a residue a codon wide, a codon split by an intron drawn in each piece; a path that pairs positions one to one or a residue to a codon (others have no cell a position: an issue) | planned: the third slice | [axis](axis.md) | 15–18, 28–31 | p53: the protein and its gene on one axis |
+| A section's direction | `genomic`, `reversed`, or `follow` (the leader's): a follower defaults to `follow`, a leader to `genomic`; a reversed axis counts down and says so; reversed DNA letters as their complement | planned: the third slice (`genomic`, `reversed`, `follow`, `{ along }`) | [axis](axis.md) | 15, 31, 206 | p53: the minus-strand gene moving with its protein |
+| Collapsed introns | a section's `pieces` (`whole`, `coding`, ranges refs), `pad`; a break a zero-width hairline on every layout, hidden items a tick on it; `section.collapse` | planned: the third slice | [axis](axis.md) | 31–33, 117 | p53: introns collapsed |
 
 ## Data and sources
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
 | Sequences, units, complexes, copies | molecules shared by units, copy groups | building: sequences and units; complexes and copies not | [building-blocks](building-blocks.md) | 35, 36, 65–67 | Globins: hemoglobin |
-| Ligands | one position or one per atom; chips in text | planned | [building-blocks](building-blocks.md) | 64, 99 | Globins: hemoglobin with heme; Complex: ATP and AlphaFill's transplants |
-| Alignments | gaps, insert columns, numbered rows, lazy rows | planned | [building-blocks](building-blocks.md) | 38–44 | Globins: family |
-| Trees | given (Newick) or computed; clades collapse | planned | — | 43, 100, 103 | Globins: family by tree |
+| Ligands | one position or one per atom; chips in text | planned | [layouts](layouts.md) | 64, 99 | Globins: hemoglobin with heme; Complex: ATP and AlphaFill's transplants |
+| Alignments | gaps, insert columns, numbered rows, lazy rows | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 38–44 | Globins: family |
+| Trees | given (Newick) or computed; clades collapse | planned: the third slice (folds as session state, `clades.keep`) | [grids-and-rows](grids-and-rows.md) | 43, 100, 103 | Globins: family by tree |
 | Annotations, six shapes | ranges, values, pairs, matrix, grid, rows | building: ranges and values | [building-blocks](building-blocks.md) | 45–63 | every dataset |
 | Keyed tables and joins | rows keyed by id joined to items, rows, states | deferred | — | 106, 224 | trigger: the Genomes milestone ([version-1](version-1.md)) |
 | Gene hierarchies | gene, transcript, exon (several levels) | deferred | — | 227 | trigger: the Genomes milestone ([version-1](version-1.md)) |
@@ -73,6 +74,7 @@ that shows it (dataset: view).
 | Services at the application layer | UniProt, PDBe (SIFTS), AlphaFold DB as runtimes an application composes, not in the core; recorded fixtures offline, live optional | planned | [sources](sources.md) | 51 | Storybook: an application composing services |
 | Structure files at the application layer | mmCIF and BinaryCIF read (through Mol\*'s readers) for chains, `label` and `auth` numbering, insertion codes, observed residues | planned | [maps](maps.md) | 3–5, 118 | Storybook: predictions onto a structure |
 | Name index | open on a gene by name from a file read by region | deferred | — | 228 | trigger: the Genomes milestone ([version-1](version-1.md)) |
+| Example datasets | real public entries under permissive licences, provenance and licence as data (`sources.json`), recorded by hand, large variants generated in code; the Stockholm and Newick readers | planned: the third slice | [examples](examples.md) | 38–43 | every dataset |
 
 ## Streaming and patches
 
@@ -121,25 +123,29 @@ what undo does to each.
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
 | Letters | cells and letters, density steps, letter caps | building: cells, letters, density steps | [ux-foundations](ux-foundations.md) | 116, 117, 120–122 | p53: tracks |
-| Ranges | lanes, labels, collapse, split, line styles, arrowheads | building: lanes, labels, overflow; line styles, arrowheads, split, collapse not | — | 45, 104, 105, 128, 226, 232 | p53: tracks |
-| Values | bars, line, area; shared domains; open domains at settle | building: bars; line and area not | [data-store](data-store.md) | 52–57, 201, 202 | p53: tracks |
+| Ranges | lanes, labels, collapse, split, line styles, arrowheads | building: lanes, labels, overflow; line styles, arrowheads, split, collapse not | [themes](themes.md) | 45, 104, 105, 128, 226, 232 | p53: tracks |
+| Values | bars, line, area; shared domains; open domains at settle | building: bars; line and area planned: the third slice | [themes](themes.md) | 52–57, 201, 202 | p53: tracks |
 | Values for genomics | points, split by sample, log scale, reference line | deferred | — | 214–217 | trigger: the Genomes milestone ([version-1](version-1.md))
-| Variants | sites colored by a field | planned | — | — | p53: variants |
+| Variants | sites colored by a field | planned: the third slice | [themes](themes.md) | — | p53: variants |
 | Variants by sample | samples as rows, long deletions solid | deferred | — | 222 | trigger: the Genomes milestone ([version-1](version-1.md))
-| Pairs | arcs above and below, kinds, chords on rings | planned | — | 62, 63, 129 | tRNA: arcs |
+| Pairs | arcs above and below, kinds, chords on rings | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 62, 63, 129 | tRNA: arcs |
 | Matrix | positions × states, majority and maximum density | deferred | — | 60, 61, 220 | trigger: the Genomes milestone ([version-1](version-1.md))
-| Grid and dot plots | a value per pair of positions; crosshair hover | planned | — | 58, 59, 109, 145 | tRNA: base-pair dot plot |
-| Logo | stacked letters by bits or probability | planned | — | — | Globins: family |
-| Secondary structure | helices and strands, cut ends square | planned | — | 67, 130 | p53: tracks |
-| Ruler and numbering | tabular, skipped labels, absent or placed | planned | [ux-foundations](ux-foundations.md) | 234 | every view |
-| Frames | outlined regions across tracks, open where cut | planned | — | 100 | Globins: ESPript figure |
-| Rows layer | rows in tree or data order, filters, data columns | planned | — | 106, 107 | Globins: family |
+| Grid and dot plots | a value per pair of positions; crosshair hover | planned: the third slice (a section of its own, rectangles) | [grids-and-rows](grids-and-rows.md) | 58, 59, 109, 145 | tRNA: base-pair dot plot |
+| Logo | stacked letters by bits or probability | planned: the third slice | [grids-and-rows](grids-and-rows.md) | — | Globins: family |
+| Secondary structure | helices and strands, cut ends square | planned: the third slice | [themes](themes.md) | 67, 130 | p53: tracks |
+| Ruler and numbering | tabular, skipped labels, absent or placed | planned: the third slice | [themes](themes.md) | 234 | every view |
+| Frames | outlined regions across tracks, open where cut | planned: the third slice | [layouts](layouts.md) | 100 | Globins: ESPript figure |
+| Rows layer | rows in tree or data order, filters, data columns | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 106, 107 | Globins: family |
+| Collapsed clades | a clade folded to a summary row (session state), bulk commands, reveal opens folds, `clades.keep` writes the opening set | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 100, 103 | Globins: collapsed clades |
+| Lazy rows | 10,000 held and 10M lazy rows at one frame time; reductions by the theme's classes; the cursor over rows never held | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 41, 44, 154 | Globins: 10,000 rows |
 | Fallbacks | every layer type declares one; readers degrade predictably | planned | [extensibility](extensibility.md) | 74, 238–244 | Nightingale reference |
-| Themes | uniform, field palettes (binned, continuous, log), rules, schemes | building: tokens, categorical palette; field palettes, rules, schemes not | [ux-foundations](ux-foundations.md) | 133–137, 203–205, 215 | p53: themes |
-| Residue schemes | Clustal X, Zappo, Taylor, hydrophobicity, nucleotides, ESPript | planned | [ux-foundations](ux-foundations.md) | 135 | Globins: family |
-| Shared domains | domain groups across layers | planned | — | 56 | p53: tracks |
-| Legends | ramps and steps, merged, painted vs vocabulary | planned | [ux-foundations](ux-foundations.md) | 132, 204 | p53: themes |
-| Size channels | thickness, glyph, radius, width, opacity | planned | — | 137, 242 | p53: tracks |
+| Themes | uniform, field palettes (binned, continuous, log), rules, schemes | building: tokens, categorical palette; the theme sublanguage (field palettes, rules, schemes, scales) planned: the third slice | [themes](themes.md) | 133–137, 203–205, 215 | p53: themes |
+| Residue schemes | Clustal X, Zappo, Taylor, hydrophobicity, nucleotides, ESPript | planned: the third slice | [themes](themes.md) | 135 | Globins: family |
+| Shared domains | domain groups across layers | planned: the third slice (`scale` nodes) | [themes](themes.md) | 56 | p53: tracks |
+| Legends | ramps and steps, merged, painted vs vocabulary | planned: the third slice (data in the core, a part a host places) | [themes](themes.md) | 132, 204 | p53: themes |
+| Color-blind substitution | a reader's setting (`theme.cvdSafe`) drawing each unsafe scheme as its safe substitute; never in the spec | planned: the third slice | [themes](themes.md) | 136 | p53: themes |
+| Column measures | share, identity, matches-reference per column, registered for themes (Clustal X, percent identity, ESPript) | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 135 | Globins: family |
+| Size channels | thickness, glyph, radius, width, opacity | planned: the third slice | [themes](themes.md) | 137, 242 | p53: tracks |
 | Layers across sections | ribbons between sections, a dot plot with its own y section | deferred | — | 209 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Contact maps | binned grids by region and level (Hi-C) | deferred | — | 223 | trigger: layers across sections |
 | MAF over a genome | a multiple alignment on a genome axis | deferred | — | 213 | trigger: a dataset that needs it |
@@ -149,15 +155,17 @@ what undo does to each.
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
 | Tracks layout | sections, tracks, groups, summaries | building: sections, tracks, templates; groups and summaries not | [building-blocks](building-blocks.md) | 101–105 | p53: tracks |
-| Text layout | wrapped groups of ten, lanes, inline labels | planned | — | 94–99 | p53: text figure |
-| Alignment figures | rows in text, ESPript style, numbers per row | planned | — | 97 | Globins: ESPript figure |
-| Blocks | side by side, stacked, many blocks | planned | — | 102, 115 | p53: structure chains |
+| Text layout | wrapped groups of ten, lanes, inline labels | planned: the third slice | [layouts](layouts.md) | 94–99 | p53: text figure |
+| Alignment figures | rows in text, ESPript style, numbers per row | planned: the third slice | [layouts](layouts.md) | 97 | Globins: ESPript figure |
+| Blocks | side by side, stacked, many blocks | planned: the third slice | [layouts](layouts.md) | 102, 115 | p53: structure chains |
 | Two assemblies on one axis | blocks of two genomes on one axis or ring | deferred | — | 210 | trigger: the Genomes milestone ([version-1](version-1.md))
-| Rings | tracks as rings, labels with leaders, a window | planned | — | 108, 114 | Plasmid: ring with linear detail |
-| Navigators | strip, miniature, ideogram, vertical overview | planned | — | 110 | p53: the gene's region; Globins: 10,000 rows |
+| Rings | tracks as rings, labels with leaders, a window | planned: the third slice | [layouts](layouts.md) | 108, 114 | Plasmid: ring with linear detail |
+| Navigators | strip, miniature, ideogram, vertical overview | planned: the third slice (the ruler rail by default) | [navigators](navigators.md) | 110 | p53: the gene's region; Globins: 10,000 rows |
+| The ruler rail | every linear section's default navigator, on the ruler's bottom border (a slim rail without one); a drag on a positions ruler pans, on an alignment's ruler the lower 40% | planned: the third slice | [navigators](navigators.md) | 110 | every view; Globins: family |
+| The layout interface | strips, bands and warps behind one internal interface; placement and hit-testing as its inverse; one viewport record | planned: the third slice | [layouts](layouts.md) | 123 | every view |
 | Follow and scroll groups | sections follow through maps (scale 1, 3, 1/3); a move asked of a follower moves its leader (`follow.followerMoves`, the second slice) | done | — | 113, 114, 211 | p53: protein on its gene |
 | Viewport persistence | keep center and zoom across updates; pending intents | done | — | 111, 112 | every view |
-| Copies merged or split | `×N` blocks, hover for every member | planned | — | 65 | Globins: hemoglobin |
+| Copies merged or split | `×N` blocks, hover for every member | planned: the third slice | [layouts](layouts.md) | 65 | Globins: hemoglobin |
 
 ## Interaction and editing
 
@@ -173,6 +181,7 @@ what undo does to each.
 | Query language | composable queries, printed and read as S-expressions | building: range, at, all, item, node, extent, items, rect, row, chain | [building-blocks](building-blocks.md) | 89, 229 | p53: queries |
 | User-defined refs | named addresses in a `refs` container; bookmarks and location sets are refs; rewritten on move | building: refs, bookmarks and sets, rewritten on move, dangling refused (p53: Bookmarks and links); refs in data params and a section's `of` and `follow`, the Antibody view not | [addressing](addressing.md) | 162 | Antibody: CDR bookmarks |
 | Track and group editing | hide, reorder, collapse, theme changes | building: hide (tracks, layers), reorder, theme changes as patches (p53: Edit and undo); collapse and groups not | [ux-foundations](ux-foundations.md) | — | every dataset's editing view |
+| Copy the selection's letters | what is shown, in reading order, rows as FASTA lines (`selection.copyLetters`, Cmd/Ctrl+C) | planned: the third slice | [layouts](layouts.md) | — | p53: text figure; Globins: family |
 | Hover card and context menu | actions on the element; keyboard menu | planned | [ux-foundations](ux-foundations.md) | 156, 166 | p53: tracks |
 
 ## Rendering and output

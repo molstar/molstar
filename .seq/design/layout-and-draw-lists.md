@@ -33,9 +33,11 @@ interface LayerType<P, Prep, Lay> {
 - **Emphasis reaches `draw` as an argument**: selection and cursor over a section's band (its tracks and the gaps
   between them; or per track, `emphasis.selectionShape: 'tracks'`; the author's look, second slice), hover per layer (the hit decides its granularity). Why: the emphasis passes redraw without a layout.
 
-- **open: one window per leading section.** The renderer's frame takes one viewport and the view model keeps one per
-  section, so the viewer draws every section with the first leader's window. Recommendation: a per-section viewport
-  map in the frame's input, before any view has two independent leaders.
+- **One window per leading section** (settled by [layouts.md](layouts.md)): the frame's input carries a viewport per
+  section (`FrameInput.viewports`, by section address), the one viewport record `{ start, end, top, width, pending,
+  scale?, bands?, y? }`: `top` the section's vertical scroll, a new input of the layout and of its key; `bands` a band's
+  own scroll and row zoom (`bandTop`, `rowScale`, read by its layer as `ctx.bandTop` and `ctx.rowScale`); `y` a grid's
+  second axis. Follow reads the leader's viewport, not its transform.
 - **Projected hover** (open in the first slice, built in the second): the emphasis carries `projected` (the hover's and
   the selection's projections, and the hover's own section), drawn in the `hover` and `selection` passes in their own
   look at `emphasis.projected` (0.5), on every section but the hover's own.
@@ -44,7 +46,10 @@ interface LayerType<P, Prep, Lay> {
 
 A section layout (tracks, text, rings, dot plots) takes a section of the resolved view, the configuration and a size,
 and gives the axis transform per block, each track's box, and the order of its layers; it calls the layer types. It is
-internal until an outside application needs one ([ux-foundations.md](ux-foundations.md)).
+internal until an outside application needs one ([ux-foundations.md](ux-foundations.md)). Its shape is
+[layouts.md](layouts.md)'s: a layout cuts a section into straight strips (an axis transform, a stack of bands, a warp to
+the page), a layer is laid out and hit per strip, and placement's inverse is hit-testing; the key is kept per section.
+The legend member becomes `Legend` data derived from a layer's resolved channel ([themes.md](themes.md)).
 
 ### Draw lists
 

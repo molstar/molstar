@@ -33,6 +33,11 @@ is the agreed direction with its details still open; it says what would settle t
 | [packages.md](packages.md) | the packages, their layers and names, and what each may import |
 | [stories.md](stories.md) | a story as a sequence of full states stored as patches; transitions planned from diffs, sampled purely; the animation port by which the application owns the clock |
 | [ux-foundations.md](ux-foundations.md) | the data's visual foundations on top of `@molstar/ui`'s (color, type, grid, density, when to squircle, emphasis, motion) and one interaction grammar for selection, toggling and navigation |
+| [axis.md](axis.md) | a section's axis: its direction (`genomic`, `reversed`, `follow`, `{ along }`), another system's letters through a path (a residue a codon wide), collapsed introns as pieces with breaks, and what reads the axis (hits, selection, follow, focus, history, export) |
+| [themes.md](themes.md) | the theme sublanguage (a slot per channel: uniform, field, rules, scheme, letters), palettes and `scale` nodes for shared domains, the residue schemes, tokens in light and dark, legends as data and a part a host places, the small layers |
+| [layouts.md](layouts.md) | the section layout interface (strips, bands, warps), placement and hit-testing as its inverse, the one viewport record, text, blocks and rings, the ring's window and its follower |
+| [grids-and-rows.md](grids-and-rows.md) | pairs as arcs, chords and dots; the grid section and dot plot (crosshair, rectangles); the rows layer (order, clades folded as session state, pins, lazy rows, the cursor); the logo; one reduction and one image cache |
+| [navigators.md](navigators.md) | one part over an axis or two (the ruler rail, strip, ideogram, vertical overview, miniature), its window moving the view, idle and floored windows, a part a host places |
 | [viewer-composition.md](viewer-composition.md) | the viewer composed from an explicit spec, as Mol\*'s plugins are: registry entries, behaviors, bindings, config, port factories with ownership; defaults as a spec; inside a Mol\* plugin |
 | [ports.md](ports.md) | one per viewer is a port (assets, text metrics, structure), named providers are registry entries; defaults out of the box |
 | [extensibility.md](extensibility.md) | what can be configurable is (the spec, the viewer configuration, user settings, layered); every registry open to extensions, passed at composition |
@@ -40,4 +45,4 @@ is the agreed direction with its details still open; it says what would settle t
 | [performance.md](performance.md) | time, memory, size and scale targets, and how each is held by a test (provisional) |
 | [testing.md](testing.md) | what holds each promise (properties, conformance suites, records, scaling ratios), in which lane, and how tests are written |
 | [edge-cases.md](edge-cases.md) | the previous implementation's edge cases and rich behaviors: each kept, changed or dropped by decision, never by omission |
-| [examples.md](examples.md) | six datasets, many views each (editing included); every view runs in Storybook, in a test and as a portable spec |
+| [examples.md](examples.md) | six datasets, many views each (editing included); the exact data per dataset (entries, licences, sizes, what is generated), the fixture rules, what a user does in each view; every view runs in Storybook, in a test and as a portable spec |

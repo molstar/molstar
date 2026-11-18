@@ -1,8 +1,8 @@
 # Plan: the third slice
 
 **Rewritten 2026-11-18 as the second slice closed**, from what that slice taught (its record:
-[records/second-slice](../../records/second-slice/2026-11-18-second-slice.md)). It is a plan for the author to agree at
-Gate 0; no loop runs on it before then, and its loop file is written after.
+[records/second-slice](../../records/second-slice/2026-11-18-second-slice.md)). Gate 0 is decided and the slice's
+designs are agreed (below); `loop.md` runs it.
 
 Work id `third-slice`. Version 1's second milestone, **figures** ([version-1](../../design/version-1.md)): the axis
 finished (direction, letters through a map, collapsed introns), the layouts beyond tracks, the remaining layers and
@@ -78,6 +78,23 @@ The designs are drafted and reviewed now, before the loop ("let's draft and revi
 run the slices autonomously"), in `drafts/`, each with its self-check, and agreed by the author before any lane; each
 agreed design is folded into the Storybook's Design pages.
 
+**The designs, agreed 2026-11-18** (drafted, reviewed for their decisions, self-checked as a set by the four steps,
+decided by the author): [axis](../../design/axis.md), [themes](../../design/themes.md),
+[layouts](../../design/layouts.md), [grids-and-rows](../../design/grids-and-rows.md),
+[navigators](../../design/navigators.md), the datasets in [examples](../../design/examples.md); the interaction
+matrix's cells in [ux-foundations](../../design/ux-foundations.md). What they settled that shapes the lanes:
+- the application drives the composition: plain defaults, never inferred from what a section draws (a section's
+  `direction` and `pieces` are the writer's; the examples' builders spell them);
+- each choice says whose it is (a spec param, a `RenderConfig` preset, `SpecBounds`, `ViewerConfig`, a port, a call
+  option, or fixed with its reason); nothing configurable without a second use; export choices are optional spec
+  params of a view that `renderSvg`'s options override;
+- a layer's default theme is the language's; a host recolors through `--seq-*` tokens; Mol\*'s color code gains what
+  Seq\* needs, non-breakingly (themes, Consequences);
+- the ruler rail is the default linear navigator (a drag on the ruler pans; on an alignment's ruler its upper part
+  selects columns), with its grips, floor, idle and hidden cases;
+- clade folds are session state with a keep command; a node click toggles its fold; a reveal opens it;
+- one shared 2D reduction and one image cache (core's `LRUCache`); p53's generator on core's `PCG`.
+
 - **The datasets' exact data**: which globins, antibody, plasmid, tRNA and p53 structure; the Complex's entries.
   Recommendation: small public entries with permissive licenses, fixtures under 1 MB each, the large variants generated
   in code.
@@ -126,12 +143,12 @@ and dark before the merge.
       and the focus recorded when a kept move lands; the Features links story's single message; `track.add` as a
       command; `view.back` and `view.forward` in the default toolbar with their disabled state; drawing checked against
       the data in the existing p53 example views; the selection's bookmark command (its name and key), beside
-      `refs.remove` and labels (decided at the design review).
+      `refs.remove` and labels, and `highlight.clear` (decided at the design review).
 - [ ] GATE: merged, reviewed, the checks green, sizes measured.
 
 ### Stage 1: the axis, then themes and the small layers (after Gate 0)
 
-- [ ] AX (strong) the axis, as the axis design agreed at Gate 0 (with its self-check), first in the stage:
+- [ ] AX (strong) the axis, as [axis](../../design/axis.md), first in the stage:
   - a section's direction `genomic`, `reversed`, `follow` on reversed pieces; a follower defaults to `follow`; a
     reversed axis counts down and says so; reversed DNA letters as their complement (on by default);
   - letters through a one-to-one or codon path (a residue a codon wide, a codon split by an intron in each piece),
@@ -141,29 +158,33 @@ and dark before the merge.
     nucleotide of a split codon;
   - hit-testing, selection, follow (both ways), focus and the SVG export through the new axis; the p53 views: the
     protein and its gene on one axis, the gene reading along its protein.
-- [ ] TH (strong, after the theme sublanguage's design) themes: the `layer.color` slot's grammar (fields, palettes
+- [ ] TH (strong) themes, as [themes](../../design/themes.md): the `layer.color` slot's grammar (fields, palettes
       binned, continuous and log, rules), the residue schemes, legends as parts a host places, shared domains, size
-      channels; the themes view.
-- [ ] SL (fast, beside TH) the small layers: the ruler and numbering, secondary structure, variants, values' line and
-      area, ranges' line styles and arrowheads; each with its fallback.
+      channels, `layer.filter` with its chip; the `@molstar/core` color additions (a base-library change: its agreed
+      surface is the design's list); the themes view.
+- [ ] SL (fast, beside TH) the small layers: the ruler and its `numbering` (insertion codes as minor ticks),
+      secondary structure, variants, values' line and area, ranges' line styles and arrowheads; each with its fallback.
 - [ ] GATE: merged, reviewed, the checks green, sizes measured (headless rendering's room, Gate 0's question), gaps
       asked, the matrix cells this stage fills checked.
 - [ ] USE GATE (early): the author tries the p53 views for about ten minutes; findings fixed or placed, counted by kind.
 
 ### Stage 2: layouts (two strong lanes, after stage 1)
 
-- [ ] TX (strong) the text layout and alignment figures, on the layout interface's extension agreed at Gate 0: groups
+- [ ] TX (strong) the text layout and alignment figures, as [layouts](../../design/layouts.md) (it restates tracks on
+      the extended interface first, then RB builds on it; it owns the viewport record): groups
       of ten, lanes, inline labels, numbers per row, frames; reflow on resize within its target.
-- [ ] RB (strong) blocks and rings: labels with leaders, a window a linear detail follows (EC-108, EC-114), a feature
+- [ ] RB (strong, after TX's interface change) blocks and rings, as [layouts](../../design/layouts.md): labels with leaders, a window a linear detail follows (EC-108, EC-114), a feature
       across the origin by its shortest arc.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (the ring's window).
 
-### Stage 3: pairs, grids and rows (strong, after stage 2)
+### Stage 3: pairs, grids and rows (strong, after stage 2; as [grids-and-rows](../../design/grids-and-rows.md))
 
-- [ ] PG (strong) arcs and chords; the grid and dot plot as a section of its own, crosshair hover and rectangle
-      selection.
-- [ ] RW (strong) the rows layer: tree or data order, collapsed clades with a summary, pinning, lazy rows for 10,000
-      (the store's want sets, bounded layout); the logo.
+- [ ] RW (strong, first: it lands the shared pieces) the rows layer: tree or data order, clade folds (session state,
+      `clades.keep`), pinning, lazy rows for 10,000 (the store's want sets, bounded layout); the column measures, the
+      Stockholm and Newick readers, `Hit`'s y fields, the `cells` shape on row tiles, the shared 2D reduction and image
+      cache; the logo.
+- [ ] PG (strong, on RW's shared pieces) arcs and chords; the grid and dot plot as a section of its own, crosshair
+      hover and rectangle selection (no 2D store this slice).
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (rows and clades, the rectangle).
 
 ### Stage 4: stories and navigators (SY after stage 2, beside stage 3; NV after RW)
@@ -172,9 +193,12 @@ and dark before the merge.
       `seqx-core` (property tests: `sample(plan, 0)` is `from`, `sample(plan, 1)` is `to`, monotone, deterministic,
       allocation-free warm); the frame slot over the shown state; the `AnimationPort` with its default and headless
       adapters; the view history's jumps and focus through it; the p53 story played, scrubbed and exported.
-- [ ] NV (strong, after `navigators.md` and RW) navigators, one part by the axes it covers (positions, rows, or
-      both), drawn from the coarse summaries the views already read, the window dragged and resized to move the view,
-      idle when there is nowhere to go, a floored window drawn wider (EC-110), a part a host places:
+- [ ] NV (strong, after RW) navigators, as [navigators](../../design/navigators.md): one part by the axes it covers
+      (positions, rows, or both), drawn from the coarse summaries the views already read, the window dragged and
+      resized to move the view, idle when there is nowhere to go, a floored window drawn wider (EC-110), a part a host
+      places:
+  - the ruler rail (the default of a linear section) and the slim rail, with grips, the grab zone's split on an
+    alignment's ruler, grown and hidden cases;
   - the strip: a navigation track with window handles over a section's positions;
   - the vertical overview: an alignment's rows (columns compressed across), the Globins 10,000-row view's;
   - the miniature: both axes; the ideogram: a strip with a chromosome's bands.
@@ -183,7 +207,9 @@ and dark before the merge.
 ### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
 
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
-      examples.md, their stories and headless twins, drawing against the data, an editing view each.
+      [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
+      view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). DG owns
+      `record.ts` and the `sources.json` test.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
 
 ### Stage 6: output, accessibility and use
@@ -208,9 +234,9 @@ and dark before the merge.
 
 ## Order and parallelism
 
-Gate 0 (with C0 beside it) → AX → TH and SL in parallel → early use gate → TX and RB in parallel → PG, RW and SY in
-parallel (two heavy, one light at once), NV after `navigators.md` and RW (the vertical overview reads RW's
-rows) → the datasets' lanes (two or three at once, fast)
+Gate 0 (with C0 beside it) → AX → TH and SL in parallel → early use gate → TX, then RB on TX's interface change → RW
+and SY in parallel, then PG on RW's shared pieces and NV after RW (the vertical overview reads RW's rows; at most two
+strong lanes at once) → the datasets' lanes (two or three at once, fast)
 → OP and AY → novice pass → the author's use gate → measure → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)

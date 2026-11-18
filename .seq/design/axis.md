@@ -1,11 +1,9 @@
 # The axis: direction, letters through a path, collapsed introns
 
-*Draft for the third slice's Gate 0. Links are written for its place in `design/`.*
-
 ## Intent
 
 A section's axis is one system laid out across the page. Three things are missing, all found by the author using the p53
-views (stage 4's gate, 2026-11-18):
+views (2026-11-18):
 
 - **Direction.** "when scrolling the protein, the gene slides the other way, is that expected?": a minus-strand gene
   following its protein is laid out in genomic order, so it moves against the protein ([maps.md](maps.md): the hull in
@@ -53,22 +51,38 @@ What is taken and what is not:
 | show the complement without flipping (IGV, UCSC) | built: the `complement` param, by patch; no gesture of its own (no, because flipping covers reading the other strand) |
 | show exons only, with padding (UCSC multi-region) | built: `pieces`, `pad`; `section.collapse` toggles |
 | read an intron's length (Ensembl) | built: a break's hover carries the hidden range |
-| expand one intron of a collapsed view | refused this slice: the pieces are the spec's, a per-break override would make the export differ from the screen (Tensions) |
+| expand one intron of a collapsed view | refused for now: the pieces are the spec's, a per-break override would make the export differ from the screen (Tensions) |
 | click a residue to select its codon (SnapGene) | built: the hit's granularity is the residue, projected onto its codon |
 | translation under the DNA, split codons in each part (SnapGene, the current Seq\*) | built: letters through a codon path |
-| three or six translation frames (IGV, JBrowse) | refused here: a translation layer type, later (features.md) |
+| three or six translation frames (IGV, JBrowse) | refused here: a translation layer type, later ([features.md](features.md)) |
 | the codon's letters in the hover label, split by `\|` (the current Seq\*) | planned: with the hover card (viewer-models, later behaviors) |
 | the protein following the gene, waiting at the nearest coding residue in an intron (the current Seq\*) | built (as today) |
 
 ## Decision
 
-The author, 2026-11-18, on the direction: "i think you are specializing on implementation details here instead of
-letting the application drive the compositions"; and in general: "a lot of this is "configurable behavior" and where
-appropriate, the code should allow the configuration via spec ports etc.; we already have a lot of patterns for this,
-so use your own judgement what's appropriate to keep just as a single feature and what to make configurable, with port,
-etc."
+### The author's decisions
 
-So each choice below says whose it is (the same rule in every third-slice design):
+The author, 2026-11-18, on the direction: "i think you are specializing on implementation details here instead of
+letting the application drive the compositions. / rest as recommended"; and in general: "a lot of this is "configurable
+behavior" and where appropriate, the code should allow the configuration via spec ports etc.; we already have a lot of
+patterns for this, so use your own judgement what's appropriate to keep just as a single feature and what to make
+configurable, with port, etc."; on sizes: "don't overdo it on the limits (they were sort of self-imposed and estimate),
+but obviously try to minimize the amount of code". On the review of the decisions: "ok" to its recommendations.
+
+1. The direction is the writer's: `genomic`, `reversed`, `follow`, `{ along }`, defaults `follow` for a follower and
+   `genomic` otherwise, never inferred.
+2. `pieces` defaults to `whole` for every section, followers included; the p53 views spell `coding`.
+   `section.collapse` toggles to the spec param `collapsed` (default `coding`), with no memory of a form written before.
+3. A collapsed intron is zero width on every layout, rings included, a hairline marking it.
+4. A drag across a collapsed intron selects only the positions shown (`selection.acrossBreaks: shown`; `span` the
+   setting).
+5. Expanding a single intron is refused for now; Shift+C toggles the whole section.
+6. A history step over a changed axis is restored by position, clamped to what is drawn, never silently dropped.
+
+### Whose each choice is
+
+Each choice below says whose it is (the same rule in every design of the axis, themes, layouts, grids and rows,
+navigators):
 
 - **a spec param** (the writer's: what the figure is), with a plain default the library never infers from data, from
   other nodes, from a column's presence or from an example;
@@ -82,8 +96,7 @@ A config item needs a second real use; else it is fixed. No new port: the axis i
 host drives it through the spec (patches, the two commands) and the config. Why: nothing here reaches outside the
 library (no clock, no data, no measurement).
 
-The author, 2026-11-18, on sizes: "don't overdo it on the limits (they were sort of self-imposed and estimate), but
-obviously try to minimize the amount of code". So a size estimate cuts no feature here, and the code stays minimal:
+So, by the author's word on sizes, a size estimate cuts no feature here, and the code stays minimal:
 the axis extends what exists (`AxisTransform`, `projectPoint` exported and the viewer's `pathPoint` removed, the
 codon map's runs, `projectBoundary`, closure, the hit's `extent` and `hull` as ranges use them), with no private copy and
 nothing without a use; the fixed behaviors below are fixed partly so.
@@ -105,11 +118,11 @@ nothing without a use; the fixed behaviors below are fixed partly so.
 - **One direction per axis.** `Axis` gains `dir`. Pieces stay `[start, end, …]`, start below end, in display order (on a
   reversed axis the last piece first); a reversed piece shows position `end − 1 − k` at its offset `k` (EC-32). A
   direction per piece serves only Genomes (an inversion between two genomes on one axis): a tension, not built.
-- **A reversed axis says so**: the ruler counts down (SL draws it from the axis), and the section's first label carries a
+- **A reversed axis says so**: the ruler counts down (the ruler layer draws it from the axis, [themes.md](themes.md)), and the section's first label carries a
   direction mark (an arrow and "reversed"; with `along`, "along p53") drawn in the `labels` pass, so the export says it
   too. `axis.directionMark` (`RenderConfig`: `label`, or `none` for a host whose own chrome says it, as a Mol\* plugin's
   panel would).
-- **Complement** (spec, the `letters` layer's `complement`): `auto` (the default, as the plan decides) draws a nucleotide
+- **Complement** (spec, the `letters` layer's `complement`): `auto` (the default, decided) draws a nucleotide
   as its complement when it is read against its strand on screen: the axis's direction times its path run's direction is
   −1. So a reversed DNA axis shows the other strand read 5′ to 3′, and an inverted run of a one-to-one map shows the
   strand it lands on. `always` (IGV's and UCSC's complement without flipping) and `never` (EC-233's rule, recorded as
@@ -132,7 +145,7 @@ nothing without a use; the fixed behaviors below are fixed partly so.
 - **A ref that reaches no piece** (`coding` with no codon map, a ranges node on another system) is
   `seq.view.section.pieces` and the section shows `whole`.
 - **A break** is where two pieces leave positions hidden between them, drawn as a hairline in the break ink
-  (`seq-break`, the themes design's token) across the section's band and a notch on the axis edge, zero units wide on
+  (`seq-break`, [themes.md](themes.md)'s token) across the section's band and a notch on the axis edge, zero units wide on
   every layout, rings included (no ring gap: decided). Fixed. Why: the axis stays one display unit a position, the cells
   either side touch and a codon follow on a coding axis is exact; a visible gap has no use yet. Two pieces contiguous
   across a cyclic origin have no break.
@@ -184,8 +197,8 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   anchor is the residue on p53, so Shift+click, Shift+arrows and Shift+drag extend by residues on p53, in display order.
   Plain arrows move the cursor on the section's system by the row's granularity: a codon on a residue row (to the next
   residue's first nucleotide in display order), a position elsewhere, across breaks; a step that crosses a break is
-  announced with the hidden stretch it crossed ("crossed intron 3, 1,240 positions hidden"), as the AY lane announces
-  the cursor. A drag or an extend across a break
+  announced with the hidden stretch it crossed ("crossed intron 3, 1,240 positions hidden"), as the cursor is
+  announced. A drag or an extend across a break
   selects the positions shown between its ends (`selection.acrossBreaks`, `ViewerConfig`: `shown`, decided; `span` adds
   the hidden stretch, for a reader who selects a gene's whole span to export).
 - **Follow** (both ways): the follower's window is the image of the leader's window edges in display order.
@@ -232,19 +245,19 @@ Cells this design fills or changes ([ux-foundations.md](ux-foundations.md), sect
 | **a range** | drag: shown positions only across a break; whole residues on a residue row | Shift+drag, the same | Cmd/Ctrl+drag, Alt+drag, the same | Enter: its hull in display offsets | as built | — | — | — | — |
 | **the selection** | — | Shift+arrows in display order, across breaks | Cmd/Ctrl+Shift+arrows | Enter | as built | — | — | — | — |
 | **the view** | — | — | — | fit shows every piece | back lands on the same positions whether the axis changed or not | — | — | — | undo returns a direction or pieces change |
-| **a track or layer** | as planned (RW) | — | — | as planned | — | — | — | as built | a letters layer's `complement`, `code` by patch |
+| **a track or layer** | as planned ([grids-and-rows.md](grids-and-rows.md)) | — | — | as planned | — | — | — | as built | a letters layer's `complement`, `code` by patch |
 | **a bookmark or link** | — | — | — | runs on positions; into a hidden stretch, its break and the reason | as built | — | — | — | — |
-| **a navigator** (NV) | — | — | — | — | — | — | its strip shows the section's direction and breaks (planned: NV) | — | — |
+| **a navigator** ([navigators.md](navigators.md)) | — | — | — | — | — | — | its strip shows the section's direction and breaks (the ruler rail, [navigators.md](navigators.md)) | — | — |
 
 ## Configuration
 
 | Item | Whose | Default | Why the default; the alternatives |
 |---|---|---|---|
-| `section.direction` | spec param | `follow` for a follower, else `genomic` | the plan's defaults, by the section's own `follow` param, never inferred from layers; `genomic`, `reversed`, `{ along }` |
+| `section.direction` | spec param | `follow` for a follower, else `genomic` | decided defaults, by the section's own `follow` param, never inferred from layers; `genomic`, `reversed`, `{ along }` |
 | `section.pieces` | spec param | `whole` (every section, followers included: decided) | the application drives the composition; `coding`, refs (their union) |
 | `section.collapsed` | spec param | `coding` | the form `section.collapse` switches to; a ref or a list |
 | `section.pad` | spec param | 0 | the pieces as they are; n positions each side (splice sites, UCSC) |
-| `letters.complement` | spec param | `auto` | read along the strand shown (the plan); `always` (IGV, UCSC), `never` (EC-233's rule) |
+| `letters.complement` | spec param | `auto` | read along the strand shown (decided); `always` (IGV, UCSC), `never` (EC-233's rule) |
 | `letters.code` | spec param | `auto` | three letters where the narrowest part has room (EC-117); `one`, `three` |
 | `axis.directionMark` | `RenderConfig` preset | `label` | the picture and the export say "reversed"; `none` for a host's own chrome |
 | `selection.acrossBreaks` | `ViewerConfig` (the reader's) | `shown` (decided) | what is selected is what is seen; `span` |
@@ -259,12 +272,12 @@ position.
 ## Tensions
 
 - **Complement by default against EC-233** ("reversing never complements by itself", the JBrowse reply's "one strand of
-  letters"). The plan decides complement on; the rule is explicit and visible (`complement: auto`, read against the
+  letters"). Complement is on by default (decided); the rule is explicit and visible (`complement: auto`, read against the
   strand on screen), and the stored letter is named wherever the letter is. EC-233 is recorded as changed.
 - **One direction per axis**: an inversion between genomes on one axis needs a direction per piece, in the language and
   the transform. Not built; the pieces' shape (display order, start below end) does not rule it out. Open until Genomes.
 - **Hidden is not gone**: a collapsed intron hides a splice-site variant. Ticks on the break, `pad`, focus naming the
-  reason and the toggle answer it; expanding one break is refused this slice (decided): a per-break session override
+  reason and the toggle answer it; expanding one break is refused for now (decided): a per-break session override
   would make the export differ from the screen; a per-break patch is a `pieces` ref edit, possible by hand. Standing.
 - **The inverse placement**: the gene's letters on the protein's axis (a nucleotide a third of a residue, introns with no
   place). Refused with its reason; the one-axis view on the gene covers the figure. Standing until a figure wants it.
@@ -351,24 +364,6 @@ The claim: **this design covers what a user does with a section's axis.**
   follow, issues), Render (Configuration, Layer types `letters`, Tracks layout, Lanes and Hits, Shapes, Export, Issues);
   viewer ViewModel (viewport, follow, history), SelectionModel, Commands, Bindings (the `break` target, the two keys),
   Configuration.
-- **Other designs**: features.md's three rows (the direction row gains `{ along }`); edge-cases.md (EC-233 changed;
-  EC-31, EC-32, EC-117, EC-144 kept); viewer-models.md (collapsed introns built); ux-foundations.md section 8's matrix
-  (the cells above); maps.md ("reversed pieces follow later" closed).
-
-## Decided
-
-The author, 2026-11-18, on this draft: "i think you are specializing on implementation details here instead of letting
-the application drive the compositions. / rest as recommended"; in general: "a lot of this is "configurable behavior"
-and where appropriate, the code should allow the configuration via spec ports etc."; on sizes: "don't overdo it on the
-limits (they were sort of self-imposed and estimate), but obviously try to minimize the amount of code". After the
-decisions review: "ok" to its recommendations.
-
-1. The direction is the writer's: `genomic`, `reversed`, `follow`, `{ along }`, defaults `follow` for a follower and
-   `genomic` otherwise, never inferred.
-2. `pieces` defaults to `whole` for every section, followers included; the p53 views spell `coding`.
-   `section.collapse` toggles to the spec param `collapsed` (default `coding`), with no memory of a form written before.
-3. A collapsed intron is zero width on every layout, rings included, a hairline marking it.
-4. A drag across a collapsed intron selects only the positions shown (`selection.acrossBreaks: shown`; `span` the
-   setting).
-5. Expanding a single intron is refused this slice; Shift+C toggles the whole section.
-6. A history step over a changed axis is restored by position, clamped to what is drawn, never silently dropped.
+- **Other designs**: [features.md](features.md)'s three rows (the direction row gains `{ along }`); [edge-cases.md](edge-cases.md) (EC-233 changed;
+  EC-31, EC-32, EC-117, EC-144 kept); [viewer-models.md](viewer-models.md) (collapsed introns built); [ux-foundations.md](ux-foundations.md) section 8's matrix
+  (the cells above); [maps.md](maps.md) ("reversed pieces follow later" closed).

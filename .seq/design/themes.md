@@ -2,12 +2,12 @@
 
 ## Intent
 
-The plan, for the third slice: "Themes: field palettes (binned, continuous, log), rules, the residue schemes, legends,
-shared domains", built by lane TH with the small layers (lane SL: the ruler and numbering, secondary structure,
-variants, values' line and area, ranges' line styles and arrowheads), and the p53 themes view. Gate 0 asked for "the
-theme sublanguage (the `layer.color` slot's grammar, legends' place)" as a design first. The building blocks:
+The third slice's themes: "field palettes (binned, continuous, log), rules, the residue schemes, legends, shared
+domains", with the small layers (the ruler and numbering, secondary structure, variants, values' line and area, ranges'
+line styles and arrowheads) and the p53 themes view; the theme sublanguage (the `layer.color` slot's grammar, legends'
+place) designed first. The building blocks:
 "**Theme.** A channel (color, size) and how its value is computed: `uniform`, by a field's values (a palette, binned or
-continuous, a domain open to the data in view), by rules (thresholds), by a named scheme. Data, never code." The plan's
+continuous, a domain open to the data in view), by rules (thresholds), by a named scheme. Data, never code." A known
 risk: "legends, navigators and the animation loop stay host-neutral (parts a host places, a port the host drives)". The
 author's rule throughout: "what we can make configurable, we should".
 
@@ -21,7 +21,7 @@ render and another viewer all answer it the same way, and a legend can answer it
 | The current Seq\*'s themes | a channel per layer param (`color`, sizes, `line_style`), each a theme; palettes as MolViewSpec's (categorical, discrete, continuous), evaluated by Mol\*'s `value-palette` so a value has one color in both; one `rules` evaluator, named schemes being tables for it; a measure that does not apply is NaN and fails its clause (EC-52, EC-135); a hash for values the palette does not list (EC-134, EC-203); domain groups as a union per group and field, an explicit domain winning (EC-56); sizes change the fill, never the slot or hits (EC-137); seven line styles (EC-128); a dark variant per scheme and a legend of the variant drawn (EC-136) | `ThemeRef` nesting with a fallback per theme, four levels (here one grammar, the layer type's default as the only fallback); palette order by first occurrence over all rows (EC-133, impossible by region); a group named by a free string (here a scale node with an address) |
 | The current Seq\*'s legend and scheme picker | a ramp for continuous, hard steps for binned, swatches for categories; identical groups merged and titled by what they share; "+n more"; hashed values cannot be listed, said once (EC-132, EC-204); the picker in the legend group's title and the track menu, offering only schemes that fit | the legend as one viewer-owned panel, collapsed by default (here a part a host places); a scheme pick as UI state outside the spec unless asked to write (here a pick is a patch, one undo step: ux-foundations section 8, "edits to the spec (… a theme) are patches") |
 | Jalview's colour schemes and "colour by annotation" | the scheme catalog (Clustal X, Zappo, Taylor, hydrophobicity, helix, strand and turn propensity, buried index, nucleotide, purine/pyrimidine, percent identity, BLOSUM62) as data with provenance; Clustal X and percent identity as threshold rules over a column; colouring by an annotation row with a threshold or a gradient between two colors; "colour text" (letters colored, not cells) | the scheme applied per selection group as a global mutable state; user-defined colours as a modal dialog (here a command per value, one patch) |
-| ESPript | identical columns as a filled box, similar residues as colored letters (a cell channel and an ink channel); its black-and-white figure as a mode of the same rules (`espript :mode bw`: identical black cells, similar grey); gaps counted against identity (EC-135's flaw fixed) | its global similarity score (here an approximation by residue groups, stated); frames around similar blocks (the Frames feature, lane TX) |
+| ESPript | identical columns as a filled box, similar residues as colored letters (a cell channel and an ink channel); its black-and-white figure as a mode of the same rules (`espript :mode bw`: identical black cells, similar grey); gaps counted against identity (EC-135's flaw fixed) | its global similarity score (here an approximation by residue groups, stated); frames around similar blocks (the Frames feature, [layouts.md](layouts.md)) |
 | Nightingale's tracks | a color per feature from the data (a `color` field drawn as is); a colored sequence as a heat strip of per-residue values | scales and color ranges as strings (`"A:0,B:1"`); no legend component |
 | Vega-Lite's scales and legends | a scale apart from the encoding: type (linear, log), domain, range, shared by name across marks (`resolve: shared`); legends derived from scales, never written by hand; conditional encodings (our rules); a legend click selecting the items of a value | legend placement inside the chart (`orient`); expressions as strings for tests |
 | Mol\*'s color themes (`graphics/src/theme/color.ts`, `core/util/color`, `core/util/legend`) | a provider registry with `isApplicable` (a scheme offered only where it fits); legends as data, `TableLegend` and `ScaleLegend` (a Seq\* legend converts to them, so a Mol\* host's legend control shows it); the color lists (ColorBrewer, Viridis, Cividis); `hashFnv32a` | a theme's params as a `ParamDefinition` per provider (here the language description, which also generates the settings form later) |
@@ -31,27 +31,59 @@ render and another viewer all answer it the same way, and a legend can answer it
 
 | What a user does | Where | Here |
 |---|---|---|
-| picks a color scheme for a layer from a menu | Jalview, Mol\*, the current Seq\* | **built, TH**: the track menu's Color and the legend's title list the schemes that fit; each previewed while hovered; a click is one patch |
-| applies one scheme to several tracks at once | Jalview ("apply to all groups") | **built, TH**: `layer.color` takes several layers, one patch |
-| colors by an annotation, with a threshold or a gradient | Jalview, IGV, Nightingale | **built, TH**: a field theme (binned, continuous) or rules |
-| sets a track's data range, or autoscales a group of tracks together | IGV, genome browsers | **built, TH**: a scale node's `domain` (one patch, every layer naming it follows); open when unset, unioned over its layers (EC-56, EC-201) |
-| switches to a log scale | IGV, Vega-Lite | **built, TH**: `scale.type: log` on y and on colors (EC-215) |
-| edits the color of one category | Jalview (user colours), plotting tools | **built, TH**: `theme.value-color`, one patch, from a color input in the legend part |
-| drags a continuous legend's ends to change the domain | some plotting tools | **later** (decided: not this slice); the command and a numeric field are built in TH |
-| moves an identity or conservation threshold with a slider | Jalview | **planned, RW** (the column measures arrive with the rows layer); the threshold is a rule's number, so the slider is a preview ending in one patch |
-| shades by conservation over an alignment | Jalview, ESPript | **planned, RW** (column measures); the schemes are listed now and offered once they fit |
-| clicks a legend entry to select its items | Vega-Lite | **built, TH**: the items of that value, by `(item :<field> v)` |
-| hovers a legend entry to see its items | plotting tools | **built, TH**: a highlight channel over its items in view |
-| clicks a legend entry to hide its items | plotting tools | **built, TH**: `layer.filter` (one patch on the layer's `layer.data` filter, the query sublanguage's), the track header showing an "n filtered" chip whose click clears it; a theme still never hides |
-| sees the active highlights in the legend and removes one | Vega-Lite's selections, some genome browsers | **planned, TH** (the legend part's highlight rows) with `highlight.clear` (C0) |
-| sees the hovered item's value on the legend | some plotting tools | **built, TH**: the hovered item's entry is outlined, its value ticked on a ramp |
-| colors the letters instead of the cells | Jalview ("colour text") | **built, TH**: the letters layer's `ink` channel |
-| colors a selected region on a track | Jalview (groups) | **planned, TH**: `theme.color-selection` adds a rule `(in <the selection>)` at the top of the layer's theme, one patch |
-| switches light and dark, or the platform's forced colors | Mol\*, the current Seq\* | **built** (light and dark: the token table); forced colors: **planned, AY** |
-| asks for a color-blind safe rendering of someone else's figure | — (no precedent offers it per reader) | **built, TH** as a reader's setting (Self-check) |
+| picks a color scheme for a layer from a menu | Jalview, Mol\*, the current Seq\* | **built**: the track menu's Color and the legend's title list the schemes that fit; each previewed while hovered; a click is one patch |
+| applies one scheme to several tracks at once | Jalview ("apply to all groups") | **built**: `layer.color` takes several layers, one patch |
+| colors by an annotation, with a threshold or a gradient | Jalview, IGV, Nightingale | **built**: a field theme (binned, continuous) or rules |
+| sets a track's data range, or autoscales a group of tracks together | IGV, genome browsers | **built**: a scale node's `domain` (one patch, every layer naming it follows); open when unset, unioned over its layers (EC-56, EC-201) |
+| switches to a log scale | IGV, Vega-Lite | **built**: `scale.type: log` on y and on colors (EC-215) |
+| edits the color of one category | Jalview (user colours), plotting tools | **built**: `theme.value-color`, one patch, from a color input in the legend part |
+| drags a continuous legend's ends to change the domain | some plotting tools | **later** (decided: not this slice); the command and a numeric field are built |
+| moves an identity or conservation threshold with a slider | Jalview | **planned** (the column measures arrive with the rows layer, [grids-and-rows.md](grids-and-rows.md)); the threshold is a rule's number, so the slider is a preview ending in one patch |
+| shades by conservation over an alignment | Jalview, ESPript | **planned** (the rows layer's column measures); the schemes are listed now and offered once they fit |
+| clicks a legend entry to select its items | Vega-Lite | **built**: the items of that value, by `(item :<field> v)` |
+| hovers a legend entry to see its items | plotting tools | **built**: a highlight channel over its items in view |
+| clicks a legend entry to hide its items | plotting tools | **built**: `layer.filter` (one patch on the layer's `layer.data` filter, the query sublanguage's), the track header showing an "n filtered" chip whose click clears it; a theme still never hides |
+| sees the active highlights in the legend and removes one | Vega-Lite's selections, some genome browsers | **planned** (the legend part's highlight rows) with `highlight.clear` |
+| sees the hovered item's value on the legend | some plotting tools | **built**: the hovered item's entry is outlined, its value ticked on a ramp |
+| colors the letters instead of the cells | Jalview ("colour text") | **built**: the letters layer's `ink` channel |
+| colors a selected region on a track | Jalview (groups) | **planned**: `theme.color-selection` adds a rule `(in <the selection>)` at the top of the layer's theme, one patch |
+| switches light and dark, or the platform's forced colors | Mol\*, the current Seq\* | **built** (light and dark: the token table); forced colors: **planned** (with accessibility) |
+| asks for a color-blind safe rendering of someone else's figure | — (no precedent offers it per reader) | **built** as a reader's setting (Self-check) |
 | moves the legend into the figure | Vega-Lite (`orient`), Mol\* (viewport overlay) | **no** on the canvas: never over data (ux-foundations section 9); **built** in the SVG export when asked (`legend`) |
 
 ## Decision
+
+### The author's decisions
+
+The author, 2026-11-18: "ok as recommended; if there are gaps in mol*'s themes, add them in non-breaking
+way."; in general: "a lot of this is "configurable behavior" and where appropriate, the code should allow the
+configuration via spec ports etc."; on sizes: "don't overdo it on the limits (they were sort of self-imposed and
+estimate), but obviously try to minimize the amount of code". On the review of the decisions: "ok" to its recommendations,
+here: a layer's default theme is fixed by the language, not the host (one spec draws the same in canvas, SVG, headless
+and another viewer); a host recolors through `--seq-*` tokens.
+
+1. Shared domains are `scale` nodes under `views`, not a group name string.
+2. Palettes are evaluated by Mol\*'s value palettes, spelled in this language's words, with a converter to and from
+   MolViewSpec's; `ValuePaletteLists` becomes a lazy getter in `@molstar/core/util/color`, its API unchanged.
+3. Unlisted values are hashed with FNV-1a over UTF-8 (EC-134 restored; five lines of two records change), and the
+   builder lists an inline column's values.
+4. The `seq-cat-*` tokens are redesigned in both tables to pass the color-blind check (ΔE ≥ 0.06 in oklab, normal and
+   three simulations), with item 3; every record that draws a category changes once.
+5. The default continuous palette is the token ramp (`seq-ramp-*`).
+6. The color-blind substitution is a reader's viewer setting, never the spec.
+7. Sizes: no share of headless rendering's room; the code kept minimal (the author: "don't overdo it on the limits
+   ... but obviously try to minimize the amount of code"), measured when themes land, the target moved then if needed.
+8. No ramp-end drag in this slice: the command and a numeric field now.
+9. The p53 themes view's per-residue values are AlphaFold DB's pLDDT for P04637, within the fixtures' licence rule ([examples.md](examples.md)).
+10. A layer's default theme is the language's (uniform tokens, the token schemes); a default that would read a column
+    is written by the builder as a `field` form; a field's palette is continuous unless the form says `:mid` or names
+    the `diverging` scheme. A host recolors through `--seq-*`.
+11. What Mol\*'s themes lacked, added without a break: `ValuePaletteLists` lazy, the optional palette fields, oklab, the
+    color-vision check, the residue schemes' data, the hydrophobicity scale moved to `@molstar/core` with a re-export
+    from `@molstar/model`; `okabe-ito` is core's already.
+12. The author, on the remaining questions: "others as recommended": `layer.filter` writes the layer's data
+    filter (one patch) and the track shows an "n filtered" chip that clears it; export choices (`legend`, `navigators`,
+    `window`) are optional spec params of a view, `renderSvg`'s options overriding them.
 
 ### The writer says what is colored by what; the reader's settings say how it looks to them
 
@@ -125,7 +157,7 @@ render and another viewer all answer it the same way, and a legend can answer it
 
   Clauses: `=`, `!=`, `<`, `<=`, `>`, `>=`, `one-of`, `in` (a location: an element whose position or extent overlaps
   it by one position or more) and `within` (an extent contained in it). Measures: `(field <name>)`, `value`, `letter`,
-  and the column measures (`share`, `identity`, `matches-reference`), which are lane RW's: built with the rows layer's
+  and the column measures (`share`, `identity`, `matches-reference`), which are the rows layer's ([grids-and-rows.md](grids-and-rows.md)): built with its
   column summaries and registered as measures for themes. A measure that does not apply is NaN and fails its clause
   (EC-52). **Types**: `=`, `!=` and `one-of` compare text with text (case-sensitive) and numbers with numbers; `<` to
   `>=` take numbers only; a comparison across types is false, and `seq.lang.theme.type` when the check can see it (a
@@ -157,7 +189,7 @@ render and another viewer all answer it the same way, and a legend can answer it
   exported from `render/index.ts`) is replaced, so today's category colors change once: the committed records
   `render/_test/records/p53-gene.txt` (lines 23, 118, 119) and `p53-tracks.txt` (lines 40, 41) are rewritten in the
   same change. The viewer does not hash: it reads `seq-cat-5` as `highlight.color`'s default (`viewer.ts`), which a
-  token redesign (Decided, 4) moves too. A legend cannot list hashed values it has not painted, and says so once (`seq.render.legend.unlisted`,
+  token redesign (the author's decisions, 4) moves too. A legend cannot list hashed values it has not painted, and says so once (`seq.render.legend.unlisted`,
   info, EC-204).
 - **The builder lists what it can see**: `theme.field('label')` on a layer over inline data writes `:values` from that
   column in first-occurrence order, so a small inline table gets distinct colors and the spec says which (EC-133,
@@ -215,7 +247,7 @@ render and another viewer all answer it the same way, and a legend can answer it
   vision and under simulated protanopia, deuteranopia and tritanopia (Machado et al. 2009, severity 1); a ramp's
   adjacent stops at least 0.03 apart in oklab lightness, monotone. Today's `seq-cat-*` (light table) fail it: the
   smallest distance is 0.032 under normal vision (`#9a7aa6` and `#a67a95`), 0.016 under deuteranopia, 0.023 under
-  protanopia. So the category tokens are redesigned for the check (Decided, 4), in both tables; every committed record that
+  protanopia. So the category tokens are redesigned for the check (the author's decisions, 4), in both tables; every committed record that
   draws a category changes once, with the hash's change above. A scheme that is not safe (Zappo, Taylor, Clustal X) is
   offered with that said in the picker, never chosen by default.
 
@@ -248,7 +280,7 @@ render and another viewer all answer it the same way, and a legend can answer it
 - **A reader's color-blind substitution** (`theme.cvdSafe`, a viewer setting, off): each scheme that is not safe is
   drawn as its declared substitute, and a categorical palette as `okabe-ito`; the legend shows what is drawn and says
   it is substituted. Never written into the spec.
-- **Forced colors** (lane AY): the viewer reads `forced-colors: active` and builds its token table's chrome and
+- **Forced colors** (planned, with accessibility): the viewer reads `forced-colors: active` and builds its token table's chrome and
   emphasis tokens from system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`), so the selection, the hover and
   the cursor stay visible; data colors are kept (fixed), since the data's meaning is in them; the
   legend part's swatches opt out of forcing (`forced-color-adjust: none`) so they match the canvas. An export never
@@ -275,7 +307,7 @@ render and another viewer all answer it the same way, and a legend can answer it
   the navigators' are. Seq\* never draws a legend on its canvas.
 - **The legend follows the hover**: the hovered item's entry is outlined; on a ramp, its value is ticked.
 - **Highlight channels in the legend part**: it lists the active highlight channels (a link's, a legend hover's, a
-  host's) as rows with their color and a clear, which runs `highlight.clear` (a new command owned by lane C0, beside the
+  host's) as rows with their color and a clear, which runs `highlight.clear` (a new command, beside the
   selection's bookmark command).
 - **Every entry is reached from the keyboard** (ux-foundations section 8: every gesture has a keyboard way): the part
   is one tab stop, a list with a roving focus; arrows move between entries, Enter or Space selects (as a click),
@@ -323,7 +355,7 @@ render and another viewer all answer it the same way, and a legend can answer it
 | Layer | Reads | Default | Notes |
 |---|---|---|---|
 | `ruler` | tokens only (`seq-ruler` ticks, `msui-text-muted` labels); a color theme on it is `seq.render.theme.channel` | — | `numbering` (spec param: the numbering it labels by, the section's default numbering when unset; switching schemes, Kabat against IMGT, is a patch of it); insertion labels (100A, 111.1) as minor ticks, labeled only with room; tabular figures, steps of 1, 2, 5 × 10ⁿ, a label skipped when it does not fit (a gap of 48 px, a foundations number in the presets), never shrunk; above, below or absent is its track's place and existence (EC-234); fallback: omitted |
-| `secondary` | `color` (by the `kind` field), `size` (band) | `(scheme :name secondary)` | helices and strands as blocks (the layer's `style`: `blocks`; `cartoon` with the text figure, TX); the strand's arrowhead on the piece holding its C-terminal end, whatever the direction or the origin (EC-130, fixed); cut ends square; 200 copies draw what one does (EC-67); fallback: `ranges` |
+| `secondary` | `color` (by the `kind` field), `size` (band) | `(scheme :name secondary)` | helices and strands as blocks (the layer's `style`: `blocks`; `cartoon` with the text figure, [layouts.md](layouts.md)); the strand's arrowhead on the piece holding its C-terminal end, whatever the direction or the origin (EC-130, fixed); cut ends square; 200 copies draw what one does (EC-67); fallback: `ranges` |
 | `variants` | `color`, `size` (radius), `opacity`, `shape` | `token:variant` (the builder writes `(field :name consequence)`) | a stem and a head a site; at `bars` and `density`, a count strip in the density tokens; fallback: `ranges` |
 | `values` | `color` (uniform, or a field over `value`), `size` (line thickness), `opacity` (area) | `token:value` | `encoding`: `bars` (built), `line`, `area`; a line changes color halfway between positions and holds over half cells at the ends and at gaps (EC-57); missing breaks the line; the area under the line at the `opacity` channel (0.35 by default); y through its scale |
 | `ranges` | `color`, `size` (band), `opacity`, `line`, `arrow` | `token:range` (the builder writes `(field :name category)` where it has the column) | a line style anchored to the content (the dash phase moves with the data, not the screen); an invalid style drawn solid and said once (`seq.render.line-style`); an arrowhead on the piece holding the end it points to, never on a cut end |
@@ -340,15 +372,15 @@ builder writes the `field` form into the spec instead.
   continuous palette is a lookup table (256 colors, fixed) rebuilt only when the tokens' version or the
   domain changes; a categorical field over a dictionary-coded column is a color per dictionary code, made once per tile.
   Why: the layout's hot loop reads an index, never a string or an allocation.
-- **Targets** ([performance](performance.md); each names its path and test, a quick representative in TH's stage):
+- **Targets** ([performance](performance.md); each names its path and test, a quick representative where it is built):
   - the layout with a field theme at a fixed screen costs at most 1.1× the same layout uniform (10,000 ranges by a
     category; 300,000 values on a continuous log scale), `itWithin` in the heavy lane;
   - draw and hover warm: 0 bytes with themes (the opt-in allocation tier);
   - legends derived in under 1 ms for 100 tracks, on settle only (not per frame).
 - **Size**: the author, 2026-11-18: "don't overdo it on the limits (they were sort of self-imposed and estimate), but
   obviously try to minimize the amount of code". So a size estimate is never a reason to cut a feature; the code is kept
-  minimal instead: Mol\*'s color code reused, no private copies, nothing without a use. Estimates, minified, for the
-  stage 1 measurement:
+  minimal instead: Mol\*'s color code reused, no private copies, nothing without a use. Estimates, minified, to be
+  measured:
 
   | Piece | kB |
   |---|---|
@@ -359,14 +391,14 @@ builder writes the `field` form into the spec instead.
   | the LUT and the evaluator compile (forms, rules, measures) | 4 |
   | the `seq.theme` description and the `scale` kind | 3 |
   | legends (data, merge, `layoutLegends`) | 3 |
-  | the SL layers (ruler 2, secondary 2.5, variants 3, values line and area 2, ranges' line styles and arrowheads 2.5) | 12 |
+  | the small layers (ruler 2, secondary 2.5, variants 3, values line and area 2, ranges' line styles and arrowheads 2.5) | 12 |
   | **total** | **about 35** |
 
-  The headless target is measured at stage 1's gate and moved there if the slice needs it. The lists:
+  The headless target is measured when themes land and moved then if the slice needs it. The lists:
   `value-palette.ts` builds `ValuePaletteLists` from every list at module load (about 48 kB of source with `lists.ts`).
   Decided: make it a lazy getter in `@molstar/core/util/color` (the public API kept; MolViewSpec reads it through
   `helpers/colors.ts`), with Seq\* passing explicit colors to the evaluation and naming lists only through its schemes
-  module; measured at stage 1. Only if that does not drop the lists: a split of the module, a v6 break recorded in
+  module; measured when themes land. Only if that does not drop the lists: a split of the module, a v6 break recorded in
   `.v6/plans/breaking-v6-changes.md`, brought to the author then.
 
 ## The interaction matrix's cells
@@ -376,7 +408,7 @@ This design fills the **track or layer** row's edit cell, the **selection** row'
 
 | | select | extend | add / remove | focus | back | zoom in / out | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
-| **a track or layer** | (lane RW) | — | — | (lane RW) | — | — | — | `track.hide`, `layer.hidden` (built) | its color and channels from the track menu (`layer.color`, `layer.channel`; each scheme previewed while hovered, one patch); several layers at once in one patch; a shared scale's domain, type or palette (`scale.set`: every layer naming it follows, one step) |
+| **a track or layer** | ([grids-and-rows.md](grids-and-rows.md)) | — | — | ([grids-and-rows.md](grids-and-rows.md)) | — | — | — | `track.hide`, `layer.hidden` (built) | its color and channels from the track menu (`layer.color`, `layer.channel`; each scheme previewed while hovered, one patch); several layers at once in one patch; a shared scale's domain, type or palette (`scale.set`: every layer naming it follows, one step) |
 | **a legend entry** | click, or Enter on a focused entry: its items (`legend.select`, the selection becomes `<data>/(item :<field> v)`; the only selected value clicked again clears); a step or a ramp: no, until the query sublanguage filters by value | no: a field's values have no order for categories; steps wait with the value filter | Cmd/Ctrl+click or Cmd/Ctrl+Enter toggles the value's items in or out | no gesture of its own: a value's items can span the whole data; Enter focuses the selection as for any selection | Alt+Left (the view's) | no: a legend has no axis | no: a legend has no axis | the value's items filtered out: `layer.filter` from the entry's menu (one patch; the track's "n filtered" chip clears it); the part is the host's to hide | its color (`theme.value-color`, a color input in the part, previewed, one patch); a ramp's domain (`scale.set`, a field in the part; the drag of its ends: later, decided); the scheme (the picker in its title) |
 | **the selection** | — | — | — | — | — | — | — | — | color it on a layer: planned (`theme.color-selection`, a rule `(in …)` added at the top, one patch) |
 | **a bookmark or link** | — | — | — | — | — | — | — | — | its color: a color as above (`light-dark` allowed), by patch with its label (planned with the label) |
@@ -390,7 +422,7 @@ outlines its legend entry.
 The author, on this design: "a lot of this is "configurable behavior" and where appropriate, the code should allow the
 configuration via spec ports etc.; we already have a lot of patterns for this, so use your own judgement what's
 appropriate to keep just as a single feature and what to make configurable". The rule applied (the same in every
-third-slice design): a choice about what a figure means is a **spec param** (the writer's), its default plain, never
+design of the axis, themes, layouts, grids and rows, navigators): a choice about what a figure means is a **spec param** (the writer's), its default plain, never
 inferred from data; a drawing number is a **`RenderConfig` preset**; a size a spec may ask is a **`SpecBounds`** bound;
 how a viewer or its reader behaves is a **`ViewerConfig`** item (the host's at composition, a reader's settings layer
 later, [extensibility](extensibility.md)); a named provider is a **registry entry**; one call's choice is an **option**
@@ -412,7 +444,7 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | the ruler's label gap | `RenderConfig` preset | 48 px | the presets pattern (ux-foundations section 0) |
 | legends in the export | spec param of the view (`export.legend`, optional), `renderSvg`'s `legend` overriding it | `none` | how the figure exports is the figure's; one call may differ (decided) |
 | the color-blind substitution in an export | option of `renderSvg` (`cvdSafe`) | off | the reader's, never the spec |
-| hiding a layer's items by value | command `layer.filter` (TH), a patch of `layer.data` | — | a filter hides, a theme never does (decided) |
+| hiding a layer's items by value | command `layer.filter`, a patch of `layer.data` | — | a filter hides, a theme never does (decided) |
 | the ruler's numbering | spec param (`ruler` layer's `numbering`) | the section's default numbering | which labels the figure shows |
 | the legend part's default mount | `SeqViewerSpec.ui` entry (`legends`) | on in the standalone viewer | the host places parts |
 | a legend's item count | the `Legend` part's prop (`maxItems`) | 12 | the host places and sizes the part |
@@ -424,7 +456,7 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | offering only fitting schemes | fixed | — | a scheme that cannot apply is noise (EC-136) |
 | ink contrast, the hover halo | fixed | — | accessibility rules (ux-foundations section 1, EC-138) |
 | legend source, merging | fixed: vocabulary when listed, else painted, always said; merged | — | the truthful key (EC-132, EC-204) |
-| data colors under forced colors | fixed: kept (AY may bring evidence) | — | the data's meaning is in them; no second use for `monochrome` |
+| data colors under forced colors | fixed: kept (accessibility work may bring evidence) | — | the data's meaning is in them; no second use for `monochrome` |
 
 ## Tensions
 
@@ -443,10 +475,10 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
   in view, so the screen, a navigator's miniature (it takes the view's domain) and an export (it unions over what it
   draws) can show one value in different colors. Standing: a figure that must match fixes its domains.
 - **Data colors under forced colors**: kept colors serve meaning, forced ones serve the platform's contrast promise.
-  Recommendation: keep data, force chrome and emphasis (AY). Open until AY's look.
+  Recommendation: keep data, force chrome and emphasis. Open until the accessibility work's look.
 - **Column schemes arrive late**: Clustal X, percent identity, BLOSUM62 and ESPript need the rows layer's column
-  measures (stage 3); stage 1's themes view cannot show them. Recommendation: TH builds rules and the registry of
-  measures, RW registers the column ones and their tests; the Globins views carry them. Accepted.
+  measures, built after themes; the first themes view cannot show them. Recommendation: themes build rules and the
+  registry of measures, the rows layer registers the column ones and their tests; the Globins views carry them. Accepted.
 - **Meaning only in color**: a greyscale print or a reader who sees no hue loses a categorical key. Line styles, shapes
   and the ESPript's cell-versus-ink split carry some; patterns (hatching) are not designed. Standing (Self-check).
 
@@ -477,8 +509,8 @@ The claim: **this design covers what a user does with themes and legends**.
    themes; reset, leaving a scale and the clearing click (Editing a theme); themes never hide, filters do; the legend
    reached by keyboard; ESPript's black-and-white mode as a figure needing no hue; and from the reader's side of
    "another viewer": a layer's default fixed by the language, never by the host or the data in view, so two readers of
-   one spec draw it alike (the host recolors through tokens only). *Planned*: forced colors (AY); column-measure schemes and the threshold slider (RW); coloring the selection
-   (TH, a command). *Standing tensions*: meaning only in color (patterns not designed), hash collisions in data read by
+   one spec draw it alike (the host recolors through tokens only). *Planned*: forced colors (with accessibility); column-measure schemes and the threshold slider (with the rows
+   layer); coloring the selection (a command). *Standing tensions*: meaning only in color (patterns not designed), hash collisions in data read by
    region, an open shared scale differing between viewers.
 
 ## Consequences
@@ -501,7 +533,7 @@ The claim: **this design covers what a user does with themes and legends**.
   - `resolve`, `view`: themes in the resolved view as normalized forms with scale nodes followed (renderer-independent:
     the Nightingale adapter reads them); shared open domains unioned at settle.
   - `render/`: channels read by each layer type; LUTs per tokens' version and domain; the new tokens in both tables;
-    `layoutLegends` and the export's `legend` option; the small layers (lane SL).
+    `layoutLegends` and the export's `legend` option; the small layers.
   - Tests: property tests (a continuous palette monotone in its ramp's lightness; log monotone; bins closed below; the
     hash's known vectors, stable across tiles and readers; a dictionary code's color equal to its value's); a
     conformance suite over every built-in scheme and both token tables (ink 4.5:1 on every cell color, missing apart
@@ -532,7 +564,7 @@ The claim: **this design covers what a user does with themes and legends**.
 - **`seqx-viewer`**: the `legends` state (published on change only), the `Legend` part with `mountLegend`, its default
   mount (`SeqViewerSpec.ui.legends`) and its gestures as the `legend` behavior provider, the scheme picker in the track
   menu and the legend's title with previews, the commands above, `theme.cvdSafe`, the legend highlight channel and the
-  hover's entry; forced colors (AY).
+  hover's entry; forced colors (with accessibility).
 - **`seqx-examples`**: the p53 themes view (the protein's letters under each fitting scheme; domains by a categorical
   field with its legend; a per-residue confidence as binned `plddt` on the letters and as a continuous line; two
   values tracks naming one scale; variants by consequence, sized by a log-scaled frequency; secondary structure; light
@@ -549,35 +581,3 @@ The claim: **this design covers what a user does with themes and legends**.
   (its FNV-1a over UTF-8 restored; a dictionary palette hashes unlisted values into `:others`, EC-203 deciding), 136
   (fitting schemes and dark variants kept; a pick is a patch, undoable and saved, not UI state cleared by a new
   document); fixed 130, 135.
-
-## Decided
-
-The author, 2026-11-18: "themes.md: ok as recommended; if there are gaps in mol*'s themes, add them in non-breaking
-way."; in general: "a lot of this is "configurable behavior" and where appropriate, the code should allow the
-configuration via spec ports etc."; on sizes: "don't overdo it on the limits (they were sort of self-imposed and
-estimate), but obviously try to minimize the amount of code". After the decisions review: "ok" to its recommendations,
-here: a layer's default theme is fixed by the language, not the host (one spec draws the same in canvas, SVG, headless
-and another viewer); a host recolors through `--seq-*` tokens.
-
-1. Shared domains are `scale` nodes under `views`, not a group name string.
-2. Palettes are evaluated by Mol\*'s value palettes, spelled in this language's words, with a converter to and from
-   MolViewSpec's; `ValuePaletteLists` becomes a lazy getter in `@molstar/core/util/color`, its API unchanged.
-3. Unlisted values are hashed with FNV-1a over UTF-8 (EC-134 restored; five lines of two records change), and the
-   builder lists an inline column's values.
-4. The `seq-cat-*` tokens are redesigned in both tables to pass the color-blind check (ΔE ≥ 0.06 in oklab, normal and
-   three simulations), in TH with item 3; every record that draws a category changes once.
-5. The default continuous palette is the token ramp (`seq-ramp-*`).
-6. The color-blind substitution is a reader's viewer setting, never the spec.
-7. Sizes: no share of headless rendering's room; the code kept minimal (the author: "don't overdo it on the limits
-   ... but obviously try to minimize the amount of code"), measured at stage 1's gate, the target moved there if needed.
-8. No ramp-end drag in this slice: the command and a numeric field now.
-9. The p53 themes view's per-residue values are AlphaFold DB's pLDDT for P04637, within Gate 0's fixture rule.
-10. A layer's default theme is the language's (uniform tokens, the token schemes); a default that would read a column
-    is written by the builder as a `field` form; a field's palette is continuous unless the form says `:mid` or names
-    the `diverging` scheme. A host recolors through `--seq-*`.
-11. Mol\*'s gaps filled without a break: `ValuePaletteLists` lazy, the optional palette fields, oklab, the
-    color-vision check, the residue schemes' data, the hydrophobicity scale moved to `@molstar/core` with a re-export
-    from `@molstar/model`; `okabe-ito` is core's already.
-12. The author, on the check's gaps: "others as recommended": `layer.filter`, built by TH, writes the layer's data
-    filter (one patch) and the track shows an "n filtered" chip that clears it; export choices (`legend`, `navigators`,
-    `window`) are optional spec params of a view, `renderSvg`'s options overriding them.

@@ -9,8 +9,9 @@ structured. This design settles it.
 ## Decision
 
 - **An examples package**, `packages/seq/examples` (`@molstar/seqx-examples`, private): the datasets' fixtures and one
-  module per view, each exporting `build(): Spec` written with the builder. It depends on `@molstar/seqx-core` only, so
-  the core's and the viewer's tests import it, and the storybook package imports it too.
+  module per view, each exporting `build(): Spec` written with the builder. It depends on `@molstar/seqx-core` (and `@molstar/core`) only, so
+  the core's and the viewer's tests import it, and the storybook package imports it too; its record script, run by hand
+  and never by a test, reads mmCIF through `@molstar/io`, a devDependency ([examples.md](examples.md)).
 - **Fixtures** live in `examples/fixtures/<dataset>/`, small files committed (FASTA, `seq` files, a tiny bigWig);
   generated ones are made in code from a seed, never stored ([testing.md](testing.md)).
 - **Reading fixtures**: a spec names fixtures by relative location (`fixtures/p53/region.fa`). In Node an assets adapter

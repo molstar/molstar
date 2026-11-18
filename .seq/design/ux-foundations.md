@@ -159,19 +159,23 @@ settings layer over it. The rules that stay fixed whatever the bindings:
 | Alt/Option+drag | removes the range from the selection |
 | click on empty space, Esc | clears the selection (Esc first cancels a gesture in progress) |
 | drag on data | selects a range, snapped to the granularity hit (whole codons over nucleotides, whole items over items) |
-| drag on an axis, navigator or with Space held | pans |
+| drag on a ruler (the ruler rail) or with Space held | pans ([navigators.md](navigators.md)); on an alignment's ruler only its lower 40% is the rail's, and a drag above it selects columns; a grid's rulers pan their axis |
+| drag on a navigator | on its window pans, on a grip zooms with the other end held, from outside sweeps a new window and zooms to it; a click outside centres there; a wheel over it zooms about the window's centre |
 | wheel, two-finger scroll | pans; Cmd/Ctrl+wheel or pinch zooms about the pointer |
 | double-click | focuses the element (zooms to it); on the element already focused, goes back; on empty space, fits the view |
 | Shift+double-click, -, =, 0 | zooms out about the pointer; zooms out and in about the cursor or the centre; fits |
 | Alt+Left, Alt+Right, the mouse's back button | back and forward through the view's jumps (focus, fit, reveal, a bookmark or link): session state, not undo |
-| arrows | move the keyboard cursor; Shift+arrows extend the anchor's range; Cmd/Ctrl+Shift+arrows start a new range; Enter focuses; Space toggles |
+| arrows | move the keyboard cursor; Shift+arrows extend the anchor's range; Cmd/Ctrl+Shift+arrows start a new range; Enter focuses; Space toggles, on key-up and only when no drag happened while it was held (so Space+drag pans without toggling) |
+| `]`, `[` | zoom an alignment's rows in and out about the cursor's row (`rows.zoom-in`, `rows.zoom-out`); `0` fits rows and columns |
+| click on a tree node | folds or unfolds its clade (`clades.toggle`; a preset may bind it to select) |
 | drag, wheel or pinch on a follower | moves its leader through the follow, so the follower moves as asked (`follow.followerMoves`: `lead`) |
 
 - **Selection is a location**, held per system and projected: what is selected in a protein shows on its gene, its
   structure and its alignment rows.
 - **Toggles are uniform**: hiding a track, collapsing a group, pinning a row, showing a layer: one gesture, one state
   shown in the chrome (an icon, never only a color), one undo step when it changes the spec.
-- **View state is not history**: hover, selection, the cursor, the viewport are transient; edits to the spec (a
+- **View state is not history**: hover, selection, the cursor, the viewport and the folded clades are transient (a fold
+  is session state, no undo step; `clades.keep` writes the folds shown into the spec as its opening set, one patch); edits to the spec (a
   bookmark, a hidden track, a theme) are patches, one undo step each, with a preview while a gesture is in progress that
   ends in its patch or a cancel.
 - **Every gesture has a keyboard way and a command**, and the context menu lists what applies to the element under the
@@ -183,22 +187,34 @@ What a user acts on, against the verbs (the principles, "Interaction is a matrix
 each cell is the gesture or key and the command, **planned** with the slice that builds it, or **no** with why. A slice
 plan names the cells it fills; its gate checks them; a design that adds an action fills its row and column, and its
 self-check's negation (an inverse, a symmetric case, a plural) names the cells to look at. As built after the second
-slice:
+slice, with the cells the third slice's designs fill ([axis.md](axis.md), [themes.md](themes.md),
+[layouts.md](layouts.md), [grids-and-rows.md](grids-and-rows.md), [navigators.md](navigators.md); each design's own
+table has the cells of its sub-rows: a text or ring section, a residue through a path, a break, a pair, a block):
 
 | | select | extend | add / remove | focus | back | zoom in / out | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
 | **an element** (a cell, an item) | click; `selection.set` | Shift+click (the anchor's range) | Cmd/Ctrl+click toggles | double-click; `address.focus` | double-click on it when focused | — | — | no: hide a track or layer | no: data is not edited in the viewer |
 | **a range** (positions) | drag on data | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag removes; `selection.add`, `selection.subtract` | Enter at the cursor | Alt+Left | — | — | — | — |
-| **the selection** | — | Shift+arrows | Cmd/Ctrl+Shift+arrows start a range | Enter | Alt+Left | — | — | — | a bookmark from it: planned (a command, third slice) |
-| **a leading section** | — | — | — | — | — | Cmd/Ctrl+wheel, pinch, -, =, Shift+double-click | wheel, drag on the axis, Space+drag, Shift+Alt+arrows | no: hide its tracks | its params by patch (height) |
+| **the selection** | — | Shift+arrows | Cmd/Ctrl+Shift+arrows start a range | Enter | Alt+Left | — | — | — | a bookmark from it: planned (a command, third slice); copy its letters as shown (`selection.copyLetters`, Cmd/Ctrl+C); color it on a layer: planned (`theme.color-selection`) |
+| **a leading section** | — | — | — | — | — | Cmd/Ctrl+wheel, pinch, -, =, Shift+double-click; in display order (a reversed axis) | wheel, drag on the ruler rail, Space+drag, Shift+Alt+arrows; in display order | no: hide its tracks | its params by patch (height); Shift+R `section.reverse`, Shift+C `section.collapse` (patches) |
 | **a follower section** | as a leading one | as a leading one | as a leading one | as a leading one | as a leading one | moves its leader (`lead`) | moves its leader (`lead`) | as a leading one | as a leading one |
 | **the view** | — | — | — | 0 fits; double-click on empty space | Alt+Left / Alt+Right, the mouse's buttons; `view.back`, `view.forward` | — | — | — | undo and redo through the host's stack |
-| **a track or layer** | planned (a row selection, third slice) | — | — | planned | — | — | — | `track.hide`, `layer.hidden` | height, color, order by patch; previews while dragged |
-| **a navigator** (strip, miniature, ideogram, vertical overview: planned, third slice) | — | — | — | a click centers the view there | Alt+Left | drag the window's handles | drag the window | the host hides the part | — |
-| **a bookmark or link** | — | — | `refs.add`; removing one: planned | runs its action | Alt+Left | — | — | — | its label: planned |
+| **a track or layer** | a row of the rows layer by its header (below) | — | — | — | — | — | — | `track.hide`, `layer.hidden`; a layer's items by a data filter (`layer.filter`), never a theme | height, color, order by patch; previews while dragged; its color and channels (`layer.color`, `layer.channel`, `scale.set`) |
+| **a row** (an alignment's, by its header) | click; `selection.set` | Shift+click: the run in display order | Cmd/Ctrl+click toggles | double-click; `address.focus` | Alt+Left | `]`, `[` (`rows.zoom-in`, `rows.zoom-out`), Cmd/Ctrl+wheel over the header | the wheel over the rows band, drag on the header, Page keys | `rows.hide` (patch); shown again by the hidden-rows chip | `rows.pin` (patch) |
+| **a clade** (a tree node, a summary row) | click a summary row: its rows | Shift+click | Cmd/Ctrl+click a node or summary row toggles its rows | double-click or Enter on a summary row opens it; a reveal opens the clades holding a row | double-click again, Alt+Left | — | — | fold, session state: click its node, Space on key-up (`clades.toggle`); `clades.collapseAll`, `clades.expandAll`, `clades.collapseTo` | the opening set: `clades.keep` (one patch) |
+| **a legend entry** | click, Enter: its items (`legend.select`) | — | Cmd/Ctrl+click toggles | — | Alt+Left | — | — | its items filtered (`layer.filter`) | its color (`theme.value-color`), a ramp's domain (`scale.set`), the scheme |
+| **a navigator** (the ruler rail by default; strip, ideogram, vertical overview, miniature) | no: at its scale a pixel is many positions (on an alignment's ruler, a drag above the rail selects columns) | — | — | a click outside the window centres (`navigator.center`); double-click fits or zooms there | Alt+Left; a far drag pushes a step | drag a grip (the other end held); sweep from outside (`navigator.zoom-to`); Shift+arrows while focused | drag the window's body; arrows, Home, End while focused | `navigator.form: none` (host), a node's `hidden` (patch); a hidden ruler falls back to the slim rail | its params by patch |
+| **a window** (the `window` target, parts `body`, `start`, `end`, `outside`: a navigator's or a ring's) | — | — | — | — | Alt+Left | drag `start` or `end` | drag `body` | idle (quiet, not a target) when the view cannot move | — |
+| **a bookmark or link** | — | — | `refs.add`; removing one (`refs.remove`): planned | runs its action; into a hidden stretch, its break and the reason | Alt+Left | — | — | — | its label and color: planned |
 
-Planned beyond this slice, from the second slice's use gate: a section's direction (reversed, following its leader),
-another system's letters on a section (one axis for protein and gene), collapsed introns; the history's toolbar.
+From the second slice's use gate, now designed: a section's direction (reversed, following its leader), another
+system's letters on a section (one axis for protein and gene), collapsed introns ([axis.md](axis.md)). Still planned:
+the history's toolbar.
+
+**The history's one rule** (every design that touches it): a step keeps each section's viewport with its axis and layout
+signature; onto a changed axis, layout or row order it is restored by position (the centre and the zoom; a text's anchor
+and size; a rows band's top row by its key), clamped to what is drawn (a hidden centre goes to its break, a folded row
+to its summary row), never silently dropped.
 
 ## 9. Chrome
 

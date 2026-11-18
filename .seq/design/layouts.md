@@ -15,7 +15,7 @@ the section under a y). This design names what a layout must give so that layer 
 viewer's navigation and export read the layout through one interface, then fills it three more ways: **text** (the
 p53 text figure, the Globins ESPript figure, EC-94 to EC-100), **blocks** (the Complex's chains, EC-101, EC-102,
 EC-115) and **rings** (the Plasmid ring with its linear detail, EC-108, EC-114, a feature across the origin, EC-9 to
-EC-14). The dot plot (two axes) is its own section, in the pairs and grids lane, and is out of this design except
+EC-14). The dot plot (two axes) is its own section ([grids-and-rows.md](grids-and-rows.md)), and is out of this design except
 where the interface must leave room for it.
 
 ## Precedents
@@ -56,26 +56,49 @@ where the interface must leave room for it.
 
 | What a user does there | Here |
 |---|---|
-| Select residues by click and drag across wrapped lines (Jalview, SnapGene's sequence view) | built (TX): a drag reads the position under the pointer in reading order |
-| Shift+click to extend across lines; arrows and Shift+arrows, up and down by a line | built (TX): the cursor's steps through the layout |
-| Change the font size (Jalview), the line width follows the window | built (TX): zoom is the letter size; a resize reflows |
-| The wrapped view scrolls to a selection made in a linked view (Jalview, from a structure) | built (TX): a text section reveals the first line of a selection projected onto it from elsewhere (`reveal.linked`) |
-| Click a sequence's name to select the row (Jalview) | planned (RW: a row selection) |
-| Copy the selected sequence as text (SnapGene, Benchling, Jalview) | planned (TX): `selection.copyLetters`, what is shown (decided, below) |
+| Select residues by click and drag across wrapped lines (Jalview, SnapGene's sequence view) | built: a drag reads the position under the pointer in reading order |
+| Shift+click to extend across lines; arrows and Shift+arrows, up and down by a line | built: the cursor's steps through the layout |
+| Change the font size (Jalview), the line width follows the window | built: zoom is the letter size; a resize reflows |
+| The wrapped view scrolls to a selection made in a linked view (Jalview, from a structure) | built: a text section reveals the first line of a selection projected onto it from elsewhere (`reveal.linked`) |
+| Click a sequence's name to select the row (Jalview) | planned ([grids-and-rows.md](grids-and-rows.md): a row selection) |
+| Copy the selected sequence as text (SnapGene, Benchling, Jalview) | planned: `selection.copyLetters`, what is shown (decided, below) |
 | Hide and show annotation rows (Jalview) | built: `track.hide`, the band leaves every line |
-| Click a feature on the map, it is selected in every view (SnapGene, Benchling) | built (RB): hit through the ring's inverse; selection is projected as everywhere |
-| Click or hover a feature's label outside the ring (SnapGene) | built (RB): a label is hit as its item |
-| Drag on the map to select a region, across the origin (SnapGene, Benchling) | built (RB): an arc, two runs over the origin (EC-9) |
-| Move the visible region of the linear map on the circular one (Benchling, the previous implementation's window) | built (RB): the ring's window, dragged and resized |
-| Set a new origin (Benchling) | built (RB): a section's `range` over the origin, and the ring's `rotation`; by patch, with a command |
+| Click a feature on the map, it is selected in every view (SnapGene, Benchling) | built: hit through the ring's inverse; selection is projected as everywhere |
+| Click or hover a feature's label outside the ring (SnapGene) | built: a label is hit as its item |
+| Drag on the map to select a region, across the origin (SnapGene, Benchling) | built: an arc, two runs over the origin (EC-9) |
+| Move the visible region of the linear map on the circular one (Benchling, the previous implementation's window) | built: the ring's window, dragged and resized |
+| Set a new origin (Benchling) | built: a section's `range` over the origin, and the ring's `rotation`; by patch, with a command |
 | Zoom into the circular map itself (Circos zoomed arcs and scaled segments) | refused: zoom on a ring zooms its window; an arc of the ring is a section `range` (a standing tension) |
 | Rotate the map by dragging (none of the precedents makes it a gesture) | refused: a drag on data selects; rotation is a param, by patch |
 | Edit the sequence in the text or on the map (SnapGene, Jalview) | refused: data is not edited in the viewer |
 | Toggle restriction enzymes, primers (SnapGene) | not here: they are layers (hide a layer) |
-| Drag a selection past the edge to scroll (text editors, Jalview) | planned (TX, RW): clock-timed, faster further past |
+| Drag a selection past the edge to scroll (text editors, Jalview) | planned (text here, rows in [grids-and-rows.md](grids-and-rows.md)): clock-timed, faster further past |
 | Scroll a text by touch, a scroll grip on its edge (mobile readers) | refused this slice: no touch gesture of its own (a standing tension); the wheel, keys and Space+drag scroll |
 
 ## Decision
+
+### The author's decisions
+
+The author, 2026-11-18: "layouts.md: ok as recommended"; in general: "a lot of this is "configurable behavior" and
+where appropriate, the code should allow the configuration via spec ports etc."; on sizes: "don't overdo it on the
+limits (they were sort of self-imposed and estimate), but obviously try to minimize the amount of code". On the review of the decisions: "ok" to its recommendations.
+
+1. Blocks are a cut every layout takes (`block` children, `arrange` in tracks), not a fourth `layout` value.
+2. A layout per section, sections stacked, so a ring and its linear detail share one view; side by side later.
+3. A text section exports every line (the figure), not the lines in view.
+4. A text section in a host page caps at `text.maxHeight` (600 px) and scrolls inside, taking the wheel only while it
+   overflows and giving it back at its ends.
+5. A collapsed intron is zero width on every layout, rings included (no `rings.pieceGap`), a hairline marking it.
+6. This design owns the viewport record (per-band `bandTop` and `rowScale`, the grid's `y`) and the y path in the
+   emphasis passes; a history step over a changed layout is restored by position, never silently dropped.
+7. No size cut order: the code is kept minimal and measured.
+8. A drag on a ruler, the author: "i think drag on a rule should pan. or rather .. the original solution solved this by
+   showing the rail as well ... maybe that's the way to go?" Adopted ([navigators.md](navigators.md)): the ruler rail; a positions
+   ruler pans, an alignment's ruler pans in its lower 40% and selects columns above, a grid's axes pan.
+9. The author, on the remaining questions: "others as recommended": `selection.copyLetters` copies what is shown
+   (reading order, complement as drawn, shown positions, rows as FASTA lines), an option for the stored letters;
+   `export.window` is an optional spec param of the view, `renderSvg`'s `window` overriding it; figure-meaning settings
+   (`group`, `numbers`, `copies` and the like) are spec params.
 
 ### A layout cuts a section into strips and warps them
 
@@ -115,7 +138,7 @@ where the interface must leave room for it.
 - **Frames across tracks** (EC-100) are a layer type of strip scope with `across` (two tracks of its section): its
   outline covers `ctx.span`; an end cut by the strip's edge (a line break) is open, from the axis's cut flags, as every
   cut end is (the frame rule); its title is drawn where the item really starts.
-- **A band may scroll inside its section** (asked by grids-and-rows.md): a band has its own vertical scroll
+- **A band may scroll inside its section** (asked by [grids-and-rows.md](grids-and-rows.md)): a band has its own vertical scroll
   (`bandTop`, clamped to its content's height) and row zoom (`rowScale`, px a row), both in the section's viewport by
   band (below), beside the section's `top`. The band's layer reads them (`ctx.bandTop`, `ctx.rowScale`) and owns its y
   inside the band (the rows layer places its rows), and they are part of the section's key. So an alignment's rows
@@ -159,7 +182,7 @@ interface Placement {
 - `PlaceContext` holds what `LayoutContext` holds of the view (the size, the device pixel ratio, the config, the
   tokens, the text port, the model, the store, the overlay) and the section's box. A layout never reads layer
   parameters.
-- **One frame, a viewport per section** (`FrameInput.viewports`, by section address; owned by lane RB): replaces the one
+- **One frame, a viewport per section** (`FrameInput.viewports`, by section address; owned here): replaces the one
   `viewport`, and settles [layout-and-draw-lists.md](layout-and-draw-lists.md)'s open item "one window per leading
   section". The viewport carries `top`: vertical scroll is a new input of core's layout and of its key (core has none
   today; the viewer scrolled by itself).
@@ -181,8 +204,8 @@ interface Placement {
 - **The kinds of point** `at` gives: `data` (a band), `label` (a ring's outside label), `gutter` (text's row labels and
   numbers), `window` (a ring's window, with its part), `gap` (between groups or lines: no position for the hover; the
   nearest for a drag), `empty`. They are the placement's, not new hit targets: a label hits as `item` (by the element
-  key, extent and hull the label sink was given, never a second hit at an anchor, EC-108); a gutter as `row` (RW's row
-  selection); a window as the one `window` target with its `part` (`body`, `start`, `end`), shared with the navigators.
+  key, extent and hull the label sink was given, never a second hit at an anchor, EC-108); a gutter as `row` (the rows'
+  selection, [grids-and-rows.md](grids-and-rows.md)); a window as the one `window` target with its `part` (`body`, `start`, `end`), shared with the navigators.
   Why: a target names what a binding acts on, and these act on an item, a row and a window.
 - **Hit-testing is checked as the inverse of placement** by property tests over random sections in each layout: every
   position in view is placed once (`place`), and `at` of its cell's center gives it back; `offsetAt` is monotone along
@@ -198,7 +221,7 @@ interface Placement {
 - **Cut ends follow the strip**: a selection or an item cut by a line break is square at the break and squircle where
   it really ends (EC-100); on a ring the seam at the origin is no cut: an item over the origin is two pieces whose
   square ends meet, one arc (EC-9).
-- **The y path** (asked by grids-and-rows.md): a layer with a second axis (`ctx.axisY` on a grid strip, the rows
+- **The y path** (asked by [grids-and-rows.md](grids-and-rows.md)): a layer with a second axis (`ctx.axisY` on a grid strip, the rows
   layer's own rows) declares `axes: 2`; the emphasis passes then also call its `draw` with the emphasis records' parts on
   its y system (a row's band, a block's rect, the crosshair's rows), which it paints through its own y transform. The x
   painting stays the strip's. Why the layer's: only it knows its y transform; the strip's painting knows x.
@@ -219,7 +242,7 @@ interface Placement {
   base passes are drawn from its kept lays. The ring's frame target (8 ms, below) covers that draw; when nothing but
   windows and emphasis changed (a window dragged with no follower relaid yet, a hover), only the emphasis passes are
   drawn.
-- **The `window` pass** (`render/window.ts`, lane RB; the navigators lane extends it): first of the emphasis passes,
+- **The `window` pass** (`render/window.ts`, here; [navigators.md](navigators.md) extends it): first of the emphasis passes,
   under the highlights, on the overlay canvas, drawn by a layout's chrome from the section's viewport: a ring's window
   now, the navigators' windows next. A change of the draw lists' public form (versioned, in the changelog). Why a pass,
   not the highlight pass: a window is not data emphasis, and a highlight channel must stay above it. **The records**:
@@ -242,7 +265,7 @@ interface Placement {
   | tracks | the window of display units | vertical scroll | derived (`width / (end − start)`) | `bands` |
   | text | `start` the anchor (the position at the top line, fractional within its line); `end` derived: the last position the lines in view hold at full band heights | derived from the anchor | px a position: the letter size | none (a text shows every row) |
   | rings | the window (what a linear detail follows) | none | unused (the ring shows its whole axis) | none |
-  | grid (grids-and-rows.md) | x's window | none | derived | `y` unless y follows x |
+  | grid ([grids-and-rows.md](grids-and-rows.md)) | x's window | none | derived | `y` unless y follows x |
 
 - **`SectionNav`** gives every move the viewer makes, pure: `pan(v, dx, dy)`, `zoom(v, factor, at)`, `fit(v)`,
   `reveal(v, start, end)` (a focus, a link, the cursor), `step(position, dir)` (the cursor: left, right, up, down,
@@ -257,19 +280,19 @@ interface Placement {
   design that touches history) is restored by position (the centre and the zoom; text its anchor and scale; a band its
   top row), clamped to what is drawn, never silently dropped. The language moves to `0.4.0` with no migration
   (pre-release, core `_spec` Versions).
-- **A drag on a ruler** (navigators.md, the ruler rail): on a positions axis the ruler row is the rail's grab zone,
+- **A drag on a ruler** ([navigators.md](navigators.md), the ruler rail): on a positions axis the ruler row is the rail's grab zone,
   so a drag there pans (ux-foundations section 8: a drag on an axis pans); on an alignment's columns only the ruler's
   lower 40% pans (`navigator.rail.grabShare`), and a drag above it selects columns; a grid's axes pan. In text and on
   rings the ruler is drawn in the strips and takes no rail (a navigator there is declared).
-- **Copying the selection** (`selection.copyLetters`, TX, decided): copies what is shown: reading order, letters
+- **Copying the selection** (`selection.copyLetters`, decided): copies what is shown: reading order, letters
   complemented as drawn, only the positions shown (not a collapsed intron's), rows as FASTA lines (`>label` then the
   row's letters); its option `stored` copies the stored letters of the selection's span instead.
 - **Text with rows** (the ESPript figure): ↑ ↓ step the rows of a line block and, past its last row, cross to the
   next block's first row; a drag selects the rows between its ends × the columns between them in reading order
-  (grids-and-rows.md, the rows' selection).
+  ([grids-and-rows.md](grids-and-rows.md), the rows' selection).
 - **A drag past a scrolling box's edge** (a text section, a rows band) scrolls it toward the pointer, faster the
   further past, timed by the clock (the animation port's frame time), never by the frame count; the drag's selection
-  extends as content moves under the held pointer. Planned (TX, RW).
+  extends as content moves under the held pointer. Planned (text here, rows in [grids-and-rows.md](grids-and-rows.md)).
 - **Text**: the wheel scrolls lines (pan is vertical); Cmd/Ctrl+wheel, pinch, `-`, `=` and Shift+double-click step the
   letter size along the type scale, the position under the pointer kept at its y; `0` returns to the preset's size; a
   resize reflows with the anchor's line kept at the top (`viewport.onResize` is the anchor in text); up and down move
@@ -312,10 +335,10 @@ interface Placement {
 - The window is drawn as the navigators' window (a sector over the rings in `seq-window`, a grip at each end on the rim
   in `seq-grip`, idle when nothing follows): one window mark and its geometry in `render/window.ts`, its hits the
   `window` target with a `part` (`body`, `start`, `end`), its drags one `window` behavior (a `BehaviorProvider` in the
-  viewer's spec), built here and extended by the navigators lane. The behavior gives every window (the ring's
+  viewer's spec), built here and extended by [navigators.md](navigators.md). The behavior gives every window (the ring's
   included) a slider with `aria-valuetext` in its section's labels, set when the viewport settles, never per frame;
   Esc during a window drag cancels it, the view back where the press found it. Shared by every window (the rules and
-  their reasons in navigators.md, "The ruler rail"): grips as tabs just outside the ends (resize about the other end),
+  their reasons in [navigators.md](navigators.md), "The ruler rail"): grips as tabs just outside the ends (resize about the other end),
   lit per part; a floor of 16 px with an inward end drag on a floored window keeping the view; a hit of at least 12 px
   (24 px by touch); idle drawn quiet and not a target; drawn grown with `grab`/`grabbing` while dragged or hovered;
   Shift+arrows resize the focused window.
@@ -378,15 +401,15 @@ interface Placement {
   line is read from its start, so its first number places what follows without counting; group labels
   (`group_labels`: `above`, `inline`, `none`) number each group (EC-94). A line with no position of a row has no
   number for it.
-- **Alignment figures** (EC-97, the ESPript figure): a rows layer (lane RW) is a band of text rows on each line; each
+- **Alignment figures** (EC-97, the ESPript figure): a rows layer ([grids-and-rows.md](grids-and-rows.md)) is a band of text rows on each line; each
   row's label in the label column of every line, its last residue on the line in its own numbering in the end gutter;
   group labels number the reference row. The label column fades a long label (`@molstar/ui`'s rule), where the
-  previous implementation cut it with an ellipsis: changed. Shading is a theme (lane TH), secondary structure a track
-  above (lane SL), frames the frame layer.
+  previous implementation cut it with an ellipsis: changed. Shading is a theme ([themes.md](themes.md)), secondary structure a track
+  above (its small layer, [themes.md](themes.md)), frames the frame layer.
 - **Centered and capped lines** (`align`, `max_width`) move margins, hits and the selection with them (EC-98).
 - **Reflow** on resize is the layout's, keyed by the width; the anchor holds the reader's place.
 - **A linked selection is revealed** (`reveal.linked`, `text`; one `reveal` group in `ViewerConfig` with
-  `reveal.cursor`, today's `cursor.reveal`, and `reveal.opensClades` from grids-and-rows.md): when a selection is made
+  `reveal.cursor`, today's `cursor.reveal`, and `reveal.opensClades` from [grids-and-rows.md](grids-and-rows.md)): when a selection is made
   in another section or a structure and projects onto a text section with none of it in view, the text scrolls its
   first line into view, as a move by hand (no history step). Why text only by default: a text hides most of its content,
   a tracks section shows the selection's projection where it is.
@@ -440,7 +463,7 @@ interface Placement {
 
 The author: "don't overdo it on the limits (they were sort of self-imposed and estimate), but obviously try to minimize
 the amount of code". No size cuts a feature; the code stays minimal (one strip contract, one window module shared with
-the navigators, no private copies). Estimate (minified), for stage 2's measurement: the interface and the tracks
+the navigators, no private copies). Estimate (minified), to be measured: the interface and the tracks
 restatement 2 kB, text 7 kB, the polar warp 4 kB, ring labels and leaders 3 kB, the window 2 kB, blocks 2 kB: about
 20 kB.
 
@@ -458,9 +481,9 @@ reaches the same command, the layout giving the arithmetic.
 | **an element** on a ring, or its label | click (the label as its item) | Shift+click | Cmd/Ctrl+click | double-click: the window takes its shortest arc (EC-12) | double-click on it when focused | — | — | no: hide a track | no: data |
 | **a range** in text | drag in reading order across lines | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag removes | Enter at the cursor | Alt+Left | — | — | — | — |
 | **a range** on a ring | drag along the ring (an arc; over the origin two runs, EC-9) | Shift+drag | Cmd/Ctrl+drag, Alt+drag | Enter | Alt+Left | — | — | — | — |
-| **the selection** | — | Shift+arrows (up and down a line in text; round on a ring) | Cmd/Ctrl+Shift+arrows | Enter | Alt+Left | — | a linked selection scrolls a text to it (`reveal.linked`) | — | copy its letters: `selection.copyLetters`, Cmd/Ctrl+C in `view.keys` (TX: what is shown); the selection's bookmark command (C0) |
+| **the selection** | — | Shift+arrows (up and down a line in text; round on a ring) | Cmd/Ctrl+Shift+arrows | Enter | Alt+Left | — | a linked selection scrolls a text to it (`reveal.linked`) | — | copy its letters: `selection.copyLetters`, Cmd/Ctrl+C in `view.keys` (what is shown); the selection's bookmark command (planned, with `refs.remove` and labels) |
 | **the view** | — | — | — | 0 fits every section its way | Alt+Left / Alt+Right | — | — | — | undo and redo |
-| **a track or layer** | a row by its label in the gutter: planned (RW) | — | — | planned (RW) | — | — | — | `track.hide`: its band leaves every line, its ring goes | heights by patch: a band on every line, a ring's width |
+| **a track or layer** | a row by its label in the gutter: planned ([grids-and-rows.md](grids-and-rows.md)) | — | — | planned ([grids-and-rows.md](grids-and-rows.md)) | — | — | — | `track.hide`: its band leaves every line, its ring goes | heights by patch: a band on every line, a ring's width |
 | **a block** | — | — | — | — | — | stacked: about the block under the pointer (EC-115) | — | no: a `range` or the blocks list by patch | `copies` merge or split by patch (EC-65) |
 | **a bookmark or link** | — | — | — | runs its action: text reveals, a ring moves its window | Alt+Left | — | — | — | — |
 | **a navigator**: the ring's window (the `window` target) | — | — | — | a click on the window is the ring's own (select), never a move | Alt+Left | drag its `start` or `end` part: the other end held | drag its `body` | no window when nothing follows | — |
@@ -519,8 +542,8 @@ registry entry, an option of a call, or fixed with its reason).
   cyclin A's (one section a chain), so it needs no follow across blocks.
 - **Scaled segments** (Circos): one scale a ring, so a region cannot take more of the circle than its length. A zoomed
   ring would put the viewport back into the ring's key. Open: the Genomes milestone decides.
-- **The window is shared with navigators**: built in `render/window.ts` here, extended in stage 4; its look and gestures
-  are this design's, `navigators.md` follows them.
+- **The window is shared with navigators**: built in `render/window.ts` here, extended by the navigators; its look and gestures
+  are this design's, [navigators.md](navigators.md) follows them.
 - **Touch scroll of a text has no gesture**: a touch drag on data selects (the grammar), so a text on a phone scrolls
   only by a two-finger pan read as a wheel. Standing until a touch preset is designed.
 - **Scroll groups across layouts**: two sections on equal axes group today; a text and a tracks section on one system
@@ -555,8 +578,8 @@ The claim: "this design covers what a user does with layouts: text, blocks and r
    point; `FrameInput.viewports` and follow from the viewport; the cyclic wrap for leaders; the window in its pass and
    out of the ring's key, with per-section caches; the symmetric follow; `reveal.linked`; from (c)'s plural, a second
    axis (a band's `bandTop` and `rowScale`, a grid's `y`) in the one viewport record and the y path in the emphasis
-   passes; from (c)'s inverse, a history step over a changed layout restored by position, never dropped. Planned with a lane: section-
-   scope pairs and chords (PG), the row by its gutter label (RW). Standing tensions: a text line's height decided by
+   passes; from (c)'s inverse, a history step over a changed layout restored by position, never dropped. Planned in [grids-and-rows.md](grids-and-rows.md): section-
+   scope pairs and chords, the row by its gutter label. Standing tensions: a text line's height decided by
    data while lines are lazy (the text `end` an estimate); follow across blocks of several systems refused this slice;
    scaled segments and a zoomed ring refused, the Genomes milestone to decide.
 
@@ -601,39 +624,12 @@ The claim: "this design covers what a user does with layouts: text, blocks and r
   detail, on a fake clock); the matrix cells above as binding tests; back across a layout patch landing on the same
   positions. `_spec`: ViewModel (viewports by layout, nav, history across a layout change), Input, Bindings,
   Configuration.
-- **`seqx-examples`**: the p53 text figure (TX); the Plasmid ring with its linear detail and the rotated linear view
-  (DP, on RB); the Globins ESPript figure (DG, after TX and RW); the Complex's chains as blocks and the ligands as
-  chips (DC). Each with drawing checked against the data.
+- **`seqx-examples`**: the p53 text figure; the Plasmid ring with its linear detail and the rotated linear view
+  (on rings); the Globins ESPript figure (after text and the rows layer); the Complex's chains as blocks and the
+  ligands as chips. Each with drawing checked against the data.
 - **The storybook**: a Design page "Layouts" (strips and warps, the kinds of point, the matrix cells), each layout's
   stories with canvas and SVG side by side and their headless twins.
-- **Lanes**: TX builds the interface and the tracks restatement first (the hot file `render/tracks.ts`; RB starts after
-  that commit merges), then text; RB builds `FrameInput.viewports`, follow from the viewport, the per-section caches,
-  `render/window.ts` and its pass, the warp, rings and blocks. The ESPript figure needs RW's rows.
-
-## Decided
-
-The author, 2026-11-18: "layouts.md: ok as recommended"; in general: "a lot of this is "configurable behavior" and
-where appropriate, the code should allow the configuration via spec ports etc."; on sizes: "don't overdo it on the
-limits (they were sort of self-imposed and estimate), but obviously try to minimize the amount of code". After the
-decisions review: "ok" to its recommendations.
-
-1. Blocks are a cut every layout takes (`block` children, `arrange` in tracks), not a fourth `layout` value.
-2. A layout per section, sections stacked, so a ring and its linear detail share one view; side by side later.
-3. A text section exports every line (the figure), not the lines in view.
-4. A text section in a host page caps at `text.maxHeight` (600 px) and scrolls inside, taking the wheel only while it
-   overflows and giving it back at its ends.
-5. A collapsed intron is zero width on every layout, rings included (no `rings.pieceGap`), a hairline marking it.
-6. This design owns the viewport record (per-band `bandTop` and `rowScale`, the grid's `y`) and the y path in the
-   emphasis passes; a history step over a changed layout is restored by position, never silently dropped.
-7. No size cut order: the code is kept minimal and measured.
-8. A drag on a ruler, the author: "i think drag on a rule should pan. or rather .. the original solution solved this by
-   showing the rail as well ... maybe that's the way to go?" Adopted (navigators.md): the ruler rail; a positions
-   ruler pans, an alignment's ruler pans in its lower 40% and selects columns above, a grid's axes pan.
-9. The author, on the check's other gaps: "others as recommended": `selection.copyLetters` copies what is shown
-   (reading order, complement as drawn, shown positions, rows as FASTA lines), an option for the stored letters;
-   `export.window` is an optional spec param of the view, `renderSvg`'s `window` overriding it; figure-meaning settings
-   (`group`, `numbers`, `copies` and the like) are spec params.
-
-## Gaps for the author
-
-None open.
+- **Order of work**: the interface and the tracks restatement first (the hot file `render/tracks.ts`; rings and blocks
+  start after that commit merges), then text; beside it `FrameInput.viewports`, follow from the viewport, the
+  per-section caches, `render/window.ts` and its pass, the warp, rings and blocks. The ESPript figure needs the rows
+  layer ([grids-and-rows.md](grids-and-rows.md)).
