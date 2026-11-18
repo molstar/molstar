@@ -26,7 +26,9 @@ interface Conflict {
   readonly issues?: readonly Issue[];      // the validators' issues, for `invalid`
 }
 type ConflictKind = 'set' | 'remove' | 'insert' | 'move' | 'replace' | 'order' | 'invalid';
-// `move`: a node moved to two different parents, or renamed two ways; reorders within a parent are `order` (N-5)
+// `move`: a node moved to two different parents, or renamed two ways; reorders within a parent are `order` (N-5).
+// Reserved: merge3 works from diff, which infers no cross-parent move and no rename, so K2 never produces `move`
+// and writes no branch or test for it; it is for a later merge of written patches.
 ```
 
 - **Only `ok: true` has a `root`** (R2-B2): a caller cannot commit a merge and ignore its conflicts by accident.

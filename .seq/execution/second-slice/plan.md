@@ -133,7 +133,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - the six ops with their inverses and `inverseNeeds`, `applyPatch` (result then base, all or nothing, normalization
     of what it made, refs following a move, validation by how each object came to be, link integrity old root against
     new, the language's validators, the result check), `diff` with its fallbacks and emission order, `patchLanguage`
-    and `PatchLanguage`, `Commit` as a type;
+    and `AnyPatchLanguage` (no core commit type: `SpecCommit` is lane N's, in `seqx-viewer`);
   - the core's pass over refs (what a ref names), and `RefIndex` (its signature as written) on plain `Map`s;
   - `repr/schema`'s `normalizeValue` and `Changes`; the child index (a native `Map` per children array) in
     `resolveAddress`;

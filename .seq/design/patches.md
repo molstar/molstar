@@ -73,8 +73,10 @@ interface Patch {
   (R2-C1).
 - **A patch is also a tree**. `patchLanguage(language)` gives the patch language for a language (R2-S6, N-4):
   - kind `patch`, one child per op, laid out by `patchToNode` the same way for every language;
-  - `at` and `parent` addresses into that language's tree, embedded nodes as slots of that language;
-  - one object per language (memoized), its `id` the language's id with `/patch` after it, so slots can name it.
+  - `at` and `parent` as plain address strings (not `ref`: the stored-patch rule below walks them, F-2), embedded nodes
+    as slots of that language;
+  - one object per language (memoized), its `id` the language's id with `.patch` after it (`seq.patch`), a valid
+    language id, so slots can name it (F-1).
 
   Over no particular language, `AnyPatchLanguage` has `any` nodes and string addresses. Both print, encode and decode
   through the existing codecs: `(patch :base 3f… (set :at /views/main/t1 :key height :value 40))`.
@@ -146,8 +148,9 @@ type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;
    languages, as validation's do. This costs only what the patch made. Without a language, nothing is normalized.
 4. **Refs follow a move or a rename**, when a language is given:
    - **What is walked**: every value the language types `ref`, inside lists, records, maps, unions (by the member the
-     validator would choose), tables, data forms' `args` and slots, in params only. Stored patches' `at` and `parent`
-     are refs, through `patchLanguage`.
+     validator would choose), tables, data forms' `args` and slots, in params only. The body of a stored patch's slot
+     is skipped here: only the stored-patch rule ([A patch](#a-patch)) walks it, so nothing in it is rewritten twice,
+     and an `at` naming a node the step itself inserts is not taken for a dangling ref (F-2).
    - **Not rewritten**: `any` params, `custom`, and addresses inside strings (text, links). Those go stale, and a
      language's validator may report them.
    - **What matches**: only the leading run of id segments of a ref's address can be a prefix of the moved address.
@@ -299,7 +302,7 @@ interface ApplyOptions {
 type PatchValidator = (before: Node, after: Node, changes: Changes) => readonly Issue[];
 function applyPatch(root: Node, patch: Patch, options?: ApplyOptions): PatchResult;
 function diff(a: Node, b: Node): Patch;
-function patchLanguage(language: Language): Language;   // memoized; id `<language id>/patch`
+function patchLanguage(language: Language): Language;   // memoized; id `<language id>.patch`
 const AnyPatchLanguage: Language;                      // over no particular language
 function patchToNode(patch: Patch): Node;
 function patchFromNode(node: Node): { readonly patch?: Patch; readonly issues: readonly Issue[] };
