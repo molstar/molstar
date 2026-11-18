@@ -43,6 +43,17 @@ export const DefaultLinkOptions: LinkOptions = { prefix: 'seq-', maxLength: 8192
 
 const isAction = (a: string): a is LinkActionName => (LinkActions as readonly string[]).includes(a);
 
+/**
+ * A key or a value percent-encoded for a link: every character a markdown destination or Mol*'s reader treats
+ * specially is encoded (`( ) ' ! *` too, so an address with `)` survives in `[text](…)`), and `/` is kept readable
+ * (`!seq-focus=/refs/dbd`; a destination allows it, and the reader splits only on `&` and `=`).
+ */
+function encodePart(text: string): string {
+  return encodeURIComponent(text)
+    .replace(/[()'!*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/%2F/g, '/');
+}
+
 /** A link's text: `!` then each entry, key and value percent-encoded. Its addresses are printed as given. */
 export function printLink(link: Partial<Link> & Pick<Link, 'actions'>, options: Partial<LinkOptions> = {}): string {
   const prefix = options.prefix ?? DefaultLinkOptions.prefix;
@@ -51,7 +62,7 @@ export function printLink(link: Partial<Link> & Pick<Link, 'actions'>, options: 
     ...link.actions.map((a): [string, string] => [`${prefix}${a.action}`, a.address]),
   ];
   if (link.channel !== undefined) entries.push([`${prefix}channel`, link.channel]);
-  return `!${entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')}`;
+  return `!${entries.map(([k, v]) => `${encodePart(k)}=${encodePart(v)}`).join('&')}`;
 }
 
 /**

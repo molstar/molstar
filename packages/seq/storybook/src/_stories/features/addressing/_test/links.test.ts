@@ -72,7 +72,7 @@ describe('Links, headless', () => {
     expect(v.addresses.selectionAddress()).toBe('/refs/hotspots');
     expect(v.selection.value.value.shown.parts[0].ranges).toEqual(new Int32Array([174, 175, 247, 248, 272, 273]));
     // the selection's link, as the story's Copy link button gives it
-    expect(v.addresses.copyLink()).toBe('!seq-focus=%2Frefs%2Fhotspots');
+    expect(v.addresses.copyLink()).toBe('!seq-focus=/refs/hotspots');
   });
 
   it('focuses one residue named in two numberings alike', async () => {

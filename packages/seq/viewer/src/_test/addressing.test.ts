@@ -89,7 +89,7 @@ describe('actions on addresses', () => {
     expect(range(v, Gene)).not.toEqual(gene);
     // and through a link, the same action
     v.view.fit(Protein);
-    const run = v.runLink('!seq-focus=%2Frefs%2Fstart');
+    const run = v.runLink('!seq-focus=/refs/start');
     expect(run?.outcomes.map((x) => x.done)).toEqual([true]);
     expect(range(v, Protein)).toEqual([0, 5]);
   });
@@ -199,8 +199,8 @@ describe('the session as addresses', () => {
     expect(v.addresses.copyLink()).toBe(v.addresses.link('focus', '/data/p/(range :from 1 :to 5)'));
     v.selection.clear();
     v.hover.set({ system: '/data/p', position: 3, layer: `${Protein}/letters/l` }, 'test');
-    expect(v.addresses.copyLink()).toBe('!seq-focus=%2Fdata%2Fp%2F(at%20%3Alabel%204)');
-    expect(v.runCommand('address.copy-link', {})).toBe('!seq-focus=%2Fdata%2Fp%2F(at%20%3Alabel%204)');
+    expect(v.addresses.copyLink()).toBe('!seq-focus=/data/p/%28at%20%3Alabel%204%29');
+    expect(v.runCommand('address.copy-link', {})).toBe('!seq-focus=/data/p/%28at%20%3Alabel%204%29');
   });
 });
 

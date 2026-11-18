@@ -6,6 +6,7 @@
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { PCG } from '@molstar/core/data/util/hash-functions';
+import { parseMarkdown } from '@molstar/core/util/markdown';
 import { describe, expect, it } from 'vitest';
 import { addressFor, resolveAddressIn } from '../address.js';
 import { AddressIssues } from '../address-issues.js';
@@ -28,7 +29,7 @@ describe('links', () => {
       other: [['structure-focus', 'A:94']],
     });
     expect(text).toBe(
-      '!structure-focus=A%3A94&seq-focus=%2Frefs%2Fdbd&seq-highlight=%2Fdata%2Fp53%2F(item%20%3Alabel%20%22DNA%20binding%20%26%20more%22%20%3Aid%20%5Ba%3D1%20%232%5D)&seq-channel=link',
+      '!structure-focus=A%3A94&seq-focus=/refs/dbd&seq-highlight=/data/p53/%28item%20%3Alabel%20%22DNA%20binding%20%26%20more%22%20%3Aid%20%5Ba%3D1%20%232%5D%29&seq-channel=link',
     );
     expect(parseLink(text)).toEqual({
       link: {
@@ -41,6 +42,19 @@ describe('links', () => {
       },
       issues: [],
     });
+  });
+
+  it('survive as a markdown link’s destination, a `)` in a quoted id included', () => {
+    const address = '/data/p53/features/(item :id "x)y")';
+    const href = printLink({ actions: [{ action: 'select', address }] });
+    expect(href).toBe('!seq-select=/data/p53/features/%28item%20%3Aid%20%22x%29y%22%29');
+    const [paragraph] = parseMarkdown(`See [the feature](${href}) here.`);
+    const link = paragraph.kind === 'paragraph' ? paragraph.children.find((c) => c.kind === 'link') : undefined;
+    expect(link?.kind === 'link' && link.href).toBe(href);
+    expect(parseLink(href)?.link?.actions).toEqual([{ action: 'select', address }]);
+    expect(printLink({ actions: [{ action: 'focus', address: '/data/x/(item :id "it\'s!*")' }] })).toBe(
+      '!seq-focus=/data/x/%28item%20%3Aid%20%22it%27s%21%2A%22%29',
+    );
   });
 
   it('read the short form a writer types, and another prefix', () => {
