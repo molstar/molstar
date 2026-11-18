@@ -14,10 +14,18 @@ bounded before it starts (§bounded-work).
   one asset and of all in flight, whether credentials are sent (never by default), and how long a read may take. A read
   the policy refuses is an issue on its source, never an exception.
 - **What the policy enforces today**: locations (schemes, hosts, base), and the size of an asset once its body is read.
-  What waits for a core asset-manager change (proposed core change; the author's call): the manager's fetch sends
-  cookies on relative reads, follows redirects to disallowed hosts, ignores the signal and checks size only after the
-  whole body is read. The change is `credentials: 'omit'`, `redirect: 'error'`, the signal passed through and a streamed
-  byte limit. Until it lands the policy does not claim those four, and says so in its documentation.
+  The rest waits for the asset manager's interface to carry it (the author, 2026-11-18, Gate 0 of the second slice):
+  - **The interface carries what any app needs**: `AssetManager.ResolveOptions` gains `credentials`
+    (`'omit' | 'same-origin' | 'include'`), `redirect` (`'follow' | 'error'`), `signal` and `maxBytes` (enforced while
+    the body streams). A manager honors them or refuses the read. Why: Seq\* is composed into apps that need
+    credentials (a lab's server behind a login), so the core must not fix `'omit'`.
+  - **Each app composes its own manager**: a derived implementation, or `DefaultAssetManager`, whose defaults stay what
+    they are today for every Mol\* app. The policy passes its choice on every read: in the browser viewer
+    `credentials: 'omit'` unless the composition says otherwise, `redirect: 'error'`, the read's signal, the size bound.
+  - **A conformance suite** every implementation satisfies (`checkAssetManager`, data and a function as the codec
+    suite is, on a fake fetch): the four options honored or the read refused, references and release, the shared
+    download, decompression, errors not cached. `DefaultAssetManager` runs it in core, and an app runs it on its own.
+  - Until it lands the policy does not claim those four, and says so in its documentation.
 - **Defaults by host**:
   - in a browser viewer: `https:` and relative locations; no credentials; 256 MB an asset;
   - headless (the render CLI, a server): only files under a root the caller names and hosts it lists; no network by

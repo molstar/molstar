@@ -54,7 +54,8 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
 
 ## Gate 0: before any lane
 
-- [ ] GATE 0: the author confirms, each with its recommendation. One message, the first slice's evidence beside each.
+- [x] GATE 0 (2026-11-18): "rest as recommended", with one amendment: the asset manager. Recorded in `state.md`,
+      Decided. The text below is what was asked.
   - **The first slice's open decisions** (its record, Open decisions; recommendation: confirm as built, except 10):
     1. undeclared typed columns tagged;
     2. a cyclic range with start > end wraps, an error elsewhere;
@@ -107,7 +108,10 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 0: carried from the first slice (orchestrator and one fast lane)
 
-- [ ] S0 (fast) carry-overs, each small:
+- [ ] S0b (fast) `values.coarser`'s default to 1 (Gate 0, item 10): `RenderConfig`'s default, the core `_spec`'s
+      Configuration row, the test that names the default; the 3M-bars heavy bounds still hold (rerun).
+- [x] S0 (fast) carry-overs, each small (merged 2026-11-18, `360043baf`; the TP53 exons were right, checked against
+      NM_000546.6):
   - the stale comment in `canvas/backend.ts` (two canvases: three);
   - `vitest` in the Storybook package's dev dependencies, and the Vite plugin's test under `src`;
   - the TP53 exon coordinates checked against RefSeq NM_000546. Fixtures only: no network in tests. If unverifiable
@@ -151,9 +155,16 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - typed columns decoded without a copy where aligned;
   - the p53 specs round-tripping JSON ↔ MessagePack;
   - decode throughput as a heavy-lane bound (performance.md, at least 200 MB/s).
-- [ ] M (fast, if Gate 0 agrees) the asset manager's fetch: credentials omitted, redirects refused, the signal
-      passed, a streamed byte limit. Then the asset policy claims them, and security.md drops "what waits". Tests run on
-      a fake fetch, never the network.
+- [ ] M (fast) the asset manager's interface, as amended at Gate 0 (security.md):
+  - `AssetManager.ResolveOptions` gains `credentials`, `redirect`, `signal`, `maxBytes` (enforced while the body
+    streams; `fetchData` gains the same); `DefaultAssetManager` honors them, its defaults unchanged for every Mol\* app;
+  - `checkAssetManager` (data and a function, on a fake fetch, never the network): the four options honored or the
+    read refused, references and release, the shared download, decompression, errors not cached;
+    `DefaultAssetManager` runs it;
+  - Seq\*'s asset policy passes its choices on every read (browser: `credentials: 'omit'` unless the composition
+    says otherwise, `redirect: 'error'`, the signal, the size bound), and claims all four in its documentation;
+  - the assets `_spec` (`util/_spec/assets.md`), a v6 changelog entry; a public API addition to `@molstar/core`, no
+    break.
 - [ ] GATE: merged, reviewed, the checks green; `pnpm check:workspace` after `pnpm build` (core and io changed).
 
 ### Stage 2: editing and addressing (two strong lanes, after stage 1)

@@ -15,17 +15,27 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## In progress
 
-- Gate 0 sent to the author (2026-11-18), waiting for answers.
-- Lane S0 (carry-overs, sonnet, `briefs/s0-carry-overs.md`), branch `seq/s0-carry-overs` from `6e3b15296`.
-- The Gene by region recheck: the browser pane is hidden (no frames run there); the author was asked to show it.
+- Stage 0: S0 merged (`360043baf`); S0b (`values.coarser` = 1) next. The Gene by region recheck waits for a visible
+  pane (the author asked to show it).
+- Stage 1: lanes R and K (heavy) start now; L and M (light) beside them.
 
 ## Next
 
-- On Gate 0's answers: lanes R and K (heavy) at once, L and M (light) as their items are answered; K needs nothing
-  more (its design is agreed).
-- On S0's report: checks, review, merge.
+- On each lane's report: checks, the look where something is drawn, an independent review, one fix round, merge.
 
 ## Decided
+
+- **Gate 0** (the author, 2026-11-18): "rest as recommended", with one amendment.
+  - The first slice's open decisions 1–9 confirmed as built; 10 `values.coarser` default 1 (lane S0b); 11 below; 12 the
+    TP53 exons checked by S0 (right, NM_000546.6).
+  - `@molstar/core/data/immutable` as drafted (lane R); `merge3` as drafted, both questions yes (lane K2); range reads
+    wait for bigWig; MessagePack in io on its hooks (lane L); selection history none by default.
+  - **The asset manager, amended**: "we will need to be able to support credentials in the asset manager, but given
+    how it's implemented, each app can get its own derived implementation. so what i am thinking: we make sure the
+    interface has all we need, and then app composition still provides that. we should still have basic conformance
+    tests for the asset manager that any implementation needs to satisfy." So `ResolveOptions` carries credentials,
+    redirects, the signal and a streamed byte limit; each app composes its manager; `checkAssetManager` is the suite
+    every implementation passes; Seq\*'s policy passes its choices per read (security.md). Lane M.
 
 - History as a Seq\* port, the host owning the undo stack; `@molstar/ui/history` one adapter (the author,
   2026-11-18: "yes, go ahead"). Gate 0's history item is settled; the designs say so (changes.md, tree-core.md, base-library.md,
