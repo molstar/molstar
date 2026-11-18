@@ -32,17 +32,13 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 ## In progress
 
 - Stage 2 started (2026-11-18, from `57b1d7c4e`; the lane worktrees were cut from master, each lane reset onto it):
-  - K2 merged (`5927c9e4b`) after one review round (5 tests failing on the parent, checked).
-  - R+K in its fix round: the derive correct, but eager (story steps' typed sets re-walked every apply, a one-key
-    set 3 → 30 ms) and `under()` linear; lazily derived next.
-  - O building (stories and tests in).
-  - N's brief written (`briefs/n-editing.md`); it starts from the merged tree once O lands, since both edit the
-    viewer's commands, models and `viewer.ts`. Stage 1's gate also passed the `.seq` checks and
-  `pnpm test:medium` for core, io and seq.
-- Stage 1: R, K, L, M merged; `pnpm build` and `pnpm check:workspace` green on `4eb20f091` (the check had failed on
-  stale ignored outputs in `packages/ui/lib`, removed). The look done in a visible pane (2026-11-18), light and
-  dark (the `theme:dark` global): Tracks, Protein on its gene and Gene by region; canvas and SVG agree, each settled
-  with 0 issues, no console errors; the served `render/tracks.ts` is the merged one. Stages 0 and 1 closed.
+  - K2 merged (`5927c9e4b`), R+K merged (`989292665`), each after one review round.
+  - O reported (`3f4d0f128`, checks green on the orchestrator's run); looked at in a visible pane from its worktree
+    (Storybook on 6008): the links story works in light and dark; in the bookmarks story a bookmark's focus says
+    "Focused" but the view does not move, and "Bookmark this view" records the last focused address. Under review.
+  - Law 3 with stored patches: case 572 fixed by the orchestrator (`ff2ca5476`); seed 4 case 43 (pre-existing) is
+    lane K3's (`seq/k3-stored-law3`, opus).
+  - N's brief written (`briefs/n-editing.md`); it starts from the merged tree once O lands.
 
 ## Next
 
