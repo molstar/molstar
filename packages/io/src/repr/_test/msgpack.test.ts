@@ -10,7 +10,7 @@ import { normalize } from '@molstar/core/repr/schema/normalize';
 import { CategoryColumn, categoryColumn, hashNode, type Node, pathToPointer } from '@molstar/core/repr/tree/index';
 import { describe, expect, it } from 'vitest';
 import { encodeMsgPack } from '../../common/msgpack/encode.js';
-import { MsgPackCodec, MsgPackExt } from '../msgpack.js';
+import { MsgPackCodec, MsgPackExt, swapBytes } from '../msgpack.js';
 
 /** A spec of the shape a viewer's spec has: a sequence, ranges with columns, a track of values, custom data. */
 function spec(): Node {
@@ -123,6 +123,50 @@ describe('io/repr/msgpack', () => {
       expect(out.buffer === host.buffer, `in place at shift ${shift}`).toBe(aligned);
       expect(out.byteOffset % 8).toBe(0);
     }
+  });
+
+  it('never writes into its input: a float column with a NaN payload is copied, aligned or not', () => {
+    for (const [type, size, make] of [
+      ['float32', 4, () => new Float32Array([1, Number.NaN, 2])],
+      ['float64', 8, () => new Float64Array([1, Number.NaN, 2])],
+    ] as const) {
+      const column = make();
+      const encoded = MsgPackCodec.encode({ kind: 'x', params: { c: column } });
+      const payload = encoded.length - column.byteLength;
+      // the NaN's last byte gets a payload bit, as a foreign encoder may write it
+      encoded[payload + size] = 0x01;
+      const pad = (size - (payload % size)) % size;
+      for (const shift of [pad, pad + 1]) {
+        const host = new Uint8Array(encoded.length + 16);
+        host.set(encoded, shift);
+        const input = host.subarray(shift, shift + encoded.length);
+        const before = host.slice();
+        const node = MsgPackCodec.decode(input).node!;
+        hashNode(node);
+        expect(host, `${type} at shift ${shift}`).toEqual(before);
+        const out = node.params!.c as Float32Array | Float64Array;
+        expect([out[0], out[2]]).toEqual([1, 2]);
+        expect(out[1]).toBeNaN();
+        expect(out.buffer).not.toBe(host.buffer);
+      }
+    }
+    // a column with no NaN is still read in place
+    const plain = new Float32Array([1, 2, 3]);
+    const bytes = MsgPackCodec.encode({ kind: 'x', params: { c: plain } });
+    const pad = (4 - ((bytes.length - 12) % 4)) % 4;
+    const host = new Uint8Array(bytes.length + 8);
+    host.set(bytes, pad);
+    const out = MsgPackCodec.decode(host.subarray(pad, pad + bytes.length)).node!.params!.c as Float32Array;
+    expect(out.buffer).toBe(host.buffer);
+  });
+
+  it('swaps the bytes of a column between the wire (little-endian) and a big-endian host', () => {
+    const bytes = Uint8Array.of(1, 2, 3, 4, 5, 6, 7, 8);
+    expect([...swapBytes(bytes, 1)]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect([...swapBytes(bytes, 2)]).toEqual([2, 1, 4, 3, 6, 5, 8, 7]);
+    expect([...swapBytes(bytes, 4)]).toEqual([4, 3, 2, 1, 8, 7, 6, 5]);
+    expect([...swapBytes(bytes, 8)]).toEqual([8, 7, 6, 5, 4, 3, 2, 1]);
+    expect([...bytes]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it('refuses what is not a tree, with issues and never a throw', () => {

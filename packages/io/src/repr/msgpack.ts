@@ -44,6 +44,16 @@ import { utf8ByteCount, utf8Write } from '@molstar/core/util/utf8';
 import { createMsgPackState, parseMsgPackValue } from '../common/msgpack/decode.js';
 import { encodeMsgPack, type MsgPackExtData } from '../common/msgpack/encode.js';
 
+const HostLittleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+
+/** A copy of `bytes` with each `size`-byte element reversed: a column between the wire (little-endian) and a big-endian host. */
+export function swapBytes(bytes: Uint8Array, size: number): Uint8Array {
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i + size <= bytes.length; i += size)
+    for (let k = 0; k < size; k++) out[i + k] = bytes[i + size - 1 - k];
+  return out;
+}
+
 /** The extension types. */
 export const MsgPackExt = {
   /** NaN, +Infinity, -Infinity, -0: one byte, 0 to 3. */
@@ -151,7 +161,8 @@ function toPlainValue(value: Value): unknown {
 function columnExt(column: Column): Ext {
   canonicalColumn(column);
   if (column instanceof CategoryColumn) return new Ext({ type: MsgPackExt.category, data: categoryBytes(column) });
-  const data = new Uint8Array(column.buffer, column.byteOffset, column.byteLength);
+  const view = new Uint8Array(column.buffer, column.byteOffset, column.byteLength);
+  const data = HostLittleEndian ? view : swapBytes(view, column.BYTES_PER_ELEMENT);
   return new Ext({ type: ColumnExt[columnType(column) as NumericColumnType], data });
 }
 
@@ -169,7 +180,8 @@ function categoryBytes(column: CategoryColumn): Uint8Array {
     utf8Write(bytes, at + 4, d);
     at += 4 + length;
   }
-  bytes.set(new Uint8Array(codes.buffer, codes.byteOffset, codes.byteLength), at);
+  const codeBytes = new Uint8Array(codes.buffer, codes.byteOffset, codes.byteLength);
+  bytes.set(HostLittleEndian ? codeBytes : swapBytes(codeBytes, 4), at);
   return bytes;
 }
 
@@ -222,15 +234,27 @@ function extensionDecoder(made: WeakSet<object>) {
   };
 }
 
-/** A view into the payload when it is aligned for the element type, else one copy. */
+/** Whether a float view holds a NaN: one may carry a payload, which making it canonical would write into the input. */
+function hasNaN(view: Float32Array | Float64Array): boolean {
+  for (let i = 0; i < view.length; i++) if (view[i] !== view[i]) return true;
+  return false;
+}
+
+/**
+ * A view into the payload when it is aligned for the element type, the host is little-endian and a float column holds
+ * no NaN (the tree writes the canonical NaN into a column it owns: never into the input); else one copy.
+ */
 function numericColumn(type: NumericColumnType, data: Uint8Array): Column | undefined {
   const Ctor = columnConstructor(type);
   const size = Ctor.BYTES_PER_ELEMENT;
   if (data.length % size !== 0) return undefined;
-  if (data.byteOffset % size === 0) return new Ctor(data.buffer as ArrayBuffer, data.byteOffset, data.length / size);
+  if (HostLittleEndian && data.byteOffset % size === 0) {
+    const view = new Ctor(data.buffer as ArrayBuffer, data.byteOffset, data.length / size);
+    if (!(view instanceof Float32Array || view instanceof Float64Array) || !hasNaN(view)) return view;
+  }
   const copy = new Uint8Array(data.length);
   copy.set(data);
-  return new Ctor(copy.buffer, 0, data.length / size);
+  return new Ctor((HostLittleEndian ? copy : swapBytes(copy, size)).buffer as ArrayBuffer, 0, data.length / size);
 }
 
 function categoryColumnOf(data: Uint8Array): CategoryColumn | undefined {
@@ -253,7 +277,8 @@ function categoryColumnOf(data: Uint8Array): CategoryColumn | undefined {
   const rest = data.length - at;
   if (rest % 4 !== 0) return undefined;
   const codes = new Int32Array(rest / 4);
-  new Uint8Array(codes.buffer).set(data.subarray(at));
+  const raw = data.subarray(at);
+  new Uint8Array(codes.buffer).set(HostLittleEndian ? raw : swapBytes(raw, 4));
   try {
     return categoryFromCodes(dict, codes);
   } catch {
