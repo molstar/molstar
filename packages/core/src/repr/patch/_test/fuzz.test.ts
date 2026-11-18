@@ -101,14 +101,22 @@ function fuzz(cases: number, seed: number, derived = false) {
     if (derived && kind === 'box' && r() < 0.25) p.step = stepOf(root);
     return Object.keys(p).length ? p : undefined;
   };
-  const stepOf = (root: Node): Node => {
+  // a stored patch; at the top, one whose insert may hold a stored patch of its own (resolved from that op's state)
+  const stepOf = (root: Node, nest = true): Node => {
     const all = nodes(root);
     const ops: Op[] = [];
     for (let i = 0, n = 1 + Math.floor(r() * 2); i < n && all.length; i++) {
       const roll = r();
       if (roll < 0.5) ops.push({ op: 'set', at: pick(all), key: 'link', value: refTo(root) });
       else if (roll < 0.75) ops.push({ op: 'move', at: pick(all), parent: [], place: { last: true } });
-      else ops.push({ op: 'insert', parent: [], place: { last: true }, node: { kind: 'box', id: pick(Ids) } });
+      else {
+        const node: Node = {
+          kind: 'box',
+          id: pick(Ids),
+          ...(nest && r() < 0.4 ? { params: { step: stepOf(root, false) } } : {}),
+        };
+        ops.push({ op: 'insert', parent: [], place: { last: true }, node });
+      }
     }
     return patchToNode({ ops });
   };
@@ -238,7 +246,7 @@ describe('repr/patch: law 3 over seeded multi-op patches with refs and a languag
   });
 
   it('a derived ref index equals one built on the same root (long)', { tags: ['heavy'] }, () => {
-    // seeds 4, 7 and 44 each found a stored patch's case law 3 missed; seeds 1 to 80 pass
+    // seeds 4, 7 and 44 each found a stored patch's case law 3 missed; seeds 1 to 120 pass, nested steps included
     for (const seed of [4, 7, 44]) expect(fuzz(3000, seed, true)).toBeGreaterThan(1000);
   });
 });
