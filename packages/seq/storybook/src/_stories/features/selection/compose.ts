@@ -4,14 +4,48 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { SeqCoreConfig, type SeqPorts } from '@molstar/seqx-core/context';
 import type { RenderSvgResult } from '@molstar/seqx-core/render';
-import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
+import type { ExampleView } from '@molstar/seqx-examples';
+import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The selection story's composition, DOM-free: the story and its headless twin call these, so the twin acts on the
 // viewer as the story's pointer and keys do (through `viewer.input`, the bindings and the commands, never around them)
 // and draws the same SVG beside it.
 
-export { composeViewer } from '../addressing/compose.js';
+/** How the selection is drawn: its shape and the tint's place (the core's `emphasis` render items). */
+export interface SelectionLook {
+  readonly shape?: 'column' | 'tracks';
+  readonly place?: 'over' | 'under';
+}
+
+/**
+ * A viewer of an example view, composed from the default spec with the view's registry and the selection's look as the
+ * core's render items (read once: another look is another viewer).
+ */
+export function composeViewer(
+  view: ExampleView,
+  options: { target?: HTMLElement; delayMs?: number; ports?: SeqPorts; look?: SelectionLook } = {},
+): SeqViewer {
+  const base = DefaultSeqViewerSpec();
+  const extra = view.registry?.(options.delayMs !== undefined ? { delayMs: options.delayMs } : {}) ?? [];
+  const look = options.look ?? {};
+  const emphasis = {
+    ...(look.shape ? { selectionShape: look.shape } : {}),
+    ...(look.place ? { selectionPlace: look.place } : {}),
+  };
+  return createSeqViewer(
+    {
+      ...base,
+      ...(options.target ? {} : { ui: undefined }),
+      registry: [...(base.registry ?? []), ...extra],
+      ...(options.ports ? { ports: options.ports } : {}),
+      ...(Object.keys(emphasis).length ? { config: [[SeqCoreConfig.render, { emphasis }]] } : {}),
+    },
+    options.target,
+  );
+}
 
 /** The middle of a position's cell on a track (sections and tracks by index), in the canvas's CSS px. */
 export function cellPoint(viewer: SeqViewer, section: number, track: number, position: number): [number, number] {

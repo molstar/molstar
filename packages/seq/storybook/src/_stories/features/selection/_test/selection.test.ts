@@ -12,7 +12,15 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { itWithin } from '@molstar/test-harness/timing';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cellPoint, clickAt, composeViewer, describeSelection, dragFrom, selectionSvg } from '../compose.js';
+import {
+  cellPoint,
+  clickAt,
+  composeViewer,
+  describeSelection,
+  dragFrom,
+  type SelectionLook,
+  selectionSvg,
+} from '../compose.js';
 
 // The Selection story, headless on a fake clock, composed as the story composes it: on both p53 views a click, a drag
 // and the cursor through the viewer's input; the selection drawn in the canvas's lists and in the SVG export beside it
@@ -45,12 +53,13 @@ afterEach(() => {
 });
 
 /** `clock`: the bound of the performance case reads the real `performance`, its timers faked alone. */
-async function make(view = tracks, clock = true) {
+async function make(view = tracks, clock = true, look?: SelectionLook) {
   vi.useFakeTimers({
     toFake: clock ? ['setTimeout', 'clearTimeout', 'Date', 'performance'] : ['setTimeout', 'clearTimeout'],
   });
   const v = composeViewer(view, {
     ports: { assets: () => ({ reader: { readText: async () => gene } }) },
+    ...(look ? { look } : {}),
   });
   viewer = v;
   v.input.mac = false;
@@ -131,39 +140,44 @@ describe('Selection, headless', () => {
 });
 
 describe('Selection: the performance representative', () => {
-  itWithin('a drag-select step and a cursor step (the input, then the frame) under 4 ms each', async (within) => {
-    const v = await make(onGene, false);
-    v.view.setRange('/views/main/protein', 150, 250);
-    await vi.advanceTimersByTimeAsync(400);
-    v.draw();
-    const [x0, y] = cellPoint(v, 0, 0, 160);
-    const [x1] = cellPoint(v, 0, 0, 240);
-    v.input.move(x0, y);
-    v.input.down(x0, y);
-    let i = 0;
-    const dragStep = () => {
-      i++;
-      v.input.move(x0 + ((x1 - x0) * (i % 40)) / 40 + 4, y);
-      v.draw();
-    };
-    const cursorStep = () => {
-      v.input.key({ key: i++ % 20 < 10 ? 'ArrowRight' : 'ArrowLeft' });
-      v.draw();
-    };
-    // warm-ups
-    for (let k = 0; k < 40; k++) dragStep();
-    const n = 10;
-    const t0 = performance.now();
-    for (let k = 0; k < n; k++) within(4, dragStep);
-    console.info(`drag-select step: ${((performance.now() - t0) / n).toFixed(2)} ms`);
-    v.input.up();
-    v.selection.setCursor({ section: '/views/main/protein', system: '/data/p53', position: 200 });
-    for (let k = 0; k < 40; k++) cursorStep();
-    const t1 = performance.now();
-    for (let k = 0; k < n; k++) within(4, cursorStep);
-    console.info(`cursor step: ${((performance.now() - t1) / n).toFixed(2)} ms`);
-    expect(v.selection.value.value.shown.parts.length).toBeGreaterThan(0);
-  });
+  // the tint over the data (the default) redraws the emphasis alone; under it, a selection's change draws the base too
+  for (const place of ['over', 'under'] as const)
+    itWithin(
+      `a drag-select step and a cursor step (the input, then the frame) under 4 ms each, the tint ${place}`,
+      async (within) => {
+        const v = await make(onGene, false, { place });
+        v.view.setRange('/views/main/protein', 150, 250);
+        await vi.advanceTimersByTimeAsync(400);
+        v.draw();
+        const [x0, y] = cellPoint(v, 0, 0, 160);
+        const [x1] = cellPoint(v, 0, 0, 240);
+        v.input.move(x0, y);
+        v.input.down(x0, y);
+        let i = 0;
+        const dragStep = () => {
+          i++;
+          v.input.move(x0 + ((x1 - x0) * (i % 40)) / 40 + 4, y);
+          v.draw();
+        };
+        const cursorStep = () => {
+          v.input.key({ key: i++ % 20 < 10 ? 'ArrowRight' : 'ArrowLeft' });
+          v.draw();
+        };
+        // warm-ups
+        for (let k = 0; k < 40; k++) dragStep();
+        const n = 10;
+        const t0 = performance.now();
+        for (let k = 0; k < n; k++) within(4, dragStep);
+        console.info(`drag-select step (${place}): ${((performance.now() - t0) / n).toFixed(2)} ms`);
+        v.input.up();
+        v.selection.setCursor({ section: '/views/main/protein', system: '/data/p53', position: 200 });
+        for (let k = 0; k < 40; k++) cursorStep();
+        const t1 = performance.now();
+        for (let k = 0; k < n; k++) within(4, cursorStep);
+        console.info(`cursor step (${place}): ${((performance.now() - t1) / n).toFixed(2)} ms`);
+        expect(v.selection.value.value.shown.parts.length).toBeGreaterThan(0);
+      },
+    );
 });
 
 it('the status line names nothing before a selection', async () => {
