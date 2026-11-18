@@ -22,10 +22,11 @@ checks it cannot express.
 
 - **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data` and `views` (reserved ids of the
   same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
-  `track`, `layer`. A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own
-  (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since
-  `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`,
-  `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an address.
+  `track`, `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges`
+  node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each`
+  makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is
+  `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`)
+  are `ref` params naming the kinds they take; a reference is an address.
 - **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
   language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
   are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a

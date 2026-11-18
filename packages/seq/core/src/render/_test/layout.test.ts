@@ -42,6 +42,22 @@ describe('the layout’s edges', () => {
       expect(hitView(f.layout, x, box.y + 2)?.element).toBeUndefined();
   });
 
+  it('a hidden layer is kept in the spec and not drawn', async () => {
+    const spec = (hidden: boolean) => {
+      const b = createSeqSpec({ title: 'ranges' });
+      const s = b.data.sequence('s', { alphabet: 'protein', letters: 'M'.repeat(40) });
+      const r = b.data.ranges('r', { target: s, rows: { start: [0, 10], end: [5, 20] } });
+      b.views.view('v', (v) =>
+        v.section('s', { of: s }).track('r').layer('ranges', { type: 'ranges', data: r, hidden }),
+      );
+      return b.build();
+    };
+    const shown = await renderSvg(spec(false), { size: Size });
+    const hidden = await renderSvg(spec(true), { size: Size });
+    expect(blocks(shown.lists)[0].rects).toBeGreaterThan(0);
+    expect(blocks(hidden.lists)).toEqual([]);
+  });
+
   it('a follower placed above its leader follows it still', async () => {
     const reordered = p53GeneSpec();
     const view = reordered.children!.find((c) => c.kind === 'views')!.children![0];

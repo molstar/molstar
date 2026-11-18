@@ -69,7 +69,6 @@ const SeqCases: PatchCase[] = [
           at: ['views', 'main', 'protein', 'letters', 'letters'],
           key: 'hidden',
           value: true,
-          where: 'custom',
         },
       ],
     },
@@ -78,7 +77,7 @@ const SeqCases: PatchCase[] = [
       ok: true,
       root: edit(p53Spec(), ['views', 'main', 'protein', 'letters', 'letters'], (n) => ({
         ...n,
-        custom: { hidden: true },
+        params: { ...n.params, hidden: true },
       })),
     },
   },

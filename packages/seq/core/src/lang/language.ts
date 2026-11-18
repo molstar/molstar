@@ -248,6 +248,7 @@ export const SeqLanguage = defineLanguage({
           doc: 'The data it draws (the letters of the section for `letters`).',
         },
         color: { type: 'any', doc: 'A theme form that colors the marks.' },
+        hidden: { type: 'boolean', default: false, doc: 'Whether the layer is hidden: kept in the spec, not drawn.' },
       },
     },
   },
