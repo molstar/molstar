@@ -66,6 +66,20 @@ describe('createSeqViewer', () => {
     expect(viewer.height).toBeGreaterThan(0);
   });
 
+  it('moves layoutIssues only when the issues change, not with each layout', async () => {
+    const { viewer, frames } = await make();
+    const before = viewer.layoutIssues.value;
+    const layouts = viewer.counts.layouts;
+    let told = 0;
+    const off = viewer.layoutIssues.listen(() => told++);
+    viewer.resize(640);
+    frames.flush();
+    expect(viewer.counts.layouts).toBeGreaterThan(layouts);
+    expect(viewer.layoutIssues.value).toBe(before);
+    expect(told).toBe(0);
+    off();
+  });
+
   it('lists a behavior once and an empty spec makes a viewer with nothing to do', () => {
     const spec = DefaultSeqViewerSpec();
     const twice = { ...spec, behaviors: [...spec.behaviors, spec.behaviors[0]] };

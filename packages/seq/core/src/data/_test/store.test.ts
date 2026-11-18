@@ -516,6 +516,35 @@ describe('cancellation when the view waits (EC-173)', () => {
   });
 });
 
+describe('a detach with tiles queued and in flight', () => {
+  it('leaves nothing pending, and a fresh attach and want settle promptly', async () => {
+    const { clock, source, store } = setup({ delayMs: 100, settings: { maxInFlight: 1 } });
+    const other = store.wanter();
+    other.want([view(0, 3072)]);
+    store.want([view(0, 3072)]);
+    expect(source.reads.length).toBe(1);
+    store.detach(S);
+    // another set's wants (planned before, kept) merged again while it is gone make no entry nothing can answer
+    store.want([view(0, 3072)]);
+    expect([0, 1, 2].map((t) => store.get(key(t)))).toEqual([undefined, undefined, undefined]);
+    expect(store.settled.value).toBe(true);
+    expect(store.inFlight).toBe(0);
+    expect(await other.whenSettled(0)).toBe(true);
+    expect(clock.pending).toBe(0);
+
+    const again = new SyntheticSource(syntheticCoverage(), clock, { delayMs: 100 });
+    store.attach(S, again);
+    store.want([view(0, 3072)]);
+    other.want([view(0, 3072)]);
+    expect(store.get(key(0))?.status).toBe('pending');
+    const settled = other.whenSettled(1000);
+    await clock.advance(300);
+    expect(await settled).toBe(true);
+    expect([0, 1, 2].map((t) => store.get(key(t))?.status)).toEqual(['loaded', 'loaded', 'loaded']);
+    expect(store.settled.value).toBe(true);
+  });
+});
+
 describe('coverage', () => {
   it('is checked on attach: a malformed one is an issue and the source unavailable', () => {
     const clock = new FakeClock();
