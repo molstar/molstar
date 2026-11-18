@@ -72,10 +72,9 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
     11. the asset manager change: below, with the base library;
     12. the TP53 exon coordinates in the test geometry: checked against RefSeq in stage 0 (S0), or marked unverified.
   - **Public API changes in the base library** ([base-library](../../design/base-library.md)):
-    - **`@molstar/core/repr`'s revisions, patches, `diff` and `merge3`** (git's model: snapshots are the truth,
-      patches derived): `design/patches.md` (agreed 2026-11-18 after an independent review; a second review of it with the state semantics follows), its API section the
-      agreed surface for lane K, with its four decisions (git's model; `layer` ids required; dangling refs refused by
-      default; no automatic rebase) and five questions answered. Recommendation: as drafted.
+    - **Decided** (2026-11-18): `@molstar/core/repr`'s revisions, patches and `diff`, git's model: `design/patches.md`,
+      agreed with its four decisions, revised after three independent reviews (the last: sound to build on). Its API
+      section is the agreed surface for lane K. Nothing to confirm here.
     - **`@molstar/core/data/immutable`** (the author, 2026-11-18: "implement core/immutable and use it in repr"; moving
       Mol\*'s state tree and model off immutable.js is a later, separate PR): the draft `drafts/immutable.md` (draft 2,
       after the second review), its API section the agreed surface for lane R, with its four decisions (`repr` uses it
