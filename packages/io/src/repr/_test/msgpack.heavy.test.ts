@@ -4,51 +4,77 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// @module-tag heavy
-
-import { hashNode, type Node } from '@molstar/core/repr/tree/index';
-import { describe, expect, it } from 'vitest';
+import { categoryColumn, hashNode, type Node } from '@molstar/core/repr/tree/index';
+import { itWithin } from '@molstar/test-harness/timing';
+import { describe, expect } from 'vitest';
 import { MsgPackCodec } from '../msgpack.js';
 
-// A large spec of columns: ~25 MB of float32, int32 and uint8 columns beside a few hundred small nodes.
-function large(): Node {
-  const n = 1_000_000;
-  const f = new Float32Array(n).map((_, i) => Math.sin(i));
-  const j = new Int32Array(n).map((_, i) => i * 3);
-  const u = new Uint8Array(n).map((_, i) => i & 255);
+// Decode throughput (at least 200 MB/s, over the bytes of the document: every byte a copy or a parse touches), on the
+// two paths that read bytes. A column decoded in place reads none, so a document of such columns says nothing: the
+// node-heavy document is the parse, the unaligned column the copy. The quick lane runs the same bodies with no bound.
+
+const MinMBps = 200;
+const Repeats = 5;
+/**
+ * A node-heavy document is bound by the parse and the checks of its many small values (strings, keys, extensions of a
+ * few bytes), not by bytes: about 45 MB/s measured, 130 MB/s for the bare MessagePack parse of it. The bound guards a
+ * regression there; the 200 MB/s of the performance targets is that of documents of columns (below).
+ */
+const NodeHeavyMBps = 20;
+
+/** Milliseconds `repeats` decodes of `bytes` may take at `MinMBps`. */
+const budget = (bytes: number, mbps = MinMBps, repeats = Repeats) => (bytes / (mbps * 1e6)) * 1000 * repeats;
+
+/** Many small nodes: strings, numbers, a short column and a category each. */
+function nodeHeavy(count: number): Node {
   const children: Node[] = [];
-  for (let i = 0; i < 300; i++)
-    children.push({ kind: 'row', id: `r${i}`, params: { values: f.slice(i * 1000, i * 1000 + 1000) } });
-  return { kind: 'big', params: { f, j, u, f2: f.slice(), j2: j.slice() }, children };
+  for (let i = 0; i < count; i++)
+    children.push({
+      kind: 'row',
+      id: `r${i}`,
+      params: {
+        name: `residue ${i} ä`,
+        index: i,
+        score: i / 7,
+        flags: [true, false, null, i],
+        start: new Int32Array([i, i + 1, i + 2]),
+        label: categoryColumn(['a', 'b', null, `c${i % 5}`]),
+      },
+    });
+  return { kind: 'doc', children };
 }
 
 describe('io/repr/msgpack throughput', () => {
-  it('decodes at least 200 MB/s (performance.md), in place and copying', { tags: ['heavy'], timeout: 60_000 }, () => {
-    const node = large();
+  itWithin('parses a node-heavy document at NodeHeavyMBps', (within) => {
+    const node = nodeHeavy(20_000);
     const bytes = MsgPackCodec.encode(node);
-    const mb = bytes.length / 1e6;
-    // the document one byte further in a host: the offsets of its payloads shift, so the aligned ones are copied
-    const host = new Uint8Array(bytes.length + 1);
-    host.set(bytes, 1);
-    const shifted = host.subarray(1);
-    const rate = (input: Uint8Array) => {
-      let best = 0;
-      for (let k = 0; k < 5; k++) {
-        const t0 = performance.now();
-        const decoded = MsgPackCodec.decode(input);
-        const seconds = (performance.now() - t0) / 1000;
-        expect(decoded.node).toBeDefined();
-        best = Math.max(best, mb / seconds);
-      }
-      return best;
-    };
-    const asGiven = rate(bytes);
-    const other = rate(shifted);
-    console.log(
-      `msgpack decode of ${mb.toFixed(1)} MB: ${asGiven.toFixed(0)} MB/s, shifted by one byte ${other.toFixed(0)} MB/s`,
-    );
-    expect(asGiven).toBeGreaterThan(200);
-    expect(other).toBeGreaterThan(200);
-    expect(hashNode(MsgPackCodec.decode(bytes).node!)).toBe(hashNode(node));
+    let last: ReturnType<typeof MsgPackCodec.decode> | undefined;
+    within(budget(bytes.length, NodeHeavyMBps), () => {
+      for (let k = 0; k < Repeats; k++) last = MsgPackCodec.decode(bytes);
+    });
+    expect(last?.node).toBeDefined();
+    expect(hashNode(last!.node!)).toBe(hashNode(node));
+  });
+
+  itWithin('copies unaligned columns at MinMBps', (within) => {
+    const f64 = new Float64Array(1_000_000).map((_, i) => i * 0.5);
+    const i32 = new Int32Array(1_000_000).map((_, i) => i * 3);
+    const node: Node = { kind: 'doc', params: { f64, i32 } };
+    const bytes = MsgPackCodec.encode(node);
+    // a document placed so that the first column's payload is aligned to 8 plus one byte: neither column is in place
+    // (the second payload follows the first by its 6-byte ext32 header)
+    const payload = bytes.length - f64.byteLength - 6 - i32.byteLength;
+    const shift = (8 - (payload % 8) + 1) % 8;
+    const host = new Uint8Array(bytes.length + 16);
+    host.set(bytes, shift);
+    const input = host.subarray(shift, shift + bytes.length);
+    let last: ReturnType<typeof MsgPackCodec.decode> | undefined;
+    within(budget(bytes.length), () => {
+      for (let k = 0; k < Repeats; k++) last = MsgPackCodec.decode(input);
+    });
+    const out = last!.node!.params!;
+    expect((out.f64 as Float64Array).buffer).not.toBe(host.buffer);
+    expect((out.i32 as Int32Array).buffer).not.toBe(host.buffer);
+    expect(hashNode(last!.node!)).toBe(hashNode(node));
   });
 });

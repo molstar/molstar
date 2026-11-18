@@ -27,22 +27,33 @@ specials: they are rare, the common case is a plain number.
 ## 2. Zero copy
 
 - The encoder writes a column's bytes from where they are (a `Uint8Array` view over its buffer): no copy beyond the
-  output's. The platform is little-endian, as the tree's column hash assumes.
+  output's. The wire is little-endian; a big-endian host byte-swaps a copy on both sides (`swapBytes`).
 - The decoder gives a column as a typed view into its input when the payload's offset is a multiple of the element size
   (always for 1-byte elements), else one copy of the payload. A hit is by the position in the document: the encoder
   cannot align a payload, `common/msgpack`'s hook sees no offset. A tree decoded in place shares its input's memory: the
-  caller does not change the input afterwards, and the tree's own canonicalization of NaN writes there.
+  caller does not change the input afterwards.
+- Decode never writes into its input: the tree makes NaN canonical in a column it owns, so a float column holding a NaN
+  is copied (a scan of the view), aligned or not. Why: a foreign encoder may write a NaN payload.
 
 ## 3. Reading what is not a tree
 
 `decode` never throws. The bytes that are not one MessagePack value (truncated, malformed, bytes after it) are
-`repr.codec.msgpack.syntax`; a nesting that overflows the parser's stack is `repr.tree.depth_exceeded`. A decoded value
-that is no tree has the JSON codec's issues, each with its path: `repr.tree.node.*`, `repr.tree.value.reserved_key`,
-`repr.tree.value.shape` (a `bin` is no column: only an extension the decoder made is), `repr.tree.value.tag` (a
-malformed extension: a column of the wrong length, a category code out of its dictionary, an unknown type).
+`repr.codec.msgpack.syntax`, with the offset reached; only a stack overflow of the parser is `repr.tree.depth_exceeded`
+(a read past the end is also a `RangeError`). A key given twice in a map is `repr.codec.msgpack.duplicate_key`, a key
+that is not a string `repr.codec.msgpack.key_type` (the decoder keeps the last and stringifies; a second pass over the
+document, skipping extension payloads, finds them), each with offset and path. A decoded value that is no tree has the
+JSON codec's issues, each with its path: `repr.tree.node.*`, `repr.tree.value.reserved_key`, `repr.tree.value.shape` (a
+`bin` is no column: only an extension the decoder made is), `repr.tree.value.tag` (a malformed extension: a column of
+the wrong length, a category code out of its dictionary, invalid UTF-8 in a category entry or bigint digits, an unknown
+type).
+
+Strings are read as values: a leading U+FEFF is kept (`common/msgpack`'s `str()` reads with `utf8ReadValue`, also for
+BinaryCIF), and the extensions' UTF-8 is strict. **Encoding refuses a lone surrogate** (it throws, as an unprintable
+node does): UTF-8 cannot hold it and it would not come back.
 
 ## 4. Tests
 
 `src/repr/_test/msgpack.test.ts` (quick: conformance, JSON and MessagePack round trip by hash, every column type,
-alignment, malformed input) and `msgpack.heavy.test.ts` (decode throughput of a large spec of columns, at least 200
-MB/s).
+alignment, malformed input, keys, BOM, surrogates) and `msgpack.heavy.test.ts` (decode throughput over the bytes the
+document holds: copied columns at least 200 MB/s; a node-heavy document is bound by its many small values, about 45
+MB/s, guarded at 20).

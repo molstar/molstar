@@ -212,6 +212,17 @@ const strictUtf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 /** The text of an extension's bytes; undefined when they are not UTF-8. */
 function utf8Strict(data: Uint8Array, offset: number, length: number): string | undefined {
+  // short ASCII, the usual entry, without a decoder call
+  if (length <= 24) {
+    let text = '';
+    let i = 0;
+    for (; i < length; i++) {
+      const c = data[offset + i];
+      if (c >= 0x80) break;
+      text += String.fromCharCode(c);
+    }
+    if (i === length) return text;
+  }
   try {
     return strictUtf8.decode(data.subarray(offset, offset + length));
   } catch {
@@ -251,7 +262,7 @@ function extensionDecoder(made: WeakSet<object>) {
 
 /** Whether a float view holds a NaN: one may carry a payload, which making it canonical would write into the input. */
 function hasNaN(view: Float32Array | Float64Array): boolean {
-  for (let i = 0; i < view.length; i++) if (view[i] !== view[i]) return true;
+  for (let i = 0; i < view.length; i++) if (Number.isNaN(view[i])) return true;
   return false;
 }
 
@@ -338,7 +349,7 @@ export function decodeMsgPackTree(bytes: Uint8Array, _options?: DecodeOptions): 
 function checkKeys(bytes: Uint8Array): Issue[] {
   const issues: Issue[] = [];
   const state: MsgPackState = createMsgPackState(bytes);
-  const path: TreePath = [];
+  const path: Stack = [];
   const scan = () => {
     const type = state.buffer[state.offset];
     if ((type & 0xf0) === 0x90 || type === 0xdc || type === 0xdd) {
@@ -350,7 +361,8 @@ function checkKeys(bytes: Uint8Array): Issue[] {
       }
     } else if ((type & 0xf0) === 0x80 || type === 0xde || type === 0xdf) {
       const length = readMsgPackMapLength(state);
-      const keys = new Set<string>();
+      const keys: string[] = [];
+      const set = length > 8 ? new Set<string>() : undefined;
       for (let i = 0; i < length; i++) {
         const at = state.offset;
         const t = state.buffer[at];
@@ -368,14 +380,15 @@ function checkKeys(bytes: Uint8Array): Issue[] {
           continue;
         }
         const key = parseMsgPackValue(state) as string;
-        if (keys.has(key))
+        if (set ? set.has(key) : keys.includes(key))
           issues.push(
             issueOf(MsgPackIssues, 'repr.codec.msgpack.duplicate_key', 'A key given twice', {
               offset: at,
               path: [...path],
             }),
           );
-        keys.add(key);
+        if (set) set.add(key);
+        else keys.push(key);
         path.push(key);
         scan();
         path.pop();
@@ -390,22 +403,23 @@ function checkKeys(bytes: Uint8Array): Issue[] {
   return issues;
 }
 
+type Stack = (string | number)[];
 type Code = keyof typeof TreeIssues.codes;
 function report(issues: Issue[], code: Code, path: TreePath, message: string, hint?: string) {
-  issues.push(issueOf(TreeIssues, code, message, { path, hint }));
+  issues.push(issueOf(TreeIssues, code, message, { path: [...path], hint }));
 }
 
 const isMap = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && !(v instanceof Malformed) && !ArrayBuffer.isView(v);
 
-function tooDeep(depth: number, path: TreePath, issues: Issue[]) {
+function tooDeep(depth: number, path: Stack, issues: Issue[]) {
   if (depth <= MaxDepth) return false;
   if (!issues.some((i) => i.code === 'repr.tree.depth_exceeded'))
     report(issues, 'repr.tree.depth_exceeded', path, `Nested deeper than ${MaxDepth} levels`);
   return true;
 }
 
-function decodeNode(value: unknown, path: TreePath, issues: Issue[], depth: number, made: WeakSet<object>): Node {
+function decodeNode(value: unknown, path: Stack, issues: Issue[], depth: number, made: WeakSet<object>): Node {
   if (tooDeep(depth, path, issues)) return { kind: '' };
   if (!isMap(value) || typeof value.kind !== 'string') {
     report(issues, 'repr.tree.node.shape', path, 'A node must be a map with a string `kind`');
@@ -443,12 +457,25 @@ function decodeNode(value: unknown, path: TreePath, issues: Issue[], depth: numb
     if (v === undefined) continue;
     if (!isMap(v) || Object.hasOwn(v, 'kind'))
       report(issues, 'repr.tree.node.shape', [...path, key], `\`${key}\` must be a record (a map without \`kind\`)`);
-    else node[key] = decodeRecord(v, [...path, key], issues, depth, made);
+    else {
+      path.push(key);
+      node[key] = decodeRecord(v, path, issues, depth, made);
+      path.pop();
+    }
   }
   if (children !== undefined) {
     if (!Array.isArray(children))
       report(issues, 'repr.tree.node.shape', [...path, 'children'], '`children` must be a list of nodes');
-    else node.children = children.map((c, i) => decodeNode(c, [...path, 'children', i], issues, depth + 1, made));
+    else {
+      path.push('children', 0);
+      const out: Node[] = new Array(children.length);
+      for (let i = 0; i < children.length; i++) {
+        path[path.length - 1] = i;
+        out[i] = decodeNode(children[i], path, issues, depth + 1, made);
+      }
+      path.length -= 2;
+      node.children = out;
+    }
   }
   if (args !== undefined) {
     if (!Array.isArray(args) || node.id !== undefined || node.children !== undefined)
@@ -458,14 +485,23 @@ function decodeNode(value: unknown, path: TreePath, issues: Issue[], depth: numb
         [...path, 'args'],
         '`args` must be a list of values, on a node without id or children',
       );
-    else if (args.length) node.args = args.map((a, i) => decodeValue(a, [...path, 'args', i], issues, depth + 1, made));
+    else if (args.length) {
+      path.push('args', 0);
+      const out: Value[] = new Array(args.length);
+      for (let i = 0; i < args.length; i++) {
+        path[path.length - 1] = i;
+        out[i] = decodeValue(args[i], path, issues, depth + 1, made);
+      }
+      path.length -= 2;
+      node.args = out;
+    }
   }
   return node;
 }
 
 function decodeRecord(
   value: Record<string, unknown>,
-  path: TreePath,
+  path: Stack,
   issues: Issue[],
   depth: number,
   made: WeakSet<object>,
@@ -474,12 +510,16 @@ function decodeRecord(
   for (const key of Object.keys(value)) {
     if (isReservedKey(key))
       report(issues, 'repr.tree.value.reserved_key', [...path, key], 'A reserved key', 'kind, __proto__, $…');
-    else out[key] = decodeValue(value[key], [...path, key], issues, depth, made);
+    else {
+      path.push(key);
+      out[key] = decodeValue(value[key], path, issues, depth, made);
+      path.pop();
+    }
   }
   return out;
 }
 
-function decodeValue(value: unknown, path: TreePath, issues: Issue[], depth: number, made: WeakSet<object>): Value {
+function decodeValue(value: unknown, path: Stack, issues: Issue[], depth: number, made: WeakSet<object>): Value {
   switch (typeof value) {
     case 'string':
     case 'number':
@@ -494,7 +534,16 @@ function decodeValue(value: unknown, path: TreePath, issues: Issue[], depth: num
   }
   if (isColumn(value) && made.has(value)) return value;
   if ((Array.isArray(value) || isMap(value)) && tooDeep(depth + 1, path, issues)) return null;
-  if (Array.isArray(value)) return value.map((v, i) => decodeValue(v, [...path, i], issues, depth + 1, made));
+  if (Array.isArray(value)) {
+    path.push(0);
+    const out: Value[] = new Array(value.length);
+    for (let i = 0; i < value.length; i++) {
+      path[path.length - 1] = i;
+      out[i] = decodeValue(value[i], path, issues, depth + 1, made);
+    }
+    path.pop();
+    return out;
+  }
   if (isMap(value)) {
     if (Object.hasOwn(value, 'kind')) return decodeNode(value, path, issues, depth + 1, made);
     return decodeRecord(value, path, issues, depth + 1, made);
