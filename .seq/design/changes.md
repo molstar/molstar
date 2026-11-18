@@ -32,6 +32,7 @@ whether it is undoable, keeps that clear.
 | data arrival | a region loaded, a dynamic node arriving, an entry evicted | the data store | no | no | no (sources are, not their data) | by (source, region) and (source, key) |
 | configuration | a binding, a preset, a config item | the viewer's configuration | no (settings history is the host's) | no | no | — |
 | registration | an extension registered by a behavior | the viewer's registries | its undo function | no | no | — |
+| none | copy a link, read the selection as an address | nothing (a command that only reads; lane O's review, so a menu or an agent never takes it for a move) | — | no | no | — |
 
 - **Seq\* owns no undo stack; the host does** (the author, 2026-11-18: the viewer lives inside a bigger app, a
   structure viewer, Prism, a Mol\* plugin, which keeps one undo stack for everything). Seq\* exposes a **history port**
