@@ -9,7 +9,7 @@ import { ChampNode, FlatNode, FlatThreshold, KindChamp, KindCollision, KindFlat 
 import { HashMap, type HashMapImpl } from '../hash-map.js';
 import { OrderedHashMap } from '../ordered-hash-map.js';
 import { id22, keyPool, Rng } from './model.js';
-import { checkMap, type MapKind, runMapModel } from './run-model.js';
+import { BadHashes, checkMap, type MapKind, runMapModel } from './run-model.js';
 
 const Plain: MapKind = { name: 'HashMap', ordered: false, empty: HashMap.empty as any, of: HashMap.of as any };
 const Ordered: MapKind = {
@@ -47,7 +47,14 @@ describe('HashMap', () => {
     it(`${kind.name}: agrees with a JS Map over random edits (seeded)`, () => {
       for (const seed of [1, 2, 3]) runMapModel(kind, seed, 150, 60);
     });
+    it(`${kind.name}: agrees with a JS Map under bad hashes (seeded)`, () => {
+      for (const config of Object.values(BadHashes))
+        for (const seed of [4, 5]) runMapModel(kind, seed, 150, 90, config);
+    });
     it(`${kind.name}: a long random run`, { tags: ['heavy'] }, () => {
+      for (const config of Object.values(BadHashes)) {
+        for (let seed = 40; seed < 42; seed++) runMapModel(kind, seed, 1500, 300, config);
+      }
       for (let seed = 10; seed < 20; seed++) runMapModel(kind, seed, 1500, 300);
     });
   }
@@ -137,6 +144,18 @@ describe('HashMap', () => {
       }
       expect(HashMap.of([...model], config).equals(m)).toBe(true);
     }
+  });
+
+  it('a collision node moved up to the root is filed under its own hash, not the deleted key’s', () => {
+    // keys 0..17 collide (hash 0); 100 sits inline beside them (hash 1); deleting 100 moves the collision node up
+    const m = HashMap.of(
+      [...Array.from({ length: 18 }, (_, i) => i), 100].map((k) => [k, k] as const),
+      { hash: (k: number) => (k < 100 ? 0 : 1) },
+    );
+    const d = m.delete(100);
+    expect(d.size).toBe(18);
+    for (let k = 0; k < 18; k++) expect(d.get(k)).toBe(k);
+    expect(d.has(100)).toBe(false);
   });
 
   it('a collision node alone under a node goes up on deletion: the shape insertion makes', () => {

@@ -505,7 +505,8 @@ export function rootDelete(root: Root, size: number, key: any, cfg: Resolved, ow
   if (!Edit.removed) return root;
   // demoted to flat at the threshold (README §2)
   if (size - 1 <= FlatThreshold) return flatten(next as ChampNode, owner);
-  if (next.kind === KindCollision) return new ChampNode(owner, 0, 1 << (h & 31), [next]);
+  // filed under its own hash: a deleted inline key beside it had another
+  if (next.kind === KindCollision) return new ChampNode(owner, 0, 1 << (next.hash & 31), [next]);
   return next;
 }
 

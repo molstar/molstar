@@ -60,10 +60,25 @@ export function checkMap(m: AnyMap | AnyMutableMap, model: Map<unknown, number>,
 }
 
 /** Random sets, deletes and transient batches; each version checked at once and at the end. */
-export function runMapModel(kind: MapKind, seed: number, steps: number, poolSize: number) {
+/**
+ * Bad hashes for the model runs: every key alike, and one key in forty beside the rest, which leaves an inline entry
+ * beside a collision node of more than the flat threshold (README §2: the node goes up to the root on deletion).
+ */
+export const BadHashes: Record<string, CollectionConfig<unknown, any>> = {
+  zero: { hash: () => 0 },
+  rare: { hash: (k: unknown) => (typeof k === 'number' && k % 40 === 0 ? 1 : 0) },
+};
+
+export function runMapModel(
+  kind: MapKind,
+  seed: number,
+  steps: number,
+  poolSize: number,
+  config?: CollectionConfig<unknown, number>,
+) {
   const rng = new Rng(seed);
   const pool = keyPool(rng, poolSize);
-  let m = kind.empty();
+  let m = kind.empty(config);
   const model = new Map<unknown, number>();
   const versions: [AnyMap, Map<unknown, number>][] = [];
   for (let step = 0; step < steps; step++) {
@@ -108,9 +123,9 @@ export function runMapModel(kind: MapKind, seed: number, steps: number, poolSize
     versions.push([m, new Map(model)]);
     if (step % 16 === 0) {
       // equal contents built in another order are equal and hash alike
-      const other = kind.of(rng.shuffle([...model]));
+      const other = kind.of(rng.shuffle([...model]), config);
       if (kind.ordered) {
-        const inOrder = kind.of([...model]);
+        const inOrder = kind.of([...model], config);
         expect(inOrder.equals(m)).toBe(true);
         expect(inOrder.hashCode()).toBe(m.hashCode());
       } else {
@@ -128,8 +143,8 @@ type AnySet = HashSet<unknown> & { first?(): unknown; last?(): unknown };
 export interface SetKind {
   name: string;
   ordered: boolean;
-  empty(): AnySet;
-  of(keys: Iterable<unknown>): AnySet;
+  empty(config?: CollectionConfig<unknown>): AnySet;
+  of(keys: Iterable<unknown>, config?: CollectionConfig<unknown>): AnySet;
 }
 
 export function checkSet(s: AnySet | MutableHashSet<unknown>, model: Set<unknown>, pool: unknown[], ordered: boolean) {
@@ -156,10 +171,16 @@ export function checkSet(s: AnySet | MutableHashSet<unknown>, model: Set<unknown
   }
 }
 
-export function runSetModel(kind: SetKind, seed: number, steps: number, poolSize: number) {
+export function runSetModel(
+  kind: SetKind,
+  seed: number,
+  steps: number,
+  poolSize: number,
+  config?: CollectionConfig<unknown>,
+) {
   const rng = new Rng(seed);
   const pool = keyPool(rng, poolSize);
-  let s = kind.empty();
+  let s = kind.empty(config);
   const model = new Set<unknown>();
   const versions: [AnySet, Set<unknown>][] = [];
   for (let step = 0; step < steps; step++) {
@@ -194,7 +215,7 @@ export function runSetModel(kind: SetKind, seed: number, steps: number, poolSize
     checkSet(s, model, pool, kind.ordered);
     versions.push([s, new Set(model)]);
     if (step % 16 === 0) {
-      const other = kind.ordered ? kind.of([...model]) : kind.of(rng.shuffle([...model]));
+      const other = kind.ordered ? kind.of([...model], config) : kind.of(rng.shuffle([...model]), config);
       expect(other.equals(s)).toBe(true);
       expect(other.hashCode()).toBe(s.hashCode());
     }

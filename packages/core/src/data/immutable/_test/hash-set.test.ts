@@ -9,7 +9,7 @@ import { CompactMin } from '../ordered-hash-map.js';
 import { HashSet } from '../hash-set.js';
 import { OrderedHashSet, type OrderedHashSetImpl } from '../ordered-hash-set.js';
 import { OrderedHashMap, type OrderedHashMapImpl } from '../ordered-hash-map.js';
-import { runSetModel, type SetKind } from './run-model.js';
+import { BadHashes, runSetModel, type SetKind } from './run-model.js';
 
 const Plain: SetKind = { name: 'HashSet', ordered: false, empty: HashSet.empty as any, of: HashSet.of as any };
 const Ordered: SetKind = {
@@ -23,6 +23,10 @@ describe('HashSet and OrderedHashSet', () => {
   for (const kind of [Plain, Ordered]) {
     it(`${kind.name}: agrees with a JS Set over random edits (seeded)`, () => {
       for (const seed of [1, 2, 3]) runSetModel(kind, seed, 150, 60);
+    });
+    it(`${kind.name}: agrees with a JS Set under bad hashes (seeded)`, () => {
+      for (const config of Object.values(BadHashes))
+        for (const seed of [4, 5]) runSetModel(kind, seed, 150, 90, config);
     });
     it(`${kind.name}: a long random run`, { tags: ['heavy'] }, () => {
       for (let seed = 10; seed < 20; seed++) runSetModel(kind, seed, 1500, 300);
