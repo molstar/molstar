@@ -113,7 +113,7 @@ export class SeqViewer extends ReactiveModel {
   private readonly _emphasis: Mutable<Emphasis> = {};
   private readonly _projector: Projector;
   /** The emphasis's projected record, reused: its fields are the cached projections. */
-  private readonly _projected: { hover?: Location; selection?: Location } = {};
+  private readonly _projected: { hover?: Location; selection?: Location; hoverSection?: string } = {};
   private readonly _cursor = { system: '', position: 0 };
   /** The highlights as drawn, made again only when a channel, the tokens, the view or the model changed. */
   private _highlights: readonly EmphasisHighlight[] = [];
@@ -575,13 +575,15 @@ export class SeqViewer extends ReactiveModel {
     const e = this._emphasis;
     const p = this._projected;
     const sel = this.selection.value.value;
+    e.elements = sel.elements.keys.length ? sel.elements : undefined;
     if (isNothing(sel)) e.selection = p.selection = undefined;
     else {
       e.selection = sel.shown;
       p.selection = this._projector.of(sel.shown);
     }
+    // the cursor shows once the keyboard moved it (focus-visible: a click places it unseen)
     const c = this.selection.cursor.value;
-    if (c) {
+    if (c?.keyboard) {
       this._cursor.system = c.system;
       this._cursor.position = c.position;
       e.cursor = this._cursor;
@@ -589,6 +591,7 @@ export class SeqViewer extends ReactiveModel {
     this._updateHighlights();
     e.projected = p;
     p.hover = this.hover.projectedAll();
+    p.hoverSection = this.hover.current.section;
     const v = this.hover.version.value;
     if (v === this._hoverVersion) return;
     this._hoverVersion = v;

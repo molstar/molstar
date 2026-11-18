@@ -9,7 +9,8 @@
 // config item); and an export projecting the selection it draws as the viewer does.
 
 import { describe, expect, it } from 'vitest';
-import { type Location, rangesLocation } from '@molstar/seqx-core/query';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { elements, type Location, rangesLocation } from '@molstar/seqx-core/query';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { type DrawLists, type Frame, type PassName, recordDrawLists, renderSvg } from '../index.js';
 import { p53GeneSpec, p53TracksSpec } from './fixtures.js';
@@ -27,10 +28,10 @@ function rects(lists: DrawLists, pass: PassName): { y: number; line: string }[] 
     .map((line) => ({ y: Number(line.split(' ')[2]), line }));
 }
 
-/** The rects of a pass within a section's band. */
+/** The rects of a pass within a section's band (an outline outside a mark starts a few px above it). */
 function inSection(f: Frame, pass: PassName, section: number) {
   const s = f.layout.sections[section];
-  return rects(f.lists, pass).filter((r) => r.y >= s.y && r.y < s.y + s.height);
+  return rects(f.lists, pass).filter((r) => r.y >= s.y - 4 && r.y < s.y + s.height);
 }
 
 describe('projectOntoView', () => {
@@ -77,11 +78,11 @@ describe('the emphasis passes on linked sections', () => {
     const gene = inSection(f, 'selection', 1);
     expect(protein.length).toBeGreaterThan(0);
     expect(gene.length).toBeGreaterThan(0);
-    // the accent at 0.18 on its own section, at 0.09 projected; its outline opaque, then at half
+    // the accent at 0.18 on its own section, at 0.09 projected; its thin outline at 0.6, then at half that
     expect(protein[0].line).toContain('#8f4c062e');
-    expect(protein.some((r) => r.line.includes('stroke #8f4c06ff'))).toBe(true);
+    expect(protein.some((r) => r.line.includes('stroke #8f4c0699 1'))).toBe(true);
     expect(gene[0].line).toContain('#8f4c0617');
-    expect(gene.some((r) => r.line.includes('stroke #8f4c0680'))).toBe(true);
+    expect(gene.some((r) => r.line.includes('stroke #8f4c064d 1'))).toBe(true);
   });
 
   it('the hover projected onto the gene is drawn there, never on the hover’s own section', async () => {
@@ -94,6 +95,7 @@ describe('the emphasis passes on linked sections', () => {
       },
       projected: {
         hover: projectOntoView(s.model, s.view, rangesLocation(Protein, [175, 176]), { own: true, close: true }),
+        hoverSection: '/views/main/protein',
       },
     }));
     const gene = inSection(f, 'hover', 1);
@@ -128,9 +130,9 @@ describe('the emphasis passes on linked sections', () => {
       };
     });
     const protein = inSection(f, 'highlight', 0);
-    // red at 0.5 · 0.3, green at 0.3, two tracks each
-    expect(protein.filter((r) => r.line.includes('#ff000026')).length).toBe(2);
-    expect(protein.filter((r) => r.line.includes('#00ff004d')).length).toBe(2);
+    // red at 0.5 · 0.3, green at 0.3, one band each over the section's two tracks
+    expect(protein.filter((r) => r.line.includes('#ff000026')).length).toBe(1);
+    expect(protein.filter((r) => r.line.includes('#00ff004d')).length).toBe(1);
     expect(protein.findIndex((r) => r.line.includes('#00ff004d'))).toBeGreaterThan(
       protein.findIndex((r) => r.line.includes('#ff000026')),
     );
@@ -150,7 +152,7 @@ describe('the selection’s tint: over the data (default) or under it', () => {
     expect(f.rebuilt).toBe(false);
     // a changed selection draws the base again (its tint is there)
     expect(f.base).toBe(true);
-    expect(rects(f.lists, 'background').filter((r) => r.line.includes('#8f4c062e')).length).toBe(3);
+    expect(rects(f.lists, 'background').filter((r) => r.line.includes('#8f4c062e')).length).toBe(1);
     expect(rects(f.lists, 'selection').every((r) => r.line.includes('stroke'))).toBe(true);
     // the same selection again: the emphasis alone
     expect(s.renderer.frame({ ...input, emphasis: { selection: a } }).base).toBe(false);
@@ -193,6 +195,44 @@ describe('the order of the tints: highlights below the selection', () => {
     expect(rects(f.lists, 'highlight').length).toBeGreaterThan(0);
     expect(rects(f.lists, 'background').some((r) => r.line.includes('#00ff004d'))).toBe(false);
     expect(f.base).toBe(false);
+  });
+});
+
+describe('the composition of hover and selection', () => {
+  it('a cell’s hover is concentric and outside it by the offset: it never touches the selection’s outline', async () => {
+    const s = await settle(p53TracksSpec());
+    const input = { size: Size, viewport: { start: 0, end: 30 } };
+    await s.frame(input);
+    const f = s.renderer.frame({
+      ...input,
+      emphasis: {
+        selection: rangesLocation(Protein, [3, 6]),
+        hover: { layer: '/views/main/protein/letters/letters', section: 'protein', system: Protein, position: 4 },
+      },
+    });
+    // the cell of 4 is [217, 239) over the letters' [8, 28); 1.5 px wide, 1 px out: its middle 1.75 px outside
+    expect(rects(f.lists, 'hover').map((r) => r.line)).toEqual([
+      'rect 215.25 6.25 25.5 23.5 none stroke #2d271eff 1.5',
+    ]);
+    // the selection's outline is inside its band, half its width in (the band starts on the tracks' top, 8)
+    expect(rects(f.lists, 'selection').some((r) => / 8\.5 [\d.]+ [\d.]+ none stroke /.test(r.line))).toBe(true);
+  });
+
+  it('a selected item of zero length is a hairline at its place (EC-127)', async () => {
+    const b = createSeqSpec({ title: 'boundary' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+    const sites = b.data.ranges('sites', {
+      target: p,
+      rows: { start: new Int32Array([4]), end: new Int32Array([4]), id: ['ins'] },
+    });
+    b.views.view('main', (v) => v.section('s', { of: p }).track('sites').layer('r', { type: 'ranges', data: sites }));
+    const s = await settle(b.build());
+    const input = { size: Size };
+    await s.frame(input);
+    const f = s.renderer.frame({ ...input, emphasis: { elements: elements([{ owner: '/data/sites', key: 'ins' }]) } });
+    const lines = rects(f.lists, 'selection').map((r) => r.line);
+    expect(lines.length).toBe(1);
+    expect(lines[0]).toMatch(/^rect [\d.]+ [\d.]+ 2 12 #8f4c06ff$/);
   });
 });
 

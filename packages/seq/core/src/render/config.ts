@@ -8,6 +8,7 @@
 // default; the density steps and their thresholds, shared by every layer type.
 
 import { DefaultMaxStrings } from './draw-lists.js';
+import type { SeqTokenName } from './tokens.js';
 
 /** What a cell shows as it narrows, at fixed thresholds per position, without moving anything. */
 export type DensityStep = 'letters' | 'cells' | 'dots' | 'bars' | 'density';
@@ -68,9 +69,20 @@ export interface RenderConfig {
    */
   readonly emphasis: {
     readonly selectionPlace: 'over' | 'under';
+    /**
+     * The selection's, a highlight's and the projected hover's shape on a section: one band a range spanning its tracks
+     * and the gaps between them (`column`, the default), or a box a track (`tracks`).
+     */
+    readonly selectionShape: 'column' | 'tracks';
     readonly selectionTint: number;
+    /** The selection's outline: the accent at this opacity (0.6), `outline.selection` px wide (1). */
+    readonly selectionOutline: number;
     readonly highlightTint: number;
     readonly projected: number;
+    /** How far a hover's outline stands outside its mark (1 px): concentric, never touching what is under it. */
+    readonly hoverOffset: number;
+    /** The keyboard cursor's ink, a token (`msui-text`: neutral, never the selection's accent). */
+    readonly cursorInk: SeqTokenName;
   };
   /** What a want adds on each side of the view, as a fraction of it (the store's `margin` priority). */
   readonly margin: number;
@@ -118,8 +130,17 @@ export const DefaultRenderConfig: RenderConfig = {
   squircleRatio: 1 / 3,
   squircleMax: 8,
   squircleMin: 6,
-  outline: { hover: 1.5, selection: 1.5, cursor: 2.5 },
-  emphasis: { selectionPlace: 'over', selectionTint: 0.18, highlightTint: 0.3, projected: 0.5 },
+  outline: { hover: 1.5, selection: 1, cursor: 1 },
+  emphasis: {
+    selectionPlace: 'over',
+    selectionShape: 'column',
+    selectionTint: 0.18,
+    selectionOutline: 0.6,
+    highlightTint: 0.3,
+    projected: 0.5,
+    hoverOffset: 1,
+    cursorInk: 'msui-text',
+  },
   margin: 0.5,
   followArc: 'shortest',
   maxTemplateTracks: 200,

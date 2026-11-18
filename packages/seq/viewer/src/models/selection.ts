@@ -69,10 +69,18 @@ export interface Cursor {
   readonly section: string;
   readonly system: string;
   readonly position: number;
+  /** The keyboard moved it: drawn (focus-visible); a click places it unseen. */
+  readonly keyboard?: boolean;
 }
 
 const sameCursor = (a: Cursor | undefined, b: Cursor | undefined) =>
-  a === b || (!!a && !!b && a.section === b.section && a.system === b.system && a.position === b.position);
+  a === b ||
+  (!!a &&
+    !!b &&
+    a.section === b.section &&
+    a.system === b.system &&
+    a.position === b.position &&
+    !!a.keyboard === !!b.keyboard);
 
 const keyId = (k: ElementKey) => `${typeof k.key === 'number' ? 'n' : 's'}${k.key}\u0000${k.owner}`;
 

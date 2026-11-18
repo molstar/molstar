@@ -6,7 +6,7 @@
 
 import type { Issue } from '@molstar/core/repr/tree';
 import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
-import type { ElementKey, Location } from '@molstar/seqx-core/query';
+import type { ElementKey, Elements, Location } from '@molstar/seqx-core/query';
 import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
@@ -90,15 +90,25 @@ export interface EmphasisHighlight {
 export interface Emphasis {
   readonly hover?: Hit;
   readonly selection?: Location;
+  /**
+   * The selection's element keys: a layer draws those its Location cannot hold (a boundary, an item of zero length, as a
+   * hairline, EC-127).
+   */
+  readonly elements?: Elements;
   readonly cursor?: { readonly system: string; readonly position: number };
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /**
    * The hover and the selection carried onto the linked sections' systems (`projectOntoView`), one Location each, keyed
    * by system: drawn in the same look, lighter (`emphasis.projected`). The projected hover is drawn on every section
-   * but the hover's own (its layer outlines it); the projected selection where the selection has no part.
+   * but `hoverSection` (its layer outlines it there); the projected selection where the selection has no part.
    */
-  readonly projected?: { readonly hover?: Location; readonly selection?: Location };
+  readonly projected?: {
+    readonly hover?: Location;
+    readonly selection?: Location;
+    /** The hover's own section's address: the projected hover is drawn on every other section. */
+    readonly hoverSection?: string;
+  };
 }
 
 /** A layer's legend: a ramp over a domain, or categories with their colors. */

@@ -19,7 +19,7 @@ import {
   type ResolvedView,
   type TrackTemplate,
 } from '@molstar/seqx-core/view';
-import { AxisTransform, type Viewport } from './axis.js';
+import { AxisTransform, Cut, type Viewport } from './axis.js';
 import { DefaultRenderConfig, fontSize, type RenderConfig } from './config.js';
 import {
   Anchor,
@@ -30,6 +30,7 @@ import {
   Passes,
   type PassWriter,
   passDraws,
+  Round,
 } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
@@ -75,6 +76,8 @@ export interface SectionLayout {
   readonly id: string;
   /** Undefined while the section's length is unknown (pending). */
   readonly axis?: AxisTransform;
+  /** Its tracks on the page and the gaps between them, the data's x: the column a `column` emphasis spans. */
+  readonly band?: Box;
   readonly y: number;
   readonly height: number;
   readonly tracks: readonly TrackLayout[];
@@ -315,7 +318,24 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       });
       y += h;
     }
-    sections.push({ section, id: sectionId(section), ...(axis ? { axis } : {}), y: top, height: y - top, tracks });
+    // the column the emphasis spans with `emphasis.selectionShape: 'column'`: the tracks laid out on the page and the
+    // gaps between them
+    let bandEnd = -1;
+    for (const t of tracks) if (t.box.y < height) bandEnd = Math.max(bandEnd, t.box.y + t.box.height);
+    const first = tracks[0]?.box;
+    const band =
+      first && bandEnd > first.y
+        ? { x: first.x, y: first.y, width: first.width, height: bandEnd - first.y }
+        : undefined;
+    sections.push({
+      section,
+      id: sectionId(section),
+      ...(axis ? { axis } : {}),
+      ...(band ? { band } : {}),
+      y: top,
+      height: y - top,
+      tracks,
+    });
   }
   // a layer gone from the view lets its last layout go
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
@@ -413,12 +433,14 @@ const ViewDraws = passDraws<ViewLayout, Emphasis | undefined>({
 
 /**
  * The background pass: the page, each track's box, and with the tints under the data (`emphasis.selectionPlace:
- * 'under'`) the highlight channels' tints and then the selection's above them.
+ * 'under'`) the highlight channels' tints and then the selection's above them, a band a section or a box a track
+ * (`emphasis.selectionShape`).
  */
 function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
   const { tokens, config } = layout;
   out.fill(0, 0, layout.width, layout.height, tokens.colors['msui-bg']);
-  const under = config.emphasis.selectionPlace === 'under';
+  const under = config.emphasis.selectionPlace === 'under' && emphasis !== undefined;
+  const column = config.emphasis.selectionShape === 'column';
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
     for (let ti = 0; ti < s.tracks.length; ti++) {
@@ -426,50 +448,42 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
       const { box } = t;
       if (box.y >= layout.height) continue;
       out.fill(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
-      if (under && s.axis && emphasis) {
-        if (emphasis.highlights) drawHighlights(out, s.axis, box, emphasis, config);
-        drawSelectionTint(out, s.axis, box, emphasis, tokens, config);
-      }
+      if (under && !column && s.axis) drawTints(out, s.axis, box, emphasis!, tokens, config);
     }
+    if (under && column && s.axis && s.band) drawTints(out, s.axis, s.band, emphasis!, tokens, config);
   }
 }
 
-/** Any other pass (the writer's): each track's own marks of it (labels, emphasis), then its layers'. */
+/** The tints under the data: the highlight channels', then the selection's. */
+function drawTints(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  emphasis: Emphasis,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  if (emphasis.highlights) drawHighlights(out, axis, box, emphasis, config);
+  drawSelectionTint(out, axis, box, emphasis, tokens, config);
+}
+
+/**
+ * Any other pass (the writer's): each section's emphasis marks of it, over its band (`column`) or each track's box
+ * (`tracks`), then each track's own marks (its label) and its layers'.
+ */
 function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
   const { tokens, config } = layout;
   const pass = out.pass.name;
+  const column = config.emphasis.selectionShape === 'column';
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
+    if (column && emphasis && s.band) drawSectionEmphasis(out, s, s.band, emphasis, layout);
     for (let ti = 0; ti < s.tracks.length; ti++) {
       const t = s.tracks[ti];
       if (t.box.y >= layout.height) continue;
       const { box } = t;
-      switch (pass) {
-        case 'labels':
-          drawLabel(out, t, tokens, config);
-          break;
-        case 'highlight':
-          // over the data, below the selection's pass; under it, in the background pass
-          if (s.axis && emphasis?.highlights && config.emphasis.selectionPlace === 'over')
-            drawHighlights(out, s.axis, box, emphasis, config);
-          break;
-        case 'selection':
-          if (s.axis && emphasis) {
-            if (config.emphasis.selectionPlace === 'over')
-              drawSelectionTint(out, s.axis, box, emphasis, tokens, config);
-            drawSelectionOutline(out, s.axis, box, emphasis, tokens, config);
-          }
-          break;
-        case 'hover':
-          // the hover carried here from a linked section; its own section's layer outlines it
-          if (s.axis && emphasis?.projected?.hover && emphasis.hover?.section !== s.id)
-            drawProjectedHover(out, s.axis, box, emphasis.projected.hover, tokens, config);
-          break;
-        case 'cursor':
-          if (s.axis && emphasis?.cursor?.system === s.axis.system)
-            drawCursor(out, s.axis, box, emphasis.cursor, tokens, config);
-          break;
-      }
+      if (pass === 'labels') drawLabel(out, t, tokens, config);
+      else if (!column && emphasis) drawSectionEmphasis(out, s, box, emphasis, layout);
       if (!t.layers.length) continue;
       const clip = pass === 'data';
       if (clip) out.clip(box.x, box.y, box.width, box.height);
@@ -482,10 +496,39 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
   }
 }
 
+/**
+ * A section's emphasis marks of the writer's pass over `box` (its band, or one track's box): the highlights' tints
+ * (over the data), the selection's tint and outline, the hover carried here from a linked section (never on the hover's
+ * own section: its layer outlines it), the keyboard cursor.
+ */
+function drawSectionEmphasis(out: PassWriter, s: SectionLayout, box: Box, emphasis: Emphasis, layout: ViewLayout) {
+  const axis = s.axis;
+  if (!axis) return;
+  const { tokens, config } = layout;
+  const over = config.emphasis.selectionPlace === 'over';
+  switch (out.pass.name) {
+    case 'highlight':
+      // over the data, below the selection's pass; under it, in the background pass
+      if (over && emphasis.highlights) drawHighlights(out, axis, box, emphasis, config);
+      break;
+    case 'selection':
+      if (over) drawSelectionTint(out, axis, box, emphasis, tokens, config);
+      drawSelectionOutline(out, axis, box, emphasis, tokens, config);
+      break;
+    case 'hover':
+      if (emphasis.projected?.hover && emphasis.projected.hoverSection !== s.section.address)
+        drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
+      break;
+    case 'cursor':
+      if (emphasis.cursor?.system === axis.system) drawCursor(out, axis, box, emphasis.cursor, tokens, config);
+      break;
+  }
+}
+
 // The label, the cursor and the emphasis marks take the layout, not its numbers: a number passed to a call that is not
 // inlined is boxed (nothing allocated once warm). What a shared mark function needs besides its objects (a fill, a
-// stroke, a width) goes through `Paint`, a typed array: its numbers are never boxed; colors at an opacity are made
-// inline (`withAlpha` would box its result).
+// stroke, a width, the corners, an offset) goes through `Paint`, a typed array: its numbers are never boxed; colors at an
+// opacity are made inline (`withAlpha` would box its result).
 
 /** A track's label in the label column, faded past it. */
 function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig) {
@@ -497,7 +540,7 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   out.textArgs(t.track.label, Anchor.start, config.labelFont, tokens.colors['msui-text-muted']);
 }
 
-/** The cursor's outline around its cell, thicker than the hover's. */
+/** The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`). */
 function drawCursor(
   out: PassWriter,
   axis: AxisTransform,
@@ -518,54 +561,72 @@ function drawCursor(
   g[2] = Math.max(x1 - x0 - w, 0.5);
   g[3] = box.height - w;
   g[4] = NoColor;
-  g[5] = tokens.colors['msui-accent'];
+  g[5] = tokens.colors[config.emphasis.cursorInk];
   g[6] = w;
   g[7] = 0;
   g[8] = 0;
   out.rectArgs();
 }
 
-/** The fill, the stroke and the stroke's width `paintRanges` draws with: a typed array, so no number is boxed. */
-const Paint = new Float64Array(3);
+/**
+ * What `paintRanges` draws with: the fill, the stroke and its width, whether the ends are squircles where they really
+ * end (1) or square (0), and how far the stroke stands outside the range (0: inside it, concentric with the fill).
+ */
+const Paint = new Float64Array(5);
 
 /**
- * A part's ranges on a track: per range and piece of the axis in view, a rect over the track's height snapped to the
- * device grid, filled with `Paint[0]` (none: `NoColor`), then outlined inside it with `Paint[1]` at `Paint[2]` px.
+ * A part's ranges on a box: per range and piece of the axis in view, a rect over the box's height snapped to the device
+ * grid, filled with `Paint[0]` (none: `NoColor`), then outlined with `Paint[1]` at `Paint[2]` px, inside it or
+ * `Paint[4]` px outside it, concentric. With `Paint[3]`, an end the range really has is a squircle (a third of the
+ * height, capped) and an end cut by the view or a piece is square (the frame rule).
  */
-function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: LocationPart) {
+function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: LocationPart, config: RenderConfig) {
   const fill = Paint[0];
   const stroke = Paint[1];
   const w = Paint[2];
+  const rounded = Paint[3] !== 0;
+  const outset = Paint[4];
   const dpr = axis.dpr;
   const n = axis.offsets.length;
   const g = out.args;
+  const h = box.height;
   for (let i = 0; i + 1 < part.ranges.length; i += 2)
     for (let k = 0; k < n; k++) {
       if (!axis.spanIn(k, part.ranges[i], part.ranges[i + 1])) continue;
       const x0 = Math.round(axis.sx0 * dpr) / dpr;
       const x1 = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + 1 / dpr);
+      const cut = axis.scut;
+      const bw = x1 - x0;
+      // `squircleRadius` inline (a number returned from a call is boxed)
+      const r =
+        !rounded || bw < config.squircleMin || h < config.squircleMin
+          ? 0
+          : Math.min(h * config.squircleRatio, config.squircleMax, bw / 2, h / 2);
+      const round = r > 0 ? ((cut & Cut.left) === 0 ? Round.left : 0) | ((cut & Cut.right) === 0 ? Round.right : 0) : 0;
       if (fill !== NoColor) {
         g[0] = x0;
         g[1] = box.y;
-        g[2] = x1 - x0;
-        g[3] = box.height;
+        g[2] = bw;
+        g[3] = h;
         g[4] = fill;
         g[5] = NoColor;
         g[6] = 0;
-        g[7] = 0;
-        g[8] = 0;
+        g[7] = round ? r : 0;
+        g[8] = round;
         out.rectArgs();
       }
       if (stroke !== NoColor) {
-        g[0] = x0 + w / 2;
-        g[1] = box.y + w / 2;
-        g[2] = Math.max(x1 - x0 - w, 0.5);
-        g[3] = box.height - w;
+        // inside: inset by half the width; outside: out by the offset and half the width; the radius follows
+        const d = outset > 0 ? -(outset + w / 2) : w / 2;
+        g[0] = x0 + d;
+        g[1] = box.y + d;
+        g[2] = Math.max(bw - 2 * d, 0.5);
+        g[3] = Math.max(h - 2 * d, 0.5);
         g[4] = NoColor;
         g[5] = stroke;
         g[6] = w;
-        g[7] = 0;
-        g[8] = 0;
+        g[7] = round ? Math.max(r - d, 0) : 0;
+        g[8] = round;
         out.rectArgs();
       }
     }
@@ -579,8 +640,8 @@ function partOn(loc: Location | undefined, system: string): LocationPart | undef
 }
 
 /**
- * The selection's accent tint over a track's positions: its own part at `emphasis.selectionTint`, else the part
- * projected here at that times `emphasis.projected` (the same look, lighter).
+ * The selection's accent tint over a box's positions: its own part at `emphasis.selectionTint`, else the part
+ * projected here at that times `emphasis.projected` (the same look, lighter). Squircle ends where it really ends.
  */
 function drawSelectionTint(
   out: PassWriter,
@@ -598,10 +659,15 @@ function drawSelectionTint(
   Paint[0] = ((accent & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
   Paint[1] = NoColor;
   Paint[2] = 0;
-  paintRanges(out, axis, box, part);
+  Paint[3] = 1;
+  Paint[4] = 0;
+  paintRanges(out, axis, box, part, config);
 }
 
-/** The selection's accent outline around each range on a track: its own part, else the projected one, lighter. */
+/**
+ * The selection's one thin outline around each range on a box, inside its tint: the accent at
+ * `emphasis.selectionOutline`, its own part, else the projected one, lighter.
+ */
 function drawSelectionOutline(
   out: PassWriter,
   axis: AxisTransform,
@@ -614,14 +680,19 @@ function drawSelectionOutline(
   const part = own ?? partOn(emphasis.projected?.selection, axis.system);
   if (!part) return;
   const accent = tokens.colors['msui-accent'];
-  const a = ((accent & 0xff) / 255) * (own ? 1 : config.emphasis.projected);
+  const a = ((accent & 0xff) / 255) * config.emphasis.selectionOutline * (own ? 1 : config.emphasis.projected);
   Paint[0] = NoColor;
   Paint[1] = ((accent & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
   Paint[2] = config.outline.selection;
-  paintRanges(out, axis, box, part);
+  Paint[3] = 1;
+  Paint[4] = 0;
+  paintRanges(out, axis, box, part, config);
 }
 
-/** The hover carried onto a track from a linked section: the hover's outline around each range, lighter. */
+/**
+ * The hover carried onto a box from a linked section: the hover's outline around each range, `emphasis.hoverOffset`
+ * outside it (so it never touches the selection's), lighter.
+ */
 function drawProjectedHover(
   out: PassWriter,
   axis: AxisTransform,
@@ -637,10 +708,12 @@ function drawProjectedHover(
   Paint[0] = NoColor;
   Paint[1] = ((hover & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
   Paint[2] = config.outline.hover;
-  paintRanges(out, axis, box, part);
+  Paint[3] = 0;
+  Paint[4] = config.emphasis.hoverOffset;
+  paintRanges(out, axis, box, part, config);
 }
 
-/** The highlight channels on a track, in order: each a tint of its color at `emphasis.highlightTint`. */
+/** The highlight channels on a box, in order: each a tint of its color at `emphasis.highlightTint`. */
 function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis: Emphasis, config: RenderConfig) {
   const hs = emphasis.highlights;
   if (!hs) return;
@@ -652,7 +725,9 @@ function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis
     Paint[0] = ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
     Paint[1] = NoColor;
     Paint[2] = 0;
-    paintRanges(out, axis, box, part);
+    Paint[3] = 0;
+    Paint[4] = 0;
+    paintRanges(out, axis, box, part, config);
   }
 }
 

@@ -652,13 +652,14 @@ store's entries, as draw lists; hit-testing on the same layout; the recording an
 one label column (112, gap 8), track and section gaps (4, 8), a track's height by its layers' types when the spec gives
 none (letters 20, ranges 36, values 32), the lane (12, gap 2), the density thresholds, the letter sizes (9 to 14) and
 the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), the fade (12), the squircle's ratio, cap
-and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the emphasis's look (`emphasis`: the
-selection's tint `over` the data, or `under` it; its opacity, 0.18; a highlight channel's tint opacity, 0.3; what is
-projected onto a linked section against its own look, `projected`, 0.5), the want margin (half the view a side), a
-follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a layout lists the
-nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`: `extra-lanes`),
-how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer reads
-(`values.coarser`, 1), whether values on the section's own system are placed directly (`values.direct`, true), the
+and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1, cursor 1), the emphasis's look (`emphasis`: the
+selection's tint `over` the data, or `under` it; its shape, a `column` band a section or a box a `tracks`; its opacity,
+0.18; its outline's, 0.6; a highlight channel's tint opacity, 0.3; what is projected onto a linked section against its
+own look, `projected`, 0.5; the hover's outline offset, 1 px; the cursor's ink, `msui-text`), the want margin (half the
+view a side), a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a
+layout lists the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`:
+`extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer
+reads (`values.coarser`, 1), whether values on the section's own system are placed directly (`values.direct`, true), the
 strings draw lists keep interned across frames (`internedStrings`, 4,096; past it a full redraw starts the table again).
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -732,30 +733,40 @@ strings draw lists keep interned across frames (`internedStrings`, 4,096; past i
 
 ### Emphasis
 
-`Emphasis` (`layer-type.ts`), drawn by the view (`tracks.ts`) in the emphasis passes, per track of a laid-out section:
+`Emphasis` (`layer-type.ts`), drawn by the view (`tracks.ts`) in the emphasis passes, per laid-out section over its
+**band** (`SectionLayout.band`: its tracks on the page and the gaps between them, the shape `column`, the default) or
+over each track's box (`tracks`), `emphasis.selectionShape`. Why `column` by default: a selection is of positions, not
+of a track, and one band reads as one selection.
 
-- `highlights`: the channels in order, each a Location and a color, tinted at `emphasis.highlightTint` on every system
-  its Location has (the `highlight` pass).
-- `selection` (a Location): its part on the section's system tinted with the accent at `emphasis.selectionTint` and
-  outlined; the tints first, then the outlines, so no tint covers an outline (the `selection` pass). Where it has no
-  part, `projected.selection` is drawn in the same look at `emphasis.projected` times the opacity.
-- `hover`: each layer's own (its cell, its item's marks); `projected.hover` is drawn as the hover's outline at
-  `emphasis.projected` on every section but the hover's own (`SectionLayout.id`, the section's id a hit names), so a
-  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass).
-- `cursor`: the outline of its cell on every section of its system (the `cursor` pass).
 - **The order of emphasis** is fixed, below to above: data, highlight channels, selection, hover, cursor; a higher one
-  never hides a lower one entirely (tints are translucent, outlines are lines).
+  never hides a lower one entirely (tints are translucent, outlines are thin lines that never touch).
+- `highlights`: the channels in order, each a Location and a color, tinted at `emphasis.highlightTint` on every system
+  its Location has (the `highlight` pass), square.
+- `selection` (a Location): a soft accent tint at `emphasis.selectionTint` and one thin outline inside it
+  (`outline.selection`, 1 px, the accent at `emphasis.selectionOutline`, 0.6), the tints first, then the outlines;
+  squircle ends where a range really ends, square where the view or a piece cuts it (the frame rule) (the `selection`
+  pass). Where it has no part, `projected.selection` is drawn in the same look at `emphasis.projected` times the
+  opacity. `elements`: a selected item of zero length, which no Location holds, is a 2 px accent hairline over its lane
+  (the ranges layer, EC-127).
+- `hover`: each layer's own (its cell, its item's marks), an outline `emphasis.hoverOffset` (1 px) outside the mark,
+  concentric, so it never touches the selection's outline under it, in the hover ink (`seq-hover`: dark on light, light
+  on dark); `projected.hover` is drawn the same way at `emphasis.projected` on every section but
+  `projected.hoverSection` (the hover's own section's address), so a hover from elsewhere (a structure, no layer) is
+  drawn on every section (the `hover` pass).
+- `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
+  `msui-text`), never the accent (the `cursor` pass). Whether it is shown is the caller's (a viewer shows it once the
+  keyboard moved it).
 - **The tints' place** (`emphasis.selectionPlace`): `over` (the default: the highlights' tints over the data in the
   `highlight` pass, the selection's above them in the `selection` pass with its outline; a selection or a highlight
   redraws the emphasis alone) or `under` (the highlights' tints and then the selection's in the `background` pass, under
   the data and hidden by opaque cells, the outline still in the `selection` pass; an emphasis redraw whose selection,
   projected selection or highlights changed by identity draws `background` and `data` again, `Frame.base`, and a backend
-  redraws its base: about a full draw of the data, a millisecond or two on the p53 views, against the emphasis alone).
-  Either way the highlights are below the selection. Why `over` by default: a tint under the data is hidden by opaque
-  cells, and a selection then costs a data redraw.
-- What a shared mark function needs besides its objects (a fill, a stroke, a width) goes through a typed array, and a
-  color at an opacity is made inline: the emphasis passes allocate nothing once warm (`frame.quick.ts`: selection and
-  cursor; projected hover, selection and highlights).
+  redraws its base: about a full draw of the data, against the emphasis alone). Either way the highlights are below the
+  selection. Why `over` by default: a tint under the data is hidden by opaque cells, and a selection then costs a data
+  redraw.
+- What a shared mark function needs besides its objects (a fill, a stroke, a width, the corners, an offset) goes through
+  a typed array, and a color at an opacity is made inline: the emphasis passes allocate nothing once warm
+  (`frame.quick.ts`: selection and cursor; projected hover, selection and highlights).
 
 ### Shapes
 

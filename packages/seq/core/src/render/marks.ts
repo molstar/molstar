@@ -22,10 +22,12 @@ export interface CellLay {
   readonly box: Box;
   readonly tokens: SeqTokens;
   readonly hoverWidth: number;
+  /** How far the hover's outline stands outside the cell (`emphasis.hoverOffset`). */
+  readonly hoverOffset: number;
 }
 
 /**
- * The hover pass of a layer of cells: the outline of the hovered position's cell, inside the box, when the hover is on
+ * The hover pass of a layer of cells: the outline of the hovered position's cell, outside it by `hoverOffset`, when the hover is on
  * the layer and the cell in view. It reads its numbers itself (the layout's, the hit's position): a number passed to a
  * call that is not inlined is boxed (nothing allocated once warm).
  */
@@ -41,12 +43,13 @@ export function hoverCell(lay: CellLay & { readonly key: string }, out: PassWrit
   const a = Math.max(Math.round(axis.sx0 * dpr) / dpr, box.x);
   const b = Math.min(Math.round(axis.sx1 * dpr) / dpr, box.x + box.width);
   if (b <= a) return;
-  const half = width / 2;
+  // outside the cell by the offset, concentric: it never touches the selection's outline drawn on the cell
+  const d = width / 2 + lay.hoverOffset;
   const g = out.args;
-  g[0] = a + half;
-  g[1] = box.y + half;
-  g[2] = Math.max(b - a - width, 0.5);
-  g[3] = box.height - width;
+  g[0] = a - d;
+  g[1] = box.y - d;
+  g[2] = b - a + 2 * d;
+  g[3] = box.height + 2 * d;
   g[4] = NoColor;
   g[5] = lay.tokens.colors['seq-hover'];
   g[6] = width;

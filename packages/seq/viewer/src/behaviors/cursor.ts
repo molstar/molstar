@@ -78,7 +78,7 @@ export function cursorBehavior(
   };
 
   const moveTo = (c: Cursor) => {
-    selection.setCursor(c);
+    selection.setCursor({ ...c, keyboard: true });
     const axis = sectionOf(c.section)?.axis;
     const o = axis && offsetOf(axis, c.position);
     if (o !== undefined) reveal(c.section, Math.floor(o));

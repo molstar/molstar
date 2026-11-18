@@ -162,7 +162,11 @@ nothing and tells nothing.
 - **Projections are cached** per Location by identity while the view and the model hold (`Projector`, at most 64); the
   highlights' list is made again only when a channel, the tokens, the view or the model changed: a redraw projects
   nothing and allocates nothing in the renderer (held by the allocation tier).
-- `renderSvg` passes the highlights too; the export projects the selection itself.
+- **The cursor shows once the keyboard moved it** (focus-visible: `Cursor.keyboard`, set by the `cursor` behavior's
+  moves; a click places it unseen). The hover's own section is passed by address (`projected.hoverSection`), the
+  selection's element keys as `elements` (a zero-length item's hairline).
+- `renderSvg` passes the highlights too; the export projects the selection itself. **The hover and the cursor are
+  transient**: never in an export, which shows the selection and the highlights alone.
 
 ### AddressModel
 

@@ -208,7 +208,7 @@ describe('the keyboard cursor', () => {
   it('the step keys place it, move it in display order, and Shift extends the selection from it', async () => {
     const v = await make();
     expect(key(v, 'ArrowRight')).toBe(true);
-    expect(v.selection.cursor.value).toEqual({ section: ProteinSection, system: P, position: 0 });
+    expect(v.selection.cursor.value).toEqual({ section: ProteinSection, system: P, position: 0, keyboard: true });
     key(v, 'ArrowRight');
     key(v, 'ArrowRight');
     expect(v.selection.cursor.value?.position).toBe(2);
@@ -222,9 +222,21 @@ describe('the keyboard cursor', () => {
     key(v, 'ArrowRight', { shiftKey: true });
     expect(ranges(v)).toEqual([0, 3]);
     expect(v.selection.cursor.value?.position).toBe(2);
-    // drawn on its section's tracks
+    // drawn once over its section's column
     frames!.flush();
-    expect(v.frame!.lists.passes.cursor.rects.n).toBe(2);
+    expect(v.frame!.lists.passes.cursor.rects.n).toBe(1);
+  });
+
+  it('a click places the cursor unseen; the first key shows it where it is (focus-visible)', async () => {
+    const v = await make();
+    click(v, at(v, 0, 0, 2));
+    frames!.flush();
+    expect(v.selection.cursor.value?.keyboard).toBeUndefined();
+    expect(v.frame!.lists.passes.cursor.rects.n).toBe(0);
+    key(v, 'ArrowRight');
+    frames!.flush();
+    expect(v.selection.cursor.value).toMatchObject({ position: 3, keyboard: true });
+    expect(v.frame!.lists.passes.cursor.rects.n).toBe(1);
   });
 
   it('Space (a tap) toggles its cell; Enter focuses; down and up carry it through the codon map', async () => {
@@ -242,9 +254,9 @@ describe('the keyboard cursor', () => {
     v.view.fit(ProteinSection);
     // residue 3 is nucleotides 14 to 17 on the gene
     key(v, 'ArrowDown');
-    expect(v.selection.cursor.value).toEqual({ section: GeneSection, system: G, position: 14 });
+    expect(v.selection.cursor.value).toEqual({ section: GeneSection, system: G, position: 14, keyboard: true });
     key(v, 'ArrowUp');
-    expect(v.selection.cursor.value).toEqual({ section: ProteinSection, system: P, position: 3 });
+    expect(v.selection.cursor.value).toEqual({ section: ProteinSection, system: P, position: 3, keyboard: true });
   });
 
   it('Enter on a follower’s cursor focuses its leader, as a focus on an address does', async () => {
@@ -300,7 +312,7 @@ function band(v: SeqViewer, pass: PassName, section: number): string[] {
     .filter((l) => l.startsWith('rect '))
     .filter((l) => {
       const y = Number(l.split(' ')[2]);
-      return y >= s.y && y < s.y + s.height;
+      return y >= s.y - 4 && y < s.y + s.height;
     });
 }
 
@@ -372,9 +384,11 @@ describe('on the Canvas2D backend', () => {
     click(v, at(v, 0, 0, 2));
     frames!.flush();
     expect(base.context.take()).toEqual([]);
-    // two tracks on the protein, one on the gene: a tint and an outline each
-    expect(overlay.context.calls('fillRect').length).toBeGreaterThanOrEqual(3);
-    expect(overlay.context.calls('strokeRect').length).toBeGreaterThanOrEqual(3);
+    // a band on the protein's two tracks (a squircle, a path), one on the gene: a tint and an outline each
+    expect(overlay.context.calls('fill').length + overlay.context.calls('fillRect').length).toBeGreaterThanOrEqual(2);
+    expect(overlay.context.calls('stroke').length + overlay.context.calls('strokeRect').length).toBeGreaterThanOrEqual(
+      2,
+    );
     expect(v.counts.layouts).toBe(layouts);
   });
 
@@ -442,7 +456,7 @@ describe('across a cyclic origin', () => {
 
 describe('a gesture’s selection follows the spec', () => {
   const rename = (at: string[], id: string) => ({
-    ops: [{ op: 'move' as const, at, parent: at.slice(0, -1), place: { last: true }, rename: id }],
+    ops: [{ op: 'move' as const, at, parent: at.slice(0, -1), place: { last: true as const }, rename: id }],
   });
 
   it('a cell and its anchor follow a rename of their system; an extend after it works', async () => {
