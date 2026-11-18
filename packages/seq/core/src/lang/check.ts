@@ -250,6 +250,22 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         else if (sys?.length !== undefined && (s > sys.length || e > sys.length))
           report('seq.lang.section.range', 'The range is past the system', at, 'range');
       }
+      // the references inside the axis's params (a record's field, a list's items) name nodes of the kinds they take
+      const named = (a: Value | undefined, kinds: readonly string[], ...tail: (string | number)[]) => {
+        const exact = exactAddress(a);
+        if (exact === undefined) return;
+        const t = look.get(exact);
+        if (!t || !kinds.includes(t.node.kind))
+          report('seq.lang.ref.target', 'The reference names no node of a kind this param takes', at, ...tail);
+      };
+      const direction = p(n, 'direction');
+      if (direction && typeof direction === 'object' && !Array.isArray(direction))
+        named((direction as Record<string, Value>).along, ['sequence', 'map'], 'direction', 'along');
+      for (const key of ['pieces', 'collapsed']) {
+        const v = p(n, key);
+        if (Array.isArray(v)) v.forEach((x, i) => named(x, ['ranges', 'map'], key, i));
+        else if (typeof v === 'string' && v.startsWith('/')) named(v, ['ranges', 'map'], key);
+      }
       break;
     }
   }

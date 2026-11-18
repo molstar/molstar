@@ -15,7 +15,7 @@ import { defineLanguage, type Language, type ValidateOptions } from '@molstar/co
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.3.0';
+export const SeqLanguageVersion = '0.4.0';
 
 export const SeqLanguage = defineLanguage({
   id: 'seq',
@@ -235,6 +235,58 @@ export const SeqLanguage = defineLanguage({
           kinds: ['section'],
           doc: 'A section whose region this one shows, mapped onto its own system.',
         },
+        direction: {
+          type: 'union',
+          of: [
+            {
+              type: 'string',
+              enum: ['genomic', 'reversed', 'follow'],
+            },
+            {
+              type: 'record',
+              fields: {
+                along: {
+                  type: 'ref',
+                  kinds: ['sequence', 'map'],
+                  required: true,
+                  doc: 'The system (or a map from it) the section reads along.',
+                },
+              },
+            },
+          ],
+          doc: 'Which way positions run left to right: `genomic` (up), `reversed` (down), `follow` (the way the leader reads, through the follow path), or `{ along: <system or map> }` (the way that system reads here). `follow` for a section that follows another, else `genomic`, when absent; never inferred from what the section draws.',
+        },
+        pieces: {
+          type: 'union',
+          of: [
+            { type: 'string', enum: ['whole', 'coding'] },
+            { type: 'ref', kinds: ['ranges', 'map'] },
+            {
+              type: 'list',
+              of: { type: 'ref', kinds: ['ranges', 'map'], doc: 'A ranges node or a codon map.' },
+              'min-length': 1,
+            },
+          ],
+          doc: 'The positions shown, the rest hidden as breaks: `whole` (the system, or its `range`), `coding` (the coding runs of the codon map the section follows or reads along), a ranges node or a codon map, or a list of them (their union); intersected with `range`. `whole` when absent.',
+        },
+        collapsed: {
+          type: 'union',
+          of: [
+            { type: 'string', enum: ['coding'] },
+            { type: 'ref', kinds: ['ranges', 'map'] },
+            {
+              type: 'list',
+              of: { type: 'ref', kinds: ['ranges', 'map'], doc: 'A ranges node or a codon map.' },
+              'min-length': 1,
+            },
+          ],
+          doc: 'The `pieces` the `section.collapse` command switches to from `whole` (`coding` when absent).',
+        },
+        pad: {
+          type: 'integer',
+          min: 0,
+          doc: 'Positions kept each side of every piece (splice sites); overlapping pads merge. 0 when absent.',
+        },
       },
     },
     track: {
@@ -302,6 +354,16 @@ export const SeqLanguage = defineLanguage({
         },
         color: { type: 'any', doc: 'A theme form that colors the marks.' },
         hidden: { type: 'boolean', default: false, doc: 'Whether the layer is hidden: kept in the spec, not drawn.' },
+        complement: {
+          type: 'string',
+          enum: ['auto', 'always', 'never'],
+          doc: 'For `letters` of nucleotides: `auto` (when absent) shows a letter as its complement where it is read against its strand on screen (the axis reversed against its run); `always`, `never`. The stored letter is what search and status read.',
+        },
+        code: {
+          type: 'string',
+          enum: ['auto', 'one', 'three'],
+          doc: 'For `letters` of residues a codon wide: `auto` (when absent) three-letter codes where the narrowest part in view has room; `one`, `three`.',
+        },
       },
     },
   },

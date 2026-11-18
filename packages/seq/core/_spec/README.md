@@ -15,11 +15,12 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.3.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.4.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
-  and the `snapshot` kind). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer
+  and the `snapshot` kind; `0.4.0`: a section's `direction`, `pieces`, `collapsed`, `pad` and a layer's `complement`,
+  `code`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer
   fits.
 
 ## Language
@@ -35,6 +36,14 @@ checks it cannot express.
   (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
   a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
   the kinds they take; a reference is an address.
+- **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
+  never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or `{ along: <sequence or
+  map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`, `coding`, a ref to a
+  `ranges` node or a codon `map`, or a list of refs, their union; absent: `whole`, followers included), `collapsed` (the
+  form `section.collapse` switches to; absent: `coding`) and `pad` (positions kept each side of a piece; absent: 0); a
+  layer's `complement` (`auto`, `always`, `never`; absent: `auto`) and `code` (`auto`, `one`, `three`; absent: `auto`),
+  read by `letters`. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
+  check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
 - **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
   language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
   are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a
