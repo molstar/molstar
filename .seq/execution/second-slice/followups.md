@@ -19,3 +19,7 @@
 - The Complex dataset (examples.md, the author 2026-11-18): CDK2 with cyclin A, its interface, PAE and ligands with
   AlphaFill's transplants. Its fixtures and views go to the slice that builds pairs across chains, dot plots and ligands
   (the third slice's draft or later); the entries chosen then and checked against their sources.
+- (K2 review) Many moves under one parent are quadratic in `applyPatch` (reversing 16k children: 105 ms alone, 229 ms
+  in a merge); inserts and diffs are linear.
+- (K2 review) `invalid` discards every change of theirs from `partial`, an unrelated one included (by design, N-8);
+  lane N's UI should say so.
