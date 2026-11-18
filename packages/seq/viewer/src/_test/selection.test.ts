@@ -349,6 +349,43 @@ describe('on the Canvas2D backend', () => {
   });
 });
 
+describe('a gesture’s selection follows the spec', () => {
+  const rename = (at: string[], id: string) => ({
+    ops: [{ op: 'move' as const, at, parent: at.slice(0, -1), place: { last: true }, rename: id }],
+  });
+
+  it('a cell and its anchor follow a rename of their system; an extend after it works', async () => {
+    const v = await make();
+    click(v, at(v, 0, 0, 2));
+    const o = await v.spec.patch('Rename', rename(['data', 'p'], 'q'));
+    expect(o.ok).toBe(true);
+    expect(ranges(v, '/data/q')).toEqual([2, 3]);
+    expect(v.selection.anchor?.system).toBe('/data/q');
+    expect(v.selection.cursor.value?.system).toBe('/data/q');
+    frames!.flush();
+    click(v, at(v, 0, 0, 5), { shiftKey: true });
+    expect(ranges(v, '/data/q')).toEqual([2, 6]);
+  });
+
+  it('an item follows a rename of its owner, and is dropped with an issue when its node is removed', async () => {
+    const v = await make();
+    click(v, at(v, 0, 1, 6));
+    await v.spec.patch('Rename', rename(['data', 'domains'], 'd2'));
+    expect(v.selection.value.value.elements.keys).toEqual([{ owner: '/data/d2', key: 'B' }]);
+    expect(ranges(v)).toEqual([5, 9]);
+    const o = await v.spec.patch('Remove', {
+      ops: [
+        { op: 'remove', at: ['views', 'main', 'protein', 'domains'] },
+        { op: 'remove', at: ['data', 'd2'] },
+      ],
+    });
+    expect(o.ok, JSON.stringify(o)).toBe(true);
+    expect(v.selection.value.value.elements.keys).toEqual([]);
+    expect(ranges(v)).toEqual([]);
+    expect(v.addresses.issues.value.map((i) => i.code)).toEqual(['seq.address.missing']);
+  });
+});
+
 describe('the selection holds its nodes', () => {
   const Genes = '/data/genes';
 
