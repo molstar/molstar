@@ -68,3 +68,6 @@
   (maps.md: the hull in genomic order). A section's direction as a setting, `genomic`, `reversed` or `follow` (the
   leader's): a follower defaults to `follow`, a leader to `genomic`; a reversed axis counts down and says it is
   reversed; reversed DNA letters drawn as their complement (on by default). Built on reversed pieces of an axis.
+- (Stage 4 gate, third slice) The protein and its gene on one axis, one under the other: the protein's letters drawn
+  on the gene section through the codon map (a residue a codon wide, introns skipped), as a letters layer on another
+  system's axis (today refused: `seq.render.layer.letters`). Not in the third slice's draft; its p53 views want it.

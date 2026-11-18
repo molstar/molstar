@@ -24,7 +24,8 @@ a view.
 
 - Every dataset but Genomes has its views from examples.md running three ways (Storybook with canvas and SVG side by
   side, a quick-lane test, a spec file a reader without Seq\* could take):
-  - **p53**: the text figure, secondary structure and variants on the tracks, the themes view;
+  - **p53**: the text figure, secondary structure and variants on the tracks, the themes view; the protein and its
+    gene on one axis (the protein's letters through the codon map); the gene following its protein reversed;
   - **Globins**: the family alignment with logo and rows by tree, collapsed clades, the ESPript figure, hemoglobin with
     copies, the 10,000-row alignment with lazy rows and the keyboard cursor;
   - **Antibody**: Kabat against IMGT, the design against the wild type, CDR bookmarks with undo;

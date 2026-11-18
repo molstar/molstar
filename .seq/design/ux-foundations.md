@@ -147,14 +147,17 @@ settings layer over it. The rules that stay fixed whatever the bindings:
 |---|---|
 | hover | the element is hovered here and on every linked section; nothing else changes |
 | click | the selection becomes the element; clicking the only selected element clears it |
-| Shift+click | extends the selection from its anchor to the element (a range in one system; a run of rows) |
-| Cmd/Ctrl+click | toggles the element in or out of the selection, keeping the rest |
+| Shift+click, Shift+drag | extends the range the anchor is in to the element, keeping the other ranges (a range in one system; a run of rows) |
+| Cmd/Ctrl+click | toggles the element in or out of the selection, keeping the rest; the anchor moves there |
+| Cmd/Ctrl+drag | adds the range to the selection, keeping the rest |
+| Alt/Option+drag | removes the range from the selection |
 | click on empty space, Esc | clears the selection (Esc first cancels a gesture in progress) |
 | drag on data | selects a range, snapped to the granularity hit (whole codons over nucleotides, whole items over items) |
 | drag on an axis, navigator or with Space held | pans |
 | wheel, two-finger scroll | pans; Cmd/Ctrl+wheel or pinch zooms about the pointer |
 | double-click | focuses the element (zooms to it); on empty space, fits the view |
-| arrows | move the keyboard cursor; Shift+arrows extend the selection from it; Enter focuses; Space toggles |
+| arrows | move the keyboard cursor; Shift+arrows extend the anchor's range; Cmd/Ctrl+Shift+arrows start a new range; Enter focuses; Space toggles |
+| drag, wheel or pinch on a follower | moves its leader through the follow, so the follower moves as asked (`follow.followerMoves`: `lead`) |
 
 - **Selection is a location**, held per system and projected: what is selected in a protein shows on its gene, its
   structure and its alignment rows.
