@@ -155,7 +155,9 @@ settings layer over it. The rules that stay fixed whatever the bindings:
 | drag on data | selects a range, snapped to the granularity hit (whole codons over nucleotides, whole items over items) |
 | drag on an axis, navigator or with Space held | pans |
 | wheel, two-finger scroll | pans; Cmd/Ctrl+wheel or pinch zooms about the pointer |
-| double-click | focuses the element (zooms to it); on empty space, fits the view |
+| double-click | focuses the element (zooms to it); on the element already focused, goes back; on empty space, fits the view |
+| Shift+double-click, -, =, 0 | zooms out about the pointer; zooms out and in about the cursor or the centre; fits |
+| Alt+Left, Alt+Right, the mouse's back button | back and forward through the view's jumps (focus, fit, reveal, a bookmark or link): session state, not undo |
 | arrows | move the keyboard cursor; Shift+arrows extend the anchor's range; Cmd/Ctrl+Shift+arrows start a new range; Enter focuses; Space toggles |
 | drag, wheel or pinch on a follower | moves its leader through the follow, so the follower moves as asked (`follow.followerMoves`: `lead`) |
 

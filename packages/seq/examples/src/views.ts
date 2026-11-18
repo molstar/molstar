@@ -42,7 +42,7 @@ export const P53Views: readonly ExampleView[] = [
     id: 'protein-on-gene',
     title: 'Protein on its gene',
     summary:
-      'The gene’s section follows the protein’s through the codon map: minus strand, three exons, introns skipped.',
+      'The gene’s section follows the protein’s through the codon map: minus strand, three exons. Its introns are drawn at their full width, so one in view widens the gene’s window.',
     build: proteinOnGene.build,
   },
   {
