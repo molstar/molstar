@@ -201,6 +201,21 @@ describe('repr/patch: the inverse, with what it needs only', () => {
     expect(r.inverseNeeds?.allowDangling).toBe(true);
   });
 
+  it('a stored set the forward move types and the move back does not is set back', () => {
+    // the step removes /q, then sets /a/d's link to /a. The patch moves /a to /q/a: the step's set is typed (its `at`
+    // /a/d is there after the remove), so its value follows to /q/a. Now the step's remove takes /q/a away first, its
+    // set types nothing, and the inverse's move back leaves the value: it is set back
+    const step = patchToNode({
+      ops: [
+        { op: 'remove', at: ['q'] },
+        { op: 'set', at: ['a', 'd'], key: 'link', value: '/a' },
+      ],
+    });
+    const root = doc(box('a', undefined, leaf('d')), box('q', undefined), box('s', { step }));
+    const patch: Patch = { ops: [{ op: 'move', at: ['a'], parent: ['q'], place: { last: true } }] };
+    back(root, patch, { ...lang, allowDangling: true, allowRebind: true });
+  });
+
   it('undoes a remove whose content held a ref already dangling', () => {
     back(doc(box('a', { link: '/zz' })), { ops: [{ op: 'remove', at: ['a'] }] }, lang);
     back(

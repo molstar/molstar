@@ -393,8 +393,15 @@ function restoringSets(
     let off = false;
     for (const s of entry.sites) {
       let v = s.value;
-      for (const m of moves) if (m.pos > entry.pos) v = rewriteRef(v, m.from, m.to);
-      if (v !== s.expected) off = true;
+      let taken = false;
+      for (const m of moves) {
+        if (m.pos <= entry.pos) continue;
+        const w = rewriteRef(v, m.from, m.to);
+        if (w !== v) taken = true;
+        v = w;
+      }
+      // a loose site may or may not be typed when a move finds it: set back unless no move can take it along
+      if (s.step?.loose ? taken || s.value !== s.expected : v !== s.expected) off = true;
     }
     // the inverse writes the key when an op of it restores the key or its node, or a set at its end does
     if (!off && entry.pos < 0) continue;
