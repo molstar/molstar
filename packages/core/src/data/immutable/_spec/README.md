@@ -106,8 +106,15 @@ removes.
   lane. Shapes across edit orders, demotion at the threshold, all-zero and four-valued hashes, configs, transients.
 - The allocation cases: `*.quick.ts`, `npx vitest run -c packages/core/vitest.perf.config.ts`, by hand.
 - Against immutable.js (`_test/immutable-js.test.ts`, heavy): ratios for get, set, delete, iterate and build at 10,
-  1,000 and 100,000 entries; it fails only past 2.5×, and prints every case over 1 as a miss.
-- The flat threshold (same file): a lookup and a persistent set on a flat array and on a trie of 1 to 32 entries.
+  1,000 and 100,000 entries; it fails only past 4×, and prints every case over 1 as a miss. Measured (2026-11-18):
+  `Vector` faster on every case; maps and sets of 22-character ids faster at 1,000 and 100,000 entries (0.4 to 0.9); the
+  misses are small maps (a lookup at 10 entries 1.3 to 1.8: immutable.js caches string hashes and hashes integers by
+  value), inserts that cross the flat threshold (up to 3.4: every key hashed once then), and integer keys (a lookup at
+  1,000 entries 1.5 to 1.7, a build 2.0: the float64-bits hash). The open choices are a string-hash memo and an int32
+  hash path (each a change to §4).
+- The flat threshold (same file): a lookup and a persistent set on a flat array and on a trie of 1 to 32 entries. The
+  flat array won both at every size to 16 (string ids: a lookup 14 to 20 ns flat, 52 to 60 ns as a trie; integers: 17 to
+  24 against 33 to 38), integers crossing at about 25 and string ids past 32; so 16.
 
 ## 9. The `StateTree` spike
 

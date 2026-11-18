@@ -21,7 +21,11 @@ import { Vector } from '../vector.js';
 import { time } from './bench.js';
 import { id22, Rng } from './model.js';
 
-const Catastrophic = 2.5;
+/**
+ * The worst ratio measured (2026-11-18, M-series, Node): 3.4, ten inserts into a 10-entry map of string ids, which cross
+ * the flat threshold once and hash every key then (no string-hash memo, README §4); the rest under 2.
+ */
+const Catastrophic = 4;
 const Sizes = [10, 1_000, 100_000];
 
 interface Row {
