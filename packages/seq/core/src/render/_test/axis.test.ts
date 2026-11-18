@@ -12,7 +12,8 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { AxisTransform, Cut } from '../axis.js';
-import { hitView, type LettersLay, LightTokens, recordDrawLists, renderSvg } from '../index.js';
+import { rangesLocation } from '@molstar/seqx-core/query';
+import { hitView, type LettersLay, LightTokens, type RangesLay, recordDrawLists, renderSvg } from '../index.js';
 import { settle } from './helpers.js';
 
 const Size = { width: 640, height: 200 };
@@ -224,6 +225,62 @@ describe('breaks and the direction mark', () => {
     expect(recordDrawLists((await none.frame({ size: Size })).lists, ['labels'])).not.toContain('reversed');
     const fwd = await settle(spec({}));
     expect(recordDrawLists((await fwd.frame({ size: Size })).lists, ['labels'])).not.toContain('←');
+  });
+});
+
+describe('what a break hides is not dropped', () => {
+  function hiddenSpec() {
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
+    const g = b.data.sequence('g', { alphabet: 'dna', letters: Gene });
+    const m = b.data.map('m', {
+      from: p,
+      to: g,
+      method: 'codon',
+      exons: { start: [2, 12], end: [7, 19] },
+      strand: '+',
+    });
+    // one item in an exon, two wholly in the intron [7, 12), one across it
+    const r = b.data.ranges('sites', {
+      target: g,
+      rows: { start: [3, 8, 9, 6], end: [5, 9, 11, 14], id: ['a', 'b', 'c', 'd'] },
+    });
+    b.views.view(
+      'v',
+      (v) => void v.section('g', { of: g, pieces: m }).track('t').layer('l', { type: 'ranges', data: r }),
+    );
+    return b.build();
+  }
+
+  it('items wholly in a hidden stretch draw one tick on its break a lane, hit as the break with their count', async () => {
+    const s = await settle(hiddenSpec());
+    const f = await s.frame({ size: Size });
+    const lay = f.layout.sections[0].tracks[0].layers[0].lay as RangesLay;
+    // `b` and `c` are hidden: in two lanes or one, a tick a lane; `a` and `d` are marks
+    expect(lay.tn).toBeGreaterThanOrEqual(1);
+    let count = 0;
+    for (let t = 0; t < lay.tn; t++) count += lay.ticks[5 * t + 2];
+    expect(count).toBe(2);
+    const x = lay.ticks[0];
+    const y = lay.box.y + (lay.ticks[1] + 0.5) * lay.laneHeight;
+    const h = hitView(f.layout, x + 1, y)!;
+    expect(h.target).toBe('break');
+    expect(h.extent?.parts.map((p) => [...p.ranges])).toEqual([[7, 12]]);
+    expect(h.count).toBeGreaterThanOrEqual(1);
+  });
+
+  it('a Location wholly hidden (a selection) lights its break', async () => {
+    const s = await settle(hiddenSpec());
+    const f = await s.frame({
+      size: Size,
+      emphasis: { selection: rangesLocation('/data/g', [8, 10]) },
+    });
+    const x = f.layout.sections[0].breaks[0];
+    const rects = recordDrawLists(f.lists, ['selection'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect '))
+      .map((l) => Number(l.split(' ')[1]));
+    expect(rects.some((r) => Math.abs(r - x) <= 1)).toBe(true);
   });
 });
 

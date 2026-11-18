@@ -7,9 +7,11 @@
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { fitLevel, type Want } from '@molstar/seqx-core/data';
-import { type Location, type LocationPart, rangesLocation } from '@molstar/seqx-core/query';
+import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
+  axisBreaks,
+  breakHolding,
   expandTemplate,
   followRange,
   followWindow,
@@ -37,6 +39,7 @@ import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
+import { breakHit } from './marks.js';
 import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -666,8 +669,10 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
     axis.piecesIn(part.ranges[i], part.ranges[i + 1]);
     const ka = axis.ka;
     const kb = axis.kb;
+    let drew = false;
     for (let k = ka; k <= kb; k++) {
       if (!axis.spanIn(k, part.ranges[i], part.ranges[i + 1])) continue;
+      drew = true;
       const x0 = Math.round(axis.sx0 * dpr) / dpr;
       const x1 = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + 1 / dpr);
       const cut = axis.scut;
@@ -705,7 +710,19 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
         out.rectArgs();
       }
     }
+    // a range wholly in a hidden stretch lights its break: what a break hides is not dropped
+    if (!drew) litBreak(out, axis, box, part.ranges[i], fill !== NoColor ? fill : stroke);
   }
+}
+
+/** The break hiding position `p`, when in view: a bar two device pixels wide across the box in `color`. */
+function litBreak(out: PassWriter, axis: AxisTransform, box: Box, p: number, color: number) {
+  const b = axisBreaks(axis);
+  const i = b.length ? breakHolding(axis, p) : -1;
+  if (i < 0 || b[i] < axis.u0 || b[i] > axis.u1) return;
+  const px = 1 / axis.dpr;
+  const x = Math.round(axis.xOfUnit(b[i]) * axis.dpr) / axis.dpr;
+  out.fill(x - px, box.y, 2 * px, box.height, color);
 }
 
 /** A Location's part on a system, found with an indexed loop (no iterator, no closure). */
@@ -841,30 +858,4 @@ function breakAt(s: SectionLayout, x: number, y: number): Hit | undefined {
   for (let i = 0; i + 2 < b.length; i += 3)
     if (Math.abs(x - b[i]) <= BreakSlop) return breakHit(s, s.axis!, b[i], b[i + 1], b[i + 2]);
   return undefined;
-}
-
-/**
- * A break as a hit (`target: 'break'`): the section's position at its edge (the last shown before it in display order),
- * the hidden stretch as its extent on the section's system (two ranges across a cyclic origin).
- */
-export function breakHit(
-  s: { readonly section: ResolvedSection; readonly id: string },
-  axis: AxisTransform,
-  x: number,
-  hiddenStart: number,
-  hiddenEnd: number,
-  count?: number,
-): Hit {
-  const length = axis.length ?? hiddenStart;
-  const ranges = hiddenEnd >= hiddenStart ? [hiddenStart, hiddenEnd] : [0, hiddenEnd, hiddenStart, length];
-  const position = axis.positionAt(Math.min(x, axis.x0 + axis.width - 1e-6) - 1e-6);
-  return {
-    layer: s.section.address,
-    section: s.id,
-    system: axis.system,
-    target: 'break',
-    position: position >= 0 ? position : axis.dir === -1 ? hiddenEnd : hiddenStart - 1,
-    extent: rangesLocation(axis.system, ranges),
-    ...(count !== undefined ? { count } : {}),
-  };
 }

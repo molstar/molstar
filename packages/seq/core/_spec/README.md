@@ -941,6 +941,12 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
   `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
   element under the point wins, else the topmost with a position.
+- **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
+  (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
+  whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there
+  (a projected hover, a selection, a highlight) lights the break. An end of a range on a piece's edge at a break is cut
+  there (square). Why: drawing is checked against the data, an item in view with no mark is a lost item, and one tick a
+  lane keeps the marks bounded by the screen.
 - **A break** is hit within 3 CSS px of its notch above the band (and on a tick of the items it hides):
   `{ target: 'break', layer: <section address>, section, system, position, extent }`, `position` the section's position
   at its edge, `extent` the hidden stretch (`breakHit`); on data the cells and items beside it win (they touch; the

@@ -61,9 +61,18 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
   };
 }
 
-/** The data's positions in view (`[start, end, …]`, sorted, merged): the section's carried back along the path. */
-export function dataRegions(src: LayerSource, axis: AxisTransform): number[] {
+/**
+ * The data's positions in view (`[start, end, …]`, sorted, merged): the section's carried back along the path; with
+ * `hidden`, the stretches the breaks in view hide too (what a layer draws as their ticks).
+ */
+export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = false): number[] {
   const vis = axis.visible([]);
+  if (hidden) {
+    const b = axis.breaks([]);
+    for (let i = 0; i + 2 < b.length; i += 3)
+      if (b[i + 2] >= b[i + 1]) vis.push(b[i + 1], b[i + 2]);
+      else vis.push(b[i + 1], axis.length ?? b[i + 1], 0, b[i + 2]);
+  }
   if (!src.back) return Array.from(HalfOpenRanges.normalize(vis));
   return Array.from(HalfOpenRanges.normalize(projectRanges(src.back, vis)));
 }
