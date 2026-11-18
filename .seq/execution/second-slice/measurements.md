@@ -53,3 +53,10 @@ only too), bigWig and the 10,000 × 300 alignment (not in this slice).
 
 Confirm or move the targets the slice touched. One needs a call: the read bundle (above). Headless rendering has 6 kB
 left under its 300 kB: worth knowing before the third slice's layers and themes.
+
+## Decided (the author, 2026-11-18: "Yes, as recommended")
+
+Option 1: the change validators moved to `@molstar/seqx-core/lang/changes` (the viewer's `SpecModel` imports them
+there), the read target is 160 kB. Remeasured: reading a spec 150.6 kB (48.3 kB gzip), pass; headless rendering
+267.9 kB (87.8 kB gzip), which also dropped editing, 32 kB under its target; the viewer 504.9 kB. The other targets
+stand as measured.

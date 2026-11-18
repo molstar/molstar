@@ -58,18 +58,19 @@ checks it cannot express.
   applied and diffed back, is held under 1 ms in the heavy lane (`_test/patches.test.ts`). The slots' languages are
   `SeqValidateOptions` (`seqLanguages`: the stored patches' `seq.patch`), which validation, the builder and `applyPatch`
   take.
-- **Checks of a change** (`check-changes.ts`, `checkSeqChanges`, `SeqPatchValidator`): the `seq.lang.*` checks as
-  `repr/patch`'s validator, on what a patch's `Changes` reach: the nodes it made, set or moved; what names them, or
-  named any node of a subtree it removed or moved away (walked in the old root); on through the user refs that name
-  those, and through a ref with segments after it (`/refs/p/x` where `/refs/p` names a prefix of the node, at most the
-  ref depth deep); a template's layers under a track whose params changed; the sections and refs of a chain a changed
-  one closes. What names what is a reverse index of the spec's references (a persistent set of referring nodes by the id
-  run they name), built once a spec and derived from the last revision's along its changes. The same checks on the same
-  nodes before the change are taken away, by code, node (through moves) and place in the node. Why: a patch is refused
-  only for what it introduced (an error already there never blocks an edit beside it), and the cost follows the change,
-  not the spec. Held by tests that compare it with the whole check's difference, patch by patch, along a chain of
-  revisions and over seeded random patches of ref chains; and in the heavy lane, at 16,000 layers, the first check after
-  a load and a fan-out to every node no worse than the whole check, a one-node edit a small part of it.
+- **Checks of a change** (`check-changes.ts`, `checkSeqChanges`, `SeqPatchValidator`; their own entry,
+  `@molstar/seqx-core/lang/changes`, so reading a spec carries no editing and its persistent maps): the `seq.lang.*`
+  checks as `repr/patch`'s validator, on what a patch's `Changes` reach: the nodes it made, set or moved; what names
+  them, or named any node of a subtree it removed or moved away (walked in the old root); on through the user refs that
+  name those, and through a ref with segments after it (`/refs/p/x` where `/refs/p` names a prefix of the node, at most
+  the ref depth deep); a template's layers under a track whose params changed; the sections and refs of a chain a
+  changed one closes. What names what is a reverse index of the spec's references (a persistent set of referring nodes
+  by the id run they name), built once a spec and derived from the last revision's along its changes. The same checks on
+  the same nodes before the change are taken away, by code, node (through moves) and place in the node. Why: a patch is
+  refused only for what it introduced (an error already there never blocks an edit beside it), and the cost follows the
+  change, not the spec. Held by tests that compare it with the whole check's difference, patch by patch, along a chain
+  of revisions and over seeded random patches of ref chains; and in the heavy lane, at 16,000 layers, the first check
+  after a load and a fan-out to every node no worse than the whole check, a one-node edit a small part of it.
 - **Bounds** (`bounds.ts`, `SpecBounds`, `DefaultSpecBounds`; the core's `bounds` item, `SeqCoreConfig.bounds`): a spec
   comes from a URL, a link or an agent, so what it sizes is refused with a coded issue before the work starts.
   `checkSpecBounds` is the first gate of `checkSeqSpec`, before the version and the description: one iterative walk (a

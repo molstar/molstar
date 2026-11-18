@@ -29,6 +29,11 @@
       "types": "./lib/lang/index.d.ts",
       "import": "./lib/lang/index.js"
     },
+    "./lang/changes": {
+      "molstar-src": "./src/lang/check-changes.ts",
+      "types": "./lib/lang/check-changes.d.ts",
+      "import": "./lib/lang/check-changes.js"
+    },
     "./query": {
       "molstar-src": "./src/query/index.ts",
       "types": "./lib/query/index.d.ts",

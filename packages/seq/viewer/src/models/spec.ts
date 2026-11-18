@@ -23,14 +23,9 @@ import {
   patchFromNode,
 } from '@molstar/core/repr/patch';
 import { hashNode, type Issue, issueOf, type Node, printAddress, resolveAddress } from '@molstar/core/repr/tree';
-import {
-  checkSpecBounds,
-  SeqLanguage,
-  SeqPatchValidator,
-  SeqValidateOptions,
-  seqBoundsValidator,
-  seqPatchValidator,
-} from '@molstar/seqx-core/lang';
+import { checkSpecBounds, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-core/lang';
+// the change validators are their own entry: reading a spec carries no editing (core _spec, "Checks of a change")
+import { SeqPatchValidator, seqBoundsValidator, seqPatchValidator } from '@molstar/seqx-core/lang/changes';
 import { createResolver, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';

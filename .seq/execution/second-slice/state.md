@@ -51,6 +51,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
   the zoom keys), a double-click on an item focuses its whole extent (found in the look).
 - Stage 4's gate passed (the author, 2026-11-18: "Gate passed, measure"); the findings fixed (lanes T and U) or placed
   in the third slice (collapsed introns, a reversed follower, one axis for protein and gene).
+- Stage 5 measured and its gate passed: every time and allocation target passes (Node and Chrome at dpr 2); the read
+  bundle missed (176 kB against 150): the change validators made their own entry, the target 160 kB (the author: "Yes,
+  as recommended"); now 150.6 kB, and headless rendering 267.9 kB.
 
 ## Next
 

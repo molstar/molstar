@@ -132,7 +132,7 @@ costs up to `f` times the pixels.
 
 | What | Target (minified) |
 |---|---|
-| Reading a spec (decode, validate, resolve), no viewer | under 150 kB |
+| Reading a spec (decode, validate, resolve), no viewer | under 160 kB (150 until the second slice: its security bounds, refs by key and address forms added about 17 kB; the author, 2026-11-18, "Yes, as recommended"; editing is its own entry, `@molstar/seqx-core/lang/changes`) |
 | Headless rendering (the above, layout, draw lists, SVG) | under 300 kB |
 | The viewer, default configuration | under 600 kB (the previous one: 1,040 kB) |
 | A format runtime (bigWig) | under 30 kB, loaded only when composed |

@@ -26,7 +26,7 @@ const files = args.includes('--files');
 
 /** Target and entry of each case, bytes (minified). */
 const Cases = [
-  { name: 'reading a spec', entry: 'spec-read.ts', target: 150_000 },
+  { name: 'reading a spec', entry: 'spec-read.ts', target: 160_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 300_000 },
   { name: 'the viewer, default', entry: 'viewer.ts', target: 600_000 },
 ];

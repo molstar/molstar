@@ -235,7 +235,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 5: measure (orchestrator, light)
 
-- [ ] M2 the heavy lane and the opt-in tiers:
+- [x] M2 the heavy lane and the opt-in tiers:
   - an edit and its undo;
   - a selection step;
   - MessagePack decode;
@@ -243,7 +243,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - **browser** frame times (draw included) and first paint, in Chrome at DPR 2, on the p53 stories and the 3M
     fixtures;
   - bundle sizes again (editing and addressing add to the viewer).
-- [ ] GATE: the author confirms or moves the targets the slice touched.
+- [x] GATE: the author confirms or moves the targets the slice touched.
 
 ### Finalize
 
