@@ -6,7 +6,7 @@
 
 // The `editing` behavior (_spec/README.md "Behaviors"): edits of the spec as commands, each one patch through
 // `SpecModel.patch` (one step of the host's history), so a menu, a key, an agent and a test edit alike: hide or show a
-// layer or a track (its own `hidden`), move a track among its siblings, set a layer's color (its theme), remove a ref; story steps
+// layer or a track (its own `hidden`), add or move a track among its siblings, set a layer's color (its theme), label or remove a ref; story steps
 // entered and left (navigation); and a gesture's preview, a model method and never a command (it runs per pointer
 // move), that ends in one patch (`endPreview`) or nothing (`cancelPreview`, Esc).
 
@@ -18,12 +18,16 @@ import type { EditContext, EditOrigin } from '@molstar/seqx-viewer/ports';
 
 /** What an editing command is given: the node it edits, and what each needs. */
 export interface EditingContext {
-  /** The node's address: a layer (`layer.*`), a track (`track.*`), a ref (`refs.remove`). */
+  /** The node's address: a layer (`layer.*`), a track (`track.*`), a ref (`refs.remove`), a section (`track.add`). */
   readonly address?: string;
-  /** `track.move`: the sibling it goes after; null: first. */
+  /** `track.move`, `track.add`: the sibling it goes after; null: first (`track.add`: last when absent). */
   readonly after?: string | null;
+  /** `track.add`: the track to insert (its id is its place among the section's tracks). */
+  readonly node?: Node;
   /** `layer.color`: the theme form or color the layer is drawn with. */
   readonly color?: Value;
+  /** `refs.label`: the bookmark's label ('' removes it: its id is shown). */
+  readonly label?: string;
   /** `step.enter`: the story step's id. */
   readonly step?: string;
   /** Who edits (`person` when absent; an agent's turn joins one step). */
@@ -40,7 +44,9 @@ export const EditingCommandIds = {
   hideTrack: 'track.hide',
   showTrack: 'track.show',
   moveTrack: 'track.move',
+  addTrack: 'track.add',
   removeRef: 'refs.remove',
+  labelRef: 'refs.label',
   enterStep: 'step.enter',
   leaveStep: 'step.leave',
   cancelPreview: 'preview.cancel',
@@ -155,11 +161,54 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       },
     },
     {
+      id: EditingCommandIds.addTrack,
+      title: 'Add a track',
+      category: 'Edit',
+      when: (ctx) => {
+        const can = needs('section', 'section')(ctx);
+        return can !== true ? can : ctx.node?.kind === 'track' && ctx.node.id !== undefined ? true : 'No track to add';
+      },
+      run: (_, ctx) =>
+        edit(
+          'Add a track',
+          () => [
+            {
+              op: 'insert',
+              parent: ids(ctx.address!),
+              place: ctx.after === undefined ? { last: true } : { after: ctx.after },
+              node: ctx.node!,
+            },
+          ],
+          ctx,
+          'Added',
+        ),
+    },
+    {
       id: EditingCommandIds.removeRef,
       title: 'Remove a bookmark',
       category: 'Edit',
       when: needs('ref', 'ref'),
       run: (_, ctx) => edit('Remove a bookmark', () => [{ op: 'remove', at: ids(ctx.address!) }], ctx, 'Removed'),
+    },
+    {
+      id: EditingCommandIds.labelRef,
+      title: 'Label a bookmark',
+      category: 'Edit',
+      when: (ctx) => {
+        const can = needs('ref', 'ref')(ctx);
+        return can !== true ? can : ctx.label === undefined ? 'No label' : true;
+      },
+      run: (_, ctx) =>
+        edit(
+          'Label a bookmark',
+          () => [
+            ctx.label
+              ? { op: 'set', at: ids(ctx.address!), key: 'label', value: ctx.label }
+              : { op: 'unset', at: ids(ctx.address!), key: 'label' },
+          ],
+          ctx,
+          'Labeled',
+        ),
     },
     {
       id: EditingCommandIds.enterStep,

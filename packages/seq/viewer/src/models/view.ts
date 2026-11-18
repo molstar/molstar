@@ -12,7 +12,7 @@
 
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
-import { inversePath, type Path } from '@molstar/seqx-core/resolve';
+import { inversePath, type Path, projectPoint } from '@molstar/seqx-core/resolve';
 import {
   type Axis,
   type Follow,
@@ -780,26 +780,9 @@ function carried(
 /** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */
 const MaxFollowDepth = 16;
 
-/**
- * The continuous image of a position along a path: where element `floor(x)` starts plus the fraction in its run's
- * direction (times a codon step's scale); undefined where the element maps nowhere. `Follow.point` for any path, the
- * follow's inverse too.
- */
-function pathPoint(p: Path, x: number): number | undefined {
-  const k = Math.floor(x);
-  const frac = x - k;
-  const fine = p.step === 1 ? 3 * k : k;
-  const r = p.linear.forward(fine, fine + 1)[0];
-  if (!r) return undefined;
-  const edge = r.dir === 1 ? r.to : r.to + 1;
-  if (p.step === 1) return edge + frac * 3 * r.dir;
-  if (p.step === -1) return (edge + frac * r.dir) / 3;
-  return edge + frac * r.dir;
-}
-
-/** The image of a range's end: the far edge of its last element's last place, or `pathPoint` within an element. */
+/** The image of a range's end: the far edge of its last element's last place, or `projectPoint` within an element. */
 function pathEnd(p: Path, x: number): number | undefined {
-  if (!Number.isInteger(x)) return pathPoint(p, x);
+  if (!Number.isInteger(x)) return projectPoint(p, x);
   const k = x - 1;
   const fine = p.step === 1 ? 3 * k + 2 : k;
   const r = p.linear.forward(fine, fine + 1)[0];
@@ -857,7 +840,7 @@ function backTo(follow: Follow, inv: Path, axis: Axis, y: number, m: number): nu
     return undefined;
   };
   return (
-    near(pathPoint(inv, y)) ??
+    near(projectPoint(inv, y)) ??
     near(nearestMapped(inv, axis, y, 1)) ??
     near(nearestMapped(inv, axis, y, -1)) ??
     (m === 0 ? undefined : best)
@@ -883,7 +866,7 @@ function nearestMapped(inv: Path, axis: Axis, y: number, m: number): number | un
     const from = Math.ceil(y);
     if (from >= hi) return undefined;
     const run = inv.linear.forward(from * scale, hi * scale)[0];
-    return run ? pathPoint(inv, Math.ceil(run.from / scale)) : undefined;
+    return run ? projectPoint(inv, Math.ceil(run.from / scale)) : undefined;
   }
   const to = Math.floor(y);
   if (to <= lo) return undefined;

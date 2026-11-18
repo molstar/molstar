@@ -5,13 +5,15 @@
  */
 
 // The `addressing` behavior (_spec/README.md "Behaviors"): the actions on addresses as commands (focus, reveal, select,
-// highlight on a named channel, hover on the links' own channel, copy a link, add a ref), so a link, a key, a menu, an
+// highlight on a named channel and clear it, hover on the links' own channel, copy a link, add a ref, bookmark the
+// selection), so a link, a key, a menu, an
 // agent and a test drive the view the same way. A link runs its actions in order, each through the model method its
 // command runs.
 
 import type { Issue } from '@molstar/core/repr/tree';
 import type { RefInput } from '@molstar/seqx-core/lang';
 import type { LinkActionName } from '@molstar/seqx-core/query';
+import { type KeyChord, parseChord } from '@molstar/seqx-viewer/bindings';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { AddRefResult, AddressModel, AddressOutcome } from '@molstar/seqx-viewer/models';
 import type { EditContext } from '@molstar/seqx-viewer/ports';
@@ -25,7 +27,10 @@ export interface AddressContext {
   readonly section?: string;
   /** The ref `refs.add` adds. */
   readonly ref?: RefInput;
-  /** The host's run `refs.add` is part of (a host's step that runs it). */
+  /** `selection.bookmark`: the bookmark's label (the selection's printed address when absent) and its id. */
+  readonly label?: string;
+  readonly id?: string;
+  /** The host's run `refs.add` and `selection.bookmark` are part of (a host's step that runs it). */
   readonly within?: EditContext;
 }
 
@@ -70,6 +75,11 @@ export function addressingBehavior(addresses: AddressModel): AddressingBehavior 
     run: (_, ctx): CommandResult => result(run(ctx.address!, ctx)),
   });
 
+  const said = (r: AddRefResult): CommandResult =>
+    r === true ? { message: 'Bookmarked', undoable: true } : { message: r[0]?.message ?? 'Refused' };
+  /** The bookmark command's key: the first of `view.keys` (a chord with a modifier, so never a plain key's). */
+  const bookmarkKey: KeyChord | undefined = parseChord(addresses.config.view.keys['selection.bookmark']?.[0] ?? '');
+
   const commands: CommandDefinition<AddressContext>[] = [
     action(AddressCommandIds.focus, 'Focus an address', (a, ctx) =>
       addresses.focus(a, ctx.section !== undefined ? { section: ctx.section } : {}),
@@ -80,6 +90,21 @@ export function addressingBehavior(addresses: AddressModel): AddressingBehavior 
     action(AddressCommandIds.select, 'Select an address', (a) => addresses.select(a)),
     action(AddressCommandIds.highlight, 'Highlight an address', (a, ctx) => addresses.highlightAddress(a, ctx.channel)),
     action(AddressCommandIds.hover, 'Hover an address', (a) => addresses.hoverAddress(a)),
+    {
+      id: 'highlight.clear',
+      title: 'Clear a highlight',
+      category: 'Address',
+      when: (ctx) =>
+        disposed
+          ? 'The viewer is retired'
+          : (ctx.channel === undefined ? addresses.highlight.names.value.length : addresses.highlight.get(ctx.channel))
+            ? true
+            : 'Nothing highlighted',
+      run: (_, ctx): CommandResult => {
+        addresses.clearHighlight(ctx.channel);
+        return { message: 'Cleared' };
+      },
+    },
     {
       id: 'address.unhover',
       title: 'End a link’s hover',
@@ -103,10 +128,25 @@ export function addressingBehavior(addresses: AddressModel): AddressingBehavior 
       category: 'Address',
       when: (ctx) => (disposed ? 'The viewer is retired' : ctx.ref ? true : 'No ref to add'),
       run: (_, ctx): CommandResult | Promise<CommandResult> => {
-        const said = (r: AddRefResult): CommandResult =>
-          r === true ? { message: 'Bookmarked', undoable: true } : { message: r[0]?.message ?? 'Refused' };
         const r = addresses.addRef(ctx.ref!, ctx.within ? { within: ctx.within } : {});
         // one step of the host's history when one is bound: it runs in turn
+        return r instanceof Promise ? r.then(said) : said(r);
+      },
+    },
+    {
+      id: 'selection.bookmark',
+      title: 'Bookmark the selection',
+      category: 'Selection',
+      ...(bookmarkKey ? { shortcut: { ...bookmarkKey }, scope: 'canvas' as const } : {}),
+      when: () =>
+        disposed ? 'The viewer is retired' : addresses.selectionAddress() !== undefined ? true : 'Nothing selected',
+      run: (_, ctx): CommandResult | Promise<CommandResult> => {
+        const r = addresses.bookmarkSelection({
+          ...(ctx.id !== undefined ? { id: ctx.id } : {}),
+          ...(ctx.label !== undefined ? { label: ctx.label } : {}),
+          ...(ctx.within ? { within: ctx.within } : {}),
+        });
+        if (r === undefined) return { message: 'Nothing selected' };
         return r instanceof Promise ? r.then(said) : said(r);
       },
     },

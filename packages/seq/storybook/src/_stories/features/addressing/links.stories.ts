@@ -10,7 +10,7 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { composeViewer, describeRun, followLink, hoverLink, leaveLink } from './compose.js';
+import { composeViewer, hoverLink, LinkStatus, leaveLink } from './compose.js';
 
 // Links (addressing): a short text beside the p53 view whose links act on addresses in Mol*'s link grammar
 // (`!seq-focus=/refs/dbd`): focus, highlight on a channel, select; one residue linked in two numberings. Hovering a link
@@ -58,6 +58,11 @@ class LinksRoot extends UiElement<ExampleView> {
 
     const viewer = composeViewer(view, { target: canvasHost });
     onCleanup(() => viewer.retire());
+    // one message a link: a wait says it once, then `Focused` when the view has moved
+    const links = new LinkStatus(viewer, (m) => {
+      status.textContent = m;
+    });
+    onCleanup(() => links.dispose());
 
     for (const passage of Passages) {
       const p = document.createElement('p');
@@ -74,7 +79,7 @@ class LinksRoot extends UiElement<ExampleView> {
         a.title = run.href;
         a.addEventListener('click', (e) => {
           e.preventDefault();
-          status.textContent = describeRun(followLink(viewer, run.href));
+          status.textContent = links.follow(run.href);
         });
         a.addEventListener('pointerenter', () => hoverLink(viewer, run.href));
         a.addEventListener('pointerleave', () => leaveLink(viewer));

@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Issue } from '@molstar/core/repr/tree';
 import type { SeqPorts } from '@molstar/seqx-core/context';
 import type { ExampleView } from '@molstar/seqx-examples';
 import type { LinkRun } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import type { RefEntry } from '@molstar/seqx-viewer/models';
+import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The addressing stories' composition, DOM-free: the story and its headless twin call these, so the twin composes the
@@ -32,7 +32,7 @@ export function composeViewer(view: ExampleView, options: ComposeOptions = {}): 
   return createSeqViewer(
     {
       ...base,
-      ...(options.target ? {} : { ui: undefined }),
+      ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
     },
@@ -94,9 +94,55 @@ export function leaveLink(viewer: SeqViewer): void {
   viewer.runCommand('address.unhover', {});
 }
 
-/** What the status line says of a run: its messages, then its issues' messages. */
+/**
+ * What the status line says of a run, one message a link: its outcomes' messages, and the issues' only when no outcome
+ * waits (a wait says it once), each message once.
+ */
 export function describeRun(run: LinkRun | undefined): string {
   if (!run) return 'Not a link';
-  const issues: readonly Issue[] = run.issues;
-  return [...run.outcomes.map((o) => o.message), ...issues.map((i) => i.message)].filter(Boolean).join('; ');
+  const said = run.outcomes.map((o) => o.message).filter(Boolean);
+  const waiting = run.outcomes.some((o) => o.status === 'waiting');
+  const more = waiting ? [] : run.issues.map((i) => i.message);
+  return [...new Set([...said, ...more])].join('; ');
+}
+
+/**
+ * A link's status line that follows a wait: a link on an address that arrives later (a node, or the spec itself, not
+ * loaded yet) says it waits, and `Focused` once it has arrived and the view has moved to it. A later link, or
+ * `dispose`, ends the watch. The viewer keeps the waiting link (`AddressModel`): nothing here holds it.
+ */
+export class LinkStatus {
+  private _off: (() => void) | undefined;
+
+  constructor(
+    private readonly viewer: SeqViewer,
+    private readonly say: (message: string) => void,
+  ) {}
+
+  /** Runs the link: the message now, and the later one through `say`. */
+  follow(href: string): string {
+    this._stop();
+    const run = followLink(this.viewer, href);
+    if (run?.outcomes.some((o) => o.status === 'waiting')) {
+      const address = this.viewer.addresses.parseLink(href)?.link?.actions[0]?.address;
+      if (address !== undefined) {
+        this._off = this.viewer.rested.listen(() => {
+          if (this.viewer.addresses.resolve(address).status !== 'resolved') return;
+          if (this.viewer.addresses.focusAddress() !== address) return;
+          this._stop();
+          this.say('Focused');
+        });
+      }
+    }
+    return describeRun(run);
+  }
+
+  dispose(): void {
+    this._stop();
+  }
+
+  private _stop(): void {
+    this._off?.();
+    this._off = undefined;
+  }
 }

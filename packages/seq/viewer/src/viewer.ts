@@ -176,6 +176,7 @@ export class SeqViewer extends ReactiveModel {
       createSeqSpec().build(),
       { runtimes: this.context.runtimes, config: this.context.resolveConfig },
       this.config,
+      false,
     );
     this.view = new ViewModel(this.spec, this.config);
     this.hover = new HoverModel(this.spec, this.view, this.config);
@@ -271,6 +272,7 @@ export class SeqViewer extends ReactiveModel {
       this.schedule();
     });
     this._followViewports();
+    if (target && viewerSpec.ui?.toolbar) this.registerPermanentDispose(viewerSpec.ui.toolbar(this, target));
     if (target && viewerSpec.ui?.canvas) this.registerPermanentDispose(mountCanvas(this, target));
     // registered last, so it runs first: everything after it (the UI's teardown, the behaviors, the models) is disposed
     // while the viewer is retired, and none of it asks for a frame

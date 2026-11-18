@@ -9,7 +9,7 @@ import { Passages } from '@molstar/seqx-examples/p53/addressing';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { composeViewer, describeRun, followLink, hoverLink, leaveLink } from '../compose.js';
+import { composeViewer, describeRun, followLink, hoverLink, LinkStatus, leaveLink } from '../compose.js';
 
 // The Links story, headless on a fake clock, composed as the story composes it: each link of the text run as a click
 // runs it; a link's hover on its own channel; one residue in two numberings focused alike; copy link of the selection.
@@ -95,5 +95,20 @@ describe('Links, headless', () => {
     expect(v.hover.current.owner).toBeUndefined();
     leaveLink(v);
     expect(v.highlight.get('link-hover')).toBeUndefined();
+  });
+
+  it('says one message for a link followed before the spec is loaded: kept by the viewer, then Focused', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
+    const v = composeViewer(view);
+    viewer = v;
+    v.resize(720);
+    const said: string[] = [];
+    const status = new LinkStatus(v, (m) => said.push(m));
+    expect(status.follow(href('DNA-binding domain'))).toBe('Waiting for its data');
+    await v.load(view.build());
+    await vi.advanceTimersByTimeAsync(200);
+    expect(said).toEqual(['Focused']);
+    expect([v.view.get(protein)!.start, v.view.get(protein)!.end]).toEqual([93, 292]);
+    status.dispose();
   });
 });

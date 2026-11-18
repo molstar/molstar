@@ -68,10 +68,13 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'address.highlight': 'session',
   'address.hover': 'session',
   'address.unhover': 'session',
+  // clearing a highlight channel (or all) is session state, as setting one is
+  'highlight.clear': 'session',
   // copying a link reads the session and changes nothing
   'address.copy-link': 'none',
   // a bookmark is a ref in the spec: one patch, one undo step
   'refs.add': 'patch',
+  'selection.bookmark': 'patch',
   // the editing behavior's: each one patch
   'layer.hide': 'patch',
   'layer.show': 'patch',
@@ -79,7 +82,9 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'track.hide': 'patch',
   'track.show': 'patch',
   'track.move': 'patch',
+  'track.add': 'patch',
   'refs.remove': 'patch',
+  'refs.label': 'patch',
   // a story step is navigation: entered and left, never undone
   'step.enter': 'navigate',
   'step.leave': 'navigate',

@@ -88,6 +88,10 @@ export class AddressModel extends ReactiveModel {
   private _pendingFocus: { address: string; reveal: boolean; section?: string } | undefined;
   /** The address last focused and the viewports it left, so the focus reads as that address until the view moves. */
   private _focused: { address: string; viewports: string } | undefined;
+  /** A focus kept until its sections are placed: records `_focused` when the kept move lands. */
+  private _landing: { address: string; stop(): void } | undefined;
+  /** The sections the last move moved: what a kept move waits on. */
+  private _moved: readonly string[] = [];
 
   constructor(
     private readonly spec: SpecModel,
@@ -114,6 +118,7 @@ export class AddressModel extends ReactiveModel {
     // one, and dropped with an issue when it names nothing
     this.registerPermanentDispose(spec.beforeCommit((changes) => this.followMoves(changes.moved)));
     this.listenPermanently(spec.root, () => this._respec());
+    this.registerPermanentDispose(() => this._landing?.stop());
   }
 
   private readonly _issues = new State<readonly Issue[]>([]);
@@ -159,6 +164,7 @@ export class AddressModel extends ReactiveModel {
     if (this._pendingFocus)
       this._pendingFocus = { ...this._pendingFocus, address: rewrite(this._pendingFocus.address) };
     if (this._focused) this._focused = { ...this._focused, address: rewrite(this._focused.address) };
+    if (this._landing) this._landing.address = rewrite(this._landing.address);
   }
 
   /** The spec changed: each session address resolved again; one that names nothing now is dropped with an issue. */
@@ -194,6 +200,7 @@ export class AddressModel extends ReactiveModel {
     }
     if (this._pendingFocus && !check(this._pendingFocus.address)) this._pendingFocus = undefined;
     if (this._focused && !check(this._focused.address)) this._focused = undefined;
+    if (this._landing && !check(this._landing.address)) this._landing.stop();
     this._issues.set(dropped);
   }
 
@@ -207,6 +214,11 @@ export class AddressModel extends ReactiveModel {
 
   /** What an address names in the spec shown (_spec/README.md "AddressModel"; the core's `resolveAddressIn`). */
   resolve(address: string): AddressResolution {
+    // no spec set yet: no address names anything, but one will (a link followed before the document arrives waits)
+    if (!this.spec.loaded.value && parseAddress(address).pattern) {
+      const waiting = issueOf(AddressIssues, 'seq.address.waiting', 'The address waits for its data', { address });
+      return { address, status: 'waiting', via: [], issues: [waiting], complete: false, pending: EmptyLocation };
+    }
     const { limit, maxDepth, refDepth } = this.config.address;
     return resolveAddressIn(this.spec.shown.value, this.queryModel(), address, { limit, maxDepth, refDepth });
   }
@@ -264,6 +276,31 @@ export class AddressModel extends ReactiveModel {
     return outcome instanceof Promise ? outcome.then(result) : result(outcome);
   }
 
+  /**
+   * Bookmarks the selection as one patch (_spec/README.md "AddressModel"): a ref to the selection's address, labeled by
+   * it (what a link would say) unless a label is given, under the id given or the next free `bookmark-<n>` of the root
+   * the edit runs on. Undefined when nothing is selected, else as `addRef`.
+   */
+  bookmarkSelection(
+    options: EditOptions & { readonly id?: string; readonly label?: string } = {},
+  ): AddRefResult | Promise<AddRefResult> | undefined {
+    const to = this.selectionAddress();
+    if (to === undefined) return undefined;
+    const { id, label, ...edit } = options;
+    const outcome = this.spec.patch(
+      'Add a bookmark',
+      (root) => {
+        const taken = new Set(root.children?.find((c) => c.id === RefsId)?.children?.map((c) => c.id));
+        let n = 1;
+        while (id === undefined && taken.has(`bookmark-${n}`)) n++;
+        return addRefPatch(root, { id: id ?? `bookmark-${n}`, to, label: label ?? to });
+      },
+      edit,
+    );
+    const result = (o: EditOutcome): AddRefResult => (o.ok ? true : o.issues);
+    return outcome instanceof Promise ? outcome.then(result) : result(outcome);
+  }
+
   // ---- actions ----
 
   private _outcome(resolution: AddressResolution, done: boolean, message: string): AddressOutcome {
@@ -287,16 +324,52 @@ export class AddressModel extends ReactiveModel {
       return this._outcome(resolution, false, 'Waiting for its data');
     }
     if (this._pendingFocus?.address !== address) this._pendingFocus = undefined;
+    this._landing?.stop();
     if (resolution.status !== 'resolved') return this._outcome(resolution, false, 'Nothing to focus');
     this._pendingFocus = undefined;
     const r = this._moveTo(loc, reveal, section);
     // a section not placed yet (no width, an axis waiting for its length) keeps the move as its intent: not done yet
-    if (r === 'pending') return this._outcome(resolution, false, 'Kept until the view is placed');
+    if (r === 'pending') {
+      this._keepUntilPlaced(address);
+      return this._outcome(resolution, false, 'Kept until the view is placed');
+    }
     if (r === 'moved') this._focused = { address, viewports: this._viewportsKey() };
     return this._outcome(
       resolution,
       r === 'moved',
       r === 'moved' ? (reveal ? 'Revealed' : 'Focused') : 'Not in this view',
+    );
+  }
+
+  /**
+   * Records the focus as the address once the sections the kept move moved are placed (a width, a length): not before,
+   * and never after another jump (a focus, back, forward) or a change of the spec that leaves the address naming
+   * nothing. A section that stays pending without being moved (hidden) does not hold it.
+   */
+  private _keepUntilPlaced(address: string): void {
+    const waiting = this._moved.filter((a) => this.view.get(a)?.pending);
+    const offs: (() => void)[] = [];
+    const landing = {
+      address,
+      stop: () => {
+        for (const off of offs.splice(0)) off();
+        if (this._landing === landing) this._landing = undefined;
+      },
+    };
+    const land = () => {
+      if (waiting.some((a) => this.view.get(a)?.pending)) return;
+      landing.stop();
+      this._focused = { address: landing.address, viewports: this._viewportsKey() };
+    };
+    this._landing = landing;
+    for (const a of waiting) offs.push(this.view.viewport(a).listen(land));
+    // a jump that is not this move's (the view's back and forward, another focus) takes the record away
+    // (told after this move's own jump, so the count it started at is compared)
+    const jumps = this.view.jumps.value;
+    offs.push(
+      this.view.jumps.listen((n) => {
+        if (n !== jumps) landing.stop();
+      }),
     );
   }
 
@@ -320,6 +393,7 @@ export class AddressModel extends ReactiveModel {
    */
   private _moveTo(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
     let r: 'moved' | 'pending' | 'none' = 'none';
+    this._landing?.stop();
     this.view.jump(() => {
       r = this._moveEach(loc, reveal, only);
       return r !== 'none';
@@ -373,6 +447,7 @@ export class AddressModel extends ReactiveModel {
       moved = this.view.setRange(s.address, Math.min(a, b), Math.max(a, b)) || moved;
       done.add(s.address);
     }
+    this._moved = [...done];
     if (!moved) return 'none';
     for (const a of done) if (this.view.get(a)?.pending) return 'pending';
     return 'moved';
@@ -409,6 +484,14 @@ export class AddressModel extends ReactiveModel {
     if (!value) return this._outcome(resolution, false, 'Nothing to highlight');
     this.highlight.set(channel, value);
     return this._outcome(resolution, true, 'Highlighted');
+  }
+
+  /** Clears a highlight channel, or every one: `highlightAddress`'s inverse. The channels cleared. */
+  clearHighlight(channel?: string): number {
+    const names =
+      channel === undefined ? [...this.highlight.names.value] : this.highlight.get(channel) ? [channel] : [];
+    for (const n of names) this.highlight.clear(n);
+    return names.length;
   }
 
   /** A hover over a link: its own channel (EC-182), so the pointer's hover is left alone. */

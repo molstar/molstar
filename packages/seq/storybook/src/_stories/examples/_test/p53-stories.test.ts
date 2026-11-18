@@ -15,6 +15,7 @@ import {
   composeViewer as composeAddressing,
   describeRun,
   followLink,
+  LinkStatus,
 } from '../../features/addressing/compose.js';
 import {
   cancelDrag,
@@ -27,15 +28,7 @@ import {
   setDomainsColor,
   toggleTrack,
 } from '../../features/editing/compose.js';
-import {
-  addTrack,
-  AddedTrack,
-  describeLinkRun,
-  LinkStatus,
-  RegionText,
-  trackHeight,
-  trackOrder,
-} from '../p53/compose.js';
+import { addTrack, AddedTrack, RegionText, trackHeight, trackOrder } from '../p53/compose.js';
 
 // The p53 example stories, headless on a fake clock, each composed as its story composes it: the editing story's host
 // stack, viewer and SVG export; the bookmarks story's delayed region and its text's links. The selection example is the
@@ -156,7 +149,7 @@ describe('p53 Bookmarks and links, headless', () => {
   it('a link on a transcript that arrives later waits, then moves the view; "bookmark this view" adds a ref', async () => {
     const v = await make();
     const run = followLink(v, hrefOf('T2'));
-    expect(describeRun(run)).toBe('Waiting for its data; The address waits for its data');
+    expect(describeRun(run)).toBe('Waiting for its data');
     expect(bookmarkRows(v).find((r) => r.address === '/refs/t2')?.status).toBe('waiting');
     await vi.advanceTimersByTimeAsync(4 * DelayMs);
     expect(bookmarkRows(v).find((r) => r.address === '/refs/t2')?.status).toBe('resolved');
@@ -175,7 +168,6 @@ describe('p53 Bookmarks and links, headless', () => {
     const v = await make();
     const said: string[] = [];
     const links = new LinkStatus(v, (m) => said.push(m));
-    links.loaded();
     expect(links.follow(hrefOf('T2'))).toBe('Waiting for its data');
     expect(said).toEqual([]);
     await vi.advanceTimersByTimeAsync(4 * DelayMs + 64);
@@ -183,10 +175,10 @@ describe('p53 Bookmarks and links, headless', () => {
     // a link that is held says its outcome alone, and a later link ends an earlier wait
     expect(links.follow(hrefOf('the gene'))).toBe('Focused');
     links.dispose();
-    expect(describeLinkRun(undefined)).toBe('Not a link');
+    expect(describeRun(undefined)).toBe('Not a link');
   });
 
-  it('a link followed before the view is loaded waits, then runs once it is', async () => {
+  it('a link followed before the view is loaded is kept by the viewer, and runs once it is', async () => {
     const text = regionSeqText();
     const v = composeAddressing(bookmarks, {
       delayMs: DelayMs,
@@ -196,14 +188,12 @@ describe('p53 Bookmarks and links, headless', () => {
     v.resize(720);
     const said: string[] = [];
     const links = new LinkStatus(v, (m) => said.push(m));
-    expect(links.follow(hrefOf('the gene'))).toBe('Waiting for the view to load');
-    // the viewer itself, asked before a spec is loaded, names nothing
-    expect(describeLinkRun(followLink(v, hrefOf('the gene')))).toContain('Nothing to focus');
+    // one message: the viewer waits for the spec, nothing here holds the link
+    expect(links.follow(hrefOf('the gene'))).toBe('Waiting for its data');
     await v.load(bookmarks.build());
     const settled = v.settle();
     await vi.advanceTimersByTimeAsync(4 * DelayMs + 400);
     await settled;
-    links.loaded();
     await vi.advanceTimersByTimeAsync(64);
     expect(said).toEqual(['Focused']);
     expect(v.viewport && [v.viewport.start, v.viewport.end]).toEqual([2000, 3500]);

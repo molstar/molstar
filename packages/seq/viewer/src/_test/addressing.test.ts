@@ -153,9 +153,11 @@ describe('actions on addresses', () => {
       'address.select',
       'address.highlight',
       'address.hover',
+      'highlight.clear',
       'address.unhover',
       'address.copy-link',
       'refs.add',
+      'selection.bookmark',
     ]);
     for (const id of ids) expect(changeKindOf(id), id).toBeDefined();
     expect(ids.map((id) => changeKindOf(id))).toEqual([
@@ -165,17 +167,9 @@ describe('actions on addresses', () => {
       'session',
       'session',
       'session',
+      'session',
       'none',
       'patch',
-    ]);
-    expect(ids.map((id) => changeKindOf(id))).toEqual([
-      'navigate',
-      'navigate',
-      'session',
-      'session',
-      'session',
-      'session',
-      'none',
       'patch',
     ]);
     expect(v.runCommand('address.focus', { address: '/refs/b' })).toBe('Focused');

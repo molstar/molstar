@@ -8,6 +8,7 @@ import { printSexpr } from '@molstar/core/repr/codecs/sexpr';
 import { SeqLanguage } from '@molstar/seqx-core/lang';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
@@ -65,7 +66,10 @@ class ExampleRoot extends UiElement<ExampleView> {
     // the same spec the view builds, composed from the default spec: the fixtures are read relative to the page
     const base = DefaultSeqViewerSpec();
     const extra = view.registry?.() ?? [];
-    const viewer = createSeqViewer({ ...base, registry: [...(base.registry ?? []), ...extra] }, canvasHost);
+    const viewer = createSeqViewer(
+      { ...base, ui: { ...base.ui, toolbar: mountToolbar }, registry: [...(base.registry ?? []), ...extra] },
+      canvasHost,
+    );
     onCleanup(() => viewer.retire());
     const spec = view.build();
     printed.textContent = printSexpr(spec, { language: SeqLanguage });

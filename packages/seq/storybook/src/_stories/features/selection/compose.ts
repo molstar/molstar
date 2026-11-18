@@ -8,6 +8,7 @@ import { SeqCoreConfig, type SeqPorts } from '@molstar/seqx-core/context';
 import type { RenderSvgResult } from '@molstar/seqx-core/render';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The selection story's composition, DOM-free: the story and its headless twin call these, so the twin acts on the
@@ -38,7 +39,7 @@ export function composeViewer(
   return createSeqViewer(
     {
       ...base,
-      ...(options.target ? {} : { ui: undefined }),
+      ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
       ...(Object.keys(emphasis).length ? { config: [[SeqCoreConfig.render, { emphasis }]] } : {}),
