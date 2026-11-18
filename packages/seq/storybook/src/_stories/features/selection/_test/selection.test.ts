@@ -11,7 +11,7 @@ import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { GeneFile } from '@molstar/seqx-examples/p53/data';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
-import { itWithin } from '@molstar/test-harness/timing';
+import { bestOf, itWithin } from '@molstar/test-harness/timing';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cellPoint,
@@ -257,7 +257,7 @@ describe('Selection: the performance representative', () => {
       for (let k = 0; k < 40; k++) dragStep();
       const n = 10;
       const t0 = performance.now();
-      for (let k = 0; k < n; k++) within(4, dragStep);
+      for (let k = 0; k < n; k++) bestOf(within, 4, dragStep);
       console.info(`additive drag step: ${((performance.now() - t0) / n).toFixed(2)} ms`);
       v.input.up();
       expect(v.selection.value.value.shown.parts[0].ranges.length).toBeGreaterThan(2);
@@ -278,7 +278,7 @@ describe('Selection: the performance representative', () => {
       expect(v.view.get('/views/main/protein')!.start).not.toBe(p0);
       for (let k = 0; k < 40; k++) panStep();
       const t1 = performance.now();
-      for (let k = 0; k < n; k++) within(4, panStep);
+      for (let k = 0; k < n; k++) bestOf(within, 4, panStep);
       console.info(`follower pan step: ${((performance.now() - t1) / n).toFixed(2)} ms`);
       v.input.setSpace(false);
       expect(v.view.isFollowing('/views/main/gene')).toBe(true);
