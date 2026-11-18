@@ -7,7 +7,7 @@
 import type { Issue, Node } from '@molstar/core/repr/tree';
 import { type AssetManager, DefaultAssetManager } from '@molstar/core/util/assets';
 import type { AssetReader, FormatRuntime } from '@molstar/seqx-core/data';
-import { checkSeqSpec } from '@molstar/seqx-core/lang';
+import { checkSeqSpec, type SpecBounds, specBounds } from '@molstar/seqx-core/lang';
 import {
   type RenderConfig,
   type RenderConfigOverrides,
@@ -52,6 +52,8 @@ export const SeqCoreConfig = {
   render: configItem<RenderConfigOverrides>('render'),
   /** The resolve passes' bounds over `DefaultResolveConfig`. */
   resolve: configItem<Partial<ResolveConfig>>('resolve'),
+  /** The bounds on what a spec sizes over `DefaultSpecBounds` (size, depth, query depth, column length, issues kept). */
+  bounds: configItem<Partial<SpecBounds>>('bounds'),
 } as const;
 
 /** A port's adapter and whether the context that asked for it disposes it (true unless the host keeps it). */
@@ -130,6 +132,8 @@ export interface SeqContext {
   readonly runtimes: readonly FormatRuntime[];
   readonly renderConfig: RenderConfig;
   readonly resolveConfig: Partial<ResolveConfig>;
+  /** The bounds the spec's check holds (`SeqCoreConfig.bounds` over the defaults). */
+  readonly bounds: SpecBounds;
   readonly tokens: SeqTokens;
   /** The assets port: what a source's location is read through. */
   readonly assets: AssetReader;
@@ -159,6 +163,7 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const theme = configValue(spec.config, SeqCoreConfig.theme) ?? 'light';
   const renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
+  const bounds = specBounds(configValue(spec.config, SeqCoreConfig.bounds));
   const disposers: (() => void)[] = [];
 
   // a factory that throws leaves nothing made behind: the ports already made are disposed, last first
@@ -205,11 +210,12 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
     runtimes,
     renderConfig: renderCfg,
     resolveConfig: resolveCfg,
+    bounds,
     tokens,
     assets,
     text,
     structure,
-    check: (s) => checkSeqSpec(s),
+    check: (s) => checkSeqSpec(s, bounds),
     resolve: (s) => resolveSpec(s, { runtimes, config: resolveCfg }),
     view: (model, address) => (address ? resolveView(model, address) : resolveViews(model)[0]),
     renderSvg: (s, options) =>

@@ -29,6 +29,11 @@ export interface AssetPolicy {
   readonly relative?: boolean;
   /** The location relative ones resolve against: a page, a folder (`https://x/y/`). Relative reads need it. */
   readonly base?: string;
+  /**
+   * The folder `file:` locations may be read under (a `file:` URL, ending in `/`: `headlessAssetPolicy` makes it): a
+   * `file:` location outside it, with a host, or when there is no root is refused, whatever `schemes` says.
+   */
+  readonly root?: string;
   /** A relative location may not leave the folder of `base` (`../`, an absolute path): true by default. */
   readonly confine?: boolean;
   /** The largest asset, in bytes: enforced by the manager while the body streams, and checked once it is read. */
@@ -57,8 +62,46 @@ export const BrowserAssetPolicy: AssetPolicy = {
   timeoutMs: 30_000,
 };
 
-/** The headless default: nothing may be read (a caller names what may). */
+/** The headless default: nothing may be read (a caller names what may: `headlessAssetPolicy`). */
 export const HeadlessAssetPolicy: AssetPolicy = { schemes: [], relative: false };
+
+/** The `file:` URL of a root folder, with its trailing `/`: an absolute path, a Windows drive path or a `file:` URL. */
+export function rootUrl(root: string): string {
+  let url: URL;
+  const escape = (p: string) => encodeURI(p).replace(/#/g, '%23').replace(/\?/g, '%3F');
+  if (/^file:/i.test(root)) url = new URL(root);
+  else if (root.startsWith('/')) url = new URL(`file://${escape(root)}`);
+  else if (/^[A-Za-z]:[\\/]/.test(root)) url = new URL(`file:///${escape(root.replace(/\\/g, '/'))}`);
+  else throw new Error('The root of a headless policy is an absolute path or a file: URL');
+  if (url.host !== '') throw new Error('The root of a headless policy is a folder of this machine');
+  if (!url.pathname.endsWith('/')) url.pathname += '/';
+  return url.href;
+}
+
+/**
+ * The headless host's policy (a render CLI, a server): files under `root` (relative locations resolve against it and
+ * stay under it) and `https:` locations of the listed `hosts`; nothing else, and no network when no host is listed (a
+ * spec's `uri` is untrusted input: this closes server-side request forgery). No credentials, redirects refused, the
+ * browser's size and time bounds unless `over` changes them. The root is a decision on the location; a link in the
+ * folder that leads out of it is the reader's to refuse.
+ */
+export function headlessAssetPolicy(
+  options: { readonly root?: string; readonly hosts?: readonly string[] },
+  over: Partial<AssetPolicy> = {},
+): AssetPolicy {
+  const root = options.root !== undefined ? rootUrl(options.root) : undefined;
+  const hosts = options.hosts ?? [];
+  return {
+    schemes: [...(root ? ['file:'] : []), ...(hosts.length ? ['https:'] : [])],
+    hosts,
+    relative: root !== undefined,
+    ...(root ? { base: root, root } : {}),
+    confine: true,
+    maxBytes: BrowserAssetPolicy.maxBytes,
+    timeoutMs: BrowserAssetPolicy.timeoutMs,
+    ...over,
+  };
+}
 
 /** A location the policy refuses, or a read it abandoned. */
 export class AssetRefused extends Error {
@@ -99,10 +142,20 @@ export function checkLocation(uri: string, policy: AssetPolicy): { url: string }
     if (/%2f|%5c/i.test(url.pathname)) return { refused: 'an encoded path separator' };
     if (policy.confine !== false && !url.pathname.startsWith(new URL('./', base).pathname))
       return { refused: 'outside the base folder' };
-    return { url: url.href };
+    return url.protocol === 'file:' && policy.root !== undefined ? checkFile(url, policy) : { url: url.href };
   }
   if (!(policy.schemes ?? []).includes(url.protocol)) return { refused: `the scheme ${url.protocol} is not allowed` };
+  if (url.protocol === 'file:') return checkFile(url, policy);
   if (policy.hosts && !policy.hosts.includes(url.host)) return { refused: `the host ${url.host} is not allowed` };
+  return { url: url.href };
+}
+
+/** A `file:` location is read under the policy's root only (`..` and `%2e%2e` are resolved by the parser already). */
+function checkFile(url: URL, policy: AssetPolicy): { url: string } | { refused: string } {
+  if (policy.root === undefined) return { refused: 'files are read under a root only' };
+  if (url.host !== '') return { refused: 'a file of another machine' };
+  if (/%2f|%5c/i.test(url.pathname)) return { refused: 'an encoded path separator' };
+  if (!url.pathname.startsWith(new URL(policy.root).pathname)) return { refused: 'outside the root' };
   return { url: url.href };
 }
 
