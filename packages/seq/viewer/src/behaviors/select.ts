@@ -5,7 +5,7 @@
  */
 
 // The `select` behavior (_spec/README.md "Behaviors"): clicks and drags to the selection model through the bindings
-// (ux-foundations' section 8: click sets, Shift+click extends from the anchor, Cmd/Ctrl+click toggles, a click on empty
+// (the interaction grammar: click sets, Shift+click extends from the anchor, Cmd/Ctrl+click toggles, a click on empty
 // space or Esc clears, a drag on data selects a range). The granularity is the hit's: an item is an element, a cell a
 // position. Every gesture is a command too, so a key, a menu and a test select alike. A click with a position moves the
 // keyboard cursor there.

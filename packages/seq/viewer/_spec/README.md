@@ -120,20 +120,49 @@ nothing and tells nothing.
   and kept for the version (and the view and model). The location is closed first (`hover.closeCodons`: a nucleotide
   gains its residue and lifts to its codon, every piece over an intron, EC-30, EC-144), then each part is carried to the
   section's system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps
-  only the parts on the section's own system.
+  only the parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
+  `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis).
 
 ### SelectionModel and HighlightModel
 
-`models/selection.ts`: session state as addresses and Locations, never in the spec. This version holds what a command on
-an address sets; the gestures, the anchor, the cursor and drawing the highlights are the selection's own work.
+`models/selection.ts`: session state as addresses and Locations, never in the spec.
 
 - **A value** (`Emphasized`): element keys, a Location, what is drawn (the Location and the elements' extents) and the
   address it was set from; an equal value tells nothing.
 - `SelectionModel.value`: the selection; the frame's selection pass draws its `shown`, and `renderSvg` passes it (its
   address when it has one, which the export resolves itself; else its Location), so the SVG shows the selection the
   canvas shows.
-- `HighlightModel`: named channels (`set`, `clear`, `channel(name)` a keyed state, `names` in the order first set). Not
-  drawn yet.
+- **The grammar's gestures are methods** (the interaction grammar), by the hit: an item is an element (its key, drawn by
+  its extent), a cell a position. `select(hit)` sets it, and clears it when it was exactly that element; nothing hit
+  clears it. `extend(hit)` is the positions from the anchor to the hit on the anchor's system (a range in one system;
+  extends from one anchor replace one another; with no anchor there, a select). `toggle(hit)` adds or removes the
+  element or the cell, keeping the rest. `beginDrag(hit)`, `dragTo(position, hit?)`, `endDrag()`: the range between the
+  two ends, whole items at the ends when it began on one and the pointer is over one. Why methods: a binding, a key and
+  a test act alike, and a drag step is a call, not a command.
+- **The anchor** is the range of the last element or cell set, toggled or dragged from, on its system (an item's extent
+  there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it.
+- **An element's extent** is the hit's, kept while it is selected; one selected without a hit (by an address, then
+  toggled) is resolved by `extentOf`, which the viewer gives (`locationOfResult` over what is shown).
+- **The cursor** (`cursor`): a position on a section's system, `{ section, system, position }`, drawn on every section
+  of that system; `setCursor`. A click with a position moves it there.
+- **Its nodes are held**: the viewer holds the dynamic nodes the selection names (its elements' owners, its systems)
+  through `StoreModel.holdSession('selection', …)` while it is selected (`selection.holdNodes`). Why: a selected
+  transcript must stay when its region scrolls away.
+- `HighlightModel`: named channels (`set`, `clear`, `channel(name)` a keyed state, `names` in the order first set,
+  `version` moving on every change). Drawn as tints (Emphasis).
+
+### Emphasis
+
+`models/projection.ts`, `viewer.ts`: what the emphasis passes draw, one reused record set before each frame.
+
+- **The selection** (its `shown`) and **its projection** onto the linked sections (`Projector.of`: the core's
+  `projectOntoView`, only the systems it has no part on), **the cursor**, **the highlight channels** in the order first
+  set (each its Location with its projection, `own` kept; its color `highlight.colors[name]`, else `highlight.color`, a
+  hex literal or `token:<name>`), and **the hover** with its projection (`HoverModel.projectedAll`).
+- **Projections are cached** per Location by identity while the view and the model hold (`Projector`, at most 64); the
+  highlights' list is made again only when a channel, the tokens, the view or the model changed: a redraw projects
+  nothing and allocates nothing in the renderer (held by the allocation tier).
+- `renderSvg` passes the highlights too; the export projects the selection itself.
 
 ### AddressModel
 
@@ -173,6 +202,8 @@ from is kept (the resolver keeps entries by hash), a changed one is opened again
 cleared. A source that cannot be opened is an issue at its address (`issues`); a failed opening, or a coverage the store
 refuses (its own report), is forgotten so the next sync tries again. Retired with its owner, the store with it.
 
+- **Session holds** (`holdSession(name, model, addresses)`): the dynamic nodes a session state names, with what they
+  name (`Overlay.holds`), held in the store under the name, those it no longer names let go; retired with the model.
 - **The overlay** (tier 2): `overlay(model, view, { runtimes, assets })` gives a frame the overlay of the store's
   dynamic nodes (`OverlayBuilder`: one a node version and model, the model's configuration read through it, another
   builder when the runtimes change; its version is part of the frame's key) and, when it or the view changed, syncs its
@@ -188,11 +219,11 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
-  (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate`, `addressing` and `editing`
-  behaviors, the default ports and the UI (`canvas`, and `history`: a mounted viewer with no `history` given gets a
-  `uiHistory()` stack of its own); an application spreads it. A headless spread (`ui: undefined`) has no history, so its
-  edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs them in turn through its
-  stack (`execute` waits for their message, `runCommand` gives `''`).
+  (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate`, `select`, `cursor`,
+  `addressing` and `editing` behaviors, the default ports and the UI (`canvas`, and `history`: a mounted viewer with no
+  `history` given gets a `uiHistory()` stack of its own); an application spreads it. A headless spread (`ui: undefined`)
+  has no history, so its edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs
+  them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `uiHistory()` when
   mounted with `ui.history`; bound to the spec), the binding table, the behaviors (one of each name; a behavior's
@@ -205,7 +236,9 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   passes alone (a hover); the layout's wants go to the store through the viewer's want set; the backend draws. A frame
   is asked for by `schedule`, one frame callback (`@molstar/ui/dom`, on `DomHost`) however many changes asked; the
   wheel's own frame is asked for first, so its deltas apply in the frame that draws them. Changes that ask: the model,
-  the resolved view, a viewport, the hover, the store's version and settledness, a resize.
+  the resolved view, a viewport, the hover, the selection, the cursor, a highlight channel, the store's version and
+  settledness, a resize. A frame whose base passes were drawn again (`Frame.base`: the selection's tint under the data)
+  redraws the base canvas.
 - **Settled**: the view counts as settled `canvas.settleMs` after its last move and while the store has nothing pending
   (open domains computed, lanes packed).
 - **Size**: the width is the target's; the data box is the width less the layout's inset, label column and gap
@@ -301,7 +334,11 @@ mounted UI (`mount.ts`) translates events into them and a test makes the same ca
 binding table; per move one hit record and one modifiers record are reused.
 
 - **Pointer**: a move drags when a drag is begun (`down` on a target whose `drag` binding exists) and always hovers
-  through the hover behavior. `leave` clears what this pointer owns.
+  through the hover behavior. `leave` clears what this pointer owns. A drag bound to `drag-select` begins on what was
+  hit (nothing selectable: no drag) and selects once the pointer moved 3 px; its range is read from the section's
+  viewport at the pointer's x, past the data too.
+- **Click**: `click(x, y, e)` through the bindings (the `select` behavior); the click the platform sends after a drag
+  that moved, and the second of a double-click (`detail` 2), are none.
 - **A resting pointer is hit again** once a frame in which the layout was rebuilt (EC-143, `pointer.rehit`): the hover
   follows the data under the pointer while the view moves, with no pointer event. Why once a frame: several moves of the
   view in one frame change what is under the pointer once. Not while dragging, nor after a leave.
@@ -314,13 +351,16 @@ binding table; per move one hit record and one modifiers record are reused.
   when a binding took it, and the page does not scroll.
 - **Double click**: the bound command with the section and what to focus (the element's extent, else the position's
   cell, in offsets).
-- **Keys**: the commands' shortcuts, run on the section under the pointer (else the first); the `@molstar/ui` keymap
-  replaces this when the commands join a command manager.
-- **Mounted**: a focusable container with the three canvases, listeners on the container only (a drag ends on
-  `pointerup`, `pointercancel` and `lostpointercapture`; Space, held for a drag that pans on data, does not scroll the
-  page while the canvas has focus), a `ResizeObserver` for the width, a media query for the device pixel ratio now (made
-  again after each change, a frame asked for), a web font arriving measures text again; the function `mountCanvas`
-  returns takes away every listener, the observer and the nodes.
+- **Keys**: the commands' shortcuts, run on the section under the pointer (else the first): the first whose shortcut it
+  is and whose `when` allows it, a preview's command before the rest (Esc cancels a gesture first, then clears the
+  selection); none: the key is the page's. A Space tap (`spaceUp` with no drag begun while it was held) is the Space
+  key's command (the cursor's toggle); a Space that panned is no tap. The `@molstar/ui` keymap replaces this when the
+  commands join a command manager.
+- **Mounted**: a focusable container with the three canvases, listeners on the container only (`click` among them; a
+  drag ends on `pointerup`, `pointercancel` and `lostpointercapture`; Space, held for a drag that pans on data, does not
+  scroll the page while the canvas has focus), a `ResizeObserver` for the width, a media query for the device pixel
+  ratio now (made again after each change, a frame asked for), a web font arriving measures text again; the function
+  `mountCanvas` returns takes away every listener, the observer and the nodes.
 
 ## Behaviors
 
@@ -336,6 +376,16 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   single keys scoped to the viewer (`scope: 'canvas'`); `when` says why one cannot run (no section, a follower that does
   not move, nothing to focus) instead of a throw.
 
+- `select`: clicks and drags to the selection through the bindings (`selection.set`, `selection.extend`,
+  `selection.toggle` with the context's `hit`, `selection.clear` with Esc), so a key, a menu and a test select alike;
+  `when` says why one cannot run (nothing hit, nothing selected). A click with a position moves the cursor there.
+- `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
+  places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a position in display order,
+  clamped to the axis), `cursor.up`, `cursor.down` (the section above or below, the position carried along the view's
+  link, else its first shown), `cursor.extend-prev`, `cursor.extend-next` (Shift: extends the selection from the anchor,
+  the cursor's cell when there is none on its system), `cursor.toggle` (Space), `cursor.focus` (Enter: the selection's
+  part on the section, else carried there, else the cursor's cell). The keys are `cursor.keys`; a cursor moved out of
+  view pans its section (`cursor.reveal`).
 - `addressing`: the actions on addresses as commands (`address.focus`, `address.reveal`, `address.select`,
   `address.highlight` with a `channel`, `address.hover`, `address.unhover`, `address.copy-link` whose message is the
   link, `refs.add` with a `ref`), so a link, a key, a menu, an agent and a test drive the view the same way; `when` says
@@ -357,13 +407,14 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   `modifiersOf`, which fills a reused record), `alt`, `space`; exact, or `'*'` for whatever is held, tried after the
   exact ones. Why: a modifier held for something else must not kill the hover.
 - **Targets** are a hit's kind or `any`; a binding for the kind beats `any`'s.
-- **Actions must exist**: a model method (`hover`, `pan`, `zoom`) or a command the viewer defines (`DefaultActions`, or
-  the `actions` given). A binding to another is reported (`seq.viewer.binding.action`) and left out, so the gesture does
-  nothing. The selection's part of the grammar (`SelectionBindings`) waits for the selection model and its commands, and
-  is in no preset until then.
+- **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`) or a command the viewer defines
+  (`DefaultActions`, or the `actions` given). A binding to another is reported (`seq.viewer.binding.action`) and left
+  out, so the gesture does nothing.
 - **Presets**: `default` (hover with any modifiers; drag on an axis, empty space or with Space pans; wheel and
-  Shift+wheel pan, Cmd/Ctrl+wheel and pinch zoom; double-click focuses an element, fits on empty space; Alt is unbound
-  on purpose, left to the platform and the host) and `genome-browser` (a drag on data pans too).
+  Shift+wheel pan, Cmd/Ctrl+wheel and pinch zoom; double-click focuses an element, fits on empty space; the selection's
+  part, `SelectionBindings`: click sets, Shift+click extends, Cmd/Ctrl+click toggles, a click on empty space clears, a
+  drag on data selects; Alt is unbound on purpose, left to the platform and the host) and `genome-browser` (a drag on
+  data pans instead; the selection's clicks kept).
 - `bindingTable(preset, overrides, { actions, kinds })`: each override layer replaces bindings of the same gesture,
   modifiers and target (`action: null` removes one); two of one key within a layer conflict. Resolving is map lookups,
   no allocation.
@@ -376,7 +427,8 @@ patch: ends in one patch or nothing, never a step itself), `session`, `navigate`
 spec: the viewports, a story step) or `none` (it only reads). Menus show what Undo will undo; an agent tells an edit
 from a look. A focus or a reveal navigates; a selection, a highlight or a link's hover is session state; `refs.add` and
 the editing commands are patches; entering and leaving a step navigates; `preview.cancel` is a preview's; copying a link
-changes nothing.
+changes nothing. The selection's gestures and the cursor's moves are session state; the cursor's focus (Enter)
+navigates.
 
 - **Tested as the table says** (`_test/changes.test.ts`): every command of the default viewer, run with the default
   spec's history, changes exactly what its kind names (a patch: the revision and one history step; a preview: the
@@ -391,14 +443,17 @@ changes nothing.
 over the defaults): `foundations.preset`, `density.letterMinPx`, `density.dotMinPx`, `bindings.preset`,
 `store.cacheBytes`, `store.inFlight`, `store.tileBins`, `hover.projectLinked`, `hover.closeCodons`,
 `viewport.maxPxPerPosition`, `viewport.groupEqualAxes`, `viewport.onResize`, `follow.followerMoves`, `follow.cyclicArc`,
-`navigate.wheelZoomStep`, `navigate.keyPanFraction`, `navigate.coalesceWheel`, `canvas.height` (`content`),
-`theme.source` (`root`: a mounted viewer reads its root's CSS; `config`: the core's `theme` item; a headless viewer
-always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`), `canvas.settleMs` (150), `pointer.rehit`
-(true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta` (50),
-`pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64), `address.refDepth` (8), `links.prefix`
-(`seq-`), `links.maxLength` (8,192), `links.maxActions` (16), `links.highlightChannel` (`link`), `links.hoverChannel`
-(`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale` (false: a stale patch is refused; true: rebased through
-`merge3`), `preview.dropped` (`issue`; `silent`), `copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering`
-(`ordinal`), `copyLink.action` (`focus`). Each a choice with its recommended default; `ParamDefinition`s come with the
-settings form. As items in a spec: `viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the
-core's items (`SeqCoreConfig`) are the same pairs.
+`navigate.wheelZoomStep`, `navigate.keyPanFraction`, `navigate.coalesceWheel`, `selection.holdNodes` (true: the
+selection's dynamic nodes are held while selected), `highlight.color` (`token:cat-5`, a channel's color when
+`highlight.colors` names none), `highlight.colors` (`{ 'link-hover': 'token:hover' }`), `cursor.keys` (`ArrowLeft`,
+`ArrowRight`, `ArrowUp`, `ArrowDown`: back, on, the section above, below), `cursor.reveal` (true: a cursor moved out of
+view pans its section), `canvas.height` (`content`), `theme.source` (`root`: a mounted viewer reads its root's CSS;
+`config`: the core's `theme` item; a headless viewer always uses the config), `canvas.maxHeight` (2048), `canvas.dpr`
+(`device`), `canvas.settleMs` (150), `pointer.rehit` (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed`
+(0.01), `pointer.pinchMaxDelta` (50), `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64),
+`address.refDepth` (8), `links.prefix` (`seq-`), `links.maxLength` (8,192), `links.maxActions` (16),
+`links.highlightChannel` (`link`), `links.hoverChannel` (`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale`
+(false: a stale patch is refused; true: rebased through `merge3`), `preview.dropped` (`issue`; `silent`),
+`copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering` (`ordinal`), `copyLink.action` (`focus`). Each a choice with
+its recommended default; `ParamDefinition`s come with the settings form. As items in a spec: `viewerItem('group.item')`
+(typed by key), read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the same pairs.

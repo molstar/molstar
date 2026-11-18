@@ -39,7 +39,7 @@ describe('gesture bindings', () => {
     expect(t.resolve('pinch', none, 'cell')).toBe('zoom');
     expect(t.resolve('double-click', none, 'item')).toBe('view.focus');
     expect(t.resolve('double-click', none, 'empty')).toBe('view.fit');
-    // the selection's clicks (ux-foundations' section 8)
+    // the selection's clicks (the interaction grammar)
     expect(t.resolve('click', none, 'cell')).toBe('selection.set');
     expect(t.resolve('click', shift, 'item')).toBe('selection.extend');
     expect(t.resolve('click', mod, 'cell')).toBe('selection.toggle');

@@ -17,7 +17,7 @@ import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { installFrames, type Frames } from './frames.js';
 
-// The selection's grammar through the viewer's input (ux-foundations' section 8): click sets (clicking the only
+// The selection's grammar through the viewer's input (the interaction grammar): click sets (clicking the only
 // selected element clears it), Shift+click extends from the anchor, Cmd/Ctrl+click toggles, a click on empty space or
 // Esc clears, a drag on data selects a range (whole items when it began on one); the keyboard cursor; the selection and
 // the highlights drawn, projected onto the gene's section, in the canvas's lists and an SVG export alike; the
@@ -95,7 +95,7 @@ const ranges = (v: SeqViewer, system = P) => [
   ...(v.selection.value.value.shown.parts.find((p) => p.system === system)?.ranges ?? []),
 ];
 
-describe('clicks (ux-foundations’ section 8)', () => {
+describe('clicks (the interaction grammar)', () => {
   it('click sets the selection to the cell; clicking it again clears it; empty space clears', async () => {
     const v = await make();
     expect(click(v, at(v, 0, 0, 2))).toBe(true);

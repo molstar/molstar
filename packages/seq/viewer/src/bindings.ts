@@ -68,7 +68,7 @@ const each = (
 ): GestureBinding[] => targets.map((target) => ({ gesture, target, action, ...(modifiers ? { modifiers } : {}) }));
 
 /**
- * The selection's clicks (ux-foundations' section 8): click sets, Shift+click extends from the anchor, Cmd/Ctrl+click
+ * The selection's clicks (the interaction grammar): click sets, Shift+click extends from the anchor, Cmd/Ctrl+click
  * toggles, a click on empty space clears; the `select` behavior's commands.
  */
 export const SelectionClicks: readonly GestureBinding[] = [

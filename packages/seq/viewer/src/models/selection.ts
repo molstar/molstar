@@ -7,7 +7,7 @@
 // The selection and the highlight channels (_spec/README.md "SelectionModel and HighlightModel"): session state, as
 // addresses and Locations, never in the spec. The selection holds element keys and a Location (what is drawn: the
 // Location and the elements' extents), the anchor an extend starts from, and the keyboard cursor; the grammar's gestures
-// (ux-foundations' section 8, by the hit: an item is an element, a cell a position) are methods here, so a binding, a
+// (the interaction grammar, by the hit: an item is an element, a cell a position) are methods here, so a binding, a
 // key and a test act alike.
 
 import { KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
@@ -120,7 +120,7 @@ export class SelectionModel extends ReactiveModel {
     this._value.set(Nothing);
   }
 
-  // ---- the grammar's gestures, by the hit (ux-foundations' section 8) ----
+  // ---- the grammar's gestures, by the hit (the interaction grammar) ----
 
   /**
    * A click: the selection becomes what was hit (an item: its key; a cell: its position); clicking the only selected
@@ -181,7 +181,7 @@ export class SelectionModel extends ReactiveModel {
 
   /**
    * A drag-select begins on what was hit: the range grows from it as the pointer moves (`dragTo`), snapped to whole
-   * items when it began on one (ux-foundations' section 8). False when nothing selectable was hit.
+   * items when it began on one (the interaction grammar). False when nothing selectable was hit.
    */
   beginDrag(hit: Hit | undefined): boolean {
     const range = hit ? hitRange(hit) : undefined;

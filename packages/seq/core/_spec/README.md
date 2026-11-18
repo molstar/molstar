@@ -580,6 +580,14 @@ no target.
   axis's shape.
 - **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
   resolved so hover and selection never compose; the same system is the identity.
+- **Projection** (`projectOntoView(model, view, loc, { close?, own?, linked? })`, `project.ts`): a Location on the
+  view's sections' systems, one Location keyed by system (two sections on one system show the same): each part carried
+  along the view's link from a section on its system, else, for a system no section shows, along the model's static
+  path; rects are not carried. `close` closes it first among the view's systems (a hover's: a nucleotide lifts to its
+  codon and gains its residue); `own` keeps the parts already on a section's system (a hover's and a highlight's), else
+  only what it adds where it has no part (a selection's); `linked: false` keeps the own parts alone. Why keyed by
+  system, not a function per section: the renderer reads a part per axis with an indexed loop, nothing called or made
+  per draw.
 - **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
   hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`; none has a fallback yet),
@@ -614,11 +622,13 @@ store's entries, as draw lists; hit-testing on the same layout; the recording an
 one label column (112, gap 8), track and section gaps (4, 8), a track's height by its layers' types when the spec gives
 none (letters 20, ranges 36, values 32), the lane (12, gap 2), the density thresholds, the letter sizes (9 to 14) and
 the mono advance (0.6 em), the label and item fonts (`12px sans`, `10px sans`), the fade (12), the squircle's ratio, cap
-and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the want margin (half the view a side),
-a follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a layout lists
-the nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`:
-`extra-lanes`), how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer
-reads (`values.coarser`, 1), whether values on the section's own system are placed directly (`values.direct`, true), the
+and minimum (1/3, 8, 6), outline widths (hover 1.5, selection 1.5, cursor 2.5), the emphasis's look (`emphasis`: the
+selection's tint `over` the data, or `under` it; its opacity, 0.18; a highlight channel's tint opacity, 0.3; what is
+projected onto a linked section against its own look, `projected`, 0.5), the want margin (half the view a side), a
+follower's arc (`shortest`), the tracks a template makes at most (`maxTemplateTracks`, 200), whether a layout lists the
+nodes it shows to be held (`nodes.holdShown`, true), what ranges past the lanes do (`ranges.overflow`: `extra-lanes`),
+how values aggregate below a pixel (`values.aggregate`: `minmax`), how coarse a level a values layer reads
+(`values.coarser`, 1), whether values on the section's own system are placed directly (`values.direct`, true), the
 strings draw lists keep interned across frames (`internedStrings`, 4,096; past it a full redraw starts the table again).
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -689,6 +699,27 @@ strings draw lists keep interned across frames (`internedStrings`, 4,096; past i
 - **Reused buffers are tested against fresh ones**: a layer's layout of an input into buffers warmed by another, smaller
   input gives the same lists as a layout into fresh buffers. Why: purity is by contract, not by new objects, and a
   buffer that grows without keeping its contents passes every test whose input fits the first size.
+
+### Emphasis
+
+`Emphasis` (`layer-type.ts`), drawn by the view (`tracks.ts`) in the emphasis passes, per track of a laid-out section:
+
+- `highlights`: the channels in order, each a Location and a color, tinted at `emphasis.highlightTint` on every system
+  its Location has (the `highlight` pass).
+- `selection` (a Location): its part on the section's system tinted with the accent at `emphasis.selectionTint` and
+  outlined; the tints first, then the outlines, so no tint covers an outline (the `selection` pass). Where it has no
+  part, `projected.selection` is drawn in the same look at `emphasis.projected` times the opacity.
+- `hover`: each layer's own (its cell, its item's marks); `projected.hover` is drawn as the hover's outline at
+  `emphasis.projected` on every section but the hover's own (`SectionLayout.id`, the section's id a hit names), so a
+  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass).
+- `cursor`: the outline of its cell on every section of its system (the `cursor` pass).
+- **The tint's place** (`emphasis.selectionPlace`): `over` (the default: translucent over the data, with its outline; a
+  selection redraws the emphasis alone) or `under` (in the `background` pass: hidden by opaque cells; an emphasis redraw
+  whose selection or projected selection changed by identity draws `background` and `data` again, `Frame.base`, and a
+  backend redraws its base). Why `over` by default: a pass under the data is hidden by opaque cells.
+- What a shared mark function needs besides its objects (a fill, a stroke, a width) goes through a typed array, and a
+  color at an opacity is made inline: the emphasis passes allocate nothing once warm (`frame.quick.ts`: selection and
+  cursor; projected hover, selection and highlights).
 
 ### Shapes
 
@@ -812,6 +843,8 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   nodes (`overlayQueryModel`), and drawn with `emphasis.selection`; what it named is `selection` in the result (absent
   with its issues when it named nothing). Why: an export is a consumer of an address of its own, not a copy of a
   viewer's Location.
+- **The selection drawn is projected** onto the linked sections by the export (`projectOntoView`), unless the caller
+  gives `emphasis.projected.selection`: the export shows on the gene what a viewer shows there.
 - It answers `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed, and
   its ids take a prefix (`idPrefix`, by default `s` and a hash of the spec). On a shared store it reports only the
   issues of the sources it attached.

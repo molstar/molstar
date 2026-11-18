@@ -10,7 +10,7 @@ import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { composeViewer, describeSelection, selectionSvg } from './compose.js';
 
-// Selection: the default grammar on the two p53 views (ux-foundations' section 8). Click a residue or a domain to select
+// Selection: the default grammar on the two p53 views (the interaction grammar). Click a residue or a domain to select
 // it (again to clear), Shift+click to extend from it, Cmd/Ctrl+click to toggle, drag on the letters to select a range,
 // click empty space or press Esc to clear. The arrow keys move the keyboard cursor (Shift extends; Space toggles its
 // cell; Enter focuses). On the protein on its gene, what is selected or hovered on one section shows on the other in

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The `cursor` behavior (_spec/README.md "Behaviors"): the keyboard cursor (ux-foundations' section 8): the step keys
+// The `cursor` behavior (_spec/README.md "Behaviors"): the keyboard cursor (the interaction grammar): the step keys
 // (`cursor.keys`) move it a position along its section's axis in display order, or to the section above or below (its
 // position carried along the view's link); Shift with a step extends the selection from the anchor (the cursor's cell
 // when there is none); Space toggles the cursor's cell; Enter focuses the selection, else the cursor's cell. A cursor
