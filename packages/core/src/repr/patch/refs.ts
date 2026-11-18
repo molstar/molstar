@@ -12,14 +12,7 @@
 // earlier ops. The ref index answers by address prefix behind `RefIndex`; this one is built on plain maps, kept in
 // chunks by node, and `derive` walks only what changed.
 
-import {
-  type Changes,
-  type Fields,
-  type KindSpec,
-  type Language,
-  type ParamType,
-  type ValidateOptions,
-} from '../schema/index.js';
+import { type Fields, type KindSpec, type Language, type ParamType, type ValidateOptions } from '../schema/index.js';
 import {
   type Address,
   type AddressPattern,
@@ -50,8 +43,8 @@ export interface RefIndex {
   under(prefix: Address): readonly RefSite[];
   /** Refs that name no node. */
   dangling(): readonly RefSite[];
-  /** The next revision's index; a rebuild here. */
-  derive(after: Node, changes: Changes): RefIndex;
+  /** The next revision's index, by node identity and position: what `after` shares with this one is reused. */
+  derive(after: Node): RefIndex;
 }
 
 /** Where a stored patch's ref resolves: the spec with the step's ops before `op` applied (or through it, `after`). */
@@ -211,39 +204,6 @@ export class RefPass {
   dependent = false;
   get root(): Node {
     return (this.rootNode ??= this.rootOf!());
-  }
-
-  /** Every site of the tree, depth first, each with the node that holds it and where. */
-  sites(): Site[] {
-    const out: Site[] = [];
-    const go = (n: Node, path: TreePath, at: Address | undefined, anchor: Address, tail: number[]) => {
-      this.walkNode(n, (rel, value, step) => {
-        const runs = parsedRuns(value);
-        if (!runs) return;
-        const site: { -readonly [K in keyof Site]: Site[K] } = {
-          path: [...path, ...rel],
-          value,
-          run: runs[0],
-          runs,
-          node: n,
-          anchor,
-          tail,
-          rel,
-        };
-        if (at) site.at = at;
-        if (step) site.step = step;
-        out.push(site);
-      });
-      const kids = n.children;
-      if (!kids) return;
-      for (let i = 0; i < kids.length; i++) {
-        const c = kids[i];
-        const cAt = at && c.id !== undefined ? [...at, c.id] : undefined;
-        go(c, [...path, 'children', i], cAt, cAt ?? anchor, cAt ? [] : [...tail, i]);
-      }
-    };
-    go(this.root, [], [], [], []);
-    return out;
   }
 
   /** The refs of a node of the tree: its params by its kind, its data form's args (`rel` from the node). */
@@ -496,6 +456,7 @@ function flatten(c: Chunk | undefined, out: Site[]) {
 
 class MapRefIndex implements RefIndex {
   private allSites?: Site[];
+  private byFirst?: Map<string, Site[]>;
   private danglingSites?: Site[];
 
   constructor(
@@ -512,10 +473,25 @@ class MapRefIndex implements RefIndex {
     return this.allSites;
   }
 
+  /** The sites by the first id of each of their runs, built on the first query with a prefix. */
+  private get first(): Map<string, Site[]> {
+    if (!this.byFirst) {
+      const by = (this.byFirst = new Map<string, Site[]>());
+      for (const s of this.all) {
+        for (const r of s.runs) {
+          const f = r.length ? r[0] : '';
+          let list = by.get(f);
+          if (!list) by.set(f, (list = []));
+          if (list[list.length - 1] !== s) list.push(s); // once a site, however many of its runs start so
+        }
+      }
+    }
+    return this.byFirst;
+  }
+
   under(prefix: Address): readonly Site[] {
     if (!prefix.length) return this.all;
-    const first = prefix[0];
-    return this.all.filter((s) => s.runs.some((r) => r[0] === first && isUnder(r, prefix)));
+    return (this.first.get(prefix[0]) ?? []).filter((s) => s.runs.some((r) => isUnder(r, prefix)));
   }
 
   dangling(): readonly Site[] {
@@ -523,15 +499,15 @@ class MapRefIndex implements RefIndex {
   }
 
   /**
-   * The next revision's index, from this one: a node the ops left alone, at the position it was, is this index's
-   * chunk (found by node identity, so `changes` is not read), and the paths the ops changed are walked again. Cached
-   * on `after` like a built one.
+   * The next revision's index, from this one, by node identity and position: a node `after` shares with this index's
+   * root, at the position it was, is this index's chunk, and the nodes on the paths that differ are walked again. It
+   * may skip revisions. Cached on `after` like a built one.
    */
-  derive(after: Node, _changes?: Changes): RefIndex {
+  derive(after: Node): RefIndex {
     const { language } = this.pass;
     const options = this.key;
-    const had = peekIndex(after, language, options);
-    if (had) return had;
+    const had = entryOf(after, language, options);
+    if (had instanceof MapRefIndex) return had;
     const pass = new RefPass(after, language, options);
     return store(
       after,
@@ -542,6 +518,17 @@ class MapRefIndex implements RefIndex {
   }
 }
 
+/**
+ * A derive not done yet, cached on the new root: the nearest index that exists (never another pending one, so a run of
+ * applies leaves each pointing at the same one). It keeps that index alive: its root, its chunk tree and the caches it
+ * made, one revision however long the run, until the next apply needs the new root's index and forces it.
+ */
+class Pending {
+  constructor(readonly from: MapRefIndex) {}
+}
+
+type Entry = MapRefIndex | Pending;
+
 /** The first ids of a ref's runs: what the overlay keys it by (`''` for a run naming the root). */
 function firsts(runs: readonly Address[]): Set<string> {
   const out = new Set<string>();
@@ -549,21 +536,55 @@ function firsts(runs: readonly Address[]): Set<string> {
   return out;
 }
 
-const Indices = new WeakMap<Node, WeakMap<Language, Map<ValidateOptions | undefined, MapRefIndex>>>();
-const Families = new WeakMap<Language, Map<ValidateOptions | undefined, Family>>();
+const Indices = new WeakMap<Node, WeakMap<Language, Map<ValidateOptions | undefined, Entry>>>();
 
-function store(root: Node, language: Language, options: ValidateOptions | undefined, index: MapRefIndex) {
+/** The chunks of a language, by the options object callers pass (held weakly), and the ones for none. */
+const Families = new WeakMap<Language, { none?: Family; by: WeakMap<object, Family> }>();
+
+function familyOf(language: Language, options: ValidateOptions | undefined): Family {
+  let slot = Families.get(language);
+  if (!slot) Families.set(language, (slot = { by: new WeakMap() }));
+  if (!options) return (slot.none ??= newFamily());
+  let family = slot.by.get(options);
+  if (!family) slot.by.set(options, (family = newFamily()));
+  return family;
+}
+
+function entryOf(root: Node, language: Language, options: ValidateOptions | undefined): Entry | undefined {
+  return Indices.get(root)?.get(language)?.get(options);
+}
+
+function put(root: Node, language: Language, options: ValidateOptions | undefined, entry: Entry) {
   let byLanguage = Indices.get(root);
   if (!byLanguage) Indices.set(root, (byLanguage = new WeakMap()));
   let byOptions = byLanguage.get(language);
   if (!byOptions) byLanguage.set(language, (byOptions = new Map()));
-  byOptions.set(options, index);
+  byOptions.set(options, entry);
+}
+
+function store(root: Node, language: Language, options: ValidateOptions | undefined, index: MapRefIndex) {
+  put(root, language, options, index);
   return index;
 }
 
-/** The ref index of a root if one was built or derived (cached per root, language and options). */
+/**
+ * Leaves the new root's index to be derived from the old root's when it is next read, if the old root has one (built,
+ * derived or pending): nothing is walked now. The cache hits only for the same `options` object the caller passes.
+ */
+export function deferDerive(root: Node, after: Node, language: Language, options?: ValidateOptions) {
+  const old = entryOf(root, language, options);
+  if (!old || entryOf(after, language, options)) return;
+  put(after, language, options, new Pending(old instanceof Pending ? old.from : old));
+}
+
+/** Whether the root has an index, derived later or not. */
+export function hasIndex(root: Node, language: Language, options?: ValidateOptions): boolean {
+  return !!entryOf(root, language, options);
+}
+
+/** The ref index of a root if it has one (a pending derive is done now). */
 export function peekIndex(root: Node, language: Language, options?: ValidateOptions): RefIndex | undefined {
-  return Indices.get(root)?.get(language)?.get(options);
+  return hasIndex(root, language, options) ? mapIndexOf(root, language, options) : undefined;
 }
 
 /** The ref index of a revision, cached per root, language and options. */
@@ -579,12 +600,10 @@ export function freshRefIndex(root: Node, language: Language, options?: Validate
 }
 
 function mapIndexOf(root: Node, language: Language, options?: ValidateOptions): MapRefIndex {
-  const had = Indices.get(root)?.get(language)?.get(options);
-  if (had) return had;
-  let byOptions = Families.get(language);
-  if (!byOptions) Families.set(language, (byOptions = new Map()));
-  let family = byOptions.get(options);
-  if (!family) byOptions.set(options, (family = newFamily()));
+  const had = entryOf(root, language, options);
+  if (had instanceof MapRefIndex) return had;
+  if (had) return had.from.derive(root) as MapRefIndex;
+  const family = familyOf(language, options);
   const pass = new RefPass(root, language, options);
   return store(root, language, options, new MapRefIndex(pass, family, buildChunks(pass, family), options));
 }
