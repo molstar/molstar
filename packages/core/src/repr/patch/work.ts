@@ -27,6 +27,7 @@ import {
   type Node,
   own,
   type Params,
+  resolveAddress,
   type TreePath,
   type Value,
   valuesEqual,
@@ -52,12 +53,27 @@ export interface Draft {
   custom: Params | undefined;
   /** Keys changed by ops or ref rewrites, by where. */
   touched: { params?: Set<string>; custom?: Set<string> } | undefined;
-  /** Params keys an op set (not a ref rewrite): what the patch wrote. */
+  /** Params keys an op set (not a ref rewrite, not an unset): what the patch wrote. */
   written: Set<string> | undefined;
+  /** Params keys an op set or unset. */
+  byOp: Set<string> | undefined;
   kids: Draft[] | undefined;
+  /** The kids by id (the first of two with one id), with `kids`. */
+  byId: Map<string, Draft> | undefined;
+  /** How many kids have no id, with `kids`. */
+  anonymous: number;
+  parent: Draft | undefined;
+  /** Taken out by a remove or a replace. */
+  detached: boolean;
 }
 
-function draftOf(node: Node, origin: Node | undefined, oldAddress: Address | undefined, made: boolean): Draft {
+function draftOf(
+  node: Node,
+  origin: Node | undefined,
+  oldAddress: Address | undefined,
+  made: boolean,
+  parent: Draft | undefined,
+): Draft {
   return {
     base: node,
     origin,
@@ -70,9 +86,39 @@ function draftOf(node: Node, origin: Node | undefined, oldAddress: Address | und
     custom: node.custom,
     touched: undefined,
     written: undefined,
+    byOp: undefined,
     kids: undefined,
+    byId: undefined,
+    anonymous: 0,
+    parent,
+    detached: false,
   };
 }
+
+/** A parent's index of its kids by id, built again (the first of two with one id wins). */
+function reindex(p: Draft) {
+  const byId = new Map<string, Draft>();
+  let anonymous = 0;
+  for (const k of p.kids!) {
+    if (k.id === undefined) anonymous++;
+    else if (!byId.has(k.id)) byId.set(k.id, k);
+    else Twins.add(p);
+  }
+  p.byId = byId;
+  p.anonymous = anonymous;
+}
+
+/** A kid out of its parent's index; a sibling with the same id (a malformed tree) takes its place. */
+function unindex(p: Draft, d: Draft) {
+  if (d.id === undefined || p.byId!.get(d.id) !== d) return;
+  p.byId!.delete(d.id);
+  if (!Twins.has(p)) return;
+  const twin = p.kids!.find((k) => k.id === d.id);
+  if (twin) p.byId!.set(d.id, twin);
+}
+
+/** Parents that had two kids with one id when materialized (a malformed tree): only they look for a twin. */
+const Twins = new WeakSet<Draft>();
 
 /** Normalization of what a patch makes, when a language is given (Applying, step 3). */
 export interface Normalizer {
@@ -131,24 +177,41 @@ class Refused {
   constructor(readonly issue: Issue) {}
 }
 
+/** What the ref index hears of the ops, so it is derived across them (refs.ts, `LiveRefs`). */
+export interface WorkListener {
+  /** An op set or unset a key of a draft's params. */
+  key(d: Draft, key: string): void;
+  /** A draft was made (inserted, or a replacement of `old`). */
+  made(d: Draft, old?: Draft): void;
+}
+
+/** What an inverse op restores, for the inverse's restoring sets (apply.ts). */
+export type InverseMeta =
+  | { readonly kind: 'key'; readonly draft: Draft; readonly key: string }
+  | { readonly kind: 'node'; readonly draft: Draft }
+  | { readonly kind: 'move'; readonly from: Address; readonly to: Address }
+  | undefined;
+
 /** The draft of a root and the ops applied to it so far. */
 export class Work {
   readonly root: { draft: Draft };
-  /** Each applied op's inverse, in the order applied (the patch's inverse is them reversed). */
+  /** Each applied op's inverse, in the order applied (the patch's inverse is them reversed), and what it restores. */
   readonly inverse: Op[] = [];
+  readonly inverseMeta: InverseMeta[] = [];
   /** Address changes, in order: what refs follow. */
   readonly moves: { readonly from: Address; readonly to: Address }[] = [];
   /** Subtrees taken out (removed, or a replaced node's kids): where `removed` is read from. */
   private readonly gone: { draft: Draft; cover: Address | undefined }[] = [];
   /** Whether an op inserted, removed, replaced, renamed or moved a node to another parent. */
   structural = false;
+  listener?: WorkListener;
   private index = 0;
 
   constructor(
     readonly old: Node,
     private readonly normalizer?: Normalizer,
   ) {
-    this.root = { draft: draftOf(old, old, [], false) };
+    this.root = { draft: draftOf(old, old, [], false, undefined) };
   }
 
   private refuse(code: PatchCode, message: string, ...at: (string | number)[]): never {
@@ -161,6 +224,7 @@ export class Work {
     );
   }
 
+  /** A draft's kids, materialized on first use with their index by id (the first of two with one id). */
   kids(d: Draft): Draft[] {
     if (d.kids) return d.kids;
     const children = d.base.children ?? [];
@@ -168,39 +232,83 @@ export class Work {
       // the old root's children are the origin's own: a made node's (a replacement's too) are new
       const inner = d.base === d.origin ? c : undefined;
       const oldAddress = inner && d.oldAddress && c.id !== undefined ? [...d.oldAddress, c.id] : undefined;
-      return draftOf(c, inner, oldAddress, d.made);
+      return draftOf(c, inner, oldAddress, d.made, d);
     });
+    reindex(d);
     return d.kids;
   }
 
-  private kidAt(d: Draft, id: string): number {
-    if (!d.kids) return childIndex(d.base.children, id);
-    for (let i = 0; i < d.kids.length; i++) if (d.kids[i].id === id) return i;
-    return -1;
+  /** The kid with `id`: O(1) once its parent is materialized (the child index of the base's array before). */
+  kid(d: Draft, id: string): Draft | undefined {
+    if (!d.kids) {
+      const i = childIndex(d.base.children, id);
+      return i < 0 ? undefined : this.kids(d)[i];
+    }
+    return d.byId!.get(id);
   }
 
   /** The draft at an address (materialized along the path), or undefined. */
   find(address: Address): Draft | undefined {
-    let d = this.root.draft;
+    let d: Draft | undefined = this.root.draft;
     for (const id of address) {
-      const i = this.kidAt(d, id);
-      if (i < 0) return undefined;
-      d = this.kids(d)[i];
+      d = this.kid(d, id);
+      if (!d) return undefined;
     }
     return d;
   }
 
-  /** The draft at a step path (`['children', 2, 'children', 0]`), materialized; the rest of the path is returned. */
-  findPath(path: TreePath): { draft: Draft; rest: TreePath } | undefined {
-    let d = this.root.draft;
-    let i = 0;
-    while (i + 1 < path.length && path[i] === 'children' && typeof path[i + 1] === 'number') {
-      const kids = this.kids(d);
-      d = kids[path[i + 1] as number];
-      if (!d) return undefined;
-      i += 2;
+  /** The draft `tail` (child positions) below `d`, materialized; undefined past the end. */
+  below(d: Draft, tail: readonly number[]): Draft | undefined {
+    let at: Draft | undefined = d;
+    for (const i of tail) {
+      at = this.kids(at)[i];
+      if (!at) return undefined;
     }
-    return { draft: d, rest: path.slice(i) };
+    return at;
+  }
+
+  /** Whether a draft is in the tree now (no ancestor taken out). */
+  attached(d: Draft): boolean {
+    let at: Draft | undefined = d;
+    while (at.parent) {
+      if (at.detached) return false;
+      at = at.parent;
+    }
+    return !at.detached && at === this.root.draft;
+  }
+
+  /** A draft's address now, or undefined (out of the tree, or under a node without an id). */
+  addressOf(d: Draft): Address | undefined {
+    const ids: string[] = [];
+    let at: Draft | undefined = d;
+    while (at.parent) {
+      if (at.detached || at.id === undefined) return undefined;
+      ids.push(at.id);
+      at = at.parent;
+    }
+    return at === this.root.draft && !at.detached ? ids.reverse() : undefined;
+  }
+
+  /**
+   * The old root's address of the node now at `address`, or undefined when a node made by the patch is there (or
+   * none): whether an address still names the node it named (link integrity, a ref's target's identity).
+   */
+  originAt(address: Address): Address | undefined {
+    // a replacement is an edit in place: below it, a node at an id the old node had is that node; an inserted node
+    // is none of the old root's
+    let d: Draft | undefined = this.root.draft;
+    let old: Address | undefined = d.oldAddress;
+    let i = 0;
+    for (; i < address.length && d.kids; i++) {
+      const parent: Draft = d;
+      d = d.byId!.get(address[i]);
+      if (!d) return undefined;
+      if (d.oldAddress) old = d.oldAddress;
+      else if (d.made && !parent.made) old = undefined;
+      else old = old && [...old, address[i]];
+    }
+    if (old && i < address.length) old = [...old, ...address.slice(i)];
+    return old && resolveAddress(this.old, old) ? old : undefined;
   }
 
   /** Applies op number `index`, or returns why it is refused (nothing changed then). */
@@ -248,10 +356,14 @@ export class Work {
     if (isReservedKey(key)) this.refuse('repr.patch.key', 'A reserved key', 'key');
   }
 
-  private touch(d: Draft, where: Where, key: string, written: boolean) {
+  private touch(d: Draft, where: Where, key: string, op: 'set' | 'unset' | 'rewrite') {
     d.touched ??= {};
     (d.touched[where] ??= new Set()).add(key);
-    if (written && where === 'params') (d.written ??= new Set()).add(key);
+    if (where !== 'params' || op === 'rewrite') return;
+    (d.byOp ??= new Set()).add(key);
+    if (op === 'set') (d.written ??= new Set()).add(key);
+    else d.written?.delete(key);
+    this.listener?.key(d, key);
   }
 
   private set(at: Address, key: string, value: Value, where: Where = 'params') {
@@ -264,9 +376,13 @@ export class Work {
     const record = d[where];
     const old = record ? own(record, key) : undefined;
     if (old !== undefined && valuesEqual(old, v)) return; // a no-op keeps the node
-    this.inverse.push(old === undefined ? { op: 'unset', at, key, where } : { op: 'set', at, key, value: old, where });
+    this.push(old === undefined ? { op: 'unset', at, key, where } : { op: 'set', at, key, value: old, where }, {
+      kind: 'key',
+      draft: d,
+      key,
+    });
     d[where] = { ...record, [key]: v };
-    this.touch(d, where, key, true);
+    this.touch(d, where, key, 'set');
   }
 
   private unset(at: Address, key: string, where: Where = 'params') {
@@ -275,30 +391,34 @@ export class Work {
     const record = d[where];
     const old = record ? own(record, key) : undefined;
     if (old === undefined) return;
-    this.inverse.push({ op: 'set', at, key, value: old, where });
+    this.push({ op: 'set', at, key, value: old, where }, { kind: 'key', draft: d, key });
     const next = { ...record };
     delete next[key];
     d[where] = Object.keys(next).length ? next : undefined;
-    this.touch(d, where, key, false);
+    this.touch(d, where, key, 'unset');
   }
 
-  /** Where `place` puts a node among `kids` (the moved node already out of them); refuses a place naming no sibling. */
-  private position(kids: readonly Draft[], place: Place, skip?: Draft): number {
-    if ('last' in place && place.last === true) return kids.filter((k) => k !== skip).length;
+  private push(op: Op, meta: InverseMeta) {
+    this.inverse.push(op);
+    this.inverseMeta.push(meta);
+  }
+
+  /** Where `place` puts a node among a parent's kids, `skip` (a moved node) out of them; refuses a place naming none. */
+  private position(p: Draft, place: Place, skip?: Draft): number {
+    const kids = p.kids!;
+    const out = skip && skip.parent === p ? 1 : 0;
+    if ('last' in place && place.last === true) return kids.length - out;
     const after = (place as { after: string | null }).after;
     if (after === null) return 0;
-    let n = 0;
-    for (const k of kids) {
-      if (k === skip) continue;
-      n++;
-      if (k.id === after) return n;
-    }
-    this.refuse('repr.patch.place', 'The place names no sibling', 'after');
+    const k = p.byId!.get(after);
+    if (!k || k === skip) this.refuse('repr.patch.place', 'The place names no sibling', 'after');
+    const i = kids.indexOf(k);
+    return out && kids.indexOf(skip!) < i ? i : i + 1;
   }
 
   private addressable(d: Draft, key: string) {
-    for (const k of this.kids(d))
-      if (k.id === undefined) this.refuse('repr.patch.unaddressable', 'A child of this parent has no id', key);
+    this.kids(d);
+    if (d.anonymous) this.refuse('repr.patch.unaddressable', 'A child of this parent has no id', key);
   }
 
   private checkNode(node: unknown, key: string): asserts node is Node {
@@ -312,15 +432,17 @@ export class Work {
     this.addressable(p, 'parent');
     if (node.id === undefined || !IdPattern.test(node.id))
       this.refuse('repr.patch.id', `An inserted node has an id: ${IdHint}`, 'node');
-    const kids = this.kids(p);
-    if (kids.some((k) => k.id === node.id)) this.refuse('repr.patch.id', 'A sibling has this id', 'node');
-    const i = this.position(kids, place);
+    if (p.byId!.has(node.id)) this.refuse('repr.patch.id', 'A sibling has this id', 'node');
+    const i = this.position(p, place);
     if (parent.length + 1 + nodeHeight(node, MaxDepth) > MaxDepth)
       this.refuse('repr.patch.depth', `The node would sit past ${MaxDepth} levels`, 'node');
     const n = this.normalizer ? this.normalizer.node(node) : node;
-    kids.splice(i, 0, draftOf(n, undefined, undefined, true));
-    this.inverse.push({ op: 'remove', at: [...parent, node.id] });
+    const d = draftOf(n, undefined, undefined, true, p);
+    p.kids!.splice(i, 0, d);
+    p.byId!.set(node.id, d);
+    this.push({ op: 'remove', at: [...parent, node.id] }, undefined);
     this.structural = true;
+    this.listener?.made(d);
   }
 
   private remove(at: Address) {
@@ -328,18 +450,18 @@ export class Work {
     if (!at.length) this.refuse('repr.patch.op', 'The root is never removed', 'at');
     const parent = at.slice(0, -1);
     const p = this.target(parent);
-    const kids = this.kids(p);
-    const i = this.kidAt(p, at[at.length - 1]);
-    if (i < 0) this.refuse('repr.patch.target', 'No node at this address', 'at');
+    const d = this.kid(p, at[at.length - 1]);
+    if (!d) this.refuse('repr.patch.target', 'No node at this address', 'at');
     this.addressable(p, 'at');
-    const d = kids[i];
-    this.inverse.push({
-      op: 'insert',
-      parent,
-      place: { after: i > 0 ? kids[i - 1].id! : null },
-      node: this.finalize(d),
-    });
+    const kids = p.kids!;
+    const i = kids.indexOf(d);
+    this.push(
+      { op: 'insert', parent, place: { after: i > 0 ? kids[i - 1].id! : null }, node: this.finalize(d) },
+      { kind: 'node', draft: d },
+    );
     kids.splice(i, 1);
+    unindex(p, d);
+    d.detached = true;
     this.gone.push({ draft: d, cover: undefined });
     this.structural = true;
   }
@@ -352,18 +474,16 @@ export class Work {
       this.refuse('repr.patch.id', `A new id is an id: ${IdHint}`, 'rename');
     const from = at.slice(0, -1);
     const src = this.target(from);
-    const srcKids = this.kids(src);
-    const i = this.kidAt(src, at[at.length - 1]);
-    if (i < 0) this.refuse('repr.patch.target', 'No node at this address', 'at');
+    const d = this.kid(src, at[at.length - 1]);
+    if (!d) this.refuse('repr.patch.target', 'No node at this address', 'at');
     const dst = this.target(parent, 'parent');
     if (isUnder(parent, at)) this.refuse('repr.patch.cycle', 'A node never moves under itself', 'parent');
     this.addressable(src, 'at');
     this.addressable(dst, 'parent');
-    const d = srcKids[i];
     const id = rename ?? d.id!;
-    const dstKids = this.kids(dst);
-    if (dstKids.some((k) => k !== d && k.id === id)) this.refuse('repr.patch.id', 'A sibling has this id', 'rename');
-    const j = this.position(dstKids, place, d);
+    const taken = dst.byId!.get(id);
+    if (taken && taken !== d) this.refuse('repr.patch.id', 'A sibling has this id', 'rename');
+    const j = this.position(dst, place, d);
     const sameParent = src === dst;
     if (
       !sameParent &&
@@ -371,22 +491,32 @@ export class Work {
       parent.length + 1 + nodeHeight(this.finalize(d), MaxDepth) > MaxDepth
     )
       this.refuse('repr.patch.depth', `The node would sit past ${MaxDepth} levels`, 'parent');
+    const srcKids = src.kids!;
+    const i = srcKids.indexOf(d);
     if (sameParent && id === d.id && i === j) return; // where it is: a no-op
-    this.inverse.push({
-      op: 'move',
-      at: [...parent, id],
-      parent: from,
-      place: { after: i > 0 ? srcKids[i - 1].id! : null },
-      ...(id !== d.id ? { rename: d.id! } : {}),
-    });
+    const to = [...parent, id];
+    const changes = !sameParent || id !== d.id;
+    this.push(
+      {
+        op: 'move',
+        at: to,
+        parent: from,
+        place: { after: i > 0 ? srcKids[i - 1].id! : null },
+        ...(id !== d.id ? { rename: d.id! } : {}),
+      },
+      changes ? { kind: 'move', from: to, to: at } : undefined,
+    );
     srcKids.splice(i, 1);
-    dstKids.splice(j, 0, d);
-    if (!sameParent || id !== d.id) {
+    unindex(src, d);
+    dst.kids!.splice(j, 0, d);
+    d.id = id;
+    d.parent = dst;
+    dst.byId!.set(id, d);
+    if (changes) {
       d.relocated = true;
       this.structural = true;
-      this.moves.push({ from: at, to: [...parent, id] });
+      this.moves.push({ from: at, to });
     }
-    d.id = id;
   }
 
   private replace(at: Address, node: Node) {
@@ -398,32 +528,32 @@ export class Work {
     const n = this.normalizer ? this.normalizer.node(node) : node;
     const old = this.finalize(d);
     if (hashNode(n) === hashNode(old)) return; // equal by hash: keeps the old object
-    this.inverse.push({ op: 'replace', at, node: old });
-    const next = draftOf(n, d.origin, d.oldAddress, true);
+    this.push({ op: 'replace', at, node: old }, { kind: 'node', draft: d });
+    const next = draftOf(n, d.origin, d.oldAddress, true, d.parent);
     next.relocated = d.relocated;
     // what the old node held is made over at its address; a node moved into it from elsewhere is gone
     if (d.kids) for (const k of d.kids) this.gone.push({ draft: k, cover: d.oldAddress });
-    if (!at.length) this.root.draft = next;
+    d.detached = true;
+    if (!d.parent) this.root.draft = next;
     else {
-      const p = this.find(at.slice(0, -1))!;
-      const kids = this.kids(p);
+      const kids = d.parent.kids!;
       kids[kids.indexOf(d)] = next;
+      if (d.id !== undefined && d.parent.byId!.get(d.id) === d) d.parent.byId!.set(d.id, next);
     }
     this.structural = true;
+    this.listener?.made(next, d);
   }
 
-  /** Sets a value at a path inside a draft's params (a ref rewritten): not written by an op. */
-  rewrite(path: TreePath, value: string) {
-    const found = this.findPath(path);
-    if (!found || found.rest[0] !== 'params' || typeof found.rest[1] !== 'string') return;
-    const { draft: d, rest } = found;
-    const key = rest[1] as string;
+  /** Sets a value at `rel` (`['params', key, …]`) in a draft (a ref rewritten): not written by an op. */
+  rewrite(d: Draft, rel: TreePath, value: string) {
+    if (rel[0] !== 'params' || typeof rel[1] !== 'string') return;
+    const key = rel[1];
     const old = d.params ? own(d.params, key) : undefined;
     if (old === undefined) return;
-    const next = setIn(old, rest.slice(2), value);
+    const next = setIn(old, rel.slice(2), value);
     if (next === old) return;
     d.params = { ...d.params, [key]: next };
-    this.touch(d, 'params', key, false);
+    this.touch(d, 'params', key, 'rewrite');
   }
 
   /** The node a draft stands for now. */

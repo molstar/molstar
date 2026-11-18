@@ -14,7 +14,7 @@ import { defineLanguage } from '../schema/check.js';
 import type { Language } from '../schema/language.js';
 import { hashNode, type Node, type Value } from '../tree/index.js';
 import { patchLanguage, patchToNode } from './language.js';
-import type { ApplyOptions, Patch, PatchResult } from './patch.js';
+import type { ApplyOptions, Changes, Patch, PatchResult } from './patch.js';
 
 export interface PatchCase {
   readonly name: string;
@@ -22,7 +22,16 @@ export interface PatchCase {
   readonly patch: Patch;
   readonly options?: ApplyOptions;
   /** `codes`: the exact set of the result's issue codes. */
-  readonly expect: { readonly ok: boolean; readonly root?: Node; readonly codes?: readonly string[] };
+  readonly expect: {
+    readonly ok: boolean;
+    readonly root?: Node;
+    /** The exact set of the result's issue codes. */
+    readonly codes?: readonly string[];
+    /** The result's `changes`, exactly. */
+    readonly changes?: Changes;
+    /** The result's `inverseNeeds`, exactly (none: absent). */
+    readonly inverseNeeds?: { readonly allowDangling?: true; readonly allowRebind?: true };
+  };
 }
 
 /** The language the cases are written in: boxes of leaves, a ref, a list of refs, a column, and a stored patch. */
@@ -44,6 +53,7 @@ export const PatchConformanceLanguage: Language = defineLanguage({
         link: { type: 'ref', doc: 'A ref.' },
         links: { type: 'list', of: { type: 'ref', doc: 'A ref.' }, doc: 'Refs.' },
         step: { type: 'node', language: 'pc.patch', doc: 'A stored patch.' },
+        extra: { type: 'any', doc: 'Anything: a ref in it is text.' },
       },
     },
     leaf: {
@@ -332,7 +342,34 @@ function patchCases(): PatchCase[] {
       expect: { ok: true, root: doc(undefined, box('a', { link: '/z/x' }), box('z', { link: '/z/x' }, leaf('x'))) },
     },
     ok(
-      'a remove then an insert (a diff) passes link integrity',
+      'a remove then an insert (a diff) below what a ref names passes link integrity',
+      {
+        ops: [
+          { op: 'remove', at: ['a', 'y'] },
+          { op: 'insert', parent: ['a'], place: { last: true }, node: leaf('y', { label: 'ay' }) },
+          { op: 'set', at: ['b'], key: 'link', value: '/a' },
+        ],
+      },
+      doc(
+        { title: 'T' },
+        A(undefined, leaf('x', { label: 'ax' }), leaf('y', { label: 'ay' })),
+        B({ label: 'B', link: '/a' }),
+      ),
+      lang,
+    ),
+    no(
+      'a remove then an insert at the address a ref names rebinds it: refused',
+      {
+        ops: [
+          { op: 'remove', at: ['a', 'x'] },
+          { op: 'insert', parent: ['a'], place: { after: null }, node: leaf('x', { label: 'ax2' }) },
+        ],
+      },
+      ['repr.patch.rebound'],
+      lang,
+    ),
+    ok(
+      'a remove then an insert at the address a ref names, the rebinding allowed',
       {
         ops: [
           { op: 'remove', at: ['a', 'x'] },
@@ -340,8 +377,144 @@ function patchCases(): PatchCase[] {
         ],
       },
       doc({ title: 'T' }, A(undefined, leaf('x', { label: 'ax2' }), leaf('y')), B()),
-      lang,
+      { ...lang, allowRebind: true },
     ),
+    {
+      name: 'an inserted and a replaced subtree are normalized',
+      root: base(),
+      patch: {
+        ops: [
+          {
+            op: 'insert',
+            parent: [],
+            place: { last: true },
+            node: box('c', { cols: [1, 2] }, box('d', { cols: [3] })),
+          },
+          { op: 'replace', at: ['b'], node: box('b', { label: 'B', link: '/a/x', cols: [4] }, leaf('x')) },
+        ],
+      },
+      options: lang,
+      expect: {
+        ok: true,
+        root: doc(
+          { title: 'T' },
+          A(),
+          box('b', { label: 'B', link: '/a/x', cols: new Float32Array([4]) }, leaf('x')),
+          box('c', { cols: new Float32Array([1, 2]) }, box('d', { cols: new Float32Array([3]) })),
+        ),
+        changes: { made: [['b'], ['c']], params: [], children: [[]], removed: [], moved: [] },
+      },
+    },
+    {
+      name: 'a ref follows by its id run, not by its text: /ab stays when /a moves',
+      root: doc(
+        undefined,
+        box('a', undefined, leaf('x')),
+        box('ab', { link: '/ab', links: ['/a/x', '/ab/(range :from 1)'] }),
+      ),
+      patch: { ops: [{ op: 'move', at: ['a'], parent: [], place: { last: true }, rename: 'c' }] },
+      options: lang,
+      expect: {
+        ok: true,
+        root: doc(
+          undefined,
+          box('ab', { link: '/ab', links: ['/c/x', '/ab/(range :from 1)'] }),
+          box('c', undefined, leaf('x')),
+        ),
+        changes: {
+          made: [],
+          params: [{ at: ['ab'], keys: ['links'], where: 'params' }],
+          children: [[]],
+          removed: [],
+          moved: [{ from: ['a'], to: ['c'] }],
+        },
+      },
+    },
+    {
+      name: 'refs in custom data and in an any param are not rewritten',
+      root: doc(undefined, box('a', undefined, leaf('x')), {
+        ...box('r', { extra: '/a/x' }),
+        custom: { link: '/a/x' },
+      }),
+      patch: { ops: [{ op: 'move', at: ['a'], parent: [], place: { last: true }, rename: 'c' }] },
+      options: lang,
+      expect: {
+        ok: true,
+        root: doc(
+          undefined,
+          { ...box('r', { extra: '/a/x' }), custom: { link: '/a/x' } },
+          box('c', undefined, leaf('x')),
+        ),
+      },
+    },
+    {
+      name: 'refs inside the moved subtree to itself move with it',
+      root: doc(undefined, box('a', { link: '/a/x' }, leaf('x', { link: '/a' })), box('b', undefined)),
+      patch: { ops: [{ op: 'move', at: ['a'], parent: ['b'], place: { last: true } }] },
+      options: lang,
+      expect: {
+        ok: true,
+        root: doc(undefined, box('b', undefined, box('a', { link: '/b/a/x' }, leaf('x', { link: '/b/a' })))),
+        changes: {
+          made: [],
+          params: [
+            { at: ['b', 'a'], keys: ['link'], where: 'params' },
+            { at: ['b', 'a', 'x'], keys: ['link'], where: 'params' },
+          ],
+          children: [[], ['b']],
+          removed: [],
+          moved: [{ from: ['a'], to: ['b', 'a'] }],
+        },
+      },
+    },
+    {
+      name: 'ops that interact: a ref written then moved along, an inserted node moved, a set at its new address',
+      root: doc(undefined, box('a', undefined, leaf('x')), box('b', undefined)),
+      patch: {
+        ops: [
+          { op: 'set', at: ['b'], key: 'link', value: '/a/x' },
+          { op: 'insert', parent: ['a'], place: { last: true }, node: leaf('n', { link: '/a/x' }) },
+          { op: 'move', at: ['a'], parent: ['b'], place: { last: true }, rename: 'c' },
+          { op: 'set', at: ['b', 'c', 'n'], key: 'label', value: 'N' },
+          { op: 'move', at: ['b', 'c', 'x'], parent: ['b', 'c'], place: { last: true }, rename: 'x2' },
+        ],
+      },
+      options: lang,
+      expect: {
+        ok: true,
+        root: doc(
+          undefined,
+          box('b', { link: '/b/c/x2' }, box('c', undefined, leaf('n', { link: '/b/c/x2', label: 'N' }), leaf('x2'))),
+        ),
+      },
+    },
+    {
+      name: 'a dangling ref allowed: its inverse needs a rebinding, and says so',
+      root: base(),
+      patch: { ops: [{ op: 'remove', at: ['b'] }] },
+      options: { ...lang, allowDangling: true },
+      expect: {
+        ok: true,
+        root: doc({ title: 'T' }, A()),
+        codes: ['repr.patch.dangling'],
+        inverseNeeds: { allowRebind: true },
+        changes: { made: [], params: [], children: [[]], removed: [['b']], moved: [] },
+      },
+    },
+    {
+      name: 'a remove of content holding a ref that already dangled: the inverse restores it',
+      root: doc(undefined, box('a', { link: '/zz' }, leaf('x', { link: '/zz/y' }))),
+      patch: { ops: [{ op: 'remove', at: ['a'] }] },
+      options: lang,
+      expect: { ok: true, root: doc(undefined) },
+    },
+    {
+      name: 'the inverse of a move never drags a ref the move did not rewrite',
+      root: doc(undefined, box('a', { link: '/c/x' }), box('m', undefined, leaf('x'))),
+      patch: { ops: [{ op: 'move', at: ['m'], parent: [], place: { last: true }, rename: 'c' }] },
+      options: { ...lang, allowRebind: true },
+      expect: { ok: true, root: doc(undefined, box('a', { link: '/c/x' }), box('c', undefined, leaf('x'))) },
+    },
     no(
       'a value outside its range refused',
       { ops: [{ op: 'set', at: ['a'], key: 'size', value: -1 }] },
@@ -467,7 +640,13 @@ export function checkPatches(
     if (!r.changed && hashNode(r.root) !== hashNode(c.root)) fail('unchanged, and the root changed');
     if (r.changed && !r.inverse) fail('changed, and no inverse');
     if (!r.inverse) continue;
-    const back = apply(r.root, r.inverse, { ...c.options, ...r.inverseNeeds, maxOps: Number.POSITIVE_INFINITY });
+    if (c.expect.changes && JSON.stringify(r.changes) !== JSON.stringify(c.expect.changes))
+      fail(`the changes are ${JSON.stringify(r.changes)}`);
+    if ('inverseNeeds' in c.expect && JSON.stringify(r.inverseNeeds) !== JSON.stringify(c.expect.inverseNeeds))
+      fail(`the inverse needs ${JSON.stringify(r.inverseNeeds ?? {})}`);
+    // the inverse with what it needs only: the case's own allowances are not its
+    const { allowDangling: _d, allowRebind: _r, ...own } = c.options ?? {};
+    const back = apply(r.root, r.inverse, { ...own, ...r.inverseNeeds, maxOps: Number.POSITIVE_INFINITY });
     if (!back.ok) fail(`the inverse was refused (${back.issues.map((i) => i.code).join(', ')})`);
     else if (hashNode(back.root) !== hashNode(c.root)) fail('the inverse does not give the root back');
   }

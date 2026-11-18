@@ -223,7 +223,9 @@ quantities need no quotes, and no units table is needed to read them (locations-
   origin (the old root's node and address, or made). Every op is checked whole before it changes anything, and the first
   refused op refuses the patch: the caller's root is never touched. `finalize` shares every untouched subtree. Bounds:
   `maxOps` (10,000; `Infinity` for a diff, so law 1 holds on any diff, `repr.patch.limit`), and depth(parent) +
-  height(node), a value's nesting counted, at most `MaxDepth` (`repr.patch.depth`).
+  height(node), a value's nesting counted, at most `MaxDepth` (`repr.patch.depth`). A materialized parent keeps its kids
+  by id in a `Map` (the first of two with one id) and a count of kids without one, so a lookup, a taken id, a place and
+  the addressable check are O(1) and many ops on one wide parent are not quadratic (a splice stays O(fan-out)).
 - **The inverse** is each op's inverse against the state just before it, in reverse order, with `base` the new revision
   and `result` the old.
 - **With a language** (`ApplyOptions.language`, slots through `validate.languages`), in order after the ops:
@@ -240,27 +242,45 @@ quantities need no quotes, and no units table is needed to read them (locations-
     inserts a node and sets a key on it is not dangling, and a stored patch follows renames and counts in link
     integrity. `place.after` (a bare sibling id) is not rewritten.
   - **The ref index** (`patch/refs.ts`, internal): `RefIndex` answers `under(prefix)` and `dangling()`; this one is on
-    plain `Map`s, cached per root, language and options, and `derive` rebuilds. It is built only for an op that changes
-    an address (a move to another parent, a rename): a reorder within a parent does not.
+    plain `Map`s, cached per root, language and options, and `derive` rebuilds. An apply has one, derived across its ops
+    (`LiveRefs`): the old root's index for what the ops left alone (a site counts while its node is where the moves so
+    far put it, still the old root's, and its key untouched), and an overlay, by the draft that holds it, for each key
+    an op set or a rewrite changed and each node an op made. The old root's index is built only when an op changes an
+    address (a move to another parent, a rename, an insert, a remove, a replace); a patch of sets and reorders builds
+    none.
   - **Validation** (`validateChanges` in `repr/schema`, on the net `Changes`): a made node whole (its subtree, kept
     children under a changed kind included, its parent rule, a root's kind); a node whose params changed, for the
     changed keys and that no unset key is required; a moved node, for its parent rule; a changed child list, for the
     uniqueness of the ids the change brought. A path copy is checked for nothing, so an error present before is never
     reported again and only what the patch introduced refuses it.
-  - **Link integrity**, the old root against the new, never op by op, so a remove-then-insert passes. Dangling: a ref of
-    the new root naming no node that named one in the old root or was written by the patch (made, or a key an op set),
-    `repr.patch.dangling`, a warning with `allowDangling`. Rebound: a ref the patch did not change that named no node
-    and names one now, `repr.patch.rebound`, unless `allowRebind`. Without an op that changes an address, only the refs
-    the patch wrote are read.
+  - **Link integrity**, the old root against the new, never op by op. Read through the apply's index: the refs the ops
+    wrote, made or rewrote, and the old root's under an address the patch changed (removed, made, moved from or to).
+    - Dangling: a ref naming no node that named one in the old root or was written by the patch (made, or a key an op
+      set), `repr.patch.dangling`, a warning with `allowDangling`. A ref in made content that was in the old root with
+      the same value at the same address and dangled there is not written: a replace that keeps it is not refused.
+    - Rebound: a ref the patch did not change whose target changed identity, `repr.patch.rebound` unless `allowRebind`:
+      it named no node and names one now, or the node it named was removed or moved away and its address names another
+      node. A ref a move rewrote is judged the same way, by what it named before and names now. Identity is lineage: the
+      old root's node a draft descends from; a replacement is an edit in place (its node, and below it a node at an id
+      the old node had, keep the old identity), an inserted node has none. So a remove then an insert at the address a
+      ref names rebinds it, and one below what a ref names passes.
   - **The language's validators** (`validators`), last: `(before, after, changes) => issues`, an error refusing.
 - **The result check**: a `result` other than the new revision is `repr.patch.result`.
 - **`Changes`** (declared in `repr/schema`, re-exported here) is net: one entry a node whatever ops reached it; `made`
   and `children` in the new root, `removed` in the old (the top of each removed subtree, and a node moved into it from
   elsewhere at its own old address), `moved` from old to new; a made node is not also in `params` or `children`; a node
   removed after other ops changed it is only in `removed`; a reorder is in `children` only; ref rewrites are `params`.
+- **The inverse's restoring sets**: every ref the inverse's moves would take along without the forward patch having
+  rewritten it gets a `set` of its key's old value at the end of the inverse. Each ref is followed from where the
+  inverse has it (the new root, the op restoring its key, or the content a remove or replace restores, by lineage)
+  through the inverse's later moves; one that would not end as the old root has it is set back. So a move back never
+  drags a ref the move forward did not touch.
 - **The allowances turned around** (`inverseNeeds`): a patch that left refs dangling has an inverse that rebinds them
-  (`allowRebind`), and the other way. Under `allowRebind`, a rebound ref gets an explicit `set` at the end of the
-  inverse, so a move back that takes it along with the rewritten refs restores it.
+  (`allowRebind`); one that rebound refs, an inverse that needs both. The inverse also needs `allowDangling` when it
+  writes a ref that dangled in the old root (a restoring set, or content it restores: an inverse's restored content is
+  made, and the old root of the inverse does not hold it, so the "same place" exception cannot see it), and
+  `allowRebind` when it makes again content an old root's ref named (from the inverse's side, a node it made). Law 3
+  holds with these only: the patch's own allowances are not the inverse's.
 - **Issue paths**: an issue about the spec has the new root's path and address; one about an op the patch tree's
   (`['children', i, 'params', key]`, as `patchToNode` lays it out). Codes: `repr.patch.*` (`PatchIssues`).
 - **`diff(a, b)`** (`patch/diff.ts`): `base` and `result` the two revisions. Merkle descent (equal hashes skipped);
@@ -276,8 +296,9 @@ quantities need no quotes, and no units table is needed to read them (locations-
   language); `AnyPatchLanguage` over none (embedded nodes `any`). `patchFromNode` reads it back, a malformed op
   `repr.patch.op` at its path.
 - **The conformance suite** (`patch/conformance.ts`, `@molstar/core/repr/patch/conformance`): `PatchCases`, each with
-  its options, and `checkPatches(apply, cases?)`: the result and its codes as expected, the root by hash, the caller's
-  root unchanged, and every inverse giving the root back. A language runs it with its own cases.
+  its options, and `checkPatches(apply, cases?)`: the result and its codes as expected, the root by hash, the `changes`
+  and `inverseNeeds` where a case gives them, the caller's root unchanged, and every inverse giving the root back
+  applied with its `inverseNeeds` only (the case's allowances stripped). A language runs it with its own cases.
 
 ## Tests
 

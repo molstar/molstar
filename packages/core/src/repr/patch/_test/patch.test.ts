@@ -121,6 +121,77 @@ describe('repr/patch: Changes are net', () => {
   });
 });
 
+describe('repr/patch: the inverse, with what it needs only', () => {
+  const back = (root: Node, patch: Patch, options: ApplyOptions) => {
+    const r = applied(root, patch, options);
+    const undo = applyPatch(r.root, r.inverse!, { ...lang, ...r.inverseNeeds });
+    expect(undo.ok && hashNode(undo.root)).toBe(hashNode(root));
+    return r;
+  };
+
+  it('undoes a remove whose content held a ref already dangling', () => {
+    back(doc(box('a', { link: '/zz' })), { ops: [{ op: 'remove', at: ['a'] }] }, lang);
+    back(
+      doc(box('a', { link: '/zz' }, leaf('x'))),
+      { ops: [{ op: 'replace', at: ['a'], node: box('a', undefined) }] },
+      lang,
+    );
+  });
+
+  it('a replace that keeps a ref already dangling is not refused for it', () => {
+    const r = applyPatch(
+      doc(box('a', { link: '/zz' })),
+      { ops: [{ op: 'replace', at: ['a'], node: box('a', { link: '/zz', label: 'x' }) }] },
+      lang,
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('a ref whose node was removed and whose address now names another node is rebound', () => {
+    const tree = doc(
+      box('a', undefined, leaf('y')),
+      box('b', undefined, leaf('y')),
+      box('r', { link: '/b/y', links: ['/a/y'] }),
+    );
+    const patch: Patch = {
+      ops: [
+        { op: 'remove', at: ['b'] },
+        { op: 'move', at: ['a'], parent: [], place: { after: null }, rename: 'b' },
+      ],
+    };
+    const refused = applyPatch(tree, patch, lang);
+    expect(refused.ok).toBe(false);
+    expect(refused.issues.map((i) => [i.code, i.path])).toEqual([
+      ['repr.patch.rebound', ['children', 1, 'params', 'link']],
+    ]);
+    const r = back(tree, patch, { ...lang, allowRebind: true });
+    expect(r.root.children![1].params).toEqual({ link: '/b/y', links: ['/b/y'] });
+  });
+
+  it("the inverse's moves never drag a ref the forward patch did not rewrite", () => {
+    // /c/x dangles before and after; the move back of /m (now /c) would take it along
+    const tree = doc(box('a', { link: '/c/x' }), box('m', undefined, leaf('y')));
+    back(
+      tree,
+      { ops: [{ op: 'move', at: ['m'], parent: [], place: { last: true }, rename: 'c' }] },
+      { ...lang, allowRebind: true },
+    );
+    // a ref an op set under the destination, and content removed after the move
+    const two = doc(box('a', { link: '/q' }), box('m', undefined, leaf('y')), box('n', { link: '/c/z' }));
+    back(
+      two,
+      {
+        ops: [
+          { op: 'move', at: ['m'], parent: [], place: { last: true }, rename: 'c' },
+          { op: 'set', at: ['a'], key: 'link', value: '/c/y' },
+          { op: 'remove', at: ['n'] },
+        ],
+      },
+      { ...lang, allowRebind: true },
+    );
+  });
+});
+
 describe('repr/patch: structural sharing', () => {
   const root = doc(box('a', { label: 'A' }, leaf('x')), box('b', undefined, leaf('z')));
 
