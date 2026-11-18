@@ -20,6 +20,8 @@ config item (or a param) with the recommendation as its default, and listed in g
   format, scaffold checks). Designs updated: format (tagged columns), language-description (column `required`,
   `seq.query.*`), locations-and-queries (`chain` as Nodes, `:of`, quoted `.n` labels, the boundary rule), protocol
   (`AssetReader`, `form`, `list`, row identity, malformed not retried, `over_budget`), data-store (want sets, `evicted`).
+- Stage 6 (lane I, by region): merged after one review round; tables by region, summaries, FASTA with `.fai`,
+  dynamic nodes, the overlay, templates, nested sources, the Gene by region story.
 - Stage 5 (lane H, viewer and views): merged after one review round; the visual pass found two bugs, fixed
   (`c960f158a` buffers kept when they grow; the theme fix: tokens read from the UI root, `theme.source`); gate passed
   2026-11-18 with screenshots of both p53 stories in light and dark.
@@ -30,13 +32,16 @@ config item (or a param) with the recommendation as its default, and listed in g
 
 ## In progress
 
-- Stage 6: lane I (`briefs/i-regions.md`, strong) on `seq/i-regions` from `c960f158a`.
+- Stage 6: lane I merged after one review round (`efb8f9a94`); 730 quick tests, typechecks, lint, format, scaffold
+  checks green. The story "Gene by region" renders in light and dark, but the canvas draws the nested domains 10 to 20 s
+  late (the SVG sooner): a fixer (strong) on `seq/fix-nested-redraw`. The stage 6 gate waits for it.
+- Stage 7: measurement (fast) on `seq/measure` from `efb8f9a94`: frame time, allocation, bundle sizes, the quick lane;
+  heavy-lane bounds and a sizes script.
 
 ## Next
 
-- On lane I's report: verify, review (strong), one fix round, merge (it will need the theme fix merged in: `packages-seq`
-  has it); the stage 6 gate with the new story in light and dark.
-- Stage 7: measure (frame time, allocation, test time, bundle size).
+- Merge the fix; screenshot the story again; pass the stage 6 gate.
+- Merge the measurement; the stage 7 report (the targets for the author to confirm); then finalize.
 
 ## Decisions taken (awaiting the author)
 

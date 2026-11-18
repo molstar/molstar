@@ -100,13 +100,13 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 ### Stage 6: by region (lane I, strong, after stage 5)
 
-- [ ] I1 (4a) a synthetic asynchronous `seq` source with a fake clock: coverage, levels, tiles, pending vs empty,
+- [x] I1 (4a) a synthetic asynchronous `seq` source with a fake clock: coverage, levels, tiles, pending vs empty,
       errors, cancellation, eviction, summaries (value pyramids); planning through the static codon map; then FASTA
       with its index (read whole: Gate 0)
-- [ ] I2 (4b) dynamic nodes: a transcript with its item coordinate system and codon map; the overlay; planning through
+- [x] I2 (4b) dynamic nodes: a transcript with its item coordinate system and codon map; the overlay; planning through
       a dynamic map; node lifetime against eviction
-- [ ] I3 (4c) the transcript's domains as a nested source, shown by a track template
-- [ ] I4 a story: p53's gene region by region, transcripts arriving
+- [x] I3 (4c) the transcript's domains as a nested source, shown by a track template
+- [x] I4 a story: p53's gene region by region, transcripts arriving
 - [ ] GATE: review (strong)
 
 ### Stage 7: measure (orchestrator, light)
