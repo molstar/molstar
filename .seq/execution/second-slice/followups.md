@@ -71,3 +71,11 @@
 - (Stage 4 gate, third slice) The protein and its gene on one axis, one under the other: the protein's letters drawn
   on the gene section through the codon map (a residue a codon wide, introns skipped), as a letters layer on another
   system's axis (today refused: `seq.render.layer.letters`). Not in the third slice's draft; its p53 views want it.
+- (T) Export `projectPoint` from `@molstar/seqx-core/resolve`; drop the viewer's copy (`pathPoint` in `models/view.ts`).
+- (T, third slice with the reversed follower) `Follow.point` runs a codon split by an intron straight from its first
+  nucleotide, so some gene positions are never a follower's edge (a pan from the gene jumps them): follow each
+  nucleotide of the codon.
+- (T) The `genome-browser` preset without the add, subtract and extend drags (a drag pans there): decide with the
+  presets; context-menu entries for `selection.add` and `selection.subtract`; a cursor moved off-screen on a follower
+  revealing itself by moving the leader.
+- (T) Alt+drag is bound (subtract): a host using Alt+drag for a copy-drag overrides the binding.

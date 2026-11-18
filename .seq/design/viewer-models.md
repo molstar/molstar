@@ -37,7 +37,7 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 - **A scroll group** shares the range only among sections on equal axes (EC-113; `viewport.groupEqualAxes`, true); each
   section keeps its own vertical scroll and width.
 - **A follow** is a section whose viewport is derived from another's through a map: the leader's range projected along
-  the path between their systems, at scale 1, 3 or 1/3 (a codon step); followers never lead (EC-114; `follow.followerMoves`: `ignore`, or `detach`). The ends are the continuous images of the
+  the path between their systems, at scale 1, 3 or 1/3 (a codon step); a move asked of a follower leads: it moves the leader through the inverse of the follow, so the follower lands where it was asked (the author, 2026-11-18: "could we have following in both ways? .. i think we should"; `follow.followerMoves`: `lead`, or `ignore`, or `detach`; EC-114). The ends are the continuous images of the
   leader's (maps.md: continuous within a run), the hull only where an end maps nowhere. A cyclic follower's range past the
   origin wraps (`follow.cyclicArc`: `wrap`, its viewport runs past the axis total and `pieces` splits it; `hull` the
   alternative). For "p53's protein
@@ -78,7 +78,7 @@ with its params as config items. Later: `hoverCard`, `contextMenu`, `snapshots`,
 
 `foundations.preset` (`comfortable`), `density.letterMinPx`, `density.dotMinPx`, `bindings.preset` (`default`),
 `store.cacheBytes` (64 MB), `store.inFlight` (6), `store.tileBins` (1,024), `hover.projectLinked` (true), `hover.closeCodons`, `pointer.rehit` (true: a resting pointer is hit again once per frame in which the layout was rebuilt, so a hover follows a view moving under it, EC-143), `viewport.maxPxPerPosition`, `viewport.groupEqualAxes` (true),
-`viewport.onResize` (`keep-zoom`), `follow.followerMoves` (`ignore`), `follow.cyclicArc` (`wrap`), `navigate.*` (wheel
+`viewport.onResize` (`keep-zoom`), `follow.followerMoves` (`lead`), `follow.cyclicArc` (`wrap`), `navigate.*` (wheel
 zoom step, key pan fraction, wheel coalescing). Each a choice with a default; the slice reads them from a plain default
 object of this shape, and the `ParamDefinition`s come with the settings form.
 

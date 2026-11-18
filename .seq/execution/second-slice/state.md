@@ -42,6 +42,10 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 - Lane S merged (`677da9c86`) after a review round and the look: the p53 Edit and undo, Bookmarks and links and
   Selection stories, the Features and Examples pages. The look found a renderer bug from before: a ranges item's
   pieces in different tiles were dropped as repeats (WRAP53's second exon); fixed by key and start (`b73d3199b`).
+- The author used the stories (stage 4's gate): a reversed follower and one axis for protein and gene placed in the
+  third slice's first stage; lane T merged after one review round: several ranges in one selection, followers that
+  lead (`lead`, the author: "could we have following in both ways?"), the far-zoom hover; the Editing story's host
+  stand-in explained; the fold-back made a step of every close (the author's rule, `_checks/closed-work.ts`).
 
 ## Next
 
@@ -51,7 +55,7 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Waiting for the author
 
-- Stage 4's gate: use the p53 stories (Examples/p53, Features) in a visible browser; findings fixed or listed.
+- Stage 4's gate: the rest of the author's use of the stories, after lane T (multi-range selection, followers leading).
 
 ## Decided
 
