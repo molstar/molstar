@@ -58,3 +58,9 @@
 - (P) Projected selection bands are rounded at intron edges; the frame rule wants a piece's cut ends square (a
   projection-aware cut flag). The keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum width
   or a caret).
+- (S) A link followed before the viewer's spec is loaded is refused ("names nothing"), not kept; and a focus kept until
+  the view is placed does not record its address (`focusAddress()` reads the shown range). The example story holds
+  the link itself; the viewer should treat "no spec yet" as waiting and record the focus when the kept move lands.
+- (S) The Features links story's `describeRun` prints a wait's message twice (the example uses `describeLinkRun`);
+  `example-root.ts` keeps its own copy of the SVG-follow block (`_stories/follow-svg.ts`).
+- (S) A `track.add` command in the viewer (the example inserts a track with a plain patch).
