@@ -202,7 +202,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 3: selection and security (one strong lane, one fast; after stage 2)
 
-- [ ] P (strong) selection, highlights and the cursor:
+- [x] P (strong) selection, highlights and the cursor (merged `0aa6cd57a` after one review round and the author's look feedback):
   - `SelectionModel` (element keys and a Location, the anchor, the cursor), `HighlightModel` (channels; the pass exists
     and is empty);
   - the default preset's click, Shift-click and drag-select bindings and the keyboard cursor;
@@ -219,7 +219,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
     86, 91, 179);
   - SVG output escaping tested with hostile labels;
   - the headless policy's root and hosts.
-- [ ] GATE: merged, reviewed with the look (selection on both p53 views, light and dark), the checks green.
+- [x] GATE: merged, reviewed with the look (selection on both p53 views, light and dark), the checks green (2026-11-18).
 
 ### Stage 4: stories and use (orchestrator, light)
 

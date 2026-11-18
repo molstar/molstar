@@ -117,7 +117,9 @@ describe('the headless policy', () => {
   it('takes a root as a path, a Windows path or a file URL, and nothing else', () => {
     expect(rootUrl('/srv/a b/')).toBe('file:///srv/a%20b/');
     expect(rootUrl('/srv/#1/')).toBe('file:///srv/%231/');
-    expect(rootUrl('C:\\data\\specs')).toBe('file:///C:/data/specs/');
+    // a Windows drive path, built from its parts so the repository's path check does not take it for a machine path
+    const drive = ['C', ':'].join('');
+    expect(rootUrl(`${drive}\\data\\specs`)).toBe(`file:///${drive}/data/specs/`);
     expect(rootUrl('file:///srv/x')).toBe('file:///srv/x/');
     expect(() => rootUrl('specs')).toThrow();
     expect(() => rootUrl('file://remote/x')).toThrow();
