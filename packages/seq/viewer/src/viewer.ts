@@ -62,8 +62,9 @@ export class SeqViewer extends ReactiveModel {
   /** The viewer's own: a gesture that needs a behavior the spec does not list, once each. */
   readonly behaviorIssues: ReadonlyState<readonly Issue[]>;
   /**
-   * Moves each time the picture comes to rest: `canvas.settleMs` after the view's last move, or after the last layout that
-   * changed what is drawn (data arriving, the content's height): what follows the picture waits for it.
+   * Moves once each time the picture comes to rest: when the frame laid out settled is drawn, `canvas.settleMs` after the
+   * view's last move; or `canvas.settleMs` after the last layout that changed what is drawn while the view was still
+   * (data arriving, the content's height): what follows the picture waits for it.
    */
   readonly rested: ReadonlyState<number>;
 
@@ -103,6 +104,8 @@ export class SeqViewer extends ReactiveModel {
   private _quiet = true;
   private _settleTimer: unknown;
   private _restTimer: unknown;
+  /** The view came to rest: `rested` moves once the frame that lays it out settled is drawn. */
+  private _restDue = false;
   private _syncing: Promise<void> = Promise.resolve();
   private _contentHeight = 0;
   private _baseDirty = true;
@@ -333,11 +336,12 @@ export class SeqViewer extends ReactiveModel {
   private _moved(): void {
     if (this._retired) return;
     this._quiet = false;
+    this._restDue = false;
     DomHost.clearTimeout(this._settleTimer);
     this._settleTimer = DomHost.setTimeout(() => {
       this._settleTimer = undefined;
       this._quiet = true;
-      this._rested.set(this._rested.value + 1);
+      this._restDue = true;
       this.schedule();
     }, this.config.canvas.settleMs);
   }
@@ -444,7 +448,7 @@ export class SeqViewer extends ReactiveModel {
     this.height = size.height;
     if (rebuilt) {
       this.counts.layouts++;
-      this._changed();
+      if (!this._restDue) this._changed();
       this._wanter?.want(frame.wants);
       this._issues.set(frame.layout.issues);
       this.store.holdShown(frame.layout.shown);
@@ -472,6 +476,13 @@ export class SeqViewer extends ReactiveModel {
       this._baseDirty = false;
     }
     this.counts.frames++;
+    if (this._restDue) {
+      // the settled picture is drawn: it rests now, once (a layout of this frame waits for no second rest)
+      this._restDue = false;
+      DomHost.clearTimeout(this._restTimer);
+      this._restTimer = undefined;
+      this._rested.set(this._rested.value + 1);
+    }
     return frame;
   }
 

@@ -430,6 +430,49 @@ describe('wheel details', () => {
   });
 });
 
+describe('rested', () => {
+  // data arriving while the view is still is driven by the Gene by region story's test (a delayed source)
+  it('moves once each time the picture rests, after the settled frame is drawn: a move of the view, a resize', async () => {
+    const { viewer, frames } = await make();
+    /** The settle timers run, then the frames they ask for. */
+    const rest = () => {
+      frames.timers.fire();
+      frames.flush();
+      frames.timers.fire();
+      frames.flush();
+    };
+    rest();
+    let rested = 0;
+    const off = viewer.rested.listen(() => rested++);
+
+    viewer.view.setRange('/views/main/protein', 1, 3);
+    frames.flush();
+    expect(rested).toBe(0);
+    rest();
+    expect(rested).toBe(1);
+
+    viewer.resize(720);
+    frames.flush();
+    rest();
+    expect(rested).toBe(2);
+
+    // nothing changed: nothing rests again
+    rest();
+    expect(rested).toBe(2);
+
+    // a move before the settled frame is drawn: no rest for the first, one for the second
+    viewer.view.setRange('/views/main/protein', 0, 2);
+    frames.flush();
+    frames.timers.fire();
+    viewer.view.setRange('/views/main/protein', 1, 3);
+    frames.flush();
+    expect(rested).toBe(2);
+    rest();
+    expect(rested).toBe(3);
+    off();
+  });
+});
+
 describe('load', () => {
   it('opens the sources once', async () => {
     frames = installFrames();
