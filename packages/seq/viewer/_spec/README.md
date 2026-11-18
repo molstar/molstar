@@ -221,7 +221,9 @@ syncing sources), with the `address.*` settings as bounds.
   is not placed yet (no width, no length) is kept as the view's intent and reported not done
   (`Kept until the view is placed`), never `Focused`; the address is the focus (`focusAddress()`) once the kept move
   lands. Before any spec is set (`SpecModel.loaded` false: the empty spec a viewer starts with) every address waits, so
-  a link followed before the document arrives is kept and runs when it is set (`spec.root`).
+  a link followed before the document arrives is kept and runs when it is set (retried with the refs' state). The record
+  waits on the sections the move moved alone, and ends at another jump (a focus, back, forward) or when a new spec leaves
+  the address naming nothing (`seq.address.missing`).
 - **The session follows the spec**: `followMoves(changes.moved)`, called before a patch's root is set (the spec model's
   `beforeCommit`, so every commit's moves reach it), rewrites the session's addresses (selection, highlights, the
   waiting and the last focus) through moves and renames as the spec's refs are; on each new root they are resolved
