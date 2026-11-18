@@ -607,8 +607,13 @@ export class SeqViewer extends ReactiveModel {
       store: this.store.store,
       dpr: this.dpr,
       tokens: this.tokens,
-      // what the canvas shows of the session: the selection
-      ...(this._emphasis.selection ? { emphasis: { selection: this._emphasis.selection } } : {}),
+      // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it
+      // over what it holds), else as its Location
+      ...(this.selection.value.value.address !== undefined
+        ? { selection: this.selection.value.value.address }
+        : this._emphasis.selection
+          ? { emphasis: { selection: this._emphasis.selection } }
+          : {}),
       ...options,
     });
   }

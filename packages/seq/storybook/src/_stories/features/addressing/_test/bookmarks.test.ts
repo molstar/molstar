@@ -6,6 +6,10 @@
 
 import { FeatureViews, P53Views } from '@molstar/seqx-examples';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
+import { createSeqContext } from '@molstar/seqx-core/context';
+import { SeqRuntime } from '@molstar/seqx-core/data';
+import { locationsEqual } from '@molstar/seqx-core/query';
+import { recordDrawLists } from '@molstar/seqx-core/render';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -114,5 +118,32 @@ describe('Bookmarks, headless', () => {
       to: '/data/tp53-region/(range :from 2101 :to 2780)',
       status: 'resolved',
     });
+  });
+
+  it('two consumers of one ref to a dynamic node: the viewer and an export of its own resolve it alike', async () => {
+    const v = await make();
+    await vi.advanceTimersByTimeAsync(4 * DelayMs);
+    expect(v.addresses.select('/refs/t2').done).toBe(true);
+    await vi.advanceTimersByTimeAsync(64);
+    // the export: its own context and store, reading the region itself, resolving the selection's address itself
+    const text = regionSeqText();
+    const ctx = createSeqContext({
+      registry: [{ kind: 'format-runtime', runtime: SeqRuntime }, ...(view.registry?.({ delayMs: 0 }) ?? [])],
+      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+    });
+    const exported = ctx.renderSvg(v.spec.root.value, {
+      size: { width: v.width, height: v.height },
+      ...(v.viewport ? { viewport: v.viewport } : {}),
+      dpr: v.dpr,
+      selection: v.addresses.selectionAddress()!,
+    });
+    await vi.advanceTimersByTimeAsync(1000);
+    const theirs = await exported;
+    ctx.retire();
+    expect(theirs.settled).toBe(true);
+    expect(theirs.selection && locationsEqual(theirs.selection, v.selection.value.value.shown)).toBe(true);
+    const drawn = recordDrawLists(v.frame!.lists, ['selection']);
+    expect(drawn).toContain('rect');
+    expect(recordDrawLists(theirs.lists, ['selection'])).toBe(drawn);
   });
 });

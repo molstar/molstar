@@ -17,7 +17,20 @@ import {
   type Want,
 } from '@molstar/seqx-core/data';
 import { checkSeqSpec } from '@molstar/seqx-core/lang';
-import { OverlayBuilder, type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
+import {
+  isEmptyLocation,
+  type Location,
+  locationOfResult,
+  resolveAddressIn,
+  unionLocations,
+} from '@molstar/seqx-core/query';
+import {
+  OverlayBuilder,
+  overlayQueryModel,
+  type ResolveConfig,
+  resolveSpec,
+  type StaticModel,
+} from '@molstar/seqx-core/resolve';
 import { type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
@@ -145,6 +158,11 @@ export interface RenderSvgOptions {
   readonly idPrefix?: string;
   readonly dpr?: number;
   readonly emphasis?: Emphasis;
+  /**
+   * A selection as an address, resolved by the export itself once its data settled (its own store's nodes, so a ref
+   * to a dynamic node resolves when the export has read it) and drawn with `emphasis.selection`.
+   */
+  readonly selection?: string;
   /** A store to read through (a viewer's): the export wants through a want set of its own. A new one by default. */
   readonly store?: DataStore;
 }
@@ -156,6 +174,8 @@ export interface RenderSvgResult {
   /** The spec's, the view's, the sources' and the render's issues. */
   readonly issues: readonly Issue[];
   readonly lists: DrawLists;
+  /** What `selection` named, as drawn; absent when none was given or it named nothing (then its issues are kept). */
+  readonly selection?: Location;
 }
 
 function wantsKey(wants: readonly Want[]): string {
@@ -260,7 +280,27 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
         break;
       }
     }
-    const frame = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: true });
+    // the selection as an address: resolved over what the export holds now, as a viewer resolves it over its own
+    let selection: Location | undefined;
+    if (options.selection !== undefined) {
+      const q = overlayQueryModel(model, overlays.of(model, store));
+      const r = resolveAddressIn(spec, q, options.selection);
+      if (r.result) selection = locationOfResult(spec, q, r.result).location;
+      else issues.push(...r.issues);
+    }
+    const emphasis =
+      selection && !isEmptyLocation(selection)
+        ? {
+            ...options.emphasis,
+            selection: options.emphasis?.selection ? unionLocations(options.emphasis.selection, selection) : selection,
+          }
+        : options.emphasis;
+    const frame = renderer.frame({
+      ...frameInput,
+      ...(emphasis ? { emphasis } : {}),
+      overlay: overlays.of(model, store),
+      settled: true,
+    });
     issues.push(...frame.layout.issues);
     // what the overlay's sources could not open, while their nodes are held
     issues.push(...nested.issues);
@@ -285,7 +325,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
       metadata: { 'seq-settled': String(settled), ...(domains.length ? { 'seq-domains': domains.join(';') } : {}) },
     });
-    return { svg, settled, issues, lists: frame.lists };
+    return { svg, settled, issues, lists: frame.lists, ...(selection ? { selection } : {}) };
   } finally {
     nested.dispose();
     wanter.dispose();
