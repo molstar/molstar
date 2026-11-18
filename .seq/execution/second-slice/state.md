@@ -7,7 +7,7 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 - Lane K merged (`b3ea63511`): `@molstar/core/repr/patch` and `layer.hidden`; reviewed (opus), both law-3 failures and
   the rest fixed in one round (the fix's 4 tests fail on its parent, checked); the merged tree 14,380 quick tests
   green, the heavy lane 3 runs of 3 after doubling the single-sample bounds. Its drift is in patches.md, for the
-  author to confirm. The look at the p53 stories is still owed (the pane is hidden).
+  author to confirm. The look done after the merge (below).
 
 - Lane R merged (`47b754e25`): `@molstar/core/data/immutable`; reviewed (opus), a lost-collision-bucket delete and the
   rest fixed in one round (the fix fails on its parent, checked); 14,333 quick, 30 allocation, 10 heavy green.
@@ -31,11 +31,10 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## In progress
 
-- Stage 0: S0 merged (`360043baf`); S0b merged. The Gene by region recheck waits for a visible
-  pane (the author asked to show it).
 - Stage 1: R, K, L, M merged; `pnpm build` and `pnpm check:workspace` green on `4eb20f091` (the check had failed on
-  stale ignored outputs in `packages/ui/lib`, removed). Its gate waits only for the look (the p53 stories after K, the
-  Gene by region recheck) in a visible pane.
+  stale ignored outputs in `packages/ui/lib`, removed). The look done in a visible pane (2026-11-18), light and
+  dark (the `theme:dark` global): Tracks, Protein on its gene and Gene by region; canvas and SVG agree, each settled
+  with 0 issues, no console errors; the served `render/tracks.ts` is the merged one. Stages 0 and 1 closed.
 
 ## Next
 

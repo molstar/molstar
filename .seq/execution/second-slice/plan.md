@@ -116,8 +116,8 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - `vitest` in the Storybook package's dev dependencies, and the Vite plugin's test under `src`;
   - the TP53 exon coordinates checked against RefSeq NM_000546. Fixtures only: no network in tests. If unverifiable
     offline, mark it in the fixture and the TODO.
-- [ ] The Gene by region story rechecked in a visible pane (light and dark), with screenshots.
-- [ ] GATE: green; screenshots in the report.
+- [x] The Gene by region story rechecked in a visible pane (light and dark), with screenshots (2026-11-18).
+- [x] GATE: green; screenshots in the report.
 
 ### Stage 1: the base (three lanes in parallel, after Gate 0)
 
@@ -166,7 +166,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
     says otherwise, `redirect: 'error'`, the signal, the size bound), and claims all four in its documentation;
   - the assets `_spec` (`util/_spec/assets.md`), a v6 changelog entry; a public API addition to `@molstar/core`, no
     break.
-- [ ] GATE: merged, reviewed, the checks green; `pnpm check:workspace` after `pnpm build` (core and io changed).
+- [x] GATE: merged, reviewed, the checks green; `pnpm check:workspace` after `pnpm build` (core and io changed) (2026-11-18, `5069216ec`).
 
 ### Stage 2: editing and addressing (two strong lanes, after stage 1)
 
