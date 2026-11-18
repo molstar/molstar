@@ -20,9 +20,9 @@ export function build(): Node {
   const values = b.data.values('conservation', { target: p53, values: conservation() });
   b.views.view('main', (v) => {
     const s = v.section('protein', { of: p53 });
-    s.track('letters', { label: 'p53' }).layer({ type: 'letters' });
-    s.track('domains', { label: 'Domains' }).layer({ type: 'ranges', data: domains });
-    s.track('conservation', { label: 'Conservation' }).layer({ type: 'values', data: values });
+    s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
+    s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: domains });
+    s.track('conservation', { label: 'Conservation' }).layer('values', { type: 'values', data: values });
   });
   return b.build();
 }

@@ -9,8 +9,11 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.0.0` until the first slice runs). Why: one language, one
-  description, one number for readers to check.
+- The language has one version, `LanguageVersion` (`0.1.0`). Why: one language, one description, one number for readers
+  to check.
+- **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
+  spec has an id, `layer` included). A spec in an earlier `0.x` reads as one in this one, and is reported where it no
+  longer fits.
 
 ## Language
 
@@ -19,11 +22,15 @@ checks it cannot express.
 
 - **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data` and `views` (reserved ids of the
   same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
-  `track`, `layer` (ids optional on a layer only). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a
-  coding sequence of its own (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind
-  param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params
-  (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is
-  an address.
+  `track`, `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges`
+  node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each`
+  makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is
+  `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`)
+  are `ref` params naming the kinds they take; a reference is an address.
+- **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
+  language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
+  are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a
+  one-key patch, and `repr/patch` can insert, remove and move under every parent.
 - **Positions** are 0-based, ranges half-open. A range with `start > end` wraps the origin where its sequence is
   `cyclic` and is an error elsewhere; a section's `range` follows the same rule. Strands are `+` or `-`. Exons of a
   codon map are in genomic order and do not overlap (`strand` says which way the protein runs); on a cyclic gene the
@@ -42,6 +49,11 @@ checks it cannot express.
   node of a kind its param takes, that a layer's data is what its type draws (reported once: a kind the param does not
   take is the reference's issue alone; a template's layer without data draws each instance's node), that a template's
   `source` names a source, that `follow` chains end. Extents are checked where the letters are inline.
+- **Patches** are `@molstar/core/repr/patch`'s, applied with `SeqLanguage`: its conformance suite runs over the core's
+  cases and Seq's own (a layer hidden, a track moved with a section's `follow` following a rename, a dangling ref
+  refused, a layer without an id refused), and a 10-op patch on the p53 spec, applied and diffed back, is held under 1
+  ms in the heavy lane (`_test/patches.test.ts`). The `seq.lang.*` checks are not a patch validator yet: an incremental
+  `checkSeqLang` is the viewer's.
 - **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
 
 ## Language builder
@@ -50,7 +62,7 @@ checks it cannot express.
 of it.
 
 - **Handles are addresses, branded by kind**: `Address<'sequence'>` is the string `/data/p53` that says what it names.
-  Every call that adds a node with an id returns its address; a `layer` without an id has none and returns `undefined`.
+  Every call that adds a node takes its id and returns its address, a `layer`'s too (`track.layer(id, params)`).
   Section, track and view builders carry their `address` and a `toString`, and stand where an address of their kind
   does.
 - **A reference param takes** a handle (or builder) of a kind its description allows, or an address written out (any

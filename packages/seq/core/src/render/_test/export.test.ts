@@ -30,7 +30,7 @@ describe('renderSvg', () => {
     expect(values.rects).toBe(30);
     expect(r.svg).toContain('data-seq-settled="true"');
     expect(r.svg).toMatch(
-      /data-seq-domains="\/data\/conservation|data-seq-domains="\/views\/main\/protein\/conservation:0=0,/,
+      /data-seq-domains="\/data\/conservation|data-seq-domains="\/views\/main\/protein\/conservation\/values=0,/,
     );
   });
 

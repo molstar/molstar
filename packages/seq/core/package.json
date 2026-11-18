@@ -83,6 +83,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@molstar/test-harness": "workspace:*"
   }
 }

@@ -18,6 +18,16 @@
       "types": "./lib/data/index.d.ts",
       "import": "./lib/data/index.js"
     },
+    "./repr/patch": {
+      "molstar-src": "./src/repr/patch.ts",
+      "types": "./lib/repr/patch.d.ts",
+      "import": "./lib/repr/patch.js"
+    },
+    "./repr/patch/conformance": {
+      "molstar-src": "./src/repr/patch/conformance.ts",
+      "types": "./lib/repr/patch/conformance.d.ts",
+      "import": "./lib/repr/patch/conformance.js"
+    },
     "./state": {
       "molstar-src": "./src/state/index.ts",
       "types": "./lib/state/index.d.ts",
@@ -93,6 +103,8 @@
     "./repr/codec/_test/*": null,
     "./repr/codecs/json/_test/*": null,
     "./repr/codecs/sexpr/_test/*": null,
+    "./repr/patch/*": null,
+    "./repr/patch/_test/*": null,
     "./repr/schema/_test/*": null,
     "./repr/tree/_test/*": null,
     "./state/_test/*": null,

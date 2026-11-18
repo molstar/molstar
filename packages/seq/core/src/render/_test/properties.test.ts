@@ -127,7 +127,7 @@ describe('draw lists: hits where the marks are', () => {
     const x = f.layout.sections[0].axis!.x(62) + 1;
     const between = hitView(f.layout, x, ranges.box.y + 0.5 * ranges.laneHeight);
     expect(between).toEqual({
-      layer: '/views/main/protein/domains:0',
+      layer: '/views/main/protein/domains/ranges',
       section: 'protein',
       position: 62,
       system: '/data/p53',
@@ -137,7 +137,7 @@ describe('draw lists: hits where the marks are', () => {
     for (let j = 0; j < letters.n; j++) {
       const hit = hitView(f.layout, (letters.x0[j] + letters.x1[j]) / 2, letters.box.y + 1);
       expect(hit).toEqual({
-        layer: '/views/main/protein/letters:0',
+        layer: '/views/main/protein/letters/letters',
         section: 'protein',
         position: letters.pos[j],
         system: '/data/p53',
@@ -193,7 +193,12 @@ describe('draw lists: pure and keyed', () => {
     const again = s.renderer.frame(input);
     expect(again.rebuilt).toBe(false);
     expect(again.key).toBe(key);
-    const hover = { layer: '/views/main/protein/letters:0', section: 'protein', position: 3, system: '/data/p53' };
+    const hover = {
+      layer: '/views/main/protein/letters/letters',
+      section: 'protein',
+      position: 3,
+      system: '/data/p53',
+    };
     const hovered = s.renderer.frame({ ...input, emphasis: { hover } });
     expect(hovered.rebuilt).toBe(false);
     expect(hovered.lists.passes.hover.size).toBe(1);

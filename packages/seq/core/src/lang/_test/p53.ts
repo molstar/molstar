@@ -31,8 +31,8 @@ export function p53Spec(): Node {
   b.data.values('conservation', { target: p53, values: new Float32Array(P53_LETTERS.length).fill(0.5) });
   b.views.view('main', (v) => {
     const protein = v.section('protein', { of: p53 });
-    protein.track('letters').layer({ type: 'letters' });
-    protein.track('domains', { label: 'Domains' }).layer({ type: 'ranges', data: domains });
+    protein.track('letters').layer('letters', { type: 'letters' });
+    protein.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: domains });
     v.section('gene', { of: gene, follow: protein });
   });
   return b.build();

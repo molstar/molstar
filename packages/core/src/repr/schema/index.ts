@@ -14,6 +14,7 @@ export {
   type LanguageCode,
   LanguageIssues,
 } from './check.js';
+export type { Changes, ParamChange, Where } from './changes.js';
 export { languageToMarkdown, signature, withDefaults } from './docs.js';
 export {
   type ArgSpec,
@@ -38,6 +39,7 @@ export {
   declaredColumnPlaces,
   type NormalizeOptions,
   normalize,
+  normalizeValue,
   validateAndNormalize,
 } from './normalize.js';
 export {
@@ -47,5 +49,6 @@ export {
   unionNodeMember,
   type ValidateOptions,
   validate,
+  validateChanges,
   validateValue,
 } from './validate.js';

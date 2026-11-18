@@ -129,16 +129,19 @@ export function transcriptsSpec(
   const gene = b.data.sequence('gene', { alphabet: 'dna', source: genes, name: 'tp53' });
   b.views.view('main', (v) => {
     const s = v.section('gene', { of: gene });
-    s.track('letters').layer({ type: 'letters' });
+    s.track('letters').layer('letters', { type: 'letters' });
     if (options.templates === false) return;
     s.track('transcripts', {
       label: 'Transcript',
       for_each: { source: genes, node_kind: 'ranges', filter: { map: 'codon' } },
-    }).layer({ type: 'ranges' });
+    }).layer('ranges', { type: 'ranges' });
     if (options.domains)
-      s.track('domains', { label: 'Domains', for_each: { source: genes, node_kind: 'ranges', depth: 1 } }).layer({
-        type: 'ranges',
-      });
+      s.track('domains', { label: 'Domains', for_each: { source: genes, node_kind: 'ranges', depth: 1 } }).layer(
+        'ranges',
+        {
+          type: 'ranges',
+        },
+      );
   });
   return b.build();
 }

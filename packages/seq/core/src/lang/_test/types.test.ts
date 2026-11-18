@@ -31,7 +31,7 @@ const wrongKinds = [
       v.section('d', { of: s, follow: r });
       v.section('e', { of: s, follow: sec });
       // @ts-expect-error a source's handle where the kinds of a layer's data are taken
-      sec.track('t').layer({ type: 'ranges', data: b.data.source('x', { format: 'fasta' }) });
+      sec.track('t').layer('ranges', { type: 'ranges', data: b.data.source('x', { format: 'fasta' }) });
     });
   },
 ];

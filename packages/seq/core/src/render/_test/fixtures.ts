@@ -67,9 +67,9 @@ export function p53TracksSpec(): Node {
   const c = b.data.values('conservation', { target: p53, values: conservation() });
   b.views.view('main', (v) => {
     const s = v.section('protein', { of: p53 });
-    s.track('letters', { label: 'p53' }).layer({ type: 'letters' });
-    s.track('domains', { label: 'Domains' }).layer({ type: 'ranges', data: d });
-    s.track('conservation', { label: 'Conservation' }).layer({ type: 'values', data: c });
+    s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
+    s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
+    s.track('conservation', { label: 'Conservation' }).layer('values', { type: 'values', data: c });
   });
   return b.build();
 }
@@ -96,11 +96,11 @@ export function p53GeneSpec(): Node {
   const d = domains(b, p53);
   b.views.view('main', (v) => {
     const protein = v.section('protein', { of: p53 });
-    protein.track('letters', { label: 'p53' }).layer({ type: 'letters' });
-    protein.track('domains', { label: 'Domains' }).layer({ type: 'ranges', data: d });
+    protein.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
+    protein.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
     const g = v.section('gene', { of: gene, follow: protein });
-    g.track('letters', { label: 'TP53' }).layer({ type: 'letters' });
-    g.track('domains', { label: 'Domains on the gene' }).layer({ type: 'ranges', data: d });
+    g.track('letters', { label: 'TP53' }).layer('letters', { type: 'letters' });
+    g.track('domains', { label: 'Domains on the gene' }).layer('ranges', { type: 'ranges', data: d });
   });
   return b.build();
 }
@@ -188,9 +188,9 @@ export function bigSpec(): Node {
   const v = b.data.values('signal', { target: chr, source: src });
   b.views.view('main', (view) => {
     const s = view.section('chr', { of: chr });
-    s.track('letters').layer({ type: 'letters' });
-    s.track('items').layer({ type: 'ranges', data: r });
-    s.track('signal').layer({ type: 'values', data: v });
+    s.track('letters').layer('letters', { type: 'letters' });
+    s.track('items').layer('ranges', { type: 'ranges', data: r });
+    s.track('signal').layer('values', { type: 'values', data: v });
   });
   return b.build();
 }

@@ -11,7 +11,7 @@ import { hashNode, type Node } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import { LanguageVersion } from '../../index.js';
 import { createSeqSpec } from '../builder.js';
-import { checkSeqSpec } from '../check.js';
+import { checkSeqLang, checkSeqSpec } from '../check.js';
 import { LangIssues } from '../issues.js';
 import { SeqLanguage, SeqLanguageVersion } from '../language.js';
 import { EXONS, P53_LETTERS, p53Spec } from './p53.js';
@@ -40,11 +40,11 @@ describe('the p53 example', () => {
 
   it('prints as the description shows it', () => {
     const text = printSexpr(spec, { head: 64 });
-    expect(text).toContain('(spec :version 0.0.0 :title p53');
+    expect(text).toContain(`(spec :version ${SeqLanguageVersion} :title p53`);
     expect(text).toContain(`(sequence p53 :alphabet protein :letters ${P53_LETTERS}`);
     expect(text).toContain('(map p53-on-gene');
     expect(text).toContain(':follow /views/main/protein');
-    expect(text).toContain('(layer :type ranges :data /data/domains)');
+    expect(text).toContain('(layer ranges :type ranges :data /data/domains)');
   });
 
   it('encodes as JSON both ways and back', () => {
@@ -81,6 +81,11 @@ describe('the p53 example', () => {
 /** One spec for each code of the catalog: valid for the description, wrong in the language's own way. */
 const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
   'seq.lang.version.unsupported': () => createSeqSpec({ version: '1.0.0' }).build(),
+  'seq.lang.id.required': () => ({
+    kind: 'spec',
+    params: { version: SeqLanguageVersion },
+    children: [{ kind: 'data', id: 'data', children: [{ kind: 'ext:note' }] }],
+  }),
   'seq.lang.container.id': () => ({
     kind: 'spec',
     params: { version: '0.0.0' },
@@ -178,7 +183,7 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
     b.views.view('v', (v) => {
-      v.section('sec', { of: s }).track('t').layer({ type: 'ranges', data: s });
+      v.section('sec', { of: s }).track('t').layer('ranges', { type: 'ranges', data: s });
     });
     return b.build();
   },
@@ -279,7 +284,7 @@ describe('the gates and the places', () => {
     b.views.view('v', (v) => {
       v.section('sec', { of: s })
         .track('t')
-        .layer({ type: 'ranges', data: src as never });
+        .layer('ranges', { type: 'ranges', data: src as never });
     });
     expect(b.check().map((i) => i.code)).toEqual(['seq.lang.ref.target']);
   });
@@ -383,5 +388,61 @@ describe('the misuses', () => {
     b.data.sequence('s', { alphabet: 'dna', letters: 'A' });
     expect(() => b.data.sequence('s', { alphabet: 'dna', letters: 'A' })).toThrow(/twice/);
     expect(() => b.data.sequence('a b', { alphabet: 'dna', letters: 'A' })).toThrow(/not an id/);
+  });
+
+  it('require an id on every child of the spec: a layer by the description, an extension’s kind by the language', () => {
+    const layer = (id?: string): Node => ({
+      kind: 'spec',
+      params: { version: SeqLanguageVersion },
+      children: [
+        {
+          kind: 'data',
+          id: 'data',
+          children: [{ kind: 'sequence', id: 's', params: { alphabet: 'dna', letters: 'A' } }],
+        },
+        {
+          kind: 'views',
+          id: 'views',
+          children: [
+            {
+              kind: 'view',
+              id: 'v',
+              children: [
+                {
+                  kind: 'section',
+                  id: 'sec',
+                  params: { of: '/data/s' },
+                  children: [
+                    {
+                      kind: 'track',
+                      id: 't',
+                      children: [{ kind: 'layer', ...(id ? { id } : {}), params: { type: 'letters' } }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(checkSeqSpec(layer('l'))).toEqual([]);
+    expect(checkSeqSpec(layer()).map((i) => [i.code, i.address])).toEqual([['repr.schema.id.missing', undefined]]);
+    // an extension's kind with an id passes, its children checked as the language's
+    const ext = Misuses['seq.lang.id.required']();
+    const withId: Node = { ...ext, children: [{ ...ext.children![0], children: [{ kind: 'ext:note', id: 'n' }] }] };
+    expect(checkSeqSpec(withId).map((i) => i.code)).toEqual(['repr.schema.kind.extension']);
+    expect(checkSeqSpec(ext).map((i) => [i.code, i.path])).toEqual([
+      ['repr.schema.kind.extension', ['children', 0, 'children', 0, 'kind']],
+      ['seq.lang.id.required', ['children', 0, 'children', 0]],
+    ]);
+    // the language's checks alone leave a kind of the description to it: no second issue for one missing id
+    expect(checkSeqLang(layer()).map((i) => i.code)).toEqual([]);
+    // a layer through the builder takes an id
+    const b = createSeqSpec();
+    b.views.view('v', (v) => {
+      // @ts-expect-error: a layer needs an id
+      expect(() => v.section('s', { of: '/data/s' }).track('t').layer({ type: 'letters' })).toThrow(/needs an id/);
+    });
   });
 });

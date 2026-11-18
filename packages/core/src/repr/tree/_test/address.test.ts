@@ -17,8 +17,10 @@ import {
   type Segment,
   type Selected,
   printAddress,
+  resolveAddress,
   selectAddress,
 } from '../index.js';
+import { ChildIndexThreshold, childIndex } from '../address.js';
 
 const print = (p: AddressPattern) => printAddress(p.segments, p.subtree);
 
@@ -294,5 +296,32 @@ describe('repr/tree: a numeric-looking key', () => {
     const ids = (a: string) => selectAddress(tree, a, { limit: 9 }).matches.length;
     expect(ids('/(chain :id "1")')).toBe(1);
     expect(ids('/(chain :id 1)')).toBe(0);
+  });
+});
+
+describe('repr/tree: the child index', () => {
+  const wide = (n: number): Node => ({
+    kind: 'p',
+    children: Array.from({ length: n }, (_, i) => ({ kind: 'c', id: `c${i}`, params: { i } })),
+  });
+
+  it('finds a child by id below and above the flat threshold, the first of two with one id', () => {
+    for (const n of [ChildIndexThreshold, ChildIndexThreshold + 1, 1000]) {
+      const tree = wide(n);
+      expect(childIndex(tree.children, `c${n - 1}`)).toBe(n - 1);
+      expect(resolveAddress(tree, [`c${n - 1}`])?.params?.i).toBe(n - 1);
+      expect(childIndex(tree.children, 'nope')).toBe(-1);
+      const twice = [...tree.children!, { kind: 'c', id: 'c0', params: { i: -1 } }];
+      expect(childIndex(twice, 'c0')).toBe(0);
+    }
+    expect(childIndex(undefined, 'a')).toBe(-1);
+  });
+
+  it('is per children array: a path copy is indexed again', () => {
+    const tree = wide(20);
+    expect(childIndex(tree.children, 'c5')).toBe(5);
+    const copy = [{ kind: 'c', id: 'new' }, ...tree.children!];
+    expect(childIndex(copy, 'c5')).toBe(6);
+    expect(childIndex(tree.children, 'c5')).toBe(5);
   });
 });

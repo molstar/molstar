@@ -240,8 +240,16 @@ type PatchResult =
 - **The inverse and the allowances** (R2-S2):
   - A patch applied with `allowDangling` has an inverse that makes those refs resolve again. `inverseNeeds` says that
     inverse needs `allowRebind`, and the same holds the other way.
-  - A patch that removes or replaces content holding refs already dangling needs no allowance to be undone: those refs
-    are not "written" by the inverse (above).
+  - A patch that removes content holding refs already dangling has an inverse that needs `allowDangling`
+    (`inverseNeeds` says so): the inverse's insert makes that content again, and a patch carries nothing to tell it
+    from new content. The allowance only ever lets through refs that dangled in the forward patch's old root, so law 3
+    holds (lane K; the orchestrator's call, for the author to confirm). A replace that keeps such a ref at the same
+    place needs nothing: the ref is not "written" (above).
+  - `inverseNeeds` is conservative: an inverse of a patch that rebound refs needs both allowances, and one that makes
+    again content some ref of the old root named needs `allowRebind`. Precise needs would mean link integrity run on
+    the inverse.
+  - **A replace is an edit in place**: the node keeps its identity, and so do its children at ids the old node had (an
+    inserted node has none). A ref into a node whose kind a diff changed is therefore not rebound.
   - **Every ref the inverse's moves would take along without the forward patch having rewritten it** gets an explicit
     restoring `set` in the inverse (K's review: not only refs that were rebound). So a move back never drags a ref the
     move forward did not touch: a ref under the move's destination address that dangled before and after, or one that

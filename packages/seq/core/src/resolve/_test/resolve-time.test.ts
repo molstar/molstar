@@ -39,9 +39,9 @@ function bigSpec(sequences = 100): Node {
   b.views.view('main', (view) => {
     ids.forEach(({ s, r, v }, i) => {
       const sec = view.section(`sec${i}`, { of: s });
-      sec.track('letters').layer({ type: 'letters' });
-      sec.track('ranges').layer({ type: 'ranges', data: r });
-      sec.track('values').layer({ type: 'values', data: v });
+      sec.track('letters').layer('letters', { type: 'letters' });
+      sec.track('ranges').layer('ranges', { type: 'ranges', data: r });
+      sec.track('values').layer('values', { type: 'values', data: v });
     });
   });
   return b.build();

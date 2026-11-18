@@ -29,7 +29,7 @@ function columnsSpec() {
   });
   const v = b.data.values('v', { target: s, values });
   b.views.view('main', (view) =>
-    view.section('s', { of: s }).track('v', { height: 24 }).layer({ type: 'values', data: v }),
+    view.section('s', { of: s }).track('v', { height: 24 }).layer('values', { type: 'values', data: v }),
   );
   return b.build();
 }
@@ -48,7 +48,7 @@ describe('draw-list records', () => {
       size: { width: 640, height: 116 },
       viewport: { start: 84, end: 112 },
       emphasis: {
-        hover: { layer: '/views/main/protein/letters:0', section: 'protein', position: 90, system: '/data/p53' },
+        hover: { layer: '/views/main/protein/letters/letters', section: 'protein', position: 90, system: '/data/p53' },
       },
     });
     expect(r.settled).toBe(true);

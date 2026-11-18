@@ -33,9 +33,9 @@ export function p53GeometrySpec(): Node {
   });
   b.views.view('main', (v) => {
     const protein = v.section('protein', { of: p53 });
-    protein.track('domains').layer({ type: 'ranges', data: domains });
+    protein.track('domains').layer('ranges', { type: 'ranges', data: domains });
     const g = v.section('gene', { of: gene, follow: protein });
-    g.track('domains').layer({ type: 'ranges', data: domains });
+    g.track('domains').layer('ranges', { type: 'ranges', data: domains });
   });
   return b.build();
 }

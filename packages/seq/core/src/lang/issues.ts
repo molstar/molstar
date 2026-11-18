@@ -16,6 +16,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A spec is written in a newer major version of the language than this one reads',
     hint: 'Read it with a newer version of the library, or migrate the spec down',
   },
+  'seq.lang.id.required': {
+    severity: 'error',
+    description: 'A node of the spec has no id (an extension kind’s too), so it cannot be addressed or patched',
+    hint: 'Give the node an id unique among its siblings',
+  },
   'seq.lang.container.id': {
     severity: 'error',
     description: 'A `data` container has an id other than `data`, or a `views` container one other than `views`',

@@ -41,7 +41,7 @@ function tinySpec() {
   const b = createSeqSpec({ title: 'tiny' });
   const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDP' });
   b.views.view('main', (v) => {
-    v.section('protein', { of: p }).track('letters').layer({ type: 'letters' });
+    v.section('protein', { of: p }).track('letters').layer('letters', { type: 'letters' });
   });
   return b.build();
 }

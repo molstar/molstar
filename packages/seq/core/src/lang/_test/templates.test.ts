@@ -20,8 +20,8 @@ describe('track templates', () => {
       const s = v.section('gene', { of: gene });
       s.track('transcripts', {
         for_each: { source, node_kind: 'ranges', depth: 0, order: '-key', filter: { map: 'codon' } },
-      }).layer({ type: 'ranges', ...(data ? { data: '/data/cds' } : {}) });
-      s.track('plain').layer({ type: 'ranges' });
+      }).layer('ranges', { type: 'ranges', ...(data ? { data: '/data/cds' } : {}) });
+      s.track('plain').layer('ranges', { type: 'ranges' });
     });
     return b;
   }

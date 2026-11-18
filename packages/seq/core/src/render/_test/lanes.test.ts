@@ -54,7 +54,9 @@ function spec() {
   const src = b.data.source('src', { format: 'deferred', uri: 'deferred:chr' });
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src });
   const items = b.data.ranges('items', { target: chr, source: src });
-  b.views.view('main', (v) => v.section('chr', { of: chr }).track('items').layer({ type: 'ranges', data: items }));
+  b.views.view('main', (v) =>
+    v.section('chr', { of: chr }).track('items').layer('ranges', { type: 'ranges', data: items }),
+  );
   return b.build();
 }
 

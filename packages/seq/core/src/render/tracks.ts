@@ -268,7 +268,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       // a track below the page is not laid out: nothing of it is drawn or asked for
       if (axis && y < height)
         for (const layer of track.layers) {
-          if (!layer.placed) continue;
+          if (!layer.placed || layer.params.hidden === true) continue; // a hidden layer is not drawn
           const key = layerKey(track, layer);
           const type = layer.fallbacks.map((t) => types[t]).find((t) => t !== undefined);
           if (!type) {
