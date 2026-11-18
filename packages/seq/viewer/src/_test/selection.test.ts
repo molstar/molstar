@@ -13,6 +13,8 @@ import { nodeAddress } from '@molstar/seqx-core/resolve';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { EditingBehavior } from '../behaviors/editing.js';
 import { viewerItem } from '../config.js';
+import { CanvasBackend } from '../canvas/backend.js';
+import { FakeCanvas } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { installFrames, type Frames } from './frames.js';
@@ -311,6 +313,39 @@ describe('drawn, projected onto linked sections', () => {
     expect(v.frame!.base).toBe(true);
     expect(band(v, 'background', 0).some((l) => l.includes('#8f4c062e'))).toBe(true);
     expect(band(v, 'selection', 0).every((l) => l.includes('stroke'))).toBe(true);
+  });
+});
+
+describe('on the Canvas2D backend', () => {
+  async function mounted(config: readonly (readonly [any, unknown])[] = []) {
+    const v = await make(spec(), config);
+    const base = new FakeCanvas();
+    const overlay = new FakeCanvas();
+    const labels = new FakeCanvas();
+    v.useBackend(new CanvasBackend(base, overlay, labels));
+    frames!.flush();
+    for (const c of [base, overlay, labels]) c.context.take();
+    return { v, base, overlay };
+  }
+
+  it('a selection redraws the overlay alone: its tints and outlines, on both sections', async () => {
+    const { v, base, overlay } = await mounted();
+    const layouts = v.counts.layouts;
+    click(v, at(v, 0, 0, 2));
+    frames!.flush();
+    expect(base.context.take()).toEqual([]);
+    // two tracks on the protein, one on the gene: a tint and an outline each
+    expect(overlay.context.calls('fillRect').length).toBeGreaterThanOrEqual(3);
+    expect(overlay.context.calls('strokeRect').length).toBeGreaterThanOrEqual(3);
+    expect(v.counts.layouts).toBe(layouts);
+  });
+
+  it('with the tint under the data, a selection redraws the base too', async () => {
+    const { SeqCoreConfig } = await import('@molstar/seqx-core/context');
+    const { v, base } = await mounted([[SeqCoreConfig.render, { emphasis: { selectionPlace: 'under' } }]]);
+    click(v, at(v, 0, 0, 2));
+    frames!.flush();
+    expect(base.context.calls('fillRect').length).toBeGreaterThan(0);
   });
 });
 
