@@ -11,7 +11,7 @@ import { hashNode, type Node } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import { LanguageVersion } from '../../index.js';
 import { createSeqSpec } from '../builder.js';
-import { checkSeqSpec } from '../check.js';
+import { checkSeqLang, checkSeqSpec } from '../check.js';
 import { LangIssues } from '../issues.js';
 import { SeqLanguage, SeqLanguageVersion } from '../language.js';
 import { EXONS, P53_LETTERS, p53Spec } from './p53.js';
@@ -436,6 +436,8 @@ describe('the misuses', () => {
       ['repr.schema.kind.extension', ['children', 0, 'children', 0, 'kind']],
       ['seq.lang.id.required', ['children', 0, 'children', 0]],
     ]);
+    // the language's checks alone leave a kind of the description to it: no second issue for one missing id
+    expect(checkSeqLang(layer()).map((i) => i.code)).toEqual([]);
     // a layer through the builder takes an id
     const b = createSeqSpec();
     b.views.view('v', (v) => {

@@ -88,7 +88,10 @@ export interface LayerData {
 }
 
 export interface ResolvedLayer {
-  /** A layer has an address only with an id; `index` is its place in its track either way. */
+  /**
+   * Its track's address and its id: every layer of a valid spec has one (_spec/README.md, Language), so undefined only
+   * on a tree read without the language's checks; `index` is its place in its track.
+   */
   readonly address?: string;
   readonly index: number;
   readonly type: string;

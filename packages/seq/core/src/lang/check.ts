@@ -115,8 +115,10 @@ export function checkSeqLang(spec: Node): Issue[] {
   const templateLayers = new Set<Node>();
   for (const at of all) {
     const n = at.node;
-    // every child of the spec is addressable, an extension's kind too (a slot's body is no child: not walked)
-    if (n.id === undefined && at.path.length) report('seq.lang.id.required', `${n.kind} needs an id`, at);
+    // every child of the spec is addressable: the description requires an id of each of its kinds, this check of an
+    // extension's kind (a slot's body is no child: not walked)
+    if (n.id === undefined && at.path.length && !Object.hasOwn(SeqLanguage.kinds, n.kind))
+      report('seq.lang.id.required', `${n.kind} needs an id`, at);
     switch (n.kind) {
       case 'track': {
         const each = p(n, 'for_each') as Record<string, Value> | undefined;
