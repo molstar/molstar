@@ -5,7 +5,11 @@ then). The spec: [\_spec](_spec/README.md).
 
 ## Next
 
-- Check aromaticity propagation to kekulization step
+- **Benchmark over the CCD**: every component perceived from coordinates (CCD ideal and model coordinates, with and
+  without H; the representative entry in context), compared by InChI with RDKit; a private package in `benchmark/`,
+  never installed with the extension. Replaces the v5 Labute CLI (`_spec §1.10`). [Plan](plans/benchmark.md).
+- **Kekulé assignment of aromatic sets inside Hückel**: the Hückel typing (which atoms take a ring double) does not
+  reach step 8 of `kekule.ts`; the benchmark's baseline first, then the change. [Plan](plans/aromatic-kekulization.md).
 - **Flag `OrderUnknown` in the bond-table readers** where the file gives no order: mol2 `un`, LAMMPS, topologies (PSF,
   PRMTOP, TOP), CIF core without `_geom_bond_valence` (core `formats/structure/`). Then `auto` can perceive those
   tables; the table fast path in `perceive.ts` (`_spec §1.9`) stays, for the tables none of whose bonds is
