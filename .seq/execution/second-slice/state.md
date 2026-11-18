@@ -4,6 +4,10 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## Done
 
+- The interfaces reviewed independently three times (Fable 5.2, 2026-11-18) and revised each time; the last check's
+  verdict: `design/patches.md` (lane K), `drafts/merge.md` (K2), `drafts/immutable.md` (R) and the state rules (N) sound
+  to build on, with its last fixes in `31e9b8780`.
+
 - Plan, loop and state written; the loop rewritten for this slice.
 - Before the loop (the author, 2026-11-18): the history designs corrected; the patch and diff design drafted
   (agreed the same day as `design/patches.md`, git's model); Gate 0 aligned with the first slice's record;
@@ -15,10 +19,8 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## Next
 
-- A focused Fable 5.2 re-review of the interfaces (`design/patches.md`, `drafts/merge.md`, `drafts/immutable.md`), after
-  the second review's points 1 to 5 were applied (the author, 2026-11-18: "let's go with 1-5").
-- The author reviews `drafts/merge.md` and `drafts/immutable.md`; then the loop starts: Gate 0 to the author (plan.md,
-  with the first slice's open decisions and evidence), stage 0 beside it.
+- The author reviews `drafts/merge.md` (two questions) and `drafts/immutable.md` (four decisions); then the loop starts:
+  Gate 0 to the author (plan.md, with the first slice's open decisions and evidence), stage 0 beside it.
 
 ## Decided
 
