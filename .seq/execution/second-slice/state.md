@@ -31,6 +31,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## In progress
 
+- Stage 2 started (2026-11-18, from `57b1d7c4e`): K2 (`seq/k2-merge`, opus), O (`seq/o-addressing`, opus), R+K
+  (`seq/rk-refindex`, sonnet; measure first). N waits for K2. Stage 1's gate also passed the `.seq` checks and
+  `pnpm test:medium` for core, io and seq.
 - Stage 1: R, K, L, M merged; `pnpm build` and `pnpm check:workspace` green on `4eb20f091` (the check had failed on
   stale ignored outputs in `packages/ui/lib`, removed). The look done in a visible pane (2026-11-18), light and
   dark (the `theme:dark` global): Tracks, Protein on its gene and Gene by region; canvas and SVG agree, each settled
