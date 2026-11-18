@@ -188,6 +188,23 @@ describe('io/repr/msgpack', () => {
     expect(back.params?.a).toBe('🧬');
   });
 
+  it('reports truncated bytes as syntax issues with an offset, and only a stack overflow as depth', () => {
+    for (const bytes of [[0xcb, 1], [0xc9, 0], [0xde], [0x81, 0xa1, 0x6b], [0xc1]]) {
+      const { issues } = MsgPackCodec.decode(Uint8Array.from(bytes));
+      expect(
+        issues.map((i) => [i.code, typeof i.offset]),
+        `${bytes}`,
+      ).toEqual([['repr.codec.msgpack.syntax', 'number']]);
+    }
+    // 100,000 nested one-element arrays overflow the parser's stack
+    const deep = new Uint8Array(100_001).fill(0x91);
+    deep[100_000] = 0xc0;
+    expect(MsgPackCodec.decode(deep).issues.map((i) => i.code)).toEqual(['repr.tree.depth_exceeded']);
+    // the trailing bytes are placed where the document ends
+    const good = MsgPackCodec.encode({ kind: 'x' });
+    expect(MsgPackCodec.decode(Uint8Array.of(...good, 0)).issues[0].offset).toBe(good.length);
+  });
+
   it('bounds the depth', () => {
     let node: Node = { kind: 'x' };
     for (let i = 0; i < 600; i++) node = { kind: 'x', children: [node] };

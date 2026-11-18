@@ -264,18 +264,22 @@ function categoryColumnOf(data: Uint8Array): CategoryColumn | undefined {
 export function decodeMsgPackTree(bytes: Uint8Array, _options?: DecodeOptions): Decoded {
   const made = new WeakSet<object>();
   let value: unknown;
+  const state = createMsgPackState(bytes);
   try {
-    const state = createMsgPackState(bytes);
     state.ext = extensionDecoder(made);
     value = parseMsgPackValue(state);
     if (state.offset !== bytes.length) throw new Error(`${bytes.length - state.offset} byte(s) after the value`);
   } catch (e) {
-    // the parser recurses: a document nested past the engine's stack is a depth issue
-    if (e instanceof RangeError)
+    // the parser recurses: only a stack overflow is a depth issue; a read past the end is a RangeError too
+    if (e instanceof RangeError && /call stack/i.test(e.message))
       return { issues: [issueOf(TreeIssues, 'repr.tree.depth_exceeded', `Nested deeper than ${MaxDepth} levels`)] };
+    const offset = Math.min(state.offset, bytes.length);
     return {
       issues: [
-        issueOf(MsgPackIssues, 'repr.codec.msgpack.syntax', 'Not MessagePack', { hint: String((e as Error)?.message) }),
+        issueOf(MsgPackIssues, 'repr.codec.msgpack.syntax', 'Not MessagePack', {
+          offset,
+          hint: String((e as Error)?.message),
+        }),
       ],
     };
   }
