@@ -46,6 +46,8 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 ## Next
 
 - On each lane's report: checks, the look where something is drawn, an independent review, one fix round, merge.
+- The order (the author, 2026-11-18): lane T (the gate's findings), then stage 5 (measure), then finalize with the
+  fold-back as its own step (reconciling the first slice's), then the third slice's plan.
 
 ## Waiting for the author
 
