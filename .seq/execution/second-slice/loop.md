@@ -58,8 +58,7 @@ folded in (the manifest, "Folded back from the first slice").
    - **record**: copy the report's drift, gaps and followups into `drift/`, `gaps.md` and `followups.md`.
 6. **Drift** (§drift-notes): where code and a design disagree, write `drift/<topic>.md` (what, where, the options, a
    recommendation). Continue with what it does not block, and bring it to the author at the next gate. A decision the
-   author already made (`state.md`, Decided) is applied to the design when its lane starts: changes.md's history line
-   with lane N.
+   author already made (`state.md`, Decided) is in the designs before the lane that builds it starts.
 7. **What is drawn** lands with its story and the story's headless twin, composed as the story composes it, on a fake
    clock. It is looked at before the review (step 5); the gate's screenshots are the record.
 8. **Update** `state.md` (done, in progress, next, decided, blockers, how to verify) and tick `plan.md` after every

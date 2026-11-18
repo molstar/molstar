@@ -4,7 +4,10 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## Done
 
-- Plan, loop and state written.
+- Plan, loop and state written; the loop rewritten for this slice.
+- Before the loop (the author, 2026-11-18): the history designs corrected; the patch and diff design drafted
+  (`drafts/patches.md`, for the author's review before the loop starts); Gate 0 aligned with the first slice's record;
+  stage 0's lane renamed S0; the first slice's worktrees and branches removed.
 
 ## In progress
 
@@ -12,12 +15,14 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## Next
 
-- Gate 0 to the author (plan.md, with the first slice's open decisions and evidence); stage 0 beside it.
+- The author reviews `drafts/patches.md`; then the loop starts: Gate 0 to the author (plan.md, with the first slice's
+  open decisions and evidence), stage 0 beside it.
 
 ## Decided
 
 - History as a Seq\* port, the host owning the undo stack; `@molstar/ui/history` one adapter (the author,
-  2026-11-18: "yes, go ahead"). Gate 0's history item is settled; changes.md is edited when lane N starts.
+  2026-11-18: "yes, go ahead"). Gate 0's history item is settled; the designs say so (changes.md, tree-core.md, base-library.md,
+  viewer-models.md).
 
 ## Decisions taken (awaiting the author)
 

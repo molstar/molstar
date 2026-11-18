@@ -35,7 +35,8 @@ the edge, beside the libraries they need.
 - **Issues**: one shape, `{ code, severity, path, message, hint? }` with a stable namespaced code; `path` the step path
   meso\* uses, with the address beside it where the place has one; severity means one thing everywhere (error: invalid
   input; warning: something is lost; info: never changes what is drawn). meso\*'s issue gains the severity in the move.
-- **History**: `repr/patch` gives inverses; the undo stack is `@molstar/ui/history`'s (`HistoryPort`), not a second one.
+- **History**: `repr/patch` gives inverses; the core keeps no undo stack. The stack is the host application's, reached
+  through the consumer's own port (Seq\*'s history port, [changes.md](changes.md)); `@molstar/ui/history` is one adapter.
 - **Headers**: the standard Mol\* header with the year and `@author` lines.
 - **Spec and tests**: a `_spec` beside the module with what is built; tests within the fast budgets
   ([testing.md](testing.md)).

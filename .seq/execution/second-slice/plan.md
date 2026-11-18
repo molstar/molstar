@@ -54,53 +54,52 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
 
 ## Gate 0: before any lane
 
-- [ ] GATE 0: the author confirms, each with its recommendation:
-  - **the first slice's open decisions** (its record, Open decisions). The orchestrator re-presents them with the
-    first slice's evidence:
-    - undeclared columns tagged;
-    - cyclic ranges wrap;
-    - the query decisions;
-    - the protocol details;
-    - the `seq.lang.*` codes;
-    - the selection tint over the data;
-    - letters' density in CSS px.
-
-    Recommendation: confirm all as built.
-  - **public API changes in the base library** ([base-library](../../design/base-library.md)):
-    - `@molstar/core/repr`'s `patch` and `diff` (patch kinds, inverses, the revision a patch names). Recommendation:
-      as changes.md and tree-core.md say.
-    - **the asset manager**: `credentials: 'omit'`, `redirect: 'error'`, the signal passed through, a streamed byte
+- [ ] GATE 0: the author confirms, each with its recommendation. One message, the first slice's evidence beside each.
+  - **The first slice's open decisions** (its record, Open decisions; recommendation: confirm as built, except 10):
+    1. undeclared typed columns tagged;
+    2. a cyclic range with start > end wraps, an error elsewhere;
+    3. the query decisions (`chain` as Nodes, quoted `.n` labels, the boundary rule, structural Location equality);
+    4. the protocol and store details (malformed not retried, `list`, row identity, per-consumer want sets,
+       cancellation, `AssetReader`);
+    5. the `seq.lang.*` codes and alphabets;
+    6. every lane's configurable defaults (render, viewer, canvas, the asset policy, summaries, nesting, templates):
+       confirmed as a whole, any one moved later through its config item;
+    7. the theme read from the UI root (`theme.source`);
+    8. the selection tint drawn over the data (lane P builds on it);
+    9. letters' density in CSS px, the other steps in device px;
+    10. `values.coarser`'s default: recommendation **1** (the direct path makes level 1 cheap, and 1 keeps the picture
+        exact), against the 2 decided at stage 7;
+    11. the asset manager change: below, with the base library;
+    12. the TP53 exon coordinates in the test geometry: checked against RefSeq in stage 0 (S0), or marked unverified.
+  - **Public API changes in the base library** ([base-library](../../design/base-library.md)):
+    - **`@molstar/core/repr`'s `patch` and `diff`**: the draft `drafts/patches.md`, its API section the agreed surface
+      for lane K, with its five questions answered. Recommendation: as drafted.
+    - **The asset manager**: `credentials: 'omit'`, `redirect: 'error'`, the signal passed through, a streamed byte
       limit. Recommendation: yes, in this slice, with the policy then claiming all four.
-    - range reads in the asset manager. Recommendation: wait for bigWig (milestone 3).
-  - **the MessagePack codec** builds on io's existing `common/msgpack`, extended for typed columns without a copy where
-    aligned. Recommendation: yes, a `repr` codec in io (io may depend on core; `repr` stays dependency-free).
-  - **history as a Seq\* port** (the author, 2026-11-18: the viewer lives inside a bigger app, so the app owns the
-    undo stack). Seq\* never owns one. `seqx-viewer/ports` defines a history port in Seq\*'s own terms:
-    - a participant face the host drives: `checkpoint()` returns the spec's root, `restore(c)` sets it back and drops a
-      preview, `changed` tells of edits;
-    - a run face Seq\* asks of the host: an edit runs as a step with its label and change kind, so a host's stack
-      interleaves Seq\* edits with its own (a structure's, Prism's);
-    - an edit made outside a run is reported to the host, not acted on: whether earlier steps are invalidated is the
-      host's rule.
+    - **Range reads in the asset manager**: recommendation: wait for bigWig (milestone 3).
+    - **The MessagePack codec**: a `repr` codec in io on `common/msgpack`'s `encodeMsgPack` and `decodeMsgPack` and
+      their extension hooks, with no change to io's MessagePack itself (tree-core.md, base-library.md). Typed columns
+      decode without a copy where the hooks allow it, else with one copy, measured. Recommendation: yes (io depends on
+      core; `repr` stays dependency-free).
+  - **Decided** (2026-11-18, "yes, go ahead"): history is a Seq\* port, and the host owns the undo stack. The designs
+    say so (changes.md, tree-core.md, base-library.md, viewer-models.md). Lane N builds it:
+    - the port in `seqx-viewer/ports`, with a participant face (`checkpoint`, `restore`, `changed`) and a run face (an
+      edit as a host step with its label and change kind);
+    - an edit made outside a run reported to the host;
+    - adapters in the composition roots: `@molstar/ui/history`, later the Mol\* plugin's, none headless.
 
-    Adapters, each in the composition root that wires it:
-    - `@molstar/ui/history` for the standalone viewer and Prism;
-    - the Mol\* plugin's state history, later;
-    - none (no undo) headless.
-
-    `SpecModel` stops importing `@molstar/ui/history`. changes.md's "through `HistoryPort`" becomes "through Seq\*'s
-    history port; `@molstar/ui/history` is one adapter". Recommendation: yes.
-  - **selection history**: none by default; a host may opt in (changes.md). Recommendation: as written.
+    `SpecModel` stops importing `@molstar/ui/history`.
+  - **Selection history**: none by default; a host may opt in (changes.md). Recommendation: as written.
 
 ## Stages and lanes
 
 Lanes run in worktrees, each on its own branch `seq/<lane>`, merged by the orchestrator (§commit-often,
 §lanes-report-not-write). At most two heavy lanes and two light ones at once (§parallelism). Lanes continue the first
-slice's letters from K.
+slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 0: carried from the first slice (orchestrator and one fast lane)
 
-- [ ] K0 (fast) carry-overs, each small:
+- [ ] S0 (fast) carry-overs, each small:
   - the stale comment in `canvas/backend.ts` (two canvases: three);
   - `vitest` in the Storybook package's dev dependencies, and the Vite plugin's test under `src`;
   - the TP53 exon coordinates checked against RefSeq NM_000546. Fixtures only: no network in tests. If unverifiable
@@ -110,12 +109,11 @@ slice's letters from K.
 
 ### Stage 1: the base (three lanes in parallel, after Gate 0)
 
-- [ ] K (strong) `@molstar/core/repr` patches:
-  - `repr/patch`: the patch kinds (set, insert, remove, move by address), validation before apply, inverses;
-  - `diff` of two roots by hash, structural sharing kept;
-  - a patch naming its base revision, refused on another (EC-81);
-  - streams of patches as one batch;
-  - the conformance cases as data (§suites-are-data);
+- [ ] K (strong) `@molstar/core/repr/patch`, as `drafts/patches.md` agreed at Gate 0 (moved to
+      `design/patches.md` before the lane starts):
+  - the six ops with their inverses, `applyPatch` (base, all or nothing, refs following a move, validation of what it
+    touched), `diff` by Merkle descent, `PatchLanguage`;
+  - the conformance cases as data (§suites-are-data) and the three laws as property tests;
   - the `repr` `_spec` and a v6 changelog entry.
 - [ ] L (fast) the MessagePack codec:
   - `codecs/msgpack` in io on `common/msgpack`, passing `checkCodec`;

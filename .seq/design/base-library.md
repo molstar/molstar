@@ -34,7 +34,7 @@ a guide and writing the generic piece in core with its test; `packages/seq` neve
 | number and value formatting | `@molstar/core/util/number`, `string-format` | `toPrecision`, `FormatTemplate` |
 | params, bindings | `@molstar/core/util/param-definition`, `binding` | `ParamDefinition`, `Binding` |
 | reactive state | `@molstar/core/reactive` | `State`, `derive`, `KeyedState`, `ReactiveModel` |
-| history, commands, keymaps | `@molstar/ui/history`, `commands` | `HistoryPort` (checkpoints), `Keymap`, `CommandManager`; `forms` later, with the settings form |
+| history, commands, keymaps | `@molstar/ui/history`, `commands` | `HistoryPort` (checkpoints) as the adapter behind Seq\*'s own history port, in a composition root only ([changes.md](changes.md)); `Keymap`, `CommandManager`; `forms` later, with the settings form |
 
 ## Extend in place
 

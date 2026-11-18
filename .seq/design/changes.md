@@ -33,10 +33,18 @@ whether it is undoable, keeps that clear.
 | configuration | a binding, a preset, a config item | the viewer's configuration | no (settings history is the host's) | no | no | — |
 | registration | an extension registered by a behavior | the viewer's registries | its undo function | no | no | — |
 
-- **Undo is the spec's history only**, through `@molstar/ui/history`'s `HistoryPort`, which works by checkpoints: a
-  checkpoint is the spec's immutable root (structural sharing makes it cheap), a revision is the root's hash, and
-  `restore` sets the root back. One step a batch, a gesture's preview ending in one step. Nothing else enters it.
-  `repr/patch`'s inverses serve `diff`, patch streams and agents, not the undo stack.
+- **Seq\* owns no undo stack; the host does** (the author, 2026-11-18: the viewer lives inside a bigger app, a
+  structure viewer, Prism, a Mol\* plugin, which keeps one undo stack for everything). Seq\* exposes a **history port**
+  (`seqx-viewer/ports`) in its own terms, with two faces:
+  - *the host drives Seq\** (a participant): `checkpoint()` is the spec's immutable root (structural sharing makes it
+    cheap), a revision is the root's hash, `restore(c)` sets the root back and drops a preview, `changed` tells of
+    edits;
+  - *Seq\* asks the host* (a run): an edit runs as a step with its label and change kind, so the host's stack
+    interleaves Seq\* edits with its own. One step a batch, a gesture's preview ending in one step.
+
+  Only spec patches enter it. `repr/patch`'s inverses serve `diff`, patch streams and agents, not the undo stack.
+  Adapters live in each composition root: `@molstar/ui/history` for the standalone viewer and Prism, the Mol\* plugin's
+  state history later, none headless.
 - **Patches may name streamed things**: a bookmark on a dynamic node (`/data/genes/(node :key T1)`) is a patch like any
   other; undoing it works whether or not the node is held; the ref waits while it is not ([addressing.md](addressing.md)).
 - **Streams never become patches**: arriving data never enters the spec or its history (EC-175); "keep this region" is
@@ -44,8 +52,9 @@ whether it is undoable, keeps that clear.
 - **Patches can stream too, in version 1 from one writer at a time**: an agent's or a host's patches are applied
   through the same history, each a step (an agent's turn may group its calls into one, as `HistoryStep.turn` allows);
   a patch names the revision it was made against and is refused when that is not the current one (EC-81). Concurrent
-  writers (collaboration, rebase) are deferred: a change made outside the history invalidates the earlier steps, as
-  `HistoryPort`'s rule says, so it waits for a design of its own (EC-93).
+  writers (collaboration, rebase) are deferred: a change made outside a run is reported to the host through the port,
+  and whether it invalidates the earlier steps is the host's rule (`@molstar/ui/history`'s adapter invalidates them), so
+  concurrent writers wait for a design of their own (EC-93).
 - **Every command says its change kind**: a command's description declares whether it writes a patch, changes session
   state or only navigates, so menus can show what undo will undo and agents can tell an edit from a look.
 
