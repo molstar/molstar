@@ -101,7 +101,7 @@ const no = (name: string, patch: Patch, codes: readonly string[], options?: Appl
 const step = (ops: Patch['ops']) => patchToNode({ ops });
 
 /** The cases, each built fresh. */
-export function patchCases(): PatchCase[] {
+function patchCases(): PatchCase[] {
   const T = 'f'.repeat(32);
   return [
     // every op, at the root, in the middle and at the leaves
