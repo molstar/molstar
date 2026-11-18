@@ -91,7 +91,10 @@ agreed design is folded into the Storybook's Design pages.
 - **Glyph atlas and band copy**: not needed by the second slice's browser numbers (frames about 1 ms). Recommendation:
   out of this slice unless the alignment's measurement asks.
 - **Size targets with room**: headless rendering has 32 kB left under 300 kB, and this slice adds layouts, themes and
-  layers to it. Recommendation: measure at stage 1's gate and bring a target change, if any, then.
+  layers to it (the drafts estimate well over that). Decided by the author: "don't overdo it on the limits (they were
+  sort of self-imposed and estimate), but obviously try to minimize the amount of code". The targets are not a bound
+  that shapes a design; every lane keeps its code minimal (shared helpers, no private copies, nothing without a use),
+  sizes are measured at every gate, and the targets are reset to the measured sizes with room at the slice's close.
 
 ## Testing strategy
 
@@ -223,7 +226,8 @@ rows) → the datasets' lanes (two or three at once, fast)
 - **The axis lane first**: direction and collapsed introns change what an offset means on a section; hit-testing,
   selection, follow and export all read it. A twin per consumer, and drawing checked against the data.
 - **Lazy rows for 10,000 × 300**: the store's want sets and the layout's bounded allocation meet here.
-- **Headless rendering's size**: 32 kB of room for layouts, themes and layers (Gate 0).
+- **Headless rendering's size**: no hard room (Gate 0, the author); minimal code per lane, measured at every gate, the
+  targets reset at the close.
 - **Seq\* inside a bigger app**: legends, navigators and the animation loop stay host-neutral (parts a host places, a
   port the host drives).
 
