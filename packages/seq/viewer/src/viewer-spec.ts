@@ -7,6 +7,7 @@
 import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
+import type { SeqHistoryPort } from '@molstar/seqx-viewer/ports';
 import type {
   AddressModel,
   HighlightModel,
@@ -70,6 +71,11 @@ export interface SeqViewerSpec {
   readonly config?: readonly (readonly [SeqConfigItem<any>, unknown])[];
   /** Port adapters, each a factory with ownership; unset ports take their default adapter. */
   readonly ports?: SeqPorts;
+  /**
+   * The host's history (Seq*'s history port, _spec/README.md "Ports"): the spec's edits as steps of the host's stack.
+   * None: edits apply at once and nothing undoes them (a headless viewer, a test).
+   */
+  readonly history?: SeqHistoryPort;
   /** The UI's parts; none for a headless viewer (a target given without it is left empty). */
   readonly ui?: SeqViewerUI;
 }

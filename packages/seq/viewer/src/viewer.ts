@@ -148,10 +148,11 @@ export class SeqViewer extends ReactiveModel {
     this.tokensVersion = this._tokensVersion.asReadonly;
     this.tokens = this.context.tokens;
 
-    this.spec = new SpecModel(createSeqSpec().build(), {
-      runtimes: this.context.runtimes,
-      config: this.context.resolveConfig,
-    });
+    this.spec = new SpecModel(
+      createSeqSpec().build(),
+      { runtimes: this.context.runtimes, config: this.context.resolveConfig },
+      this.config,
+    );
     this.view = new ViewModel(this.spec, this.config);
     this.hover = new HoverModel(this.spec, this.view, this.config);
     this.store = new StoreModel(this.config);
@@ -168,6 +169,8 @@ export class SeqViewer extends ReactiveModel {
     );
     for (const m of [this.addresses, this.highlight, this.selection, this.store, this.hover, this.view, this.spec])
       this.registerPermanentDispose(() => m.retire());
+    // the host's history, through Seq*'s port: the spec takes part in it (none headless unless the spec gives one)
+    if (viewerSpec.history) this.spec.attachHistory(viewerSpec.history);
 
     const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
@@ -571,14 +574,23 @@ export class SeqViewer extends ReactiveModel {
 
   // ---- commands ----
 
-  /** Runs a command a behavior provides; the message of its result, or why it could not run. */
+  /**
+   * Runs a command a behavior provides; the message of its result, or why it could not run. A command that runs in
+   * turn (an edit through the host's history) says nothing here: `execute` waits for its message.
+   */
   runCommand(id: string, context: unknown): string {
+    const r = this.execute(id, context);
+    return typeof r === 'string' ? r : '';
+  }
+
+  /** Runs a command; its message, at once for a command that runs at once, else when it has run. */
+  execute(id: string, context: unknown): string | Promise<string> {
     const c = this.commands.find((x) => x.id === id);
     if (!c) return `No command ${id}`;
     const can = c.when?.(context);
     if (can !== undefined && can !== true) return typeof can === 'string' ? can : 'Not available';
-    const r = c.run({}, context as never, NeverAborted) as CommandResult;
-    return r.message ?? '';
+    const r = c.run({}, context as never, NeverAborted);
+    return r instanceof Promise ? r.then((x: CommandResult) => x.message ?? '') : (r.message ?? '');
   }
 
   /**

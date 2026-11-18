@@ -32,7 +32,8 @@ export function composeViewer(view: ExampleView, options: ComposeOptions = {}): 
   return createSeqViewer(
     {
       ...base,
-      ...(options.target ? {} : { ui: undefined }),
+      // headless: no UI and no history (edits apply at once)
+      ...(options.target ? {} : { ui: undefined, history: undefined }),
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
     },
@@ -66,15 +67,17 @@ export function focusBookmark(viewer: SeqViewer, address: string): string {
 
 /**
  * Bookmarks what the view shows now (the region drawn, as an address: never another ref, so bookmarks never chain)
- * through `refs.add`: one patch. The id is the next free `view-<n>`; the result is the command's message.
+ * through `refs.add`: one patch, one step of the history. The id is the next free `view-<n>`; the result is the command's
+ * message.
  */
-export function bookmarkView(viewer: SeqViewer): string {
+export function bookmarkView(viewer: SeqViewer): string | Promise<string> {
   const to = viewer.addresses.shownAddress();
   if (to === undefined) return 'Nothing shown';
   const taken = new Set(viewer.addresses.refs.value.map((r) => r.id));
   let n = 1;
   while (taken.has(`view-${n}`)) n++;
-  return viewer.runCommand('refs.add', { ref: { id: `view-${n}`, to, label: `View ${n}` } });
+  // through the history when the viewer has one: then it runs in turn
+  return viewer.execute('refs.add', { ref: { id: `view-${n}`, to, label: `View ${n}` } });
 }
 
 /** Runs a link's actions: what a click on a link in the text does. */

@@ -38,7 +38,9 @@ class BookmarksRoot extends UiElement<ExampleView> {
       variant: 'primary',
       children: 'Bookmark this view',
       onClick: () => {
-        status.textContent = bookmarkView(viewer);
+        void Promise.resolve(bookmarkView(viewer)).then((m) => {
+          status.textContent = m;
+        });
       },
     }) as HTMLElement;
     const tools = document.createElement('div');
