@@ -59,6 +59,11 @@ export interface SeqViewerBindings {
 /** The mounted UI's parts: the canvas stack in this version (the section labels are drawn by the layout). */
 export interface SeqViewerUI {
   readonly canvas?: true;
+  /**
+   * A mounted viewer with no `history` given gets a `@molstar/ui/history` stack of its own (`uiHistory()`): the
+   * standalone viewer's Undo. A headless viewer never does.
+   */
+  readonly history?: true;
 }
 
 export interface SeqViewerSpec {

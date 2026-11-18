@@ -12,7 +12,7 @@ import type { SeqPorts } from '@molstar/seqx-core/context';
 import type { ExampleView } from '@molstar/seqx-examples';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
-import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ports';
+import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ui-history';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { HistoryModel } from '@molstar/ui/history/history-model';
 

@@ -6,13 +6,14 @@
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { AddressingProvider, EditingProvider, HoverProvider, NavigateProvider } from '@molstar/seqx-viewer/behaviors';
-import { defaultPorts, uiHistory } from '@molstar/seqx-viewer/ports';
+import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
 // The default spec (_spec/README.md "Composition"): the built-in entries, behaviors, ports and UI, as data. An
 // application spreads it and changes what it needs, or writes a smaller spec; what is not listed is not in its bundle.
-// Each call makes a spec of its own (its ports are factories called once per viewer). The standalone viewer's history
-// is a `@molstar/ui/history` stack of its own; a host gives its stack (`hostHistory`), a headless viewer none.
+// Each call makes a spec of its own (its ports are factories called once per viewer). The history is the UI's: a
+// mounted viewer gets a `@molstar/ui/history` stack of its own (`ui.history`), a host gives its stack (`history`,
+// `hostHistory`), and a headless spread (`ui: undefined`) has none.
 
 export function DefaultSeqViewerSpec(): SeqViewerSpec {
   return {
@@ -26,7 +27,6 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
     bindings: {},
     config: [],
     ports: defaultPorts(),
-    history: uiHistory(),
-    ui: { canvas: true },
+    ui: { canvas: true, history: true },
   };
 }

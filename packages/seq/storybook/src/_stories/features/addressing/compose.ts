@@ -32,8 +32,7 @@ export function composeViewer(view: ExampleView, options: ComposeOptions = {}): 
   return createSeqViewer(
     {
       ...base,
-      // headless: no UI and no history (edits apply at once)
-      ...(options.target ? {} : { ui: undefined, history: undefined }),
+      ...(options.target ? {} : { ui: undefined }),
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
     },

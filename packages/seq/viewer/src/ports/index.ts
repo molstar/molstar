@@ -25,7 +25,6 @@ export type {
   SeqHistoryPort,
   SpecCommit,
 } from './history.js';
-export { HistoryParticipants, hostHistory, type UiHistory, uiHistory } from './ui-history.js';
 
 // The viewer's default ports (_spec/README.md "Ports"): each a factory with ownership, called once per viewer. Assets: a
 // new `DefaultAssetManager` under the browser policy (https and relative locations under the page, no credentials,

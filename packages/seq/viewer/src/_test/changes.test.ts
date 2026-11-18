@@ -15,7 +15,7 @@ import type { EditingBehavior } from '../behaviors/editing.js';
 import { type ChangeKind, changeKindOf } from '../commands.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import type { UiHistory } from '../ports/ui-history.js';
+import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -52,12 +52,13 @@ afterEach(() => {
   frames = undefined;
 });
 
-/** The default viewer, headless but with the default spec's history (`uiHistory`). */
+/** The default viewer, headless but with the mounted viewer's history (`uiHistory`). */
 async function make() {
   frames = installFrames();
   const v = createSeqViewer({
     ...DefaultSeqViewerSpec(),
     ui: undefined,
+    history: uiHistory(),
     config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
   });
   viewers.push(v);

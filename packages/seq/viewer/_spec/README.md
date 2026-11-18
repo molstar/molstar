@@ -188,13 +188,16 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
   (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate`, `addressing` and `editing`
-  behaviors, the default ports, `uiHistory()` and the canvas; an application spreads it (a headless composition drops
-  `ui` and `history`).
+  behaviors, the default ports and the UI (`canvas`, and `history`: a mounted viewer with no `history` given gets a
+  `uiHistory()` stack of its own); an application spreads it. A headless spread (`ui: undefined`) has no history, so its
+  edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs them in turn through its
+  stack (`execute` waits for their message, `runCommand` gives `''`).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
-  (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, bound to the spec), the
-  binding table, the behaviors (one of each name; a behavior's `commands` join the viewer's), then the UI into `target`
-  when there is one and the spec has `ui.canvas`. Without a target it is headless: models, commands, frames, `hit`, SVG.
-  Why the order: behaviors read the models and the bindings, the UI the behaviors.
+  (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `uiHistory()` when
+  mounted with `ui.history`; bound to the spec), the binding table, the behaviors (one of each name; a behavior's
+  `commands` join the viewer's), then the UI into `target` when there is one and the spec has `ui.canvas`. Without a
+  target it is headless: models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and the
+  bindings, the UI the behaviors.
 - The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits
   for the picture (sources open, wanted data arrived, the view at rest).
 - **The frame** (`draw`): the renderer lays the view out when anything it reads changed, else redraws the emphasis
@@ -250,11 +253,12 @@ same CSS fonts the backend draws with), else the core's bundled table.
   is the host's rule), `root(revision)` a root the host's stack holds, and its ownership (`disposeWithViewer`,
   `dispose`).
 - **Only spec patches enter it**: session, navigation and configuration never do (Commands).
-- **Adapters** (`ports/ui-history.ts`, `@molstar/ui/history`), in the composition roots only; the models never import
-  it. `uiHistory(options)`: a stack of the spec alone (`UiHistory.stack`), the default spec's; it invalidates on an
-  outside change. `hostHistory(stack, participants, key)`: a host's stack over `HistoryParticipants`, one `HistoryPort`
-  of several participants by key (Seq*'s spec beside a structure's state), the spec joining while the viewer lives. Both
-  resolve `root(revision)` from the commits their stack checkpointed.
+- **Adapters** (`ui-history.ts`, the entry `@molstar/seqx-viewer/ui-history`, on `@molstar/ui/history`), in the
+  composition roots only; the ports and the models never import it. `uiHistory(options)`: a stack of the spec alone
+  (`UiHistory.stack`), a mounted viewer's; it invalidates on an outside change. `hostHistory(stack, participants, key)`:
+  a host's stack over `HistoryParticipants`, one `HistoryPort` of several participants by key (Seq*'s spec beside a
+  structure's state), the spec joining while the viewer lives. Both resolve `root(revision)` from the commits their
+  stack checkpointed.
 
 ## Canvas2D backend
 

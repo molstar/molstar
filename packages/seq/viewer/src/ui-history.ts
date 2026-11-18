@@ -4,15 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The `@molstar/ui/history` adapter of Seq*'s history port (_spec/README.md "Ports", History), for the composition
-// roots that use that stack: the standalone viewer (`uiHistory`, a stack of its own) and a host with one stack for
+// The `@molstar/ui/history` adapter of Seq*'s history port (_spec/README.md "Ports", History), an entry of its own
+// (`@molstar/seqx-viewer/ui-history`) so the ports and the models never import `@molstar/ui/history`; for the
+// composition roots that use that stack: the standalone viewer (`uiHistory`, a stack of its own) and a host with one stack for
 // everything (`hostHistory`: Seq*'s spec is one participant of `HistoryParticipants`, beside the host's own). An edit
 // runs as one `HistoryModel.run` step, an agent's turn is a `beginGroup`, a change outside a run invalidates the earlier
 // steps, and the commits the stack checkpointed resolve by revision (`root`).
 
 import type { Node } from '@molstar/core/repr/tree';
 import { HistoryModel, type HistoryOptions, type HistoryPort } from '@molstar/ui/history/history-model';
-import type { SeqHistory, SeqHistoryParticipant, SeqHistoryPort, SpecCommit } from './history.js';
+import type { SeqHistory, SeqHistoryParticipant, SeqHistoryPort, SpecCommit } from '@molstar/seqx-viewer/ports';
 
 /** The roots the stack's checkpoints hold, by revision, the latest `keep` of them. */
 class CheckpointedRoots {

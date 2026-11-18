@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 import { editingBehavior } from '../behaviors/editing.js';
 import { viewerConfig } from '../config.js';
 import { type EditOutcome, SpecModel } from '../models/spec.js';
-import { HistoryParticipants, hostHistory, type UiHistory, uiHistory } from '../ports/ui-history.js';
+import { HistoryParticipants, hostHistory, type UiHistory, uiHistory } from '../ui-history.js';
 import { proteinOnGene } from './fixture.js';
 
 const Letters = ['views', 'main', 'protein', 'letters'];

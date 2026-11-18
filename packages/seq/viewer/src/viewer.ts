@@ -38,6 +38,7 @@ import {
 } from '@molstar/seqx-viewer/models';
 import { AddressingProvider, type LinkRun } from '@molstar/seqx-viewer/behaviors';
 import { ViewerInput } from './input.js';
+import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
@@ -170,7 +171,8 @@ export class SeqViewer extends ReactiveModel {
     for (const m of [this.addresses, this.highlight, this.selection, this.store, this.hover, this.view, this.spec])
       this.registerPermanentDispose(() => m.retire());
     // the host's history, through Seq*'s port: the spec takes part in it (none headless unless the spec gives one)
-    if (viewerSpec.history) this.spec.attachHistory(viewerSpec.history);
+    const history = viewerSpec.history ?? (target && viewerSpec.ui?.history ? uiHistory() : undefined);
+    if (history) this.spec.attachHistory(history);
 
     const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
