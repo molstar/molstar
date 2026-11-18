@@ -10,5 +10,5 @@
     "types": ["node"],
     "jsxImportSource": "@molstar/ui/dom"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "vite.ts", "_test/**/*"]
 }

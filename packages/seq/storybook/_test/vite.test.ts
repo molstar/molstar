@@ -54,7 +54,7 @@ describe('seqExampleFixtures', () => {
 
   it('serves a file in development and passes everything else on', () => {
     const plugin = seqExampleFixtures();
-    let handler: (req: { url?: string }, res: any, next: () => void) => void = () => {};
+    let handler: (req: { url?: string; method?: string }, res: any, next: () => void) => void = () => {};
     plugin.configureServer({ middlewares: { use: (fn) => (handler = fn) } });
     const sent: unknown[] = [];
     const res = { setHeader: () => {}, end: (b: unknown) => sent.push(b) };
