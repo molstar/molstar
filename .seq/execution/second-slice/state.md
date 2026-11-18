@@ -4,6 +4,8 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Done
 
+- Lane S0b merged: `values.coarser` defaults to 1; 3M bars within the heavy bounds (pan 3.0 / 5.8 ms median / max).
+
 - Lane L merged: the MessagePack codec of the repr tree; reviewed, nine findings fixed in one round (a one-line
   BOM fix in io's `common/msgpack`, allowed); the merged tree 1108 tests green.
 
@@ -21,7 +23,7 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## In progress
 
-- Stage 0: S0 merged (`360043baf`); S0b (`values.coarser` = 1) running (`seq/s0b-coarser`, sonnet). The Gene by region recheck waits for a visible
+- Stage 0: S0 merged (`360043baf`); S0b merged. The Gene by region recheck waits for a visible
   pane (the author asked to show it).
 - Lanes M and L reported; checks green on the orchestrator's run (M: 789 tests; L: 305 and the heavy bound, lint green
   once io's `./repr/_test/*` export null is added); both reviewed (opus): M, no regression for existing callers but a credential leak through the asset-id path, among

@@ -108,7 +108,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 0: carried from the first slice (orchestrator and one fast lane)
 
-- [ ] S0b (fast) `values.coarser`'s default to 1 (Gate 0, item 10): `RenderConfig`'s default, the core `_spec`'s
+- [x] S0b (fast) `values.coarser`'s default to 1 (merged 2026-11-18) (Gate 0, item 10): `RenderConfig`'s default, the core `_spec`'s
       Configuration row, the test that names the default; the 3M-bars heavy bounds still hold (rerun).
 - [x] S0 (fast) carry-overs, each small (merged 2026-11-18, `360043baf`; the TP53 exons were right, checked against
       NM_000546.6):

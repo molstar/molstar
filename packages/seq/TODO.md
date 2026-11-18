@@ -59,8 +59,7 @@ dynamic nodes with templates, the examples package and the measurements. In this
   split; the ranges layout's allocation an item in view (the `earlier` and `occurrences` sets, `StickyLanes.keep`'s map,
   keys of tiles without ids, `placeholderSpans` and `dataRegions` arrays: about 300 B an item); the values direct path
   for linear maps (offset paths) too; the renderer's rebuild sorts the reads and builds the key's text each layout
-  (bounded by tiles in view); `values.coarser`'s default (2; with the direct path 1 costs about 2 ms at 100k positions,
-  and 1 keeps the picture exact: the author's call).
+  (bounded by tiles in view).
 
 ## `@molstar/seqx-viewer`
 
