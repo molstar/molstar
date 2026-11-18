@@ -39,6 +39,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
   review round and the author's look feedback (one band per section, a soft tint, the hover outside its mark, the
   cursor after a key); the selection looked at on both p53 views, light and dark; the gate's checks green (seq's
   quick lane 1.34 s, medium, heavy, the allocation tier, the `.seq` checks after one path fixed in a test).
+- Lane S merged (`677da9c86`) after a review round and the look: the p53 Edit and undo, Bookmarks and links and
+  Selection stories, the Features and Examples pages. The look found a renderer bug from before: a ranges item's
+  pieces in different tiles were dropped as repeats (WRAP53's second exon); fixed by key and start (`b73d3199b`).
 
 ## Next
 
@@ -46,7 +49,7 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Waiting for the author
 
-None.
+- Stage 4's gate: use the p53 stories (Examples/p53, Features) in a visible browser; findings fixed or listed.
 
 ## Decided
 

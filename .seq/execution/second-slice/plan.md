@@ -223,13 +223,13 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 4: stories and use (orchestrator, light)
 
-- [ ] S1 stories under `Seq* (next)/Examples/p53/`:
+- [x] S1 stories under `Seq* (next)/Examples/p53/`:
   - **Edit and undo**: add and hide a track, set a theme, undo, redo, a preview by dragging a track's height;
   - **Bookmarks and links**: a ref on a transcript that arrives later, a link that moves the view;
   - **Selection**: drag-select on the gene, projected onto the protein.
 
   Each has its headless twin composing it as the story does.
-- [ ] S2 the Features and Examples pages list what is built.
+- [x] S2 the Features and Examples pages list what is built.
 - [ ] GATE (§used-before-done): the author uses the stories in a visible browser. What they find is fixed or listed
       before the close.
 
