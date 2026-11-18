@@ -14,7 +14,7 @@ import { defineLanguage } from '@molstar/core/repr/schema';
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.1.0';
+export const SeqLanguageVersion = '0.2.0';
 
 export const SeqLanguage = defineLanguage({
   id: 'seq',
@@ -44,6 +44,34 @@ export const SeqLanguage = defineLanguage({
       doc: 'The container of the views of a spec; its id is `views`.',
       parents: ['spec'],
       ids: 'required',
+    },
+    refs: {
+      doc: 'The container of the user-defined refs of a spec (bookmarks, regions, sets); its id is `refs`.',
+      parents: ['spec'],
+      ids: 'required',
+    },
+    ref: {
+      doc: 'A user-defined name for what an address names: `/refs/<id>` stands wherever an address does (a bookmark, a region, a set).',
+      parents: ['refs'],
+      ids: 'required',
+      params: {
+        to: {
+          type: 'union',
+          of: [
+            { type: 'ref', doc: 'The address it names: a node, a node data makes, positions, items or a rect.' },
+            {
+              type: 'list',
+              of: { type: 'ref', doc: 'An address of the set.' },
+              'min-length': 1,
+              doc: 'A set: what each address names, together.',
+            },
+          ],
+          required: true,
+          doc: 'What the ref names: an address, or a set of addresses (one type of result).',
+        },
+        label: { type: 'string', doc: 'A label for people (its id when absent).' },
+        color: { type: 'string', doc: 'A color it is shown with: a hex literal or `token:<name>`.' },
+      },
     },
     source: {
       doc: 'Where data is read from: a file or service by uri, or a value inline.',

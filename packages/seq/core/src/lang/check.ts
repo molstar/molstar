@@ -13,6 +13,7 @@ import {
   CategoryColumn,
   exactAddress,
   hasErrors,
+  parseAddress,
   type Issue,
   isColumn,
   issueOf,
@@ -23,6 +24,7 @@ import {
 } from '@molstar/core/repr/tree';
 import { LangIssues } from './issues.js';
 import { SeqLanguage, SeqLanguageVersion } from './language.js';
+import { followRef, refAddresses } from './refs.js';
 
 type Code = keyof typeof LangIssues.codes;
 
@@ -94,9 +96,17 @@ export function checkSeqLang(spec: Node): Issue[] {
   };
 
   const p = (n: Node, key: string): Value | undefined => n.params?.[key];
+  /**
+   * What an exact address names. A layer's data may name a user-defined ref: a ref naming one exact address stands
+   * for its node there (the resolved view follows it the same way); other params name nodes directly.
+   */
   const target = (n: Node, key: string): Placed | undefined => {
     const a = exactAddress(p(n, key));
-    return a ? byAddress.get(a) : undefined;
+    if (a === undefined) return undefined;
+    if (n.kind !== 'layer' || key !== 'data') return byAddress.get(a);
+    const f = followRef(spec, a);
+    const to = 'addresses' in f && f.addresses.length === 1 ? exactAddress(f.addresses[0]) : undefined;
+    return byAddress.get(to ?? a);
   };
   /** The sequence a param names, with what is known of its extent. */
   const systemOf = (n: Node, key: string) => {
@@ -137,8 +147,31 @@ export function checkSeqLang(spec: Node): Issue[] {
       }
       case 'data':
       case 'views':
+      case 'refs':
         if (n.id !== n.kind) report('seq.lang.container.id', `The id of ${n.kind} is \`${n.kind}\``, at);
         break;
+      case 'ref': {
+        // what each address of a ref names is judged by its leading ids (forms after them are a query's, and a node
+        // data makes waits for its data); a chain of refs ends (_spec/README.md, Language, Refs)
+        const to = refAddresses(n);
+        to.forEach((a, i) => {
+          const segments = parseAddress(a).pattern?.segments ?? [];
+          const ids: string[] = [];
+          for (const s of segments) {
+            if (typeof s !== 'string') break;
+            ids.push(s);
+          }
+          const tail = Array.isArray(p(n, 'to')) ? ['to', i] : ['to'];
+          if (ids.length && !byAddress.has(printAddress(ids)))
+            report('seq.lang.ref.unresolved', 'The ref names no node of the spec', at, ...tail);
+        });
+        if (at.address !== undefined) {
+          const f = followRef(spec, at.address);
+          if ('refused' in f && (f.refused === 'cycle' || f.refused === 'depth'))
+            report('seq.lang.ref.cycle', 'The ref leads back to itself, or through too many refs', at, 'to');
+        }
+        break;
+      }
       case 'source':
       case 'sequence':
       case 'ranges':
@@ -182,9 +215,8 @@ export function checkSeqLang(spec: Node): Issue[] {
     for (const key of Object.keys(n.params ?? {})) {
       const f = fields[key];
       if (f?.type !== 'ref' || f.in !== undefined) continue;
-      const a = exactAddress(n.params?.[key]);
-      if (a === undefined) continue; // a query form: a resolve pass's
-      const t = byAddress.get(a);
+      if (exactAddress(n.params?.[key]) === undefined) continue; // a query form: a resolve pass's
+      const t = target(n, key);
       if (!t || (f.kinds && !f.kinds.includes(t.node.kind)))
         report('seq.lang.ref.target', 'The reference names no node of a kind this param takes', at, key);
     }

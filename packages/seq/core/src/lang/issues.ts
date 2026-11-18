@@ -23,7 +23,7 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.container.id': {
     severity: 'error',
-    description: 'A `data` container has an id other than `data`, or a `views` container one other than `views`',
+    description: 'A `data`, `views` or `refs` container has an id other than its kind (`data`, `views`, `refs`)',
     hint: 'The containers have reserved ids',
   },
   'seq.lang.source.index': {
@@ -90,6 +90,17 @@ export const LangIssues = defineIssues('seq.lang', {
     severity: 'error',
     description: 'An exon of a codon map ends before it starts, or overlaps or precedes the exon before it',
     hint: 'List the exons in genomic order, each from its start to its end, none overlapping',
+  },
+  'seq.lang.ref.unresolved': {
+    severity: 'warning',
+    description:
+      'A user-defined ref names nothing: the leading ids of its address name no node of the spec (the rest of the spec opens)',
+    hint: 'Point the ref at an address of the spec, or remove it',
+  },
+  'seq.lang.ref.cycle': {
+    severity: 'warning',
+    description: 'A user-defined ref leads back to itself through other refs, or through more refs than are followed',
+    hint: 'Point one of the refs at what it names, not at another ref',
   },
   'seq.lang.ref.target': {
     severity: 'error',

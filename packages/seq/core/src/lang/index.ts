@@ -5,7 +5,7 @@
  */
 
 // @molstar/seqx-core/lang: SeqViewSpec as a description on `@molstar/core/repr` (the kinds, their params), the
-// language builder, the `seq.lang.*` issue catalog and the language-level checks (_spec/README.md).
+// language builder, the `seq.lang.*` issue catalog, the language-level checks and user-defined refs (_spec/README.md).
 
 export {
   type Address,
@@ -13,6 +13,8 @@ export {
   createSeqSpec,
   type DataBuilder,
   type Params,
+  type RefsBuilder,
+  type RefTo,
   type RefValue,
   type SectionBuilder,
   type SeqSpecBuilder,
@@ -24,3 +26,12 @@ export {
 export { checkDataNode, checkSeqLang, checkSeqSpec, type DataNodeTargets } from './check.js';
 export { LangIssues } from './issues.js';
 export { type SeqKinds, SeqLanguage, type SeqLanguageType, SeqLanguageVersion } from './language.js';
+export {
+  DefaultRefDepth,
+  type FollowedRef,
+  followRef,
+  type RefRefusal,
+  RefsId,
+  refAddresses,
+  refPrefix,
+} from './refs.js';
