@@ -31,8 +31,13 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## In progress
 
-- Stage 2 started (2026-11-18, from `57b1d7c4e`): K2 (`seq/k2-merge`, opus), O (`seq/o-addressing`, opus), R+K
-  (`seq/rk-refindex`, sonnet; measure first). N waits for K2. Stage 1's gate also passed the `.seq` checks and
+- Stage 2 started (2026-11-18, from `57b1d7c4e`; the lane worktrees were cut from master, each lane reset onto it):
+  - K2 merged (`5927c9e4b`) after one review round (5 tests failing on the parent, checked).
+  - R+K in its fix round: the derive correct, but eager (story steps' typed sets re-walked every apply, a one-key
+    set 3 → 30 ms) and `under()` linear; lazily derived next.
+  - O building (stories and tests in).
+  - N's brief written (`briefs/n-editing.md`); it starts from the merged tree once O lands, since both edit the
+    viewer's commands, models and `viewer.ts`. Stage 1's gate also passed the `.seq` checks and
   `pnpm test:medium` for core, io and seq.
 - Stage 1: R, K, L, M merged; `pnpm build` and `pnpm check:workspace` green on `4eb20f091` (the check had failed on
   stale ignored outputs in `packages/ui/lib`, removed). The look done in a visible pane (2026-11-18), light and
