@@ -59,10 +59,30 @@ Where to: **P** principles (the instance's adaptations, and the oz package's hom
      The first three cost two extra lanes (T, U); the rest went to the third slice. Two of the six were in the
      designs' later columns; four were in no design at all (`letters` on another system's axis was refused in a
      `_spec` with no reason, a decision made in passing).
-   - *Proposal*: the used-before-done gate is not only at the end. A slice that builds interaction puts a short use
-     gate after its first drawn stage (the author tries the stories for ten minutes), so missing design is found while
-     the lanes that would build it are still planned. The finalize step lists what the use gates found, by kind (bug,
-     missing design, look), so the next fold-back can count it.
+   - *Read again*: five of the six were a missing **inverse or symmetry** of something built: focus without its way
+     back (zoom out, back), a follow in one direction only (a follower that leads), a selection that replaces with no
+     add or remove (several ranges), a direction one way only (a reversed follower), a protein's data on its gene but
+     not its letters (one axis). The sixth (collapsed introns) was planned but not built. The author: "some things are
+     often under-designed. how can we better identify and surface these gaps?"
+   - *Proposal* (the author asked for ways; three, each cheap, the first two before building, the third before the
+     author's gate):
+     1. **Every action names its inverse and its symmetric case in the design** (P: §design-first; D). A design that
+        adds an action (a gesture, a command, a mapping, a view state) lists, beside it: its inverse (focus ↔ back,
+        add ↔ remove, zoom in ↔ out), its symmetric case (leader ↔ follower, plus ↔ minus strand, one system ↔
+        another), and its composition with itself (one range ↔ several). Each is built, planned with a slice, or
+        refused with a reason. A design's review reads that list; an empty cell is a gap surfaced before any code.
+     2. **An interaction matrix in the UX design** (D: `ux-foundations.md`): rows the things a user acts on (a
+        section, a follower, an item, a range, the selection, the view), columns the verbs (select, extend, add,
+        remove, focus, back, zoom in and out, pan, hide, edit), each cell the gesture and command or "no, because".
+        Kept with the gesture table; the slice plan names the cells it fills, and the gate checks them.
+     3. **A precedent capability check and a novice pass before the author's gate** (P: §precedents, §used-before-done;
+        L). §precedents is applied to interactions too: what a user can do in the precedents (the current Seq\*, IGV,
+        Jalview, the genome browsers) that the slice's views cannot is listed, each built, planned or refused. Then a
+        light agent plays a user in a visible browser with a short task script per view ("select two regions",
+        "zoom out after focusing", "move from the gene") and reports friction before the author sees it.
+     The use gate also moves earlier: a slice that builds interaction has a short one after its first drawn stage.
+     The finalize step counts what each gate found, by kind (bug, missing design, look), so a fold-back can tell
+     which of the three catches what.
 2. **Check what is drawn against the data, not only one consumer against the other.** (P: §whole-composition-tested;
    S; C)
    - *What happened*: WRAP53's second exon was dropped by the renderer since the first slice (a tile-edge dedupe by id
@@ -132,6 +152,8 @@ Where to: **P** principles (the instance's adaptations, and the oz package's hom
 
 ## Gaps for the author (§gaps-queue, from gaps.md; asked now, per A4)
 
+**Decided** (the author, 2026-11-18): "Nine gaps: ok as recommended".
+
 1. Lane M: `SizeLimitExceeded` exported from `@molstar/core/util/data-source` (a typed error). Recommendation: keep.
 2. Lane M: Seq\*'s asset policy `redirect` (now an option, `f6f012846`). Recommendation: keep as built.
 3. Lane L: MessagePack extension codes `0x10` (special numbers), `0x19` (category), `0x1a` (bigint) beyond the agreed
@@ -151,6 +173,14 @@ Where to: **P** principles (the instance's adaptations, and the oz package's hom
 
 - Rules from the `check:workspace` glass-wordmark failure: the host's, fixed by removing stale outputs.
 - A rule from the frame-time flake: recorded as a followup; B4's best-of covers its kind.
+
+## The author's answers so far (2026-11-18)
+
+- The nine gaps: as recommended.
+- B1: "yeah, this is real .. some things are often under-designed. how can we better identify and surface these
+  gaps?" — the three ways above, for the author's yes.
+- B2 to B6: "ok for other new lessons".
+- A1 to A8 and C: not yet answered.
 
 ## Decision
 
