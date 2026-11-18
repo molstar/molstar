@@ -15,7 +15,7 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 
 | Model | Holds | Change kind ([changes.md](changes.md)) |
 |---|---|---|
-| `SpecModel` | the spec's root (immutable), its revision (the root's hash), the preview overlay; applies changes (a whole new root, or a function of the old one, until the tree core has a patch format, then `repr` patches); a participant of the host's history through Seq\*'s history port (a checkpoint is the root; a change outside a run is reported to the host) ([changes.md](changes.md)) | spec patch, preview |
+| `SpecModel` | the spec's root (immutable), its revision (the root's hash), the preview overlay; applies `repr` patches (validated with the language and Seq\*'s checks, all or nothing; stale ones refused) and records each result as a revision; a participant of the host's history through Seq\*'s history port (a checkpoint is the root, a revision its hash; a change outside a run is reported to the host) ([changes.md](changes.md), [patches.md](patches.md)) | spec patch, preview |
 | `ViewModel` | the view shown; per section its viewport; scroll groups and follows | session |
 | `HoverModel` | the hover: a Location, an element key, its owner, its system | session |
 | `SelectionModel` | the selection: element keys and a Location, the anchor, the cursor | session |

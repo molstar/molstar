@@ -88,7 +88,7 @@ const SeqLanguage = defineLanguage({
 | `view` | `views` | `layout` (`tracks`) |
 | `section` | `view` | **`of`** (a system's address), `range`, `follow` (a section's address) |
 | `track` | `section` | `label`, `height` (px) |
-| `layer` | `track` | **`type`** (`letters`, `ranges`, `values`), `data` (an address or a query), `color` (a theme form) |
+| `layer` | `track` | **`type`** (`letters`, `ranges`, `values`), `data` (an address or a query), `color` (a theme form); its id required (the author, 2026-11-18: every child in a spec is addressable, so hiding a layer is a one-key `set`) |
 
 ### The builder, by example
 

@@ -1,27 +1,24 @@
-# Revisions, patches, diff and merge in `@molstar/core/repr` (draft 2, for the author's review)
+# Revisions, patches, diff and merge in `@molstar/core/repr`
 
-A draft for Gate 0 of the second slice. Once approved, it is agreed into `.seq/design/patches.md`; tree-core.md and
-format.md then point at it, and their "five operations" become six. Lane K builds exactly the surface in
-[The API](#the-api); anything past it stops the lane.
+Agreed by the author, 2026-11-18 ("yes as recommended": git's model, `layer` ids required, dangling refs refused by
+default, no automatic rebase; and draft 1's five questions). Draft 1 was reviewed independently (Fable 5.2); its
+findings B1–B6 and S1–S6 are resolved below, each cited where it lands. tree-core.md and format.md point here. Lane K of
+the second slice builds exactly the surface in [The API](#the-api); anything past it stops the lane.
 
-- **Draft 1** was reviewed independently (Fable 5.2, 2026-11-18). Its six blocking findings (B1–B6) and six should-fix
-  ones (S1–S6) are resolved here, each cited where it lands.
-- **Draft 2** also takes the author's direction: "should we give this "git semantics" ... might be more future proof
-  with concurrent editing too. and we would later bring similar concepts to meso as well."
-
-## Decisions for the author first
+## Decisions (the author, 2026-11-18: "yes as recommended", all four)
 
 1. **Git's model** ([The model](#the-model-snapshots-are-the-truth)): snapshots are the truth and patches are derived;
    a change is a commit (a root with its parent revisions). Lane K builds the pure primitives `applyPatch`, `diff` and
-   `merge3`. Branches, a store of revisions and sync wait. Recommendation: yes.
+   `merge3`. Branches, a store of revisions and sync wait. **Decided: yes.**
 2. **Seq's `layer` gets required ids** (its one kind with optional ids). Then hiding a layer is a one-key `set`, not a
    `replace` of its whole track, and every child in a Seq spec can be addressed. Recommendation: yes, in lane K's
-   companion change to `seqx-core/lang` (a language change, so its version moves).
+   companion change to `seqx-core/lang` (a language change, so its version moves). **Decided: yes.**
 3. **A patch that leaves a ref dangling is refused by default** (link integrity, the built-in validator). A caller may
    allow it for one patch (`allowDangling`), and the result then lists what dangles. Recommendation: yes. Why: a delete
    that silently breaks a view is worse than one that asks first, and an undo then never passes through a broken state.
+   **Decided: yes.**
 4. **A stale patch is refused, never rebased automatically** (EC-81). A host may rebase through `merge3` on purpose.
-   Recommendation: yes (configurable over fixed: refusal is the default, rebase is a host's opt-in).
+   **Decided: yes** (configurable over fixed: refusal is the default, rebase is a host's opt-in).
 
 ## The model: snapshots are the truth
 
@@ -123,8 +120,9 @@ type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;
    - **What matches**: only the leading run of id segments of a ref's address can be a prefix of the moved address.
      Forms after it are kept (`/views/main/(section :of /data/p53)` follows `/data/p53`'s move inside the form value
      too). Refs inside the moved subtree to itself move with it.
-   - **Cost**: the revision's ref index (`immutable.md`, In `repr`), built at the first move and derived by each later
-     revision from its parent's by the touched nodes: a move costs the refs it touches, never a walk of the spec.
+   - **Cost**: the revision's ref index, built at the first move and derived by each later revision from its parent's
+     by the touched nodes, so a move costs the refs it touches, never a walk of the spec. Its persistent collections are
+     `@molstar/core/immutable`'s, proposed beside this design for the same Gate 0.
    - **Rebinding** (B1): an `insert`, `move` or `rename` that makes a dangling ref resolve again is refused
      (`repr.patch.rebound`), unless `allowRebind` is set. Why: addressing.md says a ref is never silently re-bound.
      The principles' "an id is never reused among its siblings" is carried as a tension: Seq's ids are authors' names,
@@ -280,7 +278,7 @@ A validator's own issue is carried as is, with the op that caused it in its `pat
 - **Citations**: the lane's code and `_spec` cite their own sections, never `.seq/` or a principle's id. The `repr`
   `_spec`'s existing citations of `.seq/design/*` are fixed when the scaffold is retired.
 
-## For the author, beyond the four decisions
+## Also decided ("as recommended")
 
 From draft 1, with the review's agreement:
 1. One key a `set`.

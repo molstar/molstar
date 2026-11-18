@@ -25,7 +25,7 @@ whether it is undoable, keeps that clear.
 
 | Change | Example | Lives in | Undoable | In history | Saved with the spec | Addressable |
 |---|---|---|---|---|---|---|
-| spec patch | add a track, hide a layer, set a theme, add a bookmark (a ref), edit a numbering | the spec | yes, one step a batch | yes | yes | the nodes it touched |
+| spec patch | add a track, hide a layer, set a theme, add a bookmark (a ref), edit a numbering | the spec: a new revision (a commit: the root and its parents) | yes, one step a batch | yes (the commit; its patch is derived) | yes | the nodes it touched |
 | snapshot step | enter a story's step | the spec's snapshots, applied over the base | by leaving the step, not by undo | no (entering is navigation) | the snapshots are | `/snapshots/<id>` |
 | preview | a drag resizing a track, a theme picked while hovering a menu | a transient overlay over the spec | cancel (Esc); ends in one patch or nothing | its final patch only | no | as the spec's |
 | session | the viewport, the selection, the hover, the cursor, open panels, the view shown | the viewer's models | no (selection: a host may opt into a selection history) | no | no (a host may save it beside the spec) | selection and focus as addresses |
@@ -51,10 +51,16 @@ whether it is undoable, keeps that clear.
   a command that writes a patch (an inline copy, a ref), on purpose.
 - **Patches can stream too, in version 1 from one writer at a time**: an agent's or a host's patches are applied
   through the same history, each a step (an agent's turn may group its calls into one, as `HistoryStep.turn` allows);
-  a patch names the revision it was made against and is refused when that is not the current one (EC-81). Concurrent
-  writers (collaboration, rebase) are deferred: a change made outside a run is reported to the host through the port,
-  and whether it invalidates the earlier steps is the host's rule (`@molstar/ui/history`'s adapter invalidates them), so
-  concurrent writers wait for a design of their own (EC-93).
+  a patch names the revision it was made against and is refused when that is not the current one (EC-81), never
+  rebased automatically. A host may rebase it on purpose: `merge3(base, current, apply(base, p))`, conflicts shown or
+  rescued as data ([patches.md](patches.md), Merge). A change made outside a run is reported to the host through the
+  port, and whether it invalidates the earlier steps is the host's rule (`@molstar/ui/history`'s adapter invalidates
+  them). Concurrent writers (EC-93) have their primitive in `merge3`; who merges and when is the host's policy, not yet
+  designed.
+- **Snapshots are the truth, patches derived** (git's model, the author 2026-11-18): what a history records is a
+  revision, a root with its parents; the patch from a parent is `diff(parent, root)` whenever one is wanted. Why: a
+  recorded root is exact by construction (ref rewrites and normalization included), and checkpoints by root cost only
+  the paths that changed.
 - **Every command says its change kind**: a command's description declares whether it writes a patch, changes session
   state or only navigates, so menus can show what undo will undo and agents can tell an edit from a look.
 

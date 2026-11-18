@@ -6,7 +6,7 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 - Plan, loop and state written; the loop rewritten for this slice.
 - Before the loop (the author, 2026-11-18): the history designs corrected; the patch and diff design drafted
-  (`drafts/patches.md`, for the author's review before the loop starts); Gate 0 aligned with the first slice's record;
+  (agreed the same day as `design/patches.md`, git's model); Gate 0 aligned with the first slice's record;
   stage 0's lane renamed S0; the first slice's worktrees and branches removed.
 
 ## In progress
@@ -15,7 +15,8 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## Next
 
-- The author reviews `drafts/patches.md` (draft 2, after Fable 5.2's review; git's model) and `drafts/immutable.md`
+- Fable 5.2 reviews `design/patches.md` with the state semantics (agreed 2026-11-18: git's model and the three other
+  decisions) and `drafts/immutable.md`
   (`@molstar/core/immutable`, used in `repr`; lane R); then the loop starts: Gate 0 to the author (plan.md, with the first slice's
   open decisions and evidence), stage 0 beside it.
 

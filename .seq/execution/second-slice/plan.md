@@ -73,7 +73,7 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
     12. the TP53 exon coordinates in the test geometry: checked against RefSeq in stage 0 (S0), or marked unverified.
   - **Public API changes in the base library** ([base-library](../../design/base-library.md)):
     - **`@molstar/core/repr`'s revisions, patches, `diff` and `merge3`** (git's model: snapshots are the truth,
-      patches derived): the draft `drafts/patches.md` (draft 2, after an independent review), its API section the
+      patches derived): `design/patches.md` (agreed 2026-11-18 after an independent review; a second review of it with the state semantics follows), its API section the
       agreed surface for lane K, with its four decisions (git's model; `layer` ids required; dangling refs refused by
       default; no automatic rebase) and five questions answered. Recommendation: as drafted.
     - **`@molstar/core/immutable`** (the author, 2026-11-18: "implement core/immutable and use it in repr"; moving
@@ -125,8 +125,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - model-based property tests against JS collections, persistence and transient tests, collisions, the canonical
     shape; allocation cases (the opt-in tier); ratios against immutable.js and the bundle size (heavy lane);
   - its `_spec`, base-library.md's row, a v6 changelog entry.
-- [ ] K (strong) `@molstar/core/repr/patch`, as `drafts/patches.md` agreed at Gate 0 (moved to
-      `design/patches.md` before the lane starts):
+- [ ] K (strong) `@molstar/core/repr/patch`, as `design/patches.md` (agreed 2026-11-18):
   - the six ops with their inverses, `applyPatch` (result then base, all or nothing, refs following a move, no silent
     rebinding, validation of what it made, link integrity, the language's validators), `diff` by Merkle descent with
     its emission order, `merge3` with conflicts as data, `PatchLanguage`, `Commit` as a type;

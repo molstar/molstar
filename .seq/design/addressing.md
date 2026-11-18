@@ -85,8 +85,10 @@ have the view act on it. One grammar serves all of them, the same as meso\*'s.
   A ref's address is `/refs/dbd`, usable wherever an address is: in layers, focus, commands, links and other refs.
 - **Bookmarks and location sets are refs**: adding a bookmark adds a ref (one patch, one undo step, EC-162); a set of
   them is a ref to several addresses.
-- **Refs follow edits**: a move or a rename rewrites what names it; a ref whose target no longer resolves is reported,
-  and the rest of the spec opens.
+- **Refs follow edits**: a move or a rename rewrites what names it ([patches.md](patches.md), Applying). A patch that
+  would leave a ref dangling is refused by default (`allowDangling` per patch, the author 2026-11-18), and one that
+  would make a dangling ref resolve again is refused (`allowRebind`): a ref is never silently re-bound. A spec read
+  with a ref that does not resolve reports it, and the rest of the spec opens.
 - **A `ref` param type** (meso\*'s): a param that names a node or location holds an address word, checked in one
   resolve pass over one index of the spec.
 
@@ -104,7 +106,8 @@ have the view act on it. One grammar serves all of them, the same as meso\*'s.
 ## Tensions
 
 - **Local ids vs stable identity**: an address changes when a node moves; a move is an operation that rewrites what
-  names it (meso\*'s resolution). Accepted for short, composable specs.
+  names it (meso\*'s resolution). Accepted for short, composable specs. The principles' "an id is never reused among
+  its siblings" is not held: Seq\*'s ids are authors' names, and an author may reuse one; rebinding is refused instead.
 - **The id pattern vs real names** (EC-200): kept strict; such names go through a `:name` form.
 
 ## Consequences

@@ -54,9 +54,11 @@ description of the language that everything else derives from.
   builder's types, the docs and the agent skill derive from it.
 - **Unknown kinds** in a newer minor version, or in an extension namespace the reader lacks, are kept, reported and
   skipped (with the kind's declared fallback), never a failure of the whole spec.
-- **Patches** (`set`, `unset`, `insert`, `remove`, `move`, by address) are the only way a spec changes; a batch is all
-  or nothing and returns its inverse; `diff(a, b)` returns the patch from `a` to `b`. Columns are replaced whole by a
-  patch, never edited element by element.
+- **Revisions and patches** ([patches.md](patches.md)): a spec's revision is a snapshot, its root named by its hash; a
+  change is a commit (a root and its parent revisions), and the patch between two revisions is derived (`diff`).
+  Patches (`set`, `unset`, `insert`, `remove`, `move`, `replace`, by addresses of ids) are how a writer asks for a
+  change; a batch is all or nothing and returns its inverse; `merge3` merges two lines of edits by node identity, with
+  conflicts as data. Columns are replaced whole by a patch, never edited element by element.
 - **The builder is the main way to write a spec** (the author: "the main use case will will using the "builder" to
   create the views"), typed from the description; misuse is a type error where it is written.
 - **No published JSON Schema, initially** (the author: "it could end up being bloated"); the description could derive
