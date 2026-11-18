@@ -543,7 +543,8 @@ describe('repr/patch merge3: what a merge costs', () => {
     const y = applyPatch(b, { ops: ops(100) }, lang);
     if (!x.ok || !y.ok) throw new Error('edits');
     merge3(b, x.root, y.root, lang); // warm
-    const r = within(30, () => merge3(b, x.root, y.root, lang));
+    // About 0.5 ms warm (the diffs skip equal subtrees by hash); one sample, so 5 ms.
+    const r = within(5, () => merge3(b, x.root, y.root, lang));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.changes.made).toEqual([['b102', 'n']]);
