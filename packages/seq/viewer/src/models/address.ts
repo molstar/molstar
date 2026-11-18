@@ -89,7 +89,9 @@ export class AddressModel extends ReactiveModel {
   /** The address last focused and the viewports it left, so the focus reads as that address until the view moves. */
   private _focused: { address: string; viewports: string } | undefined;
   /** A focus kept until its sections are placed: records `_focused` when the kept move lands. */
-  private _landing: (() => void) | undefined;
+  private _landing: { address: string; stop(): void } | undefined;
+  /** The sections the last move moved: what a kept move waits on. */
+  private _moved: readonly string[] = [];
 
   constructor(
     private readonly spec: SpecModel,
@@ -116,9 +118,7 @@ export class AddressModel extends ReactiveModel {
     // one, and dropped with an issue when it names nothing
     this.registerPermanentDispose(spec.beforeCommit((changes) => this.followMoves(changes.moved)));
     this.listenPermanently(spec.root, () => this._respec());
-    // a focus kept for the first spec (no address names anything before it) runs once the view has its sections
-    this.listenPermanently(view.resolved, () => this._retryFocus());
-    this.registerPermanentDispose(() => this._landing?.());
+    this.registerPermanentDispose(() => this._landing?.stop());
   }
 
   private readonly _issues = new State<readonly Issue[]>([]);
@@ -164,6 +164,7 @@ export class AddressModel extends ReactiveModel {
     if (this._pendingFocus)
       this._pendingFocus = { ...this._pendingFocus, address: rewrite(this._pendingFocus.address) };
     if (this._focused) this._focused = { ...this._focused, address: rewrite(this._focused.address) };
+    if (this._landing) this._landing.address = rewrite(this._landing.address);
   }
 
   /** The spec changed: each session address resolved again; one that names nothing now is dropped with an issue. */
@@ -199,6 +200,7 @@ export class AddressModel extends ReactiveModel {
     }
     if (this._pendingFocus && !check(this._pendingFocus.address)) this._pendingFocus = undefined;
     if (this._focused && !check(this._focused.address)) this._focused = undefined;
+    if (this._landing && !check(this._landing.address)) this._landing.stop();
     this._issues.set(dropped);
   }
 
@@ -322,7 +324,7 @@ export class AddressModel extends ReactiveModel {
       return this._outcome(resolution, false, 'Waiting for its data');
     }
     if (this._pendingFocus?.address !== address) this._pendingFocus = undefined;
-    this._landing?.();
+    this._landing?.stop();
     if (resolution.status !== 'resolved') return this._outcome(resolution, false, 'Nothing to focus');
     this._pendingFocus = undefined;
     const r = this._moveTo(loc, reveal, section);
@@ -339,23 +341,36 @@ export class AddressModel extends ReactiveModel {
     );
   }
 
-  /** Records the focus as the address once the sections its kept move waits on are placed (a width, a length). */
+  /**
+   * Records the focus as the address once the sections the kept move moved are placed (a width, a length): not before,
+   * and never after another jump (a focus, back, forward) or a change of the spec that leaves the address naming
+   * nothing. A section that stays pending without being moved (hidden) does not hold it.
+   */
   private _keepUntilPlaced(address: string): void {
-    const waiting = (this.view.resolved.value?.sections ?? [])
-      .map((s) => s.address)
-      .filter((a) => this.view.get(a)?.pending);
+    const waiting = this._moved.filter((a) => this.view.get(a)?.pending);
     const offs: (() => void)[] = [];
-    const stop = () => {
-      for (const off of offs.splice(0)) off();
-      if (this._landing === stop) this._landing = undefined;
+    const landing = {
+      address,
+      stop: () => {
+        for (const off of offs.splice(0)) off();
+        if (this._landing === landing) this._landing = undefined;
+      },
     };
     const land = () => {
       if (waiting.some((a) => this.view.get(a)?.pending)) return;
-      stop();
-      this._focused = { address, viewports: this._viewportsKey() };
+      landing.stop();
+      this._focused = { address: landing.address, viewports: this._viewportsKey() };
     };
-    this._landing = stop;
+    this._landing = landing;
     for (const a of waiting) offs.push(this.view.viewport(a).listen(land));
+    // a jump that is not this move's (the view's back and forward, another focus) takes the record away
+    // (told after this move's own jump, so the count it started at is compared)
+    const jumps = this.view.jumps.value;
+    offs.push(
+      this.view.jumps.listen((n) => {
+        if (n !== jumps) landing.stop();
+      }),
+    );
   }
 
   private _retryFocus(): void {
@@ -378,6 +393,7 @@ export class AddressModel extends ReactiveModel {
    */
   private _moveTo(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
     let r: 'moved' | 'pending' | 'none' = 'none';
+    this._landing?.stop();
     this.view.jump(() => {
       r = this._moveEach(loc, reveal, only);
       return r !== 'none';
@@ -431,6 +447,7 @@ export class AddressModel extends ReactiveModel {
       moved = this.view.setRange(s.address, Math.min(a, b), Math.max(a, b)) || moved;
       done.add(s.address);
     }
+    this._moved = [...done];
     if (!moved) return 'none';
     for (const a of done) if (this.view.get(a)?.pending) return 'pending';
     return 'moved';

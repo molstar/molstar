@@ -20,11 +20,25 @@ function spec() {
   const b = createSeqSpec({ title: 'early' });
   const p = b.data.sequence('p', { alphabet: 'protein', letters: 'M'.repeat(40) });
   b.refs.ref('b', { to: `${p}/(range :from 10 :to 20)` });
+  const q = b.data.sequence('q', { alphabet: 'protein', letters: 'K'.repeat(30) });
+  b.views.view('main', (v) => {
+    v.section('protein', { of: p }).track('letters').layer('l', { type: 'letters' });
+    v.section('other', { of: q }).track('letters').layer('l', { type: 'letters' });
+  });
+  return b.build();
+}
+
+/** The same spec without the ref. */
+function withoutRef() {
+  const b = createSeqSpec({ title: 'early' });
+  const p = b.data.sequence('p', { alphabet: 'protein', letters: 'M'.repeat(40) });
   b.views.view('main', (v) => {
     v.section('protein', { of: p }).track('letters').layer('l', { type: 'letters' });
   });
   return b.build();
 }
+
+const Other = '/views/main/other';
 
 let frames: Frames | undefined;
 const viewers: SeqViewer[] = [];
@@ -68,6 +82,7 @@ describe('a link followed before the spec is loaded', () => {
     await v.load(spec());
     v.resize(600);
     await v.settle();
+    expect(v.addresses.focusAddress()).toBe('/refs/b');
     v.view.pan(Protein, 5);
     expect(v.addresses.focusAddress()).not.toBe('/refs/b');
   });
@@ -80,5 +95,48 @@ describe('a link followed before the spec is loaded', () => {
     await v.settle();
     expect(v.addresses.resolve('/refs/nope').status).toBe('missing');
     expect(v.addresses.focus('/refs/nope')).toMatchObject({ done: false, message: 'Nothing to focus' });
+  });
+
+  it('a second load that no longer names the address drops the kept focus, with an issue', async () => {
+    const v = make();
+    v.runLink('!seq-focus=/refs/b');
+    await v.load(spec());
+    expect(v.view.get(Protein)?.pending).toBe(true);
+    await v.load(withoutRef());
+    v.resize(600);
+    await v.settle();
+    expect(v.addresses.focusAddress()).not.toBe('/refs/b');
+    expect(v.addresses.issues.value.map((i) => i.code)).toContain('seq.address.missing');
+  });
+
+  it('another focus replaces the kept one: the kept address is not recorded when its sections are placed', async () => {
+    const v = make();
+    v.runLink('!seq-focus=/refs/b');
+    await v.load(spec());
+    expect(v.addresses.focus('/refs/nope').done).toBe(false);
+    v.resize(600);
+    await v.settle();
+    expect(v.addresses.focusAddress()).not.toBe('/refs/b');
+  });
+
+  it('a jump that is not its own (the view’s back, another move of the view) takes the record away', async () => {
+    const v = make();
+    v.runLink('!seq-focus=/refs/b');
+    await v.load(spec());
+    v.view.jump(() => v.view.setRange(Protein, 1, 5));
+    v.resize(600);
+    await v.settle();
+    expect(v.addresses.focusAddress()).not.toBe('/refs/b');
+  });
+
+  it('waits only on the sections it moved: another that stays hidden does not hold the record', async () => {
+    const v = make();
+    v.runLink('!seq-focus=/refs/b');
+    await v.load(spec());
+    // the protein section is placed, the other has no width and stays pending
+    v.view.setWidth(Protein, 400);
+    expect(v.view.get(Protein)?.pending).toBe(false);
+    expect(v.view.get(Other)?.pending).toBe(true);
+    expect(v.addresses.focusAddress()).toBe('/refs/b');
   });
 });

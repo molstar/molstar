@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { RangesLay } from '@molstar/seqx-core/render';
+import { colorHex, type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { Domains, GeneExons, GeneFile } from '@molstar/seqx-examples/p53/data';
@@ -103,13 +103,29 @@ function marksOf(lay: RangesLay, row: Row): [number, number][] | undefined {
 }
 
 /**
+ * What the canvas draws in a layer's box: the data pass's rects (the placeholders' colour left out) in its lanes, as
+ * `[x0, x1]`, read from the draw lists, never from the layout's own marks.
+ */
+function drawnIn(v: SeqViewer, lay: RangesLay): [number, number][] {
+  const pending = colorHex(v.tokens.colors['seq-pending']);
+  const { x, y, width, height } = lay.box;
+  return recordDrawLists(v.frame!.lists, ['data'])
+    .split('\n')
+    .filter((l) => l.startsWith('rect '))
+    .map((l) => l.split(' '))
+    .filter((r) => r[5] !== pending && Number(r[2]) >= y - 1e-3 && Number(r[2]) < y + height && Number(r[1]) < x + width)
+    .map((r): [number, number] => [Number(r[1]), Number(r[1]) + Number(r[3])]);
+}
+
+/**
  * Every row with a piece in `[from, to)` has an item in the layer, drawn in as many marks as it has pieces in the
  * window, each inside the layer's box; no mark is drawn that no row accounts for. Returns what is wrong.
  */
-function checkRows(lay: RangesLay, rows: readonly Row[], from: number, to: number): string[] {
+function checkRows(v: SeqViewer, lay: RangesLay, rows: readonly Row[], from: number, to: number): string[] {
   const wrong: string[] = [];
   const inWindow = (r: Row) => r.pieces.filter(([a, b]) => b > from && a < to);
   const expected = rows.filter((r) => inWindow(r).length);
+  const draws = drawnIn(v, lay);
   for (const r of expected) {
     const marks = marksOf(lay, r);
     if (!marks) {
@@ -121,6 +137,15 @@ function checkRows(lay: RangesLay, rows: readonly Row[], from: number, to: numbe
     for (const [x0, x1] of marks)
       if (!(x1 > x0) || x1 < lay.box.x || x0 > lay.box.x + lay.box.width)
         wrong.push(`${lay.key}: ${r.id} mark ${x0}–${x1} is outside its box`);
+    // and the canvas draws each piece: a rect (alone or in a merged run) over the middle of its visible part
+    const owner = v.frame!.layout.sections.find((x) => x.tracks.some((t) => t.layers.some((l) => l.lay === lay)))!;
+    const vp = v.view.get(owner.section.address)!;
+    const px = (position: number) => lay.box.x + ((position - vp.start) * lay.box.width) / (vp.end - vp.start);
+    for (const [a, b] of inWindow(r)) {
+      const mid = (Math.max(px(Math.max(a, vp.start)), lay.box.x) + Math.min(px(Math.min(b, vp.end)), lay.box.x + lay.box.width)) / 2;
+      if (!draws.some(([x0, x1]) => x0 - 1 <= mid && mid <= x1 + 1))
+        wrong.push(`${lay.key}: ${r.id} piece [${a}, ${b}) is not drawn (x ${mid.toFixed(1)})`);
+    }
   }
   const total = expected.reduce((n, r) => n + inWindow(r).length, 0);
   if (lay.hn !== total) wrong.push(`${lay.key}: ${lay.hn} marks drawn, the data's pieces in view are ${total}`);
@@ -141,7 +166,7 @@ describe('Tracks: drawing against the data', () => {
   it('at the fit view, every domain has its mark and every mark is hit', async () => {
     const v = await open('tracks');
     const lay = layerIn(v, 'protein', 'domains')!;
-    expect(checkRows(lay, rows, 0, 393)).toEqual([]);
+    expect(checkRows(v, lay, rows, 0, 393)).toEqual([]);
     expect(checkMarks(v).wrong).toEqual([]);
   });
 
@@ -150,7 +175,7 @@ describe('Tracks: drawing against the data', () => {
     v.view.setRange(`${ViewId}/protein`, 55, 100);
     v.draw();
     const lay = layerIn(v, 'protein', 'domains')!;
-    expect(checkRows(lay, rows, 55, 100)).toEqual([]);
+    expect(checkRows(v, lay, rows, 55, 100)).toEqual([]);
     expect(lay.hn).toBe(3);
     expect(checkMarks(v).wrong).toEqual([]);
   });
@@ -163,10 +188,10 @@ describe('Protein on its gene: drawing against the data', () => {
 
   it('at the fit view, every domain has its mark on the protein and each of its exon pieces on the gene', async () => {
     const v = await open('protein-on-gene');
-    expect(checkRows(layerIn(v, 'protein', 'domains')!, protein, 0, 393)).toEqual([]);
+    expect(checkRows(v, layerIn(v, 'protein', 'domains')!, protein, 0, 393)).toEqual([]);
     const gene = layerIn(v, 'gene', 'domains')!;
     const w = v.view.get(`${ViewId}/gene`)!;
-    expect(checkRows(gene, onGene, Math.floor(w.start), Math.ceil(w.end))).toEqual([]);
+    expect(checkRows(v, gene, onGene, Math.floor(w.start), Math.ceil(w.end))).toEqual([]);
     expect(checkMarks(v).wrong).toEqual([]);
   });
 
@@ -178,7 +203,7 @@ describe('Protein on its gene: drawing against the data', () => {
     v.draw();
     const w = v.view.get(`${ViewId}/gene`)!;
     const lay = layerIn(v, 'gene', 'domains')!;
-    expect(checkRows(lay, onGene, Math.floor(w.start), Math.ceil(w.end))).toEqual([]);
+    expect(checkRows(v, lay, onGene, Math.floor(w.start), Math.ceil(w.end))).toEqual([]);
     // the DNA-binding domain (93 to 292) is in two pieces here, one each side of the intron: the check is not vacuous
     const dbd = onGene.find((r) => r.id === 'DBD')!;
     expect(dbd.pieces.filter(([a, b]) => b > w.start && a < w.end).length).toBe(2);
@@ -217,11 +242,11 @@ describe('Gene by region: drawing against the data', () => {
     for (const id of ids) {
       const t = transcriptLayer(v, id);
       if (!t) wrong.push(`no track for ${id}`);
-      else wrong.push(...checkRows(t, transcriptRows(id), from, to));
+      else wrong.push(...checkRows(v, t, transcriptRows(id), from, to));
       if (Transcripts[id].domains) {
         const d = domainsLayer(v, id);
         if (!d) wrong.push(`no domains track for ${id}`);
-        else wrong.push(...checkRows(d, domainsOn(id), from, to));
+        else wrong.push(...checkRows(v, d, domainsOn(id), from, to));
       }
     }
     expect(wrong).toEqual([]);
