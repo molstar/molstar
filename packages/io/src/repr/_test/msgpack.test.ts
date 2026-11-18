@@ -177,6 +177,17 @@ describe('io/repr/msgpack', () => {
     expect(MsgPackCodec.decode(withExtension(MsgPackExt.category, [1, 0, 0, 0, 1, 0, 0, 0, 0x61])).issues).toEqual([]);
   });
 
+  it('refuses to encode a lone surrogate (UTF-8 cannot hold it), in a value, a key and a category entry', () => {
+    const lone = 'a\uD800b';
+    expect(() => MsgPackCodec.encode({ kind: 'x', params: { a: lone } })).toThrow(/surrogate/);
+    expect(() => MsgPackCodec.encode({ kind: 'x', params: { [lone]: 1 } })).toThrow(/surrogate/);
+    expect(() => MsgPackCodec.encode({ kind: 'x', args: [[lone]] })).toThrow(/surrogate/);
+    expect(() => MsgPackCodec.encode({ kind: 'x', params: { c: categoryColumn([lone]) } })).toThrow(/surrogate/);
+    // a pair is a character
+    const back = MsgPackCodec.decode(MsgPackCodec.encode({ kind: 'x', params: { a: '🧬' } })).node!;
+    expect(back.params?.a).toBe('🧬');
+  });
+
   it('bounds the depth', () => {
     let node: Node = { kind: 'x' };
     for (let i = 0; i < 600; i++) node = { kind: 'x', children: [node] };

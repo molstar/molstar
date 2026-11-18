@@ -95,6 +95,13 @@ class Ext {
 }
 const SpecialExts = Specials.map((_, i) => new Ext({ type: MsgPackExt.number, data: Uint8Array.of(i) }));
 
+/** Throws on a lone surrogate: UTF-8 cannot hold it, and the string would not come back (repr.md §3). */
+function assertWellFormed(text: string): string {
+  if (!(text as unknown as { isWellFormed(): boolean }).isWellFormed())
+    throw new Error('A string holds a lone surrogate, which UTF-8 cannot encode');
+  return text;
+}
+
 /** The tree as plain maps, arrays and atoms, with `Ext` for what MessagePack lacks; columns are not walked. */
 function toPlainNode(node: Node): unknown {
   assertPrintable(node);
@@ -111,7 +118,8 @@ function toPlainRecord(record: ValueRecord): Record<string, unknown> {
   assertKeys(record);
   const out: Record<string, unknown> = {};
   // an `undefined` value is absent, as in the other encodings and the hash
-  for (const key of Object.keys(record)) if (record[key] !== undefined) out[key] = toPlainValue(record[key]);
+  for (const key of Object.keys(record))
+    if (record[key] !== undefined) out[assertWellFormed(key)] = toPlainValue(record[key]);
   return out;
 }
 
@@ -132,6 +140,7 @@ function toPlainValue(value: Value): unknown {
       return new Ext({ type: MsgPackExt.bigint, data });
     }
   }
+  if (typeof value === 'string') return assertWellFormed(value);
   if (value === null || typeof value !== 'object') return value;
   if (isColumn(value)) return columnExt(value);
   if (Array.isArray(value)) return value.map(toPlainValue);
@@ -149,7 +158,7 @@ function columnExt(column: Column): Ext {
 function categoryBytes(column: CategoryColumn): Uint8Array {
   const { dict, codes } = column;
   let size = 4;
-  for (const d of dict) size += 4 + utf8ByteCount(d);
+  for (const d of dict) size += 4 + utf8ByteCount(assertWellFormed(d));
   const bytes = new Uint8Array(size + codes.byteLength);
   const view = new DataView(bytes.buffer);
   view.setUint32(0, dict.length, true);
