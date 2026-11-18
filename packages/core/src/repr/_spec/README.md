@@ -259,14 +259,19 @@ quantities need no quotes, and no units table is needed to read them (locations-
     far put it, still the old root's, and its key untouched), and an overlay, by the draft that holds it, for each key
     an op set or a rewrite changed and each node an op made. The old root's index is built only when an op changes an
     address (a move to another parent, a rename, an insert, a remove, a replace); a patch of sets and reorders builds
-    none.
+    none. Before each move every stored patch of the draft, the overlay's and the old root's, is typed again over the
+    draft as it is then (an old root's key whose sites come out the same keeps its base sites): a `set` whose target an
+    earlier op made, removed or replaced holds a ref from then on, or no longer, and the move takes along exactly the
+    refs the draft has.
   - **Validation** (`validateChanges` in `repr/schema`, on the net `Changes`): a made node whole (its subtree, kept
     children under a changed kind included, its parent rule, a root's kind); a node whose params changed, for the
     changed keys and that no unset key is required; a moved node, for its parent rule; a changed child list, for the
     uniqueness of the ids the change brought. A path copy is checked for nothing, so an error present before is never
     reported again and only what the patch introduced refuses it.
   - **Link integrity**, the old root against the new, never op by op. Read through the apply's index: the refs the ops
-    wrote, made or rewrote, and the old root's under an address the patch changed (removed, made, moved from or to).
+    wrote, made or rewrote, and the old root's under an address the patch changed (removed, made, moved from or to);
+    with any change of an address, every stored patch's ref of the old root still in place too, since its dry run may
+    have changed (an insert elsewhere taking an id one of its ops moves to refuses that op).
     - Dangling: a ref naming no node that named one in the old root or was written by the patch (made, or a key an op
       set), `repr.patch.dangling`, a warning with `allowDangling`. A ref in made content that was in the old root with
       the same value at the same address and dangled there is not written: a replace that keeps it is not refused.
@@ -286,11 +291,14 @@ quantities need no quotes, and no units table is needed to read them (locations-
   rewritten it gets a `set` of its key's old value at the end of the inverse. Each ref is followed from where the
   inverse has it (the new root, the op restoring its key, or the content a remove or replace restores, by lineage)
   through the inverse's later moves; one that would not end as the old root has it is set back. So a move back never
-  drags a ref the move forward did not touch.
+  drags a ref the move forward did not touch. A stored patch's `set` value is typed by the state the inverse's move
+  finds, which neither root tells: every address in it is read untyped (a loose pass), and is set back unless it is the
+  old value and no later move of the inverse can take it along.
 - **The allowances turned around** (`inverseNeeds`): a patch that left refs dangling has an inverse that rebinds them
   (`allowRebind`); one that rebound refs, an inverse that needs both. The inverse also needs `allowDangling` when it
   writes a ref that dangled in the old root (a restoring set, or content it restores: an inverse's restored content is
-  made, and the old root of the inverse does not hold it, so the "same place" exception cannot see it), and
+  made, and the old root of the inverse does not hold it, so the "same place" exception cannot see it), each key it
+  writes typed as the old root holds and types it (a stored patch's `set` value by the old root's dry run), and
   `allowRebind` when it makes again content an old root's ref named (from the inverse's side, a node it made). Law 3
   holds with these only: the patch's own allowances are not the inverse's.
 - **Issue paths**: an issue about the spec has the new root's path and address; one about an op the patch tree's

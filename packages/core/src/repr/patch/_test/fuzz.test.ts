@@ -81,7 +81,7 @@ function expectSameIndex(derived: RefIndex, root: Node) {
  * `derived`: the old root has its index, so the apply derives the new root's, and the inverse is applied over it and
  * over a copy of the root with none (the two consumers: link integrity and the index itself).
  */
-function fuzz(cases: number, seed: number, derived = false, law3 = true) {
+function fuzz(cases: number, seed: number, derived = false) {
   const r = rng(seed);
   const pick = <T>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
   const refTo = (root: Node) => {
@@ -214,9 +214,8 @@ function fuzz(cases: number, seed: number, derived = false, law3 = true) {
         expect(alone.inverse, `case ${c}: inverse`).toEqual(back.inverse);
       } else if (!alone.ok && !back.ok) expect(alone.issues.map((i) => i.code)).toEqual(back.issues.map((i) => i.code));
     }
-    // law 3, stored patches included (derived mode puts them in its trees); the long derived run skips it until a
-    // stored patch's restored refs are fixed (seed 4, case 43: the inverse gives another revision than it says)
-    if (law3 && (!back.ok || hashNode(back.root) !== hashNode(root))) {
+    // law 3, stored patches included (derived mode puts them in its trees)
+    if (!back.ok || hashNode(back.root) !== hashNode(root)) {
       throw new Error(
         `case ${c}: ${back.ok ? 'not the root' : back.issues.map((i) => i.code).join()}\n${JSON.stringify({ root, patch, allow })}`,
       );
@@ -239,6 +238,7 @@ describe('repr/patch: law 3 over seeded multi-op patches with refs and a languag
   });
 
   it('a derived ref index equals one built on the same root (long)', { tags: ['heavy'] }, () => {
-    expect(fuzz(3000, 4, true, false)).toBeGreaterThan(1000);
+    // seeds 4, 7 and 44 each found a stored patch's case law 3 missed; seeds 1 to 80 pass
+    for (const seed of [4, 7, 44]) expect(fuzz(3000, seed, true)).toBeGreaterThan(1000);
   });
 });
