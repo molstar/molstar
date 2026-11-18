@@ -9,15 +9,8 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import {
-  bookmarkRows,
-  bookmarkView,
-  composeViewer,
-  describeRun,
-  focusBookmark,
-  followLink,
-} from '../../features/addressing/compose.js';
-import { RegionText } from './compose.js';
+import { bookmarkRows, bookmarkView, composeViewer, focusBookmark } from '../../features/addressing/compose.js';
+import { LinkStatus, RegionText } from './compose.js';
 
 // Bookmarks and links on the gene's region, read region by region: each bookmark is a ref; the transcripts' arrive with
 // their part of the region, so their bookmarks wait, then resolve. A link in the text moves the view the same way (a
@@ -33,7 +26,7 @@ class BookmarksAndLinksRoot extends UiElement<ExampleView> {
   protected render(view: ExampleView): HTMLElement {
     const root = document.createElement('div');
     root.style.cssText =
-      'display: grid; gap: var(--msui-space-4); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
+      'display: grid; align-content: start; gap: var(--msui-space-4); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
     const hint = document.createElement('p');
     hint.style.cssText = 'margin: 0; color: var(--msui-text-muted); max-width: 72ch;';
     hint.textContent =
@@ -55,10 +48,17 @@ class BookmarksAndLinksRoot extends UiElement<ExampleView> {
         });
       },
     }) as HTMLElement;
-    root.append(hint, text, canvasHost, add, list, status);
+    const tools = document.createElement('div');
+    tools.append(add);
+    root.append(hint, text, canvasHost, tools, list, status);
 
     const viewer = composeViewer(view, { target: canvasHost });
     onCleanup(() => viewer.retire());
+    // a link on a node that arrives later says it waits, and `Focused` when the view has moved to it
+    const links = new LinkStatus(viewer, (m) => {
+      status.textContent = m;
+    });
+    onCleanup(() => links.dispose());
 
     for (const run of RegionText) {
       if (typeof run === 'string') {
@@ -72,7 +72,7 @@ class BookmarksAndLinksRoot extends UiElement<ExampleView> {
       a.title = run.href;
       a.addEventListener('click', (e) => {
         e.preventDefault();
-        status.textContent = describeRun(followLink(viewer, run.href));
+        status.textContent = links.follow(run.href);
       });
       text.append(a);
     }
@@ -101,7 +101,16 @@ class BookmarksAndLinksRoot extends UiElement<ExampleView> {
       );
     };
     onCleanup(viewer.addresses.refs.listen(draw));
-    void viewer.load(view.build()).then(draw);
+    void viewer
+      .load(view.build())
+      .then(() => viewer.settle())
+      .then(() => {
+        draw();
+        links.loaded();
+      })
+      .catch((e: unknown) => {
+        status.textContent = `The view did not load: ${e instanceof Error ? e.message : String(e)}`;
+      });
     return root;
   }
 }

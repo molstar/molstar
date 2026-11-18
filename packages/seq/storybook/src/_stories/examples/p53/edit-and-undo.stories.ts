@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { derive } from '@molstar/core/reactive';
 import { type ExampleView, P53Views } from '@molstar/seqx-examples';
 import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
@@ -20,13 +21,12 @@ import {
   setDomainsColor,
   toggleTrack,
 } from '../../features/editing/compose.js';
-import { addTrack } from './compose.js';
+import { followSvg } from '../../follow-svg.js';
+import { addTrack, trackHeight } from './compose.js';
 
 // Edit and undo on p53's tracks: add a track, hide one, set a theme; undo and redo through a stand-in host's stack; a drag
 // on the slider previews a track's height (Esc cancels, release commits one step). The SVG follows what is shown, and
 // the printed spec beside it. Every string from the spec is put in as text, never markup.
-
-let instances = 0;
 
 const Row = 'display: flex; gap: var(--msui-space-2); align-items: center; flex-wrap: wrap;';
 const Mono = 'margin: 0; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono);';
@@ -37,7 +37,7 @@ class EditAndUndoRoot extends UiElement<ExampleView> {
   protected render(view: ExampleView): HTMLElement {
     const root = document.createElement('div');
     root.style.cssText =
-      'display: grid; gap: var(--msui-space-4); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
+      'display: grid; align-content: start; gap: var(--msui-space-4); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
     const hint = document.createElement('p');
     hint.style.cssText = 'margin: 0; color: var(--msui-text-muted); max-width: 72ch;';
     hint.textContent =
@@ -71,8 +71,18 @@ class EditAndUndoRoot extends UiElement<ExampleView> {
         children: 'Domains blue',
         onClick: () => say(setDomainsColor(s, '#1f77b4')),
       }) as HTMLElement,
-      Button({ size: 'sm', variant: 'primary', children: 'Undo', onClick: () => void s.stack.undo() }) as HTMLElement,
-      Button({ size: 'sm', children: 'Redo', onClick: () => void s.stack.redo() }) as HTMLElement,
+      Button({
+        size: 'sm',
+        children: 'Undo',
+        disabled: derive(s.stack.steps, (steps) => steps.length === 0),
+        onClick: () => void s.stack.undo(),
+      }) as HTMLElement,
+      Button({
+        size: 'sm',
+        children: 'Redo',
+        disabled: derive(s.stack.redoable, (steps) => steps.length === 0),
+        onClick: () => void s.stack.redo(),
+      }) as HTMLElement,
     );
 
     const drag = document.createElement('label');
@@ -81,35 +91,33 @@ class EditAndUndoRoot extends UiElement<ExampleView> {
     slider.type = 'range';
     slider.min = '8';
     slider.max = '80';
-    slider.value = '24';
+    // the slider shows the domains' height as the spec shown says it (a preview, a commit, an undo, a cancel)
+    const showHeight = () => {
+      const h = trackHeight(s, 'domains');
+      if (h !== undefined) slider.value = String(Math.round(h));
+    };
     slider.addEventListener('input', () => dragHeight(s, 'domains', Number(slider.value)));
     slider.addEventListener('change', () => void endDrag(s));
     slider.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') say(cancelDrag(s));
+      if (e.key !== 'Escape') return;
+      say(cancelDrag(s));
+      showHeight();
     });
     drag.append('Domains height (drag; Esc cancels)', slider);
 
     const history = document.createElement('pre');
     history.style.cssText = Mono;
     const printed = document.createElement('pre');
-    printed.style.cssText = `${Mono} max-height: 320px; overflow: auto; background: var(--msui-bg-subtle); padding: var(--msui-space-3);`;
+    printed.style.cssText = `${Mono} max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--msui-bg-subtle); padding: var(--msui-space-3);`;
     const panes = document.createElement('div');
     panes.style.cssText =
       'display: grid; gap: var(--msui-space-4); grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));';
     panes.append(history, printed);
     root.append(hint, canvasHost, tools, drag, status, panes, svgHost);
 
-    // the SVG is the viewer's export of the spec as shown, drawn when the view rests; a later draw drops an earlier one
-    const idPrefix = `p53e${++instances}-`;
-    let alive = true;
-    let latest = 0;
-    const drawSvg = async () => {
-      const mine = ++latest;
-      const r = await s.viewer.renderSvg({ idPrefix });
-      if (!alive || mine !== latest) return;
-      // our own output: every string from data or the spec is escaped by the backend
-      svgHost.innerHTML = r.svg;
-    };
+    // the SVG is the viewer's export of the spec as shown, drawn when the view rests
+    const svg = followSvg(s.viewer, svgHost, { prefix: 'p53e' });
+    onCleanup(() => svg.dispose());
     const draw = () => {
       const rows = historyRows(s);
       history.textContent = [
@@ -119,24 +127,29 @@ class EditAndUndoRoot extends UiElement<ExampleView> {
         ...rows.redo.map((l) => `  ${l}`),
       ].join('\n');
       printed.textContent = printedSpec(s.viewer.spec.shown.value);
+      showHeight();
     };
     for (const state of [s.stack.steps, s.stack.redoable, s.viewer.spec.shown]) onCleanup(state.listen(draw));
+
+    // the status says the last step: an Undo or Redo, else the step just taken (a slider's commit, an edit)
+    let seen = s.stack.lastMove.value;
     onCleanup(
-      s.stack.lastMove.listen(() => {
-        status.textContent = lastMove(s);
+      s.stack.steps.listen((steps) => {
+        if (s.stack.lastMove.value !== seen) {
+          seen = s.stack.lastMove.value;
+          status.textContent = lastMove(s);
+        } else if (steps[0]) status.textContent = `Did ${steps[0].label}`;
       }),
     );
-    onCleanup(s.viewer.rested.listen(() => void drawSvg()));
-    onCleanup(s.viewer.tokensVersion.listen(() => void drawSvg()));
-    onCleanup(() => {
-      alive = false;
-    });
     void s.viewer
       .load(view.build())
       .then(() => s.viewer.settle())
       .then(() => {
         draw();
-        return drawSvg();
+        return svg.draw();
+      })
+      .catch((e: unknown) => {
+        status.textContent = `The view did not load: ${e instanceof Error ? e.message : String(e)}`;
       });
     return root;
   }
