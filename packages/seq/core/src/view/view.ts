@@ -69,6 +69,8 @@ export interface Axis {
   readonly dir: 1 | -1;
   /** The form of the pieces shown: `whole`, `coding`, or the refs (comma-joined) as written; what an export says. */
   readonly pieces: string;
+  /** What the direction reads along, when the section spells `{ along }`: a system's or a map's address. */
+  readonly along?: string;
 }
 
 /** How a section follows another: the path from the leader's system to its own, its direction and scale. */
@@ -252,7 +254,10 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   };
   for (const [at, s] of byAddress) {
     const dir = dirOf(at);
-    axes.set(at, axisOf(model, s, at, systemOf.get(at)!, dir, follows.get(at)?.path, along.get(at), report));
+    const axis = axisOf(model, s, at, systemOf.get(at)!, dir, follows.get(at)?.path, along.get(at), report);
+    const d = param(s, 'direction');
+    const ref = d && typeof d === 'object' && !Array.isArray(d) ? exactAddress((d as Record<string, Value>).along) : '';
+    axes.set(at, ref ? { ...axis, along: ref } : axis);
   }
 
   const sections: ResolvedSection[] = [];

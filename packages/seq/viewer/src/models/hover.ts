@@ -20,14 +20,16 @@ import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
 /** What a hit's target is, for the gesture bindings (_spec/README.md "Bindings"): the granularity comes from the hit. */
-export type HitTarget = 'cell' | 'item' | 'row' | 'column' | 'track' | 'empty' | 'axis';
+export type HitTarget = 'cell' | 'item' | 'row' | 'column' | 'track' | 'empty' | 'axis' | 'break';
 
 /**
  * What the pointer is over, as the layout's hit test gives it: the layer, an element key and its extent, or a
  * position, on a system. `section` and `target` may be given; otherwise they are read from the layer's address and
  * from what was hit (an element: an item; a position: a cell; neither: empty space).
  */
-export interface Hit extends Omit<RenderHit, 'layer' | 'section'>, Partial<Pick<RenderHit, 'layer' | 'section'>> {
+export interface Hit
+  extends Omit<RenderHit, 'layer' | 'section' | 'target'>,
+    Partial<Pick<RenderHit, 'layer' | 'section'>> {
   readonly target?: HitTarget;
 }
 

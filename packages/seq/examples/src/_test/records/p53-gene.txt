@@ -23,42 +23,44 @@ clip 128 32 504 36
 rect 128 45 504 10 #7aa3a6ff
 unclip
 clip 128 76 504 20
-rect 313 76 17 20 #f5cfcfff
-rect 296 76 17 20 #f5cfcfff
-rect 279 76 17 20 #f5cfcfff
-rect 262 76 17 20 #f6e2b6ff
-rect 246 76 16 20 #f5cfcfff
-rect 229 76 17 20 #cdebd6ff
-rect 212 76 17 20 #f5cfcfff
-rect 195 76 17 20 #cdebd6ff
-rect 178 76 17 20 #f6e2b6ff
-rect 162 76 16 20 #cfe0f5ff
-rect 145 76 17 20 #cdebd6ff
-rect 128 76 17 20 #f5cfcfff
-rect 615 76 17 20 #f5cfcfff
-rect 598 76 17 20 #cfe0f5ff
-rect 582 76 16 20 #cfe0f5ff
-rect 565 76 17 20 #f5cfcfff
-rect 548 76 17 20 #f5cfcfff
-rect 531 76 17 20 #cfe0f5ff
-rect 514 76 17 20 #f6e2b6ff
-rect 498 76 16 20 #f5cfcfff
-rect 481 76 17 20 #cfe0f5ff
-rect 464 76 17 20 #f6e2b6ff
-rect 447 76 17 20 #cdebd6ff
-rect 430 76 17 20 #cdebd6ff
-rect 414 76 16 20 #cdebd6ff
-rect 397 76 17 20 #cfe0f5ff
-rect 380 76 17 20 #cdebd6ff
-rect 363 76 17 20 #cfe0f5ff
-rect 346 76 17 20 #f6e2b6ff
-rect 330 76 16 20 #f6e2b6ff
-glyphs "14px mono" 90.9 per T 321.5 #2d271eff, T 304.5 #2d271eff, T 287.5 #2d271eff, G 270.5 #2d271eff, T 254 #2d271eff, A 237.5 #2d271eff, T 220.5 #2d271eff, A 203.5 #2d271eff, G 186.5 #2d271eff, C 170 #2d271eff, A 153.5 #2d271eff, T 136.5 #2d271eff, T 623.5 #2d271eff, C 606.5 #2d271eff, C 590 #2d271eff, T 573.5 #2d271eff, T 556.5 #2d271eff, C 539.5 #2d271eff, G 522.5 #2d271eff, T 506 #2d271eff, C 489.5 #2d271eff, G 472.5 #2d271eff, A 455.5 #2d271eff, A 438.5 #2d271eff, A 422 #2d271eff, C 405.5 #2d271eff, A 388.5 #2d271eff, C 371.5 #2d271eff, G 354.5 #2d271eff, G 338 #2d271eff
+rect 313 76 17 20 #cdebd6ff
+rect 296 76 17 20 #cdebd6ff
+rect 279 76 17 20 #cdebd6ff
+rect 262 76 17 20 #cfe0f5ff
+rect 246 76 16 20 #cdebd6ff
+rect 229 76 17 20 #f5cfcfff
+rect 212 76 17 20 #cdebd6ff
+rect 195 76 17 20 #f5cfcfff
+rect 178 76 17 20 #cfe0f5ff
+rect 162 76 16 20 #f6e2b6ff
+rect 145 76 17 20 #f5cfcfff
+rect 128 76 17 20 #cdebd6ff
+rect 615 76 17 20 #cdebd6ff
+rect 598 76 17 20 #f6e2b6ff
+rect 582 76 16 20 #f6e2b6ff
+rect 565 76 17 20 #cdebd6ff
+rect 548 76 17 20 #cdebd6ff
+rect 531 76 17 20 #f6e2b6ff
+rect 514 76 17 20 #cfe0f5ff
+rect 498 76 16 20 #cdebd6ff
+rect 481 76 17 20 #f6e2b6ff
+rect 464 76 17 20 #cfe0f5ff
+rect 447 76 17 20 #f5cfcfff
+rect 430 76 17 20 #f5cfcfff
+rect 414 76 16 20 #f5cfcfff
+rect 397 76 17 20 #f6e2b6ff
+rect 380 76 17 20 #f5cfcfff
+rect 363 76 17 20 #f6e2b6ff
+rect 346 76 17 20 #cfe0f5ff
+rect 330 76 16 20 #cfe0f5ff
+glyphs "14px mono" 90.9 per A 321.5 #2d271eff, A 304.5 #2d271eff, A 287.5 #2d271eff, C 270.5 #2d271eff, A 254 #2d271eff, T 237.5 #2d271eff, A 220.5 #2d271eff, T 203.5 #2d271eff, C 186.5 #2d271eff, G 170 #2d271eff, T 153.5 #2d271eff, A 136.5 #2d271eff, A 623.5 #2d271eff, G 606.5 #2d271eff, G 590 #2d271eff, A 573.5 #2d271eff, A 556.5 #2d271eff, G 539.5 #2d271eff, C 522.5 #2d271eff, A 506 #2d271eff, G 489.5 #2d271eff, C 472.5 #2d271eff, T 455.5 #2d271eff, T 438.5 #2d271eff, T 422 #2d271eff, G 405.5 #2d271eff, T 388.5 #2d271eff, G 371.5 #2d271eff, C 354.5 #2d271eff, C 338 #2d271eff
 unclip
 clip 128 100 504 36
 rect 128 113 202 10 #7aa3a6ff
 rect 330 113 302 10 #7aa3a6ff
 unclip
+rect 329.5 76 1 60 #8a847aff
+rect 327.5 73 5 3 #8a847aff
 pass highlight
 pass selection
 pass hover
@@ -68,6 +70,7 @@ text "p53" 8 22.2 start "12px sans" #6b655cff width 20.02 max 112
 text "Domains" 8 54.2 start "12px sans" #6b655cff width 47.34 max 112
 text "DNA-binding" 131 53.5 start "10px sans" #2d271eff width 56.68 max 498
 text "TP53" 8 90.2 start "12px sans" #6b655cff width 28.68 max 112
+text "← reversed" 42.68 90.2 start "12px sans" #6b655cff width 56.69 max 77.32
 text "Domains on the gene" 8 122.2 start "12px sans" #6b655cff width 114.06 max 112
 text "DNA-binding" 131 121.5 start "10px sans" #2d271eff width 56.68 max 196
 text "DNA-binding" 333 121.5 start "10px sans" #2d271eff width 56.68 max 296

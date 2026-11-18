@@ -7,7 +7,7 @@
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { fitLevel, type Want } from '@molstar/seqx-core/data';
-import type { Location, LocationPart } from '@molstar/seqx-core/query';
+import { type Location, type LocationPart, rangesLocation } from '@molstar/seqx-core/query';
 import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
   expandTemplate,
@@ -82,6 +82,22 @@ export interface SectionLayout {
   readonly y: number;
   readonly height: number;
   readonly tracks: readonly TrackLayout[];
+  /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
+  readonly breaks: readonly number[];
+  /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
+  readonly mark?: { readonly text: string; readonly x: number; readonly width: number };
+}
+
+/** How far from a break's notch a point hits it, CSS px (fixed, as other hit boxes are). */
+export const BreakSlop = 3;
+/** A break's notch above the band: its width and height, CSS px. */
+const Notch = { width: 5, height: 3 };
+
+/** A section's direction mark, or none: a reversed axis says so (`reversed`, or `along` what it reads along). */
+function directionMark(section: ResolvedSection, config: RenderConfig): string | undefined {
+  if (config.axis.directionMark === 'none' || section.axis.dir !== -1) return undefined;
+  const along = section.axis.along;
+  return along === undefined ? '← reversed' : `← along ${along.slice(along.lastIndexOf('/') + 1)}`;
 }
 
 export interface ViewLayout {
@@ -342,6 +358,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       first && bandEnd > first.y
         ? { x: first.x, y: first.y, width: first.width, height: bandEnd - first.y }
         : undefined;
+    const text = tracks.length ? directionMark(section, config) : undefined;
+    const mark = text
+      ? {
+          text,
+          x: config.inset + tracks[0].labelWidth + 6,
+          width: input.text.measure(config.labelFont, text),
+        }
+      : undefined;
     sections.push({
       section,
       id: sectionId(section),
@@ -350,6 +374,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       y: top,
       height: y - top,
       tracks,
+      breaks: axis && band ? axis.breaks([]) : NoBreaks,
+      ...(mark ? { mark } : {}),
     });
   }
   // a layer gone from the view lets its last layout go
@@ -417,6 +443,8 @@ function trackHeight(track: ResolvedTrack, config: RenderConfig): number {
   for (const l of track.layers) h = Math.max(h, config.heights[l.type as keyof RenderConfig['heights']] ?? 0);
   return h || config.heights.ranges;
 }
+
+const NoBreaks: readonly number[] = [];
 
 /** Draws the layout's passes (all, or those named, e.g. the emphasis alone) into the lists, cleared first. */
 export function drawView(
@@ -499,6 +527,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       const { box } = t;
       if (pass === 'labels') drawLabel(out, t, tokens, config);
       else if (!column && emphasis) drawSectionEmphasis(out, s, box, emphasis, layout);
+      if (pass === 'labels' && ti === 0 && s.mark) drawMark(out, s, t, tokens, config);
       if (!t.layers.length) continue;
       const clip = pass === 'data';
       if (clip) out.clip(box.x, box.y, box.width, box.height);
@@ -508,7 +537,36 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       }
       if (clip) out.unclip();
     }
+    if (pass === 'data' && s.band && s.axis && s.breaks.length) drawBreaks(out, s, s.axis, s.band, tokens);
   }
+}
+
+/**
+ * A section's breaks (_spec/README.md "Render", Tracks layout): a hairline a device pixel wide in the break ink across
+ * the band, over the cells either side (they touch), and a notch above the band. Zero units wide: the hairline has no
+ * width of its own on the axis.
+ */
+function drawBreaks(out: PassWriter, s: SectionLayout, axis: AxisTransform, band: Box, tokens: SeqTokens) {
+  const ink = tokens.colors['seq-break'];
+  const dpr = axis.dpr;
+  const px = 1 / dpr;
+  const b = s.breaks;
+  for (let i = 0; i + 2 < b.length; i += 3) {
+    const x = Math.round(b[i] * dpr) / dpr;
+    out.fill(x - px / 2, band.y, px, band.height, ink);
+    out.fill(x - Notch.width / 2, band.y - Notch.height, Notch.width, Notch.height, ink);
+  }
+}
+
+/** The direction mark after the first track's label, muted, faded at the label column's edge. */
+function drawMark(out: PassWriter, s: SectionLayout, t: TrackLayout, tokens: SeqTokens, config: RenderConfig) {
+  const m = s.mark!;
+  const g = out.args;
+  g[0] = m.x;
+  g[1] = t.labelY;
+  g[2] = m.width;
+  g[3] = Math.max(0, config.inset + config.labelWidth - m.x);
+  out.textArgs(m.text, Anchor.start, config.labelFont, tokens.colors['msui-text-muted']);
 }
 
 /**
@@ -749,9 +807,15 @@ function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis
   }
 }
 
-/** What is under a point: the topmost layer's hit in the track there. */
+/**
+ * What is under a point: the topmost layer's hit in the track there; a break within `BreakSlop` px of its notch (above
+ * the band, or a hidden items' tick a layer hits as the break). On data the cells and items beside a break win: the
+ * hairline has no width of its own.
+ */
 export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefined {
-  for (const s of layout.sections)
+  for (const s of layout.sections) {
+    const notch = s.band && s.axis && s.breaks.length ? breakAt(s, x, y) : undefined;
+    if (notch) return notch;
     for (const t of s.tracks) {
       const { box } = t;
       if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) continue;
@@ -760,10 +824,47 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       for (let i = t.layers.length - 1; i >= 0; i--) {
         const l = t.layers[i];
         const h = l.type.hit(l.lay, x, y);
-        if (h?.element) return h;
+        if (h?.element || h?.target === 'break') return h;
         position ??= h;
       }
       return position;
     }
+  }
   return undefined;
+}
+
+/** The break whose notch is within `BreakSlop` px of a point above the band, as a hit; else undefined. */
+function breakAt(s: SectionLayout, x: number, y: number): Hit | undefined {
+  const band = s.band!;
+  if (y < band.y - Notch.height - BreakSlop || y >= band.y) return undefined;
+  const b = s.breaks;
+  for (let i = 0; i + 2 < b.length; i += 3)
+    if (Math.abs(x - b[i]) <= BreakSlop) return breakHit(s, s.axis!, b[i], b[i + 1], b[i + 2]);
+  return undefined;
+}
+
+/**
+ * A break as a hit (`target: 'break'`): the section's position at its edge (the last shown before it in display order),
+ * the hidden stretch as its extent on the section's system (two ranges across a cyclic origin).
+ */
+export function breakHit(
+  s: { readonly section: ResolvedSection; readonly id: string },
+  axis: AxisTransform,
+  x: number,
+  hiddenStart: number,
+  hiddenEnd: number,
+  count?: number,
+): Hit {
+  const length = axis.length ?? hiddenStart;
+  const ranges = hiddenEnd >= hiddenStart ? [hiddenStart, hiddenEnd] : [0, hiddenEnd, hiddenStart, length];
+  const position = axis.positionAt(Math.min(x, axis.x0 + axis.width - 1e-6) - 1e-6);
+  return {
+    layer: s.section.address,
+    section: s.id,
+    system: axis.system,
+    target: 'break',
+    position: position >= 0 ? position : axis.dir === -1 ? hiddenEnd : hiddenStart - 1,
+    extent: rangesLocation(axis.system, ranges),
+    ...(count !== undefined ? { count } : {}),
+  };
 }

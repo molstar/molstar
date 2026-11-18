@@ -727,6 +727,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `emphasis.projected`                                  | 0.5                                    | what is projected onto a linked section, a factor of its own look's opacity: the same look, lighter                                  |
 | `emphasis.hoverOffset`                                | 1                                      | the hover's outline outside its mark, concentric, never touching the selection's                                                     |
 | `emphasis.cursorInk`                                  | `msui-text`                            | the cursor neutral, never the selection's accent (the author's look)                                                                 |
+| `axis.directionMark`                                  | `label`                                | a reversed axis says so in its first label (an arrow and "reversed", or "along" what it reads along), in the picture and the export; `none` for a host whose own chrome says it|
 | `margin`                                              | 0.5                                    | what a want adds on each side, a fraction of the view (the store's `margin` priority)                                                |
 | `followArc`                                           | `shortest`                             | a cyclic follower takes the shortest arc holding the image (EC-12); `hull`                                                           |
 | `maxTemplateTracks`                                   | 200                                    | the tracks one template makes; past it `seq.render.template.limit`: a source's nodes are untrusted                                   |
@@ -756,8 +757,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 
 ### Tokens
 
-- `SeqTokens`: every color the lists use (`msui-*` chrome, `seq-*` data: tracks, ink, missing, pending, conflict,
-  residue and nucleotide classes, eight categories, the density ramp), as `0xRRGGBBAA`, and the font stacks of the two
+- `SeqTokens`: every color the lists use (`msui-*` chrome, `seq-*` data: tracks, ink, missing, pending, conflict, the
+  break ink (`seq-break`), residue and nucleotide classes, eight categories, the density ramp), as `0xRRGGBBAA`, and the font stacks of the two
   family roles. Node has a light and a dark table (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
 - **Its version is a hash of its content**, part of the draw lists' key: a theme switch redraws, an equal table does
   not. Why a hash: pure by contract, so an export from Node and a viewer agree on equal tables.
@@ -860,10 +861,22 @@ transform, the section, the layer's key, the device pixel ratio, the config, the
 settled, `want` and `report`. A layer draws the first type of its fallback chain the target has; none is
 `seq.render.layer.type`.
 
-- `letters`: a section's own letters; through a path, `seq.render.layer.letters`, because only a path pairing positions
-  one to one or a residue to a codon gives a cell a position (that form: TODO); a cell a position colored by class,
+- `letters`: a section's own letters, or another system's through a path that pairs positions one to one (identity,
+  offset, segments, pairwise, an alignment row: a letter its image's cell; a section position no letter lands on, a gap
+  mark; a letter with no position, a caret at its boundary, `projectBoundary`, EC-29) or a residue to a codon (its fine
+  places carried as runs, each run a part: a codon split by an intron is two parts, the letter drawn in each part with
+  room, EC-117; `code`: `auto` three-letter codes where the narrowest part in view has room, `one`, `three`); any other
+  path is `seq.render.layer.letters` with its reason (a nucleotide on a protein's axis is a third of a residue and an
+  intron or UTR nucleotide has no place there; a many-to-one path gives a cell several letters). The density step
+  follows the layer's own cell (a residue three positions wide). A residue its codon does not translate to is drawn in
+  the conflict ink once the section's letters are held (`codonPairs` with the map's genetic code, EC-16); nothing is
+  said before. **Complement** (`complement`): `auto` draws a nucleotide as its complement where it is read against its
+  strand on screen (the axis's direction times its run's is −1: a reversed DNA axis shows the other strand read 5′ to
+  3′), `always`, `never` (EC-233's rule, changed); a protein never; letters shown never change data (model, status
+  and search read the stored ones; colors by letter read the shown one). A cell a position (a part) colored by class,
   letters on them, a tick a position at `dots`, one bar a piece in view at `bars` and `density` (presence needs no
-  data).
+  data). A hit through a path carries the data's element as `extent` (the residue on its protein) and its parts on the
+  section's system as `hull` (its codon); its hover outlines each part.
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
   exon); labels inside marks 24 px or wider, drawn in the `labels` pass. At `bars` a lane's marks touching within a
   device pixel merge into a run; at `density`, or a density table, one heat strip, a device column a pixel. Items past
@@ -927,6 +940,10 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
   `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
   element under the point wins, else the topmost with a position.
+- **A break** is hit within 3 CSS px of its notch above the band (and on a tick of the items it hides): `{ target:
+  'break', layer: <section address>, section, system, position, extent }`, `position` the section's position at its edge,
+  `extent` the hidden stretch (`breakHit`); on data the cells and items beside it win (they touch; the hairline has no
+  width of its own).
 - **Every drawn mark has a hit box.** A `ranges` layer indexes each item's own marks (every lane, every piece), not the
   drawn ones: at `bars` a run merged from several items is hit by the item under the point, its gaps (under a device
   pixel) by the nearest within a device pixel, and the hover outlines that item's own marks inside the run. An item's
@@ -983,8 +1000,13 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   viewer's Location.
 - **The selection drawn is projected** onto the linked sections by the export (`projectOntoView`), unless the caller
   gives `emphasis.projected.selection`: the export shows on the gene what a viewer shows there.
-- It answers `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed, and
-  its ids take a prefix (`idPrefix`, by default `s` and a hash of the spec). On a shared store it reports only the
+- **A viewport in positions** (`viewport: { positions: { <section>: [start, end] } }`): each section's window read
+  through its axis (`nearestOffsetOf`, its direction and pieces), so a caller (the render CLI) needs no knowledge of
+  them; the frame's `viewports` by section address. Offsets (`{ start, end }`) as before.
+- It answers `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed, an
+  empty `<g data-section data-direction data-pieces data-y data-height>` a section (the draw lists are grouped by pass,
+  not by section: these say what each axis is), and its ids take a prefix (`idPrefix`, by default `s` and a hash of
+  the spec). On a shared store it reports only the
   issues of the sources it attached.
 
 ### Issues

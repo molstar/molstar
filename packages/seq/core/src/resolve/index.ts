@@ -12,6 +12,7 @@ export {
   codingLength,
   codonLinear,
   codonPairs,
+  complementCode,
   codonRuns,
   codonStatus,
   DefaultGeneticCode,

@@ -31,7 +31,13 @@ import {
   resolveSpec,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
-import { projectOntoView, type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
+import {
+  nearestOffsetOf,
+  projectOntoView,
+  type ResolvedView,
+  resolveView,
+  resolveViews,
+} from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
 import { DrawLists } from './draw-lists.js';
@@ -133,10 +139,19 @@ export async function attachSources(
   return issues;
 }
 
+/**
+ * A viewport in positions, by section address (`[start, end)` on each section's system): read through each section's
+ * axis (its direction and pieces), so a caller needs no knowledge of them.
+ */
+export interface PositionsViewport {
+  readonly positions: Readonly<Record<string, readonly [number, number]>>;
+}
+
 export interface RenderSvgOptions {
   /** CSS px. */
   readonly size: { readonly width: number; readonly height: number };
-  readonly viewport?: Viewport;
+  /** The window of display units of every leading section, or positions per section. */
+  readonly viewport?: Viewport | PositionsViewport;
   /** The format runtimes the application composed (inline data always reads through `seq`). */
   readonly runtimes?: readonly FormatRuntime[];
   /** The bounds the spec's check holds (`DefaultSpecBounds` when absent). */
@@ -167,6 +182,19 @@ export interface RenderSvgOptions {
   readonly selection?: string;
   /** A store to read through (a viewer's): the export wants through a want set of its own. A new one by default. */
   readonly store?: DataStore;
+}
+
+/** A positions viewport as each section's window of display units (an axis waiting for its length: from 0). */
+function offsetsOf(view: ResolvedView, v: PositionsViewport): Record<string, Viewport> {
+  const out: Record<string, Viewport> = {};
+  for (const s of view.sections) {
+    const r = v.positions[s.address];
+    if (!r) continue;
+    const a = s.axis.ranges ? (nearestOffsetOf(s.axis, r[0]) ?? r[0]) : r[0];
+    const b = s.axis.ranges ? (nearestOffsetOf(s.axis, r[1]) ?? r[1]) : r[1];
+    out[s.address] = { start: Math.min(a, b), end: Math.max(a, b) };
+  }
+  return out;
 }
 
 export interface RenderSvgResult {
@@ -257,9 +285,10 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       text: options.text ?? bundledTextMetrics(),
       config,
     });
+    const given = options.viewport;
     const frameInput = {
       size: options.size,
-      ...(options.viewport ? { viewport: options.viewport } : {}),
+      ...(given && 'positions' in given ? { viewports: offsetsOf(view, given) } : given ? { viewport: given } : {}),
       dpr: options.dpr ?? 1,
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
     };
@@ -290,7 +319,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       if (r.result) selection = locationOfResult(spec, q, r.result).location;
       else issues.push(...r.issues);
     }
-    const given =
+    const withSelection =
       selection && !isEmptyLocation(selection)
         ? {
             ...options.emphasis,
@@ -298,11 +327,14 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
           }
         : options.emphasis;
     // the selection carried onto the linked sections, as a viewer draws it (unless the caller gave its own)
-    const drawn = given?.selection;
+    const drawn = withSelection?.selection;
     const emphasis =
-      given && drawn && !given.projected?.selection
-        ? { ...given, projected: { ...given.projected, selection: projectOntoView(model, view, drawn) } }
-        : given;
+      withSelection && drawn && !withSelection.projected?.selection
+        ? {
+            ...withSelection,
+            projected: { ...withSelection.projected, selection: projectOntoView(model, view, drawn) },
+          }
+        : withSelection;
     const frame = renderer.frame({
       ...frameInput,
       ...(emphasis ? { emphasis } : {}),
@@ -332,6 +364,13 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       fade: config.fade,
       idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
       metadata: { 'seq-settled': String(settled), ...(domains.length ? { 'seq-domains': domains.join(';') } : {}) },
+      sections: frame.layout.sections.map((s) => ({
+        address: s.section.address,
+        direction: s.section.axis.dir === -1 ? 'reversed' : 'genomic',
+        pieces: s.section.axis.pieces,
+        y: s.y,
+        height: s.height,
+      })),
     });
     return { svg, settled, issues, lists: frame.lists, ...(selection ? { selection } : {}) };
   } finally {

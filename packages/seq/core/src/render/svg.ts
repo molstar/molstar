@@ -90,6 +90,17 @@ export interface SvgOptions {
   readonly fade?: number;
   /** Prefixes the document's ids (clips, masks), so two documents inlined in one page do not collide. */
   readonly idPrefix?: string;
+  /**
+   * The sections drawn: each an empty group with its address, direction, pieces and band (`data-section`,
+   * `data-direction`, `data-pieces`, `data-y`, `data-height`), so the export says what the axis is.
+   */
+  readonly sections?: readonly {
+    readonly address: string;
+    readonly direction: string;
+    readonly pieces: string;
+    readonly y: number;
+    readonly height: number;
+  }[];
 }
 
 /** The draw lists as an SVG document of their size. */
@@ -208,6 +219,10 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       body.push('</g>');
     },
   };
+  for (const sec of options.sections ?? [])
+    body.push(
+      `<g data-section="${escapeXml(sec.address)}" data-direction="${escapeXml(sec.direction)}" data-pieces="${escapeXml(sec.pieces)}" data-y="${fmt(sec.y)}" data-height="${fmt(sec.height)}"/>`,
+    );
   for (const name of Passes) {
     const pass = lists.passes[name];
     if (!pass.size) continue;
