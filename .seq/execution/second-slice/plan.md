@@ -74,8 +74,22 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
     - range reads in the asset manager. Recommendation: wait for bigWig (milestone 3).
   - **the MessagePack codec** builds on io's existing `common/msgpack`, extended for typed columns without a copy where
     aligned. Recommendation: yes, a `repr` codec in io (io may depend on core; `repr` stays dependency-free).
-  - **history**: undo is `@molstar/ui/history`'s `HistoryPort` by checkpoints, so `seqx-viewer` depends on
-    `@molstar/ui`'s history entry. Recommendation: yes.
+  - **history as a Seq\* port** (the author, 2026-11-18: the viewer lives inside a bigger app, so the app owns the
+    undo stack). Seq\* never owns one. `seqx-viewer/ports` defines a history port in Seq\*'s own terms:
+    - a participant face the host drives: `checkpoint()` returns the spec's root, `restore(c)` sets it back and drops a
+      preview, `changed` tells of edits;
+    - a run face Seq\* asks of the host: an edit runs as a step with its label and change kind, so a host's stack
+      interleaves Seq\* edits with its own (a structure's, Prism's);
+    - an edit made outside a run is reported to the host, not acted on: whether earlier steps are invalidated is the
+      host's rule.
+
+    Adapters, each in the composition root that wires it:
+    - `@molstar/ui/history` for the standalone viewer and Prism;
+    - the Mol\* plugin's state history, later;
+    - none (no undo) headless.
+
+    `SpecModel` stops importing `@molstar/ui/history`. changes.md's "through `HistoryPort`" becomes "through Seq\*'s
+    history port; `@molstar/ui/history` is one adapter". Recommendation: yes.
   - **selection history**: none by default; a host may opt in (changes.md). Recommendation: as written.
 
 ## Stages and lanes
@@ -118,8 +132,10 @@ slice's letters from K.
 - [ ] N (strong) editing in `seqx-viewer` (and `seqx-core` where the model compiles increments):
   - `SpecModel.applyPatch` validated, then resolve and the view recompiling only what the changed addresses reach
     (composition.md);
-  - history through `HistoryPort`: one step a batch, an agent's turn as one step, an outside change invalidating the
-    earlier steps;
+  - history through Seq\*'s history port (Gate 0): the port in `seqx-viewer/ports`, `SpecModel` free of
+    `@molstar/ui/history`, and the `@molstar/ui/history` adapter in the default composition. One step a batch, an
+    agent's turn as one step, an outside change reported to the host. Tested with two participants on one host stack
+    (a Seq\* spec and a stand-in structure state, undone in order), and with no history at all;
   - previews as a transient overlay, ending in one patch or nothing (Esc cancels);
   - snapshots entered and left (navigation, not history);
   - every command declaring its change kind, with the test changes.md asks for: every command's kind matches what it
