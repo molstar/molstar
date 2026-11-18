@@ -7,9 +7,6 @@
 import type { Patch } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { printLink } from '@molstar/seqx-core/query';
-import type { LinkRun } from '@molstar/seqx-viewer/behaviors';
-import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { followLink } from '../../features/addressing/compose.js';
 import { type EditingSession, proteinSection, SectionPath, track } from '../../features/editing/compose.js';
 
 // The p53 example stories' shared composition, DOM-free: each story and its headless twin call these. The pieces are the
@@ -45,71 +42,6 @@ export function trackHeight(s: EditingSession, id: string): number | undefined {
   if (typeof set === 'number') return set;
   const laid = s.viewer.frame?.layout.sections.flatMap((x) => x.tracks).find((t) => t.track.address === track(id));
   return laid?.box.height;
-}
-
-/** What a link run says: its outcomes' messages, and the issues' only when no outcome waits (a wait says it once). */
-export function describeLinkRun(run: LinkRun | undefined): string {
-  if (!run) return 'Not a link';
-  const said = run.outcomes.map((o) => o.message).filter(Boolean);
-  const waiting = run.outcomes.some((o) => o.status === 'waiting');
-  const more = waiting ? [] : run.issues.map((i) => i.message);
-  return [...new Set([...said, ...more])].join('; ');
-}
-
-/**
- * A link's status line that follows a wait: a link on an address that arrives later says it waits, and `Focused` once
- * the node has arrived and the view has moved to it. A later link, or `dispose`, ends the watch. A link followed before
- * `loaded` (the view loaded and settled) is held and runs then: until a spec is loaded no address names anything, and the viewer answers `Nothing to
- * focus` rather than wait.
- */
-export class LinkStatus {
-  private _off: (() => void) | undefined;
-  private _loaded = false;
-  private _held: string | undefined;
-
-  constructor(
-    private readonly viewer: SeqViewer,
-    private readonly say: (message: string) => void,
-  ) {}
-
-  /** The view is loaded: a held link runs now. */
-  loaded(): void {
-    this._loaded = true;
-    const href = this._held;
-    this._held = undefined;
-    if (href !== undefined) this.say(this.follow(href));
-  }
-
-  /** Runs the link: the message now, and the later one through `say`. */
-  follow(href: string): string {
-    this._stop();
-    if (!this._loaded) {
-      this._held = href;
-      return 'Waiting for the view to load';
-    }
-    const run = followLink(this.viewer, href);
-    if (run?.outcomes.some((o) => o.status === 'waiting')) {
-      const address = this.viewer.addresses.parseLink(href)?.link?.actions[0]?.address;
-      if (address !== undefined) {
-        this._off = this.viewer.rested.listen(() => {
-          if (this.viewer.addresses.resolve(address).status !== 'resolved') return;
-          if (this.viewer.addresses.focusAddress() !== address) return;
-          this._stop();
-          this.say('Focused');
-        });
-      }
-    }
-    return describeLinkRun(run);
-  }
-
-  dispose(): void {
-    this._stop();
-  }
-
-  private _stop(): void {
-    this._off?.();
-    this._off = undefined;
-  }
 }
 
 /** A run of the short text: plain, or a link (its text and its `!seq-…` href). */
