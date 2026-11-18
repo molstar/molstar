@@ -24,13 +24,14 @@ import {
 } from '@molstar/core/repr/tree';
 import { DefaultRefDepth, type FollowedRef, followRef, RefsId, refPrefix } from '@molstar/seqx-core/lang';
 import { AddressIssues } from './address-issues.js';
-import { type Elements, elements, elementsEqual, unionElements } from './elements.js';
+import { type ElementKey, elements, elementsEqual } from './elements.js';
 import { evaluateQuery } from './forms.js';
 import {
   EmptyLocation,
   isEmptyLocation,
   type Location,
   type LocationPart,
+  type LocationRect,
   location,
   locationsEqual,
   unionLocations,
@@ -146,25 +147,34 @@ function followAddress(root: Node, address: string, refDepth: number, via: strin
 
 const nodeKey = (s: Selected) => printAddress(s.address);
 
-/** Results of one type, together; undefined when the types differ. */
+/**
+ * Results of one type, together; undefined when the types differ. Linear in the members: their parts, keys or nodes
+ * gathered, then normalized once (a set of thousands of addresses never merges pair by pair).
+ */
 function unionResults(rs: readonly QueryResult[], limit: number): QueryResult | Issue | undefined {
   if (!rs.length) return undefined;
   if (rs.length === 1) return rs[0];
   const type = rs[0].type;
   if (rs.some((r) => r.type !== type)) return undefined;
-  if (type === 'location')
-    return {
-      type,
-      location: rs.reduce((a, r) => unionLocations(a, (r as { location: Location }).location), EmptyLocation),
-    };
+  if (type === 'location') {
+    const parts: LocationPart[] = [];
+    const rects: LocationRect[] = [];
+    for (const r of rs as Extract<QueryResult, { type: 'location' }>[]) {
+      for (const p of r.location.parts) parts.push(p);
+      for (const x of r.location.rects) rects.push(x);
+    }
+    return { type, location: location({ parts, rects }) };
+  }
   if (type === 'elements') {
-    const e = rs.reduce((a, r) => unionElements(a, (r as { elements: Elements }).elements), elements([]));
+    const keys: ElementKey[] = [];
+    for (const r of rs as Extract<QueryResult, { type: 'elements' }>[]) for (const k of r.elements.keys) keys.push(k);
+    const e = elements(keys);
     return e.keys.length > limit ? limitIssue(limit) : { type, elements: e };
   }
   const seen = new Set<string>();
   const nodes: Selected[] = [];
-  for (const r of rs)
-    for (const n of (r as { nodes: readonly Selected[] }).nodes) {
+  for (const r of rs as Extract<QueryResult, { type: 'nodes' }>[])
+    for (const n of r.nodes) {
       const k = nodeKey(n);
       if (seen.has(k)) continue;
       seen.add(k);

@@ -144,3 +144,34 @@ describe('resolving many addresses', () => {
     expect(r.length).toBe(1000);
   });
 });
+
+describe('a set of many addresses', () => {
+  /** A ref to a set of `n` single positions on a sequence of `2n`. */
+  const setOf = (n: number) => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(Math.ceil(n / 2)) });
+    b.refs.ref('set', { to: Array.from({ length: n }, (_, i) => `/data/s/(at :label ${2 * i + 1})`) });
+    const root = b.build();
+    return { root, model: resolveSpec(root) };
+  };
+  const time = (n: number) => {
+    const { root, model } = setOf(n);
+    resolveAddressIn(root, model, '/refs/set'); // warm
+    const t = performance.now();
+    const r = resolveAddressIn(root, model, '/refs/set');
+    return { ms: performance.now() - t, r };
+  };
+
+  it('is the union of its members, in one Location', () => {
+    const { r } = time(1000);
+    expect(r.status).toBe('resolved');
+    expect(r.result?.type === 'location' && r.result.location.parts[0].ranges.length).toBe(2000);
+  });
+
+  it('scales linearly with its members', { tags: ['heavy'] }, () => {
+    const small = Math.min(...[0, 1, 2].map(() => time(2000).ms));
+    const large = Math.min(...[0, 1, 2].map(() => time(16000).ms));
+    // 8 times the members: measured 7.4 to 7.7 times the time (a pairwise union measured 61.7: quadratic)
+    expect(large / small).toBeLessThan(16);
+  });
+});
