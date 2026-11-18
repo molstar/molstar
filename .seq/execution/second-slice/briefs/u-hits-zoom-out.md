@@ -14,7 +14,7 @@
    - **a view history of jumps** (session state, never the undo stack: ux-foundations section 7 "view state is not
      history"): a focus, a fit, a reveal, a bookmark's or a link's move pushes the viewport it left; **Back** returns
      (Alt+Left, the mouse's back button, Backspace when the viewer has focus) and **Forward** goes again (Alt+Right);
-     a pan or zoom by hand does not push but a jump after it does; bounded (, 50);
+     a pan or zoom by hand does not push but a jump after it does; bounded (`view.historyLimit`, 50);
    - **a double-click on what is already focused goes back** (the view equals that element's focus);
    - **Shift+double-click zooms out** about the pointer by the double-click's own factor; **-** and **=** (and **+**)
      zoom out and in about the cursor or the centre; **0** fits;
