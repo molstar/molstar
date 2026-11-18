@@ -162,12 +162,18 @@ describe('the mounted canvas stack', () => {
     frames.flush();
     const v = viewer.view.get('/views/main/protein')!;
     expect(v.end - v.start).toBeLessThan(4);
-    expect(viewer.input.down(300, 18)).toBe(false);
+    // on data a drag selects; with Space held it pans
+    const mods = (space: boolean) => ({ shift: false, mod: false, alt: false, space });
+    expect(viewer.bindings.resolve('drag', mods(false), 'cell')).toBe('drag-select');
     container.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    const start = viewer.view.get('/views/main/protein')!.start;
     expect(viewer.input.down(300, 18)).toBe(true);
+    viewer.input.move(340, 18);
     viewer.input.up();
+    expect(viewer.view.get('/views/main/protein')!.start).not.toBe(start);
+    // a Space that panned is no tap: it toggles nothing
     container.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
-    expect(viewer.input.down(300, 18)).toBe(false);
+    expect(viewer.selection.value.value.shown.parts).toEqual([]);
   });
 
   it('a drag ends when the pointer is cancelled or its capture is lost', async () => {

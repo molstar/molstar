@@ -28,7 +28,8 @@ describe('gesture bindings', () => {
     expect(t.issues).toEqual([]);
     expect(t.resolve('hover', none, 'cell')).toBe('hover');
     expect(t.resolve('hover', none, 'empty')).toBe('hover');
-    expect(t.resolve('drag', none, 'cell')).toBeUndefined();
+    expect(t.resolve('drag', none, 'cell')).toBe('drag-select');
+    expect(t.resolve('drag', none, 'item')).toBe('drag-select');
     expect(t.resolve('drag', none, 'axis')).toBe('pan');
     expect(t.resolve('drag', space, 'cell')).toBe('pan');
     expect(t.resolve('drag', alt, 'axis')).toBeUndefined();
@@ -38,7 +39,12 @@ describe('gesture bindings', () => {
     expect(t.resolve('pinch', none, 'cell')).toBe('zoom');
     expect(t.resolve('double-click', none, 'item')).toBe('view.focus');
     expect(t.resolve('double-click', none, 'empty')).toBe('view.fit');
-    expect(t.resolve('click', none, 'cell')).toBeUndefined();
+    // the selection's clicks (ux-foundations' section 8)
+    expect(t.resolve('click', none, 'cell')).toBe('selection.set');
+    expect(t.resolve('click', shift, 'item')).toBe('selection.extend');
+    expect(t.resolve('click', mod, 'cell')).toBe('selection.toggle');
+    expect(t.resolve('click', none, 'empty')).toBe('selection.clear');
+    expect(t.resolve('click', alt, 'cell')).toBeUndefined();
   });
 
   it('modifiers do not stop the hover: it is bound with any modifiers, tried after the exact ones', () => {
@@ -56,6 +62,8 @@ describe('gesture bindings', () => {
     const t = bindingTable(GenomeBrowserBindings);
     expect(t.issues).toEqual([]);
     expect(t.resolve('drag', none, 'cell')).toBe('pan');
+    // its clicks select as the default's do
+    expect(t.resolve('click', none, 'item')).toBe('selection.set');
     expect(Object.keys(BindingPresets)).toEqual(['default', 'genome-browser']);
   });
 
@@ -86,8 +94,8 @@ describe('gesture bindings', () => {
     ]);
     // an action that does not exist is left out: the gesture does nothing
     expect(bad.resolve('click', none, 'item')).toBeUndefined();
-    // the selection's bindings wait for its model and commands
-    expect(bindingTable(SelectionBindings).issues.every((i) => i.code === 'seq.viewer.binding.action')).toBe(true);
+    // the selection's bindings name actions the default viewer has
+    expect(bindingTable(SelectionBindings).issues).toEqual([]);
     // an application's own command exists when it says so, with its kind
     const own = bindingTable([{ gesture: 'click', target: 'item', action: 'app.open' }], [], {
       actions: [...DefaultActions, 'app.open'],

@@ -55,7 +55,7 @@ async function make(options: { canvas?: boolean; width?: number } = {}) {
 describe('createSeqViewer', () => {
   it('composes the models, the bindings and the default behaviors from the spec, and shows a spec', async () => {
     const { viewer } = await make();
-    expect([...viewer.behaviors.keys()]).toEqual(['hover', 'navigate', 'addressing', 'editing']);
+    expect([...viewer.behaviors.keys()]).toEqual(['hover', 'navigate', 'select', 'cursor', 'addressing', 'editing']);
     expect(viewer.bindings.issues).toEqual([]);
     expect(viewer.commands.map((c) => c.id)).toContain('view.fit');
     expect(viewer.store.store.coverage(Protein)?.systems[0].length).toBe(4);
@@ -188,14 +188,18 @@ describe('input through the bindings', () => {
     expect(viewer.view.get('/views/main/protein')!.start).toBeLessThan(b2);
   });
 
-  it('a drag on empty space pans, one on data does not (the default preset)', async () => {
+  it('a drag on empty space pans, one on data selects (the default preset)', async () => {
     const { viewer, frames } = await make();
     viewer.input.mac = false;
     viewer.input.wheel(cellX(1), ProteinY, { deltaX: 0, deltaY: -300, ctrlKey: true, deltaMode: 1 });
     frames.flush();
     const start = viewer.view.get('/views/main/protein')!.start;
-    // on a letter: no pan binding for a drag on a cell
-    expect(viewer.input.down(cellX(1), ProteinY)).toBe(false);
+    // on a letter: a drag selects and does not pan
+    expect(viewer.input.down(cellX(1), ProteinY)).toBe(true);
+    viewer.input.move(cellX(1) + 40, ProteinY);
+    viewer.input.up();
+    expect(viewer.view.get('/views/main/protein')!.start).toBe(start);
+    expect(viewer.selection.value.value.shown.parts.length).toBe(1);
     // the label column is empty space of the section
     expect(viewer.hit(40, ProteinY)).toBeUndefined();
     expect(viewer.input.down(40, ProteinY)).toBe(true);

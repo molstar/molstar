@@ -5,7 +5,14 @@
  */
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
-import { AddressingProvider, EditingProvider, HoverProvider, NavigateProvider } from '@molstar/seqx-viewer/behaviors';
+import {
+  AddressingProvider,
+  CursorProvider,
+  EditingProvider,
+  HoverProvider,
+  NavigateProvider,
+  SelectProvider,
+} from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
@@ -21,6 +28,8 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
     behaviors: [
       { provider: HoverProvider },
       { provider: NavigateProvider },
+      { provider: SelectProvider },
+      { provider: CursorProvider },
       { provider: AddressingProvider },
       { provider: EditingProvider },
     ],
