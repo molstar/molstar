@@ -36,3 +36,7 @@
 - Navigators (strip, miniature, ideogram, vertical overview; EC-110): no design yet (the author asked, 2026-11-18).
   A `navigators.md` after `stories.md`, its stage in the third slice.
 - The stories library and the animation port (`stories.md`): placed at the next gate.
+- `render/_test/frame-time.test.ts`'s per-frame max bounds flake under a parallel heavy run (lanes O and N: 18 and
+  50 ms against 16); best of three, or a percentile instead of the max.
+- (N) A track has no `hidden` param: hiding a track hides its layers and leaves an empty row. A `hidden` on `track`
+  (default false), collapsing the row, recommended.

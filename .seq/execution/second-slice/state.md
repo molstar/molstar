@@ -36,25 +36,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
   - O merged (`61b7d3549`) after one review round; its stories looked at before and after (light and dark).
   - Law 3 with stored patches: case 572 fixed by the orchestrator (`ff2ca5476`); seed 4 case 43 (pre-existing) is
     lane K3's (`seq/k3-stored-law3`, opus).
-  - N started from `61b7d3549` (`seq/n-editing`, opus). It calls the address model's `followMoves(changes.moved)`
-    before setting a new root.
-
-## Next
-
-- On each lane's report: checks, the look where something is drawn, an independent review, one fix round, merge.
-
-## Waiting for the author
-
-None.
-
-## Decided
-
-- **Stories** (the author, 2026-11-18): a story is a sequence of full states stored as patches; transitions planned
-  from diffs and sampled purely; the application owns the animation loop through an animation port ("we just need to
-  provide a consistent library"; "yes"). `stories.md` written; a stored patch's `set` refs typed by kind and key, not
-  by the dry run (drift `stored-refs.md`, option 1 with (a)); K3 rebuilds on it; lane N holds its story-steps part.
-
-- **Integer keys and lane K's drift, as recommended** (the author, 2026-11-18: "ok as recommended"):
+  - N reported (`d050d4bb2`), checks green on the orchestrator's run (the heavy frame-time bounds flaked once);
+    the Editing story looked at in a visible pane, light and dark; under review. Its story-steps part was built
+    before the hold and is mixed into its commits: kept, reworked per `stories.md` later.
   - integer keys keep `fmix32`; their miss against immutable.js at 1,000 entries (up to 1.9×) is accepted, each case
     with its own heavy bound; an identity `hash` is a config's choice (immutable.md);
   - patches.md's "The inverse and the allowances" confirmed: undoing a removal of already-dangling refs needs
