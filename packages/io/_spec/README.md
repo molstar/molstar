@@ -6,9 +6,10 @@ record of tables and columns), never a model. Building models, volumes and shape
 things are, the contracts a reader keeps, and the decisions (the rule, then why). Code comments cite sections
 (`cif.md §3`). The code is the truth for how.
 
-| File             | What it covers                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| [cif.md](cif.md) | CIF: the data model, `CIF.parse`, the text tokenizer, BinaryCIF decoding, schemas, writing |
+| File               | What it covers                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| [cif.md](cif.md)   | CIF: the data model, `CIF.parse`, the text tokenizer, BinaryCIF decoding, schemas, writing |
+| [repr.md](repr.md) | the MessagePack codec of the repr tree: extensions, zero-copy columns, issues              |
 
 ## Map
 
@@ -24,6 +25,7 @@ things are, the contracts a reader keeps, and the decisions (the rule, then why)
 | `src/reader/common/decode.ts`                   | base64 to bytes (from bytes or a `StringLike`)                                                                     |
 | `src/common/binary-cif/`                        | BinaryCIF: `encoding.ts` (file and encoding types), `decoder.ts`, `array-encoder.ts`, `classifier.ts`, `header.ts` |
 | `src/common/msgpack/`                           | MessagePack decode (with extensions and skipping) and encode                                                       |
+| `src/repr/msgpack.ts`                           | `MsgPackCodec`: the repr tree's MessagePack codec on `common/msgpack` (repr.md)                                    |
 | `src/common/netcdf/`                            | NetCDF reader (NCTRAJ)                                                                                             |
 | `src/common/` (rest)                            | `FileHandle` (random-access reads), `SimpleBuffer` and `IOBuffer` (endian-aware), typed-array reads, ASCII helpers |
 | `src/writer/cif.ts`, `src/writer/cif/`          | `CifWriter`: categories and fields to text or BinaryCIF (cif.md §6)                                                |

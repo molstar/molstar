@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { utf8Read } from '@molstar/core/util/utf8';
+import { utf8ReadValue } from '@molstar/core/util/utf8';
 
 /**
  * Decode an extension value from its type code and payload (a view into the buffer: copy what is kept).
@@ -147,7 +147,7 @@ function extension(state: MsgPackState, length: number) {
  */
 function str(state: MsgPackState, length: number) {
   room(state, length, 1);
-  const value = utf8Read(state.buffer, state.offset, length);
+  const value = utf8ReadValue(state.buffer, state.offset, length);
   state.offset += length;
   return value;
 }
