@@ -223,6 +223,7 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
         runtimes,
         theme,
         tokens,
+        bounds,
         text,
         assets,
         config: renderCfg,

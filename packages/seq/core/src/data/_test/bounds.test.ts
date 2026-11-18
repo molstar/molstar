@@ -13,11 +13,13 @@ import type { RegionRequest, Table } from '../protocol.js';
 import { decodeSeq, readSeq } from '../seq-format.js';
 import { DataStore } from '../store.js';
 import {
+  answerBytes,
   checkAnswer,
   checkTableBounds,
   DefaultAnswerBounds,
   DefaultMaxBlockValues,
   DefaultMaxColumnLength,
+  NodeBytes,
 } from '../tables.js';
 import { FakeClock, rangesAnswer, SyntheticSource, syntheticCoverage } from './synthetic.js';
 
@@ -31,7 +33,7 @@ describe('the data bounds', () => {
   it('default to int32 columns and 2^24 values a block', () => {
     expect(DefaultMaxColumnLength).toBe(2 ** 31 - 1);
     expect(DefaultMaxBlockValues).toBe(16_777_216);
-    expect(DefaultAnswerBounds).toEqual({ maxColumnLength: 2 ** 31 - 1, maxBlockValues: 2 ** 24 });
+    expect(DefaultAnswerBounds).toMatchObject({ maxColumnLength: 2 ** 31 - 1, maxBlockValues: 2 ** 24 });
   });
 
   it('pass a block of 2^24 values and refuse one more', () => {
@@ -95,5 +97,43 @@ describe('the store holds the bounds a composition sets', () => {
       kind: 'malformed',
       issue: { code: 'seq.source.malformed' },
     });
+  });
+});
+
+describe('the dynamic nodes of an answer', () => {
+  const request: RegionRequest = { system: 'chr1', start: 0, end: 1000, level: 1, shapes: ['ranges'] };
+  const answer = (nodes: unknown) => ({ ok: true, tables: {}, nodes });
+  const node = (key: string, params: Record<string, unknown> = {}) => ({ key, node: { kind: 'ranges', params } });
+
+  it('are counted: at the bound passes, one past is refused', () => {
+    const bounds = { ...DefaultAnswerBounds, maxNodes: 3 };
+    const many = (n: number) => Array.from({ length: n }, (_, i) => node(`n${i}`));
+    expect(checkAnswer(answer(many(3)), request, 1e6, bounds)).toBeUndefined();
+    expect(checkAnswer(answer(many(4)), request, 1e6, bounds)).toMatch(/more than 3 nodes/);
+    expect(DefaultAnswerBounds.maxNodes).toBe(10_000);
+  });
+
+  it('are held to the spec’s depth and size, and together to the nodes’ bytes', () => {
+    let deep: Record<string, unknown> = { kind: 'k' };
+    for (let i = 0; i < 20_000; i++) deep = { kind: 'k', children: [deep] };
+    expect(checkAnswer(answer([{ key: 'd', node: deep }]), request)).toMatch(/seq\.lang\.bound\.depth/);
+    expect(
+      checkAnswer(answer([node('s', { s: 'x'.repeat(1000) })]), request, 1e6, {
+        ...DefaultAnswerBounds,
+        maxNodeBytes: 500,
+      }),
+    ).toMatch(/seq\.lang\.bound\.size/);
+    // two that fit alone but not together
+    const two = [node('a', { s: 'x'.repeat(300) }), node('b', { s: 'x'.repeat(300) })];
+    const bounds = { ...DefaultAnswerBounds, maxNodeBytes: 500 };
+    expect(checkAnswer(answer([two[0]]), request, 1e6, bounds)).toBeUndefined();
+    expect(checkAnswer(answer(two), request, 1e6, bounds)).toMatch(/seq\.lang\.bound\.size/);
+  });
+
+  it('are charged to the store by the estimator, a flat floor under it', () => {
+    const small = answerBytes({}, [node('a') as never]);
+    expect(small).toBe(NodeBytes);
+    const big = answerBytes({}, [node('a', { s: 'x'.repeat(10_000) }) as never]);
+    expect(big).toBeGreaterThan(10_000);
   });
 });

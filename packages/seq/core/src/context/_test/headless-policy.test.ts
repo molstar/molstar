@@ -144,4 +144,12 @@ describe('the context’s bounds', () => {
     expect(bound(tight, 3)).toEqual([]);
     expect(tight.check(nest(4)).map((i) => i.code)).toEqual(['seq.lang.bound.depth']);
   });
+
+  it('hold for renderSvg: a spec past them is a blank document with the bound’s issue', async () => {
+    const tight = createSeqContext({ config: [[SeqCoreConfig.bounds, { maxDepth: 3 }]] });
+    const r = await tight.renderSvg(nest(5), { size: { width: 100, height: 40 } });
+    expect(r.issues.map((i) => i.code)).toEqual(['seq.lang.bound.depth']);
+    expect(r.svg).toContain('<svg');
+    expect(r.settled).toBe(true);
+  });
 });

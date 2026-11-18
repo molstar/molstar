@@ -18,6 +18,7 @@ import {
   type NumericColumnType,
   type Value,
 } from '@molstar/core/repr/tree';
+import { measureNode, specBounds } from '@molstar/seqx-core/lang';
 import {
   type DynamicNode,
   FailureKinds,
@@ -75,7 +76,8 @@ export const NodeBytes = 256;
 
 /** What an answer costs the store's byte bound: its columns' bytes, a string's two bytes a letter, nodes flat. */
 export function answerBytes(tables: Tables, nodes: readonly DynamicNode[] | undefined): number {
-  let n = (nodes?.length ?? 0) * NodeBytes;
+  let n = 0;
+  for (const d of nodes ?? []) n += Math.max(NodeBytes, measureNode(d.node).bytes);
   const { letters: l, ranges: r, values: v } = tables;
   if (l) n += typeof l.letters === 'string' ? 2 * l.letters.length : l.letters.byteLength;
   if (r?.form === 'list') {
@@ -173,11 +175,17 @@ export const DefaultMaxBlockValues = 2 ** 24;
 export interface AnswerBounds {
   readonly maxColumnLength: number;
   readonly maxBlockValues: number;
+  /** Dynamic nodes in one answer: 10,000. */
+  readonly maxNodes: number;
+  /** What the nodes of one answer weigh together by the spec's size estimate: 16 MB. */
+  readonly maxNodeBytes: number;
 }
 
 export const DefaultAnswerBounds: AnswerBounds = {
   maxColumnLength: DefaultMaxColumnLength,
   maxBlockValues: DefaultMaxBlockValues,
+  maxNodes: 10_000,
+  maxNodeBytes: 16 * 1024 * 1024,
 };
 
 /** The columns a table holds besides its rows' extent: what a block's values are counted by. */
@@ -229,6 +237,14 @@ export function checkAnswer(
     for (const n of answer.nodes)
       if (!isObject(n) || typeof n.key !== 'string' || !isNode(n.node as Value))
         return 'a node is not a key and a node';
+    if (answer.nodes.length > bounds.maxNodes) return `more than ${bounds.maxNodes} nodes`;
+    // each node held to the spec's bounds (depth, size, shape) and all together to the nodes' bound, before they are kept
+    let left = bounds.maxNodeBytes;
+    for (const n of answer.nodes as DynamicNode[]) {
+      const m = measureNode(n.node, specBounds({ maxBytes: left }));
+      if (m.issues.length) return `a node past the bounds (${m.issues[0].code})`;
+      left -= m.bytes;
+    }
   }
   const tables = answer.tables as Tables;
   const bad = checkTables(tables);

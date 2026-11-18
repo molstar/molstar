@@ -24,6 +24,7 @@ import { DefaultSummarySettings, type SummarySettings, summaryBytes, withSummari
 import {
   answerBytes,
   checkAnswer,
+  DefaultAnswerBounds,
   DefaultMaxBlockValues,
   DefaultMaxColumnLength,
   DefaultMaxRows,
@@ -127,6 +128,10 @@ export interface StoreSettings {
   readonly maxColumnLength: number;
   /** The most values (rows times columns) one table of an answer may hold: 2^24. */
   readonly maxBlockValues: number;
+  /** Dynamic nodes in one answer: 10,000. */
+  readonly maxNodes: number;
+  /** What the nodes of one answer weigh together (the spec's size estimate): 16 MB. */
+  readonly maxNodeBytes: number;
   /** Issues kept; then one `seq.store.limit_exceeded`. */
   readonly maxIssues: number;
   /** How long a request that left the wanted set stays in flight before it is cancelled (EC-173). */
@@ -153,6 +158,8 @@ export const DefaultStoreSettings: StoreSettings = {
   maxRows: DefaultMaxRows,
   maxColumnLength: DefaultMaxColumnLength,
   maxBlockValues: DefaultMaxBlockValues,
+  maxNodes: DefaultAnswerBounds.maxNodes,
+  maxNodeBytes: DefaultAnswerBounds.maxNodeBytes,
   maxIssues: 100,
   graceMs: 300,
   retry: { attempts: 3, baseMs: 500, factor: 2, cooldownMs: 30_000 },
