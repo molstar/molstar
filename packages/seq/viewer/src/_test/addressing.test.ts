@@ -13,6 +13,7 @@ import { locationOfResult, locationsEqual, rangesLocation, resolveAddressIn } fr
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { AddressingBehavior } from '../behaviors/addressing.js';
 import { AddressingProvider } from '../behaviors/providers.js';
 import { changeKindOf } from '../commands.js';
 import { viewerItem } from '../config.js';
@@ -145,7 +146,7 @@ describe('actions on addresses', () => {
 
   it('runs as commands of the addressing behavior, each with its change kind', async () => {
     const v = await make();
-    const ids = v.commands.filter((c) => c.id.startsWith('address.') || c.id.startsWith('refs.')).map((c) => c.id);
+    const ids = (v.behaviors.get('addressing') as AddressingBehavior).commands.map((c) => c.id);
     expect(ids).toEqual([
       'address.focus',
       'address.reveal',

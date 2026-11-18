@@ -55,7 +55,7 @@ async function make(options: { canvas?: boolean; width?: number } = {}) {
 describe('createSeqViewer', () => {
   it('composes the models, the bindings and the default behaviors from the spec, and shows a spec', async () => {
     const { viewer } = await make();
-    expect([...viewer.behaviors.keys()]).toEqual(['hover', 'navigate', 'addressing']);
+    expect([...viewer.behaviors.keys()]).toEqual(['hover', 'navigate', 'addressing', 'editing']);
     expect(viewer.bindings.issues).toEqual([]);
     expect(viewer.commands.map((c) => c.id)).toContain('view.fit');
     expect(viewer.store.store.coverage(Protein)?.systems[0].length).toBe(4);

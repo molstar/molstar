@@ -5,7 +5,7 @@
  */
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
-import { AddressingProvider, HoverProvider, NavigateProvider } from '@molstar/seqx-viewer/behaviors';
+import { AddressingProvider, EditingProvider, HoverProvider, NavigateProvider } from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts, uiHistory } from '@molstar/seqx-viewer/ports';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
@@ -17,7 +17,12 @@ import type { SeqViewerSpec } from './viewer-spec.js';
 export function DefaultSeqViewerSpec(): SeqViewerSpec {
   return {
     registry: [{ kind: 'format-runtime', runtime: SeqRuntime }],
-    behaviors: [{ provider: HoverProvider }, { provider: NavigateProvider }, { provider: AddressingProvider }],
+    behaviors: [
+      { provider: HoverProvider },
+      { provider: NavigateProvider },
+      { provider: AddressingProvider },
+      { provider: EditingProvider },
+    ],
     bindings: {},
     config: [],
     ports: defaultPorts(),

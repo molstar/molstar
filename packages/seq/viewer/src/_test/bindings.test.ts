@@ -14,7 +14,7 @@ import {
   modifiersOf,
   SelectionBindings,
 } from '../bindings.js';
-import { CommandChangeKinds, changeKindOf, isMethodAction } from '../commands.js';
+import { ChangeKinds, CommandChangeKinds, changeKindOf, isMethodAction } from '../commands.js';
 
 const none = {};
 const shift = { shift: true };
@@ -117,8 +117,6 @@ describe('commands’ change kinds', () => {
     expect(t.changeKind('wheel', none, 'cell')).toBeUndefined();
     expect(changeKindOf('nothing')).toBeUndefined();
     expect(changeKindOf('view.fit', { 'view.fit': 'session' })).toBe('session');
-    expect(Object.values(CommandChangeKinds).every((k) => ['patch', 'session', 'navigate', 'none'].includes(k))).toBe(
-      true,
-    );
+    expect(Object.values(CommandChangeKinds).every((k) => ChangeKinds.includes(k))).toBe(true);
   });
 });

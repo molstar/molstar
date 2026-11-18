@@ -180,9 +180,9 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
-  (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate` and `addressing` behaviors, the
-  default ports, `uiHistory()` and the canvas; an application spreads it (a headless composition drops `ui` and
-  `history`).
+  (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate`, `addressing` and `editing`
+  behaviors, the default ports, `uiHistory()` and the canvas; an application spreads it (a headless composition drops
+  `ui` and `history`).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, bound to the spec), the
   binding table, the behaviors (one of each name; a behavior's `commands` join the viewer's), then the UI into `target`
@@ -327,6 +327,12 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   `address.highlight` with a `channel`, `address.hover`, `address.unhover`, `address.copy-link` whose message is the
   link, `refs.add` with a `ref`), so a link, a key, a menu, an agent and a test drive the view the same way; `when` says
   why one cannot run (no address, no ref, nothing to link). `runLink` runs a link.
+- `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
+  `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
+  `track.show` (each of its layers), `track.move` (among its siblings, `after`), `refs.remove`; `step.enter` and
+  `step.leave` (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command (it runs per
+  pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step, `cancelPreview()` in
+  nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
 
 ## Bindings
 
@@ -350,11 +356,20 @@ Small policies over the models (`behaviors/`), each reading the bindings.
 
 ## Commands
 
-`commands.ts`: `@molstar/ui`'s `CommandDefinition` has no change kind, so the viewer keeps a table by command id:
-`patch` (undoable, one step), `session`, `navigate` or `none` (it only reads) (`CommandChangeKinds`,
-`changeKindOf(id, extra)`). Every command the presets bind has a kind, and every `addressing` command (tested): a focus
-or a reveal navigates, a selection, a highlight or a link's hover is session state, `refs.add` a patch; copying a link
-changes nothing (`none`).
+`commands.ts`: `@molstar/ui`'s `CommandDefinition` has no change kind, so the viewer keeps a table by command id
+(`CommandChangeKinds`, `changeKindOf(id, extra)`): `patch` (the spec, one step of the history), `preview` (a gesture's
+patch: ends in one patch or nothing, never a step itself), `session`, `navigate` (what is shown without changing the
+spec: the viewports, a story step) or `none` (it only reads). Menus show what Undo will undo; an agent tells an edit
+from a look. A focus or a reveal navigates; a selection, a highlight or a link's hover is session state; `refs.add` and
+the editing commands are patches; entering and leaving a step navigates; `preview.cancel` is a preview's; copying a link
+changes nothing.
+
+- **Tested as the table says** (`_test/changes.test.ts`): every command of the default viewer, run with the default
+  spec's history, changes exactly what its kind names (a patch: the revision and one history step; a preview: the
+  preview; session; navigate; `none`: nothing), and undo restores the spec alone: the session, the viewports and the
+  step shown stay. Why a test of every command: a kind declared and not held misleads the menu and the agent alike.
+- **Running** (`viewer.runCommand(id, ctx)`, `viewer.execute(id, ctx)`): a command that edits through the host's history
+  runs in turn; `execute` gives its message when it has run, `runCommand` only a message given at once.
 
 ## Configuration
 
