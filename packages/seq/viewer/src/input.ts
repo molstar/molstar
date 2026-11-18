@@ -29,6 +29,7 @@ import {
   type HitTarget,
   hitTarget,
   isNothing,
+  nearestOffsetOf,
   offsetOf,
 } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
@@ -132,6 +133,7 @@ export class ViewerInput {
     out.position = h.position;
     out.element = h.element;
     out.extent = h.extent;
+    out.hull = h.hull;
     return this._hit;
   }
 
@@ -181,6 +183,8 @@ export class ViewerInput {
   /** The primary button went down at (x, y): a drag begins when the bindings give one here. */
   down(x: number, y: number, e: KeyState = {}): boolean {
     if (this.viewer.retired) return false;
+    // a jump's motion stops where it is drawn: the input reads one picture
+    this.viewer.stopMotion();
     // a new press: a click after it is its own
     this._suppressClick = false;
     const section = this.sectionAt(y);
@@ -218,6 +222,8 @@ export class ViewerInput {
    */
   click(x: number, y: number, e: ClickState = {}): boolean {
     if (this.viewer.retired) return false;
+    // a jump's motion stops where it is drawn: the input reads one picture
+    this.viewer.stopMotion();
     if (this._suppressClick) {
       this._suppressClick = false;
       return false;
@@ -240,19 +246,25 @@ export class ViewerInput {
       hit ? { ...hit, ...(section !== undefined ? { section } : {}) } : undefined,
       this._modifiers(e),
     );
-    // a click that cleared the selection may be a double-click's first: kept until the next click says
-    if (!isNothing(before) && isNothing(sel.value.value)) this._cleared = { value: before, anchor };
+    // a click that cleared the selection may be a double-click's first: kept until the next click says; so is a
+    // Shift+click's extend (a Shift+double-click zooms out and selects nothing)
+    const after = sel.value.value;
+    if ((!isNothing(before) && isNothing(after)) || (e.shiftKey && after !== before))
+      this._cleared = { value: before, anchor, after };
     return taken;
   }
 
-  /** What the first click of a double-click cleared (clicking the only selected element), until the next click. */
-  private _cleared: { value: Emphasized; anchor: Anchor | undefined } | undefined;
+  /**
+   * What the first click of a double-click changed (clicking the only selected element cleared it; a Shift+click
+   * extended it), until the next click: the selection before and after it.
+   */
+  private _cleared: { value: Emphasized; anchor: Anchor | undefined; after: Emphasized } | undefined;
 
-  /** A double-click's second click (or its `dblclick`) gives back what its first click cleared. */
+  /** A double-click's second click (or its `dblclick`) gives back what its first click changed, while it stands. */
   private _restoreCleared(): void {
     const c = this._cleared;
     this._cleared = undefined;
-    if (c && isNothing(this.viewer.selection.value.value)) this.viewer.selection.set(c.value, c.anchor);
+    if (c && this.viewer.selection.value.value === c.after) this.viewer.selection.set(c.value, c.anchor);
   }
 
   get dragging(): boolean {
@@ -266,6 +278,8 @@ export class ViewerInput {
    */
   wheel(x: number, y: number, e: WheelState): boolean {
     if (this.viewer.retired) return false;
+    // a jump's motion stops where it is drawn: the input reads one picture
+    this.viewer.stopMotion();
     const section = this.sectionAt(y);
     const nav = this.navigateBehavior;
     if (section === undefined || !nav) return false;
@@ -300,6 +314,8 @@ export class ViewerInput {
   /** A double-click: the bound command, with the element or position under the pointer as what to focus. */
   doubleClick(x: number, y: number, e: KeyState = {}): boolean {
     if (this.viewer.retired) return false;
+    // a jump's motion stops where it is drawn: the input reads one picture
+    this.viewer.stopMotion();
     this._restoreCleared();
     const section = this.sectionAt(y);
     if (section === undefined) return false;
@@ -332,8 +348,12 @@ export class ViewerInput {
     const section = this.sectionAt(y) ?? this.viewer.view.resolved.value?.sections[0]?.address;
     const action = this.viewer.bindings.resolve(`${which}-button`, this._modifiers(e), hitTarget(this._hitAt(x, y)));
     if (action === undefined) return false;
+    // only a command that can act takes the button: with no step to go, the page keeps its own Back
+    const ctx = { section };
+    const can = this.viewer.commands.find((c) => c.id === action)?.when?.(ctx as never);
+    if (can !== undefined && can !== true) return false;
     this._sideTaken = which;
-    this.viewer.runCommand(action, { section });
+    this.viewer.runCommand(action, ctx);
     return true;
   }
 
@@ -346,10 +366,19 @@ export class ViewerInput {
 
   private _sideTaken: 'back' | 'forward' | undefined;
 
-  /** What to focus for a hit: the element's extent, else the position's cell, in the section's offsets. */
+  /**
+   * What to focus for a hit: the element's hull on the section (its extent carried along the layer's path: a domain on
+   * the gene it is coded by spans its exons), else its extent where it is on the section's system, else the position's
+   * cell, in the section's offsets (the cells' offsets, so a reversed axis keeps the whole hull).
+   */
   private _focusOf(section: string, hit: Hit): { start: number; end: number } | undefined {
     const axis = this.viewer.view.resolved.value?.sections.find((s) => s.address === section)?.axis;
     if (!axis) return undefined;
+    if (hit.hull && hit.hull[1] > hit.hull[0]) {
+      const a = nearestOffsetOf(axis, hit.hull[0]);
+      const b = nearestOffsetOf(axis, hit.hull[1] - 1);
+      if (a !== undefined && b !== undefined) return { start: Math.min(a, b), end: Math.max(a, b) + 1 };
+    }
     const part = hit.extent?.parts.find((p) => p.system === hit.system);
     if (part && part.ranges.length >= 2) {
       const start = offsetOf(axis, part.ranges[0]);
@@ -412,17 +441,25 @@ export class ViewerInput {
           keys ? !keys.some((k) => matchesChord(k, e, this.mac)) : !c.shortcut || !shortcutIs(c.shortcut, e, this.mac)
         )
           continue;
-        matched = true;
         const can = c.when?.(ctx as never);
-        if (can !== undefined && can !== true) continue;
+        // the history's keys are the page's Back and Forward when the view has no step to go
+        if (can !== undefined && can !== true) {
+          if (!YieldWhenIdle.has(c.id)) matched = true;
+          continue;
+        }
+        matched = true;
         this.viewer.runCommand(c.id, ctx);
         return true;
       }
-    // a shortcut with modifiers is the viewer's even when nothing can run now (Alt+ArrowLeft is no browser Back); a
-    // plain key nothing takes (Esc with nothing to cancel) stays the host's
+    // a shortcut with modifiers is the viewer's even when nothing can run now, but the history's (Alt+Left is the
+    // browser's Back when the view has no step back); a plain key nothing takes (Esc with nothing to cancel) stays the
+    // host's
     return matched && !!(e.altKey || e.shiftKey || e.metaKey || e.ctrlKey);
   }
 }
+
+/** Commands whose keys and buttons are the page's when they cannot run: the view's history (the browser's Back). */
+const YieldWhenIdle: ReadonlySet<string> = new Set(['view.back', 'view.forward']);
 
 /** Whether a key event is a command's shortcut exactly (its key and every modifier). */
 function shortcutIs(k: KeyChord, e: KeyState & { readonly key: string }, mac: boolean): boolean {

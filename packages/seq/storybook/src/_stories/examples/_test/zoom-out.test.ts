@@ -8,6 +8,7 @@ import type { RangesLay } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { GeneFile } from '@molstar/seqx-examples/p53/data';
+import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { bestOf, itWithin } from '@molstar/test-harness/timing';
@@ -34,21 +35,35 @@ afterEach(() => {
 });
 
 /** `clock`: the bound of the performance case reads the real `performance`, its timers faked alone. */
-async function make(clock = true): Promise<SeqViewer> {
+async function make(clock = true, id = 'protein-on-gene'): Promise<SeqViewer> {
   vi.useFakeTimers({
     toFake: clock ? ['setTimeout', 'clearTimeout', 'Date', 'performance'] : ['setTimeout', 'clearTimeout'],
   });
+  const view = P53Views.find((v) => v.id === id)!;
+  const text = id === 'gene-by-region' ? regionSeqText() : gene;
   const base = DefaultSeqViewerSpec();
   viewer = createSeqViewer({
     ...base,
     ui: undefined,
-    ports: { assets: () => ({ reader: { readText: async () => gene } }) },
+    registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: 300 }) ?? [])],
+    ports: { assets: () => ({ reader: { readText: async () => text } }) },
   });
   viewer.resize(720);
-  void viewer.load(P53Views.find((v) => v.id === 'protein-on-gene')!.build());
-  await vi.advanceTimersByTimeAsync(2000);
+  void viewer.load(view.build());
+  await vi.advanceTimersByTimeAsync(6000);
   viewer.draw();
   return viewer;
+}
+
+/** A domain's marks on a section's domains track (the first such track, or the one whose address has `track`). */
+function domainMarks(v: SeqViewer, section: string, key: string, track = '/domains') {
+  v.draw();
+  const s = v.frame!.layout.sections.find((x) => x.section.address === section)!;
+  const t = s.tracks.find((x) => x.track.address.includes(track))!;
+  const lay = t.layers[0].lay as RangesLay;
+  const marks: [number, number][] = [];
+  for (let j = 0; j < lay.hn; j++) if (lay.keys[lay.hitem[j]] === key) marks.push([lay.hx0[j], lay.hx1[j]]);
+  return { marks, box: lay.box };
 }
 
 /** The centre of a domain's first mark on a section's domains track, in canvas px. */
@@ -67,23 +82,62 @@ const rangeOf = (v: SeqViewer, s: string) => {
   return [r.start, r.end];
 };
 
+describe('a double-click on an item focuses its whole extent on the section clicked', () => {
+  it('Gene by region: T1’s DNA-binding domain, carried onto the region through its codon map from a nested source', async () => {
+    const v = await make(true, 'gene-by-region');
+    const region = v.view.resolved.value!.sections[0].address;
+    const before = domainMarks(v, region, 'DBD', 'T1-domains');
+    expect(before.marks.length).toBeGreaterThan(0);
+    const [x0, x1] = before.marks[0];
+    const y = v.frame!.layout.sections[0].tracks.find((t) => t.track.address.includes('T1-domains'))!;
+    const lay = y.layers[0].lay as RangesLay;
+    const j = Array.from({ length: lay.hn }, (_, k) => k).find((k) => lay.keys[lay.hitem[k]] === 'DBD')!;
+    v.input.doubleClick((x0 + x1) / 2, lay.box.y + (lay.hlane[j] + 0.5) * lay.laneHeight);
+    await vi.advanceTimersByTimeAsync(1000);
+    // the domain's pieces (its codons over three exons): all in view, and they fill it from edge to edge
+    const after = domainMarks(v, region, 'DBD', 'T1-domains');
+    const lo = Math.min(...after.marks.map((m) => m[0]));
+    const hi = Math.max(...after.marks.map((m) => m[1]));
+    expect(lo).toBeGreaterThanOrEqual(after.box.x - 1);
+    expect(hi).toBeLessThanOrEqual(after.box.x + after.box.width + 1);
+    expect(hi - lo).toBeGreaterThan(0.95 * after.box.width);
+    const r = rangeOf(v, region);
+    // 199 residues are 597 nucleotides, and the introns between them
+    expect(r[1] - r[0]).toBeGreaterThan(597);
+  });
+
+  it('Protein on its gene: the domain on the following gene focuses its hull there, the protein the domain', async () => {
+    const v = await make();
+    v.input.doubleClick(...domainAt(v, Gene, 'DBD'));
+    await vi.advanceTimersByTimeAsync(1000);
+    const after = domainMarks(v, Gene, 'DBD');
+    const lo = Math.min(...after.marks.map((m) => m[0]));
+    const hi = Math.max(...after.marks.map((m) => m[1]));
+    expect(hi - lo).toBeGreaterThan(0.95 * after.box.width);
+    // the protein leads: it shows the domain, residues 93 to 292
+    const p = rangeOf(v, Protein);
+    expect(p[0]).toBeCloseTo(93, 0);
+    expect(p[1]).toBeCloseTo(292, 0);
+  });
+});
+
 describe('zooming out on Protein on its gene', () => {
   it('a double-click on a domain on the gene focuses it through the leader; on it again, back: both sections', async () => {
     const v = await make();
     const protein = rangeOf(v, Protein);
     const geneRange = rangeOf(v, Gene);
-    v.input.doubleClick(...domainAt(v, Gene, 'DBD'));
+    v.input.doubleClick(...domainAt(v, Gene, 'TET'));
     expect(rangeOf(v, Protein)).not.toEqual(protein);
     expect(v.view.isFollowing(Gene)).toBe(true);
     await vi.advanceTimersByTimeAsync(500);
-    v.input.doubleClick(...domainAt(v, Gene, 'DBD'));
+    v.input.doubleClick(...domainAt(v, Gene, 'TET'));
     expect(rangeOf(v, Protein)).toEqual(protein);
     expect(rangeOf(v, Gene)).toEqual(geneRange);
     // forward, then Shift+double-click zooms out about the pointer; - more; 0 fits; Alt+Left back
     expect(v.input.key({ key: 'ArrowRight', altKey: true })).toBe(true);
     const focused = rangeOf(v, Protein);
     await vi.advanceTimersByTimeAsync(500);
-    v.input.doubleClick(...domainAt(v, Protein, 'DBD'), { shiftKey: true });
+    v.input.doubleClick(...domainAt(v, Protein, 'TET'), { shiftKey: true });
     const out = rangeOf(v, Protein);
     expect(out[1] - out[0]).toBeCloseTo(2 * (focused[1] - focused[0]));
     v.input.key({ key: '-' });

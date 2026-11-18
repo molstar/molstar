@@ -395,7 +395,10 @@ export class ViewModel extends ReactiveModel {
     return out;
   }
 
-  /** What restoring a snapshot would give: the groups there now, at its ranges; a follower detached since, attached. */
+  /**
+   * What restoring a snapshot would give: the groups there now, at its ranges; a follower detached since, attached; one
+   * detached then and attached since, detached again (a section gone since is left out).
+   */
   private _restored(snap: Snapshot): Snapshot {
     const out = new Map<string, { start: number; end: number; fitted: boolean }>();
     for (const g of this._groups.values()) {
@@ -403,7 +406,15 @@ export class ViewModel extends ReactiveModel {
       if (v) out.set(g.key, v);
       else if (!g.key.startsWith(DetachedPrefix)) out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted });
     }
+    for (const [key, v] of snap)
+      if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
     return out;
+  }
+
+  /** The follower a detached group's key names, when it is in the view and follows. */
+  private _detachable(key: string): SectionState | undefined {
+    const s = this._sections.get(key.slice(DetachedPrefix.length));
+    return s?.section.follow ? s : undefined;
   }
 
   /** The groups take the snapshot's ranges in one publish; a follower detached since it was taken is attached again. */
@@ -418,6 +429,21 @@ export class ViewModel extends ReactiveModel {
         this._groups.delete(key);
         for (const s of this._sections.values()) if (s.group === key) s.group = undefined;
       }
+    }
+    // a follower detached when the snapshot was taken is detached again, at its range then
+    for (const [key, v] of snap) {
+      const s = !this._groups.has(key) && key.startsWith(DetachedPrefix) ? this._detachable(key) : undefined;
+      if (!s) continue;
+      this._groups.set(key, {
+        key,
+        axis: s.section.axis,
+        start: v.start,
+        end: v.end,
+        fitted: v.fitted,
+        placedWidth: s.width,
+        members: [s.section.address],
+      });
+      s.group = key;
     }
     this._publish();
   }

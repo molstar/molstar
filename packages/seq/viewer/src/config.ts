@@ -101,6 +101,7 @@ export interface ViewerConfig {
     /**
      * The keys of the view's commands, by command id: a chord is a key with `Shift+`, `Alt+`, `Mod+` (Cmd on macOS, Ctrl
      * elsewhere) before it; a printable key matches whatever Shift it needs (`+`). The first is the command's shortcut.
+     * An override merges by command id (`[]`: none). Read when the viewer is made.
      */
     readonly keys: Readonly<Record<string, readonly string[]>>;
   };
@@ -259,6 +260,9 @@ export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig
   const out: Record<string, unknown> = {};
   for (const [group, items] of Object.entries(DefaultViewerConfig))
     out[group] = { ...items, ...(over as Record<string, object | undefined>)[group] };
+  // the view's keys merge by command id: an override of one command's keys keeps the others' (`[]` removes them)
+  const keys = over.view?.keys;
+  if (keys) (out.view as { keys: unknown }).keys = { ...DefaultViewerConfig.view.keys, ...keys };
   return out as unknown as ViewerConfig;
 }
 

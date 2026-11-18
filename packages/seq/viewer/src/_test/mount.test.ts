@@ -257,6 +257,40 @@ describe('the mounted canvas stack', () => {
     expect(other.defaultPrevented).toBe(false);
   });
 
+  it('the platform’s reduced motion makes every jump a cut, followed while mounted and let go on retire', async () => {
+    const { viewer } = await mount();
+    const reduced = queries.filter((q) => q.media === '(prefers-reduced-motion: reduce)');
+    expect(reduced.length).toBe(1);
+    // the fake media query matches
+    expect(viewer.reducedMotion).toBe(true);
+    expect(reduced[0].listeners.size).toBe(1);
+    viewer.reducedMotion = false;
+    for (const fn of [...reduced[0].listeners]) fn();
+    expect(viewer.reducedMotion).toBe(true);
+    viewer.runCommand('view.focus', { section: '/views/main/protein', focus: { start: 1, end: 3 } });
+    expect(viewer.moving).toBe(false);
+    viewer.retire();
+    expect(reduced[0].listeners.size).toBe(0);
+  });
+
+  it('the side buttons are the viewer’s only when it has a step to go: else the page keeps its Back', async () => {
+    const { viewer, container } = await mount();
+    const press = (button: number) => {
+      const down = at('pointerdown', 300, 18, { button });
+      container.dispatchEvent(down);
+      const up = at('mouseup', 300, 18, { button });
+      container.dispatchEvent(up);
+      return [down.defaultPrevented, up.defaultPrevented];
+    };
+    expect(press(3)).toEqual([false, false]);
+    viewer.runCommand('view.focus', { section: '/views/main/protein', focus: { start: 1, end: 3 } });
+    expect(press(3)).toEqual([true, true]);
+    expect(viewer.view.get('/views/main/protein')).toMatchObject({ start: 0, end: 4 });
+    expect(press(4)).toEqual([true, true]);
+    expect(viewer.view.get('/views/main/protein')).toMatchObject({ start: 1, end: 3 });
+    expect(press(4)).toEqual([false, false]);
+  });
+
   it('a change of the device pixel ratio asks for a frame and listens for the next ratio', async () => {
     const { viewer, container } = await mount();
     // the ratio's queries (the reduced motion's is another)

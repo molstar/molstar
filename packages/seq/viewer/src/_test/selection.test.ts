@@ -484,12 +484,15 @@ describe('the keyboard cursor', () => {
     expect(key(v, 'Escape')).toBe(false);
   });
 
-  it('a shortcut with modifiers is consumed even when its commands refuse (Alt+ArrowLeft on a follower is no Back)', async () => {
+  it('a shortcut with modifiers is consumed even when its commands refuse; the history’s are the page’s Back then', async () => {
     const v = await make();
     v.input.move(...at(v, 1, 0, 20));
     const start = v.view.get(GeneSection)!.start;
-    expect(v.input.key({ key: 'ArrowLeft', altKey: true })).toBe(true);
+    // the pan key (Shift+Alt+ArrowLeft) on a follower that does not move
+    expect(v.input.key({ key: 'ArrowLeft', altKey: true, shiftKey: true })).toBe(true);
     expect(v.view.get(GeneSection)!.start).toBe(start);
+    // Alt+ArrowLeft is Back: with no step back it is the browser's
+    expect(v.input.key({ key: 'ArrowLeft', altKey: true })).toBe(false);
     // a key no command has stays the page's
     expect(v.input.key({ key: 'q', altKey: true })).toBe(false);
   });

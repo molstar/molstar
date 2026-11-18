@@ -14,7 +14,10 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import type { RangesLay } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseChord } from '../bindings.js';
-import { viewerItem } from '../config.js';
+import { DefaultViewerConfig, viewerConfig, viewerItem } from '../config.js';
+import { SpecModel } from '../models/spec.js';
+import { ViewModel } from '../models/view.js';
+import { GeneSection, ProteinSection, proteinOnGene } from './fixture.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -275,5 +278,121 @@ describe('a jump’s motion', () => {
     const w = await make([[viewerItem('view.motion'), 'cut']]);
     run(w, 'view.focus', { section: Protein, focus: { start: 20, end: 30 } });
     expect(w.moving).toBe(false);
+  });
+});
+
+describe('the history over followers, removed sections, loads and step zooms', () => {
+  function follower() {
+    const spec = new SpecModel(proteinOnGene());
+    const view = new ViewModel(spec, viewerConfig({ follow: { followerMoves: 'detach' } }));
+    view.setWidth(ProteinSection, 20);
+    view.setWidth(GeneSection, 20);
+    const range = (s: string) => [view.get(s)!.start, view.get(s)!.end];
+    return { spec, view, range };
+  }
+
+  it('back detaches a follower attached since, at its range then; forward attaches it again', () => {
+    const { view, range } = follower();
+    view.setRange(ProteinSection, 1, 3);
+    // a pan by hand detaches the gene (no step); the fit after it, a jump, attaches it
+    view.pan(GeneSection, 2);
+    expect(view.isFollowing(GeneSection)).toBe(false);
+    const detached = range(GeneSection);
+    expect(view.jump(() => view.fit(GeneSection))).toBe('moved');
+    expect(view.isFollowing(GeneSection)).toBe(true);
+    expect(view.back()).toBe(true);
+    expect(view.isFollowing(GeneSection)).toBe(false);
+    expect(range(GeneSection)).toEqual(detached);
+    expect(view.forward()).toBe(true);
+    expect(view.isFollowing(GeneSection)).toBe(true);
+    // and back again detaches it once more
+    expect(view.back()).toBe(true);
+    expect(view.isFollowing(GeneSection)).toBe(false);
+  });
+
+  it('back with a section removed since restores the others; a step zoom keeps the steps forward', () => {
+    const spec = new SpecModel(proteinOnGene({ twin: true, range: [0, 4] }));
+    const view = new ViewModel(spec, viewerConfig({ viewport: { groupEqualAxes: false } }));
+    for (const s of [ProteinSection, '/views/main/twin', GeneSection]) view.setWidth(s, 20);
+    view.jump(() => view.setRange(ProteinSection, 1, 3) && view.setRange('/views/main/twin', 2, 4));
+    // the twin goes
+    spec.apply(proteinOnGene({ range: [0, 4] }));
+    expect(view.back()).toBe(true);
+    expect([view.get(ProteinSection)!.start, view.get(ProteinSection)!.end]).toEqual([0, 4]);
+    expect(view.history.value).toEqual({ back: 0, forward: 1 });
+    // a step zoom (no step of its own) keeps the step forward, as a move by hand does
+    view.jump(() => view.zoom(ProteinSection, 1.25), false);
+    expect(view.history.value).toEqual({ back: 0, forward: 1 });
+    expect(view.forward()).toBe(true);
+    expect([view.get(ProteinSection)!.start, view.get(ProteinSection)!.end]).toEqual([1, 3]);
+  });
+
+  it('a new document clears the history; an edit of the same one keeps it', async () => {
+    const v = await make();
+    run(v, 'view.focus', { section: Protein, focus: { start: 2, end: 8 } });
+    expect(v.view.canBack).toBe(true);
+    v.spec.apply(spec());
+    expect(v.view.canBack).toBe(true);
+    await v.load(spec());
+    expect(v.view.canBack).toBe(false);
+    expect(run(v, 'view.back')).toBe('No view to go back to');
+  });
+
+  it('an override of one command’s keys keeps the other commands’ keys', () => {
+    const c = viewerConfig({ view: { keys: { 'view.back': ['b'] } } });
+    expect(c.view.keys['view.back']).toEqual(['b']);
+    expect(c.view.keys['view.forward']).toEqual(DefaultViewerConfig.view.keys['view.forward']);
+    expect(c.view.keys['view.fit']).toEqual(['0']);
+  });
+});
+
+describe('input and the page', () => {
+  it('with no step to go, the side buttons and Alt+Left are the page’s; with one, the viewer’s', async () => {
+    const v = await make();
+    expect(v.input.sideButton('back', 300, 20)).toBe(false);
+    expect(v.input.sideButtonTaken('back')).toBe(false);
+    expect(v.input.key({ key: 'ArrowLeft', altKey: true })).toBe(false);
+    expect(v.input.key({ key: 'ArrowRight', altKey: true })).toBe(false);
+    expect(v.input.key({ key: 'Backspace' })).toBe(false);
+    run(v, 'view.focus', { section: Protein, focus: { start: 2, end: 8 } });
+    expect(v.input.key({ key: 'ArrowLeft', altKey: true })).toBe(true);
+    expect(v.input.sideButton('forward', 300, 20)).toBe(true);
+    expect(v.input.sideButtonTaken('forward')).toBe(true);
+  });
+
+  it('input during a jump’s motion stops it where it is drawn: Shift+double-click zooms about what is under the pointer', async () => {
+    // a small factor, so the zoom out stays inside the axis
+    const v = await make([[viewerItem('navigate.doubleClickZoomStep'), 1.25]]);
+    run(v, 'view.focus', { section: Protein, focus: { start: 20, end: 30 } });
+    vi.advanceTimersByTime(v.config.view.jumpMs / 2);
+    v.draw();
+    const drawn = v.drawnViewport!;
+    const width = v.view.get(Protein)!.width;
+    const local = width * 0.4;
+    const under = drawn.start + (local * (drawn.end - drawn.start)) / width;
+    const y = v.frame!.layout.sections[0].tracks[0].box.y + 2;
+    v.input.doubleClick(v.dataX + local, y, { shiftKey: true });
+    const [s, e] = range(v);
+    expect(s).toBeGreaterThan(0);
+    expect(e - s).toBeCloseTo(1.25 * (drawn.end - drawn.start), 5);
+    expect((under - s) / (e - s)).toBeCloseTo(0.4, 5);
+  });
+
+  it('Shift+double-click gives back the selection its first click extended', async () => {
+    const v = await make();
+    run(v, 'selection.set', {
+      section: Protein,
+      hit: { layer: `${Protein}/letters/l`, system: '/data/p', position: 3 },
+    });
+    const before = v.selection.value.value;
+    v.draw();
+    const vp = v.view.get(Protein)!;
+    const x = v.dataX + ((12.5 - vp.start) / (vp.end - vp.start)) * vp.width;
+    const y = v.frame!.layout.sections[0].tracks[0].box.y + 2;
+    v.input.click(x, y, { shiftKey: true, detail: 1 });
+    expect(v.selection.value.value).not.toBe(before);
+    v.input.click(x, y, { shiftKey: true, detail: 2 });
+    v.input.doubleClick(x, y, { shiftKey: true });
+    expect(v.selection.value.value).toBe(before);
   });
 });

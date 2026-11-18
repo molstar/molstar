@@ -74,6 +74,8 @@ export interface RangesLay {
   owner: string;
   /** The data's system: an element's extent is on it. */
   dataSystem: string;
+  /** The layer's source: a hit carries its element onto the section along its path. */
+  src?: LayerSource;
   box: Box;
   axis: AxisTransform;
   step: DensityStep;
@@ -285,6 +287,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.section = sectionId(ctx.section);
     lay.owner = prep.owner;
     lay.dataSystem = prep.src?.dataSystem ?? '';
+    lay.src = prep.src;
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;
@@ -492,10 +495,25 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (j < 0) return base;
     const item = lay.hitem[j];
     if (item < 0) return base;
+    const s = lay.starts[item];
+    const e = lay.ends[item];
+    // its hull on the section: every piece carried along the path (a domain over the exons of its gene)
+    let lo = s;
+    let hi = e;
+    if (lay.src?.path) {
+      const pieces = toSection(lay.src, s, e, []);
+      lo = Number.POSITIVE_INFINITY;
+      hi = Number.NEGATIVE_INFINITY;
+      for (let k = 0; k + 1 < pieces.length; k += 2) {
+        lo = Math.min(lo, pieces[k]);
+        hi = Math.max(hi, pieces[k + 1]);
+      }
+    }
     return {
       ...base,
       element: { owner: lay.owner, key: lay.keys[item] },
-      extent: rangesLocation(lay.dataSystem, [lay.starts[item], lay.ends[item]]),
+      extent: rangesLocation(lay.dataSystem, [s, e]),
+      ...(lo < hi ? { hull: [lo, hi] as const } : {}),
     };
   },
 

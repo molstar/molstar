@@ -326,6 +326,8 @@ export class SeqViewer extends ReactiveModel {
         issues: this.spec.boundsIssues.value,
       });
     this.view.show(options.view);
+    // a new document: the view's history was the old one's (an edit of the same spec keeps it)
+    this.view.clearHistory();
     await this._syncing;
   }
 
@@ -469,6 +471,23 @@ export class SeqViewer extends ReactiveModel {
     }
     this._motion = { start: this._drawn.start, end: this._drawn.end, t0: DomHost.now(), jumps };
     this.schedule();
+  }
+
+  /**
+   * Stops a jump's motion where it is drawn (_spec/README.md "Composition", Motion): the leading section takes the window
+   * drawn now (a move, no step of the history) and a frame is drawn, so the input that stopped it reads one picture: what
+   * it hits is what the model shows. What every pointer and key input does first.
+   */
+  stopMotion(): void {
+    const m = this._motion;
+    const resolved = this.view.resolved.value;
+    if (!m || !resolved) return;
+    const vp = this._viewport(resolved, DomHost.now());
+    this._motion = undefined;
+    if (!vp) return;
+    const lead = resolved.sections.find((s) => !this.view.isFollowing(s.address));
+    if (lead) this.view.setRange(lead.address, vp.start, vp.end);
+    this.draw();
   }
 
   /** Whether a jump's motion is drawing. */
