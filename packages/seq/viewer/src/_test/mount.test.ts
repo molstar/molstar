@@ -16,6 +16,9 @@ import { proteinOnGene } from './fixture.js';
 // The mounted canvas stack in a DOM (jsdom): real events through the container's listeners, and what remains of a
 // retired viewer in the document, its listeners and its observers.
 
+// the canvas stack alone: the toolbar's own mount is `toolbar.test.ts`'s
+const canvasOnly = () => ({ ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: true as const } });
+
 let frames: Frames;
 let viewer: SeqViewer | undefined;
 const listeners = { added: 0, removed: 0 };
@@ -89,13 +92,13 @@ async function mount() {
   const target = document.createElement('div');
   document.body.appendChild(target);
   viewer = createSeqViewer(
-    { ...DefaultSeqViewerSpec(), config: [[viewerItem('viewport.maxPxPerPosition'), 1000]] },
+    { ...canvasOnly(), config: [[viewerItem('viewport.maxPxPerPosition'), 1000]] },
     target,
   );
   await viewer.load(proteinOnGene());
   await viewer.settle();
   frames.flush();
-  return { target, viewer, container: target.firstElementChild as HTMLElement };
+  return { target, viewer, container: target.querySelector('[role="application"]') as HTMLElement };
 }
 
 const at = (type: string, x: number, y: number, init: MouseEventInit = {}) =>
@@ -217,7 +220,7 @@ describe('the mounted canvas stack', () => {
     document.body.appendChild(target);
     viewer = createSeqViewer(
       {
-        ...DefaultSeqViewerSpec(),
+        ...canvasOnly(),
         bindings: { overrides: [[{ gesture: 'drag', modifiers: ['space'], target: 'any', action: null }]] },
         config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
       },
@@ -225,7 +228,7 @@ describe('the mounted canvas stack', () => {
     );
     await viewer.load(proteinOnGene());
     await viewer.settle();
-    const container = target.firstElementChild as HTMLElement;
+    const container = target.querySelector('[role="application"]') as HTMLElement;
     expect(viewer.input.spaceIsModifier).toBe(false);
     const space = () => new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
     const free = space();

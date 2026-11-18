@@ -18,6 +18,9 @@ import { type Frames, installFrames } from './frames.js';
 // The token table from CSS (_spec/README.md "Canvas2D backend", Tokens) in a DOM (jsdom, with a stubbed computed
 // style), and a theme switch through the attribute.
 
+// the observers counted here are the canvas mount's: the toolbar's are `toolbar.test.ts`'s
+const canvasOnly = () => ({ ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: true as const } });
+
 let frames: Frames;
 let viewer: SeqViewer | undefined;
 /** The custom properties the stubbed computed style holds, by the theme on the document element. */
@@ -73,7 +76,7 @@ afterEach(() => {
 async function mount(items: [any, unknown][] = []) {
   const target = document.createElement('div');
   document.body.appendChild(target);
-  const v = createSeqViewer({ ...DefaultSeqViewerSpec(), config: items }, target);
+  const v = createSeqViewer({ ...canvasOnly(), config: items }, target);
   viewer = v;
   await v.load(proteinOnGene());
   await v.settle();
@@ -168,7 +171,7 @@ describe('the mounted viewer', () => {
     document.body.appendChild(holder);
     const target = document.createElement('div');
     holder.appendChild(target);
-    const v = createSeqViewer(DefaultSeqViewerSpec(), target);
+    const v = createSeqViewer(canvasOnly(), target);
     // one observer on the document element and the nearest ancestor that has the attribute
     expect(observers.observed).toBe(2);
     v.retire();
