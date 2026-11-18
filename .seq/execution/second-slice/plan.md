@@ -230,7 +230,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
   Each has its headless twin composing it as the story does.
 - [x] S2 the Features and Examples pages list what is built.
-- [ ] GATE (§used-before-done): the author uses the stories in a visible browser. What they find is fixed or listed
+- [x] GATE (§used-before-done): the author uses the stories in a visible browser. What they find is fixed or listed
       before the close.
 
 ### Stage 5: measure (orchestrator, light)

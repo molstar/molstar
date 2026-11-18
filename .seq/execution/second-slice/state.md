@@ -49,6 +49,8 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 - Lane U merged after one review round: every drawn range mark is hit (runs merged at `bars` had none; not the
   streaming, as the author asked: tested streamed and at once), zooming out (a history of jumps, back and forward,
   the zoom keys), a double-click on an item focuses its whole extent (found in the look).
+- Stage 4's gate passed (the author, 2026-11-18: "Gate passed, measure"); the findings fixed (lanes T and U) or placed
+  in the third slice (collapsed introns, a reversed follower, one axis for protein and gene).
 
 ## Next
 
@@ -58,7 +60,7 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Waiting for the author
 
-- Stage 4's gate: the rest of the author's use of the stories, after lane T (multi-range selection, followers leading).
+None.
 
 ## Decided
 
