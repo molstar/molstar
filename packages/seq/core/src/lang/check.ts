@@ -154,16 +154,22 @@ export function checkSeqLang(spec: Node): Issue[] {
         // what each address of a ref names is judged by its leading ids (forms after them are a query's, and a node
         // data makes waits for its data); a chain of refs ends (_spec/README.md, Language, Refs)
         const to = refAddresses(n);
-        to.forEach((a, i) => {
+        const named = (a: string) => {
           const segments = parseAddress(a).pattern?.segments ?? [];
           const ids: string[] = [];
           for (const s of segments) {
             if (typeof s !== 'string') break;
             ids.push(s);
           }
+          return !ids.length || byAddress.has(printAddress(ids));
+        };
+        to.forEach((a, i) => {
+          // through the refs it starts with (`/refs/p/child`, where `p` names a node with that child); a chain that
+          // cannot be followed is the cycle check's
+          const f = followRef(spec, a);
+          const ok = 'refused' in f ? true : f.addresses.every(named);
           const tail = Array.isArray(p(n, 'to')) ? ['to', i] : ['to'];
-          if (ids.length && !byAddress.has(printAddress(ids)))
-            report('seq.lang.ref.unresolved', 'The ref names no node of the spec', at, ...tail);
+          if (!ok) report('seq.lang.ref.unresolved', 'The ref names no node of the spec', at, ...tail);
         });
         if (at.address !== undefined) {
           const f = followRef(spec, at.address);

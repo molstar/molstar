@@ -110,13 +110,21 @@ class Refused {
 }
 
 /**
- * A form value with every nested address that starts with a ref rewritten to what the ref names: one address, or a
- * set as `(or :of [...])`, so an operand naming a ref reads as its target (the query forms refuse a ref node itself).
+ * The keys whose values are operands (a nested form, or an address from the root): only there is a string an
+ * address. Elsewhere a string is a value (an id, a label), which a quoted `"/refs/x"` may well be: never rewritten.
  */
-function followNested(root: Node, value: Value, refDepth: number, via: string[]): Value {
+const OperandKeys: ReadonlySet<string> = new Set(['of', 'a', 'b', 'overlapping']);
+
+/**
+ * A form value with every nested operand address that starts with a ref rewritten to what the ref names: one address,
+ * or a set as `(or :of [...])`, so an operand naming a ref reads as its target (the query forms refuse a ref node
+ * itself). `operand`: whether the value is an operand's (a string there is an address).
+ */
+function followNested(root: Node, value: Value, refDepth: number, via: string[], operand: boolean): Value {
   if (isNode(value)) return followForm(root, value, refDepth, via);
-  if (Array.isArray(value)) return value.map((v) => followNested(root, v, refDepth, via));
-  if (typeof value !== 'string' || !value.startsWith(`/${RefsId}/`) || !refPrefix(root, value)) return value;
+  if (Array.isArray(value)) return value.map((v) => followNested(root, v, refDepth, via, operand));
+  if (!operand || typeof value !== 'string' || !value.startsWith(`/${RefsId}/`) || !refPrefix(root, value))
+    return value;
   const f = followRef(root, value, refDepth);
   if ('refused' in f) throw new Refused(refused(f, value));
   for (const a of f.via) if (!via.includes(a)) via.push(a);
@@ -130,7 +138,7 @@ function followForm(root: Node, form: Node, refDepth: number, via: string[]): No
   let changed = false;
   const next: Record<string, Value> = {};
   for (const key of Object.keys(params)) {
-    const v = followNested(root, params[key], refDepth, via);
+    const v = followNested(root, params[key], refDepth, via, OperandKeys.has(key));
     if (v !== params[key]) changed = true;
     next[key] = v;
   }

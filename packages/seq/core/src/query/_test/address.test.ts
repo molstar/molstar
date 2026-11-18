@@ -67,6 +67,13 @@ describe('resolving an address', () => {
     expect(loc(set)).toEqual(rangesLocation('/data/p53', [0, 61, 93, 292]));
   });
 
+  it('follows refs only where a form takes an operand: a quoted string elsewhere is a value', () => {
+    const r = resolve('/data/p53/domains/(item :id "/refs/dbd")');
+    expect(r.status).toBe('missing');
+    expect(r.via).toEqual([]);
+    expect(resolve('/data/p53/domains/(item :label "/refs/tad")').via).toEqual([]);
+  });
+
   it('names a set as the union of its members, one type', () => {
     const r = resolve('/refs/sites');
     expect(r.result).toEqual({

@@ -65,6 +65,20 @@ describe('the refs container', () => {
     ]);
   });
 
+  it('follows a ref the address starts with before judging what it names', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s });
+    });
+    b.refs.ref('view', { to: '/views/v' });
+    b.refs.ref('section', { to: '/refs/view/sec' });
+    b.refs.ref('none', { to: '/refs/view/gone' });
+    expect(checkSeqSpec(b.build()).map((i) => [i.code, i.address])).toEqual([
+      ['seq.lang.ref.unresolved', '/refs/none'],
+    ]);
+  });
+
   it('refuses a container under another id, and a ref that is no address', () => {
     const bad: Node = {
       kind: 'spec',
