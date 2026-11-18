@@ -27,3 +27,6 @@
   the inverse refused as `repr.patch.dangling` with `inverseNeeds`. Skipped there with a comment; the orchestrator fixes it.
 - (R+K) `RefSite.path` holds child indices, so an insert in a wide parent re-creates its later siblings' sites; nothing
   reads `path`: drop it or make it lazy.
+- (O) An item's coordinate system as a prefix of location forms (`(item :id k)` gives elements): a `(system :item k)`
+  form recommended. Refs in data nodes' params and in a section's `of`/`follow` are refused for now.
+- (O) Declared numberings: the way back prints `ordinal` or `index` only until the language declares others.

@@ -33,12 +33,11 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 - Stage 2 started (2026-11-18, from `57b1d7c4e`; the lane worktrees were cut from master, each lane reset onto it):
   - K2 merged (`5927c9e4b`), R+K merged (`989292665`), each after one review round.
-  - O reported (`3f4d0f128`, checks green on the orchestrator's run); looked at in a visible pane from its worktree
-    (Storybook on 6008): the links story works in light and dark; in the bookmarks story a bookmark's focus says
-    "Focused" but the view does not move, and "Bookmark this view" records the last focused address. Under review.
+  - O merged (`61b7d3549`) after one review round; its stories looked at before and after (light and dark).
   - Law 3 with stored patches: case 572 fixed by the orchestrator (`ff2ca5476`); seed 4 case 43 (pre-existing) is
     lane K3's (`seq/k3-stored-law3`, opus).
-  - N's brief written (`briefs/n-editing.md`); it starts from the merged tree once O lands.
+  - N started from `61b7d3549` (`seq/n-editing`, opus). It calls the address model's `followMoves(changes.moved)`
+    before setting a new root.
 
 ## Next
 

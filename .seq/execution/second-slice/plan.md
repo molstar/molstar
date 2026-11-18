@@ -191,7 +191,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
     changes, undo touches only spec patches, an arrival never changes the spec's hash.
 
   Target: an edit (patch, resolve, redraw) under 16 ms, its undo the same; a quick representative in the lane.
-- [ ] O (strong) addressing in `seqx-core` (and the viewer's commands):
+- [x] O (strong) addressing in `seqx-core` (merged `61b7d3549` after one review round; looked at, light and dark) (and the viewer's commands):
   - ids and hierarchical addresses `path/(query :key value)` resolving to a node, a Location and back;
   - user-defined refs and bookmarks, on dynamic nodes too: a ref waits while its node is not held;
   - actions and links as commands on addresses, with no markup from data;
