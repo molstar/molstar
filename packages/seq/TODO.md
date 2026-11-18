@@ -59,8 +59,11 @@ dynamic nodes with templates, the examples package and the measurements. In this
   option on `renderSvg`, then layer-type, theme and palette registry entries, atomic, counted and undoable at run time;
   minus-strand followers show the leader's hull in genomic order (reversed pieces and a config item later); `query`
   layers read the whole annotation (filtering comes with the query sublanguage); `values` line and area, points and
-  split; the layout's allocation bounded per frame, not yet zero (reusable scratch arrays: the values `place` closure,
-  ranges `layout`, `layoutView`, sorts and `Int32Array` copies).
+  split; the ranges layout's allocation an item in view (the `earlier` and `occurrences` sets, `StickyLanes.keep`'s map,
+  keys of tiles without ids, `placeholderSpans` and `dataRegions` arrays: about 300 B an item); the values direct path
+  for linear maps (offset paths) too; the renderer's rebuild sorts the reads and builds the key's text each layout
+  (bounded by tiles in view); `values.coarser`'s default (2; with the direct path 1 costs about 2 ms at 100k positions,
+  and 1 keeps the picture exact: the author's call).
 
 ## `@molstar/seqx-viewer`
 
@@ -70,8 +73,8 @@ dynamic nodes with templates, the examples package and the measurements. In this
   (EC-114).
 - Touch pinch (two pointers); the Mol\* structure port; the `@molstar/ui` keymap and command manager, replacing the
   shortcut match scoped to the container; `ParamDefinition`s for the config items.
-- An allocation guard for `hover.set` and the bindings' resolve (opt-in tier); an allocation check by hand of the canvas
-  draw and hover loops.
+- An allocation tier for the viewer (`test:perf`: the Canvas2D draw, `store.overlay`, `_viewport`, `hover.set`, the
+  bindings' resolve); an allocation check by hand of the canvas draw and hover loops.
 - Browser measurements: canvas frame times (draw included) and first paint; the Gene by region story rechecked in a
   visible browser (frames do not run in a hidden pane).
 

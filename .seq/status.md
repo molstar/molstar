@@ -17,9 +17,8 @@ Start here. What is built, what is open, what comes next, and where to read.
 - `packages/seq/examples` and `storybook`: the p53 views (Tracks, Protein on its gene, Gene by region) as builder
   modules, tests and stories, canvas and SVG side by side.
 - Measured: frame, hover, export, resolve, allocation, bundle sizes (the [first slice's record](records/first-slice/2026-11-18-first-slice.md), Measurements).
-  The author's stage 7 decision: the targets stand; a values fast path and a config item letting a layer read a level up
-  to 2× coarser (default 2) answer the 3M-bars miss; draw and hover allocate nothing warm, the layout's allocation is
-  bounded per frame, not zero. Read the measurements for what the last run showed.
+  After the author's stage 7 decision and lane J: every pan and zoom frame under 2.3 ms headless (3M bars included),
+  draw, hover, selection and cursor redraws 0 bytes warm, a layout's allocation bounded by what is in view.
 
 Which features are built, partly or not at all: [design/features.md](design/features.md). Which edge cases have an
 outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
@@ -36,8 +35,7 @@ outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
 2. **Needs the author's call, a base-library change**: the asset manager's fetch (credentials, redirects, signal, byte
    limit) and range reads ([design/base-library.md](design/base-library.md)).
 3. **Provisional, still to confirm**: the root nouns ([design/building-blocks.md](design/building-blocks.md)), the
-   source protocol's shape beyond the slice ([design/sources.md](design/sources.md)), the performance numbers after
-   lane J's remeasure ([design/performance.md](design/performance.md)), the UX foundations' numbers
+   source protocol's shape beyond the slice ([design/sources.md](design/sources.md)), `values.coarser`'s default (2, or 1 now that the direct path makes level 1 cheap), the UX foundations' numbers
    ([design/ux-foundations.md](design/ux-foundations.md)).
 4. **Known gaps**: [packages/seq/TODO.md](../packages/seq/TODO.md): projected hover not drawn, one window for all
    leading sections, a source-backed leader's length not fed to the view model, every template re-expands on each
@@ -50,9 +48,10 @@ outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
 
 ## Next
 
-In the order of [packages/seq/TODO.md](../packages/seq/TODO.md), Next: selection, highlights and cursor; patches and
-`diff`, then history and undo; bigWig with range reads; structures and the Mol\* showcase; the remaining layers,
-layouts and datasets. Design before code for each, as in [AGENTS.md](AGENTS.md), How work happens here.
+The second slice, planned and waiting for its Gate 0: version 1's first milestone, core editing and addressing, with
+selection, the security bounds and MessagePack; history is a Seq\* port, the host owning the undo stack. Then figures
+(the third slice, drafted), integration, and the Genomes milestone ([design/version-1.md](design/version-1.md),
+Milestones). Design before code for each, as in [AGENTS.md](AGENTS.md), How work happens here.
 
 ## Which design to read
 

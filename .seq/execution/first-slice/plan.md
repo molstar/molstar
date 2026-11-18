@@ -117,11 +117,12 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 - [x] M1 frame time (pan, zoom, hover) at the scale fixtures the slice supports; allocation of draw and hover (opt-in
       tier); the quick lane's time per folder and in total; bundle sizes (reading a spec; headless SVG; the viewer)
-- [ ] GATE: the author confirms or moves the performance targets ([performance](../../design/performance.md))
+- [x] GATE (2026-11-18, "as recommended"): the targets stand; lane J closed both misses (`47a27cca7`): every frame
+      under 2.3 ms, draw and hover 0 bytes, a layout bounded ([performance](../../design/performance.md))
 
 ### Finalize
 
-- [ ] FINALIZE: reconcile: designs edited where the code taught otherwise (drift notes resolved), `_spec`s with what is
+- [x] FINALIZE (2026-11-18): reconcile: designs edited where the code taught otherwise (drift notes resolved), `_spec`s with what is
       built, `status.md`, the features rows' status, the edge cases' outcomes for what was built, `TODO.md`; write the
       record in `.seq/records/first-slice/`; end `state.md` with its closing line
 

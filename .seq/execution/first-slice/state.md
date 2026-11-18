@@ -52,3 +52,5 @@ See gaps.md, "Built but not agreed".
 
 `pnpm test:unit packages/core/src/repr packages/seq/`, `npx tsc -b packages/core packages/seq/core packages/seq/viewer`,
 `pnpm -C packages/seq/core typecheck:test`, `pnpm lint`, `pnpm format:check`, the scaffold checks.
+
+Closed 2026-11-18: `.seq/records/first-slice/2026-11-18-first-slice.md`
