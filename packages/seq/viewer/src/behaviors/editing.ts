@@ -6,7 +6,7 @@
 
 // The `editing` behavior (_spec/README.md "Behaviors"): edits of the spec as commands, each one patch through
 // `SpecModel.patch` (one step of the host's history), so a menu, a key, an agent and a test edit alike: hide or show a
-// layer or a whole track, move a track among its siblings, set a layer's color (its theme), remove a ref; story steps
+// layer or a track (its own `hidden`), move a track among its siblings, set a layer's color (its theme), remove a ref; story steps
 // entered and left (navigation); and a gesture's preview, a model method and never a command (it runs per pointer
 // move), that ends in one patch (`endPreview`) or nothing (`cancelPreview`, Esc).
 
@@ -87,9 +87,6 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
     (ctx: EditingContext): true | string =>
       disposed ? 'The viewer is retired' : nodeOf(spec.root.value, ctx.address, kind) ? true : `No ${what} there`;
 
-  const layersOf = (root: Node, track: string) =>
-    (nodeOf(root, track, 'track')?.children ?? []).flatMap((c) => (c.id === undefined ? [] : [c.id]));
-
   const commands: CommandDefinition<EditingContext>[] = [
     {
       id: EditingCommandIds.hideLayer,
@@ -129,18 +126,7 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       category: 'Edit',
       when: needs('track', 'track'),
       run: (_, ctx) =>
-        edit(
-          'Hide a track',
-          (root) =>
-            layersOf(root, ctx.address!).map((l) => ({
-              op: 'set',
-              at: [...ids(ctx.address!), l],
-              key: 'hidden',
-              value: true,
-            })),
-          ctx,
-          'Hidden',
-        ),
+        edit('Hide a track', () => [{ op: 'set', at: ids(ctx.address!), key: 'hidden', value: true }], ctx, 'Hidden'),
     },
     {
       id: EditingCommandIds.showTrack,
@@ -148,13 +134,7 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
       category: 'Edit',
       when: needs('track', 'track'),
       run: (_, ctx) =>
-        edit(
-          'Show a track',
-          (root) =>
-            layersOf(root, ctx.address!).map((l) => ({ op: 'unset', at: [...ids(ctx.address!), l], key: 'hidden' })),
-          ctx,
-          'Shown',
-        ),
+        edit('Show a track', () => [{ op: 'unset', at: ids(ctx.address!), key: 'hidden' }], ctx, 'Shown'),
     },
     {
       id: EditingCommandIds.moveTrack,

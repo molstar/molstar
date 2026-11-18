@@ -8,7 +8,7 @@
 // default spec's history, changes exactly what its declared kind says (the spec and one history step for a patch, the
 // preview, the session, what is shown without the spec, or nothing); and undo touches only spec patches.
 
-import type { Node } from '@molstar/core/repr/tree';
+import { hashNode, type Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { EditingBehavior } from '../behaviors/editing.js';
@@ -162,6 +162,20 @@ describe('every change has a kind', () => {
       'Color a layer',
       'Move a track',
       'Hide a layer',
+    ]);
+  });
+
+  it('a track hidden and shown: its own `hidden`, its row gone from the view and back, its layers untouched', async () => {
+    const v = await make();
+    await run(v, 'layer.hide', { address: `${DomainsTrack}/d` });
+    const root = v.spec.root.value;
+    expect(await run(v, 'track.hide', { address: DomainsTrack })).toBe('Hidden');
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([`${Protein}/letters`]);
+    expect(await run(v, 'track.show', { address: DomainsTrack })).toBe('Shown');
+    expect(v.spec.revision.value).toBe(hashNode(root));
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([
+      `${Protein}/letters`,
+      DomainsTrack,
     ]);
   });
 

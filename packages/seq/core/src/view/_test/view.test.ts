@@ -95,6 +95,26 @@ describe('resolved view: the p53 example', () => {
   });
 });
 
+describe('resolved view: a hidden track', () => {
+  it('is kept in the spec and left out of the view, its row collapsed; its layers keep their own `hidden`', () => {
+    const spec = (hidden: boolean) => {
+      const b = createSeqSpec();
+      const p = b.data.sequence('p', { alphabet: 'protein', letters: P53_LETTERS });
+      b.views.view('main', (v) => {
+        const s = v.section('s', { of: p });
+        s.track('a', { hidden }).layer('l', { type: 'letters', hidden: true });
+        s.track('b').layer('l', { type: 'letters' });
+      });
+      return b.build();
+    };
+    const shown = resolveView(resolveSpec(spec(false)), '/views/main')!;
+    expect(shown.sections[0].tracks.map((t) => t.address)).toEqual(['/views/main/s/a', '/views/main/s/b']);
+    expect(shown.sections[0].tracks[0].layers[0].params).toEqual({ hidden: true });
+    const hidden = resolveView(resolveSpec(spec(true)), '/views/main')!;
+    expect(hidden.sections[0].tracks.map((t) => t.address)).toEqual(['/views/main/s/b']);
+  });
+});
+
 describe('resolved view: layers on other systems, queries, themes', () => {
   /** p53 and its gene inline; a view with the protein's domains drawn on the gene and on a lone sequence. */
   function spec(): Node {

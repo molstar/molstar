@@ -244,6 +244,11 @@ export const SeqLanguage = defineLanguage({
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
         height: { type: 'number', min: 0, doc: 'The height of the track in px.' },
+        hidden: {
+          type: 'boolean',
+          default: false,
+          doc: 'Whether the track is hidden: kept in the spec, its row collapsed; its layers keep their own `hidden`.',
+        },
         for_each: {
           type: 'record',
           fields: {

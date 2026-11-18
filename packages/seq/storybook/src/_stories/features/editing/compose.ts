@@ -77,13 +77,13 @@ export function composeEditing(view: ExampleView, options: ComposeOptions = {}):
 
 const editing = (s: EditingSession) => s.viewer.behaviors.get('editing') as EditingBehavior;
 
-/** The layers of a track, hidden or not: whether every one is. */
+/** Whether a track is hidden (its own `hidden`). */
 export function trackHidden(s: EditingSession, id: string): boolean {
   const t = s.viewer.spec.root.value.children
     ?.find((c) => c.id === 'views')
     ?.children?.[0]?.children?.find((c) => c.id === 'protein')
     ?.children?.find((c) => c.id === id);
-  return !!t?.children?.length && t.children.every((l) => l.params?.hidden === true);
+  return t?.params?.hidden === true;
 }
 
 /** Hides or shows a whole track: one patch, one step. */

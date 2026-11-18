@@ -337,10 +337,11 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   why one cannot run (no address, no ref, nothing to link). `runLink` runs a link.
 - `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
-  `track.show` (each of its layers), `track.move` (among its siblings, `after`), `refs.remove`; `step.enter` and
-  `step.leave` (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command (it runs per
-  pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step, `cancelPreview()` in
-  nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
+  `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
+  (among its siblings, `after`), `refs.remove`; `step.enter` and `step.leave` (navigation); `preview.cancel` (Esc). A
+  gesture's preview is a method, never a command (it runs per pointer move): `preview(patch)` replaces the last,
+  `endPreview(label)` ends it in one step, `cancelPreview()` in nothing. `when` says why one cannot run (no such node,
+  no step shown, nothing to cancel).
 
 ## Bindings
 

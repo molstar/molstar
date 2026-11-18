@@ -23,11 +23,12 @@ checks it cannot express.
 
 - **Kinds** (first slice): `spec` (root: `version`, `title`); the containers `data`, `views`, `refs` and `snapshots`
   (reserved ids of the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`,
-  then `section`, `track`, `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key
-  `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a
-  track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is
-  reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`,
-  `source`, `data`) are `ref` params naming the kinds they take; a reference is an address.
+  then `section`, `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own),
+  `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's
+  `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes
+  it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or
+  `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref`
+  params naming the kinds they take; a reference is an address.
 - **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
   language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
   are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a
@@ -579,7 +580,8 @@ no target.
   axis's shape.
 - **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
   resolved so hover and selection never compose; the same system is the identity.
-- **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`.
+- **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
+  hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`; none has a fallback yet),
   its other params as written, its theme channels as values (`color`), its data and the static path from the data's
   system to the section's (none when the same). Data is the section's letters for a `letters` layer without data, an

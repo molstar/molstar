@@ -230,6 +230,8 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     const tracks: ResolvedTrack[] = [];
     for (const t of s.children ?? []) {
       if (t.kind !== 'track' || t.id === undefined) continue;
+      // a hidden track is kept in the spec and left out of the view: its row collapses
+      if (param(t, 'hidden') === true) continue;
       const ta = `${at}/${t.id}`;
       const layers: ResolvedLayer[] = [];
       const template = templateOf(param(t, 'for_each'));
