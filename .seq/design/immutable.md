@@ -164,6 +164,8 @@ read. What the review found (R2-S15), and what follows:
     by the changed nodes and keyed by root and language. It replaces the plain one when a measured case (a spec with
     10,000 bookmark refs, edited by moves) shows the rebuild matters.
   - That step comes after lanes R and K merge, behind the same interface, with nothing else in `repr` changing.
+  - Measured by lane R+K (10,000 refs): not needed. The plain-`Map` index derived by node identity costs about 0.3 ms
+    a revision; the trie waits for a case that asks for it.
 - **`diff` and `merge3`'s per-parent maps** are native `Map`s: built once, thrown away.
 - **`ValueKeys`** (a preset keying by `repr` content) is dropped until a consumer needs it.
 - **Nodes holding persistent collections** (draft 1's B) stay unbuilt. Their trigger is a measured spec in which copying

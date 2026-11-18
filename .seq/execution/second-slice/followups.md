@@ -23,3 +23,7 @@
   in a merge); inserts and diffs are linear.
 - (K2 review) `invalid` discards every change of theirs from `partial`, an unrelated one included (by design, N-8);
   lane N's UI should say so.
+- (R+K) Law 3 fails with stored patches in a tree: the patch fuzz's derived mode, seed 3, case 572 (`fuzz(600, 3, true)`),
+  the inverse refused as `repr.patch.dangling` with `inverseNeeds`. Skipped there with a comment; the orchestrator fixes it.
+- (R+K) `RefSite.path` holds child indices, so an insert in a wide parent re-creates its later siblings' sites; nothing
+  reads `path`: drop it or make it lazy.

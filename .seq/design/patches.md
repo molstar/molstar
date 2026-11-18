@@ -164,13 +164,17 @@ type Op = SetOp | UnsetOp | InsertOp | RemoveOp | MoveOp | ReplaceOp;
      interface RefIndex {
        under(prefix: Address): readonly RefSite[];         // refs whose id run names prefix or below
        dangling(): readonly RefSite[];                     // refs that name no node
-       derive(after: Node, changes: Changes): RefIndex;    // the next revision's; a rebuild in lane K
+       derive(after: Node): RefIndex;                      // the next revision's, by node identity and position
      }
      function refIndexOf(root: Node, language: Language, options?: ValidateOptions): RefIndex;  // cached per root and language
      ```
 
-     Lane K builds it on plain `Map`s, so `derive` rebuilds. It moves onto `@molstar/core/data/immutable`'s persistent
-     trie, derived by the changed nodes, once a measured case asks for it (immutable.md, In `repr`). It is built only
+     It keeps its sites in chunks by node object, on plain `Map`s. A revision's index is derived lazily: `applyPatch`
+     leaves a pending derive on the new root, pointing at the nearest built index, and the next apply that needs the
+     index forces it. A node that is the same object at the same position keeps its chunk; a node whose sites read the
+     root (a stored patch's typed `set`) is always walked again. The cache hits only for the same `validate` object,
+     held weakly. Measured (lane R+K, 10,000 refs): a derive about 0.3 ms, a query 0.2 ms, so the persistent trie
+     (immutable.md, In `repr`) is not needed. It is built only
      for ops that change an address: a move to another parent, a rename, an insert, a remove. A reorder within a parent
      does not.
    - **Not walked**: a ref with `in` (a bare id): its scope is the language's, and Seq has none.
