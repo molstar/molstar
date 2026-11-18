@@ -188,7 +188,7 @@ describe('HashMap', () => {
     it('deleting from colliding keys writes no node another version shares', () => {
       // the regression StateTree's `renewOwner` works around in immutable.js (state/_spec/tree.md §2)
       for (const config of [zeroHash, fourHashes, undefined]) {
-        const keys = config ? [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 1, 5] : Array.from({ length: 40 }, (_, i) => i);
+        const keys = Array.from({ length: 40 }, (_, i) => i * 4);
         const source = HashMap.of(
           keys.map((k) => [k, 'old'] as const),
           config,

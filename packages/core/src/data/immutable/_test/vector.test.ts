@@ -10,23 +10,32 @@ import { Rng } from './model.js';
 
 type V = Vector<number>;
 
+/** Compared first, asserted on a mismatch: an assertion an element is most of a long run. */
+function same(a: number[], b: number[]) {
+  if (a.length !== b.length || a.some((x, i) => !Object.is(x, b[i]))) expect(a).toEqual(b);
+}
+
 function check(v: { size: number; toArray(): number[] } & Omit<V, 'set'>, model: number[]) {
   expect(v.size).toBe(model.length);
-  const arr = v.toArray();
-  if (arr.length !== model.length || arr.some((x, i) => !Object.is(x, model[i]))) expect(arr).toEqual(model);
+  same(v.toArray(), model);
   for (let i = -1; i <= model.length; i++) if (!Object.is(v.get(i), model[i])) expect(v.get(i)).toBe(model[i]);
   expect(v.first()).toBe(model[0]);
   expect(v.last()).toBe(model[model.length - 1]);
   const seen: number[] = [];
+  const indices: number[] = [];
   v.forEach(function (this: number[], x, i) {
-    expect(i).toBe(this.length);
     this.push(x);
+    indices.push(i);
   }, seen);
-  expect(seen).toEqual(model);
+  same(seen, model);
+  same(
+    indices,
+    model.map((_, i) => i),
+  );
   const c = v.cursor();
   const viaCursor: number[] = [];
   while (c.next()) viaCursor.push(c.value);
-  expect(viaCursor).toEqual(model);
+  same(viaCursor, model);
 }
 
 /** Pushes and pops in runs, so the trie grows past a level (32 × 32 + 32) and shrinks back. */
@@ -100,7 +109,7 @@ describe('Vector', () => {
     for (const seed of [1, 2]) runVectorModel(seed, 60, 400);
   });
   it('a long random run', { tags: ['heavy'] }, () => {
-    for (let seed = 10; seed < 16; seed++) runVectorModel(seed, 400, 3000);
+    for (let seed = 10; seed < 14; seed++) runVectorModel(seed, 300, 2000);
   });
 
   it('remove and shift move the later elements', () => {

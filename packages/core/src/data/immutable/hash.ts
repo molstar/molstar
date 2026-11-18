@@ -84,6 +84,8 @@ export function defaultHash(key: unknown): number {
  */
 export function lookupDefaultHash(key: unknown): number {
   const t = typeof key;
+  if (t === 'string') return fmix32(hashString(key as string));
+  if (t === 'number') return hashNumber(key as number);
   if (t === 'object' ? key !== null : t === 'function' || t === 'symbol') {
     return identityHash(key as object | symbol, false);
   }

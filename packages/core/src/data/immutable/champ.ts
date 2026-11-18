@@ -12,10 +12,10 @@
 import { hashEntry, type Owner, type Resolved } from './config.js';
 
 /**
- * The flat representation's largest size (README §2): measured against immutable.js at 1 to 16 entries of
- * 22-character string keys and small integers (`_test/threshold.bench.test.ts`).
+ * The flat representation's largest size (README §2, §8): a flat scan beat the trie on a lookup and a persistent set at
+ * every size to 16, with 22-character string keys (to 32 and past) and with integers (to about 25).
  */
-export const FlatThreshold = 8;
+export const FlatThreshold = 16;
 
 export const KindFlat = 0;
 export const KindChamp = 1;
@@ -81,6 +81,56 @@ export function bitCount(i: number): number {
 
 function indexOf(bitmap: number, bit: number) {
   return bitCount(bitmap & (bit - 1));
+}
+
+// Array edits without `splice`, whose returned array is an allocation of its own (README §5).
+
+/** `a` without the pair at `i`, a new array. */
+function withoutPair(a: any[], i: number): any[] {
+  const n = a.length - 2;
+  const c = new Array(n);
+  for (let j = 0; j < i; j++) c[j] = a[j];
+  for (let j = i; j < n; j++) c[j] = a[j + 2];
+  return c;
+}
+
+function removePairInPlace(a: any[], i: number) {
+  const n = a.length - 2;
+  for (let j = i; j < n; j++) a[j] = a[j + 2];
+  a.length = n;
+}
+
+function insertPairInPlace(a: any[], i: number, k: any, v: any) {
+  for (let j = a.length - 1; j >= i; j--) a[j + 2] = a[j];
+  a[i] = k;
+  a[i + 1] = v;
+}
+
+/** `a` with the pair at `i` out and `sub` in at `p` of the result: an entry pushed down into a sub-node. */
+function pairToNode(a: any[], i: number, p: number, sub: TrieNode): any[] {
+  const out = new Array(a.length - 1);
+  let w = 0;
+  for (let r = 0; r < a.length; r++) {
+    if (r === i || r === i + 1) continue;
+    if (w === p) out[w++] = sub;
+    out[w++] = a[r];
+  }
+  if (w === p) out[w++] = sub;
+  return out;
+}
+
+/** `a` with the sub-node at `pos` out and the pair `k`, `v` in at `i`: a sub-node's lone entry inlined. */
+function nodeToPair(a: any[], pos: number, i: number, k: any, v: any): any[] {
+  const out = new Array(a.length + 1);
+  let w = 0;
+  for (let r = 0; r < a.length; r++) {
+    if (r === i) {
+      out[w++] = k;
+      out[w++] = v;
+    }
+    if (r !== pos) out[w++] = a[r];
+  }
+  return out;
 }
 
 function keyEquals(cfg: Resolved, a: any, b: any) {
@@ -236,11 +286,8 @@ function champSet(
     Edit.added = true;
     const sub = mergeTwo(k, content[i + 1], cfg.hash(k), key, value, hash, shift + 5, owner);
     const nodeMap = node.nodeMap | bit;
-    const j = indexOf(nodeMap, bit);
-    const c = content.slice();
-    c.splice(i, 2);
-    // sub-nodes from the back: the j-th is at `length - 1 - j`
-    c.splice(c.length - j, 0, sub);
+    // sub-nodes from the back: the j-th is at `length - 1 - j` of the result
+    const c = pairToNode(content, i, content.length - 2 - indexOf(nodeMap, bit), sub);
     if (editable(node, owner)) {
       node.dataMap ^= bit;
       node.nodeMap = nodeMap;
@@ -268,7 +315,7 @@ function champSet(
   Edit.added = true;
   const i = 2 * indexOf(node.dataMap, bit);
   if (editable(node, owner)) {
-    content.splice(i, 0, key, value);
+    insertPairInPlace(content, i, key, value);
     node.dataMap |= bit;
     return node;
   }
@@ -346,12 +393,10 @@ function collisionDelete(node: CollisionNode, hash: number, key: any, cfg: Resol
     if (!keyEquals(cfg, e[i], key)) continue;
     Edit.removed = true;
     if (editable(node, owner)) {
-      e.splice(i, 2);
+      removePairInPlace(e, i);
       return node;
     }
-    const c = e.slice();
-    c.splice(i, 2);
-    return new CollisionNode(owner, hash, c);
+    return new CollisionNode(owner, hash, withoutPair(e, i));
   }
   return node;
 }
@@ -373,13 +418,11 @@ function champDelete(
     // the last entry beside a lone collision node: the collision node goes up (README §2)
     if (node.dataMap === bit && content.length === 3 && content[2].kind === KindCollision) return content[2];
     if (editable(node, owner)) {
-      content.splice(i, 2);
+      removePairInPlace(content, i);
       node.dataMap ^= bit;
       return node;
     }
-    const c = content.slice();
-    c.splice(i, 2);
-    return new ChampNode(owner, node.dataMap ^ bit, node.nodeMap, c);
+    return new ChampNode(owner, node.dataMap ^ bit, node.nodeMap, withoutPair(content, i));
   }
   if (!(node.nodeMap & bit)) return node;
   const j = indexOf(node.nodeMap, bit);
@@ -396,9 +439,7 @@ function champDelete(
     if (onlyChild) return next;
     const s = singletonContent(next);
     const i = 2 * indexOf(node.dataMap, bit);
-    const c = content.slice();
-    c.splice(pos, 1);
-    c.splice(i, 0, s[0], s[1]);
+    const c = nodeToPair(content, pos, i, s[0], s[1]);
     if (editable(node, owner)) {
       node.dataMap |= bit;
       node.nodeMap ^= bit;
@@ -445,12 +486,10 @@ export function rootDelete(root: Root, size: number, key: any, cfg: Resolved, ow
       if (!keyEquals(cfg, e[i], key)) continue;
       Edit.removed = true;
       if (editable(root, owner)) {
-        e.splice(i, 2);
+        removePairInPlace(e, i);
         return root;
       }
-      const c = e.slice();
-      c.splice(i, 2);
-      return new FlatNode(owner, c);
+      return new FlatNode(owner, withoutPair(e, i));
     }
     return root;
   }
