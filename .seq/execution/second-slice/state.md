@@ -1,6 +1,6 @@
 # State: second-slice   (updated 2026-11-18, by the orchestrator)
 
-Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 0 (`plan.md`).
+Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/second-slice/loop.md`).
 
 ## Done
 
@@ -15,12 +15,15 @@ Branch: `packages-seq`. Not started: waits for the first slice's close and Gate 
 
 ## In progress
 
-- None.
+- Gate 0 sent to the author (2026-11-18), waiting for answers.
+- Lane S0 (carry-overs, sonnet, `briefs/s0-carry-overs.md`), branch `seq/s0-carry-overs` from `6e3b15296`.
+- The Gene by region recheck: the browser pane is hidden (no frames run there); the author was asked to show it.
 
 ## Next
 
-- The author reviews `drafts/merge.md` (two questions) and `drafts/immutable.md` (four decisions); then the loop starts:
-  Gate 0 to the author (plan.md, with the first slice's open decisions and evidence), stage 0 beside it.
+- On Gate 0's answers: lanes R and K (heavy) at once, L and M (light) as their items are answered; K needs nothing
+  more (its design is agreed).
+- On S0's report: checks, review, merge.
 
 ## Decided
 
