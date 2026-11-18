@@ -83,13 +83,13 @@ describe('HashSet and OrderedHashSet', () => {
     expect((s as unknown as OrderedHashSetImpl<number>).holes).toBe(CompactMin / 2);
     s = s.delete(CompactMin / 2);
     expect((s as unknown as OrderedHashSetImpl<number>).holes).toBe(0);
-    expect((s as unknown as OrderedHashSetImpl<number>).keys.size).toBe(s.size);
+    expect((s as unknown as OrderedHashSetImpl<number>).slots.size).toBe(s.size);
     expect(s.first()).toBe(CompactMin / 2 + 1);
     const t = OrderedHashSet.of([1, 2, 3, 4]).delete(3).delete(4);
-    expect((t as unknown as OrderedHashSetImpl<number>).keys.size).toBe(2);
+    expect((t as unknown as OrderedHashSetImpl<number>).slots.size).toBe(2);
     expect(t.last()).toBe(2);
     const u = OrderedHashSet.of([1, 2, 3, 4]).delete(3).delete(2).delete(4);
-    expect((u as unknown as OrderedHashSetImpl<number>).keys.size).toBe(1);
+    expect((u as unknown as OrderedHashSetImpl<number>).slots.size).toBe(1);
     expect(u.last()).toBe(1);
 
     let m = OrderedHashMap.of(Array.from({ length: 40 }, (_, i) => [i, i] as const));

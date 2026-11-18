@@ -56,7 +56,7 @@ export class OrderedHashSetImpl<K> {
 
   constructor(
     public index: HashMapImpl<K, number>,
-    public keys: VectorImpl<any>,
+    public slots: VectorImpl<any>,
     public holes: number,
     public cfg: Resolved,
     public owner: Owner | null,
@@ -71,7 +71,7 @@ export class OrderedHashSetImpl<K> {
   }
 
   first(): K | undefined {
-    const v = this.keys;
+    const v = this.slots;
     for (let i = 0; i < v.size; i++) {
       const k = v.get(i);
       if (k !== Hole) return k;
@@ -81,11 +81,11 @@ export class OrderedHashSetImpl<K> {
 
   last(): K | undefined {
     // trailing holes are trimmed on delete
-    return this.keys.last();
+    return this.slots.last();
   }
 
   forEach<C>(fn: (this: C, value: K, key: K) => void, ctx?: C): void {
-    const v = this.keys;
+    const v = this.slots;
     for (let i = 0; i < v.size; i += 32) {
       const a = v.arrayFor(i);
       for (let j = 0; j < a.length; j++) if (a[j] !== Hole) fn.call(ctx as C, a[j], a[j]);
@@ -94,13 +94,17 @@ export class OrderedHashSetImpl<K> {
 
   cursor(c?: Cursor<K>): Cursor<K> {
     const cur = asCursor(c);
-    cur.resetKeys(this.keys);
+    cur.resetKeys(this.slots);
     return cur;
   }
 
   *values(): IterableIterator<K> {
     const c = this.cursor();
     while (c.next()) yield c.value;
+  }
+
+  keys(): IterableIterator<K> {
+    return this.values();
   }
 
   [Symbol.iterator](): IterableIterator<K> {
@@ -139,14 +143,14 @@ export class OrderedHashSetImpl<K> {
     return acc;
   }
 
-  private edited(index: HashMapImpl<K, number>, keys: VectorImpl<any>, holes: number): any {
+  private edited(index: HashMapImpl<K, number>, slots: VectorImpl<any>, holes: number): any {
     if (this.owner === null) {
-      if (index === this.index && keys === this.keys) return this;
+      if (index === this.index && slots === this.slots) return this;
       if (index.size === 0) return emptyOrderedSet<K>(this.cfg);
-      return new OrderedHashSetImpl<K>(index, keys, holes, this.cfg, null);
+      return new OrderedHashSetImpl<K>(index, slots, holes, this.cfg, null);
     }
     this.index = index;
-    this.keys = keys;
+    this.slots = slots;
     this.holes = holes;
     return this;
   }
@@ -154,7 +158,7 @@ export class OrderedHashSetImpl<K> {
   add(key: K): any {
     if (this.dead) deadHandle();
     if (rootGet(this.index.root, key, this.index.cfg) !== NotFound) return this;
-    return this.edited(this.index.set(key, this.keys.size), this.keys.push(key), this.holes);
+    return this.edited(this.index.set(key, this.slots.size), this.slots.push(key), this.holes);
   }
 
   delete(key: K): any {
@@ -164,14 +168,14 @@ export class OrderedHashSetImpl<K> {
     const index = this.index.delete(key);
     let holes = this.holes;
     let keys: VectorImpl<any>;
-    if (s + 1 === this.keys.size) {
-      keys = this.keys.pop();
+    if (s + 1 === this.slots.size) {
+      keys = this.slots.pop();
       while (keys.size > 0 && keys.last() === Hole) {
         keys = keys.pop();
         holes--;
       }
     } else {
-      keys = this.keys.set(s, Hole);
+      keys = this.slots.set(s, Hole);
       holes++;
     }
     if (index.size === 0) {
@@ -200,7 +204,7 @@ export class OrderedHashSetImpl<K> {
       if (this.dead) deadHandle();
       return this;
     }
-    return new OrderedHashSetImpl<K>(this.index.asMutable(), this.keys.asMutable(), this.holes, this.cfg, newOwner());
+    return new OrderedHashSetImpl<K>(this.index.asMutable(), this.slots.asMutable(), this.holes, this.cfg, newOwner());
   }
 
   asImmutable(): OrderedHashSet<K> {
@@ -210,7 +214,7 @@ export class OrderedHashSetImpl<K> {
     if (this.index.size === 0) return emptyOrderedSet<K>(this.cfg);
     return new OrderedHashSetImpl<K>(
       this.index.asImmutable() as any,
-      this.keys.asImmutable() as any,
+      this.slots.asImmutable() as any,
       this.holes,
       this.cfg,
       null,

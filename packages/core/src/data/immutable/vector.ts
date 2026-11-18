@@ -25,7 +25,10 @@ export interface ReadonlyVector<T> {
   get(index: number): T | undefined;
   first(): T | undefined;
   last(): T | undefined;
-  /** The first index of `value` by the vector's `valueEquals` (default `Object.is`), or −1. */
+  /**
+   * The first index of `value`, or −1, by the vector's `valueEquals` (`Object.is` by default): unlike
+   * `Array.prototype.indexOf` and immutable.js, NaN is found and −0 is not 0.
+   */
   indexOf(value: T): number;
   find(pred: (value: T, index: number) => boolean): T | undefined;
   forEach<C>(fn: (this: C, value: T, index: number) => void, ctx?: C): void;

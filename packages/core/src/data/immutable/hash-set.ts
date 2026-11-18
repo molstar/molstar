@@ -39,6 +39,8 @@ export interface ReadonlyHashSet<K> {
   forEach<C>(fn: (this: C, value: K, key: K) => void, ctx?: C): void;
   /** Resets `c` (or a new cursor) to the first key; `next()` allocates nothing (README §5). */
   cursor(c?: Cursor<K>): Cursor<K>;
+  /** Allocates; the same as `values()`, as on the map. */
+  keys(): IterableIterator<K>;
   /** Allocates. */
   values(): IterableIterator<K>;
   /** Allocates. */
@@ -107,6 +109,10 @@ export class HashSetImpl<K> {
   *values(): IterableIterator<K> {
     const c = this.cursor();
     while (c.next()) yield c.value;
+  }
+
+  keys(): IterableIterator<K> {
+    return this.values();
   }
 
   [Symbol.iterator](): IterableIterator<K> {

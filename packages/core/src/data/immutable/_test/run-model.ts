@@ -165,6 +165,7 @@ export function checkSet(s: AnySet | MutableHashSet<unknown>, model: Set<unknown
   while (c.next()) viaCursor.push(norm(c.value));
   expect(viaCursor).toEqual(arr);
   expect([...s].map(norm)).toEqual(arr);
+  expect([...s.keys()].map(norm)).toEqual(arr);
   if (ordered) {
     expect(norm((s as AnySet).first!())).toBe(model.size ? keys[0] : undefined);
     expect(norm((s as AnySet).last!())).toBe(model.size ? keys[keys.length - 1] : undefined);
