@@ -4,6 +4,9 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## Done
 
+- Lane M merged (`4410e7738`): the asset manager's options and `checkAssetManager`; reviewed, a credential leak and
+  nine more fixed in one round; the merged tree 863 tests green.
+
 - The interfaces reviewed independently three times (Fable 5.2, 2026-11-18) and revised each time; the last check's
   verdict: `design/patches.md` (lane K), `drafts/merge.md` (K2), `drafts/immutable.md` (R) and the state rules (N) sound
   to build on, with its last fixes in `31e9b8780`.
@@ -15,7 +18,7 @@ Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/s
 
 ## In progress
 
-- Stage 0: S0 merged (`360043baf`); S0b (`values.coarser` = 1) next. The Gene by region recheck waits for a visible
+- Stage 0: S0 merged (`360043baf`); S0b (`values.coarser` = 1) running (`seq/s0b-coarser`, sonnet). The Gene by region recheck waits for a visible
   pane (the author asked to show it).
 - Lanes M and L reported; checks green on the orchestrator's run (M: 789 tests; L: 305 and the heavy bound, lint green
   once io's `./repr/_test/*` export null is added); both reviewed (opus): M, no regression for existing callers but a credential leak through the asset-id path, among

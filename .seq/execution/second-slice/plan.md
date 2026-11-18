@@ -154,7 +154,8 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - typed columns decoded without a copy where aligned;
   - the p53 specs round-tripping JSON ↔ MessagePack;
   - decode throughput as a heavy-lane bound (performance.md, at least 200 MB/s).
-- [ ] M (fast) the asset manager's interface, as amended at Gate 0 (security.md):
+- [x] M (fast) the asset manager's interface, as amended at Gate 0 (security.md) (merged `4410e7738` after one review
+      round; changelog `asset-manager-options.md`):
   - `AssetManager.ResolveOptions` gains `credentials`, `redirect`, `signal`, `maxBytes` (enforced while the body
     streams; `fetchData` gains the same); `DefaultAssetManager` honors them, its defaults unchanged for every Mol\* app;
   - `checkAssetManager` (data and a function, on a fake fetch, never the network): the four options honored or the
