@@ -53,6 +53,9 @@ nothing and tells nothing.
   (`follow.cyclicArc`: `wrap`; `hull` takes the image's hull). A follower is clamped by `maxPxPerPosition` as a leader
   is. Follows chain. Followers never lead: a move asked of one is ignored, or detaches it (`follow.followerMoves`:
   `ignore`; `detach` gives it its own range until a fit or `attach`); a move with invalid arguments detaches nothing.
+- **A source-backed system's length** is fed in when its source's coverage gives it (`setLengthSource`, `refreshLengths`
+  on each store change): the resolved view's axes (and the follows' leader axes) get their pieces, so a section on a
+  streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
   when it can be (EC-112). Placing clamps the range within the axis and at most `viewport.maxPxPerPosition` px a
   position. A viewport that shows the whole axis is fitted and stays so across resizes and updates.
@@ -80,6 +83,48 @@ nothing and tells nothing.
   section's system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps
   only the parts on the section's own system.
 
+### SelectionModel and HighlightModel
+
+`models/selection.ts`: session state as addresses and Locations, never in the spec. This version holds what a command on
+an address sets; the gestures, the anchor, the cursor and drawing the highlights are the selection's own work.
+
+- **A value** (`Emphasized`): element keys, a Location, what is drawn (the Location and the elements' extents) and the
+  address it was set from; an equal value tells nothing.
+- `SelectionModel.value`: the selection; the frame's selection pass draws its `shown`, and `renderSvg` passes it (its
+  address when it has one, which the export resolves itself; else its Location), so the SVG shows the selection the
+  canvas shows.
+- `HighlightModel`: named channels (`set`, `clear`, `channel(name)` a keyed state, `names` in the order first set). Not
+  drawn yet.
+
+### AddressModel
+
+`models/address.ts` (`viewer.addresses`): addresses in the spec shown and the store's nodes now (the core's Addressing
+over `overlayQueryModel` of the static model and `StoreModel.currentOverlay`, the last frame's builder's overlay without
+syncing sources), with the `address.*` settings as bounds.
+
+- **Actions**: `focus` (each leading, movable section whose system the address has positions on, or reaches by a static
+  path, shows their hull; one move a scroll group; followers follow), `reveal` (nothing when shown; a pan to its center
+  when it fits; else a focus), `select`, `highlightAddress` (a channel, `links.highlightChannel` by default),
+  `hoverAddress` (the links' own channel, `links.hoverChannel`, EC-182: the pointer's hover is left alone), `unhover`.
+  Each answers an outcome: done, the resolution's status, a message, its issues.
+- **A focus that waits** (an address of a node not held, data not loaded) is kept and runs when the address resolves:
+  retried on the refs' state, the store's version and its node version; another focus replaces it. A focus whose section
+  is not placed yet (no width, no length) is kept as the view's intent and reported not done
+  (`Kept until the view is placed`), never `Focused`.
+- **The session follows the spec**: `followMoves(changes.moved)`, called before a patch's root is set, rewrites the
+  session's addresses (selection, highlights, the waiting and the last focus) through moves and renames as the spec's
+  refs are; on each new root they are resolved again, and one that names nothing is dropped with `seq.address.missing`
+  in `issues`.
+- **Refs**: `refs`, the spec's refs with what each names now (status, label, color, targets), a new list only when an
+  entry changed; `addRef` adds one as one patch (`addRefPatch` with the language: a ref that would dangle is refused),
+  applied against the revision just read.
+- **Links**: `link(action, address, channel?)`, `parseLink(text)` with the `links.*` settings; `copyLink()`, the link
+  (`copyLink.action`) of the selection's address, else of what the pointer is over (its element, else its position).
+- **The session as addresses**: `selectionAddress()` (the address it was set from, else the shortest of what it holds),
+  `setSelection(address)`; `focusAddress()` (the address last focused while no viewport moved since, else
+  `shownAddress()`), `setFocus(address)`; `shownAddress()`, the region the first leading section shows as ids and forms
+  (what a bookmark of the view stores, so bookmarks never chain).
+
 ### StoreModel
 
 `models/store.ts`: the viewer's one `DataStore`, made with `store.cacheBytes`, `store.inFlight`, `store.tileBins` and
@@ -104,11 +149,13 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer). `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the `seq`
-  runtime, the `hover` and `navigate` behaviors, the default ports and the canvas; an application spreads it.
+  runtime, the `hover`, `navigate` and `addressing` behaviors, the default ports and the canvas; an application spreads
+  it.
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
-  (spec, view, hover, store), the binding table, the behaviors (one of each name; a behavior's `commands` join the
-  viewer's), then the UI into `target` when there is one and the spec has `ui.canvas`. Without a target it is headless:
-  models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and the bindings, the UI the behaviors.
+  (spec, view, hover, store, selection, highlight, addresses), the binding table, the behaviors (one of each name; a
+  behavior's `commands` join the viewer's), then the UI into `target` when there is one and the spec has `ui.canvas`.
+  Without a target it is headless: models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and
+  the bindings, the UI the behaviors.
 - The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits
   for the picture (sources open, wanted data arrived, the view at rest).
 - **The frame** (`draw`): the renderer lays the view out when anything it reads changed, else redraws the emphasis
@@ -125,6 +172,8 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - **The picture as SVG** (`renderSvg`): the context's export of the shown spec, size and window through the viewer's
   store, at the last frame's device pixel ratio (the density steps are in device pixels, so it is the picture the canvas
   shows); the context's `renderSvg` of the same spec, size and window gives the same string.
+- **Links** (`runLink(text)`): a link's actions, in order, each through the model method its command runs (the
+  `addressing` behavior's); undefined when the text is no link or the behavior is not listed.
 - **Retire** (`retire()`): the viewer is marked retired first (its disposer is registered last, so it runs first), so
   the teardown that follows asks for no frame; the frame callback and the settle timer are cancelled, then the mounted
   UI, the behaviors, the want set, the models and the context's owned ports go. After it no frame is pending and input
@@ -225,6 +274,11 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   single keys scoped to the viewer (`scope: 'canvas'`); `when` says why one cannot run (no section, a follower that does
   not move, nothing to focus) instead of a throw.
 
+- `addressing`: the actions on addresses as commands (`address.focus`, `address.reveal`, `address.select`,
+  `address.highlight` with a `channel`, `address.hover`, `address.unhover`, `address.copy-link` whose message is the
+  link, `refs.add` with a `ref`), so a link, a key, a menu, an agent and a test drive the view the same way; `when` says
+  why one cannot run (no address, no ref, nothing to link). `runLink` runs a link.
+
 ## Bindings
 
 `bindings.ts`: the interaction grammar as data, `{ gesture, modifiers, target, action }`.
@@ -248,8 +302,10 @@ Small policies over the models (`behaviors/`), each reading the bindings.
 ## Commands
 
 `commands.ts`: `@molstar/ui`'s `CommandDefinition` has no change kind, so the viewer keeps a table by command id:
-`patch` (undoable, one step), `session` or `navigate` (`CommandChangeKinds`, `changeKindOf(id, extra)`). Every command
-the presets bind has a kind (tested).
+`patch` (undoable, one step), `session`, `navigate` or `none` (it only reads) (`CommandChangeKinds`,
+`changeKindOf(id, extra)`). Every command the presets bind has a kind, and every `addressing` command (tested): a focus
+or a reveal navigates, a selection, a highlight or a link's hover is session state, `refs.add` a patch; copying a link
+changes nothing (`none`).
 
 ## Configuration
 
@@ -261,6 +317,9 @@ over the defaults): `foundations.preset`, `density.letterMinPx`, `density.dotMin
 `theme.source` (`root`: a mounted viewer reads its root's CSS; `config`: the core's `theme` item; a headless viewer
 always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`), `canvas.settleMs` (150), `pointer.rehit`
 (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01), `pointer.pinchMaxDelta` (50),
-`pointer.lineHeight` (16). Each a choice with its recommended default; `ParamDefinition`s come with the settings form.
-As items in a spec: `viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the core's items
-(`SeqCoreConfig`) are the same pairs.
+`pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64), `address.refDepth` (8), `links.prefix`
+(`seq-`), `links.maxLength` (8,192), `links.maxActions` (16), `links.highlightChannel` (`link`), `links.hoverChannel`
+(`link-hover`), `copyLink.prefer` (`['ref', 'ids']`), `copyLink.numbering` (`ordinal`), `copyLink.action` (`focus`).
+Each a choice with its recommended default; `ParamDefinition`s come with the settings form. As items in a spec:
+`viewerItem('group.item')` (typed by key), read by `viewerConfigOf(pairs)`; the core's items (`SeqCoreConfig`) are the
+same pairs.

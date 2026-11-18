@@ -6,6 +6,8 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import * as addressing from './p53/addressing.js';
+import * as bookmarks from './p53/bookmarks.js';
 import * as geneByRegion from './p53/gene-by-region.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as tracks from './p53/tracks.js';
@@ -54,4 +56,23 @@ export const P53Views: readonly ExampleView[] = [
   },
 ];
 
-export const ExampleViews: readonly ExampleView[] = [...P53Views];
+/** Views made for a feature's stories (`Features/…`), over the same datasets. */
+export const FeatureViews: readonly ExampleView[] = [
+  {
+    dataset: 'p53',
+    id: 'addressing',
+    title: 'Addressing',
+    summary: 'The tracks view with refs naming its domains and hotspots, and a text whose links act on addresses.',
+    build: addressing.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'bookmarks',
+    title: 'Bookmarks',
+    summary: 'Gene by region with bookmarks: refs on a range and on transcripts that arrive with their region.',
+    build: bookmarks.build,
+    registry: bookmarks.registry,
+  },
+];
+
+export const ExampleViews: readonly ExampleView[] = [...P53Views, ...FeatureViews];

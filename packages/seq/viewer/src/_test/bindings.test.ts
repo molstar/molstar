@@ -117,6 +117,8 @@ describe('commands’ change kinds', () => {
     expect(t.changeKind('wheel', none, 'cell')).toBeUndefined();
     expect(changeKindOf('nothing')).toBeUndefined();
     expect(changeKindOf('view.fit', { 'view.fit': 'session' })).toBe('session');
-    expect(Object.values(CommandChangeKinds).every((k) => ['patch', 'session', 'navigate'].includes(k))).toBe(true);
+    expect(Object.values(CommandChangeKinds).every((k) => ['patch', 'session', 'navigate', 'none'].includes(k))).toBe(
+      true,
+    );
   });
 });

@@ -5,6 +5,7 @@
  */
 
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
+import { type AddressingBehavior, addressingBehavior } from './addressing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
 
@@ -13,6 +14,11 @@ import { type NavigateBehavior, navigateBehavior } from './navigate.js';
 export const HoverProvider: BehaviorProvider<undefined, HoverBehavior> = {
   name: 'hover',
   create: ({ hover, bindings }) => hoverBehavior(hover, bindings),
+};
+
+export const AddressingProvider: BehaviorProvider<undefined, AddressingBehavior> = {
+  name: 'addressing',
+  create: ({ addresses }) => addressingBehavior(addresses),
 };
 
 export const NavigateProvider: BehaviorProvider<undefined, NavigateBehavior> = {

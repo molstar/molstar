@@ -6,8 +6,10 @@
 
 // @molstar/seqx-viewer/models: the DOM-free models (_spec/README.md).
 
+export * from './address.js';
 export * from './axis.js';
 export * from './hover.js';
+export * from './selection.js';
 export * from './spec.js';
 export * from './store.js';
 export * from './view.js';

@@ -7,7 +7,15 @@
 import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
-import type { HoverModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
+import type {
+  AddressModel,
+  HighlightModel,
+  HoverModel,
+  SelectionModel,
+  SpecModel,
+  StoreModel,
+  ViewModel,
+} from '@molstar/seqx-viewer/models';
 
 // The viewer's spec (_spec/README.md "Composition"): what a viewer contains, listed in one place, as a Mol* plugin's
 // spec does. Nothing registers on import; `DefaultSeqViewerSpec()` lists the built-in behaviors and ports, and an
@@ -19,6 +27,10 @@ export interface BehaviorContext {
   readonly view: ViewModel;
   readonly hover: HoverModel;
   readonly store: StoreModel;
+  readonly selection: SelectionModel;
+  readonly highlight: HighlightModel;
+  /** Addresses resolved in the spec shown, the actions on them, the refs, links, the session as addresses. */
+  readonly addresses: AddressModel;
   readonly config: ViewerConfig;
   readonly bindings: BindingTable;
 }

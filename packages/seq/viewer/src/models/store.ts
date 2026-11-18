@@ -22,7 +22,13 @@ import {
   type StoreClock,
 } from '@molstar/seqx-core/data';
 import { OverlaySources } from '@molstar/seqx-core/render';
-import { type Overlay, OverlayBuilder, type OverlayNode, type StaticModel } from '@molstar/seqx-core/resolve';
+import {
+  EmptyOverlay,
+  type Overlay,
+  OverlayBuilder,
+  type OverlayNode,
+  type StaticModel,
+} from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -130,6 +136,14 @@ export class StoreModel extends ReactiveModel {
       });
     }
     return overlay;
+  }
+
+  /**
+   * The overlay of the nodes the store holds now over `model`, as the last frame's builder makes it (one per node
+   * version), without syncing sources; no node before the first frame. What addresses resolve against.
+   */
+  currentOverlay(model: StaticModel): Overlay {
+    return this._overlays ? this._overlays.of(model, this.store) : EmptyOverlay;
   }
 
   /** Holds the nodes a frame's layout shows (`ViewLayout.shown`), and lets go of those it no longer shows. */

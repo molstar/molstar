@@ -67,9 +67,18 @@ export interface TrackBuilder extends Addressed<'track'> {
   layer(id: string, params: Params<'layer'>): Address<'layer'>;
 }
 
+/** What a ref names, as the builder takes it: an address (a handle or written out), or a set of them. */
+export type RefTo = RefValue<string> | readonly RefValue<string>[];
+
+export interface RefsBuilder {
+  /** A user-defined ref (`/refs/<id>`): a name for what an address, or a set of them, names. */
+  ref(id: string, params: { readonly to: RefTo; readonly label?: string; readonly color?: string }): Address<'ref'>;
+}
+
 export interface SeqSpecBuilder {
   readonly data: DataBuilder;
   readonly views: ViewsBuilder;
+  readonly refs: RefsBuilder;
   /** The spec as a normalized tree (print it with `printSexpr` from `@molstar/core/repr/codecs/sexpr`). */
   build(): Node;
   /** The issues of the spec so far: the description's, then the language's. */
@@ -94,20 +103,34 @@ interface Rec {
 
 type Engine = Record<string, (...args: unknown[]) => unknown>;
 
-type Described = Readonly<Record<string, { readonly params?: Readonly<Record<string, { readonly type: string }>> }>>;
+type Described = Readonly<
+  Record<string, { readonly params?: Readonly<Record<string, { readonly type: string; readonly of?: unknown }>> }>
+>;
+
+/** Whether a param type holds references: a ref, or a union or list with one in it. */
+function holdsRefs(t: { readonly type: string; readonly of?: unknown } | undefined): boolean {
+  if (!t) return false;
+  if (t.type === 'ref') return true;
+  if (t.type === 'list') return holdsRefs(t.of as { type: string });
+  if (t.type === 'union') return (t.of as { type: string }[]).some(holdsRefs);
+  return false;
+}
+
+/** A handle read as its address, in a list too. */
+function addressOfHandle(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(addressOfHandle);
+  return v && typeof v === 'object' && 'address' in v ? (v as Addressed).address : v;
+}
 
 /**
- * The params with each reference param's handle read as its address; which params are references is the
- * description's (`type: 'ref'`), never a list here.
+ * The params with each reference param's handle read as its address (in a set of them too); which params are
+ * references is the description's (`type: 'ref'`, or a union or list holding one), never a list here.
  */
 function addresses(kind: string, params: unknown): Record<string, unknown> | undefined {
   if (!params || typeof params !== 'object') return params as undefined;
   const fields = (SeqLanguage.kinds as Described)[kind]?.params;
   const out = { ...(params as Record<string, unknown>) };
-  for (const key of Object.keys(out)) {
-    const v = out[key];
-    if (fields?.[key]?.type === 'ref' && v && typeof v === 'object' && 'address' in v) out[key] = v.address;
-  }
+  for (const key of Object.keys(out)) if (holdsRefs(fields?.[key])) out[key] = addressOfHandle(out[key]);
   return out;
 }
 
@@ -116,6 +139,7 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
   const engine = createBuilder(SeqLanguage);
   const data: Rec = { kind: 'data', id: 'data', children: [], ids: new Set(), address: '/data' };
   const views: Rec = { kind: 'views', id: 'views', children: [], ids: new Set(), address: '/views' };
+  const refs: Rec = { kind: 'refs', id: 'refs', children: [], ids: new Set(), address: '/refs' };
 
   /** A node added under `parent`: its id checked where it is written, its address the parent's and the id. */
   function add(parent: Rec, kind: string, id: string | undefined, params: unknown): Rec {
@@ -180,6 +204,10 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     },
   } as unknown as ViewsBuilder;
 
+  const refsBuilder: RefsBuilder = {
+    ref: (id, params) => add(refs, 'ref', id, params).address as Address<'ref'>,
+  };
+
   /** Replays a recorded node on the engine's body. */
   function emit(body: Engine, rec: Rec): void {
     const inner = (b: Engine) => {
@@ -192,9 +220,16 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
   function build(): Node {
     return engine.root({ version: options.version ?? SeqLanguageVersion, title: options.title }, (root) => {
       const r = root as unknown as Engine;
-      for (const container of [data, views]) if (container.children.length) emit(r, container);
+      for (const container of [data, views, refs]) if (container.children.length) emit(r, container);
     });
   }
 
-  return { data: dataBuilder, views: viewsBuilder, build, check: () => checkSeqSpec(build()), toString: () => '/' };
+  return {
+    data: dataBuilder,
+    views: viewsBuilder,
+    refs: refsBuilder,
+    build,
+    check: () => checkSeqSpec(build()),
+    toString: () => '/',
+  };
 }
