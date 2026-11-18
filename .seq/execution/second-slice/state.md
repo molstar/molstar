@@ -49,6 +49,11 @@ None.
 
 ## Decided
 
+- **Stories** (the author, 2026-11-18): a story is a sequence of full states stored as patches; transitions planned
+  from diffs and sampled purely; the application owns the animation loop through an animation port ("we just need to
+  provide a consistent library"; "yes"). `stories.md` written; a stored patch's `set` refs typed by kind and key, not
+  by the dry run (drift `stored-refs.md`, option 1 with (a)); K3 rebuilds on it; lane N holds its story-steps part.
+
 - **Integer keys and lane K's drift, as recommended** (the author, 2026-11-18: "ok as recommended"):
   - integer keys keep `fmix32`; their miss against immutable.js at 1,000 entries (up to 1.9×) is accepted, each case
     with its own heavy bound; an identity `hash` is a config's choice (immutable.md);

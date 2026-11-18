@@ -33,3 +33,5 @@ every step after any address change. The independent review (2026-11-18) found:
 
 **Recommendation**: option 1 with (a). Lane K3 rebuilds on it (its hand cases and the fuzz kept); patches.md's
 stored-patch rule and the repr `_spec` change; R+K's `dep` chunks go.
+
+**Resolved** (the author, 2026-11-18): option 1 with (a), and stories redesigned around it (`stories.md`).

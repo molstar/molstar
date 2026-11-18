@@ -26,8 +26,8 @@ R2-S16, R2-C1 to R2-C10, then N-1 to N-14.
 - **A revision** is an immutable root, named by its `hashNode` (32 hex digits; what `SpecModel` uses today).
   Structural sharing keeps every unchanged subtree, so a revision costs only the path to what changed.
   - The word used here is *revision*.
-  - *Snapshot* means a story step everywhere in these designs (composition.md's `snapshots`, changes.md), never a
-    revision (R2-S6).
+  - *Snapshot* means a story step everywhere in these designs (composition.md's `snapshots`, changes.md,
+    [stories.md](stories.md)), never a revision (R2-S6).
 - **A commit** is a revision's root with its parents (one, or two for a merge). The core has no commit type: the
   holder of a history defines its own (N-14). Seq\*'s is the history port's checkpoint (`seqx-viewer`, changes.md), and
   meso\* gets one in the core when it needs it.
@@ -82,11 +82,17 @@ interface Patch {
   through the existing codecs: `(patch :base 3f… (set :at /views/main/t1 :key height :value 40))`.
 - **A stored patch** (a Seq story step) has no `base`: it applies to whatever its spec's revision is. Its refs are
   walked by `repr/patch`'s own rule, not by the patch language's param types (N-12):
-  - **what is a ref**: `at` and `parent`; the refs inside embedded nodes, by the target language; and a `set` value,
-    typed through the target's kind and key, so "set `layer.data` to `/data/other`" is a ref;
+  - **what is a ref**: `at` and `parent`; the refs inside embedded nodes, by the target language; and a `set` value
+    when the target language types that key as a ref in any kind that has it, so "set `layer.data` to `/data/other`"
+    is a ref. Typed by the language alone, never by reading the spec (the author, 2026-11-18, after lane K3's review:
+    typing by the dry run changed under a patch, cost a retype of every step at every move and weakened a refusal;
+    drift `stored-refs.md`). A key that is a ref in one kind and not in another is taken as a ref;
   - **what they resolve against**: the spec with the step's earlier ops applied (a dry run), so a step may insert a node
-    and then set a key on it;
-  - so a stored patch follows renames and moves, and counts in link integrity, like any other ref;
+    and then set a key on it. The dry run decides what a ref names, never whether it is one;
+  - so a stored patch follows renames and moves, and counts in link integrity, like any other ref: a patch that leaves
+    a step's ref dangling, or rebinds it, is refused as for any ref. An op of the step that no longer applies (its
+    target gone, its sibling renamed, its own move now refused) is reported on the step and shown as not applying,
+    never a refusal of the patch that caused it ([stories.md](stories.md));
   - **not rewritten**: `place.after`, a bare sibling id. A step whose sibling was renamed no longer applies, and is
     shown as not applying (changes.md). Accepted: a story step names its place by a sibling, as a writer did.
 
