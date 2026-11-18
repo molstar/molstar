@@ -72,8 +72,10 @@ Starts once the first slice is closed (`.seq/records/first-slice/`), on `package
     11. the asset manager change: below, with the base library;
     12. the TP53 exon coordinates in the test geometry: checked against RefSeq in stage 0 (S0), or marked unverified.
   - **Public API changes in the base library** ([base-library](../../design/base-library.md)):
-    - **`@molstar/core/repr`'s `patch` and `diff`**: the draft `drafts/patches.md`, its API section the agreed surface
-      for lane K, with its five questions answered. Recommendation: as drafted.
+    - **`@molstar/core/repr`'s revisions, patches, `diff` and `merge3`** (git's model: snapshots are the truth,
+      patches derived): the draft `drafts/patches.md` (draft 2, after an independent review), its API section the
+      agreed surface for lane K, with its four decisions (git's model; `layer` ids required; dangling refs refused by
+      default; no automatic rebase) and five questions answered. Recommendation: as drafted.
     - **The asset manager**: `credentials: 'omit'`, `redirect: 'error'`, the signal passed through, a streamed byte
       limit. Recommendation: yes, in this slice, with the policy then claiming all four.
     - **Range reads in the asset manager**: recommendation: wait for bigWig (milestone 3).
@@ -111,10 +113,13 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 - [ ] K (strong) `@molstar/core/repr/patch`, as `drafts/patches.md` agreed at Gate 0 (moved to
       `design/patches.md` before the lane starts):
-  - the six ops with their inverses, `applyPatch` (base, all or nothing, refs following a move, validation of what it
-    touched), `diff` by Merkle descent, `PatchLanguage`;
-  - the conformance cases as data (§suites-are-data) and the three laws as property tests;
-  - the `repr` `_spec` and a v6 changelog entry.
+  - the six ops with their inverses, `applyPatch` (result then base, all or nothing, refs following a move, no silent
+    rebinding, validation of what it made, link integrity, the language's validators), `diff` by Merkle descent with
+    its emission order, `merge3` with conflicts as data, `PatchLanguage`, `Commit` as a type;
+  - `repr/schema`'s `validateWithin`;
+  - the conformance cases as data (§suites-are-data), the laws of diff and merge as property tests;
+  - the companion change in `seqx-core/lang`: `layer` ids required, the language version moved, the examples given ids;
+  - format.md and tree-core.md updated (six ops, the model); the `repr` `_spec` and a v6 changelog entry.
 - [ ] L (fast) the MessagePack codec:
   - `codecs/msgpack` in io on `common/msgpack`, passing `checkCodec`;
   - typed columns decoded without a copy where aligned;
