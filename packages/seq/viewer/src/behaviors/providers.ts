@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { offsetOf } from '@molstar/seqx-viewer/models';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import { type AddressingBehavior, addressingBehavior } from './addressing.js';
 import { type CursorBehavior, cursorBehavior } from './cursor.js';
@@ -26,7 +27,15 @@ export const AddressingProvider: BehaviorProvider<undefined, AddressingBehavior>
 
 export const NavigateProvider: BehaviorProvider<undefined, NavigateBehavior> = {
   name: 'navigate',
-  create: ({ view, bindings, config }) => navigateBehavior(view, bindings, config),
+  // a step zoom with no pointer is about the keyboard cursor on its section
+  create: ({ view, bindings, config, selection }) =>
+    navigateBehavior(view, bindings, config, (section) => {
+      const c = selection.cursor.value;
+      const axis = c && view.resolved.value?.sections.find((s) => s.address === section)?.axis;
+      if (!c || !axis || axis.system !== c.system || !view.groupOf(section).includes(c.section)) return undefined;
+      const o = offsetOf(axis, c.position);
+      return o === undefined ? undefined : o + 0.5;
+    }),
 };
 
 export const SelectProvider: BehaviorProvider<undefined, SelectBehavior> = {

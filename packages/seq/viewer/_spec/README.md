@@ -107,6 +107,14 @@ nothing and tells nothing.
   `detach` gives the follower its own range until a fit or `attach`; a move with invalid arguments moves and detaches
   nothing. Focus and reveal by address move the leading sections as before, and the cursor on a follower reveals nothing
   unless it may detach (`cursor.reveal`).
+- **History** (`jump`, `back`, `forward`, `history`): a jump (a focus, a fit, a reveal, a bookmark's or a link's move,
+  the cursor's Enter) runs through `jump(move)`, which pushes the viewports it left (every group's range, a detached
+  follower's among them) when it moved the view, and drops the steps forward; `same` when the view already showed it,
+  `none` when nothing moved. A pan or a zoom by hand pushes nothing, so a jump after it pushes where the hand left the
+  view; a step zoom (`jump(move, false)`) animates without a step. `back` returns to the last viewports left, every
+  leading section's range together (followers follow; one detached since is attached again), `forward` goes again; a
+  step to where the view is now is skipped. Bounded (`view.historyLimit`, 50; the oldest goes). Session state: never the
+  spec's history (view state is not history), so undo leaves it. `jumps` moves on each jump, back and forward.
 - **A source-backed system's length** is fed in when its source's coverage gives it (`setLengthSource`, `refreshLengths`
   on each store change): the resolved view's axes (and the follows' leader axes) get their pieces, so a section on a
   streamed sequence is placed and its kept intent applies.
@@ -275,6 +283,13 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   (`dataX`), set as every section's width. The height is the layout's content (`canvas.height: 'content'`: laid out at
   the last content height, again when it changed, at most `canvas.maxHeight`) or fixed. The renderer takes one window
   for all sections: the first section that leads gives it.
+- **Motion** (`view.jumps`): a jump (a focus, a fit, a reveal, back, forward, a step zoom) draws the window from the one
+  drawn last to the model's over `view.jumpMs` (240), eased in and out, its width geometric and its centre along it, a
+  frame a frame (the view unsettled meanwhile); the model is there at once, and hits read the frame drawn. A move by
+  hand (a pan, the wheel, a pinch) follows the input and ends a motion. A cut under the platform's reduced motion
+  (`reducedMotion`, the mounted UI's media query), with `view.motion: 'cut'` or `jumpMs` 0. `drawnViewport` is the
+  window the last frame drew. Why the drawn window, not the model: the model's state is the destination (tests, links,
+  the history read it), and only the eye needs the way there.
 - **The picture as SVG** (`renderSvg`): the context's export of the shown spec, size and window through the viewer's
   store, at the last frame's device pixel ratio (the density steps are in device pixels, so it is the picture the canvas
   shows); the context's `renderSvg` of the same spec, size and window gives the same string.
@@ -379,13 +394,17 @@ binding table; per move one hit record and one modifiers record are reused.
   a larger delta is a mouse wheel with Ctrl, which is `mod`: zoom. Line deltas are `pointer.lineHeight` px, a page the
   viewport's own width or height. Over the label column the zoom is about the section's first visible position. True
   when a binding took it, and the page does not scroll.
-- **Double click**: the bound command with the section and what to focus (the element's extent, else the position's
-  cell, in offsets).
+- **Double click**: the bound command with the section, what to focus (the element's extent, else the position's cell,
+  in offsets), the offset under the pointer (`at`) and the double-click's zoom factor (`step`,
+  `navigate.doubleClickZoomStep`).
+- **Side buttons**: a mouse's back and forward buttons are the `back-button` and `forward-button` gestures
+  (`sideButton`); taken, the mounted UI keeps the page from going back on their press and release.
 - **Keys**: the commands' shortcuts, run on the section under the pointer (else the first): the first whose shortcut it
-  is and whose `when` allows it, a preview's command before the rest (Esc cancels a gesture first, a drag-select of any
-  mode giving back the selection it began with, then clears the selection); none: the key is the page's. A Space tap
-  (`spaceUp` with no drag begun while it was held) is the Space key's command (the cursor's toggle); a Space that panned
-  is no tap. The `@molstar/ui` keymap replaces this when the commands join a command manager.
+  is (a command `view.keys` lists answers its chords there, a printable key whatever Shift it needs) and whose `when`
+  allows it, a preview's command before the rest (Esc cancels a gesture first, a drag-select of any mode giving back the
+  selection it began with, then clears the selection); none: the key is the page's. A Space tap (`spaceUp` with no drag
+  begun while it was held) is the Space key's command (the cursor's toggle); a Space that panned is no tap. The
+  `@molstar/ui` keymap replaces this when the commands join a command manager.
 - **Mounted**: a focusable container with the three canvases, listeners on the container only (`click` among them; a
   drag ends on `pointerup`, `pointercancel` and `lostpointercapture`; Space, held for a drag that pans on data, does not
   scroll the page while the canvas has focus), a `ResizeObserver` for the width, a media query for the device pixel
@@ -402,9 +421,12 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   about the pointer) and a pinch (`zoom`) through the bindings; wheel deltas within one frame are applied once at the
   frame (`navigate.coalesceWheel`, through a frame callback that `dispose` cancels); a section gone by the frame is
   dropped; `dispose` drops what is pending and later frames do nothing. The view's moves are commands (`view.fit`,
-  `view.focus`, `view.zoom-in`, `view.zoom-out`, `view.pan-left`, `view.pan-right`) with default keys for the keymap,
-  single keys scoped to the viewer (`scope: 'canvas'`); `when` says why one cannot run (no section, a follower that does
-  not move, nothing to focus) instead of a throw.
+  `view.focus`, `view.back`, `view.forward`, `view.zoom-in`, `view.zoom-out`, `view.pan-left`, `view.pan-right`) with
+  their keys from `view.keys` (the first the shortcut), single keys scoped to the viewer (`scope: 'canvas'`); `when`
+  says why one cannot run (no section, a follower that does not move, nothing to focus, no step back) instead of a
+  throw. A fit and a focus are jumps; a focus on what the view already shows focused goes back (`view.backOnFocused`). A
+  step zoom (the keys, Shift+double-click) is about the context's offset (the pointer's), else the keyboard cursor's
+  cell on that section when in view, else the centre, by the context's `step` or `navigate.wheelZoomStep`.
 
 - `select`: clicks and drags to the selection through the bindings (`selection.set`, `selection.extend`,
   `selection.toggle` with the context's `hit`, `selection.clear` with Esc; a drag bound to `drag-select`, `drag-add`,
@@ -437,16 +459,17 @@ Small policies over the models (`behaviors/`), each reading the bindings.
 
 `bindings.ts`: the interaction grammar as data, `{ gesture, modifiers, target, action }`.
 
-- **Pointer gestures** (`hover`, `click`, `double-click`, `drag`, `wheel`, `pinch`); keys go through `@molstar/ui`'s
-  keymap, and a `key` binding here is reported. Modifiers are `shift`, `mod` (Cmd on macOS, Ctrl elsewhere,
-  `modifiersOf`, which fills a reused record), `alt`, `space`; exact, or `'*'` for whatever is held, tried after the
-  exact ones. Why: a modifier held for something else must not kill the hover.
+- **Pointer gestures** (`hover`, `click`, `double-click`, `drag`, `wheel`, `pinch`, `back-button`, `forward-button`);
+  keys go through `@molstar/ui`'s keymap, and a `key` binding here is reported. Modifiers are `shift`, `mod` (Cmd on
+  macOS, Ctrl elsewhere, `modifiersOf`, which fills a reused record), `alt`, `space`; exact, or `'*'` for whatever is
+  held, tried after the exact ones. Why: a modifier held for something else must not kill the hover.
 - **Targets** are a hit's kind or `any`; a binding for the kind beats `any`'s.
 - **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`, `drag-add`, `drag-subtract`,
   `drag-extend`) or a command the viewer defines (`DefaultActions`, or the `actions` given). A binding to another is
   reported (`seq.viewer.binding.action`) and left out, so the gesture does nothing.
 - **Presets**: `default` (hover with any modifiers; drag on an axis, empty space or with Space pans; wheel and
-  Shift+wheel pan, Cmd/Ctrl+wheel and pinch zoom; double-click focuses an element, fits on empty space; the selection's
+  Shift+wheel pan, Cmd/Ctrl+wheel and pinch zoom; double-click focuses an element (on the one focused: back), fits on
+  empty space; Shift+double-click zooms out about the pointer; the side buttons go back and forward; the selection's
   part, `SelectionBindings`: click sets, Shift+click extends the anchor's range, Cmd/Ctrl+click toggles, a click on
   empty space clears; `SelectionDrags` on data: a drag selects a range, Cmd/Ctrl+drag adds it, Alt/Option+drag removes
   it, Shift+drag extends the anchor's range; Alt+wheel is unbound on purpose, left to the platform and the host) and
@@ -461,10 +484,10 @@ Small policies over the models (`behaviors/`), each reading the bindings.
 (`CommandChangeKinds`, `changeKindOf(id, extra)`): `patch` (the spec, one step of the history), `preview` (a gesture's
 patch: ends in one patch or nothing, never a step itself), `session`, `navigate` (what is shown without changing the
 spec: the viewports, a story step) or `none` (it only reads). Menus show what Undo will undo; an agent tells an edit
-from a look. A focus or a reveal navigates; a selection, a highlight or a link's hover is session state; `refs.add` and
-the editing commands are patches; entering and leaving a step navigates; `preview.cancel` is a preview's; copying a link
-changes nothing. The selection's gestures and the cursor's moves are session state; the cursor's focus (Enter)
-navigates.
+from a look. A focus or a reveal navigates, as `view.back` and `view.forward` do; a selection, a highlight or a link's
+hover is session state; `refs.add` and the editing commands are patches; entering and leaving a step navigates;
+`preview.cancel` is a preview's; copying a link changes nothing. The selection's gestures and the cursor's moves are
+session state; the cursor's focus (Enter) navigates.
 
 - **Tested as the table says** (`_test/changes.test.ts`): every command of the default viewer, run with the default
   spec's history, changes exactly what its kind names (a patch: the revision and one history step; a preview: the
@@ -480,15 +503,19 @@ over the defaults): `foundations.preset`, `density.letterMinPx`, `density.dotMin
 `store.cacheBytes`, `store.inFlight`, `store.tileBins`, `hover.projectLinked`, `hover.closeCodons`,
 `viewport.maxPxPerPosition`, `viewport.groupEqualAxes`, `viewport.onResize`, `follow.followerMoves` (`lead`: a move
 asked of a follower moves its leader; `ignore`; `detach`), `follow.cyclicArc`, `navigate.wheelZoomStep`,
-`navigate.keyPanFraction`, `navigate.coalesceWheel`, `selection.extendScope` (`range`: an extend changes the range the
-anchor is in, the others kept; `selection`: the whole selection becomes that range), `selection.holdNodes` (true: the
-selection's dynamic nodes are held while selected), `highlight.color` (`token:cat-5`, a channel's color when
-`highlight.colors` names none), `highlight.colors` (`{ 'link-hover': 'token:hover' }`), `cursor.keys` (`ArrowLeft`,
-`ArrowRight`, `ArrowUp`, `ArrowDown`: back, on, the section above, below), `cursor.reveal` (true: a cursor moved out of
-view pans its section), `canvas.height` (`content`), `theme.source` (`root`: a mounted viewer reads its root's CSS;
-`config`: the core's `theme` item; a headless viewer always uses the config), `canvas.maxHeight` (2048), `canvas.dpr`
-(`device`), `canvas.settleMs` (150), `pointer.rehit` (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed`
-(0.01), `pointer.pinchMaxDelta` (50), `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64),
+`navigate.keyPanFraction`, `navigate.coalesceWheel`, `navigate.doubleClickZoomStep` (2: Shift+double-click's zoom out),
+`view.historyLimit` (50), `view.backOnFocused` (true: a double-click on what is focused goes back), `view.jumpMs` (240;
+0: a cut), `view.motion` (`auto`: animated unless reduced motion; `cut`), `view.keys` (`view.back`: Alt+ArrowLeft and
+Backspace, `view.forward`: Alt+ArrowRight, `view.fit`: 0, `view.zoom-in`: = and +, `view.zoom-out`: -, `view.pan-left`
+and `view.pan-right`: Shift+Alt+Arrow), `selection.extendScope` (`range`: an extend changes the range the anchor is in,
+the others kept; `selection`: the whole selection becomes that range), `selection.holdNodes` (true: the selection's
+dynamic nodes are held while selected), `highlight.color` (`token:cat-5`, a channel's color when `highlight.colors`
+names none), `highlight.colors` (`{ 'link-hover': 'token:hover' }`), `cursor.keys` (`ArrowLeft`, `ArrowRight`,
+`ArrowUp`, `ArrowDown`: back, on, the section above, below), `cursor.reveal` (true: a cursor moved out of view pans its
+section), `canvas.height` (`content`), `theme.source` (`root`: a mounted viewer reads its root's CSS; `config`: the
+core's `theme` item; a headless viewer always uses the config), `canvas.maxHeight` (2048), `canvas.dpr` (`device`),
+`canvas.settleMs` (150), `pointer.rehit` (true), `pointer.pinchFromCtrlWheel` (true), `pointer.pinchSpeed` (0.01),
+`pointer.pinchMaxDelta` (50), `pointer.lineHeight` (16), `address.limit` (10,000), `address.maxDepth` (64),
 `address.refDepth` (8), `links.prefix` (`seq-`), `links.maxLength` (8,192), `links.maxActions` (16),
 `links.highlightChannel` (`link`), `links.hoverChannel` (`link-hover`), `revisions.keepRecent` (64), `edit.rebaseStale`
 (false: a stale patch is refused; true: rebased through `merge3`), `preview.dropped` (`issue`; `silent`),

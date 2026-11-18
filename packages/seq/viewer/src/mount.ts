@@ -72,6 +72,12 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'pointerdown',
       (e: PointerEvent) => {
+        // a mouse's side buttons (3: back, 4: forward) go through the bindings; taken, the page does not go back
+        if (e.button === 3 || e.button === 4) {
+          const [x, y] = local(e);
+          if (input.sideButton(e.button === 3 ? 'back' : 'forward', x, y, e)) e.preventDefault();
+          return;
+        }
         if (e.button !== 0) return;
         const [x, y] = local(e);
         if (input.down(x, y, e)) container.setPointerCapture?.(e.pointerId);
@@ -84,6 +90,15 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       (e: PointerEvent) => {
         input.up();
         if (container.hasPointerCapture?.(e.pointerId)) container.releasePointerCapture(e.pointerId);
+      },
+      undefined,
+    ],
+    // the page's own back and forward on a side button's release, once the viewer took it
+    [
+      'mouseup',
+      (e: MouseEvent) => {
+        if ((e.button === 3 || e.button === 4) && input.sideButtonTaken(e.button === 3 ? 'back' : 'forward'))
+          e.preventDefault();
       },
       undefined,
     ],
@@ -156,6 +171,14 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   };
   watchRatio();
 
+  // the platform's reduced motion: every jump is a cut while it holds
+  const reduced = win?.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const onReduced = () => {
+    viewer.reducedMotion = !!reduced?.matches;
+  };
+  onReduced();
+  reduced?.addEventListener?.('change', onReduced);
+
   // a web font arrived: what was measured is measured again
   const fontFaces = doc.fonts;
   const onFonts = () => viewer.invalidateText();
@@ -166,6 +189,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     observer?.disconnect();
     themeObserver?.disconnect();
     query?.removeEventListener('change', onRatio);
+    reduced?.removeEventListener?.('change', onReduced);
     fontFaces?.removeEventListener?.('loadingdone', onFonts);
     viewer.useBackend(undefined);
     container.remove();

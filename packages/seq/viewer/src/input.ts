@@ -5,7 +5,13 @@
  */
 
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
-import { type ModifierState, modifiersOf } from '@molstar/seqx-viewer/bindings';
+import {
+  type KeyChord,
+  matchesChord,
+  type ModifierState,
+  modifiersOf,
+  parseChord,
+} from '@molstar/seqx-viewer/bindings';
 import { changeKindOf } from './commands.js';
 import {
   type HoverBehavior,
@@ -78,7 +84,18 @@ export class ViewerInput {
   /** Space was held while a drag began: its release is no tap (no toggle). */
   private _spaceUsed = false;
 
-  constructor(private readonly viewer: SeqViewer) {}
+  /** The configured keys of commands (`view.keys`), parsed once: a command listed there answers these alone. */
+  private readonly _keys: ReadonlyMap<string, readonly KeyChord[]>;
+
+  constructor(private readonly viewer: SeqViewer) {
+    const keys = new Map<string, KeyChord[]>();
+    for (const [id, chords] of Object.entries(viewer.config.view.keys))
+      keys.set(
+        id,
+        chords.map(parseChord).filter((c): c is KeyChord => c !== undefined),
+      );
+    this._keys = keys;
+  }
 
   private get hoverBehavior(): HoverBehavior | undefined {
     return this.viewer.behavior(HoverProvider);
@@ -291,9 +308,43 @@ export class ViewerInput {
     const action = this.viewer.bindings.resolve('double-click', mods, hitTarget(hit));
     if (action === undefined) return false;
     const focus = hit ? this._focusOf(section, hit) : undefined;
-    this.viewer.runCommand(action, { section, ...(focus ? { focus } : {}) });
+    // a step zoom is about the pointer, by the double-click's own factor
+    const v = this.viewer.view.get(section);
+    const local = x - this.viewer.dataX;
+    const at =
+      v && v.width > 0 && local >= 0 && local <= v.width ? v.start + (local * (v.end - v.start)) / v.width : undefined;
+    this.viewer.runCommand(action, {
+      section,
+      ...(focus ? { focus } : {}),
+      ...(at !== undefined ? { at } : {}),
+      step: this.viewer.config.navigate.doubleClickZoomStep,
+    });
     return true;
   }
+
+  /**
+   * A mouse's side button (back or forward) at (x, y): the bound command (`view.back`, `view.forward` by default). True
+   * when one ran, so the page does not go back in its own history.
+   */
+  sideButton(which: 'back' | 'forward', x: number, y: number, e: KeyState = {}): boolean {
+    if (this.viewer.retired) return false;
+    this._sideTaken = undefined;
+    const section = this.sectionAt(y) ?? this.viewer.view.resolved.value?.sections[0]?.address;
+    const action = this.viewer.bindings.resolve(`${which}-button`, this._modifiers(e), hitTarget(this._hitAt(x, y)));
+    if (action === undefined) return false;
+    this._sideTaken = which;
+    this.viewer.runCommand(action, { section });
+    return true;
+  }
+
+  /** Whether the side button's press was taken (its release is then not the page's), once. */
+  sideButtonTaken(which: 'back' | 'forward'): boolean {
+    const taken = this._sideTaken === which;
+    this._sideTaken = undefined;
+    return taken;
+  }
+
+  private _sideTaken: 'back' | 'forward' | undefined;
 
   /** What to focus for a hit: the element's extent, else the position's cell, in the section's offsets. */
   private _focusOf(section: string, hit: Hit): { start: number; end: number } | undefined {
@@ -354,10 +405,13 @@ export class ViewerInput {
     // a gesture in progress first (a preview's command), then the rest in the spec's order
     for (const previews of [true, false])
       for (const c of this.viewer.commands) {
-        const k = c.shortcut;
-        if (!k || k.key !== e.key || (changeKindOf(c.id) === 'preview') !== previews) continue;
-        if (!!k.alt !== !!e.altKey || !!k.shift !== !!e.shiftKey) continue;
-        if (!!k.mod !== (this.mac ? !!e.metaKey : !!e.ctrlKey)) continue;
+        if ((changeKindOf(c.id) === 'preview') !== previews) continue;
+        // a command's configured keys (`view.keys`), else its shortcut
+        const keys = this._keys.get(c.id);
+        if (
+          keys ? !keys.some((k) => matchesChord(k, e, this.mac)) : !c.shortcut || !shortcutIs(c.shortcut, e, this.mac)
+        )
+          continue;
         matched = true;
         const can = c.when?.(ctx as never);
         if (can !== undefined && can !== true) continue;
@@ -368,4 +422,14 @@ export class ViewerInput {
     // plain key nothing takes (Esc with nothing to cancel) stays the host's
     return matched && !!(e.altKey || e.shiftKey || e.metaKey || e.ctrlKey);
   }
+}
+
+/** Whether a key event is a command's shortcut exactly (its key and every modifier). */
+function shortcutIs(k: KeyChord, e: KeyState & { readonly key: string }, mac: boolean): boolean {
+  return (
+    k.key === e.key &&
+    !!k.alt === !!e.altKey &&
+    !!k.shift === !!e.shiftKey &&
+    !!k.mod === (mac ? !!e.metaKey : !!e.ctrlKey)
+  );
 }

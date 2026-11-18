@@ -130,6 +130,12 @@ export class SeqViewer extends ReactiveModel {
   private readonly _size = { width: 0, height: 0 };
   private readonly _frameInput = { size: this._size } as Mutable<FrameInput>;
   private readonly _viewportOut = { start: 0, end: 0 };
+  /** The window the last frame drew (NaN before one): where a jump's motion starts. */
+  private readonly _drawn = { start: Number.NaN, end: Number.NaN };
+  /** A jump's motion (_spec/README.md "Composition", Motion): from the window drawn, since a time, at a jump count. */
+  private _motion: { start: number; end: number; t0: number; jumps: number } | undefined;
+  /** The platform asks for reduced motion (the mounted UI's media query): every jump is a cut. */
+  reducedMotion = false;
   private _backend: CanvasBackend | undefined;
   private _renderer: Renderer | undefined;
   private _rendererFor: unknown[] = [];
@@ -257,6 +263,8 @@ export class SeqViewer extends ReactiveModel {
       this.schedule();
     });
     this.listenPermanently(this.store.store.settled, () => this.schedule());
+    // a jump animates from the window drawn to the model's (the model is there at once: hits read the frame drawn)
+    this.listenPermanently(this.view.jumps, (n) => this._startMotion(n));
     this.listenPermanently(this.view.resolved, () => {
       this._followViewports();
       this._applyWidths();
@@ -410,6 +418,8 @@ export class SeqViewer extends ReactiveModel {
     for (const s of this.view.resolved.value?.sections ?? [])
       this._viewportListeners.push(
         this.view.viewport(s.address).listen(() => {
+          // a move by hand ends a jump's motion (a jump's own move is followed by its count moving)
+          if (this._motion && this._motion.jumps === this.view.jumps.value) this._motion = undefined;
           this._moved();
           this.schedule();
         }),
@@ -450,15 +460,55 @@ export class SeqViewer extends ReactiveModel {
     });
   }
 
-  /** The window the renderer draws: the first section that leads (the renderer takes one window for all). */
-  private _viewport(resolved: ResolvedView): RenderViewport | undefined {
+  /** A jump moved the view: its motion starts from the window drawn, unless motion is cut. */
+  private _startMotion(jumps: number): void {
+    const { jumpMs, motion } = this.config.view;
+    if (this._retired || motion === 'cut' || this.reducedMotion || !(jumpMs > 0) || Number.isNaN(this._drawn.start)) {
+      this._motion = undefined;
+      return;
+    }
+    this._motion = { start: this._drawn.start, end: this._drawn.end, t0: DomHost.now(), jumps };
+    this.schedule();
+  }
+
+  /** Whether a jump's motion is drawing. */
+  get moving(): boolean {
+    return this._motion !== undefined;
+  }
+
+  /** The window the last frame drew (during a jump's motion, between where it started and the model's), a copy. */
+  get drawnViewport(): RenderViewport | undefined {
+    return Number.isNaN(this._drawn.start) ? undefined : { start: this._drawn.start, end: this._drawn.end };
+  }
+
+  /**
+   * The window the renderer draws: the first section that leads (the renderer takes one window for all); during a
+   * jump's motion (`at` the time), the window between where it started and the model's, eased in and out, its width
+   * moving geometrically and its centre along it so the content under the eye moves smoothly. Undefined past the end.
+   */
+  private _viewport(resolved: ResolvedView, at?: number): RenderViewport | undefined {
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
       const v = this.view.get(s.address);
       if (!v || v.pending) return undefined;
-      this._viewportOut.start = v.start;
-      this._viewportOut.end = v.end;
-      return this._viewportOut;
+      const out = this._viewportOut;
+      out.start = v.start;
+      out.end = v.end;
+      const m = this._motion;
+      if (at !== undefined && m) {
+        const t = (at - m.t0) / this.config.view.jumpMs;
+        if (t >= 1 || !(t >= 0)) this._motion = undefined;
+        else {
+          const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+          const w0 = m.end - m.start;
+          const w1 = v.end - v.start;
+          const w = w0 > 0 && w1 > 0 ? w0 * (w1 / w0) ** e : w0 + (w1 - w0) * e;
+          const c = (m.start + m.end) / 2 + ((v.start + v.end) / 2 - (m.start + m.end) / 2) * e;
+          out.start = c - w / 2;
+          out.end = c + w / 2;
+        }
+      }
+      return out;
     }
     return undefined;
   }
@@ -508,9 +558,18 @@ export class SeqViewer extends ReactiveModel {
     size.height = fixed ? h : Math.min(this.config.canvas.maxHeight, Math.max(this._contentHeight, 32));
     this._updateEmphasis();
     const input = this._frameInput;
-    const vp = this._viewport(resolved);
+    const vp = this._viewport(resolved, DomHost.now());
     if (vp) input.viewport = vp;
     else delete input.viewport;
+    if (vp) {
+      this._drawn.start = vp.start;
+      this._drawn.end = vp.end;
+    }
+    // a motion draws a frame a frame until it ends; the view is not settled meanwhile
+    if (this._motion) {
+      this._moved();
+      this.schedule();
+    }
     input.dpr = dpr;
     input.settled = this._quiet && this.store.store.settled.value;
     input.emphasis = this._emphasis;

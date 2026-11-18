@@ -54,6 +54,9 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'cursor.focus': 'navigate',
   'view.focus': 'navigate',
   'view.fit': 'navigate',
+  // the view's history of jumps is session state's kind: it moves the view, never the spec's history
+  'view.back': 'navigate',
+  'view.forward': 'navigate',
   'view.zoom-in': 'navigate',
   'view.zoom-out': 'navigate',
   'view.pan-left': 'navigate',

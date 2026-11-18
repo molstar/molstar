@@ -259,25 +259,27 @@ describe('the mounted canvas stack', () => {
 
   it('a change of the device pixel ratio asks for a frame and listens for the next ratio', async () => {
     const { viewer, container } = await mount();
-    expect(queries.length).toBe(1);
-    expect(queries[0].media).toBe('(resolution: 1dppx)');
-    expect(queries[0].listeners.size).toBe(1);
+    // the ratio's queries (the reduced motion's is another)
+    const ratios = () => queries.filter((q) => q.media.startsWith('(resolution'));
+    expect(ratios().length).toBe(1);
+    expect(ratios()[0].media).toBe('(resolution: 1dppx)');
+    expect(ratios()[0].listeners.size).toBe(1);
     frames.flush();
     const drawn = viewer.counts.frames;
     // the ratio changes: the listener of the old query goes, a query for the new ratio is made, a frame follows
     vi.stubGlobal('devicePixelRatio', 2);
     Object.defineProperty(document.defaultView!, 'devicePixelRatio', { configurable: true, value: 2 });
-    for (const fn of [...queries[0].listeners]) fn();
-    expect(queries[0].listeners.size).toBe(0);
-    expect(queries.length).toBe(2);
-    expect(queries[1].media).toBe('(resolution: 2dppx)');
-    expect(queries[1].listeners.size).toBe(1);
+    for (const fn of [...ratios()[0].listeners]) fn();
+    expect(ratios()[0].listeners.size).toBe(0);
+    expect(ratios().length).toBe(2);
+    expect(ratios()[1].media).toBe('(resolution: 2dppx)');
+    expect(ratios()[1].listeners.size).toBe(1);
     frames.flush();
     expect(viewer.counts.frames).toBe(drawn + 1);
     expect(viewer.dpr).toBe(2);
     expect(container.querySelector('canvas')!.width).toBe(viewer.width * 2);
     viewer.retire();
-    expect(queries[1].listeners.size).toBe(0);
+    expect(ratios()[1].listeners.size).toBe(0);
   });
 
   it('retire takes away every listener it added, the observer and the nodes, and no frame or timer is left', async () => {

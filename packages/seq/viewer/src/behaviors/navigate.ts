@@ -7,19 +7,29 @@
 // The `navigate` behavior (_spec/README.md "Behaviors"): drags, wheels and pinches to viewports through the bindings
 // (`pan`, `zoom`), and the view's moves as commands for the keymap and the menu. Wheel deltas within a frame are
 // applied once, at the frame (`DomHost`), when `navigate.coalesceWheel`. A move asked of a follower is the view model's
-// to carry to its leader, ignore or detach (`follow.followerMoves`).
+// to carry to its leader, ignore or detach (`follow.followerMoves`). A focus and a fit are jumps (the view's history:
+// `view.back`, `view.forward`); a double-click on what is focused goes back; a step zoom is about the keyboard cursor,
+// the pointer or the centre.
 
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom';
-import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
+import { type BindingTable, type KeyChord, type ModifierState, parseChord } from '@molstar/seqx-viewer/bindings';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
 
-/** Which section a command acts on (the one under the pointer or with focus), and what to focus (offsets). */
+/**
+ * Which section a command acts on (the one under the pointer or with focus), what to focus (offsets), and for a step
+ * zoom the offset it is about (`at`: the pointer's) and its factor (`step`: a double-click's).
+ */
 export interface NavigateContext {
   readonly section: string | undefined;
   readonly focus?: { readonly start: number; readonly end: number };
+  readonly at?: number;
+  readonly step?: number;
 }
+
+/** Where a step zoom with no pointer is about: the keyboard cursor's offset on a section, when it has one there. */
+export type CursorOffset = (section: string) => number | undefined;
 
 export interface NavigateBehavior {
   /** A drag by `dx` pixels on a section; true when it moved the viewport. */
@@ -46,8 +56,11 @@ export function navigateBehavior(
   view: ViewModel,
   bindings: BindingTable,
   config: ViewerConfig = DefaultViewerConfig,
+  cursorAt?: CursorOffset,
 ): NavigateBehavior {
   const { wheelZoomStep, keyPanFraction, coalesceWheel } = config.navigate;
+  /** A command's keys: the configured chords, the first its shortcut. */
+  const keysOf = (id: string): KeyChord | undefined => parseChord(config.view.keys[id]?.[0] ?? '');
   // the wheel's pending deltas, one record per section, applied at the next frame
   const pending = new Map<string, Pending>();
   let disposed = false;
@@ -81,20 +94,46 @@ export function navigateBehavior(
   const command = (
     id: string,
     title: string,
-    move: (section: string, ctx: NavigateContext) => boolean,
+    move: (section: string, ctx: NavigateContext) => boolean | string,
     done: string,
-    shortcut: CommandDefinition<NavigateContext>['shortcut'],
     when: (ctx: NavigateContext) => true | string = movable,
-  ): CommandDefinition<NavigateContext> => ({
-    id,
-    title,
-    category: 'View',
-    shortcut,
-    // a single key works where the viewer has focus, never globally
-    ...(shortcut && !shortcut.alt && !shortcut.mod && !shortcut.shift ? { scope: 'canvas' } : {}),
-    when,
-    run: (_, ctx): CommandResult => ({ message: ctx.section !== undefined && move(ctx.section, ctx) ? done : '' }),
-  });
+  ): CommandDefinition<NavigateContext> => {
+    const shortcut = keysOf(id);
+    return {
+      id,
+      title,
+      category: 'View',
+      ...(shortcut ? { shortcut: { ...shortcut } } : {}),
+      // a single key works where the viewer has focus, never globally
+      ...(shortcut && !shortcut.alt && !shortcut.mod && !shortcut.shift ? { scope: 'canvas' } : {}),
+      when,
+      run: (_, ctx): CommandResult => {
+        const r = ctx.section !== undefined ? move(ctx.section, ctx) : false;
+        return { message: typeof r === 'string' ? r : r ? done : '' };
+      },
+    };
+  };
+
+  /**
+   * A step zoom about the context's offset (a double-click's pointer), else the keyboard cursor's on the section when
+   * it is in view, else the centre: animated, never a step of the history (ux: zoom by a step animates).
+   */
+  const stepZoom = (section: string, ctx: NavigateContext, factor: number) => {
+    const v = view.get(section);
+    let anchor = ctx.at;
+    if (anchor === undefined && v) {
+      const c = cursorAt?.(section);
+      if (c !== undefined && c >= v.start && c <= v.end) anchor = c;
+    }
+    return view.jump(() => view.zoom(section, factor, anchor), false) !== 'none';
+  };
+
+  /** A double-click's focus: a jump; on what the view already shows focused, back (`view.backOnFocused`). */
+  const focus = (section: string, ctx: NavigateContext): boolean | string => {
+    const r = view.jump(() => view.setRange(section, ctx.focus!.start, ctx.focus!.end));
+    if (r === 'same' && config.view.backOnFocused && view.canBack) return view.back() ? 'Back' : false;
+    return r !== 'none';
+  };
 
   const panBy = (section: string, fraction: number) => {
     const v = view.get(section);
@@ -105,29 +144,30 @@ export function navigateBehavior(
     command(
       'view.fit',
       'Fit the view',
-      (s) => view.fit(s),
+      (s) => view.jump(() => view.fit(s)) !== 'none',
       'Fitted',
-      { key: '0' },
       (ctx) => (ctx.section === undefined ? 'No section to fit' : true),
     ),
+    command('view.focus', 'Focus', focus, 'Focused', (ctx) => (ctx.focus ? movable(ctx) : 'Nothing to focus')),
+    // back and forward restore every leading section together: they need no section
     command(
-      'view.focus',
-      'Focus',
-      (s, ctx) => view.setRange(s, ctx.focus!.start, ctx.focus!.end),
-      'Focused',
-      undefined,
-      (ctx) => (ctx.focus ? movable(ctx) : 'Nothing to focus'),
+      'view.back',
+      'Back',
+      () => view.back(),
+      'Back',
+      () => (view.canBack ? true : 'No view to go back to'),
     ),
-    command('view.zoom-in', 'Zoom in', (s) => view.zoom(s, wheelZoomStep), 'Zoomed in', { key: '=' }),
-    command('view.zoom-out', 'Zoom out', (s) => view.zoom(s, 1 / wheelZoomStep), 'Zoomed out', { key: '-' }),
-    command('view.pan-left', 'Pan left', (s) => panBy(s, -keyPanFraction), 'Panned left', {
-      key: 'ArrowLeft',
-      alt: true,
-    }),
-    command('view.pan-right', 'Pan right', (s) => panBy(s, keyPanFraction), 'Panned right', {
-      key: 'ArrowRight',
-      alt: true,
-    }),
+    command(
+      'view.forward',
+      'Forward',
+      () => view.forward(),
+      'Forward',
+      () => (view.canForward ? true : 'No view to go forward to'),
+    ),
+    command('view.zoom-in', 'Zoom in', (s, ctx) => stepZoom(s, ctx, ctx.step ?? wheelZoomStep), 'Zoomed in'),
+    command('view.zoom-out', 'Zoom out', (s, ctx) => stepZoom(s, ctx, 1 / (ctx.step ?? wheelZoomStep)), 'Zoomed out'),
+    command('view.pan-left', 'Pan left', (s) => panBy(s, -keyPanFraction), 'Panned left'),
+    command('view.pan-right', 'Pan right', (s) => panBy(s, keyPanFraction), 'Panned right'),
   ];
 
   return {
