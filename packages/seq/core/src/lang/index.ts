@@ -28,6 +28,7 @@ export {
   checkSpecBounds,
   checkSubtreeDepth,
   DefaultSpecBounds,
+  measureNode,
   queryDepth,
   type SpecBounds,
   specBounds,

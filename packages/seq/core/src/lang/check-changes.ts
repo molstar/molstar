@@ -15,8 +15,9 @@
 
 import { HashMap, HashSet, type MutableHashMap } from '@molstar/core/data/immutable';
 import type { Changes, PatchValidator } from '@molstar/core/repr/patch';
+import type { ParamChange } from '@molstar/core/repr/schema';
 import { type Address, type Issue, type Node, printAddress, type TreePath, type Value } from '@molstar/core/repr/tree';
-import { checkSubtreeDepth, DefaultSpecBounds, type SpecBounds } from './bounds.js';
+import { checkSubtreeDepth, DefaultSpecBounds, IssueCaps, type SpecBounds } from './bounds.js';
 import {
   checkFollow,
   checkPlaced,
@@ -276,13 +277,21 @@ export function checkSeqChanges(
   // walk is refused alone): the subtrees a change made or moved, the params it set
   const look0 = lookupOf(after);
   const deep: Issue[] = [];
-  const nest = (address: Address, children: boolean) => {
+  // one patch's size bound: the bytes of what it makes and the params it sets, together, against `maxBytes`
+  const budget = { bytes: 0 };
+  const nest = (address: Address, children: boolean, counted: boolean, keys?: ParamChange) => {
     const at = look0.get(printAddress(address));
-    if (at) deep.push(...checkSubtreeDepth(at.node, at.path, address.length, bounds, children));
+    if (at)
+      deep.push(
+        ...checkSubtreeDepth(at.node, at.path, address.length, bounds, children, {
+          ...(counted ? { budget } : {}),
+          ...(keys ? { keys: { where: keys.where, keys: keys.keys } } : {}),
+        }),
+      );
   };
-  for (const m of changes.made) nest(m, true);
-  for (const m of changes.moved) nest(m.to, true);
-  for (const c of changes.params) nest(c.at, false);
+  for (const m of changes.made) nest(m, true, true);
+  for (const m of changes.moved) nest(m.to, true, false);
+  for (const c of changes.params) nest(c.at, false, true, c);
   if (deep.length) return deep;
   const index = deriveIndex(before, after, changes);
   const look = look0;
@@ -376,7 +385,10 @@ export function checkSeqChanges(
     checkFollow(at, old, reportOld);
   }
   const known = new Set(wasKeys);
-  return issues.filter((_, i) => !known.has(keys[i]));
+  // what the change introduced, kept as the whole check keeps it: the first places of a code, the rest counted
+  const caps = new IssueCaps(bounds);
+  const introduced = issues.filter((issue, i) => !known.has(keys[i]) && caps.keep(issue.code, issue.address ?? '/'));
+  return [...introduced, ...caps.summary()];
 }
 
 function sectionFollow(look: SeqLookup, address: string): string | undefined {

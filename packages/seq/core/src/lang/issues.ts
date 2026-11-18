@@ -140,6 +140,11 @@ export const BoundIssues = defineIssues('seq.lang.bound', {
       'The spec nests deeper than the configuration allows (`bounds.maxDepth`, 256 levels of nodes and values)',
     hint: 'Flatten the tree',
   },
+  'seq.lang.bound.shape': {
+    severity: 'error',
+    description: 'A node built in code is not a node: no record, no kind, or a children list that is no list',
+    hint: 'A node is a record with a `kind`; `children` is a list of nodes',
+  },
   'seq.lang.bound.query_depth': {
     severity: 'error',
     description: 'A query form nests deeper than the configuration allows (`bounds.maxQueryDepth`, 64)',

@@ -61,25 +61,48 @@ export function queryDepth(s: string): number {
   return max;
 }
 
-/** A place in the walk: its parent frame, its steps from it, how deep it is. */
+/** What the size estimate charges for each node, array, record, key and element: about JSON's punctuation. */
+export const ValueOverhead = 8;
+
+/** A place in the walk: its parent frame and the steps from it (built only when an issue names the place). */
 interface Frame {
   readonly value: unknown;
   readonly node: boolean;
   readonly depth: number;
   readonly parent: Frame | undefined;
-  readonly steps: TreePath;
+  readonly a: string | number | undefined;
+  readonly b: string | number | undefined;
+  /** Whether strings here are addresses (queries are counted); not in `custom`. */
+  readonly query: boolean;
 }
 
-function pathOf(f: Frame): TreePath {
-  const parts: (readonly (string | number)[])[] = [];
-  for (let x: Frame | undefined = f; x; x = x.parent) parts.push(x.steps);
+interface WalkOptions {
+  readonly bounds: SpecBounds;
+  /** The root's step path and its level (an address's length). */
+  readonly path: TreePath;
+  readonly at: number;
+  /** Walk the root's children (false: the node's own params, custom and args). */
+  readonly children: boolean;
+  /** Only these keys of the root's `params` or `custom`. */
+  readonly keys?: { readonly where: 'params' | 'custom'; readonly keys: readonly string[] };
+  /** The bytes counted so far, shared by walks that add up (a patch's); a fresh count when absent. */
+  readonly budget?: { bytes: number };
+}
+
+function pathOf(f: Frame, root: TreePath): TreePath {
   const out: (string | number)[] = [];
-  for (let i = parts.length - 1; i >= 0; i--) out.push(...parts[i]);
-  return out as TreePath;
+  for (let x: Frame | undefined = f; x; x = x.parent) {
+    if (x.parent === undefined) out.push(...[...root].reverse());
+    else {
+      if (x.b !== undefined) out.push(x.b);
+      if (x.a !== undefined) out.push(x.a);
+    }
+  }
+  return out.reverse() as unknown as TreePath;
 }
 
-const bound = (code: keyof typeof BoundIssues.codes, message: string, f: Frame): Issue =>
-  issueOf(BoundIssues, code, message, { hint: BoundIssues.codes[code].hint, path: pathOf(f) });
+const isPlain = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) && !ArrayBuffer.isView(v) && !(v instanceof CategoryColumn);
 
 function columnBytes(c: unknown): number {
   if (c instanceof CategoryColumn) {
@@ -91,83 +114,144 @@ function columnBytes(c: unknown): number {
 }
 
 /**
- * The bounds a whole spec must pass, before the description reads it (nothing is allocated past a bound: the walk
- * stops at the first it cannot pass). The issues: `seq.lang.bound.size` or `.depth` alone when the spec breaks one,
- * else the first place of `.column` and `.query_depth`.
+ * One iterative walk over a node, its children, params, custom data and args, as values alike: the depth, the bytes
+ * (a fixed overhead for each node, record, array, key and element, charged before the children are pushed or
+ * visited, so a million empty records cost what they say), a column's length, a query's depth in params and args;
+ * the first fatal one (size, depth, shape) ends it.
  */
-export function checkSpecBounds(spec: Node, bounds: SpecBounds = DefaultSpecBounds): Issue[] {
+function walk(root: unknown, o: WalkOptions): { issues: Issue[]; bytes: number } {
+  const { bounds } = o;
   const issues: Issue[] = [];
-  let bytes = 0;
+  const budget = o.budget ?? { bytes: 0 };
   let column = false;
   let query = false;
-  const stack: Frame[] = [{ value: spec, node: true, depth: 0, parent: undefined, steps: [] }];
-  /** A scalar is counted in place, no frame made (a list of a million numbers pushes nothing). */
-  const leaf = (v: unknown, parent: Frame, ...steps: (string | number)[]): boolean => {
+  const stack: Frame[] = [
+    { value: root, node: true, depth: o.at, parent: undefined, a: undefined, b: undefined, query: true },
+  ];
+  const say = (code: keyof typeof BoundIssues.codes, message: string, f: Frame) =>
+    issues.push(issueOf(BoundIssues, code, message, { hint: BoundIssues.codes[code].hint, path: pathOf(f, o.path) }));
+  const sizeIssue = (f: Frame) => {
+    say('seq.lang.bound.size', `The spec is larger than ${bounds.maxBytes} bytes decoded`, f);
+    return { issues, bytes: budget.bytes };
+  };
+  const frame = (
+    v: unknown,
+    f: Frame,
+    a: string | number | undefined,
+    b?: string | number,
+    node = false,
+    q = f.query,
+  ): Frame => ({ value: v, node, depth: f.depth + 1, parent: f, a, b, query: q });
+  /** A scalar is counted in place, no frame made. */
+  const leaf = (v: unknown, f: Frame, a: string | number): boolean => {
     if (typeof v === 'object' && v !== null) return false;
-    if (typeof v !== 'string') bytes += 8;
-    else {
-      bytes += v.length;
-      if (!query && v.charCodeAt(0) === 0x2f && v.includes('(') && queryDepth(v) > bounds.maxQueryDepth) {
+    if (typeof v === 'string') {
+      budget.bytes += v.length;
+      if (f.query && !query && v.charCodeAt(0) === 0x2f && v.includes('(') && queryDepth(v) > bounds.maxQueryDepth) {
         query = true;
-        const at: Frame = { value: v, node: false, depth: parent.depth + 1, parent, steps: steps as TreePath };
-        issues.push(bound('seq.lang.bound.query_depth', `A query nests deeper than ${bounds.maxQueryDepth} forms`, at));
+        say('seq.lang.bound.query_depth', `A query nests deeper than ${bounds.maxQueryDepth} forms`, frame(v, f, a));
       }
-    }
+    } else if (typeof v === 'bigint') budget.bytes += v.toString().length;
+    else budget.bytes += 8;
     return true;
+  };
+  const fatal = (code: keyof typeof BoundIssues.codes, message: string, f: Frame) => {
+    say(code, message, f);
+    return { issues, bytes: budget.bytes };
   };
   while (stack.length) {
     const f = stack.pop()!;
-    if (f.depth > bounds.maxDepth) {
-      issues.push(bound('seq.lang.bound.depth', `The spec nests deeper than ${bounds.maxDepth} levels`, f));
-      return issues;
-    }
+    if (f.depth > bounds.maxDepth)
+      return fatal('seq.lang.bound.depth', `The spec nests deeper than ${bounds.maxDepth} levels`, f);
     const v = f.value;
     if (f.node) {
-      const n = v as Node;
-      bytes += (n.kind?.length ?? 0) + (n.id?.length ?? 0);
-      const kids = n.children;
-      if (kids)
-        for (let i = kids.length - 1; i >= 0; i--)
-          stack.push({ value: kids[i], node: true, depth: f.depth + 1, parent: f, steps: ['children', i] });
-      const params = n.params;
-      if (params)
-        for (const k of Object.keys(params)) {
-          bytes += k.length;
-          if (!leaf(params[k], f, 'params', k))
-            stack.push({ value: params[k], node: false, depth: f.depth + 1, parent: f, steps: ['params', k] });
+      if (!isPlain(v) || typeof v.kind !== 'string')
+        return fatal('seq.lang.bound.shape', 'A node is not a record with a kind', f);
+      const n = v as unknown as Node;
+      budget.bytes += ValueOverhead + n.kind.length + (typeof n.id === 'string' ? n.id.length : 0);
+      if (o.keys && f.parent === undefined) {
+        const rec = n[o.keys.where];
+        if (rec !== undefined) {
+          if (!isPlain(rec))
+            return fatal('seq.lang.bound.shape', `\`${o.keys.where}\` is not a record`, frame(rec, f, o.keys.where));
+          const holder = frame(rec, f, o.keys.where, undefined, false, o.keys.where === 'params');
+          for (const k of o.keys.keys) {
+            const x = rec[k];
+            if (x === undefined) continue;
+            budget.bytes += ValueOverhead + k.length;
+            if (!leaf(x, holder, k)) stack.push(frame(x, holder, k));
+          }
         }
+      } else {
+        if (o.children || f.parent) {
+          const kids = n.children;
+          if (kids !== undefined) {
+            if (!Array.isArray(kids))
+              return fatal('seq.lang.bound.shape', '`children` is not a list', frame(kids, f, 'children'));
+            budget.bytes += kids.length * ValueOverhead;
+            if (budget.bytes > bounds.maxBytes) return sizeIssue(f);
+            for (let i = kids.length - 1; i >= 0; i--) stack.push(frame(kids[i], f, 'children', i, true));
+          }
+        }
+        const { params, custom, args } = n;
+        if (params !== undefined) stack.push(frame(params, f, 'params'));
+        if (custom !== undefined) stack.push(frame(custom, f, 'custom', undefined, false, false));
+        if (args !== undefined) stack.push(frame(args, f, 'args'));
+      }
     } else if (typeof v === 'object' && v !== null) {
       if (isColumn(v)) {
         if (v.length > bounds.maxColumnLength && !column) {
           column = true;
-          issues.push(bound('seq.lang.bound.column', `A column is longer than ${bounds.maxColumnLength}`, f));
+          say('seq.lang.bound.column', `A column is longer than ${bounds.maxColumnLength}`, f);
         }
-        bytes += columnBytes(v);
-      } else if (ArrayBuffer.isView(v)) bytes += v.byteLength;
+        budget.bytes += columnBytes(v);
+      } else if (ArrayBuffer.isView(v)) budget.bytes += v.byteLength;
       else if (Array.isArray(v)) {
-        bytes += 8;
-        for (let i = v.length - 1; i >= 0; i--)
-          if (!leaf(v[i], f, i)) stack.push({ value: v[i], node: false, depth: f.depth + 1, parent: f, steps: [i] });
+        budget.bytes += (v.length + 1) * ValueOverhead;
+        if (budget.bytes > bounds.maxBytes) return sizeIssue(f);
+        for (let i = v.length - 1; i >= 0; i--) {
+          if (!leaf(v[i], f, i)) stack.push(frame(v[i], f, i));
+          if (budget.bytes > bounds.maxBytes) return sizeIssue(f);
+        }
       } else {
-        for (const k of Object.keys(v)) {
-          bytes += k.length;
+        budget.bytes += ValueOverhead;
+        for (const k in v) {
+          if (!Object.hasOwn(v, k)) continue;
+          budget.bytes += ValueOverhead + k.length;
           const x = (v as Record<string, unknown>)[k];
-          if (!leaf(x, f, k)) stack.push({ value: x, node: false, depth: f.depth + 1, parent: f, steps: [k] });
+          if (!leaf(x, f, k)) stack.push(frame(x, f, k));
+          if (budget.bytes > bounds.maxBytes) return sizeIssue(f);
         }
       }
-    } else bytes += 8;
-    if (bytes > bounds.maxBytes) {
-      issues.push(bound('seq.lang.bound.size', `The spec is larger than ${bounds.maxBytes} bytes decoded`, f));
-      return issues;
     }
+    if (budget.bytes > bounds.maxBytes) return sizeIssue(f);
   }
-  return issues;
+  return { issues, bytes: budget.bytes };
 }
 
 /**
- * The nesting bounds of a subtree a patch made or moved, `at` levels below the root (an address's length): the first
- * place deeper than `maxDepth`, or the first query deeper than `maxQueryDepth`, as `checkSpecBounds` reports them, for
- * the cost of the subtree alone (`children` false: the node's own params only).
+ * The bounds a whole spec must pass, before the description reads it (nothing is allocated past a bound: the walk
+ * stops at the first it cannot pass). The issues: `seq.lang.bound.size`, `.depth` or `.shape` alone when the spec
+ * breaks one, else the first place of `.column` and `.query_depth`.
+ */
+export function checkSpecBounds(spec: Node, bounds: SpecBounds = DefaultSpecBounds): Issue[] {
+  return walk(spec, { bounds, path: [], at: 0, children: true }).issues;
+}
+
+/**
+ * What a node weighs by the size estimate (and the issues of its walk), for what is held by weight (a dynamic node of
+ * an answer): stops once past `bounds.maxBytes`.
+ */
+export function measureNode(node: unknown, bounds: SpecBounds = DefaultSpecBounds): { bytes: number; issues: Issue[] } {
+  return walk(node, { bounds, path: [], at: 0, children: true });
+}
+
+/**
+ * The bounds of a subtree a patch made or moved, `at` levels below the root (an address's length): the first place
+ * deeper than `maxDepth`, or the first query deeper than `maxQueryDepth`, as `checkSpecBounds` reports them, for the
+ * cost of the subtree alone. `children` false walks the node's own params, custom data and args; `keys` only those of
+ * its `params` or `custom` a change set. `budget` adds the bytes of this walk to a total kept by the caller (a patch's:
+ * `maxBytes` bounds what one patch makes and sets).
  */
 export function checkSubtreeDepth(
   node: Node,
@@ -175,54 +259,9 @@ export function checkSubtreeDepth(
   at: number,
   bounds: SpecBounds = DefaultSpecBounds,
   children = true,
+  extra: Pick<WalkOptions, 'keys' | 'budget'> = {},
 ): Issue[] {
-  const issues: Issue[] = [];
-  const stack: Frame[] = [{ value: node, node: true, depth: at, parent: undefined, steps: path }];
-  let query = false;
-  const leaf = (v: unknown, parent: Frame, ...steps: (string | number)[]): boolean => {
-    if (typeof v === 'object' && v !== null) return false;
-    if (
-      typeof v === 'string' &&
-      !query &&
-      v.charCodeAt(0) === 0x2f &&
-      v.includes('(') &&
-      queryDepth(v) > bounds.maxQueryDepth
-    ) {
-      query = true;
-      const at: Frame = { value: v, node: false, depth: parent.depth + 1, parent, steps: steps as TreePath };
-      issues.push(bound('seq.lang.bound.query_depth', `A query nests deeper than ${bounds.maxQueryDepth} forms`, at));
-    }
-    return true;
-  };
-  while (stack.length) {
-    const f = stack.pop()!;
-    if (f.depth > bounds.maxDepth) {
-      issues.push(bound('seq.lang.bound.depth', `The spec nests deeper than ${bounds.maxDepth} levels`, f));
-      return issues;
-    }
-    const v = f.value;
-    if (f.node) {
-      const n = v as Node;
-      for (let i = children || f.parent ? (n.children?.length ?? 0) - 1 : -1; i >= 0; i--)
-        stack.push({ value: n.children![i], node: true, depth: f.depth + 1, parent: f, steps: ['children', i] });
-      const params = n.params ?? {};
-      for (const k of Object.keys(params)) {
-        if (!leaf(params[k], f, 'params', k))
-          stack.push({ value: params[k], node: false, depth: f.depth + 1, parent: f, steps: ['params', k] });
-      }
-    } else if (typeof v === 'object' && v !== null && !ArrayBuffer.isView(v) && !(v instanceof CategoryColumn)) {
-      if (Array.isArray(v))
-        for (let i = v.length - 1; i >= 0; i--) {
-          if (!leaf(v[i], f, i)) stack.push({ value: v[i], node: false, depth: f.depth + 1, parent: f, steps: [i] });
-        }
-      else
-        for (const k of Object.keys(v)) {
-          const x = (v as Record<string, unknown>)[k];
-          if (!leaf(x, f, k)) stack.push({ value: x, node: false, depth: f.depth + 1, parent: f, steps: [k] });
-        }
-    }
-  }
-  return issues;
+  return walk(node, { bounds, path, at, children, ...extra }).issues;
 }
 
 /**
@@ -231,12 +270,12 @@ export function checkSubtreeDepth(
  */
 export class IssueCaps {
   private readonly perCode = new Map<string, number>();
-  private readonly perNode = new WeakMap<object, number>();
+  private readonly perNode = new Map<object | string, number>();
   private readonly lost = new Map<string, number>();
   constructor(private readonly bounds: SpecBounds = DefaultSpecBounds) {}
 
   /** Whether an issue of `code` on `node` is kept; counts it when it is not. */
-  keep(code: string, node: object): boolean {
+  keep(code: string, node: object | string): boolean {
     const byCode = this.perCode.get(code) ?? 0;
     const byNode = this.perNode.get(node) ?? 0;
     if (byCode >= this.bounds.maxPlaces || byNode >= this.bounds.maxNodeIssues) {
