@@ -72,7 +72,9 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
-    "typecheck:test": "tsc -p tsconfig.test.json"
+    "typecheck:test": "tsc -p tsconfig.test.json",
+    "test:perf": "vitest run -c vitest.perf.config.ts",
+    "size": "node ../_measure/sizes.mjs"
   },
   "dependencies": {
     "@molstar/core": "workspace:*",
