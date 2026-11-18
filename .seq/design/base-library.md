@@ -33,6 +33,7 @@ a guide and writing the generic piece in core with its test; `packages/seq` neve
 | histograms, array statistics | `@molstar/core/math/histogram`, `@molstar/core/util/array` | `calculateHistogram`, `arrayMinMax`, `arrayStats` |
 | number and value formatting | `@molstar/core/util/number`, `string-format` | `toPrecision`, `FormatTemplate` |
 | params, bindings | `@molstar/core/util/param-definition`, `binding` | `ParamDefinition`, `Binding` |
+| persistent collections | `@molstar/core/data/immutable` (new, [immutable.md](immutable.md)) | `HashMap`, `HashSet`, `OrderedHashMap`, `OrderedHashSet`, `Vector`, transients, cursors |
 | reactive state | `@molstar/core/reactive` | `State`, `derive`, `KeyedState`, `ReactiveModel` |
 | history, commands, keymaps | `@molstar/ui/history`, `commands` | `HistoryPort` (checkpoints) as the adapter behind Seq\*'s own history port, in a composition root only ([changes.md](changes.md)); `Keymap`, `CommandManager`; `forms` later, with the settings form |
 

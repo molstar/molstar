@@ -1,7 +1,8 @@
-# Merge in `@molstar/core/repr` (draft, for the author: lane K2's short agreement)
+# Merge in `@molstar/core/repr`
 
-Split from `patches.md` at the author's word (2026-11-18, "let's go with 1-5"). It answers the second review's R2-B2 and
-R2-B3, and its re-review's N-5 to N-8 ("apply N-1 to N-14 as recommended"). Once agreed, it moves to `.seq/design/merge.md`. Lane K2 builds it after lane K, and before lane N, whose rebase
+Agreed by the author at Gate 0 of the second slice (2026-11-18, "rest as recommended": both questions yes). Split from
+`patches.md` at the author's word (2026-11-18, "let's go with 1-5"). It answers the second review's R2-B2 and
+R2-B3, and its re-review's N-5 to N-8 ("apply N-1 to N-14 as recommended"). Lane K2 builds it after lane K, and before lane N, whose rebase
 test needs it.
 
 ## The function
@@ -93,7 +94,7 @@ A stale patch `p` made on `base` is rebased as `merge3(base, current, applyPatch
 with the same options on both calls, so `p`'s moves rewrite refs as they would have (N-8). `base`'s root comes from
 `SpecModel`'s recent roots, or from the host's `root(revision)`. It is the host's opt-in (patches.md, decision 4).
 
-## For the author
+## Decided at Gate 0
 
 1. **`partial` as ours plus theirs' independent changes** (recommended), or nothing but ours?
 2. **Orders compared as orders** (recommended: one side's new order taken, two different ones a conflict), rather than

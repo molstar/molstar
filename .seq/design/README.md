@@ -21,6 +21,8 @@ is the agreed direction with its details still open; it says what would settle t
 | [composition.md](composition.md) | one language with four levels (data, views, refs, snapshots); session apart; three compiled forms (resolved model, resolved view, draw lists) |
 | [changes.md](changes.md) | streaming and patches as one incremental model; every kind of change with where it lives and whether it is undoable, saved, addressable |
 | [patches.md](patches.md) | git's model for a spec: revisions as snapshots, commits, six patch operations with inverses, `diff` and `merge3`, the API of `repr/patch` |
+| [merge.md](merge.md) | `merge3`: a three-way merge by node identity, conflicts as data, orders compared as orders, rebase from a base root |
+| [immutable.md](immutable.md) | `@molstar/core/data/immutable`: CHAMP maps and sets, ordered maps and sets, a vector, transients; how `repr` uses them |
 | [dynamic-nodes.md](dynamic-nodes.md) | data that arrives as nodes (sequences, maps, annotations, nested sources, item coordinate systems), the resolved model's overlay, track templates |
 | [data-store.md](data-store.md) | where data read by region lives: keyed, versioned entries, pending vs empty, requests, eviction, settle and open domains |
 | [base-library.md](base-library.md) | what Seq\* reuses from `@molstar/core`, `io` and `ui`, what to extend, promote and add there (provisional, each the author's call) |

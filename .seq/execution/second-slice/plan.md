@@ -121,8 +121,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
 
 ### Stage 1: the base (three lanes in parallel, after Gate 0)
 
-- [ ] R (strong) `@molstar/core/data/immutable`, as `drafts/immutable.md` (draft 2) agreed at Gate 0 (moved to
-      `design/immutable.md` before the lane starts):
+- [ ] R (strong) `@molstar/core/data/immutable`, as `design/immutable.md` (agreed at Gate 0):
   - `HashMap`, `HashSet` (CHAMP, flat below a measured threshold), `OrderedHashMap`, `OrderedHashSet`, `Vector`
     (32-way with a tail), transients that read like the persistent collections, cursors, per-collection hash and
     equality (SameValueZero keys by default), `defaultHash` with a finalizer;
@@ -145,7 +144,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - the companion change in `seqx-core/lang`: `layer` ids required, `seq.lang.id.required` for every child, the
     builder and examples given ids, the language version moved (no migration: `0.x`);
   - format.md and tree-core.md as they now read; the `repr` `_spec` and a v6 changelog entry.
-- [ ] K2 (strong) `merge3`, as `drafts/merge.md` agreed at Gate 0 (moved to `design/merge.md` before the lane starts),
+- [ ] K2 (strong) `merge3`, as `design/merge.md` (agreed at Gate 0),
       after K: the result type, the conflict table, independence by node, the laws, rebase from a base root.
 - [ ] R+K (fast, after R and K; gated): `repr`'s ref index on `data/immutable`'s persistent trie, behind `RefIndex`,
       only if the measured case (a spec of 10,000 bookmark refs, edited by moves) shows the per-apply rebuild matters;

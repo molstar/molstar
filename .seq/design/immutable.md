@@ -1,8 +1,8 @@
-# Persistent collections in `@molstar/core/data/immutable` (draft 2, for the author's review)
+# Persistent collections in `@molstar/core/data/immutable`
 
-A draft for Gate 0 of the second slice, beside `patches.md`. Once approved, it is agreed into
-`.seq/design/immutable.md` and base-library.md lists the entry. Lane R builds exactly the surface in
-[The API](#the-api); anything past it stops the lane.
+Agreed by the author at Gate 0 of the second slice (2026-11-18, "rest as recommended"), after two independent reviews
+(Fable 5.2). base-library.md lists the entry. Lane R builds exactly the surface in [The API](#the-api); anything past
+it stops the lane.
 
 The author, 2026-11-18:
 - "shall we do a little yak shaving and implement packages/core/src/immutable? based on immutable.js and possibly other
@@ -17,7 +17,7 @@ The author, 2026-11-18:
 1-5"), then its focused re-review ("apply N-1 to N-14 as recommended"). Findings are cited where they land: R2-S12 to
 R2-S16, R2-C7 to R2-C10, N-9 to N-11.
 
-## Decisions
+## Decisions (agreed)
 
 1. **`repr` uses the collections behind an interface, and only once measured** (R2-S15, R2-S16; the author's point 5).
    Nodes keep their plain shape. Lane K builds `repr`'s ref index on plain `Map`s behind an internal interface, and that
