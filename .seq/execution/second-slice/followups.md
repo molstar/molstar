@@ -16,3 +16,6 @@
 - (K) `repr/tree/address.ts` (the child index) is reachable through core's `./*`; io imports `repr/tree/index` by
   path, so closing `./repr/tree/*` needs io moved to `./repr/tree` first.
 - (R) Core's other `_test` folders have 73 type errors; `tsconfig.test.json` covers `data/immutable` only.
+- The Complex dataset (examples.md, the author 2026-11-18): CDK2 with cyclin A, its interface, PAE and ligands with
+  AlphaFill's transplants. Its fixtures and views go to the slice that builds pairs across chains, dot plots and ligands
+  (the third slice's draft or later); the entries chosen then and checked against their sources.

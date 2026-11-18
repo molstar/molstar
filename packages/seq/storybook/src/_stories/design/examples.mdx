@@ -9,51 +9,78 @@ experience. Views appear in this group as they are built.
 
 ## Datasets
 
-| Dataset         | Holds                                                                                                                                               |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| p53             | the TP53 protein with features and variants, its gene on the minus strand with exons, the gene's region read by region, structure chains, orthologs |
-| Globins         | a family alignment with its tree, hemoglobin (α2β2 with heme), and a generated 10,000-row alignment                                                 |
-| Antibody        | a Fab numbered Kabat and IMGT, its CDRs, and a designed variant with indels against the wild type                                                   |
-| Plasmid         | a cyclic construct with features and a coding sequence across the origin, on both strands                                                           |
-| tRNA            | base pairs, nested and crossing, modified bases, and a covariance alignment                                                                         |
-| Genomes (later) | two small assemblies with an inversion and a translocation, genes, a signal track and a variant matrix, read by region                              |
+| Dataset         | Holds                                                                                                                                                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| p53             | the TP53 protein with features and variants, its gene on the minus strand with exons, the gene's region read by region with a conservation signal, structure chains with unobserved residues, orthologs                                           |
+| Globins         | a family alignment with its tree, hemoglobin (α2β2 with heme), and a generated 10,000-row alignment                                                                                                                                               |
+| Antibody        | a Fab numbered Kabat and IMGT, its CDRs, and a designed variant with indels against the wild type                                                                                                                                                 |
+| Plasmid         | a cyclic construct with features and a coding sequence across the origin, on both strands, and restriction sites                                                                                                                                  |
+| tRNA            | base pairs, nested and crossing, modified bases, and a covariance alignment                                                                                                                                                                       |
+| Complex         | CDK2 with cyclin A: a crystal structure with ATP (two copies of the complex), a predicted model with its confidence and PAE, the interface and its contacts, and the ligands AlphaFill transplants into CDK2's AlphaFold model, with their scores |
+| Genomes (later) | two small assemblies with an inversion and a translocation, genes, a signal track and a variant matrix, read by region                                                                                                                            |
 
 ## Views
 
 Each dataset carries many views, for example:
 
 - **p53**:
-  - a text figure with feature underlines;
+  - a text figure with feature underlines and variant marks;
   - tracks with features, values and secondary structure;
-  - the protein on its gene, introns collapsed;
-  - structure chains with unobserved residues;
+  - the protein on its gene through codons, introns collapsed, on the minus strand;
+  - structure chains linked, unobserved residues gray, copies merged and split;
+  - the gene's region, region by region, with its conservation signal;
+  - the minus-strand gene's features in both directions;
   - orthologs with hover across rows;
-  - search, results and bookmarks;
+  - search, results stepping and bookmarks;
   - a story in snapshots.
 - **Globins**:
   - the family with a conservation logo, rows ordered by the tree;
-  - collapsed clades;
+  - collapsed clades with a summary;
   - an ESPript-style figure;
-  - the hemoglobin complex;
-  - 10,000 rows with a keyboard cursor.
+  - the hemoglobin complex with heme chips and copy groups;
+  - 10,000 rows, loaded lazily, with a keyboard cursor.
 - **Antibody**:
   - Kabat and IMGT numbering side by side;
   - the design against the wild type, with indel carets;
   - editing CDR bookmarks, with undo.
 - **Plasmid**:
   - a ring with a linear detail that follows its window;
-  - a feature across the origin.
+  - a feature across the origin, selected and focused by the shortest arc;
+  - the rotated linear view.
 - **tRNA**:
-  - arcs;
-  - a base-pair dot plot with crosshair hover and rectangle selection.
+  - arcs, nested and crossing;
+  - a base-pair dot plot with crosshair hover and rectangle selection;
+  - the covariance alignment with its pairs.
+- **Complex**:
+  - the chains with the interface residues, and the contacts as arcs across the chains;
+  - the PAE as a dot plot over the same window as the tracks: hover lights both residues, a dragged rectangle selects
+    two ranges;
+  - confidence and secondary structure tracks, unobserved residues gray;
+  - the ligands after the polymers: ATP as one position or per heavy atom, AlphaFill's transplants with their scores,
+    and the residues a chosen ligand contacts;
+  - a text figure with ligand chips that flow like words;
+  - the two copies merged into one block labeled ×2, and split again;
+  - the interface bookmarked, with undo.
 - **Genomes** (a later milestone):
   - synteny ribbons with an inversion;
   - a dot plot of one genome against the other;
-  - a signal track by region;
-  - a variant matrix.
+  - signals by region, many from one file;
+  - a Manhattan plot colored by LD;
+  - a variant matrix by sample, and methylation by region.
 
 Editing is a view too: add a bookmark, hide or reorder a track, change a theme, record a snapshot. Each comes with undo
-and redo, and the printed spec updates beside it.
+and redo, a preview that ends in one change or a cancel, and the printed spec updating beside it.
+
+## Showcases
+
+Three pages compose what an application would, rather than a core feature:
+
+- **Services**: UniProt, PDBe and AlphaFold DB as sources, from recorded responses, with a switch to go live.
+- **Predictions onto a structure**: a lab's per-position values on a plain sequence, mapped onto a structure through its
+  numbering (an offset, insertion codes, unobserved loops, an expression tag), colored on the sequence and in Mol\*,
+  with hover and selection both ways.
+- **Addressing**: a text whose links focus, highlight and select in the view and in the structure; copy link; one
+  location in several numberings; rectangles from a dot plot and an alignment; bookmarks as refs.
 
 ## Every view, three ways
 

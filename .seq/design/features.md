@@ -60,7 +60,7 @@ that shows it (dataset: view).
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
 | Sequences, units, complexes, copies | molecules shared by units, copy groups | building: sequences and units; complexes and copies not | [building-blocks](building-blocks.md) | 35, 36, 65–67 | Globins: hemoglobin |
-| Ligands | one position or one per atom; chips in text | planned | [building-blocks](building-blocks.md) | 64, 99 | Globins: hemoglobin with heme |
+| Ligands | one position or one per atom; chips in text | planned | [building-blocks](building-blocks.md) | 64, 99 | Globins: hemoglobin with heme; Complex: ATP and AlphaFill's transplants |
 | Alignments | gaps, insert columns, numbered rows, lazy rows | planned | [building-blocks](building-blocks.md) | 38–44 | Globins: family |
 | Trees | given (Newick) or computed; clades collapse | planned | — | 43, 100, 103 | Globins: family by tree |
 | Annotations, six shapes | ranges, values, pairs, matrix, grid, rows | building: ranges and values | [building-blocks](building-blocks.md) | 45–63 | every dataset |
