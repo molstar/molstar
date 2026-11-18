@@ -205,7 +205,7 @@ export class OrderedHashMapImpl<K, V> {
         holes--;
       }
     } else {
-      slots = this.slots.set(2 * s, Hole).set(2 * s + 1, Hole);
+      slots = this.slots.setPair(2 * s, Hole, Hole);
       holes++;
     }
     if (index.size === 0) {

@@ -80,17 +80,15 @@ export function setConfig(cfg: Resolved): Resolved {
 export class HashSetImpl<K> {
   private _hash: number | undefined = undefined;
   private dead = false;
-  /** the trie's config (`setConfig`) */
-  private readonly trie: Resolved;
 
   constructor(
     public root: Root,
     public size: number,
     public cfg: Resolved,
     public owner: Owner | null,
-  ) {
-    this.trie = setConfig(cfg);
-  }
+    /** the trie's config (`setConfig`), passed on by edits: a `WeakMap` lookup an edit otherwise */
+    private readonly trie: Resolved = setConfig(cfg),
+  ) {}
 
   has(key: K): boolean {
     return rootGet(this.root, key, this.trie) !== NotFound;
@@ -140,7 +138,9 @@ export class HashSetImpl<K> {
 
   private edited(root: Root, size: number): any {
     if (this.owner === null) {
-      return root === this.root && size === this.size ? this : new HashSetImpl<K>(root, size, this.cfg, null);
+      return root === this.root && size === this.size
+        ? this
+        : new HashSetImpl<K>(root, size, this.cfg, null, this.trie);
     }
     this.root = root;
     this.size = size;
@@ -164,14 +164,14 @@ export class HashSetImpl<K> {
       if (this.dead) deadHandle();
       return this;
     }
-    return new HashSetImpl<K>(this.root, this.size, this.cfg, newOwner());
+    return new HashSetImpl<K>(this.root, this.size, this.cfg, newOwner(), this.trie);
   }
 
   asImmutable(): HashSet<K> {
     if (this.owner === null) return this as any;
     if (this.dead) deadHandle();
     this.dead = true;
-    return new HashSetImpl<K>(this.root, this.size, this.cfg, null) as any;
+    return new HashSetImpl<K>(this.root, this.size, this.cfg, null, this.trie) as any;
   }
 
   withMutations(fn: (s: MutableHashSet<K>) => void): HashSet<K> {

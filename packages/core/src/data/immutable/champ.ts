@@ -139,19 +139,25 @@ function keyEquals(cfg: Resolved, a: any, b: any) {
 
 // --- reads ---
 
-function flatGet(entries: any[], key: any, cfg: Resolved): any {
+/** The index of `key` in `[k0, v0, …]`, or −1: SameValueZero inlined. */
+function flatIndex(entries: any[], key: any, cfg: Resolved): number {
   const n = entries.length;
   if (cfg.defaultEquals) {
     if (!Number.isNaN(key)) {
-      for (let i = 0; i < n; i += 2) if (entries[i] === key) return entries[i + 1];
+      for (let i = 0; i < n; i += 2) if (entries[i] === key) return i;
     } else {
-      for (let i = 0; i < n; i += 2) if (Number.isNaN(entries[i])) return entries[i + 1];
+      for (let i = 0; i < n; i += 2) if (Number.isNaN(entries[i])) return i;
     }
-    return NotFound;
+    return -1;
   }
   const eq = cfg.equals;
-  for (let i = 0; i < n; i += 2) if (eq(entries[i], key)) return entries[i + 1];
-  return NotFound;
+  for (let i = 0; i < n; i += 2) if (eq(entries[i], key)) return i;
+  return -1;
+}
+
+function flatGet(entries: any[], key: any, cfg: Resolved): any {
+  const i = flatIndex(entries, key, cfg);
+  return i < 0 ? NotFound : entries[i + 1];
 }
 
 function trieGet(node: TrieNode, hash: number, key: any, cfg: Resolved): any {
@@ -235,8 +241,8 @@ function collisionSet(
     return mergeNodeAndEntry(node, node.hash, key, value, hash, shift, owner);
   }
   const e = node.entries;
-  for (let i = 0; i < e.length; i += 2) {
-    if (!keyEquals(cfg, e[i], key)) continue;
+  const i = flatIndex(e, key, cfg);
+  if (i >= 0) {
     if (cfg.valueEquals(e[i + 1], value)) return node;
     Edit.changed = true;
     if (editable(node, owner)) {
@@ -343,8 +349,8 @@ export function rootSet(root: Root, size: number, key: any, value: any, cfg: Res
   if (root.kind === KindFlat) {
     const e = root.entries;
     const n = e.length;
-    for (let i = 0; i < n; i += 2) {
-      if (!keyEquals(cfg, e[i], key)) continue;
+    const i = flatIndex(e, key, cfg);
+    if (i >= 0) {
       if (cfg.valueEquals(e[i + 1], value)) return root;
       Edit.changed = true;
       if (editable(root, owner)) {
@@ -389,8 +395,8 @@ function singletonContent(node: TrieNode) {
 function collisionDelete(node: CollisionNode, hash: number, key: any, cfg: Resolved, owner: Owner | null): TrieNode {
   if (hash !== node.hash) return node;
   const e = node.entries;
-  for (let i = 0; i < e.length; i += 2) {
-    if (!keyEquals(cfg, e[i], key)) continue;
+  const i = flatIndex(e, key, cfg);
+  if (i >= 0) {
     Edit.removed = true;
     if (editable(node, owner)) {
       removePairInPlace(e, i);
@@ -482,8 +488,8 @@ export function rootDelete(root: Root, size: number, key: any, cfg: Resolved, ow
   resetEdit();
   if (root.kind === KindFlat) {
     const e = root.entries;
-    for (let i = 0; i < e.length; i += 2) {
-      if (!keyEquals(cfg, e[i], key)) continue;
+    const i = flatIndex(e, key, cfg);
+    if (i >= 0) {
       Edit.removed = true;
       if (editable(root, owner)) {
         removePairInPlace(e, i);

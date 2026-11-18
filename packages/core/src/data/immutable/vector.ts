@@ -301,6 +301,24 @@ export class VectorImpl<T> {
     return this.owner === null ? m.asImmutable() : m;
   }
 
+  /** Sets `index` and `index + 1` (an even `index`: one leaf) in one path copy, an ordered map's slot (README §2). */
+  setPair(index: number, a: any, b: any): any {
+    this.check();
+    const owner = this.owner;
+    if (index >= tailOffset(this.size)) {
+      let t = this.tail;
+      if (owner === null || !this.tailOwned) {
+        t = t.slice();
+        if (owner !== null) this.tailOwned = true;
+      }
+      t[index & 31] = a;
+      t[(index & 31) + 1] = b;
+      return this.result(this.size, this.shiftBits, this.root, t);
+    }
+    const root = assocPair(owner, this.shiftBits, this.root, index, a, b);
+    return this.result(this.size, this.shiftBits, root, this.tail);
+  }
+
   /** `set` without the no-op check: `remove` moves values that may be equal. */
   private setUnchecked(index: number, value: T) {
     if (index >= tailOffset(this.size)) {
@@ -338,6 +356,18 @@ export class VectorImpl<T> {
     fn(m);
     return m.asImmutable();
   }
+}
+
+function assocPair(owner: Owner | null, level: number, node: VNode, index: number, a: any, b: any): VNode {
+  const n = editable(node, owner) ? node : new VNode(owner, node.array.slice());
+  if (level === 0) {
+    n.array[index & 31] = a;
+    n.array[(index & 31) + 1] = b;
+  } else {
+    const i = (index >>> level) & 31;
+    n.array[i] = assocPair(owner, level - 5, n.array[i], index, a, b);
+  }
+  return n;
 }
 
 function assoc(owner: Owner | null, level: number, node: VNode, index: number, value: any): VNode {
