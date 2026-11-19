@@ -370,8 +370,9 @@ and dark before the merge.
       this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DC writes ATP's two forms (one position, its atoms)
       without a map (0.4.0 has only offset and codon maps; MD's gap 9), and DT its tRNA's modified
       nucleotides as their parents' letters (the components kept in the fixture for the fourth slice), changed once then.
-- [x] GATE (2026-11-19, after DA: quick 2594, medium 9, workspace green; sizes 211 / 677 / 1064 / 1000 kB, over
-      target as stage 7 records; gaps in followups): merged, reviewed, the checks green, sizes, gaps; MD's design decided (done early: agreed 2026-11-19,
+- [ ] GATE (2026-11-19, after DA: quick 2594, medium 9, workspace green; sizes 211 / 677 / 1064 / 1000 kB, over
+      target as stage 7 records; gaps in followups; the quick lane's examples 2.04 s and storybook 2.45 s over the 2 s
+      guide: QT2 fixing): merged, reviewed, the checks green, sizes, gaps; MD's design decided (done early: agreed 2026-11-19,
       `.seq/design/molecules.md`).
 
 ### Stage 6: output, accessibility and use

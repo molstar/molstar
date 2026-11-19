@@ -254,3 +254,5 @@ None.
   ruler's numbering source). examples.md corrected: IMGT from SAbDab, Kabat derived from IMGT, ANARCI later. Quick
   2594, medium 9, workspace green. Sizes: reading 211.2, headless 676.7, viewer default 1063.6, minimal 999.6 kB.
   Stage 5's gate passed; stage 6: the NOVICE PASS next.
+- Stage 5's gate reopened: the quick lane's examples 2.04 s and storybook 2.45 s are over the 2 s guide (core 1.91,
+  viewer 1.86, seq 6.37 s in all); QT2 (fast) fixing. The NOVICE PASS (fast) starts beside it.
