@@ -17,13 +17,13 @@ row say:
    same curve (the clip a `clipPath` in SVG). Emphasis drawn per track (a selection box a track) follows the well's
    shape; tints under the data stay inside the clip.
 
-3. **Shapes of emphasis** (the author, 2026-11-19: "Yes, into TW"; ux-foundations §5, "A highlight takes the shape of
-   what it marks"): the hover's outline around a chip (`render/marks.ts`, today radius 0, as a cell's) is the chip's
-   squircle plus the hover offset, concentric; highlight channels (`tint`, `band`, `outline` styles) on a discrete
-   item (a ranges item, a chip, a bookmark) take the item's squircle, concentric; over positions (letters, cells, a
-   column, a grid rect) they stay rects; cut ends square; a highlight across a whole track clipped by the well. Tests:
-   a hovered chip's outline radius is the chip's plus the offset; a highlighted range item's outline is a squircle and a
-   highlighted letter span's a rect; both in canvas and SVG.
+3. **Every emphasis a squircle** (the author, 2026-11-19: "Yes, into TW", then "Yes, round all"; ux-foundations §5,
+   "Every emphasis is a squircle"): as the selection's tint and outline already are (`Paint[3] = 1` in
+   `render/tracks.ts`): the projected hover (`Paint[3] = 0` today), the highlight stripes in every style (`tint`,
+   `band`, `outline`: 0 today), the cell hover of letters, logo and values (`render/marks.ts` `hoverCell`, radius 0)
+   and a chip's hover outline, each round where its span really ends, square where cut, square below `squircleMin`,
+   an outline's radius the mark's plus its offset (concentric). Tests: each of these in canvas and SVG has the radius,
+   a cut end stays square, a cell narrower than the minimum stays square.
 
 **Tests** (fail on the parent): padding moves the data's band and not the well's top; a hit at the padding is no
 item; a top-only padding; a ring's radial padding; validation issues; the well's path in canvas and SVG at several

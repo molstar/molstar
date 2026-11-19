@@ -224,3 +224,5 @@ None.
   `packages-seq` first); NB running; queued strong: CY (DC's slot), then TW, DA (after NB).
 - Decided (the author, 2026-11-19, "Yes, into TW"): a highlight takes the shape of what it marks; the hover outline
   around a chip made concentric (ux-foundations §5). TW's brief gains it.
+- Amended (the author, 2026-11-19, "Yes, round all"): every emphasis is a squircle as the selection already is (the
+  earlier "a rect over positions" dropped); TW's item 3.
