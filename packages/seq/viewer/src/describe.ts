@@ -418,6 +418,7 @@ class Words {
     const a = owner ? model.annotations.get(owner) : undefined;
     const f = a?.items?.find((i) => i.key === key)?.fields?.strand;
     if (typeof f === 'string') return f === '-' ? '−' : f === '+' ? '+' : '';
+    if (typeof f === 'number') return f < 0 ? '−' : f > 0 ? '+' : '';
     const src = layerSource(model, l.layer);
     if (!src) return '';
     const store = this._src.store.store;
