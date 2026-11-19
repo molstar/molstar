@@ -9,6 +9,7 @@
 // `node:fs`) is an entry of its own, so a browser bundle of the views never pulls it in.
 
 export {
+  AntibodyViews,
   ComplexViews,
   ExampleViews,
   type ExampleView,

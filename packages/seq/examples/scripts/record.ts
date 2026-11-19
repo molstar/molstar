@@ -22,7 +22,8 @@
 // base pairs as `seq` files) and Rfam RF00005's seed (CC0-1.0, Stockholm as published); `complex`, PDB 1FIN (CC0-1.0)
 // converted to `seq` with its derived contacts, the ligands of six CC0 entries of CDK2 (AlphaFill's transplants are not
 // taken: its usage policy states no CC BY 4.0 or looser licence, the data's decisions, 1), UniProt P24941 and P20248
-// trimmed, and AlphaFold DB's per-residue confidence of both chains as published (CC-BY-4.0).
+// trimmed, and AlphaFold DB's per-residue confidence of both chains as published (CC-BY-4.0); `antibody`, PDB 1N8Z's
+// Fab chains (CC0-1.0) as FASTA and SAbDab's IMGT numbering of them (CC-BY-4.0) as `seq`, Kabat's derived from it.
 
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -60,6 +61,16 @@ import {
   seqText,
 } from '../src/plasmid/derive.ts';
 import { HemeContacts } from '../src/globins/hemes.ts';
+import { kabatFromImgt } from '../src/antibody/numbering.ts';
+import {
+  Entry as FabEntry,
+  FabChains,
+  fabChains,
+  fabFasta,
+  numberingSeq,
+  type Segment,
+  segmentLabels,
+} from '../src/antibody/record-trim.ts';
 import {
   ContactDistance,
   cifChains,
@@ -554,7 +565,108 @@ async function globins(): Promise<Row[]> {
   ];
 }
 
-const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = { p53, globins, plasmid, trna, complex };
+/** SAbDab's API (SAbDab2): an entry by its extended PDB id, a numbered segment (a variable domain, IMGT) by its id. */
+const SabdabApi = 'https://sabdab.opig.stats.ox.ac.uk/api';
+const SabdabAttribution =
+  'SAbDab (Dunbar et al. 2014; Schneider et al. 2022), Oxford Protein Informatics Group, CC BY 4.0';
+
+/**
+ * The Antibody: PDB 1N8Z's light and heavy chains (CC0-1.0) as FASTA, SAbDab's IMGT numbering of their variable domains
+ * (CC-BY-4.0) as a `seq` numbering file, and Kabat's derived from it in code (`src/antibody/numbering.ts`). SAbDab2
+ * serves IMGT's numbering alone, so Chothia's is not taken.
+ */
+async function antibody(): Promise<Row[]> {
+  const dir = join(Folder, 'fixtures', 'antibody');
+  mkdirSync(dir, { recursive: true });
+  const day = new Date().toISOString().slice(0, 10);
+  const cifUrl = `https://files.rcsb.org/download/${FabEntry}.cif`;
+  const cif = await fetchText(cifUrl, 'text/plain', `${FabEntry}.cif`);
+  const chains = fabChains(cif);
+  const pdbId = `pdb_0000${FabEntry.toLowerCase()}`;
+  const entryUrl = `${SabdabApi}/pdb/${pdbId}`;
+  const entry = JSON.parse(await fetchText(entryUrl, 'application/json', 'sabdab-entry.json'));
+  const pairId = `${pdbId}-${FabChains.heavy.asym}-${FabChains.light.asym}`;
+  const pair = entry.antibody_instances.find((a: { id: string }) => a.id === pairId);
+  if (!pair) throw new Error(`${entryUrl}: no antibody ${pairId}`);
+  const segmentUrls = {
+    light: `${SabdabApi}/numerable-segment/${pair.light_like_segment_id}`,
+    heavy: `${SabdabApi}/numerable-segment/${pair.heavy_like_segment_id}`,
+  };
+  const segmentTexts = {
+    light: await fetchText(segmentUrls.light, 'application/json', 'sabdab-light.json'),
+    heavy: await fetchText(segmentUrls.heavy, 'application/json', 'sabdab-heavy.json'),
+  };
+  const imgt = {
+    light: segmentLabels(JSON.parse(segmentTexts.light) as Segment, chains.light.letters),
+    heavy: segmentLabels(JSON.parse(segmentTexts.heavy) as Segment, chains.heavy.letters),
+  };
+  const kabat = { light: kabatFromImgt('light', imgt.light), heavy: kabatFromImgt('heavy', imgt.heavy) };
+  const write = (name: string, text: string) => {
+    writeFileSync(join(dir, name), text);
+    return readFileSync(join(dir, name), 'utf8');
+  };
+  const both = (of: typeof imgt) =>
+    (['light', 'heavy'] as const).map((c) => ({ name: FabChains[c].name, labels: of[c] }));
+  const fasta = write(`${FabEntry}.fasta`, fabFasta(chains));
+  const imgtSeq = write(`${FabEntry}-imgt.seq`, numberingSeq(both(imgt)));
+  const kabatSeq = write(`${FabEntry}-kabat.seq`, numberingSeq(both(kabat)));
+  const derived = {
+    light: { letters: chains.light.letters, imgt: imgt.light },
+    heavy: { letters: chains.heavy.letters, imgt: imgt.heavy },
+  };
+  writeFileSync(
+    join(Folder, 'src', 'antibody', 'derived-data.ts'),
+    `${Header}\nimport type { Derived } from './derived.js';\n\n// Written by \`scripts/record.ts antibody\` from PDB 1N8Z and SAbDab's numbering of it, compared with the files of\n// \`fixtures/antibody/\` by the fixtures test. Do not edit.\n\nexport const DerivedData: Derived = ${JSON.stringify(derived)};\n`,
+  );
+  const segments = segmentTexts.light + segmentTexts.heavy;
+  const sabdab = {
+    url: `${segmentUrls.light} ${segmentUrls.heavy}`,
+    recorded: day,
+    licence: ['CC-BY-4.0'],
+    attribution: `${SabdabAttribution}; numbered segments ${pair.light_like_segment_id} (light) and ${pair.heavy_like_segment_id} (heavy) of ${pairId}`,
+    bytesDownloaded: bytesOf(segments),
+    sha256Download: sha256(segments),
+  };
+  return [
+    {
+      file: `antibody/${FabEntry}.fasta`,
+      entry: `PDB ${FabEntry}, trastuzumab (Herceptin) Fab with the HER2 extracellular domain (Cho et al. 2003), chains A and B`,
+      url: cifUrl,
+      recorded: day,
+      licence: ['CC0-1.0'],
+      attribution: `wwPDB, PDB ${FabEntry}, CC0 1.0, as served by RCSB PDB`,
+      trimmed:
+        'chains A (light) and B (heavy) only, HER2 (chain C) not taken: each entity’s canonical letters (`_entity_poly`) and description (`_entity`) as a FASTA record named by entry and chain; coordinates and everything else dropped',
+      derived: 'none',
+      bytesDownloaded: bytesOf(cif),
+      bytesFixture: bytesOf(fasta),
+      sha256Download: sha256(cif),
+      sha256Fixture: sha256(fasta),
+    },
+    {
+      ...sabdab,
+      file: `antibody/${FabEntry}-imgt.seq`,
+      entry: `SAbDab, IMGT numbering of ${FabEntry}’s variable domains (light chain A, heavy chain B)`,
+      trimmed:
+        'each segment’s numbering only (its IMGT positions with a residue; the `-` positions and every other member dropped), placed on its chain of the FASTA file (the domain found in the chain’s letters, each residue checked), converted to seq: a range a position of the chain, its IMGT label, none outside the variable domain',
+      derived: 'none',
+      bytesFixture: bytesOf(imgtSeq),
+      sha256Fixture: sha256(imgtSeq),
+    },
+    {
+      ...sabdab,
+      file: `antibody/${FabEntry}-kabat.seq`,
+      entry: `Kabat numbering of ${FabEntry}’s variable domains, derived from SAbDab’s IMGT numbering`,
+      trimmed: 'as the IMGT file',
+      derived:
+        'Kabat’s labels computed from the IMGT labels by src/antibody/numbering.ts (counted between the anchors IMGT 23, 41, 104 and 118; insertions lettered after L27, L95, H35, H52 and H100); SAbDab2 serves IMGT’s numbering alone, so they are not derived from Chothia’s',
+      bytesFixture: bytesOf(kabatSeq),
+      sha256Fixture: sha256(kabatSeq),
+    },
+  ];
+}
+
+const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = { p53, globins, plasmid, trna, complex, antibody };
 
 async function main(name: string | undefined) {
   if (!name || !Datasets[name]) throw new Error(`usage: record.ts ${Object.keys(Datasets).join(' | ')}`);
