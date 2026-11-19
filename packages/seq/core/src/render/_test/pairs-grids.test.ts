@@ -161,8 +161,9 @@ describe('the grid layer', () => {
     const ay = lay.axisY!;
     a.cell(2);
     const x = (a.sx0 + a.sx1) / 2;
+    // a cell not drawn is still the plot's cell under the point (the crosshair hovers the whole plot)
     ay.cell(5);
-    expect(hitView(f.layout, x, (ay.sx0 + ay.sx1) / 2)).toBeUndefined();
+    expect(hitView(f.layout, x, (ay.sx0 + ay.sx1) / 2)).toMatchObject({ position: 2, yPosition: 5 });
     ay.cell(1);
     expect(hitView(f.layout, x, (ay.sx0 + ay.sx1) / 2)).toMatchObject({ position: 2, yPosition: 1 });
   });

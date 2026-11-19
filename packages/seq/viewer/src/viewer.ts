@@ -1085,6 +1085,9 @@ export class SeqViewer extends ReactiveModel {
     (h as { position: number | undefined }).position = Number.isNaN(r.position) ? undefined : r.position;
     (h as { element: unknown }).element = r.element;
     (h as { extent: unknown }).extent = r.extent;
+    // a cell of two axes (a grid's, a rows cell): its second position, what the crosshair draws
+    (h as { ySystem: string | undefined }).ySystem = r.ySystem;
+    (h as { yPosition: number | undefined }).yPosition = Number.isNaN(r.yPosition) ? undefined : r.yPosition;
     e.hover = h;
   }
 

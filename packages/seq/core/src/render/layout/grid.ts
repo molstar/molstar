@@ -7,8 +7,8 @@
 // The grid layout (_spec/README.md "Render", The grid layout): a section of two axes, one strip, the plot, whose
 // transform is x and which carries a second transform `strip.y` down its frame (read by a layer as `ctx.axisY`). Its
 // tracks' bands overlay the plot (later tracks over earlier, the last one's layers hit first). Its height is the data
-// box's width over `aspect` (1: square cells), capped by the view's room less a tenth, at least two rows; `aspect:
-// none` leaves it to the tracks' heights. Its viewport is the tracks' window plus `y` when y has a window of its own.
+// box's width over `aspect` (1: square cells), capped by the view's room below it less a tenth (never below
+// `heights.grid`), at least two rows; `aspect: none` leaves it to the tracks' heights. Its viewport is the tracks' window plus `y` when y has a window of its own.
 
 import { AxisTransform, type Viewport } from '../axis.js';
 import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
@@ -111,7 +111,10 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
       for (const x of ctx.heights) h = Math.max(h, x);
     } else {
       const a = typeof aspect === 'number' && aspect > 0 ? aspect : 1;
-      h = Math.max(MinHeight, Math.min(width / a, ctx.height * RoomShare));
+      // the room below the section's top less a tenth, never below a grid track's default height: a view sized to its
+      // content (whose height follows the plot's) keeps a stable plot
+      const room = Math.max(config.heights.grid, (ctx.height - top) * RoomShare);
+      h = Math.max(MinHeight, Math.min(width / a, room));
     }
     const i = strips.add(ctx.axis, 0, 0, 0, ctx.axis.u0);
     for (let j = 0; j < ctx.bands.length; j++) {

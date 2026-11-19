@@ -216,7 +216,8 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     if (!a || !ay || !lay.grid) return undefined;
     const i = a.positionAt(x);
     const j = ay.positionAt(y);
-    if (i < 0 || j < 0 || !kept(lay.triangle, i, j)) return undefined;
+    // the cell under the point, drawn or not (a triangle's other half, a missing value): a plot's every point is a cell
+    if (i < 0 || j < 0) return undefined;
     const h = lay.scratch;
     h.layer = lay.key;
     h.section = lay.section;
