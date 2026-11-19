@@ -119,7 +119,7 @@ export const P53Views: readonly ExampleView[] = [
     id: 'gene-region-ideogram',
     title: 'Gene region on chr17’s ideogram',
     summary:
-      'The gene’s region with chromosome 17’s ideogram above it (GRCh38’s bands, the centromere two triangles): the region’s window on the chromosome, the rest washed. Hover a band for its name.',
+      'The gene’s region with chromosome 17’s ideogram above it (GRCh38’s bands, the centromere two triangles): the region, a sliver of the chromosome, marked on it, and a zoom strip under it over the region alone, its window dragged and resized there. Hover a band for its name, the mark for the region.',
     build: navigators.geneRegionIdeogram,
     registry: geneByRegion.registry,
   },

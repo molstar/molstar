@@ -41,9 +41,11 @@ export const ProteinStripWithItsGene: StoryObj = {
 };
 
 /**
- * The gene's region with chromosome 17's ideogram above it (GRCh38's bands, the centromere two triangles): the region's
- * window on the chromosome, the rest of it washed (out of reach). Hover a band for its name; drag the window, click
- * outside it, double-click. The SVG beside it includes the ideogram, its window an outline titled with its positions.
+ * The gene's region with chromosome 17's ideogram above it (GRCh38's bands, the centromere two triangles): the region,
+ * a sliver of the chromosome, marked on it, and a zoom strip under it over the region alone, joined to the mark by two
+ * lines. Hover a band for its name, the mark for the region; drag the zoom strip's window, its grips, click outside it,
+ * double-click. The SVG beside it includes the ideogram and its zoom strip, the window an outline titled with its
+ * positions.
  */
 export const GeneRegionOnChr17: StoryObj = {
   render: () => exampleStory(view('gene-region-ideogram'), { navigators: 'include' }),

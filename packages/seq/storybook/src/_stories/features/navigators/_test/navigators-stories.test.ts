@@ -46,12 +46,13 @@ describe('the navigators’ examples, headless', () => {
     const { nav, f } = await navigator(viewer, 'chr17');
     const w = f.windows[0];
     expect(w.shown).toBe(true);
-    // the region is a sliver of the chromosome: its window floored, the rest washed
-    expect(w.dx1 - w.dx0).toBeGreaterThanOrEqual(viewer.context.renderConfig.navigator.window.minPx - 1e-6);
+    // the region is a sliver of the chromosome: its window on the zoom strip under the ideogram
+    expect(nav.height).toBe(24 + 16);
+    expect(w.ly).toBeGreaterThanOrEqual(24);
     nav.move(nav.width * 0.6, 12);
     expect(nav.readout.value).toMatch(/^chr17:[\d,]+ · q\d/);
     // over the window: what it shows
-    nav.move((w.dx0 + w.dx1) / 2, 12);
+    nav.move((w.dx0 + w.dx1) / 2, (w.ly + w.hy) / 2);
     expect(nav.readout.value).toBe('chr17:7,666,403–7,672,402 of chr17');
     const r = await svg(viewer);
     expect(r.settled).toBe(true);
@@ -145,6 +146,84 @@ describe('the navigators’ examples, headless', () => {
     expect(f.windows[0].wrap).toBe(true);
     const r = await svg(v);
     expect(r.svg).toContain('data-navigator="strip"');
+  });
+});
+
+describe('the zoom strip of chr17’s ideogram over the gene’s region, headless', () => {
+  const Region = '/views/main/region';
+
+  /** The gene region's viewer at a range of the region, its ideogram drawn; the region's length and the strip's px. */
+  async function zoomed(start: number, end: number) {
+    viewer = await openExample(P53Views.find((v) => v.id === 'gene-region-ideogram')!, { gene: regionSeqText() });
+    const v = viewer;
+    v.view.setRange(Region, start, end);
+    v.draw();
+    const { nav, f } = await navigator(v, 'chr17');
+    const total = v.frame!.layout.sections.find((s) => s.section.address === Region)!.axis!.total;
+    return { v, nav, f, total, perPx: total / nav.width };
+  }
+
+  it('a drag on the zoom strip’s body pans the view by the zoom strip’s scale', async () => {
+    const { v, nav, f, perPx } = await zoomed(1000, 2000);
+    const w = f.windows[0];
+    const x = (w.dx0 + w.dx1) / 2;
+    const y = (w.ly + w.hy) / 2;
+    expect(nav.hit(x, y)?.part).toBe('body');
+    expect(nav.down(x, y)).toBe(true);
+    nav.move(x + 40, y);
+    nav.up();
+    const r = v.view.get(Region)!;
+    expect(r.start).toBeCloseTo(1000 + 40 * perPx, -1);
+    expect(r.end - r.start).toBeCloseTo(1000, 0);
+  });
+
+  it('a grip zooms: the end dragged, the start held', async () => {
+    const { v, nav, f, perPx } = await zoomed(1000, 2000);
+    const w = f.windows[0];
+    const y = (w.ly + w.hy) / 2;
+    const x = w.dx1 + 2;
+    expect(nav.hit(x, y)?.part).toBe('end');
+    expect(nav.down(x, y)).toBe(true);
+    nav.move(x + 40, y);
+    nav.up();
+    const r = v.view.get(Region)!;
+    expect(r.start).toBeCloseTo(1000, 0);
+    // the end where the pointer is, at the zoom strip's scale (a px of it is `perPx` positions, not chr17's 100 kb)
+    expect(Math.abs(r.end - (x + 40) * perPx)).toBeLessThan(perPx);
+  });
+
+  it('a view zoom or pan moves the zoom strip’s window', async () => {
+    const { v, nav, f, perPx } = await zoomed(1000, 2000);
+    const before = f.windows[0];
+    expect(before.x0).toBeCloseTo(1000 / perPx, 0);
+    v.view.setRange(Region, 3000, 3500);
+    v.draw();
+    const after = nav.draw()!.windows[0];
+    expect(after.x0).toBeCloseTo(3000 / perPx, 0);
+    expect(after.x1 - after.x0).toBeCloseTo(500 / perPx, 0);
+  });
+
+  it('a press on the mark is no drag, its hover names the region; the context is no target', async () => {
+    const { v, nav, f } = await zoomed(1000, 2000);
+    const win = f.lists.passes.window.rects;
+    // the mark: the outline over the ideogram's height
+    const i = Array.from({ length: win.n }, (_, k) => k).find((k) => win.y[k] === 0 && win.h[k] === 24)!;
+    const mx = win.x[i] + win.w[i] / 2;
+    nav.move(mx, 12);
+    expect(nav.readout.value).toMatch(/^chr17:7,666,403–[\d,]+$/);
+    expect(nav.cursor).toBe('default');
+    const before = v.view.get(Region)!;
+    expect(nav.down(mx, 12)).toBe(false);
+    nav.move(mx + 40, 12);
+    nav.up();
+    expect(nav.click(mx + 40, 12)).toBe(false);
+    expect(v.view.get(Region)).toEqual(before);
+    // elsewhere on the ideogram: a band's name, no centring
+    nav.move(nav.width * 0.6, 12);
+    expect(nav.readout.value).toMatch(/^chr17:[\d,]+ · q\d/);
+    expect(nav.down(nav.width * 0.6, 12)).toBe(false);
+    expect(nav.doubleClick(nav.width * 0.6, 12)).toBe(false);
+    expect(v.view.get(Region)).toEqual(before);
   });
 });
 

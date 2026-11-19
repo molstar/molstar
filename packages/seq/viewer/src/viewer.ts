@@ -1387,6 +1387,8 @@ export class SeqViewer extends ReactiveModel {
       store: this.store.store,
       dpr: this.dpr,
       tokens: this.tokens,
+      // the navigators as the parts draw them (an included one's zoom strip, its direction)
+      navigator: { zoomStrip: this.config.navigator.zoomStrip, direction: this.config.navigator.direction },
       // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it
       // over what it holds, and projects it onto the linked sections), else as its Location; the highlight channels
       ...this._svgEmphasis(),

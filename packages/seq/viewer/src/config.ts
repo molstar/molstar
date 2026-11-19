@@ -10,6 +10,7 @@
 import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
+import { DefaultZoomStrip } from '@molstar/seqx-core/render';
 import { DefaultStoryConfig, type StoryConfig } from '@molstar/seqx-core/story';
 
 /** What the models and behaviors read; read-only after composition. */
@@ -105,8 +106,9 @@ export interface ViewerConfig {
    * ruler rail; `none`), what a drag from outside a window does (`sweep` a new window and zoom to it; `pan`: centre
    * there, then pan), when a drag pushes a step back (`far`: farther than one window width; `never`, `always`), what a
    * double-click does (`toggle-fit`: fit, or fitted, zoom so the window is `zoomPx` navigator px wide; `fit`, `none`),
-   * and which way a navigator runs (`display`: the bound section's display order, a drag right moves the view right;
-   * `genomic`).
+   * which way a navigator runs (`display`: the bound section's display order, a drag right moves the view right;
+   * `genomic`), and when a navigator gets a zoom strip (`zoomStrip`: its reachable span narrower than `minPx`, 48; the
+   * strip `heightPx` more, 16).
    */
   readonly navigator: {
     readonly form: 'rail' | 'none';
@@ -115,6 +117,7 @@ export interface ViewerConfig {
     readonly doubleClick: 'toggle-fit' | 'fit' | 'none';
     readonly zoomPx: number;
     readonly direction: 'display' | 'genomic';
+    readonly zoomStrip: { readonly minPx: number; readonly heightPx: number };
   };
   readonly view: {
     /** The steps back the view's history of jumps keeps (50): the oldest goes first. */
@@ -273,6 +276,7 @@ export const DefaultViewerConfig: ViewerConfig = {
     doubleClick: 'toggle-fit',
     zoomPx: 48,
     direction: 'display',
+    zoomStrip: DefaultZoomStrip,
   },
   view: {
     historyLimit: 50,
@@ -324,6 +328,10 @@ export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig
   // the view's keys merge by command id: an override of one command's keys keeps the others' (`[]` removes them)
   const keys = over.view?.keys;
   if (keys) (out.view as { keys: unknown }).keys = { ...DefaultViewerConfig.view.keys, ...keys };
+  // the zoom strip's two numbers merge: one set keeps the other's default
+  const zoomStrip = over.navigator?.zoomStrip;
+  if (zoomStrip)
+    (out.navigator as { zoomStrip: unknown }).zoomStrip = { ...DefaultViewerConfig.navigator.zoomStrip, ...zoomStrip };
   // `view.motion: 'auto'`, the earlier spelling of `platform` (before one item decided jumps and stories), reads as it
   const view = out.view as { motion: string };
   if (view.motion === 'auto') view.motion = 'platform';

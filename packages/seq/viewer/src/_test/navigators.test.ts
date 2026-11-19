@@ -15,7 +15,13 @@
 // a double-click fits, idle no target, touch, the grab-zone split on an alignment's ruler); the export.
 
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqSpec, miniatureNavigator, overviewNavigator, stripNavigator } from '@molstar/seqx-core/lang';
+import {
+  createSeqSpec,
+  ideogramNavigator,
+  miniatureNavigator,
+  overviewNavigator,
+  stripNavigator,
+} from '@molstar/seqx-core/lang';
 import type { DrawLists, NavigatorRenderer } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
@@ -579,6 +585,73 @@ describe('an overview and a miniature over an alignment’s rows', () => {
     v.input.up();
     expect(range(v, S)).toEqual([100, 150]);
     expect(v.selection.value.value.shown.parts.length).toBeGreaterThan(0);
+  });
+});
+
+/** A 1,000-letter chromosome with a section on `[300, 330)` of it (24 px of 800) and an ideogram of its two bands. */
+function regionSpec() {
+  const b = createSeqSpec({ title: 'region' });
+  const chr = b.data.sequence('chr', { alphabet: 'dna', letters: 'ACGT'.repeat(250) });
+  const bands = b.data.ranges('bands', {
+    target: chr,
+    rows: { start: [0, 500], end: [500, 1000], id: ['p1', 'q1'], stain: ['gneg', 'gpos50'] } as never,
+  });
+  b.views.view('v', (v) => {
+    const s = v.section('region', { of: chr, range: [300, 330] });
+    s.track('letters').layer('letters', { type: 'letters' });
+    v.navigator('chr', ideogramNavigator(s, bands, { system: chr }));
+  });
+  return b.build();
+}
+
+/** The SVG with the navigators included, its ideogram's nested picture's height. */
+async function navSvgHeight(v: SeqViewer) {
+  const p = v.renderSvg({ navigators: 'include' });
+  frames!.flush();
+  const svg = (await p).svg;
+  const at = svg.slice(svg.indexOf('data-navigator="chr"'));
+  return { svg, height: Number(/<svg x="\d+" y="\d+" [^>]*? height="([\d.]+)"/.exec(at)?.[1]) };
+}
+
+describe('the zoom strip in the viewer', () => {
+  it('a host’s `navigator.zoomStrip`: `minPx: 0` no strip, canvas and SVG alike; `heightPx: 24` one height in both', async () => {
+    const off = await make(regionSpec(), [[viewerItem('navigator.zoomStrip'), { minPx: 0 }]]);
+    const a = await drawNav(off, 'chr');
+    expect(a.nav.height).toBe(24);
+    expect(a.f.lists.passes.window.paths.n).toBe(0);
+    expect((await navSvgHeight(off)).height).toBe(24);
+    const tall = await make(regionSpec(), [[viewerItem('navigator.zoomStrip'), { heightPx: 24 }]]);
+    const b = await drawNav(tall, 'chr');
+    expect(b.nav.height).toBe(48);
+    expect(b.f.lists.height).toBe(48);
+    expect((await navSvgHeight(tall)).height).toBe(48);
+    // the default: the strip's 16 in both
+    const d = await make(regionSpec());
+    expect((await drawNav(d, 'chr')).nav.height).toBe(40);
+    expect((await navSvgHeight(d)).height).toBe(40);
+  });
+
+  it('a height the host fixes holds the strip: the context gives it its room, nothing overflows', async () => {
+    const v = await make(regionSpec());
+    const { nav } = await drawNav(v, 'chr');
+    nav.resize(800, 30);
+    const f = nav.draw()!;
+    expect(nav.height).toBe(30);
+    expect(f.lists.height).toBe(30);
+    const w = f.windows[0];
+    expect(w.hy).toBeLessThanOrEqual(30 + 1e-6);
+    expect(w.ly).toBeCloseTo(30 - 16 + 6, 6);
+    // a drag on the strip still pans the region
+    v.view.setRange('/views/v/region', 0, 25);
+    v.draw();
+    const g = nav.draw()!.windows[0];
+    const start = v.view.get('/views/v/region')!.start;
+    const x = (g.dx0 + g.dx1) / 2;
+    expect(nav.down(x, 27)).toBe(true);
+    nav.move(x + 80, 27);
+    nav.up();
+    // the strip's scale: the region's 30 over 800 px
+    expect(v.view.get('/views/v/region')!.start).toBeCloseTo(start + (80 / 800) * 30, 0);
   });
 });
 

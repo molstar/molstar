@@ -9,7 +9,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
-import { createSeqSpec, ideogramNavigator } from '@molstar/seqx-core/lang';
+import { createSeqSpec, ideogramNavigator, stripNavigator } from '@molstar/seqx-core/lang';
 import {
   bundledTextMetrics,
   type Frame,
@@ -87,6 +87,58 @@ export function ideogramSpec(options: { readonly reversed?: boolean } = {}): Nod
     });
     s.track('letters').layer('letters', { type: 'letters' });
     v.navigator('chr', ideogramNavigator(s, bands, { system: chr }));
+  });
+  return b.build();
+}
+
+/**
+ * A chromosome of `length` (cyclic or not) with a section on `range` of it (wrapping the origin when the system is
+ * cyclic and the range runs past it), other sections on `others` (a range, or `whole`: the chromosome whole), and a
+ * navigator of them all on the chromosome: an ideogram of its bands, or a strip of its axis or its tracks.
+ */
+export function regionSpec(
+  options: {
+    readonly length?: number;
+    readonly range?: readonly [number, number];
+    readonly cyclic?: boolean;
+    readonly reversed?: boolean;
+    readonly content?: 'bands' | 'axis' | 'tracks';
+    readonly place?: 'top' | 'bottom' | 'left' | 'right';
+    readonly others?: readonly (readonly [number, number] | 'whole')[];
+  } = {},
+): Node {
+  const length = options.length ?? 1000;
+  const b = createSeqSpec({ title: 'region' });
+  const chr = b.data.sequence('chr', {
+    alphabet: 'dna',
+    letters: 'ACGT'.repeat(length / 4),
+    ...(options.cyclic ? { cyclic: true } : {}),
+  });
+  const bands = b.data.ranges('bands', {
+    target: chr,
+    rows: { start: [0, length / 2], end: [length / 2, length], id: ['p1', 'q1'], stain: ['gneg', 'gpos50'] } as never,
+  });
+  b.views.view('v', (v) => {
+    const s = v.section('region', {
+      of: chr,
+      range: [...(options.range ?? [300, 330])] as [number, number],
+      ...(options.reversed ? { direction: 'reversed' as const } : {}),
+    });
+    s.track('letters').layer('letters', { type: 'letters' });
+    const of: string[] = [s.address];
+    (options.others ?? []).forEach((o, i) => {
+      const t = v.section(`other${i}`, { of: chr, ...(o === 'whole' ? {} : { range: [...o] as [number, number] }) });
+      t.track('letters').layer('letters', { type: 'letters' });
+      of.push(t.address);
+    });
+    const content = options.content ?? 'bands';
+    const extra = { system: chr, ...(options.place ? { place: options.place } : {}) };
+    v.navigator(
+      'chr',
+      content === 'bands'
+        ? ideogramNavigator(of.length > 1 ? of : s, bands, extra)
+        : stripNavigator(of.length > 1 ? of : s, { ...extra, content }),
+    );
   });
   return b.build();
 }

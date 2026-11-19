@@ -178,7 +178,8 @@ describe('navigators in an export', () => {
     const include = await renderSvg(spec, { size: { width: 600, height: 120 }, navigators: 'include' });
     expect(include.svg).toContain('data-navigator="chr"');
     expect(include.svg).toContain('<title>Window: chr:301–360 of chr</title>');
-    expect(include.svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" width="600" height="144"/);
+    // the view's 120, the ideogram's 24 and its zoom strip's 16 (the region is 36 px of 600: under 48)
+    expect(include.svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" width="600" height="160"/);
     expect(include.settled).toBe(true);
   });
 

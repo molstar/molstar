@@ -16,6 +16,7 @@ import {
   attachSources,
   type BandsLay,
   bundledTextMetrics,
+  DarkTokens,
   LightTokens,
   NavigatorRenderer,
   Renderer,
@@ -111,8 +112,78 @@ describe('the examples’ navigators', () => {
     const w = r.nav.windows[0];
     expect(w.shown).toBe(true);
     expect(w.p0).toBeCloseTo(RegionOnChr17, 0);
-    expect(w.lo).toBeCloseTo(pic.axis!.x(RegionOnChr17), 6);
+    // the region is a sliver of chr17: its window on the zoom strip, whose axis is the region alone
+    const zoom = r.renderer.pictureLayout!.sections[1]!;
+    expect(w.lo).toBeCloseTo(zoom.axis!.x(RegionOnChr17), 6);
     expect(r.nav.issues.filter((i) => i.severity !== 'info')).toEqual([]);
+  });
+
+  it('chr17’s ideogram has a zoom strip: the region’s bands, its mark and the connectors, drawn and exported, both themes', async () => {
+    const r = await settled(
+      navigators.geneRegionIdeogram(),
+      regionRegistry({ delayMs: 0 }).map((e) => (e as { runtime: unknown }).runtime),
+      { size: { width: 800, height: 300 } },
+      0,
+      { width: 800, height: 24 },
+    );
+    expect(r.renderer.zoomHeight).toBe(16);
+    const ctx = r.renderer.pictureSection!;
+    const zoom = r.renderer.pictureLayout!.sections[1]!;
+    // the zoom strip under the ideogram, within the 16 px it adds; its axis the region (q's p13.1 band there)
+    expect(ctx.y + ctx.height).toBeLessThanOrEqual(zoom.y);
+    expect(zoom.y + zoom.height).toBeCloseTo(24 + 16, 6);
+    expect(zoom.axis!.positionAt(zoom.axis!.x0)).toBeGreaterThanOrEqual(RegionOnChr17);
+    const bands = zoom.tracks[0].layers[0].lay as BandsLay;
+    expect(bands.rows.n).toBeGreaterThan(0);
+    expect(r.renderer.hit(400, zoom.y + 2)?.band).toBe('p13.1');
+    // both strips in the data pass; the mark and the connectors in the window pass
+    const data = r.nav.lists.passes.data.rects;
+    const ys = Array.from(data.y.subarray(0, data.n));
+    expect(ys.some((y) => y < ctx.y + ctx.height)).toBe(true);
+    expect(ys.some((y) => y >= zoom.y)).toBe(true);
+    const win = r.nav.lists.passes.window;
+    expect(win.paths.n).toBe(2);
+    const mark = Array.from({ length: win.rects.n }, (_, i) => i).find(
+      (i) => win.rects.y[i] === ctx.y && win.rects.h[i] === ctx.height,
+    );
+    expect(mark).toBeDefined();
+    expect(win.rects.w[mark!]).toBeGreaterThanOrEqual(16 - 1e-6);
+    for (const tokens of [LightTokens, DarkTokens]) {
+      r.renderer.setTokens(tokens);
+      const g = r.renderer.frame({ size: { width: 800, height: 24 }, view: r.view.layout });
+      const ink = g.lists.passes.window.paths;
+      for (let i = 0; i < 2; i++) expect(ink.stroke[i]).toBe(tokens.colors['seq-window']);
+      const view = ExampleViews.find((v) => v.id === 'gene-region-ideogram')!;
+      const c = createSeqContext({
+        registry: [{ kind: 'format-runtime', runtime: SeqRuntime }, ...(view.registry?.({ delayMs: 0 }) ?? [])],
+        ports: { assets: () => nodeFixtureAssets() },
+      });
+      const svg = (
+        await c.renderSvg(view.build(), { size: { width: 720, height: 320 }, navigators: 'include', tokens })
+      ).svg;
+      c.retire();
+      // the view's 320, the ideogram's 24, its zoom strip's 16
+      expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" width="720" height="360"/);
+      const hex = `#${((tokens.colors['seq-window'] >>> 8) & 0xffffff).toString(16).padStart(6, '0')}`;
+      const nav = svg.slice(svg.indexOf('data-navigator="chr17"'));
+      expect(nav.match(new RegExp(`<path d="M [^"]+ L [^"]+" fill="none" stroke="${hex}"`, 'g'))?.length).toBe(2);
+    }
+  });
+
+  it.each([
+    ['tracks-strip', 'p53’s protein strip'],
+    ['protein-gene-strip', 'the protein’s strip with its gene'],
+    ['detail-strip', 'the plasmid’s strip'],
+  ])('%s keeps one strip: its reachable span is wider than the floor (%s)', async (id) => {
+    const view = ExampleViews.find((v) => v.id === id)!;
+    const r = await settled(
+      view.build(),
+      (view.registry?.({ delayMs: 0 }) ?? []).map((e) => (e as { runtime: unknown }).runtime),
+      { size: { width: 800, height: 600 } },
+    );
+    expect(r.renderer.zoomHeight).toBe(0);
+    expect(r.renderer.pictureLayout!.sections.length).toBe(1);
+    expect(r.nav.lists.passes.window.paths.n).toBe(0);
   });
 
   it('the tracks’ strip draws every domain small', async () => {
