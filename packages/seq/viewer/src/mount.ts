@@ -34,8 +34,9 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   const base = doc.createElement('canvas');
   const overlay = doc.createElement('canvas');
   const labels = doc.createElement('canvas');
+  const tip = doc.createElement('canvas');
   Object.assign(base.style, { display: 'block' });
-  for (const c of [overlay, labels])
+  for (const c of [overlay, labels, tip])
     Object.assign(c.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
   // the one polite live region the mount owns: what the announcer says, visually hidden (`announcer.ts`)
   const live = doc.createElement('div');
@@ -51,7 +52,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     whiteSpace: 'nowrap',
     pointerEvents: 'none',
   });
-  container.append(base, overlay, labels, live);
+  container.append(base, overlay, labels, tip, live);
   target.appendChild(container);
   const announcer = new Announcer(viewer);
   // cleared, then set: the same words twice are heard twice
@@ -81,7 +82,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     base as unknown as CanvasLike,
     overlay as unknown as CanvasLike,
     labels as unknown as CanvasLike,
-    { fonts, fade: viewer.context.renderConfig.fade },
+    { fonts, fade: viewer.context.renderConfig.fade, tip: tip as unknown as CanvasLike },
   );
   viewer.useBackend(backend);
 

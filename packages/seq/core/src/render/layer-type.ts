@@ -64,6 +64,8 @@ export interface LayoutContext {
   report(issue: Issue): void;
   /** The strip laid out (_spec/README.md "Render", Section layouts): `box` and `axis` are in its frame. */
   readonly strip?: number;
+  /** The view's width, CSS px: where a hover's text stops (a rows layer's cell read whole). */
+  readonly viewWidth?: number;
   /** The union of the strip's bands (a layer with `across`, frames, outlines it). */
   readonly span?: Box;
   /** The section's placement, for a `section` layer (it draws in page coordinates). */

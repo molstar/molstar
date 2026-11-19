@@ -1957,16 +1957,9 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   if (lay.lastText.length) out.unclip();
 }
 
-/**
- * The hover, then its row's column cells cut short read whole: a function of its own, so the hover's own stays as the
- * compiler had it (a number boxed a frame otherwise, measured).
- */
-function drawHoverAndColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  drawHover(lay, out, emphasis);
-  if (lay.cols.n) hoverColumns(lay, out, emphasis);
-}
-
+/** The hovered row's column cells cut short, read whole in the `tip` pass: a function of its own (measured: no boxing). */
 function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  if (!lay.cols.n) return;
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key) return;
   const row = h.yPosition ?? (h.system === lay.rowsSystem ? h.position : undefined);
@@ -2277,7 +2270,8 @@ function drawCursor(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefine
 const RowsDraws = passDraws<RowsLay, Emphasis | undefined>({
   data: drawData,
   labels: drawHeader,
-  hover: drawHoverAndColumns,
+  hover: drawHover,
+  tip: hoverColumns,
   selection: drawSelection,
   cursor: drawCursor,
 });

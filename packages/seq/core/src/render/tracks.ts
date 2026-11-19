@@ -1239,6 +1239,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             theme: sectionTheme,
             want,
             report: sectionReport,
+            viewWidth: width,
             strip: i,
             span: Array.isArray(layer.params.across) ? acrossSpan(strips, i, shown, layer.params.across) : span,
             place: placement,
@@ -1650,6 +1651,7 @@ const ViewDraws = passDraws<ViewLayout, Emphasis | undefined>({
   hover: drawTracks,
   cursor: drawTracks,
   labels: drawTracks,
+  tip: drawTracks,
 });
 
 /**

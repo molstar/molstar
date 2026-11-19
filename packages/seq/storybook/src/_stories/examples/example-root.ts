@@ -12,6 +12,7 @@ import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
+import { followSvg } from '../follow-svg.js';
 import { filesOf, fileHead, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
@@ -21,9 +22,6 @@ import { filesOf, fileHead, printSources } from '../features/files/file-head.js'
 
 /** A story's view, and whether its SVG draws the view's navigators (`renderSvg`'s `navigators`). */
 type ExampleModel = ExampleView & { readonly navigators?: 'omit' | 'include'; readonly files?: boolean };
-
-/** The stories made in this page: the prefix of each one's SVG ids. */
-let instances = 0;
 
 const Box = 'display: grid; gap: var(--msui-space-2); min-width: 0; align-content: start;';
 const Title =
@@ -81,36 +79,24 @@ class ExampleRoot extends UiElement<ExampleModel> {
     const spec = view.build();
     printed.textContent = printSexpr(spec, { language: SeqLanguage });
 
-    // the SVG follows the canvas's window: drawn when the view comes to rest (`rested` is `canvas.settleMs` after its last
-    // move, which is the debounce), by its own id prefix so SVGs in one page never share a clip or a mask
-    const idPrefix = `ex${++instances}-`;
-    let alive = true;
-    let latest = 0;
-    const drawSvg = async () => {
-      const mine = ++latest;
-      const r = await viewer.renderSvg({ idPrefix, ...(view.navigators ? { navigators: view.navigators } : {}) });
-      // a later draw, or the story gone: this one is dropped
-      if (!alive || mine !== latest) return;
-      // our own output: every string from data or the spec is escaped by the backend
-      svgHost.innerHTML = r.svg;
-      status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${r.issues.length} issue${r.issues.length === 1 ? '' : 's'}${
-        r.issues.length ? `: ${r.issues.map((i) => i.message).join('; ')}` : ''
-      }`;
-    };
-    // a theme switch changes the viewer's tokens (read from this root's CSS): the SVG is drawn with them again
-    const unlisten = [
-      viewer.rested.listen(() => void drawSvg()),
-      viewer.layoutIssues.listen(() => void drawSvg()),
-      viewer.tokensVersion.listen(() => void drawSvg()),
-    ];
-    onCleanup(() => {
-      alive = false;
-      for (const off of unlisten) off();
+    // the SVG follows the canvas (follow-svg.ts): drawn when the view comes to rest, on an edit or a fold, and when the
+    // theme changes (the viewer's tokens are read from this root's CSS), by its own id prefix so SVGs in one page never
+    // share a clip or a mask
+    const svg = followSvg(viewer, svgHost, {
+      prefix: 'ex',
+      also: [viewer.layoutIssues],
+      ...(view.navigators ? { svg: { navigators: view.navigators } } : {}),
+      onDraw: (r) => {
+        status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${r.issues.length} issue${r.issues.length === 1 ? '' : 's'}${
+          r.issues.length ? `: ${r.issues.map((i) => i.message).join('; ')}` : ''
+        }`;
+      },
     });
+    onCleanup(() => svg.dispose());
     void viewer
       .load(spec)
       .then(() => viewer.settle())
-      .then(drawSvg);
+      .then(() => svg.draw());
     return root;
   }
 }

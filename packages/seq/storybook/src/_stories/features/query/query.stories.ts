@@ -18,6 +18,7 @@ import {
   type Emphasis,
   type QueryExample,
   QueryExamples,
+  QueryRunner,
   type QueryReport,
   readableRanges,
   runQuery,
@@ -61,6 +62,8 @@ class QueryRoot extends UiElement<QueryModel> {
     const queries = example?.queries ?? FreeQueries;
     let emphasis: Emphasis = example?.emphasis ?? 'select';
     const text = new State(queries[0].query);
+    // forward reference: the runner runs what `runNow` below draws
+    const runner = new QueryRunner(() => runNow(), DebounceMs);
 
     const box = document.createElement('div');
     box.style.cssText = 'display: flex; gap: var(--msui-space-2); align-items: center; flex-wrap: wrap;';
@@ -71,7 +74,12 @@ class QueryRoot extends UiElement<QueryModel> {
       'aria-label': 'Query',
       onInput: (v) => {
         text.set(v);
-        runSoon();
+        runner.soon();
+      },
+      // Enter applies the text at once, as a chip does
+      onSubmit: (v) => {
+        text.set(v);
+        runner.now();
       },
     }) as HTMLElement;
     input.style.cssText += ' flex: 1 1 28em; min-width: 16em; font-family: var(--msui-font-mono);';
@@ -85,7 +93,7 @@ class QueryRoot extends UiElement<QueryModel> {
       'aria-label': 'What the result does in the view',
       onChange: (v) => {
         emphasis = v;
-        runNow();
+        runner.now();
       },
     }) as HTMLElement;
     box.append(input, mode);
@@ -100,7 +108,7 @@ class QueryRoot extends UiElement<QueryModel> {
           title: q.query,
           onClick: () => {
             text.set(q.query);
-            runNow();
+            runner.now();
           },
         }) as HTMLElement,
       );
@@ -121,10 +129,9 @@ class QueryRoot extends UiElement<QueryModel> {
     const viewer = composeViewer(view, { target: canvasHost });
     // no run after the story is gone (a debounce, a load still pending); the query's marks go before the viewer does
     let disposed = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     onCleanup(() => {
       disposed = true;
-      clearTimeout(timer);
+      runner.dispose();
       try {
         clearQuery(viewer);
       } finally {
@@ -168,24 +175,24 @@ class QueryRoot extends UiElement<QueryModel> {
     };
 
     const runNow = () => {
-      clearTimeout(timer);
       if (disposed) return;
       draw(runQuery(viewer, text.value, emphasis));
     };
-    const runSoon = () => {
-      clearTimeout(timer);
-      timer = setTimeout(runNow, DebounceMs);
-    };
-    viewer.load(view.build()).then(runNow, (e: unknown) => {
-      if (disposed) return;
-      draw({
-        text: text.value,
-        status: 'failed',
-        systems: [],
-        rects: [],
-        issues: [{ code: 'story.query.load', severity: 'error', message: e instanceof Error ? e.message : String(e) }],
-      });
-    });
+    viewer.load(view.build()).then(
+      () => runner.now(),
+      (e: unknown) => {
+        if (disposed) return;
+        draw({
+          text: text.value,
+          status: 'failed',
+          systems: [],
+          rects: [],
+          issues: [
+            { code: 'story.query.load', severity: 'error', message: e instanceof Error ? e.message : String(e) },
+          ],
+        });
+      },
+    );
     return root;
   }
 }

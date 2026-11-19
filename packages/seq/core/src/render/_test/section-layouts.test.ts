@@ -179,7 +179,7 @@ describe('the tracks layout on the interface', () => {
     const emphasis: Emphasis = { selection: rangesLocation('rows', [2, 3]) };
     r.frame({ size: Size, emphasis });
     // the window pass is the layouts' own: no layer is drawn there
-    expect(seen).toEqual(['data', 'highlight', 'selection', 'hover', 'cursor', 'labels']);
+    expect(seen).toEqual(['data', 'highlight', 'selection', 'hover', 'cursor', 'labels', 'tip']);
   });
 });
 

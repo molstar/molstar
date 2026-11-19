@@ -9,7 +9,7 @@ import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rowsSystemOf } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
-import { DarkTokens, hitView, recordDrawLists, renderSvg } from '../index.js';
+import { DarkTokens, hitView, Passes, recordDrawLists, renderSvg } from '../index.js';
 import type { RowsLay } from '../rows.js';
 import { fitRowColumns, numericValues, rowColumnsOf } from '../rows-model.js';
 import { settle } from './helpers.js';
@@ -365,5 +365,59 @@ describe('row columns', () => {
     });
     const svg = await renderSvg(spec(AllKinds, { section }).build(), { size: Size });
     expect(recordDrawLists(svg.lists, ['labels'])).toBe(recordDrawLists(f.lists, ['labels']));
+  });
+
+  describe('a hovered cell read whole (the tip pass)', () => {
+    const Narrow: Col[] = [
+      { field: 'OS', title: 'Species', width: 40 },
+      { field: 'identity', side: 'right', as: 'number' },
+    ];
+
+    /** The tip pass's lines (`rect x y w h …`, `text "…" x y …`) of the row 0 hovered. */
+    async function tip(rows: Record<string, unknown>, width = Size.width) {
+      const { s, lay } = await laid(Narrow, { rows }, { width, height: 300 });
+      // the hover as the pointer makes it: the hit on the first row's species cell
+      const first = await s.frame({ size: { width, height: 300 }, dpr: 1, settled: true });
+      const hover = hitView(first.layout, lay.cols.x[0] + 4, lay.rowY(0) + lay.rowScale / 2) as never;
+      expect(hover).toBeTruthy();
+      const f = s.renderer.frame({ size: { width, height: 300 }, dpr: 1, settled: true, emphasis: { hover } });
+      const lines = recordDrawLists(f.lists, ['tip']).split('\n');
+      return { lay, f, lines, hoverPass: recordDrawLists(f.lists, ['hover']) };
+    }
+    const nums = (l: string) =>
+      l
+        .split(' ')
+        .filter((x) => x !== '' && !Number.isNaN(Number(x)))
+        .map(Number);
+
+    it('is drawn after every label, on a surface over the columns it overlaps, in the hover pass nowhere', async () => {
+      expect(Passes.indexOf('tip')).toBeGreaterThan(Passes.indexOf('labels'));
+      const { lay, lines, hoverPass } = await tip({ OS: ['Homo sapiens (human)', 'Mus musculus', null] });
+      const texts = lines.filter((l) => l.startsWith('text "'));
+      expect(texts).toHaveLength(1);
+      expect(texts[0]).toContain('"Homo sapiens (human)"');
+      expect(hoverPass).not.toContain('Homo sapiens');
+      // the surface: the page's background and then the track's well, both over the cell's x to the text's end
+      const rects = lines.filter((l) => l.startsWith('rect '));
+      expect(rects).toHaveLength(2);
+      const [x, , w] = nums(rects[1]);
+      const next = lay.cols.x[0] + lay.cols.width[0];
+      expect(x).toBeLessThanOrEqual(lay.cols.x[0]);
+      expect(x + w).toBeGreaterThan(next);
+      expect(nums(rects[0]).slice(0, 4)).toEqual(nums(rects[1]).slice(0, 4));
+      // the text is the last thing drawn
+      expect(lines.filter((l) => l !== '').at(-1)).toBe(texts[0]);
+    });
+
+    it('a label longer than the view ends in an ellipsis at the view’s edge', async () => {
+      const width = 640;
+      const { lines } = await tip({ OS: [`Homo sapiens ${'very long '.repeat(40)}`, 'Mus musculus', null] }, width);
+      const text = lines.find((l) => l.startsWith('text "'))!;
+      expect(/^text "[^"]*…"/.test(text)).toBe(true);
+      const rect = lines.filter((l) => l.startsWith('rect '))[1];
+      const [x, , w] = nums(rect);
+      expect(x + w).toBeLessThanOrEqual(width);
+      expect(x + w).toBeGreaterThan(width - 12);
+    });
   });
 });

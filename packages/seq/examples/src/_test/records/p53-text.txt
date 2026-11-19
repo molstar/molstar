@@ -687,3 +687,24 @@ text "370" 270.02 498 middle "10px sans" #6b655cff width 16.68
 text "380" 396.02 498 middle "10px sans" #6b655cff width 16.68
 text "390" 522.02 498 middle "10px sans" #6b655cff width 16.68
 unclip
+pass tip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip
+clip 8 8 704 524
+unclip

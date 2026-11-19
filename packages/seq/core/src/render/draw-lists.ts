@@ -11,14 +11,26 @@
 
 /**
  * The passes, below to above: the Canvas2D backend draws the first two on one canvas, the emphasis on an overlay. The
- * `window` pass is the first of the emphasis (a ring's or a navigator's window, under the highlights).
+ * `window` pass is the first of the emphasis (a ring's or a navigator's window, under the highlights). The `tip` pass is
+ * the last, over the labels: what a hover reads whole over its neighbours (a column cell cut short), on a surface of its
+ * own, so no label shows through it.
  */
-export const Passes = ['background', 'data', 'window', 'highlight', 'selection', 'hover', 'cursor', 'labels'] as const;
+export const Passes = [
+  'background',
+  'data',
+  'window',
+  'highlight',
+  'selection',
+  'hover',
+  'cursor',
+  'labels',
+  'tip',
+] as const;
 
 export type PassName = (typeof Passes)[number];
 
-/** The passes a hover, a selection, the cursor or a window's move redraws alone. */
-export const EmphasisPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
+/** The passes a hover, a selection, the cursor or a window's move redraws alone (the tip over the labels). */
+export const EmphasisPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor', 'tip'];
 
 export const Op = { rect: 0, path: 1, glyphs: 2, text: 3, image: 4, clip: 5, unclip: 6 } as const;
 

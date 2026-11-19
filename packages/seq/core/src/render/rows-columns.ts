@@ -6,7 +6,7 @@
 
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { fontSize } from './config.js';
-import { Anchor, NoColor, type PassWriter } from './draw-lists.js';
+import { Anchor, NoColor, type PassWriter, Round } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { LayoutContext } from './layer-type.js';
 import type { RowsLay, RowsPrep } from './rows.js';
@@ -16,6 +16,9 @@ import { columnsRoom, formatColumnValue, numericValues, type RowColumn, RowMeasu
 // once a data (its field's origin, numbers where every value reads as one, its range and categories), a cell's text,
 // its cut and its widths kept by row and room, the cells in view, the titles in the layer's own title row and the
 // hidden-columns chip; drawn and hit from those (a layout once warm, a draw and a hover allocate nothing).
+
+/** The tip's surface past its text on each side, px. */
+const TipPad = 3;
 
 const AnchorStart: number = Anchor.start;
 const AnchorEnd: number = Anchor.end;
@@ -106,6 +109,13 @@ export class ColumnsLay {
   cutRoom: number[] = [];
   cutW: Float64Array[] = [];
   fullW: Float64Array[] = [];
+  /**
+   * A cut cell's text as the hover reads it (the `tip` pass): whole, or, when the view's edge is nearer than its end,
+   * cut there with an ellipsis; its width, and the room (to the view's edge from the text's x) they were cut for.
+   */
+  tip: (string | undefined)[][] = [];
+  tipW: Float64Array[] = [];
+  tipRoom: number[] = [];
   /** The cells in view: their column, display row, data row, baseline and row top, bar share, chip color; `n`. */
   n = 0;
   col = new Int32Array(64);
@@ -244,11 +254,15 @@ function resolveColumns(lay: RowsLay, cols: ColumnsLay) {
     cols.cutRoom[k] = Number.NaN;
     cols.cutW[k] = new Float64Array(n).fill(Number.NaN);
     cols.fullW[k] = new Float64Array(n).fill(Number.NaN);
+    cols.tip[k] = NoCuts;
+    cols.tipRoom[k] = Number.NaN;
+    cols.tipW[k] = new Float64Array(n).fill(Number.NaN);
   }
   for (const a of [cols.origin, cols.values, cols.numeric, cols.lo, cols.hi, cols.cats, cols.any])
     a.length = columns.length;
   cols.full.length = cols.name.length = cols.cut.length = columns.length;
   cols.cutRoom.length = cols.cutW.length = cols.fullW.length = columns.length;
+  cols.tip.length = cols.tipW.length = cols.tipRoom.length = columns.length;
 }
 
 function grow(cols: ColumnsLay, need: number) {
@@ -375,6 +389,27 @@ export function layoutRowColumns(lay: RowsLay, prep: RowsPrep, ctx: LayoutContex
   for (let i = lay.first; i < lay.last; i++) addCells(lay, cols, ctx, i);
 }
 
+/**
+ * A cut cell's text for the hover, made once a row and room: the whole text when it ends before the view's edge, else cut
+ * with an ellipsis where the edge leaves room (a number's grows left, to its column's x). The room a column's text has to
+ * the edge is its x past the swatch (`inset`) to the view's width, less the surface's padding.
+ */
+function tipOf(cols: ColumnsLay, k: number, e: number, ctx: LayoutContext, inset: number) {
+  const right = cols.columns[k].as === 'number';
+  const edge = ctx.viewWidth ?? Number.POSITIVE_INFINITY;
+  const room = right ? cols.x[k] + cols.width[k] - TipPad : edge - (cols.x[k] + inset) - TipPad;
+  // a new room (another view width) makes every row's again
+  if (cols.tipRoom[k] !== room) {
+    cols.tipRoom[k] = room;
+    cols.tip[k] = new Array(cols.values[k].length);
+    cols.tipW[k].fill(Number.NaN);
+  }
+  if (cols.tip[k][e] !== undefined) return;
+  const s = elide(ctx.text, ctx.config.itemFont, cols.full[k][e]!, room);
+  cols.tip[k][e] = s;
+  cols.tipW[k][e] = ctx.text.measure(ctx.config.itemFont, s);
+}
+
 /** The cells of display row `i`: their text cut at the column's room and measured, once a row and room. */
 function addCells(lay: RowsLay, cols: ColumnsLay, ctx: LayoutContext, i: number) {
   const e = lay.display.rowAt(i);
@@ -418,6 +453,7 @@ function addCells(lay: RowsLay, cols: ColumnsLay, ctx: LayoutContext, i: number)
         cols.cutW[k][e] = text.measure(font, s);
         cols.fullW[k][e] = s === full ? cols.cutW[k][e] : text.measure(font, full);
       }
+      if (cols.cut[k][e] !== cols.full[k][e]) tipOf(cols, k, e, ctx, c.as === 'chip' ? chipSwatch(rs) + 4 : 0);
       cols.nameOf(k, e);
     } else cols.nameOf(k, e);
     const q = cols.n++;
@@ -517,7 +553,11 @@ export function drawTitles(lay: RowsLay, out: PassWriter) {
   }
 }
 
-/** A hovered display row's cells cut short: their whole text over the page's background, from the cell's x. */
+/**
+ * A hovered display row's cut cells read whole, in the `tip` pass over the labels: each on an opaque surface (the page's
+ * background, then the track's well color, outlined in the hover ink, a squircle by the shape rule) from the cell's x,
+ * to the right up to the view's edge, where a longer text ends in an ellipsis. Nothing under it shows through.
+ */
 export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number) {
   const { tokens, config } = lay;
   const cols = lay.cols;
@@ -529,28 +569,38 @@ export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number) {
     const cut = cols.cut[k][r];
     const full = cols.full[k][r];
     if (!cut || full === undefined || cut === full) continue;
+    const text = cols.tip[k][r];
+    if (!text) continue;
     const c = cols.columns[k];
-    const w = cols.fullW[k][r];
+    const w = cols.tipW[k][r];
     const x =
       c.as === 'number'
         ? cols.x[k] + cols.width[k] - w
         : cols.x[k] + (c.as === 'chip' ? chipSwatch(lay.rowScale) + 4 : 0);
-    g[0] = x - 2;
-    g[1] = cols.top[q];
-    g[2] = w + 4;
-    g[3] = lay.rowScale;
-    g[4] = tokens.colors['msui-bg'];
-    g[5] = tokens.colors['msui-line'];
-    g[6] = 1;
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
+    const h = lay.rowScale;
+    const sw = w + 2 * TipPad;
+    const radius =
+      sw < config.squircleMin || h < config.squircleMin
+        ? 0
+        : Math.min(h * config.squircleRatio, config.squircleMax, sw / 2, h / 2);
+    for (let layer = 0; layer < 2; layer++) {
+      g[0] = x - TipPad;
+      g[1] = cols.top[q];
+      g[2] = sw;
+      g[3] = h;
+      g[4] = layer === 0 ? tokens.colors['msui-bg'] : tokens.colors['seq-track'];
+      g[5] = layer === 0 ? NoColor : tokens.colors['seq-hover'];
+      g[6] = layer === 0 ? 0 : config.outline.hover;
+      g[7] = radius;
+      g[8] = radius > 0 ? Round.both : 0;
+      out.rectArgs();
+    }
     g[0] = x;
     g[1] = cols.y[q];
     g[2] = w;
     g[3] = w;
     g[4] = tokens.colors['msui-text'];
-    out.textArgs(full, AnchorStart, config.itemFont);
+    out.textArgs(text, AnchorStart, config.itemFont);
   }
 }
 
