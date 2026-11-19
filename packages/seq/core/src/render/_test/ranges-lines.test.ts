@@ -145,6 +145,22 @@ describe('ranges: line styles', () => {
   }
 });
 
+describe('ranges: labels', () => {
+  it('inside a mark narrower than a label’s room only when the label fits whole (a residue’s code)', async () => {
+    // 40 positions over the data's width: about 17 px a position, room for a one-letter code, not a long label
+    const rows = { start: [5, 20], end: [6, 21], id: ['a', 'b'], label: ['I', 'a long label'] };
+    const lay = layerLay<RangesLay>(
+      await (await settle(spec(rows as never, {}, { length: 40 }))).frame({ size: SIZE }),
+      0,
+    );
+    const w = lay.mx1[0] - lay.mx0[0];
+    expect(w).toBeLessThan(24);
+    const labelled = Array.from({ length: lay.m }, (_, j) => (lay.mlabel[j] > 0 ? lay.keys[lay.mitem[j]] : undefined));
+    expect(labelled).toEqual(['a', undefined]);
+    expect(lay.mlabel[0] + 6).toBeLessThanOrEqual(w);
+  });
+});
+
 describe('ranges: arrowheads', () => {
   const MANY: Rows = { start: [10, 100, 250], end: [60, 220, 390], id: ['a', 'b', 'c'] };
 

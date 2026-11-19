@@ -77,6 +77,13 @@ const Dot = 2;
 const WaveStep = 3;
 const WaveAmplitude = 2;
 const LineWidth = 2;
+/**
+ * A label goes inside a mark this wide (CSS px), faded past it when longer; inside a narrower one only whole, its inset
+ * each side (`LabelInset`: 3 px a side) included; none below `LabelMinPx`, where no text fits.
+ */
+const LabelWidePx = 24;
+const LabelInset = 6;
+const LabelMinPx = 8;
 /** A mark this wide (CSS px) or wider draws its item's arrowhead, at any step: narrower, the head would be all of it. */
 const ArrowMinPx = 4;
 /** A highlight's alpha: 0.35 of 255, the channel's default. */
@@ -524,16 +531,19 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     if (lay.mode === 'bars') mergeRuns(lay, px);
     // a layout's label sink (rings: placed outside with leaders) takes every shown item's label, an item once, with its
-    // hit; else labels inside marks wide enough, faded past their width (drawn in the labels pass)
+    // hit; else labels inside marks wide enough, faded past their width, or narrower ones they fit in whole (a modified
+    // residue's code over its one position: drawn in the labels pass)
     const sink = ctx.labels !== undefined && ctx.labels !== 'inside' ? ctx.labels : undefined;
     if (sink) sinkLabels(lay, src, sink, box.y);
     else if (lay.mode === 'items' && lay.laneHeight >= 10)
       for (let j = 0; j < lay.m; j++) {
         const label = lay.mitem[j] >= 0 ? lay.labels[lay.mitem[j]] : undefined;
-        if (label && lay.mx1[j] - lay.mx0[j] >= 24) {
-          lay.mlabel[j] = ctx.text.measure(lay.font, label);
-          lay.mink[j] = lay.style ? tokens.colors['msui-text'] : inkOn(lay.fills[lay.mitem[j]], tokens);
-        }
+        const w = lay.mx1[j] - lay.mx0[j];
+        if (!label || w < LabelMinPx) continue;
+        const m = ctx.text.measure(lay.font, label);
+        if (w < LabelWidePx && m + LabelInset > w) continue;
+        lay.mlabel[j] = m;
+        lay.mink[j] = lay.style ? tokens.colors['msui-text'] : inkOn(lay.fills[lay.mitem[j]], tokens);
       }
     // a mark cut at both ends is square
     lay.gap = lay.laneHeight >= 6 ? 2 : 0;

@@ -261,7 +261,8 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   where unlisted values are hashed: `seq.render.legend.unlisted`), merged when they say the same (two layers on one
   scale: one legend), and converted to Mol*'s legends. A letters form's swatches name their letters: a letters layer
   passes the letters it laid out (`painted`), so its key lists only those (an RNA's U, never its T; no gap swatch where
-  there is no gap), then a color once; before any is drawn, every letter.
+  there is no gap), then a color once; before any is drawn, every letter. A view's legends (`viewLegends`) are its
+  tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
@@ -1302,11 +1303,13 @@ the y path in Emphasis).
   and `density` (presence needs no data). A hit through a path carries the data's element as `extent` (the residue on
   its protein) and its parts on the section's system as `hull` (its codon); its hover outlines each part.
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
-  exon); labels inside marks 24 px or wider, drawn in the `labels` pass. At `bars` a lane's marks touching within a
-  device pixel merge into a run; at `density`, or a density table, one heat strip, a device column a pixel. Items past
-  the lanes collapse into a density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or
-  the whole layer becomes the strip (`'layer'`). In a band under a lane's height (a text line's underline) the strip
-  uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a band, not as a dark rule.
+  exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
+  px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
+  lane's marks touching within a device pixel merge into a run; at `density`, or a density table, one heat strip, a
+  device column a pixel. Items past the lanes collapse into a density row in the last lane, the rest drawn as items
+  (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes the strip (`'layer'`). In a band under a lane's height
+  (a text line's underline) the strip uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a
+  band, not as a dark rule.
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
   Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
