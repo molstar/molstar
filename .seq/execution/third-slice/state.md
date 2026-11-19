@@ -59,8 +59,14 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
   at in light and dark (Family, Folded, Figure). Post-merge: unit 145 files / 1395 passed, tsc, typechecks, storybook
   typecheck, lint, format, the `.seq` checks: exit 0.
 
+- PG merged (`e99c48af6`, changelog `seq-pairs-grids.md`): review findings fixed but A7 (to GD); the look's five
+  fixed, a regression from the look's own "square" finding reverted (the grid's x is the view's x); a tile seam fixed.
+  Post-merge: unit 150 files / 1465, typechecks, storybook, lint, format, perf 100, the `.seq` checks: exit 0.
+
 ## In progress
 
+- NV in its third round (2026-11-19): the look found the ideogram and the plasmid strip blank in the browser
+  (twins pass) and the parts mounted over the toolbar and the alignment; merging packages-seq (PG's hit signature).
 - PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
   orchestrator: PG green (unit 1433); NV green but heavy, whose two failures (rows-time's theme change, themes' 1.1×
   ratio) also fail on `packages-seq` under load and pass alone on NV: flaky bounds, to stage 4's gate. Reviews running

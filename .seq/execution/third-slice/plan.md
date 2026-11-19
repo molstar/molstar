@@ -187,7 +187,7 @@ and dark before the merge.
       `clades.keep`), pinning, lazy rows for 10,000 (the store's want sets, bounded layout); the column measures, the
       Stockholm and Newick readers, `Hit`'s y fields, the `cells` shape on row tiles, the shared 2D reduction and image
       cache; the logo.
-- [ ] PG (strong, on RW's shared pieces) arcs and chords; the grid and dot plot as a section of its own, crosshair
+- [x] PG (strong, on RW's shared pieces) arcs and chords; the grid and dot plot as a section of its own, crosshair
       hover and rectangle selection (no 2D store this slice).
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (rows and clades, the rectangle).
 

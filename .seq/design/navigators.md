@@ -58,7 +58,8 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
    `SeqViewerSpec.ui` entry, the gestures a `BehaviorProvider`.
 2. A drag starting outside the window sweeps a new window and zooms to it, splitting [ux-foundations.md](ux-foundations.md) section 8's
    "drag on an axis, navigator … pans" for navigators.
-3. A floored window is drawn centred on the true place, not as a scrollbar thumb.
+3. A floored window is drawn centred on the true place, not as a scrollbar thumb. The floor is measured within the picture, not the
+   reachable span (decided at NV's fix round: chr17's region window was otherwise 0.05 px, unseen).
 4. An ideogram on a reversed section is drawn reversed (the drag follows the view).
 5. A hover on a navigator stays in the navigator (a readout).
 6. `mountNavigator(element, viewer, id)` and `viewer.navigator(def)` are public; no `renderNavigatorSvg` for now.
