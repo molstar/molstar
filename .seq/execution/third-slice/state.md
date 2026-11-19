@@ -437,3 +437,5 @@ None.
   decided (the author, 2026-11-19): the numbers as drafted, a colourless layer the next categorical colour, and all four
   smaller proposals (layouts.md, themes.md, navigators.md); the hidden columns' chip kept as decided (DA's finding 11
   would undo it). DB (strong, takes LL) and DS (fast, takes LR) start: one strong and one fast, the author's limit.
+- The author (2026-11-19): "slow down to just 1 lane after current batch is done": one lane at a time from now; DB
+  (strong) starts, DS waits for it.

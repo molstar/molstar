@@ -13,7 +13,7 @@ text** (you may not stage `.seq/`; the orchestrator copies it). Per finding: the
 the default that causes it (file:line or param), a proposed default with its reason, and whether a decided design
 already covers it. Group by default (one proposal fixing many stories counts once). Rank by how much it improves the
 first impression. Include the screenshot paths (in the session scratchpad
-`/private/tmp/claude-501/-Users-davinci001--claude-spares-spare-BGbiLE/3fb68e09-fc5b-4c2f-a070-ae4f27a85f49/scratchpad/da-shots/`).
+the session scratchpad's `da-shots/`).
 
 **Not in scope**: changing code. Read-only.
 

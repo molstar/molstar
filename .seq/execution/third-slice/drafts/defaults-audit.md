@@ -2,7 +2,7 @@
 
 Base c55db3098 (branch `seq/da-defaults-audit`). Storybook on port 6028, headless Chrome 1200x1000 at dpr 2, light and
 dark, every story under `Seq* (next)` Examples and Features: 98 stories, 196 shots, none failed to render. Shots:
-`/private/tmp/claude-501/-Users-davinci001--claude-spares-spare-BGbiLE/3fb68e09-fc5b-4c2f-a070-ae4f27a85f49/scratchpad/da-shots/<story-id>.<light|dark>.png`
+the session scratchpad's `da-shots/`
 (ids from `/index.json`; below, the `seq-next-` prefix is dropped).
 
 Coverage honesty: I looked at nine shots in full (examples-antibody-views--schemes, examples-p53-tracks--tracks,
