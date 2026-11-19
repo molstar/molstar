@@ -145,7 +145,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-viewer`
 
-- Layouts: a leader's cyclic window wraps only once a ring asks (the `ViewModel` passes `cyclic: false` to the nav); a
+- Layouts: a leader's cyclic window wraps only where its layout `wraps` (a ring); a tracks leader over the origin (two
+  runs, as a follower's) is not drawn, so its window stays within the axis; a
   click on a window is the ring's own (its hit must carry the position under it, and the selection's clicks take the
   `window` target); the window's slider is a mounted element (its arrows and Shift+arrows bound to the `window.*`
   commands, `aria-valuetext` from `value`); a jump's motion eases the first leading section's window only (a text's

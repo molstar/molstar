@@ -9,6 +9,7 @@
 // slider's text is said when it settles (a drag's end, a step), never while it moves; its steps are commands.
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { TracksLayout } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { windowBehavior } from '../behaviors/window.js';
 import { changeKindOf } from '../commands.js';
@@ -78,5 +79,40 @@ describe('the window behavior', () => {
     expect(range()[1] - range()[0]).toBeCloseTo(20, 6);
     expect(w.value.value?.text).toMatch(/ of 100$/);
     expect(byId.get('window.grow')!.when!({ section: undefined })).toBe('No window to move');
+  });
+
+  it('on a cyclic axis a body drag over the origin is a short step on: past it where the layout wraps, else held', () => {
+    const ring = '/views/main/ring';
+    const setup = (wraps: boolean) => {
+      const b = createSeqSpec({ title: 'ring' });
+      const c = b.data.sequence('c', { alphabet: 'dna', letters: 'ACGTACGTAC'.repeat(10), cyclic: true });
+      b.views.view('main', (v) => v.section('ring', { of: c }).track('letters').layer('l', { type: 'letters' }));
+      const config = viewerConfig({ viewport: { maxPxPerPosition: 4 } });
+      const view = new ViewModel(new SpecModel(b.build()), config);
+      // a ring's stand-in: the tracks layout said to draw its window over the origin
+      if (wraps)
+        view.setLayoutSource({ placement: () => undefined, layouts: { tracks: { ...TracksLayout, wraps: true } } });
+      view.setWidth(ring, 40);
+      view.setRange(ring, 80, 100);
+      return { view, w: windowBehavior(view, config), range: () => [view.get(ring)!.start, view.get(ring)!.end] };
+    };
+    // the pointer at 95, then 99, then over the origin at 5: ten units on, not ninety back
+    const r = setup(true);
+    expect(r.w.begin(ring, 'body', 95)).toBe(true);
+    r.w.dragTo(99);
+    expect(r.range()).toEqual([84, 104]);
+    r.w.dragTo(5);
+    expect(r.range()).toEqual([90, 110]);
+    // and back over it
+    r.w.dragTo(90);
+    expect(r.range()).toEqual([75, 95]);
+    r.w.end();
+    // the tracks layout draws no window over the origin: held at the end, not thrown back to the start
+    const t = setup(false);
+    t.w.begin(ring, 'body', 95);
+    t.w.dragTo(5);
+    expect(t.range()).toEqual([80, 100]);
+    t.w.dragTo(90);
+    expect(t.range()).toEqual([75, 95]);
   });
 });

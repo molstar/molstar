@@ -85,13 +85,14 @@ nothing and tells nothing.
   arrows move what is on screen the way the hand or key goes, whatever the direction).
 - **Layouts** (the core's "Section layouts", Navigation): each move asked of a section is its layout's arithmetic
   (`SectionNav`: `pan` by a scroll's px deltas, `zoom` about a unit, `fit`, `reveal` the least move, `focus`, `step`,
-  `clamp`) over its placement in the last frame (`setLayoutSource`: the viewer's frames; `placed()` after each frame
-  reads its estimates again). The record is read the layout's way: tracks a window; text `start` its anchor (the unit at
+  `clamp`) over its placement in the last frame (`setLayoutSource`: the viewer's frames, and the one map of layouts the
+  frames draw with, so a layout navigates as it is drawn; `placed()` after each frame reads its estimates again). The record is read the layout's way: tracks a window; text `start` its anchor (the unit at
   the box's top, fractional within its line), `scale` its letter size (none: the preset's), `end` the lines in view's
   estimate; `setRange` is a focus (a text brings the range's first line to the top, its size kept). Before a width or a
   length a move is the intent, a window of offsets. Why the layout's: the viewer's own arithmetic was the tracks
-  layout's, wrong in text and on rings. A leader's window stays within its axis (a ring's wrap is its layout's to ask
-  for).
+  layout's, wrong in text and on rings. A leader's window passes a cyclic origin only where its layout `wraps` (draws a
+  window there: a ring's; `NavContext.cyclic`); tracks and text keep it within the axis (their transform ends at the
+  total).
 - **Scroll groups** (EC-113): sections on equal axes (system, length, pieces, direction) of one layout share one range;
   each keeps its own `top` and width (`viewport.groupEqualAxes`, true). Why one layout: a range is read its layout's way
   (a window, an anchor); across layouts, follow. An axis whose length is pending has no pieces: its group key holds the
@@ -523,7 +524,8 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   every window (a ring's, a navigator's), over its section's viewport: a drag on its `body` pans it, on its `start` or
   `end` resizes it about the other end, never narrower than its floor (`viewport.maxPxPerPosition` px a position, an
   inward drag on a floored window keeping its far end); the pointer comes in as the unit the placement has under it, so
-  the behavior knows no layout; Esc puts the view back where the press found it. As a slider: `window.pan-back`,
+  the behavior knows no layout; on a cyclic axis a body drag unwraps it against its last place (a step over the origin
+  is a short one on, not a lap back); Esc puts the view back where the press found it. As a slider: `window.pan-back`,
   `window.pan-on` (a `navigate.keyPanFraction` step), `window.grow`, `window.shrink` (by `navigate.wheelZoomStep` about
   its middle), the focused window's arrows and Shift+arrows once a mounted slider binds them; its `value`
   (`aria-valuetext`: "21 to 30 of 100") is said when the window settles (a drag's end, a step), never a frame.

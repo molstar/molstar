@@ -624,8 +624,13 @@ export class ViewModel extends ReactiveModel {
 
   /** A layout's navigation by name (tracks' when it is unknown). */
   private _navOf(layout: string): SectionNav {
+    return this._layoutOf(layout).nav;
+  }
+
+  /** A layout by name: the layout source's (the frame's), else the built-ins; tracks' when it is unknown, as drawn. */
+  private _layoutOf(layout: string): SectionLayoutType<any> {
     const layouts = this._layouts?.layouts ?? BuiltInLayouts;
-    return (layouts[layout] ?? BuiltInLayouts.tracks).nav;
+    return layouts[layout] ?? layouts.tracks ?? BuiltInLayouts.tracks;
   }
 
   /**
@@ -644,8 +649,9 @@ export class ViewModel extends ReactiveModel {
       total,
       width,
       height: placement?.box.height ?? 0,
-      // a leader's window stays within its axis here; a ring's wrap is its layout's to ask for
-      cyclic: false,
+      // a cyclic axis's window passes its origin where its layout draws it there (`wraps`: a ring's); tracks and text
+      // keep it within the axis (their leader's transform ends at its total)
+      cyclic: s.section.axis.cyclic && this._layoutOf(g?.layout ?? s.section.layout).wraps === true,
       maxScale: this.config.viewport.maxPxPerPosition,
       ...(minScale !== undefined ? { minScale } : {}),
       ...(placement ? { placement } : {}),

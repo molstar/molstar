@@ -1051,7 +1051,7 @@ coordinates: what crosses strips), `axes` (2: a second axis of its own, the y pa
 
 ### Section layouts
 
-`render/layout/`: a layout (`SectionLayoutType`: `place`, `sameKey`, `nav`, `chrome`, `hitChrome?`) cuts a section's
+`render/layout/`: a layout (`SectionLayoutType`: `place`, `sameKey`, `nav`, `wraps?`, `chrome`, `hitChrome?`) cuts a section's
 display units into **strips** and places each on the page with a **warp**. Why: a layer type then draws one way, over a
 straight axis and a box, in every layout; a layout knows strips, bands and warps, never layer kinds.
 
@@ -1084,7 +1084,9 @@ straight axis and a box, in every layout; a layout knows strips, bands and warps
   `clamp`, pure, over a `NavContext` (the total, the data box, cyclic, the scale's bounds, the placement), each reading
   the viewport it is given (two moves before a layout add up): what the viewer calls instead of doing arithmetic of its
   own. Tracks: the window by px, clamped at `width / maxScale` within the axis, a reveal panning to the nearer edge,
-  `up` and `down` none (one line: the cursor crosses sections); a cyclic window wraps, never clamped at the total.
+  `up` and `down` none (one line: the cursor crosses sections); with `cyclic` a window wraps, never clamped at the
+  total. The viewer sets `cyclic` for a cyclic axis whose layout `wraps` (draws a window over the origin: a ring); a
+  tracks leader's transform ends at its total, so the tracks layout does not (TODO: a leader's wrap as two runs).
 - **Chrome**: a layout's own marks a pass (`chrome`: once a section, then once a band before its layers) and their hits
   (`hitChrome`, before the bands' layers): tracks its label column, text its gutters, rings their guides, labels and a
   window.

@@ -55,7 +55,19 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
     undefined,
     (a, b) => a?.text === b?.text && a?.section === b?.section,
   );
-  let drag: { section: string; part: WindowPart; at0: number; start: number; end: number } | undefined;
+  /** A drag: where it began, the pointer's last place and the units moved since (unwrapped on a cyclic axis's total). */
+  let drag:
+    | {
+        section: string;
+        part: WindowPart;
+        at0: number;
+        start: number;
+        end: number;
+        last: number;
+        moved: number;
+        total: number | undefined;
+      }
+    | undefined;
 
   /** The window's width at least: its floor in display units (`viewport.maxPxPerPosition`), at least one. */
   const floorOf = (section: string) => {
@@ -143,15 +155,24 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
     begin(section, part, at) {
       const v = view.get(section);
       if (!v || v.pending || !view.canMove(section) || !Number.isFinite(at)) return false;
-      drag = { section, part, at0: at, start: v.start, end: v.end };
+      const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
+      const total = axis?.cyclic ? axisTotal(axis) : undefined;
+      drag = { section, part, at0: at, start: v.start, end: v.end, last: at, moved: 0, total };
       return true;
     },
     dragTo(at) {
       const d = drag;
       if (!d || !Number.isFinite(at)) return false;
       if (d.part === 'body') {
-        const delta = at - d.at0;
-        return move(d.section, d.start + delta, d.end + delta);
+        // on a cyclic axis the pointer is unwrapped against its last place: a step over the origin is a short one on
+        // (a unit after the last is the first), so the window keeps going past it
+        if (d.total !== undefined) {
+          const t = d.total;
+          const step = (((at - d.last + t / 2) % t) + t) % t - t / 2;
+          d.last = at;
+          d.moved += step;
+        } else d.moved = at - d.at0;
+        return move(d.section, d.start + d.moved, d.end + d.moved);
       }
       // an end: the other held; an inward drag on a floored window keeps it (the floor holds its far end)
       const held = d.part === 'start' ? d.end : d.start;
