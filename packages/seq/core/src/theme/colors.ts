@@ -41,6 +41,28 @@ export const White = 0xffffffff;
  * or white, whichever is higher.
  */
 export function inkFor(fill: number, dark: number, light: number): number {
+  // a direct-mapped memo: the contrast arithmetic boxes doubles, and a layout asks for the same few fills every frame
+  const slot =
+    (Math.imul(fill >>> 8, 0x9e3779b1) ^ Math.imul((dark >>> 8) ^ Math.imul(light >>> 8, 31), 0x85ebca6b)) >>> 22;
+  if (InkFills[slot] === fill && InkDark[slot] === dark && InkLight[slot] === light && InkUsed[slot] === 1)
+    return InkOut[slot];
+  const ink = computeInk(fill, dark, light);
+  InkFills[slot] = fill;
+  InkDark[slot] = dark;
+  InkLight[slot] = light;
+  InkOut[slot] = ink;
+  InkUsed[slot] = 1;
+  return ink;
+}
+
+const InkSlots = 1024;
+const InkFills = new Uint32Array(InkSlots);
+const InkDark = new Uint32Array(InkSlots);
+const InkLight = new Uint32Array(InkSlots);
+const InkOut = new Uint32Array(InkSlots);
+const InkUsed = new Uint8Array(InkSlots);
+
+function computeInk(fill: number, dark: number, light: number): number {
   const cd = contrastRgba(fill, dark);
   const cl = contrastRgba(fill, light);
   const best = cd >= cl ? dark : light;

@@ -31,7 +31,7 @@ import {
   sectionId,
   type StoreReader,
 } from './layer-type.js';
-import { type Channel, inkAgainst, lettersDefault } from '@molstar/seqx-core/theme/index';
+import { type Channel, inkAgainst, lettersDefault, type ThemeBody } from '@molstar/seqx-core/theme/index';
 import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
 import { inkOn, type SeqTokens } from './tokens.js';
@@ -51,6 +51,20 @@ const AnchorMiddle: number = Anchor.middle;
 // follows its fill at 4.5:1; a themed ink held at 3:1 against its fill).
 
 /** How a letters layer reaches its section: its own letters, a one-to-one path, a codon step, or none drawn. */
+type Alphabet = 'protein' | 'dna' | 'rna';
+
+/** The color channel's default body and environment by alphabet, made once (a layout makes none to read a kept channel). */
+const LettersColorFallback: Record<Alphabet, ThemeBody> = {
+  protein: { kind: 'scheme', params: { name: lettersDefault('protein') } },
+  dna: { kind: 'scheme', params: { name: lettersDefault('dna') } },
+  rna: { kind: 'scheme', params: { name: lettersDefault('rna') } },
+};
+const LettersEnv: Record<Alphabet, { alphabet: Alphabet }> = {
+  protein: { alphabet: 'protein' },
+  dna: { alphabet: 'dna' },
+  rna: { alphabet: 'rna' },
+};
+
 type Through = 'own' | 'one' | 'codon' | 'refused';
 
 export interface LettersPrep {
@@ -305,9 +319,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       return lay;
     }
 
-    const color = prep.channels.get('color', { kind: 'scheme', params: { name: lettersDefault(prep.alphabet) } }, ctx, {
-      alphabet: prep.alphabet,
-    });
+    const color = prep.channels.get('color', LettersColorFallback[prep.alphabet], ctx, LettersEnv[prep.alphabet]);
     lay.color = color;
     const inkForm = prep.channels.forms.ink;
     const inkChannel = inkForm === undefined || inkForm === 'auto' ? undefined : prep.channels.get('ink', 'auto', ctx);

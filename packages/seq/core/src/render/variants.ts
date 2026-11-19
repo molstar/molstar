@@ -207,9 +207,8 @@ function colorRows(lay: VariantsLay, prep: VariantsPrep, ctx: LayoutContext) {
   const rows = lay.rows;
   const datum = lay.datum;
   datum.bind(rows.n ? rows.fields[0] : undefined);
-  const numeric = (n: string) => datum.numeric(n);
-  const color = prep.channels.get('color', 'token:variant', ctx, { numeric });
-  const size = prep.channels.get('size', 1, ctx, { numeric, radius: true });
+  const color = prep.channels.get('color', 'token:variant', ctx, datum.env);
+  const size = prep.channels.get('size', 1, ctx, datum.radiusEnv);
   lay.color = color;
   lay.size = size;
   const painted = color.legend?.kind === 'palette' ? color.legend.field : undefined;

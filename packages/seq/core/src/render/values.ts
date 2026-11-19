@@ -53,6 +53,9 @@ import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum }
 export type ValuesEncoding = 'bars' | 'line' | 'area';
 
 /** The line's thickness, CSS px, and the area's opacity (the channels' defaults). */
+/** The color channel's environment: its one field is the value (made once). */
+const ValueEnv = { numeric: (n: string) => n === 'value' };
+
 const LineWidth = 1.5;
 /** The area's alpha: 0.35 of 255. */
 const AreaAlpha = 89;
@@ -177,7 +180,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     lay.n = 0;
     lay.pending.length = 0;
     lay.failed.length = 0;
-    const color = prep.channels.get('color', 'token:value', ctx, { numeric: (n) => n === 'value' });
+    const color = prep.channels.get('color', 'token:value', ctx, ValueEnv);
     lay.color = color;
     lay.perBar = color.constant === undefined;
     lay.fill = typeof color.constant === 'number' ? color.constant : tokens.colors['seq-value'];
