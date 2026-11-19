@@ -104,12 +104,17 @@ describe('the Legend part', () => {
   it('`reserve` holds the channels row whether or not a channel is active; `collapse` grows as before', async () => {
     const reserved = await mounted({});
     const empty = slot(reserved.el)!;
-    expect(empty.style.minHeight).toBe('24px');
-    expect(empty.children.length).toBe(0);
+    // empty, it holds the line a channel's row takes: a hidden copy of one (not announced, not a tab stop)
+    expect(empty.querySelectorAll('[data-highlight]').length).toBe(0);
+    const copy = empty.firstElementChild as HTMLElement;
+    expect(copy.getAttribute('aria-hidden')).toBe('true');
+    expect(copy.style.visibility).toBe('hidden');
+    expect(copy.querySelector('button')!.tabIndex).toBe(-1);
     await viewer!.execute('legend.hover', { address: '/views/main/p/domains/d', entry: 'linker' });
     const lit = slot(reserved.el)!;
     expect(viewer!.highlight.names.value).toContain('legend');
-    expect(lit.style.minHeight).toBe('24px');
+    expect(lit.style.flexWrap).toBe('nowrap');
+    expect(lit.children.length).toBe(1);
     expect(lit.querySelector('button[data-clear]')).not.toBeNull();
     reserved.dispose();
     viewer!.retire();
@@ -120,9 +125,26 @@ describe('the Legend part', () => {
     expect(slot(collapsed.el)).not.toBeNull();
   });
 
+  it('the row is outside the listbox, one line for any number of channels: three at a narrow width show two and a +1', async () => {
+    const { el } = await mounted({ channels: 'reserve' });
+    el.style.width = '120px';
+    const box = el.querySelector<HTMLElement>('[role="listbox"]')!;
+    expect(box.querySelector('[data-channels]')).toBeNull();
+    expect(box.querySelector('button')).toBeNull();
+    for (const name of ['a', 'b', 'c']) viewer!.runLink(`!seq-highlight=/data/d&seq-channel=${name}`);
+    expect(viewer!.highlight.names.value).toEqual(['a', 'b', 'c']);
+    frames!.flush();
+    const row = slot(el)!;
+    expect(row.contains(box)).toBe(false);
+    expect(row.style.flexWrap).toBe('nowrap');
+    expect(row.style.overflow).toBe('hidden');
+    expect(row.querySelectorAll('[data-highlight]').length).toBe(2);
+    expect(row.querySelector('[data-more]')?.textContent).toBe('+1');
+  });
+
   it('the row model: reserve is the same with none or some, collapse only with some', () => {
     expect(channelsRow('reserve', 0)).toEqual(channelsRow('reserve', 2));
-    expect(channelsRow('collapse', 0)).toEqual({ present: false, minHeight: 0 });
+    expect(channelsRow('collapse', 0)).toEqual({ present: false });
     expect(channelsRow('collapse', 1).present).toBe(true);
   });
 

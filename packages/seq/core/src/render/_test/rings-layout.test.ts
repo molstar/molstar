@@ -427,6 +427,104 @@ describe('a dense fan of labels', () => {
       (await placed(13, { rings: { cluster: { over: 6, degrees: 0 } } })).filter((t) => t.startsWith('Site')).length,
     ).toBe(13);
   });
+
+  /** The label at the placed slot `k` of a set: a page point inside its box. */
+  const labelPoint = (p: RingPlacement, set: RingPlacement['labels'], k: number) => ({
+    x: set.right[k] ? set.x[k] + 3 : set.x[k] - 3,
+    y: set.y[k] - 0.35 * p.labelSize,
+  });
+  const groupSlot = (p: RingPlacement) => {
+    for (let k = 0; k < p.labels.m; k++) if (p.labels.of[p.labels.placed[k]] >= 0) return k;
+    return -1;
+  };
+
+  it('both forms are placed with the layout: the grouped label and the fan of its members, nothing laid out on a hover', async () => {
+    const s = await settle(denseSpec(13));
+    const f = await s.frame({ size: Size });
+    const p = ringOf(f).placement as RingPlacement;
+    expect(p.fan.ng).toBe(1);
+    expect(p.fan.groupSize[0]).toBe(13);
+    const members = Array.from(p.fan.members.subarray(0, 13), (i) => p.fan.text[i]).sort();
+    expect(members).toEqual(Array.from({ length: 13 }, (_, k) => `Site${k}`).sort());
+    for (let q = 0; q < 13; q++) expect(p.fan.slot[p.fan.members[q]]).toBeGreaterThanOrEqual(0);
+    const k = groupSlot(p);
+    const hit = p.labels.hits[p.labels.placed[k]]!;
+    expect(hit).toMatchObject({ target: 'group', count: 13 });
+    expect(hit.members!.map((m) => m.element!.key).sort()).toEqual(
+      Array.from({ length: 13 }, (_, q) => `s${q}`).sort(),
+    );
+    // a hover redraws the emphasis passes alone: the same layout, no rebuild
+    const over = hitAtPage(f, labelPoint(p, p.labels, k).x, labelPoint(p, p.labels, k).y)!;
+    expect(over.target).toBe('group');
+    const hovered = s.renderer.frame({ size: Size, emphasis: { hover: { ...over } } });
+    expect(hovered.rebuilt).toBe(false);
+    expect(ringOf(hovered).placement).toBe(p);
+  });
+
+  it('a hover on the group draws the fan (the grouped form at rest), and its labels are hit as their items', async () => {
+    const s = await settle(denseSpec(13));
+    const f = await s.frame({ size: Size });
+    const p = ringOf(f).placement as RingPlacement;
+    const rest = recordDrawLists(f.lists);
+    expect(rest).toContain('13 items');
+    expect(rest).not.toContain('Site3');
+    const k = groupSlot(p);
+    const at = labelPoint(p, p.labels, k);
+    const over = hitAtPage(f, at.x, at.y)!;
+    const hovered = s.renderer.frame({ size: Size, emphasis: { hover: { ...over } } });
+    const lists = recordDrawLists(hovered.lists);
+    for (let q = 0; q < 13; q++) expect(lists).toContain(`Site${q}`);
+    expect(p.openGroup).toBe(0);
+    // a fan label is hit as its item, while the group is open
+    const i = p.fan.members[3];
+    const slot = p.fan.slot[i];
+    const pt = labelPoint(p, p.fan, slot);
+    const member = hitAtPage(hovered, pt.x, pt.y)!;
+    expect(member.element?.key).toBe(p.fan.hits[i]!.element!.key);
+    // a hover on that item keeps the fan open; off the group the grouped form is drawn again
+    const again = s.renderer.frame({ size: Size, emphasis: { hover: { ...member } } });
+    expect(recordDrawLists(again.lists)).toContain('Site12');
+    const off = s.renderer.frame({ size: Size, emphasis: {} });
+    expect(recordDrawLists(off.lists)).not.toContain('Site3');
+    expect(p.openGroup).toBe(-1);
+    // closed, the fan's place is the grouped labels' again
+    expect(hitAtPage(off, pt.x, pt.y)?.target).not.toBe('group');
+  });
+
+  it('an export draws the grouped form alone', async () => {
+    const out = await renderSvg(denseSpec(13), { size: Size });
+    const texts = [...out.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+    expect(texts).toContain('13 items');
+    expect(texts.some((t) => t.startsWith('Site'))).toBe(false);
+  });
+
+  it('a fan across the origin (355° to 5°) is one group, its label at the origin', async () => {
+    const n = 2686;
+    const sites = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
+    // 13 sites 3 bp apart from 2650 (355°) through the origin to 33 bp (4.4°)
+    for (let k = 0; k < 13; k++) {
+      const st = (2650 + 6 * k) % n;
+      sites.start.push(st);
+      sites.end.push(st + 3 > n ? n : st + 3);
+      sites.id.push(`w${k}`);
+      sites.label.push(`Wrap${k}`);
+    }
+    const b = createSeqSpec({ title: 'seam ring' });
+    const c = b.data.sequence('plasmid', { alphabet: 'dna', letters: 'A'.repeat(n), cyclic: true });
+    const fs = b.data.ranges('sites', { target: c, rows: sites });
+    b.views.view('v', (v) => {
+      v.section('ring', { of: c, layout: 'rings' }).track('sites').layer('sites', { type: 'ranges', data: fs });
+    });
+    const s = await settle(b.build());
+    const p = ringOf(await s.frame({ size: Size })).placement as RingPlacement;
+    expect(p.fan.ng).toBe(1);
+    expect(p.fan.groupSize[0]).toBe(13);
+    expect(p.labels.m).toBe(1);
+    const a = p.fan.groupAngle[0];
+    // the middle of 355° and about 4°: within a few degrees of the top, not the bottom (180°)
+    const off = Math.min(a, 2 * Math.PI - a);
+    expect(off).toBeLessThan((6 * Math.PI) / 180);
+  });
 });
 
 describe('a ring over tiles', () => {

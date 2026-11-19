@@ -188,16 +188,11 @@ export function highlightColorOf(
 
 export type LegendChannels = 'reserve' | 'collapse';
 export const LegendChannelsModes: readonly LegendChannels[] = ['reserve', 'collapse'];
-/** The height the channels row holds under `reserve` (px): a 14 px swatch row and its Clear button. */
-export const LegendChannelsRowHeight = 24;
-
 /**
- * The highlight channels' row of the Legend part (DOM-free): whether it is there and the height it holds, for a mode and
- * the number of active channels. `reserve` holds `LegendChannelsRowHeight` with or without a channel; `collapse` has it
- * only with one.
+ * The highlight channels' row of the Legend part (DOM-free): whether it is there, for a mode and the number of active
+ * channels. `reserve` has it with or without a channel (empty, it holds the line a channel's row takes: the part draws a
+ * hidden copy, so the height is the real one at any text size); `collapse` only with one.
  */
-export function channelsRow(mode: LegendChannels, active: number): { present: boolean; minHeight: number } {
-  return mode === 'reserve'
-    ? { present: true, minHeight: LegendChannelsRowHeight }
-    : { present: active > 0, minHeight: 0 };
+export function channelsRow(mode: LegendChannels, active: number): { present: boolean } {
+  return { present: mode === 'reserve' || active > 0 };
 }

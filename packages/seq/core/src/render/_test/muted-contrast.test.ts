@@ -36,6 +36,31 @@ describe('muted text holds 4.5:1', () => {
     expect(mutedInk(t, pale, wells)).not.toBe(pale);
   });
 
+  const withText = (text: number) => ({ ...LightTokens, colors: { ...LightTokens.colors, 'msui-text': text } });
+
+  it('the ink is an unsigned color, whatever the wells', () => {
+    const ink = mutedInk(withText(0xf0f0f0ff), 0x202020ff, [0x101010ff]);
+    expect(ink).toBeGreaterThanOrEqual(0);
+    expect(ink >>> 0).toBe(ink);
+    expect(contrastRgba(ink, 0x101010ff)).toBeGreaterThanOrEqual(MutedTextContrast);
+  });
+
+  it('the 75% fallback is held against every well: one it fails on is the text color itself', () => {
+    const white = 0xffffffff;
+    const grey = 0x808080ff;
+    const text = 0x000000ff;
+    // over white, 75% black holds 4.5:1; over the grey it does not
+    expect(mutedInk(withText(text), 0xc0c0c0ff, [white])).not.toBe(text);
+    expect(mutedInk(withText(text), 0xc0c0c0ff, [white, grey])).toBe(text);
+    const ink = mutedInk(withText(0xf5f5f5ff), 0x404040ff, [0x000000ff, 0x303030ff]);
+    for (const w of [0x000000ff, 0x303030ff]) expect(contrastRgba(ink, w)).toBeGreaterThanOrEqual(MutedTextContrast);
+  });
+
+  it('forced colors’ muted ink is the system text color, kept as it is', () => {
+    const t = withText(0x123456ff);
+    expect(mutedInk(t, 0x123456ff, [0x123456ff])).toBe(0x123456ff);
+  });
+
   it('the light theme’s seq-ruler alone falls short, which is why the ruler raises it', () => {
     const l = LightTokens;
     expect(contrastRgba(l.colors['seq-ruler'], l.colors['seq-track'])).toBeLessThan(MutedTextContrast);

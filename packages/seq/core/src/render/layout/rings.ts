@@ -80,10 +80,30 @@ class RingLabels {
   width = new Float64Array(16);
   /** A leader: from the ring out along its angle, to its bend, to the label (x, y a point). */
   leader = new Float64Array(96);
+  /**
+   * Dense groups (`findGroups`): each given label's group (−1: none), the groups' sizes, middle angles, best orders and
+   * summed lengths, their members flat from `groupStart`; scratch (the sort, a cursor) kept between layouts.
+   */
+  ng = 0;
+  group = new Int32Array(16);
+  sorted = new Int32Array(16);
+  cursor = new Int32Array(16);
+  members = new Int32Array(16);
+  groupStart = new Int32Array(16);
+  groupSize = new Int32Array(16);
+  groupAngle = new Float64Array(16);
+  groupOrder = new Float64Array(16);
+  groupLength = new Float64Array(16);
+  /** The full set's placed slot of each given label (−1: dropped), for the fan. */
+  slot = new Int32Array(16);
+  /** The grouped set's: each given label's group (−1: its own item), and each group's hit. */
+  of = new Int32Array(16);
+  groupHits: Hit[] = [];
 
   reset() {
     this.n = 0;
     this.m = 0;
+    this.ng = 0;
   }
 
   add(text: string, angle: number, length: number, order: number, hit: Hit | undefined) {
@@ -120,7 +140,12 @@ export class RingPlacement implements Placement {
   readonly warp = new PolarWarp();
   /** Each block's chip slot (px of the outer ring; 0 for a block that is no chip). */
   slots: Float64Array = new Float64Array(4);
-  readonly labels = new RingLabels();
+  /** The labels as drawn at rest: a dense fan is one grouped label (`layoutLabels`). */
+  labels = new RingLabels();
+  /** Every label placed as if no group existed, when a fan is dense (m is 0 otherwise): what a hover on a group opens. */
+  fan = new RingLabels();
+  /** The group whose fan is open (drawn by the tip pass from the hover), or −1; hits read it. */
+  openGroup = -1;
   cx = 0;
   cy = 0;
   /** The outer radius, and the rings' depth (their bands and the gaps between them). */
@@ -199,7 +224,11 @@ export class RingPlacement implements Placement {
    * two labels' boxes never overlap (their lines are a line apart at least).
    */
   inLabel(k: number, x: number, y: number): boolean {
-    const l = this.labels;
+    return this.inLabelOf(this.labels, k, x, y);
+  }
+
+  /** `inLabel` of a label set's placed label `k` (the grouped set's or the fan's). */
+  inLabelOf(l: RingLabels, k: number, x: number, y: number): boolean {
     const x0 = l.right[k] ? l.x[k] : l.x[k] - l.width[k];
     const cy = l.y[k] - 0.35 * this.labelSize;
     const h = labelLine(this.labelSize) / 2;
@@ -212,6 +241,22 @@ export class RingPlacement implements Placement {
     return -1;
   }
 
+  /**
+   * The open group's member whose fan label is under a page point (its index among the fan's given labels), or −1: a
+   * fan is hit only while its group is open (`openGroup`, set by the pass that draws it from the hover).
+   */
+  fanAt(x: number, y: number): number {
+    const g = this.openGroup;
+    if (g < 0) return -1;
+    const f = this.fan;
+    for (let q = f.groupStart[g]; q < f.groupStart[g + 1]; q++) {
+      const i = f.members[q];
+      const k = f.slot[i];
+      if (k >= 0 && this.inLabelOf(f, k, x, y)) return i;
+    }
+    return -1;
+  }
+
   at(p: ArrayLike<number>, out: PlacePoint): boolean {
     const x = p[0];
     const y = p[1];
@@ -221,7 +266,7 @@ export class RingPlacement implements Placement {
     out.kind = 'empty';
     out.offset = -1;
     if (y < b.y || y >= b.y + b.height || x < b.x || x >= b.x + b.width) return false;
-    if (this.labelAt(x, y) >= 0) {
+    if (this.fanAt(x, y) >= 0 || this.labelAt(x, y) >= 0) {
       out.kind = 'label';
       return true;
     }
@@ -439,7 +484,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
         p.labels.add(b.label, angleOf(p, a.x0 + a.width / 2), Infinity, -1, undefined);
       }
     }
-    if (outside) placeLabels(p, config, size, ctx.text);
+    if (outside) layoutLabels(p, config, size, ctx.text);
     const [title, sub] = rc.center === 'title' ? ringTitle(section, ctx, total) : ['', ''];
     p.title = title;
     p.subtitle = sub;
@@ -487,10 +532,13 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     if (pass === 'data') p.warp.refused = 0;
     else if (pass === 'window') drawRingWindow(p, s, out, emphasis, tokens);
     else if (pass === 'labels') drawRingLabels(p, out, tokens, config);
+    else if (pass === 'tip') drawRingFan(p, out, emphasis, tokens, config);
   },
   hitChrome(s, x, y) {
     const p = s.placement;
     if (!(p instanceof RingPlacement)) return undefined;
+    const i = p.fanAt(x, y);
+    if (i >= 0) return p.fan.hits[i];
     const k = p.labelAt(x, y);
     if (k >= 0) return p.labels.hits[p.labels.placed[k]];
     if (!p.strips.n || !p.windowActive || !p.windowShown || !p.warp.unmap(x, y)) return undefined;
@@ -542,50 +590,158 @@ class RingSink implements LabelSink {
 }
 const Sink = new RingSink();
 
+/** The "n items" texts, one string a count for the process (a layout makes none). */
+const ItemsTexts: string[] = [];
+const itemsText = (n: number) => (ItemsTexts[n] ??= `${n} items`);
+
+/** The sort's keys and the comparator reading them: a module-level function, no closure made a layout. */
+let SortKeys = new Float64Array(64);
+const byKey = (a: number, b: number) => SortKeys[a] - SortKeys[b] || a - b;
+
 /**
- * A dense fan as one label (the defaults audit): runs of one layer's labels (the same `order`) by angle where more than `over` fall within `span`
- * radians (a run starts at its first label and takes the next while they are within `span` of it) are replaced by one
- * "n items" label at the run's middle angle, kept by the run's best order and its length summed. The labels given are
- * rewritten in place (the arrays are the layout's: nothing allocated past the sort's index list). A grouped label has no
- * hit: its items keep theirs on the ring.
+ * A dense fan as one label (the defaults audit; the author, 2026-11-20: "relayout, but precomputed so the UI doesn't
+ * move"): runs of one layer's labels (the same `order`, each with a hit) where more than `over` fall within `span`
+ * radians. A run is found sweeping the layer's labels by angle from just after its largest circular gap, so a run
+ * across the origin is one (its middle angle modulo 2π). Writes `l.group` (a label's group number, or −1) and the
+ * groups' records (`ng` of them: size, middle angle, best order, summed length, and `members`, their labels in the
+ * order given, from `groupStart`); returns `ng`. Typed scratch only: nothing is made when no run is dense.
  */
-function groupDense(l: RingLabels, over: number, span: number): void {
-  if (!(span > 0) || l.n <= over) return;
-  const idx: number[] = [];
-  for (let i = 0; i < l.n; i++) idx.push(i);
-  idx.sort((a, b) => l.order[a] - l.order[b] || l.angle[a] - l.angle[b] || a - b);
-  const text: string[] = [];
-  const hits: (Hit | undefined)[] = [];
-  const angle: number[] = [];
-  const length: number[] = [];
-  const order: number[] = [];
-  const keep = (i: number) => {
-    text.push(l.text[i]);
-    hits.push(l.hits[i]);
-    angle.push(l.angle[i]);
-    length.push(l.length[i]);
-    order.push(l.order[i]);
-  };
-  for (let a = 0; a < idx.length; ) {
-    let b = a + 1;
-    while (b < idx.length && l.order[idx[b]] === l.order[idx[a]] && l.angle[idx[b]] - l.angle[idx[a]] <= span) b++;
-    if (b - a > over) {
-      let best = Infinity;
-      let len = 0;
-      for (let k = a; k < b; k++) {
-        best = Math.min(best, l.order[idx[k]]);
-        len += Number.isFinite(l.length[idx[k]]) ? l.length[idx[k]] : 0;
-      }
-      text.push(`${b - a} items`);
-      hits.push(undefined);
-      angle.push((l.angle[idx[a]] + l.angle[idx[b - 1]]) / 2);
-      length.push(len);
-      order.push(best);
-      a = b;
-    } else keep(idx[a++]);
+function findGroups(l: RingLabels, over: number, span: number): number {
+  l.ng = 0;
+  const n = l.n;
+  if (!(span > 0) || n <= over) return 0;
+  l.sorted = grown(l.sorted, n);
+  if (SortKeys.length < n) SortKeys = new Float64Array(Math.max(n, 2 * SortKeys.length));
+  let m = 0;
+  // the layer first, the angle within: the key's integer part is the layer's, its fraction the angle's share of the circle
+  for (let i = 0; i < n; i++) {
+    if (l.hits[i] === undefined) continue;
+    SortKeys[i] = l.order[i] * 4 + (l.angle[i] / TwoPi) * 0.999999;
+    l.sorted[m++] = i;
   }
-  l.n = 0;
-  for (let k = 0; k < text.length; k++) l.add(text[k], angle[k], length[k], order[k], hits[k]);
+  if (m <= over) return 0;
+  l.group = grown(l.group, n);
+  l.group.fill(-1, 0, n);
+  const sorted = l.sorted.subarray(0, m);
+  sorted.sort(byKey);
+  for (let a = 0; a < m; ) {
+    let e = a + 1;
+    while (e < m && l.order[sorted[e]] === l.order[sorted[a]]) e++;
+    const cnt = e - a;
+    if (cnt > over) {
+      // from just after the layer's largest circular gap, a sweep of runs
+      let at = 0;
+      let gap = -1;
+      for (let k = 0; k < cnt; k++) {
+        const x = l.angle[sorted[a + k]];
+        const d = k + 1 < cnt ? l.angle[sorted[a + k + 1]] - x : l.angle[sorted[a]] + TwoPi - x;
+        if (d > gap) {
+          gap = d;
+          at = (k + 1) % cnt;
+        }
+      }
+      for (let k = 0; k < cnt; ) {
+        const t0 = l.angle[sorted[a + ((at + k) % cnt)]];
+        let r = 1;
+        let last = t0;
+        while (k + r < cnt) {
+          const d = (l.angle[sorted[a + ((at + k + r) % cnt)]] - t0 + TwoPi) % TwoPi;
+          if (d > span) break;
+          last = t0 + d;
+          r++;
+        }
+        if (r > over) {
+          const g = l.ng++;
+          l.groupSize = grown(l.groupSize, g + 1);
+          l.groupAngle = grown(l.groupAngle, g + 1);
+          l.groupOrder = grown(l.groupOrder, g + 1);
+          l.groupLength = grown(l.groupLength, g + 1);
+          let best = Infinity;
+          let len = 0;
+          for (let q = 0; q < r; q++) {
+            const j = sorted[a + ((at + k + q) % cnt)];
+            l.group[j] = g;
+            best = Math.min(best, l.order[j]);
+            len += Number.isFinite(l.length[j]) ? l.length[j] : 0;
+          }
+          l.groupSize[g] = r;
+          l.groupAngle[g] = ((((t0 + last) / 2) % TwoPi) + TwoPi) % TwoPi;
+          l.groupOrder[g] = best;
+          l.groupLength[g] = len;
+        }
+        k += r;
+      }
+    }
+    a = e;
+  }
+  if (l.ng === 0) return 0;
+  // the members, flat by group (offsets in `groupStart`), each in the order the labels were given
+  l.groupStart = grown(l.groupStart, l.ng + 1);
+  l.groupStart[0] = 0;
+  for (let g = 0; g < l.ng; g++) l.groupStart[g + 1] = l.groupStart[g] + l.groupSize[g];
+  l.members = grown(l.members, l.groupStart[l.ng]);
+  l.cursor = grown(l.cursor, l.ng);
+  l.cursor.fill(0, 0, l.ng);
+  for (let j = 0; j < n; j++) {
+    const g = l.group[j];
+    if (g >= 0) l.members[l.groupStart[g] + l.cursor[g]++] = j;
+  }
+  return l.ng;
+}
+
+/**
+ * Lays a ring's labels out twice when a fan is dense: `p.fan` holds every label placed as if no group existed (what a
+ * hover on a group opens: precomputed here, never laid out on a hover), `p.labels` the grouped labels, each group one
+ * label at its middle angle with a hit of its own (`target: 'group'`, its members' hits). With no dense run, `p.labels`
+ * alone, as before.
+ */
+function layoutLabels(p: RingPlacement, config: RenderConfig, size: number, text: TextMetrics) {
+  const all = p.labels;
+  const rc = config.rings;
+  p.fan.reset();
+  p.openGroup = -1;
+  all.ng = 0;
+  if (findGroups(all, rc.cluster.over, (rc.cluster.degrees * Math.PI) / 180) === 0)
+    return placeLabels(p, all, config, size, text);
+  // the full set placed into `p.fan` (swapped in: no copy), then the grouped set built into `p.labels`
+  const full = all;
+  p.labels = p.fan;
+  p.fan = full;
+  const grouped = p.labels;
+  grouped.reset();
+  grouped.groupHits.length = 0;
+  placeLabels(p, full, config, size, text);
+  full.slot = grown(full.slot, full.n);
+  full.slot.fill(-1, 0, full.n);
+  for (let k = 0; k < full.m; k++) full.slot[full.placed[k]] = k;
+  for (let j = 0; j < full.n; j++) {
+    const g = full.group[j];
+    if (g < 0) {
+      grouped.add(full.text[j], full.angle[j], full.length[j], full.order[j], full.hits[j]);
+      grouped.of = grown(grouped.of, grouped.n);
+      grouped.of[grouped.n - 1] = -1;
+    } else {
+      // the group's label once, at its first member
+      if (full.members[full.groupStart[g]] !== j) continue;
+      const first = full.hits[j]!;
+      const members: Hit[] = [];
+      for (let q = full.groupStart[g]; q < full.groupStart[g + 1]; q++) members.push(full.hits[full.members[q]]!);
+      const hit: Hit = {
+        layer: first.layer,
+        section: first.section,
+        system: first.system,
+        target: 'group',
+        state: `group:${g}`,
+        count: members.length,
+        members,
+      };
+      grouped.groupHits[g] = hit;
+      grouped.add(itemsText(members.length), full.groupAngle[g], full.groupLength[g], full.groupOrder[g], hit);
+      grouped.of = grown(grouped.of, grouped.n);
+      grouped.of[grouped.n - 1] = g;
+    }
+  }
+  placeLabels(p, grouped, config, size, text);
 }
 
 /**
@@ -593,8 +749,7 @@ function groupDense(l: RingLabels, over: number, span: number): void {
  * (a forward pass then a backward one), past what a side holds dropped by order then length; each label hugging the
  * circle at its leader's outer radius, its leader out along its angle to the bend, then to the label.
  */
-function placeLabels(p: RingPlacement, config: RenderConfig, size: number, text: TextMetrics) {
-  const l = p.labels;
+function placeLabels(p: RingPlacement, l: RingLabels, config: RenderConfig, size: number, text: TextMetrics) {
   const rc = config.rings;
   const line = labelLine(size);
   const r1 = p.r + 2;
@@ -603,7 +758,6 @@ function placeLabels(p: RingPlacement, config: RenderConfig, size: number, text:
   const lo = p.box.y + size;
   const hi = p.box.y + p.box.height - 2;
   const hold = Math.max(0, Math.floor((hi - lo) / line) + 1);
-  groupDense(l, rc.cluster.over, (rc.cluster.degrees * Math.PI) / 180);
   l.ensurePlaced(l.n);
   for (let s = 0; s < 2; s++) {
     const right = s === 0;
@@ -640,6 +794,82 @@ function placeLabels(p: RingPlacement, config: RenderConfig, size: number, text:
       l.leader[o + 4] = x;
       l.leader[o + 5] = y;
     }
+  }
+}
+
+/**
+ * The open group's fan, over the labels (the tip pass: a hover redraws it alone, nothing is laid out): the group is the
+ * hover's (its hit, or one of its members'); its grouped label is covered by the page's ground and its members' labels
+ * drawn where the layout placed them (`p.fan`), each on a ground of its own. Sets `openGroup`, which the hits read.
+ */
+function drawRingFan(
+  p: RingPlacement,
+  out: PassWriter,
+  emphasis: Emphasis | undefined,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  const f = p.fan;
+  p.openGroup = -1;
+  const h = emphasis?.hover;
+  if (!h || f.m === 0 || f.ng === 0) return;
+  const l = p.labels;
+  let g = -1;
+  if (h.target === 'group') {
+    for (let q = 0; q < l.groupHits.length; q++) {
+      const gh = l.groupHits[q];
+      if (gh && gh.state === h.state && gh.layer === h.layer) g = q;
+    }
+  } else if (h.element) {
+    const key = h.element.key;
+    const owner = h.element.owner;
+    for (let q = 0; q < f.groupStart[f.ng] && g < 0; q++) {
+      const e = f.hits[f.members[q]]?.element;
+      if (e && e.key === key && e.owner === owner) {
+        for (let r = 0; r < f.ng; r++) if (q >= f.groupStart[r] && q < f.groupStart[r + 1]) g = r;
+      }
+    }
+  }
+  if (g < 0) return;
+  p.openGroup = g;
+  const ground = tokens.colors['msui-bg'];
+  const ink = tokens.colors['msui-text'];
+  const muted = tokens.colors['msui-text-muted'];
+  const a = out.args;
+  const size = p.labelSize;
+  const half = labelLine(size) / 2;
+  const cover = (set: RingLabels, k: number) => {
+    const x0 = set.right[k] ? set.x[k] : set.x[k] - set.width[k];
+    a[0] = x0 - 2;
+    a[1] = set.y[k] - 0.35 * size - half;
+    a[2] = set.width[k] + 4;
+    a[3] = 2 * half;
+    a[4] = ground;
+    a[5] = NoColor;
+    a[6] = 0;
+    a[7] = 0;
+    a[8] = 0;
+    out.rectArgs();
+  };
+  for (let k = 0; k < l.m; k++) if (l.of[l.placed[k]] === g) cover(l, k);
+  const xy = p.path;
+  for (let q = f.groupStart[g]; q < f.groupStart[g + 1]; q++) {
+    const k = f.slot[f.members[q]];
+    if (k < 0) continue;
+    cover(f, k);
+    const o = 6 * k;
+    for (let c = 0; c < 6; c++) xy[c] = f.leader[o + c];
+    a[4] = NoColor;
+    a[5] = muted;
+    a[6] = 1;
+    a[7] = 0;
+    out.pathArgs(xy, 3, false);
+    a[0] = f.x[k];
+    a[1] = f.y[k];
+    a[2] = f.width[k];
+    a[3] = RingMetrics.labelRoom;
+    a[4] = ink;
+    out.textArgs(f.text[f.members[q]], f.right[k] ? AnchorStart : AnchorEnd, config.itemFont);
   }
 }
 

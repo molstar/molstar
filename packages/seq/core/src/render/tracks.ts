@@ -2165,7 +2165,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
     // the tip is a rows layer's (a hovered cell read whole): a section with none has nothing to walk, as the window pass
-    if (pass === 'tip' && !hasRows(s)) continue;
+    if (pass === 'tip' && !hasRows(s) && s.layout.name !== 'rings') continue;
     s.layout.chrome(s, pass, out, emphasis, -1, -1);
     if (pass === 'window' && s.rail) drawRail(s.rail, out, emphasis, s.tokens, s.config);
     if (pass === 'window' && s.rowsRails)

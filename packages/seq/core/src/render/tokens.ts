@@ -287,10 +287,15 @@ export function mixColors(a: number, b: number, t: number): number {
 export const MutedTextContrast = 4.5;
 
 /**
- * The ink of a muted text (ruler tick labels, a ruler's note) on its wells: `muted` where it holds 4.5:1 on each, else
- * the text color at 75% over the first well, opaque (`mixColors` with that well, so the ratio is the one drawn).
+ * The ink of a muted text (ruler tick labels, a ruler's note) on its wells: `muted` where it holds 4.5:1 on each (or is
+ * the text color itself: forced colors map the muted ink to the system's text color, which is kept, never blended),
+ * else the text color at 75% over the first well, opaque (`mixColors` with that well, so the ratio is the one drawn), if
+ * that holds on every well, else the text color itself.
  */
 export function mutedInk(tokens: SeqTokens, muted: number, wells: readonly number[]): number {
-  if (wells.every((w) => contrastRgba(muted, w) >= MutedTextContrast)) return muted;
-  return mixColors(wells[0], tokens.colors['msui-text'], 0.75) | 0xff;
+  const text = tokens.colors['msui-text'];
+  const holds = (ink: number) => wells.every((w) => contrastRgba(ink, w) >= MutedTextContrast);
+  if (muted === text || holds(muted)) return muted;
+  const soft = (mixColors(wells[0], text, 0.75) | 0xff) >>> 0;
+  return holds(soft) ? soft : text;
 }

@@ -164,11 +164,12 @@ describe('the Legend part redraws only when its rows change', () => {
     const b = clearOf(el, 'b');
     v.addresses.highlightAddress(Range(1, 3), 'c');
     expect(clearOf(el, 'b')).not.toBe(b);
+    // the row is one line: two channels named, the third a chip
     expect([...el.querySelectorAll<HTMLElement>('[data-highlight]')].map((r) => r.dataset.highlight)).toEqual([
       'a',
       'b',
-      'c',
     ]);
+    expect(el.querySelector('[data-more]')?.textContent).toBe('+1');
     dispose();
   });
 

@@ -190,6 +190,8 @@ export interface Hit {
    * it names (`title: value`, on its row's `row` hit); a column title's field (`column-title`).
    */
   readonly state?: string;
+  /** A `group` hit's members: the hits of the items it stands for. */
+  readonly members?: readonly Hit[];
 }
 
 /**
@@ -198,7 +200,8 @@ export interface Hit {
  * `ySystem` and `yPosition` set), `tree-node` (a tree's node: its element the clade), `summary-row` (a folded
  * clade's row: its element the clade, `position` the column), `column-title` (a rows layer's column title: `state`
  * its field; a click orders the rows by it), `columns-hidden` (a rows layer's hidden-columns chip: `state` its text;
- * a hover names the columns, a click does nothing).
+ * a hover names the columns, a click does nothing), `group` (a ring's grouped label, a dense fan as one: `members` its
+ * items' hits, `count` their number; a click selects them all, its card lists them).
  */
 export type HitTarget =
   | 'break'
@@ -209,7 +212,8 @@ export type HitTarget =
   | 'tree-node'
   | 'summary-row'
   | 'column-title'
-  | 'columns-hidden';
+  | 'columns-hidden'
+  | 'group';
 
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {
