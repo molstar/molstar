@@ -17,14 +17,18 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
   rendering 290.4 of 300 kB (a guide).
 - SL merged (`2457f3ab9`): the review's eight findings fixed; the look's struck-through labels fixed. Quick 973 on the
   merged tree; headless rendering 313.0 kB against the 300 kB guide (reset at the close).
+- TH merged (`1772436b9`) with the `./theme` export: the review's findings fixed but the core module split (a gap); the
+  look's two empty stories fixed. Sizes against the guides: reading 170.1, headless 409.4, viewer 668.7 kB.
+- Stage 1's gate passed: quick 2,745 (core color, model, mvs, seq), heavy 65, typechecks, lint, format, `pnpm build`,
+  `check:workspace`; sizes over the guides (reset at the close; the core split, a gap, saves ~17 kB); no medium tests.
 
 ## In progress
 
-- TH (strong): `briefs/th-themes.md`, branch `seq/th-themes`, base `1e7e87870`.
+- TX (strong): `briefs/tx-text.md`, branch `seq/tx-text`.
 
 ## Next
 
-Stage 1's gate after TH and SL; then stage 2 (TX, then RB). The early use gate is deferred.
+Stage 2: RB on TX's interface commit once it merges. The early use gate is deferred.
 
 ## Decided
 
@@ -40,6 +44,7 @@ Stage 1's gate after TH and SL; then stage 2 (TX, then RB). The early use gate i
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stage 1, TH (review and look) | 8 (log binned; clamp unapplied; the MolViewSpec round trip; mid not diverging; value-color overwriting; two legends off their scale; layer.filter called blocked) | 1 (a safe substitute that is not safe) | 3 (two stories empty; the view not on SL's layers; dark letters dim) |
 | stage 1, SL (review and look) | 4 (heads on the wrong piece off-tile; hidden items untick'd, a design departure; secondary codes misread; an untested stem hit) | 0 | 1 (labels struck through) |
 | stage 1, AX (review and look) | 6 (Shift+C on a lone gene; focus outside a range; pieces outside a range; a deopt hidden by scenario order; the history key's size; a reversed cyclic follower) | 0 | 1 (the protein row solid conflict ink) |
 | stage 0 (C0's review and look) | 3 (a test not checking the drawing; a kept focus outliving a load; untested parts) | 0 | 1 (disabled buttons not dimmed) |

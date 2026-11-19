@@ -12,4 +12,10 @@ was away are listed with "(decided as recommended)"; a public API change is neve
   (with `ValuePaletteLists`), non-breaking for Mol\*'s and MolViewSpec's code? Recommend **yes**.
 - **The default protein scheme is not color-blind safe** (TH's drift 6): `classes` stays the default and its safe
   substitute is drawn under the reader's `theme.cvdSafe`. Keep `classes` as the default? Recommend **yes** (the
-  reader's setting covers it; changing the default changes every figure).
+  reader's setting covers it; changing the default changes every figure). Found at TH's merge: several schemes name
+  `classes` as their color-blind substitute while `classes` is itself not safe, so `theme.cvdSafe` can substitute an
+  unsafe scheme. Whatever the default, should every substitute be a safe scheme (a new safe residue scheme, e.g. on
+  Okabe–Ito groups, as the substitute)? Recommend **yes**.
+- **Letter cells in dark read dim** (TH's measurement): the dark variants sit at Oklab L 0.32–0.61, only 1.4–1.7:1
+  against the dark page, and cannot go lighter without the ink failing 4.5:1. Draw a hairline cell outline in dark
+  (option a) rather than lighten the dark page (option b, every figure)? Recommend **a**.

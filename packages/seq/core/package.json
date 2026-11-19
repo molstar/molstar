@@ -29,6 +29,11 @@
       "types": "./lib/lang/index.d.ts",
       "import": "./lib/lang/index.js"
     },
+    "./theme": {
+      "molstar-src": "./src/theme/index.ts",
+      "types": "./lib/theme/index.d.ts",
+      "import": "./lib/theme/index.js"
+    },
     "./lang/changes": {
       "molstar-src": "./src/lang/check-changes.ts",
       "types": "./lib/lang/check-changes.d.ts",
@@ -66,6 +71,7 @@
     "./resolve/_test/*": null,
     "./view/_test/*": null,
     "./render/_test/*": null,
+    "./theme/_test/*": null,
     "./context/_test/*": null
   },
   "files": [

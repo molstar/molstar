@@ -161,13 +161,13 @@ and dark before the merge.
     nucleotide of a split codon;
   - hit-testing, selection, follow (both ways), focus and the SVG export through the new axis; the p53 views: the
     protein and its gene on one axis, the gene reading along its protein.
-- [ ] TH (strong) themes, as [themes](../../design/themes.md): the `layer.color` slot's grammar (fields, palettes
+- [x] TH (strong) themes, as [themes](../../design/themes.md): the `layer.color` slot's grammar (fields, palettes
       binned, continuous and log, rules), the residue schemes, legends as parts a host places, shared domains, size
       channels, `layer.filter` with its chip; the `@molstar/core` color additions (a base-library change: its agreed
       surface is the design's list); the themes view.
 - [x] SL (fast, beside TH) the small layers: the ruler and its `numbering` (insertion codes as minor ticks),
       secondary structure, variants, values' line and area, ranges' line styles and arrowheads; each with its fallback.
-- [ ] GATE: merged, reviewed, the checks green, sizes measured (headless rendering's room, Gate 0's question), gaps
+- [x] GATE: merged, reviewed, the checks green, sizes measured (headless rendering's room, Gate 0's question), gaps
       asked, the matrix cells this stage fills checked.
 - [ ] USE GATE (early, deferred: the loop does not wait): the author tries the p53 views for about ten minutes when
       back; findings fixed or placed, counted by kind (counted as "after stage N", the stage the loop had reached).
