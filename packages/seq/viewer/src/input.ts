@@ -389,7 +389,11 @@ export class ViewerInput {
     const hit = this._hitAt(x, y);
     this._windowHover(this._renderHit);
     if (d) {
-      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
+      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) {
+        d.moved = true;
+        // a drag is not a double-click's: what a click cleared stays cleared
+        this._cleared = undefined;
+      }
       if (d.rowsRail) {
         d.x = x;
         d.y = y;
@@ -579,6 +583,8 @@ export class ViewerInput {
     if (this.viewer.retired) return false;
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
+    // what a click cleared is kept for that click's double-click only: any click but a double-click's second drops it
+    if ((e.detail ?? 1) <= 1) this._cleared = undefined;
     // a rail's click: outside its window it centres there (a jump, its own step); its second a double-click's
     const rr = this._rowsRailClick;
     if (rr) {
@@ -602,7 +608,6 @@ export class ViewerInput {
       this._restoreCleared();
       return false;
     }
-    this._cleared = undefined;
     const select = this.selectBehavior;
     if (!select) return false;
     const section = this.sectionAt(y);

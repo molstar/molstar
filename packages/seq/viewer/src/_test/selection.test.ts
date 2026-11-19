@@ -167,6 +167,55 @@ describe('clicks (the interaction grammar)', () => {
     click(v, at(v, 0, 0, 0), { detail: 1 });
     expect(ranges(v)).toEqual([0, 1]);
   });
+
+  describe('what a click cleared is kept for its own double-click only', () => {
+    /** B selected, then cleared by a click on it that no double-click follows: the state a later double-click meets. */
+    async function cleared() {
+      const v = await make();
+      const item = at(v, 0, 1, 6);
+      click(v, item);
+      click(v, item, { detail: 1 });
+      expect(ranges(v)).toEqual([]);
+      return { v, item };
+    }
+
+    it('a double-click on the ruler rail after a click elsewhere gives nothing back', async () => {
+      const { v } = await cleared();
+      const r = v.frame!.layout.sections[0].rail!;
+      const x = r.x + r.width / 2;
+      const y = r.bottom - 2;
+      expect(v.hit(x, y)?.navigator).toBe('rail');
+      v.input.down(x, y);
+      v.input.up();
+      v.input.click(x, y, { detail: 1 });
+      v.input.down(x, y);
+      v.input.up();
+      v.input.click(x, y, { detail: 2 });
+      v.input.doubleClick(x, y);
+      expect(ranges(v)).toEqual([]);
+    });
+
+    it('a double-click after a drag (and a later clear) gives nothing back', async () => {
+      const { v, item } = await cleared();
+      dragged(v, 0, 2);
+      expect(ranges(v)).toEqual([0, 3]);
+      await v.execute('selection.clear', {});
+      expect(ranges(v)).toEqual([]);
+      v.input.doubleClick(...item);
+      expect(ranges(v)).toEqual([]);
+    });
+
+    it('a double-click on its own first click still gives it back (the second press between them)', async () => {
+      const v = await make();
+      const [x, y] = at(v, 0, 1, 6);
+      click(v, [x, y]);
+      click(v, [x, y], { detail: 1 });
+      v.input.down(x, y);
+      v.input.up();
+      v.input.click(x, y, { detail: 2 });
+      expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['B']);
+    });
+  });
 });
 
 type Keys = { shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean };
