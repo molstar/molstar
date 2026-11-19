@@ -9,8 +9,6 @@
 // the data across a line break, a reflow holding the anchor's line, an export drawing every line, the navigation's
 // arithmetic, the Canvas2D and SVG lists the same lists, too many lines said.
 
-import { categoryColumn, type Node } from '@molstar/core/repr/tree';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import {
@@ -22,29 +20,9 @@ import {
   TextNav,
   type TextPlacement,
 } from '../index.js';
-import { P53 } from './fixtures.js';
+import { P53, p53TextSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { rng } from './small-helpers.js';
-
-/** p53 as text: its letters, its two domains under them (a band that collapses where no domain is). */
-export function p53TextSpec(section: Record<string, unknown> = {}): Node {
-  const b = createSeqSpec({ title: 'p53 text' });
-  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
-  const d = b.data.ranges('domains', {
-    target: p53,
-    rows: {
-      start: Int32Array.from([0, 94]),
-      end: Int32Array.from([61, 292]),
-      id: categoryColumn(['TAD', 'DBD']),
-    },
-  });
-  b.views.view('main', { layout: 'text' }, (v) => {
-    const s = v.section('protein', { of: p53, ...section });
-    s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
-    s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
-  });
-  return b.build();
-}
 
 const Size = { width: 720, height: 400 };
 
