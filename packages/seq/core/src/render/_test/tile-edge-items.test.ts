@@ -9,20 +9,20 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import type { RangesLay } from '../index.js';
+import { hitView, type RangesLay, type RingPlacement } from '../index.js';
 import { BigRuntime } from './fixtures.js';
 import { settle } from './helpers.js';
 
 const Size = { width: 720, height: 400 };
 
-function spec(layout?: 'text') {
+function spec(layout?: 'text', ring?: [number, number]) {
   const b = createSeqSpec({ title: 'tile edge' });
   const src = b.data.source('synthetic', { format: 'synthetic', uri: 'synthetic:chr' });
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src });
   const items = b.data.ranges('items', { target: chr, source: src });
   // biome-ignore lint/suspicious/noExplicitAny: the builder's view type is not exported
   const fill = (v: any) => {
-    const sec = v.section('chr', { of: chr });
+    const sec = v.section('chr', ring ? { of: chr, layout: 'rings', range: ring, labels: 'none' } : { of: chr });
     sec.track('letters').layer('letters', { type: 'letters' });
     sec.track('items').layer('items', { type: 'ranges', data: items });
   };
@@ -72,5 +72,19 @@ describe('items from an earlier tile', () => {
       checked++;
     }
     expect(checked).toBeGreaterThan(3);
+  });
+
+  it('a ring wholly past a tile edge inside a long item draws it, once', async () => {
+    // `r1000` runs 1000 to 1070 over the edge at 1024; the ring shows 1030 to 1060 (and `r1050` starts in it)
+    const s = await settle(spec(undefined, [1030, 1060]), [BigRuntime]);
+    const f = await s.frame({ size: Size });
+    const sec = f.layout.sections[0];
+    const keys = keysOf(sec.tracks[1].layers[0].lay as RangesLay);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const k of overlapping(1030, 1060)) expect(keys).toContain(k);
+    // drawn where it is: a hit on its arc names it
+    const p = sec.placement as RingPlacement;
+    p.warp.map(p.frameX(5.5), p.strips.bandY[1] + 3);
+    expect(String(hitView(f.layout, p.warp.px, p.warp.py)?.element?.key)).toBe('r1000');
   });
 });
