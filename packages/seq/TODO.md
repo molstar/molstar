@@ -64,9 +64,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   - `secondary`'s `style: cartoon` (with the text figure, layouts); a declared numbering for the ruler (the language
     declares none: only `index` and `ordinal` can be asked for, the insertion labels are tested through a numbering
     handed to the layer);
-  - `secondary` and `variants` read their items through `items.ts`; the `ranges` layer has its own copy of the same
-    reading (keys across tiles' edges): one reader for the three, measured against the allocation tier;
-  - items wholly in a stretch a break hides have no tick on `secondary` and `variants` (`ranges` draws one a lane);
+  - a tiled source's items have no arrowhead (their other rows may lie outside what was read): a source that answers an
+    item's extent would give them one; the three layers' `nextMark` and hover passes are still their own;
   - `arrow` points by an item's own start and end, not by its strand: a strand column (EC-232 asks arrows only when
     asked) would say which way an item runs;
   - a ruler's labels over a numbering that is not monotone (IMGT) in a piece of more than 4,096 positions are looked up

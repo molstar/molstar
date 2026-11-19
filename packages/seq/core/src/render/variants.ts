@@ -7,33 +7,25 @@
 import { sortArrayRange } from '@molstar/core/data/util/sort';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
-import type { AxisTransform } from './axis.js';
-import { type DensityStep, densityStep, perPosition } from './config.js';
+import { perPosition } from './config.js';
 import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
-import { collectItems, countStrip, itemHit, type ItemRows, newItemRows } from './items.js';
 import {
-  dataRegions,
-  type LayerSource,
-  layerLevel,
-  layerSource,
-  placeholderSpans,
-  readTiles,
-  toSection,
-} from './layer-data.js';
-import {
-  type Box,
-  type Emphasis,
-  type Hit,
-  type LayerType,
-  type LayoutContext,
-  type Overlay,
-  type StoreReader,
-  sectionId,
-} from './layer-type.js';
+  beginItems,
+  countStrip,
+  drawTicks,
+  type ItemsBase,
+  type ItemsPrep,
+  itemHit,
+  newItemsBase,
+  readItems,
+  tickHit,
+  tickOn,
+} from './items.js';
+import { layerSource, toSection } from './layer-data.js';
+import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { reportColor } from './letters.js';
 import { drawFailed, drawSpans } from './marks.js';
-import type { StripBuffers } from './ranges.js';
-import { categoryToken, resolveColor, type SeqTokens } from './tokens.js';
+import { categoryToken, resolveColor } from './tokens.js';
 
 // The `variants` layer type (_spec/README.md "Render", Layer types): a site a stem from the track's floor and a round
 // head, the heads of one site stacked up the stem (squeezed together when they do not fit). At the `bars` and `density`
@@ -45,24 +37,11 @@ const Radius = 4;
 const Stem = 6;
 const Sides = 16;
 
-export interface VariantsPrep {
-  readonly src?: LayerSource;
-  readonly owner: string;
+export interface VariantsPrep extends ItemsPrep {
   readonly color?: unknown;
 }
 
-export interface VariantsLay {
-  key: string;
-  system: string;
-  section: string;
-  owner: string;
-  dataSystem: string;
-  src?: LayerSource;
-  box: Box;
-  axis: AxisTransform;
-  step: DensityStep;
-  tokens: SeqTokens;
-  rows: ItemRows;
+export interface VariantsLay extends ItemsBase {
   fixed: number | undefined;
   /** Marks in x order: the head's center x and y, the row, the fill. */
   m: number;
@@ -75,12 +54,6 @@ export interface VariantsLay {
   prow: Int32Array;
   pn: number;
   order: Int32Array;
-  density?: StripBuffers['image'];
-  strip: StripBuffers;
-  pending: number[];
-  failed: number[];
-  hoverWidth: number;
-  hoverOffset: number;
 }
 
 const itemPiece: number[] = [0, 0];
@@ -112,18 +85,9 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
   },
 
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: VariantsLay): VariantsLay {
-    const { axis, box, config, tokens } = ctx;
+    const { axis, tokens } = ctx;
     const lay: VariantsLay = prev ?? {
-      key: ctx.key,
-      system: axis.system,
-      section: sectionId(ctx.section),
-      owner: prep.owner,
-      dataSystem: '',
-      box,
-      axis,
-      step: 'cells',
-      tokens,
-      rows: newItemRows(),
+      ...newItemsBase(ctx, prep),
       fixed: undefined,
       m: 0,
       mx: new Float32Array(64),
@@ -134,29 +98,10 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
       prow: new Int32Array(64),
       pn: 0,
       order: new Int32Array(64),
-      strip: { diff: new Float64Array(0), counts: new Float64Array(0), v: 1 },
-      pending: [],
-      failed: [],
-      hoverWidth: config.outline.hover,
-      hoverOffset: config.emphasis.hoverOffset,
     };
-    lay.key = ctx.key;
-    lay.system = axis.system;
-    lay.section = sectionId(ctx.section);
-    lay.owner = prep.owner;
-    lay.dataSystem = prep.src?.dataSystem ?? '';
-    lay.src = prep.src;
-    lay.box = box;
-    lay.axis = axis;
-    lay.tokens = tokens;
-    lay.hoverWidth = config.outline.hover;
-    lay.hoverOffset = config.emphasis.hoverOffset;
+    beginItems(lay, ctx, prep);
     lay.m = 0;
     lay.pn = 0;
-    lay.rows.n = 0;
-    lay.pending.length = 0;
-    lay.failed.length = 0;
-    lay.density = undefined;
     const src = prep.src;
     if (!src) return lay;
     lay.fixed = undefined;
@@ -164,15 +109,9 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
       lay.fixed = resolveColor(prep.color, tokens);
       if (lay.fixed === undefined) reportColor(ctx);
     }
-    const step = densityStep(axis.scale, axis.dpr, config);
-    lay.step = step;
-    const regions = dataRegions(src, axis);
-    const read = readTiles(ctx, data, src, regions, layerLevel(src, data, axis));
-    placeholderSpans(src, axis, read.pending, lay.pending);
-    placeholderSpans(src, axis, read.failed, lay.failed);
+    const densities = readItems(lay, ctx, data, src, ['consequence', 'category']);
     const rows = lay.rows;
-    const densities = collectItems(rows, read.entries, ['consequence', 'category']);
-    if (!perPosition(step) || densities.length) {
+    if (!perPosition(lay.step) || densities.length) {
       lay.density = countStrip(lay.strip, src, axis, rows, densities, tokens);
       return lay;
     }
@@ -184,6 +123,7 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
         itemPiece[0] = rows.starts[i];
         itemPiece[1] = Math.max(rows.ends[i], rows.starts[i] + 1);
       }
+      const before = lay.pn;
       for (let k = 0; k + 1 < pieces.length; k += 2) {
         axis.piecesIn(pieces[k], pieces[k + 1]);
         const ka = axis.ka;
@@ -195,6 +135,8 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
           lay.prow[j] = i;
         }
       }
+      // a site wholly in a hidden stretch: its break's tick
+      if (lay.pn === before && pieces.length >= 2) tickOn(lay, axis, pieces[0], 0);
     }
     stack(lay);
     return lay;
@@ -209,6 +151,8 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) return undefined;
     const position = lay.axis.positionAt(x);
     const base = { layer: lay.key, section: lay.section, system: lay.system, ...(position >= 0 ? { position } : {}) };
+    const tick = tickHit(lay, x, 0);
+    if (tick) return tick;
     if (lay.density || !lay.m) return base;
     // the marks by x: those within a head's width of the pointer; the head under it, else a stem it is on
     let lo = 0;
@@ -232,7 +176,7 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     }
     if (best < 0) return base;
     const i = lay.mrow[best];
-    return itemHit(base, lay.owner, lay.dataSystem, lay.src, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
+    return itemHit(base, lay, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
   },
 };
 
@@ -287,6 +231,7 @@ function head(x: number, y: number, r: number) {
 /** The data pass: placeholders, the strip, or the stems and heads (a stem under every head, heads over stems). */
 function drawVariants(lay: VariantsLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const { box, tokens } = lay;
+  if (lay.tn) drawTicks(lay, out);
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
   const a = out.args;

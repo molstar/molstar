@@ -15,14 +15,13 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.5.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.4.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
   and the `snapshot` kind; `0.4.0`: a section's `direction`, `pieces`, `collapsed`, `pad` and a layer's `complement`,
-  `code`; `0.5.0`: the layer types `ruler`, `secondary`, `variants` and the layer params `numbering`, `encoding`,
-  `style`, `line`, `arrow`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer
-  fits.
+  `code`, the layer types `ruler`, `secondary`, `variants` and the layer params `numbering`, `encoding`, `style`,
+  `line`, `arrow`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
 
 ## Language
 
@@ -743,7 +742,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `values.aggregate`                                    | `minmax`                                                              | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                         |
 | `values.coarser`                                      | 1                                                                     | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                |
 | `values.direct`                                       | true                                                                  | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                     |
-| `ruler.labelGap`, `ruler.font`                        | 48 px, `10px mono`                                                    | the least between two ticks' labels' steps (the foundations' number); tabular figures                                                                                           |
+| `ruler.labelGap`                                      | 48 px                                                                 | the least between two ticks (the foundations' number); labels clear each other by an eighth of it                                                                               |
 | `internedStrings`                                     | 4,096                                                                 | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                            |
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -912,12 +911,15 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   position under the pointer. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, anything else a turn), in one band: a helix a block, a strand a block with an arrowhead on its
-  C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding the C-terminal end of the item (the end
-  of its last row in reading order: across the origin of a cyclic system, the row that starts at it), at the screen side
-  the residues run to (the axis's direction against the layer's path's), and not where the view clips that end (EC-130:
-  reversed, across the origin, through a minus-strand codon map). An end cut by the view, a piece of the axis or of the
-  item's image is square. **Copies** (rows of one extent and class) are drawn once, the first hit (EC-67). From the
-  coarse level the source's density bins are one strip. Fallback: `ranges`.
+  C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding the C-terminal end of the item, found
+  among all its rows (an inline annotation's; a tiled source's rows may lie outside what was read, so its items have no
+  head: a head on the wrong piece is worse than none) (the end of its last row in reading order: across the origin of a
+  cyclic system, the row that starts at it), at the screen side the residues run to (the axis's direction against the
+  layer's path's), and not where the view clips that end (EC-130: reversed, across the origin, through a minus-strand
+  codon map). An end cut by the view, a piece of the axis or of the item's image is square. The class is the whole code
+  or word (DSSP `H G I`, `E B`, `T S`; mmCIF `HELX_*`, `STRN`, `TURN_*`; helix, strand, turn). **Items in a hidden
+  stretch** are the break's tick, as `ranges`'. **Copies** (rows of one extent and class) are drawn once, the first hit
+  (EC-67). From the coarse level the source's density bins are one strip. Fallback: `ranges`.
 - `variants`: the items of a `ranges` layer as sites: a stem from the track's floor and a round head (radius 4 px); the
   heads of one site stand on one stem, spaced 9 px or squeezed to fit; a head and its stem are hit as the item. At the
   `bars` and `density` steps and from density bins a strip counts the variants a device column in the density tokens.
@@ -932,7 +934,8 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   each piece), so a pan moves them with the data; below a position a pixel a run is a plain line. A value that is none
   of the styles is drawn solid and said once a layout (`seq.render.line-style`). With `arrow`, a block is an arrow, a
   line gets a triangle, at the end (the start) of the item on the piece that holds it, by the rule of the strand's
-  arrowhead, never on a cut end; the hit boxes are the marks' lanes all the same.
+  arrowhead, never on a cut end (nor where the item's rows are not all known); a line's label has the page's color under
+  it, so the line stops at it; the hit boxes are the marks' lanes all the same.
 
 ### Data
 

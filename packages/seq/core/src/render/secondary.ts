@@ -8,34 +8,30 @@ import { sortArrayRange } from '@molstar/core/data/util/sort';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import { type AxisTransform, Cut } from './axis.js';
-import { type DensityStep, densityStep } from './config.js';
 import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws, Round } from './draw-lists.js';
-import { collectItems, countStrip, itemHit, type ItemRows, markEnds, newItemRows, RowImages } from './items.js';
+import {
+  beginItems,
+  countStrip,
+  drawTicks,
+  type ItemExtents,
+  type ItemsBase,
+  type ItemsPrep,
+  itemExtents,
+  itemHit,
+  markEnds,
+  newItemsBase,
+  readItems,
+  RowImages,
+  tickHit,
+  tickOn,
+} from './items.js';
 import { LaneIndex } from './lanes.js';
-import {
-  dataRegions,
-  type LayerSource,
-  layerLevel,
-  layerSource,
-  placeholderSpans,
-  readTiles,
-  toSection,
-} from './layer-data.js';
-import {
-  type Box,
-  type Emphasis,
-  type Hit,
-  type LayerType,
-  type LayoutContext,
-  type Overlay,
-  type StoreReader,
-  sectionId,
-} from './layer-type.js';
+import { type LayerSource, layerSource, toSection } from './layer-data.js';
+import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { reportColor } from './letters.js';
-import { arrowArgs, drawFailed, drawSpans } from './marks.js';
-import type { StripBuffers } from './ranges.js';
+import { ArrowBody, arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
-import { resolveColor, type SeqTokenName, type SeqTokens } from './tokens.js';
+import { resolveColor, type SeqTokenName } from './tokens.js';
 
 // The `secondary` layer type (_spec/README.md "Render", Layer types): helices and strands as blocks in one band, a turn
 // a thin bar. The strand's arrowhead is on the piece holding its C-terminal end (the end of the item's last row in
@@ -53,8 +49,9 @@ type Kind = typeof Helix | typeof Strand | typeof Turn;
 /** The colors of the classes (a stand-in for the `seq-ss-*` tokens the theme work adds). */
 const KindTokens: readonly SeqTokenName[] = ['seq-cat-1', 'seq-cat-0', 'seq-sequence'];
 
-const HelixKind = /^(h|g|i|helix|alpha|3-?10|pi)/i;
-const StrandKind = /^(e|b|strand|sheet|beta|extended)/i;
+// whole codes and words: DSSP (H G I, E B, T S), mmCIF (HELX_*, STRN, TURN_*), helix, strand, turn
+const HelixKind = /^(h|g|i|helix|helx(_\w+)?)$/i;
+const StrandKind = /^(e|b|strand|strn|sheet)$/i;
 
 /** The class of a `kind` value; anything else (a turn, a coil, no value) is a turn. */
 export function secondaryKind(v: string | undefined): Kind {
@@ -62,25 +59,14 @@ export function secondaryKind(v: string | undefined): Kind {
   return HelixKind.test(v) ? Helix : StrandKind.test(v) ? Strand : Turn;
 }
 
-export interface SecondaryPrep {
-  readonly src?: LayerSource;
-  readonly owner: string;
+export interface SecondaryPrep extends ItemsPrep {
   readonly cyclic: boolean;
+  /** The rows of every item when the data is inline (an item's end is known), else undefined: no head. */
+  readonly extents?: ItemExtents;
   readonly color?: unknown;
 }
 
-export interface SecondaryLay {
-  key: string;
-  system: string;
-  section: string;
-  owner: string;
-  dataSystem: string;
-  src?: LayerSource;
-  box: Box;
-  axis: AxisTransform;
-  step: DensityStep;
-  tokens: SeqTokens;
-  rows: ItemRows;
+export interface SecondaryLay extends ItemsBase {
   /** Per row: its class, whether it is the last in reading order of its item, whether it is drawn (not a copy). */
   kind: Uint8Array;
   first: Uint8Array;
@@ -101,12 +87,6 @@ export interface SecondaryLay {
   bandH: number;
   index: LaneIndex;
   lane: Int32Array;
-  density?: StripBuffers['image'];
-  strip: StripBuffers;
-  pending: number[];
-  failed: number[];
-  hoverWidth: number;
-  hoverOffset: number;
   order: Int32Array;
 }
 
@@ -146,6 +126,7 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
       ...(src ? { src } : {}),
       owner: layer.data?.address ?? '',
       cyclic: model.systems.get(layer.data?.system ?? '')?.cyclic ?? false,
+      ...(itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
       ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
     };
   },
@@ -153,16 +134,7 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: SecondaryLay): SecondaryLay {
     const { axis, box, config, tokens } = ctx;
     const lay: SecondaryLay = prev ?? {
-      key: ctx.key,
-      system: axis.system,
-      section: sectionId(ctx.section),
-      owner: prep.owner,
-      dataSystem: '',
-      box,
-      axis,
-      step: 'cells',
-      tokens,
-      rows: newItemRows(),
+      ...newItemsBase(ctx, prep),
       kind: new Uint8Array(64),
       first: new Uint8Array(64),
       last: new Uint8Array(64),
@@ -180,29 +152,10 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
       bandH: 0,
       index: new LaneIndex(),
       lane: new Int32Array(64),
-      strip: { diff: new Float64Array(0), counts: new Float64Array(0), v: 1 },
-      pending: [],
-      failed: [],
-      hoverWidth: config.outline.hover,
-      hoverOffset: config.emphasis.hoverOffset,
       order: new Int32Array(64),
     };
-    lay.key = ctx.key;
-    lay.system = axis.system;
-    lay.section = sectionId(ctx.section);
-    lay.owner = prep.owner;
-    lay.dataSystem = prep.src?.dataSystem ?? '';
-    lay.src = prep.src;
-    lay.box = box;
-    lay.axis = axis;
-    lay.tokens = tokens;
-    lay.hoverWidth = config.outline.hover;
-    lay.hoverOffset = config.emphasis.hoverOffset;
+    beginItems(lay, ctx, prep);
     lay.m = 0;
-    lay.rows.n = 0;
-    lay.pending.length = 0;
-    lay.failed.length = 0;
-    lay.density = undefined;
     const src = prep.src;
     if (!src) return lay;
     let fixed: number | undefined;
@@ -210,13 +163,8 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
       fixed = resolveColor(prep.color, tokens);
       if (fixed === undefined) reportColor(ctx);
     }
-    lay.step = densityStep(axis.scale, axis.dpr, config);
-    const regions = dataRegions(src, axis);
-    const read = readTiles(ctx, data, src, regions, layerLevel(src, data, axis));
-    placeholderSpans(src, axis, read.pending, lay.pending);
-    placeholderSpans(src, axis, read.failed, lay.failed);
+    const densities = readItems(lay, ctx, data, src, ['kind', 'category']);
     const rows = lay.rows;
-    const densities = collectItems(rows, read.entries, ['kind', 'category']);
     const n = rows.n;
     if (lay.kind.length < n) {
       const size = Math.max(n, 2 * lay.kind.length);
@@ -250,11 +198,13 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
     if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) return undefined;
     const position = lay.axis.positionAt(x);
     const base = { layer: lay.key, section: lay.section, system: lay.system, ...(position >= 0 ? { position } : {}) };
+    const tick = tickHit(lay, x, 0);
+    if (tick) return tick;
     if (lay.density || !lay.m) return base;
     const j = lay.index.near(0, x, 0);
     if (j < 0) return base;
     const i = lay.mitem[j];
-    return itemHit(base, lay.owner, lay.dataSystem, lay.src, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
+    return itemHit(base, lay, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
   },
 };
 
@@ -269,16 +219,7 @@ function classify(lay: SecondaryLay, prep: SecondaryPrep, fixed: number | undefi
     const k = (lay.kind[i] = secondaryKind(rows.values[i]));
     lay.fills[i] = fixed ?? tokens.colors[KindTokens[k]];
   }
-  markEnds(
-    rows.keys,
-    rows.starts,
-    rows.ends,
-    n,
-    prep.cyclic,
-    lay.src?.length ?? Number.POSITIVE_INFINITY,
-    lay.first,
-    lay.last,
-  );
+  markEnds(rows, prep.extents, prep.cyclic, lay.src?.length ?? Number.POSITIVE_INFINITY, lay.first, lay.last);
   // copies: one row of each extent and class is drawn (the first), the order by extent then class
   lay.order = grown(lay.order, n);
   const order = lay.order.subarray(0, n);
@@ -324,6 +265,7 @@ function marks(lay: SecondaryLay, src: LayerSource, axis: AxisTransform, ratio: 
     }
     const wantsHead = lay.last[i] === 1 && lay.kind[i] === Strand;
     if (wantsHead) images.set(src, s, e);
+    const before = lay.m;
     for (let k = 0; k + 1 < pieces.length; k += 2) {
       axis.piecesIn(pieces[k], pieces[k + 1]);
       const ka = axis.ka;
@@ -362,6 +304,8 @@ function marks(lay: SecondaryLay, src: LayerSource, axis: AxisTransform, ratio: 
           lay.mradius[j] = squircleRadius(lay.mx1[j] - lay.mx0[j], lay.bandH, ratio, max, min);
       }
     }
+    // an item wholly in a hidden stretch: its break's tick
+    if (lay.m === before && pieces.length >= 2) tickOn(lay, axis, pieces[0], 0);
   }
 }
 
@@ -370,6 +314,7 @@ function marks(lay: SecondaryLay, src: LayerSource, axis: AxisTransform, ratio: 
 /** The data pass: placeholders, the strip, the blocks (a helix full height, a strand's body and head, a turn thin). */
 function drawBlocks(lay: SecondaryLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const { box, tokens } = lay;
+  if (lay.tn) drawTicks(lay, out);
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
   const a = out.args;
@@ -410,7 +355,7 @@ function drawBlocks(lay: SecondaryLay, out: PassWriter, _emphasis: Emphasis | un
       arrowArgs(out);
     } else {
       // a strand's body where its head is not here (its N end, a piece, or its C end cut by the view)
-      const inset = (lay.bandH * 0.4) / 2;
+      const inset = (lay.bandH * (1 - ArrowBody)) / 2;
       a[1] = lay.bandY + inset;
       a[3] = lay.bandH - 2 * inset;
       a[7] = 0;

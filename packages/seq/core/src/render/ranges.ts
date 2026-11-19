@@ -5,13 +5,12 @@
  */
 
 import { sortArrayRange } from '@molstar/core/data/util/sort';
-import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
-import type { RangesDensity, RangesList } from '@molstar/seqx-core/data';
-import { rangesLocation } from '@molstar/seqx-core/query';
+import { issueOf } from '@molstar/core/repr/tree';
+import type { RangesDensity } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import { axisBreaks, breakHolding, type ResolvedLayer } from '@molstar/seqx-core/view';
+import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import { type AxisTransform, Cut } from './axis.js';
-import { type DensityStep, densityStep, fontSize } from './config.js';
+import { fontSize } from './config.js';
 import {
   Anchor,
   drawPass,
@@ -23,32 +22,27 @@ import {
   passDraws,
   Round,
 } from './draw-lists.js';
-import { markEnds, RowImages } from './items.js';
-import { LaneIndex, StickyLanes } from './lanes.js';
 import {
-  dataRegions,
-  type LayerSource,
-  layerLevel,
-  layerSource,
-  placeholderSpans,
-  readTiles,
-  toSection,
-} from './layer-data.js';
-import {
-  type Box,
-  type Emphasis,
-  type Hit,
-  type LayerType,
-  type LayoutContext,
-  type LegendSpec,
-  type Overlay,
-  type StoreReader,
-  sectionId,
-} from './layer-type.js';
-import { reportColor } from './letters.js';
-import { arrowArgs, breakHit, drawFailed, drawSpans } from './marks.js';
+  beginItems,
+  drawTicks,
+  type ItemExtents,
+  type ItemsBase,
+  type ItemsPrep,
+  itemExtents,
+  itemHit,
+  markEnds,
+  newItemsBase,
+  RowImages,
+  readItems,
+  tickHit,
+  tickOn,
+} from './items.js';
 import { RenderIssues } from './issues.js';
-import { issueOf } from '@molstar/core/repr/tree';
+import { LaneIndex, StickyLanes } from './lanes.js';
+import { type LayerSource, layerSource, toSection } from './layer-data.js';
+import type { Emphasis, Hit, LayerType, LayoutContext, LegendSpec, Overlay, StoreReader } from './layer-type.js';
+import { reportColor } from './letters.js';
+import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
 import { categoryToken, inkOn, mixColors, resolveColor, type SeqTokens } from './tokens.js';
 
@@ -82,36 +76,21 @@ const LineWidth = 2;
 /** A highlight's alpha: 0.35 of 255, the channel's default. */
 const HighlightAlpha = 89;
 
-export interface RangesPrep {
+export interface RangesPrep extends ItemsPrep {
+  /** The rows of every item when the data is inline (an item's ends are known), else undefined: no arrowhead. */
+  readonly extents?: ItemExtents;
   /** The style asked for, as written: undefined for blocks. */
   readonly line?: string;
   /** An arrowhead on the item's `end`, `start`, or both: bits 1 and 2 (none: 0). */
   readonly arrow: number;
   readonly cyclic: boolean;
-  readonly src?: LayerSource;
-  /** The annotation's address: the owner of its items' element keys. */
-  readonly owner: string;
   readonly color?: unknown;
 }
 
 type Mode = 'items' | 'bars' | 'density';
 
-export interface RangesLay {
-  key: string;
-  system: string;
-  section: string;
-  /** The section's address: a tick's hit names it as a break's does. */
-  sectionAddress: string;
-  owner: string;
-  /** The data's system: an element's extent is on it. */
-  dataSystem: string;
-  /** The layer's source: a hit carries its element onto the section along its path. */
-  src?: LayerSource;
-  box: Box;
-  axis: AxisTransform;
-  step: DensityStep;
+export interface RangesLay extends ItemsBase {
   mode: Mode;
-  tokens: SeqTokens;
   /** The style a mark is drawn in (an index of `LineStyles`; in `bars` a run is a plain line or block) and the arrows. */
   style: number;
   arrow: number;
@@ -131,7 +110,6 @@ export interface RangesLay {
   fills: number[];
   lanes: Int32Array;
   laneCount: number;
-  laneHeight: number;
   /** Items that did not fit the lanes: drawn in the density row (or the layer's density). */
   overflow: number;
   /** Marks: drawn extents (snapped), lane, item (−1 for a merged run), round ends, label width. */
@@ -148,14 +126,6 @@ export interface RangesLay {
   /** Each mark's arrowheads (1: tip on the left, 2: on the right) and, for a line, where its content starts, px. */
   mtip: Uint8Array;
   manchor: Float64Array;
-  /** The gap between lanes, px. */
-  gap: number;
-  /**
-   * The hidden items' ticks: one a break and lane whatever their number, `x, lane, count, hiddenStart, hiddenEnd`
-   * (`tn` of them): what a break hides is not dropped, and the marks stay bounded by the screen.
-   */
-  tn: number;
-  ticks: number[];
   /**
    * The hit marks (`hn` of them): each item's own marks, before `bars` merges a lane's runs (a run of several items is
    * drawn as one mark, hit and outlined by the item under the pointer); the drawn marks at `items`. The arrays are the
@@ -181,39 +151,18 @@ export interface RangesLay {
     round: Uint8Array;
     radius: Float64Array;
   };
-  /** The heat strip and its band: the whole box, or the bottom row past the lanes. */
-  density?: ImageData;
+  /** The heat strip's band: the whole box, or the bottom row past the lanes. */
   densityY: number;
   densityH: number;
-  /** The strip's buffers, kept while the box's columns do not change. */
-  strip: StripBuffers;
-  pending: number[];
-  failed: number[];
   sticky: StickyLanes;
   font: string;
   fontSize: number;
-  hoverWidth: number;
-  hoverOffset: number;
   radius: { ratio: number; max: number; min: number };
   categories: Map<string, number>;
   /** Lane ids by key and occurrence, kept across frames (a layout makes no string an item); cleared when large. */
   idCache: Map<string | number, string[]>;
   /** The items by start, kept. */
   order: Int32Array;
-}
-
-/** A table's field by name (looked up once a table, not once an item). */
-function fieldOf(fields: RangesList['fields'], name: string): Column | undefined {
-  if (!fields) return undefined;
-  for (let k = 0; k < fields.length; k++) if (fields[k].name === name) return fields[k].column;
-  return undefined;
-}
-
-/** A field's value at a row, as text. */
-function valueAt(c: Column | undefined, i: number): string | undefined {
-  if (!c) return undefined;
-  const v = c instanceof CategoryColumn ? c.get(i) : c[i];
-  return v === null || v === undefined ? undefined : String(v);
 }
 
 /** An item's lane id: its key and which occurrence of it in a tile, made once and kept. */
@@ -224,28 +173,20 @@ function laneId(cache: Map<string | number, string[]>, key: string | number, k: 
 }
 
 function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
+  const base = newItemsBase(ctx, prep);
   return {
-    key: ctx.key,
-    system: ctx.axis.system,
-    section: sectionId(ctx.section),
-    sectionAddress: ctx.section.address,
-    owner: prep.owner,
-    dataSystem: prep.src?.dataSystem ?? '',
-    box: ctx.box,
-    axis: ctx.axis,
-    step: 'cells',
+    ...base,
     mode: 'items',
-    tokens: ctx.tokens,
     items: 0,
-    keys: [],
+    // the rows' own arrays: one reading of the tiles for every items layer
+    keys: base.rows.keys,
     ids: [],
-    starts: [],
-    ends: [],
-    labels: [],
+    starts: base.rows.starts,
+    ends: base.rows.ends,
+    labels: base.rows.labels,
     fills: [],
     lanes: new Int32Array(64),
     laneCount: 0,
-    laneHeight: 0,
     overflow: 0,
     m: 0,
     mx0: new Float32Array(64),
@@ -262,7 +203,6 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     arrow: 0,
     first: new Uint8Array(64),
     last: new Uint8Array(64),
-    gap: 0,
     hn: 0,
     hx0: new Float32Array(0),
     hx1: new Float32Array(0),
@@ -281,18 +221,11 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
       round: new Uint8Array(0),
       radius: new Float64Array(0),
     },
-    tn: 0,
-    ticks: [],
     densityY: 0,
     densityH: 0,
-    strip: { diff: new Float64Array(0), counts: new Float64Array(0), v: 0.5 },
-    pending: [],
-    failed: [],
     sticky: new StickyLanes(),
     font: ctx.config.itemFont,
     fontSize: fontSize(ctx.config.itemFont),
-    hoverWidth: ctx.config.outline.hover,
-    hoverOffset: ctx.config.emphasis.hoverOffset,
     radius: { ratio: ctx.config.squircleRatio, max: ctx.config.squircleMax, min: ctx.config.squircleMin },
     categories: new Map(),
     idCache: new Map(),
@@ -366,6 +299,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       ...(typeof line === 'string' ? { line } : {}),
       arrow: arrow === 'end' ? 1 : arrow === 'start' ? 2 : arrow === 'both' ? 3 : 0,
       cyclic: model.systems.get(layer.data?.system ?? '')?.cyclic ?? false,
+      ...(itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
       ...(src ? { src } : {}),
       owner: layer.data?.address ?? '',
       ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
@@ -375,30 +309,14 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: RangesLay): RangesLay {
     const lay = prev ?? newLay(ctx, prep);
     const { axis, box, config, tokens } = ctx;
-    lay.key = ctx.key;
-    lay.system = axis.system;
-    lay.section = sectionId(ctx.section);
-    lay.sectionAddress = ctx.section.address;
-    lay.owner = prep.owner;
-    lay.dataSystem = prep.src?.dataSystem ?? '';
-    lay.src = prep.src;
-    lay.box = box;
-    lay.axis = axis;
-    lay.tokens = tokens;
+    beginItems(lay, ctx, prep);
     lay.font = config.itemFont;
     lay.fontSize = fontSize(config.itemFont);
-    lay.hoverWidth = config.outline.hover;
-    lay.hoverOffset = config.emphasis.hoverOffset;
     lay.items = 0;
-    lay.pending.length = 0;
-    lay.failed.length = 0;
     lay.m = 0;
     lay.hn = 0;
-    lay.tn = 0;
-    lay.ticks.length = 0;
     lay.overflow = 0;
     lay.laneCount = 0;
-    lay.density = undefined;
     lay.categories.clear();
     const src = prep.src;
     if (!src) return lay;
@@ -408,57 +326,19 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       fixed = resolveColor(prep.color, tokens);
       if (fixed === undefined) reportColor(ctx);
     }
-    const step = densityStep(axis.scale, axis.dpr, config);
-    lay.step = step;
     lay.style = lineStyle(prep.line, ctx);
     lay.arrow = prep.arrow;
-    // the regions in view, and the stretches its breaks in view hide: an item there is drawn as its break's tick
-    const regions = dataRegions(src, axis, true);
-    const level = layerLevel(src, data, axis);
-    const read = readTiles(ctx, data, src, regions, level);
-    placeholderSpans(src, axis, read.pending, lay.pending);
-    placeholderSpans(src, axis, read.failed, lay.failed);
-
-    // the items: a key and start seen in an earlier tile is that range again (over the tile's edge); a key repeated
-    // with another start, in this tile or a later one, is another piece of it (an exon of one transcript)
-    const earlier = new Map<string | number, number[]>();
-    const occurrences = new Map<string | number, number>();
-    const densities: { table: RangesDensity; level: number }[] = [];
-    for (const e of read.entries) {
-      const t = e.tables.ranges;
-      if (!t) continue;
-      if (t.form === 'density') {
-        densities.push({ table: t, level: e.region.level });
-        continue;
-      }
-      // this tile's items are `from` to `lay.items`: their keys join the earlier ones after it
-      const from = lay.items;
-      const labels = fieldOf(t.fields, 'label');
-      const categories = fieldOf(t.fields, 'category');
-      for (let i = 0; i < t.start.length; i++) {
-        const id = t.id?.get(i);
-        const key: string | number =
-          id !== null && id !== undefined ? id : t.row ? t.row[i] : `${e.region.level}/${e.region.tile}:${i}`;
-        if (earlier.get(key)?.includes(t.start[i])) continue;
-        const k = occurrences.get(key) ?? 0;
-        occurrences.set(key, k + 1);
-        const label = valueAt(labels, i) ?? id ?? undefined;
-        const category = valueAt(categories, i);
-        const j = lay.items++;
-        lay.keys[j] = key;
-        lay.ids[j] = laneId(lay.idCache, key, k);
-        lay.starts[j] = t.start[i];
-        lay.ends[j] = t.end[i];
-        lay.labels[j] = label;
-        const fill = fixed ?? tokens.colors[category === undefined ? 'seq-range' : categoryToken(category)];
-        if (category !== undefined) lay.categories.set(category, fill);
-        lay.fills[j] = fill;
-      }
-      for (let j = from; j < lay.items; j++) {
-        const starts = earlier.get(lay.keys[j]);
-        if (starts) starts.push(lay.starts[j]);
-        else earlier.set(lay.keys[j], [lay.starts[j]]);
-      }
+    // the items in view and in the stretches its breaks hide (an item there is its break's tick)
+    const densities = readItems(lay, ctx, data, src, ['category']);
+    const step = lay.step;
+    const rows = lay.rows;
+    lay.items = rows.n;
+    for (let j = 0; j < rows.n; j++) {
+      const category = rows.values[j];
+      lay.ids[j] = laneId(lay.idCache, rows.keys[j], rows.occ[j]);
+      const fill = fixed ?? tokens.colors[category === undefined ? 'seq-range' : categoryToken(category)];
+      if (category !== undefined) lay.categories.set(category, fill);
+      lay.fills[j] = fill;
     }
     const n = lay.items;
     if (lay.idCache.size > 4 * n + 4096) lay.idCache.clear();
@@ -467,16 +347,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         lay.first = new Uint8Array(Math.max(n, 2 * lay.first.length));
         lay.last = new Uint8Array(lay.first.length);
       }
-      markEnds(
-        lay.keys,
-        lay.starts,
-        lay.ends,
-        n,
-        prep.cyclic,
-        src.length ?? Number.POSITIVE_INFINITY,
-        lay.first,
-        lay.last,
-      );
+      markEnds(rows, prep.extents, prep.cyclic, src.length ?? Number.POSITIVE_INFINITY, lay.first, lay.last);
     }
     const maxLanes = Math.max(1, Math.floor(box.height / config.laneHeight));
     lay.laneHeight = box.height / maxLanes;
@@ -585,7 +456,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         const label = lay.mitem[j] >= 0 ? lay.labels[lay.mitem[j]] : undefined;
         if (label && lay.mx1[j] - lay.mx0[j] >= 24) {
           lay.mlabel[j] = ctx.text.measure(lay.font, label);
-          lay.mink[j] = inkOn(lay.fills[lay.mitem[j]], tokens);
+          lay.mink[j] = lay.style ? tokens.colors['msui-text'] : inkOn(lay.fills[lay.mitem[j]], tokens);
         }
       }
     // a mark cut at both ends is square
@@ -633,43 +504,14 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     const base = { layer: lay.key, section: lay.section, system: lay.system, ...(position >= 0 ? { position } : {}) };
     const lane = Math.floor((y - box.y) / lay.laneHeight);
     // a hidden items' tick is hit as its break (within the break's slop), the count of what it hides with it
-    for (let t = 0; t < lay.tn; t++) {
-      const at = 5 * t;
-      if (lay.ticks[at + 1] !== lane || Math.abs(x - lay.ticks[at]) > 3) continue;
-      return breakHit(
-        { section: { address: lay.sectionAddress }, id: lay.section },
-        lay.axis,
-        lay.ticks[at],
-        lay.ticks[at + 3],
-        lay.ticks[at + 4],
-        lay.ticks[at + 2],
-      );
-    }
+    const tick = tickHit(lay, x, lane);
+    if (tick) return tick;
     if (lay.mode === 'density' || !lay.hn) return base;
     const j = lay.index.near(lane, x, lay.hslack);
     if (j < 0) return base;
     const item = lay.hitem[j];
     if (item < 0) return base;
-    const s = lay.starts[item];
-    const e = lay.ends[item];
-    // its hull on the section: every piece carried along the path (a domain over the exons of its gene)
-    let lo = s;
-    let hi = e;
-    if (lay.src?.path) {
-      const pieces = toSection(lay.src, s, e, []);
-      lo = Number.POSITIVE_INFINITY;
-      hi = Number.NEGATIVE_INFINITY;
-      for (let k = 0; k + 1 < pieces.length; k += 2) {
-        lo = Math.min(lo, pieces[k]);
-        hi = Math.max(hi, pieces[k + 1]);
-      }
-    }
-    return {
-      ...base,
-      element: { owner: lay.owner, key: lay.keys[item] },
-      extent: rangesLocation(lay.dataSystem, [s, e]),
-      ...(lo < hi ? { hull: [lo, hi] as const } : {}),
-    };
+    return itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
   },
 
   legend(lay): LegendSpec | undefined {
@@ -684,41 +526,6 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
 // Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
 
 /** The data pass: placeholders, the density strip, the marks. */
-/** The tick of a hidden item at section position `p` in `lane`: one a break and lane, its count kept. */
-function tickOn(lay: RangesLay, axis: AxisTransform, p: number, lane: number) {
-  const b = axisBreaks(axis);
-  const i = b.length ? breakHolding(axis, p) : -1;
-  if (i < 0 || b[i] < axis.u0 || b[i] > axis.u1) return;
-  const x = axis.xOfUnit(b[i]);
-  for (let t = 0; t < lay.tn; t++)
-    if (lay.ticks[5 * t] === x && lay.ticks[5 * t + 1] === lane) {
-      lay.ticks[5 * t + 2]++;
-      return;
-    }
-  lay.ticks.push(x, lane, 1, b[i + 1], b[i + 2]);
-  lay.tn++;
-}
-
-/** The hidden items' ticks: one a break and lane, in the break ink. */
-function drawTicks(lay: RangesLay, out: PassWriter) {
-  const { box, tokens } = lay;
-  const gap = lay.gap;
-  const px = 1 / lay.axis.dpr;
-  const g = out.args;
-  for (let t = 0; t < lay.tn; t++) {
-    g[0] = Math.round(lay.ticks[5 * t] * lay.axis.dpr) / lay.axis.dpr - 1.5 * px;
-    g[1] = box.y + lay.ticks[5 * t + 1] * lay.laneHeight + gap / 2;
-    g[2] = 3 * px;
-    g[3] = lay.laneHeight - gap;
-    g[4] = tokens.colors['seq-break'];
-    g[5] = NoColor;
-    g[6] = 0;
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
-  }
-}
-
 function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const { box, tokens } = lay;
   const gap = lay.gap;
@@ -814,12 +621,14 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
     // a line: from where the content starts, over what is in view, ending where a triangle begins
     const l0 = tips & 1 ? x0 + head : x0;
     const l1 = tips & 2 ? x1 - head : x1;
-    if (style === Solid) lineRect(out, l0, cy - LineWidth / 2, l1 - l0, LineWidth, fill);
+    // the start's triangle, on the side the content starts from: the dash and the wave begin at the line, not under it
+    const startTip = forward ? tips & 1 : tips & 2;
+    if (style === Solid) out.fill(l0, cy - LineWidth / 2, l1 - l0, LineWidth, fill);
     else if (style === 2 || style === 3) {
       const dash = style === 2 ? Dash : Dot;
       const period = 2 * dash;
       const anchor = lay.manchor[j];
-      const m = Math.max(0, Math.floor((forward ? l0 - anchor : anchor - l1) / period));
+      const m = Math.max(0, (startTip ? Math.ceil : Math.floor)((forward ? l0 - anchor : anchor - l1) / period));
       segment[0] = forward ? anchor + m * period : anchor - m * period;
       segment[1] = cy;
       segment[2] = forward ? l1 : l0;
@@ -833,7 +642,7 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
       // the wave from the content's start, a corner every half period, phase kept when it starts before the view
       const period = 2 * WaveStep;
       const anchor = lay.manchor[j];
-      const m = Math.max(0, Math.floor((forward ? l0 - anchor : anchor - l1) / period));
+      const m = Math.max(0, (startTip ? Math.ceil : Math.floor)((forward ? l0 - anchor : anchor - l1) / period));
       const xs = forward ? anchor + m * period : anchor - m * period;
       const xe = forward ? l1 : l0;
       const cap = wave.length / 2;
@@ -849,8 +658,8 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
       a[7] = 0;
       out.pathArgs(wave, count, false);
     } else if (style === 5) {
-      lineRect(out, l0, cy - LineWidth, l1 - l0, 1, fill);
-      lineRect(out, l0, cy + LineWidth - 1, l1 - l0, 1, fill);
+      out.fill(l0, cy - LineWidth, l1 - l0, 1, fill);
+      out.fill(l0, cy + LineWidth - 1, l1 - l0, 1, fill);
     } else {
       // a box: the lane's outline, inside the mark
       a[0] = x0 + 0.5;
@@ -892,11 +701,6 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
   }
 }
 
-/** A square rect through `args` (a number passed to a call that is not inlined is boxed). */
-function lineRect(out: PassWriter, x: number, y: number, w: number, h: number, fill: number) {
-  out.fill(x, y, w, h, fill);
-}
-
 /** The labels pass: the labels inside the marks wide enough, faded past their width. */
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const { box } = lay;
@@ -906,8 +710,22 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     if (!(lay.mlabel[j] > 0)) continue;
     const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2;
     const h = lay.laneHeight - gap;
+    const baseline = y + h / 2 + lay.fontSize * 0.35;
+    if (lay.style >= 1 && lay.style <= 5) {
+      // a line runs through its label's place: the page's color under the text, so the label reads (the line stops at it)
+      g[0] = lay.mx0[j] + 1;
+      g[1] = baseline - lay.fontSize * 0.85;
+      g[2] = lay.mlabel[j] + 4;
+      g[3] = lay.fontSize;
+      g[4] = lay.tokens.colors['msui-bg'];
+      g[5] = NoColor;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+    }
     g[0] = lay.mx0[j] + 3;
-    g[1] = y + h / 2 + lay.fontSize * 0.35;
+    g[1] = baseline;
     g[2] = lay.mlabel[j];
     g[3] = lay.mx1[j] - lay.mx0[j] - 6;
     g[4] = lay.mink[j];

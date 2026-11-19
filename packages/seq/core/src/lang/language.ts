@@ -15,7 +15,7 @@ import { defineLanguage, type Language, type ValidateOptions } from '@molstar/co
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.5.0';
+export const SeqLanguageVersion = '0.4.0';
 
 export const SeqLanguage = defineLanguage({
   id: 'seq',

@@ -27,6 +27,8 @@ const AnchorMiddle: number = Anchor.middle;
 const LoopLimit = 4096;
 /** Insertion labels are minor ticks from this many px a position (a tick at each is a comb below it). */
 const MinorScale = 4;
+/** The labels' font: tabular figures (`mono`). */
+const RulerFont = '10px mono';
 const MajorHeight = 6;
 const MinorHeight = 3;
 
@@ -77,8 +79,8 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
       box,
       axis,
       tokens,
-      font: config.ruler.font,
-      fontSize: fontSize(config.ruler.font),
+      font: RulerFont,
+      fontSize: fontSize(RulerFont),
       n: 0,
       x: new Float32Array(64),
       major: new Uint8Array(64),
@@ -92,8 +94,8 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;
-    lay.font = config.ruler.font;
-    lay.fontSize = fontSize(config.ruler.font);
+    lay.font = RulerFont;
+    lay.fontSize = fontSize(RulerFont);
     lay.n = 0;
     if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
       ctx.report(
@@ -181,9 +183,8 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
     const label = numbering.labelAt(p - shift);
     if (label === undefined) continue;
     const parsed = parseLabel(label);
-    if (parsed.int === undefined) {
-      if (p % step === 0) tickAt(lay, p, label, true);
-    } else if (parsed.kind === 0) {
+    if (parsed.int === undefined) tickAt(lay, p, label, true);
+    else if (parsed.kind === 0) {
       if (parsed.int % step === 0) tickAt(lay, p, label, true);
     } else if (minors) tickAt(lay, p, label, false);
   }

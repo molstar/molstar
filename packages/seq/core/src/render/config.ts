@@ -119,11 +119,10 @@ export interface RenderConfig {
    */
   readonly values: { readonly aggregate: 'minmax' | 'max'; readonly coarser: number; readonly direct: boolean };
   /**
-   * The ruler: the smallest gap between two labels' edges and the least between their centers' steps (`labelGap`,
-   * 48 px: the foundations' number; a label that does not fit is skipped, never shrunk), and its label font (`mono`:
-   * tabular figures).
+   * The ruler: the least px between two ticks (`labelGap`, 48: the foundations' number; the step of 1, 2, 5 × 10ⁿ is the
+   * least that reaches it). Labels also clear each other by an eighth of it; one that does not fit is skipped, never shrunk.
    */
-  readonly ruler: { readonly labelGap: number; readonly font: string };
+  readonly ruler: { readonly labelGap: number };
   /**
    * The strings (texts and fonts) a renderer's draw lists keep interned across frames: a frame drawn again interns
    * nothing new; past this many, a full redraw starts the table again.
@@ -168,7 +167,7 @@ export const DefaultRenderConfig: RenderConfig = {
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes' },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
-  ruler: { labelGap: 48, font: '10px mono' },
+  ruler: { labelGap: 48 },
   internedStrings: DefaultMaxStrings,
 };
 
