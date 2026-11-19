@@ -1971,8 +1971,9 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   out.clipArgs();
   const ink = tokens.colors['msui-text-muted'];
   const t = lay.tree;
-  for (let k = 0; k + 3 < t.length; k += 4) branchRect(lay, out, k, ink, 1);
-  if (lay.wedges.length) drawWedges(lay, out, ink, -1, 1, false);
+  branchWidth(lay, 1);
+  for (let k = 0; k + 3 < t.length; k += 4) branchRect(lay, out, k, ink);
+  if (lay.wedges.length) drawWedges(lay, out, ink, -1, false);
   const text = tokens.colors['msui-text'];
   for (let k = 0; k < lay.labelText.length; k++) {
     g[0] = lay.labelX;
@@ -2051,22 +2052,29 @@ function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefi
   if (i >= 0) hoverColumnCells(lay, out, i, undefined);
 }
 
-/** A branch's width `t` (px) in whole device pixels, one at least (_spec/README.md "Render", The rows layer, The tree's look). */
-function branchWidth(lay: RowsLay, t: number): number {
+/** Sets a branch's width `t` (px) in whole device pixels into `BranchW[0]`, one at least (_spec/README.md "Render", The rows layer, The tree's look). */
+function branchWidth(lay: RowsLay, t: number) {
   const dpr = lay.axis.dpr;
-  return Math.max(1, Math.round(t * dpr)) / dpr;
+  BranchW[0] = Math.max(1, Math.round(t * dpr)) / dpr;
 }
+
+/**
+ * The branches' width `branchWidth` set, read by `branchRect` and `drawWedges`; a wedge's corner radius (`softCorners`):
+ * fractional numbers through an array (one passed to a call that is not inlined is boxed: the hover pass allocates
+ * nothing).
+ */
+const BranchW = new Float64Array(2);
 
 /**
  * Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`, its edges on device pixels: across the segment
  * its centre's pixel run of the branch's width, along it from each end less half the width to the end plus half (so a
  * branch and its node's vertical meet square, and every branch draws one width).
  */
-function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number, t: number) {
+function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number) {
   const tr = lay.tree;
   const g = out.args;
   const dpr = lay.axis.dpr;
-  const w = branchWidth(lay, t);
+  const w = BranchW[0];
   const vertical = tr[k] === tr[k + 2];
   const across = vertical ? tr[k] : tr[k + 1];
   const a = vertical ? Math.min(tr[k + 1], tr[k + 3]) : Math.min(tr[k], tr[k + 2]);
@@ -2086,11 +2094,6 @@ function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number, t: nu
   out.rectArgs();
 }
 
-/** `ink` at `share` of its own opacity (a tint: the wedge's fill). */
-function tintOf(ink: number, share: number): number {
-  return ((ink & 0xffffff00) | Math.round((ink & 0xff) * share)) >>> 0;
-}
-
 /** A wedge's corners and its outline with each corner softened (3 corners, 4 points each: two cuts, two between). */
 const WedgeCorners = new Float64Array(6);
 const Wedge = new Float64Array(24);
@@ -2101,13 +2104,15 @@ const Wedge = new Float64Array(24);
  * light tint of `ink` (a step darker `hovered`) and outlined in `ink` at the branches' width `t`; all, or (`clade` ≥ 0)
  * those inside that clade.
  */
-function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number, t: number, hovered: boolean) {
+function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number, hovered: boolean) {
   const w = lay.wedges;
   const g = out.args;
   const cl = lay.clades;
   const { config } = lay;
   const half = lay.rowScale / 4;
-  const stroke = branchWidth(lay, t);
+  const stroke = BranchW[0];
+  // a tint of `ink` at a share of its own opacity
+  const fill = ((ink & 0xffffff00) | Math.round((ink & 0xff) * (hovered ? 0.36 : 0.18))) >>> 0;
   for (let k = 0; k + 4 < w.length; k += 5) {
     if (clade >= 0 && cl && !within(cl, w[k + 4], clade)) continue;
     const x0 = w[k];
@@ -2120,8 +2125,9 @@ function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number, t
     WedgeCorners[4] = x1;
     WedgeCorners[5] = yc + half;
     const r = squircleRadius(x1 - x0, 2 * half, config.squircleRatio, config.squircleMax, config.squircleMin);
-    const n = softCorners(r);
-    g[4] = tintOf(ink, hovered ? 0.36 : 0.18);
+    BranchW[1] = r;
+    const n = softCorners();
+    g[4] = fill;
     g[5] = ink;
     g[6] = stroke;
     g[7] = 0;
@@ -2133,7 +2139,8 @@ function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number, t
  * The triangle in `WedgeCorners` into `Wedge`, each corner cut `r` along its two sides (at most a third of the shorter)
  * and joined by a quadratic curve through the corner, sampled: its point count (3, the corners, when `r` is 0).
  */
-function softCorners(r: number): number {
+function softCorners(): number {
+  const r = BranchW[1];
   const p = WedgeCorners;
   if (!(r > 0)) {
     for (let i = 0; i < 6; i++) Wedge[i] = p[i];
@@ -2269,9 +2276,9 @@ function hoverClade(lay: RowsLay, out: PassWriter, key: string, ink: number) {
   out.clipArgs();
   const t = lay.tree;
   const owner = lay.treeClade;
-  for (let k = 0, s = 0; k + 3 < t.length; k += 4, s++)
-    if (within(cl, owner[s], c)) branchRect(lay, out, k, ink, config.outline.hover);
-  if (lay.wedges.length) drawWedges(lay, out, ink, c, config.outline.hover, true);
+  branchWidth(lay, config.outline.hover);
+  for (let k = 0, s = 0; k + 3 < t.length; k += 4, s++) if (within(cl, owner[s], c)) branchRect(lay, out, k, ink);
+  if (lay.wedges.length) drawWedges(lay, out, ink, c, true);
   out.unclip();
 }
 
