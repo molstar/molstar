@@ -40,7 +40,7 @@ not the letter. RW's tests assert the measured bounds until you decide.
 
 Support values as inner labels (`((A,B)95,(C,D)95)`) give two clades one name: a hover, a fold or `clades.keep` reaches
 the first. Name a clade by its node's id only where the id is unique (a repeated or numeric-only label falls back to
-its first and last leaves)? Recommend **yes** (`drift/clade-names.md`).
+its first and last leaves)? Recommend **yes** (`drift/clade-names.md`). **Decided yes** (the author, 2026-11-19); built in GD.
 
 ## 7. The line numbers' baseline in a text figure (CH)
 

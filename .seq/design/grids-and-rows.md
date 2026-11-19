@@ -262,8 +262,10 @@ leaf order; any other order is `seq.render.rows.order` and draws in data order (
 **The rows axis** (tracks): display rows over the expanded order, one display row a row, or one for a folded clade.
 Rows in view are found by arithmetic, O(1) a row, never a scan.
 
-- **Clades** (EC-100, EC-103) are named by the node's id, else their first and last leaves in tree order
-  (`(clade :of [a b])`), so a name survives a reorder of other clades and a tree read again.
+- **Clades** (EC-100, EC-103) are named by the node's id where it is unique in the tree and not a number, else their
+  first and last leaves in tree order (`(clade :of [a b])`), so a name survives a reorder of other clades and a tree
+  read again. Why the exception (decided, the author, 2026-11-19): inner labels are often support values that repeat
+  (`((A,B)95,(C,D)95)`), and one name for two clades sends a hover, a fold or `clades.keep` to the wrong one.
 - **Pinned rows**: `pinned` (row keys), drawn in a fixed band at the top of the rows band, and kept in their place in
   the order too, marked (`rows.pin.inPlace`, true). Why both: the tree stays a tree and clades stay bands.
 - **The band**: tracks before the rows track (a ruler, the logo) and after it (a summary) stay fixed; the rows scroll
