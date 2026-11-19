@@ -137,6 +137,14 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
 - **Frames across tracks** (EC-100) are a layer type of strip scope with `across` (two tracks of its section): its
   outline covers `ctx.span`; an end cut by the strip's edge (a line break) is open, from the axis's cut flags, as every
   cut end is (the frame rule); its title is drawn where the item really starts.
+- **A track's height by default fits its content, in steps** (decided, the author, 2026-11-19, Antibody's CDR tracks: a
+  72 px band holding one lane of marks at its top "feels empty"; "combination of both … smart layout so the heights
+  don't vary too much"): a track with no `height` is as tall as the lanes its layers need (ranges: the packed lanes of
+  the whole data, not of the view, so a pan never resizes it), rounded up to a step of one lane, between one lane and a
+  cap (then lanes compact, as now); its marks centred in the band. Tracks of one kind in a section share the tallest
+  height among them (two CDR tracks are equal), so neighbours do not vary lane by lane. A track's `height` overrides.
+  Why: a default fills its space and reads as designed; heights decided by the whole data stay put as the view moves.
+  The numbers (the lane, the padding, the cap) come from the defaults audit (`drafts/defaults-audit.md`).
 - **A band may scroll inside its section** (asked by [grids-and-rows.md](grids-and-rows.md)): a band has its own vertical scroll
   (`bandTop`, clamped to its content's height) and row zoom (`rowScale`, px a row), both in the section's viewport by
   band (below), beside the section's `top`. The band's layer reads them (`ctx.bandTop`, `ctx.rowScale`) and owns its y

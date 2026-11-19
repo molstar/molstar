@@ -416,3 +416,8 @@ None.
   Decided ("configurable? reserve by default"): the legend part's `channels: reserve | collapse` (themes.md, the
   Design page); lane LR (fast) queued. UN's review: nothing serious, a fix round sent. Use findings: bug 6, missing
   design 6, look 5.
+- The author (2026-11-19, Antibody's CDR tracks "feel empty"; "really good defaults for everything"): decided, a
+  track's height by default fits its content in steps, tracks of one kind in a section sharing one height, marks
+  centred (layouts.md, the Design page); the defaults audit DA (fast, read-only) next in the fast slot, its numbers to
+  the author. PG done (PCG32, small pyramid blocks exact, nothing regenerated): under a short review. Use findings:
+  bug 6, missing design 7, look 6.

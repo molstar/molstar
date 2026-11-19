@@ -428,6 +428,9 @@ and dark before the merge.
       numbering's reach: `unnumbered: mark | fallback` (`briefs/un-unnumbered.md`).
 - [ ] LR (fast, next fast slot; the author, 2026-11-19: "configurable? reserve by default") the legend's channels row
       keeps its place (`briefs/lr-legend-row.md`).
+- [ ] DA (fast, read-only, next fast slot; the author, 2026-11-19: "really good defaults for everything"; "audit
+      next") the defaults audit: `drafts/defaults-audit.md` for the author (`briefs/da-defaults-audit.md`); then the
+      track heights by content in steps (layouts.md, decided) built with its numbers.
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
