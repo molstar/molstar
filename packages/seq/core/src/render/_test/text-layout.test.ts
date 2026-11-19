@@ -138,6 +138,29 @@ describe('the text layout', () => {
     expect(r.lists.height).toBeGreaterThan(300);
   });
 
+  it('numbers at both ends: a line’s first and last position; inline group labels in the gap after their group', async () => {
+    const s = await settle(p53TextSpec({ numbers: 'both', group_labels: 'inline' }));
+    const f = await s.frame({ size: Size });
+    const t = text(f.layout.sections[0]);
+    const g = t.geometry!;
+    for (let i = 0; i < t.strips.n; i++) {
+      const a = t.strips.axes[i];
+      const marks = t.marks.filter((m) => m.strip === i);
+      expect(marks.find((m) => m.anchor === 2)?.text).toBe(String(a.u0 + 1));
+      const end = marks.find((m) => m.anchor === 0 && m.x > a.x0);
+      expect(end?.text).toBe(String(a.u1));
+      expect(end?.x).toBeCloseTo(a.x0 + a.width + 8, 6);
+      const inline = marks.filter((m) => m.anchor === 1);
+      let k = 0;
+      for (let e = a.u0 + 10; e < a.u1; e += 10, k++) {
+        a.cell(e - 1);
+        expect(inline[k].text).toBe(String(e));
+        expect(inline[k].x).toBeCloseTo(a.sx1 + g.gap / 2, 6);
+      }
+      expect(inline.length).toBe(k);
+    }
+  });
+
   it('the numbers print a layer’s numbering (a ruler’s `numbering`), else ordinals', async () => {
     const b = createSeqSpec({ title: 'numbered' });
     const p = b.data.sequence('p', { alphabet: 'protein', letters: P53 });
