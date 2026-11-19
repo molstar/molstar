@@ -1866,33 +1866,45 @@ numbers): a window move allocates nothing once warm.
 
 - **A track with no `height` fits its content, in steps** (`render/sizing.ts`): a layer type's `content(prep, ctx)` says
   what its items need over the whole data, never the view (ranges: the lanes first-fit by start packs, and whether a
-  label fits none of its marks at the fit view, the whole axis across the data box: a zoom only widens marks), so a pan
-  never resizes a track. Its content height is its lanes and a label lane, each `laneHeight`, plus `lanePadding` above
-  and below, between one lane and `maxLanes` (`lanesHeight`: 22, 36, 50, 64, 78), at least its other layers' fixed
-  heights; past `maxLanes` the rest go to the density row (`ranges.overflow`). Values, letters, rulers, pairs and rows
-  keep their fixed heights (no lanes); a tiled source's items are not known whole: its track keeps its fixed height and
-  its lanes in view are centred. Why: a default fills its space, and heights decided by the whole data stay put as the
-  view moves.
-- **The section's `heights` names the sizing**: `content` (the default: tracks of one kind, their layers' types in
+  label fits none of its marks at the fit: the section's own whole extent, its pieces once, across the data box, never
+  the frame's axis, which a pan over a cyclic origin or a follower's range changes; a zoom only widens marks), so a pan
+  never resizes a track. A track's content is one lane block for all its layers: the most lanes any of them needs and
+  one label lane when any of them labels beside; its height is those lanes, each `laneHeight`, plus `lanePadding` above
+  and below, between one lane and `maxLanes` (22, 36, 50, 64, 78), at least its other shown layers' fixed heights (a
+  hidden layer adds none, nor names its kind); past `maxLanes` the rest go to the density row (`ranges.overflow`).
+  Values, letters, rulers, pairs and rows keep their fixed heights (no lanes). A source's items (a file, a tiled genome)
+  are not known whole: its track keeps its fixed height and its lanes are centred by the most the layer has shown (it
+  only grows: its marks never move back on a pan). Why: a default fills its space, and heights decided by the whole data
+  stay put as the view moves.
+- **The section's `heights` names the sizing**: `content` (the default: tracks of one kind, their shown layers' types in
   order, share the tallest), `uniform` (every content-sized track the section's tallest), `fixed` (each its types' fixed
   height, `heights` above), or an `ext:` sizing (`TrackSizing`, a `track-sizing` registry entry; one not registered is
-  `seq.render.heights` and the tracks fit their content). A track's `height` overrides any. **The host's `trackSizing`
-  port** (`TrackSizingHook`: the section, its `SizedTrack`s with their content heights, the named answer) has the last
-  word; an answer of another length is ignored. Text keeps its own thin bands.
-- **Marks centred**: the band's lanes below its padding, the label lane above them, the block centred in the band by the
-  whole data's lanes (`RangesLay.laneY`, `labelY`). A band too short for its lanes (a track's own height, a text line's
-  underline, a navigator's miniature) drops the label lane, then compacts its lanes over the whole band.
+  `seq.render.heights` and the tracks fit their content; `ContentSizing` is public for one to wrap). A track's `height`
+  overrides any. **The host's `trackSizing` port** (`TrackSizingHook`: the section, its `SizedTrack`s with their content
+  heights, the named answer) has the last word; an answer of another length is ignored. Text keeps its own thin bands. A
+  navigator's picture sizes its tracks with the view's sizings and port, and has no label lane.
+- **Kept while their key is**: a section's heights and its tracks' contents are kept in the layout state by the section
+  (its shown tracks, the px a position of its extent, the config, the layout, the metrics' version, the registry, the
+  port), so a pan runs neither the sizing nor the port; a layer's content is kept by its prep (its label check by the
+  fit, the font and the metrics' version).
+- **Marks centred, never below the band**: the band's lanes below its padding, the label lane above them, the block
+  centred in the band by the whole data's lanes (`RangesLay.laneY`, `labelY`), the marks in those lanes only (a band
+  taller than its content, by `uniform`, kind or its own height, draws none below them). A sticky lane that would leave
+  an item out of lanes enough for the whole data is packed fresh before any item goes to the density row. A band too
+  short for its lanes (a track's own height, a text line's underline, a navigator's miniature) drops the label lane,
+  then compacts its lanes over the whole band.
 
 ### Labels inside if they fit, else beside
 
 - One rule in both layouts (rings: the sink, Rings layout). On a linear track an item's label is drawn inside the first
   of its marks it fits whole in (the mark less its arrowheads and a 3 px inset each side), never cut mid-word; else in
-  the label lane at its leftmost mark's x, moved right past a label placed before it with a short leader (at most its
-  own width, or 24 px), placed by one priority (the longer item first); one the lane cannot hold, or a track with no
-  label lane, is dropped (the hover card names it). An item is labeled once. The same font and size inside and beside;
-  the ink is the contrast rule's inside a mark, the text color beside it. A placed label's hit is its item's.
-- **Placed per layout** (the layer's, allocation-free once warm): a pan in the same level lays the layer out again and
-  places its labels again in view, as its marks are; never on a hover.
+  the track's label lane at its leftmost mark's x, moved right past a label placed before it with a short leader from
+  its own lane (at most its own width, or 24 px); one the lane cannot hold, or a track with no label lane, is dropped
+  (the hover card names it). **One label lane a track**: its layers' labels beside share it, placed by one priority, the
+  layer's order, then the longer item. An item is labeled once. The same font and size inside and beside; the ink is the
+  contrast rule's inside a mark, the text color beside it (decided). A placed label's hit is its item's.
+- **Placed per layout** (the layers', in their order, allocation-free once warm): a pan in the same level lays the
+  layers out again and places their labels again in view, as their marks are; never on a hover.
 
 ### The grid layout
 

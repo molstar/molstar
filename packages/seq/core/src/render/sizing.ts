@@ -51,7 +51,10 @@ export type TrackSizingHook = (
   named: readonly number[],
 ) => readonly number[];
 
-/** The height of `lanes` lanes and their padding (_spec/README.md "Render", Track heights: 22, 36, 50, 64, 78 px). */
+/**
+ * The height of `lanes` lanes and their padding (_spec/README.md "Render", Track heights: 22, 36, 50, 64, 78 px).
+ * @internal
+ */
 export function lanesHeight(lanes: number, config: RenderConfig): number {
   const n = Math.max(1, Math.min(config.maxLanes, lanes));
   return 2 * config.lanePadding + n * config.laneHeight;
@@ -68,7 +71,10 @@ export const ContentSizing: TrackSizing = {
   },
 };
 
-/** Every content-sized track the tallest content height in the section. */
+/**
+ * Every content-sized track the tallest content height in the section.
+ * @internal
+ */
 export const UniformSizing: TrackSizing = {
   name: 'uniform',
   heights(tracks) {
@@ -78,18 +84,67 @@ export const UniformSizing: TrackSizing = {
   },
 };
 
-/** Each track its layer types' fixed default (the second slice's look). */
+/**
+ * Each track its layer types' fixed default (the second slice's look).
+ * @internal
+ */
 export const FixedSizing: TrackSizing = {
   name: 'fixed',
   heights: (tracks) => tracks.map((t) => t.fixed),
 };
 
-/** The built-in sizings by name: what a section's `heights` names without an extension. */
+/**
+ * The built-in sizings by name: what a section's `heights` names without an extension.
+ * @internal
+ */
 export const BuiltInSizings: Readonly<Record<string, TrackSizing>> = {
   content: ContentSizing,
   uniform: UniformSizing,
   fixed: FixedSizing,
 };
+
+/**
+ * A track's label lane (_spec/README.md "Render", Labels inside if they fit, else beside): the spans its layers' labels
+ * took, shared by the layers of one band in their order (the layer's order is the first drop priority), cleared before
+ * the band is laid out. Kept by the layout, its arrays grown: no allocation once warm.
+ * @internal
+ */
+export class LabelLane {
+  n = 0;
+  x0 = new Float64Array(16);
+  x1 = new Float64Array(16);
+
+  reset() {
+    this.n = 0;
+  }
+
+  /** The first x from `x` rightward where a label `w` wide stands `gap` clear of every label placed. */
+  free(x: number, w: number, gap: number): number {
+    for (let moved = true; moved; ) {
+      moved = false;
+      for (let q = 0; q < this.n; q++)
+        if (x < this.x1[q] + gap && x + w + gap > this.x0[q]) {
+          x = this.x1[q] + gap;
+          moved = true;
+        }
+    }
+    return x;
+  }
+
+  add(x: number, w: number) {
+    const q = this.n++;
+    if (q >= this.x0.length) {
+      const a = new Float64Array(2 * this.x0.length);
+      const b = new Float64Array(2 * this.x0.length);
+      a.set(this.x0);
+      b.set(this.x1);
+      this.x0 = a;
+      this.x1 = b;
+    }
+    this.x0[q] = x;
+    this.x1[q] = x + w;
+  }
+}
 
 /** Whether a sizing's or a port's answer is a height a track (a list of px of the tracks' length). */
 export function heightsFit(h: readonly number[] | undefined, n: number): h is readonly number[] {

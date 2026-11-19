@@ -633,6 +633,17 @@ export function itemArc(pieces: number[], length: number | undefined): [number, 
   return arc;
 }
 
+/** Whether an item's pieces meet at a cyclic system's origin: one ends at its length, another starts at 0. */
+function crossesOrigin(pieces: readonly number[], length: number): boolean {
+  let end = false;
+  let start = false;
+  for (let k = 0; k + 1 < pieces.length; k += 2) {
+    if (pieces[k + 1] === length) end = true;
+    if (pieces[k] === 0) start = true;
+  }
+  return end && start;
+}
+
 /**
  * The items in view, each once: a row per piece makes one item (its extent the hull of the pieces on the data's
  * system, its place the hull on the section clamped to the box). Allocates; for an export's accessible layer and the
@@ -684,7 +695,9 @@ export function describeItems(lay: ItemsBase): ItemDescription[] {
     const b = g.lo < g.hi ? lay.axis.x(g.hi) : Number.NaN;
     const l = Number.isFinite(a) && Number.isFinite(b) ? Math.min(a, b) : x0;
     const r = Number.isFinite(a) && Number.isFinite(b) ? Math.max(a, b) : x1;
-    const arc = length !== undefined && g.pieces.length > 2 ? itemArc(g.pieces, length) : undefined;
+    // across the origin only when a piece ends at the length and another starts at 0 (a spliced item's intron wider than
+    // its outer gap is no crossing)
+    const arc = length !== undefined && crossesOrigin(g.pieces, length) ? itemArc(g.pieces, length) : undefined;
     out.push({
       key,
       label: g.label,

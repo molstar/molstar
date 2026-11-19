@@ -55,7 +55,8 @@ export class StickyLanes {
 
   /**
    * Assigns a lane to each item (`order` lists the items by start), into `out`: −1 for one that does not fit in
-   * `maxLanes`. With `settled`, sparse lanes are repacked. Returns the lanes used.
+   * `maxLanes`. With `settled`, sparse lanes are repacked, and lanes that leave items out a fresh packing places.
+   * Returns the lanes used.
    */
   assign(
     keys: readonly Key[],
@@ -70,7 +71,8 @@ export class StickyLanes {
     if (settled && this.kept.size > 0) {
       const fresh = new Int32Array(out.length);
       const packed = this.pack(keys, starts, ends, order, maxLanes, fresh, false);
-      if (packed.used < sticky.used && packed.overflow <= sticky.overflow) {
+      // fewer lanes for no more left out, or fewer left out (a sticky lane that would overflow lanes enough for all)
+      if (packed.overflow < sticky.overflow || (packed.used < sticky.used && packed.overflow <= sticky.overflow)) {
         out.set(fresh);
         return this.keep(keys, order, out, packed.used);
       }

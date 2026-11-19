@@ -62,9 +62,6 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   (`Domains T1-domains`) ends in an ellipsis; measuring the instances needs the viewer's data box (`dataX`) to follow
   the frame's column, not the view's.
 - **Ring labels inside their arc** when they fit (the linear rule): today a ring places every label outside.
-- **Labels beside across layers of one track**: each ranges layer has its own label lane; one lane a track shared by its
-  layers' labels (the layer's order as the drop priority) waits for a track with two labeled layers.
-
 - **Records** (`data/records.ts`): the GFF3 preset and a row past a cyclic system's length wrapped by the row reader;
   the delimited tokenizer reads a string whole: a streaming form when a file past `maxBytes` read by region asks; a
   values file is bounded by `maxRows` positions from its first (a genome's values wait for region reads).

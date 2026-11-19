@@ -6,9 +6,9 @@
 
 import type { ElementKey, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-core/query';
+import { extentText } from '@molstar/seqx-core/render/accessibility';
 import {
   type GridLay,
-  extentText,
   itemText,
   layerSource,
   type ItemDescription,

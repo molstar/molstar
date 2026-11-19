@@ -348,6 +348,9 @@ export interface NavigatorRendererOptions {
   /** The layer types and section layouts its picture draws with: the view's renderer's (the composition's registry). */
   readonly types: RendererOptions['types'];
   readonly layouts: RendererOptions['layouts'];
+  /** The track sizings and the host's port its picture sizes tracks with: the view's renderer's. */
+  readonly sizings?: RendererOptions['sizings'];
+  readonly trackSizing?: RendererOptions['trackSizing'];
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /** The shared image cache (the view's renderer's): a navigator's image tiles take the view's budget. */
   readonly images?: ImageCache;
@@ -575,6 +578,9 @@ export class NavigatorRenderer {
           config: this.zoomed ? this.zoomConfig! : this.pictureConfig,
           types: o.types,
           layouts: o.layouts,
+          ...(o.sizings ? { sizings: o.sizings } : {}),
+          ...(o.trackSizing ? { trackSizing: o.trackSizing } : {}),
+          picture: true,
           ...(o.theme ? { theme: o.theme } : {}),
           ...(o.images ? { images: o.images } : {}),
           ...(o.domains ? { domains: { state: o.domains, map: this.viewKey } } : {}),

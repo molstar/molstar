@@ -22,12 +22,12 @@ import {
   type RenderSvgResult,
   type Viewport as RenderViewport,
   hitView,
-  labelColumnWidth,
   railSections,
   rowsRailTracks,
   resolveColor,
   textMinScale,
 } from '@molstar/seqx-core/render';
+import { labelColumnWidth } from '@molstar/seqx-core/render/tracks';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
 import { type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
 import { mapsEqual } from '@molstar/core/util/map';
@@ -591,6 +591,8 @@ export class SeqViewer extends ReactiveModel {
   invalidateText(): void {
     this.context.text.clear();
     this._column[0] = undefined;
+    // the label column measured again: the data box's width with it
+    this._applyWidths();
     this.schedule();
   }
 

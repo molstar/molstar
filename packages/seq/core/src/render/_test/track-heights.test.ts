@@ -14,16 +14,9 @@ import type { Node } from '@molstar/core/repr/tree';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import {
-  DefaultRenderConfig,
-  hitView,
-  itemText,
-  lanesHeight,
-  type RangesLay,
-  recordDrawLists,
-  type TrackSizing,
-} from '../index.js';
+import { DefaultRenderConfig, hitView, itemText, type RangesLay, recordDrawLists, type TrackSizing } from '../index.js';
 import { describeItems } from '../items.js';
+import { lanesHeight } from '../sizing.js';
 import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 

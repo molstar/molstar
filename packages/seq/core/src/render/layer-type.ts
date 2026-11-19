@@ -16,7 +16,7 @@ import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
 import type { Placement, WindowPart } from './layout/types.js';
-import type { LayerContent } from './sizing.js';
+import type { LabelLane, LayerContent } from './sizing.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 
@@ -80,13 +80,22 @@ export interface LayoutContext {
   /**
    * A layer with no color (_spec/README.md "Themes", A layer with no color): its place in the theme's categorical
    * palette (`seq-cat-<n>`), by its order in the view; absent for a layer the spec colors.
+   * @internal
    */
   readonly colorIndex?: number;
   /**
-   * What the layer's items need over the whole data (its `content`), when its track is sized by it: its marks' lanes
-   * centred in the band by it, and a label lane above them when it says so (_spec/README.md "Render", Track heights).
+   * What the track's content-sized layers need over the whole data, together (_spec/README.md "Render", Track
+   * heights): one lane block a track, its marks' lanes centred in the band by it, one label lane above them when it says
+   * so.
+   * @internal
    */
   readonly content?: LayerContent;
+  /**
+   * The track's label lane its layers' labels beside share, in their order (_spec/README.md "Render", Labels inside if
+   * they fit, else beside).
+   * @internal
+   */
+  readonly labelLane?: LabelLane;
   /** Item labels drawn `inside` marks, or a sink a layout collects them into (rings: placed outside). */
   readonly labels?: 'inside' | LabelSink;
   /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */

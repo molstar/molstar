@@ -196,6 +196,8 @@ export class NavigatorModel extends ReactiveModel {
         config: this.viewer.context.renderConfig,
         types: this.viewer.context.types,
         layouts: this.viewer.context.layouts,
+        sizings: this.viewer.context.sizings,
+        ...(this.viewer.context.trackSizing ? { trackSizing: this.viewer.context.trackSizing } : {}),
         direction: this.viewer.config.navigator.direction,
         zoomStrip: this.viewer.config.navigator.zoomStrip,
         storeSettings: this.viewer.store.store.settings,

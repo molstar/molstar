@@ -51,6 +51,11 @@ export interface RendererOptions {
   /** The track sizings a section's `heights` may name past the built-ins (the composition's registry), and the host's port. */
   readonly sizings?: LayoutInput['sizings'];
   readonly trackSizing?: LayoutInput['trackSizing'];
+  /**
+   * A navigator's picture (no label lane).
+   * @internal
+   */
+  readonly picture?: boolean;
   /** The schemes and measures the themes read (the built-ins by default): the composition's registry entries. */
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /** The shared image cache (_spec/README.md "Render", The shared reduction): another renderer's (a navigator's view). */
@@ -371,6 +376,7 @@ export class Renderer {
         layouts: this.options.layouts,
         ...(this.options.sizings ? { sizings: this.options.sizings } : {}),
         ...(this.options.trackSizing ? { trackSizing: this.options.trackSizing } : {}),
+        ...(this.options.picture ? { picture: true } : {}),
         theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),

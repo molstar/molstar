@@ -11,7 +11,7 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { hitView } from '@molstar/seqx-core/render';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { hitTarget } from '../models/hover.js';
@@ -226,5 +226,14 @@ describe('hits on a reversed collapsed axis with a residue row', () => {
     const out = v.addresses.focus('/data/g/(range :from 2 :to 4)', { section: Gene });
     expect(out.message).not.toContain('hidden by collapsed introns');
     expect(v.addresses.movedToBreak).toBe(false);
+  });
+});
+
+describe('a web font arriving', () => {
+  it('measures the label column again and gives the sections their data width with it', async () => {
+    const v = await make();
+    const set = vi.spyOn(v.view, 'setWidth');
+    v.invalidateText();
+    expect(set).toHaveBeenCalled();
   });
 });

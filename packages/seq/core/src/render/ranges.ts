@@ -57,7 +57,7 @@ import type {
   Overlay,
   StoreReader,
 } from './layer-type.js';
-import type { LayerContent } from './sizing.js';
+import { LabelLane, type LayerContent } from './sizing.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
 import { CategoryCount, inkOn, mixColors, type SeqTokens, withAlpha } from './tokens.js';
@@ -222,6 +222,8 @@ export interface RangesLay extends ItemsBase {
   idCache: Map<string | number, string[]>;
   /** The items by start, kept. */
   order: Int32Array;
+  /** The most lanes the layer has shown, its whole data's not known (a tiled source's): what its lanes are centred by. */
+  seen: number;
   /** The label lane's top (−1: none) and the labels placed there (`ln`): x, width, where their item starts, item. */
   labelY: number;
   ln: number;
@@ -306,6 +308,7 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     byCode: new Uint32Array(16),
     idCache: new Map(),
     order: new Int32Array(64),
+    seen: 0,
     labelY: -1,
     ln: 0,
     lx: new Float32Array(16),
@@ -403,11 +406,13 @@ function sinkLabels(lay: RangesLay, src: LayerSource, sink: LabelSink, order: nu
 
 /**
  * The band's lanes (_spec/README.md "Render", Track heights): in a band tall enough, lanes of `laneHeight` below its
- * padding, the label lane above them when its content says labels go beside, the block of them centred in the band by
- * the lanes the whole data needs (so a pan never moves them). A band too short for its lanes (a track's own height, a
- * text line’s underline, a navigator’s miniature; not one at the most lanes, whose rest go to its density row) drops the
- * label lane, then compacts its lanes over the whole band, as
- * many as a mark's height (`laneHeight − laneGap`) fits, at least one. Returns the lanes the marks may take.
+ * padding, the track's label lane above them when its content says labels go beside, the block of them centred in the
+ * band by the lanes the whole data needs (so a pan never moves them), the marks in those lanes only (a band taller than
+ * its content draws none below them). A band too short for its lanes (a track's own height, a text line's underline, a
+ * navigator's miniature; not one at the most lanes, whose rest go to its density row) drops the label lane, then
+ * compacts its lanes over the whole band, as many as a mark's height (`laneHeight − laneGap`) fits, at least one. A
+ * tiled source's lanes (not known whole) are centred by the most the layer has shown (`seen`: it only grows, so its
+ * marks never move back on a pan). Returns the lanes the marks may take.
  */
 function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
   const { box, config } = ctx;
@@ -420,10 +425,10 @@ function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
   if (room >= need || room >= config.maxLanes) {
     // a label lane only beside marks the band holds too, and only where labels are placed in the band (tracks)
     const label = content?.labels && ctx.labels === 'inside' && room > need ? 1 : 0;
-    const lanes = room - label;
-    const shown = (content ? Math.min(need, lanes) : lanes) + label;
+    const lanes = content ? Math.min(need, room - label) : room;
+    const block = (content ? lanes : Math.max(1, Math.min(lay.seen, lanes))) + label;
     lay.laneHeight = lh;
-    const top = box.y + (box.height - shown * lh) / 2;
+    const top = box.y + (box.height - block * lh) / 2;
     if (label) lay.labelY = top;
     lay.laneY = top + label * lh;
     return lanes;
@@ -435,11 +440,23 @@ function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
   return lanes;
 }
 
+/** The candidates' order (the longer item first, then the earlier): a comparator of the module, reading these. */
+let SortStarts: readonly number[] = [];
+let SortEnds: readonly number[] = [];
+function longerFirst(o: ArrayLike<number>, a: number, b: number): number {
+  const x = o[a];
+  const y = o[b];
+  return SortEnds[y] - SortStarts[y] - (SortEnds[x] - SortStarts[x]) || x - y;
+}
+
+/** The label lane of a layer laid out alone (no track's: a test's, an export's own call). */
+const OwnLane = new LabelLane();
+
 /**
- * Each label inside the first of its marks it fits whole; an item whose label fits none of its marks in view goes beside, in
- * the label lane at its leftmost mark's x (moved right past a label placed before it, a leader drawn), placed by one
- * priority (the longer item first) and dropped when the lane cannot hold it. Allocation-free once warm: placed per
- * layout, never on a hover.
+ * Each label inside the first of its marks it fits whole; an item whose label fits none of its marks in view goes beside,
+ * in the track's label lane at its leftmost mark's x (moved right past a label placed before it, the track's earlier
+ * layers' first, a leader drawn from its own lane), placed by one priority (the layer's order, then the longer item)
+ * and dropped when the lane cannot hold it. Allocation-free once warm: placed per layout, never on a hover.
  */
 function placeLabels(lay: RangesLay, ctx: LayoutContext) {
   const { tokens, text } = ctx;
@@ -471,6 +488,8 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
     labeled.add(lay.keys[i]);
   }
   if (lay.labelY < 0) return;
+  const lane = ctx.labelLane ?? OwnLane;
+  if (!ctx.labelLane) lane.reset();
   // the candidates: an item once (its first row in view with a mark), by priority (the longer item first)
   lay.cand = grown(lay.cand, n);
   const cand = lay.cand;
@@ -481,26 +500,21 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
     cand[c++] = i;
   }
   if (!c) return;
-  const { starts, ends } = lay;
-  sortArrayRange(cand, 0, c, (o, a, b) => ends[o[b]] - starts[o[b]] - (ends[o[a]] - starts[o[a]]) || o[a] - o[b]);
+  SortStarts = lay.starts;
+  SortEnds = lay.ends;
+  sortArrayRange(cand, 0, c, longerFirst);
+  SortStarts = SortEnds = NoNumbers;
   const x0 = lay.box.x;
   const x1 = lay.box.x + lay.box.width;
   for (let k = 0; k < c; k++) {
     const i = cand[k];
     const w = text.measure(lay.font, lay.labels[i] as string);
     const want = Math.max(left[i], x0);
-    // the first free place from its start rightward, past the labels already placed
-    let x = want;
-    for (let moved = true; moved; ) {
-      moved = false;
-      for (let q = 0; q < lay.ln; q++)
-        if (x < lay.lx[q] + lay.lw[q] + LabelGapPx && x + w + LabelGapPx > lay.lx[q]) {
-          x = lay.lx[q] + lay.lw[q] + LabelGapPx;
-          moved = true;
-        }
-    }
+    // the first free place from its start rightward, past the labels already placed in the track's lane
+    const x = lane.free(want, w, LabelGapPx);
     // dropped past the box's end, or moved further than its own width (a leader is a short one)
     if (x + w > x1 || x - want > Math.max(w, 24)) continue;
+    lane.add(x, w);
     const q = lay.ln++;
     if (q >= lay.lx.length) {
       lay.lx = grown(lay.lx, q + 1);
@@ -514,6 +528,8 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
     lay.litem[q] = i;
   }
 }
+
+const NoNumbers: readonly number[] = [];
 
 /** A filter's row over an inline item: its key and its fields (`base`, the track's own rows). */
 class ItemRow {
@@ -529,7 +545,26 @@ const itemRow = new ItemRow();
 /** A layer's lanes over its whole data, kept by its prep (its data does not change under it). */
 const Lanes = new WeakMap<RangesPrep, number>();
 /** Whether a label goes beside at a fit, kept by its prep with what it was found for. */
-const Beside = new WeakMap<RangesPrep, { fit: number; font: string; text: unknown; beside: boolean }>();
+const Beside = new WeakMap<
+  RangesPrep,
+  {
+    fit: number;
+    font: string;
+    text: unknown;
+    version: number;
+    beside: boolean;
+    yes: LayerContent;
+    no: LayerContent;
+  }
+>();
+
+/** A layer's content with no label lane, kept by its prep (a layout makes no object a frame). */
+const LanesOnly = new WeakMap<RangesPrep, LayerContent>();
+function lanesOnly(prep: RangesPrep, lanes: number): LayerContent {
+  let c = LanesOnly.get(prep);
+  if (!c || c.lanes !== lanes) LanesOnly.set(prep, (c = { lanes, labels: false }));
+  return c;
+}
 
 /** The inline items a layer draws: every row of its annotation, less those its track's own filter leaves out. */
 function contentRows(prep: RangesPrep): QueryItem[] | undefined {
@@ -620,15 +655,31 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       lanes = packedLanes(rows);
       Lanes.set(prep, lanes);
     }
-    if (!ctx.labelLane || !(ctx.fit > 0)) return { lanes, labels: false };
+    if (!ctx.labelLane || !(ctx.fit > 0)) return lanesOnly(prep, lanes);
     const font = ctx.config.itemFont;
     const kept = Beside.get(prep);
-    if (kept && kept.fit === ctx.fit && kept.font === font && kept.text === ctx.text)
-      return { lanes, labels: kept.beside };
+    // kept while the fit, the font and the metrics are (a web font arriving measures again)
+    if (
+      kept &&
+      kept.fit === ctx.fit &&
+      kept.font === font &&
+      kept.text === ctx.text &&
+      kept.version === ctx.text.version
+    )
+      return kept.beside ? kept.yes : kept.no;
     rows ??= contentRows(prep);
     const beside = rows ? labelsBeside(prep, rows, ctx) : false;
-    Beside.set(prep, { fit: ctx.fit, font, text: ctx.text, beside });
-    return { lanes, labels: beside };
+    const answer = {
+      fit: ctx.fit,
+      font,
+      text: ctx.text,
+      version: ctx.text.version,
+      beside,
+      yes: { lanes, labels: true },
+      no: { lanes, labels: false },
+    };
+    Beside.set(prep, answer);
+    return beside ? answer.yes : answer.no;
   },
 
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: RangesLay): RangesLay {
@@ -673,20 +724,24 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       sortArrayRange(order, 0, n, (o, a, b) => starts[o[a]] - starts[o[b]] || o[a] - o[b]);
       lay.lanes = grown(lay.lanes, n);
       const lanes = lay.lanes.subarray(0, n);
-      const assign = (cap: number) => {
-        lay.laneCount = lay.sticky.assign(lay.ids, lay.starts, lay.ends, order, cap, ctx.settled, lanes);
+      const assign = (cap: number, fresh: boolean) => {
+        lay.laneCount = lay.sticky.assign(lay.ids, lay.starts, lay.ends, order, cap, fresh, lanes);
         lay.overflow = 0;
         for (let i = 0; i < n; i++) if (lanes[i] < 0) lay.overflow++;
       };
-      assign(maxLanes);
+      assign(maxLanes, ctx.settled);
+      // the whole data packs in its lanes: a sticky lane that leaves an item out is packed fresh before any overflow
+      if (lay.overflow && ctx.content && !ctx.settled) assign(maxLanes, true);
       // past the lanes: the last lane becomes a density row of what does not fit; the rest stay items
       if (lay.overflow && config.ranges.overflow === 'extra-lanes' && maxLanes > 1) {
-        assign(maxLanes - 1);
+        assign(maxLanes - 1, ctx.settled);
         row = true;
       }
-      // the whole data's lanes not known (a tiled source's): the lanes in view centred (the label lane none)
-      if (!ctx.content && lay.laneHeight === config.laneHeight && !row)
-        lay.laneY = box.y + (box.height - Math.max(1, lay.laneCount) * lay.laneHeight) / 2;
+      // the whole data's lanes not known (a tiled source's): centred by the most lanes the layer has shown
+      if (!ctx.content && lay.laneHeight === config.laneHeight && !row && lay.laneCount > lay.seen) {
+        lay.seen = lay.laneCount;
+        lay.laneY = box.y + (box.height - Math.min(lay.seen, maxLanes) * lay.laneHeight) / 2;
+      }
     }
     lay.mode =
       step === 'density' || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
@@ -1080,10 +1135,10 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     const x = lay.lx[k];
     const want = lay.lwant[k];
     if (x - want >= 1) {
-      // moved: a short leader from its mark's start up to the label's line and on to the label
+      // moved: a short leader from its mark's start (its own lane's top) up to the label's line and on to the label
       const xy = Leader;
       xy[0] = want + 0.5;
-      xy[1] = lay.laneY + gap / 2;
+      xy[1] = lay.laneY + Math.max(0, lay.lanes[lay.litem[k]]) * lay.laneHeight + gap / 2;
       xy[2] = want + 0.5;
       xy[3] = mid;
       xy[4] = x - 2;
