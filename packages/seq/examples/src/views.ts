@@ -13,6 +13,7 @@ import * as geneByRegion from './p53/gene-by-region.js';
 import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as themes from './p53/themes.js';
+import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
 
 // The examples' views by dataset: what a dataset's index lists and a test walks.
@@ -39,6 +40,29 @@ export const P53Views: readonly ExampleView[] = [
     title: 'Tracks',
     summary: 'The protein’s letters, its domains in lanes and a conservation signal with two residues missing.',
     build: tracks.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'text',
+    title: 'Text',
+    summary:
+      'The protein as text: lines of whole groups of ten wrapped to the width, a number a line and a group, its secondary structure and domains as thin bands under the letters, each left out of a line it is empty on.',
+    build: text.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'text-centered',
+    title: 'Text, centered',
+    summary:
+      'The text figure centered in at most 640 px, its group numbers inline in the gaps, a number at each end of a line.',
+    build: text.centered,
+  },
+  {
+    dataset: 'p53',
+    id: 'text-under-tracks',
+    title: 'Text under its tracks',
+    summary: 'A tracks overview of the domains and the protein as text under it, in one view: the text section’s own layout.',
+    build: text.underTracks,
   },
   {
     dataset: 'p53',
