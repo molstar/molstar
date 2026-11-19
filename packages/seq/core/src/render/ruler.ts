@@ -247,7 +247,9 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
     }
     return;
   }
-  const minors = lay.axis.scale >= MinorScale;
+  // an insertion code (100A, 111.1) only at a step of 1 (or finer), as a minor tick: past it the step's round values alone, so the
+  // step holds across insertions and an insertion never stands in for a round value the numbering lacks (an IMGT gap)
+  const minors = step <= 1 && lay.axis.scale >= MinorScale;
   for (let p = a; p < b; p++) {
     const label = numbering.labelAt(p - shift);
     if (label === undefined) continue;

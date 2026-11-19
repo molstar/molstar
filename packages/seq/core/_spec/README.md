@@ -1394,17 +1394,20 @@ the y path in Emphasis).
   `seq.render.numbering` and `ordinal` is used; a source's draws no tick until its labels are in, Numberings from a
   source). A tick at each label that is a multiple of a step of 1, 2 or 5 × 10ⁿ, the least whose ticks are
   `ruler.labelGap` px apart; a label that does not fit (between the data box's edges and the labels already drawn, 6 px
-  apart at least, majors first) is skipped, never shrunk. A label with an insertion code (`100A`, `111.1`) is a minor
-  tick from 4 px a position, labeled only where it fits. It labels the positions where they are: a reversed axis counts
-  down, a collapsed one labels its pieces. Where a text section prints a group's end number (`group_labels` not `none`)
-  the ruler draws the tick without its label: a position carries one label, the group's (only where the ruler's
-  numbering is the one the group labels print). Over a piece of more than 4,096 positions, or on a built-in numbering,
-  the labels are looked up by number (a tick a step), not a position at a time. **Units** (`units`): `none` labels the
-  number as its numbering does; `bases` labels an `ordinal` ruler in bp, kb or Mb chosen by the step
-  (`@molstar/core/util/number`'s `formatGenomic`: 7,668,402 at a base step, 7,668 kb at a kilobase one, 7.67 Mb from 10
-  kb), one unit and one count of decimals a step; another numbering keeps its own labels. Why: the writer of a
-  chromosome view says so, never inferred from the alphabet. A hit is the position under the pointer. Fallback: none
-  (omitted).
+  apart at least, majors first) is skipped, never shrunk. Ticks and labels are at the step's round values only: a label
+  with an insertion code (`100A`, `111.1`) is a minor tick only at a step of 1 or finer (from 4 px a position), labeled
+  only where it fits; past it none, so the step holds across insertions (not 96, 98, 100, 100A, 100B, 102). A round
+  value the numbering lacks (an IMGT gap) has no tick or label, and no insertion stands in for it. Why: a label beside a
+  round value crowds it, and a ruler whose step bends reads as wrong (recommended, the author's call pending). It labels
+  the positions where they are: a reversed axis counts down, a collapsed one labels its pieces. Where a text section
+  prints a group's end number (`group_labels` not `none`) the ruler draws the tick without its label: a position carries
+  one label, the group's (only where the ruler's numbering is the one the group labels print). Over a piece of more than
+  4,096 positions, or on a built-in numbering, the labels are looked up by number (a tick a step), not a position at a
+  time. **Units** (`units`): `none` labels the number as its numbering does; `bases` labels an `ordinal` ruler in bp, kb
+  or Mb chosen by the step (`@molstar/core/util/number`'s `formatGenomic`: 7,668,402 at a base step, 7,668 kb at a
+  kilobase one, 7.67 Mb from 10 kb), one unit and one count of decimals a step; another numbering keeps its own labels.
+  Why: the writer of a chromosome view says so, never inferred from the alphabet. A hit is the position under the
+  pointer. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, UniProt's `Helix`, `Beta strand` and `Turn`, anything else a turn), in one band: a helix a block, a
   strand a block with an arrowhead on its C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding

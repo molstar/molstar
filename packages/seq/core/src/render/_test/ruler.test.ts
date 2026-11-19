@@ -236,8 +236,7 @@ function kabat(): Numbering {
 }
 
 /** The ruler over `kabat` laid out by hand (the language declares no numbering yet), the view `[start, end)` of 700 px. */
-function kabatRuler(start: number, end: number, width = 700) {
-  const numbering = kabat();
+function kabatRuler(start: number, end: number, width = 700, numbering: Numbering = kabat()) {
   const axis = new AxisTransform('chain', [0, numbering.length], 0, width, 1, { start, end });
   const reports: string[] = [];
   const ctx = {
@@ -263,20 +262,42 @@ function kabatRuler(start: number, end: number, width = 700) {
 }
 
 describe('the ruler: insertion labels', () => {
-  it('are minor ticks, labeled only where there is room, never overlapping the majors', () => {
-    // 7 positions across 700 px: room for every label
+  it('are minor ticks at a step of 1 only, labeled where there is room, never overlapping the majors', () => {
+    // 7 positions across 700 px: a step of 1, room for every label
     const near = shown(kabatRuler(98, 105).lay).map((l) => l.label);
     expect(near).toEqual(expect.arrayContaining(['100', '100A', '100B']));
-    // 30 positions: the minors are ticks, their labels do not fit beside 100
+    // in the numbering's order: 111, 111.1, 111.2, 112 (EC-7)
+    const order = shown(kabatRuler(109, 116).lay).map((l) => l.label);
+    expect(order.filter((l) => l.startsWith('11'))).toEqual(['110', '111', '111.1', '111.2', '112']);
+    // 30 positions: a step past 1, the step's round values alone: no insertion ticked, the step held across them
     const far = kabatRuler(90, 120).lay;
-    const labels = shown(far).map((l) => l.label);
-    expect(labels).toContain('100');
-    expect(labels).not.toContain('100A');
-    const minors = Array.from({ length: far.n }, (_, j) => far.major[j] === 0 && far.labels[j]).filter(Boolean);
-    expect(minors).toEqual(expect.arrayContaining(['100A', '100B', '111.1', '111.2']));
+    const ticks = Array.from({ length: far.n }, (_, j) => far.labels[j]);
+    expect(ticks).toContain('100');
+    expect(Array.from({ length: far.n }, (_, j) => far.major[j])).not.toContain(0);
+    for (const l of ticks) expect(l).toMatch(/^\d+$/);
+    const step = labelStep(far.axis.scale, GAP);
+    expect(step).toBeGreaterThan(1);
+    for (const l of ticks) expect(Number(l) % step).toBe(0);
     // beyond the minors' scale: no minor ticks at all
     const wide = kabatRuler(0, 126, 400).lay;
     expect(Array.from({ length: wide.n }, (_, j) => wide.major[j])).not.toContain(0);
+  });
+
+  it('a round value the numbering lacks (a gap) gets no label; no insertion stands in for it', () => {
+    // a numbering with 30 missing (as IMGT's gaps) and insertions around it: 29, 29A, 29B, 31
+    const labels = Array.from({ length: 60 }, (_, i) => String(i + 1)).filter((l) => l !== '30');
+    labels.splice(labels.indexOf('31'), 0, '29A', '29B');
+    const numbering: Numbering = {
+      id: 'imgt',
+      length: labels.length,
+      labelAt: (i) => labels[i],
+      indexOf: (l) => labels.indexOf(l),
+    };
+    const { lay } = kabatRuler(0, labels.length, 700, numbering);
+    const ticks = Array.from({ length: lay.n }, (_, j) => lay.labels[j]);
+    expect(ticks).not.toContain('30');
+    expect(ticks.filter((l) => /[A-Z.]/.test(l))).toEqual([]);
+    expect(ticks).toContain('40');
   });
 
   it('every label shown, of any view, is a label of the numbering at its tick, and none overlap', () => {
