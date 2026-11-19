@@ -158,3 +158,4 @@ export {
 } from './tracks.js';
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';
 export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js';
+export { type FrameLay, type FramePrep, FrameType } from './frames.js';

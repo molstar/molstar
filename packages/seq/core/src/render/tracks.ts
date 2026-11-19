@@ -53,6 +53,7 @@ import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.
 import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
+import { FrameType } from './frames.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -67,6 +68,7 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   ruler: RulerType,
   secondary: SecondaryType,
   variants: VariantsType,
+  frame: FrameType,
 };
 
 export interface LayerLayout {
@@ -566,6 +568,32 @@ function stripSpan(strips: Strips, i: number): Box {
   return y1 > y0 ? { x: a.x0, y: y0, width: a.width, height: y1 - y0 } : { x: a.x0, y: 0, width: a.width, height: 0 };
 }
 
+/**
+ * The bands of the tracks a layer's `across` names on a strip, the first to the last and those between (`ctx.span`: a
+ * frame's outline), in its frame; the whole strip's when it names none shown.
+ */
+function acrossSpan(strips: Strips, i: number, shown: readonly ResolvedTrack[], across: readonly unknown[]): Box {
+  let a = -1;
+  let b = -1;
+  for (let j = 0; j < shown.length; j++) {
+    const id = shown[j].address.slice(shown[j].address.lastIndexOf('/') + 1);
+    if (id !== across[0] && id !== across[across.length - 1]) continue;
+    if (a < 0) a = j;
+    b = j;
+  }
+  if (a < 0) return stripSpan(strips, i);
+  const x = strips.axes[i];
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (let j = a; j <= b; j++) {
+    const k = i * strips.bands + j;
+    if (strips.bandH[k] <= 0) continue;
+    y0 = Math.min(y0, strips.bandY[k]);
+    y1 = Math.max(y1, strips.bandY[k] + strips.bandH[k]);
+  }
+  return y1 > y0 ? { x: x.x0, y: y0, width: x.width, height: y1 - y0 } : stripSpan(strips, i);
+}
+
 /** A strip's band column in its frame: its bands above the page's bottom and the gaps between them; none when empty. */
 function stripColumn(strips: Strips, i: number, pageHeight: number): Box | undefined {
   const a = strips.axes[i];
@@ -831,7 +859,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             want,
             report: sectionReport,
             strip: i,
-            span,
+            span: Array.isArray(layer.params.across) ? acrossSpan(strips, i, shown, layer.params.across) : span,
             place: placement,
             labels: labels ?? 'inside',
             ...(band ? { bandTop: band.bandTop } : {}),
@@ -1571,6 +1599,15 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       if (h?.element) return h;
     }
     if (!s.placement.at(x, y, Point) || Point.kind !== 'data') continue;
+    // a layer drawn across other bands of its strip (a frame's outline, `across`) is hit there, over their layers
+    for (let j = 0; j < strips.bands; j++) {
+      const own = s.lays[Point.strip * strips.bands + j];
+      for (let i = own ? own.length - 1 : -1; i >= 0; i--) {
+        if (!Array.isArray(own![i].layer.params.across)) continue;
+        const h = own![i].type.hit(own![i].lay, Point.x, Point.y);
+        if (h?.element) return h;
+      }
+    }
     const lays = s.lays[Point.strip * strips.bands + Point.band];
     if (!lays) return undefined;
     // the topmost layer with an element under the point, else the topmost with a position

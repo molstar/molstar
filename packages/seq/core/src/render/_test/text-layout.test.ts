@@ -13,6 +13,9 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import {
+  Cut,
+  type FrameLay,
+  hitView,
   lineOf,
   lineStart,
   type NavContext,
@@ -187,6 +190,53 @@ describe('the text layout', () => {
     expect(TextNav.step(c, 61 + 3, 'up')).toBe((second - 1) * upl + 3);
     // a unit's line and its line's start, as a focus reads them
     expect(lineStart(g, lineOf(g, 70))).toBe(61);
+  });
+
+  it('frames across tracks: an outline over the named tracks’ bands, open where a line break cuts it, titled where it starts', async () => {
+    const b = createSeqSpec({ title: 'frames' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: P53 });
+    const regions = b.data.ranges('regions', {
+      target: p,
+      rows: { start: Int32Array.from([95]), end: Int32Array.from([125]), id: ['A'], label: ['Frame A'] },
+    });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      const sec = v.section('protein', { of: p, group: 10 });
+      sec.track('frames').layer('f', { type: 'frame', data: regions, across: ['letters', 'ruler'] });
+      sec.track('letters').layer('letters', { type: 'letters' });
+      sec.track('ruler').layer('ruler', { type: 'ruler' });
+    });
+    const s = await settle(b.build(), [], { text: { maxHeight: 4000 } });
+    const f = await s.frame({ size: { width: 520, height: 400 } });
+    const sec = f.layout.sections[0];
+    const t = text(sec);
+    const upl = t.geometry!.unitsPerLine;
+    const first = Math.floor(95 / upl);
+    const last = Math.floor(124 / upl);
+    expect(last).toBeGreaterThan(first);
+    const nb = t.strips.bands;
+    const frameOn = (strip: number) => sec.lays[strip * nb][0].lay as FrameLay;
+    const a = frameOn(first);
+    const z = frameOn(last);
+    // one mark a line: open at the break (its right end on the first line, its left on the last), titled where it starts
+    expect(a.m).toBe(1);
+    expect(a.marks[2] & Cut.right).toBe(Cut.right);
+    expect(a.marks[2] & Cut.left).toBe(0);
+    expect(a.titled[0]).toBe(1);
+    expect(z.marks[2] & Cut.left).toBe(Cut.left);
+    expect(z.titled[0]).toBe(0);
+    // over the letters and the ruler: from the letters' band's top to the ruler's bottom on its strip
+    const k = first * nb;
+    expect(a.span.y).toBe(t.strips.bandY[k + 1]);
+    expect(a.span.y + a.span.height).toBe(t.strips.bandY[k + 2] + t.strips.bandH[k + 2]);
+    // a line without the region has no outline, its title band collapsed there
+    const away = Math.min(t.strips.n - 1, last + 2);
+    expect(t.strips.bandH[away * nb]).toBe(0);
+    // its outline hits as the region's item
+    const x = (a.marks[0] + a.marks[1]) / 2;
+    const h = hitView(f.layout, x, t.strips.dy[first] + a.span.y);
+    expect(h?.element).toEqual({ owner: '/data/regions', key: 'A' });
+    const record = recordDrawLists(f.lists, ['labels']);
+    expect(record).toContain('Frame A');
   });
 
   it('too many lines are said, and the lines past the bound are not laid out', async () => {

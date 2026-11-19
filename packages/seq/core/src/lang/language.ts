@@ -412,9 +412,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         type: {
           type: 'string',
-          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants'],
+          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants', 'frame'],
           required: true,
-          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn) or variants (ranges of one position each); `secondary` and `variants` draw `ranges` where a reader lacks them.',
+          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each) or frames (ranges outlined across the tracks `across` names, titled by their labels); `secondary` and `variants` draw `ranges` where a reader lacks them.',
         },
         data: {
           type: 'ref',
@@ -449,6 +449,13 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['auto', 'always', 'never'],
           doc: 'For `letters` of nucleotides: `auto` (when absent) shows a letter as its complement where it is read against its strand on screen (the axis reversed against its run); `always`, `never`. The stored letter is what search and status read.',
+        },
+        across: {
+          type: 'list',
+          of: { type: 'string', doc: 'A track’s id in the layer’s section.' },
+          'min-length': 1,
+          'max-length': 2,
+          doc: 'For `frame`: the tracks its outlines cover, the first and the last (the bands between them too); its own track’s when absent.',
         },
         numbering: {
           type: 'string',

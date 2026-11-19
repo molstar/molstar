@@ -57,6 +57,8 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
   values: { shape: 'values' },
   secondary: { shape: 'ranges', fallback: 'ranges' },
   variants: { shape: 'ranges', fallback: 'ranges' },
+  // regions outlined across tracks: a reader without frames draws none (an outline drawn as bars would read as data)
+  frame: { shape: 'ranges' },
 };
 
 /**
