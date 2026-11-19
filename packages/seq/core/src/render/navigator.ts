@@ -252,6 +252,7 @@ function pictureConfig(base: RenderConfig, gap = 0): RenderConfig {
     inset: 0,
     labelWidth: 0,
     labelGap: 0,
+    labelColumn: { measure: false },
     trackGap: 1,
     sectionGap: gap,
     axis: { directionMark: 'none' },
@@ -259,6 +260,7 @@ function pictureConfig(base: RenderConfig, gap = 0): RenderConfig {
     // a lane at the tracks' scale: a small track keeps its lanes (its items drawn, not only their density)
     laneHeight: Math.max(min, base.laneHeight * s),
     laneGap: base.laneGap * s,
+    lanePadding: base.lanePadding * s,
   });
 }
 

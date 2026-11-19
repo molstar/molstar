@@ -70,7 +70,10 @@ describe('Features/Files, headless', () => {
     expect(svg.settled).toBe(true);
     // each section's own rows: p53's DNA-binding domain and the empty-target NLS once, CDK2's T-loop once
     const count = (t: string) => svg.svg.split(`>${t}<`).length - 1;
-    for (const label of ['DNA-binding', 'Nuclear localization', 'T-loop']) expect(count(label), label).toBe(1);
+    // (whole or not at all: a file's rows are not known whole before they are read, so no label lane beside them)
+    for (const label of ['DNA-binding', 'Nuclear localization', 'T-loop'])
+      expect(count(label), label).toBeLessThanOrEqual(1);
+    expect(count('DNA-binding')).toBe(1);
     // the PSTAIRE helix's box is too narrow for its label at 720 px: never drawn twice
     expect(count('PSTAIRE helix')).toBeLessThanOrEqual(1);
     const [file] = filesOf(v.build());

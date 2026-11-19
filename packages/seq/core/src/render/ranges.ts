@@ -9,6 +9,7 @@ import { CategoryColumn, issueOf } from '@molstar/core/repr/tree';
 import type { RangesDensity } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
+import type { QueryItem } from '@molstar/seqx-core/query';
 import { type AxisTransform, Cut } from './axis.js';
 import { fontSize } from './config.js';
 import {
@@ -29,6 +30,7 @@ import {
   type ItemRows,
   type ItemsBase,
   type ItemsPrep,
+  itemArc,
   itemExtents,
   itemHit,
   markEnds,
@@ -45,10 +47,20 @@ import type { Channel } from '@molstar/seqx-core/theme/index';
 import { channelForms, channelLegends, Extents, type LayerChannels, RowDatum } from './channels.js';
 import { LaneIndex, StickyLanes } from './lanes.js';
 import { type LayerSource, layerSource, toSection } from './layer-data.js';
-import type { Emphasis, Hit, LabelSink, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
+import type {
+  ContentContext,
+  Emphasis,
+  Hit,
+  LabelSink,
+  LayerType,
+  LayoutContext,
+  Overlay,
+  StoreReader,
+} from './layer-type.js';
+import type { LayerContent } from './sizing.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
-import { inkOn, mixColors, type SeqTokens, withAlpha } from './tokens.js';
+import { CategoryCount, inkOn, mixColors, type SeqTokens, withAlpha } from './tokens.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
 // a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
@@ -78,12 +90,14 @@ const WaveStep = 3;
 const WaveAmplitude = 2;
 const LineWidth = 2;
 /**
- * A label goes inside a mark this wide (CSS px), faded past it when longer; inside a narrower one only whole, its inset
- * each side (`LabelInset`: 3 px a side) included; none below `LabelMinPx`, where no text fits.
+ * Labels inside if they fit, else beside (_spec/README.md "Render", Labels): a label goes inside its mark only whole,
+ * its inset each side (`LabelInset`: 3 px a side) included, never cut mid-word; else in the label lane above the
+ * track, at its item's start, a leader when it had to move (`LabelGapPx` between two labels there), or it is dropped.
+ * None inside a mark below `LabelMinPx`, where no text fits.
  */
-const LabelWidePx = 24;
 const LabelInset = 6;
 const LabelMinPx = 8;
+const LabelGapPx = 6;
 /**
  * The narrowest a glyph is, in ems of the item font (a lower bound: `i`, `l`, `.` are about 0.22 em in sans fonts): a
  * label of n glyphs is at least n of these wide, so one too long for a narrow mark is skipped unmeasured.
@@ -208,6 +222,18 @@ export interface RangesLay extends ItemsBase {
   idCache: Map<string | number, string[]>;
   /** The items by start, kept. */
   order: Int32Array;
+  /** The label lane's top (−1: none) and the labels placed there (`ln`): x, width, where their item starts, item. */
+  labelY: number;
+  ln: number;
+  lx: Float32Array;
+  lw: Float32Array;
+  lwant: Float32Array;
+  litem: Int32Array;
+  /** Scratch: an item's leftmost mark's x, the candidates by priority. */
+  left: Float32Array;
+  cand: Int32Array;
+  /** Scratch: the keys of the items labeled inside a mark (kept, cleared each layout). */
+  labeled: Set<string | number>;
 }
 
 /** An item's lane id: its key and which occurrence of it in a tile, made once and kept. */
@@ -280,6 +306,15 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     byCode: new Uint32Array(16),
     idCache: new Map(),
     order: new Int32Array(64),
+    labelY: -1,
+    ln: 0,
+    lx: new Float32Array(16),
+    lw: new Float32Array(16),
+    lwant: new Float32Array(16),
+    litem: new Int32Array(16),
+    left: new Float32Array(64),
+    cand: new Int32Array(64),
+    labeled: new Set(),
   };
 }
 
@@ -367,28 +402,195 @@ function sinkLabels(lay: RangesLay, src: LayerSource, sink: LabelSink, order: nu
 }
 
 /**
- * An item's extent from its pieces: their hull, or on a cyclic system of `length` the circle less its widest gap
- * (an item over the origin, two rows meeting there, is one arc: its start past its end).
+ * The band's lanes (_spec/README.md "Render", Track heights): in a band tall enough, lanes of `laneHeight` below its
+ * padding, the label lane above them when its content says labels go beside, the block of them centred in the band by
+ * the lanes the whole data needs (so a pan never moves them). A band too short for its lanes (a track's own height, a
+ * text line’s underline, a navigator’s miniature; not one at the most lanes, whose rest go to its density row) drops the
+ * label lane, then compacts its lanes over the whole band, as
+ * many as a mark's height (`laneHeight − laneGap`) fits, at least one. Returns the lanes the marks may take.
  */
-function itemArc(pieces: number[], length: number | undefined): [number, number] {
-  const n = pieces.length >> 1;
-  const order = Array.from({ length: n }, (_, k) => k).sort((a, b) => pieces[2 * a] - pieces[2 * b]);
-  const first = pieces[2 * order[0]];
-  let last = 0;
-  for (let k = 0; k < n; k++) last = Math.max(last, pieces[2 * k + 1]);
-  if (length === undefined) return [first, last];
-  let best = length - last + first;
-  let arc: [number, number] = [first, last];
-  let reach = pieces[2 * order[0] + 1];
-  for (let k = 1; k < n; k++) {
-    const s = pieces[2 * order[k]];
-    if (s - reach > best) {
-      best = s - reach;
-      arc = [s, reach];
-    }
-    reach = Math.max(reach, pieces[2 * order[k] + 1]);
+function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
+  const { box, config } = ctx;
+  const lh = config.laneHeight;
+  const pad = config.lanePadding;
+  const content = ctx.content;
+  lay.labelY = -1;
+  const room = box.height >= lh + 2 * pad ? Math.floor((box.height - 2 * pad) / lh) : 0;
+  const need = content ? Math.max(1, content.lanes) : 1;
+  if (room >= need || room >= config.maxLanes) {
+    // a label lane only beside marks the band holds too, and only where labels are placed in the band (tracks)
+    const label = content?.labels && ctx.labels === 'inside' && room > need ? 1 : 0;
+    const lanes = room - label;
+    const shown = (content ? Math.min(need, lanes) : lanes) + label;
+    lay.laneHeight = lh;
+    const top = box.y + (box.height - shown * lh) / 2;
+    if (label) lay.labelY = top;
+    lay.laneY = top + label * lh;
+    return lanes;
   }
-  return arc;
+  const fit = Math.floor(box.height / Math.max(1, lh - config.laneGap));
+  const lanes = Math.max(1, Math.min(content ? need : fit, fit));
+  lay.laneHeight = box.height / lanes;
+  lay.laneY = box.y;
+  return lanes;
+}
+
+/**
+ * Each label inside the first of its marks it fits whole; an item whose label fits none of its marks in view goes beside, in
+ * the label lane at its leftmost mark's x (moved right past a label placed before it, a leader drawn), placed by one
+ * priority (the longer item first) and dropped when the lane cannot hold it. Allocation-free once warm: placed per
+ * layout, never on a hover.
+ */
+function placeLabels(lay: RangesLay, ctx: LayoutContext) {
+  const { tokens, text } = ctx;
+  const n = lay.items;
+  lay.left = grown(lay.left, n);
+  const left = lay.left;
+  left.fill(Number.POSITIVE_INFINITY, 0, n);
+  const glyph = minGlyphPx(lay.font);
+  for (let j = 0; j < lay.hn; j++) {
+    const i = lay.hitem[j];
+    if (i >= 0 && lay.hx0[j] < left[i]) left[i] = lay.hx0[j];
+  }
+  // an item labeled once: in the first of its marks (in reading order on the page) its label fits
+  const labeled = lay.labeled;
+  labeled.clear();
+  for (let j = 0; j < lay.m; j++) {
+    const i = lay.mitem[j];
+    if (i < 0) continue;
+    const label = lay.labels[i];
+    if (!label || labeled.has(lay.keys[i])) continue;
+    // an arrowhead is no room for text: the label sits in the mark's body
+    const w = lay.mx1[j] - lay.mx0[j] - tipRoom(lay, j, 3);
+    // only whole: one surely too long for its mark is not measured (dense items)
+    if (w < LabelMinPx || label.length * glyph + LabelInset > w) continue;
+    const m = text.measure(lay.font, label);
+    if (m + LabelInset > w) continue;
+    lay.mlabel[j] = m;
+    lay.mink[j] = lay.style ? tokens.colors['msui-text'] : inkOn(lay.fills[i], tokens);
+    labeled.add(lay.keys[i]);
+  }
+  if (lay.labelY < 0) return;
+  // the candidates: an item once (its first row in view with a mark), by priority (the longer item first)
+  lay.cand = grown(lay.cand, n);
+  const cand = lay.cand;
+  let c = 0;
+  for (let i = 0; i < n; i++) {
+    if (labeled.has(lay.keys[i]) || !lay.labels[i] || !(left[i] < Number.POSITIVE_INFINITY)) continue;
+    labeled.add(lay.keys[i]);
+    cand[c++] = i;
+  }
+  if (!c) return;
+  const { starts, ends } = lay;
+  sortArrayRange(cand, 0, c, (o, a, b) => ends[o[b]] - starts[o[b]] - (ends[o[a]] - starts[o[a]]) || o[a] - o[b]);
+  const x0 = lay.box.x;
+  const x1 = lay.box.x + lay.box.width;
+  for (let k = 0; k < c; k++) {
+    const i = cand[k];
+    const w = text.measure(lay.font, lay.labels[i] as string);
+    const want = Math.max(left[i], x0);
+    // the first free place from its start rightward, past the labels already placed
+    let x = want;
+    for (let moved = true; moved; ) {
+      moved = false;
+      for (let q = 0; q < lay.ln; q++)
+        if (x < lay.lx[q] + lay.lw[q] + LabelGapPx && x + w + LabelGapPx > lay.lx[q]) {
+          x = lay.lx[q] + lay.lw[q] + LabelGapPx;
+          moved = true;
+        }
+    }
+    // dropped past the box's end, or moved further than its own width (a leader is a short one)
+    if (x + w > x1 || x - want > Math.max(w, 24)) continue;
+    const q = lay.ln++;
+    if (q >= lay.lx.length) {
+      lay.lx = grown(lay.lx, q + 1);
+      lay.lw = grown(lay.lw, q + 1);
+      lay.lwant = grown(lay.lwant, q + 1);
+      lay.litem = grown(lay.litem, q + 1);
+    }
+    lay.lx[q] = x;
+    lay.lw[q] = w;
+    lay.lwant[q] = want;
+    lay.litem[q] = i;
+  }
+}
+
+/** A filter's row over an inline item: its key and its fields (`base`, the track's own rows). */
+class ItemRow {
+  key: string | number = '';
+  item: QueryItem | undefined;
+  field(name: string): string | number | undefined {
+    const v = this.item?.fields?.[name];
+    return typeof v === 'string' || typeof v === 'number' ? v : undefined;
+  }
+}
+const itemRow = new ItemRow();
+
+/** A layer's lanes over its whole data, kept by its prep (its data does not change under it). */
+const Lanes = new WeakMap<RangesPrep, number>();
+/** Whether a label goes beside at a fit, kept by its prep with what it was found for. */
+const Beside = new WeakMap<RangesPrep, { fit: number; font: string; text: unknown; beside: boolean }>();
+
+/** The inline items a layer draws: every row of its annotation, less those its track's own filter leaves out. */
+function contentRows(prep: RangesPrep): QueryItem[] | undefined {
+  const ext = prep.extents;
+  const src = prep.src;
+  if (!ext || !src) return undefined;
+  const out: QueryItem[] = [];
+  for (const [key, rows] of ext)
+    for (const r of rows) {
+      if (src.base) {
+        itemRow.key = key;
+        itemRow.item = r;
+        if (!src.base(itemRow)) continue;
+      }
+      out.push(r);
+    }
+  itemRow.item = undefined;
+  return out;
+}
+
+/** The lanes first-fit by start needs (as few as the most rows over one position: intervals pack greedily). */
+function packedLanes(rows: readonly QueryItem[]): number {
+  const order = rows.map((_, k) => k).sort((a, b) => rows[a].start - rows[b].start);
+  const ends: number[] = [];
+  for (const k of order) {
+    const s = rows[k].start;
+    const e = Math.max(rows[k].end, s + 1);
+    let lane = 0;
+    while (lane < ends.length && ends[lane] > s) lane++;
+    ends[lane] = e;
+  }
+  return ends.length;
+}
+
+/** An inline item's label, as the layout reads it: its `label` field, else its id. */
+function itemLabel(r: QueryItem): string | undefined {
+  const l = r.fields?.label;
+  if (typeof l === 'string' && l) return l;
+  return typeof r.key === 'string' ? r.key : undefined;
+}
+
+/** Whether some item's label fits none of its marks with the whole axis in view (`fit` px a position). */
+function labelsBeside(prep: RangesPrep, rows: readonly QueryItem[], ctx: ContentContext): boolean {
+  const src = prep.src!;
+  const font = ctx.config.itemFont;
+  const glyph = minGlyphPx(font);
+  const heads = (((prep.arrow & 1) + ((prep.arrow >> 1) & 1)) * (ctx.config.laneHeight - ctx.config.laneGap) * 9) / 10;
+  for (const r of rows) {
+    const label = itemLabel(r);
+    if (!label) continue;
+    let widest = 0;
+    if (src.path) {
+      const pieces = toSection(src, r.start, r.end, mappedPieces);
+      for (let k = 0; k + 1 < pieces.length; k += 2) widest = Math.max(widest, pieces[k + 1] - pieces[k]);
+    } else widest = r.end - r.start;
+    // its arrowheads take no text (as the layout's `tipRoom`)
+    const w = widest * ctx.fit - heads;
+    if (w < LabelMinPx || label.length * glyph + LabelInset > w) return true;
+    if (ctx.text.measure(font, label) + LabelInset > w) return true;
+  }
+  return false;
 }
 
 export const RangesType: LayerType<RangesPrep, RangesLay> = {
@@ -407,6 +609,26 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       owner: layer.data?.address ?? '',
       channels: channelForms(layer.theme),
     };
+  },
+
+  content(prep, ctx: ContentContext): LayerContent | undefined {
+    let lanes = Lanes.get(prep);
+    let rows: QueryItem[] | undefined;
+    if (lanes === undefined) {
+      rows = contentRows(prep);
+      if (!rows) return undefined;
+      lanes = packedLanes(rows);
+      Lanes.set(prep, lanes);
+    }
+    if (!ctx.labelLane || !(ctx.fit > 0)) return { lanes, labels: false };
+    const font = ctx.config.itemFont;
+    const kept = Beside.get(prep);
+    if (kept && kept.fit === ctx.fit && kept.font === font && kept.text === ctx.text)
+      return { lanes, labels: kept.beside };
+    rows ??= contentRows(prep);
+    const beside = rows ? labelsBeside(prep, rows, ctx) : false;
+    Beside.set(prep, { fit: ctx.fit, font, text: ctx.text, beside });
+    return { lanes, labels: beside };
   },
 
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: RangesLay): RangesLay {
@@ -441,8 +663,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       }
       markEnds(rows, prep.extents, prep.cyclic, src.length ?? Number.POSITIVE_INFINITY, lay.first, lay.last);
     }
-    const maxLanes = Math.max(1, Math.floor(box.height / config.laneHeight));
-    lay.laneHeight = box.height / maxLanes;
+    const maxLanes = laneGeometry(lay, ctx);
     let row = false;
     if (step !== 'density' && !densities.length) {
       lay.order = grown(lay.order, n);
@@ -463,6 +684,9 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         assign(maxLanes - 1);
         row = true;
       }
+      // the whole data's lanes not known (a tiled source's): the lanes in view centred (the label lane none)
+      if (!ctx.content && lay.laneHeight === config.laneHeight && !row)
+        lay.laneY = box.y + (box.height - Math.max(1, lay.laneCount) * lay.laneHeight) / 2;
     }
     lay.mode =
       step === 'density' || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
@@ -479,7 +703,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       return lay;
     }
     if (row) {
-      lay.densityY = box.y + (maxLanes - 1) * lay.laneHeight;
+      lay.densityY = lay.laneY + (maxLanes - 1) * lay.laneHeight;
       lay.densityH = lay.laneHeight;
       densityStrip(lay, src, axis, [], tokens, true, 1);
     }
@@ -545,24 +769,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     if (lay.mode === 'bars') mergeRuns(lay, px);
     // a layout's label sink (rings: placed outside with leaders) takes every shown item's label, an item once, with its
-    // hit; else labels inside marks wide enough, faded past their width, or narrower ones they fit in whole (a modified
-    // residue's code over its one position: drawn in the labels pass)
+    // hit; else each label inside its marks where it fits whole (a modified residue's code over its one position too),
+    // else beside in the label lane (drawn in the labels pass)
     const sink = ctx.labels !== undefined && ctx.labels !== 'inside' ? ctx.labels : undefined;
+    lay.ln = 0;
     if (sink) sinkLabels(lay, src, sink, box.y);
-    else if (lay.mode === 'items' && lay.laneHeight >= 10) {
-      const glyph = minGlyphPx(lay.font);
-      for (let j = 0; j < lay.m; j++) {
-        const label = lay.mitem[j] >= 0 ? lay.labels[lay.mitem[j]] : undefined;
-        const w = lay.mx1[j] - lay.mx0[j];
-        if (!label || w < LabelMinPx) continue;
-        // a narrow mark takes a label only whole: one surely too long is not measured (dense items at the bars step)
-        if (w < LabelWidePx && label.length * glyph + LabelInset > w) continue;
-        const m = ctx.text.measure(lay.font, label);
-        if (w < LabelWidePx && m + LabelInset > w) continue;
-        lay.mlabel[j] = m;
-        lay.mink[j] = lay.style ? tokens.colors['msui-text'] : inkOn(lay.fills[lay.mitem[j]], tokens);
-      }
-    }
     // a mark cut at both ends is square
     lay.gap = lay.laneHeight >= 6 ? 2 : 0;
     const h = lay.laneHeight - lay.gap;
@@ -594,6 +805,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       lay.hslack = 0;
     }
     lay.index.build(lay.hn, lay.hlane, lay.hx0, lay.hx1, lay.laneCount);
+    // below a position a pixel too: a run's items keep their labels beside (their own marks are the hit marks)
+    if (!sink && lay.laneHeight >= 10) placeLabels(lay, ctx);
     return lay;
   },
 
@@ -610,7 +823,16 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) return undefined;
     const position = lay.axis.positionAt(x);
     const base = { layer: lay.key, section: lay.section, system: lay.system, ...(position >= 0 ? { position } : {}) };
-    const lane = Math.floor((y - box.y) / lay.laneHeight);
+    // a label beside its mark is its item's
+    if (lay.labelY >= 0 && y >= lay.labelY && y < lay.labelY + lay.laneHeight) {
+      for (let k = 0; k < lay.ln; k++)
+        if (x >= lay.lx[k] && x < lay.lx[k] + lay.lw[k]) {
+          const i = lay.litem[k];
+          return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+        }
+      return base;
+    }
+    const lane = Math.floor((y - lay.laneY) / lay.laneHeight);
     // a hidden items' tick is hit as its break (within the break's slop), the count of what it hides with it
     const tick = tickHit(lay, x, lane);
     if (tick) return tick;
@@ -670,7 +892,7 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
     // the size channel shrinks the mark about its lane's middle; its lane and hit box stay (EC-137)
     const h = item >= 0 ? full * lay.sizes[item] : full;
     a[0] = lay.mx0[j];
-    a[1] = box.y + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;
+    a[1] = lay.laneY + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;
     a[2] = lay.mx1[j] - lay.mx0[j];
     a[3] = h;
     a[4] = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
@@ -688,7 +910,7 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
  * (`manchor`), so a pan moves them with the data. No closure, nothing made per mark: the numbers go through `args`.
  */
 function drawStyled(lay: RangesLay, out: PassWriter) {
-  const { box, tokens } = lay;
+  const { tokens } = lay;
   const gap = lay.gap;
   const a = out.args;
   const style = lay.style;
@@ -698,7 +920,7 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
     const fill = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
     const full = lay.laneHeight - gap;
     const h = item >= 0 ? full * lay.sizes[item] : full;
-    const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;
+    const y = lay.laneY + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;
     const cy = y + h / 2;
     const x0 = lay.mx0[j];
     const x1 = lay.mx1[j];
@@ -820,14 +1042,13 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
   }
 }
 
-/** The labels pass: the labels inside the marks wide enough, faded past their width. */
+/** The labels pass: the labels inside their marks, whole, and those beside in the label lane with their leaders. */
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
-  const { box } = lay;
   const gap = lay.gap;
   const g = out.args;
   for (let j = 0; j < lay.m; j++) {
     if (!(lay.mlabel[j] > 0)) continue;
-    const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2;
+    const y = lay.laneY + lay.mlane[j] * lay.laneHeight + gap / 2;
     const h = lay.laneHeight - gap;
     const baseline = y + h / 2 + lay.fontSize * 0.35;
     if (lay.style >= 1 && lay.style <= 5) {
@@ -843,21 +1064,62 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
       g[8] = 0;
       out.rectArgs();
     }
-    g[0] = lay.mx0[j] + 3;
+    g[0] = lay.mx0[j] + 3 + tipRoom(lay, j, 1);
     g[1] = baseline;
     g[2] = lay.mlabel[j];
-    g[3] = lay.mx1[j] - lay.mx0[j] - 6;
+    g[3] = lay.mlabel[j];
     g[4] = lay.mink[j];
     out.textArgs(lay.labels[lay.mitem[j]] as string, AnchorStart, lay.font);
   }
+  if (!lay.ln) return;
+  const mid = lay.labelY + lay.laneHeight / 2;
+  const baseline = mid + lay.fontSize * 0.35;
+  const ink = lay.tokens.colors['msui-text'];
+  const muted = lay.tokens.colors['msui-text-muted'];
+  for (let k = 0; k < lay.ln; k++) {
+    const x = lay.lx[k];
+    const want = lay.lwant[k];
+    if (x - want >= 1) {
+      // moved: a short leader from its mark's start up to the label's line and on to the label
+      const xy = Leader;
+      xy[0] = want + 0.5;
+      xy[1] = lay.laneY + gap / 2;
+      xy[2] = want + 0.5;
+      xy[3] = mid;
+      xy[4] = x - 2;
+      xy[5] = mid;
+      g[4] = NoColor;
+      g[5] = muted;
+      g[6] = 1;
+      g[7] = 0;
+      out.pathArgs(xy, 3, false);
+    }
+    g[0] = x;
+    g[1] = baseline;
+    g[2] = lay.lw[k];
+    g[3] = lay.lw[k];
+    g[4] = ink;
+    out.textArgs(lay.labels[lay.litem[k]] as string, AnchorStart, lay.font);
+  }
 }
+
+/** The px a mark's arrowheads take on the sides `sides` names (1: its left, 2: its right, 3: both). */
+function tipRoom(lay: RangesLay, j: number, sides: number): number {
+  const tips = lay.mtip[j] & sides;
+  if (!tips) return 0;
+  const head = Math.min((lay.laneHeight - lay.gap) * 0.9, lay.mx1[j] - lay.mx0[j]);
+  return tips === 3 ? 2 * head : head;
+}
+
+/** A leader's three points, written per label (kept). */
+const Leader = new Float64Array(6);
 
 /**
  * The hover pass: an outline around each of the hovered item's own marks (its hit marks: inside a merged run too),
  * concentric.
  */
 function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  const { box, tokens } = lay;
+  const { tokens } = lay;
   const gap = lay.gap;
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key || !h.element) return;
@@ -870,7 +1132,7 @@ function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefin
     const r = lay.hradius[j];
     // concentric: the outline's radius is the mark's plus its offset
     a[0] = lay.hx0[j] - half;
-    a[1] = box.y + lay.hlane[j] * lay.laneHeight + gap / 2 - half;
+    a[1] = lay.laneY + lay.hlane[j] * lay.laneHeight + gap / 2 - half;
     a[2] = lay.hx1[j] - lay.hx0[j] + 2 * half;
     a[3] = lay.laneHeight - gap + 2 * half;
     a[4] = NoColor;
@@ -889,7 +1151,7 @@ function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefin
 function drawSelected(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const els = emphasis?.elements;
   if (!els || !els.keys.length) return;
-  const { box, tokens } = lay;
+  const { tokens } = lay;
   const dpr = lay.axis.dpr;
   const a = out.args;
   for (let j = 0; j < lay.m; j++) {
@@ -901,7 +1163,7 @@ function drawSelected(lay: RangesLay, out: PassWriter, emphasis: Emphasis | unde
     if (!selected) continue;
     const x = Math.round(((lay.mx0[j] + lay.mx1[j]) / 2) * dpr) / dpr;
     a[0] = x - 1;
-    a[1] = box.y + lay.mlane[j] * lay.laneHeight;
+    a[1] = lay.laneY + lay.mlane[j] * lay.laneHeight;
     a[2] = 2;
     a[3] = lay.laneHeight;
     a[4] = tokens.colors['msui-accent'];
@@ -1100,7 +1362,13 @@ function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext) {
   const missing = ctx.tokens.colors['seq-missing'];
   datum.bind(rows.n ? rows.fields[0] : undefined);
   const extra = datum.env;
-  const color = prep.channels.get('color', 'token:range', ctx, extra);
+  // a layer with no color: the next categorical color by its order in the view (_spec/README.md "Themes")
+  const color = prep.channels.get(
+    'color',
+    ctx.colorIndex === undefined ? 'token:range' : CategoryTokens[ctx.colorIndex % CategoryTokens.length],
+    ctx,
+    extra,
+  );
   const size = prep.channels.get('size', 1, ctx, extra);
   const opacity = prep.channels.get('opacity', 1, ctx, extra);
   lay.color = color;
@@ -1151,6 +1419,9 @@ function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext) {
   }
   lay.extents.flush(ctx.theme);
 }
+
+/** The categorical palette's tokens, a colourless layer's default by its place (`LayoutContext.colorIndex`). */
+const CategoryTokens = Array.from({ length: CategoryCount }, (_, k) => `token:cat-${k}`);
 
 /** The colors of a dictionary's values through a channel that reads one field: index a code. */
 function codeFills(channel: Channel, dict: readonly string[], missing: number, out: Uint32Array): Uint32Array {

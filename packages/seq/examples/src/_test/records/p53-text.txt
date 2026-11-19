@@ -1,689 +1,689 @@
-size 720 540
+size 720 578
 pass background
-rect 0 0 720 540 #f1efeaff
+rect 0 0 720 578 #f1efeaff
 pass data
-clip 8 8 704 524
-clip 156.02 22 498 18
-rect 156 22 12 18 #cfe0f5ff
-rect 168 22 12 18 #f6d9beff
-rect 180 22 12 18 #f6d9beff
-rect 192 22 12 18 #efe8b8ff
-rect 204 22 12 18 #cdebd6ff
-rect 216 22 12 18 #cdebd6ff
-rect 228 22 12 18 #f6d9beff
-rect 240 22 12 18 #efe8b8ff
-rect 252 22 12 18 #cdebd6ff
-rect 264 22 12 18 #cfe0f5ff
-rect 282 22 12 18 #f6d9beff
-rect 294 22 12 18 #efe8b8ff
-rect 306 22 12 18 #efe8b8ff
-rect 318 22 12 18 #cfe0f5ff
-rect 330 22 12 18 #cdebd6ff
-rect 342 22 12 18 #cdebd6ff
-rect 354 22 12 18 #f6d9beff
-rect 366 22 12 18 #cdebd6ff
-rect 378 22 12 18 #d8d2f2ff
-rect 390 22 12 18 #cdebd6ff
-rect 408 22 12 18 #f6d9beff
-rect 420 22 12 18 #cfe0f5ff
-rect 432 22 12 18 #d8d2f2ff
-rect 444 22 12 18 #f5cfcfff
-rect 456 22 12 18 #cfe0f5ff
-rect 468 22 12 18 #cfe0f5ff
-rect 480 22 12 18 #efe8b8ff
-rect 492 22 12 18 #f6d9beff
-rect 504 22 12 18 #cdebd6ff
-rect 516 22 12 18 #cdebd6ff
-rect 534 22 12 18 #cfe0f5ff
-rect 546 22 12 18 #cfe0f5ff
-rect 558 22 12 18 #cdebd6ff
-rect 570 22 12 18 #efe8b8ff
-rect 582 22 12 18 #cfe0f5ff
-rect 594 22 12 18 #efe8b8ff
-rect 606 22 12 18 #cdebd6ff
-rect 618 22 12 18 #cdebd6ff
-rect 630 22 12 18 #cfe0f5ff
-rect 642 22 12 18 #cfe0f5ff
-glyphs "13px mono" 35.55 per M 162 #2d271eff, E 174 #2d271eff, E 186 #2d271eff, P 198 #2d271eff, Q 210 #2d271eff, S 222 #2d271eff, D 234 #2d271eff, P 246 #2d271eff, S 258 #2d271eff, V 270 #2d271eff, E 288 #2d271eff, P 300 #2d271eff, P 312 #2d271eff, L 324 #2d271eff, S 336 #2d271eff, Q 348 #2d271eff, E 360 #2d271eff, T 372 #2d271eff, F 384 #2d271eff, S 396 #2d271eff, D 414 #2d271eff, L 426 #2d271eff, W 438 #2d271eff, K 450 #2d271eff, L 462 #2d271eff, L 474 #2d271eff, P 486 #2d271eff, E 498 #2d271eff, N 510 #2d271eff, N 522 #2d271eff, V 540 #2d271eff, L 552 #2d271eff, S 564 #2d271eff, P 576 #2d271eff, L 588 #2d271eff, P 600 #2d271eff, S 612 #2d271eff, Q 624 #2d271eff, A 636 #2d271eff, M 648 #2d271eff
+clip 8 8 704 562
+clip 152.02 22 498 18
+rect 152 22 12 18 #cfe0f5ff
+rect 164 22 12 18 #f6d9beff
+rect 176 22 12 18 #f6d9beff
+rect 188 22 12 18 #efe8b8ff
+rect 200 22 12 18 #cdebd6ff
+rect 212 22 12 18 #cdebd6ff
+rect 224 22 12 18 #f6d9beff
+rect 236 22 12 18 #efe8b8ff
+rect 248 22 12 18 #cdebd6ff
+rect 260 22 12 18 #cfe0f5ff
+rect 278 22 12 18 #f6d9beff
+rect 290 22 12 18 #efe8b8ff
+rect 302 22 12 18 #efe8b8ff
+rect 314 22 12 18 #cfe0f5ff
+rect 326 22 12 18 #cdebd6ff
+rect 338 22 12 18 #cdebd6ff
+rect 350 22 12 18 #f6d9beff
+rect 362 22 12 18 #cdebd6ff
+rect 374 22 12 18 #d8d2f2ff
+rect 386 22 12 18 #cdebd6ff
+rect 404 22 12 18 #f6d9beff
+rect 416 22 12 18 #cfe0f5ff
+rect 428 22 12 18 #d8d2f2ff
+rect 440 22 12 18 #f5cfcfff
+rect 452 22 12 18 #cfe0f5ff
+rect 464 22 12 18 #cfe0f5ff
+rect 476 22 12 18 #efe8b8ff
+rect 488 22 12 18 #f6d9beff
+rect 500 22 12 18 #cdebd6ff
+rect 512 22 12 18 #cdebd6ff
+rect 530 22 12 18 #cfe0f5ff
+rect 542 22 12 18 #cfe0f5ff
+rect 554 22 12 18 #cdebd6ff
+rect 566 22 12 18 #efe8b8ff
+rect 578 22 12 18 #cfe0f5ff
+rect 590 22 12 18 #efe8b8ff
+rect 602 22 12 18 #cdebd6ff
+rect 614 22 12 18 #cdebd6ff
+rect 626 22 12 18 #cfe0f5ff
+rect 638 22 12 18 #cfe0f5ff
+glyphs "13px mono" 35.55 per M 158 #2d271eff, E 170 #2d271eff, E 182 #2d271eff, P 194 #2d271eff, Q 206 #2d271eff, S 218 #2d271eff, D 230 #2d271eff, P 242 #2d271eff, S 254 #2d271eff, V 266 #2d271eff, E 284 #2d271eff, P 296 #2d271eff, P 308 #2d271eff, L 320 #2d271eff, S 332 #2d271eff, Q 344 #2d271eff, E 356 #2d271eff, T 368 #2d271eff, F 380 #2d271eff, S 392 #2d271eff, D 410 #2d271eff, L 422 #2d271eff, W 434 #2d271eff, K 446 #2d271eff, L 458 #2d271eff, L 470 #2d271eff, P 482 #2d271eff, E 494 #2d271eff, N 506 #2d271eff, N 518 #2d271eff, V 536 #2d271eff, L 548 #2d271eff, S 560 #2d271eff, P 572 #2d271eff, L 584 #2d271eff, P 596 #2d271eff, S 608 #2d271eff, Q 620 #2d271eff, A 632 #2d271eff, M 644 #2d271eff
 unclip
-clip 156.02 42 498 6
-rect 354 43 114 4 #d9536fff
+clip 152.02 43 498 6
+rect 350 44 114 4 #d9536fff
 unclip
-clip 156.02 50 498 4
-image 156.02 50 498 4 498x1 b6d08055
-unclip
-unclip
-clip 8 8 704 524
-clip 156.02 76 498 18
-rect 156 76 12 18 #f6d9beff
-rect 168 76 12 18 #f6d9beff
-rect 180 76 12 18 #cfe0f5ff
-rect 192 76 12 18 #cfe0f5ff
-rect 204 76 12 18 #cfe0f5ff
-rect 216 76 12 18 #cdebd6ff
-rect 228 76 12 18 #efe8b8ff
-rect 240 76 12 18 #f6d9beff
-rect 252 76 12 18 #f6d9beff
-rect 264 76 12 18 #cfe0f5ff
-rect 282 76 12 18 #f6d9beff
-rect 294 76 12 18 #cdebd6ff
-rect 306 76 12 18 #d8d2f2ff
-rect 318 76 12 18 #d8d2f2ff
-rect 330 76 12 18 #cdebd6ff
-rect 342 76 12 18 #f6d9beff
-rect 354 76 12 18 #f6d9beff
-rect 366 76 12 18 #efe8b8ff
-rect 378 76 12 18 #efe8b8ff
-rect 390 76 12 18 #efe8b8ff
-rect 408 76 12 18 #f6d9beff
-rect 420 76 12 18 #f6d9beff
-rect 432 76 12 18 #cfe0f5ff
-rect 444 76 12 18 #efe8b8ff
-rect 456 76 12 18 #f5cfcfff
-rect 468 76 12 18 #cfe0f5ff
-rect 480 76 12 18 #efe8b8ff
-rect 492 76 12 18 #f6d9beff
-rect 504 76 12 18 #cfe0f5ff
-rect 516 76 12 18 #cfe0f5ff
-rect 534 76 12 18 #efe8b8ff
-rect 546 76 12 18 #efe8b8ff
-rect 558 76 12 18 #cfe0f5ff
-rect 570 76 12 18 #cfe0f5ff
-rect 582 76 12 18 #efe8b8ff
-rect 594 76 12 18 #cfe0f5ff
-rect 606 76 12 18 #efe8b8ff
-rect 618 76 12 18 #cfe0f5ff
-rect 630 76 12 18 #cfe0f5ff
-rect 642 76 12 18 #efe8b8ff
-glyphs "13px mono" 89.55 per D 162 #2d271eff, D 174 #2d271eff, L 186 #2d271eff, M 198 #2d271eff, L 210 #2d271eff, S 222 #2d271eff, P 234 #2d271eff, D 246 #2d271eff, D 258 #2d271eff, I 270 #2d271eff, E 288 #2d271eff, Q 300 #2d271eff, W 312 #2d271eff, F 324 #2d271eff, T 336 #2d271eff, E 348 #2d271eff, D 360 #2d271eff, P 372 #2d271eff, G 384 #2d271eff, P 396 #2d271eff, D 414 #2d271eff, E 426 #2d271eff, A 438 #2d271eff, P 450 #2d271eff, R 462 #2d271eff, M 474 #2d271eff, P 486 #2d271eff, E 498 #2d271eff, A 510 #2d271eff, A 522 #2d271eff, P 540 #2d271eff, P 552 #2d271eff, V 564 #2d271eff, A 576 #2d271eff, P 588 #2d271eff, A 600 #2d271eff, P 612 #2d271eff, A 624 #2d271eff, A 636 #2d271eff, P 648 #2d271eff
-unclip
-clip 156.02 96 498 4
-image 156.02 96 498 4 498x1 740e8f95
+clip 152.02 52 498 4
+image 152.02 52 498 4 498x1 b6d08055
 unclip
 unclip
-clip 8 8 704 524
-clip 156.02 122 498 18
-rect 156 122 12 18 #cdebd6ff
-rect 168 122 12 18 #efe8b8ff
-rect 180 122 12 18 #cfe0f5ff
-rect 192 122 12 18 #cfe0f5ff
-rect 204 122 12 18 #efe8b8ff
-rect 216 122 12 18 #cfe0f5ff
-rect 228 122 12 18 #efe8b8ff
-rect 240 122 12 18 #cfe0f5ff
-rect 252 122 12 18 #efe8b8ff
-rect 264 122 12 18 #cdebd6ff
-rect 282 122 12 18 #d8d2f2ff
-rect 294 122 12 18 #efe8b8ff
-rect 306 122 12 18 #cfe0f5ff
-rect 318 122 12 18 #cdebd6ff
-rect 330 122 12 18 #cdebd6ff
-rect 342 122 12 18 #cdebd6ff
-rect 354 122 12 18 #cfe0f5ff
-rect 366 122 12 18 #efe8b8ff
-rect 378 122 12 18 #cdebd6ff
-rect 390 122 12 18 #cdebd6ff
-rect 408 122 12 18 #f5cfcfff
-rect 420 122 12 18 #cdebd6ff
-rect 432 122 12 18 #d8d2f2ff
-rect 444 122 12 18 #cdebd6ff
-rect 456 122 12 18 #efe8b8ff
-rect 468 122 12 18 #cdebd6ff
-rect 480 122 12 18 #d8d2f2ff
-rect 492 122 12 18 #efe8b8ff
-rect 504 122 12 18 #d8d2f2ff
-rect 516 122 12 18 #f5cfcfff
-rect 534 122 12 18 #cfe0f5ff
-rect 546 122 12 18 #efe8b8ff
-rect 558 122 12 18 #d8d2f2ff
-rect 570 122 12 18 #cfe0f5ff
-rect 582 122 12 18 #f5cfcfff
-rect 594 122 12 18 #cdebd6ff
-rect 606 122 12 18 #efe8b8ff
-rect 618 122 12 18 #cdebd6ff
-rect 630 122 12 18 #cfe0f5ff
-rect 642 122 12 18 #f5cfcfff
-glyphs "13px mono" 135.55 per T 162 #2d271eff, P 174 #2d271eff, A 186 #2d271eff, A 198 #2d271eff, P 210 #2d271eff, A 222 #2d271eff, P 234 #2d271eff, A 246 #2d271eff, P 258 #2d271eff, S 270 #2d271eff, W 288 #2d271eff, P 300 #2d271eff, L 312 #2d271eff, S 324 #2d271eff, S 336 #2d271eff, S 348 #2d271eff, V 360 #2d271eff, P 372 #2d271eff, S 384 #2d271eff, Q 396 #2d271eff, K 414 #2d271eff, T 426 #2d271eff, Y 438 #2d271eff, Q 450 #2d271eff, G 462 #2d271eff, S 474 #2d271eff, Y 486 #2d271eff, G 498 #2d271eff, F 510 #2d271eff, R 522 #2d271eff, L 540 #2d271eff, G 552 #2d271eff, F 564 #2d271eff, L 576 #2d271eff, H 588 #2d271eff, S 600 #2d271eff, G 612 #2d271eff, T 624 #2d271eff, A 636 #2d271eff, K 648 #2d271eff
+clip 8 8 704 562
+clip 152.02 80 498 18
+rect 152 80 12 18 #f6d9beff
+rect 164 80 12 18 #f6d9beff
+rect 176 80 12 18 #cfe0f5ff
+rect 188 80 12 18 #cfe0f5ff
+rect 200 80 12 18 #cfe0f5ff
+rect 212 80 12 18 #cdebd6ff
+rect 224 80 12 18 #efe8b8ff
+rect 236 80 12 18 #f6d9beff
+rect 248 80 12 18 #f6d9beff
+rect 260 80 12 18 #cfe0f5ff
+rect 278 80 12 18 #f6d9beff
+rect 290 80 12 18 #cdebd6ff
+rect 302 80 12 18 #d8d2f2ff
+rect 314 80 12 18 #d8d2f2ff
+rect 326 80 12 18 #cdebd6ff
+rect 338 80 12 18 #f6d9beff
+rect 350 80 12 18 #f6d9beff
+rect 362 80 12 18 #efe8b8ff
+rect 374 80 12 18 #efe8b8ff
+rect 386 80 12 18 #efe8b8ff
+rect 404 80 12 18 #f6d9beff
+rect 416 80 12 18 #f6d9beff
+rect 428 80 12 18 #cfe0f5ff
+rect 440 80 12 18 #efe8b8ff
+rect 452 80 12 18 #f5cfcfff
+rect 464 80 12 18 #cfe0f5ff
+rect 476 80 12 18 #efe8b8ff
+rect 488 80 12 18 #f6d9beff
+rect 500 80 12 18 #cfe0f5ff
+rect 512 80 12 18 #cfe0f5ff
+rect 530 80 12 18 #efe8b8ff
+rect 542 80 12 18 #efe8b8ff
+rect 554 80 12 18 #cfe0f5ff
+rect 566 80 12 18 #cfe0f5ff
+rect 578 80 12 18 #efe8b8ff
+rect 590 80 12 18 #cfe0f5ff
+rect 602 80 12 18 #efe8b8ff
+rect 614 80 12 18 #cfe0f5ff
+rect 626 80 12 18 #cfe0f5ff
+rect 638 80 12 18 #efe8b8ff
+glyphs "13px mono" 93.55 per D 158 #2d271eff, D 170 #2d271eff, L 182 #2d271eff, M 194 #2d271eff, L 206 #2d271eff, S 218 #2d271eff, P 230 #2d271eff, D 242 #2d271eff, D 254 #2d271eff, I 266 #2d271eff, E 284 #2d271eff, Q 296 #2d271eff, W 308 #2d271eff, F 320 #2d271eff, T 332 #2d271eff, E 344 #2d271eff, D 356 #2d271eff, P 368 #2d271eff, G 380 #2d271eff, P 392 #2d271eff, D 410 #2d271eff, E 422 #2d271eff, A 434 #2d271eff, P 446 #2d271eff, R 458 #2d271eff, M 470 #2d271eff, P 482 #2d271eff, E 494 #2d271eff, A 506 #2d271eff, A 518 #2d271eff, P 536 #2d271eff, P 548 #2d271eff, V 560 #2d271eff, A 572 #2d271eff, P 584 #2d271eff, A 596 #2d271eff, P 608 #2d271eff, A 620 #2d271eff, A 632 #2d271eff, P 644 #2d271eff
 unclip
-clip 156.02 142 498 6
-path M 408 143.8 L 524.4 143.8 L 524.4 143 L 528 145 L 524.4 147 L 524.4 146.2 L 408 146.2 Z #e8a33dff
-rect 546 143.8 108 2.4 #e8a33dff
-unclip
-clip 156.02 150 498 4
-image 156.02 150 498 4 498x1 b79723a3
+clip 152.02 101 498 4
+image 152.02 101 498 4 498x1 740e8f95
 unclip
 unclip
-clip 8 8 704 524
-clip 156.02 176 498 18
-rect 156 176 12 18 #cdebd6ff
-rect 168 176 12 18 #cfe0f5ff
-rect 180 176 12 18 #cdebd6ff
-rect 192 176 12 18 #cfe0f5ff
-rect 204 176 12 18 #cdebd6ff
-rect 216 176 12 18 #d8d2f2ff
-rect 228 176 12 18 #cdebd6ff
-rect 240 176 12 18 #efe8b8ff
-rect 252 176 12 18 #cfe0f5ff
-rect 264 176 12 18 #cfe0f5ff
-rect 282 176 12 18 #cdebd6ff
-rect 294 176 12 18 #f5cfcfff
-rect 306 176 12 18 #cfe0f5ff
-rect 318 176 12 18 #d8d2f2ff
-rect 330 176 12 18 #cfe0f5ff
-rect 342 176 12 18 #cdebd6ff
-rect 354 176 12 18 #cfe0f5ff
-rect 366 176 12 18 #cfe0f5ff
-rect 378 176 12 18 #f5cfcfff
-rect 390 176 12 18 #cdebd6ff
-rect 408 176 12 18 #cfe0f5ff
-rect 420 176 12 18 #efe8b8ff
-rect 432 176 12 18 #cfe0f5ff
-rect 444 176 12 18 #cdebd6ff
-rect 456 176 12 18 #cfe0f5ff
-rect 468 176 12 18 #d8d2f2ff
-rect 480 176 12 18 #cfe0f5ff
-rect 492 176 12 18 #f6d9beff
-rect 504 176 12 18 #cdebd6ff
-rect 516 176 12 18 #cdebd6ff
-rect 534 176 12 18 #efe8b8ff
-rect 546 176 12 18 #efe8b8ff
-rect 558 176 12 18 #efe8b8ff
-rect 570 176 12 18 #efe8b8ff
-rect 582 176 12 18 #cdebd6ff
-rect 594 176 12 18 #f5cfcfff
-rect 606 176 12 18 #cfe0f5ff
-rect 618 176 12 18 #f5cfcfff
-rect 630 176 12 18 #cfe0f5ff
-rect 642 176 12 18 #cfe0f5ff
-glyphs "13px mono" 189.55 per S 162 #2d271eff, V 174 #2d271eff, T 186 #2d271eff, C 198 #2d271eff, T 210 #2d271eff, Y 222 #2d271eff, S 234 #2d271eff, P 246 #2d271eff, A 258 #2d271eff, L 270 #2d271eff, N 288 #2d271eff, K 300 #2d271eff, M 312 #2d271eff, F 324 #2d271eff, C 336 #2d271eff, Q 348 #2d271eff, L 360 #2d271eff, A 372 #2d271eff, K 384 #2d271eff, T 396 #2d271eff, C 414 #2d271eff, P 426 #2d271eff, V 438 #2d271eff, Q 450 #2d271eff, L 462 #2d271eff, W 474 #2d271eff, V 486 #2d271eff, D 498 #2d271eff, S 510 #2d271eff, T 522 #2d271eff, P 540 #2d271eff, P 552 #2d271eff, P 564 #2d271eff, G 576 #2d271eff, T 588 #2d271eff, R 600 #2d271eff, V 612 #2d271eff, R 624 #2d271eff, A 636 #2d271eff, M 648 #2d271eff
+clip 8 8 704 562
+clip 152.02 129 498 18
+rect 152 129 12 18 #cdebd6ff
+rect 164 129 12 18 #efe8b8ff
+rect 176 129 12 18 #cfe0f5ff
+rect 188 129 12 18 #cfe0f5ff
+rect 200 129 12 18 #efe8b8ff
+rect 212 129 12 18 #cfe0f5ff
+rect 224 129 12 18 #efe8b8ff
+rect 236 129 12 18 #cfe0f5ff
+rect 248 129 12 18 #efe8b8ff
+rect 260 129 12 18 #cdebd6ff
+rect 278 129 12 18 #d8d2f2ff
+rect 290 129 12 18 #efe8b8ff
+rect 302 129 12 18 #cfe0f5ff
+rect 314 129 12 18 #cdebd6ff
+rect 326 129 12 18 #cdebd6ff
+rect 338 129 12 18 #cdebd6ff
+rect 350 129 12 18 #cfe0f5ff
+rect 362 129 12 18 #efe8b8ff
+rect 374 129 12 18 #cdebd6ff
+rect 386 129 12 18 #cdebd6ff
+rect 404 129 12 18 #f5cfcfff
+rect 416 129 12 18 #cdebd6ff
+rect 428 129 12 18 #d8d2f2ff
+rect 440 129 12 18 #cdebd6ff
+rect 452 129 12 18 #efe8b8ff
+rect 464 129 12 18 #cdebd6ff
+rect 476 129 12 18 #d8d2f2ff
+rect 488 129 12 18 #efe8b8ff
+rect 500 129 12 18 #d8d2f2ff
+rect 512 129 12 18 #f5cfcfff
+rect 530 129 12 18 #cfe0f5ff
+rect 542 129 12 18 #efe8b8ff
+rect 554 129 12 18 #d8d2f2ff
+rect 566 129 12 18 #cfe0f5ff
+rect 578 129 12 18 #f5cfcfff
+rect 590 129 12 18 #cdebd6ff
+rect 602 129 12 18 #efe8b8ff
+rect 614 129 12 18 #cdebd6ff
+rect 626 129 12 18 #cfe0f5ff
+rect 638 129 12 18 #f5cfcfff
+glyphs "13px mono" 142.55 per T 158 #2d271eff, P 170 #2d271eff, A 182 #2d271eff, A 194 #2d271eff, P 206 #2d271eff, A 218 #2d271eff, P 230 #2d271eff, A 242 #2d271eff, P 254 #2d271eff, S 266 #2d271eff, W 284 #2d271eff, P 296 #2d271eff, L 308 #2d271eff, S 320 #2d271eff, S 332 #2d271eff, S 344 #2d271eff, V 356 #2d271eff, P 368 #2d271eff, S 380 #2d271eff, Q 392 #2d271eff, K 410 #2d271eff, T 422 #2d271eff, Y 434 #2d271eff, Q 446 #2d271eff, G 458 #2d271eff, S 470 #2d271eff, Y 482 #2d271eff, G 494 #2d271eff, F 506 #2d271eff, R 518 #2d271eff, L 536 #2d271eff, G 548 #2d271eff, F 560 #2d271eff, L 572 #2d271eff, H 584 #2d271eff, S 596 #2d271eff, G 608 #2d271eff, T 620 #2d271eff, A 632 #2d271eff, K 644 #2d271eff
 unclip
-clip 156.02 196 498 6
-path M 204 197.8 L 314.4 197.8 L 314.4 197 L 318 199 L 314.4 201 L 314.4 200.2 L 204 200.2 Z #e8a33dff
-rect 342 197 78 4 #d9536fff
-path M 480 197.8 L 554.4 197.8 L 554.4 197 L 558 199 L 554.4 201 L 554.4 200.2 L 480 200.2 Z #e8a33dff
-rect 606 197.8 48 2.4 #e8a33dff
+clip 152.02 150 498 6
+path M 404 151.8 L 520.4 151.8 L 520.4 151 L 524 153 L 520.4 155 L 520.4 154.2 L 404 154.2 Z #e8a33dff
+rect 542 151.8 108 2.4 #e8a33dff
 unclip
-clip 156.02 204 498 4
-image 156.02 204 498 4 498x1 b6d08055
+clip 152.02 159 498 4
+image 152.02 159 498 4 498x1 b79723a3
 unclip
 unclip
-clip 8 8 704 524
-clip 156.02 230 498 18
-rect 156 230 12 18 #cfe0f5ff
-rect 168 230 12 18 #cfe0f5ff
-rect 180 230 12 18 #d8d2f2ff
-rect 192 230 12 18 #f5cfcfff
-rect 204 230 12 18 #cdebd6ff
-rect 216 230 12 18 #cdebd6ff
-rect 228 230 12 18 #cdebd6ff
-rect 240 230 12 18 #f5cfcfff
-rect 252 230 12 18 #cfe0f5ff
-rect 264 230 12 18 #cdebd6ff
-rect 282 230 12 18 #f6d9beff
-rect 294 230 12 18 #cfe0f5ff
-rect 306 230 12 18 #cfe0f5ff
-rect 318 230 12 18 #f5cfcfff
-rect 330 230 12 18 #f5cfcfff
-rect 342 230 12 18 #cfe0f5ff
-rect 354 230 12 18 #efe8b8ff
-rect 366 230 12 18 #f5cfcfff
-rect 378 230 12 18 #f5cfcfff
-rect 390 230 12 18 #f6d9beff
-rect 408 230 12 18 #f5cfcfff
-rect 420 230 12 18 #cfe0f5ff
-rect 432 230 12 18 #cdebd6ff
-rect 444 230 12 18 #f6d9beff
-rect 456 230 12 18 #cdebd6ff
-rect 468 230 12 18 #f6d9beff
-rect 480 230 12 18 #efe8b8ff
-rect 492 230 12 18 #cfe0f5ff
-rect 504 230 12 18 #cfe0f5ff
-rect 516 230 12 18 #efe8b8ff
-rect 534 230 12 18 #efe8b8ff
-rect 546 230 12 18 #cdebd6ff
-rect 558 230 12 18 #f5cfcfff
-rect 570 230 12 18 #cfe0f5ff
-rect 582 230 12 18 #cfe0f5ff
-rect 594 230 12 18 #f5cfcfff
-rect 606 230 12 18 #cfe0f5ff
-rect 618 230 12 18 #f6d9beff
-rect 630 230 12 18 #efe8b8ff
-rect 642 230 12 18 #cdebd6ff
-glyphs "13px mono" 243.55 per A 162 #2d271eff, I 174 #2d271eff, Y 186 #2d271eff, K 198 #2d271eff, Q 210 #2d271eff, S 222 #2d271eff, Q 234 #2d271eff, H 246 #2d271eff, M 258 #2d271eff, T 270 #2d271eff, E 288 #2d271eff, V 300 #2d271eff, V 312 #2d271eff, R 324 #2d271eff, R 336 #2d271eff, C 348 #2d271eff, P 360 #2d271eff, H 372 #2d271eff, H 384 #2d271eff, E 396 #2d271eff, R 414 #2d271eff, C 426 #2d271eff, S 438 #2d271eff, D 450 #2d271eff, S 462 #2d271eff, D 474 #2d271eff, G 486 #2d271eff, L 498 #2d271eff, A 510 #2d271eff, P 522 #2d271eff, P 540 #2d271eff, Q 552 #2d271eff, H 564 #2d271eff, L 576 #2d271eff, I 588 #2d271eff, R 600 #2d271eff, V 612 #2d271eff, E 624 #2d271eff, G 636 #2d271eff, N 648 #2d271eff
+clip 8 8 704 562
+clip 152.02 187 498 18
+rect 152 187 12 18 #cdebd6ff
+rect 164 187 12 18 #cfe0f5ff
+rect 176 187 12 18 #cdebd6ff
+rect 188 187 12 18 #cfe0f5ff
+rect 200 187 12 18 #cdebd6ff
+rect 212 187 12 18 #d8d2f2ff
+rect 224 187 12 18 #cdebd6ff
+rect 236 187 12 18 #efe8b8ff
+rect 248 187 12 18 #cfe0f5ff
+rect 260 187 12 18 #cfe0f5ff
+rect 278 187 12 18 #cdebd6ff
+rect 290 187 12 18 #f5cfcfff
+rect 302 187 12 18 #cfe0f5ff
+rect 314 187 12 18 #d8d2f2ff
+rect 326 187 12 18 #cfe0f5ff
+rect 338 187 12 18 #cdebd6ff
+rect 350 187 12 18 #cfe0f5ff
+rect 362 187 12 18 #cfe0f5ff
+rect 374 187 12 18 #f5cfcfff
+rect 386 187 12 18 #cdebd6ff
+rect 404 187 12 18 #cfe0f5ff
+rect 416 187 12 18 #efe8b8ff
+rect 428 187 12 18 #cfe0f5ff
+rect 440 187 12 18 #cdebd6ff
+rect 452 187 12 18 #cfe0f5ff
+rect 464 187 12 18 #d8d2f2ff
+rect 476 187 12 18 #cfe0f5ff
+rect 488 187 12 18 #f6d9beff
+rect 500 187 12 18 #cdebd6ff
+rect 512 187 12 18 #cdebd6ff
+rect 530 187 12 18 #efe8b8ff
+rect 542 187 12 18 #efe8b8ff
+rect 554 187 12 18 #efe8b8ff
+rect 566 187 12 18 #efe8b8ff
+rect 578 187 12 18 #cdebd6ff
+rect 590 187 12 18 #f5cfcfff
+rect 602 187 12 18 #cfe0f5ff
+rect 614 187 12 18 #f5cfcfff
+rect 626 187 12 18 #cfe0f5ff
+rect 638 187 12 18 #cfe0f5ff
+glyphs "13px mono" 200.55 per S 158 #2d271eff, V 170 #2d271eff, T 182 #2d271eff, C 194 #2d271eff, T 206 #2d271eff, Y 218 #2d271eff, S 230 #2d271eff, P 242 #2d271eff, A 254 #2d271eff, L 266 #2d271eff, N 284 #2d271eff, K 296 #2d271eff, M 308 #2d271eff, F 320 #2d271eff, C 332 #2d271eff, Q 344 #2d271eff, L 356 #2d271eff, A 368 #2d271eff, K 380 #2d271eff, T 392 #2d271eff, C 410 #2d271eff, P 422 #2d271eff, V 434 #2d271eff, Q 446 #2d271eff, L 458 #2d271eff, W 470 #2d271eff, V 482 #2d271eff, D 494 #2d271eff, S 506 #2d271eff, T 518 #2d271eff, P 536 #2d271eff, P 548 #2d271eff, P 560 #2d271eff, G 572 #2d271eff, T 584 #2d271eff, R 596 #2d271eff, V 608 #2d271eff, R 620 #2d271eff, A 632 #2d271eff, M 644 #2d271eff
 unclip
-clip 156.02 250 498 6
-path M 156 251.8 L 224.4 251.8 L 224.4 251 L 228 253 L 224.4 255 L 224.4 254.2 L 156 254.2 Z #e8a33dff
-rect 294 251 84 4 #d9536fff
+clip 152.02 208 498 6
+path M 200 209.8 L 310.4 209.8 L 310.4 209 L 314 211 L 310.4 213 L 310.4 212.2 L 200 212.2 Z #e8a33dff
+rect 338 209 78 4 #d9536fff
+path M 476 209.8 L 550.4 209.8 L 550.4 209 L 554 211 L 550.4 213 L 550.4 212.2 L 476 212.2 Z #e8a33dff
+rect 602 209.8 48 2.4 #e8a33dff
 unclip
-clip 156.02 258 498 4
-image 156.02 258 498 4 498x1 b6d08055
-unclip
-unclip
-clip 8 8 704 524
-clip 156.02 284 498 18
-rect 156 284 12 18 #cfe0f5ff
-rect 168 284 12 18 #f5cfcfff
-rect 180 284 12 18 #cfe0f5ff
-rect 192 284 12 18 #f6d9beff
-rect 204 284 12 18 #d8d2f2ff
-rect 216 284 12 18 #cfe0f5ff
-rect 228 284 12 18 #f6d9beff
-rect 240 284 12 18 #f6d9beff
-rect 252 284 12 18 #f5cfcfff
-rect 264 284 12 18 #cdebd6ff
-rect 282 284 12 18 #cdebd6ff
-rect 294 284 12 18 #d8d2f2ff
-rect 306 284 12 18 #f5cfcfff
-rect 318 284 12 18 #f5cfcfff
-rect 330 284 12 18 #cdebd6ff
-rect 342 284 12 18 #cfe0f5ff
-rect 354 284 12 18 #cfe0f5ff
-rect 366 284 12 18 #cfe0f5ff
-rect 378 284 12 18 #efe8b8ff
-rect 390 284 12 18 #d8d2f2ff
-rect 408 284 12 18 #f6d9beff
-rect 420 284 12 18 #efe8b8ff
-rect 432 284 12 18 #efe8b8ff
-rect 444 284 12 18 #f6d9beff
-rect 456 284 12 18 #cfe0f5ff
-rect 468 284 12 18 #efe8b8ff
-rect 480 284 12 18 #cdebd6ff
-rect 492 284 12 18 #f6d9beff
-rect 504 284 12 18 #cfe0f5ff
-rect 516 284 12 18 #cdebd6ff
-rect 534 284 12 18 #cdebd6ff
-rect 546 284 12 18 #cfe0f5ff
-rect 558 284 12 18 #f5cfcfff
-rect 570 284 12 18 #d8d2f2ff
-rect 582 284 12 18 #cdebd6ff
-rect 594 284 12 18 #d8d2f2ff
-rect 606 284 12 18 #cfe0f5ff
-rect 618 284 12 18 #cfe0f5ff
-rect 630 284 12 18 #cdebd6ff
-rect 642 284 12 18 #cdebd6ff
-glyphs "13px mono" 297.55 per L 162 #2d271eff, R 174 #2d271eff, V 186 #2d271eff, E 198 #2d271eff, Y 210 #2d271eff, L 222 #2d271eff, D 234 #2d271eff, D 246 #2d271eff, R 258 #2d271eff, N 270 #2d271eff, T 288 #2d271eff, F 300 #2d271eff, R 312 #2d271eff, H 324 #2d271eff, S 336 #2d271eff, V 348 #2d271eff, V 360 #2d271eff, V 372 #2d271eff, P 384 #2d271eff, Y 396 #2d271eff, E 414 #2d271eff, P 426 #2d271eff, P 438 #2d271eff, E 450 #2d271eff, V 462 #2d271eff, G 474 #2d271eff, S 486 #2d271eff, D 498 #2d271eff, C 510 #2d271eff, T 522 #2d271eff, T 540 #2d271eff, I 552 #2d271eff, H 564 #2d271eff, Y 576 #2d271eff, N 588 #2d271eff, Y 600 #2d271eff, M 612 #2d271eff, C 624 #2d271eff, N 636 #2d271eff, S 648 #2d271eff
-unclip
-clip 156.02 304 498 6
-path M 192 305.8 L 272.4 305.8 L 272.4 305 L 276 307 L 272.4 309 L 272.4 308.2 L 192 308.2 Z #e8a33dff
-path M 318 305.8 L 452.4 305.8 L 452.4 305 L 456 307 L 452.4 309 L 452.4 308.2 L 318 308.2 Z #e8a33dff
-path M 492 305.8 L 554.4 305.8 L 554.4 305 L 558 307 L 554.4 309 L 554.4 308.2 L 492 308.2 Z #e8a33dff
-rect 570 305.8 84 2.4 #e8a33dff
-unclip
-clip 156.02 312 498 4
-image 156.02 312 498 4 498x1 b6d08055
+clip 152.02 217 498 4
+image 152.02 217 498 4 498x1 b6d08055
 unclip
 unclip
-clip 8 8 704 524
-clip 156.02 338 498 18
-rect 156 338 12 18 #cdebd6ff
-rect 168 338 12 18 #cfe0f5ff
-rect 180 338 12 18 #cfe0f5ff
-rect 192 338 12 18 #efe8b8ff
-rect 204 338 12 18 #efe8b8ff
-rect 216 338 12 18 #cfe0f5ff
-rect 228 338 12 18 #cdebd6ff
-rect 240 338 12 18 #f5cfcfff
-rect 252 338 12 18 #f5cfcfff
-rect 264 338 12 18 #efe8b8ff
-rect 282 338 12 18 #cfe0f5ff
-rect 294 338 12 18 #cfe0f5ff
-rect 306 338 12 18 #cdebd6ff
-rect 318 338 12 18 #cfe0f5ff
-rect 330 338 12 18 #cfe0f5ff
-rect 342 338 12 18 #cdebd6ff
-rect 354 338 12 18 #cfe0f5ff
-rect 366 338 12 18 #f6d9beff
-rect 378 338 12 18 #f6d9beff
-rect 390 338 12 18 #cdebd6ff
-rect 408 338 12 18 #cdebd6ff
-rect 420 338 12 18 #efe8b8ff
-rect 432 338 12 18 #cdebd6ff
-rect 444 338 12 18 #cfe0f5ff
-rect 456 338 12 18 #cfe0f5ff
-rect 468 338 12 18 #efe8b8ff
-rect 480 338 12 18 #f5cfcfff
-rect 492 338 12 18 #cdebd6ff
-rect 504 338 12 18 #cdebd6ff
-rect 516 338 12 18 #d8d2f2ff
-rect 534 338 12 18 #f6d9beff
-rect 546 338 12 18 #cfe0f5ff
-rect 558 338 12 18 #f5cfcfff
-rect 570 338 12 18 #cfe0f5ff
-rect 582 338 12 18 #cfe0f5ff
-rect 594 338 12 18 #cfe0f5ff
-rect 606 338 12 18 #cfe0f5ff
-rect 618 338 12 18 #efe8b8ff
-rect 630 338 12 18 #efe8b8ff
-rect 642 338 12 18 #f5cfcfff
-glyphs "13px mono" 351.55 per S 162 #2d271eff, C 174 #2d271eff, M 186 #2d271eff, G 198 #2d271eff, G 210 #2d271eff, M 222 #2d271eff, N 234 #2d271eff, R 246 #2d271eff, R 258 #2d271eff, P 270 #2d271eff, I 288 #2d271eff, L 300 #2d271eff, T 312 #2d271eff, I 324 #2d271eff, I 336 #2d271eff, T 348 #2d271eff, L 360 #2d271eff, E 372 #2d271eff, D 384 #2d271eff, S 396 #2d271eff, S 414 #2d271eff, G 426 #2d271eff, N 438 #2d271eff, L 450 #2d271eff, L 462 #2d271eff, G 474 #2d271eff, R 486 #2d271eff, N 498 #2d271eff, S 510 #2d271eff, F 522 #2d271eff, E 540 #2d271eff, V 552 #2d271eff, R 564 #2d271eff, V 576 #2d271eff, C 588 #2d271eff, A 600 #2d271eff, C 612 #2d271eff, P 624 #2d271eff, G 636 #2d271eff, R 648 #2d271eff
+clip 8 8 704 562
+clip 152.02 245 498 18
+rect 152 245 12 18 #cfe0f5ff
+rect 164 245 12 18 #cfe0f5ff
+rect 176 245 12 18 #d8d2f2ff
+rect 188 245 12 18 #f5cfcfff
+rect 200 245 12 18 #cdebd6ff
+rect 212 245 12 18 #cdebd6ff
+rect 224 245 12 18 #cdebd6ff
+rect 236 245 12 18 #f5cfcfff
+rect 248 245 12 18 #cfe0f5ff
+rect 260 245 12 18 #cdebd6ff
+rect 278 245 12 18 #f6d9beff
+rect 290 245 12 18 #cfe0f5ff
+rect 302 245 12 18 #cfe0f5ff
+rect 314 245 12 18 #f5cfcfff
+rect 326 245 12 18 #f5cfcfff
+rect 338 245 12 18 #cfe0f5ff
+rect 350 245 12 18 #efe8b8ff
+rect 362 245 12 18 #f5cfcfff
+rect 374 245 12 18 #f5cfcfff
+rect 386 245 12 18 #f6d9beff
+rect 404 245 12 18 #f5cfcfff
+rect 416 245 12 18 #cfe0f5ff
+rect 428 245 12 18 #cdebd6ff
+rect 440 245 12 18 #f6d9beff
+rect 452 245 12 18 #cdebd6ff
+rect 464 245 12 18 #f6d9beff
+rect 476 245 12 18 #efe8b8ff
+rect 488 245 12 18 #cfe0f5ff
+rect 500 245 12 18 #cfe0f5ff
+rect 512 245 12 18 #efe8b8ff
+rect 530 245 12 18 #efe8b8ff
+rect 542 245 12 18 #cdebd6ff
+rect 554 245 12 18 #f5cfcfff
+rect 566 245 12 18 #cfe0f5ff
+rect 578 245 12 18 #cfe0f5ff
+rect 590 245 12 18 #f5cfcfff
+rect 602 245 12 18 #cfe0f5ff
+rect 614 245 12 18 #f6d9beff
+rect 626 245 12 18 #efe8b8ff
+rect 638 245 12 18 #cdebd6ff
+glyphs "13px mono" 258.55 per A 158 #2d271eff, I 170 #2d271eff, Y 182 #2d271eff, K 194 #2d271eff, Q 206 #2d271eff, S 218 #2d271eff, Q 230 #2d271eff, H 242 #2d271eff, M 254 #2d271eff, T 266 #2d271eff, E 284 #2d271eff, V 296 #2d271eff, V 308 #2d271eff, R 320 #2d271eff, R 332 #2d271eff, C 344 #2d271eff, P 356 #2d271eff, H 368 #2d271eff, H 380 #2d271eff, E 392 #2d271eff, R 410 #2d271eff, C 422 #2d271eff, S 434 #2d271eff, D 446 #2d271eff, S 458 #2d271eff, D 470 #2d271eff, G 482 #2d271eff, L 494 #2d271eff, A 506 #2d271eff, P 518 #2d271eff, P 536 #2d271eff, Q 548 #2d271eff, H 560 #2d271eff, L 572 #2d271eff, I 584 #2d271eff, R 596 #2d271eff, V 608 #2d271eff, E 620 #2d271eff, G 632 #2d271eff, N 644 #2d271eff
 unclip
-clip 156.02 358 498 6
-path M 294 359.8 L 398.4 359.8 L 398.4 359 L 402 361 L 398.4 363 L 398.4 362.2 L 294 362.2 Z #e8a33dff
-path M 456 359.8 L 566.4 359.8 L 566.4 359 L 570 361 L 566.4 363 L 566.4 362.2 L 456 362.2 Z #e8a33dff
-rect 618 359 36 4 #d9536fff
+clip 152.02 266 498 6
+path M 152 267.8 L 220.4 267.8 L 220.4 267 L 224 269 L 220.4 271 L 220.4 270.2 L 152 270.2 Z #e8a33dff
+rect 290 267 84 4 #d9536fff
 unclip
-clip 156.02 366 498 4
-image 156.02 366 498 4 498x1 b6d08055
-unclip
-unclip
-clip 8 8 704 524
-clip 156.02 392 498 18
-rect 156 392 12 18 #f6d9beff
-rect 168 392 12 18 #f5cfcfff
-rect 180 392 12 18 #f5cfcfff
-rect 192 392 12 18 #cdebd6ff
-rect 204 392 12 18 #f6d9beff
-rect 216 392 12 18 #f6d9beff
-rect 228 392 12 18 #f6d9beff
-rect 240 392 12 18 #cdebd6ff
-rect 252 392 12 18 #cfe0f5ff
-rect 264 392 12 18 #f5cfcfff
-rect 282 392 12 18 #f5cfcfff
-rect 294 392 12 18 #f5cfcfff
-rect 306 392 12 18 #efe8b8ff
-rect 318 392 12 18 #f6d9beff
-rect 330 392 12 18 #efe8b8ff
-rect 342 392 12 18 #f5cfcfff
-rect 354 392 12 18 #f5cfcfff
-rect 366 392 12 18 #f6d9beff
-rect 378 392 12 18 #cfe0f5ff
-rect 390 392 12 18 #efe8b8ff
-rect 408 392 12 18 #efe8b8ff
-rect 420 392 12 18 #efe8b8ff
-rect 432 392 12 18 #cdebd6ff
-rect 444 392 12 18 #cdebd6ff
-rect 456 392 12 18 #f5cfcfff
-rect 468 392 12 18 #f5cfcfff
-rect 480 392 12 18 #cfe0f5ff
-rect 492 392 12 18 #cfe0f5ff
-rect 504 392 12 18 #efe8b8ff
-rect 516 392 12 18 #cdebd6ff
-rect 534 392 12 18 #cdebd6ff
-rect 546 392 12 18 #cdebd6ff
-rect 558 392 12 18 #cdebd6ff
-rect 570 392 12 18 #cdebd6ff
-rect 582 392 12 18 #cdebd6ff
-rect 594 392 12 18 #efe8b8ff
-rect 606 392 12 18 #cdebd6ff
-rect 618 392 12 18 #efe8b8ff
-rect 630 392 12 18 #f5cfcfff
-rect 642 392 12 18 #f5cfcfff
-glyphs "13px mono" 405.55 per D 162 #2d271eff, R 174 #2d271eff, R 186 #2d271eff, T 198 #2d271eff, E 210 #2d271eff, E 222 #2d271eff, E 234 #2d271eff, N 246 #2d271eff, L 258 #2d271eff, R 270 #2d271eff, K 288 #2d271eff, K 300 #2d271eff, G 312 #2d271eff, E 324 #2d271eff, P 336 #2d271eff, H 348 #2d271eff, H 360 #2d271eff, E 372 #2d271eff, L 384 #2d271eff, P 396 #2d271eff, P 414 #2d271eff, G 426 #2d271eff, S 438 #2d271eff, T 450 #2d271eff, K 462 #2d271eff, R 474 #2d271eff, A 486 #2d271eff, L 498 #2d271eff, P 510 #2d271eff, N 522 #2d271eff, N 540 #2d271eff, T 552 #2d271eff, S 564 #2d271eff, S 576 #2d271eff, S 588 #2d271eff, P 600 #2d271eff, Q 612 #2d271eff, P 624 #2d271eff, K 636 #2d271eff, K 648 #2d271eff
-unclip
-clip 156.02 412 498 6
-rect 156 413 84 4 #d9536fff
-unclip
-clip 156.02 420 498 4
-image 156.02 420 498 4 498x1 84dc8775
+clip 152.02 275 498 4
+image 152.02 275 498 4 498x1 b6d08055
 unclip
 unclip
-clip 8 8 704 524
-clip 156.02 446 498 18
-rect 156 446 12 18 #f5cfcfff
-rect 168 446 12 18 #efe8b8ff
-rect 180 446 12 18 #cfe0f5ff
-rect 192 446 12 18 #f6d9beff
-rect 204 446 12 18 #efe8b8ff
-rect 216 446 12 18 #f6d9beff
-rect 228 446 12 18 #d8d2f2ff
-rect 240 446 12 18 #d8d2f2ff
-rect 252 446 12 18 #cdebd6ff
-rect 264 446 12 18 #cfe0f5ff
-rect 282 446 12 18 #cdebd6ff
-rect 294 446 12 18 #cfe0f5ff
-rect 306 446 12 18 #f5cfcfff
-rect 318 446 12 18 #efe8b8ff
-rect 330 446 12 18 #f5cfcfff
-rect 342 446 12 18 #f6d9beff
-rect 354 446 12 18 #f5cfcfff
-rect 366 446 12 18 #d8d2f2ff
-rect 378 446 12 18 #f6d9beff
-rect 390 446 12 18 #cfe0f5ff
-rect 408 446 12 18 #d8d2f2ff
-rect 420 446 12 18 #f5cfcfff
-rect 432 446 12 18 #f6d9beff
-rect 444 446 12 18 #cfe0f5ff
-rect 456 446 12 18 #cdebd6ff
-rect 468 446 12 18 #f6d9beff
-rect 480 446 12 18 #cfe0f5ff
-rect 492 446 12 18 #cfe0f5ff
-rect 504 446 12 18 #f6d9beff
-rect 516 446 12 18 #cfe0f5ff
-rect 534 446 12 18 #f5cfcfff
-rect 546 446 12 18 #f6d9beff
-rect 558 446 12 18 #cfe0f5ff
-rect 570 446 12 18 #cdebd6ff
-rect 582 446 12 18 #cfe0f5ff
-rect 594 446 12 18 #efe8b8ff
-rect 606 446 12 18 #f5cfcfff
-rect 618 446 12 18 #f6d9beff
-rect 630 446 12 18 #efe8b8ff
-rect 642 446 12 18 #efe8b8ff
-glyphs "13px mono" 459.55 per K 162 #2d271eff, P 174 #2d271eff, L 186 #2d271eff, D 198 #2d271eff, G 210 #2d271eff, E 222 #2d271eff, Y 234 #2d271eff, F 246 #2d271eff, T 258 #2d271eff, L 270 #2d271eff, Q 288 #2d271eff, I 300 #2d271eff, R 312 #2d271eff, G 324 #2d271eff, R 336 #2d271eff, E 348 #2d271eff, R 360 #2d271eff, F 372 #2d271eff, E 384 #2d271eff, M 396 #2d271eff, F 414 #2d271eff, R 426 #2d271eff, E 438 #2d271eff, L 450 #2d271eff, N 462 #2d271eff, E 474 #2d271eff, A 486 #2d271eff, L 498 #2d271eff, E 510 #2d271eff, L 522 #2d271eff, K 540 #2d271eff, D 552 #2d271eff, A 564 #2d271eff, Q 576 #2d271eff, A 588 #2d271eff, G 600 #2d271eff, K 612 #2d271eff, E 624 #2d271eff, P 636 #2d271eff, G 648 #2d271eff
+clip 8 8 704 562
+clip 152.02 303 498 18
+rect 152 303 12 18 #cfe0f5ff
+rect 164 303 12 18 #f5cfcfff
+rect 176 303 12 18 #cfe0f5ff
+rect 188 303 12 18 #f6d9beff
+rect 200 303 12 18 #d8d2f2ff
+rect 212 303 12 18 #cfe0f5ff
+rect 224 303 12 18 #f6d9beff
+rect 236 303 12 18 #f6d9beff
+rect 248 303 12 18 #f5cfcfff
+rect 260 303 12 18 #cdebd6ff
+rect 278 303 12 18 #cdebd6ff
+rect 290 303 12 18 #d8d2f2ff
+rect 302 303 12 18 #f5cfcfff
+rect 314 303 12 18 #f5cfcfff
+rect 326 303 12 18 #cdebd6ff
+rect 338 303 12 18 #cfe0f5ff
+rect 350 303 12 18 #cfe0f5ff
+rect 362 303 12 18 #cfe0f5ff
+rect 374 303 12 18 #efe8b8ff
+rect 386 303 12 18 #d8d2f2ff
+rect 404 303 12 18 #f6d9beff
+rect 416 303 12 18 #efe8b8ff
+rect 428 303 12 18 #efe8b8ff
+rect 440 303 12 18 #f6d9beff
+rect 452 303 12 18 #cfe0f5ff
+rect 464 303 12 18 #efe8b8ff
+rect 476 303 12 18 #cdebd6ff
+rect 488 303 12 18 #f6d9beff
+rect 500 303 12 18 #cfe0f5ff
+rect 512 303 12 18 #cdebd6ff
+rect 530 303 12 18 #cdebd6ff
+rect 542 303 12 18 #cfe0f5ff
+rect 554 303 12 18 #f5cfcfff
+rect 566 303 12 18 #d8d2f2ff
+rect 578 303 12 18 #cdebd6ff
+rect 590 303 12 18 #d8d2f2ff
+rect 602 303 12 18 #cfe0f5ff
+rect 614 303 12 18 #cfe0f5ff
+rect 626 303 12 18 #cdebd6ff
+rect 638 303 12 18 #cdebd6ff
+glyphs "13px mono" 316.55 per L 158 #2d271eff, R 170 #2d271eff, V 182 #2d271eff, E 194 #2d271eff, Y 206 #2d271eff, L 218 #2d271eff, D 230 #2d271eff, D 242 #2d271eff, R 254 #2d271eff, N 266 #2d271eff, T 284 #2d271eff, F 296 #2d271eff, R 308 #2d271eff, H 320 #2d271eff, S 332 #2d271eff, V 344 #2d271eff, V 356 #2d271eff, V 368 #2d271eff, P 380 #2d271eff, Y 392 #2d271eff, E 410 #2d271eff, P 422 #2d271eff, P 434 #2d271eff, E 446 #2d271eff, V 458 #2d271eff, G 470 #2d271eff, S 482 #2d271eff, D 494 #2d271eff, C 506 #2d271eff, T 518 #2d271eff, T 536 #2d271eff, I 548 #2d271eff, H 560 #2d271eff, Y 572 #2d271eff, N 584 #2d271eff, Y 596 #2d271eff, M 608 #2d271eff, C 620 #2d271eff, N 632 #2d271eff, S 644 #2d271eff
 unclip
-clip 156.02 466 498 6
-rect 330 467 114 4 #d9536fff
+clip 152.02 324 498 6
+path M 188 325.8 L 268.4 325.8 L 268.4 325 L 272 327 L 268.4 329 L 268.4 328.2 L 188 328.2 Z #e8a33dff
+path M 314 325.8 L 448.4 325.8 L 448.4 325 L 452 327 L 448.4 329 L 448.4 328.2 L 314 328.2 Z #e8a33dff
+path M 488 325.8 L 550.4 325.8 L 550.4 325 L 554 327 L 550.4 329 L 550.4 328.2 L 488 328.2 Z #e8a33dff
+rect 566 325.8 84 2.4 #e8a33dff
 unclip
-clip 156.02 474 498 4
-image 156.02 474 498 4 498x1 cb7ed5d5
+clip 152.02 333 498 4
+image 152.02 333 498 4 498x1 b6d08055
 unclip
 unclip
-clip 8 8 704 524
-clip 156.02 500 414 18
-rect 156 500 12 18 #efe8b8ff
-rect 168 500 12 18 #cdebd6ff
-rect 180 500 12 18 #f5cfcfff
-rect 192 500 12 18 #cfe0f5ff
-rect 204 500 12 18 #f5cfcfff
-rect 216 500 12 18 #cdebd6ff
-rect 228 500 12 18 #cdebd6ff
-rect 240 500 12 18 #f5cfcfff
-rect 252 500 12 18 #cfe0f5ff
-rect 264 500 12 18 #f5cfcfff
-rect 282 500 12 18 #cdebd6ff
-rect 294 500 12 18 #f5cfcfff
-rect 306 500 12 18 #f5cfcfff
-rect 318 500 12 18 #efe8b8ff
-rect 330 500 12 18 #cdebd6ff
-rect 342 500 12 18 #cdebd6ff
-rect 354 500 12 18 #cdebd6ff
-rect 366 500 12 18 #cdebd6ff
-rect 378 500 12 18 #f5cfcfff
-rect 390 500 12 18 #f5cfcfff
-rect 408 500 12 18 #f5cfcfff
-rect 420 500 12 18 #f5cfcfff
-rect 432 500 12 18 #cfe0f5ff
-rect 444 500 12 18 #cfe0f5ff
-rect 456 500 12 18 #d8d2f2ff
-rect 468 500 12 18 #f5cfcfff
-rect 480 500 12 18 #cdebd6ff
-rect 492 500 12 18 #f6d9beff
-rect 504 500 12 18 #efe8b8ff
-rect 516 500 12 18 #efe8b8ff
-rect 534 500 12 18 #f6d9beff
-rect 546 500 12 18 #cdebd6ff
-rect 558 500 12 18 #f6d9beff
-glyphs "13px mono" 513.55 per G 162 #2d271eff, S 174 #2d271eff, R 186 #2d271eff, A 198 #2d271eff, H 210 #2d271eff, S 222 #2d271eff, S 234 #2d271eff, H 246 #2d271eff, L 258 #2d271eff, K 270 #2d271eff, S 288 #2d271eff, K 300 #2d271eff, K 312 #2d271eff, G 324 #2d271eff, Q 336 #2d271eff, S 348 #2d271eff, T 360 #2d271eff, S 372 #2d271eff, R 384 #2d271eff, H 396 #2d271eff, K 414 #2d271eff, K 426 #2d271eff, L 438 #2d271eff, M 450 #2d271eff, F 462 #2d271eff, K 474 #2d271eff, T 486 #2d271eff, E 498 #2d271eff, G 510 #2d271eff, P 522 #2d271eff, D 540 #2d271eff, S 552 #2d271eff, D 564 #2d271eff
+clip 8 8 704 562
+clip 152.02 361 498 18
+rect 152 361 12 18 #cdebd6ff
+rect 164 361 12 18 #cfe0f5ff
+rect 176 361 12 18 #cfe0f5ff
+rect 188 361 12 18 #efe8b8ff
+rect 200 361 12 18 #efe8b8ff
+rect 212 361 12 18 #cfe0f5ff
+rect 224 361 12 18 #cdebd6ff
+rect 236 361 12 18 #f5cfcfff
+rect 248 361 12 18 #f5cfcfff
+rect 260 361 12 18 #efe8b8ff
+rect 278 361 12 18 #cfe0f5ff
+rect 290 361 12 18 #cfe0f5ff
+rect 302 361 12 18 #cdebd6ff
+rect 314 361 12 18 #cfe0f5ff
+rect 326 361 12 18 #cfe0f5ff
+rect 338 361 12 18 #cdebd6ff
+rect 350 361 12 18 #cfe0f5ff
+rect 362 361 12 18 #f6d9beff
+rect 374 361 12 18 #f6d9beff
+rect 386 361 12 18 #cdebd6ff
+rect 404 361 12 18 #cdebd6ff
+rect 416 361 12 18 #efe8b8ff
+rect 428 361 12 18 #cdebd6ff
+rect 440 361 12 18 #cfe0f5ff
+rect 452 361 12 18 #cfe0f5ff
+rect 464 361 12 18 #efe8b8ff
+rect 476 361 12 18 #f5cfcfff
+rect 488 361 12 18 #cdebd6ff
+rect 500 361 12 18 #cdebd6ff
+rect 512 361 12 18 #d8d2f2ff
+rect 530 361 12 18 #f6d9beff
+rect 542 361 12 18 #cfe0f5ff
+rect 554 361 12 18 #f5cfcfff
+rect 566 361 12 18 #cfe0f5ff
+rect 578 361 12 18 #cfe0f5ff
+rect 590 361 12 18 #cfe0f5ff
+rect 602 361 12 18 #cfe0f5ff
+rect 614 361 12 18 #efe8b8ff
+rect 626 361 12 18 #efe8b8ff
+rect 638 361 12 18 #f5cfcfff
+glyphs "13px mono" 374.55 per S 158 #2d271eff, C 170 #2d271eff, M 182 #2d271eff, G 194 #2d271eff, G 206 #2d271eff, M 218 #2d271eff, N 230 #2d271eff, R 242 #2d271eff, R 254 #2d271eff, P 266 #2d271eff, I 284 #2d271eff, L 296 #2d271eff, T 308 #2d271eff, I 320 #2d271eff, I 332 #2d271eff, T 344 #2d271eff, L 356 #2d271eff, E 368 #2d271eff, D 380 #2d271eff, S 392 #2d271eff, S 410 #2d271eff, G 422 #2d271eff, N 434 #2d271eff, L 446 #2d271eff, L 458 #2d271eff, G 470 #2d271eff, R 482 #2d271eff, N 494 #2d271eff, S 506 #2d271eff, F 518 #2d271eff, E 536 #2d271eff, V 548 #2d271eff, R 560 #2d271eff, V 572 #2d271eff, C 584 #2d271eff, A 596 #2d271eff, C 608 #2d271eff, P 620 #2d271eff, G 632 #2d271eff, R 644 #2d271eff
 unclip
-clip 156.02 520 414 4
-image 156.02 520 414 4 414x1 45610255
+clip 152.02 382 498 6
+path M 290 383.8 L 394.4 383.8 L 394.4 383 L 398 385 L 394.4 387 L 394.4 386.2 L 290 386.2 Z #e8a33dff
+path M 452 383.8 L 562.4 383.8 L 562.4 383 L 566 385 L 562.4 387 L 562.4 386.2 L 452 386.2 Z #e8a33dff
+rect 614 383 36 4 #d9536fff
+unclip
+clip 152.02 391 498 4
+image 152.02 391 498 4 498x1 b6d08055
+unclip
+unclip
+clip 8 8 704 562
+clip 152.02 419 498 18
+rect 152 419 12 18 #f6d9beff
+rect 164 419 12 18 #f5cfcfff
+rect 176 419 12 18 #f5cfcfff
+rect 188 419 12 18 #cdebd6ff
+rect 200 419 12 18 #f6d9beff
+rect 212 419 12 18 #f6d9beff
+rect 224 419 12 18 #f6d9beff
+rect 236 419 12 18 #cdebd6ff
+rect 248 419 12 18 #cfe0f5ff
+rect 260 419 12 18 #f5cfcfff
+rect 278 419 12 18 #f5cfcfff
+rect 290 419 12 18 #f5cfcfff
+rect 302 419 12 18 #efe8b8ff
+rect 314 419 12 18 #f6d9beff
+rect 326 419 12 18 #efe8b8ff
+rect 338 419 12 18 #f5cfcfff
+rect 350 419 12 18 #f5cfcfff
+rect 362 419 12 18 #f6d9beff
+rect 374 419 12 18 #cfe0f5ff
+rect 386 419 12 18 #efe8b8ff
+rect 404 419 12 18 #efe8b8ff
+rect 416 419 12 18 #efe8b8ff
+rect 428 419 12 18 #cdebd6ff
+rect 440 419 12 18 #cdebd6ff
+rect 452 419 12 18 #f5cfcfff
+rect 464 419 12 18 #f5cfcfff
+rect 476 419 12 18 #cfe0f5ff
+rect 488 419 12 18 #cfe0f5ff
+rect 500 419 12 18 #efe8b8ff
+rect 512 419 12 18 #cdebd6ff
+rect 530 419 12 18 #cdebd6ff
+rect 542 419 12 18 #cdebd6ff
+rect 554 419 12 18 #cdebd6ff
+rect 566 419 12 18 #cdebd6ff
+rect 578 419 12 18 #cdebd6ff
+rect 590 419 12 18 #efe8b8ff
+rect 602 419 12 18 #cdebd6ff
+rect 614 419 12 18 #efe8b8ff
+rect 626 419 12 18 #f5cfcfff
+rect 638 419 12 18 #f5cfcfff
+glyphs "13px mono" 432.55 per D 158 #2d271eff, R 170 #2d271eff, R 182 #2d271eff, T 194 #2d271eff, E 206 #2d271eff, E 218 #2d271eff, E 230 #2d271eff, N 242 #2d271eff, L 254 #2d271eff, R 266 #2d271eff, K 284 #2d271eff, K 296 #2d271eff, G 308 #2d271eff, E 320 #2d271eff, P 332 #2d271eff, H 344 #2d271eff, H 356 #2d271eff, E 368 #2d271eff, L 380 #2d271eff, P 392 #2d271eff, P 410 #2d271eff, G 422 #2d271eff, S 434 #2d271eff, T 446 #2d271eff, K 458 #2d271eff, R 470 #2d271eff, A 482 #2d271eff, L 494 #2d271eff, P 506 #2d271eff, N 518 #2d271eff, N 536 #2d271eff, T 548 #2d271eff, S 560 #2d271eff, S 572 #2d271eff, S 584 #2d271eff, P 596 #2d271eff, Q 608 #2d271eff, P 620 #2d271eff, K 632 #2d271eff, K 644 #2d271eff
+unclip
+clip 152.02 440 498 6
+rect 152 441 84 4 #d9536fff
+unclip
+clip 152.02 449 498 4
+image 152.02 449 498 4 498x1 84dc8775
+unclip
+unclip
+clip 8 8 704 562
+clip 152.02 477 498 18
+rect 152 477 12 18 #f5cfcfff
+rect 164 477 12 18 #efe8b8ff
+rect 176 477 12 18 #cfe0f5ff
+rect 188 477 12 18 #f6d9beff
+rect 200 477 12 18 #efe8b8ff
+rect 212 477 12 18 #f6d9beff
+rect 224 477 12 18 #d8d2f2ff
+rect 236 477 12 18 #d8d2f2ff
+rect 248 477 12 18 #cdebd6ff
+rect 260 477 12 18 #cfe0f5ff
+rect 278 477 12 18 #cdebd6ff
+rect 290 477 12 18 #cfe0f5ff
+rect 302 477 12 18 #f5cfcfff
+rect 314 477 12 18 #efe8b8ff
+rect 326 477 12 18 #f5cfcfff
+rect 338 477 12 18 #f6d9beff
+rect 350 477 12 18 #f5cfcfff
+rect 362 477 12 18 #d8d2f2ff
+rect 374 477 12 18 #f6d9beff
+rect 386 477 12 18 #cfe0f5ff
+rect 404 477 12 18 #d8d2f2ff
+rect 416 477 12 18 #f5cfcfff
+rect 428 477 12 18 #f6d9beff
+rect 440 477 12 18 #cfe0f5ff
+rect 452 477 12 18 #cdebd6ff
+rect 464 477 12 18 #f6d9beff
+rect 476 477 12 18 #cfe0f5ff
+rect 488 477 12 18 #cfe0f5ff
+rect 500 477 12 18 #f6d9beff
+rect 512 477 12 18 #cfe0f5ff
+rect 530 477 12 18 #f5cfcfff
+rect 542 477 12 18 #f6d9beff
+rect 554 477 12 18 #cfe0f5ff
+rect 566 477 12 18 #cdebd6ff
+rect 578 477 12 18 #cfe0f5ff
+rect 590 477 12 18 #efe8b8ff
+rect 602 477 12 18 #f5cfcfff
+rect 614 477 12 18 #f6d9beff
+rect 626 477 12 18 #efe8b8ff
+rect 638 477 12 18 #efe8b8ff
+glyphs "13px mono" 490.55 per K 158 #2d271eff, P 170 #2d271eff, L 182 #2d271eff, D 194 #2d271eff, G 206 #2d271eff, E 218 #2d271eff, Y 230 #2d271eff, F 242 #2d271eff, T 254 #2d271eff, L 266 #2d271eff, Q 284 #2d271eff, I 296 #2d271eff, R 308 #2d271eff, G 320 #2d271eff, R 332 #2d271eff, E 344 #2d271eff, R 356 #2d271eff, F 368 #2d271eff, E 380 #2d271eff, M 392 #2d271eff, F 410 #2d271eff, R 422 #2d271eff, E 434 #2d271eff, L 446 #2d271eff, N 458 #2d271eff, E 470 #2d271eff, A 482 #2d271eff, L 494 #2d271eff, E 506 #2d271eff, L 518 #2d271eff, K 536 #2d271eff, D 548 #2d271eff, A 560 #2d271eff, Q 572 #2d271eff, A 584 #2d271eff, G 596 #2d271eff, K 608 #2d271eff, E 620 #2d271eff, P 632 #2d271eff, G 644 #2d271eff
+unclip
+clip 152.02 498 498 6
+rect 326 499 114 4 #d9536fff
+unclip
+clip 152.02 507 498 4
+image 152.02 507 498 4 498x1 cb7ed5d5
+unclip
+unclip
+clip 8 8 704 562
+clip 152.02 535 414 18
+rect 152 535 12 18 #efe8b8ff
+rect 164 535 12 18 #cdebd6ff
+rect 176 535 12 18 #f5cfcfff
+rect 188 535 12 18 #cfe0f5ff
+rect 200 535 12 18 #f5cfcfff
+rect 212 535 12 18 #cdebd6ff
+rect 224 535 12 18 #cdebd6ff
+rect 236 535 12 18 #f5cfcfff
+rect 248 535 12 18 #cfe0f5ff
+rect 260 535 12 18 #f5cfcfff
+rect 278 535 12 18 #cdebd6ff
+rect 290 535 12 18 #f5cfcfff
+rect 302 535 12 18 #f5cfcfff
+rect 314 535 12 18 #efe8b8ff
+rect 326 535 12 18 #cdebd6ff
+rect 338 535 12 18 #cdebd6ff
+rect 350 535 12 18 #cdebd6ff
+rect 362 535 12 18 #cdebd6ff
+rect 374 535 12 18 #f5cfcfff
+rect 386 535 12 18 #f5cfcfff
+rect 404 535 12 18 #f5cfcfff
+rect 416 535 12 18 #f5cfcfff
+rect 428 535 12 18 #cfe0f5ff
+rect 440 535 12 18 #cfe0f5ff
+rect 452 535 12 18 #d8d2f2ff
+rect 464 535 12 18 #f5cfcfff
+rect 476 535 12 18 #cdebd6ff
+rect 488 535 12 18 #f6d9beff
+rect 500 535 12 18 #efe8b8ff
+rect 512 535 12 18 #efe8b8ff
+rect 530 535 12 18 #f6d9beff
+rect 542 535 12 18 #cdebd6ff
+rect 554 535 12 18 #f6d9beff
+glyphs "13px mono" 548.55 per G 158 #2d271eff, S 170 #2d271eff, R 182 #2d271eff, A 194 #2d271eff, H 206 #2d271eff, S 218 #2d271eff, S 230 #2d271eff, H 242 #2d271eff, L 254 #2d271eff, K 266 #2d271eff, S 284 #2d271eff, K 296 #2d271eff, K 308 #2d271eff, G 320 #2d271eff, Q 332 #2d271eff, S 344 #2d271eff, T 356 #2d271eff, S 368 #2d271eff, R 380 #2d271eff, H 392 #2d271eff, K 410 #2d271eff, K 422 #2d271eff, L 434 #2d271eff, M 446 #2d271eff, F 458 #2d271eff, K 470 #2d271eff, T 482 #2d271eff, E 494 #2d271eff, G 506 #2d271eff, P 518 #2d271eff, D 536 #2d271eff, S 548 #2d271eff, D 560 #2d271eff
+unclip
+clip 152.02 556 414 4
+image 152.02 556 414 4 414x1 45610255
 unclip
 unclip
 pass window
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
 pass highlight
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
 pass selection
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
 pass hover
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
 pass cursor
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
-clip 8 8 704 524
+clip 8 8 704 562
 unclip
 pass labels
-clip 8 8 704 524
-text "p53" 8 35.2 start "12px sans" #6b655cff width 20.02 max 112
-text "Secondary structure" 8 49.2 start "12px sans" #6b655cff width 107.38 max 112
-text "Domains" 8 61.2 start "12px sans" #6b655cff width 47.34 max 112
-text "1" 148.02 35.2 end "12px sans" #6b655cff width 6.67
-text "10" 270.02 20 middle "10px sans" #6b655cff width 11.12
-text "20" 396.02 20 middle "10px sans" #6b655cff width 11.12
-text "30" 522.02 20 middle "10px sans" #6b655cff width 11.12
-text "40" 648.02 20 middle "10px sans" #6b655cff width 11.12
+clip 8 8 704 562
+text "p53" 8 35.2 start "12px sans" #6b655cff width 20.02 max 108
+text "Secondary structure" 8 50.2 start "12px sans" #6b655cff width 107.38 max 108
+text "Domains" 8 62.2 start "12px sans" #6b655cff width 47.34 max 108
+text "1" 144.02 35.2 end "12px sans" #6b655cff width 6.67
+text "10" 266.02 20 middle "10px sans" #6b655cff width 11.12
+text "20" 392.02 20 middle "10px sans" #6b655cff width 11.12
+text "30" 518.02 20 middle "10px sans" #6b655cff width 11.12
+text "40" 644.02 20 middle "10px sans" #6b655cff width 11.12
 unclip
-clip 8 8 704 524
-text "41" 148.02 89.2 end "12px sans" #6b655cff width 13.34
-text "50" 270.02 74 middle "10px sans" #6b655cff width 11.12
-text "60" 396.02 74 middle "10px sans" #6b655cff width 11.12
-text "70" 522.02 74 middle "10px sans" #6b655cff width 11.12
-text "80" 648.02 74 middle "10px sans" #6b655cff width 11.12
+clip 8 8 704 562
+text "41" 144.02 93.2 end "12px sans" #6b655cff width 13.34
+text "50" 266.02 78 middle "10px sans" #6b655cff width 11.12
+text "60" 392.02 78 middle "10px sans" #6b655cff width 11.12
+text "70" 518.02 78 middle "10px sans" #6b655cff width 11.12
+text "80" 644.02 78 middle "10px sans" #6b655cff width 11.12
 unclip
-clip 8 8 704 524
-text "81" 148.02 135.2 end "12px sans" #6b655cff width 13.34
-text "90" 270.02 120 middle "10px sans" #6b655cff width 11.12
-text "100" 396.02 120 middle "10px sans" #6b655cff width 16.68
-text "110" 522.02 120 middle "10px sans" #6b655cff width 16.68
-text "120" 648.02 120 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "81" 144.02 142.2 end "12px sans" #6b655cff width 13.34
+text "90" 266.02 127 middle "10px sans" #6b655cff width 11.12
+text "100" 392.02 127 middle "10px sans" #6b655cff width 16.68
+text "110" 518.02 127 middle "10px sans" #6b655cff width 16.68
+text "120" 644.02 127 middle "10px sans" #6b655cff width 16.68
 unclip
-clip 8 8 704 524
-text "121" 148.02 189.2 end "12px sans" #6b655cff width 20.02
-text "130" 270.02 174 middle "10px sans" #6b655cff width 16.68
-text "140" 396.02 174 middle "10px sans" #6b655cff width 16.68
-text "150" 522.02 174 middle "10px sans" #6b655cff width 16.68
-text "160" 648.02 174 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "121" 144.02 200.2 end "12px sans" #6b655cff width 20.02
+text "130" 266.02 185 middle "10px sans" #6b655cff width 16.68
+text "140" 392.02 185 middle "10px sans" #6b655cff width 16.68
+text "150" 518.02 185 middle "10px sans" #6b655cff width 16.68
+text "160" 644.02 185 middle "10px sans" #6b655cff width 16.68
 unclip
-clip 8 8 704 524
-text "161" 148.02 243.2 end "12px sans" #6b655cff width 20.02
-text "170" 270.02 228 middle "10px sans" #6b655cff width 16.68
-text "180" 396.02 228 middle "10px sans" #6b655cff width 16.68
-text "190" 522.02 228 middle "10px sans" #6b655cff width 16.68
-text "200" 648.02 228 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "161" 144.02 258.2 end "12px sans" #6b655cff width 20.02
+text "170" 266.02 243 middle "10px sans" #6b655cff width 16.68
+text "180" 392.02 243 middle "10px sans" #6b655cff width 16.68
+text "190" 518.02 243 middle "10px sans" #6b655cff width 16.68
+text "200" 644.02 243 middle "10px sans" #6b655cff width 16.68
 unclip
-clip 8 8 704 524
-text "201" 148.02 297.2 end "12px sans" #6b655cff width 20.02
-text "210" 270.02 282 middle "10px sans" #6b655cff width 16.68
-text "220" 396.02 282 middle "10px sans" #6b655cff width 16.68
-text "230" 522.02 282 middle "10px sans" #6b655cff width 16.68
-text "240" 648.02 282 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "201" 144.02 316.2 end "12px sans" #6b655cff width 20.02
+text "210" 266.02 301 middle "10px sans" #6b655cff width 16.68
+text "220" 392.02 301 middle "10px sans" #6b655cff width 16.68
+text "230" 518.02 301 middle "10px sans" #6b655cff width 16.68
+text "240" 644.02 301 middle "10px sans" #6b655cff width 16.68
 unclip
-clip 8 8 704 524
-text "241" 148.02 351.2 end "12px sans" #6b655cff width 20.02
-text "250" 270.02 336 middle "10px sans" #6b655cff width 16.68
-text "260" 396.02 336 middle "10px sans" #6b655cff width 16.68
-text "270" 522.02 336 middle "10px sans" #6b655cff width 16.68
-text "280" 648.02 336 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "241" 144.02 374.2 end "12px sans" #6b655cff width 20.02
+text "250" 266.02 359 middle "10px sans" #6b655cff width 16.68
+text "260" 392.02 359 middle "10px sans" #6b655cff width 16.68
+text "270" 518.02 359 middle "10px sans" #6b655cff width 16.68
+text "280" 644.02 359 middle "10px sans" #6b655cff width 16.68
 unclip
-clip 8 8 704 524
-text "281" 148.02 405.2 end "12px sans" #6b655cff width 20.02
-text "290" 270.02 390 middle "10px sans" #6b655cff width 16.68
-text "300" 396.02 390 middle "10px sans" #6b655cff width 16.68
-text "310" 522.02 390 middle "10px sans" #6b655cff width 16.68
-text "320" 648.02 390 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "281" 144.02 432.2 end "12px sans" #6b655cff width 20.02
+text "290" 266.02 417 middle "10px sans" #6b655cff width 16.68
+text "300" 392.02 417 middle "10px sans" #6b655cff width 16.68
+text "310" 518.02 417 middle "10px sans" #6b655cff width 16.68
+text "320" 644.02 417 middle "10px sans" #6b655cff width 16.68
 unclip
-clip 8 8 704 524
-text "321" 148.02 459.2 end "12px sans" #6b655cff width 20.02
-text "330" 270.02 444 middle "10px sans" #6b655cff width 16.68
-text "340" 396.02 444 middle "10px sans" #6b655cff width 16.68
-text "350" 522.02 444 middle "10px sans" #6b655cff width 16.68
-text "360" 648.02 444 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "321" 144.02 490.2 end "12px sans" #6b655cff width 20.02
+text "330" 266.02 475 middle "10px sans" #6b655cff width 16.68
+text "340" 392.02 475 middle "10px sans" #6b655cff width 16.68
+text "350" 518.02 475 middle "10px sans" #6b655cff width 16.68
+text "360" 644.02 475 middle "10px sans" #6b655cff width 16.68
 unclip
-clip 8 8 704 524
-text "361" 148.02 513.2 end "12px sans" #6b655cff width 20.02
-text "370" 270.02 498 middle "10px sans" #6b655cff width 16.68
-text "380" 396.02 498 middle "10px sans" #6b655cff width 16.68
-text "390" 522.02 498 middle "10px sans" #6b655cff width 16.68
+clip 8 8 704 562
+text "361" 144.02 548.2 end "12px sans" #6b655cff width 20.02
+text "370" 266.02 533 middle "10px sans" #6b655cff width 16.68
+text "380" 392.02 533 middle "10px sans" #6b655cff width 16.68
+text "390" 518.02 533 middle "10px sans" #6b655cff width 16.68
 unclip

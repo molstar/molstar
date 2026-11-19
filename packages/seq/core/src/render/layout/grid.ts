@@ -329,7 +329,7 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
     g[2] = t.labelWidth;
     g[3] = config.labelWidth;
     g[4] = tokens.colors['msui-text-muted'];
-    out.textArgs(t.track.label, AnchorStart, config.labelFont);
+    out.textArgs(t.labelText, AnchorStart, config.labelFont);
   }
   if (!(p instanceof GridPlacement)) return;
   const right = s.axis ? s.axis.x0 - config.labelGap / 2 : config.inset + config.labelWidth;
@@ -375,7 +375,7 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
     g[2] = t.labelWidth;
     g[3] = config.labelWidth;
     g[4] = muted;
-    out.textArgs(t.track.label, AnchorStart, config.labelFont);
+    out.textArgs(t.labelText, AnchorStart, config.labelFont);
   }
   for (let b = 0; b < blocks.length; b++) {
     const label = blocks[b].label;

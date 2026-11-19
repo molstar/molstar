@@ -56,7 +56,7 @@ const byColor = (rects: R[], hex: string) => rects.filter((r) => r.paint.startsW
 const Tracks = { size: { width: 800, height: 240 }, viewport: { start: 0, end: 30 } };
 
 async function tracks(highlights: EmphasisHighlight[], config = {}) {
-  const r = await renderSvg(p53TracksSpec(), { ...Tracks, config, emphasis: { highlights } });
+  const r = await renderSvg(p53TracksSpec({ heights: 'fixed' }), { ...Tracks, config, emphasis: { highlights } });
   return rectsOf(r.lists);
 }
 
@@ -153,7 +153,7 @@ describe('reversed axis, cyclic origin, a break', () => {
 
 describe('an outline is whole; stripe edges are on device pixels', () => {
   it('A outlined [0,100) with B [40,60): A is one outline, B keeps the whole band', async () => {
-    const rects = await renderSvg(p53TracksSpec(), {
+    const rects = await renderSvg(p53TracksSpec({ heights: 'fixed' }), {
       size: { width: 1200, height: 240 },
       viewport: { start: 0, end: 120 },
       emphasis: { highlights: [on(Protein, [0, 100], Red, 'outline'), on(Protein, [40, 60], Green)] },
@@ -169,7 +169,7 @@ describe('an outline is whole; stripe edges are on device pixels', () => {
 
   it.each([1, 2])('five stripes of a band not divisible by five meet edge to edge at dpr %i', async (dpr) => {
     const hs = [Red, Green, Blue, 0xffcc00ff, 0xff66ccff].map((c) => on(Protein, [4, 10], c));
-    const r = await renderSvg(p53TracksSpec(), {
+    const r = await renderSvg(p53TracksSpec({ heights: 'fixed' }), {
       ...Tracks,
       dpr,
       config: { emphasis: { highlightStripes: 5 } },

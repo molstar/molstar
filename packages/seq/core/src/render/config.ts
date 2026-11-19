@@ -32,9 +32,15 @@ export type DensityUnits = { readonly [K in keyof DensityThresholds]: 'css' | 'd
 export interface RenderConfig {
   /** The page's inset around everything, in CSS px. */
   readonly inset: number;
-  /** The one label column: its width, and the gap between it and the data. */
+  /**
+   * The one label column: its width, and the gap between it and the data. With `labelColumn.measure` (the default) the
+   * width is the widest track label's in the view (a direction mark fades at its end), between `labelColumn.min` and
+   * `labelColumn.max` (80 and 160 px), and a label past it ends in an ellipsis; without, `labelWidth` (112) is the width
+   * (_spec/README.md "Render", Configuration: decided from the defaults audit).
+   */
   readonly labelWidth: number;
   readonly labelGap: number;
+  readonly labelColumn: { readonly measure: boolean; readonly min: number; readonly max: number };
   /** Gaps between the tracks of a section (a group) and between sections. */
   readonly trackGap: number;
   readonly sectionGap: number;
@@ -66,9 +72,15 @@ export interface RenderConfig {
     /** A grid layer's track when a grid section's `aspect` is `none` (else the plot's height is the aspect's). */
     readonly grid: number;
   };
-  /** A lane of ranges, and the gap within it. */
+  /**
+   * A lane of ranges (14 px: a 12 px mark and its 2 px gap), the padding above and below a band's lanes (4 px), and the
+   * most lanes a track's content height takes (5; past them lanes compact as before): a track with no height is as tall
+   * as its lanes (_spec/README.md "Render", Track heights).
+   */
   readonly laneHeight: number;
   readonly laneGap: number;
+  readonly lanePadding: number;
+  readonly maxLanes: number;
   readonly density: DensityThresholds;
   readonly densityUnits: DensityUnits;
   /** Letter sizes, a short scale (CSS px); the largest that fits the cell is used. */
@@ -258,8 +270,9 @@ export const DefaultRenderConfig: RenderConfig = {
   inset: 8,
   labelWidth: 112,
   labelGap: 8,
+  labelColumn: { measure: true, min: 80, max: 160 },
   trackGap: 4,
-  sectionGap: 8,
+  sectionGap: 20,
   trackPadding: { top: 0, bottom: 0 },
   trackShape: 'squircle',
   heights: {
@@ -275,8 +288,10 @@ export const DefaultRenderConfig: RenderConfig = {
     pairs: 64,
     grid: 240,
   },
-  laneHeight: 12,
+  laneHeight: 14,
   laneGap: 2,
+  lanePadding: 4,
+  maxLanes: 5,
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
   densityUnits: { letters: 'css', cells: 'device', dots: 'device', bars: 'device' },
   letterSizes: [9, 10, 11, 12, 13, 14],
@@ -334,8 +349,8 @@ export const DefaultRenderConfig: RenderConfig = {
   text: {
     scale: 12,
     groupGap: 0.5,
-    lineGap: 8,
-    bandGap: 2,
+    lineGap: 10,
+    bandGap: 3,
     collapseEmpty: true,
     maxLines: 100_000,
     maxHeight: 600,
@@ -373,6 +388,12 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     ...(over as Partial<RenderConfig>),
     nodes: { ...DefaultRenderConfig.nodes, ...over.nodes },
     axis: { ...DefaultRenderConfig.axis, ...over.axis },
+    // a width given and no column rule: that width, fixed
+    labelColumn: {
+      ...DefaultRenderConfig.labelColumn,
+      ...(over.labelWidth !== undefined && over.labelColumn === undefined ? { measure: false } : {}),
+      ...over.labelColumn,
+    },
     trackPadding: { ...DefaultRenderConfig.trackPadding, ...over.trackPadding },
     heights: { ...DefaultRenderConfig.heights, ...over.heights },
     density: { ...DefaultRenderConfig.density, ...over.density },

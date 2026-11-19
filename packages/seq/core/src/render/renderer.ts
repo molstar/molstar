@@ -19,7 +19,7 @@ import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreRe
 import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import { drawView, type HeldDomains, LayoutState, layoutView, type ViewLayout } from './tracks.js';
+import { drawView, type HeldDomains, type LayoutInput, LayoutState, layoutView, type ViewLayout } from './tracks.js';
 
 // Frames keyed by what they read (_spec/README.md "Render", The key): the model's hash, the view, the size, the
 // viewport, the device pixel ratio, the token table's version, the text metrics' version, the overlay's version, whether
@@ -48,6 +48,9 @@ export interface RendererOptions {
    * reads the same (`LayoutSource`). A layout not here is said; its section is laid out as tracks.
    */
   readonly layouts: Readonly<Record<string, SectionLayoutType<any>>>;
+  /** The track sizings a section's `heights` may name past the built-ins (the composition's registry), and the host's port. */
+  readonly sizings?: LayoutInput['sizings'];
+  readonly trackSizing?: LayoutInput['trackSizing'];
   /** The schemes and measures the themes read (the built-ins by default): the composition's registry entries. */
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /** The shared image cache (_spec/README.md "Render", The shared reduction): another renderer's (a navigator's view). */
@@ -366,6 +369,8 @@ export class Renderer {
         settled: input.settled ?? false,
         types: this.options.types,
         layouts: this.options.layouts,
+        ...(this.options.sizings ? { sizings: this.options.sizings } : {}),
+        ...(this.options.trackSizing ? { trackSizing: this.options.trackSizing } : {}),
         theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),

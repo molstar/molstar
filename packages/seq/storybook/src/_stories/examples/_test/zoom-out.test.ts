@@ -75,7 +75,7 @@ function domainAt(v: SeqViewer, section: string, key: string) {
   const lay = s.tracks.find((t) => t.track.address.endsWith('/domains'))!.layers[0].lay as RangesLay;
   for (let j = 0; j < lay.hn; j++)
     if (lay.keys[lay.hitem[j]] === key)
-      return [(lay.hx0[j] + lay.hx1[j]) / 2, lay.box.y + (lay.hlane[j] + 0.5) * lay.laneHeight] as const;
+      return [(lay.hx0[j] + lay.hx1[j]) / 2, lay.laneY + (lay.hlane[j] + 0.5) * lay.laneHeight] as const;
   throw new Error(`no ${key} on ${section}`);
 }
 
@@ -94,7 +94,7 @@ describe('a double-click on an item focuses its whole extent on the section clic
     const y = v.frame!.layout.sections[0].tracks.find((t) => t.track.address.includes('T1-domains'))!;
     const lay = y.layers[0].lay as RangesLay;
     const j = Array.from({ length: lay.hn }, (_, k) => k).find((k) => lay.keys[lay.hitem[k]] === 'DBD')!;
-    v.input.doubleClick((x0 + x1) / 2, lay.box.y + (lay.hlane[j] + 0.5) * lay.laneHeight);
+    v.input.doubleClick((x0 + x1) / 2, lay.laneY + (lay.hlane[j] + 0.5) * lay.laneHeight);
     await vi.advanceTimersByTimeAsync(1000);
     // the domain's pieces (its codons over three exons): all in view, and they fill it from edge to edge
     const after = domainMarks(v, region, 'DBD', 'T1-domains');

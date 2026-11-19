@@ -88,7 +88,7 @@ export function checkMarks(v: SeqViewer) {
     for (let j = 0; j < lay.m; j++) {
       marks++;
       const x = (lay.mx0[j] + lay.mx1[j]) / 2;
-      const y = lay.box.y + (lay.mlane[j] + 0.5) * lay.laneHeight;
+      const y = lay.laneY + (lay.mlane[j] + 0.5) * lay.laneHeight;
       // the items the mark draws: its own, or those of the run's marks
       const drawn = new Set<string | number>();
       if (lay.mitem[j] >= 0) drawn.add(lay.keys[lay.mitem[j]]);

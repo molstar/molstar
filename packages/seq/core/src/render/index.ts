@@ -90,6 +90,7 @@ export {
   type LabelSink,
   type ItemDescription,
   type LayerType,
+  type ContentContext,
   type LayoutContext,
   type Overlay,
   type StoreReader,
@@ -120,6 +121,17 @@ export {
   textParams,
 } from './layout/text.js';
 export { clampWindow, sameWindow, TracksLayout, TracksNav } from './layout/tracks.js';
+export {
+  BuiltInSizings,
+  ContentSizing,
+  FixedSizing,
+  type LayerContent,
+  lanesHeight,
+  type SizedTrack,
+  type TrackSizing,
+  type TrackSizingHook,
+  UniformSizing,
+} from './sizing.js';
 export { GridLayout, GridNav, GridPlacement } from './layout/grid.js';
 export type {
   NavContext,
@@ -170,6 +182,7 @@ export { SquircleHandle, squirclePath, squirclePathArgs, squircleRadius } from '
 export { drawListsToSvg, escapeXml, type SvgAccessible, type SvgOptions } from './svg.js';
 export {
   accessibleOf,
+  extentText,
   itemText,
   locationText,
   MaxNamedItems,
@@ -204,6 +217,7 @@ export {
   type LayoutInput,
   LayoutState,
   layerKey,
+  labelColumnWidth,
   layoutView,
   multiSystem,
   type SectionLayout,

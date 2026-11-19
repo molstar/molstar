@@ -83,13 +83,13 @@ export function holeySpec(): Node {
 }
 
 /** p53 as tracks: its letters, its domains (in lanes), its conservation. */
-export function p53TracksSpec(): Node {
+export function p53TracksSpec(options: { heights?: 'content' | 'uniform' | 'fixed' } = {}): Node {
   const b = createSeqSpec({ title: 'p53 tracks' });
   const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
   const d = domains(b, p53);
   const c = b.data.values('conservation', { target: p53, values: conservation() });
   b.views.view('main', (v) => {
-    const s = v.section('protein', { of: p53 });
+    const s = v.section('protein', { of: p53, ...(options.heights ? { heights: options.heights } : {}) });
     s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
     s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
     s.track('conservation', { label: 'Conservation' }).layer('values', { type: 'values', data: c });

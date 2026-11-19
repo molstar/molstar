@@ -124,7 +124,7 @@ describe('a ring in the viewer, its input through its placement', () => {
 
   it('a double-click on an item over the origin focuses it by the shorter arc', async () => {
     const v = await make();
-    const q = pointAt(v, 20.5, ringOf(v).strips.bandY[0] + 3);
+    const q = pointAt(v, 20.5, ringOf(v).strips.bandY[0] + ringOf(v).strips.bandH[0] / 2);
     expect(v.hit(q.x, q.y)?.element?.key).toBe('ori');
     expect(v.input.doubleClick(q.x, q.y)).toBe(true);
     frames!.flush();

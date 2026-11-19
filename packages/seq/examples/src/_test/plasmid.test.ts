@@ -426,7 +426,7 @@ describe('the Plasmid views drawn against the data', () => {
     const near = (pos: number, track: number) => {
       // the tip is at the middle of the mark's lane (the features are in the band's first lane)
       const lay = f.layout.sections[0].tracks[track].layers[0].lay as RangesLay;
-      p.warp.map(p.frameX(pos), lay.box.y + lay.laneHeight / 2);
+      p.warp.map(p.frameX(pos), lay.laneY + lay.laneHeight / 2);
       const [x, y] = [p.warp.px, p.warp.py];
       return vertices.some(([vx, vy]) => Math.hypot(vx - x, vy - y) < 1.5);
     };

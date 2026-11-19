@@ -66,7 +66,8 @@ describe('a row past the end of its system', () => {
     const { f, lay } = await layout(true);
     const keys = new Set(Array.from({ length: lay.items }, (_, i) => String(lay.keys[i])));
     expect(keys.has('across')).toBe(true);
-    const y = f.layout.sections[0].tracks[0].box.y + 4;
+    const box = f.layout.sections[0].tracks[0].box;
+    const y = box.y + box.height / 2;
     const at = (position: number) => {
       const axis = f.layout.sections[0].axis!;
       return hitView(f.layout, axis.xOfUnit(axis.unitOf(0, position + 0.5)), y);

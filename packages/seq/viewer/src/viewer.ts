@@ -22,6 +22,7 @@ import {
   type RenderSvgResult,
   type Viewport as RenderViewport,
   hitView,
+  labelColumnWidth,
   railSections,
   rowsRailTracks,
   resolveColor,
@@ -589,14 +590,22 @@ export class SeqViewer extends ReactiveModel {
   /** Drops what was measured: a web font arrived. */
   invalidateText(): void {
     this.context.text.clear();
+    this._column[0] = undefined;
     this.schedule();
   }
 
-  /** The data box's left edge: the page's inset, the label column and its gap. */
+  /** The data box's left edge: the page's inset, the label column (measured over the view's labels) and its gap. */
   get dataX(): number {
     const c = this.context.renderConfig;
-    return c.inset + c.labelWidth + c.labelGap;
+    const view = this.view.resolved.value;
+    if (this._column[0] !== view) {
+      this._column[0] = view;
+      this._column[1] = view ? labelColumnWidth(view, c, this.context.text) : c.labelWidth;
+    }
+    return c.inset + (this._column[1] as number) + c.labelGap;
   }
+  /** The label column's width and the resolved view it was measured for. */
+  private readonly _column: [unknown, number] = [undefined, 0];
 
   private _applyWidths(): void {
     const sections = this.view.resolved.value?.sections;
@@ -1053,6 +1062,8 @@ export class SeqViewer extends ReactiveModel {
         config: this.context.renderConfig,
         types: this.context.types,
         layouts: this.layouts,
+        sizings: this.context.sizings,
+        ...(this.context.trackSizing ? { trackSizing: this.context.trackSizing } : {}),
       });
       rr[0] = model;
       rr[1] = resolved;

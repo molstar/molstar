@@ -80,7 +80,12 @@ function svgRects(svg: string): R[] {
 const Tracks = { size: { width: 800, height: 240 }, viewport: { start: 0, end: 30 } };
 
 async function tracks(highlights: EmphasisHighlight[], theme: 'light' | 'dark' = 'light', config = {}) {
-  const r = await renderSvg(p53TracksSpec(), { ...Tracks, theme, config, emphasis: { highlights } });
+  const r = await renderSvg(p53TracksSpec({ heights: 'fixed' }), {
+    ...Tracks,
+    theme,
+    config,
+    emphasis: { highlights },
+  });
   return { rects: listRects(r.lists), svg: svgRects(r.svg) };
 }
 
@@ -169,8 +174,9 @@ describe('text lines and rings', () => {
     });
     const rects = listRects(r.lists);
     expect(rects.map((x) => x.paint.split(' ')[0])).toEqual(['#ff00004d', '#ff00004d', '#00ff004d', '#00ff004d']);
-    expect(rects[1].h).toBe(rects[0].h / 2);
-    expect(rects[2].y).toBe(rects[0].y + rects[0].h / 2);
+    // two stripes, their edge on a device pixel (a band of an odd height splits a pixel off the middle)
+    expect(Math.abs(rects[1].h - rects[0].h / 2)).toBeLessThanOrEqual(0.5);
+    expect(rects[2].y).toBe(rects[1].y + rects[1].h);
     const svg = svgRects(r.svg);
     expect(svg.map((x) => [x.x, x.y, x.w, x.h])).toEqual(rects.map((x) => [x.x, x.y, x.w, x.h]));
   });

@@ -16,6 +16,7 @@ import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
 import type { Placement, WindowPart } from './layout/types.js';
+import type { LayerContent } from './sizing.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 
@@ -76,6 +77,16 @@ export interface LayoutContext {
   readonly span?: Box;
   /** The section's placement, for a `section` layer (it draws in page coordinates). */
   readonly place?: Placement;
+  /**
+   * A layer with no color (_spec/README.md "Themes", A layer with no color): its place in the theme's categorical
+   * palette (`seq-cat-<n>`), by its order in the view; absent for a layer the spec colors.
+   */
+  readonly colorIndex?: number;
+  /**
+   * What the layer's items need over the whole data (its `content`), when its track is sized by it: its marks' lanes
+   * centred in the band by it, and a label lane above them when it says so (_spec/README.md "Render", Track heights).
+   */
+  readonly content?: LayerContent;
   /** Item labels drawn `inside` marks, or a sink a layout collects them into (rings: placed outside). */
   readonly labels?: 'inside' | LabelSink;
   /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */
@@ -102,6 +113,16 @@ export interface LayoutContext {
    * as a pill over its one position.
    */
   readonly chip?: string;
+}
+
+/** What a layer's `content` reads: the config, the text metrics, the px a position at the fit view, a label lane's use. */
+export interface ContentContext {
+  readonly config: RenderConfig;
+  readonly text: TextMetrics;
+  /** Px a display unit with the whole axis across the data box (a zoom only widens marks: a label fitting here always fits). */
+  readonly fit: number;
+  /** Whether the layout puts labels that do not fit their marks in a lane above them (tracks; a ring places them outside). */
+  readonly labelLane: boolean;
 }
 
 /** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */
@@ -256,6 +277,11 @@ export interface ItemDescription {
   /** Its extent on its data's system, `[start, end)`. */
   readonly start: number;
   readonly end: number;
+  /**
+   * Its runs on its data's system in reading order, when it is two: an item across a cyclic origin, from its start to
+   * the origin, then from the origin to its end (EC-9: "2,487–2,686, 1–175"); absent when its extent is one run.
+   */
+  readonly runs?: readonly number[];
   /** Where it is drawn, in the section's x (clamped to the data box) and the layer's band. */
   readonly x0: number;
   readonly x1: number;
@@ -276,6 +302,12 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   /** The layer type a target without this one draws. */
   readonly fallback?: string;
   prepare(layer: ResolvedLayer, model: StaticModel): Prep;
+  /**
+   * What its items need over the whole data, never the view (_spec/README.md "Render", Track heights): their lanes and
+   * whether a label goes beside its mark; undefined when the whole data is not known (a tiled source's: the type's
+   * fixed height stands). Kept by the layer type: called again with the same prep and context, it answers at once.
+   */
+  content?(prep: Prep, ctx: ContentContext): LayerContent | undefined;
   layout(prep: Prep, ctx: LayoutContext, data: StoreReader, overlay: Overlay, prev?: Lay): Lay;
   draw(lay: Lay, pass: PassName, out: PassWriter, emphasis?: Emphasis): void;
   /**

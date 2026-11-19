@@ -676,6 +676,14 @@ export const SeqLanguage = defineLanguage({
           min: 0,
           doc: 'Text: the section’s height in px (it scrolls inside); its content’s, up to the render config’s `text.maxHeight`, when absent. Rings: the rings’ diameter in px; the width’s, up to `rings.maxDiameter`, when absent.',
         },
+        heights: {
+          type: 'union',
+          of: [
+            { type: 'string', enum: ['content', 'uniform', 'fixed'] },
+            { type: 'string', pattern: '^ext:[a-z][a-z0-9_-]*$' },
+          ],
+          doc: 'How the tracks with no `height` are sized: `content` (when absent: each as tall as its lanes over the whole data, in steps of a lane, tracks of one kind the tallest of them), `uniform` (every such track the tallest content height in the section), `fixed` (each its layer type’s fixed height), or an `ext:` sizing a composition registers. A track’s `height` overrides it.',
+        },
         rotation: {
           type: 'number',
           doc: 'Rings: where the origin is, degrees clockwise from the top; 0 when absent.',

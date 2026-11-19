@@ -51,14 +51,14 @@ async function both(emphasis: Emphasis, pass: PassName) {
 describe('squircles in the canvas and the SVG', () => {
   it('the well and its clip: the same curve in both', async () => {
     const { record, base, svg } = await both({}, 'data');
-    expect(record).toMatch(/clip 128 8 464 26 squircle 8\nrect 128 14 /);
+    expect(record).toMatch(/clip 96 8 496 26 squircle 8\nrect 96 14 /);
     // the well 26 px (the data's 20 and a top padding of 6), the data below its padding; the clip traced as four
     // cubics before the canvas's clip, and as the SVG's clip path
     const at = base.indexOf('clip()');
     expect(at).toBeGreaterThan(0);
     const before = base.slice(0, at);
     expect(before.slice(before.lastIndexOf('beginPath()')).filter((c) => c.startsWith('bezierCurveTo')).length).toBe(4);
-    expect(svg).toMatch(/<clipPath id="[^"]*"><path d="M 136 8 /);
+    expect(svg).toMatch(/<clipPath id="[^"]*"><path d="M 104 8 /);
   });
 
   it('a cell’s hover and a projected hover: squircles in both', async () => {
