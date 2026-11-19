@@ -484,25 +484,39 @@ const items: Resolve = (ctx, form, prefix) => {
   if (loc?.rects.length)
     fail('seq.query.form.unsupported', 'Items overlap positions, not a rect', { hint: 'one of its sides' });
   // TODO: a location on another system reaches the targets by projection through the maps (the static model's paths);
-  // until then it is reported, never silently read as overlapping nothing
+  // until then it is reported, never silently read as overlapping nothing. A pairs annotation's rows on its second
+  // system say so (`QueryItem.system`): its rows are read for it only when a part is on none of the targets.
+  const other = new Set<QueryAnnotation>();
   if (loc)
-    for (const p of loc.parts)
-      if (!targets.includes(p.system))
+    for (const p of loc.parts) {
+      if (targets.includes(p.system)) continue;
+      let reached = false;
+      for (const a of anns)
+        if (a.items().items.some((it) => it.system === p.system)) {
+          other.add(a);
+          reached = true;
+        }
+      if (!reached)
         ctx.issues.push(
           issueOf(QueryIssues, 'seq.query.location.unreachable', 'A location is on a system the items are not on', {
             address: p.system,
           }),
         );
+    }
   const out: ElementKey[] = [];
   for (const a of anns) {
-    const ranges = loc && partOf(loc, a.target)?.ranges;
-    if (loc && !ranges) continue;
-    const length = ctx.model.system(a.target)?.length;
-    const read = a.items(ranges && rangesLocation(a.target, ranges));
+    const own = loc && partOf(loc, a.target)?.ranges;
+    if (loc && !own && !other.has(a)) continue;
+    // a row on its own system (a pair's ends, each on its own) else on the annotation's target
+    const read = a.items(loc && (other.has(a) ? loc : rangesLocation(a.target, own!)));
     stage(ctx, read.pending);
     for (const it of read.items) {
       tick(ctx);
-      if (!ranges || overlapsRanges(ranges, it.start, it.end, length)) out.push({ owner: a.address, key: it.key });
+      const system = it.system ?? a.target;
+      const ranges = loc && partOf(loc, system)?.ranges;
+      if (loc && !ranges) continue;
+      if (!ranges || overlapsRanges(ranges, it.start, it.end, ctx.model.system(system)?.length))
+        out.push({ owner: a.address, key: it.key });
     }
   }
   const e = elements(out);
@@ -585,7 +599,8 @@ function extentOf(ctx: Ctx, e: Elements): Location {
     if (!a) return fail('seq.query.form.prefix', 'An element’s owner is not an annotation', { address: owner });
     const read = a.items();
     stage(ctx, read.pending);
-    const ranges: number[] = [];
+    // by system: a pair's two ends may be on two
+    const bySystem = new Map<string, number[]>([[a.target, []]]);
     for (const it of read.items) {
       tick(ctx);
       if (!keys.has(it.key)) continue;
@@ -593,9 +608,12 @@ function extentOf(ctx: Ctx, e: Elements): Location {
         fail('seq.query.position.invalid', 'An item’s extent is not 32-bit positions with start ≤ end', {
           address: owner,
         });
+      const system = it.system ?? a.target;
+      let ranges = bySystem.get(system);
+      if (!ranges) bySystem.set(system, (ranges = []));
       ranges.push(it.start, it.end);
     }
-    parts.push({ system: a.target, ranges });
+    for (const [system, ranges] of bySystem) parts.push({ system, ranges });
   }
   return location({ parts });
 }

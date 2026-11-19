@@ -55,11 +55,16 @@ export interface QuerySystem {
   readonly parent?: { readonly system: QuerySystem; readonly start: number };
 }
 
-/** One row of an annotation: an item's key, its half-open extent on the target, its fields. */
+/**
+ * One row of an annotation: an item's key, its half-open extent on its system, its fields. A pairs annotation's pair is
+ * one item with a row per end, each on its own system (_spec/README.md "Queries", Pairs answer `items`).
+ */
 export interface QueryItem {
   readonly key: string | number;
   readonly start: number;
   readonly end: number;
+  /** The system this row is on: the annotation's `target` when absent (a ranges row's always). */
+  readonly system?: string;
   readonly fields?: Readonly<Record<string, Atom>>;
 }
 
@@ -71,14 +76,14 @@ export interface ItemsRead {
   readonly pending?: Location;
 }
 
-/** Items placed on one system. */
+/** Items placed on a system (a pairs annotation's on two: each row says its own, `QueryItem.system`). */
 export interface QueryAnnotation {
   readonly address: string;
-  /** The address of the system its items are on. */
+  /** The address of the system its items are on (a pairs annotation's `a`: a row on `b` says so). */
   readonly target: string;
   /** The fields its items have: `(item :<field> v)` names one of them or `id`, else it is an issue. */
   readonly fields: readonly string[];
-  /** Its items overlapping a location on the target (every item when undefined), with what is pending. */
+  /** Its rows overlapping a location on their systems (every row when undefined), with what is pending. */
   items(over?: Location): ItemsRead;
 }
 

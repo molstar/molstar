@@ -320,9 +320,16 @@ export function locationOfResult(root: Node, model: QueryModel, result: QueryRes
     if (!a) return;
     const read = a.items();
     if (read.pending && !isEmptyLocation(read.pending)) complete = false;
-    const ranges: number[] = [];
-    for (const it of read.items) if (!keys || keys.has(it.key)) ranges.push(it.start, it.end);
-    if (ranges.length) parts.push({ system: a.target, ranges });
+    // by system: a pair's two ends may be on two (`QueryItem.system`)
+    const bySystem = new Map<string, number[]>();
+    for (const it of read.items) {
+      if (keys && !keys.has(it.key)) continue;
+      const system = it.system ?? a.target;
+      let ranges = bySystem.get(system);
+      if (!ranges) bySystem.set(system, (ranges = []));
+      ranges.push(it.start, it.end);
+    }
+    for (const [system, ranges] of bySystem) parts.push({ system, ranges });
   };
   const whole = (system: string, range?: Value) => {
     const s = model.system(system);

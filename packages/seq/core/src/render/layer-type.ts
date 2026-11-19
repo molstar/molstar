@@ -187,9 +187,16 @@ export function sectionId(section: { readonly address: string }): string {
   return a.slice(a.lastIndexOf('/') + 1);
 }
 
-/** A highlight channel as drawn: its Location (on every system it shows on) and its color, tinted. */
+/**
+ * A highlight channel as drawn: its Location (on every system it shows on), its element keys and its color, tinted.
+ */
 export interface EmphasisHighlight {
   readonly location: Location;
+  /**
+   * The channel's element keys (_spec/README.md "Render", Emphasis): a layer whose items are keyed draws those it holds
+   * in the channel's color (the pairs layer: its arcs, chords and dots), whatever the Location covers.
+   */
+  readonly elements?: Elements;
   /** `0xRRGGBBAA`: drawn at `emphasis.highlightTint` opacity. */
   readonly color: number;
   /** How it is drawn in its stripe: a `tint` (the default), a `band` along the foot, an `outline`. */

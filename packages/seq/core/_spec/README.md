@@ -328,6 +328,12 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   on, and no form guesses a conversion.
 - **Conversions are forms**: `(extent :of <elements>)` gives a Location, `(items :overlapping <location>)` Elements. A
   form given another type is `seq.query.form.type`.
+- **Pairs answer `items`**: a pairs annotation is queried as its items, a pair one item with a row per end, each row on
+  its own system (`QueryItem.system`; a ranges row's is its annotation's `target`): `(items :overlapping <location>)`
+  gives the pairs with an end in the location, on either system; `(item :type …)` reads a pair's fields (`type`,
+  `label`, its other category columns); `extent` and a result's location cover both ends. Why: a host asks which pairs
+  touch a range (the viewer's `linkedPairs`). A location part on neither target is read against the rows' systems before
+  it is said unreachable.
 
 ### Location
 
@@ -415,8 +421,8 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 ### The model the forms read
 
 - An interface (`QueryModel`): `system(address)` (length, cyclic, numberings, parent), `annotation(address)` (target,
-  fields, `items(over?)` with what is pending), `node(owner, key)` and `chain(owner, id)` for nodes data makes. The
-  static model implements it; tests use a hand-written one.
+  fields, `items(over?)` with what is pending, a row's `system` when not the target: a pair's ends), `node(owner, key)`
+  and `chain(owner, id)` for nodes data makes. The static model implements it; tests use a hand-written one.
 
 ### Staged and bounded
 
@@ -1257,23 +1263,24 @@ strip's.
 
 - **The order of emphasis** is fixed, below to above: data, highlight channels, selection, hover, cursor; a higher one
   never hides a lower one entirely (tints are translucent, outlines are thin lines that never touch).
-- `highlights`: the channels in order, each a Location, a color and a `style` (`tint`, the default; `band`; `outline`),
-  on every system its Location has (the `highlight` pass), each style a squircle (Shapes: round where a channel's range
-  really ends, square where a stripe change cuts its run; a `band` bar, below the minimum, square). **Overlapping
-  channels stay apart** (ux-foundations section 6): a position lit by one channel takes the whole band; by several, the
-  band splits into equal stripes, one a channel present there, in channel order, at most `emphasis.highlightStripes`,
-  the channels past the last sharing it (a ring's band radially). The style draws in the channel's stripe: `tint` fills
-  it at `emphasis.highlightTint`, `band` a bar `emphasis.highlightBand` px along its foot in the color as given. A
-  fill's run is one rect while its slot and the stripe count stay: it is cut only where the set of channels lighting
-  changes (`highlight-stripes.ts`, a merge of the channels' sorted boundaries: nothing allocated). **An `outline` takes
-  no stripe** (it has no fill, so it does not count among the channels lighting): one stroke (`outline.selection`) over
-  the channel's own ranges on the whole band, above the fills, never fragmented by another channel's boundary. Stripe
-  edges and the bar are on device pixels, one edge between two stripes (no overlap, no seam). A range wholly in a hidden
-  stretch lights its break once a channel, at its first run. **The grid** stripes its highlighted rows the same way
-  across the plot (a stripe a channel, in channel order; `band` a bar along a stripe's left edge, `outline` one stroke
-  over the row); the columns are the strip's, drawn with the tracks'. **The navigators' ticks stay one tick a channel**
-  (a tick is a position mark, no band to split). Why stripes: stacked tints of two colors blend into a third that names
-  neither.
+- `highlights`: the channels in order, each a Location, its element keys (`elements`: a layer of keyed items draws those
+  it holds, the pairs layer's arcs, chords and dots, whatever the Location covers), a color and a `style` (`tint`, the
+  default; `band`; `outline`), on every system its Location has (the `highlight` pass), each style a squircle (Shapes:
+  round where a channel's range really ends, square where a stripe change cuts its run; a `band` bar, below the minimum,
+  square). **Overlapping channels stay apart** (ux-foundations section 6): a position lit by one channel takes the whole
+  band; by several, the band splits into equal stripes, one a channel present there, in channel order, at most
+  `emphasis.highlightStripes`, the channels past the last sharing it (a ring's band radially). The style draws in the
+  channel's stripe: `tint` fills it at `emphasis.highlightTint`, `band` a bar `emphasis.highlightBand` px along its foot
+  in the color as given. A fill's run is one rect while its slot and the stripe count stay: it is cut only where the set
+  of channels lighting changes (`highlight-stripes.ts`, a merge of the channels' sorted boundaries: nothing allocated).
+  **An `outline` takes no stripe** (it has no fill, so it does not count among the channels lighting): one stroke
+  (`outline.selection`) over the channel's own ranges on the whole band, above the fills, never fragmented by another
+  channel's boundary. Stripe edges and the bar are on device pixels, one edge between two stripes (no overlap, no seam).
+  A range wholly in a hidden stretch lights its break once a channel, at its first run. **The grid** stripes its
+  highlighted rows the same way across the plot (a stripe a channel, in channel order; `band` a bar along a stripe's
+  left edge, `outline` one stroke over the row); the columns are the strip's, drawn with the tracks'. **The navigators'
+  ticks stay one tick a channel** (a tick is a position mark, no band to split). Why stripes: stacked tints of two
+  colors blend into a third that names neither.
 - `selection` (a Location): a soft accent tint at `emphasis.selectionTint` and one thin outline inside it
   (`outline.selection`, 1 px, the accent at `emphasis.selectionOutline`, 0.6), the tints first, then the outlines;
   squircle ends where a range really ends, square where the view or a piece cuts it (the frame rule) (the `selection`
@@ -1953,6 +1960,9 @@ numbers): a window move allocates nothing once warm.
 - **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`); the pair's element, its
   extent both ends. **Hover**: the hovered pair; as arcs, every pair with an end at a hovered position (a base, or
   either position of a cell) or in the hover projected onto the section; as dots, the pair at the hovered cell.
+  **Highlight**: the pairs a highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in the channel's
+  color in the `highlight` pass, as the selection's in the accent (a pair two channels list: the later's); the pairs
+  each channel lights are made again only when the channels change (by identity), into a reused array.
 
 ### The grid layer
 
