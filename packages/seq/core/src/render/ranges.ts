@@ -991,7 +991,7 @@ function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext) {
   const datum = lay.datum;
   const missing = ctx.tokens.colors['seq-missing'];
   datum.bind(rows.n ? rows.fields[0] : undefined);
-  const extra = { numeric: (n: string) => datum.numeric(n) };
+  const extra = datum.env;
   const color = prep.channels.get('color', 'token:range', ctx, extra);
   const size = prep.channels.get('size', 1, ctx, extra);
   const opacity = prep.channels.get('opacity', 1, ctx, extra);

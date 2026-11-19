@@ -70,11 +70,15 @@ export function reportTheme(ctx: LayoutContext, code: ThemeIssueCode, message: s
   ctx.report(issueOf(RenderIssues, code, message, { address: ctx.key, hint: RenderIssues.codes[code].hint }));
 }
 
+/** No extra environment (shared, so a layout that reads a kept channel makes no object). */
+const NoExtra: Partial<ThemeEnv> = Object.freeze({});
+
 interface Kept {
   readonly channel: Channel;
   readonly version: number;
   readonly cvd: boolean;
-  readonly domains: string;
+  /** The held domains of its open scales when compiled: lo, hi per open scale (NaN where none). */
+  readonly domains: Float64Array;
   /** What it said (compiling, and drawing since): said again in each layout that reads it. */
   readonly said: [ThemeIssueCode, string][];
 }
@@ -87,11 +91,11 @@ export class LayerChannels {
   constructor(readonly forms: Readonly<Partial<Record<ChannelName, unknown>>>) {}
 
   /** The channel `name` (its slot's body, else `fallback`, the layer type's default) for this layout. */
-  get(name: ChannelName, fallback: ThemeBody, ctx: LayoutContext, extra: Partial<ThemeEnv> = {}): Channel {
+  get(name: ChannelName, fallback: ThemeBody, ctx: LayoutContext, extra: Partial<ThemeEnv> = NoExtra): Channel {
     this.ctx = ctx;
     const theme = ctx.theme;
     const k = this.kept.get(name);
-    if (k && k.version === ctx.tokens.version && k.cvd === theme.cvdSafe && k.domains === held(k.channel, theme)) {
+    if (k && k.version === ctx.tokens.version && k.cvd === theme.cvdSafe && sameDomains(k.channel, k.domains, theme)) {
       for (const [code, message] of k.said) reportTheme(ctx, code, message);
       return k.channel;
     }
@@ -114,17 +118,35 @@ export class LayerChannels {
       channel,
       version: ctx.tokens.version,
       cvd: theme.cvdSafe,
-      domains: held(channel, theme),
+      domains: heldDomains(channel, theme),
       said,
     });
     return channel;
   }
 }
 
-function held(channel: Channel, theme: ThemeContext): string {
-  let s = '';
-  for (const o of channel.open) s += `${o.key}=${theme.domain(o.key)?.join(',') ?? ''};`;
-  return s;
+function heldDomains(channel: Channel, theme: ThemeContext): Float64Array {
+  const out = new Float64Array(2 * channel.open.length);
+  for (let i = 0; i < channel.open.length; i++) {
+    const d = theme.domain(channel.open[i].key);
+    out[2 * i] = d ? d[0] : Number.NaN;
+    out[2 * i + 1] = d ? d[1] : Number.NaN;
+  }
+  return out;
+}
+
+/** Whether the held domains still equal those a channel was compiled with (no allocation: read in place). */
+function sameDomains(channel: Channel, held: Float64Array, theme: ThemeContext): boolean {
+  const open = channel.open;
+  for (let i = 0; i < open.length; i++) {
+    const d = theme.domain(open[i].key);
+    const lo = d ? d[0] : Number.NaN;
+    const hi = d ? d[1] : Number.NaN;
+    // NaN (no domain) equals NaN
+    if (!(lo === held[2 * i] || (lo !== lo && held[2 * i] !== held[2 * i]))) return false;
+    if (!(hi === held[2 * i + 1] || (hi !== hi && held[2 * i + 1] !== held[2 * i + 1]))) return false;
+  }
+  return true;
 }
 
 /** A layer's channel forms as its resolved layer holds them. */
@@ -144,6 +166,9 @@ export class RowDatum implements ThemeDatum {
   row = 0;
   private fields: readonly RangesField[] | undefined;
   private readonly cols = new Map<string, Column | undefined>();
+  /** The environments a channel over these rows compiles in, made once (a layout makes no closure to read a kept channel). */
+  readonly env: Partial<ThemeEnv> = { numeric: (n: string) => this.numeric(n) };
+  readonly radiusEnv: Partial<ThemeEnv> = { numeric: (n: string) => this.numeric(n), radius: true };
 
   bind(fields: readonly RangesField[] | undefined): void {
     if (fields === this.fields) return;
@@ -199,15 +224,15 @@ export class PlainDatum implements ThemeDatum {
 export class Extents {
   private lo = new Float64Array(4);
   private hi = new Float64Array(4);
-  private keys: readonly { readonly key: string; read(d: ThemeDatum): number }[] = [];
+  private readonly keys: { readonly key: string; read(d: ThemeDatum): number }[] = [];
 
   /** Whether any channel reads an open domain (a layout folds nothing otherwise). */
   any = false;
 
   reset(channels: readonly (Channel | undefined)[]): void {
-    const keys: { readonly key: string; read(d: ThemeDatum): number }[] = [];
-    for (const c of channels) if (c) keys.push(...c.open);
-    this.keys = keys;
+    const keys = this.keys;
+    keys.length = 0;
+    for (const c of channels) if (c) for (let i = 0; i < c.open.length; i++) keys.push(c.open[i]);
     this.any = keys.length > 0;
     if (this.lo.length < this.keys.length) {
       this.lo = new Float64Array(this.keys.length);
