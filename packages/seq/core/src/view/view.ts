@@ -167,8 +167,8 @@ export interface ResolvedSection {
   readonly address: string;
   /**
    * Its axis; with blocks (_spec/README.md "Resolved view", Blocks) their display units in order: on one system in a
-   * row, the blocks' pieces end to end (the breaks between them); else units `[0, total)` on the first block's system
-   * (`pieces: 'blocks'`), each block's own axis in `blocks`.
+   * row, the blocks' pieces end to end (the breaks between them); else units `[0, total)` on no system (its
+   * `system` the section's address, `pieces: 'blocks'`), each block's own axis in `blocks`.
    */
   readonly axis: Axis;
   readonly follow?: Follow;
@@ -525,8 +525,8 @@ interface BlockAxes {
  * A section's blocks (_spec/README.md "Resolved view", Blocks): each its axis (its system, its `range`, the section's
  * direction); copies (the same system and range) merged into the first's place with `copies: 'merge'` (the default),
  * labeled `×N`; the section's axis their display units in order: on one system in a row (or on a ring) the blocks'
- * pieces end to end, else units on the first block's system (`pieces: 'blocks'`), their total the sum in a row and the
- * longest block in a stack. A block with no system is reported and left out.
+ * pieces end to end, else units on no system (the section's address, `pieces: 'blocks'`), their total the sum in a
+ * row and the longest block in a stack. A block with no system is reported and left out.
  */
 function blockAxes(
   model: StaticModel,
@@ -592,10 +592,12 @@ function blockAxes(
       blocks,
     };
   }
+  // units of the section, on no system: a position on them is no block's (a selection, a focus, a bookmark or a cursor
+  // on a system never lands on the wrong block's); a block's hits carry its own system
   const total = stack ? longest : offset;
   return {
     axis: {
-      system,
+      system: at,
       ...(pending || total === undefined ? {} : { length: total, ranges: [0, total] }),
       cyclic: false,
       dir: 1,

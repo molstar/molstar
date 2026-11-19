@@ -121,7 +121,11 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
     frame key part for the windows;
   - one boxed number a frame left in the window's grips through the warp (16 B; `rings.quick.ts` bounds it);
   - a ring's `labels` sink: only `ranges` gives its labels (secondary, variants keep theirs inside);
-  - `export.window` read by `renderSvg` alone: the PNG export with it.
+  - `export.window` read by `renderSvg` alone: the PNG export with it;
+  - a section of blocks on several systems (its axis on no system): a drag-select stays in the block it began on (across
+    blocks: a location of several systems), the keyboard cursor does not step there (a step across blocks), a focus
+    moves to the first block holding the positions (to their hull across blocks), a bookmark of the view names none (an
+    address of several systems' ranges), and a column-shaped selection on it draws nothing (per block).
 - **Emphasis**: projected selection bands on a whole axis are rounded at intron edges, where the frame rule wants the
   ends a projection cut square (a projection-aware cut flag; on a collapsed axis an end at a break is square); the
   keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum width or a caret).

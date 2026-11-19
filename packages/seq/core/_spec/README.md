@@ -709,9 +709,11 @@ no target.
   why once, by its first block's issue). Copies (the same system and range) are one block labeled `×N` with
   `copies: 'merge'` (the default: a copy group's sequence said once, its cost one block's, EC-65, EC-67), a block each
   with `each`. The section's axis is the blocks' display units in order: on one system in a row (or on a ring), the
-  blocks' pieces end to end (their breaks between them, a follow along one axis); else units `[0, total)` on the first
-  block's system (`pieces: 'blocks'`), the total the sum in a row and the longest block in a stack. A block that names
-  no system is `seq.view.section.system` and left out.
+  blocks' pieces end to end (their breaks between them, a follow along one axis); else units `[0, total)` on no system
+  (its `system` the section's address, `pieces: 'blocks'`), the total the sum in a row and the longest block in a stack.
+  Why: a position on them is no block's, so a selection, a focus, a bookmark or a cursor on a system never reads them as
+  its own; a block's hits carry its system and its index (`block`), and a consumer maps them through the block's axis
+  and `offset`. A block that names no system is `seq.view.section.system` and left out.
 - **An axis**: its system, its length unless unknown, cyclic, and the positions shown as `[start, end, …]` pieces in
   display order: the whole system, its `range`, or for a cyclic range that wraps the origin two pieces, from its start
   to the origin then on (`[8, 10, 0, 2]`). Without a known length, showing all of the system or wrapping, `ranges` is

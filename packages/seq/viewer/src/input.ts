@@ -6,6 +6,7 @@
 
 import { type Placement, PlacePoint, type Hit as RenderHit } from '@molstar/seqx-core/render';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
+import type { Axis } from '@molstar/seqx-core/view';
 import {
   type KeyChord,
   matchesChord,
@@ -241,6 +242,8 @@ export class ViewerInput {
     // a placement's own targets (_spec/README.md "Input"): a window with its part, a gutter's row
     out.target = h.target === 'window' || h.target === 'row' ? h.target : undefined;
     out.part = h.part;
+    // a block's hit: its positions on the block's own axis (a section of blocks on several systems)
+    out.block = h.block;
     return this._hit;
   }
 
@@ -524,8 +527,16 @@ export class ViewerInput {
    * cell, in the section's offsets (the cells' offsets, so a reversed axis keeps the whole hull).
    */
   private _focusOf(section: string, hit: Hit): { start: number; end: number } | undefined {
-    const axis = this.viewer.view.resolved.value?.sections.find((s) => s.address === section)?.axis;
-    if (!axis) return undefined;
+    const s = this.viewer.view.resolved.value?.sections.find((x) => x.address === section);
+    if (!s) return undefined;
+    // a section of blocks on several systems (its axis its own units): the block's axis, from the block's offset
+    const block = hit.block !== undefined && s.axis.system !== hit.system ? s.blocks?.[hit.block] : undefined;
+    const at = block ? (block.offset ?? 0) : 0;
+    const r = this._focusOn(block ? block.axis : s.axis, hit);
+    return r && at ? { start: r.start + at, end: r.end + at } : r;
+  }
+
+  private _focusOn(axis: Axis, hit: Hit): { start: number; end: number } | undefined {
     // the edges' offsets, in display order whatever the axis's direction
     if (hit.hull && hit.hull[1] > hit.hull[0]) {
       const a = nearestOffsetOf(axis, hit.hull[0]);

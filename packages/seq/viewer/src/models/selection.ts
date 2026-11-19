@@ -91,7 +91,9 @@ const keyId = (k: ElementKey) => `${typeof k.key === 'number' ? 'n' : 's'}${k.ke
  */
 export function hitRange(hit: Hit, axis?: Axis, extent: Location | undefined = hit.extent): Anchor | undefined {
   const part = extent ? partOf(extent, hit.system) : undefined;
-  if (part?.ranges.length) return { system: hit.system, ...spanOf(part.ranges, axis) };
+  // display order on the axis only when it is the hit's system's
+  if (part?.ranges.length)
+    return { system: hit.system, ...spanOf(part.ranges, axis?.system === hit.system ? axis : undefined) };
   // a letter through a path (a residue a codon wide): its element on its own system, which the selection projects
   // onto the section (its codon, by closure); extends by elements there
   const other = !hit.element && extent?.parts.length === 1 ? extent.parts[0] : undefined;

@@ -482,6 +482,12 @@ binding table; per move one hit record and one modifiers record are reused.
 
 Small policies over the models (`behaviors/`), each reading the bindings.
 
+- **A section of blocks on several systems** (its axis on no system): a hit names its `block`, and its positions are
+  read on that block's axis from its `offset`: a drag-select stays in the block it began on (clamped at its ends), a
+  double-click and a focus move to the block's offsets, the keyboard cursor does not step along the section's units, a
+  bookmark of the view names none. Why: a position on the section's units is no system's (core `_spec` "Resolved view",
+  Blocks).
+
 - `hover`: a move over a hit whose hover gesture is bound to `hover` sets the hover for its owner token; a move over
   nothing or a leave clears what that owner holds only. A host's other hover sources use their own tokens.
 - `navigate`: a drag (`pan`), a wheel (`pan` by the larger delta, so Shift with a vertical wheel pans sideways; `zoom`
