@@ -213,7 +213,8 @@ and dark before the merge.
       recommended (`gaps.md`, 2026-11-19): the lists-free palette module in `@molstar/core` (the agreed surface:
       non-breaking, re-exported); `classes-safe` and every substitute safe; the dark letter cells' edge
       (`seq-cell-edge`); one `view.motion` (`platform | cut | animate`), `story.reducedMotion` dropped; the pyramid's
-      measured tolerance in the tests; clade names by unique non-numeric ids only (gap 6, grids-and-rows, Clades).
+      measured tolerance in the tests; clade names by unique non-numeric ids only (gap 6, grids-and-rows, Clades). `Placement.at` reading the point from an array (PG's
+      A7: the last 32 B of a grid cell's `hitView`; shared with NV, so after both merge).
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
 
 ### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
