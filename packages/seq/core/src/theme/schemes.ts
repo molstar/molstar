@@ -100,7 +100,7 @@ const field =
       const dict = typeof colors === 'object' && colors !== null && !Array.isArray(colors) ? colors : {};
       palette = { kind: 'categorical', params: { ...palette.params, colors: { ...dict, ...overrides } } };
     }
-    return { kind: 'field', params: { name, palette } };
+    return { kind: 'field', params: { name: typeof params.field === 'string' ? params.field : name, palette } };
   };
 
 const continuous = (colors: unknown, extra: Record<string, unknown> = {}): ThemeNode => ({
