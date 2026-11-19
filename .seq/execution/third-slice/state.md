@@ -441,3 +441,8 @@ None.
   (strong) starts, DS waits for it.
 - The author (2026-11-19): "let's pause after current tasks are done": DB finishes (review, fix round, merge), then
   the loop stops; DS and the rest stay queued in plan.md.
+- Paused (usage limit, 2026-11-19). DB reported (branch `seq/db-default-heights-labels`, 3 commits on df8034dd2, all
+  checks green; shots in the session scratchpad's `shots2/`): NOT merged. To resume: an independent review (stopped
+  before it reported), its fix round, the author's acceptance of DB's public API (sizings, the `trackSizing` port,
+  `ItemDescription.runs`, config keys) and its open question (label ink beside vs inside a mark), then merge with its
+  changelog. DS and the rest stay queued in plan.md.
