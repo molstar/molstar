@@ -134,6 +134,9 @@ export default defineConfig(({ mode }) => {
       tagsFilter: Lanes[l],
       // a filtered run of the medium or heavy lane may hold none of their tests; the quick lane always has some
       passWithNoTests: l === 'medium' || l === 'heavy',
+      // The heavy lane's wall-clock bounds compete for the CPU with the files beside them: on the default pool (one
+      // worker a core) a full run passed 1 of 3, one file at a time 3 of 6 (30 s), two workers 5 of 6 (18-20 s).
+      ...(l === 'heavy' ? { maxWorkers: 2 } : {}),
       projects: [
         project(
           'unit',

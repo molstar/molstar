@@ -75,7 +75,7 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 - SO merged (Features apart from Examples; a story-link test). FS's design agreed (the author, 2026-11-19: "Ok as recommended"): `.seq/design/files.md`, the Design page
   "Files and sources", sources, protocol, examples, base-library, themes and performance amended; FS split into FS-A1
-  (strong), FS-A2 (fast), FS-B (conditional). Next: FS-A1. Open for the author: capping the heavy lane's workers.
+  (strong), FS-A2 (fast), FS-B (conditional). Next: FS-A1. The heavy lane capped at 2 workers (the author, 2026-11-19: "Yes, cap at 2"; QT's measurement).
 
 ## In progress
 
