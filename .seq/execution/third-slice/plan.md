@@ -327,3 +327,20 @@ Legends' library surface (the author, 2026-11-19): how legends are displayed and
 placing a legend (with its track, a panel, the export), hiding or collapsing one or all, a compact form; editing
 colors, ranges and schemes from a legend stays the application's, on the library's commands (`theme.value-color`,
 `scale.set`, `layer.channel`); the part selects and hovers a value's items only (as built).
+"Seq io", representation ports (the author, 2026-11-19: "we should also be able to share data representation with
+mol*. Partly we can do it via the asset manager, but maybe we could have generic representation ports, similar to how
+mol io .. we could write seq io"): the assets port shares bytes today; what is not shared is the parsed
+representation. A design for the fourth slice, before the molecules design's mmCIF lane (MC): adapters that read Seq\*'s
+data from a host's in-memory representation (a Mol\* `Model` or `Structure`: sequences, entities, components, units,
+without parsing again) and give Seq\*'s annotations back as the host's representations (MolViewSpec, Mol\*
+representations), as registry entries by representation kind (ports.md's rule: several, looked up by name); the
+layering against `@molstar/io` and `@molstar/model` (whether "seq io" is a package of its own) decided there.
+Custom navigators (the author, 2026-11-19: "are our navigation components customizable same as any other track?"):
+today a navigator's content is (its `tracks` draw any layer type, a registered one included), its form is not (the
+strip, miniature, ideogram, overview and the rails are built in; navigators.md refused a preset registry). For the
+fourth slice: a navigator's picture as a registry entry (a form a host adds, drawn through the layout interface), the
+window, its gestures and keys shared and public (`render/window.ts`, `NavigatorModel`), so a host's own navigator
+gets the floor, idle, grips, history and announcements for free.
+Event composition across parts is the application's (the author, 2026-11-19: "for the linked highlight: this is a
+full app level decision anyway how the events from different parts compose"): the library offers behaviors (as
+`links.hover`, the molecules design's gap 10, decided off) and the hover and selection channels; a host composes them.

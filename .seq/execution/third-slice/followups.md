@@ -14,3 +14,6 @@
   integration, a click building a MolViewSpec state ad hoc for the 3D view.
 - Legends' library surface, for the fourth slice (the author, 2026-11-19): display, placement, hiding and collapsing,
   a compact form; editing from a legend is the application's, on the commands (plan, Out of scope).
+- For the fourth slice (the author, 2026-11-19): "seq io" representation ports (share Mol*'s parsed representation,
+  not only bytes); custom navigators (a navigator's picture as a registry entry, the window behavior public); event
+  composition across parts is the application's (plan, Out of scope).
