@@ -412,3 +412,7 @@ None.
   2026-11-19: "Small blocks exact"): blocks under 64 rows counted exactly; PG continues. RX's review: nothing serious,
   one medium (a pinned row's tip on the wrong copy) and five lows: its fix round sent; navigators.md's rows-rail idle
   line corrected. To look later: the Antibody's IMGT track label under the Kabat one reads as a second line.
+- The author (2026-11-19, p53 › Protein on its gene): the page moves when a legend hover's highlight row appears.
+  Decided ("configurable? reserve by default"): the legend part's `channels: reserve | collapse` (themes.md, the
+  Design page); lane LR (fast) queued. UN's review: nothing serious, a fix round sent. Use findings: bug 6, missing
+  design 6, look 5.

@@ -316,7 +316,11 @@ and another viewer); a host recolors through `--seq-*` tokens.
 - **The legend follows the hover**: the hovered item's entry is outlined; on a ramp, its value is ticked.
 - **Highlight channels in the legend part**: it lists the active highlight channels (a link's, a legend hover's, a
   host's) as rows with their color and a clear, which runs `highlight.clear` (a new command, beside the
-  selection's bookmark command).
+  selection's bookmark command). **The channels' row keeps its place** (decided, the author, 2026-11-19, p53 › Protein on
+  its gene: the row appearing with a highlight moved the page below it, "makes bad impression"; "configurable? reserve
+  by default"): the legend part's `channels` param, `reserve` (the default: the row's height held whenever the part can
+  show channels, empty with none, so nothing moves) or `collapse` (the row only while a channel is active, for a host
+  that wants the space).
 - **Every entry is reached from the keyboard** (ux-foundations section 8: every gesture has a keyboard way): the part
   is one tab stop, a list with a roving focus; arrows move between entries, Enter or Space selects (as a click),
   Cmd/Ctrl+Enter toggles, the context-menu key opens its actions (the color input, the scheme picker); focus on an
@@ -457,6 +461,7 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | schemes, measures | registry entries | the built-ins | named providers, extensible ([extensibility](extensibility.md)) |
 | nesting depth | `SpecBounds` (`themeDepth`) | 4 | the bounds pattern ([security](security.md)) |
 | the ruler's label gap | `RenderConfig` preset | 48 px | the presets pattern (ux-foundations section 0) |
+| the legend's channels row | the legend part's param `channels` | `reserve` | a row that comes and goes moves the page (decided); `collapse` |
 | legends in the export | spec param of the view (`export.legend`, optional), `renderSvg`'s `legend` overriding it | `none` | how the figure exports is the figure's; one call may differ (decided) |
 | the color-blind substitution in an export | option of `renderSvg` (`cvdSafe`) | off | the reader's, never the spec |
 | hiding a layer's items by value | command `layer.filter`, a patch of `layer.data` | — | a filter hides, a theme never does (decided) |
