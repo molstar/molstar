@@ -413,6 +413,15 @@ export class DataStore extends ReactiveModel {
     return out;
   }
 
+  /**
+   * Whether a want covers more than \`maxTilesPerWant\` tiles (not asked, \`seq.store.too_many_tiles\`; \`keysOf\` lists none
+   * of them): what tells a reader's empty list past the bound (pending) from one past a source's end (nothing there).
+   */
+  tooMany(want: Want): boolean {
+    const t = this._tiles(want);
+    return t !== undefined && t.last - t.first + 1 > this.settings.maxTilesPerWant;
+  }
+
   // Requests
 
   /** A new consumer's want set (an export's, beside the live view's), merged with the others by best priority. */

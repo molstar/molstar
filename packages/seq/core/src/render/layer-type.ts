@@ -26,6 +26,8 @@ import type { SeqTokens } from './tokens.js';
 export interface StoreReader {
   coverage(source: string): Coverage | undefined;
   keysOf(want: Want): string[];
+  /** Whether a want is past the store's bound on its tiles (\`keysOf\` then lists none), where the reader says it. */
+  tooMany?(want: Want): boolean;
   get(key: string): DataEntry | undefined;
   /** The store's tiling and its bound on a want's tiles (a layer picks a level within it), where it has them. */
   readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number };

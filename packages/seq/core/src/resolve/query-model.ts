@@ -18,7 +18,7 @@ import { nodeAddress, type Overlay } from './overlay.js';
 
 /** What a row form reads of an alignment's rows read from a source: the store's loaded tiles, and how to ask for them. */
 export interface RowsSource {
-  readonly data: Pick<DataStore, 'coverage' | 'keysOf' | 'get'>;
+  readonly data: Pick<DataStore, 'coverage' | 'keysOf' | 'get'> & Partial<Pick<DataStore, 'tooMany'>>;
   /** Asks for the rows' tiles a form named (whoever resolves asks: a row form needs no layer to have read them). */
   readonly want?: (want: Want) => void;
 }
@@ -104,7 +104,7 @@ function storeRows(model: StaticModel, src: RowsSource, rows: string): HeldRows 
     src.want?.(want);
     const keys = src.data.keysOf(want);
     // none listed past the store's bound on a want's tiles (never asked): pending, as before they are held
-    if (!keys.length && n > 0) return Pending;
+    if (!keys.length && src.data.tooMany?.(want)) return Pending;
     const tables: CellsTable[] = [];
     for (const k of keys) {
       const e = src.data.get(k);

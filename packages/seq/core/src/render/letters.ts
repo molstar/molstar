@@ -584,7 +584,7 @@ export function shownLetters(
   if (data.coverage(src.source) === undefined) return { text: '', wants: [want] };
   const keys = data.keysOf(want);
   // none listed past the store's bound on a want's tiles: not held, as a tile not loaded
-  if (!keys.length) return { text: '', wants: [want] };
+  if (!keys.length && data.tooMany?.(want)) return { text: '', wants: [want] };
   const tables: LettersTable[] = [];
   for (const key of keys) {
     const e = data.get(key);

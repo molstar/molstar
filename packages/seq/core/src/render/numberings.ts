@@ -132,7 +132,7 @@ export function readSourceNumbering(
   want(length);
   const entries = data.keysOf(w).map((k) => data.get(k));
   // no tile listed: past the store's bound on a want's tiles, never asked (`seq.store.too_many_tiles`)
-  if (!entries.length && length > 0) return keep(entries, Pending);
+  if (!entries.length && data.tooMany?.(w)) return keep(entries, Pending);
   if (same(prev, coverage, entries)) return prev!.result;
   const failed = entries.find((e) => e?.status === 'failed');
   if (failed?.status === 'failed')

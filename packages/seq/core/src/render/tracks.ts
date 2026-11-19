@@ -405,6 +405,9 @@ class SectionReads implements StoreReader {
   keysOf(w: Want) {
     return this.data.keysOf(w);
   }
+  tooMany(w: Want) {
+    return this.data.tooMany?.(w) ?? false;
+  }
   get settings() {
     return this.data.settings;
   }

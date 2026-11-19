@@ -68,4 +68,40 @@ describe('inline data over a long system', () => {
     expect(lay.pending).toEqual([]);
     expect(lay.items).toBe(Starts.length);
   });
+
+  it('a view past a shorter source’s end is drawn empty, not pending; past the tile bound it is pending', async () => {
+    // a source of ranges on the chromosome that knows it 2,000 positions long: past that, nothing to read
+    const b = createSeqSpec({ title: 'short' });
+    const value = seqToValue({
+      coverage: { systems: [{ name: 'chr', length: Length }], shapes: [], levels: [1] },
+      pairs: [],
+    });
+    const chr = b.data.sequence('chr', {
+      alphabet: 'dna',
+      source: b.data.source('chr-source', { format: 'seq', value: value as never }),
+      name: 'chr',
+    });
+    const short = seqToValue(
+      inlineSeq(
+        { name: 'chr', length: 2000 },
+        { ranges: { form: 'list', start: Int32Array.of(100), end: Int32Array.of(200) } },
+      ),
+    );
+    const sites = b.data.ranges('sites', {
+      target: chr,
+      source: b.data.source('short', { format: 'seq', value: short as never }),
+    });
+    b.views.view('main', (v) => {
+      v.section('chr', { of: chr }).track('sites').layer('sites', { type: 'ranges', data: sites });
+    });
+    const s = await settle(b.build(), [SeqRuntime]);
+    const past = await s.frame({ size: { width: 1440, height: 80 }, viewport: { start: 5000, end: 6000 } });
+    expect(layerLay<RangesLay>(past, 0).pending).toEqual([]);
+    // the store's bound is told apart: a want over it is pending
+    const want = { source: '/data/short', system: 'chr', start: 0, end: 2000, level: 1 };
+    expect(s.store.tooMany(want)).toBe(false);
+    const big = { source: '/data/chr-source', system: 'chr', start: 0, end: Length, level: 1 };
+    expect(s.store.tooMany(big)).toBe(true);
+    expect(s.store.keysOf(big)).toEqual([]);
+  });
 });
