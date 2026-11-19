@@ -220,9 +220,12 @@ readout's position, `=`, `-`, `0` act on the focused window's section; Alt+Left 
 while the window is idle; Esc cancels a gesture. The wheel acts as over the bound section, zooming about the window's
 centre, never the pointer. A navigator with a zoom strip (core's "Render", Navigators, The zoom strip:
 `navigator.zoomStrip`) is one model: its height the box's and the strip's (`zoomStrip.heightPx` more, set by the frame
-that brings or drops it); its windows, grips and gestures are the zoom strip's; its context is no target (a hit's
-`context`: nothing lit, the default cursor, a press no gesture, a double-click nothing), its readout the band and
-position there, over the mark the region (a press there says it too, a tap's hover).
+that brings or drops it), or a height the host fixes holding both (the strip out of it, the context the rest: drawn
+again in the same call, nothing overflows); a side part (`left`, `right`) has none; `viewer.renderSvg` passes
+`navigator.zoomStrip` and `navigator.direction` to the export (its `navigator` option), so the SVG is what the parts
+show; its windows, grips and gestures are the zoom strip's; its context is no target (a hit's `context`: nothing lit,
+the default cursor, a press no gesture, a double-click nothing), its readout the band and position there, over the mark
+the region (a press there says it too, a tap's hover).
 
 ### HoverModel
 

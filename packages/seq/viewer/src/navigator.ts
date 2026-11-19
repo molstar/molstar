@@ -165,14 +165,18 @@ export class NavigatorModel extends ReactiveModel {
   /** The box the picture is drawn in: the host's and the form's (a zoom strip draws below it). */
   private boxHeight = 0;
 
-  /** Its size from the host's and the form's box, and its zoom strip's height (one navigator: the pair's). */
+  /**
+   * Its size from the host's and the form's box, and its zoom strip's height (one navigator: the pair's): the form's
+   * box and the strip below it; a height the host fixes holds both (the strip out of it, the context the rest).
+   */
   private place(): void {
     const nav = this.navigator;
     if (!nav) return;
     const b = navigatorBox(nav, this.hostWidth || this.viewer.width, this.viewer.height);
+    const zoom = this.renderer?.zoomHeight ?? 0;
     this.width = this.hostWidth || b.width;
-    this.boxHeight = this.hostHeight || b.height;
-    this.height = this.boxHeight + (this.renderer?.zoomHeight ?? 0);
+    this.boxHeight = this.hostHeight ? Math.max(1, this.hostHeight - zoom) : b.height;
+    this.height = this.hostHeight || this.boxHeight + zoom;
   }
 
   private changed(): void {
@@ -233,8 +237,36 @@ export class NavigatorModel extends ReactiveModel {
     if (!(this.width > 0) || !(this.height > 0)) return undefined;
     const r = this.rendererOf(nav);
     this.updateMoves(nav);
+    let f = this.drawFrame(r);
+    let rebuilt = f.rebuilt;
+    // a zoom strip came or went in this frame: the part's size with it (a height the host fixed drawn again at once:
+    // the context gives the strip its room)
+    this.place();
+    if (f.lists && f.lists.height !== this.height) {
+      f = this.drawFrame(r);
+      rebuilt ||= f.rebuilt;
+      this.place();
+    }
+    if (rebuilt) this.wanter.want(f.wants as Want[]);
+    this.lastFrame = f;
+    // the sliders' values: first drawn, and when the view rested (a move made elsewhere while the part has the focus
+    // announces nothing: its value waits for the focus to leave)
+    if (
+      !this.press &&
+      (this._values.value.length !== f.windows.length || (this.restDue && (this.ownMove || !this.hasFocus)))
+    ) {
+      this.settle(nav, f);
+      this.ownMove = false;
+    }
+    this.restDue = false;
+    return f;
+  }
+
+  /** A frame of the picture at the box's size, over the viewer's last frame. */
+  private drawFrame(r: NavigatorRenderer): NavigatorFrame {
+    const layout = this.viewer.frame!.layout;
     const sweep = this.behavior?.sweep.value;
-    const f = r.frame({
+    return r.frame({
       size: { width: this.width, height: this.boxHeight },
       dpr: this.viewer.dpr,
       settled: this.viewer.store.store.settled.value,
@@ -253,21 +285,6 @@ export class NavigatorModel extends ReactiveModel {
       cvdSafe: this.viewer.legends.cvdSafe.value,
       ...(sweep && this.press ? { sweep: this.sweepPx(sweep) } : {}),
     });
-    if (f.rebuilt) this.wanter.want(f.wants as Want[]);
-    // a zoom strip came or went in this frame: the part's height with it
-    this.height = this.boxHeight + r.zoomHeight;
-    this.lastFrame = f;
-    // the sliders' values: first drawn, and when the view rested (a move made elsewhere while the part has the focus
-    // announces nothing: its value waits for the focus to leave)
-    if (
-      !this.press &&
-      (this._values.value.length !== f.windows.length || (this.restDue && (this.ownMove || !this.hasFocus)))
-    ) {
-      this.settle(nav, f);
-      this.ownMove = false;
-    }
-    this.restDue = false;
-    return f;
   }
 
   /** The navigator's last frame. */

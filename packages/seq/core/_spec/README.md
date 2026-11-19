@@ -1338,19 +1338,28 @@ numbers): a window move allocates nothing once warm.
   in its section's own display units (`sectionUnitAt`) through the inverse path; past the picture's ends at the rate the
   path carries the edge (a protein position three nucleotides). `moves` says per section which axes can move (0 idle:
   quiet); absent, an export's outlines.
-- **The zoom strip** (`zoomStrip`, `DefaultZoomStrip`: `minPx` 48, `heightPx` 16; the viewer's `navigator.zoomStrip`): a
-  positions navigator whose reachable span (the hull of its bound sections') is narrower than `minPx` on the picture is
-  context and a zoom strip, one navigator (one renderer, hit, frame and draw list set). The picture's view gets a second
-  section, the same form over the same system (an ideogram's bands; else the axis, a ruler), its viewport the span's
-  units, laid out `heightPx` less a fixed gap (`ZoomGapPx`, 6: the connectors') below the box (`zoomHeight`; the frame's
-  `size` is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor, grips,
-  marks, hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws the span
-  as a mark in the `window` pass (an outline at least `window.minPx` wide, centred, its hairline at the truth, no grips,
-  no wash) and two connector hairlines (`seq-window`) from its ends to the strip's; a hit above the strip is `context`
-  (`mark` over it, else `outside`), part `outside`, no target; `markText` names the span. Made again when it comes or
-  goes (the span read each frame: a span not known yet keeps what is drawn); the span moving resets the strip's
-  viewport. Why: a region on its chromosome is a few kb of tens of Mb, a window there can neither show a move nor take a
-  drag; the chromosome's context and a working window are two scales.
+- **The zoom strip** (`zoomStrip`, `DefaultZoomStrip`: `minPx` 48, `heightPx` 16; the viewer's `navigator.zoomStrip`, an
+  export's `navigator` option): a positions navigator along the view (`top`, `bottom`: a side part's length is the
+  view's height, not its axis; none there) whose reachable span is narrower than `minPx` on the picture is context and a
+  zoom strip, one navigator (one renderer, hit, frame and draw list set). The span: the hull of its bound sections'
+  pieces, on a cyclic axis the shorter arc covering them (over the origin its end past the total); a bound section on
+  the navigator's own axis is the whole axis; known limit: two far-apart regions make a wide hull, so no strip. The
+  picture's view gets a second section, the same form over the same system (an ideogram's bands; else the axis, a
+  ruler), its viewport the span's units (over a cyclic origin past the total: its pieces twice, the strip runs on over
+  the origin), laid out below the box at the box's bottom whatever the context's content (`zoomHeight`, exactly
+  `heightPx`: a gap of at most `ZoomGapPx`, 6, and at most half, then the strip's track; `heightPx: 0` is off; the
+  frame's `size` is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor,
+  grips, marks, hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws
+  the span as a mark in the `window` pass (an outline at least `window.minPx` wide, always centred on the truth whatever
+  `window.floor`, so the truth is inside it, its hairline at the truth; over a cyclic origin two pieces; no grips, no
+  wash) and two connector hairlines (`seq-window`) from its ends to the strip's; a hit on the context is `context`
+  (`mark` over it, else `outside`), part `outside`, no target; the gap below the context is the strip's (a finger a few
+  px above it lands on it); `markText` names the span (over the origin the arc, `chr:59,001–1,000`). On under `minPx`,
+  off past `minPx + ZoomHysteresisPx` (8: a width about the threshold flickers not); made again when it comes or goes;
+  the span read each frame (none, a bound section pending: the last kept, mark and connectors with it); the span moving
+  resets the strip's viewport. The tokens last set are the renderer's own, so a picture made again keeps them. Why: a
+  region on its chromosome is a few kb of tens of Mb, a window there can neither show a move nor take a drag; the
+  chromosome's context and a working window are two scales.
 - **Draw lists**: the base (`background`, `data`) is the picture's, keyed as any frame; the `window` pass draws the
   washes, the windows (the one the pointer last acted on on top) and a sweep's outline; then the marks: the selection's
   and the highlights' ticks at the picture's foot (`navigator.marks`), the keyboard cursor's hairline, the pointer's

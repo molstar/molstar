@@ -10,6 +10,7 @@
 import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
+import { DefaultZoomStrip } from '@molstar/seqx-core/render';
 import { DefaultStoryConfig, type StoryConfig } from '@molstar/seqx-core/story';
 
 /** What the models and behaviors read; read-only after composition. */
@@ -275,7 +276,7 @@ export const DefaultViewerConfig: ViewerConfig = {
     doubleClick: 'toggle-fit',
     zoomPx: 48,
     direction: 'display',
-    zoomStrip: { minPx: 48, heightPx: 16 },
+    zoomStrip: DefaultZoomStrip,
   },
   view: {
     historyLimit: 50,

@@ -113,7 +113,7 @@ describe('the examples’ navigators', () => {
     expect(w.shown).toBe(true);
     expect(w.p0).toBeCloseTo(RegionOnChr17, 0);
     // the region is a sliver of chr17: its window on the zoom strip, whose axis is the region alone
-    const zoom = r.renderer.zoomSection!;
+    const zoom = r.renderer.pictureLayout!.sections[1]!;
     expect(w.lo).toBeCloseTo(zoom.axis!.x(RegionOnChr17), 6);
     expect(r.nav.issues.filter((i) => i.severity !== 'info')).toEqual([]);
   });
@@ -128,7 +128,7 @@ describe('the examples’ navigators', () => {
     );
     expect(r.renderer.zoomHeight).toBe(16);
     const ctx = r.renderer.pictureSection!;
-    const zoom = r.renderer.zoomSection!;
+    const zoom = r.renderer.pictureLayout!.sections[1]!;
     // the zoom strip under the ideogram, within the 16 px it adds; its axis the region (q's p13.1 band there)
     expect(ctx.y + ctx.height).toBeLessThanOrEqual(zoom.y);
     expect(zoom.y + zoom.height).toBeCloseTo(24 + 16, 6);
@@ -182,7 +182,6 @@ describe('the examples’ navigators', () => {
       { size: { width: 800, height: 600 } },
     );
     expect(r.renderer.zoomHeight).toBe(0);
-    expect(r.renderer.zoomSection).toBeUndefined();
     expect(r.renderer.pictureLayout!.sections.length).toBe(1);
     expect(r.nav.lists.passes.window.paths.n).toBe(0);
   });

@@ -63,6 +63,9 @@ export const DefaultZoomStrip = { minPx: 48, heightPx: 16 } as const;
 /** The gap between the context and the zoom strip, where the connectors run (CSS px, fixed: a look). */
 const ZoomGapPx = 6;
 
+/** How far past `minPx` a span grows before its zoom strip goes (CSS px, fixed): a width about the threshold flickers not. */
+const ZoomHysteresisPx = 8;
+
 /** The zoom strip's section in the picture's view. */
 const ZoomId = 'zoom';
 
@@ -336,8 +339,13 @@ const countText = (n: number) => Math.round(n).toLocaleString('en-US');
 
 /** Positions `[p0, p1)` on the navigator's system as text, 1-based (`chr17:7,666,403–7,688,402`). */
 function spanText(model: StaticModel, nav: ResolvedNavigator, p0: number, p1: number): string {
-  const name = (nav.system && model.systems.get(nav.system)?.name) ?? '';
-  return `${name}:${countText(Math.min(p0, p1) + 1)}–${countText(Math.max(p0, p1))}`;
+  return arcText(model, nav, Math.min(p0, p1), Math.max(p0, p1));
+}
+
+/** An arc from `p0` on to `p1` on the navigator's system as text, 1-based (over a cyclic origin `p1` is before `p0`). */
+function arcText(model: StaticModel, nav: ResolvedNavigator, p0: number, p1: number): string {
+  const label = (nav.system && model.systems.get(nav.system)?.name) ?? '';
+  return `${label}:${countText(p0 + 1)}–${countText(p1)}`;
 }
 
 /** A point on a navigator: the window part under it, its section and axis, the position, row and band there. */
@@ -449,15 +457,31 @@ export class NavigatorRenderer {
   private readonly pictureConfig: RenderConfig;
   private zoomConfig: RenderConfig | undefined;
   private readonly zoomStrip: { readonly minPx: number; readonly heightPx: number };
+  /** The zoom strip's track and the gap above it (their sum `heightPx`, never more). */
+  private readonly zoomTrack: number;
+  private readonly zoomGap: number;
+  /** The gap the picture's sections are laid out with: the strip at the box's bottom whatever the context's content. */
+  private sectionGap = 0;
+  /** The box's height the frame was given (the strip below it). */
+  private boxHeight = 0;
   /** The picture has a zoom strip (made with one); its viewport, the reachable span in the picture's units. */
   private zoomed = false;
   private zoomU0 = 0;
   private zoomU1 = 0;
-  /** The reachable span's hull this frame: its units on the picture, its positions on the navigator's system. */
-  private readonly reach = new Float64Array(4);
-  /** The mark's drawn ends on the context (a hover over it names the region). */
-  private markX0 = 0;
-  private markX1 = 0;
+  /**
+   * The reachable span (the last known: kept while a bound section is pending): its units on the picture, `[0]` to
+   * `[1]` (past the axis's total over a cyclic origin: the shorter arc), and its ends as positions on the navigator's
+   * system (`[2]`, `[3]`; over the origin the arc's start and end).
+   */
+  private readonly reach = new Float64Array([0, 0, 0, 0]);
+  /** The span's pieces this frame (units on the picture, `[a, b)` pairs; `pieceN` of them) and their positions' hull. */
+  private pieces = new Float64Array(16);
+  private pieceN = 0;
+  private readonly piecePos = new Float64Array(2);
+  /** The mark's drawn pieces on the context (a second over a cyclic origin, else NaN): a hover over them names it. */
+  private readonly markX = new Float64Array([Number.NaN, Number.NaN, Number.NaN, Number.NaN]);
+  /** The token table last set (`setTokens`): a picture made again draws with it. */
+  private tokens: SeqTokens;
   private picture: Picture | undefined;
   private renderer: Renderer | undefined;
   private left = new Set<string>();
@@ -493,6 +517,12 @@ export class NavigatorRenderer {
     this.config = options.config ?? DefaultRenderConfig;
     this.pictureConfig = pictureConfig(this.config);
     this.zoomStrip = options.zoomStrip ?? DefaultZoomStrip;
+    // a small `heightPx` takes its gap first: the strip never lays out taller than it
+    const h = Math.max(0, this.zoomStrip.heightPx);
+    this.zoomGap = Math.min(ZoomGapPx, Math.floor(h / 2));
+    this.zoomTrack = h - this.zoomGap;
+    this.sectionGap = this.zoomGap;
+    this.tokens = options.tokens;
     this.windows = this.navigator.of.map(() => new NavigatorWindow());
     const nav = this.navigator;
     for (const a of nav.missing)
@@ -548,7 +578,7 @@ export class NavigatorRenderer {
     const o = this.options;
     this.builtHeight = height;
     // the zoom strip's track: its height less the connectors' gap
-    const zoom = this.zoomed ? Math.max(1, this.zoomStrip.heightPx - ZoomGapPx) : 0;
+    const zoom = this.zoomed ? this.zoomTrack : 0;
     this.picture = pictureOf(
       o.model,
       o.view,
@@ -559,15 +589,15 @@ export class NavigatorRenderer {
       o.direction ?? 'display',
       zoom,
     );
-    if (this.zoomed) this.zoomConfig ??= pictureConfig(this.config, ZoomGapPx);
-    // a token change kept: the picture made again draws with the tokens last set
-    const tokens = this.renderer?.tokens ?? o.tokens;
+    if (this.zoomed && this.zoomConfig?.sectionGap !== this.sectionGap)
+      this.zoomConfig = pictureConfig(this.config, this.sectionGap);
     this.renderer = this.picture
       ? new Renderer({
           model: o.model,
           view: this.picture.view,
           data: o.data,
-          tokens,
+          // the tokens last set: a theme change survives the picture made again
+          tokens: this.tokens,
           text: o.text,
           config: this.zoomed ? this.zoomConfig! : this.pictureConfig,
           ...(o.theme ? { theme: o.theme } : {}),
@@ -581,6 +611,7 @@ export class NavigatorRenderer {
 
   /** Sets the token table (a theme change): the picture draws again with it. */
   setTokens(tokens: SeqTokens): void {
+    this.tokens = tokens;
     if (this.renderer) this.renderer.tokens = tokens;
   }
 
@@ -594,14 +625,9 @@ export class NavigatorRenderer {
     return this.layout?.sections[0];
   }
 
-  /** The zoom strip's section as last laid out; undefined without one. */
-  get zoomSection(): SectionLayout | undefined {
-    return this.zoomed ? this.layout?.sections[1] : undefined;
-  }
-
   /** What the zoom strip adds below the navigator's box (CSS px): 0 without one. */
   get zoomHeight(): number {
-    return this.zoomed ? this.zoomStrip.heightPx : 0;
+    return this.zoomed ? this.zoomTrack + this.zoomGap : 0;
   }
 
   /** The section the windows are on: the zoom strip, else the picture. */
@@ -611,8 +637,27 @@ export class NavigatorRenderer {
 
   /** What the mark says (a hover over it): the reachable span on the navigator's system; undefined without a zoom strip. */
   markText(): string | undefined {
-    if (!this.zoomed || !(this.reach[3] > this.reach[2])) return undefined;
+    if (!this.zoomed || !(this.reach[1] > this.reach[0])) return undefined;
+    // over a cyclic origin the arc, from its start on past the origin to its end
+    if (this.wraps) return arcText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
     return spanText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
+  }
+
+  /** The context's axis's total (the picture's units), and whether the reachable span runs over its cyclic origin. */
+  private get turn(): number {
+    return this.layout?.sections[0]?.axis?.total ?? 0;
+  }
+  private get wraps(): boolean {
+    const t = this.turn;
+    return t > 0 && this.reach[1] > t + 1e-9;
+  }
+
+  /**
+   * A unit on the zoom strip's axis: one before its start goes on a turn (its viewport past a cyclic origin, its pieces
+   * twice), so the strip runs on over the origin.
+   */
+  private onStrip(u: number): number {
+    return this.zoomed && this.zoomU1 > this.turn + 1e-9 && u < this.zoomU0 - 1e-9 ? u + this.turn : u;
   }
 
   /** Lays the picture out (or keeps it), then draws the windows and marks over it. Valid until the next call. */
@@ -628,6 +673,7 @@ export class NavigatorRenderer {
       return f;
     }
     const fi = this.frameInput;
+    this.boxHeight = input.size.height;
     fi.size.width = input.size.width;
     fi.size.height = input.size.height + this.zoomHeight;
     fi.dpr = input.dpr ?? 1;
@@ -646,9 +692,11 @@ export class NavigatorRenderer {
       for (const i of frame.layout.issues) if (!this.issues.includes(i)) this.issues.push(i);
     }
     this.placeWindows(input.view);
+    this.readReach();
     // the zoom strip (_spec/README.md "Render", Navigators): on where the reachable span is narrower than `minPx` on
-    // the picture, off where it is wider (made again either way); its viewport follows the span (laid out again)
-    if (this.zoomFlips()) {
+    // the picture, off where it is wider than `minPx` and the hysteresis (made again either way); at the box's bottom
+    // whatever the context's content; its viewport follows the span (laid out again)
+    if (this.zoomFlips() || this.gapMoved()) {
       this.build();
       return this.frame(input);
     }
@@ -711,9 +759,14 @@ export class NavigatorRenderer {
     const u0 = this.reach[0];
     const u1 = this.reach[1];
     const min = this.zoomStrip.minPx;
+    const nav = this.navigator;
     // a span not known yet (the section's length pending) keeps what is drawn
     if (!ctx || !(u1 > u0)) return false;
-    const want = this.navigator.axes === 'positions' && min > 0 && (u1 - u0) * ctx.scale < min;
+    // a strip along the view only (a side part's length is the view's height, not its axis), a height to draw in
+    const can = nav.axes === 'positions' && nav.place !== 'left' && nav.place !== 'right' && this.zoomTrack > 0;
+    const px = (u1 - u0) * ctx.scale;
+    // on under `minPx`, off past it and the hysteresis: a width jittering about the threshold keeps what is drawn
+    const want = can && min > 0 && (px < min || (this.zoomed && px <= min + ZoomHysteresisPx));
     if (want === this.zoomed) return false;
     this.zoomed = want;
     this.zoomU0 = u0;
@@ -722,6 +775,87 @@ export class NavigatorRenderer {
     this.viewportsFor = {};
     delete this.frameInput.viewports;
     return true;
+  }
+
+  /**
+   * Whether the gap above the zoom strip moves: the strip sits at the box's bottom (the gap after it), whatever the
+   * context's content takes (a strip's small tracks, its axis); a context taller than the box keeps the gap's least.
+   */
+  private gapMoved(): boolean {
+    const ctx = this.layout?.sections[0];
+    if (!this.zoomed || !ctx) return false;
+    const gap = Math.max(0, this.boxHeight + this.zoomGap - (ctx.y + ctx.height));
+    if (Math.abs(gap - this.sectionGap) < 1e-6) return false;
+    this.sectionGap = gap;
+    return true;
+  }
+
+  /**
+   * The reachable span from this frame's pieces (none: a bound section pending, the last kept): their hull, or on a
+   * cyclic axis the shorter arc that covers them (its end past the total over the origin); a bound section on the
+   * navigator's own axis is the whole axis.
+   */
+  private readReach(): void {
+    const n = this.pieceN;
+    const ctx = this.layout?.sections[0]?.axis;
+    if (!n || !ctx) return;
+    const p = this.pieces;
+    const t = ctx.total;
+    const reach = this.reach;
+    if (!ctx.cyclic) {
+      let lo = Number.POSITIVE_INFINITY;
+      let hi = Number.NEGATIVE_INFINITY;
+      for (let i = 0; i < n; i++) {
+        lo = Math.min(lo, p[2 * i]);
+        hi = Math.max(hi, p[2 * i + 1]);
+      }
+      reach[0] = lo;
+      reach[1] = hi;
+      reach[2] = this.piecePos[0];
+      reach[3] = this.piecePos[1];
+      return;
+    }
+    // the shorter arc: from each piece's start, the farthest end met going on (a piece across that start: no arc)
+    let best = t;
+    let start = 0;
+    for (let i = 0; i < n; i++) {
+      const s = p[2 * i];
+      let len = 0;
+      for (let j = 0; j < n && len <= t; j++) {
+        let a = p[2 * j] - s;
+        if (a < -1e-9) a += t;
+        const b = a + (p[2 * j + 1] - p[2 * j]);
+        len = b > t + 1e-9 ? Number.POSITIVE_INFINITY : Math.max(len, b);
+      }
+      if (len < best - 1e-9) {
+        best = len;
+        start = s;
+      }
+    }
+    reach[0] = start;
+    reach[1] = start + best;
+    if (reach[1] > t + 1e-9) {
+      // over the origin: the arc's ends as positions, its start then its end
+      reach[2] = positionAt(ctx, start, 'start') ?? this.piecePos[0];
+      reach[3] = positionAt(ctx, reach[1] - t, 'end') ?? this.piecePos[1];
+    } else {
+      reach[2] = this.piecePos[0];
+      reach[3] = this.piecePos[1];
+    }
+  }
+
+  /** Adds a piece of the reachable span (units on the picture) and its ends as positions. */
+  private addPiece(ua: number, ub: number, pa: number, pb: number): void {
+    if (2 * this.pieceN + 2 > this.pieces.length) {
+      const grown = new Float64Array(2 * this.pieces.length);
+      grown.set(this.pieces);
+      this.pieces = grown;
+    }
+    this.pieces[2 * this.pieceN] = Math.min(ua, ub);
+    this.pieces[2 * this.pieceN + 1] = Math.max(ua, ub);
+    this.pieceN++;
+    this.piecePos[0] = Math.min(this.piecePos[0], pa, pb);
+    this.piecePos[1] = Math.max(this.piecePos[1], pa, pb);
   }
 
   /** Fits the rows to their band; true when the scale moved (laid out again). */
@@ -778,8 +912,9 @@ export class NavigatorRenderer {
     const nav = this.navigator;
     const pic = this.work;
     const axis = pic?.axis;
-    this.reach[0] = this.reach[2] = Number.POSITIVE_INFINITY;
-    this.reach[1] = this.reach[3] = Number.NEGATIVE_INFINITY;
+    this.pieceN = 0;
+    this.piecePos[0] = Number.POSITIVE_INFINITY;
+    this.piecePos[1] = Number.NEGATIVE_INFINITY;
     for (let i = 0; i < nav.of.length; i++) {
       const w = this.windows[i];
       w.section = nav.of[i];
@@ -860,8 +995,8 @@ export class NavigatorRenderer {
     const u0 = offsetOf(axis, p0) ?? nearestOffsetOf(axis, p0);
     const u1 = offsetOf(axis, p1) ?? nearestOffsetOf(axis, p1);
     if (u0 === undefined || u1 === undefined) return false;
-    let x0 = axis.xOfUnit(u0);
-    let x1 = axis.xOfUnit(u1);
+    let x0 = axis.xOfUnit(this.onStrip(u0));
+    let x1 = axis.xOfUnit(this.onStrip(u1));
     // the section's display order carried along the path against the picture's (a reversed section on a genomic
     // picture, a protein on a minus-strand gene): its start is the picture's right end
     if (s.section.axis.dir * (path.to ? pathDir(path.to) : 1) !== this.picture!.section.axis.dir) [x0, x1] = [x1, x0];
@@ -881,24 +1016,27 @@ export class NavigatorRenderer {
       const r = path.to ? projectRanges(path.to, own, this.scratch) : own;
       let lo = Number.POSITIVE_INFINITY;
       let hi = Number.NEGATIVE_INFINITY;
-      const reach = this.reach;
       for (let k = 0; k + 1 < r.length; k += 2) {
         const ua = nearestOffsetOf(axis, r[k]) ?? 0;
         const ub = nearestOffsetOf(axis, r[k + 1]) ?? 0;
-        const a = axis.xOfUnit(ua);
-        const b = axis.xOfUnit(ub);
+        // on a strip over a cyclic origin, a piece past the origin goes on a turn (its start the turn's when the
+        // piece starts at the origin itself)
+        const sa = this.onStrip(ua);
+        const a = axis.xOfUnit(sa);
+        const b = axis.xOfUnit(sa + (ub - ua));
         lo = Math.min(lo, a, b);
         hi = Math.max(hi, a, b);
-        // the span's hull in units and positions (the zoom strip's viewport, the mark's text)
-        reach[0] = Math.min(reach[0], ua, ub);
-        reach[1] = Math.max(reach[1], ua, ub);
-        reach[2] = Math.min(reach[2], r[k], r[k + 1]);
-        reach[3] = Math.max(reach[3], r[k], r[k + 1]);
+        // the span's pieces (the zoom strip's viewport, the mark's text)
+        this.addPiece(ua, ub, r[k], r[k + 1]);
       }
       if (lo < hi) {
         w.lo = Math.max(w.lo, lo);
         w.hi = Math.min(w.hi, hi);
       }
+    } else {
+      // on the navigator's own axis: the section reaches the whole of it
+      const t = this.turn;
+      if (t > 0) this.addPiece(0, t, 0, t);
     }
     return true;
   }
@@ -980,17 +1118,58 @@ export class NavigatorRenderer {
     const ctx = this.layout!.sections[0];
     const work = this.work!;
     const axis = ctx.axis;
+    const m = this.markX;
+    m[0] = m[1] = m[2] = m[3] = Number.NaN;
     if (!axis || !(this.reach[1] > this.reach[0])) return;
+    const t = axis.total;
+    // over a cyclic origin two pieces: the arc's start to the axis's end, its start to the arc's end
+    const wraps = this.wraps;
+    for (let k = 0; k < (wraps ? 2 : 1); k++) {
+      const u0 = k === 0 ? this.reach[0] : 0;
+      const u1 = wraps ? (k === 0 ? t : this.reach[1] - t) : this.reach[1];
+      this.drawMark(out, axis.xOfUnit(u0), axis.xOfUnit(u1), ctx, k, dpr, c, tokens);
+    }
+    // the connectors: from the mark's foot to the zoom strip's top, its start to the strip's start, its end to its end
+    // (over the origin the first piece's start, the second's end)
+    const g = out.args;
+    const wb = work.placement.box;
+    for (let k = 0; k < 2; k++) {
+      g[4] = None;
+      g[5] = tokens.colors['seq-window'];
+      g[6] = 1 / dpr;
+      g[7] = 0;
+      // display units run left to right on both: the arc's start is the strip's start
+      Line[0] = k === 0 ? m[0] : wraps ? m[3] : m[1];
+      Line[1] = ctx.y + ctx.height;
+      Line[2] = k === 0 ? wb.x : wb.x + wb.width;
+      Line[3] = work.y;
+      out.pathArgs(Line, 2, false);
+    }
+  }
+
+  /**
+   * A piece of the mark between `a` and `b` on the context: an outline at least `window.minPx` wide, always centred on
+   * the truth (whatever `window.floor`: the mark says where) and clamped inside the picture, so the truth is inside it;
+   * its hairline at the truth. Its drawn ends into `markX` (piece `k`).
+   */
+  private drawMark(
+    out: PassWriter,
+    a: number,
+    b: number,
+    ctx: SectionLayout,
+    k: number,
+    dpr: number,
+    c: RenderConfig['navigator']['window'],
+    tokens: SeqTokens,
+  ): void {
     const box = ctx.placement.box;
-    const a = axis.xOfUnit(this.reach[0]);
-    const b = axis.xOfUnit(this.reach[1]);
     Ext[0] = Math.min(a, b);
     Ext[1] = Math.max(a, b);
     Ext[2] = box.x;
     Ext[3] = box.x + box.width;
-    floorExtent(Ext, 0, c);
-    this.markX0 = Ext[0];
-    this.markX1 = Ext[1];
+    floorExtent(Ext, 0, this.markConfig(c));
+    this.markX[2 * k] = Ext[0];
+    this.markX[2 * k + 1] = Ext[1];
     const W = NavWindow;
     W[0] = W[8] = Ext[0];
     W[1] = W[9] = Ext[1];
@@ -999,20 +1178,14 @@ export class NavigatorRenderer {
     W[2] = W[6] = W[10] = ctx.y;
     W[3] = W[7] = W[11] = ctx.y + ctx.height;
     drawNavigatorWindow(out, FlagOutline, undefined, dpr, c, tokens);
-    // the connectors: from the mark's foot to the zoom strip's top, each end to its end
-    const g = out.args;
-    const wb = work.placement.box;
-    for (let k = 0; k < 2; k++) {
-      g[4] = None;
-      g[5] = tokens.colors['seq-window'];
-      g[6] = 1 / dpr;
-      g[7] = 0;
-      Line[0] = k === 0 ? this.markX0 : this.markX1;
-      Line[1] = ctx.y + ctx.height;
-      Line[2] = k === 0 ? wb.x : wb.x + wb.width;
-      Line[3] = work.y;
-      out.pathArgs(Line, 2, false);
-    }
+  }
+
+  /** `window` with its floor `centred` (the mark's), made once. */
+  private centred: RenderConfig['navigator']['window'] | undefined;
+  private markConfig(c: RenderConfig['navigator']['window']): RenderConfig['navigator']['window'] {
+    if (c.floor === 'centred') return c;
+    if (this.centred?.minPx !== c.minPx) this.centred = { ...c, floor: 'centred' };
+    return this.centred;
   }
 
   private drawWindow(
@@ -1123,8 +1296,10 @@ export class NavigatorRenderer {
     if (!pic) return undefined;
     const c = this.config.navigator.window;
     const nav = this.navigator;
-    // above the zoom strip, the context: no target; over the mark it names the region
-    if (this.zoomed && y < pic.y) return this.contextHit(x, y);
+    // on the context, the zoom strip's: no target; over the mark it names the region. The gap below it is the strip's
+    // (a finger a few px above the strip lands on it)
+    const ctx = this.layout!.sections[0];
+    if (this.zoomed && y < ctx.y + ctx.height) return this.contextHit(x, y);
     let best: { w: NavigatorWindow; part: WindowPart; axis: 'positions' | 'rows' } | undefined;
     Seen.length = 0;
     for (let k = -1; k < this.windows.length; k++) {
@@ -1182,10 +1357,16 @@ export class NavigatorRenderer {
       section,
       part: 'outside',
       axis: 'positions',
-      context: x >= this.markX0 && x <= this.markX1 ? 'mark' : 'outside',
+      context: this.onMark(x) ? 'mark' : 'outside',
       ...(p >= 0 ? { position: p } : {}),
       ...(h?.state !== undefined ? { band: h.state } : {}),
     };
+  }
+
+  /** Whether x is over a piece of the mark as last drawn. */
+  private onMark(x: number): boolean {
+    const m = this.markX;
+    return (x >= m[0] && x <= m[1]) || (x >= m[2] && x <= m[3]);
   }
 
   /** The display row (below the pinned band, fractional) at y on the picture's rows; undefined with none. */
@@ -1242,7 +1423,7 @@ export class NavigatorRenderer {
     if (path.to) p = projectPoint(path.to, p);
     if (p === undefined) return Number.NaN;
     const o = offsetOf(axis, p) ?? nearestOffsetOf(axis, p);
-    return o === undefined ? Number.NaN : axis.xOfUnit(o);
+    return o === undefined ? Number.NaN : axis.xOfUnit(this.onStrip(o));
   }
 
   /** The issues the navigator met: its bindings, its layers left out, its picture's. */

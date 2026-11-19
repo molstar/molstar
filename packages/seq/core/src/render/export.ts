@@ -47,7 +47,14 @@ import type { ThemeContext } from './channels.js';
 import type { Emphasis } from './layer-type.js';
 import { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 import { OverlaySources } from './overlay-sources.js';
-import { type NavigatorFrame, NavigatorRenderer, navigatorBox, railSections, windowText } from './navigator.js';
+import {
+  type NavigatorFrame,
+  NavigatorRenderer,
+  type NavigatorRendererOptions,
+  navigatorBox,
+  railSections,
+  windowText,
+} from './navigator.js';
 import { Renderer } from './renderer.js';
 import type { ViewLayout } from './tracks.js';
 import { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
@@ -218,6 +225,11 @@ export interface RenderSvgOptions {
    * windows (no grips, no idle state). The view's `export.navigators` when absent, else `omit`.
    */
   readonly navigators?: 'omit' | 'include';
+  /**
+   * How the included navigators draw (a viewer passes its own `navigator.zoomStrip` and `navigator.direction`, so its
+   * export is what its parts show): `DefaultZoomStrip` and the display order when absent.
+   */
+  readonly navigator?: Pick<NavigatorRendererOptions, 'zoomStrip' | 'direction'>;
 }
 
 /** The provisional height a layout for a height `auto` is measured at. */
@@ -353,6 +365,8 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
                 images: renderer.images,
                 domains: renderer.layoutState,
                 storeSettings: store.settings,
+                ...(options.navigator?.zoomStrip ? { zoomStrip: options.navigator.zoomStrip } : {}),
+                ...(options.navigator?.direction ? { direction: options.navigator.direction } : {}),
               }),
           )
       : [];
