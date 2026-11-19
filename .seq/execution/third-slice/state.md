@@ -199,3 +199,4 @@ None.
   perf 120 passed. Identity is PID1-like (either row a residue; gap-gap and insert cells left out), the author may
   choose another. Sizes after RC: reading a spec 203.9, headless 626.8, viewer default 995.5 kB. DP and DT running; DG
   and DC start (strong slots).
+- Decided (the author, 2026-11-19): pairs, ranges and maps on an alignment's columns wait for 0.5.0 (followups).

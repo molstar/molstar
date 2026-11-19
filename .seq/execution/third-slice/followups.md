@@ -30,3 +30,8 @@
   while no chip or gap enters the view (pass the pointer through `view.panPx`); a ring chip shows its label twice (the
   outside label and the pill); a block's label inline on its first text line (EC-95); `rows.ts`'s private `elide` onto
   `render/text.ts`'s.
+- Pairs, ranges and maps on an alignment's columns (the author, 2026-11-19: "Yes, slice 4 (0.5.0)"; found by DT):
+  `pairs.a`/`b`, `ranges.target` and `map.to` may name an `alignment` (its columns system), so a family's `SS_cons`
+  arcs draw over the alignment and a structure's chain maps onto its closest seed row; in the fourth slice's 0.5.0
+  bump with the molecules design. Until then the tRNA covariance view shows the seed's rows and logo, and the seed row
+  as a sequence with its `SS_cons` pairs.
