@@ -109,7 +109,7 @@ On the review of the decisions: "ok" to its recommendations.
   | **Plasmid** | a cyclic construct (about 2.7 kb): features crossing the origin on both strands, a CDS across the origin, restriction sites |
   | **tRNA** | a tRNA with base pairs (pairs on one system, nested and crossing), modified bases, a covariance alignment |
   | **Complex** (the author, 2026-11-18: "a protein complex, with PPIs; and perhaps a ligand as well (maybe something from AlphaFill?)"; CDK2 with cyclin A confirmed the same day) | CDK2 with cyclin A (UniProt P24941, P20248): a crystal structure of the complex with ATP (two copies of the complex, so copy groups; unobserved loops); a predicted model of the complex with per-residue confidence and its predicted aligned error (PAE) between the chains; the interface (residues per side, residue–residue contacts across the chains); the ligands: ATP from the crystal and the ligands AlphaFill transplants into the AlphaFold DB model of CDK2 (each with its source entry and fit scores), their contacting residues; features (the PSTAIRE helix, the activation loop, the T160 phosphosite) |
-  | **Genomes** (a later milestone, [version-1.md](version-1.md)) | two small toy assemblies with synteny (an inversion, a translocation, a gap), name aliases and an HLA-style contig name; genes with transcripts (three levels), a name index; multi-sample signal in one file, GWAS points, a per-pair LD table, a variant matrix by sample with a long deletion, methylation with missing values, transcript-level results keyed by id; FASTA with an index and values read by region |
+  | **Genomes** (the fifth slice, [version-1.md](version-1.md); the author, 2026-11-19) | two small toy assemblies with synteny (an inversion, a translocation, a gap), name aliases and an HLA-style contig name; genes with transcripts (three levels), a name index; multi-sample signal in one file, GWAS points, a per-pair LD table, a variant matrix by sample with a long deletion, methylation with missing values, transcript-level results keyed by id; FASTA with an index and values read by region |
 
 - **Views per dataset** (the first list; each names the edge cases it carries):
 
@@ -121,7 +121,7 @@ On the review of the decisions: "ok" to its recommendations.
   | Plasmid | ring with a linear detail following its window (EC-108, 114), features as arrows by strand (the builder sets `arrow`, EC-232); a feature across the origin selected and focused by shortest arc (EC-9 to 14); the rotated linear view |
   | tRNA | arcs nested and crossing (EC-129); base-pair matrix as a dot plot with crosshair hover and rectangle selection (EC-109, 145); covariance alignment with pairs |
   | Complex | the chains as blocks with the interface residues and the contacts as arcs across the chains, folded by copy group (EC-35, 62, 65); the PAE as a dot plot over the same window as the tracks, crosshair hover lighting both residues, a dragged rectangle selecting two ranges (EC-109, 145); confidence and secondary structure tracks, unobserved residues gray (EC-118); the ligands as blocks after the polymers, ATP as one position and per heavy atom, AlphaFill's transplants listed with their scores, and the residues contacting a chosen ligand highlighted (EC-64, 101); a text figure with ligand chips flowing like words (EC-99); copies merged into one block labeled ×2 and split again (EC-65); the interface bookmarked as a ref, with undo (EC-162) |
-  | Genomes (later) | synteny ribbons with an inversion (direction on segments, EC-206); a dot plot of one genome against the other; both genomes on one ring (EC-210); signal by region with an open domain and with a one-sided domain (EC-169 to 175, EC-201, EC-202); many signals split from one file, log scale (EC-214, EC-215); a Manhattan plot of points with a threshold line, colored by LD to a chosen lead (EC-216, EC-217, EC-219); samples' variants as rows with the deletion solid (EC-222); methylation matrix by region (EC-220); transcripts colored by joined results gated on padj (EC-224); open on a gene by name (EC-228); a liftover by chain file (EC-212); the genome by region from FASTA with its index, names aliased (EC-186 to EC-189) |
+  | Genomes (fifth slice) | synteny ribbons with an inversion (direction on segments, EC-206); a dot plot of one genome against the other; both genomes on one ring (EC-210); signal by region with an open domain and with a one-sided domain (EC-169 to 175, EC-201, EC-202); many signals split from one file, log scale (EC-214, EC-215); a Manhattan plot of points with a threshold line, colored by LD to a chosen lead (EC-216, EC-217, EC-219); samples' variants as rows with the deletion solid (EC-222); methylation matrix by region (EC-220); transcripts colored by joined results gated on padj (EC-224); open on a gene by name (EC-228); a liftover by chain file (EC-212); the genome by region from FASTA with its index, names aliased (EC-186 to EC-189) |
 
 - **Showcases at the application layer**, in the storybook package (they compose what an application would, and are
   not core features):
@@ -141,14 +141,14 @@ On the review of the decisions: "ok" to its recommendations.
 
   | Its case | Here |
   |---|---|
-  | p53 text and tracks; UniProt features; queries and bookmarks; protein on its genome through codons; reverse-strand gene; streamed chromosome | p53 |
+  | p53 text and tracks; UniProt features; queries and bookmarks; protein on its genome through codons; reverse-strand gene; streamed chromosome | p53 (the streamed chromosome: p53's chromosome) |
   | protein family; PF00042 alignment; family triage | Globins |
   | antibody numbering; indels in wild-type numbering | Antibody |
   | DNA construct; plasmid ring | Plasmid |
   | RNA base pairs | tRNA |
   | imatinib in ABL; barnase–barstar; AFDB complex; designed dimer | Complex |
   | protein over coding DNA | p53 (the protein on its gene) |
-  | genotype matrix | Genomes (later) |
+  | genotype matrix | Genomes (fifth slice) |
   | story drafts | p53 (a story in snapshots) |
 
 - **Every view runs three ways**: in Storybook (canvas and SVG side by side), in a quick-lane test (validates,
@@ -220,6 +220,35 @@ and on the other three copies (copy rule, EC-25); click selects, projected to th
 merging the copies (`copies: merge`, the layouts design's default) and splitting them (`each`) is the editing view's
 toggle (a patch, one undo step each);
 hiding variants by source or consequence is a filter in `layer.data` (a patch).
+
+#### p53's chromosome (added 2026-11-19)
+
+The author, 2026-11-19: "we should also add a "genome-level" example(s)"; "let's do chromosome scale this slice; and
+the whole genomes in appropriate slice" (the Genomes dataset: the fifth slice, [version-1.md](version-1.md)).
+
+Chromosome 17 at its GRCh38 length (83,257,441 bp, a fact, not data), every byte generated in code by region and never
+stored, with TP53 at its real place (7,668,402–7,687,550, minus strand) carrying the p53 gene the dataset already has.
+It is performance.md's "a whole human genome by region" at one chromosome, and the previous implementation's
+"streamed chromosome" case.
+
+| What | Source | Licence | Size | Form |
+|---|---|---|---|---|
+| the chromosome's letters | generated by region: core's `PCG` seeded by the block's index, so a region's letters never depend on what was asked before; TP53's span from `tp53-gene.seq` | `LicenseRef-seqx-generated` | 0 committed | a source by region (the source protocol) |
+| genes | generated by region from one seed (about 1,200, both strands, exons), TP53 placed as built | as above | 0 | features by region, each gene a dynamic node with its exons |
+| a signal (GC-like, smooth with noise) | generated by region, summarized by bin-width levels | as above | 0 | values by region and level |
+
+Views it feeds: **the chromosome** (a ruler in Mb, the genes, the signal, the letters when they fit; opened fit to the
+whole chromosome) with an overview navigator showing the window; zooming from the whole chromosome to TP53 (a
+double-click on the gene focuses it) and down to its letters, every level drawn from the store as regions arrive;
+TP53's gene opened as the p53 gene view (the dataset's existing gene, linked by its place). Interactions: wheel and drag
+zoom and pan, the navigator's window dragged, hover on a gene (its name, strand and span in the hover card), click
+selects a gene, 0 fits. Not here (the Genomes dataset's): open by name (EC-228), gene hierarchies (EC-227), a second
+assembly.
+
+What it checks: a frame costs what is on screen at 83 Mb as at 300 residues (performance.md's flat frame time,
+measured at the fit view, at a density between two levels and at the letters); regions requested only for the view and
+its margin, evicted past the store's bound, never the view (EC-169 to EC-175); the ruler's Mb, kb and bp labels
+(`@molstar/core/util/number`).
 
 #### Globins
 
@@ -381,8 +410,8 @@ Views:
 
 ### What is not here
 
-- **The Genomes dataset** (a later milestone, [version-1.md](version-1.md)): its toy assemblies are generated when that
-  milestone comes.
+- **The Genomes dataset** (the fifth slice, [version-1.md](version-1.md)): its toy assemblies are generated when that
+  milestone comes. A single chromosome by region is here (p53's chromosome).
 - **Loading by URI in the Storybook** (public files read live): settled with the source protocol
   ([sources.md](sources.md)); every view here reads committed fixtures only.
 
@@ -414,6 +443,7 @@ Configuration table) or a fixed rule of the fixtures, checked by a test.
 | `fixtures.maxFileBytes`, `fixtures.maxDatasetBytes` | fixed (the fixtures test) | 1 MB, 2 MB | decided; the repository and the Storybook's assets | larger for a dataset the author names |
 | `fixtures.licences` | fixed (the record script and the fixtures test) | `CC0-1.0`, `CC-BY-4.0`, `LicenseRef-NCBI-public-data`, `LicenseRef-seqx-generated`, `LicenseRef-anarci-numbering` | permissive, attributable (decided) | one added by the author's decision |
 | `p53.variants.sources` | option of the record script | UniProt, ClinVar | licences known per source (decided) | gnomAD once its licence is checked |
+| `chromosome.length`, `.genes`, `.seed` | option of the generator | 83,257,441 (GRCh38 chr17), about 1,200, one fixed seed | p53's chromosome at its real size, TP53 in place | a whole genome's 3.1 Gb by chromosome (heavy only) |
 | `globins.seedRows` | option of the record script | at most 60 | the dataset table's "about 50"; a figure that fits a screen | the whole seed |
 | `globins.scale.rows`, `.columns`, `.seed` | option of the generator | 10,000, 300, 42 | performance.md's scale; one fixed seed | 1,000 × 2,000, 10M lazy rows (heavy only) |
 | `globins.reference` | option of the view's builder | HBA_HUMAN | 4HHB's α chain is its unit | HBB_HUMAN |

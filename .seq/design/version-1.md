@@ -51,7 +51,8 @@ surfaces (one UI, internal layouts and chrome parts), and its edge cases kept, c
 ## Deferred, with their triggers
 
 - Layers across sections, synteny, contact maps, MAF over a genome, and the **Genomes dataset** with them: a later
-  milestone, after version 1's views run.
+  milestone, after version 1's views run: the fifth slice (the author, 2026-11-19). One chromosome by region is in the
+  third slice (p53's chromosome, [examples.md](examples.md)).
 - The genome formats beyond bigWig (2bit, BigBed, VCF, PAF, GFF, chain files): with the Genomes milestone.
 - Definitions and uses with arguments: when an example needs them (track templates over dynamic nodes are in version 1,
   [dynamic-nodes.md](dynamic-nodes.md)).
@@ -98,7 +99,7 @@ Version 1's planned features ([features.md](features.md)) come in milestones, ea
    foundations' stories and presets, SVG and PNG export, the render CLI.
 3. **Integration**: structure maps and the Mol\* showcase, services, bigWig and range reads, the Nightingale reference,
    archives.
-4. **Genomes** (later): the deferred list above.
+4. **Genomes** (the fifth slice): the deferred list above.
 
 ## Open, to decide as the work reaches them
 

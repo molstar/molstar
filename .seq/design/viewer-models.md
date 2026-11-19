@@ -70,7 +70,7 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 
 `hover` (pointer to `HoverModel`), `select` (clicks and drags to `SelectionModel`), `navigate` (drag, wheel, pinch,
 keys to viewports), `follow` (keeps followers in step), `cursor` (the keyboard cursor), `focus` (focus and reveal), each
-with its params as config items; `hoverCard` and the keys panel (ux-foundations §9, the third slice's HC). Later:
+with its params as config items; `hoverCard` and the keys panel (ux-foundations, 9. Chrome; the third slice's HC). Later:
 `contextMenu`, `snapshots`, `reveal-on-highlight`.
 
 ### Gestures, bindings and commands

@@ -287,3 +287,8 @@ None.
 - **The loop resumed** (2026-11-19, `/loop`). The quick lane re-measured near quiet (load 3.1–4.8, two runs): core
   2.40 / 2.69, viewer 2.47 / 2.22, storybook 2.63 / 2.08, examples 1.54 s: over the 2 s guide. QT3 (fast,
   `briefs/qt3-quick-lane.md`) starts; RK waits for it (its brief: nothing beside it in `packages/seq`).
+- Decided (the author, 2026-11-19: "we should also add a "genome-level" example(s)"; "let's do chromosome scale this
+  slice; and the whole genomes in appropriate slice"): **CS**, p53's chromosome (chromosome 17 by region, generated,
+  TP53 in place; examples.md, its Design page), strong, beside RK after QT3 (`briefs/cs-chromosome.md`); the Genomes
+  dataset is the fifth slice (version-1.md, plan). The data's choices (generated, not recorded) taken as recommended:
+  in `gaps.md`.

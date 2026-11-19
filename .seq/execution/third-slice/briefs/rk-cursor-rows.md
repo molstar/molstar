@@ -15,7 +15,8 @@ the cursor follow it. Grids: ↑ ↓ step the grid's y the same way.
 Space on a cell and on a header; a row never loaded stepped over; the announcement and the card at the cursor; the
 grid's y.
 
-**Not in scope**: anything else. Nothing runs in `packages/seq` beside you.
+**Not in scope**: anything else. CS (p53's chromosome) runs beside you in `packages/seq/examples` and
+`packages/seq/storybook`: stay out of its view files; a shared story file is a merge the orchestrator resolves.
 
 **Model**: strong (opus). **Base**: `packages-seq` at the commit this brief is in: `git checkout -B seq/rk-cursor-rows
 <that commit>`. Storybook port 6019 (your own; stop it after).

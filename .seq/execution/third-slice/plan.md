@@ -17,7 +17,7 @@ their views ([examples](../../design/examples.md)).
 | second (closed) | 1, core editing and addressing | patches, the history port, previews, addresses, refs and links, selection, security bounds, MessagePack, navigation |
 | **third (this plan)** | 2, figures | the axis, the text, ring and block layouts, alignments, dot plots, arcs and logos, themes and legends, stories, navigators, PNG and the CLI, the datasets |
 | fourth | 3, integration | structures (the port, structure maps, a fake 3D viewer showing the syncing; the Mol\* integration waits for the new mol viewer), services, bigWig and range reads, the Nightingale reference, archives |
-| later | 4, Genomes | layers across sections, synteny, contact maps, MAF, two assemblies on one axis, the genome formats |
+| fifth (the author, 2026-11-19) | 4, Genomes | layers across sections, synteny, contact maps, MAF, two assemblies on one axis, the genome formats |
 
 **Structure integration in the fourth slice is a fake 3D viewer** (decided, the author, 2026-11-19: "let's only do a demo with fake 3D viewer to demonstrate how the syncing will work. There will be a new mol viewer work after we are done with the sequence viewer which will replace prism, so i don't want to waste work"): a small storybook component standing in
 for a structure viewer (its chains and residues as a schematic, taking MolViewSpec-shaped states and sending hover,
@@ -389,6 +389,9 @@ and dark before the merge.
       `briefs/hc-hover-card.md`).
 - [ ] RK (strong, after HC; the author, 2026-11-19: "Yes, after HC") the keyboard cursor's rows (grids-and-rows,
       The keyboard cursor; `briefs/rk-cursor-rows.md`).
+- [ ] CS (strong, beside RK; the author, 2026-11-19: "we should also add a "genome-level" example(s)", "let's do
+      chromosome scale this slice") p53's chromosome: chromosome 17 by region, generated, TP53 in place
+      ([examples](../../design/examples.md), p53's chromosome; `briefs/cs-chromosome.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
@@ -442,7 +445,7 @@ strong lanes at once) → CH beside them, GD after both → SO, FS (its design, 
 
 ## Out of scope
 
-Structures and services (the fourth slice), bigWig, Genomes, writers beyond SVG and PNG, settings layers.
+Structures and services (the fourth slice), bigWig, Genomes (the fifth slice; one chromosome is CS's), writers beyond SVG and PNG, settings layers.
 Track header parts (the author, 2026-11-19: "Fourth slice"): header actions as registry entries (icon, label, when,
 command) drawn in the header's fixed slots, hit and announced, the built-ins (hide, color, filter) on the same entries,
 a host adding or removing its own; a hidden-tracks chip in the section header that shows a hidden track again; the

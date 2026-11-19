@@ -6,7 +6,7 @@ This file is for an orchestrator picking the slice up in a new session. Read `lo
 
 ## Where it stands
 
-- **Branch** `packages-seq` (main checkout `/Users/davinci001/projects/molstar/molstar-v6`). Every lane merges here
+- **Branch** `packages-seq` (the main checkout, the repository root). Every lane merges here
   `--no-ff`; nothing is pushed.
 - **Merged this slice**:
   - files and records: FS-A1, FS-A2;
