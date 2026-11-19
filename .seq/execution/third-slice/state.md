@@ -309,3 +309,6 @@ None.
   `drift/finalize-config.md` for the next gate.
 - The author (2026-11-19, three screenshots of rondo.app): a genome ring like Rondo's for the fifth slice, "perhaps
   even as an extension to show this is "easy""; GR (fast, read-only research) started.
+- GR reported (`research-genome-ring.md`): a Circos-like ring is close with what is built (blocks of several systems
+  on a ring are tested, which GR missed); the Rondo look needs a bundled-pairs layer, a pairs level by bin pair, `ext:`
+  layer kinds, a navigator over systems and a ring-zoom channel. Six questions for the author.
