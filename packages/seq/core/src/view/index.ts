@@ -39,6 +39,7 @@ export {
   type LayerType,
   LayerTypes,
   type ResolvedLayer,
+  type GridAxis,
   type ResolvedSection,
   type ResolvedTrack,
   type ResolvedView,

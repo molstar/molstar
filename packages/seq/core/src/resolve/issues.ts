@@ -48,6 +48,11 @@ export const ResolveIssues = defineIssues('seq.resolve', {
       'A row or an exon wraps the origin of a cyclic sequence whose length is not known yet; it is left out until it is',
     hint: 'Give the sequence its letters inline, or wait for its source',
   },
+  'seq.resolve.grid.size': {
+    severity: 'warning',
+    description: 'A grid’s values are not one per pair of positions of its systems, or more than a block holds',
+    hint: 'Give |x| × |y| values, x-major, at most 2^24 of them; the grid is not drawn',
+  },
   'seq.resolve.path.none': {
     severity: 'warning',
     description: 'No path of maps joins two systems within the bound (at most four maps and one codon step)',

@@ -40,14 +40,18 @@ checks it cannot express.
   the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`, `alignment` (rows over columns: its
   `rows` inline, a `label` and aligned `letters` a row, every row as wide, or a `source`; its `reference` row by label;
   the columns system its address, the rows system `rowsSystemOf(address)`, `<address>/(rows)`: rows are a system,
-  EC-35), `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn); under `views`: `view`, then
-  `section`, `block` (a piece of a section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default
-  false: kept in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`, default false: kept in the
-  spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`)
-  a coding sequence of its own (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind
-  param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params
-  (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is
-  an address.
+  EC-35), `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn), `pairs` (two locations that
+  belong together: `a` a sequence, `b` another or `a`'s; its `rows` inline, `a_start`, `a_end`, `b_start`, `b_end` each
+  pair's two ends, never wrapping, at least a position each (EC-10), self-pairs allowed; an open `type` its kind, since
+  `kind` is reserved: canonical, wobble, contact; `id`, `label`, `a_strand` and `b_strand` (EC-206)), `grid` (a value
+  per pair of positions: `x` a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of
+  them: `seq.lang.grid.length`); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its
+  own: `of`, `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep
+  their own), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A
+  `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's
+  `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and
+  is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`,
+  `data`) are `ref` params naming the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -57,10 +61,15 @@ checks it cannot express.
   `three`; absent: `auto`), read by `letters`; a layer's `numbering` (a numbering id; absent: the section's default,
   `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent: `bars`) by `values`, `style` (`blocks`) by
   `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`, `highlight`; absent: blocks) and `arrow`
-  (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`. Why: the figure's form is the writer's, never the host's
-  or the data's: one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and
-  `pieces` are checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a
-  union's record member). Why: the composition is the application's.
+  (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a grid section's `of_y` (absent: `of`), `follow_y` (`x`,
+  `none` or a section; absent: `x`) and `aspect` (a number or `none`; absent: 1); by `pairs` its `side` (`above`,
+  `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`; absent: `span`), `crossing` (`same`, `split`;
+  absent: `same`), `across_lines` (absent: false) and `mirror` (absent: false: a pair drawn where its data puts it,
+  never read off whether the two axes are one system; the tRNA's builder sets it); by `grid` its `aggregate` (`mean`,
+  `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the
+  figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
+  another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
+  check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
 - **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
   language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
   are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a
@@ -627,6 +636,11 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 - **Access plans**: inline letters, rows and values are a `seq` source of one tile over the whole system (the `seq`
   runtime, whatever the registry), named by the system's address; a node with a `source` reads it by region, its system
   by the system's `name`.
+- **Pairs and grids** are held whole (`resolve/held.ts`): a `pairs` node's ends and a `grid` node's values read once
+  into typed arrays on the entry (`pairs`, `grid`), on two systems (`target` and `ySystem`), with no access plan: they
+  are inline, read whole, and their reductions are their layers'. A grid whose values are not `|x| × |y|`, or more than
+  `DefaultMaxBlockValues` (the bound the store checks a block), is dropped with `seq.resolve.grid.size` saying the count
+  it expected. Pairs and grids read by region wait for the Genomes milestone.
 - **Wrapped rows**: a row that wraps a cyclic origin is two rows of one item, in the items and the table (EC-9). On a
   sequence of unknown length it is left out with `seq.resolve.length.unknown` until the length is known.
 - **The query forms' model**: `system`, `annotation` (ranges; inline items at once, a source's pending over what is
@@ -745,13 +759,17 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
 no target.
 
 - **A view**: its address, its `layout`, its sections in order, its links, its issues.
-- **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`), with its layout's params as
-  written (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`, `rotation`, `labels`,
-  `arrange`, `copies`); the layout reads them with its defaults. Why on the section: a view mixes layouts (a ring and
-  its linear detail; a text figure under a tracks overview). What the figure means (group size, numbers) is the spec's;
-  spacing is the render config's.
-- **A section**: an axis, its tracks, and its follow; its `blocks` when it has `block` children. A section whose `of`
-  names no system (with blocks: its first block's) is `seq.view.section.system`; its layers are not placed.
+- **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`, `grid`), with its layout's
+  params as written (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`, `rotation`, `labels`,
+  `arrange`, `copies`, `aspect`); the layout reads them with its defaults. Why on the section: a view mixes layouts (a
+  ring and its linear detail; a text figure under a tracks overview). What the figure means (group size, numbers) is the
+  spec's; spacing is the render config's.
+- **A section**: an axis, its tracks, and its follow; its `blocks` when it has `block` children; a grid section its `y`.
+- **Grids**: a grid section's `y` (`GridAxis`) is its second axis, down the plot: `of_y`'s system whole (`of`'s when
+  absent), top down, and what it shows: `follow_y: x` (the default) x's window (`followsX`; through the path from x's
+  system when `of_y` is another), a section's region through `follow` (the path from its system), `none` a window of its
+  own (`viewport.y`). A y that cannot follow (no path) is `seq.view.follow.unplaced` and keeps its own window. A section
+  whose `of` names no system (with blocks: its first block's) is `seq.view.section.system`; its layers are not placed.
 - **Blocks**: each its axis (its system, its `range`, the section's direction), its first display unit in the section's
   (`offset`: 0 in a stack), its label, the blocks it stands for (`members`), and each of the section's tracks' layers
   resolved onto its system (a path a block: placed on each block its data reaches; a layer that reaches no block says
