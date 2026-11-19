@@ -697,14 +697,17 @@ binding table; per move one hit record and one modifiers record are reused.
   the section's first visible). A section that scrolls inside its box (`Placement.clip`, a text) takes a wheel without
   Cmd/Ctrl only while its content overflows the box, scrolling it through its layout's `pan`, and gives it back to the
   page at its top and bottom (scroll chaining). True when a binding took it, and the page does not scroll. **The wheel
-  over a plot is the plot's**: over a grid's box (`GridPlacement.box`) it is always true, so the page never scrolls from
-  inside the plot, even where a pan stops at an axis's end; outside it, as anywhere. Why: a plot whose wheel fell
-  through at an end moved the page under the pointer.
+  over a plot is the plot's**: over a grid's data box (x's extent, the blocks' gaps included, and the well's height; not
+  the label column nor the y blocks' labels in it) it is always true, so the page never scrolls from inside the plot,
+  even where a pan stops at an axis's end; outside it, as anywhere. Why: a plot whose wheel fell through at an end moved
+  the page under the pointer.
 - **Double click**: the bound command with the section, what to focus (the element's hull on the section, its extent
   carried along the layer's path, else the position's cell, in offsets; a Shift+click's extend before it is given back,
   as a clear one is), the unit the placement has under the pointer (`at`) and the double-click's zoom factor (`step`,
   `navigate.doubleClickZoomStep`). On a grid's cell the context also says `cell` and the unit down y (`atY`): the focus
-  zooms a step about the cell on both axes (below, `navigate`).
+  zooms a step about the cell on both axes (below, `navigate`). Every point of a plot's data box is a cell's: a gap
+  between blocks resolves the cell's binding and zooms about that point, never fits (`empty`'s). On a grid whose y
+  follows x (one window) the step keeps the point under the pointer on x, y following.
 - **Side buttons**: a mouse's back and forward buttons are the `back-button` and `forward-button` gestures
   (`sideButton`), taken only when the command can act (a step to go): then the mounted UI keeps the page from going back
   on their press and release; else they are the page's.

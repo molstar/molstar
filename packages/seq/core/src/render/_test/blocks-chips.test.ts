@@ -95,10 +95,11 @@ describe('a chip in the tracks layout', () => {
     const p = f.layout.sections[0].placement as BlockPlacement;
     const axis = f.layout.sections[0].axis!;
     // the polymers' scale: the width less the gaps and the chip, over the units less the chip's
+    // (each block's edges on the device grid: its width within a pixel of its share)
     const gaps = p.strips.axes[1].x0 - (p.strips.axes[0].x0 + p.strips.axes[0].width);
     const scale = (axis.width - 2 * gaps - chipWidth('ATP')) / 200;
-    expect(p.strips.axes[0].scale).toBeCloseTo(scale, 6);
-    expect(p.strips.axes[1].scale).toBeCloseTo(scale, 6);
+    expect(Math.abs(p.strips.axes[0].width - 120 * scale)).toBeLessThanOrEqual(1);
+    expect(Math.abs(p.strips.axes[1].width - 80 * scale)).toBeLessThanOrEqual(1);
     const pt = new PlacePoint();
     for (const u of [0, 119, 120, 199, 200]) {
       expect(p.place(u + 0.5, pt)).toBe(true);

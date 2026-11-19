@@ -10,7 +10,7 @@
 // adds, Alt+drag subtracts), the crosshair hover, a grid's zoom moving its leaders, the arcs the canvas and the export
 // draw (equal lists).
 
-import { type GridLay, type PairsLay, recordDrawLists } from '@molstar/seqx-core/render';
+import { type GridLay, type GridPlacement, type PairsLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { ComplexViews, TrnaViews } from '@molstar/seqx-examples';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -256,6 +256,58 @@ describe('tRNA: the dot plot, headless', () => {
     expect(w.end - w.start).toBeLessThan(76);
     const strips = v.frame!.layout.sections[1].placement.strips;
     expect([strips.ys[0]!.u0, strips.ys[0]!.u1]).toEqual([strips.axes[0].u0, strips.axes[0].u1]);
+  });
+});
+
+describe('a double-click on a grid whose y follows x', () => {
+  it('tRNA’s dot plot: the step keeps the point under the pointer on x, y following x’s window', async () => {
+    viewer = await openExample(trna('dot-plot'), { gene: '' });
+    const v = viewer;
+    const range = () => {
+      const r = v.view.get('/views/main/trna')!;
+      return [r.start, r.end];
+    };
+    const [s0, e0] = range();
+    const g = gridOf(v, 1);
+    // off the diagonal: x 10, y 60
+    const [x, y] = cellCentre(g, 10, 60);
+    const at = v.placementOf(v.frame!.layout.sections[1].section.address)!.offsetAt(x, y);
+    const fx = (at - s0) / (e0 - s0);
+    expect(v.input.doubleClick(x, y)).toBe(true);
+    await vi.advanceTimersByTimeAsync(800);
+    v.draw();
+    const [s1, e1] = range();
+    expect(e1 - s1).toBeCloseTo((e0 - s0) / v.config.navigate.doubleClickZoomStep, 6);
+    expect((at - s1) / (e1 - s1)).toBeCloseTo(fx, 6);
+    const st = v.frame!.layout.sections[1].placement.strips;
+    expect([st.ys[0]!.u0, st.ys[0]!.u1]).toEqual([st.axes[0].u0, st.axes[0].u1]);
+  });
+
+  it('over the complex: a double-click in the gap between blocks zooms about that point as on a cell, never fits', async () => {
+    viewer = await openExample(complex('complex-grid'), { fixtures: true });
+    const v = viewer;
+    const range = () => {
+      const r = v.view.get('/views/main/chains')!;
+      return [r.start, r.end];
+    };
+    const [s0, e0] = range();
+    for (const step of [1, 2]) {
+      v.draw();
+      const p = v.placementOf('/views/main/pae') as GridPlacement;
+      const xr = p.xRow!;
+      // the gap before the second block (x), at the first y block's middle
+      const x = (xr.x[0] + xr.w[0] + xr.x[1]) / 2;
+      const y = p.yRow!.x[0] + p.yRow!.w[0] / 2;
+      expect(xr.x[1] - (xr.x[0] + xr.w[0])).toBeGreaterThan(2);
+      const at = p.offsetAt(x, y);
+      const [a, b] = range();
+      const f = (at - a) / (b - a);
+      expect(v.input.doubleClick(x, y)).toBe(true);
+      await vi.advanceTimersByTimeAsync(800);
+      const [c, d] = range();
+      expect(d - c, `step ${step}`).toBeCloseTo((e0 - s0) / v.config.navigate.doubleClickZoomStep ** step, 6);
+      expect((at - c) / (d - c)).toBeCloseTo(f, 6);
+    }
   });
 });
 

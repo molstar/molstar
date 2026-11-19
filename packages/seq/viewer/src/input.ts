@@ -789,12 +789,19 @@ export class ViewerInput {
     return taken || plot;
   }
 
-  /** Whether a point is over a grid section's plot (its box, the well round its cells). */
+  /**
+   * Whether a point is over a grid section's plot: its data box (x's extent, the blocks' gaps included) and the well's
+   * height round its cells; never the label column or the y blocks' labels in it.
+   */
   private _overPlot(section: string, x: number, y: number): boolean {
     const p = this.viewer.placementOf(section);
-    if (!(p instanceof GridPlacement)) return false;
+    if (!(p instanceof GridPlacement) || !p.strips.n) return false;
+    const r = p.xRow;
+    const a = p.strips.axes[0];
+    const x0 = r ? r.x0 : a.x0;
+    const x1 = r ? r.x0 + r.width : a.x0 + a.width;
     const b = p.box;
-    return x >= b.x && x < b.x + b.width && y >= b.y && y < b.y + b.height;
+    return x >= x0 && x < x1 && y >= b.y && y < b.y + b.height;
   }
 
   /** A double-click: the bound command, with the element or position under the pointer as what to focus. */
@@ -818,21 +825,26 @@ export class ViewerInput {
         railUnitAt(rail, x),
         (this.viewer.config.navigator.zoomPx / Math.max(1e-9, rail.width)) * rail.total,
       );
-    const action = this.viewer.bindings.resolve('double-click', mods, hitTarget(hit));
+    // over a plot every point is a cell's, a gap between blocks too: it zooms as a cell does, never fits
+    const p = this.viewer.placementOf(section);
+    const inPlot = this._overPlot(section, x, y);
+    const target = inPlot ? 'cell' : hitTarget(hit);
+    const action = this.viewer.bindings.resolve('double-click', mods, target);
     if (action === undefined) return false;
     // a clade's command on a summary row (its element the clade): the clade it names
     if (hit?.target === 'summary-row' && hit.element && hit.layer !== undefined && CladeActions.includes(action)) {
       void this.viewer.execute(action, { track: trackOfLayer(hit.layer), clade: hit.element.key });
       return true;
     }
-    const focus = hit ? this._focusOf(section, hit) : undefined;
     // a step zoom is about the pointer (the unit the placement has under it), by the double-click's own factor
-    const p = this.viewer.placementOf(section);
     const pt = this._point;
     const at = p?.at(this._pageAt(x, y), pt) && (pt.kind === 'data' || pt.kind === 'gap') ? p.offsetAt(x, y) : -1;
-    // a grid's cell: its focus zooms a step about the pointer on both axes (`cell`), never a jump to its two residues
-    const cell = p instanceof GridPlacement && hit?.target === 'cell' && at >= 0;
+    // a grid's cell (or a gap in its plot): its focus zooms a step about the pointer on both axes (`cell`), never a
+    // jump to its two residues; on a grid whose y follows x the point keeps its place on x, y following
+    const cell = inPlot && at >= 0;
     const atY = cell ? this.offsetYAt(section, x, y) : undefined;
+    const hull = hit ? this._focusOf(section, hit) : undefined;
+    const focus = hull ?? (cell ? { start: Math.floor(at), end: Math.floor(at) + 1 } : undefined);
     this.viewer.runCommand(action, {
       section,
       ...(focus ? { focus } : {}),

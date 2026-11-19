@@ -184,6 +184,23 @@ export class BlockRow {
     }
   }
 
+  /**
+   * Each block in view's edges on the device grid (`dpr`), as laid (a chip's kept): a block's cells, its clip and the columns of another
+   * row over the same window (a grid's under a tracks section's) then meet on whole device pixels. A block may be left
+   * none wide (its strip is then not placed).
+   */
+  snap(dpr: number): void {
+    const d = dpr > 0 ? dpr : 1;
+    for (let b = 0; b < this.n; b++) {
+      // a chip keeps its slot (its label's width) and its place
+      if (this.ve[b] <= this.vs[b] || this.chip[b] > 0) continue;
+      const a = Math.round(this.x[b] * d) / d;
+      const e = Math.round((this.x[b] + this.w[b]) * d) / d;
+      this.x[b] = a;
+      this.w[b] = Math.max(0, e - a);
+    }
+  }
+
   /** The x of section unit `u` as last laid (past the window: on at the polymers' scale). */
   xOf(u: number): number {
     if (u < this.u0) return this.x0 - (this.u0 - u) * this.scale;
@@ -393,7 +410,11 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   row.chip = grown(row.chip, blocks.length);
   row.chip.set(slots.subarray(0, blocks.length));
   // a row's gaps and chips take their px from the width (the row's x is not linear over them, EC-102)
-  if (!p.stacked) row.lay(u0, u1);
+  // the blocks' edges on the device grid, as a grid's under them (its columns align with these)
+  if (!p.stacked) {
+    row.lay(u0, u1);
+    row.snap(ctx.dpr);
+  }
   // a stack: no gaps, one scale
   const scale = Math.max(width, 1e-9) / (u1 - u0);
   // the rows' height: the label row, then the tracks
@@ -436,7 +457,8 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       } else {
         const vs = row.vs[b];
         const ve = row.ve[b];
-        if (ve <= vs) continue;
+        // in view but none wide once snapped: no strip (nothing of it is drawn or hit)
+        if (ve <= vs || row.w[b] <= 0) continue;
         // a chip partly in view takes px by the part of it in view (a pan moves it continuously)
         a = AxisTransform.on(block.axis, block.axis.ranges, row.x[b], row.w[b], ctx.dpr, {
           start: vs - o,

@@ -112,16 +112,8 @@ function blockRow(
     row.len[b] = blocks[b].axis.ranges ? piecesTotal(blocks[b].axis.ranges!) : 0;
   }
   row.lay(u0, u1);
-  // each block's edges on the device grid: its cells' clip and its tiles' edges (rounded so) then meet exactly, with no
-  // sliver of a cell past the block's edge into the gap and none of the gap's ink inside it
-  const d = dpr > 0 ? dpr : 1;
-  for (let b = 0; b < blocks.length; b++) {
-    if (row.ve[b] <= row.vs[b]) continue;
-    const a = Math.round(row.x[b] * d) / d;
-    const e = Math.round((row.x[b] + row.w[b]) * d) / d;
-    row.x[b] = a;
-    row.w[b] = Math.max(0, e - a);
-  }
+  // each block's edges on the device grid, as the tracks' row above: its cells' clip and its tiles' edges meet exactly
+  row.snap(dpr);
 }
 
 /**
@@ -151,7 +143,7 @@ function placeBlocksGrid(
   for (let c = 0; c < blocks.length; c++) {
     const oc = yr.offset[c];
     ys[c] =
-      yr.ve[c] > yr.vs[c] && blocks[c].axis.ranges
+      yr.ve[c] > yr.vs[c] && yr.w[c] > 0 && blocks[c].axis.ranges
         ? AxisTransform.on(blocks[c].axis, blocks[c].axis.ranges!, yr.x[c], yr.w[c], ctx.dpr, {
             start: yr.vs[c] - oc,
             end: yr.ve[c] - oc,
@@ -159,7 +151,8 @@ function placeBlocksGrid(
         : undefined;
   }
   for (let b = 0; b < blocks.length; b++) {
-    if (xr.ve[b] <= xr.vs[b] || !blocks[b].axis.ranges) continue;
+    // a block in view whose snapped width is none has no strip: nothing of it is drawn or hit
+    if (xr.ve[b] <= xr.vs[b] || xr.w[b] <= 0 || !blocks[b].axis.ranges) continue;
     const ob = xr.offset[b];
     const ax = AxisTransform.on(blocks[b].axis, blocks[b].axis.ranges!, xr.x[b], xr.w[b], ctx.dpr, {
       start: xr.vs[b] - ob,
