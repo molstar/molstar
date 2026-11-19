@@ -183,7 +183,7 @@ and dark before the merge.
 
 ### Stage 3: pairs, grids and rows (strong, after stage 2; as [grids-and-rows](../../design/grids-and-rows.md))
 
-- [ ] RW (strong, first: it lands the shared pieces) the rows layer: tree or data order, clade folds (session state,
+- [x] RW (strong, first: it lands the shared pieces) the rows layer: tree or data order, clade folds (session state,
       `clades.keep`), pinning, lazy rows for 10,000 (the store's want sets, bounded layout); the column measures, the
       Stockholm and Newick readers, `Hit`'s y fields, the `cells` shape on row tiles, the shared 2D reduction and image
       cache; the logo.
