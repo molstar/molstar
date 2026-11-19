@@ -14,7 +14,6 @@ import { createSeqContext } from '@molstar/seqx-core/context';
 import { DataStore, DefaultStoreSettings, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
-  attachSources,
   type BandsLay,
   bundledTextMetrics,
   DarkTokens,
@@ -24,9 +23,8 @@ import {
   type RangesLay,
   RowsLay,
   type Viewport,
+  openModel,
 } from '@molstar/seqx-core/render';
-import { resolveSpec, sourceLengths } from '@molstar/seqx-core/resolve';
-import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import { generatedRegistry } from '../globins/data.js';
 import { Chr17Bands, Chr17BandsLevel, RegionOnChr17 } from '../navigators.js';
@@ -43,16 +41,14 @@ async function settled(
   nav = 0,
   navSize = { width: input.size.width, height: 48 },
 ) {
-  const all = [SeqRuntime, ...(runtimes as never[])];
-  const assets = nodeFixtureAssets().reader;
   const store = new DataStore();
-  // the sources that give a system its length first, then the model resolved again with their lengths
-  const first = resolveSpec(spec, { runtimes: all });
-  const only = new Set([...first.systems.values()].flatMap((s) => (s.source ? [s.source] : [])));
-  expect(await attachSources(first, store, { assets, only })).toEqual([]);
-  const model = resolveSpec(spec, { runtimes: all, lengths: sourceLengths(first, (s) => store.coverage(s)) });
-  const [view] = resolveViews(model);
-  expect(await attachSources(model, store, { assets })).toEqual([]);
+  const opened = await openModel(spec, store, {
+    runtimes: [SeqRuntime, ...(runtimes as never[])],
+    assets: nodeFixtureAssets().reader,
+  });
+  expect(opened.issues).toEqual([]);
+  const { model } = opened;
+  const view = opened.view!;
   const common = { model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() };
   const renderer = new Renderer(common);
   const n = new NavigatorRenderer({ ...common, navigator: view.navigators[nav] });

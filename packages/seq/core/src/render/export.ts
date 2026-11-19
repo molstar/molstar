@@ -176,6 +176,73 @@ export async function attachSources(
   return issues;
 }
 
+export interface OpenModelOptions extends AttachOptions {
+  /** The format runtimes the application composed (inline data always reads through `seq`). */
+  readonly runtimes?: readonly FormatRuntime[];
+  readonly config?: Partial<ResolveConfig>;
+  /** The view's address (the first view when absent): what is opened is what it reads. */
+  readonly view?: string;
+  /** Opens what the view reads (`view`, an export's), or every source of the model (`all`, the default). */
+  readonly scope?: 'view' | 'all';
+  /** The spec's first resolve, when the caller made it already. */
+  readonly model?: StaticModel;
+}
+
+export interface OpenedModel {
+  /** The model resolved with the lengths the opened sources gave (the first resolve when none did). */
+  readonly model: StaticModel;
+  /** Its view (undefined when the spec has none of the address). */
+  readonly view?: ResolvedView;
+  /** The model's, the view's, and what opening the sources said. */
+  readonly issues: readonly Issue[];
+}
+
+/**
+ * A spec's model with its sources open (_spec/README.md "Resolve", A length from coverage): resolved; the sources
+ * that hold a system opened first; resolved again with the lengths their coverages gave; then the rest opened over
+ * that model. Each source is opened once (one that failed is not tried again). The one implementation of the
+ * protocol: an export, a test's harness and a host's one-shot render use it; the viewer keeps its store in step itself.
+ */
+export async function openModel(spec: Node, store: DataStore, options: OpenModelOptions = {}): Promise<OpenedModel> {
+  const resolveOptions = {
+    ...(options.runtimes ? { runtimes: options.runtimes } : {}),
+    ...(options.config ? { config: options.config } : {}),
+  };
+  const viewOf = (m: StaticModel) => (options.view ? resolveView(m, options.view) : resolveViews(m)[0]);
+  const scoped = (m: StaticModel, v: ResolvedView | undefined) =>
+    options.scope === 'view' && v ? viewSources(m, v) : undefined;
+  let model = options.model ?? resolveSpec(spec, resolveOptions);
+  let view = viewOf(model);
+  const shown = scoped(model, view);
+  const first = new Set(
+    [...model.systems.values()].flatMap((s) => (s.source && (!shown || shown.has(s.source)) ? [s.source] : [])),
+  );
+  const attach = (m: StaticModel, only: Set<string> | undefined) => {
+    const { only: _o, ...rest } = options;
+    return attachSources(m, store, { ...rest, ...(only ? { only } : {}) });
+  };
+  const said = first.size ? await attach(model, first) : [];
+  const lengths = sourceLengths(model, (source) => store.coverage(source));
+  if (lengths.size) {
+    model = resolveSpec(spec, { ...resolveOptions, lengths });
+    view = viewOf(model);
+  }
+  // the rest, over the model with the lengths: each opened once
+  let rest = scoped(model, view);
+  if (!rest) {
+    rest = new Set<string>();
+    for (const b of model.sources.values()) rest.add(b.address);
+    for (const plan of [
+      ...[...model.systems.values()].map((s) => s.access),
+      ...[...model.annotations.values()].map((a) => a.access),
+    ])
+      if (plan?.kind === 'inline') rest.add(plan.source.address);
+  }
+  for (const s of first) rest.delete(s);
+  const opened = await attach(model, rest);
+  return { model, ...(view ? { view } : {}), issues: [...model.issues, ...(view?.issues ?? []), ...said, ...opened] };
+}
+
 /**
  * A viewport in positions, by section address (`[start, end)` on each section's system): read through each section's
  * axis (its direction and pieces), so a caller needs no knowledge of them.
@@ -304,8 +371,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     config: options.resolve ?? {},
   };
   let model = resolveSpec(spec, resolveOptions);
-  const viewOf = (m: StaticModel) => (options.view ? resolveView(m, options.view) : resolveViews(m)[0]);
-  const firstView = viewOf(model);
+  const firstView = options.view ? resolveView(model, options.view) : resolveViews(model)[0];
   if (!firstView) {
     issues.push(...model.issues);
     issues.push(
@@ -339,38 +405,27 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const expired = new Promise<undefined>((resolve) => {
       timer = clock.setTimeout(() => resolve(undefined), timeout);
     });
-    const attach = (m: StaticModel, only: Set<string>) =>
-      attachSources(m, store, {
-        ...(options.assets ? { assets: options.assets } : {}),
-        signal: controller.signal,
-        only,
-        attached,
-      });
+    // the sources opened and the model resolved again with their lengths; taken only when that wins the race (a late
+    // one never swaps the model under the render)
     const opened = await Promise.race([
-      (async () => {
-        // the sources that give a shown system its length first: the model is resolved again with their lengths
-        // (_spec/README.md "Resolve", Systems), then the rest of what the view reads is opened over it
-        const shown = viewSources(model, view);
-        const first = new Set(
-          [...model.systems.values()].flatMap((s) => (s.source && shown.has(s.source) ? [s.source] : [])),
-        );
-        const said = first.size ? await attach(model, first) : [];
-        const lengths = sourceLengths(model, (source) => store.coverage(source));
-        if (lengths.size) {
-          model = resolveSpec(spec, { ...resolveOptions, lengths });
-          view = viewOf(model) ?? view;
-        }
-        // each opened once: one that failed is not tried again
-        const rest = viewSources(model, view);
-        for (const s of first) rest.delete(s);
-        return [...said, ...(await attach(model, rest))];
-      })(),
+      openModel(spec, store, {
+        ...resolveOptions,
+        ...(options.assets ? { assets: options.assets } : {}),
+        ...(options.view ? { view: options.view } : {}),
+        signal: controller.signal,
+        attached,
+        scope: 'view',
+        model,
+      }),
       expired,
     ]);
     clock.clearTimeout(timer);
-    issues.push(...model.issues, ...view.issues);
-    if (opened) issues.push(...opened);
-    else {
+    if (opened?.view) {
+      model = opened.model;
+      view = opened.view;
+      issues.push(...opened.issues);
+    } else {
+      issues.push(...model.issues, ...view.issues);
       settled = false;
       controller.abort();
     }

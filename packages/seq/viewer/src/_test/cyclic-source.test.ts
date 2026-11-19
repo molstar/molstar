@@ -102,6 +102,27 @@ describe('a cyclic sequence read from a source, in the viewer', () => {
     expect(viewer.frame?.layout.issues).toEqual([]);
   });
 
+  it('an edited source is not laid out on its old file’s length: pending until the new one opens', async () => {
+    const v = await make(true);
+    expect(v.view.resolved.value?.sections[0].axis.ranges).toEqual([0, N]);
+    const other = seqToValue(
+      inlineSeq(
+        { name: 'c', length: 400, alphabet: 'dna', cyclic: true },
+        { letters: { form: 'letters', start: 0, letters: 'ACGT'.repeat(100) } },
+      ),
+    );
+    expect(v.spec.applyPatch({ ops: [{ op: 'set', at: ['data', 'file'], key: 'value', value: other }] }).ok).toBe(true);
+    // before the sync: the old file's length is not taken
+    expect(v.spec.model.value.systems.get('/data/c')?.length).toBeUndefined();
+    expect(v.view.resolved.value?.sections[0].axis.ranges).toBeUndefined();
+    const f = v.draw();
+    expect(f?.layout.sections[0].axis).toBeUndefined();
+    expect(f?.layout.issues.map((i) => i.code)).toContain('seq.render.axis.pending');
+    await v.settle();
+    frames!.flush();
+    expect(v.view.resolved.value?.sections[0].axis.ranges).toEqual([0, 400]);
+  });
+
   for (const fromSource of [false, true])
     it(`a focus on the item across the origin takes its shortest arc (${fromSource ? 'a source' : 'inline'})`, async () => {
       const v = await make(fromSource);

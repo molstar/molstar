@@ -9,15 +9,15 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, type FormatRuntime } from '@molstar/seqx-core/data';
-import { resolveSpec, type StaticModel, sourceLengths } from '@molstar/seqx-core/resolve';
-import { type ResolvedView, resolveViews } from '@molstar/seqx-core/view';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
+import type { ResolvedView } from '@molstar/seqx-core/view';
 import {
-  attachSources,
   bundledTextMetrics,
   type DrawLists,
   type Frame,
   type FrameInput,
   LightTokens,
+  openModel,
   type PassName,
   Renderer,
   type RenderConfigOverrides,
@@ -40,14 +40,8 @@ export async function settle(
   config: RenderConfigOverrides = {},
 ): Promise<Settled> {
   const store = new DataStore();
-  // the sources that give a system its length first, then the model resolved again with their lengths
-  let model = resolveSpec(spec, { runtimes });
-  const sources = new Set([...model.systems.values()].flatMap((s) => (s.source ? [s.source] : [])));
-  if (sources.size) await attachSources(model, store, { only: sources });
-  const lengths = sourceLengths(model, (s) => store.coverage(s));
-  if (lengths.size) model = resolveSpec(spec, { runtimes, lengths });
-  const view = resolveViews(model)[0];
-  await attachSources(model, store);
+  const { model, view: opened } = await openModel(spec, store, { runtimes });
+  const view = opened!;
   const renderer = new Renderer({
     model,
     view,

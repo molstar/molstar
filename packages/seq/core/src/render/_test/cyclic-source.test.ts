@@ -9,9 +9,10 @@
 // wrap the origin and a GFF3 row that ends past the length are drawn as they are over the same letters inline.
 
 import type { Node } from '@molstar/core/repr/tree';
-import { inlineSeq, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { type FormatRuntime, inlineSeq, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { FakeClock } from '../../data/_test/synthetic.js';
 import { resolveSpec, sourceLengths } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
 import { type RangesLay, recordDrawLists, renderSvg } from '../index.js';
@@ -25,14 +26,15 @@ const Gff = [
   'ring\tt\tCDS\t21\t30\t.\t+\t.\tID=inside',
 ].join('\n');
 
-function spec(fromSource: boolean): Node {
+/** The spec over inline letters or a `seq` source of them (`fileLetters`: the file's, an edited source's). */
+function spec(fromSource: boolean, fileLetters = Letters, format = 'seq'): Node {
   const b = createSeqSpec();
   const file = b.data.source('file', {
-    format: 'seq',
+    format,
     value: seqToValue(
       inlineSeq(
-        { name: 'ring', length: N, alphabet: 'dna', cyclic: true },
-        { letters: { form: 'letters', start: 0, letters: Letters } },
+        { name: 'ring', length: fileLetters.length, alphabet: 'dna', cyclic: true },
+        { letters: { form: 'letters', start: 0, letters: fileLetters } },
       ),
     ),
   });
@@ -75,7 +77,7 @@ describe('a cyclic sequence read from a source', () => {
     expect(before.systems.get('/data/ring')?.length).toBeUndefined();
     expect(before.issues.map((i) => i.code)).toContain('seq.resolve.length.unknown');
     const s = await settle(spec(true), Runtimes);
-    expect(sourceLengths(before, (src) => s.store.coverage(src))).toEqual(new Map([['/data/ring', N]]));
+    expect(sourceLengths(before, (src) => s.store.coverage(src)).size).toBe(1);
     expect(s.model.systems.get('/data/ring')?.length).toBe(N);
     expect(s.model.issues).toEqual([]);
     expect(s.model.annotations.get('/data/sites')?.items?.map((i) => `${i.key}:${i.start}-${i.end}`)).toEqual([
@@ -85,6 +87,16 @@ describe('a cyclic sequence read from a source', () => {
     ]);
     // the lengths are part of the model's hash
     expect(s.model.hash).not.toBe(before.hash);
+  });
+
+  it('a length is kept by its source: once the source is edited, the spec resolves with no length until it opens', async () => {
+    const s = await settle(spec(true), Runtimes);
+    const lengths = sourceLengths(s.model, (src) => s.store.coverage(src));
+    expect(resolveSpec(spec(true), { runtimes: Runtimes, lengths }).systems.get('/data/ring')?.length).toBe(N);
+    // another file under the same address: the old file's length is not taken
+    const edited = spec(true, 'ACGT'.repeat(10));
+    expect(resolveSpec(edited, { runtimes: Runtimes, lengths }).systems.get('/data/ring')?.length).toBeUndefined();
+    expect((await settle(edited, Runtimes)).model.systems.get('/data/ring')?.length).toBe(40);
   });
 
   it('the ring, the detail across the origin and the GFF3 row past the length are drawn as over inline letters', async () => {
@@ -107,5 +119,38 @@ describe('a cyclic sequence read from a source', () => {
     expect(b.issues).toEqual([]);
     expect(b.settled).toBe(true);
     expect(recordDrawLists(b.lists)).toBe(recordDrawLists(a.lists));
+  });
+
+  it('a source that opens after the deadline never swaps the model under the render', async () => {
+    // a `seq` source that opens only when released, after the export has given up on it
+    let release: () => void = () => {};
+    const late: FormatRuntime = {
+      name: 'late',
+      formats: ['late'],
+      open: (entry, ctx) =>
+        new Promise((resolve) => {
+          release = () => resolve(SeqRuntime.open({ ...entry, format: 'seq' }, ctx));
+        }),
+    };
+    const never: FormatRuntime = { name: 'never', formats: ['late'], open: () => new Promise(() => {}) };
+    const render = async (runtime: FormatRuntime, after?: () => void) => {
+      const clock = new FakeClock();
+      const out = renderSvg(spec(true, Letters, 'late'), {
+        size: Size,
+        runtimes: [runtime, RecordsRuntime],
+        viewports: Viewports,
+        clock,
+        timeoutMs: 100,
+      });
+      await clock.advance(100);
+      after?.();
+      await clock.advance(1000);
+      return out;
+    };
+    const a = await render(late, () => release());
+    const b = await render(never);
+    expect(a.settled).toBe(false);
+    expect(a.issues.map((i) => i.code)).toContain('seq.resolve.length.unknown');
+    expect(a.svg).toBe(b.svg);
   });
 });

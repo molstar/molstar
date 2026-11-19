@@ -261,15 +261,24 @@ export interface ResolveOptions {
   readonly runtimes?: readonly FormatRuntime[];
   readonly config?: Partial<ResolveConfig>;
   /**
-   * The lengths of source-backed systems, by system address, that their sources' coverages gave once opened
-   * (`sourceLengths`): such a system then resolves as one with inline letters of that length (_spec/README.md
-   * "Resolve", Systems).
+   * The lengths of source-backed systems that their sources' coverages gave once opened (`sourceLengths`, or
+   * `openModel` in render): such a system then resolves as one with inline letters of that length (_spec/README.md
+   * "Resolve", Systems). Each is kept by its system and its source node, so a source edited since is unknown again.
    */
   readonly lengths?: Lengths;
 }
 
-/** Source-backed systems' lengths by system address (`sourceLengths`). */
+/**
+ * Source-backed systems' lengths (`sourceLengths`): opaque, each keyed by its system's address and its source node's
+ * hash.
+ */
 export type Lengths = ReadonlyMap<string, number>;
+
+/** A length's key: the system and the source node it was read from. */
+const lengthKey = (system: string, sourceHash: string) => `${system}|${sourceHash}`;
+
+/** Each model's source nodes' hashes, by the source's address: what `sourceLengths` keys a length by. */
+const SourceHashes = new WeakMap<StaticModel, ReadonlyMap<string, string>>();
 
 export interface Resolver {
   /** The model of a spec; `lengths` as `ResolveOptions.lengths`, for this call. */
@@ -283,19 +292,14 @@ export interface Resolver {
  */
 export function sourceLengths(model: StaticModel, coverage: (source: string) => Coverage | undefined): Lengths {
   const out = new Map<string, number>();
+  const hashes = SourceHashes.get(model);
   for (const s of model.systems.values()) {
-    if (!s.source) continue;
-    const info = coverage(s.source)?.systems.find((x) => x.name === s.name || x.aliases?.includes(s.name));
-    if (info?.length !== undefined) out.set(s.address, info.length);
+    const hash = s.source && hashes?.get(s.source);
+    if (!hash) continue;
+    const info = coverage(s.source!)?.systems.find((x) => x.name === s.name || x.aliases?.includes(s.name));
+    if (info?.length !== undefined) out.set(lengthKey(s.address, hash), info.length);
   }
   return out;
-}
-
-/** Whether two lengths say the same. */
-export function lengthsEqual(a: Lengths, b: Lengths): boolean {
-  if (a.size !== b.size) return false;
-  for (const [k, v] of a) if (b.get(k) !== v) return false;
-  return true;
 }
 
 /** The lengths' part of a model's hash: none when empty, so a spec without sources keeps its spec's hash. */
@@ -374,8 +378,23 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     );
     return undefined;
   };
-  // a source-backed system's length is part of what an entry over it reads
-  const lengths: Lengths = options.lengths ?? new Map();
+  // a source-backed system's length (given for its source node as it is now) is part of what an entry over it reads
+  const given: Lengths = options.lengths ?? new Map();
+  const sourceHashes = new Map<string, string>();
+  for (const at of data) if (at.node.kind === 'source') sourceHashes.set(at.address, hashNode(at.node));
+  const lengths = new Map<string, number>();
+  if (given.size)
+    for (const at of data) {
+      if (at.node.kind !== 'sequence' && at.node.kind !== 'alignment') continue;
+      const src = exactAddress(p(at.node, 'source'));
+      const hash = src === undefined ? undefined : sourceHashes.get(src);
+      if (hash === undefined) continue;
+      const systems = at.node.kind === 'alignment' ? [at.address, rowsSystemOf(at.address)] : [at.address];
+      for (const system of systems) {
+        const n = given.get(lengthKey(system, hash));
+        if (n !== undefined) lengths.set(system, n);
+      }
+    }
   const key = (...at: Placed[]) => at.map((a) => `${hashNode(a.node)}#${lengths.get(a.address) ?? ''}`).join(':');
   const runtimes = options.runtimes ?? [];
 
@@ -409,7 +428,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       const src = p(c, 'source') === undefined ? undefined : ref(placed, 'source', ['source']);
       numberings.set(
         placed.address,
-        cached(`${placed.address}|${key(placed, at)}|${system.name}`, () => numberingEntry(placed, system, src?.address)),
+        cached(`${placed.address}|${key(placed, at)}|${system.name}`, () =>
+          numberingEntry(placed, system, src?.address),
+        ),
       );
     }
   }
@@ -467,7 +488,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     issues.push(...entry.issues);
   }
 
-  return new Model(spec, config, systems, maps, sources, annotations, numberings, issues, carried, lengths);
+  const model = new Model(spec, config, systems, maps, sources, annotations, numberings, issues, carried, given);
+  SourceHashes.set(model, sourceHashes);
+  return model;
 }
 
 // ---- entries ----
@@ -933,7 +956,7 @@ class Model implements StaticModel {
     readonly numberings: ReadonlyMap<string, NumberingEntry>,
     readonly issues: readonly Issue[],
     private readonly carried?: ReadonlyMap<string, PathEntry>,
-    readonly lengths: Lengths = new Map(),
+    lengths: Lengths = new Map(),
   ) {
     this.hash = `${hashNode(spec)}${lengthsKey(lengths)}`;
     let fromSource = false;

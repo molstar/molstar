@@ -52,7 +52,6 @@ export {
   createResolver,
   DefaultResolveConfig,
   type Lengths,
-  lengthsEqual,
   type MapEntry,
   type NumberingEntry,
   OpenLength,

@@ -13,7 +13,6 @@ import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { location } from '@molstar/seqx-core/query';
 import {
-  attachSources,
   type BlockPlacement,
   bundledTextMetrics,
   type GridLay,
@@ -23,9 +22,9 @@ import {
   layoutView,
   LightTokens,
   recordDrawLists,
+  openModel,
 } from '@molstar/seqx-core/render';
-import { resolveSpec, sourceLengths } from '@molstar/seqx-core/resolve';
-import { resolveViews } from '@molstar/seqx-core/view';
+import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
 import * as blocks from '../complex/blocks.js';
 import * as complexGrid from '../complex/complex-grid.js';
@@ -197,17 +196,13 @@ describe('the Complex’s synthetic PAE', () => {
  * system's letters first, then the model resolved again with their lengths.
  */
 async function laid(spec: Node, size = { width: 720, height: 900 }) {
-  const runtimes = [SeqRuntime, RecordsRuntime];
-  const assets = nodeFixtureAssets().reader;
   const store = new DataStore();
-  const first = resolveSpec(spec, { runtimes });
-  await attachSources(first, store, {
-    assets,
-    only: new Set([...first.systems.values()].flatMap((s) => (s.source ? [s.source] : []))),
+  const opened = await openModel(spec, store, {
+    runtimes: [SeqRuntime, RecordsRuntime],
+    assets: nodeFixtureAssets().reader,
   });
-  const model = resolveSpec(spec, { runtimes, lengths: sourceLengths(first, (s) => store.coverage(s)) });
-  const v = resolveViews(model)[0];
-  await attachSources(model, store, { assets });
+  const { model } = opened;
+  const v = opened.view!;
   const input = { model, view: v, size, viewports: {}, tokens: LightTokens, text: bundledTextMetrics(), data: store };
   for (let i = 0; i < 3; i++) {
     store.want(layoutView(input).wants);
