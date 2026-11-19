@@ -404,7 +404,7 @@ and dark before the merge.
 - [x] CF (merged ecb040933) (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
       means in view (decided) (`briefs/cf-chromosome-core.md`).
 - [x] SC (fast; merged) a range's strand in the hover card (`briefs/sc-card-strand.md`).
-- [ ] PG (strong, after CF; the author, 2026-11-19: "Fix PCG in core") a real PCG32, seeded data regenerated once
+- [x] PG (merged a4da637c3) (strong, after CF; the author, 2026-11-19: "Fix PCG in core") a real PCG32, seeded data regenerated once
       (`briefs/pg-pcg.md`).
 - [x] SD (reported: `drafts/structure-syncing.md`, seven gaps for the author; strong, a fourth-slice draft; the author, 2026-11-19: "Structure syncing") the structure syncing design,
       drafted (`briefs/sd-structure-syncing.md`).
@@ -424,7 +424,7 @@ and dark before the merge.
       decisions (`briefs/dr-drafts-revision.md`).
 - [ ] LL (fast, next free slot; the author, 2026-11-19: "Inside if it fits, else beside") item labels by one rule in
       rings and linear tracks; the origin-crossing extent in the hover card (`briefs/ll-labels-and-extent.md`).
-- [ ] UN (fast, after CF; the author, 2026-11-19: "'not numbered' as default", customizable) a ruler past its
+- [x] UN (merged 2439e9ba8; fast, after CF; the author, 2026-11-19: "'not numbered' as default", customizable) a ruler past its
       numbering's reach: `unnumbered: mark | fallback` (`briefs/un-unnumbered.md`).
 - [ ] LR (fast, next fast slot; the author, 2026-11-19: "configurable? reserve by default") the legend's channels row
       keeps its place (`briefs/lr-legend-row.md`).

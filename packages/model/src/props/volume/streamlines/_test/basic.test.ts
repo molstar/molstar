@@ -34,9 +34,9 @@ describe('basic streamlines', () => {
   it('are the same for every axis order', async () => {
     expect(await sameForEveryOrder({ seedDensity: 6, stepSize: 0.35, minSeparation: 0 })).toMatchInlineSnapshot(`
       {
-        "hash": "b82e366c",
-        "lines": 441,
-        "points": 10467,
+        "hash": "8ca85c8b",
+        "lines": 439,
+        "points": 10489,
       }
     `);
   });
@@ -44,9 +44,9 @@ describe('basic streamlines', () => {
   it('are the same for every axis order, with a minimum separation', async () => {
     expect(await sameForEveryOrder({ seedDensity: 6, stepSize: 0.35, minSeparation: 1.5 })).toMatchInlineSnapshot(`
       {
-        "hash": "c4ea8817",
-        "lines": 14,
-        "points": 182,
+        "hash": "bab4fa02",
+        "lines": 12,
+        "points": 167,
       }
     `);
   });

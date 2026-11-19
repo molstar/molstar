@@ -421,3 +421,12 @@ None.
   centred (layouts.md, the Design page); the defaults audit DA (fast, read-only) next in the fast slot, its numbers to
   the author. PG done (PCG32, small pyramid blocks exact, nothing regenerated): under a short review. Use findings:
   bug 6, missing design 7, look 6.
+- UN merged (2439e9ba8; head and tail runs only, the note clear of labels, the fallback issue only under `fallback`).
+  PG merged (a4da637c3; PCG32 matched to the reference, reviewed); its quick runs missed a stored streamlines snapshot in
+  `@molstar/model` (seeded by PCG): regenerated at merge (axis-order invariance still holds), changelogs
+  `core-pcg32.md`, `seq-unnumbered.md`, the PCG break in breaking-v6-changes.md. Checked on the merged head: quick for
+  core, graphics, model and Seq*; the whole medium lane; tsc; lint; format. The visual (SSAO) lane not run: nightly.
+- The author (2026-11-19) on track heights: "configurable in the spec … 'layout algorithm'" and "overrideable via a
+  port too": the section's `heights` (`content`, `uniform`, `fixed`, `ext:`) and the host's `trackSizing` port
+  (layouts.md, the Design page). LP done (round 2, pairs answer items, highlight elements, the behavior): under
+  independent review. RX's fix round done: to merge after a look.
