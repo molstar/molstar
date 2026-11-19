@@ -73,6 +73,8 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 - GD merged (`b69771348`, changelog `seq-gap-decisions.md`): gaps 1-6 and the individual colour-list exports (-13.4 kB);
   review findings fixed; looked at in dark. Every ColorLists importer typechecks; MVS and the base sequences pass.
 
+- SO merged (Features apart from Examples; a story-link test). FS's design revised after review: 10 gaps for the author.
+
 ## In progress
 
 - Stages 3 and 4's gate (2026-11-19): medium, `pnpm build`, `check:workspace` exit 0 (no known failure this time);
@@ -82,7 +84,6 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
   198.5 / 603.5 / 935.9 kB. QT merged (`61f351a30`): core 1.56, viewer 1.28,
   examples 1.56, storybook 2.00 s; 8 tests to medium. **The gate passed** (2026-11-19). Open to the author: the heavy
   lane's pool (QT: `maxWorkers: 2` in heavy mode, 1/3 → 5/6 passing, same wall time; `vitest.config.ts`, repo-wide).
-- FS part 1 (strong, design only): `briefs/fs-files-design.md`, draft to `drafts/files.md`, started early (no code).
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
   for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; agreed by the author 2026-11-19 ("Other recommendations from

@@ -223,7 +223,7 @@ and dark before the merge.
 
 ### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
 
-- [ ] SO (fast, first in the stage: the dataset lanes place their stories by it; the author, 2026-11-19: "we should
+- [x] SO (fast, first in the stage: the dataset lanes place their stories by it; the author, 2026-11-19: "we should
       distinguish functionality/feature explanation from examples") the stories split as
       [examples-and-stories](../../design/examples-and-stories.md) now says: a story that explains how something works
       goes under `Features/<Feature>`, a dataset's figure under `Examples/<Dataset>/<View>`; p53's Themes (with
