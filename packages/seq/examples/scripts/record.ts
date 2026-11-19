@@ -175,7 +175,7 @@ async function plasmid(): Promise<Row[]> {
       licence: ['LicenseRef-NCBI-public-data'],
       attribution: `INSDC (ENA, NCBI) ${PlasmidAccession}; Yanisch-Perron C, Vieira J, Messing J. Gene 33:103-119 (1985)`,
       trimmed:
-        'the FASTA record’s letters only, as one cyclic system named pUC19c in the seq format (the record has no feature annotation but source)',
+        'the FASTA record’s letters only, converted to the seq format because FASTA has no cyclic flag: one cyclic system named pUC19c (the record has no feature annotation but source)',
       derived: 'none',
       bytesDownloaded: bytes(text),
       sha256Download: sha256(text),

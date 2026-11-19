@@ -94,9 +94,10 @@ export function rotatedLinear(range: readonly [number, number] = [2000, 700]): N
   return b.build();
 }
 
-/** The ring at scale: a generated 200 kb cyclic sequence with 2,000 features on both strands, a tenth across the origin. */
 /** The height of a strand's track at scale: room for the lanes of a thousand features a strand. */
 const ScaleBand = 120;
+
+/** The ring at scale: a generated 200 kb cyclic sequence with 2,000 features on both strands, a tenth across the origin. */
 
 export function scale(): Node {
   const b = createSeqSpec({ title: 'Plasmid ring at scale' });

@@ -206,9 +206,22 @@ describe('every derived feature keeps its length under rotation', () => {
       expect(featureLetters(turned, f)).toBe(reverse && f.id === 'mcs' ? reverseComplement(own) : own);
       if (!reverse) expect(f.start).toBe(rotateFeature(base, origin).start);
     }
-    // the sites: the same count, every one of them found where it was, wherever the origin cuts them
+    // the sites: each one's enzyme, start and cut where the published one's are moved to the new origin; on the reverse
+    // complement the same palindromic site is on the same bases, so its start maps through the reflection
+    const n = PlasmidLength;
     const sites = findSites(turned);
-    expect(sites.length).toBe(findSites(letters).length);
+    const base = findSites(letters);
+    expect(sites.length).toBe(base.length);
+    for (const b of base) {
+      const e = Enzymes.find((x) => x.name === b.enzyme)!;
+      const found = sites.filter((s) => s.enzyme === b.enzyme);
+      expect(found.length, b.enzyme).toBe(1);
+      const start = reverse ? rotate(n - b.start - e.site.length, origin) : rotate(b.start, origin);
+      expect(found[0].start, `${b.enzyme} at ${origin}`).toBe(start);
+      // a palindromic site reads the same on the reverse complement's top strand: the cut is `e.cut` bases in
+      expect(found[0].cut).toBe((start + e.cut) % n);
+      if (!reverse) expect(found[0].cut).toBe(rotate(b.cut, origin));
+    }
   }
 
   it('a sample of offsets and of the offsets next to each feature’s ends, on the record and its reverse complement', () => {
@@ -229,16 +242,47 @@ describe('every derived feature keeps its length under rotation', () => {
     }
   });
 
-  it('a site across the origin is found, once, wherever the origin is', () => {
-    const e = Enzymes.find((x) => x.name === 'EcoRI')!;
-    const at = findSites(letters).find((s) => s.enzyme === 'EcoRI')!.start;
-    for (const cut of [1, 3, 5]) {
-      const turned = rotateLetters(letters, at + cut);
-      const found = findSites(turned).filter((s) => s.enzyme === 'EcoRI');
-      expect(found.length).toBe(1);
-      expect(found[0].start + found[0].length).toBeGreaterThan(PlasmidLength);
-      expect(found[0].length).toBe(e.site.length);
+  it('every enzyme’s cut offset is its published one (a hand table, the top strand’s cut)', () => {
+    // NEB: the base the top strand is cut after, counted from the site's 5' end
+    const hand: Record<string, number> = {
+      EcoRI: 1,
+      SacI: 5,
+      KpnI: 5,
+      SmaI: 3,
+      BamHI: 1,
+      XbaI: 1,
+      SalI: 1,
+      PstI: 5,
+      SphI: 5,
+      HindIII: 1,
+      NdeI: 2,
+      ScaI: 3,
+      AatII: 5,
+    };
+    expect(Object.fromEntries(Enzymes.map((e) => [e.name, e.cut]))).toEqual(hand);
+  });
+
+  it('a site across the origin is found, once, with its cut wrapped, for every enzyme and every cut of the site', () => {
+    const n = PlasmidLength;
+    for (const e of Enzymes) {
+      const at = findSites(letters).find((s) => s.enzyme === e.name)!.start;
+      for (let inside = 1; inside < e.site.length; inside++) {
+        const turned = rotateLetters(letters, at + inside);
+        const found = findSites(turned).filter((s) => s.enzyme === e.name);
+        expect(found.length, `${e.name} ${inside}`).toBe(1);
+        expect(found[0].length).toBe(e.site.length);
+        expect(found[0].start).toBe(n - inside);
+        expect(found[0].start + found[0].length).toBeGreaterThan(n);
+        // the cut wraps (start + cut) % n: before the origin when the cut is inside the first `inside` bases
+        expect(found[0].cut).toBe((n - inside + e.cut) % n);
+        expect(found[0].cut).toBe(e.cut >= inside ? e.cut - inside : n - inside + e.cut);
+      }
     }
+  });
+
+  it('the complement handles the IUPAC codes and a translation an ambiguous codon', () => {
+    expect(reverseComplement('ACGTRYKMBVDHSWN')).toBe('NWSDHBVKMRYACGT');
+    expect(translate('ATGNNNRAAGGG')).toBe('MXXG');
   });
 });
 

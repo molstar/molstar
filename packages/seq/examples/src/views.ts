@@ -269,7 +269,7 @@ export const PlasmidViews: readonly ExampleView[] = [
     id: 'crossing',
     title: 'Features across the origin',
     summary:
-      'The same, with bookmarks on bla and the primer site, the two features across the origin: click one and it is one item in two runs; focus it and the view takes its shortest arc, not the whole ring; Shift+drag across the origin extends without wrapping the long way.',
+      'The same, with bookmarks on bla and the primer site, the two features across the origin: click one and it is one item in two runs, on the ring and in the detail; focusing a bookmark moves the view to it, but over the hull of its runs (the whole ring for these two), not yet the shortest arc; a Shift+drag selection across the origin is not yet checked to extend the short way.',
     build: plasmidRing.crossing,
     registry: () => records(),
   },
@@ -287,7 +287,7 @@ export const PlasmidViews: readonly ExampleView[] = [
     id: 'scale',
     title: 'Ring at scale',
     summary:
-      'A generated 200 kb construct with 2,000 features on both strands, a tenth across the origin, as a ring with its linear detail.',
+      'A generated 200 kb construct with 2,000 features on both strands, a tenth across the origin. The features show in the linear detail (a density strip at this size); the ring draws nothing for them yet and says so, as a ring does not draw a density row.',
     build: plasmidRing.scale,
   },
   {

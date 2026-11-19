@@ -18,7 +18,7 @@ export const HoverOwner = 'test';
 
 export interface OpenOptions {
   /** The gene file's text (the views that read it by location). */
-  readonly gene: string;
+  readonly gene?: string;
   /** Each answer's delay, or `staggered` (the story's own: later regions later). */
   readonly delayMs?: number | 'staggered';
   /** How long the fake clock runs after the load. */
@@ -29,7 +29,7 @@ export interface OpenOptions {
 
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
 export async function openExample(view: ExampleView, options: OpenOptions): Promise<SeqViewer> {
-  const { gene, delayMs = 300, wait = 6000, realClock = false } = options;
+  const { gene = '', delayMs = 300, wait = 6000, realClock = false } = options;
   vi.useFakeTimers({
     toFake: realClock ? ['setTimeout', 'clearTimeout'] : ['setTimeout', 'clearTimeout', 'Date', 'performance'],
   });

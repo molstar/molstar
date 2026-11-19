@@ -13,7 +13,8 @@ export default meta;
 
 /**
  * A generated 200 kb construct with 2,000 features on both strands, a tenth of them across the origin, as a ring with
- * its linear detail. The 200 features across the origin all lie over one position, more than a ring's lanes: the rest
- * collapse into a density row, which a ring does not draw (it says so).
+ * its linear detail. The features show in the detail. The ring draws nothing for them yet: the 200 across the origin
+ * lie over one position, more than a ring's lanes, and the rest collapse into a density row, an image, which a ring
+ * does not draw (it says so).
  */
 export const RingAtScale: StoryObj = { render: () => exampleStory(PlasmidViews.find((v) => v.id === 'scale')!) };

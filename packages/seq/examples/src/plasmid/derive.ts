@@ -29,11 +29,29 @@ export interface PlasmidFeature {
   readonly length: number;
 }
 
-const Complement: Readonly<Record<string, string>> = { A: 'T', C: 'G', G: 'C', T: 'A' };
+/** The complement of each IUPAC nucleotide code (R-Y, K-M, B-V, D-H pair up; S, W, N are their own). */
+const Complement: Readonly<Record<string, string>> = {
+  A: 'T',
+  C: 'G',
+  G: 'C',
+  T: 'A',
+  U: 'A',
+  R: 'Y',
+  Y: 'R',
+  K: 'M',
+  M: 'K',
+  B: 'V',
+  V: 'B',
+  D: 'H',
+  H: 'D',
+  S: 'S',
+  W: 'W',
+  N: 'N',
+};
 
 export function reverseComplement(letters: string): string {
   let s = '';
-  for (let i = letters.length - 1; i >= 0; i--) s += Complement[letters[i]];
+  for (let i = letters.length - 1; i >= 0; i--) s += Complement[letters[i]] ?? 'N';
   return s;
 }
 
@@ -55,7 +73,7 @@ const Code = (() => {
 
 export function translate(dna: string): string {
   let p = '';
-  for (let i = 0; i + 2 < dna.length; i += 3) p += Code[dna.slice(i, i + 3)] ?? 'X';
+  for (let i = 0; i + 2 < dna.length; i += 3) p += Code[dna.slice(i, i + 3)] ?? 'X'; // an ambiguous codon is X
   return p;
 }
 
@@ -86,7 +104,7 @@ export function findOrf(
       let k = at;
       let p = '';
       while (k < at + n) {
-        const aa = Code[doubled.slice(k, k + 3)];
+        const aa = Code[doubled.slice(k, k + 3)] ?? 'X';
         k += 3;
         p += aa;
         if (aa === '*') break;
@@ -303,7 +321,8 @@ export function recordModule(letters: string): string {
 // INSDC ${PlasmidAccession}, Cloning vector ${PlasmidName}, complete sequence (${letters.length} bp, circular): the letters of
 // \`fixtures/plasmid/${PlasmidAccession}.seq\`, written by \`scripts/record.ts\` (a test compares the two). A cyclic
 // sequence read from a source has no length until it is opened, so the views that wrap the origin (the ring's window,
-// a range over it) take the letters inline, from here.
+// a range over it) take the letters inline, from here. A stand-in until the core reads a cyclic source's length at
+// resolve: then the views read the \`seq\` file and this module goes (lane CY).
 
 export const PublishedLetters =
   '${letters}';
