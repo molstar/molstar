@@ -396,6 +396,8 @@ export class ViewerInput {
     out.block = h.block;
     // a grid over blocks' cell: its y block too (the rect drag reads its units on the hit strip's blocks)
     out.yBlock = h.yBlock;
+    // what a layer names within the position (a rows column cell: its value, which the tip reads whole)
+    out.state = h.state;
     return this._hit;
   }
 
@@ -661,6 +663,8 @@ export class ViewerInput {
     const section = this.sectionAt(y);
     // the track's "n filtered" chip: its click clears the layer's filter (one patch)
     const chip = this.viewer.hit(x, y);
+    // the hidden-columns chip: its hover names them, a click does nothing
+    if (chip?.target === 'columns-hidden') return true;
     if (chip?.target === 'filter') {
       void this.viewer.execute('layer.filter', { address: chip.layer });
       return true;

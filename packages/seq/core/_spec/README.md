@@ -1884,11 +1884,11 @@ numbers): a window move allocates nothing once warm.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
-  clade; `column-title` a rows layer's column title, `state` its field): `layer` the layer's key (its address, else its
-  track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a Location
-  on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by `LaneIndex` (a
-  lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an element under
-  the point wins, else the topmost with a position.
+  clade; `column-title` a rows layer's column title, `state` its field; `columns-hidden` its hidden-columns chip,
+  `state` its text): `layer` the layer's key (its address, else its track's and `:index`), `section` the section's id,
+  `element` an item's `{ owner, key }` with its `extent` (a Location on the data's system), `position` on the section's
+  system. Cells by arithmetic on the axis; items by `LaneIndex` (a lane's marks by left edge with a running maximum of
+  right edges). In a track, the topmost layer with an element under the point wins, else the topmost with a position.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there
@@ -2090,21 +2090,26 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   `fitRowColumns` in the view's layout, kept while the view, the width and the room it read are): what the view lacks
   for the data's least width (`rows.columns.dataMinPx`, 200) with every column at its own width is taken from the
   columns, the right ones first and then the left, each from the last written, down to `rows.columns.floorPx` (32) and
-  then hidden; the label keeps its room. A chip in the title row ending where the right columns do (the right titles cut
-  for it) counts those hidden ("2 columns hidden"); it is no target (showing the hidden columns is not designed). The
-  widths reach the layer as `LayoutContext.rowColumns` (with the right columns' x); a text section's lines leave the
-  right columns their room; an export attaches the sources that could join. A cell's text, its cut (kept by the column's
-  room) and its widths are made once a row and kept with the resolved values: a layout once warm, a draw and a hover
-  allocate nothing (`rows.quick.ts`).
+  then hidden; the label keeps its room. A chip in the title row names those hidden ("Species, Identity hidden";
+  "Species +1 hidden" short of room, else its first name cut, its count kept), on the side they live and never over the
+  data box: hidden on the right only, at the end of the right columns' band (from the numbers' gutter at the least; the
+  right titles cut for it); else, or with no room there, in the label column's title band, ending before its first left
+  title shown (else at the label column's end). Why: a count of "columns" beside an alignment read as alignment columns,
+  and the chip hung over the data. It hits as `columns-hidden` (`state` its text: the viewer's card lists each hidden
+  column and why, "no room at this width"; a click does nothing: showing them is not designed). The widths reach the
+  layer as `LayoutContext.rowColumns` (with the right columns' x); a text section's lines leave the right columns their
+  room; an export attaches the sources that could join. A cell's text, its cut (kept by the column's room) and its
+  widths are made once a row and kept with the resolved values: a layout once warm, a draw and a hover allocate nothing
+  (`rows.quick.ts`).
 - **Hits** (the header's through the band's gutter: a layer of two axes is asked there), written into one scratch hit (a
   hover allocates no hit object; a clade's element and extent made once a display): a cell is `cell` with its column
   (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the rows
   system; on a row column's cell, left or right, the same with `state` naming its value, `Species: Homo sapiens`, made
-  at layout); a column's title `column-title` (`LayerType.hitOutside`: what a layer draws outside its band, asked by
-  `hitView` before a layout's chrome and the bands); a summary row `summary-row`, and `tree-node` the inner node whose
-  branch segment is nearest within `TreeHitPx` (8, fixed: decided: a junction's size, a target a pointer finds) by
-  distance to the segment, a wedge included (a leaf's branch hits none), each its element
-  `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
+  at layout); a column's title `column-title`, the hidden-columns chip `columns-hidden` (`LayerType.hitOutside`: what a
+  layer draws outside its band, asked by `hitView` before a layout's chrome and the bands); a summary row `summary-row`,
+  and `tree-node` the inner node whose branch segment is nearest within `TreeHitPx` (8, fixed: decided: a junction's
+  size, a target a pointer finds) by distance to the segment, a wedge included (a leaf's branch hits none), each its
+  element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
 - **One rows layer a section** (`seq.render.rows.second`, warning: the cursor has one row order); a rows layer draws in
   tracks and text sections only (`seq.render.rows.layout`, warning, elsewhere).
 - **In a text section** (the ESPript figure's lines repeat the rows): the band is every shown row (its height the

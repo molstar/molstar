@@ -20,6 +20,7 @@ import { headlessAnimation } from '../animation.js';
 import { keyConflicts } from '../bindings.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { Describer } from '../describe.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -536,5 +537,99 @@ describe('the rows’ columns in the viewer', () => {
     expect(lay(v).label(0)).toBe('NGB');
     expect(lay(v).fieldValue(0, 'clade')).toBe('neuro');
     expect(lay(v).fieldValue(5, 'clade')).toBe('alpha');
+  });
+
+  describe('a cut value whole only under the pointer; the hidden columns named', () => {
+    const Species = [
+      'Homo sapiens (human)',
+      'Mus musculus (house mouse)',
+      'Physeter catodon',
+      'Danio rerio',
+      'Gallus gallus',
+      'Equus caballus',
+    ];
+    async function open(width: number) {
+      vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+      frames = installFrames();
+      const b = createSeqSpec({ title: 'columns' });
+      const aln = b.data.alignment('aln', {
+        alphabet: 'protein',
+        rows: { label: Labels, letters: Letters, OS: Species },
+      } as never);
+      b.views.view('v', (vw) =>
+        vw.section('s', { of: aln }, (s) => {
+          s.track('ruler', { label: '' }, (t) => t.layer('ruler', { type: 'ruler' }));
+          s.track('rows', { label: '', height: 140 }, (t) =>
+            t.layer('r', {
+              type: 'rows',
+              data: aln,
+              columns: [
+                { field: 'OS', title: 'Species', width: 40 },
+                { field: 'identity', side: 'right', as: 'number', title: 'Identity' },
+              ],
+            } as never),
+          );
+        }),
+      );
+      const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
+      viewer = v;
+      await v.load(b.build());
+      v.resize(width);
+      await v.settle();
+      frames.flush();
+      return v;
+    }
+    const tips = (v: SeqViewer) =>
+      recordDrawLists(v.frame!.lists, ['tip'])
+        .split('\n')
+        .filter((l) => l.startsWith('text '));
+
+    it('the pointer on a cut cell reads it whole (the hover names it); on the row’s data or label, no tip', async () => {
+      const v = await open(900);
+      const l = lay(v);
+      const y = l.rowY(0) + l.rowScale / 2;
+      v.input.move(l.cols.x[0] + 4, y);
+      frames!.flush();
+      expect(v.hover.current.state).toBe('Species: Homo sapiens (human)');
+      expect(tips(v)).toHaveLength(1);
+      expect(tips(v)[0]).toContain('"Homo sapiens (human)"');
+      v.input.move(l.box.x + 4, y);
+      frames!.flush();
+      expect(v.hover.current.target).toBe('cell');
+      expect(tips(v)).toEqual([]);
+      v.input.move(l.labelX + 2, y);
+      frames!.flush();
+      expect(v.hover.current.target).toBe('row');
+      expect(tips(v)).toEqual([]);
+    });
+
+    it('narrowed, the chip names the hidden columns in the title band, off the data; its card lists each and why', async () => {
+      const v = await open(330);
+      const l = lay(v);
+      expect(l.cols.width).toEqual([0, 0]);
+      expect(l.cols.chip).toBe('Species, Identity hidden');
+      expect(l.cols.chipX + l.cols.chipW).toBeLessThanOrEqual(l.box.x);
+      v.input.move(l.cols.chipX + 4, l.cols.titleY - 3);
+      frames!.flush();
+      expect(v.hover.current.target).toBe('columns-hidden');
+      const words = new Describer({
+        spec: v.spec,
+        store: v.store,
+        addresses: v.addresses,
+        view: v.view,
+        layout: () => v.frame?.layout,
+      });
+      const card = words.describe(v.hover.current);
+      expect(card?.title).toBe('Hidden columns');
+      expect(card?.rows).toEqual([
+        { label: 'Species', value: 'no room at this width' },
+        { label: 'Identity', value: 'no room at this width' },
+      ]);
+      expect(card?.text).toBe('Species, Identity hidden, no room at this width');
+      // a click on it does nothing (no order, no selection)
+      const revision = v.spec.revision.value;
+      expect(v.input.click(l.cols.chipX + 4, l.cols.titleY - 3)).toBe(true);
+      expect(v.spec.revision.value).toBe(revision);
+    });
   });
 });

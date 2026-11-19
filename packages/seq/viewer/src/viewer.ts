@@ -1349,6 +1349,8 @@ export class SeqViewer extends ReactiveModel {
     (h as { yPosition: number | undefined }).yPosition = Number.isNaN(r.yPosition) ? undefined : r.yPosition;
     // the clade hover of a rows layer reads it (_spec/README.md "Render", The rows layer, Hover)
     (h as { target: unknown }).target = r.target;
+    // the row column cell a header hover is on: its cut value read whole in the tip pass (Emphasis along y)
+    (h as { state: string | undefined }).state = r.state;
     e.hover = h;
   }
 

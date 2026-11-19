@@ -231,10 +231,14 @@ describe('row columns', () => {
     });
     // past the title's text, within its column: no title
     expect(hitView(f.layout, c.titleX[t] + c.titleW[t] + 2, c.titleY - 3)?.target).not.toBe('column-title');
-    // narrowed: the chip in the title row is no title hit
+    // narrowed: the chip in the title row is no title hit, it names what it hides
     const { f: g, lay: n } = await laid(AllKinds, {}, { width: 560, height: 300 });
     expect(n.cols.chip).toMatch(/hidden$/);
-    expect(hitView(g.layout, n.cols.chipX + 2, n.cols.titleY - 3)?.target).not.toBe('column-title');
+    expect(hitView(g.layout, n.cols.chipX + 2, n.cols.titleY - 3)).toMatchObject({
+      target: 'columns-hidden',
+      state: n.cols.chip,
+      layer: '/views/v/s/rows/r',
+    });
   });
 
   it('an order by a column’s field orders the rows, its title marked; a field no row has is said once', async () => {
@@ -335,14 +339,65 @@ describe('row columns', () => {
     const mid = await widths(640);
     expect(mid.w[3]).toBe(0);
     expect(mid.w[0]).toBeGreaterThan(0);
-    expect(mid.chip).toMatch(/columns? hidden$/);
+    expect(mid.chip).toBe('length hidden');
     // the chip ends on the page, before the right inset
     expect(mid.chipEnd).toBeLessThanOrEqual(640);
     const narrow = await widths(400);
     expect(narrow.w).toEqual([0, 0, 0, 0]);
-    expect(narrow.chip).toBe('4 columns hidden');
+    expect(narrow.chip).toMatch(/^Species(, Kind, identity, length| \+3) hidden$/);
     const { lay: none } = await laid([], {}, { width: 400, height: 300 });
     expect(narrow.x).toBe(none.box.x);
+  });
+
+  describe('the hidden columns’ chip: named, on their side, never over the data', () => {
+    const Family: Col[] = [
+      { field: 'OS', title: 'Species', width: 104 },
+      { field: 'identity', side: 'right', as: 'number', title: 'Identity' },
+    ];
+    const ruler = (lay: RowsLay) => ({ x0: lay.box.x, x1: lay.box.x + lay.box.width });
+
+    it('both hidden: "Species, Identity hidden" in the label column’s title band, before the data; the SVG alike', async () => {
+      const size = { width: 360, height: 300 };
+      const { b, f, lay } = await laid(Family, {}, size);
+      const c = lay.cols;
+      expect(c.width).toEqual([0, 0]);
+      expect(c.chip).toBe('Species, Identity hidden');
+      expect(c.chipSide).toBe('label');
+      expect(c.chipX).toBeGreaterThanOrEqual(f.layout.sections[0].config.inset);
+      expect(c.chipX + c.chipW).toBeLessThanOrEqual(ruler(lay).x0);
+      expect(c.chipCols).toEqual([0, 1]);
+      const svg = await renderSvg(b.build(), { size });
+      expect(svg.svg).toContain('>Species, Identity hidden</text>');
+      expect(recordDrawLists(svg.lists, ['labels'])).toBe(recordDrawLists(f.lists, ['labels']));
+    });
+
+    it('short of room: the first name and the count ("Organism +1 hidden"), else the first name cut, its count kept', async () => {
+      const titled = (species: string, identity: string): Col[] => [
+        { ...Family[0], title: species },
+        { ...Family[1], title: identity },
+      ];
+      const size = { width: 300, height: 300 };
+      const { lay } = await laid(titled('Organism', 'Identity to the reference row'), {}, size);
+      expect(lay.cols.width).toEqual([0, 0]);
+      expect(lay.cols.chip).toBe('Organism +1 hidden');
+      expect(lay.cols.chipX + lay.cols.chipW).toBeLessThanOrEqual(lay.box.x);
+      const { lay: cut } = await laid(titled('Organism of origin by its full taxonomy', 'Identity'), {}, size);
+      expect(cut.cols.chip).toMatch(/^Organism[^,]*… \+1 hidden$/);
+      expect(cut.cols.chipX).toBeGreaterThanOrEqual(0);
+      expect(cut.cols.chipX + cut.cols.chipW).toBeLessThanOrEqual(cut.box.x);
+    });
+
+    it('the right ones hidden with a right column shown: at the end of the right columns’ band, past the data, the shown title cut for it', async () => {
+      const { lay } = await laid(AllKinds, {}, { width: 640, height: 300 });
+      const c = lay.cols;
+      expect(c.chip).toBe('length hidden');
+      expect(c.chipSide).toBe('right');
+      expect(c.chipX).toBeGreaterThanOrEqual(ruler(lay).x1);
+      expect(c.chipX + c.chipW).toBeCloseTo(c.rightEnd, 5);
+      // no title under it
+      for (let t = 0; t < c.titleN; t++)
+        expect(c.titleX[t] + c.titleW[t] <= c.chipX || c.titleX[t] >= c.chipX + c.chipW).toBe(true);
+    });
   });
 
   it('a text figure draws the same columns on every line, their titles over the first (and hit there)', async () => {

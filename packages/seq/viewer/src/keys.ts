@@ -76,6 +76,7 @@ const TargetWords: Readonly<Record<string, string>> = {
   'tree-node': 'on a tree node',
   'summary-row': 'on a folded clade',
   'column-title': 'on a column title',
+  'columns-hidden': 'on the hidden columns',
 };
 
 /** The group of a command or a method, by what it changes. */

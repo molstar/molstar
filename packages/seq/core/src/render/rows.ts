@@ -52,6 +52,7 @@ import {
 import { NoClass, Pyramid, pyramidLevelFor } from './pyramid.js';
 import {
   ColumnsLay,
+  chipAt,
   drawColumnCells,
   drawTitles,
   elide,
@@ -1046,9 +1047,15 @@ export const RowsType: LayerType<Prep, RowsLay> = {
   },
 
   hitOutside(lay, at): Hit | undefined {
-    // a column's title in the layer's title row: `state` its field (a click orders the rows by it); the chip is none
+    // a column's title in the layer's title row: `state` its field (a click orders the rows by it); the hidden-columns
+    // chip names what it hides (`state` its text: the hover card lists them)
     const t = titleAt(lay, at[0], at[1]);
-    if (t < 0) return undefined;
+    if (t < 0) {
+      if (!chipAt(lay, at[0], at[1])) return undefined;
+      const h = writeHit(lay, lay.rowsSystem, undefined, undefined, 'columns-hidden');
+      lay.scratch.state = lay.cols.chip;
+      return h;
+    }
     const h = writeHit(lay, lay.rowsSystem, undefined, undefined, 'column-title');
     lay.scratch.state = lay.cols.columns[lay.cols.titleCol[t]].field;
     return h;

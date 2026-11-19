@@ -137,11 +137,17 @@ export class ColumnsLay {
   titleX: number[] = [];
   titleW: number[] = [];
   titleCol: number[] = [];
-  titlesFor: unknown[] = [undefined, undefined, Number.NaN, Number.NaN];
-  /** The hidden-columns chip in the title row: its text, x and width ('' none). */
+  titlesFor: unknown[] = [undefined, undefined, Number.NaN, Number.NaN, Number.NaN, Number.NaN];
+  /**
+   * The hidden-columns chip in the title row: its text ('' none: "Species, Identity hidden", or "Species +1 hidden"
+   * short of room), x and width, the side it sits on (`right` in the right columns' title band, `label` in the label
+   * column's), and the columns it names (their indexes, in the columns' order).
+   */
   chip = '';
   chipX = 0;
   chipW = 0;
+  chipSide: 'right' | 'label' = 'label';
+  readonly chipCols: number[] = [];
   /** A field no row has (`seq.render.rows.column`), made once a data, said every frame it stands. */
   missing: Issue | undefined;
   missingOf = -1;
@@ -295,28 +301,77 @@ function grow(cols: ColumnsLay, need: number) {
   cols.color = c;
 }
 
-/** The titles in the title row and the hidden-columns chip, made again only when what they read changed. */
-function layoutTitles(lay: RowsLay, cols: ColumnsLay, prep: RowsPrep, ctx: LayoutContext, end: number) {
-  const f = cols.titlesFor;
-  const granted = ctx.rowColumns?.widths ?? prep.columns;
-  if (f[0] === prep && f[1] === granted && f[2] === end && f[3] === cols.x[0]) return;
-  f[0] = prep;
-  f[1] = granted;
-  f[2] = end;
-  f[3] = cols.x[0];
+/**
+ * The hidden-columns chip (_spec/README.md "Render", The rows layer, Row columns, Narrow): it names the columns hidden
+ * ("Species, Identity hidden", else "Species +1 hidden" short of room, else its first name cut), in the title band on
+ * the side they live and never over the data: right columns' (all of those hidden on the right) at the end of their
+ * band, from the numbers' gutter at the least; else, or with no room there, the label column's, ending before its
+ * first left title shown (else at the label column's end), from the inset at the least.
+ */
+function placeChip(cols: ColumnsLay, ctx: LayoutContext, box: LayoutContext['box'], end: number) {
+  cols.chip = '';
+  cols.chipCols.length = 0;
+  if (!cols.hidden) return;
   const { text, config } = ctx;
   const font = config.itemFont;
   const gap = config.rows.columns.gapPx;
   const columns = cols.columns;
-  // the hidden-columns chip ends where the right columns do (before a rows rail): the right titles cut for it
-  let limit = Number.POSITIVE_INFINITY;
-  cols.chip = '';
-  if (cols.hidden) {
-    cols.chip = cols.hidden === 1 ? '1 column hidden' : `${cols.hidden} columns hidden`;
-    cols.chipW = text.measure(font, cols.chip);
-    cols.chipX = end - cols.chipW;
-    limit = cols.chipX - gap;
+  let right = true;
+  let leftEnd = box.x - config.labelGap;
+  for (let k = 0; k < columns.length; k++) {
+    if (cols.width[k] <= 0) {
+      cols.chipCols.push(k);
+      if (columns[k].side !== 'right') right = false;
+    } else if (columns[k].side !== 'right' && cols.x[k] - gap < leftEnd) leftEnd = cols.x[k] - gap;
   }
+  const names = cols.chipCols.map((k) => columns[k].title);
+  const whole = `${names.join(', ')} hidden`;
+  const short = names.length > 1 ? `${names[0]} +${names.length - 1} hidden` : whole;
+  // the right columns' band: from the numbers' gutter (past the data box) to where the right columns end
+  const r0 = box.x + box.width + config.labelGap;
+  const r1 = end;
+  const l0 = config.inset;
+  const l1 = leftEnd;
+  const fits = (s: string, room: number) => text.measure(font, s) <= room;
+  let s = '';
+  let side: 'right' | 'label' = 'label';
+  if (right && fits(whole, r1 - r0)) [s, side] = [whole, 'right'];
+  else if (fits(whole, l1 - l0)) s = whole;
+  else if (right && fits(short, r1 - r0)) [s, side] = [short, 'right'];
+  else if (fits(short, l1 - l0)) s = short;
+  else {
+    // the first name cut, its count and "hidden" kept: the count is what it says
+    const tail = names.length > 1 ? ` +${names.length - 1} hidden` : ' hidden';
+    const head = elide(text, font, names[0], l1 - l0 - text.measure(font, tail));
+    s = head ? `${head}${tail}` : '';
+  }
+  if (!s) return;
+  cols.chip = s;
+  cols.chipW = text.measure(font, s);
+  cols.chipSide = side;
+  cols.chipX = (side === 'right' ? r1 : l1) - cols.chipW;
+}
+
+/** The titles in the title row and the hidden-columns chip, made again only when what they read changed. */
+function layoutTitles(lay: RowsLay, cols: ColumnsLay, prep: RowsPrep, ctx: LayoutContext, end: number) {
+  const f = cols.titlesFor;
+  const granted = ctx.rowColumns?.widths ?? prep.columns;
+  const box = lay.box;
+  if (f[0] === prep && f[1] === granted && f[2] === end && f[3] === cols.x[0] && f[4] === box.x && f[5] === box.width)
+    return;
+  f[0] = prep;
+  f[1] = granted;
+  f[2] = end;
+  f[3] = cols.x[0];
+  f[4] = box.x;
+  f[5] = box.width;
+  const { text, config } = ctx;
+  const font = config.itemFont;
+  const gap = config.rows.columns.gapPx;
+  const columns = cols.columns;
+  placeChip(cols, ctx, box, end);
+  // a chip in the right columns' band ends where they do: the right titles cut for it
+  const limit = cols.chip && cols.chipSide === 'right' ? cols.chipX - gap : Number.POSITIVE_INFINITY;
   const o = prep.order;
   let t = 0;
   for (let k = 0; k < columns.length; k++) {
@@ -622,6 +677,14 @@ export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number, only:
     out.textArgs(text, AnchorStart, config.itemFont);
     out.unclip();
   }
+}
+
+/** The hidden-columns chip under a point (its drawn text, in the title row). */
+export function chipAt(lay: RowsLay, x: number, y: number): boolean {
+  const cols = lay.cols;
+  if (!cols.chip || !cols.titleRow) return false;
+  const top = lay.box.y - cols.titleRow;
+  return y >= top && y < lay.box.y && x >= cols.chipX && x < cols.chipX + cols.chipW;
 }
 
 /** The title under a point: its index, -1 for none (its drawn text, in the title row; the chip is none). */

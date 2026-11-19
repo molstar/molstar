@@ -1000,7 +1000,9 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   `rows.order { field, ascending }` (one patch), a click on the title of the field the rows are ordered by ascending
   runs it `descending` (the order read from the spec as it is now); before the double-click's drop, so a fast second
   click flips again. Its cells hit as their row's header (select and hover as the label does), naming the value in the
-  hit's `state`.
+  hit's `state` (the hover keeps it: a cut value reads whole in the tip pass under the pointer alone, and the card names
+  it). **The hidden-columns chip** (a `columns-hidden` hit): its card lists each hidden column and why ("no room at this
+  width"), announced the same; a click does nothing.
 
 ## Legends
 
