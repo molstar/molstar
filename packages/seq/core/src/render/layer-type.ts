@@ -198,7 +198,11 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   prepare(layer: ResolvedLayer, model: StaticModel): Prep;
   layout(prep: Prep, ctx: LayoutContext, data: StoreReader, overlay: Overlay, prev?: Lay): Lay;
   draw(lay: Lay, pass: PassName, out: PassWriter, emphasis?: Emphasis): void;
-  hit(lay: Lay, x: number, y: number): Hit | undefined;
+  /**
+   * The mark under a point, `at[0]` and `at[1]` (in the strip's frame; a `section` layer's on the page). The point comes
+   * in an array: two fractional numbers passed to a call that is not inlined are boxed, and a hit allocates nothing.
+   */
+  hit(lay: Lay, at: Float64Array): Hit | undefined;
   /** The legends of its themed channels as last laid out (_spec/README.md "Themes", Legends), titled by its track. */
   legend?(lay: Lay, options: { readonly title: string }): readonly Legend[];
   /** The y domain it drew (a values layer's), recorded by an export. */

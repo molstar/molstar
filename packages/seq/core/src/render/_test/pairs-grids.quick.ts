@@ -33,17 +33,19 @@ const at = (start: number, end: number): FrameInput => ({
 });
 
 /**
- * Bytes a layer's hit may allocate: no hit object (one is over 100 B). A point read from the test's array is two numbers
- * boxed on the call (32 B); the same hit at a fixed point measures 0. The whole `hitView` path to a cell measures 96 to
- * 128 B, the point's two numbers boxed on each of its calls that are not inlined (the view's, the section layers', the
- * placement's and the layer's, shared by every layer of two axes): reported, bounded by the path's own figure.
+ * Bytes a hit may allocate: no hit object (one is over 100 B). A layer's hit reads its point from an array and measures
+ * 0 at a cell (the test's array read into it); a whole `hitView` measures the two numbers the test's call boxes (32 B)
+ * and, to a strip's layer, the two its call to the placement's `at(x, y)` boxes (32 B: the same at a fixed point).
  */
 const HitBound = 32;
-const GridPathBound = 4 * HitBound;
+const PathBound = 2 * HitBound;
+
+/** The point a layer's hit reads (`LayerType.hit`). */
+const At = new Float64Array(2);
 
 describe('pairs and grids draw and hover with nothing allocated once warm', () => {
   for (const [name, n, input] of [
-    ['a 2,000 Ã 2,000 dot plot (image tiles)', 2000, at(0, 2000)],
+    ['a 2,000 × 2,000 dot plot (image tiles)', 2000, at(0, 2000)],
     ['a dot plot zoomed in (rects)', 200, at(10, 60)],
   ] as const)
     it(`${name}: draw, the crosshair hover, a hit on a cell`, async ({ task }) => {
@@ -106,11 +108,15 @@ describe('pairs and grids draw and hover with nothing allocated once warm', () =
       const own = quickCase(
         task,
         `grid hit ${name}`,
-        (i) => void GridType.hit(g, local[2 * (i % m)], local[2 * (i % m) + 1]),
+        (i) => {
+          At[0] = local[2 * (i % m)];
+          At[1] = local[2 * (i % m) + 1];
+          GridType.hit(g, At);
+        },
         {},
       );
       console.info(`grid hit (${name}): ${own.r.bytesPerStep.toFixed(0)} bytes a hit (${own.r.note})`);
-      expect(own.r.bytesPerStep, own.r.note).toBeLessThanOrEqual(HitBound);
+      expect(own.r.bytesPerStep, own.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
       const path = quickCase(
         task,
         `grid hitView ${name}`,
@@ -118,7 +124,7 @@ describe('pairs and grids draw and hover with nothing allocated once warm', () =
         {},
       );
       console.info(`grid hitView (${name}): ${path.r.bytesPerStep.toFixed(0)} bytes a hit (${path.r.note})`);
-      expect(path.r.bytesPerStep, path.r.note).toBeLessThanOrEqual(GridPathBound + 1);
+      expect(path.r.bytesPerStep, path.r.note).toBeLessThanOrEqual(PathBound);
     });
 
   it('4,096 arcs: draw, a hover lighting the arc, a hit on the curve', async ({ task }) => {

@@ -444,7 +444,9 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     return channelLegends([lay.color], { ...options, layer: lay.key });
   },
 
-  hit(lay, x, y): Hit | undefined {
+  hit(lay, at): Hit | undefined {
+    const x = at[0];
+    const y = at[1];
     const { box } = lay;
     if (y < box.y || y >= box.y + box.height) return undefined;
     const position = lay.axis.positionAt(x);

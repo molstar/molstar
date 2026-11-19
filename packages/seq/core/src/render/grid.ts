@@ -17,14 +17,14 @@
 
 import { issueOf } from '@molstar/core/repr/tree';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
-import type { Location, LocationPart } from '@molstar/seqx-core/query';
+import { type Location, partOf } from '@molstar/seqx-core/query';
 import type { GridData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ChannelName, Channel } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import type { RenderConfig } from './config.js';
-import { type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { ImageCache, ImageTile } from './images.js';
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
@@ -210,12 +210,12 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     }
   },
 
-  hit(lay, x, y) {
+  hit(lay, at) {
     const a = lay.axis;
     const ay = lay.axisY;
     if (!a || !ay || !lay.grid) return undefined;
-    const i = a.positionAt(x);
-    const j = ay.positionAt(y);
+    const i = a.positionOf(at, 0);
+    const j = ay.positionOf(at, 1);
     // the cell under the point, drawn or not (a triangle's other half, a missing value): a plot's every point is a cell
     if (i < 0 || j < 0) return undefined;
     const h = lay.scratch;
@@ -260,14 +260,8 @@ function layoutRects(lay: GridLay, prep: GridPrep, a: AxisTransform, ay: AxisTra
       const c = colorOf(lay, g.values[i * g.ny + j]);
       if (c === NoColor) continue;
       const k = lay.n++;
-      if (4 * k + 4 > lay.rx.length) {
-        const rx = new Float64Array(2 * lay.rx.length);
-        rx.set(lay.rx);
-        lay.rx = rx;
-        const rc = new Uint32Array(2 * lay.rc.length);
-        rc.set(lay.rc);
-        lay.rc = rc;
-      }
+      lay.rx = grown(lay.rx, 4 * k + 4);
+      lay.rc = grown(lay.rc, k + 1);
       lay.rx[4 * k] = x0;
       lay.rx[4 * k + 1] = Math.min(ay.sx0, ay.sx1);
       lay.rx[4 * k + 2] = w;
@@ -444,26 +438,20 @@ function drawData(lay: GridLay, out: PassWriter) {
   // rects with a thin outline in the page's ink: cells read apart
   const line = lay.tokens!.colors['msui-bg'];
   const dpr = lay.axis!.dpr;
+  Ink[1] = line;
+  Ink[2] = 1 / dpr;
   for (let k = 0; k < lay.n; k++) {
-    g[0] = lay.rx[4 * k];
-    g[1] = lay.rx[4 * k + 1];
-    g[2] = lay.rx[4 * k + 2];
-    g[3] = lay.rx[4 * k + 3];
-    g[4] = lay.rc[k];
-    g[5] = line;
-    g[6] = 1 / dpr;
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
+    R[0] = lay.rx[4 * k];
+    R[1] = lay.rx[4 * k + 1];
+    R[2] = lay.rx[4 * k + 2];
+    R[3] = lay.rx[4 * k + 3];
+    Ink[0] = lay.rc[k];
+    rect(out);
   }
 }
 
-/** A Location's part on a system (an indexed loop: no iterator). */
-function partOn(loc: Location | undefined, system: string): LocationPart | undefined {
-  if (!loc) return undefined;
-  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
-  return undefined;
-}
+/** A Location's part on a system. */
+const partOn = (loc: Location | undefined, system: string) => (loc ? partOf(loc, system) : undefined);
 
 /**
  * What the emphasis paints with: the fill, the stroke and its width (`Ink[0..2]`), set before each paint. The colors
@@ -503,13 +491,16 @@ function span(a: AxisTransform, s: number, e: number, o: number): boolean {
   return true;
 }
 
-/** The rect `Box4` holds (x from 0 to 1, y from 2 to 3) in `Ink`. */
-function rectInk(out: PassWriter) {
+/** A rect's x, y, width and height, set before `rect`. */
+const R = new Float64Array(4);
+
+/** The rect `R` holds in `Ink`, square. */
+function rect(out: PassWriter) {
   const g = out.args;
-  g[0] = Box4[0];
-  g[1] = Box4[2];
-  g[2] = Box4[1] - Box4[0];
-  g[3] = Box4[3] - Box4[2];
+  g[0] = R[0];
+  g[1] = R[1];
+  g[2] = R[2];
+  g[3] = R[3];
   g[4] = Ink[0];
   g[5] = Ink[1];
   g[6] = Ink[2];
@@ -525,30 +516,16 @@ function rectInk(out: PassWriter) {
 function paintRows(lay: GridLay, out: PassWriter, ranges: Int32Array) {
   const ay = lay.axisY!;
   const b = lay.box;
-  const g = out.args;
   for (let r = 0; r + 1 < ranges.length; r += 2) {
-    // the range's first and last cells (`cell` returns no number: a returned double is boxed)
-    if (!ay.cell(ranges[r])) continue;
-    let lo = ay.sx0 < ay.sx1 ? ay.sx0 : ay.sx1;
-    let hi = ay.sx0 < ay.sx1 ? ay.sx1 : ay.sx0;
-    if (!ay.cell(ranges[r + 1] - 1)) continue;
-    if (ay.sx0 < lo) lo = ay.sx0;
-    if (ay.sx1 < lo) lo = ay.sx1;
-    if (ay.sx0 > hi) hi = ay.sx0;
-    if (ay.sx1 > hi) hi = ay.sx1;
-    const top = Math.max(b.y, lo);
-    const bottom = Math.min(b.y + b.height, hi);
+    if (!span(ay, ranges[r], ranges[r + 1], 2)) continue;
+    const top = Math.max(b.y, Box4[2]);
+    const bottom = Math.min(b.y + b.height, Box4[3]);
     if (bottom <= top) continue;
-    g[0] = b.x;
-    g[1] = top;
-    g[2] = b.width;
-    g[3] = bottom - top;
-    g[4] = Ink[0];
-    g[5] = Ink[1];
-    g[6] = Ink[2];
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
+    R[0] = b.x;
+    R[1] = top;
+    R[2] = b.width;
+    R[3] = bottom - top;
+    rect(out);
   }
 }
 
@@ -563,18 +540,13 @@ function paintCell(lay: GridLay, out: PassWriter) {
   const ay = lay.axisY!;
   const i = Pos[0];
   const j = Pos[1];
-  if (!a.cell(i) || !ay.cell(j)) return;
-  const g = out.args;
-  g[0] = Math.min(a.sx0, a.sx1);
-  g[1] = Math.min(ay.sx0, ay.sx1);
-  g[2] = Math.abs(a.sx1 - a.sx0);
-  g[3] = Math.abs(ay.sx1 - ay.sx0);
-  g[4] = Ink[0];
-  g[5] = Ink[1];
-  g[6] = Ink[2];
-  g[7] = 0;
-  g[8] = 0;
-  out.rectArgs();
+  if (!a.cell(i)) return;
+  R[0] = Math.min(a.sx0, a.sx1);
+  R[2] = Math.abs(a.sx1 - a.sx0);
+  if (!ay.cell(j)) return;
+  R[1] = Math.min(ay.sx0, ay.sx1);
+  R[3] = Math.abs(ay.sx1 - ay.sx0);
+  rect(out);
 }
 
 /** A column down the plot at x position `Pos[0]` in `Ink` (the crosshair's x half, on the hover's own section). */
@@ -583,17 +555,11 @@ function paintColumn(lay: GridLay, out: PassWriter) {
   const i = Pos[0];
   if (!a.cell(i)) return;
   const b = lay.box;
-  const g = out.args;
-  g[0] = Math.min(a.sx0, a.sx1);
-  g[1] = b.y;
-  g[2] = Math.abs(a.sx1 - a.sx0);
-  g[3] = b.height;
-  g[4] = Ink[0];
-  g[5] = Ink[1];
-  g[6] = Ink[2];
-  g[7] = 0;
-  g[8] = 0;
-  out.rectArgs();
+  R[0] = Math.min(a.sx0, a.sx1);
+  R[1] = b.y;
+  R[2] = Math.abs(a.sx1 - a.sx0);
+  R[3] = b.height;
+  rect(out);
 }
 
 /** Each rect over the plot's two systems in `Ink` (a selected rectangle). */
@@ -606,7 +572,11 @@ function paintRects(lay: GridLay, out: PassWriter, loc: Location) {
     for (let p = 0; p + 1 < r.a.ranges.length; p += 2)
       for (let q = 0; q + 1 < r.b.ranges.length; q += 2) {
         if (!span(a, r.a.ranges[p], r.a.ranges[p + 1], 0) || !span(ay, r.b.ranges[q], r.b.ranges[q + 1], 2)) continue;
-        rectInk(out);
+        R[0] = Box4[0];
+        R[1] = Box4[2];
+        R[2] = Box4[1] - Box4[0];
+        R[3] = Box4[3] - Box4[2];
+        rect(out);
       }
   }
 }

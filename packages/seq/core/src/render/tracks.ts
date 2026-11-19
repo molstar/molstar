@@ -1847,6 +1847,16 @@ const Point = new PlacePoint();
  * point placed (`Placement.at`: its strip, band and the point in the strip's frame) and the topmost layer's hit in that
  * band. On data the cells and items beside a break win: the hairline has no width of its own.
  */
+/** The point a layer's hit reads (`LayerType.hit`): one array, so no number is boxed on the call. */
+const HitAt = new Float64Array(2);
+
+/** `HitAt` set to the placed point (in its strip's frame). */
+function pointAt(): Float64Array {
+  HitAt[0] = Point.x;
+  HitAt[1] = Point.y;
+  return HitAt;
+}
+
 export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefined {
   for (const s of layout.sections) {
     const strips = s.placement.strips;
@@ -1855,7 +1865,8 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       const breaks = s.stripBreaks[i];
       // a polar strip's notches are its layout's to hit (the seam: `hitChrome`, through the warp's inverse)
       if (!col || !breaks.length || strips.warp[i] !== WarpKind.translate) continue;
-      const notch = breakAt(s, strips.axes[i], col, breaks, x - strips.dx[i], y - strips.dy[i]);
+      // the page point passed as it came (no arithmetic on it here: a number computed is boxed on each call)
+      const notch = breakAt(s, i, col, breaks, x, y);
       if (notch) return notch;
     }
     const own = s.layout.hitChrome?.(s, x, y);
@@ -1863,7 +1874,9 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
     // a `section` layer's marks, on the page, over the strips'
     for (let i = s.sectionLays.length - 1; i >= 0; i--) {
       const l = s.sectionLays[i];
-      const h = l.type.hit(l.lay, x, y);
+      HitAt[0] = x;
+      HitAt[1] = y;
+      const h = l.type.hit(l.lay, HitAt);
       if (h?.element) return h;
     }
     if (!s.placement.at(x, y, Point)) continue;
@@ -1872,7 +1885,7 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       const lays = s.lays[Point.strip * strips.bands + Point.band];
       for (let i = lays ? lays.length - 1 : -1; i >= 0; i--) {
         if (lays![i].type.axes !== 2) continue;
-        const h = lays![i].type.hit(lays![i].lay, Point.x, Point.y);
+        const h = lays![i].type.hit(lays![i].lay, pointAt());
         if (h) return withBlock(s, Point.strip, h);
       }
     }
@@ -1882,7 +1895,7 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       const own = s.lays[Point.strip * strips.bands + j];
       for (let i = own ? own.length - 1 : -1; i >= 0; i--) {
         if (!Array.isArray(own![i].layer.params.across)) continue;
-        const h = own![i].type.hit(own![i].lay, Point.x, Point.y);
+        const h = own![i].type.hit(own![i].lay, pointAt());
         if (h?.element) return h;
       }
     }
@@ -1892,7 +1905,7 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
     let position: Hit | undefined;
     for (let i = lays.length - 1; i >= 0; i--) {
       const l = lays[i];
-      const h = l.type.hit(l.lay, Point.x, Point.y);
+      const h = l.type.hit(l.lay, pointAt());
       if (h?.element || h?.target === 'break') return withBlock(s, Point.strip, h);
       position ??= h;
     }
@@ -1933,16 +1946,21 @@ function withBlock(s: SectionLayout, strip: number, h: Hit): Hit {
 }
 
 /** The break whose notch is within `BreakSlop` px of a point above the band column (in the strip's frame); else undefined. */
+/** A notch's hit at a page point over strip `i`. */
 function breakAt(
   s: SectionLayout,
-  axis: AxisTransform,
+  i: number,
   band: Box,
   b: readonly number[],
-  x: number,
-  y: number,
+  px: number,
+  py: number,
 ): Hit | undefined {
+  const strips = s.placement.strips;
+  const axis = strips.axes[i];
+  const x = px - strips.dx[i];
+  const y = py - strips.dy[i];
   if (y < band.y - Notch.height - BreakSlop || y >= band.y) return undefined;
-  for (let i = 0; i + 2 < b.length; i += 3)
-    if (Math.abs(x - b[i]) <= BreakSlop) return breakHit(s, axis, b[i], b[i + 1], b[i + 2]);
+  for (let k = 0; k + 2 < b.length; k += 3)
+    if (Math.abs(x - b[k]) <= BreakSlop) return breakHit(s, axis, b[k], b[k + 1], b[k + 2]);
   return undefined;
 }

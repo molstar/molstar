@@ -24,7 +24,7 @@ import type { PairsData, StaticModel } from '@molstar/seqx-core/resolve';
 import { cellOffset, type ResolvedLayer, type ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import type { RenderConfig } from './config.js';
-import { NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
 import { WarpKind } from './layout/strips.js';
@@ -298,9 +298,6 @@ function pairColor(prep: PairsPrep, tokens: SeqTokens, k: number): number {
   return tokens.colors[CategoryTokens[kind % CategoryTokens.length]];
 }
 
-/** The point a hit tests (x, y). */
-const Pt = new Float64Array(2);
-
 const PA = new PlacePoint();
 const PB = new PlacePoint();
 const PM = new PlacePoint();
@@ -343,12 +340,9 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
     if (emphasis && (pass === 'hover' || pass === 'selection')) drawEmphasis(lay, pass, out, emphasis);
   },
 
-  hit(lay, x, y) {
-    // the point through a scratch: a fractional number passed to a call that is not inlined is boxed
-    Pt[0] = x;
-    Pt[1] = y;
-    if (lay.mode === 'arcs') return hitArcs(lay);
-    if (lay.mode === 'dots') return hitDots(lay);
+  hit(lay, at) {
+    if (lay.mode === 'arcs') return hitArcs(lay, at);
+    if (lay.mode === 'dots') return hitDots(lay, at);
     return undefined;
   },
 };
@@ -377,20 +371,6 @@ function frameX(place: Placement, u: number, pt: PlacePoint): number {
   // a polar strip's point is on the page: its frame x from the strip's first unit (a ring's arcs)
   if (s.warp[i] === WarpKind.polar) return s.axes[i].xOfUnit(u - s.first[i]);
   return pt.x - s.dx[i];
-}
-
-function grow(lay: PairsLay, n: number) {
-  if (n <= lay.pair.length) return;
-  const m = Math.max(n, 2 * lay.pair.length);
-  const pair = new Int32Array(m);
-  pair.set(lay.pair);
-  lay.pair = pair;
-  const color = new Uint32Array(m);
-  color.set(lay.color);
-  lay.color = color;
-  const curve = new Float64Array(8 * m);
-  curve.set(lay.curve);
-  lay.curve = curve;
 }
 
 /** What a layout of arcs reads a pair at a time (kept: grown, never shrunk). */
@@ -524,7 +504,9 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
         ? (place.warpOf!(sa).r0 - base) * Math.min(1, frac) * 1.5
         : 2 * Math.max(MinArc, (h - 2) * frac);
     const cy = side === 'above' ? base - depth : base + depth;
-    grow(lay, lay.n + 1);
+    lay.pair = grown(lay.pair, lay.n + 1);
+    lay.color = grown(lay.color, lay.n + 1);
+    lay.curve = grown(lay.curve, 8 * lay.n + 8);
     const o = 8 * lay.n;
     const c = lay.curve;
     if (xa > xb && !polar && sa === sb) {
@@ -663,9 +645,9 @@ function drawArcs(lay: PairsLay, out: PassWriter) {
  */
 const Dist = new Float64Array(1);
 
-function curveDistance(c: Float64Array, o: number): void {
-  const x = Pt[0];
-  const y = Pt[1];
+function curveDistance(c: Float64Array, o: number, at: Float64Array): void {
+  const x = at[0];
+  const y = at[1];
   let best = Number.POSITIVE_INFINITY;
   let px = c[o];
   let py = c[o + 1];
@@ -674,15 +656,7 @@ function curveDistance(c: Float64Array, o: number): void {
     const u = 1 - t;
     const qx = u * u * u * c[o] + 3 * u * u * t * c[o + 2] + 3 * u * t * t * c[o + 4] + t * t * t * c[o + 6];
     const qy = u * u * u * c[o + 1] + 3 * u * u * t * c[o + 3] + 3 * u * t * t * c[o + 5] + t * t * t * c[o + 7];
-    // the segment's nearest point
-    const dx = qx - px;
-    const dy = qy - py;
-    const l2 = dx * dx + dy * dy;
-    let f = l2 > 0 ? ((x - px) * dx + (y - py) * dy) / l2 : 0;
-    f = f < 0 ? 0 : f > 1 ? 1 : f;
-    const ex = px + f * dx - x;
-    const ey = py + f * dy - y;
-    const d2 = ex * ex + ey * ey;
+    const d2 = segmentDistance2(px, py, qx, qy, x, y);
     if (d2 < best) best = d2;
     px = qx;
     py = qy;
@@ -690,10 +664,22 @@ function curveDistance(c: Float64Array, o: number): void {
   Dist[0] = best;
 }
 
+/** The squared distance from (x, y) to the segment (x0, y0)–(x1, y1) (small: inlined in the hit loops). */
+function segmentDistance2(x0: number, y0: number, x1: number, y1: number, x: number, y: number): number {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const l2 = dx * dx + dy * dy;
+  let f = l2 > 0 ? ((x - x0) * dx + (y - y0) * dy) / l2 : 0;
+  f = f < 0 ? 0 : f > 1 ? 1 : f;
+  const ex = x0 + f * dx - x;
+  const ey = y0 + f * dy - y;
+  return ex * ex + ey * ey;
+}
+
 /** The arc nearest a page point within `pairs.hitPx` (a tie: the later, drawn on top). */
-function hitArcs(lay: PairsLay): Hit | undefined {
-  const x = Pt[0];
-  const y = Pt[1];
+function hitArcs(lay: PairsLay, at: Float64Array): Hit | undefined {
+  const x = at[0];
+  const y = at[1];
   const r = lay.config!.pairs.hitPx;
   const c = lay.curve;
   if (lay.clip) {
@@ -706,7 +692,7 @@ function hitArcs(lay: PairsLay): Hit | undefined {
     const o = 8 * i;
     // the hull of its four points (the curve lies in it): x, then y
     if (outside(c, o, x, r) || outside(c, o + 1, y, r)) continue;
-    curveDistance(c, o);
+    curveDistance(c, o, at);
     const d = Dist[0];
     if (d <= bestD) {
       bestD = d;
@@ -781,30 +767,6 @@ function layoutDots(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, a: AxisT
   sideBySide(lay);
 }
 
-function growDots(lay: PairsLay) {
-  const dots = new Float64Array(2 * lay.dots.length);
-  dots.set(lay.dots);
-  lay.dots = dots;
-  const p = new Int32Array(2 * lay.dotPair.length);
-  p.set(lay.dotPair);
-  lay.dotPair = p;
-  const c = new Uint32Array(2 * lay.dotColor.length);
-  c.set(lay.dotColor);
-  lay.dotColor = c;
-}
-
-function growSegs(lay: PairsLay) {
-  const segs = new Float64Array(2 * lay.segs.length);
-  segs.set(lay.segs);
-  lay.segs = segs;
-  const p = new Int32Array(2 * lay.segPair.length);
-  p.set(lay.segPair);
-  lay.segPair = p;
-  const c = new Uint32Array(2 * lay.segColor.length);
-  c.set(lay.segColor);
-  lay.segColor = c;
-}
-
 /** A pair's dot (single positions) or diagonal (a stretch, antiparallel: x's first with y's last), kept by the triangle. */
 function dot(
   lay: PairsLay,
@@ -828,7 +790,9 @@ function dot(
     const ax1 = a.sx1;
     if (!ay.cell(ys)) return;
     const i = lay.nd++;
-    if (4 * i + 4 > lay.dots.length || i >= lay.dotPair.length) growDots(lay);
+    lay.dots = grown(lay.dots, 4 * i + 4);
+    lay.dotPair = grown(lay.dotPair, i + 1);
+    lay.dotColor = grown(lay.dotColor, i + 1);
     // at least two device pixels a side
     const m = 2 / a.dpr;
     const w = Math.max(Math.abs(ax1 - ax0), m);
@@ -851,7 +815,9 @@ function dot(
   if (!ay.cell(ys)) return;
   const y1 = (ay.sx0 + ay.sx1) / 2;
   const i = lay.ns++;
-  if (5 * i + 5 > lay.segs.length || i >= lay.segPair.length) growSegs(lay);
+  lay.segs = grown(lay.segs, 5 * i + 5);
+  lay.segPair = grown(lay.segPair, i + 1);
+  lay.segColor = grown(lay.segColor, i + 1);
   lay.segs[5 * i] = x0;
   lay.segs[5 * i + 1] = y0;
   lay.segs[5 * i + 2] = x1;
@@ -911,9 +877,9 @@ function drawDots(lay: PairsLay, out: PassWriter) {
 }
 
 /** The dot under a point (its box), else the diagonal within `pairs.hitPx` of it. */
-function hitDots(lay: PairsLay): Hit | undefined {
-  const x = Pt[0];
-  const y = Pt[1];
+function hitDots(lay: PairsLay, at: Float64Array): Hit | undefined {
+  const x = at[0];
+  const y = at[1];
   const d = lay.dots;
   for (let i = lay.nd - 1; i >= 0; i--)
     if (x >= d[4 * i] && x < d[4 * i] + d[4 * i + 2] && y >= d[4 * i + 1] && y < d[4 * i + 1] + d[4 * i + 3])
@@ -921,17 +887,9 @@ function hitDots(lay: PairsLay): Hit | undefined {
   const r = lay.config!.pairs.hitPx;
   const s = lay.segs;
   for (let i = lay.ns - 1; i >= 0; i--) {
-    const x0 = s[5 * i];
-    const y0 = s[5 * i + 1];
-    const dx = s[5 * i + 2] - x0;
-    const dy = s[5 * i + 3] - y0;
-    const l2 = dx * dx + dy * dy;
-    let f = l2 > 0 ? ((x - x0) * dx + (y - y0) * dy) / l2 : 0;
-    f = f < 0 ? 0 : f > 1 ? 1 : f;
-    const ex = x0 + f * dx - x;
-    const ey = y0 + f * dy - y;
     const w = Math.max(r, s[5 * i + 4] / 2);
-    if (ex * ex + ey * ey <= w * w) return pairHit(lay, lay.segPair[i]);
+    if (segmentDistance2(s[5 * i], s[5 * i + 1], s[5 * i + 2], s[5 * i + 3], x, y) <= w * w)
+      return pairHit(lay, lay.segPair[i]);
   }
   return undefined;
 }

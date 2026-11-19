@@ -711,7 +711,9 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     return lay.channel ? channelLegends([lay.channel], { ...options, layer: lay.key }) : [];
   },
 
-  hit(lay, x, y): Hit | undefined {
+  hit(lay, at): Hit | undefined {
+    const x = at[0];
+    const y = at[1];
     const { box } = lay;
     if (y < box.y || y >= box.y + box.height) return undefined;
     const i = lay.rowAtY(y);
