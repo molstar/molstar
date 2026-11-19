@@ -60,6 +60,7 @@ import type { SeqTokens } from './tokens.js';
 import { RulerType } from './ruler.js';
 import { PlacePoint, StripPlacement, type Strips, WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
+import { chipText } from './layout/blocks.js';
 import { TextLayout } from './layout/text.js';
 import { RingsLayout } from './layout/rings.js';
 import { TracksLayout } from './layout/tracks.js';
@@ -1118,6 +1119,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
                 : {}),
             ...(input.images ? { images: input.images } : {}),
             ...(strips.ys[i] ? { axisY: strips.ys[i] } : {}),
+            // a chip's pill: its label elided to its slot (a position's px on its strip: the whole chip's)
+            ...(block && strips.chip[i] ? { chip: chipText(input.text, config, block.label, a.scale) } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;

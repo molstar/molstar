@@ -15,7 +15,7 @@ import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
 import type { Emphasis, Hit } from '../layer-type.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout, TrackLayout } from '../tracks.js';
-import { BlockPlacement, blockChrome, placeBlocks } from './blocks.js';
+import { BlockPlacement, blockChrome, placeBlocks, rowPan, rowZoom } from './blocks.js';
 import { StripPlacement } from './strips.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
@@ -41,11 +41,18 @@ export function clampWindow(c: NavContext, v: Viewport): Viewport {
 /** The tracks layout's arithmetic: a window of display units across `width` px. */
 export const TracksNav: SectionNav = {
   pan(c, v, dx, dy) {
-    const d = (dx * (v.end - v.start)) / c.width;
     const top = Math.max(0, (v.top ?? 0) + dy);
+    // a row of blocks pans through its inverse: what is under the pointer moves with it over chips and gaps
+    const row = rowOf(c);
+    const moved = row ? rowPan(row, v, dx) : undefined;
+    if (moved) return clampWindow(c, { ...moved, ...(dy ? { top } : {}) });
+    const d = (dx * (v.end - v.start)) / c.width;
     return clampWindow(c, { ...v, start: v.start + d, end: v.end + d, ...(dy ? { top } : {}) });
   },
   zoom(c, v, factor, at) {
+    // a row of blocks keeps the anchor's px (chips entering or leaving the view move it not)
+    const row = rowOf(c);
+    if (row) return clampWindow(c, rowZoom(row, c, v, factor, at));
     const start = at - (at - v.start) / factor;
     const end = at + (v.end - at) / factor;
     return clampWindow(c, { ...v, start, end });
@@ -74,6 +81,12 @@ export const TracksNav: SectionNav = {
   },
   clamp: clampWindow,
 };
+
+/** A row of blocks' arithmetic, when the context's placement is one (a stack is linear). */
+function rowOf(c: NavContext) {
+  const p = c.placement;
+  return p instanceof BlockPlacement && !p.stacked && !c.cyclic && p.row.n > 0 ? p.row : undefined;
+}
 
 /** Two windows place alike: the same start and end, scroll and bands (by value). */
 export function sameWindow(a: Viewport | undefined, b: Viewport | undefined): boolean {
@@ -131,7 +144,8 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     const p = s.placement;
     if (p instanceof BlockPlacement) {
       blockChrome(s, p, pass, out, strip, band);
-      if (strip > 0 && !p.stacked) return;
+      // the label column once a row: a stack's chips share one
+      if (strip > 0 && (!p.stacked || !p.rowStart(strip))) return;
     }
     if (pass !== 'labels' || band < 0) return;
     const t = s.tracks[band];

@@ -84,6 +84,11 @@ export interface LayoutContext {
   readonly axisY?: AxisTransform;
   /** A `section` layer's band: its track's index in the section's bands (where its arcs stand). */
   readonly band?: number;
+  /**
+   * The strip is a chip (a one-position block, _spec/README.md "Render", Blocks): its label, which a letters layer draws
+   * as a pill over its one position.
+   */
+  readonly chip?: string;
 }
 
 /** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */

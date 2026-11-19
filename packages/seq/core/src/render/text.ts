@@ -72,6 +72,20 @@ export function bundledWidth(font: string, text: string): number {
   return (units * size) / 1000;
 }
 
+/** `t` cut to `max` px with an ellipsis, as `font` measures it: whole when it fits, '' when not even a letter does. */
+export function elide(metrics: TextMetrics, font: string, t: string, max: number): string {
+  if (metrics.measure(font, t) <= max) return t;
+  let lo = 0;
+  let hi = t.length;
+  // the longest prefix that fits with its ellipsis
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (metrics.measure(font, `${t.slice(0, mid)}…`) <= max) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo ? `${t.slice(0, lo)}…` : '';
+}
+
 /** Node's port: the bundled metrics. */
 export function bundledTextMetrics(): TextMetrics {
   return createTextMetrics((font) => (text) => bundledWidth(font, text));
