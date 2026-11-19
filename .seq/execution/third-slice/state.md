@@ -405,3 +405,5 @@ None.
   default merge mode). The author (2026-11-19): "should we wait until we can address copies later?": yes, parked
   unmerged; grids-and-rows.md says the end stays on the first copy until units (fourth slice); the review's findings
   in followups.md. RX rebased (a clade hover's 244 B a frame fixed): under independent review.
+- The author (2026-11-19): "slow down to just 1+1 lane after current stuff is done" (usage): no new lane until LP, UN
+  and PG finish; then at most one strong and one fast lane at once; reviews of finished lanes still run.
