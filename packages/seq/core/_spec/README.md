@@ -1077,9 +1077,10 @@ coordinates: what crosses strips), `axes` (2: a second axis of its own, the y pa
   the least whose ticks are `ruler.labelGap` px apart; a label that does not fit (between the data box's edges and the
   labels already drawn, 6 px apart at least, majors first) is skipped, never shrunk. A label with an insertion code
   (`100A`, `111.1`) is a minor tick from 4 px a position, labeled only where it fits. It labels the positions where they
-  are: a reversed axis counts down, a collapsed one labels its pieces. Over a piece of more than 4,096 positions, or on
-  a built-in numbering, the labels are looked up by number (a tick a step), not a position at a time. A hit is the
-  position under the pointer. Fallback: none (omitted).
+  are: a reversed axis counts down, a collapsed one labels its pieces. Where a text section prints a group's end number
+  (`group_labels` not `none`) the ruler draws the tick without its label: a position carries one label, the group's.
+  Over a piece of more than 4,096 positions, or on a built-in numbering, the labels are looked up by number (a tick a
+  step), not a position at a time. A hit is the position under the pointer. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, anything else a turn), in one band: a helix a block, a strand a block with an arrowhead on its
   C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding the C-terminal end of the item, found
@@ -1421,6 +1422,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
 - **In a text section** (the ESPript figure's lines repeat the rows): the band is every shown row (its height the
   display rows times the layout's `heights.rows`), every clade unfolded (`seq.render.rows.text.unfolded`, info, when
   some are folded), no tree, no scroll; a lazy alignment there is drawn pending. Why: a fold would differ per line.
+- **Hover** (a clade): a hit on a tree node or a summary row (`tree-node`, `summary-row`: its element the clade) lights
+  the clade: its branches and wedges in the hover ink, one band over each run of its rows in the order (a folded clade's
+  summary row alone; a pinned row's band at both its places). Why: the element is hovered, here and on linked sections.
 - **Emphasis along y**: the hover tints its row's band (a pinned row's at both its places) and its column within the
   band and outlines the cell; the selection's parts on the rows system as row bands, its rects of rows × columns as
   their cells, read over the display rows in view only (a binary search a row: a selection of any size costs the rows in

@@ -234,6 +234,16 @@ export class AxisTransform {
     return r < 0 ? u : u + r / this.scale;
   }
 
+  /**
+   * Whether display unit `u` ends a group (its last unit): where a text's group label stands; `gapped` only when a gap
+   * follows it in the window (an inline label stands in the gap).
+   */
+  endsGroup(u: number, gapped = false): boolean {
+    if (this.gsize === 0) return false;
+    const e = Math.floor(u) + 1;
+    return (gapped ? e < this.u1 : e <= this.u1) && (e - this.gorigin) % this.gsize === 0;
+  }
+
   /** Whether x falls in a group's gap (no position there). */
   inGap(x: number): boolean {
     if (this.gsize === 0 || x < this.x0 || x >= this.x0 + this.width) return false;

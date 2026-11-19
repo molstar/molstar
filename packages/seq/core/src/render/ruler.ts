@@ -55,6 +55,8 @@ export interface RulerLay {
   major: Uint8Array;
   labels: string[];
   widths: Float32Array;
+  /** Whether the section prints a label at each group's end (`group_labels`): the ruler leaves those positions to it. */
+  grouped: '' | 'above' | 'inline';
   /** Labels drawn: indices into the ticks, with the room taken. */
   shown: Uint8Array;
 }
@@ -87,6 +89,7 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
       labels: [],
       widths: new Float32Array(64),
       shown: new Uint8Array(64),
+      grouped: '',
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -97,6 +100,8 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.font = RulerFont;
     lay.fontSize = fontSize(RulerFont);
     lay.n = 0;
+    const gl = axis.gsize > 0 ? ctx.section.params.group_labels : undefined;
+    lay.grouped = axis.gsize > 0 && gl !== 'none' ? (gl === 'inline' ? 'inline' : 'above') : '';
     if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
       ctx.report(
         issueOf(RenderIssues, 'seq.render.numbering', `The system has no numbering ${prep.id}`, {
@@ -154,7 +159,8 @@ function tickAt(lay: RulerLay, p: number, label: string, major: boolean) {
   const j = nextTick(lay);
   lay.x[j] = x;
   lay.major[j] = major ? 1 : 0;
-  lay.labels[j] = label;
+  // a group's end number stands over its last cell: the position carries that label, the tick none (text layout, Numbers)
+  lay.labels[j] = lay.grouped && axis.endsGroup(axis.unitAt(x), lay.grouped === 'inline') ? '' : label;
 }
 
 /** The ticks of the positions `[a, b)` in view (one piece): the labels that are multiples of the step, the insertions. */
@@ -198,7 +204,7 @@ function fit(lay: RulerLay, ctx: LayoutContext) {
   for (let pass = 1; pass >= 0; pass--)
     for (let j = 0; j < lay.n; j++) {
       lay.shown[j] = pass === 1 ? 0 : lay.shown[j];
-      if (lay.major[j] !== pass) continue;
+      if (lay.major[j] !== pass || !lay.labels[j]) continue;
       const w = (lay.widths[j] = ctx.text.measure(lay.font, lay.labels[j]));
       const a = lay.x[j] - w / 2;
       const b = lay.x[j] + w / 2;

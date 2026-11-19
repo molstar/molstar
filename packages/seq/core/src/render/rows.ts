@@ -1653,7 +1653,8 @@ function hoverClade(lay: RowsLay, out: PassWriter, key: string, ink: number) {
       if (d >= 0 && d < P) hoverBand(lay, out, d, ink);
     }
     if (start < 0) start = end = p;
-    else if (p === end) continue; // a folded clade's rows share its summary row
+    else if (p === end)
+      continue; // a folded clade's rows share its summary row
     else if (p === end + 1) end = p;
     else {
       hoverBand(lay, out, start, ink, end - start + 1);
@@ -1684,7 +1685,8 @@ function drawHover(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined
   const { box, tokens } = lay;
   const g = out.args;
   const ink = tokens.colors['seq-hover'];
-  if ((h.target === 'tree-node' || h.target === 'summary-row') && h.element?.owner === lay.owner) hoverClade(lay, out, h.element.key, ink);
+  if ((h.target === 'tree-node' || h.target === 'summary-row') && h.element?.owner === lay.owner)
+    hoverClade(lay, out, String(h.element.key), ink);
   const row = h.yPosition ?? (h.system === lay.rowsSystem ? h.position : undefined);
   const i = row === undefined ? -1 : lay.display.displayRow(row);
   const j = row === undefined ? -1 : lay.display.placeRow(row);
