@@ -843,8 +843,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 
 - CSS pixels, origin top left; a list per pass, drawn in order: `background`, `data`, `window`, `highlight`,
   `selection`, `hover`, `cursor`, `labels` (`Passes`; `window` to `cursor` are `EmphasisPasses`). `window` is the first
-  of the emphasis, under the highlights: a window is no data emphasis, and a highlight channel stays above it. The
-  recorder writes an empty pass as its header.
+  of the emphasis, under the highlights: a window is no data emphasis, and a highlight channel stays above it. It is the
+  layouts' own (their chrome): no layer draws there. The recorder writes an empty pass as its header.
 - **Primitives** as structs of arrays in growable typed arrays kept frame to frame (`reset` zeroes counts): `rect` (x,
   y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round), `path` (move, line, cubic,
   close in shared arrays; fill, stroke, dash), `glyphs` (a run of letters in one font, an x a letter at its center, one

@@ -1120,7 +1120,8 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
         s.layout.chrome(s, pass, w, emphasis, i, j);
         if (pass !== 'labels' && !column && emphasis) drawSectionEmphasis(w, s, a, box, emphasis, layout);
         const lays = s.lays[k];
-        if (!lays || !lays.length) continue;
+        // the window pass is the layouts' own (their chrome): no layer draws there, so a hover's redraw walks none
+        if (!lays || !lays.length || pass === 'window') continue;
         const clip = pass === 'data';
         if (clip) w.clip(box.x, box.y, box.width, box.height);
         for (let li = 0; li < lays.length; li++) {
@@ -1440,6 +1441,7 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
     for (let i = 0; i < strips.n; i++) {
       const col = s.columns[i];
       const breaks = s.stripBreaks[i];
+      // a polar strip's notches are its layout's to hit (the seam: `hitChrome`, through the warp's inverse)
       if (!col || !breaks.length || strips.warp[i] !== WarpKind.translate) continue;
       const notch = breakAt(s, strips.axes[i], col, breaks, x - strips.dx[i], y - strips.dy[i]);
       if (notch) return notch;

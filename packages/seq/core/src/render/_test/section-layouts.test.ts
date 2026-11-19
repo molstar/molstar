@@ -178,7 +178,8 @@ describe('the tracks layout on the interface', () => {
     });
     const emphasis: Emphasis = { selection: rangesLocation('rows', [2, 3]) };
     r.frame({ size: Size, emphasis });
-    expect(seen).toEqual(['data', 'window', 'highlight', 'selection', 'hover', 'cursor', 'labels']);
+    // the window pass is the layouts' own: no layer is drawn there
+    expect(seen).toEqual(['data', 'highlight', 'selection', 'hover', 'cursor', 'labels']);
   });
 });
 
@@ -326,6 +327,27 @@ describe('warps', () => {
     expect(recordDrawLists(lists, ['data'])).toContain(
       'glyphs "10px mono" placed #000000ff A 1 20 0 1, B 2 30 0 1, C 3 20 0 1',
     );
+  });
+
+  it('the polar warp clips a letter by its width, not its center alone', () => {
+    const lists = new DrawLists();
+    const out = lists.writer('data');
+    const p = new PolarWarp();
+    p.cx = 200;
+    p.cy = 200;
+    p.r0 = 150;
+    p.width = 360;
+    const w = p.writer(out);
+    w.clip(10, 0, 100, 20);
+    w.beginGlyphs('10px mono', 10, 0x000000ff);
+    // 10 px mono: 3 px either side of its center; the first overlaps the clip, the second does not
+    w.letter(65, 112);
+    w.letter(66, 120);
+    w.endGlyphs();
+    w.unclip();
+    p.close(out);
+    expect(out.pass.glyphs.letters).toBe(1);
+    expect(out.pass.glyphs.codes[0]).toBe(65);
   });
 
   it('a placed glyph run in the record and the SVG: each letter its place, angle and vertical scale', () => {

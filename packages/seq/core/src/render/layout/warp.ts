@@ -13,6 +13,7 @@
 // kept: nothing allocated once warm.
 
 import { grown, NoColor, Op, PassList, Passes, PassWriter, PathCommand, type PathList } from '../draw-lists.js';
+import { fontSize } from '../config.js';
 import { squirclePath } from '../squircle.js';
 
 /** What a translation moves: the counts of a pass's lists when a strip began to draw. */
@@ -291,9 +292,12 @@ export class PolarWarp {
     o.color[k] = l.color[i];
     o.placed[k] = 1;
     const cs = this.clipDepth > 0 ? 4 * (this.clipDepth - 1) : -1;
+    // a letter is kept while any of it is in the clip: half a mono advance (0.3 em) either side of its center
+    const half = cs >= 0 ? 0.3 * this.sizeOf(out, l.font[i]) : 0;
     for (let j = l.start[i], end = j + l.count[i]; j < end; j++) {
       const x = l.x[j];
-      if (cs >= 0 && (x < this.clipStack[cs] || x > this.clipStack[cs] + this.clipStack[cs + 2])) continue;
+      if (cs >= 0 && (x + half <= this.clipStack[cs] || x - half >= this.clipStack[cs] + this.clipStack[cs + 2]))
+        continue;
       const y = placed ? l.ly[j] : l.y[i];
       this.map(x, y);
       const m = o.nextLetter();
@@ -305,6 +309,14 @@ export class PolarWarp {
       o.colors[m] = l.color[i] !== NoColor ? NoColor : l.colors[j];
     }
     o.end();
+  }
+
+  /** A font's size in px by its interned id, read once a font. */
+  private readonly sizes = new Map<number, number>();
+  private sizeOf(out: PassWriter, font: number): number {
+    let v = this.sizes.get(font);
+    if (v === undefined) this.sizes.set(font, (v = fontSize(out.lists.string(font))));
+    return v;
   }
 
   /** A text at its anchor's place, upright. */
