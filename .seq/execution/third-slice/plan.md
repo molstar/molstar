@@ -252,7 +252,7 @@ and dark before the merge.
       suppressed click return before resetting it, so a later double-click on a rail (or after a drag) brings back a
       selection cleared long before. Reset it on every click that is not a double-click's second; a test for each path
       (rows rail, ruler rail, after a drag, a tree node, the filter chip) that fails on the parent.
-- [ ] LS (fast, now; the author, 2026-11-19, on LG's light logo looking muted: "Yes, schedule it") the logo's glyph
+- [x] LS (merged; fast, now; the author, 2026-11-19, on LG's light logo looking muted: "Yes, schedule it") the logo's glyph
       colors saturated: oklab chroma raised to a floor (a token per theme, `seq-logo-chroma`) clipped to the sRGB
       gamut, hue kept, then the 3:1 lightness; greys stay grey (grids-and-rows, The logo). Tested over every built-in
       scheme in both themes (chroma at or above the floor or the gamut's limit, 3:1 kept, hue within a tolerance);
