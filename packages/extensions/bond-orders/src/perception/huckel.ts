@@ -391,7 +391,8 @@ function perceiveAromaticSet(state: State, atoms: number[]): boolean {
 }
 
 /**
- * Aromatic perception is tried first on the whole ring system, and if not satisfied, individual rings are considered.
+ * Aromatic perception is tried first on the whole ring system, and if not satisfied, individual rings of 5 atoms or more
+ * are considered (a 3- or 4-ring is part of its system, never aromatic alone: the benzene of a benzocyclobutene is).
  * isAromaticCandidate ensures that planarity and sp2 requirements are met, before testing that the
  * Hückel 4n+2 rule can be satisfied.
  */
@@ -405,7 +406,7 @@ export function perceiveAromaticRings(state: State) {
 
     if (!ringSystemIsAromatic && system.rings.length > 1) {
       for (const ring of system.rings) {
-        if (isAromaticCandidate(state, ring)) perceiveAromaticSet(state, ring);
+        if (ring.length >= 5 && isAromaticCandidate(state, ring)) perceiveAromaticSet(state, ring);
       }
     }
   }

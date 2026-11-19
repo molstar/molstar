@@ -166,6 +166,64 @@ describe('bond-order perception: basic cases', () => {
     expect(orders.filter((o) => o === 2).length).toBe(1);
   });
 
+  it('perceives an aromatic ring with one atom in two altlocs (a ring per altloc, _spec §1.11)', async () => {
+    // C1 in altlocs A and B: the A ring and the B ring share the five other atoms. The B ring is not the residue's
+    // (its C1 is another altloc) and must not keep the A ring out of its ring system.
+    const { rows, aromaticCount } = await intraBondOrders(
+      [
+        'HETATM    1  C1 ABNZ A   1       1.390   0.000   0.000  0.50  0.00           C  ',
+        'HETATM    2  C1 BBNZ A   1       1.385   0.020   0.150  0.50  0.00           C  ',
+        ...Benzene.slice(1),
+        'END',
+      ].join('\n'),
+    );
+    expect(rows.length).toBe(8); // C1A and C1B each bonded to C2 and C6
+    expect(aromaticCount).toBe(8); // the A ring perceived, its pattern applied to the B bonds
+  });
+
+  // naphthalene, C-C = 1.40 A: ring 1 C1-C4 + C9, C10; ring 2 C5-C8 + C9, C10 (C9, C10 the fusion atoms)
+  const Naphthalene: [string, number, number][] = [
+    ['C1', -1.212, 1.4],
+    ['C2', -2.425, 0.7],
+    ['C3', -2.425, -0.7],
+    ['C4', -1.212, -1.4],
+    ['C5', 1.212, -1.4],
+    ['C6', 2.425, -0.7],
+    ['C7', 2.425, 0.7],
+    ['C8', 1.212, 1.4],
+    ['C9', 0, 0.7],
+    ['C10', 0, -0.7],
+  ];
+  /** naphthalene with `altAtom` in altlocs A (in plane) and B (0.15 A out of it): the other atoms have no altloc */
+  function naphthaleneWithAltloc(altAtom: string) {
+    const line = (serial: number, name: string, alt: string, x: number, y: number, z: number, occ: number) =>
+      `HETATM${String(serial).padStart(5)} ${(name.length < 4 ? ` ${name}` : name).padEnd(4)}${alt || ' '}NPH A   1    ${[x, y, z].map((v) => v.toFixed(3).padStart(8)).join('')}${occ.toFixed(2).padStart(6)}  0.00           C  `;
+    const lines: string[] = [];
+    for (const [name, x, y] of Naphthalene) {
+      if (name !== altAtom) lines.push(line(lines.length + 1, name, '', x, y, 0, 1));
+      else {
+        lines.push(line(lines.length + 1, name, 'A', x, y, 0, 0.5));
+        lines.push(line(lines.length + 1, name, 'B', x, y, 0.15, 0.5));
+      }
+    }
+    return [...lines, 'END'].join('\n');
+  }
+
+  it.each([
+    // C6 in ring 2 only: Mol* rings 1, 2A and 2B, one component; the residue's system is rings 1 and 2A
+    ['C6', 2, 13],
+    // C9 a fusion atom: rings 1A, 1B, 2A and 2B; the residue's system is rings 1A and 2A
+    ['C9', 3, 14],
+  ])(
+    'perceives a fused ring system with %s in two altlocs: the reference altloc rings only (_spec §1.11)',
+    async (altAtom, altBonds, edges) => {
+      const { rows, aromaticCount } = await intraBondOrders(naphthaleneWithAltloc(altAtom));
+      expect(rows.length).toBe(edges); // the 11 naphthalene bonds, and the B atom's bonds
+      // the whole system perceived aromatic (10 π): its 11 bonds, and the B atom's bonds by the altloc pattern copy
+      expect(aromaticCount).toBe(11 + altBonds);
+    },
+  );
+
   it('handles altlocs', async () => {
     // PBD 6FUX has 1 altloc for a oxygen carbonyl (OG2). If altlocs are ignored,
     // the Carbon is perceived as sp3, connected to 3 single bonds.

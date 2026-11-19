@@ -253,7 +253,7 @@ function markAmbiguous(state: State) {
       isDebugMode && console.log('Atom ', atomId(unit, u), ' is not trigonal, skipping');
       continue;
     }
-    // Loop over heavyNeighbours, to only check the bonds inside the residue. 
+    // Loop over heavyNeighbours, to only check the bonds inside the residue.
     // Outside residue bonds are never perceived for now (_spec §1.11).
     for (const j of heavyNeighbours[i]) assignLongOrNonPlanarBond(state, u, unitIndices[j], seen);
     seen.add(u);

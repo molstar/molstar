@@ -5,6 +5,7 @@
  */
 
 import { SortedArray } from '@molstar/core/data/int';
+import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode } from '@molstar/core/util/debug';
 import type { NumberArray } from '@molstar/core/util/type-helpers';
@@ -21,7 +22,6 @@ import type { InterUnitNeighbours } from './inter-unit-neighbours.js';
 export interface UnitRingsInfo {
   readonly all: ReadonlyArray<ArrayLike<UnitIndex>>;
   readonly elementRingIndices: ReadonlyMap<UnitIndex, ArrayLike<number>>;
-  readonly ringComponents: ReadonlyArray<ArrayLike<number>>;
 }
 
 export interface State {
@@ -191,9 +191,13 @@ export function State(
     }
   }
 
+  // Only the rings fully inside the residue (_spec §1.11): a ring through an atom outside it (another residue, or
+  // another altloc: atoms of different altlocs are never bonded, so each altloc has its own ring) sets no `inRing`, is
+  // not a 5/6 ring and is in no ring system.
   const { all: allRings, elementRingIndices } = rings;
   const seenRings = new Set<number>();
-  // Rings of size 5 or 6 are special cases: collected
+  /** the complete rings met from the residue's atoms (every atom in the residue), as local atoms */
+  const residueRings: number[][] = [];
   const localRings5or6: number[][] = [];
   for (let i = 0; i < n; i++) {
     const u = unitIndices[i];
@@ -204,43 +208,51 @@ export function State(
       if (seenRings.has(ri)) continue;
       seenRings.add(ri);
       const ring = allRings[ri];
-      const local = new Array<number>(ring.length);
+      let local: number[] | undefined = new Array<number>(ring.length);
       for (let k = 0; k < ring.length; k++) {
         const localIndex = unitIndexToLocalIndex.get(ring[k]);
-        if (localIndex === void 0) continue; // not in this residue (altloc or different residue)
+        if (localIndex === void 0) {
+          // not in this residue (altloc or different residue)
+          local = void 0;
+          break;
+        }
         local[k] = localIndex;
-        inRing[localIndex] = 1;
       }
+      if (!local) continue;
+      residueRings.push(local);
+      for (const k of local) inRing[k] = 1;
       if (ring.length < 5 || ring.length > 6) continue;
       const seq = ringTraversalSort(heavyNeighbours, local);
       if (seq) localRings5or6.push(seq);
     }
   }
 
-  // Fused ring systems: group SSSR rings that share atoms (`ringComponents`). Keep only components whose every member
-  // ring lies fully inside this residue and is size ≥5 — a component with an out-of-residue or small (<5) member is
-  // skipped. Rings larger than 6 are kept and tested later for aromaticity. A monocyclic ring is a 1-ring component.
-  const localRingSystems: State['localRingSystems'] = [];
-  for (const comp of rings.ringComponents) {
-    const atomsSet = new Set<number>();
-    const compRings: number[][] = [];
-    let ok = true;
-    for (let r = 0; r < comp.length; r++) {
-      const ring = allRings[comp[r]];
-      if (ring.length < 5) {
-        ok = false; // too small to be aromatic
-        break;
-      }
-      const local: number[] = [];
-      for (let k = 0; k < ring.length; k++) {
-        const localIndex = unitIndexToLocalIndex.get(ring[k]);
-        if (localIndex === void 0) continue; // not in this residue (altloc or different residue)
-        local.push(localIndex);
-        atomsSet.add(localIndex);
-      }
-      compRings.push(local);
+  // Ring systems collected for aromaticity perception:
+  // the residue's complete rings (`residueRings`) grouped by shared atoms, each connected group a system.
+  // This differs from Mol* ringComponents which may merge rings across residues and altlocs. When these kind of rings
+  // are filtered out, the remaining rings are grouped by shared atoms or left alone (single ring systems).
+  // 3 and 4-membered rings are ignored for aromaticity unless part of a larger system with larger rings
+  const ringGraph = new IntAdjacencyGraph.UniqueEdgeBuilder(residueRings.length);
+  const ringOfAtom = new Int32Array(n).fill(-1); // first ring "seen" for each atom. Used to link rings when an atom is already assigned to a ring
+  for (let r = 0; r < residueRings.length; r++) {
+    for (const k of residueRings[r]) {
+      if (ringOfAtom[k] >= 0) ringGraph.addEdge(ringOfAtom[k], r);
+      else ringOfAtom[k] = r;
     }
-    if (ok && atomsSet.size > 0) localRingSystems.push({ atoms: [...atomsSet], rings: compRings });
+  }
+  const { componentCount, componentIndex } = IntAdjacencyGraph.connectedComponents(ringGraph.getGraph());
+  const localRingSystems: State['localRingSystems'] = [];
+  for (let c = 0; c < componentCount; c++) {
+    const atomsSet = new Set<number>();
+    const systemRings: number[][] = [];
+    let hasRingGreaterThan4 = false;
+    for (let r = 0; r < residueRings.length; r++) {
+      if (componentIndex[r] !== c) continue;
+      if (residueRings[r].length > 4) hasRingGreaterThan4 = true;
+      for (const k of residueRings[r]) atomsSet.add(k);
+      systemRings.push(residueRings[r]);
+    }
+    if (hasRingGreaterThan4) localRingSystems.push({ atoms: [...atomsSet], rings: systemRings });
   }
 
   return {

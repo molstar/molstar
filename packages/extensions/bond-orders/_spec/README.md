@@ -40,7 +40,8 @@ at the top of `src/perception/perceive.ts` and in each step's module.
 6. **No closures in the neighbour loops**: `State` collects per-residue adjacency arrays once (intra-unit from the graph
    being perceived, inter-unit neighbours from §1.3); the steps loop over arrays and over the graph's `offset`/`b`. Why:
    `unit.bonds` and `unit.rings` are not available inside `intra` (rings come from `computeRings(unit, bonds)` and
-   `createIndex(rings, [])`, without aromaticity), and the core iterators read them.
+   `createIndex(rings, [])`, without aromaticity, once a residue of the unit needs perceiving), and the core iterators
+   read them.
 7. **Output props**: `cacheable: true` (§1.3), and `canRemap: false` once a residue was perceived. Why: perceived orders
    depend on the geometry, so a frame with `dynamicBonds` is perceived again even where the file's bonds would carry
    over; a unit with only canonical residues keeps the built-in props.
@@ -64,12 +65,13 @@ at the top of `src/perception/perceive.ts` and in each step's module.
     `outsideMultiple`, the neighbour store with its elements), and every step sees the atom's whole environment: the
     open valence, `hasMultipleBond`, the functional groups (a neighbour outside the residue fills an order-1 slot, is
     never terminal: an atom of another residue has another heavy neighbour, even in ACE or NME), Hückel's exocyclic
-    bond. No step writes such a bond: the pattern cache applies a residue's pattern to its own bonds only, and the
-    length and planarity tests (`markAmbiguous`) skip them. Why: a nucleotide's P has its fourth bond in the previous
-    residue (O3'), a carbamate's O in Ser (5KRE); without them the phosphoryl and ester patterns do not match and the
-    valence is wrong. Consequence: in `forceCompute`, a multiple bond stated between residues of one unit becomes single
-    (rare: peptide, phosphodiester, disulfide and glycosidic links are single) until bonds across residues are perceived
-    (TODO).
+    bond. A ring through an atom outside the residue (or in another altloc) is not one of its rings: no ring atom, no
+    planarity or aromaticity test; the residue's ring systems are its own rings grouped by shared atoms. No step writes
+    such a bond: the pattern cache applies a residue's pattern to its own bonds only, and the length and planarity tests
+    (`markAmbiguous`) skip them. Why: a nucleotide's P has its fourth bond in the previous residue (O3'), a carbamate's
+    O in Ser (5KRE); without them the phosphoryl and ester patterns do not match and the valence is wrong. Consequence:
+    in `forceCompute`, a multiple bond stated between residues of one unit becomes single (rare: peptide,
+    phosphodiester, disulfide and glycosidic links are single) until bonds across residues are perceived (TODO).
 
 ## 2. Layout
 
@@ -110,7 +112,8 @@ Quick lane, no network (`src/_test/`). Fixtures in `src/_test/fixtures/`, named 
   order (§1.11).
 - `1tup-e-dt1001-dt1002.pdb` (two nucleotides of chain E): in `forceCompute`, the second residue's P=O, its P bonded to
   the first residue's O3' (§1.11).
-- Basic cases: benzene, CONECT benzene, exocyclic amino, carboxylate, glycine, altlocs.
+- Basic cases: benzene, CONECT benzene, exocyclic amino, carboxylate, glycine, altlocs (a carbonyl O; a benzene atom; a
+  naphthalene atom in one ring, and a fusion atom: the reference altloc's rings form the system).
 - The residue gate: a residue whose orders are all stated is left as is, without building the inter-unit neighbours.
 - The pattern cache: a second copy of a component without multiple bonds reuses the empty pattern, not perceived again.
 - The provider: modes (a mol2's bond table untouched in `auto`), cache shared by two structures of a model, one instance
