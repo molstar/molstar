@@ -16,12 +16,14 @@ import {
   printedSpec,
 } from '../../features/editing/compose.js';
 import { followSvg } from '../../follow-svg.js';
+import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { holdReadout, readout } from './compose.js';
 
 // A Complex view with its edits (examples.md, "Editing experiences are views too"): the viewer, a button an edit (one
 // patch, one step of the host's stack), Undo and Redo, the history and the spec shown printed beside, the SVG export
 // following; with `readout`, the host's panel of a grid over the complex (the hovered cell, the selected rect and its
-// mean PAE). Every string from the spec or data is put in as text, never markup.
+// mean PAE), or with `lines` another dataset's panel (the Antibody's labels in both numberings). Every string from the
+// spec or data is put in as text, never markup.
 
 /** An edit a button runs: its label and what it does (the status line says what it returns). */
 export interface ComplexEdit {
@@ -34,6 +36,8 @@ export interface ComplexEditModel {
   readonly edits: readonly ComplexEdit[];
   /** The grid's readout panel (the PAE over the complex). */
   readonly readout?: boolean;
+  /** Another dataset's panel instead: its lines, from what the pointer is over and what is selected. */
+  readonly lines?: (viewer: SeqViewer) => readonly string[];
 }
 
 const Row = 'display: flex; gap: var(--msui-space-2); align-items: center; flex-wrap: wrap;';
@@ -78,16 +82,29 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
     const rectLine = document.createElement('div');
     panel.append(hoverLine, rectLine);
     const showReadout = () => {
+      if (model.lines) {
+        panel.replaceChildren(
+          ...model.lines(s.viewer).map((l) => {
+            const div = document.createElement('div');
+            div.textContent = l;
+            return div;
+          }),
+        );
+        return;
+      }
       const r = readout(s.viewer);
       hoverLine.textContent = r.hover ? `Hover: ${r.hover}` : 'Hover: (a cell of the plot)';
       rectLine.textContent = r.rect ? r.rect : 'Drag a rectangle on the plot: its residues and its mean PAE';
     };
-    if (model.readout) {
+    const panelShown = model.readout || model.lines !== undefined;
+    if (panelShown) {
       // the letters the panel names are held while it is shown; it is written again when they arrive
-      onCleanup(holdReadout(s.viewer));
+      if (model.readout) onCleanup(holdReadout(s.viewer));
       onCleanup(s.viewer.hover.version.listen(showReadout));
       onCleanup(s.viewer.selection.value.listen(showReadout));
       onCleanup(s.viewer.store.store.version.listen(showReadout));
+      // the bookmarks a panel lists
+      if (model.lines) onCleanup(s.viewer.addresses.refs.listen(showReadout));
     }
 
     const history = document.createElement('pre');
@@ -98,7 +115,7 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
     panes.style.cssText =
       'display: grid; gap: var(--msui-space-4); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);';
     panes.append(history, printed);
-    root.append(summary, canvasHost, ...(model.readout ? [panel] : []), tools, status, panes, svgHost);
+    root.append(summary, canvasHost, ...(panelShown ? [panel] : []), tools, status, panes, svgHost);
 
     const svg = followSvg(s.viewer, svgHost, { prefix: 'cx' });
     onCleanup(() => svg.dispose());
@@ -125,7 +142,7 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
       .then(() => s.viewer.settle())
       .then(() => {
         draw();
-        if (model.readout) showReadout();
+        if (panelShown) showReadout();
         return svg.draw();
       })
       .catch((e: unknown) => {

@@ -2187,10 +2187,11 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `export.window` when absent, false: an exported map is a figure).
 - `renderSvg(spec, { size, viewport?, runtimes, … })`: checks the spec and opens its model (`openModel`,
   `scope: 'view'`: the sources its view reads, `attachSources`: inline data through `seq`, a source node through its
-  runtime, a template's source; assets refused unless a reader is given, `NoAssets`), wants through a want set of its
-  own (EC-125), each round reads the overlay and syncs its sources (let go at the end), lays out until its wants and the
-  store's node version hold, waits for them to settle, and draws once more with the view settled. It waits for its
-  view's wants alone, never their margins.
+  runtime, a template's source, the source of a numbering a layer names, which no layer's data does: a ruler's; assets
+  refused unless a reader is given, `NoAssets`), wants through a want set of its own (EC-125), each round reads the
+  overlay and syncs its sources (let go at the end), lays out until its wants and the store's node version hold, waits
+  for them to settle, and draws once more with the view settled. It waits for its view's wants alone, never their
+  margins.
 - **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
   opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`. The model
   and view resolved again are taken only when the opening wins the race with the deadline: a source that opens later

@@ -6,6 +6,9 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import * as antibodyAgainst from './antibody/against.js';
+import { registry as antibodyRegistry } from './antibody/data.js';
+import * as antibodySchemes from './antibody/schemes.js';
 import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
 import * as complexConfidence from './complex/confidence.js';
@@ -506,6 +509,47 @@ export const ComplexViews: readonly ExampleView[] = [
   },
 ];
 
+/**
+ * The Antibody: trastuzumab's Fab (PDB 1N8Z) numbered by IMGT (SAbDab's) and Kabat (derived), its CDRs by both
+ * definitions; the design against it (generated).
+ */
+export const AntibodyViews: readonly ExampleView[] = [
+  {
+    dataset: 'antibody',
+    id: 'schemes',
+    title: 'Kabat and IMGT side by side',
+    summary:
+      'Trastuzumab’s light and heavy chains (PDB 1N8Z), each under a Kabat ruler and an IMGT ruler, its CDRs by both definitions below: the heavy chain’s Kabat insertions 52A, 82A–C and 100A–C, IMGT’s gaps where a CDR is shorter than its positions. The labels are read from files (SAbDab’s IMGT numbering, Kabat’s derived from it). Hover a residue: both labels.',
+    build: () => antibodySchemes.build(),
+    registry: antibodyRegistry,
+  },
+  {
+    dataset: 'antibody',
+    id: 'schemes-design',
+    title: 'The design’s numberings',
+    summary:
+      'The design (generated: two substitutions in CDR-H2, a substitution and a two-residue insertion in CDR-H3, a deletion in CDR-L1) under the same rulers: CDR-H3 gains Kabat’s 100D and 100E and IMGT’s 111.1 and 112.1, which come before 112 (out of index order); CDR-L1 loses Kabat’s 27 and IMGT’s 36 (this generator’s rule for a shorter CDR-L1, not yet checked against ANARCI).',
+    build: antibodySchemes.design,
+  },
+  {
+    dataset: 'antibody',
+    id: 'against',
+    title: 'Design against wild type',
+    summary:
+      'Each chain’s design and trastuzumab as the two rows of an alignment made by the edit list: a column pairs a residue the design kept with the wild type’s; CDR-H3’s two inserted residues are columns with a gap in the wild type, CDR-L1’s deleted one a gap in the design. The schemes relabel the residues around an indel, so paired residues may differ in label (the design’s F is IMGT 111.1, the wild type’s 112). Hover a column: both rows. Carets on the wild type wait for a map with indels between two sequences.',
+    build: () => antibodyAgainst.build(),
+  },
+  {
+    dataset: 'antibody',
+    id: 'cdrs',
+    title: 'CDR bookmarks',
+    summary:
+      'The wild type with both numberings, for bookmarking its CDRs: select one by its address in Kabat’s labels, bookmark the selection, rename it, recolor it, remove it; each one step, undone and redone.',
+    build: antibodySchemes.cdrs,
+    registry: antibodyRegistry,
+  },
+];
+
 export const TrnaViews: readonly ExampleView[] = [
   {
     dataset: 'trna',
@@ -619,6 +663,7 @@ export const ExampleViews: readonly ExampleView[] = [
   ...LayerViews,
   ...PlasmidViews,
   ...ComplexViews,
+  ...AntibodyViews,
   ...GlobinsViews,
   ...TrnaViews,
 ];
