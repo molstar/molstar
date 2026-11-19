@@ -266,7 +266,8 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
 
 - **Clades** (EC-100, EC-103) are named by the node's id where it is unique in the tree and not a number, else their
   first and last leaves in tree order (`(clade :of [a b])`), so a name survives a reorder of other clades and a tree
-  read again. Why the exception (decided, the author, 2026-11-19): inner labels are often support values that repeat
+  read again. A support label is a number or numbers joined by `/` or `|` (IQ-TREE's `87.3/95`); a `collapsed` name that
+  names no clade of the tree is reported once at the check, never dropped silently (decided at GD's review). Why the exception (decided, the author, 2026-11-19): inner labels are often support values that repeat
   (`((A,B)95,(C,D)95)`), and one name for two clades sends a hover, a fold or `clades.keep` to the wrong one.
 - **Pinned rows**: `pinned` (row keys), drawn in a fixed band at the top of the rows band, and kept in their place in
   the order too, marked (`rows.pin.inPlace`, true). Why both: the tree stays a tree and clades stay bands.
