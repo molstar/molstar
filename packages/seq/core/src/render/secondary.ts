@@ -10,7 +10,7 @@ import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import { type AxisTransform, Cut } from './axis.js';
 import { type DensityStep, densityStep } from './config.js';
 import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws, Round } from './draw-lists.js';
-import { collectItems, itemHit, type ItemRows, markEnds, newItemRows, RowImages } from './items.js';
+import { collectItems, countStrip, itemHit, type ItemRows, markEnds, newItemRows, RowImages } from './items.js';
 import { LaneIndex } from './lanes.js';
 import {
   dataRegions,
@@ -27,14 +27,13 @@ import {
   type Hit,
   type LayerType,
   type LayoutContext,
-  type LegendSpec,
   type Overlay,
   type StoreReader,
   sectionId,
 } from './layer-type.js';
 import { reportColor } from './letters.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
-import { addToStrip, paintStrip, resetStrip, type StripBuffers } from './ranges.js';
+import type { StripBuffers } from './ranges.js';
 import { squircleRadius } from './squircle.js';
 import { resolveColor, type SeqTokenName, type SeqTokens } from './tokens.js';
 
@@ -228,17 +227,7 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
       lay.fills = new Uint32Array(size);
     }
     if (densities.length) {
-      const strip = lay.strip;
-      resetStrip(strip, axis.columns);
-      strip.v = 1;
-      for (let i = 0; i < n; i++)
-        addToStrip(strip, src, axis, rows.starts[i], Math.max(rows.ends[i], rows.starts[i] + 1));
-      for (const { table, level } of densities)
-        for (let i = 0; i < table.bin.length; i++) {
-          strip.v = table.count[i];
-          addToStrip(strip, src, axis, table.bin[i] * level, (table.bin[i] + 1) * level);
-        }
-      lay.density = paintStrip(strip, axis.columns, tokens);
+      lay.density = countStrip(lay.strip, src, axis, rows, densities, tokens);
       lay.bandY = box.y;
       lay.bandH = box.height;
       lay.index.build(0, lay.lane, lay.mx0, lay.mx1, 1);
@@ -266,12 +255,6 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
     if (j < 0) return base;
     const i = lay.mitem[j];
     return itemHit(base, lay.owner, lay.dataSystem, lay.src, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
-  },
-
-  legend(lay): LegendSpec | undefined {
-    if (lay.density)
-      return { kind: 'ramp', colors: [lay.tokens.colors['seq-density-low'], lay.tokens.colors['seq-density-high']] };
-    return undefined;
   },
 };
 

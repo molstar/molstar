@@ -10,7 +10,7 @@ import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, perPosition } from './config.js';
 import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
-import { collectItems, itemHit, type ItemRows, newItemRows } from './items.js';
+import { collectItems, countStrip, itemHit, type ItemRows, newItemRows } from './items.js';
 import {
   dataRegions,
   type LayerSource,
@@ -26,14 +26,13 @@ import {
   type Hit,
   type LayerType,
   type LayoutContext,
-  type LegendSpec,
   type Overlay,
   type StoreReader,
   sectionId,
 } from './layer-type.js';
 import { reportColor } from './letters.js';
 import { drawFailed, drawSpans } from './marks.js';
-import { addToStrip, paintStrip, resetStrip, type StripBuffers } from './ranges.js';
+import type { StripBuffers } from './ranges.js';
 import { categoryToken, resolveColor, type SeqTokens } from './tokens.js';
 
 // The `variants` layer type (_spec/README.md "Render", Layer types): a site a stem from the track's floor and a round
@@ -174,17 +173,7 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     const rows = lay.rows;
     const densities = collectItems(rows, read.entries, ['consequence', 'category']);
     if (!perPosition(step) || densities.length) {
-      const strip = lay.strip;
-      resetStrip(strip, axis.columns);
-      strip.v = 1;
-      for (let i = 0; i < rows.n; i++)
-        addToStrip(strip, src, axis, rows.starts[i], Math.max(rows.ends[i], rows.starts[i] + 1));
-      for (const { table, level } of densities)
-        for (let i = 0; i < table.bin.length; i++) {
-          strip.v = table.count[i];
-          addToStrip(strip, src, axis, table.bin[i] * level, (table.bin[i] + 1) * level);
-        }
-      lay.density = paintStrip(strip, axis.columns, tokens);
+      lay.density = countStrip(lay.strip, src, axis, rows, densities, tokens);
       return lay;
     }
     // a head at the center of each piece of a site in view
@@ -244,12 +233,6 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     if (best < 0) return base;
     const i = lay.mrow[best];
     return itemHit(base, lay.owner, lay.dataSystem, lay.src, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
-  },
-
-  legend(lay): LegendSpec | undefined {
-    if (lay.density)
-      return { kind: 'ramp', colors: [lay.tokens.colors['seq-density-low'], lay.tokens.colors['seq-density-high']] };
-    return undefined;
   },
 };
 

@@ -8,6 +8,8 @@ import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
 import type { DataEntry, RangesDensity, RangesList } from '@molstar/seqx-core/data';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { type LayerSource, toSection } from './layer-data.js';
+import { addToStrip, paintStrip, resetStrip, type StripBuffers } from './ranges.js';
+import type { SeqTokens } from './tokens.js';
 import type { AxisTransform } from './axis.js';
 import type { Box, Hit } from './layer-type.js';
 
@@ -216,4 +218,28 @@ export class RowImages {
     if (!(x >= box.x - 0.5 && x <= box.x + box.width + 0.5)) return 0;
     return ((axis.dir === 1) !== this.flip) === atEnd ? 1 : 2;
   }
+}
+
+/**
+ * The count strip of the items and the density bins of a read, one a device column, in the density tokens: its image
+ * (the layers' strip at the `bars` and `density` steps and from a source's bins).
+ */
+export function countStrip(
+  strip: StripBuffers,
+  src: LayerSource,
+  axis: AxisTransform,
+  rows: ItemRows,
+  densities: readonly DensityTile[],
+  tokens: SeqTokens,
+): StripBuffers['image'] {
+  resetStrip(strip, axis.columns);
+  strip.v = 1;
+  for (let i = 0; i < rows.n; i++)
+    addToStrip(strip, src, axis, rows.starts[i], Math.max(rows.ends[i], rows.starts[i] + 1));
+  for (const { table, level } of densities)
+    for (let i = 0; i < table.bin.length; i++) {
+      strip.v = table.count[i];
+      addToStrip(strip, src, axis, table.bin[i] * level, (table.bin[i] + 1) * level);
+    }
+  return paintStrip(strip, axis.columns, tokens);
 }
