@@ -9,6 +9,7 @@
 // their first position), placement as the inverse of hit-testing in both, hits naming their block, the rings layout's
 // arcs, a follow across blocks of several systems refused, drawing against the data.
 
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
@@ -103,6 +104,32 @@ describe('blocks in the tracks layout', () => {
     const lay = f1.layout.sections[0].lays[0][0].lay;
     const f2 = await s.frame({ size: Size, viewport: { start: 130, end: 190 } });
     expect(f2.layout.sections[0].lays[0][0].lay).toBe(lay);
+  });
+
+  it('a row of many blocks: the gaps never take more than a quarter of the width (40 and 100 blocks)', async () => {
+    for (const n of [40, 100]) {
+      const b = createSeqSpec({ title: 'many blocks' });
+      const systems = Array.from({ length: n }, (_, k) =>
+        b.data.sequence(`s${k}`, { alphabet: 'protein', letters: 'ACDEFGHIKL' }),
+      );
+      b.views.view('v', (v) => {
+        const sec = v.section('many', {});
+        systems.forEach((sys, k) => sec.block(`b${k}`, { of: sys, label: `B${k}` }));
+        sec.track('letters').layer('letters', { type: 'letters' });
+      });
+      const s = await settle(b.build());
+      const f = await s.frame({ size: Size });
+      const sec = f.layout.sections[0];
+      const p = sec.placement as BlockPlacement;
+      expect(p.strips.n).toBe(n);
+      const axis = sec.axis!;
+      let gaps = 0;
+      for (let i = 1; i < n; i++) gaps += p.strips.axes[i].x0 - (p.strips.axes[i - 1].x0 + p.strips.axes[i - 1].width);
+      expect(gaps).toBeGreaterThan(0);
+      expect(gaps).toBeLessThanOrEqual(0.25 * axis.width + 1e-6);
+      const last = p.strips.axes[n - 1];
+      expect(last.x0 + last.width).toBeCloseTo(axis.x0 + axis.width, 6);
+    }
   });
 
   it('a stack: a block a row of the tracks, aligned at their first position', async () => {

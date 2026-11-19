@@ -1220,9 +1220,9 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   section on a system of its own; a strip a block in every layout, its transform on the block's system, its layers the
   block's (a path a block), a hit naming its `block`.
 - **Tracks** (`layout/blocks.ts`, `BlockPlacement`): `arrange: 'row'` (the default) lays the blocks end to end along one
-  viewport with a gap between two (at most 12 px, the gaps inside the window taking at most a quarter of the width, as
-  if 24 blocks shared it: EC-102); `stack` a block a row of the section's tracks, aligned at their first position, one
-  zoom (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the
+  viewport with a gap between two (at most 12 px, the gaps inside the window sharing at most a quarter of the width,
+  however many: EC-102); `stack` a block a row of the section's tracks, aligned at their first position, one zoom
+  (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the
   block's first unit, so a pan keeps them.
 - **Rings**: a block an arc (above).
 - **Follow across systems** is refused: a section of blocks on more than one system neither follows nor is followed

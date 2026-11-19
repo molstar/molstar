@@ -7,9 +7,9 @@
 // Blocks in the tracks layout (_spec/README.md "Render", Blocks): a strip a block in view, each on its own system (its
 // transform's), translated by nothing. `row` (the default): the blocks side by side along one axis, one viewport over
 // them laid end to end, a gap between two (shrinking when zoomed out so positions keep three quarters of the width,
-// shared by up to 24 blocks, EC-102); `stack`: a block a row of the section's tracks, aligned at their first position,
-// one zoom (EC-102, EC-115). Each block's label in a row above its tracks. Its lays are kept by the block's first unit,
-// so a pan keeps them.
+// the gaps in view sharing the rest, EC-102); `stack`: a block a row of the section's tracks, aligned at their first
+// position, one zoom (EC-102, EC-115). Each block's label in a row above its tracks. Its lays are kept by the block's
+// first unit, so a pan keeps them.
 
 import type { ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform } from '../axis.js';
@@ -24,10 +24,9 @@ const AnchorStart: number = Anchor.start;
 
 /**
  * Fixed sizes (CSS px): the gap between two blocks in a row at most (a boundary that reads), the share of the width
- * the gaps may take (a quarter: positions keep three quarters), the blocks that share it (24: past them, each gap is
- * what 24 would get).
+ * the gaps in view may take (a quarter: positions keep three quarters, however many blocks).
  */
-export const BlockMetrics = { gap: 12, gapShare: 0.25, sharing: 24 } as const;
+export const BlockMetrics = { gap: 12, gapShare: 0.25 } as const;
 
 /** A section of blocks placed: its strips by x (a row) or by y (a stack), each strip's units its block's. */
 export class BlockPlacement extends StripPlacement {
@@ -159,12 +158,8 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
     const o = blocks[b].offset ?? 0;
     if (o > u0 && o < u1) inner++;
   }
-  const gap = p.stacked
-    ? 0
-    : Math.min(
-        BlockMetrics.gap,
-        (BlockMetrics.gapShare * width) / Math.max(1, Math.min(blocks.length - 1, BlockMetrics.sharing - 1)),
-      );
+  // the gaps in view share a quarter of the width, at most 12 px each
+  const gap = p.stacked ? 0 : Math.min(BlockMetrics.gap, (BlockMetrics.gapShare * width) / Math.max(1, inner));
   const scale = Math.max(width - inner * gap, 1e-9) / (u1 - u0);
   // the rows' height: the label row, then the tracks
   let rows = p.labelRow;
