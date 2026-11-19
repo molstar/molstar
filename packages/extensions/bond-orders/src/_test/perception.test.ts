@@ -164,6 +164,25 @@ describe('bond-order perception: basic cases', () => {
     expect(orders.filter((o) => o === 2).length).toBe(1);
   });
 
+  it('perceives imidazol-2-one as aromatic: both ring N lone-pair donors (the 4n+2 search, Hückel)', async () => {
+    // no H: N1 and N3 are ambiguous (1 or 2 π electrons), the sum reaches 6 only with both at 2
+    const { rows } = await intraBondOrders(
+      [
+        'HETATM    1  C2  IMZ A   1       0.000   1.174   0.000  1.00  0.00           C  ',
+        'HETATM    2  N3  IMZ A   1       1.116   0.363   0.000  1.00  0.00           N  ',
+        'HETATM    3  C4  IMZ A   1       0.690  -0.950   0.000  1.00  0.00           C  ',
+        'HETATM    4  C5  IMZ A   1      -0.690  -0.950   0.000  1.00  0.00           C  ',
+        'HETATM    5  N1  IMZ A   1      -1.116   0.363   0.000  1.00  0.00           N  ',
+        'HETATM    6  O2  IMZ A   1       0.000   2.404   0.000  1.00  0.00           O  ',
+        'END',
+      ].join('\n'),
+    );
+    const bond = (a: string, b: string) => rows.find((r) => (r.a === a && r.b === b) || (r.a === b && r.b === a))!;
+    expect(rows.filter((r) => r.aromatic).length).toBe(5);
+    expect([bond('C4', 'C5').order, bond('C2', 'O2').order]).toEqual([2, 2]);
+    expect(rows.filter((r) => r.order === 2).length).toBe(2);
+  });
+
   it('leaves a canonical residue untouched (no spurious orders)', async () => {
     // glycine: only the backbone C=O is double (the core table's amino-acid C-O rule); perception adds nothing.
     const { orders } = await intraBondOrders(

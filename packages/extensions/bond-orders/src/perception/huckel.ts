@@ -179,25 +179,13 @@ function resolveAromaticDOF(
   ringAtomTypes: RingAtomType[],
 ): RingAtomType[] | null {
   const ambIdx: number[] = [];
-  let sumFixed = 0,
-    positiveDOF = 0,
-    negativeDOF = 0;
+  let sumFixed = 0;
   for (let i = 0; i < atoms.length; i++) {
-    if (ringAtomTypes[i].ambiguous) {
-      ambIdx.push(i);
-      if (ringAtomTypes[i].ambiguous === 'N') positiveDOF++;
-      else negativeDOF++;
-    } else {
-      sumFixed += ringAtomTypes[i].electrons;
-    }
+    if (ringAtomTypes[i].ambiguous) ambIdx.push(i);
+    else sumFixed += ringAtomTypes[i].electrons;
   }
   const k = ambIdx.length;
   if (k === 0 || k > 16) return null; // nothing to search or too large
-  const totalDOF = positiveDOF + negativeDOF;
-  if (totalDOF < 4) {
-    const targetElectronsDiff = ((sumFixed + k) % 4) - 2;
-    if (targetElectronsDiff < -negativeDOF || targetElectronsDiff > positiveDOF) return null;
-  }
 
   const altElectrons = (i: number) => (ringAtomTypes[i].ambiguous === 'N' ? 2 : 0); // N contributes 1e or 2e, C contributes 1e or 0e
 
