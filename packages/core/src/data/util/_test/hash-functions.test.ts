@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { itWithin, ratioWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import {
   hashMurmur128o,
@@ -11,6 +12,7 @@ import {
   murmurHash3_32_fromBytes,
   murmurHash3_128,
   murmurHash3_128_fromBytes,
+  PCG,
 } from '../hash-functions.js';
 
 /** The 128-bit hex (h1 to h4, each as 8 hex digits) as the reference implementation's 16 output bytes. */
@@ -93,5 +95,86 @@ describe('strings are hashed as UTF-8', () => {
     const long = 'ł'.repeat(5000);
     expect(murmurHash3_128(long, 1)).toBe(murmurHash3_128_fromBytes(new TextEncoder().encode(long), 1));
     expect(murmurHash3_128('short', 1)).toBe(murmurHash3_128_fromBytes(new TextEncoder().encode('short'), 1));
+  });
+});
+
+/** The PCG before PCG32 (32 bits of state, the 64-bit output step): the speed baseline only. */
+class OldPCG {
+  private state: number;
+  constructor(seed = 26699) {
+    this.state = seed >>> 0;
+  }
+  int(): number {
+    const oldstate = this.state;
+    this.state = (Math.imul(this.state, 1664525) + 1013904223) >>> 0;
+    const xorshifted = ((oldstate >>> 18) ^ oldstate) >>> 5;
+    const rot = oldstate >>> 27;
+    return ((xorshifted >>> rot) | (xorshifted << (32 - rot))) >>> 0;
+  }
+}
+
+describe('PCG', () => {
+  const Draws = 1_000_000;
+
+  it("matches pcg32's reference outputs (pcg32_srandom(seed, 54))", () => {
+    // pcg32-demo's first round for seed 42, stream 54 (https://www.pcg-random.org/, pcg-c-basic)
+    const draw = (seed: number) => {
+      const rng = new PCG(seed);
+      return Array.from({ length: 6 }, () => rng.int());
+    };
+    expect(draw(42)).toEqual([0xa15c02b7, 0x7b47f409, 0xba1d3330, 0x83d2f293, 0xbfa4784b, 0xcbed606e]);
+    // the same reference (64-bit arithmetic) for the default seed, 0 and the largest seed
+    expect(draw(26699)).toEqual([0x3ac5b7c3, 0x9d02ce30, 0xa488c533, 0x2300c4fa, 0x4a00946f, 0x805f2ce4]);
+    expect(draw(0)).toEqual([0x47c28b93, 0xb98f6a27, 0x7d3dcb1e, 0xf0761116, 0x9cc33f5b, 0xbe0e744d]);
+    expect(draw(0xffffffff)).toEqual([0x1836f28a, 0x41720992, 0x67039735, 0xe39c0b28, 0xdd934c44, 0x04b356a9]);
+    const first = new PCG().int();
+    expect(first).toBe(0x3ac5b7c3);
+  });
+
+  it('floats fall into eighths evenly, within 1% over 1M draws', () => {
+    const rng = new PCG(1);
+    const counts = new Float64Array(8);
+    let min = 1;
+    let max = 0;
+    for (let i = 0; i < Draws; i++) {
+      const f = rng.float();
+      if (f < min) min = f;
+      if (f > max) max = f;
+      counts[Math.floor(f * 8)]++;
+    }
+    expect(min).toBeGreaterThanOrEqual(0);
+    expect(max).toBeLessThan(1);
+    for (const c of counts) expect(Math.abs(c - Draws / 8) / (Draws / 8)).toBeLessThan(0.01);
+  });
+
+  it('consecutive draws are uncorrelated (|r| < 0.01 over 1M pairs)', () => {
+    const rng = new PCG(2);
+    let prev = rng.float();
+    let sx = 0;
+    let sy = 0;
+    let sxx = 0;
+    let syy = 0;
+    let sxy = 0;
+    for (let i = 0; i < Draws; i++) {
+      const next = rng.float();
+      sx += prev;
+      sy += next;
+      sxx += prev * prev;
+      syy += next * next;
+      sxy += prev * next;
+      prev = next;
+    }
+    const n = Draws;
+    const r = (n * sxy - sx * sy) / Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
+    expect(Math.abs(r)).toBeLessThan(0.01);
+  });
+
+  itWithin('draws no slower than twice the old generator', (within) => {
+    const run = (rng: { int(): number }) => () => {
+      let acc = 0;
+      for (let i = 0; i < Draws; i++) acc ^= rng.int();
+      return acc;
+    };
+    ratioWithin(within, 2, run(new OldPCG(3)), run(new PCG(3)));
   });
 });
