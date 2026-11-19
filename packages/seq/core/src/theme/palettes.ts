@@ -5,7 +5,17 @@
  */
 
 import { Color } from '@molstar/core/util/color/color';
-import { ColorLists } from '@molstar/core/util/color/lists';
+import {
+  ColorListBlues,
+  ColorListCategory10,
+  ColorListCividis,
+  ColorListMagma,
+  ColorListOkabeIto,
+  ColorListRedBlue,
+  ColorListTableau10,
+  ColorListViridis,
+} from '@molstar/core/util/color/lists';
+import type { ColorList } from '@molstar/core/util/color/color';
 import {
   makeValuePaletteFunction,
   type ValuePaletteColor,
@@ -35,25 +45,26 @@ export const TokenLists: Readonly<Record<string, readonly string[]>> = {
 
 /**
  * Mol*'s lists this language names (the ones its schemes use), by this language's name: no other list is offered, so a
- * spec reads the same wherever Seq* runs, and a list added to Mol* is not one here until it is named.
+ * spec reads the same wherever Seq* runs, and a list added to Mol* is not one here until it is named. Each imported by
+ * name: the bundle ships these lists and none of Mol*'s others.
  */
-export const NamedLists = {
-  viridis: 'viridis',
-  cividis: 'cividis',
-  magma: 'magma',
-  blues: 'blues',
-  'rd-bu': 'red-blue',
-  'okabe-ito': 'okabe-ito',
-  tableau10: 'tableau-10',
-  category10: 'category-10',
-} as const satisfies Record<string, keyof typeof ColorLists>;
+export const NamedLists: Readonly<Record<string, ColorList>> = {
+  viridis: ColorListViridis,
+  cividis: ColorListCividis,
+  magma: ColorListMagma,
+  blues: ColorListBlues,
+  'rd-bu': ColorListRedBlue,
+  'okabe-ito': ColorListOkabeIto,
+  tableau10: ColorListTableau10,
+  category10: ColorListCategory10,
+};
 
 /** A named list's colors (RGBA) in a token table; undefined for a name that is no list. */
 export function namedList(name: string, tokens: TokenTable): number[] | undefined {
   const t = TokenLists[name];
   if (t) return t.map((n) => tokens.colors[n] ?? 0);
   if (!Object.hasOwn(NamedLists, name)) return undefined;
-  return ColorLists[NamedLists[name as keyof typeof NamedLists]].list.map((e) => fromRgb(Color.fromColorListEntry(e)));
+  return NamedLists[name].list.map((e) => fromRgb(Color.fromColorListEntry(e)));
 }
 
 /** Where a palette's colors failed to read: an unknown name or a color that is none. */

@@ -229,7 +229,8 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   domain, center, `non_positive`, the colors past the ends). Why: one palette model across Mol\*. A named list is one
   the schemes use (`NamedLists`: viridis, cividis, magma, blues, rd-bu, okabe-ito, tableau10, category10) or a token
   list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a spec reads the same wherever Seq\* runs, and a
-  list added to Mol\* is not one here until named.
+  list added to Mol\* is not one here until named. Each is imported by its constant (`ColorListViridis`, …), never
+  through `ColorLists`: a bundle ships those eight lists, none of Mol\*'s others.
 - **Schemes** (`SchemeRegistry`, `builtInSchemes()`): residue schemes as data from core (Clustal X, Zappo, Taylor,
   hydrophobicity, helix, strand, turn, buried), nucleotide ones, ramps and categories (viridis, cividis, magma, blues,
   rd-bu, pLDDT's bands, Okabe–Ito, Tableau 10), secondary structure, Giemsa; each says its subject, the measures it
