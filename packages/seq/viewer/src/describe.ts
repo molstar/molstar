@@ -47,6 +47,14 @@ export interface RectPlace {
   readonly rect: Location;
 }
 
+/**
+ * The keyboard cursor's place (_spec/README.md "Input", Announcements): its cell, on a section of two axes with its row
+ * (the row's label, a grid cell's two positions), or its row's header (the row alone).
+ */
+export interface CursorPlace {
+  readonly cursor: Cursor;
+}
+
 /** A place to describe: the hover's record (`HoverRecord`) or a cell (the keyboard cursor's). */
 export interface Place {
   readonly section: string | undefined;
@@ -195,15 +203,15 @@ const RowSection: CardSection = {
     const lay = l.lay as RowsLay;
     const e = at.place.target === 'row' ? at.position : at.place.ySystem === lay.rowsSystem ? at.yPosition : Number.NaN;
     if (Number.isNaN(e)) return;
-    // a folded row is its summary row's, labeled as drawn (`first +n`: the keyboard cursor stands there)
-    const d = lay.display;
-    const i = d.displayRow(e);
-    const members = i >= 0 && d.rowAt(i) < 0 ? d.members.get(i) : undefined;
-    const label = members ? `${lay.label(members[0])} +${members.length - 1}` : lay.label(e);
+    // the row the keyboard cursor stands on: a folded row's summary row, labeled as drawn (`first +n`), a hidden one's
+    // nearest shown (`cursorRow`)
+    const i = lay.cursorRow(e);
+    const label = i >= 0 ? lay.displayLabel(i) : lay.label(e);
+    const shown = i >= 0 ? lay.display.rowAt(i) : e;
     out.title = label;
     out.row('Row', label);
     // a lazy row whose tile has not come yet: said pending (its label is its number until it does)
-    const pending = !lay.held && !members && !lay.lazyLabels.has(e);
+    const pending = !lay.held && shown >= 0 && !lay.lazyLabels.has(shown);
     out.words.push(`row ${label}${pending ? ', pending' : ''}`);
     const state = at.place.state;
     const colon = state ? state.indexOf(': ') : -1;
@@ -347,6 +355,20 @@ class Words {
     for (const s of Sections) s.describe(at, out);
     if (!out.words.length) return undefined;
     return { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
+  }
+
+  /** The cursor as a place: on a section of two axes its row's layer and row, its header the row alone. */
+  cursorPlace(c: Cursor): Place {
+    const cell: Place = { section: c.section, system: c.system, position: c.position };
+    const layout = this._src.layout();
+    if (c.ySystem === undefined || c.yPosition === undefined || !layout) return cell;
+    const s = layout.sections.find((x) => x.section.address === c.section);
+    const l = s && twoAxesOf(s, c.ySystem);
+    if (!l) return cell;
+    const y = { layer: l.key, ySystem: c.ySystem, yPosition: c.yPosition };
+    if (c.part === 'header')
+      return { section: c.section, system: c.ySystem, position: c.yPosition, ...y, target: 'row' };
+    return { ...cell, ...y, target: 'cell' };
   }
 
   /** A rectangle on a grid: its cells counted, their mean, least and greatest value (`gridSummary`). */
@@ -515,13 +537,17 @@ export class Describer {
     this._words = new Words(src);
   }
 
-  /** The description of a place (or a rectangle's summary) in the last frame; undefined when there is none. */
-  describe(place: Place | RectPlace): HoverCard | undefined {
-    return 'rect' in place ? this._words.rect(place.rect) : this._words.describe(place);
+  /**
+   * The description of a place, a rectangle's summary or the keyboard cursor's place in the last frame; undefined when
+   * there is none.
+   */
+  describe(place: Place | RectPlace | CursorPlace): HoverCard | undefined {
+    if ('rect' in place) return this._words.rect(place.rect);
+    return this._words.describe('cursor' in place ? this._words.cursorPlace(place.cursor) : place);
   }
 
   /** The text of a place ('' when there is none). */
-  text(place: Place | RectPlace): string {
+  text(place: Place | RectPlace | CursorPlace): string {
     return this.describe(place)?.text ?? '';
   }
 }
@@ -535,33 +561,15 @@ export function describerFor(src: DescribeSource): Describer {
   return d;
 }
 
-/**
- * The layer of two axes a section shows `ySystem` with (its rows layer, its grid), from the last frame; undefined when
- * it has none. The keyboard cursor's row is that layer's.
- */
-export function twoAxesLayer(section: SectionLayout, ySystem: string): LayerLayout | undefined {
+/** The layer of two axes a section shows `ySystem` with (its rows layer, its grid): the cursor's row's. */
+function twoAxesOf(section: SectionLayout, ySystem: string): LayerLayout | undefined {
   const is = (l: LayerLayout) =>
     (l.type.name === 'rows' && (l.lay as RowsLay).rowsSystem === ySystem) ||
     (l.type.name === 'grid' && (l.lay as GridLay).ySystem === ySystem);
   for (const t of section.tracks) for (const l of t.layers) if (is(l)) return l;
-  for (const ls of section.lays) for (const l of ls ?? []) if (is(l)) return l;
+  for (const ls of section.lays) for (const l of ls) if (is(l)) return l;
   for (const l of section.sectionLays) if (is(l)) return l;
   return undefined;
-}
-
-/**
- * The keyboard cursor's place to describe (grids-and-rows, The keyboard cursor): its cell, on a section of two axes with
- * its row (the row's label, a grid cell's two positions), or its row's header (the row alone).
- */
-export function cursorPlace(c: Cursor, layout: ViewLayout | undefined): Place {
-  const cell: Place = { section: c.section, system: c.system, position: c.position };
-  if (c.ySystem === undefined || c.yPosition === undefined || !layout) return cell;
-  const s = layout.sections.find((x) => x.section.address === c.section);
-  const l = s && twoAxesLayer(s, c.ySystem);
-  if (!l) return cell;
-  const y = { layer: l.key, ySystem: c.ySystem, yPosition: c.yPosition };
-  if (c.part === 'header') return { section: c.section, system: c.ySystem, position: c.yPosition, ...y, target: 'row' };
-  return { ...cell, ...y, target: 'cell' };
 }
 
 /** A layer of a section by its key: its tracks', its strips' (a section of blocks), its section layers'. */

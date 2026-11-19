@@ -7,7 +7,7 @@
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { DomHost } from '@molstar/ui/dom';
 import { locationText } from '@molstar/seqx-core/render';
-import { cursorPlace, type DescribeSource, type Describer, describerFor } from '@molstar/seqx-viewer/describe';
+import { type Describer, describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from './viewer.js';
 
 // What the viewer says to a reader who does not see the canvas (_spec/README.md "Input", Announcements): one polite
@@ -59,23 +59,19 @@ export class Announcer {
   private readonly _stop: (() => void)[] = [];
   private _selected = '';
   private _disposed = false;
-  /** The last frame's layout (the describer's source). */
-  private readonly _layout: DescribeSource['layout'];
 
   constructor(viewer: SeqViewer, options: AnnouncerOptions = {}) {
     this._viewer = viewer;
     this._rest = options.restMs ?? DefaultAnnouncerOptions.restMs;
     this._gap = options.minGapMs ?? DefaultAnnouncerOptions.minGapMs;
     // the viewer's one describer: the hover card says the same words from it
-    const source: DescribeSource = {
+    this._words = describerFor({
       spec: viewer.spec,
       store: viewer.store,
       addresses: viewer.addresses,
       view: viewer.view,
       layout: () => viewer.frame?.layout,
-    };
-    this._layout = source.layout;
-    this._words = describerFor(source);
+    });
     this._stop.push(
       // a cursor key is said whether or not the cursor moved (at the end of its axis it stays: the key is still heard);
       // the pointer's own cursor is shown, not said
@@ -183,10 +179,10 @@ export class Announcer {
     return this._words.text({ section, system, position });
   }
 
-  /** The cursor's place: its cell, with its row on a section of two axes, or its row's header (`cursorPlace`). */
+  /** The cursor's place: its cell, with its row on a section of two axes, or its row's header. */
   cursorText(): string {
     const c = this._viewer.selection.cursor.value;
-    return c ? this._words.text(cursorPlace(c, this._layout())) : '';
+    return c ? this._words.text({ cursor: c }) : '';
   }
 
   hoverText(): string {

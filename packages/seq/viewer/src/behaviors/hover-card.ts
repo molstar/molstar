@@ -8,8 +8,9 @@ import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { GridLay, RowsLay, SectionLayout, ViewLayout } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultAnnouncerOptions } from '@molstar/seqx-viewer/announcer';
-import { cursorPlace, describerFor, type Place, twoAxesLayer } from '@molstar/seqx-viewer/describe';
+import { describerFor, type Place } from '@molstar/seqx-viewer/describe';
 import type { Cursor } from '@molstar/seqx-viewer/models';
+import { twoAxesLayer } from './two-axes.js';
 import {
   type CardBox,
   CardEstimate,
@@ -138,11 +139,12 @@ function cellBox(section: SectionLayout, c: Cursor): CardBox | undefined {
   const l = c.ySystem !== undefined && c.yPosition !== undefined ? twoAxesLayer(section, c.ySystem) : undefined;
   if (l?.type.name === 'rows' && c.yPosition !== undefined) {
     const lay = l.lay as RowsLay;
-    const i = lay.display.displayRow(c.yPosition);
+    // where the cursor is drawn: its row (a hidden one's nearest shown), its cell or its header (the label column)
+    const i = lay.cursorRow(c.yPosition);
     if (i < 0) return undefined;
     const y = lay.rowY(i);
-    const x0 = c.part === 'header' ? (lay.treeX1 > lay.treeX0 ? lay.treeX1 + 4 : lay.treeX0) : lay.axis.x(c.position);
-    const x1 = c.part === 'header' ? lay.box.x : lay.axis.x(c.position + 1);
+    const x0 = c.part === 'header' ? lay.labelX : lay.axis.x(c.position);
+    const x1 = c.part === 'header' ? lay.numberX : lay.axis.x(c.position + 1);
     if (!Number.isFinite(x0) || !Number.isFinite(x1)) return undefined;
     return { x: Math.min(x0, x1), y, width: Math.abs(x1 - x0), height: lay.rowScale };
   }
@@ -257,7 +259,7 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
     const layout = context.layout();
     const section = c && layout?.sections.find((s) => s.section.address === c.section);
     if (!c || !section) return hide();
-    const card = words.describe(cursorPlace(c, layout));
+    const card = words.describe({ cursor: c });
     const box = card && cellBox(section, c);
     if (!card || !box) return hide();
     show(card, box, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, 'cursor');
