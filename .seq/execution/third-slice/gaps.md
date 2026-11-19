@@ -26,3 +26,12 @@ was away are listed with "(decided as recommended)"; a public API change is neve
 The proposal is one item, `view.motion: platform | cut | animate` (default `platform`), read by jumps and stories,
 dropping `story.reducedMotion`. That changes the stories design's Configuration table, so it is the author's call.
 Until then, SY keeps both items and scopes `story.reducedMotion` to story motion only. Recommendation: merge them.
+
+## 5. The pyramid's majority tolerance (RW review)
+
+A majority isn't mergeable across levels (the design chose majority-of-majorities), so the design's "letter exact where
+the winner leads by more than 0.1, share within 0.1" doesn't hold: at those numbers the letter is wrong at a lead of
+0.1 and the share is off by 0.126. Measured: share within 0.05 on average and 0.3 at worst, letter exact at a lead over
+0.25. Options: (a) record the measured tolerance in grids-and-rows.md; (b) keep the top two classes per sample (more
+memory per level, closer shares). Recommendation: (a), since the image tiles are below 3 device px where the shade reads,
+not the letter. RW's tests assert the measured bounds until you decide.

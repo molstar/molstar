@@ -85,3 +85,10 @@ None.
 ## How to verify
 
 `loop.md`, Checks.
+
+- SY ↔ RW bands seam (decided by the orchestrator, within stories.md and grids-and-rows.md): the band record's `bandTop`
+  is in display rows (SY's language unit), the layout turns it into px; history keeps the top row by key plus `rowScale`,
+  restored clamped (RW's px drift rejected). The ViewModel's bands (RW, with folds) are the source; a shown story frame's
+  `bandTop`/`rowScale` merge over them, keeping folds. Merge order: SY, then RW rebased onto it.
+- RW review: 15 findings (4 confirmed bugs, the bands units, config beyond the table, untested logic); look: SVG export
+  drops the image tiles, labels cut to 3 characters, wedges over summary labels. All in RW's fix round.
