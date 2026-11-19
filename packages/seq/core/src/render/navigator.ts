@@ -192,7 +192,7 @@ function genomicAxis(axis: ResolvedSection['axis']): ResolvedSection['axis'] {
   return { ...axis, dir: 1, ranges: out };
 }
 
-/** The config a navigator's picture lays out with: no inset, label column or direction mark; its tracks small. */
+/** The config a navigator's picture lays out with: no inset, label column or direction mark; its tracks and lanes small. */
 function pictureConfig(base: RenderConfig): RenderConfig {
   const s = base.navigator.trackScale;
   const min = base.navigator.trackMinPx;
@@ -208,6 +208,9 @@ function pictureConfig(base: RenderConfig): RenderConfig {
     sectionGap: 0,
     axis: { directionMark: 'none' },
     heights,
+    // a lane at the tracks' scale: a small track keeps its lanes (its items drawn, not only their density)
+    laneHeight: Math.max(min, base.laneHeight * s),
+    laneGap: base.laneGap * s,
   });
 }
 

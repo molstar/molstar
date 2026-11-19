@@ -4,13 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The examples' navigators drawn against the data: chr17's every band has its mark and its hit at the fit and the
-// region's window is its place on the chromosome; the tracks' strip draws every domain; the protein's strip draws its
-// gene follower's window; the Globins' overview has every row; the plasmid's strip wraps the origin. Each exported
-// with `navigators: include`, titled, settled, with no issue.
+// The examples' navigators drawn against the data: chr17's every band has its mark over its extent and its hit at the
+// fit, one across a tile edge too, and the region's window is its place on the chromosome; the tracks' strip draws
+// every domain over its extent; the protein's strip draws its gene follower's window; the Globins' overview has every
+// row and draws them as the shared reduction's image over its column; the plasmid's strip wraps the origin. Each
+// exported with `navigators: include`, titled, settled, with no issue.
 
 import { createSeqContext } from '@molstar/seqx-core/context';
-import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
+import { DataStore, DefaultStoreSettings, SeqRuntime } from '@molstar/seqx-core/data';
 import {
   attachSources,
   type BandsLay,
@@ -18,6 +19,7 @@ import {
   LightTokens,
   NavigatorRenderer,
   Renderer,
+  type RangesLay,
   RowsLay,
   type Viewport,
 } from '@molstar/seqx-core/render';
@@ -25,7 +27,7 @@ import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import { generatedRegistry } from '../globins/data.js';
-import { Chr17Bands, RegionOnChr17 } from '../navigators.js';
+import { Chr17Bands, Chr17BandsLevel, RegionOnChr17 } from '../navigators.js';
 import * as navigators from '../navigators.js';
 import { nodeFixtureAssets } from '../node-assets.js';
 import { registry as regionRegistry } from '../p53/gene-by-region.js';
@@ -60,10 +62,28 @@ async function settled(
   return { view: f, nav: g, renderer: n, model };
 }
 
-const runtimesOf = (id: string) =>
-  (ExampleViews.find((v) => v.id === id)?.registry?.({ delayMs: 0 }) ?? []).map(
-    (e) => (e as { runtime: unknown }).runtime,
-  );
+/** Each item's marks (`mitem`) span its extent on the axis, within a px: none lost, none cut short. */
+function marksOverExtents(
+  lay: { m: number; mx0: Float32Array; mx1: Float32Array; mitem: Int32Array },
+  extents: { starts: number[]; ends: number[] },
+  x: (p: number) => number,
+  items: number,
+): string[] {
+  const wrong: string[] = [];
+  for (let i = 0; i < items; i++) {
+    let lo = Number.POSITIVE_INFINITY;
+    let hi = Number.NEGATIVE_INFINITY;
+    for (let j = 0; j < lay.m; j++)
+      if (lay.mitem[j] === i) {
+        lo = Math.min(lo, lay.mx0[j]);
+        hi = Math.max(hi, lay.mx1[j]);
+      }
+    const a = Math.min(x(extents.starts[i]), x(extents.ends[i]));
+    const b = Math.max(x(extents.starts[i]), x(extents.ends[i]));
+    if (!(Math.abs(lo - a) <= 1 && Math.abs(hi - b) <= 1)) wrong.push(`${i}: [${lo}, ${hi}) for [${a}, ${b})`);
+  }
+  return wrong;
+}
 
 describe('the examples’ navigators', () => {
   it('chr17’s ideogram: every band its mark and its hit; the region’s window its place on the chromosome', async () => {
@@ -77,6 +97,13 @@ describe('the examples’ navigators', () => {
     const pic = r.renderer.pictureSection!;
     const lay = pic.tracks[0].layers[0].lay as BandsLay;
     expect(lay.rows.n).toBe(Chr17Bands.start.length);
+    // each band drawn over its extent, those across a tile edge of the coarse level whole
+    const tile = DefaultStoreSettings.tileBins * Chr17BandsLevel;
+    const across = Chr17Bands.start.filter(
+      (s, i) => Math.floor(s / tile) !== Math.floor((Chr17Bands.end[i] - 1) / tile),
+    );
+    expect(across.length).toBeGreaterThan(0);
+    expect(marksOverExtents(lay, lay.rows, (p) => pic.axis!.x(p), lay.rows.n)).toEqual([]);
     for (let i = 0; i < Chr17Bands.start.length; i++) {
       const x = (pic.axis!.x(Chr17Bands.start[i]) + pic.axis!.x(Chr17Bands.end[i] - 1)) / 2;
       expect(r.renderer.hit(x, 12)?.band, Chr17Bands.id[i]).toBe(Chr17Bands.id[i]);
@@ -91,10 +118,11 @@ describe('the examples’ navigators', () => {
   it('the tracks’ strip draws every domain small', async () => {
     const r = await settled(navigators.tracksStrip(), [], { size: { width: 800, height: 300 } });
     const pic = r.renderer.pictureSection!;
-    const domains = pic.tracks.find((t) => t.track.address.endsWith('/domains'))!.layers[0].lay as {
-      rows: { n: number };
-    };
+    const domains = pic.tracks.find((t) => t.track.address.endsWith('/domains'))!.layers[0].lay as RangesLay;
     expect(domains.rows.n).toBeGreaterThan(0);
+    // each domain small over its extent on the picture's axis
+    expect(domains.overflow).toBe(0);
+    expect(marksOverExtents(domains, domains, (p) => pic.axis!.x(p), domains.items)).toEqual([]);
     const viewDomains = r.view.layout.sections[0].tracks.find((t) => t.track.address.endsWith('/domains'))!.layers[0]
       .lay as { rows: { n: number } };
     expect(domains.rows.n).toBe(viewDomains.rows.n);
@@ -123,6 +151,19 @@ describe('the examples’ navigators', () => {
     const w = r.nav.windows[0];
     expect(w.rows).toBe(10_000);
     expect(w.y1).toBeGreaterThan(w.y0);
+    // the rows summarized: the shared reduction's image over the column, every row in it
+    const images = r.nav.lists.passes.data.images;
+    expect(images.n).toBeGreaterThan(0);
+    let top = Number.POSITIVE_INFINITY;
+    let bottom = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < images.n; i++) {
+      top = Math.min(top, images.y[i]);
+      bottom = Math.max(bottom, images.y[i] + images.h[i]);
+      expect(images.x[i]).toBeGreaterThanOrEqual(lay.box.x - 1e-3);
+      expect(images.x[i] + images.w[i]).toBeLessThanOrEqual(lay.box.x + lay.box.width + 1e-3);
+    }
+    expect(top).toBeCloseTo(w.ly, 0);
+    expect(bottom).toBeCloseTo(w.hy, 0);
   });
 
   it('the plasmid’s strip wraps the origin with the detail’s window', async () => {
@@ -150,7 +191,6 @@ describe('the examples’ navigators', () => {
     expect(r.issues.filter((i) => i.severity !== 'info')).toEqual([]);
     expect(r.svg).toContain(`data-navigator="${nav}"`);
     expect(r.svg).toContain('<title>Window: ');
-    void runtimesOf;
     ctx.retire();
   });
 });

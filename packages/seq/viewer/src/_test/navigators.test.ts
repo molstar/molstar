@@ -220,7 +220,7 @@ describe('a strip and the view it moves', () => {
     nav.up();
   });
 
-  it('idle when the whole axis is shown at the zoom limit, live again with no relayout', async () => {
+  it('idle when the whole axis is shown at the zoom limit, live again when a zoom becomes possible', async () => {
     const short = createSeqSpec();
     const p = short.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
     short.views.view('v', (vv) => {
