@@ -15,9 +15,9 @@ const meta: Meta = { title: 'Features/Rows' };
 export default meta;
 
 /**
- * Data columns beside the rows: the species as text and the class as a chip on the left (the class from a file joined
- * by row key, every fifth row without one: an empty cell), the identity to the ancestor, the residues as a bar and a
- * score on the right, after the last numbers. Hover a cut species: it reads whole. Click a title to order the rows by
+ * Data columns beside the rows of the Pfam globin seed: the species as text and the class as a chip on the left
+ * (UniProt's, from a file joined by row key; an organism with no class rank has an empty cell), the identity to the
+ * reference row, the residues as a bar and the UniProt entry's whole length on the right, after the last numbers. Hover a cut species: it reads whole. Click a title to order the rows by
  * it (an arrow marks it), again for the other direction; undo goes back. Narrow the window: the right columns yield
  * first, each down to a floor and then hidden, then the left; a chip above the rows counts those hidden.
  */

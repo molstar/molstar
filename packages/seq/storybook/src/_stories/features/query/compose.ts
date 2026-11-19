@@ -266,14 +266,16 @@ export const QueryExamples: readonly QueryExample[] = [
     title: 'An alignment’s rows and columns',
     view: 'query-alignment',
     about:
-      'An alignment has two axes: a row form names rows by their labels, a range names columns. A rect pairs them, rows by columns; the selection is a rectangle of cells.',
+      'An alignment has two axes: a row form names rows by their labels, a range names columns. A rect pairs them, rows by columns; the selection is a rectangle of cells. The Pfam seed is read from its file, and a row form reads only an inline alignment’s rows: the two row queries say so.',
     emphasis: 'select',
     queries: [
-      { label: 'A row', query: '/data/globins/(row :key "HBB_HUMAN/1-147")' },
       { label: 'Some columns', query: '/data/globins/(range :from 20 :to 60)' },
+      { label: 'A row (not held: an issue)', query: '/data/globins/(row :key "HBA1_BOSGR/26-136")', issue: true },
       {
-        label: 'Rows by columns',
-        query: '/data/globins/(rect :a (row :key ["HBB_HUMAN/1-147" "GLB1_GEN/1-137"]) :b (range :from 20 :to 60))',
+        label: 'Rows by columns (an issue)',
+        query:
+          '/data/globins/(rect :a (row :key ["HBA1_BOSGR/26-136" "HBB0_MOUSE/26-142"]) :b (range :from 20 :to 60))',
+        issue: true,
       },
     ],
   },

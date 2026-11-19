@@ -11,14 +11,18 @@
 //
 //   node --experimental-strip-types scripts/record.ts p53
 //
-// The one entry now: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of
-// UniProt's own and ClinVar's sources.
+// (`globins` imports `@molstar/core` and `@molstar/seqx-core` built: `npx tsc -b packages/seq/core` first.) The
+// datasets: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's
+// own and ClinVar's sources; `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
+// rows (CC-BY-4.0) and PDB 4HHB (CC0-1.0).
 
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  AllowedLicences,
   EntryDroppedTypes,
   EntryMembers,
   FeatureDropped,
@@ -27,16 +31,19 @@ import {
   trimVariation,
   VariantMembers,
 } from '../src/files/record-trim.ts';
+import { HemeContacts } from '../src/globins/hemes.ts';
+import {
+  ContactDistance,
+  cifChains,
+  columnsFromUniprot,
+  cutSeed,
+  hemeContacts,
+  hemoglobinSeq,
+  SeedRows,
+  seedAccessions,
+} from '../src/globins/recording.ts';
 
 const Folder = join(dirname(fileURLToPath(import.meta.url)), '..');
-
-/** The licences a fixture may carry (examples.md, "Licences allowed"). */
-export const AllowedLicences = [
-  'CC0-1.0',
-  'CC-BY-4.0',
-  'LicenseRef-NCBI-public-data',
-  'LicenseRef-seqx-generated',
-] as const;
 
 const sha256 = (b: Uint8Array | string) => createHash('sha256').update(b).digest('hex');
 
@@ -60,12 +67,18 @@ interface Row {
  * `variation.json`) is trimmed instead of fetched again: the services are asked once.
  */
 async function fetchText(url: string, accept: string, cached: string): Promise<string> {
+  return new TextDecoder().decode(await fetchBytes(url, accept, cached));
+}
+
+async function fetchBytes(url: string, accept: string, cached: string): Promise<Uint8Array> {
   const cache = process.env.SEQ_RECORD_CACHE;
-  if (cache) return readFileSync(join(cache, cached), 'utf8');
+  if (cache) return new Uint8Array(readFileSync(join(cache, cached)));
   const r = await fetch(url, { headers: { accept } });
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
-  return r.text();
+  return new Uint8Array(await r.arrayBuffer());
 }
+
+const bytesOf = (s: string) => new TextEncoder().encode(s).byteLength;
 
 async function p53(): Promise<Row[]> {
   const dir = join(Folder, 'fixtures', 'p53');
@@ -116,16 +129,110 @@ async function p53(): Promise<Row[]> {
   ];
 }
 
+/**
+ * The Globins: the Pfam seed (InterPro's, gzipped Stockholm) cut to the rows nearest 4HHB's α and β chains; the
+ * UniProt entries of the rows kept (their organisms and classes, a columns file joined by row key); 4HHB's mmCIF as
+ * `seq` (its chains' letters and helices, the heme a position) and its heme contacts checked against `hemes.ts`.
+ */
+async function globins(): Promise<Row[]> {
+  const dir = join(Folder, 'fixtures', 'globins');
+  mkdirSync(dir, { recursive: true });
+  const day = new Date().toISOString().slice(0, 10);
+  const seedUrl = 'https://www.ebi.ac.uk/interpro/api/entry/pfam/PF00042/?annotation=alignment:seed';
+  const cifUrl = 'https://files.rcsb.org/download/4HHB.cif';
+  const seedGz = await fetchBytes(seedUrl, '*/*', 'seed.raw');
+  // gzipped as served; fetch may have inflated it already (the Content-Encoding)
+  const seed = new TextDecoder().decode(seedGz[0] === 0x1f && seedGz[1] === 0x8b ? gunzipSync(seedGz) : seedGz);
+  const cif = await fetchText(cifUrl, 'text/plain', '4hhb.cif');
+  const chains = cifChains(cif);
+  const human = ['A', 'B'].map((a) => chains.find((c) => c.asym === a)!.letters);
+  const cut = cutSeed(seed, human);
+  const accessions = [...seedAccessions(cut.text).values()];
+  const uniprotUrl = `https://rest.uniprot.org/uniprotkb/accessions?accessions=${accessions.join(',')}&format=tsv&fields=accession,id,organism_name,length,lineage&size=500`;
+  const uniprot = await fetchText(uniprotUrl, 'text/plain', 'uniprot.tsv');
+  // the contacts the views draw are code (derived): the entry must still give them
+  const contacts = hemeContacts(cif);
+  for (const [name, asym] of [
+    ['hba', 'A'],
+    ['hbb', 'B'],
+  ] as const)
+    if (JSON.stringify(contacts.get(asym)) !== JSON.stringify(HemeContacts[name]))
+      throw new Error(`4HHB chain ${asym}'s heme contacts are ${contacts.get(asym)}, not hemes.ts's`);
+  const { encodeSeq } = await import('@molstar/seqx-core/data');
+  const files = {
+    seed: join(dir, 'PF00042-seed.sto'),
+    columns: join(dir, 'family-columns.tsv'),
+    hb: join(dir, '4hhb.seq'),
+  };
+  writeFileSync(files.seed, cut.text);
+  writeFileSync(files.columns, columnsFromUniprot(uniprot, cut.text));
+  writeFileSync(files.hb, `${encodeSeq(hemoglobinSeq(cif))}\n`);
+  const written = Object.fromEntries(Object.entries(files).map(([k, f]) => [k, readFileSync(f, 'utf8')]));
+  return [
+    {
+      file: 'globins/PF00042-seed.sto',
+      entry: 'Pfam PF00042.29 (Globin) seed, Pfam 39.0 (InterPro 111.0)',
+      url: seedUrl,
+      recorded: day,
+      licence: ['CC0-1.0'],
+      attribution: 'Pfam (EMBL-EBI), PF00042 seed alignment, CC0',
+      trimmed: `cut from ${cut.kept.length + cut.removed.length} rows to ${SeedRows}: the rows nearest 4HHB's α or β chain by identity kept (HBA_HUMAN and HBB_HUMAN are not rows of this seed); removed with their #=GS and #=GR lines: ${cut.removed.join(', ')}; every other line as published`,
+      derived:
+        'the tree over its rows is computed in code (neighbor joining on identity, src/globins/tree.ts) and written inline in the views’ specs',
+      bytesDownloaded: seedGz.byteLength,
+      bytesFixture: bytesOf(written.seed),
+      sha256Download: sha256(seedGz),
+      sha256Fixture: sha256(written.seed),
+    },
+    {
+      file: 'globins/family-columns.tsv',
+      entry: `UniProtKB, the ${accessions.length} entries of the seed's rows kept`,
+      url: uniprotUrl,
+      recorded: day,
+      licence: ['CC-BY-4.0'],
+      attribution: 'UniProt Consortium, UniProtKB, CC BY 4.0',
+      trimmed: 'columns kept: Organism (as OS) and Length (as uniprot_length); the lineage reduced to its class',
+      derived:
+        'id: the seed row whose #=GS AC names the entry; class: the lineage’s name of rank class (empty where none)',
+      bytesDownloaded: bytesOf(uniprot),
+      bytesFixture: bytesOf(written.columns),
+      sha256Download: sha256(uniprot),
+      sha256Fixture: sha256(written.columns),
+    },
+    {
+      file: 'globins/4hhb.seq',
+      entry: 'PDB 4HHB, human deoxyhaemoglobin (Fermi, Perutz, Shaanan, Fourme 1984), mmCIF',
+      url: cifUrl,
+      recorded: day,
+      licence: ['CC0-1.0'],
+      attribution: 'wwPDB, PDB 4HHB, CC0',
+      trimmed:
+        'chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the heme a position; coordinates, waters and phosphates dropped',
+      derived: `the hemes' contacting residues (heavy atoms within ${ContactDistance} Å, the heme's own chain) are code (src/globins/hemes.ts), checked against the entry here`,
+      bytesDownloaded: bytesOf(cif),
+      bytesFixture: bytesOf(written.hb),
+      sha256Download: sha256(cif),
+      sha256Fixture: sha256(written.hb),
+    },
+  ];
+}
+
+const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = { p53, globins };
+
 async function main(name: string | undefined) {
-  if (name !== 'p53') throw new Error('usage: record.ts p53');
-  const rows = await p53();
-  const file = join(Folder, 'fixtures', 'p53', 'sources.json');
+  if (!name || !Datasets[name]) throw new Error(`usage: record.ts ${Object.keys(Datasets).join(' | ')}`);
+  const rows = await Datasets[name]();
+  const file = join(Folder, 'fixtures', name, 'sources.json');
   let existing: Row[] = [];
   try {
     existing = JSON.parse(readFileSync(file, 'utf8')) as Row[];
   } catch {
     // none yet
   }
+  for (const r of rows)
+    for (const l of r.licence)
+      if (!(AllowedLicences as readonly string[]).includes(l))
+        throw new Error(`${r.file}: the licence ${l} is refused`);
   const merged = [...existing.filter((e) => !rows.some((r) => r.file === e.file)), ...rows];
   for (const r of merged) console.log(`${r.file}: ${r.bytesDownloaded} bytes downloaded, ${r.bytesFixture} trimmed`);
   writeFileSync(file, `${JSON.stringify(merged, null, 2)}\n`);

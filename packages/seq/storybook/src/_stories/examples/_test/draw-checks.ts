@@ -6,6 +6,8 @@
 
 import { type Frame, type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import type { ExampleView } from '@molstar/seqx-examples';
+import { readFileSync } from 'node:fs';
+import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -17,7 +19,7 @@ import { vi } from 'vitest';
 export const HoverOwner = 'test';
 
 export interface OpenOptions {
-  /** The gene file's text (the views that read it by location). */
+  /** The gene file's text (the views that read it by location); `''`: every location read from the fixtures. */
   readonly gene: string;
   /** Each answer's delay, or `staggered` (the story's own: later regions later). */
   readonly delayMs?: number | 'staggered';
@@ -35,12 +37,20 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
   });
   const text = view.id === 'gene-by-region' || view.id === 'gene-region-ideogram' ? regionSeqText() : gene;
   const base = DefaultSeqViewerSpec();
+  // the fixtures read at once (a read of the file system would not settle on the fake clock)
+  const file = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
+  const fixtures = {
+    readText: async (uri: string) => file(uri).toString('utf8'),
+    readBytes: async (uri: string) => new Uint8Array(file(uri)),
+  };
   const v = createSeqViewer({
     ...base,
     ui: undefined,
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: {
-      assets: () => ({ reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } }),
+      assets: () => ({
+        reader: text ? { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } : fixtures,
+      }),
     },
   });
   v.resize(720);

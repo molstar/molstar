@@ -6,21 +6,23 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore } from '@molstar/seqx-core/data';
+import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { attachSources, bundledTextMetrics, LightTokens, Renderer, recordDrawLists } from '@molstar/seqx-core/render';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import * as globins from '../globins/family.js';
+import { nodeFixtureAssets } from '../node-assets.js';
 
 // The Globins figure's labels (_spec/README.md "Render", Layer types, ruler; Text layout, Numbers): a position carries
 // one label where a group's end number and the ruler's tick label fall together, and no two labels overlap.
 
 async function drawn(width: number, spec: Node = globins.figure()) {
-  const model = resolveSpec(spec);
+  const model = resolveSpec(spec, { runtimes: [AlignmentFileRuntime] });
   const view = resolveViews(model)[0];
   const store = new DataStore();
-  await attachSources(model, store);
+  await attachSources(model, store, { assets: nodeFixtureAssets().reader });
   const renderer = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
   const input = { size: { width, height: 1200 }, dpr: 1, settled: true, figure: true };
   let f = renderer.frame(input);

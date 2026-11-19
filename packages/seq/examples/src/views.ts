@@ -11,8 +11,9 @@ import * as navigators from './navigators.js';
 import * as complexPae from './complex/pae.js';
 import * as trna from './trna/trna.js';
 import * as globinsColumns from './globins/columns.js';
-import { generatedRegistry } from './globins/data.js';
+import { familyRegistry, generatedRegistry } from './globins/data.js';
 import * as globins from './globins/family.js';
+import * as hemoglobin from './globins/hemoglobin.js';
 import * as plasmidRing from './plasmid/ring.js';
 import * as addressing from './p53/addressing.js';
 import * as axis from './p53/axis.js';
@@ -195,6 +196,7 @@ export const FeatureViews: readonly ExampleView[] = [
     title: 'Queried alignment',
     summary: 'The globins family for the query stories: rows and columns addressed, a result selected in the view.',
     build: () => globins.build(),
+    registry: familyRegistry,
   },
   {
     dataset: 'p53',
@@ -209,7 +211,7 @@ export const FeatureViews: readonly ExampleView[] = [
     id: 'columns',
     title: 'Row columns',
     summary:
-      'The Globins family with data columns beside its rows: its species as text and its class as a chip on the left (the class from a file joined by row key), its identity to the ancestor, its residues as a bar and a score on the right. Click a title to order the rows by it, again for the other direction; narrow the view and the right columns yield first, then the left, a chip counting those hidden.',
+      'The Pfam globin seed with data columns beside its rows: its species as text and its class as a chip on the left (UniProt’s, from a file joined by row key), its identity to the reference row, its residues as a bar and its UniProt entry’s length on the right. Click a title to order the rows by it, again for the other direction; narrow the view and the right columns yield first, then the left, a chip counting those hidden.',
     build: globinsColumns.build,
     registry: globinsColumns.registry,
   },
@@ -287,37 +289,55 @@ export const PlasmidViews: readonly ExampleView[] = [
   },
 ];
 
-/** The Globins (a generated family until the Pfam seed and its tree are recorded): rows, trees, folds and scale. */
+/** The Globins: the Pfam PF00042 seed, its tree, 4HHB, and the generated variants for scale. */
 export const GlobinsViews: readonly ExampleView[] = [
   {
     dataset: 'globins',
     id: 'family',
     title: 'Family, logo and tree',
     summary:
-      'The family’s rows by its tree beside them, its conservation logo above: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them.',
+      'The Pfam globin seed’s 60 rows by their tree (neighbor joining on identity), its conservation logo above, each row’s species and its identity to the reference row (wild yak’s α) beside it: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them.',
     build: () => globins.build(),
+    registry: familyRegistry,
   },
   {
     dataset: 'globins',
     id: 'folded',
     title: 'Folded clades',
     summary:
-      'Two clades folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back.',
+      'Two clades of the seed’s tree folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back.',
     build: globins.folded,
+    registry: familyRegistry,
   },
   {
     dataset: 'globins',
     id: 'figure',
     title: 'Alignment figure',
-    summary: 'The family as an ESPript-style text figure: groups of ten, every row on every line, a ruler above.',
+    summary: 'The seed as an ESPript-style text figure: groups of ten, every row on every line, a ruler above.',
     build: globins.figure,
+    registry: familyRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'hemoglobin',
+    title: 'Hemoglobin, heme chips and copies',
+    summary:
+      'PDB 4HHB as blocks: the α chains A and C and the β chains B and D merged into one block each labeled ×2, the four hemes as one chip ×4; the helices A to H from the entry, each heme’s contacting residues (within 4 Å, derived) as arcs and as the heme pocket, bookmarked.',
+    build: () => hemoglobin.build(),
+  },
+  {
+    dataset: 'globins',
+    id: 'hemoglobin-split',
+    title: 'Hemoglobin, copies split',
+    summary: 'The same blocks with the copies split (`copies: each`): a block a chain, a chip a heme.',
+    build: hemoglobin.split,
   },
   {
     dataset: 'globins',
     id: 'scale',
     title: '10,000 rows',
     summary:
-      'A generated variant of 10,000 rows × 300 columns, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them.',
+      'A generated variant of 10,000 rows × 300 columns sampled from the seed’s per-column profile, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them.',
     build: () => globins.scale(),
     registry: generatedRegistry,
   },
@@ -335,7 +355,7 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'lazy',
     title: '10,000,000 rows, lazy',
     summary:
-      'A generated variant of ten million rows in data order: only the rows in view are ever made, a row not yet read labeled by its number until its tile arrives.',
+      'A generated variant of ten million rows in data order, sampled from the seed’s profile: only the rows in view are ever made, a row not yet read labeled by its number until its tile arrives.',
     build: () => globins.lazy(),
     registry: generatedRegistry,
   },

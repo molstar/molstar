@@ -1,0 +1,50 @@
+[
+  {
+    "file": "globins/PF00042-seed.sto",
+    "entry": "Pfam PF00042.29 (Globin) seed, Pfam 39.0 (InterPro 111.0)",
+    "url": "https://www.ebi.ac.uk/interpro/api/entry/pfam/PF00042/?annotation=alignment:seed",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "Pfam (EMBL-EBI), PF00042 seed alignment, CC0",
+    "trimmed": "cut from 73 rows to 60: the rows nearest 4HHB's α or β chain by identity kept (HBA_HUMAN and HBB_HUMAN are not rows of this seed); removed with their #=GS and #=GR lines: GLB2_TYLHE/32-143, GLB3_LAMSP/30-141, GLB_TUBTU/29-139, GLB4_TYLHE/33-143, GLB1_TYLHE/30-137, GLB1_PARCH/37-153, Q7D9X0_MYCTO/60-162, Q21978_CAEEL/191-314, Q18311_CAEEL/52-175, GLB13_CAEEL/126-244, Q20638_CAEEL/94-218, GLB10_CHITH/27-145, GLB6_CHITH/38-156; every other line as published",
+    "derived": "the tree over its rows is computed in code (neighbor joining on identity, src/globins/tree.ts) and written inline in the views’ specs",
+    "bytesDownloaded": 18771,
+    "bytesFixture": 15199,
+    "sha256Download": "3697d7ec3acb82a93f5f413290c10ef2a53e209229985720476a691ea99cc27c",
+    "sha256Fixture": "316075059404a28870d8ad23f54cf209be20217ec8d8c9f7fdac301174c28d77"
+  },
+  {
+    "file": "globins/family-columns.tsv",
+    "entry": "UniProtKB, the 60 entries of the seed's rows kept",
+    "url": "https://rest.uniprot.org/uniprotkb/accessions?accessions=P02218,P13579,P13578,P02204,P02200,P14397,P02206,P02022,P11896,P13786,P02143,P07409,P02133,P23017,P02138,P02130,P04443,P02080,P02135,P07432,P02020,P20244,P02021,P07408,P16417,P07413,P02017,P18974,P06714,P01967,P07430,P06639,P23244,P08054,P09187,P02239,A0ABY4E6T8,P24232,P02216,P23216,P80721,P02227,P02221,P02229,P02222,P12548,P02231,P06148,P04251,P14393,P02215,P02214,P14528,P14805,P30627,P28316,P26914,P27613,A0A3P7CCD7,P51536&format=tsv&fields=accession,id,organism_name,length,lineage&size=500",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "UniProt Consortium, UniProtKB, CC BY 4.0",
+    "trimmed": "columns kept: Organism (as OS) and Length (as uniprot_length); the lineage reduced to its class",
+    "derived": "id: the seed row whose #=GS AC names the entry; class: the lineage’s name of rank class (empty where none)",
+    "bytesDownloaded": 32972,
+    "bytesFixture": 4493,
+    "sha256Download": "ae1b74768af4f9ccca661aa27f727b1fe3dff957338d3c90826d384421ec3b1f",
+    "sha256Fixture": "8dec3a0d5b630133cb9f29f7a435f22070c8d6686cae2b304840f34e8bcedfd3"
+  },
+  {
+    "file": "globins/4hhb.seq",
+    "entry": "PDB 4HHB, human deoxyhaemoglobin (Fermi, Perutz, Shaanan, Fourme 1984), mmCIF",
+    "url": "https://files.rcsb.org/download/4HHB.cif",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 4HHB, CC0",
+    "trimmed": "chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the heme a position; coordinates, waters and phosphates dropped",
+    "derived": "the hemes' contacting residues (heavy atoms within 4 Å, the heme's own chain) are code (src/globins/hemes.ts), checked against the entry here",
+    "bytesDownloaded": 772198,
+    "bytesFixture": 2133,
+    "sha256Download": "2d3ca1bf21ddff35af2e2bc5d331720f7bfc46a16c4829ea3ec1b41062d5f5a6",
+    "sha256Fixture": "f11d024221b56666b3cd416f41a21e40bc212157bbb214d28d22aae8c4bc93b5"
+  }
+]
