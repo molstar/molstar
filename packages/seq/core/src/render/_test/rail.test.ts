@@ -110,7 +110,6 @@ describe('the ruler rail', () => {
     const s = await settle(p53());
     const f = await s.frame({ size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active });
     const rail = f.layout.sections[0].rail!;
-    const ruler = f.layout.sections[0].tracks[0].box;
     const x = rail.x + (100 / 393) * rail.width - 10;
     expect(hitView(f.layout, x, rail.y)?.part).toBe('outside');
     expect(hitView(f.layout, x, rail.y, true)?.part).toBe('start');
