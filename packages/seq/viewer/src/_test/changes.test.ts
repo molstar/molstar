@@ -20,6 +20,7 @@ import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
 const Protein = '/views/main/protein';
+const Text = '/views/main/text';
 const LettersLayer = `${Protein}/letters/l`;
 const DomainsTrack = `${Protein}/domains`;
 
@@ -38,6 +39,10 @@ function spec(): Node {
     s.track('domains').layer('d', { type: 'ranges', data: domains });
     // a second section, so the cursor has one to move to
     v.section('below', { of: p }).track('letters').layer('l', { type: 'letters' });
+    // a text of a group a line in a box of two lines: it scrolls, and a step up or down goes a line
+    v.section('text', { of: p, layout: 'text', max_width: 130, height: 90 })
+      .track('letters')
+      .layer('l', { type: 'letters' });
   });
   b.snapshots.snapshot('first', {
     label: 'Domains taller',
@@ -78,6 +83,7 @@ const editing = (v: SeqViewer) => v.behaviors.get('editing') as EditingBehavior;
 /** What a change can touch, read so that two reads compare. */
 function look(v: SeqViewer) {
   const vp = v.view.get(Protein);
+  const text = v.view.get(Text);
   return {
     patch: `${v.spec.revision.value} ${stackOf(v).steps.value.length}`,
     preview: v.spec.preview.value,
@@ -88,7 +94,7 @@ function look(v: SeqViewer) {
       // the reader's color-blind substitution
       v.legends.cvdSafe.value,
     ],
-    navigate: `${vp?.start} ${vp?.end} ${v.spec.step.value?.id}`,
+    navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id}`,
   };
 }
 
@@ -106,6 +112,9 @@ const run = (v: SeqViewer, id: string, ctx: unknown) => Promise.resolve(v.execut
 const cell = (position: number) => ({ section: Protein, hit: { layer: LettersLayer, system: '/data/p', position } });
 const cursorAt = (section: string) => (v: SeqViewer) =>
   v.selection.setCursor({ section, system: '/data/p', position: 5 });
+
+const cursorAtText = (position: number) => (v: SeqViewer) =>
+  v.selection.setCursor({ section: Text, system: '/data/p', position });
 
 /** The domains colored by their id: a legend whose entries select items. */
 const colorById = (v: SeqViewer) =>
@@ -130,6 +139,12 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'view.zoom-out': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 5, 15) },
   'view.pan-left': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
   'view.pan-right': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'view.pan-up': { ctx: { section: Text }, before: (v) => v.view.setRange(Text, 10, 30) },
+  'view.pan-down': { ctx: { section: Text } },
+  'window.pan-back': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'window.pan-on': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'window.grow': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'window.shrink': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
   'address.focus': { ctx: { address: '/refs/b' } },
   'address.reveal': {
     ctx: { address: '/data/p/(range :from 1 :to 5)' },
@@ -181,12 +196,15 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
     before: (v) => run(v, 'selection.add', { range: { system: '/data/p', start: 0, end: 10 } }),
   },
   'selection.clear': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
+  'selection.copy-letters': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
   'cursor.prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.next': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.up': { ctx: { section: Protein }, before: cursorAt('/views/main/below') },
   'cursor.down': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.extend-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.extend-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.extend-up': { ctx: { section: Text }, before: cursorAtText(15) },
+  'cursor.extend-down': { ctx: { section: Text }, before: cursorAtText(5) },
   'cursor.add-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.add-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.toggle': { ctx: { section: Protein }, before: cursorAt(Protein) },

@@ -64,8 +64,16 @@ export interface ViewerConfig {
      * `prev` or `next` extends the selection from it (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`).
      */
     readonly keys: { readonly prev: string; readonly next: string; readonly up: string; readonly down: string };
-    /** A cursor moved out of view pans its section to show it (true); false: it moves unseen. */
-    readonly reveal: boolean;
+  };
+  readonly reveal: {
+    /** A cursor moved out of view brings its section to it, the layout's least move (true); false: it moves unseen. */
+    readonly cursor: boolean;
+    /**
+     * A selection made elsewhere (another section, a structure) that projects onto a section with none of it in view
+     * scrolls its first part in, as a move by hand (no history step): in text sections (`text`, the default: a text
+     * hides most of itself, a window shows the projection where it is), in `all` sections, or `none`.
+     */
+    readonly linked: 'text' | 'all' | 'none';
   };
   readonly viewport: {
     /** The most pixels a position may take when zoomed in: the zoom's upper bound. */
@@ -231,7 +239,8 @@ export const DefaultViewerConfig: ViewerConfig = {
   hover: { projectLinked: true, closeCodons: true },
   selection: { holdNodes: true, extendScope: 'range', acrossBreaks: 'shown' },
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
-  cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }, reveal: true },
+  cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' } },
+  reveal: { cursor: true, linked: 'text' },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
   follow: { followerMoves: 'lead', cyclicArc: 'wrap' },
   view: {
@@ -247,6 +256,9 @@ export const DefaultViewerConfig: ViewerConfig = {
       'view.zoom-out': ['-'],
       'view.pan-left': ['Shift+Alt+ArrowLeft'],
       'view.pan-right': ['Shift+Alt+ArrowRight'],
+      'view.pan-up': ['Shift+Alt+ArrowUp'],
+      'view.pan-down': ['Shift+Alt+ArrowDown'],
+      'selection.copy-letters': ['Mod+c'],
       'selection.bookmark': ['Mod+d'],
       'section.reverse': ['Shift+R'],
       'section.collapse': ['Shift+C'],

@@ -38,7 +38,7 @@ export interface AxisShapeOptions {
   readonly length?: number;
   readonly cyclic?: boolean;
   /** A gap of `gap` px after every `size` display units (text's groups of ten); none by default. */
-  readonly groups?: { readonly size: number; readonly gap: number };
+  readonly groups?: { readonly size: number; readonly gap: number; readonly origin?: number };
 }
 
 export class AxisTransform {
@@ -62,6 +62,8 @@ export class AxisTransform {
   readonly gsize: number;
   readonly ggap: number;
   private readonly g0: number;
+  /** The display unit groups are counted from (0; a text line's first unit when a piece edge starts the line). */
+  private readonly gorigin: number;
 
   constructor(
     readonly system: string,
@@ -89,9 +91,10 @@ export class AxisTransform {
     const g = shape.groups;
     this.gsize = g && g.size > 0 ? g.size : 0;
     this.ggap = this.gsize ? g!.gap : 0;
-    this.g0 = this.gsize ? Math.floor(u0 / this.gsize) : 0;
+    this.gorigin = this.gsize ? (g!.origin ?? 0) : 0;
+    this.g0 = this.gsize ? Math.floor((u0 - this.gorigin) / this.gsize) : 0;
     // the gaps inside the window take their px from the width
-    const inner = this.gsize ? Math.max(0, Math.ceil(this.u1 / this.gsize) - 1 - this.g0) : 0;
+    const inner = this.gsize ? Math.max(0, Math.ceil((this.u1 - this.gorigin) / this.gsize) - 1 - this.g0) : 0;
     this.scale = Math.max(width - inner * this.ggap, 1e-9) / (this.u1 - this.u0);
     this.k0 = n ? pieceAtOffset(all, u0) : 0;
     let k1 = n ? pieceAtOffset(all, this.u1) : -1;
@@ -113,13 +116,36 @@ export class AxisTransform {
   /** x of a display unit (a cell's left edge: past the gap before a group's first unit). */
   xOfUnit(u: number): number {
     if (this.gsize === 0) return this.x0 + (u - this.u0) * this.scale;
-    return this.x0 + (u - this.u0) * this.scale + (Math.floor(u / this.gsize) - this.g0) * this.ggap;
+    return this.x0 + (u - this.u0) * this.scale + (Math.floor((u - this.gorigin) / this.gsize) - this.g0) * this.ggap;
+  }
+
+  /**
+   * The x of units `va` to `vb` (either order) into `sx0` (`xOfUnit` of the lower) and `sx1` (`xOfEnd` of the higher;
+   * the same x when equal). Inline, no number returned: once the hover and emphasis draws have met sections of pieces
+   * and of groups, a double returned from a call that is not inlined is boxed.
+   */
+  private edges(va: number, vb: number): void {
+    const lo = va < vb ? va : vb;
+    const hi = va < vb ? vb : va;
+    if (this.gsize === 0) {
+      this.sx0 = this.x0 + (lo - this.u0) * this.scale;
+      this.sx1 = this.x0 + (hi - this.u0) * this.scale;
+      return;
+    }
+    this.sx0 =
+      this.x0 + (lo - this.u0) * this.scale + (Math.floor((lo - this.gorigin) / this.gsize) - this.g0) * this.ggap;
+    if (lo === hi) {
+      this.sx1 = this.sx0;
+      return;
+    }
+    const k = Math.ceil((hi - this.gorigin) / this.gsize) - 1 - this.g0;
+    this.sx1 = this.x0 + (hi - this.u0) * this.scale + (k > 0 ? k : 0) * this.ggap;
   }
 
   /** x of a display unit as a right edge: before the gap after a group's last unit. */
   xOfEnd(u: number): number {
     if (this.gsize === 0) return this.x0 + (u - this.u0) * this.scale;
-    const k = Math.ceil(u / this.gsize) - 1 - this.g0;
+    const k = Math.ceil((u - this.gorigin) / this.gsize) - 1 - this.g0;
     return this.x0 + (u - this.u0) * this.scale + (k > 0 ? k : 0) * this.ggap;
   }
 
@@ -158,17 +184,7 @@ export class AxisTransform {
   cell(p: number): boolean {
     const k = this.pieceOf(p, false);
     if (k < 0) return false;
-    if (this.gsize !== 0) {
-      const ua = this.unitOf(k, p);
-      const ub = this.unitOf(k, p + 1);
-      this.sx0 = this.xOfUnit(ua < ub ? ua : ub);
-      this.sx1 = this.xOfEnd(ua < ub ? ub : ua);
-      return Number.isFinite(this.sx0) && Number.isFinite(this.sx1);
-    }
-    const a = this.xOfUnit(this.unitOf(k, p));
-    const b = this.xOfUnit(this.unitOf(k, p + 1));
-    this.sx0 = a < b ? a : b;
-    this.sx1 = a < b ? b : a;
+    this.edges(this.unitOf(k, p), this.unitOf(k, p + 1));
     return Number.isFinite(this.sx0) && Number.isFinite(this.sx1);
   }
 
@@ -178,19 +194,19 @@ export class AxisTransform {
     if (this.gsize === 0) return this.u0 + (x - this.x0) / this.scale;
     const d = x - this.x0;
     // px to the window's first group boundary, then whole groups with their gaps
-    const first = ((this.g0 + 1) * this.gsize - this.u0) * this.scale;
+    const first = (this.gorigin + (this.g0 + 1) * this.gsize - this.u0) * this.scale;
     if (d < first) return this.u0 + d / this.scale;
     const span = this.gsize * this.scale + this.ggap;
     const k = Math.floor((d - first) / span);
     const r = d - first - k * span - this.ggap;
-    const u = (this.g0 + 1 + k) * this.gsize;
+    const u = this.gorigin + (this.g0 + 1 + k) * this.gsize;
     return r < 0 ? u : u + r / this.scale;
   }
 
   /** Whether x falls in a group's gap (no position there). */
   inGap(x: number): boolean {
     if (this.gsize === 0 || x < this.x0 || x >= this.x0 + this.width) return false;
-    const first = ((this.g0 + 1) * this.gsize - this.u0) * this.scale;
+    const first = (this.gorigin + (this.g0 + 1) * this.gsize - this.u0) * this.scale;
     const d = x - this.x0 - first;
     if (d < 0) return false;
     const span = this.gsize * this.scale + this.ggap;
@@ -275,20 +291,10 @@ export class AxisTransform {
     if (b < a || (b === a && (a === pe || s !== e))) return false;
     const left = this.x0;
     const right = this.x0 + this.width;
-    let xa: number;
-    let xb: number;
-    if (this.gsize !== 0) {
-      // groups: the left edge past a gap, the right before one, so a span bridges the gaps inside it only
-      const va = this.unitOf(k, a);
-      const vb = this.unitOf(k, b);
-      xa = this.xOfUnit(va < vb ? va : vb);
-      xb = va === vb ? xa : this.xOfEnd(va < vb ? vb : va);
-    } else {
-      const ua = this.xOfUnit(this.unitOf(k, a));
-      const ub = this.xOfUnit(this.unitOf(k, b));
-      xa = ua < ub ? ua : ub;
-      xb = ua < ub ? ub : ua;
-    }
+    // with groups the left edge past a gap, the right before one, so a span bridges the gaps inside it only
+    this.edges(this.unitOf(k, a), this.unitOf(k, b));
+    let xa = this.sx0;
+    let xb = this.sx1;
     // a span that only touches the view's edge is not in view; a boundary on the edge is
     if (s === e ? xb < left || xa > right : xb <= left || xa >= right) return false;
     let cut = 0;

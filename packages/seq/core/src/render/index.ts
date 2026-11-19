@@ -87,6 +87,20 @@ export {
   sectionId,
 } from './layer-type.js';
 export { PlacePoint, StripPlacement, Strips, WarpKind } from './layout/strips.js';
+export {
+  lineEnd,
+  lineOf,
+  lineStart,
+  lineWidthOf,
+  type TextGeometry,
+  TextLayout,
+  TextNav,
+  type TextParams,
+  TextPlacement,
+  textGeometry,
+  textMinScale,
+  textParams,
+} from './layout/text.js';
 export { clampWindow, sameWindow, TracksLayout, TracksNav } from './layout/tracks.js';
 export type {
   NavContext,
@@ -100,7 +114,7 @@ export type {
 } from './layout/types.js';
 export { PolarWarp, TranslateWarp } from './layout/warp.js';
 export { drawWindow, WindowMetrics, windowExtent, windowPart } from './window.js';
-export { type LettersLay, type LettersPrep, LettersType } from './letters.js';
+export { type LettersLay, type LettersPrep, LettersType, shownLetters } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
 export { fmt, recordDrawLists } from './record.js';
 export { labelStep, type RulerLay, type RulerPrep, RulerType } from './ruler.js';
@@ -144,3 +158,4 @@ export {
 } from './tracks.js';
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';
 export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js';
+export { type FrameLay, type FramePrep, FrameType } from './frames.js';

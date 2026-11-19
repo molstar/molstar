@@ -9,17 +9,21 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import { createSeqContext, type SeqContext } from '@molstar/seqx-core/context';
 import {
+  BuiltInLayouts,
   type Emphasis,
   type EmphasisHighlight,
   type Frame,
   type FrameInput,
   type Hit as RenderHit,
+  type Placement,
   Renderer,
   type RenderSvgOptions,
   type RenderSvgResult,
   type Viewport as RenderViewport,
   hitView,
   resolveColor,
+  sectionLayoutName,
+  textMinScale,
 } from '@molstar/seqx-core/render';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
 import type { SeqTokens } from '@molstar/seqx-core/render';
@@ -40,6 +44,7 @@ import {
   HighlightModel,
   HoverModel,
   isNothing,
+  nearestOffsetOf,
   Projector,
   SelectionModel,
   SpecModel,
@@ -108,6 +113,8 @@ export class SeqViewer extends ReactiveModel {
   height = 0;
   /** The device pixel ratio of the last frame. */
   dpr = 1;
+  /** The section layouts by name: one map the frames draw with and the view's moves navigate by. */
+  readonly layouts = BuiltInLayouts;
   /** Frames drawn and layouts made: what a test or a profile reads. */
   readonly counts = { frames: 0, layouts: 0 };
 
@@ -182,6 +189,12 @@ export class SeqViewer extends ReactiveModel {
       false,
     );
     this.view = new ViewModel(this.spec, this.config);
+    // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
+    this.view.setLayoutSource({
+      placement: (section) => this.placementOf(section),
+      layouts: this.layouts,
+      minScale: textMinScale(this.context.renderConfig),
+    });
     this.hover = new HoverModel(this.spec, this.view, this.config);
     this.store = new StoreModel(this.config);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
@@ -251,6 +264,7 @@ export class SeqViewer extends ReactiveModel {
     this.listenPermanently(this.hover.version, () => this.schedule());
     this.listenPermanently(this.selection.value, () => {
       this._holdSelection();
+      this._revealLinked();
       this.schedule();
     });
     this.listenPermanently(this.selection.cursor, () => this.schedule());
@@ -544,43 +558,53 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /**
-   * The windows of the leading sections after the first (`viewports` of the frame: each its own), kept while they are
-   * equal so the frame's key holds; undefined when one section leads.
+   * Every leading section's viewport (the frame's `viewports`, by address), as its layout reads it (a window; a text's
+   * anchor and letter size): the first's `lead`, the window `_viewport` gave (eased during a jump's motion), computed
+   * once a frame. Kept while equal, so the frame's key holds; undefined when no section is placed.
    */
-  private _windows(resolved: ResolvedView): Readonly<Record<string, RenderViewport>> | undefined {
-    let first = true;
+  private _viewports(
+    resolved: ResolvedView,
+    lead: RenderViewport | undefined,
+  ): Readonly<Record<string, RenderViewport>> | undefined {
+    const kept = this._viewportsKept;
     let n = 0;
-    let same = this._windowsKept !== undefined;
+    let same = kept !== undefined;
+    let first = true;
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
-      if (first) {
-        first = false;
-        continue;
-      }
       const v = this.view.get(s.address);
-      if (!v || v.pending) continue;
-      const k = this._windowsKept?.[s.address];
-      if (!k || k.start !== v.start || k.end !== v.end) same = false;
+      const w = first ? lead : v && !v.pending ? v : undefined;
+      first = false;
+      if (!v || !w) continue;
+      const k = kept?.[s.address];
+      if (!k || k.start !== w.start || k.end !== w.end || k.scale !== v.scale) same = false;
       n++;
     }
-    if (!n) return (this._windowsKept = undefined);
-    if (same && Object.keys(this._windowsKept!).length === n) return this._windowsKept;
+    if (!n) return (this._viewportsKept = undefined);
+    if (same && Object.keys(kept!).length === n) return kept;
     const out: Record<string, RenderViewport> = {};
     first = true;
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
-      if (first) {
-        first = false;
-        continue;
-      }
       const v = this.view.get(s.address);
-      if (v && !v.pending) out[s.address] = { start: v.start, end: v.end };
+      const w = first ? lead : v && !v.pending ? v : undefined;
+      first = false;
+      if (!v || !w) continue;
+      out[s.address] = { start: w.start, end: w.end, ...(v.scale !== undefined ? { scale: v.scale } : {}) };
     }
-    this._windowsKept = out;
+    this._viewportsKept = out;
     return out;
   }
 
-  private _windowsKept: Readonly<Record<string, RenderViewport>> | undefined;
+  private _viewportsKept: Readonly<Record<string, RenderViewport>> | undefined;
+
+  /** A section's placement in the last frame (its strips, what its layout's arithmetic reads), by address. */
+  placementOf(section: string): Placement | undefined {
+    const sections = this._frame?.layout.sections;
+    if (!sections) return undefined;
+    for (let i = 0; i < sections.length; i++) if (sections[i].section.address === section) return sections[i].placement;
+    return undefined;
+  }
 
   /** The viewport the last frame was drawn with, a copy (for the SVG and tests). */
   get viewport(): RenderViewport | undefined {
@@ -608,6 +632,7 @@ export class SeqViewer extends ReactiveModel {
         tokens: this.tokens,
         text: this.context.text,
         config: this.context.renderConfig,
+        layouts: this.layouts,
       });
       rr[0] = model;
       rr[1] = resolved;
@@ -627,11 +652,11 @@ export class SeqViewer extends ReactiveModel {
     size.height = fixed ? h : Math.min(this.config.canvas.maxHeight, Math.max(this._contentHeight, 32));
     this._updateEmphasis();
     const input = this._frameInput;
-    const vp = this._viewport(resolved, DomHost.now());
-    if (vp) input.viewport = vp;
-    else delete input.viewport;
-    const windows = this._windows(resolved);
-    if (windows) input.viewports = windows;
+    const now = DomHost.now();
+    // every leading section its own viewport, read by its layout (_spec/README.md "Composition"); the first's once
+    const vp = this._viewport(resolved, now);
+    const viewports = this._viewports(resolved, vp);
+    if (viewports) input.viewports = viewports;
     else delete input.viewports;
     if (vp) {
       this._drawn.start = vp.start;
@@ -664,6 +689,8 @@ export class SeqViewer extends ReactiveModel {
     this.height = size.height;
     if (rebuilt) {
       this.counts.layouts++;
+      // what the models read of the placement (a text's lines in view) follows the frame
+      this.view.placed();
       if (!this._restDue) this._changed();
       this._wanter?.want(frame.wants);
       this._issues.set(frame.layout.issues);
@@ -784,6 +811,40 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /** The selection's dynamic nodes held while it is selected (`selection.holdNodes`). */
+  /**
+   * A selection made elsewhere (another section, a link, a structure) scrolls each section that shows none of it to its
+   * first part (_spec/README.md "Composition", `reveal.linked`): text sections by default, as a move by hand (no
+   * step of the history). Not the section the selection is being made in (a drag's, the cursor's): it shows it already.
+   */
+  private _revealLinked(): void {
+    const mode = this.config.reveal.linked;
+    const resolved = this.view.resolved.value;
+    const shown = this.selection.value.value.shown;
+    if (mode === 'none' || !resolved || this._retired || !shown.parts.length) return;
+    const own = this.input.selectingIn ?? this.selection.cursor.value?.section;
+    let loc: Location | undefined;
+    for (const s of resolved.sections) {
+      if (s.address === own || (mode === 'text' && s.layout !== 'text')) continue;
+      const v = this.view.get(s.address);
+      if (!v || v.pending) continue;
+      loc ??= this._projector.of(shown, { own: true }) ?? shown;
+      const r = loc.parts.find((p) => p.system === s.axis.system)?.ranges;
+      if (!r?.length) continue;
+      let first = Number.POSITIVE_INFINITY;
+      let shownNow = false;
+      for (let i = 0; i + 1 < r.length && !shownNow; i += 2) {
+        const a = nearestOffsetOf(s.axis, r[i]);
+        const b = nearestOffsetOf(s.axis, r[i + 1]);
+        if (a === undefined || b === undefined) continue;
+        const lo = Math.min(a, b);
+        const hi = Math.max(a, b);
+        if (hi > v.start && lo < v.end) shownNow = true;
+        first = Math.min(first, lo);
+      }
+      if (!shownNow && Number.isFinite(first)) this.view.reveal(s.address, first, first + 1);
+    }
+  }
+
   private _holdSelection(): void {
     if (!this.config.selection.holdNodes || this._retired) return;
     const sel = this.selection.value.value;
@@ -858,12 +919,13 @@ export class SeqViewer extends ReactiveModel {
    */
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
-    const vp = resolved ? this._viewport(resolved) : undefined;
+    const viewports = resolved ? this._viewports(resolved, this._viewport(resolved)) : undefined;
+    // a text section exports every line (the figure): the picture is as tall as it, not the canvas's scrolled box
+    const figure = resolved?.sections.some((s) => sectionLayoutName(s, resolved) === 'text') ?? false;
     return this.context.renderSvg(this.spec.shown.value, {
-      size: { width: this.width, height: this.height },
+      size: { width: this.width, height: figure ? 'auto' : this.height },
       ...(resolved ? { view: resolved.address } : {}),
-      ...(vp ? { viewport: { start: vp.start, end: vp.end } } : {}),
-      ...(resolved && this._windows(resolved) ? { viewports: this._windows(resolved) } : {}),
+      ...(viewports ? { viewports } : {}),
       store: this.store.store,
       dpr: this.dpr,
       tokens: this.tokens,

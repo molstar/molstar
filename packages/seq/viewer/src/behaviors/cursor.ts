@@ -5,11 +5,12 @@
  */
 
 // The `cursor` behavior (_spec/README.md "Behaviors"): the keyboard cursor (the interaction grammar): the step keys
-// (`cursor.keys`) move it a position along its section's axis in display order, or to the section above or below (its
-// position carried along the view's link); Shift with a step extends the range the anchor is in (from the cursor's cell
-// when there is no anchor); Cmd/Ctrl+Shift with a step starts a new range at the cursor, the others kept; Space toggles
-// the cursor's cell; Enter focuses the selection, else the cursor's cell. A cursor moved out of view pans its section
-// (`cursor.reveal`). Every move is a command.
+// (`cursor.keys`) move it a position along its section's axis in display order, or a line up or down in a layout of
+// lines (a text: the section's layout's step), else to the section above or below (its position carried along the
+// view's link); Shift with a step extends the range the anchor is in (from the cursor's cell when there is no anchor),
+// up and down by a line; Cmd/Ctrl+Shift with a step starts a new range at the cursor, the others kept; Space toggles
+// the cursor's cell; Enter focuses the selection, else the cursor's cell. A cursor moved out of view brings its section
+// to it by the layout's least move (`reveal.cursor`). Every move is a command.
 
 import { EmptyElements, rangesLocation } from '@molstar/seqx-core/query';
 import { projectOntoView } from '@molstar/seqx-core/view';
@@ -64,12 +65,21 @@ export function cursorBehavior(
    * leader): the cursor on a follower keeps the rule it had before followers led, revealing only once detached.
    */
   const reveal = (section: string, o: number) => {
-    if (!config.cursor.reveal || !view.canMove(section)) return;
+    if (!config.reveal.cursor || !view.canMove(section)) return;
     if (view.isFollowing(section) && config.follow.followerMoves !== 'detach') return;
     const v = view.get(section);
     if (!v || v.pending) return;
-    if (o < v.start) view.pan(section, o - v.start);
-    else if (o + 1 > v.end) view.pan(section, o + 1 - v.end);
+    view.reveal(section, o, o + 1);
+  };
+
+  /** The cursor a line up or down within its section (a layout of lines), else undefined. */
+  const line = (c: Cursor, dir: 'up' | 'down'): Cursor | undefined => {
+    const axis = sectionOf(c.section)?.axis;
+    const o = axis && cellOffset(axis, c.position);
+    if (!axis || o === undefined) return undefined;
+    const next = view.step(c.section, o, dir);
+    const p = next < 0 ? undefined : elementAt(axis, next);
+    return p === undefined ? undefined : { ...c, position: p };
   };
 
   /**
@@ -181,8 +191,15 @@ export function cursorBehavior(
   const commands: CommandDefinition<CursorContext>[] = [
     move('cursor.prev', 'Cursor back', keys.prev, (c) => stepped(c, -1)),
     move('cursor.next', 'Cursor on', keys.next, (c) => stepped(c, 1)),
-    move('cursor.up', 'Cursor to the section above', keys.up, (c) => across(c, -1)),
-    move('cursor.down', 'Cursor to the section below', keys.down, (c) => across(c, 1)),
+    move('cursor.up', 'Cursor a line up, or to the section above', keys.up, (c) => line(c, 'up') ?? across(c, -1)),
+    move(
+      'cursor.down',
+      'Cursor a line down, or to the section below',
+      keys.down,
+      (c) => line(c, 'down') ?? across(c, 1),
+    ),
+    move('cursor.extend-up', 'Extend the selection a line up', keys.up, (c) => line(c, 'up'), 'extend'),
+    move('cursor.extend-down', 'Extend the selection a line down', keys.down, (c) => line(c, 'down'), 'extend'),
     move('cursor.extend-prev', 'Extend the selection back', keys.prev, (c) => stepped(c, -1), 'extend'),
     move('cursor.extend-next', 'Extend the selection on', keys.next, (c) => stepped(c, 1), 'extend'),
     move('cursor.add-prev', 'Start a new range back from the cursor', keys.prev, (c) => stepped(c, -1), 'add'),

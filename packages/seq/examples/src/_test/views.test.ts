@@ -13,7 +13,7 @@ import { SeqRuntime } from '@molstar/seqx-core/data';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
-import { GeneFile, geneSeqText } from '../p53/data.js';
+import { GeneFile, geneSeqText, P53 } from '../p53/data.js';
 import { RegionFile, regionSeqText, Transcripts } from '../p53/region.js';
 import { type ExampleView, ExampleViews } from '../views.js';
 
@@ -115,6 +115,47 @@ describe('draw-list records', () => {
     expect(r.svg).toContain('data-direction="reversed" data-pieces="coding"');
     record('p53-one-axis', recordDrawLists(r.lists));
     ctx.retire();
+  });
+});
+
+describe('the p53 text figure', () => {
+  /** The letters a record draws in the data pass, in order. */
+  const lettersOf = (record: string) =>
+    record
+      .split('\n')
+      .filter((l) => l.startsWith('glyphs'))
+      .map((l) =>
+        l
+          .replace(/^glyphs "[^"]*" [\d.]+ \S+ /, '')
+          .split(', ')
+          .map((x) => x[0])
+          .join(''),
+      )
+      .join('');
+
+  it('the figure, every line exported: every letter once in reading order, the record kept', async () => {
+    const ctx = context();
+    const spec = ExampleViews.find((v) => v.id === 'text')!.build();
+    const r = await ctx.renderSvg(spec, { size: { width: 720, height: 'auto' } });
+    expect(r.issues).toEqual([]);
+    expect(r.settled).toBe(true);
+    expect(lettersOf(recordDrawLists(r.lists, ['data']))).toBe(P53);
+    // a number a line: the first is 1
+    expect(r.svg).toContain('>1<');
+    record('p53-text', recordDrawLists(r.lists));
+    ctx.retire();
+  });
+
+  it('centered and inline, and under its tracks: every letter once, in reading order', async () => {
+    for (const id of ['text-centered', 'text-under-tracks']) {
+      const ctx = context();
+      const r = await ctx.renderSvg(ExampleViews.find((v) => v.id === id)!.build(), {
+        size: { width: 900, height: 'auto' },
+      });
+      expect(r.issues).toEqual([]);
+      expect(lettersOf(recordDrawLists(r.lists, ['data']))).toBe(P53);
+      ctx.retire();
+    }
   });
 });
 

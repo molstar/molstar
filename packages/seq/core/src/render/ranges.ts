@@ -37,6 +37,7 @@ import {
   readItems,
   tickHit,
   tickOn,
+  itemsUsed,
 } from './items.js';
 import { RenderIssues } from './issues.js';
 import type { Channel } from '@molstar/seqx-core/theme/index';
@@ -524,6 +525,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
   },
 
   filtered: (lay) => lay.rows.filtered,
+  used: itemsUsed,
 
   legend(lay, options) {
     // the density strip is a count, not a theme: its key is the strip itself

@@ -237,7 +237,7 @@ describe('warps', () => {
     const t = new TranslateWarp();
     t.open(w);
     drawSome(w);
-    t.close(w, 7, 120);
+    t.close(w, Float64Array.of(7), Float64Array.of(120), 0);
     const b = new DrawLists();
     drawSome(b.writer('data'), 7, 120);
     expect(recordDrawLists(a, ['data'])).toBe(recordDrawLists(b, ['data']));
@@ -397,15 +397,16 @@ describe('the tracks layout’s navigation', () => {
 
   it('pan by px, zoom about a unit, fit, reveal, clamp', () => {
     const v = { start: 100, end: 200 };
-    expect(TracksNav.pan(c, v, 40, 0)).toMatchObject({ start: 90, end: 190 });
-    expect(TracksNav.pan(c, v, 4_000, 0)).toMatchObject({ start: 0, end: 100 });
+    expect(TracksNav.pan(c, v, 40, 0)).toMatchObject({ start: 110, end: 210 });
+    expect(TracksNav.pan(c, v, -4_000, 0)).toMatchObject({ start: 0, end: 100 });
     expect(TracksNav.zoom(c, v, 2, 150)).toMatchObject({ start: 125, end: 175 });
     expect(TracksNav.zoom(c, v, 2, 100)).toMatchObject({ start: 100, end: 150 });
     // never past the most px a position
     expect(TracksNav.zoom(c, v, 1_000, 150).end - TracksNav.zoom(c, v, 1_000, 150).start).toBeCloseTo(400 / 32);
     expect(TracksNav.fit(c, v)).toMatchObject({ start: 0, end: 400 });
     expect(TracksNav.reveal(c, v, 120, 130)).toBe(v);
-    expect(TracksNav.reveal(c, v, 300, 310)).toMatchObject({ start: 255, end: 355 });
+    expect(TracksNav.reveal(c, v, 300, 310)).toMatchObject({ start: 210, end: 310 });
+    expect(TracksNav.reveal(c, v, 50, 60)).toMatchObject({ start: 50, end: 150 });
     expect(TracksNav.clamp(c, { start: -50, end: 50 })).toMatchObject({ start: 0, end: 100 });
   });
 
@@ -413,6 +414,9 @@ describe('the tracks layout’s navigation', () => {
     expect(TracksNav.step(c, 10, 'right')).toBe(11);
     expect(TracksNav.step(c, 0, 'left')).toBe(-1);
     expect(TracksNav.step(c, 10, 'home')).toBe(0);
+    // one line: up and down leave it (the cursor crosses to the section above or below)
+    expect(TracksNav.step(c, 10, 'up')).toBe(-1);
+    expect(TracksNav.step(c, 10, 'down')).toBe(-1);
     expect(TracksNav.step(c, 10, 'end')).toBe(399);
     expect(TracksNav.step({ ...c, cyclic: true }, 399, 'right')).toBe(0);
     expect(TracksNav.clamp({ ...c, cyclic: true }, { start: 390, end: 420 })).toMatchObject({ start: 390, end: 420 });

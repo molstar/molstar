@@ -13,6 +13,7 @@ import {
   LegendProvider,
   NavigateProvider,
   SelectProvider,
+  WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import { legendsMount } from './mount-legend.js';
@@ -35,6 +36,7 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       { provider: AddressingProvider },
       { provider: EditingProvider },
       { provider: LegendProvider },
+      { provider: WindowProvider },
     ],
     bindings: {},
     config: [],

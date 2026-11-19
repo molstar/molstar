@@ -286,3 +286,23 @@ export const VariantRows = {
     'missense',
   ],
 };
+
+/** p53 as text: its letters, its two domains under them (a band that collapses where no domain is). */
+export function p53TextSpec(section: Record<string, unknown> = {}): Node {
+  const b = createSeqSpec({ title: 'p53 text' });
+  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+  const d = b.data.ranges('domains', {
+    target: p53,
+    rows: {
+      start: Int32Array.from([0, 94]),
+      end: Int32Array.from([61, 292]),
+      id: categoryColumn(['TAD', 'DBD']),
+    },
+  });
+  b.views.view('main', { layout: 'text' }, (v) => {
+    const s = v.section('protein', { of: p53, ...section });
+    s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
+    s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
+  });
+  return b.build();
+}

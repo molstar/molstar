@@ -20,6 +20,7 @@ import {
   readItems,
   tickHit,
   tickOn,
+  itemsUsed,
 } from './items.js';
 import { layerSource, toSection } from './layer-data.js';
 import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
@@ -189,6 +190,7 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
   },
 
   filtered: (lay) => lay.rows.filtered,
+  used: itemsUsed,
 
   legend(lay, options) {
     if (lay.density) return [];

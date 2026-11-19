@@ -9,6 +9,8 @@
 // layer types lay out and draw a strip at a time in its own frame, hits come back through the placement's inverse, and
 // the viewer's navigation is the layout's arithmetic (`SectionNav`). Internal: no application implements one yet.
 
+import type { Issue } from '@molstar/core/repr/tree';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
@@ -63,6 +65,10 @@ export interface Placement {
   place(offset: number, out: PlacePoint): boolean;
   /** A polar strip's warp (`strips.warp` polar). */
   warpOf?(strip: number): PolarWarp;
+  /** Whether its strips are clipped to its box (a section that scrolls inside it). */
+  readonly clip?: boolean;
+  /** What a follower of the section follows: the display units it shows (text: its lines in view). */
+  readonly window?: Viewport;
 }
 
 /** What a layout reads of the view and the section: never a layer's params. */
@@ -73,6 +79,8 @@ export interface PlaceContext {
   readonly config: RenderConfig;
   readonly tokens: SeqTokens;
   readonly text: TextMetrics;
+  /** The view's model (its systems' numberings: a text's numbers). */
+  readonly model?: StaticModel;
   /** The section's region: its x and width (the data box's, past the label column), its top, the page below it. */
   readonly box: Box;
   /** The section's transform over its window (its pieces, its direction, the viewport or a leader's image). */
@@ -85,6 +93,12 @@ export interface PlaceContext {
    * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height.
    */
   layStrip(placement: Placement, strip: number, labels?: LabelSink): void;
+  /** Says what the layout could not place (a text past `text.maxLines`). */
+  report(issue: Issue): void;
+  /** Lays out all of the section's content (an export: a text's every line), not only what is in view. */
+  readonly figure?: boolean;
+  /** Draws the windows an export leaves out by default (`export.window`: a ring's). */
+  readonly windows?: boolean;
 }
 
 /** The pure arithmetic of a section's viewport (_spec/README.md "Render", Section layouts, Navigation). */
@@ -107,12 +121,21 @@ export type StepDir = 'left' | 'right' | 'up' | 'down' | 'home' | 'end';
 
 /** Gestures to viewports, pure: what the viewer calls instead of doing arithmetic of its own. */
 export interface SectionNav {
+  /** Moves the view by a scroll's deltas, px: positive shows what is right of and below what is in view. */
   pan(c: NavContext, v: Viewport, dx: number, dy: number): Viewport;
   /** Zooms by `factor` (above 1: in) about display unit `at`, kept where it is. */
   zoom(c: NavContext, v: Viewport, factor: number, at: number): Viewport;
   fit(c: NavContext, v: Viewport): Viewport;
-  /** The viewport showing display units `[start, end)` (a focus, a link, the cursor), unchanged when it does. */
+  /**
+   * The least move that shows display units `[start, end)` (the cursor, a linked selection), unchanged when it does: a
+   * window pans to the nearer edge, a text scrolls the line into view.
+   */
   reveal(c: NavContext, v: Viewport, start: number, end: number): Viewport;
+  /**
+   * The viewport a focus on `[start, end)` gives (a double-click, an address): a window takes the range; a text brings
+   * its first line to the top, its letter size kept. Absent: the range itself, clamped.
+   */
+  focus?(c: NavContext, v: Viewport, start: number, end: number): Viewport;
   /** The display unit a cursor at `offset` steps to, or −1 for none. */
   step(c: NavContext, offset: number, dir: StepDir): number;
   clamp(c: NavContext, v: Viewport): Viewport;
@@ -123,11 +146,19 @@ export interface SectionLayoutType<Kept = unknown> {
   readonly name: string;
   /** Whether bands are filled with the track ink in the background pass (tracks: a track a box). */
   readonly fillBands: boolean;
+  /** A track's height by its layers' types when the spec gives none (the config's `heights` when absent). */
+  heights?(config: RenderConfig): RenderConfig['heights'];
   /** Cuts the section into strips for its box and viewport, into prev's buffers. */
   place(section: ResolvedSection, ctx: PlaceContext, viewport: Viewport | undefined, prev?: Kept): Placement & Kept;
   /** Whether two viewports place alike: the part of the section's key this layout reads. */
   sameKey(a: Viewport | undefined, b: Viewport | undefined): boolean;
   readonly nav: SectionNav;
+  /**
+   * Its window may pass a cyclic axis's origin and draws there (a ring's): the viewer's navigation then wraps it
+   * (`NavContext.cyclic`). Absent, a window stays within its axis (tracks and text: a leader's transform ends at its
+   * total).
+   */
+  readonly wraps?: boolean;
   /**
    * What a follower of a section in this layout follows when it is not the transform's window (a ring: its window,
    * past the total when it wraps the origin; text: its lines in view). The layout then places over the whole axis.

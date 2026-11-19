@@ -151,9 +151,9 @@ export class StripPlacement implements Placement {
     if (i < 0) i = 0;
     const a = s.axes[i];
     const fx = x - s.dx[i];
+    // before a line's first cell or past its last (a gutter, the space after it): that cell, so a drag past a line's
+    // end reaches its last unit and never the next line's first
     const cx = fx < a.x0 ? a.x0 : fx >= a.x0 + a.width ? a.x0 + a.width - 1e-6 : fx;
-    // past a line's last cell (its gutter or the space after it): its end
-    if (fx >= a.x0 + a.width) return a.u1;
     return a.unitAt(cx);
   }
 

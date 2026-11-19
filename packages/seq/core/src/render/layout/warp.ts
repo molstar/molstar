@@ -38,8 +38,13 @@ export class TranslateWarp {
     this.clips = p.clips.n;
   }
 
-  /** Moves what was drawn since `open` by `dx`, `dy`. */
-  close(out: PassWriter, dx: number, dy: number): void {
+  /**
+   * Moves what was drawn since `open` by strip `i`'s translation (`dx[i]`, `dy[i]`): read here, never passed (a
+   * fractional number passed to a call that is not inlined is boxed: a text's line tops are fractional).
+   */
+  close(out: PassWriter, dxs: Float64Array, dys: Float64Array, i: number): void {
+    const dx = dxs[i];
+    const dy = dys[i];
     if (dx === 0 && dy === 0) return;
     const p = out.pass;
     const r = p.rects;
@@ -69,9 +74,9 @@ export class TranslateWarp {
       im.y[i] += dy;
     }
     const c = p.clips;
-    for (let i = this.clips; i < c.n; i++) {
-      c.x[i] += dx;
-      c.y[i] += dy;
+    for (let j = this.clips; j < c.n; j++) {
+      c.x[j] += dx;
+      c.y[j] += dy;
     }
   }
 }

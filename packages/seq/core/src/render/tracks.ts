@@ -47,11 +47,13 @@ import type { SeqTokens } from './tokens.js';
 import { RulerType } from './ruler.js';
 import { PlacePoint, StripPlacement, type Strips, WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
+import { TextLayout } from './layout/text.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
+import { FrameType } from './frames.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -66,6 +68,7 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   ruler: RulerType,
   secondary: SecondaryType,
   variants: VariantsType,
+  frame: FrameType,
 };
 
 export interface LayerLayout {
@@ -177,6 +180,10 @@ export interface LayoutInput {
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures' | 'cvdSafe'>>;
   /** The section layouts by name (the built-ins by default). */
   readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
+  /** Lays out every line of a text section, its box its content (an export: the figure). */
+  readonly figure?: boolean;
+  /** Draws the windows a figure leaves out by default (a ring's in an export). */
+  readonly windows?: boolean;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
@@ -266,11 +273,12 @@ function windowPositions(leader: AxisTransform, w: Viewport): number[] {
 /** The layouts this target places sections with, by name (_spec/README.md "Render", Section layouts). */
 export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = {
   tracks: TracksLayout,
+  text: TextLayout,
 };
 
 /** A section's layout: its own `layout`, else its view's. */
 export function sectionLayoutName(section: ResolvedSection, view: ResolvedView): string {
-  return (section as { readonly layout?: string }).layout ?? view.layout;
+  return section.layout ?? view.layout;
 }
 
 const NoLays: readonly LayerLayout[] = [];
@@ -449,6 +457,8 @@ interface ViewStamp {
   readonly measures: unknown;
   readonly cvdSafe: boolean;
   readonly domains: number;
+  readonly figure: boolean;
+  readonly windows: boolean;
 }
 
 function viewStamp(
@@ -473,6 +483,8 @@ function viewStamp(
     measures: input.theme?.measures,
     cvdSafe: input.theme?.cvdSafe ?? false,
     domains: state.domainsVersion,
+    figure: input.figure ?? false,
+    windows: input.windows ?? false,
   };
 }
 
@@ -491,7 +503,9 @@ function sameStamp(a: ViewStamp, b: ViewStamp): boolean {
     a.schemes === b.schemes &&
     a.measures === b.measures &&
     a.cvdSafe === b.cvdSafe &&
-    a.domains === b.domains
+    a.domains === b.domains &&
+    a.figure === b.figure &&
+    a.windows === b.windows
   );
 }
 
@@ -552,6 +566,32 @@ function stripSpan(strips: Strips, i: number): Box {
     if (strips.bandY[k] + strips.bandH[k] > y1) y1 = strips.bandY[k] + strips.bandH[k];
   }
   return y1 > y0 ? { x: a.x0, y: y0, width: a.width, height: y1 - y0 } : { x: a.x0, y: 0, width: a.width, height: 0 };
+}
+
+/**
+ * The bands of the tracks a layer's `across` names on a strip, the first to the last and those between (`ctx.span`: a
+ * frame's outline), in its frame; the whole strip's when it names none shown.
+ */
+function acrossSpan(strips: Strips, i: number, shown: readonly ResolvedTrack[], across: readonly unknown[]): Box {
+  let a = -1;
+  let b = -1;
+  for (let j = 0; j < shown.length; j++) {
+    const id = shown[j].address.slice(shown[j].address.lastIndexOf('/') + 1);
+    if (id !== across[0] && id !== across[across.length - 1]) continue;
+    if (a < 0) a = j;
+    b = j;
+  }
+  if (a < 0) return stripSpan(strips, i);
+  const x = strips.axes[i];
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (let j = a; j <= b; j++) {
+    const k = i * strips.bands + j;
+    if (strips.bandH[k] <= 0) continue;
+    y0 = Math.min(y0, strips.bandY[k]);
+    y1 = Math.max(y1, strips.bandY[k] + strips.bandH[k]);
+  }
+  return y1 > y0 ? { x: x.x0, y: y0, width: x.width, height: y1 - y0 } : stripSpan(strips, i);
 }
 
 /** A strip's band column in its frame: its bands above the page's bottom and the gaps between them; none when empty. */
@@ -624,7 +664,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const layout = layoutOf(section);
     if (!layout.followWindow) return { start: axis.u0, end: axis.u1 };
     const viewport = input.viewports?.[section.address] ?? input.viewport;
-    const heights = section.tracks.map((t) => trackHeight(t, config));
+    const heights = section.tracks.map((t) => trackHeight(t, config, layout.heights?.(config) ?? config.heights));
     return layout.followWindow(section, axis, viewport, { width, config, text: input.text, heights });
   };
   const axes = new Map<string, AxisTransform | undefined>();
@@ -743,7 +783,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         );
       shown.push(...instances);
     }
-    const heights = shown.map((t) => trackHeight(t, config));
+    const byType = layout.heights?.(config) ?? config.heights;
+    const heights = shown.map((t) => trackHeight(t, config, byType));
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
     const stripBreaks: number[][] = [];
@@ -818,7 +859,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             want,
             report: sectionReport,
             strip: i,
-            span,
+            span: Array.isArray(layer.params.across) ? acrossSpan(strips, i, shown, layer.params.across) : span,
             place: placement,
             labels: labels ?? 'inside',
             ...(band ? { bandTop: band.bandTop } : {}),
@@ -878,11 +919,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         config,
         tokens: input.tokens,
         text: input.text,
+        model: input.model,
         box: sectionBox,
         axis,
         bands: shown,
         heights,
         layStrip,
+        report: sectionReport,
+        ...(input.figure ? { figure: true } : {}),
+        ...(input.windows ? { windows: true } : {}),
       };
       placement = layout.place(section, ctx, viewport, prevPlacement);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
@@ -1069,11 +1114,11 @@ function wantTemplate(
   }
 }
 
-function trackHeight(track: ResolvedTrack, config: RenderConfig): number {
+function trackHeight(track: ResolvedTrack, _config: RenderConfig, heights: RenderConfig['heights']): number {
   if (track.height !== undefined) return track.height;
   let h = 0;
-  for (const l of track.layers) h = Math.max(h, config.heights[l.type as keyof RenderConfig['heights']] ?? 0);
-  return h || config.heights.ranges;
+  for (const l of track.layers) h = Math.max(h, heights[l.type as keyof RenderConfig['heights']] ?? 0);
+  return h || heights.ranges;
 }
 
 const NoBreaks: readonly number[] = [];
@@ -1132,6 +1177,8 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
     }
     if (!under) continue;
     const strips = s.placement.strips;
+    const pb = s.placement.box;
+    if (s.placement.clip === true) clipTo(out, pb);
     for (let i = 0; i < strips.n; i++) {
       const w = openStrip(s, i, out);
       const a = strips.axes[i];
@@ -1144,6 +1191,7 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
         }
       closeStrip(s, i, out);
     }
+    if (s.placement.clip === true) out.unclip();
   }
 }
 
@@ -1164,6 +1212,16 @@ function drawTints(
 const Translate = new TranslateWarp();
 
 /** The writer a strip draws into for `out`'s pass: its polar warp's, else `out` with the translation marked. */
+/** A clip to a box through the writer's `args` (its fractional numbers passed to a call would be boxed). */
+function clipTo(out: PassWriter, b: Box): void {
+  const g = out.args;
+  g[0] = b.x;
+  g[1] = b.y;
+  g[2] = b.width;
+  g[3] = b.height;
+  out.clipArgs();
+}
+
 function openStrip(s: SectionLayout, i: number, out: PassWriter): PassWriter {
   const strips = s.placement.strips;
   if (strips.warp[i] === WarpKind.polar) return s.placement.warpOf!(i).writer(out);
@@ -1175,7 +1233,7 @@ function openStrip(s: SectionLayout, i: number, out: PassWriter): PassWriter {
 function closeStrip(s: SectionLayout, i: number, out: PassWriter): void {
   const strips = s.placement.strips;
   if (strips.warp[i] === WarpKind.polar) s.placement.warpOf!(i).close(out);
-  else Translate.close(out, strips.dx[i], strips.dy[i]);
+  else Translate.close(out, strips.dx, strips.dy, i);
 }
 
 /**
@@ -1184,7 +1242,7 @@ function closeStrip(s: SectionLayout, i: number, out: PassWriter): void {
  * marks, and its breaks.
  */
 function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
-  const { tokens, config } = layout;
+  const { config } = layout;
   const pass = out.pass.name;
   const column = config.emphasis.selectionShape === 'column';
   for (let si = 0; si < layout.sections.length; si++) {
@@ -1197,12 +1255,46 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
         if (s.tracks[ti].box.y < layout.height) s.layout.chrome(s, pass, out, emphasis, 0, ti);
       continue;
     }
-    const nb = strips.bands;
+    drawStrips(layout, s, out, emphasis, pass, column);
+    // what crosses strips, on the page; a section that scrolls inside its box is clipped to it
+    const sl = s.sectionLays;
+    if (!sl.length) continue;
+    const clipped = s.placement.clip === true;
+    if (clipped) clipTo(out, s.placement.box);
+    for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
+    if (clipped) out.unclip();
+  }
+}
+
+/** A section's strips of a pass, each through its warp (`drawTracks`). */
+function drawStrips(
+  layout: ViewLayout,
+  s: SectionLayout,
+  out: PassWriter,
+  emphasis: Emphasis | undefined,
+  pass: PassName,
+  column: boolean,
+) {
+  const { tokens } = layout;
+  const strips = s.placement.strips;
+  const nb = strips.bands;
+  // a section that scrolls inside its box: each strip clipped to it, in the strip's frame (its warp moves the clip)
+  const clipped = s.placement.clip === true;
+  const pb = s.placement.box;
+  {
     for (let i = 0; i < strips.n; i++) {
       const w = openStrip(s, i, out);
       const a = strips.axes[i];
       const col = s.columns[i];
       const dy = strips.dy[i];
+      if (clipped) {
+        const g = w.args;
+        g[0] = pb.x - strips.dx[i];
+        g[1] = pb.y - dy;
+        g[2] = pb.width;
+        g[3] = pb.height;
+        w.clipArgs();
+      }
       if (column && emphasis && col) drawSectionEmphasis(w, s, a, col, emphasis, layout);
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
@@ -1215,7 +1307,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
         // the window pass is the layouts' own (their chrome): no layer draws there, so a hover's redraw walks none
         if (!lays || !lays.length || pass === 'window') continue;
         const clip = pass === 'data';
-        if (clip) w.clip(box.x, box.y, box.width, box.height);
+        if (clip) clipTo(w, box);
         for (let li = 0; li < lays.length; li++) {
           const l = lays[li];
           l.type.draw(l.lay, pass, w, emphasis);
@@ -1224,11 +1316,9 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       }
       const breaks = s.stripBreaks[i];
       if (pass === 'data' && col && breaks.length) drawBreaks(w, breaks, a, col, tokens);
+      if (clipped) w.unclip();
       closeStrip(s, i, out);
     }
-    // what crosses strips, on the page
-    const sl = s.sectionLays;
-    for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
   }
 }
 
@@ -1547,6 +1637,15 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       if (h?.element) return h;
     }
     if (!s.placement.at(x, y, Point) || Point.kind !== 'data') continue;
+    // a layer drawn across other bands of its strip (a frame's outline, `across`) is hit there, over their layers
+    for (let j = 0; j < strips.bands; j++) {
+      const own = s.lays[Point.strip * strips.bands + j];
+      for (let i = own ? own.length - 1 : -1; i >= 0; i--) {
+        if (!Array.isArray(own![i].layer.params.across)) continue;
+        const h = own![i].type.hit(own![i].lay, Point.x, Point.y);
+        if (h?.element) return h;
+      }
+    }
     const lays = s.lays[Point.strip * strips.bands + Point.band];
     if (!lays) return undefined;
     // the topmost layer with an element under the point, else the topmost with a position

@@ -13,6 +13,7 @@ import type { ThemeContext } from './channels.js';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
 import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreReader } from './layer-type.js';
+import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import { BuiltInLayerTypes, drawView, LayoutState, layoutView, type ViewLayout } from './tracks.js';
@@ -35,6 +36,8 @@ export interface RendererOptions {
   readonly text: TextMetrics;
   readonly config?: RenderConfig;
   readonly types?: Readonly<Record<string, LayerType<any, any>>>;
+  /** The section layouts by name (the built-ins by default): the viewer's navigation reads the same (`LayoutSource`). */
+  readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
   /** The schemes and measures the themes read (the built-ins by default): the composition's registry entries. */
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
 }
@@ -50,6 +53,10 @@ export interface FrameInput {
   readonly emphasis?: Emphasis;
   /** The reader's color-blind substitution (`theme.cvdSafe`): part of the key, never the spec. */
   readonly cvdSafe?: boolean;
+  /** Lays out a text section's every line, its box its content (an export: the figure). */
+  readonly figure?: boolean;
+  /** Draws the windows a figure leaves out by default (a ring's, in an export: `export.window`). */
+  readonly windows?: boolean;
 }
 
 /**
@@ -88,6 +95,8 @@ class KeyParts {
   overlay = Number.NaN;
   settled = false;
   cvdSafe = false;
+  figure = false;
+  windows = false;
 
   // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
 
@@ -107,7 +116,9 @@ class KeyParts {
       this.text === r.options.text.version &&
       this.overlay === (input.overlay ?? EmptyOverlay).version &&
       this.settled === (input.settled ?? false) &&
-      this.cvdSafe === (input.cvdSafe ?? false)
+      this.cvdSafe === (input.cvdSafe ?? false) &&
+      this.figure === (input.figure ?? false) &&
+      this.windows === (input.windows ?? false)
     );
   }
 
@@ -126,6 +137,8 @@ class KeyParts {
     this.overlay = (input.overlay ?? EmptyOverlay).version;
     this.settled = input.settled ?? false;
     this.cvdSafe = input.cvdSafe ?? false;
+    this.figure = input.figure ?? false;
+    this.windows = input.windows ?? false;
   }
 
   /** The key's text (the store's reads appended by the caller). */
@@ -133,7 +146,7 @@ class KeyParts {
     let vp = this.viewport ? `${this.start}:${this.end}` : 'all';
     if (this.viewports)
       for (const [a, v] of Object.entries(this.viewports).sort(([x], [y]) => (x < y ? -1 : 1)))
-        vp += `|${a}=${v.start}:${v.end}`;
+        vp += `|${a}=${v.start}:${v.end}${v.scale !== undefined ? `@${v.scale}` : ''}${v.top ? `^${v.top}` : ''}`;
     return [
       this.model,
       this.view,
@@ -144,6 +157,8 @@ class KeyParts {
       this.overlay,
       this.settled ? 's' : 'm',
       this.cvdSafe ? 'cvd' : '',
+      this.figure ? 'figure' : '',
+      this.windows ? 'windows' : '',
       configKey,
     ].join('|');
   }
@@ -270,7 +285,10 @@ export class Renderer {
         overlay,
         settled: input.settled ?? false,
         types: this.options.types ?? BuiltInLayerTypes,
+        ...(this.options.layouts ? { layouts: this.options.layouts } : {}),
         theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
+        ...(input.figure ? { figure: true } : {}),
+        ...(input.windows ? { windows: true } : {}),
       },
       this.state,
     );

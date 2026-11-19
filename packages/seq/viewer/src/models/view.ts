@@ -5,13 +5,23 @@
  */
 
 // The view's model (_spec/README.md "ViewModel"): the view shown, a viewport per section, scroll groups on equal axes
-// (EC-113), follows through the resolved view's follow path (EC-113, EC-114), a move asked of a follower carried back
+// of one layout (EC-113), each move's arithmetic its section's layout's (`SectionNav`, through the placement the last
+// frame gave it), follows through the resolved view's follow path (EC-113, EC-114), a move asked of a follower carried back
 // to its leader (`follow.followerMoves`: `lead`), viewports kept across updates (EC-111) and moves before a width kept
 // as intents (EC-112), and the view's history of jumps (back and forward). Session state: never in the spec or its
 // history.
 
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
+import {
+  BuiltInLayouts,
+  type NavContext,
+  type Placement,
+  type Viewport as RenderViewport,
+  type SectionLayoutType,
+  type SectionNav,
+  type StepDir,
+} from '@molstar/seqx-core/render';
 import { inversePath, type Path, projectEnd, projectPoint } from '@molstar/seqx-core/resolve';
 import {
   type Axis,
@@ -42,13 +52,33 @@ export interface Viewport {
   readonly leader?: string;
   /** A follower's range over a cyclic origin, as two offset pieces in display order: `[start, total, 0, end − total]`. */
   readonly pieces?: readonly number[];
+  /**
+   * px a position, where the layout reads one (text: the letter size; none: its preset's). Each layout reads the
+   * record its way (_spec/README.md "ViewModel", Layouts): text's `start` is its anchor, its `end` an estimate.
+   */
+  readonly scale?: number;
+}
+
+/**
+ * Where the models read what a layout's arithmetic needs (_spec/README.md "ViewModel", Layouts): a section's placement
+ * in the last frame (text: its lines and their heights), the layouts by name, the least px a position (text: the
+ * letters' threshold).
+ */
+export interface LayoutSource {
+  placement(section: string): Placement | undefined;
+  readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
+  readonly minScale?: number;
 }
 
 interface Group {
   readonly key: string;
   readonly axis: Axis;
+  /** Its sections' layout: a group holds one (scroll groups across layouts would read one range two ways). */
+  readonly layout: string;
   start: number;
   end: number;
+  /** px a position, where the layout reads one (text). */
+  scale?: number;
   /** It shows the whole axis and stays so across resizes and updates. */
   fitted: boolean;
   /** The last width (px) it was placed at: a resize keeps its zoom against it. */
@@ -78,6 +108,7 @@ interface Kept {
   readonly sig?: string;
   readonly center?: number;
   readonly members?: readonly string[];
+  readonly scale?: number;
 }
 
 /** The leading viewports at one time: each group's range by key (a detached follower's among them). */
@@ -97,7 +128,8 @@ function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
   if (a.size !== b.size) return false;
   for (const [k, v] of a) {
     const w = b.get(k);
-    if (!w || w.sig !== v.sig || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted) return false;
+    if (!w || w.sig !== v.sig || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted || w.scale !== v.scale)
+      return false;
   }
   return true;
 }
@@ -128,6 +160,9 @@ export class ViewModel extends ReactiveModel {
   readonly history: ReadonlyState<ViewHistory> = this._history.asReadonly;
   /** Moves on each jump, back and forward (and each step zoom): what a viewer animates; a move by hand does not. */
   readonly jumps: ReadonlyState<number> = this._jumps.asReadonly;
+
+  /** Where a section's placement comes from: its moves are then its layout's arithmetic (`setLayoutSource`). */
+  private _layouts: LayoutSource | undefined;
 
   /** The lengths of source-backed systems the store's coverages give, by system address (`refreshLengths`). */
   private readonly _lengths = new State<ReadonlyMap<string, number>>(new Map(), sameLengths);
@@ -171,6 +206,27 @@ export class ViewModel extends ReactiveModel {
       }
     }
     this._lengths.set(next);
+  }
+
+  /**
+   * Where a section's placement in the last frame comes from (the viewer's frames): each move asked of a section is
+   * then its layout's arithmetic over it (_spec/README.md "ViewModel", Layouts); without one, a window of offsets.
+   */
+  setLayoutSource(source: LayoutSource): void {
+    this._layouts = source;
+  }
+
+  /**
+   * A frame placed the sections again: a layout's estimate drawn from its placement (a text's end: the lines in view)
+   * is read again. Tells only what changed.
+   */
+  placed(): void {
+    if (this._layouts) this._publish();
+  }
+
+  /** A section's layout's name (`tracks` when it has none). */
+  layoutOf(section: string): string {
+    return this._sections.get(section)?.section.layout ?? 'tracks';
   }
 
   /** Shows another view of the spec (undefined: the first). */
@@ -235,11 +291,43 @@ export class ViewModel extends ReactiveModel {
     }
     const g = this._movable(section);
     if (!g) return false;
-    g.start = Math.min(start, end);
-    g.end = Math.max(start, end);
-    g.fitted = false;
+    const [s, e] = [Math.min(start, end), Math.max(start, end)];
+    const c = this._navContext(section, g);
+    const focus = c && this._navOf(g.layout).focus;
+    if (c && focus) this._take(g, focus(c, rangeOf(g), s, e));
+    else {
+      g.start = s;
+      g.end = e;
+      g.fitted = false;
+    }
     this._publish();
     return true;
+  }
+
+  /**
+   * The least move that shows `[start, end)` (offsets): the cursor out of view, a linked selection (the layout's
+   * `reveal`: a window pans to its nearer edge, a text scrolls the lines in). False when nothing moved.
+   */
+  reveal(section: string, start: number, end: number): boolean {
+    if (!Number.isFinite(start) || !Number.isFinite(end) || this._leading(section)) return false;
+    const g = this._movable(section);
+    const c = g && this._navContext(section, g);
+    if (!g || !c) return false;
+    const next = this._navOf(g.layout).reveal(c, rangeOf(g), Math.min(start, end), Math.max(start, end));
+    if (next.start === g.start && next.end === g.end) return false;
+    this._take(g, next);
+    this._publish();
+    return true;
+  }
+
+  /**
+   * Where a cursor at offset `offset` of a section steps (`up`, `down`: a line, in a layout of lines), by its layout's
+   * arithmetic; −1 for none (tracks have one line: up and down leave the section).
+   */
+  step(section: string, offset: number, dir: StepDir): number {
+    const s = this._sections.get(section);
+    const c = s && this._navContext(section);
+    return s && c ? this._navOf(s.section.layout).step(c, offset, dir) : -1;
   }
 
   /** Moves the range by `delta` offsets. */
@@ -261,11 +349,19 @@ export class ViewModel extends ReactiveModel {
     return true;
   }
 
-  /** Moves the range by `dx` pixels of its width; nothing before a width. */
-  panPx(section: string, dx: number): boolean {
+  /**
+   * Moves the view by a scroll's deltas, px (positive shows what is right and below), by its layout's arithmetic: a
+   * window pans across, a text scrolls its lines; nothing before a width. A follower that leads moves its leader.
+   */
+  panPx(section: string, dx: number, dy = 0): boolean {
     const v = this.get(section);
     if (!v || v.width <= 0) return false;
-    return this.pan(section, (dx * (v.end - v.start)) / v.width);
+    const g = this._leading(section) ? undefined : this._movable(section);
+    const c = g && this._navContext(section, g);
+    if (!g || !c) return dx ? this.pan(section, (dx * (v.end - v.start)) / v.width) : this._canMove(section);
+    this._take(g, this._navOf(g.layout).pan(c, rangeOf(g), dx, dy));
+    this._publish();
+    return true;
   }
 
   /** Zooms by `factor` (above 1: in) about `anchor` (an offset; the center when absent), which stays in place. */
@@ -283,9 +379,14 @@ export class ViewModel extends ReactiveModel {
     const g = this._movable(section);
     if (!g) return false;
     const a = anchor ?? (g.start + g.end) / 2;
-    g.start = a - (a - g.start) / factor;
-    g.end = a + (g.end - a) / factor;
-    g.fitted = false;
+    const c = this._navContext(section, g);
+    if (c) this._take(g, this._navOf(g.layout).zoom(c, rangeOf(g), factor, a));
+    else {
+      // before a width: the intent, a window of offsets
+      g.start = a - (a - g.start) / factor;
+      g.end = a + (g.end - a) / factor;
+      g.fitted = false;
+    }
     this._publish();
     return true;
   }
@@ -299,6 +400,13 @@ export class ViewModel extends ReactiveModel {
     if (!g) return false;
     g.start = 0;
     g.end = axisTotal(g.axis) ?? 0;
+    // its layout's fit (text: the preset's letter size)
+    const c = this._navContext(section, g);
+    if (c) {
+      const f = this._navOf(g.layout).fit(c, rangeOf(g));
+      if (f.scale !== undefined) g.scale = f.scale;
+      else delete g.scale;
+    }
     g.fitted = true;
     this._publish();
     return true;
@@ -412,9 +520,10 @@ export class ViewModel extends ReactiveModel {
         start: g.start,
         end: g.end,
         fitted: g.fitted,
-        sig: axisKey(g.axis),
+        sig: sigOf(g),
         ...(center !== undefined ? { center } : {}),
         members: g.members,
+        ...(g.scale !== undefined ? { scale: g.scale } : {}),
       });
     }
     return out;
@@ -433,13 +542,17 @@ export class ViewModel extends ReactiveModel {
           v = w;
           break;
         }
-    if (!v || v.sig === undefined || v.sig === axisKey(g.axis)) return v;
+    const sig = sigOf(g);
+    if (!v || v.sig === undefined || v.sig === sig) return v;
+    // the letter size is kept within one layout only (a text's, across a reverse or a collapse)
+    const scale = v.scale !== undefined && layoutOfSig(v.sig) === g.layout ? { scale: v.scale } : {};
     const total = axisTotal(g.axis);
-    if (v.fitted || total === undefined) return { start: 0, end: total ?? v.end, fitted: true, sig: axisKey(g.axis) };
+    if (v.fitted || total === undefined) return { start: 0, end: total ?? v.end, fitted: true, sig, ...scale };
     const c = v.center === undefined ? undefined : centerOffset(g.axis, v.center);
-    if (c === undefined) return { start: 0, end: total, fitted: true, sig: axisKey(g.axis) };
+    if (c === undefined) return { start: 0, end: total, fitted: true, sig, ...scale };
+    // the centre and the zoom: a window's middle, a text's lines in view (its anchor and its estimated end) alike
     const half = (v.end - v.start) / 2;
-    return { start: c - half, end: c + half, fitted: false, sig: axisKey(g.axis) };
+    return { start: c - half, end: c + half, fitted: false, sig, ...scale };
   }
 
   /**
@@ -451,9 +564,15 @@ export class ViewModel extends ReactiveModel {
     const out = new Map<string, Kept>();
     for (const g of this._groups.values()) {
       const v = this._keptOf(snap, g);
-      if (v) out.set(g.key, { ...v, sig: axisKey(g.axis) });
+      if (v) out.set(g.key, { ...v, sig: sigOf(g) });
       else if (!g.key.startsWith(DetachedPrefix))
-        out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted, sig: axisKey(g.axis) });
+        out.set(g.key, {
+          start: g.start,
+          end: g.end,
+          fitted: g.fitted,
+          sig: sigOf(g),
+          ...(g.scale !== undefined ? { scale: g.scale } : {}),
+        });
     }
     for (const [key, v] of snap)
       if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
@@ -474,6 +593,8 @@ export class ViewModel extends ReactiveModel {
         g.start = v.start;
         g.end = v.end;
         g.fitted = v.fitted;
+        if (v.scale !== undefined) g.scale = v.scale;
+        else delete g.scale;
       } else if (key.startsWith(DetachedPrefix)) {
         this._groups.delete(key);
         for (const s of this._sections.values()) if (s.group === key) s.group = undefined;
@@ -486,9 +607,11 @@ export class ViewModel extends ReactiveModel {
       this._groups.set(key, {
         key,
         axis: s.section.axis,
+        layout: s.section.layout,
         start: v.start,
         end: v.end,
         fitted: v.fitted,
+        ...(v.scale !== undefined ? { scale: v.scale } : {}),
         placedWidth: s.width,
         members: [s.section.address],
       });
@@ -498,6 +621,51 @@ export class ViewModel extends ReactiveModel {
   }
 
   // ---- internals ----
+
+  /** A layout's navigation by name (tracks' when it is unknown). */
+  private _navOf(layout: string): SectionNav {
+    return this._layoutOf(layout).nav;
+  }
+
+  /** A layout by name: the layout source's (the frame's), else the built-ins; tracks' when it is unknown, as drawn. */
+  private _layoutOf(layout: string): SectionLayoutType<any> {
+    const layouts = this._layouts?.layouts ?? BuiltInLayouts;
+    return layouts[layout] ?? layouts.tracks ?? BuiltInLayouts.tracks;
+  }
+
+  /**
+   * What a section's layout's arithmetic reads (_spec/README.md "ViewModel", Layouts): its axis's total, its group's
+   * width (`g`) or its own, its placement in the last frame; undefined while it cannot be placed (no length or width):
+   * a move is then an intent, a window of offsets.
+   */
+  private _navContext(section: string, g?: Group): NavContext | undefined {
+    const s = this._sections.get(section);
+    const total = s && axisTotal(s.section.axis);
+    const width = g ? this._groupWidth(g) : (s?.width ?? 0);
+    if (!s || total === undefined || !(width > 0)) return undefined;
+    const placement = this._layouts?.placement(section);
+    const minScale = this._layouts?.minScale;
+    return {
+      total,
+      width,
+      height: placement?.box.height ?? 0,
+      // a cyclic axis's window passes its origin where its layout draws it there (`wraps`: a ring's); tracks and text
+      // keep it within the axis (their leader's transform ends at its total)
+      cyclic: s.section.axis.cyclic && this._layoutOf(g?.layout ?? s.section.layout).wraps === true,
+      maxScale: this.config.viewport.maxPxPerPosition,
+      ...(minScale !== undefined ? { minScale } : {}),
+      ...(placement ? { placement } : {}),
+    };
+  }
+
+  /** A group takes a viewport its layout's arithmetic gave. */
+  private _take(g: Group, v: RenderViewport): void {
+    g.start = v.start;
+    g.end = v.end;
+    if (v.scale !== undefined) g.scale = v.scale;
+    else delete g.scale;
+    g.fitted = false;
+  }
 
   private _canMove(section: string, depth = 0): boolean {
     const s = this._sections.get(section);
@@ -620,6 +788,7 @@ export class ViewModel extends ReactiveModel {
       this._groups.set(key, {
         key,
         axis: s.section.axis,
+        layout: s.section.layout,
         start: v?.start ?? 0,
         end: v?.end ?? total,
         fitted: false,
@@ -652,11 +821,11 @@ export class ViewModel extends ReactiveModel {
         continue;
       }
       // a pending axis has no pieces: its key holds the section's own range, so only equal ranges group
-      const key = this.config.viewport.groupEqualAxes
-        ? section.axis.ranges
-          ? axisKey(section.axis)
-          : `${axisKey(section.axis)}|${rangeParam(root, section.address)}`
-        : section.address;
+      // groups only among sections of one layout: a range is read its layout's way (_spec/README.md "ViewModel")
+      const axisPart = section.axis.ranges
+        ? axisKey(section.axis)
+        : `${axisKey(section.axis)}|${rangeParam(root, section.address)}`;
+      const key = this.config.viewport.groupEqualAxes ? `${axisPart}|${section.layout}` : section.address;
       state.group = key;
       const existing = groups.get(key);
       if (existing) {
@@ -686,15 +855,28 @@ export class ViewModel extends ReactiveModel {
         const width = this._groupWidth(g);
         if (total === undefined || width <= 0) continue;
         g.placedWidth = width;
+        const c = this._navContext(g.members[0], g);
+        // a layout whose window is not its range (a text's lines in view, from its last frame): its end that window's
+        // width on from its start, an estimate (lines at full height until laid out)
+        const w = c?.placement?.window;
         if (g.fitted) {
           g.start = 0;
-          g.end = total;
+          g.end = w ? Math.min(total, Math.max(1, w.end - w.start)) : total;
           continue;
         }
-        const w = Math.min(Math.max(g.end - g.start, Math.min(width / maxPxPerPosition, total)), total);
-        const c = (g.start + g.end) / 2;
-        g.start = Math.min(Math.max(c - w / 2, 0), total - w);
-        g.end = g.start + w;
+        // the layout's clamp (a window within its axis and the most px a position; a text's anchor and size)
+        if (c) {
+          const v = this._navOf(g.layout).clamp(c, rangeOf(g));
+          g.start = v.start;
+          g.end = v.end;
+          if (v.scale !== undefined) g.scale = v.scale;
+          if (w) g.end = Math.min(total, g.start + Math.max(1, w.end - w.start));
+        } else {
+          const w = Math.min(Math.max(g.end - g.start, Math.min(width / maxPxPerPosition, total)), total);
+          const m = (g.start + g.end) / 2;
+          g.start = Math.min(Math.max(m - w / 2, 0), total - w);
+          g.end = g.start + w;
+        }
         if (g.start === 0 && g.end === total) g.fitted = true;
       }
       for (const address of this._order) {
@@ -702,7 +884,7 @@ export class ViewModel extends ReactiveModel {
         const g = this._groupOf(s);
         if (g) {
           const pending = axisTotal(s.section.axis) === undefined || this._groupWidth(g) <= 0;
-          this._set(address, g.start, g.end, s, pending, undefined, undefined);
+          this._set(address, g.start, g.end, s, pending, undefined, undefined, g.scale);
         } else this._follow(s);
       }
     });
@@ -717,6 +899,7 @@ export class ViewModel extends ReactiveModel {
     pending: boolean,
     leader: string | undefined,
     pieces: readonly number[] | undefined,
+    scale?: number,
   ): void {
     const p = this._viewports.get(address);
     if (
@@ -727,6 +910,7 @@ export class ViewModel extends ReactiveModel {
       p.width === s.width &&
       p.pending === pending &&
       p.leader === leader &&
+      p.scale === scale &&
       piecesEqual(p.pieces, pieces)
     )
       return;
@@ -738,6 +922,7 @@ export class ViewModel extends ReactiveModel {
       pending,
       ...(leader !== undefined ? { leader } : {}),
       ...(pieces ? { pieces } : {}),
+      ...(scale !== undefined ? { scale } : {}),
     });
   }
 
@@ -793,9 +978,20 @@ export class ViewModel extends ReactiveModel {
 function carry(key: string, section: ResolvedSection, prev: Group | undefined): Group {
   const axis = section.axis;
   const total = axisTotal(axis) ?? 0;
-  const group: Group = { key, axis, start: 0, end: total, fitted: true, placedWidth: 0, members: [section.address] };
+  const group: Group = {
+    key,
+    axis,
+    layout: section.layout,
+    start: 0,
+    end: total,
+    fitted: true,
+    placedWidth: 0,
+    members: [section.address],
+  };
   if (!prev) return group;
   group.placedWidth = prev.placedWidth;
+  // the letter size is kept within one layout (a text across a patch of its params)
+  if (prev.scale !== undefined && prev.layout === section.layout) group.scale = prev.scale;
   if (prev.fitted) return group;
   if (axesEqual(prev.axis, axis)) return { ...group, start: prev.start, end: prev.end, fitted: false };
   if (prev.axis.system !== axis.system) return group;
@@ -818,6 +1014,20 @@ function centerOffset(axis: Axis, center: number): number | undefined {
   const o = offsetOf(axis, center);
   if (o !== undefined) return o;
   return breakHolding(axis, Math.floor(center)) >= 0 ? nearestOffsetOf(axis, center) : undefined;
+}
+
+/** A group's range as its layout reads it. */
+function rangeOf(g: Group): RenderViewport {
+  return g.scale !== undefined ? { start: g.start, end: g.end, scale: g.scale } : { start: g.start, end: g.end };
+}
+
+/** A group's signature in a step of the history: its axis's and its layout (a step over either is restored by position). */
+function sigOf(g: Group): string {
+  return `${axisKey(g.axis)}#${g.layout}`;
+}
+
+function layoutOfSig(sig: string): string {
+  return sig.slice(sig.lastIndexOf('#') + 1);
 }
 
 /** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */

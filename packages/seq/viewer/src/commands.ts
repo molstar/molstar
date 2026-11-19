@@ -41,6 +41,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'selection.add': 'session',
   'selection.subtract': 'session',
   'selection.clear': 'session',
+  // copying reads: the letters go to the clipboard
+  'selection.copy-letters': 'none',
   // the keyboard cursor and what it selects are session state; Enter's focus moves the view
   'cursor.prev': 'session',
   'cursor.next': 'session',
@@ -48,6 +50,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'cursor.down': 'session',
   'cursor.extend-prev': 'session',
   'cursor.extend-next': 'session',
+  'cursor.extend-up': 'session',
+  'cursor.extend-down': 'session',
   'cursor.add-prev': 'session',
   'cursor.add-next': 'session',
   'cursor.toggle': 'session',
@@ -61,6 +65,13 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'view.zoom-out': 'navigate',
   'view.pan-left': 'navigate',
   'view.pan-right': 'navigate',
+  'view.pan-up': 'navigate',
+  'view.pan-down': 'navigate',
+  // a window's steps as a slider (its section's viewport)
+  'window.pan-back': 'navigate',
+  'window.pan-on': 'navigate',
+  'window.grow': 'navigate',
+  'window.shrink': 'navigate',
   // the actions on addresses: a focus or a reveal moves the view; a selection or a highlight is session state
   'address.focus': 'navigate',
   'address.reveal': 'navigate',

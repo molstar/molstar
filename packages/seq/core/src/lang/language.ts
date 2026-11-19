@@ -226,7 +226,12 @@ export const SeqLanguage = defineLanguage({
       parents: ['views'],
       ids: 'required',
       params: {
-        layout: { type: 'string', enum: ['tracks'], default: 'tracks', doc: 'How the sections are laid out.' },
+        layout: {
+          type: 'string',
+          enum: ['tracks', 'text'],
+          default: 'tracks',
+          doc: 'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis) or `text` (lines of letters).',
+        },
         export: {
           type: 'record',
           fields: {
@@ -234,6 +239,10 @@ export const SeqLanguage = defineLanguage({
               type: 'string',
               enum: ['none', 'below', 'right'],
               doc: 'Legends in an export: `none` (when absent), in a band `below` the data or to its `right`.',
+            },
+            window: {
+              type: 'boolean',
+              doc: 'Whether an export draws a ring’s window (false when absent: an exported map is a figure).',
             },
           },
           doc: 'How the view exports (a figure says how it exports); an export call’s options override it.',
@@ -316,6 +325,37 @@ export const SeqLanguage = defineLanguage({
           min: 0,
           doc: 'Positions kept each side of every piece (splice sites); overlapping pads merge. 0 when absent.',
         },
+        layout: {
+          type: 'string',
+          enum: ['tracks', 'text'],
+          doc: 'How the section is laid out: `tracks` or `text` (lines of letters, wrapped to the width); the view’s `layout` when absent.',
+        },
+        group: {
+          type: 'integer',
+          min: 0,
+          doc: 'Text: positions a group (a gap between groups; a line holds whole groups); 10 when absent, 0 for none.',
+        },
+        numbers: {
+          type: 'string',
+          enum: ['start', 'end', 'both', 'none'],
+          doc: 'Text: each line’s first (`start`, left) or last (`end`, right) position’s number, or both, or none; `start` when absent.',
+        },
+        group_labels: {
+          type: 'string',
+          enum: ['above', 'inline', 'none'],
+          doc: 'Text: a number a group, above its last position (`above`, when absent), before the group on its line (`inline`), or none.',
+        },
+        align: {
+          type: 'string',
+          enum: ['start', 'center'],
+          doc: 'Text: lines at the start of the width (when absent) or centered in it.',
+        },
+        max_width: { type: 'number', min: 0, doc: 'Text: the most px a line takes; the whole width when absent.' },
+        height: {
+          type: 'number',
+          min: 0,
+          doc: 'Text: the section’s height in px (it scrolls inside); its content’s, up to the render config’s `text.maxHeight`, when absent.',
+        },
       },
     },
     track: {
@@ -372,9 +412,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         type: {
           type: 'string',
-          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants'],
+          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants', 'frame'],
           required: true,
-          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn) or variants (ranges of one position each); `secondary` and `variants` draw `ranges` where a reader lacks them.',
+          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each) or frames (ranges outlined across the tracks `across` names, titled by their labels); `secondary` and `variants` draw `ranges` where a reader lacks them.',
         },
         data: {
           type: 'ref',
@@ -409,6 +449,13 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['auto', 'always', 'never'],
           doc: 'For `letters` of nucleotides: `auto` (when absent) shows a letter as its complement where it is read against its strand on screen (the axis reversed against its run); `always`, `never`. The stored letter is what search and status read.',
+        },
+        across: {
+          type: 'list',
+          of: { type: 'string', doc: 'A track’s id in the layer’s section.' },
+          'min-length': 1,
+          'max-length': 2,
+          doc: 'For `frame`: the tracks its outlines cover, the first and the last (the bands between them too); its own track’s when absent.',
         },
         numbering: {
           type: 'string',

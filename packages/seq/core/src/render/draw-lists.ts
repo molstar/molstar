@@ -793,6 +793,22 @@ export class PassWriter {
     this.pass.depth++;
   }
 
+  /** A clip to the box `args` holds (its first four numbers): fractional numbers passed to a call are boxed. */
+  clipArgs() {
+    const a = this.args;
+    this.pass.op(Op.clip);
+    const l = this.pass.clips;
+    if (l.n >= l.x.length) l.push(a[0], a[1], a[2], a[3]);
+    else {
+      const i = l.n++;
+      l.x[i] = a[0];
+      l.y[i] = a[1];
+      l.w[i] = a[2];
+      l.h[i] = a[3];
+    }
+    this.pass.depth++;
+  }
+
   unclip() {
     if (this.pass.depth === 0) return;
     this.pass.op(Op.unclip);

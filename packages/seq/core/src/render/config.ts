@@ -46,6 +46,8 @@ export interface RenderConfig {
     readonly ruler: number;
     readonly secondary: number;
     readonly variants: number;
+    /** A frame's title row (its outline covers the tracks it names). */
+    readonly frame: number;
   };
   /** A lane of ranges, and the gap within it. */
   readonly laneHeight: number;
@@ -128,6 +130,25 @@ export interface RenderConfig {
    * nothing new; past this many, a full redraw starts the table again.
    */
   readonly internedStrings: number;
+  /**
+   * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
+   * between groups (a share of a cell), between lines and between a line's bands (px), whether a band no layer used on
+   * a line collapses there, the most lines a section lays out, the most px a section in a page takes before it scrolls
+   * inside, whether a piece's edge starts a line, the gap between a line and its numbers, a track's height by its
+   * layers' type when the spec gives none (thin: a ranges track reads as underlines, a values track as a strip).
+   */
+  readonly text: {
+    readonly scale: number;
+    readonly groupGap: number;
+    readonly lineGap: number;
+    readonly bandGap: number;
+    readonly collapseEmpty: boolean;
+    readonly maxLines: number;
+    readonly maxHeight: number;
+    readonly pieceBreak: 'none' | 'line';
+    readonly numberGap: number;
+    readonly heights: RenderConfig['heights'];
+  };
 }
 
 export const DefaultRenderConfig: RenderConfig = {
@@ -136,7 +157,7 @@ export const DefaultRenderConfig: RenderConfig = {
   labelGap: 8,
   trackGap: 4,
   sectionGap: 8,
-  heights: { letters: 20, ranges: 36, values: 32, ruler: 22, secondary: 16, variants: 32 },
+  heights: { letters: 20, ranges: 36, values: 32, ruler: 22, secondary: 16, variants: 32, frame: 16 },
   laneHeight: 12,
   laneGap: 2,
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
@@ -169,6 +190,18 @@ export const DefaultRenderConfig: RenderConfig = {
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
   internedStrings: DefaultMaxStrings,
+  text: {
+    scale: 12,
+    groupGap: 0.5,
+    lineGap: 8,
+    bandGap: 2,
+    collapseEmpty: true,
+    maxLines: 100_000,
+    maxHeight: 600,
+    pieceBreak: 'none',
+    numberGap: 8,
+    heights: { letters: 18, ranges: 4, values: 3, ruler: 14, secondary: 6, variants: 10, frame: 14 },
+  },
 };
 
 /** Fields of a config to override: the nested ones whole or field by field. */
@@ -195,6 +228,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
     emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },
+    text: { ...DefaultRenderConfig.text, ...over.text },
   };
 }
 
