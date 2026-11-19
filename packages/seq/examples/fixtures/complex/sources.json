@@ -1,0 +1,98 @@
+[
+  {
+    "file": "complex/1FIN.seq",
+    "entry": "PDB 1FIN (cyclin A–CDK2–ATP, Jeffrey et al. 1995)",
+    "url": "https://files.rcsb.org/download/1FIN.cif",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "RCSB PDB PDB 1FIN (cyclin A–CDK2–ATP, Jeffrey et al. 1995), CC0 1.0",
+    "trimmed": "converted to seq: each entity’s letters (CDK2 chains A, C; the cyclin A construct, chains B, D) and its chains’ helices and strands (struct_conf, struct_sheet_range) as ranges with chain and category; the coordinates dropped",
+    "derived": "none",
+    "bytesDownloaded": 999052,
+    "bytesFixture": 3520,
+    "sha256Download": "dfe5da37b2e28d3d74eefa0edee97d57ea127538beead9e68a8a42a5c363a1ac",
+    "sha256Fixture": "518a7770f2e4e5a35041d61d2336629d5c599484e0455c6276da67911ca3e5bd"
+  },
+  {
+    "file": "complex/contacts.seq",
+    "entry": "PDB 1FIN and 1AQ1 (STU), 2VTA (LZ1), 6Q3B (PYZ), 2C6O (4SP), 3PXQ (2AN), 3TI1 (B49)",
+    "url": "https://files.rcsb.org/download/1FIN.cif https://files.rcsb.org/download/1AQ1.cif https://files.rcsb.org/download/2VTA.cif https://files.rcsb.org/download/6Q3B.cif https://files.rcsb.org/download/2C6O.cif https://files.rcsb.org/download/3PXQ.cif https://files.rcsb.org/download/3TI1.cif",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "RCSB PDB PDB 1FIN and 1AQ1 (STU), 2VTA (LZ1), 6Q3B (PYZ), 2C6O (4SP), 3PXQ (2AN), 3TI1 (B49), CC0 1.0",
+    "trimmed": "converted to seq: ranges on CDK2’s residues, a row a contact",
+    "derived": "contacts within 4 Å between heavy atoms: CDK2 with cyclin A in each copy of 1FIN (the cyclin chain it touches most), each copy’s ATP with its CDK2 chain, and each ligand with the CDK2 chain it touches most (its residues by author number, UniProt P24941’s)",
+    "bytesDownloaded": 3067791,
+    "bytesFixture": 8364,
+    "sha256Download": "d1c2a6bf26701b89c667a0be028482783057c4abcb84126efa1dbf6825ef8e40",
+    "sha256Fixture": "aec8f950571f90e98bfa4955c782e0c6a8905d04827ec6d49afe173b6094534b"
+  },
+  {
+    "file": "complex/P24941.json",
+    "entry": "UniProtKB P24941, REST entry",
+    "url": "https://rest.uniprot.org/uniprotkb/P24941.json",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "UniProt Consortium, UniProtKB P24941, CC BY 4.0",
+    "trimmed": "members kept: entryType, primaryAccession, uniProtkbId, organism, sequence, features; features without evidences, featureCrossReferences, ligand and without the Natural variant features",
+    "derived": "none",
+    "bytesDownloaded": 238172,
+    "bytesFixture": 13361,
+    "sha256Download": "06bee5f5b03cc12a8c6f07cc7124197b7d8e78d7d7e304c353255ebf83c7fecf",
+    "sha256Fixture": "e57e8b7086ee5de580cd0048bb967f047c7fec248854fc8d20adf9081a67221f"
+  },
+  {
+    "file": "complex/AF-P24941-F1-confidence_v6.json",
+    "entry": "AlphaFold DB AF-P24941-F1, model version 6, per-residue confidence (pLDDT)",
+    "url": "https://alphafold.ebi.ac.uk/files/AF-P24941-F1-confidence_v6.json",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), AF-P24941-F1 v6, CC BY 4.0",
+    "trimmed": "none (as published)",
+    "derived": "none",
+    "bytesDownloaded": 4100,
+    "bytesFixture": 4101,
+    "sha256Download": "04d509a8f724f1d1a373ac9b80fd8219e2262939e8a4434f2a700a5e3ad91230",
+    "sha256Fixture": "ebb97c046d9629ce9e715d1eeefa033792b7b5b68faf623cabbe75da65927153"
+  },
+  {
+    "file": "complex/P20248.json",
+    "entry": "UniProtKB P20248, REST entry",
+    "url": "https://rest.uniprot.org/uniprotkb/P20248.json",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "UniProt Consortium, UniProtKB P20248, CC BY 4.0",
+    "trimmed": "members kept: entryType, primaryAccession, uniProtkbId, organism, sequence, features; features without evidences, featureCrossReferences, ligand and without the Natural variant features",
+    "derived": "none",
+    "bytesDownloaded": 78490,
+    "bytesFixture": 5888,
+    "sha256Download": "bc6e2ddb6a4a17af66db1b8d62b2879a79a5cc949fc06f4566b14ac558de03de",
+    "sha256Fixture": "3e8f25f0ec2f9d59c743a8184c2e75961ac65651801c87d56edba1fb94ad1bbb"
+  },
+  {
+    "file": "complex/AF-P20248-F1-confidence_v6.json",
+    "entry": "AlphaFold DB AF-P20248-F1, model version 6, per-residue confidence (pLDDT)",
+    "url": "https://alphafold.ebi.ac.uk/files/AF-P20248-F1-confidence_v6.json",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), AF-P20248-F1 v6, CC BY 4.0",
+    "trimmed": "none (as published)",
+    "derived": "none",
+    "bytesDownloaded": 5953,
+    "bytesFixture": 5954,
+    "sha256Download": "439f94c8b17b1d2feaf1ad45470e6e60686652cb8db14afb588c9942dc5b076b",
+    "sha256Fixture": "edb5bb1c5ce24e7965d4be2af7381b9258ce41467a529047cf32451dc2f18b6b"
+  }
+]

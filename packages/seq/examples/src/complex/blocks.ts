@@ -4,72 +4,82 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { printAddress } from '@molstar/core/repr/tree';
 import type { Node } from '@molstar/core/repr/tree';
-import { PCG } from '@molstar/core/data/util/hash-functions';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, type SeqSpecBuilder } from '@molstar/seqx-core/lang';
+import type { Derived } from './derived.js';
+import { Cdk2Features, constructOffset, contactRows, crystal, CyclinFeatures, Data, interfaceRows } from './data.js';
 
-// The Complex dataset, a stand-in until its dataset is recorded: CDK2 with cyclin A as in 1FIN (two copies of the
-// complex, an ATP on each CDK2), its chains as blocks of one section, polymers first, then the ligands as
-// one-position blocks (EC-101); the copies merged into one block labeled ×2 (`copies: 'merge'`, the default, EC-65) or
-// split (`each`). The chains' lengths and features' places are CDK2's and cyclin A's construct's (PSTAIRE 45–56, the
-// activation loop with T160, the cyclin box); their letters are generated from a seed (never stored): the recorded
-// entry replaces them.
+// The Complex's crystal, PDB 1FIN: CDK2 and the cyclin A construct, two copies of the complex, an ATP on each CDK2. Its
+// chains as blocks of one section, polymers first, then the ATPs as one-position blocks (chips, EC-101); the copies
+// merged into one block labeled ×2 (`copies: 'merge'`, the default, EC-65) or split (`each`). Under them the features
+// (CDK2's PSTAIRE helix, activation loop and T160; cyclin A's cyclin box folds on the construct), the interface
+// residues of both copies, the first copy's secondary structure and the letters; the contacts across the chains as
+// arcs only when asked (`contacts`: an optional `pairs` layer, never a default), folded by copy group.
 
-export const title = 'Complex blocks';
-
-/** The chains' lengths (CDK2, the cyclin A construct of 1FIN). */
-export const ComplexLengths = { cdk2: 298, cyclin: 260 } as const;
-
-/** A chain's stand-in letters. */
-export function letters(seed: number, n: number): string {
-  const r = new PCG(seed);
-  const aa = 'ACDEFGHIKLMNPQRSTVWY';
-  let s = '';
-  for (let i = 0; i < n; i++) s += aa[r.int() % aa.length];
-  return s;
-}
+export const title = 'Complex: 1FIN’s chains as blocks';
 
 export interface BlocksOptions {
   readonly arrange?: 'row' | 'stack';
   readonly copies?: 'merge' | 'each';
   readonly layout?: 'rings';
+  /** The contacts across the chains as arcs (a `pairs` track). */
+  readonly contacts?: boolean;
 }
 
-/** The complex's chains and ligands as blocks, its features under them. */
-export function build(options: BlocksOptions = {}): Node {
-  const b = createSeqSpec({ title });
-  const cdk2 = b.data.sequence('cdk2', { alphabet: 'protein', letters: letters(2, ComplexLengths.cdk2) });
-  const cyclin = b.data.sequence('cyclin', { alphabet: 'protein', letters: letters(3, ComplexLengths.cyclin) });
-  // ATP as one position (its per-atom system waits for the dataset)
+/** The data nodes of 1FIN's views: its sequences, ATP, the features, the interface and the contacts. */
+export function crystalData(b: SeqSpecBuilder, d: Derived = Data) {
+  const x = crystal(b, d);
   const atp = b.data.sequence('atp', { alphabet: 'protein', letters: 'X', name: 'ATP' });
-  const cdk2f = b.data.ranges('cdk2-features', {
-    target: cdk2,
+  const shift = constructOffset(d);
+  const cdk2Features = b.data.ranges('cdk2-features', { target: x.cdk2, rows: Cdk2Features });
+  const cyclinFeatures = b.data.ranges('cyclin-features', {
+    target: x.cyclin,
     rows: {
-      start: [44, 144, 159],
-      end: [56, 172, 160],
-      id: ['psta', 'aloop', 't160'],
-      label: ['PSTAIRE', 'activation loop', 'T160'],
+      ...CyclinFeatures,
+      start: CyclinFeatures.start.map((s) => s - shift),
+      end: CyclinFeatures.end.map((e) => e - shift),
     },
   });
-  const cyclinf = b.data.ranges('cyclin-features', {
-    target: cyclin,
-    rows: { start: [40, 140], end: [130, 230], id: ['box1', 'box2'], label: ['cyclin box N', 'cyclin box C'] },
-  });
+  const cdk2Interface = b.data.ranges('cdk2-interface', { target: x.cdk2, rows: interfaceRows('cdk2', d) });
+  const cyclinInterface = b.data.ranges('cyclin-interface', { target: x.cyclin, rows: interfaceRows('cyclin', d) });
+  const contacts = b.data.pairs('contacts', { a: x.cdk2, b: x.cyclin, rows: contactRows({}, d) });
+  return { ...x, atp, cdk2Features, cyclinFeatures, cdk2Interface, cyclinInterface, contacts };
+}
+
+/** A layer's data: a ranges node's rows of one chain (`(item :chain A)`). */
+export const ofChain = (node: string, chain: string) => `${node}${printAddress([{ kind: 'item', params: { chain } }])}`;
+
+/** The complex's chains and ATPs as blocks, its features, interface and letters under them. */
+export function build(options: BlocksOptions = {}, d: Derived = Data): Node {
+  const b = createSeqSpec({ title });
+  const x = crystalData(b, d);
   b.views.view('main', (v) => {
     const s = v.section('complex', {
       ...(options.arrange ? { arrange: options.arrange } : {}),
       ...(options.copies ? { copies: options.copies } : {}),
       ...(options.layout ? { layout: options.layout } : {}),
     });
-    s.block('a', { of: cdk2, label: 'CDK2 (A)' });
-    s.block('b', { of: cyclin, label: 'cyclin A (B)' });
-    s.block('c', { of: cdk2, label: 'CDK2 (C)' });
-    s.block('d', { of: cyclin, label: 'cyclin A (D)' });
-    s.block('atp-a', { of: atp, label: 'ATP' });
-    s.block('atp-c', { of: atp, label: 'ATP' });
+    for (const c of d.chains)
+      s.block(c.id.toLowerCase(), {
+        of: c.system === 'cdk2' ? x.cdk2 : x.cyclin,
+        label: `${c.system === 'cdk2' ? 'CDK2' : 'cyclin A'} (${c.id})`,
+      });
+    for (const l of d.ligands.filter((l) => l.entry === '1FIN'))
+      s.block(`atp-${l.chain.toLowerCase()}`, { of: x.atp, label: 'ATP' });
     s.track('features', { label: 'Features' }, (t) => {
-      t.layer('cdk2', { type: 'ranges', data: cdk2f });
-      t.layer('cyclin', { type: 'ranges', data: cyclinf });
+      t.layer('cdk2', { type: 'ranges', data: x.cdk2Features });
+      t.layer('cyclin', { type: 'ranges', data: x.cyclinFeatures });
+    });
+    s.track('interface', { label: 'Interface' }, (t) => {
+      t.layer('cdk2', { type: 'ranges', data: x.cdk2Interface });
+      t.layer('cyclin', { type: 'ranges', data: x.cyclinInterface });
+    });
+    if (options.contacts)
+      s.track('contacts', { label: 'Contacts (≤ 4 Å)' }).layer('arcs', { type: 'pairs', data: x.contacts });
+    s.track('secondary', { label: 'Secondary (A, B)' }, (t) => {
+      t.layer('cdk2', { type: 'secondary', data: ofChain(x.cdk2Secondary, 'A') });
+      t.layer('cyclin', { type: 'secondary', data: ofChain(x.cyclinSecondary, 'B') });
     });
     s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
   });
@@ -87,3 +97,23 @@ export const stackedSplit = () => build({ arrange: 'stack', copies: 'each' });
 
 /** The chains on a ring: a block an arc. */
 export const ring = () => build({ layout: 'rings' });
+
+/** The contacts across the chains as arcs between the merged blocks: one arc a contact of either copy. */
+export const contacts = () => build({ contacts: true });
+
+/** The contacts with the copies split: each copy's contacts between its own blocks. */
+export const contactsSplit = () => build({ contacts: true, copies: 'each' });
+
+/** The copies' scale variant (performance.md, Scale): `n` copies of CDK2 as blocks, merged into one (`×n`) or each. */
+export function copiesScale(n = 200, copies: 'merge' | 'each' = 'merge'): Node {
+  const b = createSeqSpec({ title: `Complex: ${n} copies of CDK2` });
+  const x = crystal(b);
+  const features = b.data.ranges('cdk2-features', { target: x.cdk2, rows: Cdk2Features });
+  b.views.view('main', (v) => {
+    const s = v.section('copies', { copies });
+    for (let i = 0; i < n; i++) s.block(`c${i + 1}`, { of: x.cdk2, label: `CDK2 ${i + 1}` });
+    s.track('features', { label: 'Features' }).layer('cdk2', { type: 'ranges', data: features });
+    s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
+  });
+  return b.build();
+}
