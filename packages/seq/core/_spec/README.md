@@ -64,7 +64,8 @@ checks it cannot express.
   included), `collapsed` (the form `section.collapse` switches to; absent: `coding`) and `pad` (positions kept each side
   of a piece; absent: 0); a layer's `complement` (`auto`, `always`, `never`; absent: `auto`) and `code` (`auto`, `one`,
   `three`; absent: `auto`), read by `letters`; a layer's `numbering` (a numbering id; absent: the section's default,
-  `ordinal`) and `units` (`none`, `bases`; absent: `none`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
+  `ordinal`) and `units` (`none`, `bases`; absent: `none`), `unnumbered` (`mark`, `fallback`; absent: `mark`) and
+  `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
   `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`,
   `highlight`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a grid
   section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`;
@@ -1408,8 +1409,18 @@ the y path in Emphasis).
   number as its numbering does; `bases` labels an `ordinal` ruler in bp, kb or Mb chosen by the step
   (`@molstar/core/util/number`'s `formatGenomic`: 7,668,402 at a base step, 7,668 kb at a kilobase one, 7.67 Mb from 10
   kb), one unit and one count of decimals a step; another numbering keeps its own labels. Why: the writer of a
-  chromosome view says so, never inferred from the alphabet. A hit is the position under the pointer. Fallback: none
-  (omitted).
+  chromosome view says so, never inferred from the alphabet. **Where the numbering does not reach** (`unnumbered`;
+  decided, the author, 2026-11-19, the Antibody's light chain: Kabat and IMGT number only the variable domain): a
+  position with no label (past the numbering's coverage, a source's row missing) is in an unnumbered run, over the
+  pieces in view of at most 4,096 positions (a longer one is labelled by number). `mark` (the default): the ruler's line
+  over the run is muted and dashed, one muted note at its start (`not numbered`, ` by <numbering>` added where the
+  ruler's track label does not name the numbering) where it fits clear of the labels, no ticks. `fallback`: the run is
+  labelled by `fallbackNumbering` (`ordinal` when absent; a numbering the system declares, built in or inline) in the
+  muted style (ticks and labels at a lower opacity), no line and no note. A `fallbackNumbering` the system lacks is
+  `seq.render.numbering.fallback` and `mark` is used. Why: a blank reads as a bug, and a fallback numbering is the
+  writer's choice, never a silent default (its numbers are not the scheme's). Canvas and SVG alike (one draw list). A
+  hit is the position under the pointer; the hover card and the live region say its position and `not numbered by <id>`
+  there. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, UniProt's `Helix`, `Beta strand` and `Turn`, anything else a turn), in one band: a helix a block, a
   strand a block with an arrowhead on its C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding
@@ -2267,10 +2278,10 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`,
   `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`,
   `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`,
-  `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layout`, `layer.letters`, `axis.pending`
-  (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`, `source`, `template.limit`,
-  `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer` (info), `navigator.export`;
-  a test checks the catalog.
+  `numbering.fallback`, `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layout`,
+  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
+  `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
+  (info), `navigator.export`; a test checks the catalog.
 
 ## Stories
 

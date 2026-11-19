@@ -203,13 +203,13 @@ describe('the hover card’s content, headless on the HoverModel', () => {
     expect(said).toBe(card!.text);
   });
 
-  it('shows – for a numbering with no label at the place', async () => {
+  it('says not numbered by a numbering with no label at the place', async () => {
     const v = await make(cardSpec());
     const { s, l } = layerOf(v, 0, 'letters');
     // Kabat has no label at the first position
     const { card } = cardOf(v, { layer: l.key, section: s.section.address, system: Heavy, position: 0 });
-    expect(card?.rows).toContainEqual({ label: 'kabat', value: '–' });
-    expect(card?.text).toBe('s, h 1 (kabat –, imgt 1), letter E, score 0');
+    expect(card?.rows).toContainEqual({ label: 'kabat', value: 'not numbered' });
+    expect(card?.text).toBe('s, h 1 (imgt 1), not numbered by kabat, letter E, score 0');
   });
 
   it('names an item by its label, extent and category; a value track’s value; a pair’s two ends', async () => {

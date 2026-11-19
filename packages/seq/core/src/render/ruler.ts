@@ -15,15 +15,20 @@ import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passD
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
 import { readSourceNumbering } from './numberings.js';
-import type { SeqTokens } from './tokens.js';
+import { type SeqTokens, withAlpha } from './tokens.js';
 
 // the anchor a number read once (see ranges.ts)
 const AnchorMiddle: number = Anchor.middle;
+const AnchorStart: number = Anchor.start;
 
 // The `ruler` layer type (_spec/README.md "Render", Layer types): the section's axis labelled by a numbering. Ticks at
 // the labels that are multiples of a step of 1, 2 or 5 × 10ⁿ (the least whose px apart reach the label gap); insertion
 // labels (100A, 111.1) are minor ticks, labeled where there is room; a label that does not fit is skipped, never shrunk.
-// It labels the positions where they are, so a reversed axis counts down and a collapsed one labels its pieces.
+// It labels the positions where they are, so a reversed axis counts down and a collapsed one labels its pieces. Where a
+// numbering has no label (past its coverage: a light chain's constant domain under Kabat) `unnumbered` says what is
+// there (axis.md, "Where a numbering does not reach"): `mark` (default) a muted dashed line over the run, one muted note
+// at its start and no ticks; `fallback` the run labelled by `fallbackNumbering` (ordinal when absent) in the muted
+// style. Runs are found over the pieces in view of at most `LoopLimit` positions (a longer piece is labelled by number).
 
 /** The ruler's own position loop covers this many positions a piece at most; past it labels are looked up by number. */
 const LoopLimit = 4096;
@@ -33,6 +38,15 @@ const MinorScale = 4;
 const RulerFont = '10px mono';
 const MajorHeight = 6;
 const MinorHeight = 3;
+/** The muted style of an unnumbered run: its line and fallback ticks, its note and fallback labels (alpha of the ruler's). */
+const MutedLine = 0.55;
+const MutedInk = 0.8;
+const Dash = 3;
+/** The note over an unnumbered run, its inset from the run's start and the least gap to a label. */
+const Note = 'not numbered';
+const NoteInset = 4;
+const NoteGap = 4;
+const LineArgs = new Float64Array(4);
 
 export interface RulerPrep {
   /** The numbering id asked for (`ordinal` when absent). */
@@ -47,6 +61,12 @@ export interface RulerPrep {
   readonly system?: QuerySystem;
   /** `units: bases`: an `ordinal` ruler labels in bp, kb or Mb by its step (_spec/README.md "Render", Layer types). */
   readonly bases?: boolean;
+  /** `unnumbered`: `mark` (the default, and for anything else) or `fallback`. */
+  readonly unnumbered?: 'mark' | 'fallback';
+  /** `fallback`: the numbering that labels an unnumbered run (the system's `ordinal` when `fallbackNumbering` is absent). */
+  readonly fallback?: NumberingOf;
+  /** A `fallbackNumbering` the system does not have: reported, and `mark` is used. */
+  readonly unknownFallback?: string;
 }
 
 export interface RulerLay {
@@ -68,6 +88,16 @@ export interface RulerLay {
   grouped: '' | 'above' | 'inline';
   /** Labels drawn: indices into the ticks, with the room taken. */
   shown: Uint8Array;
+  /** Whether a tick (and its label) stands in an unnumbered run, in the fallback's muted style. */
+  muted: Uint8Array;
+  /** The unnumbered runs in view under `mark`: their left and right x (clipped to the box), pairs. */
+  runs: Float32Array;
+  nruns: number;
+  /** The note over each run: its x (left edge, in `noteX`, NaN when it does not fit), measured width. */
+  noteX: Float32Array;
+  noteWidth: number;
+  /** The note's text: `not numbered`, with ` by <numbering>` where the track's label does not say it. */
+  note: string;
 }
 
 export const RulerType: LayerType<RulerPrep, RulerLay> = {
@@ -79,12 +109,18 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     const system = layer.data ? model.system(layer.data.system) : undefined;
     const numbering = system ? findNumbering(system, id) : undefined;
     const entry = !numbering && system ? model.numberingOf(system.address, id) : undefined;
+    const fallbackId = layer.params.fallbackNumbering;
+    const named = typeof fallbackId === 'string' && fallbackId ? fallbackId : undefined;
+    const fallback = system ? findNumbering(system, named ?? 'ordinal') : undefined;
     return {
       id,
       ...(numbering ? { numbering } : {}),
       ...(entry?.source ? { source: { model, entry } } : {}),
       ...(system ? { system } : {}),
       bases: layer.params.units === 'bases',
+      unnumbered: layer.params.unnumbered === 'fallback' ? 'fallback' : 'mark',
+      ...(fallback ? { fallback } : {}),
+      ...(named && !fallback ? { unknownFallback: named } : {}),
     };
   },
 
@@ -105,6 +141,12 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
       labels: [],
       widths: new Float32Array(64),
       shown: new Uint8Array(64),
+      muted: new Uint8Array(64),
+      runs: new Float32Array(8),
+      nruns: 0,
+      noteX: new Float32Array(4),
+      noteWidth: 0,
+      note: Note,
       grouped: '',
     };
     lay.key = ctx.key;
@@ -116,6 +158,8 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.font = RulerFont;
     lay.fontSize = fontSize(RulerFont);
     lay.n = 0;
+    lay.nruns = 0;
+    lay.note = Note;
     const gl = axis.gsize > 0 ? ctx.section.params.group_labels : undefined;
     lay.grouped = axis.gsize > 0 && gl !== 'none' ? (gl === 'inline' ? 'inline' : 'above') : '';
     // a source's labels, once every tile of its system is in: no ticks while they come (pending, never ordinals); a
@@ -150,10 +194,38 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
       prep.numbering ??
       (fromSource ? { numbering: fromSource, shift: 0 } : undefined) ??
       (prep.system ? findNumbering(prep.system, 'ordinal') : undefined);
+    if (prep.unknownFallback !== undefined)
+      ctx.report(
+        issueOf(
+          RenderIssues,
+          'seq.render.numbering.fallback',
+          `The system has no numbering ${prep.unknownFallback} for the unnumbered positions: they are marked`,
+          { address: ctx.key, hint: RenderIssues.codes['seq.render.numbering.fallback'].hint },
+        ),
+      );
     const step = labelStep(axis.scale, config.ruler.labelGap);
     const ranges = axis.visible([]);
-    for (let r = 0; r + 1 < ranges.length; r += 2)
-      tickRange(lay, numbering, ranges[r], ranges[r + 1], step, prep.bases === true);
+    // a numbering of its own (not a built-in, which labels every position) may leave positions without a label
+    const holey = numbering && numbering.numbering.id !== 'ordinal' && numbering.numbering.id !== 'index';
+    const fallback = prep.unnumbered === 'fallback' ? prep.fallback : undefined;
+    if (holey && !fallback) lay.note = noteOf(ctx, prep.id);
+    for (let r = 0; r + 1 < ranges.length; r += 2) {
+      const a = ranges[r];
+      const b = ranges[r + 1];
+      if (!holey || b - a > LoopLimit) {
+        tickRange(lay, numbering, a, b, step, prep.bases === true, false);
+        continue;
+      }
+      const { numbering: n, shift } = numbering;
+      for (let p = a; p < b; ) {
+        const from = p;
+        const labelled = n.labelAt(p - shift) !== undefined;
+        while (p < b && (n.labelAt(p - shift) !== undefined) === labelled) p++;
+        if (labelled) tickRange(lay, numbering, from, p, step, prep.bases === true, false);
+        else if (fallback) tickRange(lay, fallback, from, p, step, false, true);
+        else unnumberedRun(lay, from, p);
+      }
+    }
     fit(lay, ctx);
     return lay;
   },
@@ -205,12 +277,38 @@ function nextTick(lay: RulerLay): number {
     lay.major = grown(lay.major, j + 1);
     lay.widths = grown(lay.widths, j + 1);
     lay.shown = grown(lay.shown, j + 1);
+    lay.muted = grown(lay.muted, j + 1);
   }
   return j;
 }
 
+/** The note over an unnumbered run: names the numbering where the ruler's track label does not. */
+function noteOf(ctx: LayoutContext, id: string): string {
+  let label = '';
+  for (const t of ctx.section.tracks) if (t.layers.some((l) => l.address === ctx.key)) label = t.label;
+  return label.toLowerCase().includes(id.toLowerCase()) ? Note : `${Note} by ${id}`;
+}
+
+/** An unnumbered run of the positions `[a, b)` in view: its x extent clipped to the box (a pair in `runs`). */
+function unnumberedRun(lay: RulerLay, a: number, b: number) {
+  const axis = lay.axis;
+  if (!axis.cell(a)) return;
+  let x0 = Math.min(axis.sx0, axis.sx1);
+  let x1 = Math.max(axis.sx0, axis.sx1);
+  if (!axis.cell(b - 1)) return;
+  x0 = Math.min(x0, axis.sx0, axis.sx1);
+  x1 = Math.max(x1, axis.sx0, axis.sx1);
+  x0 = Math.max(x0, lay.box.x);
+  x1 = Math.min(x1, lay.box.x + lay.box.width);
+  if (x1 <= x0) return;
+  const j = 2 * lay.nruns++;
+  if (j + 2 > lay.runs.length) lay.runs = grown(lay.runs, j + 2);
+  lay.runs[j] = x0;
+  lay.runs[j + 1] = x1;
+}
+
 /** A tick at position `p` with a label, when its cell is in view. */
-function tickAt(lay: RulerLay, p: number, label: string, major: boolean) {
+function tickAt(lay: RulerLay, p: number, label: string, major: boolean, muted: boolean) {
   const axis = lay.axis;
   if (!axis.cell(p)) return;
   const x = (axis.sx0 + axis.sx1) / 2;
@@ -218,6 +316,7 @@ function tickAt(lay: RulerLay, p: number, label: string, major: boolean) {
   const j = nextTick(lay);
   lay.x[j] = x;
   lay.major[j] = major ? 1 : 0;
+  lay.muted[j] = muted ? 1 : 0;
   // a group's end number stands over its last cell: the position carries that label, the tick none (text layout, Numbers)
   lay.labels[j] = lay.grouped && axis.endsGroup(axis.unitAt(x), lay.grouped === 'inline') ? '' : label;
 }
@@ -226,7 +325,15 @@ function tickAt(lay: RulerLay, p: number, label: string, major: boolean) {
  * The ticks of the positions `[a, b)` in view (one piece): the labels that are multiples of the step, the insertions;
  * with `bases`, an `ordinal` ruler's labels in bp, kb or Mb by the step (another numbering keeps its own labels).
  */
-function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: number, step: number, bases: boolean) {
+function tickRange(
+  lay: RulerLay,
+  of: NumberingOf | undefined,
+  a: number,
+  b: number,
+  step: number,
+  bases: boolean,
+  muted: boolean,
+) {
   if (!of || b <= a) return;
   const { numbering, shift } = of;
   const builtIn = numbering.id === 'ordinal' || numbering.id === 'index';
@@ -243,7 +350,7 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
       const label = genomic ? formatGenomic(n, step) : String(n);
       const i = builtIn ? n - (numbering.id === 'index' ? 0 : 1) : numbering.indexOf(label);
       const p = i + shift;
-      if (i >= 0 && p >= a && p < b) tickAt(lay, p, label, true);
+      if (i >= 0 && p >= a && p < b) tickAt(lay, p, label, true, muted);
     }
     return;
   }
@@ -254,10 +361,10 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
     const label = numbering.labelAt(p - shift);
     if (label === undefined) continue;
     const parsed = parseLabel(label);
-    if (parsed.int === undefined) tickAt(lay, p, label, true);
+    if (parsed.int === undefined) tickAt(lay, p, label, true, muted);
     else if (parsed.kind === 0) {
-      if (parsed.int % step === 0) tickAt(lay, p, label, true);
-    } else if (minors) tickAt(lay, p, label, false);
+      if (parsed.int % step === 0) tickAt(lay, p, label, true, muted);
+    } else if (minors) tickAt(lay, p, label, false, muted);
   }
 }
 
@@ -286,20 +393,44 @@ function fit(lay: RulerLay, ctx: LayoutContext) {
       taken.push(a, b);
       lay.shown[j] = 1;
     }
+  // one note at the start of each unnumbered run, past any label reaching into it, only where the run holds it
+  if (lay.nruns) {
+    lay.noteWidth = ctx.text.measure(lay.font, lay.note);
+    if (lay.noteX.length < lay.nruns) lay.noteX = new Float32Array(lay.nruns);
+    for (let r = 0; r < lay.nruns; r++) {
+      let x = lay.runs[2 * r] + NoteInset;
+      for (let k = 0; k + 1 < taken.length; k += 2) {
+        if (taken[k + 1] + NoteGap > x && taken[k] < x + lay.noteWidth + NoteGap && taken[k] < lay.runs[2 * r + 1])
+          x = Math.max(x, taken[k + 1] + NoteGap);
+      }
+      lay.noteX[r] = x + lay.noteWidth <= lay.runs[2 * r + 1] - NoteInset ? x : Number.NaN;
+    }
+  }
 }
 
-/** Ticks on the box's bottom edge (toward the data) and labels above them. */
+/** Ticks on the box's bottom edge (toward the data) and labels above them; the dashed line over an unnumbered run. */
 function drawTicks(lay: RulerLay, out: PassWriter) {
   const { box, tokens } = lay;
   const px = 1 / lay.axis.dpr;
   const g = out.args;
+  for (let r = 0; r < lay.nruns; r++) {
+    LineArgs[0] = lay.runs[2 * r];
+    LineArgs[1] = box.y + box.height - px / 2;
+    LineArgs[2] = lay.runs[2 * r + 1];
+    LineArgs[3] = LineArgs[1];
+    g[4] = NoColor;
+    g[5] = withAlpha(tokens.colors['seq-ruler'], MutedLine);
+    g[6] = px;
+    g[7] = Dash;
+    out.pathArgs(LineArgs, 2, false);
+  }
   for (let j = 0; j < lay.n; j++) {
     const h = lay.major[j] ? MajorHeight : MinorHeight;
     g[0] = Math.round(lay.x[j] * lay.axis.dpr) / lay.axis.dpr - px / 2;
     g[1] = box.y + box.height - h;
     g[2] = px;
     g[3] = h;
-    g[4] = tokens.colors['seq-ruler'];
+    g[4] = lay.muted[j] ? withAlpha(tokens.colors['seq-ruler'], MutedLine) : tokens.colors['seq-ruler'];
     g[5] = NoColor;
     g[6] = 0;
     g[7] = 0;
@@ -317,8 +448,18 @@ function drawLabels(lay: RulerLay, out: PassWriter, _emphasis: Emphasis | undefi
     g[1] = rulerBaseline(box.y, box.height);
     g[2] = lay.widths[j];
     g[3] = Number.POSITIVE_INFINITY;
-    g[4] = lay.tokens.colors['seq-ruler'];
+    g[4] = lay.muted[j] ? withAlpha(lay.tokens.colors['seq-ruler'], MutedInk) : lay.tokens.colors['seq-ruler'];
     out.textArgs(lay.labels[j], AnchorMiddle, lay.font);
+  }
+  for (let r = 0; r < lay.nruns; r++) {
+    const x = lay.noteX[r];
+    if (Number.isNaN(x)) continue;
+    g[0] = x;
+    g[1] = rulerBaseline(box.y, box.height);
+    g[2] = lay.noteWidth;
+    g[3] = Number.POSITIVE_INFINITY;
+    g[4] = withAlpha(lay.tokens.colors['seq-ruler'], MutedInk);
+    out.textArgs(lay.note, AnchorStart, lay.font);
   }
 }
 

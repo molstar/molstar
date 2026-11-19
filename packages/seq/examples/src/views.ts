@@ -529,7 +529,7 @@ export const AntibodyViews: readonly ExampleView[] = [
     id: 'schemes',
     title: 'Kabat and IMGT side by side',
     summary:
-      'Trastuzumab’s light and heavy chains (PDB 1N8Z), each under a Kabat ruler and an IMGT ruler, its CDRs by both definitions below: the heavy chain’s Kabat insertions 52A, 82A–C and 100A–C, IMGT’s gaps where a CDR is shorter than its positions. The labels are read from files (SAbDab’s IMGT numbering, Kabat’s derived from it). Hover a residue: both labels.',
+      'Trastuzumab’s light and heavy chains (PDB 1N8Z), each under a Kabat ruler and an IMGT ruler, its CDRs by both definitions below: the heavy chain’s Kabat insertions 52A, 82A–C and 100A–C, IMGT’s gaps where a CDR is shorter than its positions. The labels are read from files (SAbDab’s IMGT numbering, Kabat’s derived from it). Past the variable domain the rulers say “not numbered” (a muted dashed line, no ticks). Hover a residue: both labels.',
     build: () => antibodySchemes.build(),
     registry: antibodyRegistry,
   },

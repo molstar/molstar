@@ -256,6 +256,9 @@ const GridSection: CardSection = {
   },
 };
 
+/** The row's value for a position a numbering has no label for (the ruler's note, `unnumbered`). */
+const NotNumbered = 'not numbered';
+
 /**
  * A cell: the section, the system and the position in every numbering of the system (the ordinal, the index, the
  * declared ones: the section's shown numbering first), the letter shown there, a value track's value and the items
@@ -277,8 +280,13 @@ const PlaceSection: CardSection = {
     else out.row(name, ordinal);
     out.row('index', String(position));
     for (const [id, label] of declared) out.row(id, label);
-    const labels = declared.map(([id, label]) => `${id} ${label}`).join(', ');
+    // a numbering with no label there is said as not numbering it (the ruler marks the same run), apart from the labels
+    const labels = declared
+      .filter(([, label]) => label !== NotNumbered)
+      .map(([id, label]) => `${id} ${label}`)
+      .join(', ');
     out.words.push(`${at.section.id}, ${name} ${ordinal}${labels ? ` (${labels})` : ''}`);
+    for (const [id, label] of declared) if (label === NotNumbered) out.words.push(`not numbered by ${id}`);
     const letter = w.letterAt(at.section, position);
     if (letter) {
       out.row('Letter', letter);
@@ -555,7 +563,8 @@ class Words {
     for (const id of ids) {
       const n = findNumbering(s, id);
       const label = n?.numbering.labelAt(position - n.shift);
-      out.push([id, label ?? '–']);
+      // absent: `–` for a numbering not arrived; a numbering that is there and has no label here does not number it
+      out.push([id, label ?? (n ? NotNumbered : '–')]);
     }
     return out;
   }
