@@ -409,6 +409,16 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   (warning), `ref.unresolved`, `node.missing` (warning). A resolver's errors fail the selection; its warnings and infos
   are carried. A test checks the catalog against the codes the sources use.
 
+### Examples
+
+The stories `Features/Query` (`packages/seq/storybook/src/_stories/features/query/`) are the examples of the language: a
+query box on p53 (what is typed is parsed, checked and resolved by `parseAddress`, `printAddress` and the viewer's
+`AddressModel`, its result selected or highlighted, its canonical form, kind, size and issues with hints shown), and one
+worked story each for items by category, ranges and slices, a result on the gene (projection is the view's, drawn from
+the protein's Location), `and`/`or`/`not`, and an alignment's rows and columns. Each has a headless twin in `_test/`
+checking the printed form and the result's positions per system. A form of the design not built yet (`search`, `onto`,
+`expand`, `group`) has no story.
+
 ## Addressing
 
 `query/address.ts`, `query/links.ts` (`@molstar/seqx-core/query`): an address resolved to what it names and back, and

@@ -19,6 +19,7 @@ import * as bookmarks from './p53/bookmarks.js';
 import * as geneByRegion from './p53/gene-by-region.js';
 import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
+import * as query from './p53/query.js';
 import * as story from './p53/story.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
@@ -178,6 +179,21 @@ export const FeatureViews: readonly ExampleView[] = [
     summary: 'Gene by region with bookmarks: refs on a range and on transcripts that arrive with their region.',
     build: bookmarks.build,
     registry: bookmarks.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'query',
+    title: 'Queried',
+    summary:
+      'The protein with its domains and conservation and the gene reading along it, for the query stories: an address typed or written, its result selected or highlighted in the view.',
+    build: query.build,
+  },
+  {
+    dataset: 'globins',
+    id: 'query-alignment',
+    title: 'Queried alignment',
+    summary: 'The globins family for the query stories: rows and columns addressed, a result selected in the view.',
+    build: () => globins.build(),
   },
   {
     dataset: 'p53',
