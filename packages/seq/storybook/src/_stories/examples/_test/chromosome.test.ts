@@ -129,12 +129,13 @@ describe('p53’s chromosome, the story headless', () => {
     await vi.advanceTimersByTimeAsync(3000);
     v.draw();
 
-    // the card says an item's label and extent (a ranges row's strand it does not say: the viewer's description)
+    // the card says an item's label, extent and strand (TP53 is on the minus strand)
     v.input.move(...tp53Point(v));
     await vi.advanceTimersByTimeAsync(600);
     const card = v.behavior(HoverCardProvider)!.shown.value!.card;
     expect(card.title).toBe('TP53');
     expect(card.rows).toContainEqual({ label: 'Extent', value: 'chr17 7,668,402–7,687,550' });
+    expect(card.rows).toContainEqual({ label: 'Strand', value: '−' });
 
     v.input.doubleClick(...tp53Point(v));
     await vi.advanceTimersByTimeAsync(1000);
