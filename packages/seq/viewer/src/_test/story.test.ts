@@ -54,6 +54,16 @@ function storySpec(): Node {
         children: [
           { kind: 'snapshot', id: 'tall', params: { label: 'Tall', patch, view, duration: 400, easing: 'linear' } },
           { kind: 'snapshot', id: 'frozen', params: { state: stripStory(tallRoot), duration: 400 } },
+          {
+            kind: 'snapshot',
+            id: 'scrolled',
+            params: {
+              patch: patchToNode({ ops: [] }),
+              view: { sections: { [Protein]: { start: 0, end: 49, top: 30 } } },
+              duration: 400,
+              easing: 'linear',
+            },
+          },
         ],
       },
     ],
@@ -304,5 +314,139 @@ describe('a jump in a text: its anchor and its letter size', () => {
     clock.runAll(16);
     v.draw();
     expect(v.drawnViewports[T].scale).toBe(v.view.get(T)!.scale);
+  });
+});
+
+// The review's fixes: each test failed on the fix's parent.
+
+/** What is hit at the middle of the protein's letters, against what the window drawn says is there. */
+function hitAgrees(v: SeqViewer) {
+  const w = v.drawnViewports[Protein];
+  const box = v.frame!.layout.sections[0].tracks[0].box;
+  const local = box.width * 0.5;
+  const hit = v.hit(box.x + local, box.y + 2);
+  return { hit: hit?.position, want: Math.floor(w.start + ((w.end - w.start) * local) / box.width) };
+}
+
+describe('input during a story’s motion', () => {
+  it('a pan by hand ends a step’s transition: drawn at once where the model is, and hits match the picture', async () => {
+    const { v, clock } = await make();
+    v.playStep('tall');
+    clock.tick(200);
+    expect(v.moving).toBe(true);
+    v.view.panPx(Protein, -60);
+    expect(v.moving).toBe(false);
+    expect(v.spec.frame).toBeUndefined();
+    v.draw();
+    const m = v.view.get(Protein)!;
+    expect(v.drawnViewports[Protein]).toMatchObject({ start: m.start, end: m.end });
+    const { hit, want } = hitAgrees(v);
+    expect(hit).toBe(want);
+  });
+
+  it('a pan by hand under a host’s scrub clears its frame', async () => {
+    const { v } = await make();
+    const { plan } = v.playStep('tall', { run: false });
+    v.animation.progress(plan!, 0.5);
+    v.draw();
+    expect(heightShown(v)).toBe(30);
+    v.view.panPx(Protein, -60);
+    expect(v.spec.frame).toBeUndefined();
+    v.draw();
+    expect(heightShown(v)).toBe(40);
+    const m = v.view.get(Protein)!;
+    expect(v.drawnViewports[Protein]).toMatchObject({ start: m.start, end: m.end });
+  });
+
+  it('input stops a step’s motion where it is drawn (stopMotion), every leading section there', async () => {
+    const { v, clock } = await make();
+    v.playStep('tall');
+    clock.tick(200);
+    const mid = v.drawnViewports;
+    v.stopMotion();
+    expect(v.moving).toBe(false);
+    expect(clock.running).toBe(0);
+    expect(v.view.get(Protein)).toMatchObject({ start: mid[Protein].start, end: mid[Protein].end });
+    expect(v.view.get(Other)).toMatchObject({ start: mid[Other].start, end: mid[Other].end });
+    const { hit, want } = hitAgrees(v);
+    expect(hit).toBe(want);
+  });
+});
+
+describe('the spec changing under a frame', () => {
+  it('an edit during a step’s transition ends it: the edit is shown', async () => {
+    const { v, clock } = await make();
+    v.playStep('tall');
+    clock.tick(100);
+    expect(v.spec.applyPatch({ ops: [{ op: 'set', at: [], key: 'title', value: 'edited' }] }).ok).toBe(true);
+    expect(v.moving).toBe(false);
+    expect(v.spec.frame).toBeUndefined();
+    expect(v.spec.shown.value.params?.title).toBe('edited');
+    expect(heightShown(v)).toBe(40);
+  });
+
+  it('an edit under a host’s scrub drops its frame', async () => {
+    const { v } = await make();
+    const { plan } = v.playStep('tall', { run: false });
+    v.animation.progress(plan!, 0.5);
+    expect(v.spec.applyPatch({ ops: [{ op: 'set', at: [], key: 'title', value: 'edited' }] }).ok).toBe(true);
+    expect(v.spec.frame).toBeUndefined();
+    expect(v.spec.shown.value.params?.title).toBe('edited');
+  });
+});
+
+describe('a step’s top', () => {
+  it('tweens in a step’s transition, and in a jump', async () => {
+    const { v, clock } = await make();
+    const { plan } = v.playStep('scrolled');
+    expect(plan!.channels.some((c) => c.kind === 'view' && c.fields.includes('top'))).toBe(true);
+    clock.tick(200);
+    expect(v.drawnViewports[Protein].top).toBeCloseTo(15, 6);
+    clock.runAll(16);
+    v.draw();
+    expect(v.drawnViewports[Protein].top).toBe(30);
+    v.view.jump(() => {
+      v.view.setRange(Protein, 10, 20);
+      v.view.setTop(Protein, 0);
+      return true;
+    });
+    clock.tick(v.config.view.jumpMs / 2);
+    const top = v.drawnViewports[Protein].top!;
+    expect(top).toBeGreaterThan(0);
+    expect(top).toBeLessThan(30);
+  });
+});
+
+describe('reduced motion', () => {
+  it('a cut plan’s natural duration is 0', async () => {
+    const { v } = await make([[viewerItem('view.motion'), 'cut']]);
+    const { plan } = v.playStep('tall');
+    expect(v.animation.durationOf(plan!)).toBe(0);
+  });
+
+  it('`story.reducedMotion: never` animates a story under the platform’s reduced motion, never a jump', async () => {
+    const { v, clock } = await make([[viewerItem('story.reducedMotion'), 'never']]);
+    v.reducedMotion = true;
+    v.view.jump(() => v.view.setRange(Protein, 20, 30));
+    expect(v.moving).toBe(false);
+    v.playStep('tall');
+    expect(v.moving).toBe(true);
+    clock.runAll(16);
+  });
+});
+
+describe('a full-state step refuses every edit', () => {
+  it('a whole root and a preview too; a new document leaves the step', async () => {
+    const { v, clock } = await make();
+    v.playStep('frozen');
+    clock.runAll(16);
+    const before = v.spec.root.value;
+    expect(v.spec.apply({ ...before, params: { ...before.params, title: 'x' } })).toBe('frozen-step');
+    expect(v.spec.root.value).toBe(before);
+    const r = v.spec.setPreview({ ops: [{ op: 'set', at: Letters, key: 'height', value: 5 }] });
+    expect(r.ok).toBe(false);
+    expect(v.spec.preview.value).toBeUndefined();
+    await v.load(base());
+    expect(v.spec.step.value).toBeUndefined();
   });
 });

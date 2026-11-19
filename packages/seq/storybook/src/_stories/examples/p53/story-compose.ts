@@ -164,6 +164,8 @@ export async function exportSteps(
     for (const { id } of storyRows(s)) {
       s.viewer.playStep(id);
       s.clock!.runAll(16);
+      // data a step brings (the hotspot's range) is read before its picture
+      await s.viewer.settle();
       s.viewer.draw();
       out.push({ id, svg: (await s.viewer.renderSvg({ dpr: 1, idPrefix: `story-${id}-` })).svg });
     }

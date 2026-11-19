@@ -128,8 +128,10 @@ export function sample(plan: TransitionPlan, t: number, out?: Frame): Frame {
       case 'enter':
       case 'leave':
         v[s] = e;
-        // with no height to grow or shrink, it comes or goes at its cut
-        if (c.height === undefined) f.phase[i] = u > 0 && u >= c.cut ? ChannelPhase.done : ChannelPhase.before;
+        // with no height to grow or shrink, it comes at its window's start and goes at its end: what names it (a
+        // track naming entering data) never dangles
+        if (c.height === undefined)
+          f.phase[i] = (c.kind === 'enter' ? u > 0 : u >= 1) ? ChannelPhase.done : ChannelPhase.before;
         break;
       default:
         // a cut switches at its time within its window
@@ -213,7 +215,15 @@ export function frameView(plan: TransitionPlan, frame: Frame): ViewState | undef
     }
     if (c.kind !== 'view') return;
     const v = frame.values;
-    const out: { -readonly [K in keyof StepViewport]: StepViewport[K] } = { start: v[c.slot], end: v[c.slot + 1] };
+    // the base's fields first (one only the start holds is kept until the end), then the channel's
+    const out: { -readonly [K in keyof StepViewport]: StepViewport[K] } = {
+      ...base?.sections[c.section],
+      start: v[c.slot],
+      end: v[c.slot + 1],
+    };
+    // copies of the nested records: the channel's values are written into them, never into the state's
+    if (out.bands) out.bands = Object.fromEntries(Object.entries(out.bands).map(([k, b]) => [k, { ...b }]));
+    if (out.y) out.y = { ...out.y };
     for (let k = 2; k < c.fields.length; k++) {
       const name = c.fields[k];
       const x = v[c.slot + k];

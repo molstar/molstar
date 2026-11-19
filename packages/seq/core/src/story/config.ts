@@ -55,22 +55,6 @@ export const DefaultStoryConfig: StoryConfig = {
   maxChain: 8,
 };
 
-/** `t` in [0, 1] eased; monotone, 0 at 0 and 1 at 1. */
-export function ease(easing: Easing, t: number): number {
-  if (t <= 0) return 0;
-  if (t >= 1) return 1;
-  switch (easing) {
-    case 'linear':
-      return t;
-    case 'ease-in':
-      return t * t * t;
-    case 'ease-out':
-      return 1 - (1 - t) ** 3;
-    default:
-      return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-  }
-}
-
 /** An easing by name; the default for anything else. */
 export function easingOf(x: unknown, fallback: Easing = DefaultStoryConfig.transition.easing): Easing {
   return typeof x === 'string' && (Easings as readonly string[]).includes(x) ? (x as Easing) : fallback;

@@ -7,11 +7,11 @@
 import { applyPatch, type Op } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { type StepInput, storeSteps, withSteps } from '@molstar/seqx-core/story';
+import { StepApplyOptions, type StepInput, storeSteps, withSteps } from '@molstar/seqx-core/story';
 import { addDomains, conservation, P53 } from './data.js';
 
 // p53 as a story: four steps over its tracks, each a view of the protein and a small change of the spec (a track's
-// height, the domains' color, the conservation track gone), stored by the story's encoder as patches over the spec.
+// height, the domains' color and a track marking R175, the conservation track gone), stored by the story's encoder as patches over the spec.
 // Played, the transitions pan or go out and back in, tween the heights and the color, and fade the track out.
 
 export const title = 'p53, a story';
@@ -40,8 +40,34 @@ function base(): Node {
   return b.build();
 }
 
+const ProteinSection = ['views', 'main', 'protein'];
+
+/** The hotspot R175 (0-based residue 174) as a range of one residue, its id the variant. */
+export const Hotspot = { start: 174, end: 175, id: 'R175H' } as const;
+
+function hotspotData(): Node {
+  return {
+    kind: 'ranges',
+    id: 'hotspot',
+    params: {
+      target: '/data/p53',
+      rows: { start: new Int32Array([Hotspot.start]), end: new Int32Array([Hotspot.end]), id: [Hotspot.id] },
+    },
+  };
+}
+
+function hotspotTrack(): Node {
+  return {
+    kind: 'track',
+    id: 'hotspot',
+    params: { label: 'R175H', height: 16 },
+    children: [{ kind: 'layer', id: 'ranges', params: { type: 'ranges', data: '/data/hotspot', color: '#e45756' } }],
+  };
+}
+
 function edit(root: Node, ops: readonly Op[]): Node {
-  const r = applyPatch(root, { ops }, { maxOps: Number.POSITIVE_INFINITY });
+  // with the language, as a step is applied: what is stored reads back the same (its nodes normalized)
+  const r = applyPatch(root, { ops }, { ...StepApplyOptions, maxOps: Number.POSITIVE_INFINITY });
   if (!r.ok) throw new Error(`p53 story: ${r.issues.map((i) => i.message).join('; ')}`);
   return r.root;
 }
@@ -51,7 +77,12 @@ const view = (start: number, end: number) => ({ sections: { [Section]: { start, 
 /** The steps' states, in order. */
 export function steps(spec = base()): StepInput[] {
   const dnaBinding = edit(spec, [{ op: 'set', at: Conservation, key: 'height', value: 56 }]);
-  const r175h = edit(dnaBinding, [{ op: 'set', at: DomainsLayer, key: 'color', value: '#e45756' }]);
+  // R175, the hotspot: marked by a track of its own (its data a range of one residue), the domains recolored
+  const r175h = edit(dnaBinding, [
+    { op: 'set', at: DomainsLayer, key: 'color', value: '#e45756' },
+    { op: 'insert', parent: ['data'], place: { last: true }, node: hotspotData() },
+    { op: 'insert', parent: ProteinSection, place: { after: 'letters' }, node: hotspotTrack() },
+  ]);
   const tetramer = edit(spec, [
     { op: 'set', at: Domains, key: 'height', value: 40 },
     { op: 'remove', at: Conservation },

@@ -9,6 +9,8 @@
 // encoder's forms within the chain bound.
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
+import { Color } from '@molstar/core/util/color/color';
+import { Oklab } from '@molstar/core/util/color/spaces/oklab';
 import { diff, patchToNode } from '@molstar/core/repr/patch';
 import { hashNode, type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
@@ -355,5 +357,92 @@ describe('storeSteps: the encoder', () => {
     const built = b.build();
     expect(resolveAddress(built, ['snapshots', 'p'])?.params?.duration).toBe(100);
     expect(stateOf(built, 'f')?.form).toBe('full');
+  });
+});
+
+// The review's fixes: each test failed on the fix's parent.
+
+describe('the review’s fixes', () => {
+  const spec = storySpec();
+
+  it('a cut plan (reduced motion) has no duration', () => {
+    const to = edit(spec, { op: 'set', at: Letters, key: 'height', value: 40 });
+    expect(plan({ root: spec }, { root: to }, { reducedMotion: true, duration: 500 }).duration).toBe(0);
+    expect(plan({ root: spec }, { root: to }, { duration: 500 }).duration).toBe(500);
+  });
+
+  it('a chain past `story.maxChain` is an issue on the step, its walk capped', () => {
+    const steps: Node[] = [];
+    let prev = spec;
+    for (let i = 0; i < 12; i++) {
+      const next = edit(prev, { op: 'set', at: Letters, key: 'height', value: 21 + i });
+      steps.push({
+        kind: 'snapshot',
+        id: `s${i}`,
+        params: { ...(i ? { from: `/snapshots/s${i - 1}` } : {}), patch: patchNode(prev, next) },
+      });
+      prev = next;
+    }
+    const s = withSteps(spec, steps);
+    const config = { ...planConfig, maxChain: 3 };
+    // within the bound: no issue, the state exact
+    const ok = stateOf(s, 's3', { config })!;
+    expect(ok.chain).toBe(3);
+    expect(ok.issues).toEqual([]);
+    expect(resolveAddress(ok.root, Letters)?.params?.height).toBe(24);
+    const far = stateOf(s, 's11', { config })!;
+    expect(far.issues.map((i) => i.code)).toContain('seq.story.step.chain');
+    expect(far.applies).toBe(false);
+    // what a capped walk computed is not kept for the steps it passed: each is read again as itself
+    const cache = createStoryCache();
+    stateOf(s, 's11', { config, cache });
+    expect(stateOf(s, 's4', { config, cache })!.issues.map((i) => i.code)).toEqual(['seq.story.step.chain']);
+    expect(resolveAddress(stateOf(s, 's4', { config, cache })!.root, Letters)?.params?.height).toBe(25);
+  });
+
+  it('a view field only the start holds is kept mid-transition', () => {
+    const p = plan(
+      { root: spec, view: { sections: { s: { start: 0, end: 10, scale: 12 } } } },
+      { root: spec, view: { sections: { s: { start: 5, end: 15 } } } },
+    );
+    expect(frameView(p, sample(p, 0.5))!.sections.s.scale).toBe(12);
+    expect(frameView(p, sample(p, 1))!.sections.s.scale).toBeUndefined();
+  });
+
+  it('colors blend in oklab: the middle of red and blue is the oklab middle, not #800080', () => {
+    const at = [...Letters, 'l'];
+    const a = edit(spec, { op: 'set', at, key: 'color', value: '#ff0000' });
+    const b = edit(spec, { op: 'set', at, key: 'color', value: '#0000ff' });
+    const p = plan({ root: a }, { root: b }, { easing: 'linear' });
+    const mid = resolveAddress(frameRoot(p, sample(p, 0.5)), at)?.params?.color;
+    const la = Oklab.fromColor(Oklab(), Color.fromHexStyle('#ff0000'));
+    const lb = Oklab.fromColor(Oklab(), Color.fromHexStyle('#0000ff'));
+    const want = Color.toHexStyle(
+      Oklab.toColor(Oklab.create((la[0] + lb[0]) / 2, (la[1] + lb[1]) / 2, (la[2] + lb[2]) / 2)),
+    );
+    expect(mid).toBe(want);
+    expect(mid).not.toBe('#800080');
+  });
+
+  it('a token blends through its resolved color; the end is the token itself', () => {
+    const at = [...Letters, 'l'];
+    const b = edit(spec, { op: 'set', at, key: 'color', value: 'token:cat-2' });
+    const resolveColor = (c: string) => (c === 'token:cat-2' ? '#0000ff' : undefined);
+    const p = plan({ root: spec }, { root: b }, { easing: 'linear', resolveColor });
+    expect(p.channels.map((c) => c.kind)).toEqual(['color']);
+    const mid = resolveAddress(frameRoot(p, sample(p, 0.5)), at)?.params?.color as string;
+    expect(mid).toMatch(/^#[0-9a-f]{6}$/);
+    expect(resolveAddress(frameRoot(p, sample(p, 1)), at)?.params?.color).toBe('token:cat-2');
+    // with no resolver a token is still a cut
+    expect(plan({ root: spec }, { root: b }).channels.map((c) => c.kind)).toEqual(['cut']);
+  });
+
+  it('a node with no height comes at the start and goes at the end: what names it never dangles', () => {
+    const data: Node = { kind: 'sequence', id: 'x', params: { alphabet: 'protein', letters: 'MK' } };
+    const to = edit(spec, { op: 'insert', parent: ['data'], place: { last: true }, node: data });
+    const p = plan({ root: spec }, { root: to });
+    expect(resolveAddress(frameRoot(p, sample(p, 0.1)), ['data', 'x'])).toBeDefined();
+    const back = plan({ root: to }, { root: spec });
+    expect(resolveAddress(frameRoot(back, sample(back, 0.9)), ['data', 'x'])).toBeDefined();
   });
 });

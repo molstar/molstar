@@ -6,10 +6,10 @@
 
 import { P53Views } from '@molstar/seqx-examples';
 import { Domains } from '@molstar/seqx-examples/p53/data';
-import { Section, steps } from '@molstar/seqx-examples/p53/story';
+import { Hotspot, Section, steps } from '@molstar/seqx-examples/p53/story';
 import type { RangesLay } from '@molstar/seqx-core/render';
 import { frameView, sample, stateOf, stripStory } from '@molstar/seqx-core/story';
-import { hashNode } from '@molstar/core/repr/tree';
+import { hashNode, resolveAddress } from '@molstar/core/repr/tree';
 import { afterEach, describe, expect, it } from 'vitest';
 import { checkMarks } from './draw-checks.js';
 import {
@@ -69,6 +69,24 @@ describe('the p53 story, headless', () => {
       expect(st).toMatchObject({ form: 'patch', applies: true, chain: 0 });
       expect(hashNode(stripStory(st.root))).toBe(hashNode(stripStory(x.root)));
     }
+  });
+
+  it('the R175H step marks residue 175: a track of its own over a range of that one residue, drawn there', async () => {
+    const st = stateOf(view.build(), 'r175h')!;
+    expect(st.applies).toBe(true);
+    const track = resolveAddress(st.root, ['views', 'main', 'protein', 'hotspot']);
+    expect(track?.params?.label).toBe('R175H');
+    const rows = resolveAddress(st.root, ['data', 'hotspot'])?.params?.rows as { start: Int32Array; end: Int32Array };
+    expect([rows.start[0], rows.end[0]]).toEqual([Hotspot.start, Hotspot.end]);
+    expect(Hotspot.start + 1).toBe(175);
+    // drawn: the step played, its mark is hit at residue 175
+    const s = await open();
+    play(s, 'r175h');
+    s.clock!.runAll(16);
+    await s.viewer.settle();
+    s.viewer.draw();
+    expect(drawnDomains(s).has(Hotspot.id)).toBe(true);
+    expect(checkMarks(s.viewer).wrong).toEqual([]);
   });
 
   it('plays each step to its end: its state and view, drawn against the data', async () => {
@@ -140,10 +158,13 @@ describe('the p53 story, headless', () => {
     const svgs = await exportSteps(view);
     expect(svgs.map((x) => x.id)).toEqual(['whole', 'dna-binding', 'r175h', 'tetramer']);
     expect(new Set(svgs.map((x) => x.svg)).size).toBe(4);
+    // the R175H step's figure draws its mark's label
+    expect(svgs.find((x) => x.id === 'r175h')!.svg).toContain('R175H');
     const s = await open();
     for (const { id, svg } of svgs) {
       play(s, id);
       s.clock!.runAll(16);
+      await s.viewer.settle();
       s.viewer.draw();
       expect((await s.viewer.renderSvg({ dpr: 1, idPrefix: `story-${id}-` })).svg).toBe(svg);
     }

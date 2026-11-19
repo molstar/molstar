@@ -142,10 +142,22 @@ export interface PlanOptions {
   readonly cyclic?: Readonly<Record<string, number>>;
   /** Sections whose viewport needs data not held yet (an axis whose length is pending). */
   readonly pending?: (section: string) => boolean;
+  /**
+   * A color as drawn, hex, for a value a plan cannot read itself (a token: `token:cat-2`); the viewer's token table.
+   * Without it a token is a cut.
+   */
+  readonly resolveColor?: (color: string) => string | undefined;
 }
 
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const HexColor = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/** A color as hex: itself, or what `resolve` makes of it (a token); undefined when neither reads. */
+function hexOf(c: string, resolve: ((c: string) => string | undefined) | undefined): string | undefined {
+  if (HexColor.test(c)) return c;
+  const r = resolve?.(c);
+  return r !== undefined && HexColor.test(r) ? r : undefined;
+}
 
 function colorOf(hex: string): Color {
   const h = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
@@ -299,7 +311,10 @@ export function plan(from: StoryState, to: StoryState, options: PlanOptions = {}
           });
           break;
         }
-        if (typeof a === 'string' && typeof b === 'string' && HexColor.test(a) && HexColor.test(b)) {
+        // a theme's resolved colors blend: a token through the color it resolves to
+        const ha = typeof a === 'string' ? hexOf(a, options.resolveColor) : undefined;
+        const hb = typeof b === 'string' ? hexOf(b, options.resolveColor) : undefined;
+        if (typeof a === 'string' && typeof b === 'string' && ha && hb) {
           const space = config.color.space;
           channels.push({
             kind: 'color',
@@ -311,8 +326,8 @@ export function plan(from: StoryState, to: StoryState, options: PlanOptions = {}
             from: a,
             to: b,
             space,
-            a: components(a, space),
-            b: components(b, space),
+            a: components(ha, space),
+            b: components(hb, space),
           });
           break;
         }
@@ -340,7 +355,9 @@ export function plan(from: StoryState, to: StoryState, options: PlanOptions = {}
         channels.push({ kind: 'cut', ...time, slot: take(1), op, cut: cutAt });
     }
   }
-  return { from, to, duration: options.duration ?? config.transition.duration, channels, slots: slot };
+  // a cut takes no time: every channel switches at once
+  const duration = options.reducedMotion ? 0 : (options.duration ?? config.transition.duration);
+  return { from, to, duration, channels, slots: slot };
 }
 
 function sameAddress(a: Address, b: Address): boolean {

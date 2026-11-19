@@ -56,10 +56,12 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
   applying (`step.applies` false, `seq.viewer.step.stale`): the ops that still apply are shown (the design: a step's
   state is what still applies, flagged), and a start it cannot reach is the core's `seq.story.step.from`; an unknown id
   is `seq.viewer.step.unknown`. **While a full-state step is shown, an edit is refused** (`seq.viewer.step.frozen`, its
-  hint to edit the step): the step does not follow the spec, so the edit would show nothing.
+  hint to edit the step), a patch, a preview and a whole root alike (`apply`: `frozen-step`): the step does not follow
+  the spec, so the edit would show nothing. `load` leaves the step first: a new document.
 - **The frame slot** (`setFrame(root)`, `frame`): an animation's frame shown over what is composed, `frame(step(...))`:
-  no patch, no revision, no history step; the spec's hash never moves during an animation. `undefined` leaves it. An
-  agent reads `root`, with `step` beside it.
+  no patch, no revision, no history step; the spec's hash never moves during an animation. `undefined` leaves it. The
+  viewer ends a frame that changes the spec when the head moves under it (an edit, an undo, a load): the frame was made
+  from the old root and would hide the change. An agent reads `root`, with `step` beside it.
 - **The history** (Ports, History): `attachHistory(port)` binds the host's history with the model as its participant (a
   history bound before is detached first) (`checkpoint()` the head, `restore(c)` a move of the head that drops a preview
   and keeps the step, `changed` the last commit an edit made, told once the edit ends well: never one it took back).
@@ -341,11 +343,12 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   the model's, requested of the animation port over `view.jumpMs` (240): each section its own view channel, eased in and
   out, its width and letter size geometric and its centre along, a ring's window round its shortest arc (`cyclic` totals
   of the sections that wrap). The view is unsettled while it runs; the model is there at once, and hits read the frame
-  drawn. Pointer input (a press, a click, a double-click, a wheel) first stops a motion where it is drawn (`stopMotion`:
-  each leading section takes the viewport drawn, `setViewport`, and a frame is drawn), so what it hits, the pointer's
-  offset and a drag read one picture; a key and a side button act on the model (a repeated `-` steps from where the last
-  one went). A move by hand ends a motion. A cut under reduced motion (`reducedMotion`, the mounted UI's media query,
-  unless `story.reducedMotion` says `always` or `never`), with `view.motion: 'cut'` or `jumpMs` 0. `drawnViewport` is
+  drawn. Pointer input (a press, a click, a double-click, a wheel) first stops a motion, a jump's or a story's, or a
+  host's frame, where it is drawn (`stopMotion`: each leading section takes the viewport drawn, `setViewport`, the
+  state's spec is shown, and a frame is drawn), so what it hits, the pointer's offset and a drag read one picture; a key
+  and a side button act on the model (a repeated `-` steps from where the last one went). A move by hand ends any motion
+  and clears a host's frame. A jump is a cut under reduced motion (`reducedMotion`, the mounted UI's media query), with
+  `view.motion: 'cut'` or `jumpMs` 0; `story.reducedMotion` (`always`, `never`) is the stories' only. `drawnViewport` is
   the first section's window the last frame drew; `viewport` and `renderSvg` read the model during a jump (the
   destination), a story's frame as shown. Why the drawn window, not the model: the model's state is the destination
   (tests, links, the history read it), and only the eye needs the way there.
@@ -354,11 +357,13 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   shown), and a plan from what was drawn to it, timed by the step (`duration`, `easing`; else `story.transition`), runs
   on the animation port (`run`, the default) or is shown at its start for the application to drive
   (`animation.progress`, `animation.clear`). Each frame is shown in the frame slot: the frame's spec
-  (`SpecModel.setFrame`, when the plan changes the spec) and each leading section's viewport (its `top` and `bands`
-  too). A section entering or a view switched during a transition is placed as the frame's spec gives it (the view
-  switched at the start). A cut under reduced motion. A step entered elsewhere (the `step.enter` and `step.leave`
-  commands, a host's `spec.enterStep`) is the same transition, from the spec and viewports drawn last: a snapshot's view
-  is a jump that animates.
+  (`SpecModel.setFrame`, when the plan changes the spec) and each leading section's viewport (its `top` too, and a
+  frame's `bands`; the model's viewport has no bands yet: the rows layer's). A token color blends through the viewer's
+  token table (`resolveColor`). A section entering or a view switched during a transition is placed as the frame's spec
+  gives it (the view switched at the start). A cut under `story.reducedMotion` (`platform`: the platform's reduced
+  motion), its plan's duration 0. A step entered elsewhere (the `step.enter` and `step.leave` commands, a host's
+  `spec.enterStep`) is the same transition, from the spec and viewports drawn last: a snapshot's view is a jump that
+  animates.
 - **The picture as SVG** (`renderSvg`): the context's export of the shown spec, size and window through the viewer's
   store, at the last frame's device pixel ratio (the density steps are in device pixels, so it is the picture the canvas
   shows); the context's `renderSvg` of the same spec, size and window gives the same string.

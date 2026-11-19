@@ -87,7 +87,8 @@ export function storySteps(spec: Node): readonly string[] {
 /** A stored patch node read once. */
 const Patches = new WeakMap<Node, Patch | undefined>();
 
-function patchOf(node: Node): Patch | undefined {
+/** A step's stored patch, read once a node (undefined when the step holds none it can read). */
+export function stepPatchOf(node: Node): Patch | undefined {
   const p = node.params?.patch;
   if (!p || typeof p !== 'object' || Array.isArray(p) || !('kind' in p)) return undefined;
   if (!Patches.has(p as Node)) Patches.set(p as Node, patchFromNode(p as Node).patch);
@@ -159,78 +160,88 @@ const idOfAddress = (a: unknown) => (typeof a === 'string' ? /^\/snapshots\/([^/
 
 /**
  * A step's state over `spec` (the spec shown: its root with a preview): undefined when the spec has no such step.
- * Cached by the spec's revision and the step when a cache is given.
+ * Cached by the spec's revision and the step when a cache is given. A walk back through `from` goes at most
+ * `story.maxChain` steps from the one asked (a step further back is read over the spec, flagged); a step more deltas
+ * than that from its keyframe is `seq.story.step.chain`.
  */
 export function stateOf(spec: Node, id: string, options: StateOfOptions = {}): StepState | undefined {
-  return compute(spec, id, options, new Set());
+  return compute(spec, id, options, new Set()).state;
 }
 
-function compute(spec: Node, id: string, options: StateOfOptions, visiting: Set<string>): StepState | undefined {
+/** A state, and whether a walk was capped on the way to it (then it is not kept: read alone, it may differ). */
+interface Computed {
+  readonly state?: StepState;
+  readonly capped: boolean;
+}
+
+function compute(spec: Node, id: string, options: StateOfOptions, visiting: Set<string>): Computed {
   const cache = options.cache?.lru;
   const key = cache ? `${hashNode(spec)}\u0000${id}` : '';
   if (cache) {
     const hit = LRUCache.get(cache, key);
-    if (hit) return hit;
+    if (hit) return { state: hit, capped: false };
   }
   const node = resolveAddress(spec, ['snapshots', id]);
-  if (node?.kind !== 'snapshot') return undefined;
+  if (node?.kind !== 'snapshot') return { capped: false };
   const address = printAddress(['snapshots', id]);
   const config = options.config ?? DefaultStoryConfig;
   const label = typeof node.params?.label === 'string' ? node.params.label : id;
   const view = readStepView(node.params?.view);
   const base = { id, address, label, timing: timingOf(node, config), ...(view ? { view } : {}) };
   const issues: Issue[] = [];
+  const issue = (code: keyof typeof StoryIssues.codes, message: string) =>
+    issues.push(issueOf(StoryIssues, code, message, { address, hint: StoryIssues.codes[code].hint }));
   let out: StepState;
+  let capped = false;
   const full = node.params?.state;
   if (full && typeof full === 'object' && !Array.isArray(full) && 'kind' in full) {
     out = { ...base, form: 'full', root: full as Node, applies: true, skipped: 0, chain: 0, issues };
   } else {
-    const patch = patchOf(node);
+    const patch = stepPatchOf(node);
     let start = spec;
     let chain = 0;
     let applies = true;
     const fromAddress = node.params?.from;
     const fromId = idOfAddress(fromAddress);
     if (fromAddress !== undefined) {
+      let prior: StepState | undefined;
       visiting.add(id);
-      const prior =
-        fromId !== undefined && !visiting.has(fromId) ? compute(spec, fromId, options, visiting) : undefined;
+      if (fromId !== undefined && !visiting.has(fromId)) {
+        const kept = cache && LRUCache.get(cache, `${hashNode(spec)}\u0000${fromId}`);
+        if (kept) prior = kept;
+        // the walk's bound: no deeper than `story.maxChain` steps from the one asked
+        else if (visiting.size > config.maxChain) capped = true;
+        else {
+          const r = compute(spec, fromId, options, visiting);
+          prior = r.state;
+          capped = r.capped;
+        }
+      }
       visiting.delete(id);
-      // a start that cannot be reached, here or further back, is this step's issue too
-      const reached = prior && !prior.issues.some((i) => i.code === 'seq.story.step.from');
       if (prior) {
         start = prior.root;
         chain = prior.chain + 1;
         applies = prior.applies;
       }
-      if (!reached) {
+      if (capped && !prior) {
+        // read over the spec: more than `maxChain` deltas from its keyframe, as far as the walk went
+        chain = config.maxChain + 1;
         applies = false;
+      } else if (!prior || prior.issues.some((i) => i.code === 'seq.story.step.from')) {
+        // a start that cannot be reached, here or further back, is this step's issue too
         applies = false;
-        issues.push(
-          issueOf(StoryIssues, 'seq.story.step.from', `The step ${label} starts from no step it can reach`, {
-            address,
-            hint: StoryIssues.codes['seq.story.step.from'].hint,
-          }),
-        );
+        issue('seq.story.step.from', `The step ${label} starts from no step it can reach`);
       }
+      if (capped) applies = false;
+      if (chain > config.maxChain)
+        issue('seq.story.step.chain', `The step ${label} is more than ${config.maxChain} deltas from a keyframe`);
     }
     if (!patch) {
-      issues.push(
-        issueOf(StoryIssues, 'seq.story.step.form', `The step ${label} holds no patch nor state`, {
-          address,
-          hint: StoryIssues.codes['seq.story.step.form'].hint,
-        }),
-      );
+      issue('seq.story.step.form', `The step ${label} holds no patch nor state`);
       out = { ...base, form: 'patch', root: start, applies: false, skipped: 0, chain, issues };
     } else {
       const r = applyLoose(start, patch, options.apply ?? StepApplyOptions);
-      if (r.skipped)
-        issues.push(
-          issueOf(StoryIssues, 'seq.story.step.stale', `${r.skipped} of the step ${label}’s ops no longer apply`, {
-            address,
-            hint: StoryIssues.codes['seq.story.step.stale'].hint,
-          }),
-        );
+      if (r.skipped) issue('seq.story.step.stale', `${r.skipped} of the step ${label}’s ops no longer apply`);
       out = {
         ...base,
         form: 'patch',
@@ -243,6 +254,6 @@ function compute(spec: Node, id: string, options: StateOfOptions, visiting: Set<
       };
     }
   }
-  if (cache) LRUCache.set(cache, key, out);
-  return out;
+  if (cache && !capped) LRUCache.set(cache, key, out);
+  return { state: out, capped };
 }

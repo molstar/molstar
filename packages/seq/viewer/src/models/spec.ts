@@ -20,14 +20,13 @@ import {
   merge3,
   type Patch,
   type PatchResult,
-  patchFromNode,
 } from '@molstar/core/repr/patch';
 import { hashNode, type Issue, issueOf, type Node, printAddress, resolveAddress } from '@molstar/core/repr/tree';
 import { checkSpecBounds, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-core/lang';
 // the change validators are their own entry: reading a spec carries no editing (core _spec, "Checks of a change")
 import { SeqPatchValidator, seqBoundsValidator, seqPatchValidator } from '@molstar/seqx-core/lang/changes';
 import { createResolver, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
-import { createStoryCache, type StepState, stateOf } from '@molstar/seqx-core/story';
+import { createStoryCache, type StepState, stateOf, stepPatchOf } from '@molstar/seqx-core/story';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
 import type {
@@ -43,7 +42,7 @@ import type {
 export type SpecChange = Node | ((root: Node) => Node);
 
 /** Why `apply` refused a whole root. */
-export type SpecRefusal = 'stale-revision' | 'out-of-bounds';
+export type SpecRefusal = 'stale-revision' | 'out-of-bounds' | 'frozen-step';
 
 export interface SpecApplyOptions {
   /** The revision the change was made against: refused when it is not the current one (EC-81). */
@@ -125,9 +124,6 @@ const StepApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidateOp
 const StepIssueCodes = new Set(['seq.story.step.from', 'seq.story.step.form']);
 
 type Move = Changes['moved'][number];
-
-/** A stored patch node's patch, read once. */
-const StepPatches = new WeakMap<Node, Patch | undefined>();
 
 const NoChanges: Changes = { made: [], params: [], children: [], removed: [], moved: [] };
 const WholeRoot: Changes = { made: [[]], params: [], children: [], removed: [], moved: [] };
@@ -486,6 +482,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   apply(change: SpecChange, options: SpecApplyOptions = {}): boolean | SpecRefusal {
     const head = this._head.value;
     if (options.against !== undefined && options.against !== head.revision) return 'stale-revision';
+    // a full-state step shown refuses every edit, a whole root's too (leave it first: a new document does)
+    if (this._frozen()) return 'frozen-step';
     const next = typeof change === 'function' ? change(head.root) : change;
     this._preview.set(undefined);
     // the bounds first, before anything hashes or walks the root (a tree too deep for the stack): refused with the
@@ -614,6 +612,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    * dropped when it no longer applies.
    */
   setPreview(patch: Patch): PatchResult {
+    const frozen = this._frozen();
+    if (frozen) return { ok: false, issues: [frozen] };
     const p: Patch = { ops: patch.ops };
     const root = this._head.value.root;
     const r = applyPatch(root, p, this._previewOptions());
@@ -658,11 +658,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   /** The stored patch of a step, by id; undefined when the spec has none such. */
   private _stepPatch(id: string): Patch | undefined {
     const node = resolveAddress(this._head.value.root, ['snapshots', id]);
-    const p = node?.kind === 'snapshot' ? node.params?.patch : undefined;
-    if (!p || typeof p !== 'object' || Array.isArray(p) || !('kind' in p)) return undefined;
-    // read once a stored patch node
-    if (!StepPatches.has(p as Node)) StepPatches.set(p as Node, patchFromNode(p as Node).patch);
-    return StepPatches.get(p as Node);
+    return node?.kind === 'snapshot' ? stepPatchOf(node) : undefined;
   }
 
   /**

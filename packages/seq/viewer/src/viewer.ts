@@ -335,6 +335,13 @@ export class SeqViewer extends ReactiveModel {
     });
     // a jump animates from the windows drawn to the model's (the model is there at once: hits read the frame drawn)
     this.listenPermanently(this.view.jumps, (n) => this._startMotion(n));
+    // an edit, an undo or a load under a frame that changes the spec ends it: the frame was made from the old root
+    this.listenPermanently(this.spec.head, () => {
+      const f = this._shownFrame;
+      if (!f || f.plan.from.root === f.plan.to.root) return;
+      this._endMotion();
+      this._clearFrame();
+    });
     // a story step entered by a command or a host is a transition too (its view is a snapshot's: a jump)
     this.listenPermanently(this.spec.step, () => this._stepChanged());
     this.listenPermanently(this.view.resolved, () => {
@@ -393,6 +400,8 @@ export class SeqViewer extends ReactiveModel {
    * `view`: the view's address (the first by default).
    */
   async load(root: Node, options: { view?: string } = {}): Promise<void> {
+    // a new document: the story step shown was the old one's (and a full-state step refuses a whole root)
+    this.spec.leaveStep();
     // a new root syncs the sources through the model's own listener: once
     const refused = this.spec.apply(root);
     if (refused === 'out-of-bounds')
@@ -494,8 +503,11 @@ export class SeqViewer extends ReactiveModel {
     for (const s of this.view.resolved.value?.sections ?? [])
       this._viewportListeners.push(
         this.view.viewport(s.address).listen(() => {
-          // a move by hand ends a jump's motion (a jump's own move is followed by its count moving)
-          if (this._request && this._request.jumps === this.view.jumps.value) this._endMotion();
+          // a move by hand ends a motion, a story's too, and clears a frame a host shows (a jump's own move is
+          // followed by its count moving; a step's view is placed before its motion starts)
+          if (this._request && (this._request.jumps === undefined || this._request.jumps === this.view.jumps.value))
+            this._endMotion();
+          else if (!this._request && this._shownFrame) this._clearFrame();
           this._moved();
           this.schedule();
         }),
@@ -536,11 +548,16 @@ export class SeqViewer extends ReactiveModel {
     });
   }
 
-  /** Whether motion is a cut: the platform's reduced motion, `view.motion: cut`. */
+  /** Whether a jump is a cut: the platform's reduced motion, `view.motion: cut`. */
   private get _cut(): boolean {
+    return this.config.view.motion === 'cut' || this.reducedMotion;
+  }
+
+  /** Whether a story's motion is a cut: `story.reducedMotion` (`platform`: as a jump; `always`, `never`). */
+  private get _storyCut(): boolean {
     const story = this.config.story.reducedMotion;
     if (this.config.view.motion === 'cut' || story === 'always') return true;
-    return story !== 'never' && this.reducedMotion;
+    return story === 'platform' && this.reducedMotion;
   }
 
   /** Each leading section's viewport in the model now (what a jump goes to), by address. */
@@ -550,20 +567,32 @@ export class SeqViewer extends ReactiveModel {
       if (this.view.isFollowing(s.address)) continue;
       const v = this.view.get(s.address);
       if (!v || v.pending) continue;
-      sections[s.address] = { start: v.start, end: v.end, ...(v.scale !== undefined ? { scale: v.scale } : {}) };
+      sections[s.address] = {
+        start: v.start,
+        end: v.end,
+        ...(v.top ? { top: v.top } : {}),
+        ...(v.scale !== undefined ? { scale: v.scale } : {}),
+      };
     }
     return { sections };
   }
 
   /** What a plan of this viewer needs besides its states: the cyclic sections' totals (a window's shortest arc). */
-  private _planOptions(): Pick<PlanOptions, 'cyclic' | 'config'> {
+  private _planOptions(): Pick<PlanOptions, 'cyclic' | 'config' | 'resolveColor'> {
     const cyclic: Record<string, number> = {};
     for (const s of this.view.resolved.value?.sections ?? [])
       if (this.view.wraps(s.address)) {
         const total = axisTotal(s.axis);
         if (total) cyclic[s.address] = total;
       }
-    return { cyclic, config: this.config.story };
+    // a token blends through the color it draws in (the viewer's token table, light or dark as shown)
+    const tokens = this.tokens;
+    const color = (c: string) => {
+      const r = resolveColor(c, tokens);
+      // RGBA: an opaque color as hex; one with alpha is no color a plan blends
+      return r === undefined || (r & 0xff) !== 0xff ? undefined : `#${(r >>> 8).toString(16).padStart(6, '0')}`;
+    };
+    return { cyclic, config: this.config.story, resolveColor: color };
   }
 
   /**
@@ -627,15 +656,16 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /**
-   * Stops a jump's motion where it is drawn (_spec/README.md "Composition", Motion): each leading section takes the
-   * viewport drawn now (a move, no step of the history) and a frame is drawn, so the input that stopped it reads one
-   * picture: what it hits is what the model shows. What every pointer and key input does first.
+   * Stops a motion (a jump's, a story step's) or a host's frame where it is drawn (_spec/README.md "Composition",
+   * Motion): each leading section takes the viewport drawn now (a move, no step of the history), the spec shown is the
+   * state again, and a frame is drawn, so the input that stopped it reads one picture: what it hits is what the model
+   * shows. What every pointer and key input does first.
    */
   stopMotion(): void {
     const r = this._request;
-    if (!r || r.jumps === undefined) return;
+    if (!r && !this._shownFrame) return;
     const drawn = [...this._drawnViews];
-    r.request.cancel();
+    r?.request.cancel();
     this._request = undefined;
     this._clearFrame();
     for (const [address, v] of drawn) this.view.setViewport(address, v);
@@ -704,10 +734,10 @@ export class SeqViewer extends ReactiveModel {
     const timing = st?.timing;
     const p = planTransition(from, to, {
       ...this._planOptions(),
-      reducedMotion: this._cut,
+      reducedMotion: this._storyCut,
       ...(timing ? { duration: timing.duration, easing: timing.easing } : {}),
     });
-    if (this._cut || !p.channels.length) {
+    if (this._storyCut || !p.channels.length) {
       this.schedule();
       return p;
     }
@@ -788,7 +818,7 @@ export class SeqViewer extends ReactiveModel {
         k.start !== w.start ||
         k.end !== w.end ||
         k.scale !== w.scale ||
-        k.top !== (framed ? w.top : undefined) ||
+        k.top !== (w.top || undefined) ||
         k.bands !== (framed ? w.bands : undefined)
       )
         same = false;
@@ -806,7 +836,7 @@ export class SeqViewer extends ReactiveModel {
         end: w.end,
         ...(w.scale !== undefined ? { scale: w.scale } : {}),
         // a frame's top and bands (a story's); the model's are the layout's own
-        ...(this._shownFrame && w.top !== undefined ? { top: w.top } : {}),
+        ...(w.top ? { top: w.top } : {}),
         ...(this._shownFrame && w.bands !== undefined ? { bands: w.bands as RenderViewport['bands'] } : {}),
       };
     }

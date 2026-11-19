@@ -122,7 +122,7 @@ export const P53Views: readonly ExampleView[] = [
     id: 'story',
     title: 'A story',
     summary:
-      'The tracks as a story of four steps: the whole protein, its DNA-binding domain (the conservation taller), the R175H hotspot (the domains recolored) and the tetramerization domain (the conservation gone); each a view and a patch over the spec.',
+      'The tracks as a story of four steps: the whole protein, its DNA-binding domain (the conservation taller), the R175H hotspot (marked by a track of its own, the domains recolored) and the tetramerization domain (the conservation gone); each a view and a patch over the spec.',
     build: story.build,
   },
 ];

@@ -11,7 +11,6 @@ export {
   DefaultStoryConfig,
   type Easing,
   Easings,
-  ease,
   easingOf,
   type StepTiming,
   type StoryConfig,
@@ -47,6 +46,7 @@ export {
   type StepViewport,
   type StoryCache,
   stateOf,
+  stepPatchOf,
   storySteps,
   timingOf,
 } from './state.js';

@@ -24,6 +24,12 @@ export const StoryIssues = defineIssues('seq.story', {
     description: 'A step starts from a step that is not there, or a chain of starts leads back to itself',
     hint: 'Name an existing step as `from`, or drop it: the step then applies over the spec',
   },
+  'seq.story.step.chain': {
+    severity: 'warning',
+    description:
+      'A step is more deltas from its keyframe than `story.maxChain`: reaching it costs more applies than the bound',
+    hint: 'Store the story again (the encoder keeps every step within the bound), or store this step over the spec',
+  },
   'seq.story.step.form': {
     severity: 'error',
     description: 'A step holds neither a patch nor a full state it can read',

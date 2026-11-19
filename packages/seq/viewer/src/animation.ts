@@ -52,7 +52,8 @@ export function frameAnimation(): SeqAnimationPort {
           r.options.done?.();
         }
       }
-      if (running.size) frame = requestFrameCallback(tick);
+      // a request made from a `progress` or a `done` above already asked for the next tick
+      if (running.size) frame ??= requestFrameCallback(tick);
     };
     return {
       request(plan, options): AnimationRequest {
