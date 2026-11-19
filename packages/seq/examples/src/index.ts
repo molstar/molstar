@@ -13,6 +13,8 @@ export {
   ExampleViews,
   type ExampleView,
   FeatureViews,
+  FilesViews,
+  TableFiles,
   GlobinsViews,
   LayerViews,
   P53Views,

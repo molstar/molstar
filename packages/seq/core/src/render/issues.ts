@@ -149,6 +149,12 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A layer’s data query is not a filter its rows can be read by: every row is drawn',
     hint: 'Filter an annotation’s items by `(item :<field> v)`, `(not :of …)`, `(and :of […])` or `(or :of […])`',
   },
+  'seq.render.item.range': {
+    severity: 'warning',
+    description:
+      'A row of a source runs past the length of its system: clipped on a linear one (left out when it starts past the end), clamped to one lap on a cyclic one that is longer than it',
+    hint: 'A system that wraps is `cyclic`; else check the file’s `base` and `ends`',
+  },
   'seq.render.numbering': {
     severity: 'warning',
     description: 'A ruler’s `numbering` is not one its system has: it labels by `ordinal`',

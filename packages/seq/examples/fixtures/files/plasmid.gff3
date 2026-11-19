@@ -1,0 +1,14 @@
+##gff-version 3
+##sequence-region pUC19c 1 2686
+pUC19c	seqx	region	1	2686	.	+	.	ID=region-pUC19c;Name=pUC19c;Is_circular=true
+pUC19c	seqx	CDS	833	1156	.	-	.	ID=lacZa;Name=lacZα;product=lacZα
+pUC19c	seqx	misc_feature	1083	1140	.	+	.	ID=mcs;Name=MCS;product=MCS
+pUC19c	seqx	rep_origin	1840	2428	.	+	.	ID=ori;Name=ori;product=ori
+pUC19c	seqx	CDS	2312	3172	.	-	.	ID=bla;Name=bla (AmpR);product=bla (AmpR)
+pUC19c	seqx	promoter	487	591	.	-	.	ID=bla-promoter;Name=AmpR promoter;product=AmpR promoter
+pUC19c	seqx	promoter	1201	1231	.	+	.	ID=lac-promoter;Name=lac promoter;product=lac promoter
+pUC19c	seqx	misc_feature	1257	1273	.	+	.	ID=cap;Name=CAP site;product=CAP site
+pUC19c	seqx	primer_bind	2657	2711	.	+	.	ID=primer;Name=primer site;note=across the origin
+##FASTA
+>pUC19c
+GGACAAATATGCAAAATACTGAGGCCCGCGATAACTTAGAGTGCCGAAGACACAAGTGCT

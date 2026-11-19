@@ -149,13 +149,15 @@ checks it cannot express.
   (TODO).
 - **A source's transform** (its params besides `format`, `uri`, `index`, `value`, `assembly`): what the file's columns
   mean, written once beside its location, every one optional (Data, Records): `fields` (a role or any other field of the
-  ranges, by column name or dotted path), `records` (the path to the records), `letters` (the path to the letters of the
-  source's own system), `system` (its name; absent, the source node's id), `base` (`0` or `1`; absent, `1` for a file,
-  `0` inline), `ends` (`inclusive`, `exclusive`; absent, `inclusive` for a file, `exclusive` inline), `types` (a field's
-  type: `int32`, `float32`, `float64`, `category`, `string`), `attribution` and `licence` (carried, not read). Why on
-  the source, not the reading node: the conventions are the file's whoever reads it, the store keys entries by source,
-  and several readers of one file share one open; an edit of the transform is a patch of the source, which reopens it in
-  place (one undo step, no side-by-side preview).
+  ranges, by column name or dotted path), `records` (the path to the records), `shape` (`records`, absent, or `matrix`:
+  an array of arrays a grid reads whole as its values, found by `records`; a param because the format cannot say which a
+  document is, and a matrix is no record form), `letters` (the path to the letters of the source's own system), `system`
+  (its name; absent, the source node's id), `base` (`0` or `1`; absent, `1` for a file, `0` inline), `ends`
+  (`inclusive`, `exclusive`; absent, `inclusive` for a file, `exclusive` inline), `types` (a field's type: `int32`,
+  `float32`, `float64`, `category`, `string`), `attribution` and `licence` (carried, not read). Why on the source, not
+  the reading node: the conventions are the file's whoever reads it, the store keys entries by source, and several
+  readers of one file share one open; an edit of the transform is a patch of the source, which reopens it in place (one
+  undo step, no side-by-side preview).
 
 ### Refs
 
@@ -270,7 +272,14 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   (`<annotation>/(not :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads them
   (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
   (`compileRowFilter`); the track's label column shows "n filtered" (`TrackLayout.filter`), a hit on it
-  `target: 'filter'`. A form not read row by row filters nothing and is `seq.render.filter`.
+  `target: 'filter'`. A form not read row by row filters nothing and is `seq.render.filter`. **One rule for the base and
+  the filter** (`splitDataForms`, read by the layers and the viewer's `dataFilter` alike): a leading run of item forms
+  (`and` and `or` of them too) is the track's base (`<annotation>/(item :category Domain)`; `ResolvedLayer.data.base`,
+  `LayerSource.base`): its rejected rows are left out and not counted as filtered; a trailing `(not …)` is the user's
+  (`data.filter`) and counted. Why: one read of a file serves a layer a feature type, and the chip counts what the user
+  hid, not what the track is. A lone form of another kind stays the filter (and is `seq.render.filter` when no row reads
+  it); any other mix of forms is `seq.render.filter` too (`data.unread`), every row drawn. Density tables take neither
+  the base nor the wrap: they are counts of what a source served.
 
 ## Issues
 
@@ -611,8 +620,8 @@ by fuzz tests (mutated text read without a throw).
 ### Records
 
 `data/records.ts`, an entry of its own (`@molstar/seqx-core/data/records`: a reader of a spec never pays for it):
-`RecordsRuntime` (formats `tsv`, `csv`, `json`, `msgpack`), registered by the viewer's default spec; `readRecords` the
-reading without the runtime (tests, a preset).
+`RecordsRuntime` (formats `tsv`, `csv`, `json`, `msgpack`, `gff3`), registered by the viewer's default spec;
+`readRecords` the reading without the runtime (tests, a preset).
 
 - **Read whole at open**, converted once into `seq` data (a pair a system over the whole system at level 1: its letters'
   length when the source holds them, else every position a column can, the target's own length standing) and answered by
@@ -628,6 +637,40 @@ reading without the runtime (tests, a preset).
   ordinary names, EC-50; a transform's maps are read own only too). A document that does not parse, or a MessagePack one
   deeper than the stack (its decoder recurses; `JSON.parse` does not), is malformed, never a crash (EC-76). Text holding
   U+FFFD is said once (`seq.source.records.encoding`, info): UTF-8 only.
+- **GFF3**, a preset of the same reader (the format fixes its columns, base 1 and inclusive ends: a transform's `base`
+  and `ends` are not read): nine tab-separated columns (`seqid` the `target`, `source`, `type`, `start`, `end`, `score`,
+  `strand`, `phase`, `attributes`), headerless; blank lines, `#` lines and `##` directives are read past and everything
+  after `##FASTA` is ignored; `.` is missing (a `null` cell); `key=value;…` attributes become fields by their key, their
+  values percent-decoded (a malformed escape left as written), a multi-valued one as its text, `ID` the `id`; `Parent`
+  stays a field, no hierarchy is assembled (rows sharing an `ID` are pieces of one item). A key written twice in a row
+  keeps the last, and an attribute named as a column (`type`) leaves the column its own: each said once, `.cell` (info).
+  A row with another count of cells than nine is read with the missing ones empty (`.cells`). `fields` maps as for any
+  source (`{ category: 'type', label: 'Name' }`); `seqid` and `ID` are the roles, not fields under their names. Why a
+  preset: NCBI serves an INSDC record's features as GFF3, read as published.
+- **A row past the system's end is the row reader's** (`collectItems`, `wrap`; render, items): a source's row ending
+  past its target's length becomes two rows of one item (`[s, L)` and `[0, e − L)`, one key, one occurrence each) on a
+  cyclic system; a row longer than one lap is one lap (counted); a start at or past the end moves back by laps
+  (`[s − L, e − L)`); on a linear system a row is clipped, and one starting at or past the end left out, both counted
+  (`seq.render.item.range`, warning, once a layout). Why there, not in the runtime: without letters the runtime knows
+  neither the length nor that the system is cyclic; a source that holds its own letters is clipped by the runtime
+  (EC-51, `.range`) before the reader sees a row. A layer of a cyclic system whose source is not inline also wants the
+  system's last position (`LayerSource.wraps`, `cyclic`): any row that runs past the end overlaps it, so its tile brings
+  the origin's piece though the view is elsewhere. Cost: one more tile a layer read, whose rows enter the layer's rows
+  as any tile's do; it is not gated (a coverage does not say whether a source has rows past the length), and a row
+  starting past the end is in no tile (a want is clipped to the length), so that rule is for a source that serves one.
+  Inline rows were wrapped by the model (EC-9).
+- **A matrix** (`shape: matrix` on the source, `readMatrix`, `RecordsSource.matrix(expected?)`): an array of arrays
+  (JSON, MessagePack, an inline value) found by `records`, served as a grid's values, row-major as `Float32Array`
+  (`null` and any cell that is no number NaN, said once); the source serves no region (an empty coverage). Its size is
+  checked against the axes' total the grid passes (`expected`, `rows × cols`): a mismatch, or rows of unequal lengths,
+  is `seq.source.records.size` (error, the matrix not served; the issue names both sizes). A typed flat array (a
+  MessagePack `Float32Array`, an inline one) is kept as it is when it is a `Float32Array`, its dimensions the expected
+  size's (a square when none is given: a flat array that is not one is `.size`); any other flat array is copied. A flat
+  array is a typed array or one of numbers and nulls. The document is parsed once at open and the source keeps the array
+  the path reaches, not the text or bytes; the size is checked on each call, and every issue carries the source's
+  address. More than `DefaultMaxBlockValues` (2^24) values is refused (`seq.source.too_large`). A table format is no
+  matrix (`seq.source.no_data`). Why a param and not the format: a document is a document; whether it is records or a
+  matrix is the spec's to say, and the grid reading it in the fourth slice's complex PAE is the one reader.
 - **Records and columns**: `records` is a dotted path from the root (a member, or an index when all digits; at most 32
   segments); what it reaches is an array of records (AoS: each an object) or an object of columns (SoA: each member a
   list or a typed column, all of one length, checked before any is read); a table file is AoS. Read the same.
@@ -655,16 +698,17 @@ reading without the runtime (tests, a preset).
   buffer for as long as the source is attached.
 - **Issues** (`RecordsIssues`, `seq.source.records.*`; one a cause with its count and its first ten places, a line or a
   record, EC-86): what cannot be read as its format is `.malformed` (no header, a document that does not parse, a
-  `records` path to neither form, SoA columns of unequal lengths, a header naming a column twice, too deep) and a field
-  found in no record `.field` (naming the field and listing the columns there are, EC-6): the source unavailable, its
-  `SourceOpenError`'s first issue. One severity a code (EC-87): a cell its field cannot hold, read as missing (an object
-  or a list, a number that is none, a strand read as 0), and a position named twice are `.cell` (info, the row kept). A
-  row-level misfit leaves the row out: a position or value not a number or an end past int32 (`.value`), a position
-  missing (`.missing`, UniProt's `UNKNOWN`), an end before its start (`.order`), a row starting before the first
-  position or past the letters' end (`.range`; one running past the end is clipped and counted in the same issue,
-  EC-51), hinting the other `base` when a first position 0 meets `base: 1` or every row past the end would fit one
-  lower. The opened source carries them (`OpenedSource.issues`), and the viewer's store model and `attachSources` report
-  them at the source's address. Why left out, not refused: one bad row in ten thousand should not blank a track.
+  `records` path to neither form, SoA columns of unequal lengths, a header naming a column twice, too deep) and a matrix
+  of another size than its axes' total or of unequal rows `.size`, and a field found in no record `.field` (naming the
+  field and listing the columns there are, EC-6): the source unavailable, its `SourceOpenError`'s first issue. One
+  severity a code (EC-87): a cell its field cannot hold, read as missing (an object or a list, a number that is none, a
+  strand read as 0), and a position named twice are `.cell` (info, the row kept). A row-level misfit leaves the row out:
+  a position or value not a number or an end past int32 (`.value`), a position missing (`.missing`, UniProt's
+  `UNKNOWN`), an end before its start (`.order`), a row starting before the first position or past the letters' end
+  (`.range`; one running past the end is clipped and counted in the same issue, EC-51), hinting the other `base` when a
+  first position 0 meets `base: 1` or every row past the end would fit one lower. The opened source carries them
+  (`OpenedSource.issues`), and the viewer's store model and `attachSources` report them at the source's address. Why
+  left out, not refused: one bad row in ten thousand should not blank a track.
 - **Bounds**, the context's `limits`: a file over `maxBytes` is refused before it is parsed, rows over `maxRows` before
   any column is built (`seq.source.too_large`, hinting a format read by region).
 - **Configuration**: the runtime is a registry entry (the default viewer spec registers it; a host leaves it out); the

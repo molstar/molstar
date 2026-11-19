@@ -36,6 +36,8 @@ export {
   followSpan,
   followWindow,
   type LayerData,
+  type DataForms,
+  splitDataForms,
   type LayerType,
   LayerTypes,
   type ResolvedLayer,

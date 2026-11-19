@@ -826,11 +826,16 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   or form set or unset, on one layer or several in one patch), `scale.set` (a scale's params; `null` reopens a domain's
   end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
   scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
-  the layer's `data`, a `not` of the values hidden; no value: cleared, as a click on the track's "n filtered" chip),
-  `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover` (session: a highlight
-  named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the schemes whose subject
-  and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel`
-  or Esc).
+  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, as a click on the track's "n
+  filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`): what leads it, the annotation and a
+  leading run of item forms (`<annotation>/(item :category Domain)`, a layer a feature type), is the layer's base, kept
+  when the filter is set, toggled or cleared, its rejected rows not counted as filtered (core's Render, Filters:
+  `splitDataForms` is the one parser). A legend entry's items are the base's forms and `(item :<field> v)` in one query
+  (`itemsAddress`: one item form holding every param, or an `and` when the base has `and` or `or`), `legend.select`
+  (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover` (session: a highlight named
+  `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the schemes whose subject and
+  measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel` or
+  Esc).
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
   swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
   runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or

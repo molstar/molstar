@@ -187,6 +187,8 @@ export interface SourceEntry {
   readonly fields?: Readonly<Record<string, string>>;
   /** The dotted path to the records. */
   readonly records?: string;
+  /** What the source serves: its `records` (absent), or a `matrix` (an array of arrays a grid reads whole). */
+  readonly shape?: 'records' | 'matrix';
   /** The dotted path to the letters of the source's own system. */
   readonly letters?: string;
   /** The source's own system's name. */

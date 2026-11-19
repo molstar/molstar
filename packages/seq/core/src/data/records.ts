@@ -38,7 +38,7 @@ import type {
 import { isAbortError } from './protocol.js';
 import type { SeqData, SeqPair } from './seq-format.js';
 import { openSeq, SourceOpenError } from './seq-runtime.js';
-import { DefaultMaxColumnLength } from './tables.js';
+import { DefaultMaxBlockValues, DefaultMaxColumnLength } from './tables.js';
 
 // The records runtime (_spec/README.md "Data", Records): a file of records (TSV, CSV, JSON, MessagePack) or an inline
 // value, read whole at open, its conventions undone by the source's transform (`fields`, `records`, `letters`,
@@ -84,6 +84,12 @@ export const RecordsIssues = defineIssues('seq.source.records', {
     severity: 'warning',
     description: 'A row has another count of cells than the header: missing cells empty, extra ones dropped',
   },
+  'seq.source.records.size': {
+    severity: 'error',
+    description:
+      'A matrix is not the size its axes’ total says, or its rows are of unequal lengths; the source is unavailable',
+    hint: 'A matrix has one row a position of the first axis and one column a position of the second',
+  },
   'seq.source.records.encoding': {
     severity: 'info',
     description: 'The text holds replacement characters (U+FFFD): it may not be UTF-8',
@@ -94,7 +100,7 @@ export const RecordsIssues = defineIssues('seq.source.records', {
 type Code = keyof typeof RecordsIssues.codes;
 
 /** The formats the runtime reads. */
-export const RecordsFormats = ['tsv', 'csv', 'json', 'msgpack'] as const;
+export const RecordsFormats = ['tsv', 'csv', 'json', 'msgpack', 'gff3'] as const;
 export type RecordsFormat = (typeof RecordsFormats)[number];
 
 /** A field's declared type; `string` is held as a category. */
@@ -113,7 +119,7 @@ export interface RecordsTransform {
 
 /** What is read: a file's text (TSV, CSV, JSON), its bytes (MessagePack), or an inline value (base 0, exclusive). */
 export type RecordsInput =
-  | { readonly format: 'tsv' | 'csv' | 'json'; readonly text: string }
+  | { readonly format: 'tsv' | 'csv' | 'json' | 'gff3'; readonly text: string }
   | { readonly format: 'msgpack'; readonly bytes: Uint8Array }
   | { readonly value: Value };
 
@@ -230,6 +236,105 @@ function tableRecords(text: string, delimiter: string, causes: Causes): Records 
     },
     scalars: header,
     names: header,
+    text: true,
+  };
+}
+
+/** The GFF3 preset's columns, in file order (`seqid` the `target`, `ID` the `id`). */
+const Gff3Columns = ['seqid', 'source', 'type', 'start', 'end', 'score', 'strand', 'phase'] as const;
+
+/** A GFF3 value: percent-decoded (a malformed escape is left as written). */
+function gffDecode(v: string): string {
+  if (!v.includes('%')) return v;
+  try {
+    return decodeURIComponent(v);
+  } catch {
+    return v;
+  }
+}
+
+/**
+ * GFF3 as records: nine tab-separated columns, `#` lines and `##` directives read past, everything after `##FASTA`
+ * ignored, `.` missing; the attributes (`key=value;…`) are columns by their key, `seqid` is the `target` and `ID` the
+ * `id` (_spec/README.md "Data", Records).
+ */
+function gff3Records(text: string, causes: Causes): Records {
+  const rows: (string | null)[][] = [];
+  const attrs: Record<string, string>[] = [];
+  const lines: number[] = [];
+  const keys = new Set<string>();
+  let line = 0;
+  let at = 0;
+  const n = text.length;
+  while (at < n) {
+    let end = text.indexOf('\n', at);
+    if (end < 0) end = n;
+    line++;
+    let l = text.slice(at, end);
+    at = end + 1;
+    if (l.endsWith('\r')) l = l.slice(0, -1);
+    if (line === 1 && l.charCodeAt(0) === 0xfeff) l = l.slice(1);
+    if (l.trim() === '') continue;
+    if (l.startsWith('##FASTA')) break;
+    if (l.charCodeAt(0) === 35) continue;
+    const cells = l.split('\t');
+    if (cells.length !== 9)
+      causes.add(
+        'seq.source.records.cells',
+        'A row has another count of cells than the nine columns: missing cells empty, extra ones dropped',
+        `line ${line}`,
+      );
+    const row: (string | null)[] = [];
+    for (let k = 0; k < 8; k++) {
+      const c = cells[k] ?? '.';
+      row.push(c === '.' || c === '' ? null : gffDecode(c));
+    }
+    const a: Record<string, string> = Object.create(null);
+    const raw = cells[8] ?? '.';
+    if (raw !== '.' && raw !== '')
+      for (const part of raw.split(';')) {
+        const eq = part.indexOf('=');
+        if (eq <= 0) continue;
+        const key = part.slice(0, eq).trim();
+        if (!key) continue;
+        // an attribute named as a column leaves the column its own; a key written twice keeps the last
+        if ((Gff3Columns as readonly string[]).includes(key)) {
+          causes.add(
+            'seq.source.records.cell',
+            'An attribute is named as a column of the format: the column is the field, the attribute left out',
+            `line ${line}`,
+          );
+          continue;
+        }
+        if (key in a)
+          causes.add(
+            'seq.source.records.cell',
+            'An attribute key is written twice in a row: the last kept',
+            `line ${line}`,
+          );
+        a[key] = gffDecode(part.slice(eq + 1));
+        keys.add(key);
+      }
+    rows.push(row);
+    attrs.push(a);
+    lines.push(line);
+  }
+  const attributeNames = [...keys];
+  const names = [...Gff3Columns, ...attributeNames];
+  const aliases: Readonly<Record<string, string>> = { target: 'seqid', id: 'ID' };
+  return {
+    count: rows.length,
+    place: (i) => `line ${lines[i]}`,
+    cells(name) {
+      const k = (Gff3Columns as readonly string[]).indexOf(own(aliases, name) ?? name);
+      if (k >= 0) return { text: true, get: (i) => rows[i][k] };
+      const key = own(aliases, name) ?? name;
+      if (!keys.has(key)) return undefined;
+      return { text: true, get: (i) => attrs[i][key] ?? null };
+    },
+    // `seqid` and `ID` are the roles `target` and `id`, not fields under their own names
+    scalars: names.filter((k) => k !== 'seqid' && k !== 'ID'),
+    names,
     text: true,
   };
 }
@@ -571,8 +676,10 @@ export function readRecords(
   const issues: Issue[] = [];
   try {
     const file = !('value' in input);
-    const base = transform.base ?? (file ? 1 : 0);
-    const inclusive = (transform.ends ?? (file ? 'inclusive' : 'exclusive')) === 'inclusive';
+    // the GFF3 preset fixes its own conventions: base 1, ends inclusive
+    const gff = 'format' in input && input.format === 'gff3';
+    const base = gff ? 1 : (transform.base ?? (file ? 1 : 0));
+    const inclusive = gff || (transform.ends ?? (file ? 'inclusive' : 'exclusive')) === 'inclusive';
     const ownSystem = transform.system ?? options.system;
 
     if ('text' in input && input.text.includes('�'))
@@ -583,7 +690,8 @@ export function readRecords(
       );
     let records: Records;
     let root: unknown;
-    if ('text' in input && input.format !== 'json')
+    if ('text' in input && input.format === 'gff3') records = gff3Records(input.text, causes);
+    else if ('text' in input && input.format !== 'json')
       records = tableRecords(input.text, input.format === 'tsv' ? '\t' : ',', causes);
     else {
       root = parseDocument(input);
@@ -900,6 +1008,132 @@ function valuesTable(sys: SystemRows, count: number, typed: Cells | undefined, l
   return { form: 'positions', start: first, value };
 }
 
+// ---- the matrix read ----
+
+/** A matrix: `rows × cols` values, row-major (the value at row i, column j is at `i × cols + j`), NaN missing. */
+export interface Matrix {
+  readonly rows: number;
+  readonly cols: number;
+  readonly values: Float32Array;
+}
+
+/** The size a matrix is expected to have: its axes' total (a grid's `|x| × |y|`). */
+export interface MatrixSize {
+  readonly rows: number;
+  readonly cols: number;
+}
+
+/**
+ * An array of arrays (JSON or MessagePack, found by the transform's `records` path) as a grid's values, row-major;
+ * `null` and cells that are no number are NaN. A typed flat array (a MessagePack `Float32Array`) is kept as it is when it
+ * is a `Float32Array`, its dimensions the expected size's, else a square. Its size is checked against `expected`
+ * (`seq.source.records.size`, the source unavailable). Never throws on its input.
+ */
+export function readMatrix(
+  input: RecordsInput,
+  transform: RecordsTransform,
+  options: { readonly expected?: MatrixSize; readonly limits: OpenLimits },
+): { matrix?: Matrix; issues: Issue[] } {
+  const found = findMatrix(input, transform);
+  return found.issues.length ? { issues: found.issues } : matrixOf(found.at, transform.records, options.expected);
+}
+
+/** The value a matrix source's `records` path reaches, parsed once (a source keeps it, not the text it came from). */
+export function findMatrix(input: RecordsInput, transform: RecordsTransform): { at?: unknown; issues: Issue[] } {
+  try {
+    const root = parseDocument(input);
+    const path = transform.records;
+    const at = path === undefined || path === '' ? root : walk(root, segments(path));
+    if (at === undefined) refuse('seq.source.records.field', `The matrix’s path “${path}” reaches nothing`);
+    return { at, issues: [] };
+  } catch (e) {
+    if (e instanceof Refused) return { issues: [e.issue] };
+    throw e;
+  }
+}
+
+/** Whether a value is a flat matrix: a typed array, or an array of numbers and nulls. */
+function isFlat(at: unknown): boolean {
+  if (ArrayBuffer.isView(at)) return true;
+  if (!Array.isArray(at) || at.length === 0) return false;
+  for (const v of at) if (v !== null && typeof v !== 'number') return false;
+  return true;
+}
+
+/** A parsed value as a matrix of the expected size (the size checked on every call: a grid asks with its axes'). */
+export function matrixOf(
+  at: unknown,
+  path: string | undefined,
+  expected?: MatrixSize,
+): { matrix?: Matrix; issues: Issue[] } {
+  const causes = new Causes();
+  try {
+    const check = (rows: number, cols: number): void => {
+      if (rows * cols > DefaultMaxBlockValues)
+        tooLarge(
+          `The matrix holds ${rows * cols} values, more than ${DefaultMaxBlockValues}`,
+          'Use a format read by region',
+        );
+      if (expected && (rows !== expected.rows || cols !== expected.cols))
+        refuse(
+          'seq.source.records.size',
+          `The matrix is ${rows} × ${cols}, not ${expected.rows} × ${expected.cols}`,
+          RecordsIssues.codes['seq.source.records.size'].hint,
+        );
+    };
+    // a flat array: its dimensions the expected size's, else a square
+    if (isFlat(at)) {
+      const flat = at as ArrayLike<unknown>;
+      const side = Math.round(Math.sqrt(flat.length));
+      const rows = expected?.rows ?? side;
+      const cols = expected?.cols ?? side;
+      if (rows * cols !== flat.length)
+        refuse(
+          'seq.source.records.size',
+          `The flat matrix has ${flat.length} values, not ${rows} × ${cols}`,
+          RecordsIssues.codes['seq.source.records.size'].hint,
+        );
+      check(rows, cols);
+      if (flat instanceof Float32Array) return { matrix: { rows, cols, values: flat }, issues: [] };
+      const values = new Float32Array(flat.length);
+      for (let i = 0; i < flat.length; i++) values[i] = cellNumber(flat[i], i, causes);
+      return { matrix: { rows, cols, values }, issues: causes.issues() };
+    }
+    if (!Array.isArray(at))
+      refuse(
+        'seq.source.records.malformed',
+        path ? `The path “${path}” reaches no array of arrays` : 'The document holds no array of arrays',
+      );
+    const rows = at.length;
+    const first = rows ? (at[0] as ArrayLike<unknown>) : undefined;
+    const cols = first && typeof first === 'object' ? first.length : 0;
+    check(rows, cols);
+    const values = new Float32Array(rows * cols);
+    for (let i = 0; i < rows; i++) {
+      const row = at[i] as ArrayLike<unknown> | null | undefined;
+      if (typeof row !== 'object' || row === null || row.length !== cols)
+        refuse(
+          'seq.source.records.size',
+          `Row ${i} of the matrix has ${row && typeof row === 'object' ? row.length : 'no'} values, not ${cols}`,
+          RecordsIssues.codes['seq.source.records.size'].hint,
+        );
+      for (let j = 0; j < cols; j++) values[i * cols + j] = cellNumber(row[j], i, causes);
+    }
+    return { matrix: { rows, cols, values }, issues: causes.issues() };
+  } catch (e) {
+    if (e instanceof Refused) return { issues: [e.issue] };
+    throw e;
+  }
+}
+
+/** A matrix cell: a number, NaN for `null`, missing and anything else (said once). */
+function cellNumber(cell: unknown, row: number, causes: Causes): number {
+  if (typeof cell === 'number') return cell;
+  if (cell !== null && cell !== undefined)
+    causes.add('seq.source.records.cell', 'A matrix cell is not a number: missing', `row ${row}`);
+  return Number.NaN;
+}
+
 // ---- the runtime ----
 
 /** The transform an entry carries (the source node's params, as the resolver copies them). */
@@ -918,6 +1152,8 @@ function transformOf(s: SourceEntry): RecordsTransform {
 /** An opened records source: the `seq` join over its tables, with what its reading said (row-level issues). */
 export interface RecordsSource extends OpenedSource {
   readonly issues: readonly Issue[];
+  /** A source of `shape: matrix`: its array of arrays as a grid's values, checked against the axes' total. */
+  readonly matrix?: (expected?: MatrixSize) => { matrix?: Matrix; issues: Issue[] };
 }
 
 const rank = (i: Issue) => (i.severity === 'error' ? 0 : i.severity === 'warning' ? 1 : 2);
@@ -961,6 +1197,27 @@ async function open(source: SourceEntry, ctx: OpenContext): Promise<RecordsSourc
       );
     input = format === 'msgpack' ? { format, bytes } : { format, text: new TextDecoder('utf-8').decode(bytes) };
   } else return fail(issueOf(SourceIssues, 'seq.source.no_data', 'A records source needs a value or a uri'));
+  if (source.shape === 'matrix') {
+    // a matrix serves no region: a grid reads it whole, once its axes' total is known
+    if (format === 'gff3' || format === 'tsv' || format === 'csv')
+      return fail(
+        issueOf(SourceIssues, 'seq.source.no_data', `A matrix is read from JSON or MessagePack, not ${format}`),
+      );
+    // parsed once, here: the source keeps the array it reaches, not the file's text or bytes
+    const transform = transformOf(source);
+    const found = findMatrix(input, transform);
+    const at = found.at;
+    const empty = openSeq({ coverage: { systems: [], shapes: [], levels: [1] }, pairs: [] });
+    const placed = (issues: Issue[]) => issues.map((i) => ({ ...i, address: i.address ?? source.address }));
+    return {
+      ...empty,
+      issues: [],
+      matrix: (expected) => {
+        const r = found.issues.length ? { issues: found.issues } : matrixOf(at, transform.records, expected);
+        return { ...r, issues: placed(r.issues) };
+      },
+    };
+  }
   const id = source.address.slice(source.address.lastIndexOf('/') + 1);
   const read = readRecords(input, transformOf(source), { system: id, limits: ctx.limits });
   const placed = read.issues.map((i) => ({ ...i, address: i.address ?? source.address }));

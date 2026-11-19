@@ -59,7 +59,8 @@ describe('a layer’s data filter', () => {
     const b = await layout('variants', '/(or :of [(item :id a) (item :id e)])');
     const v = b.layout.sections[0].tracks[0].layers[0].lay as VariantsLay;
     expect([...v.rows.keys.slice(0, v.rows.n)].sort()).toEqual(['a', 'e']);
-    expect(b.layout.sections[0].tracks[0].filter?.count).toBe(3);
+    // a lone `or` of items is the track's own rows (the base), not what the user hid: not counted
+    expect(b.layout.sections[0].tracks[0].filter).toBeUndefined();
   });
 
   it('no filter: no chip; a form not read row by row: every row, and said', async () => {
