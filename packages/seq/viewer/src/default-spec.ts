@@ -15,6 +15,7 @@ import {
   HoverProvider,
   KeysPanelProvider,
   LegendProvider,
+  LinkedPairsProvider,
   NavigateProvider,
   NavigatorProvider,
   SelectProvider,
@@ -60,6 +61,8 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       // the card's port: `@molstar/ui`'s card over the canvas (a host with its own passes it here, and bundles none)
       { provider: HoverCardProvider, params: { port: hoverCardOverlay() } },
       { provider: KeysPanelProvider },
+      // a hovered or selected range lights the pairs with an end in it (an analysis a host lists, removed to opt out)
+      { provider: LinkedPairsProvider },
     ],
     bindings: {},
     config: [],

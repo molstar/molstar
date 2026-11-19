@@ -317,9 +317,11 @@ the region (a press there says it too, a tap's hover).
 
 - **The selection** (its `shown`) and **its projection** onto the linked sections (`Projector.of`: the core's
   `projectOntoView`, only the systems it has no part on), **the cursor**, **the highlight channels** in the order first
-  set (each its Location with its projection, `own` kept; its color `highlight.colors[name]`, else `highlight.color`, a
-  hex literal or `token:<name>`), and **the hover** with its projection (`HoverModel.projectedAll`), its `ySystem` and
-  `yPosition` copied with the rest (a grid's crosshair reads the cell's row; the arcs ending at either position light).
+  set (each its Location with its projection, `own` kept, and its element keys, `EmphasisHighlight.elements`: a layer of
+  keyed items draws those it holds, the pairs layer its arcs and dots; its color `highlight.colors[name]`, else
+  `highlight.color`, a hex literal or `token:<name>`), and **the hover** with its projection
+  (`HoverModel.projectedAll`), its `ySystem` and `yPosition` copied with the rest (a grid's crosshair reads the cell's
+  row; the arcs ending at either position light).
 - **Projections are cached** per Location by identity while the view and the model hold (`Projector`, at most 64); the
   highlights' list is made again only when a channel, the tokens, the view or the model changed: a redraw projects
   nothing and allocates nothing in the renderer (held by the allocation tier).
@@ -423,11 +425,11 @@ owner, the store with it.
   (factories with ownership), `ui` (the parts; none for a headless viewer), `history` (the history port), `story` (the
   story part). `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the `seq` and records runtimes, the
   core's layer types and layouts (`BuiltInRenderRegistry`), the `hover`, `navigate`, `select`, `cursor`, `addressing`,
-  `editing`, `navigator`, `rows`, `hoverCard` (its port `hoverCardOverlay()`) and `keysPanel` behaviors, the story part
-  (`StoryPart`), the default ports and the UI (`canvas`, and `history: uiHistory`: a mounted viewer with no `history`
-  given gets a stack of its own from the factory); an application spreads it. A headless spread (`ui: undefined`) has no
-  history, so its edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs them in
-  turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
+  `editing`, `navigator`, `rows`, `hoverCard` (its port `hoverCardOverlay()`), `keysPanel` and `linkedPairs` behaviors,
+  the story part (`StoryPart`), the default ports and the UI (`canvas`, and `history: uiHistory`: a mounted viewer with
+  no `history` given gets a stack of its own from the factory); an application spreads it. A headless spread
+  (`ui: undefined`) has no history, so its edits apply at once (`refs.add` and the editing commands answer at once); a
+  mounted one runs them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
 - **Injected, opt in**: what the spec does not list is not in the viewer's bundle. `createSeqViewer` imports no layer
   type, layout, navigator, story, history or rows piece: the context is `composeSeqContext` of the spec's registry (the
   canvas, the navigation's layouts and `renderSvg` draw its layer types and layouts alone; a layer of another type or a
@@ -916,6 +918,18 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   button); closed, it gives the focus back to what opened it (the canvas, a toolbar's button), else to the canvas; the
   focus may leave it (no trap). Its events are its own: no pointer event or key in it reaches the canvas (an arrow moves
   no cursor, Enter on Close runs no command), and Esc on it closes it wherever the focus came from.
+- `linkedPairs` (`LinkedPairsProvider`, in the default spec, removed to opt out; `linked-pairs.ts`): on a hovered or
+  selected range element (a feature, a CDR), the pairs with an end in its extent, on every pairs layer of the view
+  (`layers`: those named by address, all when absent), written to its own highlight channel (`linked-pairs`, element
+  keys alone): drawn in the highlight pass in the channel's color, never the selection's (related to the selection, not
+  in it: a copy of the selection leaves them out); cleared when the hover or selection goes; `on` says which lights them
+  (`hover`, `selection`, both by default). Built on the public API alone: the query language
+  (`<pairs>/(items :overlapping <extent>)`, pairs answering `items`; the extent a hit's, else `(extent :of <element>)`;
+  a selection of range elements alone by its `shown`), the highlight channel, the hover and selection models. The
+  hover's query is cached per hovered element key while the view and the model hold (an element read from a source whose
+  address still waits is asked again), and the channel's value per set of keys: a hover allocates nothing a frame past
+  its first. A pair or a position hovered is the pairs layer's own rule (its partners light), never the channel. Why a
+  behavior: a host chooses an analysis, and the same query serves the selection.
 - `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
   `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
