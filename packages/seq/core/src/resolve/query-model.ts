@@ -58,6 +58,7 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay): QueryMo
       return typeof key === 'string' ? overlay.node(nodeAddress(owner, key))?.node : undefined;
     },
     chain: () => undefined,
+    row: (rows, key) => model.row?.(rows, key),
   };
   byOverlay.set(overlay, q);
   return q;

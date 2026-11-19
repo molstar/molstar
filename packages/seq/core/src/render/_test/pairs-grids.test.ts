@@ -479,7 +479,7 @@ describe('the pairs layer: arcs', () => {
     const st = await settle(arcsSpec({ n: 24, pairs }));
     const f = await st.renderer.frame({ size: Size, settled: true });
     const lists = new DrawLists();
-    const hover = { section: 'plot', system: '/data/s', position: 2, ySystem: '/data/s', yPosition: 15 };
+    const hover = { layer: 'x', section: 'plot', system: '/data/s', position: 2, ySystem: '/data/s', yPosition: 15 };
     drawView(f.layout, lists, { hover }, ['hover']);
     expect(lists.passes.hover.paths.n).toBe(2);
     drawView(f.layout, lists, { projected: { hover: rangesLocation('/data/s', [9, 10]), hoverSection: '/x' } }, [

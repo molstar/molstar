@@ -92,6 +92,19 @@ describe('static model: the p53 example', () => {
     expect([values.shape, values.access?.kind, values.access?.shape]).toEqual(['values', 'inline', 'values']);
   });
 
+  it('an inline alignment’s rows by key for `(row :key k)`: its labels, positions of its rows system', () => {
+    const b = createSeqSpec();
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: ['h', 'm'], letters: ['MK-', 'MKL'] } });
+    const m = resolveSpec(b.build());
+    expect(m.row?.(`${aln}/(rows)`, 'm')).toBe(1);
+    expect(m.row?.(`${aln}/(rows)`, 'x')).toBeUndefined();
+    const r = evaluateQuery(b.build(), m, `${aln}/(rect :a ${aln}/(row :key m) :b (range :from 2 :to 3))`, {
+      limit: 100,
+    });
+    expect(r.issues).toEqual([]);
+    expect(r.result?.type === 'location' && [...r.result.location.rects[0].a.ranges]).toEqual([1, 2]);
+  });
+
   it('reports a source no runtime reads, and keeps it unavailable', () => {
     const bare = resolveSpec(P53);
     expect(bare.sources.get('/data/chr17')!.runtime).toBeUndefined();

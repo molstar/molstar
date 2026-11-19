@@ -883,6 +883,18 @@ class Model implements StaticModel {
     return undefined;
   }
 
+  /** An inline alignment's row by its label (its rows held in the spec); a source's rows are not held here. */
+  row(rows: string, key: Atom): number | undefined {
+    for (const a of this.annotations.values()) {
+      if (a.shape !== 'cells' || a.rows !== rows || a.access?.kind !== 'inline') continue;
+      const label = (a.access.source.value as { label?: unknown } | undefined)?.label;
+      if (!Array.isArray(label)) return undefined;
+      const i = label.indexOf(String(key));
+      return i < 0 ? undefined : i;
+    }
+    return undefined;
+  }
+
   /** Structures are not built yet: no chain, and the form reports the node missing. */
   chain(): Node | undefined {
     return undefined;
