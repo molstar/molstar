@@ -269,6 +269,13 @@ and dark before the merge.
       icon") the navigators' cursors by part (navigators.md, "The cursor says the gesture"): a grip `ew-resize` or
       `ns-resize` by the navigator's axis, held through its drag; the body `grab`/`grabbing`; outside `pointer`; idle
       default; in `ViewerInput.cursor` (the rails in the view) and `NavigatorModel.cursor` (mounted navigators) alike.
+- [ ] IZ (strong, now; the author, 2026-11-19: "the window on the gene strip doesn't work. cant interact with it and it
+      isn't synced", then "Yes, the zoom strip") the zoom strip (navigators.md, "The zoom strip"): a navigator whose
+      reachable span is under `navigator.zoomStrip.minPx` draws it as a mark (no grips, not draggable) and adds a strip
+      of its own kind over the reachable span with the real window, two connector lines between them; one navigator,
+      one mount and record; config `navigator.zoomStrip.minPx` (48), `heightPx` (16). Tests: p53's gene region on chr17
+      (a drag on the zoom strip pans the view by the strip's scale; a view zoom moves the window there; the mark is
+      not a drag target), canvas and SVG, both themes; a reachable span wider than the floor keeps one strip.
 - [ ] RC (strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
       header… to the right of the sequence data", "ok, schedule it like that") row columns: the rows layer's `columns`
       (`field`, `side: left | right`, `as: text | number | bar | chip`, `width`, `title`), fields from `#=GS` lines,

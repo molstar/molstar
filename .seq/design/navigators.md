@@ -233,6 +233,16 @@ below holds on every navigator form and on the ring's window unless it says rail
 - **The reachable span**: where the bound section's axis covers only part of the navigator's system (the region within
   its chromosome), the rest is washed (`seq-wash`), fixed, so a window cannot be dragged where the view cannot go. Why
   fixed: no second use for a window dragged where nothing can follow.
+- **The zoom strip** (the author, 2026-11-19: "the window on the gene strip doesn't work… isn't synced", then "Yes,
+  the zoom strip"; UCSC's and IGV's): where the reachable span is narrower than `navigator.zoomStrip.minPx` (48 CSS px)
+  on a navigator, a window there could neither show a move nor take a drag (p53's 6 kb region on chr17's 83 Mb is
+  1/13,800 of the strip; a pixel there is 78 kb). Then the navigator is **context**: the reachable span drawn as a
+  mark (an outline at least `navigator.window.minPx` wide, centred, no grips, the default cursor, not a target for a
+  drag; a click on it, as a hover, names the region), and a **zoom strip** under it, the same navigator kind's form
+  over the reachable span alone (an ideogram's bands there, a strip's axis), with the real window, its grips and
+  gestures. Two connector lines run from the mark's ends to the zoom strip's ends (`seq-window`, hairlines). The strip
+  takes `navigator.zoomStrip.heightPx` (16) more; the pair is one navigator (one mount, one hit target, one record).
+  Why: the chromosome's context and a working window are two scales; one strip cannot be both.
 - **Moving a window moves its section**, through the inverse of the path, as a follower leads ([viewer-models.md](viewer-models.md)): a
   window bound to a follower moves its leader (`follow.followerMoves`: `lead`; `ignore` makes that window idle; `detach`
   detaches the follower). Why: one rule for "a move asked of something that follows".
@@ -356,6 +366,7 @@ registry entry, an option of a call, or fixed with its reason).
 | `navigator.dragOutside` | `ViewerConfig` | `sweep` | IGV, UCSC and JBrowse (Tensions) | `pan` (jump there, then pan: the current Seq\*) |
 | `navigator.dragStep` | `ViewerConfig` | `far` | back undoes a trip, not a nudge | `never`, `always` |
 | `navigator.doubleClick`, `navigator.zoomPx` | `ViewerConfig` | `toggle-fit`, 48 | the whole, then back in, scale-free | `fit`, `none`; any px |
+| `navigator.zoomStrip.minPx`, `navigator.zoomStrip.heightPx` | `ViewerConfig` | 48, 16 | a reachable span too small to drag gets a zoom strip | any px |
 | `navigator.direction` | `ViewerConfig` | `display` | a drag right moves the view right (decided) | `genomic` |
 | the gestures | `BehaviorProvider` (`navigator`, on the layouts design's `window`) | in the default spec | a host may leave them out | — |
 | the default mount | `SeqViewerSpec.ui` entry (`navigators`) | on in the standalone viewer | the host places parts | `mountNavigator` by hand |
