@@ -222,7 +222,7 @@ function drawTicks(lay: RulerLay, out: PassWriter) {
     g[1] = box.y + box.height - h;
     g[2] = px;
     g[3] = h;
-    g[4] = tokens.colors['msui-text-muted'];
+    g[4] = tokens.colors['seq-ruler'];
     g[5] = NoColor;
     g[6] = 0;
     g[7] = 0;
@@ -240,7 +240,7 @@ function drawLabels(lay: RulerLay, out: PassWriter, _emphasis: Emphasis | undefi
     g[1] = box.y + box.height - MajorHeight - 3;
     g[2] = lay.widths[j];
     g[3] = Number.POSITIVE_INFINITY;
-    g[4] = lay.tokens.colors['msui-text-muted'];
+    g[4] = lay.tokens.colors['seq-ruler'];
     out.textArgs(lay.labels[j], AnchorMiddle, lay.font);
   }
 }

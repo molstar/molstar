@@ -385,14 +385,13 @@ export const SeqLanguage = defineLanguage({
         ink: channel('`letters`: the letters’ color (`auto`: follows its fill, 4.5:1), or a theme form.'),
         size: channel('The marks’ size in the layer’s unit (a share of the slot, or px), or a theme form.'),
         opacity: channel('The marks’ opacity, 0 to 1 (never a way to hide: a filter hides), or a theme form.'),
-        line: channel('`ranges`: the line style (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`, `highlight`).'),
-        arrow: channel('`ranges`: arrowheads (`none`, `end`, `start`, `both`).'),
+        line: channel(
+          '`ranges`: how an item is drawn as a line: `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`; blocks when absent. Any other value is drawn solid and said once (`seq.render.line-style`).',
+        ),
+        arrow: channel(
+          '`ranges`: an arrowhead on the item’s end, start or both (`end`, `start`, `both`), on the piece holding that end, never on a cut one; `none` when absent.',
+        ),
         shape: channel('`variants`: the head’s shape (`circle`, `square`, `triangle`, `diamond`).'),
-        encoding: {
-          type: 'string',
-          enum: ['bars', 'line', 'area'],
-          doc: '`values`: how values are drawn: `bars` (when absent), `line`, `area`.',
-        },
         scale: {
           type: 'ref',
           kinds: ['scale'],
@@ -424,15 +423,6 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['blocks'],
           doc: 'For `secondary`: the figure’s form; `blocks` (when absent): helices and strands as blocks, a strand ending in an arrowhead.',
-        },
-        line: {
-          type: 'string',
-          doc: 'For `ranges`: how an item is drawn as a line: `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`; blocks when absent. Any other value is drawn solid and said once (`seq.render.line-style`).',
-        },
-        arrow: {
-          type: 'string',
-          enum: ['none', 'end', 'start', 'both'],
-          doc: 'For `ranges`: an arrowhead on the item’s end, start or both, on the piece holding that end, never on a cut one; `none` when absent.',
         },
         code: {
           type: 'string',

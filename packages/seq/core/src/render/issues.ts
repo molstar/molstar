@@ -47,11 +47,6 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A value at or below zero on a log scale: drawn as missing (or clamped, with `non_positive: clamp`)',
     hint: 'Set the scale’s `non_positive` to `clamp` to draw them at the low end',
   },
-  'seq.render.line-style': {
-    severity: 'warning',
-    description: 'A line style the layer does not draw: drawn solid',
-    hint: 'Use solid, dashed, dotted, wavy, double, box or highlight',
-  },
   'seq.render.legend.unlisted': {
     severity: 'info',
     description:

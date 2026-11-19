@@ -109,6 +109,11 @@ export function writeLayerTheme(
   let color = params.color as Node | undefined;
   if (color === undefined && params.type === 'ranges' && rows && rows.category !== undefined)
     color = theme.field('category');
+  // a variants layer: its consequence (else its category), as the layer read it before themes
+  if (color === undefined && params.type === 'variants' && rows) {
+    const name = rows.consequence !== undefined ? 'consequence' : rows.category !== undefined ? 'category' : undefined;
+    if (name) color = theme.field(name);
+  }
   const out = { ...params };
   for (const key of ['color', 'ink', 'size', 'opacity'] as const) {
     const v = key === 'color' ? color : (params[key] as Node | undefined);
