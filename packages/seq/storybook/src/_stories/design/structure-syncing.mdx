@@ -5,25 +5,28 @@ import { Meta } from '@storybook/addon-docs/blocks';
 # Structure syncing
 
 A sequence view beside a structure viewer: hover, selection and focus cross both ways, and a track's colors can be
-painted onto the structure. Seq\* imports nothing of the structure viewer and the structure viewer nothing of Seq\*; the
-application that composes both connects them through one port.
+painted onto the structure. Syncing is not part of the viewer: the viewer publishes its events and takes commands as it
+does for any application, and Seq\* adds a small library on top. Neither viewer imports the other.
 
-## Words that cross
+## Translation
 
-Seq\* speaks its own locations: positions on the **units** of a complex (a chain instance, a ligand). The application's
-adapter translates them into its viewer's words (MolViewSpec selectors, Mol\*'s loci) and back, with the unit facts
-Seq\* gives it: chain, operator, observed residues and author numbering. Unobserved residues are never sent, and a
-selection too large to send residue by residue becomes whole units.
+Pure functions carry Seq\*'s locations onto the **units** of a complex (a chain instance, a ligand) and back, through
+the maps. They give the application the facts it needs to speak its viewer's language (MolViewSpec selectors, Mol\*'s
+loci): chain, operator, observed residues and author numbering. Unobserved residues are never sent, and a selection too
+large to send residue by residue becomes whole units. They run without a viewer, in Node too.
 
-## The paths
+## Wiring
+
+One helper, `linkStructure(viewer, side)`, connects a viewer to the application's few callbacks (highlight, select,
+focus, and the structure viewer's own events) and returns a function that disconnects them. It keeps the two sides from
+echoing each other, sends a dragged selection at most once a frame, and clears both when either goes away.
 
 - **Hover** lights the same residues in both views. Hovering one copy in 3D lights that chain and its reference
   sequence, never the sibling copies.
 - **Selection** made in 3D replaces the sequence selection and pans to it, keeping the zoom.
-- **Focus**: a double-click moves the camera, and back and forward bring it along, on the same clock as the sequence
-  view's own motion.
-- **Color by this track** is an action a host adds to a track's header: Seq\* returns the track's colors as runs on the
-  units, and the host builds its viewer's state from them. It is a snapshot; clicking again restores the colors.
+- **Focus**: a double-click moves the camera, and back and forward bring it along, on one clock.
+- **Color by this track** is an action the application adds to a track's header: Seq\* returns the track's colors as
+  runs on the units, and the application builds its viewer's state from them.
 
 ## Two maps of one chain
 
@@ -33,5 +36,5 @@ compare both side by side. Equal priorities stay ambiguous and are reported, nev
 
 ## In the Storybook
 
-The structure viewer here is a small fake: chains as rows of residue cells, taking the same messages a real viewer
-would, with an optional latency. A real 3D viewer will use the same port and the same tests.
+The structure viewer here is a small fake: chains as rows of residue cells, with its own MolViewSpec translation and an
+optional latency. A real 3D viewer will use the same library and the same tests.

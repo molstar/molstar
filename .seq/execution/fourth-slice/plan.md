@@ -23,12 +23,13 @@ kinds if Gate 0 places them here.
 
 **No Mol\* adapters, no live 3D view** (decided, the author, 2026-11-19: "let's only do a demo with fake 3D viewer ...
 There will be a new mol viewer work after we are done with the sequence viewer which will replace prism, so i don't
-want to waste work"). Milestone 3's "Mol\* showcase" is the fake structure viewer in Storybook on the real port, maps
-and messages; Mol\* `Model` adapters wait for the new mol viewer.
+want to waste work"). Milestone 3's "Mol\* showcase" is the fake structure viewer in Storybook on the real library (translation and
+`linkStructure`), maps and messages; Mol\* `Model` adapters wait for the new mol viewer.
 
 **No MolViewSpec types in Seq\*** (decided at the draft, 2026-11-19: "this should be provided by the application layer
-anyway"): the structure port speaks Seq\*'s locations; a host's adapter translates to MVS and back. The fake viewer is a
-host, and its adapter does the translation.
+anyway"): the library speaks Seq\*'s locations; a host's adapter translates to MVS and back. The fake viewer is a
+host, and its adapter does the translation. **No structure port** (decided, 2026-11-20: "this is just a wrapper around
+events the viewer should expose normally ... not call it a port"): translation and wiring as a library.
 
 ## What the third slice changes in how this one runs
 
@@ -149,7 +150,7 @@ examples.
   `maxUnits`-scale hover gated to chains (heavy); 200 merged copies and a glycan chip at frame time (EC-67); a bigWig
   region decoded under 50 ms (heavy, `itWithin`); a header pointer move over 200 tracks at 0 bytes (the opt-in tier).
 - **Sizes**: rows for `runtimes/mmcif` and `runtimes/bigwig` (under 30 kB, loaded only when composed), the minimal
-  viewer not grown by the `structure` and `headers` behaviors (both opt-in in a minimal composition).
+  viewer not grown by the `headers` behavior (opt-in in a minimal composition) nor the structure library (its own entries).
 - **At every gate**: quick, medium and heavy for the touched packages (heavy alone), the allocation tier, sizes, the
   Storybook typecheck, lint, format, the `.seq` checks; `pnpm build` then `pnpm check:workspace` when `@molstar/core`
   or `@molstar/io` changed (ML's standard components, BW's range reads, MC's allowlist).
@@ -209,15 +210,18 @@ tests, read-only).
 ### Stage 2: structure syncing and track headers (after stage 1; the revised drafts' lanes)
 
 - [ ] HP1 (strong) core's header line, slots, hits and chips; `TrackLayout.header` (`briefs/hp1-header-line.md`).
-- [ ] ST1 (strong, after MK) core's translation (outward and inward, the size gate, `seq.structure.*` issues),
-      `colorRuns` (`briefs/st1-structure-core.md`).
+- [ ] ST1 (strong, after MK) the translation library, `@molstar/seqx-core/structure` (a new entry): `structureFacts`,
+      `unitRows`, `toUnits` and `fromUnits` (the size gate, `seq.structure.*` issues), `colorRuns`; core's
+      `SeqPorts.structure` stub removed (`briefs/st1-structure-core.md`).
 - [ ] HP2 (strong, after HP1) the viewer: the `headerActions` registry kind, built-in entries, the `headers` behavior
       (reveal, clicks, the menu and its port, long press, the secondary click param), DOM parts over `viewer.headers`,
       the cursor on headers, words (`briefs/hp2-header-behavior.md`).
-- [ ] ST2 (strong, after ST1) the `structure` behavior with its port, the hover owner, echoes, coalescing, focus with
-      the animation port, commands (`briefs/st2-structure-behavior.md`).
+- [ ] ST2 (strong, after ST1; smaller: no behavior, no port, nothing in the composition) the viewer's API gaps the
+      design lists, as the author decides them (`HoverModel.setLocation`, `revealLocation`, `view.lastJump`, a retire
+      signal; each public surface accepted before merge), then `@molstar/seqx-viewer/link-structure`: `linkStructure`
+      with echoes, coalescing, clearing on either end, focus with the jump's duration (`briefs/st2-structure-link.md`).
 - [ ] ST3 (fast, after ST2 and HP2) the fake structure viewer (`_stories/support/`, importing nothing of Seq\*) with its
-      own adapter translating to MVS; the stories: hover, selection, focus, chain maps, "color by this track" as a
+      host's adapter (MVS translation on `structureFacts` and `unitRows`, its `side` for `linkStructure`); the stories: hover, selection, focus, chain maps, "color by this track" as a
       host's header entry; twins; the Design page (`briefs/st3-fake-viewer.md`).
 - [ ] HP3 (fast, after ST3) `Features/Track headers` and its twins, the Design page (`briefs/hp3-header-stories.md`).
 - [ ] USE GATE (short, not blocking): the author tries the structure and header stories; findings counted by kind.
