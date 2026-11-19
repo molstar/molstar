@@ -226,9 +226,9 @@ and dark before the merge.
       that kind move to Features, each linked from its dataset's index where it uses that data; the examples Design
       page and every story link updated; the headless twins follow their stories.
 - [ ] LB (strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
-      isn't good") a one-position block in tracks and rings, as decided on `drift/ligand-blocks.md` (recommended: a
-      chip in every layout, a fixed slot its label's width, the text chip's rule; with the ligand's contacts as a
-      `pairs` layer in the Complex and Globins views); layouts.md and its Design page first.
+      isn't good") a one-position block a chip in every layout, as layouts.md (Blocks) now says (decided
+      2026-11-19): a fixed slot its label's width, the text chip's rule; contacts an optional `pairs` layer the
+      examples add, never a default.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). DG owns
@@ -237,7 +237,19 @@ and dark before the merge.
       builder sets the `ranges` layer's `arrow` channel (EC-232: off unless asked, so the builder asks), the arrowhead
       bent through the ring's polar warp, on the piece holding the end it points to (a feature across the origin
       included), checked in canvas and SVG.
-- [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
+- [ ] MD (strong, a design only; started when a strong slot frees, after PG or NV; the author, 2026-11-19: "should
+      we have a better primitive than `(sequence atp :alphabet protein :letters X :name ATP)` ... antibody-drug
+      complexes ... pointers to smiles, carbohydrate polymers (branched entity in mmCIF) ... all these need to be
+      mappable between each other") **molecules**: the language's primitives for what is not a linear polymer (a
+      small molecule by a chemical component id or a SMILES, a branched entity with its linkages, a conjugate: a drug
+      on a residue, a glycan on an Asn), the complex kind the layouts design waits for (units, copies, a ligand's
+      forms: one position or its atoms), and the maps between them and the polymers (a link's residue, a contact, a
+      per-atom system), read from mmCIF (`pdbx_entity_branch*`, `chem_comp`) through `@molstar/io`. The base's
+      `ligand` node and `ligand_form` read first. Drafted, reviewed and self-checked as the slice's designs were
+      (`briefs/design-drafts.md`), with its Storybook Design page; decided by the author at this stage's gate.
+      **Built in the fourth slice** (a language change past 0.4.0, which stays this slice's: one bump, unreleased);
+      this slice's DG and DC write their ligands as one-position sequences drawn as chips, changed once then.
+- [ ] GATE: merged, reviewed, the checks green, sizes, gaps; MD's design decided.
 
 ### Stage 6: output, accessibility and use
 
@@ -264,7 +276,7 @@ and dark before the merge.
 
 Gate 0 (with C0 beside it) → AX → TH and SL in parallel → (early use gate, deferred) → TX, then RB on TX's interface change → RW
 and SY in parallel, then PG on RW's shared pieces and NV after RW (the vertical overview reads RW's rows; at most two
-strong lanes at once) → CH beside them, GD after both → SO, LB, then the datasets' lanes (two or three at once, fast)
+strong lanes at once) → CH beside them, GD after both → SO, LB, then the datasets' lanes, MD's design beside them (two or three at once, fast)
 → OP and AY → novice pass → measure → the author's use gates (deferred to here at the latest) → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)

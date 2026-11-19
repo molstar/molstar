@@ -62,7 +62,8 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 ## Next
 
-Scheduled in `plan.md` (the author, 2026-11-19: "schedule these appropriately in the third slice plan"): CH and GD in
+Decided 2026-11-19: one-position blocks are chips in every layout (layouts.md), contacts optional (the host's);
+MD (the molecules design) scheduled in stage 5, built in the fourth slice. Scheduled in `plan.md` (the author, 2026-11-19: "schedule these appropriately in the third slice plan"): CH and GD in
 stage 4; SO first in stage 5 (Features apart from Examples); DP's features as arrows by strand. After PG and NV: lane GD (gaps 1–5 decided as recommended, 2026-11-19: the core palette split, `classes-safe`,
 the dark cell edge, `view.motion`, the pyramid's tolerance), then stage 4's GATE, then stage 5. The early use gate is deferred.
 
