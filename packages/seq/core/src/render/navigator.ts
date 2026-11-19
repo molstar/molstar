@@ -408,14 +408,12 @@ export interface NavigatorFrame {
 /** The passes the navigator draws itself over its picture's. */
 const OwnPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
 
-// pure: a composition that lists no navigator bundles none of this module, whatever its bundler knows of side effects
-const Ext = /* @__PURE__ */ new Float64Array(8);
+const Ext = new Float64Array(8);
 /** A connector's two points (x, y pairs). */
-const Line = /* @__PURE__ */ new Float64Array(4);
-// the flags as literals (checked against `NavWindowFlags`): a module-level read of another module's object is kept
-const FlagNoStart: number = 16 satisfies typeof NavWindowFlags.noStart;
-const FlagNoEnd: number = 32 satisfies typeof NavWindowFlags.noEnd;
-const FlagOutline: number = 4 satisfies typeof NavWindowFlags.outline;
+const Line = new Float64Array(4);
+const FlagNoStart: number = NavWindowFlags.noStart;
+const FlagNoEnd: number = NavWindowFlags.noEnd;
+const FlagOutline: number = NavWindowFlags.outline;
 // an imported binding read in a draw is a property read under a module runner
 const None: number = NoColor;
 const Seen: number[] = [];

@@ -13,11 +13,10 @@ import { composeSeqContext, type SeqContext, type SeqContextSpec, type SeqRegist
 // own list and bundles only that.
 
 /** The core's layer types and section layouts as registry entries: what the default compositions list. */
-// (pure: a composition that never reads it bundles none of the built-ins, whatever its bundler knows of side effects)
-export const BuiltInRenderRegistry: readonly SeqRegistryEntry[] = /* @__PURE__ */ (() => [
+export const BuiltInRenderRegistry: readonly SeqRegistryEntry[] = [
   ...Object.values(BuiltInLayerTypes).map((type) => ({ kind: 'layer-type' as const, type })),
   ...Object.values(BuiltInLayouts).map((layout) => ({ kind: 'layout' as const, layout })),
-])();
+];
 
 /**
  * The headless context of the default composition: `composeSeqContext` with the built-in layer types and layouts

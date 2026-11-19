@@ -8,8 +8,7 @@
 
 import { defineIssues } from '@molstar/core/repr/tree';
 
-// pure: a composition with no story part bundles none of these codes
-export const StoryIssues = /* @__PURE__ */ defineIssues('seq.story', {
+export const StoryIssues = defineIssues('seq.story', {
   'seq.story.step.unknown': {
     severity: 'error',
     description: 'No story step has this id',

@@ -12,7 +12,7 @@
 //   node packages/seq/_measure/sizes.mjs [--top 12] [--files] [--only spec-read.ts]
 //
 // `--files` lists each entry's largest input files too; `--only` measures the one entry (a check runs it so). An entry
-// with `unlisted` modules is checked to hold none of them (bytes in the chunks loaded first): what its composition does
+// with `unlisted` modules is checked to hold none of them (bytes in any chunk, a lazy one too): what its composition does
 // not list is not in its bundle (viewer-composition "Injected, opt in"); the script exits 1 when one is.
 //
 // The entries sit outside any package, so `@molstar/*` is resolved from the viewer's folder (a plugin below).
@@ -128,13 +128,14 @@ for (const r of rows)
     `${pad(r.name, 22)}${pad(kB(r.min), 12)}${pad(kB(r.gzip), 12)}${pad(`< ${kB(r.target)}`, 12)}${r.min < r.target ? 'pass' : 'FAIL'}`,
   );
 
-// each entry's unlisted modules: none may have a byte in what loads first
+// each entry's unlisted modules: none may have a byte in any chunk (no lazy chunk either: the design has none)
 let held = 0;
 for (const r of rows) {
   if (!r.unlisted) continue;
   const bytes = new Map();
-  for (const [f, v] of loadedInputs(r.meta))
-    if (v.bytesInOutput > 0) bytes.set(f, (bytes.get(f) ?? 0) + v.bytesInOutput);
+  for (const o of Object.values(r.meta.outputs))
+    for (const [f, v] of Object.entries(o.inputs))
+      if (v.bytesInOutput > 0) bytes.set(f, (bytes.get(f) ?? 0) + v.bytesInOutput);
   const found = [...bytes].filter(([f]) => r.unlisted.some((p) => p.test(f)));
   held += found.length;
   console.log(`\n${r.name}: unlisted modules ${found.length ? 'FOUND' : 'none'}`);

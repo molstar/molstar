@@ -75,7 +75,7 @@ const minimal = (registry: SeqViewerSpec['registry']): SeqViewerSpec => ({
 });
 
 describe('a viewer composed from a smaller registry', () => {
-  it('from an empty registry draws no layer and says so: each layer type and the layout it was not given', async () => {
+  it('from an empty registry draws no layer and says so: each layer type, and the text layout it was not given (its section laid out as tracks, the one fixed layout)', async () => {
     const v = await make(minimal([{ kind: 'format-runtime', runtime: SeqRuntime }]));
     const layout = v.frame!.layout;
     expect(layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))).toEqual([]);

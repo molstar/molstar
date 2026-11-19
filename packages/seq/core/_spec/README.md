@@ -2310,6 +2310,10 @@ same pieces. Nothing registers on import and there is no global registry.
   `composeSeqContext`. The canvas and the SVG export draw the same registry's layer types: a layer of a type not listed
   is said (`seq.render.layer.type`) and not drawn, a section of a layout not listed is said (`seq.render.layout`) and
   laid out as tracks. Run-time, atomic and undoable registration is the viewer's followup.
+- **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
+  layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
+  the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and
+  the issue says it was not the one asked for.
 - **No built-in table a renderer falls back to**: `Renderer` and `NavigatorRenderer` take `types` and `layouts`;
   `layoutView` and `exportSvg` given none draw none. `BuiltInLayerTypes` and `BuiltInLayouts`
   (`@molstar/seqx-core/render/built-ins`, and `BuiltInRender` to spread into a renderer's options) are the default

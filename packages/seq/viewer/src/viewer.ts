@@ -25,7 +25,6 @@ import {
   railSections,
   rowsRailTracks,
   resolveColor,
-  sectionLayoutName,
   textMinScale,
 } from '@molstar/seqx-core/render';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
@@ -797,8 +796,8 @@ export class SeqViewer extends ReactiveModel {
    * Stories): navigation, no commit, no history step. The step's state is shown, its view's sections placed (positions
    * to offsets, exactly), and a plan from what was drawn to it is made, timed by the step. `run` (true): the plan runs
    * on the animation port; false: its start is shown and the application drives it (`animation.progress`, then
-   * `animation.clear()`). A cut under reduced motion. The issue when the step
-   * is unknown.
+   * `animation.clear()`). A cut under reduced motion, and with no `story` part listed (the step is not entered then: the
+   * issue says so). The issue when the step is unknown.
    */
   playStep(id: string | undefined, options: { readonly run?: boolean } = {}): { plan?: TransitionPlan; issue?: Issue } {
     this._endMotion();
@@ -1489,8 +1488,9 @@ export class SeqViewer extends ReactiveModel {
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
     const viewports = resolved ? this._viewports(resolved, false) : undefined;
-    // a text section exports every line (the figure): the picture is as tall as it, not the canvas's scrolled box
-    const figure = resolved?.sections.some((s) => sectionLayoutName(s, resolved) === 'text') ?? false;
+    // a section that scrolls inside its box (a text's, as its layout placed it) exports every line (the figure): the
+    // picture is as tall as it, not the canvas's scrolled box; a text laid out as tracks (no text layout listed) is not
+    const figure = resolved?.sections.some((s) => this.placementOf(s.address)?.clip === true) ?? false;
     return this.context.renderSvg(this.spec.shown.value, {
       size: { width: this.width, height: figure ? 'auto' : this.height },
       ...(resolved ? { view: resolved.address } : {}),

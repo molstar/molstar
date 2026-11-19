@@ -33,8 +33,6 @@ import type { SeqViewer } from './viewer.js';
 // bound section's display units through the picture, and run through the `navigator` behavior. A hover stays here (a
 // readout, never the viewer's hover).
 
-export { type PartCursor, partCursor } from './part-cursor.js';
-
 /** A host's navigator: the params of a `navigator` node with its id, not saved in the spec. */
 export interface NavigatorDef {
   readonly id: string;
