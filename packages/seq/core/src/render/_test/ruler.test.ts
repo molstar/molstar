@@ -23,8 +23,8 @@ import {
   type RulerLay,
   RulerType,
   renderConfig,
-  renderSvg,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { GENE_EXONS, GENE_LENGTH, geneLetters, P53 } from './fixtures.js';
 import { settle } from './helpers.js';
 import { layerLay, rng } from './small-helpers.js';
