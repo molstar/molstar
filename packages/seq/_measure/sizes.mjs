@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The size targets (performance.md, Size): the three entries of this folder bundled for the browser, minified, ESM, split
+// The size targets (performance.md, Size): the entries of this folder bundled for the browser, minified, ESM, split
 // (what loads before any dynamic import is measured: the entry chunk and its static imports),
 // from the sources (the `molstar-src` condition), and the table of their sizes, minified and gzipped, against the
 // targets, with each entry's largest contributors (by folder, from esbuild's metafile).
@@ -30,6 +30,8 @@ const Cases = [
   { name: 'reading a spec', entry: 'spec-read.ts', target: 160_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 300_000 },
   { name: 'the viewer, default', entry: 'viewer.ts', target: 600_000 },
+  // no target of its own yet ("a minimal one could be smaller"): the table shows what it weighs
+  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 600_000 },
 ];
 
 const resolveWorkspace = {

@@ -106,7 +106,7 @@ export function navigateBehavior(
       pending.delete(section);
       return;
     }
-    if (p.pan || p.panY) view.panPx(section, p.pan, p.panY);
+    if (p.pan || p.panY) view.panPx(section, p.pan, p.panY, p.x);
     if (p.zoom) view.zoom(section, wheelZoomStep ** p.zoom, p.at ?? offsetAt(section, p.x), p.atY);
     p.pan = p.panY = p.zoom = 0;
   };
@@ -225,6 +225,8 @@ export function navigateBehavior(
       let p = pending.get(section);
       if (!p) pending.set(section, (p = { pan: 0, panY: 0, zoom: 0, x, at, atY, frame: undefined }));
       // the larger delta pans; with Shift a vertical wheel pans sideways too; a grid's y takes the vertical delta
+      // the pointer's px for the pan too (the latest of the frame's)
+      if (action === 'pan') p.x = x;
       if (action === 'pan' && view.movesY(section) && !modifiers.shift) {
         p.pan += dx;
         p.panY += dy;

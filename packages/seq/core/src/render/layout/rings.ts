@@ -424,10 +424,10 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     // the strips' layers, their labels into the sink (placed below, once the ring is laid out)
     for (let i = 0; i < strips.n; i++) {
       Sink.at(p, i);
-      ctx.layStrip(p, i, outside ? Sink : undefined);
-      // a block's own label leads its labels
+      const pill = ctx.layStrip(p, i, outside ? Sink : undefined);
+      // a block's own label leads its labels, unless its chip's pill draws it
       const b = blocks?.[strips.block[i]];
-      if (b && outside) {
+      if (b && outside && !pill) {
         const a = strips.axes[i];
         p.labels.add(b.label, angleOf(p, a.x0 + a.width / 2), Infinity, -1, undefined);
       }

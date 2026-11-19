@@ -97,9 +97,10 @@ export interface PlaceContext {
   readonly heights: readonly number[];
   /**
    * Lays out the layers of a strip's bands (each in its box in the strip's frame) and records what each band used
-   * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height.
+   * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height. True when a
+   * chip's letters drew its label in a pill (what a layout that places labels itself leaves out).
    */
-  layStrip(placement: Placement, strip: number, labels?: LabelSink): void;
+  layStrip(placement: Placement, strip: number, labels?: LabelSink): boolean;
   /** Says what the layout could not place (a text past `text.maxLines`). */
   report(issue: Issue): void;
   /** Lays out all of the section's content (an export: a text's every line), not only what is in view. */
@@ -144,8 +145,11 @@ export type StepDir = 'left' | 'right' | 'up' | 'down' | 'home' | 'end';
 
 /** Gestures to viewports, pure: what the viewer calls instead of doing arithmetic of its own. */
 export interface SectionNav {
-  /** Moves the view by a scroll's deltas, px: positive shows what is right of and below what is in view. */
-  pan(c: NavContext, v: Viewport, dx: number, dy: number): Viewport;
+  /**
+   * Moves the view by a scroll's deltas, px: positive shows what is right of and below what is in view. `x`: the
+   * pointer's px along the axis (from its left), what a row of blocks keeps under it (the view's middle when absent).
+   */
+  pan(c: NavContext, v: Viewport, dx: number, dy: number, x?: number): Viewport;
   /** Zooms by `factor` (above 1: in) about display unit `at`, kept where it is. */
   zoom(c: NavContext, v: Viewport, factor: number, at: number): Viewport;
   fit(c: NavContext, v: Viewport): Viewport;
