@@ -9,6 +9,7 @@ import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-cor
 import {
   type GridLay,
   itemText,
+  layerSource,
   type ItemDescription,
   type LayerLayout,
   LettersType,
@@ -185,10 +186,12 @@ const ItemSection: CardSection = {
     if (!it) return;
     const system = at.words.systemName(it.system ?? l.layer.data?.system ?? at.section.section.axis.system);
     const category = at.words.categoryOf(l, el.key);
+    const strand = at.words.strandOf(l, el.key, it.start);
     out.title = it.label;
     out.row('Extent', `${system} ${spanText(it.start, it.end)}`);
     if (category) out.row('Category', category);
-    out.words.push(`${itemText(system, it)}${category ? `, ${category}` : ''}`);
+    if (strand) out.row('Strand', strand);
+    out.words.push(`${itemText(system, it)}${category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`);
     out.whole = true;
   },
 };
@@ -402,6 +405,35 @@ class Words {
     let items = this._items.get(l);
     if (!items) this._items.set(l, (items = l.type.items?.(l.lay) ?? []));
     return items;
+  }
+
+  /**
+   * An item's strand (`+` or `−`) when its data has one: the `strand` field of an inline annotation's item, else the
+   * strand column of the loaded list tile of its source holding the item's first position; '' when it has none or its
+   * tile is not loaded.
+   */
+  strandOf(l: LayerLayout, key: string | number, start: number): string {
+    const model = this._src.spec.model.value;
+    const owner = l.layer.data?.address;
+    const a = owner ? model.annotations.get(owner) : undefined;
+    const f = a?.items?.find((i) => i.key === key)?.fields?.strand;
+    if (typeof f === 'string') return f === '-' ? '−' : f === '+' ? '+' : '';
+    if (typeof f === 'number') return f < 0 ? '−' : f > 0 ? '+' : '';
+    const src = layerSource(model, l.layer);
+    if (!src) return '';
+    const store = this._src.store.store;
+    // the layer reads the level its pixels need: the list tile holding the item is at one of the source's levels
+    for (const level of store.coverage(src.source)?.levels ?? [1])
+      for (const k of store.keysOf({ source: src.source, system: src.system, start, end: start + 1, level })) {
+        const e = store.get(k);
+        const t = e?.status === 'loaded' ? e.tables.ranges : undefined;
+        if (!t || t.form !== 'list' || !t.strand) continue;
+        for (let i = 0; i < t.start.length; i++) {
+          if (t.start[i] !== start || (t.id ? t.id.get(i) : t.row?.[i]) !== key) continue;
+          return t.strand[i] < 0 ? '−' : t.strand[i] > 0 ? '+' : '';
+        }
+      }
+    return '';
   }
 
   /** An item's category: the `category` field of an inline annotation's item (a source's items are not held here). */
