@@ -117,10 +117,10 @@ export function perceiveBondOrders(
   );
   if (unit.elements.length <= 1) return bonds;
 
-  // rings over the graph being perceived, never `unit.rings` (`unit.bonds` is not set yet) and without aromaticity
-  const all = computeRings(unit, bonds);
-  const { elementRingIndices, ringComponents } = createIndex(all, []);
-  const rings: UnitRingsInfo = { all, elementRingIndices, ringComponents };
+  // rings over the graph being perceived, never `unit.rings` (`unit.bonds` is not set yet) and without aromaticity;
+  // computed once a residue needs perceiving (none in a unit of canonical or cached residues). Perception writes orders
+  // and flags, never the topology, so the rings are the same whenever they are computed.
+  let rings: UnitRingsInfo | undefined;
 
   const { label_comp_id } = unit.model.atomicHierarchy.atoms;
   const prefix = `${mode}|`;
@@ -138,6 +138,7 @@ export function perceiveBondOrders(
     const hash = chemCompHash(unit, start, end, prefix);
     if (applyCachedChemCompPattern(unit, bonds, start, end, hash)) continue;
 
+    rings ??= unitRings(unit, bonds);
     const state = State(unit, bonds, rings, getInterUnit(), start, end);
     assignHybridization(state);
     applyFunctionalGroups(state);
@@ -150,4 +151,10 @@ export function perceiveBondOrders(
     }
   }
   return bonds;
+}
+
+function unitRings(unit: Unit.Atomic, bonds: IntraUnitBonds): UnitRingsInfo {
+  const all = computeRings(unit, bonds);
+  const { elementRingIndices } = createIndex(all, []);
+  return { all, elementRingIndices };
 }
