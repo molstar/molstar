@@ -418,9 +418,10 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     if (!(placement instanceof RingPlacement)) return;
     const p = placement;
     p.windowShown = shown;
-    p.windowActive = active;
     p.windowStart = viewport ? viewport.start : 0;
     p.windowEnd = viewport ? viewport.end : p.total;
+    // a window with nowhere to go (the whole ring) is idle: quiet, no wash, grips or hover
+    p.windowActive = active && p.windowEnd - p.windowStart < p.total;
   },
   chrome(s, pass, out, emphasis, strip, band) {
     // pending (not a ring's placement), or no strips (an empty range): a track's chrome is called for strip 0

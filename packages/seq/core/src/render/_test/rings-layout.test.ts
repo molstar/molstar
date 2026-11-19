@@ -183,6 +183,20 @@ describe('the rings layout', () => {
     expect(g.lists.passes.window.opCount).toBe(0);
   });
 
+  it('a window with nowhere to go (the whole ring) is quiet: no wash, no grips, no hover', async () => {
+    const s = await settle(ringSpec());
+    const f = await s.frame({ size: Size, viewports: { '/views/v/ring': { start: 0, end: RingLength } } });
+    const p = ringOf(f).placement as RingPlacement;
+    expect(p.windowShown).toBe(true);
+    expect(p.windowActive).toBe(false);
+    const paths = readPaths(f.lists, 'window');
+    // its outline alone: nothing filled
+    expect(paths.length).toBe(1);
+    expect(paths[0].fill).toBe(0);
+    p.warp.map(p.frameX(300), -5);
+    expect(hitAtPage(f, p.warp.px, p.warp.py)).toBeUndefined();
+  });
+
   it('the window’s grips hit across the origin: a start just past it, an end just before it', async () => {
     const s = await settle(ringSpec());
     for (const [start, end, edge, part] of [
