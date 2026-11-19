@@ -109,7 +109,7 @@ describe('p53 Themes, headless', () => {
     expect(P53Views.find((v) => v.id === 'themes')?.build).toBe(view.build);
   });
 
-  it('a scheme previewed is no step, picked is one; undo restores the default', async () => {
+  it('a scheme previewed is no step, picked is one; undo restores the default', { tags: ['medium'] }, async () => {
     const s = await make();
     const offered = pickerSchemes(s);
     for (const name of LetterSchemes) expect(offered).toContain(name);
@@ -134,7 +134,7 @@ describe('p53 Themes, headless', () => {
     expect(lettersColor(s)).toBe(before);
   });
 
-  it('the shared scale’s domain: both signals follow in one step, undone in one', async () => {
+  it('the shared scale’s domain: both signals follow in one step, undone in one', { tags: ['medium'] }, async () => {
     const s = await make();
     const [a, b] = signalDomains(s);
     // open at the top: the union of both signals (the accessibility's range is the larger)
@@ -156,7 +156,9 @@ describe('p53 Themes, headless', () => {
     expect(signalDomains(s)).toEqual([a, b]);
   });
 
-  it('the legends: one per vocabulary, the shared scale’s merged, and the export draws them below', async () => {
+  it('the legends: one per vocabulary, the shared scale’s merged, and the export draws them below', {
+    tags: ['medium'],
+  }, async () => {
     const s = await make();
     const legends = s.viewer.legends.legends.value;
     const signal = legends.filter((l) => l.scale === '/views/signal');

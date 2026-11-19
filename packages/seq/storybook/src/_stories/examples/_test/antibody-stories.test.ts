@@ -108,31 +108,35 @@ async function drawn(id: string, window: [number, number], tokens = LightTokens)
 
 describe('Antibody: the rulers against the data', () => {
   for (const t of ['light', 'dark'] as const)
-    it(`${t}: the wild type’s Kabat ruler draws the heavy chain’s insertions, read from the file; no issue`, async () => {
-      const tokens = t === 'dark' ? DarkTokens : LightTokens;
-      // CDR-H2 to FR3's 82A–C, then CDR-H3: wide enough for a label a residue
-      for (const [window, labels] of [
-        [[46, 60], ['52A']],
-        [
-          [78, 92],
-          ['82A', '82B', '82C'],
-        ],
-        [
-          [98, 112],
-          ['100A', '100B', '100C'],
-        ],
-      ] as const) {
-        const r = await drawn('schemes', [...window], tokens);
-        expect(r.issues).toEqual([]);
-        for (const l of labels) {
-          expect(r.svg).toContain(l);
-          expect(r.texts.some((x) => x.includes(`"${l}"`))).toBe(true);
+    it(
+      `${t}: the wild type’s Kabat ruler draws the heavy chain’s insertions, read from the file; no issue`,
+      t === 'dark' ? { tags: ['medium'] } : {},
+      async () => {
+        const tokens = t === 'dark' ? DarkTokens : LightTokens;
+        // CDR-H2 to FR3's 82A–C, then CDR-H3: wide enough for a label a residue
+        for (const [window, labels] of [
+          [[46, 60], ['52A']],
+          [
+            [78, 92],
+            ['82A', '82B', '82C'],
+          ],
+          [
+            [98, 112],
+            ['100A', '100B', '100C'],
+          ],
+        ] as const) {
+          const r = await drawn('schemes', [...window], tokens);
+          expect(r.issues).toEqual([]);
+          for (const l of labels) {
+            expect(r.svg).toContain(l);
+            expect(r.texts.some((x) => x.includes(`"${l}"`))).toBe(true);
+          }
         }
-      }
-      const one = await drawn('schemes', [98, 112], tokens);
-      const other = await drawn('schemes', [98, 112], t === 'dark' ? LightTokens : DarkTokens);
-      expect(other.raw).not.toBe(one.raw);
-    });
+        const one = await drawn('schemes', [98, 112], tokens);
+        const other = await drawn('schemes', [98, 112], t === 'dark' ? LightTokens : DarkTokens);
+        expect(other.raw).not.toBe(one.raw);
+      },
+    );
 
   it('the design’s IMGT ruler ticks 111.1 and 112.1 before 112 (inline labels, EC-7); Kabat’s 100D and 100E drawn', async () => {
     const r = await drawn('schemes-design', [100, 116]);
