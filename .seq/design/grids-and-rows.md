@@ -450,6 +450,12 @@ column measures. The emphasis on rows as data-row parts. The moves go through th
   in each theme, the `ink` rule of [themes.md](themes.md) with the surface as the fill. Hue kept, so the logo and the
   cells below it still read as one scheme (WebLogo's and Skylign's letters are saturated for this reason). The bars
   below 2 device px take the same color.
+- **And saturated as a glyph** (the author, 2026-11-19, on LG's light logo, its pale fills darkened to greyish tones:
+  "Yes, schedule it"): a pale fill has little chroma, so lightness alone gives a muddy letter. The glyph color also
+  raises its oklab chroma, hue kept, to a floor (`seq-logo-chroma`, a token per theme) clipped to the sRGB gamut at its
+  lightness, then takes the lightness the 3:1 rule needs; a color already above the floor keeps its chroma. A grey
+  (a gap, `missing`, a scheme's neutral) stays grey. Why a floor and not the scheme's own strong colors: a scheme
+  names one color a class; a second, ink color a class would double every scheme's table.
 - Hit: the column, and the letter under the point as the hit's `state`; a click selects the column.
 
 ### Data: what this slice adds
