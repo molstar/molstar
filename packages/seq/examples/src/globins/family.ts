@@ -48,7 +48,7 @@ export function build(options: FamilyOptions = {}): Node {
   const { aln, tree } = familyData(b);
   b.views.view('main', (v) => {
     const s = v.section('family', { of: aln });
-    s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     s.track('logo', { label: 'Conservation', height: LogoHeight }).layer('logo', { type: 'logo', data: aln });
     s.track('rows', { label: '' }).layer('rows', {
       type: 'rows',
@@ -106,7 +106,7 @@ export function scale(options: { readonly rows?: number; readonly columns?: numb
   const tree = b.data.tree('tree', { of: aln, newick: balancedNewick(rows) });
   b.views.view('main', (v) => {
     const s = v.section('rows', { of: aln });
-    s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     s.track('logo', { label: 'Conservation', height: LogoHeight }).layer('logo', { type: 'logo', data: aln });
     s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln, tree, order: 'tree' });
   });
@@ -124,7 +124,7 @@ export function lazy(options: { readonly rows?: number } = {}): Node {
   const aln = b.data.alignment('lazy', { alphabet: 'protein', source: src });
   b.views.view('main', (v) => {
     const s = v.section('rows', { of: aln });
-    s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln });
   });
   return b.build();

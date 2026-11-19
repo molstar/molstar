@@ -34,7 +34,7 @@ export function build(): Node {
   const { aln } = familySources(b);
   b.views.view('main', (v) => {
     const f = v.section('family', { of: aln });
-    f.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
+    f.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     f.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln });
     const s = v.section('four', { of: four });
     s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: four });

@@ -28,7 +28,7 @@ export function build(file: DomainFile = 'domains.tsv'): Node {
     const s = v.section('protein', { of: p53 });
     s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
     s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: ranges });
-    s.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
   });
   return b.build();
 }

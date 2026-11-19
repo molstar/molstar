@@ -55,7 +55,7 @@ export function build(options: TrnaOptions = {}): Node {
     const s = v.section('trna', { of: trna, ...(options.layout ? { layout: options.layout } : {}) });
     const ring = options.layout === 'rings';
     const letters = () => s.track('letters', { label: '1EHZ' }).layer('letters', { type: 'letters' });
-    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     if (!ring)
       s.track('modified', { label: 'Modified' }).layer('modified', {
         type: 'ranges',
@@ -112,7 +112,7 @@ export function seedRow(): Node {
   const pairs = b.data.pairs('pairs', { a: row, rows: seedRowPairs() });
   b.views.view('main', (v) => {
     const s = v.section('row', { of: row });
-    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     s.track('pairs', { label: 'SS_cons pairs' }).layer('arcs', { type: 'pairs', data: pairs });
     s.track('letters', { label: DerivedData.row }).layer('letters', { type: 'letters' });
   });
@@ -126,7 +126,7 @@ export function seed(): Node {
   const aln = b.data.alignment('seed', { alphabet: 'rna', source: file, reference: DerivedData.row });
   b.views.view('main', (v) => {
     const s = v.section('family', { of: aln });
-    s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     s.track('logo', { label: 'Conservation' }).layer('logo', { type: 'logo', data: aln });
     s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln });
   });
@@ -142,7 +142,7 @@ export function scale(size: number = ScaleSize): Node {
   const grid = b.data.grid('probability', { x: seq, values: scaleGrid(size) });
   b.views.view('main', (v) => {
     const s = v.section('rna', { of: seq });
-    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     v.section('dots', { layout: 'grid', of: seq, follow: s.address }).track('plot', { label: 'Probability' }, (t) =>
       t.layer('probability', {
         type: 'grid',

@@ -144,7 +144,7 @@ describe('the small layers’ stories, headless', () => {
   it('Values as a line and an area: three tracks of one signal; the line and the area break at the missing residues', async () => {
     const v = await open('values-line');
     const t = tracks(v, 0);
-    expect(t.map((x) => x.track.label)).toEqual(['Position', 'Bars', 'Line', 'Area']);
+    expect(t.map((x) => x.track.label)).toEqual(['', 'Bars', 'Line', 'Area']);
     const svg = await svgOf(v);
     // the line’s two paths and the area’s two polygons and two paths, as stroked and filled paths
     expect(svg.svg.match(/<path /g)!.length).toBeGreaterThanOrEqual(6);
