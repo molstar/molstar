@@ -313,6 +313,15 @@ and dark before the merge.
   section of blocks, an AF-shaped N×N PAE over the chains in order (synthetic, examples.md's data decision 2), chain
   boundaries, hover naming both residues, a rect split at chain boundaries, `gridSummary` and a story's readout panel.
   FS-A2 reads the matrix (a JSON or MessagePack array of arrays by path) for it.
+- [ ] CY (strong, after DT's fix round: both touch an axis whose sequence comes from a source; found by DP and DT,
+      2026-11-19) the cyclic and source-axis gaps, each designed already: (1) a sequence whose letters come from a source
+      has its length from coverage wherever an axis is read (resolve's static model, the ring, a detail across the
+      origin, the GFF3 wrap, pairs: DT fixes pairs, CY the rest), so a cyclic `seq` file works as inline letters do;
+      (2) ranges' arrows decided per item's px width, not per layer step (a 2.7 kb ring at fit shows its arrowheads,
+      EC-232); (3) focus by the shortest arc for an item across the origin (EC-12; DP's `it.fails` test passes);
+      (4) a ranges layer that overflows its lanes on a ring draws its density as a ring band (radially), never refused
+      (the 200 kb ring, overlapping sites). DP's views then read the record from its file and draw sites over their
+      recognition sequence.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). FS-A2 owns
