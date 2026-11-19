@@ -10,13 +10,12 @@
 // window is a click that centres the rows there (a jump); Esc puts the band back where the press found it. A drag is
 // one step of the view's history when it went farther than the rows in view or zoomed (`navigator.dragStep`).
 
-import type { WindowPart } from '@molstar/seqx-core/render';
+import { MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { ViewModel, ViewSnapshot } from '@molstar/seqx-viewer/models';
 
-/** The rows' zoom bounds (px a row over the band's base). */
-export const MinRowScale = 1 / 64;
-export const MaxRowScale = 40;
+/** The rows' zoom bounds (px a row over the band's base): core's, one source (the rows rail's idle rule reads them). */
+export { MaxRowScale, MinRowScale };
 
 /** A rows rail's window as the last frame drew it: display rows below the pinned band, and the rail's length in px. */
 export interface RowsRailWindow {

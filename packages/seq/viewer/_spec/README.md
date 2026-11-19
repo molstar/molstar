@@ -415,7 +415,8 @@ owner, the store with it.
   (`railSections`); each active while the `navigator` behavior is listed and its window is not idle, found again after
   the layout placed the view (an idle flip drawn in the same frame, the window pass alone). Each rows layer's band has a
   rows rail (`rowsRailTracks`, by its track: replaced by a shown overview or miniature over its section), live while the
-  behavior is listed, idle while every row shows (the layout's). The viewer's export leaves the rails out with its
+  behavior is listed, idle only while every row shows and would at the zoom-in limit too (the layout's: navigators' idle
+  rule, so a rail zoomed out to the whole band keeps its grips). The viewer's export leaves the rails out with its
   navigators (its picture without its chrome: no slim row); with `navigators: include` they are drawn plain.
 - `SeqViewerSpec`: `registry` (the core's entries: format runtimes, layer types, layouts), `behaviors` (a provider and
   its params), `bindings` (a preset, override layers, extra action ids), `config` (`[item, value]` pairs), `ports`
@@ -653,7 +654,7 @@ binding table; per move one hit record and one modifiers record are reused.
   zone).
 - **The rows rail** (`RowsRailGesture`, `behaviors/rows-rail.ts`): a press on its grab zone, in display rows at the
   rail's scale (`railUnitAt` of the page's y): its body scrolls the rows (`bandTop`, clamped to the last rows), a grip
-  zooms them about the other end, which stays (`rowScale` within the rows behavior's bounds, `MinRowScale` to
+  zooms them about the other end, which stays (`rowScale` within the rows' bounds, core's `MinRowScale` to
   `MaxRowScale`, never past the rows there are), each by the rows the pointer travelled (a floored window reaches every
   row); a drag farther than the rows in view, or a zoom, is one step (`navigator.dragStep`); Esc puts the band back. A
   press that never moved acts at its click: outside the window the rows centre there (a jump), on the window nothing; a

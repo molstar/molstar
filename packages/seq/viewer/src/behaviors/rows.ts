@@ -19,6 +19,8 @@ import {
   cladesAtDepth,
   cladesHolding,
   cladesWithin,
+  MaxRowScale,
+  MinRowScale,
   type RowsLay,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
@@ -28,7 +30,7 @@ import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/mod
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
 import { bandFolds, pagedTop, setBandFolds } from './rows-band.js';
-import { MaxRowScale, MinRowScale, RowsRailGesture } from './rows-rail.js';
+import { RowsRailGesture } from './rows-rail.js';
 import { trackOfLayer } from './two-axes.js';
 
 export { trackOfLayer };
@@ -69,10 +71,7 @@ export const RowsCommandIds = {
 /** The actions a binding may name when the viewer has the behavior (a tree node's click). */
 export const RowsActions: readonly string[] = CladeActions;
 
-/**
- * The rows' zoom steps a key takes (×2) and its bounds, px a row (fixed: 1/64 shows 10,000 rows in about 160 px, a
- * band's whole family; 40 is twice a letter row, past which a row reads no better).
- */
+/** The rows' zoom step a key takes (×2); its bounds are core's (`MinRowScale`, `MaxRowScale`: the rows rail's idle rule reads them). */
 const ZoomStep = 2;
 
 export interface RowsBehavior {

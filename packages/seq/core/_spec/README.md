@@ -1685,7 +1685,8 @@ numbers): a window move allocates nothing once warm.
   the last numbers' gutter: the gutter widened by it while any rows rail is on, so the data keeps its width idle or
   live), along the band's scrolled area below its pinned rows, in display rows below the pinned band; its window the
   rows in view. Idle only while every row is shown and the rows cannot zoom in (navigators.md's idle rule: a rail zoomed
-  out to the whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: the renderer sets
+  out to the whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: every row shown and
+  still at `MaxRowScale`, 40 px a row, the rows' zoom-in limit with `MinRowScale`, 1/64, their least; the renderer sets
   `active` only when the viewer says it can move and not `whole`). Its hit is the `window` target with
   `navigator: 'rows-rail'` (`RowsRail`), its `layer` the track, `position` the display row.
   `rowsRailTracks(view, hosted)`: each tracks section's tracks with a rows layer shown, unless a shown navigator binds

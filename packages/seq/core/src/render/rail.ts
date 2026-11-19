@@ -34,13 +34,22 @@ import { floorExtent, navigatorPart } from './window.js';
 // The rows rail is the same rail turned upright (one geometry: its along axis is the page's y, its line and grab zone
 // across it on x): a rows layer's default navigator, at the right edge of its band beside the right gutter's numbers,
 // `SlimRailPx` wide, the whole of its scrolled rows along the band's scrolled area, its window the rows in view. Idle
-// while every row is shown.
+// only while every row is shown and the rows cannot zoom in (navigators' idle rule: a rail zoomed out to the whole band
+// keeps its grips, so a grip drags it smaller again).
 
 /**
  * The slim rail row's height, CSS px, fixed: the least a 2 px rail and its grips need to be seen and grabbed, at a
  * row's least cost (the form's size, not a reader's choice).
  */
 export const SlimRailPx = 12;
+
+/**
+ * The rows' zoom bounds, px a row (fixed: 1/64 shows 10,000 rows in about 160 px, a band's whole family; 40 is twice a
+ * letter row, past which a row reads no better): what the rows' zoom keys and the rows rail's grips stop at, and what
+ * the rows rail's idle rule reads.
+ */
+export const MinRowScale = 1 / 64;
+export const MaxRowScale = 40;
 
 /**
  * A section's rail, or a rows band's (upright): where it is drawn and hit, and the window it shows (in the section's
@@ -55,7 +64,10 @@ export class Rail {
   key = '';
   /** Upright: a rows rail (its along axis the page's y, its line and grab zone across it on x). */
   vertical = false;
-  /** Every row is shown (a rows rail): idle whatever the view can do. */
+  /**
+   * Every row is shown and would be at the rows' zoom-in limit too (a rows rail: the window has nowhere to go): idle
+   * whatever the view can do.
+   */
   whole = false;
   /**
    * Along the rail: where its axis starts and its length (a section's data box's x and width; a rows rail's scrolled
@@ -202,7 +214,9 @@ export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId
   rail.total = rows;
   rail.start = Math.max(0, Math.min(rows, lay.top));
   rail.end = Math.max(rail.start, Math.min(rows, lay.top + area / Math.max(1e-9, lay.rowScale)));
-  rail.whole = rail.start <= 0 && rail.end >= rows;
+  // idle only when the window can neither move nor shrink: every row shown, and shown still at the zoom-in limit (as a
+  // ruler rail's: the whole axis in view and the axis fitting at the most px a position)
+  rail.whole = rail.start <= 0 && rail.end >= rows && rows * MaxRowScale <= area + 1e-9;
   rail.shape.ranges = [0, rows];
   rail.shape.dir = 1;
   rail.shape.cyclic = false;

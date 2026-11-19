@@ -148,6 +148,8 @@ export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js'
 export {
   drawRail,
   hitRail,
+  MaxRowScale,
+  MinRowScale,
   placeRail,
   placeRowsRail,
   Rail,

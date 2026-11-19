@@ -7,7 +7,8 @@
 // The rows rail (_spec/README.md "Input", Navigators, The rows rail): a rows band's default navigator, the ruler rail
 // upright at the band's right edge beside its last numbers, headless on a fake clock in the platform's event order: a
 // drag on its window scrolls the rows (`bandTop`), a grip zooms them (`rowScale`) about the other end, `]` and `[` zoom
-// too; a click outside centres the rows; Esc cancels; idle while every row is shown; a declared overview replaces it.
+// too; a click outside centres the rows; Esc cancels; idle only while every row is shown at the zoom-in limit; a
+// declared overview replaces it.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, overviewNavigator } from '@molstar/seqx-core/lang';
@@ -202,8 +203,9 @@ describe('the rows rail', () => {
     expect(band(v)?.bandTop ?? 0).toBe(0);
   });
 
-  it('idle while every row is shown: a quiet line, no target; live again once the rows are zoomed past the band', async () => {
-    const v = await make(spec(4));
+  it('idle only when every row is shown and zoom-in is at its limit: a quiet line, no target', async () => {
+    // two rows in a 100 px band: shown whole even at the zoom-in limit (40 px a row), the window has nowhere to go
+    const v = await make(spec(2));
     const r = rowsRail(v)!;
     expect(r.whole).toBe(true);
     expect(r.active).toBe(false);
@@ -213,10 +215,50 @@ describe('the rows rail', () => {
     v.input.down(x, y);
     expect(v.input.dragHit).toBeUndefined();
     v.input.up();
-    // the rows zoomed past the band: live
-    v.view.setBand(RowsTrack, { rowScale: 40 });
+    // four rows at 20 px: every row shown, but the rows can zoom in (the window can shrink): live, its grips there
+    const w = await make(spec(4));
+    const four = rowsRail(w)!;
+    expect(four.start <= 0 && four.end >= four.total).toBe(true);
+    expect(four.whole).toBe(false);
+    expect(four.active).toBe(true);
+    expect(w.hit(four.top + 6, yOf(four, four.end) - 1)?.part).toBe('end');
+  });
+
+  it('a grip dragged to the band’s end shows every row, and dragged back the window shrinks again', async () => {
+    const v = await make(spec(60));
+    let r = rowsRail(v)!;
+    const x = r.top + 6;
+    /**
+     * The page y of the end grip within the band (a floored window's is past its true end; a whole one's tab hangs past
+     * the band, its inner quarter in it): the last px in the band that hits it.
+     */
+    const endGrip = (rail: Rail) => {
+      let y = Number.NaN;
+      for (let p = rail.x; p < rail.x + rail.width; p += 0.5) if (v.hit(x, p)?.part === 'end') y = p;
+      return y;
+    };
+    // the end grip to the rail's end: every row in view
+    const end = endGrip(r);
+    expect(Number.isNaN(end)).toBe(false);
+    v.input.down(x, end);
+    v.input.move(x, r.x + r.width + 20);
+    v.input.up();
     v.draw();
-    expect(rowsRail(v)!.active).toBe(true);
+    r = rowsRail(v)!;
+    expect(r.start).toBeCloseTo(0, 6);
+    expect(r.end).toBeCloseTo(60, 6);
+    // still live, its grips there: the rows can zoom in
+    expect(r.active).toBe(true);
+    const back = endGrip(r);
+    expect(Number.isNaN(back)).toBe(false);
+    v.input.down(x, back);
+    v.input.move(x, back - r.width / 2);
+    v.input.up();
+    v.draw();
+    r = rowsRail(v)!;
+    expect(r.end - r.start).toBeLessThan(60);
+    expect(r.end).toBeCloseTo(30, 0);
+    expect(r.active).toBe(true);
   });
 
   it('a declared overview over the rows replaces it; the data keeps its width when it is hidden', async () => {
