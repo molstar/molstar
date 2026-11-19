@@ -453,3 +453,6 @@ None.
   (followups.md).
 - The author (2026-11-19): "you can also run another 1-2 lanes for slice 3 now": DS (fast) and PZ (strong) start on
   9bb9cb088 beside DB's review; the fourth slice's plan drafted by a planning agent (`.seq/execution/fourth-slice/`).
+- The author (2026-11-19): "default is 1+1-2 lanes now": one strong lane and one or two fast lanes at once, for this
+  slice's rest and the fourth's default (its plan says one at a time: to amend at its Gate 0). Now running: DB's fix
+  round and PZ (strong, both started before), DS (fast); no new strong lane until one of them merges.
