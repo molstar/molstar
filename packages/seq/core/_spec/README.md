@@ -21,7 +21,9 @@ is added in the change that builds what it describes.
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
   and the `snapshot` kind; `0.4.0`: a section's `direction`, `pieces`, `collapsed`, `pad` and a layer's `complement`,
   `code`, the layer types `ruler`, `secondary`, `variants` and the layer params `numbering`, `encoding`, `style`,
-  `line`, `arrow`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
+  `line`, `arrow`, and the themes: the layer's channel slots `color`, `ink`, `size`, `opacity`, `line`, `arrow`, `shape`
+  taking a value or a `seq.theme` form, its `scale`, the `scale` kind under `views`, a view's `export`). A spec in an
+  earlier `0.x` reads as one in this one, and is reported where it no longer fits.
 
 ## Language
 
@@ -114,7 +116,8 @@ checks it cannot express.
   stays the change's. The table's other rows: nested sources are `maxNestedDepth` (Resolve), a column's length and a
   block's values the data's (Data, Tables), regular expressions in search and archives wait for the features that read
   them (TODO).
-- **Open**: the theme slot of a layer's `color` and a query in its `data` wait for the sublanguages (TODO).
+- **The theme slots** are the `seq.theme` sublanguage ("Themes"); a query in a layer's `data` waits for its sublanguage
+  (TODO).
 
 ### Refs
 
@@ -166,6 +169,42 @@ of it.
   is found by `check`. Calls are recorded and replayed on the engine of `@molstar/core/repr/builder` at `build`.
 - **Type tests** (`_test/types.test.ts`) mark wrong kinds and params with `@ts-expect-error`; they are checked by
   `tsc -p tsconfig.test.json`, which the package build does not run.
+
+## Themes
+
+`theme/` (the entry `theme/index`) and `lang/theme-language.ts`: what a layer's channels show, as data. A channel slot
+holds a value (a color, a number, a word) or a form of the `seq.theme` sublanguage; the layer type compiles it once a
+layout per token table, held domains and the reader's substitution (`LayerChannels`, kept while they agree) to a
+`Channel`: a constant, or `at(datum)` over a mark's datum (a field, its value, its letter, its extent).
+
+- **Forms**: `uniform` (one value), `field` (a measure through a palette or a scale), `rules` (clauses tried in order,
+  then a default), `scheme` (a registered scheme by name, its params overriding), `letters` (by letter). Palettes:
+  `categorical` (values to colors; unlisted values `missing`, `others` or `hash`: FNV-1a over UTF-8 into the list),
+  `direct` (the value is the color), `binned` (edges), `continuous` (stops interpolated in Oklab through a 256-entry
+  table). Clauses: `eq`, `ne`, `lt`, `le`, `gt`, `ge`, `one-of`, `in`, `within`. Measures: `field`, `value`, `letter`,
+  and the measures a host registers (a column's share, a reference row) offered only where registered. Why words for
+  clauses: a kind is a word in the description.
+- **Scales**: `linear`, `log`, `sqrt`; a `domain` with an open end follows the data in view, computed when the view
+  settles and held while it does not; `non_positive` on `log`: `missing` or `clamp` (`seq.render.scale.log`). A `scale`
+  node (`/views/<id>`) is shared: every layer and channel naming it reads one domain, its open ends the union over them
+  at settle (one relayout).
+- _*Palettes are Mol*'s value palettes_* (`@molstar/core/util/color/value-palette`: lists, scale, mid, unlisted hash),
+  converted both ways with MolViewSpec's palettes. Why: one palette model across Mol*.
+- **Schemes** (`SchemeRegistry`, `builtInSchemes()`): residue schemes as data from core (Clustal X, Zappo, Taylor,
+  hydrophobicity, helix, strand, turn, buried), nucleotide ones, ramps and categories (viridis, cividis, magma, blues,
+  rd-bu, pLDDT's bands, Okabe–Ito, Tableau 10), secondary structure, Giemsa; each says its subject, the measures it
+  needs, whether it is safe under the three color-vision deficiencies (checked: 0.06 Oklab apart under Machado 2009) and
+  the safe one a reader's substitution draws instead (`theme.cvdSafe`). A scheme's literal colors are the light table's;
+  the dark table's are derived (lightness mapped into the dark band, hue kept) unless it is safe as it is.
+- **Legends** are data (`Legend`: swatches, a ramp with ticks, steps, sizes; the vocabulary listed, or the values
+  painted where unlisted values are hashed: `seq.render.legend.unlisted`), merged when they say the same (two layers on
+  one scale: one legend), and converted to Mol*'s legends.
+- **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
+  inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
+  `category` column and a `variants` one over a `consequence` column default to a field form on it.
+- **Checks** (`seq.lang.theme.*`): a form or palette that does not exist (`form`), a color that does not read (`color`),
+  a channel a form cannot fill (`channel`), a field of the wrong type (`type`), stops out of order (`stops`), a scale
+  that does not exist (`scale`), forms nested past `themeDepth` (4, `depth`).
 
 ## Issues
 
@@ -680,13 +719,13 @@ no target.
 - **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
   hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`: `secondary` and `variants`
-  fall back to `ranges`, the rest have none), its other params as written, its theme channels as values (`color`), its
-  data and the static path from the data's system to the section's (none when the same). Data is the section's letters
-  for a `letters` layer without data, an address (`kind: 'address'`), or a query kept as written (`kind: 'query'`) on
-  the system its first node is on, with the shape of that node (none for a query on a sequence). A type this version
-  does not draw is `seq.view.layer.type`; data naming nothing is `seq.view.layer.data`; data of a shape the type does
-  not draw is `seq.view.layer.shape`; data no static path brings to the section is `seq.view.layer.unplaced`. Each
-  leaves the layer not placed.
+  fall back to `ranges`, the rest have none), its other params as written, its theme channels as written (`color`,
+  `ink`, `size`, `opacity`, `line`, `arrow`, `shape`), its data and the static path from the data's system to the
+  section's (none when the same). Data is the section's letters for a `letters` layer without data, an address
+  (`kind: 'address'`), or a query kept as written (`kind: 'query'`) on the system its first node is on, with the shape
+  of that node (none for a query on a sequence). A type this version does not draw is `seq.view.layer.type`; data naming
+  nothing is `seq.view.layer.data`; data of a shape the type does not draw is `seq.view.layer.shape`; data no static
+  path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer not placed.
 - **Templates** (`templates.ts`): a template is `{ source, kind, depth, order, filter }` (`depth` 0, `order` `key` when
   absent); its layers without data are not placed (no issue). `templateNeeds(view)` is the depth each template source
   needs. `templateNodes` selects the overlay's nodes of the kind at the depth under the source whose params equal the
@@ -765,14 +804,16 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 ### Tokens
 
 - `SeqTokens`: every color the lists use (`msui-*` chrome, `seq-*` data: tracks, ink, missing, pending, conflict, the
-  break ink (`seq-break`), residue and nucleotide classes, eight categories, the density ramp), as `0xRRGGBBAA`, and the
-  font stacks of the two family roles. Node has a light and a dark table (`LightTokens`, `DarkTokens`); the viewer reads
-  its own from CSS.
+  break ink (`seq-break`), residue and nucleotide classes, eight categories (chosen apart under the three color-vision
+  deficiencies in both tables), the density ramp, a five-stop ramp and a diverging triple, secondary structure
+  (`seq-ss-helix`, `-strand`, `-turn`), `seq-variant`, `seq-ruler`, the navigator's window, grip and wash, the
+  centromere), as `0xRRGGBBAA`, and the font stacks of the two family roles. Node has a light and a dark table
+  (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
 - **Its version is a hash of its content**, part of the draw lists' key: a theme switch redraws, an equal table does
   not. Why a hash: pure by contract, so an export from Node and a viewer agree on equal tables.
-- **A spec's color** is a hex literal or `token:<name>` (`seq-<name>`, then `msui-<name>`, then `<name>`); anything else
-  is `seq.render.color` and the layer's default. **Ink follows its fill**: the dark or the light ink, whichever
-  contrasts more.
+- **A spec's color** is a hex literal, `token:<name>` (`seq-<name>`, then `msui-<name>`, then `<name>`) or
+  `light-dark(a, b)`; anything else is `seq.render.color` and the layer's default. **Ink follows its fill**: the dark or
+  the light ink, whichever contrasts more.
 
 ### Text
 
@@ -869,10 +910,18 @@ of a track, and one band reads as one selection.
 
 `LayerType<Prep, Lay>`: `name`, `fallback?`, `prepare(layer, model)` (tier 1, cached per resolved layer),
 `layout(prep, ctx, data, overlay, prev?)` (per viewport; `prev` is its last layout, to reuse buffers and keep lanes),
-`draw(lay, pass, out, emphasis?)`, `hit(lay, x, y)`, `legend?(lay)`. `LayoutContext`: the track's box, the axis
-transform, the section, the layer's key, the device pixel ratio, the config, the tokens, the text port, whether the view
-settled, `want` and `report`. A layer draws the first type of its fallback chain the target has; none is
-`seq.render.layer.type`.
+`draw(lay, pass, out, emphasis?)`, `hit(lay, x, y)`, `legend?(lay, { title })` (its channels' legends), `domain?(lay)`
+(the y domain it drew). `LayoutContext`: the track's box, the axis transform, the section, the layer's key, the device
+pixel ratio, the config, the tokens, the text port, whether the view settled, `want`, `report` and `theme` (the schemes,
+the measures, the scales and their held domains, the reader's substitution).
+
+- **Channels a type reads** ("Themes"): `letters` `color` (the alphabet's scheme by default) and `ink`; `ranges`
+  `color`, `size` (a share of the lane, the mark shrunk about its middle, its lane and hit box kept: EC-137) and
+  `opacity`, a dictionary-coded field colored once a code; `values` `color` (uniform, or a bar by its value; a line's
+  color follows) and a `scale`; `secondary` `color` (its classes in the `seq-ss-*` tokens, keyed by the `secondary`
+  scheme; a form reads `kind` as the class word); `variants` `color` (`seq-variant`); `ruler` none (`seq-ruler`). A
+  channel's issues are said in every layout that reads it. A layer draws the first type of its fallback chain the target
+  has; none is `seq.render.layer.type`.
 
 - `letters`: a section's own letters, or another system's through a path that pairs positions one to one (identity,
   offset, segments, pairwise, an alignment row: a letter its image's cell; a section position no letter lands on, a gap
@@ -1064,10 +1113,14 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   empty `<g data-section data-direction data-pieces data-y data-height>` a section (the draw lists are grouped by pass,
   not by section: these say what each axis is), and its ids take a prefix (`idPrefix`, by default `s` and a hash of the
   spec). On a shared store it reports only the issues of the sources it attached.
+- **Legends** (`legend`: `none` by default, `below`, `right`; a view's `export.legend` when the option is absent): a
+  band outside the data box with the view's merged legends; each shared scale's domain as drawn is recorded
+  (`data-seq-scale-<id>`). `cvdSafe` draws the reader's substitution.
 
 ### Issues
 
-- `seq.render.*` (`RenderIssues`): `view`, `color`, `line-style` (info), `numbering`, `layer.type`, `layer.letters`,
+- `seq.render.*` (`RenderIssues`): `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
+  `scale.log` (info), `legend.unlisted` (info), `line-style` (info), `numbering`, `layer.type`, `layer.letters`,
   `axis.pending` (info), `follow.leader`, `follow.cycle`, `source`, `template.limit`, `unsettled`; a test checks the
   catalog.
 
