@@ -456,3 +456,6 @@ None.
 - The author (2026-11-19): "default is 1+1-2 lanes now": one strong lane and one or two fast lanes at once, for this
   slice's rest and the fourth's default (its plan says one at a time: to amend at its Gate 0). Now running: DB's fix
   round and PZ (strong, both started before), DS (fast); no new strong lane until one of them merges.
+- The author (2026-11-19): DR starts now as an exception (design only, `.seq/` only): the two drafts copied to
+  `fourth-slice/drafts/` and revised there; promoted to `.seq/design/` with their Design pages on the author's OK. The
+  defaults audit stays a record (its decisions are in the designs). Nightingale kept in the fourth slice.
