@@ -304,3 +304,8 @@ None.
   chunks loaded first) and `--only` (an unknown entry refused), its quick test; `@molstar/ui`'s disabled toolbar button
   at opacity 0.4 (1.7–1.9:1, computed; not looked at in a browser), Seq\*'s own rule removed; changelog
   `.v6/changelogs/ui-toolbar-disabled.md`. On the merged tree: quick 3190 (ui and seq), tsc, lint, format green.
+- SR reported (read-only): `reconcile.md` (Configuration tables 17, features.md 41 rows, status.md 7, edge-cases 6
+  with the third slice's outcomes missing, the themes drift's 3 edits) for finalize; its design questions in
+  `drift/finalize-config.md` for the next gate.
+- The author (2026-11-19, three screenshots of rondo.app): a genome ring like Rondo's for the fifth slice, "perhaps
+  even as an extension to show this is "easy""; GR (fast, read-only research) started.

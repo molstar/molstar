@@ -394,7 +394,7 @@ and dark before the merge.
       ([examples](../../design/examples.md), p53's chromosome; `briefs/cs-chromosome.md`).
 - [x] SF (fast, beside RK and CS; merged `2afa74936`; the author, 2026-11-19: "Small fixes") the size script's `--files`, `@molstar/ui`'s
       disabled toolbar item (`briefs/sf-small-fixes.md`).
-- [ ] SR (fast, read-only, beside RK and CS; the author, 2026-11-19: "Spec reconcile prep") finalize's reconcile
+- [x] SR (fast, read-only, beside RK and CS; reported: `reconcile.md`, `drift/finalize-config.md`; the author, 2026-11-19: "Spec reconcile prep") finalize's reconcile
       listed ahead (`briefs/sr-reconcile-prep.md`).
 - [ ] GR (fast, read-only research; the author, 2026-11-19: Rondo's genome ring, "perhaps even as an extension to
       show this is "easy"") a view like rondo.app's against what is built (`briefs/gr-genome-ring-research.md`).
