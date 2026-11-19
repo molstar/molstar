@@ -170,15 +170,18 @@ describe('p53 Themes, headless', () => {
     expect(svg).toMatch(/missense/);
   });
 
-  it('every story mounts with content: the view, the editing root with its picker, the gallery’s rows', async () => {
+  it('the view and the gallery mount with content', () => {
     const t = mount<HTMLElement>(Themes);
     expect(t.querySelectorAll('*').length).toBeGreaterThan(3);
     t.remove();
+    const g = mount<SchemesGalleryRoot>(SchemesGallery);
+    expect(g.querySelectorAll('tr').length).toBeGreaterThan(20);
+  });
+
+  // the editing root loads its session: slow by nature (the quick tests above each mount it too, and read its state)
+  it('the editing root mounts with its picker', { tags: ['medium'] }, async () => {
     const e = mount<ThemesEditingRoot>(EditingThemes);
     await e.loaded;
     expect(e.querySelectorAll('[role="option"]').length).toBeGreaterThan(5);
-    e.remove();
-    const g = mount<SchemesGalleryRoot>(SchemesGallery);
-    expect(g.querySelectorAll('tr').length).toBeGreaterThan(20);
   });
 });
