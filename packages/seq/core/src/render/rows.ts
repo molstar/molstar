@@ -174,6 +174,9 @@ export class RowsLay {
   lastOf: HeldCells | undefined;
   /** First residue numbers of lazy rows read from their tiles this frame. */
   readonly lazyFirst = new Map<number, number>();
+  /** Lazy rows' last residue numbers, counted once a row (`NoNumber` for none), kept by the source read. */
+  readonly lazyLasts = new Map<number, number>();
+  lazyLastsOf: unknown;
   /** The node each tree segment hits (an inner node; -1 a leaf's branch). */
   treeNode: number[] = [];
   /** The tree's geometry by node, kept by the display's version (`treeGeometry`). */
@@ -613,6 +616,10 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     if (!src) return lay;
     const at = rowsSource(src, data);
     const rowsSrc = at.src;
+    if (lay.lazyLastsOf !== src.source) {
+      lay.lazyLastsOf = src.source;
+      lay.lazyLasts.clear();
+    }
     lay.total = at.rows;
     lay.columns = at.columns ?? axis.length ?? 0;
     // a band that does not scroll (text: a figure's lines repeat the rows): every row in the band, unfolded, no tree;
@@ -1243,11 +1250,17 @@ function lastNumber(lay: RowsLay, row: number): number | undefined {
     const v = lay.lasts[row];
     return v === NoNumber ? undefined : v;
   }
+  // a lazy row's: counted once when its tile is read, kept (bounded: let go past 4,096 rows)
+  const kept = lay.lazyLasts.get(row);
+  if (kept !== undefined) return kept === NoNumber ? undefined : kept;
   const codes = lay.lazyCodes.get(row);
   if (!codes) return undefined;
   let n = 0;
   for (let j = 0; j < codes.length; j++) if (!isGap(codes[j])) n++;
-  return n ? (lay.lazyFirst.get(row) ?? 1) + n - 1 : undefined;
+  const last = n ? (lay.lazyFirst.get(row) ?? 1) + n - 1 : NoNumber;
+  if (lay.lazyLasts.size >= 4096) lay.lazyLasts.clear();
+  lay.lazyLasts.set(row, last);
+  return last === NoNumber ? undefined : last;
 }
 
 /**
