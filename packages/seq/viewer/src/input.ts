@@ -174,7 +174,11 @@ export class ViewerInput {
         chords.map(parseChord).filter((c): c is KeyChord => c !== undefined),
       );
     this._keys = keys;
+    viewer.selection.value.subscribe(() => this._selectionChanges++);
   }
+
+  /** How many times the selection changed: what a click cleared is given back only if nothing changed it since. */
+  private _selectionChanges = 0;
 
   private get hoverBehavior(): HoverBehavior | undefined {
     return this.viewer.behavior(HoverProvider);
@@ -389,11 +393,7 @@ export class ViewerInput {
     const hit = this._hitAt(x, y);
     this._windowHover(this._renderHit);
     if (d) {
-      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) {
-        d.moved = true;
-        // a drag is not a double-click's: what a click cleared stays cleared
-        this._cleared = undefined;
-      }
+      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
       if (d.rowsRail) {
         d.x = x;
         d.y = y;
@@ -645,7 +645,7 @@ export class ViewerInput {
     // Shift+click's extend (a Shift+double-click zooms out and selects nothing)
     const after = sel.value.value;
     if ((!isNothing(before) && isNothing(after)) || (e.shiftKey && after !== before))
-      this._cleared = { value: before, anchor, after };
+      this._cleared = { value: before, anchor, changes: this._selectionChanges };
     return taken;
   }
 
@@ -653,13 +653,13 @@ export class ViewerInput {
    * What the first click of a double-click changed (clicking the only selected element cleared it; a Shift+click
    * extended it), until the next click: the selection before and after it.
    */
-  private _cleared: { value: Emphasized; anchor: Anchor | undefined; after: Emphasized } | undefined;
+  private _cleared: { value: Emphasized; anchor: Anchor | undefined; changes: number } | undefined;
 
   /** A double-click's second click (or its `dblclick`) gives back what its first click changed, while it stands. */
   private _restoreCleared(): void {
     const c = this._cleared;
     this._cleared = undefined;
-    if (c && this.viewer.selection.value.value === c.after) this.viewer.selection.set(c.value, c.anchor);
+    if (c && this._selectionChanges === c.changes) this.viewer.selection.set(c.value, c.anchor);
   }
 
   get dragging(): boolean {
