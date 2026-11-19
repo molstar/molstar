@@ -225,6 +225,10 @@ and dark before the merge.
       Editing Themes and the Schemes Gallery), Edit and undo, Bookmarks and links, Selection, Story and the stories of
       that kind move to Features, each linked from its dataset's index where it uses that data; the examples Design
       page and every story link updated; the headless twins follow their stories.
+- [ ] LB (strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
+      isn't good") a one-position block in tracks and rings, as decided on `drift/ligand-blocks.md` (recommended: a
+      chip in every layout, a fixed slot its label's width, the text chip's rule; with the ligand's contacts as a
+      `pairs` layer in the Complex and Globins views); layouts.md and its Design page first.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). DG owns
@@ -260,7 +264,7 @@ and dark before the merge.
 
 Gate 0 (with C0 beside it) → AX → TH and SL in parallel → (early use gate, deferred) → TX, then RB on TX's interface change → RW
 and SY in parallel, then PG on RW's shared pieces and NV after RW (the vertical overview reads RW's rows; at most two
-strong lanes at once) → CH beside them, GD after both → SO, then the datasets' lanes (two or three at once, fast)
+strong lanes at once) → CH beside them, GD after both → SO, LB, then the datasets' lanes (two or three at once, fast)
 → OP and AY → novice pass → measure → the author's use gates (deferred to here at the latest) → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)
