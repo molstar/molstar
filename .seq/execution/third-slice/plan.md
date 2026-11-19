@@ -283,7 +283,7 @@ and dark before the merge.
       one mount and record; config `navigator.zoomStrip.minPx` (48), `heightPx` (16). Tests: p53's gene region on chr17
       (a drag on the zoom strip pans the view by the strip's scale; a view zoom moves the window there; the mark is
       not a drag target), canvas and SVG, both themes; a reachable span wider than the floor keeps one strip.
-- [ ] HL (fast, now; the author, 2026-11-19: "the packages/sequences is able to select/highlight/mark multiple
+- [x] HL (merged after review; fast, now; the author, 2026-11-19: "the packages/sequences is able to select/highlight/mark multiple
       overlapping sections with different colors. can we have this functionality too?", then "ok as recommended")
       overlapping highlight channels as stripes, a channel's `style` (`tint`, `band`, `outline`), the legend part's
       active channels (ux-foundations section 6); `Features/Highlights` with its twin (several overlapping channels in

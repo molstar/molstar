@@ -183,3 +183,5 @@ None.
   heights, contexts other than bands, hysteresis); a conflict with CR in the viewer's `navigator.ts` resolved keeping
   both (the part's axis and the context check). Quick lane 1719 passed. FS-A2 in its fix round; HL in its fix round;
   RC running; PR starting.
+- HL merged after its review round (legend redraws, the grid striped, outlines whole, pixel snapping, breaks once, API
+  tidied); the grid rows' stripes still allocate about 96 B a frame (bounded, in `packages/seq/TODO.md`; was 536 B).

@@ -12,3 +12,8 @@
 - The navigators' cursor says the gesture: a window's grip shows a resize cursor along its axis (`ew-resize`, or
   `ns-resize` on the rows rail and a vertical navigator) through its drag, the body `grab` and `grabbing`, outside
   `pointer`.
+- Overlapping highlight channels no longer blend into a third color: where channels overlap, the band splits into
+  equal stripes in channel order (up to `emphasis.highlightStripes`, 4, the rest sharing the last), in tracks, text,
+  rings and grids; a channel can be a `tint`, a `band` or an `outline` (set with `address.highlight`'s `style` or
+  `highlight.set`'s value, kept when carried onto linked sections). The Legend part lists the active highlight
+  channels with their colors, each removable.
