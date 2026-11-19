@@ -187,9 +187,9 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private _history: SeqHistory | undefined;
   private _contexts = 0;
   /** The steps' states, by the revision shown under them and the step (_spec/README.md "SpecModel", Story steps). */
-  /** The story steps' reading and its cache (`attachStory`): none, no step is entered. */
-  private _stories: ReturnType<SeqStorySteps['createStoryCache']> | undefined;
-  private _story: SeqStorySteps | undefined;
+  /** The story steps' reading and its cache (the `story` option): none, no step is entered (`seq.viewer.step.none`). */
+  private readonly _stories: ReturnType<SeqStorySteps['createStoryCache']> | undefined;
+  private readonly _story: SeqStorySteps | undefined;
   /** What `_compose` showed: the frame slot shows over it, and leaves back to it. */
   private _composed: Node;
   private _frame: Node | undefined;
@@ -228,7 +228,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
 
   /**
    * `lengths`: the lengths the opened sources' coverages give source-backed systems (the viewer's, from its store): the
-   * model is resolved again with them (_spec/README.md "SpecModel").
+   * model is resolved again with them (_spec/README.md "SpecModel"). `parts.story`: how story steps are read (the
+   * viewer's story part, `StoryPart`); none, no step is entered, so a viewer that lists no story bundles none of it.
    */
   constructor(
     root: Node,
@@ -236,8 +237,11 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     config: ViewerConfig = DefaultViewerConfig,
     loaded = true,
     lengths: ReadonlyState<Lengths> = NoLengths,
+    parts: { readonly story?: SeqStorySteps } = {},
   ) {
     super();
+    this._story = parts.story;
+    this._stories = parts.story?.createStoryCache();
     this.config = config;
     this._loaded = new State(loaded);
     this.loaded = this._loaded.asReadonly;
@@ -670,16 +674,6 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   }
 
   // ---- story steps ----
-
-  /**
-   * Reads story steps with the core's (the viewer's story part, `StoryPart`): before, `enterStep` refuses every step
-   * (`seq.viewer.step.none`), so a viewer that lists no story bundles none of it.
-   */
-  attachStory(story: SeqStorySteps): void {
-    if (this._story === story) return;
-    this._story = story;
-    this._stories = story.createStoryCache();
-  }
 
   /** The stored patch of a step, by id; undefined when the spec has none such. */
   private _stepPatch(id: string): Patch | undefined {

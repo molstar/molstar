@@ -61,9 +61,9 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
   (`seq.viewer.edit.masked`, an info in the result and `issues`). A step that no longer applies whole is shown as not
   applying (`step.applies` false, `seq.viewer.step.stale`): the ops that still apply are shown (the design: a step's
   state is what still applies, flagged), and a start it cannot reach is the core's `seq.story.step.from`; an unknown id
-  is `seq.viewer.step.unknown`; a spec model with no story part (`attachStory(StoryPart)`, what the viewer does when its
-  spec lists `story`) enters none, `seq.viewer.step.none`. **While a full-state step is shown, an edit is refused**
-  (`seq.viewer.step.frozen`, its hint to edit the step), a patch, a preview and a whole root alike (`apply`:
+  is `seq.viewer.step.unknown`; a spec model with no story part (its `story` option, `StoryPart`, what the viewer gives
+  when its spec lists `story`) enters none, `seq.viewer.step.none`. **While a full-state step is shown, an edit is
+  refused** (`seq.viewer.step.frozen`, its hint to edit the step), a patch, a preview and a whole root alike (`apply`:
   `frozen-step`): the step does not follow the spec, so the edit would show nothing. `load` leaves the step first: a new
   document.
 - **The frame slot** (`setFrame(root)`, `frame`): an animation's frame shown over what is composed, `frame(step(...))`:
@@ -441,9 +441,9 @@ owner, the store with it.
   follows what it lists; the size script's minimal entry checks it (none of the unlisted modules in its bundle).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `ui.history()` when
-  mounted; bound to the spec), the binding table (a behavior's `actions` bound only when it is listed), the behaviors
-  (one of each name; a behavior's `commands` join the viewer's), then the UI into `target` when there is one: the
-  toolbar the spec lists (`ui.toolbar`, a function the host gives: `mountToolbar` of
+  mounted; bound to the spec), the binding table (the selection's and the rows' actions bound only when their behavior
+  is listed), the behaviors (one of each name; a behavior's `commands` join the viewer's), then the UI into `target`
+  when there is one: the toolbar the spec lists (`ui.toolbar`, a function the host gives: `mountToolbar` of
   `@molstar/seqx-viewer/mount-toolbar`), then the canvas when the spec has `ui.canvas`. Without a target it is headless:
   models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and the bindings, the UI the behaviors.
 - The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits

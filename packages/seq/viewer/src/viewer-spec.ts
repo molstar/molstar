@@ -58,8 +58,6 @@ export interface BehaviorHandle {
 /** A behavior's provider: creates the policy over the models; what it makes is its handle (`dispose` ends it). */
 export interface BehaviorProvider<Params = unknown, Handle = unknown> {
   readonly name: string;
-  /** The actions its bindings may name (the selection's, the rows'): bound only when the provider is listed. */
-  readonly actions?: readonly string[];
   create(context: BehaviorContext, params: Params): Handle & BehaviorHandle;
 }
 

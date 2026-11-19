@@ -43,7 +43,14 @@ import type {
 import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
-import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
+import {
+  bindingTable,
+  DefaultActions,
+  type BindingTable,
+  BindingPresets,
+  CladeActions,
+  SelectActions,
+} from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import {
@@ -85,6 +92,9 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] };
  * The methods the viewer and its input call on a built-in behavior's handle, by the behavior's name: a handle listed
  * under that name without one of them is refused (`seq.viewer.behavior.shape`), never called.
  */
+/** The actions a behavior's bindings may name, by its name: bound only when it is listed. */
+const BehaviorActions: Readonly<Record<string, readonly string[]>> = { select: SelectActions, rows: CladeActions };
+
 const BehaviorShapes: Readonly<Record<string, readonly string[]>> = {
   hover: ['move', 'leave'],
   navigate: ['drag', 'wheel', 'pinch'],
@@ -277,8 +287,8 @@ export class SeqViewer extends ReactiveModel {
       this.config,
       false,
       this._lengths.asReadonly,
+      viewerSpec.story ? { story: viewerSpec.story } : {},
     );
-    if (viewerSpec.story) this.spec.attachStory(viewerSpec.story);
     this.view = new ViewModel(this.spec, this.config);
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
     this.view.setLayoutSource({
@@ -316,9 +326,9 @@ export class SeqViewer extends ReactiveModel {
 
     const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
-    // a behavior's actions only with the behavior that runs them (the selection's, the rows'): else its bindings are
-    // reported, never dead
-    const listed = viewerSpec.behaviors.flatMap((b) => b.provider.actions ?? []);
+    // a behavior's actions only with the behavior that runs them (the selection's, the rows'), by its name: else their
+    // bindings are reported, never dead
+    const listed = viewerSpec.behaviors.flatMap((b) => BehaviorActions[b.provider.name] ?? []);
     this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
       actions: [...DefaultActions, ...listed, ...extraActions],
       keys: this.config.view.keys,

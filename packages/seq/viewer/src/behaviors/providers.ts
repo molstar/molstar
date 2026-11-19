@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SelectActions } from '@molstar/seqx-viewer/bindings';
 import { cellOffset } from '@molstar/seqx-viewer/models';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import { type AddressingBehavior, addressingBehavior } from './addressing.js';
@@ -15,7 +14,7 @@ import { type EditingBehavior, editingBehavior } from './editing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
 import { type NavigatorBehavior, navigatorBehavior } from './navigator.js';
-import { type RowsBehavior, RowsActions, rowsBehavior } from './rows.js';
+import { type RowsBehavior, rowsBehavior } from './rows.js';
 import { type SelectBehavior, selectBehavior } from './select.js';
 import { type ThemingBehavior, themingBehavior } from './theming.js';
 import { type WindowBehavior, windowBehavior } from './window.js';
@@ -52,8 +51,6 @@ export interface SelectParams {
 
 export const SelectProvider: BehaviorProvider<SelectParams | undefined, SelectBehavior> = {
   name: 'select',
-  // the selection's actions only with the behavior that runs them: else its bindings are reported, never dead
-  actions: SelectActions,
   // the selection's gestures, and copying its letters (_spec/README.md "Behaviors", Copy)
   create: (ctx, params) => {
     const b = selectBehavior(ctx.selection, ctx.view, ctx.bindings, ctx.addresses);
@@ -95,6 +92,5 @@ export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
 /** An alignment's rows bands: folds, pins, hidden rows, order, the rows' zoom and scroll (_spec/README.md "Behaviors"). */
 export const RowsProvider: BehaviorProvider<undefined, RowsBehavior> = {
   name: 'rows',
-  actions: RowsActions,
   create: ({ spec, view, layout, config }) => rowsBehavior(spec, view, layout, config),
 };

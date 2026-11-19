@@ -130,7 +130,7 @@ export function rowsBehavior(
       return view.band(track) !== before;
     });
     return {
-        message: o === 'none' || o === 'same' ? 'Already so' : done,
+      message: o === 'none' || o === 'same' ? 'Already so' : done,
     };
   };
   const said =
