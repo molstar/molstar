@@ -396,6 +396,8 @@ and dark before the merge.
       disabled toolbar item (`briefs/sf-small-fixes.md`).
 - [ ] SR (fast, read-only, beside RK and CS; the author, 2026-11-19: "Spec reconcile prep") finalize's reconcile
       listed ahead (`briefs/sr-reconcile-prep.md`).
+- [ ] GR (fast, read-only research; the author, 2026-11-19: Rondo's genome ring, "perhaps even as an extension to
+      show this is "easy"") a view like rondo.app's against what is built (`briefs/gr-genome-ring-research.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
