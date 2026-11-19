@@ -26,6 +26,7 @@ theme switches both. Foundation stories will draw each rule on real data, beside
 ## Grid
 
 - The cell is the unit of data. Rows are on the 4px grid: a letters row is 20px (16 compact, 24 comfortable).
+- A track may have vertical padding inside its well (top, bottom or both), never left or right: columns stay aligned.
 - Track labels share one column, so data starts at one x in every track, in both layouts.
 - Sections that share an axis stay aligned to the device pixel.
 
@@ -42,6 +43,7 @@ density. Every layer type uses the same thresholds.
 - **Small things are square**: below 6px a corner can't be seen.
 - **Cut ends are square**: an item cut by the view or a collapsed intron keeps a square end where it is cut.
 - **Outlines are concentric** with what they surround.
+- **A track's well is a squircle** too: a surface, its data clipped to it; a host can keep square wells.
 - Squircles are paths in the draw lists, so the canvas and the SVG draw the same curve.
 
 ## Emphasis

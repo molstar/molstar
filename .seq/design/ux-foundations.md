@@ -63,6 +63,10 @@ extensible/configurable?" Yes, by the rule that what can be configurable is ([ex
   least the smallest legible size, then cells only.
 - **Rows are on the 4px grid**: a letters row 20px by default (16 compact, 24 comfortable), feature rows 8 to 16px,
   value tracks in multiples of 4. Track gaps 4px within a group, 8px between groups.
+- **A track's padding is vertical** (the author, 2026-11-19): `padding` inside its well, top and bottom (a number is
+  both; `(top 8)` one side), default 0 and a render config default for hosts; the well grows by it, the data sits
+  inside, hover and hit tests read the data's band. Never left or right: the horizontal is the axis, and columns stay
+  aligned across tracks.
 - **One label column**: track and row labels sit in a column on `@molstar/ui`'s inset and label width, so the data
   starts at one x for every track of a view, in both layouts (tracks and text).
 - **Columns stay aligned across sections** that share an axis (scroll groups), to the device pixel.
@@ -97,6 +101,11 @@ smallest letter size needs, so cells never show without letters.
   cut side and rounded ends where it really ends (the frame rule, EC-100).
 - **Outlines are concentric.** A selection or hover outline around a squircle mark takes the mark's radius plus the
   outline's offset, so the gap is even.
+- **A track's well is a surface, so a squircle** (the author, 2026-11-19): its radius by the rule above (a third of its
+  height, capped by the surface radius), its data clipped to it (a letters or grid track loses a sliver at its corners,
+  as a rounded card over a table); a well shorter than 6px stays square, and a config switch (`trackShape: squircle |
+  square`) keeps the square look for a host. The data inside follows the rules above: continuous data stays square,
+  only the well's corners round.
 - **One path, every backend.** Squircles are drawn as a path in the draw lists, never left to a backend's rounded
   rectangle, so Canvas2D and SVG draw the same curve.
 

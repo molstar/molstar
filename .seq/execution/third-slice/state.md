@@ -219,3 +219,6 @@ None.
   rows layer elides the first label instead; the Query stories' alignment examples over four inline rows). Conflicts
   with DP and DT (`record.ts`, `draw-checks.ts`) resolved keeping both. Quick 2070, medium 9. Its core gaps (6–8) are
   CY's. DC in review; NB starts in DG's slot.
+- Decided (the author, 2026-11-19, "Yes, as proposed"): a track's vertical `padding` inside its well and squircle
+  wells, data clipped (ux-foundations §3, §5; the Design page). TW queued after CY. DC in its fix round (merging
+  `packages-seq` first); NB running; queued strong: CY (DC's slot), then TW, DA (after NB).

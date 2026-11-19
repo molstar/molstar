@@ -87,7 +87,7 @@ const SeqLanguage = defineLanguage({
 | `map` | `data` | **`from`**, **`to`**, **`method`** (`offset` with `by`; `codon` with `exons` table and `strand`) |
 | `view` | `views` | `layout` (`tracks`) |
 | `section` | `view` | **`of`** (a system's address), `range`, `follow` (a section's address) |
-| `track` | `section` | `label`, `height` (px), `hidden` (boolean, default false: kept in the spec, its row collapsed; the second slice, as `layer.hidden` was decided) |
+| `track` | `section` | `label`, `height` (px), `hidden` (boolean, default false: kept in the spec, its row collapsed; the second slice, as `layer.hidden` was decided); `padding` (px inside the well: a number top and bottom, or `(top n bottom n)`; the third slice, an addition to 0.4.0) |
 | `layer` | `track` | **`type`** (`letters`, `ranges`, `values`), `data` (an address or a query), `color` (a theme form), `hidden` (boolean, default false; the author, 2026-11-18); its id required (the author, 2026-11-18: every child in a spec is addressable, so hiding a layer is a one-key `set`) |
 | `refs`, `snapshots` | `spec` | containers with reserved ids (the second slice) |
 | `ref` | `refs` | **`to`** (an address, or a non-empty list of them: a set), `label`, `color` ([addressing](addressing.md)) |
