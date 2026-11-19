@@ -208,7 +208,12 @@ describe('p53 gene by region', () => {
     expect(r.issues).toEqual([]);
     expect(r.settled).toBe(true);
     for (const id of Object.keys(Transcripts)) expect(r.svg).toContain(`Transcript ${id}<`);
-    for (const id of ['T1', 'T2', 'T3']) expect(r.svg).toContain(`Domains ${id}-domains<`);
+    // a template's tracks are named once expanded: past the measured column (the view's own labels) their labels end in
+    // an ellipsis; the accessible titles name them whole
+    for (const id of ['T1', 'T2', 'T3']) {
+      expect(r.svg).toContain(`Domains ${id}-…<`);
+      expect(r.svg).toContain(`Domains ${id}-domains`);
+    }
     expect(r.svg).not.toContain('Domains W1');
     ctx.retire();
   });

@@ -203,6 +203,27 @@ describe('the hover card’s content, headless on the HoverModel', () => {
     expect(said).toBe(card!.text);
   });
 
+  it('names an item across a cyclic origin by its two runs from its start, the card and the live region alike', async () => {
+    const b = createSeqSpec({ title: 'ring' });
+    const ring = b.data.sequence('ring', { alphabet: 'dna', letters: 'ACGT'.repeat(25), cyclic: true, name: 'pR' });
+    const f = b.data.ranges('f', {
+      target: ring,
+      rows: { start: [90], end: [10], id: ['bla'], label: ['bla (AmpR)'] },
+    });
+    b.views.view('main', (view) => view.section('s', { of: ring }).track('t').layer('l', { type: 'ranges', data: f }));
+    const v = await make(b.build() as never);
+    const item = layerOf(v, 0, 'ranges');
+    const { card, said } = cardOf(v, {
+      layer: item.l.key,
+      section: item.s.section.address,
+      system: '/data/ring',
+      element: { owner: item.l.layer.data!.address, key: 'bla' },
+    });
+    expect(card?.rows).toContainEqual({ label: 'Extent', value: 'pR 91–100, 1–10' });
+    expect(said).toBe(card!.text);
+    expect(said).toContain('bla (AmpR), pR 91–100, 1–10');
+  });
+
   it('says not numbered by a numbering with no label at the place', async () => {
     const v = await make(cardSpec());
     const { s, l } = layerOf(v, 0, 'letters');

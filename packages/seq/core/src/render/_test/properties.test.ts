@@ -41,8 +41,9 @@ const Domains = [
   [323, 355],
   [363, 393],
 ];
-const { inset, labelWidth, labelGap } = DefaultRenderConfig;
-const Width = DataWidth + inset + labelWidth + labelGap + inset;
+const { inset, labelColumn, labelGap } = DefaultRenderConfig;
+// the label column measured: its least width (every label here is shorter)
+const Width = DataWidth + inset + labelColumn.min + labelGap + inset;
 const Size = { width: Width, height: 120 };
 /** Lanes a track's box holds: letters 1, ranges 3 (36 px of 12), values 1. */
 const Lanes = [1, 3, 1];
@@ -117,7 +118,7 @@ describe('draw lists: hits where the marks are', () => {
     expect(ranges.m).toBeGreaterThan(1);
     for (let j = 0; j < ranges.m; j++) {
       const x = (ranges.mx0[j] + ranges.mx1[j]) / 2;
-      const y = ranges.box.y + (ranges.mlane[j] + 0.5) * ranges.laneHeight;
+      const y = ranges.laneY + (ranges.mlane[j] + 0.5) * ranges.laneHeight;
       const hit = hitView(f.layout, x, y);
       const item = ranges.mitem[j];
       expect(hit?.element).toEqual({ owner: '/data/domains', key: ranges.keys[item] });
@@ -129,7 +130,7 @@ describe('draw lists: hits where the marks are', () => {
     const gap = s.renderer.lists;
     expect(gap.size).toBeGreaterThan(0);
     const x = f.layout.sections[0].axis!.x(62) + 1;
-    const between = hitView(f.layout, x, ranges.box.y + 0.5 * ranges.laneHeight);
+    const between = hitView(f.layout, x, ranges.laneY + 0.5 * ranges.laneHeight);
     expect(between).toEqual({
       layer: '/views/main/protein/domains/ranges',
       section: 'protein',
@@ -197,7 +198,7 @@ describe('draw lists: hits where the marks are', () => {
                 drawn.add(lay.keys[lay.hitem[k]]);
           }
           const x = (lay.mx0[j] + lay.mx1[j]) / 2;
-          const y = lay.box.y + (lay.mlane[j] + 0.5) * lay.laneHeight;
+          const y = lay.laneY + (lay.mlane[j] + 0.5) * lay.laneHeight;
           const key = hitView(f.layout, x, y)?.element?.key;
           expect(key !== undefined && drawn.has(key), `round ${round} ${lay.mode} mark ${j}`).toBe(true);
         }
@@ -266,20 +267,21 @@ describe('draw lists: emphasis', () => {
     await s.frame(input);
     const f = s.renderer.frame({ ...input, emphasis });
     expect(f.rebuilt).toBe(false);
-    // the tracks run from 8 to 104 (20, 36 and 32 px with two gaps of 4): two ranges, a tint and an outline each, the
-    // tints first so no tint covers an outline; positions 3 to 6 start at 128 + 3 · 20; squircle ends, a thin outline
+    // the tracks run from 8 to 118 (20, 50 and 32 px with two gaps of 4: the domains' two lanes and a label lane): two
+    // ranges, a tint and an outline each, the tints first so no tint covers an outline; positions 3 to 6 start at
+    // 96 + 3 · 20; squircle ends, a thin outline
     // inside the tint at 0.6 of the accent
     expect(recordDrawLists(f.lists, ['selection']).split('\n').slice(2)).toEqual([
-      'rect 188 8 60 96 #8f4c062e squircle 8',
-      'rect 328 8 40 96 #8f4c062e squircle 8',
-      'rect 188.5 8.5 59 95 none stroke #8f4c0699 1 squircle 7.5',
-      'rect 328.5 8.5 39 95 none stroke #8f4c0699 1 squircle 7.5',
+      'rect 156 8 60 110 #8f4c062e squircle 8',
+      'rect 296 8 40 110 #8f4c062e squircle 8',
+      'rect 156.5 8.5 59 109 none stroke #8f4c0699 1 squircle 7.5',
+      'rect 296.5 8.5 39 109 none stroke #8f4c0699 1 squircle 7.5',
       '',
     ]);
     // the cursor: one thin outline of its cell over the band, in the neutral ink; a squircle by the cell over the band
     // (capped at 8), inside it by half its width
     expect(recordDrawLists(f.lists, ['cursor']).split('\n').slice(2)).toEqual([
-      'rect 528.5 8.5 19 95 none stroke #2d271eff 1 squircle 7.5',
+      'rect 496.5 8.5 19 109 none stroke #2d271eff 1 squircle 7.5',
       '',
     ]);
   });
@@ -294,8 +296,8 @@ describe('draw lists: emphasis', () => {
     expect(f.lists.passes.cursor.rects.n).toBe(3);
     // each track's tints inside its well's clip: the well's shape (_spec/README.md "Render", Shapes)
     const lines = recordDrawLists(f.lists, ['selection']).split('\n');
-    expect(lines[2]).toBe('clip 128 8 600 20 squircle 6.67');
-    expect(lines[3]).toBe('rect 188 8 60 20 #8f4c062e squircle 6.67');
+    expect(lines[2]).toBe('clip 96 8 600 20 squircle 6.67');
+    expect(lines[3]).toBe('rect 156 8 60 20 #8f4c062e squircle 6.67');
   });
 });
 

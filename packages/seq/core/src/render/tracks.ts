@@ -55,8 +55,19 @@ import type { LettersLay } from './letters.js';
 import { breakHit } from './marks.js';
 import type { ScaleParams } from '@molstar/seqx-core/theme/index';
 import { DefaultThemeContext, type ThemeContext } from './channels.js';
-import type { TextMetrics } from './text.js';
-import type { SeqTokens } from './tokens.js';
+import { elide, type TextMetrics } from './text.js';
+import { CategoryCount, type SeqTokens } from './tokens.js';
+import {
+  BuiltInSizings,
+  ContentSizing,
+  heightsFit,
+  LabelLane,
+  type LayerContent,
+  lanesHeight,
+  type SizedTrack,
+  type TrackSizing,
+  type TrackSizingHook,
+} from './sizing.js';
 import { PlacePoint, StripPlacement, type Strips, WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
 import { chipText } from './layout/blocks.js';
@@ -93,6 +104,11 @@ export interface TrackLayout {
   readonly box: Box;
   /** Its well: the data box grown by its padding (_spec/README.md "Render", Tracks layout), filled in the background. */
   readonly well: Box;
+  /**
+   * The label as drawn (cut to the label column with an ellipsis, never a hard clip).
+   * @internal
+   */
+  readonly labelText: string;
   /** The label's measured width and its baseline (drawing never measures). */
   readonly labelWidth: number;
   readonly labelY: number;
@@ -204,6 +220,18 @@ export interface LayoutInput {
   readonly windows?: boolean;
   /** The clades a rows layer folds by its track's address, where its band gives none (an export's `folds`). */
   readonly folds?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * The track sizings a section's `heights` may name besides the built-ins (`content`, `uniform`, `fixed`): the
+   * composition's `track-sizing` registry entries, by name (_spec/README.md "Render", Track heights).
+   */
+  readonly sizings?: Readonly<Record<string, TrackSizing>>;
+  /** The host's `trackSizing` port: the last word on each section's tracks' heights. */
+  readonly trackSizing?: TrackSizingHook;
+  /**
+   * A navigator's picture: its tracks small, no label lane (its labels are the view's).
+   * @internal
+   */
+  readonly picture?: boolean;
   /** The shared image cache (_spec/README.md "Render", The shared reduction): the renderer's. */
   readonly images?: ImageCache;
   /**
@@ -243,6 +271,39 @@ export class LayoutState {
   columnsFit: unknown;
   /** The template instances shown last (their tracks' addresses): kept while a zoom's new level is pending. */
   readonly instancesShown = new Set<string>();
+  /**
+   * Track labels cut to the label column, by label and width (the metrics and font are the state's renderer's), for
+   * the metrics' version (`elidedVersion`: a web font arriving cuts them again).
+   */
+  readonly elided = new Map<string, Map<number, string>>();
+  elidedVersion = -1;
+  /** Each section's tracks' heights and contents while their key is (`bandHeights`), and as a leader's reading. */
+  readonly sizes = new Map<string, SizedHeights>();
+  readonly leadSizes = new Map<string, SizedHeights>();
+  /** The bands' label lanes, by band index (one a band, reset before its layers are laid out). */
+  readonly labelLanes: LabelLane[] = [];
+}
+
+/** A section's tracks' heights with what they were sized for (`layoutView`'s `bandHeights`). */
+interface SizedHeights {
+  readonly tracks: readonly ResolvedTrack[];
+  readonly fit: number;
+  readonly config: RenderConfig;
+  readonly layout: SectionLayoutType<any>;
+  readonly version: number;
+  readonly sizings: LayoutInput['sizings'];
+  readonly hook: LayoutInput['trackSizing'];
+  readonly heights: readonly number[];
+  /** Each track's content (one lane block a track), undefined for a track not sized by its content. */
+  readonly contents: readonly (LayerContent | undefined)[];
+  readonly issue?: Issue;
+}
+
+/** Two lists of the same tracks (by identity). */
+function sameTracks(a: readonly ResolvedTrack[], b: readonly ResolvedTrack[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 /** A layer's key: its address, else its track's and its index. */
@@ -852,6 +913,100 @@ function widened(base: RenderConfig, extra: number): RenderConfig {
   return c;
 }
 
+/**
+ * What a layer with no color is colored by (_spec/README.md "Themes", A layer with no color): its key, the data it
+ * shows (a ring and its detail showing one node: one color) or, for a template's layer, the template's (its instances:
+ * one color); undefined for a layer the spec colors or a type that has its own default.
+ */
+function colorKey(track: ResolvedTrack, layer: ResolvedLayer): string | undefined {
+  if (layer.type !== 'ranges' || layer.theme.color !== undefined) return undefined;
+  return track.template ? `${track.address}:${layer.index}` : layer.data?.address;
+}
+
+/**
+ * The colourless layers' places in the categorical palette, by their keys' first appearance in the view (a layer's
+ * order): made once a view.
+ */
+const DefaultColors = new WeakMap<ResolvedView, Map<string, number>>();
+function defaultColors(view: ResolvedView): Map<string, number> {
+  let m = DefaultColors.get(view);
+  if (m) return m;
+  m = new Map();
+  for (const s of view.sections)
+    for (const t of s.tracks)
+      for (const l of t.layers) {
+        const k = colorKey(t, l);
+        if (k !== undefined && !m.has(k)) m.set(k, m.size % CategoryCount);
+      }
+  DefaultColors.set(view, m);
+  return m;
+}
+
+/**
+ * The label column's width a view lays out with (_spec/README.md "Render", Configuration: `labelColumn`): the widest
+ * track label, between the column's least and most; `labelWidth` when the
+ * column is not measured. What the viewer's data box starts after, before any layout (its subpath, off the barrel).
+ */
+export function labelColumnWidth(view: ResolvedView, config: RenderConfig, text: TextMetrics): number {
+  const c = config.labelColumn;
+  if (!c.measure) return config.labelWidth;
+  const kept = Columns.get(view);
+  if (kept && kept.config === config && kept.text === text && kept.version === text.version) return kept.width;
+  const width = measureColumn(view, config, text);
+  Columns.set(view, { config, text, version: text.version, width });
+  return width;
+}
+
+/** The label column's width by view, with the config and metrics it was measured for. */
+const Columns = new WeakMap<
+  ResolvedView,
+  { readonly config: RenderConfig; readonly text: TextMetrics; readonly version: number; readonly width: number }
+>();
+
+function measureColumn(view: ResolvedView, config: RenderConfig, text: TextMetrics): number {
+  const c = config.labelColumn;
+  let w = 0;
+  // the labels alone: a direction mark (a section reversed) fades at the column's end, so a reverse never moves the
+  // data box (its windows keep their px a position)
+  for (const s of view.sections)
+    for (const t of s.tracks) {
+      // an alignment's rows label themselves in the column: their names, not the tracks', are what it holds (the
+      // column keeps its fixed width, its row labels their own ellipsis)
+      for (const l of t.layers) if (l.type === 'rows') return config.labelWidth;
+      const m = text.measure(config.labelFont, t.label);
+      if (m > w) w = m;
+    }
+  return Math.min(c.max, Math.max(c.min, Math.ceil(w)));
+}
+
+/** A config with its label column `width` px wide, one a base and width. */
+const Measured = new WeakMap<RenderConfig, Map<number, RenderConfig>>();
+function measured(base: RenderConfig, width: number): RenderConfig {
+  if (width === base.labelWidth) return base;
+  let m = Measured.get(base);
+  if (!m) Measured.set(base, (m = new Map()));
+  let c = m.get(width);
+  if (!c) m.set(width, (c = { ...base, labelWidth: width }));
+  return c;
+}
+
+/** A track label cut to `max` px with an ellipsis, kept by label and width (a layout makes no string a track). */
+function elidedLabel(state: LayoutState, text: TextMetrics, font: string, label: string, max: number): string {
+  const kept = state.elided;
+  if (state.elidedVersion !== text.version) {
+    kept.clear();
+    state.elidedVersion = text.version;
+  }
+  let m = kept.get(label);
+  if (!m) {
+    if (kept.size > 4096) kept.clear();
+    kept.set(label, (m = new Map()));
+  }
+  let t = m.get(max);
+  if (t === undefined) m.set(max, (t = elide(text, font, label, max)));
+  return t;
+}
+
 /** The right gutter's width when a rows layer draws residue numbers: five digits and a gap. */
 function numbersGutter(text: TextMetrics, config: RenderConfig): number {
   return text.measure(config.itemFont, '00000') + config.labelGap;
@@ -859,7 +1014,8 @@ function numbersGutter(text: TextMetrics, config: RenderConfig): number {
 
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
   const header = rowsHeader(input.view, input.rails);
-  const base = input.config ?? DefaultRenderConfig;
+  const given = input.config ?? DefaultRenderConfig;
+  const base = measured(given, labelColumnWidth(input.view, given, input.text));
   // the first numbers take their own room in the label column, the labels keep theirs
   const first = header.numbers ? Math.ceil(input.text.measure(base.itemFont, '00000')) + 4 : 0;
   // the last numbers' gutter, and beside it a rows rail's column (fixed: a rail idle or live keeps the data's width)
@@ -909,6 +1065,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   // axes first, leaders before their followers (a follower may come first in the view)
   const bySection = new Map(input.view.sections.map((s) => [s.address, s]));
   const layouts = input.layouts ?? NoLayouts;
+  const sizings = BuiltInSizings;
   /** A section's layout: its name's in the layouts given, else tracks (a layout not given is said, once). */
   const layoutOf = (section: ResolvedSection) => {
     const name = sectionLayoutName(section, input.view);
@@ -936,7 +1093,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const layout = layoutOf(section);
     if (!layout.followWindow) return { start: axis.u0, end: axis.u1 };
     const viewport = input.viewports?.[section.address] ?? input.viewport;
-    const heights = section.tracks.map((t) => trackHeight(t, config, layout.heights?.(config) ?? config.heights));
+    const heights = bandHeights(section, section.tracks, layout, true, report).heights;
     const pads = section.tracks.flatMap((t) => {
       const p = t.padding ?? config.trackPadding;
       return [p.top, p.bottom];
@@ -948,6 +1105,122 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       heights,
       pads,
     });
+  };
+  /**
+   * A section's tracks' heights (_spec/README.md "Render", Track heights): the section's `heights` sizing over its
+   * tracks' content heights (a layout with heights of its own, text, keeps them), a track's own height over it, the
+   * host's port over all. Kept in the state by the section (and `lead`, its leader's reading) while its key is: its
+   * shown tracks, the px a position of its whole extent, the config, the layout, the metrics' version, the registry and
+   * the port; so a pan runs neither the sizing nor the port. Each track's content (one lane block a track) is kept with
+   * it.
+   */
+  const bandHeights = (
+    section: ResolvedSection,
+    tracks: readonly ResolvedTrack[],
+    layout: SectionLayoutType<any>,
+    lead: boolean,
+    say: (i: Issue) => void,
+  ): SizedHeights => {
+    // the px a position with the section's own whole extent across the data box, whatever its window shows (a pan over
+    // a cyclic origin, a follower's range, a zoom): a label fitting there fits at every zoom in
+    const own = layout.heights ? undefined : ownPieces(section, input.model, input.data);
+    let total = 0;
+    if (own) for (let k = 0; k + 1 < own.length; k += 2) total += Math.abs(own[k + 1] - own[k]);
+    const fit = total > 0 ? dataW / total : 0;
+    const memo = lead ? state.leadSizes : state.sizes;
+    const kept = memo.get(section.address);
+    if (
+      kept &&
+      kept.fit === fit &&
+      kept.config === config &&
+      kept.layout === layout &&
+      kept.version === input.text.version &&
+      kept.sizings === input.sizings &&
+      kept.hook === input.trackSizing &&
+      sameTracks(kept.tracks, tracks)
+    ) {
+      if (kept.issue) say(kept.issue);
+      return kept;
+    }
+    const made = sizeTracks(section, tracks, layout, fit);
+    memo.set(section.address, made);
+    if (made.issue) say(made.issue);
+    return made;
+  };
+  /** The sizing pass itself (`bandHeights` keeps what it gives). */
+  const sizeTracks = (
+    section: ResolvedSection,
+    tracks: readonly ResolvedTrack[],
+    layout: SectionLayoutType<any>,
+    fit: number,
+  ): SizedHeights => {
+    const byType = layout.heights?.(config) ?? config.heights;
+    const fixed = tracks.map((t) => trackHeight(t, config, byType));
+    const base = {
+      tracks: [...tracks],
+      fit,
+      config,
+      layout,
+      version: input.text.version,
+      sizings: input.sizings,
+      hook: input.trackSizing,
+    };
+    if (layout.heights || !tracks.length) return { ...base, heights: fixed, contents: [] };
+    const cctx = { config, text: input.text, fit, labelLane: layout === TracksLayout && !input.picture };
+    const sized: SizedTrack[] = [];
+    const contents: (LayerContent | undefined)[] = [];
+    for (let j = 0; j < tracks.length; j++) {
+      const t = tracks[j];
+      let lanes: number | undefined;
+      let labels = false;
+      let other = 0;
+      let kind = '';
+      for (const l of t.layers) {
+        // a hidden layer is no part of the track's kind or height
+        if (l.params.hidden === true) continue;
+        kind = kind ? `${kind}+${l.type}` : l.type;
+        const type = l.placed ? firstType(l, types) : undefined;
+        let c: LayerContent | undefined;
+        if (type?.content) {
+          let prep = state.preps.get(l);
+          if (prep === undefined) state.preps.set(l, (prep = type.prepare(l, input.model)));
+          c = type.content(prep, cctx);
+        }
+        if (c) {
+          lanes = Math.max(lanes ?? 0, c.lanes);
+          labels ||= c.labels;
+        } else other = Math.max(other, byType[l.type as keyof RenderConfig['heights']] ?? 0);
+      }
+      // one lane block a track: the most lanes its layers need, one label lane for all of them
+      contents.push(lanes === undefined ? undefined : { lanes, labels });
+      sized.push({
+        track: t,
+        kind,
+        fixed: fixed[j],
+        ...(lanes !== undefined && rowsFill(t) === undefined
+          ? { content: Math.max(other, lanesHeight(lanes + (labels ? 1 : 0), config)) }
+          : {}),
+        ...(t.height !== undefined ? { height: t.height } : {}),
+      });
+    }
+    const name = section.params.heights;
+    let sizing = typeof name === 'string' ? (sizings[name] ?? input.sizings?.[name]) : ContentSizing;
+    let issue: Issue | undefined;
+    if (!sizing) {
+      issue = issueOf(
+        RenderIssues,
+        'seq.render.heights',
+        `The track sizing ${name} is not registered here: tracks fit their content`,
+        { address: section.address, hint: RenderIssues.codes['seq.render.heights'].hint },
+      );
+      sizing = ContentSizing;
+    }
+    let named = sizing.heights(sized, config);
+    if (!heightsFit(named, sized.length)) named = ContentSizing.heights(sized, config);
+    const ownHeights = named.map((h, j) => sized[j].height ?? h);
+    const hook = input.trackSizing?.(section, sized, ownHeights);
+    const heights = heightsFit(hook, sized.length) ? [...hook] : ownHeights;
+    return { ...base, heights, contents, ...(issue ? { issue } : {}) };
   };
   const axes = new Map<string, AxisTransform | undefined>();
   const visiting = new Set<string>();
@@ -1042,6 +1315,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   // what a section's reuse compares besides its own viewport and reads (_spec/README.md "Render", The key)
   const stamp = viewStamp(input, config, dpr, overlay, state);
   const sinks: FrameSinks = { wants, report, theme, used, showing };
+  const colors = defaultColors(input.view);
   let y = config.inset;
   for (const section of input.view.sections) {
     if (sections.length) y += config.sectionGap;
@@ -1083,12 +1357,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
     const shown: ResolvedTrack[] = [];
-    // each shown track's index in the section's (a template's instance: −1), what a block's layers are kept by
+    // each shown track's index in the section's (a template's instance: −1), what a block's layers are kept by, and
+    // the section's track it came from (an instance's template)
     const trackOf: number[] = [];
+    const sourceOf: ResolvedTrack[] = [];
     for (let ti = 0; ti < section.tracks.length; ti++) {
       const track = section.tracks[ti];
       if (!track.template) {
         trackOf[shown.length] = ti;
+        sourceOf[shown.length] = track;
         shown.push(track);
         continue;
       }
@@ -1110,11 +1387,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // an instance whose node's region is out of view is not laid out: its track goes, its hold with it
         if (axis && !instanceInView(input, mine, section, track.template, axis, overlay, t, state)) continue;
         trackOf[shown.length] = -1;
+        sourceOf[shown.length] = track;
         shown.push(t);
       }
     }
     const byType = layout.heights?.(config) ?? config.heights;
-    const heights = shown.map((t) => trackHeight(t, config, byType));
+    const sizedBands = bandHeights(section, shown, layout, false, sectionReport);
+    // the kept heights, copied only where this layout changes them (a rows band's)
+    let heights = sizedBands.heights as number[];
+    const trackContents = sizedBands.contents;
     // each track's padding inside its well, `[top, bottom]` a track: its own, else the config's (_spec/README.md
     // "Render", Tracks layout)
     const pads: number[] = [];
@@ -1139,13 +1420,16 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       for (let j = 0; j < shown.length; j++) {
         if (shown[j].height !== undefined || rowsFill(shown[j]) === undefined) continue;
         const rows = rowsCount(shown[j], input.model);
-        if (rows !== undefined) heights[j] = rows * byType.rows + titleRowOf(shown[j], config);
+        if (rows === undefined) continue;
+        if (heights === sizedBands.heights) heights = heights.slice();
+        heights[j] = rows * byType.rows + titleRowOf(shown[j], config);
       }
     const fill = shown.findIndex((t) => t.height === undefined && rowsFill(t) === 'fill');
     if (fill >= 0 && !input.figure && layout === TracksLayout) {
       let used = 0;
       for (let j = 0; j < heights.length; j++)
         used += (j !== fill ? heights[j] + config.trackGap : 0) + pads[2 * j] + pads[2 * j + 1];
+      if (heights === sizedBands.heights) heights = heights.slice();
       heights[fill] = Math.max(heights[fill], Math.floor(height - top - used - config.inset));
     }
     const nb = shown.length;
@@ -1183,6 +1467,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         );
       return type;
     };
+    /** Band `j`'s label lane, its layers' labels beside sharing it (kept in the state, one a band). */
+    const labelLaneOf = (j: number): LabelLane => (state.labelLanes[j] ??= new LabelLane());
     /** A band's own scroll and row zoom (the viewport's `bands`, by track address). */
     const bandOf = (track: ResolvedTrack) => viewport?.bands?.[track.address];
     // one rows layer a section (the cursor has one row order): the first shown, a second said and not drawn
@@ -1211,6 +1497,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         if (!(strips.bandY[k] + strips.dy[i] < height) || (h <= 0 && layout !== TracksLayout)) continue;
         const track = shown[j];
         const band = bandOf(track);
+        if (trackContents[j]) labelLaneOf(j).reset();
         const box: Box = { x: a.x0, y: strips.bandY[k], width: a.width, height: h };
         const layers = block && trackOf[j] >= 0 ? block.layers[trackOf[j]] : track.layers;
         for (const layer of layers) {
@@ -1228,6 +1515,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             );
             continue;
           }
+          const ck = colorKey(sourceOf[j], layer);
+          const colorIndex = ck === undefined ? undefined : colors.get(ck);
           const ctx: LayoutContext = {
             box,
             axis: a,
@@ -1242,6 +1531,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             want,
             report: sectionReport,
             viewWidth: width,
+            ...(colorIndex !== undefined ? { colorIndex } : {}),
+            ...(trackContents[j] ? { content: trackContents[j], labelLane: labelLaneOf(j) } : {}),
             strip: i,
             span: Array.isArray(layer.params.across) ? acrossSpan(strips, i, shown, layer.params.across) : span,
             place: placement,
@@ -1383,11 +1674,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         }
         if (filter) break;
       }
+      // the label's room: the column, less a chip beside it (a chip on a line of its own leaves it whole)
+      const room = filter && !filter.dy ? Math.max(0, filter.x - config.inset - 6) : config.labelWidth;
+      const labelText = elidedLabel(state, input.text, config.labelFont, track.label, room);
       tracks.push({
         track,
         box,
         well,
-        labelWidth: input.text.measure(config.labelFont, track.label),
+        labelText,
+        labelWidth: input.text.measure(config.labelFont, labelText),
         // centred on its well (its padding with it), not on its data
         labelY: well.y + well.height / 2 + labelSize * 0.35,
         layers,

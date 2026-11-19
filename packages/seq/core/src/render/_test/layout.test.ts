@@ -135,15 +135,20 @@ describe('the layout’s edges', () => {
   });
 
   it('items past the lanes collapse into a density row at the bottom; or the whole layer, as configured', async () => {
-    const rows = { start: [0, 1, 2, 3, 4], end: [30, 30, 30, 30, 30], id: ['a', 'b', 'c', 'd', 'e'] };
+    // seven over one another: past the five lanes a track's content height holds (78 px)
+    const rows = {
+      start: [0, 1, 2, 3, 4, 5, 6],
+      end: [30, 30, 30, 30, 30, 30, 30],
+      id: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+    };
     const extra = await renderSvg(rangesSpec(rows), { size: Size });
     const [e] = blocks(extra.lists);
-    expect(e).toMatchObject({ rects: 2, images: 1 });
-    // the density row is the third lane of the 36 px track
-    expect(recordDrawLists(extra.lists, ['data'])).toMatch(/\nimage 128 32 592 12 592x1 /);
+    expect(e).toMatchObject({ rects: 4, images: 1 });
+    // the density row is the fifth lane, below the padding (4 px): 8 + 4 + 4 × 14
+    expect(recordDrawLists(extra.lists, ['data'])).toMatch(/\nimage 96 68 624 14 624x1 /);
     const layer = await renderSvg(rangesSpec(rows), { size: Size, config: { ranges: { overflow: 'layer' } } });
     expect(blocks(layer.lists)[0]).toMatchObject({ rects: 0, images: 1 });
-    expect(recordDrawLists(layer.lists, ['data'])).toMatch(/\nimage 128 8 592 36 592x1 /);
+    expect(recordDrawLists(layer.lists, ['data'])).toMatch(/\nimage 96 8 624 78 624x1 /);
   });
 
   it('values below a pixel a position show a column’s extent (negative extremes), or its maximum', async () => {
@@ -160,7 +165,7 @@ describe('the layout’s edges', () => {
     const minmax = await renderSvg(spec, { size: Size });
     // the track is 32 px from y 8: every column spans the domain [-1, 2], the negative extreme below the baseline
     expect(minmax.svg).toContain('data-seq-domains="/views/main/s/v/values=-1,2"');
-    expect(recordDrawLists(minmax.lists, ['data']).split('\n')[3]).toBe('rect 128 8 1 32 #5b7c99ff');
+    expect(recordDrawLists(minmax.lists, ['data']).split('\n')[3]).toBe('rect 96 8 1 32 #5b7c99ff');
     // the maximum alone hides it: the domain starts at 0
     const max = await renderSvg(spec, { size: Size, config: { values: { aggregate: 'max' } } });
     expect(max.svg).toContain('data-seq-domains="/views/main/s/v/values=0,2"');

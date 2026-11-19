@@ -329,6 +329,9 @@ export interface RenderSvgOptions {
   readonly types?: RendererOptions['types'];
   /** The section layouts (the composition's registry): tracks for every section in `exportSvg` when absent. */
   readonly layouts?: RendererOptions['layouts'];
+  /** The track sizings past the built-ins and the host's `trackSizing` port (the composition's). */
+  readonly sizings?: RendererOptions['sizings'];
+  readonly trackSizing?: RendererOptions['trackSizing'];
   /**
    * How included navigators are drawn (`NavigatorSvgExport` of `render/navigator-export`): `renderSvg`'s default; none
    * in `exportSvg` when absent (an export asked to include navigators then says it left them out).
@@ -461,6 +464,8 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
       // none of a kind not given (each layer said, each section laid out as tracks)
       types: options.types ?? {},
       layouts: options.layouts ?? {},
+      ...(options.sizings ? { sizings: options.sizings } : {}),
+      ...(options.trackSizing ? { trackSizing: options.trackSizing } : {}),
       ...(options.registry ? { theme: options.registry } : {}),
     });
     const given = options.viewport;

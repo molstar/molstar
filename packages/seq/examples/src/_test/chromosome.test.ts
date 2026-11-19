@@ -229,7 +229,7 @@ function rangesAgainst(
       for (let k = 0; k < lay.hn; k++)
         if (lay.hlane[k] === lay.mlane[j] && lay.hx1[k] >= lay.mx0[j] && lay.hx0[k] <= lay.mx1[j])
           drawn.add(lay.keys[lay.hitem[k]]);
-    const hit = hitView(layout, (lay.mx0[j] + lay.mx1[j]) / 2, lay.box.y + (lay.mlane[j] + 0.5) * lay.laneHeight);
+    const hit = hitView(layout, (lay.mx0[j] + lay.mx1[j]) / 2, lay.laneY + (lay.mlane[j] + 0.5) * lay.laneHeight);
     if (hit?.layer !== l.key || hit.element === undefined || !drawn.has(hit.element.key))
       wrong.push(`mark ${j} [${lay.mx0[j]}, ${lay.mx1[j]}): hit ${JSON.stringify(hit?.element)}`);
   }

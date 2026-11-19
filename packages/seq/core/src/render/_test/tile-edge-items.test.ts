@@ -84,7 +84,8 @@ describe('items from an earlier tile', () => {
     for (const k of overlapping(1030, 1060)) expect(keys).toContain(k);
     // drawn where it is: a hit on its arc names it
     const p = sec.placement as RingPlacement;
-    p.warp.map(p.frameX(5.5), p.strips.bandY[1] + 3);
+    const items = sec.tracks[1].layers[0].lay as RangesLay;
+    p.warp.map(p.frameX(5.5), items.laneY + items.laneHeight / 2);
     expect(String(hitView(f.layout, p.warp.px, p.warp.py)?.element?.key)).toBe('r1000');
   });
 });

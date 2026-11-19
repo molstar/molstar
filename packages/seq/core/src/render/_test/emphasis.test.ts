@@ -211,10 +211,10 @@ describe('the composition of hover and selection', () => {
         hover: { layer: '/views/main/protein/letters/letters', section: 'protein', system: Protein, position: 4 },
       },
     });
-    // the cell of 4 is [217, 239) over the letters' [8, 28); 1.5 px wide, 1 px out: its middle 1.75 px outside; a
+    // the cell of 4 is [189, 212) over the letters' [8, 28); 1.5 px wide, 1 px out: its middle 1.75 px outside; a
     // squircle, the cell's radius (a third of 20) plus the 1.75 (concentric)
     expect(rects(f.lists, 'hover').map((r) => r.line)).toEqual([
-      'rect 215.25 6.25 25.5 23.5 none stroke #2d271eff 1.5 squircle 8.42',
+      'rect 187.25 6.25 26.5 23.5 none stroke #2d271eff 1.5 squircle 8.42',
     ]);
     // the selection's outline is inside its band, half its width in (the band starts on the tracks' top, 8)
     expect(rects(f.lists, 'selection').some((r) => / 8\.5 [\d.]+ [\d.]+ none stroke /.test(r.line))).toBe(true);
@@ -234,7 +234,7 @@ describe('the composition of hover and selection', () => {
     const f = s.renderer.frame({ ...input, emphasis: { elements: elements([{ owner: '/data/sites', key: 'ins' }]) } });
     const lines = rects(f.lists, 'selection').map((r) => r.line);
     expect(lines.length).toBe(1);
-    expect(lines[0]).toMatch(/^rect [\d.]+ [\d.]+ 2 12 #8f4c06ff$/);
+    expect(lines[0]).toMatch(/^rect [\d.]+ [\d.]+ 2 14 #8f4c06ff$/);
   });
 });
 

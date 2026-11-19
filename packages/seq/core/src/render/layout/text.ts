@@ -778,8 +778,21 @@ export const TextNav: SectionNav = {
     const top = topOf(p, v.start);
     const first = Math.min(p.heights.length - 1, lineOf(g, start));
     const last = Math.min(p.heights.length - 1, lineOf(g, Math.max(start, end - 1)));
-    const y0 = p.lineTop(first);
-    const y1 = Math.min(p.lineTop(last) + p.heights[last] - g.lineGap, y0 + p.box.height);
+    // a line the box's bottom cuts, or past it, was laid in part or not at all (its unseen bands collapsed): read at its
+    // whole height, so the least move never leaves it short of the box
+    const bottom = top + p.box.height;
+    let y0 = p.lineTop(first);
+    let y1 = p.lineTop(last) + p.heights[last];
+    if (y1 > bottom) {
+      let y = 0;
+      for (let l = 0; l <= last; l++) {
+        if (l === first) y0 = y;
+        const h = p.heights[l];
+        y += y + h > bottom ? Math.max(h, g.lineHeight + g.lineGap) : h;
+      }
+      y1 = y;
+    }
+    y1 = Math.min(y1 - g.lineGap, y0 + p.box.height);
     if (y0 >= top && y1 <= top + p.box.height) return v;
     // above: its first line to the top; below: its last line's bottom to the box's bottom
     const to = y0 < top ? y0 : y1 - p.box.height;

@@ -18,14 +18,17 @@ import {
   renderConfig,
   type SectionLayoutType,
   type SeqTokens,
+  type SizedTrack,
   type TextMetrics,
+  type TrackSizing,
+  type TrackSizingHook,
   builtInTokens,
   bundledTextMetrics,
   createTextMetrics,
   NoAssets,
 } from '@molstar/seqx-core/render';
 import { type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
-import { type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
+import { type ResolvedSection, type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
 import { type AssetPolicy, HeadlessAssetPolicy, policyAssets } from './assets.js';
 
 // The headless composition (_spec/README.md "Context"): what a render needs, listed in one place: the registry (the
@@ -40,7 +43,8 @@ import { type AssetPolicy, HeadlessAssetPolicy, policyAssets } from './assets.js
 export type SeqRegistryEntry =
   | { readonly kind: 'format-runtime'; readonly runtime: FormatRuntime }
   | { readonly kind: 'layer-type'; readonly type: LayerType<any, any> }
-  | { readonly kind: 'layout'; readonly layout: SectionLayoutType<any> };
+  | { readonly kind: 'layout'; readonly layout: SectionLayoutType<any> }
+  | { readonly kind: 'track-sizing'; readonly sizing: TrackSizing };
 
 /** A setting: its key, and the type of its value. Items are pairs `[item, value]` in a spec's `config`. */
 export interface SeqConfigItem<T = unknown> {
@@ -98,11 +102,22 @@ export interface StructurePort extends PortResult {
   dispose?(): void;
 }
 
+/**
+ * The host's last word on track heights (_spec/README.md "Render", Track heights): each section's tracks with their
+ * content heights and the named sizing's answer, returning the heights (an application fitting the viewer into a fixed
+ * panel or its own row grid).
+ */
+export interface TrackSizingPort extends PortResult {
+  heights(section: ResolvedSection, tracks: readonly SizedTrack[], named: readonly number[]): readonly number[];
+  dispose?(): void;
+}
+
 /** The ports of a composition, each a factory called once. Unset: the default adapter, owned by the owner. */
 export interface SeqPorts {
   readonly assets?: () => AssetsPort;
   readonly textMetrics?: () => TextMetricsPort;
   readonly structure?: () => StructurePort;
+  readonly trackSizing?: () => TrackSizingPort;
 }
 
 export interface SeqContextSpec {
@@ -120,6 +135,11 @@ export function runtimesOf(registry: readonly SeqRegistryEntry[]): FormatRuntime
 /** The registered layer types by name, as `runtimesOf`: the same object again is no change, another an error. */
 function layerTypesOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, LayerType<any, any>>> {
   return Object.fromEntries(byName(registry, 'layer-type', 'layer types', (e) => e.type));
+}
+
+/** The registered track sizings by name, as `runtimesOf` (the built-ins need no entry). */
+function sizingsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, TrackSizing>> {
+  return Object.fromEntries(byName(registry, 'track-sizing', 'track sizings', (e) => e.sizing));
 }
 
 /** The registered section layouts by name, as `runtimesOf`. */
@@ -163,6 +183,10 @@ export interface SeqContext {
   readonly types: Readonly<Record<string, LayerType<any, any>>>;
   /** The registered section layouts by name (a section naming another is said, and laid out as tracks). */
   readonly layouts: Readonly<Record<string, SectionLayoutType<any>>>;
+  /** The registered track sizings by name (a section's `heights` naming another is said; its tracks fit their content). */
+  readonly sizings: Readonly<Record<string, TrackSizing>>;
+  /** The `trackSizing` port's answer, when one was bound. */
+  readonly trackSizing?: TrackSizingHook;
   readonly renderConfig: RenderConfig;
   readonly resolveConfig: Partial<ResolveConfig>;
   /** The bounds the spec's check holds (`SeqCoreConfig.bounds` over the defaults). */
@@ -197,6 +221,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const runtimes = runtimesOf(registry);
   const types = layerTypesOf(registry);
   const layouts = layoutsOf(registry);
+  const sizings = sizingsOf(registry);
   const theme = configValue(spec.config, SeqCoreConfig.theme) ?? 'light';
   const renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
@@ -207,6 +232,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
   let assets: AssetReader = NoAssets;
   let structure: unknown;
   let text: TextMetrics = undefined as never;
+  let trackSizing: TrackSizingHook | undefined;
   try {
     if (spec.ports?.assets) {
       const port = spec.ports.assets();
@@ -230,6 +256,12 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
       structure = port.runtime;
       if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
     }
+
+    if (spec.ports?.trackSizing) {
+      const port = spec.ports.trackSizing();
+      trackSizing = (section, tracks, named) => port.heights(section, tracks, named);
+      if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
+    }
   } catch (e) {
     for (const d of disposers.reverse()) {
       try {
@@ -247,6 +279,8 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
     runtimes,
     types,
     layouts,
+    sizings,
+    ...(trackSizing ? { trackSizing } : {}),
     renderConfig: renderCfg,
     resolveConfig: resolveCfg,
     bounds,
@@ -262,6 +296,8 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
         runtimes,
         types,
         layouts,
+        sizings,
+        ...(trackSizing ? { trackSizing } : {}),
         theme,
         tokens,
         bounds,

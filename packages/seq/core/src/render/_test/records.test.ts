@@ -46,7 +46,7 @@ function compare(name: string, record: string) {
 describe('draw-list records', () => {
   it('p53 as tracks: letters, domains in lanes, conservation with missing values', async () => {
     const r = await renderSvg(p53TracksSpec(), {
-      size: { width: 640, height: 116 },
+      size: { width: 640, height: 130 },
       viewport: { start: 84, end: 112 },
       emphasis: {
         hover: { layer: '/views/main/protein/letters/letters', section: 'protein', position: 90, system: '/data/p53' },
@@ -58,7 +58,7 @@ describe('draw-list records', () => {
   });
 
   it('p53 on its gene: the gene’s section follows across an intron, the domain cut into its exons', async () => {
-    const r = await renderSvg(p53GeneSpec(), { size: { width: 640, height: 144 }, viewport: { start: 150, end: 160 } });
+    const r = await renderSvg(p53GeneSpec(), { size: { width: 640, height: 184 }, viewport: { start: 150, end: 160 } });
     expect(r.settled).toBe(true);
     expect(r.issues).toEqual([]);
     compare('p53-gene', recordDrawLists(r.lists));

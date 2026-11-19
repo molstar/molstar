@@ -87,7 +87,7 @@ function tp53Point(v: SeqViewer): [number, number] {
   const lay = layerOf(v, 'Genes')!;
   const k = Array.from({ length: lay.hn }, (_, j) => j).find((j) => lay.keys[lay.hitem[j]] === 'TP53')!;
   expect(k, 'TP53 hit box').toBeGreaterThanOrEqual(0);
-  return [(lay.hx0[k] + lay.hx1[k]) / 2, lay.box.y + (lay.hlane[k] + 0.5) * lay.laneHeight];
+  return [(lay.hx0[k] + lay.hx1[k]) / 2, lay.laneY + (lay.hlane[k] + 0.5) * lay.laneHeight];
 }
 
 const Section = '/views/main/chr17';

@@ -90,6 +90,7 @@ export {
   type LabelSink,
   type ItemDescription,
   type LayerType,
+  type ContentContext,
   type LayoutContext,
   type Overlay,
   type StoreReader,
@@ -120,6 +121,7 @@ export {
   textParams,
 } from './layout/text.js';
 export { clampWindow, sameWindow, TracksLayout, TracksNav } from './layout/tracks.js';
+export { ContentSizing, type LayerContent, type SizedTrack, type TrackSizing, type TrackSizingHook } from './sizing.js';
 export { GridLayout, GridNav, GridPlacement } from './layout/grid.js';
 export type {
   NavContext,

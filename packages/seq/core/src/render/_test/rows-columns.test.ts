@@ -336,12 +336,12 @@ describe('row columns', () => {
     const wide = await widths(1000);
     expect(wide.w.every((w) => w > 0)).toBe(true);
     expect(wide.chip).toBe('');
-    const mid = await widths(640);
+    const mid = await widths(608);
     expect(mid.w[3]).toBe(0);
     expect(mid.w[0]).toBeGreaterThan(0);
     expect(mid.chip).toBe('length hidden');
     // the chip ends on the page, before the right inset
-    expect(mid.chipEnd).toBeLessThanOrEqual(640);
+    expect(mid.chipEnd).toBeLessThanOrEqual(608);
     const narrow = await widths(400);
     expect(narrow.w).toEqual([0, 0, 0, 0]);
     expect(narrow.chip).toMatch(/^Species(, Kind, identity, length| \+3) hidden$/);
@@ -403,7 +403,7 @@ describe('row columns', () => {
     });
 
     it('the right ones hidden with a right column shown: at the end of the right columns’ band, past the data, the shown title cut for it', async () => {
-      const { lay } = await laid(AllKinds, {}, { width: 640, height: 300 });
+      const { lay } = await laid(AllKinds, {}, { width: 608, height: 300 });
       const c = lay.cols;
       expect(c.chip).toBe('length hidden');
       expect(c.chipSide).toBe('right');

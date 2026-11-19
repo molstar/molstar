@@ -79,7 +79,8 @@ describe('values as a line', () => {
 
   it('a color that changes does so halfway between two positions, the line going on to the boundary', async () => {
     const s = await settle(p53Values('line'));
-    const f = await s.frame({ size: { width: 800, height: 60 } });
+    // 664 px of data (the label column measured, 80 px)
+    const f = await s.frame({ size: { width: 768, height: 60 } });
     const lay = layerLay<ValuesLay>(f, 0);
     // positions 200 on drawn in another color
     const other = 0xc2410cff;

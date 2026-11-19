@@ -23,6 +23,7 @@ import {
   Renderer,
   type RenderConfigOverrides,
   renderConfig,
+  type RendererOptions,
   walkPass,
 } from '../index.js';
 
@@ -39,6 +40,7 @@ export async function settle(
   spec: Node,
   runtimes: readonly FormatRuntime[] = [],
   config: RenderConfigOverrides = {},
+  options: Pick<RendererOptions, 'sizings' | 'trackSizing'> = {},
 ): Promise<Settled> {
   const store = new DataStore();
   const { model, view: opened } = await openModel(spec, store, { runtimes });
@@ -52,6 +54,7 @@ export async function settle(
     tokens: LightTokens,
     text: bundledTextMetrics(),
     config: renderConfig(config),
+    ...options,
   });
   return {
     model,

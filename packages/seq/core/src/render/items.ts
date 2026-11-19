@@ -260,9 +260,13 @@ export interface ItemsBase {
   /** The hidden items' ticks: one a break and lane whatever their number, `x, lane, count, hiddenStart, hiddenEnd`. */
   tn: number;
   ticks: number[];
-  /** A lane's height and the gap within it (a layer of one lane: the box's, none). */
+  /**
+   * A lane's height and the gap within it (a layer of one lane: the box's, none), and where its first lane starts (the
+   * band's top, or below its padding and label lane, its lanes centred: _spec/README.md "Render", Track heights).
+   */
   laneHeight: number;
   gap: number;
+  laneY: number;
   hoverWidth: number;
   hoverOffset: number;
   /** What a hover's squircle reads (its rule: `squircleRatio`, `squircleMax`, `squircleMin`). */
@@ -298,6 +302,7 @@ export function newItemsBase(ctx: LayoutContext, prep: ItemsPrep): ItemsBase {
     ticks: [],
     laneHeight: ctx.box.height,
     gap: 0,
+    laneY: ctx.box.y,
     hoverWidth: ctx.config.outline.hover,
     hoverOffset: ctx.config.emphasis.hoverOffset,
     config: ctx.config,
@@ -322,6 +327,7 @@ export function beginItems(lay: ItemsBase, ctx: LayoutContext, prep: ItemsPrep) 
   lay.config = ctx.config;
   lay.laneHeight = ctx.box.height;
   lay.gap = 0;
+  lay.laneY = ctx.box.y;
   lay.rows.n = 0;
   lay.pending.length = 0;
   lay.failed.length = 0;
@@ -396,7 +402,7 @@ export function drawTicks(lay: ItemsBase, out: PassWriter) {
   const g = out.args;
   for (let t = 0; t < lay.tn; t++) {
     g[0] = Math.round(lay.ticks[5 * t] * lay.axis.dpr) / lay.axis.dpr - 1.5 * px;
-    g[1] = lay.box.y + lay.ticks[5 * t + 1] * lay.laneHeight + lay.gap / 2;
+    g[1] = lay.laneY + lay.ticks[5 * t + 1] * lay.laneHeight + lay.gap / 2;
     g[2] = 3 * px;
     g[3] = lay.laneHeight - lay.gap;
     g[4] = lay.tokens.colors['seq-break'];
@@ -603,13 +609,52 @@ export class RowImages {
 }
 
 /**
+ * An item's extent from its pieces: their hull, or on a cyclic system of `length` the circle less its widest gap
+ * (an item over the origin, two rows meeting there, is one arc: its start past its end).
+ */
+export function itemArc(pieces: number[], length: number | undefined): [number, number] {
+  const n = pieces.length >> 1;
+  const order = Array.from({ length: n }, (_, k) => k).sort((a, b) => pieces[2 * a] - pieces[2 * b]);
+  const first = pieces[2 * order[0]];
+  let last = 0;
+  for (let k = 0; k < n; k++) last = Math.max(last, pieces[2 * k + 1]);
+  if (length === undefined) return [first, last];
+  let best = length - last + first;
+  let arc: [number, number] = [first, last];
+  let reach = pieces[2 * order[0] + 1];
+  for (let k = 1; k < n; k++) {
+    const s = pieces[2 * order[k]];
+    if (s - reach > best) {
+      best = s - reach;
+      arc = [s, reach];
+    }
+    reach = Math.max(reach, pieces[2 * order[k] + 1]);
+  }
+  return arc;
+}
+
+/** Whether an item's pieces meet at a cyclic system's origin: one ends at its length, another starts at 0. */
+function crossesOrigin(pieces: readonly number[], length: number): boolean {
+  let end = false;
+  let start = false;
+  for (let k = 0; k + 1 < pieces.length; k += 2) {
+    if (pieces[k + 1] === length) end = true;
+    if (pieces[k] === 0) start = true;
+  }
+  return end && start;
+}
+
+/**
  * The items in view, each once: a row per piece makes one item (its extent the hull of the pieces on the data's
  * system, its place the hull on the section clamped to the box). Allocates; for an export's accessible layer and the
  * viewer's announcements, never a frame.
  */
 export function describeItems(lay: ItemsBase): ItemDescription[] {
   const rows = lay.rows;
-  const by = new Map<string | number, { label: string; s: number; e: number; lo: number; hi: number }>();
+  const by = new Map<
+    string | number,
+    { label: string; s: number; e: number; lo: number; hi: number; pieces: number[] }
+  >();
   for (let i = 0; i < rows.n; i++) {
     const key = rows.keys[i];
     let lo = rows.starts[i];
@@ -629,8 +674,19 @@ export function describeItems(lay: ItemsBase): ItemDescription[] {
       g.e = Math.max(g.e, rows.ends[i]);
       g.lo = Math.min(g.lo, lo);
       g.hi = Math.max(g.hi, hi);
-    } else by.set(key, { label: rows.labels[i] || String(key), s: rows.starts[i], e: rows.ends[i], lo, hi });
+      g.pieces.push(rows.starts[i], rows.ends[i]);
+    } else
+      by.set(key, {
+        label: rows.labels[i] || String(key),
+        s: rows.starts[i],
+        e: rows.ends[i],
+        lo,
+        hi,
+        pieces: [rows.starts[i], rows.ends[i]],
+      });
   }
+  // an item across a cyclic origin (its rows meeting there): its two runs from its start (EC-9)
+  const length = lay.src?.cyclic ? lay.src.length : undefined;
   const x0 = lay.box.x;
   const x1 = lay.box.x + lay.box.width;
   const out: ItemDescription[] = [];
@@ -639,11 +695,15 @@ export function describeItems(lay: ItemsBase): ItemDescription[] {
     const b = g.lo < g.hi ? lay.axis.x(g.hi) : Number.NaN;
     const l = Number.isFinite(a) && Number.isFinite(b) ? Math.min(a, b) : x0;
     const r = Number.isFinite(a) && Number.isFinite(b) ? Math.max(a, b) : x1;
+    // across the origin only when a piece ends at the length and another starts at 0 (a spliced item's intron wider than
+    // its outer gap is no crossing)
+    const arc = length !== undefined && crossesOrigin(g.pieces, length) ? itemArc(g.pieces, length) : undefined;
     out.push({
       key,
       label: g.label,
       start: g.s,
       end: g.e,
+      ...(arc && arc[0] > arc[1] ? { runs: [arc[0], length!, 0, arc[1]] } : {}),
       x0: Math.max(x0, Math.min(x1, l)),
       x1: Math.max(x0, Math.min(x1, r)),
     });

@@ -238,7 +238,7 @@ describe('the well a squircle, its data clipped to it', () => {
         viewport: { start: 0, end: 30 },
       });
       const well = recordDrawLists(r.lists, ['background']).split('\n')[3];
-      expect(well.startsWith('rect 128 8 '), well).toBe(true);
+      expect(well.startsWith('rect 96 8 '), well).toBe(true);
       if (radius) expect(well.endsWith(`#e9e6e0ff squircle ${radius}`), well).toBe(true);
       else expect(well.endsWith('#e9e6e0ff'), well).toBe(true);
       // the SVG: a path of four corners (a cubic each), or a rect
@@ -248,7 +248,7 @@ describe('the well a squircle, its data clipped to it', () => {
       w.rect(p[1], p[2], p[3], p[4], 0xe9e6e0ff, 0, 0, radius ? Number(radius) : 0, 3);
       const svg = drawListsToSvg(own);
       if (radius) expect((svg.match(/<path d="[^"]*"/)?.[0].match(/C/g) ?? []).length).toBe(4);
-      else expect(svg).toContain(`<rect x="128" y="8" width="${p[3]}" height="${height}"`);
+      else expect(svg).toContain(`<rect x="96" y="8" width="${p[3]}" height="${height}"`);
     }
   });
 
@@ -256,22 +256,22 @@ describe('the well a squircle, its data clipped to it', () => {
     const r = await renderSvg(p53TracksSpec(), { size: Size, viewport: { start: 0, end: 30 } });
     const clips = lines(r, 'data').filter((l) => l.startsWith('clip '));
     expect(clips).toEqual([
-      'clip 128 8 664 20 squircle 6.67',
-      'clip 128 32 664 36 squircle 8',
-      'clip 128 72 664 32 squircle 8',
+      'clip 96 8 696 20 squircle 6.67',
+      'clip 96 32 696 50 squircle 8',
+      'clip 96 86 696 32 squircle 8',
     ]);
     // the SVG's clip paths: the same curve, a cubic a corner
     const paths = [...r.svg.matchAll(/<clipPath id="[^"]*"><path d="([^"]*)"\/><\/clipPath>/g)].map((m) => m[1]);
     expect(paths.length).toBe(3);
     for (const d of paths) expect(d.match(/C/g)?.length).toBe(4);
-    expect(paths[0].startsWith('M 134.67 8 L ')).toBe(true);
+    expect(paths[0].startsWith('M 102.67 8 L ')).toBe(true);
   });
 
   it('a grid track’s plot clipped to its well', async () => {
     const r = await renderSvg(gridSpec({ n: 40 }), { size: Size });
     const clips = lines(r, 'data').filter((l) => l.startsWith('clip '));
     // the letters above, then the plot: one clip each, its squircle by its height
-    expect(clips).toEqual(['clip 128 8 664 20 squircle 6.67', 'clip 128 36 664 327.6 squircle 8']);
+    expect(clips).toEqual(['clip 96 8 696 20 squircle 6.67', 'clip 96 48 696 316.8 squircle 8']);
   });
 
   it('`trackShape: square` draws the well and its clip as boxes, as before', async () => {
@@ -281,14 +281,14 @@ describe('the well a squircle, its data clipped to it', () => {
       config: { trackShape: 'square' },
     });
     expect(lines(r, 'background').slice(1, 4)).toEqual([
-      'rect 128 8 664 20 #e9e6e0ff',
-      'rect 128 32 664 36 #e9e6e0ff',
-      'rect 128 72 664 32 #e9e6e0ff',
+      'rect 96 8 696 20 #e9e6e0ff',
+      'rect 96 32 696 50 #e9e6e0ff',
+      'rect 96 86 696 32 #e9e6e0ff',
     ]);
     expect(lines(r, 'data').filter((l) => l.startsWith('clip '))).toEqual([
-      'clip 128 8 664 20',
-      'clip 128 32 664 36',
-      'clip 128 72 664 32',
+      'clip 96 8 696 20',
+      'clip 96 32 696 50',
+      'clip 96 86 696 32',
     ]);
     expect(r.svg).not.toMatch(/<clipPath id="[^"]*"><path/);
   });
@@ -343,7 +343,7 @@ describe('every emphasis a squircle', () => {
     expect(hl[2]).toMatch(/ none stroke #ff0000ff 1 squircle 7\.5$/);
     // overlapping channels: each stripe a squircle by its own height
     const two = await frameOf(p53TracksSpec(), { highlights: [on([2, 8]), { ...on([4, 10]), color: 0x00ff00ff }] });
-    const stripes = lines(two, 'highlight').filter((l) => l.startsWith('rect ') && l.split(' ')[4] === '48');
+    const stripes = lines(two, 'highlight').filter((l) => l.startsWith('rect ') && l.split(' ')[4] === '55');
 
     expect(stripes.length).toBe(2);
     expect(stripes.every((l) => / squircle 8 (left|right)$/.test(l))).toBe(true);
@@ -353,11 +353,11 @@ describe('every emphasis a squircle', () => {
     const hover = (position: number) => ({ layer: Letters, section: 'protein', system: Protein, position });
     const f = await frameOf(p53TracksSpec(), { hover: hover(4) });
     expect(lines(f, 'hover').filter((l) => l.startsWith('rect '))).toEqual([
-      'rect 215.25 6.25 25.5 23.5 none stroke #2d271eff 1.5 squircle 8.42',
+      'rect 187.25 6.25 26.5 23.5 none stroke #2d271eff 1.5 squircle 8.42',
     ]);
-    // the cell cut by the view's left edge: square there (its visible 11 px: the radius half of it)
+    // the cell cut by the view's left edge: square there (its visible 12 px: the radius half of it)
     const cut = await frameOf(p53TracksSpec(), { hover: hover(2) }, {}, { start: 2.5, end: 32.5 });
-    expect(lines(cut, 'hover').filter((l) => l.startsWith('rect '))[0]).toMatch(/ squircle 7\.25 right$/);
+    expect(lines(cut, 'hover').filter((l) => l.startsWith('rect '))[0]).toMatch(/ squircle 7\.75 right$/);
     // a cell narrower than the minimum (a far zoom): square
     const far = await frameOf(p53TracksSpec(), { hover: hover(40) }, {}, { start: 0, end: 393 });
     expect(lines(far, 'hover').filter((l) => l.startsWith('rect '))[0]).not.toContain('squircle');
@@ -497,11 +497,11 @@ describe('outlines unclipped, tints in the well', () => {
     );
     const sel = lines(f, 'selection');
     const unclip = sel.indexOf('unclip');
-    expect(sel[0]).toMatch(/^clip 128 8 664 20 squircle 6\.67$/);
-    expect(sel[1]).toMatch(/^rect 128 8 [\d.]+ 20 #[0-9a-f]{8} squircle 6\.67 right$/);
+    expect(sel[0]).toMatch(/^clip 96 8 696 20 squircle 6\.67$/);
+    expect(sel[1]).toMatch(/^rect 96 8 [\d.]+ 20 #[0-9a-f]{8} squircle 6\.67 right$/);
     expect(unclip).toBe(2);
     // the outline after the clip: its square left corners whole
-    expect(sel[3]).toMatch(/^rect 128\.5 8\.5 [\d.]+ 19 none stroke #[0-9a-f]{8} 1 squircle 6\.17 right$/);
+    expect(sel[3]).toMatch(/^rect 96.5 8\.5 [\d.]+ 19 none stroke #[0-9a-f]{8} 1 squircle 6\.17 right$/);
   });
 
   it('an outline-style highlight is drawn after the clip too; its tint inside it', async () => {

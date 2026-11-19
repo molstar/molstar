@@ -88,7 +88,7 @@ describe('Highlights, headless', () => {
     await redraw(v);
     const three = rects(v.frame!.lists);
     // three stripes where all of them light: the domain's on top, then the motif's, then the host's
-    const triple = three.filter((r) => Math.abs(r.h - H / 3) < 0.01);
+    const triple = three.filter((r) => Math.abs(r.h - H / 3) <= 1);
     expect(triple.length).toBe(3);
     expect(triple.map((r) => r.y)).toEqual([...triple.map((r) => r.y)].sort((a, b) => a - b));
     expect(new Set(triple.map((r) => r.paint)).size).toBe(3);

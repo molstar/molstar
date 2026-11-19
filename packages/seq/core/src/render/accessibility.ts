@@ -41,9 +41,16 @@ export function locationText(model: StaticModel, loc: Location | undefined): str
   return `${count(n)} position${n === 1 ? '' : 's'}, ${name} ${rangesText(part.ranges)}`;
 }
 
+/**
+ * An item's extent: one run (`12–20`), or across a cyclic origin its two runs from its start (`2,487–2,686, 1–175`).
+ */
+export function extentText(item: Pick<ItemDescription, 'start' | 'end' | 'runs'>): string {
+  return item.runs ? rangesText(item.runs) : spanText(item.start, item.end);
+}
+
 /** An item as a title: its label and its extent on its system (`Domain A, p53 12–20`). */
 export function itemText(system: string, item: ItemDescription): string {
-  return `${item.label}, ${system} ${spanText(item.start, item.end)}`;
+  return `${item.label}, ${system} ${extentText(item)}`;
 }
 
 /**

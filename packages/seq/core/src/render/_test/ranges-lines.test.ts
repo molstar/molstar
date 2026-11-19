@@ -70,7 +70,7 @@ describe('ranges: line styles', () => {
     const solid = await draw('solid');
     expect(solid.rects.length).toBe(1);
     expect(solid.rects[0].h).toBe(2);
-    expect(solid.rects[0].y + 1).toBeCloseTo(solid.lay.box.y + solid.lay.laneHeight / 2, 3);
+    expect(solid.rects[0].y + 1).toBeCloseTo(solid.lay.laneY + solid.lay.laneHeight / 2, 3);
     const dashed = await draw('dashed');
     expect(dashed.paths.map((p) => [p.dash, p.strokeWidth])).toEqual([[6, 2]]);
     const dotted = await draw('dotted');
@@ -91,7 +91,7 @@ describe('ranges: line styles', () => {
     const highlight = await draw('highlight');
     expect(highlight.rects[0].fill & 0xff).toBe(89);
     // none of them is a block: the lane's height is the hit box all the same
-    const h = hitView(solid.f.layout, 200, solid.lay.box.y + solid.lay.laneHeight / 2);
+    const h = hitView(solid.f.layout, 200, solid.lay.laneY + solid.lay.laneHeight / 2);
     expect(h?.element?.key).toBe('a');
   });
 
@@ -250,6 +250,6 @@ describe('ranges: arrowheads', () => {
     const tip = Math.max(...triangle[0].xy.filter((_, i) => i % 2 === 0));
     expect(tip).toBeCloseTo(lay.axis.snap(lay.axis.x(300)), 3);
     expect(rects[0].x + rects[0].w).toBeLessThan(tip);
-    expect(hitView(f.layout, tip - 1, lay.box.y + lay.laneHeight / 2)?.element?.key).toBe('a');
+    expect(hitView(f.layout, tip - 1, lay.laneY + lay.laneHeight / 2)?.element?.key).toBe('a');
   });
 });

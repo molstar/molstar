@@ -13,7 +13,15 @@ import { createSeqSpec, miniatureNavigator, overviewNavigator, stripNavigator, t
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
-import { type BandsLay, NavWindowFlags, navigatorPart, renderConfig, RowsLay, type ValuesLay } from '../index.js';
+import {
+  type BandsLay,
+  NavWindowFlags,
+  navigatorPart,
+  type RangesLay,
+  renderConfig,
+  RowsLay,
+  type ValuesLay,
+} from '../index.js';
 import { navigatorBox } from '../navigator.js';
 import { P53, p53GeneSpec } from './fixtures.js';
 import { Bands, ideogramSpec, settleNavigator } from './navigator-fixtures.js';
@@ -91,8 +99,10 @@ describe('a strip', () => {
     const { view, nav } = await s.frames({ size: Size, viewport }, { size: NavSize, moves: { '/views/v/protein': 1 } });
     const pic = s.nav.pictureSection!;
     expect(pic.tracks.map((t) => t.track.address.split('/').pop())).toEqual(['letters', 'domains']);
-    // each track a quarter of its height, at least 2 px
-    expect(pic.tracks[1].box.height).toBe(36 / 4);
+    // its labels are the view's: no label lane in the picture
+    expect((pic.tracks[1].layers[0].lay as RangesLay).labelY).toBe(-1);
+    // each track a quarter of its height, at least 2 px (the domains' content: one lane, 22 px)
+    expect(pic.tracks[1].box.height).toBe(22 / 4);
     const w = nav.windows[0];
     expect(w.shown).toBe(true);
     const axis = pic.axis!;

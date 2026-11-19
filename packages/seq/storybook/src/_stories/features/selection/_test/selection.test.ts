@@ -91,7 +91,7 @@ describe('Selection, headless', () => {
     v.draw();
     // the DNA-binding domain covers 100, in whichever lane it took
     const [x, top] = cellPoint(v, 0, 1, 100);
-    const y = [0, 1, 2].map((lane) => top + lane * 12).find((ly) => v.hit(x, ly)?.element?.key === 'DBD')!;
+    const y = [0, 1, 2, 3].map((lane) => top + 4 + lane * 14).find((ly) => v.hit(x, ly)?.element?.key === 'DBD')!;
     clickAt(v, [x, y]);
     expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['DBD']);
     expect(describeSelection(v)).toContain('(item :id DBD)');

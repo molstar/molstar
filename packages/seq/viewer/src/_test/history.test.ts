@@ -156,7 +156,7 @@ describe('double-clicks and keys', () => {
     v.draw();
     const lay = v.frame!.layout.sections[0].tracks[1].layers[0].lay as RangesLay;
     const j = Array.from({ length: lay.m }, (_, k) => k).find((k) => lay.keys[lay.mitem[k]] === 'B')!;
-    return [(lay.mx0[j] + lay.mx1[j]) / 2, lay.box.y + (lay.mlane[j] + 0.5) * lay.laneHeight] as const;
+    return [(lay.mx0[j] + lay.mx1[j]) / 2, lay.laneY + (lay.mlane[j] + 0.5) * lay.laneHeight] as const;
   }
 
   it('a double-click focuses an element; on the element already focused, it goes back', async () => {

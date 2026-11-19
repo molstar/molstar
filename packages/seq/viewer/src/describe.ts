@@ -6,6 +6,7 @@
 
 import type { ElementKey, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-core/query';
+import { extentText } from '@molstar/seqx-core/render/accessibility';
 import {
   type GridLay,
   itemText,
@@ -188,7 +189,7 @@ const ItemSection: CardSection = {
     const category = at.words.categoryOf(l, el.key);
     const strand = at.words.strandOf(l, el.key, it.start);
     out.title = it.label;
-    out.row('Extent', `${system} ${spanText(it.start, it.end)}`);
+    out.row('Extent', `${system} ${extentText(it)}`);
     if (category) out.row('Category', category);
     if (strand) out.row('Strand', strand);
     out.words.push(`${itemText(system, it)}${category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`);
@@ -492,7 +493,7 @@ class Words {
           if (it.y === undefined && it.x0 <= x && x <= it.x1)
             out.push({
               label: it.label,
-              extent: `${this.systemName(it.system ?? data ?? section.section.axis.system)} ${spanText(it.start, it.end)}`,
+              extent: `${this.systemName(it.system ?? data ?? section.section.axis.system)} ${extentText(it)}`,
             });
       }
     return out;

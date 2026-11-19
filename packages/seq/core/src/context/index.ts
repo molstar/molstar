@@ -36,4 +36,5 @@ export {
   type SeqRegistryEntry,
   type StructurePort,
   type TextMetricsPort,
+  type TrackSizingPort,
 } from './context.js';

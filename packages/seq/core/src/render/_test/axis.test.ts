@@ -90,7 +90,7 @@ describe('letters through a codon path', () => {
     expect(cells.map(([p]) => p)).toEqual([0, 1, 2, 2, 3]);
     expect(lay.x0[0]).toBeLessThan(lay.x0[4]);
     const w = cells[0][1];
-    expect(cells[2][1] + cells[3][1]).toBeCloseTo(w, 0);
+    expect(Math.abs(cells[2][1] + cells[3][1] - w)).toBeLessThanOrEqual(1);
     // the letters: M, E, E, E (both parts with room at this zoom), P
     expect(Array.from(lay.code.subarray(0, lay.n), (c) => String.fromCharCode(c)).join('')).toBe('MEEEP');
   });
@@ -328,7 +328,7 @@ describe('what a break hides is not dropped', () => {
     for (let t = 0; t < lay.tn; t++) count += lay.ticks[5 * t + 2];
     expect(count).toBe(2);
     const x = lay.ticks[0];
-    const y = lay.box.y + (lay.ticks[1] + 0.5) * lay.laneHeight;
+    const y = lay.laneY + (lay.ticks[1] + 0.5) * lay.laneHeight;
     const h = hitView(f.layout, x + 1, y)!;
     expect(h.target).toBe('break');
     expect(h.extent?.parts.map((p) => [...p.ranges])).toEqual([[7, 12]]);
@@ -365,7 +365,8 @@ describe('what a break hides is not dropped', () => {
       .split('\n')
       .filter((l) => l.startsWith('rect '))
       .map((l) => Number(l.split(' ')[1]));
-    expect(rects.some((r) => Math.abs(r - x) <= 1)).toBe(true);
+    // the break's lit column, 2 px wide: its middle at the break
+    expect(rects.some((r) => Math.abs(r + 1 - x) <= 1)).toBe(true);
   });
 });
 

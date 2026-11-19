@@ -225,7 +225,7 @@ export interface ResolvedSection {
   readonly layout: string;
   /**
    * Its layout's params as written (text: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`; rings:
-   * `rotation`, `labels`, `height`; blocks: `arrange`, `copies`).
+   * `rotation`, `labels`, `height`; blocks: `arrange`, `copies`; tracks and rings: `heights`, the track sizing).
    */
   readonly params: Readonly<Record<string, Value>>;
   /** Its blocks in order (copies merged by `copies`), when it has `block` children. */
@@ -275,6 +275,7 @@ const LayoutParams = [
   'arrange',
   'copies',
   'aspect',
+  'heights',
 ] as const;
 
 /** A path between two sections of a view, precomposed: hover and selection are projected along it. */

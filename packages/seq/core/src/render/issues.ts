@@ -201,6 +201,11 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'No type in a layer’s fallback chain is one this target draws: the layer is not drawn',
     hint: 'Give the layer a fallback this target draws',
   },
+  'seq.render.heights': {
+    severity: 'warning',
+    description: 'A section’s `heights` names a track sizing this target does not have: its tracks fit their content',
+    hint: 'Register the sizing in the composition (a `track-sizing` registry entry), or name `content`, `uniform` or `fixed`',
+  },
   'seq.render.layout': {
     severity: 'warning',
     description: 'A section names a layout this target does not draw: it is laid out as tracks',

@@ -54,6 +54,14 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-core`
 
+- **Track heights and labels beside for a source's items** (`render/ranges.ts` `content`): a source-backed layer (a
+  GFF3, a table, a tiled genome) is not known whole before it is read, so its track keeps its fixed height and has no
+  label lane (its labels inside or dropped). A content from what the store holds whole (a small file read in one tile)
+  would give it the inline rule.
+- **The label column over a template's instances**: measured over the view's own track labels, so an instance's name
+  (`Domains T1-domains`) ends in an ellipsis; measuring the instances needs the viewer's data box (`dataX`) to follow
+  the frame's column, not the view's.
+- **Ring labels inside their arc** when they fit (the linear rule): today a ring places every label outside.
 - **Records** (`data/records.ts`): the GFF3 preset and a row past a cyclic system's length wrapped by the row reader;
   the delimited tokenizer reads a string whole: a streaming form when a file past `maxBytes` read by region asks; a
   values file is bounded by `maxRows` positions from its first (a genome's values wait for region reads).

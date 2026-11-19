@@ -423,7 +423,9 @@ describe('a ring over tiles', () => {
     }
     expect(edges).toBeGreaterThanOrEqual(2);
     // `r1000` runs 1000 to 1070 over the edge at 1024: the same item either side of it
-    const band = p.strips.bandY[1] + 2;
+    const items = layerLay<RangesLay>(f, 1);
+    // the first lane's middle (a tiled source's lanes centred by those in view)
+    const band = items.laneY + items.laneHeight / 2;
     const keyAt = (u: number) => {
       p.warp.map(p.frameX(u + 0.5), band);
       return hitAtPage(f, p.warp.px, p.warp.py)?.element?.key;

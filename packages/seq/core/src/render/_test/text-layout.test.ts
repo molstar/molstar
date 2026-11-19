@@ -519,7 +519,7 @@ describe('the text layout’s navigation', () => {
     expect(TextNav.pan(c, once, 0, -pitch).start).toBeCloseTo(0);
     // zoomed in about a unit two lines below the anchor: it stays two lines below, on the new breaking
     const at = 2 * g.unitsPerLine + 3;
-    const z = TextNav.zoom(c, { start: 0, end: 393, scale: g.cell }, 1.5, at);
+    const z = TextNav.zoom(c, { start: 0, end: 393, scale: g.cell }, 2, at);
     const laid = await s.frame({
       size: { width: 720, height: 400 },
       viewport: { start: z.start, end: 393, scale: z.scale },

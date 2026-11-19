@@ -57,7 +57,7 @@ function domainsSpec(layer: Record<string, unknown> = {}): Node {
 function fills(lists: DrawLists): number[] {
   return recordDrawLists(lists, ['data'])
     .split('\n')
-    .filter((l) => l.startsWith('rect ') && Number(l.split(' ')[1]) >= 100)
+    .filter((l) => l.startsWith('rect ') && Number(l.split(' ')[1]) >= 96)
     .map((l) => Number.parseInt(l.split(' ')[5].slice(1), 16) >>> 0);
 }
 

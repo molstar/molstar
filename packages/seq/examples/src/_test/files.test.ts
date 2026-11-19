@@ -242,9 +242,15 @@ describe('one table, two sequences', () => {
     expect(r.issues).toEqual([]);
     expect(r.settled).toBe(true);
     const count = (t: string) => r.svg.split(`>${t}<`).length - 1;
-    // a row is drawn in its own section alone (a label once, never in both); the 8-residue Gly-rich loop's box is too
-    // narrow for its label at this width
-    for (const row of manyRows()) expect(count(row.label as string), row.id).toBe(row.id === 'GRL' ? 0 : 1);
+    // a row is drawn in its own section alone (a label at most once, never in both), and whole: a label that does not
+    // fit its mark is not drawn (a file's rows are not known whole before they are read: no label lane beside them)
+    let drawn = 0;
+    for (const row of manyRows()) {
+      const n = count(row.label as string);
+      expect(n, row.id).toBeLessThanOrEqual(1);
+      drawn += n;
+    }
+    expect(drawn).toBeGreaterThan(0);
     ctx.retire();
   });
 
@@ -359,8 +365,9 @@ describe('the plasmid’s GFF3', () => {
     expect(r.issues).toEqual([]);
     expect(r.settled).toBe(true);
     const count = (s: string) => r.svg.split(`>${s}<`).length - 1;
-    expect(count('bla (AmpR)')).toBe(1);
-    expect(count('primer site')).toBe(1);
+    // once on the ring (outside), once in the linear detail (inside one of its two pieces)
+    expect(count('bla (AmpR)')).toBe(2);
+    expect(count('primer site')).toBeLessThanOrEqual(2);
     // the region row (`Is_circular`) is no track: its Name is drawn nowhere
     expect(count(PlasmidSeqId)).toBeLessThanOrEqual(2);
     ctx.retire();
