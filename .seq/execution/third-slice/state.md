@@ -79,7 +79,9 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
   heavy: 2 bounds failed in the full run (rows-time's theme change, pairs-grids-time's arcs hover), both pass alone
   twice at load 5 (the parallel run's pattern, a third bound after frame-time: QT measures a serial heavy run); quick
   lane: seq/core 2.05 s and seq/storybook 2.25 s over the 2 s guide, seq 5.3 s in all: lane QT (fast) fixing. Sizes:
-  198.5 / 603.5 / 935.9 kB. The gate passes when QT merges.
+  198.5 / 603.5 / 935.9 kB. QT merged (`61f351a30`): core 1.56, viewer 1.28,
+  examples 1.56, storybook 2.00 s; 8 tests to medium. **The gate passed** (2026-11-19). Open to the author: the heavy
+  lane's pool (QT: `maxWorkers: 2` in heavy mode, 1/3 → 5/6 passing, same wall time; `vitest.config.ts`, repo-wide).
 - FS part 1 (strong, design only): `briefs/fs-files-design.md`, draft to `drafts/files.md`, started early (no code).
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
@@ -124,6 +126,11 @@ the dark cell edge, `view.motion`, the pyramid's tolerance), then stage 4's GATE
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stages 3–4's gate | 1 (heavy bounds flaking in the parallel run) | 0 | 0 (quick-lane time: QT) |
+| stage 4, NV (review, four looks) | 12 + 6 (blank pictures at dpr 2; parts over the view; the overview's window and width; the wash; the stories missing) | 1 (the rows rail) | 2 (the idle rail loud; the wash) |
+| stage 3, PG (review, looks) | 9 + 1 (a regression from the look's own finding) | 0 | 5 (arcs off the letters; T in RNA; non-square; the PAE; dark contacts) |
+| stage 4, GD (review) | 5 | 0 | 0 |
+| stage 4, RF (author) | 3 (numbers not in view; a label's range; the last row) | 0 | 0 |
 | stage 4, CH (look, review) | 5 (the hover target dropped by the viewer; a band over the pinned band; a double tint with `pinInPlace` false; a unary chain's stem; a ruler blanking another numbering's label) + 1 to the author (clade names) | 1 (the line numbers' baseline) | 0 |
 | stage 2, TV (review and look) | 5 (groups out of phase; end numbers untested; text allocation; a cyclic window drag; the copy message) + 1 found (an item from an earlier tile lost) | 0 | 2 (the export cut short; no domains band) |
 | stage 2, RB (review and look) | 9 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin; a wide window flipping; tracks not wrapping, a test changed to fit; a blank view past the fit) | 0 | 2 (a whole-ring window loud; stacked rows empty) |

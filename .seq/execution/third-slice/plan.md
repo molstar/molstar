@@ -189,7 +189,8 @@ and dark before the merge.
       cache; the logo.
 - [x] PG (strong, on RW's shared pieces) arcs and chords; the grid and dot plot as a section of its own, crosshair
       hover and rectangle selection (no 2D store this slice).
-- [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (rows and clades, the rectangle).
+- [x] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (rows and clades, the rectangle). Passed with
+      stage 4's, 2026-11-19 (`61f351a30`).
 
 ### Stage 4: stories and navigators (SY after stage 2, beside stage 3; NV after RW)
 
@@ -217,7 +218,8 @@ and dark before the merge.
       (`seq-cell-edge`); one `view.motion` (`platform | cut | animate`), `story.reducedMotion` dropped; the pyramid's
       measured tolerance in the tests; clade names by unique non-numeric ids only (gap 6, grids-and-rows, Clades). `Placement.at` reading the point from an array (PG's
       A7: the last 32 B of a grid cell's `hitView`; shared with NV, so after both merge).
-- [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
+- [x] GATE: merged, reviewed, the checks green, sizes, gaps. Passed 2026-11-19 (`61f351a30`): quick per folder under
+      2 s (QT), medium, build, `check:workspace`; heavy's two bounds flake only in the full parallel run (pass alone).
 
 ### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
 
