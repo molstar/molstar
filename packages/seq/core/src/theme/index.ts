@@ -25,6 +25,8 @@ export {
 export {
   type Channel,
   compileChannel,
+  GreyChroma,
+  glyphAgainst,
   inkAgainst,
   type LegendSource,
   type MeasureEntry,

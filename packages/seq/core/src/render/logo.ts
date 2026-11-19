@@ -7,7 +7,7 @@
 import { issueOf } from '@molstar/core/repr/tree';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import { type Channel, inkAgainst } from '@molstar/seqx-core/theme/index';
+import { type Channel, glyphAgainst } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, type LayerChannels, PlainDatum } from './channels.js';
@@ -36,7 +36,7 @@ import type { SeqTokens } from './tokens.js';
 // `probability`), lowest first, each letter placed and stretched with the glyph runs' per-letter y and vertical scale.
 // Its profile is computed from the held cells (`gaps`), kept by their version. Below 2 device px a column, one bar a
 // device column, the tallest stack there (the shared reduction's one-axis max), in its top letter's color. A letter's
-// color is its class's held at 3:1 against the track (the `ink` rule with the surface as the fill).
+// color is its class's, saturated to `seq-logo-chroma` and held at 3:1 against the track (the `ink` rule with the surface as the fill).
 
 const ColorFallback = LettersColorFallback;
 const Env: Record<Alphabet, { alphabet: Alphabet }> = {
@@ -90,7 +90,7 @@ export class LogoLay {
   tops = new Uint8Array(0);
   bars1d: Pyramid | undefined;
   pxPerUnit = 0;
-  /** A color's glyph color against the track (the `ink` rule's 3:1 with the surface as the fill), by the token table's version. */
+  /** A color's glyph color against the track (saturated, then the `ink` rule's 3:1 with the surface as the fill), by the token table's version. */
   glyphs = new Map<number, number>();
   glyphsVersion = -1;
 }
@@ -182,8 +182,8 @@ export const LogoType: LayerType<LogoPrep, LogoLay> = {
     const c1 = Math.min(held.columns, vis[vis.length - 1]);
     const bottom = box.y + box.height;
     const missing = tokens.colors['seq-missing'];
-    // a letter's color is its class's, moved in oklab lightness to 3:1 against the track (the `ink` rule, the surface as
-    // the fill; hue kept): once a color and table, never a letter a frame
+    // a letter's color is its class's, its oklab chroma raised to `seq-logo-chroma` (hue kept, a grey stays grey) and moved
+    // in lightness to 3:1 against the track (the `ink` rule, the surface as the fill): once a color and table, never a letter a frame
     if (lay.glyphsVersion !== tokens.version) {
       lay.glyphs.clear();
       lay.glyphsVersion = tokens.version;
@@ -196,7 +196,7 @@ export const LogoType: LayerType<LogoPrep, LogoLay> = {
       const c = color.constant ?? color.at(lay.datum);
       const raw = typeof c === 'number' ? c : missing;
       let g = lay.glyphs.get(raw);
-      if (g === undefined) lay.glyphs.set(raw, (g = inkAgainst(raw, surface)));
+      if (g === undefined) lay.glyphs.set(raw, (g = glyphAgainst(raw, surface, tokens.logoChroma)));
       return g;
     };
     if (axis.devicePx < 2) {

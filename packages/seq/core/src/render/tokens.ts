@@ -88,6 +88,8 @@ export interface SeqTokens {
   readonly theme: string;
   readonly colors: Readonly<Record<SeqTokenName, number>>;
   readonly fonts: FontStacks;
+  /** `seq-logo-chroma`: the floor of a logo glyph's Oklab chroma (a number, not a color). */
+  readonly logoChroma: number;
   /** A hash of the colors and fonts: equal tables have equal versions. */
   readonly version: number;
 }
@@ -98,17 +100,26 @@ export const DefaultFonts: FontStacks = {
   mono: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
 };
 
+/** `seq-logo-chroma` per theme: the logo glyphs' Oklab chroma floor (tuned on a globin family's logo in each theme). */
+export const LightLogoChroma = 0.12;
+export const DarkLogoChroma = 0.1;
+
 /** A token table from colors as CSS hex strings; a token left out, or not a hex color, is an error. */
-export function createTokens(theme: string, colors: Record<SeqTokenName, string>, fonts = DefaultFonts): SeqTokens {
+export function createTokens(
+  theme: string,
+  colors: Record<SeqTokenName, string>,
+  fonts = DefaultFonts,
+  logoChroma = theme === 'dark' ? DarkLogoChroma : LightLogoChroma,
+): SeqTokens {
   const out = {} as Record<SeqTokenName, number>;
-  let key = `${theme}|${fonts.sans}|${fonts.mono}`;
+  let key = `${theme}|${fonts.sans}|${fonts.mono}|${logoChroma}`;
   for (const name of SeqTokenNames) {
     const c = parseColor(colors[name]);
     if (c === undefined) throw new Error(`The token ${name} is not a hex color: ${colors[name]}`);
     out[name] = c;
     key += `|${c}`;
   }
-  return { theme, colors: out, fonts, version: hashString(key) >>> 0 };
+  return { theme, colors: out, fonts, logoChroma, version: hashString(key) >>> 0 };
 }
 
 // The built-in tables follow `@molstar/ui`'s light and dark themes (`--msui-bg`, `--msui-fg`, `--msui-accent`); the

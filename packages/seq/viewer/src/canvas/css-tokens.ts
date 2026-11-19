@@ -89,5 +89,7 @@ export function readCssTokens(root: Element): SeqTokens {
     sans: font('sans', fallback.fonts.sans),
     mono: font('mono', fallback.fonts.mono),
   };
-  return createTokens(theme, colors, fonts);
+  // `--seq-logo-chroma` is a number, not a color
+  const chroma = Number.parseFloat(style.getPropertyValue('--seq-logo-chroma'));
+  return createTokens(theme, colors, fonts, Number.isFinite(chroma) && chroma >= 0 ? chroma : fallback.logoChroma);
 }

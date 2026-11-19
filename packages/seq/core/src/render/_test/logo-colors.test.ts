@@ -4,9 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Oklab } from '@molstar/core/util/color/spaces/oklab';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { BuiltInSchemes, contrastRgba } from '../../theme/index.js';
+import { BuiltInSchemes, contrastRgba, glyphAgainst, GreyChroma, toRgb } from '../../theme/index.js';
 import { DarkTokens, LightTokens, recordDrawLists, renderSvg } from '../index.js';
 
 // The logo's letter colors (_spec/README.md "The logo"): a letter's color is its class's held at 3:1 against the track,
@@ -73,4 +74,75 @@ describe('the logo’s letter colors', () => {
     const colors = [...light.canvas];
     expect(new Set(colors).size).toBe(colors.length);
   });
+});
+
+// The saturation (_spec/README.md "The logo"): chroma raised to the token's floor, hue kept, greys grey.
+const lab = (c: number) => Oklab.fromColor(Oklab.zero(), toRgb(c));
+const chromaOf = (c: number) => Math.hypot(lab(c)[1], lab(c)[2]);
+const hueOf = (c: number) => Math.atan2(lab(c)[2], lab(c)[1]);
+const hueGap = (a: number, b: number) => {
+  const d = Math.abs(hueOf(a) - hueOf(b));
+  return Math.min(d, 2 * Math.PI - d);
+};
+/** In the sRGB gamut's limit: a little more chroma at its lightness leaves the gamut. */
+const atGamutLimit = (c: number) => {
+  const l = lab(c);
+  const k = 1.05;
+  return !Oklab.inGamut(Oklab.create(l[0], l[1] * k, l[2] * k));
+};
+const Classes = [
+  'seq-aa-hydrophobic',
+  'seq-aa-aromatic',
+  'seq-aa-polar',
+  'seq-aa-positive',
+  'seq-aa-negative',
+  'seq-aa-special',
+  'seq-nt-a',
+  'seq-nt-c',
+  'seq-nt-g',
+  'seq-nt-t',
+] as const;
+const HueTolerance = (8 * Math.PI) / 180;
+
+describe('the logo’s glyph saturation', () => {
+  for (const theme of ['light', 'dark'] as const) {
+    const tokens = Themes[theme];
+    const surface = tokens.colors['seq-track'];
+    it(`${theme}: class colors reach the chroma floor (or the gamut's limit) at 3:1, hue kept`, () => {
+      expect(tokens.logoChroma).toBeGreaterThan(0);
+      for (const name of Classes) {
+        const raw = tokens.colors[name];
+        const g = glyphAgainst(raw, surface, tokens.logoChroma);
+        expect(contrastRgba(g, surface)).toBeGreaterThanOrEqual(3);
+        // chroma is measured on 8-bit colors: a little slack
+        expect(chromaOf(g) >= tokens.logoChroma - 0.015 || atGamutLimit(g) || chromaOf(g) >= chromaOf(raw)).toBe(true);
+        if (chromaOf(raw) >= GreyChroma) {
+          expect(chromaOf(g)).toBeGreaterThanOrEqual(Math.min(chromaOf(raw), tokens.logoChroma) - 0.015);
+          expect(hueGap(g, raw)).toBeLessThan(HueTolerance);
+        }
+      }
+    });
+
+    it(`${theme}: greys stay grey, a color above the floor keeps its chroma`, () => {
+      for (const grey of [tokens.colors['seq-missing'], tokens.colors['seq-nt-other']]) {
+        expect(chromaOf(grey)).toBeLessThan(GreyChroma);
+        const g = glyphAgainst(grey, surface, tokens.logoChroma);
+        expect(chromaOf(g)).toBeLessThan(GreyChroma);
+        expect(contrastRgba(g, surface)).toBeGreaterThanOrEqual(3);
+      }
+      const strong = 0x1b7fd6ff;
+      expect(chromaOf(strong)).toBeGreaterThan(tokens.logoChroma);
+      const g = glyphAgainst(strong, surface, tokens.logoChroma);
+      expect(contrastRgba(g, surface)).toBeGreaterThanOrEqual(3);
+      expect(chromaOf(g)).toBeGreaterThanOrEqual(Math.min(chromaOf(strong), 0.12) - 0.02);
+    });
+
+    it(`${theme}: every drawn letter holds the floor or the gamut's limit`, async () => {
+      const { canvas } = await drawn(logo('protein', Protein), theme);
+      for (const c of canvas) {
+        expect(contrastRgba(c, surface)).toBeGreaterThanOrEqual(3);
+        expect(chromaOf(c) >= tokens.logoChroma - 0.015 || atGamutLimit(c) || chromaOf(c) < GreyChroma).toBe(true);
+      }
+    });
+  }
 });
