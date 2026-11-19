@@ -85,13 +85,20 @@ viewport per section, told per section (`viewport(section)`, a keyed state). Eve
 leaders before followers, so a listener of one section reads the others consistent; a viewport equal to the last makes
 nothing and tells nothing.
 
-- **A viewport** is `{ start, end, top, width, pending, leader?, pieces?, scale? }`: `[start, end)` in offsets along the
-  axis in display order (0 at the first position shown), fractional. Why offsets: a section's `range`, a cyclic range
-  over the origin, a reversed axis and collapsed pieces read like a whole system; the core's `positionAt`, `offsetOf`,
-  `cellOffset` and `elementAt` convert through the pieces and the direction (`models/axis.ts` re-exports them: one
-  implementation, the renderer's too). A saved session (`session()`, to come) stores positions, never offsets: offsets
-  change meaning when the axis does. Navigation is in display order (a drag, the wheel, the pan keys, the cursor's
-  arrows move what is on screen the way the hand or key goes, whatever the direction).
+- **A viewport** is `{ start, end, top, width, pending, leader?, pieces?, scale?, y? }` (`y`: a grid's own y window):
+  `[start, end)` in offsets along the axis in display order (0 at the first position shown), fractional. Why offsets: a
+  section's `range`, a cyclic range over the origin, a reversed axis and collapsed pieces read like a whole system; the
+  core's `positionAt`, `offsetOf`, `cellOffset` and `elementAt` convert through the pieces and the direction
+  (`models/axis.ts` re-exports them: one implementation, the renderer's too). A saved session (`session()`, to come)
+  stores positions, never offsets: offsets change meaning when the axis does. Navigation is in display order (a drag,
+  the wheel, the pan keys, the cursor's arrows move what is on screen the way the hand or key goes, whatever the
+  direction).
+- **Grids**: a grid whose y moves apart from x (`movesY`: its own window, `follow_y: none`, or a section it follows)
+  takes a vertical pan (`panPx`'s dy, px of its plot's height) and a zoom (about `anchorY`, an offset down y) on y too.
+  Following a section, the move is carried to y's leader as a follower's is (`_lead`, through y's follow); its own
+  window is kept on the section apart from x's group (`y`, absent when all of y shows), clamped within y, cleared by a
+  fit, and passed to the frame (`viewports[section].y`, a follower's entry too). With `follow_y: x` y moves with x. Why:
+  the PAE's cyclin A is a section of its own, so a scroll over the plot must move it, not CDK2.
 - **Layouts** (the core's "Section layouts", Navigation): each move asked of a section is its layout's arithmetic
   (`SectionNav`: `pan` by a scroll's px deltas, `zoom` about a unit, `fit`, `reveal` the least move, `focus`, `step`,
   `clamp`) over its placement in the last frame (`setLayoutSource`: the viewer's frames, and the one map of layouts the
@@ -261,8 +268,7 @@ nothing and tells nothing.
   `projectOntoView`, only the systems it has no part on), **the cursor**, **the highlight channels** in the order first
   set (each its Location with its projection, `own` kept; its color `highlight.colors[name]`, else `highlight.color`, a
   hex literal or `token:<name>`), and **the hover** with its projection (`HoverModel.projectedAll`), its `ySystem` and
-  `yPosition` copied with the rest (a grid's crosshair reads the cell's row; a pairs layer lights the pairs at a hovered
-  position only when the hover has no y).
+  `yPosition` copied with the rest (a grid's crosshair reads the cell's row; the arcs ending at either position light).
 - **Projections are cached** per Location by identity while the view and the model hold (`Projector`, at most 64); the
   highlights' list is made again only when a channel, the tokens, the view or the model changed: a redraw projects
   nothing and allocates nothing in the renderer (held by the allocation tier).
@@ -571,6 +577,8 @@ rows' commands) reads the last frame's rows layers through the behavior context'
 
 - `hover`: a move over a hit whose hover gesture is bound to `hover` sets the hover for its owner token; a move over
   nothing or a leave clears what that owner holds only. A host's other hover sources use their own tokens.
+- `navigate` on a grid whose y moves (`movesY`): a wheel's dy pans y and its dx x (Shift: as elsewhere), a zoom and a
+  pinch zoom y about the pointer's y too (`atY`, from the placement's `strip.y`: `Input.offsetYAt`).
 - `navigate`: a drag (`pan`), a wheel (`pan` by the larger delta, so Shift with a vertical wheel pans sideways; `zoom`
   about the pointer) and a pinch (`zoom`) through the bindings; wheel deltas within one frame are applied once at the
   frame (`navigate.coalesceWheel`, through a frame callback that `dispose` cancels); a section gone by the frame is

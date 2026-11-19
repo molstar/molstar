@@ -187,7 +187,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   group (EC-62, EC-65); a grid's image tiles assume a one-piece axis (a grid over a section with breaks draws rects or
   stretches the tiles); `across_lines` in text, and arcs on a stack of tracks sections read as lines; pairs and grids
   are held in the model (`resolve/held.ts`), not through the seq format and the store (read by region waits for the
-  Genomes milestone); the queries' `(rect …)` form over a rows system (`(row :key k)`) for rects over rows × columns.
+  Genomes milestone); `(row :key k)` over an alignment read from a source (its labels not held in the model); `split`
+  with the letters between its two sides (one band: the split arcs stand on its middle).
 
 ## `@molstar/seqx-viewer`
 
@@ -201,8 +202,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   (`theme.value-color` has no UI); the scheme picker as a menu (the stories' buttons stand in).
 
 - Addressing: copy link from a context menu (and its key).
-- Grids: a grid's own y window (`follow_y: none`) is not kept by the ViewModel (no y in its viewports, so y shows the
-  whole axis, and its pan, zoom and fit move x alone); the hover card naming both positions and the value.
+- Grids: the hover card naming both positions and the value; a grid's own y window in the history and sessions (kept by
+  the view and drawn, not yet a step's); a drag on a grid's ruler panning that axis alone.
 - Selection: drag snapping to whole codons over nucleotides (EC-149); a rows block selected as a rect; context-menu
   entries for `selection.add` and `selection.subtract`; the `genome-browser` preset without the add, subtract and extend
   drags (a drag pans there): decided with the presets; a cursor moved off-screen on a follower revealing itself by

@@ -233,10 +233,13 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
 - **Legends** are data (`Legend`: swatches, a ramp with ticks placed by its scale (a log scale's decades, a center at
   the middle), steps, sizes on the channel's own scale (a radius's `sqrt`); the vocabulary listed, or the values painted
   where unlisted values are hashed: `seq.render.legend.unlisted`), merged when they say the same (two layers on one
-  scale: one legend), and converted to Mol*'s legends.
+  scale: one legend), and converted to Mol*'s legends. A letters form's swatches name their letters: a letters layer
+  passes the letters it laid out (`painted`), so its key lists only those (an RNA's U, never its T; no gap swatch where
+  there is no gap), then a color once; before any is drawn, every letter.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
-  `category` column and a `variants` one over a `consequence` column default to a field form on it.
+  `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
+  field form on it.
 - **Checks** (`seq.lang.theme.*`): a form or palette that does not exist (`form`), a color that does not read (`color`),
   a channel a form cannot fill (`channel`), a field of the wrong type (`type`), stops out of order (`stops`), a scale
   that does not exist (`scale`), forms nested past `themeDepth` (4, `depth`).
@@ -327,6 +330,7 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 | `(at :label l :ins c :numbering n)`            | systems           | Location (one position)                                                                                         |
 | `(all)`                                        | systems           | Location                                                                                                        |
 | `(rect :a <location> :b <location>)`           | as its sides need | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
+| `(row :key k)`, `(row :key [k …])`             | alignments        | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`): a rect's side        |
 | `(item :id k)`, `(item :<field> v …)`          | annotations       | Elements (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue) |
 | `(items :overlapping <location>)`              | annotations       | Elements (every item without `:overlapping`)                                                                    |
 | `(node :key k)`, `(chain :id k)`               | nodes             | Nodes, addressed by the form itself (`/data/1tup/(chain :id A)`), so location forms may follow a chain          |
@@ -336,7 +340,11 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 - **Combinators take `:of`**: a form's params are keywords only (the address grammar), so `and`, `or` and `not` read a
   list or one operand under `:of`. Operands of different types are `seq.query.form.type`.
 - **`not`** complements within what the prefix names: its systems' positions, its annotations' items, its nodes'
-  children with ids. Dynamic nodes are not in that universe yet.
+  children with ids. Dynamic nodes are not in that universe yet. A rect has no complement; **inside `and`**, a
+  `(not :of <location>)` operand is subtracted from the others' intersection instead (the same positions for parts), so
+  `(and :of [<rect> (not :of <rect>)])` is a rect less a rect, exact (Location).
+- **`row`** reads the model's `row(rows, key)`: an inline alignment's labels; a source's rows are not held there, so a
+  key of one is `seq.query.row.unknown`.
 - **Operands**: a nested form is evaluated against the same prefix (its resolver, else `repr`'s child selection); an
   address from the root. The location of `items :overlapping` is evaluated against the annotations' targets; a part on a
   system no target is reports `seq.query.location.unreachable` (projection is not built), a rect is refused. An operand
@@ -1042,16 +1050,17 @@ strip's.
 
 `LayerType<Prep, Lay>`: `name`, `fallback?`, `prepare(layer, model)` (tier 1, cached per resolved layer),
 `layout(prep, ctx, data, overlay, prev?)` (per viewport; `prev` is its last layout, to reuse buffers and keep lanes),
-`draw(lay, pass, out, emphasis?)`, `hit(lay, x, y)`, `legend?(lay, { title })` (its channels' legends), `domain?(lay)`
-(the y domain it drew). `LayoutContext`: the band's box and the strip's transform (in the strip's frame), the section,
-the layer's key, the device pixel ratio, the config, the tokens, the text port, whether the view settled, `want`,
-`report` and `theme` (the schemes, the measures, the scales and their held domains, the reader's substitution), and per
-strip `strip`, `span` (the union of the strip's bands: what a frame with `across` outlines), `place` (the section's
-placement, for a `section` layer), `labels` (`inside`, or a sink a layout collects labels into: rings), `bandTop` and
-`rowScale` (a band that scrolls its own rows). Generic additions, no layout named: `used?(lay)` (the height it used on
-the strip, 0 for nothing; the band's height when absent: text collapses a band no layer used, and only the layer knows
-its lanes), `scope` (`strip`, the default, laid out a strip at a time; `section`, once a section, drawn in page
-coordinates: what crosses strips), `axes` (2: a second axis of its own, the y path in Emphasis).
+`draw(lay, pass, out, emphasis?)`, `hit(lay, at)` (the point in `at[0]`, `at[1]`: an array, so a hit boxes no number),
+`legend?(lay, { title })` (its channels' legends), `domain?(lay)` (the y domain it drew). `LayoutContext`: the band's
+box and the strip's transform (in the strip's frame), the section, the layer's key, the device pixel ratio, the config,
+the tokens, the text port, whether the view settled, `want`, `report` and `theme` (the schemes, the measures, the scales
+and their held domains, the reader's substitution), and per strip `strip`, `span` (the union of the strip's bands: what
+a frame with `across` outlines), `place` (the section's placement, for a `section` layer), `labels` (`inside`, or a sink
+a layout collects labels into: rings), `bandTop` and `rowScale` (a band that scrolls its own rows). Generic additions,
+no layout named: `used?(lay)` (the height it used on the strip, 0 for nothing; the band's height when absent: text
+collapses a band no layer used, and only the layer knows its lanes), `scope` (`strip`, the default, laid out a strip at
+a time; `section`, once a section, drawn in page coordinates: what crosses strips), `axes` (2: a second axis of its own,
+the y path in Emphasis).
 
 - **Channels a type reads** ("Themes"): `letters` `color` (the alphabet's scheme by default) and `ink`; `ranges`
   `color`, `size` (a share of the lane, the mark shrunk about its middle, its lane and hit box kept: EC-137) and
@@ -1360,9 +1369,12 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 - **y** (`ResolvedSection.y`): following x on the same system takes x's pieces, window and direction; following a
   section through a path maps that section's window (as `follow`); else the viewport's own `y` (`{ start, end }`), read
   by `GridNav` (`pan`'s dy, `zoom` and `fit` on both axes) and by `sameKey`. With `follow_y: x` the field is absent.
-- **Height** (EC-109): the data box's width ÷ `aspect` (1), capped by the larger of `heights.grid` and nine tenths of
-  the view's room below the section's top, at least 40 px. `aspect: 'none'` takes the tallest track's height. Why the
-  larger: a view sized to its content (no room of its own) would otherwise feed its height back into the cap and shrink.
+- **Size** (EC-109): cells `aspect` (1) times as wide as tall whatever x's and y's windows: px a y unit the most that
+  both the data box's width and the room allow, the room the larger of `heights.grid` (a floor, decided) and nine tenths
+  of the view's height below the section's top; where the room is the bound the plot (its x transform and its track
+  boxes) is narrower than the data box, left-aligned. At least 40 px. `aspect: 'none'` takes the tallest track's height
+  and the data box's width. Why the floor: a view sized to its content would otherwise feed its height back into the
+  room and shrink.
 - **Chrome**: the label column (the first track's label) and y's first and last positions at the plot's top and bottom,
   their strings made at place (a draw allocates nothing).
 
@@ -1416,14 +1428,25 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 - **Bounded by the screen**: past `pairs.maxArcs`, arcs binned by their ends' device columns, one a bin (widest first),
   the rest a density strip of ends, said once (`seq.render.pairs.limit`, info). Ends on two systems that are not the
   section's own report `seq.render.pairs.systems`.
-- **Dots** (with `ctx.axisY`, in a grid): a rect a pair of single positions at every zoom, a diagonal segment a stretch;
-  `mirror` (false: a pair is drawn where its data puts it; the tRNA builder sets it) adds (j, i); `triangle` keeps a
-  side. Kinds at one cell share it side by side (EC-63).
-- **Kinds**: the `type` column (`kind` is reserved), two or more colored by `seq-cat-k` in order of first use; one, the
-  layer's color.
+- **Feet**: on the band's edge toward the sequence (`above`: its bottom, the arcs rising; `below`: its top), inset by
+  the stroke so the whole arc is in its band; with `split`, on the band's middle, each side half the band. A view puts
+  the pairs track on the letters' side (the tRNA's: over its letters).
+- **Dots** (with `ctx.axisY`, in a grid): a rect a pair of single positions at every zoom, at least 4 CSS px, outlined
+  in the text's ink (it reads over any cell color in both themes); a diagonal segment a stretch, with its partner when
+  both ends are on one strand (`a_strand`, `b_strand`), against it otherwise; `mirror` (false: a pair is drawn where its
+  data puts it; the tRNA builder sets it) adds (j, i), a self-pair once; `triangle` keeps a side. Pairs at one cell
+  share it side by side (EC-63).
+- **Themes and filter**: its `color` channel (`channelForms`, held extents, its legend), by default `field type` (a
+  categorical palette fixed by value; the builder lists an inline table's kinds, as for ranges' `category`); a pair the
+  channel gives no color takes the ranges' ink. The layer's data filter (`<pairs>/(not :of (item :type …))`) is read
+  pair by pair at prepare (`id`, `type`, `label`, the strands and ends as fields): a pair left out is not drawn, split
+  or hit, counted on its track's "n filtered" (a `section` layer's too); a form not read pair by pair is
+  `seq.render.filter`.
+- **Split order**: at one place the others' closing ends, each self-pair's two ends, then opening ends; equal intervals
+  nest: a self-pair, a duplicate and a shared end cross nothing (held against a brute force).
 - **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`); the pair's element, its
-  extent both ends. A hover lights the hovered pair, or every pair with an end at the hovered position (a hover with no
-  `yPosition`: a crosshair lights its cell, not arcs).
+  extent both ends. **Hover**: the hovered pair; as arcs, every pair with an end at a hovered position (a base, or
+  either position of a cell) or in the hover projected onto the section; as dots, the pair at the hovered cell.
 
 ### The grid layer
 
@@ -1433,20 +1456,23 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   `seq.render.layer.axes`. Why: a grid is not projected; a generator computes it on the systems it is drawn on.
 - **Drawn**: at `grid.rectMinPx` a cell and above, rects with outlines; below, `image` tiles (`ImageTile`, 256 × 256
   samples, never smoothed) from the shared 2D reduction (`render/pyramid.ts`: square levels, factor 2, `aggregate`'s
-  reducer `mean`, `max` or `min`), one a resolved layer, at the level whose sample is at least a device pixel; tiles in
-  the shared image LRU (`render/images.ts`) by layer, level, tile, the pyramid's and the colors' versions and the
-  triangle. A frame not settled builds at most `grid.buildBudget` samples, drawing a held coarser tile meanwhile (else
-  the first coarser within the budget, else the coarsest); a settled frame builds the rest. An axis reversed flips its
-  side of the plot (EC-145).
+  reducer `mean`, `max` or `min`; a triangle's over its own cells alone, the others missing, so a coarse sample on the
+  diagonal keeps its half and mixes in none of the other), one a resolved layer, at the level whose sample is at least a
+  device pixel; tiles in the shared image LRU (`render/images.ts`) by layer, level, tile, the pyramid's and the colors'
+  versions and the triangle. A frame not settled builds at most `grid.buildBudget` samples, drawing a held coarser tile
+  meanwhile (else the first coarser within the budget, else the coarsest); a settled frame builds the rest. An axis
+  reversed flips its side of the plot (EC-145).
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn
   or not (outside a triangle too). Why: the crosshair reads the two positions everywhere on the plot.
 - **Emphasis along y** (the crosshair, EC-145): for the hover, the selection, its projected part and every highlight
   channel, a column at each lit x (the strip's x painting) and a row at each lit y (the layer's own, through its y
-  transform); the hovered cell outlined, its row and column tinted (`seq-hover`); a selected rect drawn as its rect.
-  Linked sections light both positions (the hover's location has a y part). Nothing allocated once warm: positions and
-  colors go through typed scratch.
+  transform, across x's extent); the hovered cell outlined, its row and column tinted (`seq-hover`); a selected rect
+  drawn as its rect, and on a section showing both its systems never its sides projected back (`rectOver`: the strip's x
+  painting and the layer's rows skip them). Linked sections light both positions (the hover's location has a y part).
+  Nothing allocated once warm: positions and colors go through typed scratch; a hit reads its point from `at`
+  (`AxisTransform.positionOf`).
 
 ### Tensions (pairs and grids)
 
