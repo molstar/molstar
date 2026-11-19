@@ -179,6 +179,8 @@ export class RowsLay {
   lazyLastsOf: unknown;
   /** The node each tree segment hits (an inner node; -1 a leaf's branch). */
   treeNode: number[] = [];
+  /** Each segment's clade for the hover: the node it belongs to (a branch: the child it leads to; a vertical: its node). */
+  treeClade: number[] = [];
   /** The tree's geometry by node, kept by the display's version (`treeGeometry`). */
   coord = new Float64Array(0);
   nodeX = new Float64Array(0);
@@ -599,6 +601,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.lastW.length = 0;
     lay.tree.length = 0;
     lay.treeNode.length = 0;
+    lay.treeClade.length = 0;
     lay.wedges.length = 0;
     lay.nodes.length = 0;
     lay.pending.length = 0;
@@ -1199,11 +1202,13 @@ function layoutTree(lay: RowsLay, clades: Clades, x0: number, w: number) {
       if (y >= top - 1 && y <= bottom + 1) {
         lay.tree.push(x, y, x0 + nodeX[c] * w, y);
         lay.treeNode.push(inner(c) ? c : -1);
+        lay.treeClade.push(c);
       }
     }
     if (kids.length && hi >= top && lo <= bottom) {
       lay.tree.push(x, Math.max(lo, top), x, Math.min(hi, bottom));
       lay.treeNode.push(inner(k) ? k : -1);
+      lay.treeClade.push(k);
       if (yk >= top && yk <= bottom) lay.nodes.push(k, x, yk);
     }
   }
@@ -1506,20 +1511,8 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   out.clipArgs();
   const ink = tokens.colors['msui-text-muted'];
   const t = lay.tree;
-  for (let k = 0; k + 3 < t.length; k += 4) {
-    const vertical = t[k] === t[k + 2];
-    g[0] = vertical ? t[k] - 0.5 : Math.min(t[k], t[k + 2]);
-    g[1] = vertical ? Math.min(t[k + 1], t[k + 3]) : t[k + 1] - 0.5;
-    g[2] = vertical ? 1 : Math.abs(t[k + 2] - t[k]);
-    g[3] = vertical ? Math.abs(t[k + 3] - t[k + 1]) : 1;
-    g[4] = ink;
-    g[5] = NoColor;
-    g[6] = 0;
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
-  }
-  if (lay.wedges.length) drawWedges(lay, out);
+  for (let k = 0; k + 3 < t.length; k += 4) branchRect(lay, out, k, ink, 1);
+  if (lay.wedges.length) drawWedges(lay, out, lay.tokens.colors['msui-text-muted'], -1);
   const text = tokens.colors['msui-text'];
   for (let k = 0; k < lay.labelText.length; k++) {
     g[0] = lay.labelX;
@@ -1556,18 +1549,38 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   }
 }
 
+/** Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`. */
+function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number, t: number) {
+  const tr = lay.tree;
+  const g = out.args;
+  const vertical = tr[k] === tr[k + 2];
+  g[0] = vertical ? tr[k] - t / 2 : Math.min(tr[k], tr[k + 2]);
+  g[1] = vertical ? Math.min(tr[k + 1], tr[k + 3]) : tr[k + 1] - t / 2;
+  g[2] = vertical ? t : Math.abs(tr[k + 2] - tr[k]);
+  g[3] = vertical ? Math.abs(tr[k + 3] - tr[k + 1]) : t;
+  g[4] = ink;
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = 0;
+  g[8] = 0;
+  out.rectArgs();
+}
+
 const Wedge = new Float64Array(6);
-function drawWedges(lay: RowsLay, out: PassWriter) {
+/** The folded clades' wedges in `ink`: all, or (`clade` ≥ 0) those inside that clade. */
+function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number) {
   const w = lay.wedges;
   const g = out.args;
+  const cl = lay.clades;
   for (let k = 0; k + 4 < w.length; k += 5) {
+    if (clade >= 0 && cl && !within(cl, w[k + 4], clade)) continue;
     Wedge[0] = w[k];
     Wedge[1] = (w[k + 1] + w[k + 3]) / 2;
     Wedge[2] = w[k + 2];
     Wedge[3] = w[k + 1];
     Wedge[4] = w[k + 2];
     Wedge[5] = w[k + 3];
-    g[4] = lay.tokens.colors['msui-text-muted'];
+    g[4] = ink;
     g[5] = NoColor;
     g[6] = 0;
     g[7] = 0;
@@ -1575,16 +1588,22 @@ function drawWedges(lay: RowsLay, out: PassWriter) {
   }
 }
 
-/** A light band over display row `i` when it is in the band. */
-function hoverBand(lay: RowsLay, out: PassWriter, i: number, ink: number) {
+/** Node `k` is `c` or below it (its leaves are within `c`'s). */
+function within(cl: Clades, k: number, c: number): boolean {
+  return cl.lo[k] >= cl.lo[c] && cl.hi[k] <= cl.hi[c];
+}
+
+/** A light band over `rows` display rows from `i` (one by default) as far as it is in the band. */
+function hoverBand(lay: RowsLay, out: PassWriter, i: number, ink: number, rows = 1) {
   const { box } = lay;
-  const y = lay.rowY(i);
-  if (y + lay.rowScale <= box.y || y >= box.y + box.height) return;
+  const y0 = Math.max(lay.rowY(i), box.y);
+  const y1 = Math.min(lay.rowY(i) + rows * lay.rowScale, box.y + box.height);
+  if (y1 <= y0) return;
   const g = out.args;
   g[0] = box.x;
-  g[1] = y;
+  g[1] = y0;
   g[2] = box.width;
-  g[3] = lay.rowScale;
+  g[3] = y1 - y0;
   g[4] = ((ink & 0xffffff00) | 0x1a) >>> 0;
   g[5] = NoColor;
   g[6] = 0;
@@ -1613,6 +1632,49 @@ function hoverCell(lay: RowsLay, out: PassWriter, i: number, a: number, b: numbe
 }
 
 /**
+ * A hovered clade (_spec/README.md "Render", The rows layer, Hover): its branches in the hover ink, one band over each
+ * run of its rows in the order (a folded clade's summary row alone), a pinned row's band too.
+ */
+function hoverClade(lay: RowsLay, out: PassWriter, key: string, ink: number) {
+  const cl = lay.clades;
+  const c = cl?.byName.get(key);
+  if (!cl || c === undefined) return;
+  const g = out.args;
+  const { box, config } = lay;
+  const P = lay.display.pinned;
+  let start = -1;
+  let end = -1;
+  for (let l = cl.lo[c]; l < cl.hi[c]; l++) {
+    const r = cl.leafRow[l];
+    const p = r >= 0 ? lay.display.placeRow(r) : -1;
+    if (p < 0) continue;
+    if (P) {
+      const d = lay.display.displayRow(r);
+      if (d >= 0 && d < P) hoverBand(lay, out, d, ink);
+    }
+    if (start < 0) start = end = p;
+    else if (p === end) continue; // a folded clade's rows share its summary row
+    else if (p === end + 1) end = p;
+    else {
+      hoverBand(lay, out, start, ink, end - start + 1);
+      start = end = p;
+    }
+  }
+  if (start >= 0) hoverBand(lay, out, start, ink, end - start + 1);
+  g[0] = config.inset;
+  g[1] = box.y;
+  g[2] = Math.max(0, box.x - config.inset);
+  g[3] = box.height;
+  out.clipArgs();
+  const t = lay.tree;
+  const owner = lay.treeClade;
+  for (let k = 0, s = 0; k + 3 < t.length; k += 4, s++)
+    if (within(cl, owner[s], c)) branchRect(lay, out, k, ink, config.outline.hover);
+  if (lay.wedges.length) drawWedges(lay, out, ink, c);
+  out.unclip();
+}
+
+/**
  * The hover: its row's band tinted lightly (a pinned row at both its places: the pinned band and the order), its
  * column within the rows, the cell outlined.
  */
@@ -1622,6 +1684,7 @@ function drawHover(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined
   const { box, tokens } = lay;
   const g = out.args;
   const ink = tokens.colors['seq-hover'];
+  if ((h.target === 'tree-node' || h.target === 'summary-row') && h.element?.owner === lay.owner) hoverClade(lay, out, h.element.key, ink);
   const row = h.yPosition ?? (h.system === lay.rowsSystem ? h.position : undefined);
   const i = row === undefined ? -1 : lay.display.displayRow(row);
   const j = row === undefined ? -1 : lay.display.placeRow(row);
