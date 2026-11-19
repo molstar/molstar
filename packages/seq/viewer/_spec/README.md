@@ -354,8 +354,9 @@ timed by `DomHost` (`DomHostClock`). `sync(model, assets)` opens the static mode
 and each inline access plan) with the store's `limits` (its `maxRows` and `maxBytes`) and attaches them under their
 addresses; a source whose entry is the object it was opened from is kept (the resolver keeps entries by hash), a changed
 one is opened again, one gone is detached and its issue cleared. A source that cannot be opened is an issue at its
-address (`issues`); a failed opening, or a coverage the store refuses (its own report), is forgotten so the next sync
-tries again. Retired with its owner, the store with it.
+address (`issues`), and an opened source's own `issues` (the rows a file of records left out, each with its count,
+places and hint) are reported there too; a failed opening, or a coverage the store refuses (its own report), is
+forgotten so the next sync tries again. Retired with its owner, the store with it.
 
 - **Session holds** (`holdSession(name, model, addresses)`): the dynamic nodes a session state names, with what they
   name (`Overlay.holds`), held in the store under the name, those it no longer names let go; retired with the model.

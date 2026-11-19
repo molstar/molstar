@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MsgPackCodec } from '@molstar/core/repr/codecs/msgpack';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { SourceIssues } from './issues.js';
 import {
@@ -120,14 +119,17 @@ export function openSeq(data: SeqData): OpenedSource {
   };
 }
 
+/** A MessagePack map's first byte (fixmap, map 16, map 32): the only start of a `seq` file in MessagePack. */
+const isMapMarker = (b: number | undefined) => b !== undefined && ((b & 0xf0) === 0x80 || b === 0xde || b === 0xdf);
+
 /**
- * A `seq` file's bytes: JSON when its first byte past a BOM and whitespace is `{`, else MessagePack (a map, never `{`),
- * read through the tree's codecs.
+ * A `seq` file's bytes: MessagePack when its first byte is a map's marker, else JSON (an HTML page or truncated JSON
+ * reports JSON's error), each through the tree's codec. The MessagePack codec is loaded only when a file needs it, so
+ * a reader of inline specs does not pay for it.
  */
-function decodeSeqBytes(bytes: Uint8Array): { data?: SeqData; issues: readonly Issue[] } {
-  let i = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 3 : 0;
-  while (i < bytes.length && (bytes[i] === 0x20 || bytes[i] === 0x09 || bytes[i] === 0x0a || bytes[i] === 0x0d)) i++;
-  if (bytes[i] === 0x7b) return decodeSeq(new TextDecoder('utf-8').decode(bytes));
+async function decodeSeqBytes(bytes: Uint8Array): Promise<{ data?: SeqData; issues: readonly Issue[] }> {
+  if (!isMapMarker(bytes[0])) return decodeSeq(new TextDecoder('utf-8').decode(bytes));
+  const { MsgPackCodec } = await import('@molstar/core/repr/codecs/msgpack');
   const decoded = MsgPackCodec.decode(bytes);
   return decoded.node ? readSeq(decoded.node) : { issues: decoded.issues };
 }
@@ -147,7 +149,17 @@ async function open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource
       });
       throw new SourceOpenError([issue]);
     }
-    read = decodeSeqBytes(bytes);
+    // bounded before it is parsed (_spec/README.md "Data", Protocol: limits)
+    if (bytes.byteLength > ctx.limits.maxBytes)
+      throw new SourceOpenError([
+        issueOf(
+          SourceIssues,
+          'seq.source.too_large',
+          `The file has ${bytes.byteLength} bytes, more than ${ctx.limits.maxBytes}`,
+          { address: source.address, hint: 'Split the file, or serve it by region' },
+        ),
+      ]);
+    read = await decodeSeqBytes(bytes);
   } else read = { issues: [issueOf(SourceIssues, 'seq.source.no_data', 'A seq source needs a value or a uri')] };
   if (!read.data) throw new SourceOpenError(read.issues.map((i) => ({ ...i, address: i.address ?? source.address })));
   return openSeq(read.data);

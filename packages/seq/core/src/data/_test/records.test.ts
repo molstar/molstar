@@ -19,6 +19,7 @@ import {
   type ValuesPositions,
 } from '../protocol.js';
 import {
+  RecordsIssues,
   type RecordsInput,
   RecordsRuntime,
   type RecordsSource,
@@ -107,25 +108,29 @@ interface Row {
   id: string;
   label: string;
   score: number;
+  value: number;
 }
 
 const Words = ['kinase', 'a, b', 'say "hi"', ' padded ', 'tab\there', 'line\nbreak', 'é☃', '', '#x', '01'];
 
 function randomTable(rand: () => number, n = 1 + Math.floor(rand() * 20)): Row[] {
   return Array.from({ length: n }, (_, k) => {
-    const start = 1 + Math.floor(rand() * 200);
+    const start = 3 + Math.floor(rand() * 200);
+    // one row in seven ends before it starts in every convention: left out alike
+    const dropped = rand() < 1 / 7;
     return {
       start,
-      end: start + Math.floor(rand() * 30),
+      end: dropped ? start - 2 : start + Math.floor(rand() * 30),
       strand: ['+', '-', '.'][Math.floor(rand() * 3)],
       id: `f${k}`,
       label: Words[Math.floor(rand() * Words.length)],
       score: Math.floor(rand() * 64) / 4,
+      value: Math.floor(rand() * 64) / 8,
     };
   });
 }
 
-const Columns = ['start', 'end', 'strand', 'id', 'label', 'score'] as const;
+const Columns = ['start', 'end', 'strand', 'id', 'label', 'score', 'value'] as const;
 
 function delimited(rows: readonly Row[], d: string): string {
   const cell = (v: string | number) => {
@@ -153,6 +158,7 @@ function encodings(rows: readonly Row[]): { name: string; input: RecordsInput; t
       id: categoryColumn(rows.map((r) => r.id)),
       label: categoryColumn(rows.map((r) => r.label)),
       score: Float64Array.from(rows, (r) => r.score),
+      value: Float32Array.from(rows, (r) => r.value),
     },
   };
   return [
@@ -267,8 +273,15 @@ describe('one table in every encoding', () => {
     for (let t = 0; t < 30; t++) {
       const rows = randomTable(rand);
       const all = encodings(rows).map((e) => ({ name: e.name, r: read(e.input, e.transform) }));
-      for (const { name, r } of all) expect(r.issues, name).toEqual([]);
+      // the rows left out are said alike: one cause, one count
+      const dropped = rows.filter((r) => r.end < r.start).length;
+      for (const { name, r } of all) {
+        expect(codes(r.issues), name).toEqual(dropped ? ['seq.source.records.order'] : []);
+        if (dropped) expect(r.issues[0].message, name).toMatch(new RegExp(`: ${dropped} rows? \\(`));
+      }
       const expected = summary(ranges(all[0].r));
+      expect(expected.start.length).toBe(rows.length - dropped);
+      expect(expected.fields.value.type).toBe('Float32Array');
       // rows sorted by start, each keeping its place in the file
       for (let k = 1; k < expected.start.length; k++)
         expect(expected.start[k]).toBeGreaterThanOrEqual(expected.start[k - 1]);
@@ -291,13 +304,23 @@ describe('the transform', () => {
     const rand = seeded(5);
     for (let t = 0; t < 30; t++) {
       const rows = randomTable(rand);
-      const one = read({ format: 'tsv', text: delimited(rows, '\t') });
-      const shifted = rows.map((r) => ({ ...r, start: r.start - 1 }));
-      const zero = read({ format: 'tsv', text: delimited(shifted, '\t') }, { base: 0, ends: 'exclusive' });
-      expect(summary(ranges(zero))).toEqual(summary(ranges(one)));
+      const expected = summary(ranges(read({ format: 'tsv', text: delimited(rows, '\t') })));
+      // the same rows written in each of the four conventions: every field read alike
+      for (const base of [0, 1] as const)
+        for (const ends of ['inclusive', 'exclusive'] as const) {
+          const written = rows.map((r) => ({
+            ...r,
+            start: r.start - 1 + base,
+            end: r.end - 1 + base + (ends === 'exclusive' ? 1 : 0),
+          }));
+          const r = read({ format: 'tsv', text: delimited(written, '\t') }, { base, ends });
+          expect(summary(ranges(r)), `${base} ${ends}`).toEqual(expected);
+        }
       // and inline, whose defaults are 0 and exclusive
+      const shifted = rows.map((r) => ({ ...r, start: r.start - 1 }));
       const inline = read({ value: shifted as unknown as Value }, { types: { score: 'category' } });
-      expect(summary(ranges(inline)).start).toEqual(summary(ranges(one)).start);
+      const fromInline = summary(ranges(inline));
+      expect({ ...fromInline, fields: { ...fromInline.fields, score: expected.fields.score } }).toEqual(expected);
     }
   });
 
@@ -353,9 +376,29 @@ describe('the transform', () => {
       { format: 'tsv', text: 'chrom\tstart\tend\nchr2\t5\t6\n\t1\t2\nchr2\t1\t1\n' },
       { fields: { target: 'chrom' } },
     );
-    expect(r.data!.coverage.systems.map((s) => s.name)).toEqual(['s', 'chr2']);
+    expect(r.data!.coverage.systems.map((s) => s.name)).toEqual(['chr2', 's']);
     expect(summary(ranges(r, 'chr2')).start).toEqual([0, 4]);
     expect(summary(ranges(r, 's')).start).toEqual([0]);
+  });
+
+  it('lists the source’s own system only when a row names no target, it holds letters, or no row names any', () => {
+    // every row with a target: no empty own system, and one system keeps a typed column as it is
+    const start = Int32Array.of(0, 4);
+    const all = read(
+      { value: { chrom: ['chrX', 'chrX'], start, end: Int32Array.of(3, 6) } as unknown as Value },
+      {
+        fields: { target: 'chrom' },
+      },
+    );
+    expect(all.data!.coverage.systems.map((s) => s.name)).toEqual(['chrX']);
+    expect(ranges(all, 'chrX').start).toBe(start);
+    const letters = read(
+      { format: 'json', text: '{"seq":"ACGT","rows":[{"t":"x","start":1,"end":2}]}' },
+      { records: 'rows', letters: 'seq', fields: { target: 't' } },
+    );
+    expect(letters.data!.coverage.systems).toEqual([{ name: 's', length: 4 }, { name: 'x' }]);
+    const empty = read({ format: 'tsv', text: 'start\tend\n' });
+    expect(empty.data!.coverage.systems).toEqual([{ name: 's' }]);
   });
 
   it('reads values sparse by position or a row each, `__proto__` and `constructor` ordinary names', () => {
@@ -373,6 +416,21 @@ describe('the transform', () => {
     // a missing `constructor` member is no field: it is not read from the prototype
     const none = read({ format: 'json', text: '[{"start":1,"end":2}]' }, { fields: { label: 'constructor' } });
     expect(codes(none.issues)).toEqual(['seq.source.records.field']);
+    // nor is a transform's map read through its prototype: a column named `constructor`, with `types` and `fields`
+    for (const transform of [{ types: {} }, { fields: {} }, { types: {}, fields: { label: 'constructor' } }]) {
+      const t = read({ format: 'tsv', text: 'start\tend\tconstructor\n1\t2\tx\n' }, transform as RecordsTransform);
+      expect(t.issues).toEqual([]);
+      expect(plain(ranges(t).fields?.[0].column)).toEqual(['x']);
+    }
+  });
+
+  it('values without `position` are each at its row’s own index; with `start` and `end`, a field only', () => {
+    const v = values(read({ format: 'tsv', text: 'value\n1\nabc\n3\n' }));
+    expect([v.start, ...v.value]).toEqual([0, 1, Number.NaN, 3]);
+    const r = read({ format: 'tsv', text: 'start\tend\tvalue\n1\t2\t0.5\n' });
+    expect(r.data!.pairs[0].request.shapes).toEqual(['ranges']);
+    expect(r.data!.coverage.shapes.map((x) => x.shape)).toEqual(['ranges']);
+    expect(summary(ranges(r)).fields.value.v).toEqual([0.5]);
   });
 
   it('types fields as declared; strands from their spellings', () => {
@@ -430,12 +488,22 @@ describe('typed columns', () => {
     expect([...t.start]).toEqual([0, 4]);
   });
 
-  it('a MessagePack column aligned in its document is a view; unaligned it is copied by the decoder, then kept', () => {
-    const node = { kind: 'x', params: { start: Int32Array.of(0, 2, 5), end: Int32Array.of(1, 3, 9) } };
-    const bytes = MsgPackCodec.encode(node);
-    const t = ranges(read({ format: 'msgpack', bytes }, { records: 'params', base: 0, ends: 'exclusive' }));
-    expect([...t.start]).toEqual([0, 2, 5]);
-    expect(t.start.buffer === bytes.buffer || t.start.byteOffset === 0).toBe(true);
+  it('a MessagePack column aligned in its document is a view into the file, kept; unaligned it is one copy', () => {
+    const transform = { records: 'params', base: 0, ends: 'exclusive' } as const;
+    // a longer kind moves the column's payload: some length aligns it to 4 bytes, the next does not
+    const views: boolean[] = [];
+    for (let pad = 0; pad < 4; pad++) {
+      const node = {
+        kind: 'x'.repeat(pad + 1),
+        params: { start: Int32Array.of(0, 2, 5), end: Int32Array.of(1, 3, 9) },
+      };
+      const bytes = MsgPackCodec.encode(node);
+      const t = ranges(read({ format: 'msgpack', bytes }, transform));
+      expect([...t.start]).toEqual([0, 2, 5]);
+      views.push(t.start.buffer === bytes.buffer);
+    }
+    expect(views).toContain(true);
+    expect(views).toContain(false);
   });
 });
 
@@ -469,13 +537,44 @@ describe('issues', () => {
     }
   });
 
-  it('malformed: a document deeper than the stack, never a crash', () => {
-    const deep = `${'['.repeat(200_000)}${']'.repeat(200_000)}`;
-    expect(codes(read({ format: 'json', text: deep }).issues)).toEqual(['seq.source.records.malformed']);
+  it('malformed: a MessagePack document deeper than the stack (its decoder recurses), never a crash', () => {
     const bytes = new Uint8Array(200_001).fill(0x91);
     bytes[200_000] = 0xc0;
     const r = read({ format: 'msgpack', bytes });
     expect(codes(r.issues)).toEqual(['seq.source.records.malformed']);
+    expect(r.issues[0].message).toMatch(/nested too deeply/);
+  });
+
+  it('malformed: a deeply nested JSON document (JSON.parse does not recurse) is records of no object', () => {
+    const deep = `${'['.repeat(200_000)}${']'.repeat(200_000)}`;
+    const r = read({ format: 'json', text: deep });
+    expect(codes(r.issues)).toEqual(['seq.source.records.malformed']);
+    expect(r.issues[0].message).toMatch(/not an object/);
+  });
+
+  it('value: an end past int32 leaves the row out', () => {
+    const r = read({ format: 'tsv', text: 'start\tend\n1\t2147483647\n1\t2\n' }, { base: 0 });
+    expect(summary(ranges(r)).start).toEqual([1]);
+    expect(issue(r, 'seq.source.records.value')?.message).toMatch(/past int32: 1 row \(line 2\)/);
+  });
+
+  it('one severity a code: every issue has its catalog’s (EC-87)', () => {
+    const r = read({
+      format: 'json',
+      text: '[{"start":1,"end":2,"strand":"x","l":{}},{"start":"a","end":2},{"start":3,"end":1},{"end":2}]',
+    });
+    expect(new Set(codes(r.issues))).toEqual(
+      new Set([
+        'seq.source.records.cell',
+        'seq.source.records.value',
+        'seq.source.records.order',
+        'seq.source.records.missing',
+      ]),
+    );
+    for (const i of r.issues)
+      expect(i.severity, i.code).toBe(RecordsIssues.codes[i.code as keyof typeof RecordsIssues.codes].severity);
+    const twice = read({ format: 'tsv', text: 'position\tvalue\n1\t1\n1\t2\n' });
+    expect(codes(twice.issues)).toEqual(['seq.source.records.cell']);
   });
 
   it('field: a column found in no record, listing the columns there are', () => {
@@ -552,7 +651,7 @@ describe('issues', () => {
       { fields: { label: 'l' } },
     );
     expect(summary(ranges(o)).fields.label.v).toEqual([null, 'x']);
-    expect(issue(o, 'seq.source.records.value')?.severity).toBe('info');
+    expect(issue(o, 'seq.source.records.cell')?.severity).toBe('info');
   });
 
   it('the runtime: refusals as SourceOpenError with the address, row issues on the opened source', async () => {
@@ -587,7 +686,18 @@ describe('fuzz', () => {
     const alphabet = ['"', ',', '\t', '\n', '\r', '{', '}', '[', ']', ':', '0', '-', 'a', '�', ' '];
     for (let t = 0; t < 400; t++) {
       const e = sources[t % sources.length];
-      const transform = rand() < 0.3 ? { ...e.transform, fields: { start: 'end', end: 'start' } } : e.transform;
+      // the transform varied too: swapped roles, types of any name (`constructor` among them), paths
+      const pick = <T>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)];
+      const names = ['start', 'end', 'label', 'score', 'constructor', '__proto__', 'toString', 'x.y', '0'];
+      const transform: RecordsTransform = {
+        ...e.transform,
+        ...(rand() < 0.3 && { fields: { start: 'end', end: 'start', [pick(names)]: pick(names) } }),
+        ...(rand() < 0.3 && {
+          types: { [pick(names)]: pick(['int32', 'float32', 'float64', 'category', 'string'] as const) },
+        }),
+        ...(rand() < 0.2 && { records: pick(['features', 'params', '0', 'constructor', 'a.b.c', '']) }),
+        ...(rand() < 0.2 && { letters: pick(['0.label', 'constructor', 'features.0', 'x']) }),
+      };
       const input = e.input;
       if ('text' in input) {
         const chars = [...input.text];

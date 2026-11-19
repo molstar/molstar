@@ -137,6 +137,8 @@ export async function attachSources(
           opened.dispose();
           return;
         }
+        // what opening said without refusing the source (rows left out) is reported with the refusals
+        if (opened.issues) issues.push(...opened.issues.map((i) => ({ ...i, address })));
         if (store.attach(address, opened)) options.attached?.add(address);
       } catch (e) {
         if (ctx.signal.aborted) return;

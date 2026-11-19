@@ -484,10 +484,12 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 
 - A **format runtime** (`FormatRuntime`: `name`, `formats`, `open(source, { assets, signal, limits })`) opens a
   `SourceEntry` (`address`, `format`, `uri` or inline `value`, an `index` for a format read with one, and the source's
-  other params, its transform among them) to an `OpenedSource`: its `coverage` and `read(request, signal)`. `assets` is
-  a narrow port (`readText(uri, signal)`, `readBytes(uri, signal)`; both required: every adapter is the package's own,
-  and a runtime does not test for a method). Why: a runtime is tested with a fake, never the network. A file that cannot
-  be read is a `SourceOpenError` with `seq.source.unreadable`.
+  other params, its transform among them) to an `OpenedSource`: its `coverage`, `read(request, signal)` and the `issues`
+  its opening said without refusing it (a file's rows left out), which whoever opens it reports at the source's address
+  (the viewer's store model, `attachSources`). `assets` is a narrow port (`readText(uri, signal)`,
+  `readBytes(uri, signal)`; both required: every adapter is the package's own, and a runtime does not test for a
+  method). Why: a runtime is tested with a fake, never the network. A file that cannot be read is a `SourceOpenError`
+  with `seq.source.unreadable`.
 - **`limits`** (`maxRows`, `maxBytes`): a parse's bounds, checked before it allocates; whoever opens a source passes the
   store's settings (`maxRows`, 1,000,000; `maxBytes`, 64 MB: the viewer's source sync, the overlay's sources,
   `attachSources`), `DefaultOpenLimits` the defaults. Why: `JSON.parse` makes several times a file's bytes, and the
@@ -529,8 +531,10 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   the JSON codec (typed columns tagged, atoms lossless); inline, the same record. A failure's `kind` is written
   `failure` (a record with `kind` reads as a node). Reading reports the first misfit (`seq.source.malformed`, at its
   path) and never throws. Why a tree value: one lossless encoding, the codec's. **A file is JSON or MessagePack**, told
-  by its first byte past a BOM and whitespace (`{` JSON, else MessagePack: a map), read through the tree's codec of that
-  encoding (`@molstar/core/repr/codecs/msgpack`); the runtime reads bytes (`readBytes`).
+  by its first byte: a MessagePack map's marker (`0x80`–`0x8f`, `0xde`, `0xdf`) is MessagePack, anything else JSON (so
+  an HTML page or truncated JSON says JSON's error), read through the tree's codec of that encoding; the runtime reads
+  bytes (`readBytes`), refuses a file over `limits.maxBytes` before parsing it (`seq.source.too_large`), and loads the
+  MessagePack codec only when a file needs it (a dynamic import: a reader of inline specs does not pay for it).
 - **Its runtime** joins the pairs of the request's system (by name or alias) and level that overlap the region, in
   position order, each cut to its part; a gap no pair holds is `not-served`, naming its positions (the format is
   explicit: an empty region is a pair with empty tables). A failure among the pairs is the answer; an unlisted system or
@@ -621,38 +625,46 @@ reading without the runtime (tests, a preset).
   parses past the spaces around it. JSON is `JSON.parse` over the text, a plain value (never the tree's codec: a member
   `kind` would read as a node); MessagePack is `@molstar/core/data/msgpack`'s decoder with the tree codec's column
   extensions (`msgPackColumnDecoder`) and nothing else of it. Members are read own only (`__proto__`, `constructor`
-  ordinary names, EC-50). A document that does not parse, or one deeper than the stack (both parsers recurse), is
-  malformed, never a crash (EC-76). Text holding U+FFFD is said once (`seq.source.records.encoding`, info): UTF-8 only.
+  ordinary names, EC-50; a transform's maps are read own only too). A document that does not parse, or a MessagePack one
+  deeper than the stack (its decoder recurses; `JSON.parse` does not), is malformed, never a crash (EC-76). Text holding
+  U+FFFD is said once (`seq.source.records.encoding`, info): UTF-8 only.
 - **Records and columns**: `records` is a dotted path from the root (a member, or an index when all digits; at most 32
   segments); what it reaches is an array of records (AoS: each an object) or an object of columns (SoA: each member a
   list or a typed column, all of one length, checked before any is read); a table file is AoS. Read the same.
 - **Fields**: without `fields`, each role from the member or column of its name, and every other member whose values are
   scalars a field under its name (objects and lists are not fields unless a path names one of their scalars). With
   `fields`, a role or a field from its column or path; a column a mapping reads is not a field again. The roles are the
-  protocol's: `target` (the row's system, empty: the source's own, named `system` or the node's id), `start`, `end`,
-  `position` (a row `[p, p + 1)`), `strand` (`+`, `-`, `.`, `?`, `1`, `-1`, `0`; anything else 0, said once), `id` (a
-  category), `value` (float32). Another field's type is `types`', else its typed column's, else a text cell's or a
-  boolean's `category`, a JSON number's `float64` (`string` held as a category). A path that reaches an object or a list
-  is `null` in that row, said once.
+  protocol's: `target` (the row's system, empty: the source's own, named `system` or the node's id; the own system is
+  listed only when a row names no target, the source holds letters, or no row names any), `start`, `end`, `position` (a
+  row `[p, p + 1)`), `strand` (`+`, `-`, `.`, `?`, `1`, `-1`, `0`; anything else 0, said once), `id` (a category),
+  `value` (float32). Another field's type is `types`', else its typed column's, else a text cell's or a boolean's
+  `category`, a JSON number's `float64` (`string` held as a category). A path that reaches an object or a list is `null`
+  in that row, said once (`.cell`).
 - **Positions**: `base: 1` subtracts one, an `inclusive` end adds one (the file defaults, as people, UniProt, GFF3 and
-  VCF count; EC-195); an inline `value` defaults to `0` and `exclusive`, as `ranges.rows`. Converted once, at the edge.
-  Rows sorted by start once (stable), each keeping its place in the file as `row`. **Values**: with `position` sparse
-  (NaN between, from the first position named; one named twice keeps the last, said once), without one a value a row
-  from the first position; more positions than `maxRows` refused.
+  VCF count; EC-195); an inline `value` defaults to `0` and `exclusive`, as `ranges.rows`, but an inline string `value`
+  is a file's text and takes the file defaults. Converted once, at the edge; an end past int32 leaves the row out
+  (`.value`). Rows sorted by start once (stable), each keeping its place in the file as `row`. **Values**: with
+  `position` sparse (NaN between, from the first position named; one named twice keeps the last, said once, `.cell`),
+  without one a value a row from the first position, each at its row's own index (a row left out is NaN there, never a
+  shift); more positions than `maxRows` refused. With `start` and `end`, `value` is a field of the ranges only, no
+  values table.
 - **Typed columns kept without a copy**: a column already the protocol's type for its role (`Int32Array` a start or an
   end, `Float32Array` a value, a category column an id or a category field, any typed field of its declared type), with
   `base: 0`, `ends: exclusive`, one system, every row kept and already in order, and no end clipped; otherwise one copy.
-  MessagePack's decoder gives a view where the payload is aligned, else its own copy.
+  MessagePack's decoder gives a view where the payload is aligned, else its own copy; a kept view pins its file's whole
+  buffer for as long as the source is attached.
 - **Issues** (`RecordsIssues`, `seq.source.records.*`; one a cause with its count and its first ten places, a line or a
   record, EC-86): what cannot be read as its format is `.malformed` (no header, a document that does not parse, a
   `records` path to neither form, SoA columns of unequal lengths, a header naming a column twice, too deep) and a field
   found in no record `.field` (naming the field and listing the columns there are, EC-6): the source unavailable, its
-  `SourceOpenError`'s first issue. A row-level misfit leaves the row out: a position or value not a number (`.value`), a
-  position missing (`.missing`, UniProt's `UNKNOWN`), an end before its start (`.order`), a row starting before the
-  first position or past the letters' end (`.range`; one running past the end is clipped and counted in the same issue,
+  `SourceOpenError`'s first issue. One severity a code (EC-87): a cell its field cannot hold, read as missing (an object
+  or a list, a number that is none, a strand read as 0), and a position named twice are `.cell` (info, the row kept). A
+  row-level misfit leaves the row out: a position or value not a number or an end past int32 (`.value`), a position
+  missing (`.missing`, UniProt's `UNKNOWN`), an end before its start (`.order`), a row starting before the first
+  position or past the letters' end (`.range`; one running past the end is clipped and counted in the same issue,
   EC-51), hinting the other `base` when a first position 0 meets `base: 1` or every row past the end would fit one
-  lower. The opened source carries them (`RecordsSource.issues`). Why left out, not refused: one bad row in ten thousand
-  should not blank a track.
+  lower. The opened source carries them (`OpenedSource.issues`), and the viewer's store model and `attachSources` report
+  them at the source's address. Why left out, not refused: one bad row in ten thousand should not blank a track.
 - **Bounds**, the context's `limits`: a file over `maxBytes` is refused before it is parsed, rows over `maxRows` before
   any column is built (`seq.source.too_large`, hinting a format read by region).
 - **Configuration**: the runtime is a registry entry (the default viewer spec registers it; a host leaves it out); the

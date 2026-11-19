@@ -259,6 +259,29 @@ describe('the seq runtime', () => {
     await expect(bad).rejects.toMatchObject({ issues: [{ code: 'repr.codec.msgpack.syntax', address: '/data/x' }] });
   });
 
+  it('reads anything but a MessagePack map as JSON, and bounds a file by limits.maxBytes before parsing it', async () => {
+    const files: Record<string, Uint8Array> = {
+      'page.html': new TextEncoder().encode('<!doctype html><title>Not found</title>'),
+      'cut.json': new TextEncoder().encode(encodeSeq(data).slice(0, 40)),
+    };
+    const ctx = (maxBytes = DefaultOpenLimits.maxBytes) => ({
+      signal,
+      limits: { ...DefaultOpenLimits, maxBytes },
+      assets: {
+        readText: () => Promise.reject(new Error('bytes only')),
+        readBytes: async (uri: string) => files[uri] ?? Promise.reject(new Error('no such file')),
+      },
+    });
+    for (const uri of ['page.html', 'cut.json']) {
+      const opening = SeqRuntime.open({ address: '/data/x', format: 'seq', uri }, ctx());
+      await expect(opening).rejects.toMatchObject({
+        issues: [{ code: expect.stringMatching(/^repr\.codec\.json\./) }],
+      });
+    }
+    const big = SeqRuntime.open({ address: '/data/x', format: 'seq', uri: 'page.html' }, ctx(10));
+    await expect(big).rejects.toMatchObject({ issues: [{ code: 'seq.source.too_large', address: '/data/x' }] });
+  });
+
   it('serves inline data as one region over the whole system', async () => {
     const inline = inlineSeq({ name: 'p53' }, { letters: { form: 'letters', start: 0, letters: 'MEEPQSDPSV' } });
     expect(inline.pairs[0].request).toEqual({ system: 'p53', start: 0, end: 10, level: 1, shapes: ['letters'] });

@@ -60,7 +60,12 @@ export const RecordsIssues = defineIssues('seq.source.records', {
   },
   'seq.source.records.value': {
     severity: 'warning',
-    description: 'A position or value is not a number (the row left out), or a cell the field cannot hold',
+    description: 'A position or value is not a number, or an end is past int32; the row is left out',
+  },
+  'seq.source.records.cell': {
+    severity: 'info',
+    description:
+      'A cell its field cannot hold, read as missing (an object or a list, a number that is none, a strand read as 0), or a position named twice (the last kept); the row is kept',
   },
   'seq.source.records.missing': {
     severity: 'warning',
@@ -124,7 +129,13 @@ type Role = (typeof Roles)[number];
 const RoleSet = new Set<string>(Roles);
 
 /** A path has at most this many segments (bounded work). */
-export const MaxPathSegments = 32;
+const MaxPathSegments = 32;
+const MaxInt32 = 2 ** 31 - 1;
+
+/** A map's own entry: a transform's keys are any names (`constructor`, `__proto__`), never the prototype's. */
+function own<T>(map: Readonly<Record<string, T>> | undefined, key: string): T | undefined {
+  return map !== undefined && Object.hasOwn(map, key) ? map[key] : undefined;
+}
 /** Issues keep the first this many places. */
 const MaxPlaces = 10;
 
@@ -325,7 +336,6 @@ function parseDocument(input: RecordsInput): unknown {
 // ---- cells to values ----
 
 const Decimal = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
-const MaxInt32 = 2 ** 31 - 1;
 
 /** A position: an integer, or text of one (spaces around it read past); `undefined` missing, `NaN` not a number. */
 function positionOf(cell: unknown): number | undefined {
@@ -404,20 +414,20 @@ interface Cause {
   count: number;
   places: string[];
   hint?: string;
-  severity?: Issue['severity'];
 }
 
+/** The causes said, one issue each; a code's severity is its catalog's (EC-87). */
 class Causes {
   readonly byKey = new Map<string, Cause>();
   /** A record's place by its index, spelled only for the places kept. */
   placeOf: (i: number) => string = (i) => `record ${i}`;
 
   /** A cause at a place, or at record `at`. */
-  add(code: Code, message: string, at: string | number, extra: { hint?: string; severity?: Issue['severity'] } = {}) {
+  add(code: Code, message: string, at: string | number) {
     const key = `${code}|${message}`;
     let c = this.byKey.get(key);
     if (!c) {
-      c = { code, message, count: 0, places: [], ...extra };
+      c = { code, message, count: 0, places: [] };
       this.byKey.set(key, c);
     }
     c.count++;
@@ -432,13 +442,12 @@ class Causes {
   issues(): Issue[] {
     return [...this.byKey.values()].map((c) => {
       const more = c.count > c.places.length ? ', …' : '';
-      const issue = issueOf(
+      return issueOf(
         RecordsIssues,
         c.code,
         `${c.message}: ${c.count} ${c.count === 1 ? 'row' : 'rows'} (${c.places.join(', ')}${more})`,
         c.hint ? { hint: c.hint } : {},
       );
-      return c.severity ? { ...issue, severity: c.severity } : issue;
     });
   }
 }
@@ -461,7 +470,8 @@ const DeclaredTypes: Readonly<Record<RecordsFieldType, ColumnType>> = {
 
 /** A field's type: declared, else its column's, else a text cell's `category`, a number's `float64`. */
 function fieldType(records: Records, cells: Cells, declared: RecordsFieldType | undefined): ColumnType {
-  if (declared) return DeclaredTypes[declared];
+  const type = declared === undefined ? undefined : own(DeclaredTypes, declared);
+  if (type) return type;
   if (cells.column) return columnType(cells.column)!;
   if (cells.text) return 'category';
   for (let i = 0; i < records.count; i++) {
@@ -505,9 +515,7 @@ function fieldColumn(f: Field, rows: Int32Array, identity: boolean, causes: Caus
     for (let i = 0; i < rows.length; i++) {
       const t = textOf(f.cells.get(rows[i]));
       if (t === false)
-        causes.add('seq.source.records.value', `The field “${f.name}” reaches an object or a list: null`, rows[i], {
-          severity: 'info',
-        });
+        causes.add('seq.source.records.cell', `The field “${f.name}” reaches an object or a list: null`, rows[i]);
       values[i] = t === false ? null : t;
     }
     return categoryColumn(values);
@@ -519,10 +527,9 @@ function fieldColumn(f: Field, rows: Int32Array, identity: boolean, causes: Caus
     const n = integer ? positionOf(cell) : numberOf(cell);
     if (n !== undefined && Number.isNaN(n) && !isNaNCell(cell))
       causes.add(
-        'seq.source.records.value',
+        'seq.source.records.cell',
         `The field “${f.name}” holds a cell that is not ${integer ? 'an integer' : 'a number'}: missing`,
         rows[i],
-        { severity: 'info' },
       );
     out[i] = n === undefined || Number.isNaN(n) ? (integer ? 0 : Number.NaN) : n;
   }
@@ -566,7 +573,7 @@ export function readRecords(
     const file = !('value' in input);
     const base = transform.base ?? (file ? 1 : 0);
     const inclusive = (transform.ends ?? (file ? 'inclusive' : 'exclusive')) === 'inclusive';
-    const own = transform.system ?? options.system;
+    const ownSystem = transform.system ?? options.system;
 
     if ('text' in input && input.text.includes('�'))
       issues.push(
@@ -615,7 +622,7 @@ export function readRecords(
       );
     const roles: Partial<Record<Role, Cells>> = {};
     for (const role of Roles) {
-      const spelling = map[role];
+      const spelling = own(map, role);
       if (spelling !== undefined) roles[role] = records.cells(spelling) ?? missingField(role, spelling);
       else if (!used.has(role)) {
         const c = records.cells(role);
@@ -627,18 +634,18 @@ export function readRecords(
     for (const [name, spelling] of Object.entries(map)) {
       if (RoleSet.has(name)) continue;
       const cells = records.cells(spelling) ?? missingField(name, spelling);
-      fields.push({ name, cells, type: fieldType(records, cells, transform.types?.[name]) });
+      fields.push({ name, cells, type: fieldType(records, cells, own(transform.types, name)) });
       named.add(name);
     }
     for (const name of records.scalars) {
       if (RoleSet.has(name) || named.has(name) || used.has(name)) continue;
       const cells = records.cells(name);
-      if (cells) fields.push({ name, cells, type: fieldType(records, cells, transform.types?.[name]) });
+      if (cells) fields.push({ name, cells, type: fieldType(records, cells, own(transform.types, name)) });
     }
 
     const hasRanges = roles.start !== undefined || roles.position !== undefined;
-    if (roles.start && !roles.end && !roles.position) missingField('end', map.end ?? 'end');
-    if (roles.end && !roles.start && !roles.position) missingField('start', map.start ?? 'start');
+    if (roles.start && !roles.end && !roles.position) missingField('end', own(map, 'end') ?? 'end');
+    if (roles.end && !roles.start && !roles.position) missingField('start', own(map, 'start') ?? 'start');
     if (!hasRanges && !roles.value && letters === undefined)
       refuse(
         'seq.source.records.field',
@@ -656,19 +663,23 @@ export function readRecords(
       }
       return s;
     };
-    systemOf(own);
+    // the source's own system when it holds the letters, a row names no target, or no row names any: so a file whose
+    // rows all have targets lists no empty system of its own
+    if (letters !== undefined) systemOf(ownSystem);
+    // values a row from the first position without `position`; with `start` and `end`, `value` is a ranges field only
+    const hasValues = roles.value !== undefined && (!hasRanges || roles.position !== undefined);
     const L = letters?.length;
     let pastByOne = 0;
     let pastMore = 0;
     let zeroStart = false;
     for (let i = 0; i < records.count; i++) {
-      let target = own;
+      let target = ownSystem;
       if (roles.target) {
         const t = textOf(roles.target.get(i));
         if (t) target = t;
       }
       const sys = systemOf(target);
-      const onOwn = target === own;
+      const onOwn = target === ownSystem;
 
       let keep = true;
       let s = 0;
@@ -689,7 +700,10 @@ export function readRecords(
           if (a === 0) zeroStart = true;
           s = a - base;
           e = roles.position || inclusive ? b - base + 1 : b - base;
-          if (s < 0) {
+          if (e > MaxInt32) {
+            causes.add('seq.source.records.value', 'An end is past int32', i);
+            keep = false;
+          } else if (s < 0) {
             causes.add('seq.source.records.range', BeforeFirst, i);
             keep = false;
           } else if (onOwn && L !== undefined && (s >= L || e > L)) {
@@ -713,22 +727,20 @@ export function readRecords(
           keep = false;
         } else value = v ?? Number.NaN;
       }
+      // a row's value without `position` is at its own index: a row left out is NaN there, never a shift
+      if (hasValues && !roles.position) sys.values.set(sys.valueRows++, keep ? value : Number.NaN);
       if (!keep) continue;
       if (hasRanges) {
         sys.ranges.push(i);
         sys.start.push(s);
         sys.end.push(e);
       }
-      if (roles.value) {
-        if (roles.position) {
-          if (sys.values.has(s))
-            causes.add('seq.source.records.value', 'A position is named twice: the last kept', i, {
-              severity: 'info',
-            });
-          sys.values.set(s, value);
-        } else sys.values.set(sys.valueRows++, value);
+      if (hasValues && roles.position) {
+        if (sys.values.has(s)) causes.add('seq.source.records.cell', 'A position is named twice: the last kept', i);
+        sys.values.set(s, value);
       }
     }
+    if (systems.size === 0) systemOf(ownSystem);
     // the hints: the other base, when the rows say so
     if (zeroStart && base === 1)
       causes.hint('seq.source.records.range', BeforeFirst, 'The file counts from 0: try `base: 0`');
@@ -748,12 +760,12 @@ export function readRecords(
     const conventions = base === 0 && !inclusive && !roles.position;
     for (const sys of systems.values()) {
       const tables: { -readonly [K in keyof Tables]: Tables[K] } = {};
-      const isOwn = sys.name === own;
+      const isOwn = sys.name === ownSystem;
       if (isOwn && letters !== undefined)
         tables.letters = { form: 'letters', start: 0, letters } satisfies LettersTable;
       if (hasRanges)
         tables.ranges = rangesTable(sys, roles, fields, records, causes, single && conventions && !sys.clipped);
-      if (roles.value)
+      if (hasValues)
         tables.values = valuesTable(sys, records.count, single && !hasRanges ? roles.value : undefined, options.limits);
       const length = isOwn ? L : undefined;
       systemInfo.push(length === undefined ? { name: sys.name } : { name: sys.name, length });
@@ -824,9 +836,7 @@ function rangesTable(
       for (let k = 0; k < n; k++) {
         const v = strandOf(sc.get(rows[k]));
         if (v === undefined)
-          causes.add('seq.source.records.value', 'A strand is not +, -, ., ?, 1, -1 or 0: read as 0', rows[k], {
-            severity: 'info',
-          });
+          causes.add('seq.source.records.cell', 'A strand is not +, -, ., ?, 1, -1 or 0: read as 0', rows[k]);
         strand[k] = v ?? 0;
       }
     }
@@ -892,14 +902,17 @@ function valuesTable(sys: SystemRows, count: number, typed: Cells | undefined, l
 
 // ---- the runtime ----
 
-const TransformKeys = ['fields', 'records', 'letters', 'system', 'base', 'ends', 'types'] as const;
-
 /** The transform an entry carries (the source node's params, as the resolver copies them). */
-export function transformOf(source: SourceEntry): RecordsTransform {
-  const r = source as unknown as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  for (const k of TransformKeys) if (r[k] !== undefined) out[k] = r[k];
-  return out as RecordsTransform;
+function transformOf(s: SourceEntry): RecordsTransform {
+  return {
+    fields: s.fields,
+    records: s.records,
+    letters: s.letters,
+    system: s.system,
+    base: s.base,
+    ends: s.ends,
+    types: s.types,
+  };
 }
 
 /** An opened records source: the `seq` join over its tables, with what its reading said (row-level issues). */
