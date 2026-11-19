@@ -24,6 +24,16 @@
     "attribution": "SAbDab (Dunbar et al. 2014; Schneider et al. 2022), Oxford Protein Informatics Group, CC BY 4.0; numbered segments 890 (light) and 889 (heavy) of pdb_00001n8z-B-A",
     "bytesDownloaded": 12195,
     "sha256Download": "ba3206664633d8be418a28fb8a167f8ebb3d7a04d6cf272c99733a915d088106",
+    "licenceEvidence": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/openapi.json",
+      "quoted": "{\"name\":\"Creative Commons Attribution 4.0 International (CC BY 4.0)\",\"url\":\"https://creativecommons.org/licenses/by/4.0/\"}",
+      "checked": "2026-11-19"
+    },
+    "selectedBy": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/pdb/pdb_00001n8z",
+      "bytes": 5107,
+      "sha256": "b9630b3583cae28bed989aef22bc0bd946e50deafd0083973e7d571dbfe23c51"
+    },
     "file": "antibody/1N8Z-imgt.seq",
     "entry": "SAbDab, IMGT numbering of 1N8Z’s variable domains (light chain A, heavy chain B)",
     "trimmed": "each segment’s numbering only (its IMGT positions with a residue; the `-` positions and every other member dropped), placed on its chain of the FASTA file (the domain found in the chain’s letters, each residue checked), converted to seq: a range a position of the chain, its IMGT label, none outside the variable domain",
@@ -40,6 +50,16 @@
     "attribution": "SAbDab (Dunbar et al. 2014; Schneider et al. 2022), Oxford Protein Informatics Group, CC BY 4.0; numbered segments 890 (light) and 889 (heavy) of pdb_00001n8z-B-A",
     "bytesDownloaded": 12195,
     "sha256Download": "ba3206664633d8be418a28fb8a167f8ebb3d7a04d6cf272c99733a915d088106",
+    "licenceEvidence": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/openapi.json",
+      "quoted": "{\"name\":\"Creative Commons Attribution 4.0 International (CC BY 4.0)\",\"url\":\"https://creativecommons.org/licenses/by/4.0/\"}",
+      "checked": "2026-11-19"
+    },
+    "selectedBy": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/pdb/pdb_00001n8z",
+      "bytes": 5107,
+      "sha256": "b9630b3583cae28bed989aef22bc0bd946e50deafd0083973e7d571dbfe23c51"
+    },
     "file": "antibody/1N8Z-kabat.seq",
     "entry": "Kabat numbering of 1N8Z’s variable domains, derived from SAbDab’s IMGT numbering",
     "trimmed": "as the IMGT file",

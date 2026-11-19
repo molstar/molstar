@@ -528,7 +528,7 @@ export const AntibodyViews: readonly ExampleView[] = [
     id: 'schemes-design',
     title: 'The design’s numberings',
     summary:
-      'The design (generated: two substitutions in CDR-H2, a substitution and a two-residue insertion in CDR-H3, a deletion in CDR-L1) under the same rulers: CDR-H3 gains Kabat’s 100D and 100E and IMGT’s 111.1 and 112.1, which come before 112 (out of index order); CDR-L1 loses Kabat’s 27 and IMGT’s 36.',
+      'The design (generated: two substitutions in CDR-H2, a substitution and a two-residue insertion in CDR-H3, a deletion in CDR-L1) under the same rulers: CDR-H3 gains Kabat’s 100D and 100E and IMGT’s 111.1 and 112.1, which come before 112 (out of index order); CDR-L1 loses Kabat’s 27 and IMGT’s 36 (this generator’s rule for a shorter CDR-L1, not yet checked against ANARCI).',
     build: antibodySchemes.design,
   },
   {
@@ -536,7 +536,7 @@ export const AntibodyViews: readonly ExampleView[] = [
     id: 'against',
     title: 'Design against wild type',
     summary:
-      'Each chain’s design and trastuzumab as the two rows of an alignment by their IMGT positions: CDR-H3’s two inserted residues are columns with a gap in the wild type, CDR-L1’s deleted one a gap in the design. Hover a column: both rows. Carets on the wild type wait for a map with indels between two sequences.',
+      'Each chain’s design and trastuzumab as the two rows of an alignment made by the edit list: a column pairs a residue the design kept with the wild type’s; CDR-H3’s two inserted residues are columns with a gap in the wild type, CDR-L1’s deleted one a gap in the design. The schemes relabel the residues around an indel, so paired residues may differ in label (the design’s F is IMGT 111.1, the wild type’s 112). Hover a column: both rows. Carets on the wild type wait for a map with indels between two sequences.',
     build: () => antibodyAgainst.build(),
   },
   {

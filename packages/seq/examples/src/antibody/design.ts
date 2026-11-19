@@ -12,7 +12,8 @@ import { type Chain, ImgtCdrs, imgtCdrLabels, kabatFromImgt, type Labels } from 
 // insertion in CDR-H3 (which gives IMGT's 111.1 and 112.1, out of index order: EC-7) and a one-residue deletion in
 // CDR-L1; an edit is placed by the wild type's Kabat label. Its numberings follow the schemes' rules (`numbering.ts`):
 // a CDR whose length changed is numbered again by IMGT's rule, the frameworks keep their labels, Kabat's is derived
-// from IMGT's as the wild type's is; its alignment to the wild type is by those positions, column by column.
+// from IMGT's as the wild type's is. Its alignment to the wild type is the edit list's, not the numberings': a column
+// pairs a residue the design kept with the wild type's, so around an indel the paired residues' labels differ.
 
 /** An edit of the wild type, at a residue by its Kabat label: a substitution, a deletion, or letters inserted after it. */
 export type Edit =

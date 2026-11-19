@@ -7,7 +7,7 @@
 import type { Patch } from '@molstar/core/repr/patch';
 import { cdrAddress, wildType } from '@molstar/seqx-examples/antibody/data';
 import type { Chain } from '@molstar/seqx-examples/antibody/numbering';
-import { RulerLayer } from '@molstar/seqx-examples/antibody/schemes';
+import { RulerLayer, rulerLabel } from '@molstar/seqx-examples/antibody/schemes';
 import { findNumbering } from '@molstar/seqx-core/query';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors/editing';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -50,6 +50,18 @@ export function readoutLines(viewer: SeqViewer): string[] {
   return lines;
 }
 
+/** The panel's lines with the bookmarks listed: each its id, label, color and what it names. */
+export function bookmarkLines(viewer: SeqViewer): string[] {
+  const refs = viewer.addresses.refs.value;
+  return [
+    ...readoutLines(viewer),
+    `Bookmarks (${refs.length}):`,
+    ...(refs.length
+      ? refs.map((r) => `  ${r.label} [${r.id}]${r.color ? ` ${r.color}` : ''}: ${r.to.join(', ')}`)
+      : ['  (none)']),
+  ];
+}
+
 const SchemeNames: Readonly<Record<string, string>> = { kabat: 'Kabat', imgt: 'IMGT', ordinal: 'Ordinal' };
 
 /** Which numbering the chains' rulers show: one patch of each ruler layer's `numbering`, one step. */
@@ -59,11 +71,11 @@ export function setRuler(
   chains: readonly Chain[] = ['light', 'heavy'],
 ): Promise<string> {
   // the track's label says the scheme its ruler shows
-  const label = SchemeNames[numbering] ?? numbering;
+  const scheme = SchemeNames[numbering] ?? numbering;
   return step(s, `Ruler in ${numbering}`, {
     ops: chains.flatMap((c) => [
       { op: 'set' as const, at: RulerLayer(c), key: 'numbering', value: numbering },
-      { op: 'set' as const, at: RulerLayer(c).slice(0, -1), key: 'label', value: label },
+      { op: 'set' as const, at: RulerLayer(c).slice(0, -1), key: 'label', value: rulerLabel(c, scheme) },
     ]),
   });
 }

@@ -8,7 +8,7 @@ import { AntibodyViews } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { complexEditStory } from '../complex/edit-root.js';
 import { exampleStory } from '../example-root.js';
-import { bookmark, readoutLines, recolor, remove, rename, selectCdr, setRuler } from './compose.js';
+import { bookmark, bookmarkLines, readoutLines, recolor, remove, rename, selectCdr, setRuler } from './compose.js';
 
 const view = (id: string) => AntibodyViews.find((v) => v.id === id)!;
 
@@ -43,13 +43,13 @@ export const DesignAgainstWildType: StoryObj = { render: () => exampleStory(view
 
 /**
  * The CDR bookmarks: select CDR-H3 (or L1) by its Kabat address, bookmark the selection, rename it, recolor it, remove
- * it; each one step, Undo and Redo walk them.
+ * it; each one step, Undo and Redo walk them. The panel lists the bookmarks.
  */
 export const CdrBookmarks: StoryObj = {
   render: () =>
     complexEditStory({
       view: view('cdrs'),
-      lines: readoutLines,
+      lines: bookmarkLines,
       edits: [
         { label: 'Select CDR-H3', run: (s) => selectCdr(s, 'heavy', 3) },
         { label: 'Select CDR-L1', run: (s) => selectCdr(s, 'light', 1) },

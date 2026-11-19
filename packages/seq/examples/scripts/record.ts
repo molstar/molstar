@@ -9,10 +9,12 @@
 // a spec's paths read the live response too), writes the fixture and its `sources.json` row (URL, date, licence,
 // attribution, what was trimmed, checksums). Run it from the package folder:
 //
-//   npx tsc -b packages/seq/examples   (from the repository root: the trna entry imports the built `lib/`)
+//   npx tsc -b packages/seq/examples   (from the repository root: every recorder's rules are imported built, `lib/`,
+//                                       and so are `@molstar/core` and `@molstar/seqx-core`, its references)
 //   node --experimental-strip-types scripts/record.ts p53
 //
-// (`globins` imports `@molstar/core` and `@molstar/seqx-core` built: `npx tsc -b packages/seq/core` first.) The
+// (Node maps no `.js` import to a `.ts` file, so the rules are never imported from `src/`; run with no dataset, it
+// loads every recorder and stops at its usage line before fetching anything.) The
 // datasets: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's
 // own and ClinVar's sources; `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
 // rows (CC-BY-4.0) and PDB 4HHB (CC0-1.0); `plasmid`, INSDC L09137.2 (pUC19c) as ENA serves it in FASTA, converted to
@@ -31,7 +33,7 @@ import { gunzipSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeDerived } from '../lib/trna/generated.js';
-import { moleculeSeq, pairsSeq, trimEntry as trimCif } from '../src/trna/record-trim.ts';
+import { moleculeSeq, pairsSeq, trimEntry as trimCif } from '../lib/trna/record-trim.js';
 import {
   AllowedLicences,
   EntryDroppedTypes,
@@ -41,7 +43,7 @@ import {
   trimEntry,
   trimVariation,
   VariantMembers,
-} from '../src/files/record-trim.ts';
+} from '../lib/files/record-trim.js';
 import {
   ContactCutoff,
   contactsSeq,
@@ -49,7 +51,7 @@ import {
   moleculeSeq as complexSeq,
   trim1fin,
   trimLigand,
-} from '../src/complex/record-trim.ts';
+} from '../lib/complex/record-trim.js';
 import {
   gff3Text,
   PlasmidAccession,
@@ -59,9 +61,9 @@ import {
   recordModule,
   rotatedAnnotations,
   seqText,
-} from '../src/plasmid/derive.ts';
-import { HemeContacts } from '../src/globins/hemes.ts';
-import { kabatFromImgt } from '../src/antibody/numbering.ts';
+} from '../lib/plasmid/derive.js';
+import { HemeContacts } from '../lib/globins/hemes.js';
+import { kabatFromImgt } from '../lib/antibody/numbering.js';
 import {
   Entry as FabEntry,
   FabChains,
@@ -70,7 +72,7 @@ import {
   numberingSeq,
   type Segment,
   segmentLabels,
-} from '../src/antibody/record-trim.ts';
+} from '../lib/antibody/record-trim.js';
 import {
   ContactDistance,
   cifChains,
@@ -82,7 +84,7 @@ import {
   seedAccessions,
   seedVersion,
   UniprotAttribution,
-} from '../src/globins/recording.ts';
+} from '../lib/globins/recording.js';
 
 const Folder = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -101,6 +103,10 @@ interface Row {
   readonly bytesFixture: number;
   readonly sha256Download: string;
   readonly sha256Fixture: string;
+  /** Where the licence is stated, when not by the entry itself, and what it says there, quoted. */
+  readonly licenceEvidence?: { readonly url: string; readonly quoted: string; readonly checked: string };
+  /** A download that chose what was taken (an index of the entry), hashed, not kept. */
+  readonly selectedBy?: { readonly url: string; readonly bytes: number; readonly sha256: string };
 }
 
 /**
@@ -586,7 +592,12 @@ async function antibody(): Promise<Row[]> {
   const chains = fabChains(cif);
   const pdbId = `pdb_0000${FabEntry.toLowerCase()}`;
   const entryUrl = `${SabdabApi}/pdb/${pdbId}`;
-  const entry = JSON.parse(await fetchText(entryUrl, 'application/json', 'sabdab-entry.json'));
+  const entryText = await fetchText(entryUrl, 'application/json', 'sabdab-entry.json');
+  const entry = JSON.parse(entryText);
+  // the licence is stated by the API's own OpenAPI document (`info.license`), not by each response
+  const openapiUrl = `${SabdabApi}/openapi.json`;
+  const license = JSON.parse(await fetchText(openapiUrl, 'application/json', 'sabdab-openapi.json')).info?.license;
+  if (!license?.name?.includes('CC BY 4.0')) throw new Error(`${openapiUrl}: the licence is not CC BY 4.0`);
   const pairId = `${pdbId}-${FabChains.heavy.asym}-${FabChains.light.asym}`;
   const pair = entry.antibody_instances.find((a: { id: string }) => a.id === pairId);
   if (!pair) throw new Error(`${entryUrl}: no antibody ${pairId}`);
@@ -628,6 +639,9 @@ async function antibody(): Promise<Row[]> {
     attribution: `${SabdabAttribution}; numbered segments ${pair.light_like_segment_id} (light) and ${pair.heavy_like_segment_id} (heavy) of ${pairId}`,
     bytesDownloaded: bytesOf(segments),
     sha256Download: sha256(segments),
+    licenceEvidence: { url: openapiUrl, quoted: JSON.stringify(license), checked: day },
+    // the entry names the pair's two segments: hashed, so a re-recording that picks others is a visible change
+    selectedBy: { url: entryUrl, bytes: bytesOf(entryText), sha256: sha256(entryText) },
   };
   return [
     {

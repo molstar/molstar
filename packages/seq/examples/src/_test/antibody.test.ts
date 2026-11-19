@@ -52,6 +52,26 @@ describe('the fixtures', () => {
     expect(read(Files.kabat)).toBe(numberingSeq(kabat));
   });
 
+  it('SAbDab’s rows say where their licence is stated, quoted, and hash the entry that chose the segments', () => {
+    const rows = JSON.parse(read('fixtures/antibody/sources.json')) as {
+      file: string;
+      licence: string[];
+      licenceEvidence?: { url: string; quoted: string };
+      selectedBy?: { url: string; sha256: string };
+    }[];
+    const sabdab = rows.filter((r) => r.file.endsWith('.seq'));
+    expect(sabdab).toHaveLength(2);
+    for (const r of sabdab) {
+      expect(r.licence).toEqual(['CC-BY-4.0']);
+      expect(r.licenceEvidence?.url).toBe('https://sabdab.opig.stats.ox.ac.uk/api/openapi.json');
+      expect(JSON.parse(r.licenceEvidence!.quoted).name).toBe(
+        'Creative Commons Attribution 4.0 International (CC BY 4.0)',
+      );
+      expect(r.selectedBy?.url).toBe('https://sabdab.opig.stats.ox.ac.uk/api/pdb/pdb_00001n8z');
+      expect(r.selectedBy?.sha256).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
   it('a segment residue that is not its chain’s is refused', () => {
     expect(() =>
       segmentLabels(
@@ -121,6 +141,21 @@ describe('the anchors', () => {
 
 const spanOf = (rows: { start: number[]; end: number[] }, k: number) => [rows.start[k], rows.end[k]] as const;
 
+describe('the Kabat counting refuses frameworks it does not assume', () => {
+  /** The wild type's IMGT labels with one framework label moved to another position. */
+  const moved = (c: Chain, from: string, to: string) => Data[c].imgt.map((l) => (l === from ? to : l));
+
+  it('a heavy chain with IMGT 73 occupied (74 empty), a light chain with 81 occupied (a lambda chain’s)', () => {
+    expect(() => kabatFromImgt('heavy', moved('heavy', '74', '73'))).toThrow(/IMGT 73 is occupied/);
+    expect(() => kabatFromImgt('light', moved('light', '80', '81'))).toThrow(/IMGT 80 is empty/);
+  });
+
+  it('an FR2 residue missing, and a framework insertion, are refused', () => {
+    expect(() => kabatFromImgt('heavy', moved('heavy', '45', null as unknown as string))).toThrow(/IMGT 45 is empty/);
+    expect(() => kabatFromImgt('heavy', moved('heavy', '45', '44A'))).toThrow(/framework insertion/);
+  });
+});
+
 describe('IMGT’s rule reproduces the published numbering', () => {
   it('each CDR of the wild type, numbered by its length, is SAbDab’s labels', () => {
     for (const c of Chains)
@@ -160,7 +195,9 @@ describe('the design', () => {
     expect(d.heavy.kabat.filter((l) => l?.startsWith('100'))).toEqual(['100', '100A', '100B', '100C', '100D', '100E']);
   });
 
-  it('CDR-L1 one shorter: Kabat loses 27, IMGT loses 36', () => {
+  // this generator's rule for a shorter CDR-L1 (Kabat: from its insertion point down; IMGT: the loop's top, the
+  // C-terminal side first), not checked against ANARCI: no oracle is recorded
+  it('CDR-L1 one shorter, by this generator’s rule (not checked against ANARCI): Kabat loses 27, IMGT loses 36', () => {
     expect(d.light.kabat).not.toContain('27');
     expect(d.light.kabat).toContain('28');
     expect(d.light.imgt.filter((l) => l !== null && Number(l) >= 27 && Number(l) <= 38)).toEqual([
@@ -181,6 +218,23 @@ describe('the design', () => {
     }
     expect([...d.heavy.aligned.wildType].filter((x) => x === '-')).toHaveLength(2);
     expect([...d.light.aligned.design].filter((x) => x === '-')).toHaveLength(1);
+  });
+
+  it('the columns pair the residues the design kept, whose labels the schemes change around an indel', () => {
+    const wt = wildType().heavy;
+    const { design: a, wildType: b } = d.heavy.aligned;
+    // a column's residue in each row (-1 at a gap)
+    const at = (row: string, col: number) => (row[col] === '-' ? -1 : row.slice(0, col).replaceAll('-', '').length);
+    const col = (pred: (wi: number) => boolean) => [...b].findIndex((_, c) => at(b, c) >= 0 && pred(at(b, c)));
+    // the wild type's F (Kabat 100, IMGT 112) and the design's F in one column: IMGT 111.1 in the design
+    const f = col((wi) => wt.kabat[wi] === '100');
+    expect([a[f], b[f]]).toEqual(['F', 'F']);
+    expect([d.heavy.imgt[at(a, f)], wt.imgt[at(b, f)]]).toEqual(['111.1', '112']);
+    // the two inserted residues right after it, gaps in the wild type
+    expect([b[f + 1], b[f + 2]]).toEqual(['-', '-']);
+    // the wild type's Y100A is the design's 100C
+    const y = col((wi) => wt.kabat[wi] === '100A');
+    expect([wt.kabat[at(b, y)], d.heavy.kabat[at(a, y)]]).toEqual(['100A', '100C']);
   });
 
   it('an edit outside the CDRs that changes the length is refused; with no edit the design is the wild type', () => {

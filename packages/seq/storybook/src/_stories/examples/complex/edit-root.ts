@@ -103,6 +103,8 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
       onCleanup(s.viewer.hover.version.listen(showReadout));
       onCleanup(s.viewer.selection.value.listen(showReadout));
       onCleanup(s.viewer.store.store.version.listen(showReadout));
+      // the bookmarks a panel lists
+      if (model.lines) onCleanup(s.viewer.addresses.refs.listen(showReadout));
     }
 
     const history = document.createElement('pre');

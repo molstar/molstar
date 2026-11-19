@@ -10,11 +10,14 @@ import type { Derived } from './derived.js';
 import { Data, theDesign } from './data.js';
 import { Chains } from './schemes.js';
 
-// The design against the wild type (EC-29): each chain's design and wild type as the two rows of an alignment, column
-// by column by their IMGT positions, so CDR-H3's two inserted residues are columns the wild type has a gap at and
-// CDR-L1's deleted residue one the design has a gap at; a hovered column lights in both rows. The language has no map
-// with indels between two sequences yet (`segments`, `pairwise`), so a caret on the wild type at an insertion and a
-// design's CDR selected onto the wild type wait for it.
+// The design against the wild type (EC-29): each chain's design and wild type as the two rows of an alignment made by
+// the edit list, not by numbering: a column pairs a residue the design kept (or substituted) with the wild type's, an
+// inserted residue is a column with a gap in the wild type (CDR-H3's two, after Kabat 100), a deleted one a column with
+// a gap in the design (CDR-L1's N30). The schemes relabel the residues around an indel, so a column's two residues may
+// carry different labels: the design's F, the wild type's IMGT 112, is IMGT 111.1, and the wild type's Y100A is the
+// design's 100C. A hovered column lights in both rows. The language has no map with indels between two sequences yet
+// (`segments`, `pairwise`), so a caret on the wild type at an insertion and a design's CDR selected onto the wild type
+// wait for it.
 
 export const title = 'Antibody: the design against the wild type';
 

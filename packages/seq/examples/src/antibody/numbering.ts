@@ -126,8 +126,42 @@ function kabatRun(s: Stretch, length: number): string[] {
   return base.filter((l) => !drop.has(l));
 }
 
-/** Kabat's labels of a chain from its IMGT labels (`null` where IMGT has none). */
+/**
+ * The IMGT framework positions the counting assumes empty (a kappa light chain's FR3 lacks 73, 81 and 82; a heavy
+ * chain's FR1 lacks 10 and its FR3 73): every other framework position from the domain's start to 104, and from 118 to
+ * its end, holds a residue. Another occupancy (a lambda chain's 81 and 82, a heavy chain's 73, an extra FR2 residue)
+ * would put framework residues into a CDR's count, so it is refused, never numbered.
+ */
+const ImgtFrameworkGaps: Readonly<Record<Chain, readonly number[]>> = { light: [73, 81, 82], heavy: [10, 73] };
+
+function checkFrameworks(chain: Chain, imgt: Labels): void {
+  const inCdr = (n: number) => [1, 2, 3].some((c) => n >= ImgtCdrs[c as 1][0] && n <= ImgtCdrs[c as 1][1]);
+  const occupied = new Set<number>();
+  for (const l of imgt) {
+    if (l === null) continue;
+    const n = Number.parseInt(l, 10);
+    if (inCdr(n)) continue;
+    if (`${n}` !== l)
+      throw new Error(`${chain}: IMGT ${l} is a framework insertion, which the Kabat counting does not take`);
+    occupied.add(n);
+  }
+  const ns = [...occupied];
+  const first = Math.min(...ns);
+  const last = Math.max(...ns);
+  const gaps = new Set(ImgtFrameworkGaps[chain]);
+  for (let p = first; p <= last; p++) {
+    if (inCdr(p) || (p > 104 && p < 118)) continue;
+    const expected = !gaps.has(p);
+    if (occupied.has(p) !== expected)
+      throw new Error(
+        `${chain}: IMGT ${p} is ${occupied.has(p) ? 'occupied' : 'empty'}; the Kabat counting assumes a ${chain} chain's frameworks with only ${[...gaps].join(', ')} empty`,
+      );
+  }
+}
+
+/** Kabat's labels of a chain from its IMGT labels (`null` where IMGT has none); a framework it does not assume is refused. */
 export function kabatFromImgt(chain: Chain, imgt: Labels): (string | null)[] {
+  checkFrameworks(chain, imgt);
   const { anchors, stretches } = Kabat[chain];
   const at = anchors.map(([p]) => imgt.indexOf(`${p}`));
   if (at.some((p) => p < 0)) throw new Error(`${chain}: an anchor of IMGT ${anchors.map((a) => a[0])} is missing`);
