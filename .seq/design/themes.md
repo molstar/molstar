@@ -410,6 +410,10 @@ builder writes the `field` form into the spec instead.
   statically: about 13.6 kB in headless rendering and the viewer), so (decided, 2026-11-19) the evaluation moves to a
   lists-free module in `@molstar/core/util/color` that Seq\* imports, and `value-palette.ts` re-exports it with
   `ValuePaletteLists`: non-breaking for Mol\*'s and MolViewSpec's code, no entry in `breaking-v6-changes.md`.
+  The split alone saved about 1 kB, since Seq\* still names eight lists through the one `ColorLists` object; so
+  (decided, the author, 2026-11-19: "Yeah let's export these individually") `@molstar/core`'s `lists.ts` also exports
+  each list as a named constant, `ColorLists` built from them unchanged, and Seq\* imports only the lists it names
+  (about 17 kB off headless rendering and the viewer).
 
 ## The interaction matrix's cells
 

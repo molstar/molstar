@@ -54,6 +54,8 @@ All five open gaps above, as recommended; written into themes.md, stories.md, ux
 and their Design pages. Built by lane GD after PG and NV merge (it touches the viewer's config and the themes' render):
 
 1. The lists-free palette module in `@molstar/core/util/color`, re-exported by `value-palette.ts`: yes (non-breaking).
+   It saved 1 kB alone; the lists exported individually as named constants (the author, 2026-11-19: "Yeah let's
+   export these individually"), an additive `@molstar/core` export.
 2. `classes` stays the default: yes. Every substitute safe: yes, `classes-safe` (the classes on Okabe–Ito hues).
 3. Dark letter cells: (a), a hairline cell edge (`seq-cell-edge`) in dark only.
 4. One motion item: `view.motion: platform | cut | animate` (default `platform`), `story.reducedMotion` dropped.
