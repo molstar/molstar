@@ -638,10 +638,12 @@ export class NavigatorRenderer {
         }
       }
       const c = this.config.navigator.window;
+      // floored within the picture, not the reachable span: a region's window on its chromosome is seen, the hairline
+      // at its truth
       Ext[0] = w.x0;
       Ext[1] = w.x1;
-      Ext[2] = w.lo;
-      Ext[3] = w.hi;
+      Ext[2] = box.x;
+      Ext[3] = box.x + box.width;
       Ext[4] = w.y0;
       Ext[5] = w.y1;
       Ext[6] = w.ly;

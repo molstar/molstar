@@ -1284,7 +1284,8 @@ grip's share of the thickness) is fixed. Its numbers reach the pass through arra
   followers' windows are drawn together; a scroll group's sections share one), in the picture's display order (a section
   whose order the path turns against the picture's: its start is the picture's right end); over a cyclic origin two
   pieces, a grip at each true end (where a piece meets the axis's end it is body); what the section cannot reach (a
-  region within its chromosome) washed, fixed. Rows: the band's rows in view on the picture's rows. A window's ends back
+  region within its chromosome) washed, fixed; the floor within the picture, not that span (a region's window on its
+  chromosome is seen, its hairline the truth). Rows: the band's rows in view on the picture's rows. A window's ends back
   in its section's own display units (`sectionUnitAt`) through the inverse path; past the picture's ends at the rate the
   path carries the edge (a protein position three nucleotides). `moves` says per section which axes can move (0 idle:
   quiet); absent, an export's outlines.

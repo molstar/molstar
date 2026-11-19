@@ -14,8 +14,12 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
-// spec, the canvas and the SVG of the same view side by side, and the spec as it prints, beside them. The element is
-// a UI root, so the theme's tokens apply; the viewer is retired when Storybook removes the story.
+// spec, the canvas and the SVG of the same view side by side, and the spec as it prints, beside them (the SVG with the
+// view's navigators where the story asks). The element is a UI root, so the theme's tokens apply; the viewer is retired
+// when Storybook removes the story.
+
+/** A story's view, and whether its SVG draws the view's navigators (`renderSvg`'s `navigators`). */
+type ExampleModel = ExampleView & { readonly navigators?: 'omit' | 'include' };
 
 /** The stories made in this page: the prefix of each one's SVG ids. */
 let instances = 0;
@@ -35,10 +39,10 @@ function section(title: string, body: HTMLElement): HTMLElement {
 }
 
 /** The viewer and the SVG of one view, and its printed spec. */
-class ExampleRoot extends UiElement<ExampleView> {
+class ExampleRoot extends UiElement<ExampleModel> {
   static readonly tag = 'seqx-example-root';
 
-  protected render(view: ExampleView): HTMLElement {
+  protected render(view: ExampleModel): HTMLElement {
     const root = document.createElement('div');
     root.style.cssText =
       'display: grid; gap: var(--msui-space-5); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
@@ -81,7 +85,7 @@ class ExampleRoot extends UiElement<ExampleView> {
     let latest = 0;
     const drawSvg = async () => {
       const mine = ++latest;
-      const r = await viewer.renderSvg({ idPrefix });
+      const r = await viewer.renderSvg({ idPrefix, ...(view.navigators ? { navigators: view.navigators } : {}) });
       // a later draw, or the story gone: this one is dropped
       if (!alive || mine !== latest) return;
       // our own output: every string from data or the spec is escaped by the backend
@@ -110,9 +114,12 @@ class ExampleRoot extends UiElement<ExampleView> {
 
 defineElements([ExampleRoot]);
 
-/** A Storybook `render` result for an example view. */
-export function exampleStory(view: ExampleView): HTMLElement {
+/** A Storybook `render` result for an example view (`navigators`: its SVG draws the view's navigators). */
+export function exampleStory(
+  view: ExampleView,
+  options: { readonly navigators?: 'omit' | 'include' } = {},
+): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
-  el.model = view;
+  el.model = options.navigators ? { ...view, navigators: options.navigators } : view;
   return el;
 }

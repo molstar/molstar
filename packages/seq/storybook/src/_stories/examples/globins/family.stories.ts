@@ -29,5 +29,14 @@ export const Figure: StoryObj = { render: () => exampleStory(view('figure')) };
 /** 10,000 held rows by a balanced tree: zoomed out the rows are image tiles of the shared reduction. */
 export const Scale: StoryObj = { render: () => exampleStory(view('scale')) };
 
+/**
+ * The 10,000 rows with a vertical overview of every row at the right (the shared reduction's image) and a miniature of
+ * the columns and rows above: drag either window to move the rows (the miniature's both axes), click outside to centre
+ * there, PageDown and PageUp over a part move between its windows. The SVG includes both, titled.
+ */
+export const ScaleWithNavigators: StoryObj = {
+  render: () => exampleStory(view('scale-navigators'), { navigators: 'include' }),
+};
+
 /** 10,000,000 lazy rows: only the rows in view are made, a row not yet read labeled by its number. */
 export const Lazy: StoryObj = { render: () => exampleStory(view('lazy')) };
