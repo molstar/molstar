@@ -232,11 +232,9 @@ async function complex(): Promise<Row[]> {
     'converted to seq: ranges on CDK2’s residues, a row a contact',
     `contacts within ${ContactCutoff} Å between heavy atoms: CDK2 with cyclin A in each copy of 1FIN (the cyclin chain it touches most), each copy’s ATP with its CDK2 chain, and each ligand with the CDK2 chain it touches most (its residues by author number, UniProt P24941’s)`,
   );
-  const uniprot: Record<string, string> = {};
   for (const acc of ['P24941', 'P20248']) {
     const url = `https://rest.uniprot.org/uniprotkb/${acc}.json`;
     const text = await fetchText(url, 'application/json', `${acc}.json`);
-    uniprot[acc] = JSON.parse(text).sequence.value;
     const fixture = write(`${acc}.json`, `${JSON.stringify(trimEntry(JSON.parse(text)))}\n`);
     rows.push({
       file: `complex/${acc}.json`,
@@ -272,9 +270,9 @@ async function complex(): Promise<Row[]> {
       sha256Fixture: sha256(kept),
     });
   }
-  // what the views hold in their specs (a pairs node is inline rows only), compared with the files by the fixtures test
+  // what the views hold in their specs (a pairs node is inline rows only; the letters are the files'), compared with the
+  // files by the fixtures test
   const derived = {
-    letters: { cdk2: t.cdk2, construct: t.cyclin, P24941: uniprot.P24941, P20248: uniprot.P20248 },
     cyclinFirst: t.cyclinFirst,
     chains: t.chains,
     contacts: t.contacts.map((c) => [c.copy, c.cdk2, c.cyclin]),
@@ -351,6 +349,10 @@ async function plasmid(): Promise<Row[]> {
       derived: 'none',
       bytesDownloaded: bytes(text),
       sha256Download: sha256(text),
+    }),
+    write(PlasmidFiles.rotated, seqText(PlasmidName, rotated.turned), {
+      entry: 'the rotated variant’s letters: the record turned to an origin at 2000, inside bla',
+      derived: derived('the record’s letters from position 2000, then those before it'),
     }),
     write(PlasmidFiles.rotatedFeatures, gff3Text(rotated.features, rotated.sites), {
       entry:

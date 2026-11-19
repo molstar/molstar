@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { DataStore, Want } from '@molstar/seqx-core/data';
 import { type Location, location } from '@molstar/seqx-core/query';
 import { gridSummary } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
@@ -13,10 +14,12 @@ import type { ResolvedView } from '@molstar/seqx-core/view';
 // one): a hovered cell named by both residues with their chains and its value; a selected rect named by its parts,
 // aligned (x) and scored (y), and the PAE's mean over it (`gridSummary`), AlphaFold DB's wording.
 
-/** What the readout reads: the view's model and resolved view (a layout's input has both). */
+/** What the readout reads: the view's model and resolved view (a layout's input has both), and its store. */
 export interface ReadoutView {
   readonly model: StaticModel;
   readonly view: ResolvedView;
+  /** The store the letters read from a source are in (none: those letters are left out). */
+  readonly data?: Pick<DataStore, 'keysOf' | 'get'>;
 }
 
 /** A system's chain label: the label of the first block on it in a section of blocks, else its address. */
@@ -25,10 +28,42 @@ function chainOf(v: ReadoutView, system: string): string {
   return system;
 }
 
+/**
+ * What the readout wants of the store: the letters of each block's system read from a source, whole (a host's panel
+ * holds them: a layout zoomed out reads none).
+ */
+export function readoutWants(v: ReadoutView): Want[] {
+  const out: Want[] = [];
+  const seen = new Set<string>();
+  for (const sec of v.view.sections)
+    for (const b of sec.blocks ?? []) {
+      const s = v.model.systems.get(b.axis.system);
+      if (!s?.source || s.length === undefined || seen.has(s.address)) continue;
+      seen.add(s.address);
+      out.push({ source: s.source, system: s.name, start: 0, end: s.length, level: 1 });
+    }
+  return out;
+}
+
+/** A residue's letter: inline, else in the loaded tile of its source that holds it ('' while none does). */
+function letterOf(v: ReadoutView, system: string, position: number): string {
+  const s = v.model.systems.get(system);
+  if (s?.letters !== undefined) return s.letters[position] ?? '';
+  if (!s?.source || !v.data) return '';
+  for (const k of v.data.keysOf({ source: s.source, system: s.name, start: position, end: position + 1, level: 1 })) {
+    const e = v.data.get(k);
+    const t = e?.status === 'loaded' ? e.tables.letters : undefined;
+    if (!t || position < t.start || position >= t.start + t.letters.length) continue;
+    const i = position - t.start;
+    // letters as text, or as codes of the table's alphabet
+    return typeof t.letters === 'string' ? t.letters[i] : (t.alphabet?.[t.letters[i]] ?? '');
+  }
+  return '';
+}
+
 /** A residue as text: its letter and its number (from 1), `K33`. */
 function residue(v: ReadoutView, system: string, position: number): string {
-  const letter = v.model.systems.get(system)?.letters?.[position] ?? '';
-  return `${letter}${position + 1}`;
+  return `${letterOf(v, system, position)}${position + 1}`;
 }
 
 /** The value of the grids at a cell (the first grid on its two systems holding one), NaN when none. */

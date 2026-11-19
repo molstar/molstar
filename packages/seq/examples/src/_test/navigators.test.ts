@@ -25,7 +25,7 @@ import {
   RowsLay,
   type Viewport,
 } from '@molstar/seqx-core/render';
-import { resolveSpec } from '@molstar/seqx-core/resolve';
+import { resolveSpec, sourceLengths } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import { generatedRegistry } from '../globins/data.js';
@@ -43,10 +43,16 @@ async function settled(
   nav = 0,
   navSize = { width: input.size.width, height: 48 },
 ) {
-  const model = resolveSpec(spec, { runtimes: [SeqRuntime, ...(runtimes as never[])] });
-  const [view] = resolveViews(model);
+  const all = [SeqRuntime, ...(runtimes as never[])];
+  const assets = nodeFixtureAssets().reader;
   const store = new DataStore();
-  expect(await attachSources(model, store, { assets: nodeFixtureAssets().reader })).toEqual([]);
+  // the sources that give a system its length first, then the model resolved again with their lengths
+  const first = resolveSpec(spec, { runtimes: all });
+  const only = new Set([...first.systems.values()].flatMap((s) => (s.source ? [s.source] : [])));
+  expect(await attachSources(first, store, { assets, only })).toEqual([]);
+  const model = resolveSpec(spec, { runtimes: all, lengths: sourceLengths(first, (s) => store.coverage(s)) });
+  const [view] = resolveViews(model);
+  expect(await attachSources(model, store, { assets })).toEqual([]);
   const common = { model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() };
   const renderer = new Renderer(common);
   const n = new NavigatorRenderer({ ...common, navigator: view.navigators[nav] });

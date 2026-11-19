@@ -4,8 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { readFileSync } from 'node:fs';
 import { resolveAddress } from '@molstar/core/repr/tree';
 import { PlasmidViews } from '@molstar/seqx-examples';
+import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { PlasmidLength } from '@molstar/seqx-examples/plasmid/derive';
 import type { RangesLay } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
@@ -40,7 +42,18 @@ afterEach(() => {
 async function make(id: string) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   const v = view(id);
-  const s = composeEditing(v);
+  // the record's `seq` files read as committed, at once (a read of the disk is not on the fake clock)
+  const read = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
+  const s = composeEditing(v, {
+    ports: {
+      assets: () => ({
+        reader: {
+          readText: async (uri) => read(uri).toString('utf8'),
+          readBytes: async (uri) => new Uint8Array(read(uri)),
+        },
+      }),
+    },
+  });
   session = s;
   s.viewer.resize(720);
   await s.viewer.load(v.build());
@@ -116,13 +129,19 @@ describe('Plasmid, editing, headless', () => {
 });
 
 describe('Plasmid ring, drawn on the canvas', () => {
-  it('the detail’s minus strand arrow is on the canvas at bla’s start, on the piece holding it', async () => {
+  it('bla’s arrow on the ring at fit, and on the detail at its start, on the piece holding it', async () => {
     const v = await openExample(view('ring'), {});
     try {
       const ring = v.frame!.layout.sections[0];
       expect(ring.tracks.length).toBe(4);
-      // arrows on the canvas need a device pixel a position: the ring at 720 px draws bars (a gap, lane CY), the detail
-      // zoomed to bla's start draws the minus strand's arrow on the piece holding its start
+      // the ring at 720 px draws bars, and each feature its arrowhead by its own width: bla's on the minus strand
+      const ringLay = ring.tracks[1].layers[0].lay as RangesLay;
+      expect(ringLay.mode).toBe('bars');
+      const ringTips = Array.from({ length: ringLay.m }, (_, j) => j).filter(
+        (j) => ringLay.mitem[j] >= 0 && ringLay.keys[ringLay.mitem[j]] === 'bla' && ringLay.mtip[j] > 0,
+      );
+      expect(ringTips).toHaveLength(1);
+      // the detail zoomed to bla's start draws the minus strand's arrow on the piece holding its start
       v.view.setRange('/views/main/ring', 2250, 2450);
       await vi.advanceTimersByTimeAsync(50);
       v.draw();

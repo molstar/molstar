@@ -83,8 +83,11 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
     if (a) out.add(a.kind === 'inline' ? a.source.address : a.source);
   }
   for (const s of view.sections) {
-    const source = model.systems.get(s.axis.system)?.source;
-    if (source) out.add(source);
+    // the systems it lays out: its axis's, its blocks', a grid's y
+    for (const system of [s.axis.system, ...(s.blocks ?? []).map((b) => b.axis.system), s.y?.axis.system]) {
+      const source = system === undefined ? undefined : model.systems.get(system)?.source;
+      if (source) out.add(source);
+    }
     for (const t of s.tracks) {
       if (t.template) out.add(t.template.source);
       for (const l of t.layers) {

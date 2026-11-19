@@ -73,6 +73,35 @@ describe('a cyclic sequence read from a source, in the viewer', () => {
     expect(v.frame?.layout.issues).toEqual([]);
   });
 
+  it('a section of blocks over a source alone is placed: an attach that moves no entry still gives the lengths', async () => {
+    frames = installFrames();
+    const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(viewer);
+    const b = createSeqSpec({ title: 'blocks' });
+    const file = b.data.source('file', {
+      format: 'seq',
+      value: seqToValue(
+        inlineSeq(
+          { name: 'c', length: N, alphabet: 'dna' },
+          { letters: { form: 'letters', start: 0, letters: Letters } },
+        ),
+      ),
+    });
+    const c = b.data.sequence('c', { alphabet: 'dna', source: file });
+    b.views.view('v', (v) => {
+      const s = v.section('blocks', {});
+      s.block('one', { of: c });
+      s.block('two', { of: c, range: [0, 100] });
+      s.track('l').layer('l', { type: 'letters' });
+    });
+    await viewer.load(b.build());
+    viewer.resize(600);
+    await viewer.settle();
+    frames.flush();
+    expect(viewer.view.resolved.value?.sections[0].axis.ranges).toEqual([0, N, 0, 100]);
+    expect(viewer.frame?.layout.issues).toEqual([]);
+  });
+
   for (const fromSource of [false, true])
     it(`a focus on the item across the origin takes its shortest arc (${fromSource ? 'a source' : 'inline'})`, async () => {
       const v = await make(fromSource);

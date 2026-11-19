@@ -10,6 +10,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqContext } from '@molstar/seqx-core/context';
 import { DataStore, decodeSeq, type RangesList, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { location } from '@molstar/seqx-core/query';
 import {
   attachSources,
@@ -23,7 +24,7 @@ import {
   LightTokens,
   recordDrawLists,
 } from '@molstar/seqx-core/render';
-import { resolveSpec } from '@molstar/seqx-core/resolve';
+import { resolveSpec, sourceLengths } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import * as blocks from '../complex/blocks.js';
@@ -33,11 +34,13 @@ import {
   complexPae,
   complexPaeDocument,
   constructOffset,
+  crystal,
   Data,
   Files,
   Lengths,
+  prediction,
 } from '../complex/data.js';
-import { cellReadout, rectReadout } from '../complex/readout.js';
+import { cellReadout, readoutWants, rectReadout } from '../complex/readout.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { ComplexViews } from '../views.js';
 
@@ -70,13 +73,24 @@ function rangesOf(text: string, system: string) {
   return { ranges: t.ranges, letters: t.letters?.letters, field };
 }
 
+/** The chains' letters as the files have them: 1FIN's entities, UniProt's entries. */
+const Letters = {
+  cdk2: rangesOf(read('1FIN.seq'), 'cdk2').letters!,
+  construct: rangesOf(read('1FIN.seq'), 'cyclin-a').letters!,
+  P24941: JSON.parse(read('P24941.json')).sequence.value as string,
+  P20248: JSON.parse(read('P20248.json')).sequence.value as string,
+};
+
 describe('the Complex fixtures', () => {
-  it('the letters the views hold are the files’: 1FIN’s entities, UniProt’s entries', () => {
-    const fin = read('1FIN.seq');
-    expect(rangesOf(fin, 'cdk2').letters).toBe(Data.letters.cdk2);
-    expect(rangesOf(fin, 'cyclin-a').letters).toBe(Data.letters.construct);
-    expect(JSON.parse(read('P24941.json')).sequence.value).toBe(Data.letters.P24941);
-    expect(JSON.parse(read('P20248.json')).sequence.value).toBe(Data.letters.P20248);
+  it('the views read their letters from the files: 1FIN’s entities, UniProt’s entries', () => {
+    const b = createSeqSpec();
+    const x = crystal(b);
+    const p = prediction(b);
+    const model = resolveSpec(b.build(), { runtimes: [SeqRuntime, RecordsRuntime] });
+    for (const s of [x.cdk2, x.cyclin, p.cdk2.protein, p.cyclin.protein])
+      expect(model.systems.get(s)?.letters, s).toBeUndefined();
+    expect(model.systems.get(x.cdk2)?.source).toBe('/data/fin');
+    expect(model.systems.get(p.cyclin.protein)?.source).toBe('/data/cyclin-entry');
   });
 
   it('the contacts the views hold are `contacts.seq`’s, row for row', () => {
@@ -97,7 +111,7 @@ describe('the Complex fixtures', () => {
 });
 
 describe('the Complex anchors', () => {
-  const cdk2 = Data.letters.cdk2;
+  const cdk2 = Letters.cdk2;
 
   it('CDK2: K33, E51 and D145 (DFG); PSTAIRE at 45–51; T160 in the activation loop; 1FIN’s CDK2 is UniProt’s', () => {
     expect([cdk2[32], cdk2[50], cdk2[144]]).toEqual(['K', 'E', 'D']);
@@ -107,16 +121,14 @@ describe('the Complex anchors', () => {
     expect(Cdk2Features.start[loop]).toBeLessThanOrEqual(159);
     expect(Cdk2Features.end[loop]).toBeGreaterThan(159);
     expect(cdk2[159]).toBe('T');
-    expect(Data.letters.P24941).toBe(cdk2);
+    expect(Letters.P24941).toBe(cdk2);
   });
 
   it('cyclin A: the construct is P20248 from 173 (its auth numbering), 260 of 432 residues', () => {
     expect(Data.cyclinFirst).toBe(173);
-    expect(Data.letters.P20248.length).toBe(Lengths.cyclin);
-    expect(Data.letters.construct.length).toBe(Lengths.construct);
-    expect(Data.letters.P20248.slice(constructOffset(), constructOffset() + Lengths.construct)).toBe(
-      Data.letters.construct,
-    );
+    expect(Letters.P20248.length).toBe(Lengths.cyclin);
+    expect(Letters.construct.length).toBe(Lengths.construct);
+    expect(Letters.P20248.slice(constructOffset(), constructOffset() + Lengths.construct)).toBe(Letters.construct);
   });
 
   it('two copies (A with B, C with D); the PSTAIRE helix is at the interface in both', () => {
@@ -180,18 +192,28 @@ describe('the Complex’s synthetic PAE', () => {
   });
 });
 
-/** A view laid out headless over the fixtures, its sources opened (the records runtime for its JSON). */
+/**
+ * A view laid out headless over the fixtures, its sources opened (the records runtime for its JSON): those that hold a
+ * system's letters first, then the model resolved again with their lengths.
+ */
 async function laid(spec: Node, size = { width: 720, height: 900 }) {
-  const model = resolveSpec(spec, { runtimes: [SeqRuntime, RecordsRuntime] });
-  const v = resolveViews(model)[0];
+  const runtimes = [SeqRuntime, RecordsRuntime];
+  const assets = nodeFixtureAssets().reader;
   const store = new DataStore();
-  await attachSources(model, store, { assets: nodeFixtureAssets().reader });
+  const first = resolveSpec(spec, { runtimes });
+  await attachSources(first, store, {
+    assets,
+    only: new Set([...first.systems.values()].flatMap((s) => (s.source ? [s.source] : []))),
+  });
+  const model = resolveSpec(spec, { runtimes, lengths: sourceLengths(first, (s) => store.coverage(s)) });
+  const v = resolveViews(model)[0];
+  await attachSources(model, store, { assets });
   const input = { model, view: v, size, viewports: {}, tokens: LightTokens, text: bundledTextMetrics(), data: store };
   for (let i = 0; i < 3; i++) {
     store.want(layoutView(input).wants);
     await store.whenSettled();
   }
-  return { layout: layoutView(input), model, view: v };
+  return { layout: layoutView(input), model, view: v, store };
 }
 
 describe('1FIN’s blocks', () => {
@@ -253,7 +275,10 @@ describe('the grid over the complex', () => {
   });
 
   it('a cell’s hit is on both chains’ systems; the boundaries are hairlines across the plot', async () => {
-    const { layout, model, view: v } = await laid(view.build());
+    const { layout, model, view: v, store } = await laid(view.build());
+    // the letters the readout names, held as a host's panel holds them
+    store.want(readoutWants({ model, view: v }));
+    await store.whenSettled();
     const st = layout.sections[1].placement.strips;
     // CDK2's K33 against cyclin A2's 263 (strip 1: CDK2 across, cyclin A2 down)
     const ax = st.axes[1];
@@ -270,7 +295,9 @@ describe('the grid over the complex', () => {
       262,
       'cell',
     ]);
-    expect(cellReadout({ model, view: v }, h as never)).toMatch(/^CDK2 K33 × cyclin A2 [A-Z]263: \d+(\.\d)? Å$/);
+    expect(cellReadout({ model, view: v, data: store }, h as never)).toMatch(
+      new RegExp(`^CDK2 K33 × cyclin A2 ${Letters.P20248[262]}263: \\d+(\\.\\d)? Å$`),
+    );
   });
 
   it('the chain boundaries: a hairline down the plot and one across it, in canvas lists and the SVG', async () => {

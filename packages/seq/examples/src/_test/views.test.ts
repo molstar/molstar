@@ -62,8 +62,10 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
     const ctx = context(view);
     const spec = view.build();
     expect(ctx.check(spec)).toEqual([]);
+    // resolved before any source opens: rows across the origin of a sequence read from a file wait for its length (said);
+    // the export below resolves again once the files are open, with no issue
     const model = ctx.resolve(spec);
-    expect(model.issues).toEqual([]);
+    expect(model.issues.filter((i) => i.code !== 'seq.resolve.length.unknown')).toEqual([]);
     const resolved = ctx.view(model);
     expect(unexpected(resolved?.issues ?? [])).toEqual([]);
     expect(resolved?.sections.length).toBeGreaterThan(0);

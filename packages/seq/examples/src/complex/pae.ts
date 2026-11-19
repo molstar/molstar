@@ -22,7 +22,7 @@ export const PaeColor = () =>
 
 /** The prediction's data nodes: the entries, the confidence, the PAE's four blocks and the contacts on P20248. */
 export function predictionData(b: SeqSpecBuilder, d: Derived = Data) {
-  const p = prediction(b, d);
+  const p = prediction(b);
   const pae = complexPae();
   const grid = (x: 'cdk2' | 'cyclin', y: 'cdk2' | 'cyclin') =>
     b.data.grid(`pae-${x}-${y}`, { x: p[x].protein, y: p[y].protein, values: pae.block(x, y) });

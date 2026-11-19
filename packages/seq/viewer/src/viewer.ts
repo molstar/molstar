@@ -349,9 +349,8 @@ export class SeqViewer extends ReactiveModel {
     // a band's own scroll, row zoom and folds (a rows band's)
     this.listenPermanently(this.view.bands, () => this.schedule());
     this.listenPermanently(this.hover.version, () => this.legends.updateHover(this._frame?.layout, this.hover.current));
-    // a source-backed system's length arrives with its source's coverage: the model is resolved again with it
     this.listenPermanently(this.store.store.version, () => {
-      this.spec.setLengths(sourceLengths(this.spec.model.value, (s) => this.store.store.coverage(s)));
+      this._readLengths();
       this.schedule();
     });
     this.listenPermanently(this.store.store.settled, () => this.schedule());
@@ -461,8 +460,19 @@ export class SeqViewer extends ReactiveModel {
     this._syncing = this._syncing.then(() =>
       this._retired ? undefined : this.store.sync(this.spec.model.value, this.context.assets),
     );
+    // an attach moves no entry: the lengths the opened sources give are read once they are in
+    this._syncing = this._syncing.then(() => this._readLengths());
     this._syncing = this._syncing.then(() => this.schedule());
     return this._syncing;
+  }
+
+  /**
+   * A source-backed system's length arrives with its source's coverage: the model is resolved again with it
+   * (_spec/README.md "SpecModel"); an equal set of lengths is no change.
+   */
+  private _readLengths(): void {
+    if (this._retired) return;
+    this.spec.setLengths(sourceLengths(this.spec.model.value, (s) => this.store.store.coverage(s)));
   }
 
   /**

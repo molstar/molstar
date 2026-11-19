@@ -19,10 +19,7 @@ import { HemeContacts } from './hemes.js';
 
 export const title = 'Hemoglobin (4HHB)';
 
-/**
- * The chains' lengths (anchors: 141 and 146 residues, the heme one position): each block names its range, as a section
- * of blocks reads its systems' lengths when it resolves, before a source has said them.
- */
+/** The chains' lengths (anchors: 141 and 146 residues, the heme one position): the file's, which the blocks read. */
 export const HemoglobinLengths = { hba: 141, hbb: 146, hem: 1 } as const;
 
 /** The section's address and its path (what a patch names). */
@@ -75,12 +72,12 @@ export function build(options: HemoglobinOptions = {}): Node {
   const contactsB = b.data.pairs('hbb-contacts', { a: hem, b: hbb, rows: contacts(HemeContacts.hbb) });
   b.views.view('main', (v) => {
     const s = v.section('hb', options.copies ? { copies: options.copies } : {});
-    const L = HemoglobinLengths;
-    s.block('a', { of: hba, label: 'α (A)', range: [0, L.hba] });
-    s.block('b', { of: hbb, label: 'β (B)', range: [0, L.hbb] });
-    s.block('c', { of: hba, label: 'α (C)', range: [0, L.hba] });
-    s.block('d', { of: hbb, label: 'β (D)', range: [0, L.hbb] });
-    for (const c of ['a', 'b', 'c', 'd']) s.block(`hem-${c}`, { of: hem, label: 'heme', range: [0, L.hem] });
+    // each block its whole chain: the lengths the file gives once it is open
+    s.block('a', { of: hba, label: 'α (A)' });
+    s.block('b', { of: hbb, label: 'β (B)' });
+    s.block('c', { of: hba, label: 'α (C)' });
+    s.block('d', { of: hbb, label: 'β (D)' });
+    for (const c of ['a', 'b', 'c', 'd']) s.block(`hem-${c}`, { of: hem, label: 'heme' });
     s.track('contacts', { label: 'Heme contacts' }, (t) => {
       t.layer('a', { type: 'pairs', data: contactsA });
       t.layer('b', { type: 'pairs', data: contactsB });

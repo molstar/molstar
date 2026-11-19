@@ -31,7 +31,7 @@ export const ligandId = (comp: string) => `lig-${comp.toLowerCase()}`;
 
 export function build(options: LigandsOptions = {}, d: Derived = Data): Node {
   const b = createSeqSpec({ title });
-  const x = crystal(b, d);
+  const x = crystal(b);
   const atoms = options.atp === 'atoms';
   const atp = ligand('ATP', d);
   const all = [atp, ...entryLigands(d)];

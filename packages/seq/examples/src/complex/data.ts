@@ -123,34 +123,24 @@ export function ligandContactRows(l: Derived['ligands'][number], per: 'ligand' |
   };
 }
 
-/**
- * 1FIN's source and its two entities' sequences (their letters held: a block's length is needed before a source opens;
- * the same as the file's, checked by the fixtures test), their secondary structure read from the file.
- */
-export function crystal(b: SeqSpecBuilder, d: Derived = Data, uri: string = Files.molecule) {
+/** 1FIN's source and its two entities' sequences, their letters and secondary structure read from the file. */
+export function crystal(b: SeqSpecBuilder, uri: string = Files.molecule) {
   const source = b.data.source('fin', {
     format: 'seq',
     uri,
     attribution: 'RCSB PDB 1FIN (Jeffrey et al. 1995)',
     licence: 'CC0-1.0',
   });
-  const cdk2 = b.data.sequence('cdk2', { alphabet: 'protein', letters: d.letters.cdk2, name: CrystalSystems.cdk2 });
-  const cyclin = b.data.sequence('cyclin', {
-    alphabet: 'protein',
-    letters: d.letters.construct,
-    name: CrystalSystems.cyclin,
-  });
+  const cdk2 = b.data.sequence('cdk2', { alphabet: 'protein', source, name: CrystalSystems.cdk2 });
+  const cyclin = b.data.sequence('cyclin', { alphabet: 'protein', source, name: CrystalSystems.cyclin });
   /** Each entity's secondary structure (ranges with `chain` and `category`). */
   const cdk2Secondary = b.data.ranges('cdk2-secondary', { target: cdk2, source });
   const cyclinSecondary = b.data.ranges('cyclin-secondary', { target: cyclin, source });
   return { source, cdk2, cyclin, cdk2Secondary, cyclinSecondary };
 }
 
-/**
- * The prediction's chains: UniProt's entries (the features read by location, the letters held as for 1FIN's) and
- * AlphaFold DB's confidence of each.
- */
-export function prediction(b: SeqSpecBuilder, d: Derived = Data) {
+/** The prediction's chains: UniProt's entries (their letters and features read by location) and AlphaFold DB's confidence. */
+export function prediction(b: SeqSpecBuilder) {
   const chain = (id: 'cdk2' | 'cyclin', accession: 'P24941' | 'P20248', uri: string, confidence: string) => {
     const entry = b.data.source(`${id}-entry`, {
       format: 'json',
@@ -159,11 +149,7 @@ export function prediction(b: SeqSpecBuilder, d: Derived = Data) {
       attribution: 'UniProt Consortium, UniProtKB',
       licence: 'CC-BY-4.0',
     });
-    const protein = b.data.sequence(`${id}-protein`, {
-      alphabet: 'protein',
-      letters: d.letters[accession],
-      name: accession,
-    });
+    const protein = b.data.sequence(`${id}-protein`, { alphabet: 'protein', source: entry, name: accession });
     const features = b.data.ranges(`${id}-features`, { target: protein, source: entry });
     const source = b.data.source(`${id}-plddt`, {
       format: 'json',

@@ -16,7 +16,6 @@ import {
   scaleLetters,
   seedRowPairs,
   SystemName,
-  TrnaLetters,
 } from './data.js';
 import { DerivedData } from './derived-data.js';
 
@@ -24,23 +23,18 @@ import { DerivedData } from './derived-data.js';
 // nested and the six tertiary pairs among them (four cross the stems' pairs); the pairs as arcs, split by crossing, as chords on a ring and as a dot
 // plot (the family's covariation, computed on 1EHZ's positions, above the diagonal, the structure's pairs below); the
 // seed row 1EHZ is placed on with its `SS_cons` pairs; the seed's rows with their logo; and the dot plot at 4,000 ×
-// 4,000. A modified residue is drawn as its parent letter, its code in a track of ranges (the mark is later).
+// 4,000. A modified residue is drawn as its parent letter, its code in a track of ranges, a label where it fits (the
+// mark is later); the arcs' legend lists the pair kinds.
 
 export const title = 'tRNA-Phe';
 
 type Builder = ReturnType<typeof createSeqSpec>;
 
 /** 1EHZ: its letters and modified residues from the committed file, its base pairs. */
-function molecule(b: Builder, inline = false) {
+function molecule(b: Builder) {
   const file = b.data.source('ehz', { format: 'seq', uri: MoleculeFile });
-  // a grid is read at resolve against its axes' lengths, which a source gives only once open: the dot plot's sequence
-  // carries its letters inline (the fixtures test compares them with the file's)
-  const trna = b.data.sequence(
-    'trna',
-    inline
-      ? { alphabet: 'rna', letters: TrnaLetters, name: SystemName }
-      : { alphabet: 'rna', source: file, name: SystemName },
-  );
+  // the letters from the file: a grid over them is read once the file gives their length
+  const trna = b.data.sequence('trna', { alphabet: 'rna', source: file, name: SystemName });
   const modified = b.data.ranges('modified', { target: trna, source: file });
   const pairs = b.data.pairs('pairs', { a: trna, rows: ehzPairs() });
   return { trna, modified, pairs };
@@ -55,7 +49,7 @@ export interface TrnaOptions {
 /** 1EHZ's letters, its modified residues, its pairs, and a view of them. */
 export function build(options: TrnaOptions = {}): Node {
   const b = createSeqSpec({ title });
-  const { trna, modified, pairs } = molecule(b, options.dotPlot);
+  const { trna, modified, pairs } = molecule(b);
   const covariation = options.dotPlot ? b.data.grid('covariation', { x: trna, values: covariationGrid() }) : undefined;
   b.views.view('main', (v) => {
     const s = v.section('trna', { of: trna, ...(options.layout ? { layout: options.layout } : {}) });
