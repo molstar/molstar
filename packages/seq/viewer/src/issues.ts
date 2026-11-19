@@ -37,8 +37,14 @@ export const ViewerIssues = defineIssues('seq.viewer', {
   },
   'seq.viewer.step.stale': {
     severity: 'warning',
-    description: 'The story step shown no longer applies over the spec: the spec is shown without it',
+    description: 'The story step shown no longer applies whole over the spec: the ops that still apply are shown',
     hint: 'Edit the step, or leave it',
+  },
+  'seq.viewer.step.frozen': {
+    severity: 'error',
+    description:
+      'An edit while a full-state story step is shown: the step does not follow the spec, so it would show nothing',
+    hint: 'Edit the step itself, or leave it to edit the spec',
   },
   'seq.viewer.step.unknown': {
     severity: 'error',

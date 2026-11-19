@@ -47,12 +47,19 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
   nothing. A move applies the patch once: what is shown is reused from `setPreview`'s result until the root or the
   preview changes. Never in the history but by its commit.
 - **Story steps** (`enterStep(id)`, `leaveStep()`): navigation, no commit and no history step. What is shown is
-  `step(applyPatch(root, preview))`: the step's stored patch over the root and the preview (the language, refs
-  followed). Edits patch the root under the step and the step is applied again over it; one naming a node only the step
-  makes is refused (`repr.patch.target`, its hint naming the step only when the step makes the target); one that sets a
-  key the step sets too lands in the root and is reported masked (`seq.viewer.edit.masked`, an info in the result and
-  `issues`). A step that no longer applies is shown as not applying (`step.applies` false, `seq.viewer.step.stale`), the
-  root shown without it; an unknown id is `seq.viewer.step.unknown`. An agent reads `root`, with `step` beside it.
+  `step(applyPatch(root, preview))`: the core's `stateOf` over the root and the preview (a full state, the step's patch
+  over it, or a delta from the step it starts `from`; the language, refs followed), cached by the revision shown and the
+  step; `step` carries its `form` and its `state` (view, timing). Edits patch the root under the step and the step is
+  applied again over it; one naming a node only the step makes is refused (`repr.patch.target`, its hint naming the step
+  only when the step makes the target); one that sets a key the step sets too lands in the root and is reported masked
+  (`seq.viewer.edit.masked`, an info in the result and `issues`). A step that no longer applies whole is shown as not
+  applying (`step.applies` false, `seq.viewer.step.stale`): the ops that still apply are shown (the design: a step's
+  state is what still applies, flagged), and a start it cannot reach is the core's `seq.story.step.from`; an unknown id
+  is `seq.viewer.step.unknown`. **While a full-state step is shown, an edit is refused** (`seq.viewer.step.frozen`, its
+  hint to edit the step): the step does not follow the spec, so the edit would show nothing.
+- **The frame slot** (`setFrame(root)`, `frame`): an animation's frame shown over what is composed, `frame(step(...))`:
+  no patch, no revision, no history step; the spec's hash never moves during an animation. `undefined` leaves it. An
+  agent reads `root`, with `step` beside it.
 - **The history** (Ports, History): `attachHistory(port)` binds the host's history with the model as its participant (a
   history bound before is detached first) (`checkpoint()` the head, `restore(c)` a move of the head that drops a preview
   and keeps the step, `changed` the last commit an edit made, told once the edit ends well: never one it took back).
@@ -151,6 +158,9 @@ nothing and tells nothing.
   pan across the origin; a follower of it shows the window over the origin as two pieces. One rule,
   `view.wraps(section)`, for the navigation, the window's drags and the input; `view.arcs(section)` reads two ends as
   the shorter arc (a ring, or a linear window over the origin now).
+- **A viewport as given** (`setViewport(section, { start, end, top?, scale? })`): a leading section takes the window,
+  the letter size and the top exactly, clamped as any move; no history step. What a story step's view and a motion
+  stopped where it is drawn use; a follower follows and takes none.
 - **Resizes** keep the zoom about the center (`viewport.onResize`: `keep-zoom`; `keep-range`); a width of 0 (hidden)
   keeps everything, so a section shown again comes back as it was (EC-112).
 - **Updates** (EC-111): axes are compared by value. An equal axis keeps its range; a changed one keeps its center (as a
@@ -326,15 +336,27 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   (`dataX`), set as every section's width. The height is the layout's content (`canvas.height: 'content'`: laid out at
   the last content height, again when it changed, at most `canvas.maxHeight`) or fixed. The renderer takes one window
   for all sections: the first section that leads gives it.
-- **Motion** (`view.jumps`): a jump (a focus, a fit, a reveal, back, forward, a step zoom) draws the window from the one
-  drawn last to the model's over `view.jumpMs` (240), eased in and out, its width geometric and its centre along it, a
-  frame a frame (the view unsettled meanwhile); the model is there at once, and hits read the frame drawn. Pointer input
-  (a press, a click, a double-click, a wheel) first stops a motion where it is drawn (`stopMotion`: the leading section
-  takes the window drawn, a frame is drawn), so what it hits, the pointer's offset and a drag read one picture; a key
-  and a side button act on the model (a repeated `-` steps from where the last one went). A move by hand ends a motion.
-  A cut under the platform's reduced motion (`reducedMotion`, the mounted UI's media query), with `view.motion: 'cut'`
-  or `jumpMs` 0. `drawnViewport` is the window the last frame drew. Why the drawn window, not the model: the model's
-  state is the destination (tests, links, the history read it), and only the eye needs the way there.
+- **Motion** (`view.jumps`): a jump (a focus, a fit, a reveal, back, forward, a step zoom) is a plan (the core's `plan`)
+  from every leading section's viewport drawn last (`drawnViewports`: its window, a text's anchor and letter size) to
+  the model's, requested of the animation port over `view.jumpMs` (240): each section its own view channel, eased in and
+  out, its width and letter size geometric and its centre along, a ring's window round its shortest arc (`cyclic` totals
+  of the sections that wrap). The view is unsettled while it runs; the model is there at once, and hits read the frame
+  drawn. Pointer input (a press, a click, a double-click, a wheel) first stops a motion where it is drawn (`stopMotion`:
+  each leading section takes the viewport drawn, `setViewport`, and a frame is drawn), so what it hits, the pointer's
+  offset and a drag read one picture; a key and a side button act on the model (a repeated `-` steps from where the last
+  one went). A move by hand ends a motion. A cut under reduced motion (`reducedMotion`, the mounted UI's media query,
+  unless `story.reducedMotion` says `always` or `never`), with `view.motion: 'cut'` or `jumpMs` 0. `drawnViewport` is
+  the first section's window the last frame drew; `viewport` and `renderSvg` read the model during a jump (the
+  destination), a story's frame as shown. Why the drawn window, not the model: the model's state is the destination
+  (tests, links, the history read it), and only the eye needs the way there.
+- **Stories** (`playStep(id | undefined, { run })`): entering a step (or leaving one) is a transition: the step's state
+  is shown at once in the model (the spec's step, its view's sections placed from positions by `setViewport`, its view
+  shown), and a plan from what was drawn to it, timed by the step (`duration`, `easing`; else `story.transition`), runs
+  on the animation port (`run`, the default) or is shown at its start for the application to drive
+  (`animation.progress`, `animation.clear`). Each frame is shown in the frame slot: the frame's spec
+  (`SpecModel.setFrame`, when the plan changes the spec) and each leading section's viewport (its `top` and `bands`
+  too). A section entering or a view switched during a transition is placed as the frame's spec gives it (the view
+  switched at the start). A cut under reduced motion.
 - **The picture as SVG** (`renderSvg`): the context's export of the shown spec, size and window through the viewer's
   store, at the last frame's device pixel ratio (the density steps are in device pixels, so it is the picture the canvas
   shows); the context's `renderSvg` of the same spec, size and window gives the same string.
@@ -364,6 +386,23 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 `browserAssetsPort(policy?)`, a `DefaultAssetManager` under the browser policy with the page as base (a host passes its
 own manager with `disposeWithViewer: false`). Text metrics: a canvas where there is a DOM (`browserTextMetrics`, the
 same CSS fonts the backend draws with), else the core's bundled table.
+
+### Animation
+
+`ports/animation.ts`: Seq* owns no clock; the application does (the history port's twin). `SeqViewerSpec.animation` is a
+factory given the participant, called once per viewer; none: the page's frames.
+
+- **The participant** (the application drives Seq*, `viewer.animation`): `progress(plan, t)` (the plan sampled at `t`
+  into its frame) or `show(plan, frame)`, `clear()` back to the state, `draw()` now (a headless clock), `drawn` (moves
+  per frame drawn while a frame is shown), `durationOf(plan)`.
+- **The animation** (Seq* asks the application): `request(plan, { duration, done })`, cancelled by its handle; the
+  viewer's own motions (a jump, a story step) go through it, so a host that animates a structure's camera runs both on
+  one clock, or cuts both. Ownership as the history's (`disposeWithViewer`, `dispose`).
+- **Adapters** (`animation.ts`, the entry `@molstar/seqx-viewer/animation`), in the composition roots:
+  `frameAnimation()` (the default spec's: `@molstar/ui/dom`'s frame callbacks, timed by `DomHost.now` from the request,
+  its last frame at `t` 1); `headlessAnimation()` (`{ port, clock }`: a fake clock that moves only by `tick(ms)`, each
+  tick showing every running plan at its time and drawing it; `runAll(stepMs)`), what a headless twin and an export run
+  on.
 
 ### History
 
@@ -672,6 +711,15 @@ settings form.
 | `view.backOnFocused`              | true                                                                                                                                                                                                                                                                                                                                         | a double-click on what is already focused goes back; false: nothing                                                                                                                                                                                                          |
 | `view.jumpMs`                     | 240                                                                                                                                                                                                                                                                                                                                          | a jump's animation (focus, fit, reveal, back, forward, a step zoom; the length: no reason recorded); 0: a cut                                                                                                                                                                |
 | `view.motion`                     | `auto`                                                                                                                                                                                                                                                                                                                                       | animated unless the platform asks for reduced motion; `cut`: always a cut                                                                                                                                                                                                    |
+| `story.transition`                | `{ duration: 240, easing: ease-in-out }`                                                                                                                                                                                                                                                                                                     | a step's transition unless the step says: the base duration of a jump (no reason recorded for its length)                                                                                                                                                                    |
+| `story.linger`                    | 2,000 ms                                                                                                                                                                                                                                                                                                                                     | how long a played step is shown before the next (no reason recorded)                                                                                                                                                                                                         |
+| `story.view`                      | `{ path: auto }`                                                                                                                                                                                                                                                                                                                             | pan when the windows overlap or touch, else out, across and in; `pan`, `out-across-in`                                                                                                                                                                                       |
+| `story.color`                     | `{ space: oklab }`                                                                                                                                                                                                                                                                                                                           | perceptual: a blend reads evenly; `srgb`                                                                                                                                                                                                                                     |
+| `story.cut`                       | `{ at: 0.5 }`                                                                                                                                                                                                                                                                                                                                | a cut switches mid-window, where the change is least seen (no reason recorded)                                                                                                                                                                                               |
+| `story.reducedMotion`             | `platform`                                                                                                                                                                                                                                                                                                                                   | follows the platform's setting (`reducedMotion`); `always`, `never`                                                                                                                                                                                                          |
+| `story.stepStart`                 | `spec`                                                                                                                                                                                                                                                                                                                                       | a patch step applies over the spec: any step reached directly; `from` per step                                                                                                                                                                                               |
+| `story.store`                     | `patch`                                                                                                                                                                                                                                                                                                                                      | the encoder stores a patch over the spec (it follows edits); `full`, `smaller`                                                                                                                                                                                               |
+| `story.maxChain`                  | 8                                                                                                                                                                                                                                                                                                                                            | deltas at most between a step and its keyframe: reaching a step costs at most that many applies                                                                                                                                                                              |
 | `view.keys`                       | `view.back`: Alt+ArrowLeft, Backspace; `view.forward`: Alt+ArrowRight; `view.fit`: 0; `view.zoom-in`: = and +; `view.zoom-out`: -; `view.pan-left`, `view.pan-right`, `view.pan-up`, `view.pan-down`: Shift+Alt+Arrow; `selection.copy-letters`: Mod+c; `selection.bookmark`: Mod+d; `section.reverse`: Shift+R; `section.collapse`: Shift+C | the view's commands' keys by command id, the first the shortcut, and the one shown in the toolbar's tooltip (Cmd/Ctrl+D bookmarks the selection: the browser's own bookmark key, taken only while the canvas has focus); an override merges by id (`[]`: none)               |
 | `ui.toolbar` (in `SeqViewerSpec`) | none                                                                                                                                                                                                                                                                                                                                         | a function mounting the bar above the canvas (`mountToolbar`: Back and Forward, their keys and disabled state); the host places it, as it would a legend: the bar is `@molstar/ui`'s and heavy                                                                               |
 | `ui.legends` (in `SeqViewerSpec`) | `legendsMount`                                                                                                                                                                                                                                                                                                                               | a function mounting the Legend part (`mountLegend(element, viewer, { of, maxItems })`: the legends of the view or of one track, at most 12 entries each, its rows options with accessible names, roving focus, a click selecting a value's items, a hover highlighting them) |

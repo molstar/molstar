@@ -280,6 +280,29 @@ export class ViewModel extends ReactiveModel {
     this._publish();
   }
 
+  /**
+   * Sets a leading section's viewport as given (offsets: a story step's view, an animation left where it was drawn):
+   * its window, its letter size and its top, then clamped as any move; no history step (_spec/README.md "ViewModel",
+   * Stories). False when the section does not lead (a follower follows) or cannot move.
+   */
+  setViewport(
+    section: string,
+    v: { readonly start: number; readonly end: number; readonly top?: number; readonly scale?: number },
+  ): boolean {
+    if (!Number.isFinite(v.start) || !Number.isFinite(v.end) || this.isFollowing(section)) return false;
+    const g = this._movable(section);
+    if (!g) return false;
+    this._take(g, {
+      start: Math.min(v.start, v.end),
+      end: Math.max(v.start, v.end),
+      ...(v.scale !== undefined ? { scale: v.scale } : {}),
+    });
+    const s = this._sections.get(section);
+    if (s && v.top !== undefined && Number.isFinite(v.top)) s.top = v.top;
+    this._publish();
+    return true;
+  }
+
   /** Shows `[start, end)` (offsets); before a width, the intent (EC-112). False when the section cannot move. */
   setRange(section: string, start: number, end: number): boolean {
     if (!Number.isFinite(start) || !Number.isFinite(end)) return false;
