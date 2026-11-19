@@ -10,9 +10,10 @@ import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 
 // The tRNA dataset: yeast tRNA-Phe as in 1EHZ (76 nucleotides, modified bases written as their parents), its base
 // pairs from the structure (the four stems, nested, and the tertiary pairs that cross them: 8–14, 15–48 the Levitt
-// pair, 18–55, 19–56, 26–44, 54–58), each of a kind (canonical, wobble, non-canonical); and a base-pair probability
-// grid on the same 76 positions: generated from the structure's pairs and the sequence's complementarity with a seed
-// (a stand-in until a computed covariation is recorded), so a grid layer draws on its own systems only.
+// pair, 18–55, 19–56, 26–44, 54–58), each of a kind (canonical, wobble, non-canonical); and a synthetic base-pair
+// probability grid on the same 76 positions: generated from the structure's pairs and the sequence's complementarity
+// with a seed (not computed: a stand-in until a computed one is recorded), so a grid layer draws on its own systems
+// only.
 
 export const title = 'tRNA-Phe';
 
@@ -80,7 +81,7 @@ export function trnaPairs() {
 }
 
 /**
- * The base-pair probabilities, 76 × 76, x-major and symmetric: 0.95 at a stem's pair, 0.5 at a tertiary one, a small
+ * The synthetic base-pair probabilities, 76 × 76, x-major and symmetric: 0.95 at a stem's pair, 0.5 at a tertiary one, a small
  * value from a seed where two bases could pair (Watson–Crick or G·U, at least four apart), missing elsewhere.
  */
 export function trnaProbabilities(): Float32Array {
@@ -128,15 +129,19 @@ export function build(options: TrnaOptions = {}): Node {
     if (!options.dotPlot) return;
     // the dot plot: x and y the tRNA's, y following x; the probabilities above the diagonal, the structure's pairs
     // below it (mirrored: the builder sets `mirror`, a plain `false` otherwise)
-    v.section('dots', { layout: 'grid', of: trna, follow: s.address }).track('plot', { label: 'Dot plot' }, (t) => {
-      t.layer('probability', {
-        type: 'grid',
-        data: probability,
-        triangle: 'upper',
-        color: theme.field('value', { domain: [0, 1], palette: theme.continuous({ colors: 'blues' }) }),
-      });
-      t.layer('structure', { type: 'pairs', data: pairs, mirror: true, triangle: 'lower' });
-    });
+    v.section('dots', { layout: 'grid', of: trna, follow: s.address }).track(
+      'plot',
+      { label: 'Dot plot (synthetic)' },
+      (t) => {
+        t.layer('probability', {
+          type: 'grid',
+          data: probability,
+          triangle: 'upper',
+          color: theme.field('value', { domain: [0, 1], palette: theme.continuous({ colors: 'blues' }) }),
+        });
+        t.layer('structure', { type: 'pairs', data: pairs, mirror: true, triangle: 'lower' });
+      },
+    );
   });
   return b.build();
 }

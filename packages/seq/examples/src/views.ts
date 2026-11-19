@@ -301,16 +301,17 @@ export const ComplexViews: readonly ExampleView[] = [
   {
     dataset: 'complex',
     id: 'pae',
-    title: 'PAE across the chains',
+    title: 'PAE across the chains (synthetic)',
     summary:
-      'A section a chain and the predicted aligned error between them as a grid: its x follows CDK2’s section, its y cyclin A’s; the interface’s contacts as dots on it. Hover a cell: both residues light in their sections.',
+      'A section a chain and a synthetic predicted aligned error between them as a grid (low across the interface, generated from a seed): its x follows CDK2’s section, its y cyclin A’s; synthetic contacts at the interface as dots on it (random positions there, not derived from coordinates). Hover a cell: both residues light in their sections; zoom or scroll it: both sections move.',
     build: () => complexPae.build(),
   },
   {
     dataset: 'complex',
     id: 'contacts',
-    title: 'Contacts between the chains',
-    summary: 'The interface’s contacts as arcs from CDK2’s block to cyclin A’s: a pair, both ends lit on hover.',
+    title: 'Contacts between the chains (synthetic)',
+    summary:
+      'Synthetic contacts at the interface (random positions there, not derived from coordinates) as arcs from CDK2’s block to cyclin A’s: a pair, both ends lit on hover.',
     build: complexPae.contacts,
   },
 ];
@@ -328,7 +329,8 @@ export const TrnaViews: readonly ExampleView[] = [
     dataset: 'trna',
     id: 'split',
     title: 'Crossing pairs below',
-    summary: 'The largest nested set of pairs above the letters, the pairs that cross it below (`crossing: split`).',
+    summary:
+      'The largest nested set of pairs above a middle line, the pairs that cross it below (`crossing: split`), over the letters.',
     build: trna.split,
   },
   {
@@ -341,9 +343,9 @@ export const TrnaViews: readonly ExampleView[] = [
   {
     dataset: 'trna',
     id: 'dot-plot',
-    title: 'Base-pair dot plot',
+    title: 'Base-pair dot plot (synthetic probabilities)',
     summary:
-      'The arcs over the letters and the dot plot under them, its axes following their window: base-pair probabilities above the diagonal, the structure’s pairs mirrored below. Hover a cell: a crosshair, both bases lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
+      'The arcs over the letters and the dot plot under them, its axes following their window: synthetic base-pair probabilities above the diagonal (generated from the pairs and the bases’ complementarity with a seed, not computed), the structure’s pairs mirrored below. Hover a cell: a crosshair, both bases and the arcs ending there lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
     build: trna.dotPlot,
   },
 ];

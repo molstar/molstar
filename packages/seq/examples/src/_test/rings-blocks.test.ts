@@ -28,6 +28,7 @@ import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import { ComplexLengths } from '../complex/blocks.js';
+import { complexContacts, complexPae } from '../complex/pae.js';
 import { PlasmidFeatures, PlasmidLength, plasmidLetters, RotatedOrigin, rotate } from '../plasmid/data.js';
 import { ComplexViews, PlasmidViews } from '../views.js';
 
@@ -155,5 +156,22 @@ describe('the Complex stand-in’s blocks', () => {
     }
     const ring = (await laid(view('blocks-ring').build())).sections[0].placement as RingPlacement;
     expect(ring.strips.n).toBe(3);
+  });
+});
+
+describe('the Complex’s synthetic PAE and contacts', () => {
+  it('reads low across the interface and high elsewhere; every contact lies in the interface', () => {
+    const v = complexPae();
+    const ny = ComplexLengths.cyclin;
+    const mean = (i0: number, i1: number, j0: number, j1: number) => {
+      let s = 0;
+      for (let i = i0; i < i1; i++) for (let j = j0; j < j1; j++) s += v[i * ny + j];
+      return s / ((i1 - i0) * (j1 - j0));
+    };
+    expect(mean(44, 56, 60, 95)).toBeLessThan(8);
+    expect(mean(150, 165, 95, 125)).toBeLessThan(8);
+    expect(mean(200, 290, 150, 250)).toBeGreaterThan(22);
+    const c = complexContacts();
+    for (let k = 0; k < c.a_start.length; k++) expect(v[c.a_start[k] * ny + c.b_start[k]]).toBeLessThan(8);
   });
 });

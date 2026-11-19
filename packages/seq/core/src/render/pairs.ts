@@ -41,6 +41,9 @@ export const SplitExact = 2000;
 /** An arc's least height, px: never flat. */
 const MinArc = 3;
 
+/** A dot's least side, CSS px. */
+const DotMin = 4;
+
 /** The feet's inset from the band's edge, px: the stroke's half and a hair, so an arc is drawn within its band. */
 const Inset = 1;
 
@@ -921,8 +924,8 @@ function dot(
     lay.dots = grown(lay.dots, 4 * i + 4);
     lay.dotPair = grown(lay.dotPair, i + 1);
     lay.dotColor = grown(lay.dotColor, i + 1);
-    // at least two device pixels a side
-    const m = 2 / a.dpr;
+    // at least `DotMin` CSS px a side: a dot reads at any zoom
+    const m = DotMin;
     const w = Math.max(Math.abs(ax1 - ax0), m);
     const h = Math.max(Math.abs(ay.sx1 - ay.sx0), m);
     lay.dots[4 * i] = (ax0 + ax1) / 2 - w / 2;
@@ -978,14 +981,16 @@ function sideBySide(lay: PairsLay) {
 
 function drawDots(lay: PairsLay, out: PassWriter) {
   const g = out.args;
+  // outlined in the text's ink (dark on light, light on dark): a dot reads over any color of the cells under it
+  const line = lay.tokens!.colors['msui-text'];
   for (let i = 0; i < lay.nd; i++) {
     g[0] = lay.dots[4 * i];
     g[1] = lay.dots[4 * i + 1];
     g[2] = lay.dots[4 * i + 2];
     g[3] = lay.dots[4 * i + 3];
     g[4] = lay.dotColor[i];
-    g[5] = NoColor;
-    g[6] = 0;
+    g[5] = line;
+    g[6] = 1;
     g[7] = 0;
     g[8] = 0;
     out.rectArgs();
