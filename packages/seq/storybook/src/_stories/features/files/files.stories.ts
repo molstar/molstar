@@ -40,6 +40,13 @@ export const TableMessagePackRecords: StoryObj = story('table-msgpack-aos');
 export const TableMessagePackColumns: StoryObj = story('table-msgpack-soa');
 
 /**
+ * One table for two sequences: a `target` column names each row’s sequence (GFF3’s `seqid` does the same), and a row
+ * with an empty target is on the source’s own system. Each section shows only its own rows: p53 its domains (the NLS
+ * row among them, with no target), CDK2 its loops and helix.
+ */
+export const ManySequences: StoryObj = story('many-sequences');
+
+/**
  * The plasmid’s features as GFF3: nine columns, a `region` row saying the construct is circular, and bla and a primer
  * site ending past its length, one row each, as NCBI writes a ring’s features. Each is drawn as one item across the
  * origin, in the ring and in its detail.
