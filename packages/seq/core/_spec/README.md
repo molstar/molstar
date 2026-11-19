@@ -1489,11 +1489,13 @@ numbers): a window move allocates nothing once warm.
   over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
   when a neighboring region arrives.
 - **Hits go through the placement**: the section under the point, its layout's own marks (`hitChrome`), then the point
-  placed (`at`, reading the page point from an array as a layer's `hit` does: a number passed to a call that is not
-  inlined is boxed, so a cell's `hitView` allocates nothing past its caller's call) and the band's layers, topmost
-  first, each `hit` with the point in the strip's frame; a layer's hit box is in its strip's frame, so every drawn mark
-  keeps its hit box through the warp. `system` is the strip's; `block` its index in the section when the section has
-  blocks; `target` `window` (with its `part`) or `row` (a gutter's row) for a layout's marks.
+  placed (`at`, reading the page point from an array as a layer's `hit` does, and the strip-frame x through the axis's
+  `inGapOf` and `unitInto`: a number passed to or returned from a call that is not inlined is boxed, so placing a point
+  allocates nothing on any axis, grouped too, and a grid cell's `hitView` nothing past its caller's call; a text
+  section's `hitView` still allocates in its other hit paths, the package's TODO) and the band's layers, topmost first,
+  each `hit` with the point in the strip's frame; a layer's hit box is in its strip's frame, so every drawn mark keeps
+  its hit box through the warp. `system` is the strip's; `block` its index in the section when the section has blocks;
+  `target` `window` (with its `part`) or `row` (a gutter's row) for a layout's marks.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
@@ -1612,11 +1614,12 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   pinned, hidden or folded is arithmetic (no arrays): a million lazy rows cost what ten do. Held by property tests over
   random trees and folds (every shown row placed once, found where it is drawn).
 - **Clades** (`buildClades`): a tree's nodes over the rows, each a run of its leaf order; named by the node's label
-  where it is unique in the tree and not a number, else `first..last` (its first and last leaves' labels), so a name
-  survives a reorder and two clades never share one (support values as inner labels, `((A,B)95,(C,D)95)`: a hover, a
-  fold and `clades.keep` reach each); `allClades`, `cladesAtDepth`, `cladesWithin(height)` (every largest clade whose
-  leaves lie within `height` of its node by branch length) and `cladesHolding(row)` are what the clade commands fold and
-  open.
+  where it is unique in the tree (leaves counted) and not support (a number, or numbers joined by `/` or `|`, IQ-TREE's
+  `87.3/95`: a reinferred tree changes them), else `first..last` (its first and last leaves' labels), so a name survives
+  a reorder and two clades never share one (support values as inner labels, `((A,B)95,(C,D)95)`: a hover, a fold and
+  `clades.keep` reach each); a `collapsed` name no clade has is said once (`seq.render.rows.clade`, info), never dropped
+  silently; `allClades`, `cladesAtDepth`, `cladesWithin(height)` (every largest clade whose leaves lie within `height`
+  of its node by branch length) and `cladesHolding(row)` are what the clade commands fold and open.
 - **Folds** are the band's (`Viewport.bands[track].folds`, by name: session state, compared by identity and part of the
   section's key), else the layer's `collapsed` (the opening state).
 - **The transform**: `rowScale` (px a row; `RowHeight`, 20, fixed, when the band gives none) and `bandTop` (the band's
@@ -1769,10 +1772,10 @@ It reads every row (a logo of the rows shown is not built: the package's TODO).
 
 ### Issues
 
-- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.text.unfolded` (info), `logo.profile` (info),
-  `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`, `layer.axes`,
-  `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
-  `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
+- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.clade` (info), `rows.text.unfolded` (info),
+  `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`,
+  `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`,
+  `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
   `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
   `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
   (info); a test checks the catalog.
