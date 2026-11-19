@@ -57,6 +57,30 @@ export function itWithin(
 }
 
 /**
+ * A ratio of two repeatable timings: `b` at most `ratio` × `a`, each the best of `rounds` runs taken in turn (a, b, a,
+ * b…), so a burst or a clock change meets both alike. Why in turn: two timings taken one after the other compare two
+ * moments of the machine, not the two functions. Unbounded (the quick lane), each runs once.
+ */
+export function ratioWithin(within: Within, ratio: number, a: () => unknown, b: () => unknown, rounds = 5): void {
+  if (within === unbounded) {
+    a();
+    b();
+    return;
+  }
+  let bestA = Number.POSITIVE_INFINITY;
+  let bestB = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < rounds; i++) {
+    let t0 = performance.now();
+    a();
+    bestA = Math.min(bestA, performance.now() - t0);
+    t0 = performance.now();
+    b();
+    bestB = Math.min(bestB, performance.now() - t0);
+  }
+  expect(bestB, `best ${bestB.toFixed(3)} ms against ${ratio}× ${bestA.toFixed(3)} ms`).toBeLessThan(ratio * bestA);
+}
+
+/**
  * A bound on a repeatable `f`, held when any of `tries` runs is under `ms`: one sample of a few milliseconds in a
  * parallel heavy run can meet a collection or another worker's burst. Unbounded (the quick lane), `f` runs once.
  */
