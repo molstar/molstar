@@ -406,8 +406,10 @@ and dark before the merge.
 - [x] SC (fast; merged) a range's strand in the hover card (`briefs/sc-card-strand.md`).
 - [ ] PG (strong, after CF; the author, 2026-11-19: "Fix PCG in core") a real PCG32, seeded data regenerated once
       (`briefs/pg-pcg.md`).
-- [ ] SD (strong, a fourth-slice draft; the author, 2026-11-19: "Structure syncing") the structure syncing design,
+- [x] SD (reported: `drafts/structure-syncing.md`, seven gaps for the author; strong, a fourth-slice draft; the author, 2026-11-19: "Structure syncing") the structure syncing design,
       drafted (`briefs/sd-structure-syncing.md`).
+- [ ] MF (fast; the author, 2026-11-19: "annotation for multiple sequences in a same file") a Files story of one
+      file, several sequences (`briefs/mf-many-sequences-file.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

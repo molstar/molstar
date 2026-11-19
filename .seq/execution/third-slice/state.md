@@ -341,3 +341,10 @@ None.
   lane PG (strong) after CF.
 - SC merged (reviewed by the orchestrator; an inline numeric strand added): the hover card and announcer say a range's
   strand. Quick 2310 (+1 expected fail) on its branch.
+- The author (2026-11-19, Storybook): Examples › Antibody › Index › "Antibody Stories" broken: the index's map was
+  exported from a stories file (and Complex's); fixed by the orchestrator (`24967738f`) with a quick guard over every
+  stories file. "The numbering on the rail is broken": the ruler's labels in a numbering with insertions and gaps
+  (52A and 82C at the fit, every insertion ticked, the step not held across 100A–C, IMGT's 60 and 110 missing, the
+  rail's window on the tick row): sent to CF (it owns `ruler.ts` this round), with a recommended rule for the author.
+- SD reported the fourth slice's structure syncing draft (`drafts/structure-syncing.md`), seven gaps for the author.
+  MF (fast) starts: a Files story of one file over several sequences (the author's question; built, not shown).
