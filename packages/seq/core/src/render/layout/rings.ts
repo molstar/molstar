@@ -507,13 +507,15 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     const k = p.labelAt(x, y);
     if (k >= 0) return p.labels.hits[p.labels.placed[k]];
     if (!p.strips.n || !p.windowActive || !p.windowShown || !p.warp.unmap(x, y)) return undefined;
-    let fx = p.warp.px;
+    const fx = p.warp.px;
     const fy = p.warp.py;
-    const x0 = p.frameX(p.windowStart);
-    let x1 = p.frameX(p.windowEnd);
-    if (x1 <= x0) x1 += p.circumference;
-    if (fx < x0 - WindowMetrics.hit) fx += p.circumference;
-    const part = windowPart(fx, fy, x0, x1, -RingMetrics.rim, RingMetrics.rim);
+    p.windowFrame();
+    const c = p.circumference;
+    // the pointer's frame x a turn either way too: a grip reaches across the origin from either side
+    const part =
+      windowPart(fx, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim) ??
+      windowPart(fx + c, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim) ??
+      windowPart(fx - c, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim);
     if (!part) return undefined;
     return { layer: s.section.address, section: s.id, system: s.section.axis.system, target: 'window', part };
   },

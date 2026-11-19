@@ -181,6 +181,22 @@ describe('the rings layout', () => {
     expect(g.lists.passes.window.opCount).toBe(0);
   });
 
+  it('the window’s grips hit across the origin: a start just past it, an end just before it', async () => {
+    const s = await settle(ringSpec());
+    for (const [start, end, edge, part] of [
+      [1, 60, 1, 'start'],
+      [520, 599, 599, 'end'],
+    ] as const) {
+      const f = await s.frame({ size: Size, viewports: { '/views/v/ring': { start, end } } });
+      const p = ringOf(f).placement as RingPlacement;
+      const x = p.frameX(edge);
+      for (const dx of [-4, 4]) {
+        p.warp.map(x + dx, -5);
+        expect(hitAtPage(f, p.warp.px, p.warp.py)).toMatchObject({ target: 'window', part });
+      }
+    }
+  });
+
   it('the ring’s lists in SVG: every primitive bent onto the page (no rect survives the warp)', async () => {
     const s = await settle(ringSpec({ detail: false }));
     const f = await s.frame({ size: Size });
