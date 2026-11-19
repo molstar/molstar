@@ -418,7 +418,7 @@ and dark before the merge.
 - [ ] RX (strong, next free slot; the author, 2026-11-19) a row column's whole value only under the pointer; the tree's
       lines and wedges
       (`briefs/rx-row-column-tip.md`).
-- [ ] CE (fast, next free slot; the author, 2026-11-19: "Caret, not first copy") a pair's end on split copies
+- [x] CE (parked, unmerged: the author, 2026-11-19, "wait until we can address copies"; branch `seq/ce-copy-ends` and its review kept for the fourth slice; fast, next free slot; the author, 2026-11-19: "Caret, not first copy") a pair's end on split copies
       (`briefs/ce-copy-ends.md`).
 - [ ] DR (strong, next free slot) the structure syncing and track header parts drafts revised by the author's
       decisions (`briefs/dr-drafts-revision.md`).

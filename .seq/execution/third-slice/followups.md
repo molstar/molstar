@@ -68,3 +68,10 @@
   `ItemDescription` could carry it); an inline `strand` of null breaks core's model (`strand.get is not a function`);
   a section over a source sequence needs the sequence named after the source's system, else its length is unknown and
   nothing lays out (said nowhere).
+- **Copy ends with units** (fourth slice, with molecules.md's units): CE's branch `seq/ce-copy-ends` (189097018) and
+  its review (2026-11-19): (1) both ends on split copies drew nothing (the split hemoglobin lost every contact); (2)
+  "copies" counted as blocks holding a position, not the resolver's copies (one system, one range): the default merge
+  mode with a zoom block dropped pairs and said a wrong issue; a pair within one split system vanished; (3) the issue
+  counted filtered pairs and named only the first system a layer (the frame's report dedupes by code and address);
+  (4) an end out of its block's range beside a copy end lost its caret and `pairs.systems`; (5) carets hittable (a
+  tie resolves to the first, arcs to the later), a Map iterator a layout; (6) tests by shape of the real example.

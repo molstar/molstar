@@ -401,3 +401,7 @@ None.
 - LP stopped on two gaps in the public API; decided (the author, 2026-11-19): pairs answer `items` with a row's
   `system`, a highlight channel's `elements`, the linked pairs in the highlight pass (viewer-models.md,
   locations-and-queries.md); LP's round 2 started. PG and UN can start now (after CF); RX rebases next.
+- CE reviewed (two highs: the split hemoglobin lost every contact, both ends on copies; copies miscounted in the
+  default merge mode). The author (2026-11-19): "should we wait until we can address copies later?": yes, parked
+  unmerged; grids-and-rows.md says the end stays on the first copy until units (fourth slice); the review's findings
+  in followups.md. RX rebased (a clade hover's 244 B a frame fixed): under independent review.

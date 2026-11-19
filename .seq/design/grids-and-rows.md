@@ -166,11 +166,13 @@ vertical scale. This design builds on them and adds only:
   mapped through the strip's warp: one curve is an arc over a block, an arc between two lines, a chord through a ring's
   hole, with no layout named in the layer. An end not placed in the view (a chain not shown) leaves a caret at the placed
   end, never a dangling arc. **An end on a system shown as several split copies**, whose data names no copy (a contact
-  to "the heme" with four hemes shown, `copies: each`), is not placed on any copy: the known end draws its caret
-  pointing at the copies, with one info issue (`seq.render.pairs.copy`: "heme: 4 copies shown, the contact names
-  none"); merged copies (×n) draw as one end as before (decided, the author, 2026-11-19: "Caret, not first copy"; the
-  split hemoglobin drew every heme contact to the first heme). The real arc comes with units (pairs with `a_unit`,
-  `b_unit`, [molecules.md](molecules.md), the fourth slice). In a grid section the layer is laid out per strip instead, as dots over `ctx.axis` and
+  to "the heme" with four hemes shown, `copies: each`), waits for copy addressing (decided, the author, 2026-11-19:
+  "should we wait until we can address copies later?", after CE's caret left the split hemoglobin with no contacts, both
+  ends of every contact being on split copies): until units (pairs with `a_unit`, `b_unit`, [molecules.md](molecules.md),
+  the fourth slice) the end is placed on the first copy as before; then a contact names its copies and draws its real
+  arc. CE's branch (`seq/ce-copy-ends`, a caret and `seq.render.pairs.copy`) and its review are kept for that slice:
+  copies are counted as the resolver groups them (one system, one range), a pair within one split system draws on each
+  copy, and both ends on unnamed copies is decided then. In a grid section the layer is laid out per strip instead, as dots over `ctx.axis` and
   `ctx.axisY`.
 - **Arcs**, EC-129: in the band (the layer's `side`: `above`, `below`), never flat; an end past the window taken a quarter
   window past its edge (`reach`, 0.25), so an arc moves continuously on pan; height by span against the widest in
