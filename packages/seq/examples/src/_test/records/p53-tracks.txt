@@ -70,6 +70,7 @@ rect 578 79.33 18 24.67 #5b7c99ff
 rect 596 84.33 18 19.67 #5b7c99ff
 rect 614 101.33 18 2.67 #5b7c99ff
 unclip
+pass window
 pass highlight
 pass selection
 pass hover

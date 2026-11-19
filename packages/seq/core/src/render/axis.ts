@@ -9,14 +9,24 @@
 // units in the axis's direction: on a reversed axis a piece `[s, e)` shows `e − 1 − k` at its offset `k` (EC-32). The
 // viewport is a window of display units drawn across the data box. A break between two pieces is zero units wide. Cell
 // edges snap to the device grid. Lookups are binary searches over the pieces (a reversed axis of 150,000 pieces, EC-33,
-// pans with no scan of them).
+// pans with no scan of them). Groups (_spec/README.md "Render", Section layouts: text) put a gap after every `size`
+// display units, counted from the axis's first: a cell skips the gaps, a span bridges them.
 
 import { axisBreaks, monotonic, pieceAtOffset, pieceOffsets, pieceOfPosition } from '@molstar/seqx-core/view';
 
-/** A window of display units: from `start` to `end` (fractional), along a section's pieces end to end. */
+/**
+ * A section's viewport (_spec/README.md "Render", Section layouts): `start` and `end` in display units (fractional),
+ * read by the section's layout (tracks: the window; text: `start` the anchor, `end` derived; rings: the window), its
+ * vertical scroll `top`, `scale` (text: px a position), and per band its own scroll and row zoom (`bands`, by track
+ * address) and a grid's second axis (`y`).
+ */
 export interface Viewport {
   readonly start: number;
   readonly end: number;
+  readonly top?: number;
+  readonly scale?: number;
+  readonly bands?: Readonly<Record<string, { readonly bandTop: number; readonly rowScale?: number }>>;
+  readonly y?: { readonly start: number; readonly end: number };
 }
 
 /** Which ends of a span the view or a piece's edge cut, on screen (they are drawn square). */
@@ -27,6 +37,8 @@ export interface AxisShapeOptions {
   readonly dir?: 1 | -1;
   readonly length?: number;
   readonly cyclic?: boolean;
+  /** A gap of `gap` px after every `size` display units (text's groups of ten); none by default. */
+  readonly groups?: { readonly size: number; readonly gap: number };
 }
 
 export class AxisTransform {
@@ -46,6 +58,10 @@ export class AxisTransform {
   readonly k1: number;
   /** Whether the pieces run one way in display order: a position's piece is a binary search. */
   private readonly sorted: boolean;
+  /** Groups: their size in display units (0: none), the gap after each (px), the group the window starts in. */
+  readonly gsize: number;
+  readonly ggap: number;
+  private readonly g0: number;
 
   constructor(
     readonly system: string,
@@ -70,7 +86,13 @@ export class AxisTransform {
     const u1 = viewport ? Math.max(u0, Math.min(viewport.end, total)) : total;
     this.u0 = u0;
     this.u1 = u1 > u0 ? u1 : u0 + 1;
-    this.scale = width / (this.u1 - this.u0);
+    const g = shape.groups;
+    this.gsize = g && g.size > 0 ? g.size : 0;
+    this.ggap = this.gsize ? g!.gap : 0;
+    this.g0 = this.gsize ? Math.floor(u0 / this.gsize) : 0;
+    // the gaps inside the window take their px from the width
+    const inner = this.gsize ? Math.max(0, Math.ceil(this.u1 / this.gsize) - 1 - this.g0) : 0;
+    this.scale = Math.max(width - inner * this.ggap, 1e-9) / (this.u1 - this.u0);
     this.k0 = n ? pieceAtOffset(all, u0) : 0;
     let k1 = n ? pieceAtOffset(all, this.u1) : -1;
     // a piece starting at the window's end is not in it
@@ -88,9 +110,17 @@ export class AxisTransform {
     return Math.max(1, Math.ceil(this.width * this.dpr));
   }
 
-  /** x of a display unit. */
+  /** x of a display unit (a cell's left edge: past the gap before a group's first unit). */
   xOfUnit(u: number): number {
-    return this.x0 + (u - this.u0) * this.scale;
+    if (this.gsize === 0) return this.x0 + (u - this.u0) * this.scale;
+    return this.x0 + (u - this.u0) * this.scale + (Math.floor(u / this.gsize) - this.g0) * this.ggap;
+  }
+
+  /** x of a display unit as a right edge: before the gap after a group's last unit. */
+  xOfEnd(u: number): number {
+    if (this.gsize === 0) return this.x0 + (u - this.u0) * this.scale;
+    const k = Math.ceil(u / this.gsize) - 1 - this.g0;
+    return this.x0 + (u - this.u0) * this.scale + (k > 0 ? k : 0) * this.ggap;
   }
 
   /** The display unit of the boundary before position `b` in piece `k` (its left edge forward, its right reversed). */
@@ -128,6 +158,13 @@ export class AxisTransform {
   cell(p: number): boolean {
     const k = this.pieceOf(p, false);
     if (k < 0) return false;
+    if (this.gsize !== 0) {
+      const ua = this.unitOf(k, p);
+      const ub = this.unitOf(k, p + 1);
+      this.sx0 = this.xOfUnit(ua < ub ? ua : ub);
+      this.sx1 = this.xOfEnd(ua < ub ? ub : ua);
+      return Number.isFinite(this.sx0) && Number.isFinite(this.sx1);
+    }
     const a = this.xOfUnit(this.unitOf(k, p));
     const b = this.xOfUnit(this.unitOf(k, p + 1));
     this.sx0 = a < b ? a : b;
@@ -135,10 +172,29 @@ export class AxisTransform {
     return Number.isFinite(this.sx0) && Number.isFinite(this.sx1);
   }
 
-  /** The display unit under x (fractional), or −1 outside the data box. */
+  /** The display unit under x (fractional), or −1 outside the data box; in a group's gap, the next group's first. */
   unitAt(x: number): number {
     if (x < this.x0 || x >= this.x0 + this.width) return -1;
-    return this.u0 + (x - this.x0) / this.scale;
+    if (this.gsize === 0) return this.u0 + (x - this.x0) / this.scale;
+    const d = x - this.x0;
+    // px to the window's first group boundary, then whole groups with their gaps
+    const first = ((this.g0 + 1) * this.gsize - this.u0) * this.scale;
+    if (d < first) return this.u0 + d / this.scale;
+    const span = this.gsize * this.scale + this.ggap;
+    const k = Math.floor((d - first) / span);
+    const r = d - first - k * span - this.ggap;
+    const u = (this.g0 + 1 + k) * this.gsize;
+    return r < 0 ? u : u + r / this.scale;
+  }
+
+  /** Whether x falls in a group's gap (no position there). */
+  inGap(x: number): boolean {
+    if (this.gsize === 0 || x < this.x0 || x >= this.x0 + this.width) return false;
+    const first = ((this.g0 + 1) * this.gsize - this.u0) * this.scale;
+    const d = x - this.x0 - first;
+    if (d < 0) return false;
+    const span = this.gsize * this.scale + this.ggap;
+    return d - Math.floor(d / span) * span < this.ggap;
   }
 
   /** The position under x (an integer), or −1 where there is none. */
@@ -219,10 +275,20 @@ export class AxisTransform {
     if (b < a || (b === a && (a === pe || s !== e))) return false;
     const left = this.x0;
     const right = this.x0 + this.width;
-    const ua = this.xOfUnit(this.unitOf(k, a));
-    const ub = this.xOfUnit(this.unitOf(k, b));
-    let xa = ua < ub ? ua : ub;
-    let xb = ua < ub ? ub : ua;
+    let xa: number;
+    let xb: number;
+    if (this.gsize !== 0) {
+      // groups: the left edge past a gap, the right before one, so a span bridges the gaps inside it only
+      const va = this.unitOf(k, a);
+      const vb = this.unitOf(k, b);
+      xa = this.xOfUnit(va < vb ? va : vb);
+      xb = va === vb ? xa : this.xOfEnd(va < vb ? vb : va);
+    } else {
+      const ua = this.xOfUnit(this.unitOf(k, a));
+      const ub = this.xOfUnit(this.unitOf(k, b));
+      xa = ua < ub ? ua : ub;
+      xb = ua < ub ? ub : ua;
+    }
     // a span that only touches the view's edge is not in view; a boundary on the edge is
     if (s === e ? xb < left || xa > right : xb <= left || xa >= right) return false;
     let cut = 0;

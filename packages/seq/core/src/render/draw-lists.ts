@@ -9,13 +9,16 @@
 // nothing is allocated once warm). Within a pass the primitives draw in the order they were added: `ops` holds each
 // one's kind, and each kind's arrays are read with a cursor of their own.
 
-/** The passes, below to above: the Canvas2D backend draws the first two on one canvas, the emphasis on an overlay. */
-export const Passes = ['background', 'data', 'highlight', 'selection', 'hover', 'cursor', 'labels'] as const;
+/**
+ * The passes, below to above: the Canvas2D backend draws the first two on one canvas, the emphasis on an overlay. The
+ * `window` pass is the first of the emphasis (a ring's or a navigator's window, under the highlights).
+ */
+export const Passes = ['background', 'data', 'window', 'highlight', 'selection', 'hover', 'cursor', 'labels'] as const;
 
 export type PassName = (typeof Passes)[number];
 
-/** The passes a hover, a selection or the cursor redraws alone. */
-export const EmphasisPasses: readonly PassName[] = ['highlight', 'selection', 'hover', 'cursor'];
+/** The passes a hover, a selection, the cursor or a window's move redraws alone. */
+export const EmphasisPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
 
 export const Op = { rect: 0, path: 1, glyphs: 2, text: 3, image: 4, clip: 5, unclip: 6 } as const;
 
@@ -158,7 +161,11 @@ export class PathList {
   }
 }
 
-/** `glyphs`: a run of single letters in one font, an x (center) per letter, one baseline y, a color per letter or one. */
+/**
+ * `glyphs`: a run of single letters in one font, an x (center) per letter, one baseline y, a color per letter or one.
+ * A **placed** run (`placed`) gives each letter its own baseline `ly`, angle (radians, clockwise, about its place) and
+ * vertical scale `vs` (letters along a ring, a logo's stacked letters, a row's letters).
+ */
 export class GlyphList {
   n = 0;
   font = new Uint32Array(16);
@@ -167,10 +174,16 @@ export class GlyphList {
   color = new Uint32Array(16);
   start = new Uint32Array(16);
   count = new Uint32Array(16);
+  /** 1: each letter has its own y, angle and vertical scale. */
+  placed = new Uint8Array(16);
   /** Per letter, shared by the runs: its UTF-16 code, center x, color. */
   codes = new Uint16Array(256);
   x = new Float32Array(256);
   colors = new Uint32Array(256);
+  /** Per letter of a placed run: its baseline, angle (radians, clockwise) and vertical scale. */
+  ly = new Float32Array(256);
+  angle = new Float32Array(256);
+  vs = new Float32Array(256);
   letters = 0;
 
   begin(font: number, y: number, color: number) {
@@ -181,6 +194,7 @@ export class GlyphList {
     this.color[i] = color;
     this.start[i] = this.letters;
     this.count[i] = 0;
+    this.placed[i] = 0;
   }
 
   letter(code: number, x: number, color = NoColor) {
@@ -190,6 +204,22 @@ export class GlyphList {
     this.x[j] = x;
     this.colors[j] = color;
     this.count[this.n]++;
+    if (this.placed[this.n] === 1) this.plain(j);
+  }
+
+  /** A plain letter of a placed run: on the run's baseline, unturned, unscaled. */
+  plain(j: number) {
+    this.ly[j] = this.y[this.n];
+    this.angle[j] = 0;
+    this.vs[j] = 1;
+  }
+
+  /** Turns the open run placed: the letters it holds so far become plain placed letters. */
+  place() {
+    const i = this.n;
+    if (this.placed[i] === 1) return;
+    this.placed[i] = 1;
+    for (let j = this.start[i]; j < this.letters; j++) this.plain(j);
   }
 
   end() {
@@ -202,6 +232,7 @@ export class GlyphList {
     if (i >= this.font.length) this.growRuns(i + 1);
     this.start[i] = this.letters;
     this.count[i] = 0;
+    this.placed[i] = 0;
     return i;
   }
 
@@ -210,6 +241,8 @@ export class GlyphList {
     const j = this.letters++;
     if (j >= this.codes.length) this.growLetters(j + 1);
     this.count[this.n]++;
+    // a plain letter in a placed run (a placed letter's numbers are set after)
+    if (this.placed[this.n] === 1) this.plain(j);
     return j;
   }
 
@@ -219,12 +252,16 @@ export class GlyphList {
     this.color = grown(this.color, need);
     this.start = grown(this.start, need);
     this.count = grown(this.count, need);
+    this.placed = grown(this.placed, need);
   }
 
   private growLetters(need: number) {
     this.codes = grown(this.codes, need);
     this.x = grown(this.x, need);
     this.colors = grown(this.colors, need);
+    this.ly = grown(this.ly, need);
+    this.angle = grown(this.angle, need);
+    this.vs = grown(this.vs, need);
   }
 }
 
@@ -699,6 +736,23 @@ export class PassWriter {
     l.codes[j] = code;
     l.x[j] = x;
     l.colors[j] = color;
+  }
+
+  /**
+   * A placed letter (the open run becomes placed): x, y, angle (radians, clockwise), vertical scale and color from
+   * `args[0]` to `args[4]` (its numbers through `args`, as `letterArgs`).
+   */
+  placedLetterArgs(code: number) {
+    const l = this.pass.glyphs;
+    l.place();
+    const j = l.nextLetter();
+    const a = this.args;
+    l.codes[j] = code;
+    l.x[j] = a[0];
+    l.ly[j] = a[1];
+    l.angle[j] = a[2];
+    l.vs[j] = a[3];
+    l.colors[j] = a[4];
   }
 
   endGlyphs() {

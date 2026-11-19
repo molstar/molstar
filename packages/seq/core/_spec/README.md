@@ -841,14 +841,18 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 
 ### Draw lists
 
-- CSS pixels, origin top left; a list per pass, drawn in order: `background`, `data`, `highlight`, `selection`, `hover`,
-  `cursor`, `labels` (`Passes`; the last four but labels are `EmphasisPasses`).
+- CSS pixels, origin top left; a list per pass, drawn in order: `background`, `data`, `window`, `highlight`,
+  `selection`, `hover`, `cursor`, `labels` (`Passes`; `window` to `cursor` are `EmphasisPasses`). `window` is the first
+  of the emphasis, under the highlights: a window is no data emphasis, and a highlight channel stays above it. It is the
+  layouts' own (their chrome): no layer draws there. The recorder writes an empty pass as its header.
 - **Primitives** as structs of arrays in growable typed arrays kept frame to frame (`reset` zeroes counts): `rect` (x,
   y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round), `path` (move, line, cubic,
   close in shared arrays; fill, stroke, dash), `glyphs` (a run of letters in one font, an x a letter at its center, one
-  baseline, a color a letter or one), `text` (an interned string, x, y, anchor, font, color, its measured width and a
-  max width: faded past it, never ellipsized), `image` (RGBA bytes the layer owns), `clip` and `unclip`. A pass's `ops`
-  keep the order its primitives were added in. Colors are `0xRRGGBBAA`; `NoColor` (0) is none.
+  baseline, a color a letter or one; a **placed** run gives each letter its own y, angle and vertical scale: letters
+  along a ring, a logo's stacked letters, a row's letters; one form for the three, so one code a backend), `text` (an
+  interned string, x, y, anchor, font, color, its measured width and a max width: faded past it, never ellipsized),
+  `image` (RGBA bytes the layer owns), `clip` and `unclip`. A pass's `ops` keep the order its primitives were added in.
+  Colors are `0xRRGGBBAA`; `NoColor` (0) is none.
 - **Bounded by the screen**: at most one primitive a device column a lane, or one a cell when cells are a device pixel
   or wider; tracks below the page are not laid out.
 - **Nothing allocated once warm on the draw and emphasis paths** (a full draw of a laid-out view, a hover, a selection
@@ -878,10 +882,14 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 
 ### Emphasis
 
-`Emphasis` (`layer-type.ts`), drawn by the view (`tracks.ts`) in the emphasis passes, per laid-out section over its
-**band** (`SectionLayout.band`: its tracks on the page and the gaps between them, the shape `column`, the default) or
-over each track's box (`tracks`), `emphasis.selectionShape`. Why `column` by default: a selection is of positions, not
-of a track, and one band reads as one selection.
+`Emphasis` (`layer-type.ts`), drawn by the view (`tracks.ts`) in the emphasis passes, a strip at a time in its frame
+through its warp (Section layouts), over the strip's **band column** (its bands and the gaps between them;
+`SectionLayout.columns`, in tracks `SectionLayout.band`; the shape `column`, the default) or over each band's box
+(`tracks`), `emphasis.selectionShape`, on the strip's transform and system. Why `column` by default: a selection is of
+positions, not of a track, and one band reads as one selection; why a strip: the selection is one look in every layout
+(a band on a line in text, a sector over the rings on a ring). A layer with a second axis (`axes: 2`) paints the parts
+on its y systems itself, in the emphasis passes' `draw` (it alone knows its y transform); the x painting stays the
+strip's.
 
 - **The order of emphasis** is fixed, below to above: data, highlight channels, selection, hover, cursor; a higher one
   never hides a lower one entirely (tints are translucent, outlines are thin lines that never touch).
@@ -926,9 +934,15 @@ of a track, and one band reads as one selection.
 `LayerType<Prep, Lay>`: `name`, `fallback?`, `prepare(layer, model)` (tier 1, cached per resolved layer),
 `layout(prep, ctx, data, overlay, prev?)` (per viewport; `prev` is its last layout, to reuse buffers and keep lanes),
 `draw(lay, pass, out, emphasis?)`, `hit(lay, x, y)`, `legend?(lay, { title })` (its channels' legends), `domain?(lay)`
-(the y domain it drew). `LayoutContext`: the track's box, the axis transform, the section, the layer's key, the device
-pixel ratio, the config, the tokens, the text port, whether the view settled, `want`, `report` and `theme` (the schemes,
-the measures, the scales and their held domains, the reader's substitution).
+(the y domain it drew). `LayoutContext`: the band's box and the strip's transform (in the strip's frame), the section,
+the layer's key, the device pixel ratio, the config, the tokens, the text port, whether the view settled, `want`,
+`report` and `theme` (the schemes, the measures, the scales and their held domains, the reader's substitution), and per
+strip `strip`, `span` (the union of the strip's bands: what a frame with `across` outlines), `place` (the section's
+placement, for a `section` layer), `labels` (`inside`, or a sink a layout collects labels into: rings), `bandTop` and
+`rowScale` (a band that scrolls its own rows). Generic additions, no layout named: `used?(lay)` (the height it used on
+the strip, 0 for nothing; the band's height when absent: text collapses a band no layer used, and only the layer knows
+its lanes), `scope` (`strip`, the default, laid out a strip at a time; `section`, once a section, drawn in page
+coordinates: what crosses strips), `axes` (2: a second axis of its own, the y path in Emphasis).
 
 - **Channels a type reads** ("Themes"): `letters` `color` (the alphabet's scheme by default) and `ink`; `ranges`
   `color`, `size` (a share of the lane, the mark shrunk about its middle, its lane and hit box kept: EC-137) and
@@ -1016,8 +1030,67 @@ the measures, the scales and their held domains, the reader's substitution).
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).
 
+### Section layouts
+
+`render/layout/`: a layout (`SectionLayoutType`: `place`, `sameKey`, `nav`, `chrome`, `hitChrome?`) cuts a section's
+display units into **strips** and places each on the page with a **warp**. Why: a layer type then draws one way, over a
+straight axis and a box, in every layout; a layout knows strips, bands and warps, never layer kinds.
+
+- **A strip** is one `AxisTransform` (its pieces, its window, x across a width; groups when the layout has them; its
+  system the strip's), a stack of **bands** (a track a band, its top and height in the strip's frame, 0 collapsed) and a
+  warp to the page. `Strips` is a struct of arrays kept frame to frame: per strip its transform, block, warp, the
+  translation (`dx`, `dy`), its top and height on the page, its first display unit (its lays are kept by it); per band
+  of a strip (`strip × bands + band`) its top, height and what its layers used.
+- **Warps**: a translation (tracks, text), applied in place to what the strip drew (`TranslateWarp`: a text line's lays
+  are kept across a scroll, only its translation changes); polar (rings, `PolarWarp`): x to an angle, y to a radius;
+  what the strip drew goes through a scratch pass onto the page: a rect an annular sector (its squircle corners warped
+  with it), a path's lines cut every few px so they bend, a glyph run placed letter by letter (upright or along the
+  ring), an image refused (its layout reports it), a clip applied in the strip's frame before warping (a clip by path
+  would change the lists' form for one case). Nothing allocated once warm.
+- **The placement** (`Placement`): the section's box, its whole content's height (text: every line, for scrolling and
+  export), its strips; `at(x, y)` the inverse of the warp then of the cut, into a reused `PlacePoint` (strip, band, the
+  point in the strip's frame, the kind, the display unit); `offsetAt(x, y)` the nearest unit (drags, zoom anchors);
+  `place(offset)` where a unit is drawn (on the page: the middle of its strip's first band with height; `at` of it gives
+  the unit back). **Kinds of point**: `data`, `label` (a ring's outside label), `gutter` (the label column, text's row
+  labels and numbers), `window`, `gap` (between groups or lines: no position for a hover, the nearest for a drag),
+  `empty`. Held by property tests: every position in view placed once, `at` its cell's center gives it back, `offsetAt`
+  monotone in reading order.
+- **The viewport record** (`Viewport`): `{ start, end, top?, scale?, bands?, y? }`, read by the layout: tracks `start`,
+  `end` the window, `top` a vertical scroll, `bands` a band's own `bandTop` and `rowScale` (a grid's `y` its second
+  axis). One record for every layout (the field's meaning is the layout's): the viewer's groups, follows and history
+  stay layout-neutral.
+- **Navigation** (`SectionNav`): `pan`, `zoom` (about a unit), `fit`, `reveal`, `step` (`left`, `right`, `up`, `down`,
+  `home`, `end`), `clamp`, pure, over a `NavContext` (the total, the data box, cyclic, the scale's bounds, the
+  placement): what the viewer calls instead of doing arithmetic of its own. Tracks: the window by px, clamped at
+  `width / maxScale` within the axis; a cyclic window wraps, never clamped at the total.
+- **Chrome**: a layout's own marks a pass (`chrome`: once a section, then once a band before its layers) and their hits
+  (`hitChrome`, before the bands' layers): tracks its label column, text its gutters, rings their guides, labels and a
+  window.
+- **A follower reads its leader's viewport** as the leader's layout reads it (`followWindow`: a ring's window, past the
+  total when it wraps the origin; text its lines in view), else the leader's transform's window (tracks); a window over
+  a cyclic origin is carried as two runs. A layout with `followWindow` places over the whole axis.
+- **Layers a strip or a section**: a strip layer is laid out a strip at a time
+  (`PlaceContext.layStrip(placement, strip, labels?)`, the layout's label sink reaching `ctx.labels`), a `section` layer
+  once a section after the strips, over the placement's box on the page with the placement as its reader, drawn after
+  the strips outside their warps and hit before them. A band's own scroll and row zoom (`viewport.bands`, by track
+  address) reach its layers as `ctx.bandTop` and `ctx.rowScale`, and the key compares them by value.
+- **The lay cache is bounded by the strips in view**: a layer's lay is kept per strip by its first display unit (tracks
+  without blocks: by the layer's key alone), and a strip that leaves the view lets its lays go.
+
+### Window
+
+`render/window.ts`: the window mark (a ring's window over a linear detail, the navigators' windows), drawn by a layout's
+chrome in the `window` pass in a strip's frame through its warp. Its body in `seq-window` (tinted and outlined), a grip
+as a tab just outside each end in `seq-grip`; the lit part drawn grown; idle (nothing follows it) a quiet outline, not a
+target. A floor of 16 px (a narrower window grows about its middle); its parts hit (`windowPart`) within at least 12 px
+(24 by touch), an end winning over the body near it, as the `window` target with its `part` (`body`, `start`, `end`).
+
 ### Tracks layout
 
+- **On the interface** (`layout/tracks.ts`): one strip a section, translated by nothing (its frame the page), its bands
+  the tracks stacked with `trackGap`; its chrome the label column (each track's label, the filter chip, the direction
+  mark). Its draw lists are the same before and after the restatement but for the `window` pass's header: the committed
+  records are its guard.
 - Sections stacked; each an `AxisTransform`: its pieces (`[start, end, …]` in display order) end to end as display units
   in its direction (a reversed piece `[s, e)` shows `e − 1 − k` at its offset `k`, EC-32), the viewport a window of them
   (`{ start, end }`, all by default; `viewports` by section address before it) across the data box. Both ways: a
@@ -1051,6 +1124,11 @@ the measures, the scales and their held domains, the reader's substitution).
 - **Sticky lanes** (`StickyLanes`): an item keeps its lane while it is in view; a new item takes the first lane free
   over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
   when a neighboring region arrives.
+- **Hits go through the placement**: the section under the point, its layout's own marks (`hitChrome`), then the point
+  placed (`at`) and the band's layers, topmost first, each `hit` with the point in the strip's frame; a layer's hit box
+  is in its strip's frame, so every drawn mark keeps its hit box through the warp. `system` is the strip's; `block` its
+  index in the section when the section has blocks; `target` `window` (with its `part`) or `row` (a gutter's row) for a
+  layout's marks.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system }`: `layer` the layer's key (its address,
   else its track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
@@ -1079,6 +1157,11 @@ the measures, the scales and their held domains, the reader's substitution).
   table's version, the text metrics' version, the overlay's version, whether the view settled, the config, and the
   versions of the entries (and the coverages) the last layout read. An equal key keeps the layout and the lists and
   redraws the emphasis passes alone; anything else lays out again into the same buffers. Same inputs, same lists.
+- **Per section** (`LayoutState.sections`): a section whose layout, view parts (model, size, ratio, tokens, text,
+  overlay, settled, config, types, themes, held domains), top, transform, viewport (through its layout's `sameKey`:
+  tracks start, end, top and bands) and reads (the entries and coverages it read, at their versions) hold is not laid
+  out again: its placement and lays are drawn again into the frame's lists (one list a pass for the frame: a backend and
+  every reader stay as they are; drawing kept lays is a draw, not a layout).
 - The check compares the parts as they are (and the reads as arrays), building nothing: a hover allocates nothing. The
   key's text (`Frame.key`, `DrawLists.key`) is made when the lists are rebuilt; an emphasis redraw returns one kept
   `Frame` record, its fields set again. So a frame is valid until the next `frame` call (the lists are reused too): a

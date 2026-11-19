@@ -66,6 +66,7 @@ glyphs "14px mono" 86.9 per C 371.5 #2d271eff, G 354.5 #2d271eff, G 338 #2d271ef
 unclip
 rect 379.5 8 1 84 #8a847aff
 rect 377.5 5 5 3 #8a847aff
+pass window
 pass highlight
 pass selection
 pass hover

@@ -26,6 +26,7 @@ import { colorHex } from './tokens.js';
 //   rect 140 8 16 20 none stroke #2d271eff 1.5
 //   rect 140 30 80 10 #7a8fa6ff squircle 3.33 left
 //   glyphs "10px mono" 22.5 per M 143.75 #2d271eff, E 159.25 #2d271eff
+//   glyphs "10px mono" placed #2d271eff M 143.75 22.5 90 1, E 159.25 22.5 92 1   (x, y, degrees, vertical scale)
 //   text "Domains" 8 30 start "12px sans" #6b655cff width 47.34 max 112
 //   unclip
 
@@ -79,13 +80,17 @@ export function recordDrawLists(lists: DrawLists, passes: readonly PassName[] = 
     },
     glyphs(l, i) {
       const one = l.color[i] !== NoColor;
+      const placed = l.placed[i] === 1;
       const letters: string[] = [];
       for (let j = l.start[i], end = j + l.count[i]; j < end; j++) {
-        const c = String.fromCharCode(l.codes[j]);
-        letters.push(one ? `${c} ${fmt(l.x[j])}` : `${c} ${fmt(l.x[j])} ${colorHex(l.colors[j])}`);
+        let s = `${String.fromCharCode(l.codes[j])} ${fmt(l.x[j])}`;
+        // a placed letter: its own baseline, angle (degrees) and vertical scale
+        if (placed) s += ` ${fmt(l.ly[j])} ${fmt((l.angle[j] * 180) / Math.PI)} ${fmt(l.vs[j])}`;
+        letters.push(one ? s : `${s} ${colorHex(l.colors[j])}`);
       }
       const color = one ? colorHex(l.color[i]) : 'per';
-      lines.push(`glyphs ${quote(lists.string(l.font[i]))} ${fmt(l.y[i])} ${color} ${letters.join(', ')}`);
+      const y = placed ? 'placed' : fmt(l.y[i]);
+      lines.push(`glyphs ${quote(lists.string(l.font[i]))} ${y} ${color} ${letters.join(', ')}`);
     },
     text(l, i) {
       let s = `text ${quote(lists.string(l.str[i]))} ${fmt(l.x[i])} ${fmt(l.y[i])} ${AnchorNames[l.anchor[i] ?? Anchor.start]}`;
