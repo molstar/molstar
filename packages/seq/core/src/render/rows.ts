@@ -891,7 +891,8 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   const rs = lay.rowScale;
   const left = config.inset;
   const right = box.x - config.labelGap;
-  const treeW = lay.clades && prep.order === 'tree' && !lay.figure ? Math.min(prep.treeWidth, (right - left) * 0.45) : 0;
+  const treeW =
+    lay.clades && prep.order === 'tree' && !lay.figure ? Math.min(prep.treeWidth, (right - left) * 0.45) : 0;
   lay.treeX0 = left;
   lay.treeX1 = left + treeW;
   if (treeW > 0) layoutTree(lay, lay.clades!, left, treeW);
