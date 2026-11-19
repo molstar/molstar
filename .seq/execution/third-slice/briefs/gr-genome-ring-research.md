@@ -45,3 +45,8 @@ writes. Web: Rondo's public pages and papers or docs about it, nothing that need
 
 **Report**: the four answers, each claim about Seq\* with its file and line; a table of the elements (built, close,
 missing); open questions for the author.
+
+**Added after the start** (the author, 2026-11-19: "there are two layers: making this representable in the spec, and
+then actually rendering it; and possibly making a story on top of that"): answers 2–4 by three layers, each its own
+built / close / missing table: the spec (can a writer express it; a sketch), the rendering, a story walking it (the
+genome, a chromosome's hover, chromosome 4's ring, back).
