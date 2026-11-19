@@ -13,6 +13,7 @@ import { LanguageVersion } from '@molstar/seqx-core';
 export const ViewerLanguageVersion = LanguageVersion;
 
 export { type KeyState, ViewerInput, type WheelState } from './input.js';
+export { createDragSession, type DragSession } from './drag-session.js';
 export { createSeqViewer, SeqViewer, type ViewerCommand } from './viewer.js';
 export { type NavigatorDef, NavigatorModel, type NavigatorPointer, type NavigatorValue } from './navigator.js';
 export {

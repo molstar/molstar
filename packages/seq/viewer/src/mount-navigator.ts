@@ -7,6 +7,7 @@
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom';
 import { modifiersOf } from '@molstar/seqx-viewer/bindings';
 import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas';
+import { createDragSession } from './drag-session.js';
 import type { NavigatorModel } from './navigator.js';
 import type { SeqViewer } from './viewer.js';
 
@@ -92,6 +93,8 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     const r = container.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top] as const;
   };
+  // a drag ends wherever the button is released: the window's own listeners while it runs (drag-session.ts)
+  const drag = createDragSession(container, () => model.up());
   const touch = (e: PointerEvent) => ({ touch: e.pointerType === 'touch' });
   const listeners: [string, (e: any) => void, AddEventListenerOptions | undefined][] = [
     ['pointermove', (e: PointerEvent) => model.move(...local(e), touch(e)), undefined],
@@ -100,8 +103,13 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
       'pointerdown',
       (e: PointerEvent) => {
         if (e.button !== 0) return;
+        // a release that never arrived: the earlier drag ends before this press begins
+        drag.end();
         const [x, y] = local(e);
-        if (model.down(x, y, touch(e))) container.setPointerCapture?.(e.pointerId);
+        if (model.down(x, y, touch(e))) {
+          container.setPointerCapture?.(e.pointerId);
+          drag.start();
+        }
         container.focus({ preventScroll: true });
       },
       undefined,
@@ -109,12 +117,14 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     [
       'pointerup',
       (e: PointerEvent) => {
+        drag.end();
         model.up();
         if (container.hasPointerCapture?.(e.pointerId)) container.releasePointerCapture(e.pointerId);
       },
       undefined,
     ],
-    ['pointercancel', () => model.cancel(), undefined],
+    ['pointercancel', () => (drag.end(), model.cancel()), undefined],
+    ['lostpointercapture', () => (drag.end(), model.up()), undefined],
     ['click', (e: MouseEvent) => e.button === 0 && model.click(...local(e), e.detail), undefined],
     ['dblclick', (e: MouseEvent) => model.doubleClick(...local(e)), undefined],
     ['focus', () => model.setFocus(true), undefined],
@@ -166,6 +176,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   return () => {
     for (const [type, fn, options] of listeners) container.removeEventListener(type, fn, options);
     for (const u of unsubscribe) u();
+    drag.dispose();
     observer?.disconnect();
     if (frame !== undefined) cancelFrameCallback(frame);
     container.remove();

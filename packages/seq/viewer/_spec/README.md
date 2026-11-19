@@ -562,6 +562,14 @@ the passes.
 mounted UI (`mount.ts`) translates events into them and a test makes the same calls. Every gesture goes through the
 binding table; per move one hit record and one modifiers record are reused.
 
+- **A drag ends wherever the button is released**: besides pointer capture (which fails silently where it is refused: an
+  iframe boundary, a pointer already up), every drag a mount starts (`mount.ts`, `mount-navigator.ts`, a story's own)
+  runs a drag session (`drag-session.ts`) for as long as it lasts: `pointerup`, `pointercancel` and a `pointermove` with
+  no button on the element's own window (`ownerDocument.defaultView`, an iframe's own), the window's `blur` and the
+  document turning hidden end it, as do the element's `pointerup`, `pointercancel` and `lostpointercapture`. Each path
+  ends it once (`up` is idempotent), the listeners are removed with it and on unmount, and a press ends a drag whose
+  release never came before it begins. Why: a window listener alone misses a release outside the browser window; capture
+  alone misses where it is refused.
 - **A window's part under the pointer** (a ring's, a rail's) is lit (`windowHit`, drawn as the emphasis's hover), and
   the window being dragged grows its rail wherever the pointer goes (`dragHit`, `Emphasis.drag`); the cursor follows the
   part (`partCursor`, `cursor` set by the mounted canvas, `NavigatorModel.cursor` alike): a grip `ew-resize`

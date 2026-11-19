@@ -9,6 +9,7 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../../follow-svg.js';
+import { createDragSession } from '@molstar/seqx-viewer/drag-session';
 import { composeViewer, describeSelection } from './compose.js';
 
 // The selection story's root, a story of the gene-and-protein pair gives its own hint: the default
@@ -108,10 +109,16 @@ class SelectionRoot extends UiElement<SelectionStory> {
       dragged = false;
       void svg.draw();
     };
+    // the release may be anywhere (outside the canvas, the iframe or the window): a drag session listens on the window
+    const session = createDragSession(canvasHost, onUp);
+    const onDown = () => session.start();
+    canvasHost.addEventListener('pointerdown', onDown);
     canvasHost.addEventListener('pointerup', onUp);
     canvasHost.addEventListener('lostpointercapture', onUp);
     onCleanup(() => {
       for (const off of offs) off();
+      session.dispose();
+      canvasHost.removeEventListener('pointerdown', onDown);
       canvasHost.removeEventListener('pointerup', onUp);
       canvasHost.removeEventListener('lostpointercapture', onUp);
     });
