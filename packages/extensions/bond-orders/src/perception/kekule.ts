@@ -426,9 +426,8 @@ function isAromaticBond(state: State, i: number, j: number) {
   return (getFlags(state.bonds, u, v) & BondType.Flag.Aromatic) !== 0 && !isAssignedBond(state, u, v);
 }
 
-/** Both endpoints lie in a ring within the residue. */
-function isRingBond(state: State, i: number, j: number) {
-  // TODO: only allow the same ring! Not inter-rings bonds
+/** Both endpoints are ring atoms of the residue, not necessarily of one ring (a bond between two rings qualifies). */
+function isBetweenRingAtoms(state: State, i: number, j: number) {
   const u = state.unitIndices[i],
     v = state.unitIndices[j];
   return state.inRing[i] !== 0 && state.inRing[j] !== 0 && !isAssignedBond(state, u, v);
@@ -461,7 +460,7 @@ export function assignBondOrders(state: State) {
   preventConjugationNextToPyramidalNitrogen(state);
 
   // step 9a: kekulize the remaining in-ring sp2 atoms
-  matchDoubleBondsBy(state, isSp2DoubleDemand, canAcceptDouble, isRingBond);
+  matchDoubleBondsBy(state, isSp2DoubleDemand, canAcceptDouble, isBetweenRingAtoms);
 
   // step 9b/9c: localized terminal/triple bonds (carbonyls, nitriles, etc.).
   assignLocalizedMultipleBonds(state);
