@@ -191,3 +191,5 @@ None.
   HL resolved keeping both. Quick lane 1827 passed. QS can start.
 - PR merged (`drag-session.ts`: window listeners for a drag's life, a buttonless move, blur, a hidden document).
   Quick lane 1847 passed. Running: RC, LB; QS next.
+- The examples' JSON fixtures stored compact (the author, 2026-11-19: "Yes, add the ignore"; `01063c2cd`). RC, LB and QS
+  in fix rounds after their reviews.

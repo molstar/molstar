@@ -24,3 +24,5 @@
   needed later"): optional aliases (`=`, `<`, `<=`, `>`, `>=`) read as the clause words; only when a user asks.
 - A minimal viewer's size (the author, 2026-11-19, on the size guides: "i guess that's fine. this is for the default
   composition of the viewer? i think a minimal one could be smaller"): measured in stage 7 (M3).
+- Query forms the design names and QS found unbuilt (2026-11-19): `search` (a motif in the letters), `onto` (a result
+  carried to another system as a query), `expand`, `group`; Features/Query gains their stories when built.
