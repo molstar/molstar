@@ -1178,7 +1178,7 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
     if (!under) continue;
     const strips = s.placement.strips;
     const pb = s.placement.box;
-    if (s.placement.clip === true) out.clip(pb.x, pb.y, pb.width, pb.height);
+    if (s.placement.clip === true) clipTo(out, pb);
     for (let i = 0; i < strips.n; i++) {
       const w = openStrip(s, i, out);
       const a = strips.axes[i];
@@ -1212,6 +1212,16 @@ function drawTints(
 const Translate = new TranslateWarp();
 
 /** The writer a strip draws into for `out`'s pass: its polar warp's, else `out` with the translation marked. */
+/** A clip to a box through the writer's `args` (its fractional numbers passed to a call would be boxed). */
+function clipTo(out: PassWriter, b: Box): void {
+  const g = out.args;
+  g[0] = b.x;
+  g[1] = b.y;
+  g[2] = b.width;
+  g[3] = b.height;
+  out.clipArgs();
+}
+
 function openStrip(s: SectionLayout, i: number, out: PassWriter): PassWriter {
   const strips = s.placement.strips;
   if (strips.warp[i] === WarpKind.polar) return s.placement.warpOf!(i).writer(out);
@@ -1223,7 +1233,7 @@ function openStrip(s: SectionLayout, i: number, out: PassWriter): PassWriter {
 function closeStrip(s: SectionLayout, i: number, out: PassWriter): void {
   const strips = s.placement.strips;
   if (strips.warp[i] === WarpKind.polar) s.placement.warpOf!(i).close(out);
-  else Translate.close(out, strips.dx[i], strips.dy[i]);
+  else Translate.close(out, strips.dx, strips.dy, i);
 }
 
 /**
@@ -1232,7 +1242,7 @@ function closeStrip(s: SectionLayout, i: number, out: PassWriter): void {
  * marks, and its breaks.
  */
 function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
-  const { tokens, config } = layout;
+  const { config } = layout;
   const pass = out.pass.name;
   const column = config.emphasis.selectionShape === 'column';
   for (let si = 0; si < layout.sections.length; si++) {
@@ -1245,15 +1255,46 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
         if (s.tracks[ti].box.y < layout.height) s.layout.chrome(s, pass, out, emphasis, 0, ti);
       continue;
     }
-    const nb = strips.bands;
-    const pb = s.placement.box;
+    drawStrips(layout, s, out, emphasis, pass, column);
+    // what crosses strips, on the page; a section that scrolls inside its box is clipped to it
+    const sl = s.sectionLays;
+    if (!sl.length) continue;
     const clipped = s.placement.clip === true;
-    if (clipped) out.clip(pb.x, pb.y, pb.width, pb.height);
+    if (clipped) clipTo(out, s.placement.box);
+    for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
+    if (clipped) out.unclip();
+  }
+}
+
+/** A section's strips of a pass, each through its warp (`drawTracks`). */
+function drawStrips(
+  layout: ViewLayout,
+  s: SectionLayout,
+  out: PassWriter,
+  emphasis: Emphasis | undefined,
+  pass: PassName,
+  column: boolean,
+) {
+  const { tokens } = layout;
+  const strips = s.placement.strips;
+  const nb = strips.bands;
+  // a section that scrolls inside its box: each strip clipped to it, in the strip's frame (its warp moves the clip)
+  const clipped = s.placement.clip === true;
+  const pb = s.placement.box;
+  {
     for (let i = 0; i < strips.n; i++) {
       const w = openStrip(s, i, out);
       const a = strips.axes[i];
       const col = s.columns[i];
       const dy = strips.dy[i];
+      if (clipped) {
+        const g = w.args;
+        g[0] = pb.x - strips.dx[i];
+        g[1] = pb.y - dy;
+        g[2] = pb.width;
+        g[3] = pb.height;
+        w.clipArgs();
+      }
       if (column && emphasis && col) drawSectionEmphasis(w, s, a, col, emphasis, layout);
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
@@ -1266,7 +1307,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
         // the window pass is the layouts' own (their chrome): no layer draws there, so a hover's redraw walks none
         if (!lays || !lays.length || pass === 'window') continue;
         const clip = pass === 'data';
-        if (clip) w.clip(box.x, box.y, box.width, box.height);
+        if (clip) clipTo(w, box);
         for (let li = 0; li < lays.length; li++) {
           const l = lays[li];
           l.type.draw(l.lay, pass, w, emphasis);
@@ -1275,12 +1316,9 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       }
       const breaks = s.stripBreaks[i];
       if (pass === 'data' && col && breaks.length) drawBreaks(w, breaks, a, col, tokens);
+      if (clipped) w.unclip();
       closeStrip(s, i, out);
     }
-    // what crosses strips, on the page
-    const sl = s.sectionLays;
-    for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
-    if (clipped) out.unclip();
   }
 }
 

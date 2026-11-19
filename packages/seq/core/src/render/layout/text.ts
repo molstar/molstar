@@ -469,12 +469,12 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     // a line's gutter (its band's label, its numbers) hits as the band's row (_spec/README.md "Render", Text layout)
     if (!s.placement.at(x, y, GutterPoint) || GutterPoint.kind !== 'gutter' || GutterPoint.band < 0) return undefined;
     const track = s.tracks[GutterPoint.band]?.track;
-    return {
-      layer: track?.address ?? s.section.address,
-      section: s.id,
-      system: s.axis?.system ?? s.section.axis.system,
-      target: 'row',
-    } satisfies Hit;
+    // one record reused: a hover over the gutter makes none (read it, never keep it)
+    const h = GutterHit as { -readonly [K in keyof Hit]: Hit[K] };
+    h.layer = track?.address ?? s.section.address;
+    h.section = s.id;
+    h.system = s.axis?.system ?? s.section.axis.system;
+    return h;
   },
   chrome(s, pass, out, _emphasis, strip, band) {
     if (pass !== 'labels' || band !== 0) return;
@@ -497,6 +497,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
 
 /** The point a gutter's hit reads, and a unit's line and fraction, reused. */
 const GutterPoint = new PlacePoint();
+const GutterHit: Hit = { layer: '', section: '', system: '', target: 'row' };
 const LineFrac = { line: 0, frac: 0 };
 
 function firstShown(h: Float64Array, k0: number, nb: number): number {

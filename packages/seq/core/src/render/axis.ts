@@ -119,6 +119,29 @@ export class AxisTransform {
     return this.x0 + (u - this.u0) * this.scale + (Math.floor((u - this.gorigin) / this.gsize) - this.g0) * this.ggap;
   }
 
+  /**
+   * The x of units `va` to `vb` (either order) into `sx0` (`xOfUnit` of the lower) and `sx1` (`xOfEnd` of the higher;
+   * the same x when equal). Inline, no number returned: once the hover and emphasis draws have met sections of pieces
+   * and of groups, a double returned from a call that is not inlined is boxed.
+   */
+  private edges(va: number, vb: number): void {
+    const lo = va < vb ? va : vb;
+    const hi = va < vb ? vb : va;
+    if (this.gsize === 0) {
+      this.sx0 = this.x0 + (lo - this.u0) * this.scale;
+      this.sx1 = this.x0 + (hi - this.u0) * this.scale;
+      return;
+    }
+    this.sx0 =
+      this.x0 + (lo - this.u0) * this.scale + (Math.floor((lo - this.gorigin) / this.gsize) - this.g0) * this.ggap;
+    if (lo === hi) {
+      this.sx1 = this.sx0;
+      return;
+    }
+    const k = Math.ceil((hi - this.gorigin) / this.gsize) - 1 - this.g0;
+    this.sx1 = this.x0 + (hi - this.u0) * this.scale + (k > 0 ? k : 0) * this.ggap;
+  }
+
   /** x of a display unit as a right edge: before the gap after a group's last unit. */
   xOfEnd(u: number): number {
     if (this.gsize === 0) return this.x0 + (u - this.u0) * this.scale;
@@ -161,17 +184,7 @@ export class AxisTransform {
   cell(p: number): boolean {
     const k = this.pieceOf(p, false);
     if (k < 0) return false;
-    if (this.gsize !== 0) {
-      const ua = this.unitOf(k, p);
-      const ub = this.unitOf(k, p + 1);
-      this.sx0 = this.xOfUnit(ua < ub ? ua : ub);
-      this.sx1 = this.xOfEnd(ua < ub ? ub : ua);
-      return Number.isFinite(this.sx0) && Number.isFinite(this.sx1);
-    }
-    const a = this.xOfUnit(this.unitOf(k, p));
-    const b = this.xOfUnit(this.unitOf(k, p + 1));
-    this.sx0 = a < b ? a : b;
-    this.sx1 = a < b ? b : a;
+    this.edges(this.unitOf(k, p), this.unitOf(k, p + 1));
     return Number.isFinite(this.sx0) && Number.isFinite(this.sx1);
   }
 
@@ -278,20 +291,10 @@ export class AxisTransform {
     if (b < a || (b === a && (a === pe || s !== e))) return false;
     const left = this.x0;
     const right = this.x0 + this.width;
-    let xa: number;
-    let xb: number;
-    if (this.gsize !== 0) {
-      // groups: the left edge past a gap, the right before one, so a span bridges the gaps inside it only
-      const va = this.unitOf(k, a);
-      const vb = this.unitOf(k, b);
-      xa = this.xOfUnit(va < vb ? va : vb);
-      xb = va === vb ? xa : this.xOfEnd(va < vb ? vb : va);
-    } else {
-      const ua = this.xOfUnit(this.unitOf(k, a));
-      const ub = this.xOfUnit(this.unitOf(k, b));
-      xa = ua < ub ? ua : ub;
-      xb = ua < ub ? ub : ua;
-    }
+    // with groups the left edge past a gap, the right before one, so a span bridges the gaps inside it only
+    this.edges(this.unitOf(k, a), this.unitOf(k, b));
+    let xa = this.sx0;
+    let xb = this.sx1;
     // a span that only touches the view's edge is not in view; a boundary on the edge is
     if (s === e ? xb < left || xa > right : xb <= left || xa >= right) return false;
     let cut = 0;

@@ -237,7 +237,7 @@ describe('warps', () => {
     const t = new TranslateWarp();
     t.open(w);
     drawSome(w);
-    t.close(w, 7, 120);
+    t.close(w, Float64Array.of(7), Float64Array.of(120), 0);
     const b = new DrawLists();
     drawSome(b.writer('data'), 7, 120);
     expect(recordDrawLists(a, ['data'])).toBe(recordDrawLists(b, ['data']));

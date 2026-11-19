@@ -16,6 +16,7 @@ import {
   BigRuntime,
   bigSpec,
   p53GeneSpec,
+  p53TextSpec,
   p53TracksSpec,
   PIECES,
   piecesSpec,
@@ -59,6 +60,17 @@ export const Scenarios: readonly Scenario[] = [
   },
   { name: 'p53 small layers, letters', spec: smallLayersSpec, runtimes: [], width: 60, center: 175, panStep: 0.2 },
   { name: 'p53 on its gene, letters', spec: p53GeneSpec, runtimes: [], width: 100, center: 196, panStep: 0.3 },
+  // the p53 text in a box of 80 px: a walk's start is the anchor, so a pan scrolls its lines (strips through their
+  // translation warp, the lines laid out lazily)
+  {
+    name: 'p53 text',
+    spec: () => p53TextSpec(),
+    runtimes: [],
+    width: 40,
+    center: 100,
+    panStep: 0.5,
+    config: { text: { maxHeight: 80 } },
+  },
   { name: 'p53 on its gene, whole protein', spec: p53GeneSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
   // the gene reversed and collapsed (its coding pieces), the protein's letters a codon wide on it
   {
@@ -167,9 +179,28 @@ export function hovers(
   const layout = settled.renderer.frame(input).layout;
   const hits: Hit[] = [];
   const points: { x: number; y: number }[] = [];
+  // a section of several strips (a text's lines): along each band of each line
+  for (const sec of layout.sections) {
+    const st = sec.placement.strips;
+    if (st.n < 2) continue;
+    for (let i = 0; i < st.n; i++)
+      for (let j = 0; j < st.bands; j++) {
+        const k = i * st.bands + j;
+        if (st.bandH[k] <= 0) continue;
+        const a = st.axes[i];
+        const y = st.dy[i] + st.bandY[k] + st.bandH[k] / 2;
+        for (let x = a.x0 + 2; x < a.x0 + a.width; x += 5) {
+          const h = hitView(layout, x + st.dx[i], y);
+          if (h) {
+            hits.push(h);
+            points.push({ x: x + st.dx[i], y });
+          }
+        }
+      }
+  }
   for (let x = 130; x < 1430; x += 5)
     for (const sec of layout.sections)
-      for (const t of sec.tracks) {
+      for (const t of sec.placement.strips.n < 2 ? sec.tracks : []) {
         const y = t.box.y + t.box.height / 2;
         const h = hitView(layout, x, y);
         if (h) {

@@ -49,6 +49,8 @@ unclip
 clip 156.02 42 498 6
 rect 354 43 114 4 #d9536fff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 70 498 18
 rect 156 70 12 18 #f6d9beff
 rect 168 70 12 18 #f6d9beff
@@ -92,6 +94,8 @@ rect 630 70 12 18 #cfe0f5ff
 rect 642 70 12 18 #efe8b8ff
 glyphs "13px mono" 83.55 per D 162 #2d271eff, D 174 #2d271eff, L 186 #2d271eff, M 198 #2d271eff, L 210 #2d271eff, S 222 #2d271eff, P 234 #2d271eff, D 246 #2d271eff, D 258 #2d271eff, I 270 #2d271eff, E 288 #2d271eff, Q 300 #2d271eff, W 312 #2d271eff, F 324 #2d271eff, T 336 #2d271eff, E 348 #2d271eff, D 360 #2d271eff, P 372 #2d271eff, G 384 #2d271eff, P 396 #2d271eff, D 414 #2d271eff, E 426 #2d271eff, A 438 #2d271eff, P 450 #2d271eff, R 462 #2d271eff, M 474 #2d271eff, P 486 #2d271eff, E 498 #2d271eff, A 510 #2d271eff, A 522 #2d271eff, P 540 #2d271eff, P 552 #2d271eff, V 564 #2d271eff, A 576 #2d271eff, P 588 #2d271eff, A 600 #2d271eff, P 612 #2d271eff, A 624 #2d271eff, A 636 #2d271eff, P 648 #2d271eff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 110 498 18
 rect 156 110 12 18 #cdebd6ff
 rect 168 110 12 18 #efe8b8ff
@@ -139,6 +143,8 @@ clip 156.02 130 498 6
 path M 408 131.8 L 524.4 131.8 L 524.4 131 L 528 133 L 524.4 135 L 524.4 134.2 L 408 134.2 Z #e8a33dff
 rect 546 131.8 108 2.4 #e8a33dff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 158 498 18
 rect 156 158 12 18 #cdebd6ff
 rect 168 158 12 18 #cfe0f5ff
@@ -188,6 +194,8 @@ rect 342 179 78 4 #d9536fff
 path M 480 179.8 L 554.4 179.8 L 554.4 179 L 558 181 L 554.4 183 L 554.4 182.2 L 480 182.2 Z #e8a33dff
 rect 606 179.8 48 2.4 #e8a33dff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 206 498 18
 rect 156 206 12 18 #cfe0f5ff
 rect 168 206 12 18 #cfe0f5ff
@@ -235,6 +243,8 @@ clip 156.02 226 498 6
 path M 156 227.8 L 224.4 227.8 L 224.4 227 L 228 229 L 224.4 231 L 224.4 230.2 L 156 230.2 Z #e8a33dff
 rect 294 227 84 4 #d9536fff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 254 498 18
 rect 156 254 12 18 #cfe0f5ff
 rect 168 254 12 18 #f5cfcfff
@@ -284,6 +294,8 @@ path M 318 275.8 L 452.4 275.8 L 452.4 275 L 456 277 L 452.4 279 L 452.4 278.2 L
 path M 492 275.8 L 554.4 275.8 L 554.4 275 L 558 277 L 554.4 279 L 554.4 278.2 L 492 278.2 Z #e8a33dff
 rect 570 275.8 84 2.4 #e8a33dff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 302 498 18
 rect 156 302 12 18 #cdebd6ff
 rect 168 302 12 18 #cfe0f5ff
@@ -332,6 +344,8 @@ path M 294 323.8 L 398.4 323.8 L 398.4 323 L 402 325 L 398.4 327 L 398.4 326.2 L
 path M 456 323.8 L 566.4 323.8 L 566.4 323 L 570 325 L 566.4 327 L 566.4 326.2 L 456 326.2 Z #e8a33dff
 rect 618 323 36 4 #d9536fff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 350 498 18
 rect 156 350 12 18 #f6d9beff
 rect 168 350 12 18 #f5cfcfff
@@ -378,6 +392,8 @@ unclip
 clip 156.02 370 498 6
 rect 156 371 84 4 #d9536fff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 398 498 18
 rect 156 398 12 18 #f5cfcfff
 rect 168 398 12 18 #efe8b8ff
@@ -424,6 +440,8 @@ unclip
 clip 156.02 418 498 6
 rect 330 419 114 4 #d9536fff
 unclip
+unclip
+clip 8 8 704 464
 clip 156.02 446 414 18
 rect 156 446 12 18 #efe8b8ff
 rect 168 446 12 18 #cdebd6ff
@@ -464,16 +482,106 @@ unclip
 pass window
 clip 8 8 704 464
 unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
 pass highlight
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
 clip 8 8 704 464
 unclip
 pass selection
 clip 8 8 704 464
 unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
 pass hover
 clip 8 8 704 464
 unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
 pass cursor
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
+clip 8 8 704 464
+unclip
 clip 8 8 704 464
 unclip
 pass labels
@@ -485,46 +593,64 @@ text "30" 522.02 20 middle "10px sans" #6b655cff width 11.12
 text "40" 648.02 20 middle "10px sans" #6b655cff width 11.12
 text "p53" 8 35.2 start "12px sans" #6b655cff width 20.02 max 112
 text "Secondary structure" 8 49.2 start "12px sans" #6b655cff width 107.38 max 112
+unclip
+clip 8 8 704 464
 text "41" 148.02 83.2 end "12px sans" #6b655cff width 13.34
 text "50" 270.02 68 middle "10px sans" #6b655cff width 11.12
 text "60" 396.02 68 middle "10px sans" #6b655cff width 11.12
 text "70" 522.02 68 middle "10px sans" #6b655cff width 11.12
 text "80" 648.02 68 middle "10px sans" #6b655cff width 11.12
+unclip
+clip 8 8 704 464
 text "81" 148.02 123.2 end "12px sans" #6b655cff width 13.34
 text "90" 270.02 108 middle "10px sans" #6b655cff width 11.12
 text "100" 396.02 108 middle "10px sans" #6b655cff width 16.68
 text "110" 522.02 108 middle "10px sans" #6b655cff width 16.68
 text "120" 648.02 108 middle "10px sans" #6b655cff width 16.68
+unclip
+clip 8 8 704 464
 text "121" 148.02 171.2 end "12px sans" #6b655cff width 20.02
 text "130" 270.02 156 middle "10px sans" #6b655cff width 16.68
 text "140" 396.02 156 middle "10px sans" #6b655cff width 16.68
 text "150" 522.02 156 middle "10px sans" #6b655cff width 16.68
 text "160" 648.02 156 middle "10px sans" #6b655cff width 16.68
+unclip
+clip 8 8 704 464
 text "161" 148.02 219.2 end "12px sans" #6b655cff width 20.02
 text "170" 270.02 204 middle "10px sans" #6b655cff width 16.68
 text "180" 396.02 204 middle "10px sans" #6b655cff width 16.68
 text "190" 522.02 204 middle "10px sans" #6b655cff width 16.68
 text "200" 648.02 204 middle "10px sans" #6b655cff width 16.68
+unclip
+clip 8 8 704 464
 text "201" 148.02 267.2 end "12px sans" #6b655cff width 20.02
 text "210" 270.02 252 middle "10px sans" #6b655cff width 16.68
 text "220" 396.02 252 middle "10px sans" #6b655cff width 16.68
 text "230" 522.02 252 middle "10px sans" #6b655cff width 16.68
 text "240" 648.02 252 middle "10px sans" #6b655cff width 16.68
+unclip
+clip 8 8 704 464
 text "241" 148.02 315.2 end "12px sans" #6b655cff width 20.02
 text "250" 270.02 300 middle "10px sans" #6b655cff width 16.68
 text "260" 396.02 300 middle "10px sans" #6b655cff width 16.68
 text "270" 522.02 300 middle "10px sans" #6b655cff width 16.68
 text "280" 648.02 300 middle "10px sans" #6b655cff width 16.68
+unclip
+clip 8 8 704 464
 text "281" 148.02 363.2 end "12px sans" #6b655cff width 20.02
 text "290" 270.02 348 middle "10px sans" #6b655cff width 16.68
 text "300" 396.02 348 middle "10px sans" #6b655cff width 16.68
 text "310" 522.02 348 middle "10px sans" #6b655cff width 16.68
 text "320" 648.02 348 middle "10px sans" #6b655cff width 16.68
+unclip
+clip 8 8 704 464
 text "321" 148.02 411.2 end "12px sans" #6b655cff width 20.02
 text "330" 270.02 396 middle "10px sans" #6b655cff width 16.68
 text "340" 396.02 396 middle "10px sans" #6b655cff width 16.68
 text "350" 522.02 396 middle "10px sans" #6b655cff width 16.68
 text "360" 648.02 396 middle "10px sans" #6b655cff width 16.68
+unclip
+clip 8 8 704 464
 text "361" 148.02 459.2 end "12px sans" #6b655cff width 20.02
 text "370" 270.02 444 middle "10px sans" #6b655cff width 16.68
 text "380" 396.02 444 middle "10px sans" #6b655cff width 16.68

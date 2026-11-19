@@ -15,10 +15,12 @@ import { describe, expect, it } from 'vitest';
 import {
   Cut,
   type FrameLay,
+  type LettersLay,
   hitView,
   lineOf,
   lineStart,
   type NavContext,
+  type RangesLay,
   PlacePoint,
   recordDrawLists,
   renderSvg,
@@ -26,7 +28,7 @@ import {
   TextNav,
   type TextPlacement,
 } from '../index.js';
-import { P53, p53TextSpec } from './fixtures.js';
+import { BigRuntime, P53, p53TextSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { rng } from './small-helpers.js';
 
@@ -273,6 +275,50 @@ describe('the text layout', () => {
     expect(h?.element).toEqual({ owner: '/data/regions', key: 'A' });
     const record = recordDrawLists(f.lists, ['labels']);
     expect(record).toContain('Frame A');
+  });
+
+  it('drawn against the data across a tile edge: each line’s letters are the source’s, its items read once', async () => {
+    const b = createSeqSpec({ title: 'text tiles' });
+    const src = b.data.source('synthetic', { format: 'synthetic', uri: 'synthetic:chr' });
+    const chr = b.data.sequence('chr', { alphabet: 'dna', source: src });
+    const items = b.data.ranges('items', { target: chr, source: src });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      const sec = v.section('chr', { of: chr });
+      sec.track('letters').layer('letters', { type: 'letters' });
+      sec.track('items').layer('items', { type: 'ranges', data: items });
+    });
+    const s = await settle(b.build(), [BigRuntime], { text: { collapseEmpty: false } });
+    // lines from 990: the source's tile edge at 1024 inside one of them
+    const f = await s.frame({ size: Size, viewport: { start: 990, end: 990 } });
+    const sec = f.layout.sections[0];
+    const t = text(sec);
+    const nb = t.strips.bands;
+    // the synthetic source's letters (fixtures.ts, `bigAnswer`)
+    const oracle = (p: number) => 'ACGT'[((Math.imul(p ^ 0x9e3779b9, 0x85ebca6b) >>> 13) & 0xffff) & 3];
+    let crossed = 0;
+    let laid = 0;
+    for (let i = 0; i < t.strips.n; i++) {
+      if (!sec.lays[i * nb].length) continue; // a line below the box
+      laid++;
+      const a = t.strips.axes[i];
+      if (a.u0 < 1024 && a.u1 > 1024) crossed++;
+      const letters = sec.lays[i * nb][0].lay as LettersLay;
+      const seen: number[] = [];
+      for (let j = 0; j < letters.n; j++) {
+        seen.push(letters.pos[j]);
+        expect(String.fromCharCode(letters.code[j]), `${letters.pos[j]}`).toBe(oracle(letters.pos[j]));
+      }
+      expect(seen).toEqual(Array.from({ length: a.u1 - a.u0 }, (_, k) => a.u0 + k));
+      // the items over the line, each once (its tiles' rows not doubled at the edge); the source answers a tile the
+      // items starting in it, so those from the line's first tile on
+      const ranges = sec.lays[i * nb + 1][0].lay as RangesLay;
+      const keys = ranges.keys.slice(0, ranges.items);
+      expect(new Set(keys).size).toBe(keys.length);
+      const from = Math.max(Math.floor(a.u0 / 1024) * 1024, Math.floor((a.u0 - 70) / 50 + 1) * 50);
+      for (let p = Math.ceil(from / 50) * 50; p < a.u1; p += 50) expect(keys).toContain(`r${p}`);
+    }
+    expect(laid).toBeGreaterThan(2);
+    expect(crossed).toBe(1);
   });
 
   it('too many lines are said, and the lines past the bound are not laid out', async () => {
