@@ -360,7 +360,13 @@ function marks(lay: SecondaryLay, src: LayerSource, axis: AxisTransform, ratio: 
         lay.mround[j] = round;
         // the piece holding the C end: the head's tip at its boundary, unless the view clips it
         if (wantsHead) {
-          const tip = images.tip(axis, box, pieces[k], pieces[k + 1], true);
+          const tip = images.tip(
+            axis,
+            box,
+            Math.max(pieces[k], axis.pieces[2 * a]),
+            Math.min(pieces[k + 1], axis.pieces[2 * a + 1]),
+            true,
+          );
           if (tip && lay.mx1[j] - lay.mx0[j] > px) {
             lay.mtip[j] = tip;
             lay.mhead[j] = Math.min(head, lay.mx1[j] - lay.mx0[j]);

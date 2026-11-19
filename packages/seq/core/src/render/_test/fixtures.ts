@@ -233,3 +233,56 @@ export function piecesSpec(): Node {
   });
   return b.build();
 }
+
+/**
+ * p53 with the small layers: a ruler, secondary structure (helices, strands, turns), variants (three at one site), the
+ * conservation as a line and as an area, the domains dashed with an arrowhead and as highlights.
+ */
+export function smallLayersSpec(): Node {
+  const b = createSeqSpec({ title: 'p53 small layers' });
+  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+  const d = domains(b, p53);
+  const c = b.data.values('conservation', { target: p53, values: conservation() });
+  const ss = b.data.ranges('ss', { target: p53, rows: SecondaryRows });
+  const vs = b.data.ranges('variants', { target: p53, rows: VariantRows });
+  b.views.view('main', (v) => {
+    const s = v.section('protein', { of: p53 });
+    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    s.track('ss', { label: 'Secondary' }).layer('ss', { type: 'secondary', data: ss });
+    s.track('variants', { label: 'Variants' }).layer('variants', { type: 'variants', data: vs });
+    s.track('line', { label: 'Line' }).layer('line', { type: 'values', data: c, encoding: 'line' });
+    s.track('area', { label: 'Area' }).layer('area', { type: 'values', data: c, encoding: 'area' });
+    s.track('dashed', { label: 'Dashed' }).layer('dashed', { type: 'ranges', data: d, line: 'dashed', arrow: 'end' });
+    s.track('highlight', { label: 'Highlight' }).layer('hl', { type: 'ranges', data: d, line: 'highlight' });
+  });
+  return b.build();
+}
+
+/** Secondary structure on p53: illustrative bounds, `category` the class. */
+export const SecondaryRows = {
+  start: new Int32Array([20, 40, 60, 100, 120, 160, 180, 250, 300, 330]),
+  end: new Int32Array([30, 55, 66, 115, 140, 172, 200, 262, 320, 345]),
+  id: ['h1', 's1', 'h2', 's2', 'h3', 's3', 's4', 'h4', 's5', 'h5'],
+  category: ['helix', 'strand', 'helix', 'strand', 'helix', 'strand', 'strand', 'helix', 'strand', 'helix'],
+};
+
+/** Variants on p53: three at one site (R175), the others alone. */
+export const VariantRows = {
+  start: new Int32Array([10, 72, 130, 174, 174, 174, 244, 247, 272, 281, 306, 341]),
+  end: new Int32Array([11, 73, 131, 175, 175, 175, 245, 248, 273, 282, 307, 342]),
+  id: ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12'],
+  category: [
+    'missense',
+    'missense',
+    'nonsense',
+    'missense',
+    'missense',
+    'synonymous',
+    'missense',
+    'missense',
+    'frameshift',
+    'missense',
+    'nonsense',
+    'missense',
+  ],
+};

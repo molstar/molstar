@@ -41,6 +41,10 @@ const LayoutBound: Record<string, number> = {
   // measured 25.7 KB
   'p53 tracks, letters': 40_000,
   'p53 tracks, whole protein': 40_000,
+  // 65.0 KB (seven tracks: the ruler's labels, secondary structure's and the variants' marks and sorts, the lines' paths)
+  'p53 small layers, whole protein': 100_000,
+  // 58.5 KB
+  'p53 small layers, letters': 90_000,
   // 40.5 KB
   'p53 on its gene, letters': 64_000,
   'p53 on its gene, whole protein': 64_000,

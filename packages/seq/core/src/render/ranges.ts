@@ -147,7 +147,7 @@ export interface RangesLay {
   mink: Uint32Array;
   /** Each mark's arrowheads (1: tip on the left, 2: on the right) and, for a line, where its content starts, px. */
   mtip: Uint8Array;
-  manchor: Float32Array;
+  manchor: Float64Array;
   /** The gap between lanes, px. */
   gap: number;
   /**
@@ -257,7 +257,7 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     mradius: new Float64Array(64),
     mink: new Uint32Array(64),
     mtip: new Uint8Array(64),
-    manchor: new Float32Array(64),
+    manchor: new Float64Array(64),
     style: 0,
     arrow: 0,
     first: new Uint8Array(64),
@@ -565,8 +565,10 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           if (lay.style > 0) lay.manchor[j] = anchorOf(axis, a, pieces[k], pieces[k + 1]);
           if (atEnd || atStart) {
             let tips = 0;
-            const t = atEnd ? images.tip(axis, box, pieces[k], pieces[k + 1], true) : 0;
-            const u = atStart ? images.tip(axis, box, pieces[k], pieces[k + 1], false) : 0;
+            const pa = Math.max(pieces[k], axis.pieces[2 * a]);
+            const pb = Math.min(pieces[k + 1], axis.pieces[2 * a + 1]);
+            const t = atEnd ? images.tip(axis, box, pa, pb, true) : 0;
+            const u = atStart ? images.tip(axis, box, pa, pb, false) : 0;
             if (t) tips |= t === 1 ? 2 : 1;
             if (u) tips |= u === 1 ? 2 : 1;
             lay.mtip[j] = tips;

@@ -75,6 +75,8 @@ export interface ValuesLay {
   /** A line's points in x order (`ord`: indices of the bars) and the color of each bar (the fill; a field's later). */
   ord: Int32Array;
   col: Uint32Array;
+  /** Bars followed on the screen by a break of the axis (a line does not cross it: it is held, as at a gap). */
+  cut: Uint8Array;
   domain: [number, number] | undefined;
   /** Bars: snapped x extents and the low and high value of each (equal for a position; NaN: missing). */
   n: number;
@@ -136,6 +138,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       encoding: prep.encoding,
       ord: new Int32Array(0),
       col: new Uint32Array(0),
+      cut: new Uint8Array(0),
       domain: undefined,
       n: 0,
       x0: new Float32Array(64),
@@ -416,12 +419,30 @@ function orderLine(lay: ValuesLay) {
   if (lay.ord.length < n) {
     lay.ord = new Int32Array(Math.max(n, 2 * lay.ord.length));
     lay.col = new Uint32Array(lay.ord.length);
+    lay.cut = new Uint8Array(lay.ord.length);
   }
   lay.col.fill(lay.fill, 0, n);
+  lay.cut.fill(0, 0, n);
   const ord = lay.ord.subarray(0, n);
   for (let i = 0; i < n; i++) ord[i] = i;
   const x0 = lay.x0;
   sortArrayRange(ord, 0, n, (o, a, b) => x0[o[a]] - x0[o[b]] || o[a] - o[b]);
+  // the breaks of the axis in view, each after the bar whose right edge is at it (a position a bar only)
+  if (perPosition(lay.step)) {
+    const breaks = lay.axis.breaks([]);
+    const px = 1 / lay.axis.dpr;
+    for (let i = 0; i + 2 < breaks.length; i += 3) {
+      const x = lay.axis.snap(breaks[i]);
+      let lo = 0;
+      let hi = n;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (lay.x1[ord[mid]] < x - px / 2) lo = mid + 1;
+        else hi = mid;
+      }
+      if (lo < n && Math.abs(lay.x1[ord[lo]] - x) <= px / 2) lay.cut[ord[lo]] = 1;
+    }
+  }
   linePoints = grown(linePoints, 2 * n + 16);
 }
 
@@ -471,7 +492,12 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
   for (let k = 0; k <= n; k++) {
     const j = k < n ? ord[k] : -1;
     const valid = j >= 0 && !Number.isNaN(lay.v[j]);
-    const joins = valid && prev >= 0 && lay.x0[j] - lay.x1[prev] <= px * 1.01 && lay.x0[j] >= lay.x1[prev] - px * 1.01;
+    const joins =
+      valid &&
+      prev >= 0 &&
+      !lay.cut[prev] &&
+      lay.x0[j] - lay.x1[prev] <= px * 1.01 &&
+      lay.x0[j] >= lay.x1[prev] - px * 1.01;
     if (count > 0 && (!joins || (valid && lay.col[j] !== color))) {
       const last = prev;
       const yl = y1 - ((Math.max(lo, Math.min(hi, lay.v[last])) - lo) / span) * bh;
