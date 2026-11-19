@@ -9,6 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { parseMol2 } from '@molstar/io/reader/mol2/parser';
 import { trajectoryFromMol2 } from '@molstar/model/formats/structure/mol2';
 import { Structure, Unit } from '@molstar/model/model/structure';
+import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
+import { Mat4 } from '@molstar/core/math/linear-algebra';
 import type { Model } from '@molstar/model/model/structure/model';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
@@ -62,6 +64,33 @@ describe('bond-order perception provider', () => {
     const first = unitOf(perceived(model, 'auto'), 'CHR').bonds;
     expect(unitOf(perceived(model, 'auto'), 'CHR').bonds).toBe(first);
     expect(unitOf(perceived(model, 'forceCompute'), 'CHR').bonds).not.toBe(first);
+  });
+
+  it('the bonds between units are computed once per model: perception and the shown structure share them', async () => {
+    const model = await modelFromPdb(readFixture('5kre-ser124-6wg.pdb'), '5KRE');
+    const rows = (s: Structure) =>
+      s.interUnitBonds.edges.map((e) => [e.unitA, e.indexA, e.unitB, e.indexB, e.props.order, e.props.flag].join(','));
+    const builtIn = rows(Structure.ofModel(model));
+    expect(builtIn.length).toBeGreaterThan(0); // the 6WG-Ser link
+
+    // perception reads the model structure's bonds (the ligand's link); the shown structure gets the same object
+    const s = perceived(model, 'forceCompute');
+    for (const u of s.units) if (Unit.isAtomic(u)) void u.bonds;
+    const shared = s.interUnitBonds;
+    expect(rows(s)).toEqual(builtIn);
+
+    // another structure of the same units, its operators other objects of the identity matrix (an assembly of one
+    // identity operator): shared
+    const identity = SymmetryOperator.create('ASM_1', Mat4.identity());
+    const copy = Structure.create(
+      s.units.map((u) => u.applyOperator(u.id, identity)),
+      { bondProvider: s.bondProvider },
+    );
+    expect(copy.interUnitBonds).toBe(shared);
+
+    // `dynamicBonds` computes them with other props: not shared
+    const dynamic = Structure.ofModel(model, { bondProvider: s.bondProvider, dynamicBonds: true });
+    expect(dynamic.interUnitBonds).not.toBe(shared);
   });
 
   it("one instance per mode, with the root unit's bonds for a child", () => {

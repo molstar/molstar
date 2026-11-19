@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
-import { getInterUnitNeighbours } from './perception/inter-unit-neighbours.js';
+import { getInterUnitNeighbours, sharedInterUnitBonds } from './perception/inter-unit-neighbours.js';
 import { type BondOrdersMode, perceiveBondOrders } from './perception/perceive.js';
 
 const BondOrdersParams = {
@@ -26,7 +26,8 @@ export type BondOrdersParams = typeof BondOrdersParams;
 
 /**
  * The built-in bonds with perceived bond orders (_spec §2): refines `ctx.builtIn()`, intra-unit only (the bonds
- * between units are the built-in ones).
+ * between units are the built-in ones, computed once per model for the model structure perception reads and the
+ * structure shown).
  */
 export const BondOrderPerceptionProvider: BondProvider<BondOrdersParams> = {
   name: 'bond-order-perception',
@@ -54,6 +55,7 @@ function instance(mode: BondOrdersMode): BondProvider.Instance {
         () => getInterUnitNeighbours(unit.model, () => ctx.modelStructure()),
         mode,
       ),
+    inter: (structure, ctx) => sharedInterUnitBonds(structure, () => ctx.builtIn()),
   };
   Instances.set(mode, i);
   return i;
