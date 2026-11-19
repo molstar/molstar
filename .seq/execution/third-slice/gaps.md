@@ -19,3 +19,10 @@ was away are listed with "(decided as recommended)"; a public API change is neve
 - **Letter cells in dark read dim** (TH's measurement): the dark variants sit at Oklab L 0.32–0.61, only 1.4–1.7:1
   against the dark page, and cannot go lighter without the ink failing 4.5:1. Draw a hairline cell outline in dark
   (option a) rather than lighten the dark page (option b, every figure)? Recommend **a**.
+
+## 4. Two motion config items overlap (SY review)
+
+`view.motion` (`auto`/`cut`) and `story.reducedMotion` (`platform`/`always`/`never`) both decide whether motion plays.
+The proposal is one item, `view.motion: platform | cut | animate` (default `platform`), read by jumps and stories,
+dropping `story.reducedMotion`. That changes the stories design's Configuration table, so it is the author's call.
+Until then, SY keeps both items and scopes `story.reducedMotion` to story motion only. Recommendation: merge them.
