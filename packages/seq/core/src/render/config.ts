@@ -46,6 +46,8 @@ export interface RenderConfig {
     readonly ruler: number;
     readonly secondary: number;
     readonly variants: number;
+    /** A frame's title row (its outline covers the tracks it names). */
+    readonly frame: number;
   };
   /** A lane of ranges, and the gap within it. */
   readonly laneHeight: number;
@@ -155,7 +157,7 @@ export const DefaultRenderConfig: RenderConfig = {
   labelGap: 8,
   trackGap: 4,
   sectionGap: 8,
-  heights: { letters: 20, ranges: 36, values: 32, ruler: 22, secondary: 16, variants: 32 },
+  heights: { letters: 20, ranges: 36, values: 32, ruler: 22, secondary: 16, variants: 32, frame: 16 },
   laneHeight: 12,
   laneGap: 2,
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
@@ -198,7 +200,7 @@ export const DefaultRenderConfig: RenderConfig = {
     maxHeight: 600,
     pieceBreak: 'none',
     numberGap: 8,
-    heights: { letters: 18, ranges: 4, values: 3, ruler: 14, secondary: 6, variants: 10 },
+    heights: { letters: 18, ranges: 4, values: 3, ruler: 14, secondary: 6, variants: 10, frame: 14 },
   },
 };
 

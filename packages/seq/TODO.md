@@ -129,19 +129,27 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   codec (a reserved key), so `secondary` reads `category` in the examples; the `theme/` entry is reached through the
   `./*` export (`theme/index`): its own `./theme` export.
 
-- Layouts (text): frames across tracks (the frame layer, `across`), chips (one-position blocks: with blocks),
-  `text.pieceBreak: 'line'`, numbers by a layer's numbering (ordinal today), the `figure` preset's spacing, inline group
-  labels before a line's first group; the line heights are kept full until laid out (the text's `end` an estimate).
+- Layouts (text): chips (one-position blocks: with blocks; the line loop is their seam), the `figure` preset's
+  spacing, inline group labels before a line's first group; the line heights are kept full until laid out (the text's
+  `end` an estimate); the number gutter is measured from the total's digits, not the widest label of a numbering; a
+  frame's title row stays on every line its region is on (a band collapsed is not laid out, so its outline would go:
+  the design's "a title row only where a region starts" waits for an outline drawn in the bands it covers); the
+  zoom's new breaking under `pieceBreak: 'line'` reads the pieces kept in the geometry, and collapsed lines' heights
+  make its "same line" an estimate.
+- Layouts (interface): `FrameInput.viewport` is still the default for sections without an entry (the core's tests and
+  exports use it); the viewer passes every leading section in `viewports`. Its removal is a mechanical change of the
+  tests (one commit, after the layout lanes merge).
 - Layouts (interface): a section's relayout still allocates more than before the per-section cache (closures and
   contexts a section; p53 on its gene pan 75 KB a step against 70.5 KB at the base, its 64 KB bound already passed at
   the base on this Node): an engine object a section would take the closures away.
 
 ## `@molstar/seqx-viewer`
 
-- Text (layouts): the `ViewModel` through each section's `SectionNav` (pan, zoom, reveal, steps, clamp per layout),
-  `input` reading the placement (`offsetAt` for drags, the section under a point), ↑↓ by a line, a drag in reading order
-  and past a box's edge (clock-timed), the `window` behavior provider, the `reveal` group (`reveal.linked`),
-  `selection.copyLetters`, history restored by position across a layout change; the wheel over a text is built.
+- Layouts: a leader's cyclic window wraps only once a ring asks (the `ViewModel` passes `cyclic: false` to the nav); a
+  click on a window is the ring's own (its hit must carry the position under it, and the selection's clicks take the
+  `window` target); the window's slider is a mounted element (its arrows and Shift+arrows bound to the `window.*`
+  commands, `aria-valuetext` from `value`); a jump's motion eases the first leading section's window only (a text's
+  letter size is not tweened); text with rows (↑↓ through a line block's rows) waits for the rows layer.
 
 - Legends: the Legend part's place in the default chrome (the host mounts it today); a legend entry's color picker
   (`theme.value-color` has no UI); the scheme picker as a menu (the stories' buttons stand in).
