@@ -177,6 +177,24 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.ranges('r', { target: s, rows: { start: [0], end: [5] } });
     return b.build();
   },
+  'seq.lang.pairs.interval': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'rna', letters: 'GCGGAUUU' });
+    b.data.pairs('p', { a: s, rows: { a_start: [2], a_end: [2], b_start: [5], b_end: [6] } });
+    return b.build();
+  },
+  'seq.lang.pairs.bounds': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'rna', letters: 'GCGGAUUU' });
+    b.data.pairs('p', { a: s, rows: { a_start: [0], a_end: [1], b_start: [7], b_end: [9] } });
+    return b.build();
+  },
+  'seq.lang.grid.length': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'rna', letters: 'GCG' });
+    b.data.grid('g', { x: s, values: [1, 2, 3] });
+    return b.build();
+  },
   'seq.lang.values.content': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
@@ -404,6 +422,36 @@ describe('the gates and the places', () => {
     expect(read.issues).toEqual([]);
     expect(hashNode(read.node as Node)).toBe(hashNode(withCustom));
     expect(checkSeqSpec(withCustom)).toEqual([]);
+  });
+});
+
+describe('pairs, grids and a grid section', () => {
+  it('are valid: two systems, a pair across them, a grid x-major, y following a section', () => {
+    const b = createSeqSpec();
+    const x = b.data.sequence('x', { alphabet: 'protein', letters: 'MEEPQ' });
+    const y = b.data.sequence('y', { alphabet: 'protein', letters: 'MKL' });
+    const p = b.data.pairs('contacts', {
+      a: x,
+      b: y,
+      rows: { a_start: [0, 4], a_end: [1, 5], b_start: [2, 0], b_end: [3, 1], type: ['contact', 'contact'] },
+    });
+    const g = b.data.grid('pae', { x, y, values: new Array(15).fill(1) });
+    b.views.view('v', (v) => {
+      v.section('x', { of: x }).track('t').layer('l', { type: 'letters' });
+      v.section('y', { of: y }).track('t').layer('l', { type: 'letters' });
+      v.section('plot', {
+        layout: 'grid',
+        of: x,
+        of_y: y,
+        follow: '/views/v/x',
+        follow_y: '/views/v/y',
+        aspect: 1,
+      }).track('t', {}, (t) => {
+        t.layer('pae', { type: 'grid', data: g, aggregate: 'min', triangle: 'both' });
+        t.layer('dots', { type: 'pairs', data: p, mirror: false });
+      });
+    });
+    expect(b.check()).toEqual([]);
   });
 });
 

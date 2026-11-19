@@ -137,7 +137,9 @@ export const FrameType: LayerType<FramePrep, FrameLay> = {
     }
   },
 
-  hit(lay, x, y): Hit | undefined {
+  hit(lay, at): Hit | undefined {
+    const x = at[0];
+    const y = at[1];
     const y0 = lay.span.y;
     const y1 = lay.span.y + lay.span.height;
     for (let j = lay.m - 1; j >= 0; j--) {

@@ -53,14 +53,44 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
   (gutter labels overlapping; the domains count strip a heavy rule) to G2; the canvas/SVG spacing matched.
 - G2 merged (`e2aac7989`): the three gate findings fixed, looked at in light and dark. Stage 2 closed.
 
+- CH merged (`a5252eabd`, changelog `662d04133`): the clade hover (red once in the real story: the viewer's hover
+  record dropped the target; fixed with a test through the viewer), the ruler's one label a position, the line numbers
+  on the ruler's baseline (gap 7, decided). Review: findings 2–7 fixed; 1 (clade names) to the author (gap 6). Looked
+  at in light and dark (Family, Folded, Figure). Post-merge: unit 145 files / 1395 passed, tsc, typechecks, storybook
+  typecheck, lint, format, the `.seq` checks: exit 0.
+
+- PG merged (`e99c48af6`, changelog `seq-pairs-grids.md`): review findings fixed but A7 (to GD); the look's five
+  fixed, a regression from the look's own "square" finding reverted (the grid's x is the view's x); a tile seam fixed.
+  Post-merge: unit 150 files / 1465, typechecks, storybook, lint, format, perf 100, the `.seq` checks: exit 0.
+
 ## In progress
 
-- RW (strong) and SY (strong): stage 3's rows and stage 4's stories (`briefs/rw-rows.md`, `sy-stories.md`), base
-  `43beaa3e3`; rebasing onto G2's merge `e2aac7989`.
+- MD (strong, design only) started 2026-11-19: `briefs/md-molecules.md`, draft to `drafts/molecules.md`.
+- NV in its third round (2026-11-19): the look found the ideogram and the plasmid strip blank in the browser
+  (twins pass) and the parts mounted over the toolbar and the alignment; merging packages-seq (PG's hit signature).
+- PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
+  orchestrator: PG green (unit 1433); NV green but heavy, whose two failures (rows-time's theme change, themes' 1.1×
+  ratio) also fail on `packages-seq` under load and pass alone on NV: flaky bounds, to stage 4's gate. Reviews running
+  (independent, opus) done: NV 12 bugs (double history step, wrapped grips, the miniature's body, rows history,
+  the view's images and colours, the idle key, ...), the ring's second window geometry, config beyond the table; PG
+  9 (y never moves on the PAE, a self grid's rect painted as bands, pairs ignoring themes and filters, antiparallel
+  only, triangles' diagonal, the hit path's boxing), the data not marked synthetic. Both in one fix round each
+  (2026-11-19), with the look's findings below; NV's worktree was briefly switched by PG's reviewer and restored.
+  Design calls written: navigators (slim rail under the tracks; what replaces the rail), grids-and-rows (height
+  floor, two-rect subtraction, `aspect: none`, the `type` column). The look's findings:
+  - PG: tRNA arcs spring from the band's foot, away from the letters, feet clipped; the RNA legend says T (not U) and
+    shows a gap swatch; dot plots not square (`aspect` 1); the generated PAE mostly low with a high stripe (the design:
+    low across the interface, high elsewhere); contacts dots barely visible in dark. The crosshair works.
+  - NV: no Storybook stories for its five views (the brief asked); the idle rail at the fit view a heavy rule (the
+    design: quiet); the SVG export draws a line where the rail is (NV: omitted by default) — check against the base.
+  - Sizes: headless 573 (PG) / 566 (NV) kB and the viewer 879 / 890 kB against the 300 / 600 kB guides.
 
 ## Next
 
-After RW: PG and NV. The early use gate is deferred.
+Decided 2026-11-19: one-position blocks are chips in every layout (layouts.md), contacts optional (the host's);
+MD (the molecules design) scheduled in stage 5, built in the fourth slice. Scheduled in `plan.md` (the author, 2026-11-19: "schedule these appropriately in the third slice plan"): CH and GD in
+stage 4; SO first in stage 5 (Features apart from Examples); DP's features as arrows by strand. After PG and NV: lane GD (gaps 1–5 decided as recommended, 2026-11-19: the core palette split, `classes-safe`,
+the dark cell edge, `view.motion`, the pyramid's tolerance), then stage 4's GATE, then stage 5. The early use gate is deferred.
 
 ## Decided
 
@@ -76,6 +106,7 @@ After RW: PG and NV. The early use gate is deferred.
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stage 4, CH (look, review) | 5 (the hover target dropped by the viewer; a band over the pinned band; a double tint with `pinInPlace` false; a unary chain's stem; a ruler blanking another numbering's label) + 1 to the author (clade names) | 1 (the line numbers' baseline) | 0 |
 | stage 2, TV (review and look) | 5 (groups out of phase; end numbers untested; text allocation; a cyclic window drag; the copy message) + 1 found (an item from an earlier tile lost) | 0 | 2 (the export cut short; no domains band) |
 | stage 2, RB (review and look) | 9 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin; a wide window flipping; tracks not wrapping, a test changed to fit; a blank view past the fit) | 0 | 2 (a whole-ring window loud; stacked rows empty) |
 | stage 2's gate (look, heavy) | 1 (a max bound flaking under load) | 0 | 2 (gutter labels overlap; a heavy count strip) |

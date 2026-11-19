@@ -31,8 +31,9 @@ export interface ProjectOptions {
 }
 
 /**
- * `loc` on the view's sections' systems: per system a section shows, the parts carried to it (rects are not carried).
- * Empty when nothing reaches a section.
+ * `loc` on the view's sections' systems: per system a section shows, the parts carried to it, a rect's two sides with
+ * them (a grid's rectangle lights both ranges on the sections of its systems, and where they link). Empty when nothing
+ * reaches a section.
  */
 export function projectOntoView(
   model: StaticModel,
@@ -40,18 +41,20 @@ export function projectOntoView(
   loc: Location,
   options: ProjectOptions = {},
 ): Location {
-  if (!loc.parts.length) return EmptyLocation;
+  if (!loc.parts.length && !loc.rects.length) return EmptyLocation;
   const systems: string[] = [];
   for (const s of view.sections) if (!systems.includes(s.axis.system)) systems.push(s.axis.system);
-  const src = options.close ? model.close(loc, systems) : loc;
   const own = new Set(loc.parts.map((p) => p.system));
+  // a rect's sides as positions, carried as the parts are; a side is no own part (its system's section shows it)
+  const flat = loc.rects.length ? location({ parts: [...loc.parts, ...loc.rects.flatMap((r) => [r.a, r.b])] }) : loc;
+  const src = options.close ? model.close(flat, systems) : flat;
   const parts: { system: string; ranges: ArrayLike<number> }[] = [];
   const buffer: number[] = [];
   for (const system of systems) {
     if (!options.own && own.has(system)) continue;
     for (const part of src.parts) {
       if (part.system === system) {
-        if (options.own) parts.push(part);
+        parts.push(part);
         continue;
       }
       if (options.linked === false) continue;

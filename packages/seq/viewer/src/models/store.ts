@@ -91,7 +91,7 @@ export class StoreModel extends ReactiveModel {
     for (const b of model.sources.values())
       if (b.runtime) wanted.set(b.address, { entry: b.entry, runtime: b.runtime });
     const plans = [...model.systems.values()].map((s) => s.access);
-    for (const a of model.annotations.values()) plans.push(a.access);
+    for (const a of model.annotations.values()) if (a.access) plans.push(a.access);
     for (const p of plans)
       if (p.kind === 'inline') wanted.set(p.source.address, { entry: p.source, runtime: p.runtime });
 

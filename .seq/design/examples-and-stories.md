@@ -17,6 +17,11 @@ structured. This design settles it.
 - **Reading fixtures**: a spec names fixtures by relative location (`fixtures/p53/region.fa`). In Node an assets adapter
   reads them from the package folder; in Storybook a Vite plugin serves the folder (as the previous storybook's did,
   registered in `storybook/packages.ts`). The same spec runs in both.
+- **Features and examples are apart** (the author, 2026-11-19): a story that explains how something works (themes and
+  their schemes, selection, editing and undo, bookmarks and links, stories, navigators) is `Seq* (next)/Features/<Feature>/<Story>`,
+  on whichever dataset shows it best; a dataset's figure is an example. Why: a reader looking for how a feature works
+  should not have to guess which dataset holds it, and a dataset's folder shows what its data looks like. A
+  dataset's index story links the features shown on its data.
 - **One story per view**: `Seq* (next)/Examples/<Dataset>/<View>`, each composing a viewer from the default spec and
   the view's `build()`, with the canvas and the SVG side by side and the printed spec beside them. A dataset's index
   story lists its views.

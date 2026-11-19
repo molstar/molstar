@@ -367,7 +367,20 @@ interface Placement {
 - **Text**: every block starts a line, its label inline on its first line only (EC-95); one-position blocks (a ligand)
   are chips that flow like words after the chains (EC-99), each a strip one position wide, its label's width.
 - **Rings**: a block an arc, a gap between blocks (`rings.blockGap`); a whole cyclic block takes the full circle with
-  no gap. Two genomes on one ring wait for the Genomes milestone (EC-210).
+  no gap.
+- **A one-position block is a chip in every layout** (decided, the author, 2026-11-19: "chips is a prolly good way to
+  do these"): a ligand, an ion, a glycan or a drug standing as one position takes a fixed slot in screen px, its
+  label's width (the text chip's rule: its label and `×N`, 5 px either side), never a position's share: zoom does not
+  scale it, so it reads at the fit view and is never clipped. Tracks: the chips follow the polymers' blocks (`row`), or
+  share one short row of their own (`stack`); each track holding something at the position draws one pill there (the
+  letters' band the label, a feature band its mark), the others leave it blank. Rings: a fixed-angle arc a chip after
+  the polymers' arcs. The row's x is not linear over a chip, as over a gap (EC-102): the window, the ruler and
+  `windowExtent` skip chips as they skip gaps. Hit, hover, selection and links read a chip as its one position. Why:
+  a one-position share is a sliver at the fit view (the Complex's ATP), and the base's floor (a 2 px mark, unlabeled)
+  says nothing; one rule for text, tracks and rings. **Where a ligand binds is the host's**: its contacts are an
+  optional `pairs` layer a builder or an application adds (the Complex and Globins examples add it), never drawn by
+  default (the author: "contacts should be optional and configurable by the app ... we are building a library, not a
+  one-off viewer"). Two genomes on one ring wait for the Genomes milestone (EC-210).
 - **Copies** (EC-65): `copies: 'merge'` (the default) draws one block for a copy group, labeled `×N`, hovered for
   every member; `'each'` a block a unit. Why `merge`: copies hold one molecule's sequence, so one block says it once and
   its room and drawing do not grow with the copy count (EC-67); `each` is the writer's when copies differ in what is
@@ -400,7 +413,9 @@ interface Placement {
   in the band's numbering, printed in a gutter (start: left, after the label column; end: right); `start` because a
   line is read from its start, so its first number places what follows without counting; group labels
   (`group_labels`: `above`, `inline`, `none`) number each group (EC-94). A line with no position of a row has no
-  number for it.
+  number for it. A ruler band's line numbers sit on the ruler's label baseline (decided, the author, 2026-11-19): one
+  row of numbers across the line, start, ticks and end. A position carries one label: a group's end number falls on a
+  ruler tick of the same numbering, the ruler draws the tick without its label.
 - **Alignment figures** (EC-97, the ESPript figure): a rows layer ([grids-and-rows.md](grids-and-rows.md)) is a band of text rows on each line; each
   row's label in the label column of every line, its last residue on the line in its own numbering in the end gutter;
   group labels number the reference row. The label column fades a long label (`@molstar/ui`'s rule), where the

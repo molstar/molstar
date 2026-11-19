@@ -35,3 +35,26 @@ the winner leads by more than 0.1, share within 0.1" doesn't hold: at those numb
 0.25. Options: (a) record the measured tolerance in grids-and-rows.md; (b) keep the top two classes per sample (more
 memory per level, closer shares). Recommendation: (a), since the image tiles are below 3 device px where the shade reads,
 not the letter. RW's tests assert the measured bounds until you decide.
+
+## 6. Clade names on repeated labels (CH's review)
+
+Support values as inner labels (`((A,B)95,(C,D)95)`) give two clades one name: a hover, a fold or `clades.keep` reaches
+the first. Name a clade by its node's id only where the id is unique (a repeated or numeric-only label falls back to
+its first and last leaves)? Recommend **yes** (`drift/clade-names.md`). **Decided yes** (the author, 2026-11-19); built in GD.
+
+## 7. The line numbers' baseline in a text figure (CH)
+
+A line's start and end numbers ("61", "80") sit at the first band's middle, 6 px below the ruler's labels ("65",
+"75"); layouts.md (Numbers per row) is silent. Put them on the ruler's label baseline when the first band is a ruler?
+Recommend **yes** (one line of numbers reads as one row). **Decided yes** (the author, 2026-11-19); built in CH's fix round.
+
+## Decided by the author (2026-11-19: "go as recommended")
+
+All five open gaps above, as recommended; written into themes.md, stories.md, ux-foundations.md and grids-and-rows.md
+and their Design pages. Built by lane GD after PG and NV merge (it touches the viewer's config and the themes' render):
+
+1. The lists-free palette module in `@molstar/core/util/color`, re-exported by `value-palette.ts`: yes (non-breaking).
+2. `classes` stays the default: yes. Every substitute safe: yes, `classes-safe` (the classes on Okabe–Ito hues).
+3. Dark letter cells: (a), a hairline cell edge (`seq-cell-edge`) in dark only.
+4. One motion item: `view.motion: platform | cut | animate` (default `platform`), `story.reducedMotion` dropped.
+5. The pyramid's tolerance: (a), the measured bounds recorded in grids-and-rows.md.

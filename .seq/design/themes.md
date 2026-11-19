@@ -227,7 +227,7 @@ and another viewer); a host recolors through `--seq-*` tokens.
 
   | Subject | Schemes |
   |---|---|
-  | protein letters | `classes` (the default: the `seq-aa-*` tokens), `clustal-x`, `zappo`, `taylor`, `hydrophobicity`, `helix`, `strand`, `turn`, `buried`, `percent-identity`, `blosum62`, `espript` |
+  | protein letters | `classes` (the default: the `seq-aa-*` tokens), `classes-safe` (the safe substitute), `clustal-x`, `zappo`, `taylor`, `hydrophobicity`, `helix`, `strand`, `turn`, `buried`, `percent-identity`, `blosum62`, `espript` |
   | nucleotide letters | `nucleotide-classes` (the default: the `seq-nt-*` tokens), `nucleotide`, `purine-pyrimidine`, `nucleotide-cb` (Okabe–Ito) |
   | numbers | `ramp` (the default: the `seq-ramp-*` tokens), `diverging` (the `seq-div-*` tokens), `viridis`, `cividis`, `magma`, `blues`, `rd-bu`, `plddt` (AlphaFold's four bins, binned) |
   | categories | `categories` (the default: the `seq-cat-*` tokens), `okabe-ito` (core's `lists.ts` has it), `tableau10`, `category10` |
@@ -279,7 +279,15 @@ and another viewer); a host recolors through `--seq-*` tokens.
   `ref.color` (documented as hex or token) and the viewer's `highlight.color` items take it too.
 - **A reader's color-blind substitution** (`theme.cvdSafe`, a viewer setting, off): each scheme that is not safe is
   drawn as its declared substitute, and a categorical palette as `okabe-ito`; the legend shows what is drawn and says
-  it is substituted. Never written into the spec.
+  it is substituted. Never written into the spec. **Every substitute is itself safe** (decided, 2026-11-19): a scheme
+  may not name an unsafe scheme as its substitute (a test over the registry). The protein letter schemes that are not
+  safe (`classes`, `clustal-x`, `zappo`, `taylor`) substitute to `classes-safe`, `classes`' groups on Okabe–Ito hues
+  (passing the conformance check in both themes). `classes` stays the default (decided: the reader's setting covers
+  it; changing the default changes every figure).
+- **Letter cells in dark** (decided, 2026-11-19): the dark scheme variants sit at oklab L 0.32–0.61, 1.4–1.7:1
+  against the dark page, and cannot go lighter without their ink failing 4.5:1. So in the dark theme a letter cell
+  draws a hairline outline (1 device px, `seq-cell-edge`, a new token: 3:1 against the dark page; none in light),
+  rather than a lighter page for every figure.
 - **Forced colors** (planned, with accessibility): the viewer reads `forced-colors: active` and builds its token table's chrome and
   emphasis tokens from system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`), so the selection, the hover and
   the cursor stay visible; data colors are kept (fixed), since the data's meaning is in them; the
@@ -398,8 +406,10 @@ builder writes the `field` form into the spec instead.
   `value-palette.ts` builds `ValuePaletteLists` from every list at module load (about 48 kB of source with `lists.ts`).
   Decided: make it a lazy getter in `@molstar/core/util/color` (the public API kept; MolViewSpec reads it through
   `helpers/colors.ts`), with Seq\* passing explicit colors to the evaluation and naming lists only through its schemes
-  module; measured when themes land. Only if that does not drop the lists: a split of the module, a v6 break recorded in
-  `.v6/plans/breaking-v6-changes.md`, brought to the author then.
+  module; measured when themes land. The lazy getter saved work but not bytes (`value-palette.ts` imports `lists.ts`
+  statically: about 13.6 kB in headless rendering and the viewer), so (decided, 2026-11-19) the evaluation moves to a
+  lists-free module in `@molstar/core/util/color` that Seq\* imports, and `value-palette.ts` re-exports it with
+  `ValuePaletteLists`: non-breaking for Mol\*'s and MolViewSpec's code, no entry in `breaking-v6-changes.md`.
 
 ## The interaction matrix's cells
 
@@ -409,7 +419,7 @@ This design fills the **track or layer** row's edit cell, the **selection** row'
 | | select | extend | add / remove | focus | back | zoom in / out | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
 | **a track or layer** | ([grids-and-rows.md](grids-and-rows.md)) | — | — | ([grids-and-rows.md](grids-and-rows.md)) | — | — | — | `track.hide`, `layer.hidden` (built) | its color and channels from the track menu (`layer.color`, `layer.channel`; each scheme previewed while hovered, one patch); several layers at once in one patch; a shared scale's domain, type or palette (`scale.set`: every layer naming it follows, one step) |
-| **a legend entry** | click, or Enter on a focused entry: its items (`legend.select`, the selection becomes `<data>/(item :<field> v)`; the only selected value clicked again clears); a step or a ramp: no, until the query sublanguage filters by value | no: a field's values have no order for categories; steps wait with the value filter | Cmd/Ctrl+click or Cmd/Ctrl+Enter toggles the value's items in or out | no gesture of its own: a value's items can span the whole data; Enter focuses the selection as for any selection | Alt+Left (the view's) | no: a legend has no axis | no: a legend has no axis | the value's items filtered out: `layer.filter` from the entry's menu (one patch; the track's "n filtered" chip clears it); the part is the host's to hide | its color (`theme.value-color`, a color input in the part, previewed, one patch); a ramp's domain (`scale.set`, a field in the part; the drag of its ends: later, decided); the scheme (the picker in its title) |
+| **a legend entry** | click, or Enter on a focused entry: its items (`legend.select`, the selection becomes `<data>/(item :<field> v)`; the only selected value clicked again clears); a step or a ramp: no, until the query sublanguage filters by value | no: a field's values have no order for categories; steps wait with the value filter | Cmd/Ctrl+click or Cmd/Ctrl+Enter toggles the value's items in or out | no gesture of its own: a value's items can span the whole data; Enter focuses the selection as for any selection | Alt+Left (the view's) | no: a legend has no axis | no: a legend has no axis | the value's items filtered out: `layer.filter` from the entry's menu (one patch; the track's "n filtered" chip clears it); the part is the host's to hide | commands only, the controls the application's (the author, 2026-11-19: changing colors and ranges from a legend "is an application concern"): its color (`theme.value-color`, one patch), a ramp's domain (`scale.set`), the scheme (`layer.channel`), each previewed; the part shows no editing control |
 | **the selection** | — | — | — | — | — | — | — | — | color it on a layer: planned (`theme.color-selection`, a rule `(in …)` added at the top, one patch) |
 | **a bookmark or link** | — | — | — | — | — | — | — | — | its color: a color as above (`light-dark` allowed), by patch with its label (planned with the label) |
 | **the view** | — | — | — | — | — | — | — | — | no theme edit: light, dark, forced colors and the color-blind substitution are the reader's settings, never the spec |

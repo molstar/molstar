@@ -99,8 +99,9 @@ function distinct(column: unknown): string[] | undefined {
 
 /**
  * A layer's params as the builder writes them, given the inline rows of the data it names (`rows`, a ranges node's):
- * a `ranges` layer with no `color` over rows with a `category` column is colored by it; a `field` form marked to list
- * gets its text column's values written (a categorical palette over the default `categories`).
+ * a `ranges` layer with no `color` over rows with a `category` column is colored by it, a `pairs` layer by its `type`;
+ * a `field` form marked to list gets its text column's values written (a categorical palette over the default
+ * `categories`).
  */
 export function writeLayerTheme(
   params: Record<string, unknown>,
@@ -109,6 +110,8 @@ export function writeLayerTheme(
   let color = params.color as Node | undefined;
   if (color === undefined && params.type === 'ranges' && rows && rows.category !== undefined)
     color = theme.field('category');
+  // a pairs layer: its kind (the layer's default channel, with the values listed for a complete key)
+  if (color === undefined && params.type === 'pairs' && rows && rows.type !== undefined) color = theme.field('type');
   // a variants layer: its consequence (else its category), as the layer read it before themes
   if (color === undefined && params.type === 'variants' && rows) {
     const name = rows.consequence !== undefined ? 'consequence' : rows.category !== undefined ? 'category' : undefined;

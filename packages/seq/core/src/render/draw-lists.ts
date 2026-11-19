@@ -711,6 +711,32 @@ export class PassWriter {
     p.dash[k] = a[7];
   }
 
+  /**
+   * A cubic curve from `xy[o], xy[o + 1]` through the controls at `o + 2` and `o + 4` to `o + 6`, stroked: its fill,
+   * stroke, stroke width and dash are `args[4]` to `args[7]` (an arc of pairs; nothing allocated once warm).
+   */
+  curveArgs(xy: Float64Array, o: number) {
+    const a = this.args;
+    this.pass.op(Op.path);
+    const p = this.pass.paths;
+    p.begin();
+    p.commands = grown(p.commands, p.commandCount + 2);
+    p.points = grown(p.points, 2 * (p.pointCount + 4));
+    p.commands[p.commandCount++] = PathCommand.move;
+    p.commands[p.commandCount++] = PathCommand.cubic;
+    for (let i = 0; i < 4; i++) {
+      p.points[2 * p.pointCount] = xy[o + 2 * i];
+      p.points[2 * p.pointCount + 1] = xy[o + 2 * i + 1];
+      p.pointCount++;
+    }
+    const k = p.n++;
+    p.cmdCount[k] = p.commandCount - p.cmdStart[k];
+    p.fill[k] = a[4];
+    p.stroke[k] = a[5];
+    p.strokeWidth[k] = a[6];
+    p.dash[k] = a[7];
+  }
+
   /** Begins a glyph run; `letter` adds to it, `endGlyphs` closes it. */
   beginGlyphs(font: string, y: number, color = NoColor) {
     this.pass.op(Op.glyphs);

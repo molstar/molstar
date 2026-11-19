@@ -116,7 +116,7 @@ export async function attachSources(
     ...[...model.systems.values()].map((s) => s.access),
     ...[...model.annotations.values()].map((a) => a.access),
   ])
-    if (plan.kind === 'inline') opens.set(plan.source.address, () => plan.runtime.open(plan.source, ctx));
+    if (plan?.kind === 'inline') opens.set(plan.source.address, () => plan.runtime.open(plan.source, ctx));
   for (const b of model.sources.values()) {
     const runtime = b.runtime;
     if (runtime) opens.set(b.address, () => runtime.open(b.entry, ctx));

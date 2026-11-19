@@ -234,6 +234,16 @@ export class AxisTransform {
     return r < 0 ? u : u + r / this.scale;
   }
 
+  /**
+   * Whether display unit `u` ends a group (its last unit): where a text's group label stands; `gapped` only when a gap
+   * follows it in the window (an inline label stands in the gap).
+   */
+  endsGroup(u: number, gapped = false): boolean {
+    if (this.gsize === 0) return false;
+    const e = Math.floor(u) + 1;
+    return (gapped ? e < this.u1 : e <= this.u1) && (e - this.gorigin) % this.gsize === 0;
+  }
+
   /** Whether x falls in a group's gap (no position there). */
   inGap(x: number): boolean {
     if (this.gsize === 0 || x < this.x0 || x >= this.x0 + this.width) return false;
@@ -251,11 +261,17 @@ export class AxisTransform {
     return this.elementAtUnit(u);
   }
 
+  /** `positionAt` of `at[i]`: a point held in an array (a fractional number passed to a call that is not inlined is boxed). */
+  positionOf(at: Float64Array, i: number): number {
+    return this.positionAt(at[i]);
+  }
+
   /** The position whose cell holds display unit `u`, or −1 past the pieces. */
   elementAtUnit(u: number): number {
     const n = this.offsets.length;
     if (!n || u >= this.total) return -1;
-    let k = pieceAtOffset(pieceOffsets(this.pieces), u);
+    // offsets are whole units: the floor finds the same piece, and a small integer passed is never boxed
+    let k = pieceAtOffset(pieceOffsets(this.pieces), Math.floor(u));
     // past pieces of no length at the same offset
     while (k + 1 < n && u >= this.offsets[k + 1]) k++;
     const d = Math.floor(u - this.offsets[k]);

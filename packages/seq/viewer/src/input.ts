@@ -233,6 +233,15 @@ export class ViewerInput {
     return o >= 0 ? o : undefined;
   }
 
+  /** The display unit down a grid's y under a page point (its plot's second axis), undefined elsewhere. */
+  offsetYAt(section: string, x: number, y: number): number | undefined {
+    const p = this.viewer.placementOf(section);
+    const pt = this._point;
+    if (!p || !p.strips.n || !p.at(x, y, pt) || pt.strip < 0) return undefined;
+    const u = p.strips.ys[pt.strip]?.unitAt(pt.y);
+    return u !== undefined && u >= 0 ? u : undefined;
+  }
+
   /**
    * Round a ring (a layout whose window wraps the origin): the display units the pointer swept from one point to the
    * next, read from the placement by angle, the shorter way round; undefined elsewhere.
@@ -602,13 +611,14 @@ export class ViewerInput {
     const local = Math.min(Math.max(x - this.viewer.dataX, 0), width);
     // the unit under the pointer, from the placement (a text's in reading order): what a zoom keeps where it is
     const at = this.offsetAt(section, x, y);
+    const atY = this.offsetYAt(section, x, y);
     // on macOS Ctrl is no zoom modifier, so a Ctrl+wheel is a pinch whatever its delta; elsewhere a large delta is a mouse
     const pinch =
       e.ctrlKey && pointer.pinchFromCtrlWheel && (this.mac || (!e.deltaMode && Math.abs(dy) <= pointer.pinchMaxDelta));
     if (pinch) {
       // the pinch's own modifiers: none (the Ctrl is the gesture's, not a key held)
       const taken = this.viewer.bindings.resolve('pinch', NoModifiers, target) !== undefined;
-      if (taken) nav.pinch(section, Math.exp(-dy * pointer.pinchSpeed), local, NoModifiers, target, at);
+      if (taken) nav.pinch(section, Math.exp(-dy * pointer.pinchSpeed), local, NoModifiers, target, at, atY);
       this.viewer.schedule();
       return taken;
     }
@@ -628,7 +638,7 @@ export class ViewerInput {
       return scrolled;
     }
     const taken = this.viewer.bindings.resolve('wheel', mods, target) !== undefined;
-    if (taken) nav.wheel(section, dx, dy, local, mods, target, at);
+    if (taken) nav.wheel(section, dx, dy, local, mods, target, at, atY);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them
     this.viewer.schedule();
     return taken;

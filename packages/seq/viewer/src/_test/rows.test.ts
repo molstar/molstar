@@ -14,7 +14,7 @@ import { patchToNode } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
-import type { RowsLay } from '@molstar/seqx-core/render';
+import { type RowsLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { headlessAnimation } from '../animation.js';
 import { keyConflicts } from '../bindings.js';
@@ -87,6 +87,26 @@ describe('an alignment’s rows in the viewer', () => {
     expect(v.input.click(w[0] + 2, (w[1] + w[3]) / 2)).toBe(true);
     frames!.flush();
     expect(v.view.band(Track)?.folds).toEqual([]);
+  });
+
+  it('a pointer over a tree node lights its clade through the hover model: branches and one band over its rows', async () => {
+    const v = await make();
+    const l = lay(v);
+    const k = l.nodes.findIndex((_, i) => i % 3 === 0 && l.clades!.name[l.nodes[i]] === 'hb');
+    v.input.move(l.nodes[k + 1], l.nodes[k + 2]);
+    frames!.flush();
+    expect(v.hover.current.target).toBe('tree-node');
+    const rects = recordDrawLists(v.frame!.lists, ['hover'])
+      .split('\n')
+      .filter((r) => r.startsWith('rect '))
+      .map((r) => r.slice(5).split(' ').map(Number));
+    const bands = rects.filter((r) => r[0] === l.box.x && r[2] === l.box.width);
+    expect(bands.map((r) => [r[1], r[3]])).toEqual([[l.rowY(0), 2 * l.rowScale]]);
+    expect(rects.filter((r) => r[0] < l.box.x).length).toBeGreaterThan(0);
+    // off the tree: nothing of the clade
+    v.input.move(l.box.x + 5, l.rowY(0) + 3);
+    frames!.flush();
+    expect(v.hover.current.target).not.toBe('tree-node');
   });
 
   it('collapse all and a reveal are jumps: back restores the folds; the selection is by data rows and a fold keeps it', async () => {

@@ -213,12 +213,45 @@ export function intersectLocations(a: Location, b: Location): Location {
   );
 }
 
-/** The positions of `a` not in `b`. Rects are not subtracted: a caller refuses them (a rect minus a rect is no rect). */
+/**
+ * The positions of `a` not in `b`, and `a`'s rects less `b`'s rects over the same two systems (_spec/README.md
+ * "Queries", Location): a rect `A × B` less `C × D` is `(A − C) × B` and `(A ∩ C) × (B − D)`, at most two rects whose
+ * sides may hold several ranges (four with one range a side), so the cells stay exact. Parts never subtract rects.
+ */
 export function subtractLocations(a: Location, b: Location): Location {
+  let rects = a.rects;
+  if (rects.length && b.rects.length) {
+    let cur: LocationRect[] = rects.slice();
+    for (const q of b.rects) {
+      const next: LocationRect[] = [];
+      for (const r of cur) {
+        if (r.a.system !== q.a.system || r.b.system !== q.b.system) {
+          next.push(r);
+          continue;
+        }
+        const ia = HalfOpenRanges.intersect(r.a.ranges, q.a.ranges);
+        const ib = HalfOpenRanges.intersect(r.b.ranges, q.b.ranges);
+        if (!ia.length || !ib.length) {
+          next.push(r);
+          continue;
+        }
+        const left = HalfOpenRanges.combine(r.a.ranges, q.a.ranges, (x, y) => x && !y);
+        if (left.length) next.push(rectOf(r.a.system, left, r.b));
+        const below = HalfOpenRanges.combine(r.b.ranges, q.b.ranges, (x, y) => x && !y);
+        if (below.length) next.push(rectOf(r.a.system, ia, Object.freeze({ system: r.b.system, ranges: below })));
+      }
+      cur = next;
+    }
+    rects = sortedUnique(cur);
+  }
   return freeze(
     combineParts(a, b, (x, y) => x && !y),
-    a.rects,
+    rects,
   );
+}
+
+function rectOf(system: string, ranges: Int32Array, b: LocationPart): LocationRect {
+  return Object.freeze({ a: Object.freeze({ system, ranges }), b });
 }
 
 /** Whether a half-open item `[start, end)` overlaps the ranges (`HalfOpenRanges.overlaps`: boundaries, the system's end). */

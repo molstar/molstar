@@ -122,6 +122,9 @@ export const Systems = {
   ab: Ab,
   unit: system('/data/abunit', 8, [UnitAuth], { parent: { system: Ab, start: 2 } }),
   empty: system('/data/empty', 0),
+  // an alignment: its columns, and its rows a system (a position a row: h, m, r)
+  aln: system('/data/aln', 10),
+  alnRows: system('/data/aln/(rows)', 3),
   offset: system('/data/offset', 6, [
     offsetNumbering('skip', 6, -3, true),
     // `.n` labels, `100.10` distinct from `100.1`
@@ -169,6 +172,7 @@ export const Spec: Node = {
       node('sequence', 'ab'),
       node('sequence', 'abunit'),
       node('sequence', 'empty'),
+      node('alignment', 'aln'),
       node('sequence', 'offset'),
       node('genes', 'genes'),
       node('structure', '1tup', [node('ranges', 'sites')]),
@@ -192,4 +196,8 @@ export const Model: QueryModel = {
     owner === '/data/genes' && (key === 'T1' || key === 'T2') ? { kind: 'gene', params: { key } } : undefined,
   chain: (owner: string, id: Atom) =>
     owner === '/data/1tup' && id === 'A' ? { kind: 'chain', params: { id } } : undefined,
+  row: (rows: string, key: Atom) => {
+    const i = rows === '/data/aln/(rows)' ? ['h', 'm', 'r'].indexOf(String(key)) : -1;
+    return i < 0 ? undefined : i;
+  },
 };

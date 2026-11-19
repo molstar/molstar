@@ -157,7 +157,7 @@ vertical scale. This design builds on them and adds only:
 ### Pairs: arcs, chords, dots
 
 - **Data**: a `pairs` annotation, inline (a tRNA's pairs, Stockholm's `SS_cons`, a complex's contacts: read whole), each
-  item two ends, each a range on its own system (one or two systems), an open `kind` (canonical, wobble, non-canonical,
+  item two ends, each a range on its own system (one or two systems), an open `type` (the column's name: `kind` is reserved in the language; canonical, wobble, non-canonical,
   contact), a `strand` per end (a reversed side is valid, EC-206), `id` or `row`, fields. Self-pairs allowed; an end
   never wraps (EC-10); found from either end through an index on both (EC-62). Pairs read by region (EC-208) wait for
   the Genomes milestone.
@@ -200,9 +200,10 @@ vertical scale. This design builds on them and adds only:
   default read off whether the two axes are one system would change the picture when a writer moves y. A layer may keep
   to a triangle (`triangle`: `both`, `upper`, `lower`). Later layers over earlier; a missing value is transparent, so two
   grids on one pair of systems merge later over earlier (EC-59).
-- **Size and aspect** (EC-109): height = the data box's width ÷ `aspect` (1), capped by the view's room less a tenth, at
-  least two rows; the width read without the scrollbar's room (the flicker rule). `aspect: null` leaves the height to
-  the section.
+- **Size and aspect** (EC-109): height = the data box's width ÷ `aspect` (1), capped by the larger of `heights.grid` and nine
+  tenths of the view's room (decided at PG's review: a view sized to its content otherwise feeds its own height back
+  and the plot collapses), at least two rows; the width read without the scrollbar's room (the flicker rule).
+  `aspect: none` leaves the height to the section (the language has no null here).
 - **Direction**: an axis reversed (the axis design) flips its side of the plot; hits and the rectangle mirror (EC-145).
 - **Grid data** (EC-58): an inline annotation, a-major `float32` (typed arrays by reference), `null` or NaN missing, a
   wrong length dropped with the count it expected; at most `maxBlockValues` (`DefaultMaxBlockValues`, 2^24) values a
@@ -220,7 +221,8 @@ vertical scale. This design builds on them and adds only:
   and a range selected there as two bands; and the cell's outline. Linked sections light both positions; the hover
   card names both and the value.
 - **Rectangle**: a drag selects `(rect :a <x range> :b <y range>)`, a click one cell's rect; Cmd/Ctrl+drag adds,
-  **Alt+drag subtracts**: a rect minus a rect over the same two systems is at most four rects, so the Location stays
+  **Alt+drag subtracts**: a rect minus a rect over the same two systems is at most two rects whose sides hold several
+  ranges (decided at PG's review: exact, fewer parts than four), so the Location stays
   exact (the Location rule changes: rects subtract, never merge). Projected onto linked sections, a rect lights its two
   sides.
 
@@ -262,8 +264,10 @@ leaf order; any other order is `seq.render.rows.order` and draws in data order (
 **The rows axis** (tracks): display rows over the expanded order, one display row a row, or one for a folded clade.
 Rows in view are found by arithmetic, O(1) a row, never a scan.
 
-- **Clades** (EC-100, EC-103) are named by the node's id, else their first and last leaves in tree order
-  (`(clade :of [a b])`), so a name survives a reorder of other clades and a tree read again.
+- **Clades** (EC-100, EC-103) are named by the node's id where it is unique in the tree and not a number, else their
+  first and last leaves in tree order (`(clade :of [a b])`), so a name survives a reorder of other clades and a tree
+  read again. Why the exception (decided, the author, 2026-11-19): inner labels are often support values that repeat
+  (`((A,B)95,(C,D)95)`), and one name for two clades sends a hover, a fold or `clades.keep` to the wrong one.
 - **Pinned rows**: `pinned` (row keys), drawn in a fixed band at the top of the rows band, and kept in their place in
   the order too, marked (`rows.pin.inPlace`, true). Why both: the tree stays a tree and clades stay bands.
 - **The band**: tracks before the rows track (a ruler, the logo) and after it (a summary) stay fixed; the rows scroll
@@ -271,7 +275,10 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
   rows layer a section (`seq.render.rows.second`): the cursor has one row order.
 - **The row header**, in the view's one label column (ux-foundations section 3): the tree (`treeWidth`), the label
   (faded past its width), icons in fixed slots (pin, a bound row's link), data columns of the rows table that yield to
-  a narrow width down to a floor (EC-107), the first and last residue numbers in gutters (`numbers`). Labels,
+  a narrow width down to a floor (EC-107), the first and last residue numbers in gutters (`numbers`): of the residues **in view**, so they follow a
+  pan and a zoom (decided, the author, 2026-11-19: "the offsets at the end of the sequences don't update"; Jalview's
+  and ESPript's per-line numbers), equal to the row's own at the fit view; a residue is counted, a gap never; a row
+  with no residue in view shows none. Labels,
   numbers and icons only at `rows.labelMinPx` (8) and more; a header hover lights the row band (drawing only, EC-146,
   EC-147). Hidden rows are a count chip ("3 hidden") at the header's foot; its click shows them (one patch).
 
@@ -308,6 +315,9 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
   the served row bins (approximate, said once). Framed as one discrete mark, square where the view cuts it (EC-100).
   **Hit**: target `summary-row`, its element the clade (its extent its rows on the rows system, the column as
   `position`); a tree node hits as `tree-node`, its element the clade.
+  **Hovered** (ux-foundations section 8: the element is hovered, here and on linked sections): a hover on a tree node
+  or a summary row lights the clade: its branches in `seq-hover` ink and the band of its rows (one band, the clade's
+  rows being adjacent in tree order; folded, the summary row's band), as a header hover lights a row's. Drawing only.
   **Selected**: a click selects the clade's rows; Cmd/Ctrl+click toggles them; a selection holding some of its rows
   draws a partial mark (the tint over the share, an outline when all). **Exported** as drawn, label and wedge included.
 - **What a fold does to the rest**:
@@ -334,8 +344,10 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
 
 - a sample of a level pair (`[rowLevel, columnLevel]`, factor 4 each, independent: zoomed out on columns a row stays a
   row) holds a majority letter and its share; **a majority is not mergeable**, so each level is the majority of the
-  majorities below it (shares averaged): approximate, tested against the exact majority within a tolerance (the share
-  within 0.1; the letter exact where the exact winner leads by more than 0.1);
+  majorities below it (shares averaged): approximate, tested against the exact majority within the measured tolerance
+  (decided, 2026-11-19: the share within 0.05 on average and 0.3 at worst; the letter exact where the exact winner
+  leads by more than 0.25). Enough because a level's image is drawn below 3 device px a cell, where the shade reads and
+  the letter does not; keeping the top two classes per sample was declined (memory per level);
 - colored **by the theme's classes** (`rows.reduce`: `theme`): one pass mapping each cell to its theme class through a
   table by letter, or by (column, letter) when the theme declares column dependence (Clustal X's rules), so the
   per-letter shortcut holds both ways; the pyramid then reduces classes, not letters. A theme change rebuilds the
@@ -457,7 +469,7 @@ Cells this design fills (ux-foundations section 8); the sub-rows name the new th
 | **an element: a row** (header) | click; `selection.set` | Shift+click: the run in display order | Cmd/Ctrl+click toggles | double-click: the row shown, x its residues; `address.focus` | Alt+Left | — | — | `rows.hide` (patch); shown again by the chip | pin: `rows.pin` (patch, the header's icon); no: residues are not edited |
 | **an element: a pair** (arc, chord, dot) | click: both ends | Shift+click: the range from the anchor end | Cmd/Ctrl+click | double-click: both ends' hull | Alt+Left | — | — | no: hide the layer or filter by kind (a data filter, [themes.md](themes.md)) | no: data |
 | **an element: a cell** (grid or rows) | click: a one-cell rect | Shift+click: the rect from the anchor | Cmd/Ctrl+click | double-click: both positions | Alt+Left | — | — | no | no |
-| **a range: a block or rectangle** | drag on cells | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag subtracts (at most four rects) | Enter: x and y to the rect | Alt+Left | — | — | — | the selection's bookmark command (planned) |
+| **a range: a block or rectangle** | drag on cells | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag subtracts (exact: rects whose sides hold several ranges) | Enter: x and y to the rect | Alt+Left | — | — | — | the selection's bookmark command (planned) |
 | **a range: columns** | click or drag on the ruler or logo | Shift+click | Cmd/Ctrl+click, Alt+drag removes | Enter | Alt+Left | — | — | no: hiding columns waits (decided) | — |
 | **the selection** (rows, rects) | — | Shift+arrows: the block | Cmd/Ctrl+Shift+arrows start a block | Enter | Alt+Left | — | — | — | the selection's bookmark command (planned): a ref of its Location |
 | **a leading section: rows** | — | — | — | — | — | rows: Cmd/Ctrl+wheel over the header, `]` and `[` (`rows.zoom-in`, `rows.zoom-out`), `0` fits rows and columns | the wheel's vertical delta over the band, drag on the header, Page keys | `rows.filter`, `rows.hide` | order, filter, pins by patch; `collapsed` by patch, `clades.keep` |
@@ -483,7 +495,7 @@ registry entry, an option of a call, or fixed with its reason).
 | `acrossLines` (pairs layer, text) | spec param | false | arcs across many lines cross the text | true |
 | `mirror` (pairs layer, grid) | spec param | false | a pair drawn where its data puts it; the tRNA builder sets it | true |
 | `pairs.maxArcs`, `pairs.hitPx` | `RenderConfig` preset | 4,096; 4 | bounded by the screen; a curve is thin | any |
-| `aspect`, `follow_y` (grid section) | spec param | 1; `x` | square cells; y shows x's window | a ratio, `null`; a section, none |
+| `aspect`, `follow_y` (grid section) | spec param | 1; `x` | square cells; y shows x's window | a ratio, `none`; a section, none |
 | `triangle` (grid layers) | spec param | `both` | the whole matrix | `upper`, `lower` |
 | `aggregate` (grid layer) | spec param | `mean` | a sample reads as its cells | `max`, `min` (PAE: confident pairs) |
 | `grid.rectMinPx`, `grid.buildBudget` | `RenderConfig` preset | 12; 65,536 samples a frame | rects only where few; frames under 8 ms | — |

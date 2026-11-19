@@ -58,7 +58,8 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
    `SeqViewerSpec.ui` entry, the gestures a `BehaviorProvider`.
 2. A drag starting outside the window sweeps a new window and zooms to it, splitting [ux-foundations.md](ux-foundations.md) section 8's
    "drag on an axis, navigator … pans" for navigators.
-3. A floored window is drawn centred on the true place, not as a scrollbar thumb.
+3. A floored window is drawn centred on the true place, not as a scrollbar thumb. The floor is measured within the picture, not the
+   reachable span (decided at NV's fix round: chr17's region window was otherwise 0.05 px, unseen).
 4. An ideogram on a reversed section is drawn reversed (the drag follows the view).
 5. A hover on a navigator stays in the navigator (a readout).
 6. `mountNavigator(element, viewer, id)` and `viewer.navigator(def)` are public; no `renderNavigatorSvg` for now.
@@ -100,8 +101,15 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   thinnest, not a fifth kind: the same `window` target and parts (`body` pans, `start` and `end` zoom, `outside`
   centres or sweeps), drawn on the ruler instead of a row of its own.
 - **The rail is every linear section's navigator by default** (`navigator.form`: `rail`), with no node in the spec
-  (a declared navigator replaces it): on a section with a ruler track it is drawn on that ruler's bottom border; with
-  none, a `slim` rail row. **Its grab zone**: on a positions axis (blocks, a genome, a protein) the whole ruler row is
+  (a declared navigator replaces it on the sections it binds, as does a host's `viewer.navigator(def)` part; a hidden
+  declared navigator brings the rail back): on a section with a ruler track it is drawn on that ruler's bottom border;
+  with none, a `slim` rail row under the section's tracks (decided at NV's review: under, so the tracks keep the
+  coordinates they have with no rail; its size fixed, 12 px, the form's). **The rows rail** (decided, the author,
+  2026-11-19: "we should also support a simple slider navigator for vertical scrolling too"): a rows layer's rows axis
+  gets the same rail, vertical, 12 px wide at the right edge of its band (beside the right gutter's numbers), its
+  window the rows in view (top and bottom grips; a drag scrolls, a grip zooms the rows, `]` and `[` as keys), idle when
+  every row is shown; the rows' default navigator, as the slim rail is a linear section's; a declared overview
+  replaces it on the rows it binds. **Its grab zone**: on a positions axis (blocks, a genome, a protein) the whole ruler row is
   the rail's, so a drag on the ruler pans (ux-foundations section 8's "drag on an axis pans" holds); on an alignment's
   columns only the ruler's lower part is (`navigator.rail.grabShare`, 0.4 of the ruler's height, a `RenderConfig`
   preset), and a drag on the ruler above it selects columns. Why 0.4: the ruler's labels sit in its upper part, where

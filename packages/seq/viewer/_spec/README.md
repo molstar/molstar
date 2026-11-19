@@ -85,13 +85,22 @@ viewport per section, told per section (`viewport(section)`, a keyed state). Eve
 leaders before followers, so a listener of one section reads the others consistent; a viewport equal to the last makes
 nothing and tells nothing.
 
-- **A viewport** is `{ start, end, top, width, pending, leader?, pieces?, scale? }`: `[start, end)` in offsets along the
-  axis in display order (0 at the first position shown), fractional. Why offsets: a section's `range`, a cyclic range
-  over the origin, a reversed axis and collapsed pieces read like a whole system; the core's `positionAt`, `offsetOf`,
-  `cellOffset` and `elementAt` convert through the pieces and the direction (`models/axis.ts` re-exports them: one
-  implementation, the renderer's too). A saved session (`session()`, to come) stores positions, never offsets: offsets
-  change meaning when the axis does. Navigation is in display order (a drag, the wheel, the pan keys, the cursor's
-  arrows move what is on screen the way the hand or key goes, whatever the direction).
+- **A viewport** is `{ start, end, top, width, pending, leader?, pieces?, scale?, y? }` (`y`: a grid's own y window):
+  `[start, end)` in offsets along the axis in display order (0 at the first position shown), fractional. Why offsets: a
+  section's `range`, a cyclic range over the origin, a reversed axis and collapsed pieces read like a whole system; the
+  core's `positionAt`, `offsetOf`, `cellOffset` and `elementAt` convert through the pieces and the direction
+  (`models/axis.ts` re-exports them: one implementation, the renderer's too). A saved session (`session()`, to come)
+  stores positions, never offsets: offsets change meaning when the axis does. Navigation is in display order (a drag,
+  the wheel, the pan keys, the cursor's arrows move what is on screen the way the hand or key goes, whatever the
+  direction).
+- **Grids**: a grid whose y moves apart from x (`movesY`: its own window, `follow_y: none`, or a section it follows)
+  takes a vertical pan (`panPx`'s dy, px of its plot's height) and a zoom (about `anchorY`, an offset down y) on y too.
+  Following a section, the move is carried to y's leader as a follower's is (`_lead`, through y's follow); its own
+  window is kept on the section apart from x's group (`y`, absent when all of y shows), clamped within y, cleared by a
+  fit, and passed to the frame (`viewports[section].y`, a follower's entry too); a history step (`snapshot`, `record`,
+  `jump`) keeps it beside the groups (`ys`, by section) and restores it, so a y-only move is a step and back undoes it
+  (a y that follows is kept by its leader's group). With `follow_y: x` y moves with x. Why: the PAE's cyclin A is a
+  section of its own, so a scroll over the plot must move it, not CDK2.
 - **Layouts** (the core's "Section layouts", Navigation): each move asked of a section is its layout's arithmetic
   (`SectionNav`: `pan` by a scroll's px deltas, `zoom` about a unit, `fit`, `reveal` the least move, `focus`, `step`,
   `clamp`) over its placement in the last frame (`setLayoutSource`: the viewer's frames, and the one map of layouts the
@@ -219,16 +228,19 @@ centre, never the pointer.
   is read from the layer's address when absent, the target (`hitTarget`) from what was hit: an element is an item, a
   position a cell, neither empty space; a layer's own target wins (`row`: a rows header; `cell` with `ySystem` and
   `yPosition`: a rows or grid cell; `tree-node`; `summary-row`). The record keeps `ySystem` and `yPosition` (NaN when
-  none) flat beside the rest: a hit of two axes allocates nothing.
+  none) and `target` flat beside the rest: a hit of two axes allocates nothing. The frame's `emphasis.hover` carries
+  them all (the rows layer lights a clade from a `tree-node` or `summary-row` target); what a linked section gets is the
+  clade's rows as a Location (`projectedAll`), no target.
 - `set(hit, owner)` copies the hit into one reused record (`current`) and moves `version`: no allocation, and nothing
   told for the same hit. An element is the same hover by its key, whatever extent object comes with it. One owner at a
   time: another owner's `set` takes it; `clear(owner)` by a stale owner does nothing (EC-141); an undefined owner is
   refused.
-- **Projection** is lazy: `location()` (the extent, else the position) and `projected(section)` are computed when asked
-  and kept for the version (and the view and model). The location is closed first (`hover.closeCodons`: a nucleotide
-  gains its residue and lifts to its codon, every piece over an intron, EC-30, EC-144), then each part is carried to the
-  section's system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps
-  only the parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
+- **Projection** is lazy: `location()` (the extent, else the position, with the cell's y part when the hit has one: a
+  grid cell is two positions, so linked sections light both) and `projected(section)` are computed when asked and kept
+  for the version (and the view and model). The location is closed first (`hover.closeCodons`: a nucleotide gains its
+  residue and lifts to its codon, every piece over an intron, EC-30, EC-144), then each part is carried to the section's
+  system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps only the
+  parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
   `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis).
 
 ### SelectionModel and HighlightModel
@@ -257,6 +269,13 @@ centre, never the pointer.
   its direction: across a collapsed break, the positions shown between the ends (`selection.acrossBreaks`: `shown`;
   `span` adds the hidden stretches, the hull). Why methods: a binding, a key and a test act alike, and a drag step is a
   call, not a command.
+- **A cell of two axes** (a grid cell: `GridCell`, its x and y systems and positions) selects a rect
+  (`(rect :a <x range> :b <y range>)`, core's Location): `selectCell(cell, mode)` sets a one-cell rect (`replace`; a
+  click on exactly that rect clears it), the rect from the cell anchor (`extend`), or toggles the cell's rect (`toggle`:
+  subtracted when inside the selection, else added); `beginRectDrag(cell, mode)`, `rectDragTo(cell)`,
+  `endRectDrag(cancel?)` drag a rect in `replace`, `add`, `subtract` (rects subtract exactly: core's Location) or
+  `extend` (from the cell anchor); a cancel gives back the selection. Why rects, not two ranges: a range of each axis is
+  every row and column, not the block between them.
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all
@@ -279,7 +298,8 @@ centre, never the pointer.
 - **The selection** (its `shown`) and **its projection** onto the linked sections (`Projector.of`: the core's
   `projectOntoView`, only the systems it has no part on), **the cursor**, **the highlight channels** in the order first
   set (each its Location with its projection, `own` kept; its color `highlight.colors[name]`, else `highlight.color`, a
-  hex literal or `token:<name>`), and **the hover** with its projection (`HoverModel.projectedAll`).
+  hex literal or `token:<name>`), and **the hover** with its projection (`HoverModel.projectedAll`), its `ySystem` and
+  `yPosition` copied with the rest (a grid's crosshair reads the cell's row; the arcs ending at either position light).
 - **Projections are cached** per Location by identity while the view and the model hold (`Projector`, at most 64); the
   highlights' list is made again only when a channel, the tokens, the view or the model changed: a redraw projects
   nothing and allocates nothing in the renderer (held by the allocation tier).
@@ -614,6 +634,8 @@ rows' commands) reads the last frame's rows layers through the behavior context'
 
 - `hover`: a move over a hit whose hover gesture is bound to `hover` sets the hover for its owner token; a move over
   nothing or a leave clears what that owner holds only. A host's other hover sources use their own tokens.
+- `navigate` on a grid whose y moves (`movesY`): a wheel's dy pans y and its dx x (Shift: as elsewhere), a zoom and a
+  pinch zoom y about the pointer's y too (`atY`, from the placement's `strip.y`: `Input.offsetYAt`).
 - `navigate`: a drag (`pan`), a wheel (`pan` by the larger delta, so Shift with a vertical wheel pans sideways; `zoom`
   about the pointer) and a pinch (`zoom`) through the bindings; wheel deltas within one frame are applied once at the
   frame (`navigate.coalesceWheel`, through a frame callback that `dispose` cancels); a section gone by the frame is
@@ -627,6 +649,9 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   the keyboard cursor's cell on that section when in view, else the centre, by the context's `step` or
   `navigate.wheelZoomStep`.
 
+- `select` on a grid: a hit with a `ySystem` that is no rows axis and no element is a cell of two axes, and the same
+  commands and drag modes act on its rect (`selectCell`, the rect drag): click a one-cell rect, Shift+click the rect
+  from the anchor, Cmd/Ctrl+click toggles, a drag the rect, Cmd/Ctrl+drag adds, Alt+drag subtracts.
 - `select`: clicks and drags to the selection through the bindings (`selection.set`, `selection.extend`,
   `selection.toggle` with the context's `hit`, `selection.clear` with Esc; a drag bound to `drag-select`, `drag-add`,
   `drag-subtract` or `drag-extend` drags in that mode), so a key, a menu and a test select alike; `selection.add` and

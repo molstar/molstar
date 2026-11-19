@@ -330,6 +330,38 @@ describe('query forms: chains, rects, labels (review round)', () => {
     expect(keys('/data/1tup/sites/(items :overlapping (range :from 94A :to 95 :numbering auth))')).toEqual(['s1']);
   });
 
+  it('row: an alignment’s rows by key, positions of its rows system; a rect over rows × columns', () => {
+    expect(loc('/data/aln/(row :key m)')).toEqual([['/data/aln/(rows)', [1, 2]]]);
+    expect(loc('/data/aln/(row :key [r h])')).toEqual([['/data/aln/(rows)', [0, 1, 2, 3]]]);
+    expect(codes(run('/data/aln/(row :key x)'))).toEqual(['seq.query.row.unknown']);
+    const r = run('/data/aln/(rect :a /data/aln/(row :key [h m]) :b (range :from 3 :to 6))');
+    expect(
+      r.result?.type === 'location' &&
+        r.result.location.rects.map((x) => [x.a.system, [...x.a.ranges], x.b.system, [...x.b.ranges]]),
+    ).toEqual([['/data/aln/(rows)', [0, 2], '/data/aln', [2, 6]]]);
+  });
+
+  it('rects subtract: a location less `(not :of …)` within `and`, a rect less a rect exact', () => {
+    const r = run(
+      '/data/p53/(and :of [(rect :a (range :from 1 :to 10) :b (range :from 1 :to 10)) (not :of (rect :a (range :from 4 :to 6) :b (range :from 4 :to 6)))])',
+    );
+    expect(r.issues).toEqual([]);
+    const rects = r.result?.type === 'location' ? r.result.location.rects : [];
+    let cells = 0;
+    for (const x of rects) {
+      let w = 0;
+      let h = 0;
+      for (let k = 0; k < x.a.ranges.length; k += 2) w += x.a.ranges[k + 1] - x.a.ranges[k];
+      for (let k = 0; k < x.b.ranges.length; k += 2) h += x.b.ranges[k + 1] - x.b.ranges[k];
+      cells += w * h;
+    }
+    expect(cells).toBe(100 - 9);
+    // parts as before: a range less a range
+    expect(loc('/data/p53/(and :of [(range :from 1 :to 10) (not :of (range :from 4 :to 6))])')).toEqual([
+      [p53, [0, 3, 6, 10]],
+    ]);
+  });
+
   it('rect: two locations on two axes, each one system; sides never wrap (EC-10)', () => {
     const r = run('/data/p53/(rect :a (range :from 10 :to 25) :b /data/plasmid/(range :from 40 :to 55))');
     expect(

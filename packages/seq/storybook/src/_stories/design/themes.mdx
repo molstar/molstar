@@ -44,13 +44,16 @@ forms, printed as S-expressions:
 Residue and nucleotide schemes (Clustal X, Zappo, Taylor, hydrophobicity, ESPript and more), number ramps (viridis,
 cividis, the pLDDT bins), category palettes (Okabe–Ito, Tableau) and the Giemsa stains are named entries with their
 provenance, a dark variant, and whether they are color-blind safe. A scheme is offered only where it fits. The defaults
-come from the theme's tokens and pass a color-vision check in both themes. A layer's default theme belongs to the
-language, never the host, so one spec draws alike everywhere; a host recolors through `--seq-*` tokens.
+come from the theme's tokens and pass a color-vision check in both themes. A scheme that is not safe declares a safe
+substitute, drawn under the reader's `theme.cvdSafe`: the protein schemes' is `classes-safe`, the residue classes on
+Okabe–Ito hues; `classes` stays the default. A layer's default theme belongs to the language, never the host, so one
+spec draws alike everywhere; a host recolors through `--seq-*` tokens.
 
 ## Colors
 
 A color in a spec is a hex literal, a token (`token:range`) or `light-dark(a, b)` for a writer's color that must read in
-both themes. Ink on a colored mark follows its fill, and the hover outline stays visible against any fill.
+both themes. Ink on a colored mark follows its fill, and the hover outline stays visible against any fill. In the dark
+theme a letter cell draws a hairline edge, since its dark fill sits close to the page.
 
 ## Legends
 
@@ -58,9 +61,9 @@ both themes. Ink on a colored mark follows its fill, and the hover outline stays
   honest about values it could not list.
 - It is a part a host places: beside a track header, in a panel, or in a Mol\* plugin's own legend control. Seq\* never
   draws one over the data.
-- A legend is acted on: click an entry to select its items, Cmd/Ctrl+click to toggle them, hover to highlight them, edit
-  a value's color or a ramp's domain (one edit each, previewed). Hovering an item outlines its entry. Every entry is
-  reached from the keyboard.
+- A legend is acted on: click an entry to select its items, Cmd/Ctrl+click to toggle them, hover to highlight them.
+  Hovering an item outlines its entry. Every entry is reached from the keyboard. Changing a value's color, a ramp's
+  domain or the scheme is the application's to offer, through the library's commands (one edit each, previewed).
 - An SVG export draws legends in a band outside the data only when asked (`legend: below` or `right`).
 
 ## The small layers

@@ -51,6 +51,10 @@ export interface RenderConfig {
     /** An alignment's rows band when it gives no height (its rows scroll inside), and a logo. */
     readonly rows: number;
     readonly logo: number;
+    /** A pairs layer's arcs band (in a grid its dots take the plot). */
+    readonly pairs: number;
+    /** A grid layer's track when a grid section's `aspect` is `none` (else the plot's height is the aspect's). */
+    readonly grid: number;
   };
   /** A lane of ranges, and the gap within it. */
   readonly laneHeight: number;
@@ -187,6 +191,18 @@ export interface RenderConfig {
     readonly rail: { readonly grownPx: number; readonly grabShare: number };
   };
   /**
+   * The pairs layer (_spec/README.md "Render", The pairs layer): the most arcs drawn (`maxArcs`, 4,096: bounded by the
+   * screen; past it one arc a bin of the ends' device columns, widest first, the rest a density strip of ends) and how
+   * near a point is to a curve to hit it (`hitPx`, 4 CSS px: a curve is thin).
+   */
+  readonly pairs: { readonly maxArcs: number; readonly hitPx: number };
+  /**
+   * The grid layer (_spec/README.md "Render", The grid layer): a cell drawn as a rect with its outline from `rectMinPx`
+   * (12 CSS px: rects only where few), image tiles of the shared reduction below; at most `buildBudget` samples (65,536:
+   * a tile) built a frame while the view moves, the coarser level drawn meanwhile (a settled frame builds the rest).
+   */
+  readonly grid: { readonly rectMinPx: number; readonly buildBudget: number };
+  /**
    * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
    * between groups (a share of a cell), between lines and between a line's bands (px), whether a band no layer used on
    * a line collapses there, the most lines a section lays out, the most px a section in a page takes before it scrolls
@@ -223,6 +239,8 @@ export const DefaultRenderConfig: RenderConfig = {
     frame: 16,
     rows: 240,
     logo: 48,
+    pairs: 64,
+    grid: 240,
   },
   laneHeight: 12,
   laneGap: 2,
@@ -275,6 +293,8 @@ export const DefaultRenderConfig: RenderConfig = {
     marks: ['selection', 'highlights', 'cursor'],
     rail: { grownPx: 6, grabShare: 0.4 },
   },
+  pairs: { maxArcs: 4096, hitPx: 4 },
+  grid: { rectMinPx: 12, buildBudget: 65_536 },
   text: {
     scale: 12,
     groupGap: 0.5,
@@ -295,6 +315,8 @@ export const DefaultRenderConfig: RenderConfig = {
       frame: 14,
       rows: 18,
       logo: 24,
+      pairs: 24,
+      grid: 120,
     },
   },
 };
@@ -332,6 +354,8 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
       window: { ...DefaultRenderConfig.navigator.window, ...over.navigator?.window },
       rail: { ...DefaultRenderConfig.navigator.rail, ...over.navigator?.rail },
     },
+    pairs: { ...DefaultRenderConfig.pairs, ...over.pairs },
+    grid: { ...DefaultRenderConfig.grid, ...over.grid },
   };
 }
 

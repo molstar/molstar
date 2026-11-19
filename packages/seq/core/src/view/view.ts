@@ -38,7 +38,7 @@ import { followRef } from '@molstar/seqx-core/lang';
 import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
 import { ViewIssues } from './issues.js';
 
-type Shape = 'letters' | 'ranges' | 'values' | 'cells';
+type Shape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid';
 
 /** A layer type: what it draws and the simpler type a reader that lacks it draws instead. */
 export interface LayerType {
@@ -64,6 +64,9 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
   logo: { shape: 'cells' },
   // a chromosome's stained bands (an ideogram): a reader without them draws the ranges
   bands: { shape: 'ranges', fallback: 'ranges' },
+  // pairs drawn as their ends where a reader lacks arcs; a grid has none (a reader without it draws none)
+  pairs: { shape: 'pairs', fallback: 'ranges' },
+  grid: { shape: 'grid' },
 };
 
 /**
@@ -187,6 +190,19 @@ export interface ResolvedSection {
   readonly params: Readonly<Record<string, Value>>;
   /** Its blocks in order (copies merged by `copies`), when it has `block` children. */
   readonly blocks?: readonly ResolvedBlock[];
+  /** A grid section's second axis (_spec/README.md "Resolved view", Grids): down the plot. */
+  readonly y?: GridAxis;
+}
+
+/**
+ * A grid's y (`of_y`, the section's system when absent: the whole system, top down) and what it shows (`follow_y`):
+ * `x` x's window (its path from x's system when y is another: undefined when the same), a section's region through
+ * `follow` (its path from the leader's system), or its own window (`viewport.y`) when neither.
+ */
+export interface GridAxis {
+  readonly axis: Axis;
+  readonly followsX: boolean;
+  readonly follow?: Follow;
 }
 
 /**
@@ -218,6 +234,7 @@ const LayoutParams = [
   'labels',
   'arrange',
   'copies',
+  'aspect',
 ] as const;
 
 /** A path between two sections of a view, precomposed: hover and selection are projected along it. */
@@ -439,6 +456,10 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       if (v !== undefined) params[k] = v;
     }
     const blocks = ba?.blocks.map((b, k) => ({ ...b, layers: blockLayers[k] }));
+    const y =
+      (typeof own === 'string' ? own : viewLayout) === 'grid'
+        ? gridAxis(model, s, at, axis, axes, systemOf, report)
+        : undefined;
     sections.push({
       address: at,
       axis,
@@ -447,6 +468,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       layout: typeof own === 'string' ? own : viewLayout,
       params,
       ...(blocks ? { blocks } : {}),
+      ...(y ? { y } : {}),
     });
   }
 
@@ -539,6 +561,48 @@ export function resolveNavigatorNode(
     hidden: param(n, 'hidden') === true,
     paths,
   };
+}
+
+/** A grid section's y (`GridAxis`): its system whole, and what it follows. */
+function gridAxis(
+  model: StaticModel,
+  s: Node,
+  at: string,
+  x: Axis,
+  axes: ReadonlyMap<string, Axis>,
+  systemOf: ReadonlyMap<string, string>,
+  report: Report,
+): GridAxis | undefined {
+  const system = exactAddress(param(s, 'of_y')) ?? x.system;
+  const entry = model.systems.get(system);
+  if (!entry) {
+    report('seq.view.section.system', 'The grid’s y shows no system of the spec', at);
+    return undefined;
+  }
+  const length = entry.length;
+  const axis: Axis = {
+    system,
+    ...(length !== undefined ? { length, ranges: [0, length] } : {}),
+    cyclic: entry.cyclic,
+    dir: 1,
+    pieces: 'whole',
+  };
+  const written = param(s, 'follow_y') ?? 'x';
+  if (written === 'none') return { axis, followsX: false };
+  const leader = written === 'x' ? at : exactAddress(written);
+  const from = written === 'x' ? x.system : leader === undefined ? undefined : systemOf.get(leader);
+  const leaderAxis = written === 'x' ? x : leader === undefined ? undefined : axes.get(leader);
+  if (leader === undefined || from === undefined || !leaderAxis || !model.systems.has(from)) {
+    report('seq.view.follow.unplaced', 'The grid’s y follows no section of the view', at);
+    return { axis, followsX: false };
+  }
+  if (written === 'x' && from === system) return { axis, followsX: true };
+  const r = model.path(from, system);
+  if (!r.path) {
+    report('seq.view.follow.unplaced', 'The grid’s y cannot follow: no path joins the systems', at, r.issue);
+    return { axis, followsX: false };
+  }
+  return { axis, followsX: written === 'x', follow: followOf(leader, leaderAxis, r.path) };
 }
 
 function followOf(leader: string, leaderAxis: Axis, path: Path): Follow {

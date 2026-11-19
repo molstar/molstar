@@ -80,7 +80,7 @@ describe('static model: the p53 example', () => {
     // inline data is a seq source of one tile over the whole system
     const domains = model.annotations.get('/data/domains')!;
     expect([domains.shape, domains.target, domains.fields]).toEqual(['ranges', '/data/p53', ['label']]);
-    const plan = domains.access;
+    const plan = domains.access!;
     expect(plan.kind === 'inline' && [plan.runtime, plan.system, plan.shape]).toEqual([
       SeqRuntime,
       '/data/p53',
@@ -89,7 +89,20 @@ describe('static model: the p53 example', () => {
     const read = plan.kind === 'inline' ? readSeq(plan.source.value!) : undefined;
     expect(read?.data?.pairs.map((p) => [p.request.start, p.request.end])).toEqual([[0, 30]]);
     const values = model.annotations.get('/data/conservation')!;
-    expect([values.shape, values.access.kind, values.access.shape]).toEqual(['values', 'inline', 'values']);
+    expect([values.shape, values.access?.kind, values.access?.shape]).toEqual(['values', 'inline', 'values']);
+  });
+
+  it('an inline alignment’s rows by key for `(row :key k)`: its labels, positions of its rows system', () => {
+    const b = createSeqSpec();
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: ['h', 'm'], letters: ['MK-', 'MKL'] } });
+    const m = resolveSpec(b.build());
+    expect(m.row?.(`${aln}/(rows)`, 'm')).toBe(1);
+    expect(m.row?.(`${aln}/(rows)`, 'x')).toBeUndefined();
+    const r = evaluateQuery(b.build(), m, `${aln}/(rect :a ${aln}/(row :key m) :b (range :from 2 :to 3))`, {
+      limit: 100,
+    });
+    expect(r.issues).toEqual([]);
+    expect(r.result?.type === 'location' && [...r.result.location.rects[0].a.ranges]).toEqual([1, 2]);
   });
 
   it('reports a source no runtime reads, and keeps it unavailable', () => {

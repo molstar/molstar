@@ -126,7 +126,8 @@ smallest letter size needs, so cells never show without letters.
   out); the eye follows the content to its new place.
 - **Navigation that follows the hand does not**: drag to pan, wheel and pinch zoom track the input directly.
 - **Data does not animate**: arriving regions draw in place (no fade on every tile); a density step is instant.
-- **Reduced motion**: every animation is a cut.
+- **Reduced motion**: every animation is a cut. One viewer item decides it for jumps and stories alike: `view.motion`
+  (`platform`, the default: the platform's setting; `cut`; `animate`).
 
 ## 8. Interaction grammar
 

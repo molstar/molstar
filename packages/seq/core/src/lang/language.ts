@@ -301,6 +301,58 @@ export const SeqLanguage = defineLanguage({
         newick: { type: 'string', required: true, doc: 'The tree as Newick text.' },
       },
     },
+    pairs: {
+      doc: 'Pairs of locations that belong together (base pairs, contacts): each row two ends, a range on `a` and one on `b` (the same system when `b` is absent); held whole.',
+      parents: ['data'],
+      ids: 'required',
+      params: {
+        a: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence each pair’s first end is on.' },
+        b: {
+          type: 'ref',
+          kinds: ['sequence'],
+          doc: 'The sequence each pair’s second end is on (`a` when absent: pairs within one system).',
+        },
+        rows: {
+          type: 'table',
+          columns: {
+            a_start: { type: 'column', of: 'int32', required: true, doc: 'The first position of each first end.' },
+            a_end: { type: 'column', of: 'int32', required: true, doc: 'The position after its last.' },
+            b_start: { type: 'column', of: 'int32', required: true, doc: 'The first position of each second end.' },
+            b_end: { type: 'column', of: 'int32', required: true, doc: 'The position after its last.' },
+            id: { type: 'column', of: 'category', doc: 'An identifier of each pair.' },
+            type: {
+              type: 'column',
+              of: 'category',
+              doc: 'What each pair is, an open word (`canonical`, `wobble`, `non-canonical`, `contact`): its kind (`kind` is the tree’s own word).',
+            },
+            label: { type: 'list', of: { type: 'string', doc: 'A label.' }, doc: 'A label of each pair.' },
+            a_strand: { type: 'column', of: 'category', doc: 'The strand of each first end: `+` or `-`.' },
+            b_strand: { type: 'column', of: 'category', doc: 'The strand of each second end: `+` or `-`.' },
+          },
+          required: true,
+          doc: 'The pairs inline, a column for each field; an end never wraps.',
+        },
+      },
+    },
+    grid: {
+      doc: 'A value per pair of positions (a base-pair probability matrix, a PAE): `x`-major, held whole.',
+      parents: ['data'],
+      ids: 'required',
+      params: {
+        x: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence of the grid’s first axis.' },
+        y: {
+          type: 'ref',
+          kinds: ['sequence'],
+          doc: 'The sequence of its second axis (`x` when absent).',
+        },
+        values: {
+          type: 'column',
+          of: 'float32',
+          required: true,
+          doc: 'One value per pair, `x`-major (the value at x i, y j is at i × |y| + j); NaN is missing.',
+        },
+      },
+    },
     map: {
       doc: 'A map from the positions of one sequence to those of another, so data on one shows on the other.',
       parents: ['data'],
@@ -338,9 +390,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         layout: {
           type: 'string',
-          enum: ['tracks', 'text', 'rings'],
+          enum: ['tracks', 'text', 'rings', 'grid'],
           default: 'tracks',
-          doc: 'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis), `text` (lines of letters) or `rings` (concentric rings, the first track outermost).',
+          doc: 'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis), `text` (lines of letters), `rings` (concentric rings, the first track outermost) or `grid` (a plot of two axes).',
         },
         export: {
           type: 'record',
@@ -506,8 +558,29 @@ export const SeqLanguage = defineLanguage({
         },
         layout: {
           type: 'string',
-          enum: ['tracks', 'text', 'rings'],
-          doc: 'How the section is laid out: `tracks`, `text` (lines of letters, wrapped to the width) or `rings` (its tracks as concentric rings round its whole axis); the view’s `layout` when absent.',
+          enum: ['tracks', 'text', 'rings', 'grid'],
+          doc: 'How the section is laid out: `tracks`, `text` (lines of letters, wrapped to the width), `rings` (its tracks as concentric rings round its whole axis) or `grid` (a plot: `of` across, `of_y` down, its tracks’ layers over it); the view’s `layout` when absent.',
+        },
+        of_y: {
+          type: 'ref',
+          kinds: ['sequence'],
+          doc: 'Grid: the coordinate system down the plot (`of` when absent).',
+        },
+        follow_y: {
+          type: 'union',
+          of: [
+            { type: 'string', enum: ['x', 'none'] },
+            { type: 'ref', kinds: ['section'] },
+          ],
+          doc: 'Grid: what y shows: `x` (when absent: x’s window, so cells are square at aspect 1), a section whose region it shows (mapped onto `of_y`), or `none` (a window of its own).',
+        },
+        aspect: {
+          type: 'union',
+          of: [
+            { type: 'number', min: 0 },
+            { type: 'string', enum: ['none'] },
+          ],
+          doc: 'Grid: the plot’s width over its height (1 when absent: square cells), its height capped by the view’s room less a tenth; `none` leaves the height to the section’s tracks.',
         },
         group: {
           type: 'integer',
@@ -626,13 +699,26 @@ export const SeqLanguage = defineLanguage({
       params: {
         type: {
           type: 'string',
-          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants', 'frame', 'rows', 'logo', 'bands'],
+          enum: [
+            'letters',
+            'ranges',
+            'values',
+            'ruler',
+            'secondary',
+            'variants',
+            'frame',
+            'rows',
+            'logo',
+            'pairs',
+            'grid',
+            'bands',
+          ],
           required: true,
-          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`), its conservation logo (`logo`) or a chromosome’s stained bands (`bands`, an ideogram: ranges with a `stain` field, colored by the `giemsa` scheme, the centromere’s two `acen` bands as triangles); `secondary`, `variants` and `bands` draw `ranges` where a reader lacks them.',
+          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`) or its conservation logo (`logo`), pairs (`pairs`: arcs over a track, chords on a ring, dots on a grid), a grid of values (`grid`, in a grid section) or a chromosome’s stained bands (`bands`, an ideogram: ranges with a `stain` field, colored by the `giemsa` scheme, the centromere’s two `acen` bands as triangles); `secondary`, `variants` and `bands` draw `ranges` where a reader lacks them, `pairs` draws its ends as `ranges`.',
         },
         data: {
           type: 'ref',
-          kinds: ['sequence', 'ranges', 'values', 'alignment'],
+          kinds: ['sequence', 'ranges', 'values', 'alignment', 'pairs', 'grid'],
           doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`).',
         },
         color: channel('The marks’ color: a color, a token, `light-dark(a, b)`, or a theme form.'),
@@ -722,10 +808,43 @@ export const SeqLanguage = defineLanguage({
         height: {
           type: 'union',
           of: [
-            { type: 'string', enum: ['fill'] },
+            { type: 'string', enum: ['fill', 'span'] },
             { type: 'integer', min: 1 },
           ],
-          doc: 'For `rows`: the band’s height, `fill` (when absent: the section’s room left) or a number of rows.',
+          doc: 'For `rows`: the band’s height, `fill` (when absent: the section’s room left) or a number of rows. For `pairs`: an arc’s height, `span` (when absent: by its span against the widest in view, so nested arcs nest).',
+        },
+        side: {
+          type: 'string',
+          enum: ['above', 'below'],
+          doc: 'For `pairs`: arcs rise from the band’s foot (`above`, when absent) or hang from its top (`below`); on a ring `below` reaches the hole (chords).',
+        },
+        reach: {
+          type: 'number',
+          min: 0,
+          doc: 'For `pairs`: how far past the window an end out of view is taken, a share of the window (0.25 when absent), so an arc moves continuously on pan.',
+        },
+        crossing: {
+          type: 'string',
+          enum: ['same', 'split'],
+          doc: 'For `pairs`: crossing pairs drawn crossing (`same`, when absent) or `split`: the largest nested set on `side`, the rest on the other side.',
+        },
+        across_lines: {
+          type: 'boolean',
+          doc: 'For `pairs` in text: arcs between lines too (false when absent: a line’s own pairs, the others’ ends marked).',
+        },
+        mirror: {
+          type: 'boolean',
+          doc: 'For `pairs` in a grid: each pair drawn at (a, b) and at (b, a) (false when absent: where its data puts it).',
+        },
+        triangle: {
+          type: 'string',
+          enum: ['both', 'upper', 'lower'],
+          doc: 'For `grid` and `pairs` in a grid: the whole plot (`both`, when absent), or only above (`upper`: y before x) or below its diagonal.',
+        },
+        aggregate: {
+          type: 'string',
+          enum: ['mean', 'max', 'min'],
+          doc: 'For `grid`: what a sample reads of its cells zoomed out (`mean` when absent; `min` keeps a PAE’s confident pairs).',
         },
         summary: {
           type: 'string',

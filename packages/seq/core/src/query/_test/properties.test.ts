@@ -40,6 +40,43 @@ function bits(pairs: ArrayLike<number>): boolean[] {
 const rangesOf = (l: ReturnType<typeof location>, system = '/s') => partOf(l, system)?.ranges ?? new Int32Array(0);
 
 describe('query: Location properties', () => {
+  it('a rect minus a rect covers exactly the difference of their cells, in at most two rects', () => {
+    const rng = new PCG(29);
+    const S = 16;
+    const cells = (l: ReturnType<typeof location>) => {
+      const m = new Array<boolean>(S * S).fill(false);
+      for (const r of l.rects)
+        for (let i = 0; i < r.a.ranges.length; i += 2)
+          for (let x = r.a.ranges[i]; x < r.a.ranges[i + 1]; x++)
+            for (let j = 0; j < r.b.ranges.length; j += 2)
+              for (let y = r.b.ranges[j]; y < r.b.ranges[j + 1]; y++) m[x * S + y] = true;
+      return m;
+    };
+    const side = () => {
+      const s = rng.int() % S;
+      return [s, s + 1 + (rng.int() % (S - s))];
+    };
+    const rect = (a: number[], b: number[]) => ({ a: { system: '/x', ranges: a }, b: { system: '/y', ranges: b } });
+    for (let c = 0; c < Cases; c++) {
+      const r = location({ rects: [rect(side(), side())] });
+      const q = location({ rects: [rect(side(), side())] });
+      const d = subtractLocations(r, q);
+      const x = cells(r);
+      const y = cells(q);
+      expect(cells(d)).toEqual(x.map((v, i) => v && !y[i]));
+      expect(d.rects.length).toBeLessThanOrEqual(2);
+      // a cell is in one rect of the difference at most: no overlap to merge
+      let n = 0;
+      for (const rr of d.rects) n += cells(location({ rects: [rr] })).filter(Boolean).length;
+      expect(n).toBe(cells(d).filter(Boolean).length);
+    }
+    // over other systems, untouched
+    const r = location({ rects: [rect([0, 4], [0, 4])] });
+    const other = location({ rects: [{ a: { system: '/x', ranges: [0, 4] }, b: { system: '/z', ranges: [0, 4] } }] });
+    expect(locationsEqual(subtractLocations(r, other), r)).toBe(true);
+    expect(subtractLocations(r, r).rects).toHaveLength(0);
+  });
+
   it('union, intersect and subtract match the bitset oracle', () => {
     const rng = new PCG(11);
     for (let c = 0; c < Cases; c++) {

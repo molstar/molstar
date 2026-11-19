@@ -187,7 +187,7 @@ and dark before the merge.
       `clades.keep`), pinning, lazy rows for 10,000 (the store's want sets, bounded layout); the column measures, the
       Stockholm and Newick readers, `Hit`'s y fields, the `cells` shape on row tiles, the shared 2D reduction and image
       cache; the logo.
-- [ ] PG (strong, on RW's shared pieces) arcs and chords; the grid and dot plot as a section of its own, crosshair
+- [x] PG (strong, on RW's shared pieces) arcs and chords; the grid and dot plot as a section of its own, crosshair
       hover and rectangle selection (no 2D store this slice).
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (rows and clades, the rectangle).
 
@@ -206,15 +206,60 @@ and dark before the merge.
   - the strip: a navigation track with window handles over a section's positions;
   - the vertical overview: an alignment's rows (columns compressed across), the Globins 10,000-row view's;
   - the miniature: both axes; the ideogram: a strip with a chromosome's bands.
+- [x] CH (fast, beside PG and NV; the author, 2026-11-19) the author's findings in the Globins views: a hover on a
+      tree node or a summary row lights the clade (grids-and-rows, Clades, "Hovered"); the ruler's end number and tick
+      label drawn twice at one position (the Figure's "70"), one label a position and none overlapping.
+- [ ] RF (fast, beside NV and MD; the author, 2026-11-19) the rows' numbers in view, an end number past the row's
+      range, the last row cut off (`briefs/rf-rows-fixes.md`).
+- [ ] GD (strong, after PG and NV: it touches the viewer's config and the themes' render) the gaps decided as
+      recommended (`gaps.md`, 2026-11-19): the lists-free palette module in `@molstar/core` (the agreed surface:
+      non-breaking, re-exported); `classes-safe` and every substitute safe; the dark letter cells' edge
+      (`seq-cell-edge`); one `view.motion` (`platform | cut | animate`), `story.reducedMotion` dropped; the pyramid's
+      measured tolerance in the tests; clade names by unique non-numeric ids only (gap 6, grids-and-rows, Clades). `Placement.at` reading the point from an array (PG's
+      A7: the last 32 B of a grid cell's `hitView`; shared with NV, so after both merge).
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
 
 ### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
 
+- [ ] SO (fast, first in the stage: the dataset lanes place their stories by it; the author, 2026-11-19: "we should
+      distinguish functionality/feature explanation from examples") the stories split as
+      [examples-and-stories](../../design/examples-and-stories.md) now says: a story that explains how something works
+      goes under `Features/<Feature>`, a dataset's figure under `Examples/<Dataset>/<View>`; p53's Themes (with
+      Editing Themes and the Schemes Gallery), Edit and undo, Bookmarks and links, Selection, Story and the stories of
+      that kind move to Features, each linked from its dataset's index where it uses that data; the examples Design
+      page and every story link updated; the headless twins follow their stories.
+- [ ] LB (strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
+      isn't good") a one-position block a chip in every layout, as layouts.md (Blocks) now says (decided
+      2026-11-19): a fixed slot its label's width, the text chip's rule; contacts an optional `pairs` layer the
+      examples add, never a default.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). DG owns
-      `record.ts` and the `sources.json` test.
-- [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
+      `record.ts` and the `sources.json` test. DP's features are drawn as arrows by strand on the ring and the linear
+      detail (the author, 2026-11-19: "usually saw people draw it like that"; SnapGene's and Benchling's maps): the
+      builder sets the `ranges` layer's `arrow` channel (EC-232: off unless asked, so the builder asks), the arrowhead
+      bent through the ring's polar warp, on the piece holding the end it points to (a feature across the origin
+      included), checked in canvas and SVG.
+- [ ] MD (strong, a design only; started when a strong slot frees, after PG or NV; the author, 2026-11-19: "should
+      we have a better primitive than `(sequence atp :alphabet protein :letters X :name ATP)` ... antibody-drug
+      complexes ... pointers to smiles, carbohydrate polymers (branched entity in mmCIF) ... all these need to be
+      mappable between each other") **molecules**: the language's primitives for what is not a linear polymer (a
+      small molecule by a chemical component id or a SMILES, a branched entity with its linkages, a conjugate: a drug
+      on a residue, a glycan on an Asn), the complex kind the layouts design waits for (units, copies, a ligand's
+      forms: one position or its atoms), and the maps between them and the polymers (a link's residue, a contact, a
+      per-atom system), read from mmCIF (`pdbx_entity_branch*`, `chem_comp`) through `@molstar/io`. **Non-standard
+      residues in polymers** (the author, 2026-11-19: "do we support non-standard residues in our sequence nodes? if
+      not, should include this"): today a `sequence` is one letter a position from a fixed alphabet, with no component
+      per position, so MSE, SEP, TPO, PTR and modified nucleotides (1EHZ's PSU, 2MG, H2U, OMC, OMG, YYG, 5MC, 7MG, 5MU,
+      1MA) are flattened to a letter or lost; the design gives a position its chemical component (and its parent's
+      letter for drawing, search and alignment), how a track shows it (a mark on the letter, its code on hover), how a
+      query finds it, and how it maps to the structure; the base's per-position component codes read first. The base's
+      `ligand` node and `ligand_form` read first. Drafted, reviewed and self-checked as the slice's designs were
+      (`briefs/design-drafts.md`), with its Storybook Design page; decided by the author at this stage's gate.
+      **Built in the fourth slice** (a language change past 0.4.0, which stays this slice's: one bump, unreleased);
+      this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DT its tRNA's modified
+      nucleotides as their parents' letters (the components kept in the fixture for the fourth slice), changed once then.
+- [ ] GATE: merged, reviewed, the checks green, sizes, gaps; MD's design decided.
 
 ### Stage 6: output, accessibility and use
 
@@ -241,7 +286,7 @@ and dark before the merge.
 
 Gate 0 (with C0 beside it) → AX → TH and SL in parallel → (early use gate, deferred) → TX, then RB on TX's interface change → RW
 and SY in parallel, then PG on RW's shared pieces and NV after RW (the vertical overview reads RW's rows; at most two
-strong lanes at once) → the datasets' lanes (two or three at once, fast)
+strong lanes at once) → CH beside them, GD after both → SO, LB, then the datasets' lanes, MD's design beside them (two or three at once, fast)
 → OP and AY → novice pass → measure → the author's use gates (deferred to here at the latest) → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)
@@ -267,3 +312,17 @@ strong lanes at once) → the datasets' lanes (two or three at once, fast)
 ## Out of scope
 
 Structures and services (the fourth slice), bigWig, Genomes, writers beyond SVG and PNG, settings layers.
+Track header parts (the author, 2026-11-19: "Fourth slice"): header actions as registry entries (icon, label, when,
+command) drawn in the header's fixed slots, hit and announced, the built-ins (hide, color, filter) on the same entries,
+a host adding or removing its own; a hidden-tracks chip in the section header that shows a hidden track again; the
+headers' geometry as an API for a host's own widget later. Today: `track.hide`/`track.show`, `layer.hide`/`layer.show`
+and `layer.filter` as commands, the "n filtered" chip the header's only control (extensibility.md, "internal until an
+outside user"; ux-foundations section 9). Its story and test (the author, 2026-11-19): a "color by this track" header
+action with the Mol* integration: the click builds a MolViewSpec state ad hoc from the track's layer (its theme's
+colors over the residues it maps to the structure) and the 3D view shows it; headless, the built state checked against
+the track's colors, and the action as a host's registry entry (not built into Seq*). The fourth slice's plan (Finalize,
+step 5) carries it.
+Legends' library surface (the author, 2026-11-19): how legends are displayed and what the library offers for them:
+placing a legend (with its track, a panel, the export), hiding or collapsing one or all, a compact form; editing
+colors, ranges and schemes from a legend stays the application's, on the library's commands (`theme.value-color`,
+`scale.set`, `layer.channel`); the part selects and hovers a value's items only (as built).
