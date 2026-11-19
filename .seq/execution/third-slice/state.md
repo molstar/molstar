@@ -378,3 +378,7 @@ None.
   parts: canvas and DOM both, the secondary click a behavior param; the rest as recommended. Decided sections
   appended to both drafts; DR (strong) revises them at the next free slot. CF's drift decided: insertions labelled
   with room, the rail below the ruler's border (to CF's fix round after its review). MV's review: a fix round sent.
+- Decided (the author, 2026-11-19, the plasmid's ring and linear views: "labels somewhat inconsistent"; "Inside if it
+  fits, else beside"): one label rule for both layouts (layouts.md, the Design page). Found in the screenshot: bla
+  (AmpR)'s card says "Extent pUC19c 1–2,686" across the origin. Lane LL (fast) queued for both. CF's fix round sent
+  (its review's ten findings and the author's two decisions). Use findings: bug 6, missing design 5, look 4.

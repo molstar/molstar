@@ -422,6 +422,8 @@ and dark before the merge.
       (`briefs/ce-copy-ends.md`).
 - [ ] DR (strong, next free slot) the structure syncing and track header parts drafts revised by the author's
       decisions (`briefs/dr-drafts-revision.md`).
+- [ ] LL (fast, next free slot; the author, 2026-11-19: "Inside if it fits, else beside") item labels by one rule in
+      rings and linear tracks; the origin-crossing extent in the hover card (`briefs/ll-labels-and-extent.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

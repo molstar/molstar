@@ -131,9 +131,8 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   - `scope: 'strip' | 'section'` (`strip` by default): a `section` layer is laid out once a section with the placement
     as a reader (`ctx.place`, below) and draws in page coordinates: what crosses strips (a pair's arc from one line to
     another, a chord through a ring's hole, the pairs lane). Why: a mark with two ends on two strips belongs to neither.
-  - `ctx.labels`: `inside` (draw item labels in marks, as today) or a label sink (`ctx.label(text, start, end,
-    element)`) a layout collects into: on rings, every labeled item's label with its element key, placed outside
-    (below).
+  - `ctx.labels`: a label sink (`ctx.label(text, start, end, element)`) a layout collects into: on rings and linear
+    tracks, every labeled item's label with its element key, inside its mark when it fits, else beside (below).
   - `ctx.span`: the union of named tracks' bands on the strip, for a layer with `across` (frames).
 - **Frames across tracks** (EC-100) are a layer type of strip scope with `across` (two tracks of its section): its
   outline covers `ctx.span`; an end cut by the strip's edge (a line break) is open, from the axis's cut flags, as every
@@ -447,10 +446,16 @@ interface Placement {
   per-letter places and angles (`rings.letters`: `upright`, or `tangent`), an image is refused on a ring
   (`seq.render.ring.image`: dense matrices on rings wait for the Genomes milestone), a clip rect is applied in the
   strip's frame before warping. Why clip before: a clip by path would change the draw lists' form for one case.
-- **Labels outside with leaders** (EC-108): on rings the layout gives layers a label sink (`ctx.labels`): every labeled
-  item's text, extent and element key; placed when the ring is laid out (never on a window move or a hover), sorted by
-  angle, spread per side a line apart, upright, each with a leader out along its angle across the ruler; those a side
-  cannot hold are dropped by priority (the layer's order, then the longer item). A placed label's hit is its item's.
+- **Labels inside if they fit, else beside** (EC-108; decided by the author, 2026-11-19, the plasmid's ring and linear
+  views reading differently): one rule for rings and linear tracks. A labeled item's text is drawn inside its mark
+  when it fits there (the mark's length less a padding, at the track's text size); else it goes beside: on a ring
+  outside, round the ring with a leader out along its angle across the ruler; on a linear track in a label lane just
+  above the track at the item's start, with a short leader when it had to move. The layout gives layers a label sink
+  (`ctx.labels`): every labeled item's text, extent and element key; placed when the ring or the strip is laid out
+  (never on a window move or a hover), sorted by angle or position, spread a line apart, upright; those a side or lane
+  cannot hold are dropped by the same priority in both (the layer's order, then the longer item). The same text style
+  (size, weight, colour) in both, inside or beside. A placed label's hit is its item's. Why: one feature read two ways
+  in two views of one map is two rules to learn; inside first keeps the label on its mark where there is room.
 - **The hole holds the title**: the section's label and the system's length (`rings.center: 'title'`).
 - **A feature across the origin** is drawn as one arc (two pieces meeting at the seam), selected as two runs (EC-9),
   focused by its shortest arc (EC-12).
