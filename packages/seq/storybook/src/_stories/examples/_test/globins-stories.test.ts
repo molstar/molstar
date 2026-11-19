@@ -28,8 +28,11 @@ function rowsLay(v: SeqViewer): RowsLay | undefined {
 }
 
 describe('Globins stories, headless', () => {
+  // `scale`'s 10,000 rows (its tiles, its export) are slow by nature: the medium lane; `lazy`'s are the quick representative
   for (const id of ['family', 'folded', 'figure', 'scale', 'lazy'])
-    it(`${id}: loads, draws its rows and exports them with no issue`, async () => {
+    it(`${id}: loads, draws its rows and exports them with no issue`, {
+      tags: id === 'scale' ? ['medium'] : [],
+    }, async () => {
       viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { gene: '' });
       const v = viewer;
       const lay = rowsLay(v);
@@ -55,7 +58,9 @@ describe('Globins stories, headless', () => {
     for (let k = 0; k + 4 < folded.wedges.length; k += 5) expect(folded.wedges[k + 2]).toBeLessThan(folded.labelX);
   });
 
-  it('scale at the fit: the rows are image tiles with their pixels drawn, and the export carries them as images', async () => {
+  it('scale at the fit: the rows are image tiles with their pixels drawn, and the export carries them as images', {
+    tags: ['medium'],
+  }, async () => {
     viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale')!, { gene: '' });
     // every row in the band: 10,000 rows in 240 px
     const key = rowsLay(viewer)!.key;
@@ -78,7 +83,9 @@ describe('Globins stories, headless', () => {
   });
 
   for (const id of ['family', 'scale'])
-    it(`${id}: the rows rail at the band's right edge, live (its rows scroll), drawn; a drag on it scrolls them`, async () => {
+    it(`${id}: the rows rail at the band's right edge, live (its rows scroll), drawn; a drag on it scrolls them`, {
+      tags: id === 'scale' ? ['medium'] : [],
+    }, async () => {
       viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { gene: '' });
       const v = viewer;
       const s = v.frame!.layout.sections.find((x) => x.rowsRails?.length)!;

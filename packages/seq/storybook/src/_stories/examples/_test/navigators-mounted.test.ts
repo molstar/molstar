@@ -134,7 +134,9 @@ describe('the navigators’ stories, mounted', () => {
     expect(new Set(painted('strip')).size).toBeGreaterThan(1);
   });
 
-  it('the parts beside the view, never over it: a strip above the canvas, below the toolbar; a side part at its width', async () => {
+  it('the parts beside the view, never over it: a strip above the canvas, below the toolbar; a side part at its width', {
+    tags: ['medium'],
+  }, async () => {
     await story(GlobinsViews.find((v) => v.id === 'scale-navigators')!);
     const toolbar = target!.querySelector<HTMLElement>('.seqx-toolbar')!;
     const canvas = target!.querySelector<HTMLElement>('[role="application"]')!;

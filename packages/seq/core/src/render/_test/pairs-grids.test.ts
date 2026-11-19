@@ -247,6 +247,7 @@ describe('the grid layer', () => {
       expect(lay.level).toBeGreaterThan(0);
       let first = -1;
       let diagonal = 0;
+      let mixed = 0; // counted, asserted once: an `expect` a pixel costs more than the pixel
       for (let t = 0; t < lay.images.length; t++) {
         const img = lay.images[t];
         // a tile on the diagonal: as far right of the plot's left as down from its top
@@ -259,10 +260,11 @@ describe('the grid layer', () => {
               ((img.data[q] << 24) | (img.data[q + 1] << 16) | (img.data[q + 2] << 8) | img.data[q + 3]) >>> 0;
             // every sample its own half's one value: one color
             if (first < 0) first = rgba;
-            expect(rgba).toBe(first);
+            if (rgba !== first) mixed++;
             if (onDiagonal && r === c) diagonal++;
           }
       }
+      expect(mixed).toBe(0);
       // the diagonal's samples hold cells of both halves: each layer draws them
       expect(diagonal).toBeGreaterThan(0);
     }
