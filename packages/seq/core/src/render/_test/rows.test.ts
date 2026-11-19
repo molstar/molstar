@@ -10,6 +10,7 @@ import { hitView, type LogoLay, recordDrawLists } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import type { RowsLay } from '../rows.js';
 import { settle } from './helpers.js';
+import { Columns, rowsSpec, Section, Synthetic, Track } from './rows-fixtures.js';
 
 const Labels = ['HBA/1-6', 'HBB/2-7', 'MYG/1-6', 'GLB/3-8', 'CYG/1-6'];
 const Letters = ['MVLSPA', 'MVHLTP', 'MGLSDG', 'MKAVLG', 'MEKVPG'];
@@ -219,5 +220,164 @@ describe('the rows layer', () => {
       expect(lay.labelText.length).toBe(5);
     }
     expect(f.layout.issues.some((i) => i.code === 'seq.render.rows.text.unfolded')).toBe(true);
+  });
+
+  describe('the tree’s look: one line width on device pixels, a light wedge to the deepest leaf', () => {
+    const nums = (l: string) =>
+      l
+        .split(' ')
+        .filter((x) => x !== '' && !Number.isNaN(Number(x)))
+        .map(Number);
+    // a tree width whose thirds fall between pixels
+    const params = { order: 'tree', collapsed: ['hb'], tree_width: 100 };
+
+    /** The branch rects of the labels pass: the muted ink's rects left of the labels. */
+    async function branches(dpr: number) {
+      const s = await settle(spec(params, { height: 120 }).build());
+      const f = await s.frame({ size: Size, dpr, settled: true });
+      const lay = rowsLay(f as never);
+      const rects = recordDrawLists(f.lists, ['labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('rect '))
+        .map(nums)
+        .filter(([x]) => x < lay.labelX);
+      return { lay, rects, f };
+    }
+
+    for (const dpr of [1, 2])
+      it(`every branch rect’s edges on device pixels, every branch one width (dpr ${dpr})`, async () => {
+        const { lay, rects } = await branches(dpr);
+        // a segment a rect: the tree's segments in view
+        expect(rects.length).toBe(lay.tree.length / 4);
+        const onGrid = (v: number) => Math.abs(v * dpr - Math.round(v * dpr)) < 0.02;
+        for (const [x, y, w, h] of rects) {
+          for (const v of [x, y, x + w, y + h]) expect(onGrid(v), `${[x, y, w, h]}`).toBe(true);
+          expect(Math.min(w, h)).toBeCloseTo(1, 5);
+        }
+      });
+
+    it('a folded clade’s wedge ends at its deepest leaf’s x, a light fill outlined in the branch ink, canvas and SVG alike', async () => {
+      const { lay, f } = await branches(1);
+      // hb's leaves lie 2 from the root of a tree 3 deep (GLB, CYG): two thirds across
+      const far = lay.treeX0 + ((lay.treeX1 - lay.treeX0) * 2) / 3;
+      expect(lay.wedges[2]).toBeCloseTo(far, 5);
+      const paths = recordDrawLists(f.lists, ['labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('path '));
+      expect(paths).toHaveLength(1);
+      const xs = nums(paths[0].split(' stroke')[0]).filter((_, i) => i % 2 === 0);
+      expect(Math.max(...xs)).toBeCloseTo(far, 1);
+      expect(Math.max(...xs)).toBeLessThan(lay.treeX1 - 1);
+      // its far side about half the row high (its corners softened inside it)
+      const ys = nums(paths[0].split(' stroke')[0]).filter((_, i) => i % 2 === 1);
+      const high = Math.max(...ys) - Math.min(...ys);
+      expect(high).toBeGreaterThan(lay.rowScale * 0.4);
+      expect(high).toBeLessThanOrEqual(lay.rowScale / 2);
+      expect(ys.length).toBeGreaterThan(3);
+      // filled with a tint (not opaque), outlined in the branch ink at the branches' width
+      expect(paths[0]).toMatch(/stroke #[0-9a-f]{8} 1\b/);
+      const fill = / #([0-9a-f]{8}) stroke /.exec(paths[0])?.[1];
+      expect(fill).toBeTruthy();
+      expect(Number.parseInt(fill!.slice(6), 16)).toBeLessThan(0x80);
+      const svg = await renderSvg(spec(params, { height: 120 }).build(), { size: Size });
+      expect(recordDrawLists(svg.lists, ['labels'])).toBe(recordDrawLists(f.lists, ['labels']));
+    });
+  });
+
+  it('a folded clade whose node is at the tree’s right edge: its wedge still 6 px long, ending at the edge, and hit', async () => {
+    const b = createSeqSpec();
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
+    // hb's leaves at zero length below it, as deep as the tree goes: its node sits at the tree's right edge
+    const tree = b.data.tree('tree', { of: aln, newick: '((HBA:0,HBB:0)hb:3,(MYG:1,(GLB:1,CYG:1):1):1)root;' });
+    b.views.view('v', (v) =>
+      v.section('s', { of: aln }, (s) =>
+        s.track('rows', { label: '' }, (t) =>
+          t.layer('r', { type: 'rows', data: aln, tree, order: 'tree', collapsed: ['hb'] } as never),
+        ),
+      ),
+    );
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size, dpr: 1, settled: true });
+    const lay = rowsLay(f as never);
+    const [x0, y0, x1, y1] = lay.wedges;
+    expect(x1).toBeCloseTo(lay.treeX1, 6);
+    expect(x1 - x0).toBeGreaterThanOrEqual(6 - 1e-9);
+    expect(hitView(f.layout, x0 + 2, (y0 + y1) / 2)).toMatchObject({ target: 'tree-node', element: { key: 'hb' } });
+  });
+
+  describe('the header below `rows.labelMinPx`: the label column empty, the tree down to what resolves', () => {
+    const Rows = 10_000;
+    // the 10,000 rows and their tree settled once for the file's two frames
+    let settled: ReturnType<typeof settle> | undefined;
+    const scaled = () => (settled ??= settle(rowsSpec(Rows, true, { tree_width: 120 }), [Synthetic]));
+    const at = (rowScale: number) =>
+      ({
+        size: { width: 900, height: 700 },
+        dpr: 2,
+        settled: true,
+        viewports: { [Section]: { start: 0, end: Columns, bands: { [Track]: { bandTop: 0, rowScale } } } },
+      }) as never;
+
+    /** The header's draw items (the labels pass, clipped to the label column): kind and x. */
+    const header = (f: { lists: Parameters<typeof recordDrawLists>[0] }, lay: RowsLay) =>
+      recordDrawLists(f.lists, ['labels'])
+        .split('\n')
+        .map((l) => l.split(' '))
+        // the track's own label (empty here) aside
+        .filter(([kind, x]) => (kind === 'rect' || kind === 'text' || kind === 'path') && x !== '""')
+        .filter(([, x]) => Number(x) < lay.box.x);
+
+    it('at the band’s whole zoom on 10,000 rows: nothing in the label column, the tree’s few resolved clades only', async () => {
+      const s = await scaled();
+      const f = await s.frame(at(600 / Rows));
+      const lay = rowsLay(f as never);
+      expect(lay.rowScale).toBeLessThan(1);
+      const items = header(f as never, lay);
+      // the label column (past the tree): no label, number, chip or icon
+      expect(items.filter(([, x]) => Number(x) >= lay.treeX1)).toEqual([]);
+      expect(items.filter(([kind]) => kind === 'text')).toEqual([]);
+      // the tree still drawn, down to the clades whose rows take 4 px: two segments a clade at most, a clade at least
+      // 4 px of the band's 600 for each level, never one a row
+      expect(lay.tree.length).toBeGreaterThan(0);
+      expect(lay.tree.length / 4).toBeLessThan(2 * 2 * (600 / 4));
+      expect(items.length).toBe(lay.tree.length / 4);
+    });
+
+    it('zoomed out, a node’s vertical spans its drawn branches only: each end meets a branch (none with no child drawn)', async () => {
+      const s = await scaled();
+      const f = await s.frame(at(600 / Rows));
+      const lay = rowsLay(f as never);
+      const t = lay.tree;
+      const top = lay.box.y + lay.pinnedHeight;
+      const bottom = lay.box.y + lay.box.height;
+      // the branches' ys by the x they touch (either end)
+      const meets = new Map<number, Set<number>>();
+      const touching = (x: number) => meets.get(x) ?? meets.set(x, new Set()).get(x)!;
+      for (let k = 0; k + 3 < t.length; k += 4)
+        if (t[k + 1] === t[k + 3]) {
+          touching(t[k]).add(t[k + 1]);
+          touching(t[k + 2]).add(t[k + 1]);
+        }
+      let verticals = 0;
+      for (let k = 0; k + 3 < t.length; k += 4) {
+        if (t[k] !== t[k + 2] || t[k + 1] === t[k + 3]) continue;
+        verticals++;
+        const ys = meets.get(t[k]) ?? new Set();
+        for (const y of [t[k + 1], t[k + 3]]) expect(ys.has(y) || y <= top || y >= bottom, `${t[k]} ${y}`).toBe(true);
+      }
+      expect(verticals).toBeGreaterThan(10);
+    });
+
+    it('at 8 px a row: the labels, the tree to every leaf', async () => {
+      const s = await scaled();
+      const f = await s.frame(at(8));
+      const lay = rowsLay(f as never);
+      const shown = Math.ceil(600 / 8);
+      expect(lay.labelText.length).toBeGreaterThanOrEqual(shown - 1);
+      expect(lay.labelText[0]).toMatch(/^R\d+$/);
+      // every leaf in view has its branch
+      const leaves = lay.treeNode.filter((n) => n < 0).length;
+      expect(leaves).toBeGreaterThanOrEqual(shown - 1);
+    });
   });
 });

@@ -239,6 +239,7 @@ export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: 
   hit.ySystem = undefined;
   hit.yPosition = undefined;
   hit.target = undefined;
+  hit.state = undefined;
   return {
     emphasis: { hover: hit },
     set(i) {
@@ -253,6 +254,8 @@ export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: 
       hit.ySystem = h.ySystem;
       hit.yPosition = h.yPosition;
       hit.target = h.target;
+      // a rows column cell's name (the tip reads the cell it names)
+      hit.state = h.state;
     },
   };
 }

@@ -415,7 +415,8 @@ owner, the store with it.
   (`railSections`); each active while the `navigator` behavior is listed and its window is not idle, found again after
   the layout placed the view (an idle flip drawn in the same frame, the window pass alone). Each rows layer's band has a
   rows rail (`rowsRailTracks`, by its track: replaced by a shown overview or miniature over its section), live while the
-  behavior is listed, idle while every row shows (the layout's). The viewer's export leaves the rails out with its
+  behavior is listed, idle only while every row shows and would at the zoom-in limit too (the layout's: navigators' idle
+  rule, so a rail zoomed out to the whole band keeps its grips). The viewer's export leaves the rails out with its
   navigators (its picture without its chrome: no slim row); with `navigators: include` they are drawn plain.
 - `SeqViewerSpec`: `registry` (the core's entries: format runtimes, layer types, layouts), `behaviors` (a provider and
   its params), `bindings` (a preset, override layers, extra action ids), `config` (`[item, value]` pairs), `ports`
@@ -653,7 +654,7 @@ binding table; per move one hit record and one modifiers record are reused.
   zone).
 - **The rows rail** (`RowsRailGesture`, `behaviors/rows-rail.ts`): a press on its grab zone, in display rows at the
   rail's scale (`railUnitAt` of the page's y): its body scrolls the rows (`bandTop`, clamped to the last rows), a grip
-  zooms them about the other end, which stays (`rowScale` within the rows behavior's bounds, `MinRowScale` to
+  zooms them about the other end, which stays (`rowScale` within the rows' bounds, core's `MinRowScale` to
   `MaxRowScale`, never past the rows there are), each by the rows the pointer travelled (a floored window reaches every
   row); a drag farther than the rows in view, or a zoom, is one step (`navigator.dragStep`); Esc puts the band back. A
   press that never moved acts at its click: outside the window the rows centre there (a jump), on the window nothing; a
@@ -1000,7 +1001,10 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   `rows.order { field, ascending }` (one patch), a click on the title of the field the rows are ordered by ascending
   runs it `descending` (the order read from the spec as it is now); before the double-click's drop, so a fast second
   click flips again. Its cells hit as their row's header (select and hover as the label does), naming the value in the
-  hit's `state`.
+  hit's `state` (the hover keeps it for the targets that read it, `row`, `column-title` and `columns-hidden`, never
+  another's, a logo's letter, so a move within a position stays one hover: a cut value reads whole in the tip pass under
+  the pointer alone, and the card names it). **The hidden-columns chip** (a `columns-hidden` hit): its card lists each
+  hidden column and why ("no room at this width"), announced the same; a click does nothing.
 
 ## Legends
 

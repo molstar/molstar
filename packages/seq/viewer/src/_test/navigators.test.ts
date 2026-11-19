@@ -709,6 +709,25 @@ describe('the ruler rail on the canvas', () => {
     w.input.up();
   });
 
+  it('whole at the fit view but able to zoom in: live, its grips shown, a grip dragged inward zooms in', async () => {
+    const v = await make(spec({ ruler: true, strip: false }));
+    const r = v.frame!.layout.sections[0].rail!;
+    const [s0, e0] = range(v);
+    expect(s0).toBeLessThanOrEqual(0);
+    expect(e0).toBeGreaterThanOrEqual(Letters.length);
+    expect(r.active).toBe(true);
+    const y = r.bottom - 2;
+    // the end grip's inner quarter, inside the data box
+    const end = r.x + r.width - 2;
+    expect(v.hit(end, y)?.part).toBe('end');
+    expect(v.input.down(end, y)).toBe(true);
+    v.input.move(end - r.width / 2, y);
+    v.input.up();
+    const [s1, e1] = range(v);
+    expect(s1).toBeCloseTo(s0, 6);
+    expect(e1 - s1).toBeLessThan((e0 - s0) * 0.6);
+  });
+
   it('a click on a grip’s tab, not moved, does not centre: only a press outside the window does', async () => {
     const v = await make(spec({ ruler: true, strip: false }), [[viewerItem('viewport.maxPxPerPosition'), 1000]]);
     // a narrow window, floored: its grips' tabs outside its drawn ends

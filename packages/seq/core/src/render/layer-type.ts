@@ -167,9 +167,19 @@ export interface Hit {
  * `filter` (a track's chip), `window` (a ring's), `row` (a gutter's row, a rows header), `cell` (a cell of two axes:
  * `ySystem` and `yPosition` set), `tree-node` (a tree's node: its element the clade), `summary-row` (a folded
  * clade's row: its element the clade, `position` the column), `column-title` (a rows layer's column title: `state`
- * its field; a click orders the rows by it).
+ * its field; a click orders the rows by it), `columns-hidden` (a rows layer's hidden-columns chip: `state` its text;
+ * a hover names the columns, a click does nothing).
  */
-export type HitTarget = 'break' | 'filter' | 'window' | 'row' | 'cell' | 'tree-node' | 'summary-row' | 'column-title';
+export type HitTarget =
+  | 'break'
+  | 'filter'
+  | 'window'
+  | 'row'
+  | 'cell'
+  | 'tree-node'
+  | 'summary-row'
+  | 'column-title'
+  | 'columns-hidden';
 
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {

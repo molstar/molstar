@@ -396,6 +396,11 @@ export class ViewerInput {
     out.block = h.block;
     // a grid over blocks' cell: its y block too (the rect drag reads its units on the hit strip's blocks)
     out.yBlock = h.yBlock;
+    // what a layer names within the position, for the targets that read it (a rows column cell: its value, which the
+    // tip reads whole; a title's field; the hidden-columns chip): another's (a logo's letter) would make each move within
+    // its position a new hover (the card re-armed, the announcer speaking again)
+    const t = h.target;
+    out.state = t === 'row' || t === 'column-title' || t === 'columns-hidden' ? h.state : undefined;
     return this._hit;
   }
 
@@ -661,6 +666,8 @@ export class ViewerInput {
     const section = this.sectionAt(y);
     // the track's "n filtered" chip: its click clears the layer's filter (one patch)
     const chip = this.viewer.hit(x, y);
+    // the hidden-columns chip: its hover names them, a click does nothing
+    if (chip?.target === 'columns-hidden') return true;
     if (chip?.target === 'filter') {
       void this.viewer.execute('layer.filter', { address: chip.layer });
       return true;

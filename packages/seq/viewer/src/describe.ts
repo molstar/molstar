@@ -196,6 +196,28 @@ const ItemSection: CardSection = {
   },
 };
 
+/**
+ * A rows layer's hidden-columns chip (core _spec "Render", The rows layer, Row columns, Narrow): each column it hides
+ * and why.
+ */
+const ColumnsHiddenSection: CardSection = {
+  name: 'columns-hidden',
+  describe(at, out) {
+    const l = at.layer;
+    if (out.whole || at.place.target !== 'columns-hidden' || !l || l.type.name !== 'rows') return;
+    const cols = (l.lay as RowsLay).cols;
+    if (!cols.chipCols.length) return;
+    const titles = cols.chipCols.map((k) => cols.columns[k].title);
+    out.title = 'Hidden columns';
+    for (const t of titles) out.row(t, HiddenWhy);
+    out.words.push(`${titles.join(', ')} hidden, ${HiddenWhy}`);
+    out.whole = true;
+  },
+};
+
+/** Why a row column is hidden: the only reason there is (the view's width, EC-107). */
+const HiddenWhy = 'no room at this width';
+
 /** A rows layer's row (an alignment's sequence): its label, and the column cell a row's columns name. */
 const RowSection: CardSection = {
   name: 'row',
@@ -306,6 +328,7 @@ const PlaceSection: CardSection = {
 const Sections: readonly CardSection[] = [
   PairSection,
   ItemSection,
+  ColumnsHiddenSection,
   RowSection,
   GridSection,
   PlaceSection,

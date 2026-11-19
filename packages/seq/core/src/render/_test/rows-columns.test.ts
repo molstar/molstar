@@ -231,10 +231,14 @@ describe('row columns', () => {
     });
     // past the title's text, within its column: no title
     expect(hitView(f.layout, c.titleX[t] + c.titleW[t] + 2, c.titleY - 3)?.target).not.toBe('column-title');
-    // narrowed: the chip in the title row is no title hit
+    // narrowed: the chip in the title row is no title hit, it names what it hides
     const { f: g, lay: n } = await laid(AllKinds, {}, { width: 560, height: 300 });
     expect(n.cols.chip).toMatch(/hidden$/);
-    expect(hitView(g.layout, n.cols.chipX + 2, n.cols.titleY - 3)?.target).not.toBe('column-title');
+    expect(hitView(g.layout, n.cols.chipX + 2, n.cols.titleY - 3)).toMatchObject({
+      target: 'columns-hidden',
+      state: n.cols.chip,
+      layer: '/views/v/s/rows/r',
+    });
   });
 
   it('an order by a column’s field orders the rows, its title marked; a field no row has is said once', async () => {
@@ -335,14 +339,80 @@ describe('row columns', () => {
     const mid = await widths(640);
     expect(mid.w[3]).toBe(0);
     expect(mid.w[0]).toBeGreaterThan(0);
-    expect(mid.chip).toMatch(/columns? hidden$/);
+    expect(mid.chip).toBe('length hidden');
     // the chip ends on the page, before the right inset
     expect(mid.chipEnd).toBeLessThanOrEqual(640);
     const narrow = await widths(400);
     expect(narrow.w).toEqual([0, 0, 0, 0]);
-    expect(narrow.chip).toBe('4 columns hidden');
+    expect(narrow.chip).toMatch(/^Species(, Kind, identity, length| \+3) hidden$/);
     const { lay: none } = await laid([], {}, { width: 400, height: 300 });
     expect(narrow.x).toBe(none.box.x);
+  });
+
+  describe('the hidden columns’ chip: named, on their side, never over the data', () => {
+    const Family: Col[] = [
+      { field: 'OS', title: 'Species', width: 104 },
+      { field: 'identity', side: 'right', as: 'number', title: 'Identity' },
+    ];
+    const ruler = (lay: RowsLay) => ({ x0: lay.box.x, x1: lay.box.x + lay.box.width });
+
+    it('both hidden: "Species, Identity hidden" in the label column’s title band, before the data; the SVG alike', async () => {
+      const size = { width: 360, height: 300 };
+      const { b, f, lay } = await laid(Family, {}, size);
+      const c = lay.cols;
+      expect(c.width).toEqual([0, 0]);
+      expect(c.chip).toBe('Species, Identity hidden');
+      expect(c.chipSide).toBe('label');
+      expect(c.chipX).toBeGreaterThanOrEqual(f.layout.sections[0].config.inset);
+      expect(c.chipX + c.chipW).toBeLessThanOrEqual(ruler(lay).x0);
+      expect(c.chipCols).toEqual([0, 1]);
+      const svg = await renderSvg(b.build(), { size });
+      expect(svg.svg).toContain('>Species, Identity hidden</text>');
+      expect(recordDrawLists(svg.lists, ['labels'])).toBe(recordDrawLists(f.lists, ['labels']));
+    });
+
+    it('short of room: the first name and the count ("Organism +1 hidden"), else the first name cut, its count kept', async () => {
+      const titled = (species: string, identity: string): Col[] => [
+        { ...Family[0], title: species },
+        { ...Family[1], title: identity },
+      ];
+      const size = { width: 300, height: 300 };
+      const { lay } = await laid(titled('Organism', 'Identity to the reference row'), {}, size);
+      expect(lay.cols.width).toEqual([0, 0]);
+      expect(lay.cols.chip).toBe('Organism +1 hidden');
+      expect(lay.cols.chipX + lay.cols.chipW).toBeLessThanOrEqual(lay.box.x);
+      const { lay: cut } = await laid(titled('Organism of origin by its full taxonomy', 'Identity'), {}, size);
+      expect(cut.cols.chip).toMatch(/^Organism[^,]*… \+1 hidden$/);
+      expect(cut.cols.chipX).toBeGreaterThanOrEqual(0);
+      expect(cut.cols.chipX + cut.cols.chipW).toBeLessThanOrEqual(cut.box.x);
+    });
+
+    it('no room for a name in either band: the count alone ("2 hidden"), never no chip', async () => {
+      const columns: Col[] = [
+        { ...Family[0], title: 'Organism of origin by its full taxonomy' },
+        { ...Family[1], title: 'Identity to the reference row' },
+      ];
+      const size = { width: 300, height: 300 };
+      const s = await settle(spec(columns).build(), [], { labelWidth: 16 });
+      const f = await s.frame({ size, dpr: 1, settled: true });
+      const lay = rowsLays(f as never)[0];
+      expect(lay.cols.width).toEqual([0, 0]);
+      expect(lay.cols.chip).toBe('2 hidden');
+      expect(lay.cols.chipCols).toEqual([0, 1]);
+      expect(lay.cols.chipX).toBeGreaterThanOrEqual(0);
+    });
+
+    it('the right ones hidden with a right column shown: at the end of the right columns’ band, past the data, the shown title cut for it', async () => {
+      const { lay } = await laid(AllKinds, {}, { width: 640, height: 300 });
+      const c = lay.cols;
+      expect(c.chip).toBe('length hidden');
+      expect(c.chipSide).toBe('right');
+      expect(c.chipX).toBeGreaterThanOrEqual(ruler(lay).x1);
+      expect(c.chipX + c.chipW).toBeCloseTo(c.rightEnd, 5);
+      // no title under it
+      for (let t = 0; t < c.titleN; t++)
+        expect(c.titleX[t] + c.titleW[t] <= c.chipX || c.titleX[t] >= c.chipX + c.chipW).toBe(true);
+    });
   });
 
   it('a text figure draws the same columns on every line, their titles over the first (and hit there)', async () => {
@@ -420,7 +490,15 @@ describe('row columns', () => {
       // pinned band
       const l2 = rowsLays(first as never)[0];
       expect(l2.rowY(2)).toBe(l2.box.y + l2.pinnedHeight - 10);
-      const hover = { layer: l2.key, section: 's', system: l2.rowsSystem, position: 1 } as never;
+      const hover = {
+        layer: l2.key,
+        section: 's',
+        system: l2.rowsSystem,
+        position: 1,
+        yPosition: 1,
+        target: 'row',
+        state: 'Species: Mus musculus (house mouse)',
+      } as never;
       const f = s.renderer.frame({ size, dpr: 1, settled: true, viewports, emphasis: { hover } } as never);
       const lines = recordDrawLists(f.lists, ['tip']).split('\n');
       const clip = lines.find((l) => l.startsWith('clip '))!;
@@ -430,6 +508,118 @@ describe('row columns', () => {
       expect(cy + ch).toBe(lay.box.y + lay.box.height);
       // the surface starts above the clip (the row is half out), so the clip is what keeps it off the pinned band
       expect(nums(lines.find((l) => l.startsWith('rect '))!)[1]).toBeLessThan(cy);
+    });
+
+    describe('only under the pointer: a hover on the row’s data or label leaves its cells cut', () => {
+      const Two: Col[] = [
+        { field: 'OS', title: 'Species', width: 40 },
+        { field: 'DE', title: 'Description', width: 40 },
+        { field: 'identity', side: 'right', as: 'number' },
+      ];
+      const rows = {
+        OS: ['Homo sapiens (human)', 'Mus musculus', null],
+        DE: ['Hemoglobin subunit alpha', 'Hemoglobin', null],
+      };
+      const texts = (lists: Parameters<typeof recordDrawLists>[0]) =>
+        recordDrawLists(lists, ['tip'])
+          .split('\n')
+          .filter((l) => l.startsWith('text "'));
+
+      async function at(where: 'data' | 'label' | 'species' | 'description') {
+        const { b, s, lay } = await laid(Two, { rows });
+        const first = await s.frame({ size: Size, dpr: 1, settled: true });
+        const y = lay.rowY(0) + lay.rowScale / 2;
+        const x = {
+          data: lay.box.x + 4,
+          label: lay.labelX + 2,
+          species: lay.cols.x[0] + 4,
+          description: lay.cols.x[1] + 4,
+        }[where];
+        const hover = hitView(first.layout, x, y) as never;
+        expect(hover).toBeTruthy();
+        const f = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { hover } });
+        const svg = await renderSvg(b.build(), { size: Size, emphasis: { hover } });
+        expect(recordDrawLists(svg.lists, ['tip'])).toBe(recordDrawLists(f.lists, ['tip']));
+        return { lay, tips: texts(f.lists), hoverPass: recordDrawLists(f.lists, ['hover']) };
+      }
+
+      it('a hover on the row’s data tints the row and draws no tip', async () => {
+        const { tips, hoverPass } = await at('data');
+        expect(tips).toEqual([]);
+        expect(hoverPass).toContain('rect ');
+      });
+
+      it('a hover on the row’s label draws no tip', async () => {
+        expect((await at('label')).tips).toEqual([]);
+      });
+
+      it('a hover on a cut cell draws that cell whole, the row’s other cut cell stays cut', async () => {
+        const species = await at('species');
+        expect(species.tips).toHaveLength(1);
+        expect(species.tips[0]).toContain('"Homo sapiens (human)"');
+        const description = await at('description');
+        expect(description.tips).toHaveLength(1);
+        expect(description.tips[0]).toContain('"Hemoglobin subunit alpha"');
+      });
+
+      it('the keyboard cursor on the row’s header draws all of them whole, canvas and SVG alike', async () => {
+        const { b, s, lay } = await laid(Two, { rows });
+        const cursor = {
+          section: '/views/v/s',
+          system: lay.system,
+          position: 0,
+          ySystem: lay.rowsSystem,
+          yPosition: 0,
+          part: 'header',
+        } as never;
+        const f = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { cursor } });
+        const tips = texts(f.lists);
+        expect(tips).toHaveLength(2);
+        expect(tips.join('\n')).toContain('"Homo sapiens (human)"');
+        expect(tips.join('\n')).toContain('"Hemoglobin subunit alpha"');
+        const svg = await renderSvg(b.build(), { size: Size, emphasis: { cursor } });
+        expect(recordDrawLists(svg.lists, ['tip'])).toBe(recordDrawLists(f.lists, ['tip']));
+        // on a cell (not the header) the cursor reads none
+        const onCell = s.renderer.frame({
+          size: Size,
+          dpr: 1,
+          settled: true,
+          emphasis: { cursor: { ...(cursor as object), part: 'cell' } as never },
+        });
+        expect(texts(onCell.lists)).toEqual([]);
+      });
+    });
+
+    it('a pinned row kept in place: the tip on the copy under the pointer; the header cursor’s on both copies', async () => {
+      const rows = { OS: ['Homo sapiens (human)', 'Mus musculus (house mouse)', 'Danio rerio (zebrafish)'] };
+      const { s } = await laid(Narrow, { rows, layer: { pinned: ['A/1-5'] } });
+      const first = await s.frame({ size: Size, dpr: 1, settled: true });
+      const l = rowsLays(first as never)[0];
+      // A is shown twice: in the pinned band (display row 0) and in its place in the order
+      const place = l.display.placeRow(0);
+      expect(l.display.displayRow(0)).toBe(0);
+      expect(place).toBeGreaterThan(0);
+      const tipRects = (f: { lists: Parameters<typeof recordDrawLists>[0] }) =>
+        recordDrawLists(f.lists, ['tip'])
+          .split('\n')
+          .filter((x) => x.startsWith('rect '))
+          .map((x) => nums(x)[1]);
+      for (const i of [place, 0]) {
+        const hover = hitView(first.layout, l.cols.x[0] + 4, l.rowY(i) + l.rowScale / 2) as never;
+        expect(hover).toMatchObject({ target: 'row', position: 0, state: 'Species: Homo sapiens (human)' });
+        const f = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { hover } });
+        expect([...new Set(tipRects(f))]).toEqual([l.rowY(i)]);
+      }
+      const cursor = {
+        section: '/views/v/s',
+        system: l.system,
+        position: 0,
+        ySystem: l.rowsSystem,
+        yPosition: 0,
+        part: 'header',
+      } as never;
+      const c = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { cursor } });
+      expect([...new Set(tipRects(c))].sort((a, b) => a - b)).toEqual([l.rowY(0), l.rowY(place)]);
     });
 
     it('a label longer than the view ends in an ellipsis at the view’s edge', async () => {

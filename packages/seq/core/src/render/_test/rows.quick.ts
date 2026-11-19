@@ -160,6 +160,55 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
     expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
 
+  it('10,000 × 300 at letters, clades folded: the wedges’ draw and a hover over them allocate nothing', async ({
+    task,
+  }) => {
+    const s = await settle(rowsSpec(10_000, true), [Synthetic]);
+    const input = at(4000, 20, 100, 160);
+    const open = rowsLay(await s.frame(input));
+    // small clades in view (2 to 8 leaves, disjoint), folded (session folds by name): a wedge each
+    const cl = open.clades!;
+    const folds: string[] = [];
+    let end = -1;
+    for (let k = 0; k + 2 < open.nodes.length && folds.length < 8; k += 3) {
+      const c = open.nodes[k];
+      const size = cl.hi[c] - cl.lo[c];
+      if (size < 2 || size > 8 || cl.lo[c] < end) continue;
+      folds.push(cl.name[c]);
+      end = cl.hi[c];
+    }
+    expect(folds.length).toBeGreaterThan(2);
+    const folded = {
+      ...input,
+      viewports: { [Section]: { start: 100, end: 160, bands: { [Track]: { bandTop: 4000, rowScale: 20, folds } } } },
+    };
+    const f = await s.frame(folded);
+    const lay = rowsLay(f);
+    expect(lay.wedges.length / 5).toBeGreaterThan(2);
+    const d = quickCase(task, 'rows folded draw', () => drawView(f.layout, f.lists), {});
+    console.info(`rows folded draw: ${d.r.bytesPerStep.toFixed(0)} bytes a frame (${d.r.note})`);
+    expect(d.r.bytesPerStep, d.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    const hits: Hit[] = [];
+    for (let k = 0; k + 4 < lay.wedges.length; k += 5) {
+      const h = hitView(f.layout, lay.wedges[k] + 2, (lay.wedges[k + 1] + lay.wedges[k + 3]) / 2);
+      if (h?.target === 'tree-node') hits.push({ ...h });
+    }
+    expect(hits.length).toBeGreaterThan(2);
+    const hover = reusedHover(hits);
+    const hoverAt = { ...folded, emphasis: hover.emphasis };
+    const { r } = quickCase(
+      task,
+      'rows folded hover',
+      (i) => {
+        hover.set(i);
+        s.renderer.frame(hoverAt);
+      },
+      {},
+    );
+    console.info(`rows folded hover: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
   it('10,000 × 300 at letters: a hit test over cells, rows and the tree allocates nothing', async ({ task }) => {
     const s = await settle(rowsSpec(10_000, true), [Synthetic]);
     const f = await s.frame(at(4000, 20, 100, 160));
@@ -210,7 +259,8 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
   // over rows already shown (a pan once warm: the texts cut and kept by row) nothing
   const ColumnsParams = {
     columns: [
-      { field: 'label', title: 'Name' },
+      // narrow: its names cut, so a hover over one reads it whole in the tip pass
+      { field: 'label', title: 'Name', width: 24 },
       { field: 'gaps', as: 'number' },
       { field: 'length', side: 'right', as: 'bar' },
       { field: 'first', side: 'right', as: 'chip' },
@@ -231,9 +281,12 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
     for (let q = 0; q < lay.cols.n; q += 3) {
       const k = lay.cols.col[q];
       const h = hitView(f.layout, lay.cols.x[k] + 2, lay.cols.top[q] + 5);
-      if (h) hits.push(h);
+      // a copy: the hit is the layer's one scratch record
+      if (h) hits.push({ ...h });
     }
     expect(hits.length).toBeGreaterThan(4);
+    // some name the tip reads whole
+    expect(hits.some((x) => x.state?.startsWith('Name: '))).toBe(true);
     const hover = reusedHover(hits);
     const hoverAt = { ...input, emphasis: hover.emphasis };
     const h = quickCase(

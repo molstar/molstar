@@ -136,19 +136,23 @@ describe('Features › Rows › Columns, headless', () => {
     expect(rowsLay(v).cols.titleText.slice(0, rowsLay(v).cols.titleN)).toContain('UniProt ↓');
   });
 
-  it('narrowed, the right columns yield first, then the left; a chip counts those hidden', async () => {
+  it('narrowed, the right columns yield first, then the left; a chip names those hidden, never over the data', async () => {
     const v = await open();
     v.resize(620);
     v.draw();
     const mid = rowsLay(v);
     expect(mid.cols.width[4]).toBe(0);
     expect(mid.cols.width[0]).toBeGreaterThan(0);
-    expect(mid.cols.chip).toMatch(/hidden$/);
+    expect(mid.cols.chip).toBe('Identity +2 hidden');
+    const off = (l: RowsLay) => l.cols.chipX + l.cols.chipW <= l.box.x || l.cols.chipX >= l.box.x + l.box.width;
+    expect(off(mid)).toBe(true);
     v.resize(420);
     v.draw();
     const narrow = rowsLay(v);
     expect(narrow.cols.width).toEqual([0, 0, 0, 0, 0]);
-    expect(narrow.cols.chip).toBe('5 columns hidden');
+    expect(narrow.cols.chip).toBe('Species +4 hidden');
+    expect(narrow.cols.chipSide).toBe('label');
+    expect(off(narrow)).toBe(true);
     expect(narrow.cols.titleN).toBe(0);
   });
 });

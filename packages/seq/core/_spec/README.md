@@ -1696,7 +1696,8 @@ numbers): a window move allocates nothing once warm.
   the last numbers' gutter: the gutter widened by it while any rows rail is on, so the data keeps its width idle or
   live), along the band's scrolled area below its pinned rows, in display rows below the pinned band; its window the
   rows in view. Idle only while every row is shown and the rows cannot zoom in (navigators.md's idle rule: a rail zoomed
-  out to the whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: the renderer sets
+  out to the whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: every row shown and
+  still at `MaxRowScale`, 40 px a row, the rows' zoom-in limit with `MinRowScale`, 1/64, their least; the renderer sets
   `active` only when the viewer says it can move and not `whole`). Its hit is the `window` target with
   `navigator: 'rows-rail'` (`RowsRail`), its `layer` the track, `position` the display row.
   `rowsRailTracks(view, hosted)`: each tracks section's tracks with a rows layer shown, unless a shown navigator binds
@@ -1895,11 +1896,11 @@ numbers): a window move allocates nothing once warm.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
-  clade; `column-title` a rows layer's column title, `state` its field): `layer` the layer's key (its address, else its
-  track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a Location
-  on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by `LaneIndex` (a
-  lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an element under
-  the point wins, else the topmost with a position.
+  clade; `column-title` a rows layer's column title, `state` its field; `columns-hidden` its hidden-columns chip,
+  `state` its text): `layer` the layer's key (its address, else its track's and `:index`), `section` the section's id,
+  `element` an item's `{ owner, key }` with its `extent` (a Location on the data's system), `position` on the section's
+  system. Cells by arithmetic on the axis; items by `LaneIndex` (a lane's marks by left edge with a running maximum of
+  right edges). In a track, the topmost layer with an element under the point wins, else the topmost with a position.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there
@@ -2059,8 +2060,19 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
 - **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
   column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in
-  display rows kept by the display's version (a pan makes nothing sized by the nodes); labels in the items' font (a
-  row's label is data; a Pfam label, `NAME/1-147`, reads whole) from `rows.labelMinPx` (8 px a row), cut with an
+  display rows kept by the display's version (a pan makes nothing sized by the nodes). **The tree's look**: every branch
+  one width, whole device pixels, its edges snapped to them (a branch runs half its width past each end, so it meets its
+  node's vertical square); a wedge a triangle from the clade's node to its deepest leaf's x (by branch length, 6 px at
+  least, started 6 px before its node at the tree's edge), its far side half the row high, its corners softened by the
+  shape rule, filled with a light tint of the branch ink (0.18 of its opacity, 0.36 hovered) and outlined in it at the
+  branches' width; its hit the summary row's middle 0.8 from the node to that x. Why: a 1 px rect centred on a
+  fractional x smeared over two device pixels, so widths varied, and the solid triangle at the tree's full width read as
+  a heavy blade. The tree is drawn down to the clades whose rows take `TreeMinPx` (4, fixed): a node's segments, the
+  branch to it and a folded clade's wedge only then (by its shown rows, kept with the geometry; a node's vertical spans
+  the node and its drawn children only, none when none is drawn), so zoomed out the deep clades end in their branch's
+  tip. Why: below it branches sit under 2 px apart, and 10,000 leaves at the band's whole zoom drew a solid dark slab
+  (every leaf's branch). Labels in the items' font (a row's label is data; a Pfam label, `NAME/1-147`, reads whole) from
+  `rows.labelMinPx` (8 px a row), the label column empty below it (no label, number, chip or icon a row), cut with an
   ellipsis past their room, a summary row "first +n" (its first label cut, never its count: the count is what it says);
   the first residue numbers right-aligned before the data box and the last after it, in a right gutter the view keeps
   when a rows layer draws numbers (`numbers: gutters`): the numbers of the residues **in view** (the columns the cells
@@ -2098,21 +2110,27 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   `fitRowColumns` in the view's layout, kept while the view, the width and the room it read are): what the view lacks
   for the data's least width (`rows.columns.dataMinPx`, 200) with every column at its own width is taken from the
   columns, the right ones first and then the left, each from the last written, down to `rows.columns.floorPx` (32) and
-  then hidden; the label keeps its room. A chip in the title row ending where the right columns do (the right titles cut
-  for it) counts those hidden ("2 columns hidden"); it is no target (showing the hidden columns is not designed). The
-  widths reach the layer as `LayoutContext.rowColumns` (with the right columns' x); a text section's lines leave the
-  right columns their room; an export attaches the sources that could join. A cell's text, its cut (kept by the column's
-  room) and its widths are made once a row and kept with the resolved values: a layout once warm, a draw and a hover
-  allocate nothing (`rows.quick.ts`).
+  then hidden; the label keeps its room. A chip in the title row names those hidden ("Species, Identity hidden";
+  "Species +1 hidden" short of room, else its first name cut, its count kept, in the roomier band; no room for a name,
+  the count alone, "2 hidden": a column is never hidden with no chip), on the side they live and never over the data
+  box: hidden on the right only, at the end of the right columns' band (from the numbers' gutter at the least; the right
+  titles cut for it); else, or with no room there, in the label column's title band, ending before its first left title
+  shown (else at the label column's end). Why: a count of "columns" beside an alignment read as alignment columns, and
+  the chip hung over the data. It hits as `columns-hidden` (`state` its text: the viewer's card lists each hidden column
+  and why, "no room at this width"; a click does nothing: showing them is not designed). The widths reach the layer as
+  `LayoutContext.rowColumns` (with the right columns' x); a text section's lines leave the right columns their room; an
+  export attaches the sources that could join. A cell's text, its cut (kept by the column's room) and its widths are
+  made once a row and kept with the resolved values: a layout once warm, a draw and a hover allocate nothing
+  (`rows.quick.ts`).
 - **Hits** (the header's through the band's gutter: a layer of two axes is asked there), written into one scratch hit (a
   hover allocates no hit object; a clade's element and extent made once a display): a cell is `cell` with its column
   (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the rows
   system; on a row column's cell, left or right, the same with `state` naming its value, `Species: Homo sapiens`, made
-  at layout); a column's title `column-title` (`LayerType.hitOutside`: what a layer draws outside its band, asked by
-  `hitView` before a layout's chrome and the bands); a summary row `summary-row`, and `tree-node` the inner node whose
-  branch segment is nearest within `TreeHitPx` (8, fixed: decided: a junction's size, a target a pointer finds) by
-  distance to the segment, a wedge included (a leaf's branch hits none), each its element
-  `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
+  at layout); a column's title `column-title`, the hidden-columns chip `columns-hidden` (`LayerType.hitOutside`: what a
+  layer draws outside its band, asked by `hitView` before a layout's chrome and the bands); a summary row `summary-row`,
+  and `tree-node` the inner node whose branch segment is nearest within `TreeHitPx` (8, fixed: decided: a junction's
+  size, a target a pointer finds) by distance to the segment, a wedge included (a leaf's branch hits none), each its
+  element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
 - **One rows layer a section** (`seq.render.rows.second`, warning: the cursor has one row order); a rows layer draws in
   tracks and text sections only (`seq.render.rows.layout`, warning, elsewhere).
 - **In a text section** (the ESPript figure's lines repeat the rows): the band is every shown row (its height the
@@ -2124,19 +2142,20 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   the element is hovered, here and on linked sections.
 - **Emphasis along y**: the hover tints its row's band (a pinned row's at both its places) and its column within the
   band and outlines the cell, and draws a column cell cut short whole in the `tip` pass only while the pointer is on
-  that cell (the cursor on the row's header: all of them), never from a hover on the row's data: on an opaque surface
-  (the page's background, then the track's well, outlined in the hover ink, a squircle by the shape rule), growing right
-  up to the view's edge where a longer text ends in an ellipsis (a number column's grows left); the selection's parts on
-  the rows system as row bands, its rects of rows × columns as their cells, read over the display rows in view only (a
-  binary search a row: a selection of any size costs the rows in view); a summary row draws the partial mark (the tint
-  over the share of its rows selected, the outline when all are); the cursor with a row (`Emphasis.cursor.ySystem`)
-  outlines its cell, or on its `part` `header` the row's label column (`labelX` to `numberX`), a squircle as the strip's
-  (`squircleRadius`), on its own section only (`Emphasis.cursor.section`: another section of the system marks its
-  column, as the strip draws a cursor without a row, and nothing while it is on a header); on the row it stands on
-  (`cursorRow`: its own, a folded row's summary row, a hidden or filtered row's nearest shown), a pinned row's in the
-  band and in its place. `displayLabel` is a display row's label whole (a summary row's `first +n`, `summaryMore` its
-  count, which the header elides apart); `hitRow` the display row of the last hit (which copy of a pinned row a click
-  was on).
+  that cell, on the copy under it (a pinned row kept in place is shown twice: the layer's last hit says which; the
+  cursor on the row's header: all of them, on every copy it outlines), never from a hover on the row's data: on an
+  opaque surface (the page's background, then the track's well, outlined in the hover ink, a squircle by the shape
+  rule), growing right up to the view's edge where a longer text ends in an ellipsis (a number column's grows left); the
+  selection's parts on the rows system as row bands, its rects of rows × columns as their cells, read over the display
+  rows in view only (a binary search a row: a selection of any size costs the rows in view); a summary row draws the
+  partial mark (the tint over the share of its rows selected, the outline when all are); the cursor with a row
+  (`Emphasis.cursor.ySystem`) outlines its cell, or on its `part` `header` the row's label column (`labelX` to
+  `numberX`), a squircle as the strip's (`squircleRadius`), on its own section only (`Emphasis.cursor.section`: another
+  section of the system marks its column, as the strip draws a cursor without a row, and nothing while it is on a
+  header); on the row it stands on (`cursorRow`: its own, a folded row's summary row, a hidden or filtered row's nearest
+  shown), a pinned row's in the band and in its place. `displayLabel` is a display row's label whole (a summary row's
+  `first +n`, `summaryMore` its count, which the header elides apart); `hitRow` the display row of the last hit (which
+  copy of a pinned row a click was on).
 
 ### The logo
 
