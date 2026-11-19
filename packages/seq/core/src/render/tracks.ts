@@ -981,7 +981,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     cache.stamp = stamp;
     cache.y = top;
     cache.axis = axis;
-    cache.viewport = viewport;
+    // a copy: a caller may hand the same record again with new numbers (the viewer reuses its own)
+    cache.viewport = viewport ? { ...viewport } : undefined;
     state.sections.set(section.address, cache);
   }
   // a section gone from the view lets its cache go
