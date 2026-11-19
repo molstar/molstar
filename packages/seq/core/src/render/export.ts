@@ -90,6 +90,7 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
 /** An asset reader that reads nothing: a headless render reads no file or URL unless given a reader (security). */
 export const NoAssets: AssetReader = {
   readText: (uri) => Promise.reject(new Error(`This render reads no assets: ${uri}`)),
+  readBytes: (uri) => Promise.reject(new Error(`This render reads no assets: ${uri}`)),
 };
 
 export interface AttachOptions {
@@ -110,7 +111,11 @@ export async function attachSources(
   store: DataStore,
   options: AttachOptions = {},
 ): Promise<Issue[]> {
-  const ctx = { assets: options.assets ?? NoAssets, signal: options.signal ?? new AbortController().signal };
+  const ctx = {
+    assets: options.assets ?? NoAssets,
+    signal: options.signal ?? new AbortController().signal,
+    limits: { maxRows: store.settings.maxRows, maxBytes: store.settings.maxBytes },
+  };
   const opens = new Map<string, () => Promise<OpenedSource>>();
   for (const plan of [
     ...[...model.systems.values()].map((s) => s.access),
@@ -132,6 +137,8 @@ export async function attachSources(
           opened.dispose();
           return;
         }
+        // what opening said without refusing the source (rows left out) is reported with the refusals
+        if (opened.issues) issues.push(...opened.issues.map((i) => ({ ...i, address })));
         if (store.attach(address, opened)) options.attached?.add(address);
       } catch (e) {
         if (ctx.signal.aborted) return;

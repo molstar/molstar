@@ -10,10 +10,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { FormatRuntime } from '@molstar/seqx-core/data';
+import { DataStore, type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
+import { RecordsRuntime } from '@molstar/seqx-core/data/records';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
 import { p53Spec } from '../../lang/_test/p53.js';
-import { RenderIssues, renderSvg } from '../index.js';
+import { attachSources, RenderIssues, renderSvg } from '../index.js';
 import { blocks } from './helpers.js';
 import { BigRuntime, bigSpec, p53TracksSpec } from './fixtures.js';
 
@@ -103,5 +106,19 @@ describe('seq.render: issue codes', () => {
       }
     expect([...used].filter((c) => !known.has(c))).toEqual([]);
     expect([...known].filter((c) => !used.has(c))).toEqual([]);
+  });
+});
+
+describe('attachSources', () => {
+  it('reports an opened source’s own issues (rows a file of records left out) at its address', async () => {
+    const b = createSeqSpec();
+    const src = b.data.source('table', { format: 'csv', value: 'start,end\n1,2\n5,3\n', system: 'p' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSD' });
+    b.data.ranges('r', { target: p, source: src });
+    const store = new DataStore();
+    const issues = await attachSources(resolveSpec(b.build(), { runtimes: [SeqRuntime, RecordsRuntime] }), store);
+    expect(store.coverage('/data/table')).toBeDefined();
+    expect(issues.map((i) => [i.code, i.address])).toEqual([['seq.source.records.order', '/data/table']]);
+    expect(issues[0].message).toMatch(/1 row \(line 3\)/);
   });
 });

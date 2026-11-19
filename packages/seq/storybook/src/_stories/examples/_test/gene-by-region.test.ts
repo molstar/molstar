@@ -61,7 +61,11 @@ describe('Gene by region, on the canvas', () => {
       ...base,
       ui: undefined,
       registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: DelayMs }) ?? [])],
-      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
     });
     const v = viewer;
     v.resize(720);
@@ -103,7 +107,11 @@ describe('Gene by region, on the canvas', () => {
       ...base,
       ui: undefined,
       registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: DelayMs }) ?? [])],
-      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
     });
     const v = viewer;
     v.resize(720);

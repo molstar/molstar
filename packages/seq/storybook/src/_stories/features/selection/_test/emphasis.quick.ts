@@ -21,7 +21,13 @@ const onGene = P53Views.find((v) => v.id === 'protein-on-gene')!;
 describe('the viewer’s warm emphasis frame', () => {
   it('p53 on its gene: selection, highlight and hover, projected, drawn again', async ({ task }) => {
     const gene = await nodeFixtureAssets().reader.readText(GeneFile, new AbortController().signal);
-    const v = composeViewer(onGene, { ports: { assets: () => ({ reader: { readText: async () => gene } }) } });
+    const v = composeViewer(onGene, {
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => gene, readBytes: async () => new TextEncoder().encode(gene) },
+        }),
+      },
+    });
     v.resize(1440);
     await v.load(onGene.build());
     await v.settle();

@@ -51,7 +51,9 @@ async function make(which = view) {
   const text = regionSeqText();
   const v = composeViewer(which, {
     delayMs: DelayMs,
-    ports: { assets: () => ({ reader: { readText: async () => text } }) },
+    ports: {
+      assets: () => ({ reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } }),
+    },
   });
   viewer = v;
   v.resize(720);
@@ -129,7 +131,11 @@ describe('Bookmarks, headless', () => {
     const text = regionSeqText();
     const ctx = createSeqContext({
       registry: [{ kind: 'format-runtime', runtime: SeqRuntime }, ...(view.registry?.({ delayMs: 0 }) ?? [])],
-      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
     });
     const exported = ctx.renderSvg(v.spec.root.value, {
       size: { width: v.width, height: v.height },

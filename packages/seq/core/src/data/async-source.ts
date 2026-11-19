@@ -26,6 +26,7 @@ export function delayedSource(inner: OpenedSource, options: DelayOptions = {}): 
   const delayOf = options.delayMs ?? 0;
   return {
     coverage: inner.coverage,
+    ...(inner.issues && { issues: inner.issues }),
     read(request, signal) {
       if (signal.aborted) return Promise.reject(abortError());
       const delay = typeof delayOf === 'number' ? delayOf : delayOf(request);

@@ -61,8 +61,8 @@ and CIF-core readers, volume server data, MVS annotations) never see which.
 - **Format** (`encoding.ts`, version 0.3): MessagePack of blocks → categories → columns, each column `data` and an
   optional `mask`, each an `EncodedData` (bytes plus the encoding chain to undo: `ByteArray`, `FixedPoint`,
   `IntervalQuantization`, `RunLength`, `Delta`, `IntegerPacking`, `StringArray`). `parseCifBinary` checks the version
-  (major and minor each at least 0.3) and decodes the MessagePack (`common/msgpack/decode.ts`; `bin` values are
-  exact-size copies, so a decoder may view `data.buffer`).
+  (major and minor each at least 0.3) and decodes the MessagePack (`common/msgpack/decode`, core's `data/msgpack`; `bin`
+  values are exact-size copies, so a decoder may view `data.buffer`).
 - **A field decodes on first access** (`binary/field.ts`), given its category's row count; `getField` caches the field,
   `createColumn` (§5) forwards `storage()` on call. A model reads only the columns it uses; a sorted or windowed
   `atom_site` makes each column on its first read (model `formats/structure/basic/sort.ts`).

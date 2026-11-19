@@ -39,7 +39,9 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     ...base,
     ui: undefined,
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
-    ports: { assets: () => ({ reader: { readText: async () => text } }) },
+    ports: {
+      assets: () => ({ reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } }),
+    },
   });
   v.resize(720);
   void v.load(view.build());

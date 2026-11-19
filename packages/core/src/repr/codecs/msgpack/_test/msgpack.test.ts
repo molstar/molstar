@@ -4,13 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { checkCodec, ConformanceLanguage } from '@molstar/core/repr/codec/index';
-import { JsonCodec } from '@molstar/core/repr/codecs/json/index';
-import { normalize } from '@molstar/core/repr/schema/normalize';
-import { CategoryColumn, categoryColumn, hashNode, type Node, pathToPointer } from '@molstar/core/repr/tree/index';
+import { checkCodec, ConformanceLanguage } from '../../../codec/index.js';
+import { JsonCodec } from '../../json/index.js';
+import { normalize } from '../../../schema/normalize.js';
+import { CategoryColumn, categoryColumn, hashNode, type Node, pathToPointer } from '../../../tree/index.js';
 import { describe, expect, it } from 'vitest';
-import { encodeMsgPack } from '../../common/msgpack/encode.js';
-import { MsgPackCodec, MsgPackExt, swapBytes } from '../msgpack.js';
+import { decodeMsgPack } from '../../../../data/msgpack/decode.js';
+import { encodeMsgPack } from '../../../../data/msgpack/encode.js';
+import { MsgPackCodec, MsgPackExt, msgPackColumnDecoder, swapBytes } from '../index.js';
 
 /** A spec of the shape a viewer's spec has: a sequence, ranges with columns, a track of values, custom data. */
 function spec(): Node {
@@ -55,7 +56,7 @@ function withExtension(type: number, data: number[]): Uint8Array {
   return Uint8Array.from([...head, ...body]);
 }
 
-describe('io/repr/msgpack', () => {
+describe('repr/codecs/msgpack', () => {
   it('conforms to the codec interface', () => {
     expect(checkCodec(MsgPackCodec)).toEqual([]);
   });
@@ -287,5 +288,42 @@ describe('io/repr/msgpack', () => {
     const node: Node = { kind: 'item', params: { i8: new Int8Array([1]), cat: categoryColumn(['a', null]) } };
     const back = normalize(ConformanceLanguage, MsgPackCodec.decode(MsgPackCodec.encode(node)).node!);
     expect(hashNode(back)).toBe(hashNode(node));
+  });
+});
+
+describe('msgPackColumnDecoder', () => {
+  it('reads the column extensions into a plain value: maps stay maps, `kind` too', () => {
+    const bytes = MsgPackCodec.encode({
+      kind: 'x',
+      params: {
+        start: new Int32Array([1, 2, 3]),
+        label: categoryColumn(['a', null, 'b']),
+        v: new Float32Array([0.5]),
+        nan: Number.NaN,
+        rec: { kind: 'y' },
+      },
+    });
+    const plain = decodeMsgPack(bytes, msgPackColumnDecoder) as {
+      kind: string;
+      params: { start: Int32Array; label: CategoryColumn; v: Float32Array; nan: number; rec: { kind: string } };
+    };
+    expect(plain.kind).toBe('x');
+    expect(plain.params.start).toBeInstanceOf(Int32Array);
+    expect(Array.from(plain.params.start)).toEqual([1, 2, 3]);
+    expect(plain.params.label).toBeInstanceOf(CategoryColumn);
+    expect(plain.params.label.get(2)).toBe('b');
+    expect(plain.params.v).toBeInstanceOf(Float32Array);
+    expect(plain.params.nan).toBeNaN();
+    expect(plain.params.rec).toEqual({ kind: 'y' });
+  });
+
+  it('throws on a malformed payload and leaves another type to the decoder', () => {
+    // `{ a: <ext> }`: an int32 column of 3 bytes, then a bigint (not a column extension)
+    const bad = Uint8Array.from([0x81, 0xa1, 0x61, 0xc7, 3, MsgPackExt.int32, 1, 2, 3]);
+    expect(() => decodeMsgPack(bad, msgPackColumnDecoder)).toThrow(/malformed extension/);
+    const other = Uint8Array.from([0x81, 0xa1, 0x61, 0xd4, MsgPackExt.bigint, 0x31]);
+    const decoded = decodeMsgPack(other, msgPackColumnDecoder) as { a: { type: number; data: Uint8Array } };
+    expect(decoded.a.type).toBe(MsgPackExt.bigint);
+    expect(Array.from(decoded.a.data)).toEqual([0x31]);
   });
 });

@@ -10,7 +10,7 @@ import { resolveSpec, rowsSystemOf } from '@molstar/seqx-core/resolve';
 import { resolveView } from '@molstar/seqx-core/view';
 import { AlignmentFileRuntime } from '../alignment-readers.js';
 import { AlignmentRuntime, openAlignment } from '../alignment-source.js';
-import type { CellsCodes } from '../protocol.js';
+import { type CellsCodes, DefaultOpenLimits } from '../protocol.js';
 import { answerBytes, checkAnswer, joinTables, sliceTable } from '../tables.js';
 
 const rows = { label: ['a/3-6', 'b', 'c'], letters: ['AC-D', 'ACCD', '-CCE'] };
@@ -49,14 +49,19 @@ describe('the cells shape (an alignment’s rows on row tiles, columns whole)', 
       AlignmentRuntime.open(
         { address: '/data/a', format: 'alignment', value: { label: ['a'], letters: ['AC', 'A'] } as never },
         {
-          assets: { readText: () => Promise.reject(new Error('no')) },
+          assets: { readText: () => Promise.reject(new Error('no')), readBytes: () => Promise.reject(new Error('no')) },
           signal,
+          limits: DefaultOpenLimits,
         },
       ),
     ).rejects.toThrow();
     const s = await AlignmentFileRuntime.open(
       { address: '/data/a', format: 'aligned-fasta', value: '>a/3-6\nAC-D\n>b\nACCD\n' },
-      { assets: { readText: () => Promise.reject(new Error('no')) }, signal },
+      {
+        assets: { readText: () => Promise.reject(new Error('no')), readBytes: () => Promise.reject(new Error('no')) },
+        signal,
+        limits: DefaultOpenLimits,
+      },
     );
     expect(s.coverage.systems[0].length).toBe(2);
   });

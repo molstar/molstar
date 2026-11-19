@@ -5,6 +5,7 @@
  */
 
 import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
+import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { DomHost } from '@molstar/ui/dom';
@@ -14,7 +15,10 @@ import { DomHostClock, StoreModel } from '../models/store.js';
 import { SpecModel } from '../models/spec.js';
 import { Gene, Protein, proteinOnGene } from './fixture.js';
 
-const assets = { readText: () => Promise.reject(new Error('no network in tests')) };
+const assets = {
+  readText: () => Promise.reject(new Error('no network in tests')),
+  readBytes: () => Promise.reject(new Error('no network in tests')),
+};
 
 describe('StoreModel', () => {
   it('owns a store made with the configuration’s bounds, timed by DomHost', () => {
@@ -54,6 +58,22 @@ describe('StoreModel', () => {
     const m = new StoreModel();
     await m.sync(resolveSpec(b.build(), { runtimes: [SeqRuntime] }), assets);
     expect(m.issues.value.map((i) => [i.code, i.address])).toEqual([['seq.source.unreadable', '/data/remote']]);
+    m.retire();
+  });
+
+  it('an opened source’s own issues (rows a file of records left out) are reported at its address', async () => {
+    const b = createSeqSpec();
+    const src = b.data.source('table', { format: 'tsv', value: 'start\tend\n1\t2\n5\t3\nx\t4\n', system: 'p' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSD' });
+    b.data.ranges('r', { target: p, source: src });
+    const m = new StoreModel();
+    await m.sync(resolveSpec(b.build(), { runtimes: [SeqRuntime, RecordsRuntime] }), assets);
+    expect(m.store.coverage('/data/table')).toBeDefined();
+    expect(m.issues.value.map((i) => [i.code, i.address, i.severity])).toEqual([
+      ['seq.source.records.order', '/data/table', 'warning'],
+      ['seq.source.records.value', '/data/table', 'warning'],
+    ]);
+    expect(m.issues.value[0].message).toMatch(/1 row \(line 3\)/);
     m.retire();
   });
 

@@ -58,6 +58,11 @@ export class OverlaySources {
   private readonly shown = new Map<string, () => void>();
   private readonly shared: Shared;
 
+  /** A parse's bounds, the store's settings (_spec/README.md "Data", Protocol). */
+  private get limits() {
+    return { maxRows: this.store.settings.maxRows, maxBytes: this.store.settings.maxBytes };
+  }
+
   constructor(
     readonly store: DataStore,
     private readonly assets: AssetReader,
@@ -83,7 +88,7 @@ export class OverlaySources {
       if (plan?.kind === 'inline')
         wanted.set(plan.source.address, {
           identity: n.entry,
-          open: (signal) => plan.runtime.open(plan.source, { assets: this.assets, signal }),
+          open: (signal) => plan.runtime.open(plan.source, { assets: this.assets, signal, limits: this.limits }),
         });
     }
     for (const nested of overlay.nested(templateNeeds(view))) {
@@ -91,7 +96,7 @@ export class OverlaySources {
       if (runtime)
         wanted.set(nested.address, {
           identity: overlay.node(nested.address)?.entry,
-          open: (signal) => runtime.open(nested.entry, { assets: this.assets, signal }),
+          open: (signal) => runtime.open(nested.entry, { assets: this.assets, signal, limits: this.limits }),
         });
     }
     for (const [address, h] of [...this.held]) {

@@ -5,6 +5,7 @@
  */
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
+import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
   AddressingProvider,
   CursorProvider,
@@ -32,7 +33,10 @@ import type { SeqViewerSpec } from './viewer-spec.js';
 
 export function DefaultSeqViewerSpec(): SeqViewerSpec {
   return {
-    registry: [{ kind: 'format-runtime', runtime: SeqRuntime }],
+    registry: [
+      { kind: 'format-runtime', runtime: SeqRuntime },
+      { kind: 'format-runtime', runtime: RecordsRuntime },
+    ],
     behaviors: [
       { provider: HoverProvider },
       { provider: NavigateProvider },

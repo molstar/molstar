@@ -63,9 +63,10 @@ class KindDatum extends RowDatum {
   }
 }
 
-// whole codes and words: DSSP (H G I, E B, T S), mmCIF (HELX_*, STRN, TURN_*), helix, strand, turn
+// whole codes and words: DSSP (H G I, E B, T S), mmCIF (HELX_*, STRN, TURN_*), helix, strand, turn, UniProt's
+// `Helix`, `Beta strand`, `Turn` (_spec/README.md "Render", Layer types)
 const HelixKind = /^(h|g|i|helix|helx(_\w+)?)$/i;
-const StrandKind = /^(e|b|strand|strn|sheet)$/i;
+const StrandKind = /^(e|b|strand|beta strand|strn|sheet)$/i;
 
 /** The class of a `kind` value; anything else (a turn, a coil, no value) is a turn. */
 export function secondaryKind(v: string | undefined): Kind {

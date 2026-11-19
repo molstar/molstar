@@ -95,7 +95,12 @@ async function story(view: ExampleView, gene = '') {
       registry: [...(base.registry ?? []), ...(view.registry?.() ?? [])],
       // a fixture read as a page fetches it: a while after the first frames
       ports: {
-        assets: () => ({ reader: { readText: () => new Promise((done) => setTimeout(() => done(gene), 500)) } }),
+        assets: () => ({
+          reader: {
+            readText: () => new Promise((done) => setTimeout(() => done(gene), 500)),
+            readBytes: () => new Promise((done) => setTimeout(() => done(new TextEncoder().encode(gene)), 500)),
+          },
+        }),
       },
     },
     target,

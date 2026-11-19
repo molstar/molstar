@@ -54,7 +54,8 @@ export class StoreModel extends ReactiveModel {
   /** The addresses of the overlay's sources reported as unopened: cleared when they open or their node goes. */
   private _overlayFailed = new Set<string>();
   private readonly _issues = new State<readonly Issue[]>([]);
-  /** Sources that could not be opened, one issue each (the store's own reports are `store.issues`). */
+  /** Sources that could not be opened, one issue each, and what an opened source said (rows a file of records left
+   * out); the store's own reports are `store.issues`. */
   readonly issues: ReadonlyState<readonly Issue[]> = this._issues.asReadonly;
 
   constructor(config: ViewerConfig = DefaultViewerConfig, options: { clock?: StoreClock } = {}) {
@@ -191,12 +192,17 @@ export class StoreModel extends ReactiveModel {
 
   private async _attach(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {
     try {
-      const opened = await runtime.open(o.entry, { assets, signal: o.abort.signal });
+      const { maxRows, maxBytes } = this.store.settings;
+      const opened = await runtime.open(o.entry, { assets, signal: o.abort.signal, limits: { maxRows, maxBytes } });
       if (o.abort.signal.aborted || this._open.get(address) !== o) {
         opened.dispose();
         return;
       }
-      this._report(address, undefined);
+      // what opening said without refusing it (rows a file of records left out), at its address
+      this._report(
+        address,
+        opened.issues?.map((i) => ({ ...i, address })),
+      );
       // a coverage the store refuses is its report (`store.issues`); forgotten here, so a later sync tries again
       if (!this.store.attach(address, opened)) {
         opened.dispose();
@@ -216,8 +222,10 @@ export class StoreModel extends ReactiveModel {
     }
   }
 
-  private _report(address: string, issue: Issue | undefined): void {
+  /** The issues at `address` replaced: one, a list (an opened source's), or none. */
+  private _report(address: string, issues: Issue | readonly Issue[] | undefined): void {
     const rest = this._issues.value.filter((i) => i.address !== address);
-    this._issues.set(issue ? [...rest, issue] : rest);
+    const now = issues === undefined ? [] : Array.isArray(issues) ? issues : [issues as Issue];
+    this._issues.set(now.length ? [...rest, ...now] : rest);
   }
 }

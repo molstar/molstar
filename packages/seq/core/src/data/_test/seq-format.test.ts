@@ -5,10 +5,12 @@
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
+import { MsgPackCodec } from '@molstar/core/repr/codecs/msgpack';
 import { categoryColumn, hashNode, issueOf } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import { SourceIssues, StoreIssues } from '../issues.js';
-import type { RegionAnswer, RegionRequest, Shape, Tables } from '../protocol.js';
+import { RecordsIssues } from '../records.js';
+import { DefaultOpenLimits, type RegionAnswer, type RegionRequest, type Shape, type Tables } from '../protocol.js';
 import { decodeSeq, encodeSeq, inlineSeq, readSeq, type SeqData, seqToNode, seqToValue } from '../seq-format.js';
 import { openSeq, SeqRuntime, SourceOpenError } from '../seq-runtime.js';
 import { answerBytes, checkAnswer, checkTables, isEmptyAnswer, sliceTable } from '../tables.js';
@@ -210,7 +212,12 @@ describe('the seq runtime', () => {
   it('opens inline data, a file through the asset port, and refuses neither', async () => {
     const ctx = (texts: Record<string, string>) => ({
       signal,
-      assets: { readText: async (uri: string) => texts[uri] ?? Promise.reject(new Error('no such file')) },
+      limits: DefaultOpenLimits,
+      assets: {
+        readText: async (uri: string) => texts[uri] ?? Promise.reject(new Error('no such file')),
+        readBytes: async (uri: string) =>
+          uri in texts ? new TextEncoder().encode(texts[uri]) : Promise.reject(new Error('no such file')),
+      },
     });
     const inline = await SeqRuntime.open({ address: '/data/a', format: 'seq', value: seqToValue(data) }, ctx({}));
     expect(inline.coverage.levels).toEqual([1, 10]);
@@ -222,6 +229,57 @@ describe('the seq runtime', () => {
     const none = SeqRuntime.open({ address: '/data/c', format: 'seq' }, ctx({}));
     await expect(none).rejects.toBeInstanceOf(SourceOpenError);
     await expect(none).rejects.toMatchObject({ issues: [{ code: 'seq.source.no_data', address: '/data/c' }] });
+  });
+
+  it('reads a file as MessagePack or JSON by its first byte, answering alike', async () => {
+    const files: Record<string, Uint8Array> = {
+      'a.msgpack': MsgPackCodec.encode(seqToNode(data)),
+      'a.json': new TextEncoder().encode(`﻿ \n${encodeSeq(data)}`),
+      'bad.msgpack': Uint8Array.of(0x81, 0xa1),
+    };
+    const ctx = {
+      signal,
+      limits: DefaultOpenLimits,
+      assets: {
+        readText: () => Promise.reject(new Error('bytes only')),
+        readBytes: async (uri: string) => files[uri] ?? Promise.reject(new Error('no such file')),
+      },
+    };
+    const request: RegionRequest = { system: 'chr1', start: 0, end: 200, level: 1, shapes: ['ranges', 'values'] };
+    const answers = [];
+    for (const uri of ['a.msgpack', 'a.json']) {
+      const s = await SeqRuntime.open({ address: '/data/a', format: 'seq', uri }, ctx);
+      answers.push(await s.read(request, signal));
+    }
+    expect(answers[0].ok).toBe(true);
+    expect(hashNode({ kind: 'a', params: { a: answers[0] as never } })).toBe(
+      hashNode({ kind: 'a', params: { a: answers[1] as never } }),
+    );
+    const bad = SeqRuntime.open({ address: '/data/x', format: 'seq', uri: 'bad.msgpack' }, ctx);
+    await expect(bad).rejects.toMatchObject({ issues: [{ code: 'repr.codec.msgpack.syntax', address: '/data/x' }] });
+  });
+
+  it('reads anything but a MessagePack map as JSON, and bounds a file by limits.maxBytes before parsing it', async () => {
+    const files: Record<string, Uint8Array> = {
+      'page.html': new TextEncoder().encode('<!doctype html><title>Not found</title>'),
+      'cut.json': new TextEncoder().encode(encodeSeq(data).slice(0, 40)),
+    };
+    const ctx = (maxBytes = DefaultOpenLimits.maxBytes) => ({
+      signal,
+      limits: { ...DefaultOpenLimits, maxBytes },
+      assets: {
+        readText: () => Promise.reject(new Error('bytes only')),
+        readBytes: async (uri: string) => files[uri] ?? Promise.reject(new Error('no such file')),
+      },
+    });
+    for (const uri of ['page.html', 'cut.json']) {
+      const opening = SeqRuntime.open({ address: '/data/x', format: 'seq', uri }, ctx());
+      await expect(opening).rejects.toMatchObject({
+        issues: [{ code: expect.stringMatching(/^repr\.codec\.json\./) }],
+      });
+    }
+    const big = SeqRuntime.open({ address: '/data/x', format: 'seq', uri: 'page.html' }, ctx(10));
+    await expect(big).rejects.toMatchObject({ issues: [{ code: 'seq.source.too_large', address: '/data/x' }] });
   });
 
   it('serves inline data as one region over the whole system', async () => {
@@ -315,7 +373,11 @@ describe('the seq runtime over several pairs', () => {
   });
 
   it('opens with a file that cannot be read as an issue', async () => {
-    const ctx = { signal, assets: { readText: () => Promise.reject(new Error('404')) } };
+    const ctx = {
+      signal,
+      limits: DefaultOpenLimits,
+      assets: { readText: () => Promise.reject(new Error('404')), readBytes: () => Promise.reject(new Error('404')) },
+    };
     const opening = SeqRuntime.open({ address: '/data/x', format: 'seq', uri: 'x.json' }, ctx);
     await expect(opening).rejects.toBeInstanceOf(SourceOpenError);
     await expect(opening).rejects.toMatchObject({ issues: [{ code: 'seq.source.unreadable', address: '/data/x' }] });
@@ -324,12 +386,18 @@ describe('the seq runtime over several pairs', () => {
 
 describe('the issue catalogs', () => {
   it('keep their codes in their namespaces', () => {
-    for (const c of [SourceIssues, StoreIssues])
+    for (const c of [SourceIssues, StoreIssues, RecordsIssues])
       for (const code of Object.keys(c.codes)) expect(code.startsWith(`${c.namespace}.`)).toBe(true);
   });
 
   it('catalog every code the sources use', () => {
-    const known = new Set([...Object.keys(SourceIssues.codes), ...Object.keys(StoreIssues.codes)]);
+    const known = new Set([
+      ...Object.keys(SourceIssues.codes),
+      ...Object.keys(StoreIssues.codes),
+      ...Object.keys(RecordsIssues.codes),
+      // a namespace is spelled as a code is
+      RecordsIssues.namespace,
+    ]);
     const dir = new URL('../', import.meta.url);
     const used = new Set<string>();
     for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts')))

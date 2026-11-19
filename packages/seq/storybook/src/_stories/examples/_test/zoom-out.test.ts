@@ -46,7 +46,9 @@ async function make(clock = true, id = 'protein-on-gene'): Promise<SeqViewer> {
     ...base,
     ui: undefined,
     registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: 300 }) ?? [])],
-    ports: { assets: () => ({ reader: { readText: async () => text } }) },
+    ports: {
+      assets: () => ({ reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } }),
+    },
   });
   viewer.resize(720);
   void viewer.load(view.build());

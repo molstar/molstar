@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The size targets (performance.md, Size): the three entries of this folder bundled for the browser, minified, ESM,
+// The size targets (performance.md, Size): the three entries of this folder bundled for the browser, minified, ESM, split
+// (what loads before any dynamic import is measured: the entry chunk and its static imports),
 // from the sources (the `molstar-src` condition), and the table of their sizes, minified and gzipped, against the
 // targets, with each entry's largest contributors (by folder, from esbuild's metafile).
 //
@@ -41,13 +42,24 @@ const resolveWorkspace = {
   },
 };
 
+/** The chunks a split build loads before any dynamic import: the entry and what it imports statically, transitively. */
+function loaded(meta) {
+  const entry = Object.keys(meta.outputs).find((k) => meta.outputs[k].entryPoint !== undefined);
+  const out = new Set([entry]);
+  for (const k of out)
+    for (const i of meta.outputs[k].imports) if (i.kind === 'import-statement' && !i.external) out.add(i.path);
+  return [...out];
+}
+
+/** The inputs of the chunks loaded first, with their bytes in them. */
+const loadedInputs = (meta) => loaded(meta).flatMap((k) => Object.entries(meta.outputs[k].inputs));
+
 const kB = (n) => `${(n / 1000).toFixed(1)} kB`;
 
 /** The bytes each input contributes to the output, grouped by its first `depth` path segments. */
 function contributors(meta, depth) {
-  const out = meta.outputs[Object.keys(meta.outputs)[0]];
   const groups = new Map();
-  for (const [file, v] of Object.entries(out.inputs)) {
+  for (const [file, v] of loadedInputs(meta)) {
     // `core/src/repr/tree/node.ts`, `seq/core/src/render/tracks.ts`: the package and its folders
     const parts = file.replace(/^packages\//, '').split('/');
     const key = parts.slice(0, depth).join('/');
@@ -69,10 +81,14 @@ for (const c of Cases) {
     metafile: true,
     logLevel: 'error',
     absWorkingDir: root,
-    outfile: join(here, 'out.js'),
+    // split, as an application bundles: a dynamic import (MessagePack in the `seq` runtime) is a chunk of its own, not
+    // paid by an entry that never loads it; what loads before any dynamic import is measured
+    splitting: true,
+    outdir: join(here, 'out'),
     plugins: [resolveWorkspace],
   });
-  const code = r.outputFiles[0].contents;
+  const chunks = loaded(r.metafile).map((k) => r.outputFiles.find((f) => f.path === join(root, k)).contents);
+  const code = Buffer.concat(chunks);
   rows.push({ ...c, min: code.length, gzip: gzipSync(code, { level: 9 }).length, meta: r.metafile });
 }
 
@@ -87,7 +103,7 @@ for (const r of rows) {
   console.log(`\n${r.name}: largest contributors (minified bytes in the output)`);
   for (const [k, v] of contributors(r.meta, 4).slice(0, top)) console.log(`  ${pad(kB(v), 10)}${k}`);
   if (files) {
-    const out = r.meta.outputs[Object.keys(r.meta.outputs)[0]];
+    const out = r.meta.outputs[entryOutput(r.meta)];
     console.log('  files:');
     for (const [f, v] of Object.entries(out.inputs)
       .sort((a, b) => b[1].bytesInOutput - a[1].bytesInOutput)

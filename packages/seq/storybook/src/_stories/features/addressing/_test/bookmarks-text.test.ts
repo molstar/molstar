@@ -48,7 +48,11 @@ describe('Bookmarks: the text’s links, headless', () => {
     const text = regionSeqText();
     const v = composeViewer(bookmarks, {
       delayMs: DelayMs,
-      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
     });
     viewer = v;
     v.resize(720);
@@ -97,7 +101,11 @@ describe('Bookmarks: the text’s links, headless', () => {
     const text = regionSeqText();
     const v = composeViewer(bookmarks, {
       delayMs: DelayMs,
-      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
     });
     viewer = v;
     v.resize(720);
