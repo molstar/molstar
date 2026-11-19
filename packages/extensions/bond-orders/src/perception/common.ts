@@ -354,12 +354,14 @@ export function isPerceivable(flags: number, order: number) {
 export function hasPerceivableBond(unit: Unit.Atomic, bonds: IntraUnitBonds, start: UnitIndex, end: UnitIndex) {
   const { offset, b, edgeProps } = bonds;
   const { order, flags } = edgeProps;
+  const { elements } = unit;
+  const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
   for (let u = start; u < end; u++) {
-    if (isHydrogenElement(typeSymbol(unit, u))) continue;
+    if (atomicNumber[elements[u]] === 1) continue;
     for (let t = offset[u], tl = offset[u + 1]; t < tl; t++) {
       const v = b[t];
       if (v < u || v >= end || !isPerceivable(flags[t], order[t])) continue;
-      if (!isHydrogenElement(typeSymbol(unit, v))) return true;
+      if (atomicNumber[elements[v]] !== 1) return true;
     }
   }
   return false;
