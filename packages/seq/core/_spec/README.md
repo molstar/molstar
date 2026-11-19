@@ -1078,9 +1078,10 @@ coordinates: what crosses strips), `axes` (2: a second axis of its own, the y pa
   labels already drawn, 6 px apart at least, majors first) is skipped, never shrunk. A label with an insertion code
   (`100A`, `111.1`) is a minor tick from 4 px a position, labeled only where it fits. It labels the positions where they
   are: a reversed axis counts down, a collapsed one labels its pieces. Where a text section prints a group's end number
-  (`group_labels` not `none`) the ruler draws the tick without its label: a position carries one label, the group's.
-  Over a piece of more than 4,096 positions, or on a built-in numbering, the labels are looked up by number (a tick a
-  step), not a position at a time. A hit is the position under the pointer. Fallback: none (omitted).
+  (`group_labels` not `none`) the ruler draws the tick without its label: a position carries one label, the group's
+  (only where the ruler's numbering is the one the group labels print). Over a piece of more than 4,096 positions, or on
+  a built-in numbering, the labels are looked up by number (a tick a step), not a position at a time. A hit is the
+  position under the pointer. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, anything else a turn), in one band: a helix a block, a strand a block with an arrowhead on its
   C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding the C-terminal end of the item, found
@@ -1202,11 +1203,12 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   part of the key, and starts the kept heights again.
 - **Numbers** (`numbers`: `start`, `end`, `both`, `none`): a line's first (left gutter) or last (right gutter) position,
   in the numbering of the first of its layers that names one (`numbering`, as a ruler's), else 1-based on the section's
-  system; group labels (`above`: the group's last position over its last cell; `inline`: in the gap after it; `none`).
-  The first line's bands carry their tracks' labels in the label column (faded past it), each at its band's middle but
-  never closer than a font size to the label above (thin bands would stack them: the labels flow down, the next line's
-  label column is empty). A line's gutter (a band's label, its numbers) hits as the band's row (`target: 'row'`, the
-  track's address as its layer).
+  system; a ruler band's line numbers sit on the ruler's label baseline (one row of numbers across the line), else at
+  the band's middle; group labels (`above`: the group's last position over its last cell; `inline`: in the gap after it;
+  `none`). The first line's bands carry their tracks' labels in the label column (faded past it), each at its band's
+  middle but never closer than a font size to the label above (thin bands would stack them: the labels flow down, the
+  next line's label column is empty). A line's gutter (a band's label, its numbers) hits as the band's row
+  (`target: 'row'`, the track's address as its layer).
 - **The box**: its `height`, else its content's up to `text.maxHeight` (600 px; a host sizing its canvas to the content
   reads it), past which it scrolls inside, its strips clipped to it; an export lays out every line (`figure`) and its
   box is its content.
@@ -1424,7 +1426,8 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   some are folded), no tree, no scroll; a lazy alignment there is drawn pending. Why: a fold would differ per line.
 - **Hover** (a clade): a hit on a tree node or a summary row (`tree-node`, `summary-row`: its element the clade) lights
   the clade: its branches and wedges in the hover ink, one band over each run of its rows in the order (a folded clade's
-  summary row alone; a pinned row's band at both its places). Why: the element is hovered, here and on linked sections.
+  summary row alone; a pinned row's band at both its places, the scrolled rows' bands never over the pinned band). Why:
+  the element is hovered, here and on linked sections.
 - **Emphasis along y**: the hover tints its row's band (a pinned row's at both its places) and its column within the
   band and outlines the cell; the selection's parts on the rows system as row bands, its rects of rows × columns as
   their cells, read over the display rows in view only (a binary search a row: a selection of any size costs the rows in

@@ -102,6 +102,9 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.n = 0;
     const gl = axis.gsize > 0 ? ctx.section.params.group_labels : undefined;
     lay.grouped = axis.gsize > 0 && gl !== 'none' ? (gl === 'inline' ? 'inline' : 'above') : '';
+    // only where the group labels print this ruler's numbering (the text's: its first layer naming one, else ordinals)
+    if (lay.grouped && (prep.numbering ? prep.id : 'ordinal') !== textNumberingId(ctx.section, prep.system))
+      lay.grouped = '';
     if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
       ctx.report(
         issueOf(RenderIssues, 'seq.render.numbering', `The system has no numbering ${prep.id}`, {
@@ -129,6 +132,22 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     return { layer: lay.key, section: lay.section, position, system: lay.system };
   },
 };
+
+/** The numbering id a text section's numbers print: its first layer naming one the system has, else `ordinal`. */
+function textNumberingId(section: LayoutContext['section'], system: QuerySystem | undefined): string {
+  for (const t of section.tracks)
+    for (const l of t.layers) {
+      const id = l.params.numbering;
+      if (typeof id !== 'string' || !id || id === 'ordinal') continue;
+      return system && findNumbering(system, id) ? id : 'ordinal';
+    }
+  return 'ordinal';
+}
+
+/** The baseline of a ruler's labels in a band at `y` of `height` (what a text's line numbers share). */
+export function rulerBaseline(y: number, height: number): number {
+  return y + height - MajorHeight - 3;
+}
 
 /** The least step of 1, 2, 5 × 10ⁿ whose ticks are at least `gap` px apart at `scale` px a position. */
 export function labelStep(scale: number, gap: number): number {
@@ -243,7 +262,7 @@ function drawLabels(lay: RulerLay, out: PassWriter, _emphasis: Emphasis | undefi
   for (let j = 0; j < lay.n; j++) {
     if (!lay.shown[j]) continue;
     g[0] = lay.x[j];
-    g[1] = box.y + box.height - MajorHeight - 3;
+    g[1] = rulerBaseline(box.y, box.height);
     g[2] = lay.widths[j];
     g[3] = Number.POSITIVE_INFINITY;
     g[4] = lay.tokens.colors['seq-ruler'];

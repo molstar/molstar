@@ -16,16 +16,19 @@ import { settle } from './helpers.js';
 const Labels = ['HBA/1-6', 'HBB/2-7', 'MYG/1-6', 'GLB/3-8', 'CYG/1-6'];
 const Letters = ['MVLSPA', 'MVHLTP', 'MGLS--', 'MKAVLG', 'MEKVPG'];
 const Newick = '((HBA:1,HBB:1)hb:1,(MYG:1,(GLB:1,CYG:1)gc:1)rest:1)root;';
+const Chain = '(((HBA:1,HBB:1)x:1)y:1,(MYG:1,(GLB:1,CYG:1)gc:1)rest:1)root;';
 const Rows = '/data/aln/(rows)';
 const T = '/views/v/s/rows';
 
-function spec(params: Record<string, unknown> = {}) {
+function spec(params: Record<string, unknown> = {}, newick = Newick, height?: number) {
   const b = createSeqSpec();
   const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
-  const tree = b.data.tree('tree', { of: aln, newick: Newick });
+  const tree = b.data.tree('tree', { of: aln, newick });
   b.views.view('v', (v) =>
     v.section('s', { of: aln } as never, (s) =>
-      s.track('rows', { label: '' }, (t) => t.layer('r', { type: 'rows', data: aln, tree, ...params } as never)),
+      s.track('rows', { label: '', ...(height ? { height } : {}) }, (t) =>
+        t.layer('r', { type: 'rows', data: aln, tree, ...params } as never),
+      ),
     ),
   );
   return b;
@@ -58,11 +61,28 @@ function rects(f: Frame): number[][] {
     );
 }
 
-async function hovered(params: Record<string, unknown>, band: Record<string, unknown>, key: string, target: string) {
-  const s = await settle(spec(params).build());
+interface Options {
+  readonly newick?: string;
+  readonly height?: number;
+  readonly pinInPlace?: boolean;
+  readonly layer?: string;
+}
+
+async function hovered(
+  params: Record<string, unknown>,
+  band: Record<string, unknown>,
+  key: string,
+  target: string,
+  o: Options = {},
+) {
+  const s = await settle(
+    spec(params, o.newick, o.height).build(),
+    [],
+    o.pinInPlace === undefined ? {} : { rows: { pinInPlace: o.pinInPlace } },
+  );
   const lay = rowsLay(await s.frame(at(band)));
   const hover = {
-    layer: lay.key,
+    layer: o.layer ?? lay.key,
     section: 's',
     system: Rows,
     position: undefined,
@@ -101,8 +121,53 @@ describe('a hovered clade', () => {
 
   it('a pinned row of the clade: lit in the pinned band and in its place', async () => {
     const { lay, bands } = await hovered({ order: 'tree', pinned: ['CYG/1-6'] }, { rowScale: 20 }, 'gc', 'tree-node');
-    const ys = bands.map((r) => r[1]).sort((a, b) => a - b);
-    expect(ys).toContain(lay.rowY(lay.display.displayRow(4)));
-    expect(ys).toContain(lay.rowY(lay.display.placeRow(3)));
+    const rs = lay.rowScale;
+    // the pinned slot, and one run over GLB and CYG in the order
+    expect(bands.map((r) => [r[1], r[3]]).sort((a, b) => a[0] - b[0])).toEqual([
+      [lay.rowY(lay.display.displayRow(4)), rs],
+      [lay.rowY(lay.display.placeRow(3)), 2 * rs],
+    ]);
+    expect(lay.display.placeRow(4)).toBe(lay.display.placeRow(3) + 1);
+  });
+
+  it('`pinInPlace: false`: a pinned row of the clade is tinted once, never joined to the scrolled rows', async () => {
+    const { lay, bands } = await hovered(
+      { order: 'tree', pinned: ['CYG/1-6'] },
+      { rowScale: 20 },
+      'rest',
+      'tree-node',
+      { pinInPlace: false },
+    );
+    const rs = lay.rowScale;
+    expect(bands.map((r) => [r[1], r[3]]).sort((a, b) => a[0] - b[0])).toEqual([
+      [lay.rowY(0), rs],
+      [lay.rowY(lay.display.placeRow(2)), 2 * rs],
+    ]);
+  });
+
+  it('a clade scrolled under the pinned band never covers it', async () => {
+    const { lay, bands } = await hovered(
+      { order: 'tree', pinned: ['CYG/1-6'] },
+      { rowScale: 20, bandTop: 1.5 },
+      'hb',
+      'tree-node',
+      { height: 60 },
+    );
+    expect(lay.pinnedHeight).toBeGreaterThan(0);
+    expect(bands.length).toBeGreaterThan(0);
+    for (const r of bands) expect(r[1]).toBeGreaterThanOrEqual(lay.box.y + lay.pinnedHeight);
+  });
+
+  it('a unary chain: hovering the inner node leaves its parent’s stem dark', async () => {
+    const x = await hovered({ order: 'tree' }, { rowScale: 20 }, 'x', 'tree-node', { newick: Chain });
+    const y = await hovered({ order: 'tree' }, { rowScale: 20 }, 'y', 'tree-node', { newick: Chain });
+    expect(x.branches.length).toBeLessThan(y.branches.length);
+  });
+
+  it('a hover from another layer lights no clade', async () => {
+    const { bands, branches } = await hovered({ order: 'tree' }, { rowScale: 20 }, 'gc', 'tree-node', {
+      layer: '/views/v/s/rows/other',
+    });
+    expect([bands.length, branches.length]).toEqual([0, 0]);
   });
 });

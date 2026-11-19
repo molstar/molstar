@@ -1512,7 +1512,7 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   const ink = tokens.colors['msui-text-muted'];
   const t = lay.tree;
   for (let k = 0; k + 3 < t.length; k += 4) branchRect(lay, out, k, ink, 1);
-  if (lay.wedges.length) drawWedges(lay, out, lay.tokens.colors['msui-text-muted'], -1);
+  if (lay.wedges.length) drawWedges(lay, out, ink, -1);
   const text = tokens.colors['msui-text'];
   for (let k = 0; k < lay.labelText.length; k++) {
     g[0] = lay.labelX;
@@ -1588,15 +1588,18 @@ function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number) {
   }
 }
 
-/** Node `k` is `c` or below it (its leaves are within `c`'s). */
+/** Node `k` is `c` or below it (its leaves are within `c`'s; a chain of one child shares them: by depth too). */
 function within(cl: Clades, k: number, c: number): boolean {
-  return cl.lo[k] >= cl.lo[c] && cl.hi[k] <= cl.hi[c];
+  return cl.lo[k] >= cl.lo[c] && cl.hi[k] <= cl.hi[c] && cl.depth[k] >= cl.depth[c];
 }
 
-/** A light band over `rows` display rows from `i` (one by default) as far as it is in the band. */
+/**
+ * A light band over `rows` display rows from `i` (one by default) as far as it is in the band: the scrolled rows
+ * (`i` past the pinned band) never cover the pinned band.
+ */
 function hoverBand(lay: RowsLay, out: PassWriter, i: number, ink: number, rows = 1) {
   const { box } = lay;
-  const y0 = Math.max(lay.rowY(i), box.y);
+  const y0 = Math.max(lay.rowY(i), i >= lay.display.pinned ? box.y + lay.pinnedHeight : box.y);
   const y1 = Math.min(lay.rowY(i) + rows * lay.rowScale, box.y + box.height);
   if (y1 <= y0) return;
   const g = out.args;
@@ -1648,10 +1651,12 @@ function hoverClade(lay: RowsLay, out: PassWriter, key: string, ink: number) {
     const r = cl.leafRow[l];
     const p = r >= 0 ? lay.display.placeRow(r) : -1;
     if (p < 0) continue;
+    // a pinned row in the band is lit there (a run is the scrolled rows and its place in the order)
     if (P) {
       const d = lay.display.displayRow(r);
       if (d >= 0 && d < P) hoverBand(lay, out, d, ink);
     }
+    if (p < P) continue;
     if (start < 0) start = end = p;
     else if (p === end)
       continue; // a folded clade's rows share its summary row
