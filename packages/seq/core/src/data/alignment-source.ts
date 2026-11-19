@@ -34,6 +34,12 @@ export interface AlignmentRows {
 
 const RangeLabel = /\/(-?\d+)-(-?\d+)$/;
 
+/** The first residue's number a label says (`NAME/27-137`), else 1. */
+export function firstNumberOf(label: string): number {
+  const m = RangeLabel.exec(label);
+  return m ? Number(m[1]) : 1;
+}
+
 function malformed(source: SourceEntry, why: string): SourceOpenError {
   return new SourceOpenError([
     issueOf(SourceIssues, 'seq.source.malformed', `The alignment cannot be read: ${why}`, { address: source.address }),
@@ -61,8 +67,7 @@ export function openAlignment(rows: AlignmentRows, source: SourceEntry = { addre
   const first = new Int32Array(n);
   for (let i = 0; i < n; i++) {
     const f = rows.first?.[i];
-    const m = f === undefined ? RangeLabel.exec(rows.label[i]) : undefined;
-    first[i] = f !== undefined ? f : m ? Number(m[1]) : 1;
+    first[i] = f !== undefined ? f : firstNumberOf(rows.label[i]);
   }
   return cellsSource(n, columns, (start, end) => ({
     codes: codes.subarray(start * columns, end * columns),

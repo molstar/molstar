@@ -10,7 +10,7 @@
 // alignment kept (EC-43).
 
 import { issueOf } from '@molstar/core/repr/tree';
-import { openAlignment } from './alignment-source.js';
+import { firstNumberOf, openAlignment } from './alignment-source.js';
 import { SourceIssues } from './issues.js';
 import { type FormatRuntime, isAbortError } from './protocol.js';
 import { SourceOpenError } from './seq-runtime.js';
@@ -43,24 +43,35 @@ export interface AlignmentRead {
   readonly issues: readonly ReadIssue[];
 }
 
-const RangeLabel = /\/(-?\d+)-(-?\d+)$/;
+export { firstNumberOf };
 
-/** The first residue's number a label says (`NAME/27-137`), else 1. */
-export function firstNumberOf(label: string): number {
-  const m = RangeLabel.exec(label);
-  return m ? Number(m[1]) : 1;
-}
-
-/** The rows of the alignment's width (the first row's), the rest said and left out; insert columns from lowercase. */
+/**
+ * The rows of the alignment's width (the most common one, on a tie the first to reach it: one stray row never sets it), the
+ * rest said and left out; a label twice said (its rows kept: a row is addressed by its index too); insert columns from
+ * lowercase.
+ */
 function finish(
   read: { label: string; letters: string; line: number }[],
   issues: ReadIssue[],
   rf?: string,
   ss?: string,
 ): AlignmentRead {
-  const columns = read.length ? read[0].letters.length : 0;
-  const rows: AlignmentRow[] = [];
+  const widths = new Map<number, number>();
+  let columns = 0;
+  let most = 0;
   for (const r of read) {
+    const n = (widths.get(r.letters.length) ?? 0) + 1;
+    widths.set(r.letters.length, n);
+    if (n > most) {
+      most = n;
+      columns = r.letters.length;
+    }
+  }
+  const rows: AlignmentRow[] = [];
+  const labels = new Set<string>();
+  for (const r of read) {
+    if (labels.has(r.label)) issues.push({ line: r.line, message: `the label ${r.label} names more than one row` });
+    labels.add(r.label);
     if (r.letters.length !== columns) {
       issues.push({
         line: r.line,

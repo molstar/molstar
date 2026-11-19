@@ -54,6 +54,25 @@ describe('the alignment readers (EC-38, EC-39, EC-40)', () => {
     expect(a.issues).toEqual([{ line: 6, message: expect.stringContaining('the row c is 2 columns wide') }]);
   });
 
+  it('aligned FASTA: the most common width wins (a stray first row does not set it); a label twice said', () => {
+    const a = readAlignedFasta('>x\nAC\n>a\nACDE\n>b\nAC-E\n>a\nAQDE\n');
+    expect(a.columns).toBe(4);
+    expect(a.rows.map((r) => r.label)).toEqual(['a', 'b', 'a']);
+    expect(a.issues.map((i) => i.message)).toEqual([
+      expect.stringContaining('the row x is 2 columns wide, not 4'),
+      expect.stringContaining('the label a names more than one row'),
+    ]);
+  });
+
+  it('aligned FASTA: a row with a character that is no letter or gap left out; `~` read as a gap', () => {
+    const a = readAlignedFasta('>a\nAC~E\n>b\nA1DE\n>c\nA.*E\n');
+    expect(a.rows.map((r) => [r.label, r.letters])).toEqual([
+      ['a', 'AC-E'],
+      ['c', 'A.*E'],
+    ]);
+    expect(a.issues).toEqual([{ line: 3, message: expect.stringContaining('the row b holds a character') }]);
+  });
+
   it('dot-bracket pairs nest by bracket kind; pseudoknot letters pair with their lowercase', () => {
     expect(structurePairs('((.[[..))..]]').pairs).toEqual([
       [0, 8],
@@ -87,6 +106,11 @@ describe('the alignment readers (EC-38, EC-39, EC-40)', () => {
     const t = readNewick('(HBA_HUMAN,(HBB_HUMAN/1-146,ZZZ));');
     const m = matchLeaves(t, [{ label: 'HBB_HUMAN/1-146' }, { label: 'HBA_HUMAN/1-141' }]);
     expect(Array.from(m)).toEqual([1, 0, -1]);
+  });
+
+  it('a row two leaves name goes to the first; the second leaf names none', () => {
+    const t = readNewick('(a,(a/1-5,b));');
+    expect(Array.from(matchLeaves(t, [{ label: 'a/1-5' }, { label: 'b' }]))).toEqual([0, -1, 1]);
   });
 
   it('fuzz: malformed text is reported, never thrown', () => {
