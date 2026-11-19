@@ -51,13 +51,16 @@ export const ChromosomeSequence = '/data/chr17';
  */
 export const ChromosomeLevels: readonly number[] = Array.from({ length: 14 }, (_, i) => 4 ** i);
 
-/** TP53 on chr17 (GRCh38: 7,668,402–7,687,550, minus strand), its exons the dataset's gene's at its start. */
+/**
+ * TP53 on chr17 (GRCh38: 7,668,402–7,687,550, minus strand, 1-based and inclusive: `[7_668_401, 7_687_550)` here,
+ * 0-based), its exons the dataset's gene's at its start.
+ */
 export const Tp53 = {
   name: 'TP53',
-  start: 7_668_402,
+  start: 7_668_401,
   end: 7_687_550,
   strand: -1 as const,
-  exons: GeneExons.start.map((s, i) => [7_668_402 + s, 7_668_402 + GeneExons.end[i]] as [number, number]),
+  exons: GeneExons.start.map((s, i) => [7_668_401 + s, 7_668_401 + GeneExons.end[i]] as [number, number]),
 };
 
 /** The coarsest level whose answers bring the genes' exons as nodes: a view of up to about 160 kb at 1,440 px. */

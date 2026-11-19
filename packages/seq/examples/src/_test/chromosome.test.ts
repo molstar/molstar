@@ -81,7 +81,7 @@ describe('the chromosome’s generator', () => {
     expect(letters).toHaveLength(GeneLength);
     expect(c.letters(Tp53.start, Tp53.start + GeneLength)).toBe(letters);
     const tp53 = c.genesIn(Tp53.start, Tp53.end).find((g) => g.name === 'TP53')!;
-    expect(tp53).toMatchObject({ start: 7_668_402, end: 7_687_550, strand: -1 });
+    expect(tp53).toMatchObject({ start: 7_668_401, end: 7_687_550, strand: -1 });
     // the coding exons the gene's, on the minus strand: the protein's start codon at the last exon's end
     const coding = tp53.exons.reduce((n, [s, e]) => n + e - s, 0);
     expect(coding).toBe(1182);
