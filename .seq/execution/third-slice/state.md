@@ -214,3 +214,8 @@ None.
   refused, exit 5 internal, atomic writes, a pixel cap; the font files unverified against upstream: followups); its hot
   files applied (the resvg catalog entry, the inventory, the root references, the lockfile). Quick 2043 (with
   seqx-render), lint, format, workspace green. DG in review; DC running; NB waits for DG's slot.
+- DG merged after its review round (attribution shared by the family and columns views with UniProt's changes stated,
+  the recorder's rules tested offline, `#=GF SQ` and the seed's hash fixed, a summary row keeps its `+n`: core's
+  rows layer elides the first label instead; the Query stories' alignment examples over four inline rows). Conflicts
+  with DP and DT (`record.ts`, `draw-checks.ts`) resolved keeping both. Quick 2070, medium 9. Its core gaps (6–8) are
+  CY's. DC in review; NB starts in DG's slot.

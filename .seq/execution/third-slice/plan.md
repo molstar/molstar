@@ -331,6 +331,11 @@ and dark before the merge.
       Also (DT, 2026-11-19): (5) a grid over a sequence whose letters come from a source (its values read after the
       source opens, not at resolve: the 1EHZ dot plot then reads its letters from the file); and the tRNA arcs' legend
       of pair kinds and the modified residues' codes as labels where they fit.
+      Also (DG and DC, 2026-11-19): (6) a blocks section over sequences read from a source gets its axis from
+      coverage (`seq.render.axis.pending`: DG's blocks take explicit ranges, DC's letters are inline); (7) a row
+      query by key on an alignment read from a source (`seq.query.row.unknown`: QS's example uses four inline rows);
+      (8) the text layout's `chrome` never throws on an alignment source not yet open (`render/layout/text.ts`,
+      `p.marks` undefined).
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). FS-A2 owns

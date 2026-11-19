@@ -11,3 +11,8 @@
 - Pairs layers place their arcs over a sequence whose letters come from a source; the rows layer's letters legend
   follows the alphabet (RNA lists U); a pairs table's extra category columns can be filtered on
   (`(item :tertiary yes)`).
+- Globins: the Pfam PF00042 seed (CC0, cut to the 60 rows nearest 4HHB's chains), UniProt's organisms of its rows (CC
+  BY 4.0, the class derived from the lineage) and PDB 4HHB (CC0) recorded; the family by its tree (neighbor joining on
+  identity) with the logo, species and identity columns, folded clades, a text figure, 10,000 generated rows,
+  hemoglobin as blocks with heme chips, helices and contacts, editing views and the dataset's index. A folded clade's
+  summary row keeps its `+n` however long the first label.
