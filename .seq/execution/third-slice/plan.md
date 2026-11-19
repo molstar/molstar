@@ -415,7 +415,7 @@ and dark before the merge.
 - [ ] LP (started on c184dfefc; strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
       (`briefs/lp-linked-pairs.md`).
 - [x] HP (reported: `drafts/track-header-parts.md`, eight gaps for the author; strong, a fourth-slice draft) track header parts, drafted (`briefs/hp-header-parts-draft.md`).
-- [ ] RX (strong, next free slot; the author, 2026-11-19) a row column's whole value only under the pointer; the tree's
+- [x] RX (merged c55db3098; strong, next free slot; the author, 2026-11-19) a row column's whole value only under the pointer; the tree's
       lines and wedges
       (`briefs/rx-row-column-tip.md`).
 - [x] CE (parked, unmerged: the author, 2026-11-19, "wait until we can address copies"; branch `seq/ce-copy-ends` and its review kept for the fourth slice; fast, next free slot; the author, 2026-11-19: "Caret, not first copy") a pair's end on split copies

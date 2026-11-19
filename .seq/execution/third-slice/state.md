@@ -430,3 +430,5 @@ None.
   port too": the section's `heights` (`content`, `uniform`, `fixed`, `ext:`) and the host's `trackSizing` port
   (layouts.md, the Design page). LP done (round 2, pairs answer items, highlight elements, the behavior): under
   independent review. RX's fix round done: to merge after a look.
+- RX merged (c55db3098, after its review round; all checks on the merged head: 2380 quick, 110 medium, perf 135 at 0
+  bytes a frame). Not looked at past RX's own screenshots: to the use gate's look. DA (fast, read-only) starts.
