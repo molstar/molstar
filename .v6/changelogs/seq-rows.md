@@ -10,3 +10,4 @@
 - Hovering a tree node or a folded clade's summary row lights the clade: its branches and one band over its rows.
 - A text figure's ruler draws one label a position (a group's end number wins) and the line numbers sit on the ruler's
   label baseline.
+- A row's first and last residue numbers follow the view (the residues in view, never a gap).
