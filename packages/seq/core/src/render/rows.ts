@@ -1526,23 +1526,28 @@ function layoutColumns(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   if (first) {
     // the titles, a line above the rows' band
     lay.titleY = box.y - 4;
+    // the hidden-columns chip ends where the right columns do (at the view's right edge, before a rows rail): the right
+    // titles before it are cut to make it room
+    let end = Number.POSITIVE_INFINITY;
+    if (lay.hiddenColumns) {
+      lay.colChip = lay.hiddenColumns === 1 ? '1 column hidden' : `${lay.hiddenColumns} columns hidden`;
+      lay.colChipW = text.measure(font, lay.colChip);
+      lay.colChipX = r - lay.colChipW;
+      end = lay.colChipX - gap;
+    }
     const o = prep.order;
     for (let k = 0; k < cols.length; k++) {
-      const w = lay.colW[k];
-      if (w <= 0) continue;
       const c = cols[k];
+      const w = c.side === 'right' ? Math.min(lay.colW[k], end - lay.colX[k]) : lay.colW[k];
+      if (w <= 0) continue;
       const mark = typeof o === 'object' && o.field === c.field ? OrderMark[o.direction] : '';
       const t = elide(text, font, `${c.title}${mark}`, w);
+      if (!t) continue;
       const tw = text.measure(font, t);
       lay.titleText.push(t);
       lay.titleW.push(tw);
       lay.titleX.push(c.as === 'number' ? lay.colX[k] + w - tw : lay.colX[k]);
       lay.titleCol.push(k);
-    }
-    if (lay.hiddenColumns) {
-      lay.colChip = lay.hiddenColumns === 1 ? '1 column hidden' : `${lay.hiddenColumns} columns hidden`;
-      lay.colChipW = text.measure(font, lay.colChip);
-      lay.colChipX = r + gap;
     }
   }
   const rs = lay.rowScale;

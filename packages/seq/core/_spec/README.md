@@ -1774,10 +1774,10 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   (EC-107, `fitRowColumns` in the view's layout): what the view lacks for the data's least width
   (`rows.columns.dataMinPx`, 200) with every column at its own width is taken from the columns, the right ones first and
   then the left, each from the last written, down to `rows.columns.floorPx` (32) and then hidden; the label keeps its
-  room. A chip in the title band after the right columns counts those hidden ("2 columns hidden"). The widths reach the
-  layer as `LayoutContext.rowColumns` (with the right columns' x); a text section's lines leave the right columns their
-  room. Cells are made at layout (bounded by the rows in view) and drawn from arrays: the draw and the hover allocate
-  nothing.
+  room. A chip in the title band ending where the right columns do (before a rows rail; the right titles cut for it)
+  counts those hidden ("2 columns hidden"). The widths reach the layer as `LayoutContext.rowColumns` (with the right
+  columns' x); a text section's lines leave the right columns their room. Cells are made at layout (bounded by the rows
+  in view) and drawn from arrays: the draw and the hover allocate nothing.
 - **Hits** (the header's through the band's gutter: a layer of two axes is asked there), written into one scratch hit (a
   hover allocates no hit object; a clade's element and extent made once a display): a cell is `cell` with its column
   (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the rows
