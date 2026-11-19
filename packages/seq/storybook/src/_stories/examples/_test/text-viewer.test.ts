@@ -176,6 +176,16 @@ describe('a text section: the interaction matrix', () => {
   });
 });
 
+describe('a text section’s targets', () => {
+  it('a line’s gutter hits as its band’s row (labels and numbers), a letter as its cell', async () => {
+    const v = await open();
+    const p = at(v, upl(v) + 2);
+    const gutter = v.hit(textOf(v).placement.strips.axes[1].x0 - 4, p.y);
+    expect(gutter).toMatchObject({ target: 'row', layer: textOf(v).tracks[0].track.address });
+    expect(v.hit(p.x, p.y)?.position).toBe(upl(v) + 2);
+  });
+});
+
 describe('a text section and the rest of the view', () => {
   it('a selection made elsewhere scrolls the text to its first line (reveal.linked); one made in it does not', async () => {
     const v = await open('text-under-tracks');

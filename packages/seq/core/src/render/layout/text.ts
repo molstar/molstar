@@ -20,7 +20,8 @@ import { Anchor, type PassWriter } from '../draw-lists.js';
 import { RenderIssues } from '../issues.js';
 import type { TextMetrics } from '../text.js';
 import type { SectionLayout } from '../tracks.js';
-import { StripPlacement } from './strips.js';
+import type { Hit } from '../layer-type.js';
+import { PlacePoint, StripPlacement } from './strips.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
 // anchors read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
@@ -365,6 +366,17 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
   get nav() {
     return TextNav;
   },
+  hitChrome(s, x, y) {
+    // a line's gutter (its band's label, its numbers) hits as the band's row (_spec/README.md "Render", Text layout)
+    if (!s.placement.at(x, y, GutterPoint) || GutterPoint.kind !== 'gutter' || GutterPoint.band < 0) return undefined;
+    const track = s.tracks[GutterPoint.band]?.track;
+    return {
+      layer: track?.address ?? s.section.address,
+      section: s.id,
+      system: s.axis?.system ?? s.section.axis.system,
+      target: 'row',
+    } satisfies Hit;
+  },
   chrome(s, pass, out, _emphasis, strip, band) {
     if (pass !== 'labels' || band !== 0) return;
     const p = s.placement as TextPlacement;
@@ -383,6 +395,9 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     }
   },
 };
+
+/** The point a gutter's hit reads, reused. */
+const GutterPoint = new PlacePoint();
 
 function firstShown(h: Float64Array, k0: number, nb: number): number {
   for (let j = 0; j < nb; j++) if (h[k0 + j] > 0) return j;
