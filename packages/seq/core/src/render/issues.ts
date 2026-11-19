@@ -172,6 +172,24 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A ruler’s `numbering` is not one its system has: it labels by `ordinal`',
     hint: 'Name `index`, `ordinal` or a numbering the system declares',
   },
+  'seq.render.numbering.limit': {
+    severity: 'warning',
+    description:
+      'A numbering whose labels are a source’s covers more positions than `maxNumberingPositions`: its labels are not read',
+    hint: 'Raise maxNumberingPositions in the configuration, or number a shorter system',
+  },
+  'seq.render.numbering.source': {
+    severity: 'warning',
+    description:
+      'A numbering’s source gives no labels: a tile failed, or the source has no system of the sequence’s name',
+    hint: 'Check the source, and that its `system` (or its rows’ `target`) is the sequence’s name',
+  },
+  'seq.render.numbering.rows': {
+    severity: 'warning',
+    description:
+      'A numbering’s source labels another count of positions than its sequence has, or has rows past its end (left out)',
+    hint: 'Give a row a position of the sequence; check the file’s `base`',
+  },
   'seq.render.layer.type': {
     severity: 'warning',
     description: 'No type in a layer’s fallback chain is one this target draws: the layer is not drawn',

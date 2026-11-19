@@ -55,6 +55,40 @@ export function sequentialNumbering(id: string, length: number, first: number): 
   };
 }
 
+/**
+ * A numbering of a label a position (a `numbering` node's `labels`, a source's column): `null` or undefined is no
+ * label there. Labels need no order (IMGT), so it has no `snap` or `nearest`: the forms scan its positions. A repeated
+ * label names its first position. A label is found by its spelling, else ignoring case (`82b` names `82B` where no
+ * `82b` is: the order of labels ignores case too). Its index of labels is built on first use.
+ */
+export function labelsNumbering(
+  id: string,
+  labels: { readonly length: number; get(i: number): string | null },
+): Numbering {
+  const length = labels.length;
+  let first: Map<string, number> | undefined;
+  let folded: Map<string, number> | undefined;
+  return {
+    id,
+    length,
+    labelAt: (i) => (Number.isInteger(i) && i >= 0 && i < length ? (labels.get(i) ?? undefined) : undefined),
+    indexOf: (label) => {
+      if (!first || !folded) {
+        first = new Map();
+        folded = new Map();
+        for (let i = 0; i < length; i++) {
+          const l = labels.get(i);
+          if (l === null) continue;
+          if (!first.has(l)) first.set(l, i);
+          const f = l.toLowerCase();
+          if (!folded.has(f)) folded.set(f, i);
+        }
+      }
+      return first.get(label) ?? folded.get(label.toLowerCase()) ?? -1;
+    },
+  };
+}
+
 /** A numbering and how its indices shift onto the system's (a molecule's numbering of a unit). */
 export interface NumberingOf {
   readonly numbering: Numbering;
@@ -78,6 +112,12 @@ export function findNumbering(system: QuerySystem, id: string): NumberingOf | un
     s = s.parent.system;
   }
   return undefined;
+}
+
+/** Whether the system, or its molecule, declares a numbering of this id whose labels have not arrived. */
+export function numberingPending(system: QuerySystem, id: string): boolean {
+  for (let s: QuerySystem | undefined = system; s; s = s.parent?.system) if (s.numberingPending?.(id)) return true;
+  return false;
 }
 
 /** The numbering ids a system can use, for an issue's hint. */

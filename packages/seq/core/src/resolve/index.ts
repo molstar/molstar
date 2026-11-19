@@ -52,6 +52,7 @@ export {
   createResolver,
   DefaultResolveConfig,
   type MapEntry,
+  type NumberingEntry,
   OpenLength,
   type PathResult,
   type Projection,

@@ -322,7 +322,11 @@ the region (a press there says it too, a tap's hover).
 
 `models/address.ts` (`viewer.addresses`): addresses in the spec shown and the store's nodes now (the core's Addressing
 over `overlayQueryModel` of the static model and `StoreModel.currentOverlay`, the last frame's builder's overlay without
-syncing sources), with the `address.*` settings as bounds.
+syncing sources, with the labels of the numberings read from sources that the store holds: the core's
+`withSourceNumberings`), with the `address.*` settings as bounds. The query model is kept while the model, the overlay
+and the store's version are the same. A form naming a source's numbering whose labels are not in asks for its tiles
+through the model's own wanter (after the resolve, never inside it), so a link in a numbering no ruler shows waits and
+then resolves.
 
 - **Actions**: `focus` (each leading, movable section whose system the address has positions on, or reaches by a static
   path, shows their hull in display offsets, hidden stretches taking no width; one move a scroll group; followers
@@ -643,7 +647,8 @@ binding table; per move one hit record and one modifiers record are reused.
   twice are heard twice): the keyboard cursor's place after each move of its own (section, system, 1-based position, the
   letter a letters layer shows there, the items under it by their labels and extents: the same words as the exported
   SVG's titles, `accessibility.ts`); the hover's when it rests (`restMs`, 500 ms: a pointer crossing the picture says
-  nothing; the item's label and extent, else the cell's place); a selection's change once
+  nothing; the item's label and extent, else the cell's place, with its label in the numbering the section's layers
+  show, the first naming one: `kabat, h 13 (kabat 82B), letter Q`); a selection's change once
   (`Selected 6 positions, p 3–8`, `Selection cleared`; the same selection again says nothing). One rate limit for all
   (`minGapMs`, 700 ms): a message never follows another sooner, the latest one waiting its turn (a held arrow key says
   where it is each gap, not each key). A message is a token (a counter and its text), so equal words are said again: a

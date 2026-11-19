@@ -66,6 +66,7 @@ import {
   type NumberingOf,
   nearestLabels,
   numberingIds,
+  numberingPending,
   snapLabel,
 } from './numbering.js';
 import { fromNamed, namedType, type QueryResult, toNamed } from './result.js';
@@ -209,14 +210,26 @@ function annotationsOf(ctx: Ctx, prefix: Named, kind: string): QueryAnnotation[]
   });
 }
 
-function numberingOf(system: QuerySystem, id: string): NumberingOf {
-  return (
-    findNumbering(system, id) ??
-    fail('seq.query.numbering.unknown', 'The system has no numbering of this id', {
-      address: system.address,
-      hint: `numberings: ${numberingIds(system).join(', ')}`,
-    })
-  );
+/**
+ * The system's numbering of an id; undefined when it is declared and its labels have not arrived (a source's): the
+ * form then holds nothing and waits, the whole system pending (`seq.query.numbering.pending`), never unknown.
+ */
+function numberingOf(ctx: Ctx, system: QuerySystem, id: string): NumberingOf | undefined {
+  const found = findNumbering(system, id);
+  if (found) return found;
+  if (numberingPending(system, id)) {
+    ctx.issues.push(
+      issueOf(QueryIssues, 'seq.query.numbering.pending', 'The numbering’s labels have not arrived', {
+        address: system.address,
+      }),
+    );
+    stage(ctx, rangesLocation(system.address, [0, system.length]));
+    return undefined;
+  }
+  return fail('seq.query.numbering.unknown', 'The system has no numbering of this id', {
+    address: system.address,
+    hint: `numberings: ${numberingIds(system).join(', ')}`,
+  });
 }
 
 // ---- nested values ----
@@ -294,7 +307,8 @@ function rangeOn(ctx: Ctx, form: Node, system: QuerySystem): Location {
       hint: QueryIssues.codes['seq.query.label.insertion'].hint,
     });
   checkParams(form, ['from', 'to', 'numbering']);
-  const n = numberingOf(system, numberingId(form));
+  const n = numberingOf(ctx, system, numberingId(form));
+  if (!n) return EmptyLocation;
   const fromV = param(form, 'from');
   const toV = param(form, 'to');
   const from = fromV === undefined ? undefined : label(fromV, address);
@@ -340,7 +354,8 @@ function rangeOn(ctx: Ctx, form: Node, system: QuerySystem): Location {
 function atOn(ctx: Ctx, form: Node, system: QuerySystem): Location {
   const address = system.address;
   checkParams(form, ['label', 'numbering', 'ins']);
-  const n = numberingOf(system, numberingId(form));
+  const n = numberingOf(ctx, system, numberingId(form));
+  if (!n) return EmptyLocation;
   let l = label(required(form, 'label'), address);
   const ins = param(form, 'ins');
   if (ins !== undefined) {

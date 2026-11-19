@@ -44,6 +44,11 @@ export interface QuerySystem {
   /** The ids of its own numberings, for an issue's hint. */
   numberingIds(): readonly string[];
   /**
+   * Optional: whether it declares a numbering of this id whose labels have not arrived (a source's, read by region):
+   * a form naming it waits for them, never reports it unknown.
+   */
+  numberingPending?(id: string): boolean;
+  /**
    * The molecule a unit is of, and where the unit starts on it: the molecule's numberings number the unit's positions
    * (`start` + index) where the unit has none of that id.
    */

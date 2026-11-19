@@ -160,6 +160,7 @@ export {
   rowsRailTracks,
   windowText,
 } from './navigator.js';
+export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
 export { drawRail, hitRail, placeRail, placeRowsRail, Rail, RowsRail, railUnitAt, SlimRailPx } from './rail.js';
 export { type BandsLay, type BandsPrep, BandsType } from './bands.js';
 export { type LettersLay, type LettersPrep, LettersType, shownLetters } from './letters.js';

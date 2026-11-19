@@ -6,13 +6,14 @@
 
 import { issueOf } from '@molstar/core/repr/tree';
 import { findNumbering, type NumberingOf, parseLabel, type QuerySystem } from '@molstar/seqx-core/query';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import type { NumberingEntry, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { fontSize } from './config.js';
 import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
+import { readSourceNumbering } from './numberings.js';
 import type { SeqTokens } from './tokens.js';
 
 // the anchor a number read once (see ranges.ts)
@@ -35,8 +36,13 @@ const MinorHeight = 3;
 export interface RulerPrep {
   /** The numbering id asked for (`ordinal` when absent). */
   readonly id: string;
-  /** The system's numbering of that id; undefined: unknown (reported) and `ordinal` is used. */
+  /**
+   * The system's numbering of that id; undefined: a source's (`source`, read at layout) or unknown (reported, and
+   * `ordinal` is used).
+   */
   readonly numbering?: NumberingOf;
+  /** A numbering the system declares whose labels are a source's rows: read from the store at layout. */
+  readonly source?: { readonly model: StaticModel; readonly entry: NumberingEntry };
   readonly system?: QuerySystem;
 }
 
@@ -69,10 +75,16 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     const id = typeof p === 'string' && p ? p : 'ordinal';
     const system = layer.data ? model.system(layer.data.system) : undefined;
     const numbering = system ? findNumbering(system, id) : undefined;
-    return { id, ...(numbering ? { numbering } : {}), ...(system ? { system } : {}) };
+    const entry = !numbering && system ? model.numberingOf(system.address, id) : undefined;
+    return {
+      id,
+      ...(numbering ? { numbering } : {}),
+      ...(entry?.source ? { source: { model, entry } } : {}),
+      ...(system ? { system } : {}),
+    };
   },
 
-  layout(prep, ctx: LayoutContext, _data, _overlay, prev?: RulerLay): RulerLay {
+  layout(prep, ctx: LayoutContext, data, _overlay, prev?: RulerLay): RulerLay {
     const { axis, box, config, tokens } = ctx;
     const lay: RulerLay = prev ?? {
       key: ctx.key,
@@ -102,17 +114,38 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.n = 0;
     const gl = axis.gsize > 0 ? ctx.section.params.group_labels : undefined;
     lay.grouped = axis.gsize > 0 && gl !== 'none' ? (gl === 'inline' ? 'inline' : 'above') : '';
+    // a source's labels, once every tile of its system is in: no ticks while they come (pending, never ordinals); a
+    // blank one is reported and labels by ordinals, as an unknown one does
+    const read = prep.source
+      ? readSourceNumbering(prep.source.model, prep.source.entry, data, {
+          maxPositions: config.maxNumberingPositions,
+          want: (w) => ctx.want(w),
+        })
+      : undefined;
+    const fromSource = read?.status === 'held' ? read.numbering : undefined;
     // only where the group labels print this ruler's numbering (the text's: its first layer naming one, else ordinals)
-    if (lay.grouped && (prep.numbering ? prep.id : 'ordinal') !== textNumberingId(ctx.section, prep.system))
+    if (
+      lay.grouped &&
+      (prep.numbering || fromSource ? prep.id : 'ordinal') !== textNumberingId(ctx.section, prep.system)
+    )
       lay.grouped = '';
-    if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
+    if (read?.status === 'pending') {
+      fit(lay, ctx);
+      return lay;
+    }
+    if (read?.status === 'held') for (const i of read.issues) ctx.report(i);
+    else if (read?.status === 'blank') ctx.report(read.issue);
+    else if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
       ctx.report(
         issueOf(RenderIssues, 'seq.render.numbering', `The system has no numbering ${prep.id}`, {
           address: ctx.key,
           hint: RenderIssues.codes['seq.render.numbering'].hint,
         }),
       );
-    const numbering = prep.numbering ?? (prep.system ? findNumbering(prep.system, 'ordinal') : undefined);
+    const numbering =
+      prep.numbering ??
+      (fromSource ? { numbering: fromSource, shift: 0 } : undefined) ??
+      (prep.system ? findNumbering(prep.system, 'ordinal') : undefined);
     const step = labelStep(axis.scale, config.ruler.labelGap);
     const ranges = axis.visible([]);
     for (let r = 0; r + 1 < ranges.length; r += 2) tickRange(lay, numbering, ranges[r], ranges[r + 1], step);

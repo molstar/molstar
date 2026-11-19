@@ -118,6 +118,12 @@ export interface RenderConfig {
   /** Tracks one template expands into at most; more is `seq.render.template.limit` and the rest are not laid out. */
   readonly maxTemplateTracks: number;
   /**
+   * Positions a numbering whose labels are a source's may cover at most (2^18, 262,144: a protein's or a small
+   * genome's): past it the labels are neither asked for nor held (`seq.render.numbering.limit`). Why: a source's
+   * labels are held whole, a string a position.
+   */
+  readonly maxNumberingPositions: number;
+  /**
    * Dynamic nodes: with `holdShown`, a frame's layout lists the nodes it shows (a placed instance, the node of an item
    * system a shown layer goes through, and what those name), for its owner to hold in the store (`ViewLayout.shown`).
    */
@@ -286,6 +292,7 @@ export const DefaultRenderConfig: RenderConfig = {
   margin: 0.5,
   followArc: 'shortest',
   maxTemplateTracks: 200,
+  maxNumberingPositions: 1 << 18,
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes' },
   values: { aggregate: 'minmax', coarser: 1, direct: true },

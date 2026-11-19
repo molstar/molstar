@@ -45,7 +45,8 @@ export type Params<C extends keyof SeqKinds & string> = {
 
 export interface DataBuilder {
   source(id: string, params: Params<'source'>): Address<'source'>;
-  sequence(id: string, params: Params<'sequence'>): Address<'sequence'>;
+  /** A sequence; its numberings (`numbering` children) are written in `body`. */
+  sequence(id: string, params: Params<'sequence'>, body?: (sequence: SequenceBuilder) => void): Address<'sequence'>;
   ranges(id: string, params: Params<'ranges'>): Address<'ranges'>;
   values(id: string, params: Params<'values'>): Address<'values'>;
   map(id: string, params: Params<'map'>): Address<'map'>;
@@ -53,6 +54,14 @@ export interface DataBuilder {
   tree(id: string, params: Params<'tree'>): Address<'tree'>;
   pairs(id: string, params: Params<'pairs'>): Address<'pairs'>;
   grid(id: string, params: Params<'grid'>): Address<'grid'>;
+}
+
+export interface SequenceBuilder extends Addressed<'sequence'> {
+  /**
+   * A numbering of the sequence (`<sequence>/<id>`, read as `:numbering <id>`): its labels inline, one a position
+   * (`null`: none there), or a source's column of them.
+   */
+  numbering(id: string, params: Params<'numbering'>): Address<'numbering'>;
 }
 
 export interface ViewsBuilder {
@@ -234,7 +243,15 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
   const dataKind = (kind: string) => (id: string, params: unknown) => add(data, kind, id, params).address;
   const dataBuilder = {
     source: dataKind('source'),
-    sequence: dataKind('sequence'),
+    sequence(id: string, params: unknown, body?: (s: SequenceBuilder) => void) {
+      const rec = add(data, 'sequence', id, params);
+      body?.({
+        address: rec.address as Address<'sequence'>,
+        numbering: (nid, nparams) => add(rec, 'numbering', nid, nparams).address as Address<'numbering'>,
+        toString: () => rec.address,
+      });
+      return rec.address;
+    },
     ranges: dataKind('ranges'),
     values: dataKind('values'),
     map: dataKind('map'),

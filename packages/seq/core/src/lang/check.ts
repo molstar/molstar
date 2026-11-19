@@ -231,6 +231,9 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       }
       break;
     }
+    case 'numbering':
+      checkNumbering(n, at.parent, (code, message, ...tail) => report(code, message, at, ...tail));
+      break;
     case 'source':
     case 'sequence':
     case 'ranges':
@@ -336,6 +339,37 @@ export function checkFollow(at: Placed, look: SeqLookup, report: Report): void {
     }
     if (seen.has(a)) break; // a cycle elsewhere: reported at its own sections
     seen.add(a);
+  }
+}
+
+/**
+ * A numbering's own checks (_spec/README.md, Language, Numberings): one of `labels` and `source` (`field` with a
+ * source only), an id no built-in has (the forms read `index` and `ordinal` as theirs), inline labels one a position
+ * of inline letters, and a label at two positions said once (it names the first: the queries' rule).
+ */
+function checkNumbering(
+  n: Node,
+  sequence: Node | undefined,
+  say: (code: Code, message: string, ...tail: (string | number)[]) => void,
+): void {
+  const labels = param(n, 'labels');
+  const source = param(n, 'source');
+  if ((labels === undefined) === (source === undefined) || (param(n, 'field') !== undefined && source === undefined))
+    say('seq.lang.numbering.content', 'A numbering has one of `labels` and `source`, and `field` only with a source');
+  if (n.id === 'index' || n.id === 'ordinal') say('seq.lang.numbering.id', `\`${n.id}\` is a built-in numbering`);
+  if (!(labels instanceof CategoryColumn)) return;
+  const letters = sequence ? param(sequence, 'letters') : undefined;
+  if (typeof letters === 'string' && labels.length !== letters.length)
+    say('seq.lang.numbering.length', `There are ${labels.length} labels for ${letters.length} positions`, 'labels');
+  const seen = new Set<string>();
+  for (let i = 0; i < labels.length; i++) {
+    const l = labels.get(i);
+    if (l === null) continue;
+    if (seen.has(l)) {
+      say('seq.lang.numbering.duplicate', `The label ${l} is given twice: it names its first position`, 'labels', i);
+      break;
+    }
+    seen.add(l);
   }
 }
 
