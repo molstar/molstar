@@ -257,7 +257,7 @@ and dark before the merge.
       gamut, hue kept, then the 3:1 lightness; greys stay grey (grids-and-rows, The logo). Tested over every built-in
       scheme in both themes (chroma at or above the floor or the gamut's limit, 3:1 kept, hue within a tolerance);
       Globins › Rows › Family looked at in light and dark.
-- [ ] HB (fast, after LG or DX frees a fast slot; the author, 2026-11-19: "hovering a CDK copy also highlights on
+- [x] HB (merged; fast, after LG or DX frees a fast slot; the author, 2026-11-19: "hovering a CDK copy also highlights on
       cyclin, but only when within range") the hover's cell outline on its own system only: in a section of blocks each
       block is a strip with its own axis, and `hoverCell` (`render/marks.ts`) and the letters' hover pass outline the
       hovered position in every strip whose range holds it, whatever the block's system. Check the hit's `system`
