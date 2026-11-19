@@ -28,3 +28,12 @@ past its first (the hover loop's rule).
 
 **Report**: commits; checks; tests failing without it; what you saw; what the public API lacked, if anything; a
 `.v6/changelogs/` entry's text.
+
+**Round 2** (the author, 2026-11-19, after LP stopped on the two gaps; viewer-models.md, "What it needed"; and
+locations-and-queries.md, "Pairs answer `items`"): build both, then the behavior. (a) A pairs annotation answers the
+query model (`StaticModel.annotation`, the overlay's query model), a pair one item with a row per end, `QueryItem.system`
+optional per row. (b) `EmphasisHighlight.elements`; `_updateHighlights` and `_svgEmphasis` pass a channel's elements;
+the pairs layer draws the highlight pass for listed keys in the channel's colour (arcs, chords, dots, SVG). (c) The
+behavior: hover and selection write to its own channel (the highlight pass, never the selection's), cleared when they
+go; the hover's query cached per hovered element key. Tests also for (a) and (b) on their own. These public API
+additions are decided; anything past them still stops you.

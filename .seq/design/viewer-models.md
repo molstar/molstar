@@ -83,6 +83,15 @@ listed in `DefaultSeqViewerSpec()`, removed to opt out. Its params: `on` (`hover
 pair layers it reads (all by default). Why a behavior and not the pairs layer's own rule: a host chooses it, the same
 query serves the selection and later the genome ring's "everything touching this block", and the layer stays a
 drawing. The pairs layer's own rule stays: a hovered position (a base, a cell's two positions) lights its partners.
+What it needed, decided (the author, 2026-11-19, LP stopped on two gaps in the public API): a pairs annotation answers
+the query model, a pair one item with a row per end, each row with its own `system` (`QueryItem.system`, optional; a
+ranges row's is its annotation's target), so `(items :overlapping <extent>)` on a pairs node gives the pairs with an end
+in the extent ([locations-and-queries.md](locations-and-queries.md)); a highlight channel carries element keys beside
+its Location (`EmphasisHighlight.elements`), and the pairs layer draws the highlight pass for the keys a channel lists,
+in its colour, arcs, chords and dots alike, the SVG export too. A selection's linked pairs draw in the highlight pass in
+the channel's colour, never the selection's: they are related to the selection, not in it (a copy of the selection
+leaves them out). The hover's query is cached per hovered element key (a hover allocates nothing a frame past its
+first). Why: both are general (any host lights items by key; any host asks which pairs touch a range).
 
 ### Gestures, bindings and commands
 

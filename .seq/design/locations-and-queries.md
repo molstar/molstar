@@ -32,6 +32,9 @@ by default. The first forms grow with the examples.
 
 ### Addresses: meso\*'s syntax, a per-kind meaning
 
+- **Pairs answer `items`** (decided, the author, 2026-11-19, for `linkedPairs`): a pairs annotation is queried as its
+  items, a pair one item with a row per end, each row with its own system (`QueryItem.system`): `(items :overlapping
+  <location>)` gives the pairs with an end in the location, on either system.
 - **The syntax is meso\*'s**, extended with lists, strings and addresses as values ([addressing.md](addressing.md)).
 - **The meaning is the form's**: `repr`'s `selectAddress` takes a table of form resolvers by form kind; meso\*'s child
   selection is the default resolver; Seq\*'s language registers its own (`range`, `at`, `rect`, `item`, `row`, `chain`,
