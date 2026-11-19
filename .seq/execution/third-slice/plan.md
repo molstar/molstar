@@ -206,7 +206,7 @@ and dark before the merge.
   - the strip: a navigation track with window handles over a section's positions;
   - the vertical overview: an alignment's rows (columns compressed across), the Globins 10,000-row view's;
   - the miniature: both axes; the ideogram: a strip with a chromosome's bands.
-- [ ] CH (fast, beside PG and NV; the author, 2026-11-19) the author's findings in the Globins views: a hover on a
+- [x] CH (fast, beside PG and NV; the author, 2026-11-19) the author's findings in the Globins views: a hover on a
       tree node or a summary row lights the clade (grids-and-rows, Clades, "Hovered"); the ruler's end number and tick
       label drawn twice at one position (the Figure's "70"), one label a position and none overlapping.
 - [ ] GD (strong, after PG and NV: it touches the viewer's config and the themes' render) the gaps decided as

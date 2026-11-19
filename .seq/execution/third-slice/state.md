@@ -53,12 +53,16 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
   (gutter labels overlapping; the domains count strip a heavy rule) to G2; the canvas/SVG spacing matched.
 - G2 merged (`e2aac7989`): the three gate findings fixed, looked at in light and dark. Stage 2 closed.
 
+- CH merged (`a5252eabd`, changelog `662d04133`): the clade hover (red once in the real story: the viewer's hover
+  record dropped the target; fixed with a test through the viewer), the ruler's one label a position, the line numbers
+  on the ruler's baseline (gap 7, decided). Review: findings 2–7 fixed; 1 (clade names) to the author (gap 6). Looked
+  at in light and dark (Family, Folded, Figure). Post-merge: unit 145 files / 1395 passed, tsc, typechecks, storybook
+  typecheck, lint, format, the `.seq` checks: exit 0.
+
 ## In progress
 
 - PG (strong) and NV (strong): pairs and grids, navigators (`briefs/pg-pairs-grids.md`, `nv-navigators.md`), base
   `51787bb2b`; started 2026-11-19 by the new orchestrator session.
-- CH (fast): the author's two findings from the Globins views (a tree-node hover lights nothing; the ruler's "70" drawn
-  twice in the Figure's 61–80 block), `briefs/ch-clade-hover.md`, base `00096372f`.
 
 ## Next
 
@@ -81,6 +85,7 @@ the dark cell edge, `view.motion`, the pyramid's tolerance), then stage 4's GATE
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stage 4, CH (look, review) | 5 (the hover target dropped by the viewer; a band over the pinned band; a double tint with `pinInPlace` false; a unary chain's stem; a ruler blanking another numbering's label) + 1 to the author (clade names) | 1 (the line numbers' baseline) | 0 |
 | stage 2, TV (review and look) | 5 (groups out of phase; end numbers untested; text allocation; a cyclic window drag; the copy message) + 1 found (an item from an earlier tile lost) | 0 | 2 (the export cut short; no domains band) |
 | stage 2, RB (review and look) | 9 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin; a wide window flipping; tracks not wrapping, a test changed to fit; a blank view past the fit) | 0 | 2 (a whole-ring window loud; stacked rows empty) |
 | stage 2's gate (look, heavy) | 1 (a max bound flaking under load) | 0 | 2 (gutter labels overlap; a heavy count strip) |
