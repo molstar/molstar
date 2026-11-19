@@ -63,9 +63,10 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
 
 /**
  * The data's positions in view (`[start, end, …]`, sorted, merged): the section's carried back along the path; with
- * `hidden`, the stretches the breaks in view hide too (what a layer draws as their ticks).
+ * `hidden`, the stretches the breaks in view hide too (what a layer draws as their ticks). Near ones merged (`near`,
+ * `mergeNear`: what a layer reads); without, exactly those in view (what a layer walks position by position).
  */
-export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = false): number[] {
+export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = false, near = true): number[] {
   const vis = axis.visible([]);
   if (hidden) {
     const b = axis.breaks([]);
@@ -73,8 +74,8 @@ export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = fals
       if (b[i + 2] >= b[i + 1]) vis.push(b[i + 1], b[i + 2]);
       else vis.push(b[i + 1], axis.length ?? b[i + 1], 0, b[i + 2]);
   }
-  if (!src.back) return mergeNear(HalfOpenRanges.normalize(vis));
-  return mergeNear(HalfOpenRanges.normalize(projectRanges(src.back, vis)));
+  const exact = HalfOpenRanges.normalize(src.back ? projectRanges(src.back, vis) : vis);
+  return near ? mergeNear(exact) : Array.from(exact);
 }
 
 /** Gaps of at most this many positions between regions are read with them (small: an intron of an exon pair stays apart). */

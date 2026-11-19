@@ -9,7 +9,7 @@ import { P53Views } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { Domains, GeneExons, GeneFile } from '@molstar/seqx-examples/p53/data';
 import { GeneOffset, Transcripts } from '@molstar/seqx-examples/p53/region';
-import { offsetOf } from '@molstar/seqx-core/view';
+import { axisBreaks, breakHolding, offsetOf } from '@molstar/seqx-core/view';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { checkMarks, openExample } from './draw-checks.js';
@@ -170,6 +170,21 @@ function checkRows(v: SeqViewer, lay: RangesLay, rows: readonly Row[]): string[]
   }
   const total = expected.reduce((n, r) => n + inWindow(r).length, 0);
   if (lay.hn !== total) wrong.push(`${lay.key}: ${lay.hn} marks drawn, the data's pieces in view are ${total}`);
+  // a row wholly in a hidden stretch whose break is in view is not dropped: a tick on that break
+  if (axis.ranges) {
+    const breaks = axisBreaks(axis);
+    const px = (o: number) => lay.box.x + ((o - vp.start) * lay.box.width) / (vp.end - vp.start);
+    for (const r of rows) {
+      if (inWindow(r).length) continue;
+      for (const [a, b] of r.pieces) {
+        const i = breakHolding(axis, a);
+        if (i < 0 || breakHolding(axis, b - 1) !== i || breaks[i] < vp.start || breaks[i] > vp.end) continue;
+        let ticked = false;
+        for (let t = 0; t < lay.tn; t++) if (Math.abs(lay.ticks[5 * t] - px(breaks[i])) <= 1) ticked = true;
+        if (!ticked) wrong.push(`${lay.key}: ${r.id} [${a}, ${b}) is hidden by a break in view and has no tick on it`);
+      }
+    }
+  }
   return wrong;
 }
 
@@ -248,6 +263,18 @@ describe('The axis’s views: drawing against the data', () => {
     v.draw();
     expect(checkRows(v, layerIn(v, 'gene', 'domains')!, onGene)).toEqual([]);
     expect(checkMarks(v).wrong).toEqual([]);
+  });
+
+  it('a row wholly hidden by a break in view is expected as the break’s tick, not dropped', async () => {
+    const v = await open('one-axis');
+    const lay = layerIn(v, 'gene', 'domains')!;
+    // a row the data does not have, in the intron between the two last coding exons: the oracle asks for its tick
+    const axis = v.view.resolved.value!.sections.find((x) => x.address === `${ViewId}/gene`)!.axis;
+    const [, hs, he] = axisBreaks(axis);
+    const row: Row = { id: 'hidden', start: hs, end: he, pieces: [[hs + 1, hs + 2]] };
+    expect(checkRows(v, lay, [...onGene, row])).toEqual([
+      `${lay.key}: hidden [${hs + 1}, ${hs + 2}) is hidden by a break in view and has no tick on it`,
+    ]);
   });
 
   it('the reversed gene (whole): every domain piece in view has its mark, across a tile edge too', async () => {

@@ -51,6 +51,17 @@ describe('points through a codon step', () => {
     }
   });
 
+  it('a residue a hair below a whole third is that third: never the place before it, across the intron', () => {
+    // a hair below 5 / 3: three times it is 4.999…, not 5 (a window's edge read back through offsets)
+    const x = 5 / 3 - 1e-15;
+    expect(3 * x).toBeLessThan(5);
+    for (const p of all(minus)) {
+      // place 5 is nucleotide 13 (its edge 14), not the end of place 4 (20, across the intron)
+      expect(projectPoint(p, x)).toBeCloseTo(14, 9);
+      expect(projectPoint(p, 5 / 3)).toBe(14);
+    }
+  });
+
   it('a window end is the far edge of its last place', () => {
     for (const p of all(minus)) {
       expect(projectEnd(p, 2)).toBe(13);

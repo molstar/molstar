@@ -13,6 +13,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { AxisTransform, Cut } from '../axis.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
+import { Round } from '../draw-lists.js';
 import { hitView, type LettersLay, LightTokens, type RangesLay, recordDrawLists, renderSvg } from '../index.js';
 import { settle } from './helpers.js';
 
@@ -159,6 +160,55 @@ describe('letters through a one-to-one path', () => {
   });
 });
 
+describe('carets (EC-29)', () => {
+  // h's 10 letters onto the gene by `by`, shown on the gene's `pieces` (all of it by default)
+  async function caretsOf(by: number, section: Record<string, unknown> = {}) {
+    const b = createSeqSpec();
+    const g = b.data.sequence('g', { alphabet: 'dna', letters: Gene });
+    const h = b.data.sequence('h', { alphabet: 'dna', letters: 'ACGTACGTAC' });
+    b.data.ranges('pieces', { target: g, rows: { start: [0, 10], end: [5, 30] } });
+    b.data.map('o', { from: h, to: g, method: 'offset', by });
+    b.views.view(
+      'v',
+      (v) =>
+        void v
+          .section('g', { of: g, ...section })
+          .track('t')
+          .layer('l', { type: 'letters', data: h }),
+    );
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size });
+    const sec = f.layout.sections[0];
+    return {
+      lay: sec.tracks[0].layers[0].lay as LettersLay,
+      axis: sec.axis!,
+      data: recordDrawLists(f.lists, ['data']),
+    };
+  }
+
+  it('letters the path places nowhere beside those in view: a caret at their boundary, one a boundary', async () => {
+    // 5 of h's letters past the gene's end: one caret, at the end
+    const end = await caretsOf(25);
+    expect(end.lay.n).toBe(5);
+    expect(end.lay.carets).toEqual([end.axis.x(30)]);
+    // 5 before its start: one caret, at the start; reversed, the same boundary on the other side
+    const start = await caretsOf(-5);
+    expect(start.lay.carets).toEqual([start.axis.x(0)]);
+    const back = await caretsOf(-5, { direction: 'reversed' });
+    expect(back.lay.carets).toEqual([back.axis.x(0)]);
+    expect(back.lay.carets[0]).toBeGreaterThan(start.lay.carets[0]);
+    // every letter placed: none
+    expect((await caretsOf(3)).lay.carets).toEqual([]);
+  });
+
+  it('what a break hides is placed, not missing: no caret however the reads are merged', async () => {
+    // pieces [0, 5) and [10, 30): h at 3 spans the break (positions 5–9 hidden, a gap under the read merge)
+    const c = await caretsOf(3, { pieces: '/data/pieces' });
+    expect(c.lay.carets).toEqual([]);
+    expect(c.lay.n).toBe(5);
+  });
+});
+
 describe('the complement', () => {
   // the letters left to right on screen
   const bases = (lay: LettersLay) =>
@@ -229,7 +279,7 @@ describe('breaks and the direction mark', () => {
 });
 
 describe('what a break hides is not dropped', () => {
-  function hiddenSpec() {
+  function hiddenSpec(section: Record<string, unknown> = {}, edges = false) {
     const b = createSeqSpec();
     const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
     const g = b.data.sequence('g', { alphabet: 'dna', letters: Gene });
@@ -243,11 +293,18 @@ describe('what a break hides is not dropped', () => {
     // one item in an exon, two wholly in the intron [7, 12), one across it
     const r = b.data.ranges('sites', {
       target: g,
-      rows: { start: [3, 8, 9, 6], end: [5, 9, 11, 14], id: ['a', 'b', 'c', 'd'] },
+      rows: edges
+        ? // the band of a projection across the intron: one range ending on the break, one starting on it
+          { start: [3, 12], end: [7, 15], id: ['e', 'f'] }
+        : { start: [3, 8, 9, 6], end: [5, 9, 11, 14], id: ['a', 'b', 'c', 'd'] },
     });
     b.views.view(
       'v',
-      (v) => void v.section('g', { of: g, pieces: m }).track('t').layer('l', { type: 'ranges', data: r }),
+      (v) =>
+        void v
+          .section('g', { of: g, pieces: m, ...section })
+          .track('t')
+          .layer('l', { type: 'ranges', data: r }),
     );
     return b.build();
   }
@@ -267,6 +324,25 @@ describe('what a break hides is not dropped', () => {
     expect(h.target).toBe('break');
     expect(h.extent?.parts.map((p) => [...p.ranges])).toEqual([[7, 12]]);
     expect(h.count).toBeGreaterThanOrEqual(1);
+  });
+
+  it('items ending on a piece’s edge at the break are square there, round at their other ends', async () => {
+    for (const direction of ['genomic', 'reversed'] as const) {
+      const s = await settle(hiddenSpec({ direction }, true));
+      const f = await s.frame({ size: Size });
+      const x = f.layout.sections[0].breaks[0];
+      const lay = f.layout.sections[0].tracks[0].layers[0].lay as RangesLay;
+      // on screen, the mark left of the break ends on it, the one right of it starts on it (either way round)
+      let left = -1;
+      let right = -1;
+      for (let j = 0; j < lay.m; j++) {
+        if (Math.abs(lay.mx1[j] - x) <= 1) left = j;
+        if (Math.abs(lay.mx0[j] - x) <= 1) right = j;
+      }
+      expect([left >= 0, right >= 0]).toEqual([true, true]);
+      expect(lay.mradius[left]).toBeGreaterThan(0);
+      expect([lay.mround[left], lay.mround[right]]).toEqual([Round.left, Round.right]);
+    }
   });
 
   it('a Location wholly hidden (a selection) lights its break', async () => {

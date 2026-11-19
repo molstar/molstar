@@ -276,7 +276,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const step = densityStep(axis.scale * width, axis.dpr, config);
     lay.step = step;
     const vis = axis.visible([]);
-    const regions = prep.through === 'own' ? vis : dataRegions(src, axis);
+    // the positions in view exactly (walked one by one), read merged across near gaps (one read over short pieces)
+    const regions = prep.through === 'own' ? vis : dataRegions(src, axis, false, false);
     if (step === 'bars' || step === 'density') {
       if (prep.through === 'own') for (let i = 0; i + 1 < vis.length; i += 2) axis.spans(vis[i], vis[i + 1], lay.bars);
       else placeholderSpans(src, axis, regions, lay.bars);
@@ -288,7 +289,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       fixed = resolveColor(prep.color, tokens);
       if (fixed === undefined) reportColor(ctx);
     }
-    const read = readTiles(ctx, data, src, prep.through === 'own' ? mergeNear(regions) : regions, 1);
+    const read = readTiles(ctx, data, src, mergeNear(regions), 1);
     const tables = read.entries.map((e) => e.tables.letters).filter((t): t is LettersTable => !!t);
     tables.sort((a, b) => a.start - b.start);
     // the section's own letters, for each codon's status: nothing said before they are held
@@ -317,21 +318,13 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       for (let p = regions[i]; p < regions[i + 1]; p++) {
         let code = letterIn(tables, p);
         if (!code) continue;
-        // where the letter lands: its own cell, or its image's parts through the path
-        // its own cell set in place (a length set to 0 lets an array's storage go: made again a letter)
+        // where the letter lands: its own cell (set in place: a length set to 0 lets an array's storage go, made
+        // again a letter), or its image's parts through the path
         if (onOwn) {
           parts[0] = p;
           parts[1] = p + 1;
         } else projectRanges(src.path!, OnePosition(p), parts);
-        if (prep.through === 'one' && !parts.length) {
-          // a letter with no position: a caret at its boundary (EC-29)
-          const b = projectBoundary(src.path!, p);
-          if (b !== undefined) {
-            const x = axis.x(b);
-            if (x >= box.x && x <= box.x + box.width) lay.carets.push(x);
-          }
-          continue;
-        }
+        if (!parts.length) continue;
         // a nucleotide read against its strand on screen shows its complement: the axis's direction times its run's
         if (nucleotides && prep.complement !== 'never') {
           const run = prep.through === 'one' ? runDir(src, p) : 1;
@@ -369,6 +362,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
         }
       }
     }
+    if (prep.through === 'one') caretsAt(src, axis, regions, box, lay.carets);
     placeholderSpans(src, axis, read.pending, lay.pending);
     placeholderSpans(src, axis, read.failed, lay.failed);
     // one to one: a section position in view that no letter lands on is an empty cell (the gap mark)
@@ -444,6 +438,25 @@ function OnePosition(p: number): number[] {
   One[0] = p;
   One[1] = p + 1;
   return One;
+}
+
+/**
+ * Letters with no position beside the letters in view (EC-29): where a region in view ends (or starts) at data
+ * positions the path places nowhere, a caret at their boundary, when it is in view; one a boundary. Read from the
+ * regions' edges, so how the reads are merged never changes them.
+ */
+function caretsAt(src: LayerSource, axis: AxisTransform, regions: readonly number[], box: Box, out: number[]) {
+  const path = src.path!;
+  for (let i = 0; i < regions.length; i++) {
+    // the position after a region's end (odd i) or before its start (even i)
+    const p = i % 2 ? regions[i] : regions[i] - 1;
+    if (p < 0 || (src.length !== undefined && p >= src.length)) continue;
+    if (projectRanges(path, OnePosition(p), Parts).length) continue;
+    const b = projectBoundary(path, i % 2 ? p : p + 1);
+    if (b === undefined) continue;
+    const x = axis.x(b);
+    if (x >= box.x && x <= box.x + box.width && !out.includes(x)) out.push(x);
+  }
 }
 
 /** The direction of the run a one-to-one path carries a position along. */
