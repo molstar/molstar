@@ -17,7 +17,7 @@ import {
 } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { type DensityStep, densityStep, fontSize } from './config.js';
+import { type DensityStep, densityStep, fontSize, type RenderConfig } from './config.js';
 import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { dataRegions, type LayerSource, layerSource, mergeNear, placeholderSpans, readTiles } from './layer-data.js';
@@ -136,6 +136,8 @@ export interface LettersLay {
   tokens: SeqTokens;
   hoverWidth: number;
   hoverOffset: number;
+  /** What the hover's squircle reads (its rule: `squircleRatio`, `squircleMax`, `squircleMin`). */
+  config: RenderConfig;
   /** The color channel this layout read (its legend), the datum it read a cell through, a themed ink by fill. */
   color?: Channel;
   datum: PlainDatum;
@@ -292,6 +294,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       tokens,
       hoverWidth: config.outline.hover,
       hoverOffset: config.emphasis.hoverOffset,
+      config,
       datum: new PlainDatum(),
       inks: new Map(),
       chip: '',
@@ -308,6 +311,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     if (prep.src) lay.src = prep.src;
     lay.hoverWidth = config.outline.hover;
     lay.hoverOffset = config.emphasis.hoverOffset;
+    lay.config = config;
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;
@@ -814,11 +818,17 @@ function drawThree(lay: LettersLay, out: PassWriter) {
 
 /**
  * The hover pass: a letter through a path outlines each part of its element (a residue's codon, split by an intron
- * too); else the hovered position's cell.
+ * too); a chip, its pill; else the hovered position's cell. Each a squircle (_spec/README.md "Render", Shapes: every
+ * emphasis a squircle), concentric: a part's ends round where the element really ends (its outermost parts' outer
+ * sides), square where an intron cuts it; square below `squircleMin`; a chip's round as its pill.
  */
 function drawHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key) return;
+  if (lay.chip !== '' && lay.n > 0) {
+    drawChipHover(lay, out, emphasis);
+    return;
+  }
   const part = lay.through === 'own' ? undefined : h.extent?.parts[0];
   if (!part || part.system !== lay.dataSystem || !part.ranges.length) {
     hoverCell(lay, out, emphasis);
@@ -828,19 +838,54 @@ function drawHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefi
   const d = lay.hoverWidth / 2 + lay.hoverOffset;
   const g = out.args;
   const { box } = lay;
+  // the element's outer sides: its parts' leftmost and rightmost x (the sides between parts are cut)
+  let lo = Infinity;
+  let hi = -Infinity;
   for (let j = 0; j < lay.n; j++) {
     if (lay.pos[j] !== p) continue;
+    if (lay.x0[j] < lo) lo = lay.x0[j];
+    if (lay.x1[j] > hi) hi = lay.x1[j];
+  }
+  const c = lay.config;
+  const bh = box.height;
+  for (let j = 0; j < lay.n; j++) {
+    if (lay.pos[j] !== p) continue;
+    const w = lay.x1[j] - lay.x0[j];
+    const r =
+      w < c.squircleMin || bh < c.squircleMin ? 0 : Math.min(bh * c.squircleRatio, c.squircleMax, w / 2, bh / 2);
+    const round = (lay.x0[j] <= lo ? 1 : 0) | (lay.x1[j] >= hi ? 2 : 0);
     g[0] = lay.x0[j] - d;
     g[1] = box.y - d;
-    g[2] = lay.x1[j] - lay.x0[j] + 2 * d;
-    g[3] = box.height + 2 * d;
+    g[2] = w + 2 * d;
+    g[3] = bh + 2 * d;
     g[4] = NoColor;
     g[5] = lay.tokens.colors['seq-hover'];
     g[6] = lay.hoverWidth;
-    g[7] = 0;
-    g[8] = 0;
+    g[7] = r > 0 && round !== 0 ? r + d : 0;
+    g[8] = round;
     out.rectArgs();
   }
+}
+
+/** A chip's hover: outside its pill by the offset, concentric with it (the pill's radius plus the gap to it). */
+function drawChipHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  const h = emphasis!.hover!;
+  if (h.system !== lay.axis.system || h.position === undefined || !lay.axis.cell(h.position)) return;
+  const { box } = lay;
+  // the pill is a pixel inside the cell (`drawChip`); the outline `d` outside the cell
+  const d = lay.hoverWidth / 2 + lay.hoverOffset;
+  const ph = Math.max(box.height - 2, 1);
+  const g = out.args;
+  g[0] = lay.x0[0] - d;
+  g[1] = box.y - d;
+  g[2] = lay.x1[0] - lay.x0[0] + 2 * d;
+  g[3] = box.height + 2 * d;
+  g[4] = NoColor;
+  g[5] = lay.tokens.colors['seq-hover'];
+  g[6] = lay.hoverWidth;
+  g[7] = ph / 2 + 1 + d;
+  g[8] = 3;
+  out.rectArgs();
 }
 
 const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawCells, hover: drawHover });

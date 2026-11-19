@@ -11,6 +11,7 @@ import { type Channel, glyphAgainst } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, type LayerChannels, PlainDatum } from './channels.js';
+import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, layerSource } from './layer-data.js';
@@ -66,6 +67,8 @@ export class LogoLay {
   tokens!: SeqTokens;
   hoverWidth = 1.5;
   hoverOffset = 1;
+  /** What the hover's squircle reads (its rule). */
+  config: RenderConfig = DefaultRenderConfig;
   profile: Profile | undefined;
   profileOf: HeldCells | undefined;
   channel: Channel | undefined;
@@ -123,6 +126,7 @@ export const LogoType: LayerType<LogoPrep, LogoLay> = {
     lay.tokens = tokens;
     lay.hoverWidth = config.outline.hover;
     lay.hoverOffset = config.emphasis.hoverOffset;
+    lay.config = config;
     lay.n = 0;
     lay.m = 0;
     lay.pending = false;

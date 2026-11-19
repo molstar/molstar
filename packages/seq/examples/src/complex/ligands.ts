@@ -77,7 +77,8 @@ export function build(options: LigandsOptions = {}, d: Derived = Data): Node {
     const s = v.section('ligands', {});
     s.block('cdk2', { of: x.cdk2, label: 'CDK2 (1FIN A)' });
     for (const n of nodes) s.block(ligandId(n.l.comp), { of: n.seq, label: n.l.comp });
-    s.track('contacts', { label: 'Contacts (≤ 4 Å)' }, (t) => {
+    // padded on top so the arcs clear the blocks' labels above the track
+    s.track('contacts', { label: 'Contacts (≤ 4 Å)', padding: { top: 8 } }, (t) => {
       // a ligand's arcs in its own color of the categorical palette (by its place: the chips' order), told apart
       nodes.forEach((n, k) =>
         t.layer(ligandId(n.l.comp), {

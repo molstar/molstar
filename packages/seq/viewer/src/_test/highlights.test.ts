@@ -91,7 +91,8 @@ describe('a channel’s style', () => {
     const v = await make();
     v.addresses.highlightAddress(Range(2, 5), 'a');
     frames!.flush();
-    expect(rectsIn(v, 0).every((r) => r.paint.endsWith('4d'))).toBe(true);
+    // a tint, a squircle where its span really ends (_spec/README.md "Render", Shapes)
+    expect(rectsIn(v, 0).every((r) => r.paint.split(' ')[0].endsWith('4d'))).toBe(true);
     const version = v.highlight.version.value;
     v.addresses.highlightAddress(Range(2, 5), 'a', 'outline');
     frames!.flush();

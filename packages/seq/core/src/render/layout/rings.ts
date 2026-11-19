@@ -350,8 +350,11 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     p.cy = top + margin + r;
     p.r = r;
     // the rings' depth: their heights and gaps, scaled to keep the hole
+    // (a ring's padding is radial: its well is its height plus its padding, scaled with it)
+    const pads = ctx.pads;
     let depth = 0;
-    for (let j = 0; j < nb; j++) depth += (j ? config.trackGap : 0) + ctx.heights[j];
+    for (let j = 0; j < nb; j++)
+      depth += (j ? config.trackGap : 0) + ctx.heights[j] + (pads ? pads[2 * j] + pads[2 * j + 1] : 0);
     const room = r * (1 - Math.min(Math.max(rc.hole, 0), 0.95));
     const k = depth > room ? room / depth : 1;
     p.depth = depth * k;
@@ -414,9 +417,13 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       let y = 0;
       for (let j = 0; j < nb; j++) {
         if (j) y += config.trackGap * k;
-        strips.bandY[i * nb + j] = y;
+        const pt = (pads ? pads[2 * j] : 0) * k;
+        const pb = (pads ? pads[2 * j + 1] : 0) * k;
+        strips.padT[i * nb + j] = pt;
+        strips.padB[i * nb + j] = pb;
+        strips.bandY[i * nb + j] = y + pt;
         strips.bandH[i * nb + j] = ctx.heights[j] * k;
-        y += ctx.heights[j] * k;
+        y += pt + ctx.heights[j] * k + pb;
       }
       x += width + gap * r;
       first += len;
@@ -466,9 +473,9 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       const k = strip * p.strips.bands + band;
       const g = out.args;
       g[0] = a.x0;
-      g[1] = p.strips.bandY[k];
+      g[1] = p.strips.bandY[k] - p.strips.padT[k];
       g[2] = a.width;
-      g[3] = p.strips.bandH[k];
+      g[3] = p.strips.bandH[k] + p.strips.padT[k] + p.strips.padB[k];
       g[4] = tokens.colors['seq-track'];
       g[5] = NoColor;
       g[6] = 0;

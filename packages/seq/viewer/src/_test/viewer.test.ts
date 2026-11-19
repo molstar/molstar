@@ -33,6 +33,18 @@ const TinyConfig = [[viewerItem('viewport.maxPxPerPosition'), 1000]] as const;
 
 /** The protein section's letters cell `i` of 4 at width 600: the data box starts at x = 128, 116 px a residue. */
 const cellX = (i: number) => 128 + 116 * i + 58;
+
+/** The strokes in a context's calls whose path holds a cubic (`bezierCurveTo` between its `beginPath` and its `stroke`). */
+function tracedCurves(log: readonly string[]): number {
+  let n = 0;
+  let cubic = false;
+  for (const c of log) {
+    if (c === 'beginPath()') cubic = false;
+    else if (c.startsWith('bezierCurveTo')) cubic = true;
+    else if (c === 'stroke()' && cubic) n++;
+  }
+  return n;
+}
 const ProteinY = 18;
 
 async function make(options: { canvas?: boolean; width?: number } = {}) {
@@ -169,7 +181,8 @@ describe('the Canvas2D drawing', () => {
     expect(base.context.take()).toEqual([]);
     expect(labels.context.take()).toEqual([]);
     expect(overlay.context.calls('clearRect').length).toBe(1);
-    expect(overlay.context.calls('strokeRect').length).toBeGreaterThan(0);
+    // the cell's outline, a squircle: the core's curve traced (cubics between its beginPath and its stroke) and stroked
+    expect(tracedCurves(overlay.context.take())).toBeGreaterThan(0);
     // no layout was made for it: only the emphasis passes
     expect(viewer.counts.layouts).toBe(layouts);
     // it moves to the next cell: the overlay again, still no base
@@ -177,7 +190,7 @@ describe('the Canvas2D drawing', () => {
     viewer.input.move(cellX(2), ProteinY);
     frames.flush();
     expect(base.context.take()).toEqual([]);
-    expect(overlay.context.calls('strokeRect').length).toBeGreaterThan(0);
+    expect(tracedCurves(overlay.context.take())).toBeGreaterThan(0);
     // it leaves: the overlay is cleared
     overlay.context.take();
     viewer.input.leave();

@@ -276,9 +276,10 @@ describe('draw lists: emphasis', () => {
       'rect 328.5 8.5 39 95 none stroke #8f4c0699 1 squircle 7.5',
       '',
     ]);
-    // the cursor: one thin outline of its cell over the band, in the neutral ink
+    // the cursor: one thin outline of its cell over the band, in the neutral ink; a squircle by the cell over the band
+    // (capped at 8), inside it by half its width
     expect(recordDrawLists(f.lists, ['cursor']).split('\n').slice(2)).toEqual([
-      'rect 528.5 8.5 19 95 none stroke #2d271eff 1',
+      'rect 528.5 8.5 19 95 none stroke #2d271eff 1 squircle 7.5',
       '',
     ]);
   });
@@ -291,7 +292,10 @@ describe('draw lists: emphasis', () => {
     // three tracks, two ranges each: a tint and an outline
     expect(f.lists.passes.selection.rects.n).toBe(12);
     expect(f.lists.passes.cursor.rects.n).toBe(3);
-    expect(recordDrawLists(f.lists, ['selection']).split('\n')[2]).toBe('rect 188 8 60 20 #8f4c062e squircle 6.67');
+    // each track's tints inside its well's clip: the well's shape (_spec/README.md "Render", Shapes)
+    const lines = recordDrawLists(f.lists, ['selection']).split('\n');
+    expect(lines[2]).toBe('clip 128 8 600 20 squircle 6.67');
+    expect(lines[3]).toBe('rect 188 8 60 20 #8f4c062e squircle 6.67');
   });
 });
 

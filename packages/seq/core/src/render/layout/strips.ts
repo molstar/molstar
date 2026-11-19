@@ -46,6 +46,12 @@ export class Strips {
   bandY = new Float64Array(8);
   bandH = new Float64Array(8);
   used = new Float64Array(8);
+  /**
+   * Per band its well's padding above and below the band, in the strip's frame (a ring's radial, scaled with it): the
+   * well is the band grown by them (_spec/README.md "Render", Tracks layout). 0 by default.
+   */
+  padT = new Float64Array(8);
+  padB = new Float64Array(8);
 
   /** Clears the strips for a placement with `bands` bands a strip. */
   reset(bands: number): void {
@@ -76,6 +82,8 @@ export class Strips {
       this.bandY = grown(this.bandY, nb);
       this.bandH = grown(this.bandH, nb);
       this.used = grown(this.used, nb);
+      this.padT = grown(this.padT, nb);
+      this.padB = grown(this.padB, nb);
     }
     this.axes[i] = axis;
     this.ys[i] = undefined;
@@ -93,6 +101,8 @@ export class Strips {
       this.bandY[j] = 0;
       this.bandH[j] = 0;
       this.used[j] = 0;
+      this.padT[j] = 0;
+      this.padB[j] = 0;
     }
     return i;
   }
@@ -171,6 +181,18 @@ export class Strips {
     const a = this.axes[strip];
     const j = strip * this.bands + band;
     return { x: a.x0, y: this.bandY[j], width: a.width, height: this.bandH[j] };
+  }
+
+  /** The band's well in its strip's frame: its box grown by its padding (`padT`, `padB`). */
+  wellBox(strip: number, band: number): Box {
+    const a = this.axes[strip];
+    const j = strip * this.bands + band;
+    return {
+      x: a.x0,
+      y: this.bandY[j] - this.padT[j],
+      width: a.width,
+      height: this.bandH[j] + this.padT[j] + this.padB[j],
+    };
   }
 }
 

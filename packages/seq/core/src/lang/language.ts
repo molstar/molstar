@@ -720,6 +720,20 @@ export const SeqLanguage = defineLanguage({
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
         height: { type: 'number', min: 0, doc: 'The height of the track in px.' },
+        padding: {
+          type: 'union',
+          of: [
+            { type: 'number', min: 0 },
+            {
+              type: 'record',
+              fields: {
+                top: { type: 'number', min: 0, doc: 'Px above the data.' },
+                bottom: { type: 'number', min: 0, doc: 'Px below the data.' },
+              },
+            },
+          ],
+          doc: 'Px inside the track’s well around its data, vertical only: a number is top and bottom, `{ top, bottom }` one or both sides (the render config’s `trackPadding` when absent, 0). The well is the track’s height plus its padding; its layers lay out, hit and are emphasized in the band inside it (a ring’s padding is radial).',
+        },
         hidden: {
           type: 'boolean',
           default: false,

@@ -11,7 +11,7 @@ import { type QueryItem, rangesLocation } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import { axisBreaks, breakHolding, type ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { type DensityStep, densityStep } from './config.js';
+import { type DensityStep, densityStep, type RenderConfig } from './config.js';
 import { NoColor, type PassWriter } from './draw-lists.js';
 import { dataRegions, type LayerSource, layerLevel, placeholderSpans, readTiles, toSection } from './layer-data.js';
 import type { FilterRow, RowFilter } from './filter.js';
@@ -265,6 +265,8 @@ export interface ItemsBase {
   gap: number;
   hoverWidth: number;
   hoverOffset: number;
+  /** What a hover's squircle reads (its rule: `squircleRatio`, `squircleMax`, `squircleMin`). */
+  config: RenderConfig;
   /** The count strip (the whole box, or a row of it) and its buffers, kept while the box's columns do not change. */
   density?: StripBuffers['image'];
   strip: StripBuffers;
@@ -298,6 +300,7 @@ export function newItemsBase(ctx: LayoutContext, prep: ItemsPrep): ItemsBase {
     gap: 0,
     hoverWidth: ctx.config.outline.hover,
     hoverOffset: ctx.config.emphasis.hoverOffset,
+    config: ctx.config,
     strip: { diff: new Float64Array(0), counts: new Float64Array(0), v: 1 },
   };
 }
@@ -316,6 +319,7 @@ export function beginItems(lay: ItemsBase, ctx: LayoutContext, prep: ItemsPrep) 
   lay.tokens = ctx.tokens;
   lay.hoverWidth = ctx.config.outline.hover;
   lay.hoverOffset = ctx.config.emphasis.hoverOffset;
+  lay.config = ctx.config;
   lay.laneHeight = ctx.box.height;
   lay.gap = 0;
   lay.rows.n = 0;

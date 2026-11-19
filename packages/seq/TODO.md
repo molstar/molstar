@@ -169,6 +169,12 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **Emphasis**: projected selection bands on a whole axis are rounded at intron edges, where the frame rule wants the
   ends a projection cut square (a projection-aware cut flag; on a collapsed axis an end at a break is square); the
   keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum width or a caret).
+- **Wells and padding**: a template's tracks take the template track's `padding` as written; whether each instance
+  should have its own (a param of the dynamic node, a per-template default) is undecided. The column-shaped tints
+  (`selectionShape: 'column'`, the default) span the tracks and the gaps between them and are not clipped per well; with
+  `selectionPlace: 'under'` they show in the gaps and past the wells' round corners (per-well clips would split the one
+  band into a band a track). A band's hover is square at the view's edge by its mark's place, not by a cut the layout
+  records (a band there may end exactly at the edge).
 - **Tests**: the p53 fixtures round-tripped JSON ↔ MessagePack in a test here (io cannot import them).
 
 - **Themes**: a filter by a value's range (steps, a ramp: `(item :<field>)` compares atoms only) and filters through a

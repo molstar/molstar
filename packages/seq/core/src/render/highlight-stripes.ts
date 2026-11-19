@@ -19,6 +19,7 @@ let Slot = new Int32Array(8);
 let Stripes = new Int32Array(8);
 let First = new Uint8Array(8);
 let Opened = new Uint8Array(8);
+let Closed = new Uint8Array(8);
 
 /** What `walkStripes` reports for a run: the channel (its index in `parts`), its `[start, end)`, its slot and count. */
 export type StripeRun = (
@@ -29,6 +30,8 @@ export type StripeRun = (
   count: number,
   /** 1: the run begins where one of the channel's ranges does (not where its slot or count changed). */
   first: number,
+  /** 1: the run ends where one of the channel's ranges does (its real end: a squircle's round end there). */
+  last: number,
 ) => void;
 
 /**
@@ -44,6 +47,7 @@ export function walkStripes(parts: readonly (LocationPart | undefined)[], n: num
     Stripes = new Int32Array(n * 2);
     First = new Uint8Array(n * 2);
     Opened = new Uint8Array(n * 2);
+    Closed = new Uint8Array(n * 2);
   }
   for (let c = 0; c < n; c++) {
     Cursor[c] = 0;
@@ -65,8 +69,10 @@ export function walkStripes(parts: readonly (LocationPart | undefined)[], n: num
     for (let c = 0; c < n; c++) {
       const r = parts[c]!.ranges;
       Opened[c] = 0;
+      Closed[c] = 0;
       while (Cursor[c] < r.length && r[Cursor[c]] === at) {
         if ((Cursor[c] & 1) === 0) Opened[c] = 1;
+        else Closed[c] = 1;
         Cursor[c]++;
       }
       const lit = (Cursor[c] & 1) === 1;
@@ -78,7 +84,7 @@ export function walkStripes(parts: readonly (LocationPart | undefined)[], n: num
     for (let c = 0; c < n; c++) {
       const slot = Lit[c] ? Math.min(rank++, max - 1) : -1;
       if (Slot[c] >= 0 && (slot !== Slot[c] || count !== Stripes[c])) {
-        emit(c, Start[c], at, Slot[c], Stripes[c], First[c]);
+        emit(c, Start[c], at, Slot[c], Stripes[c], First[c], Closed[c] === 1 && Lit[c] === 0 ? 1 : 0);
         Slot[c] = -1;
       }
       if (slot >= 0 && Slot[c] < 0) {

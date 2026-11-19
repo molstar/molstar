@@ -96,6 +96,11 @@ export interface PlaceContext {
   readonly bands: readonly ResolvedTrack[];
   readonly heights: readonly number[];
   /**
+   * Each band's padding, `[top, bottom]` a band in order (absent: none): its well is its height plus them, its band
+   * inset by them (`Strips.padT`, `padB`; _spec/README.md "Render", Tracks layout).
+   */
+  readonly pads?: readonly number[];
+  /**
    * Lays out the layers of a strip's bands (each in its box in the strip's frame) and records what each band used
    * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height. True when a
    * chip's letters drew its label in a pill (what a layout that places labels itself leaves out).
@@ -198,6 +203,7 @@ export interface SectionLayoutType<Kept = unknown> {
       readonly config: RenderConfig;
       readonly text: TextMetrics;
       readonly heights: readonly number[];
+      readonly pads?: readonly number[];
     },
   ): Viewport;
   /**

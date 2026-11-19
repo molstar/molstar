@@ -92,6 +92,47 @@ describe('CanvasBackend', () => {
     expect(log).toContain('rect(5, 5, 50, 20)');
   });
 
+  it('draws a squircle clip (a track’s well) through the core’s curve, as the SVG’s clip path; a box clip a rect', () => {
+    const { base, backend } = setup();
+    const l = new DrawLists();
+    const out = l.writer('data');
+    out.clip(5, 5, 60, 20, 6, Round.both);
+    out.rect(0, 0, 100, 100, RED);
+    out.unclip();
+    backend.draw(l, true);
+    const log = base.context.take();
+    // the clip's path: four corners, then the clip; no box
+    const at = log.indexOf('clip()');
+    expect(at).toBeGreaterThan(0);
+    expect(log.slice(0, at).filter((c) => c.startsWith('bezierCurveTo')).length).toBe(4);
+    expect(log).not.toContain('rect(5, 5, 60, 20)');
+    const svg = drawListsToSvg(l);
+    expect(svg).toMatch(/<clipPath id="[^"]*"><path d="M 11 5 L [^"]*C[^"]*"\/><\/clipPath>/);
+    // a clip with no radius stays a box in both
+    const l2 = new DrawLists();
+    l2.writer('data').clip(5, 5, 60, 20);
+    backend.draw(l2, true);
+    expect(base.context.take()).toContain('rect(5, 5, 60, 20)');
+    expect(drawListsToSvg(l2)).toContain('<clipPath id="c0"><rect x="5" y="5" width="60" height="20"/></clipPath>');
+  });
+
+  it('draws an emphasis squircle as the SVG does: an outline concentric, square where cut', () => {
+    const { overlay, backend } = setup();
+    const l = new DrawLists();
+    // a hover's outline round at its left end, cut at its right (the view's edge)
+    l.writer('hover').rect(10, 10, 30, 24, 0, RED, 1.5, 8.42, Round.left);
+    backend.draw(l, false);
+    expect(overlay.context.calls('bezierCurveTo').length).toBe(2);
+    expect(overlay.context.calls('stroke').length).toBe(1);
+    expect(
+      (
+        drawListsToSvg(l)
+          .match(/<path d="[^"]*"/)?.[0]
+          .match(/C/g) ?? []
+      ).length,
+    ).toBe(2);
+  });
+
   it('draws glyph runs a letter at a time, each in its own color or one for the run', () => {
     const { base, backend } = setup();
     const l = new DrawLists();

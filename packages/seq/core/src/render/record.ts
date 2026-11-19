@@ -50,6 +50,17 @@ function quote(s: string): string {
   return JSON.stringify(s);
 }
 
+/** A squircle's radius and its round ends (`left`, `right`, both unsaid) and cut edges (`cut-top`, `cut-bottom`). */
+function roundOf(radius: number, round: number): string {
+  if (!(radius > 0)) return '';
+  let s = ` squircle ${fmt(radius)}`;
+  if ((round & 3) === 1) s += ' left';
+  else if ((round & 3) === 2) s += ' right';
+  if (round & 4) s += ' cut-top';
+  if (round & 8) s += ' cut-bottom';
+  return s;
+}
+
 /** The draw lists as lines, pass by pass (every pass, or those named); an empty pass is its header alone. */
 export function recordDrawLists(lists: DrawLists, passes: readonly PassName[] = Passes): string {
   const lines: string[] = [`size ${fmt(lists.width)} ${fmt(lists.height)}`];
@@ -57,11 +68,7 @@ export function recordDrawLists(lists: DrawLists, passes: readonly PassName[] = 
     rect(l, i) {
       let s = `rect ${fmt(l.x[i])} ${fmt(l.y[i])} ${fmt(l.w[i])} ${fmt(l.h[i])} ${paint(l.fill[i])}`;
       if (l.stroke[i] !== NoColor) s += ` stroke ${colorHex(l.stroke[i])} ${fmt(l.strokeWidth[i])}`;
-      if (l.radius[i] > 0) {
-        s += ` squircle ${fmt(l.radius[i])}`;
-        if (l.round[i] === 1) s += ' left';
-        else if (l.round[i] === 2) s += ' right';
-      }
+      s += roundOf(l.radius[i], l.round[i]);
       lines.push(s);
     },
     path(l, i) {
@@ -106,7 +113,7 @@ export function recordDrawLists(lists: DrawLists, passes: readonly PassName[] = 
       );
     },
     clip(l, i) {
-      lines.push(`clip ${fmt(l.x[i])} ${fmt(l.y[i])} ${fmt(l.w[i])} ${fmt(l.h[i])}`);
+      lines.push(`clip ${fmt(l.x[i])} ${fmt(l.y[i])} ${fmt(l.w[i])} ${fmt(l.h[i])}${roundOf(l.radius[i], l.round[i])}`);
     },
     unclip() {
       lines.push('unclip');

@@ -427,8 +427,20 @@ export class CanvasBackend {
       clip: (l, i) => {
         const ctx = this._ctx;
         ctx.save();
-        ctx.beginPath();
-        ctx.rect(l.x[i], l.y[i], l.w[i], l.h[i]);
+        if (l.radius[i] > 0) {
+          // a squircle clip (a track's well): the core's curve, as the SVG's clip path
+          const s = this._scratch;
+          s.n = 0;
+          s.commandCount = 0;
+          s.pointCount = 0;
+          s.begin();
+          squirclePath(s, l.x[i], l.y[i], l.w[i], l.h[i], l.radius[i], l.round[i]);
+          s.end(NoColor);
+          this._tracePath(s, 0);
+        } else {
+          ctx.beginPath();
+          ctx.rect(l.x[i], l.y[i], l.w[i], l.h[i]);
+        }
         ctx.clip();
       },
       unclip: () => {

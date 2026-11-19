@@ -124,11 +124,18 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     const i = strips.add(ctx.axis, 0, 0, 0, ctx.axis.u0);
     let y = top;
     let bottom = top;
+    const pads = ctx.pads;
     for (let j = 0; j < ctx.bands.length; j++) {
       if (j) y += config.trackGap;
-      strips.bandY[i * strips.bands + j] = y;
-      strips.bandH[i * strips.bands + j] = ctx.heights[j];
-      y += ctx.heights[j];
+      const k = i * strips.bands + j;
+      // a band inside its well: its padding above and below (_spec/README.md "Render", Tracks layout)
+      const pt = pads ? pads[2 * j] : 0;
+      const pb = pads ? pads[2 * j + 1] : 0;
+      strips.padT[k] = pt;
+      strips.padB[k] = pb;
+      strips.bandY[k] = y + pt;
+      strips.bandH[k] = ctx.heights[j];
+      y += pt + ctx.heights[j] + pb;
       bottom = y;
     }
     strips.top[i] = top;

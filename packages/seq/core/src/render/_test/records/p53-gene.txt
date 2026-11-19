@@ -1,12 +1,12 @@
 size 640 144
 pass background
 rect 0 0 640 144 #f1efeaff
-rect 128 8 504 20 #e9e6e0ff
-rect 128 32 504 36 #e9e6e0ff
-rect 128 76 504 20 #e9e6e0ff
-rect 128 100 504 36 #e9e6e0ff
+rect 128 8 504 20 #e9e6e0ff squircle 6.67
+rect 128 32 504 36 #e9e6e0ff squircle 8
+rect 128 76 504 20 #e9e6e0ff squircle 6.67
+rect 128 100 504 36 #e9e6e0ff squircle 8
 pass data
-clip 128 8 504 20
+clip 128 8 504 20 squircle 6.67
 rect 128 8 50 20 #efe8b8ff
 rect 178 8 51 20 #efe8b8ff
 rect 229 8 50 20 #efe8b8ff
@@ -19,10 +19,10 @@ rect 531 8 51 20 #cfe0f5ff
 rect 582 8 50 20 #cfe0f5ff
 glyphs "14px mono" 22.9 per P 153 #2d271eff, P 203.5 #2d271eff, P 254 #2d271eff, G 304.5 #2d271eff, T 355 #2d271eff, R 405 #2d271eff, V 455.5 #2d271eff, R 506 #2d271eff, A 556.5 #2d271eff, M 607 #2d271eff
 unclip
-clip 128 32 504 36
+clip 128 32 504 36 squircle 8
 rect 128 45 504 10 #18a67fff
 unclip
-clip 128 76 504 20
+clip 128 76 504 20 squircle 6.67
 rect 626 76 6 20 #cdebd6ff
 rect 621 76 5 20 #f6e2b6ff
 rect 615 76 6 20 #f6e2b6ff
@@ -114,7 +114,7 @@ rect 139 76 6 20 #f6e2b6ff
 rect 134 76 5 20 #f5cfcfff
 rect 128 76 6 20 #cdebd6ff
 unclip
-clip 128 100 504 36
+clip 128 100 504 36 squircle 8
 rect 128 113 67 10 #18a67fff
 rect 531 113 101 10 #18a67fff
 unclip

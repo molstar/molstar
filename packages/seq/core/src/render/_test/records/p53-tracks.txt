@@ -1,11 +1,11 @@
 size 640 116
 pass background
 rect 0 0 640 116 #f1efeaff
-rect 128 8 504 20 #e9e6e0ff
-rect 128 32 504 36 #e9e6e0ff
-rect 128 72 504 32 #e9e6e0ff
+rect 128 8 504 20 #e9e6e0ff squircle 6.67
+rect 128 32 504 36 #e9e6e0ff squircle 8
+rect 128 72 504 32 #e9e6e0ff squircle 8
 pass data
-clip 128 8 504 20
+clip 128 8 504 20 squircle 6.67
 rect 128 8 18 20 #efe8b8ff
 rect 146 8 18 20 #cfe0f5ff
 rect 164 8 18 20 #efe8b8ff
@@ -36,11 +36,11 @@ rect 596 8 18 20 #cfe0f5ff
 rect 614 8 18 20 #efe8b8ff
 glyphs "14px mono" 22.9 per P 137 #2d271eff, A 155 #2d271eff, P 173 #2d271eff, A 191 #2d271eff, P 209 #2d271eff, S 227 #2d271eff, W 245 #2d271eff, P 263 #2d271eff, L 281 #2d271eff, S 299 #2d271eff, S 317 #2d271eff, S 335 #2d271eff, V 353 #2d271eff, P 371 #2d271eff, S 389 #2d271eff, Q 407 #2d271eff, K 425 #2d271eff, T 443 #2d271eff, Y 461 #2d271eff, Q 479 #2d271eff, G 497 #2d271eff, S 515 #2d271eff, Y 533 #2d271eff, G 551 #2d271eff, F 569 #2d271eff, R 587 #2d271eff, L 605 #2d271eff, G 623 #2d271eff
 unclip
-clip 128 32 504 36
+clip 128 32 504 36 squircle 8
 rect 128 33 180 10 #e7a717ff squircle 3.33 right
 rect 290 45 342 10 #18a67fff squircle 3.33 left
 unclip
-clip 128 72 504 32
+clip 128 72 504 32 squircle 8
 rect 128 81 18 23 #5b7c99ff
 rect 146 87 18 17 #5b7c99ff
 rect 164 87.67 18 16.33 #5b7c99ff
@@ -74,7 +74,7 @@ pass window
 pass highlight
 pass selection
 pass hover
-rect 234.25 6.25 21.5 23.5 none stroke #2d271eff 1.5
+rect 234.25 6.25 21.5 23.5 none stroke #2d271eff 1.5 squircle 8.42
 pass cursor
 pass labels
 text "p53" 8 22.2 start "12px sans" #6b655cff width 20.02 max 112

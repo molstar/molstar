@@ -172,4 +172,25 @@ describe('the small layers’ stories, headless', () => {
       expect([...dashes].sort()).toEqual([2, 6]);
     }
   });
+  it('Tracks in their wells: the padding inside each well, the wells squircles their data is clipped to', async () => {
+    const v = await open('wells');
+    const [letters, domains, values] = tracks(v, 0);
+    expect(letters.box.y - letters.well.y).toBe(8);
+    expect(letters.well.y + letters.well.height).toBe(letters.box.y + letters.box.height);
+    expect(domains.box.y - domains.well.y).toBe(6);
+    expect(domains.well.height - domains.box.height).toBe(12);
+    expect(values.well).toEqual(values.box);
+    // the wells and their clips squircles; nothing hit in the padding, the data hit below it
+    const background = recordDrawLists(v.frame!.lists, ['background']).split('\n').slice(3, 6);
+    expect(background.every((l) => / squircle [\d.]+$/.test(l))).toBe(true);
+    const clips = recordDrawLists(v.frame!.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('clip '));
+    expect(clips.length).toBe(3);
+    expect(clips.every((l) => / squircle [\d.]+$/.test(l))).toBe(true);
+    expect(hitView(v.frame!.layout, letters.box.x + 20, letters.well.y + 4)).toBeUndefined();
+    expect(hitView(v.frame!.layout, letters.box.x + 20, letters.box.y + 4)?.position).toBeDefined();
+    const svg = await svgOf(v);
+    expect(svg.svg.match(/<clipPath id="[^"]*"><path /g)?.length).toBe(3);
+  });
 });

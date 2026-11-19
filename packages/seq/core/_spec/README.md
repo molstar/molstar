@@ -29,8 +29,9 @@ is added in the change that builds what it describes.
   its `across`, the kinds `alignment` and `tree`, a section `of` an alignment, the layer types `rows` and `logo` and
   their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
   `columns`, `logo_scale`, `correction`, `gaps`, and a source's transform `records`, `letters`, `system`, `base`,
-  `ends`, `types`, `attribution`, `licence`, with `fields` read, and the `numbering` kind under a sequence). A spec in
-  an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
+  `ends`, `types`, `attribution`, `licence`, with `fields` read, and the `numbering` kind under a sequence; and a
+  track's `padding`, an addition). A spec in an earlier `0.x` reads as one in this one, and is reported where it no
+  longer fits.
 
 ## Language
 
@@ -49,7 +50,9 @@ checks it cannot express.
   a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`);
   under a `sequence`: `numbering` (Numberings, below); under `views`: `view`, then `section`, `block` (a piece of a
   section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row
-  collapsed; its layers keep their own), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is
+  collapsed; its layers keep their own; `padding`, px inside its well around its data, vertical only: a number top and
+  bottom, or `{ top, bottom }` one or both, each non-negative, a `repr` issue otherwise; absent, the render config's
+  `trackPadding`: Render, Tracks layout), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is
   a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own
   (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since
   `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`,
@@ -1068,6 +1071,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `inset`                                                        | 8                                                                                                   | the page's inset around everything                                                                                                                                              |
 | `labelWidth`, `labelGap`                                       | 112, 8                                                                                              | one label column a view, so the data columns align                                                                                                                              |
 | `trackGap`, `sectionGap`                                       | 4, 8                                                                                                | gaps between a section's tracks and between sections                                                                                                                            |
+| `trackPadding`                                                 | top 0, bottom 0                                                                                     | a track's padding inside its well when its spec gives none (a host's default); never left or right: the horizontal is the axis                                                  |
+| `trackShape`                                                   | `squircle`                                                                                          | a track's well is a surface, so a squircle, its data clipped to it (the author's look); `square`, a box                                                                         |
 | `heights`                                                      | letters 20, ranges 36, values 32, ruler 22, secondary 16, variants 32, frame 16, pairs 64, grid 240 | a track's height when the spec gives none: the largest of its layers' types'                                                                                                    |
 | `laneHeight`, `laneGap`                                        | 12, 2                                                                                               | a lane of ranges and the gap within it                                                                                                                                          |
 | `density`                                                      | letters 10, cells 3, dots 1, bars 1/64                                                              | each density step's lowest pixels a position (below)                                                                                                                            |
@@ -1172,13 +1177,15 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
   of the emphasis, under the highlights: a window is no data emphasis, and a highlight channel stays above it. It is the
   layouts' own (their chrome): no layer draws there. The recorder writes an empty pass as its header.
 - **Primitives** as structs of arrays in growable typed arrays kept frame to frame (`reset` zeroes counts): `rect` (x,
-  y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round), `path` (move, line, cubic,
-  close in shared arrays; fill, stroke, dash), `glyphs` (a run of letters in one font, an x a letter at its center, one
-  baseline, a color a letter or one; a **placed** run gives each letter its own y, angle and vertical scale: letters
-  along a ring, a logo's stacked letters, a row's letters; one form for the three, so one code a backend), `text` (an
-  interned string, x, y, anchor, font, color, its measured width and a max width: faded past it, never ellipsized),
-  `image` (RGBA bytes the layer owns), `clip` and `unclip`. A pass's `ops` keep the order its primitives were added in.
-  Colors are `0xRRGGBBAA`; `NoColor` (0) is none.
+  y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round, `Round`; `cutTop` and
+  `cutBottom` square a round end's top or bottom corner: a grid's cell inside its plot, a row cut by its band), `path`
+  (move, line, cubic, close in shared arrays; fill, stroke, dash), `glyphs` (a run of letters in one font, an x a letter
+  at its center, one baseline, a color a letter or one; a **placed** run gives each letter its own y, angle and vertical
+  scale: letters along a ring, a logo's stacked letters, a row's letters; one form for the three, so one code a
+  backend), `text` (an interned string, x, y, anchor, font, color, its measured width and a max width: faded past it,
+  never ellipsized), `image` (RGBA bytes the layer owns), `clip` (a box, or a squircle with a radius and round ends: a
+  track's well) and `unclip`. A pass's `ops` keep the order its primitives were added in. Colors are `0xRRGGBBAA`;
+  `NoColor` (0) is none.
 - **Bounded by the screen**: at most one primitive a device column a lane, or one a cell when cells are a device pixel
   or wider; tracks below the page are not laid out.
 - **Nothing allocated once warm on the draw and emphasis paths** (a full draw of a laid-out view, a hover, a selection
@@ -1222,20 +1229,22 @@ strip's.
 - **The order of emphasis** is fixed, below to above: data, highlight channels, selection, hover, cursor; a higher one
   never hides a lower one entirely (tints are translucent, outlines are thin lines that never touch).
 - `highlights`: the channels in order, each a Location, a color and a `style` (`tint`, the default; `band`; `outline`),
-  on every system its Location has (the `highlight` pass), square. **Overlapping channels stay apart** (ux-foundations
-  section 6): a position lit by one channel takes the whole band; by several, the band splits into equal stripes, one a
-  channel present there, in channel order, at most `emphasis.highlightStripes`, the channels past the last sharing it (a
-  ring's band radially). The style draws in the channel's stripe: `tint` fills it at `emphasis.highlightTint`, `band` a
-  bar `emphasis.highlightBand` px along its foot in the color as given. A fill's run is one rect while its slot and the
-  stripe count stay: it is cut only where the set of channels lighting changes (`highlight-stripes.ts`, a merge of the
-  channels' sorted boundaries: nothing allocated). **An `outline` takes no stripe** (it has no fill, so it does not
-  count among the channels lighting): one stroke (`outline.selection`) over the channel's own ranges on the whole band,
-  above the fills, never fragmented by another channel's boundary. Stripe edges and the bar are on device pixels, one
-  edge between two stripes (no overlap, no seam). A range wholly in a hidden stretch lights its break once a channel, at
-  its first run. **The grid** stripes its highlighted rows the same way across the plot (a stripe a channel, in channel
-  order; `band` a bar along a stripe's left edge, `outline` one stroke over the row); the columns are the strip's, drawn
-  with the tracks'. **The navigators' ticks stay one tick a channel** (a tick is a position mark, no band to split). Why
-  stripes: stacked tints of two colors blend into a third that names neither.
+  on every system its Location has (the `highlight` pass), each style a squircle (Shapes: round where a channel's range
+  really ends, square where a stripe change cuts its run; a `band` bar, below the minimum, square). **Overlapping
+  channels stay apart** (ux-foundations section 6): a position lit by one channel takes the whole band; by several, the
+  band splits into equal stripes, one a channel present there, in channel order, at most `emphasis.highlightStripes`,
+  the channels past the last sharing it (a ring's band radially). The style draws in the channel's stripe: `tint` fills
+  it at `emphasis.highlightTint`, `band` a bar `emphasis.highlightBand` px along its foot in the color as given. A
+  fill's run is one rect while its slot and the stripe count stay: it is cut only where the set of channels lighting
+  changes (`highlight-stripes.ts`, a merge of the channels' sorted boundaries: nothing allocated). **An `outline` takes
+  no stripe** (it has no fill, so it does not count among the channels lighting): one stroke (`outline.selection`) over
+  the channel's own ranges on the whole band, above the fills, never fragmented by another channel's boundary. Stripe
+  edges and the bar are on device pixels, one edge between two stripes (no overlap, no seam). A range wholly in a hidden
+  stretch lights its break once a channel, at its first run. **The grid** stripes its highlighted rows the same way
+  across the plot (a stripe a channel, in channel order; `band` a bar along a stripe's left edge, `outline` one stroke
+  over the row); the columns are the strip's, drawn with the tracks'. **The navigators' ticks stay one tick a channel**
+  (a tick is a position mark, no band to split). Why stripes: stacked tints of two colors blend into a third that names
+  neither.
 - `selection` (a Location): a soft accent tint at `emphasis.selectionTint` and one thin outline inside it
   (`outline.selection`, 1 px, the accent at `emphasis.selectionOutline`, 0.6), the tints first, then the outlines;
   squircle ends where a range really ends, square where the view or a piece cuts it (the frame rule) (the `selection`
@@ -1246,10 +1255,21 @@ strip's.
   marks), an outline `emphasis.hoverOffset` (1 px) outside the mark, concentric, so it never touches the selection's
   outline under it, in the hover ink (`seq-hover`: dark on light, light on dark); `projected.hover` is drawn the same
   way at `emphasis.projected` on every section but `projected.hoverSection` (the hover's own section's address), so a
-  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass).
+  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass). Every hover a squircle
+  (Shapes): a cell's (letters, logo, values) by the cell's size, square on a side the view cuts and below the minimum,
+  its radius the cell's plus the offset; a letter's codon parts round on the element's outer sides alone; a chip's
+  concentric with its pill; the projected hover round where its range really ends; a secondary structure's mark (its
+  radius plus the offset, its round ends: a helix round, a strand or a turn square), a band's (square at the view's
+  edge), a rows cell's (square where the view or its band cuts it); a grid's hovered or selected cell by its size, its
+  crosshair's column and row square (they end at the plot: a cut).
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
-  `msui-text`), never the accent (the `cursor` pass). Whether it is shown is the caller's (a viewer shows it once the
-  keyboard moved it).
+  `msui-text`), never the accent (the `cursor` pass); a squircle by the cell over the band, inside it by half its width
+  (concentric), square on a side the view cuts. Whether it is shown is the caller's (a viewer shows it once the keyboard
+  moved it).
+- **A box a track** (`selectionShape: 'tracks'`) in a layout that fills its bands: the highlights' and the selection's
+  tints drawn inside the track's well clip, so they take its shape; then, after the clip, the outlines (the selection's,
+  an `outline`-style highlight's; the hover's in its own pass): an outline around a mark is never clipped, so a cut end
+  keeps its square corners. Under the data (`under`) the same, in the background pass, the clip in the page's frame.
 - **The tints' place** (`emphasis.selectionPlace`): `over` (the default: the highlights' tints over the data in the
   `highlight` pass, the selection's above them in the `selection` pass with its outline; a selection or a highlight
   redraws the emphasis alone) or `under` (the highlights' tints and then the selection's in the `background` pass, under
@@ -1266,9 +1286,20 @@ strip's.
 
 - Continuous data (cells, value bars) is square; discrete marks (ranges, at every step, a merged run at `bars` too) are
   squircles, radius a third of the height, capped, square below the minimum, so a mark has the shape its emphasis
-  outlines. A merged run is round only where its first and last items really end. An end cut by the view, a piece of the
-  axis or a piece of the item's own image (an exon) is square; a mark cut at both ends is square. The squircle is one
-  curve, `squirclePath` (each corner a cubic on |x|⁴ + |y|⁴ = 1), that every backend draws. Outlines are concentric.
+  outlines. **Every emphasis is a squircle** by the same rule (Emphasis): the hover, the projected hover, the selection,
+  the highlights in each style, a cell's and a chip's hover, the keyboard cursor. **A track's well is a surface, so a
+  squircle** (`render/wells.ts`, `trackShape`): the rule over the well's height, round at both ends (square below the
+  minimum, or `square`), filled with `seq-track` in the background (a stack's later rows in their first strip's data
+  pass), and each track's data is clipped to it with the same path, one clip a track and strip (a block's strip in a row
+  square where it stops short of the well's ends); the data inside keeps its own shape (cells square: a letters or grid
+  track loses a sliver at its corners). **A grid over blocks** has one well, the plot's (its cells together, grown by
+  its padding): each cell's clip is square on an edge inside the plot (`cutTop`, `cutBottom`, and a side short of the
+  plot's ends), so only the plot's outer corners round; the top row's and the bottom row's clips reach into its padding.
+  A ring's well is its ground (a sector, the band grown radially by its padding), not a squircle; text draws no well;
+  both clip their data to the well's box (the band grown by its padding). A merged run is round only where its first and
+  last items really end. An end cut by the view, a piece of the axis or a piece of the item's own image (an exon) is
+  square; a mark cut at both ends is square. The squircle is one curve, `squirclePath` (each corner a cubic on |x|⁴ +
+  |y|⁴ = 1), that every backend draws. Outlines are concentric.
 
 ### Layer types
 
@@ -1740,7 +1771,14 @@ numbers): a window move allocates nothing once warm.
 - **Shown nodes** (`nodes.holdShown`, true): the layout lists the nodes it shows (`ViewLayout.shown`: the data and the
   path systems of each laid-out layer, through `overlay.holds`), for its owner to hold in the store; with `false`, none.
   Why: a node stays while it is shown, not only while the region that brought it is cached.
-- Cell edges snap to the device grid (`snap`). One label column for every track of a view.
+- Cell edges snap to the device grid (`snap`). One label column for every track of a view; a track's label is centred on
+  its well (its padding with it), in tracks and on a text's first line.
+- **A track's padding** (its `padding`, else `trackPadding`): px inside its well above and below its data, never left or
+  right. The well (`TrackLayout.well`) is the track's height plus its padding; its data's band (`TrackLayout.box`, the
+  strips' `bandY`, `bandH`: what every layer lays out, hits and emphasizes in) is inset by it, and `Strips.padT`, `padB`
+  say by how much a band (`PlaceContext.pads`, set by each layout). A point in the padding is in no band: no item. Rows
+  and blocks stack wells with `trackGap` between them; text lines hold them (a collapsed band drops its padding too); a
+  ring's padding is radial, scaled with its rings; a grid's plot is inset by its bands' largest padding.
 
 ### The grid layout
 
@@ -2071,14 +2109,14 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 
 - **Recording** (`recordDrawLists`): a line a primitive, pass by pass, numbers to two decimals, colors `#rrggbbaa`
   (`none` for no color): the committed records' format.
-- **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
-  images as `<image>`s (`image-rendering="optimizeSpeed"`: crisp; an attribute, since resvg ignores a style it cannot
-  read) of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as gradient masks,
-  metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character XML forbids (a
-  control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one, so a glyph run
-  stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is written only as
-  a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
-  (`_test/svg-escaping.test.ts`).
+- **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths (a squircle clip the core's path,
+  as the Canvas2D backend traces it), squircles as the core's path, images as `<image>`s
+  (`image-rendering="optimizeSpeed"`: crisp; an attribute, since resvg ignores a style it cannot read) of a PNG data URL
+  (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as gradient masks, metadata as `data-*`
+  attributes. Every text and attribute from a spec or data is escaped; a character XML forbids (a control but tab,
+  newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one, so a glyph run stays aligned
+  with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is written only as a plain name.
+  Held by hostile labels, ids, titles, fonts and metadata parsed back as XML (`_test/svg-escaping.test.ts`).
 - **Accessibility** (`accessibility.ts`, `accessibleOf`; `SvgOptions.accessible`): an export's root is `role="figure"`,
   `aria-labelledby` its `<title>` (the spec's `title`, else `Sequence view`) and `<desc>` (the sections, their systems
   and track counts, and how many items are not named); over the picture a group `data-seq-accessible` holds a

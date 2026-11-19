@@ -229,9 +229,19 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
     },
     clip(l, i) {
       const id = `${prefix}c${ids++}`;
-      defs.push(
-        `<clipPath id="${id}"><rect x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}"/></clipPath>`,
-      );
+      if (l.radius[i] > 0) {
+        // a squircle clip (a track's well): the core's curve as the clip's path
+        scratch.n = 0;
+        scratch.commandCount = 0;
+        scratch.pointCount = 0;
+        scratch.begin();
+        squirclePath(scratch, l.x[i], l.y[i], l.w[i], l.h[i], l.radius[i], l.round[i]);
+        scratch.end(NoColor);
+        defs.push(`<clipPath id="${id}"><path d="${pathData(scratch, 0)}"/></clipPath>`);
+      } else
+        defs.push(
+          `<clipPath id="${id}"><rect x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}"/></clipPath>`,
+        );
       body.push(`<g clip-path="url(#${id})">`);
     },
     unclip() {

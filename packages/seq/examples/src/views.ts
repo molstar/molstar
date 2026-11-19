@@ -266,6 +266,14 @@ export const LayerViews: readonly ExampleView[] = [
       'The domains in each line style (the dash and the wave run from each domain’s start, so they move with it as you pan) and with arrowheads on their ends.',
     build: layers.rangesLines,
   },
+  {
+    dataset: 'p53',
+    id: 'wells',
+    title: 'Tracks in their wells',
+    summary:
+      'Each track in its well, a squircle its data is clipped to; the letters padded on top, the domains top and bottom, the conservation not at all: the data sits inside the padding, the well’s top stays where it was.',
+    build: layers.wells,
+  },
 ];
 
 /**

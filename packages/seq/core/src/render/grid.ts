@@ -537,7 +537,10 @@ function span(a: AxisTransform, s: number, e: number, o: number): boolean {
 /** A rect's x, y, width and height, set before `rect`. */
 const R = new Float64Array(4);
 
-/** The rect `R` holds in `Ink`, square. */
+/** The rect's squircle radius and round ends (`rounded` sets them; 0: square, the crosshair's rows and columns). */
+const RR = new Float64Array(2);
+
+/** The rect `R` holds in `Ink`, its corners `RR`'s. */
 function rect(out: PassWriter) {
   const g = out.args;
   g[0] = R[0];
@@ -547,9 +550,30 @@ function rect(out: PassWriter) {
   g[4] = Ink[0];
   g[5] = Ink[1];
   g[6] = Ink[2];
-  g[7] = 0;
-  g[8] = 0;
+  g[7] = RR[0];
+  g[8] = RR[1];
   out.rectArgs();
+}
+
+/**
+ * `R` as a squircle into `RR` (every emphasis a squircle: a cell's outline, a selected rect): the squircle rule over
+ * its size, square below the minimum, a side past the plot (x's data box, the band's top or bottom) cut square.
+ */
+function rounded(lay: GridLay) {
+  const c = lay.config!;
+  const a = lay.axis!;
+  const b = lay.box;
+  const w = R[2];
+  const h = R[3];
+  RR[0] = 0;
+  RR[1] = 0;
+  if (w < c.squircleMin || h < c.squircleMin) return;
+  let round = (R[0] >= a.x0 - 0.01 ? 1 : 0) | (R[0] + w <= a.x0 + a.width + 0.01 ? 2 : 0);
+  if (R[1] < b.y - 0.01) round |= 4;
+  if (R[1] + h > b.y + b.height + 0.01) round |= 8;
+  if ((round & 3) === 0) return;
+  RR[0] = Math.min(h * c.squircleRatio, c.squircleMax, w / 2, h / 2);
+  RR[1] = round;
 }
 
 /**
@@ -687,7 +711,10 @@ function paintCell(lay: GridLay, out: PassWriter) {
   if (!ay.cell(j)) return;
   R[1] = Math.min(ay.sx0, ay.sx1);
   R[3] = Math.abs(ay.sx1 - ay.sx0);
+  rounded(lay);
   rect(out);
+  RR[0] = 0;
+  RR[1] = 0;
 }
 
 /** A column down the plot at x position `Pos[0]` in `Ink` (the crosshair's x half, on the hover's own section). */
@@ -717,7 +744,10 @@ function paintRects(lay: GridLay, out: PassWriter, loc: Location) {
         R[1] = Box4[2];
         R[2] = Box4[1] - Box4[0];
         R[3] = Box4[3] - Box4[2];
+        rounded(lay);
         rect(out);
+        RR[0] = 0;
+        RR[1] = 0;
       }
   }
 }
