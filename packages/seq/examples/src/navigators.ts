@@ -155,11 +155,16 @@ export function geneRegionIdeogram(): Node {
  */
 function chr17Data(): readonly Node[] {
   const b = createSeqSpec();
-  const source = b.data.source('chr17-source', { format: 'seq', value: seqToValue(chr17Seq()) as never });
+  const source = chr17BandsSource(b);
   const chr17 = b.data.sequence('chr17', { alphabet: 'dna', source, name: 'chr17' });
   b.data.map('region-on-chr17', { from: RegionSequence, to: chr17, method: 'offset', by: RegionOnChr17 });
   b.data.ranges('chr17-bands', { target: chr17, source });
   return b.build().children?.find((c) => c.kind === 'data')?.children ?? [];
+}
+
+/** chr17's bands as an inline `seq` source (`chr17-source`, its system `chr17`): for any spec showing chr17. */
+export function chr17BandsSource(b: ReturnType<typeof createSeqSpec>) {
+  return b.data.source('chr17-source', { format: 'seq', value: seqToValue(chr17Seq()) as never });
 }
 
 /** The level chr17's bands are also served at: a tile of it (1,024 bins) covers the chromosome in two. */

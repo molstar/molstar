@@ -20,6 +20,7 @@ export const Figures: Readonly<Record<string, Where>> = {
   tracks: { title: 'Examples/p53/Tracks', export: 'Tracks' },
   'protein-on-gene': { title: 'Examples/p53/Protein on its gene', export: 'ProteinOnItsGene' },
   'gene-by-region': { title: 'Examples/p53/Gene by region', export: 'GeneByRegion' },
+  chromosome: { title: 'Examples/p53/Chromosome', export: 'Chromosome' },
 };
 
 /** The p53 views whose point is a feature: the Features stories that show them. */
