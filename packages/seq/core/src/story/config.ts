@@ -33,8 +33,6 @@ export interface StoryConfig {
   readonly color: { readonly space: 'oklab' | 'srgb' };
   /** When a cut switches, a fraction of its channel's window (0.5). */
   readonly cut: { readonly at: number };
-  /** Every channel a cut at the end: `platform` follows the platform's setting (the viewer reads it), or always/never. */
-  readonly reducedMotion: 'platform' | 'always' | 'never';
   /** What a patch step applies over when it names no start: the spec (`spec`). */
   readonly stepStart: 'spec';
   /** How the encoder stores a step: a patch over the spec (`patch`), a full state (`full`), or the `smaller`. */
@@ -49,7 +47,6 @@ export const DefaultStoryConfig: StoryConfig = {
   view: { path: 'auto' },
   color: { space: 'oklab' },
   cut: { at: 0.5 },
-  reducedMotion: 'platform',
   stepStart: 'spec',
   store: 'patch',
   maxChain: 8,

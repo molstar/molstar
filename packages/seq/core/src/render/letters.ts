@@ -634,6 +634,8 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
   const y = dots ? box.y + (box.height - tick) / 2 : box.y;
   const h = dots ? tick : box.height;
   const px = 1 / lay.axis.dpr;
+  // a letter cell's hairline (`seq-cell-edge`: dark only, none in light), so dim dark cells read apart from the page
+  const edge = lay.step === 'letters' ? tokens.colors['seq-cell-edge'] : NoColor;
   const g = out.args;
   for (let j = 0; j < lay.n; j++) {
     g[0] = lay.x0[j];
@@ -646,6 +648,11 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
     g[7] = 0;
     g[8] = 0;
     out.rectArgs();
+    if (edge !== NoColor) {
+      g[5] = edge;
+      g[6] = px;
+      cellEdge(out);
+    }
   }
   if (lay.conflicts.length) drawConflicts(lay, out);
   if (lay.step !== 'letters' || !(lay.fontSize > 0) || !lay.n) return;
@@ -662,6 +669,24 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
     out.letterArgs(lay.code[j]);
   }
   out.endGlyphs();
+}
+
+/**
+ * A letter cell's hairline (`seq-cell-edge`) over the cell `out.args` holds (x, y, w, h; its color in `[5]`, a device
+ * pixel in `[6]`: read from the array, a number passed to a call that is not inlined is boxed): drawn inside the cell,
+ * a stroke a device pixel wide on the rect inset by half of one, so it covers whole device pixels of its own cell and a
+ * neighbour's fill never paints over it (a stroke on the edge itself straddles two pixels). Shared with the rows layer.
+ */
+export function cellEdge(out: PassWriter) {
+  const g = out.args;
+  const px = g[6];
+  if (g[2] <= 2 * px || g[3] <= 2 * px) return;
+  g[0] += px / 2;
+  g[1] += px / 2;
+  g[2] -= px;
+  g[3] -= px;
+  g[4] = NoColor;
+  out.rectArgs();
 }
 
 /** A one-to-one path's gap marks (a thin mark across the middle of an empty cell) and carets (a letter with no position). */

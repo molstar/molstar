@@ -19,7 +19,17 @@ import { addDomains, conservation, P53, seeded } from './data.js';
 export const title = 'p53 themes';
 
 /** The letters' schemes that fit a protein without column measures, in the picker's order. */
-export const LetterSchemes = ['classes', 'zappo', 'taylor', 'hydrophobicity', 'helix', 'strand', 'turn', 'buried'];
+export const LetterSchemes = [
+  'classes',
+  'classes-safe',
+  'zappo',
+  'taylor',
+  'hydrophobicity',
+  'helix',
+  'strand',
+  'turn',
+  'buried',
+];
 
 /** A per-residue confidence in [20, 98], smooth (a stand-in for a model's pLDDT). */
 export function confidence(): Float32Array {

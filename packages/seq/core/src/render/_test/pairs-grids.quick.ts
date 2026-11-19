@@ -34,11 +34,12 @@ const at = (start: number, end: number): FrameInput => ({
 
 /**
  * Bytes a hit may allocate: no hit object (one is over 100 B). A layer's hit reads its point from an array and measures
- * 0 at a cell (the test's array read into it); a whole `hitView` measures the two numbers the test's call boxes (32 B)
- * and, to a strip's layer, the two its call to the placement's `at(x, y)` boxes (32 B: the same at a fixed point).
+ * 0 at a cell (the test's array read into it); a whole `hitView` measures the two numbers the test's own call boxes
+ * (32 B) and nothing past them: the placement's `at` reads the page point from an array too (`Placement.at`).
  */
 const HitBound = 32;
-const PathBound = 2 * HitBound;
+/** A grid cell's `hitView`: the test's own call, nothing beyond it. */
+const GridPathBound = HitBound;
 
 /** The point a layer's hit reads (`LayerType.hit`). */
 const At = new Float64Array(2);
@@ -101,7 +102,7 @@ describe('pairs and grids draw and hover with nothing allocated once warm', () =
       const pt = new PlacePoint();
       const local = new Float64Array(2 * m);
       for (let k = 0; k < m; k++) {
-        expect(place.at(flat[2 * k], flat[2 * k + 1], pt)).toBe(true);
+        expect(place.at([flat[2 * k], flat[2 * k + 1]], pt)).toBe(true);
         local[2 * k] = pt.x;
         local[2 * k + 1] = pt.y;
       }
@@ -124,7 +125,7 @@ describe('pairs and grids draw and hover with nothing allocated once warm', () =
         {},
       );
       console.info(`grid hitView (${name}): ${path.r.bytesPerStep.toFixed(0)} bytes a hit (${path.r.note})`);
-      expect(path.r.bytesPerStep, path.r.note).toBeLessThanOrEqual(PathBound);
+      expect(path.r.bytesPerStep, path.r.note).toBeLessThanOrEqual(GridPathBound);
     });
 
   it('4,096 arcs: draw, a hover lighting the arc, a hit on the curve', async ({ task }) => {

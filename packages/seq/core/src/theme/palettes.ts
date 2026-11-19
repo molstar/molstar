@@ -5,7 +5,17 @@
  */
 
 import { Color } from '@molstar/core/util/color/color';
-import { ColorLists } from '@molstar/core/util/color/lists';
+import {
+  ColorListBlues,
+  ColorListCategory10,
+  ColorListCividis,
+  ColorListMagma,
+  ColorListOkabeIto,
+  ColorListRedBlue,
+  ColorListTableau10,
+  ColorListViridis,
+} from '@molstar/core/util/color/lists';
+import type { ColorList } from '@molstar/core/util/color/color';
 import {
   makeValuePaletteFunction,
   type ValuePaletteColor,
@@ -13,14 +23,15 @@ import {
   type ValuePaletteSpec,
   type ValuePaletteSpecDefaults,
   valuePalettePropsFromSpec,
-} from '@molstar/core/util/color/value-palette';
+} from '@molstar/core/util/color/value-palette-eval';
 import { fromRgb, resolveColor, type TokenTable, toRgb } from './colors.js';
 import { isThemeNode, type PaletteKind, param, type ScaleParams, type ThemeNode } from './forms.js';
 
 // Palettes (_spec/README.md "Themes", Palettes and scales): spelled in this language's words, evaluated by Mol*'s value
-// palettes (`@molstar/core/util/color/value-palette`), so a value has one color in MolViewSpec and here. A continuous
-// palette is interpolated in Oklab (fixed) into a lookup table of 256 colors, rebuilt only when the tokens' version or
-// the domain changes; a categorical value's color is memoized per value.
+// palettes (`@molstar/core/util/color/value-palette-eval`, the evaluation without Mol*'s named lists), so a value has
+// one color in MolViewSpec and here. A continuous palette is interpolated in Oklab (fixed) into a lookup table of 256
+// colors, rebuilt only when the tokens' version or the domain changes; a categorical value's color is memoized per
+// value.
 
 /** The lookup table's size (fixed: indistinguishable steps at any width). */
 export const LutSize = 256;
@@ -34,25 +45,26 @@ export const TokenLists: Readonly<Record<string, readonly string[]>> = {
 
 /**
  * Mol*'s lists this language names (the ones its schemes use), by this language's name: no other list is offered, so a
- * spec reads the same wherever Seq* runs, and a list added to Mol* is not one here until it is named.
+ * spec reads the same wherever Seq* runs, and a list added to Mol* is not one here until it is named. Each imported by
+ * name: the bundle ships these lists and none of Mol*'s others.
  */
-export const NamedLists = {
-  viridis: 'viridis',
-  cividis: 'cividis',
-  magma: 'magma',
-  blues: 'blues',
-  'rd-bu': 'red-blue',
-  'okabe-ito': 'okabe-ito',
-  tableau10: 'tableau-10',
-  category10: 'category-10',
-} as const satisfies Record<string, keyof typeof ColorLists>;
+export const NamedLists: Readonly<Record<string, ColorList>> = {
+  viridis: ColorListViridis,
+  cividis: ColorListCividis,
+  magma: ColorListMagma,
+  blues: ColorListBlues,
+  'rd-bu': ColorListRedBlue,
+  'okabe-ito': ColorListOkabeIto,
+  tableau10: ColorListTableau10,
+  category10: ColorListCategory10,
+};
 
 /** A named list's colors (RGBA) in a token table; undefined for a name that is no list. */
 export function namedList(name: string, tokens: TokenTable): number[] | undefined {
   const t = TokenLists[name];
   if (t) return t.map((n) => tokens.colors[n] ?? 0);
   if (!Object.hasOwn(NamedLists, name)) return undefined;
-  return ColorLists[NamedLists[name as keyof typeof NamedLists]].list.map((e) => fromRgb(Color.fromColorListEntry(e)));
+  return NamedLists[name].list.map((e) => fromRgb(Color.fromColorListEntry(e)));
 }
 
 /** Where a palette's colors failed to read: an unknown name or a color that is none. */

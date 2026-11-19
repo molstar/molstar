@@ -132,7 +132,7 @@ const residue = (name: keyof typeof ResidueSchemes, extra: Partial<SchemeEntry> 
     label: s.label,
     subject: s.alphabet,
     cvdSafe: s.cvdSafe,
-    ...(s.alphabet === 'protein' && !s.cvdSafe ? { substitute: 'classes' } : {}),
+    ...(s.alphabet === 'protein' && !s.cvdSafe ? { substitute: 'classes-safe' } : {}),
     ...(s.alphabet === 'nucleotide' && !s.cvdSafe ? { substitute: 'nucleotide-cb' } : {}),
     // a safe scheme's colors were chosen apart: a derived variant would bring them together, so it keeps them
     dark: s.cvdSafe ? 'same' : 'derive',
@@ -179,6 +179,24 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
       group('DE', 'token:aa-negative', 'negative'),
       group('GP', 'token:aa-special', 'special'),
     ]),
+    substitute: 'classes-safe',
+  },
+  {
+    // `classes`' groups on Okabe–Ito hues (orange left out): passes the color-vision check in both themes, the same
+    // colors in each (a derived variant would bring them together); every unsafe protein scheme's substitute
+    name: 'classes-safe',
+    label: 'Residue classes (Okabe–Ito)',
+    subject: 'protein',
+    cvdSafe: true,
+    dark: 'same',
+    expand: letters({}, [
+      group('AVLIMC', '#56b4e9', 'hydrophobic'),
+      group('FWY', '#cc79a7', 'aromatic'),
+      group('STNQ', '#009e73', 'polar'),
+      group('KRH', '#0072b2', 'positive'),
+      group('DE', '#d55e00', 'negative'),
+      group('GP', '#f0e442', 'special'),
+    ]),
   },
   residue('clustal-x', {
     needs: ['share'],
@@ -190,7 +208,7 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     label: 'Hydrophobicity',
     subject: 'protein',
     cvdSafe: false,
-    substitute: 'classes',
+    substitute: 'classes-safe',
     dark: 'derive',
     expand: (p) => letters(hydrophobicityColors())(p),
   },

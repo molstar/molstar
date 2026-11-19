@@ -178,7 +178,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   };
   watchRatio();
 
-  // the platform's reduced motion: every jump is a cut while it holds
+  // the platform's reduced motion: every jump and story step is a cut while it holds (`view.motion: platform`)
   const reduced = win?.matchMedia?.('(prefers-reduced-motion: reduce)');
   const onReduced = () => {
     viewer.reducedMotion = !!reduced?.matches;

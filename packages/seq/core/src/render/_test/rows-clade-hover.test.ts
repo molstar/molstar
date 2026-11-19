@@ -16,6 +16,8 @@ import { settle } from './helpers.js';
 const Labels = ['HBA/1-6', 'HBB/2-7', 'MYG/1-6', 'GLB/3-8', 'CYG/1-6'];
 const Letters = ['MVLSPA', 'MVHLTP', 'MGLS--', 'MKAVLG', 'MEKVPG'];
 const Newick = '((HBA:1,HBB:1)hb:1,(MYG:1,(GLB:1,CYG:1)gc:1)rest:1)root;';
+/** Support values as inner labels: both clades `95`, so each is named by its first and last leaves. */
+const Support = '((HBA:1,HBB:1)95:1,(MYG:1,(GLB:1,CYG:1)95:1)rest:1)root;';
 const Chain = '(((HBA:1,HBB:1)x:1)y:1,(MYG:1,(GLB:1,CYG:1)gc:1)rest:1)root;';
 const Rows = '/data/aln/(rows)';
 const T = '/views/v/s/rows';
@@ -162,6 +164,40 @@ describe('a hovered clade', () => {
     const x = await hovered({ order: 'tree' }, { rowScale: 20 }, 'x', 'tree-node', { newick: Chain });
     const y = await hovered({ order: 'tree' }, { rowScale: 20 }, 'y', 'tree-node', { newick: Chain });
     expect(x.branches.length).toBeLessThan(y.branches.length);
+  });
+
+  it('two clades labelled alike (support values): each hover reaches its own rows, a fold its own clade', async () => {
+    const o = { newick: Support };
+    const gc = await hovered({ order: 'tree' }, { rowScale: 20 }, 'GLB..CYG', 'tree-node', o);
+    expect(gc.bands.map((r) => [r[1], r[3]])).toEqual([[gc.lay.rowY(3), 2 * gc.lay.rowScale]]);
+    const hb = await hovered({ order: 'tree' }, { rowScale: 20 }, 'HBA..HBB', 'tree-node', o);
+    expect(hb.bands.map((r) => [r[1], r[3]])).toEqual([[hb.lay.rowY(0), 2 * hb.lay.rowScale]]);
+    const folded = await hovered(
+      { order: 'tree' },
+      { rowScale: 20, folds: ['GLB..CYG'] },
+      'GLB..CYG',
+      'summary-row',
+      o,
+    );
+    // HBA, HBB, MYG, then GLB and CYG in one summary row
+    expect(folded.lay.display.count).toBe(4);
+    expect(folded.bands.map((r) => [r[1], r[3]])).toEqual([[folded.lay.rowY(3), folded.lay.rowScale]]);
+  });
+
+  it('`collapsed` naming no clade (a support value): said once, an info, the rest folded', async () => {
+    const s = await settle(spec({ order: 'tree', collapsed: ['95', 'GLB..CYG'] }, Support).build());
+    const f = await s.frame(at({ rowScale: 20 }));
+    const said = f.layout.issues.filter((i) => i.code === 'seq.render.rows.clade');
+    expect(said).toHaveLength(1);
+    expect(said[0].severity).toBe('info');
+    expect(said[0].message).toContain('95');
+    expect(said[0].message).not.toContain('GLB..CYG');
+    // GLB and CYG folded into one row
+    expect(rowsLay(f).display.count).toBe(4);
+    const named = await settle(spec({ order: 'tree', collapsed: ['gc'] }).build());
+    expect(
+      (await named.frame(at({ rowScale: 20 }))).layout.issues.some((i) => i.code === 'seq.render.rows.clade'),
+    ).toBe(false);
   });
 
   it('a hover from another layer lights no clade', async () => {

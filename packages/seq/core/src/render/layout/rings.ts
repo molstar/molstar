@@ -209,7 +209,9 @@ export class RingPlacement implements Placement {
     return -1;
   }
 
-  at(x: number, y: number, out: PlacePoint): boolean {
+  at(p: ArrayLike<number>, out: PlacePoint): boolean {
+    const x = p[0];
+    const y = p[1];
     const b = this.box;
     out.strip = -1;
     out.band = -1;

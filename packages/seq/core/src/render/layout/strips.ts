@@ -156,6 +156,9 @@ export class Strips {
   }
 }
 
+/** A strip-frame x and its display unit (`AxisTransform.inGapOf`, `unitInto`): one scratch, read at once. */
+const StripX = new Float64Array(2);
+
 /**
  * The placement of translated strips stacked down the page (tracks, text): `at` finds the strip by its top (a binary
  * search: strips are in reading order, top to bottom), the band by its top, the point in the strip's frame and the
@@ -181,7 +184,9 @@ export class StripPlacement implements Placement {
     return lo - 1;
   }
 
-  at(x: number, y: number, out: PlacePoint): boolean {
+  at(p: ArrayLike<number>, out: PlacePoint): boolean {
+    const x = p[0];
+    const y = p[1];
     const b = this.box;
     out.strip = -1;
     out.band = -1;
@@ -207,11 +212,17 @@ export class StripPlacement implements Placement {
       }
     }
     const a = s.axes[i];
+    // the strip-frame x and its unit through an array: `fx` is computed, and a number computed and passed to (or
+    // returned from) a call that is not inlined is boxed (a hit allocates nothing, `Placement.at`)
+    StripX[0] = fx;
     if (fx < a.x0) out.kind = 'gutter';
     else if (fx >= a.x0 + a.width) out.kind = 'gutter';
-    else if (out.band < 0 || a.inGap(fx)) out.kind = 'gap';
+    else if (out.band < 0 || a.inGapOf(StripX)) out.kind = 'gap';
     else out.kind = 'data';
-    if (out.kind === 'data') out.offset = a.unitAt(fx);
+    if (out.kind === 'data') {
+      a.unitInto(StripX);
+      out.offset = StripX[1];
+    }
     return true;
   }
 

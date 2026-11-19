@@ -223,20 +223,24 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default palette the diverging one. A
   `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one domain, its open ends the union
   over them at settle (one relayout).
-- **Palettes are Mol\*'s value palettes** (`@molstar/core/util/color/value-palette`: lists, scale, mid, unlisted hash),
-  converted both ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and
-  `fromMvsScale`: type, domain, center, `non_positive`, the colors past the ends). Why: one palette model across Mol\*.
-  A named list is one the schemes use (`NamedLists`: viridis, cividis, magma, blues, rd-bu, okabe-ito, tableau10,
-  category10) or a token list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a spec reads the same
-  wherever Seq\* runs, and a list added to Mol\* is not one here until named.
+- **Palettes are Mol\*'s value palettes**, evaluated by `@molstar/core/util/color/value-palette-eval` (scale, mid,
+  unlisted hash; the module without Mol\*'s named lists, which `value-palette` re-exports with them), converted both
+  ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and `fromMvsScale`: type,
+  domain, center, `non_positive`, the colors past the ends). Why: one palette model across Mol\*. A named list is one
+  the schemes use (`NamedLists`: viridis, cividis, magma, blues, rd-bu, okabe-ito, tableau10, category10) or a token
+  list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a spec reads the same wherever Seq\* runs, and a
+  list added to Mol\* is not one here until named. Each is imported by its constant (`ColorListViridis`, …), never
+  through `ColorLists`: a bundle ships those eight lists, none of Mol\*'s others.
 - **Schemes** (`SchemeRegistry`, `builtInSchemes()`): residue schemes as data from core (Clustal X, Zappo, Taylor,
   hydrophobicity, helix, strand, turn, buried), nucleotide ones, ramps and categories (viridis, cividis, magma, blues,
   rd-bu, pLDDT's bands, Okabe–Ito, Tableau 10), secondary structure, Giemsa; each says its subject, the measures it
   needs, whether it is safe under the three color-vision deficiencies (checked: 0.06 Oklab apart under Machado 2009) and
-  the safe one a reader's substitution draws instead (`theme.cvdSafe`). A scheme's literal colors are the light table's;
-  the dark table's are derived (lightness mapped into the dark band, Oklab L 0.30–0.62, hue kept) unless it is safe as
-  it is. The band is bounded by the ink: above about 0.62 neither ink reaches 4.5:1. Provenance is `theme/provenance`'s
-  (`schemeProvenance`), read by a picker, never by drawing.
+  the safe one a reader's substitution draws instead (`theme.cvdSafe`). Every substitute is itself safe (a test over the
+  registry): an unsafe protein scheme (`classes`, the default, included) substitutes to `classes-safe`, `classes`'
+  groups on Okabe–Ito hues, the same in both tables. Why: the substitution must never draw an unsafe scheme. A scheme's
+  literal colors are the light table's; the dark table's are derived (lightness mapped into the dark band, Oklab L
+  0.30–0.62, hue kept) unless it is safe as it is. The band is bounded by the ink: above about 0.62 neither ink reaches
+  4.5:1. Provenance is `theme/provenance`'s (`schemeProvenance`), read by a picker, never by drawing.
 - **Colors as spelled** (`theme/spelling`: `parseColor`, `isColorSpelling`, `resolveColor`) need no color space: the
   spec reader's checks import them alone.
 - **Legends** are data (`Legend`: swatches, a ramp with ticks placed by its scale (a log scale's decades, a center at
@@ -956,8 +960,12 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
   break ink (`seq-break`), residue and nucleotide classes, eight categories (chosen apart under the three color-vision
   deficiencies in both tables), the density ramp, a five-stop ramp and a diverging triple, secondary structure
   (`seq-ss-helix`, `-strand`, `-turn`), `seq-variant`, `seq-ruler`, the navigator's window, grip and wash, the
-  centromere), as `0xRRGGBBAA`, and the font stacks of the two family roles. Node has a light and a dark table
-  (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
+  centromere, a letter cell's edge), as `0xRRGGBBAA`, and the font stacks of the two family roles. Node has a light and
+  a dark table (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
+- **A letter cell's edge** (`seq-cell-edge`): in the dark table a hairline, 1 device px, around each cell drawn with its
+  letter (the letters layer's `letters` step, a rows layer's letter cells), at 3:1 against the page; none (transparent)
+  in the light table. Why: the dark scheme colors sit at 1.4–1.7:1 against the dark page and cannot go lighter without
+  their ink failing 4.5:1; an edge costs no figure's colors, a lighter dark page every figure's.
 - **Its version is a hash of its content**, part of the draw lists' key: a theme switch redraws, an equal table does
   not. Why a hash: pure by contract, so an export from Node and a viewer agree on equal tables.
 - **A spec's color** is a hex literal, `token:<name>` (`seq-<name>`, then `msui-<name>`, then `<name>`) or
@@ -1482,10 +1490,13 @@ numbers): a window move allocates nothing once warm.
   over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
   when a neighboring region arrives.
 - **Hits go through the placement**: the section under the point, its layout's own marks (`hitChrome`), then the point
-  placed (`at`) and the band's layers, topmost first, each `hit` with the point in the strip's frame; a layer's hit box
-  is in its strip's frame, so every drawn mark keeps its hit box through the warp. `system` is the strip's; `block` its
-  index in the section when the section has blocks; `target` `window` (with its `part`) or `row` (a gutter's row) for a
-  layout's marks.
+  placed (`at`, reading the page point from an array as a layer's `hit` does, and the strip-frame x through the axis's
+  `inGapOf` and `unitInto`: a number passed to or returned from a call that is not inlined is boxed, so placing a point
+  allocates nothing on any axis, grouped too, and a grid cell's `hitView` nothing past its caller's call; a text
+  section's `hitView` still allocates in its other hit paths, the package's TODO) and the band's layers, topmost first,
+  each `hit` with the point in the strip's frame; a layer's hit box is in its strip's frame, so every drawn mark keeps
+  its hit box through the warp. `system` is the strip's; `block` its index in the section when the section has blocks;
+  `target` `window` (with its `part`) or `row` (a gutter's row) for a layout's marks.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
@@ -1603,10 +1614,13 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   clade's "+n" counts its shown rows, one with none goes, one with one folds to that row. Data order with nothing
   pinned, hidden or folded is arithmetic (no arrays): a million lazy rows cost what ten do. Held by property tests over
   random trees and folds (every shown row placed once, found where it is drawn).
-- **Clades** (`buildClades`): a tree's nodes over the rows, each a run of its leaf order; named by the node's label,
-  else `first..last` (its first and last leaves' labels), so a name survives a reorder; `allClades`, `cladesAtDepth`,
-  `cladesWithin(height)` (every largest clade whose leaves lie within `height` of its node by branch length) and
-  `cladesHolding(row)` are what the clade commands fold and open.
+- **Clades** (`buildClades`): a tree's nodes over the rows, each a run of its leaf order; named by the node's label
+  where it is unique in the tree (leaves counted) and not support (a number, or numbers joined by `/` or `|`, IQ-TREE's
+  `87.3/95`: a reinferred tree changes them), else `first..last` (its first and last leaves' labels), so a name survives
+  a reorder and two clades never share one (support values as inner labels, `((A,B)95,(C,D)95)`: a hover, a fold and
+  `clades.keep` reach each); a `collapsed` name no clade has is said once (`seq.render.rows.clade`, info), never dropped
+  silently; `allClades`, `cladesAtDepth`, `cladesWithin(height)` (every largest clade whose leaves lie within `height`
+  of its node by branch length) and `cladesHolding(row)` are what the clade commands fold and open.
 - **Folds** are the band's (`Viewport.bands[track].folds`, by name: session state, compared by identity and part of the
   section's key), else the layer's `collapsed` (the opening state).
 - **The transform**: `rowScale` (px a row; `RowHeight`, 20, fixed, when the band gives none) and `bandTop` (the band's
@@ -1627,7 +1641,10 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   px the shared reduction over the scrolled display rows' theme classes (a class a distinct fill; factor 4, row and
   column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles (256 × 256
   samples, opaque by the majority's share; the base level holds none: whole) in the shared image cache, offset from the
-  pinned band. The pinned rows are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the
+  pinned band. A level's majority is the majority of the majorities below it (shares averaged), approximate within the
+  measured tolerance, tested: the share within 0.05 on average and 0.3 at worst, the letter exact where the exact winner
+  leads by more than 0.25. Why: a majority is not mergeable across levels, and below 3 device px a cell the shade reads,
+  not the letter. The pinned rows are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the
   scrolled rows clipped below it. A letter-class reduction (`rows.reduce: letter`) is not built (the package's TODO).
 - **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
   column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
@@ -1756,10 +1773,10 @@ It reads every row (a logo of the rows shown is not built: the package's TODO).
 
 ### Issues
 
-- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.text.unfolded` (info), `logo.profile` (info),
-  `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`, `layer.axes`,
-  `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
-  `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
+- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.clade` (info), `rows.text.unfolded` (info),
+  `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`,
+  `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`,
+  `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
   `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
   `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
   (info); a test checks the catalog.
@@ -1793,12 +1810,13 @@ DOM-free; Seq* runs no clock (the viewer's animation port is the application's).
   and a remove (`leave`): a node with a `height` grows from 0 or shrinks to it, one without comes at the window's start
   and goes at its end (what names it, a track naming entering data, never dangles); a move within its parent (`order`,
   at the cut); anything else (`cut`, at `story.cut.at`), the view shown too. Why a token without a resolver or a missing
-  value is a cut: interpolation needs both values, never invented. `reducedMotion` makes every window `[1, 1]`, each
-  channel a cut at the end, and the plan's `duration` 0. `pending(section)` marks a view channel that waits on data: it
-  holds its start and the frame counts it (`waiting`). A view's window **pans** (width geometric, centre linear: the
-  content under the eye moves evenly) when the windows overlap or touch, else goes **out, across and in** (at the middle
-  the window centred between the two and holding both); `cyclic` totals move the end's centre by a turn for the shortest
-  arc. Sizes (`scale`, `rowScale`) move geometrically.
+  value is a cut: interpolation needs both values, never invented. The plan's `reducedMotion` (a viewer passes its
+  `view.motion`'s answer) makes every window `[1, 1]`, each channel a cut at the end, and the plan's `duration` 0.
+  `pending(section)` marks a view channel that waits on data: it holds its start and the frame counts it (`waiting`). A
+  view's window **pans** (width geometric, centre linear: the content under the eye moves evenly) when the windows
+  overlap or touch, else goes **out, across and in** (at the middle the window centred between the two and holding
+  both); `cyclic` totals move the end's centre by a turn for the shortest arc. Sizes (`scale`, `rowScale`) move
+  geometrically.
 - **Sampling** (`sample(plan, t, out?)`): every channel at `t` eased, into `out` or the plan's own frame (kept by plan):
   deterministic and allocation-free warm. `sample(plan, 0)` is the start and `sample(plan, 1)` the end exactly (an angle
   ends its short way round, the same angle). Numbers, each color component, a pan's centre and width are monotone. The

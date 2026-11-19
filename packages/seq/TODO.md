@@ -54,6 +54,9 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-core`
 
+- **A text section's hit allocates** about 70 B past its caller's call (`render/_test/text.quick.ts` reports it; the
+  placement's `at` measures 0 on its grouped axes): its other hit paths (the gutter's `hitChrome`, the layers' hits
+  through a grouped axis) to read their numbers from arrays, then a bound in that case.
 - **The small layers** (built: ruler, secondary, variants, values' line and area, ranges' line styles and arrowheads):
   - channels they do not read yet: `size` (a variant's radius, a line's thickness, a band's share), `opacity` (the
     area's 0.35, a highlight's, a variant's), `shape` (variants' glyph: circle only), `line` and `arrow` by a form (the

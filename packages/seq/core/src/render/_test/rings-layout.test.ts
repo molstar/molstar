@@ -67,7 +67,7 @@ describe('the rings layout', () => {
       for (let u = 0; u < RingLength; u++) {
         expect(p.place(u + 0.5, pt)).toBe(true);
         const { x, y } = pt;
-        expect(p.at(x, y, pt)).toBe(true);
+        expect(p.at([x, y], pt)).toBe(true);
         expect(pt.kind).toBe('data');
         const back = Math.floor(pt.offset);
         expect(back).toBe(u);

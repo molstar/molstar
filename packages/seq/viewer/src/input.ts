@@ -109,6 +109,13 @@ export class ViewerInput {
   private readonly _hit: { -readonly [K in keyof Hit]: Hit[K] } = {} as never;
   /** A point the placement found, reused. */
   private readonly _point = new PlacePoint();
+  /** A page point for a placement's `at`, which reads it from an array. */
+  private readonly _at = new Float64Array(2);
+  private _pageAt(x: number, y: number): Float64Array {
+    this._at[0] = x;
+    this._at[1] = y;
+    return this._at;
+  }
   /** The pointer's last place while it rests over the canvas (EC-143's re-hit reads it). */
   private _x = Number.NaN;
   private _y = Number.NaN;
@@ -258,7 +265,7 @@ export class ViewerInput {
   offsetYAt(section: string, x: number, y: number): number | undefined {
     const p = this.viewer.placementOf(section);
     const pt = this._point;
-    if (!p || !p.strips.n || !p.at(x, y, pt) || pt.strip < 0) return undefined;
+    if (!p || !p.strips.n || !p.at(this._pageAt(x, y), pt) || pt.strip < 0) return undefined;
     const u = p.strips.ys[pt.strip]?.unitAt(pt.y);
     return u !== undefined && u >= 0 ? u : undefined;
   }
@@ -750,7 +757,7 @@ export class ViewerInput {
     // a step zoom is about the pointer (the unit the placement has under it), by the double-click's own factor
     const p = this.viewer.placementOf(section);
     const pt = this._point;
-    const at = p?.at(x, y, pt) && (pt.kind === 'data' || pt.kind === 'gap') ? p.offsetAt(x, y) : -1;
+    const at = p?.at(this._pageAt(x, y), pt) && (pt.kind === 'data' || pt.kind === 'gap') ? p.offsetAt(x, y) : -1;
     this.viewer.runCommand(action, {
       section,
       ...(focus ? { focus } : {}),

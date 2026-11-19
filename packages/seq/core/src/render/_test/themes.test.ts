@@ -17,7 +17,6 @@ import { compileChannel, legendOf, mergeLegends } from '@molstar/seqx-core/theme
 import { bestOf, itWithin, ratioWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import {
-  builtInTokens,
   DefaultThemeContext,
   type DrawLists,
   hitView,
@@ -184,7 +183,41 @@ describe('the export’s legends', () => {
     const safe = await renderSvg(zappo(), { size: Size, cvdSafe: true });
     expect(plain.svg).toContain('#ffff00');
     expect(safe.svg).not.toContain('#ffff00');
-    expect(safe.svg).toContain(`#${(builtInTokens('light').colors['seq-aa-hydrophobic'] >>> 8).toString(16)}`);
+    expect(safe.svg).toContain('#56b4e9');
+  });
+
+  it('a substituted scheme’s view draws `classes-safe`’s group of each letter, in both themes', async () => {
+    const groups: [string, number][] = [
+      ['AVLIMC', 0x56b4e9ff],
+      ['FWY', 0xcc79a7ff],
+      ['STNQ', 0x009e73ff],
+      ['KRH', 0x0072b2ff],
+      ['DE', 0xd55e00ff],
+      ['GP', 0xf0e442ff],
+    ];
+    const letters = groups.map((g) => g[0]).join('');
+    const expected = [...letters].map((l) => groups.find((g) => g[0].includes(l))![1]);
+    for (const name of ['classes', 'zappo', 'clustal-x', 'taylor'])
+      for (const theme of ['light', 'dark'] as const) {
+        const b = createSeqSpec();
+        const s = b.data.sequence('s', { alphabet: 'protein', letters });
+        b.views.view('main', (v) =>
+          v
+            .section('p', { of: s })
+            .track('t')
+            .layer('l', { type: 'letters', color: { kind: 'scheme', params: { name } } }),
+        );
+        const { lists } = await renderSvg(b.build(), { size: Size, theme, cvdSafe: true, legend: 'none' });
+        const cells = recordDrawLists(lists, ['data'])
+          .split('\n')
+          .filter((l) => l.startsWith('rect '))
+          .map((l) => l.split(' '))
+          .map((p) => ({ x: Number(p[1]), fill: Number.parseInt(p[5].slice(1), 16) >>> 0 }))
+          .filter((c) => expected.includes(c.fill))
+          .sort((a, b) => a.x - b.x)
+          .map((c) => c.fill);
+        expect(cells, `${name} ${theme}`).toEqual(expected);
+      }
   });
 });
 

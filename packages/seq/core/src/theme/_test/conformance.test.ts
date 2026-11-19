@@ -76,10 +76,25 @@ describe('the built-in schemes in both tables', () => {
   });
 
   it('a scheme that is not safe declares a safe substitute that fits its subject', () => {
-    for (const e of BuiltInSchemes.filter((x) => !x.cvdSafe && x.substitute)) {
+    for (const e of BuiltInSchemes.filter((x) => !x.cvdSafe)) {
+      expect(e.substitute, `${e.name} names a substitute`).toBeDefined();
       const s = registry.get(e.substitute!)!;
       expect(s.subject).toBe(e.subject);
     }
+  });
+
+  it('no scheme names an unsafe substitute; a letter substitute passes the color-vision check in both tables', () => {
+    for (const e of registry.list().filter((x) => x.substitute)) {
+      const s = registry.get(e.substitute!);
+      expect(s?.cvdSafe, `${e.name} → ${e.substitute}`).toBe(true);
+    }
+    const subs = new Set(registry.list().flatMap((x) => (x.substitute ? [registry.get(x.substitute)!] : [])));
+    for (const s of [...subs].filter((x) => x.subject === 'protein' || x.subject === 'nucleotide'))
+      for (const tokens of Tables) {
+        const colors = [...new Set(drawn(s, tokens))].filter((c) => c !== tokens.colors['seq-missing']).map(toRgb);
+        const check = checkColorVision(colors, 0.06);
+        expect(check.ok, `${s.name} ${tokens.theme} ${JSON.stringify(check.worst)}`).toBe(true);
+      }
   });
 });
 
@@ -100,5 +115,12 @@ describe('the token tables', () => {
       }
       expect(contrastRgba(tokens.colors['seq-centromere'], tokens.colors['msui-bg'])).toBeGreaterThanOrEqual(3);
       expect(contrastRgba(tokens.colors['seq-centromere'], tokens.colors['seq-track'])).toBeGreaterThanOrEqual(3);
+      // a letter cell's edge: 3:1 against the page and the track in dark, none in light
+      const edge = tokens.colors['seq-cell-edge'];
+      if (tokens.theme === 'light') expect(edge & 0xff).toBe(0);
+      else {
+        expect(contrastRgba(edge, tokens.colors['msui-bg'])).toBeGreaterThanOrEqual(3);
+        expect(contrastRgba(edge, tokens.colors['seq-track'])).toBeGreaterThanOrEqual(3);
+      }
     });
 });

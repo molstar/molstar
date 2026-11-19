@@ -51,7 +51,10 @@ export interface Clades {
   /** Each node's distance from the root by branch length, and its height (the farthest leaf below it). */
   readonly distance: Float64Array;
   readonly height: Float64Array;
-  /** Each node's name: its label, else its first and last leaves' labels as `first..last` (`(clade :of [a b])`). */
+  /**
+   * Each node's name: its label where unique in the tree and not a number, else its first and last leaves' labels as
+   * `first..last` (`(clade :of [a b])`).
+   */
   readonly name: readonly string[];
   /** The row each leaf (in leaf order) names, -1 for none; and the leaf of each row, -1 for none. */
   readonly leafRow: Int32Array;
@@ -101,10 +104,19 @@ export function buildClades(tree: TreeRead, leafRow: Int32Array, rows: number): 
   for (let k = 0; k < leafRow.length; k++) if (leafRow[k] >= 0) order[at++] = leafRow[k];
   for (let r = 0; r < rows; r++) if (rowLeaf[r] < 0) order[at++] = r;
   const leafLabel = (k: number) => tree.label[tree.leaves[k]] ?? '';
+  // a node's id names its clade where it is unique in the tree and not a number (a support value, `((A,B)95,(C,D)95)`,
+  // names no clade): else its first and last leaves (_spec/README.md "Render", The rows layer, Clades)
+  const uses = new Map<string, number>();
+  for (let n = 0; n < nodes; n++) {
+    const l = tree.label[n];
+    if (l) uses.set(l, (uses.get(l) ?? 0) + 1);
+  }
   const name: string[] = [];
   const byName = new Map<string, number>();
   for (let n = 0; n < nodes; n++) {
-    const s = tree.label[n] && leafAt[n] < 0 ? tree.label[n] : `${leafLabel(lo[n])}..${leafLabel(hi[n] - 1)}`;
+    const l = tree.label[n];
+    const own = l && leafAt[n] < 0 && uses.get(l) === 1 && !isNumeric(l);
+    const s = own ? l : `${leafLabel(lo[n])}..${leafLabel(hi[n] - 1)}`;
     name.push(s);
     if (!byName.has(s)) byName.set(s, n);
   }
@@ -123,6 +135,14 @@ export function buildClades(tree: TreeRead, leafRow: Int32Array, rows: number): 
     children: tree.children,
     byName,
   };
+}
+
+/**
+ * A label that reads as support values (a bootstrap count, IQ-TREE's `87.3/95`: every `/`- or `|`-separated part a
+ * number): never a clade's name, since a reinferred tree changes it.
+ */
+function isNumeric(label: string): boolean {
+  return label.split(/[/|]/).every((part) => part.trim() !== '' && Number.isFinite(Number(part)));
 }
 
 /** A clade by its name (`cladeNamed`), -1 for none. */

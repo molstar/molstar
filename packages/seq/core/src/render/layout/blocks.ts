@@ -44,7 +44,9 @@ export class BlockPlacement extends StripPlacement {
     return -1;
   }
 
-  override at(x: number, y: number, out: PlacePoint): boolean {
+  override at(p: ArrayLike<number>, out: PlacePoint): boolean {
+    const x = p[0];
+    const y = p[1];
     const b = this.box;
     out.strip = -1;
     out.band = -1;

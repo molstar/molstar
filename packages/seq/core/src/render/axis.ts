@@ -53,6 +53,9 @@ export interface BandViewport {
   readonly folds?: readonly string[];
 }
 
+/** `unitAt` and `inGap`'s point through `unitInto` and `inGapOf` (one body each): read at once, never kept. */
+const AxisScratch = new Float64Array(2);
+
 export class AxisTransform {
   /**
    * A transform on a resolved axis (its system, direction, length and cyclic flag) over `pieces` (its own, a block's,
@@ -221,17 +224,37 @@ export class AxisTransform {
 
   /** The display unit under x (fractional), or −1 outside the data box; in a group's gap, the next group's first. */
   unitAt(x: number): number {
-    if (x < this.x0 || x >= this.x0 + this.width) return -1;
-    if (this.gsize === 0) return this.u0 + (x - this.x0) / this.scale;
+    AxisScratch[0] = x;
+    this.unitInto(AxisScratch);
+    return AxisScratch[1];
+  }
+
+  /**
+   * `unitAt` of `at[0]` into `at[1]`: a point and its unit held in an array (a fractional number passed to a call that
+   * is not inlined, or returned from one, is boxed: a placement's `at` allocates nothing).
+   */
+  unitInto(at: Float64Array): void {
+    const x = at[0];
+    if (x < this.x0 || x >= this.x0 + this.width) {
+      at[1] = -1;
+      return;
+    }
+    if (this.gsize === 0) {
+      at[1] = this.u0 + (x - this.x0) / this.scale;
+      return;
+    }
     const d = x - this.x0;
     // px to the window's first group boundary, then whole groups with their gaps
     const first = (this.gorigin + (this.g0 + 1) * this.gsize - this.u0) * this.scale;
-    if (d < first) return this.u0 + d / this.scale;
+    if (d < first) {
+      at[1] = this.u0 + d / this.scale;
+      return;
+    }
     const span = this.gsize * this.scale + this.ggap;
     const k = Math.floor((d - first) / span);
     const r = d - first - k * span - this.ggap;
     const u = this.gorigin + (this.g0 + 1 + k) * this.gsize;
-    return r < 0 ? u : u + r / this.scale;
+    at[1] = r < 0 ? u : u + r / this.scale;
   }
 
   /**
@@ -246,6 +269,13 @@ export class AxisTransform {
 
   /** Whether x falls in a group's gap (no position there). */
   inGap(x: number): boolean {
+    AxisScratch[0] = x;
+    return this.inGapOf(AxisScratch);
+  }
+
+  /** `inGap` of `at[0]` (see `unitInto`). */
+  inGapOf(at: Float64Array): boolean {
+    const x = at[0];
     if (this.gsize === 0 || x < this.x0 || x >= this.x0 + this.width) return false;
     const first = (this.gorigin + (this.g0 + 1) * this.gsize - this.u0) * this.scale;
     const d = x - this.x0 - first;

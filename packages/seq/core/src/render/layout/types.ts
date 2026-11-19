@@ -57,8 +57,12 @@ export interface Placement {
   /** All of its content (text: every line), for scrolling and export. */
   readonly contentHeight: number;
   readonly strips: Strips;
-  /** What is under a page point, into a reused record; false when the point is outside the section. */
-  at(x: number, y: number, out: PlacePoint): boolean;
+  /**
+   * What is under a page point (`p`: `[x, y]`), into a reused record; false when the point is outside the section. The
+   * point is read from an array, never passed: a number passed to a call that is not inlined is boxed, and a hit
+   * allocates nothing (_spec/README.md "Render", Lanes and Hits).
+   */
+  at(p: ArrayLike<number>, out: PlacePoint): boolean;
   /** The display unit under a point, the nearest when between strips or in a gutter (drags, zoom anchors). */
   offsetAt(x: number, y: number): number;
   /**

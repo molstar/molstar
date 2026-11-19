@@ -96,7 +96,7 @@ describe('the tracks layout on the interface', () => {
         expect(p.place(u + 0.5, pt)).toBe(true);
         const x = pt.x;
         const y = sec.tracks[0].box.y + 1;
-        expect(p.at(x, y, pt)).toBe(true);
+        expect(p.at([x, y], pt)).toBe(true);
         expect(pt.kind).toBe('data');
         expect(Math.floor(pt.offset)).toBe(u);
         const o = p.offsetAt(x, y);
@@ -104,7 +104,7 @@ describe('the tracks layout on the interface', () => {
         last = o;
       }
       // the label column is the gutter
-      expect(p.at(20, sec.tracks[0].box.y + 1, pt) && pt.kind).toBe('gutter');
+      expect(p.at([20, sec.tracks[0].box.y + 1], pt) && pt.kind).toBe('gutter');
     }
   });
 
@@ -201,7 +201,7 @@ describe('a placement of translated strips', () => {
     for (let o = 0.5; o < 40; o += 1) {
       expect(p.place(o, pt)).toBe(true);
       expect(pt.band).toBe(1);
-      expect(p.at(pt.x, pt.y, pt)).toBe(true);
+      expect(p.at([pt.x, pt.y], pt)).toBe(true);
       expect(pt.kind).toBe('data');
       expect(pt.offset).toBeCloseTo(o);
     }

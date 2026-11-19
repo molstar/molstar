@@ -792,7 +792,10 @@ export const SeqLanguage = defineLanguage({
         },
         collapsed: {
           type: 'list',
-          of: { type: 'string', doc: 'A clade: its node’s label, else `first..last` (its first and last leaves).' },
+          of: {
+            type: 'string',
+            doc: 'A clade: its node’s label where unique in the tree and not a number, else `first..last` (its first and last leaves).',
+          },
           doc: 'For `rows`: the clades folded when the view opens (session state after: `clades.keep` writes the folds shown here).',
         },
         pinned: {

@@ -239,8 +239,10 @@ describe('forms', () => {
     expect(zappo.at(datum({ letter: 'c' }))).toBe(0xffff00ff);
     expect(zappo.at(datum({ letter: 'X' }))).toBe(LightTokens.colors['seq-missing']);
     const safe = color({ kind: 'scheme', params: { name: 'zappo' } }, env({ alphabet: 'protein', cvdSafe: true }));
-    expect(safe.scheme).toEqual({ name: 'classes', substituted: 'zappo' });
-    expect(safe.at(datum({ letter: 'C' }))).toBe(LightTokens.colors['seq-aa-hydrophobic']);
+    expect(safe.scheme).toEqual({ name: 'classes-safe', substituted: 'zappo' });
+    expect(safe.at(datum({ letter: 'C' }))).toBe(0x56b4e9ff);
+    const classes = color({ kind: 'scheme', params: { name: 'classes' } }, env({ alphabet: 'protein', cvdSafe: true }));
+    expect(classes.scheme).toEqual({ name: 'classes-safe', substituted: 'classes' });
     const over = color(
       { kind: 'scheme', params: { name: 'zappo', overrides: { C: '#123456' } } },
       env({ alphabet: 'protein' }),

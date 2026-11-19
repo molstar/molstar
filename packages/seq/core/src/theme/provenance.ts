@@ -14,6 +14,7 @@ const Lists = 'Mol*’s `ColorLists`';
 
 const Seq: Readonly<Record<string, string>> = {
   classes: 'Seq*’s residue class tokens (`seq-aa-*`)',
+  'classes-safe': 'Seq*’s residue classes on Okabe and Ito 2008’s hues, checked for color-vision deficiencies',
   'clustal-x': `${ResidueSchemes['clustal-x'].provenance}; ${ColumnMeasureNote}`,
   hydrophobicity: 'Wimley and White 1996 (doi:10.1038/nsb1096-842), Mol*’s `ResidueHydrophobicity`, red to blue',
   'percent-identity': `Jalview’s percentage identity, blue shades by the column’s identity; ${ColumnMeasureNote}`,
