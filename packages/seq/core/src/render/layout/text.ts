@@ -70,6 +70,13 @@ export interface TextGeometry {
   readonly group: number;
   readonly gap: number;
   readonly unitsPerLine: number;
+  /**
+   * Each line's first display unit when lines do not all hold `unitsPerLine` (`text.pieceBreak: 'line'`: a piece edge
+   * starts a line); undefined: line `l` starts at `l · unitsPerLine`.
+   */
+  readonly starts?: Float64Array;
+  /** With `starts`: the pieces' first display units (what a new breaking starts lines at). */
+  readonly pieces?: Float64Array;
   /** The width lines may take (px), and the part of a group's gap an inline group label takes (px). */
   readonly avail: number;
   readonly inline: number;
@@ -101,7 +108,58 @@ export function unitsPerLineOf(avail: number, cell: number, group: number, gap: 
   return Math.max(1, Math.floor(avail / cell));
 }
 
-/** Breaks a section's `total` display units into lines for a width, a scale and its params. */
+/** Line `l`'s first display unit. */
+export function lineStart(g: Pick<TextGeometry, 'starts' | 'unitsPerLine'>, l: number): number {
+  return g.starts ? g.starts[l] : l * g.unitsPerLine;
+}
+
+/** The display unit past line `l`'s last. */
+export function lineEnd(g: Pick<TextGeometry, 'starts' | 'unitsPerLine' | 'total'>, l: number): number {
+  if (!g.starts) return Math.min(g.total, (l + 1) * g.unitsPerLine);
+  return l + 1 < g.starts.length ? g.starts[l + 1] : g.total;
+}
+
+/** The line holding display unit `u` (fractional: within its line). */
+export function lineOf(g: Pick<TextGeometry, 'starts' | 'unitsPerLine'>, u: number): number {
+  const s = g.starts;
+  if (!s) return Math.max(0, Math.floor(u / g.unitsPerLine));
+  let lo = 0;
+  let hi = s.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (s[mid] <= u) lo = mid + 1;
+    else hi = mid;
+  }
+  return Math.max(0, lo - 1);
+}
+
+/** A display unit as a line and the fraction of that line before it: what an anchor reads as (into `out`). */
+function lineFrac(g: TextGeometry, u: number, out: { line: number; frac: number }): void {
+  const l = Math.min(g.lines - 1, lineOf(g, u));
+  const a = lineStart(g, l);
+  out.line = l;
+  out.frac = Math.max(0, Math.min(1, (u - a) / Math.max(1, lineEnd(g, l) - a)));
+}
+
+/**
+ * Each line's first unit when a piece edge starts a line (`pieceBreak: 'line'`): each piece (`pieces`, each its first
+ * display unit) cut into lines of `upl`; undefined when one piece, or none breaks.
+ */
+function pieceStarts(total: number, upl: number, pieces: ArrayLike<number> | undefined): Float64Array | undefined {
+  if (!pieces || pieces.length < 2) return undefined;
+  const out: number[] = [];
+  for (let k = 0; k < pieces.length; k++) {
+    const a = pieces[k];
+    const b = k + 1 < pieces.length ? pieces[k + 1] : total;
+    for (let u = a; u < b; u += upl) out.push(u);
+  }
+  return Float64Array.from(out);
+}
+
+/**
+ * Breaks a section's `total` display units into lines for a width, a scale and its params; with `text.pieceBreak:
+ * 'line'`, each of `pieces` (a piece's first display unit) starts a line.
+ */
 export function textGeometry(
   total: number,
   params: TextParams,
@@ -110,6 +168,7 @@ export function textGeometry(
   heights: readonly number[],
   config: RenderConfig,
   text: TextMetrics,
+  pieces?: ArrayLike<number>,
 ): TextGeometry {
   const t = config.text;
   const cell = Math.max(textMinScale(config), scale ?? t.scale);
@@ -127,7 +186,8 @@ export function textGeometry(
   const unitsPerLine = unitsPerLineOf(avail, cell, group, gap);
   const full = lineWidthOf({ cell, group, gap }, Math.min(unitsPerLine, Math.max(1, total)));
   const lineX = params.align === 'center' ? dataX + Math.max(0, (avail - full) / 2) : dataX;
-  const lines = Math.max(1, Math.ceil(total / unitsPerLine));
+  const starts = t.pieceBreak === 'line' ? pieceStarts(total, unitsPerLine, pieces) : undefined;
+  const lines = starts ? Math.max(1, starts.length) : Math.max(1, Math.ceil(total / unitsPerLine));
   const labelRow = params.groupLabels === 'above' && group > 0 ? fontSize(numberFont) + 2 : 0;
   const bandTops = new Float64Array(heights.length);
   let y = labelRow;
@@ -142,6 +202,7 @@ export function textGeometry(
     group,
     gap,
     unitsPerLine,
+    ...(starts ? { starts, pieces: Float64Array.from(pieces!) } : {}),
     avail,
     inline,
     lines,
@@ -187,7 +248,7 @@ export class TextPlacement extends StripPlacement {
 
   /** Keeps the line heights for a geometry; a new one fills them full. */
   keep(g: TextGeometry): void {
-    const key = `${g.total}|${g.unitsPerLine}|${g.lineHeight}|${g.lineGap}`;
+    const key = `${g.total}|${g.unitsPerLine}|${g.lines}|${g.lineHeight}|${g.lineGap}`;
     if (key === this.heightsKey && this.heights.length === g.laid) return;
     this.heightsKey = key;
     if (this.heights.length !== g.laid) this.heights = new Float64Array(g.laid);
@@ -264,7 +325,16 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     const p = prev ?? new TextPlacement();
     const { config } = ctx;
     const params = textParams(section.params);
-    const g = textGeometry(ctx.axis.total, params, ctx.width, viewport?.scale, ctx.heights, config, ctx.text);
+    const g = textGeometry(
+      ctx.axis.total,
+      params,
+      ctx.width,
+      viewport?.scale,
+      ctx.heights,
+      config,
+      ctx.text,
+      ctx.axis.offsets,
+    );
     p.geometry = g;
     p.keep(g);
     if (g.lines > g.laid)
@@ -281,11 +351,11 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     strips.reset(nb);
     const marks: TextMark[] = [];
     p.marks = marks;
-    const upl = g.unitsPerLine;
     const anchor = Math.max(0, Math.min(viewport?.start ?? 0, Math.max(0, g.total - 1e-9)));
     p.anchor = anchor;
-    const first = Math.min(g.laid - 1, Math.floor(anchor / upl));
-    const frac = (anchor - first * upl) / upl;
+    lineFrac(g, anchor, LineFrac);
+    const first = Math.min(g.laid - 1, LineFrac.line);
+    const frac = LineFrac.frac;
     const content = () => p.lineTop(g.laid);
     const top = ctx.box.y;
     // the box: the section's `height`, else its content's up to `text.maxHeight`; an export shows every line
@@ -297,8 +367,8 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     let y = figure ? top : top - frac * p.heights[first];
     const labelSize = fontSize(config.labelFont);
     for (let l = from; l < g.laid && (figure || y < top + boxH); l++) {
-      const u0 = l * upl;
-      const u1 = Math.min(g.total, u0 + upl);
+      const u0 = lineStart(g, l);
+      const u1 = lineEnd(g, l);
       const a = lineAxis(ctx.axis, g, u0, u1);
       const i = strips.add(a, 0, 0, y, u0);
       const k0 = i * nb;
@@ -369,15 +439,22 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
   },
   followWindow(section, axis, viewport, ctx) {
     const params = textParams(section.params);
-    const g = textGeometry(axis.total, params, ctx.width, viewport?.scale, ctx.heights, ctx.config, ctx.text);
+    const g = textGeometry(
+      axis.total,
+      params,
+      ctx.width,
+      viewport?.scale,
+      ctx.heights,
+      ctx.config,
+      ctx.text,
+      axis.offsets,
+    );
     const pitch = g.lineHeight + g.lineGap;
     const boxH = params.height ?? Math.min(g.laid * pitch, ctx.config.text.maxHeight);
-    const anchor = Math.max(0, Math.min(viewport?.start ?? 0, g.total));
-    const first = Math.floor(anchor / g.unitsPerLine);
-    const frac = anchor / g.unitsPerLine - first;
-    const lines = Math.ceil(boxH / pitch + frac);
-    const start = first * g.unitsPerLine;
-    return { start, end: Math.min(g.total, start + Math.max(1, lines) * g.unitsPerLine) };
+    lineFrac(g, Math.max(0, Math.min(viewport?.start ?? 0, g.total)), LineFrac);
+    const first = LineFrac.line;
+    const lines = Math.max(1, Math.ceil(boxH / pitch + LineFrac.frac));
+    return { start: lineStart(g, first), end: lineEnd(g, Math.min(g.lines - 1, first + lines - 1)) };
   },
   sameKey(a, b) {
     if (a === b) return true;
@@ -417,8 +494,9 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
   },
 };
 
-/** The point a gutter's hit reads, reused. */
+/** The point a gutter's hit reads, and a unit's line and fraction, reused. */
 const GutterPoint = new PlacePoint();
+const LineFrac = { line: 0, frac: 0 };
 
 function firstShown(h: Float64Array, k0: number, nb: number): number {
   for (let j = 0; j < nb; j++) if (h[k0 + j] > 0) return j;
@@ -444,16 +522,18 @@ function placed(c: NavContext): TextPlacement | undefined {
 
 /** The px from the first line's top to an anchor (a display unit, fractional within its line). */
 function topOf(p: TextPlacement, anchor: number): number {
-  const g = p.geometry!;
-  const line = Math.min(p.heights.length - 1, Math.floor(anchor / g.unitsPerLine));
-  if (line < 0) return 0;
-  return p.lineTop(line) + (anchor / g.unitsPerLine - line) * p.heights[line];
+  if (!p.heights.length) return 0;
+  lineFrac(p.geometry!, anchor, LineFrac);
+  const line = Math.min(p.heights.length - 1, LineFrac.line);
+  return p.lineTop(line) + LineFrac.frac * p.heights[line];
 }
 
 /** The anchor at px `y` from the first line's top. */
 function anchorAt(p: TextPlacement, y: number): number {
   p.locate(y);
-  return (p.lineAt + p.frac) * p.geometry!.unitsPerLine;
+  const g = p.geometry!;
+  const a = lineStart(g, p.lineAt);
+  return a + p.frac * (lineEnd(g, p.lineAt) - a);
 }
 
 /**
@@ -479,10 +559,16 @@ export const TextNav: SectionNav = {
     // breaking's own arithmetic at the new cell)
     const cell = Math.max(c.minScale ?? 0, scale);
     const gap = g.group > 0 ? ((g.gap - g.inline) / g.cell) * cell + g.inline : 0;
-    const upl0 = g.unitsPerLine;
     const upl1 = unitsPerLineOf(Math.max(cell, g.avail), cell, g.group, gap);
-    const lines = Math.floor(at / upl0) - v.start / upl0;
-    const start = Math.max(0, Math.floor(at / upl1) * upl1 - lines * upl1);
+    lineFrac(g, v.start, LineFrac);
+    const lines = lineOf(g, at) - LineFrac.line - LineFrac.frac;
+    // the new breaking's lines (pieces breaking lines: their starts again at the new width)
+    const next = { starts: g.starts ? pieceStarts(g.total, upl1, g.pieces) : undefined, unitsPerLine: upl1 };
+    const l1 = lineOf(next, at) - lines;
+    const whole = Math.floor(l1);
+    const a = lineStart(next, Math.max(0, whole));
+    const b = next.starts ? (whole + 1 < next.starts.length ? next.starts[whole + 1] : g.total) : a + upl1;
+    const start = whole < 0 ? 0 : Math.max(0, a + (l1 - whole) * (b - a));
     return TextNav.clamp(c, { ...v, start, end: start + (v.end - v.start), scale });
   },
   fit(_c, v) {
@@ -496,8 +582,8 @@ export const TextNav: SectionNav = {
     // in view: from the anchor's top to the box's bottom; the range's lines from its first line's top to its last's
     // bottom (no more than a box: a long range shows its first lines)
     const top = topOf(p, v.start);
-    const first = Math.min(p.heights.length - 1, Math.floor(start / g.unitsPerLine));
-    const last = Math.min(p.heights.length - 1, Math.floor(Math.max(start, end - 1) / g.unitsPerLine));
+    const first = Math.min(p.heights.length - 1, lineOf(g, start));
+    const last = Math.min(p.heights.length - 1, lineOf(g, Math.max(start, end - 1)));
     const y0 = p.lineTop(first);
     const y1 = Math.min(p.lineTop(last) + p.heights[last] - g.lineGap, y0 + p.box.height);
     if (y0 >= top && y1 <= top + p.box.height) return v;
@@ -506,22 +592,25 @@ export const TextNav: SectionNav = {
     return TextNav.clamp(c, { ...v, start: anchorAt(p, Math.max(0, to)) });
   },
   focus(c, v, start) {
-    const p = placed(c);
-    const upl = p?.geometry?.unitsPerLine ?? 1;
-    return TextNav.clamp(c, { ...v, start: Math.floor(Math.max(0, start) / upl) * upl });
+    const g = placed(c)?.geometry;
+    return TextNav.clamp(c, { ...v, start: g ? lineStart(g, lineOf(g, Math.max(0, start))) : Math.max(0, start) });
   },
   step(c, offset, dir: StepDir) {
     const last = c.total - 1;
     if (dir === 'home') return 0;
     if (dir === 'end') return last;
-    const p = placed(c);
-    const upl = p?.geometry?.unitsPerLine ?? 1;
-    const d = dir === 'left' ? -1 : dir === 'right' ? 1 : dir === 'up' ? -upl : upl;
-    const next = offset + d;
-    if (next >= 0 && next <= last) return next;
-    // down from the line above the last, shorter: the last unit
-    if (dir === 'down' && Math.floor(offset / upl) < Math.floor(last / upl)) return last;
-    return -1;
+    if (dir === 'left' || dir === 'right') {
+      const next = offset + (dir === 'left' ? -1 : 1);
+      return next >= 0 && next <= last ? next : -1;
+    }
+    const g = placed(c)?.geometry;
+    if (!g) return -1;
+    // the same column on the line above or below, its last unit when that line is shorter
+    const l = lineOf(g, offset);
+    const to = l + (dir === 'up' ? -1 : 1);
+    if (to < 0 || to >= g.lines) return -1;
+    const a = lineStart(g, to);
+    return Math.min(a + (offset - lineStart(g, l)), lineEnd(g, to) - 1, last);
   },
   clamp(c, v) {
     const p = placed(c);

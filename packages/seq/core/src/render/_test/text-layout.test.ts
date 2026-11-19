@@ -13,6 +13,8 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import {
+  lineOf,
+  lineStart,
   type NavContext,
   PlacePoint,
   recordDrawLists,
@@ -146,6 +148,45 @@ describe('the text layout', () => {
     const t = text(f.layout.sections[0]);
     const starts = t.marks.filter((m) => m.anchor === 2).map((m) => m.text);
     expect(starts.slice(0, 2)).toEqual(['0', String(t.geometry!.unitsPerLine)]);
+  });
+
+  it('`text.pieceBreak: line`: a piece edge starts a line; steps, focus and clamp follow the lines', async () => {
+    const b = createSeqSpec({ title: 'pieces' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: P53 });
+    const d = b.data.ranges('d', {
+      target: p,
+      rows: { start: Int32Array.from([0, 94]), end: Int32Array.from([61, 292]), id: ['TAD', 'DBD'] },
+    });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      v.section('protein', { of: p, pieces: d }).track('letters').layer('letters', { type: 'letters' });
+    });
+    const s = await settle(b.build(), [], { text: { pieceBreak: 'line', maxHeight: 2000 } });
+    const f = await s.frame({ size: Size });
+    const t = text(f.layout.sections[0]);
+    const g = t.geometry!;
+    const upl = g.unitsPerLine;
+    // the first piece (61 units) in lines of upl, the second from a line of its own
+    const firsts = [];
+    for (let i = 0; i < t.strips.n; i++) firsts.push(t.strips.axes[i].u0);
+    const second = Math.ceil(61 / upl);
+    expect(firsts[second]).toBe(61);
+    expect(t.strips.axes[second - 1].u1).toBe(61);
+    expect(g.lines).toBe(second + Math.ceil((292 - 94) / upl));
+    // every unit is placed once, `at` its inverse
+    const pt = new PlacePoint();
+    for (let u = 0; u < 61 + 198; u += 7) {
+      expect(t.place(u + 0.5, pt)).toBe(true);
+      const page = { x: pt.x, y: pt.y };
+      expect(t.at(page.x, page.y, pt)).toBe(true);
+      expect(Math.floor(pt.offset)).toBe(u);
+    }
+    const c: NavContext = { total: 259, width: 600, height: 400, cyclic: false, maxScale: 32, placement: t };
+    // down from the line above the short one: its last unit; then the next piece's line, the same column
+    expect(TextNav.step(c, (second - 1) * upl - 2, 'down')).toBe(60);
+    expect(TextNav.step(c, (second - 1) * upl + 0, 'down')).toBe(61);
+    expect(TextNav.step(c, 61 + 3, 'up')).toBe((second - 1) * upl + 3);
+    // a unit's line and its line's start, as a focus reads them
+    expect(lineStart(g, lineOf(g, 70))).toBe(61);
   });
 
   it('too many lines are said, and the lines past the bound are not laid out', async () => {

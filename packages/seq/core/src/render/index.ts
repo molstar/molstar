@@ -88,6 +88,9 @@ export {
 } from './layer-type.js';
 export { PlacePoint, StripPlacement, Strips, WarpKind } from './layout/strips.js';
 export {
+  lineEnd,
+  lineOf,
+  lineStart,
   lineWidthOf,
   type TextGeometry,
   TextLayout,
