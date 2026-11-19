@@ -514,3 +514,12 @@ The fourth slice builds it, beside the structure lanes. ST3's "color by this tra
    opening the menu? Recommended **yes**.
 8. Should the geometry (`viewer.headers`) be built now and a host's widget slot wait until a host asks? Recommended
    **yes**.
+
+## Decided by the author (2026-11-19)
+
+1. **Changed**: "can we support both?": the slots and chips drawn on the canvas by default, and a host's DOM parts
+   (from `@molstar/ui`) placed over the same header geometry (gap 8) instead; one set of entries for both.
+2. Yes. 3. Yes. 4. Yes.
+5. **Changed**: "configurable behavior again so it's the composing app's decision": the secondary click is the
+   `headers` behavior's param (Seq\*'s menu or the browser's), Shift+secondary click always the browser's.
+6. Yes. 7. Yes. 8. Yes.

@@ -427,3 +427,16 @@ writer, and beside the track header parts lane, which draws the action.
 6. Should the fake viewer read its own chain table recorded from the mmCIF, not Seq\*'s nodes? Recommended **yes**.
 7. Drop `structure` as a map kind, so that a reference maps to the entity's molecule by `offset`, `segments` or
    `alignment`, with status from `observed` and the letters? Recommended **yes** (maps.md changes).
+
+## Decided by the author (2026-11-19)
+
+1. Yes ("rest as recommended").
+2. **Changed**: "this should be provided by the application layer anyway": Seq\* declares no MolViewSpec expressions,
+   not even as plain types; the structure port speaks Seq\*'s own locations (systems, ranges, later units), and the
+   host's adapter translates them to MVS and back. The fake viewer is a host: its adapter does the translation.
+3. Yes ("the hover cards will usually be taken over by an app anyway and shown based on context").
+4. Yes. 5. Yes. 6. Yes.
+7. **No**: "we should still support the structure maps in the spec". The `structure` map kind stays. And "can we have
+   more than one map per entry?": several maps from one entry (one per chain or unit) already resolve as paths; two
+   different maps between the same pair of systems (SIFTS and an alignment) are ambiguous today (EC-22–27): the
+   revision designs a way to name which map a section or link goes through, with a recommendation.

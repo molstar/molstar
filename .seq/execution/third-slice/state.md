@@ -373,3 +373,8 @@ None.
   header parts draft (eight gaps). Decided (the author, 2026-11-19: "Caret, not first copy"): a pair's end on split
   copies with no copy named draws a caret, not the first copy (grids-and-rows.md); lane CE (fast) next. RX (strong)
   starts. Use findings: bug 5, missing design 5, look 3.
+- The author on the drafts (2026-11-19): structure syncing: no MVS types in Seq* (the application layer translates),
+  structure maps kept, and "more than one map per entry?" (a choice between two maps of one pair to design); header
+  parts: canvas and DOM both, the secondary click a behavior param; the rest as recommended. Decided sections
+  appended to both drafts; DR (strong) revises them at the next free slot. CF's drift decided: insertions labelled
+  with room, the rail below the ruler's border (to CF's fix round after its review). MV's review: a fix round sent.
