@@ -24,9 +24,24 @@ export const FontFiles: readonly string[] = [
   'LiberationMono-Bold.ttf',
 ].map((f) => `${Dir}${f}`);
 
+const MonoRole = /mono|menlo|consolas|courier/i;
+
+/**
+ * The SVG with each `font-family` resolved to a bundled family: a stack naming a mono face (the token table's mono role)
+ * to Liberation Mono, any other to Liberation Sans. Why: resvg 2.6.2 drops a stack to its default family when an
+ * unknown family comes before a bundled one, and `monospace` ignores `monospaceFamily`, so the stacks cannot be left
+ * for it to resolve (the letters would draw in the sans).
+ */
+export function resolveFonts(svg: string): string {
+  return svg.replace(
+    /font-family="([^"]*)"/g,
+    (_, stack: string) => `font-family="${MonoRole.test(stack) ? Families.mono : Families.sans}"`,
+  );
+}
+
 /** An SVG string as a PNG through resvg: zoomed by the request's scale, bundled fonts only. */
 export const resvgRasterizer: Rasterizer = (svg, request) => {
-  const resvg = new Resvg(svg, {
+  const resvg = new Resvg(resolveFonts(svg), {
     fitTo: { mode: 'zoom', value: request.scale },
     font: {
       loadSystemFonts: false,

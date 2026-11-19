@@ -98,7 +98,7 @@ describe('the SVG backend', () => {
     expect(svg).toContain('<text x="12.75 18.25" y="15.33" text-anchor="middle"');
     // the image one `<image>`, its pixels a PNG data URL (the PNG's signature in base64), never smoothed
     expect(svg).toMatch(
-      /<image x="10" y="30" width="[\d.]+" height="4" preserveAspectRatio="none" style="image-rendering:pixelated" href="data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/=]+"\/>/,
+      /<image x="10" y="30" width="[\d.]+" height="4" preserveAspectRatio="none" image-rendering="optimizeSpeed" href="data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/=]+"\/>/,
     );
     expect(svg).toContain('mask="url(#f1)"');
     // ids take a prefix, so two documents inlined in one page do not collide

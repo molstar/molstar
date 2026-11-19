@@ -7,9 +7,9 @@
 // The render CLI in process: SVG and PNG outputs, the spec's encodings, the exit codes, the issues printed one a
 // line, and the headless asset policy (the spec's folder only, no network without a host).
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { ExitCode, formatIssue, run, Usage } from '../cli.js';
 import { decodePng, JsonText, p53FromFile, p53Letters, P53, p53Tracks, scratch, SexprText } from './fixture.js';
 
@@ -128,22 +128,105 @@ describe('seqx-render', () => {
       expect(readFileSync(o, 'utf8')).toContain('data-seq-settled="true"');
     });
 
-    it('refuses a file outside the spec’s folder and every URL without --allow-host', async () => {
+    it('refuses a file outside the spec folder and every URL without --allow-host, saying why', async () => {
       writeFileSync(join(dir.dir, 'outside.fa'), `>p53\n${P53}\n`);
       mkdirSync(join(dir.dir, 'inner'), { recursive: true });
-      for (const uri of [
-        '../outside.fa',
-        join(dir.dir, 'outside.fa'),
-        'https://example.org/p53.fa',
-        'file:///etc/hosts',
-      ]) {
+      const causes: [string, string[], string][] = [
+        ['../outside.fa', [], 'outside the base folder'],
+        [join(dir.dir, 'outside.fa'), [], 'outside the base folder'],
+        [`file://${join(dir.dir, 'outside.fa')}`, [], 'outside the root'],
+        ['https://example.org/p53.fa', [], 'the scheme https: is not allowed'],
+        ['https://example.org/p53.fa', ['other.example.org'], 'the host example.org is not allowed'],
+      ];
+      for (const [uri, hosts, cause] of causes) {
         const s = dir.file('inner/spec.json', JsonText(p53FromFile(uri)));
         const o = join(dir.dir, 'inner', 'refused.svg');
-        const r = await cli(s, '-o', o, '--timeout', '2000');
-        expect([uri, r.code === ExitCode.Ok]).toEqual([uri, false]);
-        expect(r.err, uri).toMatch(/not read|refused|seq\./);
+        const r = await cli(s, '-o', o, '--timeout', '2000', ...hosts.flatMap((h) => ['--allow-host', h]));
+        expect([uri, r.code]).toEqual([uri, ExitCode.Spec]);
+        expect(r.err, uri).toContain(`seqx-render.asset.refused: The location is not read: ${uri} (${cause}`);
         expect(() => readFileSync(o)).toThrow();
       }
+    });
+
+    it('refuses a link in the spec folder that leads out of it, and follows one that stays', async () => {
+      mkdirSync(join(dir.dir, 'links'), { recursive: true });
+      writeFileSync(join(dir.dir, 'secret.fa'), `>p53\n${P53}\n`);
+      writeFileSync(join(dir.dir, 'links', 'real.fa'), `>p53\n${P53}\n`);
+      symlinkSync(join(dir.dir, 'secret.fa'), join(dir.dir, 'links', 'escape.fa'));
+      symlinkSync(join(dir.dir, 'links', 'real.fa'), join(dir.dir, 'links', 'inside.fa'));
+      const o = join(dir.dir, 'links', 'out.svg');
+      const bad = await cli(dir.file('links/escape.json', JsonText(p53FromFile('escape.fa'))), '-o', o);
+      expect(bad.code).toBe(ExitCode.Spec);
+      expect(bad.err).toContain('a link that leads outside the root');
+      expect(() => readFileSync(o)).toThrow();
+      const ok = await cli(dir.file('links/inside.json', JsonText(p53FromFile('inside.fa'))), '-o', o);
+      expect([ok.code, ok.err]).toEqual([0, '']);
+    });
+
+    it('reads from a host it is allowed (https only), by the policy: no credentials, redirects refused', async () => {
+      const seen: { url: string; init?: RequestInit }[] = [];
+      vi.stubGlobal('fetch', async (url: string | URL | Request, init?: RequestInit) => {
+        seen.push({ url: String(url), init });
+        return new Response(`>p53\n${P53}\n`);
+      });
+      const s = dir.file('net.json', JsonText(p53FromFile('https://data.example.org/p53.fa')));
+      const o = join(dir.dir, 'net.svg');
+      const r = await cli(s, '-o', o, '--allow-host', 'data.example.org');
+      expect([r.code, r.err]).toEqual([0, '']);
+      expect(seen.map((x) => x.url)).toEqual(['https://data.example.org/p53.fa']);
+      expect(seen[0].init?.redirect).toBe('error');
+      expect(seen[0].init?.credentials).toBe('omit');
+      expect(readFileSync(o, 'utf8')).toContain('data-seq-settled="true"');
+    });
+  });
+
+  describe('robustness', () => {
+    it('never throws: a bug is exit 5 with a message, and nothing is written', async () => {
+      const o = join(dir.dir, 'boom.png');
+      let err = '';
+      const code = await run([spec, '-o', o], { out: () => {}, err: (t) => (err += t) }, () => {
+        throw new Error('boom');
+      });
+      expect(code).toBe(ExitCode.Internal);
+      expect(err).toContain('internal error: boom');
+      expect(() => readFileSync(o)).toThrow();
+    });
+
+    it('writes whole or not at all: no temp file is left, and a link at the output is replaced, never followed', async () => {
+      const before = readdirSync(dir.dir).filter((f) => f.endsWith('.tmp'));
+      // the output is a folder: the rename fails
+      mkdirSync(join(dir.dir, 'a-folder.svg'));
+      const r = await cli(spec, '-o', join(dir.dir, 'a-folder.svg'));
+      expect(r.code).toBe(ExitCode.Io);
+      expect(readdirSync(dir.dir).filter((f) => f.endsWith('.tmp'))).toEqual(before);
+      // a link at the output: its target is untouched
+      writeFileSync(join(dir.dir, 'target.svg'), 'keep');
+      symlinkSync(join(dir.dir, 'target.svg'), join(dir.dir, 'link.svg'));
+      expect((await cli(spec, '-o', join(dir.dir, 'link.svg'))).code).toBe(0);
+      expect(readFileSync(join(dir.dir, 'target.svg'), 'utf8')).toBe('keep');
+      expect(lstatSync(join(dir.dir, 'link.svg')).isSymbolicLink()).toBe(false);
+      expect(readFileSync(join(dir.dir, 'link.svg'), 'utf8')).toMatch(/^<svg /);
+    });
+
+    it('refuses a picture past the pixel bounds (a usage error), before it is rasterized', async () => {
+      const o = join(dir.dir, 'huge.png');
+      for (const args of [
+        ['--width', '20000'],
+        ['--width', '9000', '--scale', '2'],
+        ['--width', '400', '--height', '9000', '--scale', '2', '--dpr', '2'],
+        // each side within the bound, the area past it
+        ['--width', '16000', '--height', '7000'],
+      ]) {
+        const r = await cli(spec, '-o', o, ...args);
+        expect([args.join(' '), r.code]).toEqual([args.join(' '), ExitCode.Usage]);
+      }
+      expect(() => readFileSync(o)).toThrow();
+    });
+
+    it('warns that --scale is for PNGs when the output is an SVG', async () => {
+      const r = await cli(spec, '-o', join(dir.dir, 'scaled.svg'), '--scale', '2');
+      expect(r.code).toBe(0);
+      expect(r.err).toContain('warning: --scale applies to PNG output only');
     });
   });
 });

@@ -7,7 +7,17 @@
 // `renderPng` over resvg: the PNG is the SVG's picture (probe pixels of each track's rects in both themes, at a scale),
 // deterministic, with the bundled fonts only (text draws ink, the same on every machine).
 
-import { type DrawLists, renderPng, renderSvg, walkPass } from '@molstar/seqx-core/render';
+import {
+  bundledWidth,
+  DefaultFonts,
+  type DrawLists,
+  DrawLists as Lists,
+  drawListsToSvg,
+  escapeXml,
+  renderPng,
+  renderSvg,
+  walkPass,
+} from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { resvgRasterizer } from '../rasterize.js';
 import { decodePng, p53Tracks } from './fixture.js';
@@ -125,5 +135,60 @@ describe('renderPng', () => {
     const seen = new Set<string>();
     for (let y = y0 - 9; y <= y0; y++) for (let x = x0 - 4; x <= x0 + 4; x++) seen.add(img.at(x, y).join(','));
     expect(seen.size).toBeGreaterThan(2);
+  });
+});
+
+/** The dark pixels' horizontal extent in a decoded picture (the ink of black text on white). */
+function inkWidth(img: ReturnType<typeof decodePng>): number {
+  let lo = img.width;
+  let hi = -1;
+  for (let y = 0; y < img.height; y++)
+    for (let x = 0; x < img.width; x++)
+      if (img.at(x, y)[0] < 128) {
+        lo = Math.min(lo, x);
+        hi = Math.max(hi, x);
+      }
+  return hi - lo + 1;
+}
+
+describe('fonts', () => {
+  // the token table's own stacks, as the SVG writes them: the roles must reach the bundled families
+  const ink = async (stack: string, role: 'sans' | 'mono') => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="80" viewBox="0 0 400 80">' +
+      '<rect width="400" height="80" fill="#ffffff"/>' +
+      `<text x="20" y="60" font-family="${escapeXml(stack)}" font-size="40" fill="#000000">iiiiMMMM</text></svg>`;
+    const png = await resvgRasterizer(svg, { width: 400, height: 80, scale: 1 });
+    return { width: inkWidth(decodePng(png)), expected: bundledWidth(`40px ${role}`, 'iiiiMMMM') };
+  };
+
+  it('the mono role draws in the mono face (a fixed advance) and the sans role in the sans', async () => {
+    const mono = await ink(DefaultFonts.mono, 'mono');
+    const sans = await ink(DefaultFonts.sans, 'sans');
+    // the ink is the advances less the side bearings of the first and last letters (under 0.2 em)
+    for (const f of [mono, sans]) expect(f.expected - f.width, JSON.stringify(f)).toBeGreaterThanOrEqual(0);
+    expect(mono.expected - mono.width).toBeLessThan(8);
+    expect(sans.expected - sans.width).toBeLessThan(8);
+    // the two roles differ (the wrong font gives one width for both)
+    expect(mono.width - sans.width).toBeGreaterThan(15);
+  });
+});
+
+describe('images', () => {
+  it('stay crisp: a 2 × 2 image drawn at 40 × 40 keeps exact cell colors, not a blend', async () => {
+    const lists = new Lists();
+    lists.width = 40;
+    lists.height = 40;
+    // red, green / blue, white
+    const data = Uint8Array.from([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255]);
+    lists.writer('data').image(0, 0, 40, 40, { width: 2, height: 2, data });
+    const svg = drawListsToSvg(lists);
+    expect(svg).toContain('image-rendering="optimizeSpeed"');
+    const img = decodePng(await resvgRasterizer(svg, { width: 40, height: 40, scale: 1 }));
+    // away from the cells' centers, where a smoothed image would blend its neighbors
+    expect(img.at(15, 15)).toEqual([255, 0, 0, 255]);
+    expect(img.at(24, 15)).toEqual([0, 255, 0, 255]);
+    expect(img.at(15, 24)).toEqual([0, 0, 255, 255]);
+    expect(img.at(24, 24)).toEqual([255, 255, 255, 255]);
   });
 });

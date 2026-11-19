@@ -194,10 +194,10 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       );
     },
     image(l, i) {
-      // one `<image>` a tile, its pixels a PNG data URL, never smoothed (a sample a device pixel or more)
+      // one `<image>` a tile, its pixels a PNG data URL, never smoothed (`image-rendering` as an attribute: resvg reads no `pixelated` and, given a style, ignores the attribute; browsers read `optimizeSpeed` as nearest)
       const img = l.images[i];
       body.push(
-        `<image x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}" preserveAspectRatio="none" style="image-rendering:pixelated" href="${pngDataUrl(img.width, img.height, img.data)}"/>`,
+        `<image x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}" preserveAspectRatio="none" image-rendering="optimizeSpeed" href="${pngDataUrl(img.width, img.height, img.data)}"/>`,
       );
     },
     clip(l, i) {

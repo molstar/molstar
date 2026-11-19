@@ -1994,11 +1994,12 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - **Recording** (`recordDrawLists`): a line a primitive, pass by pass, numbers to two decimals, colors `#rrggbbaa`
   (`none` for no color): the committed records' format.
 - **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
-  images as `<image>`s of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as
-  gradient masks, metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character
-  XML forbids (a control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one,
-  so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is
-  written only as a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
+  images as `<image>`s (`image-rendering="optimizeSpeed"`: crisp; an attribute, since resvg ignores a style it cannot
+  read) of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as gradient masks,
+  metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character XML forbids (a
+  control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one, so a glyph run
+  stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is written only as
+  a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
   (`_test/svg-escaping.test.ts`).
 - **PNG** (`renderPng`, `export-png.ts`): the SVG export rasterized, so a PNG is the SVG's picture (the same options,
   the same figure); the rasterizer is a port (`Rasterizer`: the SVG string and its size and `scale` × `dpr` to PNG
