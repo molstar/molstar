@@ -40,11 +40,11 @@ export function clampWindow(c: NavContext, v: Viewport): Viewport {
 
 /** The tracks layout's arithmetic: a window of display units across `width` px. */
 export const TracksNav: SectionNav = {
-  pan(c, v, dx, dy) {
+  pan(c, v, dx, dy, x) {
     const top = Math.max(0, (v.top ?? 0) + dy);
     // a row of blocks pans through its inverse: what is under the pointer moves with it over chips and gaps
     const row = rowOf(c);
-    const moved = row ? rowPan(row, v, dx) : undefined;
+    const moved = row ? rowPan(row, v, dx, x) : undefined;
     if (moved) return clampWindow(c, { ...moved, ...(dy ? { top } : {}) });
     const d = (dx * (v.end - v.start)) / c.width;
     return clampWindow(c, { ...v, start: v.start + d, end: v.end + d, ...(dy ? { top } : {}) });
