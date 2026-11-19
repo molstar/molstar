@@ -23,7 +23,9 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
   `check:workspace`; sizes over the guides (reset at the close; the core split, a gap, saves ~17 kB); no medium tests.
 - TX's interface merged (`c6282f553`, with the section-cache fix `9cfc6801f`): its review's seven findings fixed. TX
   then built the text layout, its targets and the p53 text figure (branch `seq/tx-text`), leaving the viewer work:
-  that is lane TV. An allocation regression found (drift/allocation-stage1.md).
+  that is lane TV. An allocation regression found and bisected to TH (42.6 → 72.4 KB a pan).
+- TA merged (`24db27a58`): the regression's cause was `Color.contrast` per label ink (boxed doubles); "p53 on its
+  gene, whole protein" back to 49.9 KB against 64; the review found no correctness bug, its test gap fixed.
 
 ## In progress
 
@@ -49,6 +51,7 @@ Stage 2's gate after TV and RB. The early use gate is deferred.
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stage 2, TA (review) | 0 (a test gap) | 0 | 0 |
 | stage 2, TX's interface (review) | 5 (rings drew no emphasis; contract parts unwired; place not inverse of at; stale glyph values; a `.seq/` edit) | 0 | 0 |
 | stage 1, TH (review and look) | 8 (log binned; clamp unapplied; the MolViewSpec round trip; mid not diverging; value-color overwriting; two legends off their scale; layer.filter called blocked) | 1 (a safe substitute that is not safe) | 3 (two stories empty; the view not on SL's layers; dark letters dim) |
 | stage 1, SL (review and look) | 4 (heads on the wrong piece off-tile; hidden items untick'd, a design departure; secondary codes misread; an untested stem hit) | 0 | 1 (labels struck through) |
