@@ -247,9 +247,10 @@ describe('the colors and the header', () => {
     expect(tree.labelX).toBe(plain.labelX + 124);
     expect(tree.labelText).toContain('HBA/1-6');
     const narrow = rowsLay(
-      await (await settle(spec({}, {}).build(), [], { labelWidth: 40 })).frame(at({ rowScale: 20 })),
+      await (await settle(spec({}, {}).build(), [], { labelWidth: 20 })).frame(at({ rowScale: 20 })),
     );
-    for (const t of narrow.labelText) expect(t.endsWith('…') || t.length <= 3).toBe(true);
+    expect(narrow.labelText.some((t) => t.endsWith('…'))).toBe(true);
+    for (const t of narrow.labelText) expect(Labels.includes(t) || t.endsWith('…')).toBe(true);
     for (let k = 0; k < narrow.labelW.length; k++) expect(narrow.labelW[k]).toBeLessThanOrEqual(narrow.labelMax);
   });
 

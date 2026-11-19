@@ -42,6 +42,19 @@ describe('Globins stories, headless', () => {
       expect(r.svg.length).toBeGreaterThan(1000);
     });
 
+  it('family and folded: labels read whole beside the tree (its own width), and the wedges stop before them', async () => {
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'family')!, { gene: '' });
+    const fam = rowsLay(viewer)!;
+    expect(fam.treeX1 - fam.treeX0).toBe(120);
+    expect(fam.labelText).toContain('HBB_HUMAN/1-147');
+    viewer.retire();
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'folded')!, { gene: '' });
+    const folded = rowsLay(viewer)!;
+    const summaries = folded.labelText.filter((t) => /\+\d+$/.test(t));
+    expect(summaries.length).toBe(2);
+    for (let k = 0; k + 4 < folded.wedges.length; k += 5) expect(folded.wedges[k + 2]).toBeLessThan(folded.labelX);
+  });
+
   it('scale at the fit: the rows are image tiles with their pixels drawn, and the export carries them as images', async () => {
     viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale')!, { gene: '' });
     // every row in the band: 10,000 rows in 240 px

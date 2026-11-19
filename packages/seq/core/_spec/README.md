@@ -1402,12 +1402,14 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   samples, opaque by the majority's share; the base level holds none: whole) in the shared image cache, offset from the
   pinned band. The pinned rows are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the
   scrolled rows clipped below it. A letter-class reduction (`rows.reduce: letter`) is not built (the package's TODO).
-- **The header**, in the label column: the tree (`tree_width`, 120: the view's label column widens by the widest tree of
-  its tracks sections, so every section's data starts at one x and the labels keep their own width; branch lengths, else
-  depth; a folded clade a wedge at its summary row; its geometry in display rows kept by the display's version, so a pan
-  makes nothing sized by the nodes), labels (from `rows.labelMinPx`, 8 px a row; cut with an ellipsis past their room; a
-  summary row "first +n"), the first residue numbers right-aligned before the data box and the last after it, in a right
-  gutter the view keeps when a rows layer draws numbers (`numbers: gutters`; a row of gaps has none).
+- **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
+  column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
+  the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in
+  display rows kept by the display's version (a pan makes nothing sized by the nodes); labels in the items' font (a
+  row's label is data; a Pfam label, `NAME/1-147`, reads whole) from `rows.labelMinPx` (8 px a row), cut with an
+  ellipsis past their room, a summary row "first +n"; the first residue numbers right-aligned before the data box and
+  the last after it, in a right gutter the view keeps when a rows layer draws numbers (`numbers: gutters`; a row of gaps
+  has none).
 - **Hits** (the header's through the band's gutter: a layer of two axes is asked there), written into one scratch hit (a
   hover allocates no hit object; a clade's element and extent made once a display): a cell is `cell` with its column
   (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the rows

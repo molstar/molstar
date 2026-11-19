@@ -13,7 +13,7 @@ import type { Channel, MeasureEntry } from '@molstar/seqx-core/theme/index';
 import type { Axis, ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
-import type { RenderConfig } from './config.js';
+import { fontSize, type RenderConfig } from './config.js';
 import {
   Anchor,
   drawPass,
@@ -1105,14 +1105,15 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   lay.treeX1 = left + treeW;
   if (treeW > 0) layoutTree(lay, lay.clades!, left, treeW);
   if (rs < config.rows.labelMinPx) return;
-  lay.labelFont = rs >= 16 ? config.labelFont : config.itemFont;
+  // a row's label is data, as an item's: the items' font (a Pfam label, NAME/1-147, reads whole in the column)
+  lay.labelFont = config.itemFont;
   lay.labelX = left + treeW + (treeW ? 4 : 0);
   const numbers = prep.numbers === 'gutters';
   const numberW = numbers ? text.measure(config.itemFont, '00000') : 0;
   lay.numberX = right;
   lay.numberRightX = box.x + box.width + config.labelGap;
   lay.labelMax = Math.max(0, right - numberW - 4 - lay.labelX);
-  const size = rs >= 16 ? 12 : 10;
+  const size = fontSize(config.itemFont);
   const add = (i: number) => {
     const e = lay.display.rowAt(i);
     const y = lay.rowY(i) + rs / 2 + size * 0.35;

@@ -680,8 +680,8 @@ function pendingPlacement(top: number, box: Box, heights: readonly number[], con
 
 /**
  * The rows' header in the view's one label column (_spec/README.md "Render", The rows layer): a rows layer's tree in
- * tree order widens the label column by its width (the labels keep theirs), its residue numbers take a right gutter
- * (the last number a row). The widest of a view's tracks sections, so every section's data starts at one x.
+ * tree order and its first residue numbers widen the label column by their width (the labels keep theirs), its last
+ * numbers take a right gutter. The widest of a view's tracks sections, so every section's data starts at one x.
  */
 function rowsHeader(view: ResolvedView): { readonly tree: number; readonly numbers: boolean } {
   let tree = 0;
@@ -718,7 +718,10 @@ function numbersGutter(text: TextMetrics, config: RenderConfig): number {
 
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
   const header = rowsHeader(input.view);
-  const config = widened(input.config ?? DefaultRenderConfig, header.tree);
+  const base = input.config ?? DefaultRenderConfig;
+  // the first numbers take their own room in the label column, the labels keep theirs
+  const first = header.numbers ? Math.ceil(input.text.measure(base.itemFont, '00000')) + 4 : 0;
+  const config = widened(base, header.tree + first);
   const right = header.numbers ? numbersGutter(input.text, config) : 0;
   const extents = new Map<string, [number, number]>();
   const theme: ThemeContext = {
