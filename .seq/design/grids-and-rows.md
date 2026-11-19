@@ -320,7 +320,12 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   field named by no row is reported once (`seq.render.rows.column`).
 - **Titles** in the band above the rows, beside the fixed tracks' labels; a click on one orders the rows by it
   (`order: { field }`, a second click the other direction). Hover names the value; a column is hit as its row's
-  header.
+  header. **A cut value shows whole only under the pointer** (decided, the author, 2026-11-19: "the full labels
+  should only display when you actually hover on the species column ... otherwise it obscures the data"): a column's
+  cell cut short is drawn whole (over the data, to the view's edge) only while the pointer is on that cell; a hover
+  elsewhere on the row (its data, its label) tints the row and leaves its columns cut; the keyboard cursor on the
+  row's header draws them whole, as the pointer on them would. Why: the expanded text covered the row's own residues
+  while the user read them.
 - **Narrow**: columns yield before the label, right ones first, each down to a floor and then hidden (EC-107), a hidden
   count chip in the title band; the SVG and text figures draw the same columns.
 

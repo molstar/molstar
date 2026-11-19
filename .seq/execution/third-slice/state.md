@@ -356,3 +356,7 @@ None.
 - MF merged: Features › Files › Many Sequences (one TSV, a target column, two sequences). Decided (the author,
   2026-11-19: "Behavior, on by default"): `linkedPairs` lights the pairs with an end in a hovered or selected range,
   a behavior on the public API in the default spec (viewer-models.md, the Design page); lane LP (strong) after MV.
+- HP (strong, a fourth-slice draft: track header parts) started. Decided (the author, 2026-11-19: "the full labels
+  should only display when you actually hover on the species column"): a row column's cut value whole only under the
+  pointer (grids-and-rows.md, the core `_spec`); lane RX (fast) at the next free slot. Use findings so far: bug 2,
+  missing design 4, look 1.

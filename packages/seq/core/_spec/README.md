@@ -2081,7 +2081,8 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   summary row alone; a pinned row's band at both its places, the scrolled rows' bands never over the pinned band). Why:
   the element is hovered, here and on linked sections.
 - **Emphasis along y**: the hover tints its row's band (a pinned row's at both its places) and its column within the
-  band and outlines the cell, and draws the row's column cells cut short whole in the `tip` pass: on an opaque surface
+  band and outlines the cell, and draws a column cell cut short whole in the `tip` pass only while the pointer is on
+  that cell (the cursor on the row's header: all of them), never from a hover on the row's data: on an opaque surface
   (the page's background, then the track's well, outlined in the hover ink, a squircle by the shape rule), growing right
   up to the view's edge where a longer text ends in an ellipsis (a number column's grows left); the selection's parts on
   the rows system as row bands, its rects of rows × columns as their cells, read over the display rows in view only (a

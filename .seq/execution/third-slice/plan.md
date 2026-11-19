@@ -415,6 +415,8 @@ and dark before the merge.
 - [ ] LP (strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
       (`briefs/lp-linked-pairs.md`).
 - [ ] HP (strong, a fourth-slice draft) track header parts, drafted (`briefs/hp-header-parts-draft.md`).
+- [ ] RX (fast, next free slot; the author, 2026-11-19) a row column's whole value only under the pointer
+      (`briefs/rx-row-column-tip.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
