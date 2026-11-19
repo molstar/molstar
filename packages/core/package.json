@@ -68,6 +68,16 @@
       "types": "./lib/repr/codecs/sexpr/index.d.ts",
       "import": "./lib/repr/codecs/sexpr/index.js"
     },
+    "./repr/codecs/msgpack": {
+      "molstar-src": "./src/repr/codecs/msgpack/index.ts",
+      "types": "./lib/repr/codecs/msgpack/index.d.ts",
+      "import": "./lib/repr/codecs/msgpack/index.js"
+    },
+    "./data/msgpack": {
+      "molstar-src": "./src/data/msgpack/index.ts",
+      "types": "./lib/data/msgpack/index.d.ts",
+      "import": "./lib/data/msgpack/index.js"
+    },
     "./task": {
       "molstar-src": "./src/task/index.ts",
       "types": "./lib/task/index.d.ts",
@@ -90,6 +100,8 @@
     "./data/immutable/*": null,
     "./data/immutable/_test/*": null,
     "./data/int/_test/*": null,
+    "./data/msgpack/_test/*": null,
+    "./data/text/_test/*": null,
     "./data/util/_test/*": null,
     "./math/_test/*": null,
     "./math/fourier-transform/_test/*": null,
@@ -102,6 +114,7 @@
     "./repr/builder/_test/*": null,
     "./repr/codec/_test/*": null,
     "./repr/codecs/json/_test/*": null,
+    "./repr/codecs/msgpack/_test/*": null,
     "./repr/codecs/sexpr/_test/*": null,
     "./repr/patch/*": null,
     "./repr/patch/_test/*": null,

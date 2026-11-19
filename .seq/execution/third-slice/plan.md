@@ -175,7 +175,8 @@ and dark before the merge.
       secondary structure, variants, values' line and area, ranges' line styles and arrowheads; each with its fallback.
 - [x] GATE: merged, reviewed, the checks green, sizes measured (headless rendering's room, Gate 0's question), gaps
       asked, the matrix cells this stage fills checked.
-- [ ] USE GATE (early, deferred: the loop does not wait): the author tries the p53 views for about ten minutes when
+- [x] USE GATE (met: the author used the views through stages 3–5, 2026-11-19: "i already tried stuff around too, that's
+      what a lot of my feedback was based on"; the findings are this plan's lanes CH to HL) (early, deferred: the loop does not wait): the author tries the p53 views for about ten minutes when
       back; findings fixed or placed, counted by kind (counted as "after stage N", the stage the loop had reached).
 
 ### Stage 2: layouts (two strong lanes, after stage 1)
@@ -239,7 +240,7 @@ and dark before the merge.
 - [x] FS's design (strong; the author, 2026-11-19: "we should have storybook example that load data from files too
       instead of just inlining the values"; JSON, MessagePack in both layouts, the MessagePack move to core): agreed
       2026-11-19 ("Ok as recommended", its 10 gaps), [files.md](../../design/files.md) with its Design page.
-- [ ] FS-A1 (strong, after SO): the MessagePack move to `@molstar/core/data/msgpack` and `repr/codecs/msgpack` (io
+- [x] FS-A1 (merged, after one fix round; strong, after SO): the MessagePack move to `@molstar/core/data/msgpack` and `repr/codecs/msgpack` (io
       re-exports), the delimited tokenizer at `@molstar/core/data/text/delimited` (hot `package.json` files through the
       orchestrator), `AssetReader.readBytes`, `OpenContext.limits`, the records runtime for TSV, CSV, JSON and
       MessagePack with the transform, the `seq` format's MessagePack, the conformance suite (files.md, Consequences).
@@ -344,13 +345,17 @@ and dark before the merge.
       the headless asset policy (EC-126), with its cold-start target.
 - [ ] AY (fast) titles in exported SVG, the cursor and hover announced, forced colors.
 - [ ] NOVICE PASS: a light agent plays a user in a visible browser with a task script per view; friction reported.
-- [ ] USE GATE (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
+- [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
 ### Stage 7: measure (orchestrator, light)
 
 - [ ] M3 the heavy lane and the opt-in tiers; the browser in a visible pane at dpr 2 (the alignment of 10,000 × 300,
       a ring, the text reflow, a story's frame); PNG export; the bundles.
+      Also a **minimal viewer's size** (the author, 2026-11-19: "this is for the default composition of the viewer? i
+      think a minimal one could be smaller"): a `viewer, minimal` row in `packages/seq/_measure/sizes.mjs` (tracks,
+      letters and ranges; no navigators, stories, editing, records runtime), what keeps it from shaking out found and
+      fixed; the guides stay guides for the default composition (the author: "i guess that's fine").
 - [ ] GATE: the author confirms or moves the targets the slice touched.
 
 ### Finalize

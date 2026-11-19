@@ -174,3 +174,8 @@ None.
 - Scheduled 2026-11-19 (the author, "ok as recommended"): HL (overlapping highlights), QS (Features/Query), the grid
   over a complex (in DC, its matrix read in FS-A2). Decided: the fourth slice's structure integration is a fake 3D
   viewer; the Mol\* integration waits for the new mol viewer (molecules.md decision 15, plan).
+- FS-A1 merged after one fix round (prototype keys, values at their rows, row issues reported through a new optional
+  `OpenedSource.issues`, the own system lazy, the seq runtime's sniff and bound, MessagePack loaded lazily). Checks in
+  the merge: tsc -b 0; quick lane seq+core+io 3201 passed; mvs and sequences 4698 passed; check:workspace 0; lint 0;
+  format 0. Sizes (split measure): reading a spec 201.0, headless 606.3, viewer default 973.8 kB. The author on sizes,
+  use gates and spellings recorded (plan stage 7, USE GATE, drift/themes-spellings.md).

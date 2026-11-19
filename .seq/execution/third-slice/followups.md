@@ -20,3 +20,7 @@
 - Structure integration, fourth slice (decided 2026-11-19): a fake 3D viewer demonstrates the syncing (hover, selection
   and focus both ways, "color by this track", chain maps) on the real ports and messages; the Mol\* integration and
   `Model` adapters wait for the new mol viewer that replaces Prism (plan, Out of scope).
+- Theme clause kinds as symbols (the author, 2026-11-19: "we could support optional aliases with symbols for = etc if
+  needed later"): optional aliases (`=`, `<`, `<=`, `>`, `>=`) read as the clause words; only when a user asks.
+- A minimal viewer's size (the author, 2026-11-19, on the size guides: "i guess that's fine. this is for the default
+  composition of the viewer? i think a minimal one could be smaller"): measured in stage 7 (M3).
