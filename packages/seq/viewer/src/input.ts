@@ -28,19 +28,19 @@ import {
   parseChord,
 } from '@molstar/seqx-viewer/bindings';
 import { changeKindOf } from './commands.js';
-import {
-  type HoverBehavior,
-  type HoverCardBehavior,
-  type KeysPanelBehavior,
-  isDragSelect,
-  type NavigateBehavior,
-  type NavigatorBehavior,
-  type RowsHandle,
-  type RowsRailGesture,
-  type RowsRailWindow,
-  type SelectBehavior,
-  type WindowBehavior,
+import type {
+  HoverBehavior,
+  HoverCardBehavior,
+  KeysPanelBehavior,
+  NavigateBehavior,
+  NavigatorBehavior,
+  RowsHandle,
+  RowsRailGesture,
+  RowsRailWindow,
+  SelectBehavior,
+  WindowBehavior,
 } from '@molstar/seqx-viewer/behaviors';
+import { isDragSelect } from '@molstar/seqx-viewer/behaviors/select';
 import { trackOfLayer } from '@molstar/seqx-viewer/behaviors/two-axes';
 import {
   type Anchor,

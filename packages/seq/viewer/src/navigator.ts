@@ -17,7 +17,9 @@ import {
   windowText,
 } from '@molstar/seqx-core/render';
 import { axisTotal, type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
-import { type NavigateBehavior, type NavigatorBehavior, windowIdle } from '@molstar/seqx-viewer/behaviors';
+import type { NavigateBehavior, NavigatorBehavior } from '@molstar/seqx-viewer/behaviors';
+// the module, not the barrel: the behaviors' providers make this model (an import cycle through the barrel)
+import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import type { ModifierState } from '@molstar/seqx-viewer/bindings';
 import type { ViewSnapshot } from '@molstar/seqx-viewer/models';
 import { DragSlop } from './input.js';
