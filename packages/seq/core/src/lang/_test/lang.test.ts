@@ -128,6 +128,11 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.source('s', { format: 'json', value: [1], index: 'x.idx' });
     return b.build();
   },
+  'seq.lang.snapshot.content': () => {
+    const b = createSeqSpec();
+    b.snapshots.snapshot('neither', {});
+    return b.build();
+  },
   'seq.lang.sequence.content': () => {
     const b = createSeqSpec();
     b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT', source: '/data/x' });

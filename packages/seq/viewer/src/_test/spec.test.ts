@@ -284,7 +284,12 @@ describe('SpecModel: story steps', () => {
       }).ok,
     ).toBe(true);
     expect(spec.step.value).toMatchObject({ id: 'zoom', applies: false });
-    expect(spec.shown.value).toBe(spec.root.value);
+    // the ops that still apply are shown, flagged: its height, not its insert (the root's track stays)
+    expect(heightOf(spec.shown.value)).toBe(40);
+    expect(resolveAddress(spec.shown.value, ['views', 'main', 'protein', 'note'])).toBe(
+      resolveAddress(spec.root.value, ['views', 'main', 'protein', 'note']),
+    );
+    expect(spec.step.value?.state.skipped).toBe(1);
     expect(spec.issues.value.map((i) => i.code)).toEqual(['seq.viewer.step.stale']);
   });
 });

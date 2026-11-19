@@ -20,13 +20,13 @@ import {
   merge3,
   type Patch,
   type PatchResult,
-  patchFromNode,
 } from '@molstar/core/repr/patch';
 import { hashNode, type Issue, issueOf, type Node, printAddress, resolveAddress } from '@molstar/core/repr/tree';
 import { checkSpecBounds, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-core/lang';
 // the change validators are their own entry: reading a spec carries no editing (core _spec, "Checks of a change")
 import { SeqPatchValidator, seqBoundsValidator, seqPatchValidator } from '@molstar/seqx-core/lang/changes';
 import { createResolver, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
+import { createStoryCache, type StepState, stateOf, stepPatchOf } from '@molstar/seqx-core/story';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
 import type {
@@ -42,7 +42,7 @@ import type {
 export type SpecChange = Node | ((root: Node) => Node);
 
 /** Why `apply` refused a whole root. */
-export type SpecRefusal = 'stale-revision' | 'out-of-bounds';
+export type SpecRefusal = 'stale-revision' | 'out-of-bounds' | 'frozen-step';
 
 export interface SpecApplyOptions {
   /** The revision the change was made against: refused when it is not the current one (EC-81). */
@@ -121,11 +121,9 @@ const PreviewApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidat
 
 /** A story step over what is shown: the language and its slots, refs followed, nothing else refused. */
 const StepApply: ApplyOptions = { language: SeqLanguage, validate: SeqValidateOptions, allowDangling: true };
+const StepIssueCodes = new Set(['seq.story.step.from', 'seq.story.step.form']);
 
 type Move = Changes['moved'][number];
-
-/** A stored patch node's patch, read once. */
-const StepPatches = new WeakMap<Node, Patch | undefined>();
 
 const NoChanges: Changes = { made: [], params: [], children: [], removed: [], moved: [] };
 const WholeRoot: Changes = { made: [[]], params: [], children: [], removed: [], moved: [] };
@@ -159,6 +157,10 @@ export interface ShownStep {
   readonly address: string;
   readonly label: string;
   readonly applies: boolean;
+  /** A patch (edits patch the spec under it) or a full state (edits are refused: edit the step). */
+  readonly form: 'patch' | 'full';
+  /** Its state: the core's `stateOf` over the root and the preview (its view and timing among it). */
+  readonly state: StepState;
 }
 
 export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
@@ -180,6 +182,11 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private readonly _beforeCommit: ((changes: Changes) => void)[] = [];
   private _history: SeqHistory | undefined;
   private _contexts = 0;
+  /** The steps' states, by the revision shown under them and the step (_spec/README.md "SpecModel", Story steps). */
+  private readonly _stories = createStoryCache();
+  /** What `_compose` showed: the frame slot shows over it, and leaves back to it. */
+  private _composed: Node;
+  private _frame: Node | undefined;
   /** The preview's last result over a root: `_compose` reuses it (one apply a move). */
   private _previewApplied: { readonly root: Node; readonly patch: Patch; readonly result: Node } | undefined;
 
@@ -196,7 +203,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   readonly edited: ReadonlyState<Node>;
   /** The story step shown over it, and whether it applies. */
   readonly step: ReadonlyState<ShownStep | undefined>;
-  /** What is shown: `step(applyPatch(root, preview))`. */
+  /** What is shown: `frame(step(applyPatch(root, preview)))`, the frame an animation's, transient. */
   readonly shown: ReadonlyState<Node>;
   /** The static model of what is shown, by a resolver that keeps its entries (by hash) and paths between specs. */
   readonly model: ReadonlyState<StaticModel>;
@@ -224,6 +231,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     this._changed = new State(head);
     this._edited = new State(root);
     this._shown = new State(root);
+    this._composed = root;
     this.head = this._head.asReadonly;
     this.root = derive(this._head, (h) => h.root);
     this.revision = derive(this._head, (h) => h.revision);
@@ -325,6 +333,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    */
   applyPatch(patch: Patch, options: SpecPatchOptions = {}): SpecPatchResult {
     const head = this._head.value;
+    const frozen = this._frozen();
+    if (frozen) return { ok: false, issues: [frozen] };
     const stale = patch.base !== undefined && patch.base !== head.revision && patch.result !== head.revision;
     if (stale && (options.rebase ?? this.config.edit.rebaseStale)) return this._rebase(patch, options);
     const r = applyPatch(head.root, patch, this._options(options));
@@ -333,6 +343,31 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     const issues = [...r.issues, ...this._masked(r.changes)];
     const commit = this._commit(r.root, r.changes, options.context, issues);
     return { ok: true, changed: true, commit, changes: r.changes, issues };
+  }
+
+  /** While a full-state step is shown, an edit is refused: the step does not follow the spec, so it would show nothing. */
+  private _frozen(): Issue | undefined {
+    const step = this._step.value;
+    if (step?.form !== 'full') return undefined;
+    return issueOf(ViewerIssues, 'seq.viewer.step.frozen', `The step ${step.label} is a full state`, {
+      address: step.address,
+      hint: ViewerIssues.codes['seq.viewer.step.frozen'].hint,
+    });
+  }
+
+  /**
+   * Shows a frame over what is shown (_spec/README.md "SpecModel", The frame slot): an animation's transient spec, no
+   * patch, no revision, no history step; undefined leaves it, what was composed shown again.
+   */
+  setFrame(root: Node | undefined): void {
+    if (root === this._frame) return;
+    this._frame = root;
+    this._shown.set(root ?? this._composed);
+  }
+
+  /** The frame shown over the state, if any. */
+  get frame(): Node | undefined {
+    return this._frame;
   }
 
   /** A preview's options: no language checks at interactive rates, but the bounds of what it makes and sets. */
@@ -447,6 +482,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   apply(change: SpecChange, options: SpecApplyOptions = {}): boolean | SpecRefusal {
     const head = this._head.value;
     if (options.against !== undefined && options.against !== head.revision) return 'stale-revision';
+    // a full-state step shown refuses every edit, a whole root's too (leave it first: a new document does)
+    if (this._frozen()) return 'frozen-step';
     const next = typeof change === 'function' ? change(head.root) : change;
     this._preview.set(undefined);
     // the bounds first, before anything hashes or walks the root (a tree too deep for the stack): refused with the
@@ -575,6 +612,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    * dropped when it no longer applies.
    */
   setPreview(patch: Patch): PatchResult {
+    const frozen = this._frozen();
+    if (frozen) return { ok: false, issues: [frozen] };
     const p: Patch = { ops: patch.ops };
     const root = this._head.value.root;
     const r = applyPatch(root, p, this._previewOptions());
@@ -619,11 +658,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   /** The stored patch of a step, by id; undefined when the spec has none such. */
   private _stepPatch(id: string): Patch | undefined {
     const node = resolveAddress(this._head.value.root, ['snapshots', id]);
-    const p = node?.kind === 'snapshot' ? node.params?.patch : undefined;
-    if (!p || typeof p !== 'object' || Array.isArray(p) || !('kind' in p)) return undefined;
-    // read once a stored patch node
-    if (!StepPatches.has(p as Node)) StepPatches.set(p as Node, patchFromNode(p as Node).patch);
-    return StepPatches.get(p as Node);
+    return node?.kind === 'snapshot' ? stepPatchOf(node) : undefined;
   }
 
   /**
@@ -686,21 +721,21 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     const id = this._stepId.value;
     if (id !== undefined) {
       const node = resolveAddress(root, ['snapshots', id]);
-      const address = printAddress(['snapshots', id]);
       if (node?.kind !== 'snapshot') this._stepId.set(undefined);
       else {
-        const patch = this._stepPatch(id);
-        const r = patch ? applyPatch(edited, patch, this._stepOptions()) : undefined;
-        const label = typeof node.params?.label === 'string' ? node.params.label : id;
-        if (r?.ok) shown = r.root;
-        else
+        // the core's state of the step over the edited root: a full state, the patch over it, or a delta (the ops that
+        // still apply, flagged)
+        const st = stateOf(edited, id, { cache: this._stories, apply: this._stepOptions() })!;
+        shown = st.root;
+        for (const i of st.issues) if (StepIssueCodes.has(i.code)) issues.push(i);
+        if (!st.applies)
           issues.push(
-            issueOf(ViewerIssues, 'seq.viewer.step.stale', `The step ${label} no longer applies`, {
-              address,
+            issueOf(ViewerIssues, 'seq.viewer.step.stale', `The step ${st.label} no longer applies`, {
+              address: st.address,
               hint: ViewerIssues.codes['seq.viewer.step.stale'].hint,
             }),
           );
-        step = { id, address, label, applies: !!r?.ok };
+        step = { id, address: st.address, label: st.label, applies: st.applies, form: st.form, state: st };
       }
     }
     const prev = this._step.value;
@@ -708,11 +743,13 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
       prev?.id !== step?.id ||
       prev?.applies !== step?.applies ||
       prev?.label !== step?.label ||
-      prev?.address !== step?.address
+      prev?.address !== step?.address ||
+      prev?.state !== step?.state
     )
       this._step.set(step);
     this._edited.set(edited);
-    this._shown.set(shown);
+    this._composed = shown;
+    this._shown.set(this._frame ?? shown);
     this._issues.set(issues);
   }
 

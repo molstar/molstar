@@ -10,6 +10,7 @@
 import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
+import { DefaultStoryConfig, type StoryConfig } from '@molstar/seqx-core/story';
 
 /** What the models and behaviors read; read-only after composition. */
 export interface ViewerConfig {
@@ -229,6 +230,13 @@ export interface ViewerConfig {
     /** The action a copied link carries (`focus`). */
     readonly action: 'focus' | 'reveal' | 'select' | 'highlight';
   };
+  /**
+   * Stories (the core's `StoryConfig`): a step's transition (`duration` 240 ms, `easing` ease in and out) unless the
+   * step says, its `linger` (2,000 ms), the view's path (`auto`), the color space (`oklab`), the cut (0.5), reduced
+   * motion (`platform`: the viewer's `reducedMotion`; `always`, `never`), the start of a step (`spec`), the encoder's
+   * form (`patch`) and its chain (8).
+   */
+  readonly story: StoryConfig;
 }
 
 export const DefaultViewerConfig: ViewerConfig = {
@@ -275,6 +283,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   preview: { dropped: 'issue' },
   bounds: { ...DefaultSpecBounds, maxBlockValues: DefaultMaxBlockValues },
   copyLink: { prefer: ['ref', 'ids'], numbering: 'ordinal', action: 'focus' },
+  story: DefaultStoryConfig,
 };
 
 type DeepPartial<T> = {

@@ -27,6 +27,18 @@ import {
 } from '@molstar/seqx-core/render';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
 import type { SeqTokens } from '@molstar/seqx-core/render';
+import {
+  type Frame as StoryFrame,
+  frameRoot,
+  frameView,
+  plan as planTransition,
+  type PlanOptions,
+  sample,
+  type StoryState,
+  type StepViewport,
+  type TransitionPlan,
+  type ViewState,
+} from '@molstar/seqx-core/story';
 import { type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
@@ -41,6 +53,7 @@ import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import {
   AddressModel,
+  axisTotal,
   HighlightModel,
   HoverModel,
   isNothing,
@@ -52,6 +65,8 @@ import {
   ViewModel,
 } from '@molstar/seqx-viewer/models';
 import { AddressingProvider, type LinkRun, SelectProvider } from '@molstar/seqx-viewer/behaviors';
+import type { AnimationRequest, SeqAnimation, SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
+import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
 import { uiHistory } from './ui-history.js';
@@ -140,10 +155,25 @@ export class SeqViewer extends ReactiveModel {
   private readonly _size = { width: 0, height: 0 };
   private readonly _frameInput = { size: this._size } as Mutable<FrameInput>;
   private readonly _viewportOut = { start: 0, end: 0 };
-  /** The window the last frame drew (NaN before one): where a jump's motion starts. */
+  /** The window the last frame drew (NaN before one). */
   private readonly _drawn = { start: Number.NaN, end: Number.NaN };
-  /** A jump's motion (_spec/README.md "Composition", Motion): from the window drawn, since a time, at a jump count. */
-  private _motion: { start: number; end: number; t0: number; jumps: number } | undefined;
+  /** Each leading section's viewport the last frame drew, by address: where a motion starts. */
+  private readonly _drawnViews = new Map<string, StepViewport>();
+  /**
+   * The frame slot (_spec/README.md "Composition", Motion): the plan and frame shown over the state, its viewports by
+   * section; a request on the animation port running it (a jump's, with its count).
+   */
+  private _shownFrame: { plan: TransitionPlan; frame: StoryFrame; views?: ViewState } | undefined;
+  private _request: { request: AnimationRequest; plan: TransitionPlan; jumps?: number } | undefined;
+  private readonly _drawnFrames = new State(0);
+  /** The spec the last frame drew, the step shown, and whether `playStep` is entering one (no second transition). */
+  private _drawnRoot: Node | undefined;
+  private _shownStep: string | undefined;
+  private _stepping = false;
+  /** The application's clock (the animation port): Seq*'s own motions are plans requested of it. */
+  private readonly _animation: SeqAnimation;
+  /** The participant face of the animation port: what the application's clock drives. */
+  readonly animation: SeqAnimationParticipant;
   /** The platform asks for reduced motion (the mounted UI's media query): every jump is a cut. */
   reducedMotion = false;
   private _backend: CanvasBackend | undefined;
@@ -286,8 +316,34 @@ export class SeqViewer extends ReactiveModel {
       this.schedule();
     });
     this.listenPermanently(this.store.store.settled, () => this.schedule());
-    // a jump animates from the window drawn to the model's (the model is there at once: hits read the frame drawn)
+    // the animation port (_spec/README.md "Ports", Animation): the application's clock, the page's frames by default
+    this.animation = {
+      progress: (plan, t) => this._showFrame(plan, sample(plan, t)),
+      show: (plan, frame) => this._showFrame(plan, frame),
+      clear: () => this._clearFrame(),
+      draw: () => {
+        this.draw();
+      },
+      drawn: this._drawnFrames.asReadonly,
+      durationOf: (plan) => plan.duration,
+    };
+    this._animation = (viewerSpec.animation ?? frameAnimation())(this.animation);
+    this.registerPermanentDispose(() => {
+      this._request?.request.cancel();
+      this._request = undefined;
+      if (this._animation.disposeWithViewer !== false) this._animation.dispose?.();
+    });
+    // a jump animates from the windows drawn to the model's (the model is there at once: hits read the frame drawn)
     this.listenPermanently(this.view.jumps, (n) => this._startMotion(n));
+    // an edit, an undo or a load under a frame that changes the spec ends it: the frame was made from the old root
+    this.listenPermanently(this.spec.head, () => {
+      const f = this._shownFrame;
+      if (!f || f.plan.from.root === f.plan.to.root) return;
+      this._endMotion();
+      this._clearFrame();
+    });
+    // a story step entered by a command or a host is a transition too (its view is a snapshot's: a jump)
+    this.listenPermanently(this.spec.step, () => this._stepChanged());
     this.listenPermanently(this.view.resolved, () => {
       this._followViewports();
       this._applyWidths();
@@ -344,6 +400,8 @@ export class SeqViewer extends ReactiveModel {
    * `view`: the view's address (the first by default).
    */
   async load(root: Node, options: { view?: string } = {}): Promise<void> {
+    // a new document: the story step shown was the old one's (and a full-state step refuses a whole root)
+    this.spec.leaveStep();
     // a new root syncs the sources through the model's own listener: once
     const refused = this.spec.apply(root);
     if (refused === 'out-of-bounds')
@@ -445,8 +503,11 @@ export class SeqViewer extends ReactiveModel {
     for (const s of this.view.resolved.value?.sections ?? [])
       this._viewportListeners.push(
         this.view.viewport(s.address).listen(() => {
-          // a move by hand ends a jump's motion (a jump's own move is followed by its count moving)
-          if (this._motion && this._motion.jumps === this.view.jumps.value) this._motion = undefined;
+          // a move by hand ends a motion, a story's too, and clears a frame a host shows (a jump's own move is
+          // followed by its count moving; a step's view is placed before its motion starts)
+          if (this._request && (this._request.jumps === undefined || this._request.jumps === this.view.jumps.value))
+            this._endMotion();
+          else if (!this._request && this._shownFrame) this._clearFrame();
           this._moved();
           this.schedule();
         }),
@@ -487,71 +548,250 @@ export class SeqViewer extends ReactiveModel {
     });
   }
 
-  /** A jump moved the view: its motion starts from the window drawn, unless motion is cut. */
-  private _startMotion(jumps: number): void {
-    const { jumpMs, motion } = this.config.view;
-    if (this._retired || motion === 'cut' || this.reducedMotion || !(jumpMs > 0) || Number.isNaN(this._drawn.start)) {
-      this._motion = undefined;
-      return;
+  /** Whether a jump is a cut: the platform's reduced motion, `view.motion: cut`. */
+  private get _cut(): boolean {
+    return this.config.view.motion === 'cut' || this.reducedMotion;
+  }
+
+  /** Whether a story's motion is a cut: `story.reducedMotion` (`platform`: as a jump; `always`, `never`). */
+  private get _storyCut(): boolean {
+    const story = this.config.story.reducedMotion;
+    if (this.config.view.motion === 'cut' || story === 'always') return true;
+    return story === 'platform' && this.reducedMotion;
+  }
+
+  /** Each leading section's viewport in the model now (what a jump goes to), by address. */
+  private _modelViews(): ViewState {
+    const sections: Record<string, StepViewport> = {};
+    for (const s of this.view.resolved.value?.sections ?? []) {
+      if (this.view.isFollowing(s.address)) continue;
+      const v = this.view.get(s.address);
+      if (!v || v.pending) continue;
+      sections[s.address] = {
+        start: v.start,
+        end: v.end,
+        ...(v.top ? { top: v.top } : {}),
+        ...(v.scale !== undefined ? { scale: v.scale } : {}),
+      };
     }
-    this._motion = { start: this._drawn.start, end: this._drawn.end, t0: DomHost.now(), jumps };
+    return { sections };
+  }
+
+  /** What a plan of this viewer needs besides its states: the cyclic sections' totals (a window's shortest arc). */
+  private _planOptions(): Pick<PlanOptions, 'cyclic' | 'config' | 'resolveColor'> {
+    const cyclic: Record<string, number> = {};
+    for (const s of this.view.resolved.value?.sections ?? [])
+      if (this.view.wraps(s.address)) {
+        const total = axisTotal(s.axis);
+        if (total) cyclic[s.address] = total;
+      }
+    // a token blends through the color it draws in (the viewer's token table, light or dark as shown)
+    const tokens = this.tokens;
+    const color = (c: string) => {
+      const r = resolveColor(c, tokens);
+      // RGBA: an opaque color as hex; one with alpha is no color a plan blends
+      return r === undefined || (r & 0xff) !== 0xff ? undefined : `#${(r >>> 8).toString(16).padStart(6, '0')}`;
+    };
+    return { cyclic, config: this.config.story, resolveColor: color };
+  }
+
+  /**
+   * A jump moved the view (_spec/README.md "Composition", Motion): a plan from every leading section's viewport drawn
+   * (window, letter size) to the model's, requested of the animation port over `view.jumpMs`, unless motion is cut.
+   */
+  private _startMotion(jumps: number): void {
+    const { jumpMs } = this.config.view;
+    this._endMotion();
+    if (this._retired || this._cut || !(jumpMs > 0) || !this._drawnViews.size) return;
+    const from: ViewState = { sections: Object.fromEntries(this._drawnViews) };
+    const shown = this.spec.shown.value;
+    const p = planTransition(
+      { root: shown, view: from },
+      { root: shown, view: this._modelViews() },
+      { ...this._planOptions(), duration: jumpMs },
+    );
+    if (p.channels.length) this._run(p, jumps);
+  }
+
+  /** Runs a plan on the application's clock, shown from its start now; the frame left at its end. */
+  private _run(plan: TransitionPlan, jumps?: number): void {
+    this._request?.request.cancel();
+    this._showFrame(plan, sample(plan, 0));
+    const request = this._animation.request(plan, {
+      duration: plan.duration,
+      done: () => {
+        if (this._request?.plan !== plan) return;
+        this._request = undefined;
+        this._clearFrame();
+      },
+    });
+    this._request = { request, plan, ...(jumps !== undefined ? { jumps } : {}) };
+  }
+
+  /** Ends a running motion where the model is (no frame left over it). */
+  private _endMotion(): void {
+    if (!this._request) return;
+    this._request.request.cancel();
+    this._request = undefined;
+    this._clearFrame();
+  }
+
+  /** Shows a frame over the state (the frame slot): its spec when the plan changes the spec, its viewports. */
+  private _showFrame(plan: TransitionPlan, frame: StoryFrame): void {
+    if (this._retired) return;
+    // a plan between two equal roots (a jump's) shows the state itself
+    this.spec.setFrame(plan.from.root === plan.to.root ? undefined : frameRoot(plan, frame));
+    const views = frameView(plan, frame);
+    this._shownFrame = { plan, frame, ...(views ? { views } : {}) };
+    this._moved();
+    this.schedule();
+  }
+
+  /** Leaves the frame: the state is shown and drawn again. */
+  private _clearFrame(): void {
+    if (!this._shownFrame && this.spec.frame === undefined) return;
+    this._shownFrame = undefined;
+    this.spec.setFrame(undefined);
     this.schedule();
   }
 
   /**
-   * Stops a jump's motion where it is drawn (_spec/README.md "Composition", Motion): the leading section takes the window
-   * drawn now (a move, no step of the history) and a frame is drawn, so the input that stopped it reads one picture: what
-   * it hits is what the model shows. What every pointer and key input does first.
+   * Stops a motion (a jump's, a story step's) or a host's frame where it is drawn (_spec/README.md "Composition",
+   * Motion): each leading section takes the viewport drawn now (a move, no step of the history), the spec shown is the
+   * state again, and a frame is drawn, so the input that stopped it reads one picture: what it hits is what the model
+   * shows. What every pointer and key input does first.
    */
   stopMotion(): void {
-    const m = this._motion;
-    const resolved = this.view.resolved.value;
-    if (!m || !resolved) return;
-    const vp = this._viewport(resolved, DomHost.now());
-    this._motion = undefined;
-    if (!vp) return;
-    const lead = resolved.sections.find((s) => !this.view.isFollowing(s.address));
-    if (lead) this.view.setRange(lead.address, vp.start, vp.end);
+    const r = this._request;
+    if (!r && !this._shownFrame) return;
+    const drawn = [...this._drawnViews];
+    r?.request.cancel();
+    this._request = undefined;
+    this._clearFrame();
+    for (const [address, v] of drawn) this.view.setViewport(address, v);
     this.draw();
   }
 
-  /** Whether a jump's motion is drawing. */
-  get moving(): boolean {
-    return this._motion !== undefined;
+  /**
+   * Enters a story step, or leaves the step shown (`undefined`), as a transition (_spec/README.md "Composition",
+   * Stories): navigation, no commit, no history step. The step's state is shown, its view's sections placed (positions
+   * to offsets, exactly), and a plan from what was drawn to it is made, timed by the step. `run` (true): the plan runs
+   * on the animation port; false: its start is shown and the application drives it (`animation.progress`, then
+   * `animation.clear()`). A cut under reduced motion. The issue when the step is unknown.
+   */
+  playStep(id: string | undefined, options: { readonly run?: boolean } = {}): { plan?: TransitionPlan; issue?: Issue } {
+    this._endMotion();
+    const from = this._fromState(this.spec.shown.value);
+    this._stepping = true;
+    try {
+      if (id === undefined) this.spec.leaveStep();
+      else {
+        const issue = this.spec.enterStep(id);
+        if (issue) return { issue };
+      }
+    } finally {
+      this._stepping = false;
+    }
+    this._shownStep = this.spec.step.value?.id;
+    return { plan: this._toStep(from, options.run ?? true) };
   }
 
-  /** The window the last frame drew (during a jump's motion, between where it started and the model's), a copy. */
+  /** What a transition starts from: a root and the viewports drawn last (the model's before a frame). */
+  private _fromState(root: Node): StoryState {
+    const views = this._drawnViews.size ? { sections: Object.fromEntries(this._drawnViews) } : this._modelViews();
+    return { root, view: { ...views, ...this._viewAddress() } };
+  }
+
+  /** A step entered elsewhere (the `step.enter` command, a host): the same transition, from what was drawn. */
+  private _stepChanged(): void {
+    const id = this.spec.step.value?.id;
+    if (this._stepping || this._retired || id === this._shownStep) return;
+    this._shownStep = id;
+    this._endMotion();
+    this._toStep(this._fromState(this._drawnRoot ?? this.spec.shown.value), true);
+  }
+
+  /** The step shown (its view placed) and the plan to it from `from`, run or shown at its start. */
+  private _toStep(from: StoryState, run: boolean): TransitionPlan {
+    const st = this.spec.step.value?.state;
+    if (st?.view) {
+      if (st.view.view !== undefined) this.view.show(st.view.view);
+      const resolved = this.view.resolved.value;
+      for (const [address, v] of Object.entries(st.view.sections)) {
+        const axis = resolved?.sections.find((s) => s.address === address)?.axis;
+        const s = axis && nearestOffsetOf(axis, v.start);
+        const e = axis && nearestOffsetOf(axis, v.end);
+        if (s === undefined || e === undefined) continue;
+        this.view.setViewport(address, {
+          start: s,
+          end: e,
+          ...(v.top !== undefined ? { top: v.top } : {}),
+          ...(v.scale !== undefined ? { scale: v.scale } : {}),
+        });
+      }
+    }
+    const to = { root: this.spec.shown.value, view: { ...this._modelViews(), ...this._viewAddress() } };
+    const timing = st?.timing;
+    const p = planTransition(from, to, {
+      ...this._planOptions(),
+      reducedMotion: this._storyCut,
+      ...(timing ? { duration: timing.duration, easing: timing.easing } : {}),
+    });
+    if (this._storyCut || !p.channels.length) {
+      this.schedule();
+      return p;
+    }
+    if (run) this._run(p);
+    else this._showFrame(p, sample(p, 0));
+    return p;
+  }
+
+  /** The view shown's address, when one is shown by address. */
+  private _viewAddress(): { view?: string } {
+    const v = this.view.view.value;
+    return v !== undefined ? { view: v } : {};
+  }
+
+  /** Whether a motion (a jump's, a story step's) is drawing. */
+  get moving(): boolean {
+    return this._request !== undefined;
+  }
+
+  /** The window the last frame drew (during a motion, between where it started and the model's), a copy. */
   get drawnViewport(): RenderViewport | undefined {
     return Number.isNaN(this._drawn.start) ? undefined : { start: this._drawn.start, end: this._drawn.end };
   }
 
+  /** Each leading section's viewport the last frame drew, by address (during a motion, the frame's), copies. */
+  get drawnViewports(): Readonly<Record<string, StepViewport>> {
+    return Object.fromEntries([...this._drawnViews].map(([k, v]) => [k, { ...v }]));
+  }
+
   /**
-   * The window the renderer draws: the first section that leads (the renderer takes one window for all); during a
-   * jump's motion (`at` the time), the window between where it started and the model's, eased in and out, its width
-   * moving geometrically and its centre along it so the content under the eye moves smoothly. Undefined past the end.
+   * A leading section's viewport as drawn now: the frame's (an animation's), else the model's. `eye` false: a jump's
+   * motion is the eye's way only (the SVG and `viewport` read the model, the destination), a story's frame is shown.
    */
-  private _viewport(resolved: ResolvedView, at?: number): RenderViewport | undefined {
+  private _shownViewport(address: string, eye = true): StepViewport | undefined {
+    const jump =
+      this._request !== undefined && this._request.jumps !== undefined && this._request.plan === this._shownFrame?.plan;
+    const f = eye || !jump ? this._shownFrame?.views?.sections[address] : undefined;
+    if (f) return f;
+    const v = this.view.get(address);
+    return v && !v.pending ? v : undefined;
+  }
+
+  /**
+   * The window the renderer draws: the first section that leads (the renderer takes one window for all), as the frame
+   * slot shows it during a motion. Undefined when it is not placed.
+   */
+  private _viewport(resolved: ResolvedView, eye = true): RenderViewport | undefined {
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
-      const v = this.view.get(s.address);
-      if (!v || v.pending) return undefined;
+      const w = this._shownViewport(s.address, eye);
+      if (!w) return undefined;
       const out = this._viewportOut;
-      out.start = v.start;
-      out.end = v.end;
-      const m = this._motion;
-      if (at !== undefined && m) {
-        const t = (at - m.t0) / this.config.view.jumpMs;
-        if (t >= 1 || !(t >= 0)) this._motion = undefined;
-        else {
-          const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-          const w0 = m.end - m.start;
-          const w1 = v.end - v.start;
-          const w = w0 > 0 && w1 > 0 ? w0 * (w1 / w0) ** e : w0 + (w1 - w0) * e;
-          const c = (m.start + m.end) / 2 + ((v.start + v.end) / 2 - (m.start + m.end) / 2) * e;
-          out.start = c - w / 2;
-          out.end = c + w / 2;
-        }
-      }
+      out.start = w.start;
+      out.end = w.end;
       return out;
     }
     return undefined;
@@ -559,38 +799,49 @@ export class SeqViewer extends ReactiveModel {
 
   /**
    * Every leading section's viewport (the frame's `viewports`, by address), as its layout reads it (a window; a text's
-   * anchor and letter size): the first's `lead`, the window `_viewport` gave (eased during a jump's motion), computed
-   * once a frame. Kept while equal, so the frame's key holds; undefined when no section is placed.
+   * anchor and letter size; a top, a band's scroll), as the frame slot shows it during a motion: each section's own,
+   * field by field. Computed once a frame and kept while equal, so the frame's key holds; undefined when no section is
+   * placed.
    */
-  private _viewports(
-    resolved: ResolvedView,
-    lead: RenderViewport | undefined,
-  ): Readonly<Record<string, RenderViewport>> | undefined {
+  private _viewports(resolved: ResolvedView, eye = true): Readonly<Record<string, RenderViewport>> | undefined {
     const kept = this._viewportsKept;
     let n = 0;
     let same = kept !== undefined;
-    let first = true;
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
-      const v = this.view.get(s.address);
-      const w = first ? lead : v && !v.pending ? v : undefined;
-      first = false;
-      if (!v || !w) continue;
+      const w = this._shownViewport(s.address, eye);
+      if (!w) continue;
       const k = kept?.[s.address];
-      if (!k || k.start !== w.start || k.end !== w.end || k.scale !== v.scale) same = false;
+      const framed = this._shownFrame !== undefined;
+      if (
+        !k ||
+        k.start !== w.start ||
+        k.end !== w.end ||
+        k.scale !== w.scale ||
+        k.top !== (w.top || undefined) ||
+        k.bands !== (framed ? w.bands : undefined)
+      )
+        same = false;
       n++;
     }
     if (!n) return (this._viewportsKept = undefined);
     if (same && Object.keys(kept!).length === n) return kept;
     const out: Record<string, RenderViewport> = {};
-    first = true;
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
-      const v = this.view.get(s.address);
-      const w = first ? lead : v && !v.pending ? v : undefined;
-      first = false;
-      if (!v || !w) continue;
-      out[s.address] = { start: w.start, end: w.end, ...(v.scale !== undefined ? { scale: v.scale } : {}) };
+      const w = this._shownViewport(s.address, eye);
+      if (!w) continue;
+      out[s.address] = {
+        start: w.start,
+        end: w.end,
+        ...(w.scale !== undefined ? { scale: w.scale } : {}),
+        // `top`: the frame's during a motion, else the model's (when set)
+        ...(w.top ? { top: w.top } : {}),
+        // `bands`: only a shown frame's, a pass-through of a step's view (`bandTop`, `rowScale` in display rows; each
+        // record copied with those two set, its other fields kept). The ViewModel holds no bands here: the rows
+        // layer's state is to merge under them (the package's TODO, Stories)
+        ...(this._shownFrame && w.bands !== undefined ? { bands: w.bands as RenderViewport['bands'] } : {}),
+      };
     }
     this._viewportsKept = out;
     return out;
@@ -609,7 +860,7 @@ export class SeqViewer extends ReactiveModel {
   /** The viewport the last frame was drawn with, a copy (for the SVG and tests). */
   get viewport(): RenderViewport | undefined {
     const resolved = this.view.resolved.value;
-    const v = resolved ? this._viewport(resolved) : undefined;
+    const v = resolved ? this._viewport(resolved, false) : undefined;
     return v ? { start: v.start, end: v.end } : undefined;
   }
 
@@ -652,21 +903,20 @@ export class SeqViewer extends ReactiveModel {
     size.height = fixed ? h : Math.min(this.config.canvas.maxHeight, Math.max(this._contentHeight, 32));
     this._updateEmphasis();
     const input = this._frameInput;
-    const now = DomHost.now();
     // every leading section its own viewport, read by its layout (_spec/README.md "Composition"); the first's once
-    const vp = this._viewport(resolved, now);
-    const viewports = this._viewports(resolved, vp);
+    const vp = this._viewport(resolved);
+    const viewports = this._viewports(resolved);
     if (viewports) input.viewports = viewports;
     else delete input.viewports;
     if (vp) {
       this._drawn.start = vp.start;
       this._drawn.end = vp.end;
     }
-    // a motion draws a frame a frame until it ends; the view is not settled meanwhile
-    if (this._motion) {
-      this._moved();
-      this.schedule();
-    }
+    // what each leading section showed: where the next motion starts
+    this._drawnViews.clear();
+    if (viewports) for (const k in viewports) this._drawnViews.set(k, viewports[k]);
+    // a motion is not settled while it runs
+    if (this._request) this._moved();
     input.dpr = dpr;
     input.settled = this._quiet && this.store.store.settled.value;
     input.emphasis = this._emphasis;
@@ -721,6 +971,8 @@ export class SeqViewer extends ReactiveModel {
       this._baseDirty = false;
     }
     this.counts.frames++;
+    if (!this._shownFrame) this._drawnRoot = this.spec.shown.value;
+    if (this._shownFrame) this._drawnFrames.set(this._drawnFrames.value + 1);
     if (this._restDue) {
       // the settled picture is drawn: it rests now, once (a layout of this frame waits for no second rest)
       this._restDue = false;
@@ -919,7 +1171,7 @@ export class SeqViewer extends ReactiveModel {
    */
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
-    const viewports = resolved ? this._viewports(resolved, this._viewport(resolved)) : undefined;
+    const viewports = resolved ? this._viewports(resolved, false) : undefined;
     // a text section exports every line (the figure): the picture is as tall as it, not the canvas's scrolled box
     const figure = resolved?.sections.some((s) => sectionLayoutName(s, resolved) === 'text') ?? false;
     return this.context.renderSvg(this.spec.shown.value, {

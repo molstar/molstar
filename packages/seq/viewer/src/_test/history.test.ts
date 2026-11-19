@@ -251,7 +251,8 @@ describe('a jump’s motion', () => {
     // the model is there at once
     expect(range(v)).toEqual([20, 30]);
     vi.advanceTimersByTime(v.config.view.jumpMs / 2);
-    v.draw();
+    // the application's clock (the default adapter: the page's frames) shows the plan at its time, and it is drawn
+    frames!.flush();
     const mid = v.drawnViewport!;
     expect(mid.start).toBeGreaterThan(0);
     expect(mid.start).toBeLessThan(20);
@@ -365,7 +366,7 @@ describe('input and the page', () => {
     const v = await make([[viewerItem('navigate.doubleClickZoomStep'), 1.25]]);
     run(v, 'view.focus', { section: Protein, focus: { start: 20, end: 30 } });
     vi.advanceTimersByTime(v.config.view.jumpMs / 2);
-    v.draw();
+    frames!.flush();
     const drawn = v.drawnViewport!;
     const width = v.view.get(Protein)!.width;
     const local = width * 0.4;

@@ -84,6 +84,9 @@ What this version contains and will contain. Each feature links its story here o
   - patches by address, all or nothing, with inverses and a correct `diff`; undo and redo, one step a batch;
   - previews: a gesture's transient change, ending in one patch or a cancel;
   - snapshots: named patches over the base (leaving a step is navigation, not undo);
+  - stories: a step as a full state or a patch (a delta from another step), a transition planned from the difference and
+    sampled at any time, run on the application's clock (the animation port), scrubbed, followed by another view on the
+    same plans and exported a step at a time: on p53 [Story](?path=/story/seq-next-examples-p53-story--story);
   - patches on streamed things (a bookmark on a transcript that comes and goes), and a command to keep a region on
     purpose;
   - patch streams from an agent or a host, applied in order (collaboration later);

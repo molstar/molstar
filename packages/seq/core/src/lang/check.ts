@@ -191,6 +191,11 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         );
       break;
     }
+    case 'snapshot':
+      // a step is a full state or a patch, never both nor neither (_spec/README.md, Language, Story steps)
+      if ((p(n, 'patch') === undefined) === (p(n, 'state') === undefined))
+        report('seq.lang.snapshot.content', 'A story step has both a `patch` and a `state`, or neither', at);
+      break;
     case 'data':
     case 'views':
     case 'refs':

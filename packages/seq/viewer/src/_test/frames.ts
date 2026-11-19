@@ -23,6 +23,8 @@ export interface Frames {
   readonly pending: number;
   /** Frame callbacks (what a viewer asks) asked for and neither run nor cancelled. */
   readonly callbacks: number;
+  /** Runs the frames asked for so far, once (those they ask for wait). */
+  flushOnce(): void;
   /** Runs the asked frames, and those they ask for, until none is left. */
   flush(): void;
   restore(): void;
@@ -60,6 +62,11 @@ export function installFrames(): Frames {
     },
     get callbacks() {
       return pendingFrameCallbacks();
+    },
+    flushOnce() {
+      const run = queue;
+      queue = [];
+      for (const f of run) f();
     },
     flush() {
       for (let i = 0; i < 20 && queue.length; i++) {

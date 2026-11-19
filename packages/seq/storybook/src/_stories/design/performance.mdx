@@ -50,12 +50,14 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
 | Export a view to SVG                              | under 200 ms                            |
 | Render CLI, cold start                            | under 1 s                               |
 | Decode MessagePack                                | at least 200 MB/s                       |
+| A story's frame: `sample` of a 300-channel plan   | under 0.05 ms                           |
 
 ## Memory
 
 | What                    | Target                                                    |
 | ----------------------- | --------------------------------------------------------- |
 | Draw and hover loops    | 0 bytes allocated per frame                               |
+| A story's `sample`      | 0 bytes allocated per frame                               |
 | Resolved inline data    | at most 2× its MessagePack size                           |
 | Maps                    | never expanded past the region asked                      |
 | 10M lazy alignment rows | only the rows in view and the rows bound to maps are held |

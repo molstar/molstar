@@ -85,11 +85,18 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **Resolve**: the isoform half of the closure rule; NCBI codes beyond 1, 2 and 11; projecting rects; reverse paths
   carried across models; an item system's length when letters show a stop (it counts as a residue now); mixed strands
   within one item (the first row's is taken); an allocation check of `projectRanges`.
-- **Story steps** (the Features page's Snapshots row): the stories library and the animation port, placed with the
-  player; a step that no longer applies shows the ops that still apply, flagged (today: the root without the step); a
-  step's `from`, view (EC-85) and timing need language fields; an op that no longer applies has no issue in
-  `repr/patch`, so Seq reports it on the step; a host's move can leave a step's later refs dangling in the step's own
-  coordinates (refused unless `allowDangling`): watched for in the editing UI.
+- **Stories** (built: `stateOf`, `plan`, `sample`, the encoder, the animation port and its two adapters, the frame slot,
+  the p53 story): `order` switches at the cut (each child moving to its new place needs a y offset a track the layout
+  does not have); a change of the view shown is a cut at the start, not a crossfade; a step whose state changes an axis
+  (a collapse, a reverse) is placed on the step's axis while the frame shows the start's, so a section's viewport goes
+  through the update rule (EC-111) on the way; **the bands' seam for the rows layer**: the shown frame's bands are
+  merged over the ViewModel's bands (RW), keeping the session's folds. Today the frame's `bands` are a pass-through of a
+  step's view (`bandTop` and `rowScale`, in display rows as the language declares; the layout converts to px), each
+  record copied with those two set and its other fields kept; the ViewModel holds no bands, so a jump tweens none; the
+  story's own UI (steps listed, edit this step, store the view as a step) and the render CLI's video and frame-sequence
+  outputs; an op that no longer applies has no issue in `repr/patch`, so Seq reports it on the step; a host's move can
+  leave a step's later refs dangling in the step's own coordinates (refused unless `allowDangling`): watched for in the
+  editing UI.
 - **Bounds**: regular expressions in search and archives get theirs with those features; nested-source breadth (a
   fan-out of W^depth) and joins allocating before `checkAnswer` (at most the file's size) are recorded, not bounded.
 - **Overlay and templates**: re-expand only the template an arrival touches, keep instance layers across overlay
@@ -112,8 +119,6 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **Rings and blocks** (built: the rings layout with labels, the title and the window; blocks in tracks and on rings):
   - blocks in the text layout (a block starting a line, its label inline on its first line; one-position blocks as chips
     flowing after the chains, EC-99): waits for the text layout on this branch;
-  - `rotation` tweened by a story's `view` channel with the labels hidden, placed once at its end: the stories' player
-    first (labels are placed only when the ring is laid out, so the tween's frames place none);
   - the ring's track labels (no label column on a ring), its ruler's ticks across the ruler ring only;
   - a copy group is the same system and range here: the complex kind's molecules and units name it once they exist
     (EC-65), and a merged block's hover then lights every member's system;
@@ -164,9 +169,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - Layouts: a leader's cyclic window wraps only where its layout `wraps` (a ring); a tracks leader over the origin (two
   runs, as a follower's) is not drawn, so its window stays within the axis; a click on a window is the ring's own (its
   hit must carry the position under it, and the selection's clicks take the `window` target); the window's slider is a
-  mounted element (its arrows and Shift+arrows bound to the `window.*` commands, `aria-valuetext` from `value`); a
-  jump's motion eases the first leading section's window only (a text's letter size is not tweened); text with rows (↑↓
-  through a line block's rows) waits for the rows layer.
+  mounted element (its arrows and Shift+arrows bound to the `window.*` commands, `aria-valuetext` from `value`); text
+  with rows (↑↓ through a line block's rows) waits for the rows layer.
 
 - Legends: the Legend part's place in the default chrome (the host mounts it today); a legend entry's color picker
   (`theme.value-color` has no UI); the scheme picker as a menu (the stories' buttons stand in).

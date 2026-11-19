@@ -16,6 +16,7 @@ import {
   WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
+import { frameAnimation } from './animation.js';
 import { legendsMount } from './mount-legend.js';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
@@ -23,7 +24,8 @@ import type { SeqViewerSpec } from './viewer-spec.js';
 // application spreads it and changes what it needs, or writes a smaller spec; what is not listed is not in its bundle.
 // Each call makes a spec of its own (its ports are factories called once per viewer). The history is the UI's: a
 // mounted viewer gets a `@molstar/ui/history` stack of its own (`ui.history`), a host gives its stack (`history`,
-// `hostHistory`), and a headless spread (`ui: undefined`) has none.
+// `hostHistory`), and a headless spread (`ui: undefined`) has none. The clock is the page's frames (`frameAnimation`): a
+// host with a clock of its own, or a headless export, gives its adapter (`animation`).
 
 export function DefaultSeqViewerSpec(): SeqViewerSpec {
   return {
@@ -41,6 +43,7 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
     bindings: {},
     config: [],
     ports: defaultPorts(),
+    animation: frameAnimation(),
     ui: { canvas: true, history: true, legends: legendsMount },
   };
 }

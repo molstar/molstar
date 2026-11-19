@@ -7,7 +7,7 @@
 import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
-import type { SeqHistoryPort } from '@molstar/seqx-viewer/ports';
+import type { SeqAnimationPort, SeqHistoryPort } from '@molstar/seqx-viewer/ports';
 import type { LegendModel } from './legends.js';
 import type { SeqViewer } from './viewer.js';
 import type {
@@ -99,6 +99,12 @@ export interface SeqViewerSpec {
    * None: edits apply at once and nothing undoes them (a headless viewer, a test).
    */
   readonly history?: SeqHistoryPort;
+  /**
+   * The application's clock (Seq*'s animation port, _spec/README.md "Ports", Animation): Seq*'s own motions (a jump, a
+   * story step) are plans it runs. None: the page's frames (`frameAnimation`); headless, a fake clock
+   * (`headlessAnimation`).
+   */
+  readonly animation?: SeqAnimationPort;
   /** The UI's parts; none for a headless viewer (a target given without it is left empty). */
   readonly ui?: SeqViewerUI;
 }

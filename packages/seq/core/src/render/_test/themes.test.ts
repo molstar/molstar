@@ -8,12 +8,13 @@
 // is its theme's for its datum, each painted legend entry has a mark, each drawn color is in the legend), the size
 // channel never moving a hit box, a shared scale's open domain unioned over its layers at settle, the export's legend
 // band and scale records, a scheme that does not fit, the reader's substitution in an export; and the performance
-// representatives: a layout with a field theme at most 1.1× the same layout uniform, legends for 100 tracks under 1 ms.
+// representatives: a layout with a field theme at most 1.1× the same layout uniform (the two timed in turn), legends
+// for 100 tracks under 1 ms.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { compileChannel, legendOf, mergeLegends } from '@molstar/seqx-core/theme/index';
-import { bestOf, itWithin } from '@molstar/test-harness/timing';
+import { bestOf, itWithin, ratioWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import {
   builtInTokens,
@@ -222,16 +223,19 @@ describe('performance representatives', () => {
         await themed.frame(at(k));
       }
       let k = 10;
-      // the uniform layout's best of five, then the themed one held to 1.1× it (best of three)
-      let best = Number.POSITIVE_INFINITY;
-      for (let i = 0; i < 5; i++) {
-        const t0 = performance.now();
-        uniform.renderer.frame(at(k++));
-        best = Math.min(best, performance.now() - t0);
-      }
-      const f = bestOf(within, best * 1.1, () => themed.renderer.frame(at(k++)));
-      expect(f.rebuilt).toBe(true);
-      expect((f.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBeGreaterThan(1000);
+      // the two measured in turn, the themed held to 1.1× the uniform, each its best of seven
+      let f: ReturnType<typeof themed.renderer.frame> | undefined;
+      ratioWithin(
+        within,
+        1.1,
+        () => uniform.renderer.frame(at(k++)),
+        () => {
+          f = themed.renderer.frame(at(k++));
+        },
+        7,
+      );
+      expect(f!.rebuilt).toBe(true);
+      expect((f!.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBeGreaterThan(1000);
     },
   );
 

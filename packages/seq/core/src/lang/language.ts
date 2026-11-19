@@ -92,7 +92,7 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
     },
     snapshot: {
-      doc: 'A story step: a stored patch with no base, shown over whatever the spec is (`/snapshots/<id>`); entering it is navigation, never an edit.',
+      doc: 'A story step (`/snapshots/<id>`): a full state, or a stored patch with no base shown over the spec (or over the step it starts `from`); entering it is navigation, never an edit.',
       parents: ['snapshots'],
       ids: 'required',
       params: {
@@ -100,9 +100,70 @@ export const SeqLanguage = defineLanguage({
         patch: {
           type: 'node',
           language: 'seq.patch',
-          required: true,
-          doc: 'What the step changes: a patch of this language with no `base`, its addresses refs of the spec.',
+          doc: 'What the step changes: a patch of this language with no `base`, its addresses refs of the spec (one of `patch` and `state`).',
         },
+        state: {
+          type: 'node',
+          language: 'seq',
+          kinds: ['spec'],
+          doc: 'The step as a full state: a spec of its own, its refs resolved inside it; it does not follow edits of the spec (one of `patch` and `state`).',
+        },
+        from: {
+          type: 'ref',
+          kinds: ['snapshot'],
+          doc: 'The step a patch applies over (a delta), instead of the spec.',
+        },
+        keep: {
+          type: 'string',
+          enum: ['full', 'spec'],
+          doc: 'How the story’s encoder stores the step whatever is smaller: `full` a frozen full state, `spec` a patch that follows the spec.',
+        },
+        view: {
+          type: 'record',
+          fields: {
+            view: { type: 'ref', kinds: ['view'], doc: 'The view shown (the first when absent).' },
+            sections: {
+              type: 'map',
+              of: {
+                type: 'record',
+                fields: {
+                  start: { type: 'number', required: true, doc: 'The first position shown (a text’s anchor).' },
+                  end: { type: 'number', required: true, doc: 'The end of the window, a position.' },
+                  top: { type: 'number', min: 0, doc: 'The vertical scroll, px.' },
+                  scale: { type: 'number', min: 0, doc: 'px a position (a text’s letter size).' },
+                  bands: {
+                    type: 'map',
+                    of: {
+                      type: 'record',
+                      fields: {
+                        bandTop: { type: 'number', min: 0, doc: 'The band’s top row, in display rows.' },
+                        rowScale: { type: 'number', min: 0, doc: 'px a row.' },
+                      },
+                    },
+                    doc: 'A band that scrolls its own rows, by track address.',
+                  },
+                  y: {
+                    type: 'record',
+                    fields: {
+                      start: { type: 'number', required: true, doc: 'Its first position.' },
+                      end: { type: 'number', required: true, doc: 'Its end, a position.' },
+                    },
+                    doc: 'A grid’s second axis, as positions.',
+                  },
+                },
+              },
+              doc: 'Each section’s viewport by section address, as positions (never offsets).',
+            },
+          },
+          doc: 'What the step shows: the view and each section’s viewport; a story names it on purpose, as data of the step.',
+        },
+        duration: { type: 'number', min: 0, doc: 'The transition into the step, ms (`story.transition.duration`).' },
+        easing: {
+          type: 'string',
+          enum: ['linear', 'ease-in', 'ease-out', 'ease-in-out'],
+          doc: 'How the transition’s time runs (`story.transition.easing`).',
+        },
+        linger: { type: 'number', min: 0, doc: 'How long the step is shown, ms (`story.linger`).' },
       },
     },
     source: {
@@ -530,6 +591,8 @@ export const SeqPatchLanguage: Language = patchLanguage(SeqLanguage);
  * theme sublanguage (_spec/README.md "Themes").
  */
 export function seqLanguages(id: string): Language | undefined {
+  // a full-state story step is a spec of its own (`snapshot.state`)
+  if (id === SeqLanguage.id) return SeqLanguage;
   return id === SeqPatchLanguage.id ? SeqPatchLanguage : id === ThemeLanguageId ? ThemeLanguage : undefined;
 }
 

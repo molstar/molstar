@@ -16,6 +16,13 @@ import { bundledWidth } from '@molstar/seqx-core/render';
 import { browserTextMetrics } from '@molstar/seqx-viewer/canvas';
 
 export type {
+  AnimationRequest,
+  AnimationRequestOptions,
+  SeqAnimation,
+  SeqAnimationParticipant,
+  SeqAnimationPort,
+} from './animation.js';
+export type {
   EditContext,
   EditOrigin,
   EditRunOptions,

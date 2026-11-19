@@ -36,6 +36,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A source has both a `uri` and an inline `value`, or neither',
     hint: 'Give one of `uri` and `value`',
   },
+  'seq.lang.snapshot.content': {
+    severity: 'error',
+    description: 'A story step has both a `patch` and a `state`, or neither',
+    hint: 'Give one: a patch over the spec (or the step it starts `from`), or a full state',
+  },
   'seq.lang.sequence.content': {
     severity: 'error',
     description: 'A sequence has both `letters` and a `source`, or neither',
