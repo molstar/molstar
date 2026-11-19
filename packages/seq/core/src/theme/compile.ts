@@ -94,6 +94,8 @@ export type LegendSource =
       readonly field: string;
       readonly domain: readonly [number, number];
       readonly range: readonly [number, number];
+      /** The size's scale (`sqrt` for a radius when the form names none). */
+      readonly type: 'linear' | 'log' | 'sqrt';
       readonly scale?: string;
     };
 
@@ -216,6 +218,7 @@ export function compileChannel(
           field: fieldName,
           domain: domain.value,
           range,
+          type,
           ...(address ? { scale: address } : {}),
         };
       return {
@@ -230,7 +233,9 @@ export function compileChannel(
       return { at: (d) => (typeof read(d) === 'string' ? literal(read(d)) : undefined) };
     }
     const node =
-      (param(b, 'palette') as ThemeNode | undefined) ?? sc.palette ?? defaultPalette(env.numeric?.(fieldName) === true);
+      (param(b, 'palette') as ThemeNode | undefined) ??
+      sc.palette ??
+      defaultPalette(env.numeric?.(fieldName) === true, sc.mid);
     const palette = compilePalette(isThemeNode(node) ? node : defaultPalette(false), {
       tokens: env.tokens,
       domain: domain.value,

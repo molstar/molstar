@@ -10,6 +10,7 @@ import { type Legend as MolLegend, ScaleLegend, TableLegend } from '@molstar/cor
 import { toRgb } from './colors.js';
 import type { Channel } from './compile.js';
 import type { ChannelName } from './forms.js';
+import { normalize } from './palettes.js';
 
 // Legends (_spec/README.md "Themes", Legends): derived from a layer's resolved channel, never written; merged when they
 // say the same; converted to Mol*'s `TableLegend` and `ScaleLegend` for a Mol* host's legend control.
@@ -20,7 +21,10 @@ export type LegendEntries =
       /** RGBA colors at 0..1 of the domain. */
       readonly stops: readonly { readonly color: number; readonly at: number }[];
       readonly ticks: readonly number[];
+      /** Each tick's place on the ramp, 0..1 through the scale (and its center at 0.5 with `mid`). */
+      readonly tickAt: readonly number[];
       readonly scale: 'linear' | 'log' | 'sqrt';
+      readonly mid?: number;
     }
   | { readonly kind: 'steps'; readonly edges: readonly number[]; readonly colors: readonly number[] }
   | {
@@ -62,6 +66,14 @@ export interface LegendOptions {
   readonly maxItems?: number;
 }
 
+/** A log scale's ticks: its decades inside the domain (the ends when none is). */
+export function logTicks(lo: number, hi: number): number[] {
+  if (!(lo > 0) || !(hi > lo)) return niceTicks(lo, hi);
+  const out: number[] = [];
+  for (let e = Math.ceil(Math.log10(lo)); e <= Math.floor(Math.log10(hi)); e++) out.push(10 ** e);
+  return out.length ? out : [lo, hi];
+}
+
 /** Nice ticks over a domain: steps of 1, 2, 5 × 10ⁿ, at most about five. */
 export function niceTicks(lo: number, hi: number, count = 5): number[] {
   if (!(hi > lo)) return [lo];
@@ -95,7 +107,11 @@ export function legendOf(channel: Channel, options: LegendOptions): Legend | und
     };
   } else if (src.kind === 'sizes') {
     const [lo, hi] = src.domain;
-    const at = (v: number) => src.range[0] + ((src.range[1] - src.range[0]) * (v - lo)) / (hi - lo || 1);
+    // the size channel's own scale (a radius by `sqrt`): one `normalize` for the marks and their key
+    const at = (v: number) => {
+      const t = normalize(v, src.type, lo, hi, undefined);
+      return src.range[0] + (src.range[1] - src.range[0]) * (Number.isNaN(t) ? 0 : Math.max(0, Math.min(1, t)));
+    };
     entries = { kind: 'sizes', items: [lo, (lo + hi) / 2, hi].map((v) => ({ value: v, size: at(v) })) };
     domain = [lo, hi];
     field = src.field;
@@ -133,11 +149,18 @@ export function legendOf(channel: Channel, options: LegendOptions): Legend | und
       const [lo, hi] = p.domain ?? [0, 1];
       domain = [lo, hi];
       const at = p.at ?? [];
+      const ticks = p.scale === 'log' ? logTicks(lo, hi) : niceTicks(lo, hi);
+      if (p.mid !== undefined && !ticks.includes(p.mid)) {
+        ticks.push(p.mid);
+        ticks.sort((a, b) => a - b);
+      }
       entries = {
         kind: 'ramp',
         stops: p.colors.map((color, i) => ({ color, at: at[i] ?? 0 })),
-        ticks: niceTicks(lo, hi),
+        ticks,
+        tickAt: ticks.map((t) => normalize(t, p.scale, lo, hi, p.mid)),
         scale: p.scale,
+        ...(p.mid !== undefined ? { mid: p.mid } : {}),
       };
     }
   }

@@ -66,6 +66,7 @@ export {
   continuousLut,
   defaultPalette,
   fromMvsPalette,
+  fromMvsScale,
   LutSize,
   namedList,
   normalize,

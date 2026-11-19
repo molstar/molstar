@@ -32,20 +32,27 @@ export const TokenLists: Readonly<Record<string, readonly string[]>> = {
   categories: ['seq-cat-0', 'seq-cat-1', 'seq-cat-2', 'seq-cat-3', 'seq-cat-4', 'seq-cat-5', 'seq-cat-6', 'seq-cat-7'],
 };
 
-/** This language's names for Mol*'s lists where they differ from Mol*'s (`ColorLists`' keys are taken as they are). */
-const ListAliases: Readonly<Record<string, string>> = {
+/**
+ * Mol*'s lists this language names (the ones its schemes use), by this language's name: no other list is offered, so a
+ * spec reads the same wherever Seq* runs, and a list added to Mol* is not one here until it is named.
+ */
+export const NamedLists = {
+  viridis: 'viridis',
+  cividis: 'cividis',
+  magma: 'magma',
+  blues: 'blues',
   'rd-bu': 'red-blue',
+  'okabe-ito': 'okabe-ito',
   tableau10: 'tableau-10',
   category10: 'category-10',
-};
+} as const satisfies Record<string, keyof typeof ColorLists>;
 
 /** A named list's colors (RGBA) in a token table; undefined for a name that is no list. */
 export function namedList(name: string, tokens: TokenTable): number[] | undefined {
   const t = TokenLists[name];
   if (t) return t.map((n) => tokens.colors[n] ?? 0);
-  const key = ListAliases[name] ?? name;
-  if (!Object.hasOwn(ColorLists, key)) return undefined;
-  return ColorLists[key as keyof typeof ColorLists].list.map((e) => fromRgb(Color.fromColorListEntry(e)));
+  if (!Object.hasOwn(NamedLists, name)) return undefined;
+  return ColorLists[NamedLists[name as keyof typeof NamedLists]].list.map((e) => fromRgb(Color.fromColorListEntry(e)));
 }
 
 /** Where a palette's colors failed to read: an unknown name or a color that is none. */
@@ -116,6 +123,11 @@ export interface Palette {
   readonly hashed?: boolean;
   readonly scale: 'linear' | 'log' | 'sqrt';
   readonly mid?: number;
+  /** A log scale's non-positive values drawn at the low end (else missing). */
+  readonly clamp?: boolean;
+  /** The colors given below and above the domain (else its ends'). */
+  readonly under?: number;
+  readonly over?: number;
 }
 
 /** A value through the scale (log10, sqrt), NaN outside its domain. */
@@ -147,11 +159,13 @@ export interface PaletteOptions {
   readonly report?: PaletteReport;
 }
 
-/** The default palette of a field by its column's declared type: categories for text, the ramp for numbers. */
-export function defaultPalette(numeric: boolean): ThemeNode {
-  return numeric
-    ? { kind: 'continuous', params: { colors: 'ramp' } }
-    : { kind: 'categorical', params: { colors: 'categories' } };
+/**
+ * The default palette of a field by its column's declared type: categories for text, the ramp for numbers, the
+ * diverging tokens for numbers about a center (`mid`).
+ */
+export function defaultPalette(numeric: boolean, mid?: number): ThemeNode {
+  if (!numeric) return { kind: 'categorical', params: { colors: 'categories' } };
+  return { kind: 'continuous', params: { colors: mid !== undefined ? 'diverging' : 'ramp' } };
 }
 
 /** Compiles a palette node (one of `PaletteKinds`) to a `Palette`. */
@@ -161,6 +175,8 @@ export function compilePalette(node: ThemeNode, options: PaletteOptions): Palett
   const scale = options.scale ?? {};
   const type = scale.type ?? 'linear';
   const mid = (param(node, 'mid') as number | undefined) ?? scale.mid;
+  // a value at or below zero on a log scale: missing, or the domain's low end with `non_positive: clamp`
+  const clamp = type === 'log' && scale.non_positive === 'clamp';
   if (node.kind === 'direct') {
     return {
       kind: 'direct',
@@ -206,6 +222,10 @@ export function compilePalette(node: ThemeNode, options: PaletteOptions): Palett
     const o = { value: 0 };
     const num = (x: number) => {
       if (Number.isNaN(x)) return undefined;
+      if (type === 'log' && x <= 0) {
+        if (!clamp) return undefined;
+        x = lo;
+      }
       if (x < lo) return underC;
       if (x > hi) return overC;
       o.value = x;
@@ -218,6 +238,9 @@ export function compilePalette(node: ThemeNode, options: PaletteOptions): Palett
       edges,
       domain: [lo, hi],
       scale: type,
+      ...(clamp ? { clamp } : {}),
+      ...(under !== undefined ? { under: underC } : {}),
+      ...(over !== undefined ? { over: overC } : {}),
       color: (v) => num(typeof v === 'number' ? v : v === undefined ? Number.NaN : Number.parseFloat(v)),
       num,
     };
@@ -246,6 +269,10 @@ export function compilePalette(node: ThemeNode, options: PaletteOptions): Palett
   const underC = under !== undefined ? color(under, tokens, report) : lut[0];
   const overC = over !== undefined ? color(over, tokens, report) : lut[LutSize - 1];
   const num = (x: number) => {
+    if (type === 'log' && x <= 0) {
+      if (!clamp) return undefined;
+      x = lo;
+    }
     // `normalize` inlined for the linear scale without a center: the common case on a frame
     const t =
       type === 'linear' && mid === undefined
@@ -266,6 +293,9 @@ export function compilePalette(node: ThemeNode, options: PaletteOptions): Palett
     edges: [lo, hi],
     scale: type,
     ...(mid !== undefined ? { mid } : {}),
+    ...(clamp ? { clamp } : {}),
+    ...(under !== undefined ? { under: underC } : {}),
+    ...(over !== undefined ? { over: overC } : {}),
     color: (v) => num(typeof v === 'number' ? v : v === undefined ? Number.NaN : Number.parseFloat(v)),
     num,
   };
@@ -373,6 +403,11 @@ export function toMvsPalette(
   const extra = {
     ...(p.scale !== 'linear' ? { scale: p.scale } : {}),
     ...(p.mid !== undefined ? { mid: p.mid } : {}),
+    ...(p.clamp ? { non_positive: 'clamp' as const } : {}),
+  };
+  const flows = {
+    ...(p.under !== undefined ? { underflow_color: hex(p.under) } : {}),
+    ...(p.over !== undefined ? { overflow_color: hex(p.over) } : {}),
   };
   if (node.kind === 'categorical') {
     const raw = param(node, 'colors');
@@ -399,12 +434,28 @@ export function toMvsPalette(
       colors: p.colors.map((c, i) => [hex(c), at[i]] as [string, number]),
       value_domain: [p.domain?.[0] ?? null, p.domain?.[1] ?? null],
       ...extra,
+      ...flows,
     };
   }
   return undefined;
 }
 
-/** MolViewSpec's palette as a palette node of this language. */
+/**
+ * The scale a MolViewSpec palette carries (its `scale`, `value_domain`, `mid`, `non_positive`), as a field form's
+ * scale params: with `fromMvsPalette`'s node, the palette converted whole.
+ */
+export function fromMvsScale(spec: ValuePaletteSpec): ScaleParams {
+  if (spec.kind === 'categorical') return {};
+  const d = spec.kind === 'continuous' ? spec.value_domain : undefined;
+  return {
+    ...(spec.scale && spec.scale !== 'linear' ? { type: spec.scale } : {}),
+    ...(d && (d[0] !== null || d[1] !== null) ? { domain: [d[0] ?? null, d[1] ?? null] as const } : {}),
+    ...(spec.mid !== undefined && spec.mid !== null ? { mid: spec.mid } : {}),
+    ...(spec.non_positive ? { non_positive: spec.non_positive } : {}),
+  };
+}
+
+/** MolViewSpec's palette as a palette node of this language (its scale: `fromMvsScale`). */
 export function fromMvsPalette(spec: ValuePaletteSpec): ThemeNode {
   const params: Record<string, unknown> = {};
   if (spec.kind === 'categorical') {
@@ -427,5 +478,7 @@ export function fromMvsPalette(spec: ValuePaletteSpec): ThemeNode {
   const c = spec.colors;
   params.colors = c;
   if (spec.mode === 'absolute') params.stops = 'absolute';
+  if (spec.underflow_color && spec.underflow_color !== 'auto') params.under = spec.underflow_color;
+  if (spec.overflow_color && spec.overflow_color !== 'auto') params.over = spec.overflow_color;
   return { kind: 'continuous', params };
 }

@@ -110,6 +110,8 @@ export function layoutLegends(
         data[4 * i + 3] = 0xff;
       }
       out.image(x, top, B.ramp, B.swatch, { width: LutSize, height: 1, data });
+      // the ticks where the scale puts them (a log scale's decades, a center at the middle)
+      for (const t of e.tickAt) if (t >= 0 && t <= 1) out.fill(x + t * (B.ramp - 1), top + B.swatch - 3, 1, 3, ink);
       x += B.ramp + B.gap;
       label(formatValue(hi), ink);
     } else if (e.kind === 'steps') {
