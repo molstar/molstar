@@ -22,6 +22,10 @@ structured. This design settles it.
   on whichever dataset shows it best; a dataset's figure is an example. Why: a reader looking for how a feature works
   should not have to guess which dataset holds it, and a dataset's folder shows what its data looks like. A
   dataset's index story links the features shown on its data.
+- **Examples load their data from files** (the author, 2026-11-19: "we should have storybook example that load data
+  from files too instead of just inlining the values"): a dataset's fixtures are read as sources (FASTA, Stockholm,
+  Newick, annotation tables with their transforms, the `seq` format), as a reader of Seq\* would; inline data only
+  where the values are few or the inline form is what a story shows.
 - **One story per view**: `Seq* (next)/Examples/<Dataset>/<View>`, each composing a viewer from the default spec and
   the view's `build()`, with the canvas and the SVG side by side and the printed spec beside them. A dataset's index
   story lists its views.

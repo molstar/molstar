@@ -228,6 +228,17 @@ and dark before the merge.
       Editing Themes and the Schemes Gallery), Edit and undo, Bookmarks and links, Selection, Story and the stories of
       that kind move to Features, each linked from its dataset's index where it uses that data; the examples Design
       page and every story link updated; the headless twins follow their stories.
+- [ ] FS (strong, after SO, before the dataset lanes; the author, 2026-11-19: "we should have storybook example that
+      load data from files too instead of just inlining the values. This includes the annotation data with
+      descriptions of the transforms that need to be applied. Similar to how the base packages/sequences does that")
+      files as sources: a design first (drafted, reviewed and agreed as MD was), then built. The tables text format
+      the sources design lists but no runtime reads yet (TSV and CSV; GFF3 and BED considered there), and the
+      description of the transforms a file's annotation needs, written in the spec beside its source: which columns
+      are the target, start and end; a 1- or 0-based start, an inclusive or exclusive end; a numbering the positions
+      are in; renamed and typed columns; a filter; the base's `fields` remap and `from_source` read first. Built as a
+      runtime and its conformance suite, then stories that load the datasets from their fixtures (FASTA, Stockholm,
+      Newick, the tables with their transforms, the `seq` format), each with its headless twin reading the same
+      files through the Node assets reader.
 - [ ] LB (strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
       isn't good") a one-position block a chip in every layout, as layouts.md (Blocks) now says (decided
       2026-11-19): a fixed slot its label's width, the text chip's rule; contacts an optional `pairs` layer the
@@ -288,7 +299,7 @@ and dark before the merge.
 
 Gate 0 (with C0 beside it) → AX → TH and SL in parallel → (early use gate, deferred) → TX, then RB on TX's interface change → RW
 and SY in parallel, then PG on RW's shared pieces and NV after RW (the vertical overview reads RW's rows; at most two
-strong lanes at once) → CH beside them, GD after both → SO, LB, then the datasets' lanes, MD's design beside them (two or three at once, fast)
+strong lanes at once) → CH beside them, GD after both → SO, FS (its design, then its build), LB, then the datasets' lanes (each loading its fixtures from files), MD's design beside them (two or three at once, fast)
 → OP and AY → novice pass → measure → the author's use gates (deferred to here at the latest) → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)
