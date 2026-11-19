@@ -227,6 +227,8 @@ export class RowsLay {
   /** The tree's geometry by node, kept by the display's version (`treeGeometry`). */
   coord = new Float64Array(0);
   nodeX = new Float64Array(0);
+  /** The x of a node's deepest leaf (by branch length, as its leaves would sit): a folded clade's wedge ends there. */
+  deepX = new Float64Array(0);
   inFold = new Uint8Array(0);
   folded = new Uint8Array(0);
   treeOf = -1;
@@ -1538,6 +1540,9 @@ function isPinned(lay: RowsLay, row: number): boolean {
   return false;
 }
 
+/** A wedge's least length, px: a clade of zero branch lengths still shows one. */
+const WedgeMinPx = 6;
+
 /**
  * The tree beside the rows from its kept geometry: only what crosses the band is kept (segments, each with the node a
  * hit on it toggles: an inner node's own vertical and the branch to it; a leaf's branch none), the wedges of folded
@@ -1560,7 +1565,10 @@ function layoutTree(lay: RowsLay, clades: Clades, x0: number, w: number) {
     const yk = y0 + coord[k] * rs;
     if (folded[k]) {
       if (yk + rs / 2 >= top && yk - rs / 2 <= bottom) {
-        lay.wedges.push(x, yk - rs * 0.4, x0 + w, yk + rs * 0.4, k);
+        // to its deepest leaf's x (a few px at least, so a clade of zero lengths still shows one); the hit's box the
+        // row's middle 0.8, the drawn wedge's far side half the row (`drawWedges`)
+        const far = Math.min(x0 + w, Math.max(x0 + lay.deepX[k] * w, x + WedgeMinPx));
+        lay.wedges.push(x, yk - rs * 0.4, far, yk + rs * 0.4, k);
         lay.nodes.push(k, x, yk);
       }
       continue;
@@ -1683,15 +1691,23 @@ function treeGeometry(lay: RowsLay, clades: Clades) {
   if (lay.coord.length < n) {
     lay.coord = new Float64Array(n);
     lay.nodeX = new Float64Array(n);
+    lay.deepX = new Float64Array(n);
     lay.inFold = new Uint8Array(n);
     lay.folded = new Uint8Array(n);
   }
-  const { coord, nodeX, inFold, folded } = lay;
+  const { coord, nodeX, deepX, inFold, folded } = lay;
   let maxD = 0;
   for (let k = 0; k < n; k++) if (clades.distance[k] > maxD) maxD = clades.distance[k];
   let maxDepth = 0;
   for (let k = 0; k < n; k++) if (clades.depth[k] > maxDepth) maxDepth = clades.depth[k];
   for (let k = 0; k < n; k++) nodeX[k] = maxD > 0 ? clades.distance[k] / maxD : clades.depth[k] / Math.max(1, maxDepth);
+  // a node's children come after it: its deepest leaf's x from theirs
+  for (let k = n - 1; k >= 0; k--) {
+    const kids = clades.children[k];
+    let d = nodeX[k];
+    for (const c of kids) if (deepX[c] > d) d = deepX[c];
+    deepX[k] = d;
+  }
   // folded: a clade shown as a summary row (one folded to its one shown row is that row)
   folded.fill(0, 0, n);
   for (const i of d.members.keys()) {
@@ -1930,7 +1946,7 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   const ink = tokens.colors['msui-text-muted'];
   const t = lay.tree;
   for (let k = 0; k + 3 < t.length; k += 4) branchRect(lay, out, k, ink, 1);
-  if (lay.wedges.length) drawWedges(lay, out, ink, -1);
+  if (lay.wedges.length) drawWedges(lay, out, ink, -1, 1, false);
   const text = tokens.colors['msui-text'];
   for (let k = 0; k < lay.labelText.length; k++) {
     g[0] = lay.labelX;
@@ -2009,15 +2025,33 @@ function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefi
   if (i >= 0) hoverColumnCells(lay, out, i, undefined);
 }
 
-/** Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`. */
+/** A branch's width `t` (px) in whole device pixels, one at least (_spec/README.md "Render", The rows layer, The tree's look). */
+function branchWidth(lay: RowsLay, t: number): number {
+  const dpr = lay.axis.dpr;
+  return Math.max(1, Math.round(t * dpr)) / dpr;
+}
+
+/**
+ * Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`, its edges on device pixels: across the segment
+ * its centre's pixel run of the branch's width, along it from each end less half the width to the end plus half (so a
+ * branch and its node's vertical meet square, and every branch draws one width).
+ */
 function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number, t: number) {
   const tr = lay.tree;
   const g = out.args;
+  const dpr = lay.axis.dpr;
+  const w = branchWidth(lay, t);
   const vertical = tr[k] === tr[k + 2];
-  g[0] = vertical ? tr[k] - t / 2 : Math.min(tr[k], tr[k + 2]);
-  g[1] = vertical ? Math.min(tr[k + 1], tr[k + 3]) : tr[k + 1] - t / 2;
-  g[2] = vertical ? t : Math.abs(tr[k + 2] - tr[k]);
-  g[3] = vertical ? Math.abs(tr[k + 3] - tr[k + 1]) : t;
+  const across = vertical ? tr[k] : tr[k + 1];
+  const a = vertical ? Math.min(tr[k + 1], tr[k + 3]) : Math.min(tr[k], tr[k + 2]);
+  const b = vertical ? Math.max(tr[k + 1], tr[k + 3]) : Math.max(tr[k], tr[k + 2]);
+  const c0 = Math.round((across - w / 2) * dpr) / dpr;
+  const a0 = Math.round((a - w / 2) * dpr) / dpr;
+  const b1 = Math.round((b - w / 2) * dpr) / dpr + w;
+  g[0] = vertical ? c0 : a0;
+  g[1] = vertical ? a0 : c0;
+  g[2] = vertical ? w : b1 - a0;
+  g[3] = vertical ? b1 - a0 : w;
   g[4] = ink;
   g[5] = NoColor;
   g[6] = 0;
@@ -2026,26 +2060,82 @@ function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number, t: nu
   out.rectArgs();
 }
 
-const Wedge = new Float64Array(6);
-/** The folded clades' wedges in `ink`: all, or (`clade` ≥ 0) those inside that clade. */
-function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number) {
+/** `ink` at `share` of its own opacity (a tint: the wedge's fill). */
+function tintOf(ink: number, share: number): number {
+  return ((ink & 0xffffff00) | Math.round((ink & 0xff) * share)) >>> 0;
+}
+
+/** A wedge's corners and its outline with each corner softened (3 corners, 4 points each: two cuts, two between). */
+const WedgeCorners = new Float64Array(6);
+const Wedge = new Float64Array(24);
+
+/**
+ * The folded clades' wedges (_spec/README.md "Render", The rows layer, The tree's look): a triangle from the clade's
+ * node to its deepest leaf's x, its far side half the row high, its corners softened by the shape rule, filled with a
+ * light tint of `ink` (a step darker `hovered`) and outlined in `ink` at the branches' width `t`; all, or (`clade` ≥ 0)
+ * those inside that clade.
+ */
+function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number, t: number, hovered: boolean) {
   const w = lay.wedges;
   const g = out.args;
   const cl = lay.clades;
+  const { config } = lay;
+  const half = lay.rowScale / 4;
+  const stroke = branchWidth(lay, t);
   for (let k = 0; k + 4 < w.length; k += 5) {
     if (clade >= 0 && cl && !within(cl, w[k + 4], clade)) continue;
-    Wedge[0] = w[k];
-    Wedge[1] = (w[k + 1] + w[k + 3]) / 2;
-    Wedge[2] = w[k + 2];
-    Wedge[3] = w[k + 1];
-    Wedge[4] = w[k + 2];
-    Wedge[5] = w[k + 3];
-    g[4] = ink;
-    g[5] = NoColor;
-    g[6] = 0;
+    const x0 = w[k];
+    const yc = (w[k + 1] + w[k + 3]) / 2;
+    const x1 = w[k + 2];
+    WedgeCorners[0] = x0;
+    WedgeCorners[1] = yc;
+    WedgeCorners[2] = x1;
+    WedgeCorners[3] = yc - half;
+    WedgeCorners[4] = x1;
+    WedgeCorners[5] = yc + half;
+    const r = squircleRadius(x1 - x0, 2 * half, config.squircleRatio, config.squircleMax, config.squircleMin);
+    const n = softCorners(r);
+    g[4] = tintOf(ink, hovered ? 0.36 : 0.18);
+    g[5] = ink;
+    g[6] = stroke;
     g[7] = 0;
-    out.pathArgs(Wedge, 3, true);
+    out.pathArgs(Wedge, n, true);
   }
+}
+
+/**
+ * The triangle in `WedgeCorners` into `Wedge`, each corner cut `r` along its two sides (at most a third of the shorter)
+ * and joined by a quadratic curve through the corner, sampled: its point count (3, the corners, when `r` is 0).
+ */
+function softCorners(r: number): number {
+  const p = WedgeCorners;
+  if (!(r > 0)) {
+    for (let i = 0; i < 6; i++) Wedge[i] = p[i];
+    return 3;
+  }
+  let o = 0;
+  for (let c = 0; c < 3; c++) {
+    const px = p[2 * c];
+    const py = p[2 * c + 1];
+    const ax = p[2 * ((c + 2) % 3)];
+    const ay = p[2 * ((c + 2) % 3) + 1];
+    const bx = p[2 * ((c + 1) % 3)];
+    const by = p[2 * ((c + 1) % 3) + 1];
+    const la = Math.hypot(ax - px, ay - py);
+    const lb = Math.hypot(bx - px, by - py);
+    const d = Math.min(r, la / 3, lb / 3);
+    const sx = px + ((ax - px) * d) / la;
+    const sy = py + ((ay - py) * d) / la;
+    const ex = px + ((bx - px) * d) / lb;
+    const ey = py + ((by - py) * d) / lb;
+    for (let s = 0; s < 4; s++) {
+      const u = s / 3;
+      const v = 1 - u;
+      Wedge[o++] = v * v * sx + 2 * u * v * px + u * u * ex;
+      Wedge[o++] = v * v * sy + 2 * u * v * py + u * u * ey;
+    }
+  }
+  return 12;
 }
 
 /** Node `k` is `c` or below it (its leaves are within `c`'s; a chain of one child shares them: by depth too). */
@@ -2155,7 +2245,7 @@ function hoverClade(lay: RowsLay, out: PassWriter, key: string, ink: number) {
   const owner = lay.treeClade;
   for (let k = 0, s = 0; k + 3 < t.length; k += 4, s++)
     if (within(cl, owner[s], c)) branchRect(lay, out, k, ink, config.outline.hover);
-  if (lay.wedges.length) drawWedges(lay, out, ink, c);
+  if (lay.wedges.length) drawWedges(lay, out, ink, c, config.outline.hover, true);
   out.unclip();
 }
 

@@ -220,4 +220,66 @@ describe('the rows layer', () => {
     }
     expect(f.layout.issues.some((i) => i.code === 'seq.render.rows.text.unfolded')).toBe(true);
   });
+
+  describe('the tree’s look: one line width on device pixels, a light wedge to the deepest leaf', () => {
+    const nums = (l: string) =>
+      l
+        .split(' ')
+        .filter((x) => x !== '' && !Number.isNaN(Number(x)))
+        .map(Number);
+    // a tree width whose thirds fall between pixels
+    const params = { order: 'tree', collapsed: ['hb'], tree_width: 100 };
+
+    /** The branch rects of the labels pass: the muted ink's rects left of the labels. */
+    async function branches(dpr: number) {
+      const s = await settle(spec(params, { height: 120 }).build());
+      const f = await s.frame({ size: Size, dpr, settled: true });
+      const lay = rowsLay(f as never);
+      const rects = recordDrawLists(f.lists, ['labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('rect '))
+        .map(nums)
+        .filter(([x]) => x < lay.labelX);
+      return { lay, rects, f };
+    }
+
+    for (const dpr of [1, 2])
+      it(`every branch rect’s edges on device pixels, every branch one width (dpr ${dpr})`, async () => {
+        const { lay, rects } = await branches(dpr);
+        // a segment a rect: the tree's segments in view
+        expect(rects.length).toBe(lay.tree.length / 4);
+        const onGrid = (v: number) => Math.abs(v * dpr - Math.round(v * dpr)) < 0.02;
+        for (const [x, y, w, h] of rects) {
+          for (const v of [x, y, x + w, y + h]) expect(onGrid(v), `${[x, y, w, h]}`).toBe(true);
+          expect(Math.min(w, h)).toBeCloseTo(1, 5);
+        }
+      });
+
+    it('a folded clade’s wedge ends at its deepest leaf’s x, a light fill outlined in the branch ink, canvas and SVG alike', async () => {
+      const { lay, f } = await branches(1);
+      // hb's leaves lie 2 from the root of a tree 3 deep (GLB, CYG): two thirds across
+      const far = lay.treeX0 + ((lay.treeX1 - lay.treeX0) * 2) / 3;
+      expect(lay.wedges[2]).toBeCloseTo(far, 5);
+      const paths = recordDrawLists(f.lists, ['labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('path '));
+      expect(paths).toHaveLength(1);
+      const xs = nums(paths[0].split(' stroke')[0]).filter((_, i) => i % 2 === 0);
+      expect(Math.max(...xs)).toBeCloseTo(far, 1);
+      expect(Math.max(...xs)).toBeLessThan(lay.treeX1 - 1);
+      // its far side about half the row high (its corners softened inside it)
+      const ys = nums(paths[0].split(' stroke')[0]).filter((_, i) => i % 2 === 1);
+      const high = Math.max(...ys) - Math.min(...ys);
+      expect(high).toBeGreaterThan(lay.rowScale * 0.4);
+      expect(high).toBeLessThanOrEqual(lay.rowScale / 2);
+      expect(ys.length).toBeGreaterThan(3);
+      // filled with a tint (not opaque), outlined in the branch ink at the branches' width
+      expect(paths[0]).toMatch(/stroke #[0-9a-f]{8} 1\b/);
+      const fill = / #([0-9a-f]{8}) stroke /.exec(paths[0])?.[1];
+      expect(fill).toBeTruthy();
+      expect(Number.parseInt(fill!.slice(6), 16)).toBeLessThan(0x80);
+      const svg = await renderSvg(spec(params, { height: 120 }).build(), { size: Size });
+      expect(recordDrawLists(svg.lists, ['labels'])).toBe(recordDrawLists(f.lists, ['labels']));
+    });
+  });
 });
