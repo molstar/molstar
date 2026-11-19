@@ -49,6 +49,15 @@ export interface State {
   neighbourPos: number[][];
   /** Residue-local index of each stored neighbour from `neighbourPos` or -1 when the neighbour is outside this residue */
   neighbourLocal: number[][];
+  /** Element of each stored neighbour, parallel to `neighbourPos` / `neighbourLocal` */
+  neighbourEl: ElementSymbol[][];
+  /**
+   * Σ orders of the bonds from each residue atom to atoms outside the residue (another residue of the unit or another
+   * unit): fixed during perception, which never writes them (_spec §1.11)
+   */
+  outsideValence: Int8Array;
+  /** 1 if one of the bonds from the residue atom to atoms outside the residue is multiple */
+  outsideMultiple: Uint8Array;
   /** geometry (from bond angles) per local atom, as `AtomGeometry` */
   geometry: Int8Array;
   /** remaining open valence per local atom */
@@ -95,7 +104,7 @@ export function State(
   const { edgeProps, offset, b } = bonds;
   const { order, flags } = edgeProps;
   const { elements, conformation } = unit;
-  const { label_alt_id } = unit.model.atomicHierarchy.atoms;
+  const { label_alt_id, type_symbol } = unit.model.atomicHierarchy.atoms;
 
   const assignedBonds = new Uint8Array(order.length);
   const { unitIndices, referenceAltLoc } = filterReferenceAltLoc(unit, start, end);
@@ -110,6 +119,9 @@ export function State(
   const allNeighbours: number[][] = [];
   const neighbourPos: number[][] = [];
   const neighbourLocal: number[][] = [];
+  const neighbourEl: ElementSymbol[][] = [];
+  const outsideValence = new Int8Array(n);
+  const outsideMultiple = new Uint8Array(n);
 
   for (let i = 0; i < n; i++) {
     const u = unitIndices[i];
@@ -120,11 +132,12 @@ export function State(
     const allList: number[] = [];
     const posList: number[] = [];
     const localList: number[] = [];
+    const elList: ElementSymbol[] = [];
 
     // inter-unit neighbours
     const partners = interUnit.get(elements[u]);
     if (partners) {
-      for (const eI of partners) {
+      for (const { element: eI, order: bondOrder } of partners) {
         // with `mergeBySymmetry`, a unit holds several chains of the model structure: a partner inside it is already
         // in the unit's bonds
         if (SortedArray.has(elements, eI)) continue;
@@ -136,6 +149,9 @@ export function State(
         conformation.invariantPosition(eI, tmpVecA);
         posList.push(tmpVecA[0], tmpVecA[1], tmpVecA[2]);
         localList.push(-1);
+        elList.push(type_symbol.value(eI));
+        outsideValence[i] += bondOrder;
+        if (bondOrder > 1) outsideMultiple[i] = 1;
       }
     }
 
@@ -148,13 +164,18 @@ export function State(
       degree[i]++;
       conformation.invariantPosition(elements[v], tmpVecA);
       posList.push(tmpVecA[0], tmpVecA[1], tmpVecA[2]);
+      const vEl = typeSymbol(unit, v);
+      elList.push(vEl);
       const j = unitIndexToLocalIndex.get(v);
       if (j === void 0) {
-        localList.push(-1); // not in this residue
+        // not in this residue: never written during perception, its order is fixed (_spec §1.11)
+        localList.push(-1);
+        outsideValence[i] += order[t];
+        if (order[t] > 1) outsideMultiple[i] = 1;
         continue;
       }
       localList.push(j);
-      if (isHydrogenElement(typeSymbol(unit, v))) hCount[i]++;
+      if (isHydrogenElement(vEl)) hCount[i]++;
       else heavyList.push(j);
       allList.push(j);
     }
@@ -163,6 +184,7 @@ export function State(
     allNeighbours.push(allList);
     neighbourPos.push(posList);
     neighbourLocal.push(localList);
+    neighbourEl.push(elList);
 
     for (let t = offset[u]; t < offset[u + 1]; t++) {
       if (!isPerceivable(flags[t], order[t])) assignedBonds[t] = 1;
@@ -236,6 +258,9 @@ export function State(
     allNeighbours,
     neighbourPos,
     neighbourLocal,
+    neighbourEl,
+    outsideValence,
+    outsideMultiple,
     inRing,
     geometry: new Int8Array(n),
     open: new Int8Array(n),
@@ -401,8 +426,9 @@ export function isAssignedBond(state: State, u: UnitIndex, v: UnitIndex) {
   return state.assignedBonds[eidx] === 1;
 }
 
-/** Whether atom `i` already has an incident multiple (double/triple) intra bond. */
+/** Whether atom `i` already has an incident multiple (double/triple) bond, in the residue or leaving it. */
 export function hasMultipleBond(state: State, i: number) {
+  if (state.outsideMultiple[i]) return true;
   const { unitIndices, heavyNeighbours } = state;
   const u = unitIndices[i];
   for (const j of heavyNeighbours[i]) {
@@ -462,8 +488,8 @@ export function computeOpenValence(state: State) {
       continue;
     }
     val += state.charge[i];
-    // sum current bond orders to heavy neighbours (intra + cross-residue counted as >=1)
-    let used = state.hCount[i];
+    // explicit H, the fixed bonds leaving the residue, and the current orders to heavy neighbours in it
+    let used = state.hCount[i] + state.outsideValence[i];
     const u = unitIndices[i];
     for (const j of state.heavyNeighbours[i]) {
       used += getOrder(bonds, u, unitIndices[j]);

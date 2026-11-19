@@ -9,8 +9,6 @@ import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import type { IntraUnitBonds } from '@molstar/model/model/structure/structure/unit/bonds/data';
 import { Structure, Unit } from '@molstar/model/model/structure';
-import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
-import { chemCompHash } from '../perception/chemcomp-cache.js';
 import { getInterUnitNeighbours } from '../perception/inter-unit-neighbours.js';
 import { perceiveBondOrders } from '../perception/perceive.js';
 import { bondRows, ccdBondRows, compareBonds, modelFromPdb, perceived, readFixture, unitOf } from './util.js';
@@ -26,7 +24,7 @@ describe('bond-order perception: hard cases', () => {
     expect({ missed, spurious }).toEqual({ missed: [], spurious: [] });
   });
 
-  it('5kre-ser124-6wg: the link C12-SER.OG is seen from the ligand unit, and in its pattern key', async () => {
+  it('5kre-ser124-6wg: the link C12-SER.OG is seen from the ligand unit, with its order (_spec §1.11)', async () => {
     const model = await modelFromPdb(readFixture('5kre-ser124-6wg.pdb'), '5KRE');
     const s = perceived(model);
     const ligand = unitOf(s, '6WG');
@@ -36,21 +34,20 @@ describe('bond-order perception: hard cases', () => {
     const { label_atom_id } = model.atomicHierarchy.atoms;
     const c12 = ligand.elements.find((e) => label_atom_id.value(e) === 'C12')!;
     const interUnit = getInterUnitNeighbours(model, () => Structure.ofModel(model));
-    expect((interUnit.get(c12) ?? []).map((e) => label_atom_id.value(e))).toEqual(['OG']);
-
-    const hash = chemCompHash(
-      ligand,
-      ligand.bonds,
-      interUnit,
-      0 as UnitIndex,
-      ligand.elements.length as UnitIndex,
-      'auto|',
-    );
-    expect(hash).toContain('C12-SER.OG');
+    expect((interUnit.get(c12) ?? []).map((n) => [label_atom_id.value(n.element), n.order])).toEqual([['OG', 1]]);
 
     const rows = bondRows(ligand);
     const c12o1 = rows.find((r) => r.a === 'C12' && r.b === 'O1')!;
     expect(c12o1.order).toBe(2);
+  });
+
+  it("1tup-e-dt1001-dt1002: a nucleotide's phosphoryl P=O, its P bonded to the previous residue's O3' (_spec §1.11)", async () => {
+    const model = await modelFromPdb(readFixture('1tup-e-dt1001-dt1002.pdb'), '1TUP');
+    const unit = perceived(model, 'forceCompute').units[0] as Unit.Atomic;
+    const phosphate = bondRows(unit).filter((r) => r.a === 'OP1' || r.a === 'OP2' || r.b === 'OP1' || r.b === 'OP2');
+    // one of the two equivalent oxygens takes the double, and the link to O3' is counted in P's valence
+    expect(phosphate.map((r) => r.order).sort()).toEqual([1, 2]);
+    expect(bondRows(unit).find((r) => r.a === "O3'" && r.b === 'P')?.order).toBe(1);
   });
 });
 
@@ -248,5 +245,23 @@ describe('bond-order perception: residue gate (_spec §1.9)', () => {
     const perceivedBonds = perceiveBondOrders(unit, unit.bonds, getInterUnit, 'auto');
     expect(Array.from(perceivedBonds.edgeProps.order).filter((o) => o === 2).length).toBe(6); // 3 bonds, both directions
     expect(getInterUnit).toHaveBeenCalled();
+  });
+});
+
+describe('bond-order perception: pattern cache (_spec §1.5)', () => {
+  it('a copy of a component without multiple bonds reuses the empty pattern: not perceived again', async () => {
+    // two copies of ethanol in one chain, 10 Å apart
+    const ethanol = (seq: number, dx: number) => [
+      `HETATM${String(3 * seq - 2).padStart(5)}  C1  EOH A${String(seq).padStart(4)}    ${(0 + dx).toFixed(3).padStart(8)}   0.000   0.000  1.00  0.00           C  `,
+      `HETATM${String(3 * seq - 1).padStart(5)}  C2  EOH A${String(seq).padStart(4)}    ${(1.52 + dx).toFixed(3).padStart(8)}   0.000   0.000  1.00  0.00           C  `,
+      `HETATM${String(3 * seq).padStart(5)}  O   EOH A${String(seq).padStart(4)}    ${(2.03 + dx).toFixed(3).padStart(8)}   1.380   0.000  1.00  0.00           O  `,
+    ];
+    const model = await modelFromPdb([...ethanol(1, 0), ...ethanol(2, 10), 'END'].join('\n'));
+    const unit = unitOf(Structure.ofModel(model), 'EOH');
+    // `getInterUnit` is called once per residue actually perceived
+    const getInterUnit = vi.fn(() => getInterUnitNeighbours(model, () => Structure.ofModel(model)));
+    const out = perceiveBondOrders(unit, unit.bonds, getInterUnit, 'auto');
+    expect(Array.from(out.edgeProps.order).every((o) => o === 1)).toBe(true);
+    expect(getInterUnit).toHaveBeenCalledTimes(1);
   });
 });

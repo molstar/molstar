@@ -107,6 +107,19 @@ function typeRingAtom(state: State, ringSet: Set<number>, i: number): RingAtomTy
     exoOrder = bo;
     exoPartner = state.el[j];
   }
+  // or an exo-cyclic bond leaving the residue: its order is fixed (_spec §1.11); a ring atom has at most one
+  // exo-cyclic bond, so more than one bond leaving the residue matches no configuration
+  const local = state.neighbourLocal[i];
+  let outside = -1;
+  for (let k = 0; k < local.length; k++) {
+    if (local[k] !== -1) continue;
+    if (outside !== -1) return null;
+    outside = k;
+  }
+  if (outside !== -1) {
+    exoOrder = state.outsideValence[i];
+    exoPartner = state.neighbourEl[i][outside];
+  }
   const partnerIsO = exoPartner === Elements.O;
 
   for (const cfg of AromaticAtomConfigs) {

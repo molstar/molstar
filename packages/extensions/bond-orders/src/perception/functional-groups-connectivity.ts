@@ -13,18 +13,20 @@
  * - Amide pattern is treated differently from Sayle's depiction: no single bond is enforced to the N partners. This addresses a limitation discussed in Labute (2005).
  */
 
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { isDebugMode } from '@molstar/core/util/debug';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
 import type { ElementSymbol } from '@molstar/model/model/structure/model/types';
-import { isDebugMode } from '@molstar/core/util/debug';
+import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
 import { AtomGeometry } from '@molstar/model/props/computed/chemistry/geometry';
 import { atomId } from '@molstar/model/props/computed/chemistry/util';
 import {
   computeOpenValence,
-  distSq,
   getOrder,
   hasMultipleBond,
   isAssignedBond,
   isHydrogenElement,
+  pos,
   setAssignedBond,
   setBond,
   type State,
@@ -278,7 +280,7 @@ function connectivityOk(c: NeighborConnectivity, isTerminal: boolean) {
 }
 
 export function applyFunctionalGroups(state: State) {
-  const { unitIndices, n, geometry, heavyNeighbours } = state;
+  const { unitIndices, n, geometry } = state;
   for (let i = 0; i < n; i++) {
     // If the center already has a multiple bond (e.g. a backbone C=O or phosphate
     // P=O from the order table), its pi system is already placed - don't add another.
@@ -292,9 +294,9 @@ export function applyFunctionalGroups(state: State) {
     if (el === Elements.H) continue;
     if (geom === AtomGeometry.Terminal) continue;
 
-    const nb = heavyNeighbours[i];
+    const nb = candidates(state, i);
     const u = unitIndices[i];
-    const fp = computeFingerprint(nb.map((j) => state.el[j]));
+    const fp = computeFingerprint(nb.map((c) => c.el));
     isDebugMode &&
       console.log(
         'Functional group search for ',
@@ -311,12 +313,15 @@ export function applyFunctionalGroups(state: State) {
       if (geom !== g.center.geometry) continue;
       if (nb.length !== g.neighbours.length) continue;
       if ((fp & g.fp) !== g.fp) continue; // fingerprint mismatch: some required element is missing
-      const slots = assignSlots(state, i, g.neighbours);
+      const slots = assignSlots(state, i, nb, g.neighbours);
       if (!slots) continue;
 
       isDebugMode && console.log('Functional group ', g.name, ' matched at ', atomId(state.unit, u));
       for (let k = 0; k < slots.length; k++) {
-        const v = unitIndices[nb[slots[k]]];
+        const j = nb[slots[k]].local;
+        // a neighbour outside the residue fills an order-1 slot only, and its bond is never written (_spec §1.11)
+        if (j < 0) continue;
+        const v = unitIndices[j];
         setAssignedBond(state, u, v);
         const order = g.neighbours[k].order;
         isDebugMode &&
@@ -339,17 +344,48 @@ export function applyFunctionalGroups(state: State) {
   computeOpenValence(state);
 }
 
+/** A heavy neighbour of a pattern's center: in the residue (`local`, its residue-local index) or outside it (`-1`). */
+interface Candidate {
+  readonly el: ElementSymbol;
+  readonly local: number;
+  /** squared distance to the center */
+  readonly d2: number;
+}
+
+/**
+ * The center's heavy neighbours, every bond counted: those in the residue and those outside it (another residue of
+ * the unit, another unit), from the neighbour store (`neighbourPos`, `neighbourLocal`, `neighbourEl`).
+ */
+function candidates(state: State, i: number): Candidate[] {
+  const local = state.neighbourLocal[i];
+  const els = state.neighbourEl[i];
+  const p = state.neighbourPos[i];
+  pos(state, i, tmpPos);
+  const result: Candidate[] = [];
+  for (let k = 0, kl = local.length; k < kl; k++) {
+    if (isHydrogenElement(els[k])) continue;
+    const dx = p[3 * k] - tmpPos[0];
+    const dy = p[3 * k + 1] - tmpPos[1];
+    const dz = p[3 * k + 2] - tmpPos[2];
+    result.push({ el: els[k], local: local[k], d2: dx * dx + dy * dy + dz * dz });
+  }
+  return result;
+}
+
+const tmpPos = Vec3();
+
 /**
  * Match the center's neighbours with the neigbours specs.
- * Returns an array of local indices ordered by the slots in `specs`, or undefined if no complete assignment exists.
+ * Returns an array of indices into `nb` ordered by the slots in `specs`, or undefined if no complete assignment exists.
  *
  * Perfect bipartite matching of slots to neighbours. A per-pair cost ranks the assignments.
  * Heuristics:
  * - higher-order prefer short bonds (Labute 2005)
  * - higher-order prefer in-ring bonds (Sayle 2001)
+ * A neighbour outside the residue is never terminal (an atom of another residue has another heavy neighbour) and
+ * fills order-1 slots only: no multiple bond is written across the residue's boundary (_spec §1.11).
  */
-function assignSlots(state: State, i: number, specs: NeighbourSpec[]): number[] | undefined {
-  const nb = state.heavyNeighbours[i];
+function assignSlots(state: State, i: number, nb: Candidate[], specs: NeighbourSpec[]): number[] | undefined {
   const m = nb.length;
   const s = specs.length;
   const u = state.unitIndices[i];
@@ -358,18 +394,22 @@ function assignSlots(state: State, i: number, specs: NeighbourSpec[]): number[] 
   // Heuristics: higher-order prefer short (Labute 2005) and in-ring (Sayle 2001) bonds.
   const cost = new Array<number>(s * m);
   for (let k = 0; k < m; k++) {
-    const j = nb[k];
-    const elJ = state.el[j];
-    const isTerminalHSuppressed = state.heavyNeighbours[j].length === 1;
-    const d2 = distSq(state, i, j);
-    const inRingJ = state.inRing[j];
-    const v = state.unitIndices[j];
-    const assigned = isAssignedBond(state, u, v);
-    const curOrder = assigned ? getOrder(state.bonds, u, v) : 0;
+    const { el: elJ, local: j, d2 } = nb[k];
+    const outside = j < 0;
+    // heavy degree, every bond counted: a residue atom bonded outside the residue is not terminal
+    const isTerminalHSuppressed = !outside && state.degree[j] - state.hCount[j] === 1;
+    const inRingJ = outside ? 0 : state.inRing[j];
+    const v = outside ? -1 : state.unitIndices[j];
+    const assigned = !outside && isAssignedBond(state, u, v as UnitIndex);
+    const curOrder = assigned ? getOrder(state.bonds, u, v as UnitIndex) : 0;
     for (let si = 0; si < s; si++) {
       const spec = specs[si];
       let c: number;
-      if (!matchEl(spec.el, elJ) || !connectivityOk(spec.connectivity, isTerminalHSuppressed)) {
+      if (
+        !matchEl(spec.el, elJ) ||
+        !connectivityOk(spec.connectivity, isTerminalHSuppressed) ||
+        (outside && spec.order > 1)
+      ) {
         c = Infinity;
       } else {
         const ringBonus = spec.order > 1 && inRingJ ? -2 : 0;

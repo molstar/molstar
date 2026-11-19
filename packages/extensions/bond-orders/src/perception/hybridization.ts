@@ -23,7 +23,6 @@ import { PrincipalAxes } from '@molstar/core/math/linear-algebra/matrix/principa
 import { degToRad, radToDeg } from '@molstar/core/math/misc';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
-import { BondType } from '@molstar/model/model/structure/model/types';
 import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
 import { AtomGeometry } from '@molstar/model/props/computed/chemistry/geometry';
 import { atomId } from '@molstar/model/props/computed/chemistry/util';
@@ -247,18 +246,16 @@ function markAmbiguous(state: State) {
 
   // Labute's conservative tests: planarity OR single-bond-length test to all perceivable bonds, and mark those that fail as "assigned" (excluded from double/aromatic candidacy).
   const seen = new Set<UnitIndex>();
-  const { unit, n, unitIndices, geometry, ambiguous } = state;
-  const { offset, b, edgeProps } = state.bonds;
+  const { unit, n, unitIndices, geometry, ambiguous, heavyNeighbours } = state;
   for (let i = 0; i < n; i++) {
     const u = unitIndices[i];
     if (geometry[i] !== AtomGeometry.Trigonal && ambiguous[i] === Ambiguity.None) {
       isDebugMode && console.log('Atom ', atomId(unit, u), ' is not trigonal, skipping');
       continue;
     }
-    // intra-unit covalent neighbours of `u` in the graph being perceived (no closure: _spec §1.6)
-    for (let t = offset[u]; t < offset[u + 1]; t++) {
-      if (BondType.isCovalent(edgeProps.flags[t])) assignLongOrNonPlanarBond(state, u, b[t] as UnitIndex, seen);
-    }
+    // Loop over heavyNeighbours, to only check the bonds inside the residue. 
+    // Outside residue bonds are never perceived for now (_spec §1.11).
+    for (const j of heavyNeighbours[i]) assignLongOrNonPlanarBond(state, u, unitIndices[j], seen);
     seen.add(u);
   }
 

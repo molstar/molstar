@@ -27,11 +27,16 @@ at the top of `src/perception/perceive.ts` and in each step's module.
    them. Why not `AminoAcidNames`: it holds modified residues (PTR, SEP, PCA, the D-forms) whose side-chain orders the
    core table does not give.
 5. **A model-wide pattern cache** (`perception/chemcomp-cache.ts`): a residue's perceived multiple and aromatic bonds,
-   by atom-name pair, reused for the residues of the same key: the mode, the component id, its sorted atom names (an
-   incomplete residue gets its own key) and its links, atoms bonded outside the residue with their partner
-   (`C12-SER.OG`). Why: a ligand repeated across chains is perceived once. Known limitation (a deviation from unit.md
-   §4): two complete copies with the same key but different geometry get the pattern of whichever unit is perceived
-   first.
+   by atom-name pair, reused for the residues of the same key: the mode, the component id and its sorted atom names (an
+   incomplete residue gets its own key). An empty pattern (a component without multiple or aromatic bonds) is a result
+   and is reused like any other. A cached residue is not perceived, and does not build the inter-unit neighbours (§1.3).
+   Why: a ligand repeated across chains is perceived once. Why no links (the bonds leaving the residue, §1.11) in the
+   key: copies of a component bonded differently nearly always differ in their atoms already (leaving atoms), and where
+   they do not (a sugar in a chain or at its end, a free O3') the bonded atom is sp3 and the pattern the same; with the
+   links, a polymer split into one key per neighbourhood (1tup: 231 keys for 627 residues, 27 without). Known limitation
+   (a deviation from unit.md §4): two complete copies with the same key but different geometry or different links get
+   the pattern of whichever unit is perceived first; between equivalent atoms (a carboxylate's O, a guanidinium's N, a
+   phosphate's O) the copies share the first copy's choice.
 6. **No closures in the neighbour loops**: `State` collects per-residue adjacency arrays once (intra-unit from the graph
    being perceived, inter-unit neighbours from §1.3); the steps loop over arrays and over the graph's `offset`/`b`. Why:
    `unit.bonds` and `unit.rings` are not available inside `intra` (rings come from `computeRings(unit, bonds)` and
@@ -53,6 +58,18 @@ at the top of `src/perception/perceive.ts` and in each step's module.
    without orders (LAMMPS, topologies, CIF core without valence, mol2 `un`) are not perceived in `auto` (TODO).
 10. **No benchmark here yet**: validation over a large set (the Labute 2005 set, or the whole PDB, possibly compared
     with RDKit) is a project of its own (TODO). The tests are hard cases with their fixtures (§4).
+11. **Bonds leaving a residue are counted, never written**: a bond from a residue atom to another residue of the unit or
+    to another unit keeps its order during perception (`forceCompute`: single, as reset; `auto`: the input's; between
+    units: the model structure's, from §1.3). So its contribution is known when `State` is built (`outsideValence`,
+    `outsideMultiple`, the neighbour store with its elements), and every step sees the atom's whole environment: the
+    open valence, `hasMultipleBond`, the functional groups (a neighbour outside the residue fills an order-1 slot, is
+    never terminal: an atom of another residue has another heavy neighbour, even in ACE or NME), Hückel's exocyclic
+    bond. No step writes such a bond: the pattern cache applies a residue's pattern to its own bonds only, and the
+    length and planarity tests (`markAmbiguous`) skip them. Why: a nucleotide's P has its fourth bond in the previous
+    residue (O3'), a carbamate's O in Ser (5KRE); without them the phosphoryl and ester patterns do not match and the
+    valence is wrong. Consequence: in `forceCompute`, a multiple bond stated between residues of one unit becomes single
+    (rare: peptide, phosphodiester, disulfide and glycosidic links are single) until bonds across residues are perceived
+    (TODO).
 
 ## 2. Layout
 
@@ -89,10 +106,13 @@ Quick lane, no network (`src/_test/`). Fixtures in `src/_test/fixtures/`, named 
 
 - `1nco-chr.pdb` (CHR extract) against `ccd-chr.cif` (its CCD definition): expected multiple and aromatic bonds read
   from the CCD at test time; missed (forward) and spurious (reverse) bonds by atom-name pair.
-- `5kre-ser124-6wg.pdb` (SER A 124, 6WG and their CONECT records): the link `C12-SER.OG` is seen from the ligand unit
-  and is in its pattern key.
+- `5kre-ser124-6wg.pdb` (SER A 124, 6WG and their CONECT records): the ligand unit sees its link to Ser OG, with its
+  order (§1.11).
+- `1tup-e-dt1001-dt1002.pdb` (two nucleotides of chain E): in `forceCompute`, the second residue's P=O, its P bonded to
+  the first residue's O3' (§1.11).
 - Basic cases: benzene, CONECT benzene, exocyclic amino, carboxylate, glycine, altlocs.
 - The residue gate: a residue whose orders are all stated is left as is, without building the inter-unit neighbours.
+- The pattern cache: a second copy of a component without multiple bonds reuses the empty pattern, not perceived again.
 - The provider: modes (a mol2's bond table untouched in `auto`), cache shared by two structures of a model, one instance
   per mode, the registry entry.
 
