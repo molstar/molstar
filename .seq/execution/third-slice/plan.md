@@ -312,3 +312,7 @@ action with the Mol* integration: the click builds a MolViewSpec state ad hoc fr
 colors over the residues it maps to the structure) and the 3D view shows it; headless, the built state checked against
 the track's colors, and the action as a host's registry entry (not built into Seq*). The fourth slice's plan (Finalize,
 step 5) carries it.
+Legends' library surface (the author, 2026-11-19): how legends are displayed and what the library offers for them:
+placing a legend (with its track, a panel, the export), hiding or collapsing one or all, a compact form; editing
+colors, ranges and schemes from a legend stays the application's, on the library's commands (`theme.value-color`,
+`scale.set`, `layer.channel`); the part selects and hovers a value's items only (as built).
