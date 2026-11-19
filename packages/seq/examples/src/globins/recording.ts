@@ -12,6 +12,13 @@ import type { SeqData } from '@molstar/seqx-core/data';
 // nearest human hemoglobin, 4HHB's chains, helices and heme contacts read from its mmCIF. Kept in the package's sources
 // (no relative import: the script runs it under Node as it is) so a unit test holds the rules.
 
+/** The seed's attribution (CC0: given as a courtesy). */
+export const SeedAttribution = 'Pfam (EMBL-EBI), PF00042 (Globin) seed alignment, Pfam 39.0';
+
+/** UniProt's attribution, with the changes made and the licence's link. */
+export const UniprotAttribution =
+  'UniProt Consortium, UniProtKB (https://www.uniprot.org), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); changed: the organism and length kept, the class derived from the taxonomic lineage, each record keyed by its Pfam seed row';
+
 /** How many of the seed's rows are kept (examples.md, Globins: a seed over 60 rows is cut to 60). */
 export const SeedRows = 60;
 
@@ -62,7 +69,8 @@ export function seedRows(text: string): { name: string; letters: string }[] {
 
 /**
  * The seed cut to `SeedRows`: the rows nearest human α or β by identity kept (each row's best of the two), the rest
- * removed with their `#=GS` and `#=GR` lines; every other line as published. Returns the text and the rows removed.
+ * removed with their `#=GS` and `#=GR` lines, `#=GF SQ` (the row count) said again; every other line as published.
+ * Returns the text and the rows kept and removed. A seed of `SeedRows` rows or fewer comes back as it is.
  */
 export function cutSeed(text: string, human: readonly string[]): { text: string; removed: string[]; kept: string[] } {
   const rows = seedRows(text);
@@ -70,13 +78,23 @@ export function cutSeed(text: string, human: readonly string[]): { text: string;
   const order = rows.map((_, k) => k).sort((x, y) => near[y] - near[x] || x - y);
   const keep = new Set(order.slice(0, SeedRows).map((k) => rows[k].name));
   const removed = rows.filter((r) => !keep.has(r.name)).map((r) => r.name);
-  const lines = text.split('\n').filter((line) => {
-    const t = line.trim().split(/\s+/);
-    if (line.startsWith('#=GS') || line.startsWith('#=GR')) return keep.has(t[1]);
-    if (!line || line.startsWith('#') || line.startsWith('//')) return true;
-    return keep.has(t[0]);
-  });
-  return { text: lines.join('\n'), removed, kept: rows.filter((r) => keep.has(r.name)).map((r) => r.name) };
+  const kept = rows.filter((r) => keep.has(r.name)).map((r) => r.name);
+  if (!removed.length) return { text, removed, kept };
+  const lines = text
+    .split('\n')
+    .filter((line) => {
+      const t = line.trim().split(/\s+/);
+      if (line.startsWith('#=GS') || line.startsWith('#=GR')) return keep.has(t[1]);
+      if (!line || line.startsWith('#') || line.startsWith('//')) return true;
+      return keep.has(t[0]);
+    })
+    .map((line) => (line.startsWith('#=GF SQ') ? line.replace(/\d+\s*$/, String(kept.length)) : line));
+  return { text: lines.join('\n'), removed, kept };
+}
+
+/** The entry and its version, from `#=GF AC` (`PF00042.29`). */
+export function seedVersion(text: string): string | undefined {
+  return /^#=GF AC\s+(\S+)/m.exec(text)?.[1];
 }
 
 /** The seed's `#=GS <row> AC <accession>.<version>` lines: each row's UniProt accession, unversioned. */

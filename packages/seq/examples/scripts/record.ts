@@ -41,6 +41,8 @@ import {
   hemoglobinSeq,
   SeedRows,
   seedAccessions,
+  seedVersion,
+  UniprotAttribution,
 } from '../src/globins/recording.ts';
 
 const Folder = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -141,8 +143,12 @@ async function globins(): Promise<Row[]> {
   const seedUrl = 'https://www.ebi.ac.uk/interpro/api/entry/pfam/PF00042/?annotation=alignment:seed';
   const cifUrl = 'https://files.rcsb.org/download/4HHB.cif';
   const seedGz = await fetchBytes(seedUrl, '*/*', 'seed.raw');
-  // gzipped as served; fetch may have inflated it already (the Content-Encoding)
-  const seed = new TextDecoder().decode(seedGz[0] === 0x1f && seedGz[1] === 0x8b ? gunzipSync(seedGz) : seedGz);
+  // gzipped as served; fetch inflates it when the response says its encoding: the download's size and hash are always
+  // of the inflated text, so they do not depend on which
+  const inflated = seedGz[0] === 0x1f && seedGz[1] === 0x8b ? gunzipSync(seedGz) : seedGz;
+  const seed = new TextDecoder().decode(inflated);
+  const version = seedVersion(seed);
+  if (!version) throw new Error('the seed has no #=GF AC line');
   const cif = await fetchText(cifUrl, 'text/plain', '4hhb.cif');
   const chains = cifChains(cif);
   const human = ['A', 'B'].map((a) => chains.find((c) => c.asym === a)!.letters);
@@ -171,17 +177,17 @@ async function globins(): Promise<Row[]> {
   return [
     {
       file: 'globins/PF00042-seed.sto',
-      entry: 'Pfam PF00042.29 (Globin) seed, Pfam 39.0 (InterPro 111.0)',
+      entry: `Pfam ${version} (Globin) seed, as InterPro serves it`,
       url: seedUrl,
       recorded: day,
       licence: ['CC0-1.0'],
       attribution: 'Pfam (EMBL-EBI), PF00042 seed alignment, CC0',
-      trimmed: `cut from ${cut.kept.length + cut.removed.length} rows to ${SeedRows}: the rows nearest 4HHB's α or β chain by identity kept (HBA_HUMAN and HBB_HUMAN are not rows of this seed); removed with their #=GS and #=GR lines: ${cut.removed.join(', ')}; every other line as published`,
+      trimmed: `cut from ${cut.kept.length + cut.removed.length} rows to ${SeedRows}: the rows nearest 4HHB's α or β chain by identity kept (HBA_HUMAN and HBB_HUMAN are not rows of this seed); removed with their #=GS and #=GR lines: ${cut.removed.join(', ')}; #=GF SQ said again (${cut.kept.length}); every other line as published; the download's size and SHA-256 are of the inflated text`,
       derived:
         'the tree over its rows is computed in code (neighbor joining on identity, src/globins/tree.ts) and written inline in the views’ specs',
-      bytesDownloaded: seedGz.byteLength,
+      bytesDownloaded: inflated.byteLength,
       bytesFixture: bytesOf(written.seed),
-      sha256Download: sha256(seedGz),
+      sha256Download: sha256(inflated),
       sha256Fixture: sha256(written.seed),
     },
     {
@@ -190,7 +196,7 @@ async function globins(): Promise<Row[]> {
       url: uniprotUrl,
       recorded: day,
       licence: ['CC-BY-4.0'],
-      attribution: 'UniProt Consortium, UniProtKB, CC BY 4.0',
+      attribution: UniprotAttribution,
       trimmed: 'columns kept: Organism (as OS) and Length (as uniprot_length); the lineage reduced to its class',
       derived:
         'id: the seed row whose #=GS AC names the entry; class: the lineage’s name of rank class (empty where none)',

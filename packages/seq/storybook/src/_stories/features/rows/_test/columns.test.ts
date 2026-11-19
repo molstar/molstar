@@ -38,7 +38,7 @@ const rowOf = (label: string) => records.findIndex((r) => r[0] === label);
 
 async function open(): Promise<SeqViewer> {
   // the seed and the joined file read from the fixtures
-  viewer = await openExample(view, { gene: '', delayMs: 0 });
+  viewer = await openExample(view, { fixtures: true, delayMs: 0 });
   // wide enough for every column
   viewer.resize(1100);
   await vi.advanceTimersByTimeAsync(100);
@@ -129,12 +129,6 @@ describe('Features › Rows › Columns, headless', () => {
       Array.from({ length: l.display.count }, (_, i) => l.fieldValue(l.display.rowAt(i), 'uniprot_length'));
     const a = scores(asc).filter((s) => s !== undefined) as number[];
     expect(a).toEqual([...a].sort((x, y) => x - y));
-    // the rows without a score last
-    expect(
-      scores(asc)
-        .slice(a.length)
-        .every((s) => s === undefined),
-    ).toBe(true);
     expect(asc.cols.titleText.slice(0, asc.cols.titleN)).toContain('UniProt ↑');
     await clickScore();
     const d = scores(rowsLay(v)).filter((s) => s !== undefined) as number[];

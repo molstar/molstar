@@ -1,19 +1,19 @@
 [
   {
     "file": "globins/PF00042-seed.sto",
-    "entry": "Pfam PF00042.29 (Globin) seed, Pfam 39.0 (InterPro 111.0)",
+    "entry": "Pfam PF00042.29 (Globin) seed, as InterPro serves it",
     "url": "https://www.ebi.ac.uk/interpro/api/entry/pfam/PF00042/?annotation=alignment:seed",
     "recorded": "2026-11-19",
     "licence": [
       "CC0-1.0"
     ],
     "attribution": "Pfam (EMBL-EBI), PF00042 seed alignment, CC0",
-    "trimmed": "cut from 73 rows to 60: the rows nearest 4HHB's α or β chain by identity kept (HBA_HUMAN and HBB_HUMAN are not rows of this seed); removed with their #=GS and #=GR lines: GLB2_TYLHE/32-143, GLB3_LAMSP/30-141, GLB_TUBTU/29-139, GLB4_TYLHE/33-143, GLB1_TYLHE/30-137, GLB1_PARCH/37-153, Q7D9X0_MYCTO/60-162, Q21978_CAEEL/191-314, Q18311_CAEEL/52-175, GLB13_CAEEL/126-244, Q20638_CAEEL/94-218, GLB10_CHITH/27-145, GLB6_CHITH/38-156; every other line as published",
+    "trimmed": "cut from 73 rows to 60: the rows nearest 4HHB's α or β chain by identity kept (HBA_HUMAN and HBB_HUMAN are not rows of this seed); removed with their #=GS and #=GR lines: GLB2_TYLHE/32-143, GLB3_LAMSP/30-141, GLB_TUBTU/29-139, GLB4_TYLHE/33-143, GLB1_TYLHE/30-137, GLB1_PARCH/37-153, Q7D9X0_MYCTO/60-162, Q21978_CAEEL/191-314, Q18311_CAEEL/52-175, GLB13_CAEEL/126-244, Q20638_CAEEL/94-218, GLB10_CHITH/27-145, GLB6_CHITH/38-156; #=GF SQ said again (60); every other line as published; the download's size and SHA-256 are of the inflated text",
     "derived": "the tree over its rows is computed in code (neighbor joining on identity, src/globins/tree.ts) and written inline in the views’ specs",
     "bytesDownloaded": 18771,
     "bytesFixture": 15199,
     "sha256Download": "3697d7ec3acb82a93f5f413290c10ef2a53e209229985720476a691ea99cc27c",
-    "sha256Fixture": "316075059404a28870d8ad23f54cf209be20217ec8d8c9f7fdac301174c28d77"
+    "sha256Fixture": "fe9377e09874f61df6bfa40e75eecdb375d1e0c4ecc79dbbb164eda93e8a44bd"
   },
   {
     "file": "globins/family-columns.tsv",
@@ -23,7 +23,7 @@
     "licence": [
       "CC-BY-4.0"
     ],
-    "attribution": "UniProt Consortium, UniProtKB, CC BY 4.0",
+    "attribution": "UniProt Consortium, UniProtKB (https://www.uniprot.org), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); changed: the organism and length kept, the class derived from the taxonomic lineage, each record keyed by its Pfam seed row",
     "trimmed": "columns kept: Organism (as OS) and Length (as uniprot_length); the lineage reduced to its class",
     "derived": "id: the seed row whose #=GS AC names the entry; class: the lineage’s name of rank class (empty where none)",
     "bytesDownloaded": 32972,

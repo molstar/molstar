@@ -14,6 +14,7 @@ import * as globinsColumns from './globins/columns.js';
 import { familyRegistry, generatedRegistry } from './globins/data.js';
 import * as globins from './globins/family.js';
 import * as hemoglobin from './globins/hemoglobin.js';
+import * as globinsQuery from './globins/query.js';
 import * as plasmidRing from './plasmid/ring.js';
 import * as addressing from './p53/addressing.js';
 import * as axis from './p53/axis.js';
@@ -194,8 +195,9 @@ export const FeatureViews: readonly ExampleView[] = [
     dataset: 'globins',
     id: 'query-alignment',
     title: 'Queried alignment',
-    summary: 'The globins family for the query stories: rows and columns addressed, a result selected in the view.',
-    build: () => globins.build(),
+    summary:
+      'Four rows of the Pfam globin seed inline above the whole seed read from its file, for the query stories: rows and columns addressed, a result selected in the view.',
+    build: globinsQuery.build,
     registry: familyRegistry,
   },
   {

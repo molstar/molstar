@@ -16,7 +16,8 @@ import {
 } from '@molstar/seqx-core/render';
 import { GlobinsViews } from '@molstar/seqx-examples';
 import { readFileSync } from 'node:fs';
-import { ColumnsFile } from '@molstar/seqx-examples/globins/data';
+import { readStockholm } from '@molstar/seqx-core/data/alignment-readers';
+import { ColumnsFile, ReferenceRow, SeedFile } from '@molstar/seqx-examples/globins/data';
 import { HemeContacts } from '@molstar/seqx-examples/globins/hemes';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -39,7 +40,7 @@ function rowsLay(v: SeqViewer): RowsLay | undefined {
 
 describe('Globins stories, headless', () => {
   it('hemoglobin: the chains merged ×2, the hemes one chip ×4; eight helices a molecule, every heme contact an arc; both themes', async () => {
-    viewer = await openExample(GlobinsViews.find((v) => v.id === 'hemoglobin')!, { gene: '' });
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'hemoglobin')!, { fixtures: true });
     const v = viewer;
     expect(v.layoutIssues.value).toEqual([]);
     const sec = v.frame!.layout.sections[0];
@@ -81,7 +82,7 @@ describe('Globins stories, headless', () => {
     it(`${id}: loads, draws its rows and exports them with no issue`, {
       tags: id === 'scale' ? ['medium'] : [],
     }, async () => {
-      viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { gene: '' });
+      viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { fixtures: true });
       const v = viewer;
       const lay = rowsLay(v);
       expect(lay, id).toBeDefined();
@@ -94,7 +95,7 @@ describe('Globins stories, headless', () => {
     });
 
   it('family: each row’s species on the left of its numbers, its identity to the reference row on the right', async () => {
-    viewer = await openExample(GlobinsViews.find((v) => v.id === 'family')!, { gene: '' });
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'family')!, { fixtures: true });
     const fam = rowsLay(viewer)!;
     expect(fam.cols.titleText.slice(0, fam.cols.titleN)).toEqual(['Species', 'Identity']);
     expect(fam.cols.width.every((w) => w > 0)).toBe(true);
@@ -115,30 +116,48 @@ describe('Globins stories, headless', () => {
     const label = fam.label(fam.display.rowAt(first));
     // elided to the column's width
     expect(species.get(label)!.startsWith(cell(0)!.replace(/…$/, ''))).toBe(true);
-    expect(cell(1)).toMatch(/^\d+(\.\d)?%$/);
+    // the identity to the reference row as the measure says it: the same residues over the columns where either has
+    // one (gap against gap and an insert left out), a percent to one decimal
+    const seed = readStockholm(readFileSync(`${PackageFolder}${SeedFile}`, 'utf8')).rows;
+    const ref = seed.find((r) => r.label === ReferenceRow)!.letters;
+    const row = seed.find((r) => r.label === label)!.letters;
+    let same = 0;
+    let over = 0;
+    for (let j = 0; j < row.length; j++) {
+      const [a, b] = [row[j], ref[j]];
+      if (a === '.' || b === '.' || a !== a.toUpperCase() || b !== b.toUpperCase()) continue;
+      if (a === '-' && b === '-') continue;
+      over++;
+      if (a === b && a !== '-') same++;
+    }
+    expect(cell(1)).toBe(`${Math.round((same / over) * 1000) / 10}%`);
     // left between the label and the first numbers, right past the data
     expect(fam.cols.x[0]).toBeGreaterThan(fam.labelX);
     expect(fam.cols.x[1]).toBeGreaterThan(fam.box.x + fam.box.width);
   });
 
   it('family and folded: labels read whole beside the tree (its own width), and the wedges stop before them', async () => {
-    viewer = await openExample(GlobinsViews.find((v) => v.id === 'family')!, { gene: '' });
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'family')!, { fixtures: true });
     const fam = rowsLay(viewer)!;
     expect(fam.treeX1 - fam.treeX0).toBe(120);
     expect(fam.labelText).toContain('GLB1_GLYDI/28-141');
     viewer.retire();
-    viewer = await openExample(GlobinsViews.find((v) => v.id === 'folded')!, { gene: '' });
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'folded')!, { fixtures: true });
     const folded = rowsLay(viewer)!;
-    // two clades folded, each a summary row (its label "first +n", elided to the label column: the seed's labels
-    // are as long as the column)
+    // two clades folded, each a summary row: its label "first +n", the first label cut and never its count (EC-100)
     expect(folded.foldIds.length).toBe(2);
+    const summaries: string[] = [];
+    for (let i = folded.first; i < folded.last; i++)
+      if (folded.display.rowAt(i) < 0) summaries.push(folded.labelText[i - folded.first]);
+    expect(summaries.length).toBe(2);
+    for (const t of summaries) expect(t).toMatch(/\+\d+$/);
     for (let k = 0; k + 4 < folded.wedges.length; k += 5) expect(folded.wedges[k + 2]).toBeLessThan(folded.labelX);
   });
 
   it('scale at the fit: the rows are image tiles with their pixels drawn, and the export carries them as images', {
     tags: ['medium'],
   }, async () => {
-    viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale')!, { gene: '' });
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale')!, { fixtures: true });
     // every row in the band: 10,000 rows in 240 px
     const key = rowsLay(viewer)!.key;
     viewer.view.setBand(key.slice(0, key.lastIndexOf('/')), { bandTop: 0, rowScale: 240 / 10_000 });
@@ -163,7 +182,7 @@ describe('Globins stories, headless', () => {
     it(`${id}: the rows rail at the band's right edge, live (its rows scroll), drawn; a drag on it scrolls them`, {
       tags: id === 'scale' ? ['medium'] : [],
     }, async () => {
-      viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { gene: '' });
+      viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { fixtures: true });
       const v = viewer;
       const s = v.frame!.layout.sections.find((x) => x.rowsRails?.length)!;
       expect(s, id).toBeDefined();

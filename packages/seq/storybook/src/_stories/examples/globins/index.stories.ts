@@ -6,6 +6,7 @@
 
 import { FeatureViews, GlobinsViews } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { UniprotAttribution } from '@molstar/seqx-examples/globins/sources';
 import { storyId } from '../../story-id.js';
 
 // The Globins dataset's index (examples-and-stories): its views (each a story), the features shown on its data, and
@@ -41,7 +42,7 @@ const Editing: readonly (readonly [string, string])[] = [
 
 const Sources: readonly string[] = [
   'Pfam PF00042 (Globin) seed, Pfam 39.0, from InterPro: CC0 1.0, cut to the 60 rows nearest human hemoglobin (HBA_HUMAN and HBB_HUMAN are not rows of this seed).',
-  'UniProtKB, the organism and class of each row: UniProt Consortium, CC BY 4.0.',
+  `The organism and class of each row: ${UniprotAttribution}.`,
   'PDB 4HHB, human deoxyhaemoglobin (Fermi, Perutz, Shaanan, Fourme 1984), wwPDB: CC0 1.0.',
   'The tree (neighbor joining on identity), the heme contacts and the 10,000- and 10,000,000-row variants are computed here.',
 ];

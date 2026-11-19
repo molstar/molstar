@@ -8,16 +8,8 @@ import type { Node } from '@molstar/core/repr/tree';
 import { matchLeaves, readNewick } from '@molstar/seqx-core/data/alignment-readers';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { buildClades, cladesAtDepth } from '@molstar/seqx-core/render';
-import { rowsSystemOf } from '@molstar/seqx-core/resolve';
-import {
-  balancedNewick,
-  ColumnsFile,
-  familyRegistry,
-  GeneratedFormat,
-  ReferenceRow,
-  SeedFile,
-  SeedTree,
-} from './data.js';
+import { balancedNewick, familyRegistry, GeneratedFormat, SeedFile, SeedTree } from './data.js';
+import { familySources } from './sources.js';
 
 // The Globins views (EC-38 to EC-44, EC-97, EC-100, EC-103, EC-106, EC-154): the Pfam seed with its conservation logo
 // and its rows by tree, each row's species (UniProt's, a file joined by row key) on the left and its identity to the
@@ -30,23 +22,8 @@ export const registry = familyRegistry;
 
 /** The seed as published (read by location), its tree inline, the rows' columns file joined by row key. */
 function familyData(b: ReturnType<typeof createSeqSpec>) {
-  const file = b.data.source('seed', {
-    format: 'stockholm',
-    uri: SeedFile,
-    attribution: 'Pfam (EMBL-EBI), PF00042 seed',
-    licence: 'CC0-1.0',
-  });
-  const aln = b.data.alignment('globins', { alphabet: 'protein', source: file, reference: ReferenceRow });
+  const { aln } = familySources(b);
   const tree = b.data.tree('tree', { of: aln, newick: SeedTree });
-  // a records file whose system is the rows system: its fields are joined to the rows by their key (`id`)
-  b.data.source('columns', {
-    format: 'tsv',
-    uri: ColumnsFile,
-    system: rowsSystemOf('/data/globins'),
-    types: { uniprot_length: 'int32' },
-    attribution: 'UniProt Consortium, UniProtKB, CC BY 4.0',
-    licence: 'CC-BY-4.0',
-  });
   return { aln, tree };
 }
 

@@ -19,8 +19,10 @@ import { vi } from 'vitest';
 export const HoverOwner = 'test';
 
 export interface OpenOptions {
-  /** The gene file's text (the views that read it by location); `''`: every location read from the fixtures. */
-  readonly gene: string;
+  /** The gene file's text: what every location reads (the views that read the gene by location). */
+  readonly gene?: string;
+  /** Every location read from the examples' fixtures folder instead (the views of recorded datasets). */
+  readonly fixtures?: true;
   /** Each answer's delay, or `staggered` (the story's own: later regions later). */
   readonly delayMs?: number | 'staggered';
   /** How long the fake clock runs after the load. */
@@ -31,7 +33,7 @@ export interface OpenOptions {
 
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
 export async function openExample(view: ExampleView, options: OpenOptions): Promise<SeqViewer> {
-  const { gene, delayMs = 300, wait = 6000, realClock = false } = options;
+  const { gene = '', delayMs = 300, wait = 6000, realClock = false } = options;
   vi.useFakeTimers({
     toFake: realClock ? ['setTimeout', 'clearTimeout'] : ['setTimeout', 'clearTimeout', 'Date', 'performance'],
   });
@@ -49,7 +51,9 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: {
       assets: () => ({
-        reader: text ? { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } : fixtures,
+        reader: options.fixtures
+          ? fixtures
+          : { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
       }),
     },
   });

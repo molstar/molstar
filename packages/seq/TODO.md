@@ -140,7 +140,16 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   - icons in the header's fixed slots (pin, a bound row's link) and the rows table's data columns ("The rows axis");
   - the renderer's section cache keyed by the export's `folds`; the cell hit's 16 B (a number boxed from the point to
     its column through the axis, every layer's hit) measured by the allocation tier;
-  - the Pfam globin seed and its tree recorded as the fixture (a generated stand-in today); a Design page.
+  - a Design page (the Pfam globin seed and its tree are recorded: the seed as published, the tree by neighbor joining,
+    inline);
+  - row keys on an alignment read from a source: `(row :key …)` reads only an inline alignment's rows
+    (`seq.query.row.unknown` on the Globins seed read from its file), and no form names rows by position;
+  - a section of blocks over sequences read from a source takes their lengths from the source's coverage once attached
+    (today `seq.render.axis.pending` until each block names its `range`: the Globins hemoglobin view names them);
+  - a heme per heavy atom (4HHB's hemes are one position each this slice) and the map from 4HHB's units to their rows of
+    the seed (an alignment map: the language has `offset` and `codon` only);
+  - the text layout's `chrome` throws when an alignment's source has not opened (`render/layout/text.ts`, its
+    placement's `marks` undefined: a figure over a seed whose runtime is missing).
 - **Rings and blocks** (built: the rings layout with labels, the title and the window; blocks in tracks and on rings):
   - blocks in the text layout (a block starting a line, its label inline on its first line; one-position blocks as chips
     flowing after the chains, EC-99): waits for the text layout on this branch;
@@ -242,10 +251,10 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - The Plasmid and the Complex are stand-ins (generated letters at the entries' lengths, features at the published
   layout's places, named as such): pUC19c and 1FIN recorded with their dataset lanes replace them, the ring's record
   written again.
-- The other datasets and their views (Antibody, Plasmid, tRNA, Globins), each carrying a drawing-against-the-data test
-  as the p53 views do (`drawn-vs-data.test.ts`); the Complex dataset (CDK2 with cyclin A, its interface, PAE, ligands
-  with AlphaFill's transplants) with pairs across chains, dot plots and ligands, its entries chosen and checked against
-  their sources then.
+- The other datasets and their views (Antibody, Plasmid, tRNA), each carrying a drawing-against-the-data test as the p53
+  views do (`drawn-vs-data.test.ts`); the Complex dataset (CDK2 with cyclin A, its interface, PAE, ligands with
+  AlphaFill's transplants) with pairs across chains, dot plots and ligands, its entries chosen and checked against their
+  sources then.
 - `vitest` in the Storybook package's dev dependencies; the Vite plugin's test moves under `src`.
 - The examples' root keeps its own copy of the SVG-follow block (`_stories/follow-svg.ts`).
 

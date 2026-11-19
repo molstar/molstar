@@ -1874,12 +1874,12 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in
   display rows kept by the display's version (a pan makes nothing sized by the nodes); labels in the items' font (a
   row's label is data; a Pfam label, `NAME/1-147`, reads whole) from `rows.labelMinPx` (8 px a row), cut with an
-  ellipsis past their room, a summary row "first +n"; the first residue numbers right-aligned before the data box and
-  the last after it, in a right gutter the view keeps when a rows layer draws numbers (`numbers: gutters`): the numbers
-  of the residues **in view** (the columns the cells are drawn for: a pan and a zoom change them; a gap is never
-  counted; a row with no residue in view has none), the row's own at the fit view (kept per data, or per lazy row once).
-  The right gutter is clipped to the band vertically, as the labels and cells are: a partly shown last row ends at the
-  band's foot on every side.
+  ellipsis past their room, a summary row "first +n" (its first label cut, never its count: the count is what it says);
+  the first residue numbers right-aligned before the data box and the last after it, in a right gutter the view keeps
+  when a rows layer draws numbers (`numbers: gutters`): the numbers of the residues **in view** (the columns the cells
+  are drawn for: a pan and a zoom change them; a gap is never counted; a row with no residue in view has none), the
+  row's own at the fit view (kept per data, or per lazy row once). The right gutter is clipped to the band vertically,
+  as the labels and cells are: a partly shown last row ends at the band's foot on every side.
 - **Row columns** (`columns`: a list of `{ field, side, as, width, title }`, `rowColumnsOf`; `render/rows-columns.ts`):
   data columns beside each row's header. `left` (the default) in the header between the label and the first numbers, the
   label column widened by them (a text figure's too); `right` after the last numbers' gutter, the right gutter widened
