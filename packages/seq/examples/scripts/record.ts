@@ -14,7 +14,6 @@
 // The one entry now: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of
 // UniProt's own and ClinVar's sources.
 
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -78,15 +77,10 @@ async function p53(): Promise<Row[]> {
   const variationText = await fetchText(variationUrl, 'application/json', 'variation.json');
   const entry = JSON.stringify(trimEntry(JSON.parse(entryText)));
   const variation = JSON.stringify(trimVariation(JSON.parse(variationText)));
-  // checked in as the repository's formatter writes JSON, so a format check leaves them as they are; the sizes and the
-  // checksums are of the files as they stand
+  // checked in compact (the formatter skips the fixtures' JSON); the sizes and the checksums are of the files as written
   const files = [join(dir, 'P04637.json'), join(dir, 'P04637-variation.json')];
-  writeFileSync(files[0], entry);
-  writeFileSync(files[1], variation);
-  execFileSync('pnpm', ['exec', 'biome', 'format', '--write', ...files], {
-    cwd: join(Folder, '..', '..', '..'),
-    stdio: 'ignore',
-  });
+  writeFileSync(files[0], `${entry}\n`);
+  writeFileSync(files[1], `${variation}\n`);
   const written = files.map((f) => readFileSync(f, 'utf8'));
   const bytes = (s: string) => new TextEncoder().encode(s).byteLength;
   return [
@@ -135,10 +129,6 @@ async function main(name: string | undefined) {
   const merged = [...existing.filter((e) => !rows.some((r) => r.file === e.file)), ...rows];
   for (const r of merged) console.log(`${r.file}: ${r.bytesDownloaded} bytes downloaded, ${r.bytesFixture} trimmed`);
   writeFileSync(file, `${JSON.stringify(merged, null, 2)}\n`);
-  execFileSync('pnpm', ['exec', 'biome', 'format', '--write', file], {
-    cwd: join(Folder, '..', '..', '..'),
-    stdio: 'ignore',
-  });
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main(process.argv[2]);
