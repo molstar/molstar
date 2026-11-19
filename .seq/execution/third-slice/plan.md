@@ -242,6 +242,16 @@ and dark before the merge.
       `packages/seq/examples/scripts/record.ts` (moved from DG).
 - [ ] FS-B (conditional): trees and pairs held from a file, only if DG's tree must be read from one this slice; else
       deferred, the Newick inline.
+- [ ] LG (fast, now; the author, 2026-11-19: "this letter coloring doesn't really work for the logo plot") the logo's
+      letters and bars in their class color moved to 3:1 against the track's surface in each theme (grids-and-rows,
+      The logo; themes.md's `ink` rule with the surface as the fill); tested over every built-in scheme in both themes;
+      the Globins logo looked at in light and dark.
+- [ ] RC (strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
+      header… to the right of the sequence data", "ok, schedule it like that") row columns: the rows layer's `columns`
+      (`field`, `side: left | right`, `as: text | number | bar | chip`, `width`, `title`), fields from `#=GS` lines,
+      per-row measures (`length`, `gaps`, `identity`) and a records source joined by row key; titles that order the
+      rows; yielding to a narrow width; canvas, SVG and the text figure; hover and hit (grids-and-rows, Row columns).
+      DG's family view then shows species and identity.
 - [ ] LB (strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
       isn't good") a one-position block a chip in every layout, as layouts.md (Blocks) now says (decided
       2026-11-19): a fixed slot its label's width, the text chip's rule; contacts an optional `pairs` layer the

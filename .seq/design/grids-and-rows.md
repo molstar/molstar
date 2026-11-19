@@ -276,13 +276,29 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
   in their band (`ctx.bandTop`), which takes the section's room left (the layer's `height`: `fill`, or a number of rows). One
   rows layer a section (`seq.render.rows.second`): the cursor has one row order.
 - **The row header**, in the view's one label column (ux-foundations section 3): the tree (`treeWidth`), the label
-  (faded past its width), icons in fixed slots (pin, a bound row's link), data columns of the rows table that yield to
-  a narrow width down to a floor (EC-107), the first and last residue numbers in gutters (`numbers`): of the residues **in view**, so they follow a
+  (faded past its width), icons in fixed slots (pin, a bound row's link), data columns on the left (Row columns), the first and last residue numbers in gutters (`numbers`): of the residues **in view**, so they follow a
   pan and a zoom (decided, the author, 2026-11-19: "the offsets at the end of the sequences don't update"; Jalview's
   and ESPript's per-line numbers), equal to the row's own at the fit view; a residue is counted, a gap never; a row
   with no residue in view shows none. Labels,
   numbers and icons only at `rows.labelMinPx` (8) and more; a header hover lights the row band (drawing only, EC-146,
   EC-147). Hidden rows are a count chip ("3 hidden") at the header's foot; its click shows them (one patch).
+
+**Row columns** (the author, 2026-11-19: "an extra column with some annotation next to each header… and being able to
+position it say to the right of the sequence data"; the base's data columns, Jalview's annotation columns):
+
+- The rows layer's `columns`: a list of `{ field, side, as, width, title }`. `side`: `left` (in the header, between the
+  label and the numbers) or `right` (after the end numbers, before a vertical navigator); `as`: `text` (the default,
+  and an unknown one's), `number` (right-aligned, its format), `bar` (a value's share of the column's domain) or `chip`
+  (a category's color from a theme). A param of the layer, within `0.4.0`.
+- **Fields** are the rows table's: the alignment's own per-row fields (Stockholm `#=GS` lines: `OS`, `DE`, `AC`), the
+  measures computed per row (`length`, `gaps`, `identity` to the reference row), and a source's fields joined by row
+  key (a records source whose `target` is the rows system, [files.md](files.md)). A field missing is an empty cell; a
+  field named by no row is reported once (`seq.render.rows.column`).
+- **Titles** in the band above the rows, beside the fixed tracks' labels; a click on one orders the rows by it
+  (`order: { field }`, a second click the other direction). Hover names the value; a column is hit as its row's
+  header.
+- **Narrow**: columns yield before the label, right ones first, each down to a floor and then hidden (EC-107), a hidden
+  count chip in the title band; the SVG and text figures draw the same columns.
 
 **Opening and closing clades** (the author, 2026-11-18: "we should not forget about closing and opening clades too"):
 
@@ -428,6 +444,12 @@ column measures. The emphasis on rows as data-row parts. The moves go through th
 - Each letter placed and stretched with the glyph runs' per-letter y and vertical scale (the layouts design's form
   change). Below 2 device px a column: one bar a device column, the tallest stack there, in its top letter's color,
   from the shared reduction's one-axis max. Fallback: `values` (the column's information as bars).
+- **A letter's color is its class's, made to read as a glyph** (the author, 2026-11-19: "this letter coloring doesn't
+  really work for the logo plot"): a scheme's colors are cell fills, pale by design (letters drawn on them); on the
+  track's surface a stacked letter takes its color moved in oklab lightness until it reaches 3:1 against the surface,
+  in each theme, the `ink` rule of [themes.md](themes.md) with the surface as the fill. Hue kept, so the logo and the
+  cells below it still read as one scheme (WebLogo's and Skylign's letters are saturated for this reason). The bars
+  below 2 device px take the same color.
 - Hit: the column, and the letter under the point as the hit's `state`; a click selects the column.
 
 ### Data: what this slice adds
