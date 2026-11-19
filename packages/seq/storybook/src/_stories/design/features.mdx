@@ -22,7 +22,8 @@ What this version contains and will contain. Each feature links its story here o
   arrowheads, each drawn by the canvas and by `renderSvg` from one spec and hit alike, on a reversed or collapsed axis
   as on a plain one:
   - the ruler: labels at steps of 1, 2 or 5 × 10ⁿ that never overlap, insertion labels (100A) as minor ticks where there
-    is room, the numbering a spec param, a reversed axis counting down;
+    is room, the numbering a spec param (a built-in or a sequence's declared one: Kabat, IMGT), a reversed axis counting
+    down;
   - secondary structure: helices and strands as blocks, the strand's arrowhead on the piece holding its C-terminal end
     whatever the direction, the origin or the codon map, 200 copies drawn as one;
   - variants: a stem and a head a site, the heads of one site stacked, a count strip where sites are under a pixel;
@@ -63,7 +64,7 @@ What this version contains and will contain. Each feature links its story here o
   - validation that reports every issue;
   - versions and migrations;
 - **Coordinates and maps**:
-  - indices and labels; numbering schemes (Kabat, IMGT);
+  - indices and labels; numbering schemes beyond labels (offset, segments);
   - cyclic systems;
   - map kinds: identity, offset, numbering, segments, pairwise, alignment, codon, structure;
   - maps written inline, read from a source, or computed by a runtime, and held compressed;

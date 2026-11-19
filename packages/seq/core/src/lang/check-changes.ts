@@ -9,9 +9,9 @@
 // the nodes it made, set or moved, the nodes that name them or named a node of a subtree it removed or moved (through a
 // reverse index of the spec's references, kept per revision and derived from the last one along its changes), on
 // through the user refs that name those and through refs with segments after them (`/refs/p/x`), a template's
-// layers under a track whose params changed, and the sections and refs of a chain a changed one closes. Only what the
-// change introduced is reported: the same checks on the same nodes before it are taken away, so an error already
-// present never refuses an edit.
+// layers under a track whose params changed, a sequence's numberings, and the sections and refs of a chain a changed
+// one closes. Only what the change introduced is reported: the same checks on the same nodes before it are taken
+// away, so an error already present never refuses an edit.
 
 import { HashMap, HashSet, type MutableHashMap } from '@molstar/core/data/immutable';
 import type { Changes, PatchValidator } from '@molstar/core/repr/patch';
@@ -361,6 +361,9 @@ export function checkSeqChanges(
     const at = look.get(address)!;
     if (i < direct || at.node.kind === 'ref') referrers(address);
     if (at.node.kind === 'track') for (const c of at.node.children ?? []) touch(`${address}/${c.id}`);
+    // a sequence's numberings: their labels are counted against its letters
+    if (at.node.kind === 'sequence')
+      for (const c of at.node.children ?? []) if (c.kind === 'numbering') touch(`${address}/${c.id}`);
     if (at.node.kind === 'section') {
       const chain: string[] = [address];
       for (let a = sectionFollow(look, address); a !== undefined; ) {

@@ -64,9 +64,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   - channels they do not read yet: `size` (a variant's radius, a line's thickness, a band's share), `opacity` (the
     area's 0.35, a highlight's, a variant's), `shape` (variants' glyph: circle only), `line` and `arrow` by a form (the
     slots take forms; the layers read a word); a values color by a field other than its value;
-  - `secondary`'s `style: cartoon` (with the text figure, layouts); a declared numbering for the ruler (the language
-    declares none: only `index` and `ordinal` can be asked for, the insertion labels are tested through a numbering
-    handed to the layer);
+  - `secondary`'s `style: cartoon` (with the text figure, layouts); a text's numbers in a numbering whose labels are a
+    source's (a section layout reads no store: they print ordinals there, the ruler the source's labels);
   - a tiled source's items have no arrowhead (their other rows may lie outside what was read): a source that answers an
     item's extent would give them one; the three layers' `nextMark` and hover passes are still their own;
   - `arrow` points by an item's own start and end, not by its strand: a strand column (EC-232 asks arrows only when
@@ -77,14 +76,15 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
     contiguous).
 
 - **Addressing**: an item's coordinate system (`<node>/(item :id k)`) as a prefix of location forms (the `item` form
-  gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); declared numberings (built-ins only, so the way
-  back prints `ordinal` or `index`); rects projected for a focus; a whole Location's size bound.
+  gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); rects projected for a focus; a whole Location's
+  size bound.
 
-- **Language**: a union of a ref and a query slot for `layer.data` (loose today); a strand column check; codon exons
-  checked against the protein's length (stop codons); a section's `range` as a Location; refs followed in data nodes'
-  params and a section's `of` and `follow` (a layer's `data` follows them); a `label` param on nodes (an instance's
-  label is the template's plus its top ancestor's key); `seq.lang.ref.target` overlaps what resolve reports: keep one;
-  the package index re-exports `SeqLanguageVersion` as `LanguageVersion`: one definition.
+- **Language**: a numbering's other methods (`offset`, `segments`, the design's) and a source's labels keyed by
+  something other than a position; a union of a ref and a query slot for `layer.data` (loose today); a strand column
+  check; codon exons checked against the protein's length (stop codons); a section's `range` as a Location; refs
+  followed in data nodes' params and a section's `of` and `follow` (a layer's `data` follows them); a `label` param on
+  nodes (an instance's label is the template's plus its top ancestor's key); `seq.lang.ref.target` overlaps what resolve
+  reports: keep one; the package index re-exports `SeqLanguageVersion` as `LanguageVersion`: one definition.
 - **Queries**: dynamic nodes in `not`'s universe; open or streamed systems in `(all)` and `not` (a pending length on
   `QuerySystem` instead of `openQueryLength`); a Location limit (what it counts); a label lookup across a codon step (a
   unit's numbering does not cross one).

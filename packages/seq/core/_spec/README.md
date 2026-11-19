@@ -29,8 +29,8 @@ is added in the change that builds what it describes.
   its `across`, the kinds `alignment` and `tree`, a section `of` an alignment, the layer types `rows` and `logo` and
   their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
   `columns`, `logo_scale`, `correction`, `gaps`, and a source's transform `records`, `letters`, `system`, `base`,
-  `ends`, `types`, `attribution`, `licence`, with `fields` read). A spec in an earlier `0.x` reads as one in this one,
-  and is reported where it no longer fits.
+  `ends`, `types`, `attribution`, `licence`, with `fields` read, and the `numbering` kind under a sequence). A spec in
+  an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
 
 ## Language
 
@@ -47,13 +47,13 @@ checks it cannot express.
   `kind` is reserved: canonical, wobble, contact; `id`, `label`, `a_strand` and `b_strand` (EC-206); any other category
   column rides along as a field a data filter reads, `(item :tertiary yes)`), `grid` (a value per pair of positions: `x`
   a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`);
-  under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of`, `range`, `label`),
-  `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`,
-  default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes
-  each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes it a template
-  (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
-  a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
-  the kinds they take; a reference is an address.
+  under a `sequence`: `numbering` (Numberings, below); under `views`: `view`, then `section`, `block` (a piece of a
+  section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row
+  collapsed; its layers keep their own), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is
+  a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own
+  (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since
+  `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`,
+  `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -72,6 +72,20 @@ checks it cannot express.
   figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
   another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
   check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
+- **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
+  name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels` (the one built: an
+  offset and segments wait for the examples that need them); `labels` inline, a category column one a position in index
+  order, `null` no label there; or `source` and `field` (absent: `label`): a source's rows, a row a position (its
+  `position`, or its `start`), on the sequence by its name (Render, Numberings from a source); `scheme` an open word,
+  lowercase (`^[a-z][a-z0-9_-]*$`: `kabat`, `imgt`, `chothia`, `uniprot`, `auth`), that says what the labels follow and
+  changes none of them; any such word is accepted (a lab's own scheme too). Labels need no order (IMGT, EC-7) and carry
+  insertion codes (`100A`, `111.1`). Checks: one of `labels` and `source`, `field` with a source only
+  (`seq.lang.numbering.content`); an id no built-in has (`seq.lang.numbering.id`: the forms read `index` and `ordinal`
+  as theirs, so one declared so would never be read); inline labels one a position of inline letters
+  (`seq.lang.numbering.length`, error); a label at two positions said once (`seq.lang.numbering.duplicate`, warning: it
+  names the first, the queries' rule). A change to a sequence checks its numberings again (Checks of a change). Why a
+  child of the sequence: a numbering is the sequence's, and moving or removing the sequence takes its numberings with
+  it.
 - **Navigators** (`views/<view>/navigators/<id>`, the `navigators` container's id is `navigators`): a `navigator` node
   is a part over a section's axis, its rows or both, placed by the host: `of` (a section or a list of them, refs),
   `axes` (`positions`, `rows`, `both`), `content` (`axis`, `tracks`, `bands`, `rows`), `tracks` (refs), `bands` (a
@@ -115,14 +129,15 @@ checks it cannot express.
   checks as `repr/patch`'s validator, on what a patch's `Changes` reach: the nodes it made, set or moved; what names
   them, or named any node of a subtree it removed or moved away (walked in the old root); on through the user refs that
   name those, and through a ref with segments after it (`/refs/p/x` where `/refs/p` names a prefix of the node, at most
-  the ref depth deep); a template's layers under a track whose params changed; the sections and refs of a chain a
-  changed one closes. What names what is a reverse index of the spec's references (a persistent set of referring nodes
-  by the id run they name), built once a spec and derived from the last revision's along its changes. The same checks on
-  the same nodes before the change are taken away, by code, node (through moves) and place in the node. Why: a patch is
-  refused only for what it introduced (an error already there never blocks an edit beside it), and the cost follows the
-  change, not the spec. Held by tests that compare it with the whole check's difference, patch by patch, along a chain
-  of revisions and over seeded random patches of ref chains; and in the heavy lane, at 16,000 layers, the first check
-  after a load and a fan-out to every node no worse than the whole check, a one-node edit a small part of it.
+  the ref depth deep); a template's layers under a track whose params changed; a sequence's numberings when it changed;
+  the sections and refs of a chain a changed one closes. What names what is a reverse index of the spec's references (a
+  persistent set of referring nodes by the id run they name), built once a spec and derived from the last revision's
+  along its changes. The same checks on the same nodes before the change are taken away, by code, node (through moves)
+  and place in the node. Why: a patch is refused only for what it introduced (an error already there never blocks an
+  edit beside it), and the cost follows the change, not the spec. Held by tests that compare it with the whole check's
+  difference, patch by patch, along a chain of revisions and over seeded random patches of ref chains; and in the heavy
+  lane, at 16,000 layers, the first check after a load and a fan-out to every node no worse than the whole check, a
+  one-node edit a small part of it.
 - **Bounds** (`bounds.ts`, `SpecBounds`, `DefaultSpecBounds`; the core's `bounds` item, `SeqCoreConfig.bounds`): a spec
   comes from a URL, a link or an agent, so what it sizes is refused with a coded issue before the work starts.
   `checkSpecBounds` is the first gate of `checkSeqSpec`, before the version and the description: one iterative walk (a
@@ -207,7 +222,7 @@ of it.
 - **Handles are addresses, branded by kind**: `Address<'sequence'>` is the string `/data/p53` that says what it names.
   Every call that adds a node takes its id and returns its address, a `layer`'s too (`track.layer(id, params)`).
   Section, track and view builders carry their `address` and a `toString`, and stand where an address of their kind
-  does.
+  does. A sequence's numberings are written in its body: `b.data.sequence(id, params, (s) => s.numbering(id, params))`.
 - **A reference param takes** a handle (or builder) of a kind its description allows, or an address written out (any
   string); a handle of another kind is a type error. Which params are references is read from the description, in the
   types and when the builder converts a handle to its address. Why: no list of param names to keep in step with the
@@ -338,9 +353,11 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 - **Indices** are 0-based half-open inside; **labels** are inclusive names at the edge, converted once where a form is
   read.
 - **Built-ins**: `index` (0-based) and `ordinal` (1-based), on every system; without `:numbering` a form reads
-  `ordinal`. A declared numbering is looked up on the system, then on its molecule (`parent`, shifted by the unit's
-  start, clipped to the unit): a unit's own beats its molecule's of the same id. Why: the author's numbering of a chain
-  wins over the entity's. Not across a codon step: that waits for paths.
+  `ordinal`. A declared numbering (a sequence's `numbering` child, Language, Numberings; `labelsNumbering`: an index of
+  its labels built on first use, a label found by its spelling, else ignoring case, as the order of labels ignores it;
+  no `snap`, so its positions are scanned) is looked up on the system, then on its molecule (`parent`, shifted by the
+  unit's start, clipped to the unit): a unit's own beats its molecule's of the same id. Why: the author's numbering of a
+  chain wins over the entity's. Not across a codon step: that waits for paths.
 - **A label** is an integer with an optional suffix, letters (`94A`) or `.n` (`"100.1"`), or else a name. One total
   order: by integer; no suffix, then letters (shorter first, then alphabetic ignoring case), then `.n` by n; names after
   every number; spelling breaks the last ties. A `.n` label is written quoted: bare, `100.1` is the number 100.1 (the
@@ -408,10 +425,10 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 ### Issues
 
 - `seq.query.*` (`QueryIssues`): `form.prefix`, `form.param`, `form.type`, `form.unsupported`, `numbering.unknown`,
-  `label.syntax`, `label.int32`, `label.unknown` (with the nearest labels), `label.insertion`, `label.snapped` (info),
-  `range.backwards`, `range.lap`, `range.wrap`, `range.empty` (warning), `position.invalid`, `location.unreachable`
-  (warning), `ref.unresolved`, `node.missing` (warning). A resolver's errors fail the selection; its warnings and infos
-  are carried. A test checks the catalog against the codes the sources use.
+  `numbering.pending` (info), `label.syntax`, `label.int32`, `label.unknown` (with the nearest labels),
+  `label.insertion`, `label.snapped` (info), `range.backwards`, `range.lap`, `range.wrap`, `range.empty` (warning),
+  `position.invalid`, `location.unreachable` (warning), `ref.unresolved`, `node.missing` (warning). A resolver's errors
+  fail the selection; its warnings and infos are carried. A test checks the catalog against the codes the sources use.
 
 ### Examples
 
@@ -804,10 +821,14 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 
 ### Systems, sources, annotations
 
-- **Systems**: each `sequence`, with its alphabet, cyclic flag, the built-in numberings (`index`, `ordinal`), its `name`
-  (the record its source knows it by: the param, else its id), and its length when its letters are inline; else the
-  length is unknown, pending until the source is opened, never a guess. Why: nothing in tier 1 waits, and nothing lays
-  out on a made-up length.
+- **Systems**: each `sequence`, with its alphabet, cyclic flag, its numberings' ids (the built-ins `index`, `ordinal`,
+  then its declared ones), its `name` (the record its source knows it by: the param, else its id), and its length when
+  its letters are inline; else the length is unknown, pending until the source is opened, never a guess. Why: nothing in
+  tier 1 waits, and nothing lays out on a made-up length.
+- **Numberings**: each `numbering` child of a sequence (`numberings`, by its address; `numberingOf(system, id)`): inline
+  labels a numbering at once, which the system's query form answers (`numbering(id)`, `numberingIds`); a source's holds
+  its source, its field and an access plan on the sequence's name, its labels tier 2's (Render, Numberings from a
+  source). Why not in tier 1: nothing there waits for a source.
 - **A length from coverage**: once a source is open, the length its coverage gives a system (by name or alias, an
   alignment's columns and rows too) is passed to the next resolve (`sourceLengths(model, coverage)`,
   `ResolveOptions.lengths`, `Resolver.resolve(spec, lengths)`), and the system resolves as one with inline letters of
@@ -1082,6 +1103,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `margin`                                                       | 0.5                                                                                                 | what a want adds on each side, a fraction of the view (the store's `margin` priority)                                                                                           |
 | `followArc`                                                    | `shortest`                                                                                          | a cyclic follower takes the shortest arc holding the image (EC-12); `hull`                                                                                                      |
 | `maxTemplateTracks`                                            | 200                                                                                                 | the tracks one template makes; past it `seq.render.template.limit`: a source's nodes are untrusted                                                                              |
+| `maxNumberingPositions`                                        | 2^18                                                                                                | the positions a numbering from a source covers at most; past it `seq.render.numbering.limit` and nothing asked for: its labels are held whole                                   |
 | `nodes.holdShown`                                              | true                                                                                                | a layout lists the nodes it shows, for its owner to hold in the store; false: nothing held by showing                                                                           |
 | `ranges.overflow`                                              | `extra-lanes`                                                                                       | only the items past the lanes collapse into a density row; `layer`, the whole layer                                                                                             |
 | `values.aggregate`                                             | `minmax`                                                                                            | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                         |
@@ -1323,15 +1345,16 @@ the y path in Emphasis).
   without its regions leaves its band unused (text collapses it). No fallback: an outline drawn as bars would read as
   data.
 - `ruler`: the section's axis labelled by a numbering (`numbering`: a built-in or one the system declares; unknown is
-  `seq.render.numbering` and `ordinal` is used). A tick at each label that is a multiple of a step of 1, 2 or 5 × 10ⁿ,
-  the least whose ticks are `ruler.labelGap` px apart; a label that does not fit (between the data box's edges and the
-  labels already drawn, 6 px apart at least, majors first) is skipped, never shrunk. A label with an insertion code
-  (`100A`, `111.1`) is a minor tick from 4 px a position, labeled only where it fits. It labels the positions where they
-  are: a reversed axis counts down, a collapsed one labels its pieces. Where a text section prints a group's end number
-  (`group_labels` not `none`) the ruler draws the tick without its label: a position carries one label, the group's
-  (only where the ruler's numbering is the one the group labels print). Over a piece of more than 4,096 positions, or on
-  a built-in numbering, the labels are looked up by number (a tick a step), not a position at a time. A hit is the
-  position under the pointer. Fallback: none (omitted).
+  `seq.render.numbering` and `ordinal` is used; a source's draws no tick until its labels are in, Numberings from a
+  source). A tick at each label that is a multiple of a step of 1, 2 or 5 × 10ⁿ, the least whose ticks are
+  `ruler.labelGap` px apart; a label that does not fit (between the data box's edges and the labels already drawn, 6 px
+  apart at least, majors first) is skipped, never shrunk. A label with an insertion code (`100A`, `111.1`) is a minor
+  tick from 4 px a position, labeled only where it fits. It labels the positions where they are: a reversed axis counts
+  down, a collapsed one labels its pieces. Where a text section prints a group's end number (`group_labels` not `none`)
+  the ruler draws the tick without its label: a position carries one label, the group's (only where the ruler's
+  numbering is the one the group labels print). Over a piece of more than 4,096 positions, or on a built-in numbering,
+  the labels are looked up by number (a tick a step), not a position at a time. A hit is the position under the pointer.
+  Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, UniProt's `Helix`, `Beta strand` and `Turn`, anything else a turn), in one band: a helix a block, a
   strand a block with an arrowhead on its C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding
@@ -1381,6 +1404,34 @@ the y path in Emphasis).
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).
+
+### Numberings from a source
+
+`render/numberings.ts`: a declared numbering whose labels are a source's rows (Language, Numberings).
+
+- **Read whole**: the sequence's every position at level 1 (`readSourceNumbering`, internal), a row a position (its
+  `start`: a `position` row is `[p, p + 1)`), the label its `field` (a category's text, a number's spelling; `id` the
+  row's id; a row with no label is a position with none); the first row of a position keeps it. Held once every tile is
+  in, never in part. Why whole: labels need no order, so a part would snap and print other positions than the whole
+  does.
+- **Bounded**: a sequence longer than `maxNumberingPositions` (2^18) is `seq.render.numbering.limit`, and its tiles are
+  never asked for nor its labels held. Why: the labels are held whole, a string a position.
+- **Kept**: held labels stay while the source's coverage is the same, whatever becomes of their tiles: an evicted tile
+  is never asked for again for them, so a ruler does not ask for every tile each frame. Before they are held, a read is
+  kept while its tiles are the same entries.
+- **Blank, said**: a tile that failed, or a source whose coverage has no system of the sequence's name (or no length for
+  it), is `seq.render.numbering.source`; held labels with rows past the sequence's end (left out) or rows for another
+  count of positions than the sequence has are `seq.render.numbering.rows`, each once a read (the ruler reports them at
+  layout). A blank ruler labels by `ordinal`, as for an unknown numbering.
+- **Pending is waiting**: the query model (`withSourceNumberings(base, model, store, { maxPositions, want })`) answers a
+  held numbering, says one not in yet is pending (`QuerySystem.numberingPending`: a form naming it gives nothing, the
+  whole system pending, `seq.query.numbering.pending`, so the address is `waiting`, never unknown), and leaves a blank
+  one out of the ids an unknown numbering lists. `want` asks for the tiles of what a form named: whoever resolves asks
+  (the viewer's addresses), so a link in a numbering no ruler shows resolves. A unit's molecule is wrapped too, so a
+  molecule's source numbering numbers its units. The static model alone says a source's numbering is pending: nothing
+  there brings it.
+- **Who asks**: the ruler at layout (no ticks while they come, never ordinals in their place) and the viewer's
+  addresses; a text's numbers read inline numberings only (a section layout reads no store).
 
 ### Section layouts
 
@@ -2121,10 +2172,10 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.clade` (info), `rows.text.unfolded` (info),
   `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`,
   `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`,
-  `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
-  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
-  `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
-  (info); a test checks the catalog.
+  `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`,
+  `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layer.letters`, `axis.pending` (info),
+  `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`, `source`, `template.limit`, `unsettled`,
+  `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer` (info); a test checks the catalog.
 
 ## Stories
 

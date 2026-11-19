@@ -54,6 +54,7 @@ export {
   type Lengths,
   lengthsEqual,
   type MapEntry,
+  type NumberingEntry,
   OpenLength,
   type PathResult,
   type Projection,

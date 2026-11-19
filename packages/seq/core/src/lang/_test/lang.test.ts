@@ -207,6 +207,32 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.values('v', { target: s, values: [1, 2, 3] });
     return b.build();
   },
+  'seq.lang.numbering.content': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' }, (s) => s.numbering('kabat', { method: 'labels' }));
+    return b.build();
+  },
+  'seq.lang.numbering.id': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'ME' }, (s) =>
+      s.numbering('ordinal', { method: 'labels', labels: ['1', '2'] }),
+    );
+    return b.build();
+  },
+  'seq.lang.numbering.length': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' }, (s) =>
+      s.numbering('kabat', { method: 'labels', labels: ['1', '2', '3'] }),
+    );
+    return b.build();
+  },
+  'seq.lang.numbering.duplicate': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEE' }, (s) =>
+      s.numbering('kabat', { method: 'labels', labels: ['1', '2', '1'] }),
+    );
+    return b.build();
+  },
   'seq.lang.map.params': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });

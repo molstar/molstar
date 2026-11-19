@@ -188,7 +188,7 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
   glycan's units and `pdbx_nonpoly_scheme` for a ligand's, so `(chain :id A)/(at :label 94A :numbering auth)`
   ([addressing.md](addressing.md)) resolves. An unobserved residue has no author number (EC-1 to EC-8 at the edge). If
   the language has no `numbering` kind by the fourth slice, ML1 adds it with the `labels` method only. (Superseded: the
-  author, 2026-11-19, "Add it now (0.4.0)": the third slice's NB adds the kind with `labels`; ML1 reuses it.)
+  author, 2026-11-19, "Add it now (0.4.0)": the third slice's NB built the kind with `labels`; ML1 reuses it.)
 - **Entities are molecules**: an mmCIF entity is a `sequence` (polymer) or a `molecule` (non-polymer, branched, water);
   its chains are units. A **construct** (an ADC design, a fusion with its tags) is a complex with no structure behind
   it: the same units and links.

@@ -32,6 +32,10 @@ export const QueryIssues = defineIssues('seq.query', {
     severity: 'error',
     description: 'A numbering the system does not have: index, ordinal, its own or its molecule’s',
   },
+  'seq.query.numbering.pending': {
+    severity: 'info',
+    description: 'A numbering the system declares whose labels have not arrived (a source’s): the form waits for them',
+  },
   'seq.query.label.syntax': {
     severity: 'error',
     description: 'A label is not an integer or a word, or an insertion code is not letters',

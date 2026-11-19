@@ -106,6 +106,26 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'Inline values are not one per position of the inline letters of their target sequence',
     hint: 'Give as many values as the sequence has letters; NaN is missing',
   },
+  'seq.lang.numbering.content': {
+    severity: 'error',
+    description: 'A numbering has both `labels` and a `source`, or neither, or a `field` without a `source`',
+    hint: 'Give one of `labels` and `source`; `field` names the source’s column of labels',
+  },
+  'seq.lang.numbering.id': {
+    severity: 'error',
+    description: 'A numbering’s id is a built-in numbering’s (`index`, `ordinal`): forms would never read it',
+    hint: 'Name it by its scheme (`kabat`, `imgt`, `auth`)',
+  },
+  'seq.lang.numbering.length': {
+    severity: 'error',
+    description: 'Inline labels are not one a position of the inline letters of their sequence',
+    hint: 'Give as many labels as the sequence has letters; `null` is no label there',
+  },
+  'seq.lang.numbering.duplicate': {
+    severity: 'warning',
+    description: 'A label is given at two positions: it names the first',
+    hint: 'Give each position its own label (an insertion code: `100A`), or `null`',
+  },
   'seq.lang.map.params': {
     severity: 'error',
     description: 'A map has params its method does not take, or lacks one it needs',

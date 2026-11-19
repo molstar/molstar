@@ -243,6 +243,39 @@ export const SeqLanguage = defineLanguage({
         },
       },
     },
+    numbering: {
+      doc: 'A numbering of its sequence’s positions (its id the numbering’s name, `:numbering kabat`): a label a position, inline or from a source’s column. Labels need no order (IMGT), carry insertion codes (`100A`, `111.1`) and may be absent at a position.',
+      parents: ['sequence'],
+      ids: 'required',
+      params: {
+        method: {
+          type: 'string',
+          enum: ['labels'],
+          required: true,
+          doc: 'How the labels are given: `labels`, one a position (inline or from a source).',
+        },
+        labels: {
+          type: 'column',
+          of: 'category',
+          missing: true,
+          doc: 'The labels inline, one a position of the sequence, in index order; `null` is no label there (instead of `source`).',
+        },
+        source: {
+          type: 'ref',
+          kinds: ['source'],
+          doc: 'The source whose rows hold the labels, a row a position (its `position`, or its `start`), on the sequence (instead of `labels`).',
+        },
+        field: {
+          type: 'string',
+          doc: 'With `source`: the field of its rows that holds the label (`label` when absent).',
+        },
+        scheme: {
+          type: 'string',
+          pattern: '^[a-z][a-z0-9_-]*$',
+          doc: 'The numbering scheme the labels follow, an open lowercase word (`^[a-z][a-z0-9_-]*$`: `kabat`, `imgt`, `chothia`, `uniprot`, `auth`, a lab’s own): what a reader says it is; it does not change the labels.',
+        },
+      },
+    },
     ranges: {
       doc: 'Ranges on a sequence, 0-based and half-open: an annotation. On a cyclic sequence a range may start after it ends: it wraps the origin.',
       parents: ['data'],

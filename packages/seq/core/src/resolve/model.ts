@@ -41,8 +41,10 @@ import {
 import type { SeqKinds } from '@molstar/seqx-core/lang';
 import {
   type ItemsRead,
+  labelsNumbering,
   type Location,
   location,
+  type Numbering,
   overlapsRanges,
   partOf,
   type QueryAnnotation,
@@ -107,10 +109,32 @@ export interface SystemEntry {
   readonly source?: string;
   /** The name its source knows it by: its `name`, else its id. */
   readonly name: string;
-  /** Its numberings: the built-ins (`index`, `ordinal`) until the language declares others. */
+  /** Its numberings' ids: the built-ins (`index`, `ordinal`), then its `numbering` children's, in order. */
   readonly numberings: readonly string[];
   /** How its letters are read. */
   readonly access: AccessPlan;
+}
+
+/**
+ * A declared numbering (a `numbering` child of a sequence, _spec/README.md "Resolve", Numberings): inline labels as a
+ * numbering at once; a source's labels are read from its rows by the store's reader (tier 2), so tier 1 holds where.
+ */
+export interface NumberingEntry {
+  /** The numbering node's address (`/data/h/kabat`). */
+  readonly address: string;
+  /** Its sequence's address. */
+  readonly system: string;
+  /** Its id: the name forms read (`:numbering kabat`). */
+  readonly id: string;
+  /** The scheme its labels follow (an open word), when it says. */
+  readonly scheme?: string;
+  /** Inline labels, as a numbering of the system. */
+  readonly numbering?: Numbering;
+  /** The source whose rows hold the labels, read on the system by its name (`access`). */
+  readonly source?: string;
+  /** The field of the source's rows that holds the label (`label` when the node names none). */
+  readonly field?: string;
+  readonly access?: AccessPlan;
 }
 
 /** A map, resolved: its kind, its encoding, and its linear part (fine places of the residue side for a codon map). */
@@ -209,9 +233,13 @@ export interface StaticModel extends QueryModel {
   readonly maps: ReadonlyMap<string, MapEntry>;
   readonly sources: ReadonlyMap<string, SourceBinding>;
   readonly annotations: ReadonlyMap<string, AnnotationEntry>;
+  /** The declared numberings, by the numbering node's address. */
+  readonly numberings: ReadonlyMap<string, NumberingEntry>;
+  /** Whether a declared numbering's labels are a source's (read by tier 2): what wraps a query model checks first. */
+  readonly hasSourceNumberings: boolean;
   readonly issues: readonly Issue[];
-  /** The source-backed systems' lengths it was resolved with (`ResolveOptions.lengths`). */
-  readonly lengths: Lengths;
+  /** A system's declared numbering by its id (`kabat`), or undefined: never a built-in (`index`, `ordinal`). */
+  numberingOf(system: string, id: string): NumberingEntry | undefined;
   /** The shortest unambiguous path, composed once and kept (across resolves while the maps its search read hold). */
   path(from: string, to: string): PathResult;
   /** The steps from a system along the spec's maps, both ways: what a path search reads (the overlay adds its own). */
@@ -370,6 +398,22 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     );
   }
 
+  // a sequence's numberings: inline labels read at once, a source's where its rows are
+  const numberings = new Map<string, NumberingEntry>();
+  for (const at of data) {
+    if (at.node.kind !== 'sequence') continue;
+    const system = systems.get(at.address)!;
+    for (const c of at.node.children ?? []) {
+      if (c.kind !== 'numbering' || c.id === undefined || c.id === 'index' || c.id === 'ordinal') continue;
+      const placed = { node: c, address: printAddress([...addressIds(at.address), c.id]) };
+      const src = p(c, 'source') === undefined ? undefined : ref(placed, 'source', ['source']);
+      numberings.set(
+        placed.address,
+        cached(`${placed.address}|${key(placed, at)}|${system.name}`, () => numberingEntry(placed, system, src?.address)),
+      );
+    }
+  }
+
   const maps = new Map<string, MapEntry>();
   for (const at of data) {
     if (at.node.kind !== 'map') continue;
@@ -423,7 +467,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     issues.push(...entry.issues);
   }
 
-  return new Model(spec, config, systems, maps, sources, annotations, issues, carried, lengths);
+  return new Model(spec, config, systems, maps, sources, annotations, numberings, issues, carried, lengths);
 }
 
 // ---- entries ----
@@ -506,7 +550,7 @@ function sequenceEntry(at: Placed, source: string | undefined, known: number | u
     alphabet: p(at.node, 'alphabet') as SystemEntry['alphabet'],
     cyclic: p(at.node, 'cyclic') === true,
     name: typeof name === 'string' ? name : (at.node.id ?? ''),
-    numberings: ['index', 'ordinal'],
+    numberings: ['index', 'ordinal', ...declaredNumberings(at.node)],
   };
   if (typeof letters === 'string') {
     const tables: Tables = { letters: { form: 'letters', start: 0, letters } };
@@ -519,6 +563,36 @@ function sequenceEntry(at: Placed, source: string | undefined, known: number | u
     ...(source && known !== undefined ? { length: known } : {}),
     ...(source ? { source } : {}),
     access: sourcePlan(source ?? '', base.name, 'letters'),
+  };
+}
+
+/** The ids of a sequence's `numbering` children, in order (a built-in's id is no declared numbering). */
+function declaredNumberings(n: Node): string[] {
+  const ids: string[] = [];
+  for (const c of n.children ?? [])
+    if (c.kind === 'numbering' && c.id !== undefined && c.id !== 'index' && c.id !== 'ordinal') ids.push(c.id);
+  return ids;
+}
+
+/** The ids of an exact address (`/data/h` → `data`, `h`). */
+function addressIds(address: string): string[] {
+  return address.split('/').filter(Boolean);
+}
+
+/** A declared numbering: inline labels as a numbering of the system; a source's, where the source's rows are. */
+function numberingEntry(at: Placed, system: SystemEntry, source: string | undefined): NumberingEntry {
+  const labels = p(at.node, 'labels');
+  const scheme = p(at.node, 'scheme');
+  const field = p(at.node, 'field');
+  const id = at.node.id ?? '';
+  const base = { address: at.address, system: system.address, id, ...(typeof scheme === 'string' ? { scheme } : {}) };
+  if (labels instanceof CategoryColumn) return { ...base, numbering: labelsNumbering(id, labels) };
+  if (!source) return base;
+  return {
+    ...base,
+    source,
+    field: typeof field === 'string' ? field : 'label',
+    access: sourcePlan(source, system.name, 'ranges'),
   };
 }
 
@@ -846,6 +920,8 @@ class Model implements StaticModel {
   private readonly codons: CodonPaths[] = [];
   private readonly querySystems = new Map<string, QuerySystem>();
   private readonly queryAnnotations = new Map<string, QueryAnnotation | undefined>();
+  private readonly numberingsBySystem = new Map<string, Map<string, NumberingEntry>>();
+  readonly hasSourceNumberings: boolean;
 
   constructor(
     readonly spec: Node,
@@ -854,11 +930,20 @@ class Model implements StaticModel {
     readonly maps: ReadonlyMap<string, MapEntry>,
     readonly sources: ReadonlyMap<string, SourceBinding>,
     readonly annotations: ReadonlyMap<string, AnnotationEntry>,
+    readonly numberings: ReadonlyMap<string, NumberingEntry>,
     readonly issues: readonly Issue[],
     private readonly carried?: ReadonlyMap<string, PathEntry>,
     readonly lengths: Lengths = new Map(),
   ) {
     this.hash = `${hashNode(spec)}${lengthsKey(lengths)}`;
+    let fromSource = false;
+    for (const n of numberings.values()) {
+      if (n.source) fromSource = true;
+      let of = this.numberingsBySystem.get(n.system);
+      if (!of) this.numberingsBySystem.set(n.system, (of = new Map()));
+      of.set(n.id, n);
+    }
+    this.hasSourceNumberings = fromSource;
     for (const m of maps.values()) {
       const fwd: Edge = { map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear };
       const back: Edge = {
@@ -972,6 +1057,10 @@ class Model implements StaticModel {
     return out;
   }
 
+  numberingOf(system: string, id: string): NumberingEntry | undefined {
+    return this.numberingsBySystem.get(system)?.get(id);
+  }
+
   // ---- the query forms' model ----
 
   system(address: string): QuerySystem | undefined {
@@ -979,12 +1068,17 @@ class Model implements StaticModel {
     if (s) return s;
     const e = this.systems.get(address);
     if (!e) return undefined;
+    // its declared numberings: the inline ones answer here; a source's labels are tier 2's (`withSourceNumberings`)
+    const own = this.numberingsBySystem.get(address);
+    const ids = own ? [...own.keys()] : [];
     s = {
       address,
       length: e.length ?? this.config.openQueryLength,
       cyclic: e.cyclic,
-      numbering: () => undefined,
-      numberingIds: () => [],
+      numbering: (id) => own?.get(id)?.numbering,
+      numberingIds: () => ids,
+      // a source's labels are tier 2's: here they never arrive, so a form naming them waits
+      numberingPending: (id) => own?.get(id)?.source !== undefined,
     };
     this.querySystems.set(address, s);
     return s;

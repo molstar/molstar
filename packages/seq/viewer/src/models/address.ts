@@ -34,7 +34,13 @@ import {
   resolveAddressIn,
   unionLocations,
 } from '@molstar/seqx-core/query';
-import { type HighlightStyle, HighlightStyles } from '@molstar/seqx-core/render';
+import type { Want, Wanter } from '@molstar/seqx-core/data';
+import {
+  DefaultRenderConfig,
+  type HighlightStyle,
+  HighlightStyles,
+  withSourceNumberings,
+} from '@molstar/seqx-core/render';
 import { ViewerIssues } from '../issues.js';
 import { overlayQueryModel } from '@molstar/seqx-core/resolve';
 import type { Axis } from '@molstar/seqx-core/view';
@@ -119,6 +125,12 @@ export class AddressModel extends ReactiveModel {
   private _landing: { address: string; stop(): void } | undefined;
   /** The sections the last move moved: what a kept move waits on. */
   private _moved: readonly string[] = [];
+  /** The query model last made, and what it was made of (the model, the overlay, the store's version). */
+  private _query: { model: unknown; overlay: unknown; version: number; query: QueryModel } | undefined;
+  /** The tiles of sources' numberings a form named, asked for through one wanter (core "Numberings from a source"). */
+  private _numberingWanter: Wanter | undefined;
+  private readonly _numberingWants = new Map<string, Want>();
+  private _numberingModel: unknown;
 
   constructor(
     private readonly spec: SpecModel,
@@ -128,6 +140,8 @@ export class AddressModel extends ReactiveModel {
     readonly selection: SelectionModel,
     readonly highlight: HighlightModel,
     config: ViewerConfig = DefaultViewerConfig,
+    /** Positions a source's numbering may cover (`RenderConfig.maxNumberingPositions`). */
+    private readonly maxNumberingPositions = DefaultRenderConfig.maxNumberingPositions,
   ) {
     super();
     this.config = config;
@@ -146,6 +160,7 @@ export class AddressModel extends ReactiveModel {
     this.registerPermanentDispose(spec.beforeCommit((changes) => this.followMoves(changes.moved)));
     this.listenPermanently(spec.root, () => this._respec());
     this.registerPermanentDispose(() => this._landing?.stop());
+    this.registerPermanentDispose(() => this._numberingWanter?.dispose());
   }
 
   private readonly _issues = new State<readonly Issue[]>([]);
@@ -233,10 +248,42 @@ export class AddressModel extends ReactiveModel {
 
   // ---- resolving ----
 
-  /** The query model addresses resolve over: the static model of what is shown, the store's nodes and held rows now. */
+  /**
+   * The query model addresses resolve over: the static model of what is shown, the store's nodes and held rows now,
+   * and the labels of the numberings read from sources that the store holds.
+   */
   queryModel(): QueryModel {
     const model = this.spec.model.value;
-    return overlayQueryModel(model, this.store.currentOverlay(model), this.store.store);
+    const overlay = this.store.currentOverlay(model);
+    const version = this.store.store.version.value;
+    const q = this._query;
+    if (q && q.model === model && q.overlay === overlay && q.version === version) return q.query;
+    const query = withSourceNumberings(overlayQueryModel(model, overlay, this.store.store), model, this.store.store, {
+      maxPositions: this.maxNumberingPositions,
+      want: (w) => this._wantNumbering(model, w),
+    });
+    this._query = { model, overlay, version, query };
+    return query;
+  }
+
+  /**
+   * Asks for a source numbering's tiles a form named (whoever resolves asks, so a link in a numbering no ruler shows
+   * resolves): the wants of the model shown, all at once, after the resolve that named them (never inside it).
+   */
+  private _wantNumbering(model: unknown, w: Want) {
+    if (this._numberingModel !== model) {
+      this._numberingModel = model;
+      this._numberingWants.clear();
+    }
+    const key = `${w.source}|${w.system}|${w.end}`;
+    if (this._numberingWants.has(key)) return;
+    this._numberingWants.set(key, w);
+    const wants = [...this._numberingWants.values()];
+    queueMicrotask(() => {
+      if (this._numberingModel !== model) return;
+      this._numberingWanter ??= this.store.store.wanter();
+      this._numberingWanter.want(wants);
+    });
   }
 
   /** What an address names in the spec shown (_spec/README.md "AddressModel"; the core's `resolveAddressIn`). */
