@@ -23,7 +23,9 @@ import {
   hitView,
   renderSvg,
 } from '../index.js';
+import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { FakeClock } from '../../data/_test/synthetic.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { settle } from './helpers.js';
 import { RingFeatures, RingLength, ringLetters, ringSpec } from './rings-fixtures.js';
@@ -271,6 +273,41 @@ describe('the rings layout’s navigation', () => {
     expect(RingsNav.reveal(c, v, 300, 310)).toMatchObject({ start: 285, end: 325 });
     expect(RingsNav.fit(c, v)).toMatchObject({ start: 0, end: 600 });
     expect(RingsNav.step(c, 599, 'right')).toBe(0);
+  });
+});
+
+describe('a ring with no strips', () => {
+  const emptyRing = (range?: [number, number]) => {
+    const b = createSeqSpec({ title: 'empty ring' });
+    const src = b.data.source('never', { format: 'synthetic', uri: 'synthetic:never' });
+    const c = range
+      ? b.data.sequence('construct', { alphabet: 'dna', letters: ringLetters(), cyclic: true })
+      : b.data.sequence('construct', { alphabet: 'dna', source: src, cyclic: true });
+    b.views.view('v', (v) => {
+      const ring = v.section('ring', { of: c, layout: 'rings', ...(range ? { range } : {}) });
+      ring.track('ruler').layer('ruler', { type: 'ruler' });
+      v.section('detail', { of: c, follow: ring }).track('letters').layer('letters', { type: 'letters' });
+    });
+    return b.build();
+  };
+
+  it('a pending ring draws its frame without its rings (no strip read past the last)', async () => {
+    const clock = new FakeClock();
+    const never: FormatRuntime = { name: 'never', formats: ['synthetic'], open: () => new Promise(() => {}) };
+    const out = renderSvg(emptyRing(), { size: Size, runtimes: [never], clock, timeoutMs: 1000, window: true });
+    await clock.advance(1000);
+    const r = await out;
+    expect(r.settled).toBe(false);
+    expect(r.issues.map((i) => i.code)).toContain('seq.render.axis.pending');
+  });
+
+  it('an empty range draws its frame, and hits nothing', async () => {
+    const s = await settle(emptyRing([400, 400]));
+    const f = await s.frame({ size: Size, windows: true });
+    const p = ringOf(f).placement as RingPlacement;
+    expect(p.strips.n).toBe(0);
+    expect(drawListsToSvg(f.lists, Size)).toContain('<svg');
+    expect(hitView(f.layout, p.cx, p.cy - p.r + 2)).toBeUndefined();
   });
 });
 

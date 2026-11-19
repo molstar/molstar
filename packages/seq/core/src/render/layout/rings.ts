@@ -459,18 +459,22 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     return viewport ? { start: viewport.start, end: viewport.end } : { start: 0, end: axis.total };
   },
   window(placement, viewport, active, shown) {
-    const p = placement as RingPlacement;
+    // a pending section's placement is not a ring's
+    if (!(placement instanceof RingPlacement)) return;
+    const p = placement;
     p.windowShown = shown;
     p.windowActive = active;
     p.windowStart = viewport ? viewport.start : 0;
     p.windowEnd = viewport ? viewport.end : p.total;
   },
   chrome(s, pass, out, emphasis, strip, band) {
-    const p = s.placement as RingPlacement;
+    // pending (not a ring's placement), or no strips (an empty range): a track's chrome is called for strip 0
+    const p = s.placement;
+    if (!(p instanceof RingPlacement)) return;
     const { tokens, config } = s;
     if (band >= 0) {
       // each ring's own ground under its layers, a sector a strip (through `args`: nothing boxed)
-      if (pass !== 'data') return;
+      if (pass !== 'data' || strip >= p.strips.n) return;
       const a = p.strips.axes[strip];
       const k = strip * p.strips.bands + band;
       const g = out.args;
@@ -491,10 +495,11 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     else if (pass === 'labels') drawRingLabels(p, out, tokens, config);
   },
   hitChrome(s, x, y) {
-    const p = s.placement as RingPlacement;
+    const p = s.placement;
+    if (!(p instanceof RingPlacement)) return undefined;
     const k = p.labelAt(x, y);
     if (k >= 0) return p.labels.hits[p.labels.placed[k]];
-    if (!p.windowActive || !p.windowShown || !p.warp.unmap(x, y)) return undefined;
+    if (!p.strips.n || !p.windowActive || !p.windowShown || !p.warp.unmap(x, y)) return undefined;
     let fx = p.warp.px;
     const fy = p.warp.py;
     const x0 = p.frameX(p.windowStart);
