@@ -19,5 +19,6 @@ export {
   LayerViews,
   P53Views,
   PlasmidViews,
+  TrnaScaleView,
   TrnaViews,
 } from './views.js';

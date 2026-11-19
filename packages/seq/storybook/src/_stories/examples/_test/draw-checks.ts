@@ -6,8 +6,10 @@
 
 import { type Frame, type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import type { ExampleView } from '@molstar/seqx-examples';
+import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { uiHistory } from '@molstar/seqx-viewer/ui-history';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { vi } from 'vitest';
 
@@ -25,11 +27,13 @@ export interface OpenOptions {
   readonly wait?: number;
   /** Keep the real `Date` and `performance` (a bound on time reads them): only the timers are faked. */
   readonly realClock?: boolean;
+  /** The host's history, for edits that are undone (the spec takes part in it). */
+  readonly history?: boolean;
 }
 
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
 export async function openExample(view: ExampleView, options: OpenOptions): Promise<SeqViewer> {
-  const { gene, delayMs = 300, wait = 6000, realClock = false } = options;
+  const { gene, delayMs = 300, wait = 6000, realClock = false, history = false } = options;
   vi.useFakeTimers({
     toFake: realClock ? ['setTimeout', 'clearTimeout'] : ['setTimeout', 'clearTimeout', 'Date', 'performance'],
   });
@@ -38,9 +42,24 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
   const v = createSeqViewer({
     ...base,
     ui: undefined,
+    ...(history ? { history: uiHistory() } : {}),
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: {
-      assets: () => ({ reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } }),
+      assets: () => {
+        // the tRNA dataset's files are read as they are committed; every other location answers the gene's text
+        const files = nodeFixtureAssets();
+        const gene = {
+          readText: async () => text,
+          readBytes: async () => new TextEncoder().encode(text),
+        };
+        const by = (uri: string) => (uri.startsWith('fixtures/trna/') ? files.reader : gene);
+        return {
+          reader: {
+            readText: (uri, signal) => by(uri).readText(uri, signal),
+            readBytes: (uri, signal) => by(uri).readBytes(uri, signal),
+          },
+        };
+      },
     },
   });
   v.resize(720);

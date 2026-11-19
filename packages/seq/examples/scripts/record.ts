@@ -11,13 +11,15 @@
 //
 //   node --experimental-strip-types scripts/record.ts p53
 //
-// The one entry now: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of
-// UniProt's own and ClinVar's sources.
+// The entries: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of
+// UniProt's own and ClinVar's sources; `trna`, PDB 1EHZ's mmCIF from PDBe (CC0-1.0: chain A's sequence, modified
+// residues and base pairs as `seq` files) and Rfam RF00005's seed (CC0-1.0, Stockholm as published).
 
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { moleculeSeq, pairsSeq, trimEntry as trimCif } from '../src/trna/record-trim.ts';
 import {
   EntryDroppedTypes,
   EntryMembers,
@@ -116,10 +118,72 @@ async function p53(): Promise<Row[]> {
   ];
 }
 
+async function trna(): Promise<Row[]> {
+  const dir = join(Folder, 'fixtures', 'trna');
+  mkdirSync(dir, { recursive: true });
+  const day = new Date().toISOString().slice(0, 10);
+  const cifUrl = 'https://www.ebi.ac.uk/pdbe/entry-files/download/1ehz.cif';
+  const seedUrl = 'https://rfam.org/family/RF00005/alignment/stockholm';
+  const cif = await fetchText(cifUrl, 'text/plain', '1EHZ.cif');
+  const seed = await fetchText(seedUrl, 'text/plain', 'RF00005.sto');
+  const trimmed = trimCif(cif);
+  const bytes = (s: string) => new TextEncoder().encode(s).byteLength;
+  const files: [string, string][] = [
+    ['1EHZ.seq', moleculeSeq(trimmed)],
+    ['1EHZ-pairs.seq', pairsSeq(trimmed)],
+    ['RF00005.sto', seed],
+  ];
+  for (const [f, text] of files) writeFileSync(join(dir, f), text);
+  const pdb = {
+    entry: 'PDB 1EHZ (Shi, Moore 2000), yeast tRNA-Phe at 1.93 Å, chain A',
+    url: cifUrl,
+    licence: ['CC0-1.0'],
+    attribution: 'wwPDB, entry 1EHZ (CC0 1.0), as served by PDBe',
+    bytesDownloaded: bytes(cif),
+    sha256Download: sha256(cif),
+  };
+  return [
+    {
+      ...pdb,
+      file: 'trna/1EHZ.seq',
+      recorded: day,
+      trimmed:
+        'chain A’s canonical sequence (parent letters, `_entity_poly`) and its modified residues (`_pdbx_struct_mod_residue`: a range each, its code as `label`, its parent letter as `category`); nothing else of the entry',
+      derived: 'none',
+      bytesFixture: bytes(files[0][1]),
+      sha256Fixture: sha256(files[0][1]),
+    },
+    {
+      ...pdb,
+      file: 'trna/1EHZ-pairs.seq',
+      recorded: day,
+      trimmed:
+        'the entry’s base-pair table (`ndb_struct_na_base_pair`, 27 pairs of chain A) as a range on each pair’s first base with its partner; kind from the Saenger class (19, 20 Watson–Crick; 28 wobble; else non-canonical), tertiary the six pairs that cross the stems (8–14, 15–48, 18–55, 19–56, 26–44, 54–58)',
+      derived: 'kind and tertiary flag',
+      bytesFixture: bytes(files[1][1]),
+      sha256Fixture: sha256(files[1][1]),
+    },
+    {
+      file: 'trna/RF00005.sto',
+      entry: 'Rfam RF00005 (tRNA) seed, release 15.1',
+      url: seedUrl,
+      recorded: day,
+      licence: ['CC0-1.0'],
+      attribution: 'Rfam (EMBL-EBI), family RF00005, CC0 1.0',
+      trimmed: 'none: the seed as published',
+      derived: 'none',
+      bytesDownloaded: bytes(seed),
+      bytesFixture: bytes(seed),
+      sha256Download: sha256(seed),
+      sha256Fixture: sha256(seed),
+    },
+  ];
+}
+
 async function main(name: string | undefined) {
-  if (name !== 'p53') throw new Error('usage: record.ts p53');
-  const rows = await p53();
-  const file = join(Folder, 'fixtures', 'p53', 'sources.json');
+  if (name !== 'p53' && name !== 'trna') throw new Error('usage: record.ts p53|trna');
+  const rows = await (name === 'p53' ? p53() : trna());
+  const file = join(Folder, 'fixtures', name, 'sources.json');
   let existing: Row[] = [];
   try {
     existing = JSON.parse(readFileSync(file, 'utf8')) as Row[];

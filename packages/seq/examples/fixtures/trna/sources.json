@@ -1,0 +1,50 @@
+[
+  {
+    "entry": "PDB 1EHZ (Shi, Moore 2000), yeast tRNA-Phe at 1.93 Å, chain A",
+    "url": "https://www.ebi.ac.uk/pdbe/entry-files/download/1ehz.cif",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, entry 1EHZ (CC0 1.0), as served by PDBe",
+    "bytesDownloaded": 254359,
+    "sha256Download": "3021dd2b6461f850bb66d6748d3c22a5e1bb6cc891c625c15d793f38215b28ab",
+    "file": "trna/1EHZ.seq",
+    "recorded": "2026-11-19",
+    "trimmed": "chain A’s canonical sequence (parent letters, `_entity_poly`) and its modified residues (`_pdbx_struct_mod_residue`: a range each, its code as `label`, its parent letter as `category`); nothing else of the entry",
+    "derived": "none",
+    "bytesFixture": 1206,
+    "sha256Fixture": "fb2cc646275465cee134a4e2b4fa9ad5b0f39a67213b8f7e3f202960dc7eebba"
+  },
+  {
+    "entry": "PDB 1EHZ (Shi, Moore 2000), yeast tRNA-Phe at 1.93 Å, chain A",
+    "url": "https://www.ebi.ac.uk/pdbe/entry-files/download/1ehz.cif",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, entry 1EHZ (CC0 1.0), as served by PDBe",
+    "bytesDownloaded": 254359,
+    "sha256Download": "3021dd2b6461f850bb66d6748d3c22a5e1bb6cc891c625c15d793f38215b28ab",
+    "file": "trna/1EHZ-pairs.seq",
+    "recorded": "2026-11-19",
+    "trimmed": "the entry’s base-pair table (`ndb_struct_na_base_pair`, 27 pairs of chain A) as a range on each pair’s first base with its partner; kind from the Saenger class (19, 20 Watson–Crick; 28 wobble; else non-canonical), tertiary the six pairs that cross the stems (8–14, 15–48, 18–55, 19–56, 26–44, 54–58)",
+    "derived": "kind and tertiary flag",
+    "bytesFixture": 1610,
+    "sha256Fixture": "0e3b97fee9cf447cb587f70b837a94a012dfb5f0ce0af64308f007c8aa626cd3"
+  },
+  {
+    "file": "trna/RF00005.sto",
+    "entry": "Rfam RF00005 (tRNA) seed, release 15.1",
+    "url": "https://rfam.org/family/RF00005/alignment/stockholm",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "Rfam (EMBL-EBI), family RF00005, CC0 1.0",
+    "trimmed": "none: the seed as published",
+    "derived": "none",
+    "bytesDownloaded": 141273,
+    "bytesFixture": 141273,
+    "sha256Download": "d1a66517066e6d4fbad3bd382934406df3018ff9bdaf72f22732f4c9740c9505",
+    "sha256Fixture": "d1a66517066e6d4fbad3bd382934406df3018ff9bdaf72f22732f4c9740c9505"
+  }
+]
