@@ -174,7 +174,7 @@ and dark before the merge.
 
 ### Stage 2: layouts (two strong lanes, after stage 1)
 
-- [ ] TX (strong) the text layout and alignment figures, as [layouts](../../design/layouts.md) (it restates tracks on
+- [x] TX (strong) the text layout and alignment figures, as [layouts](../../design/layouts.md) (it restates tracks on
       the extended interface first, then RB builds on it; it owns the viewport record): groups
       of ten, lanes, inline labels, numbers per row, frames; reflow on resize within its target.
 - [ ] RB (strong, after TX's interface change) blocks and rings, as [layouts](../../design/layouts.md): labels with leaders, a window a linear detail follows (EC-108, EC-114), a feature

@@ -26,12 +26,15 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
   that is lane TV. An allocation regression found and bisected to TH (42.6 → 72.4 KB a pan).
 - TA merged (`24db27a58`): the regression's cause was `Color.contrast` per label ink (boxed doubles); "p53 on its
   gene, whole protein" back to 49.9 KB against 64; the review found no correctness bug, its test gap fixed.
+- TV merged (`be56ae0be`): the text layout and its viewer; the review's findings and the look's two fixed (the export
+  cut at the canvas height; the domains band); quick 1,155, the allocation tier 84/84 on the merged tree.
+- Found by TV: a range starting in an earlier tile is not drawn when the view lies wholly past the tile edge (the
+  synthetic source answers only items starting in a region): a lost item, to fix test-first after RB.
 
 ## In progress
 
-- RB (strong): `briefs/rb-blocks-rings.md`, base `9cfc6801f`.
-- TV (strong): `briefs/tv-text-viewer.md`, base `9cfc6801f`: TX's text layout rebased, the text viewer, the rest of
-  text; merges before RB.
+- RB (strong): `briefs/rb-blocks-rings.md`: its fix round's Part A done; Part B rebases onto `be56ae0be` and adopts
+  TV's mechanisms.
 
 ## Next
 
@@ -51,6 +54,8 @@ Stage 2's gate after TV and RB. The early use gate is deferred.
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stage 2, TV (review and look) | 5 (groups out of phase; end numbers untested; text allocation; a cyclic window drag; the copy message) + 1 found (an item from an earlier tile lost) | 0 | 2 (the export cut short; no domains band) |
+| stage 2, RB (review and look) | 6 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin) | 0 | 2 (a whole-ring window loud; stacked rows empty) |
 | stage 2, TA (review) | 0 (a test gap) | 0 | 0 |
 | stage 2, TX's interface (review) | 5 (rings drew no emphasis; contract parts unwired; place not inverse of at; stale glyph values; a `.seq/` edit) | 0 | 0 |
 | stage 1, TH (review and look) | 8 (log binned; clamp unapplied; the MolViewSpec round trip; mid not diverging; value-color overwriting; two legends off their scale; layer.filter called blocked) | 1 (a safe substitute that is not safe) | 3 (two stories empty; the view not on SL's layers; dark letters dim) |
