@@ -299,8 +299,8 @@ the region (a press there says it too, a tap's hover).
   of that system; `setCursor`. A click with a position moves it there. On a section of two axes it has a row too:
   `ySystem`, `yPosition` (a data row of an alignment's rows, a grid's y position) and on rows its `part`, `cell` (the
   default) or `header` (the row's label; `position` keeps the column it left); drawn by that section's layer of two
-  axes, its column marked on the other sections of the system. A click on a cell of two axes sets the row, on a
-  row's label the header.
+  axes, its column marked on the other sections of the system. A click on a cell of two axes sets the row, on a row's
+  label the header.
 - **Its nodes are held**: the viewer holds the dynamic nodes the selection names (its elements' owners, its systems)
   through `StoreModel.holdSession('selection', …)` while it is selected (`selection.holdNodes`). Why: a selected
   transcript must stay when its region scrolls away.
@@ -704,20 +704,20 @@ binding table; per move one hit record and one modifiers record are reused.
   arrived) says `–`. A value says the unit its layer's theme declares (a `field` form's or a scale's `unit`: `9 Å`).
   What is said: the keyboard cursor's place after each move of its own (section, system, 1-based position, the letter a
   letters layer shows there, the items under it by their labels and extents: the same words as the exported SVG's
-  titles, `accessibility.ts`; on rows first its row's label, a summary row's as drawn, `HBA +1`, a lazy row not yet
-  read `pending`; on the header the row alone; on a grid the cell's two positions and value: `cursorPlace`); the hover's when it rests (`restMs`, 500 ms: a pointer crossing the picture says nothing;
-  the item's label and extent, else the cell's place, with its label in the numbering the section's layers show, the
-  first naming one: `kabat, h 13 (kabat 82B), letter Q`); a selection's change once (`Selected 6 positions, p 3–8`,
-  `Selection cleared`; the same selection again says nothing). One rate limit for all (`minGapMs`, 700 ms): a message
-  never follows another sooner, the latest one waiting its turn (a held arrow key says where it is each gap, not each
-  key). A message is a token (a counter and its text), so equal words are said again: a cursor key that leaves the
-  cursor in place (the end of its axis) is announced (`viewer.commandRan` moves after every command). A message waiting
-  its turn is replaced only by one of the same or a higher priority (selection over cursor over hover), and the pointer
-  leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say nothing and the selection says
-  its end once, after the drag. Why one region and a limit: a live region queues what it is given and a reader hears the
-  queue after the cursor moved on. A navigator slider's value is its own (`aria-valuetext`), never this region's. The
-  highlight legend's Clear buttons and the legend's entries are real buttons and options in the page's tab order, so
-  they need nothing here.
+  titles, `accessibility.ts`; on rows first its row's label, a summary row's as drawn, `HBA +1`, a lazy row not yet read
+  `pending`; on the header the row alone; on a grid the cell's two positions and value: `cursorPlace`); the hover's when
+  it rests (`restMs`, 500 ms: a pointer crossing the picture says nothing; the item's label and extent, else the cell's
+  place, with its label in the numbering the section's layers show, the first naming one:
+  `kabat, h 13 (kabat 82B), letter Q`); a selection's change once (`Selected 6 positions, p 3–8`, `Selection cleared`;
+  the same selection again says nothing). One rate limit for all (`minGapMs`, 700 ms): a message never follows another
+  sooner, the latest one waiting its turn (a held arrow key says where it is each gap, not each key). A message is a
+  token (a counter and its text), so equal words are said again: a cursor key that leaves the cursor in place (the end
+  of its axis) is announced (`viewer.commandRan` moves after every command). A message waiting its turn is replaced only
+  by one of the same or a higher priority (selection over cursor over hover), and the pointer leaving drops a waiting
+  hover. While a gesture is dragged the cursor and the hover say nothing and the selection says its end once, after the
+  drag. Why one region and a limit: a live region queues what it is given and a reader hears the queue after the cursor
+  moved on. A navigator slider's value is its own (`aria-valuetext`), never this region's. The highlight legend's Clear
+  buttons and the legend's entries are real buttons and options in the page's tab order, so they need nothing here.
 - **Forced colors** (`forced-colors: active`, whatever the `theme.source`: the root's CSS tokens through
   `readCssTokens`, a configured theme's table through `forcedColorTokens` over `readSystemColors`; `css-tokens.ts`):
   `readCssTokens` reads the system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`, resolved by a probe
@@ -805,26 +805,25 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   (Cmd/Ctrl+Shift: a new range at the cursor's cell, the others kept, which Shift then extends), `cursor.toggle`
   (Space), `cursor.focus` (Enter: the selection, else the cursor's cell, focused as an address is,
   `AddressModel.focusLocation`: the leading sections move, so a cursor on a follower focuses its leader). The keys are
-  `cursor.keys`; a cursor moved out of view brings its section to it by the layout's least move (`reveal.cursor`).
-  **On rows** (a section with a rows layer; the cursor's row a data row): the first key places it on the first row
-  shown too; `cursor.up`, `cursor.down` step display rows (the pinned band, then the scrolled rows, where a pinned
-  row is in its place too; a folded clade's summary row one stop, the cursor on its first shown row), past the first
-  or the last to the section above or below (entering rows from above on the first row shown, from below on the
-  last); `cursor.prev` on the first column goes onto the row's header, `cursor.next` back to the column it left;
-  `cursor.page-down`, `cursor.page-up` (PageDown, PageUp, only while the cursor is shown on rows: else they are the
-  rows' `rows.page-down`, `rows.page-up`, which come after them) move it a page of rows (`rows.page-*`'s page) and the
-  band a page with it; `cursor.first-row`, `cursor.last-row` (Cmd/Ctrl+↑ ↓; the page's keys when there is no cursor
-  on rows) the first and the last display row. Shift with an arrow on a cell extends the block: the rect from the
-  cell the extend began on (a selection changed since begins another) to the cursor's, the rows shown between them in
-  display order as data rows (in data order one range, however many rows); on the header Shift with ↑ ↓ extends the
-  run of rows from the anchor. Space on a cell toggles its rect (a summary row's: its rows) in the selection, on the
-  header folds or unfolds the row's clade (a summary row's, else the leaf's parent; no tree: the row toggled). Enter
-  on a summary row opens it; on a row's header it focuses the row's letters (its first to its last letter on the
-  columns, a held row's; with a selection, the selection as before). Moves are arithmetic on display rows: a row never
-  loaded is stepped over by its index. Each move scrolls the band to show the row by the least move
-  (`reveal.cursor`). **On a grid** `cursor.up`, `cursor.down` step its y in display order (past its ends to the
-  section above or below), `cursor.first-row`, `cursor.last-row` go to its ends, and Shift with an arrow extends the
-  rect; the y is not revealed (its own window stays).
+  `cursor.keys`; a cursor moved out of view brings its section to it by the layout's least move (`reveal.cursor`). **On
+  rows** (a section with a rows layer; the cursor's row a data row): the first key places it on the first row shown too;
+  `cursor.up`, `cursor.down` step display rows (the pinned band, then the scrolled rows, where a pinned row is in its
+  place too; a folded clade's summary row one stop, the cursor on its first shown row), past the first or the last to
+  the section above or below (entering rows from above on the first row shown, from below on the last); `cursor.prev` on
+  the first column goes onto the row's header, `cursor.next` back to the column it left; `cursor.page-down`,
+  `cursor.page-up` (PageDown, PageUp, only while the cursor is shown on rows: else they are the rows' `rows.page-down`,
+  `rows.page-up`, which come after them) move it a page of rows (`rows.page-*`'s page) and the band a page with it;
+  `cursor.first-row`, `cursor.last-row` (Cmd/Ctrl+↑ ↓; the page's keys when there is no cursor on rows) the first and
+  the last display row. Shift with an arrow on a cell extends the block: the rect from the cell the extend began on (a
+  selection changed since begins another) to the cursor's, the rows shown between them in display order as data rows (in
+  data order one range, however many rows); on the header Shift with ↑ ↓ extends the run of rows from the anchor. Space
+  on a cell toggles its rect (a summary row's: its rows) in the selection, on the header folds or unfolds the row's
+  clade (a summary row's, else the leaf's parent; no tree: the row toggled). Enter on a summary row opens it; on a row's
+  header it focuses the row's letters (its first to its last letter on the columns, a held row's; with a selection, the
+  selection as before). Moves are arithmetic on display rows: a row never loaded is stepped over by its index. Each move
+  scrolls the band to show the row by the least move (`reveal.cursor`). **On a grid** `cursor.up`, `cursor.down` step
+  its y in display order (past its ends to the section above or below), `cursor.first-row`, `cursor.last-row` go to its
+  ends, and Shift with an arrow extends the rect; the y is not revealed (its own window stays).
 - `window` (`WindowProvider`, in the default spec; a host may leave it out): a window's drags and its slider, one for
   every window (a ring's, a navigator's), over its section's viewport: a drag on its `body` pans it, on its `start` or
   `end` resizes it about the other end, never narrower than its floor (`viewport.maxPxPerPosition` px a position, an
@@ -866,14 +865,15 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   however many moves come, the card made then, never per move (the input tells it the pointer in a reused array: a move
   allocates nothing). Hidden at a press, a wheel, Esc, while a drag runs, on leave and at the next hover's change; a
   press, a wheel, Esc and a leave also clear the rest waiting (no card follows them). A key that moves the keyboard
-  cursor shows the card at its cell (on rows its row's cell or header, on a grid its cell) after the next frame (`framed`, the viewer's, each frame: the one that drew the
-  cursor, a reveal's scroll included). No card outlives what it describes: a frame laid out again (a zoom, a pan, an
-  edit, a load, data or a source's labels arriving) places the cursor's card again at its cell and sends a hover's away
-  until the hover rests again. A rectangle dragged on a grid shows its summary while it is dragged (`gridSummary`: the
-  cells counted, their mean, least and greatest value), at most once a 50 ms. `hover.card` is read at composition (the
-  configuration is read-only after it): off, no card is shown and no port made. A behavior's part over the canvas is
-  `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one,
-  and the function it returns takes the part away.
+  cursor shows the card at its cell (on rows its row's cell or header, on a grid its cell) after the next frame
+  (`framed`, the viewer's, each frame: the one that drew the cursor, a reveal's scroll included). No card outlives what
+  it describes: a frame laid out again (a zoom, a pan, an edit, a load, data or a source's labels arriving) places the
+  cursor's card again at its cell and sends a hover's away until the hover rests again. A rectangle dragged on a grid
+  shows its summary while it is dragged (`gridSummary`: the cells counted, their mean, least and greatest value), at
+  most once a 50 ms. `hover.card` is read at composition (the configuration is read-only after it): off, no card is
+  shown and no port made. A behavior's part over the canvas is `BehaviorHandle.attach(container, viewer)`
+  (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one, and the function it returns takes the part
+  away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a
   `@molstar/ui` surface over the canvas's corner listing what the view answers to, `describeKeys(viewer)` (`keys.ts`,
   DOM-free, so a host draws its own): generated from the viewer's commands with their keys (`view.keys`, else the

@@ -2087,9 +2087,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   the rows system as row bands, its rects of rows × columns as their cells, read over the display rows in view only (a
   binary search a row: a selection of any size costs the rows in view); a summary row draws the partial mark (the tint
   over the share of its rows selected, the outline when all are); the cursor with a row (`Emphasis.cursor.ySystem`)
-  outlines its cell, or on its `part` `header` the row's label column (after the tree), a squircle as the strip's,
-  on its own section only (`Emphasis.cursor.section`: another section of the system marks its column, as the strip
-  draws a cursor without a row); a folded row's at its summary row, a pinned row's in the band and in its place.
+  outlines its cell, or on its `part` `header` the row's label column (after the tree), a squircle as the strip's, on
+  its own section only (`Emphasis.cursor.section`: another section of the system marks its column, as the strip draws a
+  cursor without a row); a folded row's at its summary row, a pinned row's in the band and in its place.
 
 ### The logo
 
