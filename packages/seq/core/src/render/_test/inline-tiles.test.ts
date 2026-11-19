@@ -55,6 +55,34 @@ describe('inline data over a long system', () => {
     expect(inlineSeq({ name: 's', length: 300 }, tables).coverage.levels).toEqual([1]);
   });
 
+  it('a file’s list rows without ids keep their file-wide numbering at every level', async () => {
+    // two levels of other rows: a row numbered after the rows of every pair before it, whatever its level
+    const list = (n: number) => ({
+      form: 'list' as const,
+      start: Int32Array.from({ length: n }, (_, i) => 10 * i),
+      end: Int32Array.from({ length: n }, (_, i) => 10 * i + 5),
+    });
+    const pair = (level: number, n: number) => ({
+      request: { system: 'chr', start: 0, end: 100, level, shapes: ['ranges' as const] },
+      answer: { ok: true as const, tables: { ranges: list(n) } },
+    });
+    const source = openSeq({
+      coverage: {
+        systems: [{ name: 'chr', length: 100 }],
+        shapes: [{ system: 'chr', shape: 'ranges' }],
+        levels: [1, 16],
+      },
+      pairs: [pair(1, 3), pair(16, 2)],
+    });
+    const signal = new AbortController().signal;
+    const rows = async (level: number) => {
+      const a = await source.read({ system: 'chr', start: 0, end: 100, level, shapes: ['ranges'] }, signal);
+      return a.ok && a.tables.ranges?.form === 'list' ? Array.from(a.tables.ranges.row ?? []) : undefined;
+    };
+    expect(await rows(1)).toEqual([0, 1, 2]);
+    expect(await rows(16)).toEqual([3, 4]);
+  });
+
   it('a frame at the fit of 83 Mb reads a tile of an inline node, its items drawn', async () => {
     const s = await settle(spec(), [SeqRuntime]);
     const keysOf = vi.spyOn(s.store, 'keysOf');

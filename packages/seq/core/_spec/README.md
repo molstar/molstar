@@ -587,11 +587,12 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - **Its runtime** joins the pairs of the request's system (by name or alias) and level that overlap the region, in
   position order, each cut to its part; a gap no pair holds is `not-served`, naming its positions (the format is
   explicit: an empty region is a pair with empty tables). A failure among the pairs is the answer; an unlisted system or
-  level is not served. A list without ids gets `row` from its place among the pairs of its system and level (one
-  identity at every level serving the same rows). Inline data (`inlineSeq`) is one pair over the whole system at level
-  1, its length in the coverage; ranges alone as a list over a system longer than a tile are served too at the least
-  power of 16 whose one tile covers the system (the same rows). Why: a layer zoomed out on a long system reads that one
-  tile, never the system a tile at level 1 (81,307 at 83 Mb), and a small inline payload needs no level between.
+  level is not served. A list without ids gets `row` from its place in the file. Inline data (`inlineSeq`) is one pair
+  over the whole system at level 1, its length in the coverage; a ranges list alone over a system longer than a tile is
+  served too at the least power of 16 whose one tile covers the system, the same rows with an explicit `row` each (one
+  identity at both levels). Why: a layer zoomed out on a long system reads that one tile, never the system a tile at
+  level 1 (81,307 at 83 Mb), and a small inline payload needs no level between. Ranges lists only: inline values get
+  their coarse levels from the store's summaries, letters are read where they fit, and other shapes stay at level 1.
 
 ### Asynchronous sources
 
