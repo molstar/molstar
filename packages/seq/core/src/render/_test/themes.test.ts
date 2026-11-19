@@ -17,7 +17,6 @@ import { compileChannel, legendOf, mergeLegends } from '@molstar/seqx-core/theme
 import { bestOf, itWithin, ratioWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import {
-  builtInTokens,
   DefaultThemeContext,
   type DrawLists,
   hitView,
