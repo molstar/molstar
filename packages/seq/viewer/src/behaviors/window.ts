@@ -174,7 +174,20 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
         } else d.moved = at - d.at0;
         return move(d.section, d.start + d.moved, d.end + d.moved);
       }
-      // an end: the other held; an inward drag on a floored window keeps it (the floor holds its far end)
+      // an end: the other held; an inward drag on a floored window keeps it (the floor holds its far end). On a cyclic
+      // axis the pointer is unwrapped against its last place as the body's is (a ring's grip dragged over the origin),
+      // from the grip's own turn
+      if (d.total !== undefined) {
+        const t = d.total;
+        if (d.moved === 0 && d.last === d.at0) {
+          const grip = d.part === 'start' ? d.start : d.end;
+          d.last = d.at0 + Math.round((grip - d.at0) / t) * t;
+        }
+        const step = ((((at - d.last + t / 2) % t) + t) % t) - t / 2;
+        d.last += step;
+        d.moved = 1;
+        at = d.last;
+      }
       const held = d.part === 'start' ? d.end : d.start;
       const s = d.part === 'start' ? Math.min(at, held) : held;
       const e = d.part === 'start' ? held : Math.max(at, held);

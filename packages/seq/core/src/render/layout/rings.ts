@@ -279,8 +279,21 @@ export const RingsNav: SectionNav = {
     const d = (dx * (v.end - v.start)) / c.width;
     return clampWindow(c, { ...v, start: v.start - d, end: v.end - d });
   },
-  zoom: TracksNav.zoom,
+  zoom(c, v, factor, at) {
+    // the unit under the pointer's angle, the turn nearest the window's middle (a window over the origin runs past
+    // the total)
+    const t = c.total;
+    const a = c.cyclic && t > 0 ? at + Math.round(((v.start + v.end) / 2 - at) / t) * t : at;
+    return TracksNav.zoom(c, v, factor, a);
+  },
   fit: TracksNav.fit,
+  focus(c, v, start, end) {
+    // two ends on the circle: the shorter arc between them (an item over the origin, not the rest of the ring)
+    const t = c.total;
+    if (c.cyclic && t > 0 && end - start > t / 2 && end <= t)
+      return clampWindow(c, { ...v, start: end, end: start + t });
+    return clampWindow(c, { ...v, start, end });
+  },
   reveal(c, v, start, end) {
     const t = c.total;
     const w = v.end - v.start;
@@ -309,6 +322,8 @@ function ringTitle(section: ResolvedSection, ctx: PlaceContext, total: number): 
 export const RingsLayout: SectionLayoutType<RingPlacement> = {
   name: 'rings',
   fillBands: false,
+  // its window passes the origin of a cyclic axis and draws there: the viewer's navigation wraps it
+  wraps: true,
   place(section, ctx, _viewport, prev) {
     const p = prev ?? new RingPlacement();
     const { config, axis } = ctx;

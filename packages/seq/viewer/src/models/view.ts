@@ -638,6 +638,15 @@ export class ViewModel extends ReactiveModel {
    * width (`g`) or its own, its placement in the last frame; undefined while it cannot be placed (no length or width):
    * a move is then an intent, a window of offsets.
    */
+  /**
+   * Whether a section's window wraps its cyclic axis's origin (its layout's `wraps`: a ring's): a range between two
+   * of its positions is then the shorter arc round the circle.
+   */
+  wraps(section: string): boolean {
+    const s = this._sections.get(section);
+    return !!s && s.section.axis.cyclic && this._layoutOf(s.section.layout).wraps === true;
+  }
+
   private _navContext(section: string, g?: Group): NavContext | undefined {
     const s = this._sections.get(section);
     const total = s && axisTotal(s.section.axis);

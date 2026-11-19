@@ -184,10 +184,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   `DomHost.requestAnimationFrame` swap.
 - Scroll groups across viewers and views (EC-113); navigators (strip, miniature, ideogram, vertical overview; EC-110:
   the Features page's Navigators row, a design first).
-- Rings in the viewer: each section's `SectionNav` (the ring's wheel and keys move its window round, its zoom about the
-  pointer's angle), input through the placement (a drag along the ring selects an arc, two runs over the origin), the
-  `window` behavior's drags on the ring's rim (its `start`, `end` and `body` hits are built), history steps restored by
-  position across a layout patch; the matrix cells of a ring section and a block as binding tests.
+- Rings in the viewer: the matrix cells of a ring section and a block as binding tests; a drag-select longer than half
+  the ring (the shorter arc is taken: a drag's direction would say which); a reversed ring's arcs.
 - Touch pinch (two pointers); the Mol\* structure port; the `@molstar/ui` keymap and command manager, replacing the
   shortcut match scoped to the container; `ParamDefinition`s for the config items.
 - An allocation tier for the viewer (`test:perf`: the Canvas2D draw, `store.overlay`, `_viewport`, `hover.set`, the

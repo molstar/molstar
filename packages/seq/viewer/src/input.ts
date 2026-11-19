@@ -28,6 +28,7 @@ import {
 } from '@molstar/seqx-viewer/behaviors';
 import {
   type Anchor,
+  axisTotal,
   type Emphasized,
   type Hit,
   type HitTarget,
@@ -166,6 +167,22 @@ export class ViewerInput {
     return o >= 0 ? o : undefined;
   }
 
+  /**
+   * Round a ring (a layout whose window wraps the origin): the display units the pointer swept from one point to the
+   * next, read from the placement by angle, the shorter way round; undefined elsewhere.
+   */
+  private _arcUnits(section: string, x0: number, y0: number, x1: number, y1: number): number | undefined {
+    if (!this.viewer.view.wraps(section)) return undefined;
+    const a = this.offsetAt(section, x0, y0);
+    const b = this.offsetAt(section, x1, y1);
+    const v = this.viewer.view.get(section);
+    const axis = this.viewer.view.resolved.value?.sections.find((s) => s.address === section)?.axis;
+    const t = axis && axisTotal(axis);
+    if (a === undefined || b === undefined || !v || !t) return undefined;
+    const d = b - a;
+    return d - Math.round(d / t) * t;
+  }
+
   /** Whether a section scrolls inside its box and its content overflows it (a text taller than its box). */
   private _overflows(p: Placement | undefined): p is Placement {
     return !!p?.clip && p.contentHeight > p.box.height;
@@ -277,9 +294,10 @@ export class ViewerInput {
       } else {
         const dx = x - d.x;
         const dy = y - d.y;
+        const units = this._arcUnits(d.section, d.x, d.y, x, y);
         d.x = x;
         d.y = y;
-        this.navigateBehavior?.drag(d.section, dx, mods, d.target, dy);
+        this.navigateBehavior?.drag(d.section, dx, mods, d.target, dy, units);
       }
     }
     this.hoverBehavior?.move(hit, mods);
@@ -532,18 +550,25 @@ export class ViewerInput {
     // a section of blocks on several systems (its axis its own units): the block's axis, from the block's offset
     const block = hit.block !== undefined && s.axis.system !== hit.system ? s.blocks?.[hit.block] : undefined;
     const at = block ? (block.offset ?? 0) : 0;
-    const r = this._focusOn(block ? block.axis : s.axis, hit);
+    const r = this._focusOn(block ? block.axis : s.axis, hit, !block && this.viewer.view.wraps(section));
     return r && at ? { start: r.start + at, end: r.end + at } : r;
   }
 
-  private _focusOn(axis: Axis, hit: Hit): { start: number; end: number } | undefined {
+  private _focusOn(axis: Axis, hit: Hit, arc: boolean): { start: number; end: number } | undefined {
+    // an item's whole extent (a layer's hit is the piece hit: one row of an item over a cyclic origin)
+    const extent = (hit.element && this.viewer.selection.extentOfHit(hit)) || hit.extent;
+    const part = extent?.parts.find((p) => p.system === hit.system);
+    // round a ring: the arc its pieces cover, the circle less the widest gap between them (over the origin)
+    if (arc && part && part.ranges.length >= 4) {
+      const r = coveringArc(axis, part.ranges);
+      if (r) return r;
+    }
     // the edges' offsets, in display order whatever the axis's direction
     if (hit.hull && hit.hull[1] > hit.hull[0]) {
       const a = nearestOffsetOf(axis, hit.hull[0]);
       const b = nearestOffsetOf(axis, hit.hull[1]);
       if (a !== undefined && b !== undefined && a !== b) return { start: Math.min(a, b), end: Math.max(a, b) };
     }
-    const part = hit.extent?.parts.find((p) => p.system === hit.system);
     if (part && part.ranges.length >= 2) {
       const a = offsetOf(axis, part.ranges[0]);
       const b = offsetOf(axis, part.ranges[part.ranges.length - 1]);
@@ -647,4 +672,31 @@ function shortcutIs(k: KeyChord, e: KeyState & { readonly key: string }, mac: bo
 function pastEdge(p: Placement, y: number): number {
   const b = p.box;
   return y < b.y ? y - b.y : y > b.y + b.height ? y - (b.y + b.height) : 0;
+}
+
+/**
+ * The arc of a cyclic axis that pieces cover (positions `[start, end, …]`): from the end of the widest gap between them
+ * round to its start (past the total over the origin); undefined when a piece is not shown.
+ */
+function coveringArc(axis: Axis, ranges: ArrayLike<number>): { start: number; end: number } | undefined {
+  const t = axisTotal(axis);
+  if (!t) return undefined;
+  const spans: [number, number][] = [];
+  for (let i = 0; i + 1 < ranges.length; i += 2) {
+    const a = offsetOf(axis, ranges[i]);
+    const b = offsetOf(axis, ranges[i + 1]);
+    if (a === undefined || b === undefined) return undefined;
+    spans.push([Math.min(a, b), Math.max(a, b)]);
+  }
+  spans.sort((x, y) => x[0] - y[0]);
+  let gap = -1;
+  let at = 0;
+  for (let k = 0; k < spans.length; k++) {
+    const next = k + 1 < spans.length ? spans[k + 1][0] : spans[0][0] + t;
+    const g = next - spans[k][1];
+    if (g > gap) [gap, at] = [g, k];
+  }
+  const start = at + 1 < spans.length ? spans[at + 1][0] : spans[0][0];
+  const end = spans[at][1];
+  return { start, end: end > start ? end : end + t };
 }

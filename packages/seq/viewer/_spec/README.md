@@ -145,10 +145,9 @@ nothing and tells nothing.
   streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
   when it can be (EC-112). Placing clamps the range within the axis and at most `viewport.maxPxPerPosition` px a
-  position. A viewport that shows the whole axis is fitted and stays so across resizes and updates. **A cyclic axis's
-  viewport wraps** (an axis showing its whole cyclic system, in every layout): its start goes round the origin and its
-  end may pass the total, never clamped there, so a ring's window and a linear view pan across the origin; a follower of
-  it shows the window over the origin as two pieces.
+  position. A viewport that shows the whole axis is fitted and stays so across resizes and updates. A cyclic axis's
+  viewport wraps where its layout `wraps` (a ring's, by its `SectionNav`); `view.wraps(section)` says so to the input
+  and the behaviors.
 - **Resizes** keep the zoom about the center (`viewport.onResize`: `keep-zoom`; `keep-range`); a width of 0 (hidden)
   keeps everything, so a section shown again comes back as it was (EC-112).
 - **Updates** (EC-111): axes are compared by value. An equal axis keeps its range; a changed one keeps its center (as a
@@ -424,6 +423,11 @@ the passes.
 mounted UI (`mount.ts`) translates events into them and a test makes the same calls. Every gesture goes through the
 binding table; per move one hit record and one modifiers record are reused.
 
+- **Round a ring** (a section whose window `wraps`), the placement read by angle: a zoom keeps the unit under the
+  pointer's angle (the turn nearest the window, `RingsNav.zoom`); a pan drag (Space+drag) moves the window by the units
+  the pointer swept round the ring, the shorter way; a drag-select takes the shorter arc between its ends (over the
+  origin, two runs); a double-click focuses an item by the arc its pieces cover (the circle less their widest gap), a
+  range by the shorter arc (`RingsNav.focus`).
 - **Pointer**: a move drags when a drag is begun (`down` on a target whose `drag` binding exists) and always hovers
   through the hover behavior. `leave` clears what this pointer owns. A drag bound to a drag-select (`drag-select`,
   `drag-add`, `drag-subtract`, `drag-extend`) begins on what was hit (nothing selectable: no drag) and selects once the
@@ -534,11 +538,12 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   every window (a ring's, a navigator's), over its section's viewport: a drag on its `body` pans it, on its `start` or
   `end` resizes it about the other end, never narrower than its floor (`viewport.maxPxPerPosition` px a position, an
   inward drag on a floored window keeping its far end); the pointer comes in as the unit the placement has under it, so
-  the behavior knows no layout; on a cyclic axis a body drag unwraps it against its last place (a step over the origin
-  is a short one on, not a lap back); Esc puts the view back where the press found it. As a slider: `window.pan-back`,
-  `window.pan-on` (a `navigate.keyPanFraction` step), `window.grow`, `window.shrink` (by `navigate.wheelZoomStep` about
-  its middle), the focused window's arrows and Shift+arrows once a mounted slider binds them; its `value`
-  (`aria-valuetext`: "21 to 30 of 100") is said when the window settles (a drag's end, a step), never a frame.
+  the behavior knows no layout; on a cyclic axis a drag unwraps it against its last place, a grip's from its own turn (a
+  step over the origin is a short one on, not a lap back: a ring's grip dragged over its origin); Esc puts the view back
+  where the press found it. As a slider: `window.pan-back`, `window.pan-on` (a `navigate.keyPanFraction` step),
+  `window.grow`, `window.shrink` (by `navigate.wheelZoomStep` about its middle), the focused window's arrows and
+  Shift+arrows once a mounted slider binds them; its `value` (`aria-valuetext`: "21 to 30 of 100") is said when the
+  window settles (a drag's end, a step), never a frame.
 - **A linked selection is revealed** (`reveal.linked`, the viewer's): a selection made elsewhere (another section, a
   link, a structure) scrolls each text section (`all`: each section; `none`) that shows none of its projection to its
   first part, the layout's least move, as a move by hand (no history step); never the section it is being made in (a

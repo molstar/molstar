@@ -32,8 +32,11 @@ export interface NavigateContext {
 export type CursorOffset = (section: string) => number | undefined;
 
 export interface NavigateBehavior {
-  /** A drag by `dx`, `dy` pixels on a section (a window pans across, a text scrolls); true when it could move. */
-  drag(section: string, dx: number, modifiers: ModifierState, target: HitTarget, dy?: number): boolean;
+  /**
+   * A drag by `dx`, `dy` pixels on a section (a window pans across, a text scrolls); with `units`, by display units
+   * the placement read under the pointer (round a ring: the window follows the pointer's angle). True when it could move.
+   */
+  drag(section: string, dx: number, modifiers: ModifierState, target: HitTarget, dy?: number, units?: number): boolean;
   /**
    * A wheel's deltas (pixels) at `x` (pixels from the section's left edge); `at`, the display unit under the pointer
    * from the placement (what a zoom keeps where it is), else read from the window at `x`.
@@ -197,9 +200,11 @@ export function navigateBehavior(
 
   return {
     commands,
-    drag(section, dx, modifiers, target, dy = 0) {
-      // dragging content right (down) shows what is left of (above) it
-      return !disposed && bindings.resolve('drag', modifiers, target) === 'pan' && view.panPx(section, -dx, -dy);
+    drag(section, dx, modifiers, target, dy = 0, units) {
+      if (disposed || bindings.resolve('drag', modifiers, target) !== 'pan') return false;
+      // round a ring the window follows the pointer's angle (its units); elsewhere dragging content right (down) shows
+      // what is left of (above) it
+      return units !== undefined ? view.pan(section, units) : view.panPx(section, -dx, -dy);
     },
     wheel(section, dx, dy, x, modifiers, target, at) {
       if (disposed) return;

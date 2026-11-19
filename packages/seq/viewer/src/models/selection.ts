@@ -27,7 +27,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import type { Axis } from '@molstar/seqx-core/view';
-import { cellOffset } from './axis.js';
+import { axisTotal, cellOffset, positionAt } from './axis.js';
 import type { Hit } from './hover.js';
 
 /** What is selected or highlighted: element keys, positions, and the positions drawn (theirs and the elements' extents). */
@@ -133,6 +133,7 @@ function between(
   b: Anchor,
   axis: Axis | undefined,
   across: 'shown' | 'span' = 'shown',
+  arc = false,
 ): Location {
   // an axis of another system (a residue's range on its gene's section) reads as no axis: the hull on the system
   const r = axis?.system === system ? axis.ranges : undefined;
@@ -146,6 +147,18 @@ function between(
     if (ends.every((o) => o !== undefined)) {
       const lo = Math.min(...(ends as number[]));
       const hi = Math.max(...(ends as number[])) + 1;
+      const total = axisTotal(axis!) ?? 0;
+      // round a ring (`arc`): the shorter way between the ends, over the origin when that is shorter
+      if (arc && axis!.cyclic && axis!.dir === 1 && total > 0 && hi - lo > total / 2) {
+        const p0 = positionAt(axis!, hi - 1 + 0.5);
+        const p1 = positionAt(axis!, lo + 0.5);
+        if (p0 !== undefined && p1 !== undefined) {
+          const from = Math.floor(p0);
+          const to = Math.floor(p1) + 1;
+          const len = axis!.length ?? total;
+          return rangesLocation(system, from < to ? [from, to] : [from, len, 0, to]);
+        }
+      }
       const out: number[] = [];
       let acc = 0;
       for (let i = 0; i + 1 < r.length; i += 2) {
@@ -393,7 +406,7 @@ export class SelectionModel extends ReactiveModel {
    * the selection, is added to or taken out of what it was when the drag began, or is the anchor's range (its mode).
    * The range's start is the anchor for a later extend (a subtraction keeps the anchor). True when the selection changed.
    */
-  dragTo(position: number, hit?: Hit, axis?: Axis): boolean {
+  dragTo(position: number, hit?: Hit, axis?: Axis, arc = false): boolean {
     const d = this._drag;
     if (!d || Number.isNaN(position)) return false;
     const a = d.anchor;
@@ -407,7 +420,7 @@ export class SelectionModel extends ReactiveModel {
       cur = r;
     }
     const before = this._value.value;
-    const loc = between(a.system, a, cur, axis, this._across);
+    const loc = between(a.system, a, cur, axis, this._across, arc);
     switch (d.mode) {
       case 'replace':
         this._anchor = a;
@@ -508,6 +521,10 @@ export class SelectionModel extends ReactiveModel {
    * An item's whole extent, kept while it is selected: the hit's (a layer gives the piece hit, one of a row wrapped over
    * a cyclic origin) with what `extentOf` resolves of its key. Undefined for a cell.
    */
+  extentOfHit(hit: Hit): Location | undefined {
+    return this._extentOfHit(hit);
+  }
+
   private _extentOfHit(hit: Hit): Location | undefined {
     const el = hit.element;
     if (!el) return undefined;

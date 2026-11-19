@@ -217,12 +217,14 @@ export function selectBehavior(
       if (!v || v.pending || total === undefined || v.width <= 0) return false;
       // the placement's offset (a ring's by its angle), else the x's; a block's offsets from its first (past its ends:
       // its end cells, never another block's positions)
-      const offset = (at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width) - d.offset;
+      const offset =
+        (at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width) - d.offset;
       const cell = d.block ? Math.min(Math.max(Math.floor(offset), 0), total - 1) : Math.floor(offset);
       // the middle of the cell at the offset: an offset on a piece's end names no position past it
       const position = positionAt(axis, cell + 0.5);
       if (position === undefined) return false;
-      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined, axis);
+      // round a ring: the shorter arc between the ends (`view.wraps`)
+      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined, axis, view.wraps(section));
     },
     endDrag() {
       drag = undefined;
