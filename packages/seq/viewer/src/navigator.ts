@@ -36,6 +36,19 @@ import type { SeqViewer } from './viewer.js';
 // bound section's display units through the picture, and run through the `navigator` behavior. A hover stays here (a
 // readout, never the viewer's hover).
 
+export type PartCursor = 'ew-resize' | 'ns-resize' | 'grab' | 'grabbing' | 'pointer' | 'default';
+
+/**
+ * The cursor that says the gesture over a window's part: a grip resizes along the axis it moves (`ew-resize` along
+ * positions, `ns-resize` along rows), the body grabs (`grabbing` while dragged), outside it a click centres (`pointer`;
+ * a press outside keeps the default while it runs).
+ */
+export function partCursor(part: WindowPart, axis: 'positions' | 'rows', dragging: boolean): PartCursor {
+  if (part === 'outside') return dragging ? 'default' : 'pointer';
+  if (part === 'body') return dragging ? 'grabbing' : 'grab';
+  return axis === 'rows' ? 'ns-resize' : 'ew-resize';
+}
+
 /** A host's navigator: the params of a `navigator` node with its id, not saved in the spec. */
 export interface NavigatorDef {
   readonly id: string;
@@ -95,7 +108,7 @@ export class NavigatorModel extends ReactiveModel {
   private rendererFor: unknown[] = [];
   private readonly wanter;
   private lastFrame: NavigatorFrame | undefined;
-  private lit: { section: string; part: WindowPart } | undefined;
+  private lit: { section: string; part: WindowPart; axis: 'positions' | 'rows' } | undefined;
   private pointerX = Number.NaN;
   private pointerY = Number.NaN;
   /** The section the pointer last acted on: its window on top. */
@@ -323,12 +336,11 @@ export class NavigatorModel extends ReactiveModel {
     return h;
   }
 
-  /** The cursor over the navigator: `grab` over a window that can move, `grabbing` during a drag. */
-  get cursor(): 'grab' | 'grabbing' | 'default' | 'pointer' {
-    if (this.press) return this.press.hit.part === 'outside' ? 'default' : 'grabbing';
+  /** The cursor over the navigator, by the part and the gesture (`partCursor`), held through a drag. */
+  get cursor(): PartCursor {
+    if (this.press) return partCursor(this.press.hit.part, this.press.hit.axis, true);
     const l = this.lit;
-    if (!l) return 'default';
-    return l.part === 'outside' ? 'pointer' : 'grab';
+    return l ? partCursor(l.part, l.axis, false) : 'default';
   }
 
   /** The pointer moved over the navigator: the lit part and the readout follow; a drag moves its window. */
@@ -343,7 +355,7 @@ export class NavigatorModel extends ReactiveModel {
       return;
     }
     const h = this.hit(x, y, p.touch);
-    this.lit = h && (this.moves[h.section] ?? 0) ? { section: h.section, part: h.part } : undefined;
+    this.lit = h && (this.moves[h.section] ?? 0) ? { section: h.section, part: h.part, axis: h.axis } : undefined;
     this._readout.set(h ? this.readoutOf(h) : undefined);
     this.changed();
   }

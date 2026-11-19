@@ -552,9 +552,11 @@ mounted UI (`mount.ts`) translates events into them and a test makes the same ca
 binding table; per move one hit record and one modifiers record are reused.
 
 - **A window's part under the pointer** (a ring's, a rail's) is lit (`windowHit`, drawn as the emphasis's hover), and
-  the window being dragged grows its rail wherever the pointer goes (`dragHit`, `Emphasis.drag`); the cursor is `grab`
-  there, `grabbing` during a drag (`cursor`, set by the mounted canvas). A finger's pointer (`pointerType: touch`) hits
-  a window wider (`navigator.window.touchHitPx`).
+  the window being dragged grows its rail wherever the pointer goes (`dragHit`, `Emphasis.drag`); the cursor follows the
+  part (`partCursor`, `cursor` set by the mounted canvas, `NavigatorModel.cursor` alike): a grip `ew-resize`
+  (`ns-resize` on the rows rail, an overview, a miniature's rows grips), held through its drag; the body `grab`,
+  `grabbing` dragged; outside `pointer`; a ring's window `grab`. A finger's pointer (`pointerType: touch`) hits a window
+  wider (`navigator.window.touchHitPx`).
 - **A ruler rail** (Composition, Navigators): a press on its grab zone goes to the `navigator` behavior at the rail's
   scale (`railUnitAt`): its body pans, its grips zoom, outside it a drag sweeps; a press that never moved acts at the
   click the platform sends after it (the rail's: no selection): outside the window it centres there, on a grip or the

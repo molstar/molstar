@@ -15,6 +15,7 @@ import {
   RingPlacement,
   type WindowPart,
 } from '@molstar/seqx-core/render';
+import { type PartCursor, partCursor } from './navigator.js';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
@@ -210,10 +211,15 @@ export class ViewerInput {
     return this._dragHit;
   }
 
-  /** The cursor over the canvas: `grab` over a rail's grab zone or a window, `grabbing` while one is dragged. */
-  get cursor(): 'grab' | 'grabbing' | undefined {
-    if (this._dragHit) return 'grabbing';
-    return this._windowHit ? 'grab' : undefined;
+  /**
+   * The cursor over the canvas by the part (`partCursor`): a rail's grip resizes along the rail, its body grabs
+   * (`grabbing` while dragged), outside it a click centres; a ring's window grabs.
+   */
+  get cursor(): PartCursor | undefined {
+    const h = this._dragHit ?? this._windowHit;
+    if (!h?.part) return undefined;
+    if (h.navigator !== 'rail' && h.navigator !== RowsRail) return h === this._dragHit ? 'grabbing' : 'grab';
+    return partCursor(h.part, h.navigator === RowsRail ? 'rows' : 'positions', h === this._dragHit);
   }
 
   /** The window under the pointer as lit: copied when it changes (its section, part, navigator or layer), a frame asked. */

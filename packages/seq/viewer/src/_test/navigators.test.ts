@@ -669,7 +669,7 @@ describe('the ruler rail on the canvas', () => {
     expect(range(v)).toEqual([100, 150]);
   });
 
-  it('grown while its drag runs (drawn so); by touch its grips hit wider; the cursor says grab', async () => {
+  it('grown while its drag runs (drawn so); by touch its grips hit wider; the cursor says resize over a grip', async () => {
     const { v, rail: r } = await rail();
     const k = r.width / r.total;
     const y = r.bottom - 2;
@@ -679,7 +679,7 @@ describe('the ruler rail on the canvas', () => {
     expect(v.input.windowHit?.part).toBe('outside');
     v.input.move(start - 10, y, { pointerType: 'touch' });
     expect(v.input.windowHit?.part).toBe('start');
-    expect(v.input.cursor).toBe('grab');
+    expect(v.input.cursor).toBe('ew-resize');
     const mid = r.x + 125 * k;
     v.input.down(mid, y, { pointerType: 'mouse' });
     v.input.move(mid + 30 * k, y + 80);
