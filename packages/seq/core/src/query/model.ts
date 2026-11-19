@@ -87,4 +87,9 @@ export interface QueryModel {
    * (`/data/1tup/(chain :id A)`), so `system` answers that address too.
    */
   chain?(owner: string, id: Atom): Node | undefined;
+  /**
+   * An alignment's row by its key (its label) as a position of its rows system (`rows`, `<alignment>/(rows)`), or
+   * undefined: what `(row :key k)` reads (rows are positions, EC-35).
+   */
+  row?(rows: string, key: Atom): number | undefined;
 }

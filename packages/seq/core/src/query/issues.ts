@@ -87,6 +87,11 @@ export const QueryIssues = defineIssues('seq.query', {
     description: 'An operand names a ref, and refs are not resolved yet',
     hint: 'write the address the ref names',
   },
+  'seq.query.row.unknown': {
+    severity: 'error',
+    description: 'No row of the alignment has the key, or its rows are not held',
+    hint: 'a row key is its label',
+  },
   'seq.query.node.missing': {
     severity: 'warning',
     description: 'No node (a dynamic node, a chain) is held under the prefix with the key',

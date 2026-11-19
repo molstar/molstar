@@ -41,6 +41,27 @@ export const RenderIssues = defineIssues('seq.render', {
       'A lazy alignment’s pinned and hidden rows are not applied: rows are pinned and hidden by key, and a lazy row’s key is read with its tile',
     hint: 'Hold the alignment to pin or hide its rows',
   },
+  'seq.render.layer.axes': {
+    severity: 'warning',
+    description: 'A layer of two axes (a grid, pairs as dots) is in a section whose strips have no second axis',
+    hint: 'Put the layer in a section with `layout: grid`',
+  },
+  'seq.render.grid.systems': {
+    severity: 'warning',
+    description: 'A grid layer’s data is not on its grid section’s two systems: a grid draws only on its own systems',
+    hint: 'Give the section `of` the grid’s `x` and `of_y` its `y`, or compute the grid on the systems it is drawn on',
+  },
+  'seq.render.pairs.systems': {
+    severity: 'warning',
+    description: 'A pairs layer’s ends are not on the systems its section shows: those pairs are not drawn',
+    hint: 'Show the pairs’ systems in the section (blocks, or a grid’s two axes)',
+  },
+  'seq.render.pairs.limit': {
+    severity: 'info',
+    description:
+      'More pairs are in view than `pairs.maxArcs`: one arc is drawn a bin of their ends’ device columns, the rest as a density strip of ends',
+    hint: 'Zoom in to see every arc',
+  },
   'seq.render.rows.layout': {
     severity: 'warning',
     description: 'A rows layer draws in tracks and text sections only: in another layout it is not drawn',

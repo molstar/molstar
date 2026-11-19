@@ -60,6 +60,7 @@ import {
   GeneticCodes,
   hasUnsplitExon,
 } from './codon.js';
+import { type GridData, type PairsData, readGrid, readPairs } from './held.js';
 import { ResolveIssues } from './issues.js';
 import { composeLinear, type Encoding, expand, ImplicitLinear, isEmptyLinear, type Linear, toRuns } from './linear.js';
 import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
@@ -151,14 +152,26 @@ export type AccessPlan =
     }
   | { readonly kind: 'source'; readonly source: string; readonly system: string; readonly shape: Shape };
 
-/** An annotation: its shape, the system it is on, its fields and how it is read. */
+/**
+ * An annotation: its shape, the system it is on, its fields and how it is read (none for what is held whole: `pairs`
+ * and `grid`, _spec/README.md "Resolve", Pairs and grids).
+ */
 export interface AnnotationEntry {
   readonly address: string;
-  /** `cells`: an alignment, on its columns system (`target`), its rows a system of their own (`rows`). */
-  readonly shape: 'ranges' | 'values' | 'cells';
+  /**
+   * `cells`: an alignment, on its columns system (`target`), its rows a system of their own (`rows`); `pairs` and
+   * `grid`: two systems, `target` and `ySystem` (a pair's second end, a grid's y).
+   */
+  readonly shape: 'ranges' | 'values' | 'cells' | 'pairs' | 'grid';
   readonly target: string;
   readonly fields: readonly string[];
-  readonly access: AccessPlan;
+  readonly access?: AccessPlan;
+  /** The second system of `pairs` (`b`) and `grid` (`y`): `target`'s when the node names none. */
+  readonly ySystem?: string;
+  /** A `pairs` node's ends, held whole. */
+  readonly pairs?: PairsData;
+  /** A `grid` node's values, held whole (absent when they were dropped: a wrong length, too many). */
+  readonly grid?: GridData;
   /** Inline ranges as items (a wrapped row is two rows of one item, EC-9). */
   readonly items?: readonly QueryItem[];
   /** An alignment's rows system (`rowsSystemOf`): a position a row, in data order (EC-35). */
@@ -333,6 +346,21 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     systems.set(e.columns.address, e.columns);
     systems.set(e.rows.address, e.rows);
     annotations.set(at.address, e.annotation);
+  }
+  // pairs and grids: held whole on their two systems
+  for (const at of data) {
+    if (at.node.kind !== 'pairs' && at.node.kind !== 'grid') continue;
+    const isPairs = at.node.kind === 'pairs';
+    const x = ref(at, isPairs ? 'a' : 'x', ['sequence']);
+    if (!x) continue;
+    const yKey = isPairs ? 'b' : 'y';
+    const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, ['sequence']);
+    if (!y) continue;
+    const entry = cached(`${at.address}|${key(at.node, x.node, y.node)}`, () =>
+      heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
+    );
+    annotations.set(at.address, entry.annotation);
+    issues.push(...entry.issues);
   }
   for (const at of data) {
     if (at.node.kind !== 'ranges' && at.node.kind !== 'values') continue;
@@ -553,6 +581,18 @@ export function resolveAnnotationNode(
   source: string | undefined,
 ): { annotation: AnnotationEntry; issues: Issue[] } {
   return annotationEntry({ node, address }, target, source);
+}
+
+/** A `pairs` or `grid` node on its two systems, held whole. */
+function heldEntry(at: Placed, x: SystemEntry, y: SystemEntry): { annotation: AnnotationEntry; issues: Issue[] } {
+  const base = { address: at.address, target: x.address, ySystem: y.address };
+  if (at.node.kind === 'pairs') {
+    const pairs = readPairs(at.node);
+    const fields = ['type', ...(pairs.labels ? ['label'] : [])];
+    return { annotation: { ...base, shape: 'pairs', fields, pairs }, issues: [] };
+  }
+  const { grid, issues } = readGrid(at.address, at.node, x.length, y.length);
+  return { annotation: { ...base, shape: 'grid', fields: ['value'], ...(grid ? { grid } : {}) }, issues };
 }
 
 const Strands: Readonly<Record<string, number>> = { '+': 1, '-': -1 };
@@ -840,6 +880,18 @@ class Model implements StaticModel {
 
   /** Dynamic nodes are the overlay's: none in the static model. */
   node(): Node | undefined {
+    return undefined;
+  }
+
+  /** An inline alignment's row by its label (its rows held in the spec); a source's rows are not held here. */
+  row(rows: string, key: Atom): number | undefined {
+    for (const a of this.annotations.values()) {
+      if (a.shape !== 'cells' || a.rows !== rows || a.access?.kind !== 'inline') continue;
+      const label = (a.access.source.value as { label?: unknown } | undefined)?.label;
+      if (!Array.isArray(label)) return undefined;
+      const i = label.indexOf(String(key));
+      return i < 0 ? undefined : i;
+    }
     return undefined;
   }
 

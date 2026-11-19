@@ -58,6 +58,8 @@ export interface Viewport {
    * record its way (_spec/README.md "ViewModel", Layouts): text's `start` is its anchor, its `end` an estimate.
    */
   readonly scale?: number;
+  /** A grid's own y window (`follow_y: none`), offsets down its y axis; absent: the whole axis, or y follows. */
+  readonly y?: { readonly start: number; readonly end: number };
 }
 
 /**
@@ -93,6 +95,8 @@ interface SectionState {
   group?: string;
   width: number;
   top: number;
+  /** A grid's own y window (`follow_y: none`): kept apart from x's group (_spec/README.md "ViewModel", Grids). */
+  y?: { start: number; end: number };
 }
 
 const DetachedPrefix = '#';
@@ -428,6 +432,15 @@ export class ViewModel extends ReactiveModel {
   panPx(section: string, dx: number, dy = 0): boolean {
     const v = this.get(section);
     if (!v || v.width <= 0) return false;
+    // a grid whose y moves apart from x: dy moves y (its own window, or the section it follows), dx moves x
+    if (this._yOf(section)) {
+      const moved = dy ? this._panY(section, dy) : false;
+      return (dx ? this._panX(section, v, dx, 0) : false) || moved;
+    }
+    return this._panX(section, v, dx, dy);
+  }
+
+  private _panX(section: string, v: Viewport, dx: number, dy: number): boolean {
     const g = this._leading(section) ? undefined : this._movable(section);
     const c = g && this._navContext(section, g);
     if (!g || !c) return dx ? this.pan(section, (dx * (v.end - v.start)) / v.width) : this._canMove(section);
@@ -436,9 +449,20 @@ export class ViewModel extends ReactiveModel {
     return true;
   }
 
-  /** Zooms by `factor` (above 1: in) about `anchor` (an offset; the center when absent), which stays in place. */
-  zoom(section: string, factor: number, anchor?: number): boolean {
+  /**
+   * Zooms by `factor` (above 1: in) about `anchor` (an offset; the center when absent), which stays in place; a grid
+   * whose y moves apart from x zooms y too, about `anchorY` (an offset down y).
+   */
+  zoom(section: string, factor: number, anchor?: number, anchorY?: number): boolean {
     if (!(factor > 0) || !Number.isFinite(factor) || (anchor !== undefined && !Number.isFinite(anchor))) return false;
+    if (this._yOf(section)) {
+      const y = this._zoomY(section, factor, anchorY);
+      return this._zoomX(section, factor, anchor) || y;
+    }
+    return this._zoomX(section, factor, anchor);
+  }
+
+  private _zoomX(section: string, factor: number, anchor?: number): boolean {
     const lead = this._leading(section);
     if (lead) {
       const v = this.get(section);
@@ -463,10 +487,14 @@ export class ViewModel extends ReactiveModel {
     return true;
   }
 
-  /** Shows the whole axis; a detached follower is attached again. */
+  /** Shows the whole axis; a detached follower is attached again; a grid's own y window shows all of y. */
   fit(section: string): boolean {
     const s = this._sections.get(section);
     if (!s) return false;
+    if (s.y) {
+      delete s.y;
+      this._publish();
+    }
     if (s.section.follow) return this.attach(section) || this.isFollowing(section);
     const g = this._groupOf(s);
     if (!g) return false;
@@ -920,6 +948,69 @@ export class ViewModel extends ReactiveModel {
     return this.setRange(follow.leader, Math.min(oa, ob), Math.max(oa, ob));
   }
 
+  /** Whether a section has a y that moves apart from x (a grid's own window, or a section it follows). */
+  movesY(section: string): boolean {
+    return this._yOf(section) !== undefined;
+  }
+
+  /**
+   * A grid's y that moves apart from x (_spec/README.md "ViewModel", Grids): its own window (`follow_y: none`) or a
+   * section it follows (`follow_y: <section>`); undefined when y shows x's window (`follow_y: x`) or there is no y.
+   */
+  private _yOf(section: string): { s: SectionState; total: number; lead?: SectionState } | undefined {
+    const s = this._sections.get(section);
+    const y = s?.section.y;
+    if (!s || !y || y.followsX) return undefined;
+    const total = axisTotal(y.axis);
+    if (total === undefined) return undefined;
+    // following a section: a state whose follow is y's, so a move asked of y is carried to y's leader (`_lead`)
+    const lead = y.follow ? { ...s, section: { ...s.section, axis: y.axis, follow: y.follow } } : undefined;
+    return { s, total, ...(lead ? { lead } : {}) };
+  }
+
+  /** A grid's y window now, offsets: its own (all of y by default), or its leader's image. */
+  private _yWindow(r: NonNullable<ReturnType<ViewModel['_yOf']>>): { start: number; end: number } | undefined {
+    if (!r.lead) return r.s.y ?? { start: 0, end: r.total };
+    const follow = r.lead.section.follow!;
+    const lead = this.get(follow.leader);
+    if (!lead) return undefined;
+    const w = followWindow(r.lead.section, follow.leaderAxis, r.lead.section.axis, lead.start, lead.end, this._arc());
+    return w && !w.wraps ? w : undefined;
+  }
+
+  /** A grid's y set to `[start, end)` (clamped to y), or carried to its leader. */
+  private _moveY(r: NonNullable<ReturnType<ViewModel['_yOf']>>, start: number, end: number, delta?: number): boolean {
+    const w = this._yWindow(r);
+    if (!w) return false;
+    if (r.lead) return this._lead(r.lead, start, end, Math.sign(start - w.start), Math.sign(end - w.end), delta);
+    const width = Math.min(Math.max(end - start, 1), r.total);
+    const from = Math.min(Math.max(start, 0), r.total - width);
+    r.s.y = from === 0 && width === r.total ? undefined : { start: from, end: from + width };
+    if (!r.s.y) delete r.s.y;
+    this._publish();
+    return true;
+  }
+
+  /** A grid's y panned by `dy` px of its plot's height. */
+  private _panY(section: string, dy: number): boolean {
+    const r = this._yOf(section);
+    const w = r && this._yWindow(r);
+    if (!r || !w) return false;
+    const height = this._layouts?.placement(section)?.box.height ?? 0;
+    if (!(height > 0)) return false;
+    const d = (dy * (w.end - w.start)) / height;
+    return this._moveY(r, w.start + d, w.end + d, d);
+  }
+
+  /** A grid's y zoomed by `factor` about `anchor` (an offset down y; the centre when absent). */
+  private _zoomY(section: string, factor: number, anchor?: number): boolean {
+    const r = this._yOf(section);
+    const w = r && this._yWindow(r);
+    if (!r || !w) return false;
+    const a = anchor !== undefined && Number.isFinite(anchor) ? anchor : (w.start + w.end) / 2;
+    return this._moveY(r, a - (a - w.start) / factor, a + (w.end - a) / factor);
+  }
+
   /** The arc a cyclic follower takes (`follow.cyclicArc`). */
   private _arc(): 'shortest' | 'hull' {
     return this.config.follow.cyclicArc === 'hull' ? 'hull' : 'shortest';
@@ -1073,6 +1164,7 @@ export class ViewModel extends ReactiveModel {
       p.pending === pending &&
       p.leader === leader &&
       p.scale === scale &&
+      p.y === s.y &&
       piecesEqual(p.pieces, pieces)
     )
       return;
@@ -1085,6 +1177,7 @@ export class ViewModel extends ReactiveModel {
       ...(leader !== undefined ? { leader } : {}),
       ...(pieces ? { pieces } : {}),
       ...(scale !== undefined ? { scale } : {}),
+      ...(s.y ? { y: s.y } : {}),
     });
   }
 

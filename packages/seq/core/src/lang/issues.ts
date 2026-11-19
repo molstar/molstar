@@ -81,6 +81,21 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A row of ranges ends past the inline letters of its target sequence',
     hint: 'A range ends at most at the length of the sequence',
   },
+  'seq.lang.pairs.interval': {
+    severity: 'error',
+    description: 'An end of a pair starts before position 0, or does not end after it starts',
+    hint: 'Ends are 0-based and half-open, at least one position, and never wrap: 0 <= start < end',
+  },
+  'seq.lang.pairs.bounds': {
+    severity: 'error',
+    description: 'An end of a pair ends past the inline letters of its sequence',
+    hint: 'An end ends at most at the length of its sequence',
+  },
+  'seq.lang.grid.length': {
+    severity: 'error',
+    description: 'A grid’s values are not one per pair of positions of its two sequences',
+    hint: 'Give |x| × |y| values, x-major; NaN is missing',
+  },
   'seq.lang.values.content': {
     severity: 'error',
     description: 'A values node has both `values` and a `source`, or neither',

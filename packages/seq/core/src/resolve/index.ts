@@ -22,6 +22,7 @@ export {
   residuesOf,
   translateCodon,
 } from './codon.js';
+export { type GridData, type PairsData } from './held.js';
 export { ResolveIssues } from './issues.js';
 export {
   canonicalRuns,

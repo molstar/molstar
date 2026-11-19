@@ -21,7 +21,7 @@ export const title = 'Complex blocks';
 export const ComplexLengths = { cdk2: 298, cyclin: 260 } as const;
 
 /** A chain's stand-in letters. */
-function letters(seed: number, n: number): string {
+export function letters(seed: number, n: number): string {
   const r = new PCG(seed);
   const aa = 'ACDEFGHIKLMNPQRSTVWY';
   let s = '';

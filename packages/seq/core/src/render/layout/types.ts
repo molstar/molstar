@@ -99,6 +99,20 @@ export interface PlaceContext {
   readonly figure?: boolean;
   /** Draws the windows an export leaves out by default (`export.window`: a ring's). */
   readonly windows?: boolean;
+  /**
+   * A grid section's y (_spec/README.md "Render", The grid layout): its axis, the pieces it shows and its window in
+   * display units (x's, a leader's image, its own `viewport.y`, or all of it); undefined while its length is unknown.
+   */
+  readonly y?: {
+    readonly axis: {
+      readonly system: string;
+      readonly dir: 1 | -1;
+      readonly length?: number;
+      readonly cyclic: boolean;
+    };
+    readonly pieces: readonly number[];
+    readonly viewport?: Viewport;
+  };
 }
 
 /** The pure arithmetic of a section's viewport (_spec/README.md "Render", Section layouts, Navigation). */
@@ -114,6 +128,8 @@ export interface NavContext {
   readonly minScale?: number;
   /** The section's placement, when the layout needs it (text: lines). */
   readonly placement?: Placement;
+  /** A grid's y: its display units, when y has a window of its own (`viewport.y`). */
+  readonly totalY?: number;
 }
 
 /** A cursor's step: along the reading order, a line up or down, to the ends. */
@@ -193,4 +209,9 @@ export interface SectionLayoutType<Kept = unknown> {
   ): void;
   /** What its own marks hit (a filter chip, a gutter's row, a window), before the bands' layers. */
   hitChrome?(section: SectionLayout, x: number, y: number): Hit | undefined;
+  /**
+   * Its strips carry a second transform (`strip.y`, a grid's): every layer is laid out a strip at a time with it
+   * (`ctx.axisY`), a `section` layer too (pairs as dots), and its bands overlay the strip.
+   */
+  readonly axesY?: boolean;
 }

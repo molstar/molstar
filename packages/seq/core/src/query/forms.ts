@@ -76,6 +76,7 @@ export const QueryFormKinds = [
   'at',
   'all',
   'rect',
+  'row',
   'item',
   'items',
   'node',
@@ -521,6 +522,29 @@ function heldNodes(
 
 const node = heldNodes('key', (model, owner, key) => model.node?.(owner, key));
 /** A chain is a system data makes: `/data/1tup/(chain :id A)` is a prefix location forms read (the model's system). */
+/**
+ * `(row :key k)`: an alignment's rows by their keys (labels; a list for several) as positions of its rows system, so a
+ * rect over rows × columns is written `(rect :a <alignment>/(row :key k) :b <alignment>/(range …))`.
+ */
+const row: Resolve = (ctx, form, prefix) => {
+  checkParams(form, ['key']);
+  const key = required(form, 'key');
+  const keys = (Array.isArray(key) ? key : [key]) as Atom[];
+  const parts: { system: string; ranges: number[] }[] = [];
+  for (const m of prefixNodes(prefix, 'row')) {
+    const at = printAddress(m.address);
+    const rows = at.endsWith('/(rows)') ? at : `${at}/(rows)`;
+    const ranges: number[] = [];
+    for (const k of keys) {
+      const i = ctx.model.row?.(rows, k);
+      if (i === undefined) return fail('seq.query.row.unknown', `No row has the key ${String(k)}`, { address: at });
+      ranges.push(i, i + 1);
+    }
+    parts.push({ system: rows, ranges });
+  }
+  return { type: 'location', location: location({ parts }) };
+};
+
 const chain = heldNodes('id', (model, owner, id) => model.chain?.(owner, id));
 
 /** The extent of elements: the union of their items' ranges on each annotation's target. */
@@ -603,7 +627,34 @@ function operands(ctx: Ctx, form: Node, prefix: Named): QueryResult[] {
   return (of as readonly Value[]).map((v) => evaluate(ctx, v, prefix));
 }
 
-const and: Resolve = (ctx, form, prefix) => combine(ctx, 'and', operands(ctx, form, prefix));
+/**
+ * `and`: the intersection of its operands; a location less each `(not :of <location>)` among them, subtracted (what a
+ * complement within the systems would intersect to, and the one way to take a rect from a rect: rects subtract, a rect
+ * has no complement; _spec/README.md "Queries", Location).
+ */
+const and: Resolve = (ctx, form, prefix) => {
+  checkParams(form, ['of']);
+  const of = required(form, 'of');
+  if (!Array.isArray(of) || !of.length) return combine(ctx, 'and', operands(ctx, form, prefix));
+  const kept: QueryResult[] = [];
+  const less: Location[] = [];
+  for (const v of of as readonly Value[]) {
+    const inner = isNode(v) && v.kind === 'not' ? v.params?.of : undefined;
+    const r = inner !== undefined ? evaluate(ctx, inner, prefix) : undefined;
+    if (r?.type === 'location') less.push(r.location);
+    else kept.push(evaluate(ctx, v, prefix));
+  }
+  if (!less.length) return combine(ctx, 'and', kept);
+  if (!kept.length)
+    return fail('seq.query.form.unsupported', 'A location less another needs one to take it from', {
+      hint: '(and :of [(rect :a … :b …) (not :of (rect :a … :b …))])',
+    });
+  const acc = combine(ctx, 'and', kept);
+  if (acc.type !== 'location') return fail('seq.query.form.type', 'A form of kind and mixes result types');
+  let loc = acc.location;
+  for (const l of less) loc = subtractLocations(loc, l);
+  return { type: 'location', location: loc };
+};
 const or: Resolve = (ctx, form, prefix) => combine(ctx, 'or', operands(ctx, form, prefix));
 
 /** The complement within what the prefix names: its systems' positions, its annotations' items, its nodes' children. */
@@ -647,6 +698,7 @@ const Forms: Readonly<Record<(typeof QueryFormKinds)[number], Resolve>> = {
   at: locationForm(atOn),
   all: locationForm((_, form, s) => allOn(form, s)),
   rect,
+  row,
   item,
   items,
   node,

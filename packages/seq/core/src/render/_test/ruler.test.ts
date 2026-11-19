@@ -120,7 +120,7 @@ describe('the ruler: labels', () => {
     // the labels, and the track's own label
     expect(f.lists.passes.labels.texts.n).toBe(shown(lay).length + 1);
     const x = lay.x[0];
-    const h = RulerType.hit(lay, x, lay.box.y + 2);
+    const h = RulerType.hit(lay, Float64Array.of(x, lay.box.y + 2));
     expect(h?.position).toBe(lay.axis.positionAt(x));
   });
 });

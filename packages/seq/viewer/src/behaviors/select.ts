@@ -9,7 +9,9 @@
 // space or Esc clears; a drag on data selects a range, Cmd/Ctrl+drag adds it, Alt/Option+drag removes it, Shift+drag
 // extends the anchor's range). The granularity is the hit's: an item is an element, a cell a position. Every gesture is
 // a command too (`selection.add` and `selection.subtract` over a range or an address), so a key, a menu, a host and a
-// test select alike. A click with a position moves the keyboard cursor there.
+// test select alike. A click with a position moves the keyboard cursor there. On a grid's cell (two axes, not an
+// alignment's rows) the same gestures select rects: a click a one-cell rect, Shift+click the rect from the anchor
+// cell, Cmd/Ctrl+click toggles the cell, a drag a rect, Cmd/Ctrl+drag adds one, Alt+drag subtracts one.
 
 import { type Location, rangesLocation } from '@molstar/seqx-core/query';
 import type { Axis } from '@molstar/seqx-core/view';
@@ -19,6 +21,7 @@ import {
   type AddressModel,
   axisTotal,
   type DragMode,
+  type GridCell,
   type Hit,
   type HitTarget,
   hitRange,
@@ -110,6 +113,17 @@ export function selectBehavior(
   const axisOf = (section: string | undefined, hit?: Hit): Axis | undefined =>
     (hit ? view.rowsAxis(hit.system) : undefined) ?? placeOf(section, hit)?.axis;
 
+  /** A grid's cell: a hit with a position on two axes, its y no alignment's rows (_spec/README.md "Behaviors"). */
+  const cellOf = (hit: Hit | undefined): GridCell | undefined =>
+    hit &&
+    !hit.element &&
+    hit.ySystem !== undefined &&
+    hit.yPosition !== undefined &&
+    hit.position !== undefined &&
+    !view.rowsAxis(hit.ySystem)
+      ? { system: hit.system, position: hit.position, ySystem: hit.ySystem, yPosition: hit.yPosition }
+      : undefined;
+
   /** A click with a position moves the cursor to it, on the section clicked. */
   const follow = (ctx: SelectContext) => {
     const h = ctx.hit;
@@ -128,7 +142,9 @@ export function selectBehavior(
     category: 'Selection',
     when: (ctx) => (ctx.hit ? true : 'Nothing to select here'),
     run: (_, ctx): CommandResult => {
-      const changed = act(ctx.hit, axisOf(ctx.section, ctx.hit));
+      const cell = cellOf(ctx.hit);
+      const how = id === 'selection.extend' ? 'extend' : id === 'selection.toggle' ? 'toggle' : 'replace';
+      const changed = cell ? selection.selectCell(cell, how) : act(ctx.hit, axisOf(ctx.section, ctx.hit));
       follow(ctx);
       return { message: changed ? done : '' };
     },
@@ -191,6 +207,8 @@ export function selectBehavior(
 
   /** The drag: its section and system, and the axis its positions are read on (a block's: its offset in the section). */
   let drag: { section: string; system: string; axis: Axis; offset: number; block: boolean } | undefined;
+  /** A rect drag on a grid: its section and its cell's two systems. */
+  let rect: { section: string; system: string; ySystem: string } | undefined;
 
   return {
     commands,
@@ -205,12 +223,25 @@ export function selectBehavior(
     beginDrag(section, hit, modifiers, target) {
       const action = bindings.resolve('drag', modifiers, target);
       if (action === undefined || !isDragSelect(action) || !hit) return false;
+      const cell = cellOf(hit);
+      if (cell) {
+        selection.beginRectDrag(cell, DragSelectModes[action]);
+        rect = { section, system: cell.system, ySystem: cell.ySystem };
+        return true;
+      }
       const at = placeOf(section, hit);
       if (!at || !selection.beginDrag(hit, at.axis, DragSelectModes[action])) return false;
       drag = { section, system: hit.system, axis: at.axis, offset: at.offset, block: at.block };
       return true;
     },
     dragTo(section, x, hit, at) {
+      if (rect) {
+        // past the plot the cell stays the last one under the pointer
+        const cell = cellOf(hit);
+        if (rect.section !== section || !cell || cell.system !== rect.system || cell.ySystem !== rect.ySystem)
+          return false;
+        return selection.rectDragTo(cell.position, cell.yPosition);
+      }
       const d = drag;
       if (!d || d.section !== section) return false;
       const v = view.get(section);
@@ -232,10 +263,14 @@ export function selectBehavior(
     },
     endDrag() {
       drag = undefined;
+      rect = undefined;
       selection.endDrag();
+      selection.endRectDrag();
     },
     cancelDrag() {
       drag = undefined;
+      if (rect) selection.endRectDrag(true);
+      rect = undefined;
       selection.cancelDrag();
     },
   };

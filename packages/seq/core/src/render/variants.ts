@@ -156,7 +156,9 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     drawPass(VariantsDraws, lay, out, emphasis);
   },
 
-  hit(lay, x, y): Hit | undefined {
+  hit(lay, at): Hit | undefined {
+    const x = at[0];
+    const y = at[1];
     const { box } = lay;
     if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) return undefined;
     const position = lay.axis.positionAt(x);

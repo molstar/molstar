@@ -231,6 +231,8 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     case 'values':
     case 'map':
     case 'alignment':
+    case 'pairs':
+    case 'grid':
       checkDataNode(n, { target: (key) => target(n, key)?.node }, (code, message, ...tail) =>
         report(code, message, at, ...tail),
       );
@@ -264,7 +266,9 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
               ? 'values'
               : type === 'rows' || type === 'logo'
                 ? 'alignment'
-                : 'ranges';
+                : type === 'pairs' || type === 'grid'
+                  ? type
+                  : 'ranges';
         if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && kind !== want)
           report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
       }
@@ -417,6 +421,38 @@ export function checkDataNode(
           }
         }
       }
+      break;
+    }
+    case 'pairs': {
+      const rows = p(n, 'rows') as Record<string, Value> | undefined;
+      if (!rows) break;
+      // each end an interval within its system, never wrapping (EC-10)
+      for (const side of ['a', 'b'] as const) {
+        const s = rows[`${side}_start`];
+        const e = rows[`${side}_end`];
+        if (!isColumn(s) || !isColumn(e)) continue;
+        const sys = systemOf(side === 'b' && p(n, 'b') !== undefined ? 'b' : 'a');
+        const ss = s as ArrayLike<number>;
+        const ee = e as ArrayLike<number>;
+        for (let i = 0; i < Math.min(ss.length, ee.length); i++) {
+          if (ss[i] < 0 || ee[i] <= ss[i]) {
+            say('seq.lang.pairs.interval', 'A pair’s end is not an interval', 'rows', `${side}_start`, i);
+            break;
+          }
+          if (sys?.length !== undefined && ee[i] > sys.length) {
+            say('seq.lang.pairs.bounds', 'A pair’s end is past its sequence', 'rows', `${side}_end`, i);
+            break;
+          }
+        }
+      }
+      break;
+    }
+    case 'grid': {
+      const values = p(n, 'values');
+      const x = systemOf('x')?.length;
+      const y = p(n, 'y') === undefined ? x : systemOf('y')?.length;
+      if (isColumn(values) && x !== undefined && y !== undefined && (values as ArrayLike<number>).length !== x * y)
+        say('seq.lang.grid.length', `There are not ${x * y} values, one a pair of positions`, 'values');
       break;
     }
     case 'values': {
