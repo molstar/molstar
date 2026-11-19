@@ -110,6 +110,32 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
     expect(c.r.bytesPerStep, c.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
 
+  it('10,000 × 300 at letters: a hovered clade (tree nodes) allocates nothing', async ({ task }) => {
+    const s = await settle(rowsSpec(10_000, true), [Synthetic]);
+    const input = at(4000, 20, 100, 160);
+    const f = await s.frame(input);
+    const lay = rowsLay(f);
+    const hits: Hit[] = [];
+    for (let k = 0; k + 2 < lay.nodes.length; k += 3) {
+      const h = hitView(f.layout, lay.nodes[k + 1], lay.nodes[k + 2]);
+      if (h?.target === 'tree-node') hits.push({ ...h });
+    }
+    expect(hits.length).toBeGreaterThan(4);
+    const hover = reusedHover(hits);
+    const hoverAt = { ...input, emphasis: hover.emphasis };
+    const { r } = quickCase(
+      task,
+      'rows clade hover',
+      (i) => {
+        hover.set(i);
+        s.renderer.frame(hoverAt);
+      },
+      {},
+    );
+    console.info(`rows clade hover: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
   it('10,000 × 300 at letters: a hit test over cells, rows and the tree allocates nothing', async ({ task }) => {
     const s = await settle(rowsSpec(10_000, true), [Synthetic]);
     const f = await s.frame(at(4000, 20, 100, 160));

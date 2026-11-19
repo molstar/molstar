@@ -20,6 +20,7 @@ import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
 import { Anchor, type PassWriter } from '../draw-lists.js';
 import { RenderIssues } from '../issues.js';
+import { rulerBaseline } from '../ruler.js';
 import type { TextMetrics } from '../text.js';
 import type { SectionLayout } from '../tracks.js';
 import type { Hit } from '../layer-type.js';
@@ -415,7 +416,12 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       p.heights[l] = h + g.lineGap;
       // the chrome's marks: the numbers, the group labels, the tracks' labels on the first line
       const k = strips.bandH[k0] > 0 ? k0 : k0 + firstShown(strips.bandH, k0, nb);
-      const baseline = strips.bandY[k] + strips.bandH[k] / 2 + labelSize * 0.35;
+      // a ruler's band: the numbers on the ruler's label baseline (one row of numbers across the line), else at the middle
+      const layers = ctx.bands[k - k0].layers;
+      const ruled = layers.length > 0 && layers.every((l) => l.type === 'ruler');
+      const baseline = ruled
+        ? rulerBaseline(strips.bandY[k], strips.bandH[k])
+        : strips.bandY[k] + strips.bandH[k] / 2 + labelSize * 0.35;
       if (params.numbers === 'start' || params.numbers === 'both') {
         const s = numberAt(a, u0, numbering);
         marks.push(mark(i, s, a.x0 - config.text.numberGap, baseline, AnchorEnd, g.numberFont, ctx.text));

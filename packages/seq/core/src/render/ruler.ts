@@ -55,6 +55,8 @@ export interface RulerLay {
   major: Uint8Array;
   labels: string[];
   widths: Float32Array;
+  /** Whether the section prints a label at each group's end (`group_labels`): the ruler leaves those positions to it. */
+  grouped: '' | 'above' | 'inline';
   /** Labels drawn: indices into the ticks, with the room taken. */
   shown: Uint8Array;
 }
@@ -87,6 +89,7 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
       labels: [],
       widths: new Float32Array(64),
       shown: new Uint8Array(64),
+      grouped: '',
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -97,6 +100,11 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.font = RulerFont;
     lay.fontSize = fontSize(RulerFont);
     lay.n = 0;
+    const gl = axis.gsize > 0 ? ctx.section.params.group_labels : undefined;
+    lay.grouped = axis.gsize > 0 && gl !== 'none' ? (gl === 'inline' ? 'inline' : 'above') : '';
+    // only where the group labels print this ruler's numbering (the text's: its first layer naming one, else ordinals)
+    if (lay.grouped && (prep.numbering ? prep.id : 'ordinal') !== textNumberingId(ctx.section, prep.system))
+      lay.grouped = '';
     if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
       ctx.report(
         issueOf(RenderIssues, 'seq.render.numbering', `The system has no numbering ${prep.id}`, {
@@ -124,6 +132,22 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     return { layer: lay.key, section: lay.section, position, system: lay.system };
   },
 };
+
+/** The numbering id a text section's numbers print: its first layer naming one the system has, else `ordinal`. */
+function textNumberingId(section: LayoutContext['section'], system: QuerySystem | undefined): string {
+  for (const t of section.tracks)
+    for (const l of t.layers) {
+      const id = l.params.numbering;
+      if (typeof id !== 'string' || !id || id === 'ordinal') continue;
+      return system && findNumbering(system, id) ? id : 'ordinal';
+    }
+  return 'ordinal';
+}
+
+/** The baseline of a ruler's labels in a band at `y` of `height` (what a text's line numbers share). */
+export function rulerBaseline(y: number, height: number): number {
+  return y + height - MajorHeight - 3;
+}
 
 /** The least step of 1, 2, 5 × 10ⁿ whose ticks are at least `gap` px apart at `scale` px a position. */
 export function labelStep(scale: number, gap: number): number {
@@ -154,7 +178,8 @@ function tickAt(lay: RulerLay, p: number, label: string, major: boolean) {
   const j = nextTick(lay);
   lay.x[j] = x;
   lay.major[j] = major ? 1 : 0;
-  lay.labels[j] = label;
+  // a group's end number stands over its last cell: the position carries that label, the tick none (text layout, Numbers)
+  lay.labels[j] = lay.grouped && axis.endsGroup(axis.unitAt(x), lay.grouped === 'inline') ? '' : label;
 }
 
 /** The ticks of the positions `[a, b)` in view (one piece): the labels that are multiples of the step, the insertions. */
@@ -198,7 +223,7 @@ function fit(lay: RulerLay, ctx: LayoutContext) {
   for (let pass = 1; pass >= 0; pass--)
     for (let j = 0; j < lay.n; j++) {
       lay.shown[j] = pass === 1 ? 0 : lay.shown[j];
-      if (lay.major[j] !== pass) continue;
+      if (lay.major[j] !== pass || !lay.labels[j]) continue;
       const w = (lay.widths[j] = ctx.text.measure(lay.font, lay.labels[j]));
       const a = lay.x[j] - w / 2;
       const b = lay.x[j] + w / 2;
@@ -237,7 +262,7 @@ function drawLabels(lay: RulerLay, out: PassWriter, _emphasis: Emphasis | undefi
   for (let j = 0; j < lay.n; j++) {
     if (!lay.shown[j]) continue;
     g[0] = lay.x[j];
-    g[1] = box.y + box.height - MajorHeight - 3;
+    g[1] = rulerBaseline(box.y, box.height);
     g[2] = lay.widths[j];
     g[3] = Number.POSITIVE_INFINITY;
     g[4] = lay.tokens.colors['seq-ruler'];
