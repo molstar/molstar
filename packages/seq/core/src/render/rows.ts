@@ -230,6 +230,8 @@ export class RowsLay {
   nodeX = new Float64Array(0);
   /** The x of a node's deepest leaf (by branch length, as its leaves would sit): a folded clade's wedge ends there. */
   deepX = new Float64Array(0);
+  /** The display rows a node's clade takes (its shown rows; a folded clade's one): what the tree's resolution reads. */
+  spanRows = new Float64Array(0);
   inFold = new Uint8Array(0);
   folded = new Uint8Array(0);
   treeOf = -1;
@@ -1551,6 +1553,13 @@ function isPinned(lay: RowsLay, row: number): boolean {
 const WedgeMinPx = 6;
 
 /**
+ * The least height a clade's rows take for its branch to be drawn, px (_spec/README.md "Render", The rows layer, The
+ * tree's look): below it a clade's branches would sit under 2 px apart, and 10,000 leaves in a band read as a solid
+ * slab; the tree is drawn down to the clades that resolve.
+ */
+const TreeMinPx = 4;
+
+/**
  * The tree beside the rows from its kept geometry: only what crosses the band is kept (segments, each with the node a
  * hit on it toggles: an inner node's own vertical and the branch to it; a leaf's branch none), the wedges of folded
  * clades and the inner nodes a hit reads.
@@ -1566,8 +1575,11 @@ function layoutTree(lay: RowsLay, clades: Clades, x0: number, w: number) {
   const top = box.y + lay.pinnedHeight;
   const bottom = box.y + box.height;
   const inner = (k: number) => clades.hi[k] - clades.lo[k] > 1;
+  // a clade drawn only when its rows take `TreeMinPx` (a node's segments, the branch to it, a folded clade's wedge)
+  const least = TreeMinPx / rs;
+  const span = lay.spanRows;
   for (let k = 0; k < n; k++) {
-    if (inFold[k] || Number.isNaN(coord[k])) continue;
+    if (inFold[k] || Number.isNaN(coord[k]) || span[k] < least) continue;
     const x = x0 + nodeX[k] * w;
     const yk = y0 + coord[k] * rs;
     if (folded[k]) {
@@ -1589,7 +1601,7 @@ function layoutTree(lay: RowsLay, clades: Clades, x0: number, w: number) {
       if (y < lo) lo = y;
       if (y > hi) hi = y;
       // the child's branch: from this node's x to the child's, at the child's y
-      if (y >= top - 1 && y <= bottom + 1) {
+      if (span[c] >= least && y >= top - 1 && y <= bottom + 1) {
         lay.tree.push(x, y, x0 + nodeX[c] * w, y);
         lay.treeNode.push(inner(c) ? c : -1);
         lay.treeClade.push(c);
@@ -1699,6 +1711,7 @@ function treeGeometry(lay: RowsLay, clades: Clades) {
     lay.coord = new Float64Array(n);
     lay.nodeX = new Float64Array(n);
     lay.deepX = new Float64Array(n);
+    lay.spanRows = new Float64Array(n);
     lay.inFold = new Uint8Array(n);
     lay.folded = new Uint8Array(n);
   }
@@ -1725,15 +1738,20 @@ function treeGeometry(lay: RowsLay, clades: Clades) {
     const p = clades.parent[k];
     inFold[k] = p >= 0 && (inFold[p] || folded[p]) ? 1 : 0;
   }
+  const { spanRows } = lay;
   for (let k = n - 1; k >= 0; k--) {
     coord[k] = Number.NaN;
+    spanRows[k] = 0;
     if (inFold[k]) continue;
     const kids = clades.children[k];
     if (!kids.length || folded[k]) {
       const leafRow = kids.length ? -1 : clades.leafRow[clades.lo[k]];
       const row = leafRow >= 0 ? leafRow : firstShown(lay, clades, k);
       const at = row >= 0 ? d.placeRow(row) : -1;
-      if (at >= 0) coord[k] = at + 0.5;
+      if (at >= 0) {
+        coord[k] = at + 0.5;
+        spanRows[k] = 1;
+      }
       continue;
     }
     let lo = Number.NaN;
@@ -1743,6 +1761,7 @@ function treeGeometry(lay: RowsLay, clades: Clades) {
       if (Number.isNaN(y)) continue;
       if (Number.isNaN(lo) || y < lo) lo = y;
       if (Number.isNaN(hi) || y > hi) hi = y;
+      spanRows[k] += spanRows[c];
     }
     if (!Number.isNaN(lo)) coord[k] = (lo + hi) / 2;
   }

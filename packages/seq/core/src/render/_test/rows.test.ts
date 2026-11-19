@@ -10,6 +10,7 @@ import { hitView, type LogoLay, recordDrawLists } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import type { RowsLay } from '../rows.js';
 import { settle } from './helpers.js';
+import { Columns, rowsSpec, Section, Synthetic, Track } from './rows-fixtures.js';
 
 const Labels = ['HBA/1-6', 'HBB/2-7', 'MYG/1-6', 'GLB/3-8', 'CYG/1-6'];
 const Letters = ['MVLSPA', 'MVHLTP', 'MGLSDG', 'MKAVLG', 'MEKVPG'];
@@ -280,6 +281,57 @@ describe('the rows layer', () => {
       expect(Number.parseInt(fill!.slice(6), 16)).toBeLessThan(0x80);
       const svg = await renderSvg(spec(params, { height: 120 }).build(), { size: Size });
       expect(recordDrawLists(svg.lists, ['labels'])).toBe(recordDrawLists(f.lists, ['labels']));
+    });
+  });
+
+  describe('the header below `rows.labelMinPx`: the label column empty, the tree down to what resolves', () => {
+    const Rows = 10_000;
+    // the 10,000 rows and their tree settled once for the file's two frames
+    let settled: ReturnType<typeof settle> | undefined;
+    const scaled = () => (settled ??= settle(rowsSpec(Rows, true, { tree_width: 120 }), [Synthetic]));
+    const at = (rowScale: number) =>
+      ({
+        size: { width: 900, height: 700 },
+        dpr: 2,
+        settled: true,
+        viewports: { [Section]: { start: 0, end: Columns, bands: { [Track]: { bandTop: 0, rowScale } } } },
+      }) as never;
+
+    /** The header's draw items (the labels pass, clipped to the label column): kind and x. */
+    const header = (f: { lists: Parameters<typeof recordDrawLists>[0] }, lay: RowsLay) =>
+      recordDrawLists(f.lists, ['labels'])
+        .split('\n')
+        .map((l) => l.split(' '))
+        // the track's own label (empty here) aside
+        .filter(([kind, x]) => (kind === 'rect' || kind === 'text' || kind === 'path') && x !== '""')
+        .filter(([, x]) => Number(x) < lay.box.x);
+
+    it('at the band’s whole zoom on 10,000 rows: nothing in the label column, the tree’s few resolved clades only', async () => {
+      const s = await scaled();
+      const f = await s.frame(at(600 / Rows));
+      const lay = rowsLay(f as never);
+      expect(lay.rowScale).toBeLessThan(1);
+      const items = header(f as never, lay);
+      // the label column (past the tree): no label, number, chip or icon
+      expect(items.filter(([, x]) => Number(x) >= lay.treeX1)).toEqual([]);
+      expect(items.filter(([kind]) => kind === 'text')).toEqual([]);
+      // the tree still drawn, down to the clades whose rows take 4 px: two segments a clade at most, a clade at least
+      // 4 px of the band's 600 for each level, never one a row
+      expect(lay.tree.length).toBeGreaterThan(0);
+      expect(lay.tree.length / 4).toBeLessThan(2 * 2 * (600 / 4));
+      expect(items.length).toBe(lay.tree.length / 4);
+    });
+
+    it('at 8 px a row: the labels, the tree to every leaf', async () => {
+      const s = await scaled();
+      const f = await s.frame(at(8));
+      const lay = rowsLay(f as never);
+      const shown = Math.ceil(600 / 8);
+      expect(lay.labelText.length).toBeGreaterThanOrEqual(shown - 1);
+      expect(lay.labelText[0]).toMatch(/^R\d+$/);
+      // every leaf in view has its branch
+      const leaves = lay.treeNode.filter((n) => n < 0).length;
+      expect(leaves).toBeGreaterThanOrEqual(shown - 1);
     });
   });
 });

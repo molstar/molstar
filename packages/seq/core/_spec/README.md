@@ -2052,14 +2052,18 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   least), its far side half the row high, its corners softened by the shape rule, filled with a light tint of the branch
   ink (0.18 of its opacity, 0.36 hovered) and outlined in it at the branches' width; its hit the summary row's middle
   0.8 from the node to that x. Why: a 1 px rect centred on a fractional x smeared over two device pixels, so widths
-  varied, and the solid triangle at the tree's full width read as a heavy blade. Labels in the items' font (a row's
-  label is data; a Pfam label, `NAME/1-147`, reads whole) from `rows.labelMinPx` (8 px a row), cut with an ellipsis past
-  their room, a summary row "first +n" (its first label cut, never its count: the count is what it says); the first
-  residue numbers right-aligned before the data box and the last after it, in a right gutter the view keeps when a rows
-  layer draws numbers (`numbers: gutters`): the numbers of the residues **in view** (the columns the cells are drawn
-  for: a pan and a zoom change them; a gap is never counted; a row with no residue in view has none), the row's own at
-  the fit view (kept per data, or per lazy row once). The right gutter is clipped to the band vertically, as the labels
-  and cells are: a partly shown last row ends at the band's foot on every side.
+  varied, and the solid triangle at the tree's full width read as a heavy blade. The tree is drawn down to the clades
+  whose rows take `TreeMinPx` (4, fixed): a node's segments, the branch to it and a folded clade's wedge only then (by
+  its shown rows, kept with the geometry), so zoomed out the deep clades end in their branch's tip. Why: below it
+  branches sit under 2 px apart, and 10,000 leaves at the band's whole zoom drew a solid dark slab (every leaf's
+  branch). Labels in the items' font (a row's label is data; a Pfam label, `NAME/1-147`, reads whole) from
+  `rows.labelMinPx` (8 px a row), the label column empty below it (no label, number, chip or icon a row), cut with an
+  ellipsis past their room, a summary row "first +n" (its first label cut, never its count: the count is what it says);
+  the first residue numbers right-aligned before the data box and the last after it, in a right gutter the view keeps
+  when a rows layer draws numbers (`numbers: gutters`): the numbers of the residues **in view** (the columns the cells
+  are drawn for: a pan and a zoom change them; a gap is never counted; a row with no residue in view has none), the
+  row's own at the fit view (kept per data, or per lazy row once). The right gutter is clipped to the band vertically,
+  as the labels and cells are: a partly shown last row ends at the band's foot on every side.
 - **Row columns** (`columns`: a list of `{ field, side, as, width, title }`, `rowColumnsOf`; `render/rows-columns.ts`):
   data columns beside each row's header. `left` (the default) in the header between the label and the first numbers, the
   label column widened by them (a text figure's too); `right` after the last numbers' gutter, the right gutter widened
