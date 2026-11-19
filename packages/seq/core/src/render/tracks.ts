@@ -52,6 +52,7 @@ import { TranslateWarp } from './layout/warp.js';
 import { TextLayout } from './layout/text.js';
 import { RingsLayout } from './layout/rings.js';
 import { TracksLayout } from './layout/tracks.js';
+import { GridLayout } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
@@ -59,6 +60,8 @@ import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
 import { LogoType } from './logo.js';
 import { RowsType } from './rows.js';
+import { GridType } from './grid.js';
+import { PairsType } from './pairs.js';
 import { RowHeight } from './rows-model.js';
 import type { ImageCache } from './images.js';
 
@@ -78,6 +81,8 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   frame: FrameType,
   rows: RowsType,
   logo: LogoType,
+  pairs: PairsType,
+  grid: GridType,
 };
 
 export interface LayerLayout {
@@ -325,6 +330,7 @@ export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = 
   tracks: TracksLayout,
   text: TextLayout,
   rings: RingsLayout,
+  grid: GridLayout,
 };
 
 /** A section's layout: its own `layout`, else its view's. */
@@ -417,6 +423,7 @@ class SectionCache {
   stamp!: ViewStamp;
   y = 0;
   axis: AxisTransform | undefined;
+  gridY: PlaceContext['y'];
   viewport: Viewport | undefined;
   readonly reads = new SectionReads();
   private wants: Want[] = [];
@@ -591,6 +598,15 @@ function samePieces(a: readonly number[], b: readonly number[]): boolean {
 }
 
 /** Whether a section's kept layout is this frame's: its view parts, place, window, viewport by its layout, reads. */
+/** Two grids' y place alike: the same pieces and window. */
+function sameGridY(a: PlaceContext['y'], b: PlaceContext['y']): boolean {
+  if (a === b) return true;
+  if (!a || !b || !samePieces(a.pieces, b.pieces) || a.axis.dir !== b.axis.dir) return false;
+  const va = a.viewport;
+  const vb = b.viewport;
+  return va === vb || (!!va && !!vb && va.start === vb.start && va.end === vb.end);
+}
+
 function reusable(
   kept: SectionCache,
   section: ResolvedSection,
@@ -828,6 +844,29 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     return axes.get(at);
   };
   for (const section of input.view.sections) axisOf(section);
+  /**
+   * A grid's y (_spec/README.md "Render", The grid layout): x's pieces and window when it follows x on x's system; a
+   * leader's image through its path (x's own, or a section's); else its own window (`viewport.y`), all of it by default.
+   */
+  const yOf = (section: ResolvedSection, axis: AxisTransform | undefined): PlaceContext['y'] => {
+    const y = section.y;
+    const own = y?.axis.ranges;
+    if (!y || !own || !axis) return undefined;
+    if (y.followsX && !y.follow)
+      return { axis: { ...y.axis, dir: axis.dir }, pieces: axis.pieces, viewport: { start: axis.u0, end: axis.u1 } };
+    if (y.follow) {
+      const leaderSection = y.followsX ? section : bySection.get(y.follow.leader);
+      const leader = y.followsX ? axis : leaderSection && axes.get(leaderSection.address);
+      if (leaderSection && leader) {
+        const window = y.followsX ? { start: axis.u0, end: axis.u1 } : leaderWindow(leaderSection, leader);
+        const made = followAxis({ ...section, axis: y.axis, follow: y.follow }, own, leader, window, config);
+        if (made) return { axis: y.axis, pieces: made.pieces, ...(made.viewport ? { viewport: made.viewport } : {}) };
+      }
+      return { axis: y.axis, pieces: own };
+    }
+    const v = (input.viewports?.[section.address] ?? input.viewport)?.y;
+    return { axis: y.axis, pieces: own, ...(v ? { viewport: v } : {}) };
+  };
   const labelSize = fontSize(config.labelFont);
   const sections: SectionLayout[] = [];
   const used = new Set<string>();
@@ -851,7 +890,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // an unchanged section is not laid out again: its placement and lays are drawn again (_spec/README.md "Render",
     // The key: per section)
     const kept = state.sections.get(section.address);
-    if (kept && reusable(kept, section, layout, stamp, y, axis, viewport, input.data)) {
+    // a grid's y: part of its key (a leader it follows may move it alone)
+    const gridY = section.y ? yOf(section, axis) : undefined;
+    if (kept && reusable(kept, section, layout, stamp, y, axis, viewport, input.data) && sameGridY(kept.gridY, gridY)) {
       kept.replay(sinks);
       if (layout.window) setWindow(layout, kept.layout.placement, section.address, viewport, followed, input, config);
       sections.push(kept.layout);
@@ -983,7 +1024,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           if (!layer.placed || layer.params.hidden === true) continue; // a hidden layer is not drawn
           const key = layerKey(track, layer);
           const type = typeOf(layer, key);
-          if (!type || type.scope === 'section') continue;
+          // a layout of two axes lays every layer out a strip at a time, `section` layers too (pairs as dots)
+          if (!type || (type.scope === 'section' && !layout.axesY)) continue;
           if (type.name === 'rows' && key !== firstRows) {
             sectionReport(
               issueOf(RenderIssues, 'seq.render.rows.second', 'A section draws one rows layer', {
@@ -1018,6 +1060,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
                 ? { folds: input.folds[track.address] }
                 : {}),
             ...(input.images ? { images: input.images } : {}),
+            ...(strips.ys[i] ? { axisY: strips.ys[i] } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
@@ -1031,8 +1074,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     /** The `section` layers: once a section, over its box on the page, the placement their reader. */
     const laySection = (placement: Placement, a: AxisTransform): LayerLayout[] => {
       let out = NoSectionLays;
-      for (const track of shown)
-        for (const layer of track.layers) {
+      if (layout.axesY) return out;
+      for (let band = 0; band < shown.length; band++)
+        for (const layer of shown[band].layers) {
+          const track = shown[band];
           if (!layer.placed || layer.params.hidden === true) continue;
           const key = layerKey(track, layer);
           const type = firstType(layer, types);
@@ -1053,6 +1098,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             span: placement.box,
             place: placement,
             labels: 'inside',
+            band,
           };
           if (out === NoSectionLays) out = [];
           out.push(layOne(track, layer, type, `${key}@section`, ctx));
@@ -1084,6 +1130,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         report: sectionReport,
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),
+        ...(gridY ? { y: gridY } : {}),
       };
       placement = layout.place(section, ctx, viewport, prevPlacement);
       if (layout.window) setWindow(layout, placement, section.address, viewport, followed, input, config);
@@ -1101,7 +1148,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         x: dataX,
         y: strips.n ? strips.bandY[j] + strips.dy[0] : by,
         width: sectionBox.width,
-        height: heights[j],
+        // a layout of two axes overlays its bands on the plot
+        height: layout.axesY && strips.n ? strips.bandH[j] : heights[j],
       };
       by += heights[j];
       const layers = lays[j] ?? NoLays;
@@ -1183,6 +1231,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     cache.stamp = stamp;
     cache.y = top;
     cache.axis = axis;
+    cache.gridY = gridY;
     // a copy: a caller may hand the same record again with new numbers (the viewer reuses its own)
     cache.viewport = viewport ? { ...viewport } : undefined;
     state.sections.set(section.address, cache);

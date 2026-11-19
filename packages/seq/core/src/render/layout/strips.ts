@@ -23,6 +23,11 @@ export class Strips {
   /** Bands a strip (the section's tracks as shown). */
   bands = 0;
   readonly axes: AxisTransform[] = [];
+  /**
+   * Each strip's second transform (`strip.y`, a grid's: down the strip's frame, its `x0` the plot's top and its `width`
+   * the plot's height), absent in every other layout (_spec/README.md "Render", Section layouts).
+   */
+  readonly ys: (AxisTransform | undefined)[] = [];
   block = new Int32Array(4);
   warp = new Uint8Array(4);
   dx = new Float64Array(4);
@@ -42,6 +47,7 @@ export class Strips {
     this.n = 0;
     this.bands = bands;
     this.axes.length = 0;
+    this.ys.length = 0;
   }
 
   /** Adds a strip over `axis`, translated by `dx`, `dy`; its bands are set after. */
@@ -64,6 +70,7 @@ export class Strips {
       this.used = grown(this.used, nb);
     }
     this.axes[i] = axis;
+    this.ys[i] = undefined;
     this.block[i] = block;
     this.warp[i] = WarpKind.translate;
     this.dx[i] = dx;

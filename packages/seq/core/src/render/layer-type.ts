@@ -75,6 +75,13 @@ export interface LayoutContext {
   readonly folds?: readonly string[];
   /** The shared image cache a layer keeps its image tiles in (the renderer's). */
   readonly images?: ImageCache;
+  /**
+   * The strip's second transform (`strip.y`: a grid's y, down the strip's frame), on a strip that has one
+   * (_spec/README.md "Render", The grid layout).
+   */
+  readonly axisY?: AxisTransform;
+  /** A `section` layer's band: its track's index in the section's bands (where its arcs stand). */
+  readonly band?: number;
 }
 
 /** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */

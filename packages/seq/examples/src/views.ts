@@ -7,6 +7,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import * as complexBlocks from './complex/blocks.js';
+import * as complexPae from './complex/pae.js';
+import * as trna from './trna/trna.js';
 import { generatedRegistry } from './globins/data.js';
 import * as globins from './globins/family.js';
 import * as plasmidRing from './plasmid/ring.js';
@@ -296,6 +298,54 @@ export const ComplexViews: readonly ExampleView[] = [
     summary: 'The blocks on a ring, a block an arc with a gap between, their labels outside with the features’.',
     build: complexBlocks.ring,
   },
+  {
+    dataset: 'complex',
+    id: 'pae',
+    title: 'PAE across the chains',
+    summary:
+      'A section a chain and the predicted aligned error between them as a grid: its x follows CDK2’s section, its y cyclin A’s; the interface’s contacts as dots on it. Hover a cell: both residues light in their sections.',
+    build: () => complexPae.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'contacts',
+    title: 'Contacts between the chains',
+    summary: 'The interface’s contacts as arcs from CDK2’s block to cyclin A’s: a pair, both ends lit on hover.',
+    build: complexPae.contacts,
+  },
+];
+
+export const TrnaViews: readonly ExampleView[] = [
+  {
+    dataset: 'trna',
+    id: 'arcs',
+    title: 'Base pairs as arcs',
+    summary:
+      'tRNA-Phe (1EHZ): its base pairs as arcs over the letters, the stems nested, the tertiary pairs crossing them; colored by kind. Hover a base: its partner lights.',
+    build: () => trna.build(),
+  },
+  {
+    dataset: 'trna',
+    id: 'split',
+    title: 'Crossing pairs below',
+    summary: 'The largest nested set of pairs above the letters, the pairs that cross it below (`crossing: split`).',
+    build: trna.split,
+  },
+  {
+    dataset: 'trna',
+    id: 'ring',
+    title: 'Pairs as chords',
+    summary: 'The tRNA on a ring, its pairs as chords through the hole (`side: below`).',
+    build: trna.ring,
+  },
+  {
+    dataset: 'trna',
+    id: 'dot-plot',
+    title: 'Base-pair dot plot',
+    summary:
+      'The arcs over the letters and the dot plot under them, its axes following their window: base-pair probabilities above the diagonal, the structure’s pairs mirrored below. Hover a cell: a crosshair, both bases lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
+    build: trna.dotPlot,
+  },
 ];
 
 export const ExampleViews: readonly ExampleView[] = [
@@ -305,4 +355,5 @@ export const ExampleViews: readonly ExampleView[] = [
   ...PlasmidViews,
   ...ComplexViews,
   ...GlobinsViews,
+  ...TrnaViews,
 ];
