@@ -289,7 +289,8 @@ function lineAxis(base: AxisTransform, g: TextGeometry, u0: number, u1: number):
       dir: base.dir,
       ...(base.length !== undefined ? { length: base.length } : {}),
       cyclic: base.cyclic,
-      ...(g.group > 0 ? { groups: { size: g.group, gap: g.gap } } : {}),
+      // groups counted from the line's first unit (a piece edge may start a line off a group's boundary)
+      ...(g.group > 0 ? { groups: { size: g.group, gap: g.gap, origin: u0 } } : {}),
     },
   );
 }

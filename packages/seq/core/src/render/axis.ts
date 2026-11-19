@@ -38,7 +38,7 @@ export interface AxisShapeOptions {
   readonly length?: number;
   readonly cyclic?: boolean;
   /** A gap of `gap` px after every `size` display units (text's groups of ten); none by default. */
-  readonly groups?: { readonly size: number; readonly gap: number };
+  readonly groups?: { readonly size: number; readonly gap: number; readonly origin?: number };
 }
 
 export class AxisTransform {
@@ -62,6 +62,8 @@ export class AxisTransform {
   readonly gsize: number;
   readonly ggap: number;
   private readonly g0: number;
+  /** The display unit groups are counted from (0; a text line's first unit when a piece edge starts the line). */
+  private readonly gorigin: number;
 
   constructor(
     readonly system: string,
@@ -89,9 +91,10 @@ export class AxisTransform {
     const g = shape.groups;
     this.gsize = g && g.size > 0 ? g.size : 0;
     this.ggap = this.gsize ? g!.gap : 0;
-    this.g0 = this.gsize ? Math.floor(u0 / this.gsize) : 0;
+    this.gorigin = this.gsize ? (g!.origin ?? 0) : 0;
+    this.g0 = this.gsize ? Math.floor((u0 - this.gorigin) / this.gsize) : 0;
     // the gaps inside the window take their px from the width
-    const inner = this.gsize ? Math.max(0, Math.ceil(this.u1 / this.gsize) - 1 - this.g0) : 0;
+    const inner = this.gsize ? Math.max(0, Math.ceil((this.u1 - this.gorigin) / this.gsize) - 1 - this.g0) : 0;
     this.scale = Math.max(width - inner * this.ggap, 1e-9) / (this.u1 - this.u0);
     this.k0 = n ? pieceAtOffset(all, u0) : 0;
     let k1 = n ? pieceAtOffset(all, this.u1) : -1;
@@ -113,13 +116,13 @@ export class AxisTransform {
   /** x of a display unit (a cell's left edge: past the gap before a group's first unit). */
   xOfUnit(u: number): number {
     if (this.gsize === 0) return this.x0 + (u - this.u0) * this.scale;
-    return this.x0 + (u - this.u0) * this.scale + (Math.floor(u / this.gsize) - this.g0) * this.ggap;
+    return this.x0 + (u - this.u0) * this.scale + (Math.floor((u - this.gorigin) / this.gsize) - this.g0) * this.ggap;
   }
 
   /** x of a display unit as a right edge: before the gap after a group's last unit. */
   xOfEnd(u: number): number {
     if (this.gsize === 0) return this.x0 + (u - this.u0) * this.scale;
-    const k = Math.ceil(u / this.gsize) - 1 - this.g0;
+    const k = Math.ceil((u - this.gorigin) / this.gsize) - 1 - this.g0;
     return this.x0 + (u - this.u0) * this.scale + (k > 0 ? k : 0) * this.ggap;
   }
 
@@ -178,19 +181,19 @@ export class AxisTransform {
     if (this.gsize === 0) return this.u0 + (x - this.x0) / this.scale;
     const d = x - this.x0;
     // px to the window's first group boundary, then whole groups with their gaps
-    const first = ((this.g0 + 1) * this.gsize - this.u0) * this.scale;
+    const first = (this.gorigin + (this.g0 + 1) * this.gsize - this.u0) * this.scale;
     if (d < first) return this.u0 + d / this.scale;
     const span = this.gsize * this.scale + this.ggap;
     const k = Math.floor((d - first) / span);
     const r = d - first - k * span - this.ggap;
-    const u = (this.g0 + 1 + k) * this.gsize;
+    const u = this.gorigin + (this.g0 + 1 + k) * this.gsize;
     return r < 0 ? u : u + r / this.scale;
   }
 
   /** Whether x falls in a group's gap (no position there). */
   inGap(x: number): boolean {
     if (this.gsize === 0 || x < this.x0 || x >= this.x0 + this.width) return false;
-    const first = ((this.g0 + 1) * this.gsize - this.u0) * this.scale;
+    const first = (this.gorigin + (this.g0 + 1) * this.gsize - this.u0) * this.scale;
     const d = x - this.x0 - first;
     if (d < 0) return false;
     const span = this.gsize * this.scale + this.ggap;

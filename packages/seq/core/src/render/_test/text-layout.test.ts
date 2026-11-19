@@ -190,6 +190,19 @@ describe('the text layout', () => {
     expect(TextNav.step(c, 61 + 3, 'up')).toBe((second - 1) * upl + 3);
     // a unit's line and its line's start, as a focus reads them
     expect(lineStart(g, lineOf(g, 70))).toBe(61);
+    // groups start at each line's first unit: every line at the cell's scale, each group label over the letter before
+    // its gap (the ordinal of the group's last unit)
+    for (let i = 0; i < t.strips.n; i++) {
+      const ax = t.strips.axes[i];
+      if (ax.u1 - ax.u0 >= upl) expect(ax.scale).toBeCloseTo(g.cell, 9);
+      const labels = t.marks.filter((m) => m.strip === i && m.anchor === 1);
+      let k = 0;
+      for (let e = ax.u0 + 10; e <= ax.u1; e += 10, k++) {
+        ax.cell(ax.elementAtUnit(e - 1));
+        expect(labels[k].text).toBe(String(ax.elementAtUnit(e - 1) + 1));
+        expect(labels[k].x).toBeCloseTo((ax.sx0 + ax.sx1) / 2, 6);
+      }
+    }
   });
 
   it('frames across tracks: an outline over the named tracks’ bands, open where a line break cuts it, titled where it starts', async () => {
