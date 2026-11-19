@@ -57,6 +57,7 @@ import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
+import { BandsType } from './bands.js';
 import { LogoType } from './logo.js';
 import { RowsType } from './rows.js';
 import { RowHeight } from './rows-model.js';
@@ -78,6 +79,7 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   frame: FrameType,
   rows: RowsType,
   logo: LogoType,
+  bands: BandsType,
 };
 
 export interface LayerLayout {

@@ -354,9 +354,74 @@ export const SeqLanguage = defineLanguage({
               type: 'boolean',
               doc: 'Whether an export draws a ring’s window (false when absent: an exported map is a figure).',
             },
+            navigators: {
+              type: 'string',
+              enum: ['omit', 'include'],
+              doc: 'Navigators in an export: `omit` (when absent: a window is session, not a figure), or `include`, stacked by `place` around the view, their windows as outlines.',
+            },
           },
           doc: 'How the view exports (a figure says how it exports); an export call’s options override it.',
         },
+      },
+    },
+    navigators: {
+      doc: 'The container of a view’s navigators; its id is `navigators`.',
+      parents: ['view'],
+      ids: 'required',
+    },
+    navigator: {
+      doc: 'A navigator: a part over a section’s axis, its rows or both, drawing the whole and the section’s window in it; a drag on the window moves the section. Placed by the host (`place` a hint).',
+      parents: ['navigators'],
+      ids: 'required',
+      params: {
+        of: {
+          type: 'union',
+          of: [
+            { type: 'ref', kinds: ['section'] },
+            { type: 'list', of: { type: 'ref', kinds: ['section'], doc: 'A section.' }, 'min-length': 1 },
+          ],
+          required: true,
+          doc: 'The section, or sections, whose windows it draws and moves (a window each leading section; a follower’s window its leader’s carried along the follow).',
+        },
+        axes: {
+          type: 'string',
+          enum: ['positions', 'rows', 'both'],
+          doc: 'The axes it covers: `positions` (when absent), an alignment’s `rows` (the window full width), or `both`.',
+        },
+        content: {
+          type: 'string',
+          enum: ['axis', 'tracks', 'bands', 'rows'],
+          doc: 'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), or the section’s `rows` (summarized).',
+        },
+        tracks: {
+          type: 'list',
+          of: { type: 'ref', kinds: ['track'], doc: 'A track of a bound section.' },
+          doc: 'For `tracks`: the tracks drawn small, in order; the section’s tracks but its rulers when absent.',
+        },
+        bands: {
+          type: 'ref',
+          kinds: ['ranges'],
+          doc: 'For `bands`: the annotation of bands, a `stain` field each (UCSC’s cytoBandIdeo: `gneg`, `gpos25`…`gpos100`, `acen`, `gvar`, `stalk`).',
+        },
+        system: {
+          type: 'ref',
+          kinds: ['sequence'],
+          doc: 'The system it draws when not the section’s: a chromosome under a section on a region of it, a gene under its protein. The section’s when absent.',
+        },
+        place: {
+          type: 'string',
+          enum: ['top', 'bottom', 'left', 'right'],
+          doc: 'Where the host places it, a hint to the host and to an export: `top` when absent (`right` for `rows`).',
+        },
+        size: {
+          type: 'union',
+          of: [
+            { type: 'number', min: 1 },
+            { type: 'list', of: { type: 'number', min: 1 }, 'min-length': 2, 'max-length': 2 },
+          ],
+          doc: 'Its thickness in px (across its axis), or `[width, height]`: its form’s when absent (20 for an axis strip, 48 for tracks, 24 for bands, 96 for rows, 160 × 96 for both axes).',
+        },
+        hidden: { type: 'boolean', default: false, doc: 'Whether it is hidden: kept in the spec, not drawn.' },
       },
     },
     scale: {
@@ -561,9 +626,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         type: {
           type: 'string',
-          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants', 'frame', 'rows', 'logo'],
+          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants', 'frame', 'rows', 'logo', 'bands'],
           required: true,
-          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`) or its conservation logo (`logo`); `secondary` and `variants` draw `ranges` where a reader lacks them.',
+          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`), its conservation logo (`logo`) or a chromosome’s stained bands (`bands`, an ideogram: ranges with a `stain` field, colored by the `giemsa` scheme, the centromere’s two `acen` bands as triangles); `secondary`, `variants` and `bands` draw `ranges` where a reader lacks them.',
         },
         data: {
           type: 'ref',

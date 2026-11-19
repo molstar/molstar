@@ -123,7 +123,30 @@ export type {
   WindowPart,
 } from './layout/types.js';
 export { PolarWarp, TranslateWarp } from './layout/warp.js';
-export { drawWindow, drawWindowArgs, WindowMetrics, windowExtent, windowPart } from './window.js';
+export {
+  drawNavigatorWindow,
+  drawWindow,
+  drawWindowArgs,
+  floorExtent,
+  NavWin,
+  NavWindow,
+  NavWindowFlags,
+  navigatorPart,
+  WindowMetrics,
+  windowExtent,
+  windowPart,
+} from './window.js';
+export {
+  type NavigatorFrame,
+  type NavigatorFrameInput,
+  type NavigatorHit,
+  NavigatorRenderer,
+  type NavigatorRendererOptions,
+  NavigatorSizes,
+  NavigatorWindow,
+  navigatorBox,
+} from './navigator.js';
+export { type BandsLay, type BandsPrep, BandsType } from './bands.js';
 export { type LettersLay, type LettersPrep, LettersType, shownLetters } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
 export { fmt, recordDrawLists } from './record.js';

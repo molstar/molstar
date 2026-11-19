@@ -43,6 +43,8 @@ export interface RendererOptions {
   readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
   /** The schemes and measures the themes read (the built-ins by default): the composition's registry entries. */
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
+  /** The shared image cache (_spec/README.md "Render", The shared reduction): another renderer's (a navigator's view). */
+  readonly images?: ImageCache;
 }
 
 export interface FrameInput {
@@ -230,7 +232,7 @@ export class Renderer {
   constructor(readonly options: RendererOptions) {
     this.tokens = options.tokens;
     this.config = options.config ?? DefaultRenderConfig;
-    this.images = new ImageCache(this.config.imageBytes);
+    this.images = options.images ?? new ImageCache(this.config.imageBytes);
     this.lists = new DrawLists(this.config.internedStrings);
     this.configKey = (hashString(JSON.stringify(this.config)) >>> 0).toString(16);
     const data = options.data;
