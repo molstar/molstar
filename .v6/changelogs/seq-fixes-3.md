@@ -9,3 +9,6 @@
 - The logo's letters are saturated as glyphs: each keeps its hue, its oklab chroma raised to a floor
   (`--seq-logo-chroma`, 0.12 in light, 0.10 in dark), then its lightness moved to 3:1 against the track; greys stay
   grey.
+- The navigators' cursor says the gesture: a window's grip shows a resize cursor along its axis (`ew-resize`, or
+  `ns-resize` on the rows rail and a vertical navigator) through its drag, the body `grab` and `grabbing`, outside
+  `pointer`.

@@ -265,7 +265,7 @@ and dark before the merge.
       same check for every layer's hover pass over blocks (letters, logo, ranges, values, grid). Tests on Complex ›
       Blocks (split, row and stacked): a CDK2 position lights both CDK2 copies and no cyclin, near and past the cyclin's
       length; canvas and SVG.
-- [ ] CR (fast, now; the author, 2026-11-19: "when the action is resize on the sliders, it should get an appropriate
+- [x] CR (merged; fast, now; the author, 2026-11-19: "when the action is resize on the sliders, it should get an appropriate
       icon") the navigators' cursors by part (navigators.md, "The cursor says the gesture"): a grip `ew-resize` or
       `ns-resize` by the navigator's axis, held through its drag; the body `grab`/`grabbing`; outside `pointer`; idle
       default; in `ViewerInput.cursor` (the rails in the view) and `NavigatorModel.cursor` (mounted navigators) alike.
