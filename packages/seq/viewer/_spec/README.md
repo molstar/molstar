@@ -646,19 +646,24 @@ binding table; per move one hit record and one modifiers record are reused.
   nothing; the item's label and extent, else the cell's place); a selection's change once
   (`Selected 6 positions, p 3–8`, `Selection cleared`; the same selection again says nothing). One rate limit for all
   (`minGapMs`, 700 ms): a message never follows another sooner, the latest one waiting its turn (a held arrow key says
-  where it is each gap, not each key). Why one region and a limit: a live region queues what it is given and a reader
-  hears the queue after the cursor moved on. A navigator slider's value is its own (`aria-valuetext`), never this
-  region's. The highlight legend's Clear buttons and the legend's entries are real buttons and options in the page's tab
-  order, so they need nothing here.
-- **Forced colors** (`forced-colors: active`; `forcedColorTokens`, `css-tokens.ts`): `readCssTokens` reads the system
-  colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`, resolved by a probe element's computed `color`; the
-  platform's defaults where none resolves) into the chrome and emphasis tokens: the page and tracks `Canvas`; ink, the
-  sequence, lines, breaks, the ruler, the window's grips and a letter cell's hairline `CanvasText`; muted text, missing
-  and pending `GrayText`; the accent, the hover and the window `Highlight` (the wash and the muted accent a translucent
-  `Highlight`). The data's colors stay (the meaning is in them: a residue class, a category, a ramp), and the legend's
-  swatches opt out of forcing (`forced-color-adjust: none`) to match. The mount listens to the media query's change and
-  reads the table again; the table keeps its theme (`light` or `dark`: schemes pick by it), only its colors and version
-  differ. An export never uses forced colors.
+  where it is each gap, not each key). A message is a token (a counter and its text), so equal words are said again: a
+  cursor key that leaves the cursor in place (the end of its axis) is announced (`viewer.commandRan` moves after every
+  command). A message waiting its turn is replaced only by one of the same or a higher priority (selection over cursor
+  over hover), and the pointer leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say
+  nothing and the selection says its end once, after the drag. Why one region and a limit: a live region queues what it
+  is given and a reader hears the queue after the cursor moved on. A navigator slider's value is its own
+  (`aria-valuetext`), never this region's. The highlight legend's Clear buttons and the legend's entries are real
+  buttons and options in the page's tab order, so they need nothing here.
+- **Forced colors** (`forced-colors: active`, whatever the `theme.source`: the root's CSS tokens through
+  `readCssTokens`, a configured theme's table through `forcedColorTokens` over `readSystemColors`; `css-tokens.ts`):
+  `readCssTokens` reads the system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`, resolved by a probe
+  element's computed `color`; the platform's defaults where none resolves) into the chrome and emphasis tokens: the page
+  and tracks `Canvas`; ink, the sequence, lines, breaks, the ruler, the window's grips and a letter cell's hairline
+  `CanvasText`; muted text, missing and pending `GrayText`; the accent, the hover and the window `Highlight` (the wash
+  and the muted accent a translucent `Highlight`). The data's colors stay (the meaning is in them: a residue class, a
+  category, a ramp), and the legend's swatches opt out of forcing (`forced-color-adjust: none`) to match. The mount
+  listens to the media query's change and reads the table again; the table keeps its theme (`light` or `dark`: schemes
+  pick by it), only its colors and version differ. An export never uses forced colors.
 - **Toolbar** (`toolbar.ts`, `toolbarButtons(viewer, commands)`, DOM-free; `mount-toolbar.ts` mounts `@molstar/ui`'s
   toolbar over it, above the canvas): a part the host places (`ui.toolbar: mountToolbar`; the default spec lists none:
   `@molstar/ui`'s toolbar with its icons and menus is about 85 kB, the default viewer 508 kB without it), one button a

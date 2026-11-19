@@ -216,10 +216,7 @@ export interface Emphasis {
   };
 }
 
-/**
- * A layer type: `prepare` is tier 1 (cached per resolved layer), `layout` per viewport (given its last layout to reuse
- * its buffers and keep its lanes), `draw` one pass into the lists, `hit` from the same layout.
- */
+/** An item a layer shows, as an export names it and the viewer announces it (`LayerType.items`). */
 export interface ItemDescription {
   readonly key: string | number;
   /** Its label (its key when it has none). */
@@ -230,7 +227,17 @@ export interface ItemDescription {
   /** Where it is drawn, in the section's x (clamped to the data box) and the layer's band. */
   readonly x0: number;
   readonly x1: number;
+  /** Its band on the page when it is not the track's whole (a rows layer's row): top and height. */
+  readonly y?: number;
+  readonly height?: number;
+  /** The system its extent is on, when it is not the layer's data's (a rows layer's rows system). */
+  readonly system?: string;
 }
+
+/**
+ * A layer type: `prepare` is tier 1 (cached per resolved layer), `layout` per viewport (given its last layout to reuse
+ * its buffers and keep its lanes), `draw` one pass into the lists, `hit` from the same layout.
+ */
 
 export interface LayerType<Prep = unknown, Lay = unknown> {
   readonly name: string;

@@ -8,6 +8,7 @@ import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { DomHost } from '@molstar/ui/dom';
 import {
   itemText,
+  type ItemDescription,
   type LayerLayout,
   LettersType,
   locationText,
@@ -23,7 +24,11 @@ import type { SeqViewer } from './viewer.js';
 // crossing the picture says nothing) and a selection's change (its size and extent, once). Everything goes through one
 // rate limit: a message never follows another within `minGapMs`, the latest one waiting its turn (a held arrow key
 // says where it is each `minGapMs`, not each key). Why one text a time: a live region queues what it is given, and a
-// reader hears the queue after the pointer has moved on.
+// reader hears the queue after the pointer has moved on. A message waiting its turn is replaced by a later one of the same
+// or a higher priority only (a selection over the cursor over the hover: a hover never replaces a selection's final
+// message), and the pointer leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say
+// nothing, and the selection says its end once the drag ends. Each message is a token (a counter and its text), so
+// equal words said again are a new message: the mount clears the region and sets it again.
 
 export interface AnnouncerOptions {
   /** How long the hover rests before it is said, ms. */
@@ -32,17 +37,31 @@ export interface AnnouncerOptions {
   readonly minGapMs?: number;
 }
 
+/** A message said: its counter makes equal texts apart. */
+export interface Said {
+  readonly id: number;
+  readonly text: string;
+}
+
+export type AnnouncePriority = 'hover' | 'cursor' | 'selection';
+const Rank: Readonly<Record<AnnouncePriority, number>> = { hover: 1, cursor: 2, selection: 3 };
+
+const CursorKeys = /^cursor\.(prev|next|up|down|extend-.+|add-.+)$/;
+
 export const DefaultAnnouncerOptions = { restMs: 500, minGapMs: 700 } as const;
 
 export class Announcer {
-  private readonly _message = new State('');
-  /** What the live region says now; a message equal to the last is said again only after the region was cleared. */
-  readonly message: ReadonlyState<string> = this._message.asReadonly;
+  private _count = 0;
+  private readonly _message = new State<Said>({ id: 0, text: '' });
+  /** What the live region says now: each message a new token, so equal words are said again. */
+  readonly message: ReadonlyState<Said> = this._message.asReadonly;
   private readonly _viewer: SeqViewer;
   private readonly _rest: number;
   private readonly _gap: number;
   private _last = Number.NEGATIVE_INFINITY;
-  private _pending: string | undefined;
+  private _pending: { text: string; priority: AnnouncePriority } | undefined;
+  private _dragTimer: unknown;
+  private _selectionDue = false;
   private _gapTimer: unknown;
   private _restTimer: unknown;
   private readonly _stop: (() => void)[] = [];
@@ -54,9 +73,10 @@ export class Announcer {
     this._rest = options.restMs ?? DefaultAnnouncerOptions.restMs;
     this._gap = options.minGapMs ?? DefaultAnnouncerOptions.minGapMs;
     this._stop.push(
-      viewer.selection.cursor.listen((c) => {
-        // the pointer's own cursor is shown, not said: only the keyboard's moves are
-        if (c?.keyboard) this.say(this.cursorText());
+      // a cursor key is said whether or not the cursor moved (at the end of its axis it stays: the key is still heard);
+      // the pointer's own cursor is shown, not said
+      viewer.commandRan.listen(({ id }) => {
+        if (CursorKeys.test(id) && !this.dragging) this.say(this.cursorText(), 'cursor');
       }),
       viewer.hover.version.listen(() => this.hovered()),
       viewer.selection.value.listen(() => this.selectionChanged()),
@@ -64,7 +84,7 @@ export class Announcer {
   }
 
   /** The text of a say, at once when the rate limit allows, else when it does (the latest of those waiting). */
-  say(text: string): void {
+  say(text: string, priority: AnnouncePriority = 'cursor'): void {
     if (this._disposed || !text) return;
     const wait = this._last + this._gap - DomHost.now();
     if (wait <= 0) {
@@ -72,19 +92,21 @@ export class Announcer {
       this._emit(text);
       return;
     }
-    this._pending = text;
+    // a waiting message of a higher priority is kept
+    if (this._pending && Rank[this._pending.priority] > Rank[priority]) return;
+    this._pending = { text, priority };
     if (this._gapTimer === undefined)
       this._gapTimer = DomHost.setTimeout(() => {
         this._gapTimer = undefined;
         const t = this._pending;
         this._pending = undefined;
-        if (t && !this._disposed) this._emit(t);
+        if (t && !this._disposed) this._emit(t.text);
       }, wait);
   }
 
   private _emit(text: string): void {
     this._last = DomHost.now();
-    this._message.set(text);
+    this._message.set({ id: ++this._count, text });
   }
 
   // ---- the hover, when it rests ----
@@ -92,16 +114,51 @@ export class Announcer {
   private hovered(): void {
     DomHost.clearTimeout(this._restTimer);
     this._restTimer = undefined;
-    if (!this._viewer.hover.active) return;
+    if (!this._viewer.hover.active) {
+      // the pointer left: what waited to say its hover is dropped
+      if (this._pending?.priority === 'hover') {
+        this._pending = undefined;
+        DomHost.clearTimeout(this._gapTimer);
+        this._gapTimer = undefined;
+      }
+      return;
+    }
+    if (this.dragging) return;
     this._restTimer = DomHost.setTimeout(() => {
       this._restTimer = undefined;
-      this.say(this.hoverText());
+      if (!this.dragging) this.say(this.hoverText(), 'hover');
     }, this._rest);
+  }
+
+  /** Whether a gesture is being dragged (a drag-select, a press on the canvas). */
+  private get dragging(): boolean {
+    const sel = this._viewer.selection;
+    return sel.dragging || sel.rectDragging || this._viewer.input.dragging;
   }
 
   // ---- the selection, once a change ----
 
   private selectionChanged(): void {
+    // during a drag the selection changes with each move: it says its end once, when the drag ends
+    if (this.dragging) {
+      this._selectionDue = true;
+      if (this._dragTimer === undefined) this.waitForDragEnd();
+      return;
+    }
+    this.sayOfSelection();
+  }
+
+  private waitForDragEnd(): void {
+    this._dragTimer = DomHost.setTimeout(() => {
+      this._dragTimer = undefined;
+      if (this._disposed) return;
+      if (this.dragging) return this.waitForDragEnd();
+      if (this._selectionDue) this.sayOfSelection();
+      this._selectionDue = false;
+    }, 100);
+  }
+
+  private sayOfSelection(): void {
     const shown = this._viewer.selection.value.value.shown;
     const text = shown.parts.length
       ? `Selected ${locationText(this._viewer.spec.model.value, shown)}`
@@ -110,10 +167,24 @@ export class Announcer {
         : '';
     if (text === this._selected && shown.parts.length) return;
     this._selected = shown.parts.length ? text : '';
-    this.say(text);
+    this.say(text, 'selection');
   }
 
   // ---- the words ----
+
+  /** Items by layer layout, made once a frame (an announcement looks them up, a frame changes them). */
+  private _items = new Map<LayerLayout, readonly ItemDescription[]>();
+  private _itemsFrame: unknown;
+  private itemsOf(l: LayerLayout): readonly ItemDescription[] {
+    const frame = this._viewer.frame;
+    if (frame !== this._itemsFrame) {
+      this._itemsFrame = frame;
+      this._items = new Map();
+    }
+    let items = this._items.get(l);
+    if (!items) this._items.set(l, (items = l.type.items?.(l.lay) ?? []));
+    return items;
+  }
 
   private layout() {
     return this._viewer.frame?.layout;
@@ -136,8 +207,9 @@ export class Announcer {
       for (const l of t.layers) {
         if (only && l !== only) continue;
         const data = l.layer.data?.system;
-        for (const it of l.type.items?.(l.lay) ?? [])
-          if (it.x0 <= x && x <= it.x1) out.push(itemText(this.systemName(data ?? section.section.axis.system), it));
+        for (const it of this.itemsOf(l))
+          if (it.y === undefined && it.x0 <= x && x <= it.x1)
+            out.push(itemText(this.systemName(it.system ?? data ?? section.section.axis.system), it));
       }
     return out;
   }
@@ -184,8 +256,9 @@ export class Announcer {
     const layer = section.tracks.flatMap((t) => t.layers).find((l) => l.key === h.layer);
     // an item: its own words; a cell: its place
     if (h.element && layer?.type.items) {
-      const it = layer.type.items(layer.lay).find((d) => d.key === h.element!.key);
-      if (it) return itemText(this.systemName(layer.layer.data?.system ?? section.section.axis.system), it);
+      const it = this.itemsOf(layer).find((d) => d.key === h.element!.key);
+      if (it)
+        return itemText(this.systemName(it.system ?? layer.layer.data?.system ?? section.section.axis.system), it);
     }
     if (h.system !== undefined && !Number.isNaN(h.position))
       return this.placeText(section, h.system, Math.floor(h.position));
@@ -198,5 +271,6 @@ export class Announcer {
     this._stop.length = 0;
     DomHost.clearTimeout(this._gapTimer);
     DomHost.clearTimeout(this._restTimer);
+    DomHost.clearTimeout(this._dragTimer);
   }
 }

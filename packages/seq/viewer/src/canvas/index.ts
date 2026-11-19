@@ -14,6 +14,7 @@ export {
   forcedColorsActive,
   forcedColorTokens,
   readCssTokens,
+  readSystemColors,
   type SystemColors,
   ThemeAttribute,
   themeOf,

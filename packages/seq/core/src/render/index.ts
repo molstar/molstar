@@ -83,6 +83,7 @@ export {
   type Hit,
   type HitTarget,
   type LabelSink,
+  type ItemDescription,
   type LayerType,
   type LayoutContext,
   type Overlay,
@@ -166,6 +167,7 @@ export {
   itemText,
   locationText,
   MaxNamedItems,
+  MaxNamedItemsPerTrack,
   rangesText,
   spanText,
 } from './accessibility.js';

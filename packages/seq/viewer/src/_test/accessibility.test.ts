@@ -90,16 +90,16 @@ describe('the announcer', () => {
     const a = new Announcer(v, { minGapMs: 0 });
     // the first key places the cursor where the view starts; the next moves it on
     await v.execute('cursor.next', { section: Section });
-    expect(a.message.value).toBe('s, p 1, letter M');
+    expect(a.message.value.text).toBe('s, p 1, letter M');
     clock += 1000;
     await v.execute('cursor.next', { section: Section });
     await v.execute('cursor.next', { section: Section });
     // position 3 (index 2) is inside Domain A only
-    expect(a.message.value).toBe('s, p 3, letter E, items: Domain A, p 3–8');
+    expect(a.message.value.text).toBe('s, p 3, letter E, items: Domain A, p 3–8');
     await v.execute('cursor.next', { section: Section });
     await v.execute('cursor.next', { section: Section });
     // index 4 is in both domains
-    expect(a.message.value).toBe('s, p 5, letter Q, items: Domain A, p 3–8; Domain B, p 5–12');
+    expect(a.message.value.text).toBe('s, p 5, letter Q, items: Domain A, p 3–8; Domain B, p 5–12');
     a.dispose();
   });
 
@@ -107,7 +107,7 @@ describe('the announcer', () => {
     const v = await make();
     const a = new Announcer(v, { minGapMs: 700 });
     const said: string[] = [];
-    a.message.listen((m) => said.push(m));
+    a.message.listen((m) => said.push(m.text));
     for (let i = 0; i < 6; i++) await v.execute('cursor.next', { section: Section });
     // the first at once, the rest waiting as one (the latest)
     expect(said).toHaveLength(1);
@@ -127,13 +127,88 @@ describe('the announcer', () => {
     v.input.move(x, domainsY(v));
     frames.flush();
     // moving says nothing; the rest does
-    expect(a.message.value).toBe('');
+    expect(a.message.value.text).toBe('');
     frames.timers.fire();
-    expect(a.message.value).toBe('Domain A, p 3–8');
-    // the pointer leaving cancels what was waiting
-    v.input.move(x, domainsY(v) - 100);
+    expect(a.message.value.text).toBe('Domain A, p 3–8');
+    a.dispose();
+  });
+
+  it('drops a hover waiting its turn when the pointer leaves, and a rest that never came', async () => {
+    const v = await make();
+    const a = new Announcer(v, { minGapMs: 700, restMs: 500 });
+    const said: string[] = [];
+    a.message.listen((m) => said.push(m.text));
+    const axis = v.frame!.layout.sections[0].axis!;
+    const x = (axis.x(3) + axis.x(4)) / 2;
+    // a message has just been said: the hover that rests waits for the gap
+    await v.execute('cursor.next', { section: Section });
+    expect(said).toHaveLength(1);
+    v.input.move(x, domainsY(v));
     frames.flush();
+    frames.timers.fire();
+    expect(said).toHaveLength(1);
+    // the pointer leaves: the waiting hover is dropped, nothing is said when the gap is over
     v.input.leave();
+    frames.flush();
+    clock += 1000;
+    frames.timers.fire();
+    expect(said).toHaveLength(1);
+    // a hover that left before it rested says nothing at all
+    v.input.move(x, domainsY(v));
+    v.input.leave();
+    frames.flush();
+    frames.timers.fire();
+    expect(said).toHaveLength(1);
+    a.dispose();
+  });
+
+  it('keeps a waiting selection over a later hover and cursor, which never replace it', async () => {
+    const v = await make();
+    const a = new Announcer(v, { minGapMs: 700, restMs: 500 });
+    const said: string[] = [];
+    a.message.listen((m) => said.push(m.text));
+    await v.execute('cursor.next', { section: Section });
+    const loc = rangesLocation('/data/p', [2, 8]);
+    v.selection.set({ elements: v.selection.value.value.elements, location: loc, shown: loc });
+    // the cursor and the hover come later, within the gap
+    a.say('a hover', 'hover');
+    a.say('a cursor', 'cursor');
+    expect(said).toHaveLength(1);
+    clock += 700;
+    frames.timers.fire();
+    expect(said).toEqual(['s, p 1, letter M', 'Selected 6 positions, p 3–8']);
+    a.dispose();
+  });
+
+  it('says nothing of the cursor or hover during a drag, and the selection once when it ends', async () => {
+    const v = await make();
+    const a = new Announcer(v, { minGapMs: 0, restMs: 500 });
+    const said: string[] = [];
+    a.message.listen((m) => said.push(m.text));
+    const loc = rangesLocation('/data/p', [2, 8]);
+    v.selection.beginDrag({ system: '/data/p', position: 2 } as never);
+    v.selection.set({ elements: v.selection.value.value.elements, location: loc, shown: loc });
+    await v.execute('cursor.next', { section: Section });
+    expect(said).toEqual([]);
+    clock += 10;
+    frames.timers.fire();
+    // still dragging: still nothing
+    expect(said).toEqual([]);
+    v.selection.endDrag();
+    frames.timers.fire();
+    expect(said).toEqual(['Selected 6 positions, p 3–8']);
+    a.dispose();
+  });
+
+  it('says a key that leaves the cursor where it was: the same words, a new message', async () => {
+    const v = await make();
+    const a = new Announcer(v, { minGapMs: 0 });
+    const said: { id: number; text: string }[] = [];
+    a.message.listen((m) => said.push(m));
+    await v.execute('cursor.prev', { section: Section });
+    await v.execute('cursor.prev', { section: Section });
+    expect(said.map((m) => m.text)).toEqual(['s, p 1, letter M', 's, p 1, letter M']);
+    expect(said[1].id).toBeGreaterThan(said[0].id);
     a.dispose();
   });
 
@@ -141,7 +216,7 @@ describe('the announcer', () => {
     const v = await make();
     const a = new Announcer(v, { minGapMs: 0 });
     const said: string[] = [];
-    a.message.listen((m) => said.push(m));
+    a.message.listen((m) => said.push(m.text));
     const loc = rangesLocation('/data/p', [2, 8]);
     v.selection.set({ elements: v.selection.value.value.elements, location: loc, shown: loc });
     expect(said).toEqual(['Selected 6 positions, p 3–8']);
@@ -183,8 +258,73 @@ describe('the mounted live region', () => {
     expect(live).toHaveLength(1);
     await v.execute('cursor.next', { section: Section });
     expect(live[0].textContent).toBe('s, p 1, letter M');
+    // a key that leaves the cursor in place clears and sets the region again: the same words are heard again
+    const writes: string[] = [];
+    new MutationObserver(() => {}).observe(live[0], { childList: true });
+    const spy = vi
+      .spyOn(live[0], 'textContent', 'set')
+      .mockImplementation((t: string | null) => void writes.push(t ?? ''));
+    clock += 1000;
+    await v.execute('cursor.prev', { section: Section });
+    expect(writes).toEqual(['', 's, p 1, letter M']);
+    spy.mockRestore();
     v.retire();
     expect(target.querySelector('[role="status"]')).toBeNull();
+  });
+});
+
+describe('forced colors, whatever the theme source', () => {
+  it('maps a configured theme’s tokens to the system colors when the platform forces them', async () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(600);
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (this: HTMLCanvasElement) {
+      return ((this as any).__ctx ??= new RecordingContext());
+    });
+    const win = document.defaultView!;
+    let on = true;
+    const listeners = new Set<() => void>();
+    Object.defineProperty(win, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (media: string) => ({
+        media,
+        get matches() {
+          return on && media === '(forced-colors: active)';
+        },
+        addEventListener: (_: string, fn: () => void) => media === '(forced-colors: active)' && listeners.add(fn),
+        removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+      }),
+    });
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    const v = createSeqViewer(
+      {
+        ...DefaultSeqViewerSpec(),
+        ui: { canvas: true as const, history: true as const },
+        config: [[viewerItem('theme.source'), 'config']] as never,
+      },
+      target,
+    );
+    viewers.push(v);
+    const plain = builtInTokens('light');
+    expect(v.tokens.version).not.toBe(plain.version);
+    // the accent, the hover and the window are one color, the system's Highlight; the accent was another
+    expect(v.tokens.colors['msui-accent']).not.toBe(plain.colors['msui-accent']);
+    expect(colorHex(v.tokens.colors['seq-hover']).slice(0, 7)).toBe(
+      colorHex(v.tokens.colors['msui-accent']).slice(0, 7),
+    );
+    // the platform stops forcing: the configured table is back
+    on = false;
+    for (const fn of listeners) fn();
+    expect(v.tokens.version).toBe(plain.version);
+    Reflect.deleteProperty(win, 'matchMedia');
   });
 });
 

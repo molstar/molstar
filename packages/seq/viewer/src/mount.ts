@@ -4,7 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CanvasBackend, type CanvasLike, FontCache, readCssTokens, ThemeAttribute } from '@molstar/seqx-viewer/canvas';
+import {
+  CanvasBackend,
+  type CanvasLike,
+  FontCache,
+  forcedColorsActive,
+  forcedColorTokens,
+  readCssTokens,
+  readSystemColors,
+  ThemeAttribute,
+} from '@molstar/seqx-viewer/canvas';
 import { Announcer } from './announcer.js';
 import { createDragSession } from './drag-session.js';
 import type { SeqViewer } from './viewer.js';
@@ -46,9 +55,9 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   target.appendChild(container);
   const announcer = new Announcer(viewer);
   // cleared, then set: the same words twice are heard twice
-  const stopSaying = announcer.message.listen((text) => {
+  const stopSaying = announcer.message.listen((said) => {
     live.textContent = '';
-    live.textContent = text;
+    live.textContent = said.text;
   });
 
   // the token table: the root's computed style (`theme.source: 'root'`) read before the first frame, and again when
@@ -220,8 +229,19 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   reduced?.addEventListener?.('change', onReduced);
 
   // forced colors begin or end (the reader's platform setting): the table is read again, from the system colors or not
-  const forced = viewer.config.theme.source === 'root' ? win?.matchMedia?.('(forced-colors: active)') : undefined;
-  const onForced = () => viewer.setTokens(readCssTokens(container));
+  // whatever the theme source: the root's CSS (read again, forced inside `readCssTokens`) or the configured theme's
+  // table under the system colors
+  const forced = win?.matchMedia?.('(forced-colors: active)');
+  const configured = viewer.tokens;
+  const onForced = () =>
+    viewer.setTokens(
+      viewer.config.theme.source === 'root'
+        ? readCssTokens(container)
+        : forcedColorsActive(win)
+          ? forcedColorTokens(configured, readSystemColors(container))
+          : configured,
+    );
+  if (viewer.config.theme.source !== 'root' && forcedColorsActive(win)) onForced();
   forced?.addEventListener?.('change', onForced);
 
   // a web font arrived: what was measured is measured again

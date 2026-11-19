@@ -46,8 +46,12 @@ export function itemText(system: string, item: ItemDescription): string {
   return `${item.label}, ${system} ${spanText(item.start, item.end)}`;
 }
 
-/** The most items an export names a layer by: a figure of thousands names its tracks, and says how many more. */
-export const MaxNamedItems = 200;
+/**
+ * The most items an export names in all (a figure of thousands names its tracks, and says how many more, per track
+ * and in the description) and the most a track names (so one track does not use the figure's whole share).
+ */
+export const MaxNamedItems = 2000;
+export const MaxNamedItemsPerTrack = 200;
 
 /**
  * What an export's SVG says of the figure: its title (the spec's), a description of its sections and tracks, each
@@ -62,6 +66,8 @@ export function accessibleOf(
 ): SvgAccessible {
   const tracks: SvgAccessible['tracks'][number][] = [];
   const sections: string[] = [];
+  let named = 0;
+  let unnamed = 0;
   for (const s of layout.sections) {
     const system = model.systems.get(s.section.axis.system)?.name ?? s.section.axis.system;
     sections.push(`${s.id} (${system}, ${s.tracks.length} track${s.tracks.length === 1 ? '' : 's'})`);
@@ -74,16 +80,18 @@ export function accessibleOf(
         const dataSystem = (l.layer.data?.system && model.systems.get(l.layer.data.system)?.name) || system;
         for (const it of described) {
           total++;
-          if (items.length >= MaxNamedItems) continue;
+          if (items.length >= MaxNamedItemsPerTrack || named >= MaxNamedItems) continue;
+          named++;
           items.push({
-            title: itemText(dataSystem, it),
+            title: itemText((it.system && model.systems.get(it.system)?.name) || dataSystem, it),
             x: it.x0,
-            y: t.box.y,
+            y: it.y ?? t.box.y,
             width: Math.max(0, it.x1 - it.x0),
-            height: t.box.height,
+            height: it.height ?? t.box.height,
           });
         }
       }
+      unnamed += total - items.length;
       const more = total > items.length ? `, ${total - items.length} more not named` : '';
       tracks.push({
         title: `${t.track.label}${total ? `: ${total} item${total === 1 ? '' : 's'}${more}` : ''} (${s.id})`,
@@ -97,9 +105,10 @@ export function accessibleOf(
   }
   return {
     title,
-    description: sections.length
-      ? `${sections.length} section${sections.length === 1 ? '' : 's'}: ${sections.join('; ')}`
-      : 'An empty view',
+    description:
+      (sections.length
+        ? `${sections.length} section${sections.length === 1 ? '' : 's'}: ${sections.join('; ')}`
+        : 'An empty view') + (unnamed ? `. ${count(unnamed)} more items not named` : ''),
     tracks,
     highlights: highlights.map((h, i) => `Highlight ${i + 1}: ${locationText(model, h.location)}`),
   };

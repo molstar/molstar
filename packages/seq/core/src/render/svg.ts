@@ -103,8 +103,9 @@ export interface SvgAccessible {
 
 export interface SvgOptions {
   /**
-   * The figure's names: the root is an image (`role="img"`) labelled by its `<title>` and `<desc>`; a group a track,
-   * each item and each highlight with a `<title>` of its own, over transparent boxes at their places.
+   * The figure's names: the root is a figure (`role="figure"`) labelled by its `<title>` and `<desc>`; a group a track,
+   * each item (an image) and each highlight with an `aria-label` and a `<title>` of its own, over boxes at their
+   * places that nothing paints and no pointer hits (`pointer-events="none"`: the picture beneath stays the target).
    */
   readonly accessible?: SvgAccessible;
   /** The font stacks the family roles name (the token table's). */
@@ -259,15 +260,25 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
   const title =
     titleText === undefined ? '' : `<title${a ? ` id="${prefix}title"` : ''}>${escapeXml(titleText)}</title>`;
   const desc = a ? `<desc id="${prefix}desc">${escapeXml(a.description)}</desc>` : '';
-  const labelled = a ? ` role="img" aria-labelledby="${prefix}title ${prefix}desc"` : '';
+  const labelled = a ? ` role="figure" aria-labelledby="${prefix}title ${prefix}desc"` : '';
   const defsBlock = defs.length ? `<defs>${defs.join('')}</defs>` : '';
   if (a) body.push(accessibleGroups(a));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"${labelled}${meta}>${title}${desc}${defsBlock}${body.join('')}</svg>`;
 }
 
 /** A box nothing paints and a pointer still hits: its `<title>` is the tooltip and the accessible name. */
-function named(kind: string, title: string, x: number, y: number, w: number, h: number, inner = ''): string {
-  return `<g data-seq-${kind}=""><title>${escapeXml(title)}</title><rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(h)}" fill="none" pointer-events="all"/>${inner}</g>`;
+function named(
+  kind: string,
+  role: string,
+  title: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  inner = '',
+): string {
+  const t = escapeXml(title);
+  return `<g data-seq-${kind}="" role="${role}" aria-label="${t}"><title>${t}</title><rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(h)}" fill="none" pointer-events="none"/>${inner}</g>`;
 }
 
 /** The figure's accessible groups, over the picture: each track with its items, then the highlights. */
@@ -277,15 +288,17 @@ function accessibleGroups(a: SvgAccessible): string {
     out.push(
       named(
         'track',
+        'group',
         t.title,
         t.x,
         t.y,
         t.width,
         t.height,
-        t.items.map((i) => named('item', i.title, i.x, i.y, i.width, i.height)).join(''),
+        t.items.map((i) => named('item', 'img', i.title, i.x, i.y, i.width, i.height)).join(''),
       ),
     );
-  for (const h of a.highlights) out.push(`<g data-seq-highlight=""><title>${escapeXml(h)}</title></g>`);
+  for (const h of a.highlights)
+    out.push(`<g data-seq-highlight="" role="img" aria-label="${escapeXml(h)}"><title>${escapeXml(h)}</title></g>`);
   out.push('</g>');
   return out.join('');
 }

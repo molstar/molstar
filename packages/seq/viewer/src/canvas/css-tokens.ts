@@ -111,6 +111,26 @@ export function forcedColorTokens(tokens: SeqTokens, system: SystemColors = Defa
   return createTokens(tokens.theme, colors, tokens.fonts, tokens.logoChroma);
 }
 
+/** The system colors of a root's page, resolved by the browser through a probe element's `color`. */
+export function readSystemColors(root: Element): SystemColors {
+  const doc = root.ownerDocument;
+  const win = doc.defaultView;
+  const probe = root.appendChild(doc.createElement('span'));
+  const sys = (name: keyof SystemColors) => {
+    probe.style.color = '';
+    probe.style.color = name;
+    return (win && cssColorToHex(win.getComputedStyle(probe).color)) || DefaultSystemColors[name];
+  };
+  const out = {
+    Canvas: sys('Canvas'),
+    CanvasText: sys('CanvasText'),
+    Highlight: sys('Highlight'),
+    GrayText: sys('GrayText'),
+  };
+  probe.remove();
+  return out;
+}
+
 /** Whether the platform forces colors now. */
 export function forcedColorsActive(win: Window | null | undefined): boolean {
   return !!win?.matchMedia?.('(forced-colors: active)')?.matches;
@@ -143,21 +163,7 @@ export function readCssTokens(root: Element): SeqTokens {
   for (const name of SeqTokenNames)
     colors[name] = resolve(style.getPropertyValue(`--${name}`)) ?? colorHex(fallback.colors[name]);
   // under forced colors the system colors, resolved by the browser through the probe's `color`
-  let system: SystemColors | undefined;
-  if (forcedColorsActive(win)) {
-    const sys = (name: keyof SystemColors) => {
-      probe ??= root.appendChild(doc.createElement('span'));
-      probe.style.color = '';
-      probe.style.color = name;
-      return cssColorToHex(win.getComputedStyle(probe).color) ?? DefaultSystemColors[name];
-    };
-    system = {
-      Canvas: sys('Canvas'),
-      CanvasText: sys('CanvasText'),
-      Highlight: sys('Highlight'),
-      GrayText: sys('GrayText'),
-    };
-  }
+  const system = forcedColorsActive(win) ? readSystemColors(root) : undefined;
   probe?.remove();
 
   const font = (name: string, def: string) => style.getPropertyValue(`--msui-font-${name}`).trim() || def;
