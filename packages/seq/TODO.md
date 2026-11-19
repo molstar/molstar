@@ -122,9 +122,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   bars are linear); a `field` form's `:data` (a field of another annotation); forced colors (`forced-colors: active`:
   the system's palette); the column measures (`share`, `identity`, `matches-reference`) registered by an alignment's
   layers; `classes` (the default protein scheme) is not safe under the three deficiencies (its substitute is drawn under
-  `theme.cvdSafe`): a safe default, a design decision; the themed layout is 1.12–1.15× the uniform one (10,000 ranges,
-  the bound 1.1×: the per-item datum and the size channel), a column-wise evaluation; the `theme/` entry is reached
-  through the `./*` export (`theme/index`): its own `./theme` export.
+  `theme.cvdSafe`): a safe default, a design decision; the `theme/` entry is reached through the `./*` export
+  (`theme/index`): its own `./theme` export.
 
 ## `@molstar/seqx-viewer`
 
