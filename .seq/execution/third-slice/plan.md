@@ -211,7 +211,7 @@ and dark before the merge.
       label drawn twice at one position (the Figure's "70"), one label a position and none overlapping.
 - [x] RF (fast, beside NV and MD; the author, 2026-11-19) the rows' numbers in view, an end number past the row's
       range, the last row cut off (`briefs/rf-rows-fixes.md`).
-- [ ] GD (strong, after PG and NV: it touches the viewer's config and the themes' render) the gaps decided as
+- [x] GD (strong, after PG and NV: it touches the viewer's config and the themes' render) the gaps decided as
       recommended (`gaps.md`, 2026-11-19): the lists-free palette module in `@molstar/core` (the agreed surface:
       non-breaking, re-exported); `classes-safe` and every substitute safe; the dark letter cells' edge
       (`seq-cell-edge`); one `view.motion` (`platform | cut | animate`), `story.reducedMotion` dropped; the pyramid's

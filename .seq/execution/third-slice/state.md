@@ -70,9 +70,12 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
   and plasmid strip blank at dpr 2; placement; the overview's width and rows window; the rows rail, decided; the
   wash). Post-merge: unit 161 / 1578, typechecks, storybook, lint, format, perf 102, the `.seq` checks: exit 0.
 
+- GD merged (`b69771348`, changelog `seq-gap-decisions.md`): gaps 1-6 and the individual colour-list exports (-13.4 kB);
+  review findings fixed; looked at in dark. Every ColorLists importer typechecks; MVS and the base sequences pass.
+
 ## In progress
 
-- GD (strong): the gaps decided, `briefs/gd-gap-decisions.md`, started 2026-11-19.
+- Stages 3 and 4's gate, run together (2026-11-19): heavy alone, medium, build, check:workspace, then times, sizes.
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
   for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; agreed by the author 2026-11-19 ("Other recommendations from
