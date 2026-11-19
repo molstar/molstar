@@ -273,14 +273,16 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   (`<annotation>/(not :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads them
   (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
   (`compileRowFilter`); the track's label column shows "n filtered" (`TrackLayout.filter`), a hit on it
-  `target: 'filter'`. A form not read row by row filters nothing and is `seq.render.filter`. **One rule for the base and
-  the filter** (`splitDataForms`, read by the layers and the viewer's `dataFilter` alike): a leading run of item forms
-  (`and` and `or` of them too) is the track's base (`<annotation>/(item :category Domain)`; `ResolvedLayer.data.base`,
-  `LayerSource.base`): its rejected rows are left out and not counted as filtered; a trailing `(not …)` is the user's
-  (`data.filter`) and counted. Why: one read of a file serves a layer a feature type, and the chip counts what the user
-  hid, not what the track is. A lone form of another kind stays the filter (and is `seq.render.filter` when no row reads
-  it); any other mix of forms is `seq.render.filter` too (`data.unread`), every row drawn. Density tables take neither
-  the base nor the wrap: they are counts of what a source served.
+  `target: 'filter'`: on a track of two lines' height on a line of its own under the label (`filter.dy`, the label
+  whole, the two lines centred together), else at the column's end with the label fading before it. A form not read row
+  by row filters nothing and is `seq.render.filter`. **One rule for the base and the filter** (`splitDataForms`, read by
+  the layers and the viewer's `dataFilter` alike): a leading run of item forms (`and` and `or` of them too) is the
+  track's base (`<annotation>/(item :category Domain)`; `ResolvedLayer.data.base`, `LayerSource.base`): its rejected
+  rows are left out and not counted as filtered; a trailing `(not …)` is the user's (`data.filter`) and counted. Why:
+  one read of a file serves a layer a feature type, and the chip counts what the user hid, not what the track is. A lone
+  form of another kind stays the filter (and is `seq.render.filter` when no row reads it); any other mix of forms is
+  `seq.render.filter` too (`data.unread`), every row drawn. Density tables take neither the base nor the wrap: they are
+  counts of what a source served.
 
 ## Issues
 
@@ -946,6 +948,8 @@ no target.
   section of blocks takes that section's blocks and axis (their display units, on the leader's address), its follow the
   identity on those units, and its y the same blocks (`followsX`). Its tracks' layers are placed per block as a section
   of blocks' are. Why the leader's blocks: the section of blocks already orders the chains and their copies on one axis.
+  Refused (`seq.view.section.system`): a grid with blocks of its own, and one following blocks in a stack or on a ring
+  (the plot's axes are a row's units).
 - **Blocks**: each its axis (its system, its `range`, the section's direction), its first display unit in the section's
   (`offset`: 0 in a stack), its label, the blocks it stands for (`members`), and each of the section's tracks' layers
   resolved onto its system (a path a block: placed on each block its data reaches; a layer that reaches no block says
@@ -1712,9 +1716,11 @@ numbers): a window move allocates nothing once warm.
   across (`strips.block`) and y's down (`strips.yBlock`, its first unit `strips.yFirst`, in the lays' key), each block
   laid as a row of blocks is (`BlockRow`, gaps between them), y over x's window and the plot's height; the strip's bands
   that pair's cell; `at` finds the strip by x and y. Its follow is the identity on the leader's units (the tracks
-  layout's "several systems cannot follow" does not apply). Chrome: each chain boundary a 1 px `seq-break` hairline
-  across the plot (in the gap before the block, down at an x boundary, across at a y one) and each block's label at the
-  label column's right edge at its y.
+  layout's "several systems cannot follow" does not apply; a follower that is no grid still is refused). The y blocks'
+  transforms are made once a place and shared by the x blocks' strips. A hit on it carries its x block (`Hit.block`) and
+  its y block (`Hit.yBlock`). Chrome: each chain boundary past the first block a 1 px `seq-break` hairline in the gap
+  before the block (down the plot at an x boundary, across it at a y one), the first track's label at the plot's top,
+  each y block's label at the label column's right edge at its top (below the track's label when it starts there).
 
 ### Lanes and Hits
 
@@ -1797,7 +1803,7 @@ numbers): a window move allocates nothing once warm.
 - **Only on its own systems**: x and y of the section must be the grid's (`seq.render.grid.systems`); no strip y is
   `seq.render.layer.axes`. Why: a grid is not projected; a generator computes it on the systems it is drawn on. Over
   blocks a grid draws on the strips of its own pair of systems only, silently on the others: a matrix over the complex
-  is one grid node a pair of chains.
+  is one grid node a pair of chains. A lay on another pair's strip is `off`: it draws nothing, its emphasis neither.
 - **Drawn**: at `grid.rectMinPx` a cell and above, rects with outlines; below, `image` tiles (`ImageTile`, 256 × 256
   samples, never smoothed) from the shared 2D reduction (`render/pyramid.ts`: square levels, factor 2, `aggregate`'s
   reducer `mean`, `max` or `min`; a triangle's over its own cells alone, the others missing, so a coarse sample on the
@@ -1813,16 +1819,18 @@ numbers): a window move allocates nothing once warm.
   or not (outside a triangle too). Why: the crosshair reads the two positions everywhere on the plot.
 - **Emphasis along y** (the crosshair, EC-145): for the hover, the selection, its projected part and every highlight
   channel, a column at each lit x (the strip's x painting) and a row at each lit y (the layer's own, through its y
-  transform, across x's extent); the hovered cell outlined, its row and column tinted (`seq-hover`); a selected rect
-  drawn as its rect, and on a section showing both its systems never its sides projected back (`rectOver`: the strip's x
-  painting and the layer's rows skip them). Linked sections light both positions (the hover's location has a y part).
-  Nothing allocated once warm: positions and colors go through typed scratch; a hit reads its point from `at`
+  transform, across x's extent); the hovered cell outlined, its row and column tinted and edged in the hover's ink
+  (`seq-hover`, the theme's contrast token: they read on either end of a palette); a selected rect drawn as its rect,
+  and on a section showing both its systems never its sides projected back (`rectOver`: the strip's x painting and the
+  layer's rows skip them). Linked sections light both positions (the hover's location has a y part). Nothing allocated
+  once warm: positions and colors go through typed scratch; a hit reads its point from `at`
   (`AxisTransform.positionOf`). Over blocks the hover's column is painted on every strip of its x system, its row on
   every strip of its y system, the cell outlined on the one strip of both.
 - **A summary over a rect** (`gridSummary(view, rect)`, `view` a model and a resolved view): the mean, least and
   greatest value and the count of the cells inside the Location's rects of every grid a grid layer of the view draws
-  (each grid once, on a rect of its two systems), missing values left out; NaN with no cell. A library function, no
-  state: a host's readout reads it (a selected rect's mean PAE).
+  (each grid once, on a rect of its two systems), each cell once however many rects hold it (an added drag's overlap),
+  within the layer's `triangle`, missing values left out; NaN with no cell. A library function, no state: a host's
+  readout reads it (a selected rect's mean PAE).
 
 ### Tensions (pairs and grids)
 

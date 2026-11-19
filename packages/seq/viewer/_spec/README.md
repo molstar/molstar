@@ -283,11 +283,6 @@ the region (a press there says it too, a tap's hover).
   `endRectDrag(cancel?)` drag a rect in `replace`, `add`, `subtract` (rects subtract exactly: core's Location) or
   `extend` (from the cell anchor); a cancel gives back the selection. Why rects, not two ranges: a range of each axis is
   every row and column, not the block between them.
-- **A rect over blocks** (a grid over a complex, its section's blocks): `beginRectDrag(cell, mode, blocks)` with the
-  section's blocks (`RectBlock`: system, axis, first unit), `rectDragTo(position, yPosition, system, ySystem)` to a cell
-  on any block: the span between the two cells in display units on each axis split at the blocks' boundaries
-  (`blocksRect`), a rect a pair of parts, one per pair of systems (copies merge). Why units: a drag across a chain
-  boundary is one gesture over the plot, its selection a part a chain.
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all
@@ -712,6 +707,12 @@ rows' commands) reads the last frame's rows layers through the behavior context'
 - `select` on a grid: a hit with a `ySystem` that is no rows axis and no element is a cell of two axes, and the same
   commands and drag modes act on its rect (`selectCell`, the rect drag): click a one-cell rect, Shift+click the rect
   from the anchor, Cmd/Ctrl+click toggles, a drag the rect, Cmd/Ctrl+drag adds, Alt+drag subtracts.
+- **A rect over blocks** (`select` on a grid over a section of blocks, a grid over a complex): the drag is the
+  behavior's own (`behaviors/blocks-rect.ts`, internal: not re-exported): each cell's display units on the hit strip's
+  own blocks (`Hit.block`, `Hit.yBlock`: a copy split is told from its twin), the span between the two cells on each
+  axis split at the blocks' boundaries, a rect a pair of parts (one per pair of systems), set on the selection by the
+  drag's mode from the selection as it began (`set`, `add`, `subtract`), Esc giving that back. The model's rect drag is
+  unchanged. Why units: a drag across a chain boundary is one gesture over the plot, its selection a part a chain.
 - `select`: clicks and drags to the selection through the bindings (`selection.set`, `selection.extend`,
   `selection.toggle` with the context's `hit`, `selection.clear` with Esc; a drag bound to `drag-select`, `drag-add`,
   `drag-subtract` or `drag-extend` drags in that mode), so a key, a menu and a test select alike; `selection.add` and

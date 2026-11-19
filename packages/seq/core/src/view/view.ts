@@ -398,13 +398,21 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     const system = exactAddress(param(s, 'of') ?? (first ? param(first, 'of') : undefined));
     const leader = exactAddress(param(s, 'follow'));
     const lead = leader === undefined ? undefined : byAddress.get(leader);
-    if (
-      system === undefined &&
-      (param(s, 'layout') ?? viewLayout) === 'grid' &&
-      leader !== undefined &&
-      lead &&
-      blockNodes(lead).length
-    ) {
+    const grid = (param(s, 'layout') ?? viewLayout) === 'grid';
+    if (grid && first) {
+      // a grid over blocks takes its leader's: it has none of its own (_spec/README.md "Resolved view", A grid over blocks)
+      report('seq.view.section.system', 'A grid section has no blocks of its own: it follows a section of blocks', at);
+      systemOf.set(at, '');
+      continue;
+    }
+    if (grid && param(s, 'of') === undefined && leader !== undefined && lead && blockNodes(lead).length) {
+      // the leader's blocks in a row (the plot's axes are their units): not a stack, not a ring
+      const leadLayout = param(lead, 'layout') ?? viewLayout;
+      if (param(lead, 'arrange') === 'stack' || leadLayout !== 'tracks') {
+        report('seq.view.section.system', 'A grid follows a section of blocks in a row only', at);
+        systemOf.set(at, '');
+        continue;
+      }
       overBlocks.set(at, leader);
       systemOf.set(at, '');
       continue;

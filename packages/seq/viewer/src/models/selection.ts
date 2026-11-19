@@ -216,54 +216,6 @@ export function cellsRect(a: GridCell, b: GridCell): Location {
   });
 }
 
-/** A block of a section a grid over blocks is laid on: its system, its axis and its first display unit there. */
-export interface RectBlock {
-  readonly system: string;
-  readonly axis: Axis;
-  readonly offset: number;
-}
-
-/**
- * The rect from one cell to another over a section of blocks (a grid over a complex): the cells' display units, the
- * span between them on each axis split at the blocks' boundaries into a part a block, a rect a pair of parts (one per
- * pair of systems: copies merge). Undefined when a cell's system is no block's.
- */
-export function blocksRect(blocks: readonly RectBlock[], a: GridCell, b: GridCell): Location | undefined {
-  const unit = (system: string, position: number) => {
-    for (const k of blocks) {
-      if (k.system !== system) continue;
-      const o = cellOffset(k.axis, position);
-      if (o !== undefined) return k.offset + o;
-    }
-    return undefined;
-  };
-  const ax = unit(a.system, Math.floor(a.position));
-  const bx = unit(b.system, Math.floor(b.position));
-  const ay = unit(a.ySystem, Math.floor(a.yPosition));
-  const by = unit(b.ySystem, Math.floor(b.yPosition));
-  if (ax === undefined || bx === undefined || ay === undefined || by === undefined) return undefined;
-  // each block's part of the units [u0, u1]: its positions there
-  const parts = (u0: number, u1: number) => {
-    const out: { system: string; ranges: number[] }[] = [];
-    for (const k of blocks) {
-      const n = axisTotal(k.axis) ?? 0;
-      const s = Math.max(u0, k.offset);
-      const e = Math.min(u1, k.offset + n - 1);
-      if (e < s) continue;
-      const p0 = positionAt(k.axis, s - k.offset + 0.5);
-      const p1 = positionAt(k.axis, e - k.offset + 0.5);
-      if (p0 === undefined || p1 === undefined) continue;
-      const lo = Math.floor(Math.min(p0, p1));
-      out.push({ system: k.system, ranges: [lo, Math.floor(Math.max(p0, p1)) + 1] });
-    }
-    return out;
-  };
-  const xs = parts(Math.min(ax, bx), Math.max(ax, bx));
-  const ys = parts(Math.min(ay, by), Math.max(ay, by));
-  const rects = xs.flatMap((x) => ys.map((y) => ({ a: x, b: y })));
-  return location({ rects });
-}
-
 /** Whether every cell of `r` is in `loc`'s rects. */
 function rectInside(r: Location, loc: Location): boolean {
   return subtractLocations(location({ rects: r.rects }), location({ rects: loc.rects })).rects.length === 0;
@@ -316,7 +268,7 @@ export class SelectionModel extends ReactiveModel {
     | undefined;
   /** Where a rect's extend starts (a grid's cell), and a rect drag's first cell and the selection when it began. */
   private _cellAnchor: GridCell | undefined;
-  private _rectDrag: { from: GridCell; mode: DragMode; before: Emphasized; blocks?: readonly RectBlock[] } | undefined;
+  private _rectDrag: { from: GridCell; mode: DragMode; before: Emphasized } | undefined;
   private readonly _scope: ExtendScope;
   private readonly _across: 'shown' | 'span';
   /** The selection: an equal value tells nothing. */
@@ -576,14 +528,13 @@ export class SelectionModel extends ReactiveModel {
   }
 
   /** A rect drag begins on a cell: it replaces, adds to, takes out of the selection, or extends from the cell anchor. */
-  beginRectDrag(cell: GridCell, mode: DragMode = 'replace', blocks?: readonly RectBlock[]): void {
+  beginRectDrag(cell: GridCell, mode: DragMode = 'replace'): void {
     const a = this._cellAnchor;
     const extend = mode === 'extend' && !!a && a.system === cell.system && a.ySystem === cell.ySystem;
     this._rectDrag = {
       from: extend ? a! : cell,
       mode: mode === 'extend' && !extend ? 'replace' : mode,
       before: this._value.value,
-      ...(blocks ? { blocks } : {}),
     };
     if (!extend) this._cellAnchor = cell;
   }
@@ -592,14 +543,11 @@ export class SelectionModel extends ReactiveModel {
    * The rect drag's other cell: the rect between the two replaces the selection, is added to or taken out of it as it
    * was when the drag began (rects subtract: at most two rects, the cells exact). True when the selection changed.
    */
-  rectDragTo(position: number, yPosition: number, system?: string, ySystem?: string): boolean {
+  rectDragTo(position: number, yPosition: number): boolean {
     const d = this._rectDrag;
     if (!d || Number.isNaN(position) || Number.isNaN(yPosition)) return false;
     const before = this._value.value;
-    // over blocks the other cell may be on other systems: the rect split at the blocks' boundaries
-    const to = { system: system ?? d.from.system, position, ySystem: ySystem ?? d.from.ySystem, yPosition };
-    const r = d.blocks ? blocksRect(d.blocks, d.from, to) : cellsRect(d.from, to);
-    if (!r) return false;
+    const r = cellsRect(d.from, { ...d.from, position, yPosition });
     switch (d.mode) {
       case 'replace':
       case 'extend':

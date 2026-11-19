@@ -15,7 +15,7 @@
 // them), its bands that pair's cell; the chain boundaries hairlines across the plot, the blocks' labels on both axes.
 
 import { AxisTransform, type Viewport } from '../axis.js';
-import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
+import { Anchor, grown, type PassName, type PassWriter } from '../draw-lists.js';
 import type { SectionLayout } from '../tracks.js';
 import { BlockRow, type ResolvedBlock } from './blocks.js';
 import { type PlacePoint, StripPlacement } from './strips.js';
@@ -43,6 +43,8 @@ export class GridPlacement extends StripPlacement {
   /** A grid over blocks: the blocks laid along x and along y (null otherwise). */
   xRow: BlockRow | null = null;
   yRow: BlockRow | null = null;
+  /** Each y block's transform down the plot (made once a place, reused by every x block's strips). */
+  readonly yAxes: (AxisTransform | undefined)[] = [];
 
   override at(p: ArrayLike<number>, out: PlacePoint): boolean {
     if (!this.xRow) return super.at(p, out);
@@ -85,7 +87,9 @@ export class GridPlacement extends StripPlacement {
 /** A row of a section's blocks over `[x0, x0 + width)` (a grid's axis across or down) for window `[u0, u1)`. */
 function blockRow(row: BlockRow, blocks: readonly ResolvedBlock[], x0: number, width: number, u0: number, u1: number) {
   row.reset(blocks.length);
-  row.chip = new Float64Array(blocks.length);
+  // no chips on a plot's axes: every block a position's share
+  row.chip = grown(row.chip, blocks.length);
+  row.chip.fill(0);
   row.x0 = x0;
   row.width = width;
   for (let b = 0; b < blocks.length; b++) {
@@ -109,6 +113,18 @@ function placeBlocksGrid(section: ResolvedSection, ctx: PlaceContext, p: GridPla
   blockRow(xr, blocks, x.x0, x.width, x.u0, x.u1);
   const yv = ctx.y?.viewport ?? { start: x.u0, end: x.u1 };
   blockRow(yr, blocks, top, h, yv.start, yv.end);
+  const ys = p.yAxes;
+  ys.length = blocks.length;
+  for (let c = 0; c < blocks.length; c++) {
+    const oc = yr.offset[c];
+    ys[c] =
+      yr.ve[c] > yr.vs[c] && blocks[c].axis.ranges
+        ? AxisTransform.on(blocks[c].axis, blocks[c].axis.ranges!, yr.x[c], yr.w[c], ctx.dpr, {
+            start: yr.vs[c] - oc,
+            end: yr.ve[c] - oc,
+          })
+        : undefined;
+  }
   for (let b = 0; b < blocks.length; b++) {
     if (xr.ve[b] <= xr.vs[b] || !blocks[b].axis.ranges) continue;
     const ob = xr.offset[b];
@@ -117,12 +133,9 @@ function placeBlocksGrid(section: ResolvedSection, ctx: PlaceContext, p: GridPla
       end: xr.ve[b] - ob,
     });
     for (let c = 0; c < blocks.length; c++) {
-      if (yr.ve[c] <= yr.vs[c] || !blocks[c].axis.ranges) continue;
+      const ay = ys[c];
+      if (!ay) continue;
       const oc = yr.offset[c];
-      const ay = AxisTransform.on(blocks[c].axis, blocks[c].axis.ranges!, yr.x[c], yr.w[c], ctx.dpr, {
-        start: yr.vs[c] - oc,
-        end: yr.ve[c] - oc,
-      });
       const i = strips.add(ax, b, 0, 0, ob);
       strips.ys[i] = ay;
       strips.yBlock[i] = c;
@@ -300,9 +313,11 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
 }
 
 /**
- * A grid over blocks' chrome: each chain boundary a hairline across the plot (down it at an x boundary, across it at a
- * y one, `seq-break`), and each block's label on both axes: above the plot's top at its x, at the label column's right
- * edge at its y (elided to its extent, dropped when nothing of it fits).
+ * A grid over blocks' chrome: each chain boundary past the first block a 1 px `seq-break` hairline in the gap before the
+ * block (down the plot at an x boundary, across it at a y one, drawn while the gap is in view); the first track's label
+ * at the plot's top in the label column; and each y block's label at the label column's right edge at the block's top
+ * (below the track's label when it starts there), drawn when the block is at least 14 px tall. The x blocks' labels are
+ * their section's, above.
  */
 function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
   const { config, tokens } = s;
@@ -320,11 +335,20 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
     if (b > 0 && xr.f[b] > 0 && xr.ve[b] > xr.vs[b]) out.fill(xr.x[b] - 1, top, 1, h, ink);
     if (b > 0 && yr.f[b] > 0 && yr.ve[b] > yr.vs[b]) out.fill(xr.x0, yr.x[b] - 1, xr.width, 1, ink);
   }
+  const t = s.tracks[0];
+  if (t) {
+    g[0] = config.inset;
+    g[1] = top + 12;
+    g[2] = t.labelWidth;
+    g[3] = config.labelWidth;
+    g[4] = muted;
+    out.textArgs(t.track.label, AnchorStart, config.labelFont);
+  }
   for (let b = 0; b < blocks.length; b++) {
     const label = blocks[b].label;
     if (yr.ve[b] > yr.vs[b] && yr.w[b] >= 14) {
       g[0] = right;
-      g[1] = yr.x[b] + 12;
+      g[1] = yr.x[b] + (t && yr.x[b] - top < 20 ? 28 : 12);
       g[2] = 0;
       g[3] = config.labelWidth;
       g[4] = muted;

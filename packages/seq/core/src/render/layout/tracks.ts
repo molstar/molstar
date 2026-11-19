@@ -159,7 +159,9 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     for (const t of s.tracks) {
       // the "n filtered" chip in the label column: a click clears the filter
       const f = t.filter;
-      if (f && x >= f.x - 2 && x < f.x + f.width + 2 && y >= t.box.y && y < t.box.y + t.box.height)
+      // (on a line of its own under the label: its line's half of the track, the label's half not)
+      const y0 = f && f.dy ? t.labelY - f.dy / 2 + 2 : t.box.y;
+      if (f && x >= f.x - 2 && x < f.x + f.width + 2 && y >= y0 && y < t.box.y + t.box.height)
         return { layer: f.layer, section: s.id, system: '', target: 'filter', count: f.count } satisfies Hit;
     }
     return undefined;
@@ -169,17 +171,18 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
 /** A track's label in the label column, faded past it (`dy` below its first row: a stack's later blocks). */
 function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig, dy = 0) {
   const g = out.args;
-  g[0] = config.inset;
-  g[1] = t.labelY + dy;
-  g[2] = t.labelWidth;
   const f = t.filter;
-  // the label fades before the chip
-  g[3] = f ? Math.max(0, f.x - config.inset - 6) : config.labelWidth;
+  g[0] = config.inset;
+  // a chip on a line of its own: the two lines centred on the track together
+  g[1] = t.labelY + dy - (f ? f.dy / 2 : 0);
+  g[2] = t.labelWidth;
+  // the label fades before the chip beside it (a chip on a line of its own leaves it whole)
+  g[3] = f && !f.dy ? Math.max(0, f.x - config.inset - 6) : config.labelWidth;
   g[4] = tokens.colors['msui-text-muted'];
   out.textArgs(t.track.label, AnchorStart, config.labelFont);
   if (!f) return;
   g[0] = f.x;
-  g[1] = t.labelY;
+  g[1] = t.labelY + f.dy / 2;
   g[2] = f.width;
   g[3] = f.width;
   g[4] = tokens.colors['msui-accent'];

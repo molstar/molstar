@@ -125,6 +125,8 @@ export interface TrackLayout {
     readonly text: string;
     readonly x: number;
     readonly width: number;
+    /** Its line below the label's (px), on a track tall enough for two lines: the label then whole; else 0, beside it. */
+    readonly dy: number;
   };
 }
 
@@ -1338,7 +1340,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           const text = `${count} filtered`;
           const fw = input.text.measure(config.labelFont, text);
           const layer = own === sectionLays ? layerKey(track, l.layer) : l.key;
-          filter = { layer, count, text, x: config.inset + config.labelWidth - fw, width: fw };
+          // a track of two lines' height: the chip under the label, which keeps its width; else at the column's end,
+          // the label fading before it
+          const dy = box.height >= 2 * (labelSize + 6) ? labelSize + 4 : 0;
+          const x = dy ? config.inset : config.inset + config.labelWidth - fw;
+          filter = { layer, count, text, x, width: fw, dy };
           break;
         }
         if (filter) break;
@@ -2318,7 +2324,12 @@ function setWindow(
  * Hits): written into the layer's hit, no copy (a layer's hit is its lay's, and a lay is one strip's: one block's).
  */
 function withBlock(s: SectionLayout, strip: number, h: Hit): Hit {
-  if (s.section.blocks) (h as { block?: number }).block = s.placement.strips.block[strip];
+  if (s.section.blocks) {
+    const st = s.placement.strips;
+    (h as { block?: number }).block = st.block[strip];
+    // a grid over blocks: the strip's y block too
+    if (st.ys[strip]) (h as { yBlock?: number }).yBlock = st.yBlock[strip];
+  }
   return h;
 }
 

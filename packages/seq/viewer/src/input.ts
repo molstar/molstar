@@ -382,6 +382,8 @@ export class ViewerInput {
     out.navigator = h.navigator;
     // a block's hit: its positions on the block's own axis (a section of blocks on several systems)
     out.block = h.block;
+    // a grid over blocks' cell: its y block too (the rect drag reads its units on the hit strip's blocks)
+    out.yBlock = h.yBlock;
     return this._hit;
   }
 
