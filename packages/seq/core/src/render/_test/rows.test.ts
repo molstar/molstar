@@ -110,6 +110,9 @@ describe('the rows layer', () => {
       element: { key: lay.clades!.name[node] },
     });
     expect(hitView(f.layout, rx - 8.5, ry)?.target).not.toBe('tree-node');
+    // and stops at the label column: over a row's label the hit is the row's, whatever branch is near
+    for (let k = 0; k < lay.nodes.length; k += 3)
+      expect(hitView(f.layout, lay.labelX + 1, lay.nodes[k + 2])?.target).not.toBe('tree-node');
   });
 
   it('scrolls its rows in the band and zooms them; below 3 device px they draw as image tiles', async () => {

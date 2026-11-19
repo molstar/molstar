@@ -1076,7 +1076,9 @@ function rowHit(lay: RowsLay, i: number, position: number | undefined): Hit {
  */
 function nearestNode(lay: RowsLay, x: number, y: number): number {
   const reach = TreeHitPx;
-  if (x < lay.treeX0 - reach || x > lay.treeX1 + reach) return -1;
+  // the target stops at the label column: a point over a row's label is the row's (a cherry at the tree's edge would
+  // take it, the reach being more than the 4 px between the tree and the labels)
+  if (x < lay.treeX0 - reach || x > lay.treeX1 + reach || x >= lay.labelX) return -1;
   const w = lay.wedges;
   for (let k = 0; k + 4 < w.length; k += 5)
     if (x >= w[k] - reach && x <= w[k + 2] && y >= w[k + 1] && y <= w[k + 3]) return w[k + 4];

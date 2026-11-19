@@ -142,6 +142,8 @@ export class CanvasBackend {
   private readonly _labels: Context2D;
   private readonly _tip: Context2D | undefined;
   private _tipDirty = false;
+  /** Whether the tip canvas has its full backing size (a tip is drawn); else it is 1 × 1. */
+  private _tipFull = false;
   private readonly _colors = new ColorCache();
   private readonly _glyphs: string[] = [];
   private readonly _scratch = new PathList();
@@ -183,9 +185,7 @@ export class CanvasBackend {
     this.width = width;
     this.height = height;
     this.dpr = dpr;
-    for (const c of this._tip
-      ? [this.base, this.overlay, this.labels, this.options.tip!]
-      : [this.base, this.overlay, this.labels]) {
+    for (const c of [this.base, this.overlay, this.labels]) {
       // assigning a canvas's size clears it
       c.width = Math.max(1, Math.round(width * dpr));
       c.height = Math.max(1, Math.round(height * dpr));
@@ -193,6 +193,17 @@ export class CanvasBackend {
         c.style.width = `${width}px`;
         c.style.height = `${height}px`;
       }
+    }
+    // the tip canvas has no backing store of its size until a tip is drawn (a view with no hovered cell pays none)
+    const tip = this.options.tip;
+    if (tip) {
+      tip.width = 1;
+      tip.height = 1;
+      if (tip.style) {
+        tip.style.width = `${width}px`;
+        tip.style.height = `${height}px`;
+      }
+      this._tipFull = false;
     }
     this._sx = this.base.width / width;
     this._sy = this.base.height / height;
@@ -241,10 +252,24 @@ export class CanvasBackend {
     const some = lists.passes.tip.size > 0;
     if (!some && !this._tipDirty) return;
     this.counts.tip++;
+    const canvas = this.options.tip!;
+    if (!some) {
+      // the tip went: the backing store goes with it
+      canvas.width = 1;
+      canvas.height = 1;
+      this._tipFull = false;
+      this._tipDirty = false;
+      return;
+    }
+    if (!this._tipFull) {
+      canvas.width = this.base.width;
+      canvas.height = this.base.height;
+      this._tipFull = true;
+    }
     tip.setTransform(this._sx, 0, 0, this._sy, 0, 0);
     tip.clearRect(0, 0, this.width, this.height);
     this._drawPasses(lists, tip, TipPasses, false);
-    this._tipDirty = some;
+    this._tipDirty = true;
   }
 
   private _drawPasses(lists: DrawLists, ctx: Context2D, passes: readonly PassName[], countBase: boolean): void {

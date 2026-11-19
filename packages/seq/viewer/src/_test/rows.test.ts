@@ -229,6 +229,36 @@ describe('an alignment’s rows in the viewer', () => {
     expect(v.view.band(Track)?.bandTop).toBe(max - page);
   });
 
+  it('PageDown with pinned rows: the pinned band is not part of the page (200 px, 20 px rows, 2 pinned: row 8 is first)', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const labels = Array.from({ length: 40 }, (_, i) => `R${i + 1}`);
+    const b = createSeqSpec({ title: 'pinned' });
+    const aln = b.data.alignment('aln', {
+      alphabet: 'protein',
+      rows: { label: labels, letters: labels.map(() => 'MVLSPA') },
+    });
+    b.views.view('v', (v) =>
+      v
+        .section('s', { of: aln })
+        .track('rows', { label: '', height: 200 })
+        .layer('r', { type: 'rows', data: aln, pinned: ['R1', 'R2'] } as never),
+    );
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
+    viewer = v;
+    await v.load(b.build());
+    v.resize(400);
+    await v.settle();
+    frames.flush();
+    expect(lay(v).display.pinned).toBe(2);
+    expect(lay(v).rowScale).toBe(20);
+    expect(v.input.key({ key: 'PageDown' })).toBe(true);
+    frames.flush();
+    // 8 scrolled rows in the window, a page of 7: the 8th scrolled row is the first now (display row 7 after the pinned)
+    expect(v.view.band(Track)?.bandTop).toBe(7);
+    expect(lay(v).labelText[lay(v).display.pinned]).toBe('R8');
+  });
+
   it('the keys check reports a chord one key event matches with another command’s (Shift+= is `+`)', () => {
     expect(keyConflicts({ 'view.zoom-in': ['=', '+'], 'rows.zoom-in': [']'], 'rows.zoom-out': ['['] })).toEqual([]);
     const issues = keyConflicts({ 'view.zoom-in': ['+'], 'rows.zoom-in': ['Shift+='] });

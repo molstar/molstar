@@ -64,7 +64,11 @@ export interface LayoutContext {
   report(issue: Issue): void;
   /** The strip laid out (_spec/README.md "Render", Section layouts): `box` and `axis` are in its frame. */
   readonly strip?: number;
-  /** The view's width, CSS px: where a hover's text stops (a rows layer's cell read whole). */
+  /**
+   * The view's width, CSS px, in the page's frame (a strip's `box` is in the strip's own, translated by its `dx`: read
+   * with that in mind): where a hover's text stops (a rows layer's cell read whole). The tracks layout's strips are not
+   * translated, which is where a rows layer is laid out.
+   */
   readonly viewWidth?: number;
   /** The union of the strip's bands (a layer with `across`, frames, outlines it). */
   readonly span?: Box;

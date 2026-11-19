@@ -71,9 +71,12 @@ const ZoomStep = 2;
 export const MinRowScale = 1 / 64;
 export const MaxRowScale = 40;
 
-/** The band's top (display rows) a page on: the rows in its window less one, clamped to the band's ends. */
+/**
+ * The band's top (display rows) a page on: the scrolled rows in its window (the pinned band's rows are not scrolled)
+ * less one, clamped to the band's ends.
+ */
 function pagedTop(l: RowsLay, top: number, dir: 1 | -1): number {
-  const page = Math.max(1, Math.floor(l.box.height / l.rowScale) - 1);
+  const page = Math.max(1, Math.floor((l.box.height - l.display.pinned * l.rowScale) / l.rowScale) - 1);
   return Math.max(0, Math.min(l.maxTop(l.rowScale, l.display.count), top + dir * page));
 }
 

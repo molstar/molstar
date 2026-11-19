@@ -112,10 +112,16 @@ export class ColumnsLay {
   /**
    * A cut cell's text as the hover reads it (the `tip` pass): whole, or, when the view's edge is nearer than its end,
    * cut there with an ellipsis; its width, and the room (to the view's edge from the text's x) they were cut for.
+   *
+   * @internal made at layout (`tipOf`) and read by `hoverColumnCells`: nothing else reads or writes them.
    */
   tip: (string | undefined)[][] = [];
+  /** @internal see `tip` */
   tipW: Float64Array[] = [];
+  /** @internal see `tip` */
   tipRoom: number[] = [];
+  /** The view's width the tips were made for (their clip's right edge). @internal */
+  tipEdge = 1e6;
   /** The cells in view: their column, display row, data row, baseline and row top, bar share, chip color; `n`. */
   n = 0;
   col = new Int32Array(64);
@@ -397,6 +403,7 @@ export function layoutRowColumns(lay: RowsLay, prep: RowsPrep, ctx: LayoutContex
 function tipOf(cols: ColumnsLay, k: number, e: number, ctx: LayoutContext, inset: number) {
   const right = cols.columns[k].as === 'number';
   const edge = ctx.viewWidth ?? Number.POSITIVE_INFINITY;
+  cols.tipEdge = Number.isFinite(edge) ? edge : 1e6;
   const room = right ? cols.x[k] + cols.width[k] - TipPad : edge - (cols.x[k] + inset) - TipPad;
   // a new room (another view width) makes every row's again
   if (cols.tipRoom[k] !== room) {
@@ -583,6 +590,14 @@ export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number) {
       sw < config.squircleMin || h < config.squircleMin
         ? 0
         : Math.min(h * config.squircleRatio, config.squircleMax, sw / 2, h / 2);
+    // clipped to the part of the band the row is in: the pinned band's own rows, or the scrolled ones below it (a row half
+    // scrolled out is cut there, never over the pinned band, nor the title row above the band)
+    const pinned = i < lay.display.pinned;
+    g[0] = 0;
+    g[1] = pinned ? lay.box.y : lay.box.y + lay.pinnedHeight;
+    g[2] = cols.tipEdge;
+    g[3] = pinned ? lay.pinnedHeight : lay.box.height - lay.pinnedHeight;
+    out.clipArgs();
     for (let layer = 0; layer < 2; layer++) {
       g[0] = x - TipPad;
       g[1] = cols.top[q];
@@ -601,6 +616,7 @@ export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number) {
     g[3] = w;
     g[4] = tokens.colors['msui-text'];
     out.textArgs(text, AnchorStart, config.itemFont);
+    out.unclip();
   }
 }
 

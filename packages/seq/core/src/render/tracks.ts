@@ -1791,6 +1791,8 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
   const column = config.emphasis.selectionShape === 'column';
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
+    // the tip is a rows layer's (a hovered cell read whole): a section with none has nothing to walk, as the window pass
+    if (pass === 'tip' && !hasRows(s)) continue;
     s.layout.chrome(s, pass, out, emphasis, -1, -1);
     if (pass === 'window' && s.rail) drawRail(s.rail, out, emphasis, s.tokens, s.config);
     if (pass === 'window' && s.rowsRails)
@@ -1811,6 +1813,18 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
     for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
     if (clipped) out.unclip();
   }
+}
+
+/** Whether a section has a rows layer (kept by the layout: its layers do not change within it). */
+const RowsIn = new WeakMap<SectionLayout, boolean>();
+function hasRows(s: SectionLayout): boolean {
+  let has = RowsIn.get(s);
+  if (has === undefined) {
+    has = false;
+    for (const band of s.lays) for (const l of band ?? []) if (l.type.name === 'rows') has = true;
+    RowsIn.set(s, has);
+  }
+  return has;
 }
 
 /** A section's strips of a pass, each through its warp (`drawTracks`). */

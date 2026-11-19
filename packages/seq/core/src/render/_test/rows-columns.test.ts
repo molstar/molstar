@@ -406,7 +406,29 @@ describe('row columns', () => {
       expect(x + w).toBeGreaterThan(next);
       expect(nums(rects[0]).slice(0, 4)).toEqual(nums(rects[1]).slice(0, 4));
       // the text is the last thing drawn
-      expect(lines.filter((l) => l !== '').at(-1)).toBe(texts[0]);
+      expect(lines.filter((l) => l !== '').at(-2)).toBe(texts[0]);
+    });
+
+    it('is clipped to the band’s scrolled area: a half-scrolled row never paints over the pinned band', async () => {
+      const rows = { OS: ['Homo sapiens (human)', 'Mus musculus (house mouse)', 'Danio rerio (zebrafish)'] };
+      const { s, lay } = await laid(Narrow, { rows, layer: { pinned: ['A/1-5'], height: 2 } });
+      const viewports = { '/views/v/s': { start: 0, end: 6, bands: { '/views/v/s/rows': { bandTop: 1.5 } } } };
+      const size = Size;
+      const first = await s.frame({ size, dpr: 1, settled: true, viewports } as never);
+      // data row 1 (display row 2, the pinned row standing in its place before it), half of it (10 px) scrolled under the
+      // pinned band
+      const l2 = rowsLays(first as never)[0];
+      expect(l2.rowY(2)).toBe(l2.box.y + l2.pinnedHeight - 10);
+      const hover = { layer: l2.key, section: 's', system: l2.rowsSystem, position: 1 } as never;
+      const f = s.renderer.frame({ size, dpr: 1, settled: true, viewports, emphasis: { hover } } as never);
+      const lines = recordDrawLists(f.lists, ['tip']).split('\n');
+      const clip = lines.find((l) => l.startsWith('clip '))!;
+      expect(clip, lines.join('\n')).toBeTruthy();
+      const [, cy, , ch] = nums(clip);
+      expect(cy).toBe(lay.box.y + l2.pinnedHeight);
+      expect(cy + ch).toBe(lay.box.y + lay.box.height);
+      // the surface starts above the clip (the row is half out), so the clip is what keeps it off the pinned band
+      expect(nums(lines.find((l) => l.startsWith('rect '))!)[1]).toBeLessThan(cy);
     });
 
     it('a label longer than the view ends in an ellipsis at the view’s edge', async () => {

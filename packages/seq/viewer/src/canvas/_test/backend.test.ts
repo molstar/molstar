@@ -361,18 +361,24 @@ describe('canvasTextMetrics', () => {
     const tip = new FakeCanvas();
     const backend = new CanvasBackend(base, overlay, labels, { tip });
     backend.resize(200, 100, 2);
+    // no tip yet: no backing store of the view's size
+    expect([tip.width, tip.height]).toEqual([1, 1]);
     const l = lists();
     l.writer('tip').rect(1, 1, 5, 5, 0, BLUE, 1);
     backend.draw(l, true);
+    expect([tip.width, tip.height]).toEqual([400, 200]);
     expect(tip.context.calls('strokeRect')).toEqual(['strokeRect(1, 1, 5, 5)']);
     expect(overlay.context.calls('strokeRect')).toEqual([]);
     expect(labels.context.calls('strokeRect')).toEqual([]);
-    // the hover goes: the tip canvas is cleared, the labels are not drawn again
+    // the hover goes: the tip canvas shrinks back (cleared), the labels are not drawn again
     const clears = labels.context.calls('clearRect').length;
     l.reset(['highlight', 'selection', 'hover', 'cursor', 'tip']);
     backend.draw(l, false);
     expect(labels.context.calls('clearRect').length).toBe(clears);
-    expect(tip.context.calls('clearRect').length).toBe(2);
+    expect([tip.width, tip.height]).toEqual([1, 1]);
+    expect(backend.counts.tip).toBe(2);
+    // and nothing more to do while there is no tip
+    backend.draw(l, false);
     expect(backend.counts.tip).toBe(2);
     // without a tip canvas the pass is the overlay's last
     const o2 = new FakeCanvas();

@@ -6,14 +6,17 @@
 
 import { ComplexViews } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
+import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { composeEditing, type EditingSession } from '../../features/editing/compose.js';
-import { followSvg } from '../../follow-svg.js';
+import { type FollowedSvg, followSvg } from '../../follow-svg.js';
 import { hideLigandsPast } from '../complex/compose.js';
 
 const raf = DomHost.requestAnimationFrame;
 let session: EditingSession | undefined;
+let followed: FollowedSvg | undefined;
+let opened: SeqViewer | undefined;
 
 beforeEach(() => {
   DomHost.requestAnimationFrame = (fn) => {
@@ -23,6 +26,10 @@ beforeEach(() => {
 });
 afterEach(() => {
   DomHost.requestAnimationFrame = raf;
+  followed?.dispose();
+  followed = undefined;
+  opened?.retire();
+  opened = undefined;
   session?.dispose();
   session = undefined;
   vi.useRealTimers();
@@ -37,7 +44,7 @@ describe('the SVG twin follows the canvas', () => {
     session = s;
     s.viewer.resize(720, 900);
     const host = { innerHTML: '' } as unknown as HTMLElement;
-    const svg = followSvg(s.viewer, host, { prefix: 't' });
+    const svg = (followed = followSvg(s.viewer, host, { prefix: 't' }));
     await s.viewer.load(view.build());
     await s.viewer.settle();
     await vi.advanceTimersByTimeAsync(600);
@@ -62,9 +69,9 @@ describe('the example root’s twin', () => {
   it('Family: after a fold the twin is the export of what the canvas shows', async () => {
     const { openExample } = await import('./draw-checks.js');
     const { GlobinsViews } = await import('@molstar/seqx-examples');
-    const v = await openExample(GlobinsViews.find((x) => x.id === 'family')!, { fixtures: true });
+    const v = (opened = await openExample(GlobinsViews.find((x) => x.id === 'family')!, { fixtures: true }));
     const host = { innerHTML: '' } as unknown as HTMLElement;
-    const svg = followSvg(v, host, { prefix: 't' });
+    const svg = (followed = followSvg(v, host, { prefix: 't' }));
     await svg.draw();
     const before = strip(host.innerHTML);
     await v.execute('clades.collapseAll', { track: '/views/main/family/rows' });
@@ -76,7 +83,5 @@ describe('the example root’s twin', () => {
     );
     expect(after).not.toBe(before);
     expect(after).toBe(fresh);
-    svg.dispose();
-    v.retire();
   });
 });
