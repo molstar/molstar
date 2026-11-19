@@ -272,6 +272,36 @@ describe('warps', () => {
       expect(p.writer(lists.writer(name)).pass.name).toBe(name);
   });
 
+  it('a mixed run: letters added before or after it turns placed sit on its baseline, unturned, unscaled', () => {
+    const lists = new DrawLists();
+    const out = lists.writer('data');
+    // stale numbers in the letters' slots, from an earlier placed run
+    out.beginGlyphs('10px mono', 0, 0x000000ff);
+    const g = out.args;
+    for (let k = 0; k < 3; k++) {
+      g[0] = k;
+      g[1] = 99;
+      g[2] = 1;
+      g[3] = 3;
+      g[4] = 0;
+      out.placedLetterArgs(65);
+    }
+    out.endGlyphs();
+    lists.reset();
+    out.beginGlyphs('10px mono', 20, 0x000000ff);
+    out.letter(65, 1);
+    g[0] = 2;
+    g[1] = 30;
+    g[2] = 0;
+    g[3] = 1;
+    out.placedLetterArgs(66);
+    out.letter(67, 3);
+    out.endGlyphs();
+    expect(recordDrawLists(lists, ['data'])).toContain(
+      'glyphs "10px mono" placed #000000ff A 1 20 0 1, B 2 30 0 1, C 3 20 0 1',
+    );
+  });
+
   it('a placed glyph run in the record and the SVG: each letter its place, angle and vertical scale', () => {
     const lists = new DrawLists();
     const out = lists.writer('data');

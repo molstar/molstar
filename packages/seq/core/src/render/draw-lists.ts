@@ -204,6 +204,22 @@ export class GlyphList {
     this.x[j] = x;
     this.colors[j] = color;
     this.count[this.n]++;
+    if (this.placed[this.n] === 1) this.plain(j);
+  }
+
+  /** A plain letter of a placed run: on the run's baseline, unturned, unscaled. */
+  plain(j: number) {
+    this.ly[j] = this.y[this.n];
+    this.angle[j] = 0;
+    this.vs[j] = 1;
+  }
+
+  /** Turns the open run placed: the letters it holds so far become plain placed letters. */
+  place() {
+    const i = this.n;
+    if (this.placed[i] === 1) return;
+    this.placed[i] = 1;
+    for (let j = this.start[i]; j < this.letters; j++) this.plain(j);
   }
 
   end() {
@@ -225,6 +241,8 @@ export class GlyphList {
     const j = this.letters++;
     if (j >= this.codes.length) this.growLetters(j + 1);
     this.count[this.n]++;
+    // a plain letter in a placed run (a placed letter's numbers are set after)
+    if (this.placed[this.n] === 1) this.plain(j);
     return j;
   }
 
@@ -726,9 +744,9 @@ export class PassWriter {
    */
   placedLetterArgs(code: number) {
     const l = this.pass.glyphs;
+    l.place();
     const j = l.nextLetter();
     const a = this.args;
-    l.placed[l.n] = 1;
     l.codes[j] = code;
     l.x[j] = a[0];
     l.ly[j] = a[1];
