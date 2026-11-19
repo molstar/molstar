@@ -132,7 +132,11 @@ describe('resolved view: layers on other systems, queries, themes', () => {
     });
     b.views.view('v', (v) => {
       const g = v.section('gene', { of: gene, range: [90, 200] });
-      g.track('t').layer('d', { type: 'ranges', data: domains, color: { kind: 'uniform', params: { value: '#ff0000' } } });
+      g.track('t').layer('d', {
+        type: 'ranges',
+        data: domains,
+        color: { kind: 'uniform', params: { value: '#ff0000' } },
+      });
       g.track('q').layer('ranges', {
         type: 'ranges',
         data: '/data/domains/(items :overlapping /data/p53/(range :from 1 :to 5))',

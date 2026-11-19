@@ -56,7 +56,19 @@ export function variants() {
 export const Secondary = {
   start: new Int32Array([110, 124, 141, 156, 177, 194, 214, 230, 251, 264, 278]),
   end: new Int32Array([118, 130, 148, 164, 181, 200, 220, 236, 258, 271, 287]),
-  structure: categoryColumn(['strand', 'turn', 'strand', 'strand', 'helix', 'strand', 'strand', 'turn', 'strand', 'strand', 'helix']),
+  structure: categoryColumn([
+    'strand',
+    'turn',
+    'strand',
+    'strand',
+    'helix',
+    'strand',
+    'strand',
+    'turn',
+    'strand',
+    'strand',
+    'helix',
+  ]),
 };
 
 /** The view's spec. */
