@@ -197,7 +197,7 @@ export function chromosome(options: ChromosomeOptions = DefaultChromosome, sourc
       const gc = smoothMean(b0, b1);
       const rng = blockRng(seed, block, 2);
       for (let p = b0; p < b1; p++) {
-        // one draw a letter (two in a row of core's PCG are not independent): G or C below `gc`, each half of it
+        // one draw a letter: G or C below `gc`, each half of it
         const u = rng.float();
         const code = u < gc ? (u < gc / 2 ? 71 : 67) : u < (1 + gc) / 2 ? 84 : 65;
         if (p >= start && p < end) codes[p - start] = code;
