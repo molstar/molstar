@@ -348,3 +348,8 @@ None.
   rail's window on the tick row): sent to CF (it owns `ruler.ts` this round), with a recommended rule for the author.
 - SD reported the fourth slice's structure syncing draft (`drafts/structure-syncing.md`), seven gaps for the author.
   MF (fast) starts: a Files story of one file over several sequences (the author's question; built, not shown).
+- The author (2026-11-19, using the Complex's PAE): the plot resizes as one axis zooms, a second double-click
+  re-centres, the wheel falls through to the page; the chain boundaries a gap plus an off-centre hairline. Decided
+  ("Fixed box", "Zoom a step about it", "Never scroll the page"; the boundaries as the blocks' gap, recommended):
+  grids-and-rows.md and its Design page; lane PZ (strong) after CF and MV. The use gate's count: bug 2 (the rail's
+  labels, the index stories), missing design 2 (the plot's navigation, its boundaries).

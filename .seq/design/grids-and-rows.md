@@ -201,7 +201,9 @@ vertical scale. This design builds on them and adds only:
   as the section draws them). The data is one matrix over the blocks' positions in that order (an AF-style N×N
   `predicted_aligned_error`, read from a JSON or MessagePack array of arrays by path, [files.md](files.md)), its size
   checked against the blocks' total; each cell belongs to a (block, position) pair on each axis. Chain boundaries are
-  hairlines across the grid (`seq-break`), the blocks' labels on both axes; a hover names both residues with their
+  the blocks' own gap, as in the tracks above, with no line in it and the cells clipped exactly at each block's edge
+  (decided 2026-11-19, the author: the gap and an off-centre hairline together read as "very weird"); a hairline
+  (`seq-break`) only where blocks touch with no gap, the blocks' labels on both axes; a hover names both residues with their
   chains and lights them in the tracks; a dragged rect is two ranges, each split at chain boundaries into a part a
   system. **A summary of a grid over a rect** (`gridSummary(view, rect)`: mean, min, max, count of the cells in view
   data, a library function) gives a host's readout ("Aligned A 360–821, Scored A 265–831, mean 10.1 Å"); the panel is
@@ -213,6 +215,15 @@ vertical scale. This design builds on them and adds only:
   default read off whether the two axes are one system would change the picture when a writer moves y. A layer may keep
   to a triangle (`triangle`: `both`, `upper`, `lower`). Later layers over earlier; a missing value is transparent, so two
   grids on one pair of systems merge later over earlier (EC-59).
+- **A plot's box is fixed** (decided, the author, 2026-11-19: "Fixed box"; found in use: zooming one axis of the
+  Complex's PAE resized the plot, the page moved under the pointer and the wheel fell through to it): the box is set
+  from the width and `aspect` below and never changes with a zoom or a pan; when x and y show different spans the cells
+  are rectangles. Why: a box that follows its windows moves the page under the pointer, as Juicebox, HiGlass and maps
+  avoid. **Double-click on a cell zooms a step** about it on both axes, keeping their ratio, again further, as a map
+  does; Alt+Left goes back, `0` fits (the tracks' double-click still focuses an element). Why: focusing both positions
+  jumped each axis to its residue, so a second double-click re-centred instead of zooming. **The wheel over a plot is
+  the plot's**: plain wheel pans (dx x, dy y), Cmd/Ctrl+wheel and pinch zoom both axes about the pointer, and at an
+  axis's end it stops: the page never scrolls from inside the plot (from outside it, as any page).
 - **Size and aspect** (EC-109): height = the data box's width ÷ `aspect` (1), capped by the larger of `heights.grid` and nine
   tenths of the view's room (decided at PG's review: a view sized to its content otherwise feeds its own height back
   and the plot collapses), at least two rows; the width read without the scrollbar's room (the flicker rule).
@@ -517,7 +528,7 @@ Cells this design fills (ux-foundations section 8); the sub-rows name the new th
 |---|---|---|---|---|---|---|---|---|---|
 | **an element: a row** (header) | click; `selection.set` | Shift+click: the run in display order | Cmd/Ctrl+click toggles | double-click: the row shown, x its residues; `address.focus` | Alt+Left | — | — | `rows.hide` (patch); shown again by the chip | pin: `rows.pin` (patch, the header's icon); no: residues are not edited |
 | **an element: a pair** (arc, chord, dot) | click: both ends | Shift+click: the range from the anchor end | Cmd/Ctrl+click | double-click: both ends' hull | Alt+Left | — | — | no: hide the layer or filter by kind (a data filter, [themes.md](themes.md)) | no: data |
-| **an element: a cell** (grid or rows) | click: a one-cell rect | Shift+click: the rect from the anchor | Cmd/Ctrl+click | double-click: both positions | Alt+Left | — | — | no | no |
+| **an element: a cell** (grid or rows) | click: a one-cell rect | Shift+click: the rect from the anchor | Cmd/Ctrl+click | double-click: a grid's cell zooms the plot a step about it (decided 2026-11-19); a rows cell, both positions | Alt+Left | — | — | no | no |
 | **a range: a block or rectangle** | drag on cells | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag subtracts (exact: rects whose sides hold several ranges) | Enter: x and y to the rect | Alt+Left | — | — | — | the selection's bookmark command (planned) |
 | **a range: columns** | click or drag on the ruler or logo | Shift+click | Cmd/Ctrl+click, Alt+drag removes | Enter | Alt+Left | — | — | no: hiding columns waits (decided) | — |
 | **the selection** (rows, rects) | — | Shift+arrows: the block | Cmd/Ctrl+Shift+arrows start a block | Enter | Alt+Left | — | — | — | the selection's bookmark command (planned): a ref of its Location |

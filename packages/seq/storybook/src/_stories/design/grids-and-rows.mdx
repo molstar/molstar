@@ -23,7 +23,10 @@ depends on the pixels on screen, not the amount of data.
   chains has its x follow one chain's section and its y the other's.
 - **A grid over a complex** follows a section of blocks on both axes: the whole complex's PAE, chains side by side with
   their boundaries drawn; a dragged box splits at the chains, and a library summary (mean, min, max) feeds an
-  application's readout.
+  application's readout. The chains' boundaries are the blocks' gap, as in the tracks, with no line in it.
+- **A plot's box is fixed**: zooming or panning never resizes it (cells become rectangles when the axes show different
+  spans). A double-click on a cell zooms a step about it; the wheel over the plot is the plot's (plain wheel pans,
+  Cmd/Ctrl+wheel and pinch zoom) and never scrolls the page.
 - Hover is a **crosshair**: both positions light on the grid and on every linked section. A drag selects a
   **rectangle**: two ranges at once; Cmd/Ctrl+drag adds one, Alt+drag removes one.
 - Upper and lower triangles may hold different data (`triangle`); `mirror` draws a pair both ways.

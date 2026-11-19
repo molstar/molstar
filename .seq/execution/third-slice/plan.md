@@ -410,6 +410,8 @@ and dark before the merge.
       drafted (`briefs/sd-structure-syncing.md`).
 - [ ] MF (fast; the author, 2026-11-19: "annotation for multiple sequences in a same file") a Files story of one
       file, several sequences (`briefs/mf-many-sequences-file.md`).
+- [ ] PZ (strong, after CF and MV; the author, 2026-11-19: the PAE plot's navigation and its chain boundaries) a
+      plot's fixed box, double-click zooms a step, the wheel the plot's, boundaries as gaps (`briefs/pz-plot-navigation.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
