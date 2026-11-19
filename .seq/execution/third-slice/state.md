@@ -202,3 +202,6 @@ None.
 - Decided (the author, 2026-11-19): pairs, ranges and maps on an alignment's columns wait for 0.5.0 (followups).
 - DP merged after its review round (sites asserted under every rotation, IUPAC letters, honest summaries; its four core
   gaps are CY's). Running: DG, DC, DT's fix round, and OP, AY, SW (the author's exception); queued: NB, DA, CY.
+- DT merged after its review round (pairs over a source's letters, the rows legend by alphabet, the tertiary column,
+  generated data formatted); record.ts conflicts with DP resolved (both recorders, one dispatch table). Quick 1989,
+  medium 9. CY gains the grid-from-a-source gap. Running: DG, DC, OP, AY, SW; queued: NB (next strong slot), DA, CY.

@@ -191,6 +191,9 @@ async function plasmid(): Promise<Row[]> {
         'bla and lacZα as open reading frames, the cloning site from EcoRI to HindIII, the origin by its signature, every site of the listed enzymes, all turned to the new origin; the primer site is generated',
       ),
     }),
+  ];
+}
+
 async function trna(): Promise<Row[]> {
   const dir = join(Folder, 'fixtures', 'trna');
   mkdirSync(dir, { recursive: true });

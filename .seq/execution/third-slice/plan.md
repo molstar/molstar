@@ -328,6 +328,9 @@ and dark before the merge.
       (4) a ranges layer that overflows its lanes on a ring draws its density as a ring band (radially), never refused
       (the 200 kb ring, overlapping sites). DP's views then read the record from its file and draw sites over their
       recognition sequence.
+      Also (DT, 2026-11-19): (5) a grid over a sequence whose letters come from a source (its values read after the
+      source opens, not at resolve: the 1EHZ dot plot then reads its letters from the file); and the tRNA arcs' legend
+      of pair kinds and the modified residues' codes as labels where they fit.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). FS-A2 owns
