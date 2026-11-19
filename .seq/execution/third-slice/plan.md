@@ -206,14 +206,33 @@ and dark before the merge.
   - the strip: a navigation track with window handles over a section's positions;
   - the vertical overview: an alignment's rows (columns compressed across), the Globins 10,000-row view's;
   - the miniature: both axes; the ideogram: a strip with a chromosome's bands.
+- [ ] CH (fast, beside PG and NV; the author, 2026-11-19) the author's findings in the Globins views: a hover on a
+      tree node or a summary row lights the clade (grids-and-rows, Clades, "Hovered"); the ruler's end number and tick
+      label drawn twice at one position (the Figure's "70"), one label a position and none overlapping.
+- [ ] GD (strong, after PG and NV: it touches the viewer's config and the themes' render) the gaps decided as
+      recommended (`gaps.md`, 2026-11-19): the lists-free palette module in `@molstar/core` (the agreed surface:
+      non-breaking, re-exported); `classes-safe` and every substitute safe; the dark letter cells' edge
+      (`seq-cell-edge`); one `view.motion` (`platform | cut | animate`), `story.reducedMotion` dropped; the pyramid's
+      measured tolerance in the tests.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
 
 ### Stage 5: datasets and views (fast lanes, one per dataset, after stages 2–4)
 
+- [ ] SO (fast, first in the stage: the dataset lanes place their stories by it; the author, 2026-11-19: "we should
+      distinguish functionality/feature explanation from examples") the stories split as
+      [examples-and-stories](../../design/examples-and-stories.md) now says: a story that explains how something works
+      goes under `Features/<Feature>`, a dataset's figure under `Examples/<Dataset>/<View>`; p53's Themes (with
+      Editing Themes and the Schemes Gallery), Edit and undo, Bookmarks and links, Selection, Story and the stories of
+      that kind move to Features, each linked from its dataset's index where it uses that data; the examples Design
+      page and every story link updated; the headless twins follow their stories.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). DG owns
-      `record.ts` and the `sources.json` test.
+      `record.ts` and the `sources.json` test. DP's features are drawn as arrows by strand on the ring and the linear
+      detail (the author, 2026-11-19: "usually saw people draw it like that"; SnapGene's and Benchling's maps): the
+      builder sets the `ranges` layer's `arrow` channel (EC-232: off unless asked, so the builder asks), the arrowhead
+      bent through the ring's polar warp, on the piece holding the end it points to (a feature across the origin
+      included), checked in canvas and SVG.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps.
 
 ### Stage 6: output, accessibility and use
@@ -241,7 +260,7 @@ and dark before the merge.
 
 Gate 0 (with C0 beside it) → AX → TH and SL in parallel → (early use gate, deferred) → TX, then RB on TX's interface change → RW
 and SY in parallel, then PG on RW's shared pieces and NV after RW (the vertical overview reads RW's rows; at most two
-strong lanes at once) → the datasets' lanes (two or three at once, fast)
+strong lanes at once) → CH beside them, GD after both → SO, then the datasets' lanes (two or three at once, fast)
 → OP and AY → novice pass → measure → the author's use gates (deferred to here at the latest) → finalize. Never two heavy test runs at once.
 
 ## Hot files (the orchestrator's only)
