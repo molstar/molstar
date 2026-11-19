@@ -451,3 +451,5 @@ None.
 - The rest of the slice (the author, 2026-11-19: "PZ here, DR to slice four"): DB → DS → PZ, one lane at a time; then
   the use gate's look at what changed, stage 7 (M3, the targets gate) and finalize. DR to the fourth slice
   (followups.md).
+- The author (2026-11-19): "you can also run another 1-2 lanes for slice 3 now": DS (fast) and PZ (strong) start on
+  9bb9cb088 beside DB's review; the fourth slice's plan drafted by a planning agent (`.seq/execution/fourth-slice/`).
