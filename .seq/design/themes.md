@@ -314,6 +314,12 @@ and another viewer); a host recolors through `--seq-*` tokens.
   mount is a `SeqViewerSpec.ui` entry (`ui.legends`, the same call), its gestures a `BehaviorProvider` (`legend`), as
   the navigators' are. Seq\* never draws a legend on its canvas.
 - **The legend follows the hover**: the hovered item's entry is outlined; on a ramp, its value is ticked.
+- **A layer with no color takes the next categorical color** (decided, the author, 2026-11-19, the defaults audit: one
+  steel blue for every colourless layer "reads as a placeholder"; "Yes, per layer"): by layer order within the view,
+  from the theme's categorical palette, so two layers in a track differ; a spec's own color always wins; a layer's
+  items stay one color (a field's scheme is the writer's). **The legend's groups one a line**: each group on its own
+  line, its title muted, weight 600, 11 px; 12 px between groups. **Muted text holds 4.5:1**: ruler tick labels and
+  notes measured against their well in both themes, raised to the text color at 75% where they fall short.
 - **Highlight channels in the legend part**: it lists the active highlight channels (a link's, a legend hover's, a
   host's) as rows with their color and a clear, which runs `highlight.clear` (a new command, beside the
   selection's bookmark command). **The channels' row keeps its place** (decided, the author, 2026-11-19, p53 › Protein on

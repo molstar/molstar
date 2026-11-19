@@ -412,7 +412,7 @@ and dark before the merge.
       file, several sequences (`briefs/mf-many-sequences-file.md`).
 - [ ] PZ (strong, after CF and MV; the author, 2026-11-19: the PAE plot's navigation and its chain boundaries) a
       plot's fixed box, double-click zooms a step, the wheel the plot's, boundaries as gaps (`briefs/pz-plot-navigation.md`).
-- [ ] LP (started on c184dfefc; strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
+- [x] LP (merged 099493fb3; started on c184dfefc; strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
       (`briefs/lp-linked-pairs.md`).
 - [x] HP (reported: `drafts/track-header-parts.md`, eight gaps for the author; strong, a fourth-slice draft) track header parts, drafted (`briefs/hp-header-parts-draft.md`).
 - [x] RX (merged c55db3098; strong, next free slot; the author, 2026-11-19) a row column's whole value only under the pointer; the tree's
@@ -422,15 +422,20 @@ and dark before the merge.
       (`briefs/ce-copy-ends.md`).
 - [ ] DR (strong, next free slot) the structure syncing and track header parts drafts revised by the author's
       decisions (`briefs/dr-drafts-revision.md`).
-- [ ] LL (fast, next free slot; the author, 2026-11-19: "Inside if it fits, else beside") item labels by one rule in
+- [x] LL (folded into DB; fast, next free slot; the author, 2026-11-19: "Inside if it fits, else beside") item labels by one rule in
       rings and linear tracks; the origin-crossing extent in the hover card (`briefs/ll-labels-and-extent.md`).
 - [x] UN (merged 2439e9ba8; fast, after CF; the author, 2026-11-19: "'not numbered' as default", customizable) a ruler past its
       numbering's reach: `unnumbered: mark | fallback` (`briefs/un-unnumbered.md`).
-- [ ] LR (fast, next fast slot; the author, 2026-11-19: "configurable? reserve by default") the legend's channels row
+- [x] LR (folded into DS; fast, next fast slot; the author, 2026-11-19: "configurable? reserve by default") the legend's channels row
       keeps its place (`briefs/lr-legend-row.md`).
-- [ ] DA (fast, read-only, next fast slot; the author, 2026-11-19: "really good defaults for everything"; "audit
+- [x] DA (reported: `drafts/defaults-audit.md`, decided; fast, read-only, next fast slot; the author, 2026-11-19: "really good defaults for everything"; "audit
       next") the defaults audit: `drafts/defaults-audit.md` for the author (`briefs/da-defaults-audit.md`); then the
       track heights by content in steps (layouts.md, decided) built with its numbers.
+- [ ] DB (strong; the author, 2026-11-19: the audit "Accept as drafted", "Yes, per layer") tracks fit their content,
+      labels inside or beside, the extent bug, the label column, section gap, a layer's default colour
+      (`briefs/db-default-heights-labels.md`).
+- [ ] DS (fast; the author, 2026-11-19: all four smaller proposals) the legend's groups and channels row, the rail
+      muted at rest, ring label clusters, contrast (`briefs/ds-defaults-small.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

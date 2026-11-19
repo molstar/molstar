@@ -144,7 +144,10 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   cap (then lanes compact, as now); its marks centred in the band. Tracks of one kind in a section share the tallest
   height among them (two CDR tracks are equal), so neighbours do not vary lane by lane. A track's `height` overrides.
   Why: a default fills its space and reads as designed; heights decided by the whole data stay put as the view moves.
-  The numbers (the lane, the padding, the cap) come from the defaults audit (`drafts/defaults-audit.md`). **The
+  The numbers (decided, the author, 2026-11-19, the defaults audit `drafts/defaults-audit.md`, "Accept as drafted"):
+  a lane 14 px (a 12 px mark, a 2 px gap), 4 px padding top and bottom, so one lane 22 px (the ruler's band), two 36,
+  at most five (78 px), then lanes compact; an empty track the one-lane minimum; a label lane counts as a lane when a
+  label goes beside its mark. Values, letters, rulers and pairs keep their fixed heights (they have no lanes). **The
   algorithm is the spec's** (the author, 2026-11-19: "configurable in the spec … something like 'layout algorithm'"):
   the section's `heights` param names the sizing, `content` (the default, above), `uniform` (every track the tallest
   content height in the section), `fixed` (each track its layer type's fixed default, the second slice's look); an
@@ -154,6 +157,10 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   tracks with their content heights and the named sizing's answer, returns the heights; absent, the named sizing
   stands. Why: an application fitting the viewer into its own panel (a fixed total, a shared row grid) decides
   heights from what only it knows, without a registry entry per app.
+- **Defaults decided from the audit** (the author, 2026-11-19, `drafts/defaults-audit.md`): the label column is
+  measured to the widest track label plus its gap, between 80 and 160 px, an ellipsis past that (never a hard clip);
+  sections 20 px apart (`sectionGap`, was 8), tracks 4; the text layout's `lineGap` 10 (was 8) and its `bandGap` 3 (was
+  2). On rings, more than six labels within 12° are one grouped label ("13 sites"), opened on hover or zoom.
 - **A band may scroll inside its section** (asked by [grids-and-rows.md](grids-and-rows.md)): a band has its own vertical scroll
   (`bandTop`, clamped to its content's height) and row zoom (`rowScale`, px a row), both in the section's viewport by
   band (below), beside the section's `top`. The band's layer reads them (`ctx.bandTop`, `ctx.rowScale`) and owns its y

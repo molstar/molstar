@@ -432,3 +432,8 @@ None.
   independent review. RX's fix round done: to merge after a look.
 - RX merged (c55db3098, after its review round; all checks on the merged head: 2380 quick, 110 medium, perf 135 at 0
   bytes a frame). Not looked at past RX's own screenshots: to the use gate's look. DA (fast, read-only) starts.
+
+- LP merged (099493fb3, after its review round; checks on the merged head: 2397 quick, 110 medium). DA's audit
+  decided (the author, 2026-11-19): the numbers as drafted, a colourless layer the next categorical colour, and all four
+  smaller proposals (layouts.md, themes.md, navigators.md); the hidden columns' chip kept as decided (DA's finding 11
+  would undo it). DB (strong, takes LL) and DS (fast, takes LR) start: one strong and one fast, the author's limit.
