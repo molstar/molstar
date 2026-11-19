@@ -75,7 +75,12 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 ## In progress
 
-- Stages 3 and 4's gate, run together (2026-11-19): heavy alone, medium, build, check:workspace, then times, sizes.
+- Stages 3 and 4's gate (2026-11-19): medium, `pnpm build`, `check:workspace` exit 0 (no known failure this time);
+  heavy: 2 bounds failed in the full run (rows-time's theme change, pairs-grids-time's arcs hover), both pass alone
+  twice at load 5 (the parallel run's pattern, a third bound after frame-time: QT measures a serial heavy run); quick
+  lane: seq/core 2.05 s and seq/storybook 2.25 s over the 2 s guide, seq 5.3 s in all: lane QT (fast) fixing. Sizes:
+  198.5 / 603.5 / 935.9 kB. The gate passes when QT merges.
+- FS part 1 (strong, design only): `briefs/fs-files-design.md`, draft to `drafts/files.md`, started early (no code).
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
   for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; agreed by the author 2026-11-19 ("Other recommendations from
