@@ -478,3 +478,7 @@ None.
   recommended (the author, 2026-11-20), lanes one strong and one or two fast. `custom` kept for a host's own data.
   Decided (the author, 2026-11-20, Complex › Blocks › Row: a leader through another label; "Label a run once"): a
   leader never crosses a label or mark; same-label neighbours labelled once (layouts.md); lane LX (fast) starts.
+- DS merged (acda53035; the open ring group an input from the hover, not a draw's state) and LX merged (d4fe8931a;
+  a moved label's leader exists for lane 0 only, so a moved label of an item in a lower lane is dropped). Checks on the
+  merged head: 2463 quick, 110 medium, tsc, lint, format. Every stage 6 lane is done; left: the use gate's look at what
+  changed (the author), stage 7 (M3, the targets gate), finalize.

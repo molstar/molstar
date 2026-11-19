@@ -10,3 +10,4 @@
   3.
 - A ranges layer with no colour takes the next categorical colour.
 - An item across a cyclic origin is described by its two runs ("2,487–2,686, 1–175").
+- A label's leader never crosses another label or mark; neighbouring items of one layer with the same label are labelled once at the run's start (the hover card still names each).

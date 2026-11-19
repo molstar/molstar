@@ -434,8 +434,10 @@ and dark before the merge.
 - [x] DB (merged 6e290d105; strong; the author, 2026-11-19: the audit "Accept as drafted", "Yes, per layer") tracks fit their content,
       labels inside or beside, the extent bug, the label column, section gap, a layer's default colour
       (`briefs/db-default-heights-labels.md`).
-- [ ] DS (fast; the author, 2026-11-19: all four smaller proposals) the legend's groups and channels row, the rail
+- [x] DS (merged acda53035; fast; the author, 2026-11-19: all four smaller proposals) the legend's groups and channels row, the rail
       muted at rest, ring label clusters, contrast (`briefs/ds-defaults-small.md`).
+- [x] PF (merged; fast) PZ's follow-up: gaps zoom, the wheel over the data box, block rows snapped.
+- [x] LX (merged d4fe8931a; fast; the author, 2026-11-20) leaders never cross; same-label runs once (`briefs/lx-label-runs.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
