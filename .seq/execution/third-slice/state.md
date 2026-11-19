@@ -292,3 +292,7 @@ None.
   TP53 in place; examples.md, its Design page), strong, beside RK after QT3 (`briefs/cs-chromosome.md`); the Genomes
   dataset is the fifth slice (version-1.md, plan). The data's choices (generated, not recorded) taken as recommended:
   in `gaps.md`.
+- QT3 merged (`6ad0195c1`; test-only, reviewed by the orchestrator): the large figure (14 × 400) and the per-command
+  sweep to medium with quick representatives (3 × 260; one command a kind), the navigator's warm-up 8 frames. Quick
+  2253 in `packages/seq` (222 files), medium 107. At load 5.5: core 2.08, viewer 2.07, storybook 1.93 s: re-measure
+  quiet at stage 7's gate. RK and CS (strong) start beside each other.
