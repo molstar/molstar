@@ -112,8 +112,8 @@ interface SeqViewerSpec {
 
 - A Mol\* plugin composes a Seq\* viewer with its own adapters: the plugin's asset manager (downloads shared), its
   host and frames, its command manager (Seq\* commands in the plugin's palette), its settings (config items in the
-  plugin's), and its structure adapter as the `structure` behavior's `port` (Seq\*'s Locations on units translated to
-  the plugin's words, [structure-syncing](structure-syncing.md)). The Mol\* side is a
+  plugin's), and, beside the composition, `linkStructure` between the viewer and the plugin's structures (a library, not
+  a port: [structure-syncing](structure-syncing.md)). The Mol\* side is a
   plugin behavior that builds the Seq\* spec from the plugin's context; Seq\* imports nothing of the plugin.
 
 ## Consequences

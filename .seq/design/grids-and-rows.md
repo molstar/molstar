@@ -228,7 +228,9 @@ vertical scale. This design builds on them and adds only:
   are rectangles. Why: a box that follows its windows moves the page under the pointer, as Juicebox, HiGlass and maps
   avoid. **Double-click on a cell zooms a step** about it on both axes, keeping their ratio, again further, as a map
   does; Alt+Left goes back, `0` fits (the tracks' double-click still focuses an element). Why: focusing both positions
-  jumped each axis to its residue, so a second double-click re-centred instead of zooming. **The wheel over a plot is
+  jumped each axis to its residue, so a second double-click re-centred instead of zooming. On a grid whose y follows x (one window: tRNA, a complex's
+  contacts) the step keeps the point under the pointer on x, y following; a double-click in a gap between blocks zooms
+  about that point as on a cell, never fits (the orchestrator, 2026-11-20, PZ's question). **The wheel over a plot is
   the plot's**: plain wheel pans (dx x, dy y), Cmd/Ctrl+wheel and pinch zoom both axes about the pointer, and at an
   axis's end it stops: the page never scrolls from inside the plot (from outside it, as any page).
 - **Size and aspect** (EC-109): height = the data box's width ÷ `aspect` (1), capped by the larger of `heights.grid` and nine

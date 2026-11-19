@@ -408,7 +408,7 @@ Items are `ViewerConfig` unless the table says otherwise.
   Recommended: the menu, opened on the element. A host's card port may still draw actions from `headerMenu` data.
   Standing.
 - **A header hover lighting the track's items** (EC-146). It reads well on a feature track, but it floods linked
-  sections and the structure port with every item on a pass of the pointer down the label column. Refused by default.
+  sections and a linked structure viewer with every item on a pass of the pointer down the label column. Refused by default.
   A host may bind a header's hover to `address.hover` of the track. Standing.
 - **Template instances.** `track.hide` on an expanded instance has no node to patch. Recommended: its `when` says "from
   a template: hide the template" and the menu offers the template's hide (all instances). Hiding one instance (an

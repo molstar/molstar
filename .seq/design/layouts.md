@@ -160,7 +160,10 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
 - **Defaults decided from the audit** (the author, 2026-11-19, `drafts/defaults-audit.md`): the label column is
   measured to the widest track label plus its gap, between 80 and 160 px, an ellipsis past that (never a hard clip);
   sections 20 px apart (`sectionGap`, was 8), tracks 4; the text layout's `lineGap` 10 (was 8) and its `bandGap` 3 (was
-  2). On rings, more than six labels within 12° are one grouped label ("13 sites"), opened on hover or zoom.
+  2). On rings, more than six labels within 12° are one grouped label ("13 sites"), opened on hover: its expanded fan is
+  placed when the ring is laid out, beside the grouped one, so a hover only swaps which is drawn and nothing else moves
+  (decided, the author, 2026-11-20: "relayout, but precomputed so the UI doesn't move"); the expanded labels are hit as
+  their items; the grouped label is hit as the group (its card lists them).
 - **A band may scroll inside its section** (asked by [grids-and-rows.md](grids-and-rows.md)): a band has its own vertical scroll
   (`bandTop`, clamped to its content's height) and row zoom (`rowScale`, px a row), both in the section's viewport by
   band (below), beside the section's `top`. The band's layer reads them (`ctx.bandTop`, `ctx.rowScale`) and owns its y

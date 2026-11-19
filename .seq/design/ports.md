@@ -20,7 +20,6 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
   |---|---|---|
   | assets | read bytes by location | `@molstar/core/util/assets`'s `AssetManager`, wrapped by a policy (allowed hosts, size limits, no credentials by default, [security.md](security.md)); a host passes its own manager (a Mol\* plugin's), so downloads and files are shared, or a bare `{ reader }` (a test or a CLI has a reader, not a manager) |
   | text metrics | measure text for layout | `@molstar/core/util/text-measure` with a canvas in the browser, a bundled metrics table in Node ([rendering.md](rendering.md)) |
-  | structure | Seq\*'s Locations on units to and from a structure viewer (hover, selection and focus both ways); the host's adapter translates to its viewer's words, and Seq\* declares none (decided, the author, 2026-11-19); the `structure` behavior's `port` param ([structure-syncing](structure-syncing.md)) | none; the fake structure viewer's adapter in the Storybook |
   | header menu, header parts | the track header's menu, and DOM parts over the published header geometry instead of the drawn slots ([track-header-parts](track-header-parts.md)) | `headerMenuOverlay()`; parts drawn on the canvas, `headerPartsDom()` shipped; the `headers` behavior's `menu` and `parts` params |
   | hover card | show the hovered place's card (`show(card, place)`, `hide()`): the card's content as data (a title, rows of a label and a value, the announcer's text), its place as boxes (the anchor to stay clear of, the pointer, the view, a suggested side from `placeCard`); a host draws it with its own components and styles (the author, 2026-11-19: "implement the hover card via a port too … so apps can easily provide their own styles") | `@molstar/ui`'s card (`hoverCardOverlay()`), passed by the default spec as the `hoverCard` behavior's `port` param |
 
@@ -31,6 +30,8 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
   FASTA export), map runtimes, backends (Canvas2D, SVG, recording), services (UniProt, PDBe, AlphaFold DB, in the
   showcases).
 - **Not ports**:
+  - **a structure viewer** (decided, the author, 2026-11-20: "not call it a port"): syncing is a library over the
+    viewer's public events and commands, translation and `linkStructure` ([structure-syncing](structure-syncing.md));
   - **time, frames, timers**: `@molstar/ui/dom`'s `DomHost`, a module-level host the UI runtime reads directly; tests
     patch it as `@molstar/ui`'s do. A per-viewer host would diverge from the UI's own scheduling.
   - **archives**: supported out of the box as functions over the assets port (a spec with its data files and an
