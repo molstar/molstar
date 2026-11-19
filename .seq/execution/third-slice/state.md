@@ -55,12 +55,12 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 ## In progress
 
-- RW (strong) and SY (strong): stage 3's rows and stage 4's stories (`briefs/rw-rows.md`, `sy-stories.md`), base
-  `43beaa3e3`; rebasing onto G2's merge `e2aac7989`.
+- PG (strong) and NV (strong): pairs and grids, navigators (`briefs/pg-pairs-grids.md`, `nv-navigators.md`), base
+  `51787bb2b`; started 2026-11-19 by the new orchestrator session.
 
 ## Next
 
-After RW: PG and NV. The early use gate is deferred.
+After PG and NV: stage 4's GATE, then stage 5. The early use gate is deferred.
 
 ## Decided
 

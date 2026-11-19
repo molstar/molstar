@@ -23,8 +23,8 @@ record, the y path); [ux-foundations](../../../design/ux-foundations.md) section
 [performance](../../../design/performance.md); [edge-cases](../../../design/edge-cases.md); `packages/seq/AGENTS.md`; the core
 and viewer `_spec`s; the code they name.
 
-**Model**: strong (opus). **Base**: `packages-seq` at `<set at start>`: `git checkout -B seq/nv-navigators <base>`; check
-`git merge-base --is-ancestor <base> HEAD`. **The language stays 0.4.0** for the whole slice (one bump, unreleased).
+**Model**: strong (opus). **Base**: `packages-seq` at `51787bb2b`: `git checkout -B seq/nv-navigators 51787bb2b`; check
+`git merge-base --is-ancestor 51787bb2b HEAD`. **The language stays 0.4.0** for the whole slice (one bump, unreleased).
 
 **Whose each choice is**: the design's Configuration table, copied into the `_spec`s; nothing configurable beyond it;
 plain defaults, never inferred from what a section draws. **Minimal code**: reuse what exists (the layout interface,
