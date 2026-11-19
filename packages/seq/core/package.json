@@ -3,6 +3,7 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "description": "Seq* (next): the SeqViewSpec language, the coordinate model, the source protocol and the pure passes from a spec to draw lists",
   "license": "MIT",
   "engines": {
