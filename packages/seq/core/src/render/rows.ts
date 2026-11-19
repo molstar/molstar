@@ -172,6 +172,14 @@ export class RowsLay {
   /** Each held row's last residue number (`NoNumber` for none), kept by the held data. */
   lasts = new Int32Array(0);
   lastOf: HeldCells | undefined;
+  /** The columns in view (`[viewC0, viewC1)`, set by the cells' layout): the end numbers count the residues in them. */
+  viewC0 = 0;
+  viewC1 = 0;
+  /** The widest last number this layout (the clip of the right gutter). */
+  lastMaxW = 0;
+  /** The residue numbers in view of the row last asked of `endNumbers`. */
+  numFirst = 0;
+  numLast = 0;
   /** First residue numbers of lazy rows read from their tiles this frame. */
   readonly lazyFirst = new Map<number, number>();
   /** Lazy rows' last residue numbers, counted once a row (`NoNumber` for none), kept by the source read. */
@@ -599,6 +607,9 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.lastText.length = 0;
     lay.lastY.length = 0;
     lay.lastW.length = 0;
+    lay.lastMaxW = 0;
+    lay.viewC0 = 0;
+    lay.viewC1 = 0;
     lay.tree.length = 0;
     lay.treeNode.length = 0;
     lay.treeClade.length = 0;
@@ -879,6 +890,8 @@ function layoutCells(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   if (!vis.length) return;
   const c0 = Math.max(0, vis[0]);
   const c1 = Math.min(lay.columns, vis[vis.length - 1]);
+  lay.viewC0 = c0;
+  lay.viewC1 = c1;
   const missing = tokens.colors['seq-missing'];
   const held = lay.held;
   const C = lay.columns;
@@ -1140,20 +1153,19 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
     lay.labelText.push(t);
     lay.labelY.push(y);
     lay.labelW.push(text.measure(lay.labelFont, t));
-    if (!numbers || e < 0) return;
-    const n = lay.held ? String(lay.held.first[e]) : String(lay.lazyFirst.get(e) ?? '');
-    if (n) {
-      lay.numberText.push(n);
-      lay.numberY.push(y);
-      lay.numberW.push(text.measure(config.itemFont, n));
-    }
+    if (!numbers || e < 0 || !endNumbers(lay, e)) return;
+    const n = String(lay.numFirst);
+    lay.numberText.push(n);
+    lay.numberY.push(y);
+    lay.numberW.push(text.measure(config.itemFont, n));
     // the last residue number in the right gutter (a figure has none: its lines repeat the rows)
-    const last = lay.figure ? undefined : lastNumber(lay, e);
-    if (last !== undefined) {
-      const s = String(last);
+    if (!lay.figure) {
+      const s = String(lay.numLast);
+      const w = text.measure(config.itemFont, s);
       lay.lastText.push(s);
       lay.lastY.push(y);
-      lay.lastW.push(text.measure(config.itemFont, s));
+      lay.lastW.push(w);
+      if (w > lay.lastMaxW) lay.lastMaxW = w;
     }
   };
   for (let i = 0; i < lay.display.pinned; i++) add(i);
@@ -1239,13 +1251,55 @@ function elide(text: LayoutContext['text'], font: string, t: string, max: number
   return lo ? `${t.slice(0, lo)}…` : '';
 }
 
-/** A data row's last residue number: its first plus its letters less one (none for a row of gaps). */
-function lastNumber(lay: RowsLay, row: number): number | undefined {
+/**
+ * The residue numbers at the ends of a data row's part in view (_spec/README.md "Render", The rows layer: the header):
+ * the numbers of its first and last residue in the columns in view, into `numFirst` and `numLast`; a gap is never
+ * counted; false for a row with no residue in view. At the fit view they are the row's own (kept: counted once a data
+ * or a source read), a pan or a zoom counts the residues before and in the columns in view.
+ */
+function endNumbers(lay: RowsLay, row: number): boolean {
+  const held = lay.held;
+  let codes: Uint8Array | undefined;
+  let base = 0;
+  let first: number;
+  let C: number;
+  if (held) {
+    codes = held.codes;
+    C = held.columns;
+    base = row * C;
+    first = held.first[row];
+  } else {
+    codes = lay.lazyCodes.get(row);
+    if (!codes) return false;
+    C = codes.length;
+    first = lay.lazyFirst.get(row) ?? 1;
+  }
+  const c0 = lay.figure ? 0 : lay.viewC0;
+  const c1 = lay.figure ? C : Math.min(lay.viewC1, C);
+  if (c1 <= c0) return false;
+  if (c0 === 0 && c1 === C) {
+    const last = ownLast(lay, row, codes, base, C, first);
+    if (last === NoNumber) return false;
+    lay.numFirst = first;
+    lay.numLast = last;
+    return true;
+  }
+  let before = 0;
+  for (let j = 0; j < c0; j++) if (!isGap(codes[base + j])) before++;
+  let inView = 0;
+  for (let j = c0; j < c1; j++) if (!isGap(codes[base + j])) inView++;
+  if (!inView) return false;
+  lay.numFirst = first + before;
+  lay.numLast = first + before + inView - 1;
+  return true;
+}
+
+/** A row's own last residue number: its first plus its residues less one (`NoNumber` for a row of gaps), kept. */
+function ownLast(lay: RowsLay, row: number, codes: Uint8Array, base: number, C: number, first: number): number {
   const held = lay.held;
   if (held) {
     if (lay.lastOf !== held) {
       lay.lastOf = held;
-      const C = held.columns;
       const out = new Int32Array(held.rows);
       for (let r = 0; r < held.rows; r++) {
         let n = 0;
@@ -1254,20 +1308,17 @@ function lastNumber(lay: RowsLay, row: number): number | undefined {
       }
       lay.lasts = out;
     }
-    const v = lay.lasts[row];
-    return v === NoNumber ? undefined : v;
+    return lay.lasts[row];
   }
   // a lazy row's: counted once when its tile is read, kept (bounded: let go past 4,096 rows)
   const kept = lay.lazyLasts.get(row);
-  if (kept !== undefined) return kept === NoNumber ? undefined : kept;
-  const codes = lay.lazyCodes.get(row);
-  if (!codes) return undefined;
+  if (kept !== undefined) return kept;
   let n = 0;
-  for (let j = 0; j < codes.length; j++) if (!isGap(codes[j])) n++;
-  const last = n ? (lay.lazyFirst.get(row) ?? 1) + n - 1 : NoNumber;
+  for (let j = 0; j < C; j++) if (!isGap(codes[base + j])) n++;
+  const last = n ? first + n - 1 : NoNumber;
   if (lay.lazyLasts.size >= 4096) lay.lazyLasts.clear();
   lay.lazyLasts.set(row, last);
-  return last === NoNumber ? undefined : last;
+  return last;
 }
 
 /**
@@ -1541,6 +1592,14 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
     out.textArgs(lay.chip, AnchorStart, config.itemFont);
   }
   out.unclip();
+  // the last numbers in the right gutter, clipped to the band as its rows are (a partly shown row ends at the foot)
+  if (lay.lastText.length) {
+    g[0] = box.x + box.width;
+    g[1] = box.y;
+    g[2] = lay.numberRightX - g[0] + lay.lastMaxW;
+    g[3] = box.height;
+    out.clipArgs();
+  }
   for (let k = 0; k < lay.lastText.length; k++) {
     g[0] = lay.numberRightX;
     g[1] = lay.lastY[k];
@@ -1549,6 +1608,7 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
     g[4] = ink;
     out.textArgs(lay.lastText[k], AnchorStart, config.itemFont);
   }
+  if (lay.lastText.length) out.unclip();
 }
 
 /** Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`. */

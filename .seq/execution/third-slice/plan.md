@@ -209,7 +209,7 @@ and dark before the merge.
 - [x] CH (fast, beside PG and NV; the author, 2026-11-19) the author's findings in the Globins views: a hover on a
       tree node or a summary row lights the clade (grids-and-rows, Clades, "Hovered"); the ruler's end number and tick
       label drawn twice at one position (the Figure's "70"), one label a position and none overlapping.
-- [ ] RF (fast, beside NV and MD; the author, 2026-11-19) the rows' numbers in view, an end number past the row's
+- [x] RF (fast, beside NV and MD; the author, 2026-11-19) the rows' numbers in view, an end number past the row's
       range, the last row cut off (`briefs/rf-rows-fixes.md`).
 - [ ] GD (strong, after PG and NV: it touches the viewer's config and the themes' render) the gaps decided as
       recommended (`gaps.md`, 2026-11-19): the lists-free palette module in `@molstar/core` (the agreed surface:
@@ -257,7 +257,8 @@ and dark before the merge.
       `ligand` node and `ligand_form` read first. Drafted, reviewed and self-checked as the slice's designs were
       (`briefs/design-drafts.md`), with its Storybook Design page; decided by the author at this stage's gate.
       **Built in the fourth slice** (a language change past 0.4.0, which stays this slice's: one bump, unreleased);
-      this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DT its tRNA's modified
+      this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DC writes ATP's two forms (one position, its atoms)
+      without a map (0.4.0 has only offset and codon maps; MD's gap 9), and DT its tRNA's modified
       nucleotides as their parents' letters (the components kept in the fixture for the fourth slice), changed once then.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps; MD's design decided.
 

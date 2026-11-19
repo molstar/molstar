@@ -1633,8 +1633,11 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   display rows kept by the display's version (a pan makes nothing sized by the nodes); labels in the items' font (a
   row's label is data; a Pfam label, `NAME/1-147`, reads whole) from `rows.labelMinPx` (8 px a row), cut with an
   ellipsis past their room, a summary row "first +n"; the first residue numbers right-aligned before the data box and
-  the last after it, in a right gutter the view keeps when a rows layer draws numbers (`numbers: gutters`; a row of gaps
-  has none).
+  the last after it, in a right gutter the view keeps when a rows layer draws numbers (`numbers: gutters`): the numbers
+  of the residues **in view** (the columns the cells are drawn for: a pan and a zoom change them; a gap is never
+  counted; a row with no residue in view has none), the row's own at the fit view (kept per data, or per lazy row once).
+  The right gutter is clipped to the band vertically, as the labels and cells are: a partly shown last row ends at the
+  band's foot on every side.
 - **Hits** (the header's through the band's gutter: a layer of two axes is asked there), written into one scratch hit (a
   hover allocates no hit object; a clade's element and extent made once a display): a cell is `cell` with its column
   (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the rows

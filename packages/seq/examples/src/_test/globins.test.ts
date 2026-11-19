@@ -128,6 +128,33 @@ describe('the Globins views against their data', () => {
     }
   });
 
+  it('the end numbers agree with each row’s label range, held and lazy, whatever the band', async () => {
+    const check = async (spec: Node, tops: number[]) => {
+      const frame = await settled(spec, [generatedRuntime()]);
+      for (const bandTop of tops) {
+        const f = await frame({
+          size: { width: 900, height: 600 },
+          dpr: 1,
+          settled: true,
+          viewports: {
+            '/views/main/rows': { start: 0, end: 300, bands: { '/views/main/rows/rows': { bandTop, rowScale: 20 } } },
+          },
+        });
+        const lay = rowsOf(f);
+        let k = 0;
+        for (let i = lay.first; i < lay.last; i++) {
+          const e = lay.display.rowAt(i);
+          const range = /\/(\d+)-(\d+)$/.exec(lay.label(e))!;
+          expect([lay.numberText[k], lay.lastText[k]], lay.label(e)).toEqual([range[1], range[2]]);
+          k++;
+        }
+        expect(k).toBeGreaterThan(10);
+      }
+    };
+    await check(globins.scale(), [0, 1020, 9970]);
+    await check(globins.lazy(), [0, 5_000_000]);
+  });
+
   it('the lazy 10,000,000 rows: the rows in view read alone, drawn and hit', async () => {
     const frame = await settled(globins.lazy(), [generatedRuntime()]);
     const f = await frame({
@@ -146,6 +173,6 @@ describe('the Globins views against their data', () => {
     const lay = checkDrawn(f, text);
     expect(lay.held).toBeUndefined();
     expect(lay.first).toBe(5_000_000);
-    expect(lay.label(5_000_000)).toBe(generatedLabel(5_000_000));
+    expect(lay.label(5_000_000)).toBe(generatedLabel(5_000_000, 300, 2));
   });
 });
