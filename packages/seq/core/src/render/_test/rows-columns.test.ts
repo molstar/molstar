@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { openAlignment } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rowsSystemOf } from '@molstar/seqx-core/resolve';
@@ -264,6 +265,27 @@ describe('row columns', () => {
     expect([...(lay.joined?.keys() ?? [])].sort()).toEqual(['clade', 'score']);
     const { lay: byPosition } = await laid([{ field: 'note' }], { records: 'position\tnote\n2\tsecond\n' });
     expect([0, 1, 2].map((r) => byPosition.fieldValue(r, 'note'))).toEqual([undefined, 'second', undefined]);
+  });
+
+  it('the joined fields follow the alignment read again (its rows in another order), never the old rows', async () => {
+    const tsv = 'id\tclade\nA/1-5\tprimate\nC/1-4\tfish\n';
+    const { s, lay } = await laid([{ field: 'clade' }], { records: tsv });
+    expect([0, 1, 2].map((r) => lay.fieldValue(r, 'clade'))).toEqual(['primate', undefined, 'fish']);
+    // the alignment's source answers again with its rows reversed (the joined source untouched)
+    s.store.detach('/data/aln');
+    s.store.attach(
+      '/data/aln',
+      openAlignment({
+        label: [...Labels].reverse(),
+        letters: [...Letters].reverse(),
+        fields: { OS: [...Species].reverse() },
+      }),
+    );
+    const g = await s.frame({ size: Size, dpr: 1, settled: true });
+    const again = rowsLays(g as never)[0];
+    expect(again).toBe(lay);
+    expect(again.label(0)).toBe('C/1-4');
+    expect([0, 1, 2].map((r) => again.fieldValue(r, 'clade'))).toEqual(['fish', undefined, 'primate']);
   });
 
   it('a joined field an own field or a measure shadows, or two sources share, is said once; the first read', async () => {

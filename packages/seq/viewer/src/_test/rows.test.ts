@@ -461,8 +461,18 @@ describe('the rows’ columns in the viewer', () => {
     await v.settle();
     frames.flush();
     expect(lay(v).fieldValue(0, 'clade')).toBe('alpha');
-    // the rows read again in reverse: row 0 is NGB now
-    await v.load(build([...Labels].reverse()));
+    // the alignment's rows read again in reverse (one patch: the joined source untouched, its entries as they were)
+    const o = await v.spec.patch('Reverse the rows', {
+      ops: [
+        {
+          op: 'set',
+          at: ['data', 'aln'],
+          key: 'rows',
+          value: { label: [...Labels].reverse(), letters: [...Letters].reverse() },
+        },
+      ],
+    });
+    expect(o.ok && o.changed).toBe(true);
     await v.settle();
     frames.flush();
     expect(lay(v).label(0)).toBe('NGB');
