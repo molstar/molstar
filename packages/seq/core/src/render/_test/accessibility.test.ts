@@ -144,9 +144,12 @@ describe('what assistive technology reaches', () => {
   });
 });
 
-describe('the names of a large figure', () => {
-  const Tracks = 14;
-  const Items = 400;
+// The caps (200 items a track, 2,000 a figure): a few tracks past the first in the quick lane, the full 14 × 400
+// figure in the medium lane (the exports' size is what costs).
+describe.each([
+  { name: 'a few tracks', Tracks: 3, Items: 260, tags: [] as 'medium'[] },
+  { name: 'a large figure', Tracks: 14, Items: 400, tags: ['medium'] as 'medium'[] },
+])('the names of $name', ({ Tracks, Items, tags }) => {
   function manySpec() {
     const b = createSeqSpec({ title: 'many' });
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(2500) });
@@ -167,7 +170,9 @@ describe('the names of a large figure', () => {
     return b.build();
   }
 
-  it('names at most a share of items a track and a figure’s worth in all, and says how many more', async () => {
+  it('names at most a share of items a track and a figure’s worth in all, and says how many more', {
+    tags,
+  }, async () => {
     const r = await renderSvg(manySpec(), { size: { width: 4000, height: 600 } });
     const doc = parse(r.svg);
     const tracks = [...doc.querySelectorAll('[data-seq-track]')];

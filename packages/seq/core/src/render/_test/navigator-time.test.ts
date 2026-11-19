@@ -18,11 +18,13 @@ import { bandsSpec, settleNavigator, withNavigator } from './navigator-fixtures.
 import { rowsSpec, Synthetic } from './rows-fixtures.js';
 
 const Frames = 40;
+/** The warm-up's frames: enough to compile the paths, a fifth of a timed run. */
+const WarmFrames = 8;
 
-/** The median of `Frames` navigator frames, each laid out again or not as `input(k)` says. */
-function median(frame: (k: number) => void): number {
+/** The median of `frames` (`Frames`) navigator frames, each laid out again or not as `input(k)` says. */
+function median(frame: (k: number) => void, frames = Frames): number {
   const t: number[] = [];
-  for (let k = 0; k < Frames; k++) {
+  for (let k = 0; k < frames; k++) {
     const t0 = performance.now();
     frame(k);
     t.push(performance.now() - t0);
@@ -45,13 +47,13 @@ describe('the navigators’ time', () => {
       views.push(r.view.layout);
     }
     const input: NavigatorFrameInput = { size: { width: 1200, height: 48 }, moves: { '/views/main/protein': 1 } };
-    const run = () =>
+    const run = (frames = Frames) =>
       median((k) => {
         const f = s.nav.frame({ ...input, view: views[k % views.length] });
         if (f.rebuilt) throw new Error('a window move lays the picture out again');
-      });
-    run();
-    const m = within(0.5 * Frames, run);
+      }, frames);
+    run(WarmFrames);
+    const m = within(0.5 * Frames, () => run());
     console.info(`navigator, a window move: median ${m.toFixed(3)} ms`);
   });
 
@@ -60,10 +62,11 @@ describe('the navigators’ time', () => {
       withNavigator(p53TracksSpec(), stripNavigator('/views/main/protein', { content: 'tracks' })),
     );
     const { view } = await s.frames({ size: { width: 1200, height: 300 } }, { size: { width: 1200, height: 48 } });
-    const run = () => median((k) => s.nav.frame({ size: { width: 1200 - (k & 1), height: 48 }, view: view.layout }));
+    const run = (frames = Frames) =>
+      median((k) => s.nav.frame({ size: { width: 1200 - (k & 1), height: 48 }, view: view.layout }), frames);
     expect(s.nav.frame({ size: { width: 1199, height: 48 }, view: view.layout }).rebuilt).toBe(true);
-    run();
-    const m = within(4 * Frames, run);
+    run(WarmFrames);
+    const m = within(4 * Frames, () => run());
     console.info(`navigator, p53's tracks strip: median ${m.toFixed(3)} ms`);
   });
 
@@ -72,9 +75,10 @@ describe('the navigators’ time', () => {
     const { view, nav } = await s.frames({ size: { width: 1200, height: 100 } }, { size: { width: 1200, height: 24 } });
     expect(nav.issues.filter((i) => i.severity !== 'info')).toEqual([]);
     expect(s.nav.frame({ size: { width: 1199, height: 24 }, view: view.layout }).rebuilt).toBe(true);
-    const run = () => median((k) => s.nav.frame({ size: { width: 1200 - (k & 1), height: 24 }, view: view.layout }));
-    run();
-    const m = within(1 * Frames, run);
+    const run = (frames = Frames) =>
+      median((k) => s.nav.frame({ size: { width: 1200 - (k & 1), height: 24 }, view: view.layout }), frames);
+    run(WarmFrames);
+    const m = within(1 * Frames, () => run());
     console.info(`navigator, an ideogram of 60 bands: median ${m.toFixed(3)} ms`);
   });
 
@@ -85,9 +89,10 @@ describe('the navigators’ time', () => {
     const { view } = await s.frames({ size: { width: 1200, height: 600 } }, { size: { width: 96, height: 600 } });
     expect(s.nav.frame({ size: { width: 95, height: 600 }, view: view.layout }).rebuilt).toBe(true);
     expect(s.nav.pictureSection!.tracks.length).toBe(1);
-    const run = () => median((k) => s.nav.frame({ size: { width: 96 - (k & 1), height: 600 }, view: view.layout }));
-    run();
-    const m = within(8 * Frames, run);
+    const run = (frames = Frames) =>
+      median((k) => s.nav.frame({ size: { width: 96 - (k & 1), height: 600 }, view: view.layout }), frames);
+    run(WarmFrames);
+    const m = within(8 * Frames, () => run());
     console.info(`navigator, the 10,000-row overview: median ${m.toFixed(3)} ms`);
   });
 });
