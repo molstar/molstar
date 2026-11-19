@@ -200,3 +200,5 @@ None.
   choose another. Sizes after RC: reading a spec 203.9, headless 626.8, viewer default 995.5 kB. DP and DT running; DG
   and DC start (strong slots).
 - Decided (the author, 2026-11-19): pairs, ranges and maps on an alignment's columns wait for 0.5.0 (followups).
+- DP merged after its review round (sites asserted under every rotation, IUPAC letters, honest summaries; its four core
+  gaps are CY's). Running: DG, DC, DT's fix round, and OP, AY, SW (the author's exception); queued: NB, DA, CY.
