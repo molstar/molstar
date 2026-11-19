@@ -367,3 +367,4 @@ None.
   names them, its card lists them, on their side of the title band (decided as recommended; grids-and-rows.md, the
   Design page); folded into RX. Use findings: bug 2, missing design 5, look 3.
 - The author (2026-11-19): "also the positioning of the label is wrong": read as the hidden columns' chip hanging over the data's top-right corner; RX places it in its side's title band (to confirm with the author).
+- The author (2026-11-19, Rows › Scale): the rows rail dragged to the whole band cannot be grabbed again: the code idles on 'whole' alone against navigators.md (idle when whole and zoom-in at its limit); the core _spec corrected; folded into RX. Use findings: bug 3, missing design 5, look 3.

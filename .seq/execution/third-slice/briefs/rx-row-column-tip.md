@@ -31,6 +31,14 @@ gutter; the left's beside the labels), never overlapping the data box, the rows 
 room for it on that side, it moves into the label column's title band. Tests: at a width that hides both, the chip's text and its card's rows; the SVG's text
 alike. Look: Globins › Rows › Family at a narrow width.
 
+**And the rows rail's idle state** (the author, 2026-11-19, Globins › Rows › Scale: "resizing vertical rail all the way
+makes it impossible to make it smaller again"): the rows rail goes idle (no grips, no target) whenever every row is
+shown, against [navigators.md](../../../design/navigators.md)'s idle rule (idle only when the view shows the whole
+axis *and* zoom-in is at its limit); the core `_spec`'s rows-rail line now says so. Make the code follow it, for the
+rows rail and check the ruler rail too (whole at the fit view but able to zoom in: grips shown, a grip draggable
+inward). Tests (fail on the parent): drag the rows rail's grip to the band's end, then drag it back: the window
+shrinks; a rail whole at its zoom-in limit is idle. Look: Rows › Scale, light and dark.
+
 **Not in scope**: anything else. CF works in core (store, ruler, templates, accessibility, rows-model's measures), MV
 in core's renderer tables and the viewer's composition: keep to the rows layer's tip.
 

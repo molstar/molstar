@@ -1667,12 +1667,14 @@ numbers): a window move allocates nothing once warm.
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of
   the last numbers' gutter: the gutter widened by it while any rows rail is on, so the data keeps its width idle or
   live), along the band's scrolled area below its pinned rows, in display rows below the pinned band; its window the
-  rows in view. Idle while every row is shown (`whole`, the layout's: the renderer sets `active` only when the viewer
-  says it can move and not `whole`). Its hit is the `window` target with `navigator: 'rows-rail'` (`RowsRail`), its
-  `layer` the track, `position` the display row. `rowsRailTracks(view, hosted)`: each tracks section's tracks with a
-  rows layer shown, unless a shown navigator binds the section along its rows (`rows` or `both`): an overview or a
-  miniature replaces it, a hidden one brings it back. Why: the design's "simple slider navigator for vertical
-  scrolling", the rail a linear section has, so a tall alignment can be scrolled and zoomed with no declared part.
+  rows in view. Idle only while every row is shown and the rows cannot zoom in (navigators.md's idle rule: a rail zoomed
+  out to the whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: the renderer sets
+  `active` only when the viewer says it can move and not `whole`). Its hit is the `window` target with
+  `navigator: 'rows-rail'` (`RowsRail`), its `layer` the track, `position` the display row.
+  `rowsRailTracks(view, hosted)`: each tracks section's tracks with a rows layer shown, unless a shown navigator binds
+  the section along its rows (`rows` or `both`): an overview or a miniature replaces it, a hidden one brings it back.
+  Why: the design's "simple slider navigator for vertical scrolling", the rail a linear section has, so a tall alignment
+  can be scrolled and zoomed with no declared part.
 
 ### Rings layout
 
