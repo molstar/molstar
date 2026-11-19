@@ -420,7 +420,15 @@ describe('row columns', () => {
       // pinned band
       const l2 = rowsLays(first as never)[0];
       expect(l2.rowY(2)).toBe(l2.box.y + l2.pinnedHeight - 10);
-      const hover = { layer: l2.key, section: 's', system: l2.rowsSystem, position: 1 } as never;
+      const hover = {
+        layer: l2.key,
+        section: 's',
+        system: l2.rowsSystem,
+        position: 1,
+        yPosition: 1,
+        target: 'row',
+        state: 'Species: Mus musculus (house mouse)',
+      } as never;
       const f = s.renderer.frame({ size, dpr: 1, settled: true, viewports, emphasis: { hover } } as never);
       const lines = recordDrawLists(f.lists, ['tip']).split('\n');
       const clip = lines.find((l) => l.startsWith('clip '))!;
@@ -430,6 +438,86 @@ describe('row columns', () => {
       expect(cy + ch).toBe(lay.box.y + lay.box.height);
       // the surface starts above the clip (the row is half out), so the clip is what keeps it off the pinned band
       expect(nums(lines.find((l) => l.startsWith('rect '))!)[1]).toBeLessThan(cy);
+    });
+
+    describe('only under the pointer: a hover on the row’s data or label leaves its cells cut', () => {
+      const Two: Col[] = [
+        { field: 'OS', title: 'Species', width: 40 },
+        { field: 'DE', title: 'Description', width: 40 },
+        { field: 'identity', side: 'right', as: 'number' },
+      ];
+      const rows = {
+        OS: ['Homo sapiens (human)', 'Mus musculus', null],
+        DE: ['Hemoglobin subunit alpha', 'Hemoglobin', null],
+      };
+      const texts = (lists: Parameters<typeof recordDrawLists>[0]) =>
+        recordDrawLists(lists, ['tip'])
+          .split('\n')
+          .filter((l) => l.startsWith('text "'));
+
+      async function at(where: 'data' | 'label' | 'species' | 'description') {
+        const { b, s, lay } = await laid(Two, { rows });
+        const first = await s.frame({ size: Size, dpr: 1, settled: true });
+        const y = lay.rowY(0) + lay.rowScale / 2;
+        const x = {
+          data: lay.box.x + 4,
+          label: lay.labelX + 2,
+          species: lay.cols.x[0] + 4,
+          description: lay.cols.x[1] + 4,
+        }[where];
+        const hover = hitView(first.layout, x, y) as never;
+        expect(hover).toBeTruthy();
+        const f = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { hover } });
+        const svg = await renderSvg(b.build(), { size: Size, emphasis: { hover } });
+        expect(recordDrawLists(svg.lists, ['tip'])).toBe(recordDrawLists(f.lists, ['tip']));
+        return { lay, tips: texts(f.lists), hoverPass: recordDrawLists(f.lists, ['hover']) };
+      }
+
+      it('a hover on the row’s data tints the row and draws no tip', async () => {
+        const { tips, hoverPass } = await at('data');
+        expect(tips).toEqual([]);
+        expect(hoverPass).toContain('rect ');
+      });
+
+      it('a hover on the row’s label draws no tip', async () => {
+        expect((await at('label')).tips).toEqual([]);
+      });
+
+      it('a hover on a cut cell draws that cell whole, the row’s other cut cell stays cut', async () => {
+        const species = await at('species');
+        expect(species.tips).toHaveLength(1);
+        expect(species.tips[0]).toContain('"Homo sapiens (human)"');
+        const description = await at('description');
+        expect(description.tips).toHaveLength(1);
+        expect(description.tips[0]).toContain('"Hemoglobin subunit alpha"');
+      });
+
+      it('the keyboard cursor on the row’s header draws all of them whole, canvas and SVG alike', async () => {
+        const { b, s, lay } = await laid(Two, { rows });
+        const cursor = {
+          section: '/views/v/s',
+          system: lay.system,
+          position: 0,
+          ySystem: lay.rowsSystem,
+          yPosition: 0,
+          part: 'header',
+        } as never;
+        const f = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { cursor } });
+        const tips = texts(f.lists);
+        expect(tips).toHaveLength(2);
+        expect(tips.join('\n')).toContain('"Homo sapiens (human)"');
+        expect(tips.join('\n')).toContain('"Hemoglobin subunit alpha"');
+        const svg = await renderSvg(b.build(), { size: Size, emphasis: { cursor } });
+        expect(recordDrawLists(svg.lists, ['tip'])).toBe(recordDrawLists(f.lists, ['tip']));
+        // on a cell (not the header) the cursor reads none
+        const onCell = s.renderer.frame({
+          size: Size,
+          dpr: 1,
+          settled: true,
+          emphasis: { cursor: { ...(cursor as object), part: 'cell' } as never },
+        });
+        expect(texts(onCell.lists)).toEqual([]);
+      });
     });
 
     it('a label longer than the view ends in an ellipsis at the view’s edge', async () => {

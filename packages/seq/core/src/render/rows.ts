@@ -1988,14 +1988,25 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   if (lay.lastText.length) out.unclip();
 }
 
-/** The hovered row's column cells cut short, read whole in the `tip` pass: a function of its own (measured: no boxing). */
+/**
+ * A row column's cell cut short, read whole in the `tip` pass (_spec/README.md "Render", The rows layer, Emphasis along
+ * y): the one cell under the pointer (a header hit naming it), never from a hover on the row's data or label; the
+ * keyboard cursor on a row's header reads all of its row's. A function of its own (measured: no boxing).
+ */
 function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
   if (!lay.cols.n) return;
   const h = emphasis?.hover;
-  if (!h || h.layer !== lay.key) return;
-  const row = h.yPosition ?? (h.system === lay.rowsSystem ? h.position : undefined);
-  const i = row === undefined ? -1 : lay.display.displayRow(row);
-  if (i >= 0) hoverColumnCells(lay, out, i);
+  if (h && h.layer === lay.key && h.target === 'row' && h.state !== undefined && h.position !== undefined) {
+    const i = lay.display.displayRow(h.position);
+    if (i >= 0) hoverColumnCells(lay, out, i, h.state);
+  }
+  const c = emphasis?.cursor;
+  if (!c || c.part !== 'header' || c.ySystem !== lay.rowsSystem || c.yPosition === undefined) return;
+  // the layer's address is its section's and more: `startsWith` and a code read allocate nothing
+  const s = c.section;
+  if (s !== undefined && !(lay.key.startsWith(s) && lay.key.charCodeAt(s.length) === 47)) return;
+  const i = lay.cursorRow(c.yPosition);
+  if (i >= 0) hoverColumnCells(lay, out, i, undefined);
 }
 
 /** Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`. */

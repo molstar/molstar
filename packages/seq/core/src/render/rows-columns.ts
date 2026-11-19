@@ -561,11 +561,13 @@ export function drawTitles(lay: RowsLay, out: PassWriter) {
 }
 
 /**
- * A hovered display row's cut cells read whole, in the `tip` pass over the labels: each on an opaque surface (the page's
- * background, then the track's well color, outlined in the hover ink, a squircle by the shape rule) from the cell's x,
- * to the right up to the view's edge, where a longer text ends in an ellipsis. Nothing under it shows through.
+ * Display row `i`'s cut cells read whole, in the `tip` pass over the labels (_spec/README.md "Render", The rows layer,
+ * Emphasis along y: the cell under the pointer alone, `only` its hit's name; every one under the cursor on the header,
+ * `only` undefined): each on an opaque surface (the page's background, then the track's well color, outlined in the
+ * hover ink, a squircle by the shape rule) from the cell's x, to the right up to the view's edge, where a longer text
+ * ends in an ellipsis. Nothing under it shows through.
  */
-export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number) {
+export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number, only: string | undefined) {
   const { tokens, config } = lay;
   const cols = lay.cols;
   const g = out.args;
@@ -573,6 +575,8 @@ export function hoverColumnCells(lay: RowsLay, out: PassWriter, i: number) {
     if (cols.display[q] !== i) continue;
     const k = cols.col[q];
     const r = cols.row[q];
+    // a header hit names its cell by the kept `title: value` (`nameOf`): the one under the pointer
+    if (only !== undefined && cols.name[k][r] !== only) continue;
     const cut = cols.cut[k][r];
     const full = cols.full[k][r];
     if (!cut || full === undefined || cut === full) continue;
