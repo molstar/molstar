@@ -398,6 +398,9 @@ and dark before the merge.
       listed ahead (`briefs/sr-reconcile-prep.md`).
 - [x] GR (fast, read-only research; reported: `research-genome-ring.md`; the author, 2026-11-19: Rondo's genome ring, "perhaps even as an extension to
       show this is "easy"") a view like rondo.app's against what is built (`briefs/gr-genome-ring-research.md`).
+- [ ] EO (fast, read-only) the third slice's edge-case outcomes drafted (`briefs/eo-ec-outcomes.md`).
+- [ ] CF (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
+      means in view (decided) (`briefs/cf-chromosome-core.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

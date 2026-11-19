@@ -315,3 +315,9 @@ None.
 - Decided (the author, 2026-11-19: "Rondo-like, extension"): the fifth slice's genome ring is Rondo-like (bundled,
   count-weighted) and an extension package; `ext:` layer kinds before it (examples.md, version-1.md, the Design page,
   `research-genome-ring.md`). Its other five questions wait for the fifth slice's plan.
+- RK's review (bugs 5, design and API 4, minimal code 6, test gaps): RK's fix round running; ↓ from the pinned band
+  keeps the band's scroll (decided as recommended). CS's review (frames at the fit growing with each gene visited,
+  about 460 ms after five; the ruler; density answers): CS's fix round running in examples and storybook.
+- Decided (the author, 2026-11-19): a ruler's `units: none | bases` (axis.md); template instances hold their node only
+  while in view (dynamic-nodes.md); both Design pages. CF (strong) briefed for them and inline data's tiles; it starts
+  when RK or CS merges. EO (fast, read-only) started.

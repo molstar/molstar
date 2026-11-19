@@ -122,6 +122,11 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   direction mark (an arrow and "reversed"; with `along`, "along p53") drawn in the `labels` pass, so the export says it
   too. `axis.directionMark` (`RenderConfig`: `label`, or `none` for a host whose own chrome says it, as a Mol\* plugin's
   panel would).
+- **A ruler's units** (decided, the author, 2026-11-19: "Yes, `units: none | bases`"; found by CS at 83 Mb): the ruler
+  layer's `units` param, `none` (the number as its numbering labels it, the default) or `bases` (bp, kb, Mb, chosen by
+  the tick step: 7,668,402 at a base tick, 7.67 Mb at a megabase one), formatted by `@molstar/core/util/number`'s
+  genomic formatting ([base-library.md](base-library.md)). Why: a writer of a chromosome view says so; never inferred
+  from the alphabet. A label in another numbering than ordinal ignores it (its labels are the source's).
 - **Complement** (spec, the `letters` layer's `complement`): `auto` (the default, decided) draws a nucleotide
   as its complement when it is read against its strand on screen: the axis's direction times its path run's direction is
   −1. So a reversed DNA axis shows the other strand read 5′ to 3′, and an inverted run of a one-to-one map shows the
@@ -254,6 +259,7 @@ Cells this design fills or changes ([ux-foundations.md](ux-foundations.md), sect
 | Item | Whose | Default | Why the default; the alternatives |
 |---|---|---|---|
 | `section.direction` | spec param | `follow` for a follower, else `genomic` | decided defaults, by the section's own `follow` param, never inferred from layers; `genomic`, `reversed`, `{ along }` |
+| `layer.units` (ruler) | spec param | `none` | plain, never inferred from the alphabet; `bases` (bp, kb, Mb by the tick step) |
 | `section.pieces` | spec param | `whole` (every section, followers included: decided) | the application drives the composition; `coding`, refs (their union) |
 | `section.collapsed` | spec param | `coding` | the form `section.collapse` switches to; a ref or a list |
 | `section.pad` | spec param | 0 | the pieces as they are; n positions each side (splice sites, UCSC) |

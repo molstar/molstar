@@ -51,6 +51,11 @@ first slice exercises them.
   selection, a highlight, a ref, another held node naming it) and is evicted quietly with what it alone named. A node
   is also held while shown (a placed instance, a node whose item system a shown layer uses, a node a held node names):
   `nodes.holdShown` (default true). Why: a shown track must not vanish when its region's tiles are evicted.
+  **Shown means in view** (decided, the author, 2026-11-19: "Hold only while in view"; found by CS: a template's
+  instance held its node, so every gene's exon track, once shown, stayed, 29 empty tracks after five places): a
+  template's instance holds its node only while the node's region meets the view and its margin; out of it the node
+  is evicted as any other and its track goes. A track never vanishes while its node's region is on screen, which is
+  what `holdShown` is for.
 - **Track templates are in version 1**: a template (`for_each` over a source's nodes, by kind, with order and filter) is
   one entry of the resolved view, expanded at layout into a track per matching held node, in key order; an arrival
   re-expands only its template (EC-178). The resolved view stays pure: it holds the template, not its expansion.
