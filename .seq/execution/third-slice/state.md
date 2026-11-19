@@ -448,3 +448,6 @@ None.
   changelog. DS and the rest stay queued in plan.md.
 - Resumed (2026-11-19). The author accepted DB's public API ("Accept, review trims": helpers internal unless a host
   needs them) and its label ink ("contrast inside, text beside"; layouts.md). DB's review rerun.
+- The rest of the slice (the author, 2026-11-19: "PZ here, DR to slice four"): DB → DS → PZ, one lane at a time; then
+  the use gate's look at what changed, stage 7 (M3, the targets gate) and finalize. DR to the fourth slice
+  (followups.md).

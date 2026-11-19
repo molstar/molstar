@@ -75,3 +75,5 @@
   counted filtered pairs and named only the first system a layer (the frame's report dedupes by code and address);
   (4) an end out of its block's range beside a copy end lost its caret and `pairs.systems`; (5) carets hittable (a
   tie resolves to the first, arcs to the later), a Map iterator a layout; (6) tests by shape of the real example.
+- **DR, the drafts revision** (fourth slice, its opening; the author, 2026-11-19): revise `drafts/structure-syncing.md`
+  and `drafts/track-header-parts.md` by their "Decided by the author" sections (`briefs/dr-drafts-revision.md`).

@@ -420,7 +420,7 @@ and dark before the merge.
       (`briefs/rx-row-column-tip.md`).
 - [x] CE (parked, unmerged: the author, 2026-11-19, "wait until we can address copies"; branch `seq/ce-copy-ends` and its review kept for the fourth slice; fast, next free slot; the author, 2026-11-19: "Caret, not first copy") a pair's end on split copies
       (`briefs/ce-copy-ends.md`).
-- [ ] DR (strong, next free slot) the structure syncing and track header parts drafts revised by the author's
+- [x] DR (moved to the fourth slice, the author, 2026-11-19: "PZ here, DR to slice four"; strong, next free slot) the structure syncing and track header parts drafts revised by the author's
       decisions (`briefs/dr-drafts-revision.md`).
 - [x] LL (folded into DB; fast, next free slot; the author, 2026-11-19: "Inside if it fits, else beside") item labels by one rule in
       rings and linear tracks; the origin-crossing extent in the hover card (`briefs/ll-labels-and-extent.md`).
