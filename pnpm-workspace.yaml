@@ -43,6 +43,7 @@ catalog:
   'rxjs': '7.8.2'
   'swagger-ui-dist': '5.33.1'
   'tslib': '2.8.1'
+  '@resvg/resvg-js': '2.6.2'
   '@types/cors': '2.8.19'
   '@types/gl': '6.0.5'
   '@types/pngjs': '6.0.5'

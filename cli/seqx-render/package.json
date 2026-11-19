@@ -1,0 +1,46 @@
+{
+  "name": "@molstar/seqx-render-cli",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Seq* (next) seqx-render: a SeqViewSpec file to SVG or PNG, headless",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./_test/*": null
+  },
+  "files": [
+    "bin",
+    "fonts",
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/seqx-core": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:",
+    "@molstar/test-harness": "workspace:*"
+  },
+  "bin": {
+    "seqx-render": "./bin/seqx-render.mjs"
+  }
+}

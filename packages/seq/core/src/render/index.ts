@@ -60,6 +60,14 @@ export {
   renderSvg,
   viewSources,
 } from './export.js';
+export {
+  type RasterizeRequest,
+  type Rasterizer,
+  type RenderPngOptions,
+  type RenderPngResult,
+  renderPng,
+  svgSize,
+} from './export-png.js';
 export { RenderIssues } from './issues.js';
 export {
   DefaultThemeContext,

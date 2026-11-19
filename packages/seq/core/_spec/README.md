@@ -1995,11 +1995,12 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - **Recording** (`recordDrawLists`): a line a primitive, pass by pass, numbers to two decimals, colors `#rrggbbaa`
   (`none` for no color): the committed records' format.
 - **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
-  images as `<image>`s of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as
-  gradient masks, metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character
-  XML forbids (a control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one,
-  so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is
-  written only as a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
+  images as `<image>`s (`image-rendering="optimizeSpeed"`: crisp; an attribute, since resvg ignores a style it cannot
+  read) of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as gradient masks,
+  metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character XML forbids (a
+  control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one, so a glyph run
+  stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is written only as
+  a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
   (`_test/svg-escaping.test.ts`).
 - **Accessibility** (`accessibility.ts`, `accessibleOf`; `SvgOptions.accessible`): an export's root is `role="figure"`,
   `aria-labelledby` its `<title>` (the spec's `title`, else `Sequence view`) and `<desc>` (the sections, their systems
@@ -2016,6 +2017,19 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   the token table, the view, the highlights and the selection, so exports that differ in them can share a page; two
   equal exports share their ids, and a host inlining both passes each its own `idPrefix`. The viewer's announcements use
   the same words (viewer `_spec`, Announcements).
+- **PNG** (`renderPng`, `export-png.ts`): the SVG export rasterized, so a PNG is the SVG's picture (the same options,
+  the same figure); the rasterizer is a port (`Rasterizer`: the SVG string and its size and `scale` × `dpr` to PNG
+  bytes) so the core carries no native code, and the application composes one (the render CLI's, `cli/seqx-render`, over
+  resvg). The SVG paints its own background, so the pixels are opaque. A rasterizer loads no system fonts: the text is
+  drawn with fonts bundled for the metrics the layouts measure with (Liberation Sans and Mono for the bundled table's
+  Arial and 600-advance mono), so the same SVG draws the same on every machine. Why rasterize the SVG and not draw the
+  lists again: one picture, one set of tests; a second renderer would drift. Held by the render CLI's probe pixels per
+  track in both themes (`cli/seqx-render/src/_test/png.test.ts`).
+- **The render CLI** (`seqx-render`, `cli/seqx-render`): a spec file (JSON, S-expression or MessagePack, by content) to
+  an SVG or a PNG, its assets read under `headlessAssetPolicy` (files under the spec's folder, no network unless
+  `--allow-host`; a spec's `uri` is untrusted), its issues printed one a line to stderr, exit codes 0 done, 1 spec, 2
+  usage, 3 unsettled, 4 file, 5 internal. Cold start, process start to a written file for p53's tracks, under 1 s (about
+  0.12 s), held in the heavy lane.
 
 ### Export
 
