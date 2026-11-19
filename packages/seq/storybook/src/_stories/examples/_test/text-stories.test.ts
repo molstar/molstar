@@ -57,4 +57,28 @@ describe('Text, headless', () => {
     expect(r.issues).toEqual([]);
     expect(lettersOf(recordDrawLists(r.lists, ['data']))).toBe(P53);
   });
+
+  it('the wheel scrolls the text’s lines only while it overflows its box, and is given back at its ends', async () => {
+    viewer = await openExample(P53Views.find((v) => v.id === 'text')!, { gene: '' });
+    const v = viewer;
+    const at = () => {
+      const sec = v.frame!.layout.sections[0];
+      return { p: sec.placement as TextPlacement, y: sec.y + 20 };
+    };
+    // wide: every line fits its box, the page keeps the wheel
+    v.resize(1400);
+    v.draw();
+    expect(at().p.contentHeight).toBeLessThanOrEqual(at().p.box.height);
+    expect(v.input.wheel(400, at().y, { deltaX: 0, deltaY: 40 })).toBe(false);
+    // narrow: the text overflows; down scrolls its lines, up at its top gives the wheel back
+    v.resize(360);
+    v.draw();
+    expect(at().p.contentHeight).toBeGreaterThan(at().p.box.height);
+    expect(v.input.wheel(200, at().y, { deltaX: 0, deltaY: -40 })).toBe(false);
+    expect(v.input.wheel(200, at().y, { deltaX: 0, deltaY: 120 })).toBe(true);
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    expect(at().p.anchor).toBeGreaterThan(0);
+    expect(at().p.strips.axes[0].u0).toBeGreaterThan(0);
+  });
 });

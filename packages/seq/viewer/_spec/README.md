@@ -451,6 +451,11 @@ binding table; per move one hit record and one modifiers record are reused.
   is reactive: the bar follows jumps, back and forward, and edits that clear the history). A click runs the command on
   the first leading section. Why a model apart: the twin of the mounted bar reads the same states in Node.
 
+- **A text section's wheel** (`_scrollText`): over a text section, a wheel without Cmd/Ctrl scrolls its lines
+  (`TextNav.pan` by the vertical delta, the anchor set as the section's range start) only while its content overflows
+  its box; with nothing to scroll, or at its top or bottom, the wheel is given back to the page (scroll chaining), so a
+  host page keeps its scroll. The rest of the text's gestures through the layout's nav is open (TODO).
+
 ## Behaviors
 
 Small policies over the models (`behaviors/`), each reading the bindings.

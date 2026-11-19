@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Hit as RenderHit } from '@molstar/seqx-core/render';
+import { type Hit as RenderHit, TextNav, TextPlacement, textMinScale } from '@molstar/seqx-core/render';
 import {
   type KeyChord,
   matchesChord,
@@ -122,6 +122,37 @@ export class ViewerInput {
     if (!layout) return undefined;
     for (const s of layout.sections) if (y >= s.y && y < s.y + s.height) return s.section.address;
     return undefined;
+  }
+
+  /** A text section's placement (_spec/README.md "Input": a text scrolls its lines), else undefined. */
+  private _textPlacement(section: string): TextPlacement | undefined {
+    const s = this.viewer.frame?.layout.sections.find((x) => x.section.address === section);
+    return s?.placement instanceof TextPlacement ? s.placement : undefined;
+  }
+
+  /**
+   * The wheel over a text section (_spec/README.md "Input"): its lines scroll by the wheel's vertical delta through the
+   * text's arithmetic (`TextNav`) while its content overflows its box; at its top or bottom, or with nothing to
+   * scroll, the wheel is given back to the page (false: scroll chaining).
+   */
+  private _scrollText(section: string, p: TextPlacement, dy: number): boolean {
+    const v = this.viewer.view.get(section);
+    if (!v || !p.geometry || dy === 0 || p.contentHeight <= p.box.height) return false;
+    const config = this.viewer.context.renderConfig;
+    const c = {
+      total: p.geometry.total,
+      width: v.width,
+      height: p.box.height,
+      cyclic: false,
+      maxScale: this.viewer.config.viewport.maxPxPerPosition,
+      minScale: textMinScale(config),
+      placement: p,
+    };
+    const next = TextNav.pan(c, { start: p.anchor, end: p.geometry.total }, 0, dy);
+    if (next.start === p.anchor) return false;
+    this.viewer.view.setRange(section, next.start, p.geometry.total);
+    this.viewer.schedule();
+    return true;
   }
 
   /** The hit under a point as the hover model takes it (the section is read from the layer), in the reused record. */
@@ -311,6 +342,9 @@ export class ViewerInput {
       return taken;
     }
     const mods = this._modifiers(e);
+    // a text section takes the wheel only while it overflows its box, and gives it back at its ends
+    const text = this._textPlacement(section);
+    if (text && !e.ctrlKey && !e.metaKey) return this._scrollText(section, text, dy);
     const taken = this.viewer.bindings.resolve('wheel', mods, target) !== undefined;
     if (taken) nav.wheel(section, dx, dy, local, mods, target);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them
