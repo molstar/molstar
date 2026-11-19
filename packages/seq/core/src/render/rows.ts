@@ -110,7 +110,6 @@ export class RowsLay {
   total: number | undefined = undefined;
   columns = 0;
   held: HeldCells | undefined;
-  heldKey = '';
   clades: Clades | undefined;
   cladesOf: unknown;
   readonly display = new DisplayRows();
@@ -405,21 +404,18 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.lazyLabels.clear();
     lay.lazyCodes.clear();
     lay.chip = '';
-    if (!lay.cache) {
+    if (ctx.images) lay.cache = ctx.images;
+    else if (!lay.cache) {
       let own = OwnImages.get(config);
       if (!own) OwnImages.set(config, (own = new ImageCache(config.imageBytes)));
       lay.cache = own;
     }
     const src = prep.src;
     if (!src) return lay;
-    const coverage = data.coverage(src.source);
-    const rowsInfo = coverage?.systems.find((s) => s.name === src.system);
-    const colsInfo = coverage?.systems.find((s) => s.name !== src.system);
-    lay.total = rowsInfo?.length;
-    lay.columns = colsInfo?.length ?? axis.length ?? 0;
-    const rowsSrc: LayerSource = { ...src, ...(lay.total !== undefined ? { length: lay.total } : {}) };
-    delete (rowsSrc as { path?: unknown }).path;
-    delete (rowsSrc as { back?: unknown }).back;
+    const at = rowsSource(src, data);
+    const rowsSrc = at.src;
+    lay.total = at.rows;
+    lay.columns = at.columns ?? axis.length ?? 0;
     lay.rowScale = ctx.rowScale ?? config.rows.rowHeight;
     const N = lay.total;
     if (N === undefined) {
@@ -431,8 +427,8 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     // held: read whole once (within the block bound), joined when every tile is in
     const heldable = N * lay.columns <= DefaultMaxBlockValues;
     if (heldable) {
-      const read = readTiles(ctx, data, rowsSrc, [0, N], 1);
-      if (!read.pending.length && !read.failed.length) joinHeld(lay, read.entries, N);
+      const held = readHeld(ctx, data, rowsSrc, N, lay.columns);
+      if (held) lay.held = held;
       else if (!lay.held) lay.pending.push(box.y, box.height);
     } else {
       lay.held = undefined;
@@ -572,31 +568,49 @@ function nearestNode(lay: RowsLay, x: number, y: number): number {
   return best;
 }
 
-/** The held cells joined from the tiles in order, made again only when an entry changed. */
-function joinHeld(
-  lay: RowsLay,
-  entries: readonly { readonly version: number; readonly tables: { cells?: unknown } }[],
-  N: number,
-) {
-  let key = `${N}`;
-  for (const e of entries) key += `,${e.version}`;
-  if (lay.held && key === lay.heldKey) return;
-  const C = lay.columns;
-  const codes = new Uint8Array(N * C);
-  const labels: string[] = new Array(N).fill('');
-  const first = new Int32Array(N).fill(1);
-  for (const e of entries) {
-    const t = e.tables.cells as CellsCodes | undefined;
+/** Joined held cells by store and source, shared by the layers reading one alignment (the rows, its logo). */
+const Joined = new WeakMap<StoreReader, Map<string, { key: string; held: HeldCells }>>();
+
+/**
+ * An alignment held whole (_spec/README.md "Render", The rows layer): every tile of its rows wanted at level 1, joined
+ * once they are all in, kept by the entries' versions and shared by the layers reading it on one store; undefined while
+ * some are pending or failed.
+ */
+export function readHeld(ctx: LayoutContext, data: StoreReader, src: LayerSource, rows: number, columns: number) {
+  const read = readTiles(ctx, data, src, [0, rows], 1);
+  if (read.pending.length || read.failed.length) return undefined;
+  let key = `${rows}|${columns}`;
+  for (const e of read.entries) key += `,${e.version}`;
+  let bySource = Joined.get(data);
+  if (!bySource) Joined.set(data, (bySource = new Map()));
+  const kept = bySource.get(src.source);
+  if (kept?.key === key) return kept.held;
+  const C = columns;
+  const codes = new Uint8Array(rows * C);
+  const labels: string[] = new Array(rows).fill('');
+  const first = new Int32Array(rows).fill(1);
+  for (const e of read.entries) {
+    const t = e.tables.cells;
     if (!t || t.form !== 'codes' || t.columns !== C) continue;
-    const rows = Math.floor(t.codes.length / Math.max(C, 1));
-    codes.set(t.codes.subarray(0, Math.min(rows, N - t.start) * C), t.start * C);
-    for (let i = 0; i < rows && t.start + i < N; i++) {
+    const n = Math.floor(t.codes.length / Math.max(C, 1));
+    codes.set(t.codes.subarray(0, Math.min(n, rows - t.start) * C), t.start * C);
+    for (let i = 0; i < n && t.start + i < rows; i++) {
       labels[t.start + i] = t.label?.get(i) ?? `row ${t.start + i + 1}`;
       if (t.first) first[t.start + i] = t.first[i];
     }
   }
-  lay.heldKey = key;
-  lay.held = { rows: N, columns: C, codes, labels, first, version: (lay.held?.version ?? 0) + 1 };
+  const held: HeldCells = { rows, columns: C, codes, labels, first, version: (kept?.held.version ?? 0) + 1 };
+  bySource.set(src.source, { key, held });
+  return held;
+}
+
+/** The rows system's source of a layer (its data's columns path dropped) and the alignment's size, when attached. */
+export function rowsSource(src: LayerSource, data: StoreReader) {
+  const coverage = data.coverage(src.source);
+  const rows = coverage?.systems.find((s) => s.name === src.system)?.length;
+  const columns = coverage?.systems.find((s) => s.name !== src.system)?.length;
+  const { path: _p, back: _b, ...rest } = src;
+  return { src: { ...rest, ...(rows !== undefined ? { length: rows } : {}) } as LayerSource, rows, columns };
 }
 
 /** A lazy alignment: the tiles of the rows in view at level 1 (their labels and cells), the rest pending. */

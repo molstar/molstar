@@ -6,7 +6,7 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView } from '../index.js';
+import { hitView, type LogoLay, recordDrawLists, renderSvg } from '../index.js';
 import type { RowsLay } from '../rows.js';
 import { settle } from './helpers.js';
 
@@ -134,5 +134,44 @@ describe('the rows layer', () => {
     expect(lay.display.pinned).toBe(1);
     expect(lay.labelText).toEqual(['MYG/1-6', 'HBA/1-6', 'HBB/2-7', '· MYG/1-6', 'CYG/1-6']);
     expect(lay.chip).toBe('1 hidden');
+  });
+
+  it('the canvas and the export draw one spec alike: the same lists, the folds the export is given', async () => {
+    // a band of its own height (a figure takes no fill)
+    const b = spec({ order: 'tree', collapsed: ['hb'] }, { height: 120 });
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size, dpr: 1, settled: true });
+    const canvas = recordDrawLists(f.lists, ['data', 'labels']);
+    const svg = await renderSvg(b.build(), { size: Size });
+    expect(svg.settled).toBe(true);
+    expect(recordDrawLists(svg.lists, ['data', 'labels'])).toBe(canvas);
+    expect(svg.svg).toContain('HBA/1-6 +1');
+    // the viewer's own folds (none folded) passed to the export
+    const open = await renderSvg(b.build(), { size: Size, folds: { '/views/v/s/rows': [] } });
+    expect(open.svg).not.toContain('HBA/1-6 +1');
+    expect(open.svg).toContain('HBB/2-7');
+  });
+
+  it('the logo stacks each column’s letters by information, lowest first, and hits a column with its letter', async () => {
+    const b = createSeqSpec();
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
+    b.views.view('v', (v) =>
+      v.section('s', { of: aln }, (s) => {
+        s.track('logo', { label: 'logo' }, (t) => t.layer('l', { type: 'logo', data: aln } as never));
+      }),
+    );
+    expect(b.check()).toEqual([]);
+    const st = await settle(b.build());
+    const f = await st.frame({ size: Size, dpr: 1, settled: true });
+    let lay: LogoLay | undefined;
+    for (const sec of f.layout.sections)
+      for (const l of sec.lays) for (const x of l ?? []) if (x.type.name === 'logo') lay = x.lay as LogoLay;
+    // column 0 is all M: one letter, the column's full information (log2 20)
+    const first = Array.from({ length: lay!.n }, (_, i) => i).filter((i) => lay!.lx[i] === lay!.lx[0]);
+    expect(first.length).toBe(1);
+    expect(String.fromCharCode(lay!.code[first[0]])).toBe('M');
+    expect(lay!.vs[first[0]] * lay!.fontSize * 0.72).toBeCloseTo(lay!.box.height, 3);
+    const h = hitView(f.layout, lay!.lx[0], lay!.box.y + lay!.box.height - 2);
+    expect(h).toMatchObject({ position: 0, state: 'M' });
   });
 });

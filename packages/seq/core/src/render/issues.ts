@@ -20,6 +20,11 @@ export const RenderIssues = defineIssues('seq.render', {
       'An alignment’s rows are below a pixel and its source serves no coarse row bins: the rows in view are drawn pending',
     hint: 'Zoom in on the rows (`]`), or serve the alignment with row levels',
   },
+  'seq.render.logo.profile': {
+    severity: 'info',
+    description: 'A logo over a lazy alignment: its profile is a source’s to serve, and none is read yet',
+    hint: 'Hold the alignment, or draw the logo over a held one',
+  },
   'seq.render.rows.order': {
     severity: 'info',
     description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',

@@ -11,6 +11,7 @@ import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { Legend } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
+import type { ImageCache } from './images.js';
 import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
@@ -72,6 +73,8 @@ export interface LayoutContext {
   readonly rowScale?: number;
   /** The clades a rows layer folds (session state, by name), when the band says; its `collapsed` when absent. */
   readonly folds?: readonly string[];
+  /** The shared image cache a layer keeps its image tiles in (the renderer's). */
+  readonly images?: ImageCache;
 }
 
 /** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */
@@ -118,6 +121,8 @@ export interface Hit {
   readonly part?: WindowPart;
   /** The block (its index in the section) when the section has blocks. */
   readonly block?: number;
+  /** What is under the point within the position, when a layer says (a logo's letter). */
+  readonly state?: string;
 }
 
 /**

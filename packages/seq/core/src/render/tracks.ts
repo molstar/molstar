@@ -57,7 +57,9 @@ import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
+import { LogoType } from './logo.js';
 import { RowsType } from './rows.js';
+import type { ImageCache } from './images.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -74,6 +76,7 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   variants: VariantsType,
   frame: FrameType,
   rows: RowsType,
+  logo: LogoType,
 };
 
 export interface LayerLayout {
@@ -189,6 +192,10 @@ export interface LayoutInput {
   readonly figure?: boolean;
   /** Draws the windows a figure leaves out by default (a ring's in an export). */
   readonly windows?: boolean;
+  /** The clades a rows layer folds by its track's address, where its band gives none (an export's `folds`). */
+  readonly folds?: Readonly<Record<string, readonly string[]>>;
+  /** The shared image cache (_spec/README.md "Render", The shared reduction): the renderer's. */
+  readonly images?: ImageCache;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
@@ -939,7 +946,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             labels: labels ?? 'inside',
             ...(band ? { bandTop: band.bandTop } : {}),
             ...(band?.rowScale !== undefined ? { rowScale: band.rowScale } : {}),
-            ...(band?.folds !== undefined ? { folds: band.folds } : {}),
+            ...(band?.folds !== undefined
+              ? { folds: band.folds }
+              : input.folds?.[track.address]
+                ? { folds: input.folds[track.address] }
+                : {}),
+            ...(input.images ? { images: input.images } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;

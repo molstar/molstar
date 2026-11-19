@@ -1403,6 +1403,19 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   as their cells; the cursor with a row (`Emphasis.cursor.ySystem`) outlines its cell (the strip draws a cursor without
   one).
 
+### The logo
+
+`render/logo.ts`: a conservation logo over an alignment's columns, a fixed track (`heights.logo`, 48) above its rows.
+Each column's letters stacked lowest first by `logo_scale` (`bits`: log2(k) − H, k 20 for protein and 4 for
+nucleotides, less the small-sample correction `(k − 1) / (2 ln 2 n)` with `correction: small-sample`; or
+`probability`), the band's height the full scale; each letter placed and stretched with the glyph runs' per-letter y
+and vertical scale (its cap height, 0.72 of its size). Its profile (letter frequencies a column, `gaps: ignore` or
+`count`) is computed from the held cells, joined once and shared with the rows layer on one store (`readHeld`), kept by
+their version; over a lazy alignment it is a source's to serve, and none is read yet (`seq.render.logo.profile`,
+info). Below 2 device px a column, one bar a device column, the tallest stack there (the shared reduction's one-axis
+max, factor 2), in its top letter's color. Its color is the alphabet's scheme by default. Hit: the column, the letter
+under the point as the hit's `state`. `rows: shown` waits (the logo reads every row).
+
 ### The key
 
 - `Renderer.frame` keys a frame by the model's hash, the view, the size and device pixel ratio, the viewport, the token
@@ -1467,6 +1480,8 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   empty `<g data-section data-direction data-pieces data-y data-height>` a section (the draw lists are grouped by pass,
   not by section: these say what each axis is), and its ids take a prefix (`idPrefix`, by default `s` and a hash of the
   spec). On a shared store it reports only the issues of the sources it attached.
+- **Folds** (`folds`, by a rows layer's track address): the clades the export folds (a viewer passes its own, as it
+  passes the selection), else the layer's `collapsed`; a frame's `FrameInput.folds`, part of its key by identity.
 - **A ring's window** (`window`, the view's `export.window` when absent, false): an export is a figure (`figure`), so a
   ring's window is drawn only when asked.
 - **Legends** (`legend`: `none` by default, `below`, `right`; a view's `export.legend` when the option is absent): a
@@ -1475,7 +1490,7 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
 
 ### Issues
 
-- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.order` (info), `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
+- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `logo.profile` (info), `rows.order` (info), `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
   `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
   `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
   `source`, `template.limit`, `unsettled`; a test checks the catalog.

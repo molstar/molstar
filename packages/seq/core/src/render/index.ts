@@ -170,3 +170,23 @@ export {
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';
 export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js';
 export { type FrameLay, type FramePrep, FrameType } from './frames.js';
+export { LogoLay, type LogoPrep, LogoType } from './logo.js';
+export { readHeld, RowsLay, type RowsOrder, type RowsPrep, RowsType, rowsSource } from './rows.js';
+export {
+  allClades,
+  buildClades,
+  type Clades,
+  cladeNamed,
+  cladesAtDepth,
+  cladesHolding,
+  cladesWithin,
+  type ColumnMeasures,
+  columnMeasures,
+  consensus,
+  DisplayRows,
+  type HeldCells,
+  logoHeights,
+  measureEntries,
+  type Profile,
+  profileOf,
+} from './rows-model.js';
