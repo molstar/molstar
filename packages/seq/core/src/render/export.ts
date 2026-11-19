@@ -40,6 +40,7 @@ import {
 } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
+import { accessibleOf } from './accessibility.js';
 import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
@@ -534,6 +535,12 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       fonts: tokens.fonts,
       fade: config.fade,
       idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
+      accessible: accessibleOf(
+        model,
+        frame.layout,
+        String(spec.params?.title ?? '') || 'Sequence view',
+        emphasis?.highlights,
+      ),
       metadata: {
         'seq-settled': String(settled),
         ...(domains.length ? { 'seq-domains': domains.join(';') } : {}),

@@ -220,6 +220,18 @@ export interface Emphasis {
  * A layer type: `prepare` is tier 1 (cached per resolved layer), `layout` per viewport (given its last layout to reuse
  * its buffers and keep its lanes), `draw` one pass into the lists, `hit` from the same layout.
  */
+export interface ItemDescription {
+  readonly key: string | number;
+  /** Its label (its key when it has none). */
+  readonly label: string;
+  /** Its extent on its data's system, `[start, end)`. */
+  readonly start: number;
+  readonly end: number;
+  /** Where it is drawn, in the section's x (clamped to the data box) and the layer's band. */
+  readonly x0: number;
+  readonly x1: number;
+}
+
 export interface LayerType<Prep = unknown, Lay = unknown> {
   readonly name: string;
   /** The layer type a target without this one draws. */
@@ -241,6 +253,11 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   legend?(lay: Lay, options: { readonly title: string }): readonly Legend[];
   /** The y domain it drew (a values layer's), recorded by an export. */
   domain?(lay: Lay): readonly [number, number] | undefined;
+  /**
+   * The items it shows, as the accessible layer of an export and the viewer's announcements name them (`ItemDescription`):
+   * each item once, its pieces' hull. Absent: the layer has no items to name (letters, values).
+   */
+  items?(lay: Lay): readonly ItemDescription[];
   /** The rows its data's filter left out of what it read (the track's "n filtered" chip). */
   filtered?(lay: Lay): number;
   /**

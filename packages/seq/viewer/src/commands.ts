@@ -125,6 +125,7 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'rows.hide': 'patch',
   'rows.show': 'patch',
   'rows.order': 'patch',
+  'rows.order-next': 'patch',
   'rows.zoom-in': 'navigate',
   'rows.zoom-out': 'navigate',
   // Esc ends a gesture's preview in nothing

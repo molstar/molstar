@@ -2000,6 +2000,15 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is
   written only as a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
   (`_test/svg-escaping.test.ts`).
+- **Accessibility** (`accessibility.ts`, `accessibleOf`; `SvgOptions.accessible`): an export's root is `role="img"`,
+  `aria-labelledby` its `<title>` (the spec's `title`, else `Sequence view`) and `<desc>` (the sections, their systems
+  and track counts); over the picture a group `data-seq-accessible` holds a group a track (`<title>` its label, its item
+  count and its section, a transparent `<rect>` over its band: `pointer-events="all"` so a browser shows the title) and
+  in it one a named item (`LayerType.items`, which the ranges, secondary and variants layers have: the label, else the
+  key, with its extent on its data's system, 1-based and inclusive: `DNA-binding, p53 94–292`; a track names at most
+  `MaxNamedItems` and says how many more), then a group a highlight (`Highlight 1: 10 positions, p53 11–20`). Why boxes
+  over the picture and not marks with titles: the draw lists carry no semantics, and a layer's items are already what
+  the hit test names. The viewer's announcements use the same words (viewer `_spec`, Announcements).
 
 ### Export
 
