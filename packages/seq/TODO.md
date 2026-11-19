@@ -142,10 +142,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
     its column through the axis, every layer's hit) measured by the allocation tier;
   - a Design page (the Pfam globin seed and its tree are recorded: the seed as published, the tree by neighbor joining,
     inline);
-  - row keys on an alignment read from a source: `(row :key …)` reads only an inline alignment's rows
-    (`seq.query.row.unknown` on the Globins seed read from its file), and no form names rows by position;
-  - a section of blocks over sequences read from a source takes their lengths from the source's coverage once attached
-    (today `seq.render.axis.pending` until each block names its `range`: the Globins hemoglobin view names them);
+  - no form names an alignment's rows by position; `(row :key …)` on an alignment read from a source names a row only
+    once its rows are held (a rows layer read them): a row form does not ask for them;
   - a heme per heavy atom (4HHB's hemes are one position each this slice) and the map from 4HHB's units to their rows of
     the seed (an alignment map: the language has `offset` and `codon` only);
   - the text layout's `chrome` throws when an alignment's source has not opened (`render/layout/text.ts`, its
@@ -202,8 +200,7 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   group (EC-62, EC-65); a grid's image tiles assume a one-piece axis (a grid over a section with breaks draws rects or
   stretches the tiles); `across_lines` in text, and arcs on a stack of tracks sections read as lines; pairs and grids
   are held in the model (`resolve/held.ts`), not through the seq format and the store (read by region waits for the
-  Genomes milestone); `(row :key k)` over an alignment read from a source (its labels not held in the model); `split`
-  with the letters between its two sides (one band: the split arcs stand on its middle).
+  Genomes milestone); `split` with the letters between its two sides (one band: the split arcs stand on its middle).
 
 ## `@molstar/seqx-viewer`
 
