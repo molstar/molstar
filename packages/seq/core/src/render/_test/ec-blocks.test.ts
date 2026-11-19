@@ -16,7 +16,13 @@ import { settle } from './helpers.js';
 
 const Size = { width: 800, height: 600 };
 
-function blocksSpec(o: { arrange?: 'row' | 'stack'; layout?: 'text'; ligands?: number; chains?: number; length?: number }) {
+function blocksSpec(o: {
+  arrange?: 'row' | 'stack';
+  layout?: 'text';
+  ligands?: number;
+  chains?: number;
+  length?: number;
+}) {
   const b = createSeqSpec({ title: 'blocks' });
   const r = seeded(11);
   const protein = (n: number) => {
@@ -82,7 +88,9 @@ describe('EC-99: ligand chips in a text section', () => {
   const chipsOf = (p: TextPlacement) => p.strips.axes.map((_, i) => i).filter((i) => p.strips.chip[i] === 1);
 
   it('the chips share a line like words, and wrap onto the next line with them when the width runs out', async () => {
-    const wide = await (await settle(blocksSpec({ layout: 'text', ligands: 6, chains: 1, length: 12 }))).frame({ size: Size });
+    const wide = await (await settle(blocksSpec({ layout: 'text', ligands: 6, chains: 1, length: 12 }))).frame({
+      size: Size,
+    });
     const pw = wide.layout.sections[0].placement as TextPlacement;
     expect(wide.layout.sections[0].layout).toBe(TextLayout);
     const cw = chipsOf(pw);
