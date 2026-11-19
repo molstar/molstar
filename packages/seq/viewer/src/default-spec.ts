@@ -26,6 +26,7 @@ import { frameAnimation } from './animation.js';
 import { hoverCardOverlay } from './mount-hover-card.js';
 import { legendsMount } from './mount-legend.js';
 import { navigatorsMount } from './mount-navigator.js';
+import { NavigatorsPart } from './navigators.js';
 import { StoryPart } from './story.js';
 import { uiHistory } from './ui-history.js';
 import type { SeqViewerSpec } from './viewer-spec.js';
@@ -65,6 +66,7 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
     ports: defaultPorts(),
     animation: frameAnimation(),
     story: StoryPart,
+    navigators: NavigatorsPart,
     ui: { canvas: true, history: uiHistory, legends: legendsMount, navigators: navigatorsMount },
   };
 }

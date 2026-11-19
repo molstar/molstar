@@ -10,6 +10,7 @@ import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SeqAnimationPort, SeqHistoryPort } from '@molstar/seqx-viewer/ports';
 import type { LegendModel } from './legends.js';
+import type { SeqNavigatorsPart } from './navigators.js';
 import type { SeqStoryPart } from './story.js';
 import type { SeqViewer } from './viewer.js';
 import type {
@@ -139,6 +140,12 @@ export interface SeqViewerSpec {
    * can be entered (`seq.viewer.step.none`).
    */
   readonly story?: SeqStoryPart;
+  /**
+   * The navigators (_spec/README.md "Composition", Navigators): their models and their export (`NavigatorsPart` of
+   * `@molstar/seqx-viewer/navigators`). None: a declared navigator is not drawn, the ruler rail it would replace stays,
+   * and one issue says so (`seq.viewer.navigators.none`). Their gestures are the `navigator` behavior's.
+   */
+  readonly navigators?: SeqNavigatorsPart;
   /** The UI's parts; none for a headless viewer (a target given without it is left empty). */
   readonly ui?: SeqViewerUI;
 }

@@ -431,13 +431,14 @@ owner, the store with it.
   type, layout, navigator, story, history or rows piece: the context is `composeSeqContext` of the spec's registry (the
   canvas, the navigation's layouts and `renderSvg` draw its layer types and layouts alone; a layer of another type or a
   section of another layout is said, `seq.render.layer.type`, `seq.render.layout`, and laid out as tracks); the
-  navigators (their models, `navigatorModel` and `navigator(def)`, and their export) are the `navigator` behavior's
-  handle (`NavigatorHandle`: none without it, and an export asked to include them says so,
-  `seq.render.navigator.export`); the rows rail's drags are the `rows` behavior's (`RowsHandle.railGesture`); story
-  steps and transitions are the `story` part (none: jumps and steps are cuts, `spec.enterStep` refuses,
-  `seq.viewer.step.none`); the mounted history is `ui.history`, a factory. Why: one rule for every part, listed or
-  absent, no lazy chunk a host's bundler must split, and the size a host pays follows what it lists; the size script's
-  minimal entry checks it (none of the unlisted modules in its bundle).
+  navigators (their models, `navigatorModel` and `navigator(def)`, and their export) are the `navigators` part
+  (`NavigatorsPart`: without it a declared navigator is not drawn, the ruler rail it would replace stays, and one issue
+  says so, `seq.viewer.navigators.none`; `navigator(def)` throws; an export asked to include them says so,
+  `seq.render.navigator.export`, and keeps the rails), their gestures the `navigator` behavior's; the rows rail's drags
+  are the `rows` behavior's (`RowsHandle.railGesture`); story steps and transitions are the `story` part (none: jumps
+  and steps are cuts, `spec.enterStep` refuses, `seq.viewer.step.none`); the mounted history is `ui.history`, a factory.
+  Why: one rule for every part, listed or absent, no lazy chunk a host's bundler must split, and the size a host pays
+  follows what it lists; the size script's minimal entry checks it (none of the unlisted modules in its bundle).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `ui.history()` when
   mounted; bound to the spec), the binding table (a behavior's `actions` bound only when it is listed), the behaviors

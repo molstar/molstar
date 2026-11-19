@@ -109,11 +109,33 @@ describe('a viewer composed from a smaller registry', () => {
     expect(svg.svg).not.toContain('data-navigator');
   });
 
-  it('lists no navigator, story or history: no navigator model, no story step, jumps cut', async () => {
+  it('lists no navigators: a declared one is not drawn, the rail it would replace stays, one issue says so', async () => {
     const v = await make(minimal([{ kind: 'format-runtime', runtime: SeqRuntime }]));
     expect(v.navigatorModel('nav')).toBeUndefined();
-    expect(v.navigator({ id: 'host', of: '/views/main/s' })).toBeUndefined();
-    expect(v.behaviorIssues.value.map((i) => i.address)).toEqual(['navigator']);
+    expect(() => v.navigator({ id: 'host', of: '/views/main/s' })).toThrow(/lists no navigators/);
+    // the section the navigator binds keeps its ruler rail
+    expect(v.frame!.layout.sections[0].rail).toBeDefined();
+    expect(v.behaviorIssues.value.map((i) => i.code)).toEqual(['seq.viewer.navigators.none']);
+    v.draw();
+    expect(v.behaviorIssues.value.length).toBe(1);
+  });
+
+  it('the navigators without the navigator behavior: drawn, with no targets', async () => {
+    const base = DefaultSeqViewerSpec();
+    const v = await make({ ...base, behaviors: base.behaviors.filter((b) => b.provider.name !== 'navigator') });
+    const m = v.navigatorModel('nav')!;
+    expect(m).toBeDefined();
+    // the navigator replaces the rail; it is drawn, its window shown and not movable
+    expect(v.frame!.layout.sections[0].rail).toBeUndefined();
+    const f = m.draw()!;
+    expect(f.windows[0].shown).toBe(true);
+    expect(m.values.value.map((x) => x.disabled)).toEqual([true]);
+    // the gestures' behavior is said missing when asked for, never the navigators
+    expect(v.behaviorIssues.value.map((i) => i.code)).not.toContain('seq.viewer.navigators.none');
+  });
+
+  it('lists no story or history: no story step, jumps cut', async () => {
+    const v = await make(minimal([{ kind: 'format-runtime', runtime: SeqRuntime }]));
     expect(v.spec.enterStep('any')?.code).toBe('seq.viewer.step.none');
     expect(v.spec.history).toBeUndefined();
     // a jump moves the model at once: no plan, no motion

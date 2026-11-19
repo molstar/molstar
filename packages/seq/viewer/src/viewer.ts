@@ -59,7 +59,7 @@ import {
   StoreModel,
   ViewModel,
 } from '@molstar/seqx-viewer/models';
-import type { AddressingBehavior, HoverCardBehavior, LinkRun, NavigatorHandle } from '@molstar/seqx-viewer/behaviors';
+import type { AddressingBehavior, HoverCardBehavior, LinkRun } from '@molstar/seqx-viewer/behaviors';
 import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import type { AnimationRequest, SeqAnimation, SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
@@ -70,6 +70,7 @@ import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-
 import { mountCanvas } from './mount.js';
 import type { SeqStoryPart } from './story.js';
 import type { NavigatorDef, NavigatorModel } from './navigator.js';
+import type { SeqNavigatorsPart } from './navigators.js';
 
 // The viewer (_spec/README.md "Composition"): composed from a spec by `createSeqViewer`, as a Mol* plugin is: the
 // context (registry, configuration, ports) first, then the models, the bindings and the behaviors, then the UI. Frames
@@ -144,7 +145,6 @@ export class SeqViewer extends ReactiveModel {
   private readonly _rested = new State(0);
   private readonly _ran = new State<{ readonly id: string; readonly n: number }>({ id: '', n: 0 });
   private readonly _tokensVersion = new State(0);
-  private readonly _handles = new Map<BehaviorProvider<any, any>, unknown>();
   private _frameId: number | undefined;
   private _rehitting = false;
   private readonly _emphasis: Mutable<Emphasis> = {};
@@ -229,10 +229,8 @@ export class SeqViewer extends ReactiveModel {
   /** The stories and transitions the spec lists (`story`): none, every jump a cut and no step entered. */
   private readonly _motion: SeqStoryPart | undefined;
 
-  /** The `navigator` behavior's handle, when listed: the navigators' models and their export are its. */
-  private get _navigatorHandle(): NavigatorHandle | undefined {
-    return this.behaviors.get('navigator') as NavigatorHandle | undefined;
-  }
+  /** The navigators the spec lists (`navigators`): none, a declared navigator is not drawn and its rail stays. */
+  private readonly _navigatorsPart: SeqNavigatorsPart | undefined;
 
   constructor(
     viewerSpec: SeqViewerSpec,
@@ -251,6 +249,7 @@ export class SeqViewer extends ReactiveModel {
     this.registerPermanentDispose(() => this.context.retire());
     this.layouts = this.context.layouts;
     this._motion = viewerSpec.story;
+    this._navigatorsPart = viewerSpec.navigators;
     this.layoutIssues = this._issues.asReadonly;
     this.behaviorIssues = this._behaviorIssues.asReadonly;
     this.rested = this._rested.asReadonly;
@@ -330,7 +329,6 @@ export class SeqViewer extends ReactiveModel {
         if (this.behaviors.has(b.provider.name)) throw new Error(`The behavior ${b.provider.name} is listed twice`);
         const handle = b.provider.create(context, b.params);
         this.behaviors.set(b.provider.name, handle);
-        this._handles.set(b.provider, handle);
         if (Array.isArray(handle?.commands)) this.commands.push(...handle.commands);
         if (typeof handle?.dispose === 'function') this.registerPermanentDispose(() => handle.dispose());
       }
@@ -1152,11 +1150,13 @@ export class SeqViewer extends ReactiveModel {
         const n = m.isHosted ? m.navigator : undefined;
         if (n) hosted.push(n);
       }
+      // a declared navigator replaces a rail only when the spec lists the navigators (else it is not drawn: said once)
+      const shown = this._navigatorsPart ? resolved : this._withoutNavigators(resolved);
       // and every rows layer's rows rail, by its track (a navigator over the section's rows replaces it)
-      const rows = on ? rowsRailTracks(resolved, hosted) : [];
+      const rows = on ? rowsRailTracks(shown, hosted) : [];
       this._rowsRails = new Set(rows);
       this._rails = on
-        ? Object.fromEntries([...railSections(resolved, hosted), ...rows].map((a) => [a, true as const]))
+        ? Object.fromEntries([...railSections(shown, hosted), ...rows].map((a) => [a, true as const]))
         : undefined;
       this._railsActive = {};
     }
@@ -1173,6 +1173,25 @@ export class SeqViewer extends ReactiveModel {
     this._railsActive = next;
   }
 
+  /**
+   * The view as drawn by a viewer that lists no navigators: its declared ones left out (their rails stay), and one
+   * issue (`seq.viewer.navigators.none`) when it declares any shown.
+   */
+  private _withoutNavigators(resolved: ResolvedView): ResolvedView {
+    if (!resolved.navigators.some((n) => !n.hidden)) return resolved;
+    if (!this._behaviorIssues.value.some((i) => i.code === 'seq.viewer.navigators.none'))
+      this._behaviorIssues.set([
+        ...this._behaviorIssues.value,
+        issueOf(
+          ViewerIssues,
+          'seq.viewer.navigators.none',
+          'The view declares navigators and the viewer lists none: they are not drawn, the rails stay',
+          { address: resolved.address, hint: ViewerIssues.codes['seq.viewer.navigators.none'].hint },
+        ),
+      ]);
+    return { ...resolved, navigators: [] };
+  }
+
   /** Shows or hides the ruler rails (the reader's session: the embedded layout's corner button). */
   setRailsShown(shown: boolean): void {
     if (this._railsShown.value === shown) return;
@@ -1187,15 +1206,15 @@ export class SeqViewer extends ReactiveModel {
 
   /**
    * A navigator's model by its id (a declared node of the view's, by id or address, or a host's): made once and kept
-   * with the viewer. Undefined when there is none of that id.
+   * with the viewer. Undefined when there is none of that id, or the spec lists no navigators (`navigators`).
    */
   navigatorModel(id: string): NavigatorModel | undefined {
     const kept = this._navigators.get(id);
     if (kept) return kept;
     const view = this.view.resolved.value;
-    if (!view?.navigators.some((n) => n.id === id || n.address === id)) return undefined;
-    const m = this._navigatorHandle?.model(this, id);
-    if (!m) return undefined;
+    const part = this._navigatorsPart;
+    if (!part || !view?.navigators.some((n) => n.id === id || n.address === id)) return undefined;
+    const m = part.model(this, id);
     this._navigators.set(id, m);
     this.registerPermanentDispose(() => m.retire());
     return m;
@@ -1203,13 +1222,14 @@ export class SeqViewer extends ReactiveModel {
 
   /**
    * A host's navigator (_spec/README.md "Composition", Navigators): a definition of the `navigator` node's shape, never
-   * saved in the spec (a Mol* plugin's strip over a user's spec); mounted by its id like a declared one.
+   * saved in the spec (a Mol* plugin's strip over a user's spec); mounted by its id like a declared one. Throws when the
+   * spec lists no navigators (`navigators`): a host that shows one composes them.
    */
-  navigator(def: NavigatorDef): NavigatorModel | undefined {
-    const handle = this.behavior<NavigatorHandle>('navigator');
-    if (!handle) return undefined;
+  navigator(def: NavigatorDef): NavigatorModel {
+    const part = this._navigatorsPart;
+    if (!part) throw new Error(`The viewer lists no navigators (its spec's \`navigators\`): no navigator ${def.id}`);
     this._navigators.get(def.id)?.retire();
-    const m = handle.model(this, def.id, def);
+    const m = part.model(this, def.id, def);
     this._navigators.set(def.id, m);
     this._hostedVersion++;
     this.registerPermanentDispose(() => m.retire());
@@ -1437,8 +1457,8 @@ export class SeqViewer extends ReactiveModel {
       tokens: this.tokens,
       // the navigators as the parts draw them (an included one's zoom strip, its direction)
       navigator: { zoomStrip: this.config.navigator.zoomStrip, direction: this.config.navigator.direction },
-      // the navigators are the `navigator` behavior's: a viewer that lists none exports none (and says so when asked)
-      ...(this._navigatorHandle ? { navigatorExport: this._navigatorHandle.svgExport } : {}),
+      // the navigators part: a viewer that lists none exports none (and says so when asked)
+      ...(this._navigatorsPart ? { navigatorExport: this._navigatorsPart.svgExport } : {}),
       // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it
       // over what it holds, and projects it onto the linked sections), else as its Location; the highlight channels
       ...this._svgEmphasis(),

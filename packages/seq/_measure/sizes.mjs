@@ -37,7 +37,7 @@ const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : undefi
  */
 const Unlisted = [
   /seq\/core\/src\/render\/navigator(-export)?\.ts$/,
-  /seq\/viewer\/src\/(navigator|mount-navigator|behaviors\/navigator)\.ts$/,
+  /seq\/viewer\/src\/(navigators?|mount-navigator|behaviors\/navigator)\.ts$/,
   /seq\/core\/src\/story\/(?!config\.ts$)/,
   /seq\/viewer\/src\/story\.ts$/,
   /ui\/src\/history\//,

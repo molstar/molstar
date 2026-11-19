@@ -458,8 +458,9 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
       tokens,
       text: options.text ?? bundledTextMetrics(),
       config,
-      types: options.types ?? NoTypes,
-      layouts: options.layouts ?? NoLayouts,
+      // none of a kind not given (each layer said, each section laid out as tracks)
+      types: options.types ?? {},
+      layouts: options.layouts ?? {},
       ...(options.registry ? { theme: options.registry } : {}),
     });
     const given = options.viewport;
@@ -476,8 +477,8 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
             tokens,
             text: options.text ?? bundledTextMetrics(),
             config,
-            types: options.types ?? NoTypes,
-            layouts: options.layouts ?? NoLayouts,
+            types: renderer.options.types,
+            layouts: renderer.options.layouts,
             ...(options.registry ? { theme: options.registry } : {}),
             images: renderer.images,
             domains: renderer.layoutState,
@@ -495,7 +496,9 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
           hint: RenderIssues.codes['seq.render.navigator.export'].hint,
         }),
       );
-    const rails = included ? Object.fromEntries(railSections(view).map((a) => [a, true])) : undefined;
+    // the rails plain; a navigator this export cannot draw replaces none (its section keeps its rail)
+    const railed = navs ? view : { ...view, navigators: [] };
+    const rails = included ? Object.fromEntries(railSections(railed).map((a) => [a, true])) : undefined;
     const frameInput = {
       // a height `auto` is measured from a first layout (`fitHeight`)
       size: { width: options.size.width, height: auto ? AutoHeight : (options.size.height as number) },
@@ -681,6 +684,3 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
     if (own) store.retire();
   }
 }
-
-const NoTypes: RendererOptions['types'] = {};
-const NoLayouts: RendererOptions['layouts'] = {};

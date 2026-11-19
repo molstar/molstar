@@ -4,11 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type NavigatorExport, NavigatorSvgExport } from '@molstar/seqx-core/render/navigator-export';
 import { SelectActions } from '@molstar/seqx-viewer/bindings';
 import { cellOffset } from '@molstar/seqx-viewer/models';
-import { type NavigatorDef, NavigatorModel } from '@molstar/seqx-viewer/navigator';
-import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import { type AddressingBehavior, addressingBehavior } from './addressing.js';
 import { type CopyWrite, copyLettersCommand } from './copy.js';
@@ -86,26 +83,10 @@ export const WindowProvider: BehaviorProvider<undefined, WindowBehavior> = {
  * A navigator's gestures on its own window behavior (_spec/README.md "Behaviors", Navigator): a host may leave it out,
  * and its navigators and rails are then drawn with no targets.
  */
-export const NavigatorProvider: BehaviorProvider<undefined, NavigatorHandle> = {
+export const NavigatorProvider: BehaviorProvider<undefined, NavigatorBehavior> = {
   name: 'navigator',
-  create: ({ view, config }) =>
-    Object.assign(navigatorBehavior(view, config), {
-      model: (viewer: SeqViewer, id: string, def?: NavigatorDef) => new NavigatorModel(viewer, id, def),
-      svgExport: NavigatorSvgExport,
-    }),
+  create: ({ view, config }) => navigatorBehavior(view, config),
 };
-
-/**
- * The navigator behavior's handle (_spec/README.md "Composition", Navigators): its gestures, and the navigators
- * themselves, the viewer's models of them and their part of an SVG export: a viewer that lists no `navigator`
- * behavior has none, and bundles none.
- */
-export interface NavigatorHandle extends NavigatorBehavior {
-  /** A navigator's model (a declared one by its id, or a host's definition). */
-  model(viewer: SeqViewer, id: string, def?: NavigatorDef): NavigatorModel;
-  /** How an export draws the navigators it includes. */
-  readonly svgExport: NavigatorExport;
-}
 
 export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
   name: 'legend',
