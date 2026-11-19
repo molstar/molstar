@@ -9,7 +9,7 @@ import { SeqLanguage } from '@molstar/seqx-core/lang';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
-import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
+import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
@@ -21,7 +21,12 @@ import { filesOf, fileHead, printSources } from '../features/files/file-head.js'
 // when Storybook removes the story.
 
 /** A story's view, and whether its SVG draws the view's navigators (`renderSvg`'s `navigators`). */
-type ExampleModel = ExampleView & { readonly navigators?: 'omit' | 'include'; readonly files?: boolean };
+type ExampleModel = ExampleView & {
+  readonly navigators?: 'omit' | 'include';
+  readonly files?: boolean;
+  /** What the story does once the view is placed (a move to the region it opens on). */
+  readonly opening?: (viewer: SeqViewer) => unknown;
+};
 
 const Box = 'display: grid; gap: var(--msui-space-2); min-width: 0; align-content: start;';
 const Title =
@@ -96,6 +101,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
     void viewer
       .load(spec)
       .then(() => viewer.settle())
+      .then(() => view.opening?.(viewer))
       .then(() => svg.draw());
     return root;
   }
@@ -135,9 +141,13 @@ defineElements([ExampleRoot]);
  */
 export function exampleStory(
   view: ExampleView,
-  options: { readonly navigators?: 'omit' | 'include'; readonly files?: boolean } = {},
+  options: {
+    readonly navigators?: 'omit' | 'include';
+    readonly files?: boolean;
+    readonly opening?: (viewer: SeqViewer) => unknown;
+  } = {},
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
-  el.model = options.navigators || options.files ? { ...view, ...options } : view;
+  el.model = options.navigators || options.files || options.opening ? { ...view, ...options } : view;
   return el;
 }

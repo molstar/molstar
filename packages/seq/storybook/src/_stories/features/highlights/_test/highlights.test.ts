@@ -4,7 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { recordDrawLists } from '@molstar/seqx-core/render';
+import { DarkTokens, LightTokens, recordDrawLists, type SeqTokens } from '@molstar/seqx-core/render';
+
+type TokenName = keyof SeqTokens['colors'];
 import { P53Views } from '@molstar/seqx-examples';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -15,6 +17,7 @@ import {
   clearChannel,
   cycleStyle,
   describeChannels,
+  ChannelColors,
   HighlightConfig,
   setChannel,
   toggleChannel,
@@ -122,5 +125,28 @@ describe('Highlights, headless', () => {
     expect(rects(v.frame!.lists).some((r) => r.h === 3)).toBe(true);
     const svg = await v.renderSvg({ idPrefix: 's-' });
     expect(rects(svg.lists)).toEqual(rects(v.frame!.lists));
+  });
+});
+
+/** The WCAG contrast ratio of two `0xrrggbbaa` colors (alpha ignored). */
+function contrast(a: number, b: number): number {
+  const lum = (c: number) => {
+    const ch = [(c >>> 24) & 255, (c >>> 16) & 255, (c >>> 8) & 255].map((v) => {
+      const x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+describe('the host’s outline on the page', () => {
+  it('its color is at 3:1 against the page and the track, light and dark (an outline must be seen)', () => {
+    for (const tokens of [LightTokens, DarkTokens] as SeqTokens[]) {
+      const fill = tokens.colors[ChannelColors.host.replace('token:', 'seq-') as TokenName];
+      for (const ground of ['msui-bg', 'seq-track'] as const)
+        expect(contrast(fill, tokens.colors[ground]), ground).toBeGreaterThanOrEqual(3);
+    }
   });
 });

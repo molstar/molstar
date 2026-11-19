@@ -26,8 +26,11 @@ export const Channels: readonly StoryChannel[] = [
   { name: 'host', title: 'Host’s own', address: '/data/p53/(range :from 200 :to 330)', style: 'outline' },
 ];
 
-/** The channels' colors (a token each): without them every named channel takes the one default color. */
-export const ChannelColors = { domain: 'token:cat-1', motif: 'token:cat-3', host: 'token:cat-6' };
+/**
+ * The channels' colors (a token each): without them every named channel takes the one default color. The host's, an
+ * outline, is the red: 3:1 against the page and the track in both themes (the yellow it was is 1.1:1 in the light).
+ */
+export const ChannelColors = { domain: 'token:cat-1', motif: 'token:cat-3', host: 'token:cat-7' };
 
 /** The viewer config the story composes with: the channels' colors. */
 export const HighlightConfig = [[viewerItem('highlight.colors'), ChannelColors]] as const;

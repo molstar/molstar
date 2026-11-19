@@ -201,6 +201,34 @@ describe('an alignment’s rows in the viewer', () => {
     expect(svg.svg).toContain('HBA +1');
   });
 
+  it('after a pointer click into the rows, PageDown and PageUp move the window a page (its rows less one); at an end the key is the page’s', async () => {
+    const v = await make();
+    const l = lay(v);
+    const page = Math.floor(l.box.height / l.rowScale) - 1;
+    expect(page).toBeGreaterThan(0);
+    const max = l.maxTop(l.rowScale, l.display.count);
+    expect(max).toBeGreaterThan(page);
+    // a click into the rows, as the mount delivers it (down, up, click); the key is the viewer's with no cursor set
+    const x = l.box.x + 5;
+    const y = l.rowY(1) + 3;
+    v.input.move(x, y);
+    v.input.down(x, y, {});
+    v.input.up();
+    v.input.click(x, y, {});
+    frames!.flush();
+    expect(v.input.key({ key: 'PageUp' })).toBe(false);
+    expect(v.input.key({ key: 'PageDown' })).toBe(true);
+    frames!.flush();
+    expect(v.view.band(Track)?.bandTop).toBe(page);
+    expect(lay(v).first).toBe(page);
+    expect(v.input.key({ key: 'PageDown' })).toBe(true);
+    expect(v.view.band(Track)?.bandTop).toBe(max);
+    frames!.flush();
+    expect(v.input.key({ key: 'PageDown' })).toBe(false);
+    expect(v.input.key({ key: 'PageUp' })).toBe(true);
+    expect(v.view.band(Track)?.bandTop).toBe(max - page);
+  });
+
   it('the keys check reports a chord one key event matches with another command’s (Shift+= is `+`)', () => {
     expect(keyConflicts({ 'view.zoom-in': ['=', '+'], 'rows.zoom-in': [']'], 'rows.zoom-out': ['['] })).toEqual([]);
     const issues = keyConflicts({ 'view.zoom-in': ['+'], 'rows.zoom-in': ['Shift+='] });

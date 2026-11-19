@@ -56,6 +56,8 @@ export const RowsCommandIds = {
   orderNext: 'rows.order-next',
   zoomIn: 'rows.zoom-in',
   zoomOut: 'rows.zoom-out',
+  pageDown: 'rows.page-down',
+  pageUp: 'rows.page-up',
 } as const;
 
 /** The actions a binding may name when the viewer has the behavior (a tree node's click). */
@@ -68,6 +70,12 @@ export const RowsActions: readonly string[] = CladeActions;
 const ZoomStep = 2;
 export const MinRowScale = 1 / 64;
 export const MaxRowScale = 40;
+
+/** The band's top (display rows) a page on: the rows in its window less one, clamped to the band's ends. */
+function pagedTop(l: RowsLay, top: number, dir: 1 | -1): number {
+  const page = Math.max(1, Math.floor(l.box.height / l.rowScale) - 1);
+  return Math.max(0, Math.min(l.maxTop(l.rowScale, l.display.count), top + dir * page));
+}
 
 export interface RowsBehavior {
   readonly commands: readonly CommandDefinition<RowsContext>[];
@@ -164,6 +172,31 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
     view.setBand(track, { rowScale: scale, bandTop: top });
     return { message: factor > 1 ? 'Zoomed in' : 'Zoomed out' };
   };
+
+  /**
+   * PageDown and PageUp: the rows' window moves by the rows it shows less one (the last row in view is the first of the
+   * next page), clamped to the band's ends. A band that holds its rows all has none to move: the key is the page's.
+   */
+  const pageCommand = (id: string, title: string, dir: 1 | -1): CommandDefinition<RowsContext> => ({
+    id,
+    title,
+    category: 'Rows',
+    scope: 'canvas',
+    when: (ctx) => {
+      const ok = needs(false)(ctx);
+      if (ok !== true) return ok;
+      const track = trackOf(ctx)!;
+      // the band's own top (the model's: the last frame may not have drawn a move just made)
+      const top = view.band(track)?.bandTop ?? lay(track)!.top;
+      return pagedTop(lay(track)!, top, dir) !== top ? true : 'The rows are at their end';
+    },
+    run: (_, ctx) => {
+      const track = trackOf(ctx)!;
+      const l = lay(track)!;
+      view.setBand(track, { bandTop: pagedTop(l, view.band(track)?.bandTop ?? l.top, dir) });
+      return { message: dir > 0 ? 'Rows a page down' : 'Rows a page up' };
+    },
+  });
 
   const commands: CommandDefinition<RowsContext>[] = [
     {
@@ -369,6 +402,8 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
       when: needs(false),
       run: (_, ctx) => zoom(trackOf(ctx)!, lay(trackOf(ctx))!, 1 / ZoomStep),
     },
+    pageCommand(RowsCommandIds.pageDown, 'Scroll the rows a page down', 1),
+    pageCommand(RowsCommandIds.pageUp, 'Scroll the rows a page up', -1),
   ];
 
   // a patch or an undo that changes a rows layer's `collapsed` resets the session's folds to it

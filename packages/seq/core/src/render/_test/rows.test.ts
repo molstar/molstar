@@ -97,6 +97,21 @@ describe('the rows layer', () => {
     expect(hitView(g.layout, nx, ny)).toMatchObject({ target: 'tree-node', element: { key: l2.clades!.name[node] } });
   });
 
+  it('a tree node’s target reaches 8 px from its branch (the junction’s), no further', async () => {
+    const s = await settle(spec({ order: 'tree' }).build());
+    const f = await s.frame({ size: Size, dpr: 1, settled: true });
+    const lay = rowsLay(f as never);
+    // the root: the node whose junction is leftmost, its branch the leftmost vertical
+    let root = 0;
+    for (let k = 0; k < lay.nodes.length; k += 3) if (lay.nodes[k + 1] < lay.nodes[root + 1]) root = k;
+    const [node, rx, ry] = [lay.nodes[root], lay.nodes[root + 1], lay.nodes[root + 2]];
+    expect(hitView(f.layout, rx - 7.5, ry)).toMatchObject({
+      target: 'tree-node',
+      element: { key: lay.clades!.name[node] },
+    });
+    expect(hitView(f.layout, rx - 8.5, ry)?.target).not.toBe('tree-node');
+  });
+
   it('scrolls its rows in the band and zooms them; below 3 device px they draw as image tiles', async () => {
     const s = await settle(spec({}, { height: 40 }).build());
     const f = await s.frame({

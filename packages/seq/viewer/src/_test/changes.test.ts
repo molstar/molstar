@@ -113,6 +113,8 @@ function look(v: SeqViewer) {
       v.view.band(RowsTrack)?.folds,
     ],
     navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id} ${v.view.band(RowsTrack)?.rowScale}`,
+    // the rows' scroll: a fold keeps the row at the top, so it moves with a session change; alone it is a navigation
+    scroll: v.view.band(RowsTrack)?.bandTop,
   };
 }
 
@@ -120,8 +122,9 @@ function changed(a: ReturnType<typeof look>, b: ReturnType<typeof look>): Change
   const out: ChangeKind[] = [];
   if (a.patch !== b.patch) out.push('patch');
   if (a.preview !== b.preview) out.push('preview');
-  if (a.session.length !== b.session.length || a.session.some((x, i) => x !== b.session[i])) out.push('session');
-  if (a.navigate !== b.navigate) out.push('navigate');
+  const session = a.session.length !== b.session.length || a.session.some((x, i) => x !== b.session[i]);
+  if (session) out.push('session');
+  if (a.navigate !== b.navigate || (!session && a.scroll !== b.scroll)) out.push('navigate');
   return out;
 }
 
@@ -245,6 +248,9 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.order-next': { ctx: { track: RowsTrack } },
   'rows.zoom-in': { ctx: { track: RowsTrack } },
   'rows.zoom-out': { ctx: { track: RowsTrack } },
+  'rows.page-down': { ctx: { track: RowsTrack } },
+  // from a page down (a page up at the top has nowhere to go)
+  'rows.page-up': { ctx: { track: RowsTrack }, before: (v) => v.runCommand('rows.page-down', { track: RowsTrack }) },
   'preview.cancel': {
     ctx: {},
     before: (v) =>

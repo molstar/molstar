@@ -15,6 +15,7 @@ import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
+import { openStrip } from '../compose.js';
 
 let viewer: SeqViewer | undefined;
 
@@ -75,6 +76,25 @@ describe('the navigators’ examples, headless', () => {
     expect(v.view.get('/views/main/protein')!.start).toBeCloseTo(140, 0);
     const r = await svg(v);
     expect(r.svg).toContain('data-navigator="strip"');
+  });
+
+  it('the Strip story opens zoomed in: its window is a part of the strip, so it can be dragged', async () => {
+    viewer = await openExample(P53Views.find((v) => v.id === 'tracks-strip')!, { gene: '' });
+    const v = viewer;
+    const whole = await navigator(v, 'strip');
+    const full = whole.f.windows[0];
+    expect(full.dx1 - full.dx0).toBeGreaterThan(whole.nav.width * 0.95);
+    openStrip(v);
+    v.draw();
+    const { nav, f } = await navigator(v, 'strip');
+    const w = f.windows[0];
+    expect(w.dx1 - w.dx0).toBeLessThan(nav.width * 0.5);
+    const before = v.view.get('/views/main/protein')!.start;
+    const mid = (w.dx0 + w.dx1) / 2;
+    expect(nav.down(mid, 20)).toBe(true);
+    nav.move(mid + 30, 20);
+    nav.up();
+    expect(v.view.get('/views/main/protein')!.start).toBeGreaterThan(before);
   });
 
   it('the protein’s strip with its gene’s window: a drag on the gene’s window moves the protein, which leads', async () => {

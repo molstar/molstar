@@ -189,6 +189,43 @@ describe('tRNA: the dot plot’s two triangles', () => {
   });
 });
 
+describe('tRNA: the dot plot in both themes', () => {
+  /** The WCAG contrast ratio of two colors given as [r, g, b] bytes. */
+  const contrast = (a: ArrayLike<number>, b: ArrayLike<number>) => {
+    const lum = (c: ArrayLike<number>) => {
+      const ch = [c[0], c[1], c[2]].map((v) => {
+        const x = v / 255;
+        return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+    };
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const rgb = (c: number) => [(c >>> 24) & 255, (c >>> 16) & 255, (c >>> 8) & 255];
+
+  it('the lowest covariation is as quiet as the track under it in the light theme as in the dark (the ramp’s low end), the highest stands out', async () => {
+    viewer = await openExample(trna('dot-plot'), { gene: '' });
+    const v = viewer;
+    const entries = DerivedData.covariation as unknown as readonly (readonly number[])[];
+    const lowest = entries.reduce((m, e) => (e[2] < m[2] ? e : m));
+    const highest = entries.reduce((m, e) => (e[2] > m[2] ? e : m));
+    const pixel = (e: readonly number[]) => {
+      const im = (v.frame!.layout.sections[1].lays[0][0].lay as GridLay).images[0];
+      const k = 4 * (e[0] * im.width + e[1]);
+      return [im.data[k], im.data[k + 1], im.data[k + 2]];
+    };
+    for (const tokens of [LightTokens, DarkTokens]) {
+      v.setTokens(tokens);
+      await vi.advanceTimersByTimeAsync(1000);
+      v.draw();
+      const surface = rgb(tokens.colors['seq-track']);
+      expect(contrast(pixel(lowest), surface), 'the lowest').toBeLessThan(1.6);
+      expect(contrast(pixel(highest), surface), 'the highest').toBeGreaterThan(3);
+    }
+  });
+});
+
 describe('tRNA: the seed row and the seed', () => {
   it('the seed row: its letters and SS_cons pairs projected onto it, nested only', async () => {
     viewer = await openExample(trna('seed-row'), { gene: '' });
