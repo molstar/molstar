@@ -369,3 +369,7 @@ None.
 - The author (2026-11-19): "also the positioning of the label is wrong": read as the hidden columns' chip hanging over the data's top-right corner; RX places it in its side's title band (to confirm with the author).
 - The author (2026-11-19, Rows › Scale): the rows rail dragged to the whole band cannot be grabbed again: the code idles on 'whole' alone against navigators.md (idle when whole and zoom-in at its limit); the core _spec corrected; folded into RX. Use findings: bug 3, missing design 5, look 3.
 - Confirmed (the author, 2026-11-19: "Yes, leave it empty"): the label column empty below rows.labelMinPx (a dark slab drawn there on Rows › Scale); folded into RX. Use findings: bug 4, missing design 5, look 3.
+- MV reported (minimal viewer 1014 → 834 kB; much public API past the brief): under review. HP reported the track
+  header parts draft (eight gaps). Decided (the author, 2026-11-19: "Caret, not first copy"): a pair's end on split
+  copies with no copy named draws a caret, not the first copy (grids-and-rows.md); lane CE (fast) next. RX (strong)
+  starts. Use findings: bug 5, missing design 5, look 3.

@@ -414,10 +414,12 @@ and dark before the merge.
       plot's fixed box, double-click zooms a step, the wheel the plot's, boundaries as gaps (`briefs/pz-plot-navigation.md`).
 - [ ] LP (strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
       (`briefs/lp-linked-pairs.md`).
-- [ ] HP (strong, a fourth-slice draft) track header parts, drafted (`briefs/hp-header-parts-draft.md`).
+- [x] HP (reported: `drafts/track-header-parts.md`, eight gaps for the author; strong, a fourth-slice draft) track header parts, drafted (`briefs/hp-header-parts-draft.md`).
 - [ ] RX (strong, next free slot; the author, 2026-11-19) a row column's whole value only under the pointer; the tree's
       lines and wedges
       (`briefs/rx-row-column-tip.md`).
+- [ ] CE (fast, next free slot; the author, 2026-11-19: "Caret, not first copy") a pair's end on split copies
+      (`briefs/ce-copy-ends.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

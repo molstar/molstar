@@ -165,7 +165,12 @@ vertical scale. This design builds on them and adds only:
   placed with `ctx.place`, and the apex the same way as a point in its band's frame (the mid offset at the arc's height)
   mapped through the strip's warp: one curve is an arc over a block, an arc between two lines, a chord through a ring's
   hole, with no layout named in the layer. An end not placed in the view (a chain not shown) leaves a caret at the placed
-  end, never a dangling arc. In a grid section the layer is laid out per strip instead, as dots over `ctx.axis` and
+  end, never a dangling arc. **An end on a system shown as several split copies**, whose data names no copy (a contact
+  to "the heme" with four hemes shown, `copies: each`), is not placed on any copy: the known end draws its caret
+  pointing at the copies, with one info issue (`seq.render.pairs.copy`: "heme: 4 copies shown, the contact names
+  none"); merged copies (×n) draw as one end as before (decided, the author, 2026-11-19: "Caret, not first copy"; the
+  split hemoglobin drew every heme contact to the first heme). The real arc comes with units (pairs with `a_unit`,
+  `b_unit`, [molecules.md](molecules.md), the fourth slice). In a grid section the layer is laid out per strip instead, as dots over `ctx.axis` and
   `ctx.axisY`.
 - **Arcs**, EC-129: in the band (the layer's `side`: `above`, `below`), never flat; an end past the window taken a quarter
   window past its edge (`reach`, 0.25), so an arc moves continuously on pan; height by span against the widest in
