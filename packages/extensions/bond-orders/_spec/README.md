@@ -75,6 +75,11 @@ at the top of `src/perception/perceive.ts` and in each step's module.
     the phosphoryl and ester patterns do not match and the valence is wrong. Consequence: in `forceCompute`, a multiple
     bond stated between residues of one unit becomes single (rare: peptide, phosphodiester, disulfide and glycosidic
     links are single) until bonds across residues are perceived (TODO).
+12. **Valence** (`valence`, `common.ts`): the octet rule on the charged atom's valence electrons (C+ and C- 3, B- 4, N+
+    4, O- 1). P, S and Se expand their octet as in the CTAB convention: the smallest of the octet valence, +2, +4... at
+    least the bond-order sum (a phosphate's P=O, a sulfoxide's and a sulfone's S=O). Why: the CCD and Mol\*'s valence
+    model (sulfoxides and higher are neutral S) depict them so. Not the halogens: their oxyanions (perchlorate) would
+    get a nonsense charge from Mol\*'s valence model.
 
 ## 2. Layout
 

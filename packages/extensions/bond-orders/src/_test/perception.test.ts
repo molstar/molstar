@@ -6,9 +6,11 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
+import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import type { IntraUnitBonds } from '@molstar/model/model/structure/structure/unit/bonds/data';
 import { Structure, Unit } from '@molstar/model/model/structure';
+import { valence } from '../perception/common.js';
 import { getInterUnitNeighbours } from '../perception/inter-unit-neighbours.js';
 import { perceiveBondOrders } from '../perception/perceive.js';
 import { bondRows, ccdBondRows, compareBonds, modelFromPdb, perceived, readFixture, unitOf } from './util.js';
@@ -355,6 +357,43 @@ END`);
     expect(edgeCount).toBe(43);
     expect(orders.filter((o) => o === 2).length).toBe(4);
     expect(aromaticCount).toBe(0);
+  });
+});
+
+describe('bond-order perception: valence (open-valence bookkeeping)', () => {
+  // [atom, element, charge, bond-order sum, valence]
+  it.each([
+    ['C', Elements.C, 0, 0, 4],
+    ['C+ (carbocation)', Elements.C, 1, 0, 3],
+    ['C- (carbanion)', Elements.C, -1, 0, 3],
+    ['Si+', Elements.SI, 1, 0, 3],
+    ['B', Elements.B, 0, 0, 3],
+    ['B- (borate)', Elements.B, -1, 0, 4],
+    ['N', Elements.N, 0, 0, 3],
+    ['N+', Elements.N, 1, 0, 4],
+    ['N-', Elements.N, -1, 0, 2],
+    ['N, 4 bonds (no expanded octet)', Elements.N, 0, 4, 3],
+    ['O', Elements.O, 0, 0, 2],
+    ['O+', Elements.O, 1, 0, 3],
+    ['O-', Elements.O, -1, 0, 1],
+    ['P, phosphine', Elements.P, 0, 3, 3],
+    ['P, phosphate (4 single bonds)', Elements.P, 0, 4, 5],
+    ['P, 6 bonds (at most 5)', Elements.P, 0, 6, 5],
+    ['S, thioether', Elements.S, 0, 2, 2],
+    ['S, sulfoxide (3 bonds)', Elements.S, 0, 3, 4],
+    ['S, sulfone (4 single bonds)', Elements.S, 0, 4, 4],
+    ['S, sulfone with one S=O', Elements.S, 0, 5, 6],
+    ['S+, sulfonium', Elements.S, 1, 3, 3],
+    ['S+, 4 bonds', Elements.S, 1, 4, 5],
+    ['Se, 3 bonds', Elements.SE, 0, 3, 4],
+    ['Cl', Elements.CL, 0, 1, 1],
+    ['Cl, 4 bonds (halogens not expanded)', Elements.CL, 0, 4, 1],
+    ['Cl-', Elements.CL, -1, 0, 0],
+    ['H', Elements.H, 0, 1, 1],
+    ['H+', Elements.H, 1, 0, 0],
+    ['Fe (not tracked)', Elements.FE, 0, 0, -1],
+  ] as const)('%s', (_, el, charge, used, expected) => {
+    expect(valence(el, charge, used)).toBe(expected);
   });
 });
 

@@ -467,48 +467,61 @@ export function isHydrogenElement(el: ElementSymbol) {
   return isHydrogen(elI);
 }
 
-/** Standard (Daylight-like) heavy valence used for open-valence bookkeeping. -1 = unknown. */
-function defaultValence(el: ElementSymbol): number {
+/** Valence electrons of the elements whose valence perception tracks; -1 = not tracked (metals, ...). */
+function valenceElectrons(el: ElementSymbol): number {
   switch (el) {
+    case Elements.B:
+      return 3;
     case Elements.C:
     case Elements.SI:
       return 4;
     case Elements.N:
     case Elements.P:
-    case Elements.B:
-      return 3;
+      return 5;
     case Elements.O:
     case Elements.S:
     case Elements.SE:
-      return 2;
+      return 6;
     case Elements.F:
     case Elements.CL:
     case Elements.BR:
     case Elements.I:
-    case Elements.H:
-    case Elements.D:
-    case Elements.T:
-      return 1;
+      return 7;
     default:
       return -1;
   }
 }
 
+/**
+ * The valence of an atom from its element, formal charge and bond-order sum `used`, for open-valence bookkeeping; -1 =
+ * not tracked. The octet rule on the charged atom's valence electrons `e`: `e <= 4 ? e : 8 - e` (C+ and C- 3, B- 4, N+
+ * 4, O- 1). P, S and Se may expand their octet, as in the CTAB convention: the smallest of the octet valence, +2, +4...
+ * (up to `e`) that is at least `used` (P 3, 5; S 2, 4, 6: a phosphate's P=O, a sulfoxide's S=O). Not the halogens
+ * (their oxyanions). Hydrogen (duet): 1, 0 when charged.
+ */
+export function valence(el: ElementSymbol, charge: number, used: number): number {
+  if (isHydrogenElement(el)) return charge === 0 ? 1 : 0;
+  const v = valenceElectrons(el);
+  if (v < 0) return -1;
+  const e = v - charge;
+  if (e < 0 || e > 8) return 0;
+  let val = e <= 4 ? e : 8 - e;
+  if (el === Elements.P || el === Elements.S || el === Elements.SE) {
+    while (val < used && val + 2 <= e) val += 2;
+  }
+  return val;
+}
+
 export function computeOpenValence(state: State) {
   const { n, bonds, unitIndices } = state;
   for (let i = 0; i < n; i++) {
-    let val = defaultValence(state.el[i]);
-    if (val < 0) {
-      state.open[i] = 0;
-      continue;
-    }
-    val += state.charge[i];
     // explicit H, the fixed bonds leaving the residue, and the current orders to heavy neighbours in it
     let used = state.hCount[i] + state.outsideValence[i];
     const u = unitIndices[i];
     for (const j of state.heavyNeighbours[i]) {
       used += getOrder(bonds, u, unitIndices[j]);
     }
-    state.open[i] = Math.max(0, val - used);
+    const val = valence(state.el[i], state.charge[i], used);
+    state.open[i] = val < 0 ? 0 : Math.max(0, val - used);
   }
 }
