@@ -387,6 +387,8 @@ and dark before the merge.
 - [x] NP (fast, 2026-11-19) the novice pass's bugs, stories and looks (`briefs/np-novice-fixes.md`).
 - [ ] HC (strong; the author, 2026-11-19: "Yes, lane HC now") the hover card and the keys panel (ux-foundations §9;
       `briefs/hc-hover-card.md`).
+- [ ] RK (strong, after HC; the author, 2026-11-19: "Yes, after HC") the keyboard cursor's rows (grids-and-rows,
+      The keyboard cursor; `briefs/rk-cursor-rows.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
