@@ -9,13 +9,25 @@
 // of `check.ts`, in the `seq.lang.*` codes.
 
 import { patchLanguage } from '@molstar/core/repr/patch';
-import { defineLanguage, type Language, type ValidateOptions } from '@molstar/core/repr/schema';
+import { defineLanguage, type Language, type ParamType, type ValidateOptions } from '@molstar/core/repr/schema';
+import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-language.js';
 
 /**
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
 export const SeqLanguageVersion = '0.4.0';
+
+/**
+ * A channel slot (_spec/README.md "Themes", Forms): a string (the `uniform` form: a color, a token, a word), a number
+ * (a uniform size or opacity), or a node of `seq.theme`, read and printed in place.
+ */
+const channel = (doc: string) =>
+  ({
+    type: 'union',
+    of: [{ type: 'string' }, { type: 'number' }, { type: 'node', language: ThemeLanguageId }],
+    doc,
+  }) as const satisfies ParamType & { doc: string };
 
 export const SeqLanguage = defineLanguage({
   id: 'seq',
@@ -215,7 +227,24 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       params: {
         layout: { type: 'string', enum: ['tracks'], default: 'tracks', doc: 'How the sections are laid out.' },
+        export: {
+          type: 'record',
+          fields: {
+            legend: {
+              type: 'string',
+              enum: ['none', 'below', 'right'],
+              doc: 'Legends in an export: `none` (when absent), in a band `below` the data or to its `right`.',
+            },
+          },
+          doc: 'How the view exports (a figure says how it exports); an export call’s options override it.',
+        },
       },
+    },
+    scale: {
+      doc: 'A shared scale: layers whose themes name it share its domain and palette (an open end: the union over their data in view).',
+      parents: ['views'],
+      ids: 'required',
+      params: ScaleParamsDescription,
     },
     section: {
       doc: 'A section of a view: a region of one coordinate system, with its tracks.',
@@ -352,7 +381,30 @@ export const SeqLanguage = defineLanguage({
           kinds: ['sequence', 'ranges', 'values'],
           doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`).',
         },
-        color: { type: 'any', doc: 'A theme form that colors the marks.' },
+        color: channel('The marks’ color: a color, a token, `light-dark(a, b)`, or a theme form.'),
+        ink: channel('`letters`: the letters’ color (`auto`: follows its fill, 4.5:1), or a theme form.'),
+        size: channel('The marks’ size in the layer’s unit (a share of the slot, or px), or a theme form.'),
+        opacity: channel('The marks’ opacity, 0 to 1 (never a way to hide: a filter hides), or a theme form.'),
+        line: channel('`ranges`: the line style (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`, `highlight`).'),
+        arrow: channel('`ranges`: arrowheads (`none`, `end`, `start`, `both`).'),
+        shape: channel('`variants`: the head’s shape (`circle`, `square`, `triangle`, `diamond`).'),
+        encoding: {
+          type: 'string',
+          enum: ['bars', 'line', 'area'],
+          doc: '`values`: how values are drawn: `bars` (when absent), `line`, `area`.',
+        },
+        scale: {
+          type: 'ref',
+          kinds: ['scale'],
+          doc: '`values`: the scale its y reads (shared with the layers naming it).',
+        },
+        domain: {
+          type: 'list',
+          of: { type: 'number', doc: 'An end.' },
+          'min-length': 2,
+          'max-length': 2,
+          doc: '`values`: its y domain inline, `[a, b]` (open over the values in view when absent).',
+        },
         hidden: { type: 'boolean', default: false, doc: 'Whether the layer is hidden: kept in the spec, not drawn.' },
         complement: {
           type: 'string',
@@ -397,9 +449,12 @@ export type SeqLanguageType = typeof SeqLanguage;
 /** The language of the spec's stored patches (a story step's `patch`): `seq.patch`, `repr/patch`'s over this one. */
 export const SeqPatchLanguage: Language = patchLanguage(SeqLanguage);
 
-/** The languages the spec's slots name, by id: its stored patches' (_spec/README.md, Language, Story steps). */
+/**
+ * The languages the spec's slots name, by id: its stored patches' (_spec/README.md, Language, Story steps) and the
+ * theme sublanguage (_spec/README.md "Themes").
+ */
 export function seqLanguages(id: string): Language | undefined {
-  return id === SeqPatchLanguage.id ? SeqPatchLanguage : undefined;
+  return id === SeqPatchLanguage.id ? SeqPatchLanguage : id === ThemeLanguageId ? ThemeLanguage : undefined;
 }
 
 /** What validation, normalization and `applyPatch` take to read a spec's slots (`validate` in `ApplyOptions`). */

@@ -35,10 +35,13 @@ export interface ItemRows {
   labels: (string | undefined)[];
   /** Which occurrence of its key (a piece of the item) each row is in the order read. */
   occ: number[];
+  /** Each row's table fields and its row in that table: what a theme's channels read (a field, a measure). */
+  fields: (RangesList['fields'] | undefined)[];
+  row: number[];
 }
 
 export function newItemRows(): ItemRows {
-  return { n: 0, keys: [], starts: [], ends: [], values: [], labels: [], occ: [] };
+  return { n: 0, keys: [], starts: [], ends: [], values: [], labels: [], occ: [], fields: [], row: [] };
 }
 
 /** A table's field by name. */
@@ -97,6 +100,8 @@ export function collectItems(
       rows.values[j] = textAt(col, i);
       rows.labels[j] = textAt(labels, i) ?? id ?? undefined;
       rows.occ[j] = k;
+      rows.fields[j] = t.fields;
+      rows.row[j] = i;
     }
     for (let j = from; j < rows.n; j++) {
       const starts = earlier.get(rows.keys[j]);

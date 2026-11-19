@@ -40,6 +40,8 @@ import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { breakHit } from './marks.js';
+import type { ScaleParams } from '@molstar/seqx-core/theme/index';
+import { DefaultThemeContext, type ThemeContext } from './channels.js';
 import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -144,12 +146,19 @@ export interface LayoutInput {
   readonly overlay?: Overlay;
   readonly settled?: boolean;
   readonly types?: Readonly<Record<string, LayerType<any, any>>>;
+  /** The schemes and measures themes read (the built-ins by default) and the reader's color-blind substitution. */
+  readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures' | 'cvdSafe'>>;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
 export class LayoutState {
   readonly preps = new WeakMap<ResolvedLayer, unknown>();
   readonly lays = new Map<string, { type: LayerType<any, any>; lay: unknown }>();
+  /**
+   * Open scales' domains (_spec/README.md "Themes", Palettes and scales): the union over the layers naming each, of their
+   * values in view, computed when the view settles and held while it moves.
+   */
+  domains = new Map<string, readonly [number, number]>();
 }
 
 /** A layer's key: its address, else its track's and its index. */
@@ -203,8 +212,24 @@ function followAxis(
   return pieces ? { pieces } : undefined;
 }
 
-export function layoutView(input: LayoutInput, state = new LayoutState()): ViewLayout {
+export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
   const config = input.config ?? DefaultRenderConfig;
+  const extents = new Map<string, [number, number]>();
+  const theme: ThemeContext = {
+    schemes: input.theme?.schemes ?? DefaultThemeContext.schemes,
+    ...(input.theme?.measures ? { measures: input.theme.measures } : {}),
+    cvdSafe: input.theme?.cvdSafe ?? false,
+    scale: (a) => input.view.scales?.[a] as ScaleParams | undefined,
+    domain: (key) => state.domains.get(key),
+    extent: (key, lo, hi) => {
+      const e = extents.get(key);
+      if (!e) extents.set(key, [lo, hi]);
+      else {
+        if (lo < e[0]) e[0] = lo;
+        if (hi > e[1]) e[1] = hi;
+      }
+    },
+  };
   const dpr = input.dpr ?? 1;
   const types = input.types ?? BuiltInLayerTypes;
   const overlay = input.overlay ?? EmptyOverlay;
@@ -342,6 +367,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
             tokens: input.tokens,
             text: input.text,
             settled: input.settled ?? false,
+            theme,
             want: (w) => wants.push(w),
             report,
           };
@@ -393,6 +419,19 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   }
   // a layer gone from the view lets its last layout go
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
+  // open scales: settled, the union of this layout's extents is held (laid out once more with it where it moved);
+  // moving, a scale seen for the first time takes this layout's extent for the next frame
+  if (input.settled) {
+    let moved = extents.size !== state.domains.size;
+    for (const [k, e] of extents) {
+      const h = state.domains.get(k);
+      if (!h || h[0] !== e[0] || h[1] !== e[1]) moved = true;
+    }
+    if (moved) {
+      state.domains = extents;
+      if (!again) return layoutView(input, state, true);
+    }
+  } else for (const [k, e] of extents) if (!state.domains.has(k)) state.domains.set(k, e);
   for (const i of overlay.issues) report(i);
   const shownNodes = config.nodes.holdShown && overlay.nodes.length ? overlay.holds(showing) : [];
   return { width, height, dpr, tokens: input.tokens, config, sections, wants, issues, shown: shownNodes };

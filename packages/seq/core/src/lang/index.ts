@@ -44,6 +44,8 @@ export {
   SeqValidateOptions,
   seqLanguages,
 } from './language.js';
+export { type FieldOptions, measure, theme } from './theme-builder.js';
+export { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-language.js';
 export {
   addRefPatch,
   DefaultRefDepth,

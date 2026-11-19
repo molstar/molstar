@@ -28,8 +28,8 @@ text "Arg" 556.5 22.9 middle "14px mono" #2d271eff width 0 max 51
 text "Ala" 607 22.9 middle "14px mono" #2d271eff width 0 max 50
 unclip
 clip 128 32 504 36
-rect 128 45 252 10 #7aa3a6ff
-rect 380 45 252 10 #7aa3a6ff
+rect 128 45 252 10 #18a67fff
+rect 380 45 252 10 #18a67fff
 unclip
 clip 128 72 504 20
 rect 363 72 17 20 #cfe0f5ff

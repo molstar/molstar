@@ -5,6 +5,7 @@
  */
 
 import { hashString } from '@molstar/core/data/util/hash-functions';
+import { inkFor, parseColor } from '@molstar/seqx-core/theme/index';
 
 // Colors without CSS (_spec/README.md "Render", Tokens): the token table resolves every data token (`seq-*`) and the
 // chrome tokens (`msui-*`) the draw lists use to 32-bit RGBA (`0xRRGGBBAA`). In the browser the viewer reads it once
@@ -52,6 +53,23 @@ export const SeqTokenNames = [
   'seq-cat-5',
   'seq-cat-6',
   'seq-cat-7',
+  'seq-ramp-0',
+  'seq-ramp-1',
+  'seq-ramp-2',
+  'seq-ramp-3',
+  'seq-ramp-4',
+  'seq-div-neg',
+  'seq-div-mid',
+  'seq-div-pos',
+  'seq-ss-helix',
+  'seq-ss-strand',
+  'seq-ss-turn',
+  'seq-variant',
+  'seq-ruler',
+  'seq-window',
+  'seq-grip',
+  'seq-wash',
+  'seq-centromere',
 ] as const;
 
 export type SeqTokenName = (typeof SeqTokenNames)[number];
@@ -93,8 +111,11 @@ export function createTokens(theme: string, colors: Record<SeqTokenName, string>
 }
 
 // The built-in tables follow `@molstar/ui`'s light and dark themes (`--msui-bg`, `--msui-fg`, `--msui-accent`); the
-// derived chrome tokens are their mixes, computed once here. Residue classes and the categorical palette are pastel
-// fills that keep dark ink at 4.5:1 or better in the light theme, and deep fills under light ink in the dark one.
+// derived chrome tokens are their mixes, computed once here. Residue classes are pastel fills that keep dark ink at
+// 4.5:1 or better in the light theme, and deep fills under light ink in the dark one. The categories are Okabe–Ito's
+// seven hues (mixed a tenth toward the surface) and a red, at least 0.06 apart in Oklab under normal vision and the
+// three simulated deficiencies in both tables (_spec/README.md "Render", Tokens); the ramp is monotone in lightness
+// from near the track's color to strong; `seq-centromere` holds 3:1 against the surface.
 
 export const LightTokens: SeqTokens = createTokens('light', {
   'msui-bg': '#f1efea',
@@ -128,14 +149,31 @@ export const LightTokens: SeqTokens = createTokens('light', {
   'seq-nt-g': '#f6e2b6',
   'seq-nt-t': '#f5cfcf',
   'seq-nt-other': '#dedad3',
-  'seq-cat-0': '#7a8fa6',
-  'seq-cat-1': '#a6857a',
-  'seq-cat-2': '#7aa68a',
-  'seq-cat-3': '#9a7aa6',
-  'seq-cat-4': '#a69c7a',
-  'seq-cat-5': '#7aa3a6',
-  'seq-cat-6': '#a67a95',
-  'seq-cat-7': '#8c8c8c',
+  'seq-cat-0': '#187eb8',
+  'seq-cat-1': '#e7a717',
+  'seq-cat-2': '#18a67f',
+  'seq-cat-3': '#d085ae',
+  'seq-cat-4': '#66bae9',
+  'seq-cat-5': '#d86c17',
+  'seq-cat-6': '#f0e553',
+  'seq-cat-7': '#d23c3c',
+  'seq-ramp-0': '#dfe7f0',
+  'seq-ramp-1': '#aec3da',
+  'seq-ramp-2': '#7c9dc2',
+  'seq-ramp-3': '#4f76a3',
+  'seq-ramp-4': '#2c4f78',
+  'seq-div-neg': '#2f6fb0',
+  'seq-div-mid': '#e6e2dc',
+  'seq-div-pos': '#b8452a',
+  'seq-ss-helix': '#d9536f',
+  'seq-ss-strand': '#e8a33d',
+  'seq-ss-turn': '#5aa0c8',
+  'seq-variant': '#7b4fa6',
+  'seq-ruler': '#8a847a',
+  'seq-window': '#8f4c06',
+  'seq-grip': '#6b655c',
+  'seq-wash': '#f1efeaa6',
+  'seq-centromere': '#b4306a',
 });
 
 export const DarkTokens: SeqTokens = createTokens('dark', {
@@ -170,14 +208,31 @@ export const DarkTokens: SeqTokens = createTokens('dark', {
   'seq-nt-g': '#6b5520',
   'seq-nt-t': '#6a2a2a',
   'seq-nt-other': '#30343c',
-  'seq-cat-0': '#6f86a3',
-  'seq-cat-1': '#a3806f',
-  'seq-cat-2': '#6fa384',
-  'seq-cat-3': '#946fa3',
-  'seq-cat-4': '#a3986f',
-  'seq-cat-5': '#6f9fa3',
-  'seq-cat-6': '#a36f8f',
-  'seq-cat-7': '#8a8f98',
+  'seq-cat-0': '#0269a3',
+  'seq-cat-1': '#d19102',
+  'seq-cat-2': '#02906a',
+  'seq-cat-3': '#b96f99',
+  'seq-cat-4': '#4fa4d4',
+  'seq-cat-5': '#c25702',
+  'seq-cat-6': '#dacf3e',
+  'seq-cat-7': '#ff3c69',
+  'seq-ramp-0': '#1f2a36',
+  'seq-ramp-1': '#2f4d6e',
+  'seq-ramp-2': '#44709e',
+  'seq-ramp-3': '#6f9bcb',
+  'seq-ramp-4': '#a9c8ea',
+  'seq-div-neg': '#5a9ad8',
+  'seq-div-mid': '#2a2e36',
+  'seq-div-pos': '#e0734f',
+  'seq-ss-helix': '#e0708a',
+  'seq-ss-strand': '#e9b25a',
+  'seq-ss-turn': '#6fb2d8',
+  'seq-variant': '#b08ad6',
+  'seq-ruler': '#7d8592',
+  'seq-window': '#5aa6f8',
+  'seq-grip': '#8d95a1',
+  'seq-wash': '#121419a6',
+  'seq-centromere': '#e86aa0',
 });
 
 /** The built-in table of a theme (Node, exports): `light` unless `dark`. */
@@ -185,55 +240,20 @@ export function builtInTokens(theme: string): SeqTokens {
   return theme === 'dark' ? DarkTokens : LightTokens;
 }
 
-/** `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` as `0xRRGGBBAA`; undefined for anything else. */
-export function parseColor(s: string | undefined): number | undefined {
-  if (typeof s !== 'string' || !/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s)) return undefined;
-  let h = s.slice(1);
-  if (h.length <= 4) h = [...h].map((c) => c + c).join('');
-  if (h.length === 6) h += 'ff';
-  return Number.parseInt(h, 16) >>> 0;
-}
-
-/**
- * A spec's color: a literal (`#rrggbb`) or a token name (`token:accent` reads `seq-accent`, then `msui-accent`, then
- * `accent`). Undefined when it is neither: the caller reports it and uses its default.
- */
-export function resolveColor(value: unknown, tokens: SeqTokens): number | undefined {
-  if (typeof value !== 'string') return undefined;
-  if (value.startsWith('token:')) {
-    const name = value.slice(6);
-    const colors = tokens.colors as Readonly<Record<string, number>>;
-    return colors[`seq-${name}`] ?? colors[`msui-${name}`] ?? colors[name];
-  }
-  return parseColor(value);
-}
-
-/** `#rrggbbaa`. */
-export function colorHex(c: number): string {
-  return `#${(c >>> 0).toString(16).padStart(8, '0')}`;
-}
+// A spec's colors resolve through the theme entry (`resolveColor`: literals, `token:<name>`, `light-dark(a, b)`).
+export { colorHex, parseColor, resolveColor } from '@molstar/seqx-core/theme/index';
 
 /** The color with its alpha replaced (0 to 1). */
 export function withAlpha(c: number, alpha: number): number {
   return ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, alpha)) * 255)) >>> 0;
 }
 
-/** Relative luminance (WCAG) of a color's RGB, 0 to 1. */
-export function luminance(c: number): number {
-  const ch = (v: number) => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * ch((c >>> 24) & 0xff) + 0.7152 * ch((c >>> 16) & 0xff) + 0.0722 * ch((c >>> 8) & 0xff);
-}
-
-/** Ink follows its fill: the table's dark or light ink, whichever contrasts more with `fill`. */
+/**
+ * Ink follows its fill (4.5:1): the table's dark or light ink, whichever contrasts more with `fill` (Mol*'s
+ * `Color.contrast`); pure black or white where neither reaches 4.5:1.
+ */
 export function inkOn(fill: number, tokens: SeqTokens): number {
-  const dark = tokens.colors['seq-ink-dark'];
-  const light = tokens.colors['seq-ink-light'];
-  const l = luminance(fill);
-  const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  return contrast(l, luminance(dark)) >= contrast(l, luminance(light)) ? dark : light;
+  return inkFor(fill, tokens.colors['seq-ink-dark'], tokens.colors['seq-ink-light']);
 }
 
 /** Linear interpolation of two colors' channels, alpha included; `t` in 0 to 1. */
@@ -245,36 +265,4 @@ export function mixColors(a: number, b: number, t: number): number {
     out = out * 256 + Math.round(x + (y - x) * t);
   }
   return out >>> 0;
-}
-
-const AminoClass: Readonly<Record<string, SeqTokenName>> = {};
-for (const [letters, name] of [
-  ['AVLIMC', 'seq-aa-hydrophobic'],
-  ['FWY', 'seq-aa-aromatic'],
-  ['STNQ', 'seq-aa-polar'],
-  ['KRH', 'seq-aa-positive'],
-  ['DE', 'seq-aa-negative'],
-  ['GP', 'seq-aa-special'],
-] as const)
-  for (const l of letters) (AminoClass as Record<string, SeqTokenName>)[l] = name;
-
-const NucleotideClass: Readonly<Record<string, SeqTokenName>> = {
-  A: 'seq-nt-a',
-  C: 'seq-nt-c',
-  G: 'seq-nt-g',
-  T: 'seq-nt-t',
-  U: 'seq-nt-t',
-};
-
-/** A letter's cell fill by its class in the alphabet; missing for a gap or an unknown letter. */
-export function letterToken(letter: string, alphabet: 'protein' | 'dna' | 'rna'): SeqTokenName {
-  const u = letter.toUpperCase();
-  if (u === '-' || u === '.') return 'seq-missing';
-  if (alphabet === 'protein') return AminoClass[u] ?? 'seq-missing';
-  return NucleotideClass[u] ?? 'seq-nt-other';
-}
-
-/** A category's palette entry: stable for a name (its hash), so a category keeps its color across tiles. */
-export function categoryToken(category: string): SeqTokenName {
-  return `seq-cat-${(hashString(category) >>> 0) % CategoryCount}` as SeqTokenName;
 }

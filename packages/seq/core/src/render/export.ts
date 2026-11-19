@@ -43,7 +43,9 @@ import { type RenderConfigOverrides, renderConfig } from './config.js';
 import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
+import type { ThemeContext } from './channels.js';
 import type { Emphasis } from './layer-type.js';
+import { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 import { OverlaySources } from './overlay-sources.js';
 import { Renderer } from './renderer.js';
 import { drawListsToSvg } from './svg.js';
@@ -53,7 +55,9 @@ import { builtInTokens, type SeqTokens } from './tokens.js';
 // Headless rendering (_spec/README.md "Render", Export): a spec to an SVG string, asynchronously. It resolves the spec,
 // opens the sources the view reads, wants what the export's size and viewport need through a want set of its own
 // (never the live view's, EC-125), waits for those entries to settle or a timeout (then the export says it is
-// unsettled), and draws once more with the view settled (open domains computed, lanes packed).
+// unsettled), and draws once more with the view settled (open domains computed, lanes packed). Legends are drawn in a
+// band outside the data box only when asked (`legend`, else the view's `export.legend`, else none), and each shared
+// scale's domain as drawn is recorded (`data-seq-scale-<id>`): an open end unioned over what the export draws.
 
 /** The store's sources a view reads: its placed layers' data, and its sections' systems' sources (for a length). */
 export function viewSources(model: StaticModel, view: ResolvedView): Set<string> {
@@ -184,6 +188,12 @@ export interface RenderSvgOptions {
   readonly selection?: string;
   /** A store to read through (a viewer's): the export wants through a want set of its own. A new one by default. */
   readonly store?: DataStore;
+  /** Legends in a band `below` the data or to its `right`, or `none`: the view's `export.legend` when absent. */
+  readonly legend?: 'none' | 'below' | 'right';
+  /** A reader's color-blind substitution (off: an export draws the figure's colors unless asked). */
+  readonly cvdSafe?: boolean;
+  /** The schemes and measures the themes read (the built-ins by default). */
+  readonly registry?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
 }
 
 /** A positions viewport as each section's window of display units (an axis waiting for its length: from 0). */
@@ -286,6 +296,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       tokens,
       text: options.text ?? bundledTextMetrics(),
       config,
+      ...(options.registry ? { theme: options.registry } : {}),
     });
     const given = options.viewport;
     const frameInput = {
@@ -298,6 +309,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
           }),
       dpr: options.dpr ?? 1,
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
+      ...(options.cvdSafe ? { cvdSafe: true } : {}),
     };
     let last = '';
     // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds; the
@@ -363,14 +375,54 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     for (const s of frame.layout.sections)
       for (const t of s.tracks)
         for (const l of t.layers) {
-          const legend = l.type.legend?.(l.lay);
-          if (legend?.domain) domains.push(`${l.key}=${legend.domain[0]},${legend.domain[1]}`);
+          const d = l.type.domain?.(l.lay);
+          if (d) domains.push(`${l.key}=${d[0]},${d[1]}`);
         }
+    const { legends, issues: legendIssues } = viewLegends(frame.layout);
+    issues.push(...legendIssues);
+    // each shared scale's domain as drawn: its legend's (a color scale) or its layers' y
+    const scales: Record<string, string> = {};
+    for (const l of legends)
+      if (l.scale && l.domain) scales[`seq-scale-${l.scale.slice(l.scale.lastIndexOf('/') + 1)}`] = l.domain.join(',');
+    for (const s of frame.layout.sections)
+      for (const t of s.tracks)
+        for (const l of t.layers) {
+          const sc = l.layer.params.scale;
+          const d = l.type.domain?.(l.lay);
+          if (typeof sc === 'string' && d) scales[`seq-scale-${sc.slice(sc.lastIndexOf('/') + 1)}`] = d.join(',');
+        }
+    const place = options.legend ?? (view.export?.legend as RenderSvgOptions['legend']) ?? 'none';
+    if (place !== 'none' && legends.length) {
+      const lists = frame.lists;
+      const text = options.text ?? bundledTextMetrics();
+      const inset = config.inset;
+      const band =
+        place === 'below'
+          ? { x: inset, y: lists.height + LegendBand.gap, width: lists.width - 2 * inset, height: 0 }
+          : { x: lists.width + LegendBand.gap, y: inset, width: 240, height: 0 };
+      const h = legendsHeight(legends, band.width, tokens, text);
+      const w0 = lists.width;
+      const h0 = lists.height;
+      if (place === 'below') lists.height = h0 + h + 2 * LegendBand.gap;
+      else {
+        lists.width = w0 + band.width + 2 * LegendBand.gap;
+        lists.height = Math.max(h0, h + 2 * inset);
+      }
+      const bg = lists.writer('background');
+      if (place === 'below') bg.fill(0, h0, lists.width, lists.height - h0, tokens.colors['msui-bg']);
+      else bg.fill(w0, 0, lists.width - w0, lists.height, tokens.colors['msui-bg']);
+      if (lists.height > h0 && place === 'right') bg.fill(0, h0, w0, lists.height - h0, tokens.colors['msui-bg']);
+      layoutLegends(legends, band, tokens, text, lists.writer('labels'));
+    }
     const svg = drawListsToSvg(frame.lists, {
       fonts: tokens.fonts,
       fade: config.fade,
       idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
-      metadata: { 'seq-settled': String(settled), ...(domains.length ? { 'seq-domains': domains.join(';') } : {}) },
+      metadata: {
+        'seq-settled': String(settled),
+        ...(domains.length ? { 'seq-domains': domains.join(';') } : {}),
+        ...scales,
+      },
       sections: frame.layout.sections.map((s) => ({
         address: s.section.address,
         direction: s.section.axis.dir === -1 ? 'reversed' : 'genomic',

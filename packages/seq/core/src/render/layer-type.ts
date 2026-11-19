@@ -8,8 +8,10 @@ import type { Issue } from '@molstar/core/repr/tree';
 import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
 import type { ElementKey, Elements, Location } from '@molstar/seqx-core/query';
 import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
+import type { Legend } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
+import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
 import type { TextMetrics } from './text.js';
@@ -50,6 +52,8 @@ export interface LayoutContext {
   readonly text: TextMetrics;
   /** The view has settled (no data pending, no gesture): open domains are computed, sparse lanes repacked. */
   readonly settled: boolean;
+  /** What the themes read: schemes, measures, scales, held domains, the reader's substitution. */
+  readonly theme: ThemeContext;
   /** Asks for a region the layer reads (the store's want, by priority). */
   want(w: Want): void;
   /** Says what went wrong drawing the layer (a color it cannot read, data it cannot place). */
@@ -123,14 +127,6 @@ export interface Emphasis {
   };
 }
 
-/** A layer's legend: a ramp over a domain, or categories with their colors. */
-export interface LegendSpec {
-  readonly kind: 'ramp' | 'categories';
-  readonly domain?: readonly [number, number];
-  readonly labels?: readonly string[];
-  readonly colors: readonly number[];
-}
-
 /**
  * A layer type: `prepare` is tier 1 (cached per resolved layer), `layout` per viewport (given its last layout to reuse
  * its buffers and keep its lanes), `draw` one pass into the lists, `hit` from the same layout.
@@ -143,5 +139,8 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   layout(prep: Prep, ctx: LayoutContext, data: StoreReader, overlay: Overlay, prev?: Lay): Lay;
   draw(lay: Lay, pass: PassName, out: PassWriter, emphasis?: Emphasis): void;
   hit(lay: Lay, x: number, y: number): Hit | undefined;
-  legend?(lay: Lay): LegendSpec | undefined;
+  /** The legends of its themed channels as last laid out (_spec/README.md "Themes", Legends), titled by its track. */
+  legend?(lay: Lay, options: { readonly title: string }): readonly Legend[];
+  /** The y domain it drew (a values layer's), recorded by an export. */
+  domain?(lay: Lay): readonly [number, number] | undefined;
 }

@@ -61,6 +61,15 @@ export {
   viewSources,
 } from './export.js';
 export { RenderIssues } from './issues.js';
+export {
+  DefaultThemeContext,
+  Extents,
+  LayerChannels,
+  PlainDatum,
+  RowDatum,
+  type ThemeContext,
+} from './channels.js';
+export { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 export { OverlaySources } from './overlay-sources.js';
 export { LaneIndex, StickyLanes } from './lanes.js';
 export { type LayerSource, layerSource } from './layer-data.js';
@@ -72,7 +81,6 @@ export {
   type Hit,
   type LayerType,
   type LayoutContext,
-  type LegendSpec,
   type Overlay,
   type StoreReader,
   sectionId,
@@ -89,7 +97,6 @@ export { bundledTextMetrics, bundledWidth, createTextMetrics, parseFont, type Te
 export {
   builtInTokens,
   CategoryCount,
-  categoryToken,
   colorHex,
   createTokens,
   DarkTokens,
@@ -97,8 +104,6 @@ export {
   type FontStacks,
   inkOn,
   LightTokens,
-  letterToken,
-  luminance,
   mixColors,
   parseColor,
   resolveColor,

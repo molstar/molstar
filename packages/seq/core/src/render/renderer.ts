@@ -9,6 +9,7 @@ import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
+import type { ThemeContext } from './channels.js';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
 import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreReader } from './layer-type.js';
@@ -34,6 +35,8 @@ export interface RendererOptions {
   readonly text: TextMetrics;
   readonly config?: RenderConfig;
   readonly types?: Readonly<Record<string, LayerType<any, any>>>;
+  /** The schemes and measures the themes read (the built-ins by default): the composition's registry entries. */
+  readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
 }
 
 export interface FrameInput {
@@ -45,6 +48,8 @@ export interface FrameInput {
   readonly settled?: boolean;
   readonly overlay?: Overlay;
   readonly emphasis?: Emphasis;
+  /** The reader's color-blind substitution (`theme.cvdSafe`): part of the key, never the spec. */
+  readonly cvdSafe?: boolean;
 }
 
 /**
@@ -82,6 +87,7 @@ class KeyParts {
   text = Number.NaN;
   overlay = Number.NaN;
   settled = false;
+  cvdSafe = false;
 
   // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
 
@@ -100,7 +106,8 @@ class KeyParts {
       this.tokens === r.tokens.version &&
       this.text === r.options.text.version &&
       this.overlay === (input.overlay ?? EmptyOverlay).version &&
-      this.settled === (input.settled ?? false)
+      this.settled === (input.settled ?? false) &&
+      this.cvdSafe === (input.cvdSafe ?? false)
     );
   }
 
@@ -118,6 +125,7 @@ class KeyParts {
     this.text = r.options.text.version;
     this.overlay = (input.overlay ?? EmptyOverlay).version;
     this.settled = input.settled ?? false;
+    this.cvdSafe = input.cvdSafe ?? false;
   }
 
   /** The key's text (the store's reads appended by the caller). */
@@ -135,6 +143,7 @@ class KeyParts {
       this.text,
       this.overlay,
       this.settled ? 's' : 'm',
+      this.cvdSafe ? 'cvd' : '',
       configKey,
     ].join('|');
   }
@@ -261,6 +270,7 @@ export class Renderer {
         overlay,
         settled: input.settled ?? false,
         types: this.options.types ?? BuiltInLayerTypes,
+        theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
       },
       this.state,
     );

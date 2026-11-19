@@ -5,7 +5,7 @@
  */
 
 import { sortArrayRange } from '@molstar/core/data/util/sort';
-import { issueOf } from '@molstar/core/repr/tree';
+import { CategoryColumn, issueOf } from '@molstar/core/repr/tree';
 import type { RangesDensity } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
@@ -26,6 +26,7 @@ import {
   beginItems,
   drawTicks,
   type ItemExtents,
+  type ItemRows,
   type ItemsBase,
   type ItemsPrep,
   itemExtents,
@@ -38,13 +39,14 @@ import {
   tickOn,
 } from './items.js';
 import { RenderIssues } from './issues.js';
+import type { Channel } from '@molstar/seqx-core/theme/index';
+import { channelForms, channelLegends, Extents, type LayerChannels, RowDatum } from './channels.js';
 import { LaneIndex, StickyLanes } from './lanes.js';
 import { type LayerSource, layerSource, toSection } from './layer-data.js';
-import type { Emphasis, Hit, LayerType, LayoutContext, LegendSpec, Overlay, StoreReader } from './layer-type.js';
-import { reportColor } from './letters.js';
+import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
-import { categoryToken, inkOn, mixColors, resolveColor, type SeqTokens } from './tokens.js';
+import { inkOn, mixColors, type SeqTokens, withAlpha } from './tokens.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
 // a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
@@ -84,7 +86,8 @@ export interface RangesPrep extends ItemsPrep {
   /** An arrowhead on the item's `end`, `start`, or both: bits 1 and 2 (none: 0). */
   readonly arrow: number;
   readonly cyclic: boolean;
-  readonly color?: unknown;
+  /** Its channels (`color`, `size`, `opacity`), compiled per layout's tokens. */
+  readonly channels: LayerChannels;
 }
 
 type Mode = 'items' | 'bars' | 'density';
@@ -108,6 +111,13 @@ export interface RangesLay extends ItemsBase {
   ends: number[];
   labels: (string | undefined)[];
   fills: number[];
+  /** Each item's size channel: a share of its lane's height (1 when unthemed); its hit box stays the lane's. */
+  sizes: number[];
+  /** The channels this layout read, and the datum they read each item through. */
+  color?: Channel;
+  size?: Channel;
+  datum: RowDatum;
+  extents: Extents;
   lanes: Int32Array;
   laneCount: number;
   /** Items that did not fit the lanes: drawn in the density row (or the layer's density). */
@@ -158,7 +168,13 @@ export interface RangesLay extends ItemsBase {
   font: string;
   fontSize: number;
   radius: { ratio: number; max: number; min: number };
-  categories: Map<string, number>;
+  /**
+   * Each item's value of the color legend's field (text: a legend's `painted` entries), stored per item and read into a
+   * set only when a legend is derived (on settle, never per frame).
+   */
+  painted: (string | undefined)[];
+  /** A table's colors by dictionary code (kept, grown). */
+  byCode: Uint32Array;
   /** Lane ids by key and occurrence, kept across frames (a layout makes no string an item); cleared when large. */
   idCache: Map<string | number, string[]>;
   /** The items by start, kept. */
@@ -185,6 +201,9 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     ends: base.rows.ends,
     labels: base.rows.labels,
     fills: [],
+    sizes: [],
+    datum: new RowDatum(),
+    extents: new Extents(),
     lanes: new Int32Array(64),
     laneCount: 0,
     overflow: 0,
@@ -227,7 +246,8 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     font: ctx.config.itemFont,
     fontSize: fontSize(ctx.config.itemFont),
     radius: { ratio: ctx.config.squircleRatio, max: ctx.config.squircleMax, min: ctx.config.squircleMin },
-    categories: new Map(),
+    painted: [],
+    byCode: new Uint32Array(16),
     idCache: new Map(),
     order: new Int32Array(64),
   };
@@ -302,7 +322,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       ...(itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
       ...(src ? { src } : {}),
       owner: layer.data?.address ?? '',
-      ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
+      channels: channelForms(layer.theme),
     };
   },
 
@@ -317,15 +337,9 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.hn = 0;
     lay.overflow = 0;
     lay.laneCount = 0;
-    lay.categories.clear();
     const src = prep.src;
     if (!src) return lay;
 
-    let fixed: number | undefined;
-    if (prep.color !== undefined) {
-      fixed = resolveColor(prep.color, tokens);
-      if (fixed === undefined) reportColor(ctx);
-    }
     lay.style = lineStyle(prep.line, ctx);
     lay.arrow = prep.arrow;
     // the items in view and in the stretches its breaks hide (an item there is its break's tick)
@@ -333,13 +347,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     const step = lay.step;
     const rows = lay.rows;
     lay.items = rows.n;
-    for (let j = 0; j < rows.n; j++) {
-      const category = rows.values[j];
-      lay.ids[j] = laneId(lay.idCache, rows.keys[j], rows.occ[j]);
-      const fill = fixed ?? tokens.colors[category === undefined ? 'seq-range' : categoryToken(category)];
-      if (category !== undefined) lay.categories.set(category, fill);
-      lay.fills[j] = fill;
-    }
+    themeItems(lay, prep, ctx);
+    for (let j = 0; j < rows.n; j++) lay.ids[j] = laneId(lay.idCache, rows.keys[j], rows.occ[j]);
     const n = lay.items;
     if (lay.idCache.size > 4 * n + 4096) lay.idCache.clear();
     if (lay.arrow) {
@@ -514,12 +523,16 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     return itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
   },
 
-  legend(lay): LegendSpec | undefined {
-    if (lay.mode === 'density')
-      return { kind: 'ramp', colors: [lay.tokens.colors['seq-density-low'], lay.tokens.colors['seq-density-high']] };
-    if (!lay.categories.size) return undefined;
-    const labels = [...lay.categories.keys()].sort();
-    return { kind: 'categories', labels, colors: labels.map((l) => lay.categories.get(l) as number) };
+  legend(lay, options) {
+    // the density strip is a count, not a theme: its key is the strip itself
+    if (lay.mode === 'density') return [];
+    const painted = new Set<string>();
+    if (lay.color?.legend?.kind === 'palette')
+      for (let j = 0; j < lay.items; j++) {
+        const v = lay.painted[j];
+        if (v !== undefined) painted.add(v);
+      }
+    return channelLegends([lay.color, lay.size], { ...options, layer: lay.key, painted });
   },
 };
 
@@ -549,12 +562,15 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
   }
   // items and merged runs alike are discrete marks: squircles where big enough, round only where a run really ends,
   // so the base mark has the shape its emphasis outlines (_spec/README.md "Render", Shapes)
+  const full = lay.laneHeight - gap;
   for (let j = 0; j < lay.m; j++) {
     const item = lay.mitem[j];
+    // the size channel shrinks the mark about its lane's middle; its lane and hit box stay (EC-137)
+    const h = item >= 0 ? full * lay.sizes[item] : full;
     a[0] = lay.mx0[j];
-    a[1] = box.y + lay.mlane[j] * lay.laneHeight + gap / 2;
+    a[1] = box.y + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;
     a[2] = lay.mx1[j] - lay.mx0[j];
-    a[3] = lay.laneHeight - gap;
+    a[3] = h;
     a[4] = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
     a[5] = NoColor;
     a[6] = 0;
@@ -578,8 +594,9 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
   for (let j = 0; j < lay.m; j++) {
     const item = lay.mitem[j];
     const fill = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
-    const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2;
-    const h = lay.laneHeight - gap;
+    const full = lay.laneHeight - gap;
+    const h = item >= 0 ? full * lay.sizes[item] : full;
+    const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;
     const cy = y + h / 2;
     const x0 = lay.mx0[j];
     const x1 = lay.mx1[j];
@@ -960,4 +977,80 @@ export function paintStrip(strip: StripBuffers, cols: number, tokens: SeqTokens)
     data[4 * c + 3] = color & 0xff;
   }
   return strip.image!;
+}
+
+/**
+ * The items' channels (_spec/README.md "Themes"): each item's fill, size and painted value, read through its table's
+ * row. The channels are compiled once a layout (kept while the tokens and held domains agree), by the first table's
+ * declared column types; a field theme over a dictionary-coded column is a color per code, once a table.
+ */
+function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext) {
+  const rows = lay.rows;
+  const datum = lay.datum;
+  const missing = ctx.tokens.colors['seq-missing'];
+  datum.bind(rows.n ? rows.fields[0] : undefined);
+  const extra = { numeric: (n: string) => datum.numeric(n) };
+  const color = prep.channels.get('color', 'token:range', ctx, extra);
+  const size = prep.channels.get('size', 1, ctx, extra);
+  const opacity = prep.channels.get('opacity', 1, ctx, extra);
+  lay.color = color;
+  lay.size = size;
+  lay.extents.reset([color, size, opacity]);
+  const painted = color.legend?.kind === 'palette' ? color.legend.field : undefined;
+  const cconst = color.constant;
+  const sconst = size.constant;
+  const oconst = opacity.constant;
+  let bound: ItemRows['fields'][number] | null = null;
+  let codes: ArrayLike<number> | undefined;
+  let dict: readonly string[] | undefined;
+  for (let j = 0; j < rows.n; j++) {
+    const fields = rows.fields[j];
+    if (fields !== bound) {
+      bound = fields;
+      datum.bind(fields);
+      const coded = cconst === undefined && color.field !== undefined ? datum.column(color.field) : undefined;
+      codes = coded instanceof CategoryColumn ? coded.codes : undefined;
+      dict = coded instanceof CategoryColumn ? coded.dict : undefined;
+      if (dict) lay.byCode = codeFills(color, dict, missing, lay.byCode);
+    }
+    const i = rows.row[j];
+    datum.row = i;
+    datum.start = rows.starts[j];
+    datum.end = rows.ends[j];
+    let fill: number;
+    if (codes) {
+      const code = codes[i];
+      fill = code < 0 ? missing : lay.byCode[code];
+    } else {
+      const c = cconst ?? color.at(datum);
+      fill = typeof c === 'number' ? c : missing;
+    }
+    const o = oconst ?? opacity.at(datum);
+    if (typeof o === 'number' && o < 1) fill = withAlpha(fill, ((fill & 0xff) / 255) * Math.max(0, o));
+    const z = sconst ?? size.at(datum);
+    lay.sizes[j] = typeof z === 'number' ? Math.max(0, Math.min(1, z)) : 1;
+    if (painted !== undefined) {
+      if (codes) lay.painted[j] = codes[i] < 0 ? undefined : dict![codes[i]];
+      else {
+        const v = datum.field(painted);
+        lay.painted[j] = typeof v === 'string' ? v : undefined;
+      }
+    }
+    if (lay.extents.any) lay.extents.add(datum);
+    lay.fills[j] = fill;
+  }
+  lay.extents.flush(ctx.theme);
+}
+
+/** The colors of a dictionary's values through a channel that reads one field: index a code. */
+function codeFills(channel: Channel, dict: readonly string[], missing: number, out: Uint32Array): Uint32Array {
+  if (out.length < dict.length) out = new Uint32Array(Math.max(dict.length, 2 * out.length));
+  let v: string | undefined;
+  const d = { value: Number.NaN, letter: '', start: 0, end: 0, field: () => v };
+  for (let k = 0; k < dict.length; k++) {
+    v = dict[k];
+    const c = channel.at(d);
+    out[k] = typeof c === 'number' ? c : missing;
+  }
+  return out;
 }
