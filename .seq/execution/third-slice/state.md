@@ -64,7 +64,13 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 - PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
   orchestrator: PG green (unit 1433); NV green but heavy, whose two failures (rows-time's theme change, themes' 1.1×
   ratio) also fail on `packages-seq` under load and pass alone on NV: flaky bounds, to stage 4's gate. Reviews running
-  (independent, opus). The look's findings for the fix rounds:
+  (independent, opus) done: NV 12 bugs (double history step, wrapped grips, the miniature's body, rows history,
+  the view's images and colours, the idle key, ...), the ring's second window geometry, config beyond the table; PG
+  9 (y never moves on the PAE, a self grid's rect painted as bands, pairs ignoring themes and filters, antiparallel
+  only, triangles' diagonal, the hit path's boxing), the data not marked synthetic. Both in one fix round each
+  (2026-11-19), with the look's findings below; NV's worktree was briefly switched by PG's reviewer and restored.
+  Design calls written: navigators (slim rail under the tracks; what replaces the rail), grids-and-rows (height
+  floor, two-rect subtraction, `aspect: none`, the `type` column). The look's findings:
   - PG: tRNA arcs spring from the band's foot, away from the letters, feet clipped; the RNA legend says T (not U) and
     shows a gap swatch; dot plots not square (`aspect` 1); the generated PAE mostly low with a high stripe (the design:
     low across the interface, high elsewhere); contacts dots barely visible in dark. The crosshair works.
