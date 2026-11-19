@@ -35,6 +35,8 @@ export function composeViewer(
     look?: SelectionLook;
     /** No ruler rails (`navigator.form: none`): a canvas compared with its export, which has none. */
     noRails?: boolean;
+    /** Further viewer config items. */
+    config?: readonly (readonly [any, unknown])[];
   } = {},
 ): SeqViewer {
   const base = DefaultSeqViewerSpec();
@@ -53,6 +55,7 @@ export function composeViewer(
       config: [
         ...(Object.keys(emphasis).length ? [[SeqCoreConfig.render, { emphasis }] as const] : []),
         ...(options.noRails ? [[viewerItem('navigator.form'), 'none'] as const] : []),
+        ...(options.config ?? []),
       ],
     },
     options.target,

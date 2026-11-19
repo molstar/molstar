@@ -34,6 +34,7 @@ import {
   resolveAddressIn,
   unionLocations,
 } from '@molstar/seqx-core/query';
+import type { HighlightStyle } from '@molstar/seqx-core/render';
 import { overlayQueryModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { breakHolding, nearestOffsetOf, positionAt } from './axis.js';
@@ -198,7 +199,7 @@ export class AddressModel extends ReactiveModel {
       if (!check(h.address)) this.highlight.clear(name);
       else {
         const v = this._emphasized(h.address).value;
-        if (v) this.highlight.set(name, v);
+        if (v) this.highlight.set(name, h.style ? { ...v, style: h.style } : v);
       }
     }
     if (this._pendingFocus && !check(this._pendingFocus.address)) this._pendingFocus = undefined;
@@ -520,10 +521,14 @@ export class AddressModel extends ReactiveModel {
   }
 
   /** Highlights what an address names on a channel (the links' channel by default). */
-  highlightAddress(address: string, channel = this.config.links.highlightChannel): AddressOutcome {
+  highlightAddress(
+    address: string,
+    channel = this.config.links.highlightChannel,
+    style?: HighlightStyle,
+  ): AddressOutcome {
     const { resolution, value } = this._emphasized(address);
     if (!value) return this._outcome(resolution, false, 'Nothing to highlight');
-    this.highlight.set(channel, value);
+    this.highlight.set(channel, style ? { ...value, style } : value);
     return this._outcome(resolution, true, 'Highlighted');
   }
 

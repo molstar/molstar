@@ -5,6 +5,7 @@
  */
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
+import { sortArrayRange } from '@molstar/core/data/util/sort';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { type Coverage, fitLevel, type Want } from '@molstar/seqx-core/data';
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
@@ -37,7 +38,17 @@ import {
   Round,
 } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
-import type { Box, Emphasis, Hit, LabelSink, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
+import type {
+  Box,
+  Emphasis,
+  EmphasisHighlight,
+  Hit,
+  LabelSink,
+  LayerType,
+  LayoutContext,
+  Overlay,
+  StoreReader,
+} from './layer-type.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { breakHit } from './marks.js';
@@ -1937,22 +1948,154 @@ function drawProjectedHover(
   paintRanges(out, axis, box, part, config);
 }
 
-/** The highlight channels on a box, in order: each a tint of its color at `emphasis.highlightTint`. */
+/** A mutable box: one stripe of a band (reused: a stripe makes no object). */
+class StripeBox implements Box {
+  x = 0;
+  y = 0;
+  width = 0;
+  height = 0;
+}
+const Stripe = new StripeBox();
+/** The one `[start, end)` range of a highlight run, as a part (reused). */
+const RunRanges = new Int32Array(2);
+const RunPart: LocationPart = { system: '', ranges: RunRanges };
+/** The channels with a part on this axis, and their index among the emphasis's (reused). */
+const HParts: (LocationPart | undefined)[] = [];
+const HIndex: number[] = [];
+/** Per channel: its cursor into its ranges, whether it lights here, its open run's start, slot and stripe count. */
+let HCursor = new Int32Array(8);
+let HLit = new Uint8Array(8);
+let HStart = new Int32Array(8);
+let HSlot = new Int32Array(8);
+let HStripes = new Int32Array(8);
+/** The positions where the channels lighting a stretch can change (reused). */
+let HBreaks = new Int32Array(32);
+
+/**
+ * The highlight channels on a box, in order (_spec/README.md "Render", Emphasis): where one channel alone lights a
+ * position it takes the whole band; where several do, the band is split into equal stripes, one a channel present, in
+ * channel order, at most `emphasis.highlightStripes` (the rest share the last one). A channel's `style` is drawn in its
+ * stripe: `tint` (its color at `emphasis.highlightTint`), `band` (a bar along the stripe's foot) or `outline`.
+ */
 function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis: Emphasis, config: RenderConfig) {
   const hs = emphasis.highlights;
   if (!hs) return;
+  let n = 0;
   for (let i = 0; i < hs.length; i++) {
     const part = partOn(hs[i].location, axis.system);
     if (!part) continue;
-    const c = hs[i].color;
-    const a = ((c & 0xff) / 255) * config.emphasis.highlightTint;
+    HParts[n] = part;
+    HIndex[n] = i;
+    n++;
+  }
+  if (n === 1) paintHighlight(out, axis, box, hs[HIndex[0]], HParts[0]!, 0, 1, config);
+  else if (n > 1) drawStripes(out, axis, box, hs, n, config);
+  for (let c = 0; c < n; c++) HParts[c] = undefined;
+}
+
+/** The channels collected in `HParts` (two or more) over the elementary stretches their ranges cut the axis into. */
+function drawStripes(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  hs: readonly EmphasisHighlight[],
+  n: number,
+  config: RenderConfig,
+) {
+  if (HCursor.length < n) {
+    HCursor = new Int32Array(n * 2);
+    HLit = new Uint8Array(n * 2);
+    HStart = new Int32Array(n * 2);
+    HSlot = new Int32Array(n * 2);
+    HStripes = new Int32Array(n * 2);
+  }
+  let m = 0;
+  for (let c = 0; c < n; c++) {
+    const r = HParts[c]!.ranges;
+    if (HBreaks.length < m + r.length) {
+      const grown = new Int32Array((m + r.length) * 2);
+      grown.set(HBreaks.subarray(0, m));
+      HBreaks = grown;
+    }
+    for (let k = 0; k < r.length; k++) HBreaks[m++] = r[k];
+    HCursor[c] = 0;
+    HSlot[c] = -1;
+  }
+  sortArrayRange(HBreaks, 0, m);
+  const max = Math.max(1, Math.floor(config.emphasis.highlightStripes));
+  for (let j = 0; j < m; j++) {
+    const at = HBreaks[j];
+    if (j > 0 && at === HBreaks[j - 1]) continue;
+    // who lights [at, next)
+    let present = 0;
+    for (let c = 0; c < n; c++) {
+      const r = HParts[c]!.ranges;
+      let k = HCursor[c];
+      while (k < r.length && r[k + 1] <= at) k += 2;
+      HCursor[c] = k;
+      const lit = k < r.length && r[k] <= at;
+      HLit[c] = lit ? 1 : 0;
+      if (lit) present++;
+    }
+    const count = Math.min(present, max);
+    // a run goes on while the channel's slot and the stripe count stay; else it is drawn and a new one begins
+    let rank = 0;
+    for (let c = 0; c < n; c++) {
+      const slot = HLit[c] ? Math.min(rank++, max - 1) : -1;
+      if (HSlot[c] >= 0 && (slot !== HSlot[c] || count !== HStripes[c])) {
+        RunRanges[0] = HStart[c];
+        RunRanges[1] = at;
+        paintHighlight(out, axis, box, hs[HIndex[c]], RunPart, HSlot[c], HStripes[c], config);
+        HSlot[c] = -1;
+      }
+      if (slot >= 0 && HSlot[c] < 0) {
+        HStart[c] = at;
+        HSlot[c] = slot;
+        HStripes[c] = count;
+      }
+    }
+  }
+}
+
+/** One channel's part in stripe `slot` of `stripes` of the box, in its style. */
+function paintHighlight(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  h: EmphasisHighlight,
+  part: LocationPart,
+  slot: number,
+  stripes: number,
+  config: RenderConfig,
+) {
+  const em = config.emphasis;
+  const sh = box.height / stripes;
+  Stripe.x = box.x;
+  Stripe.width = box.width;
+  Stripe.y = box.y + slot * sh;
+  Stripe.height = sh;
+  const c = h.color;
+  const style = h.style ?? 'tint';
+  if (style === 'band') {
+    const bh = Math.min(em.highlightBand, sh);
+    Stripe.y += sh - bh;
+    Stripe.height = bh;
+    Paint[0] = c;
+    Paint[1] = NoColor;
+    Paint[2] = 0;
+  } else if (style === 'outline') {
+    Paint[0] = NoColor;
+    Paint[1] = c;
+    Paint[2] = config.outline.selection;
+  } else {
+    const a = ((c & 0xff) / 255) * em.highlightTint;
     Paint[0] = ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
     Paint[1] = NoColor;
     Paint[2] = 0;
-    Paint[3] = 0;
-    Paint[4] = 0;
-    paintRanges(out, axis, box, part, config);
   }
+  Paint[3] = 0;
+  Paint[4] = 0;
+  paintRanges(out, axis, Stripe, part, config);
 }
 
 /** The point `hitView` places (reused: a hover makes no object). */

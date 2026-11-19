@@ -1238,6 +1238,16 @@ export class SeqViewer extends ReactiveModel {
     e.hover = h;
   }
 
+  /** A highlight channel's color: `highlight.colors[name]`, else `highlight.color`, resolved through the tokens. */
+  highlightColor(name: string): number {
+    const { color, colors } = this.config.highlight;
+    return (
+      resolveColor(Object.hasOwn(colors, name) ? colors[name] : color, this.tokens) ??
+      resolveColor(color, this.tokens) ??
+      this.tokens.colors['seq-cat-5']
+    );
+  }
+
   /** The highlight channels as drawn: each its Location on every section it shows on, in its channel's color. */
   private _updateHighlights(): void {
     const k = this._highlightsFor;
@@ -1253,16 +1263,11 @@ export class SeqViewer extends ReactiveModel {
     k[2] = view;
     k[3] = model;
     const out: EmphasisHighlight[] = [];
-    const { color, colors } = this.config.highlight;
     for (const name of this.highlight.names.value) {
       const h = this.highlight.get(name);
       if (!h || isNothing(h)) continue;
       const location = this._projector.of(h.shown, { own: true }) ?? h.shown;
-      const c =
-        resolveColor(Object.hasOwn(colors, name) ? colors[name] : color, this.tokens) ??
-        resolveColor(color, this.tokens) ??
-        this.tokens.colors['seq-cat-5'];
-      out.push({ location, color: c });
+      out.push({ location, color: this.highlightColor(name), ...(h.style ? { style: h.style } : {}) });
     }
     this._highlights = out;
     this._emphasis.highlights = out.length ? out : undefined;

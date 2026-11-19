@@ -77,6 +77,7 @@ export {
   type Box,
   type Emphasis,
   type EmphasisHighlight,
+  type HighlightStyle,
   EmptyOverlay,
   type Hit,
   type HitTarget,

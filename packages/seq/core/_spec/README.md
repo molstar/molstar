@@ -901,6 +901,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `emphasis.selectionPlace`                                      | `over`                                                                                              | a tint under the data is hidden by opaque cells and a selection then redraws the data; `under` (to confirm with the author)                                                     |
 | `emphasis.selectionShape`                                      | `column`                                                                                            | a selection is of positions: one band a section across its tracks and gaps reads as one (the author's look); `tracks`, a box a track                                            |
 | `emphasis.selectionTint`, `emphasis.selectionOutline`          | 0.18, 0.6                                                                                           | a soft tint and one thin outline (the author's look)                                                                                                                            |
+| `emphasis.highlightStripes`                                    | 4                                                                                                   | stripes a band splits into where channels overlap; the rest share the last                                                                                                      |
+| `emphasis.highlightBand`                                       | 3                                                                                                   | a `band`-style channel's bar, px                                                                                                                                                |
 | `emphasis.highlightTint`                                       | 0.3                                                                                                 | a highlight channel's tint                                                                                                                                                      |
 | `emphasis.projected`                                           | 0.5                                                                                                 | what is projected onto a linked section, a factor of its own look's opacity: the same look, lighter                                                                             |
 | `emphasis.hoverOffset`                                         | 1                                                                                                   | the hover's outline outside its mark, concentric, never touching the selection's                                                                                                |
@@ -1038,8 +1040,14 @@ strip's.
 
 - **The order of emphasis** is fixed, below to above: data, highlight channels, selection, hover, cursor; a higher one
   never hides a lower one entirely (tints are translucent, outlines are thin lines that never touch).
-- `highlights`: the channels in order, each a Location and a color, tinted at `emphasis.highlightTint` on every system
-  its Location has (the `highlight` pass), square.
+- `highlights`: the channels in order, each a Location, a color and a `style` (`tint`, the default; `band`; `outline`),
+  on every system its Location has (the `highlight` pass), square. **Overlapping channels stay apart** (ux-foundations
+  section 6): a position lit by one channel takes the whole band; by several, the band splits into equal stripes, one a
+  channel present there, in channel order, at most `emphasis.highlightStripes`, the channels past the last sharing it (a
+  ring's band radially). The style draws in the channel's stripe: `tint` fills it at `emphasis.highlightTint`, `band` a
+  bar `emphasis.highlightBand` px along its foot in the color as given, `outline` its stroke (`outline.selection`)
+  without fill. The run of a channel with one slot and one stripe count is one rect: a channel is cut only where the set
+  of channels lighting changes. Why stripes: stacked tints of two colors blend into a third that names neither.
 - `selection` (a Location): a soft accent tint at `emphasis.selectionTint` and one thin outline inside it
   (`outline.selection`, 1 px, the accent at `emphasis.selectionOutline`, 0.6), the tints first, then the outlines;
   squircle ends where a range really ends, square where the view or a piece cuts it (the frame rule) (the `selection`

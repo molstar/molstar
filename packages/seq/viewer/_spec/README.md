@@ -289,7 +289,9 @@ centre, never the pointer.
   through `StoreModel.holdSession('selection', …)` while it is selected (`selection.holdNodes`). Why: a selected
   transcript must stay when its region scrolls away.
 - `HighlightModel`: named channels (`set`, `clear`, `channel(name)` a keyed state, `names` in the order first set,
-  `version` moving on every change). Drawn as tints (Emphasis).
+  `version` moving on every change). Drawn as stripes where channels overlap (Emphasis). A channel's value has an
+  optional `style` (`tint`, `band`, `outline`; `address.highlight`'s `style`), kept when the spec changes and carried
+  with the channel onto every linked section; a changed style is a changed channel.
 
 ### Emphasis
 
@@ -820,6 +822,9 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the schemes whose subject
   and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel`
   or Esc).
+- **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
+  swatch in the channel's color (`SeqViewer.highlightColor`) shaped by its style, and a Clear, which runs
+  `highlight.clear` with the channel's name.
 
 ## Configuration
 

@@ -86,9 +86,25 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       }
       host.append(group);
     }
+    // the active highlight channels: their color (as the canvas draws it, by the channel's style) and a clear
     for (const h of viewer.highlight.names.value) {
+      const style = viewer.highlight.get(h)?.style ?? 'tint';
       const row = doc.createElement('span');
-      row.textContent = `Highlight: ${h} `;
+      row.dataset.highlight = h;
+      row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px;';
+      const color = colorHex(viewer.highlightColor(h));
+      const swatch = doc.createElement('span');
+      swatch.setAttribute('aria-hidden', 'true');
+      swatch.dataset.style = style;
+      swatch.dataset.color = color;
+      swatch.style.cssText = `forced-color-adjust: none; display: inline-block; width: 14px; height: 10px; box-sizing: border-box; ${
+        style === 'outline'
+          ? `border: 1px solid ${color};`
+          : style === 'band'
+            ? `border-bottom: 3px solid ${color};`
+            : `background: ${color}; opacity: 0.5;`
+      }`;
+      row.append(swatch, doc.createTextNode(`Highlight: ${h} `));
       const clear = doc.createElement('button');
       clear.type = 'button';
       clear.textContent = 'Clear';
@@ -130,7 +146,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     viewer.legends.legends.listen(draw),
     viewer.legends.hover.listen(draw),
     viewer.legends.cvdSafe.listen(draw),
-    viewer.highlight.names.listen(draw),
+    viewer.highlight.version.listen(draw),
   ];
   draw();
   return () => {
