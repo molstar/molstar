@@ -104,7 +104,8 @@ command and from the keyboard.
 - **The hover card** says in words what the pointer rests on: the position in every numbering
   (`heavy 97 · Kabat 93 · IMGT 105`), the letter, the item and its extent, a value, a grid cell's two positions and
   value, a dragged rectangle's mean. Its words are the screen reader's, so the two never differ. It sits beside the
-  pointer, never over what it describes, and leaves when a drag pans or zooms.
+  pointer, never over what it describes, and leaves when a drag pans or zooms. The viewer works out the card as data and
+  its place; a port draws it, `@molstar/ui`'s card by default or an app's own components and styles.
 - **The keys panel** (`?`) lists what the view answers to, generated from its keys and gestures.
 
 ## The interaction matrix

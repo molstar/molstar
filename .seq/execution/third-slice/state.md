@@ -263,3 +263,6 @@ None.
   (fast) the bugs, the stories and the looks; the hover card and a keys hint asked of the author.
 - Decided (the author, 2026-11-19, "Yes, lane HC now"): the hover card and the keys panel this slice (ux-foundations
   §9, viewer-models, features; the Design pages). HC (strong) starts; NP runs beside it.
+- Decided (the author, 2026-11-19: "implement the hover card via a port too … so apps can easily provide their own
+  styles"): the hover card's content and place computed headless, drawn through a `hoverCard` port (ports.md); the
+  keys' list as data (`describeKeys`). HC's brief updated before it started.

@@ -16,9 +16,16 @@
    - **Placement**: beside the pointer, never over the hovered cell or item (above, else below), kept inside the view;
      after the hover rests (the announcer's rest); hidden while a drag pans or zooms, on leave, on Esc; at the keyboard
      cursor when it moves. One card. DOM over the canvas: not in the draw lists, not in exports.
+   - **A port** (the author, 2026-11-19: "implement the hover card via a port too … so apps can easily provide their
+     own styles"; [ports.md](../../../design/ports.md)'s table): the viewer computes the card as data (`HoverCard`:
+     a title, rows of `{ label, value }`, the announcer's `text`) and its place (`placeCard(anchor, pointer, view,
+     size)`: a side and a position, never over the anchor, inside the view), headless; the `hoverCard` port
+     (`show(card, place)`, `hide()`) draws it. The default adapter is `@molstar/ui`'s card mounted over the canvas;
+     a test adapter records the calls (the content and placement tests run on it, no DOM); a Storybook story shows a
+     host's own adapter (different styles, the same data).
    - **Config**: on in the default spec, off by a config item; the minimal viewer leaves it out (its size measured).
      Sections behind an internal interface (extensibility.md), not exported.
-2. **The keys panel**: `?` and a toolbar button ("Keys and gestures (?)") open a `@molstar/ui` panel listing the
+2. **The keys panel**: its list as data (`describeKeys(viewer)`), the panel drawing it; `?` and a toolbar button ("Keys and gestures (?)") open a `@molstar/ui` panel listing the
    keymap's commands and the gesture bindings, generated, grouped (move, zoom, select, edit, view), each with its key or
    gesture and its name; Esc closes it.
 3. **Stories**: the existing example views show the card with no story code (it is the viewer's); remove the stories'

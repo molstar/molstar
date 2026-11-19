@@ -21,6 +21,7 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
   | assets | read bytes by location | `@molstar/core/util/assets`'s `AssetManager`, wrapped by a policy (allowed hosts, size limits, no credentials by default, [security.md](security.md)); a host passes its own manager (a Mol\* plugin's), so downloads and files are shared, or a bare `{ reader }` (a test or a CLI has a reader, not a manager) |
   | text metrics | measure text for layout | `@molstar/core/util/text-measure` with a canvas in the browser, a bundled metrics table in Node ([rendering.md](rendering.md)) |
   | structure | bind structure systems to a structure viewer (hover and selection both ways, colors) | none; the Mol\* adapter in the showcases |
+  | hover card | show the hovered place's card (`show(card, place)`, `hide()`): the card's content as data (a title, rows of a label and a value, the announcer's text), its place as boxes (the anchor to stay clear of, the pointer, the view, a suggested side from `placeCard`); a host draws it with its own components and styles (the author, 2026-11-19: "implement the hover card via a port too … so apps can easily provide their own styles") | `@molstar/ui`'s card, mounted over the canvas |
 
 - **Registry entries, not ports**: format readers and writers (FASTA, alignments, tables, Newick, bigWig, SVG, PNG,
   FASTA export), map runtimes, backends (Canvas2D, SVG, recording), services (UniProt, PDBe, AlphaFold DB, in the

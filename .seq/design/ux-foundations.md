@@ -255,9 +255,13 @@ to its summary row), never silently dropped.
   block's chain and copy. A dragged rectangle on a grid shows its summary while it is dragged (`gridSummary`: count,
   mean, min, max). Placed beside the pointer, never over the hovered cell or item (above it, else below), kept inside
   the view; hidden while a drag pans or zooms, on leave, on Esc; at the keyboard cursor when the cursor moves. Not in
-  the draw lists, not in an export: DOM over the canvas. A host turns it off (config) or adds sections behind its
-  internal interface (extensibility.md); context menus stay later.
+  the draw lists, not in an export: DOM over the canvas. **Through a port** (ports.md, the author, 2026-11-19): the
+  viewer computes the card as data (title, rows, the announcer's text) and its place (`placeCard`), headless and
+  tested without a DOM; the hover card port draws it, `@molstar/ui`'s card by default, a host's own components and
+  styles in its place. A host turns it off (config) or adds rows behind its internal interface (extensibility.md);
+  context menus stay later.
 - **The keys panel**: `?` (and a toolbar button) opens a panel listing what the view answers to, generated from the
   keymap's commands and the gesture bindings (never hand-written), grouped (move, zoom, select, edit, view), each with
-  its key or gesture and its name; Esc closes it. A view says once, quietly, where to find it (the toolbar button's
+  its key or gesture and its name; Esc closes it. Its list is data too (`describeKeys(viewer)`), so a host can draw its
+  own. A view says once, quietly, where to find it (the toolbar button's
   title: "Keys and gestures (?)").
