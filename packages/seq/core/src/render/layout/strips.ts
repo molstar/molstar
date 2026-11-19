@@ -39,6 +39,9 @@ export class Strips {
   height = new Float64Array(4);
   /** Its first display unit: its lays are kept by it while it is in view. */
   first = new Float64Array(4);
+  /** A grid over blocks: the strip's y block (its index in the section) and that block's first unit, else 0. */
+  yBlock = new Int32Array(4);
+  yFirst = new Float64Array(4);
   /** Per band of a strip: its top and height in the strip's frame (0: collapsed), and what its layers used. */
   bandY = new Float64Array(8);
   bandH = new Float64Array(8);
@@ -65,6 +68,8 @@ export class Strips {
       this.top = grown(this.top, need);
       this.height = grown(this.height, need);
       this.first = grown(this.first, need);
+      this.yBlock = grown(this.yBlock, need);
+      this.yFirst = grown(this.yFirst, need);
     }
     const nb = (i + 1) * this.bands;
     if (nb > this.bandY.length) {
@@ -82,6 +87,8 @@ export class Strips {
     this.top[i] = dy;
     this.height[i] = 0;
     this.first[i] = first;
+    this.yBlock[i] = 0;
+    this.yFirst[i] = 0;
     for (let j = i * this.bands; j < nb; j++) {
       this.bandY[j] = 0;
       this.bandH[j] = 0;

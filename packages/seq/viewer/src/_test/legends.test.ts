@@ -164,7 +164,7 @@ describe('theme commands', () => {
     const track = v.frame!.layout.sections[0].tracks.find((t) => t.track.label === 'Domains')!;
     expect(track.filter?.count).toBe(2);
     // the chip's click: the input clears the filter
-    v.input.click(track.filter!.x + 1, track.box.y + 2);
+    v.input.click(track.filter!.x + 1, track.labelY + track.filter!.dy / 2);
     await v.settle();
     expect(layerParams(v, Layer).data).toBe('/data/domains');
   });

@@ -219,7 +219,7 @@ export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';
 export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js';
 export { type FrameLay, type FramePrep, FrameType } from './frames.js';
 export { LogoLay, type LogoPrep, LogoType } from './logo.js';
-export { GridLay, type GridPrep, GridType } from './grid.js';
+export { GridLay, type GridPrep, type GridSummary, GridType, gridSummary } from './grid.js';
 export { crosses, PairsLay, type PairsPrep, PairsType, SplitExact, splitCrossing } from './pairs.js';
 export { readHeld, RowsLay, type RowsOrder, type RowsPrep, RowsType, rowsSource } from './rows.js';
 export {

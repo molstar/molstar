@@ -13,7 +13,7 @@
 // alignment's rows) the same gestures select rects: a click a one-cell rect, Shift+click the rect from the anchor
 // cell, Cmd/Ctrl+click toggles the cell, a drag a rect, Cmd/Ctrl+drag adds one, Alt+drag subtracts one.
 
-import { type Location, rangesLocation } from '@molstar/seqx-core/query';
+import { EmptyElements, type Location, rangesLocation } from '@molstar/seqx-core/query';
 import type { Axis } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
@@ -21,6 +21,7 @@ import {
   type AddressModel,
   axisTotal,
   type DragMode,
+  type Emphasized,
   type GridCell,
   type Hit,
   type HitTarget,
@@ -30,6 +31,7 @@ import {
   type SelectionModel,
   type ViewModel,
 } from '@molstar/seqx-viewer/models';
+import { type BlocksCell, blocksRect, type RectBlock } from './blocks-rect.js';
 
 /** Positions `[start, end)` on a system: what `selection.add` and `selection.subtract` take besides an address. */
 export interface SelectRange {
@@ -209,6 +211,23 @@ export function selectBehavior(
   let drag: { section: string; system: string; axis: Axis; offset: number; block: boolean } | undefined;
   /** A rect drag on a grid: its section and its cell's two systems. */
   let rect: { section: string; system: string; ySystem: string } | undefined;
+  /**
+   * A rect drag on a grid over blocks (grids-and-rows' grid over a complex): the blocks, the first cell, the mode and the
+   * selection as it began; each move sets the rect between the two cells, split at the blocks' boundaries.
+   */
+  let over:
+    | {
+        section: string;
+        blocks: readonly RectBlock[];
+        from: BlocksCell;
+        mode: string;
+        before: Emphasized;
+      }
+    | undefined;
+  const blocksCell = (hit: Hit): BlocksCell | undefined =>
+    hit.block !== undefined && hit.yBlock !== undefined && hit.position !== undefined && hit.yPosition !== undefined
+      ? { block: hit.block, position: hit.position, yBlock: hit.yBlock, yPosition: hit.yPosition }
+      : undefined;
 
   return {
     commands,
@@ -225,6 +244,15 @@ export function selectBehavior(
       if (action === undefined || !isDragSelect(action) || !hit) return false;
       const cell = cellOf(hit);
       if (cell) {
+        // a grid over a section of blocks: the rect is split at the chains' boundaries (_spec/README.md "Behaviors",
+        // A rect over blocks)
+        const s = view.resolved.value?.sections.find((x) => x.address === section);
+        const from = s?.layout === 'grid' && s.blocks ? blocksCell(hit) : undefined;
+        if (s?.blocks && from) {
+          const blocks = s.blocks.map((b) => ({ system: b.axis.system, axis: b.axis, offset: b.offset ?? 0 }));
+          over = { section, blocks, from, mode: DragSelectModes[action], before: selection.value.value };
+          return true;
+        }
         selection.beginRectDrag(cell, DragSelectModes[action]);
         rect = { section, system: cell.system, ySystem: cell.ySystem };
         return true;
@@ -235,6 +263,19 @@ export function selectBehavior(
       return true;
     },
     dragTo(section, x, hit, at) {
+      if (over) {
+        const to = hit && over.section === section && cellOf(hit) ? blocksCell(hit) : undefined;
+        const r = to && blocksRect(over.blocks, over.from, to);
+        if (!r) return false;
+        const was = selection.value.value;
+        // from the selection as the drag began: replaced, added to, or taken out of
+        if (over.mode === 'add' || over.mode === 'subtract') {
+          selection.set(over.before);
+          if (over.mode === 'add') selection.add(r);
+          else selection.subtract(r);
+        } else selection.set({ elements: EmptyElements, location: r, shown: r });
+        return selection.value.value !== was;
+      }
       if (rect) {
         // past the plot the cell stays the last one under the pointer
         const cell = cellOf(hit);
@@ -264,11 +305,14 @@ export function selectBehavior(
     endDrag() {
       drag = undefined;
       rect = undefined;
+      over = undefined;
       selection.endDrag();
       selection.endRectDrag();
     },
     cancelDrag() {
       drag = undefined;
+      if (over) selection.set(over.before);
+      over = undefined;
       if (rect) selection.endRectDrag(true);
       rect = undefined;
       selection.cancelDrag();

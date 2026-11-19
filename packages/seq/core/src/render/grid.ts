@@ -20,7 +20,7 @@ import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import type { GridData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ChannelName, Channel } from '@molstar/seqx-core/theme/index';
-import type { ResolvedLayer } from '@molstar/seqx-core/view';
+import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import type { RenderConfig } from './config.js';
@@ -48,6 +48,8 @@ const DefaultColor = themeForm.field('value', { list: false });
 
 /** The crosshair's tint (the hover's ink at this opacity) over a lit row and column. */
 const CrossTint = 0.14;
+/** The crosshair's edge: the hover's ink at this opacity, a hairline each side of its column and row. */
+const CrossEdge = 0.85;
 
 type Triangle = 'both' | 'upper' | 'lower';
 
@@ -79,6 +81,11 @@ export class GridLay {
   tokens: SeqTokens | undefined;
   config: RenderConfig | undefined;
   triangle: Triangle = 'both';
+  /**
+   * A strip of a grid over blocks on another pair of systems: nothing of the layer is drawn there, its emphasis neither
+   * (the strip of its own pair draws it once).
+   */
+  off = false;
   grid: GridData | undefined;
   color: Channel | undefined;
   /** Moves when the color changes (its channel or its held domain): part of an image tile's key. */
@@ -171,6 +178,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     lay.config = config;
     lay.triangle = prep.triangle;
     lay.n = 0;
+    lay.off = false;
     lay.images.length = 0;
     lay.ib.length = 0;
     lay.level = -1;
@@ -188,7 +196,10 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     }
     if (!prep.grid) return lay;
     if (prep.xSystem !== axis.system || prep.ySystem !== ay.system) {
-      say(ctx, 'seq.render.grid.systems', 'The grid is not on its section’s two systems: it is not drawn');
+      // a grid over blocks is a strip a pair of blocks: a grid draws on the pairs of its own systems only, silently
+      if (!ctx.section.blocks)
+        say(ctx, 'seq.render.grid.systems', 'The grid is not on its section’s two systems: it is not drawn');
+      else lay.off = true;
       return lay;
     }
     lay.grid = prep.grid;
@@ -212,7 +223,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
   },
 
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
-    if (!lay.axis || !lay.axisY || !lay.tokens || !lay.config) return;
+    if (!lay.axis || !lay.axisY || !lay.tokens || !lay.config || lay.off) return;
     switch (pass) {
       case 'data':
         drawData(lay, out);
@@ -758,23 +769,27 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
       if (
         h &&
         h.section === lay.section &&
-        h.ySystem === lay.ySystem &&
         h.yPosition !== undefined &&
         h.position !== undefined &&
-        h.element === undefined
+        h.element === undefined &&
+        (h.ySystem === lay.ySystem || h.system === lay.system)
       ) {
+        // on a grid over blocks the crosshair crosses every strip of the hovered x block (its column) and of its y
+        // block (its row), the cell outlined on the one strip of both; the column and row tinted and edged in the
+        // hover's ink (its contrast token: dark in light, light in dark), so they read on either end of a palette
         Src[0] = hover;
         Src[1] = CrossTint;
-        Src[2] = 0;
-        Src[3] = 0;
-        Src[4] = 0;
+        Src[2] = hover;
+        Src[3] = CrossEdge;
+        Src[4] = config.outline.selection;
         ink();
         Pos[0] = h.position;
         Pos[1] = h.yPosition;
-        paintColumn(lay, out);
+        if (h.system === lay.system) paintColumn(lay, out);
         Cell[0] = h.yPosition;
         Cell[1] = h.yPosition + 1;
-        paintRows(lay, out, Cell);
+        if (h.ySystem === lay.ySystem) paintRows(lay, out, Cell);
+        if (h.ySystem !== lay.ySystem || h.system !== lay.system) return;
         Src[0] = 0;
         Src[1] = 0;
         Src[2] = hover;
@@ -817,3 +832,65 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
 
 /** One cell's y range, reused (a hover's row). */
 const Cell = new Int32Array(2);
+
+/** What `gridSummary` gives: the mean, least and greatest value of the cells counted, and their count (NaN when none). */
+export interface GridSummary {
+  readonly mean: number;
+  readonly min: number;
+  readonly max: number;
+  readonly count: number;
+}
+
+/**
+ * A summary of a view's grids over a rect (_spec/README.md "Render", The grid layer, A summary over a rect): the cells
+ * of every grid a grid layer of the view draws (each grid once) inside a rect of `rect` on the grid's two systems, each
+ * cell once however many rects hold it, within the layer's `triangle`, missing values left out. A host's readout reads it (a selected rect's mean PAE); a library function, no state.
+ */
+export function gridSummary(
+  view: { readonly model: StaticModel; readonly view: ResolvedView },
+  rect: Location,
+): GridSummary {
+  const seen = new Set<string>();
+  let sum = 0;
+  let count = 0;
+  let min = Number.NaN;
+  let max = Number.NaN;
+  const visit = (layer: ResolvedLayer) => {
+    const owner = layer.data?.address;
+    if (layer.type !== 'grid' || !owner || seen.has(owner)) return;
+    seen.add(owner);
+    const a = view.model.annotations.get(owner);
+    const grid = a?.shape === 'grid' ? a.grid : undefined;
+    if (!a || !grid) return;
+    const t = layer.params.triangle;
+    const triangle: Triangle = t === 'upper' || t === 'lower' ? t : 'both';
+    // a cell once however many rects hold it (rects added by a drag overlap): a mark a cell of this grid
+    let counted: Uint8Array | undefined;
+    for (const r of rect.rects) {
+      if (r.a.system !== a.target || r.b.system !== a.ySystem) continue;
+      counted ??= new Uint8Array(grid.nx * grid.ny);
+      const xs = r.a.ranges;
+      const ys = r.b.ranges;
+      for (let p = 0; p + 1 < xs.length; p += 2)
+        for (let i = Math.max(0, xs[p]); i < Math.min(grid.nx, xs[p + 1]); i++)
+          for (let q = 0; q + 1 < ys.length; q += 2)
+            for (let j = Math.max(0, ys[q]); j < Math.min(grid.ny, ys[q + 1]); j++) {
+              const k = i * grid.ny + j;
+              if (counted[k] || !keeps(triangle, i, j)) continue;
+              counted[k] = 1;
+              const v = grid.values[k];
+              if (Number.isNaN(v)) continue;
+              sum += v;
+              count++;
+              if (!(v >= min)) min = v;
+              if (!(v <= max)) max = v;
+            }
+    }
+  };
+  for (const s of view.view.sections) {
+    if (s.layout !== 'grid') continue;
+    for (const t of s.tracks) for (const l of t.layers) visit(l);
+    for (const b of s.blocks ?? []) for (const ls of b.layers) for (const l of ls) visit(l);
+  }
+  return { mean: count ? sum / count : Number.NaN, min, max, count };
+}

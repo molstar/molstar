@@ -8,7 +8,11 @@ import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
+import * as complexConfidence from './complex/confidence.js';
+import * as complexGrid from './complex/complex-grid.js';
+import * as complexLigands from './complex/ligands.js';
 import * as complexPae from './complex/pae.js';
+import * as complexText from './complex/text.js';
 import * as trna from './trna/trna.js';
 import * as globinsColumns from './globins/columns.js';
 import { familyRegistry, generatedRegistry } from './globins/data.js';
@@ -388,14 +392,21 @@ export const GlobinsViews: readonly ExampleView[] = [
   },
 ];
 
-/** The Complex (a stand-in until its dataset is recorded): its chains and ligands as blocks, three ways. */
+/** What the views reading JSON need besides the default registry: the records runtime (the default viewer spec has it). */
+const records = (): SeqRegistryEntry[] => [{ kind: 'format-runtime', runtime: RecordsRuntime }];
+
+/**
+ * The Complex: CDK2 with cyclin A. 1FIN's chains as blocks (copies merged and split, stacked, on a ring), the contacts
+ * across them, its ligands, as text; the prediction's confidence and secondary structure, the PAE across the chains
+ * and over the whole complex (synthetic).
+ */
 export const ComplexViews: readonly ExampleView[] = [
   {
     dataset: 'complex',
     id: 'blocks',
     title: 'Chains as blocks',
     summary:
-      'CDK2 and cyclin A in a row of blocks, polymers first, then ATP as a one-position block; the two copies of the complex merged, each block labeled ×2.',
+      'PDB 1FIN: CDK2 and cyclin A in a row of blocks, polymers first, then the two ATPs as one-position blocks; the two copies of the complex merged, each block labeled ×2. Features, the interface of both copies, the first copy’s secondary structure and the letters under them.',
     build: () => complexBlocks.build(),
   },
   {
@@ -429,19 +440,61 @@ export const ComplexViews: readonly ExampleView[] = [
   },
   {
     dataset: 'complex',
+    id: 'contacts',
+    title: 'Contacts between the chains',
+    summary:
+      '1FIN’s contacts within 4 Å between heavy atoms of CDK2 and cyclin A, both copies, as arcs between the merged blocks (an optional `pairs` track): hover one, both ends light.',
+    build: complexBlocks.contacts,
+  },
+  {
+    dataset: 'complex',
     id: 'pae',
     title: 'PAE across the chains (synthetic)',
     summary:
-      'A section a chain and a synthetic predicted aligned error between them as a grid (low across the interface, generated from a seed): its x follows CDK2’s section, its y cyclin A’s; synthetic contacts at the interface as dots on it (random positions there, not derived from coordinates). Hover a cell: both residues light in their sections; zoom or scroll it: both sections move.',
+      'A section a chain of the prediction (UniProt P24941, P20248) and a synthetic predicted aligned error between them as a grid (low across 1FIN’s interface, high where cyclin A2 is disordered): its x follows CDK2’s section, its y cyclin A’s; 1FIN’s contacts as dots on it. Hover a cell: both residues light in their sections.',
+    registry: records,
     build: () => complexPae.build(),
   },
   {
     dataset: 'complex',
-    id: 'contacts',
-    title: 'Contacts between the chains (synthetic)',
+    id: 'complex-grid',
+    title: 'PAE over the complex (synthetic)',
     summary:
-      'Synthetic contacts at the interface (random positions there, not derived from coordinates) as arcs from CDK2’s block to cyclin A’s: a pair, both ends lit on hover.',
-    build: complexPae.contacts,
+      'The chains side by side as blocks with their confidence, and the synthetic PAE over the whole complex as a grid that follows the blocks on both axes: the chain boundaries drawn across it, a hover naming both residues with their chains, a dragged rectangle split at the boundaries.',
+    registry: records,
+    build: () => complexGrid.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'confidence',
+    title: 'Confidence and secondary structure',
+    summary:
+      'AlphaFold DB’s per-residue confidence of each chain in its four bins, UniProt’s secondary structure and 1FIN’s mapped onto UniProt’s numbering, and what 1FIN holds of each chain: a gray range where it holds no residue (cyclin A2’s first 172).',
+    registry: records,
+    build: () => complexConfidence.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'ligands',
+    title: 'Ligands',
+    summary:
+      'CDK2 and its ligands as blocks after it: 1FIN’s ATP, then the ligands of six CC0 entries of CDK2 by resolution, each a one-position chip with arcs to its contacting residues (≤ 4 Å); each ligand’s contacts a bookmark.',
+    build: () => complexLigands.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'ligands-atoms',
+    title: 'ATP per heavy atom',
+    summary:
+      'The ligands with ATP as its 31 heavy atoms, a block of its own, each atom’s contacts an arc (a second sequence, not mapped to the one-position ATP this slice).',
+    build: complexLigands.atoms,
+  },
+  {
+    dataset: 'complex',
+    id: 'text',
+    title: 'Text with a ligand chip',
+    summary: '1FIN’s first copy as text: CDK2, then cyclin A, then ATP as a chip flowing with the letters like a word.',
+    build: () => complexText.build(),
   },
 ];
 
@@ -508,9 +561,6 @@ export const TrnaScaleView: ExampleView = {
     'A generated 4,000 × 4,000 grid on a generated RNA, the plot alone under its ruler: the frame target’s scale.',
   build: () => trna.scale(),
 };
-
-/** What the Files views need besides the default registry: the records runtime (the default viewer spec has it). */
-const records = (): SeqRegistryEntry[] => [{ kind: 'format-runtime', runtime: RecordsRuntime }];
 
 /** The table files, each drawing the same six domains: the file, its title and what is special about its form. */
 export const TableFiles: readonly (readonly [file: DomainFile, id: string, title: string, form: string])[] = [

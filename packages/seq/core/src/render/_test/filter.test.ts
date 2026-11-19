@@ -49,7 +49,8 @@ describe('a layer’s data filter', () => {
     const lay = t.layers[0].lay as RangesLay;
     expect(lay.keys.slice(0, lay.items).sort()).toEqual(['a', 'c', 'e']);
     expect(t.filter).toMatchObject({ count: 2, text: '2 filtered', layer: '/views/main/p/t/l' });
-    const hit = hitView(f.layout, t.filter!.x + 1, t.box.y + 2);
+    expect(t.filter!.dy).toBeGreaterThan(0);
+    const hit = hitView(f.layout, t.filter!.x + 1, t.labelY + t.filter!.dy / 2);
     expect(hit).toMatchObject({ target: 'filter', layer: '/views/main/p/t/l', count: 2 });
   });
 
