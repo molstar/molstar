@@ -6,17 +6,8 @@
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { DomHost } from '@molstar/ui/dom';
-import { DefaultNumbering, findNumbering } from '@molstar/seqx-core/query';
-import {
-  itemText,
-  type ItemDescription,
-  type LayerLayout,
-  LettersType,
-  locationText,
-  type SectionLayout,
-  shownLetters,
-  spanText,
-} from '@molstar/seqx-core/render';
+import { locationText } from '@molstar/seqx-core/render';
+import { Describer } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from './viewer.js';
 
 // What the viewer says to a reader who does not see the canvas (_spec/README.md "Input", Announcements): one polite
@@ -73,6 +64,12 @@ export class Announcer {
     this._viewer = viewer;
     this._rest = options.restMs ?? DefaultAnnouncerOptions.restMs;
     this._gap = options.minGapMs ?? DefaultAnnouncerOptions.minGapMs;
+    this._words = new Describer({
+      spec: viewer.spec,
+      store: viewer.store,
+      addresses: viewer.addresses,
+      layout: () => viewer.frame?.layout,
+    });
     this._stop.push(
       // a cursor key is said whether or not the cursor moved (at the end of its axis it stays: the key is still heard);
       // the pointer's own cursor is shown, not said
@@ -171,119 +168,22 @@ export class Announcer {
     this.say(text, 'selection');
   }
 
-  // ---- the words ----
+  // ---- the words: the hover card's (`describe.ts`), one description for both ----
 
-  /** Items by layer layout, made once a frame (an announcement looks them up, a frame changes them). */
-  private _items = new Map<LayerLayout, readonly ItemDescription[]>();
-  private _itemsFrame: unknown;
-  private itemsOf(l: LayerLayout): readonly ItemDescription[] {
-    const frame = this._viewer.frame;
-    if (frame !== this._itemsFrame) {
-      this._itemsFrame = frame;
-      this._items = new Map();
-    }
-    let items = this._items.get(l);
-    if (!items) this._items.set(l, (items = l.type.items?.(l.lay) ?? []));
-    return items;
-  }
+  private readonly _words: Describer;
 
-  private layout() {
-    return this._viewer.frame?.layout;
-  }
-
-  private systemName(system: string): string {
-    return this._viewer.spec.model.value.systems.get(system)?.name ?? system;
-  }
-
-  /** The items of a section at a position: its tracks' layers' items under the position's x. */
-  private itemsAt(section: SectionLayout, position: number, only?: LayerLayout): string[] {
-    const axis = section.axis;
-    if (!axis) return [];
-    const a = axis.x(position);
-    const b = axis.x(position + 1);
-    if (!Number.isFinite(a) || !Number.isFinite(b)) return [];
-    const x = (a + b) / 2;
-    const out: string[] = [];
-    for (const t of section.tracks)
-      for (const l of t.layers) {
-        if (only && l !== only) continue;
-        const data = l.layer.data?.system;
-        for (const it of this.itemsOf(l))
-          if (it.y === undefined && it.x0 <= x && x <= it.x1)
-            out.push(itemText(this.systemName(it.system ?? data ?? section.section.axis.system), it));
-      }
-    return out;
-  }
-
-  /** The letter a letters layer of the section shows at a position (none while it is not loaded). */
-  private letterAt(section: SectionLayout, position: number): string {
-    const model = this._viewer.spec.model.value;
-    for (const t of section.tracks)
-      for (const l of t.layers) {
-        if (l.type.name !== 'letters') continue;
-        const r = shownLetters(
-          LettersType.prepare(l.layer, model),
-          section.section.axis.dir,
-          this._viewer.store.store,
-          [position],
-        );
-        if (r.text.trim()) return r.text.trim();
-      }
-    return '';
-  }
-
-  /**
-   * The position's label in the numbering the section's layers show (the first naming one, as a ruler or a text's
-   * numbers do), with its id: `kabat 100A`; empty when none names one or there is no label there.
-   */
-  private numberedLabel(section: SectionLayout, system: string, position: number): string {
-    for (const t of section.section.tracks)
-      for (const l of t.layers) {
-        const id = l.params.numbering;
-        if (typeof id !== 'string' || !id || id === DefaultNumbering) continue;
-        const s = this._viewer.addresses.queryModel().system(system);
-        const n = s ? findNumbering(s, id) : undefined;
-        const label = n?.numbering.labelAt(position - n.shift);
-        return label === undefined ? '' : `${id} ${label}`;
-      }
-    return '';
-  }
-
-  /** `protein, p53 12 (kabat 10A), letter L, items: Domain A, Domain B`. */
-  placeText(section: SectionLayout, system: string, position: number, only?: LayerLayout): string {
-    const label = this.numberedLabel(section, system, position);
-    const parts = [
-      `${section.id}, ${this.systemName(system)} ${spanText(position, position + 1)}${label ? ` (${label})` : ''}`,
-    ];
-    const letter = this.letterAt(section, position);
-    if (letter) parts.push(`letter ${letter}`);
-    const items = this.itemsAt(section, position, only);
-    if (items.length) parts.push(`items: ${items.join('; ')}`);
-    return parts.join(', ');
+  /** `protein, p53 12 (kabat 10A), letter L, items: Domain A, p53 3–8; Domain B, p53 5–12`. */
+  placeText(section: string, system: string, position: number): string {
+    return this._words.text({ section, system, position });
   }
 
   cursorText(): string {
     const c = this._viewer.selection.cursor.value;
-    const section = c && this.layout()?.sections.find((s) => s.section.address === c.section);
-    return c && section ? this.placeText(section, c.system, c.position) : '';
+    return c ? this.placeText(c.section, c.system, c.position) : '';
   }
 
   hoverText(): string {
-    const h = this._viewer.hover.current;
-    const layout = this.layout();
-    if (!layout || !this._viewer.hover.active) return '';
-    const section = layout.sections.find((s) => s.section.address === h.section);
-    if (!section) return '';
-    const layer = section.tracks.flatMap((t) => t.layers).find((l) => l.key === h.layer);
-    // an item: its own words; a cell: its place
-    if (h.element && layer?.type.items) {
-      const it = this.itemsOf(layer).find((d) => d.key === h.element!.key);
-      if (it)
-        return itemText(this.systemName(it.system ?? layer.layer.data?.system ?? section.section.axis.system), it);
-    }
-    if (h.system !== undefined && !Number.isNaN(h.position))
-      return this.placeText(section, h.system, Math.floor(h.position));
-    return '';
+    return this._viewer.hover.active ? this._words.text(this._viewer.hover.current) : '';
   }
 
   dispose(): void {

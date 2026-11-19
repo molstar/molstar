@@ -249,7 +249,14 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   const onFonts = () => viewer.invalidateText();
   fontFaces?.addEventListener?.('loadingdone', onFonts);
 
+  // the behaviors' parts over the canvas (the hover card's adapter, the keys panel): a behavior with `attach` draws
+  // into the container; one the spec does not list adds nothing (and nothing of it is in the bundle)
+  const parts: (() => void)[] = [];
+  for (const h of viewer.behaviors.values())
+    if (typeof h?.attach === 'function') parts.push(h.attach(container, viewer));
+
   return () => {
+    for (const detach of parts.splice(0)) detach();
     for (const [type, fn, options] of listeners) container.removeEventListener(type, fn, options);
     drag.dispose();
     observer?.disconnect();

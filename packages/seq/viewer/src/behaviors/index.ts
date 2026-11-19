@@ -11,6 +11,8 @@ export * from './copy.js';
 export * from './cursor.js';
 export * from './editing.js';
 export * from './hover.js';
+export * from './hover-card.js';
+export * from './keys-panel.js';
 export * from './navigate.js';
 export * from './navigator.js';
 export * from './providers.js';
