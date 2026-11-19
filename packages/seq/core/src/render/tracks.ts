@@ -43,7 +43,10 @@ import { breakHit } from './marks.js';
 import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
+import { RulerType } from './ruler.js';
+import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
+import { VariantsType } from './variants.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
 // a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
@@ -59,6 +62,9 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   letters: LettersType,
   ranges: RangesType,
   values: ValuesType,
+  ruler: RulerType,
+  secondary: SecondaryType,
+  variants: VariantsType,
 };
 
 export interface LayerLayout {

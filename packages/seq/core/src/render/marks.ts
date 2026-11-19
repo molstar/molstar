@@ -73,6 +73,48 @@ export function drawFailed(out: PassWriter, spans: readonly number[], y: number,
   if (spans.length) drawSpans(out, spans, y, h, withAlpha(tokens.colors['seq-conflict'], 0.25));
 }
 
+/** The share of a block's height an arrow's body takes (its head takes all of it). */
+export const ArrowBody = 0.6;
+
+const arrowPoly = new Float64Array(14);
+
+/**
+ * A block with a pointed end, as one path (the tail square): the box `args[0..3]` holds (x, y, width, height), its tip
+ * on the right (`args[8]` > 0) or the left, its head `args[7]` long (at most the width), fill, stroke and stroke width
+ * `args[4..6]`. The body is `ArrowBody` of the height, centered; the head is all of it.
+ */
+export function arrowArgs(out: PassWriter) {
+  const a = out.args;
+  const x = a[0];
+  const y = a[1];
+  const w = a[2];
+  const h = a[3];
+  const head = Math.min(a[7], w);
+  const inset = (h * (1 - ArrowBody)) / 2;
+  const right = a[8] > 0;
+  const p = arrowPoly;
+  // the tail, then along the body to the head's base, out to its corner, the tip, back
+  const tail = right ? x : x + w;
+  const base = right ? x + w - head : x + head;
+  const tip = right ? x + w : x;
+  p[0] = tail;
+  p[1] = y + inset;
+  p[2] = base;
+  p[3] = y + inset;
+  p[4] = base;
+  p[5] = y;
+  p[6] = tip;
+  p[7] = y + h / 2;
+  p[8] = base;
+  p[9] = y + h;
+  p[10] = base;
+  p[11] = y + h - inset;
+  p[12] = tail;
+  p[13] = y + h - inset;
+  a[7] = 0;
+  out.pathArgs(p, 7, true);
+}
+
 /**
  * A break as a hit (`target: 'break'`): the section's position at its edge (the last shown before it in display order),
  * the hidden stretch as its extent on the section's system (two ranges across a cyclic origin).

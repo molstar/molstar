@@ -8,8 +8,7 @@ The first slice built the tree core, the language's first kinds, resolve, draw l
 viewer's models and data by region; the second, editing and addressing (patches, history, previews, story steps, refs,
 links, selection, the security bounds, MessagePack). Next, version 1's second milestone, figures, in this order:
 
-- **Themes and the small layers**: the theme sublanguage, residue schemes, legends, shared domains; the ruler, secondary
-  structure, variants, values' line and area.
+- **Themes**: the theme sublanguage, residue schemes, legends, shared domains, the channels the small layers read.
 - **Layouts**: text and alignment figures, blocks and rings, navigators; then pairs, grids and dot plots, the logo, the
   rows layer.
 - **The other datasets** and their views, each with an editing view; PNG and the render CLI.
@@ -55,6 +54,24 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   `data/immutable` only. Done when every `_test` folder is in it and clean.
 
 ## `@molstar/seqx-core`
+
+- **The small layers** (built: ruler, secondary, variants, values' line and area, ranges' line styles and arrowheads):
+  - their channels wait for the theme work: the `seq-ruler`, `seq-ss-*` and `seq-variant` tokens (stand-ins today:
+    `msui-text-muted`, `seq-cat-0` to `seq-cat-2`, `seq-conflict`), `color` by a field (a values line's color per
+    position: `ValuesLay.col` is its place), `size` (a variant's radius, a line's thickness, a band's share), `opacity`
+    (the area's 0.35, a highlight's), `shape` (variants' glyph: circle only), `line` and `arrow` as channels (layer
+    params today);
+  - `secondary`'s `style: cartoon` (with the text figure, layouts); a declared numbering for the ruler (the language
+    declares none: only `index` and `ordinal` can be asked for, the insertion labels are tested through a numbering
+    handed to the layer);
+  - a tiled source's items have no arrowhead (their other rows may lie outside what was read): a source that answers an
+    item's extent would give them one; the three layers' `nextMark` and hover passes are still their own;
+  - `arrow` points by an item's own start and end, not by its strand: a strand column (EC-232 asks arrows only when
+    asked) would say which way an item runs;
+  - a ruler's labels over a numbering that is not monotone (IMGT) in a piece of more than 4,096 positions are looked up
+    by number and skipped when the numbering jumps over 16,000 labels a piece;
+  - a line over a reversed collapsed axis in the device-column step does not break at the axis's breaks (the columns are
+    contiguous).
 
 - **Addressing**: an item's coordinate system (`<node>/(item :id k)`) as a prefix of location forms (the `item` form
   gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); declared numberings (built-ins only, so the way

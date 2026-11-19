@@ -46,11 +46,17 @@ export interface LayerType {
   readonly fallback?: string;
 }
 
-/** The first slice's layer types; none has a fallback yet, so each chain is the type alone. */
+/**
+ * The layer types: `secondary` and `variants` draw `ranges` where a reader lacks them; the `ruler` has none (omitted)
+ * and, like `letters`, reads a sequence (the section's own when it names none).
+ */
 export const LayerTypes: Readonly<Record<string, LayerType>> = {
   letters: { shape: 'letters' },
+  ruler: { shape: 'letters' },
   ranges: { shape: 'ranges' },
   values: { shape: 'values' },
+  secondary: { shape: 'ranges', fallback: 'ranges' },
+  variants: { shape: 'ranges', fallback: 'ranges' },
 };
 
 /**
@@ -549,7 +555,8 @@ function layerOf(
   // a section with no system was reported; its layers are not placed
   if (system === undefined) return { ...base, placed: false };
   // a template's layer without data is placed by each instance on its node
-  if (template && param(l, 'data') === undefined && type !== 'letters') return { ...base, placed: false };
+  if (template && param(l, 'data') === undefined && type !== 'letters' && type !== 'ruler')
+    return { ...base, placed: false };
 
   const data = dataOf(model, layerData(model.spec, param(l, 'data')), type, system);
   if (!data) {
@@ -582,7 +589,9 @@ function layerData(spec: Node, value: Value | undefined): Value | undefined {
 /** A layer's data: the section's letters when it names none; an address's node; a query's first node. */
 function dataOf(model: StaticModel, value: Value | undefined, type: string, section: string): LayerData | undefined {
   if (value === undefined)
-    return type === 'letters' ? { kind: 'address', address: section, system: section, shape: 'letters' } : undefined;
+    return type === 'letters' || type === 'ruler'
+      ? { kind: 'address', address: section, system: section, shape: 'letters' }
+      : undefined;
   if (typeof value !== 'string') return undefined;
   const parsed = parseAddress(value).pattern;
   if (!parsed) return undefined;

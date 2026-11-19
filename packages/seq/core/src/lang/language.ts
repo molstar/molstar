@@ -343,14 +343,14 @@ export const SeqLanguage = defineLanguage({
       params: {
         type: {
           type: 'string',
-          enum: ['letters', 'ranges', 'values'],
+          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants'],
           required: true,
-          doc: 'What it draws: the letters of the system, ranges, or values.',
+          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn) or variants (ranges of one position each); `secondary` and `variants` draw `ranges` where a reader lacks them.',
         },
         data: {
           type: 'ref',
           kinds: ['sequence', 'ranges', 'values'],
-          doc: 'The data it draws (the letters of the section for `letters`).',
+          doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`).',
         },
         color: { type: 'any', doc: 'A theme form that colors the marks.' },
         hidden: { type: 'boolean', default: false, doc: 'Whether the layer is hidden: kept in the spec, not drawn.' },
@@ -358,6 +358,29 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['auto', 'always', 'never'],
           doc: 'For `letters` of nucleotides: `auto` (when absent) shows a letter as its complement where it is read against its strand on screen (the axis reversed against its run); `always`, `never`. The stored letter is what search and status read.',
+        },
+        numbering: {
+          type: 'string',
+          doc: 'For `ruler`: the numbering it labels by (`ordinal`, `index`, or one the system declares); the section’s default numbering (`ordinal`) when absent.',
+        },
+        encoding: {
+          type: 'string',
+          enum: ['bars', 'line', 'area'],
+          doc: 'For `values`: `bars` (when absent), `line` (through the cells’ centers, held over half cells at its ends and gaps, broken by missing values) or `area` (the line and the area under it).',
+        },
+        style: {
+          type: 'string',
+          enum: ['blocks'],
+          doc: 'For `secondary`: the figure’s form; `blocks` (when absent): helices and strands as blocks, a strand ending in an arrowhead.',
+        },
+        line: {
+          type: 'string',
+          doc: 'For `ranges`: how an item is drawn as a line: `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`; blocks when absent. Any other value is drawn solid and said once (`seq.render.line-style`).',
+        },
+        arrow: {
+          type: 'string',
+          enum: ['none', 'end', 'start', 'both'],
+          doc: 'For `ranges`: an arrowhead on the item’s end, start or both, on the piece holding that end, never on a cut one; `none` when absent.',
         },
         code: {
           type: 'string',

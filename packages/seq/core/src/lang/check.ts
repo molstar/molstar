@@ -231,11 +231,12 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       if (p(n, 'data') === undefined) {
         // a template's layer without data draws each instance's node
         const template = at.parent?.kind === 'track' && p(at.parent, 'for_each') !== undefined;
-        if (type !== 'letters' && !template) report('seq.lang.layer.data', 'The layer has no data', at);
+        if (type !== 'letters' && type !== 'ruler' && !template)
+          report('seq.lang.layer.data', 'The layer has no data', at);
       } else {
         // a kind the param does not take is the reference's issue alone
         const kind = target(n, 'data')?.node.kind;
-        const want = type === 'letters' ? 'sequence' : type;
+        const want = type === 'letters' || type === 'ruler' ? 'sequence' : type === 'values' ? 'values' : 'ranges';
         if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && kind !== want)
           report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
       }

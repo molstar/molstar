@@ -11,7 +11,16 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { type Emphasis, type FrameInput, type Hit, hitView, type RenderConfigOverrides } from '../index.js';
-import { BIG, BigRuntime, bigSpec, p53GeneSpec, p53TracksSpec, PIECES, piecesSpec } from './fixtures.js';
+import {
+  BIG,
+  BigRuntime,
+  bigSpec,
+  p53GeneSpec,
+  p53TracksSpec,
+  PIECES,
+  piecesSpec,
+  smallLayersSpec,
+} from './fixtures.js';
 import { type Settled, settle } from './helpers.js';
 
 export const SIZE = { width: 1440, height: 400 } as const;
@@ -39,6 +48,16 @@ export const Scenarios: readonly Scenario[] = [
   { name: 'reversed, 150,000 pieces', spec: piecesSpec, runtimes: [], width: 1000, center: PIECES / 2, panStep: 2 },
   { name: 'p53 tracks, letters', spec: p53TracksSpec, runtimes: [], width: 100, center: 196, panStep: 0.3 },
   { name: 'p53 tracks, whole protein', spec: p53TracksSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
+  // the small layers: a ruler, secondary structure, variants, a line, an area, ranges dashed with arrows and highlighted
+  {
+    name: 'p53 small layers, whole protein',
+    spec: smallLayersSpec,
+    runtimes: [],
+    width: 393,
+    center: 196,
+    panStep: 0.5,
+  },
+  { name: 'p53 small layers, letters', spec: smallLayersSpec, runtimes: [], width: 60, center: 175, panStep: 0.2 },
   { name: 'p53 on its gene, letters', spec: p53GeneSpec, runtimes: [], width: 100, center: 196, panStep: 0.3 },
   { name: 'p53 on its gene, whole protein', spec: p53GeneSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
   // the gene reversed and collapsed (its coding pieces), the protein's letters a codon wide on it

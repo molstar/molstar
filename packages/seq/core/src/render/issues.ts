@@ -19,6 +19,16 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A layer’s color is neither a hex color (`#rrggbb`, `#rrggbbaa`) nor a token (`token:accent`)',
     hint: 'Write a hex color or a token name; the layer’s default color is used meanwhile',
   },
+  'seq.render.line-style': {
+    severity: 'info',
+    description: 'A ranges layer’s `line` is not a style this version draws: its items are drawn solid',
+    hint: 'Use `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`',
+  },
+  'seq.render.numbering': {
+    severity: 'warning',
+    description: 'A ruler’s `numbering` is not one its system has: it labels by `ordinal`',
+    hint: 'Name `index`, `ordinal` or a numbering the system declares',
+  },
   'seq.render.layer.type': {
     severity: 'warning',
     description: 'No type in a layer’s fallback chain is one this target draws: the layer is not drawn',

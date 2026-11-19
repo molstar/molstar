@@ -646,6 +646,34 @@ export class PassWriter {
     p.end(fill, stroke, strokeWidth, dash);
   }
 
+  /**
+   * A path through the `n` points of `xy` (x, y pairs): a move to the first, lines to the rest, closed when `close`; its
+   * fill, stroke, stroke width and dash are `args[4]` to `args[7]` (a number passed to a call that is not inlined is
+   * boxed: the data passes of the small layers draw through here, nothing allocated once warm).
+   */
+  pathArgs(xy: Float64Array, n: number, close: boolean) {
+    if (n < 2) return;
+    const a = this.args;
+    this.pass.op(Op.path);
+    const p = this.pass.paths;
+    p.begin();
+    p.commands = grown(p.commands, p.commandCount + n + 1);
+    p.points = grown(p.points, 2 * (p.pointCount + n));
+    for (let i = 0; i < n; i++) {
+      p.commands[p.commandCount++] = i === 0 ? PathCommand.move : PathCommand.line;
+      p.points[2 * p.pointCount] = xy[2 * i];
+      p.points[2 * p.pointCount + 1] = xy[2 * i + 1];
+      p.pointCount++;
+    }
+    if (close) p.commands[p.commandCount++] = PathCommand.close;
+    const k = p.n++;
+    p.cmdCount[k] = p.commandCount - p.cmdStart[k];
+    p.fill[k] = a[4];
+    p.stroke[k] = a[5];
+    p.strokeWidth[k] = a[6];
+    p.dash[k] = a[7];
+  }
+
   /** Begins a glyph run; `letter` adds to it, `endGlyphs` closes it. */
   beginGlyphs(font: string, y: number, color = NoColor) {
     this.pass.op(Op.glyphs);
