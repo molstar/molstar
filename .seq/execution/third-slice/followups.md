@@ -26,3 +26,7 @@
   composition of the viewer? i think a minimal one could be smaller"): measured in stage 7 (M3).
 - Query forms the design names and QS found unbuilt (2026-11-19): `search` (a motif in the letters), `onto` (a result
   carried to another system as a query), `expand`, `group`; Features/Query gains their stories when built.
+- From LB (2026-11-19): a pan keeps the view's middle, not the pointer, so content under the pointer follows exactly only
+  while no chip or gap enters the view (pass the pointer through `view.panPx`); a ring chip shows its label twice (the
+  outside label and the pill); a block's label inline on its first text line (EC-95); `rows.ts`'s private `elide` onto
+  `render/text.ts`'s.

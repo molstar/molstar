@@ -304,7 +304,7 @@ and dark before the merge.
       per-row measures (`length`, `gaps`, `identity`) and a records source joined by row key; titles that order the
       rows; yielding to a narrow width; canvas, SVG and the text figure; hover and hit (grids-and-rows, Row columns).
       DG's family view then shows species and identity.
-- [ ] LB (strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
+- [x] LB (merged after review; strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
       isn't good") a one-position block a chip in every layout, as layouts.md (Blocks) now says (decided
       2026-11-19): a fixed slot its label's width, the text chip's rule; contacts an optional `pairs` layer the
       examples add, never a default.
