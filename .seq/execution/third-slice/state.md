@@ -353,3 +353,6 @@ None.
   ("Fixed box", "Zoom a step about it", "Never scroll the page"; the boundaries as the blocks' gap, recommended):
   grids-and-rows.md and its Design page; lane PZ (strong) after CF and MV. The use gate's count: bug 2 (the rail's
   labels, the index stories), missing design 2 (the plot's navigation, its boundaries).
+- MF merged: Features › Files › Many Sequences (one TSV, a target column, two sequences). Decided (the author,
+  2026-11-19: "Behavior, on by default"): `linkedPairs` lights the pairs with an end in a hovered or selected range,
+  a behavior on the public API in the default spec (viewer-models.md, the Design page); lane LP (strong) after MV.

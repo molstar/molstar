@@ -45,6 +45,8 @@ const viewer = createSeqViewer(
   when the viewer retires.
 - **Behaviors** come with params. **Bindings** are the gesture grammar's preset plus overrides. **Config** items are
   typed settings.
+- An analysis is a behavior a host lists: `linkedPairs` (in the default spec) lights the pairs with an end in a hovered
+  or selected range, through the public query and highlight API only; remove it to opt out.
 - **Ports** are factories with ownership. An unset port gets its default adapter, which the viewer disposes. A port the
   host passes in, such as a Mol\* plugin's asset manager, stays the host's.
 - `DefaultSeqViewerSpec()` lists the defaults. Nothing registers itself on import, so what isn't listed isn't in the

@@ -408,10 +408,12 @@ and dark before the merge.
       (`briefs/pg-pcg.md`).
 - [x] SD (reported: `drafts/structure-syncing.md`, seven gaps for the author; strong, a fourth-slice draft; the author, 2026-11-19: "Structure syncing") the structure syncing design,
       drafted (`briefs/sd-structure-syncing.md`).
-- [ ] MF (fast; the author, 2026-11-19: "annotation for multiple sequences in a same file") a Files story of one
+- [x] MF (merged; fast; the author, 2026-11-19: "annotation for multiple sequences in a same file") a Files story of one
       file, several sequences (`briefs/mf-many-sequences-file.md`).
 - [ ] PZ (strong, after CF and MV; the author, 2026-11-19: the PAE plot's navigation and its chain boundaries) a
       plot's fixed box, double-click zooms a step, the wheel the plot's, boundaries as gaps (`briefs/pz-plot-navigation.md`).
+- [ ] LP (strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
+      (`briefs/lp-linked-pairs.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

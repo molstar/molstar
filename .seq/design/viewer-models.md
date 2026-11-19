@@ -73,6 +73,17 @@ keys to viewports), `follow` (keeps followers in step), `cursor` (the keyboard c
 with its params as config items; `hoverCard` and the keys panel (ux-foundations, 9. Chrome; the third slice's HC). Later:
 `contextMenu`, `snapshots`, `reveal-on-highlight`.
 
+**`linkedPairs`** (decided, the author, 2026-11-19: "Behavior, on by default"; asked on Complex › Contacts: "should
+highlighting a range also highlight the arcs that belong to it? at least via an optional behavior of the viewer that
+runs the queries … basically an extension"): on a hovered or selected range element (a feature, a CDR), it queries the
+pairs with an end in the element's extent and writes them to the highlight channel, on every pairs layer shown (arcs,
+chords, dots), cleared when the hover or selection goes. Built on the public API only (the query language, the
+highlight channel, the hover and selection models), so it is the proof that an analysis is a behavior a host lists:
+listed in `DefaultSeqViewerSpec()`, removed to opt out. Its params: `on` (`hover`, `selection`, both by default), the
+pair layers it reads (all by default). Why a behavior and not the pairs layer's own rule: a host chooses it, the same
+query serves the selection and later the genome ring's "everything touching this block", and the layer stays a
+drawing. The pairs layer's own rule stays: a hovered position (a base, a cell's two positions) lights its partners.
+
 ### Gestures, bindings and commands
 
 - **A gesture binding** is `{ gesture, modifiers, target, action }`: gestures are `click`, `double-click`, `drag`,
