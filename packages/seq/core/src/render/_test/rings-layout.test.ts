@@ -23,6 +23,7 @@ import {
   hitView,
   renderSvg,
 } from '../index.js';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { settle } from './helpers.js';
 import { RingFeatures, RingLength, ringLetters, ringSpec } from './rings-fixtures.js';
@@ -184,6 +185,45 @@ describe('the rings layout', () => {
     const svg = drawListsToSvg(f.lists);
     expect(svg).toContain('<path');
     expect(f.lists.passes.data.rects.n).toBe(0);
+  });
+});
+
+describe('a ring’s rotation and what it refuses', () => {
+  it('a rotation turns the ring (laid out again) and leaves the window’s offsets, so the detail does not move', async () => {
+    const viewports = { '/views/v/ring': { start: 100, end: 160 } };
+    const a = await (await settle(ringSpec())).frame({ size: Size, viewports });
+    const b = await (await settle(ringSpec({ rotation: 90 }))).frame({ size: Size, viewports });
+    const pa = ringOf(a).placement as RingPlacement;
+    const pb = ringOf(b).placement as RingPlacement;
+    expect([pb.windowStart, pb.windowEnd]).toEqual([pa.windowStart, pa.windowEnd]);
+    expect(b.layout.sections[1].axis!.pieces).toEqual(a.layout.sections[1].axis!.pieces);
+    // position 0 at the top unturned, at the right turned a quarter clockwise
+    const pt = new PlacePoint();
+    pa.place(0, pt);
+    expect(pt.x).toBeCloseTo(pa.cx, 6);
+    expect(pt.y).toBeLessThan(pa.cy);
+    pb.place(0, pt);
+    expect(pt.x).toBeGreaterThan(pb.cx);
+    expect(pt.y).toBeCloseTo(pb.cy, 6);
+  });
+
+  it('an image (a ranges layer collapsed to its count strip) is refused on a ring, said once', async () => {
+    const starts = Array.from({ length: 60 }, (_, i) => (i * 7) % 590);
+    const b = createSeqSpec({ title: 'dense' });
+    const c = b.data.sequence('c', { alphabet: 'dna', letters: ringLetters(), cyclic: true });
+    const f = b.data.ranges('f', {
+      target: c,
+      rows: { start: starts, end: starts.map((s) => s + 200), id: starts.map((_, i) => `i${i}`) },
+    });
+    b.views.view('v', (v) =>
+      v.section('ring', { of: c, layout: 'rings' }).track('f', { height: 12 }).layer('f', {
+        type: 'ranges',
+        data: f,
+      }),
+    );
+    const s = await settle(b.build(), [], { ranges: { overflow: 'layer' } });
+    const frame = await s.frame({ size: Size });
+    expect(frame.layout.issues.filter((i) => i.code === 'seq.render.ring.image').length).toBe(1);
   });
 });
 
