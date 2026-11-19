@@ -216,6 +216,14 @@ export class ViewModel extends ReactiveModel {
     this._layouts = source;
   }
 
+  /**
+   * A frame placed the sections again: a layout's estimate drawn from its placement (a text's end: the lines in view)
+   * is read again. Tells only what changed.
+   */
+  placed(): void {
+    if (this._layouts) this._publish();
+  }
+
   /** A section's layout's name (`tracks` when it has none). */
   layoutOf(section: string): string {
     return this._sections.get(section)?.section.layout ?? 'tracks';
@@ -841,21 +849,21 @@ export class ViewModel extends ReactiveModel {
         const width = this._groupWidth(g);
         if (total === undefined || width <= 0) continue;
         g.placedWidth = width;
+        const c = this._navContext(g.members[0], g);
+        // a layout whose window is not its range (a text's lines in view, from its last frame): its end that window's
+        // width on from its start, an estimate (lines at full height until laid out)
+        const w = c?.placement?.window;
         if (g.fitted) {
           g.start = 0;
-          g.end = total;
+          g.end = w ? Math.min(total, Math.max(1, w.end - w.start)) : total;
           continue;
         }
         // the layout's clamp (a window within its axis and the most px a position; a text's anchor and size)
-        const c = this._navContext(g.members[0], g);
         if (c) {
           const v = this._navOf(g.layout).clamp(c, rangeOf(g));
           g.start = v.start;
           g.end = v.end;
           if (v.scale !== undefined) g.scale = v.scale;
-          // a layout whose window is not its range (a text's lines in view, from its last frame): its end that window's
-          // width on from its start, an estimate (lines at full height until laid out)
-          const w = c.placement?.window;
           if (w) g.end = Math.min(total, g.start + Math.max(1, w.end - w.start));
         } else {
           const w = Math.min(Math.max(g.end - g.start, Math.min(width / maxPxPerPosition, total)), total);

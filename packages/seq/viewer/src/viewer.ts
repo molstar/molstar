@@ -680,6 +680,8 @@ export class SeqViewer extends ReactiveModel {
     this.height = size.height;
     if (rebuilt) {
       this.counts.layouts++;
+      // what the models read of the placement (a text's lines in view) follows the frame
+      this.view.placed();
       if (!this._restDue) this._changed();
       this._wanter?.want(frame.wants);
       this._issues.set(frame.layout.issues);
