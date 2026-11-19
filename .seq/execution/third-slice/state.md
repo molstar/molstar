@@ -279,3 +279,8 @@ None.
   rows) after HC ("Yes, after HC").
 - The author (2026-11-19): "let's pause the loop after this task finishes": HC's fix round is merged and recorded, then
   the loop pauses; RK (briefed) waits for the author's restart.
+- HC merged after its review round (the port supplied by the default spec and owned, no stale card, the keys panel's
+  keys and focus, the API trimmed, units and "–" in the card, rulers in their own numbering unlabelled). Quick 2606,
+  medium 105, perf 127, workspace green; the quick lane at load 4.2 over the guide (core 2.33, viewer 2.53, storybook
+  2.46 s): re-measure quiet. Looked at: the card on p53's domain. **The loop paused** (the author); `resume.md` holds
+  the state for a new orchestrator.

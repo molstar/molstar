@@ -24,69 +24,28 @@ This file is for an orchestrator picking the slice up in a new session. Read `lo
   measured 2.4–3.5 s under load 6–13, which is not comparable. Re-measure on a quiet machine (`uptime` under 3) before
   the next gate.
 
-## In flight when paused: HC (the hover card and the keys panel)
+## HC: merged before the pause
 
-- **Where**: branch `seq/hc-hover-card`, worktree `.claude/worktrees/agent-aea7521d4a8662db8`. The brief is
-  `briefs/hc-hover-card.md`; the design is ux-foundations §9, ports.md and viewer-models.
-- **Status**: the first round is committed (`9af53e23c`, `4eba79cc8`) and reviewed. Its fix round was sent and was
-  running at the pause. The author asked to merge HC and then pause.
-- **If the fix round finished**: its commits are on the branch after `4eba79cc8`, starting with a merge of
-  `packages-seq` 3aa4db207.
-- **If it did not finish**: start a new strong lane on the branch with the list below as its brief.
-
-The fix round's list (the review's findings, as sent):
-
-1. **The port's place** (decided: the author answered "Accept"; the review's top-level `SeqViewerSpec.hoverCard`
-   field was offered and not answered). The port stays the `hoverCard` behavior's `port` param.
-   - The default spec supplies `hoverCardOverlay` (no hard import in the behavior).
-   - An ownership flag like history's and animation's (`disposeWithViewer`).
-   - The port is made once, so a show before mount doesn't make a second one at `attach`.
-   - The viewer `_spec` says so.
-2. **Keys inside the keys panel stay in it**: stop keydown propagation except Escape, or the container's handler
-   ignores other targets. Enter on Close closes the panel.
-3. **Focus**: the panel takes focus on open, gives it back on close, and handles Esc itself. It is non-modal, and the
-   spec says so.
-4. **A press clears the rest timer** (`interrupt` and `leave`).
-5. **No stale card**: hide it or re-place it at the cursor when the view or the frame changes (zoom, pan, edit, model
-   load, a source's labels arriving). The cursor's card is built after the next frame.
-6. **`attach`**: an optional `attach(container, viewer)` declared on the behavior type, instead of duck typing.
-7. **Esc**: it cancels a running drag before it closes the panel.
-8. **`hover.card`**: turned off while shown, it hides the card. Turned on after mount, it works, or the spec says it
-   is read at mount.
-9. **One `Describer`**: the announcer and the card share it. The card's row elements are reused.
-10. **Units and missing labels**:
-    - A value shows its unit ("Å" when declared), and Complex's test asserts the exact text.
-    - A missing numbering label shows "–".
-    - The tautological `said === card.text` check goes, or stays beside the literal checks.
-11. **Public API**:
-    - Stop exporting `anchorOf`, `hoverCardBehavior`, `keysPanelBehavior`, `mountKeysPanel`, `CardGap`, `valueText`.
-    - On `Describer`, only `describe` and `text` are public.
-    - `DefaultToolbar`'s `help.keys` goes in the changelog.
-12. **Size**: confirm with `pnpm -C packages/seq/core size` that the minimal viewer bundles no card or panel.
-13. **Ruler labels** (the author: a ruler in its own numbering needs no label, ux-foundations §9): drop
-    `label: 'Position'` in `examples/src/p53/layers.ts` and `trna/trna.ts`. Keep Kabat and IMGT. Regenerate the
-    affected records.
-
-**At HC's merge**:
-- Run the checks on the merged tree (`loop.md`, Checks), plus folder durations.
-- Look at the card in Storybook, light and dark.
-- Tick HC in `plan.md` and append `state.md`.
-- `.v6/changelogs/seq-hover-card.md`, from the lane's text: the hover card through a port, `hover.card`, the keys
-  panel `?` and the toolbar's `help.keys`, `describeKeys`.
-- `ports.md`'s table: the hover card port lives on the `hoverCard` behavior's `port` param, not in `spec.ports`. State
-  the rule for UI ports a behavior owns.
+HC merged (`16112a9b7`) after its review round; recorded (`.v6/changelogs/seq-hover-card.md`, ports.md's rule for a UI
+port a behavior owns). On the merged tree: quick 2606, medium 105, perf 127, workspace green; sizes viewer default
+1085.5, minimal 1010.9 kB (the minimal bundles no card or panel, an esbuild metafile checked; the size script's
+`--files` crashes after its first entry). Quick lane at load 4.2: core 2.33, viewer 2.53, examples 1.29, storybook
+2.46 s: over the 2 s guide; re-measure quiet (load under 3) first, then a QT3 lane if still over. HC's leftovers:
+rulers naming their chain (Complex's, Antibody against's) kept labelled; an empty track label still drawn as empty
+text (core `tracks.ts`); a cursor card replaced when a zoom re-hits the hover.
 
 ## Next, in order
 
-1. **RK** (strong): the keyboard cursor's rows, decided "Yes, after HC". Brief `briefs/rk-cursor-rows.md`. Start it
+1. **The quick lane's time**: re-measure quiet; QT3 (fast) if over the 2 s guide.
+2. **RK** (strong): the keyboard cursor's rows, decided "Yes, after HC". Brief `briefs/rk-cursor-rows.md`. Start it
    from `packages-seq` after HC merges.
-2. **Stage 7, M3** (orchestrator): the heavy lane (`pnpm test:heavy`, never two heavy runs at once) and the opt-in
+3. **Stage 7, M3** (orchestrator): the heavy lane (`pnpm test:heavy`, never two heavy runs at once) and the opt-in
    tiers; the browser at dpr 2; PNG export; the bundles.
    - **The minimal viewer fix needs the author's call before a lane**: registries injectable or lazy by default, lazy
      imports, `sideEffects: false`. It changes defaults and public API.
    - Then the GATE: the author confirms or moves the targets.
-3. **The use gate** (deferred): the author uses the views. At finalize, only a look at what changed since.
-4. **FINALIZE**: reconcile designs, `_spec`s, status, features, edge cases, `TODO.md` and `drift/`. The fold-back is
+4. **The use gate** (deferred): the author uses the views. At finalize, only a look at what changed since.
+5. **FINALIZE**: reconcile designs, `_spec`s, status, features, edge cases, `TODO.md` and `drift/`. The fold-back is
    its own step, decided by the author. Write the record and the fourth slice's plan.
 
 ## Open questions for the author

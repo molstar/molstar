@@ -55,3 +55,6 @@
   apart); the against view's gaps faint at the fit.
 - QT2's leftovers: an `itWithin` option putting its unbounded half in medium (the plasmid pan at scale is written by
   hand, `@molstar/test-harness` shared: the author's call); core, viewer and storybook within 0.05 s of the 2 s guide.
+- HC's leftovers: rulers naming their chain kept labelled (Complex, Antibody against); an empty track label still
+  drawn as empty text (core `tracks.ts`); a cursor card replaced when a zoom re-hits the hover; the size script's
+  `--files` crash.

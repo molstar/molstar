@@ -385,7 +385,7 @@ and dark before the merge.
 - [x] NOVICE PASS (2026-11-19, brief `briefs/novice-pass.md`; findings in `novice-findings.md`: bug 5, missing design 8,
       look 8): a light agent plays a user in a visible browser with a task script per view; friction reported.
 - [x] NP (fast, 2026-11-19) the novice pass's bugs, stories and looks (`briefs/np-novice-fixes.md`).
-- [ ] HC (strong; the author, 2026-11-19: "Yes, lane HC now") the hover card and the keys panel (ux-foundations §9;
+- [x] HC (strong; the author, 2026-11-19: "Yes, lane HC now") the hover card and the keys panel (ux-foundations §9;
       `briefs/hc-hover-card.md`).
 - [ ] RK (strong, after HC; the author, 2026-11-19: "Yes, after HC") the keyboard cursor's rows (grids-and-rows,
       The keyboard cursor; `briefs/rk-cursor-rows.md`).
