@@ -362,8 +362,11 @@ describe('the Plasmid views drawn against the data', () => {
     const cut = findSites(letters).find((x) => x.enzyme === 'EcoRI')!.cut;
     expect(keysAt(f.layout, 2, rotate(cut, RotatedOrigin))).toContain('EcoRI');
     const labels = Array.from({ length: p.labels.m }, (_, k) => p.labels.text[p.labels.placed[k]]);
-    for (const name of ['bla (AmpR)', 'primer site', 'lacZα', 'MCS', 'ori', 'EcoRI', 'HindIII'])
+    for (const name of ['bla (AmpR)', 'primer site', 'lacZα', 'MCS', 'ori'])
       expect(labels.filter((t) => t === name).length, name).toBe(1);
+    // the MCS's restriction sites are a dense fan of one layer: one grouped label ("n items"), not a label each
+    expect(labels.filter((t) => /^\d+ items$/.test(t)).length).toBe(1);
+    expect(labels).not.toContain('EcoRI');
     expect([p.title, p.subtitle]).toEqual([PlasmidName, '2,686 bp']);
   });
 
@@ -518,9 +521,10 @@ describe('the Plasmid views drawn against the data', () => {
     const some = await labelsOf(r.root);
     for (const e of shown) expect(some).toContain(e);
     expect(some).not.toContain('SacI');
+    expect(some.some((t) => /^\d+ items$/.test(t))).toBe(false);
     const back = applyPatch(r.root, r.inverse!);
     expect(back.ok).toBe(true);
-    if (back.ok) expect(await labelsOf(back.root)).toContain('SacI');
+    if (back.ok) expect((await labelsOf(back.root)).some((t) => /^\d+ items$/.test(t))).toBe(true);
   });
 
   it('hiding a strand’s track is a patch, its inverse brings it back', async () => {

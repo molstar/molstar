@@ -5,7 +5,9 @@
  */
 
 import { colorHex } from '@molstar/seqx-core/theme/index';
-import { highlightColorOf, legendRows } from './legends.js';
+import { type LegendChannels, LegendChannelsModes, channelsRow, highlightColorOf, legendRows } from './legends.js';
+
+export type { LegendChannels };
 import type { SeqViewer } from './viewer.js';
 
 // The `Legend` part (_spec/README.md "Legends"): a part the host places (beside a track header, in a panel, in a Mol*
@@ -19,10 +21,19 @@ export interface LegendPartOptions {
   readonly of?: string;
   /** Entries a legend lists before "+n more" (12). */
   readonly maxItems?: number;
+  /**
+   * The highlight channels' row (_spec/README.md "Legends"): `reserve` (the default) holds its height whenever the part
+   * is mounted, empty with no channel, so a highlight moves nothing below; `collapse` has the row only while a channel
+   * is active.
+   */
+  readonly channels?: LegendChannels;
 }
 
 /** Mounts the legends of a viewer into `element` (`ToolbarMount`'s shape with options). */
 export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: LegendPartOptions = {}): () => void {
+  const channels = options.channels ?? 'reserve';
+  if (!LegendChannelsModes.includes(channels))
+    throw new RangeError(`legend part: channels must be one of ${LegendChannelsModes.join(', ')}, not "${channels}"`);
   const doc = element.ownerDocument;
   const host = doc.createElement('div');
   host.className = 'seqx-legend';
@@ -30,7 +41,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   host.setAttribute('role', 'listbox');
   host.setAttribute('aria-label', 'Legend');
   host.style.cssText =
-    'font: 12px var(--msui-font-sans, sans-serif); color: var(--msui-text, inherit); display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 4px 0;';
+    'font: 12px var(--msui-font-sans, sans-serif); color: var(--msui-text, inherit); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 12px 0 0;';
   element.append(host);
   let focus = 0;
   let items: HTMLElement[] = [];
@@ -57,7 +68,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       group.style.cssText = 'display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;';
       const title = doc.createElement('span');
       title.textContent = row.title + (row.note ? ` (${row.note})` : '');
-      title.style.color = 'var(--msui-text-muted, gray)';
+      // a group's title: muted, 600, 11 px (_spec/README.md "Legends")
+      title.style.cssText = 'color: var(--msui-text-muted, gray); font-weight: 600; font-size: 11px;';
       group.append(title);
       for (const e of row.entries) {
         const item = doc.createElement('span');
@@ -98,7 +110,13 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       host.append(group);
     }
     // the active highlight channels: their color (as the canvas draws it, by the channel's style) and a clear
-    for (const h of viewer.highlight.names.value) {
+    const names = viewer.highlight.names.value;
+    const slot = channelsRow(channels, names.length);
+    const channelsEl = doc.createElement('div');
+    channelsEl.dataset.channels = channels;
+    channelsEl.style.cssText = `display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: ${slot.minHeight}px;`;
+    if (slot.present) host.append(channelsEl);
+    for (const h of names) {
       const style = viewer.highlight.get(h)?.style ?? 'tint';
       const row = doc.createElement('span');
       row.dataset.highlight = h;
@@ -123,7 +141,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       clear.dataset.clear = h;
       clear.addEventListener('click', () => void viewer.execute('highlight.clear', { channel: h }));
       row.append(clear);
-      host.append(row);
+      channelsEl.append(row);
     }
     if (focusedClear !== undefined) {
       const again = [...host.querySelectorAll<HTMLElement>('button[data-clear]')].find(

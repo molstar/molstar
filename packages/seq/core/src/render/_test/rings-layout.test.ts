@@ -381,6 +381,54 @@ describe('a plasmid’s labels', () => {
   });
 });
 
+describe('a dense fan of labels', () => {
+  /** A 2,686 bp ring: `dense` sites 4 bp apart (a 2° fan at most), and three features across the ring. */
+  function denseSpec(dense: number) {
+    const n = 2686;
+    const sites = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
+    for (let k = 0; k < dense; k++) {
+      sites.start.push(1081 + 4 * k);
+      sites.end.push(1085 + 4 * k);
+      sites.id.push(`s${k}`);
+      sites.label.push(`Site${k}`);
+    }
+    const far = { start: [100, 700, 2000], end: [180, 780, 2080], id: ['a', 'b', 'c'], label: ['a', 'b', 'c'] };
+    const b = createSeqSpec({ title: 'dense ring' });
+    const c = b.data.sequence('plasmid', { alphabet: 'dna', letters: 'A'.repeat(n), cyclic: true });
+    const fs = b.data.ranges('sites', { target: c, rows: sites });
+    const ff = b.data.ranges('far', { target: c, rows: far });
+    b.views.view('v', (v) => {
+      const ring = v.section('ring', { of: c, layout: 'rings' });
+      ring.track('sites').layer('sites', { type: 'ranges', data: fs });
+      ring.track('far').layer('far', { type: 'ranges', data: ff });
+    });
+    return b.build();
+  }
+  const placed = async (dense: number, config = {}) => {
+    const s = await settle(denseSpec(dense), [], config);
+    const p = ringOf(await s.frame({ size: Size })).placement as RingPlacement;
+    return Array.from({ length: p.labels.m }, (_, k) => p.labels.text[p.labels.placed[k]]).sort();
+  };
+
+  it('more than six labels within 12 degrees are one grouped label with the count', async () => {
+    const texts = await placed(13);
+    expect(texts).toEqual(['13 items', 'a', 'b', 'c']);
+  });
+
+  it('six or fewer keep their own labels; a fan wider than the span splits into groups of its own', async () => {
+    expect((await placed(6)).filter((t) => t.startsWith('Site')).length).toBe(6);
+    // 4 bp apart is 0.54° a site: 13 sites span 6.5°; a 5° span groups the first 10 (over 6) and leaves the last 3 apart
+    const texts = await placed(13, { rings: { cluster: { over: 6, degrees: 5 } } });
+    expect(texts.filter((t) => t.endsWith('items')).length).toBe(1);
+  });
+
+  it('degrees 0 never groups', async () => {
+    expect(
+      (await placed(13, { rings: { cluster: { over: 6, degrees: 0 } } })).filter((t) => t.startsWith('Site')).length,
+    ).toBe(13);
+  });
+});
+
 describe('a ring over tiles', () => {
   function bigRing() {
     const b = createSeqSpec({ title: 'big ring' });

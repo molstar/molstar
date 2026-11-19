@@ -168,7 +168,8 @@ export interface RenderConfig {
    * Rings (_spec/README.md "Render", Rings layout): the hole a share of the radius at least (0.35: room for the title,
    * chords readable), the diameter's cap (720 px: a map, not a wall), the gap between blocks (1°: a boundary, Circos),
    * letters `upright` or along the ring (`tangent`), the hole's title (`title`: the name and length; `none`), the
-   * outside labels' gap from the rings and their leaders' bend (8 and 12 px: leaders fan out over the ruler), and when
+   * outside labels' gap from the rings and their leaders' bend (8 and 12 px: leaders fan out over the ruler), the
+   * grouping of a dense fan (more than 6 labels within 12° are one label, "13 items"), and when
    * the window is drawn (`followed`: only while a section follows the ring; `always`, idle when none does).
    */
   readonly rings: {
@@ -179,6 +180,8 @@ export interface RenderConfig {
     readonly center: 'title' | 'none';
     readonly labelGap: number;
     readonly leaderBend: number;
+    /** More than `over` outside labels within `degrees` are one grouped label ("13 items"); 0 degrees: never grouped. */
+    readonly cluster: { readonly over: number; readonly degrees: number };
     readonly window: 'followed' | 'always';
   };
   /**
@@ -332,6 +335,7 @@ export const DefaultRenderConfig: RenderConfig = {
     center: 'title',
     labelGap: 8,
     leaderBend: 12,
+    cluster: { over: 6, degrees: 12 },
     window: 'followed',
   },
   internedStrings: DefaultMaxStrings,

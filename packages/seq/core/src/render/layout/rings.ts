@@ -543,6 +543,52 @@ class RingSink implements LabelSink {
 const Sink = new RingSink();
 
 /**
+ * A dense fan as one label (the defaults audit): runs of one layer's labels (the same `order`) by angle where more than `over` fall within `span`
+ * radians (a run starts at its first label and takes the next while they are within `span` of it) are replaced by one
+ * "n items" label at the run's middle angle, kept by the run's best order and its length summed. The labels given are
+ * rewritten in place (the arrays are the layout's: nothing allocated past the sort's index list). A grouped label has no
+ * hit: its items keep theirs on the ring.
+ */
+function groupDense(l: RingLabels, over: number, span: number): void {
+  if (!(span > 0) || l.n <= over) return;
+  const idx: number[] = [];
+  for (let i = 0; i < l.n; i++) idx.push(i);
+  idx.sort((a, b) => l.order[a] - l.order[b] || l.angle[a] - l.angle[b] || a - b);
+  const text: string[] = [];
+  const hits: (Hit | undefined)[] = [];
+  const angle: number[] = [];
+  const length: number[] = [];
+  const order: number[] = [];
+  const keep = (i: number) => {
+    text.push(l.text[i]);
+    hits.push(l.hits[i]);
+    angle.push(l.angle[i]);
+    length.push(l.length[i]);
+    order.push(l.order[i]);
+  };
+  for (let a = 0; a < idx.length; ) {
+    let b = a + 1;
+    while (b < idx.length && l.order[idx[b]] === l.order[idx[a]] && l.angle[idx[b]] - l.angle[idx[a]] <= span) b++;
+    if (b - a > over) {
+      let best = Infinity;
+      let len = 0;
+      for (let k = a; k < b; k++) {
+        best = Math.min(best, l.order[idx[k]]);
+        len += Number.isFinite(l.length[idx[k]]) ? l.length[idx[k]] : 0;
+      }
+      text.push(`${b - a} items`);
+      hits.push(undefined);
+      angle.push((l.angle[idx[a]] + l.angle[idx[b - 1]]) / 2);
+      length.push(len);
+      order.push(best);
+      a = b;
+    } else keep(idx[a++]);
+  }
+  l.n = 0;
+  for (let k = 0; k < text.length; k++) l.add(text[k], angle[k], length[k], order[k], hits[k]);
+}
+
+/**
  * Places a ring's labels: each side (right: angles in [0, π)) sorted by height, spread a line apart within the box
  * (a forward pass then a backward one), past what a side holds dropped by order then length; each label hugging the
  * circle at its leader's outer radius, its leader out along its angle to the bend, then to the label.
@@ -557,6 +603,7 @@ function placeLabels(p: RingPlacement, config: RenderConfig, size: number, text:
   const lo = p.box.y + size;
   const hi = p.box.y + p.box.height - 2;
   const hold = Math.max(0, Math.floor((hi - lo) / line) + 1);
+  groupDense(l, rc.cluster.over, (rc.cluster.degrees * Math.PI) / 180);
   l.ensurePlaced(l.n);
   for (let s = 0; s < 2; s++) {
     const right = s === 0;

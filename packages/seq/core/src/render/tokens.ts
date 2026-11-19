@@ -5,7 +5,7 @@
  */
 
 import { hashString } from '@molstar/core/data/util/hash-functions';
-import { inkFor, parseColor } from '@molstar/seqx-core/theme/index';
+import { contrastRgba, inkFor, parseColor } from '@molstar/seqx-core/theme/index';
 
 // Colors without CSS (_spec/README.md "Render", Tokens): the token table resolves every data token (`seq-*`) and the
 // chrome tokens (`msui-*`) the draw lists use to 32-bit RGBA (`0xRRGGBBAA`). In the browser the viewer reads it once
@@ -281,4 +281,16 @@ export function mixColors(a: number, b: number, t: number): number {
     out = out * 256 + Math.round(x + (y - x) * t);
   }
   return out >>> 0;
+}
+
+/** Muted text holds 4.5:1 against its well (_spec/README.md "Themes", Colors). */
+export const MutedTextContrast = 4.5;
+
+/**
+ * The ink of a muted text (ruler tick labels, a ruler's note) on its wells: `muted` where it holds 4.5:1 on each, else
+ * the text color at 75% over the first well, opaque (`mixColors` with that well, so the ratio is the one drawn).
+ */
+export function mutedInk(tokens: SeqTokens, muted: number, wells: readonly number[]): number {
+  if (wells.every((w) => contrastRgba(muted, w) >= MutedTextContrast)) return muted;
+  return mixColors(wells[0], tokens.colors['msui-text'], 0.75) | 0xff;
 }

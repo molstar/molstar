@@ -1056,6 +1056,10 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the schemes whose subject and
   measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel` or
   Esc).
+- **The Legend part's groups run one a line** (a column, 12 px apart; each title muted, 600, 11 px: grouping is seen
+  without reading) and **its channels row keeps its place**: `channels: reserve` (the default) holds the row's height
+  (`LegendChannelsRowHeight`, 24 px) whether or not a channel is active, so a highlight moves nothing below; `collapse`
+  has the row only while one is (an unknown value throws).
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
   swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
   runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or
