@@ -8,7 +8,7 @@
 // measures, the order, the theme's classes, the reduction, the layout) under 300 ms; a pan frame under 8 ms at the fit
 // (image tiles), at letters and between two level pairs; a theme change's rebuild under 50 ms; folding every clade
 // under 16 ms; and a frame of 10,000,000 lazy rows at letters within 1.2× of the held one. Each bound is the heavy
-// lane's (`itWithin`, best of three); the quick lane runs a fit frame and a letters frame unbounded.
+// lane's (`itWithin`, best of three); the quick lane runs the same frames unbounded over 1,000 rows.
 
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
