@@ -63,6 +63,7 @@ describe('createSeqViewer', () => {
       'addressing',
       'editing',
       'legend',
+      'window',
     ]);
     expect(viewer.bindings.issues).toEqual([]);
     expect(viewer.commands.map((c) => c.id)).toContain('view.fit');

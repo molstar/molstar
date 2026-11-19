@@ -67,6 +67,11 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'view.pan-right': 'navigate',
   'view.pan-up': 'navigate',
   'view.pan-down': 'navigate',
+  // a window's steps as a slider (its section's viewport)
+  'window.pan-back': 'navigate',
+  'window.pan-on': 'navigate',
+  'window.grow': 'navigate',
+  'window.shrink': 'navigate',
   // the actions on addresses: a focus or a reveal moves the view; a selection or a highlight is session state
   'address.focus': 'navigate',
   'address.reveal': 'navigate',

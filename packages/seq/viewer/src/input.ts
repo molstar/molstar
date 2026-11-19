@@ -22,6 +22,8 @@ import {
   NavigateProvider,
   type SelectBehavior,
   SelectProvider,
+  type WindowBehavior,
+  WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
 import {
   type Anchor,
@@ -98,6 +100,8 @@ export class ViewerInput {
         section: string;
         target: HitTarget;
         select: boolean;
+        /** A window's drag (its part): the `window` behavior's, before the bindings. */
+        window: boolean;
         moved: boolean;
       }
     | undefined;
@@ -131,6 +135,10 @@ export class ViewerInput {
 
   private get selectBehavior(): SelectBehavior | undefined {
     return this.viewer.behavior(SelectProvider);
+  }
+
+  private get windowBehavior(): WindowBehavior | undefined {
+    return this.viewer.behavior(WindowProvider);
   }
 
   /** Whether the pointer is over the canvas. */
@@ -230,6 +238,9 @@ export class ViewerInput {
     out.element = h.element;
     out.extent = h.extent;
     out.hull = h.hull;
+    // a placement's own targets (_spec/README.md "Input"): a window with its part, a gutter's row
+    out.target = h.target === 'window' || h.target === 'row' ? h.target : undefined;
+    out.part = h.part;
     return this._hit;
   }
 
@@ -247,7 +258,12 @@ export class ViewerInput {
     const hit = this._hitAt(x, y);
     if (d) {
       if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
-      if (d.select) {
+      if (d.window) {
+        d.x = x;
+        d.y = y;
+        const at = this.offsetAt(d.section, x, y);
+        if (d.moved && at !== undefined) this.windowBehavior?.dragTo(at);
+      } else if (d.select) {
         d.x = x;
         d.y = y;
         // the range from where it began to the pointer, in reading order, read from the placement even past the data
@@ -295,6 +311,14 @@ export class ViewerInput {
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
     const target = hitTarget(hit);
+    // a window's part is dragged by the window behavior (_spec/README.md "Behaviors", Window), Space+drag still pans
+    const win = this.windowBehavior;
+    if (target === 'window' && hit?.part && win && !this._space) {
+      const at = this.offsetAt(section, x, y);
+      if (at === undefined || !win.begin(section, hit.part, at)) return false;
+      this._drag = { x, y, x0: x, y0: y, section, target, select: false, window: true, moved: false };
+      return true;
+    }
     const action = this.viewer.bindings.resolve('drag', mods, target);
     if (action === undefined) return false;
     // a drag-select (of any mode) begins on what was hit; it selects once the pointer moves past the slop (else it is
@@ -303,7 +327,7 @@ export class ViewerInput {
     const select = selecting && !!this.selectBehavior?.beginDrag(section, hit, mods, target);
     if (selecting && !select) return false;
     if (this._space) this._spaceUsed = true;
-    this._drag = { x, y, x0: x, y0: y, section, target, select, moved: false };
+    this._drag = { x, y, x0: x, y0: y, section, target, select, window: false, moved: false };
     return true;
   }
 
@@ -315,6 +339,7 @@ export class ViewerInput {
     const d = this._drag;
     if (!d) return;
     this._stopEdge();
+    if (d.window) this.windowBehavior?.end();
     if (d.select) this.selectBehavior?.endDrag();
     this._suppressClick = d.moved;
     this._drag = undefined;
@@ -549,6 +574,13 @@ export class ViewerInput {
   key(e: KeyState & { key: string }): boolean {
     if (this.viewer.retired) return false;
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
+    // Esc during a window's drag puts the view back where the press found it
+    if (e.key === 'Escape' && this._drag?.window) {
+      this.windowBehavior?.cancel();
+      this._drag = undefined;
+      this._suppressClick = true;
+      return true;
+    }
     if (e.key === 'Escape' && this._drag?.select) {
       this._stopEdge();
       this.selectBehavior?.cancelDrag();
