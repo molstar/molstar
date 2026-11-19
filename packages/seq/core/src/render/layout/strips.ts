@@ -79,6 +79,68 @@ export class Strips {
     return i;
   }
 
+  /** The strip whose data box holds frame x (strips side by side: a row of blocks, a ring's arcs), or −1. */
+  atX(x: number): number {
+    for (let i = 0; i < this.n; i++) {
+      const a = this.axes[i];
+      if (x >= a.x0 && x < a.x0 + a.width) return i;
+    }
+    return -1;
+  }
+
+  /** The strip with an edge nearest frame x (−1 with none). */
+  nearestX(x: number): number {
+    let best = Infinity;
+    let i = -1;
+    for (let k = 0; k < this.n; k++) {
+      const a = this.axes[k];
+      const d = Math.min(Math.abs(x - a.x0), Math.abs(x - a.x0 - a.width));
+      if (d < best) {
+        best = d;
+        i = k;
+      }
+    }
+    return i;
+  }
+
+  /** The section's display unit at frame x on strip `i`: its window's edge past its data box. */
+  offsetIn(i: number, x: number): number {
+    const a = this.axes[i];
+    if (x < a.x0) return this.first[i] + a.u0;
+    if (x >= a.x0 + a.width) return this.first[i] + a.u1;
+    return this.first[i] + a.unitAt(x);
+  }
+
+  /** The first band of strip `i` with height (a collapsed band holds nothing), or −1. */
+  firstBand(i: number): number {
+    for (let j = 0; j < this.bands; j++) if (this.bandH[i * this.bands + j] > 0) return j;
+    return -1;
+  }
+
+  /**
+   * Places a section's display unit on the strip whose window holds it (strips side by side, each from its `first`):
+   * its frame x, the middle of its first band with height (else the strip's top), into `out`; false when none holds it.
+   */
+  placeAcross(offset: number, out: PlacePoint): boolean {
+    out.strip = -1;
+    out.kind = 'empty';
+    for (let i = 0; i < this.n; i++) {
+      const a = this.axes[i];
+      const u = offset - this.first[i];
+      if (u < a.u0 || u > a.u1) continue;
+      const band = this.firstBand(i);
+      const k = i * this.bands + (band < 0 ? 0 : band);
+      out.strip = i;
+      out.band = band;
+      out.offset = offset;
+      out.x = a.xOfUnit(u);
+      out.y = band < 0 ? this.top[i] : this.bandY[k] + this.bandH[k] / 2;
+      out.kind = band < 0 ? 'gap' : 'data';
+      return true;
+    }
+    return false;
+  }
+
   /** The band's box in its strip's frame (the data box's x and width, the band's top and height). */
   bandBox(strip: number, band: number): Box {
     const a = this.axes[strip];
@@ -173,8 +235,7 @@ export class StripPlacement implements Placement {
     if (i < 0 || offset > s.axes[i].u1) return false;
     const a = s.axes[i];
     // on the page: the unit's x, the middle of the strip's first band with height (a collapsed band holds nothing)
-    let band = -1;
-    for (let j = 0; j < s.bands && band < 0; j++) if (s.bandH[i * s.bands + j] > 0) band = j;
+    const band = s.firstBand(i);
     out.strip = i;
     out.band = band;
     out.offset = offset;

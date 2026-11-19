@@ -14,7 +14,7 @@
 // (what a follower shows, `render/window.ts`) is a sector over the rings with its grips on the rim, out of the ring's
 // key: a pan of its follower draws the ring from its kept lays.
 
-import type { ResolvedSection } from '@molstar/seqx-core/view';
+import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
 import { fontSize } from '../config.js';
@@ -142,32 +142,14 @@ export class RingPlacement implements Placement {
     return this.warp;
   }
 
-  /** The strip holding frame x (a block's arc), or −1 in a gap between blocks. */
-  stripAtX(fx: number): number {
-    const s = this.strips;
-    for (let i = 0; i < s.n; i++) {
-      const a = s.axes[i];
-      if (fx >= a.x0 && fx < a.x0 + a.width) return i;
-    }
-    return -1;
-  }
-
-  /** The last `toFrame`'s frame x. */
+  /** The unit `unitFrame` reads and the frame x it writes: fields, not an argument and a return (boxed). */
+  fu = 0;
   fx = 0;
-
   /**
-   * Frame x of a section unit into `fx` (past the circle for a unit past the total): a field, not a return (a number
-   * returned from a call that is not inlined is boxed; the window's draw calls it).
+   * Frame x of the section unit `fu` into `fx` (past the circle for a unit past the total): what the window's draw
+   * calls, so nothing is passed (a number passed to a call that is not inlined is boxed).
    */
-  toFrame(u: number): void {
-    this.fu = u;
-    this.toFrameU();
-  }
-
-  /** The unit `toFrameU` reads. */
-  private fu = 0;
-  /** `toFrame` of `fu`: what the window's draw calls (no number passed: a call that is not inlined boxes it). */
-  private toFrameU(): void {
+  private unitFrame(): void {
     const s = this.strips;
     this.fx = 0;
     if (!s.n) return;
@@ -181,26 +163,27 @@ export class RingPlacement implements Placement {
     let i = s.n - 1;
     while (i > 0 && s.first[i] > v) i--;
     const a = s.axes[i];
-    // `xOfUnit` inline (a ring has no groups): a number passed to a call that is not inlined is boxed
+    // `xOfUnit` inline (a ring has no groups)
     this.fx = a.x0 + (Math.min(v - s.first[i], a.total) - a.u0) * a.scale + turns * this.circumference;
   }
 
-  /** The window's ends in the frame (`wx1` past the circle over the origin), into `wx0`, `wx1`. */
+  /** Frame x of a section unit (past the circle for a unit past the total). */
+  frameX(u: number): number {
+    this.fu = u;
+    this.unitFrame();
+    return this.fx;
+  }
+
+  /** The window's ends in the frame into `wx0`, `wx1` (`wx1` past the circle over the origin). */
   wx0 = 0;
   wx1 = 0;
   windowFrame(): void {
     this.fu = this.windowStart;
-    this.toFrameU();
+    this.unitFrame();
     this.wx0 = this.fx;
     this.fu = this.windowEnd;
-    this.toFrameU();
+    this.unitFrame();
     this.wx1 = this.fx <= this.wx0 ? this.fx + this.circumference : this.fx;
-  }
-
-  /** Frame x of a section unit. */
-  frameX(u: number): number {
-    this.toFrame(u);
-    return this.fx;
   }
 
   /** The item labels' font size, px. */
@@ -247,7 +230,7 @@ export class RingPlacement implements Placement {
       return true;
     }
     const s = this.strips;
-    const i = this.stripAtX(fx);
+    const i = s.atX(fx);
     out.x = fx;
     out.y = fy;
     if (i < 0) {
@@ -275,42 +258,17 @@ export class RingPlacement implements Placement {
     const s = this.strips;
     if (!s.n || !this.warp.unmap(x, y)) return -1;
     const fx = this.warp.px;
-    let i = this.stripAtX(fx);
-    if (i < 0) {
-      // in a gap between blocks: the nearer block's edge
-      let best = Infinity;
-      for (let k = 0; k < s.n; k++) {
-        const a = s.axes[k];
-        const d0 = Math.abs(fx - a.x0);
-        const d1 = Math.abs(fx - (a.x0 + a.width));
-        if (d0 < best) [best, i] = [d0, k];
-        if (d1 < best) [best, i] = [d1, k];
-      }
-      const a = s.axes[i];
-      return fx < a.x0 + a.width / 2 ? s.first[i] : s.first[i] + a.total;
-    }
-    return s.first[i] + s.axes[i].unitAt(fx);
+    // in a gap between blocks: the nearer block's edge
+    const i = s.atX(fx);
+    return s.offsetIn(i < 0 ? s.nearestX(fx) : i, fx);
   }
 
   place(offset: number, out: PlacePoint): boolean {
-    const s = this.strips;
-    out.strip = -1;
-    out.kind = 'empty';
-    if (!s.n || offset < 0 || offset > this.total) return false;
-    let i = s.n - 1;
-    while (i > 0 && s.first[i] > offset) i--;
-    const a = s.axes[i];
-    if (offset - s.first[i] > a.total) return false;
-    let band = -1;
-    for (let j = 0; j < s.bands && band < 0; j++) if (s.bandH[i * s.bands + j] > 0) band = j;
-    const k = i * s.bands + (band < 0 ? 0 : band);
-    this.warp.map(a.xOfUnit(offset - s.first[i]), band < 0 ? 0 : s.bandY[k] + s.bandH[k] / 2);
-    out.strip = i;
-    out.band = band;
-    out.offset = offset;
+    if (!this.strips.placeAcross(offset, out)) return false;
+    // through the warp: a strip with no band at the outer circle
+    this.warp.map(out.x, out.band < 0 ? 0 : out.y);
     out.x = this.warp.px;
     out.y = this.warp.py;
-    out.kind = band < 0 ? 'gap' : 'data';
     return true;
   }
 }
@@ -406,7 +364,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     w.step = 4;
     // each block's units over its share of the arc, from half a gap past the origin
     let total = 0;
-    if (blocks) for (const b of blocks) total += b.axis.ranges ? sumPieces(b.axis.ranges) : 0;
+    if (blocks) for (const b of blocks) total += b.axis.ranges ? piecesTotal(b.axis.ranges) : 0;
     else total = axis.total;
     p.total = total;
     let x = (gaps ? gap / 2 : 0) * r;
@@ -414,20 +372,10 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     for (let bi = 0; bi < nBlocks; bi++) {
       const b = blocks?.[bi];
       const pieces = b ? b.axis.ranges : axis.pieces;
-      const len = pieces ? sumPieces(pieces) : 0;
+      const len = pieces ? piecesTotal(pieces) : 0;
       if (!pieces || len <= 0) continue;
       const width = (len / Math.max(total, 1e-9)) * arc * r;
-      const a = b
-        ? new AxisTransform(b.axis.system, pieces, x, width, ctx.dpr, undefined, {
-            dir: b.axis.dir,
-            ...(b.axis.length !== undefined ? { length: b.axis.length } : {}),
-            cyclic: b.axis.cyclic,
-          })
-        : new AxisTransform(axis.system, axis.pieces, x, width, ctx.dpr, undefined, {
-            dir: axis.dir,
-            ...(axis.length !== undefined ? { length: axis.length } : {}),
-            cyclic: axis.cyclic,
-          });
+      const a = AxisTransform.on(b ? b.axis : axis, pieces, x, width, ctx.dpr);
       const i = strips.add(a, b ? bi : 0, 0, 0, first);
       strips.warp[i] = WarpKind.polar;
       strips.top[i] = p.box.y;
@@ -524,13 +472,6 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
 /** A ring label's line: what two labels on a side are spaced by, and each one's hit box's height. */
 function labelLine(size: number): number {
   return size + 2;
-}
-
-/** The sum of pieces' lengths. */
-function sumPieces(r: readonly number[]): number {
-  let t = 0;
-  for (let i = 0; i + 1 < r.length; i += 2) t += r[i + 1] - r[i];
-  return t;
 }
 
 /** The angle of frame x, in [0, 2π), clockwise from the top. */

@@ -51,11 +51,14 @@ export function pieceAtOffset(offsets: Float64Array, u: number): number {
   return lo;
 }
 
+/** The display units of pieces `[start, end, …]`: their lengths' sum (kept with their offsets). */
+export function piecesTotal(pieces: readonly number[]): number {
+  return pieceOffsets(pieces)[pieces.length >> 1];
+}
+
 /** The positions shown, or undefined while the axis waits for its system's length. */
 export function axisTotal(axis: AxisShape): number | undefined {
-  const r = axis.ranges;
-  if (!r) return undefined;
-  return pieceOffsets(r)[r.length >> 1];
+  return axis.ranges ? piecesTotal(axis.ranges) : undefined;
 }
 
 /**

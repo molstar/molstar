@@ -11,7 +11,7 @@
 // position, one zoom (EC-102, EC-115). Each block's label in a row above its tracks. Its lays are kept by the block's
 // first unit, so a pan keeps them.
 
-import type { ResolvedSection } from '@molstar/seqx-core/view';
+import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform } from '../axis.js';
 import { fontSize } from '../config.js';
 import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
@@ -39,14 +39,8 @@ export class BlockPlacement extends StripPlacement {
   /** The strip at a page point: by x in a row, by its rows' extent in a stack; −1 when none. */
   private stripOf(x: number, y: number): number {
     const s = this.strips;
-    for (let i = 0; i < s.n; i++) {
-      if (this.stacked) {
-        if (y >= s.top[i] && y < s.top[i] + s.height[i]) return i;
-      } else {
-        const a = s.axes[i];
-        if (x >= a.x0 && x < a.x0 + a.width) return i;
-      }
-    }
+    if (!this.stacked) return s.atX(x);
+    for (let i = 0; i < s.n; i++) if (y >= s.top[i] && y < s.top[i] + s.height[i]) return i;
     return -1;
   }
 
@@ -89,51 +83,21 @@ export class BlockPlacement extends StripPlacement {
     const s = this.strips;
     if (!s.n) return -1;
     let i = this.stripOf(x, y);
-    if (i < 0) {
-      // nearest: a stack's row by y, a row's block by x
+    if (i < 0 && !this.stacked) i = s.nearestX(x);
+    else if (i < 0) {
+      // a stack's nearest row by y
       let best = Infinity;
       for (let k = 0; k < s.n; k++) {
-        const a = s.axes[k];
-        const d = this.stacked
-          ? Math.min(Math.abs(y - s.top[k]), Math.abs(y - s.top[k] - s.height[k]))
-          : Math.min(Math.abs(x - a.x0), Math.abs(x - a.x0 - a.width));
+        const d = Math.min(Math.abs(y - s.top[k]), Math.abs(y - s.top[k] - s.height[k]));
         if (d < best) [best, i] = [d, k];
       }
     }
-    const a = s.axes[i];
-    if (x < a.x0) return s.first[i] + a.u0;
-    if (x >= a.x0 + a.width) return s.first[i] + a.u1;
-    return s.first[i] + a.unitAt(x);
+    return s.offsetIn(i, x);
   }
 
   override place(offset: number, out: PlacePoint): boolean {
-    const s = this.strips;
-    out.strip = -1;
-    out.kind = 'empty';
-    for (let i = 0; i < s.n; i++) {
-      const a = s.axes[i];
-      const u = offset - s.first[i];
-      if (u < a.u0 || u > a.u1) continue;
-      let band = -1;
-      for (let j = 0; j < s.bands && band < 0; j++) if (s.bandH[i * s.bands + j] > 0) band = j;
-      const k = i * s.bands + (band < 0 ? 0 : band);
-      out.strip = i;
-      out.band = band;
-      out.offset = offset;
-      out.x = a.xOfUnit(u);
-      out.y = band < 0 ? s.top[i] : s.bandY[k] + s.bandH[k] / 2;
-      out.kind = band < 0 ? 'gap' : 'data';
-      return true;
-    }
-    return false;
+    return this.strips.placeAcross(offset, out);
   }
-}
-
-/** The sum of pieces' lengths. */
-function lengthOf(r: readonly number[] | undefined): number {
-  let t = 0;
-  if (r) for (let i = 0; i + 1 < r.length; i += 2) t += r[i + 1] - r[i];
-  return t;
 }
 
 /** Places a section's blocks in a row or a stack over the section's window (`ctx.axis`'s). */
@@ -169,25 +133,20 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   for (let b = 0; b < blocks.length; b++) {
     const block = blocks[b];
     const o = p.stacked ? 0 : (block.offset ?? 0);
-    const len = lengthOf(block.axis.ranges);
+    const len = block.axis.ranges ? piecesTotal(block.axis.ranges) : 0;
     if (b > 0 && !p.stacked && o > u0 && o < u1) gaps++;
     const rowTop = y;
     if (p.stacked) y += rows + (b + 1 < blocks.length ? config.sectionGap : 0);
     const vs = Math.max(u0, o);
     const ve = Math.min(u1, o + len);
     if (!block.axis.ranges || ve <= vs) continue;
-    const a = new AxisTransform(
-      block.axis.system,
+    const a = AxisTransform.on(
+      block.axis,
       block.axis.ranges,
       x0 + (vs - u0) * scale + gaps * gap,
       (ve - vs) * scale,
       ctx.dpr,
       { start: vs - o, end: ve - o },
-      {
-        dir: block.axis.dir,
-        ...(block.axis.length !== undefined ? { length: block.axis.length } : {}),
-        cyclic: block.axis.cyclic,
-      },
     );
     const i = strips.add(a, b, 0, 0, o);
     p.labels[i] = block.label;

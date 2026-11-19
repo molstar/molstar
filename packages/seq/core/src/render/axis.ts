@@ -42,6 +42,25 @@ export interface AxisShapeOptions {
 }
 
 export class AxisTransform {
+  /**
+   * A transform on a resolved axis (its system, direction, length and cyclic flag) over `pieces` (its own, a block's,
+   * a follow's image) between `x0` and `x0 + width`.
+   */
+  static on(
+    axis: { readonly system: string; readonly dir: 1 | -1; readonly length?: number; readonly cyclic: boolean },
+    pieces: readonly number[],
+    x0: number,
+    width: number,
+    dpr: number,
+    viewport?: Viewport,
+  ): AxisTransform {
+    return new AxisTransform(axis.system, pieces, x0, width, dpr, viewport, {
+      dir: axis.dir,
+      ...(axis.length !== undefined ? { length: axis.length } : {}),
+      cyclic: axis.cyclic,
+    });
+  }
+
   /** Each piece's first display unit. */
   readonly offsets: Float64Array;
   readonly total: number;

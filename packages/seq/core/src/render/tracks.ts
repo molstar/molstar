@@ -16,6 +16,7 @@ import {
   followRange,
   followWindow,
   offsetOf,
+  piecesTotal,
   templateNodes,
   type ResolvedLayer,
   type ResolvedSection,
@@ -285,8 +286,7 @@ function followedWindow(
   if (made.viewport) return made.viewport;
   const shape = { ...section.axis, ranges: own };
   const p = made.pieces;
-  let len = 0;
-  for (let i = 0; i + 1 < p.length; i += 2) len += p[i + 1] - p[i];
+  const len = piecesTotal(p);
   // the image's first piece in display order: its low edge forward, its high edge reversed
   const start = offsetOf(shape, section.axis.dir === -1 ? p[1] : p[0]) ?? 0;
   return { start, end: start + len };
@@ -750,13 +750,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const viewport = layoutOf(section).followWindow ? undefined : (input.viewports?.[at] ?? input.viewport);
       if (own) made = { pieces: own, ...(viewport ? { viewport } : {}) };
     }
-    const { dir, length, cyclic } = section.axis;
     const axis = made?.pieces.length
-      ? new AxisTransform(section.axis.system, made.pieces, dataX, dataW, dpr, made.viewport, {
-          dir,
-          ...(length !== undefined ? { length } : {}),
-          cyclic,
-        })
+      ? AxisTransform.on(section.axis, made.pieces, dataX, dataW, dpr, made.viewport)
       : undefined;
     if (!axes.has(at)) axes.set(at, axis);
     return axes.get(at);
