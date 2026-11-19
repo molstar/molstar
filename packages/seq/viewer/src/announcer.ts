@@ -6,6 +6,7 @@
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { DomHost } from '@molstar/ui/dom';
+import { DefaultNumbering, findNumbering } from '@molstar/seqx-core/query';
 import {
   itemText,
   type ItemDescription,
@@ -231,9 +232,29 @@ export class Announcer {
     return '';
   }
 
-  /** `protein, p53 12, letter L, items: Domain A, Domain B`. */
+  /**
+   * The position's label in the numbering the section's layers show (the first naming one, as a ruler or a text's
+   * numbers do), with its id: `kabat 100A`; empty when none names one or there is no label there.
+   */
+  private numberedLabel(section: SectionLayout, system: string, position: number): string {
+    for (const t of section.section.tracks)
+      for (const l of t.layers) {
+        const id = l.params.numbering;
+        if (typeof id !== 'string' || !id || id === DefaultNumbering) continue;
+        const s = this._viewer.addresses.queryModel().system(system);
+        const n = s ? findNumbering(s, id) : undefined;
+        const label = n?.numbering.labelAt(position - n.shift);
+        return label === undefined ? '' : `${id} ${label}`;
+      }
+    return '';
+  }
+
+  /** `protein, p53 12 (kabat 10A), letter L, items: Domain A, Domain B`. */
   placeText(section: SectionLayout, system: string, position: number, only?: LayerLayout): string {
-    const parts = [`${section.id}, ${this.systemName(system)} ${spanText(position, position + 1)}`];
+    const label = this.numberedLabel(section, system, position);
+    const parts = [
+      `${section.id}, ${this.systemName(system)} ${spanText(position, position + 1)}${label ? ` (${label})` : ''}`,
+    ];
     const letter = this.letterAt(section, position);
     if (letter) parts.push(`letter ${letter}`);
     const items = this.itemsAt(section, position, only);

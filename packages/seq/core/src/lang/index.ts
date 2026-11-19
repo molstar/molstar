@@ -22,6 +22,7 @@ export {
   type RefTo,
   type RefValue,
   type SectionBuilder,
+  type SequenceBuilder,
   type SeqSpecBuilder,
   type SeqSpecOptions,
   type SnapshotsBuilder,

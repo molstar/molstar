@@ -87,6 +87,7 @@ export {
   findNumbering,
   HintScanLimit,
   labelIndex,
+  labelsNumbering,
   type NumberingOf,
   nearestLabels,
   numberingIds,

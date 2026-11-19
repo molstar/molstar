@@ -34,7 +34,7 @@ import {
   resolveAddressIn,
   unionLocations,
 } from '@molstar/seqx-core/query';
-import { type HighlightStyle, HighlightStyles } from '@molstar/seqx-core/render';
+import { type HighlightStyle, HighlightStyles, withSourceNumberings } from '@molstar/seqx-core/render';
 import { ViewerIssues } from '../issues.js';
 import { overlayQueryModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -211,10 +211,13 @@ export class AddressModel extends ReactiveModel {
 
   // ---- resolving ----
 
-  /** The query model addresses resolve over: the static model of what is shown and the store's nodes now. */
+  /**
+   * The query model addresses resolve over: the static model of what is shown, the store's nodes now, and the labels
+   * of the numberings read from sources that the store holds.
+   */
   queryModel(): QueryModel {
     const model = this.spec.model.value;
-    return overlayQueryModel(model, this.store.currentOverlay(model));
+    return withSourceNumberings(overlayQueryModel(model, this.store.currentOverlay(model)), model, this.store.store);
   }
 
   /** What an address names in the spec shown (_spec/README.md "AddressModel"; the core's `resolveAddressIn`). */
