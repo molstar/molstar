@@ -276,7 +276,7 @@ and dark before the merge.
       icon") the navigators' cursors by part (navigators.md, "The cursor says the gesture"): a grip `ew-resize` or
       `ns-resize` by the navigator's axis, held through its drag; the body `grab`/`grabbing`; outside `pointer`; idle
       default; in `ViewerInput.cursor` (the rails in the view) and `NavigatorModel.cursor` (mounted navigators) alike.
-- [ ] IZ (strong, now; the author, 2026-11-19: "the window on the gene strip doesn't work. cant interact with it and it
+- [x] IZ (merged after one fix round; strong, now; the author, 2026-11-19: "the window on the gene strip doesn't work. cant interact with it and it
       isn't synced", then "Yes, the zoom strip") the zoom strip (navigators.md, "The zoom strip"): a navigator whose
       reachable span is under `navigator.zoomStrip.minPx` draws it as a mark (no grips, not draggable) and adds a strip
       of its own kind over the reachable span with the real window, two connector lines between them; one navigator,
