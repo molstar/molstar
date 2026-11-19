@@ -395,8 +395,13 @@ export class ViewModel extends ReactiveModel {
     const lead = this._leading(section);
     if (lead) {
       const v = this.get(section);
-      const m = Math.sign(delta);
-      return !!v && this._lead(lead, v.start + delta, v.end + delta, m, m, delta);
+      if (!v) return false;
+      // at the follower's end the pan stops there, its width kept (a leader asked past it would narrow instead)
+      const total = lead.section.axis.cyclic ? undefined : axisTotal(lead.section.axis);
+      const d = total === undefined ? delta : stopAtEnds(delta, v.start, v.end, total);
+      if (!d) return false;
+      const m = Math.sign(d);
+      return this._lead(lead, v.start + d, v.end + d, m, m, d);
     }
     const g = this._movable(section);
     if (!g) return false;
@@ -469,7 +474,10 @@ export class ViewModel extends ReactiveModel {
     return true;
   }
 
-  /** Shows the whole axis; a detached follower is attached again; a grid's own y window shows all of y. */
+  /**
+   * Shows the whole axis; a detached follower is attached again; a grid's own y window shows all of y; a grid that
+   * follows (its moves leading) fits its leaders, x's and y's.
+   */
   fit(section: string): boolean {
     const s = this._sections.get(section);
     if (!s) return false;
@@ -477,7 +485,15 @@ export class ViewModel extends ReactiveModel {
       delete s.y;
       this._publish();
     }
-    if (s.section.follow) return this.attach(section) || this.isFollowing(section);
+    if (s.section.follow) {
+      const attached = this.attach(section) || this.isFollowing(section);
+      // a grid whose moves lead fits what it shows: its x's leader and its y's (`0` over the plot fits the plot)
+      const y = s.section.y;
+      if (!y || !this._leading(section)) return attached;
+      let moved = this.fit(s.section.follow.leader);
+      if (!y.followsX && y.follow) moved = this.fit(y.follow.leader) || moved;
+      return moved || attached;
+    }
     const g = this._groupOf(s);
     if (!g) return false;
     g.start = 0;
@@ -1017,7 +1033,9 @@ export class ViewModel extends ReactiveModel {
     if (!r || !w) return false;
     const height = this._layouts?.placement(section)?.box.height ?? 0;
     if (!(height > 0)) return false;
-    const d = (dy * (w.end - w.start)) / height;
+    // at y's end the pan stops there, its window's width kept (a leader asked past its end would narrow instead)
+    const d = stopAtEnds((dy * (w.end - w.start)) / height, w.start, w.end, r.total);
+    if (!d) return false;
     return this._moveY(r, w.start + d, w.end + d, d);
   }
 
@@ -1433,4 +1451,16 @@ function followOrder(view: ResolvedView | undefined): string[] {
   };
   for (const s of view?.sections ?? []) visit(s, new Set());
   return out;
+}
+
+/**
+ * A pan by `delta` of window `[start, end)` stopped at the axis's ends `[0, total)` (the window kept whole: never past
+ * them); 0 when it cannot move that way. A window that does not fit in them (a follower shown past its own ends) pans
+ * as asked.
+ */
+function stopAtEnds(delta: number, start: number, end: number, total: number): number {
+  if (start < -1e-9 || end > total + 1e-9) return delta;
+  if (delta > 0) return Math.max(0, Math.min(delta, total - end));
+  if (delta < 0) return Math.min(0, Math.max(delta, -start));
+  return 0;
 }

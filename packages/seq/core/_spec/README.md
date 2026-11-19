@@ -1920,11 +1920,13 @@ numbers): a window move allocates nothing once warm.
 - **y** (`ResolvedSection.y`): following x on the same system takes x's pieces, window and direction; following a
   section through a path maps that section's window (as `follow`); else the viewport's own `y` (`{ start, end }`), read
   by `GridNav` (`pan`'s dy, `zoom` and `fit` on both axes) and by `sameKey`. With `follow_y: x` the field is absent.
-- **Size** (EC-109): x is the data box (the view's x, aligned with the sections it shares x with); the height makes a
-  cell `aspect` (1) times as wide as tall over y's window, capped by the room, the larger of `heights.grid` (a floor,
-  decided) and nine tenths of the view's height below the section's top: cells keep their aspect only where the room
-  allows. At least 40 px. `aspect: 'none'` takes the tallest track's height. Why the floor: a view sized to its content
-  would otherwise feed its height back into the room and shrink.
+- **Size** (EC-109): x is the data box (the view's x, aligned with the sections it shares x with); the height is the
+  data box's width over `aspect` (1), capped by the room, the larger of `heights.grid` (a floor, decided) and nine
+  tenths of the view's height below the section's top. At least 40 px. `aspect: 'none'` takes the tallest track's
+  height. **A plot's box is fixed** (decided): no zoom or pan of x or y changes it, so cells are rectangles when x and y
+  show different spans. Why: a box that followed y's window resized the plot under the pointer, moved the page and the
+  tracks below it, and let the wheel fall through to the page. Why the floor: a view sized to its content would
+  otherwise feed its height back into the room and shrink.
 - **Chrome**: the label column (the first track's label) and y's first and last positions at the plot's top and bottom,
   their strings made at place (a draw allocates nothing).
 - **A grid over blocks** (its section's blocks a leader's, "Resolved view"): a strip a pair of blocks in view, x's block
@@ -1933,9 +1935,13 @@ numbers): a window move allocates nothing once warm.
   that pair's cell; `at` finds the strip by x and y. Its follow is the identity on the leader's units (the tracks
   layout's "several systems cannot follow" does not apply; a follower that is no grid still is refused). The y blocks'
   transforms are made once a place and shared by the x blocks' strips. A hit on it carries its x block (`Hit.block`) and
-  its y block (`Hit.yBlock`). Chrome: each chain boundary past the first block a 1 px `seq-break` hairline in the gap
-  before the block (down the plot at an x boundary, across it at a y one), the first track's label at the plot's top,
-  each y block's label at the label column's right edge at its top (below the track's label when it starts there).
+  its y block (`Hit.yBlock`). Each block's edges are on the device grid (its strip's x and width, its y block's top and
+  height), so the cells' clip and the tiles' edges meet exactly: no cell past its block's edge, no gap's ink inside it;
+  a cell's rect is cut at its axes' edges. A chain boundary is the blocks' gap with no line in it (decided: the gap and
+  an off-centre hairline together read wrong); a `seq-break` hairline a device pixel wide only where two blocks in view
+  touch with less than a device pixel between them (down the plot at an x boundary, across it at a y one). Chrome: the
+  first track's label at the plot's top, each y block's label at the label column's right edge at its top (below the
+  track's label when it starts there).
 
 ### Lanes and Hits
 

@@ -50,18 +50,15 @@ function cellCentre(g: GridLay, i: number, j: number): [number, number] {
 }
 
 /**
- * The grid layout's size rule at aspect 1: cells square (px a position across as down) when that height fits the room
- * (the larger of a grid track's default height and nine tenths of the view below the plot's top), else that height.
+ * The grid layout's size rule at aspect 1: a plot's box is fixed, the data box's width (as tall as wide) capped by the
+ * room (the larger of a grid track's default height and nine tenths of the view below the plot's top), whatever the
+ * windows; cells square only where x and y show spans in that ratio.
  */
 function expectAspect(v: SeqViewer, section: number) {
   const st = v.frame!.layout.sections[section].placement.strips;
   const x = st.axes[0];
-  const y = st.ys[0]!;
-  const square = x.scale * (y.u1 - y.u0);
   const room = Math.max(240, (v.height - st.top[0]) * 0.9);
-  expect(st.height[0]).toBeCloseTo(Math.max(40, Math.min(square, room)), 6);
-  if (square <= room) expect(y.scale).toBeCloseTo(x.scale, 6);
-  else expect(y.scale).toBeLessThan(x.scale);
+  expect(st.height[0]).toBeCloseTo(Math.max(40, Math.min(x.width, room)), 6);
 }
 
 /** The paths of the data pass, as recorded (the arcs). */
@@ -337,6 +334,127 @@ describe('Complex: PAE and contacts, headless', () => {
     await vi.advanceTimersByTimeAsync(100);
     expect(range('cdk2')).toEqual([c0, c1]);
     expect(range('cyclin')[0]).toBeGreaterThan(y0);
+  });
+
+  it('a plot’s box is fixed: a zoom of one axis (y following cyclin A’s section) leaves its height and every track’s place', async () => {
+    viewer = await openExample(complex('pae'), { fixtures: true });
+    const v = viewer;
+    const places = () => {
+      v.draw();
+      return v.frame!.layout.sections.map((s) => [
+        s.placement.box.y,
+        s.placement.box.height,
+        ...s.tracks.map((t) => t.box.y),
+      ]);
+    };
+    const before = places();
+    const height = v.height;
+    for (const [s, e] of [
+      [0, 40],
+      [380, 432],
+      [100, 300],
+    ]) {
+      v.view.setRange('/views/main/cyclin', s, e);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(places()).toEqual(before);
+      expect(v.height).toBe(height);
+    }
+  });
+
+  it('the wheel over the plot is the plot’s: it pans y to its end and stops there, consumed (no page scroll); outside it, the page’s', async () => {
+    viewer = await openExample(complex('pae'), { fixtures: true });
+    const v = viewer;
+    v.input.mac = false;
+    v.view.setRange('/views/main/cdk2', 40, 120);
+    v.view.setRange('/views/main/cyclin', 100, 180);
+    await vi.advanceTimersByTimeAsync(500);
+    v.draw();
+    const box = { ...v.placementOf('/views/main/pae')!.box };
+    const [x, y] = [v.dataX + 100, box.y + box.height / 2];
+    const cyclin = () => {
+      const r = v.view.get('/views/main/cyclin')!;
+      return [r.start, r.end];
+    };
+    // down past y's end: every wheel taken; y at its end, its width kept, the plot where it was
+    for (let i = 0; i < 40; i++) {
+      expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 120, deltaMode: 0 }), `wheel ${i}`).toBe(true);
+      await vi.advanceTimersByTimeAsync(20);
+      v.draw();
+      expect(v.placementOf('/views/main/pae')!.box).toEqual(box);
+    }
+    const [s, e] = cyclin();
+    expect(e).toBeCloseTo(432, 6);
+    expect(e - s).toBeCloseTo(80, 6);
+    // at the end, still taken (the page does not scroll from inside the plot), nothing moves
+    expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 120, deltaMode: 0 })).toBe(true);
+    await vi.advanceTimersByTimeAsync(20);
+    expect(cyclin()).toEqual([s, e]);
+    // and back up to y's start: the same, the width kept
+    for (let i = 0; i < 60; i++) v.input.wheel(x, y, { deltaX: 0, deltaY: -120, deltaMode: 0 });
+    await vi.advanceTimersByTimeAsync(20);
+    const [s2, e2] = cyclin();
+    expect(s2).toBeCloseTo(0, 6);
+    expect(e2 - s2).toBeCloseTo(80, 6);
+    // below the view's sections (outside the plot and every section): the page's wheel, not taken
+    expect(v.input.wheel(x, v.height + 20, { deltaX: 0, deltaY: 120, deltaMode: 0 })).toBe(false);
+  });
+
+  it('a double-click on a cell zooms a step about it on both axes, again further (never re-centred); back undoes each, `0` fits', async () => {
+    viewer = await openExample(complex('pae'), { fixtures: true });
+    const v = viewer;
+    v.input.mac = false;
+    const range = (s: string) => {
+      const r = v.view.get(`/views/main/${s}`)!;
+      return [r.start, r.end];
+    };
+    const fit = [range('cdk2'), range('cyclin')];
+    const step = v.config.navigate.doubleClickZoomStep;
+    // the fraction of each window a position is at
+    const frac = (s: string, u: number) => {
+      const [a, b] = range(s);
+      return (u - a) / (b - a);
+    };
+    let g = gridOf(v, 2);
+    let [x, y] = cellCentre(g, 100, 300);
+    const fx = frac('cdk2', 100.5);
+    const fy = frac('cyclin', 300.5);
+    expect(v.input.doubleClick(x, y)).toBe(true);
+    await vi.advanceTimersByTimeAsync(800);
+    v.draw();
+    const once = [range('cdk2'), range('cyclin')];
+    // a step about the cell on both axes: each window by the step, the cell where it was (their ratio kept)
+    expect(once[0][1] - once[0][0]).toBeCloseTo((fit[0][1] - fit[0][0]) / step, 6);
+    expect(once[1][1] - once[1][0]).toBeCloseTo((fit[1][1] - fit[1][0]) / step, 6);
+    expect(frac('cdk2', 100.5)).toBeCloseTo(fx, 6);
+    expect(frac('cyclin', 300.5)).toBeCloseTo(fy, 6);
+    // again on another cell: further, about that one
+    g = gridOf(v, 2);
+    [x, y] = cellCentre(g, 110, 320);
+    const gx = frac('cdk2', 110.5);
+    const gy = frac('cyclin', 320.5);
+    expect(v.input.doubleClick(x, y)).toBe(true);
+    await vi.advanceTimersByTimeAsync(800);
+    v.draw();
+    const twice = [range('cdk2'), range('cyclin')];
+    expect(twice[0][1] - twice[0][0]).toBeCloseTo((fit[0][1] - fit[0][0]) / step ** 2, 6);
+    expect(twice[1][1] - twice[1][0]).toBeCloseTo((fit[1][1] - fit[1][0]) / step ** 2, 6);
+    expect(frac('cdk2', 110.5)).toBeCloseTo(gx, 6);
+    expect(frac('cyclin', 320.5)).toBeCloseTo(gy, 6);
+    // Alt+Left back: once to the first zoom, again to the fit
+    expect(v.input.key({ key: 'ArrowLeft', altKey: true })).toBe(true);
+    expect([range('cdk2'), range('cyclin')]).toEqual(once);
+    expect(v.input.key({ key: 'ArrowLeft', altKey: true })).toBe(true);
+    expect([range('cdk2'), range('cyclin')]).toEqual(fit);
+    // forward again, and `0` fits the plot
+    v.view.forward();
+    v.view.forward();
+    expect([range('cdk2'), range('cyclin')]).toEqual(twice);
+    await vi.advanceTimersByTimeAsync(800);
+    v.draw();
+    const [px, py] = [v.dataX + 50, v.placementOf('/views/main/pae')!.box.y + 50];
+    v.input.move(px, py);
+    expect(v.input.key({ key: '0' })).toBe(true);
+    expect([range('cdk2'), range('cyclin')]).toEqual(fit);
   });
 
   it('the contacts as arcs between the chains’ blocks: a hover lights both ends', async () => {

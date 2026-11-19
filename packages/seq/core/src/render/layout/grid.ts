@@ -7,12 +7,13 @@
 // The grid layout (_spec/README.md "Render", The grid layout): a section of two axes, one strip, the plot, whose
 // transform is x and which carries a second transform `strip.y` down its frame (read by a layer as `ctx.axisY`). Its
 // tracks' bands overlay the plot (later tracks over earlier, the last one's layers hit first). Its x is the data box
-// (the view's x); its height makes cells `aspect` times as wide as tall (1: square) over y's window, capped by the
-// view's room below it less a tenth (that room never below `heights.grid`), at least two rows; `aspect: none` leaves it
-// to the tracks' heights. Its viewport is the tracks' window plus `y` when y has a window of its own. A grid over a
+// (the view's x); its height is the data box's width over `aspect` (1: square), capped by the view's room below it
+// less a tenth (that room never below `heights.grid`), at least two rows, and fixed: no zoom or pan of x or y changes it
+// (cells are rectangles when the two show different spans); `aspect: none` leaves it to the tracks' heights. Its viewport is the tracks' window plus `y` when y has a window of its own. A grid over a
 // section of blocks (its x and y the blocks' display axis, the chains side by side) is a strip a pair of blocks in view:
 // each its x block's transform and its y block's (the blocks laid along each axis as a row of blocks is, gaps between
-// them), its bands that pair's cell; the chain boundaries hairlines across the plot, the blocks' labels on both axes.
+// them), its bands that pair's cell, its cells clipped at the block's edges; a chain boundary is the blocks' gap with no
+// line in it (a hairline only where two blocks touch with no gap), the blocks' labels on both axes.
 
 import { AxisTransform, type Viewport } from '../axis.js';
 import { Anchor, grown, type PassName, type PassWriter } from '../draw-lists.js';
@@ -91,7 +92,15 @@ export class GridPlacement extends StripPlacement {
 }
 
 /** A row of a section's blocks over `[x0, x0 + width)` (a grid's axis across or down) for window `[u0, u1)`. */
-function blockRow(row: BlockRow, blocks: readonly ResolvedBlock[], x0: number, width: number, u0: number, u1: number) {
+function blockRow(
+  row: BlockRow,
+  blocks: readonly ResolvedBlock[],
+  x0: number,
+  width: number,
+  u0: number,
+  u1: number,
+  dpr: number,
+) {
   row.reset(blocks.length);
   // no chips on a plot's axes: every block a position's share
   row.chip = grown(row.chip, blocks.length);
@@ -103,6 +112,16 @@ function blockRow(row: BlockRow, blocks: readonly ResolvedBlock[], x0: number, w
     row.len[b] = blocks[b].axis.ranges ? piecesTotal(blocks[b].axis.ranges!) : 0;
   }
   row.lay(u0, u1);
+  // each block's edges on the device grid: its cells' clip and its tiles' edges (rounded so) then meet exactly, with no
+  // sliver of a cell past the block's edge into the gap and none of the gap's ink inside it
+  const d = dpr > 0 ? dpr : 1;
+  for (let b = 0; b < blocks.length; b++) {
+    if (row.ve[b] <= row.vs[b]) continue;
+    const a = Math.round(row.x[b] * d) / d;
+    const e = Math.round((row.x[b] + row.w[b]) * d) / d;
+    row.x[b] = a;
+    row.w[b] = Math.max(0, e - a);
+  }
 }
 
 /**
@@ -124,9 +143,9 @@ function placeBlocksGrid(
   const x = ctx.axis;
   const xr = (p.xRow ??= new BlockRow());
   const yr = (p.yRow ??= new BlockRow());
-  blockRow(xr, blocks, x.x0, x.width, x.u0, x.u1);
+  blockRow(xr, blocks, x.x0, x.width, x.u0, x.u1, ctx.dpr);
   const yv = ctx.y?.viewport ?? { start: x.u0, end: x.u1 };
-  blockRow(yr, blocks, top, h, yv.start, yv.end);
+  blockRow(yr, blocks, top, h, yv.start, yv.end, ctx.dpr);
   const ys = p.yAxes;
   ys.length = blocks.length;
   for (let c = 0; c < blocks.length; c++) {
@@ -167,14 +186,6 @@ function placeBlocksGrid(
       }
     }
   }
-}
-
-/** The units a window shows of pieces `[start, end, …]`: the viewport's, else every piece's. */
-function windowOf(pieces: readonly number[], v: Viewport | undefined): number {
-  if (v) return Math.max(1, v.end - v.start);
-  let n = 0;
-  for (let k = 0; k + 1 < pieces.length; k += 2) n += Math.abs(pieces[k + 1] - pieces[k]);
-  return Math.max(1, n);
 }
 
 /** A grid's y window: its own, clamped within its units and at least a unit. */
@@ -258,11 +269,10 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
       // the room below the section's top less a tenth, never below a grid track's default height: a view sized to its
       // content (whose height follows the plot's) keeps a stable plot
       const room = Math.max(config.heights.grid, (ctx.height - top) * RoomShare);
-      // x is the view's x (the data box, aligned with the sections it shares x with); the height makes a cell `a` times
-      // as wide as tall over y's window, capped by the room: cells keep their aspect only where the room allows
-      const xu = x.u1 - x.u0;
-      const yu = y?.pieces.length ? windowOf(y.pieces, y.viewport) : xu;
-      h = Math.max(MinHeight, Math.min((width / (a * xu)) * yu, room));
+      // x is the view's x (the data box, aligned with the sections it shares x with); the box is the data box's width
+      // over `a`, capped by the room, and never follows the windows (a plot's box is fixed): a zoom or a pan of either
+      // axis leaves it, and every track's place, where it is; cells are rectangles when x and y show different spans
+      h = Math.max(MinHeight, Math.min(width / a, room));
     }
     p.yFirst = p.yLast = '';
     p.plotTop = top;
@@ -346,8 +356,8 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
 }
 
 /**
- * A grid over blocks' chrome: each chain boundary past the first block a 1 px `seq-break` hairline in the gap before the
- * block (down the plot at an x boundary, across it at a y one, drawn while the gap is in view); the first track's label
+ * A grid over blocks' chrome: a chain boundary is the blocks' gap with no line in it, a `seq-break` hairline only where
+ * two blocks touch with no gap (down the plot at an x boundary, across it at a y one); the first track's label
  * at the plot's top in the label column; and each y block's label at the label column's right edge at the block's top
  * (below the track's label when it starts there), drawn when the block is at least 14 px tall. The x blocks' labels are
  * their section's, above.
@@ -363,10 +373,14 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
   const ink = tokens.colors['seq-break'];
   const muted = tokens.colors['msui-text-muted'];
   const right = s.axis ? s.axis.x0 - config.labelGap / 2 : config.inset + config.labelWidth;
-  for (let b = 0; b < blocks.length; b++) {
-    // a boundary at each block's start past the first, in the gap before it (its middle)
-    if (b > 0 && xr.f[b] > 0 && xr.ve[b] > xr.vs[b]) out.fill(xr.x[b] - 1, top, 1, h, ink);
-    if (b > 0 && yr.f[b] > 0 && yr.ve[b] > yr.vs[b]) out.fill(xr.x0, yr.x[b] - 1, xr.width, 1, ink);
+  // a boundary is the blocks' gap, with no line in it; a hairline a device pixel wide only where two blocks in view
+  // touch with less than a device pixel between them (a boundary at the window's edge)
+  const px = 1 / (s.axis?.dpr || 1);
+  for (let b = 1; b < blocks.length; b++) {
+    const at = touching(xr, b, px);
+    if (at >= 0) out.fill(at - px / 2, top, px, h, ink);
+    const atY = touching(yr, b, px);
+    if (atY >= 0) out.fill(xr.x0, atY - px / 2, xr.width, px, ink);
   }
   const t = s.tracks[0];
   if (t) {
@@ -388,4 +402,11 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
       out.textArgs(label, AnchorEnd, config.itemFont);
     }
   }
+}
+
+/** Where block `b` meets the block before it with no gap (less than `px` between them), −1 otherwise. */
+function touching(r: BlockRow, b: number, px: number): number {
+  if (r.ve[b] <= r.vs[b] || r.ve[b - 1] <= r.vs[b - 1]) return -1;
+  const end = r.x[b - 1] + r.w[b - 1];
+  return r.x[b] - end < px ? (end + r.x[b]) / 2 : -1;
 }

@@ -481,7 +481,7 @@ export const ComplexViews: readonly ExampleView[] = [
     id: 'complex-grid',
     title: 'PAE over the complex (synthetic)',
     summary:
-      'The chains side by side as blocks with their confidence, and the synthetic PAE over the whole complex as a grid that follows the blocks on both axes: the chain boundaries drawn across it, a hover naming both residues with their chains, a dragged rectangle split at the boundaries.',
+      'The chains side by side as blocks with their confidence, and the synthetic PAE over the whole complex as a grid that follows the blocks on both axes: the chain boundaries the blocks’ gaps across it, a hover naming both residues with their chains, a dragged rectangle split at the boundaries.',
     registry: records,
     build: () => complexGrid.build(),
   },

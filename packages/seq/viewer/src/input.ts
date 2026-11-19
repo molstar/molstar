@@ -7,6 +7,7 @@
 import type { Node as SpecNode } from '@molstar/core/repr/tree';
 import {
   floorExtent,
+  GridPlacement,
   type Placement,
   PlacePoint,
   type Rail,
@@ -731,7 +732,8 @@ export class ViewerInput {
   /**
    * A wheel at (x, y). A trackpad's pinch arrives as a wheel with Ctrl held and small pixel deltas: it is the `pinch`
    * gesture (`pointer.pinchFromCtrlWheel`), its zoom factor `exp(-deltaY · pinchSpeed)`; any other wheel is the `wheel`
-   * gesture. True when a binding took it (the page should not scroll).
+   * gesture. True when a binding took it, and always over a plot's box (the wheel over a plot is the plot's: at an
+   * axis's end it stops there and the page does not scroll); elsewhere the page should not scroll when true.
    */
   wheel(x: number, y: number, e: WheelState): boolean {
     if (this.viewer.retired) return false;
@@ -757,12 +759,13 @@ export class ViewerInput {
     // on macOS Ctrl is no zoom modifier, so a Ctrl+wheel is a pinch whatever its delta; elsewhere a large delta is a mouse
     const pinch =
       e.ctrlKey && pointer.pinchFromCtrlWheel && (this.mac || (!e.deltaMode && Math.abs(dy) <= pointer.pinchMaxDelta));
+    const plot = this._overPlot(section, x, y);
     if (pinch) {
       // the pinch's own modifiers: none (the Ctrl is the gesture's, not a key held)
       const taken = this.viewer.bindings.resolve('pinch', NoModifiers, target) !== undefined;
       if (taken) nav.pinch(section, Math.exp(-dy * pointer.pinchSpeed), local, NoModifiers, target, at, atY);
       this.viewer.schedule();
-      return taken;
+      return taken || plot;
     }
     const mods = this._modifiers(e);
     // a section that scrolls inside its box (a text) takes the wheel only while it overflows, and gives it back at its
@@ -783,7 +786,15 @@ export class ViewerInput {
     if (taken) nav.wheel(section, dx, dy, local, mods, target, at, atY);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them
     this.viewer.schedule();
-    return taken;
+    return taken || plot;
+  }
+
+  /** Whether a point is over a grid section's plot (its box, the well round its cells). */
+  private _overPlot(section: string, x: number, y: number): boolean {
+    const p = this.viewer.placementOf(section);
+    if (!(p instanceof GridPlacement)) return false;
+    const b = p.box;
+    return x >= b.x && x < b.x + b.width && y >= b.y && y < b.y + b.height;
   }
 
   /** A double-click: the bound command, with the element or position under the pointer as what to focus. */
@@ -819,10 +830,15 @@ export class ViewerInput {
     const p = this.viewer.placementOf(section);
     const pt = this._point;
     const at = p?.at(this._pageAt(x, y), pt) && (pt.kind === 'data' || pt.kind === 'gap') ? p.offsetAt(x, y) : -1;
+    // a grid's cell: its focus zooms a step about the pointer on both axes (`cell`), never a jump to its two residues
+    const cell = p instanceof GridPlacement && hit?.target === 'cell' && at >= 0;
+    const atY = cell ? this.offsetYAt(section, x, y) : undefined;
     this.viewer.runCommand(action, {
       section,
       ...(focus ? { focus } : {}),
       ...(at >= 0 ? { at } : {}),
+      ...(cell ? { cell: true } : {}),
+      ...(atY !== undefined ? { atY } : {}),
       step: this.viewer.config.navigate.doubleClickZoomStep,
     });
     return true;

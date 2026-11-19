@@ -114,19 +114,75 @@ describe('a grid over blocks: layout', () => {
     }
   });
 
-  it('three blocks: a hairline down the plot and one across it at each of the two boundaries', async () => {
+  it('three blocks at the fit: the boundaries are the gaps, no line in them; each block’s cells clipped at its edges', async () => {
     const st = await settle(blocksSpec([10, 20, 15]));
-    const f = await st.frame({ size: Size, settled: true });
-    const plot = f.layout.sections[1].placement;
+    for (const dpr of [1, 2]) {
+      const f = await st.frame({ size: Size, settled: true, dpr });
+      const plot = f.layout.sections[1].placement as GridPlacement;
+      const hairlines = recordDrawLists(f.lists, ['labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('rect '))
+        .map((l) => l.split(' ').slice(1, 5).map(Number))
+        .filter(([, y, w, h]) => y >= plot.box.y && (w <= 1 || h <= 1));
+      expect(hairlines, `dpr ${dpr}`).toEqual([]);
+      expectClipped(f.lists, plot, dpr);
+    }
+  });
+
+  it('a hairline only where two blocks touch with no gap: a boundary at the window’s edge', async () => {
+    const st = await settle(blocksSpec([10, 20, 15]));
+    // the first boundary a hundredth of a unit inside the window's left edge: its gap under a pixel
+    const f = await st.frame({ size: Size, settled: true, viewports: { '/views/v/chains': { start: 9.99, end: 45 } } });
+    const plot = f.layout.sections[1].placement as GridPlacement;
+    const xr = plot.xRow!;
+    expect(xr.x[1] - (xr.x[0] + xr.w[0])).toBeLessThan(1);
     const hair = recordDrawLists(f.lists, ['labels'])
       .split('\n')
       .filter((l) => l.startsWith('rect '))
       .map((l) => l.split(' ').slice(1, 5).map(Number))
-      .filter(([, y, w, h]) => y >= plot.box.y && (w === 1 || h === 1));
-    expect(hair.filter(([, , w, h]) => w === 1 && h === plot.contentHeight).length).toBe(2);
-    expect(hair.filter(([, , w, h]) => h === 1 && w > 100).length).toBe(2);
+      .filter(([, y, w, h]) => y >= plot.box.y - 1 && (w === 1 || h === 1));
+    // down the plot and across it at the touching boundary; none at the second (a gap)
+    expect(hair.filter(([, , w]) => w === 1).length).toBe(1);
+    expect(hair.filter(([, , , h]) => h === 1).length).toBe(1);
+    expectClipped(f.lists, plot, 1, false);
   });
 });
+
+/**
+ * The data pass of a grid over blocks: each image and rect inside the clip around it, each clip a pair of blocks' box
+ * (its x block's x and width, its y block's top and height), on the device grid.
+ */
+function expectClipped(lists: Parameters<typeof recordDrawLists>[0], plot: GridPlacement, dpr: number, fit = true) {
+  const xr = plot.xRow!;
+  const yr = plot.yRow!;
+  const lines = recordDrawLists(lists, ['data']).split('\n');
+  const onGrid = (v: number) => Math.abs(v * dpr - Math.round(v * dpr)) < 1e-6;
+  let clip: number[] | undefined;
+  let cells = 0;
+  for (const l of lines) {
+    const v = l.split(' ').slice(1, 5).map(Number);
+    if (l.startsWith('clip ') && v[1] >= plot.plotTop - 1e-6) {
+      clip = v;
+      const bx = [...xr.x.subarray(0, xr.n)].findIndex(
+        (x, b) => Math.abs(x - v[0]) < 1e-6 && Math.abs(xr.w[b] - v[2]) < 1e-6,
+      );
+      const by = [...yr.x.subarray(0, yr.n)].findIndex(
+        (y, b) => Math.abs(y - v[1]) < 1e-6 && Math.abs(yr.w[b] - v[3]) < 1e-6,
+      );
+      expect([bx >= 0, by >= 0], l).toEqual([true, true]);
+      expect(v.every(onGrid), l).toBe(true);
+    } else if (l === 'unclip') clip = undefined;
+    else if (clip && (l.startsWith('image ') || l.startsWith('rect '))) {
+      cells++;
+      // at the fit an image's edges are the block's own; zoomed, a tile past the edge is clipped there (a rect is cut)
+      if (fit || l.startsWith('rect ')) {
+        expect(v[0] >= clip[0] - 1e-6 && v[0] + v[2] <= clip[0] + clip[2] + 1e-6, l).toBe(true);
+        expect(v[1] >= clip[1] - 1e-6 && v[1] + v[3] <= clip[1] + clip[3] + 1e-6, l).toBe(true);
+      }
+    }
+  }
+  expect(cells).toBeGreaterThan(0);
+}
 
 describe('gridSummary', () => {
   it('each cell once under overlapping rects (an added drag), missing values left out', async () => {
