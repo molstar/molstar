@@ -6,7 +6,8 @@
 
 // The axis's stories, headless on a fake clock, each composed as its story composes it (a viewer of the view and its
 // SVG export): the protein and its gene on one axis drawn by the canvas and by `renderSvg` from one spec, their hits
-// and the export's `data-*` agreeing; a follower on a reversed collapsed axis moved by its leader and leading it back.
+// and the export's `data-*` agreeing; a follower on a reversed collapsed axis moved by its leader and leading it back;
+// the reversed gene alone collapsed by Shift+C to its exons (the one codon map onto it).
 
 import { hitView, type LettersLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { positionAt } from '@molstar/seqx-core/view';
@@ -96,5 +97,20 @@ describe('Protein on its gene (a follower on a reversed collapsed axis), headles
     const a = positionAt(axis, g.start, 'start')!;
     const b = positionAt(axis, g.end, 'end')!;
     expect(a).toBeGreaterThan(b);
+  });
+});
+
+describe('The reversed gene, headless', () => {
+  it('Shift+C collapses the gene alone to its exons: the one codon map onto it names its coding pieces', async () => {
+    const v = await open('reversed-gene');
+    const axis = () => v.view.resolved.value!.sections[0].axis;
+    expect([axis().dir, axis().pieces]).toEqual([-1, 'whole']);
+    await v.execute('section.collapse', { address: Gene });
+    const a = axis();
+    expect(a.pieces).toBe('coding');
+    // the coding exons, in display order (reversed: the last first), and no issue
+    expect(a.ranges!.length).toBeGreaterThan(2);
+    for (let i = 2; i + 1 < a.ranges!.length; i += 2) expect(a.ranges![i + 1]).toBeLessThanOrEqual(a.ranges![i - 2]);
+    expect(v.view.resolved.value!.issues.map((i) => i.code)).not.toContain('seq.view.section.pieces');
   });
 });

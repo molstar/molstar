@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { hitTarget } from '../models/hover.js';
-import { elementAt, positionAt } from '../models/axis.js';
+import { positionAt } from '../models/axis.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -105,6 +105,29 @@ describe('section.reverse and section.collapse', () => {
 });
 
 describe('the view’s history over a changed axis', () => {
+  const windowOf = (v: SeqViewer, address: string) => {
+    const g = v.view.get(address)!;
+    const a = positionAt(axisOf(v, address), g.start, 'start')!;
+    const b = positionAt(axisOf(v, address), g.end, 'end')!;
+    return [Math.min(a, b), Math.max(a, b)];
+  };
+
+  it('a reverse, then back: the exact window it left; a collapse, then forward: the exact window', async () => {
+    const v = await make({ lead: true });
+    v.view.jump(() => v.view.setRange(Gene, 13, 18));
+    v.view.jump(() => v.view.setRange(Gene, 3, 6));
+    await v.execute('section.reverse', { address: Gene });
+    expect(axisOf(v, Gene).dir).toBe(-1);
+    expect(v.view.back()).toBe(true);
+    expect(windowOf(v, Gene)).toEqual([13, 18]);
+    await v.execute('section.collapse', { address: Gene });
+    expect(axisOf(v, Gene).pieces).toBe('coding');
+    expect(v.view.forward()).toBe(true);
+    expect(windowOf(v, Gene)).toEqual([3, 6]);
+    expect(v.view.back()).toBe(true);
+    expect(windowOf(v, Gene)).toEqual([13, 18]);
+  });
+
   it('back and forward across a reverse patch and a collapse patch land on the same positions', async () => {
     const v = await make();
     // a jump on the gene's leader: its window on the gene
@@ -164,8 +187,24 @@ describe('hits on a reversed collapsed axis with a residue row', () => {
     const r = await v.execute('cursor.next', { section: Gene });
     expect(v.selection.cursor.value?.position).toBe(6);
     expect(r).toContain('crossed a break, 5 positions hidden');
-    // a drag's position reader agrees with the axis
-    expect(elementAt(axisOf(v, Gene), 7)).toBe(6);
+  });
+
+  it('a drag through the input on the reversed collapsed bases selects what it crossed, in display order', async () => {
+    const v = await make({ pieces: 'coding' });
+    v.draw();
+    const sec = v.frame!.layout.sections[1];
+    const axis = sec.axis!;
+    const box = sec.tracks[1].box;
+    const at = (p: number) => {
+      axis.cell(p);
+      return (axis.sx0 + axis.sx1) / 2;
+    };
+    // from 13 to 5 on screen: 13, 12, then across the break 6, 5
+    expect(v.input.down(at(13), box.y + 2)).toBe(true);
+    v.input.move(at(5), box.y + 2);
+    v.input.up();
+    const parts = v.selection.value.value.location.parts.map((p) => [p.system, [...p.ranges]]);
+    expect(parts).toEqual([['/data/g', [5, 7, 12, 14]]]);
   });
 
   it('a break is its own hit target near its notch; a focus into a hidden stretch moves to its break and says so', async () => {
@@ -180,5 +219,12 @@ describe('hits on a reversed collapsed axis with a residue row', () => {
     // the gene leads here: a focus on an intronic position
     const out = v.addresses.focus('/data/g/(range :from 8 :to 10)', { section: Gene });
     expect(out.message).toContain('hidden by collapsed introns');
+  });
+
+  it('a focus outside the section’s range is not said to be hidden by introns', async () => {
+    const v = await make({ range: [10, 25], lead: true });
+    const out = v.addresses.focus('/data/g/(range :from 2 :to 4)', { section: Gene });
+    expect(out.message).not.toContain('hidden by collapsed introns');
+    expect(v.addresses.movedToBreak).toBe(false);
   });
 });

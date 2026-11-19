@@ -10,6 +10,8 @@
 // `s + (u − o)`. A break is where two pieces leave positions hidden between them: zero units wide. Lookups are a binary
 // search over the pieces' first offsets, kept per pieces array (made once, nothing allocated after).
 
+import { hash2, hashFnv32a } from '@molstar/core/data/util/hash-functions';
+
 /** The axis's shape these read: its pieces in display order, its direction, its system's length and cyclic flag. */
 export interface AxisShape {
   readonly ranges?: readonly number[];
@@ -146,15 +148,22 @@ export function pieceOfPosition(r: readonly number[], dir: 1 | -1, p: number, ed
   return -1;
 }
 
-const Monotonic = new WeakMap<readonly number[], boolean>();
+/** By pieces array, for each direction: index 0 forward, 1 reversed. */
+const Monotonic = new WeakMap<readonly number[], [boolean | undefined, boolean | undefined]>();
 
-/** Whether the pieces run one way in display order (genomic order forward, its reverse backward): kept per array. */
+/**
+ * Whether the pieces run one way in display order (genomic order forward, its reverse backward): kept per array and
+ * direction.
+ */
 export function monotonic(r: readonly number[], dir: 1 | -1): boolean {
-  let m = Monotonic.get(r);
+  let kept = Monotonic.get(r);
+  if (!kept) Monotonic.set(r, (kept = [undefined, undefined]));
+  const k = dir === 1 ? 0 : 1;
+  let m = kept[k];
   if (m === undefined) {
     m = true;
     for (let i = 2; i + 1 < r.length; i += 2) if (dir === 1 ? r[i] < r[i - 1] : r[i + 1] > r[i - 2]) m = false;
-    Monotonic.set(r, m);
+    kept[k] = m;
   }
   return m;
 }
@@ -245,7 +254,24 @@ export function axesEqual(a: AxisShape & { readonly system: string }, b: AxisSha
 
 /** A key equal for equal axes: the scroll group of sections on them (EC-113): system, length, pieces and direction. */
 export function axisKey(axis: AxisShape & { readonly system: string }): string {
-  return `${axis.system}|${axis.length ?? '?'}|${axis.dir}|${axis.ranges?.join(',') ?? '?'}`;
+  return `${axis.system}|${axis.length ?? '?'}|${axis.dir}|${axis.ranges ? piecesKey(axis.ranges) : '?'}`;
+}
+
+const PiecesKeys = new WeakMap<readonly number[], string>();
+
+/**
+ * The pieces' key: their count, ends and two 32-bit hashes, short whatever their number (a history step keeps one;
+ * 150,000 pieces joined would be megabytes a step). Kept per array.
+ */
+function piecesKey(r: readonly number[]): string {
+  let k = PiecesKeys.get(r);
+  if (k === undefined) {
+    let h = 0;
+    for (let i = 0; i < r.length; i++) h = hash2(h, r[i]);
+    k = `${r.length}:${r[0] ?? ''}:${r[r.length - 1] ?? ''}:${hashFnv32a(r).toString(36)}:${(h >>> 0).toString(36)}`;
+    PiecesKeys.set(r, k);
+  }
+  return k;
 }
 
 /**

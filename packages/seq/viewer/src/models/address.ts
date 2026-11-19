@@ -36,7 +36,7 @@ import {
 } from '@molstar/seqx-core/query';
 import { overlayQueryModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
-import { nearestOffsetOf, positionAt } from './axis.js';
+import { breakHolding, nearestOffsetOf, positionAt } from './axis.js';
 import type { HoverModel } from './hover.js';
 import { type Emphasized, type HighlightModel, isNothing, type SelectionModel } from './selection.js';
 import type { EditOptions, EditOutcome, SpecModel } from './spec.js';
@@ -453,8 +453,9 @@ export class AddressModel extends ReactiveModel {
         if (x !== y) wide = true;
       }
       const v = this.view.get(s.address);
-      if (!wide && axis.ranges) {
-        // wholly hidden: to its break, centered, the zoom kept
+      // wholly hidden by a break: to its break, centered, the zoom kept; outside the section's range is not hidden by a
+      // break (the focus as before: what the view can show of it)
+      if (!wide && axis.ranges && breakHolding(axis, part.ranges[0]) >= 0) {
         hidden = true;
         moved = (v && !v.pending ? this.view.pan(s.address, a - (v.start + v.end) / 2) : false) || moved;
         done.add(s.address);

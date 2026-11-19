@@ -220,6 +220,21 @@ describe('resolved view: cyclic sections', () => {
     expect(followRange(v.sections[1], [1, 5], { arc: 'hull' })).toEqual([0, 10]);
   });
 
+  it('a reversed cyclic follower takes its arc in its own display order: the piece below the origin first', () => {
+    const c = createSeqSpec();
+    const a = c.data.sequence('a', { alphabet: 'dna', letters: 'ACGTAC' });
+    const pl = c.data.sequence('plasmid', { alphabet: 'dna', letters: 'ACGTACGTAC', cyclic: true });
+    c.data.map('m', { from: a, to: pl, method: 'offset', by: 7 });
+    c.views.view('v', (view) => {
+      const lead = view.section('a', { of: a });
+      view.section('pl', { of: pl, range: [8, 2], follow: lead, direction: 'reversed' });
+    });
+    const f = resolveView(resolveSpec(c.build()), '/views/v')!.sections[1];
+    expect(f.axis.ranges).toEqual([0, 2, 8, 10]);
+    expect(followRange(f, [1, 5])).toEqual([0, 2, 8, 10]);
+    expect(followRange(f, [0, 2])).toEqual([7, 9]);
+  });
+
   it('a leader range over its cyclic origin is split before it is carried', () => {
     const c = createSeqSpec();
     const pl = c.data.sequence('plasmid', { alphabet: 'dna', letters: 'ACGTACGTAC', cyclic: true });

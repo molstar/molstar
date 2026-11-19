@@ -25,6 +25,7 @@ import {
   codingRanges,
   identityPath,
   inversePath,
+  type MapEntry,
   type Path,
   pathDir,
   pathDirection,
@@ -366,10 +367,15 @@ function resolveDirection(
 }
 
 /** The path from what a section reads along (a system, or a map: its own linear part) to the section's system. */
+/** A map's own path, from its `from` to its `to`. */
+function mapPath(map: MapEntry): Path {
+  return { from: map.from, to: map.to, step: map.step, linear: map.linear, edges: [] };
+}
+
 function pathAlong(model: StaticModel, ref: string, system: string): Path | undefined {
   const map = model.maps.get(ref);
   if (map) {
-    const forward: Path = { from: map.from, to: map.to, step: map.step, linear: map.linear, edges: [] };
+    const forward = mapPath(map);
     if (map.to === system) return forward;
     if (map.from === system) return inversePath(forward);
     return model.path(map.from, system).path;
@@ -397,13 +403,20 @@ function axisOf(
   const pieces = sectionPieces(model, written, system, followPath, alongPath);
   const form = written === undefined ? 'whole' : Array.isArray(written) ? written.join(',') : String(written);
   if (pieces === 'none') report('seq.view.section.pieces', 'The section’s pieces reach no piece of its system', at);
+  if (pieces === 'ambiguous')
+    report(
+      'seq.view.section.pieces',
+      'The section’s coding pieces are ambiguous: more than one codon map reaches its system (name one)',
+      at,
+    );
   const base = { system, ...(length !== undefined ? { length } : {}), cyclic, dir };
-  if (!Array.isArray(pieces)) {
+  const wholeAxis = (): Axis => {
     const whole = { ...base, pieces: 'whole' };
     // a range that wraps the origin waits for the length, as the whole system does
     if (r && (r[0] <= r[1] || !cyclic)) return { ...whole, ranges: wholePieces(0, r, dir, cyclic) };
     return length === undefined ? whole : { ...whole, ranges: wholePieces(length, r, dir, cyclic) };
-  }
+  };
+  if (!Array.isArray(pieces)) return wholeAxis();
   const pad = param(node, 'pad');
   const padded = typeof pad === 'number' && pad > 0 ? padPieces(pieces, pad, length) : pieces;
   // within the range, in its display order (forward), then turned for a reversed axis
@@ -415,13 +428,19 @@ function axisOf(
       const b = Math.min(frame[i + 1], padded[j + 1]);
       if (b > a) within.push(a, b);
     }
+  // pieces that miss the range show the range: an axis of no pieces would wait for ever
+  if (!within.length) {
+    report('seq.view.section.pieces', 'The section’s pieces are all outside its range', at);
+    return wholeAxis();
+  }
   return { ...base, pieces: form, ranges: dir === -1 ? reversePieces(within) : within };
 }
 
 /**
  * A section's `pieces` as genomic pieces (sorted, merged): `whole` (none here: the system or its range), `coding` (the
- * follow path's coding runs, else those of the path it reads along), a ranges node's items on its system or a codon
- * map's coding runs on it, or a list of them (their union). `none` when what is named reaches no piece.
+ * follow path's coding runs, else those of the path it reads along, else the one codon map onto its system:
+ * `ambiguous` when there are more), a ranges node's items on its system or a codon map's coding runs on it, or a list of
+ * them (their union). `none` when what is named reaches no piece.
  */
 function sectionPieces(
   model: StaticModel,
@@ -429,11 +448,21 @@ function sectionPieces(
   system: string,
   followPath: Path | undefined,
   alongPath: Path | undefined,
-): number[] | 'whole' | 'none' {
+): number[] | 'whole' | 'none' | 'ambiguous' {
   if (written === undefined || written === 'whole') return 'whole';
   const out: number[] = [];
   if (written === 'coding') {
-    const p = followPath?.step ? followPath : alongPath?.step ? alongPath : undefined;
+    let p = followPath?.step ? followPath : alongPath?.step ? alongPath : undefined;
+    if (!p) {
+      // the writer asked for the coding pieces: the one codon map onto the system names them
+      let only: MapEntry | undefined;
+      for (const m of model.maps.values()) {
+        if (m.kind !== 'codon' || m.to !== system) continue;
+        if (only) return 'ambiguous';
+        only = m;
+      }
+      if (only) p = mapPath(only);
+    }
     const c = p && codingRanges(p);
     return c?.length ? c : 'none';
   }
@@ -443,7 +472,7 @@ function sectionPieces(
     const map = model.maps.get(a);
     const ann = model.annotations.get(a);
     if (map?.kind === 'codon' && map.to === system) {
-      const c = codingRanges({ from: map.from, to: map.to, step: map.step, linear: map.linear, edges: [] });
+      const c = codingRanges(mapPath(map));
       if (!c) return 'none';
       out.push(...c);
     } else if (ann?.shape === 'ranges' && ann.target === system && ann.items) {
@@ -645,8 +674,8 @@ export function followWindow(
 /**
  * A follower's range from its leader's, both as `[start, end, …]` pieces in display order (an axis's shape). A leader
  * piece that wraps its cyclic origin (`start > end`) is split on it first. The image's hull, or on a cyclic follower
- * the shortest arc that holds it (EC-12), as two pieces when it wraps; `arc: 'hull'` takes the hull there too.
- * Undefined when nothing maps.
+ * the shortest arc that holds it (EC-12), as two pieces when it wraps (in the follower's display order: on a reversed
+ * axis the piece below the origin first); `arc: 'hull'` takes the hull there too. Undefined when nothing maps.
  */
 export function followRange(
   section: ResolvedSection,
@@ -678,5 +707,5 @@ export function followRange(
       arc = [image[i], length, 0, image[i - 1]];
     }
   }
-  return arc;
+  return arc.length === 4 && section.axis.dir === -1 ? [arc[2], arc[3], arc[0], arc[1]] : arc;
 }

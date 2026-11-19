@@ -14,22 +14,29 @@ import { resolveSpec } from '../../resolve/model.js';
 import {
   type AxisShape,
   axisBreaks,
+  axisKey,
   axisTotal,
   breakHolding,
   cellOffset,
   elementAt,
+  monotonic,
   offsetOf,
   positionAt,
 } from '../axis.js';
 import { resolveView } from '../view.js';
 
 // a protein of 4 residues on a 30-nucleotide gene, exons [2, 7) and [12, 19) (12 nucleotides), on a strand
-function spec(gene: Record<string, unknown> = {}, strand: '+' | '-' = '-', options: { layer?: boolean } = {}) {
+function spec(
+  gene: Record<string, unknown> = {},
+  strand: '+' | '-' = '-',
+  options: { layer?: boolean; second?: boolean } = {},
+) {
   const b = createSeqSpec();
   const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
   const g = b.data.sequence('g', { alphabet: 'dna', letters: 'ACGTAC'.repeat(5) });
   const other = b.data.sequence('other', { alphabet: 'dna', letters: 'ACGT' });
   b.data.map('m', { from: p, to: g, method: 'codon', exons: { start: [2, 12], end: [7, 19] }, strand });
+  if (options.second) b.data.map('m2', { from: p, to: g, method: 'codon', exons: { start: [0], end: [12] }, strand });
   b.data.ranges('exons', { target: g, rows: { start: [2, 12], end: [7, 19] } });
   b.data.ranges('far', { target: other, rows: { start: [0], end: [2] } });
   b.views.view('v', (v) => {
@@ -43,7 +50,11 @@ function spec(gene: Record<string, unknown> = {}, strand: '+' | '-' = '-', optio
   return b.build();
 }
 
-function gene(params: Record<string, unknown>, strand: '+' | '-' = '-', options: { layer?: boolean } = {}) {
+function gene(
+  params: Record<string, unknown>,
+  strand: '+' | '-' = '-',
+  options: { layer?: boolean; second?: boolean } = {},
+) {
   const view = resolveView(resolveSpec(spec(params, strand, options)), '/views/v')!;
   return { axis: view.sections[1].axis, issues: view.issues.map((i) => i.code) };
 }
@@ -110,11 +121,33 @@ describe('a section’s pieces', () => {
   });
 
   it('reports pieces that reach nothing, and shows whole', () => {
-    expect(gene({ pieces: 'coding' })).toMatchObject({
+    expect(gene({ pieces: '/data/far' })).toMatchObject({
       axis: { pieces: 'whole', ranges: [0, 30] },
       issues: ['seq.view.section.pieces'],
     });
-    expect(gene({ pieces: '/data/far' }).issues).toEqual(['seq.view.section.pieces']);
+  });
+
+  it('`coding` on a section that neither follows nor reads along: the one codon map onto its system', () => {
+    expect(gene({ pieces: 'coding' })).toMatchObject({
+      axis: { pieces: 'coding', ranges: [2, 7, 12, 19] },
+      issues: [],
+    });
+    expect(gene({ pieces: 'coding', direction: 'reversed' }).axis.ranges).toEqual([12, 19, 2, 7]);
+    // two codon maps onto it and none named: ambiguous, whole
+    expect(gene({ pieces: 'coding' }, '-', { second: true })).toMatchObject({
+      axis: { pieces: 'whole', ranges: [0, 30] },
+      issues: ['seq.view.section.pieces'],
+    });
+    // the one named still decides
+    expect(gene({ pieces: '/data/m' }, '-', { second: true }).axis.ranges).toEqual([2, 7, 12, 19]);
+  });
+
+  it('pieces all outside the range: reported, the range shown (never an axis waiting for pieces)', () => {
+    expect(gene({ pieces: '/data/exons', range: [20, 30] })).toMatchObject({
+      axis: { pieces: 'whole', ranges: [20, 30] },
+      issues: ['seq.view.section.pieces'],
+    });
+    expect(gene({ pieces: '/data/exons', range: [4, 14] }).axis.ranges).toEqual([4, 7, 12, 14]);
   });
 
   it('has its breaks with their hidden ranges, in display order', () => {
@@ -210,3 +243,24 @@ function reverse(pieces: readonly number[]): number[] {
   for (let i = pieces.length - 2; i >= 0; i -= 2) out.push(pieces[i], pieces[i + 1]);
   return out;
 }
+
+describe('an axis’s keys', () => {
+  it('a history step’s key is short however many pieces, and tells pieces apart', () => {
+    const many = Array.from({ length: 300_000 }, (_, i) => 2 * (i >> 1) + (i & 1) + (i >> 1));
+    const key = axisKey({ system: '/s', ranges: many, dir: -1, length: 450_000, cyclic: false });
+    expect(key.length).toBeLessThan(100);
+    const moved = many.slice();
+    moved[150_001] += 1;
+    expect(axisKey({ system: '/s', ranges: moved, dir: -1, length: 450_000, cyclic: false })).not.toBe(key);
+    expect(axisKey({ system: '/s', ranges: many.slice(), dir: -1, length: 450_000, cyclic: false })).toBe(key);
+  });
+
+  it('whether pieces run one way is kept per direction: one array asked both ways', () => {
+    const r = [0, 2, 4, 6];
+    expect(monotonic(r, 1)).toBe(true);
+    expect(monotonic(r, -1)).toBe(false);
+    const back = [4, 6, 0, 2];
+    expect(monotonic(back, -1)).toBe(true);
+    expect(monotonic(back, 1)).toBe(false);
+  });
+});
