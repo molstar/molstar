@@ -410,7 +410,7 @@ and dark before the merge.
       drafted (`briefs/sd-structure-syncing.md`).
 - [x] MF (merged; fast; the author, 2026-11-19: "annotation for multiple sequences in a same file") a Files story of one
       file, several sequences (`briefs/mf-many-sequences-file.md`).
-- [ ] PZ (strong, after CF and MV; the author, 2026-11-19: the PAE plot's navigation and its chain boundaries) a
+- [x] PZ (merged 323060146; strong, after CF and MV; the author, 2026-11-19: the PAE plot's navigation and its chain boundaries) a
       plot's fixed box, double-click zooms a step, the wheel the plot's, boundaries as gaps (`briefs/pz-plot-navigation.md`).
 - [x] LP (merged 099493fb3; started on c184dfefc; strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
       (`briefs/lp-linked-pairs.md`).

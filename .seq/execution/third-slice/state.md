@@ -469,3 +469,8 @@ None.
   Reverse track reserves a label lane it does not fill (to the use gate's look). SP's gaps decided (the draft's
   "Decided" section). XD's draft in, nine gaps for the author. DS reported (ring groups not opened on hover or zoom:
   a question): under review.
+- PZ merged (323060146, reviewed: nothing serious; checks on the merged head: 2427 quick, 110 medium). Small
+  follow-up PF (fast): a double-click in a gap between a grid's blocks zooms about the point (grids-and-rows.md, added
+  after PZ's base); the wheel taken over the plot's data box only, not its labels; the x section's block row snapped as
+  the grid's so columns align. XD's gaps decided (gap 2: namespaced keys, no `custom`); the viewer's four API
+  additions accepted; SP and XD being promoted.
