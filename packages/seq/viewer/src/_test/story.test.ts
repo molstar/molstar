@@ -441,6 +441,14 @@ describe('reduced motion', () => {
     w.clock.runAll(16);
   });
 
+  it('a legacy `view.motion: auto` reads as `platform`: a cut under reduced motion', async () => {
+    const { v } = await make([[viewerItem('view.motion'), 'auto']]);
+    expect(v.config.view.motion).toBe('platform');
+    v.reducedMotion = true;
+    v.playStep('tall');
+    expect(v.moving).toBe(false);
+  });
+
   it('`story.reducedMotion` is no item: one item, `view.motion`', () => {
     expect('reducedMotion' in DefaultViewerConfig.story).toBe(false);
     expect(DefaultViewerConfig.view.motion).toBe('platform');

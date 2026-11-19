@@ -324,6 +324,9 @@ export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig
   // the view's keys merge by command id: an override of one command's keys keeps the others' (`[]` removes them)
   const keys = over.view?.keys;
   if (keys) (out.view as { keys: unknown }).keys = { ...DefaultViewerConfig.view.keys, ...keys };
+  // `view.motion: 'auto'`, the earlier spelling of `platform` (before one item decided jumps and stories), reads as it
+  const view = out.view as { motion: string };
+  if (view.motion === 'auto') view.motion = 'platform';
   return out as unknown as ViewerConfig;
 }
 

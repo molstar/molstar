@@ -205,7 +205,10 @@ export class SeqViewer extends ReactiveModel {
   private readonly _animation: SeqAnimation;
   /** The participant face of the animation port: what the application's clock drives. */
   readonly animation: SeqAnimationParticipant;
-  /** The platform asks for reduced motion (the mounted UI's media query): every jump is a cut. */
+  /**
+   * The platform asks for reduced motion (the mounted UI's media query): under `view.motion: platform` every jump and
+   * story step is a cut.
+   */
   reducedMotion = false;
   private _backend: CanvasBackend | undefined;
   private _renderer: Renderer | undefined;
