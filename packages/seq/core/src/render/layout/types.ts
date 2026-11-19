@@ -10,6 +10,7 @@
 // the viewer's navigation is the layout's arithmetic (`SectionNav`). Internal: no application implements one yet.
 
 import type { Issue } from '@molstar/core/repr/tree';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
@@ -78,6 +79,8 @@ export interface PlaceContext {
   readonly config: RenderConfig;
   readonly tokens: SeqTokens;
   readonly text: TextMetrics;
+  /** The view's model (its systems' numberings: a text's numbers). */
+  readonly model?: StaticModel;
   /** The section's region: its x and width (the data box's, past the label column), its top, the page below it. */
   readonly box: Box;
   /** The section's transform over its window (its pieces, its direction, the viewport or a leader's image). */

@@ -9,6 +9,7 @@
 // the data across a line break, a reflow holding the anchor's line, an export drawing every line, the navigation's
 // arithmetic, the Canvas2D and SVG lists the same lists, too many lines said.
 
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import {
@@ -130,6 +131,21 @@ describe('the text layout', () => {
       .join('');
     expect(letters).toBe(P53);
     expect(r.lists.height).toBeGreaterThan(300);
+  });
+
+  it('the numbers print a layer’s numbering (a ruler’s `numbering`), else ordinals', async () => {
+    const b = createSeqSpec({ title: 'numbered' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: P53 });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      const sec = v.section('protein', { of: p });
+      sec.track('letters').layer('letters', { type: 'letters' });
+      sec.track('ruler').layer('ruler', { type: 'ruler', numbering: 'index' });
+    });
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size });
+    const t = text(f.layout.sections[0]);
+    const starts = t.marks.filter((m) => m.anchor === 2).map((m) => m.text);
+    expect(starts.slice(0, 2)).toEqual(['0', String(t.geometry!.unitsPerLine)]);
   });
 
   it('too many lines are said, and the lines past the bound are not laid out', async () => {

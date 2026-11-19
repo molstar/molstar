@@ -13,6 +13,8 @@
 // `text.maxHeight` and scrolls inside its box; an export lays out every line (`figure`).
 
 import { issueOf, type Value } from '@molstar/core/repr/tree';
+import { DefaultNumbering, findNumbering, type NumberingOf } from '@molstar/seqx-core/query';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
@@ -231,10 +233,27 @@ function lineAxis(base: AxisTransform, g: TextGeometry, u0: number, u1: number):
   );
 }
 
-/** A display unit's 1-based ordinal on the section's system, as a number's text. */
-function numberAt(a: AxisTransform, u: number): string {
+/**
+ * The numbering a text's numbers print (_spec/README.md "Render", Text layout): the first of its layers that names one
+ * (`numbering`, as a ruler does), on the section's system; `ordinal` when none does or the system has none of that id.
+ */
+export function textNumbering(section: ResolvedSection, model: StaticModel | undefined): NumberingOf | undefined {
+  if (!model) return undefined;
+  for (const t of section.tracks)
+    for (const l of t.layers) {
+      const id = l.params.numbering;
+      if (typeof id !== 'string' || !id || id === DefaultNumbering) continue;
+      const system = model.system(section.axis.system);
+      return system ? findNumbering(system, id) : undefined;
+    }
+  return undefined;
+}
+
+/** A display unit's label in a numbering (its 1-based ordinal by default), as a number's text. */
+function numberAt(a: AxisTransform, u: number, n: NumberingOf | undefined): string {
   const p = a.elementAtUnit(u);
-  return p < 0 ? '' : String(p + 1);
+  if (p < 0) return '';
+  return n ? (n.numbering.labelAt(p - n.shift) ?? '') : String(p + 1);
 }
 
 export const TextLayout: SectionLayoutType<TextPlacement> = {
@@ -255,6 +274,8 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
           hint: RenderIssues.codes['seq.render.text.lines'].hint,
         }),
       );
+    // the numbers' labels: a layer's numbering, else ordinals
+    const numbering = textNumbering(section, ctx.model);
     const strips = p.strips;
     const nb = ctx.bands.length;
     strips.reset(nb);
@@ -313,18 +334,18 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       const k = strips.bandH[k0] > 0 ? k0 : k0 + firstShown(strips.bandH, k0, nb);
       const baseline = strips.bandY[k] + strips.bandH[k] / 2 + labelSize * 0.35;
       if (params.numbers === 'start' || params.numbers === 'both') {
-        const s = numberAt(a, u0);
+        const s = numberAt(a, u0, numbering);
         marks.push(mark(i, s, a.x0 - config.text.numberGap, baseline, AnchorEnd, g.numberFont, ctx.text));
       }
       if (params.numbers === 'end' || params.numbers === 'both') {
-        const s = numberAt(a, u1 - 1);
+        const s = numberAt(a, u1 - 1, numbering);
         marks.push(mark(i, s, a.x0 + a.width + config.text.numberGap, baseline, AnchorStart, g.numberFont, ctx.text));
       }
       // a number a group: above its last position, or inline in the gap after it (groups start at a line's start)
       if (g.group > 0 && params.groupLabels !== 'none')
         for (let e = u0 + g.group; e <= u1; e += g.group) {
           if (!a.cell(a.elementAtUnit(e - 1))) continue;
-          const s = numberAt(a, e - 1);
+          const s = numberAt(a, e - 1, numbering);
           if (params.groupLabels === 'above')
             marks.push(mark(i, s, (a.sx0 + a.sx1) / 2, g.labelRow - 2, AnchorMiddle, config.itemFont, ctx.text));
           else if (e < u1) marks.push(mark(i, s, a.sx1 + g.gap / 2, baseline, AnchorMiddle, config.itemFont, ctx.text));

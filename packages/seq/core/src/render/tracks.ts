@@ -891,6 +891,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         config,
         tokens: input.tokens,
         text: input.text,
+        model: input.model,
         box: sectionBox,
         axis,
         bands: shown,
