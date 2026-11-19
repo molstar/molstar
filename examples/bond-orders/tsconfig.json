@@ -16,6 +16,9 @@
       "path": "../../packages/core"
     },
     {
+      "path": "../../packages/graphics"
+    },
+    {
       "path": "../../packages/plugin/core"
     },
     {

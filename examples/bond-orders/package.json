@@ -16,6 +16,7 @@
   "dependencies": {
     "@molstar/bond-orders-extension": "workspace:*",
     "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/prism-viewer": "workspace:*",
     "tslib": "catalog:"

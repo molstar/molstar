@@ -5,6 +5,11 @@
  */
 
 import { Asset } from '@molstar/core/util/assets';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import {
+  BallAndStickParams,
+  BallAndStickRepresentationProvider,
+} from '@molstar/graphics/repr/structure/representation/ball-and-stick';
 import { createPrismViewer } from '@molstar/prism-viewer/page';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { BondOrdersViewerSpec } from './spec.js';
@@ -25,6 +30,10 @@ const Choices: Record<string, { provider: string; params?: Record<string, unknow
   auto: { provider: 'bond-order-perception', params: { mode: 'auto' } },
   forceCompute: { provider: 'bond-order-perception', params: { mode: 'forceCompute' } },
 };
+
+// Hack to force kekule mode by default on all representations.
+BallAndStickParams.aromaticBonds = PD.Boolean(false, { description: BallAndStickParams.aromaticBonds.description });
+(BallAndStickRepresentationProvider.defaultValues as { aromaticBonds: boolean }).aromaticBonds = false;
 
 async function main() {
   const status = element<HTMLElement>('#status');
@@ -48,8 +57,9 @@ async function main() {
           { state: { isGhost: true } },
         );
         const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+        // polymers as cartoon, ligands as ball-and-stick
         await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
-          representationPreset: 'ball-and-stick' as never,
+          representationPreset: 'polymer-and-ligand' as never,
         });
       });
       status.textContent = `${pdbId}: the default bonds. Perceive the bond orders with the buttons or the structure's Bonds field.`;

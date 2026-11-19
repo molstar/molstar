@@ -1359,6 +1359,9 @@ importers:
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../packages/graphics
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
