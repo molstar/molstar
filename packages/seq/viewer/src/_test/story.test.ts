@@ -15,7 +15,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { sample, stripStory } from '@molstar/seqx-core/story';
 import { afterEach, describe, expect, it } from 'vitest';
 import { headlessAnimation } from '../animation.js';
-import { viewerItem } from '../config.js';
+import { DefaultViewerConfig, viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 
@@ -424,14 +424,26 @@ describe('reduced motion', () => {
     expect(v.animation.durationOf(plan!)).toBe(0);
   });
 
-  it('`story.reducedMotion: never` animates a story under the platform’s reduced motion, never a jump', async () => {
-    const { v, clock } = await make([[viewerItem('story.reducedMotion'), 'never']]);
+  it('`view.motion` decides for stories as for jumps: `platform` cuts both under reduced motion, `animate` neither', async () => {
+    const { v } = await make();
     v.reducedMotion = true;
     v.view.jump(() => v.view.setRange(Protein, 20, 30));
     expect(v.moving).toBe(false);
     v.playStep('tall');
-    expect(v.moving).toBe(true);
-    clock.runAll(16);
+    expect(v.moving).toBe(false);
+    const w = await make([[viewerItem('view.motion'), 'animate']]);
+    w.v.reducedMotion = true;
+    w.v.view.jump(() => w.v.view.setRange(Protein, 20, 30));
+    expect(w.v.moving).toBe(true);
+    w.clock.runAll(16);
+    w.v.playStep('tall');
+    expect(w.v.moving).toBe(true);
+    w.clock.runAll(16);
+  });
+
+  it('`story.reducedMotion` is no item: one item, `view.motion`', () => {
+    expect('reducedMotion' in DefaultViewerConfig.story).toBe(false);
+    expect(DefaultViewerConfig.view.motion).toBe('platform');
   });
 });
 

@@ -124,10 +124,10 @@ export interface ViewerConfig {
     /** How long a jump (focus, fit, reveal, back, forward, a step zoom) animates, ms (240); 0: a cut. */
     readonly jumpMs: number;
     /**
-     * Whether jumps animate: `auto` (the default) unless the platform asks for reduced motion (then a cut), `cut`
-     * always a cut.
+     * Whether motion plays, for jumps and stories alike (one item): `platform` (the default) animates unless the
+     * platform asks for reduced motion (then a cut), `cut` always a cut, `animate` always animated.
      */
-    readonly motion: 'auto' | 'cut';
+    readonly motion: 'platform' | 'cut' | 'animate';
     /**
      * The keys of the view's commands, by command id: a chord is a key with `Shift+`, `Alt+`, `Mod+` (Cmd on macOS, Ctrl
      * elsewhere) before it; a printable key matches whatever Shift it needs (`+`). The first is the command's shortcut.
@@ -248,8 +248,7 @@ export interface ViewerConfig {
   };
   /**
    * Stories (the core's `StoryConfig`): a step's transition (`duration` 240 ms, `easing` ease in and out) unless the
-   * step says, its `linger` (2,000 ms), the view's path (`auto`), the color space (`oklab`), the cut (0.5), reduced
-   * motion (`platform`: the viewer's `reducedMotion`; `always`, `never`), the start of a step (`spec`), the encoder's
+   * step says, its `linger` (2,000 ms), the view's path (`auto`), the color space (`oklab`), the cut (0.5), the start of a step (`spec`), the encoder's
    * form (`patch`) and its chain (8).
    */
   readonly story: StoryConfig;
@@ -279,7 +278,7 @@ export const DefaultViewerConfig: ViewerConfig = {
     historyLimit: 50,
     backOnFocused: true,
     jumpMs: 240,
-    motion: 'auto',
+    motion: 'platform',
     keys: {
       'view.back': ['Alt+ArrowLeft', 'Backspace'],
       'view.forward': ['Alt+ArrowRight'],

@@ -307,7 +307,6 @@ const planConfig = {
   view: { path: 'auto' as const },
   color: { space: 'oklab' as const },
   cut: { at: 0.5 },
-  reducedMotion: 'platform' as const,
   stepStart: 'spec' as const,
   store: 'patch' as const,
   maxChain: 8,

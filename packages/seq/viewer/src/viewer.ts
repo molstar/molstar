@@ -586,16 +586,13 @@ export class SeqViewer extends ReactiveModel {
     });
   }
 
-  /** Whether a jump is a cut: the platform's reduced motion, `view.motion: cut`. */
+  /**
+   * Whether a motion, a jump's or a story's, is a cut: `view.motion` (`cut`; `platform`: the platform's reduced motion;
+   * `animate`: never), one item for both (_spec/README.md, Configuration).
+   */
   private get _cut(): boolean {
-    return this.config.view.motion === 'cut' || this.reducedMotion;
-  }
-
-  /** Whether a story's motion is a cut: `story.reducedMotion` (`platform`: as a jump; `always`, `never`). */
-  private get _storyCut(): boolean {
-    const story = this.config.story.reducedMotion;
-    if (this.config.view.motion === 'cut' || story === 'always') return true;
-    return story === 'platform' && this.reducedMotion;
+    const motion = this.config.view.motion;
+    return motion === 'cut' || (motion === 'platform' && this.reducedMotion);
   }
 
   /** Each leading section's viewport in the model now (what a jump goes to), by address. */
@@ -788,10 +785,10 @@ export class SeqViewer extends ReactiveModel {
     const timing = st?.timing;
     const p = planTransition(from, to, {
       ...this._planOptions(),
-      reducedMotion: this._storyCut,
+      reducedMotion: this._cut,
       ...(timing ? { duration: timing.duration, easing: timing.easing } : {}),
     });
-    if (this._storyCut || !p.channels.length) {
+    if (this._cut || !p.channels.length) {
       this.schedule();
       return p;
     }
