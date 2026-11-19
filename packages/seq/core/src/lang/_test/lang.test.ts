@@ -14,6 +14,7 @@ import { createSeqSpec } from '../builder.js';
 import { checkSeqLang, checkSeqSpec } from '../check.js';
 import { LangIssues } from '../issues.js';
 import { SeqLanguage, SeqLanguageVersion } from '../language.js';
+import { theme } from '../theme-builder.js';
 import { EXONS, P53_LETTERS, p53Spec } from './p53.js';
 
 describe('the language', () => {
@@ -79,7 +80,33 @@ describe('the p53 example', () => {
 });
 
 /** One spec for each code of the catalog: valid for the description, wrong in the language's own way. */
+/** A ranges layer whose channel holds `value` (inline rows with a text `category`). */
+function themed(value: unknown, channel = 'color', scale = false): Node {
+  const b = createSeqSpec();
+  const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' });
+  const r = b.data.ranges('r', { target: s, rows: { start: [0], end: [2], category: ['a'] } });
+  if (scale) b.views.scale('sc');
+  b.views.view('v', (v) =>
+    v
+      .section('p', { of: s })
+      .track('t')
+      .layer('l', { type: 'ranges', data: r, [channel]: value as never }),
+  );
+  return b.build();
+}
+
 const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
+  'seq.lang.theme.form': () => themed(theme.continuous({ colors: 'viridis' })),
+  'seq.lang.theme.color': () => themed('reddish'),
+  'seq.lang.theme.channel': () => themed('#ff0000', 'size'),
+  'seq.lang.theme.type': () => themed(theme.rules([theme.rule([theme.eq('category', 3)], '#ff0000')])),
+  'seq.lang.theme.stops': () => themed(theme.field('start', { domain: [5, 1] })),
+  'seq.lang.theme.scale': () => themed(theme.field('start', { scale: '/views/none' }), 'color', true),
+  'seq.lang.theme.depth': () => {
+    let deep = theme.uniform('#ff0000');
+    for (let i = 0; i < 6; i++) deep = theme.rules([], deep);
+    return themed(deep);
+  },
   'seq.lang.version.unsupported': () => createSeqSpec({ version: '1.0.0' }).build(),
   'seq.lang.id.required': () => ({
     kind: 'spec',

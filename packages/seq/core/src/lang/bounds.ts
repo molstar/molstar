@@ -27,6 +27,8 @@ export interface SpecBounds {
   readonly maxNodeIssues: number;
   /** Places listed a code, the first ones: 10. */
   readonly maxPlaces: number;
+  /** Levels of nested theme forms in a channel slot (a rule's value a form): 4 (`seq.lang.theme.depth`). */
+  readonly themeDepth: number;
 }
 
 export const DefaultSpecBounds: SpecBounds = {
@@ -36,6 +38,7 @@ export const DefaultSpecBounds: SpecBounds = {
   maxColumnLength: 0x7fffffff,
   maxNodeIssues: 100,
   maxPlaces: 10,
+  themeDepth: 4,
 };
 
 /** The defaults with `over` laid on them. */

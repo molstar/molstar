@@ -119,6 +119,44 @@ export const LangIssues = defineIssues('seq.lang', {
       'The range of a section ends before it starts on a sequence that is not cyclic, or runs past the inline letters of its system',
     hint: 'A range is [start, end) within the system',
   },
+  'seq.lang.theme.form': {
+    severity: 'error',
+    description:
+      'A channel slot holds a node that is no form (a palette, a clause or a measure where a form goes), or a palette or clause slot holds a form',
+    hint: 'A slot holds a string, a number, or a `uniform`, `field`, `rules`, `scheme` or `letters` form',
+  },
+  'seq.lang.theme.color': {
+    severity: 'error',
+    description: 'A color in a theme is no color: not `#rgb`/`#rrggbb`(aa), `token:<name>` or `light-dark(a, b)`',
+    hint: 'Write `#d62728`, `token:range` or `light-dark(#333333, #dddddd)`',
+  },
+  'seq.lang.theme.channel': {
+    severity: 'error',
+    description:
+      'A value not of the channel’s kind: a color in `size`, a number in `color`, a word the channel does not take',
+    hint: 'Color channels take colors, `size` and `opacity` numbers, `line`, `arrow` and `shape` their words',
+  },
+  'seq.lang.theme.type': {
+    severity: 'warning',
+    description:
+      'A clause compares across types (text with a number, or `<` with text): it never holds. Text compares with text, numbers with numbers',
+    hint: 'Compare a number column with numbers, a text column with text',
+  },
+  'seq.lang.theme.stops': {
+    severity: 'error',
+    description: 'A palette’s edges or stops, or a domain’s ends, are out of order',
+    hint: 'Edges and stops ascend; a domain is `[low, high]`',
+  },
+  'seq.lang.theme.scale': {
+    severity: 'error',
+    description: 'A theme names a scale by an address that names no `scale` node',
+    hint: 'Name a scale under `views`, like /views/conservation',
+  },
+  'seq.lang.theme.depth': {
+    severity: 'error',
+    description: 'Theme forms nest past the bound (`SpecBounds.themeDepth`, 4)',
+    hint: 'Flatten the rules: a rule’s value a value, or one form',
+  },
   'seq.lang.section.follow': {
     severity: 'error',
     description: 'A section follows itself, directly or through other sections',

@@ -108,6 +108,11 @@ export interface Channel {
   readonly legend?: LegendSource;
   /** The scheme drawn (after substitution), when the form named one. */
   readonly scheme?: { readonly name: string; readonly substituted?: string };
+  /**
+   * The one field its value depends on, when its form is a `field` form: a layer may evaluate it once per value of a
+   * dictionary-coded column (a color per code, made once a tile) and read it per mark by the code.
+   */
+  readonly field?: string;
 }
 
 const MaxDepth = 4;
@@ -451,9 +456,15 @@ export function compileChannel(
     };
   };
 
-  const compiled = compile(body ?? fallback, 0, true);
+  const top = body ?? fallback;
+  const compiled = compile(top, 0, true);
+  const only =
+    isThemeNode(top) && top.kind === 'field' && param(top, 'data') === undefined
+      ? String(param(top, 'name') ?? 'value')
+      : undefined;
   return {
     name,
+    ...(only !== undefined ? { field: only } : {}),
     ...(compiled.constant !== undefined ? { constant: compiled.constant } : {}),
     at: compiled.at,
     open,

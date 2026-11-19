@@ -136,7 +136,8 @@ const residue = (name: keyof typeof ResidueSchemes, extra: Partial<SchemeEntry> 
     ...(s.alphabet === 'protein' && !s.cvdSafe ? { substitute: 'classes' } : {}),
     ...(s.alphabet === 'nucleotide' && !s.cvdSafe ? { substitute: 'nucleotide-cb' } : {}),
     provenance: s.provenance,
-    dark: 'derive',
+    // a safe scheme's colors were chosen apart: a derived variant would bring them together, so it keeps them
+    dark: s.cvdSafe ? 'same' : 'derive',
     expand: letters(
       s.colors,
       s.groups?.map((g) => group(g.letters, g.color, g.label)),

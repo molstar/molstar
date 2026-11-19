@@ -75,19 +75,27 @@ interface Kept {
   readonly version: number;
   readonly cvd: boolean;
   readonly domains: string;
+  /** What it said (compiling, and drawing since): said again in each layout that reads it. */
+  readonly said: [ThemeIssueCode, string][];
 }
 
 /** A layer's channels, compiled from its slots and kept while the tokens, the held domains and the reader agree. */
 export class LayerChannels {
   private readonly kept = new Map<ChannelName, Kept>();
+  /** The layout reading the channels now: what a channel says while drawing goes to it. */
+  private ctx: LayoutContext | undefined;
   constructor(readonly forms: Readonly<Partial<Record<ChannelName, unknown>>>) {}
 
   /** The channel `name` (its slot's body, else `fallback`, the layer type's default) for this layout. */
   get(name: ChannelName, fallback: ThemeBody, ctx: LayoutContext, extra: Partial<ThemeEnv> = {}): Channel {
+    this.ctx = ctx;
     const theme = ctx.theme;
     const k = this.kept.get(name);
-    if (k && k.version === ctx.tokens.version && k.cvd === theme.cvdSafe && k.domains === held(k.channel, theme))
+    if (k && k.version === ctx.tokens.version && k.cvd === theme.cvdSafe && k.domains === held(k.channel, theme)) {
+      for (const [code, message] of k.said) reportTheme(ctx, code, message);
       return k.channel;
+    }
+    const said: [ThemeIssueCode, string][] = [];
     const channel = compileChannel(name, this.forms[name] as ThemeBody | undefined, fallback, {
       tokens: ctx.tokens,
       schemes: theme.schemes,
@@ -96,10 +104,19 @@ export class LayerChannels {
       domain: (key) => theme.domain(key),
       cvdSafe: theme.cvdSafe,
       key: ctx.key,
-      report: (code, message) => reportTheme(ctx, code, message),
+      report: (code, message) => {
+        said.push([code, message]);
+        if (this.ctx) reportTheme(this.ctx, code, message);
+      },
       ...extra,
     });
-    this.kept.set(name, { channel, version: ctx.tokens.version, cvd: theme.cvdSafe, domains: held(channel, theme) });
+    this.kept.set(name, {
+      channel,
+      version: ctx.tokens.version,
+      cvd: theme.cvdSafe,
+      domains: held(channel, theme),
+      said,
+    });
     return channel;
   }
 }
@@ -132,14 +149,23 @@ export class RowDatum implements ThemeDatum {
     if (fields === this.fields) return;
     this.fields = fields;
     this.cols.clear();
+    this.lastName = '';
+    this.lastColumn = undefined;
   }
 
+  /** The last column read and its name: a channel reads one field a mark, so most reads hit it. */
+  private lastName = '';
+  private lastColumn: Column | undefined;
+
   column(name: string): Column | undefined {
+    if (name === this.lastName) return this.lastColumn;
     let c = this.cols.get(name);
     if (c === undefined && !this.cols.has(name)) {
       c = this.fields?.find((f) => f.name === name)?.column;
       this.cols.set(name, c);
     }
+    this.lastName = name;
+    this.lastColumn = c;
     return c;
   }
 
