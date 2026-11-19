@@ -17,6 +17,7 @@ import {
   PlacePoint,
   type RingPlacement,
   RingsNav,
+  type ValuesLay,
   type NavContext,
   recordDrawLists,
   drawListsToSvg,
@@ -29,7 +30,8 @@ import { FakeClock } from '../../data/_test/synthetic.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { settle } from './helpers.js';
 import { plasmidRingSpec, RingFeatures, RingLength, ringLetters, ringSpec } from './rings-fixtures.js';
-import { type ReadPath, readPaths, rng } from './small-helpers.js';
+import { BigRuntime, bigValue } from './fixtures.js';
+import { layerLay, type ReadPath, readPaths, rng } from './small-helpers.js';
 
 const Size = { width: 640, height: 900 };
 
@@ -345,6 +347,58 @@ describe('a plasmid’s labels', () => {
       }
     }
     expect(overlaps).toBe(0);
+  });
+});
+
+describe('a ring over tiles', () => {
+  function bigRing() {
+    const b = createSeqSpec({ title: 'big ring' });
+    const src = b.data.source('synthetic', { format: 'synthetic', uri: 'synthetic:chr' });
+    const chr = b.data.sequence('chr', { alphabet: 'dna', source: src });
+    const r = b.data.ranges('items', { target: chr, source: src });
+    const v = b.data.values('signal', { target: chr, source: src });
+    b.views.view('v', (view) => {
+      const s = view.section('ring', { of: chr, layout: 'rings', range: [0, 2500], labels: 'none' });
+      s.track('signal').layer('signal', { type: 'values', data: v });
+      s.track('items').layer('items', { type: 'ranges', data: r });
+    });
+    return b.build();
+  }
+
+  it('a column over a tile edge reduces both tiles’ data; an item over the edge is one item', async () => {
+    const s = await settle(bigRing(), [BigRuntime]);
+    const f = await s.frame({ size: Size });
+    const p = ringOf(f).placement as RingPlacement;
+    const lay = layerLay<ValuesLay>(f, 0);
+    const a = lay.axis;
+    // a column a few positions: reduced per angular column
+    expect(lay.n).toBeGreaterThan(100);
+    expect(lay.n).toBeLessThan(2500);
+    let edges = 0;
+    for (let j = 0; j < lay.n; j++) {
+      // every column read (no tile missing), its high the maximum of the positions it holds
+      expect(Number.isNaN(lay.v[j])).toBe(false);
+      const u0 = a.unitAt(lay.x0[j] + 1e-6);
+      const u1 = a.unitAt(lay.x1[j] - 1e-6);
+      if (!(Math.floor(u0) < 1024 && Math.ceil(u1) > 1024) && !(Math.floor(u0) < 2048 && Math.ceil(u1) > 2048))
+        continue;
+      edges++;
+      let inner = -Infinity;
+      let outer = -Infinity;
+      for (let q = Math.floor(u0); q <= Math.floor(u1); q++) outer = Math.max(outer, bigValue(q));
+      for (let q = Math.ceil(u0); q < Math.floor(u1); q++) inner = Math.max(inner, bigValue(q));
+      expect(lay.v[j]).toBeGreaterThanOrEqual(inner - 1e-6);
+      expect(lay.v[j]).toBeLessThanOrEqual(outer + 1e-6);
+    }
+    expect(edges).toBeGreaterThanOrEqual(2);
+    // `r1000` runs 1000 to 1070 over the edge at 1024: the same item either side of it
+    const band = p.strips.bandY[1] + 2;
+    const keyAt = (u: number) => {
+      p.warp.map(p.frameX(u + 0.5), band);
+      return hitAtPage(f, p.warp.px, p.warp.py)?.element?.key;
+    };
+    expect(String(keyAt(1010))).toBe('r1000');
+    expect(String(keyAt(1040))).toBe('r1000');
   });
 });
 
