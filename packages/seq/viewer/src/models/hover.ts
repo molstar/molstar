@@ -12,7 +12,7 @@
 
 import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
-import { type ElementKey, EmptyLocation, type Location, location, rangesLocation } from '@molstar/seqx-core/query';
+import { type ElementKey, EmptyLocation, type Location, location } from '@molstar/seqx-core/query';
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -165,16 +165,23 @@ export class HoverModel extends ReactiveModel {
     return true;
   }
 
-  /** The hover's own Location: the element's extent, else its position; undefined when nothing is hovered. */
+  /**
+   * The hover's own Location: the element's extent, else its position, and its position on a second axis (a grid's
+   * cell lights both: the crosshair's two positions on their sections); undefined when nothing is hovered.
+   */
   location(): Location | undefined {
     this._fresh();
     if (this._location === undefined && this._record.owner !== undefined) {
       const r = this._record;
-      this._location =
-        r.extent ??
-        (Number.isNaN(r.position) || r.system === undefined
-          ? EmptyLocation
-          : rangesLocation(r.system, [Math.floor(r.position), Math.floor(r.position) + 1]));
+      if (r.extent) this._location = r.extent;
+      else {
+        const parts: { system: string; ranges: number[] }[] = [];
+        if (!Number.isNaN(r.position) && r.system !== undefined)
+          parts.push({ system: r.system, ranges: [Math.floor(r.position), Math.floor(r.position) + 1] });
+        if (!Number.isNaN(r.yPosition) && r.ySystem !== undefined)
+          parts.push({ system: r.ySystem, ranges: [Math.floor(r.yPosition), Math.floor(r.yPosition) + 1] });
+        this._location = parts.length ? location({ parts }) : EmptyLocation;
+      }
     }
     return this._location;
   }

@@ -20,6 +20,7 @@ import {
   elementsEqual,
   isEmptyLocation,
   type Location,
+  location,
   locationsEqual,
   partOf,
   rangesLocation,
@@ -192,6 +193,30 @@ function spanLocation(a: Anchor, axis: Axis | undefined): Location {
   return between(a.system, a, a, axis);
 }
 
+/** A cell of two axes (a grid's): a position on each, x's system and y's. */
+export interface GridCell {
+  readonly system: string;
+  readonly position: number;
+  readonly ySystem: string;
+  readonly yPosition: number;
+}
+
+/** The rect from one cell to another, both included: x's positions between theirs × y's. */
+export function cellsRect(a: GridCell, b: GridCell): Location {
+  const x0 = Math.floor(Math.min(a.position, b.position));
+  const x1 = Math.floor(Math.max(a.position, b.position)) + 1;
+  const y0 = Math.floor(Math.min(a.yPosition, b.yPosition));
+  const y1 = Math.floor(Math.max(a.yPosition, b.yPosition)) + 1;
+  return location({
+    rects: [{ a: { system: a.system, ranges: [x0, x1] }, b: { system: a.ySystem, ranges: [y0, y1] } }],
+  });
+}
+
+/** Whether every cell of `r` is in `loc`'s rects. */
+function rectInside(r: Location, loc: Location): boolean {
+  return subtractLocations(location({ rects: r.rects }), location({ rects: loc.rects })).rects.length === 0;
+}
+
 /**
  * How a drag on data changes the selection (the interaction grammar): it becomes the range (`replace`), the range is
  * added to it (`add`) or taken out of it (`subtract`), or the range the anchor is in reaches to the pointer (`extend`).
@@ -237,6 +262,9 @@ export class SelectionModel extends ReactiveModel {
         beforeRest: Rest;
       }
     | undefined;
+  /** Where a rect's extend starts (a grid's cell), and a rect drag's first cell and the selection when it began. */
+  private _cellAnchor: GridCell | undefined;
+  private _rectDrag: { from: GridCell; mode: DragMode; before: Emphasized } | undefined;
   private readonly _scope: ExtendScope;
   private readonly _across: 'shown' | 'span';
   /** The selection: an equal value tells nothing. */
@@ -273,6 +301,8 @@ export class SelectionModel extends ReactiveModel {
 
   clear(): void {
     this._anchor = undefined;
+    this._cellAnchor = undefined;
+    this._rectDrag = undefined;
     this._rest = NoRest;
     this._drag = undefined;
     this._extents.clear();
@@ -462,6 +492,84 @@ export class SelectionModel extends ReactiveModel {
 
   get dragging(): boolean {
     return this._drag !== undefined;
+  }
+
+  // ---- rects: a grid's cells (_spec/README.md "SelectionModel and HighlightModel", Rects) ----
+
+  /**
+   * A click on a cell of two axes: the selection becomes the cell's rect (`replace`), the rect from the cell anchor to
+   * it (`extend`), or the cell is toggled in the selection's rects (`toggle`: taken out when all of it is in, else
+   * added). The cell becomes the anchor but for an extend. True when the selection changed.
+   */
+  selectCell(cell: GridCell, how: 'replace' | 'extend' | 'toggle' = 'replace'): boolean {
+    const before = this._value.value;
+    const a = this._cellAnchor;
+    if (how === 'extend' && a && a.system === cell.system && a.ySystem === cell.ySystem) {
+      const r = cellsRect(a, cell);
+      this._value.set({ elements: EmptyElements, location: r, shown: r });
+      return before !== this._value.value;
+    }
+    const r = cellsRect(cell, cell);
+    this._cellAnchor = cell;
+    this._anchor = undefined;
+    this._rest = NoRest;
+    if (how === 'toggle') {
+      const loc = before.location;
+      this._value.set(
+        rectInside(r, loc) ? this._without(before, r) : this._compose(before.elements, unionLocations(loc, r)),
+      );
+    } else if (locationsEqual(before.location, r) && !before.elements.keys.length) this.clear();
+    else this._value.set({ elements: EmptyElements, location: r, shown: r });
+    return before !== this._value.value;
+  }
+
+  /** A rect drag begins on a cell: it replaces, adds to, takes out of the selection, or extends from the cell anchor. */
+  beginRectDrag(cell: GridCell, mode: DragMode = 'replace'): void {
+    const a = this._cellAnchor;
+    const extend = mode === 'extend' && !!a && a.system === cell.system && a.ySystem === cell.ySystem;
+    this._rectDrag = {
+      from: extend ? a! : cell,
+      mode: mode === 'extend' && !extend ? 'replace' : mode,
+      before: this._value.value,
+    };
+    if (!extend) this._cellAnchor = cell;
+  }
+
+  /**
+   * The rect drag's other cell: the rect between the two replaces the selection, is added to or taken out of it as it
+   * was when the drag began (rects subtract: at most two rects, the cells exact). True when the selection changed.
+   */
+  rectDragTo(position: number, yPosition: number): boolean {
+    const d = this._rectDrag;
+    if (!d || Number.isNaN(position) || Number.isNaN(yPosition)) return false;
+    const before = this._value.value;
+    const r = cellsRect(d.from, { ...d.from, position, yPosition });
+    switch (d.mode) {
+      case 'replace':
+      case 'extend':
+        this._value.set({ elements: EmptyElements, location: r, shown: r });
+        break;
+      case 'add':
+        this._value.set(this._compose(d.before.elements, unionLocations(d.before.location, r)));
+        break;
+      case 'subtract':
+        this._value.set(this._without(d.before, r));
+        break;
+    }
+    this._anchor = undefined;
+    this._rest = NoRest;
+    return before !== this._value.value;
+  }
+
+  /** Ends a rect drag (what it selected stays); with `cancel`, the selection as it began. */
+  endRectDrag(cancel = false): void {
+    const d = this._rectDrag;
+    this._rectDrag = undefined;
+    if (cancel && d) this._value.set(d.before);
+  }
+
+  get rectDragging(): boolean {
+    return this._rectDrag !== undefined;
   }
 
   // ---- the cursor ----
