@@ -26,6 +26,7 @@ import * as plasmidRing from './plasmid/ring.js';
 import * as addressing from './p53/addressing.js';
 import * as axis from './p53/axis.js';
 import * as bookmarks from './p53/bookmarks.js';
+import * as chromosome from './p53/chromosome.js';
 import * as geneByRegion from './p53/gene-by-region.js';
 import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
@@ -130,6 +131,15 @@ export const P53Views: readonly ExampleView[] = [
       'The gene’s region read region by region: transcripts arrive as dynamic nodes, a track each, and TP53’s bring their domains, shown through each transcript’s codon map.',
     build: geneByRegion.build,
     registry: geneByRegion.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'chromosome',
+    title: 'p53’s chromosome',
+    summary:
+      'Chromosome 17 at its GRCh38 length (83 Mb), generated region by region and never stored, opened fit to the whole: the genes (TP53 in its place, minus strand), a GC-like signal by levels, the letters when they fit, the ideogram above showing the window. Double-click TP53 to focus it, zoom on to its letters; hover a gene for its name, strand and span.',
+    build: chromosome.build,
+    registry: chromosome.registry,
   },
   {
     dataset: 'p53',

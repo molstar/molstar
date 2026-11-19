@@ -6,7 +6,13 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
-import { delayedRuntime, type RegionRequest, SeqRuntime, type StoreClock } from '@molstar/seqx-core/data';
+import {
+  delayedRuntime,
+  type FormatRuntime,
+  type RegionRequest,
+  SeqRuntime,
+  type StoreClock,
+} from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { RegionFile, RegionFormat, RegionSystem } from './region.js';
 
@@ -47,13 +53,26 @@ export interface RegistryOptions {
 /** A region's delay: 300 ms, and 250 more for each 1,024 positions along. */
 export const staggered = (r: RegionRequest) => 300 + 250 * Math.floor(r.start / 1024);
 
-/** What the view needs besides the default registry: the delayed `seq` runtime its sources are read with. */
-export function registry(options: RegistryOptions = {}): SeqRegistryEntry[] {
-  const runtime = delayedRuntime(SeqRuntime, {
-    name: 'seq-async',
-    formats: [RegionFormat],
+/**
+ * A by-region view's registry: `inner` read under `format`, each answer delayed (`staggered` by default), as a remote
+ * source answers. The gene's region and p53's chromosome share it.
+ */
+export function delayedRegistry(
+  inner: FormatRuntime,
+  name: string,
+  format: string,
+  options: RegistryOptions = {},
+): SeqRegistryEntry[] {
+  const runtime = delayedRuntime(inner, {
+    name,
+    formats: [format],
     delayMs: options.delayMs ?? staggered,
     ...(options.clock ? { clock: options.clock } : {}),
   });
   return [{ kind: 'format-runtime', runtime }];
+}
+
+/** What the view needs besides the default registry: the delayed `seq` runtime its sources are read with. */
+export function registry(options: RegistryOptions = {}): SeqRegistryEntry[] {
+  return delayedRegistry(SeqRuntime, 'seq-async', RegionFormat, options);
 }
