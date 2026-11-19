@@ -275,7 +275,10 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
   rows layer a section (`seq.render.rows.second`): the cursor has one row order.
 - **The row header**, in the view's one label column (ux-foundations section 3): the tree (`treeWidth`), the label
   (faded past its width), icons in fixed slots (pin, a bound row's link), data columns of the rows table that yield to
-  a narrow width down to a floor (EC-107), the first and last residue numbers in gutters (`numbers`). Labels,
+  a narrow width down to a floor (EC-107), the first and last residue numbers in gutters (`numbers`): of the residues **in view**, so they follow a
+  pan and a zoom (decided, the author, 2026-11-19: "the offsets at the end of the sequences don't update"; Jalview's
+  and ESPript's per-line numbers), equal to the row's own at the fit view; a residue is counted, a gap never; a row
+  with no residue in view shows none. Labels,
   numbers and icons only at `rows.labelMinPx` (8) and more; a header hover lights the row band (drawing only, EC-146,
   EC-147). Hidden rows are a count chip ("3 hidden") at the header's foot; its click shows them (one patch).
 
