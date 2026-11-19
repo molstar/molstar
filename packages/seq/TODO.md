@@ -222,8 +222,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   (`theme.value-color` has no UI); the scheme picker as a menu (the stories' buttons stand in).
 
 - Addressing: copy link from a context menu (and its key).
-- Grids: the hover card naming both positions and the value; a grid's own y window in the history and sessions (kept by
-  the view and drawn, not yet a step's); a drag on a grid's ruler panning that axis alone.
+- Grids: a grid's own y window in the history and sessions (kept by the view and drawn, not yet a step's); a drag on a
+  grid's ruler panning that axis alone.
 - Selection: drag snapping to whole codons over nucleotides (EC-149); a rows block selected as a rect; context-menu
   entries for `selection.add` and `selection.subtract`; the `genome-browser` preset without the add, subtract and extend
   drags (a drag pans there): decided with the presets; a cursor moved off-screen on a follower revealing itself by

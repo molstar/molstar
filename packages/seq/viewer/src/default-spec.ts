@@ -10,7 +10,9 @@ import {
   AddressingProvider,
   CursorProvider,
   EditingProvider,
+  HoverCardProvider,
   HoverProvider,
+  KeysPanelProvider,
   LegendProvider,
   NavigateProvider,
   NavigatorProvider,
@@ -20,6 +22,7 @@ import {
 } from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
+import { hoverCardOverlay } from './mount-hover-card.js';
 import { legendsMount } from './mount-legend.js';
 import { navigatorsMount } from './mount-navigator.js';
 import type { SeqViewerSpec } from './viewer-spec.js';
@@ -48,6 +51,9 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       { provider: WindowProvider },
       { provider: NavigatorProvider },
       { provider: RowsProvider },
+      // the card's port: `@molstar/ui`'s card over the canvas (a host with its own passes it here, and bundles none)
+      { provider: HoverCardProvider, params: { port: hoverCardOverlay() } },
+      { provider: KeysPanelProvider },
     ],
     bindings: {},
     config: [],

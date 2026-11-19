@@ -70,6 +70,11 @@ export interface HoverRecord {
   readonly yPosition: number;
   /** What the hit was (a tree node, a summary row: the clade's hover), as the hit said; undefined when it said nothing. */
   readonly target: HitTarget | undefined;
+  /** The block (its index in the section) and a grid cell's y block, in a section of blocks; undefined elsewhere. */
+  readonly block: number | undefined;
+  readonly yBlock: number | undefined;
+  /** What a layer named within the position (a rows column cell: `title: value`), as the hit said. */
+  readonly state: string | undefined;
 }
 
 type MutableRecord = { -readonly [K in keyof HoverRecord]: HoverRecord[K] };
@@ -90,6 +95,9 @@ export class HoverModel extends ReactiveModel {
     ySystem: undefined,
     yPosition: Number.NaN,
     target: undefined,
+    block: undefined,
+    yBlock: undefined,
+    state: undefined,
   };
   /** The version, the view and the model the caches are for. */
   private _cacheKey: [number, unknown, unknown] = [-1, undefined, undefined];
@@ -142,6 +150,9 @@ export class HoverModel extends ReactiveModel {
       (r.position === position || (Number.isNaN(r.position) && Number.isNaN(position))) &&
       r.ySystem === hit.ySystem &&
       r.target === hit.target &&
+      r.block === hit.block &&
+      r.yBlock === hit.yBlock &&
+      r.state === hit.state &&
       (r.yPosition === yPosition || (Number.isNaN(r.yPosition) && Number.isNaN(yPosition))) &&
       keysEqual(r.element, hit.element) &&
       (hit.element !== undefined || r.extent === hit.extent)
@@ -157,6 +168,9 @@ export class HoverModel extends ReactiveModel {
     r.ySystem = hit.ySystem;
     r.yPosition = yPosition;
     r.target = hit.target;
+    r.block = hit.block;
+    r.yBlock = hit.yBlock;
+    r.state = hit.state;
     this._version.set(this._version.value + 1);
     return true;
   }
@@ -166,6 +180,7 @@ export class HoverModel extends ReactiveModel {
     const r = this._record;
     if (r.owner === undefined || r.owner !== owner) return false;
     r.owner = r.layer = r.section = r.system = r.element = r.extent = r.ySystem = r.target = undefined;
+    r.block = r.yBlock = r.state = undefined;
     r.position = r.yPosition = Number.NaN;
     this._version.set(this._version.value + 1);
     return true;

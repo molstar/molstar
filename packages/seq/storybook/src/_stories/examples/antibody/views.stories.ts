@@ -17,8 +17,8 @@ export default meta;
 
 /**
  * Trastuzumab's light and heavy chains (PDB 1N8Z), a Kabat ruler and an IMGT ruler over each, the CDRs by both
- * definitions below: the heavy chain's Kabat insertions 52A, 82A–C and 100A–C. Hover a residue: the panel says its
- * label in both numberings. Editing: switch which scheme the top ruler shows (a patch of its layer's `numbering`).
+ * definitions below: the heavy chain's Kabat insertions 52A, 82A–C and 100A–C. Hover a residue: the viewer's card says
+ * its label in both numberings (the panel, once the hover's readout, names the selection alone). Editing: switch which scheme the top ruler shows (a patch of its layer's `numbering`).
  */
 export const Schemes: StoryObj = {
   render: () =>

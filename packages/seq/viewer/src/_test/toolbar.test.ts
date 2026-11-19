@@ -80,7 +80,7 @@ describe('the toolbar’s buttons, headless', () => {
   it('are disabled with a reason while their side of the history is empty, across back and forward', async () => {
     const { viewer: v } = await make();
     const [back, forward] = toolbarButtons(v);
-    expect(DefaultToolbar).toEqual(['view.back', 'view.forward']);
+    expect(DefaultToolbar).toEqual(['view.back', 'view.forward', 'help.keys']);
     expect([back.command, forward.command]).toEqual(['view.back', 'view.forward']);
     expect([back.disabled.value, forward.disabled.value]).toEqual([
       'No view to go back to',

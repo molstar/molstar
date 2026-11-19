@@ -32,6 +32,8 @@ export interface FieldOptions {
   readonly type?: 'linear' | 'log' | 'sqrt';
   readonly mid?: number;
   readonly range?: readonly [number, number];
+  /** The values' unit, for people (the language's scale param: a legend's, the hover card's value). */
+  readonly unit?: string;
   readonly data?: string | { readonly address: string };
   /** Over inline data, write the column's values in first-occurrence order (true). */
   readonly list?: boolean;

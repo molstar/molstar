@@ -23,9 +23,9 @@ export const Pae: StoryObj = { render: () => exampleStory(view('pae')) };
 
 /**
  * The PAE over the whole complex (synthetic, AlphaFold-shaped): the chains side by side as blocks, the plot following
- * them on both axes, the chain boundaries drawn across it. Hover a cell: the panel names both residues with their
- * chains and the value; drag a rectangle across a boundary: it is split at it, and the panel says what is aligned and
- * scored, with the mean PAE over it.
+ * them on both axes, the chain boundaries drawn across it. Hover a cell: the viewer's card names both residues with
+ * their chains and the value; drag a rectangle across a boundary: it is split at it, the card summarizes it while it
+ * is dragged, and the panel (once also the hover's readout) says what is aligned and scored, with the mean PAE.
  */
 export const OverTheComplex: StoryObj = {
   render: () => complexEditStory({ view: view('complex-grid'), edits: [], readout: true }),

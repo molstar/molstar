@@ -27,7 +27,7 @@ export function ruler(): Node {
   const { p53, gene } = data(b);
   b.views.view('main', (v) => {
     const protein = v.section('protein', { of: p53 });
-    protein.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    protein.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     protein.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
     const g = v.section('gene', { of: gene, direction: 'reversed', pieces: 'coding', follow: protein });
     g.track('ruler', { label: 'TP53' }).layer('ruler', { type: 'ruler' });
@@ -43,7 +43,7 @@ export function secondary(): Node {
   const ss = addSecondary(b, p53);
   b.views.view('main', (v) => {
     const protein = v.section('protein', { of: p53 });
-    protein.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    protein.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     protein.track('secondary', { label: 'Secondary' }).layer('secondary', { type: 'secondary', data: ss });
     const g = v.section('gene', { of: gene, follow: protein });
     g.track('secondary', { label: 'On the gene' }).layer('secondary', { type: 'secondary', data: ss });
@@ -59,7 +59,7 @@ export function variants(): Node {
   const domains = addDomains(b, p53);
   b.views.view('main', (v) => {
     const protein = v.section('protein', { of: p53 });
-    protein.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    protein.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     protein.track('variants', { label: 'Variants' }).layer('variants', { type: 'variants', data: vs });
     protein.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: domains });
     const g = v.section('gene', { of: gene, follow: protein });
@@ -75,7 +75,7 @@ export function valuesLine(): Node {
   const c = b.data.values('conservation', { target: p53, values: conservation() });
   b.views.view('main', (v) => {
     const s = v.section('protein', { of: p53 });
-    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     s.track('bars', { label: 'Bars' }).layer('bars', { type: 'values', data: c });
     s.track('line', { label: 'Line' }).layer('line', { type: 'values', data: c, encoding: 'line' });
     s.track('area', { label: 'Area' }).layer('area', { type: 'values', data: c, encoding: 'area' });
@@ -108,7 +108,7 @@ export function rangesLines(): Node {
   const domains = addDomains(b, p53);
   b.views.view('main', (v) => {
     const s = v.section('protein', { of: p53 });
-    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     for (const line of ['solid', 'dashed', 'dotted', 'wavy', 'double', 'box', 'highlight'])
       s.track(line, { label: line, height: 26 }).layer(line, { type: 'ranges', data: domains, line });
     s.track('arrows', { label: 'Arrows', height: 26 }).layer('arrows', { type: 'ranges', data: domains, arrow: 'end' });

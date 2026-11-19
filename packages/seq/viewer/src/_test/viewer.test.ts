@@ -78,6 +78,8 @@ describe('createSeqViewer', () => {
       'window',
       'navigator',
       'rows',
+      'hoverCard',
+      'keysPanel',
     ]);
     expect(viewer.bindings.issues).toEqual([]);
     expect(viewer.commands.map((c) => c.id)).toContain('view.fit');

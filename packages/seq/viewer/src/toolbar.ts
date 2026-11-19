@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { derive, type ReadonlyState } from '@molstar/core/reactive';
+import { derive, type ReadonlyState, State } from '@molstar/core/reactive';
 import { formatChord } from '@molstar/ui/commands/keys';
 import { parseChord } from './bindings.js';
 import type { SeqViewer } from './viewer.js';
@@ -36,29 +36,32 @@ export interface ToolbarButton {
 const Known: Readonly<Record<string, { readonly icon: string; readonly label: string }>> = {
   'view.back': { icon: 'chevron-left', label: 'Back' },
   'view.forward': { icon: 'chevron-right', label: 'Forward' },
+  // where to find what the view answers to, said once, quietly: its title is "Keys and gestures (?)"
+  'help.keys': { icon: 'keyboard', label: 'Keys and gestures' },
 };
 
 /** The commands the default bar shows (`SeqViewerSpec.ui.toolbar`). */
-export const DefaultToolbar: readonly string[] = ['view.back', 'view.forward'];
+export const DefaultToolbar: readonly string[] = ['view.back', 'view.forward', 'help.keys'];
+
+/** Never disabled: a command with no reason not to run (the keys panel's). */
+const Enabled: ReadonlyState<string | false> = new State<string | false>(false).asReadonly;
 
 /** The buttons of a bar for the commands named (unknown ones are left out), over a viewer's models. */
 export function toolbarButtons(viewer: SeqViewer, commands: readonly string[] = DefaultToolbar): ToolbarButton[] {
   const out: ToolbarButton[] = [];
   for (const command of commands) {
     const known = Known[command];
-    if (!known) continue;
+    // a command the viewer lacks (the keys panel not listed) has no button
+    if (!known || !viewer.commands.some((c) => c.id === command)) continue;
     const chord = parseChord(viewer.config.view.keys[command]?.[0] ?? '');
     const key = chord ? formatChord(chord) : undefined;
     const history = viewer.view.history;
-    const disabled: ReadonlyState<string | false> = derive(history, (h) =>
+    const disabled: ReadonlyState<string | false> =
       command === 'view.back'
-        ? h.back > 0
-          ? false
-          : 'No view to go back to'
-        : h.forward > 0
-          ? false
-          : 'No view to go forward to',
-    );
+        ? derive(history, (h) => (h.back > 0 ? false : 'No view to go back to'))
+        : command === 'view.forward'
+          ? derive(history, (h) => (h.forward > 0 ? false : 'No view to go forward to'))
+          : Enabled;
     out.push({
       command,
       icon: known.icon,

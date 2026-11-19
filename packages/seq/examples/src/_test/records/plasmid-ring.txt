@@ -190,6 +190,6 @@ text "Reverse strand" 8 410.2 start "12px sans" #6b655cff width 81.36 max 112
 text "bla (AmpR)" 314 397.5 start "10px sans" #000000ff width 50.56 max 195
 text "bla (AmpR)" 131 397.5 start "10px sans" #000000ff width 50.56 max 177
 text "pUC19c" 8 442.2 start "12px sans" #6b655cff width 43.34 max 112
-text "Ruler" 8 467.2 start "12px sans" #6b655cff width 28.67 max 112
+text "" 8 467.2 start "12px sans" #6b655cff width 0 max 112
 text "2650" 233.6 465 middle "10px mono" #8a847aff width 24
 text "50" 417.07 465 middle "10px mono" #8a847aff width 12

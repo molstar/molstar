@@ -30,7 +30,9 @@ import {
 import { changeKindOf } from './commands.js';
 import {
   type HoverBehavior,
+  type HoverCardBehavior,
   HoverProvider,
+  type KeysPanelBehavior,
   isDragSelect,
   type NavigateBehavior,
   type NavigatorBehavior,
@@ -181,6 +183,8 @@ export class ViewerInput {
 
   /** How many times the selection changed: what a click cleared is given back only if nothing changed it since. */
   private _selectionChanges = 0;
+  /** The pointer as the hover card is told it (reused). */
+  private readonly _pointerAt = new Float64Array(2);
 
   private get hoverBehavior(): HoverBehavior | undefined {
     return this.viewer.behavior(HoverProvider);
@@ -200,6 +204,18 @@ export class ViewerInput {
 
   private get navigatorBehavior(): NavigatorBehavior | undefined {
     return this.viewer.behavior(NavigatorProvider);
+  }
+
+  /**
+   * The hover card and the keys panel, by name and only when listed (no issue when not: they are no gesture's), so a
+   * viewer without them bundles nothing of theirs.
+   */
+  private get cardBehavior(): HoverCardBehavior | undefined {
+    return this.viewer.behaviors.get('hoverCard');
+  }
+
+  private get keysPanel(): KeysPanelBehavior | undefined {
+    return this.viewer.behaviors.get('keysPanel');
   }
 
   /** The window part under the pointer, lit (a rail's, a ring's); undefined elsewhere. */
@@ -434,12 +450,21 @@ export class ViewerInput {
       }
     }
     this.hoverBehavior?.move(hit, mods);
+    // the card is told where the pointer is (two numbers): it shows on rest, hides while a drag runs
+    // in an array: two fractional numbers passed to a call that is not inlined are boxed (a move allocates nothing)
+    const card = this.cardBehavior;
+    if (card) {
+      this._pointerAt[0] = x;
+      this._pointerAt[1] = y;
+      card.pointer(this._pointerAt, d !== undefined && d.moved);
+    }
   }
 
   /** The pointer left the canvas: the hover it owned goes, and no re-hit follows. */
   leave(): void {
     this._x = this._y = Number.NaN;
     this.hoverBehavior?.leave();
+    this.cardBehavior?.leave();
   }
 
   /**
@@ -458,6 +483,8 @@ export class ViewerInput {
     if (this.viewer.retired) return false;
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
+    // a press may begin a drag: the card goes until the hover rests again
+    this.cardBehavior?.interrupt();
     // a new press: a click after it is its own
     this._suppressClick = false;
     this._railClick = undefined;
@@ -544,6 +571,7 @@ export class ViewerInput {
   up(): void {
     const d = this._drag;
     if (!d) return;
+    this.cardBehavior?.released();
     this._stopEdge();
     if (this._dragHit) {
       this._dragHit = undefined;
@@ -706,6 +734,7 @@ export class ViewerInput {
     if (this.viewer.retired) return false;
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
+    this.cardBehavior?.interrupt();
     const section = this.sectionAt(y);
     const nav = this.navigateBehavior;
     if (section === undefined || !nav) return false;
@@ -894,6 +923,8 @@ export class ViewerInput {
    */
   key(e: KeyState & { key: string }): boolean {
     if (this.viewer.retired) return false;
+    // Esc hides the card (whatever else it does)
+    if (e.key === 'Escape') this.cardBehavior?.interrupt();
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     // Esc during a window's drag puts the view back where the press found it
     if (e.key === 'Escape' && this._drag?.window) {
@@ -912,6 +943,8 @@ export class ViewerInput {
       this._suppressClick = true;
       return true;
     }
+    // a running drag's Esc is its cancel (above); then an open keys panel's: it closes, and does nothing else
+    if (e.key === 'Escape' && this.keysPanel?.close()) return true;
     const section =
       (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
     const ctx = { section };
@@ -934,6 +967,8 @@ export class ViewerInput {
         }
         matched = true;
         this.viewer.runCommand(c.id, ctx);
+        // a key that moved the keyboard cursor: the card shows at its cell, after the frame that revealed it
+        if (c.id.startsWith('cursor.')) this.cardBehavior?.cursorMoved();
         return true;
       }
     // a shortcut with modifiers is the viewer's even when nothing can run now, but the history's (Alt+Left is the

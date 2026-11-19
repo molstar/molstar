@@ -17,6 +17,7 @@ import {
 import { Announcer } from './announcer.js';
 import { createDragSession } from './drag-session.js';
 import type { SeqViewer } from './viewer.js';
+import type { BehaviorHandle } from './viewer-spec.js';
 
 // The mounted UI (_spec/README.md "Input"): the canvas stack (the base canvas, the overlay above it and the labels above
 // that; only the container takes events) in a focusable container, and the DOM events translated into the viewer's input calls. Chrome beyond the
@@ -250,7 +251,16 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   const onFonts = () => viewer.invalidateText();
   fontFaces?.addEventListener?.('loadingdone', onFonts);
 
+  // the behaviors' parts over the canvas (the hover card's adapter, the keys panel, `BehaviorHandle.attach`): drawn into
+  // the container; a behavior the spec does not list adds nothing (and nothing of it is in the bundle)
+  const parts: (() => void)[] = [];
+  for (const h of viewer.behaviors.values() as Iterable<BehaviorHandle | undefined>) {
+    const detach = h?.attach?.(container, viewer);
+    if (detach) parts.push(detach);
+  }
+
   return () => {
+    for (const detach of parts.splice(0)) detach();
     for (const [type, fn, options] of listeners) container.removeEventListener(type, fn, options);
     drag.dispose();
     observer?.disconnect();

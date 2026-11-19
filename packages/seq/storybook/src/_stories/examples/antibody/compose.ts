@@ -13,9 +13,9 @@ import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors/editing';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { EditingSession } from '../../features/editing/compose.js';
 
-// The Antibody's host panel and editing views, DOM-free (the stories and their headless twins call these): the hovered
-// residue's label in both numberings, read from the viewer's query model (the source's labels once they are in);
-// which scheme a ruler shows (one patch); a CDR selected by its address in Kabat's labels, bookmarked from the
+// The Antibody's host panel and editing views, DOM-free (the stories and their headless twins call these): a position's
+// label in both numberings, read from the viewer's query model (the source's labels once they are in; the hovered
+// residue's are the viewer's hover card's, so the panel names the selection alone); which scheme a ruler shows (one patch); a CDR selected by its address in Kabat's labels, bookmarked from the
 // selection, renamed, recolored and removed, each one step of the host's stack.
 
 const editing = (s: EditingSession) => s.viewer.behaviors.get('editing') as EditingBehavior;
@@ -37,17 +37,9 @@ export function labelsAt(viewer: SeqViewer, system: string, position: number): {
   return { kabat: at('kabat'), imgt: at('imgt') };
 }
 
-/** The panel's lines: the hovered residue in both numberings, and the selection's address. */
+/** The panel's lines: the selection's address (the hovered residue's labels are the hover card's). */
 export function readoutLines(viewer: SeqViewer): string[] {
-  const h = viewer.hover.current;
-  const lines: string[] = [];
-  if (h.system !== undefined && Number.isFinite(h.position)) {
-    const { kabat, imgt } = labelsAt(viewer, h.system, h.position);
-    const chain = h.system.split('/').pop();
-    lines.push(`Hover: ${chain} ${h.position + 1}, Kabat ${kabat || '–'}, IMGT ${imgt || '–'}`);
-  } else lines.push('Hover: (a residue)');
-  lines.push(`Selection: ${viewer.addresses.selectionAddress() ?? '(none)'}`);
-  return lines;
+  return [`Selection: ${viewer.addresses.selectionAddress() ?? '(none)'}`];
 }
 
 /** The panel's lines with the bookmarks listed: each its id, label, color and what it names. */

@@ -36,6 +36,11 @@ export interface ViewerConfig {
     readonly projectLinked: boolean;
     /** Close the hover before projecting: a nucleotide lights its whole codon and its residue (true, EC-30, EC-144). */
     readonly closeCodons: boolean;
+    /**
+     * The hover card (the `hoverCard` behavior): what the pointer rests on, in words, beside it (true); false: none (the
+     * live region still says it).
+     */
+    readonly card: boolean;
   };
   readonly selection: {
     /**
@@ -262,7 +267,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   density: { letterMinPx: 7, dotMinPx: 2 },
   bindings: { preset: 'default' },
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
-  hover: { projectLinked: true, closeCodons: true },
+  hover: { projectLinked: true, closeCodons: true, card: true },
   selection: { holdNodes: true, extendScope: 'range', acrossBreaks: 'shown' },
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' } },
@@ -305,6 +310,8 @@ export const DefaultViewerConfig: ViewerConfig = {
       'rows.page-up': ['PageUp'],
       // the keyboard's way to the column titles' click: the next column, ascending then descending
       'rows.order-next': ['Shift+O'],
+      // the keys panel: what the view answers to (a printable key: whatever Shift types it)
+      'help.keys': ['?'],
     },
   },
   navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },

@@ -82,12 +82,13 @@ async function make(copyNumbering = 'ordinal') {
 }
 
 describe('declared numberings in the viewer', () => {
-  it('a hover that rests says the label in the section’s numbering', async () => {
+  it('a hover that rests says the label in each numbering, the section’s first', async () => {
     const v = await make();
     const a = new Announcer(v, { minGapMs: 0, restMs: 500 });
     for (const [section, label] of [
-      [0, 'kabat 82B'],
-      [1, 'imgt 107'],
+      // every declared numbering, the section's shown one first
+      [0, 'kabat 82B, imgt 107'],
+      [1, 'imgt 107, kabat 82B'],
     ] as const) {
       const s = v.frame!.layout.sections[section];
       const t = s.tracks[1];

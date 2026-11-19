@@ -43,6 +43,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'selection.clear': 'session',
   // copying reads: the letters go to the clipboard
   'selection.copy-letters': 'none',
+  // the keys panel opens and closes: the reader's, nothing in the models
+  'help.keys': 'none',
   // the keyboard cursor and what it selects are session state; Enter's focus moves the view
   'cursor.prev': 'session',
   'cursor.next': 'session',

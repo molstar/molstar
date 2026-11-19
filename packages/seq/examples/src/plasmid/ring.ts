@@ -40,7 +40,7 @@ export function build(options: { readonly rotation?: number; readonly variant?: 
       .track('minus', { label: 'Reverse strand' })
       .layer('features', { type: 'ranges', data: minus, arrow: StrandArrow['-'] });
     ring.track('sites', { label: 'Sites', height: 36 }).layer('sites', { type: 'ranges', data: sites() });
-    ring.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });
+    ring.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     const detail = v.section('detail', { of: seq, follow: ring });
     detail
       .track('plus', { label: 'Forward strand' })
@@ -49,7 +49,7 @@ export function build(options: { readonly rotation?: number; readonly variant?: 
       .track('minus', { label: 'Reverse strand' })
       .layer('features', { type: 'ranges', data: minus, arrow: StrandArrow['-'] });
     detail.track('letters', { label: 'pUC19c' }).layer('letters', { type: 'letters' });
-    detail.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });
+    detail.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
   });
   return b.build();
 }
@@ -92,7 +92,7 @@ export function rotatedLinear(range: readonly [number, number] = [2000, 700]): N
       arrow: StrandArrow['-'],
     });
     s.track('sites', { label: 'Sites', height: 36 }).layer('sites', { type: 'ranges', data: sites() });
-    s.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
   });
   return b.build();
 }
@@ -121,7 +121,7 @@ export function scale(): Node {
     ring
       .track('minus', { label: 'Features −', height: ScaleBand })
       .layer('features', { type: 'ranges', data: minus, arrow: StrandArrow['-'] });
-    ring.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });
+    ring.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     const detail = v.section('detail', { of: seq, follow: ring });
     detail
       .track('plus', { label: 'Features +', height: ScaleBand })
@@ -129,7 +129,7 @@ export function scale(): Node {
     detail
       .track('minus', { label: 'Features −', height: ScaleBand })
       .layer('features', { type: 'ranges', data: minus, arrow: StrandArrow['-'] });
-    detail.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });
+    detail.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
   });
   return b.build();
 }

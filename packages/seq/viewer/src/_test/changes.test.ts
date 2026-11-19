@@ -220,6 +220,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   },
   'selection.clear': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
   'selection.copy-letters': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
+  // the keys panel opens: the reader's, nothing in the models
+  'help.keys': { ctx: {} },
   'cursor.prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.next': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.up': { ctx: { section: Protein }, before: cursorAt('/views/main/below') },
