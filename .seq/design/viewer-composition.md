@@ -87,6 +87,16 @@ interface SeqViewerSpec {
 - **Defaults are a spec, not magic**: `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the built-in
   entries, behaviors, bindings and settings. An application spreads it and changes what it needs, or writes a smaller
   spec; what is not imported and listed is not in its bundle.
+- **Injected, opt in** (the author, 2026-11-19: "Injectable, opt-in", over lazy imports; measured by SW: a minimal
+  viewer 959 kB against the default's 1023 kB, the unused parts kept in by the renderer's built-in tables and the
+  viewer's static imports): the renderer's layer types and layouts come from the registry the spec lists, never from
+  a built-in table a `Renderer` defaults to; the viewer's history, story, navigator and rows pieces are behaviors or
+  parts the default spec lists, never imported by `createSeqViewer` itself; barrels (`render`, `export`) re-export
+  nothing a minimal composition does not ask for; the packages say `sideEffects: false`. `DefaultSeqViewerSpec()` and
+  `createSeqContext`'s default list everything, so the default composition is unchanged; a smaller spec ships less.
+  Why: one rule for every part (listed or absent), no lazy chunks a host's bundler must split, and the size a host
+  pays follows what it lists. Checked by the size script's `viewer, minimal` entry (an esbuild metafile: none of the
+  unlisted modules in it).
 - **Headless without a viewer**: `createSeqContext(spec)` in the core takes the registry, the config and the ports a
   render needs (assets, text metrics, backends) and gives the resolve passes and `renderSvg`, for the CLI, servers and
   tests.

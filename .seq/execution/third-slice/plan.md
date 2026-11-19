@@ -411,7 +411,8 @@ and dark before the merge.
       `BuiltInLayerTypes` and the layouts table (`Renderer`'s default), `render/navigator.ts` via the `render` barrel and
       `export.ts`, and the viewer's static imports of history, story, navigator and rows. The fix (registries injectable
       or lazy by default, those pieces imported lazily, `sideEffects: false`) changes defaults or public API: the
-      author's call before the lane.
+      author's call before the lane. **Decided** (the author, 2026-11-19: "Injectable, opt-in"; viewer-composition.md,
+      Creating a viewer): lane MV (strong, after RK: it touches core's renderer and the viewer), `briefs/mv-minimal-viewer.md`.
 - [ ] GATE: the author confirms or moves the targets the slice touched.
 
 ### Finalize

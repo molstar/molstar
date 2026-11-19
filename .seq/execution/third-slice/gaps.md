@@ -3,7 +3,7 @@
 Questions for the author, each yes or no with a recommendation. Gaps the loop decided as recommended while the author
 was away are listed with "(decided as recommended)"; a public API change is never decided that way.
 
-## Open
+## Open (stale: all five decided and built by GD, see "Decided by the author" below; the author confirmed "Yes, as recommended" again, 2026-11-19)
 
 - **A lists-free palette module in `@molstar/core`** (TH's review, 2026-11-19). `util/color/value-palette.ts` imports
   `lists.ts` statically, so the lazy `ValuePaletteLists` saves work but not bundle size: every reader of value

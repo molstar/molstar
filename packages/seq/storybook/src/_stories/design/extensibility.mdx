@@ -48,7 +48,8 @@ const viewer = createSeqViewer(
 - **Ports** are factories with ownership. An unset port gets its default adapter, which the viewer disposes. A port the
   host passes in, such as a Mol\* plugin's asset manager, stays the host's.
 - `DefaultSeqViewerSpec()` lists the defaults. Nothing registers itself on import, so what isn't listed isn't in the
-  bundle.
+  bundle. The renderer's layer types and layouts, and the viewer's history, stories, navigators and rows, are listed too
+  (decided 2026-11-19: injected, opt in): a smaller spec ships less, and the default spec draws as before.
 - Without a target element the viewer is headless. `createSeqContext(spec)` renders to SVG with no viewer at all.
 - Configuration in this version is one typed set of config items. User settings layered over it, and a generated
   settings form, come later.

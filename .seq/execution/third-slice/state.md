@@ -296,3 +296,7 @@ None.
   sweep to medium with quick representatives (3 × 260; one command a kind), the navigator's warm-up 8 frames. Quick
   2253 in `packages/seq` (222 files), medium 107. At load 5.5: core 2.08, viewer 2.07, storybook 1.93 s: re-measure
   quiet at stage 7's gate. RK and CS (strong) start beside each other.
+- Decided (the author, 2026-11-19): SF and SR (fast) start beside RK and CS ("Small fixes", "Spec reconcile prep"); the
+  minimal viewer "Injectable, opt-in" (viewer-composition.md, Creating a viewer; lane MV, strong, after RK:
+  `briefs/mv-minimal-viewer.md`); the open gaps "Yes, as recommended", found already decided and built by GD (gaps.md's
+  Open heading was stale, corrected).
