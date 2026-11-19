@@ -366,14 +366,19 @@ export function isPerceivable(flags: number, order: number) {
 /**
  * Whether a bond inside the residue (both atoms from `start` to `end`, unit indices) is perceivable. Bonds to other
  * residues do not count: an unknown peptide or glycosidic bond (found by distance) does not make a residue with stated
- * orders perceived (_spec §1.9).
+ * orders perceived (_spec §1.9). Nor do bonds to hydrogen, always single: a water with its H (MD frames) is not
+ * perceived. Each heavy-atom bond is tested once, from its first atom (the graph holds both directions).
  */
-export function hasPerceivableBond(bonds: IntraUnitBonds, start: UnitIndex, end: UnitIndex) {
+export function hasPerceivableBond(unit: Unit.Atomic, bonds: IntraUnitBonds, start: UnitIndex, end: UnitIndex) {
   const { offset, b, edgeProps } = bonds;
   const { order, flags } = edgeProps;
-  for (let t = offset[start], tl = offset[end]; t < tl; t++) {
-    const v = b[t];
-    if (v >= start && v < end && isPerceivable(flags[t], order[t])) return true;
+  for (let u = start; u < end; u++) {
+    if (isHydrogenElement(typeSymbol(unit, u))) continue;
+    for (let t = offset[u], tl = offset[u + 1]; t < tl; t++) {
+      const v = b[t];
+      if (v < u || v >= end || !isPerceivable(flags[t], order[t])) continue;
+      if (!isHydrogenElement(typeSymbol(unit, v))) return true;
+    }
   }
   return false;
 }
@@ -425,7 +430,7 @@ export function setAssignedBond(state: State, u: UnitIndex, v?: UnitIndex) {
   if (v === void 0) {
     const { offset, b, edgeProps } = bonds;
     for (let t = offset[u]; t < offset[u + 1]; t++) {
-      if (BondType.isCovalent(edgeProps.flags[t])) setAssignedBond(state, u, b[t] as UnitIndex);
+      if (BondType.isCovalent(edgeProps.flags[t])) setAssignedBond(state, u, b[t]);
     }
     return;
   }

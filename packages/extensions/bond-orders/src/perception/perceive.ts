@@ -132,7 +132,7 @@ export function perceiveBondOrders(
     const compId = label_comp_id.value(unit.elements[start]);
     if (!force && KnownComponents.has(compId)) continue;
     // every order inside the residue is stated: nothing to perceive (_spec §1.9)
-    if (!hasPerceivableBond(bonds, start, end)) continue;
+    if (!hasPerceivableBond(unit, bonds, start, end)) continue;
 
     props.canRemap = false;
     const hash = chemCompHash(unit, start, end, prefix);

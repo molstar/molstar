@@ -6,8 +6,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
-import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
-import { BondType } from '@molstar/model/model/structure/model/types';
+import { BondType, ElementSymbol } from '@molstar/model/model/structure/model/types';
 import type { IntraUnitBonds } from '@molstar/model/model/structure/structure/unit/bonds/data';
 import { Structure, Unit } from '@molstar/model/model/structure';
 import { valence } from '../perception/common.js';
@@ -34,7 +33,7 @@ describe('bond-order perception: hard cases', () => {
     expect(ligand).not.toBe(serine);
 
     const { label_atom_id } = model.atomicHierarchy.atoms;
-    const c12 = ligand.elements.find((e) => label_atom_id.value(e) === 'C12')!;
+    const c12 = Array.from(ligand.elements).find((e) => label_atom_id.value(e) === 'C12')!;
     const interUnit = getInterUnitNeighbours(model, () => Structure.ofModel(model));
     expect((interUnit.get(c12) ?? []).map((n) => [label_atom_id.value(n.element), n.order])).toEqual([['OG', 1]]);
 
@@ -363,37 +362,37 @@ END`);
 describe('bond-order perception: valence (open-valence bookkeeping)', () => {
   // [atom, element, charge, bond-order sum, valence]
   it.each([
-    ['C', Elements.C, 0, 0, 4],
-    ['C+ (carbocation)', Elements.C, 1, 0, 3],
-    ['C- (carbanion)', Elements.C, -1, 0, 3],
-    ['Si+', Elements.SI, 1, 0, 3],
-    ['B', Elements.B, 0, 0, 3],
-    ['B- (borate)', Elements.B, -1, 0, 4],
-    ['N', Elements.N, 0, 0, 3],
-    ['N+', Elements.N, 1, 0, 4],
-    ['N-', Elements.N, -1, 0, 2],
-    ['N, 4 bonds (no expanded octet)', Elements.N, 0, 4, 3],
-    ['O', Elements.O, 0, 0, 2],
-    ['O+', Elements.O, 1, 0, 3],
-    ['O-', Elements.O, -1, 0, 1],
-    ['P, phosphine', Elements.P, 0, 3, 3],
-    ['P, phosphate (4 single bonds)', Elements.P, 0, 4, 5],
-    ['P, 6 bonds (at most 5)', Elements.P, 0, 6, 5],
-    ['S, thioether', Elements.S, 0, 2, 2],
-    ['S, sulfoxide (3 bonds)', Elements.S, 0, 3, 4],
-    ['S, sulfone (4 single bonds)', Elements.S, 0, 4, 4],
-    ['S, sulfone with one S=O', Elements.S, 0, 5, 6],
-    ['S+, sulfonium', Elements.S, 1, 3, 3],
-    ['S+, 4 bonds', Elements.S, 1, 4, 5],
-    ['Se, 3 bonds', Elements.SE, 0, 3, 4],
-    ['Cl', Elements.CL, 0, 1, 1],
-    ['Cl, 4 bonds (halogens not expanded)', Elements.CL, 0, 4, 1],
-    ['Cl-', Elements.CL, -1, 0, 0],
-    ['H', Elements.H, 0, 1, 1],
-    ['H+', Elements.H, 1, 0, 0],
-    ['Fe (not tracked)', Elements.FE, 0, 0, -1],
+    ['C', 'C', 0, 0, 4],
+    ['C+ (carbocation)', 'C', 1, 0, 3],
+    ['C- (carbanion)', 'C', -1, 0, 3],
+    ['Si+', 'SI', 1, 0, 3],
+    ['B', 'B', 0, 0, 3],
+    ['B- (borate)', 'B', -1, 0, 4],
+    ['N', 'N', 0, 0, 3],
+    ['N+', 'N', 1, 0, 4],
+    ['N-', 'N', -1, 0, 2],
+    ['N, 4 bonds (no expanded octet)', 'N', 0, 4, 3],
+    ['O', 'O', 0, 0, 2],
+    ['O+', 'O', 1, 0, 3],
+    ['O-', 'O', -1, 0, 1],
+    ['P, phosphine', 'P', 0, 3, 3],
+    ['P, phosphate (4 single bonds)', 'P', 0, 4, 5],
+    ['P, 6 bonds (at most 5)', 'P', 0, 6, 5],
+    ['S, thioether', 'S', 0, 2, 2],
+    ['S, sulfoxide (3 bonds)', 'S', 0, 3, 4],
+    ['S, sulfone (4 single bonds)', 'S', 0, 4, 4],
+    ['S, sulfone with one S=O', 'S', 0, 5, 6],
+    ['S+, sulfonium', 'S', 1, 3, 3],
+    ['S+, 4 bonds', 'S', 1, 4, 5],
+    ['Se, 3 bonds', 'SE', 0, 3, 4],
+    ['Cl', 'CL', 0, 1, 1],
+    ['Cl, 4 bonds (halogens not expanded)', 'CL', 0, 4, 1],
+    ['Cl-', 'CL', -1, 0, 0],
+    ['H', 'H', 0, 1, 1],
+    ['H+', 'H', 1, 0, 0],
+    ['Fe (not tracked)', 'FE', 0, 0, -1],
   ] as const)('%s', (_, el, charge, used, expected) => {
-    expect(valence(el, charge, used)).toBe(expected);
+    expect(valence(ElementSymbol(el), charge, used)).toBe(expected);
   });
 });
 
@@ -403,7 +402,7 @@ describe('bond-order perception: residue gate (_spec §1.9)', () => {
     const unit = unitOf(Structure.ofModel(model), 'BNZ');
     // the distance bonds as if a file stated them single (no Computed flag)
     const { offset, a, b, edgeCount, edgeProps } = unit.bonds;
-    const flags = edgeProps.flags.map((f) => f & ~BondType.Flag.Computed);
+    const flags = Array.from(edgeProps.flags, (f) => f & ~BondType.Flag.Computed);
     const stated = IntAdjacencyGraph.create(
       offset,
       a,
@@ -417,13 +416,31 @@ describe('bond-order perception: residue gate (_spec §1.9)', () => {
     const out = perceiveBondOrders(unit, stated, getInterUnit, 'auto');
     expect(Array.from(out.edgeProps.order)).toEqual(Array.from(stated.edgeProps.order));
     expect(Array.from(out.edgeProps.flags)).toEqual(Array.from(flags));
-    expect(out.props.canRemap).toBe(stated.props.canRemap);
+    expect(out.props?.canRemap).toBe(stated.props?.canRemap);
     expect(getInterUnit).not.toHaveBeenCalled();
 
     // the same ring with unknown orders is perceived
     const perceivedBonds = perceiveBondOrders(unit, unit.bonds, getInterUnit, 'auto');
     expect(Array.from(perceivedBonds.edgeProps.order).filter((o) => o === 2).length).toBe(6); // 3 bonds, both directions
     expect(getInterUnit).toHaveBeenCalled();
+  });
+
+  it('auto skips a residue whose only perceivable bonds are to hydrogen (a water of an MD frame)', async () => {
+    const model = await modelFromPdb(
+      [
+        'HETATM    1  O   WAT A   1       0.000   0.000   0.000  1.00  0.00           O  ',
+        'HETATM    2  H1  WAT A   1       0.957   0.000   0.000  1.00  0.00           H  ',
+        'HETATM    3  H2  WAT A   1      -0.240   0.927   0.000  1.00  0.00           H  ',
+        'END',
+      ].join('\n'),
+    );
+    const unit = unitOf(Structure.ofModel(model), 'WAT');
+    expect(unit.bonds.edgeCount).toBe(2); // O-H1, O-H2, by distance (Computed)
+    const getInterUnit = vi.fn(() => getInterUnitNeighbours(model, () => Structure.ofModel(model)));
+
+    const out = perceiveBondOrders(unit, unit.bonds, getInterUnit, 'auto');
+    expect(out.props?.canRemap).toBe(unit.bonds.props?.canRemap);
+    expect(getInterUnit).not.toHaveBeenCalled();
   });
 });
 
