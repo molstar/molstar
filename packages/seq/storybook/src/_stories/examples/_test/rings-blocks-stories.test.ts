@@ -96,7 +96,7 @@ describe('Plasmid ring, zoomed out past its fit', () => {
 
 describe('Complex blocks, headless', () => {
   it('the row: a strip a block on its own system, the copies merged ×2', async () => {
-    viewer = await openExample(ComplexViews.find((v) => v.id === 'blocks')!, { gene: '' });
+    viewer = await openExample(ComplexViews.find((v) => v.id === 'blocks')!, {});
     const sec = viewer.frame!.layout.sections[0];
     const p = sec.placement as BlockPlacement;
     expect(p.strips.axes.map((a) => a.system)).toEqual(['/data/cdk2', '/data/cyclin', '/data/atp']);
@@ -114,7 +114,7 @@ describe('Complex blocks, headless', () => {
   for (const c of chips)
     for (const dark of [false, true])
       it(`${c.id} (${dark ? 'dark' : 'light'}): the ATP chips at their label’s width, never clipped`, async () => {
-        viewer = await openExample(ComplexViews.find((v) => v.id === c.id)!, { gene: '' });
+        viewer = await openExample(ComplexViews.find((v) => v.id === c.id)!, {});
         const v = viewer;
         if (dark) v.setTokens(DarkTokens);
         const text = bundledTextMetrics();

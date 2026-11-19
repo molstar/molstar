@@ -6,6 +6,7 @@
 
 import { type Frame, type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import type { ExampleView } from '@molstar/seqx-examples';
+import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -17,8 +18,8 @@ import { vi } from 'vitest';
 export const HoverOwner = 'test';
 
 export interface OpenOptions {
-  /** The gene file's text (the views that read it by location). */
-  readonly gene: string;
+  /** The gene file's text (the views that read it by location); absent: the examples' fixtures, read by location. */
+  readonly gene?: string;
   /** Each answer's delay, or `staggered` (the story's own: later regions later). */
   readonly delayMs?: number | 'staggered';
   /** How long the fake clock runs after the load. */
@@ -40,7 +41,10 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     ui: undefined,
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: {
-      assets: () => ({ reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } }),
+      assets: () =>
+        text === undefined
+          ? nodeFixtureAssets()
+          : { reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } },
     },
   });
   v.resize(720);

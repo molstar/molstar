@@ -7,6 +7,8 @@
 import { ComplexViews } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../example-root.js';
+import { bookmarkInterface, setCopies } from './compose.js';
+import { complexEditStory } from './edit-root.js';
 
 const view = (id: string) => ComplexViews.find((v) => v.id === id)!;
 
@@ -14,9 +16,9 @@ const meta: Meta = { title: 'Examples/Complex/Blocks' };
 export default meta;
 
 /**
- * CDK2 and cyclin A (stand-in letters at 1FIN's lengths) as blocks in a row, the polymers first and ATP after them as a
- * one-position block; the two copies of the complex merged, each block labeled ×2. Each feature is drawn on its own
- * chain's block only. Zoom into a block: the others leave the view.
+ * PDB 1FIN: CDK2 and cyclin A as blocks in a row, the polymers first and the two ATPs after them as one-position
+ * blocks; the two copies of the complex merged, each block labeled ×2. Each feature is drawn on its own chain's block
+ * only; the interface residues of both copies under them. Zoom into a block: the others leave the view.
  */
 export const Row: StoryObj = { render: () => exampleStory(view('blocks')) };
 
@@ -31,3 +33,19 @@ export const StackedSplit: StoryObj = { render: () => exampleStory(view('blocks-
 
 /** The blocks on a ring: a block an arc with a gap between, their labels outside with the features'. */
 export const OnARing: StoryObj = { render: () => exampleStory(view('blocks-ring')) };
+
+/**
+ * The editing view: bookmark the interface (both sides' interface residues) as a ref, merge and split the copies, each
+ * one patch; Undo and Redo walk them. Hover the merged block: every member lights.
+ */
+export const Editing: StoryObj = {
+  render: () =>
+    complexEditStory({
+      view: view('blocks'),
+      edits: [
+        { label: 'Bookmark the interface', run: bookmarkInterface },
+        { label: 'Split the copies', run: (s) => setCopies(s, 'complex', 'each') },
+        { label: 'Merge the copies', run: (s) => setCopies(s, 'complex', 'merge') },
+      ],
+    }),
+};
