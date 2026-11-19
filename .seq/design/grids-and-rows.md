@@ -194,6 +194,19 @@ vertical scale. This design builds on them and adds only:
   (`follow_y: <cyclin A's section>`); a single chain's PAE follows one section with `follow_y: x`. **A grid layer
   draws only on its own systems** (its data's x and y): data on another system is not projected onto a grid, so a
   generator computes a grid on the systems it is drawn on.
+- **A grid over a complex** (the author, 2026-11-19: "can we have a PAE plot version for complex whose tracks are
+  rendered next to each other?", then "ok as recommended"; AlphaFold's and PAE viewers' whole-complex plot): a grid's
+  `x` and `y` may each follow a **section of blocks** (`follow`, `follow_y` naming it): the axis is the blocks'
+  display axis, each block on its own system, the chains side by side in the section's order (copies split or merged
+  as the section draws them). The data is one matrix over the blocks' positions in that order (an AF-style N×N
+  `predicted_aligned_error`, read from a JSON or MessagePack array of arrays by path, [files.md](files.md)), its size
+  checked against the blocks' total; each cell belongs to a (block, position) pair on each axis. Chain boundaries are
+  hairlines across the grid (`seq-break`), the blocks' labels on both axes; a hover names both residues with their
+  chains and lights them in the tracks; a dragged rect is two ranges, each split at chain boundaries into a part a
+  system. **A summary of a grid over a rect** (`gridSummary(view, rect)`: mean, min, max, count of the cells in view
+  data, a library function) gives a host's readout ("Aligned A 360–821, Scored A 265–831, mean 10.1 Å"); the panel is
+  the application's, a story draws one. Why blocks and not a new kind: the section of blocks already orders chains and
+  copies on one axis, and the fourth slice's `complex`/`unit` kinds lay out as blocks.
 - **Layers in it**: `grid` (a value per pair of positions, its color theme at its value) and `pairs` (a dot per pair of
   single positions at every zoom, a diagonal segment for a stretch; `mirror`, a spec param, `false` by default, draws
   (i, j) and (j, i) on a self grid: the tRNA builder sets it). Why `false`: a pair is drawn where its data puts it; a

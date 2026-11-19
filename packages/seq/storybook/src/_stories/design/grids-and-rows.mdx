@@ -21,6 +21,9 @@ depends on the pixels on screen, not the amount of data.
 
 - A grid is a section of its own with two axes, `x` and `y`, each able to follow another section: a PAE between two
   chains has its x follow one chain's section and its y the other's.
+- **A grid over a complex** follows a section of blocks on both axes: the whole complex's PAE, chains side by side with
+  their boundaries drawn; a dragged box splits at the chains, and a library summary (mean, min, max) feeds an
+  application's readout.
 - Hover is a **crosshair**: both positions light on the grid and on every linked section. A drag selects a
   **rectangle**: two ranges at once; Cmd/Ctrl+drag adds one, Alt+drag removes one.
 - Upper and lower triangles may hold different data (`triangle`); `mirror` draws a pair both ways.

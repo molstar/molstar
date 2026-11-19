@@ -528,3 +528,9 @@ superseded by the seq data ports design.
 14. This slice's DC row "ATP ... joined by a many-to-one map" (examples.md): 0.4.0 has no such map (`offset`, `codon`
     only). DC writes ATP's two forms as two sequences with no map this slice, hover not crossing until the fourth
     slice? Recommended **yes**: **decided yes**, and examples.md's row reworded with DC.
+15. Structure integration in the fourth slice (the author, 2026-11-19: "let's only do a demo with fake 3D viewer to
+    demonstrate how the syncing will work. There will be a new mol viewer work after we are done with the sequence
+    viewer which will replace prism"): the syncing is shown on a fake 3D viewer (a storybook stand-in taking
+    MolViewSpec-shaped states and sending hover, selection and focus); the Mol\* host, its `Model` adapters (Tensions,
+    the mmCIF runtime against the structure lane, option (a)) and a live 3D view wait for the new mol viewer. The
+    mmCIF runtime (MC) reads files through `@molstar/io` as designed.

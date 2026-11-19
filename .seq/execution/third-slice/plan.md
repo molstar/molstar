@@ -16,8 +16,14 @@ their views ([examples](../../design/examples.md)).
 | first (closed) | the end-to-end slice | the tree core, the language, resolve, draw lists, Canvas2D and SVG, the viewer's models, data by region, measured |
 | second (closed) | 1, core editing and addressing | patches, the history port, previews, addresses, refs and links, selection, security bounds, MessagePack, navigation |
 | **third (this plan)** | 2, figures | the axis, the text, ring and block layouts, alignments, dot plots, arcs and logos, themes and legends, stories, navigators, PNG and the CLI, the datasets |
-| fourth | 3, integration | structures (the port, structure maps, the Mol\* showcase), services, bigWig and range reads, the Nightingale reference, archives |
+| fourth | 3, integration | structures (the port, structure maps, a fake 3D viewer showing the syncing; the Mol\* integration waits for the new mol viewer), services, bigWig and range reads, the Nightingale reference, archives |
 | later | 4, Genomes | layers across sections, synteny, contact maps, MAF, two assemblies on one axis, the genome formats |
+
+**Structure integration in the fourth slice is a fake 3D viewer** (decided, the author, 2026-11-19: "let's only do a demo with fake 3D viewer to demonstrate how the syncing will work. There will be a new mol viewer work after we are done with the sequence viewer which will replace prism, so i don't want to waste work"): a small storybook component standing in
+for a structure viewer (its chains and residues as a schematic, taking MolViewSpec-shaped states and sending hover,
+selection and focus as a structure viewer would) shows every syncing path: hover and selection both ways, focus, "color
+by this track", a structure's chains mapped onto sequences. The ports, maps and messages are the real ones; the Mol\*
+integration (Mol\* `Model` adapters, a live 3D view) waits for the new mol viewer that replaces Prism.
 
 ## What the second slice changes in how this one runs
 
@@ -237,7 +243,7 @@ and dark before the merge.
       re-exports), the delimited tokenizer at `@molstar/core/data/text/delimited` (hot `package.json` files through the
       orchestrator), `AssetReader.readBytes`, `OpenContext.limits`, the records runtime for TSV, CSV, JSON and
       MessagePack with the transform, the `seq` format's MessagePack, the conformance suite (files.md, Consequences).
-- [ ] FS-A2 (fast, after FS-A1): the GFF3 preset with the cyclic wrap (or GFF3 handed to DP), `dataFilter`'s trailing
+- [ ] FS-A2 (fast, after FS-A1): a matrix read (an array of arrays by path, as a grid's values, for DC's PAE), the GFF3 preset with the cyclic wrap (or GFF3 handed to DP), `dataFilter`'s trailing
       `(not …)` rule, p53's UniProt entry as trimmed JSON and `uniprotEntry`, `Features/Files` with twins; owns
       `packages/seq/examples/scripts/record.ts` (moved from DG).
 - [ ] FS-B (conditional): trees and pairs held from a file, only if DG's tree must be read from one this slice; else
@@ -276,6 +282,15 @@ and dark before the merge.
       one mount and record; config `navigator.zoomStrip.minPx` (48), `heightPx` (16). Tests: p53's gene region on chr17
       (a drag on the zoom strip pans the view by the strip's scale; a view zoom moves the window there; the mark is
       not a drag target), canvas and SVG, both themes; a reachable span wider than the floor keeps one strip.
+- [ ] HL (fast, now; the author, 2026-11-19: "the packages/sequences is able to select/highlight/mark multiple
+      overlapping sections with different colors. can we have this functionality too?", then "ok as recommended")
+      overlapping highlight channels as stripes, a channel's `style` (`tint`, `band`, `outline`), the legend part's
+      active channels (ux-foundations section 6); `Features/Highlights` with its twin (several overlapping channels in
+      tracks, text and rings, canvas and SVG, both themes).
+- [ ] QS (fast, after FS-A2; the author, 2026-11-19: "do we have storybook stories planned to showcase SeqQL
+      functionality? Perhaps Features section?", then "ok as recommended") `Features/Query` (examples-and-stories,
+      The query language in Features): a query box (parse, check, run; the result selected or highlighted; the printed
+      form; issues with hints) and worked examples as stories, each with a headless twin.
 - [ ] RC (strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
       header… to the right of the sequence data", "ok, schedule it like that") row columns: the rows layer's `columns`
       (`field`, `side: left | right`, `as: text | number | bar | chip`, `width`, `title`), fields from `#=GS` lines,
@@ -286,6 +301,11 @@ and dark before the merge.
       isn't good") a one-position block a chip in every layout, as layouts.md (Blocks) now says (decided
       2026-11-19): a fixed slot its label's width, the text chip's rule; contacts an optional `pairs` layer the
       examples add, never a default.
+- DC also builds **the grid over a complex** (grids-and-rows, "A grid over a complex"; the author, 2026-11-19: "can we
+  have a PAE plot version for complex whose tracks are rendered next to each other?"): a grid whose x and y follow a
+  section of blocks, an AF-shaped N×N PAE over the chains in order (synthetic, examples.md's data decision 2), chain
+  boundaries, hover naming both residues, a rect split at chain boundaries, `gridSummary` and a story's readout panel.
+  FS-A2 reads the matrix (a JSON or MessagePack array of arrays by path) for it.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). FS-A2 owns
@@ -375,8 +395,8 @@ a host adding or removing its own; a hidden-tracks chip in the section header th
 headers' geometry as an API for a host's own widget later. Today: `track.hide`/`track.show`, `layer.hide`/`layer.show`
 and `layer.filter` as commands, the "n filtered" chip the header's only control (extensibility.md, "internal until an
 outside user"; ux-foundations section 9). Its story and test (the author, 2026-11-19): a "color by this track" header
-action with the Mol* integration: the click builds a MolViewSpec state ad hoc from the track's layer (its theme's
-colors over the residues it maps to the structure) and the 3D view shows it; headless, the built state checked against
+action with a fake 3D viewer (decided, the author, 2026-11-19: "let's only do a demo with fake 3D viewer to demonstrate how the syncing will work. There will be a new mol viewer work after we are done with the sequence viewer which will replace prism, so i don't want to waste work"): the click builds a MolViewSpec state ad hoc from the track's layer (its theme's
+colors over the residues it maps to the structure) and the fake viewer shows it; headless, the built state checked against
 the track's colors, and the action as a host's registry entry (not built into Seq*). The fourth slice's plan (Finalize,
 step 5) carries it.
 Legends' library surface (the author, 2026-11-19): how legends are displayed and what the library offers for them:
@@ -389,7 +409,7 @@ mol io .. we could write seq io"): the assets port shares bytes today; what is n
 representation. A design for the fourth slice, before the molecules design's mmCIF lane (MC): adapters that read Seq\*'s
 data from a host's in-memory representation (a Mol\* `Model` or `Structure`: sequences, entities, components, units,
 without parsing again) and give Seq\*'s annotations back as the host's representations (MolViewSpec, Mol\*
-representations), as registry entries by representation kind (ports.md's rule: several, looked up by name); the
+representations; the Mol\* adapters wait for the new mol viewer, the design and a fake host's adapter only), as registry entries by representation kind (ports.md's rule: several, looked up by name); the
 layering against `@molstar/io` and `@molstar/model` (whether the data ports are a package of their own) decided there.
 Custom navigators (the author, 2026-11-19: "are our navigation components customizable same as any other track?"):
 today a navigator's content is (its `tracks` draw any layer type, a registered one included), its form is not (the

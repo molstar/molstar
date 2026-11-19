@@ -114,6 +114,14 @@ smallest letter size needs, so cells never show without letters.
   selection; the keyboard cursor is a 1 px neutral line (`msui-text`), shown only after a key, not the thicker accent
   outline the list above names. A highlight channel is a tint (0.3) of its color; what is projected onto a linked
   section takes its own look at half strength (0.5).
+- **Overlapping highlight channels stay apart** (the author, 2026-11-19, on the base's several colored marks: "can we
+  have this functionality too?", then "ok as recommended"): where two or more channels light one position of a track,
+  the band splits into equal horizontal stripes, one a channel present there, in channel order (the order set); up to
+  `emphasis.highlightStripes` (4), the rest merged into the last stripe. Where one channel alone lights, it takes the
+  whole band. A channel's `style`: `tint` (the default, as above), `band` (a bar along the track's foot, the base's
+  band style), or `outline` (its color's outline, no fill). The legend part lists the active channels with their
+  colors, each removable (`highlight.clear`, the themes design). Why stripes: stacked 0.3 tints of two colors blend
+  into a third that names neither.
 - **Hover is the same everywhere**: one outline style for a cell, a range, a row, a pair; projected hovers on linked
   sections take the same style, lighter.
 - **Selection is one look** in tracks, text, rings and dot plots.

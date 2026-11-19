@@ -128,9 +128,9 @@ On the review of the decisions: "ok" to its recommendations.
     fixtures, a switch to go live;
   - **predictions onto a structure**: a lab's per-position predictions on a sequence indexed from 1, with no numbering
     of its own, mapped onto an mmCIF structure through `label` and `auth` numbering (an offset, insertion codes,
-    unobserved loops, an expression tag), colored on the sequence and in Mol\*, hover and selection both ways
+    unobserved loops, an expression tag), colored on the sequence and in a fake 3D viewer (the Mol\* view waits for the new mol viewer, decided 2026-11-19), hover and selection both ways
     (EC-3 to EC-5, EC-25, EC-118);
-  - **addressing**: a text with links that focus, highlight and select in the view and in the structure; "copy link"
+  - **addressing**: a text with links that focus, highlight and select in the view and in the (fake) structure viewer; "copy link"
     from the view back to text; the same location in several numberings; rects from a dot plot and an alignment; refs
     as bookmarks ([addressing.md](addressing.md)).
 - **Editing experiences are views too**: each dataset has at least one view that is edited (a bookmark added, a track

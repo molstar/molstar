@@ -39,3 +39,10 @@ structured. This design settles it.
 - The package joins the inventory, the workspace and the root tsconfig references; its fixtures are excluded from the
   published packages (it is private).
 - [packages.md](packages.md) lists it.
+
+**The query language in Features** (the author, 2026-11-19: "do we have storybook stories planned to showcase SeqQL
+functionality? Perhaps Features section?", then "ok as recommended"): `Features/Query` on p53's data: a query box
+where an expression typed is parsed, checked and run, its result selected or highlighted in the view, its printed
+form and its issues with hints shown; worked examples, each a story: items by category, a motif search, ranges and
+slices, a result carried from the protein onto its gene, `and`/`or`/`not`, a query over an alignment's rows and
+columns. Each with its headless twin checking the result's location.

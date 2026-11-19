@@ -10,10 +10,13 @@
   TODO item (best of three or a percentile).
 - Track header parts, decided for the fourth slice (the author, 2026-11-19): header actions as registry entries in
   the header's fixed slots (a host's button among them), a hidden-tracks chip that shows hidden tracks again, the
-  headers' geometry for a host's widget later (plan, Out of scope). Its story: "color by this track" with the Mol*
-  integration, a click building a MolViewSpec state ad hoc for the 3D view.
+  headers' geometry for a host's widget later (plan, Out of scope). Its story: "color by this track" on a fake 3D viewer
+  (the Mol\* integration waits for the new mol viewer, decided 2026-11-19), a click building a MolViewSpec state ad hoc.
 - Legends' library surface, for the fourth slice (the author, 2026-11-19): display, placement, hiding and collapsing,
   a compact form; editing from a legend is the application's, on the commands (plan, Out of scope).
 - For the fourth slice (the author, 2026-11-19): seq data ports (representation ports) (share Mol*'s parsed representation,
   not only bytes); custom navigators (a navigator's picture as a registry entry, the window behavior public); event
   composition across parts is the application's (plan, Out of scope).
+- Structure integration, fourth slice (decided 2026-11-19): a fake 3D viewer demonstrates the syncing (hover, selection
+  and focus both ways, "color by this track", chain maps) on the real ports and messages; the Mol\* integration and
+  `Model` adapters wait for the new mol viewer that replaces Prism (plan, Out of scope).
