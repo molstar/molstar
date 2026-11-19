@@ -42,7 +42,7 @@ import {
   withSourceNumberings,
 } from '@molstar/seqx-core/render';
 import { ViewerIssues } from '../issues.js';
-import { overlayQueryModel } from '@molstar/seqx-core/resolve';
+import { overlayQueryModel, type RowsSource } from '@molstar/seqx-core/resolve';
 import type { Axis } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { breakHolding, nearestOffsetOf, positionAt } from './axis.js';
@@ -258,19 +258,26 @@ export class AddressModel extends ReactiveModel {
     const version = this.store.store.version.value;
     const q = this._query;
     if (q && q.model === model && q.overlay === overlay && q.version === version) return q.query;
-    const query = withSourceNumberings(overlayQueryModel(model, overlay, this.store.store), model, this.store.store, {
+    // one rows source a model (the query models are kept by it): rows read from a source asked for as numberings are
+    if (this._rows?.model !== model)
+      this._rows = { model, source: { data: this.store.store, want: (w) => this._wantTiles(model, w) } };
+    const query = withSourceNumberings(overlayQueryModel(model, overlay, this._rows.source), model, this.store.store, {
       maxPositions: this.maxNumberingPositions,
-      want: (w) => this._wantNumbering(model, w),
+      want: (w) => this._wantTiles(model, w),
     });
     this._query = { model, overlay, version, query };
     return query;
   }
 
+  /** The rows source of the model shown (`queryModel`). */
+  private _rows: { model: unknown; source: RowsSource } | undefined;
+
   /**
-   * Asks for a source numbering's tiles a form named (whoever resolves asks, so a link in a numbering no ruler shows
-   * resolves): the wants of the model shown, all at once, after the resolve that named them (never inside it).
+   * Asks for the tiles a form named, a source numbering's labels or an alignment's rows (whoever resolves asks, so a
+   * link in a numbering no ruler shows, or to a row no layer read, resolves): the wants of the model shown, all at
+   * once, after the resolve that named them (never inside it).
    */
-  private _wantNumbering(model: unknown, w: Want) {
+  private _wantTiles(model: unknown, w: Want) {
     if (this._numberingModel !== model) {
       this._numberingModel = model;
       this._numberingWants.clear();

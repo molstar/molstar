@@ -84,6 +84,17 @@ const LineWidth = 2;
 const LabelWidePx = 24;
 const LabelInset = 6;
 const LabelMinPx = 8;
+/**
+ * The narrowest a glyph is, in ems of the item font (a lower bound: `i`, `l`, `.` are about 0.22 em in sans fonts): a
+ * label of n glyphs is at least n of these wide, so one too long for a narrow mark is skipped unmeasured.
+ */
+const MinGlyphEm = 0.15;
+
+/** The narrowest a glyph of `font` is (CSS px); 0 when its size is not in px (every label is then measured). */
+function minGlyphPx(font: string): number {
+  const m = /(\d+(?:\.\d+)?)px/.exec(font);
+  return m ? Number(m[1]) * MinGlyphEm : 0;
+}
 /** A mark this wide (CSS px) or wider draws its item's arrowhead, at any step: narrower, the head would be all of it. */
 const ArrowMinPx = 4;
 /** A highlight's alpha: 0.35 of 255, the channel's default. */
@@ -535,16 +546,20 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // residue's code over its one position: drawn in the labels pass)
     const sink = ctx.labels !== undefined && ctx.labels !== 'inside' ? ctx.labels : undefined;
     if (sink) sinkLabels(lay, src, sink, box.y);
-    else if (lay.mode === 'items' && lay.laneHeight >= 10)
+    else if (lay.mode === 'items' && lay.laneHeight >= 10) {
+      const glyph = minGlyphPx(lay.font);
       for (let j = 0; j < lay.m; j++) {
         const label = lay.mitem[j] >= 0 ? lay.labels[lay.mitem[j]] : undefined;
         const w = lay.mx1[j] - lay.mx0[j];
         if (!label || w < LabelMinPx) continue;
+        // a narrow mark takes a label only whole: one surely too long is not measured (dense items at the bars step)
+        if (w < LabelWidePx && label.length * glyph + LabelInset > w) continue;
         const m = ctx.text.measure(lay.font, label);
         if (w < LabelWidePx && m + LabelInset > w) continue;
         lay.mlabel[j] = m;
         lay.mink[j] = lay.style ? tokens.colors['msui-text'] : inkOn(lay.fills[lay.mitem[j]], tokens);
       }
+    }
     // a mark cut at both ends is square
     lay.gap = lay.laneHeight >= 6 ? 2 : 0;
     const h = lay.laneHeight - lay.gap;

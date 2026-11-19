@@ -7,24 +7,30 @@
 // The query forms' model over the static model and an overlay (_spec/README.md "Overlay", The query model): the
 // spec's systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a
 // node the store holds. An address of a dynamic node resolves while the node is held and waits while it is not. With
-// the store's tiles, `(row :key k)` also names a row of an alignment read from a source, once its rows are held.
+// the store's tiles, `(row :key k)` also names a row of an alignment read from a source once its rows are held, and
+// waits, asking for them, while they are not.
 
 import type { Atom, Node } from '@molstar/core/repr/tree';
-import type { DataStore } from '@molstar/seqx-core/data';
+import type { CellsTable, DataStore, Want } from '@molstar/seqx-core/data';
 import type { QueryAnnotation, QueryModel, QuerySystem } from '@molstar/seqx-core/query';
 import { queryAnnotation, type StaticModel } from './model.js';
 import { nodeAddress, type Overlay } from './overlay.js';
 
-/** What a row form reads of a source alignment's rows: the store's loaded tiles (a `DataStore`). */
-export type RowsReader = Pick<DataStore, 'coverage' | 'keysOf' | 'get'>;
+/** What a row form reads of an alignment's rows read from a source: the store's loaded tiles, and how to ask for them. */
+export interface RowsSource {
+  readonly data: Pick<DataStore, 'coverage' | 'keysOf' | 'get'>;
+  /** Asks for the rows' tiles a form named (whoever resolves asks: a row form needs no layer to have read them). */
+  readonly want?: (want: Want) => void;
+}
 
-const models = new WeakMap<StaticModel, WeakMap<Overlay, Map<RowsReader | undefined, QueryModel>>>();
+const models = new WeakMap<StaticModel, WeakMap<Overlay, Map<RowsSource | undefined, QueryModel>>>();
 
 /**
- * The query model of the static model with an overlay's dynamic nodes; one per model, overlay and reader (kept). With
- * `rows`, a row form reads the rows of an alignment from a source in the tiles it holds (`storeRow`).
+ * The query model of the static model with an overlay's dynamic nodes; one per model, overlay and rows source (kept).
+ * With `rows`, a row form reads the rows of an alignment from a source in the tiles the store holds (`storeRows`),
+ * pending while they are not.
  */
-export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: RowsReader): QueryModel {
+export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: RowsSource): QueryModel {
   let byOverlay = models.get(model);
   if (!byOverlay) models.set(model, (byOverlay = new WeakMap()));
   let byReader = byOverlay.get(overlay);
@@ -68,36 +74,66 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
       return typeof key === 'string' ? overlay.node(nodeAddress(owner, key))?.node : undefined;
     },
     chain: () => undefined,
-    row: (at, key) => model.row?.(at, key) ?? (rows ? storeRow(model, rows, at, key) : undefined),
+    row: (at, key) => {
+      const own = model.row?.(at, key);
+      if (own !== undefined || !rows) return own;
+      const held = storeRows(model, rows, at);
+      return held?.status === 'held' ? rowOf(held.tables, String(key)) : undefined;
+    },
+    rowsPending: (at) => (rows ? storeRows(model, rows, at)?.status === 'pending' : false),
   };
   byReader.set(rows, q);
   return q;
 }
 
+type HeldRows = { readonly status: 'pending' } | { readonly status: 'held'; readonly tables: readonly CellsTable[] };
+
+const Pending: HeldRows = { status: 'pending' };
+
 /**
- * A row of an alignment read from a source by its key (its label), in the tiles of its rows the store has loaded: the
- * first row of the label; undefined while its rows are not held (EC-35: rows are positions).
+ * The tiles of an alignment's rows read from a source (`rows`, its rows system), asked for whole; pending while any is
+ * not loaded (or the source not attached); undefined when the rows are not a source's (EC-35: rows are positions).
  */
-function storeRow(model: StaticModel, reader: RowsReader, rows: string, key: Atom): number | undefined {
+function storeRows(model: StaticModel, src: RowsSource, rows: string): HeldRows | undefined {
   for (const a of model.annotations.values()) {
     if (a.shape !== 'cells' || a.rows !== rows || a.access?.kind !== 'source') continue;
     const { source, system } = a.access;
-    const n = reader.coverage(source)?.systems.find((s) => s.name === system)?.length;
-    if (n === undefined) return undefined;
-    const label = String(key);
-    let best: number | undefined;
-    for (const k of reader.keysOf({ source, system, start: 0, end: n, level: 1 })) {
-      const e = reader.get(k);
-      const t = e?.status === 'loaded' ? e.tables.cells : undefined;
-      if (t?.form !== 'codes' || !t.label) continue;
-      const m = Math.floor(t.codes.length / Math.max(1, t.columns));
-      for (let i = 0; i < m; i++)
-        if (t.label.get(i) === label && (best === undefined || t.start + i < best)) {
-          best = t.start + i;
-          break;
-        }
+    const n = src.data.coverage(source)?.systems.find((s) => s.name === system)?.length;
+    if (n === undefined) return Pending;
+    const want = { source, system, start: 0, end: n, level: 1 };
+    src.want?.(want);
+    const tables: CellsTable[] = [];
+    for (const k of src.data.keysOf(want)) {
+      const e = src.data.get(k);
+      if (e?.status !== 'loaded') return Pending;
+      const t = e.tables.cells;
+      if (t) tables.push(t);
     }
-    return best;
+    return { status: 'held', tables };
   }
   return undefined;
+}
+
+/** Each tile's rows by label (the first row of a label), made once a table. */
+const RowIndex = new WeakMap<CellsTable, ReadonlyMap<string, number>>();
+
+/** The first row of a label in the tiles (each indexed once), undefined when none has it. */
+function rowOf(tables: readonly CellsTable[], label: string): number | undefined {
+  let best: number | undefined;
+  for (const t of tables) {
+    if (t.form !== 'codes' || !t.label) continue;
+    let index = RowIndex.get(t);
+    if (!index) {
+      const m = new Map<string, number>();
+      const n = Math.floor(t.codes.length / Math.max(1, t.columns));
+      for (let i = 0; i < n; i++) {
+        const l = t.label.get(i);
+        if (l !== null && !m.has(l)) m.set(l, t.start + i);
+      }
+      RowIndex.set(t, (index = m));
+    }
+    const r = index.get(label);
+    if (r !== undefined && (best === undefined || r < best)) best = r;
+  }
+  return best;
 }

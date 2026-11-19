@@ -383,7 +383,7 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 | `(at :label l :ins c :numbering n)`            | systems           | Location (one position)                                                                                         |
 | `(all)`                                        | systems           | Location                                                                                                        |
 | `(rect :a <location> :b <location>)`           | as its sides need | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
-| `(row :key k)`, `(row :key [k …])`             | alignments        | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`): a rect's side        |
+| `(row :key k)`, `(row :key [k …])`             | alignments        | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
 | `(item :id k)`, `(item :<field> v …)`          | annotations       | Elements (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue) |
 | `(items :overlapping <location>)`              | annotations       | Elements (every item without `:overlapping`)                                                                    |
 | `(node :key k)`, `(chain :id k)`               | nodes             | Nodes, addressed by the form itself (`/data/1tup/(chain :id A)`), so location forms may follow a chain          |
@@ -396,8 +396,9 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   children with ids. Dynamic nodes are not in that universe yet. A rect has no complement; **inside `and`**, a
   `(not :of <location>)` operand is subtracted from the others' intersection instead (the same positions for parts), so
   `(and :of [<rect> (not :of <rect>)])` is a rect less a rect, exact (Location).
-- **`row`** reads the model's `row(rows, key)`: an inline alignment's labels; a source's rows are not held there, so a
-  key of one is `seq.query.row.unknown`.
+- **`row`** reads the model's `row(rows, key)`: an inline alignment's labels, else a source's rows the query model holds
+  (Overlay); while `rowsPending(rows)` the form waits over the whole rows system (`seq.query.row.pending`, the address
+  `waiting`); a key no held row has is `seq.query.row.unknown`.
 - **Operands**: a nested form is evaluated against the same prefix (its resolver, else `repr`'s child selection); an
   address from the root. The location of `items :overlapping` is evaluated against the annotations' targets; a part on a
   system no target is reports `seq.query.location.unreachable` (projection is not built), a rect is refused. An operand
@@ -463,11 +464,12 @@ links that carry addresses. Forms and addresses are one language, so this sits w
   annotation's by all its items; a section (and what is under it) by the region it shows. What focus and reveal read.
 - **The overlay's query model** (`overlayQueryModel(model, overlay, rows?)`, `resolve/query-model.ts`): the static
   model's systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a
-  node the store holds (a string key: `1` is not `"1"`); one per model, overlay and reader. With the store as `rows`
-  (`RowsReader`: the viewer's and an export's), `(row :key k)` on an alignment read from a source names the first row of
-  the label in the tiles of its rows the store has loaded (what a rows layer read); before they are held the key is
-  unknown (`seq.query.row.unknown`). Why: a ref to a dynamic node, or to a source's row, resolves when its data arrives,
-  through the same forms.
+  node the store holds (a string key: `1` is not `"1"`); one per model, overlay and rows source. With a `RowsSource`
+  (`{ data, want? }`: the store, and how whoever resolves asks for tiles; the viewer's and an export's), `(row :key k)`
+  on an alignment read from a source names the first row of the label in its rows' tiles (indexed label → row once a
+  table); while any is not loaded the form is pending and asks for the whole rows system through `want`, so no layer
+  needs to have read them. Why: a ref to a dynamic node, or to a source's row, resolves when its data arrives, through
+  the same forms.
 
 ### Back
 
@@ -833,10 +835,16 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   alignment's columns and rows too) is passed to the next resolve (`sourceLengths(model, coverage)`,
   `ResolveOptions.lengths`, `Resolver.resolve(spec, lengths)`), and the system resolves as one with inline letters of
   that length: its rows wrap the origin, its codon maps and grids are read, its sections and blocks get their pieces.
-  The lengths are part of the model's hash and of every entry's key over the system. Why again through resolve: what
-  reads a length is the model's, so a cyclic `seq` file works as inline letters do. A headless render (`renderSvg`)
-  opens the sources that hold a shown system first, then resolves again; the viewer on each store change
-  (`SpecModel.setLengths`).
+  `Lengths` is opaque: each length is kept by its system and its source node's hash, so a model whose source changed (an
+  edited `uri`) never reads the old file's length; the system is pending until the new source opens. The lengths are
+  part of the model's hash and of every entry's key over the system. Why again through resolve: what reads a length is
+  the model's, so a cyclic `seq` file works as inline letters do.
+- **Opening a model** (`openModel(spec, store, options)`, `render/export.ts`): the one implementation of the two phases.
+  It resolves (or takes the caller's first resolve), opens the sources that hold systems (`scope: 'view'`: the view's
+  only), resolves again with their lengths, then opens the rest, and gives the settled model, its view and every issue
+  (the model's, the view's, the openings'). `renderSvg` and the tests use it; the viewer composes the same pieces
+  reactively (its store opens on each model change, `sourceLengths` on each store change). Why one helper: four
+  hand-written copies had drifted (a source opened twice, a late model swapped in mid-render).
 - **Sources**: each `source` node bound to a `SourceEntry` made from its params (`SourceParams`, the description's: one
   definition) and to the first runtime of the caller's registry whose `formats` holds its `format`. No format is
   `seq.resolve.source.format`, no runtime `seq.resolve.source.runtime`; either way the source is unavailable.
@@ -2139,13 +2147,16 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
   the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
   `export.window` when absent, false: an exported map is a figure).
-- `renderSvg(spec, { size, viewport?, runtimes, … })`: checks and resolves the spec, opens the sources its view reads
-  (`attachSources`: inline data through `seq`, a source node through its runtime, a template's source; assets refused
-  unless a reader is given, `NoAssets`), wants through a want set of its own (EC-125), each round reads the overlay and
-  syncs its sources (let go at the end), lays out until its wants and the store's node version hold, waits for them to
-  settle, and draws once more with the view settled. It waits for its view's wants alone, never their margins.
+- `renderSvg(spec, { size, viewport?, runtimes, … })`: checks the spec and opens its model (`openModel`,
+  `scope: 'view'`: the sources its view reads, `attachSources`: inline data through `seq`, a source node through its
+  runtime, a template's source; assets refused unless a reader is given, `NoAssets`), wants through a want set of its
+  own (EC-125), each round reads the overlay and syncs its sources (let go at the end), lays out until its wants and the
+  store's node version hold, waits for them to settle, and draws once more with the view settled. It waits for its
+  view's wants alone, never their margins.
 - **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
-  opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`.
+  opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`. The model
+  and view resolved again are taken only when the opening wins the race with the deadline: a source that opens later
+  never swaps the model under a render (the first resolve's, its lengths pending, is drawn).
 - **A selection as an address** (`selection`): resolved by the export itself once its data settled, over its own store's
   nodes (`overlayQueryModel`), and drawn with `emphasis.selection`; what it named is `selection` in the result (absent
   with its issues when it named nothing). Why: an export is a consumer of an address of its own, not a copy of a

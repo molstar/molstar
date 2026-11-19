@@ -16,8 +16,8 @@
 // datasets: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's
 // own and ClinVar's sources; `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
 // rows (CC-BY-4.0) and PDB 4HHB (CC0-1.0); `plasmid`, INSDC L09137.2 (pUC19c) as ENA serves it in FASTA, converted to
-// the `seq` format, its letters also as a module of the examples (a cyclic sequence read from a source has no length
-// until it is opened, so a view that wraps the origin takes them inline), and the rotated variant's features and sites,
+// the `seq` format, its letters also as a module of the examples (what the features and sites are derived from in code
+// when a view is built; the views read the letters from the `seq` files), and the rotated variant's features and sites,
 // derived from it, as GFF3; `trna`, PDB 1EHZ's mmCIF from PDBe (CC0-1.0: chain A's sequence, modified residues and
 // base pairs as `seq` files) and Rfam RF00005's seed (CC0-1.0, Stockholm as published); `complex`, PDB 1FIN (CC0-1.0)
 // converted to `seq` with its derived contacts, the ligands of six CC0 entries of CDK2 (AlphaFill's transplants are not

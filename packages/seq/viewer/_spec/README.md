@@ -23,10 +23,11 @@ lives in them, never in the spec or its history. Time and frames are `@molstar/u
 `shown` and `model`, the static model of what is shown, by a resolver that keeps its entries by node hash, so a patch
 recompiles the entries whose nodes (or the nodes they read) it changed and a view edit keeps every data entry.
 
-- **A source-backed system's length** (`setLengths`, the viewer's `sourceLengths` on each store change): the model is
-  resolved again with the lengths the opened sources' coverages give, so such a system is laid out, its rows wrapped
-  over a cyclic origin and its grids read as over inline letters (the core's `ResolveOptions.lengths`). Why the model,
-  not the view: what reads a length (an item across the origin, a codon map, a grid, a block) is the model's.
+- **A source-backed system's length** (the `lengths` state the viewer passes `SpecModel`, set from `sourceLengths` over
+  `StoreModel.openedCoverage` after each sync and store change): the model is derived from what is shown and the
+  lengths, resolved again with the lengths the opened sources' coverages give, so such a system is laid out, its rows
+  wrapped over a cyclic origin and its grids read as over inline letters (the core's `ResolveOptions.lengths`). Why the
+  model, not the view: what reads a length (an item across the origin, a codon map, a grid, a block) is the model's.
 
 - **Patches** (`applyPatch(patch, options)`): `repr/patch`'s `applyPatch` with `SeqLanguage`, its slots
   (`SeqValidateOptions`) and the checks of a change (`SeqPatchValidator`, the core's `seq.lang` checks of what the
@@ -179,7 +180,7 @@ nothing and tells nothing.
   back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and `record(snapshot)`
   pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
   navigator's far drag, of its window or its rows); `jump` pushes through it.
-- **A source-backed system's length** is the model's once its source opened (`SpecModel.setLengths`): the resolved
+- **A source-backed system's length** is the model's once its source opened (SpecModel, its `lengths`): the resolved
   view's axes get their pieces then, so a section on a streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
   when it can be (EC-112). Placing clamps the range within the axis and at most `viewport.maxPxPerPosition` px a
@@ -329,7 +330,8 @@ over `overlayQueryModel` of the static model and `StoreModel.currentOverlay`, th
 syncing sources, with the labels of the numberings read from sources that the store holds: the core's
 `withSourceNumberings`), with the `address.*` settings as bounds. The query model is kept while the model, the overlay
 and the store's version are the same. A form naming a source's numbering whose labels are not in asks for its tiles
-through the model's own wanter (after the resolve, never inside it), so a link in a numbering no ruler shows waits and
+through the model's own wanter (after the resolve, never inside it), and so does a row form over an alignment's rows not
+held yet (its `RowsSource`, one a model), so a link in a numbering no ruler shows, or to a row no layer read, waits and
 then resolves.
 
 - **Actions**: `focus` (each leading, movable section whose system the address has positions on, or reaches by a static
@@ -371,10 +373,13 @@ then resolves.
 timed by `DomHost` (`DomHostClock`). `sync(model, assets)` opens the static model's sources (each bound to a runtime,
 and each inline access plan) with the store's `limits` (its `maxRows` and `maxBytes`) and attaches them under their
 addresses; a source whose entry is the object it was opened from is kept (the resolver keeps entries by hash), a changed
-one is opened again, one gone is detached and its issue cleared. A source that cannot be opened is an issue at its
-address (`issues`), and an opened source's own `issues` (the rows a file of records left out, each with its count,
-places and hint) are reported there too; a failed opening, or a coverage the store refuses (its own report), is
-forgotten so the next sync tries again. Retired with its owner, the store with it.
+one is opened again, one gone is detached and its issue cleared. `detachStale(model)` does that detaching alone, at once
+on a model change (the viewer, before its sync), so no frame reads an edited source's old file;
+`openedCoverage(model, address)` is a source's coverage only when it was opened from the model's own entry (what
+`sourceLengths` reads). A source that cannot be opened is an issue at its address (`issues`), and an opened source's own
+`issues` (the rows a file of records left out, each with its count, places and hint) are reported there too; a failed
+opening, or a coverage the store refuses (its own report), is forgotten so the next sync tries again. Retired with its
+owner, the store with it.
 
 - **Session holds** (`holdSession(name, model, addresses)`): the dynamic nodes a session state names, with what they
   name (`Overlay.holds`), held in the store under the name, those it no longer names let go; retired with the model.
