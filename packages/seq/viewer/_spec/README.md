@@ -370,12 +370,15 @@ same CSS fonts the backend draws with), else the core's bundled table.
 `canvas/`: `CanvasBackend` draws the core's draw lists on three stacked canvases at a device pixel ratio, the order of
 the passes.
 
-- The canvases stack as the passes do, bottom to top: the base (background, data), the overlay (highlight, selection,
-  hover, cursor, which takes no events) and the labels, so the picture is the SVG's (a test compares the two orders). A
-  hover redraws the overlay only: it is cleared and its passes drawn; an overlay with nothing to clear and nothing to
-  draw is not touched. A rebuilt layout draws the base and the labels (a canvas cleared first) and then the overlay.
+- The canvases stack as the passes do, bottom to top: the base (background, data), the overlay (window, highlight,
+  selection, hover, cursor, which takes no events) and the labels, so the picture is the SVG's (a test compares the two
+  orders). A hover redraws the overlay only: it is cleared and its passes drawn; an overlay with nothing to clear and
+  nothing to draw is not touched. A rebuilt layout draws the base and the labels (a canvas cleared first) and then the
+  overlay.
 - The scale a canvas is drawn at is its backing size over its CSS size (the backing size is rounded), not the ratio
   asked for.
+- A placed glyph run draws each letter at its place, turned and scaled about it, through the context's transform (the
+  base transform composed with the letter's, then set back).
 - A rect with a radius is the core's `squirclePath` replayed; a path is replayed from its commands; a clip is `save` +
   `clip`, a pass left open is closed; a text past its max width fades through a gradient clip (never ellipsized); an
   image goes through one pixel buffer a size, copied at each draw.

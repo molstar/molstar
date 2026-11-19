@@ -7,6 +7,7 @@
 import {
   Anchor,
   type DrawLists,
+  type GlyphList,
   type ImageData as DrawImage,
   NoColor,
   type PassName,
@@ -19,7 +20,7 @@ import {
 import { FontCache } from './font.js';
 
 // The Canvas2D backend (_spec/README.md "Canvas2D backend"): draw lists on three stacked canvases, DPR-aware. The
-// background and data passes are drawn on a base canvas; the emphasis passes (highlight, selection, hover, cursor) on an
+// background and data passes are drawn on a base canvas; the emphasis passes (window, highlight, selection, hover, cursor) on an
 // overlay canvas above it, so a hover redraws the overlay only; the label pass on a labels canvas above both, so the
 // labels stay over the emphasis. Squircles are the core's curve (`squirclePath`), so this and
 // the SVG backend draw the same corner. Buffers are reused: colors and fonts are strings kept per value, glyphs are
@@ -79,7 +80,7 @@ export interface CanvasBackendOptions {
   readonly fade?: number;
 }
 
-const OverlayPasses: readonly PassName[] = ['highlight', 'selection', 'hover', 'cursor'];
+const OverlayPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
 const BasePasses: readonly PassName[] = ['background', 'data'];
 const LabelPasses: readonly PassName[] = ['labels'];
 
@@ -233,6 +234,27 @@ export class CanvasBackend {
     }
   }
 
+  /**
+   * A placed run: each letter moved to its place, turned and scaled about it, through the context's transform (the base
+   * transform composed with the letter's, then set back); drawn on some views only.
+   */
+  private _placedGlyphs(l: GlyphList, i: number): void {
+    const ctx = this._ctx;
+    const sx = this._sx;
+    const sy = this._sy;
+    const one = l.color[i] !== NoColor;
+    if (one) ctx.fillStyle = this._colors.css(l.color[i]);
+    for (let j = l.start[i], end = j + l.count[i]; j < end; j++) {
+      if (!one) ctx.fillStyle = this._colors.css(l.colors[j]);
+      const c = Math.cos(l.angle[j]);
+      const s = Math.sin(l.angle[j]);
+      const v = l.vs[j];
+      ctx.setTransform(sx * c, sy * s, -sx * s * v, sy * c * v, sx * l.x[j], sy * l.ly[j]);
+      ctx.fillText(this._glyph(l.codes[j]), 0, 0);
+    }
+    ctx.setTransform(sx, 0, 0, sy, 0, 0);
+  }
+
   private _glyph(code: number): string {
     return this._glyphs[code] ?? (this._glyphs[code] = String.fromCharCode(code));
   }
@@ -357,6 +379,10 @@ export class CanvasBackend {
         const start = l.start[i];
         const end = start + l.count[i];
         const y = l.y[i];
+        if (l.placed[i] === 1) {
+          this._placedGlyphs(l, i);
+          return;
+        }
         if (l.color[i] !== NoColor) {
           ctx.fillStyle = this._colors.css(l.color[i]);
           for (let j = start; j < end; j++) ctx.fillText(this._glyph(l.codes[j]), l.x[j], y);

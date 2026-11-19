@@ -141,6 +141,18 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       const y = fmt(l.y[i]);
       const start = l.start[i];
       const end = start + l.count[i];
+      if (l.placed[i] === 1) {
+        // a placed run: a text a letter, moved to its place, turned and scaled about it
+        for (let j = start; j < end; j++) {
+          const color = l.color[i] !== NoColor ? l.color[i] : l.colors[j];
+          const turn = l.angle[j] !== 0 ? ` rotate(${fmt((l.angle[j] * 180) / Math.PI)})` : '';
+          const scale = l.vs[j] !== 1 ? ` scale(1 ${fmt(l.vs[j])})` : '';
+          body.push(
+            `<text transform="translate(${fmt(l.x[j])} ${fmt(l.ly[j])})${turn}${scale}" text-anchor="middle" ${font} ${paint('fill', color)}>${escapeXml(String.fromCharCode(l.codes[j]))}</text>`,
+          );
+        }
+        return;
+      }
       if (l.color[i] !== NoColor) {
         const xs: string[] = [];
         let text = '';

@@ -1,0 +1,138 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// The section layout interface (_spec/README.md "Render", Section layouts): a layout cuts a section's display units
+// into strips (each one `AxisTransform` over a stack of bands, a track a band) and places each on the page with a warp;
+// layer types lay out and draw a strip at a time in its own frame, hits come back through the placement's inverse, and
+// the viewer's navigation is the layout's arithmetic (`SectionNav`). Internal: no application implements one yet.
+
+import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
+import type { AxisTransform, Viewport } from '../axis.js';
+import type { RenderConfig } from '../config.js';
+import type { PassName, PassWriter } from '../draw-lists.js';
+import type { Box, Emphasis, Hit } from '../layer-type.js';
+import type { TextMetrics } from '../text.js';
+import type { SeqTokens } from '../tokens.js';
+import type { SectionLayout } from '../tracks.js';
+import type { Strips } from './strips.js';
+import type { PolarWarp } from './warp.js';
+
+/**
+ * What `Placement.at` finds under a page point: a band (`data`), a ring's outside label, a text's gutter (row labels
+ * and numbers), a window, a gap between groups or lines (no position for a hover; the nearest for a drag), nothing.
+ */
+export type PointKind = 'data' | 'label' | 'gutter' | 'window' | 'gap' | 'empty';
+
+/** A window's parts: its body (dragged: pans) and its two ends (dragged: resize about the other end). */
+export type WindowPart = 'body' | 'start' | 'end';
+
+/** A point placed: its strip and band, the point in the strip's frame, its kind, the display unit there. Reused. */
+export class PlacePoint {
+  strip = -1;
+  band = -1;
+  /** The point in the strip's frame. */
+  x = 0;
+  y = 0;
+  kind: PointKind = 'empty';
+  /** The display unit (fractional) there, −1 for none. */
+  offset = -1;
+}
+
+/** A section laid out: its box, its whole content's height, its strips, and the inverse of its warps. */
+export interface Placement {
+  /** The section's region on the page (its visible box: a text section scrolls inside it). */
+  readonly box: Box;
+  /** All of its content (text: every line), for scrolling and export. */
+  readonly contentHeight: number;
+  readonly strips: Strips;
+  /** What is under a page point, into a reused record; false when the point is outside the section. */
+  at(x: number, y: number, out: PlacePoint): boolean;
+  /** The display unit under a point, the nearest when between strips or in a gutter (drags, zoom anchors). */
+  offsetAt(x: number, y: number): number;
+  /** Where a display unit is drawn: its strip and page point (the cursor, reveal, section-scope layers). */
+  place(offset: number, out: PlacePoint): boolean;
+  /** A polar strip's warp (`strips.warp` polar). */
+  warpOf?(strip: number): PolarWarp;
+}
+
+/** What a layout reads of the view and the section: never a layer's params. */
+export interface PlaceContext {
+  readonly width: number;
+  readonly height: number;
+  readonly dpr: number;
+  readonly config: RenderConfig;
+  readonly tokens: SeqTokens;
+  readonly text: TextMetrics;
+  /** The section's region: its x and width (the data box's, past the label column), its top, the page below it. */
+  readonly box: Box;
+  /** The section's transform over its window (its pieces, its direction, the viewport or a leader's image). */
+  readonly axis: AxisTransform;
+  /** The section's bands: its tracks as shown (templates expanded), with their heights. */
+  readonly bands: readonly ResolvedTrack[];
+  readonly heights: readonly number[];
+  /**
+   * Lays out the layers of a strip's bands (each in its box in the strip's frame) and records what each band used
+   * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height.
+   */
+  layStrip(placement: Placement, strip: number): void;
+}
+
+/** The pure arithmetic of a section's viewport (_spec/README.md "Render", Section layouts, Navigation). */
+export interface NavContext {
+  /** Display units in the section. */
+  readonly total: number;
+  /** The data box's width and visible height, px. */
+  readonly width: number;
+  readonly height: number;
+  readonly cyclic: boolean;
+  /** The most px a position (the viewer's `viewport.maxPxPerPosition`), and the least (text: the letters' threshold). */
+  readonly maxScale: number;
+  readonly minScale?: number;
+  /** The section's placement, when the layout needs it (text: lines). */
+  readonly placement?: Placement;
+}
+
+/** A cursor's step: along the reading order, a line up or down, to the ends. */
+export type StepDir = 'left' | 'right' | 'up' | 'down' | 'home' | 'end';
+
+/** Gestures to viewports, pure: what the viewer calls instead of doing arithmetic of its own. */
+export interface SectionNav {
+  pan(c: NavContext, v: Viewport, dx: number, dy: number): Viewport;
+  /** Zooms by `factor` (above 1: in) about display unit `at`, kept where it is. */
+  zoom(c: NavContext, v: Viewport, factor: number, at: number): Viewport;
+  fit(c: NavContext, v: Viewport): Viewport;
+  /** The viewport showing display units `[start, end)` (a focus, a link, the cursor), unchanged when it does. */
+  reveal(c: NavContext, v: Viewport, start: number, end: number): Viewport;
+  /** The display unit a cursor at `offset` steps to, or −1 for none. */
+  step(c: NavContext, offset: number, dir: StepDir): number;
+  clamp(c: NavContext, v: Viewport): Viewport;
+}
+
+/** A section's layout: tracks, text, rings. `Kept` is what it keeps between frames (its buffers). */
+export interface SectionLayoutType<Kept = unknown> {
+  readonly name: string;
+  /** Whether bands are filled with the track ink in the background pass (tracks: a track a box). */
+  readonly fillBands: boolean;
+  /** Cuts the section into strips for its box and viewport, into prev's buffers. */
+  place(section: ResolvedSection, ctx: PlaceContext, viewport: Viewport | undefined, prev?: Kept): Placement & Kept;
+  /** Whether two viewports place alike: the part of the section's key this layout reads. */
+  sameKey(a: Viewport | undefined, b: Viewport | undefined): boolean;
+  readonly nav: SectionNav;
+  /**
+   * The layout's own marks of a pass (label column, gutters, numbers, a ring's guides and labels, a window): once a
+   * section with `band` −1 before its strips, then once a band before its layers (`strip`, `band`), in the strip's frame.
+   */
+  chrome(
+    section: SectionLayout,
+    pass: PassName,
+    out: PassWriter,
+    emphasis: Emphasis | undefined,
+    strip: number,
+    band: number,
+  ): void;
+  /** What its own marks hit (a filter chip, a gutter's row, a window), before the bands' layers. */
+  hitChrome?(section: SectionLayout, x: number, y: number): Hit | undefined;
+}

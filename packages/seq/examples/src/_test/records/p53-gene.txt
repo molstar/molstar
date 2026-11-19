@@ -61,6 +61,7 @@ rect 330 113 302 10 #18a67fff
 unclip
 rect 329.5 76 1 60 #8a847aff
 rect 327.5 73 5 3 #8a847aff
+pass window
 pass highlight
 pass selection
 pass hover

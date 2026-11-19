@@ -14,6 +14,7 @@ import type { AxisTransform } from './axis.js';
 import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
+import type { Placement, WindowPart } from './layout/types.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 
@@ -58,6 +59,22 @@ export interface LayoutContext {
   want(w: Want): void;
   /** Says what went wrong drawing the layer (a color it cannot read, data it cannot place). */
   report(issue: Issue): void;
+  /** The strip laid out (_spec/README.md "Render", Section layouts): `box` and `axis` are in its frame. */
+  readonly strip?: number;
+  /** The union of the strip's bands (a layer with `across`, frames, outlines it). */
+  readonly span?: Box;
+  /** The section's placement, for a `section` layer (it draws in page coordinates). */
+  readonly place?: Placement;
+  /** Item labels drawn `inside` marks, or a sink a layout collects them into (rings: placed outside). */
+  readonly labels?: 'inside' | LabelSink;
+  /** A band's own vertical scroll and row zoom (px a row), when it scrolls its rows. */
+  readonly bandTop?: number;
+  readonly rowScale?: number;
+}
+
+/** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */
+export interface LabelSink {
+  label(text: string, start: number, end: number, element: ElementKey): void;
 }
 
 /**
@@ -82,8 +99,12 @@ export interface Hit {
    * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the
    * section's system, `layer` the section's address, `count` the hidden items a tick stands for.
    */
-  readonly target?: 'break' | 'filter';
+  readonly target?: 'break' | 'filter' | 'window' | 'row';
   readonly count?: number;
+  /** A `window` hit's part: its body (dragged: pans) or an end (dragged: resizes about the other end). */
+  readonly part?: WindowPart;
+  /** The block (its index in the section) when the section has blocks. */
+  readonly block?: number;
 }
 
 /** A section's id: the last step of its address. */
@@ -145,4 +166,19 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   domain?(lay: Lay): readonly [number, number] | undefined;
   /** The rows its data's filter left out of what it read (the track's "n filtered" chip). */
   filtered?(lay: Lay): number;
+  /**
+   * The height it used in its band on this strip, 0 when it drew nothing there (text collapses a band no layer used);
+   * the band's height when absent.
+   */
+  used?(lay: Lay): number;
+  /**
+   * `strip` (the default): laid out once a strip, drawn in its frame; `section`: once a section with the placement
+   * (`ctx.place`), drawn in page coordinates (what crosses strips).
+   */
+  readonly scope?: 'strip' | 'section';
+  /**
+   * 2: it has a second axis of its own (a grid's y, rows): the emphasis passes call its `draw` with the emphasis, whose
+   * parts on its y systems it paints through its own y transform; the strip paints x.
+   */
+  readonly axes?: 1 | 2;
 }

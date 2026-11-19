@@ -5,7 +5,7 @@
  */
 
 // @molstar/seqx-core/render: tier 3 (_spec/README.md "Render"): the layer-type contract and the built-in types, the
-// tracks layout, draw lists in passes, hit-testing, the token table, the text metrics port, the recording and SVG
+// section layouts (strips, warps, placements, navigation) and the tracks layout, the window mark, draw lists in passes, hit-testing, the token table, the text metrics port, the recording and SVG
 // backends, and `renderSvg`. Named re-exports only.
 
 export { AxisTransform, Cut, type Viewport } from './axis.js';
@@ -79,12 +79,27 @@ export {
   type EmphasisHighlight,
   EmptyOverlay,
   type Hit,
+  type LabelSink,
   type LayerType,
   type LayoutContext,
   type Overlay,
   type StoreReader,
   sectionId,
 } from './layer-type.js';
+export { PlacePoint, StripPlacement, Strips, WarpKind } from './layout/strips.js';
+export { clampWindow, sameWindow, TracksLayout, TracksNav } from './layout/tracks.js';
+export type {
+  NavContext,
+  PlaceContext,
+  Placement,
+  PointKind,
+  SectionLayoutType,
+  SectionNav,
+  StepDir,
+  WindowPart,
+} from './layout/types.js';
+export { PolarWarp, TranslateWarp } from './layout/warp.js';
+export { drawWindow, WindowMetrics, windowExtent, windowPart } from './window.js';
 export { type LettersLay, type LettersPrep, LettersType } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
 export { fmt, recordDrawLists } from './record.js';
@@ -114,6 +129,7 @@ export {
 } from './tokens.js';
 export {
   BuiltInLayerTypes,
+  BuiltInLayouts,
   drawView,
   hitView,
   type LayerLayout,
@@ -122,6 +138,7 @@ export {
   layerKey,
   layoutView,
   type SectionLayout,
+  sectionLayoutName,
   type TrackLayout,
   type ViewLayout,
 } from './tracks.js';
