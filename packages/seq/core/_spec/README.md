@@ -44,15 +44,16 @@ checks it cannot express.
   EC-35), `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn), `pairs` (two locations that
   belong together: `a` a sequence, `b` another or `a`'s; its `rows` inline, `a_start`, `a_end`, `b_start`, `b_end` each
   pair's two ends, never wrapping, at least a position each (EC-10), self-pairs allowed; an open `type` its kind, since
-  `kind` is reserved: canonical, wobble, contact; `id`, `label`, `a_strand` and `b_strand` (EC-206)), `grid` (a value
-  per pair of positions: `x` a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of
-  them: `seq.lang.grid.length`); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its
-  own: `of`, `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep
-  their own), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A
-  `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's
-  `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and
-  is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`,
-  `data`) are `ref` params naming the kinds they take; a reference is an address.
+  `kind` is reserved: canonical, wobble, contact; `id`, `label`, `a_strand` and `b_strand` (EC-206); any other category
+  column rides along as a field a data filter reads, `(item :tertiary yes)`), `grid` (a value per pair of positions: `x`
+  a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`);
+  under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of`, `range`, `label`),
+  `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`,
+  default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes
+  each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes it a template
+  (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
+  a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
+  the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,

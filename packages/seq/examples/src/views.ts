@@ -25,6 +25,7 @@ import * as story from './p53/story.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
+import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { type DomainFile, PlasmidGffFile } from './files/data.js';
 import * as p53Entry from './files/p53-entry.js';
@@ -428,7 +429,7 @@ export const TrnaViews: readonly ExampleView[] = [
     id: 'arcs',
     title: 'Base pairs as arcs',
     summary:
-      'tRNA-Phe (1EHZ): its base pairs as arcs over the letters, the stems nested, the tertiary pairs crossing them; colored by kind. Hover a base: its partner lights.',
+      'tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested, the six tertiary pairs (four of them crossing the stems’ pairs) over them; colored by kind (canonical, wobble, non-canonical); its 14 modified residues drawn as their parent letters, their codes in a track above. Hover an arc: both ends lit; click: the pair selected.',
     build: () => trna.build(),
   },
   {
@@ -449,12 +450,42 @@ export const TrnaViews: readonly ExampleView[] = [
   {
     dataset: 'trna',
     id: 'dot-plot',
-    title: 'Base-pair dot plot (synthetic probabilities)',
+    title: 'Base-pair dot plot',
     summary:
-      'The arcs over the letters and the dot plot under them, its axes following their window: synthetic base-pair probabilities above the diagonal (generated from the pairs and the bases’ complementarity with a seed, not computed), the structure’s pairs mirrored below. Hover a cell: a crosshair, both bases and the arcs ending there lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
+      'The arcs over the letters and the dot plot under them, its axes following their window: above the diagonal the family’s covariation on 1EHZ’s positions (mutual information over the Rfam seed’s columns, computed through 1EHZ’s place in the seed), below it the structure’s pairs mirrored. Hover a cell: a crosshair, both bases and the arcs ending there lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
     build: trna.dotPlot,
   },
+  {
+    dataset: 'trna',
+    id: 'seed-row',
+    title: 'A seed row with its SS_cons pairs',
+    summary:
+      'The seed row 1EHZ is placed on (the row of highest identity, found by aligning 1EHZ’s parent letters to every row): its letters and the pairs of the seed’s `SS_cons` projected onto it, nested only.',
+    build: trna.seedRow,
+  },
+  {
+    dataset: 'trna',
+    id: 'seed',
+    title: 'Rfam RF00005 seed',
+    summary:
+      'The seed (954 rows of 118 columns, Stockholm as published) under its conservation logo. The `SS_cons` arc and the link from 1EHZ’s residues wait for a pairs node and a map on an alignment’s columns.',
+    build: trna.seed,
+    registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
+  },
 ];
+
+/**
+ * The dot plot at 4,000 × 4,000: a generated grid of 16M values, so a view of its own, kept out of the lists the quick
+ * tests walk (its bound is the heavy lane's).
+ */
+export const TrnaScaleView: ExampleView = {
+  dataset: 'trna',
+  id: 'dot-plot-scale',
+  title: 'Dot plot at 4,000 × 4,000',
+  summary:
+    'A generated 4,000 × 4,000 grid on a generated RNA, the plot alone under its ruler: the frame target’s scale.',
+  build: () => trna.scale(),
+};
 
 /** What the Files views need besides the default registry: the records runtime (the default viewer spec has it). */
 const records = (): SeqRegistryEntry[] => [{ kind: 'format-runtime', runtime: RecordsRuntime }];

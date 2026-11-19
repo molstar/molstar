@@ -6,9 +6,12 @@
 
 import { type Frame, type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import type { ExampleView } from '@molstar/seqx-examples';
+import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { uiHistory } from '@molstar/seqx-viewer/ui-history';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
+import { readFileSync } from 'node:fs';
 import { vi } from 'vitest';
 
 // The checks the example views' drawing tests share: every drawn mark of a ranges layer is hit (and outlined when
@@ -25,11 +28,13 @@ export interface OpenOptions {
   readonly wait?: number;
   /** Keep the real `Date` and `performance` (a bound on time reads them): only the timers are faked. */
   readonly realClock?: boolean;
+  /** The host's history, for edits that are undone (the spec takes part in it). */
+  readonly history?: boolean;
 }
 
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
 export async function openExample(view: ExampleView, options: OpenOptions): Promise<SeqViewer> {
-  const { gene = '', delayMs = 300, wait = 6000, realClock = false } = options;
+  const { gene = '', delayMs = 300, wait = 6000, realClock = false, history = false } = options;
   vi.useFakeTimers({
     toFake: realClock ? ['setTimeout', 'clearTimeout'] : ['setTimeout', 'clearTimeout', 'Date', 'performance'],
   });
@@ -38,9 +43,21 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
   const v = createSeqViewer({
     ...base,
     ui: undefined,
+    ...(history ? { history: uiHistory() } : {}),
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: {
-      assets: () => ({ reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) } }),
+      assets: () => {
+        // every dataset’s files (`fixtures/…`) are read as they are committed, at once (a read of the disk is not on the
+        // fake clock: the layout waits for the letters); every other location answers the gene's text
+        const read = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
+        const fixture = (uri: string) => uri.startsWith('fixtures/');
+        return {
+          reader: {
+            readText: async (uri) => (fixture(uri) ? read(uri).toString('utf8') : text),
+            readBytes: async (uri) => (fixture(uri) ? new Uint8Array(read(uri)) : new TextEncoder().encode(text)),
+          },
+        };
+      },
     },
   });
   v.resize(720);

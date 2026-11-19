@@ -4,19 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { TrnaViews } from '@molstar/seqx-examples';
+import { TrnaScaleView, TrnaViews } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../example-root.js';
 
 const view = (id: string) => TrnaViews.find((v) => v.id === id)!;
 
-const meta: Meta = { title: 'Examples/tRNA' };
+const meta: Meta = { title: 'Examples/tRNA/Views' };
 export default meta;
 
 /**
- * tRNA-Phe (1EHZ): its base pairs as arcs over the letters, the four stems nested and the tertiary pairs crossing them,
- * colored by kind (canonical, wobble, non-canonical). Hover a base: the arc to its partner lights. Click an arc: both
- * bases are selected. Pan: an arc whose end leaves the window moves continuously.
+ * tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested and the six tertiary
+ * pairs among them (four cross the stems' pairs), colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent
+ * letters with their codes in a track. Hover a base: the arc to its partner lights. Click an arc: both bases are
+ * selected. Pan: an arc whose end leaves the window moves continuously. Editing: hide the tertiary pairs (a filter by
+ * that field in the arcs' `data`, a patch).
  */
 export const Arcs: StoryObj = { render: () => exampleStory(view('arcs')) };
 
@@ -27,8 +29,21 @@ export const SplitCrossing: StoryObj = { render: () => exampleStory(view('split'
 export const Chords: StoryObj = { render: () => exampleStory(view('ring')) };
 
 /**
- * The base-pair dot plot under the arcs, its axes following their window: probabilities above the diagonal, the
- * structure's pairs mirrored below. Hover a cell: a crosshair and both bases lit on the letters. Drag a rectangle:
- * both ranges selected; Cmd/Ctrl+drag adds one, Alt+drag takes one out.
+ * The base-pair dot plot under the arcs, its axes following their window: above the diagonal the family's covariation
+ * on 1EHZ's positions (computed from the Rfam seed), below it the structure's pairs mirrored. Hover a cell: a
+ * crosshair and both bases lit on the letters. Drag a rectangle: both ranges selected; Cmd/Ctrl+drag adds one,
+ * Alt+drag takes one out. Editing: change the covariation's palette (a theme patch).
  */
 export const DotPlot: StoryObj = { render: () => exampleStory(view('dot-plot')) };
+
+/** The seed row 1EHZ is placed on, with the seed's `SS_cons` pairs projected onto it: nested only. */
+export const SeedRow: StoryObj = { render: () => exampleStory(view('seed-row')) };
+
+/**
+ * Rfam RF00005's seed, 954 rows of 118 columns, under its conservation logo. The `SS_cons` arc and the link from
+ * 1EHZ's residues need a pairs node and a map on an alignment's columns, which the language does not have yet.
+ */
+export const Seed: StoryObj = { render: () => exampleStory(view('seed')) };
+
+/** The dot plot at 4,000 × 4,000: a generated grid, the plot alone, at the frame target. */
+export const DotPlotScale: StoryObj = { render: () => exampleStory(TrnaScaleView) };

@@ -646,7 +646,7 @@ function heldEntry(at: Placed, x: SystemEntry, y: SystemEntry): { annotation: An
   const base = { address: at.address, target: x.address, ySystem: y.address };
   if (at.node.kind === 'pairs') {
     const pairs = readPairs(at.node);
-    const fields = ['type', ...(pairs.labels ? ['label'] : [])];
+    const fields = ['type', ...(pairs.labels ? ['label'] : []), ...Object.keys(pairs.extra ?? {})];
     return { annotation: { ...base, shape: 'pairs', fields, pairs }, issues: [] };
   }
   const { grid, issues } = readGrid(at.address, at.node, x.length, y.length);

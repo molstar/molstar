@@ -5,99 +5,45 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
-import { PCG } from '@molstar/core/data/util/hash-functions';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
+import {
+  covariationGrid,
+  ehzPairs,
+  MoleculeFile,
+  SeedFile,
+  ScaleSize,
+  scaleGrid,
+  scaleLetters,
+  seedRowPairs,
+  SystemName,
+  TrnaLetters,
+} from './data.js';
+import { DerivedData } from './derived-data.js';
 
-// The tRNA dataset: yeast tRNA-Phe as in 1EHZ (76 nucleotides, modified bases written as their parents), its base
-// pairs from the structure (the four stems, nested, and the tertiary pairs that cross them: 8–14, 15–48 the Levitt
-// pair, 18–55, 19–56, 26–44, 54–58), each of a kind (canonical, wobble, non-canonical); and a synthetic base-pair
-// probability grid on the same 76 positions: generated from the structure's pairs and the sequence's complementarity
-// with a seed (not computed: a stand-in until a computed one is recorded), so a grid layer draws on its own systems
-// only.
+// The tRNA views (examples.md, tRNA): PDB 1EHZ's chain A with its modified residues and 27 base pairs, the four stems
+// nested and the six tertiary pairs among them (four cross the stems' pairs); the pairs as arcs, split by crossing, as chords on a ring and as a dot
+// plot (the family's covariation, computed on 1EHZ's positions, above the diagonal, the structure's pairs below); the
+// seed row 1EHZ is placed on with its `SS_cons` pairs; the seed's rows with their logo; and the dot plot at 4,000 ×
+// 4,000. A modified residue is drawn as its parent letter, its code in a track of ranges (the mark is later).
 
 export const title = 'tRNA-Phe';
 
-/** Yeast tRNA-Phe (1EHZ), 5′ to 3′. */
-export const TrnaLetters = 'GCGGAUUUAGCUCAGUUGGGAGAGCGCCAGACUGAAGAUCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA';
+type Builder = ReturnType<typeof createSeqSpec>;
 
-/** The stems' pairs, 1-based as the structure numbers them. */
-const Stems: readonly (readonly [number, number])[] = [
-  [1, 72],
-  [2, 71],
-  [3, 70],
-  [4, 69],
-  [5, 68],
-  [6, 67],
-  [7, 66],
-  [10, 25],
-  [11, 24],
-  [12, 23],
-  [13, 22],
-  [27, 43],
-  [28, 42],
-  [29, 41],
-  [30, 40],
-  [31, 39],
-  [49, 65],
-  [50, 64],
-  [51, 63],
-  [52, 62],
-  [53, 61],
-];
-
-/** The tertiary pairs, 1-based, and their kinds: they cross the stems (pseudoknot-like in an arc diagram). */
-const Tertiary: readonly (readonly [number, number, string])[] = [
-  [8, 14, 'non-canonical'],
-  [15, 48, 'non-canonical'],
-  [18, 55, 'non-canonical'],
-  [19, 56, 'canonical'],
-  [26, 44, 'non-canonical'],
-  [54, 58, 'non-canonical'],
-];
-
-const Canonical = new Set(['GC', 'CG', 'AU', 'UA']);
-const Wobble = new Set(['GU', 'UG']);
-
-/** A pair's kind by its letters: Watson–Crick, G·U, else non-canonical. */
-function kindOf(i: number, j: number): string {
-  const p = TrnaLetters[i] + TrnaLetters[j];
-  return Canonical.has(p) ? 'canonical' : Wobble.has(p) ? 'wobble' : 'non-canonical';
-}
-
-/** The base pairs, 0-based and half-open: a row a pair, its kind, its id (`i-j`, 1-based). */
-export function trnaPairs() {
-  const all = [
-    ...Stems.map(([i, j]) => [i - 1, j - 1, kindOf(i - 1, j - 1)] as const),
-    ...Tertiary.map(([i, j, k]) => [i - 1, j - 1, k] as const),
-  ];
-  return {
-    a_start: all.map((p) => p[0]),
-    a_end: all.map((p) => p[0] + 1),
-    b_start: all.map((p) => p[1]),
-    b_end: all.map((p) => p[1] + 1),
-    type: all.map((p) => p[2]),
-    id: all.map((p) => `${p[0] + 1}-${p[1] + 1}`),
-  };
-}
-
-/**
- * The synthetic base-pair probabilities, 76 × 76, x-major and symmetric: 0.95 at a stem's pair, 0.5 at a tertiary one, a small
- * value from a seed where two bases could pair (Watson–Crick or G·U, at least four apart), missing elsewhere.
- */
-export function trnaProbabilities(): Float32Array {
-  const n = TrnaLetters.length;
-  const v = new Float32Array(n * n).fill(Number.NaN);
-  const r = new PCG(76);
-  for (let i = 0; i < n; i++)
-    for (let j = i + 4; j < n; j++) {
-      const p = TrnaLetters[i] + TrnaLetters[j];
-      if (!Canonical.has(p) && !Wobble.has(p)) continue;
-      const x = 0.02 + (r.int() % 1000) / 10000;
-      v[i * n + j] = v[j * n + i] = x;
-    }
-  for (const [i, j] of Stems) v[(i - 1) * n + (j - 1)] = v[(j - 1) * n + (i - 1)] = 0.95;
-  for (const [i, j] of Tertiary) v[(i - 1) * n + (j - 1)] = v[(j - 1) * n + (i - 1)] = 0.5;
-  return v;
+/** 1EHZ: its letters and modified residues from the committed file, its base pairs. */
+function molecule(b: Builder, inline = false) {
+  const file = b.data.source('ehz', { format: 'seq', uri: MoleculeFile });
+  // a grid is read at resolve against its axes' lengths, which a source gives only once open: the dot plot's sequence
+  // carries its letters inline (the fixtures test compares them with the file's)
+  const trna = b.data.sequence(
+    'trna',
+    inline
+      ? { alphabet: 'rna', letters: TrnaLetters, name: SystemName }
+      : { alphabet: 'rna', source: file, name: SystemName },
+  );
+  const modified = b.data.ranges('modified', { target: trna, source: file });
+  const pairs = b.data.pairs('pairs', { a: trna, rows: ehzPairs() });
+  return { trna, modified, pairs };
 }
 
 export interface TrnaOptions {
@@ -106,17 +52,24 @@ export interface TrnaOptions {
   readonly dotPlot?: boolean;
 }
 
-/** The tRNA's sequence, its pairs and its probabilities, and a view of them. */
+/** 1EHZ's letters, its modified residues, its pairs, and a view of them. */
 export function build(options: TrnaOptions = {}): Node {
   const b = createSeqSpec({ title });
-  const trna = b.data.sequence('trna', { alphabet: 'rna', letters: TrnaLetters, name: 'tRNA-Phe' });
-  const pairs = b.data.pairs('pairs', { a: trna, rows: trnaPairs() });
-  const probability = b.data.grid('probability', { x: trna, values: trnaProbabilities() });
+  const { trna, modified, pairs } = molecule(b, options.dotPlot);
+  const covariation = options.dotPlot ? b.data.grid('covariation', { x: trna, values: covariationGrid() }) : undefined;
   b.views.view('main', (v) => {
     const s = v.section('trna', { of: trna, ...(options.layout ? { layout: options.layout } : {}) });
     const ring = options.layout === 'rings';
-    const letters = () => s.track('letters', { label: 'tRNA-Phe' }).layer('letters', { type: 'letters' });
+    const letters = () => s.track('letters', { label: '1EHZ' }).layer('letters', { type: 'letters' });
     s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    if (!ring)
+      s.track('modified', { label: 'Modified' }).layer('modified', {
+        type: 'ranges',
+        data: modified,
+        color: theme.field('category', {
+          palette: theme.categorical({ colors: 'categories', values: ['A', 'C', 'G', 'U'] }),
+        }),
+      });
     // the arcs over the letters, their feet on them (on a ring, inside: chords through the hole)
     if (ring) letters();
     s.track('pairs', { label: 'Base pairs' }).layer('arcs', {
@@ -126,22 +79,18 @@ export function build(options: TrnaOptions = {}): Node {
       ...(ring ? { side: 'below' } : {}),
     });
     if (!ring) letters();
-    if (!options.dotPlot) return;
-    // the dot plot: x and y the tRNA's, y following x; the probabilities above the diagonal, the structure's pairs
-    // below it (mirrored: the builder sets `mirror`, a plain `false` otherwise)
-    v.section('dots', { layout: 'grid', of: trna, follow: s.address }).track(
-      'plot',
-      { label: 'Dot plot (synthetic)' },
-      (t) => {
-        t.layer('probability', {
-          type: 'grid',
-          data: probability,
-          triangle: 'upper',
-          color: theme.field('value', { domain: [0, 1], palette: theme.continuous({ colors: 'blues' }) }),
-        });
-        t.layer('structure', { type: 'pairs', data: pairs, mirror: true, triangle: 'lower' });
-      },
-    );
+    if (!covariation) return;
+    // the dot plot: x and y 1EHZ's, y following x; the covariation above the diagonal, the pairs below it (mirrored:
+    // the builder sets `mirror`, a plain `false` otherwise)
+    v.section('dots', { layout: 'grid', of: trna, follow: s.address }).track('plot', { label: 'Dot plot' }, (t) => {
+      t.layer('covariation', {
+        type: 'grid',
+        data: covariation,
+        triangle: 'upper',
+        color: theme.field('value', { domain: [0, 1.2], palette: theme.continuous({ colors: 'viridis' }) }),
+      });
+      t.layer('structure', { type: 'pairs', data: pairs, mirror: true, triangle: 'lower' });
+    });
   });
   return b.build();
 }
@@ -154,3 +103,61 @@ export const ring = () => build({ layout: 'rings' });
 
 /** The arcs over the letters, and the base-pair dot plot under them following their window. */
 export const dotPlot = () => build({ dotPlot: true });
+
+/** The arcs' data with the pairs a field has a value on left out: what a patch of the layer's `data` writes (the editing view). */
+export const without = (pairs: string, field: 'type' | 'tertiary', value: string) =>
+  `${pairs}/(not :of (item :${field} ${value}))`;
+
+/**
+ * The seed row 1EHZ is placed on (the row of highest identity, computed: `DerivedData.row`): its letters and the pairs
+ * of the seed's `SS_cons` projected onto it, nested only, as arcs.
+ */
+export function seedRow(): Node {
+  const b = createSeqSpec({ title: `Rfam RF00005 seed: ${DerivedData.row}` });
+  const row = b.data.sequence('row', { alphabet: 'rna', letters: DerivedData.rowLetters, name: DerivedData.row });
+  const pairs = b.data.pairs('pairs', { a: row, rows: seedRowPairs() });
+  b.views.view('main', (v) => {
+    const s = v.section('row', { of: row });
+    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    s.track('pairs', { label: 'SS_cons pairs' }).layer('arcs', { type: 'pairs', data: pairs });
+    s.track('letters', { label: DerivedData.row }).layer('letters', { type: 'letters' });
+  });
+  return b.build();
+}
+
+/** The Rfam RF00005 seed (a Stockholm file as published): its rows over its columns under a conservation logo. */
+export function seed(): Node {
+  const b = createSeqSpec({ title: 'Rfam RF00005 seed' });
+  const file = b.data.source('seed-file', { format: 'stockholm', uri: SeedFile });
+  const aln = b.data.alignment('seed', { alphabet: 'rna', source: file, reference: DerivedData.row });
+  b.views.view('main', (v) => {
+    const s = v.section('family', { of: aln });
+    s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
+    s.track('logo', { label: 'Conservation' }).layer('logo', { type: 'logo', data: aln });
+    s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln });
+  });
+  return b.build();
+}
+
+/** The dot plot at `size` × `size` (4,000 by default): generated letters and values from seeds, the plot alone. */
+export function scale(size: number = ScaleSize): Node {
+  const b = createSeqSpec({
+    title: `tRNA dot plot, ${size.toLocaleString('en-US')} × ${size.toLocaleString('en-US')}`,
+  });
+  const seq = b.data.sequence('rna', { alphabet: 'rna', letters: scaleLetters(size) });
+  const grid = b.data.grid('probability', { x: seq, values: scaleGrid(size) });
+  b.views.view('main', (v) => {
+    const s = v.section('rna', { of: seq });
+    s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
+    v.section('dots', { layout: 'grid', of: seq, follow: s.address }).track('plot', { label: 'Probability' }, (t) =>
+      t.layer('probability', {
+        type: 'grid',
+        data: grid,
+        // zoomed out, the strongest cell of a sample: the helices stay in view
+        aggregate: 'max',
+        color: theme.field('value', { domain: [0, 1], palette: theme.continuous({ colors: 'viridis' }) }),
+      }),
+    );
+  });
+  return b.build();
+}
