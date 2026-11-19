@@ -176,7 +176,7 @@ const FunctionalGroups: FunctionalGroup[] = [
     name: 'sulfonyl',
     center: { el: Elements.S, geometry: AtomGeometry.Tetrahedral },
     neighbours: [
-      { el: '*', connectivity: 'connected', order: 1 },
+      { el: '*', connectivity: 'either', order: 1 },
       { el: '*', connectivity: 'either', order: 1 },
       { el: Elements.O, connectivity: 'terminal', order: 2 },
       { el: Elements.O, connectivity: 'terminal', order: 2 },
@@ -188,7 +188,7 @@ const FunctionalGroups: FunctionalGroup[] = [
     name: 'thiodiimine',
     center: { el: Elements.S, geometry: AtomGeometry.Tetrahedral },
     neighbours: [
-      { el: '*', connectivity: 'connected', order: 1 },
+      { el: '*', connectivity: 'either', order: 1 },
       { el: '*', connectivity: 'either', order: 1 },
       { el: Elements.N, connectivity: 'terminal', order: 2 },
       { el: Elements.N, connectivity: 'terminal', order: 2 },
@@ -200,7 +200,7 @@ const FunctionalGroups: FunctionalGroup[] = [
     name: 'nitro',
     center: { el: Elements.N, geometry: AtomGeometry.Trigonal },
     neighbours: [
-      { el: '*', connectivity: 'connected', order: 1 },
+      { el: '*', connectivity: 'either', order: 1 },
       { el: Elements.O, connectivity: 'terminal', order: 2 },
       { el: Elements.O, connectivity: 'terminal', order: 1 },
     ],
