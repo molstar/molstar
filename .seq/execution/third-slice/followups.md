@@ -53,3 +53,5 @@
   carrying insertions and deletions between two sequences, with 0.5.0's maps); short CDR labels at the fit view (H1
   by Kabat, L1 and L2 by IMGT); IMGT 112.1 never on the ruler at the closest zoom (three insertion labels a residue
   apart); the against view's gaps faint at the fit.
+- QT2's leftovers: an `itWithin` option putting its unbounded half in medium (the plasmid pan at scale is written by
+  hand, `@molstar/test-harness` shared: the author's call); core, viewer and storybook within 0.05 s of the 2 s guide.

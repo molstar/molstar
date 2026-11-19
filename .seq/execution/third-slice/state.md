@@ -256,3 +256,6 @@ None.
   Stage 5's gate passed; stage 6: the NOVICE PASS next.
 - Stage 5's gate reopened: the quick lane's examples 2.04 s and storybook 2.45 s are over the 2 s guide (core 1.91,
   viewer 1.86, seq 6.37 s in all); QT2 (fast) fixing. The NOVICE PASS (fast) starts beside it.
+- QT2 merged (its diff moves tests only: slow renders and sweeps to medium with quick representatives; no waste found):
+  core 1.98, viewer 1.96, examples 1.08, storybook 1.96 s, seq 5.4 s (at load 9, the novice pass running); quick
+  2568, medium 105. Core, viewer and storybook sit near the guide. **Stage 5's gate passed.** The novice pass runs.
