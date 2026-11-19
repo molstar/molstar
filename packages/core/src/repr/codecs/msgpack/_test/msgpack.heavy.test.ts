@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { categoryColumn, hashNode, type Node } from '@molstar/core/repr/tree/index';
+import { categoryColumn, hashNode, type Node } from '../../../tree/index.js';
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect } from 'vitest';
 import { MsgPackCodec } from '../msgpack.js';
@@ -44,7 +44,7 @@ function nodeHeavy(count: number): Node {
   return { kind: 'doc', children };
 }
 
-describe('io/repr/msgpack throughput', () => {
+describe('repr/codecs/msgpack throughput', () => {
   itWithin('parses a node-heavy document at NodeHeavyMBps', (within) => {
     const node = nodeHeavy(20_000);
     const bytes = MsgPackCodec.encode(node);

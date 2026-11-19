@@ -7,23 +7,26 @@ Written from meso\*'s tree core (`@molstar/meso-core` in the molstar-ludo reposi
 `.seq/design/language-description.md`; the designs are `.seq/design/tree-core.md`, `format.md`, `addressing.md`,
 `locations-and-queries.md`. This spec is what is built: rules and their reasons.
 
-| Folder         | What                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------ |
-| `tree/`        | the node, values and typed columns, identity, the atoms' spelling, addresses, issues |
-| `schema/`      | languages as data, `checkLanguage`, validation, normalization, defaults, docs        |
-| `builder/`     | the typed builder's engine                                                           |
-| `codec/`       | the codec interface and its conformance suite; no codec                              |
-| `codecs/json`  | the JSON codec, the default interchange                                              |
-| `codecs/sexpr` | the S-expression printing and its reader                                             |
-| `patch/`       | revisions, patches, diff and merge; the patch language; the conformance suite        |
+| Folder           | What                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `tree/`          | the node, values and typed columns, identity, the atoms' spelling, addresses, issues |
+| `schema/`        | languages as data, `checkLanguage`, validation, normalization, defaults, docs        |
+| `builder/`       | the typed builder's engine                                                           |
+| `codec/`         | the codec interface and its conformance suite; no codec                              |
+| `codecs/json`    | the JSON codec, the default interchange                                              |
+| `codecs/sexpr`   | the S-expression printing and its reader                                             |
+| `codecs/msgpack` | the MessagePack codec, on `data/msgpack`; its column extensions as a decoder hook    |
+| `patch/`         | revisions, patches, diff and merge; the patch language; the conformance suite        |
 
 **Imports go one way**: `tree` ← `schema` ← `builder`; `tree` ← `schema` ← `patch`; `codec` imports `tree` and `schema`
 (the conformance trees are normalized); `codecs/*` import `tree`, `schema` (where a language's declared columns sit) and
-`codec`. Nothing here imports outside `@molstar/core` (`hash-functions` and `util/array` are its dependencies). Each
-folder is an entry of the package (`@molstar/core/repr/tree`, …, `@molstar/core/repr/codecs/sexpr`), exported as
-`./state` is; `patch/`'s entry is `repr/patch.ts` (as `data/int.ts` is `data/int/`'s), reached through the wildcard
-export, its suite `@molstar/core/repr/patch/conformance`. Why: a codec needs no language, the tree needs no codec, and
-MessagePack lives in `@molstar/io` beside its library.
+`codec`; `codecs/msgpack` also `data/msgpack` (MessagePack's encoder and decoder). Nothing here imports outside
+`@molstar/core` (`hash-functions`, `util/array`, `util/utf8` and `data/msgpack` are its dependencies). Each folder is an
+entry of the package (`@molstar/core/repr/tree`, …, `@molstar/core/repr/codecs/sexpr`), exported as `./state` is;
+`patch/`'s entry is `repr/patch.ts` (as `data/int.ts` is `data/int/`'s), reached through the wildcard export, its suite
+`@molstar/core/repr/patch/conformance`. Why: a codec needs no language and the tree needs no codec. MessagePack's
+encoder and decoder (`@molstar/core/data/msgpack`) and this codec moved down from `@molstar/io`, which re-exports both
+at their old paths: a reader of JSON's binary twin needs no io dependency.
 
 ## The tree
 
@@ -163,10 +166,9 @@ quantities need no quotes, and no units table is needed to read them (locations-
 - **The interface** (`codec/codec.ts`): `encode`, `decode` (never throws: issues), `typedColumns`, `elides`. The
   guarantees: `decode(encode(x))` normalized is `x` (by hash) unless the codec elides; `encode` is deterministic.
 - **The conformance suite** (`codec/conformance.ts`) is data and a function (`checkCodec`), no test framework, so a
-  codec elsewhere (MessagePack in `@molstar/io`) runs the same suite from its own test. Its trees cover every atom, odd
-  keys, slots, data forms, custom data, extension kinds, columns of every element type with their edge values, NaNs with
-  a payload and a sign bit, columns in custom data and in an `any` param, a table and a deep tree; its columns are short
-  (at most 8 values).
+  codec elsewhere runs the same suite from its own test. Its trees cover every atom, odd keys, slots, data forms, custom
+  data, extension kinds, columns of every element type with their edge values, NaNs with a payload and a sign bit,
+  columns in custom data and in an `any` param, a table and a deep tree; its columns are short (at most 8 values).
 - **Where a column is plain and where tagged**: given the language (`language`, `languages` options), an encoder writes
   a column in a declared column param (a table's declared columns included; `declaredColumnPlaces`) as a plain list,
   which normalization types on read. Every other column (in `custom`, an `any` param, an undeclared table column, or all
@@ -185,6 +187,32 @@ quantities need no quotes, and no units table is needed to read them (locations-
   default); past it a column is elided in a brace form, `{float32 × 3,000,000: 0.5 0.5 … …}`, which no value reads as
   (braces are reserved) and the reader refuses (`repr.codec.sexpr.elided`). Data forms are read as such when the reader
   is told their kinds (`dataForms`).
+- **MessagePack** (`codecs/msgpack`, `MsgPackCodec`, a `Codec<Uint8Array>`), on `data/msgpack`'s `encodeMsgPack` and
+  `decodeMsgPack`/`parseMsgPackValue` and their extension hooks. A node is a map
+  `{ kind, id?, params?, custom?, children?, args? }` (keys in that order), a list an array, a record a map without
+  `kind`: JSON's shape, so `json(msgpack(x))` is `json(x)`; a reader tells the encodings apart by the first byte (a map,
+  never `{`). What MessagePack lacks is an extension (type, payload): `0x10` NaN, ±Infinity, -0 (one byte: 0 NaN, 1
+  +Infinity, 2 -Infinity, 3 -0); `0x11`–`0x18` a typed column (the elements' bytes, little-endian: int8, uint8, int16,
+  uint16, int32, uint32, float32, float64); `0x19` a category column (u32 dictionary size; each entry a u32 byte length
+  and its UTF-8; the int32 codes); `0x1a` a bigint (its decimal digits). Why: `encodeMsgPack` writes a non-finite number
+  as nil and -0 as 0, and has no bigint; the specials are one byte, being rare. A column is always tagged
+  (`typedColumns: true`).
+  - **Zero copy**: the encoder writes a column's bytes where they are; the wire is little-endian, a big-endian host
+    byte-swaps a copy on both sides (`swapBytes`). The decoder gives a column as a view into its input where the
+    payload's offset is a multiple of the element size, else one copy; never writing into its input, so a float column
+    holding a NaN is copied (the tree makes NaN canonical in a column it owns; a foreign encoder may write a payload). A
+    tree decoded in place shares its input's memory: the caller does not change the input afterwards.
+  - **Reading what is not a tree**: `decode` never throws. Bytes that are not one MessagePack value are
+    `repr.codec.msgpack.syntax` with the offset reached; only the parser's stack overflow is `repr.tree.depth_exceeded`;
+    a key given twice is `repr.codec.msgpack.duplicate_key`, a key not a string `repr.codec.msgpack.key_type` (a second
+    pass finds them, the decoder keeping the last and stringifying), each with offset and path. A decoded value that is
+    no tree has the JSON codec's issues (a `bin` is no column: only an extension the decoder made is; a malformed
+    extension is `repr.tree.value.tag`). Strings are read as values (a leading U+FEFF kept), the extensions' UTF-8
+    strict; encoding refuses a lone surrogate (it throws): UTF-8 cannot hold it.
+  - **The column extensions for a plain value** (`msgPackColumnDecoder`, a `MsgPackExtDecoder`): `0x10` and
+    `0x11`–`0x19` read as above, a payload that does not read throws, any other type is the decoder's `{ type, data }`;
+    maps stay maps, never nodes. Why: a reader of records (a table as MessagePack) keeps typed columns without the
+    tree's meaning of `kind`.
 
 ## Builder
 
@@ -369,10 +397,12 @@ quantities need no quotes, and no units table is needed to read them (locations-
 `_test/` per folder, quick lane: the tree (hash pinned to meso\*'s, columns, atoms), addresses (grammar round trip,
 issues, selection, resolvers), the schema (every misuse by code, severity and address; columns and tables;
 normalization; units hook; docs), both codecs through the conformance suite and their own cases, the builder (normalized
-output, handles, ownership, runtime errors, `@ts-expect-error` misuse), the issue catalog against the sources, and a
-short seeded fuzz of the three readers (never a throw, always a tree or issues). Patches: the conformance suite, net
-`Changes`, structural sharing, issue paths, the patch tree's round trip, and diff's three laws as seeded property tests
-(without a language, and with one on valid trees with dangling and rebinding allowed); the child index. Merge: its laws
-as seeded property tests (`merge3(b, x, b)` and `merge3(b, x, x)` are `x`, `merge3(b, b, y)` is `y`, symmetry without
-conflicts up to one-side siblings' order, every `partial` valid), every conflict kind both ways round, dependents,
-placement, orders, `invalid`, a rebase, and its result consumed by `applyPatch` and `diff`.
+output, handles, ownership, runtime errors, `@ts-expect-error` misuse), MessagePack (conformance, every column type,
+alignment, malformed input, keys, BOM, surrogates, the plain-value hook; decode throughput in the heavy lane: columns at
+least 200 MB/s, a node-heavy document guarded at 20 MB/s), the issue catalog against the sources, and a short seeded
+fuzz of the three readers (never a throw, always a tree or issues). Patches: the conformance suite, net `Changes`,
+structural sharing, issue paths, the patch tree's round trip, and diff's three laws as seeded property tests (without a
+language, and with one on valid trees with dangling and rebinding allowed); the child index. Merge: its laws as seeded
+property tests (`merge3(b, x, b)` and `merge3(b, x, x)` are `x`, `merge3(b, b, y)` is `y`, symmetry without conflicts up
+to one-side siblings' order, every `partial` valid), every conflict kind both ways round, dependents, placement, orders,
+`invalid`, a rebase, and its result consumed by `applyPatch` and `diff`.
