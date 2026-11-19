@@ -424,6 +424,8 @@ and dark before the merge.
       decisions (`briefs/dr-drafts-revision.md`).
 - [ ] LL (fast, next free slot; the author, 2026-11-19: "Inside if it fits, else beside") item labels by one rule in
       rings and linear tracks; the origin-crossing extent in the hover card (`briefs/ll-labels-and-extent.md`).
+- [ ] UN (fast, after CF; the author, 2026-11-19: "'not numbered' as default", customizable) a ruler past its
+      numbering's reach: `unnumbered: mark | fallback` (`briefs/un-unnumbered.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

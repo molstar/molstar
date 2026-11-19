@@ -127,6 +127,15 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   the tick step: 7,668,402 at a base tick, 7.67 Mb at a megabase one), formatted by `@molstar/core/util/number`'s
   genomic formatting ([base-library.md](base-library.md)). Why: a writer of a chromosome view says so; never inferred
   from the alphabet. A label in another numbering than ordinal ignores it (its labels are the source's).
+- **Where a numbering does not reach** (decided, the author, 2026-11-19, the Antibody's light chain: Kabat and IMGT
+  number only its variable domain, the rulers blank over the constant one with no word why: "customizable … 'not
+  numbered' as default"): the ruler layer's `unnumbered` param. `mark` (the default): past the numbering's coverage the
+  ruler's line is muted and dashed, one muted note at the start of each unnumbered run ("not numbered", with the
+  numbering's name where the track header does not already say it), no ticks; the hover card and the live region there
+  say the sequence position and "not numbered by Kabat". `fallback` with `fallbackNumbering` (a numbering's name;
+  ordinal by default): the run is labelled by that numbering in the muted style, so the reader tells the two apart.
+  Why: a blank is read as a bug; a fallback numbering is the writer's choice, never a silent default (its numbers are
+  not the scheme's).
 - **Complement** (spec, the `letters` layer's `complement`): `auto` (the default, decided) draws a nucleotide
   as its complement when it is read against its strand on screen: the axis's direction times its path run's direction is
   −1. So a reversed DNA axis shows the other strand read 5′ to 3′, and an inverted run of a one-to-one map shows the
@@ -260,6 +269,7 @@ Cells this design fills or changes ([ux-foundations.md](ux-foundations.md), sect
 |---|---|---|---|
 | `section.direction` | spec param | `follow` for a follower, else `genomic` | decided defaults, by the section's own `follow` param, never inferred from layers; `genomic`, `reversed`, `{ along }` |
 | `layer.units` (ruler) | spec param | `none` | plain, never inferred from the alphabet; `bases` (bp, kb, Mb by the tick step) |
+| `layer.unnumbered` (ruler) | spec param | `mark` | a blank past a numbering reads as a bug; `fallback` with `layer.fallbackNumbering` (ordinal by default), muted |
 | `section.pieces` | spec param | `whole` (every section, followers included: decided) | the application drives the composition; `coding`, refs (their union) |
 | `section.collapsed` | spec param | `coding` | the form `section.collapse` switches to; a ref or a list |
 | `section.pad` | spec param | 0 | the pieces as they are; n positions each side (splice sites, UCSC) |

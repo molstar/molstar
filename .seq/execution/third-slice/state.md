@@ -390,3 +390,6 @@ None.
   reserved only where a rail is drawn, never in an export; CF makes it so, then merges. CE reported (a caret at split
   copies, `seq.render.pairs.copy`; no look yet): under independent review. RX reported (five parts, all checks): waits
   for CF's merge to rebase (both move the rows' zoom bounds and touch rail.ts), then review.
+- Decided (the author, 2026-11-19, Antibody's light chain: the rulers blank over the constant domain; "customizable,
+  … 'not numbered' as default"): the ruler's `unnumbered: mark | fallback` (axis.md, the Design page); lane UN (fast)
+  after CF. The cut CDR labels in the same view are LL's. Use findings: bug 6, missing design 6, look 4.
