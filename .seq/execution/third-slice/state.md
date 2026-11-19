@@ -248,3 +248,9 @@ None.
   and requested, the label skip, the text guard by name; `setLengths`, `lengthsEqual`, `StaticModel.lengths`,
   `RowsReader` gone; `mapsEqual` added to `@molstar/core/util/map`). No conflicts with TW. Quick 2553 (DP's `it.fails`
   now passes), medium 9, perf 127, workspace green. DA running; the strong queue is empty after it.
+- DA merged after its review round (the against view said to be the edit list's alignment, SAbDab's licence field and
+  the entry that picks its segments recorded, the design's rules marked unchecked, `kabatFromImgt` refusing another
+  framework occupancy, the record script running from built `lib/` for every dataset; core: a headless export opens a
+  ruler's numbering source). examples.md corrected: IMGT from SAbDab, Kabat derived from IMGT, ANARCI later. Quick
+  2594, medium 9, workspace green. Sizes: reading 211.2, headless 676.7, viewer default 1063.6, minimal 999.6 kB.
+  Stage 5's gate passed; stage 6: the NOVICE PASS next.

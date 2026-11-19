@@ -341,7 +341,7 @@ and dark before the merge.
       query by key on an alignment read from a source (`seq.query.row.unknown`: QS's example uses four inline rows);
       (8) the text layout's `chrome` never throws on an alignment source not yet open (`render/layout/text.ts`,
       `p.marks` undefined).
-- [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
+- [x] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). FS-A2 owns
       `record.ts`, DG the `sources.json` test; each lane records its published files trimmed where the core reads them
@@ -370,7 +370,8 @@ and dark before the merge.
       this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DC writes ATP's two forms (one position, its atoms)
       without a map (0.4.0 has only offset and codon maps; MD's gap 9), and DT its tRNA's modified
       nucleotides as their parents' letters (the components kept in the fixture for the fourth slice), changed once then.
-- [ ] GATE: merged, reviewed, the checks green, sizes, gaps; MD's design decided (done early: agreed 2026-11-19,
+- [x] GATE (2026-11-19, after DA: quick 2594, medium 9, workspace green; sizes 211 / 677 / 1064 / 1000 kB, over
+      target as stage 7 records; gaps in followups): merged, reviewed, the checks green, sizes, gaps; MD's design decided (done early: agreed 2026-11-19,
       `.seq/design/molecules.md`).
 
 ### Stage 6: output, accessibility and use

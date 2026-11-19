@@ -49,3 +49,7 @@
 - CY's leftovers: the label skip's time gain measured (the heavy frame-time lane has the scenario); a viewer test of a
   row request through `AddressModel`; `seq.resolve.length.unknown` before open quieter in the viewer; the 4 px
   arrowhead and the narrow-label constants in the config; Shift+drag across the origin (DP).
+- DA's leftovers: the ANARCI oracle recorded by hand (the design's two rules checked); EC-29's indel carets (a map
+  carrying insertions and deletions between two sequences, with 0.5.0's maps); short CDR labels at the fit view (H1
+  by Kabat, L1 and L2 by IMGT); IMGT 112.1 never on the ruler at the closest zoom (three insertion labels a residue
+  apart); the against view's gaps faint at the fit.

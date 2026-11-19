@@ -25,3 +25,8 @@
   dragged rect split at them, the crosshair edged in the hover's ink; `gridSummary(view, rect)` (mean, min, max,
   count, each cell once, a triangle layer's half). A track's "n filtered" chip goes under its label when the track is
   tall enough.
+- Antibody: trastuzumab's Fab (PDB 1N8Z, CC0) with SAbDab's IMGT numbering (CC BY 4.0, its licence field recorded)
+  and Kabat derived from it (a framework of another occupancy refused), read as declared numberings from files; a
+  generated design with indels (IMGT's 111.1 and 112.1 before 112; its numbering this generator's rule, ANARCI's check
+  later); Kabat and IMGT rulers side by side with hover in both, a ruler-scheme edit, the design against the wild type,
+  CDR bookmarks with undo and their list. A headless export opens the source of a numbering a ruler shows.
