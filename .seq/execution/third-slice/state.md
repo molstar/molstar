@@ -61,8 +61,16 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 ## In progress
 
-- PG (strong) and NV (strong): pairs and grids, navigators (`briefs/pg-pairs-grids.md`, `nv-navigators.md`), base
-  `51787bb2b`; started 2026-11-19 by the new orchestrator session.
+- PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
+  orchestrator: PG green (unit 1433); NV green but heavy, whose two failures (rows-time's theme change, themes' 1.1×
+  ratio) also fail on `packages-seq` under load and pass alone on NV: flaky bounds, to stage 4's gate. Reviews running
+  (independent, opus). The look's findings for the fix rounds:
+  - PG: tRNA arcs spring from the band's foot, away from the letters, feet clipped; the RNA legend says T (not U) and
+    shows a gap swatch; dot plots not square (`aspect` 1); the generated PAE mostly low with a high stripe (the design:
+    low across the interface, high elsewhere); contacts dots barely visible in dark. The crosshair works.
+  - NV: no Storybook stories for its five views (the brief asked); the idle rail at the fit view a heavy rule (the
+    design: quiet); the SVG export draws a line where the rail is (NV: omitted by default) — check against the base.
+  - Sizes: headless 573 (PG) / 566 (NV) kB and the viewer 879 / 890 kB against the 300 / 600 kB guides.
 
 ## Next
 
