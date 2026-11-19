@@ -165,7 +165,7 @@ and dark before the merge.
       binned, continuous and log, rules), the residue schemes, legends as parts a host places, shared domains, size
       channels, `layer.filter` with its chip; the `@molstar/core` color additions (a base-library change: its agreed
       surface is the design's list); the themes view.
-- [ ] SL (fast, beside TH) the small layers: the ruler and its `numbering` (insertion codes as minor ticks),
+- [x] SL (fast, beside TH) the small layers: the ruler and its `numbering` (insertion codes as minor ticks),
       secondary structure, variants, values' line and area, ranges' line styles and arrowheads; each with its fallback.
 - [ ] GATE: merged, reviewed, the checks green, sizes measured (headless rendering's room, Gate 0's question), gaps
       asked, the matrix cells this stage fills checked.
